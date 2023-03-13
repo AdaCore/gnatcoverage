@@ -28,7 +28,6 @@ with Interfaces;
 with GNAT.OS_Lib;
 
 with Langkit_Support.Symbols;
-with Langkit_Support.Text;
 with Libadalang.Common;
 with Libadalang.Config_Pragmas;
 with Libadalang.Sources;
@@ -53,28 +52,6 @@ package body Instrument.Common is
    procedure Remove_Warnings_And_Style_Checks_Pragmas
      (Rewriter : Source_Rewriter);
    --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit
-
-   type Missing_Src_Reporter is new Libadalang.Analysis.Event_Handler_Interface
-   with record
-      Reported_Files : String_Sets.Set;
-      --  Set of source file names which were already reported as missing.
-      --  Libadalang does not guarantee that the Unit_Requested event is
-      --  triggered only once per source, so de-duplicate events with this set.
-   end record;
-   --  Implementation of the Libadalang event handler interface used in
-   --  Create_Missing_File_Reporter.
-
-   overriding procedure Release (Self : in out Missing_Src_Reporter) is null;
-
-   overriding procedure Unit_Requested_Callback
-     (Self               : in out Missing_Src_Reporter;
-      Context            : Libadalang.Analysis.Analysis_Context'Class;
-      Name               : Langkit_Support.Text.Text_Type;
-      From               : Libadalang.Analysis.Analysis_Unit'Class;
-      Found              : Boolean;
-      Is_Not_Found_Error : Boolean);
-   --  If the requested unit is not found and that is an error, warn about it.
-   --  Make sure we warn only once about a given source file.
 
    procedure Create_LAL_Context (IC : in out Inst_Context);
    --  Create a new Libadalang analysis context for IC, assigning it to
@@ -750,24 +727,24 @@ package body Instrument.Common is
          N : constant Unbounded_String := To_Unbounded_String
            (Ada.Directories.Simple_Name (Langkit_Support.Text.Image (Name)));
       begin
-         if not Self.Reported_Files.Contains (N) then
-            Self.Reported_Files.Include (N);
-            Warn ("Cannot find required source file: " & To_String (N));
+         if Self.Reported_Files.Contains (N) then
+            return;
          end if;
+
+         --  If we have not done it yet, clarify which file we were
+         --  instrumenting when we noticed that the source file N was missing.
+
+         if Length (Self.Instrumented_File) > 0 then
+            Warn ("While instrumenting "
+                  & To_String (Self.Instrumented_File)
+                  & "...");
+            Self.Instrumented_File := Null_Unbounded_String;
+         end if;
+
+         Self.Reported_Files.Include (N);
+         Warn ("Cannot find required source file: " & To_String (N));
       end;
    end Unit_Requested_Callback;
-
-   ----------------------------------
-   -- Create_Missing_File_Reporter --
-   ----------------------------------
-
-   function Create_Missing_File_Reporter
-     return Libadalang.Analysis.Event_Handler_Reference
-   is
-   begin
-      return Create_Event_Handler_Reference
-        (Missing_Src_Reporter'(others => <>));
-   end Create_Missing_File_Reporter;
 
    --------------
    -- Next_Bit --

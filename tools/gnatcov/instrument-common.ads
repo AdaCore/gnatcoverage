@@ -61,6 +61,7 @@ with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
+with Langkit_Support.Text;
 with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
 
@@ -368,11 +369,34 @@ package Instrument.Common is
    --  this could mean that instrumentation breaks the build. When written at
    --  the very beginning of each written source, these pragmas avoid this.
 
-   function Create_Missing_File_Reporter
-     return Libadalang.Analysis.Event_Handler_Reference;
-   --  Create an event handler to warn about source files that Libadalang needs
-   --  to perform semantic analysis (so mandated by Ada), but which are not
-   --  available.
+   type Missing_Src_Reporter is new Libadalang.Analysis.Event_Handler_Interface
+   with record
+      Instrumented_File : Unbounded_String;
+      --  Base name for the file that is currently instrumented. Reset to the
+      --  empty string everytime we print the "While instrumenting XXX ..."
+      --  message, so that we print it at most once per instrumented file.
+
+      Reported_Files : String_Sets.Set;
+      --  Set of source file names which were already reported as missing.
+      --  Libadalang does not guarantee that the Unit_Requested event is
+      --  triggered only once per source, so de-duplicate events with this set.
+   end record;
+   --  Implementation of the Libadalang event handler interface used in
+   --  Create_Missing_File_Reporter.
+
+   type Missing_Src_Reporter_Access is access all Missing_Src_Reporter;
+
+   overriding procedure Release (Self : in out Missing_Src_Reporter) is null;
+
+   overriding procedure Unit_Requested_Callback
+     (Self               : in out Missing_Src_Reporter;
+      Context            : Libadalang.Analysis.Analysis_Context'Class;
+      Name               : Langkit_Support.Text.Text_Type;
+      From               : Libadalang.Analysis.Analysis_Unit'Class;
+      Found              : Boolean;
+      Is_Not_Found_Error : Boolean);
+   --  If the requested unit is not found and that is an error, warn about it.
+   --  Make sure we warn only once about a given source file.
 
    -------------------------
    -- Source instrumenter --
