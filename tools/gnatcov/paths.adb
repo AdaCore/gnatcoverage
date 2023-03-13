@@ -179,8 +179,17 @@ package body Paths is
                      I := End_Cur;
                   end if;
                end;
-            when '\' =>
-               Append (Res, '/');
+
+            when '/' | '\' =>
+
+               --  De-duplicate directory separators so that "a//b" can match
+               --  "a/b".
+
+               if Length (Res) = 0 or else Element (Res, Length (Res)) /= '/'
+               then
+                  Append (Res, '/');
+               end if;
+
             when others =>
                Append (Res, Quote ("" & Pat (I)));
          end case;
