@@ -1,5 +1,9 @@
 with System;
 
+--  Provide a last_chance_handler for tests that trigger an unhandled
+--  exception on purpose. The handler arranges not to output a message
+--  and to terminate with a status code indicating success.
+
 package Silent_Last_Chance is
 
    Unexpected_Last_Chance_Call : Integer := 0;
