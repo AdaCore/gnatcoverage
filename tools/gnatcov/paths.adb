@@ -198,6 +198,25 @@ package body Paths is
       return To_String (Res);
    end Glob_To_Regexp;
 
+   --------------------------
+   -- Normalize_For_Regexp --
+   --------------------------
+
+   function Normalize_For_Regexp (Filename : String) return String is
+   begin
+      return Result : String := Canonicalize_Filename (Filename) do
+         if On_Windows then
+            for C of Result loop
+               if C = '\' then
+                  C := '/';
+               else
+                  C := Ada.Characters.Handling.To_Lower (C);
+               end if;
+            end loop;
+         end if;
+      end return;
+   end Normalize_For_Regexp;
+
    ----------------------
    -- Is_Absolute_Path --
    ----------------------
