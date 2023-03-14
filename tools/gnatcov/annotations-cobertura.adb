@@ -23,6 +23,7 @@ with Ada.Directories;
 with Ada.Text_IO;              use Ada.Text_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
+with Ada.Unchecked_Deallocation;
 
 with GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
@@ -35,6 +36,7 @@ with Coverage;         use Coverage;
 with Coverage_Options; use Coverage_Options;
 with Coverage.Source;  use Coverage.Source;
 with Outputs;          use Outputs;
+with Paths;
 with Support_Files;
 with Switches;         use Switches;
 with Version;
@@ -44,26 +46,26 @@ package body Annotations.Cobertura is
    DTD_Basename : constant String := "cobertura.dtd";
    DTD_Filename : constant String := Support_Files.In_Lib_Dir (DTD_Basename);
 
-   type Pattern_Matcher_Acc is access all GNAT.Regpat.Pattern_Matcher;
+   type Pattern_Matcher_Acc is access all Pattern_Matcher;
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Pattern_Matcher, Pattern_Matcher_Acc);
 
    type Cobertura_Pretty_Printer is new Pretty_Printer with record
-      --  Pretty printer type for the Cobertura annotation format
-
       Report_File : File_Type;
-      --  Cobertura.xml file
+      --  "cobertura.xml" file
 
       Indentation : Natural := 0;
+      --  Indentation for the next XML items to write
 
-      Source_Roots : Pattern_Matcher_Acc;
-      --  Regexp matching a list of prefixes removed in the filenames output
-      --  in the report.
+      Source_Prefix_Pattern : Pattern_Matcher_Acc;
+      --  Regexp matching a source filename prefix to remove in the report.
       --
-      --  This implements gitlab support, which requires paths that are
-      --  relative to the project gitlab repository, and not fullnames. The
-      --  user is supposed to pass one or several source roots through the
-      --  --source-roots option.
-
+      --  This is needed to support coverage reports in GitLab pipelines, which
+      --  require filenames to be relative to the root of the tested
+      --  repository. GNATcoverage users are supposed to pass the root of this
+      --  repository through the --source-root option.
    end record;
+   --  Pretty printer type for the Cobertura annotation format
 
    type Rate_Type is digits 3;
 
@@ -79,53 +81,54 @@ package body Annotations.Cobertura is
    Report_File_Name : constant String := "cobertura.xml";
 
    function A (Name : String; Value : String) return String;
-   --  Return a string representing an xml attribute whose name
-   --  and value are given in parameter, i.e. Name = "Value".
+   --  Return a string representing an xml attribute whose name and value are
+   --  given in parameter, i.e. Name = "Value".
 
    procedure T
      (Pp         : in out Cobertura_Pretty_Printer'Class;
       Name       : String;
       Attributes : String);
-   --  Print a string representing an empty tag whose name and
-   --  attributes are given in parameter, i.e. <Name Attributes/>.
+   --  Print a string representing an empty tag whose name and attributes are
+   --  given in parameter, i.e. <Name Attributes/>.
 
    procedure ST
      (Pp         : in out Cobertura_Pretty_Printer'Class;
       Name       : String;
       Attributes : String);
-   --  Print a string representing a start tag whose name and attributes
-   --  are given in parameter, i.e. <Name Attributes>.
+   --  Print a string representing a start tag whose name and attributes are
+   --  given in parameter, i.e. <Name Attributes>.
 
    procedure ST
      (Pp   : in out Cobertura_Pretty_Printer'Class;
       Name : String);
-   --  Same as ST, with no attributes.
+   --  Same as ST, with no attributes
 
    procedure ET
      (Pp   : in out Cobertura_Pretty_Printer'Class;
       Name : String);
-   --  Print a string representing an end tag whose name is given
-   --  in parameter, i.e. </Name>.
+   --  Print a string representing an end tag whose name is given in parameter,
+   --  i.e. </Name>.
 
    -----------------------------------------------------
    -- Cobertura_Pretty_Printer's primitive operations --
    --    (inherited from Pretty_Printer)              --
    -----------------------------------------------------
 
-   procedure Pretty_Print_Start
+   overriding procedure Pretty_Print_Start
      (Pp : in out Cobertura_Pretty_Printer);
 
-   procedure Pretty_Print_End
+   overriding procedure Pretty_Print_End
      (Pp : in out Cobertura_Pretty_Printer);
 
-   procedure Pretty_Print_Start_File
+   overriding procedure Pretty_Print_Start_File
      (Pp   : in out Cobertura_Pretty_Printer;
       File : Source_File_Index;
       Skip : out Boolean);
 
-   procedure Pretty_Print_End_File (Pp : in out Cobertura_Pretty_Printer);
+   overriding procedure Pretty_Print_End_File
+     (Pp : in out Cobertura_Pretty_Printer);
 
-   procedure Pretty_Print_Start_Line
+   overriding procedure Pretty_Print_Start_Line
      (Pp       : in out Cobertura_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
@@ -161,10 +164,9 @@ package body Annotations.Cobertura is
    --  instrumented / non-coverable obligations.
    --
    --  We choose to represent decisions in the branch terminology that
-   --  cobertura uses: a decision yields two branches. If it is
-   --  not covered, neither branch is covered; if it is partially
-   --  covered, one of the branch is; if it is fully covered, the two
-   --  branches are.
+   --  cobertura uses: a decision yields two branches. If it is not covered,
+   --  neither branch is covered; if it is partially covered, one of the branch
+   --  is; if it is fully covered, the two branches are.
 
    ---------------
    -- Installed --
@@ -179,8 +181,7 @@ package body Annotations.Cobertura is
    -- Img --
    ---------
 
-   function Img (R : Rate_Type) return String
-   is
+   function Img (R : Rate_Type) return String is
       package Float_IO is new Ada.Text_IO.Float_IO (Rate_Type);
       Result : String (1 .. 8);
    begin
@@ -219,36 +220,30 @@ package body Annotations.Cobertura is
    ---------------------
 
    procedure Generate_Report (Context : Coverage.Context_Access) is
-      use String_Vectors;
-
       Pp : Cobertura_Pretty_Printer :=
-        (Need_Sources => True,
-         Context      => Context,
-         others       => <>);
+        (Need_Sources          => True,
+         Context               => Context,
+         Source_Prefix_Pattern => null,
+         others                => <>);
 
-      Source_Roots         : String_Vectors.Vector renames
-        Args.String_List_Args (Opt_Source_Roots);
-      Source_Roots_Regexp  : Unbounded_String;
-      Flags                : constant Regexp_Flags :=
-        (if GNAT.OS_Lib.Directory_Separator = '\'
-         then Case_Insensitive
-         else No_Flags);
-      --  See Pp.Source_Roots for more documentation
+      --  If --source-root was passed, turn it into the corresponding prefix
+      --  matcher. Append a directory separator so that "/prefix/basename"
+      --  always becomes "basename" instead of "/basename" regardless of
+      --  whether the prefix is "/prefix" or "/prefix/".
 
+      Opt : Parser.String_Option renames Args.String_Args (Opt_Source_Root);
    begin
-      Append (Source_Roots_Regexp, "(?:");
-      for Cur in Source_Roots.Iterate loop
-         Append (Source_Roots_Regexp, Element (Cur));
-         if Cur /= Source_Roots.Last then
-            Append (Source_Roots_Regexp, "|");
-         end if;
-      end loop;
-      Append (Source_Roots_Regexp, ")");
+      if Opt.Present then
+         declare
+            Prefix : constant String := +Opt.Value & "/";
+         begin
+            Pp.Source_Prefix_Pattern :=
+              new Pattern_Matcher'(Compile (Paths.Glob_To_Regexp (Prefix)));
+         end;
+      end if;
 
-      Pp.Source_Roots :=
-        new Pattern_Matcher'
-          (Compile (+Source_Roots_Regexp, Flags));
       Annotations.Generate_Report (Pp, True, Subdir => "cobertura");
+      Free (Pp.Source_Prefix_Pattern);
    end Generate_Report;
 
    -------
@@ -268,8 +263,7 @@ package body Annotations.Cobertura is
    -- Pretty_Print_End --
    ----------------------
 
-   procedure Pretty_Print_End
-     (Pp : in out Cobertura_Pretty_Printer)
+   overriding procedure Pretty_Print_End (Pp : in out Cobertura_Pretty_Printer)
    is
    begin
       Pp.ET ("packages");
@@ -281,7 +275,8 @@ package body Annotations.Cobertura is
    -- Pretty_Print_End_File --
    ---------------------------
 
-   procedure Pretty_Print_End_File (Pp : in out Cobertura_Pretty_Printer) is
+   overriding procedure Pretty_Print_End_File
+     (Pp : in out Cobertura_Pretty_Printer) is
    begin
       Pp.ET ("lines");
       Pp.ET ("class");
@@ -315,8 +310,7 @@ package body Annotations.Cobertura is
      (Ob_Stats         : Ob_Stat_Array;
       Branches_Valid   : out Natural;
       Branches_Covered : out Natural;
-      Branch_Rate      : out Rate_Type)
-   is
+      Branch_Rate      : out Rate_Type) is
    begin
       Branches_Valid :=
         Ob_Stats (Decision).Stats (Covered)
@@ -337,7 +331,8 @@ package body Annotations.Cobertura is
    -- Pretty_Print_Start --
    ------------------------
 
-   procedure Pretty_Print_Start (Pp : in out Cobertura_Pretty_Printer)
+   overriding procedure Pretty_Print_Start
+     (Pp : in out Cobertura_Pretty_Printer)
    is
       Success   : Boolean;
       Timestamp : constant String :=
@@ -402,7 +397,7 @@ package body Annotations.Cobertura is
    -- Pretty_Print_Start_File --
    -----------------------------
 
-   procedure Pretty_Print_Start_File
+   overriding procedure Pretty_Print_Start_File
      (Pp   : in out Cobertura_Pretty_Printer;
       File : Source_File_Index;
       Skip : out Boolean)
@@ -417,9 +412,11 @@ package body Annotations.Cobertura is
       Branches_Valid, Branches_Covered : Natural;
       Branch_Rate                      : Rate_Type;
 
-      Adjusted_Filename : Unbounded_String := +Info.Full_Name.all;
-      --  This is the full filename with prefix from --source-roots removed
-
+      Filename       : String renames Info.Full_Name.all;
+      Filename_Start : Positive := Filename'First;
+      --  Filename, plus the lower bound for what is included in the report.
+      --  Setting that lower bound is used to implement source prefix
+      --  stripping: see Cobertura_Pretty_Printer.
    begin
       if not Info.Has_Source then
          Skip := True;
@@ -439,18 +436,17 @@ package body Annotations.Cobertura is
 
       --  Remove the source root prefix
 
-      declare
-         Match_Res : GNAT.Regpat.Match_Array (0 .. 0);
-      begin
-         GNAT.Regpat.Match
-           (Pp.Source_Roots.all, +Adjusted_Filename, Match_Res);
-         if Match_Res (0) /= GNAT.Regpat.No_Match then
-            Adjusted_Filename := Unbounded_Slice
-              (Adjusted_Filename,
-               Match_Res (0).Last + 1,
-               Positive (Length (Adjusted_Filename)));
-         end if;
-      end;
+      if Pp.Source_Prefix_Pattern /= null then
+         declare
+            Matches : GNAT.Regpat.Match_Array (0 .. 0);
+         begin
+            GNAT.Regpat.Match
+              (Pp.Source_Prefix_Pattern.all, Filename, Matches);
+            if Matches (0) /= GNAT.Regpat.No_Match then
+               Filename_Start := Matches (0).Last + 1;
+            end if;
+         end;
+      end if;
 
       Pp.ST ("package",
              A ("name", Simple_Source_Filename)
@@ -460,7 +456,7 @@ package body Annotations.Cobertura is
       Pp.ST ("classes");
       Pp.ST ("class",
              A ("name", Simple_Source_Filename)
-             & A ("filename", +Adjusted_Filename)
+             & A ("filename", Filename (Filename_Start .. Filename'Last))
              & A ("line-rate", Img (Line_Rate))
              & A ("branch-rate", Img (Branch_Rate))
              & A ("complexity", "-1"));
@@ -473,7 +469,7 @@ package body Annotations.Cobertura is
    -- Pretty_Print_Start_Line --
    -----------------------------
 
-   procedure Pretty_Print_Start_Line
+   overriding procedure Pretty_Print_Start_Line
      (Pp       : in out Cobertura_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
@@ -492,8 +488,8 @@ package body Annotations.Cobertura is
                Element_Type => Coverage_Line_State);
 
             Hit : Natural := 0;
-            --  Whether the line was covered or not. Cobertura enables
-            --  counting the number of coverage hits; we don't.
+            --  Whether the line was covered or not. Cobertura enables counting
+            --  the number of coverage hits; we don't.
 
             Has_Decision : Boolean := False;
             --  Whether there is a decision on the current line
@@ -514,7 +510,7 @@ package body Annotations.Cobertura is
 
             --  Start by getting all of the decisions present on this line.
             --  Note that there can be no SCOs for the line if using binary
-            --  traces with the insn coverage level. TODO???: is this really
+            --  traces with the insn coverage level. TODO??? Is this really
             --  something we want to support?
 
             if Info.SCOs /= null then

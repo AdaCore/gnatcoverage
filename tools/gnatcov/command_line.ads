@@ -120,7 +120,8 @@ package Command_Line is
       Opt_RTS_Profile,
       Opt_Path_Count_Limit,
       Opt_Install_Name,
-      Opt_Runtime_Project);
+      Opt_Runtime_Project,
+      Opt_Source_Root);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -144,8 +145,7 @@ package Command_Line is
       Opt_Restricted_To_Languages,
       Opt_Annotation_Format,
       Opt_C_Opts,
-      Opt_CPP_Opts,
-      Opt_Source_Roots);
+      Opt_CPP_Opts);
    --  Set of string list options we support. More complete descriptions below.
 
    package Parser is new Argparse
@@ -876,7 +876,17 @@ package Command_Line is
            & " ""gnatcov_rts"".",
          Commands     => (Cmd_Instrument => True, others => False),
          At_Most_Once => False,
-         Internal     => False)
+         Internal     => False),
+
+      Opt_Source_Root => Create
+        (Long_Name    => "--source-root",
+         Pattern      => "PATH",
+         Help         =>
+           "Option specific to the Cobertura coverage report: remove the"
+           & " specified prefix from the filenames in the report.",
+         Commands     => (Cmd_Coverage => True, others => False),
+         At_Most_Once => True,
+         Internal     => True)
      );
 
    String_List_Infos : constant String_List_Option_Info_Array :=
@@ -1099,16 +1109,7 @@ package Command_Line is
              "List of additional compiler switches to analayze C++ source"
              & " files.",
            Commands     => (Cmd_Instrument => True, others => False),
-           Internal     => False),
-
-      Opt_Source_Roots => Create
-        (Long_Name => "--source-roots",
-         Pattern   => "[PATH|LIST]",
-         Help      =>
-           "Option specific to the Cobertura coverage report: remove the"
-           & " specified prefixes from the filenames in the report",
-         Commands  => (Cmd_Coverage => True, others => False),
-         Internal  => True)
+           Internal     => False)
      );
 
    procedure Bool_Callback

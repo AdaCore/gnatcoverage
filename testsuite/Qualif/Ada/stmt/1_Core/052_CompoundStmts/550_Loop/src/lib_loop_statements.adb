@@ -17,8 +17,8 @@ package body Lib_Loop_Statements is
    
 begin
    N := 0; -- # elab
-   while N < Lib_Init.N1 loop -- # test-init
-      Values (Values'First + N + 1) := 1; -- # init
-      N := N + 1;                        -- # init
+   while N < Lib_Init.N1 loop         -- # test-init
+      N := N + 1;                     -- # init
+      Values (Values'First + N) := 1; -- # init
    end loop;
 end;
