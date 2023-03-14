@@ -68,6 +68,11 @@ package body Instrument is
       Ignored : Boolean;
    end record;
 
+   function "<" (Left, Right : CU_Name_With_Ignore) return Boolean
+   is (if Left.Name = Right.Name
+       then Left.Ignored < Right.Ignored
+       else Left.Name < Right.Name);
+
    package CU_Name_Vectors is new Ada.Containers.Vectors
      (Positive, CU_Name_With_Ignore);
 
@@ -528,13 +533,17 @@ package body Instrument is
       for Cur in LU_Map.Iterate loop
 
          --  Instrument compilation units (only the ones this library unit
-         --  owns).
+         --  owns). Sort them first, so that the instrumentation order is
+         --  deterministic.
 
          declare
+            package Sorting is new CU_Name_Vectors.Generic_Sorting;
+
             LU_Info              : constant Library_Unit_Info_Access :=
                Library_Unit_Maps.Element (Cur);
             All_Externally_Built : Boolean := True;
          begin
+            Sorting.Sort (LU_Info.CU_Names);
             for CU of LU_Info.CU_Names loop
                if CU.Ignored then
                   declare
