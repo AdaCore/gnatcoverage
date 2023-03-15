@@ -53,6 +53,12 @@ package Paths is
    --  Convert the provided globbing Pattern to a regular expression.  This
    --  might be used for file name or unit name patterns.
 
+   function Normalize_For_Regexp (Filename : String) return String;
+   --  Assuming Filename is a full pathname to a file, return a normalized
+   --  version of it that is suitable to match against patterns created with
+   --  Glob_To_Regexp: de-duplicated directory separators, backslashes
+   --  converted to forward slashes, case folded for Windows pathnames.
+
    function Is_Absolute_Path (Path : String) return Boolean;
    --  Return whether Path is an absolute path. Unlike the GNAT runtime version
    --  of the service, this one always matches both Windows or Unix file path

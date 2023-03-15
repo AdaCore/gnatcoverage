@@ -198,6 +198,25 @@ package body Paths is
       return To_String (Res);
    end Glob_To_Regexp;
 
+   --------------------------
+   -- Normalize_For_Regexp --
+   --------------------------
+
+   function Normalize_For_Regexp (Filename : String) return String is
+   begin
+      return Result : String := Canonicalize_Filename (Filename) do
+         if On_Windows then
+            for C of Result loop
+               if C = '\' then
+                  C := '/';
+               else
+                  C := Ada.Characters.Handling.To_Lower (C);
+               end if;
+            end loop;
+         end if;
+      end return;
+   end Normalize_For_Regexp;
+
    ----------------------
    -- Is_Absolute_Path --
    ----------------------
@@ -250,44 +269,41 @@ package body Paths is
    -------------------------------
 
    function Normalize_Windows_Pattern (Pattern : String) return String is
-   begin
-      --  Force lower case and Backslashify, paying attention not to
-      --  add multiple backslashes in a row.
 
+      --  Force lower case and Backslashify, paying attention not to add
+      --  multiple backslashes in a row.
+      --
       --  Folding to all lower case maximizes the mapping unicity from
       --  different casing on input, notably useful for path components that
       --  might be coming from the command line, e.g. as a --source-rebase
       --  argument.
+      --
+      --  At least for dirsep purposes, we craft the new value incrementally.
 
-      declare
-         --  At least for dirsep purposes, we craft the new value
-         --  incrementally.
+      use Ada.Strings.Unbounded;
+      use Ada.Characters.Handling;
+      Res : Unbounded_String;
 
-         use Ada.Strings.Unbounded;
-         use Ada.Characters.Handling;
-         Res : Unbounded_String;
+      Newchar    : Character;
+      New_Is_Sep : Boolean;
+      --  The new character we take from Pattern, and whether it
+      --  is a dir separator.
 
-         Newchar    : Character;
-         New_Is_Sep : Boolean;
-         --  The new character we take from Pattern, and whether it
-         --  is a dir separator.
+      Last_Was_Sep : Boolean := False;
+      --  Whether the last character we added to our result was a dir
+      --  separator.
+   begin
+      for I in Pattern'Range loop
+         Newchar := (if Pattern (I) = '/' then '\' else Pattern (I));
+         New_Is_Sep := Newchar = '\';
 
-         Last_Was_Sep : Boolean := False;
-         --  Whether the last character we added to our result was a dir
-         --  separator.
-      begin
-         for I in Pattern'Range loop
-            Newchar := (if Pattern (I) = '/' then '\' else Pattern (I));
-            New_Is_Sep := Newchar = '\';
+         if not New_Is_Sep or else not Last_Was_Sep then
+            Append (Res, To_Lower (Newchar));
+            Last_Was_Sep := New_Is_Sep;
+         end if;
+      end loop;
 
-            if not New_Is_Sep or else not Last_Was_Sep then
-               Append (Res, To_Lower (Newchar));
-               Last_Was_Sep := New_Is_Sep;
-            end if;
-         end loop;
-
-         return To_String (Res);
-      end;
+      return To_String (Res);
    end Normalize_Windows_Pattern;
 
    -------------------------------

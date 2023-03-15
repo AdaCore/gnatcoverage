@@ -412,11 +412,9 @@ package body Annotations.Cobertura is
       Branches_Valid, Branches_Covered : Natural;
       Branch_Rate                      : Rate_Type;
 
-      Filename       : String renames Info.Full_Name.all;
-      Filename_Start : Positive := Filename'First;
-      --  Filename, plus the lower bound for what is included in the report.
-      --  Setting that lower bound is used to implement source prefix
-      --  stripping: see Cobertura_Pretty_Printer.
+      Filename : Unbounded_String := To_Unbounded_String (Info.Full_Name.all);
+      --  Filename to mention in the coverage report. Use the full name, unless
+      --  we can remove the prefix according to the --source-root option.
    begin
       if not Info.Has_Source then
          Skip := True;
@@ -434,16 +432,34 @@ package body Annotations.Cobertura is
          Branches_Covered,
          Branch_Rate);
 
-      --  Remove the source root prefix
+      --  Remove the source root prefix (if present) from Filename so that, if
+      --  Filename designates a source file that is inside the directory
+      --  referenced by --source-root, Filename is set to a pathname relative
+      --  to the source root.
+      --
+      --  Note that the pattern matcher in Pp.Source_Prefix_Pattern expects
+      --  "normalized" filename with:
+      --
+      --  1) casing folded for case insensitive systems,
+      --  2) forward slashes instead of backslashes.
+      --
+      --  So normalize first into Normalized_Filename, then turn Filename into
+      --  a slice of it.
 
       if Pp.Source_Prefix_Pattern /= null then
          declare
-            Matches : GNAT.Regpat.Match_Array (0 .. 0);
+            Matches             : GNAT.Regpat.Match_Array (0 .. 0);
+            First, Last         : Natural;
+            Normalized_Filename : constant String :=
+              Paths.Normalize_For_Regexp (To_String (Filename));
          begin
             GNAT.Regpat.Match
-              (Pp.Source_Prefix_Pattern.all, Filename, Matches);
+              (Pp.Source_Prefix_Pattern.all, Normalized_Filename, Matches);
             if Matches (0) /= GNAT.Regpat.No_Match then
-               Filename_Start := Matches (0).Last + 1;
+               First := Matches (0).Last + 1;
+               Last := Normalized_Filename'Last;
+               Filename :=
+                 To_Unbounded_String (Normalized_Filename (First .. Last));
             end if;
          end;
       end if;
@@ -456,7 +472,7 @@ package body Annotations.Cobertura is
       Pp.ST ("classes");
       Pp.ST ("class",
              A ("name", Simple_Source_Filename)
-             & A ("filename", Filename (Filename_Start .. Filename'Last))
+             & A ("filename", To_String (Filename))
              & A ("line-rate", Img (Line_Rate))
              & A ("branch-rate", Img (Branch_Rate))
              & A ("complexity", "-1"));
