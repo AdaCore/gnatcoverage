@@ -25,6 +25,7 @@ with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Text_IO;           use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with GNAT.OS_Lib;
@@ -67,6 +68,11 @@ package body Instrument is
       Name    : Compilation_Unit_Name;
       Ignored : Boolean;
    end record;
+
+   function "<" (Left, Right : CU_Name_With_Ignore) return Boolean
+   is (if Left.Name = Right.Name
+       then Left.Ignored < Right.Ignored
+       else Left.Name < Right.Name);
 
    package CU_Name_Vectors is new Ada.Containers.Vectors
      (Positive, CU_Name_With_Ignore);
@@ -314,12 +320,6 @@ package body Instrument is
       Provider : constant Unit_Provider_Reference :=
         Instrument.Ada_Unit_Provider.Create_Provider_From_Project;
 
-      --  Create the event handler, to report when Libadalang cannot read a
-      --  required source file.
-
-      Event_Handler : constant Event_Handler_Reference :=
-        Create_Missing_File_Reporter;
-
       --  Create a map from library units to lists of compilation units to
       --  instrument for them.
 
@@ -341,10 +341,14 @@ package body Instrument is
 
       IC : Inst_Context := Create_Context
         (Provider,
-         Event_Handler,
+         Create_Event_Handler_Reference (Missing_Src_Reporter'(others => <>)),
          Dump_Config,
          Language_Version,
          Ignored_Source_Files);
+
+      Event_Handler : Missing_Src_Reporter renames
+        Missing_Src_Reporter_Access (IC.Event_Handler.Unchecked_Get).all;
+      --  Handle to the event handler we use to report missing source files
 
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
@@ -528,13 +532,17 @@ package body Instrument is
       for Cur in LU_Map.Iterate loop
 
          --  Instrument compilation units (only the ones this library unit
-         --  owns).
+         --  owns). Sort them first, so that the instrumentation order is
+         --  deterministic.
 
          declare
+            package Sorting is new CU_Name_Vectors.Generic_Sorting;
+
             LU_Info              : constant Library_Unit_Info_Access :=
                Library_Unit_Maps.Element (Cur);
             All_Externally_Built : Boolean := True;
          begin
+            Sorting.Sort (LU_Info.CU_Names);
             for CU of LU_Info.CU_Names loop
                if CU.Ignored then
                   declare
@@ -559,13 +567,34 @@ package body Instrument is
                   declare
                      Unit_Info : Instrumented_Unit_Info renames
                        IC.Instrumented_Units.Element (CU.Name).all;
-                     Filename  : constant String := To_String
-                       (Unit_Info.Filename);
+                     Filename  : constant String :=
+                       To_String (Unit_Info.Filename);
+                     Basename  : constant String :=
+                       Ada.Directories.Simple_Name (Filename);
                   begin
                      --  Do not process units from externally built projects
 
                      if not Unit_Info.Prj_Info.Externally_Built then
+
+                        --  Keep a note that we are processing at least one
+                        --  source file from a non-externally built project.
+
                         All_Externally_Built := False;
+
+                        --  In verbose mode, always print a notice for the
+                        --  source file that we are about to instrument. In
+                        --  non-verbose mode, just get prepared to print it in
+                        --  case we emit a "source file missing" warning
+                        --  through Libadalang's event handler.
+
+                        if Verbose then
+                           Put_Line ("Instrumenting " & Basename);
+                        else
+                           Event_Handler.Instrumented_File :=
+                             To_Unbounded_String (Basename);
+                        end if;
+
+                        --  Run the instrumentation for this file
 
                         Instrumenters (Unit_Info.Language).Instrument_Unit
                           (CU.Name, IC, Unit_Info);
