@@ -17,7 +17,7 @@ from e3.os.fs import touch, unixpath
 from e3.os.process import DEVNULL, Run
 
 
-# Expose a few other items as a test util-facilities as well
+# Expose a few other items as a test util facilities as well
 
 from SUITE import control
 from SUITE.control import (BUILDER, KNOWN_LANGUAGES, env, language_info,
@@ -25,7 +25,7 @@ from SUITE.control import (BUILDER, KNOWN_LANGUAGES, env, language_info,
 from SUITE.context import ROOT_DIR, thistest
 
 
-# Then mind our own buisness
+# Then mind our own business
 
 from SUITE.cutils import FatalError, contents_of, text_to_file, to_list
 
