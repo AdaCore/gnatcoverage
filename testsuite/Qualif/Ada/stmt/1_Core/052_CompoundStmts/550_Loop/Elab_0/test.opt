@@ -1,3 +1,1 @@
 src-traces,gnatcov-22,DOA XFAIL test with liblevel decision, requires gnatcov >= 23 for instrumentation
-arm-elf,CARGS_O1 XFAIL W313-031: instruction debug info attached to wrong sloc
-ppc-elf,CARGS_O1 XFAIL W313-031: instruction debug info attached to wrong sloc
