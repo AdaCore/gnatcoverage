@@ -18,6 +18,7 @@
 
 with Ada.Characters.Conversions;        use Ada.Characters.Conversions;
 with Ada.Characters.Handling;
+with Ada.Containers;             use Ada.Containers;
 with Ada.Exceptions;
 with Ada.Strings.Unbounded;             use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Fixed;
@@ -7610,6 +7611,14 @@ package body Instrument.Ada_Unit is
                end if;
             end;
          end loop;
+         File.Put_Line ("   C_List : constant GNATcov_RTS.Buffers.Lists"
+                        & ".GNATcov_RTS_Coverage_Buffers_Group_Array :=");
+         File.Put_Line ("      (" & Instr_Units.Length'Image
+                        & " , List'Address);");
+
+         File.Put_Line
+           ("   pragma Export (C, C_List, """
+            & Unit_Buffers_Array_Name (+IC.Project_Name) & """);");
 
          File.New_Line;
          File.Put_Line ("end " & Unit_Name & ";");
