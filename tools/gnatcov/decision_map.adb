@@ -2463,7 +2463,7 @@ package body Decision_Map is
          --  Machine properties for this conditional branch
 
          BB_From               : Pc_Type;
-         --  Fisrt PC of the basic block that contain this instruction
+         --  First PC of the basic block that contains this instruction
       end record;
 
       package Pending_Cond_Branch_Vectors is new Ada.Containers.Vectors
