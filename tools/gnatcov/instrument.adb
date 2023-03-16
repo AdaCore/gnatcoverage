@@ -676,24 +676,33 @@ package body Instrument is
          Outputs.Fatal_Error ("No unit to instrument.");
       end if;
 
+      --  Emit the unit to contain the list of coverage buffers, exported to a
+      --  C symbol, in one of the language supported by the project.
+      --
+      --  Note that this has an implicit hack to it: if Ada is a language of
+      --  the project, it will pick it over the others (as it is the first
+      --  enumeration member of the Src_Supported_Language type). This matters
+      --  as we make the assumption in the Emit_Dump_Helper_Unit implementation
+      --  in instrument-ada_unit.adb (when instrumenting for an Ada main) that
+      --  the Ada package for buffers list units always exists: we need to
+      --  include it in the main closure, as it puts buffer units in scope
+      --  by importing them (otherwise they aren't as they are used through
+      --  C symbol importations).
+
       for Language in Src_Supported_Language loop
-
-         --  Emit units to contain the list of coverage buffers, one per
-         --  language present in the root project.
-         --
-         --  If the project contains both Ada and C sources, this will create
-         --  two arrays of coverage buffers. TODO??? we could have one array
-         --  defined in C and have the Ada unit just import it.
-
-         if Project.Project.Root_Project.Has_Language (Image (Language)) then
+         if Project.Project.Root_Project.Has_Language (Image (Language))
+         then
             Instrumenters (Language).Emit_Buffers_List_Unit
               (IC, Root_Project_Info.all);
+            exit;
          end if;
+      end loop;
 
-         --  Instrument all the mains that are not unit of interest to add the
-         --  dump of coverage buffers: Instrument_Unit already took care of
-         --  mains that are units of interest.
+      --  Instrument all the mains that are not unit of interest to add the
+      --  dump of coverage buffers: Instrument_Unit already took care of mains
+      --  that are units of interest.
 
+      for Language in Src_Supported_Language loop
          for Main of Mains_To_Instrument (Language) loop
             Instrumenters (Language).Auto_Dump_Buffers_In_Main
               (IC, Main.CU_Name, +Main.File.Full_Name, Main.Prj_Info.all);

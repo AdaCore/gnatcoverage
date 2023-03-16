@@ -151,6 +151,16 @@ package Instrument.Common is
    --  Name of the symbol that references the
    --  gnatcov_rts_coverage_buffers_group struct for this unit.
 
+   function Unit_Buffers_Array_Name (Prj_Name : String) return String is
+      ("gnatcov_rts_buffers_array_" & Prj_Name);
+   --  Name of the symbol that designates the
+   --  gnatcov_rts_coverage_buffers_array struct, which contains an array of
+   --  coverage buffers for all instrumented units in this project.
+   --
+   --  We need this to be unique per root project instrumented, as gnatcov
+   --  gives the possibility to link two separately-instrumented libraries in
+   --  the same executable.
+
    function Project_Output_Dir (Project : Project_Type) return String;
    --  Return the directory in which we must create instrumented sources for
    --  Project. This returns an empty string for projects that do not have an
@@ -675,6 +685,11 @@ package Instrument.Common is
       Root_Project_Info : in out Project_Info) is abstract;
    --  Emit in the root project a unit (in Self's language) to contain the list
    --  of coverage buffers for all units of interest.
+   --
+   --  The variable holding the list of coverage buffers is exported to a
+   --  unique C symbol whose name is defined by the Unit_Buffers_Array_Name
+   --  function. This procedure should thus be called only once, for one of
+   --  the supported languages of the project.
 
 private
 

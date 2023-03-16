@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: clang-format
         types: [file]
-        files: \.(cc|c|h)$
+        files: \.(cc|c|h|cpp|hh)$
         args: ["--style={
             BasedOnStyle: gnu,
             ContinuationIndentWidth: 2,
