@@ -1,6 +1,7 @@
 GPRBUILD=gprbuild
 GPRCLEAN=gprclean
 PREFIX=install
+PARALLEL_BUILD=0
 
 include ../../host.mk
 
@@ -28,7 +29,7 @@ all: bin
 # to minimize the executable sizes.
 
 BIN_COMMON_BUILD_ARGS=\
- -Ptrace32.gpr \
+ -Ptrace32.gpr -p -j$(PARALLEL_BUILD) \
  -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
  -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
  -XINSTRUMENT_SUPPORT=False \

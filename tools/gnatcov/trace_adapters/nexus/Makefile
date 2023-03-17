@@ -1,5 +1,6 @@
 GPRBUILD=gprbuild
 PREFIX=install
+PARALLEL_BUILD=0
 
 include ../../host.mk
 
@@ -25,7 +26,8 @@ DOCFORMATS=pdf html
 all: $(EXENAMES)
 
 $(EXENAMES): force
-	$(GPRBUILD) -p -Pnexus -XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
+	$(GPRBUILD) -p -j$(PARALLEL_BUILD) \
+		-Pnexus -XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
 
 
 ###################
