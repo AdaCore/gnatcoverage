@@ -6,8 +6,6 @@ include ../../host.mk
 
 .PHONY: force
 
-ARCH=32
-
 # Files for libexec/gnatcoverage include binary executables
 # (which need to be built first), and a python script.
 
@@ -27,7 +25,7 @@ all: $(EXENAMES)
 
 $(EXENAMES): force
 	$(GPRBUILD) -p -j$(PARALLEL_BUILD) \
-		-Pnexus -XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
+		-Pnexus -XPART=lib32 $(EXTRA_ADAFLAGS) $@
 
 
 ###################

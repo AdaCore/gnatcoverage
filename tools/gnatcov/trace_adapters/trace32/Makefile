@@ -32,15 +32,14 @@ BIN_COMMON_BUILD_ARGS=\
  -Ptrace32.gpr -p -j$(PARALLEL_BUILD) \
  -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
  -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
- -XINSTRUMENT_SUPPORT=False \
  -largs $(LD_FLAGS) \
  -cargs:c++ $(CXXFLAGS) \
  $(EXTRA_ADAFLAGS) \
  -gargs
 
 bin: force
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XARCH=64
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XARCH=32
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=lib64
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=lib32
 
 ###################
 # General cleanup #
@@ -49,8 +48,8 @@ bin: force
 .PHONY: clean
 
 clean:
-	$(GPRCLEAN) -Ptrace32.gpr -XARCH=64
-	$(GPRCLEAN) -Ptrace32.gpr -XARCH=32
+	$(GPRCLEAN) -Ptrace32.gpr -XPART=lib64
+	$(GPRCLEAN) -Ptrace32.gpr -XPART=lib32
 
 ################
 # Installation #
