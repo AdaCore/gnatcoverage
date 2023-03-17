@@ -25,6 +25,7 @@ with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Text_IO;           use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with GNAT.OS_Lib;
@@ -67,6 +68,11 @@ package body Instrument is
       Name    : Compilation_Unit_Name;
       Ignored : Boolean;
    end record;
+
+   function "<" (Left, Right : CU_Name_With_Ignore) return Boolean
+   is (if Left.Name = Right.Name
+       then Left.Ignored < Right.Ignored
+       else Left.Name < Right.Name);
 
    package CU_Name_Vectors is new Ada.Containers.Vectors
      (Positive, CU_Name_With_Ignore);
@@ -314,12 +320,6 @@ package body Instrument is
       Provider : constant Unit_Provider_Reference :=
         Instrument.Ada_Unit_Provider.Create_Provider_From_Project;
 
-      --  Create the event handler, to report when Libadalang cannot read a
-      --  required source file.
-
-      Event_Handler : constant Event_Handler_Reference :=
-        Create_Missing_File_Reporter;
-
       --  Create a map from library units to lists of compilation units to
       --  instrument for them.
 
@@ -341,10 +341,14 @@ package body Instrument is
 
       IC : Inst_Context := Create_Context
         (Provider,
-         Event_Handler,
+         Create_Event_Handler_Reference (Missing_Src_Reporter'(others => <>)),
          Dump_Config,
          Language_Version,
          Ignored_Source_Files);
+
+      Event_Handler : Missing_Src_Reporter renames
+        Missing_Src_Reporter_Access (IC.Event_Handler.Unchecked_Get).all;
+      --  Handle to the event handler we use to report missing source files
 
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
@@ -528,13 +532,17 @@ package body Instrument is
       for Cur in LU_Map.Iterate loop
 
          --  Instrument compilation units (only the ones this library unit
-         --  owns).
+         --  owns). Sort them first, so that the instrumentation order is
+         --  deterministic.
 
          declare
+            package Sorting is new CU_Name_Vectors.Generic_Sorting;
+
             LU_Info              : constant Library_Unit_Info_Access :=
                Library_Unit_Maps.Element (Cur);
             All_Externally_Built : Boolean := True;
          begin
+            Sorting.Sort (LU_Info.CU_Names);
             for CU of LU_Info.CU_Names loop
                if CU.Ignored then
                   declare
@@ -559,13 +567,34 @@ package body Instrument is
                   declare
                      Unit_Info : Instrumented_Unit_Info renames
                        IC.Instrumented_Units.Element (CU.Name).all;
-                     Filename  : constant String := To_String
-                       (Unit_Info.Filename);
+                     Filename  : constant String :=
+                       To_String (Unit_Info.Filename);
+                     Basename  : constant String :=
+                       Ada.Directories.Simple_Name (Filename);
                   begin
                      --  Do not process units from externally built projects
 
                      if not Unit_Info.Prj_Info.Externally_Built then
+
+                        --  Keep a note that we are processing at least one
+                        --  source file from a non-externally built project.
+
                         All_Externally_Built := False;
+
+                        --  In verbose mode, always print a notice for the
+                        --  source file that we are about to instrument. In
+                        --  non-verbose mode, just get prepared to print it in
+                        --  case we emit a "source file missing" warning
+                        --  through Libadalang's event handler.
+
+                        if Verbose then
+                           Put_Line ("Instrumenting " & Basename);
+                        else
+                           Event_Handler.Instrumented_File :=
+                             To_Unbounded_String (Basename);
+                        end if;
+
+                        --  Run the instrumentation for this file
 
                         Instrumenters (Unit_Info.Language).Instrument_Unit
                           (CU.Name, IC, Unit_Info);
@@ -647,24 +676,33 @@ package body Instrument is
          Outputs.Fatal_Error ("No unit to instrument.");
       end if;
 
+      --  Emit the unit to contain the list of coverage buffers, exported to a
+      --  C symbol, in one of the language supported by the project.
+      --
+      --  Note that this has an implicit hack to it: if Ada is a language of
+      --  the project, it will pick it over the others (as it is the first
+      --  enumeration member of the Src_Supported_Language type). This matters
+      --  as we make the assumption in the Emit_Dump_Helper_Unit implementation
+      --  in instrument-ada_unit.adb (when instrumenting for an Ada main) that
+      --  the Ada package for buffers list units always exists: we need to
+      --  include it in the main closure, as it puts buffer units in scope
+      --  by importing them (otherwise they aren't as they are used through
+      --  C symbol importations).
+
       for Language in Src_Supported_Language loop
-
-         --  Emit units to contain the list of coverage buffers, one per
-         --  language present in the root project.
-         --
-         --  If the project contains both Ada and C sources, this will create
-         --  two arrays of coverage buffers. TODO??? we could have one array
-         --  defined in C and have the Ada unit just import it.
-
-         if Project.Project.Root_Project.Has_Language (Image (Language)) then
+         if Project.Project.Root_Project.Has_Language (Image (Language))
+         then
             Instrumenters (Language).Emit_Buffers_List_Unit
               (IC, Root_Project_Info.all);
+            exit;
          end if;
+      end loop;
 
-         --  Instrument all the mains that are not unit of interest to add the
-         --  dump of coverage buffers: Instrument_Unit already took care of
-         --  mains that are units of interest.
+      --  Instrument all the mains that are not unit of interest to add the
+      --  dump of coverage buffers: Instrument_Unit already took care of mains
+      --  that are units of interest.
 
+      for Language in Src_Supported_Language loop
          for Main of Mains_To_Instrument (Language) loop
             Instrumenters (Language).Auto_Dump_Buffers_In_Main
               (IC, Main.CU_Name, +Main.File.Full_Name, Main.Prj_Info.all);
