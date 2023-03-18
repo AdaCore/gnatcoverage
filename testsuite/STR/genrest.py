@@ -25,6 +25,8 @@ LOCAL_TESTSUITE_DIR = \
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(LOCAL_TESTSUITE_DIR)
 
+TEST_LOG = "test.py.log"
+
 from SUITE.qdata import qdaf_in, stdf_in
 from SUITE.qdata import STATUSDATA_FILE, QLANGUAGES, QROOTDIR
 from SUITE.qdata import CTXDATA_FILE, Qdata
@@ -36,7 +38,7 @@ from SCOV.internals.cnotes import (
     r0, r0c, xBlock0, sNoCov, sPartCov,
     dtNoCov, dfNoCov, dPartCov, dNoCov, etNoCov, efNoCov, ePartCov,
     eNoCov, cPartCov, xBlock1)
-from SUITE.cutils import FatalError
+from SUITE.cutils import FatalError, lines_of
 from REST import rest
 
 # =============================
@@ -775,6 +777,16 @@ class QDreport(object):
         self.languages = set(
             [cat.lang for cat in lang_categories if cat.qdl])
 
+        self.dump_trigger=None
+        self.dump_channel=None
+
+        # Gather effectively used dump-trigger and dump channel from the logs
+        # in source trace mode.
+
+        if self.suitedata["options"]["trace_mode"] == "src":
+            self.dump_trigger, self.dump_channel = \
+                self.gather_trigger_and_channel()
+
         self.gen_envinfo(sepfile="env.rst")
 
         # Then compute the tables and summaries of test status counters
@@ -789,6 +801,53 @@ class QDreport(object):
         # sections/documents) is very limited and unlikely to change.
 
         # self.gen_index(sepfiles=["env.rst", "tctables.rst", "tssummary.rst"])
+
+    def _check_one_dump_option(self, line, option_name, current_value):
+        """
+        Helper for gather_trigger_and_channel, inspect a line to determine
+        if it contains a "gnatcov instrument" command line, look for a
+        "--dump-{option_name}" and check its value against current_value.
+        In case of inconsistency, or if the option is not found, raises
+        FatalError
+        """
+        if "gnatcov instrument" in line:
+            matcher = re.search(
+                pattern=f"--dump-{option_name}" + r"(?:=| )(\S*) ",
+                string=line
+            )
+            if matcher is None:
+                raise FatalError (
+                    comment=f"Found no dump {option_name} in gnatcov"
+                            f"instrument command line: {line}"
+                )
+            if current_value and matcher.group(1) != current_value:
+                raise FatalError (
+                    comment=f"Inconsistent dump {option_name} found:"
+                            f" got {matcher.group(1)}"
+                            f" but expected {current_value}"
+                )
+            return matcher.group(1)
+        else:
+            return current_value
+
+
+    def gather_trigger_and_channel(self):
+        """
+        Inspect all test.py.log files to determine which dump trigger and
+        dump channel switches were passed to gnatcov. Raises a FatalError if
+        one of the "gnatcov instrument" invocation is missing one of the two
+        arguments, or if we detect inconsistent values across tests.
+        """
+        current_dt = None
+        current_dc = None
+        for p in find (self.o.testsuite_dir, TEST_LOG):
+            for line in lines_of(p):
+                current_dt = self._check_one_dump_option(
+                    line, "trigger", current_dt)
+                current_dc = self._check_one_dump_option(
+                    line, "channel", current_dc)
+        return (current_dt, current_dc)
+
 
     def categorize(self, qda):
         for cat in self.categories:
@@ -1181,6 +1240,19 @@ class QDreport(object):
              value: literal(
                  ("--RTS=%s" % rts)) if rts
                  else rest.emph("no --RTS switch")})
+
+        if self.dump_trigger:
+            csv_contents.append(
+                {itemno: "s3",
+                 item:  "GNATcov dump trigger option value",
+                 value: literal (f"--dump-trigger={self.dump_trigger}")
+                })
+        if self.dump_channel:
+            csv_contents.append(
+                {itemno: "s4",
+                 item:  "GNATcov dump channel option value",
+                 value: literal(f"--dump-channel={self.dump_channel}")
+                })
 
         CSVtable(
             title=None, text=None,
