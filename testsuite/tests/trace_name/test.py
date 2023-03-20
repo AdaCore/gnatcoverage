@@ -23,11 +23,10 @@ def check_srctrace_name(gprsw, main):
         extra_coverage_args=[],
     )
     # Check the name of the trace
-    main_ext = ".exe" if env.build.os.name == "windows" else ""
-    if thistest.options.trace_mode == "src":
-        trace_name = f"{main}{main_ext}.srctrace"
-    else:
-        trace_name = f"{main}{main_ext}.trace"
+    trace_ext = (
+        ".srctrace" if thistest.options.trace_mode == "src" else ".trace"
+    )
+    trace_name = f"{main}{env.target.os.exeext}{trace_ext}"
     thistest.fail_if(
         not os.path.exists(trace_name),
         f"Could not find {trace_name}",
