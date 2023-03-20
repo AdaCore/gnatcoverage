@@ -1,6 +1,6 @@
 with Vectors; use Vectors;
                 
-procedure Test_Vector_0 is
+procedure Test_Vectors_0 is
 begin
    null;
 end;

@@ -356,7 +356,6 @@ package body Instrument.C is
 
    procedure Record_PP_Info
      (Unit_Info : Instrumented_Unit_Info;
-      IC        : in out Inst_Context;
       UIC       : in out C_Unit_Inst_Context);
    --  Emit the low-level SCOs for the given unit. Do not process them: this is
    --  left to the other (instrumentation) pass.
@@ -366,7 +365,6 @@ package body Instrument.C is
       Unit_Info    : Instrumented_Unit_Info;
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj_Info     : in out Project_Info;
-      IC           : in out Inst_Context;
       UIC          : out C_Unit_Inst_Context);
    --  Generate the instrumented source corresponding to CU_Name/Unit_Info.
    --  Record instrumentation information in IC.
@@ -378,10 +376,6 @@ package body Instrument.C is
    -- Source instrumentation --
    ----------------------------
 
-   function Buffers_List_Filename (IC : Inst_Context) return String is
-     ("gnatcov_rts_c-buffers-lists-" & (+IC.Project_Name));
-   --  Return the name of the unit containing the array of coverage buffers
-
    procedure Emit_Buffer_Unit
      (Info         : in out Project_Info;
       UIC          : C_Unit_Inst_Context'Class;
@@ -390,7 +384,7 @@ package body Instrument.C is
    --  unit, for the given instrumenter.
 
    procedure Emit_Dump_Helper_Unit
-     (IC           : Inst_Context;
+     (Dump_Config  : Any_Dump_Config;
       Info         : in out Project_Info;
       Main         : Compilation_Unit_Name;
       Helper_Unit  : out US.Unbounded_String;
@@ -418,20 +412,6 @@ package body Instrument.C is
 
    procedure Run_Diagnostics (TU : Translation_Unit_T);
    --  Output clang diagnostics on the given translation unit
-
-   procedure Auto_Dump_Buffers_In_Main
-     (IC           : Inst_Context;
-      Info         : in out Project_Info;
-      Main         : Compilation_Unit_Name;
-      Rew          : in out C_Source_Rewriter;
-      Instrumenter : C_Family_Instrumenter_Type'Class);
-   --  Common code for auto dump insertion in the "main" function, used in the
-   --  Auto_Dump_Buffers_In_Main primitive for C_Instrumenter_Type, and from
-   --  the Instrument_Source_File procedure.
-   --
-   --  Arguments have the same semantics as in the Auto_Dump_Buffers_In_Main
-   --  primitive. The additional Rew argument is the C source rewriter that is
-   --  ready to use for the source file to instrument.
 
    function Format_Str_Constant (Value : String) return String;
    --  Return a gnatcov_rts_string literal corresponding to Value
@@ -1464,8 +1444,7 @@ package body Instrument.C is
    -------------------------
 
    procedure Traverse_Statements
-     (IC              : in out Inst_Context;
-      UIC             : in out C_Unit_Inst_Context;
+     (UIC             : in out C_Unit_Inst_Context;
       L               : Cursor_Vectors.Vector;
       Trailing_Braces : out Unbounded_String);
    --  Process L, a list of statements or declarations. Set Trailing_Braces
@@ -1473,8 +1452,7 @@ package body Instrument.C is
    --  list.
 
    procedure Traverse_Declarations
-     (IC  : in out Inst_Context;
-      UIC : in out C_Unit_Inst_Context;
+     (UIC : in out C_Unit_Inst_Context;
       L   : Cursor_Vectors.Vector);
    --  Traverse a translation unit (top level declarations)
 
@@ -1971,8 +1949,7 @@ package body Instrument.C is
    -------------------------
 
    procedure Traverse_Statements
-     (IC              : in out Inst_Context;
-      UIC             : in out C_Unit_Inst_Context;
+     (UIC             : in out C_Unit_Inst_Context;
       L               : Cursor_Vectors.Vector;
       Trailing_Braces : out Unbounded_String)
    is
@@ -2052,7 +2029,8 @@ package body Instrument.C is
 
             when Cursor_Compound_Stmt =>
                Set_Statement_Entry;
-               Traverse_Statements (IC, UIC, Get_Children (N), TB);
+
+               Traverse_Statements (UIC, Get_Children (N), TB);
 
             --  If statement, which breaks the current statement sequence, but
             --  we include the condition in the current sequence.
@@ -2067,7 +2045,7 @@ package body Instrument.C is
                   Process_Decisions_Defer (Get_Cond (N), 'I');
                   Set_Statement_Entry;
                   Traverse_Statements
-                    (IC, UIC, To_Vector (Then_Part), TB);
+                    (UIC, To_Vector (Then_Part), TB);
 
                   --  Traverse the ELSE statements if present
 
@@ -2080,7 +2058,7 @@ package body Instrument.C is
                        (UIC.Rewriter, Get_Else_Loc (N), +TB);
                      TB := +"";
                      Traverse_Statements
-                       (IC, UIC, To_Vector (Else_Part), TB);
+                       (UIC, To_Vector (Else_Part), TB);
                   end if;
                end;
 
@@ -2098,7 +2076,7 @@ package body Instrument.C is
 
                   --  Process case branches
 
-                  Traverse_Statements (IC, UIC, To_Vector (Alt), TB);
+                  Traverse_Statements (UIC, To_Vector (Alt), TB);
                end;
 
             --  Case alternative
@@ -2107,8 +2085,7 @@ package body Instrument.C is
                declare
                   Case_Body : constant Cursor_T := Get_Sub_Stmt (N);
                begin
-                  Traverse_Statements
-                    (IC, UIC, To_Vector (Case_Body), TB);
+                  Traverse_Statements (UIC, To_Vector (Case_Body), TB);
                end;
 
             --  Loop ends the current statement sequence, but we include
@@ -2135,8 +2112,7 @@ package body Instrument.C is
 
                   Process_Decisions_Defer (Cond, 'W');
                   Set_Statement_Entry;
-                  Traverse_Statements
-                    (IC, UIC, To_Vector (While_Body), TB);
+                  Traverse_Statements (UIC, To_Vector (While_Body), TB);
                end;
 
             --  Do while statement. Ends the current statement sequence.
@@ -2147,8 +2123,7 @@ package body Instrument.C is
                   Do_While : constant Cursor_T := Get_Cond (N);
 
                begin
-                  Traverse_Statements
-                    (IC, UIC, To_Vector (Do_Body), TB);
+                  Traverse_Statements (UIC, To_Vector (Do_Body), TB);
 
                   --  Insert the trailing braces resulting from the body
                   --  traversal before the while.
@@ -2187,8 +2162,7 @@ package body Instrument.C is
 
                   Set_Statement_Entry;
 
-                  Traverse_Statements
-                    (IC, UIC, To_Vector (For_Body), TB);
+                  Traverse_Statements (UIC, To_Vector (For_Body), TB);
 
                   Extend_Statement_Sequence
                     (For_Inc, ' ', Instr_Scheme => Instr_Expr);
@@ -2220,8 +2194,7 @@ package body Instrument.C is
 
                   --  Generate obligations for body statements
 
-                  Traverse_Statements
-                    (IC, UIC, To_Vector (For_Body), TB);
+                  Traverse_Statements (UIC, To_Vector (For_Body), TB);
                end;
 
            --  Unconditional goto, which is included in the current statement
@@ -2233,10 +2206,10 @@ package body Instrument.C is
 
             when Cursor_Label_Stmt =>
                Set_Statement_Entry;
-               Traverse_Statements (IC, UIC, Get_Children (N), TB);
+               Traverse_Statements (UIC, Get_Children (N), TB);
 
             when Cursor_Stmt_Expr =>
-               Traverse_Statements (IC, UIC, Get_Children (N), TB);
+               Traverse_Statements (UIC, Get_Children (N), TB);
 
             --  Null statement, we won't monitor their execution
 
@@ -2266,8 +2239,7 @@ package body Instrument.C is
          --  scopes.
 
          Traverse_Declarations
-           (IC  => IC,
-            UIC => UIC,
+           (UIC => UIC,
             L   => Get_Lambda_Exprs (N));
       end Traverse_One;
 
@@ -2479,8 +2451,7 @@ package body Instrument.C is
    ---------------------------
 
    procedure Traverse_Declarations
-     (IC  : in out Inst_Context;
-      UIC : in out C_Unit_Inst_Context;
+     (UIC : in out C_Unit_Inst_Context;
       L   : Cursor_Vectors.Vector)
    is
       use Cursor_Vectors;
@@ -2522,7 +2493,7 @@ package body Instrument.C is
                      if Stmts.Length > 0 then
                         UIC.MCDC_State_Declaration_Node :=
                           Stmts.First_Element;
-                        Traverse_Statements (IC, UIC, Stmts, TB);
+                        Traverse_Statements (UIC, Stmts, TB);
                         UIC.Pass.Insert_Text_Before_Token
                           (UIC.Rewriter, End_Sloc (Fun_Body), +TB);
                      end if;
@@ -2539,12 +2510,12 @@ package body Instrument.C is
 
                   UIC.Pass.Enter_Scope (UIC, N);
 
-                  Traverse_Declarations (IC, UIC, Get_Children (N));
+                  Traverse_Declarations (UIC, Get_Children (N));
 
                   UIC.Pass.Exit_Scope (UIC);
 
                when Cursor_Linkage_Spec =>
-                  Traverse_Declarations (IC, UIC, Get_Children (N));
+                  Traverse_Declarations (UIC, Get_Children (N));
 
                when others =>
                   null;
@@ -2840,6 +2811,16 @@ package body Instrument.C is
    begin
       PP_Filename := +New_File (Info, Filename);
 
+      --  The file may have been preprocessed already, if we are instrumenting
+      --  it as a main after having instrumented it as a source. In this case,
+      --  we should not preprocess it again (as it will fail). HACK: if the
+      --  original filename is an instrumented file (in which case it is
+      --  equal to PP_Filename), skip the preprocessing step.
+
+      if +PP_Filename = Filename then
+         return;
+      end if;
+
       Cmd :=
         (Command => +Compiler_Driver (Info.Project, Instrumenter.Language),
          others  => <>);
@@ -3090,7 +3071,6 @@ package body Instrument.C is
 
    procedure Record_PP_Info
      (Unit_Info : Instrumented_Unit_Info;
-      IC        : in out Inst_Context;
       UIC       : in out C_Unit_Inst_Context)
    is
       Orig_Filename : constant String  := +Unit_Info.Filename;
@@ -3141,8 +3121,7 @@ package body Instrument.C is
          Free (C_Args);
       end;
       Traverse_Declarations
-        (IC  => IC,
-         UIC => UIC,
+        (UIC => UIC,
          L   => Get_Children (Get_Translation_Unit_Cursor (UIC.TU)));
 
    end Record_PP_Info;
@@ -3156,7 +3135,6 @@ package body Instrument.C is
       Unit_Info    : Instrumented_Unit_Info;
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj_Info     : in out Project_Info;
-      IC           : in out Inst_Context;
       UIC          : out C_Unit_Inst_Context)
    is
       Orig_Filename : constant String  := +Unit_Info.Filename;
@@ -3236,7 +3214,7 @@ package body Instrument.C is
 
       --  Start by recording preprocessing information
 
-      Record_PP_Info (Unit_Info, IC, UIC);
+      Record_PP_Info (Unit_Info, UIC);
 
       --  Then record exemption annotations in the comments. Reuse the TU from
       --  the preprocessing information recording pass as we want the
@@ -3313,8 +3291,7 @@ package body Instrument.C is
         Start_Sloc (Get_Translation_Unit_Cursor (UIC.TU));
 
       Traverse_Declarations
-        (IC  => IC,
-         UIC => UIC,
+        (UIC => UIC,
          L   => Get_Children (Get_Translation_Unit_Cursor (UIC.TU)));
 
       --  Check whether there is a mismatch between Last_SCO and
@@ -3558,16 +3535,6 @@ package body Instrument.C is
                       & " unsigned first,"
                       & " unsigned value");
 
-      --  Insert automatic buffer dump calls, if requested
-
-      if IC.Dump_Config.Trigger /= Manual and then Unit_Info.Is_Main then
-         Auto_Dump_Buffers_In_Main
-           (IC           => IC,
-            Info         => Prj_Info,
-            Main         => UIC.Instrumented_Unit,
-            Rew          => Rewriter,
-            Instrumenter => Instrumenter);
-      end if;
       Rewriter.Apply;
    end Instrument_Source_File;
 
@@ -3875,7 +3842,7 @@ package body Instrument.C is
    ---------------------------
 
    procedure Emit_Dump_Helper_Unit
-     (IC           : Inst_Context;
+     (Dump_Config  : Any_Dump_Config;
       Info         : in out Project_Info;
       Main         : Compilation_Unit_Name;
       Helper_Unit  : out US.Unbounded_String;
@@ -3884,7 +3851,7 @@ package body Instrument.C is
       File : Text_Files.File_Type;
 
       Output_Proc : constant String :=
-        (case IC.Dump_Config.Channel is
+        (case Dump_Config.Channel is
             when Binary_File => "gnatcov_rts_write_trace_file_wrapper",
             when Base64_Standard_Output =>
               "gnatcov_rts_write_trace_file_base64");
@@ -3915,7 +3882,7 @@ package body Instrument.C is
 
          File.Put_Line ("#include ""gnatcov_rts_c_strings.h""");
 
-         case IC.Dump_Config.Channel is
+         case Dump_Config.Channel is
             when Binary_File =>
                File.Put_Line ("#include """
                               & "gnatcov_rts_c-traces-output-files.h""");
@@ -3932,7 +3899,7 @@ package body Instrument.C is
            (File,
             Instrumenter,
             "const struct gnatcov_rts_coverage_buffers_group_array",
-            Unit_Buffers_Array_Name (+IC.Project_Name));
+            Unit_Buffers_Array_Name (Project.Project.Root_Project.Name));
 
          --  Emit the procedure to write the trace file
 
@@ -3942,25 +3909,28 @@ package body Instrument.C is
 
          File.Put_Line (Indent1 & Output_Proc & " (");
          File.Put_Line
-           (Indent2 & "&" & Unit_Buffers_Array_Name (+IC.Project_Name) & ",");
-         case IC.Dump_Config.Channel is
+             (Indent2 & "&"
+              & Unit_Buffers_Array_Name (Project.Project.Root_Project.Name)
+              & ",");
+         case Dump_Config.Channel is
          when Binary_File =>
             declare
                use GNATCOLL.VFS;
 
                Env_Var : constant String :=
-                 (if US.Length (IC.Dump_Config.Filename_Env_Var) = 0
+                 (if US.Length (Dump_Config.Filename_Env_Var) = 0
                   then "GNATCOV_RTS_DEFAULT_TRACE_FILENAME_ENV_VAR"
-                  else """" & (+IC.Dump_Config.Filename_Env_Var) & """");
+                  else """" & (+Dump_Config.Filename_Env_Var) & """");
                Prefix  : constant String :=
-                 (if US.Length (IC.Dump_Config.Filename_Prefix) = 0
+                 (if US.Length (Dump_Config.Filename_Prefix) = 0
                   then """" & String'(+Info.Project.Executable_Name
                                 (+(+Main.Filename),
                                  Include_Suffix => True)) & """"
-                  else """" & (+IC.Dump_Config.Filename_Prefix) & """");
-               Tag     : constant String := """" & (+IC.Tag) & """";
+                  else """" & (+Dump_Config.Filename_Prefix) & """");
+               Tag     : constant String :=
+                 """" & Trace_Filename_Tag & """";
                Simple  : constant String :=
-                 (if IC.Dump_Config.Filename_Simple then "1" else "0");
+                 (if Dump_Config.Filename_Simple then "1" else "0");
             begin
                File.Put_Line
                  (Indent2 & "gnatcov_rts_default_trace_filename(");
@@ -3999,53 +3969,57 @@ package body Instrument.C is
    -- Auto_Dump_Buffers_In_Main --
    -------------------------------
 
-   procedure Auto_Dump_Buffers_In_Main
-     (IC           : Inst_Context;
-      Info         : in out Project_Info;
-      Main         : Compilation_Unit_Name;
-      Rew          : in out C_Source_Rewriter;
-      Instrumenter : C_Family_Instrumenter_Type'Class)
+   overriding procedure Auto_Dump_Buffers_In_Main
+     (Self        : in out C_Family_Instrumenter_Type;
+      Filename    : String;
+      Instr_Units : CU_Name_Vectors.Vector;
+      Dump_Config : Any_Dump_Config;
+      Info        : in out Project_Info)
    is
-      Instr_Units : constant CU_Name_Vectors.Vector :=
-        Instr_Units_For_Closure (IC, Main);
-      --  List of names for instrumented units
 
       Helper_Filename : US.Unbounded_String;
       --  Name of file to contain helpers implementing the buffers dump
 
-      Insert_Extern_Location : constant Source_Location_T :=
-        Start_Sloc (Get_Translation_Unit_Cursor (Rew.TU));
+      Rew  : C_Source_Rewriter;
+      Main : constant Compilation_Unit_Name :=
+        (Language_Kind => File_Based_Language,
+         Filename      => +Ada.Directories.Simple_Name (Filename),
+         Project_Name  => +Info.Project.Name);
+
+      Insert_Extern_Location : Source_Location_T;
       --  Where to insert extern declarations
 
-      Main_Cursor : constant Cursor_T := Get_Main (Rew.TU);
+      Main_Cursor : Cursor_T;
       --  Cursor of the main declaration
    begin
-      if Instr_Units.Is_Empty then
-         return;
-      end if;
+      Rew.Start_Rewriting (Info, Filename, Self);
 
+      Insert_Extern_Location :=
+        Start_Sloc (Get_Translation_Unit_Cursor (Rew.TU));
+      Main_Cursor := Get_Main (Rew.TU);
       if Main_Cursor = Get_Null_Cursor then
          Outputs.Fatal_Error ("Could not find main function in "
                               & (+Main.Filename));
       end if;
 
-      Emit_Dump_Helper_Unit (IC, Info, Main, Helper_Filename, Instrumenter);
+      Emit_Dump_Helper_Unit
+        (Dump_Config, Info, Main, Helper_Filename, Self);
 
       Put_Extern_Decl
         (Rew.Rewriter,
          Insert_Extern_Location,
-         Instrumenter,
+         Self,
          "void",
          Dump_Procedure_Symbol (Main),
          Func_Args => "void");
 
-      if IC.Dump_Config.Trigger = Ravenscar_Task_Termination then
+      if Dump_Config.Trigger = Ravenscar_Task_Termination then
          Warn ("--dump-trigger=ravenscar-task-termination is not valid for a C"
                & " main. Defaulting to --dump-trigger=main-end for this"
                & " main.");
       end if;
 
-      case IC.Dump_Config.Trigger is
+      case Dump_Config.Trigger is
          when Main_End | Ravenscar_Task_Termination =>
             declare
                use Cursor_Vectors;
@@ -4148,7 +4122,7 @@ package body Instrument.C is
                Put_Extern_Decl
                  (Rew.Rewriter,
                   Insert_Extern_Location,
-                  Instrumenter,
+                  Self,
                   "int",
                   "atexit",
                   Func_Args => "void (*function) (void)");
@@ -4176,19 +4150,6 @@ package body Instrument.C is
          when others =>
             null;
       end case;
-   end Auto_Dump_Buffers_In_Main;
-
-   overriding procedure Auto_Dump_Buffers_In_Main
-     (Self     : C_Family_Instrumenter_Type;
-      IC       : in out Inst_Context;
-      Main     : Compilation_Unit_Name;
-      Filename : String;
-      Info     : in out Project_Info)
-   is
-      Rew : C_Source_Rewriter;
-   begin
-      Rew.Start_Rewriting (Info, Filename, Self);
-      Auto_Dump_Buffers_In_Main (IC, Info, Main, Rew, Self);
       Rew.Apply;
    end Auto_Dump_Buffers_In_Main;
 
@@ -4335,88 +4296,58 @@ package body Instrument.C is
 
    overriding procedure Emit_Buffers_List_Unit
      (Self              : C_Family_Instrumenter_Type;
-      IC                : in out Inst_Context;
-      Root_Project_Info : in out Project_Info)
+      Root_Project_Info : in out Project_Info;
+      Instr_Units       : CU_Name_Vectors.Vector)
    is
-      Base_Filename  : constant String := Buffers_List_Filename (IC);
-      CU_Name_Body   : constant String :=
-        Base_Filename
+      Project_Name : String renames Root_Project_Info.Project.Name;
+      CU_Name_Body : constant String :=
+        "gnatcov_rts_c-buffers-lists-" & Project_Name
         & Source_Suffix (Self, GPR.Unit_Body, Root_Project_Info.Project);
-      CU_Name_Header : constant String :=
-        Base_Filename
-        & Source_Suffix (Self, GPR.Unit_Spec, Root_Project_Info.Project);
+      File_Body    : Text_Files.File_Type;
 
-      File_Body   : Text_Files.File_Type;
-      File_Header : Text_Files.File_Type;
-
-      Instr_Units : CU_Name_Vectors.Vector;
+      Buffer_Array_Decl  : constant String :=
+        "const struct gnatcov_rts_coverage_buffers_group_array "
+        & Unit_Buffers_Array_Name (Project_Name);
+      Buffer_Unit_Length : constant String :=
+        Count_Type'Image (Instr_Units.Length);
    begin
+      --  Emit the body to contain the list of buffers
 
-      for Cur in IC.Instrumented_Units.Iterate loop
-         declare
-            Instr_Unit : constant Compilation_Unit_Name :=
-              Instrumented_Unit_Maps.Key (Cur);
-         begin
-            Instr_Units.Append (Instr_Unit);
-         end;
+      Create_File (Root_Project_Info, File_Body, CU_Name_Body);
+
+      File_Body.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
+
+      --  First create extern declarations for the buffers group of each unit
+
+      for Instr_Unit of Instr_Units loop
+         Put_Extern_Decl
+           (File_Body,
+            Self,
+            "const struct gnatcov_rts_coverage_buffers_group",
+            Unit_Buffers_Name (Instr_Unit));
       end loop;
 
-      declare
-         Buffer_Array_Decl  : constant String :=
-           "const struct gnatcov_rts_coverage_buffers_group_array "
-           & Unit_Buffers_Array_Name (+IC.Project_Name);
-         Buffer_Unit_Length : constant String :=
-           Count_Type'Image (Instr_Units.Length);
-      begin
-         --  Emit the body to contain the list of buffers
+      --  Then create an extern declaration for the buffer array (necessary
+      --  in C++ to set the C linkage), and finally the definition for that
+      --  array.
 
-         Create_File (Root_Project_Info, File_Body, CU_Name_Body);
-
-         File_Body.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
-
-         --  First create extern declarations for the buffers group of each
-         --  unit.
-
-         for Instr_Unit of Instr_Units loop
-            Put_Extern_Decl
-              (File_Body,
-               Self,
-               "const struct gnatcov_rts_coverage_buffers_group",
-               Unit_Buffers_Name (Instr_Unit));
-         end loop;
-
-         --  Then create an extern declaration for the buffer array (necessary
-         --  in C++ to set the C linkage), and finally the definition for that
-         --  array.
-
-         File_Body.Put_Line (Self.Extern_Prefix & Buffer_Array_Decl & ";");
-         File_Body.Put_Line (Buffer_Array_Decl & " = {");
-         File_Body.Put_Line ("  " & Buffer_Unit_Length & ",");
-         File_Body.Put_Line
-           ("  (const struct gnatcov_rts_coverage_buffers_group *[]) {");
-         for Cur in Instr_Units.Iterate loop
-            declare
-               use CU_Name_Vectors;
-            begin
-               File_Body.Put ("    &" & Unit_Buffers_Name (Element (Cur)));
-               if To_Index (Cur) = Instr_Units.Last_Index then
-                  File_Body.Put_Line ("}};");
-               else
-                  File_Body.Put_Line (",");
-               end if;
-            end;
-         end loop;
-      end;
-
-      --  Emit the extern declaration of the buffers array in the header file
-
-      Create_File (Root_Project_Info, File_Header, CU_Name_Header);
-
-      Put_Extern_Decl
-        (File_Header,
-         Self,
-         "const struct gnatcov_rts_coverage_buffers_group_array",
-         Unit_Buffers_Array_Name (+IC.Project_Name));
+      File_Body.Put_Line (Self.Extern_Prefix & Buffer_Array_Decl & ";");
+      File_Body.Put_Line (Buffer_Array_Decl & " = {");
+      File_Body.Put_Line ("  " & Buffer_Unit_Length & ",");
+      File_Body.Put_Line
+        ("  (const struct gnatcov_rts_coverage_buffers_group *[]) {");
+      for Cur in Instr_Units.Iterate loop
+         declare
+            use CU_Name_Vectors;
+         begin
+            File_Body.Put ("    &" & Unit_Buffers_Name (Element (Cur)));
+            if To_Index (Cur) = Instr_Units.Last_Index then
+               File_Body.Put_Line ("}};");
+            else
+               File_Body.Put_Line (",");
+            end if;
+         end;
+      end loop;
    end Emit_Buffers_List_Unit;
 
    ---------------------
@@ -4424,9 +4355,8 @@ package body Instrument.C is
    ---------------------
 
    overriding procedure Instrument_Unit
-     (Self      : C_Family_Instrumenter_Type;
+     (Self      : in out C_Family_Instrumenter_Type;
       CU_Name   : Compilation_Unit_Name;
-      IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info)
    is
       Prj_Info : Project_Info renames Unit_Info.Prj_Info.all;
@@ -4437,7 +4367,6 @@ package body Instrument.C is
          Unit_Info    => Unit_Info,
          Instrumenter => Self,
          Prj_Info     => Prj_Info,
-         IC           => IC,
          UIC          => UIC);
 
       --  Generate a buffer compilation unit defining coverage buffers that

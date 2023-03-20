@@ -19,19 +19,24 @@
 with Ada.Characters.Conversions; use Ada.Characters.Conversions;
 with Ada.Characters.Handling;
 with Ada.Containers;             use Ada.Containers;
+with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Fixed;
+pragma Warnings (Off, "* is an internal GNAT unit");
+with Ada.Strings.Wide_Wide_Unbounded.Aux;
+pragma Warnings (On, "* is an internal GNAT unit");
 
 with Langkit_Support;
 with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
 with Langkit_Support.Symbols;  use Langkit_Support.Symbols;
 with Libadalang.Common;        use Libadalang.Common;
+with Libadalang.Config_Pragmas;
 with Libadalang.Expr_Eval;
 with Libadalang.Introspection; use Libadalang.Introspection;
 with Libadalang.Sources;       use Libadalang.Sources;
 
-with GNATCOLL.Projects;
+with GNATCOLL.Utils;
 with GNATCOLL.VFS;
 
 with ALI_Files;           use ALI_Files;
@@ -42,12 +47,14 @@ with Files_Table;         use Files_Table;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Namet;               use Namet;
 with Outputs;             use Outputs;
-with Project;             use Project;
+with Paths;               use Paths;
+with Project;
 with SCOs;
 with Slocs;
 with Snames;              use Snames;
 with Table;
 with Text_Files;          use Text_Files;
+with Switches;            use Switches;
 
 package body Instrument.Ada_Unit is
 
@@ -86,23 +93,9 @@ package body Instrument.Ada_Unit is
    --  tree.
 
    function To_Qualified_Name
-     (Name : Unbounded_String) return Ada_Qualified_Name;
-   --  Return the qualified name corresponding to the given name (e.g.
-   --  foo-bar -> Foo.Bar).
-
-   procedure Auto_Dump_Buffers_In_Main
-     (IC   : Inst_Context;
-      Info : in out Project_Info;
-      Main : Compilation_Unit_Name;
-      URH  : Unit_Rewriting_Handle)
-     with Pre => IC.Dump_Config.Trigger /= Manual;
-   --  Common code for auto dump insertion in the main procedure, used in the
-   --  Auto_Dump_Buffers_In_Main primitive for Ada_Instrumenter_Type, and
-   --  from the Instrument_Source_File procedure.
-   --
-   --  Arguments have the same semantics as in the Auto_Dump_Buffers_In_Main
-   --  primitive. The additional URH argument is the Ada source rewriter that
-   --  is ready to use for the source file to instrument.
+     (Name : Libadalang.Analysis.Unbounded_Text_Type_Array)
+      return Ada_Qualified_Name;
+   --  Convert a Libadalang fully qualified name into our format
 
    procedure Import_Non_Instrumented_LL_SCOs
      (UIC : Ada_Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map);
@@ -150,28 +143,19 @@ package body Instrument.Ada_Unit is
       end return;
    end To_Qualified_Name;
 
-   -----------------------
-   -- To_Qualified_Name --
-   -----------------------
-
    function To_Qualified_Name
-     (Name : Unbounded_String) return Ada_Qualified_Name
-   is
-      Result      : Ada_Qualified_Name;
-      Start_Index : Positive := 1;
+     (Name : Libadalang.Analysis.Unbounded_Text_Type_Array)
+      return Ada_Qualified_Name is
    begin
-      for I in 1 .. Length (Name) loop
-         if Element (Name, I) = '-' then
+      return Result : Ada_Qualified_Name do
+         for N of Name loop
+
+            --  ??? Same limitation regarding non-ASCII characters as above
+
             Result.Append
-              (Instrument.Base_Types.Ada_Identifier
-                 (+Slice (Name, Start_Index, I - 1)));
-            Start_Index := I + 1;
-         end if;
-      end loop;
-      Result.Append
-        (Instrument.Base_Types.Ada_Identifier
-           (+Slice (Name, Start_Index, Length (Name))));
-      return Result;
+              (To_Unbounded_String (Image (To_Wide_Wide_String (N))));
+         end loop;
+      end return;
    end To_Qualified_Name;
 
    -------------------------------------
@@ -946,9 +930,9 @@ package body Instrument.Ada_Unit is
    --  the return type of the expression function.
 
    function Has_Matching_Pragma_For_Unit
-     (IC     : Inst_Context;
-      Unit   : Compilation_Unit;
-      Filter : access function (Node : Pragma_Node) return Boolean)
+     (Context : Analysis_Context;
+      Unit    : Compilation_Unit;
+      Filter  : access function (Node : Pragma_Node) return Boolean)
       return Boolean;
    --  Return whether Filter return True on at least one configuration pragma
    --  that applies to Unit or system.ads.
@@ -963,7 +947,7 @@ package body Instrument.Ada_Unit is
    --  Return True if Prag_Node imposes a restrictions on use of finalization
 
    function Finalization_Restricted_In_Unit
-     (IC : Inst_Context; Unit : Compilation_Unit) return Boolean;
+     (Context : Analysis_Context; Unit : Compilation_Unit) return Boolean;
    --  Return True if Finalization is not available in this runtime, or if
    --  some control pragma restricts the usage of finalization in either Unit
    --  or the whole project.
@@ -974,7 +958,7 @@ package body Instrument.Ada_Unit is
    --  Ada.Task_Termination and/or Ada.Task_Identification.
 
    function Task_Termination_Restricted
-     (IC : Inst_Context; Unit : Compilation_Unit) return Boolean;
+     (Context : Analysis_Context; Unit : Compilation_Unit) return Boolean;
    --  Return True if tasking is not available in this runtime, or if some
    --  configuration pragma prevents the use of tasks and/or
    --  Ada.Task_Termination and/or Ada.Task_Identification in either the whole
@@ -1026,24 +1010,146 @@ package body Instrument.Ada_Unit is
    --  SCO (SCOs.SCO_Table.Last) is the last SCO for the current scope.
 
    ----------------------------
+   --  Context miscellaneous --
+   ----------------------------
+
+      Max_Get_From_File_Count : constant := 50;
+   --  In addition to nodes and text buffers for each loaded unit, Libadalang
+   --  maintains caches in Analysis_Context objects so that semantic queries
+   --  are fast. This means that if we keep the same context to process a lot
+   --  of units, we end up with excessive memory consumption, which can trigger
+   --  heap exhaustion on big projects.
+   --
+   --  Replacing an analysis context with a new one clears all the caches, but
+   --  makes semantic queries slower, as the units are re-loaded and caches are
+   --  re-populated as needed.
+   --
+   --  To compromise between memory consumption and performance, we reset the
+   --  analysis context each Max_Get_From_File_Count number of calls to
+   --  Libadalang's Get_From_File function.
+
+   type Missing_Src_Reporter is new Libadalang.Analysis.Event_Handler_Interface
+   with record
+      Instrumented_File : Unbounded_String;
+      --  Base name for the file that is currently instrumented. Reset to the
+      --  empty string everytime we print the "While instrumenting XXX ..."
+      --  message, so that we print it at most once per instrumented file.
+
+      Reported_Files : String_Sets.Set;
+      --  Set of source file names which were already reported as missing.
+      --  Libadalang does not guarantee that the Unit_Requested event is
+      --  triggered only once per source, so de-duplicate events with this set.
+   end record;
+   --  Implementation of the Libadalang event handler interface used in
+   --  Create_Missing_File_Reporter.
+
+   type Missing_Src_Reporter_Access is access all Missing_Src_Reporter;
+
+   overriding procedure Release (Self : in out Missing_Src_Reporter) is null;
+
+   overriding procedure Unit_Requested_Callback
+     (Self               : in out Missing_Src_Reporter;
+      Context            : Libadalang.Analysis.Analysis_Context'Class;
+      Name               : Langkit_Support.Text.Text_Type;
+      From               : Libadalang.Analysis.Analysis_Unit'Class;
+      Found              : Boolean;
+      Is_Not_Found_Error : Boolean);
+   --  If the requested unit is not found and that is an error, warn about it.
+   --  Make sure we warn only once about a given source file.
+
+   function Create_Missing_File_Reporter
+     return Libadalang.Analysis.Event_Handler_Reference;
+   --  Create an event handler to warn about source files that Libadalang needs
+   --  to perform semantic analysis (so mandated by Ada), but which are not
+   --  available.
+
+   procedure Create_LAL_Context (Instrumenter : in out Ada_Instrumenter_Type);
+   --  Create a new Libadalang analysis context for Instrumenter, assigning it
+   --  to Instrumenter.Context.
+   --
+   --  This helper takes care of passing the unit provider and the event
+   --  handler that we need for all such contexts, and resets
+   --  Instrumenter.Get_From_File_Count to 0, as the new context has not been
+   --  used to instrument any source file yet.
+
+   function Get_From_File
+     (Instrumenter : in out Ada_Instrumenter_Type;
+      Filename     : String) return Libadalang.Analysis.Analysis_Unit;
+   --  Fetch the analysis unit for the given filename
+
+   -------------------------
+   -- Source instrumenter --
+   -------------------------
+
+   type Ada_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
+     with
+      record
+         Input_Filename  : Ada.Strings.Unbounded.Unbounded_String;
+         Output_Filename : Ada.Strings.Unbounded.Unbounded_String;
+
+         Unit   : Libadalang.Analysis.Analysis_Unit;
+         Handle : Libadalang.Rewriting.Rewriting_Handle;
+      end record;
+
+   overriding procedure Finalize (Self : in out Ada_Source_Rewriter);
+
+   procedure Start_Rewriting
+     (Self           : out Ada_Source_Rewriter'Class;
+      Instrumenter   : in out Ada_Instrumenter_Type;
+      Info           : in out Project_Info;
+      Input_Filename : String);
+   --  Start a rewriting session for the given Input_Filename. If the rewriting
+   --  process is successful, the result will be written to a file in
+   --  Info.Output_Dir with the basename of Output_Filename.
+   --
+   --  This registers the output file in Info.Instr_Files.
+   --
+   --  If there are parsing errors while reading Input_Filename, this raises a
+   --  fatal error and prints the corresponding error messages.
+
+   function Rewritten_Unit
+     (Self : Ada_Source_Rewriter'Class)
+      return Libadalang.Analysis.Analysis_Unit;
+   --  Return the analysis unit for the source that Self instruments
+
+   procedure Apply (Self : in out Ada_Source_Rewriter'Class);
+   --  Write the instrumented source to the filename passed as Output_Filename
+   --  to Start_Rewriting. If rewriting failed, raise a fatal error and print
+   --  the corresponding error message.
+
+   procedure Remove_Warnings_And_Style_Checks_Pragmas
+     (Rewriter : Ada_Source_Rewriter'Class);
+   --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit
+
+   ----------------------------
    -- Source level rewriting --
    ----------------------------
 
+   procedure Put_Warnings_And_Style_Checks_Pragmas
+     (File : in out Text_Files.File_Type);
+   --  Code generation helper: write "pragma Style_Checks (Off); pragma
+   --  Warnings (Off);" to File.
+   --
+   --  This is useful when writing instrumented sources, as they may introduce
+   --  warnings and break the original codebase's coding style, and since some
+   --  projects are built with "warnings-as-errors" (GNAT's -gnatwe option),
+   --  this could mean that instrumentation breaks the build. When written at
+   --  the very beginning of each written source, these pragmas avoid this.
+
    procedure Initialize_Rewriting
-     (IC                : out Ada_Unit_Inst_Context;
-      Instrumented_Unit : Compilation_Unit_Name;
-      Context           : Analysis_Context);
+     (Instrumenter      : Ada_Instrumenter_Type;
+      UIC               : out Ada_Unit_Inst_Context;
+      Instrumented_Unit : Compilation_Unit_Name);
    --  Initialize a unit instrumentation context for the given unit to
    --  instrument.
 
    procedure Instrument_Source_File
-     (CU_Name   : Compilation_Unit_Name;
-      Unit_Info : Instrumented_Unit_Info;
-      Prj_Info  : in out Project_Info;
-      IC        : in out Inst_Context;
-      UIC       : out Ada_Unit_Inst_Context);
+     (CU_Name      : Compilation_Unit_Name;
+      Unit_Info    : Instrumented_Unit_Info;
+      Prj_Info     : in out Project_Info;
+      Instrumenter : in out Ada_Instrumenter_Type;
+      UIC          : out Ada_Unit_Inst_Context);
    --  Generate the instrumented source corresponding to CU_Name/Unit_Info.
-   --  Record instrumentation information in IC.
    --
    --  If the unit to instrument is also a main and the buffers dump trigger
    --  is not manual, instrumented code will also dump the coverage buffers.
@@ -1052,7 +1158,8 @@ package body Instrument.Ada_Unit is
    -- Unit instrumentation --
    --------------------------
 
-   function Buffers_List_Unit (IC : Inst_Context) return Ada_Qualified_Name;
+   function Buffers_List_Unit
+     (Project_Name : String) return Ada_Qualified_Name;
    --  Returns the name of the unit containing the array of coverage buffers.
    --  It is named after the root project name (e.g. if the root project is
    --  p.gpr, its name is <Sys_Buffers_Lists>.<Slug for P>).
@@ -1072,16 +1179,17 @@ package body Instrument.Ada_Unit is
    --  Emit the unit to contain addresses for the coverage buffers
 
    procedure Emit_Dump_Helper_Unit
-     (IC                    : Inst_Context;
+     (Dump_Config           : Any_Dump_Config;
       Info                  : in out Project_Info;
+      Main_Filename         : String;
       Main                  : Compilation_Unit_Name;
       Helper_Unit           : out Ada_Qualified_Name;
       Override_Dump_Trigger : Any_Dump_Trigger := Manual;
       Has_Controlled        : Boolean := False);
    --  Emit the unit to contain helpers to implement the automatic dump of
-   --  coverage buffers for the given Main unit. Info must be the project that
-   --  owns this main. Upon return, the name of this helper unit is stored in
-   --  Helper_Unit.
+   --  coverage buffers for the given Main unit implemented in Main_Filename.
+   --  Info must be the project that owns this main. Upon return, the name of
+   --  this helper unit is stored in Helper_Unit.
    --
    --  If Override_Dump_Trigger is anything other than Manual, it will be used
    --  as a dump trigger instead of the one defined in IC.Dump_Config.
@@ -2522,8 +2630,7 @@ package body Instrument.Ada_Unit is
    -----------------------------------------
 
    procedure Traverse_Declarations_Or_Statements
-     (IC                         : in out Inst_Context;
-      UIC                        : in out Ada_Unit_Inst_Context;
+     (UIC                        : in out Ada_Unit_Inst_Context;
       L                          : Ada_List'Class;
       Preelab                    : Boolean       := False;
       P                          : Ada_Node      := No_Ada_Node;
@@ -2560,36 +2667,30 @@ package body Instrument.Ada_Unit is
    --  and semantic dependencies.
 
    procedure Traverse_Generic_Package_Declaration
-     (IC      : in out Inst_Context;
-      UIC     : in out Ada_Unit_Inst_Context;
+     (UIC     : in out Ada_Unit_Inst_Context;
       N       : Generic_Package_Decl;
       Preelab : Boolean);
 
    procedure Traverse_Handled_Statement_Sequence
-     (IC  : in out Inst_Context;
-      UIC : in out Ada_Unit_Inst_Context;
+     (UIC : in out Ada_Unit_Inst_Context;
       N   : Handled_Stmts);
 
    procedure Traverse_Package_Body
-     (IC      : in out Inst_Context;
-      UIC     : in out Ada_Unit_Inst_Context;
+     (UIC     : in out Ada_Unit_Inst_Context;
       N       : Package_Body;
       Preelab : Boolean);
 
    procedure Traverse_Package_Declaration
-     (IC      : in out Inst_Context;
-      UIC     : in out Ada_Unit_Inst_Context;
+     (UIC     : in out Ada_Unit_Inst_Context;
       N       : Base_Package_Decl;
       Preelab : Boolean);
 
    procedure Traverse_Subprogram_Or_Task_Body
-     (IC  : in out Inst_Context;
-      UIC : in out Ada_Unit_Inst_Context;
+     (UIC : in out Ada_Unit_Inst_Context;
       N   : Ada_Node);
 
    procedure Traverse_Sync_Definition
-     (IC  : in out Inst_Context;
-      UIC : in out Ada_Unit_Inst_Context;
+     (UIC : in out Ada_Unit_Inst_Context;
       N   : Ada_Node);
    --  Traverse a protected definition or task definition
 
@@ -2749,8 +2850,7 @@ package body Instrument.Ada_Unit is
    --  in which the decisions occur.
 
    procedure Traverse_Declarations_Or_Statements
-     (IC                         : in out Inst_Context;
-      UIC                        : in out Ada_Unit_Inst_Context;
+     (UIC                        : in out Ada_Unit_Inst_Context;
       L                          : Ada_List'Class;
       Preelab                    : Boolean       := False;
       P                          : Ada_Node      := No_Ada_Node;
@@ -3978,29 +4078,12 @@ package body Instrument.Ada_Unit is
                   CU_Prev_Decl : constant Basic_Decl :=
                     CU_Decl.P_Previous_Part_For_Decl;
                begin
-                  --  If we found a subunit, assert that the corresponding
-                  --  body/parent subunit is also instrumented.
-
-                  if Is_Subunit then
-                     declare
-                        Body_Name : constant Ada_Qualified_Name :=
-                           Canonicalize
-                             (To_Qualified_Name (CUN_Body.As_Subunit.F_Name));
-                     begin
-                        pragma Assert
-                          (IC.Instrumented_Units.Contains
-                             (CU_Name_For_Unit (Body_Name, GPR.Unit_Body))
-                           or else IC.Instrumented_Units.Contains
-                             (CU_Name_For_Unit
-                                (Body_Name, GPR.Unit_Separate)));
-                     end;
-
                   --  For a library unit, scan context clause. If this is a
                   --  body, also obtain WITH clauses from the spec. Also
                   --  record implicit WITHs for the unit itself and all of
                   --  its parents.
 
-                  else
+                  if not Is_Subunit then
                      Traverse_Context_Clause
                        (UIC, CUN.F_Prelude, Process_Pragmas => True);
                      if not CU_Prev_Decl.Is_Null then
@@ -4052,7 +4135,7 @@ package body Instrument.Ada_Unit is
                            UIC.In_Generic := True;
                         end if;
                         Traverse_Declarations_Or_Statements
-                          (IC, UIC,
+                          (UIC,
                            P       => CU_Decl.As_Ada_Node,
                            L       => CUN.F_Pragmas,
                            Preelab => Preelab);
@@ -4085,7 +4168,7 @@ package body Instrument.Ada_Unit is
             when Ada_Package_Decl =>
                Set_Statement_Entry;
                Traverse_Package_Declaration
-                 (IC, UIC, N.As_Base_Package_Decl, Preelab);
+                 (UIC, N.As_Base_Package_Decl, Preelab);
 
             --  Generic package declaration
 
@@ -4093,7 +4176,7 @@ package body Instrument.Ada_Unit is
                UIC.In_Generic := True;
                Set_Statement_Entry;
                Traverse_Generic_Package_Declaration
-                 (IC, UIC, N.As_Generic_Package_Decl, Preelab);
+                 (UIC, N.As_Generic_Package_Decl, Preelab);
                UIC.In_Generic := Saved_In_Generic;
 
             --  Package body
@@ -4101,7 +4184,7 @@ package body Instrument.Ada_Unit is
             when Ada_Package_Body =>
                UIC.In_Generic := Is_Generic (UIC, N.As_Basic_Decl);
                Set_Statement_Entry;
-               Traverse_Package_Body (IC, UIC, N.As_Package_Body, Preelab);
+               Traverse_Package_Body (UIC, N.As_Package_Body, Preelab);
                UIC.In_Generic := Saved_In_Generic;
 
             --  Subprogram declaration or subprogram body stub
@@ -4142,7 +4225,7 @@ package body Instrument.Ada_Unit is
                   UIC.In_Generic := True;
                end if;
                Set_Statement_Entry;
-               Traverse_Subprogram_Or_Task_Body (IC, UIC, N);
+               Traverse_Subprogram_Or_Task_Body (UIC, N);
                UIC.In_Generic := Saved_In_Generic;
 
             --  Entry body
@@ -4159,7 +4242,7 @@ package body Instrument.Ada_Unit is
                      Process_Decisions_Defer (Cond, 'G');
                   end if;
 
-                  Traverse_Subprogram_Or_Task_Body (IC, UIC, N);
+                  Traverse_Subprogram_Or_Task_Body (UIC, N);
                end;
 
             --  Protected body
@@ -4167,7 +4250,7 @@ package body Instrument.Ada_Unit is
             when Ada_Protected_Body =>
                Set_Statement_Entry;
                Traverse_Declarations_Or_Statements
-                 (IC, UIC, L => As_Protected_Body (N).F_Decls.F_Decls);
+                 (UIC, L => As_Protected_Body (N).F_Decls.F_Decls);
 
             --  Exit statement, which is an exit statement in the SCO sense,
             --  so it is included in the current statement sequence, but
@@ -4197,11 +4280,11 @@ package body Instrument.Ada_Unit is
 
                if N.Kind = Ada_Decl_Block then
                   Traverse_Declarations_Or_Statements
-                    (IC, UIC, L => As_Decl_Block (N).F_Decls.F_Decls);
+                    (UIC, L => As_Decl_Block (N).F_Decls.F_Decls);
                end if;
 
                Traverse_Handled_Statement_Sequence
-                 (IC, UIC,
+                 (UIC,
                   N => (case N.Kind is
                            when Ada_Decl_Block  => As_Decl_Block (N).F_Stmts,
                            when Ada_Begin_Block => As_Begin_Block (N).F_Stmts,
@@ -4223,7 +4306,7 @@ package body Instrument.Ada_Unit is
                   --  Now we traverse the statements in the THEN part
 
                   Traverse_Declarations_Or_Statements
-                    (IC, UIC,
+                    (UIC,
                      L => If_N.F_Then_Stmts.As_Ada_Node_List);
 
                   --  Loop through ELSIF parts if present
@@ -4248,7 +4331,7 @@ package body Instrument.Ada_Unit is
                         --  Traverse the statements in the ELSIF
 
                         Traverse_Declarations_Or_Statements
-                          (IC, UIC,
+                          (UIC,
                            L => Elif.F_Stmts.As_Ada_Node_List);
                      end;
                   end loop;
@@ -4256,7 +4339,7 @@ package body Instrument.Ada_Unit is
                   --  Finally traverse the ELSE statements if present
 
                   Traverse_Declarations_Or_Statements
-                    (IC, UIC,
+                    (UIC,
                      L => If_N.F_Else_Stmts.As_Ada_Node_List);
                end;
 
@@ -4281,7 +4364,7 @@ package body Instrument.Ada_Unit is
                           Alt_L.Child (J).As_Case_Stmt_Alternative;
                      begin
                         Traverse_Declarations_Or_Statements
-                          (IC, UIC,
+                          (UIC,
                            L => Alt.F_Stmts.As_Ada_Node_List);
                      end;
                   end loop;
@@ -4297,7 +4380,7 @@ package body Instrument.Ada_Unit is
                   --  Process sequence of statements
 
                   Traverse_Handled_Statement_Sequence
-                    (IC, UIC,
+                    (UIC,
                      N => N.As_Accept_Stmt_With_Stmts.F_Stmts);
                end if;
 
@@ -4328,7 +4411,7 @@ package body Instrument.Ada_Unit is
                         --  entry_call_alternative, or triggering_alternative.
 
                         Traverse_Declarations_Or_Statements
-                          (IC, UIC,
+                          (UIC,
                            L => Alt.F_Stmts.As_Ada_Node_List,
                            Is_Select_Stmt_Alternative => True);
                      end;
@@ -4338,10 +4421,10 @@ package body Instrument.Ada_Unit is
                   --  do not require the special processing for alternatives.
 
                   Traverse_Declarations_Or_Statements
-                    (IC, UIC,
+                    (UIC,
                      L => Sel_N.F_Else_Stmts.As_Ada_Node_List);
                   Traverse_Declarations_Or_Statements
-                    (IC, UIC,
+                    (UIC,
                      L => Sel_N.F_Abort_Stmts.As_Ada_Node_List);
                end;
 
@@ -4384,7 +4467,7 @@ package body Instrument.Ada_Unit is
                   Set_Statement_Entry;
 
                   Traverse_Handled_Statement_Sequence
-                    (IC, UIC,
+                    (UIC,
                      N => ER_N.F_Stmts);
                end;
 
@@ -4433,7 +4516,7 @@ package body Instrument.Ada_Unit is
                   Set_Statement_Entry;
 
                   Traverse_Declarations_Or_Statements
-                    (IC, UIC,
+                    (UIC,
                      L => Loop_S.F_Stmts.As_Ada_Node_List);
                end;
 
@@ -4604,7 +4687,7 @@ package body Instrument.Ada_Unit is
                end;
                Set_Statement_Entry;
 
-               Traverse_Sync_Definition (IC, UIC, N);
+               Traverse_Sync_Definition (UIC, N);
 
             when Ada_Single_Protected_Decl
                | Ada_Single_Task_Decl
@@ -4612,7 +4695,7 @@ package body Instrument.Ada_Unit is
                Extend_Statement_Sequence (UIC, N, 'o');
                Set_Statement_Entry;
 
-               Traverse_Sync_Definition (IC, UIC, N);
+               Traverse_Sync_Definition (UIC, N);
 
             when Ada_Named_Stmt =>
                Traverse_One (N.As_Named_Stmt.F_Stmt.As_Ada_Node);
@@ -4866,15 +4949,14 @@ package body Instrument.Ada_Unit is
    ------------------------------------------
 
    procedure Traverse_Generic_Package_Declaration
-     (IC      : in out Inst_Context;
-      UIC     : in out Ada_Unit_Inst_Context;
+     (UIC     : in out Ada_Unit_Inst_Context;
       N       : Generic_Package_Decl;
       Preelab : Boolean)
    is
    begin
       Process_Decisions (UIC, N.F_Formal_Part, 'X');
       Traverse_Package_Declaration
-        (IC, UIC, N.F_Package_Decl.As_Base_Package_Decl, Preelab);
+        (UIC, N.F_Package_Decl.As_Base_Package_Decl, Preelab);
    end Traverse_Generic_Package_Declaration;
 
    -----------------------------------------
@@ -4882,8 +4964,7 @@ package body Instrument.Ada_Unit is
    -----------------------------------------
 
    procedure Traverse_Handled_Statement_Sequence
-     (IC  : in out Inst_Context;
-      UIC : in out Ada_Unit_Inst_Context;
+     (UIC : in out Ada_Unit_Inst_Context;
       N   : Handled_Stmts)
    is
    begin
@@ -4892,7 +4973,7 @@ package body Instrument.Ada_Unit is
       end if;
 
       Traverse_Declarations_Or_Statements
-        (IC, UIC, L => N.F_Stmts.As_Ada_Node_List);
+        (UIC, L => N.F_Stmts.As_Ada_Node_List);
 
       for J in 1 .. N.F_Exceptions.Children_Count loop
          declare
@@ -4902,7 +4983,7 @@ package body Instrument.Ada_Unit is
 
             if Handler.Kind = Ada_Exception_Handler then
                Traverse_Declarations_Or_Statements
-                 (IC, UIC,
+                 (UIC,
                   L => Handler.As_Exception_Handler.F_Stmts.As_Ada_Node_List);
             end if;
          end;
@@ -4914,8 +4995,7 @@ package body Instrument.Ada_Unit is
    ---------------------------
 
    procedure Traverse_Package_Body
-     (IC      : in out Inst_Context;
-      UIC     : in out Ada_Unit_Inst_Context;
+     (UIC     : in out Ada_Unit_Inst_Context;
       N       : Package_Body;
       Preelab : Boolean)
    is
@@ -4932,8 +5012,8 @@ package body Instrument.Ada_Unit is
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       Traverse_Declarations_Or_Statements
-        (IC, UIC, N.F_Decls.F_Decls, Preelab);
-      Traverse_Handled_Statement_Sequence (IC, UIC, N => N.F_Stmts);
+        (UIC, N.F_Decls.F_Decls, Preelab);
+      Traverse_Handled_Statement_Sequence (UIC, N => N.F_Stmts);
 
       UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
       Exit_Scope (UIC);
@@ -4945,8 +5025,7 @@ package body Instrument.Ada_Unit is
    ----------------------------------
 
    procedure Traverse_Package_Declaration
-     (IC      : in out Inst_Context;
-      UIC     : in out Ada_Unit_Inst_Context;
+     (UIC     : in out Ada_Unit_Inst_Context;
       N       : Base_Package_Decl;
       Preelab : Boolean)
    is
@@ -4963,12 +5042,12 @@ package body Instrument.Ada_Unit is
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       Traverse_Declarations_Or_Statements
-        (IC, UIC, N.F_Public_Part.F_Decls, Preelab,
+        (UIC, N.F_Public_Part.F_Decls, Preelab,
          Priv_Part => N.F_Private_Part);
 
       if not N.F_Private_Part.Is_Null then
          Traverse_Declarations_Or_Statements
-           (IC, UIC,
+           (UIC,
             L       => N.F_Private_Part.F_Decls,
             Preelab => Preelab);
       end if;
@@ -4982,8 +5061,7 @@ package body Instrument.Ada_Unit is
    ------------------------------
 
    procedure Traverse_Sync_Definition
-     (IC  : in out Inst_Context;
-      UIC : in out Ada_Unit_Inst_Context;
+     (UIC : in out Ada_Unit_Inst_Context;
       N   : Ada_Node)
    is
       Vis_Decl  : Public_Part := No_Public_Part;
@@ -5041,12 +5119,12 @@ package body Instrument.Ada_Unit is
 
       if not Vis_Decl.Is_Null then
          Traverse_Declarations_Or_Statements
-           (IC, UIC, L => Vis_Decl.F_Decls, Priv_Part => Priv_Decl);
+           (UIC, L => Vis_Decl.F_Decls, Priv_Part => Priv_Decl);
       end if;
 
       if not Priv_Decl.Is_Null then
          Traverse_Declarations_Or_Statements
-           (IC, UIC, L => Priv_Decl.F_Decls);
+           (UIC, L => Priv_Decl.F_Decls);
       end if;
    end Traverse_Sync_Definition;
 
@@ -5055,8 +5133,7 @@ package body Instrument.Ada_Unit is
    --------------------------------------
 
    procedure Traverse_Subprogram_Or_Task_Body
-     (IC  : in out Inst_Context;
-      UIC : in out Ada_Unit_Inst_Context;
+     (UIC : in out Ada_Unit_Inst_Context;
       N   : Ada_Node)
    is
       Decls    : Declarative_Part;
@@ -5108,9 +5185,9 @@ package body Instrument.Ada_Unit is
       Local_Inserter.Local_Decls := Handle (Decls.F_Decls);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
-      Traverse_Declarations_Or_Statements (IC, UIC, L => Decls.F_Decls);
+      Traverse_Declarations_Or_Statements (UIC, L => Decls.F_Decls);
 
-      Traverse_Handled_Statement_Sequence (IC, UIC, N => HSS);
+      Traverse_Handled_Statement_Sequence (UIC, N => HSS);
 
       Exit_Scope (UIC);
 
@@ -6196,38 +6273,223 @@ package body Instrument.Ada_Unit is
       end if;
    end Exit_Scope;
 
+   ---------------------
+   -- Start_Rewriting --
+   ---------------------
+
+   procedure Start_Rewriting
+     (Self           : out Ada_Source_Rewriter'Class;
+      Instrumenter   : in out Ada_Instrumenter_Type;
+      Info           : in out Project_Info;
+      Input_Filename : String)
+   is
+      Base_Filename   : constant String :=
+         Ada.Directories.Simple_Name (Input_Filename);
+      Output_Filename : constant String :=
+         To_String (Info.Output_Dir) / Base_Filename;
+      Unit            : constant Analysis_Unit :=
+         Get_From_File (Instrumenter, Input_Filename);
+   begin
+      if Unit.Has_Diagnostics then
+         Outputs.Error ("instrumentation failed for " & Input_Filename);
+         Outputs.Error ("please make sure the original project can be "
+                          & "compiled");
+         for D of Unit.Diagnostics loop
+            Outputs.Error (Unit.Format_GNU_Diagnostic (D));
+         end loop;
+         raise Xcov_Exit_Exc;
+      end if;
+
+      Self.Input_Filename := To_Unbounded_String (Input_Filename);
+      Self.Output_Filename := To_Unbounded_String (Output_Filename);
+      Self.Unit := Unit;
+      Self.Handle := Start_Rewriting (Instrumenter.Context);
+   end Start_Rewriting;
+
+   --------------------
+   -- Rewritten_Unit --
+   --------------------
+
+   function Rewritten_Unit
+     (Self : Ada_Source_Rewriter'Class)
+      return Libadalang.Analysis.Analysis_Unit is
+   begin
+      return Self.Unit;
+   end Rewritten_Unit;
+
+   -----------------------------
+   -- Unit_Requested_Callback --
+   -----------------------------
+
+   overriding procedure Unit_Requested_Callback
+     (Self               : in out Missing_Src_Reporter;
+      Context            : Libadalang.Analysis.Analysis_Context'Class;
+      Name               : Langkit_Support.Text.Text_Type;
+      From               : Libadalang.Analysis.Analysis_Unit'Class;
+      Found              : Boolean;
+      Is_Not_Found_Error : Boolean)
+   is
+   begin
+      --  We need to warn about sources that we could not find *and* whose
+      --  presence is mandated by Ada.
+
+      if Found or else not Is_Not_Found_Error then
+         return;
+      end if;
+
+      --  Warn for a given source file only once, as Libadalang can invoke this
+      --  callback several times. For clarity, only mention the base name,
+      --  which should be unique in Ada projects anyway.
+
+      declare
+         N : constant Unbounded_String := To_Unbounded_String
+           (Ada.Directories.Simple_Name (Langkit_Support.Text.Image (Name)));
+      begin
+         if Self.Reported_Files.Contains (N) then
+            return;
+         end if;
+
+         Self.Reported_Files.Include (N);
+
+         --  Warn only if the file does not reside in the GNATcov_RTS
+         --  hierarchy.
+
+         declare
+            Source_Name : constant String := To_String (N);
+         begin
+            if GNATCOLL.Utils.Starts_With (Source_Name, "gnatcov_rts") then
+               return;
+            end if;
+         end;
+
+         --  If we have not done it yet, clarify which file we were
+         --  instrumenting when we noticed that the source file N was missing.
+
+         if Length (Self.Instrumented_File) > 0 then
+            Warn ("While instrumenting "
+                  & To_String (Self.Instrumented_File)
+                  & "...");
+            Self.Instrumented_File := Null_Unbounded_String;
+         end if;
+
+         Warn ("Cannot find required source file: " & To_String (N));
+      end;
+   end Unit_Requested_Callback;
+
+   ----------------------------------
+   -- Create_Missing_File_Reporter --
+   ----------------------------------
+
+   function Create_Missing_File_Reporter
+     return Libadalang.Analysis.Event_Handler_Reference
+   is
+   begin
+      return Create_Event_Handler_Reference
+        (Missing_Src_Reporter'(others => <>));
+   end Create_Missing_File_Reporter;
+
+   ------------------------
+   -- Create_LAL_Context --
+   ------------------------
+
+   procedure Create_LAL_Context (Instrumenter : in out Ada_Instrumenter_Type)
+   is
+   begin
+      Instrumenter.Context := Create_Context
+        (Unit_Provider => Instrumenter.Provider,
+         Event_Handler => Instrumenter.Event_Handler);
+      Instrumenter.Get_From_File_Count := 0;
+
+      --  Load configuration pragmas
+      --  TODO??? Remove the type convertion when the LAL API change for
+      --  VA07-037 makes it into stable-libadalang.
+
+      Libadalang.Config_Pragmas.Import_From_Project
+        (Instrumenter.Context,
+         GNATCOLL.Projects.Project_Tree (Project.Project.all));
+   end Create_LAL_Context;
+
+   -----------------------------
+   -- Create_Ada_Instrumenter --
+   -----------------------------
+
+   function Create_Ada_Instrumenter
+     (Provider         : Unit_Provider_Reference;
+      Language_Version : Any_Language_Version) return Ada_Instrumenter_Type
+   is
+      Instrumenter : Ada_Instrumenter_Type;
+   begin
+      Instrumenter.Provider := Provider;
+      Instrumenter.Event_Handler := Create_Missing_File_Reporter;
+      Create_LAL_Context (Instrumenter);
+      Instrumenter.Language_Version := Language_Version;
+      return Instrumenter;
+   end Create_Ada_Instrumenter;
+
+   -------------------
+   -- Get_From_File --
+   -------------------
+
+   function Get_From_File
+     (Instrumenter : in out Ada_Instrumenter_Type;
+      Filename     : String) return Libadalang.Analysis.Analysis_Unit
+   is
+   begin
+      --  If we exceeded the maximum number of calls to Get_From_File, start
+      --  with a new context.
+
+      if Instrumenter.Get_From_File_Count >= Max_Get_From_File_Count then
+         Create_LAL_Context (Instrumenter);
+      end if;
+      Instrumenter.Get_From_File_Count :=
+        Instrumenter.Get_From_File_Count + 1;
+
+      return Instrumenter.Context.Get_From_File (Filename);
+   end Get_From_File;
+
+   -------------------------------------------
+   -- Put_Warnings_And_Style_Checks_Pragmas --
+   -------------------------------------------
+
+   procedure Put_Warnings_And_Style_Checks_Pragmas
+     (File : in out Text_Files.File_Type)
+   is
+   begin
+      File.Put_Line ("pragma Style_Checks (Off); pragma Warnings (Off);");
+   end Put_Warnings_And_Style_Checks_Pragmas;
+
    --------------------------
    -- Initialize_Rewriting --
    --------------------------
 
    procedure Initialize_Rewriting
-     (IC                : out Ada_Unit_Inst_Context;
-      Instrumented_Unit : Compilation_Unit_Name;
-      Context           : Analysis_Context) is
+     (Instrumenter      : Ada_Instrumenter_Type;
+      UIC               : out Ada_Unit_Inst_Context;
+      Instrumented_Unit : Compilation_Unit_Name) is
    begin
-      IC.Instrumented_Unit := Instrumented_Unit;
-      IC.Buffer_Unit :=
+      UIC.Instrumented_Unit := Instrumented_Unit;
+      UIC.Buffer_Unit :=
         CU_Name_For_Unit (Buffer_Unit (Instrumented_Unit), GPR.Unit_Spec);
-      IC.Pure_Buffer_Unit :=
+      UIC.Pure_Buffer_Unit :=
         CU_Name_For_Unit (Pure_Buffer_Unit (Instrumented_Unit), GPR.Unit_Spec);
-      IC.Rewriting_Context := Handle (Context);
+      UIC.Rewriting_Context := Handle (Instrumenter.Context);
 
       declare
-         RH : constant Rewriting_Handle := IC.Rewriting_Context;
-         E  : Instrumentation_Entities renames IC.Entities;
+         RH : constant Rewriting_Handle := UIC.Rewriting_Context;
+         E  : Instrumentation_Entities renames UIC.Entities;
       begin
          E.Common_Buffers := To_Nodes (RH, Sys_Buffers);
-         E.Unit_Buffers := To_Nodes (RH, IC.Pure_Buffer_Unit.Unit);
+         E.Unit_Buffers := To_Nodes (RH, UIC.Pure_Buffer_Unit.Unit);
          E.Statement_Buffer :=
-           To_Nodes (RH, IC.Pure_Buffer_Unit.Unit & Statement_Buffer_Name);
+           To_Nodes (RH, UIC.Pure_Buffer_Unit.Unit & Statement_Buffer_Name);
 
          if Coverage.Enabled (Decision) or else MCDC_Coverage_Enabled then
             E.Decision_Buffer :=
-              To_Nodes (RH, IC.Pure_Buffer_Unit.Unit & Decision_Buffer_Name);
+              To_Nodes (RH, UIC.Pure_Buffer_Unit.Unit & Decision_Buffer_Name);
 
             if MCDC_Coverage_Enabled then
                E.MCDC_Buffer :=
-                 To_Nodes (RH, IC.Pure_Buffer_Unit.Unit & MCDC_Buffer_Name);
+                 To_Nodes (RH, UIC.Pure_Buffer_Unit.Unit & MCDC_Buffer_Name);
             end if;
          end if;
       end;
@@ -6358,13 +6620,13 @@ package body Instrument.Ada_Unit is
    ----------------------------------
 
    function Has_Matching_Pragma_For_Unit
-     (IC     : Inst_Context;
-      Unit   : Compilation_Unit;
-      Filter : access function (Node : Pragma_Node) return Boolean)
+     (Context : Analysis_Context;
+      Unit    : Compilation_Unit;
+      Filter  : access function (Node : Pragma_Node) return Boolean)
       return Boolean
    is
       System_Unit  : constant Analysis_Unit :=
-        IC.Context.Get_From_Provider ("System", Unit_Specification);
+        Context.Get_From_Provider ("System", Unit_Specification);
       Unit_Pragmas : constant Pragma_Node_Array :=
         Unit.P_All_Config_Pragmas
         & (if System_Unit.Has_Diagnostics
@@ -6439,12 +6701,12 @@ package body Instrument.Ada_Unit is
    -------------------------------------
 
    function Finalization_Restricted_In_Unit
-     (IC : Inst_Context; Unit : Compilation_Unit) return Boolean
+     (Context : Analysis_Context; Unit : Compilation_Unit) return Boolean
    is
    begin
       return not Project.Runtime_Supports_Finalization
             or else Has_Matching_Pragma_For_Unit
-                      (IC, Unit, Pragma_Restricts_Finalization'Access);
+                      (Context, Unit, Pragma_Restricts_Finalization'Access);
    end Finalization_Restricted_In_Unit;
 
    --------------------------------------
@@ -6497,27 +6759,176 @@ package body Instrument.Ada_Unit is
    ---------------------------------
 
    function Task_Termination_Restricted
-     (IC : Inst_Context; Unit : Compilation_Unit) return Boolean
+     (Context : Analysis_Context; Unit : Compilation_Unit) return Boolean
    is
    begin
       return not Project.Runtime_Supports_Task_Termination
             or else Has_Matching_Pragma_For_Unit
-                      (IC, Unit, Pragma_Prevents_Task_Termination'Access);
+                      (Context, Unit, Pragma_Prevents_Task_Termination'Access);
    end Task_Termination_Restricted;
+
+   -----------
+   -- Apply --
+   -----------
+
+   procedure Apply (Self : in out Ada_Source_Rewriter'Class) is
+   begin
+      --  Automatically insert pragmas to disable style checks and
+      --  warnings in generated code: it is not our goal to make
+      --  instrumentation generate warning-free or well-formatted
+      --  code.
+
+      Remove_Warnings_And_Style_Checks_Pragmas (Self);
+
+      declare
+         use Ada.Strings.Wide_Wide_Unbounded.Aux;
+
+         Unit   : constant Unit_Rewriting_Handle := Handle (Self.Unit);
+         Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
+
+         --  To avoid copying the potentially big string for sources on the
+         --  secondary stack (and reduce the amount of copies anyway), use the
+         --  internal GNAT API to retreive the internal string access and
+         --  process it by chunks.
+
+         Source_Access : Big_Wide_Wide_String_Access;
+         Length        : Natural;
+
+         Chunk_Size : constant := 4096;
+         Position   : Natural;
+
+         Filename : constant String := To_String (Self.Output_Filename);
+         Out_File : Text_Files.File_Type;
+      begin
+         Abort_Rewriting (Self.Handle);
+         Out_File.Create (Filename);
+         Put_Warnings_And_Style_Checks_Pragmas (Out_File);
+
+         Get_Wide_Wide_String (Source, Source_Access, Length);
+         Position := Source_Access.all'First;
+
+         while Position <= Length loop
+            declare
+               Chunk_First : constant Natural := Position;
+               Chunk_Last  : constant Natural := Natural'Min
+                 (Chunk_First + Chunk_Size - 1, Length);
+
+               Chunk         : Wide_Wide_String renames
+                  Source_Access.all (Chunk_First .. Chunk_Last);
+               Encoded_Chunk : constant String :=
+                  Ada.Characters.Conversions.To_String (Chunk);
+            begin
+               Out_File.Put (Encoded_Chunk);
+               Position := Chunk_Last + 1;
+            end;
+         end loop;
+
+         Out_File.Close;
+         if Switches.Pretty_Print then
+            Text_Files.Run_GNATpp (Out_File);
+         end if;
+      end;
+
+      Self.Finalize;
+   end Apply;
+
+   --------------
+   -- Finalize --
+   --------------
+
+   overriding procedure Finalize (Self : in out Ada_Source_Rewriter) is
+   begin
+      if Self.Handle /= No_Rewriting_Handle then
+         Abort_Rewriting (Self.Handle);
+      end if;
+      Self.Unit := No_Analysis_Unit;
+   end Finalize;
+
+   ----------------------------------------------
+   -- Remove_Warnings_And_Style_Checks_Pragmas --
+   ----------------------------------------------
+
+   procedure Remove_Warnings_And_Style_Checks_Pragmas
+     (Rewriter : Ada_Source_Rewriter'Class)
+   is
+
+      function Should_Remove (Node : Node_Rewriting_Handle) return Boolean;
+      --  Return whether Node is a pragma Warnings or Style_Checks
+
+      procedure Process (Node : Node_Rewriting_Handle);
+      --  Remove all pragma Warnings/Style_Checks statements from Node and its
+      --  children.
+
+      -------------------
+      -- Should_Remove --
+      -------------------
+
+      function Should_Remove (Node : Node_Rewriting_Handle) return Boolean is
+      begin
+         if Kind (Node) /= Ada_Pragma_Node then
+            return False;
+         end if;
+
+         declare
+            Symbol : constant Symbolization_Result :=
+               Canonicalize (Text (Child (Node, 1)));
+         begin
+            return (Symbol.Success
+                    and then Symbol.Symbol in "warnings" | "style_checks");
+         end;
+      end Should_Remove;
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (Node : Node_Rewriting_Handle) is
+      begin
+         if Node = No_Node_Rewriting_Handle then
+            return;
+         end if;
+
+         --  Go through all children in reverse order so that we can remove
+         --  pragmas in one pass.
+
+         for I in reverse 1 .. Children_Count (Node) loop
+            declare
+               Child : constant Node_Rewriting_Handle :=
+                  Libadalang.Rewriting.Child (Node, I);
+            begin
+               if Child /= No_Node_Rewriting_Handle
+                 and then Should_Remove (Child)
+               then
+                  Remove_Child (Node, I);
+               else
+                  Process (Child);
+               end if;
+            end;
+         end loop;
+      end Process;
+
+   --  Start of processing for Remove_Warnings_And_Style_Checks_Pragmas
+
+   begin
+      Process (Handle (Rewriter.Unit.Root));
+   end Remove_Warnings_And_Style_Checks_Pragmas;
 
    -------------------------------
    -- Auto_Dump_Buffers_In_Main --
    -------------------------------
 
-   procedure Auto_Dump_Buffers_In_Main
-     (IC   : Inst_Context;
-      Info : in out Project_Info;
-      Main : Compilation_Unit_Name;
-      URH  : Unit_Rewriting_Handle)
+   overriding procedure Auto_Dump_Buffers_In_Main
+     (Self        : in out Ada_Instrumenter_Type;
+      Filename    : String;
+      Instr_Units : CU_Name_Vectors.Vector;
+      Dump_Config : Any_Dump_Config;
+      Info        : in out Project_Info)
    is
-      U   : constant Analysis_Unit := Unit (URH);
-      RH  : constant Rewriting_Handle := Handle (U.Context);
-      Tmp : LAL.Ada_Node := U.Root;
+      Rewriter : Ada_Source_Rewriter;
+
+      U   : Analysis_Unit;
+      RH  : Rewriting_Handle;
+      Tmp : LAL.Ada_Node;
 
       CU        : LAL.Compilation_Unit;
       Subp_Body : LAL.Subp_Body;
@@ -6528,21 +6939,33 @@ package body Instrument.Ada_Unit is
       --  Resolved dump trigger after eventual override depending on the
       --  features available on the runtime.
 
-      Instr_Units : constant CU_Name_Vectors.Vector :=
-        Instr_Units_For_Closure (IC, Main);
-      --  List of instrumented units for which we need to dump buffers
-
       Helper_Unit : Ada_Qualified_Name;
       --  Name of unit to contain helpers implementing the buffers dump
+
+      Main : Compilation_Unit_Name (Unit_Based_Language) :=
+        (Language_Kind => Unit_Based_Language,
+         Part          => Unit_Body,
+         others        => <>);
+      --  Note that we can't get the compilation unit name using the
+      --  To_Compilation_Unit_Name overload taking a File_Info parameter,
+      --  as the main we are instrumenting there may be the instrumented
+      --  version of the original version, in which case it won't belong
+      --  to the root project as it will be in the <prj>-gnatcov-instr
+      --  directory.
 
    begin
       if Instr_Units.Is_Empty then
          return;
       end if;
+      Start_Rewriting (Rewriter, Self, Info, Filename);
 
       --  Make sure this main source has the expected structure: a
       --  simple subprogram body in a compilation unit. If not, return without
       --  doing anything.
+
+      U := Unit (Handle (Rewriter.Rewritten_Unit));
+      RH := Handle (U.Context);
+      Tmp := U.Root;
 
       if Tmp.Kind /= Ada_Compilation_Unit then
          return;
@@ -6563,20 +6986,23 @@ package body Instrument.Ada_Unit is
       end if;
 
       Controlled_Types_Available :=
-        not Finalization_Restricted_In_Unit (IC, CU);
+        not Finalization_Restricted_In_Unit (U.Context, CU);
 
       Actual_Dump_Trigger :=
-        (if IC.Dump_Config.Trigger = Main_End
+        (if Dump_Config.Trigger = Main_End
            and then not Controlled_Types_Available
-           and then not Task_Termination_Restricted (IC, CU)
+           and then not Task_Termination_Restricted (U.Context, CU)
          then Ravenscar_Task_Termination
-         else IC.Dump_Config.Trigger);
+         else Dump_Config.Trigger);
+
+      Main.Unit := To_Qualified_Name (CU.P_Syntactic_Fully_Qualified_Name);
 
       --  Emit the helper unit and add a WITH clause for it
 
       Emit_Dump_Helper_Unit
-        (IC,
+        (Dump_Config,
          Info,
+         Filename,
          Main,
          Helper_Unit,
          Override_Dump_Trigger => Actual_Dump_Trigger,
@@ -6662,29 +7088,12 @@ package body Instrument.Ada_Unit is
          --  - If we do not have finalization or tasks then simply insert calls
          --    right before all the exit points of the main.
 
-         if not Finalization_Restricted_In_Unit (IC, CU) then
+         if not Finalization_Restricted_In_Unit (U.Context, CU) then
             Insert_Controlled_Dump_Object_Decl (RH, Helper_Unit, Subp_Body);
          else
             Insert_Simple_Dump_Proc_Calls (RH, Helper_Unit, Subp_Body);
          end if;
       end case;
-   end Auto_Dump_Buffers_In_Main;
-
-   overriding procedure Auto_Dump_Buffers_In_Main
-     (Self     : Ada_Instrumenter_Type;
-      IC       : in out Inst_Context;
-      Main     : Compilation_Unit_Name;
-      Filename : String;
-      Info     : in out Project_Info)
-   is
-      Rewriter : Source_Rewriter;
-   begin
-      Rewriter.Start_Rewriting (IC, Info, Filename);
-      Auto_Dump_Buffers_In_Main
-        (IC   => IC,
-         Info => Info,
-         Main => Main,
-         URH  => Libadalang.Rewriting.Handle (Rewriter.Rewritten_Unit));
       Rewriter.Apply;
    end Auto_Dump_Buffers_In_Main;
 
@@ -6693,13 +7102,13 @@ package body Instrument.Ada_Unit is
    ----------------------------
 
    procedure Instrument_Source_File
-     (CU_Name   : Compilation_Unit_Name;
-      Unit_Info : Instrumented_Unit_Info;
-      Prj_Info  : in out Project_Info;
-      IC        : in out Inst_Context;
-      UIC       : out Ada_Unit_Inst_Context)
+     (CU_Name      : Compilation_Unit_Name;
+      Unit_Info    : Instrumented_Unit_Info;
+      Prj_Info     : in out Project_Info;
+      Instrumenter : in out Ada_Instrumenter_Type;
+      UIC          : out Ada_Unit_Inst_Context)
    is
-      Rewriter  : Source_Rewriter;
+      Rewriter  : Ada_Source_Rewriter;
       Filename  : constant String := To_String (Unit_Info.Filename);
       Dummy_Ctx : constant Context_Handle :=
         Create_Context ("Instrumenting " & Filename);
@@ -6718,7 +7127,7 @@ package body Instrument.Ada_Unit is
       --  Whether there is a pragma Short_Circuit_And_Or that applies to this
       --  unit.
    begin
-      Rewriter.Start_Rewriting (IC, Prj_Info, Filename);
+      Start_Rewriting (Rewriter, Instrumenter, Prj_Info, Filename);
 
       Root_Analysis_Unit := Rewriter.Rewritten_Unit;
 
@@ -6745,7 +7154,7 @@ package body Instrument.Ada_Unit is
             Preelab := False;
       end;
 
-      Initialize_Rewriting (UIC, CU_Name, IC.Context);
+      Initialize_Rewriting (Instrumenter, UIC, CU_Name);
 
       begin
          Has_Pragma_SCAO := UIC.Root_Unit.P_Config_Pragmas
@@ -6791,8 +7200,7 @@ package body Instrument.Ada_Unit is
       Append_Unit (UIC.SFI);
 
       Traverse_Declarations_Or_Statements
-        (IC      => IC,
-         UIC     => UIC,
+        (UIC     => UIC,
          L       => No_Ada_List,
          Preelab => Preelab,
          P       => Rewriter.Rewritten_Unit.Root);
@@ -6949,16 +7357,6 @@ package body Instrument.Ada_Unit is
          end if;
       end;
 
-      --  Insert automatic buffer dump calls, if requested
-
-      if IC.Dump_Config.Trigger /= Manual and then Unit_Info.Is_Main then
-         Auto_Dump_Buffers_In_Main
-           (IC   => IC,
-            Info => Prj_Info,
-            Main => UIC.Instrumented_Unit,
-            URH  => Handle (Rewriter.Rewritten_Unit));
-      end if;
-
       --  Emit the instrumented source file
 
       Rewriter.Apply;
@@ -6968,10 +7366,11 @@ package body Instrument.Ada_Unit is
    -- Buffers_List_Unit --
    -----------------------
 
-   function Buffers_List_Unit (IC : Inst_Context) return Ada_Qualified_Name
+   function Buffers_List_Unit
+     (Project_Name : String) return Ada_Qualified_Name
    is
       Project_Name_Slug : constant String :=
-        Qualified_Name_Slug (To_Qualified_Name (IC.Project_Name));
+        Qualified_Name_Slug (To_Qualified_Name (Project_Name));
    begin
       return Ada_Identifier_Vectors."&"
         (Sys_Buffers_Lists,
@@ -7256,13 +7655,17 @@ package body Instrument.Ada_Unit is
    ---------------------------
 
    procedure Emit_Dump_Helper_Unit
-     (IC                    : Inst_Context;
+     (Dump_Config           : Any_Dump_Config;
       Info                  : in out Project_Info;
+      Main_Filename         : String;
       Main                  : Compilation_Unit_Name;
       Helper_Unit           : out Ada_Qualified_Name;
       Override_Dump_Trigger : Any_Dump_Trigger := Manual;
       Has_Controlled        : Boolean := False)
    is
+      Root_Prj_Name : constant String :=
+        Project.Project.Root_Project.Name;
+
       File : Text_Files.File_Type;
 
       procedure Put_With (Unit : Ada_Qualified_Name);
@@ -7283,7 +7686,7 @@ package body Instrument.Ada_Unit is
 
       Dump_Trigger : constant Auto_Dump_Trigger :=
         (if Override_Dump_Trigger = Manual
-         then IC.Dump_Config.Trigger
+         then Dump_Config.Trigger
          else Override_Dump_Trigger);
       --  Resolved dump trigger
 
@@ -7301,7 +7704,7 @@ package body Instrument.Ada_Unit is
       declare
          use type Ada_Qualified_Name;
          Unit : constant String :=
-           (case IC.Dump_Config.Channel is
+           (case Dump_Config.Channel is
                when Binary_File            => "Files",
                when Base64_Standard_Output => "Base64");
       begin
@@ -7387,7 +7790,8 @@ package body Instrument.Ada_Unit is
                null;
          end case;
 
-         File.Put_Line ("with " & To_Ada (Buffers_List_Unit (IC)) & ";");
+         File.Put_Line
+           ("with " & To_Ada (Buffers_List_Unit (Root_Prj_Name)) & ";");
 
          File.Put_Line ("package body " & Helper_Unit_Name & " is");
          File.New_Line;
@@ -7401,8 +7805,9 @@ package body Instrument.Ada_Unit is
          File.Put_Line ("      " & To_Ada (Output_Proc));
          File.Put      ("        (");
 
-         File.Put_Line (To_Ada (Buffers_List_Unit (IC)) & ".List,");
-         case IC.Dump_Config.Channel is
+         File.Put_Line
+           (To_Ada (Buffers_List_Unit (Root_Prj_Name)) & ".List,");
+         case Dump_Config.Channel is
          when Binary_File =>
             declare
                use GNATCOLL.VFS;
@@ -7412,23 +7817,21 @@ package body Instrument.Ada_Unit is
                Indent2 : constant String := Indent1 & "  ";
 
                Env_Var : constant String :=
-                 (if Length (IC.Dump_Config.Filename_Env_Var) = 0
+                 (if Length (Dump_Config.Filename_Env_Var) = 0
                   then U & ".Default_Trace_Filename_Env_Var"
-                  else """" & To_String (IC.Dump_Config.Filename_Env_Var)
+                  else """" & To_String (Dump_Config.Filename_Env_Var)
                        & """");
                Prefix  : constant String :=
-                 (if Length (IC.Dump_Config.Filename_Prefix) = 0
+                 (if Length (Dump_Config.Filename_Prefix) = 0
                   then """" & String'(+Info.Project.Executable_Name
-                    (File => +To_Filename
-                         (Project => Info.Project,
-                          CU_Name => Main,
-                          Language => Switches.Ada_Language),
+                    (File           => +Main_Filename,
                      Include_Suffix => True)) & """"
-                  else """" & To_String (IC.Dump_Config.Filename_Prefix)
+                  else """" & To_String (Dump_Config.Filename_Prefix)
                        & """");
-               Tag     : constant String := """" & To_String (IC.Tag) & """";
+               Tag     : constant String :=
+                 """" & Trace_Filename_Tag & """";
                Simple  : constant String :=
-                 (if IC.Dump_Config.Filename_Simple
+                 (if Dump_Config.Filename_Simple
                   then "True"
                   else "False");
             begin
@@ -7536,30 +7939,21 @@ package body Instrument.Ada_Unit is
    -- Emit_Buffers_List_Unit --
    ----------------------------
 
-   procedure Emit_Buffers_List_Unit
+   overriding procedure Emit_Buffers_List_Unit
      (Self              : Ada_Instrumenter_Type;
-      IC                : in out Inst_Context;
-      Root_Project_Info : in out Project_Info)
+      Root_Project_Info : in out Project_Info;
+      Instr_Units       : CU_Name_Vectors.Vector)
    is
-      CU_Name : constant Compilation_Unit_Name :=
-        CU_Name_For_Unit (Buffers_List_Unit (IC), GNATCOLL.Projects.Unit_Spec);
-      File    : Text_Files.File_Type;
-
-      Instr_Units : CU_Name_Vectors.Vector;
+      Prj_Name : constant String := Root_Project_Info.Project.Name;
+      CU_Name  : constant Compilation_Unit_Name :=
+        CU_Name_For_Unit
+          (Buffers_List_Unit (Prj_Name), GNATCOLL.Projects.Unit_Spec);
+      File     : Text_Files.File_Type;
    begin
-      for Cur in IC.Instrumented_Units.Iterate loop
-         declare
-            Instr_Unit : constant Compilation_Unit_Name :=
-              Instrumented_Unit_Maps.Key (Cur);
-         begin
-            Instr_Units.Append (Instr_Unit);
-         end;
-      end loop;
-
-      --  Now emit the unit to contain the list of buffers
+      --  Emit the unit to contain the list of buffers
 
       declare
-         Unit_Name : constant String := To_Ada (CU_Name.Unit);
+         Unit_Name_Str : constant String := To_Ada (CU_Name.Unit);
       begin
          Create_File
            (Root_Project_Info,
@@ -7585,7 +7979,7 @@ package body Instrument.Ada_Unit is
             end if;
          end loop;
          File.New_Line;
-         File.Put_Line ("package " & Unit_Name & " is");
+         File.Put_Line ("package " & Unit_Name_Str & " is");
          File.New_Line;
          File.Put_Line ("   pragma Preelaborate;");
          File.New_Line;
@@ -7633,10 +8027,11 @@ package body Instrument.Ada_Unit is
 
          File.Put_Line
            ("   pragma Export (C, C_List, """
-            & Unit_Buffers_Array_Name (+IC.Project_Name) & """);");
+            & Unit_Buffers_Array_Name (Prj_Name)
+            & """);");
 
          File.New_Line;
-         File.Put_Line ("end " & Unit_Name & ";");
+         File.Put_Line ("end " & Unit_Name_Str & ";");
       end;
    end Emit_Buffers_List_Unit;
 
@@ -7645,23 +8040,38 @@ package body Instrument.Ada_Unit is
    ---------------------
 
    overriding procedure Instrument_Unit
-     (Self      : Ada_Instrumenter_Type;
+     (Self      : in out Ada_Instrumenter_Type;
       CU_Name   : Compilation_Unit_Name;
-      IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info)
    is
       Prj_Info : Project_Info renames Unit_Info.Prj_Info.all;
       UIC      : Ada_Unit_Inst_Context;
+
+      Event_Handler : Missing_Src_Reporter renames
+        Missing_Src_Reporter_Access (Self.Event_Handler.Unchecked_Get).all;
+      --  Handle to the event handler we use to report missing source files
+
+      Filename : constant String := To_String (Unit_Info.Filename);
+      Basename : constant String := Ada.Directories.Simple_Name (Filename);
    begin
+      --  If we are in verbose mode, we already printed the source file that
+      --  we are about to instrument. Otherwise, just get prepared to print it
+      --  in case we emit a "source file missing" warning through Libadalang's
+      --  event handler.
+
+      if not Verbose then
+         Event_Handler.Instrumented_File := To_Unbounded_String (Basename);
+      end if;
+
       --  Instrument the source file and create a unit to contain its coverage
       --  buffers.
 
       Instrument_Source_File
-        (CU_Name   => CU_Name,
-         Unit_Info => Unit_Info,
-         Prj_Info  => Prj_Info,
-         IC        => IC,
-         UIC       => UIC);
+        (CU_Name      => CU_Name,
+         Unit_Info    => Unit_Info,
+         Prj_Info     => Prj_Info,
+         Instrumenter => Self,
+         UIC          => UIC);
       Emit_Buffer_Unit (Prj_Info, UIC);
       Emit_Pure_Buffer_Unit (Prj_Info, UIC);
 
@@ -7669,5 +8079,101 @@ package body Instrument.Ada_Unit is
 
       Instrumented_Unit_CUs.Insert (CU_Name, UIC.CU);
    end Instrument_Unit;
+
+   procedure Find_Ada_Units
+     (Instrumenter : in out Ada_Instrumenter_Type;
+      CU_Name      : Compilation_Unit_Name;
+      Info         : GNATCOLL.Projects.File_Info;
+      Process_Unit : access procedure
+        (CU_Name : Compilation_Unit_Name;
+         Info    : GNATCOLL.Projects.File_Info))
+   is
+      use GNATCOLL.VFS;
+
+      function Process_Node (N : LAL.Ada_Node'Class) return Visit_Status;
+
+      ------------------
+      -- Process_Node --
+      ------------------
+
+      function Process_Node (N : LAL.Ada_Node'Class) return Visit_Status is
+      begin
+         if N.Kind in Ada_Body_Stub then
+            begin
+               declare
+                  Stub         : constant LAL.Body_Stub := N.As_Body_Stub;
+                  Subunit_FQN  : constant LAL.Unbounded_Text_Type_Array :=
+                    Stub.P_Syntactic_Fully_Qualified_Name;
+                  Subunit_Name : constant Compilation_Unit_Name :=
+                    CU_Name_For_Unit
+                      (Unit => To_Qualified_Name (Subunit_FQN),
+                       Part => GPR.Unit_Separate);
+                  Subunit_Info : GPR.File_Info;
+               begin
+                  if Subunit_FQN'Length = 0 then
+                     raise Property_Error;
+                  elsif Unit_Info (Subunit_Name, Subunit_Info) then
+                     Find_Ada_Units
+                       (Instrumenter,
+                        Subunit_Name,
+                        Subunit_Info,
+                        Process_Unit);
+                  else
+                     Warn ("cannot instrument " & Image (Subunit_Name)
+                           & ": this unit does not belong to this project");
+                  end if;
+               end;
+            exception
+               when Property_Error =>
+                  --  TODO: location
+                  Warn ("failed to locate the subunit for this stub");
+            end;
+            return Over;
+         end if;
+
+         return Into;
+      end Process_Node;
+
+      Input_Filename : constant String := +Info.File.Full_Name;
+      Unit           : constant LAL.Analysis_Unit :=
+        Get_From_File (Instrumenter, Input_Filename);
+   begin
+      --  Abort if the input project is not compilable
+
+      if Unit.Has_Diagnostics then
+         Outputs.Error ("instrumentation failed for " & Input_Filename);
+         Outputs.Error
+           ("please make sure the original project can be compiled");
+         for D of Unit.Diagnostics loop
+            Outputs.Error (Unit.Format_GNU_Diagnostic (D));
+         end loop;
+         raise Xcov_Exit_Exc;
+      end if;
+
+      --  We cannot instrument files that contain only pragmas, but they are
+      --  still valid sources in the context of the GNAT runtime (for instance
+      --  g-os_lib.adb), so just ignore them.
+
+      if Unit.Root.Kind = Ada_Pragma_Node_List then
+         return;
+
+      --  Abort if a source file does not contain exactly one compilation
+      --  unit.
+
+      elsif Unit.Root.Kind = Ada_Compilation_Unit_List then
+         Outputs.Error ("instrumentation failed for " & Input_Filename);
+         Outputs.Error ("source files containing multiple compilation units"
+                & " are not supported");
+         raise Xcov_Exit_Exc;
+      end if;
+
+      pragma Assert (Unit.Root.Kind = Ada_Compilation_Unit);
+      declare
+         CU : constant LAL.Compilation_Unit := Unit.Root.As_Compilation_Unit;
+      begin
+         Process_Unit (CU_Name, Info);
+         CU.Traverse (Process_Node'Access);
+      end;
+   end Find_Ada_Units;
 
 end Instrument.Ada_Unit;

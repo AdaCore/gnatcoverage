@@ -16,26 +16,17 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Conversions;
 with Ada.Containers; use Ada.Containers;
 with Ada.Directories;
-pragma Warnings (Off, "* is an internal GNAT unit");
-with Ada.Strings.Wide_Wide_Unbounded.Aux;
-pragma Warnings (On, "* is an internal GNAT unit");
 with Ada.Unchecked_Deallocation;
-with Interfaces;
 
 with GNAT.OS_Lib;
 
-with Langkit_Support.Symbols;
-with Libadalang.Common;
-with Libadalang.Config_Pragmas;
-with Libadalang.Sources;
+with Interfaces;
 
 with Coverage;
 with Diagnostics;
 with Hex_Images;
-with Outputs; use Outputs;
 with Paths;   use Paths;
 with Project; use Project;
 with SCOs;
@@ -48,19 +39,6 @@ package body Instrument.Common is
    --  Helper for Statement_Buffer_Symbol and Decision_Buffer_Symbol. Return
    --  the name of the symbol for the entity that contains the address of a
    --  coverage buffer for Instrumented_Unit.
-
-   procedure Remove_Warnings_And_Style_Checks_Pragmas
-     (Rewriter : Source_Rewriter);
-   --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit
-
-   procedure Create_LAL_Context (IC : in out Inst_Context);
-   --  Create a new Libadalang analysis context for IC, assigning it to
-   --  IC.Context.
-   --
-   --  This helper takes care of passing the unit provider and the event
-   --  handler that we need for all such contexts, and resets
-   --  IC.Get_From_File_Count to 0, as the new context has not been used to
-   --  instrument any source file yet.
 
    function Next_Bit (Last_Bit : in out Any_Bit_Id) return Any_Bit_Id;
    --  Convenience function to allocate a new coverage buffer bit: increment
@@ -179,254 +157,37 @@ package body Instrument.Common is
       return To_String (Result);
    end Format_Fingerprint;
 
-   ---------------------
-   -- Start_Rewriting --
-   ---------------------
-
-   procedure Start_Rewriting
-     (Self           : out Source_Rewriter;
-      IC             : in out Inst_Context;
-      Info           : in out Project_Info;
-      Input_Filename : String)
-   is
-      Base_Filename   : constant String :=
-         Ada.Directories.Simple_Name (Input_Filename);
-      Output_Filename : constant String :=
-         To_String (Info.Output_Dir) / Base_Filename;
-      Unit            : constant Analysis_Unit :=
-         Get_From_File (IC, Input_Filename);
-   begin
-      if Unit.Has_Diagnostics then
-         Outputs.Error ("instrumentation failed for " & Input_Filename);
-         Outputs.Error ("please make sure the original project can be "
-                          & "compiled");
-         for D of Unit.Diagnostics loop
-            Outputs.Error (Unit.Format_GNU_Diagnostic (D));
-         end loop;
-         raise Xcov_Exit_Exc;
-      end if;
-
-      Self.Input_Filename := To_Unbounded_String (Input_Filename);
-      Self.Output_Filename := To_Unbounded_String (Output_Filename);
-      Self.Unit := Unit;
-      Self.Handle := Start_Rewriting (IC.Context);
-   end Start_Rewriting;
-
-   --------------------
-   -- Rewritten_Unit --
-   --------------------
-
-   function Rewritten_Unit
-     (Self : Source_Rewriter) return Libadalang.Analysis.Analysis_Unit is
-   begin
-      return Self.Unit;
-   end Rewritten_Unit;
-
-   ----------------------------------------------
-   -- Remove_Warnings_And_Style_Checks_Pragmas --
-   ----------------------------------------------
-
-   procedure Remove_Warnings_And_Style_Checks_Pragmas
-     (Rewriter : Source_Rewriter)
-   is
-      use Langkit_Support.Symbols;
-      use Libadalang.Common;
-      use Libadalang.Sources;
-
-      function Should_Remove (Node : Node_Rewriting_Handle) return Boolean;
-      --  Return whether Node is a pragma Warnings or Style_Checks
-
-      procedure Process (Node : Node_Rewriting_Handle);
-      --  Remove all pragma Warnings/Style_Checks statements from Node and its
-      --  children.
-
-      -------------------
-      -- Should_Remove --
-      -------------------
-
-      function Should_Remove (Node : Node_Rewriting_Handle) return Boolean is
-      begin
-         if Kind (Node) /= Ada_Pragma_Node then
-            return False;
-         end if;
-
-         declare
-            Symbol : constant Symbolization_Result :=
-               Canonicalize (Text (Child (Node, 1)));
-         begin
-            return (Symbol.Success
-                    and then Symbol.Symbol in "warnings" | "style_checks");
-         end;
-      end Should_Remove;
-
-      -------------
-      -- Process --
-      -------------
-
-      procedure Process (Node : Node_Rewriting_Handle) is
-      begin
-         if Node = No_Node_Rewriting_Handle then
-            return;
-         end if;
-
-         --  Go through all children in reverse order so that we can remove
-         --  pragmas in one pass.
-
-         for I in reverse 1 .. Children_Count (Node) loop
-            declare
-               Child : constant Node_Rewriting_Handle :=
-                  Libadalang.Rewriting.Child (Node, I);
-            begin
-               if Child /= No_Node_Rewriting_Handle
-                 and then Should_Remove (Child)
-               then
-                  Remove_Child (Node, I);
-               else
-                  Process (Child);
-               end if;
-            end;
-         end loop;
-      end Process;
-
-   --  Start of processing for Remove_Warnings_And_Style_Checks_Pragmas
-
-   begin
-      Process (Handle (Rewriter.Unit.Root));
-   end Remove_Warnings_And_Style_Checks_Pragmas;
-
-   -----------
-   -- Apply --
-   -----------
-
-   procedure Apply (Self : in out Source_Rewriter) is
-   begin
-      --  Automatically insert pragmas to disable style checks and
-      --  warnings in generated code: it is not our goal to make
-      --  instrumentation generate warning-free or well-formatted
-      --  code.
-
-      Remove_Warnings_And_Style_Checks_Pragmas (Self);
-
-      declare
-         use Ada.Strings.Wide_Wide_Unbounded.Aux;
-
-         Unit   : constant Unit_Rewriting_Handle := Handle (Self.Unit);
-         Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
-
-         --  To avoid copying the potentially big string for sources on the
-         --  secondary stack (and reduce the amount of copies anyway), use the
-         --  internal GNAT API to retreive the internal string access and
-         --  process it by chunks.
-
-         Source_Access : Big_Wide_Wide_String_Access;
-         Length        : Natural;
-
-         Chunk_Size : constant := 4096;
-         Position   : Natural;
-
-         Filename : constant String := To_String (Self.Output_Filename);
-         Out_File : Text_Files.File_Type;
-      begin
-         Abort_Rewriting (Self.Handle);
-         Out_File.Create (Filename);
-         Put_Warnings_And_Style_Checks_Pragmas (Out_File);
-
-         Get_Wide_Wide_String (Source, Source_Access, Length);
-         Position := Source_Access.all'First;
-
-         while Position <= Length loop
-            declare
-               Chunk_First : constant Natural := Position;
-               Chunk_Last  : constant Natural := Natural'Min
-                 (Chunk_First + Chunk_Size - 1, Length);
-
-               Chunk         : Wide_Wide_String renames
-                  Source_Access.all (Chunk_First .. Chunk_Last);
-               Encoded_Chunk : constant String :=
-                  Ada.Characters.Conversions.To_String (Chunk);
-            begin
-               Out_File.Put (Encoded_Chunk);
-               Position := Chunk_Last + 1;
-            end;
-         end loop;
-
-         Out_File.Close;
-         if Switches.Pretty_Print then
-            Text_Files.Run_GNATpp (Out_File);
-         end if;
-      end;
-
-      Self.Finalize;
-   end Apply;
-
-   --------------
-   -- Finalize --
-   --------------
-
-   overriding procedure Finalize (Self : in out Source_Rewriter) is
-   begin
-      if Self.Handle /= No_Rewriting_Handle then
-         Abort_Rewriting (Self.Handle);
-      end if;
-      Self.Unit := No_Analysis_Unit;
-   end Finalize;
-
    ------------------------
-   -- Create_LAL_Context --
+   -- Trace_Filename_Tag --
    ------------------------
 
-   procedure Create_LAL_Context (IC : in out Inst_Context) is
+   function Trace_Filename_Tag return String
+   is
+      --  Compute the tag for default source trace filenames. Use the current
+      --  time as a mostly unique identifier. Put it in hexadecimal form
+      --  without leading zeros to avoid too long names.
+
+      use Interfaces;
+      Time : constant Unsigned_64 :=
+        Unsigned_64 (GNAT.OS_Lib.To_C (GNAT.OS_Lib.Current_Time));
+      Tag  : constant String :=
+        Hex_Images.Strip_Zero_Padding
+          (Hex_Images.Hex_Image (Time));
    begin
-      IC.Context := Create_Context
-        (Unit_Provider => IC.Provider,
-         Event_Handler => IC.Event_Handler);
-      IC.Get_From_File_Count := 0;
-
-      --  Load configuration pragmas
-      --  TODO??? Remove the type convertion when the LAL API change for
-      --  VA07-037 makes it into stable-libadalang.
-
-      Libadalang.Config_Pragmas.Import_From_Project
-        (IC.Context, GNATCOLL.Projects.Project_Tree (Project.Project.all));
-   end Create_LAL_Context;
+      return Tag;
+   end Trace_Filename_Tag;
 
    --------------------
    -- Create_Context --
    --------------------
 
    function Create_Context
-     (Provider             : Libadalang.Analysis.Unit_Provider_Reference;
-      Event_Handler        : Libadalang.Analysis.Event_Handler_Reference;
-      Dump_Config          : Any_Dump_Config;
-      Language_Version     : Any_Language_Version;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context is
+     (Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context is
    begin
       return IC : Inst_Context do
          IC.Project_Name := +Ada.Directories.Base_Name
            (Project.Root_Project_Filename);
          --  TODO??? Get the original casing for the project name
-
-         --  Compute the tag for default source trace filenames. Use the
-         --  current time as a mostly unique identifier. Put it in hexadecimal
-         --  form without leading zeros to avoid too long names.
-
-         declare
-            use Interfaces;
-
-            Time : constant Unsigned_64 :=
-              Unsigned_64 (GNAT.OS_Lib.To_C (GNAT.OS_Lib.Current_Time));
-            Tag  : constant String :=
-               Hex_Images.Strip_Zero_Padding (Hex_Images.Hex_Image (Time));
-         begin
-            IC.Tag := +Tag;
-         end;
-
-         IC.Provider := Provider;
-         IC.Event_Handler := Event_Handler;
-         Create_LAL_Context (IC);
-
-         IC.Dump_Config := Dump_Config;
-         IC.Language_Version := Language_Version;
 
          IC.Ignored_Source_Files_Present := Ignored_Source_Files /= null;
          if Ignored_Source_Files /= null then
@@ -471,26 +232,6 @@ package body Instrument.Common is
       end loop;
       Context.Project_Info_Map := Project_Info_Maps.Empty_Map;
    end Destroy_Context;
-
-   -------------------
-   -- Get_From_File --
-   -------------------
-
-   function Get_From_File
-     (IC       : in out Inst_Context;
-      Filename : String) return Libadalang.Analysis.Analysis_Unit
-   is
-   begin
-      --  If we exceeded the maximum number of calls to Get_From_File, start
-      --  with a new context.
-
-      if IC.Get_From_File_Count >= Max_Get_From_File_Count then
-         Create_LAL_Context (IC);
-      end if;
-      IC.Get_From_File_Count := IC.Get_From_File_Count + 1;
-
-      return IC.Context.Get_From_File (Filename);
-   end Get_From_File;
 
    ----------------------------
    -- Is_Ignored_Source_File --
@@ -586,34 +327,14 @@ package body Instrument.Common is
          Standard.Project.Project.Info (File);
       CU_Name   : constant Compilation_Unit_Name :=
          To_Compilation_Unit_Name (File_Info);
+      Prj_Info  : constant Project_Info_Access :=
+        Get_Or_Create_Project_Info (Context, Project);
    begin
-      --  If this main is already a unit of interest, no need to register it:
-      --  we will instrument it as part of our regular instrumentation process.
-      --  However, mains can be passed via the command line or in the GPR file
-      --  and we don't know which main to use when first registering units of
-      --  interest. Since every unit of interest is marked as not begin a main,
-      --  this information must be updated here by setting Is_Main accordingly.
-
-      declare
-         C : constant Instrumented_Unit_Maps.Cursor :=
-           Context.Instrumented_Units.Find (CU_Name);
-      begin
-         if Instrumented_Unit_Maps.Has_Element (C) then
-            Instrumented_Unit_Maps.Element (C).Is_Main := True;
-            return;
-         end if;
-      end;
-
-      declare
-         Prj_Info  : constant Project_Info_Access :=
-            Get_Or_Create_Project_Info (Context, Project);
-      begin
-         Mains.Append
-           (Main_To_Instrument'
-              (CU_Name  => CU_Name,
-               File     => File,
-               Prj_Info => Prj_Info));
-      end;
+      Mains.Append
+        (Main_To_Instrument'
+           (CU_Name  => CU_Name,
+            File     => File,
+            Prj_Info => Prj_Info));
    end Register_Main_To_Instrument;
 
    ---------------------------
@@ -641,9 +362,7 @@ package body Instrument.Common is
             return;
          end if;
 
-         --  Because different main files than those given in the GPR file can
-         --  be passed via command line, set Is_Main to false for every
-         --  file and decide which to use as mains accordingly later.
+         --  Otherwise, add it to the list of instrumented units
 
          declare
             Unit_Info : constant Instrumented_Unit_Info_Access :=
@@ -651,7 +370,6 @@ package body Instrument.Common is
                  (Filename => To_Unbounded_String
                                 (+Source_File.File.Full_Name),
                   Prj_Info => Get_Or_Create_Project_Info (Context, Project),
-                  Is_Main  => False,
                   Language => To_Language (Source_File.Language));
          begin
             Context.Instrumented_Units.Insert (CU_Name, Unit_Info);
@@ -687,64 +405,6 @@ package body Instrument.Common is
    begin
       File.Create (Filename);
    end Create_File;
-
-   -------------------------------------------
-   -- Put_Warnings_And_Style_Checks_Pragmas --
-   -------------------------------------------
-
-   procedure Put_Warnings_And_Style_Checks_Pragmas
-     (File : in out Text_Files.File_Type)
-   is
-   begin
-      File.Put_Line ("pragma Style_Checks (Off); pragma Warnings (Off);");
-   end Put_Warnings_And_Style_Checks_Pragmas;
-
-   -----------------------------
-   -- Unit_Requested_Callback --
-   -----------------------------
-
-   overriding procedure Unit_Requested_Callback
-     (Self               : in out Missing_Src_Reporter;
-      Context            : Libadalang.Analysis.Analysis_Context'Class;
-      Name               : Langkit_Support.Text.Text_Type;
-      From               : Libadalang.Analysis.Analysis_Unit'Class;
-      Found              : Boolean;
-      Is_Not_Found_Error : Boolean)
-   is
-   begin
-      --  We need to warn about sources that we could not find *and* whose
-      --  presence is mandated by Ada.
-
-      if Found or else not Is_Not_Found_Error then
-         return;
-      end if;
-
-      --  Warn for a given source file only once, as Libadalang can invoke this
-      --  callback several times. For clarity, only mention the base name,
-      --  which should be unique in Ada projects anyway.
-
-      declare
-         N : constant Unbounded_String := To_Unbounded_String
-           (Ada.Directories.Simple_Name (Langkit_Support.Text.Image (Name)));
-      begin
-         if Self.Reported_Files.Contains (N) then
-            return;
-         end if;
-
-         --  If we have not done it yet, clarify which file we were
-         --  instrumenting when we noticed that the source file N was missing.
-
-         if Length (Self.Instrumented_File) > 0 then
-            Warn ("While instrumenting "
-                  & To_String (Self.Instrumented_File)
-                  & "...");
-            Self.Instrumented_File := Null_Unbounded_String;
-         end if;
-
-         Self.Reported_Files.Include (N);
-         Warn ("Cannot find required source file: " & To_String (N));
-      end;
-   end Unit_Requested_Callback;
 
    --------------
    -- Next_Bit --

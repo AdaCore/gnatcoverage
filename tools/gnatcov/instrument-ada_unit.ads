@@ -24,6 +24,8 @@ with Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Hash;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
+with GNATCOLL.Projects; use GNATCOLL.Projects;
+
 with Langkit_Support.Text; use Langkit_Support.Text;
 with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
@@ -36,33 +38,65 @@ with Types;                 use Types;
 
 package Instrument.Ada_Unit is
 
-   type Ada_Instrumenter_Type is new Language_Instrumenter with
-     null record;
+   type Ada_Instrumenter_Type is new Language_Instrumenter
+     with record
+      Provider : Libadalang.Analysis.Unit_Provider_Reference;
+      --  Unit provider to create an analysis context (Context member below)
+
+      Event_Handler : Libadalang.Analysis.Event_Handler_Reference;
+      --  Event handler to warn about missing source files
+
+      Context : Libadalang.Analysis.Analysis_Context;
+      --  Libadalang context to load all units to rewrite
+
+      Get_From_File_Count : Natural;
+      --  Count how many times we called Context.Get_From_File. See the
+      --  Max_Get_From_File_Count constant.
+
+      Language_Version : Any_Language_Version;
+      --  See the eponym arguments in Instrument.Intrument_Units_Of_Interest
+
+   end record;
    --  Instrumentation primitives for Ada
+
+   function Create_Ada_Instrumenter
+     (Provider         : Unit_Provider_Reference;
+      Language_Version : Any_Language_Version) return Ada_Instrumenter_Type;
+   --  Create an Ada instrumenter from the given provider, and the given
+   --  language version.
 
    overriding function Language
      (Self : Ada_Instrumenter_Type) return Switches.Src_Supported_Language
    is (Switches.Ada_Language);
 
    overriding procedure Instrument_Unit
-     (Self      : Ada_Instrumenter_Type;
-      CU_Name   : Compilation_Unit_Name;
-      IC        : in out Inst_Context;
-      Unit_Info : in out Instrumented_Unit_Info);
+     (Self        : in out Ada_Instrumenter_Type;
+      CU_Name     : Compilation_Unit_Name;
+      Unit_Info   : in out Instrumented_Unit_Info);
 
    overriding procedure Auto_Dump_Buffers_In_Main
-     (Self     : Ada_Instrumenter_Type;
-      IC       : in out Inst_Context;
-      Main     : Compilation_Unit_Name;
-      Filename : String;
-      Info     : in out Project_Info);
+     (Self        : in out Ada_Instrumenter_Type;
+      Filename    : String;
+      Instr_Units : CU_Name_Vectors.Vector;
+      Dump_Config : Any_Dump_Config;
+      Info        : in out Project_Info);
 
    overriding procedure Emit_Buffers_List_Unit
      (Self              : Ada_Instrumenter_Type;
-      IC                : in out Inst_Context;
-      Root_Project_Info : in out Project_Info);
+      Root_Project_Info : in out Project_Info;
+      Instr_Units       : CU_Name_Vectors.Vector);
 
-   Instrumenter : aliased constant Ada_Instrumenter_Type := (null record);
+   procedure Find_Ada_Units
+     (Instrumenter : in out Ada_Instrumenter_Type;
+      CU_Name      : Compilation_Unit_Name;
+      Info         : GNATCOLL.Projects.File_Info;
+      Process_Unit : access procedure
+        (CU_Name : Compilation_Unit_Name;
+         Info    : GNATCOLL.Projects.File_Info));
+   --  Consider that Info is a source file to instrument (i.e. a unit of
+   --  interest, CU_Name being the name of its compilation unit) and call
+   --  Process_Unit for all compilation units that must be instrumented with
+   --  it (i.e. related subunits, if present).
 
    --  Private declarations relative to the AST traversal
 private
