@@ -4,45 +4,93 @@ with "rts/gnatcov_rts";
 
 project Gnatcov is
 
-   --  This project file participates in the build of a variety of programs
-   --  that use all or part-of the sources in the project's subdirectory. Such
-   --  progrms include the "gnatcov" driver, the "gnatcov32/64" tools or the
-   --  trace adapters.
+   type Boolean is ("False", "True");
 
-   --  We provide scenario variables to control some aspects of what the
-   --  sources include, such as whether the tool is intended to process 32 or
-   --  64 binaries or whether it needs to include a fully functional source
-   --  instrumenter. The control of what parameter makes sense for each actual
-   --  program is not decided by this project file, and when this project file
-   --  is used as a root project to build gnatcov* executables, build commands
-   --  are expected to state the Mains on the on the command line along
-   --  with the associated parameters.
+   --  This project file is used:
+   --
+   --  * As the root project when building the "gnatcov" driver program or the
+   --    gnatcov32/gnatcov64 internal programs.
+   --
+   --  * As a subproject when building the trace adapters implemented on top of
+   --    some gnatcov units (for instance, trace32).
+   --
+   --  The following externals ("scenario variables") allows to instruct
+   --  gprbuild which subset of sources to build: which program ("gnatcov"
+   --  driver, ...) and with what optional feature (C instrumentation support).
+   --  This project file also use them to derive various build settings: "main"
+   --  sources, object directory to use, ...
 
-   --  The size of addresses we expect the tool we build will handle. For
-   --  gnatcov* programs, this also controls the subdir where the executable
-   --  is placed. Default to "64" as we build 64bit binaries only. Only those
-   --  that explicitly request to handle 32bit addresses will end up in the
-   --  32bit specific object dir.
+   -------------------------
+   -- Mandatory externals --
+   -------------------------
 
-   type Bits_Type is ("32", "64");
-   Bits : Bits_Type := external("ARCH", "64");
+   type Part_Type is ("lib32", "lib64", "driver", "gnatcov32", "gnatcov64");
+   Part : Part_Type := external ("PART");
+   --  Which program this project should build:
+   --
+   --  * "lib32/lib64": gnatcov.gpr is used as a subproject, the main is a
+   --    trace adapter for 32-bit binary traces (lib32) or 64-bit ones (lib64).
+   --
+   --  * "driver": the user-facing "gnatcov" program, whose job is to run
+   --    gnatcov32 or gnatcov64.
+   --
+   --  * "gnatcov32": the homonym program, for everything that needs to deal
+   --    with binary traces of 32-bit programs.
+   --
+   --  * "gnatcov64": the homonym program, for everything else.
 
    Binutils_Src_Dir := external ("BINUTILS_SRC_DIR");
    Binutils_Build_Dir := external ("BINUTILS_BUILD_DIR", Binutils_Src_Dir);
+   --  Directories that contain the source tree for binutils, and its build
+   --  tree, if different (in the case of out-of-tree builds).
 
-   --  Build mode. Default to "dev" to make it shorter for developers.
-   --  The other modes are for nightly scripts and are better made explicit
-   --  anyway:
+   ------------------------
+   -- Optional externals --
+   ------------------------
+
+   C_Support : Boolean := external ("C_SUPPORT", "True");
+   --  Whether to include support source instrumentation for C
+   --
+   --  Enabling this is useful for gnatcov64 only (at it is the only program
+   --  that is supposed to run the C/C++ instrumenter): it will create link
+   --  issue in some other configurations (because of the need for Clang link
+   --  options), and will just create bloat in others (link of Clang code that
+   --  is dead code in practice): force it to "False" in all but the
+   --  "gnatcov64" configuration.
+
+   case Part is
+      when "gnatcov64" => null;
+      when others      => C_Support := "False";
+   end case;
 
    type Build_Mode_Type is ("dev", "prod", "boot");
-   Build_Mode : Build_Mode_Type := external("BUILD_MODE", "dev");
+   Build_Mode : Build_Mode_Type := external ("BUILD_MODE", "dev");
+   --  Build mode. Default to "dev" to make it shorter for developers. The
+   --  other modes are for nightly scripts and are better made explicit anyway.
 
-   --  Whether the tool we build needs to include source instrumentation
-   --  support at all, then for C more specifically:
+   --------------------------------------
+   -- Settings computed from externals --
+   --------------------------------------
 
-   type Boolean is ("False", "True");
-   Instrument_Support : Boolean := external("INSTRUMENT_SUPPORT", "True");
-   C_Support          : Boolean := external("C_SUPPORT", Instrument_Support);
+   --  The size of addresses we expect the tool we build will handle. Used to
+   --  select source variants implementing 32-bit or 64-bit types, constants
+   --  and subprograms.
+   --
+   --  Note that we build the "gnatcov" driver in 32-bit mode as an
+   --  optimization: unlike "gnatcov64", none of "lib32", "gnatcov32" and
+   --  "driver" need source instrumentation support, so they all use the same
+   --  sources, and can thus share the same object directory.
+
+   type Bits_Type is ("32", "64");
+   Bits : Bits_Type := "32";
+   case Part is
+      when "lib64" | "gnatcov64"            => Bits := "64";
+      when "driver" | "lib32" | "gnatcov32" => Bits := "32";
+   end case;
+
+   -------------------------------------------
+   -- Selection of alternative source files --
+   -------------------------------------------
 
    package Naming is
       for Specification ("Arch") use "arch__" & Bits & ".ads";
@@ -55,10 +103,10 @@ project Gnatcov is
       --  used. Provide a stub body for such tools, which significantly
       --  reduces the size of executables:
 
-      case Instrument_Support is
-         when "False" =>
+      case Part is
+         when "lib32" | "lib64" | "driver" | "gnatcov32" =>
             for Body ("Instrument") use "instrument__stub.adb";
-         when "True" =>
+         when "gnatcov64" =>
             null;
       end case;
 
@@ -73,9 +121,27 @@ project Gnatcov is
       for Body_Suffix ("C++") use ".cc";
    end Naming;
 
+   ----------------------------
+   -- Configuration of mains --
+   ----------------------------
+
+   case Part is
+      when "lib32" | "lib64" =>
+         for Main use ();
+      when "driver" =>
+         for Main use  ("gnatcov.adb");
+      when "gnatcov32" | "gnatcov64" =>
+         for Main use ("gnatcov_bits_specific.adb");
+   end case;
+
    package Builder is
-      for Executable ("gnatcov_bits_specific.adb") use "gnatcov" & Bits;
+      for Executable ("gnatcov_bits_specific.adb") use Part;
+      for Executable ("gnatcov.adb") use "gnatcov";
    end Builder;
+
+   -----------------------
+   -- Toolchain options --
+   -----------------------
 
    package Compiler is
 
@@ -141,10 +207,8 @@ project Gnatcov is
 
    package Binder is
       case Build_Mode is
-        when "dev" =>
-           for Default_Switches ("Ada") use ("-Es");
-         when others =>
-            null;
+         when "dev"  => for Default_Switches ("Ada") use ("-Es");
+         when others => null;
       end case;
    end Binder;
 
@@ -153,15 +217,28 @@ project Gnatcov is
       for VCS_Repository_Root use "../..";
    end IDE;
 
+   -------------------------------------------
+   -- Configuration of sources/object files --
+   -------------------------------------------
+
    for Source_Dirs use (".", "libopcodes_bind");
    case C_Support is
-      when "False" =>
-         for Excluded_Source_Files use ("clang-wrapper.cc");
-      when others =>
-         null;
+      when "False" => for Excluded_Source_Files use ("clang-wrapper.cc");
+      when "True"  => null;
    end case;
 
-   for Object_Dir use "obj" & Bits & "/" & Build_Mode;
+   Object_Dir := "";
+   case Part is
+      when "driver" | "lib32" | "gnatcov32" => Object_Dir := "obj32";
+      when "gnatcov64"                      => Object_Dir := "obj64";
+
+      --  gnatcov64 uses the real instrumenter.adb while lib64 uses the stub
+      --  one, so they cannot use the same object directory.
+
+      when "lib64"               => Object_Dir := "objlib64";
+   end case;
+   for Object_Dir use Object_Dir & "/" & Build_Mode;
+
    for Languages use ("Ada", "C", "C++");
 
 end Gnatcov;
