@@ -1,11 +1,10 @@
 GPRBUILD=gprbuild
 PREFIX=install
+PARALLEL_BUILD=0
 
 include ../../host.mk
 
 .PHONY: force
-
-ARCH=32
 
 # Files for libexec/gnatcoverage include binary executables
 # (which need to be built first), and a python script.
@@ -25,7 +24,8 @@ DOCFORMATS=pdf html
 all: $(EXENAMES)
 
 $(EXENAMES): force
-	$(GPRBUILD) -p -Pnexus -XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
+	$(GPRBUILD) -p -j$(PARALLEL_BUILD) \
+		-Pnexus -XPART=lib32 $(EXTRA_ADAFLAGS) $@
 
 
 ###################

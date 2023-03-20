@@ -74,7 +74,7 @@ GPRINSTALL=gprinstall
 
 # Binary program name
 PGMNAME=gnatcov
-PGMPATH=obj64/$(BUILD_MODE)/$(PGMNAME)
+PGMPATH=obj32/$(BUILD_MODE)/$(PGMNAME)
 PGM32PATH=obj32/$(BUILD_MODE)/gnatcov32
 PGM64PATH=obj64/$(BUILD_MODE)/gnatcov64
 
@@ -197,6 +197,7 @@ BIN_COMMON_BUILD_ARGS=\
  -XBUILD_MODE=$(BUILD_MODE) \
  -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
  -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
+ -XC_SUPPORT=$(C_SUPPORT) \
  $(EXTRA_ADAFLAGS) \
  -largs $(LD_FLAGS) \
  -cargs:c++ $(CXXFLAGS) \
@@ -213,15 +214,9 @@ bin:
 	fi
 
 # Start with the 64-bit gnatcov, which has the largest closure
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) \
-		gnatcov_bits_specific.adb \
-		-XARCH=64 -XINSTRUMENT_SUPPORT=True -XC_SUPPORT=$(C_SUPPORT)
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) \
-		gnatcov_bits_specific.adb \
-		-XARCH=32 -XINSTRUMENT_SUPPORT=False
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) \
-		gnatcov.adb \
-		-XINSTRUMENT_SUPPORT=False
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov64
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov32
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=driver
 
 ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), adapter-$(a))
 .PHONY: $(ADAPTERS_TARGETS)

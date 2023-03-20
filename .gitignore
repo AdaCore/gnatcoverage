@@ -11,6 +11,7 @@ lib
 /tools/gnatcov/obj32/
 /tools/gnatcov/obj64/
 /tools/gnatcov/obj-gnatcov_rts/
+/tools/gnatcov/objlib64/
 /tools/gnatcov/examples/support/lib
 /tools/gnatcov/examples/support/obj
 /tools/gnatcov/rts-instr
