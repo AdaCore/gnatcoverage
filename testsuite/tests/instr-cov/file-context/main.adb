@@ -1,3 +1,5 @@
+with Ada.Text_IO; use Ada.Text_IO;
+
 with Pkg;
 
 with Missing_A;
