@@ -45,6 +45,7 @@ with Coverage;            use Coverage;
 with Diagnostics;         use Diagnostics;
 with Files_Table;         use Files_Table;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Instrument.Ada_Unit_Provider;
 with Namet;               use Namet;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
@@ -6614,9 +6615,11 @@ package body Instrument.Ada_Unit is
    -----------------------------
 
    function Create_Ada_Instrumenter
-     (Provider         : Unit_Provider_Reference;
-      Language_Version : Any_Language_Version) return Ada_Instrumenter_Type
+     (Language_Version : Any_Language_Version) return Ada_Instrumenter_Type
    is
+      Provider : constant Unit_Provider_Reference :=
+        Instrument.Ada_Unit_Provider.Create_Provider_From_Project;
+
       Instrumenter : Ada_Instrumenter_Type;
    begin
       Instrumenter.Provider := Provider;

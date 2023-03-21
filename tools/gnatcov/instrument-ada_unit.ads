@@ -60,8 +60,7 @@ package Instrument.Ada_Unit is
    --  Instrumentation primitives for Ada
 
    function Create_Ada_Instrumenter
-     (Provider         : Unit_Provider_Reference;
-      Language_Version : Any_Language_Version) return Ada_Instrumenter_Type;
+     (Language_Version : Any_Language_Version) return Ada_Instrumenter_Type;
    --  Create an Ada instrumenter from the given provider, and the given
    --  language version.
 

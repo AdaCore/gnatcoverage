@@ -34,14 +34,11 @@ with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.JSON;     use GNATCOLL.JSON;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
-with Libadalang.Analysis;
-
 with Checkpoints;
 with Coverage;
 with Files_Table;
 with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Instrument.Ada_Unit;
-with Instrument.Ada_Unit_Provider;
 with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Clean_Objdirs;
 with Instrument.C;
@@ -305,19 +302,12 @@ package body Instrument is
       Ignored_Source_Files : access GNAT.Regexp.Regexp;
       Mains                : String_Vectors.Vector)
    is
-      use Libadalang.Analysis;
       use String_Vectors;
-
-      --  First create the context for Libadalang
-
-      Provider : constant Unit_Provider_Reference :=
-        Instrument.Ada_Unit_Provider.Create_Provider_From_Project;
 
       --  Initialize all the instrumenters
 
       Ada_Instrumenter : aliased Instrument.Ada_Unit.Ada_Instrumenter_Type :=
-        Instrument.Ada_Unit.Create_Ada_Instrumenter
-          (Provider, Language_Version);
+        Instrument.Ada_Unit.Create_Ada_Instrumenter (Language_Version);
       C_Instrumenter   : aliased Instrument.C.C_Instrumenter_Type :=
         (null record);
       CPP_Instrumenter : aliased Instrument.C.CPP_Instrumenter_Type :=
