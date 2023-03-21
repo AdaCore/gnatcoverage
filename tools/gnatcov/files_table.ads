@@ -105,6 +105,10 @@ package Files_Table is
    --
    --  Windows-looking absolute filenames are canonicalized by upper casing the
    --  drive letter and lower casing all other letters.
+   --
+   --  If Insert_After_Freeze is True, allow the inserting after the files
+   --  table has been frozen. Note that this breaks the uniqueness invariant
+   --  of names returned by Get_Unique_Name.
 
    procedure Consolidate_File_Kind
      (Index : Valid_Source_File_Index;
