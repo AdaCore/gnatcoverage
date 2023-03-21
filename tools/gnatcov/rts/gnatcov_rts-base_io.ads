@@ -31,8 +31,6 @@ package GNATcov_RTS.Base_IO is
    --  See the comment in gnatcov_rts_c-base_io.h for more information about
    --  this package.
 
-   pragma Preelaborate;
-
    procedure Put (S : GNATcov_RTS_String);
    pragma Export (C, Entity => Put, External_Name => "gnatcov_rts_put_string");
 
