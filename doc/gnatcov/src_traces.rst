@@ -380,6 +380,21 @@ process, and the MC/DC coverage for each decision will be reported as
 ``Undetermined_Coverage`` state. Should the default limit not be satisfactory,
 it can be tuned with the option :cmd-option:`--path-count-limit`.
 
+Source-coverage obligations limitations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In Ada, variable or type declarations at the package level can yield elaboration
+code. Such code constructs are thus considered to have corresponding coverage
+obligations
+
+In the case where a `pragma Preelaborate` or the `No_Elaboration_Code`
+restriction affects the instrumented unit, variable / type declarations at the
+package level are not considered as coverage obligations. In the former case,
+elaboration code can still be emitted (in rare occurrences), but the pragma is
+too restrictive to instrument such code constructs. In the latter case, no
+elaboration code can be emitted so it is valid not to produce any coverage
+obligation.
+
 Global source traces limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
