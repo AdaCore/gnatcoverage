@@ -28,6 +28,12 @@ static const char *base64_alphabet
 
 static char base64_padding = '=';
 
+/* Various gnatcov_rts_string constants.  */
+static const struct gnatcov_rts_string newline_string = STR ("\n");
+static const struct gnatcov_rts_string begin_string
+  = STR ("== GNATcoverage source trace file ==\n");
+static const struct gnatcov_rts_string end_string = STR ("== End ==\n");
+
 typedef struct
 {
   /* We output base64 content by groups of 4 digits, which encode for 3
@@ -59,7 +65,7 @@ flush (gnatcov_rts_base64_buffer *output)
 {
   uint8_t *in_bytes = output->bytes;
   char out_digits[4];
-  int i;
+  struct gnatcov_rts_string str;
 
   switch (output->next)
     {
@@ -93,14 +99,15 @@ flush (gnatcov_rts_base64_buffer *output)
      a newline when needed in order to avoid exceeding 80 characters per
      line.  */
 
-  for (i = 0; i < 4; i++)
-    gnatcov_rts_putchar (out_digits[i]);
+  str.str = out_digits;
+  str.length = 4;
+  gnatcov_rts_put_string (str);
 
   output->columns += 4;
   if (output->columns >= 80)
     {
       output->columns = 0;
-      gnatcov_rts_putchar ('\n');
+      gnatcov_rts_put_string (newline_string);
     }
 
   memset (output->bytes, 0, 4);
@@ -133,15 +140,12 @@ gnatcov_rts_write_trace_file_base64 (
   gnatcov_rts_base64_buffer buffer;
   buffer.next = 0;
   buffer.columns = 0;
-  struct gnatcov_rts_string begin_string
-    = STR ("== GNATcoverage source trace file ==");
-  struct gnatcov_rts_string end_string = STR ("== End ==");
-  gnatcov_rts_putchar ('\n');
-  gnatcov_rts_puts (begin_string);
+  gnatcov_rts_put_string (newline_string);
+  gnatcov_rts_put_string (begin_string);
   gnatcov_rts_generic_write_trace_file (&buffer, buffers_groups, program_name,
 					exec_date, user_data, write_bytes);
   flush (&buffer);
   if (buffer.columns != 0)
-    gnatcov_rts_puts (STR (""));
-  gnatcov_rts_puts (end_string);
+    gnatcov_rts_put_string (newline_string);
+  gnatcov_rts_put_string (end_string);
 }

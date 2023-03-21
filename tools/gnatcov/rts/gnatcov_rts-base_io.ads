@@ -28,12 +28,12 @@ with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 
 package GNATcov_RTS.Base_IO is
 
+   --  See the comment in gnatcov_rts_c-base_io.h for more information about
+   --  this package.
+
    pragma Preelaborate;
 
-   procedure Put (C : Character);
-   pragma Export (C, Entity => Put, External_Name => "gnatcov_rts_putchar");
-
-   procedure Put_Line (S : GNATcov_RTS_String);
-   pragma Export (C, Entity => Put_Line, External_Name => "gnatcov_rts_puts");
+   procedure Put (S : GNATcov_RTS_String);
+   pragma Export (C, Entity => Put, External_Name => "gnatcov_rts_put_string");
 
 end GNATcov_RTS.Base_IO;

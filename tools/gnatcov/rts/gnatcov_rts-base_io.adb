@@ -32,20 +32,11 @@ package body GNATcov_RTS.Base_IO is
    -- Put --
    ---------
 
-   procedure Put (C : Character) is
-   begin
-      GNAT.IO.Put (C);
-   end Put;
-
-   --------------
-   -- Put_Line --
-   --------------
-
-   procedure Put_Line (S : GNATcov_RTS_String) is
+   procedure Put (S : GNATcov_RTS_String) is
       Str : String (1 .. Integer (S.Length));
       for Str'Address use S.Str;
    begin
-      GNAT.IO.Put_Line (Str);
-   end Put_Line;
+      GNAT.IO.Put (Str);
+   end Put;
 
 end GNATcov_RTS.Base_IO;
