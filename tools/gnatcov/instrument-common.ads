@@ -58,12 +58,10 @@ with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
+with GNAT.Regexp;
+
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
-
-with Langkit_Support.Text;
-with Libadalang.Analysis;  use Libadalang.Analysis;
-with Libadalang.Rewriting; use Libadalang.Rewriting;
 
 with ALI_Files;             use ALI_Files;
 with Files_Table;           use Files_Table;
@@ -176,6 +174,11 @@ package Instrument.Common is
    --  returned literal expression (aggregate in Ada, compound expression in
    --  C/C++).
 
+   function Trace_Filename_Tag return String;
+   --  Tag for the source trace filename. This allows differentiating trace
+   --  files produced by a specific program instrumentation from the ones
+   --  produced by other instrumentations.
+
    package File_Sets is new Ada.Containers.Hashed_Sets
      (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
       "="                 => Ada.Strings.Unbounded."=",
@@ -229,9 +232,6 @@ package Instrument.Common is
       --  Reference to the Project_Info record corresponding to the project
       --  that owns the source file for this unit.
 
-      Is_Main : Boolean;
-      --  Whether this unit is a main
-
       Language : Some_Language;
       --  Language for this unit
    end record;
@@ -242,53 +242,9 @@ package Instrument.Common is
      (Key_Type     => Compilation_Unit_Name,
       Element_Type => Instrumented_Unit_Info_Access);
 
-   Max_Get_From_File_Count : constant := 50;
-   --  In addition to nodes and text buffers for each loaded unit, Libadalang
-   --  maintains caches in Analysis_Context objects so that semantic queries
-   --  are fast. This means that if we keep the same context to process a lot
-   --  of units, we end up with excessive memory consumption, which can trigger
-   --  heap exhaustion on big projects.
-   --
-   --  Replacing an analysis context with a new one clears all the caches, but
-   --  makes semantic queries slower, as the units are re-loaded and caches are
-   --  re-populated as needed.
-   --
-   --  To compromise between memory consumption and performance, we reset the
-   --  analysis context each Max_Get_From_File_Count number of calls to
-   --  Libadalang's Get_From_File function.
-
    type Inst_Context is limited record
       Project_Name : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of the root project. It is also used to name the list of buffers
-
-      Tag : Ada.Strings.Unbounded.Unbounded_String;
-      --  String which allows differentiating trace files produced by a
-      --  specific program instrumentation from the ones produced by other
-      --  instrumentations.
-      --
-      --  To achieve this, Tag is based on the date/time at which the
-      --  instrumentation takes place. Automatic coverage buffer dumps (in
-      --  instrumented mains) will pass this string to
-      --  GNATcov_RTS.Traces.Output.Files.Default_Trace_Name (unless the
-      --  --dump-trace-filename-simple option is passed to "gnatcov
-      --  instrument").
-
-      Provider : Libadalang.Analysis.Unit_Provider_Reference;
-      --  Unit provider to create an analysis context (Context member below)
-
-      Event_Handler : Libadalang.Analysis.Event_Handler_Reference;
-      --  Event handler to warn about missing source files
-
-      Context : Libadalang.Analysis.Analysis_Context;
-      --  Libadalang context to load all units to rewrite
-
-      Get_From_File_Count : Natural;
-      --  Count how many times we called Context.Get_From_File. See the
-      --  Max_Get_From_File_Count constant.
-
-      Dump_Config      : Any_Dump_Config;
-      Language_Version : Any_Language_Version;
-      --  See the eponym arguments in Instrument.Intrument_Units_Of_Interest
 
       Ignored_Source_Files_Present : Boolean;
       Ignored_Source_Files         : GNAT.Regexp.Regexp;
@@ -305,20 +261,11 @@ package Instrument.Common is
    end record;
 
    function Create_Context
-     (Provider             : Libadalang.Analysis.Unit_Provider_Reference;
-      Event_Handler        : Libadalang.Analysis.Event_Handler_Reference;
-      Dump_Config          : Any_Dump_Config;
-      Language_Version     : Any_Language_Version;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;
+     (Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
 
    procedure Destroy_Context (Context : in out Inst_Context);
    --  Free dynamically allocated resources in Context
-
-   function Get_From_File
-     (IC       : in out Inst_Context;
-      Filename : String) return Libadalang.Analysis.Analysis_Unit;
-   --  Fetch the analysis unit for the given filename
 
    function Is_Ignored_Source_File
      (Context : Inst_Context; Filename : String) return Boolean;
@@ -341,8 +288,7 @@ package Instrument.Common is
      (Context : in out Inst_Context;
       Mains   : in out Main_To_Instrument_Vectors.Vector;
       File    : GNATCOLL.VFS.Virtual_File;
-      Project : Project_Type)
-      with Pre => Context.Dump_Config.Trigger /= Manual;
+      Project : Project_Type);
    --  Register in Mains a main to be instrumented so that it dumps coverage
    --  buffers. File is the source file for this main, and Project is the
    --  project that owns this main. If File is actually a unit of interest in
@@ -367,76 +313,6 @@ package Instrument.Common is
    --
    --  Name can be a basename, a relative name or an absolute one: in all
    --  cases, the basename is taken and the file is created in Info.Output_Dir.
-
-   procedure Put_Warnings_And_Style_Checks_Pragmas
-     (File : in out Text_Files.File_Type);
-   --  Code generation helper: write "pragma Style_Checks (Off); pragma
-   --  Warnings (Off);" to File.
-   --
-   --  This is useful when writing instrumented sources, as they may introduce
-   --  warnings and break the original codebase's coding style, and since some
-   --  projects are built with "warnings-as-errors" (GNAT's -gnatwe option),
-   --  this could mean that instrumentation breaks the build. When written at
-   --  the very beginning of each written source, these pragmas avoid this.
-
-   type Missing_Src_Reporter is new Libadalang.Analysis.Event_Handler_Interface
-   with record
-      Instrumented_File : Unbounded_String;
-      --  Base name for the file that is currently instrumented. Reset to the
-      --  empty string everytime we print the "While instrumenting XXX ..."
-      --  message, so that we print it at most once per instrumented file.
-
-      Reported_Files : String_Sets.Set;
-      --  Set of source file names which were already reported as missing.
-      --  Libadalang does not guarantee that the Unit_Requested event is
-      --  triggered only once per source, so de-duplicate events with this set.
-   end record;
-   --  Implementation of the Libadalang event handler interface used in
-   --  Create_Missing_File_Reporter.
-
-   type Missing_Src_Reporter_Access is access all Missing_Src_Reporter;
-
-   overriding procedure Release (Self : in out Missing_Src_Reporter) is null;
-
-   overriding procedure Unit_Requested_Callback
-     (Self               : in out Missing_Src_Reporter;
-      Context            : Libadalang.Analysis.Analysis_Context'Class;
-      Name               : Langkit_Support.Text.Text_Type;
-      From               : Libadalang.Analysis.Analysis_Unit'Class;
-      Found              : Boolean;
-      Is_Not_Found_Error : Boolean);
-   --  If the requested unit is not found and that is an error, warn about it.
-   --  Make sure we warn only once about a given source file.
-
-   -------------------------
-   -- Source instrumenter --
-   -------------------------
-
-   type Source_Rewriter is tagged limited private;
-   --  Helper object to instrument a source file
-
-   procedure Start_Rewriting
-     (Self           : out Source_Rewriter;
-      IC             : in out Inst_Context;
-      Info           : in out Project_Info;
-      Input_Filename : String);
-   --  Start a rewriting session for the given Input_Filename. If the rewriting
-   --  process is successful, the result will be written to a file in
-   --  Info.Output_Dir with the basename of Output_Filename.
-   --
-   --  This registers the output file in Info.Instr_Files.
-   --
-   --  If there are parsing errors while reading Input_Filename, this raises a
-   --  fatal error and prints the corresponding error messages.
-
-   function Rewritten_Unit
-     (Self : Source_Rewriter) return Libadalang.Analysis.Analysis_Unit;
-   --  Return the analysis unit for the source that Self instruments
-
-   procedure Apply (Self : in out Source_Rewriter);
-   --  Write the instrumented source to the filename passed as Output_Filename
-   --  to Start_Rewriting. If rewriting failed, raise a fatal error and print
-   --  the corresponding error message.
 
    ------------------------------------------------------
    --  Common declarations for Ada / C instrumentation --
@@ -655,10 +531,9 @@ package Instrument.Common is
    --  files).
 
    procedure Instrument_Unit
-     (Self      : Language_Instrumenter;
-      CU_Name   : Compilation_Unit_Name;
-      IC        : in out Inst_Context;
-      Unit_Info : in out Instrumented_Unit_Info) is abstract;
+     (Self        : in out Language_Instrumenter;
+      CU_Name     : Compilation_Unit_Name;
+      Unit_Info   : in out Instrumented_Unit_Info) is abstract;
    --  Instrument a single source file for the language that Self supports.
    --
    --  CU_Name must be the name of the compilation unit for this source file,
@@ -666,42 +541,26 @@ package Instrument.Common is
    --  this source file.
 
    procedure Auto_Dump_Buffers_In_Main
-     (Self     : Language_Instrumenter;
-      IC       : in out Inst_Context;
-      Main     : Compilation_Unit_Name;
-      Filename : String;
-      Info     : in out Project_Info) is abstract;
-   --  Try to instrument the Main/Filename source file (whose language is
-   --  assumed to be Self's) to insert a call to dump the list of coverage
-   --  buffers for all units of interest in Main's closure. Do nothing if not
+     (Self        : in out Language_Instrumenter;
+      Filename    : String;
+      Instr_Units : CU_Name_Vectors.Vector;
+      Dump_Config : Any_Dump_Config;
+      Info        : in out Project_Info) is abstract;
+   --  Try to instrument the Filename source file (whose language is assumed
+   --  to be Self's) to insert a call to dump the list of coverage buffers for
+   --  all Instr_Units, according to the Dump_Config options. Do nothing if not
    --  successful.
    --
    --  Info must be the Project_Info record corresponding to the project that
-   --  owns the Main unit.
+   --  owns Filename's compilation unit.
 
    procedure Emit_Buffers_List_Unit
      (Self              : Language_Instrumenter;
-      IC                : in out Inst_Context;
-      Root_Project_Info : in out Project_Info) is abstract;
-   --  Emit in the root project a unit (in Self's language) to contain the list
-   --  of coverage buffers for all units of interest.
-   --
+      Root_Project_Info : in out Project_Info;
+      Instr_Units       : CU_Name_Vectors.Vector) is abstract;
    --  The variable holding the list of coverage buffers is exported to a
    --  unique C symbol whose name is defined by the Unit_Buffers_Array_Name
    --  function. This procedure should thus be called only once, for one of
    --  the supported languages of the project.
-
-private
-
-   type Source_Rewriter is limited new Ada.Finalization.Limited_Controlled with
-   record
-      Input_Filename  : Ada.Strings.Unbounded.Unbounded_String;
-      Output_Filename : Ada.Strings.Unbounded.Unbounded_String;
-
-      Unit   : Libadalang.Analysis.Analysis_Unit;
-      Handle : Libadalang.Rewriting.Rewriting_Handle;
-   end record;
-
-   overriding procedure Finalize (Self : in out Source_Rewriter);
 
 end Instrument.Common;

@@ -52,22 +52,21 @@ package Instrument.C is
       Source_File : GNATCOLL.Projects.File_Info) return Boolean;
 
    overriding procedure Instrument_Unit
-     (Self      : C_Family_Instrumenter_Type;
+     (Self      : in out C_Family_Instrumenter_Type;
       CU_Name   : Compilation_Unit_Name;
-      IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info);
 
    overriding procedure Auto_Dump_Buffers_In_Main
-     (Self     : C_Family_Instrumenter_Type;
-      IC       : in out Inst_Context;
-      Main     : Compilation_Unit_Name;
-      Filename : String;
-      Info     : in out Project_Info);
+     (Self        : in out C_Family_Instrumenter_Type;
+      Filename    : String;
+      Instr_Units : CU_Name_Vectors.Vector;
+      Dump_Config : Any_Dump_Config;
+      Info        : in out Project_Info);
 
    overriding procedure Emit_Buffers_List_Unit
      (Self              : C_Family_Instrumenter_Type;
-      IC                : in out Inst_Context;
-      Root_Project_Info : in out Project_Info);
+      Root_Project_Info : in out Project_Info;
+      Instr_Units       : CU_Name_Vectors.Vector);
 
    function Extern_Prefix
      (Self : C_Family_Instrumenter_Type) return String
@@ -93,9 +92,6 @@ package Instrument.C is
    overriding function Extern_Prefix
      (Self : CPP_Instrumenter_Type) return String
    is ("extern ""C"" ");
-
-   C_Instrumenter   : aliased constant C_Instrumenter_Type := (null record);
-   CPP_Instrumenter : aliased constant CPP_Instrumenter_Type := (null record);
 
    type Instr_Scheme_Type is (Instr_Stmt, Instr_Expr);
    --  Depending on the statement construct, we can instrument it either with

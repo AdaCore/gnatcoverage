@@ -46,7 +46,6 @@ with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Clean_Objdirs;
 with Instrument.C;
 with Instrument.Common;     use Instrument.Common;
-with Instrument.Find_Ada_Units;
 with JSON;                  use JSON;
 with Outputs;
 with Paths;                 use Paths;
@@ -55,12 +54,6 @@ with SC_Obligations;
 with Switches;              use Switches;
 
 package body Instrument is
-
-   Instrumenters : constant array (Src_Supported_Language)
-                   of access constant Language_Instrumenter'Class :=
-     (Ada_Language => Ada_Unit.Instrumenter'Access,
-      C_Language   => C.C_Instrumenter'Access,
-      CPP_Language => C.CPP_Instrumenter'Access);
 
    package GPR renames GNATCOLL.Projects;
 
@@ -320,6 +313,22 @@ package body Instrument is
       Provider : constant Unit_Provider_Reference :=
         Instrument.Ada_Unit_Provider.Create_Provider_From_Project;
 
+      --  Initialize all the instrumenters
+
+      Ada_Instrumenter : aliased Instrument.Ada_Unit.Ada_Instrumenter_Type :=
+        Instrument.Ada_Unit.Create_Ada_Instrumenter
+          (Provider, Language_Version);
+      C_Instrumenter   : aliased Instrument.C.C_Instrumenter_Type :=
+        (null record);
+      CPP_Instrumenter : aliased Instrument.C.CPP_Instrumenter_Type :=
+        (null record);
+
+      Instrumenters    : constant array (Src_Supported_Language)
+        of access Language_Instrumenter'Class :=
+          (Ada_Language => Ada_Instrumenter'Access,
+           C_Language   => C_Instrumenter'Access,
+           CPP_Language => CPP_Instrumenter'Access);
+
       --  Create a map from library units to lists of compilation units to
       --  instrument for them.
 
@@ -329,26 +338,12 @@ package body Instrument is
 
       Mains_To_Instrument : array (Src_Supported_Language)
                             of Main_To_Instrument_Vectors.Vector;
-      --  For each supported language, list of mains to instrument *which are
-      --  not units of interest*. Always empty when Dump_Config.Trigger is
-      --  Manual.
-      --
-      --  We need a separate list for these as mains which are units of
-      --  interest are instrumented to dump coverage buffers at the same time
-      --  they are instrumented to fill coverage buffers.
+      --  For each supported language, list of mains to instrument. Always
+      --  empty when Dump_Config.Trigger is Manual.
 
-      --  Then create the instrumenter context
+      --  Create the instrumenter context
 
-      IC : Inst_Context := Create_Context
-        (Provider,
-         Create_Event_Handler_Reference (Missing_Src_Reporter'(others => <>)),
-         Dump_Config,
-         Language_Version,
-         Ignored_Source_Files);
-
-      Event_Handler : Missing_Src_Reporter renames
-        Missing_Src_Reporter_Access (IC.Event_Handler.Unchecked_Get).all;
-      --  Handle to the event handler we use to report missing source files
+      IC : Inst_Context := Create_Context (Ignored_Source_Files);
 
       Root_Project_Info : constant Project_Info_Access :=
          Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
@@ -445,8 +440,11 @@ package body Instrument is
 
             case CU_Name.Language_Kind is
                when Unit_Based_Language =>
-                  Find_Ada_Units
-                    (IC, CU_Name, Source_File, Add_Instrumented_Unit'Access);
+                  Instrument.Ada_Unit.Find_Ada_Units
+                    (Ada_Instrumenter,
+                     CU_Name,
+                     Source_File,
+                     Add_Instrumented_Unit'Access);
                when File_Based_Language =>
                   Add_Instrumented_Unit (CU_Name, Source_File);
             end case;
@@ -581,23 +579,13 @@ package body Instrument is
 
                         All_Externally_Built := False;
 
-                        --  In verbose mode, always print a notice for the
-                        --  source file that we are about to instrument. In
-                        --  non-verbose mode, just get prepared to print it in
-                        --  case we emit a "source file missing" warning
-                        --  through Libadalang's event handler.
+                        --  Run the instrumentation for this file
 
                         if Verbose then
                            Put_Line ("Instrumenting " & Basename);
-                        else
-                           Event_Handler.Instrumented_File :=
-                             To_Unbounded_String (Basename);
                         end if;
-
-                        --  Run the instrumentation for this file
-
                         Instrumenters (Unit_Info.Language).Instrument_Unit
-                          (CU.Name, IC, Unit_Info);
+                          (CU.Name, Unit_Info);
 
                         --  Update the Ignore_Status of the CU we instrumented
 
@@ -676,38 +664,59 @@ package body Instrument is
          Outputs.Fatal_Error ("No unit to instrument.");
       end if;
 
-      --  Emit the unit to contain the list of coverage buffers, exported to a
-      --  C symbol, in one of the language supported by the project.
-      --
-      --  Note that this has an implicit hack to it: if Ada is a language of
-      --  the project, it will pick it over the others (as it is the first
-      --  enumeration member of the Src_Supported_Language type). This matters
-      --  as we make the assumption in the Emit_Dump_Helper_Unit implementation
-      --  in instrument-ada_unit.adb (when instrumenting for an Ada main) that
-      --  the Ada package for buffers list units always exists: we need to
-      --  include it in the main closure, as it puts buffer units in scope
-      --  by importing them (otherwise they aren't as they are used through
-      --  C symbol importations).
+      declare
+         Instrumented_Units : Instrument.Common.CU_Name_Vectors.Vector;
+         --  List of instrumented units
 
-      for Language in Src_Supported_Language loop
-         if Project.Project.Root_Project.Has_Language (Image (Language))
-         then
-            Instrumenters (Language).Emit_Buffers_List_Unit
-              (IC, Root_Project_Info.all);
-            exit;
-         end if;
-      end loop;
-
-      --  Instrument all the mains that are not unit of interest to add the
-      --  dump of coverage buffers: Instrument_Unit already took care of mains
-      --  that are units of interest.
-
-      for Language in Src_Supported_Language loop
-         for Main of Mains_To_Instrument (Language) loop
-            Instrumenters (Language).Auto_Dump_Buffers_In_Main
-              (IC, Main.CU_Name, +Main.File.Full_Name, Main.Prj_Info.all);
+      begin
+         for Cur in IC.Instrumented_Units.Iterate loop
+            Instrumented_Units.Append (Instrumented_Unit_Maps.Key (Cur));
          end loop;
-      end loop;
+
+         --  Emit the unit to contain the list of coverage buffers, exported to
+         --  a C symbol, in one of the language supported by the project.
+         --
+         --  Note that this has an implicit hack to it: if Ada is a language of
+         --  the project, it will pick it over the others (as it is the first
+         --  enumeration member of the Src_Supported_Language type). This
+         --  matters as we make the assumption in the Emit_Dump_Helper_Unit
+         --  implementation in instrument-ada_unit.adb (when instrumenting for
+         --  an Ada main) that the Ada package for buffers list units always
+         --  exists: we need to include it in the main closure, as it puts
+         --  buffer units in scope by importing them (otherwise they aren't
+         --  as they are used through C symbol importations).
+
+         for Language in Src_Supported_Language loop
+            if Project.Project.Root_Project.Has_Language (Image (Language))
+            then
+               Instrumenters (Language).Emit_Buffers_List_Unit
+                 (Root_Project_Info.all, Instrumented_Units);
+               exit;
+            end if;
+         end loop;
+
+         --  Instrument all the mains to add the dump of coverage buffers.
+         --  Make sure to pass the instrumented version if the main is a unit
+         --  of interest.
+
+         for Language in Src_Supported_Language loop
+
+            for Main of Mains_To_Instrument (Language) loop
+               declare
+                  Filename : constant String :=
+                    (if IC.Instrumented_Units.Contains (Main.CU_Name)
+                     then (+Main.Prj_Info.Output_Dir) / (+Main.File.Base_Name)
+                     else +Main.File.Full_Name);
+               begin
+                  Instrumenters (Language).Auto_Dump_Buffers_In_Main
+                    (Filename,
+                     Instrumented_Units,
+                     Dump_Config,
+                     Main.Prj_Info.all);
+               end;
+            end loop;
+         end loop;
+      end;
 
       --  Deallocate Ignored_Unit_Infos
 

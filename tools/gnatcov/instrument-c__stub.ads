@@ -41,22 +41,21 @@ package Instrument.C is
       Source_File : GNATCOLL.Projects.File_Info) return Boolean;
 
    overriding procedure Instrument_Unit
-     (Self      : C_Family_Instrumenter_Type;
+     (Self      : in out C_Family_Instrumenter_Type;
       CU_Name   : Compilation_Unit_Name;
-      IC        : in out Inst_Context;
       Unit_Info : in out Instrumented_Unit_Info);
 
    overriding procedure Auto_Dump_Buffers_In_Main
-     (Self     : C_Family_Instrumenter_Type;
-      IC       : in out Inst_Context;
-      Main     : Compilation_Unit_Name;
-      Filename : String;
-      Info     : in out Project_Info);
+     (Self        : in out C_Family_Instrumenter_Type;
+      Filename    : String;
+      Instr_Units : CU_Name_Vectors.Vector;
+      Dump_Config : Any_Dump_Config;
+      Info        : in out Project_Info);
 
    overriding procedure Emit_Buffers_List_Unit
      (Self              : C_Family_Instrumenter_Type;
-      IC                : in out Inst_Context;
-      Root_Project_Info : in out Project_Info);
+      Root_Project_Info : in out Project_Info;
+      Instr_Units       : CU_Name_Vectors.Vector);
 
    type C_Instrumenter_Type is
      new C_Family_Instrumenter_Type with null record;
@@ -74,8 +73,8 @@ package Instrument.C is
      (Self : CPP_Instrumenter_Type) return Src_Supported_Language
    is (CPP_Language);
 
-   C_Instrumenter   : aliased constant C_Instrumenter_Type := (null record);
-   CPP_Instrumenter : aliased constant CPP_Instrumenter_Type := (null record);
+   C_Instrumenter   : aliased C_Instrumenter_Type := (null record);
+   CPP_Instrumenter : aliased CPP_Instrumenter_Type := (null record);
 
    procedure Postprocess_Source
      (Preprocessed_Filename  : String;
