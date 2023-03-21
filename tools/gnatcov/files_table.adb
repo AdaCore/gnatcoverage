@@ -27,7 +27,7 @@ with System;
 with System.Address_To_Access_Conversions;
 
 with GNAT.OS_Lib;
-with GNAT.Regpat;
+with GNAT.Regpat; use GNAT.Regpat;
 with Osint;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
@@ -39,6 +39,7 @@ with Outputs;
 with Paths;         use Paths;
 with Perf_Counters; use Perf_Counters;
 with Project;
+with Strings;
 with Switches;
 
 package body Files_Table is
@@ -312,7 +313,6 @@ package body Files_Table is
    -----------------------
 
    procedure Add_Source_Rebase (Old_Prefix : String; New_Prefix : String) is
-      use GNAT.Regpat;
       E : Source_Rebase_Entry_Acc;
 
       Regexp : constant String := "^" & Paths.Glob_To_Regexp (Old_Prefix);
@@ -1643,7 +1643,6 @@ package body Files_Table is
       --  Try to rebase
 
       declare
-         use GNAT.Regpat;
          E    : Source_Rebase_Entry_Acc := First_Source_Rebase_Entry;
          Name : constant String := Name_For_Rebase (File);
 
@@ -2217,5 +2216,101 @@ package body Files_Table is
          Free (FE.Name);
       end loop;
    end Checkpoint_Load;
+
+   ------------------------
+   -- Postprocess_Source --
+   ------------------------
+
+   procedure Postprocess_Source
+     (Preprocessed_Filename  : String;
+      Postprocessed_Filename : String)
+   is
+      use Ada.Strings.Unbounded;
+      use Strings;
+      Preprocessed_File  : Ada.Text_IO.File_Type;
+      Postprocessed_File : Ada.Text_IO.File_Type;
+   begin
+      Open (Preprocessed_File, In_File, Preprocessed_Filename);
+      Create (Postprocessed_File, Out_File, Postprocessed_Filename);
+      declare
+         Line_Marker_Pattern : constant GNAT.Regpat.Pattern_Matcher :=
+           Compile
+             ("\s*#\s*"
+              --  Start of the line directive
+
+              & "([0-9]+)"
+              --  Line index
+
+              & "\s+"
+              & "([^ \s]+)"
+              --  Filename
+
+              & "(.*)"
+              --  Trailing flags;
+
+             );
+
+         Add_New_Line : Boolean := True;
+
+         Line_Marker_Line : Integer;
+         Line_Marker_File : Unbounded_String;
+         --  Line and file of the read line if it is a line marker
+
+         Current_File : Unbounded_String;
+         Current_Line : Integer := 0;
+         --  Line and file of the currently-active line marker
+
+         Matches : Match_Array (0 .. 3);
+      begin
+         while not End_Of_File (Preprocessed_File) loop
+            declare
+               Line : constant String := Get_Line (Preprocessed_File);
+            begin
+               Match (Line_Marker_Pattern, Line, Matches);
+               if Matches (0) /= No_Match then
+                  Line_Marker_Line :=
+                    Integer'Value
+                      (Line (Matches (1).First .. Matches (1).Last));
+                  Line_Marker_File :=
+                    +Line (Matches (2).First .. Matches (2).Last);
+                  if Line_Marker_Line = Current_Line - 1
+                    and then Line_Marker_File = Current_File
+                  then
+                     --  We have a spurious line marker. Remove it, and write
+                     --  the next line in continuation of the previous line.
+
+                     Add_New_Line := False;
+                     Current_Line := Current_Line - 1;
+                  else
+                     --  Write this line marker, and set the current line and
+                     --  the current file.
+
+                     Current_Line := Line_Marker_Line;
+                     Current_File := Line_Marker_File;
+
+                     --  Line markers should always be inserted on their own
+                     --  line.
+
+                     Add_New_Line := True;
+                     New_Line (Postprocessed_File);
+                     Put (Postprocessed_File, Line);
+                  end if;
+               else
+                  if Add_New_Line then
+                     New_Line (Postprocessed_File);
+                  end if;
+                  Add_New_Line := True;
+                  Put (Postprocessed_File, Line);
+                  Current_Line := Current_Line + 1;
+               end if;
+            end;
+         end loop;
+         if Add_New_Line then
+            New_Line (Postprocessed_File);
+         end if;
+      end;
+      Close (Preprocessed_File);
+      Close (Postprocessed_File);
+   end Postprocess_Source;
 
 end Files_Table;

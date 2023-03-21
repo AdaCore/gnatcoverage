@@ -32,7 +32,6 @@ with Coverage.Object;
 with Coverage.Source;  use Coverage.Source;
 with Coverage.Tags;
 with Instrument.Base_Types;
-with Instrument.C;
 with Outputs;          use Outputs;
 with Subprocesses;
 with Switches;         use Switches;
@@ -737,7 +736,7 @@ package body Annotations is
                         --  need to recompute there to have the right version
                         --  of the source.
 
-                        Instrument.C.Postprocess_Source
+                        Postprocess_Source
                           (Preprocessed_Filename, Postprocessed_Filename);
                         Postprocessed_SFI :=
                           Get_Index_From_Generic_Name

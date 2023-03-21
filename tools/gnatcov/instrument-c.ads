@@ -388,29 +388,6 @@ package Instrument.C is
    --  UIC.Sources_Of_Interest. Return whether this source file is a source of
    --  interest.
 
-   procedure Postprocess_Source
-     (Preprocessed_Filename  : String;
-      Postprocessed_Filename : String);
-   --  Postprocess the given Preprocessed_Filename to remove redundant line
-   --  markers. This is done to keep the following invariant intact: we must
-   --  be able to use presumed source locations to have unique SCOs source
-   --  locations. As a reminder, presumed locations are computed through
-   --  preprocessor-inserted line markers.
-   --
-   --  This means that the following code:
-   --  # 1 main.c
-   --  int a;
-   --  # 1 main.c 3
-   --  int ab;
-   --
-   --  will be rewritten to
-   --  # 1 main.c
-   --  int a; int ab;
-   --
-   --  Note that this will remove the "system header "flag (the "3" at the
-   --  end of the line marker). We expect that this won't be a problem in
-   --  practice.
-
 private
 
    function Find_Instrumented_Entities
