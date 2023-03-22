@@ -708,13 +708,13 @@ package body Annotations is
             Preprocessed_Filename  : constant String :=
               Get_PP_Filename (SFI) & ".prepro";
             Postprocessed_Filename : constant String := Get_PP_Filename (SFI);
-            Preprocessed_SFI       : Source_File_Index :=
+            Postprocessed_SFI      : Source_File_Index :=
               Get_Index_From_Generic_Name
-                (Preprocessed_Filename,
+                (Postprocessed_Filename,
                  Source_File, Insert => False);
 
          begin
-            if Preprocessed_SFI = No_Source_File then
+            if Postprocessed_SFI = No_Source_File then
                declare
                   use Instrument.Base_Types;
                   use Subprocesses;
@@ -738,7 +738,7 @@ package body Annotations is
 
                         Postprocess_Source
                           (Preprocessed_Filename, Postprocessed_Filename);
-                        Preprocessed_SFI :=
+                        Postprocessed_SFI :=
                           Get_Index_From_Generic_Name
                             (Postprocessed_Filename,
                              Source_File,
@@ -754,10 +754,10 @@ package body Annotations is
                end;
             end if;
 
-            if Preprocessed_SFI /= No_Source_File then
-               Sloc_Start.Source_File := Preprocessed_SFI;
+            if Postprocessed_SFI /= No_Source_File then
+               Sloc_Start.Source_File := Postprocessed_SFI;
                Sloc_Start.L := Info.PP_Source_Range.First_Sloc;
-               Sloc_End.Source_File := Preprocessed_SFI;
+               Sloc_End.Source_File := Postprocessed_SFI;
                Sloc_End.L := Info.PP_Source_Range.Last_Sloc;
             end if;
          end;
