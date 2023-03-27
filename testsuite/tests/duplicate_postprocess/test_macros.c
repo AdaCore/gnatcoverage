@@ -1,18 +1,16 @@
-#include <stdio.h>
+extern int macro_stmts_enabled (void);
+extern void macro_stmts (void);
 
-#define PRINT_HW printf ("Hello world!\n");
-
-// Code that is not covered to have coverage violations for code inside macro
-// expansions.
 void
-macro_stmts ()
+dummy_puts (const char *msg)
 {
-  PRINT_HW;
-  PRINT_HW;
+  return;
 }
 
 int
-main ()
+main (void)
 {
+  if (macro_stmts_enabled ())
+    macro_stmts ();
   return 0;
 }
