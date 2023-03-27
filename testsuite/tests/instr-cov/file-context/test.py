@@ -14,7 +14,7 @@ from SUITE.tutils import thistest, gprfor
 
 Wdir("tmp_")
 
-# Create the object direcotry to avoid spurious notices
+# Create the object directory to avoid spurious notices
 gprsw = GPRswitches(root_project=gprfor(mains=["main.adb"], srcdirs=[".."]))
 mkdir("obj")
 
