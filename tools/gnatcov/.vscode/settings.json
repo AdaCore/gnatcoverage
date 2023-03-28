@@ -1,0 +1,8 @@
+{
+    "ada.projectFile": "gnatcov.gpr",
+    "ada.scenarioVariables": {
+        "BUILD_MODE": "dev",
+        "PART": "gnatcov64",
+        "C_SUPPORT": "True"
+    }
+}
