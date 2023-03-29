@@ -6495,9 +6495,9 @@ package body Instrument.Ada_Unit is
       end;
    end Initialize_Rewriting;
 
-   ----------------------------
-   -- Insert_Dump_Proc_Calls --
-   ----------------------------
+   -----------------------------------
+   -- Insert_Simple_Dump_Proc_Calls --
+   -----------------------------------
 
    procedure Insert_Simple_Dump_Proc_Calls
      (RH          : Rewriting_Handle;
