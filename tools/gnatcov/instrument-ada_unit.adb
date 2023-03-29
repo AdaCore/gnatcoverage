@@ -971,24 +971,6 @@ package body Instrument.Ada_Unit is
    function Parent_Decl (Decl : Basic_Decl'Class) return Basic_Decl;
    --  Return the parent declaration for Decl, or No_Basic_Decl if Decl has no
    --  parent, or if we cannot find it.
-
-   procedure Insert_Simple_Dump_Proc_Calls
-     (RH          : Rewriting_Handle;
-      Helper_Unit : Ada_Qualified_Name;
-      Subp_Body   : LAL.Subp_Body);
-   --  Insert calls, in Subp_Body, to the <Helper_Unit>.Dump_Buffers procedure
-   --  as the last statment of the top level handeled statments of the main, as
-   --  the last statement of each exception handler branch, and right before
-   --  each return statment returning from the main procedure.
-
-   procedure Insert_Controlled_Dump_Object_Decl
-     (RH          : Rewriting_Handle;
-      Helper_Unit : Ada_Qualified_Name;
-      Subp_Body   : LAL.Subp_Body);
-   --  Insert, in Subp_Body, the declaration of a controlled object of type
-   --  <Helper_Unit>.Dump_Controlled_Type to dump the coverage buffers during
-   --  finalization of said object.
-
    --------------------------------
    -- Instrumentation extensions --
    --------------------------------
@@ -1153,6 +1135,61 @@ package body Instrument.Ada_Unit is
    --
    --  If the unit to instrument is also a main and the buffers dump trigger
    --  is not manual, instrumented code will also dump the coverage buffers.
+
+   ----------------------------------
+   -- Main instrumentation helpers --
+   ----------------------------------
+
+   Cannot_Instrument_Main_Error : exception;
+   --  See Probe_Main
+
+   type Main_Instrumentation_Description is record
+      Main : Compilation_Unit_Name;
+      --  Name of the compilation unit corresponding to the main body
+
+      Controlled_Types_Available : Boolean;
+      --  Whether instrumentation can insert uses of controlled types
+
+      Actual_Dump_Trigger : Auto_Dump_Trigger;
+      --  Resolved dump trigger after eventual override depending on the
+      --  features available on the runtime.
+
+      Prelude : LAL.Ada_Node_List;
+      --  Prelude for the main compilation unit
+
+      Subp_Body : LAL.Subp_Body;
+      --  Subprogram body in which to insert the code to dump coverage buffers.
+   end record;
+   --  Nodes needed to instrument main subprograms so that they can dump
+   --  coverage buffers.
+
+   function Probe_Main
+     (Dump_Config : Any_Dump_Config;
+      Rewriter    : Ada_Source_Rewriter'Class)
+      return Main_Instrumentation_Description;
+   --  Given a rewriter for the main source, return a description of the main
+   --  unit in which to trigger the dump of coverage buffers.
+   --
+   --  Emit a warning and raise a Cannot_Instrument_Main_Error if the main does
+   --  not have a structure that is expected for a main.
+
+   procedure Insert_Simple_Dump_Proc_Calls
+     (RH          : Rewriting_Handle;
+      Helper_Unit : Ada_Qualified_Name;
+      Subp_Body   : LAL.Subp_Body);
+   --  Insert calls, in Subp_Body, to the <Helper_Unit>.Dump_Buffers procedure
+   --  as the last statment of the top level handeled statments of the main, as
+   --  the last statement of each exception handler branch, and right before
+   --  each return statment returning from the main procedure.
+
+   procedure Insert_Controlled_Dump_Object_Decl
+     (RH          : Rewriting_Handle;
+      Helper_Unit : Ada_Qualified_Name;
+      Decls       : Node_Rewriting_Handle);
+   --  Assuming that Decls is a rewriting handle for the declaration list of a
+   --  subprogram body, insert at the beginning of it the declaration of a
+   --  controlled object of type <Helper_Unit>.Dump_Controlled_Type to dump the
+   --  coverage buffers during finalization of said object.
 
    --------------------------
    -- Unit instrumentation --
@@ -6495,6 +6532,85 @@ package body Instrument.Ada_Unit is
       end;
    end Initialize_Rewriting;
 
+   ----------------
+   -- Probe_Main --
+   ----------------
+
+   function Probe_Main
+     (Dump_Config : Any_Dump_Config;
+      Rewriter    : Ada_Source_Rewriter'Class)
+      return Main_Instrumentation_Description
+   is
+      U   : Analysis_Unit;
+      Tmp : LAL.Ada_Node;
+
+      CU        : LAL.Compilation_Unit;
+      Subp_Body : LAL.Subp_Body;
+
+      Controlled_Types_Available : Boolean;
+      Actual_Dump_Trigger        : Auto_Dump_Trigger;
+
+      Main : Compilation_Unit_Name (Unit_Based_Language) :=
+        (Language_Kind => Unit_Based_Language,
+         Part          => Unit_Body,
+         others        => <>);
+      --  Note that we can't get the compilation unit name using the
+      --  To_Compilation_Unit_Name overload taking a File_Info parameter,
+      --  as the main we are instrumenting there may be the instrumented
+      --  version of the original version, in which case it won't belong
+      --  to the root project as it will be in the <prj>-gnatcov-instr
+      --  directory.
+
+   begin
+      --  Make sure this main source has the expected structure:
+      --
+      --  * a simple subprogram body in a compilation unit;
+      --  * a generic subprogram instantiation
+      --
+      --  If this source matches none of the above, emit a warning and raise a
+      --  Cannot_Instrument_Main_Error exception.
+
+      U := Unit (Handle (Rewriter.Rewritten_Unit));
+
+      Tmp := U.Root;
+      if Tmp.Kind /= Ada_Compilation_Unit then
+         raise Cannot_Instrument_Main_Error;
+      else
+         CU := Tmp.As_Compilation_Unit;
+      end if;
+
+      Tmp := CU.F_Body;
+      if Tmp.Kind /= Ada_Library_Item then
+         raise Cannot_Instrument_Main_Error;
+      end if;
+
+      Tmp := Tmp.As_Library_Item.F_Item.As_Ada_Node;
+      if Tmp.Kind /= Ada_Subp_Body then
+         raise Cannot_Instrument_Main_Error;
+      else
+         Subp_Body := Tmp.As_Subp_Body;
+      end if;
+
+      Controlled_Types_Available :=
+        not Finalization_Restricted_In_Unit (U.Context, CU);
+
+      Actual_Dump_Trigger :=
+        (if Dump_Config.Trigger = Main_End
+           and then not Controlled_Types_Available
+           and then not Task_Termination_Restricted (U.Context, CU)
+         then Ravenscar_Task_Termination
+         else Dump_Config.Trigger);
+
+      Main.Unit := To_Qualified_Name (CU.P_Syntactic_Fully_Qualified_Name);
+
+      return
+        (Main,
+         Controlled_Types_Available,
+         Actual_Dump_Trigger,
+         CU.F_Prelude,
+         Subp_Body);
+   end Probe_Main;
+
    -----------------------------------
    -- Insert_Simple_Dump_Proc_Calls --
    -----------------------------------
@@ -6591,15 +6707,13 @@ package body Instrument.Ada_Unit is
    procedure Insert_Controlled_Dump_Object_Decl
      (RH          : Rewriting_Handle;
       Helper_Unit : Ada_Qualified_Name;
-      Subp_Body   : LAL.Subp_Body)
+      Decls       : Node_Rewriting_Handle)
    is
       --  Declare an object of the type <helper unit>.Dump_Controlled_Type
       --  which will call the procedure Dump_Buffers when finalized.
 
       Controlled_Type_Name : Ada_Qualified_Name := Helper_Unit;
       Dump_Object_Decl     : Node_Rewriting_Handle;
-      Decl_List            : constant Node_Rewriting_Handle :=
-        Handle (Subp_Body.F_Decls.F_Decls);
    begin
       Controlled_Type_Name.Append
         (To_Unbounded_String ("Dump_Controlled_Type"));
@@ -6612,7 +6726,7 @@ package body Instrument.Ada_Unit is
       --  Insert the declaration as the first declaration in the
       --  list to ensure it is finalized last.
 
-      Insert_Child (Decl_List, 1, Dump_Object_Decl);
+      Insert_Child (Decls, 1, Dump_Object_Decl);
    end Insert_Controlled_Dump_Object_Decl;
 
    ----------------------------------
@@ -6925,77 +7039,28 @@ package body Instrument.Ada_Unit is
       Info        : in out Project_Info)
    is
       Rewriter : Ada_Source_Rewriter;
-
-      U   : Analysis_Unit;
-      RH  : Rewriting_Handle;
-      Tmp : LAL.Ada_Node;
-
-      CU        : LAL.Compilation_Unit;
-      Subp_Body : LAL.Subp_Body;
-
-      Controlled_Types_Available : Boolean;
-
-      Actual_Dump_Trigger : Auto_Dump_Trigger;
-      --  Resolved dump trigger after eventual override depending on the
-      --  features available on the runtime.
+      RH       : Rewriting_Handle renames Rewriter.Handle;
 
       Helper_Unit : Ada_Qualified_Name;
       --  Name of unit to contain helpers implementing the buffers dump
 
-      Main : Compilation_Unit_Name (Unit_Based_Language) :=
-        (Language_Kind => Unit_Based_Language,
-         Part          => Unit_Body,
-         others        => <>);
-      --  Note that we can't get the compilation unit name using the
-      --  To_Compilation_Unit_Name overload taking a File_Info parameter,
-      --  as the main we are instrumenting there may be the instrumented
-      --  version of the original version, in which case it won't belong
-      --  to the root project as it will be in the <prj>-gnatcov-instr
-      --  directory.
-
+      Desc : Main_Instrumentation_Description;
    begin
       if Instr_Units.Is_Empty then
          return;
       end if;
       Start_Rewriting (Rewriter, Self, Info, Filename);
 
-      --  Make sure this main source has the expected structure: a
-      --  simple subprogram body in a compilation unit. If not, return without
-      --  doing anything.
+      --  Try to detect the structure of this main, to determine how to insert
+      --  the dump of coverage buffers. In case of failure, let Probe_Main emit
+      --  a warning and do nothing.
 
-      U := Unit (Handle (Rewriter.Rewritten_Unit));
-      RH := Handle (U.Context);
-      Tmp := U.Root;
-
-      if Tmp.Kind /= Ada_Compilation_Unit then
-         return;
-      else
-         CU := Tmp.As_Compilation_Unit;
-      end if;
-
-      Tmp := CU.F_Body;
-      if Tmp.Kind /= Ada_Library_Item then
-         return;
-      end if;
-
-      Tmp := Tmp.As_Library_Item.F_Item.As_Ada_Node;
-      if Tmp.Kind /= Ada_Subp_Body then
-         return;
-      else
-         Subp_Body := Tmp.As_Subp_Body;
-      end if;
-
-      Controlled_Types_Available :=
-        not Finalization_Restricted_In_Unit (U.Context, CU);
-
-      Actual_Dump_Trigger :=
-        (if Dump_Config.Trigger = Main_End
-           and then not Controlled_Types_Available
-           and then not Task_Termination_Restricted (U.Context, CU)
-         then Ravenscar_Task_Termination
-         else Dump_Config.Trigger);
-
-      Main.Unit := To_Qualified_Name (CU.P_Syntactic_Fully_Qualified_Name);
+      begin
+         Desc := Probe_Main (Dump_Config, Rewriter);
+      exception
+         when Cannot_Instrument_Main_Error =>
+            return;
+      end;
 
       --  Emit the helper unit and add a WITH clause for it
 
@@ -7003,13 +7068,13 @@ package body Instrument.Ada_Unit is
         (Dump_Config,
          Info,
          Filename,
-         Main,
+         Desc.Main,
          Helper_Unit,
-         Override_Dump_Trigger => Actual_Dump_Trigger,
-         Has_Controlled        => Controlled_Types_Available);
+         Override_Dump_Trigger => Desc.Actual_Dump_Trigger,
+         Has_Controlled        => Desc.Controlled_Types_Available);
 
       declare
-         Prelude : constant Node_Rewriting_Handle := Handle (CU.F_Prelude);
+         Prelude : constant Node_Rewriting_Handle := Handle (Desc.Prelude);
 
          With_Clause : constant Node_Rewriting_Handle :=
            Create_From_Template
@@ -7041,7 +7106,7 @@ package body Instrument.Ada_Unit is
       --  Depending on the chosen coverage buffers dump trigger, insert the
       --  appropriate code.
 
-      case Actual_Dump_Trigger is
+      case Desc.Actual_Dump_Trigger is
 
       when At_Exit | Ravenscar_Task_Termination =>
 
@@ -7056,7 +7121,7 @@ package body Instrument.Ada_Unit is
             Call_Expr : Node_Rewriting_Handle;
             Call_Decl : Node_Rewriting_Handle;
             Decl_List : constant Node_Rewriting_Handle :=
-              Handle (Subp_Body.F_Decls.F_Decls);
+              Handle (Desc.Subp_Body.F_Decls.F_Decls);
          begin
             Register_Function := Helper_Unit;
             Register_Function.Append (Register_Dump_Function_Name);
@@ -7088,10 +7153,11 @@ package body Instrument.Ada_Unit is
          --  - If we do not have finalization or tasks then simply insert calls
          --    right before all the exit points of the main.
 
-         if not Finalization_Restricted_In_Unit (U.Context, CU) then
-            Insert_Controlled_Dump_Object_Decl (RH, Helper_Unit, Subp_Body);
+         if Desc.Controlled_Types_Available then
+            Insert_Controlled_Dump_Object_Decl
+              (RH, Helper_Unit, Handle (Desc.Subp_Body.F_Decls.F_Decls));
          else
-            Insert_Simple_Dump_Proc_Calls (RH, Helper_Unit, Subp_Body);
+            Insert_Simple_Dump_Proc_Calls (RH, Helper_Unit, Desc.Subp_Body);
          end if;
       end case;
       Rewriter.Apply;
