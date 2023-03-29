@@ -6541,6 +6541,28 @@ package body Instrument.Ada_Unit is
       Rewriter    : Ada_Source_Rewriter'Class)
       return Main_Instrumentation_Description
    is
+      procedure Stop (Message : String) with No_Return;
+      --  Emit a warning with the given message and raise a
+      --  Cannot_Instrument_Main_Error exception.
+
+      ----------
+      -- Stop --
+      ----------
+
+      procedure Stop (Message : String) is
+         Filename : constant String :=
+           Ada.Directories.Simple_Name (To_String (Rewriter.Input_Filename));
+      begin
+         --  TODO??? Ideally, we would like to display the source location in
+         --  Filename that led to abort the instrumentation of this main. This
+         --  is not possible today since we are possibly rewriting a source
+         --  file that was already instrumented, so slocs do not reflect the
+         --  sources that users see.
+
+         Warn ("cannot dump coverage buffers in " & Filename & ": " & Message);
+         raise Cannot_Instrument_Main_Error;
+      end Stop;
+
       U   : Analysis_Unit;
       Tmp : LAL.Ada_Node;
 
@@ -6574,19 +6596,19 @@ package body Instrument.Ada_Unit is
 
       Tmp := U.Root;
       if Tmp.Kind /= Ada_Compilation_Unit then
-         raise Cannot_Instrument_Main_Error;
+         Stop ("compilation unit expected");
       else
          CU := Tmp.As_Compilation_Unit;
       end if;
 
       Tmp := CU.F_Body;
       if Tmp.Kind /= Ada_Library_Item then
-         raise Cannot_Instrument_Main_Error;
+         Stop ("library item expected");
       end if;
 
       Tmp := Tmp.As_Library_Item.F_Item.As_Ada_Node;
       if Tmp.Kind /= Ada_Subp_Body then
-         raise Cannot_Instrument_Main_Error;
+         Stop ("subprogram body expected");
       else
          Subp_Body := Tmp.As_Subp_Body;
       end if;
