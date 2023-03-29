@@ -6,7 +6,7 @@ package body Exemptions is
 
       pragma Annotate                                   -- # xswap
         (Xcov, Exempt_On, "exemption on declarations"); -- # xswap
-      Tmp : Integer := J;                               -- # xswap
+      Tmp : Integer := J;                               -- # xswap_vio
       pragma Annotate (Xcov, Exempt_Off);               -- # xswap
    begin
       J := I;                                              -- # swap_stmt
@@ -24,7 +24,7 @@ package body Exemptions is
          pragma Annotate                                   -- # xfactorial
            (Xcov, Exempt_On,                               -- # xfactorial
               "exemption on statements in function");      -- # xfactorial
-         return Positive'Last;                             -- # xfactorial
+         return Positive'Last;                             -- # xfactorial_vio
          pragma Annotate (Xcov, Exempt_Off);               -- # xfactorial
       else
          return X * Factorial (X - 1);                     -- # rec_factorial
@@ -66,14 +66,14 @@ begin
    pragma Annotate                            -- # xelab_1
      (Xcov, Exempt_On,                        -- # xelab_1
         "exemption on elaboration code - 1"); -- # xelab_1
-   Z := Identity (3);                         -- # xelab_1
+   Z := Identity (3);                         -- # xelab_1_vio
    pragma Annotate (Xcov, Exempt_Off);        -- # xelab_1
 
    Another_Swap (X, Y);                       -- # elab
 
    pragma Annotate                            -- # xelab_2
      (Xcov, Exempt_On,                        -- # xelab_2
-        "exemption on elaboration code - 2"); -- # xelab_2
+        "exemption on elaboration code - 2"); -- # xelab_2_vio
    Another_Swap (Z, X);                       -- # xelab_2
    pragma Annotate (Xcov, Exempt_Off);        -- # xelab_2
 end Exemptions;

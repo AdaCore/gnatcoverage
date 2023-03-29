@@ -6,8 +6,8 @@ package body Stacks is
          when Push =>
             pragma Annotate                      -- # op_oflow
               (Xcov, Exempt_On, "no overflow");  -- # op_oflow
-            if S.Vcount = S.Size then            -- # op_oflow
-               raise Constraint_Error;           -- # op_oflow
+            if S.Vcount = S.Size then            -- # op_oflow_v1
+               raise Constraint_Error;           -- # op_oflow_v2
             end if;                              -- # op_oflow
             pragma Annotate (Xcov, Exempt_Off);  -- # op_oflow
 
@@ -17,8 +17,8 @@ package body Stacks is
          when Pop =>
             pragma Annotate                      -- # op_uflow
               (Xcov, Exempt_On, "no underflow"); -- # op_uflow
-            if S.Vcount = 0 then                 -- # op_uflow
-               raise Constraint_Error;           -- # op_uflow
+            if S.Vcount = 0 then                 -- # op_uflow_v1
+               raise Constraint_Error;           -- # op_uflow_v2
             end if;                              -- # op_uflow
             pragma Annotate (Xcov, Exempt_Off);  -- # op_uflow
 

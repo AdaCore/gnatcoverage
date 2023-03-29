@@ -6,4 +6,5 @@ begin
 end;
 
 --# tipos.adb
---  /xblock/  l* ## x+:"test exempting all"
+--  /xblock/    l* ## x+:"test exempting all"
+--  /xblock_r2/ l= ## Xs-

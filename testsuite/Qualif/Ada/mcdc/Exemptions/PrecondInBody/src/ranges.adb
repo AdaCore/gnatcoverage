@@ -14,7 +14,7 @@ package body Ranges is
    function Overlap (R1, R2 : XYrange) return Boolean is
       pragma Annotate                                    -- # preValid
         (Xcov, Exempt_On, "expect no invalid ranges");   -- # preValid
-      pragma Precondition (R1.Valid and then R2.Valid);  -- # preValid
+      pragma Precondition (R1.Valid and then R2.Valid);  -- # preValid_cond
       pragma Annotate (Xcov, Exempt_Off);                -- # preValid
 
    begin

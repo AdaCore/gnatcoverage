@@ -20,10 +20,12 @@ begin
 end;
 
 --# ranges.adb
---  /checkValid/    l! ## dT-
---  /assignValid/   l+ ## 0
---  /assignInvalid/ l- ## s-
---  /preValid/      l* ## x+
---  /checkOverlap/  l! ## dT-
---  /overlapTrue/   l- ## s-
---  /overlapFalse/  l+ ## 0
+--  /checkValid/     l! ## dT-
+--  /assignValid/    l+ ## 0
+--  /assignInvalid/  l- ## s-
+--  /preValid/       l* ## x+
+--  /preValid_if/    l= ## XoT-
+--  /preValid_raise/ l= ## Xs-
+--  /checkOverlap/   l! ## dT-
+--  /overlapTrue/    l- ## s-
+--  /overlapFalse/   l+ ## 0

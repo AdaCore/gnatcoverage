@@ -25,7 +25,7 @@ begin
       Xf.X1 := True;                                  -- # 1_flag
       pragma Annotate                                 -- # 1_exem
         (Xcov, Exempt_On, "exemption section #1");    -- # 1_exem
-      raise Constraint_Error;                         -- # 1_exem
+      raise Constraint_Error;                         -- # 1_exem_v1
       pragma Annotate (Xcov, Exempt_Off);             -- # 1_exem
    end if;
 
@@ -35,7 +35,7 @@ begin
          Xf.X2 := True;                               -- # 2_flag
          pragma Annotate                              -- # 2_exem
            (Xcov, Exempt_On, "exemption section #2"); -- # 2_exem
-         J := -J;                                     -- # 2_exem
+         J := -J;                                     -- # 2_exem_v1
          pragma Annotate (Xcov, Exempt_Off);          -- # 2_exem
       end if;
       I := Tmp;                                       -- # 2_if
@@ -47,7 +47,7 @@ begin
          Xf.X3 := True;                               -- # 3_flag
          pragma Annotate                              -- # 3_exem
            (Xcov, Exempt_On, "exemption section #3"); -- # 3_exem
-         J := 1;                                      -- # 3_exem
+         J := 1;                                      -- # 3_exem_v1
          pragma Annotate (Xcov, Exempt_Off);          -- # 3_exem
       end if;
       K := K + I;                                    -- # 3_if
@@ -61,9 +61,9 @@ exception
 
       pragma Annotate                                       -- # h_exem
         (Xcov, Exempt_On, "exemption section in handler");  -- # h_exem
-      Tmp := I + J + K;                                     -- # h_exem
-      I := Tmp;                                             -- # h_exem
-      J := Tmp + 1;                                         -- # h_exem
-      K := Tmp + 2;                                         -- # h_exem
+      Tmp := I + J + K;                                     -- # h_exem_v1
+      I := Tmp;                                             -- # h_exem_v2
+      J := Tmp + 1;                                         -- # h_exem_v3
+      K := Tmp + 2;                                         -- # h_exem_v4
       pragma Annotate (Xcov, Exempt_Off);                   -- # h_exem
 end Multiple_Exemptions;

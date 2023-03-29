@@ -23,5 +23,6 @@ end;
 --  /assignValid/   l+ ## 0
 --  /assignInvalid/ l+ ## 0
 --  /preValid/      l* ## x+
+--  /preValid_cond/ l= ## XoT-
 --  /checkOverlap/  l- ## s-
 
