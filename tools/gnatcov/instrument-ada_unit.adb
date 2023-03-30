@@ -1163,7 +1163,7 @@ package body Instrument.Ada_Unit is
    --  the corresponding error message.
 
    procedure Remove_Warnings_And_Style_Checks_Pragmas
-     (Rewriter : Ada_Source_Rewriter'Class);
+     (Unit : Unit_Rewriting_Handle);
    --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit
 
    ----------------------------
@@ -6981,7 +6981,7 @@ package body Instrument.Ada_Unit is
       --  instrumentation generate warning-free or well-formatted
       --  code.
 
-      Remove_Warnings_And_Style_Checks_Pragmas (Self);
+      Remove_Warnings_And_Style_Checks_Pragmas (Handle (Self.Unit));
 
       declare
          use Ada.Strings.Wide_Wide_Unbounded.Aux;
@@ -7052,7 +7052,7 @@ package body Instrument.Ada_Unit is
    ----------------------------------------------
 
    procedure Remove_Warnings_And_Style_Checks_Pragmas
-     (Rewriter : Ada_Source_Rewriter'Class)
+     (Unit : Unit_Rewriting_Handle)
    is
 
       function Should_Remove (Node : Node_Rewriting_Handle) return Boolean;
@@ -7113,7 +7113,7 @@ package body Instrument.Ada_Unit is
    --  Start of processing for Remove_Warnings_And_Style_Checks_Pragmas
 
    begin
-      Process (Handle (Rewriter.Unit.Root));
+      Process (Root (Unit));
    end Remove_Warnings_And_Style_Checks_Pragmas;
 
    -------------------------------
