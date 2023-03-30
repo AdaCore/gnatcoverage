@@ -1295,6 +1295,8 @@ begin
                   Language_Version := Ada_2005;
                elsif V in "12" | "2012" then
                   Language_Version := Ada_2012;
+               elsif V in "22" | "2022" then
+                  Language_Version := Ada_2022;
                else
                   Fatal_Error ("Bad Ada language version: " & V);
                end if;

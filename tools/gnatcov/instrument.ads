@@ -81,7 +81,7 @@ package Instrument is
    --  Bundle for all configuration related to automatic dump of coverage
    --  buffers.
 
-   type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012);
+   type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012, Ada_2022);
 
    procedure Instrument_Units_Of_Interest
      (Dump_Config          : Any_Dump_Config;
