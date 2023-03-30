@@ -4600,13 +4600,20 @@ package body Instrument.Ada_Unit is
                         --  In Libadalang, there is only one kind of FOR loop:
                         --  both the RM's loop_parameter_specification and
                         --  iterator_specification are materialized with
-                        --  For_Loop_Spec nodes. In each case, decisions can
-                        --  only appear in the "iteration expression", i.e. the
-                        --  expression that comes before the LOOP keyword.
+                        --  For_Loop_Spec nodes.
+                        --
+                        --  Ada 2022 allows for a subtype indication to be
+                        --  present in the loop specification, but it must
+                        --  statically match the cursor type (RM 5.5.2 5/5).
+                        --  This means that only static decisions could be
+                        --  present in there, which will not be instrumented.
+                        --
+                        --  Still go through them to generate SCOs, for the
+                        --  sake of completeness.
 
                         Extend_Statement_Sequence (UIC, N, 'F');
                         Process_Decisions_Defer
-                          (ISC.As_For_Loop_Spec.F_Iter_Expr, 'X');
+                          (ISC.As_For_Loop_Spec, 'X');
                      end if;
                   end if;
 
