@@ -1166,6 +1166,12 @@ package body Instrument.Ada_Unit is
      (Unit : Unit_Rewriting_Handle);
    --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit
 
+   procedure Write_To_File (Unit : Unit_Rewriting_Handle; Filename : String);
+   --  Unparse Unit into the file at Filename (creating it if needed).
+   --
+   --  Note that this calls Remove_Warnings_And_Style_Checks_Pragmas before
+   --  unparsing the unit.
+
    ----------------------------
    -- Source level rewriting --
    ----------------------------
@@ -6976,62 +6982,8 @@ package body Instrument.Ada_Unit is
 
    procedure Apply (Self : in out Ada_Source_Rewriter'Class) is
    begin
-      --  Automatically insert pragmas to disable style checks and
-      --  warnings in generated code: it is not our goal to make
-      --  instrumentation generate warning-free or well-formatted
-      --  code.
-
-      Remove_Warnings_And_Style_Checks_Pragmas (Handle (Self.Unit));
-
-      declare
-         use Ada.Strings.Wide_Wide_Unbounded.Aux;
-
-         Unit   : constant Unit_Rewriting_Handle := Handle (Self.Unit);
-         Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
-
-         --  To avoid copying the potentially big string for sources on the
-         --  secondary stack (and reduce the amount of copies anyway), use the
-         --  internal GNAT API to retreive the internal string access and
-         --  process it by chunks.
-
-         Source_Access : Big_Wide_Wide_String_Access;
-         Length        : Natural;
-
-         Chunk_Size : constant := 4096;
-         Position   : Natural;
-
-         Filename : constant String := To_String (Self.Output_Filename);
-         Out_File : Text_Files.File_Type;
-      begin
-         Abort_Rewriting (Self.Handle);
-         Out_File.Create (Filename);
-         Put_Warnings_And_Style_Checks_Pragmas (Out_File);
-
-         Get_Wide_Wide_String (Source, Source_Access, Length);
-         Position := Source_Access.all'First;
-
-         while Position <= Length loop
-            declare
-               Chunk_First : constant Natural := Position;
-               Chunk_Last  : constant Natural := Natural'Min
-                 (Chunk_First + Chunk_Size - 1, Length);
-
-               Chunk         : Wide_Wide_String renames
-                  Source_Access.all (Chunk_First .. Chunk_Last);
-               Encoded_Chunk : constant String :=
-                  Ada.Characters.Conversions.To_String (Chunk);
-            begin
-               Out_File.Put (Encoded_Chunk);
-               Position := Chunk_Last + 1;
-            end;
-         end loop;
-
-         Out_File.Close;
-         if Switches.Pretty_Print then
-            Text_Files.Run_GNATpp (Out_File);
-         end if;
-      end;
-
+      Write_To_File (Handle (Self.Unit), To_String (Self.Output_Filename));
+      Abort_Rewriting (Self.Handle);
       Self.Finalize;
    end Apply;
 
@@ -7115,6 +7067,65 @@ package body Instrument.Ada_Unit is
    begin
       Process (Root (Unit));
    end Remove_Warnings_And_Style_Checks_Pragmas;
+
+   -------------------
+   -- Write_To_File --
+   -------------------
+
+   procedure Write_To_File (Unit : Unit_Rewriting_Handle; Filename : String) is
+   begin
+      --  Automatically insert pragmas to disable style checks and warnings in
+      --  generated code: it is not our goal to make instrumentation generate
+      --  warning-free or well-formatted code.
+
+      Remove_Warnings_And_Style_Checks_Pragmas (Unit);
+
+      declare
+         use Ada.Strings.Wide_Wide_Unbounded.Aux;
+
+         Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
+
+         --  To avoid copying the potentially big string for sources on the
+         --  secondary stack (and reduce the amount of copies anyway), use the
+         --  internal GNAT API to retreive the internal string access and
+         --  process it by chunks.
+
+         Source_Access : Big_Wide_Wide_String_Access;
+         Length        : Natural;
+
+         Chunk_Size : constant := 4096;
+         Position   : Natural;
+
+         Out_File : Text_Files.File_Type;
+      begin
+         Out_File.Create (Filename);
+         Put_Warnings_And_Style_Checks_Pragmas (Out_File);
+
+         Get_Wide_Wide_String (Source, Source_Access, Length);
+         Position := Source_Access.all'First;
+
+         while Position <= Length loop
+            declare
+               Chunk_First : constant Natural := Position;
+               Chunk_Last  : constant Natural := Natural'Min
+                 (Chunk_First + Chunk_Size - 1, Length);
+
+               Chunk         : Wide_Wide_String renames
+                  Source_Access.all (Chunk_First .. Chunk_Last);
+               Encoded_Chunk : constant String :=
+                  Ada.Characters.Conversions.To_String (Chunk);
+            begin
+               Out_File.Put (Encoded_Chunk);
+               Position := Chunk_Last + 1;
+            end;
+         end loop;
+
+         Out_File.Close;
+         if Switches.Pretty_Print then
+            Text_Files.Run_GNATpp (Out_File);
+         end if;
+      end;
+   end Write_To_File;
 
    -------------------------------
    -- Auto_Dump_Buffers_In_Main --
