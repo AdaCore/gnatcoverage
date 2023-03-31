@@ -344,22 +344,85 @@ package body Instrument.Ada_Unit is
                              Make_Identifier (UIC, D_Name)));
    --  Shortcut to create a defining identifier tree
 
-   ------------------------------------
-   -- Indices for syntactic children --
-   ------------------------------------
+   -----------------------
+   -- Rewriting helpers --
+   -----------------------
 
-   I_Accept_Stmt_With_Stmts_F_Stmts : constant Integer :=
-     Index (Ada_Accept_Stmt_With_Stmts, Accept_Stmt_With_Stmts_F_Stmts);
-   I_Expr_Function_F_Aspects        : constant Integer :=
-     Index (Ada_Expr_Function, Basic_Decl_F_Aspects);
-   I_Subp_Decl_F_Aspects            : constant Integer :=
-     Index (Ada_Subp_Decl, Basic_Decl_F_Aspects);
-   I_Handled_Stmts_F_Stmts          : constant Integer :=
-     Index (Ada_Handled_Stmts, Handled_Stmts_F_Stmts);
-   I_Subp_Spec_F_Subp_Params        : constant Integer :=
-     Index (Ada_Subp_Spec, Subp_Spec_F_Subp_Params);
-   I_Subp_Spec_F_Name               : constant Integer :=
-     Index (Ada_Subp_Spec, Subp_Spec_F_Subp_Name);
+   --  TODO??? (eng/libadalang/langkit#642) Remove these helpers to use
+   --  Libadalang's once they are available.
+
+   function Child_Index
+     (Handle : Node_Rewriting_Handle;
+      Field  : Syntax_Field_Reference) return Positive
+   is (Index (Kind (Handle), Field));
+   --  Return the index of the syntax field ``Field`` in the node designated by
+   --  ``Handle``.
+
+   function Child
+     (Handle : Node_Rewriting_Handle;
+      Field  : Syntax_Field_Reference) return Node_Rewriting_Handle;
+   --  Return the node that is in the syntax Field for Handle
+
+   type Syntax_Field_Reference_Array is
+     array (Positive range <>) of Syntax_Field_Reference;
+
+   function Child
+     (Handle : Node_Rewriting_Handle;
+      Fields : Syntax_Field_Reference_Array) return Node_Rewriting_Handle;
+   --  Return a child deep in the tree Handle.
+   --
+   --  Assuming Fields'Range is 1 .. N, this is a shortcut for:
+   --
+   --    C1 := Child (Handle, Fields (1));
+   --    C2 := Child (C1, Fields (2));
+   --    ...
+   --    CN_1 := Child (CN_2, Fields (N - 1));
+   --    CN := Child (CN_1, Fields (N));
+
+   procedure Set_Child
+     (Handle : Node_Rewriting_Handle;
+      Field  : Syntax_Field_Reference;
+      Child  : Node_Rewriting_Handle);
+   --  If ``Child`` is ``No_Rewriting_Node``, untie the syntax field in
+   --  ``Handle`` corresponding to ``Field``, so it can be attached to another
+   --  one. Otherwise, ``Child`` must have no parent as it will be tied to
+   --  ``Handle``'s tree.
+
+   -----------
+   -- Child --
+   -----------
+
+   function Child
+     (Handle : Node_Rewriting_Handle;
+      Field  : Syntax_Field_Reference) return Node_Rewriting_Handle
+   is
+   begin
+      return Child (Handle, Child_Index (Handle, Field));
+   end Child;
+
+   function Child
+     (Handle : Node_Rewriting_Handle;
+      Fields : Syntax_Field_Reference_Array) return Node_Rewriting_Handle is
+   begin
+      return Result : Node_Rewriting_Handle := Handle do
+         for F of Fields loop
+            Result := Child (Result, F);
+         end loop;
+      end return;
+   end Child;
+
+   ---------------
+   -- Set_Child --
+   ---------------
+
+   procedure Set_Child
+     (Handle : Node_Rewriting_Handle;
+      Field  : Syntax_Field_Reference;
+      Child  : Node_Rewriting_Handle)
+   is
+   begin
+      Set_Child (Handle, Index (Kind (Handle), Field), Child);
+   end Set_Child;
 
    ---------------------
    -- Unbounded texts --
@@ -2305,7 +2368,7 @@ package body Instrument.Ada_Unit is
 
       Set_Child
         (Handle (Common_Nodes.N_Spec),
-         I_Subp_Spec_F_Subp_Params,
+         Subp_Spec_F_Subp_Params,
          Create_Params (RC, Formal_Params));
 
       --  If we also need a declaration for the augmented expression
@@ -2328,14 +2391,14 @@ package body Instrument.Ada_Unit is
             --  Replace the original EF name by the augmented EF name
 
             Set_Child (New_Spec,
-                       I_Subp_Spec_F_Name,
+                       Subp_Spec_F_Subp_Name,
                        Make_Identifier (UIC, Augmented_Expr_Func_Name));
 
             --  Add the augmented params to this spec as well
 
             Set_Child
               (New_Spec,
-               I_Subp_Spec_F_Subp_Params,
+               Subp_Spec_F_Subp_Params,
                Create_Params (RC, Clone (Formal_Params)));
 
             Augmented_Expr_Function_Decl := Create_Subp_Decl
@@ -2375,12 +2438,12 @@ package body Instrument.Ada_Unit is
             if Needs_Decl then
                Set_Child
                  (Augmented_Expr_Function_Decl,
-                  I_Subp_Decl_F_Aspects,
+                  Basic_Decl_F_Aspects,
                   Aspects);
             else
                Set_Child
                  (Handle (Common_Nodes.N),
-                  I_Expr_Function_F_Aspects,
+                  Basic_Decl_F_Aspects,
                   Aspects);
             end if;
          end;
@@ -3236,12 +3299,9 @@ package body Instrument.Ada_Unit is
                      --  statement list at first position.
 
                      Insert_List :=
-                       Child
-                         (Child
-                            (SCE.Insertion_N,
-                             I_Accept_Stmt_With_Stmts_F_Stmts),
-                          I_Handled_Stmts_F_Stmts);
-
+                       Child (SCE.Insertion_N,
+                              (Accept_Stmt_With_Stmts_F_Stmts,
+                               Handled_Stmts_F_Stmts));
                      Insert_Pos  := 1;
 
                   else
