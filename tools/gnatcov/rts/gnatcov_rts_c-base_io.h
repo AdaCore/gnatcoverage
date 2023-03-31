@@ -18,9 +18,10 @@
  ****************************************************************************/
 
 /* This header provides the smallest subset of functions needed to output
-   bytes.  These functions are used in gnatcov_rts_c-traces-output-base64.c to
-   dump base64 traces to "the output": stdout when linking with a C runtime
-   only, and GNAT.IO.Standard_Output when linking with an Ada runtime.
+   bytes.  These functions are used in gnatcov_rts_c-traces-output-base64.c
+   (and thus by the implementation of gnatcov's --dump-channel=base64-stdout
+   option) to dump base64 traces to "the output": stdout when linking with a C
+   runtime only, and GNAT.IO.Standard_Output when linking with an Ada runtime.
 
    In the former case, the gnatcov_rts_c-base_io.c module implements these
    functions, and in the latter case, it’s the GNATcov_RTS.Base_IO package that
@@ -35,8 +36,7 @@ extern "C"
 #endif
 
   /* See gnatcov_rts-base_io.ads.  */
-  extern int gnatcov_rts_puts (struct gnatcov_rts_string str);
-  extern int gnatcov_rts_putchar (int c);
+  extern int gnatcov_rts_put_string (struct gnatcov_rts_string str);
 
 #ifdef __cplusplus
 }

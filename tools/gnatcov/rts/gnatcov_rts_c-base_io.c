@@ -21,19 +21,11 @@
 
 #include "gnatcov_rts_c_strings.h"
 
-/* The libc implementation always provides fwrite / putchar.  Use these
-   functions to print to the standard output.  */
+/* The libc implementation always provides fwrite.  Use this function to print
+   to the standard output.  */
 
-int
-gnatcov_rts_puts (struct gnatcov_rts_string str)
+void
+gnatcov_rts_put_string (struct gnatcov_rts_string str)
 {
   fwrite (str.str, 1, str.length, stdout);
-  fwrite ("\n", 1, 1, stdout);
-  return 0;
-}
-
-extern int
-gnatcov_rts_putchar (int c)
-{
-  return putchar (c);
 }
