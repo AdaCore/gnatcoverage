@@ -28,12 +28,16 @@ with Ada.Strings.Wide_Wide_Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
 
 with Langkit_Support;
+with Langkit_Support.Generic_API.Introspection;
+use Langkit_Support.Generic_API.Introspection;
 with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
 with Langkit_Support.Symbols;  use Langkit_Support.Symbols;
 with Libadalang.Common;        use Libadalang.Common;
 with Libadalang.Config_Pragmas;
 with Libadalang.Expr_Eval;
-with Libadalang.Introspection; use Libadalang.Introspection;
+with Libadalang.Generic_API;
+with Libadalang.Generic_API.Introspection;
+use Libadalang.Generic_API.Introspection;
 with Libadalang.Sources;       use Libadalang.Sources;
 
 with GNATCOLL.Utils;
@@ -354,24 +358,26 @@ package body Instrument.Ada_Unit is
    --  TODO??? (eng/libadalang/langkit#642) Remove these helpers to use
    --  Libadalang's once they are available.
 
+   Generic_Kinds : array (Ada_Node_Kind_Type) of Type_Ref;
+   --  Translate a Ada_Node_Kind_Type value (node type in the Libadalang API)
+   --  to the corresponding Struct_Member_Ref value (node type in the generic
+   --  Langkit_Support API).
+
    function Child_Index
      (Handle : Node_Rewriting_Handle;
-      Field  : Syntax_Field_Reference) return Positive
-   is (Index (Kind (Handle), Field));
+      Field  : Struct_Member_Ref) return Positive
+   is (Syntax_Field_Index (Field, Generic_Kinds (Kind (Handle))));
    --  Return the index of the syntax field ``Field`` in the node designated by
    --  ``Handle``.
 
    function Child
      (Handle : Node_Rewriting_Handle;
-      Field  : Syntax_Field_Reference) return Node_Rewriting_Handle;
+      Field  : Struct_Member_Ref) return Node_Rewriting_Handle;
    --  Return the node that is in the syntax Field for Handle
-
-   type Syntax_Field_Reference_Array is
-     array (Positive range <>) of Syntax_Field_Reference;
 
    function Child
      (Handle : Node_Rewriting_Handle;
-      Fields : Syntax_Field_Reference_Array) return Node_Rewriting_Handle;
+      Fields : Struct_Member_Ref_Array) return Node_Rewriting_Handle;
    --  Return a child deep in the tree Handle.
    --
    --  Assuming Fields'Range is 1 .. N, this is a shortcut for:
@@ -384,7 +390,7 @@ package body Instrument.Ada_Unit is
 
    procedure Set_Child
      (Handle : Node_Rewriting_Handle;
-      Field  : Syntax_Field_Reference;
+      Field  : Struct_Member_Ref;
       Child  : Node_Rewriting_Handle);
    --  If ``Child`` is ``No_Rewriting_Node``, untie the syntax field in
    --  ``Handle`` corresponding to ``Field``, so it can be attached to another
@@ -397,7 +403,7 @@ package body Instrument.Ada_Unit is
 
    function Child
      (Handle : Node_Rewriting_Handle;
-      Field  : Syntax_Field_Reference) return Node_Rewriting_Handle
+      Field  : Struct_Member_Ref) return Node_Rewriting_Handle
    is
    begin
       return Child (Handle, Child_Index (Handle, Field));
@@ -405,7 +411,7 @@ package body Instrument.Ada_Unit is
 
    function Child
      (Handle : Node_Rewriting_Handle;
-      Fields : Syntax_Field_Reference_Array) return Node_Rewriting_Handle is
+      Fields : Struct_Member_Ref_Array) return Node_Rewriting_Handle is
    begin
       return Result : Node_Rewriting_Handle := Handle do
          for F of Fields loop
@@ -420,11 +426,11 @@ package body Instrument.Ada_Unit is
 
    procedure Set_Child
      (Handle : Node_Rewriting_Handle;
-      Field  : Syntax_Field_Reference;
+      Field  : Struct_Member_Ref;
       Child  : Node_Rewriting_Handle)
    is
    begin
-      Set_Child (Handle, Index (Kind (Handle), Field), Child);
+      Set_Child (Handle, Child_Index (Handle, Field), Child);
    end Set_Child;
 
    ---------------------
@@ -2459,7 +2465,7 @@ package body Instrument.Ada_Unit is
 
       Set_Child
         (Handle (Common_Nodes.N_Spec),
-         Subp_Spec_F_Subp_Params,
+         Member_Refs.Subp_Spec_F_Subp_Params,
          Create_Params (RC, Formal_Params));
 
       --  If we also need a declaration for the augmented expression
@@ -2482,14 +2488,14 @@ package body Instrument.Ada_Unit is
             --  Replace the original EF name by the augmented EF name
 
             Set_Child (New_Spec,
-                       Subp_Spec_F_Subp_Name,
+                       Member_Refs.Subp_Spec_F_Subp_Name,
                        Make_Identifier (UIC, Augmented_Expr_Func_Name));
 
             --  Add the augmented params to this spec as well
 
             Set_Child
               (New_Spec,
-               Subp_Spec_F_Subp_Params,
+               Member_Refs.Subp_Spec_F_Subp_Params,
                Create_Params (RC, Clone (Formal_Params)));
 
             Augmented_Expr_Function_Decl := Create_Subp_Decl
@@ -2529,12 +2535,12 @@ package body Instrument.Ada_Unit is
             if Needs_Decl then
                Set_Child
                  (Augmented_Expr_Function_Decl,
-                  Basic_Decl_F_Aspects,
+                  Member_Refs.Basic_Decl_F_Aspects,
                   Aspects);
             else
                Set_Child
                  (Handle (Common_Nodes.N),
-                  Basic_Decl_F_Aspects,
+                  Member_Refs.Basic_Decl_F_Aspects,
                   Aspects);
             end if;
          end;
@@ -3438,8 +3444,8 @@ package body Instrument.Ada_Unit is
 
                      Insert_List :=
                        Child (SCE.Insertion_N,
-                              (Accept_Stmt_With_Stmts_F_Stmts,
-                               Handled_Stmts_F_Stmts));
+                              (Member_Refs.Accept_Stmt_With_Stmts_F_Stmts,
+                               Member_Refs.Handled_Stmts_F_Stmts));
                      Insert_Pos  := 1;
 
                   else
@@ -8815,4 +8821,34 @@ package body Instrument.Ada_Unit is
       end;
    end Find_Ada_Units;
 
+   --  Initialize the Generic_Kinds mapping. Ada_Node_Kind_Type is the set of
+   --  all concrete (non-abstract nodes) while All_Node_Types also returns
+   --  abstract types. Nodes that are common to both lists appear in the same
+   --  order, so all we need in order to build a 1:1 mapping is to filter out
+   --  abstract nodes from the result of All_Node_Types.
+   --
+   --  Reduced illustration:
+   --
+   --  * All_Node_Types:
+   --      Ada_Node(abstract), Identifier, Expr(abstract), Int_Literal
+   --  * Ada_Node_Kind_Type:
+   --      Identifier, Int_Literal
+
+   Nodes : constant Type_Ref_Array :=
+     All_Node_Types (Libadalang.Generic_API.Ada_Lang_Id);
+   Next  : Positive := Nodes'First;
+begin
+   for Kind in Ada_Node_Kind_Type loop
+      Search_Next_Concrete : loop
+         declare
+            N : Type_Ref renames Nodes (Next);
+         begin
+            Next := Next + 1;
+            if not Is_Abstract (N) then
+               Generic_Kinds (Kind) := N;
+               exit Search_Next_Concrete;
+            end if;
+         end;
+      end loop Search_Next_Concrete;
+   end loop;
 end Instrument.Ada_Unit;
