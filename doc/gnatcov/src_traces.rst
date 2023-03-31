@@ -185,11 +185,6 @@ the options passed to the latter take precedence. For instance:
 Note that the defaults that |gcvstp| uses for each target platform may change
 between versions of |gcp|.
 
-.. TODO (U211-014): Document:
-
-   * the project positional argument (to install an extending coverage runtime
-     project).
-
 
 Instrumenting programs
 ======================
@@ -882,3 +877,116 @@ The build of instrumented tests then proceeds as follows::
 
 And a regular execution in the host environment would produce a source
 trace in addition to performing the original functional operations.
+
+
+Coverage runtime customization
+==============================
+
+Basics
+------
+
+Some configurations have constraints that make the default coverage runtime
+inadequate. For instance, targeting a board that has no serial port, making the
+default implementation for ``--dump-channel=base64-stdout`` ineffective. In
+order to accomodate for such special needs, it is possible to extend the
+coverage runtime project and add/override some of its sources.
+
+First, build and install the default coverage runtime (``gnatcov_rts``):
+
+.. code-block:: sh
+
+   # Add --target and --RTS if needed according to the toolchain to use
+   gnatcov setup
+
+Then create the project extension. The integration with the |gcvstp| workflow
+requires the project file and the sources to be in a dedicated directory:
+
+.. code-block:: sh
+
+   mkdir my_rts
+   cat > my_rts/my_rts.gpr <<EOF
+   project My_RTS extends "gnatcov_rts" is
+      for Object_Dir use "obj." & GNATcov_RTS.Library_Type;
+      for Library_Dir use "lib." & GNATcov_RTS.Library_Type;
+   end My_RTS;
+   EOF
+
+It is then possible to add source files to the ``my_rts`` directory to be
+included in this custom coverage runtime. Like in non-customized cases,
+|gcvstp| can then be used to buid and install the coverage runtime:
+
+.. code-block:: sh
+
+   # Add --target and --RTS if needed according to the toolchain to use
+   gnatcov setup my_rts/my_rts.gpr
+
+While it is technically possible with this mechanism to modify all aspects of
+the default coverage runtime library, in practice only one use case is
+supported currently: changing the behavior of the
+``--dump-channel=base64-stdout`` instrumentation option.
+
+
+Customize the ``base64-stdout`` dump channel
+--------------------------------------------
+
+To achieve this, the coverage runtime defines a single routine, in charge of
+writing bytes to "the output stream":
+
+* When Ada support is enabled, in the ``gnatcov_rts-base_io.adb`` source file,
+  using the Ada runtime package ``GNAT.IO`` to write to the serial port
+  (bareboard targets) or to the standard output (native targets).
+
+* When Ada support is disabled, in the ``gnatcov_rts-base_io.c`` source file,
+  using the libc's ``fwrite`` function on ``stdout``.
+
+Overriding the source file for the relevant configuration is enough to
+customize the ``base64-stdout`` dump channel.
+
+When Ada support is enabled, override the ``gnatcov_rts-base_io.adb`` source
+file so that it can still be built with the (unmodified)
+``gnatcov_rts-base_io.ads`` source file.
+
+.. code-block:: ada
+
+   --  gnatcov_rts-base_io.ads
+
+   with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
+
+   package GNATcov_RTS.Base_IO is
+      pragma Preelaborate;
+      procedure Put (S : GNATcov_RTS_String);
+      pragma Export (C, Entity => Put, External_Name => "gnatcov_rts_put_string");
+   end GNATcov_RTS.Base_IO;
+
+   --  gnatcov_rts-strings.ads
+
+   with Interfaces.C; use Interfaces.C;
+
+   package GNATcov_RTS.Strings is
+      pragma Pure;
+      type GNATcov_RTS_String is record
+         Str    : System.Address;
+         Length : size_t;
+      end record;
+      pragma Convention (C_Pass_By_Copy, GNATcov_RTS_String);
+   end GNATcov_RTS.Strings;
+
+When Ada support is disabled, override the ``gnatcov_rts_c-base_io.c`` source
+file so that it implements the interface described in the (unmodified)
+``gnatcov_rts_c-base_io.h`` source file.
+
+.. code-block:: c
+
+   /* gnatcov_rts_c-base_io.h */
+
+   #include "gnatcov_rts_c_strings.h"
+   extern int gnatcov_rts_put_string (struct gnatcov_rts_string str);
+
+   /* gnatcov_rts_c_strings.h */
+
+   #include <stddef.h>
+   struct gnatcov_rts_string
+   {
+     const char *str;
+     size_t length;
+   };
