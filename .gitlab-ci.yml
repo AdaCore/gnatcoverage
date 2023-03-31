@@ -18,6 +18,19 @@ variables:
    #  CI_FRAGMENTS_GIT: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/eng/it/$CI_FRAGMENTS
    GNATCOVERAGE_EXTRA_GIT: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/eng/cov/gnatcoverage-extra
 
+.edge_vars: &edge_vars
+  - |
+    if [ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME = edge ]
+    then
+        EDGE_QUALIFIER="-Qedge"
+        EDGE_REPO_SUFFIX="-edge"
+        EDGE_BUILD_SPACE_SUFFIX="_edge"
+    else
+        EDGE_QUALIFIER=""
+        EDGE_REPO_SUFFIX=""
+        EDGE_BUILD_SPACE_SUFFIX=""
+    fi
+
 stages:
   - build
   - test
@@ -31,17 +44,18 @@ build:
   script:
     - . ~/.aws_container_credentials
     - export PATH=/it/e3/bin:$PATH
+    - *edge_vars
 
     # Setup the repository
     - cd /it/wave
-    - anod vcs --add-repo gnatcoverage $CI_PROJECT_DIR
+    - anod vcs --add-repo gnatcoverage$EDGE_REPO_SUFFIX $CI_PROJECT_DIR
 
     # Build using anod
-    - anod build --minimal gnatcov
+    - anod build --minimal gnatcov $EDGE_QUALIFIER
 
     # Create the package
     - tar czf $PACKAGE_ABSOLUTE_NAME -C /
-        it/wave/x86_64-linux/gnatcov-build/install/
+        it/wave/x86_64-linux/gnatcov-build$EDGE_BUILD_SPACE_SUFFIX/install/
 
     - cd $CI_PROJECT_DIR
     - ls -l $PACKAGE_BASE_NAME
@@ -59,17 +73,19 @@ build_community:
   script:
     - . ~/.aws_container_credentials
     - export PATH=/it/e3/bin:$PATH
+    - *edge_vars
 
     # Setup the repository
     - cd /it/wave
-    - anod vcs --add-repo gnatcoverage $CI_PROJECT_DIR
+    - anod vcs --add-repo gnatcoverage$EDGE_REPO_SUFFIX $CI_PROJECT_DIR
 
     # Build using anod
-    - anod build --minimal gnatcov --qualifier=no-c
+    - anod build --minimal gnatcov -Qno-c $EDGE_QUALIFIER
 
 .common_test_bits: &retrieve_gnatcoverage_extras_and_setup_anod_repo
     - . ~/.aws_container_credentials
     - export PATH=/it/e3/bin:$PATH
+    - *edge_vars
 
     # Unpack the artifact then delete it
     - tar zxf $PACKAGE_ABSOLUTE_NAME -C /
@@ -77,23 +93,30 @@ build_community:
 
     # Get the gnatcoverage-extra repository. If we're testing a 'sync/' branch,
     # expect the same for that repo.
+
     - cd /tmp
     - EXTRA_BRANCH=master
     - if [[ $CI_COMMIT_BRANCH =~ ^sync/ ]]; then
          EXTRA_BRANCH=$CI_COMMIT_BRANCH;
       elif [[ $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ ^sync/ ]]; then
          EXTRA_BRANCH=$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME;
+      elif [ $CI_COMMIT_BRANCH = edge ] || [ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME = edge ]; then
+         EXTRA_BRANCH=edge;
       fi
     - git clone $GNATCOVERAGE_EXTRA_GIT -b $EXTRA_BRANCH
 
     # Setup the anod sandbox repositories
     - cd /it/wave
-    - anod vcs --add-repo gnatcoverage $CI_PROJECT_DIR
-    - anod vcs --add-repo gnatcoverage-extra /tmp/gnatcoverage-extra
+    - anod vcs --add-repo gnatcoverage$EDGE_REPO_SUFFIX $CI_PROJECT_DIR
+    - anod vcs --add-repo gnatcoverage-extra$EDGE_REPO_SUFFIX /tmp/gnatcoverage-extra
 
-    # Setup fingerprints so anod doesn't do unnecessary rebuilds
+    # Setup fingerprints so anod doesn't do unnecessary rebuilds and does not
+    # try to download gnatcov/edge: we have rebuilt it so we do not need to
+    # download the nightly one, which may not even exist (case of an edge build
+    # failure that was fixed on that day).
     - mkdir -p fingerprints
-    - touch fingerprints/x86_64-linux.gnatcov-build.install.json.assume-unchanged
+    - touch fingerprints/x86_64-linux.gnatcov-build$EDGE_BUILD_SPACE_SUFFIX.install.json.assume-unchanged
+    - touch fingerprints/x86_64-linux.gnatcov-build$EDGE_BUILD_SPACE_SUFFIX.download_bin.json.assume-unchanged
 
 .common_artifacts_bits: &artifacts
   artifacts:
@@ -112,12 +135,12 @@ test_bin_traces:
     - *retrieve_gnatcoverage_extras_and_setup_anod_repo
 
     # Test using anod
-    - anod test gnatcov --target=leon3-elf --qualifier="RTS=embedded-leon3,-O0"
+    - anod test gnatcov --target=leon3-elf -QRTS=embedded-leon3,-O0 $EDGE_QUALIFIER
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
         --xunit-name bin-traces
-        leon3-elf-linux64/gnatcov-O0-embedded-leon3-test/results/new/
+        leon3-elf-linux64/gnatcov-O0-embedded-leon3$EDGE_BUILD_SPACE_SUFFIX-test/results/new/
 
   <<: *artifacts
 
@@ -131,12 +154,12 @@ test_src_traces:
     - *retrieve_gnatcoverage_extras_and_setup_anod_repo
 
     # Test using anod
-    - anod test gnatcov --qualifier=src-traces
+    - anod test gnatcov -Qsrc-traces $EDGE_QUALIFIER
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
         --xunit-name src-traces
-      x86_64-linux/gnatcov-src-traces-test/results/new/
+      x86_64-linux/gnatcov-src-traces$EDGE_BUILD_SPACE_SUFFIX-test/results/new/
 
   <<: *artifacts
 
@@ -150,12 +173,11 @@ test_spark:
     - *retrieve_gnatcoverage_extras_and_setup_anod_repo
 
     # Test using anod
-    - anod test gnatcov --qualifier=spark-tests,src-traces
+    - anod test gnatcov -Qspark-tests,src-traces $EDGE_QUALIFIER
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
         --xunit-name spark
-      x86_64-linux/gnatcov-spark-tests-src-traces-test/results/new/
+      x86_64-linux/gnatcov-spark-tests-src-traces$EDGE_BUILD_SPACE_SUFFIX-test/results/new/
 
   <<: *artifacts
-
