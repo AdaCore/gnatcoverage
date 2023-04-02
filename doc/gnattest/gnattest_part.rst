@@ -307,9 +307,9 @@ Switches for ``gnattest`` in framework generation mode
   corresponding spec files, one per line.
 
 
-:switch:`--exclude-from-stubbing:{unit}={filename}`
+:switch:`--exclude-from-stubbing:{spec}={filename}`
   Same as above, but corresponding units will not be stubbed only when testing
-  specified ``unit``.
+  unit whose specification is declared in specified ``spec`` file.
 
 
   .. index:: --validate-type-extensions (gnattest)
@@ -460,10 +460,10 @@ package ``Gnattest``. Here is the list of attributes:
      is used to specify the file with list of units whose bodies should not
      be stubbed, otherwise specified by ``--exclude-from-stubbing=filename``.
 
-* ``Stub_Exclusion_List ("unit")``
+* ``Stub_Exclusion_List ("spec")``
      is used to specify the file with list of units whose bodies should not
-     be stubbed when testing "unit", otherwise specified by
-     ``--exclude-from-stubbing:unit=filename``.
+     be stubbed when testing "spec", otherwise specified by
+     ``--exclude-from-stubbing:spec=filename``.
 
 Each of those attributes can be overridden from the command line if needed.
 Other ``gnattest`` switches can also be passed via the project
