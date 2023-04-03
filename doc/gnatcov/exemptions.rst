@@ -137,15 +137,12 @@ The corresponding :cmd-option:`=report` excerpt below illustrates this for the
    No non-exempted DECISION violation.
    1 exempted region.
 
-It is possible to display the exempted violations to let the user check that
-they match the expected ones. This can be done by using the
-:cmd-option:`--all-messages` switch. That way, the report will show the
-previously mentionned information along with the observed violations under
-their corresponding exempted block, and the total number of exempted violations
-found across all exempted regions.
+The exempted violations are also displayed to let the user check that they
+match the expected ones. The report shows the previously mentioned information
+along with the observed violations under their corresponding exempted block,
+and the total number of exempted violations found across all exempted regions.
 
-The :cmd-option:`=report` excerpt below produced while
-:cmd-option:`--all-messages` is used illustrates this for the ``Eassert``
+The :cmd-option:`=report` excerpt below illustrates this for the ``Eassert``
 example::
 
    ...
