@@ -1,8 +1,7 @@
 from SCOV.tc import TestCase
-from SCOV.tctl import CAT, CovControl
+from SCOV.tctl import CAT
 from SUITE.context import thistest
 
 
-TestCase(category=CAT.decision).run(covcontrol=CovControl
-                                    (covoptions="--all-messages"))
+TestCase(category=CAT.decision).run()
 thistest.result()
