@@ -93,23 +93,6 @@ In addition:
     pragma Restriction_Warnings (No_Finalization);
     pragma Restriction_Warnings (No_Implicit_Dynamic_Code);
 
-* The tool is only partially qualified for analysis in presence of exceptions
-  which propagate across subprograms, when the runtime library profile
-  supports this at all.
-
-  One possible way to ensure that the code subject to analysis conforms to
-  what this qualification material encompasses is to verify that it compiles
-  without error under control of a Zero Footprint Runtime Library Profile, or
-  free of warnings out of the following set of configuration pragmas::
-
-    pragma Restriction_Warnings (No_Exception_Registration);
-    pragma Restriction_Warnings (No_Exception_Handlers);
-
-  Otherwise, for all uses (in subprograms subject to the analysis) of handlers
-  for exceptions not raised by the subprogram itself, users shall verify
-  conformance to what the Operational Requirements specifically prescribe for
-  such cases (:ref:`exceptions`).
-
 * For mcdc assessments, the tool requires the use of short-circuit variants
   for the Boolean binary operators composing decisions: ``&&`` or ``||`` in C,
   ``and then`` or ``or else`` in Ada.
