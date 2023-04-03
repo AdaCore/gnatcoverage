@@ -32,7 +32,7 @@ exercise it by just switching to share/examples/gnatcoverage/starter and
 typing:
 
 ```shell
-engines $ make [TARGET=powerpc-elf] [RTS=zfp-mpc8641]
+engines $ make [TARGET=powerpc-elf] [RTS=light-mpc8641]
 ```
 
 The local Makefile includes a generic Makefile common to all the examples, and

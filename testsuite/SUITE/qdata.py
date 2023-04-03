@@ -174,10 +174,10 @@ def stdf_in(dirname):
 
 def treeref_at(dirname):
     """
-    A string representative of where the DIRNAME directory originates from
-    (e.g. svn rev or git commit), to be used for consistency checks when
-    multiple operations are done separately but should work over synchronized
-    directory trees.
+    A string representative of the git commit where the DIRNAME
+    directory originates from, to be used for consistency checks
+    when  multiple operations are done separately but should work
+    over synchronized directory trees.
     """
     # Assuming git, sha1 for the HEAD reference
     return output_of("git rev-parse HEAD", dirname=dirname).rstrip("\n")

@@ -8,13 +8,9 @@ This is a Python driven testsuite for GNATcoverage.
 
 Most tests use gprbuild to build programs for run/analysis by gnatcov/gnatemu.
 
-The testsuite driver is `<topdir>/testsuite.py`. It scans the following
-subdirectories for `test.py` instances and runs every one it finds after
-switching to where it was found:
-
-* `Qualif/` (DO-178 qualification testsuite)
-* `../extra/tests/` (other testcases)
-
+The testsuite driver is `<topdir>/testsuite.py`. It scans the subdirectories
+provided as arguments for `test.py` instances and runs every one it finds after
+switching the current directory to where it was found.
 
 Prerequisites
 -------------
@@ -23,7 +19,7 @@ You need, on your `PATH`:
 
 * The gnatcov binary that you wish to exercise
 
-* gprbuild >= 1.3.0
+* gprbuild version >= 22
 
 * The [e3-core](https://github.com/AdaCore/e3-core/) and
   [e3-testsuite](https://github.com/adacore/e3-testsuite/) Python packages.
@@ -34,28 +30,16 @@ You need, on your `PATH`:
 * The `<target>-gnatemu` binaries you wish to exercise if you are willing to
   run tests for a cross target.
 
-Native runs are supported on x86 and x86_64-linux, using an instrumented
-version of Valgrind. An instrumented Valgrind is bundled in recent binary
-packages of GNATcoverage. If you are building from sources, you need to
-install the GNATcoverage trace adapter into your Valgrind distrib. See the
-Makefiles for this particular purpose.
+* An e3-testsuite distribution, https://github.com/AdaCore/e3-testsuite
 
-If you are running tests for a ZFP or Ravenscar configuration (not a full
-runtime), you also need at the toplevel, together with this README: a `support`
-subdirectory corresponding to the one in the gnatcov examples.
-
-If you retrieved this testsuite subdir as part of a full GNATcoverage tree, you
-have the gnatcov sources in `../tools` and may for example do:
+If you are running tests for a light (formerly ZFP)s or Ravenscar configuration
+(not a full runtime), you also need at the toplevel, together with this
+README: a `support` subdirectory corresponding to the one in the gnatcov
+examples. Assuming you have the GNATcoverage source repository at hand in
+$gnatcov-src-dir, this could be setup with a mere symbolic link like:
 
 ```shell
-ln -s ../tools/gnatcov/examples/support support
-```
-
-Otherwise, you might just checkout the relevant subdir from the scm repo, for
-example with:
-
-```shell
-svn co svn+ssh://$OPENDO_ROOT/tools/gnatcov/examples/support
+ln -s $gnatcov-src-dir/tools/gnatcov/examples/support support
 ```
 
 
@@ -73,13 +57,12 @@ Note the use of target _product_ names here, not GCC target triplets. For
 example:
 
 ```shell
-# Cross configurations, using GNATemulator:
-./testsuite.py --target=ppc-elf  --RTS=powerpc-elf/ravenscar-sfp-prep
-./testsuite.py --target=leon-elf --RTS=ravenscar
-./testsuite.py --target=ppc-vx6  --RTS=kernel --kernel=tests/kernels/vx6.8-fastsbc
+# Cross configurations, using binary traces or source instrumentation:
+./testsuite.py --target=ppc-elf  --RTS=light-mpc8641 --trace-mode=src
+./testsuite.py --target=leon3-elf --RTS=embedded-leon3 --trace-mode=bin
 
-# Native configuration, using an instrumented valgrind (x86-linux or x86_64-linux):
-./testsuite.py
+# Windows or Linux native configuration, using source instrumentation:
+./testsuite.py --trace-mode=src
 ```
 
 The optional `regexp` at the end instructs the driver to run only those tests
