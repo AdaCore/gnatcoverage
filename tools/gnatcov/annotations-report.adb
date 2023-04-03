@@ -470,7 +470,7 @@ package body Annotations.Report is
          end if;
 
          --  Output summary for this region: sloc range, exempted message count
-         --  and justification.
+         --  justification, and exempted violations.
 
          New_Line (Output.all);
          Put (Output.all, Image (To_Range (Sloc, End_Sloc)));
@@ -494,16 +494,23 @@ package body Annotations.Report is
          Put_Line (Output.all, ", justification:");
          Put_Line (Output.all, E.Message.all);
 
-         if Switches.All_Messages then
+         New_Line (Output.all);
 
-            New_Line (Output.all);
+         --  Output the contents of the exempted region: the observed exempted
+         --  violations.
 
-            if Pp.Exempted_Messages.Is_Empty then
+         declare
+            use Messages_Of_Exempted_Region;
+
+            Messages_C : constant Messages_Of_Exempted_Region.Cursor :=
+              Pp.Exempted_Messages.Find (Sloc);
+         begin
+            if Messages_C = Messages_Of_Exempted_Region.No_Element then
                Put_Line (Output.all, "No exempted violations.");
             else
                Put_Line (Output.all, "Exempted violations:");
 
-               for C in Pp.Exempted_Messages (Sloc).Iterate loop
+               for C in Element (Messages_C).Iterate loop
                   Output_Message (C);
 
                   if Message_Vectors.Element (C).Kind /= Info then
@@ -512,7 +519,7 @@ package body Annotations.Report is
                   end if;
                end loop;
             end if;
-         end if;
+         end;
 
          Total_Exempted_Regions := Total_Exempted_Regions + 1;
       end Output_Exemption;
