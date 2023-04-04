@@ -1,13 +1,9 @@
 package body Silent_Last_Chance is
 
    --  Use exit(0) to terminate silently with a status code
-   --  indicating success. Abort would result in an error status
-   --  and _exit would bypass the atexit handlers, crucial to
+   --  indicating success and run atexit handlers, crucial to
    --  get meaningful traces out of instrumented programs in native
    --  configurations.
-
-   --  This requires dragging libc explicitly in BB configurations.
-   pragma Linker_Options ("-lc");
 
    -------------------------
    -- Last_Chance_Handler --

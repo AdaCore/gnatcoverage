@@ -1,10 +1,10 @@
 #include "twice.h"
 
-extern int identity (int n);
+extern int id (int n);
 
 int
 main ()
 {
-  int n = identity (twice (2));
+  int n = id (twice (2));
   return 0;
 }

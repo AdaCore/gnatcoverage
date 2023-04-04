@@ -7,7 +7,7 @@ include Makefile.common
 LIBSUPPORT_CFLAGS=-fdump-scos -fpreserve-control-flow -g
 
 
-all: $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR) LIBSUPPORT
+all: $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR) LIBSUPPORT LCH
 
 # ----------------------------------------------------------------------------
 
@@ -37,7 +37,11 @@ LIBSUPPORT: conf.gpr force
                    -XUNITTEST=yes \
                    -cargs $(LIBSUPPORT_CFLAGS)
 
+LCH: conf.gpr force
+	$(BUILDER) -XLIBSUPPORT_BUILD=yes -p -Plch.gpr -f \
+                   -cargs $(LIBSUPPORT_CFLAGS)
+
 clean:
 	$(RM) -rf lib obj
 
-.PHONY: force clean LIBSUPPORT
+.PHONY: force clean LIBSUPPORT LCH

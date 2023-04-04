@@ -1,0 +1,25 @@
+
+with "common.gpr", "conf.gpr";
+
+project LCH is
+
+   Do_Build  : Common.Yes_No_Type := external ("LIBSUPPORT_BUILD", "no");
+   --  Whether we're using this file to build the library or to link
+   --  with it.
+
+   case Do_Build is
+      when "no"  => for Externally_Built use "true";
+      when "yes" => for Externally_Built use "false";
+   end case;
+
+   for Source_Dirs use ("lch");
+
+   --  Make sure recursive project file inclusions don't get
+   --  to produce reports for parts of this support lib, never
+   --  relevant to test results.
+
+   package Coverage is
+     for Units use ();
+   end Coverage;
+
+end LCH;

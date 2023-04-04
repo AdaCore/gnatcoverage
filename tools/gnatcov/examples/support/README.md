@@ -5,18 +5,38 @@ This directory features a number of facilities to help automated build,
 execution and cov analysis of simple examples for several possible Qemu
 targets.
 
-It also provides an internal "support" library, which offers a custom
-exception last-chance handler to all the examples and testsuites. The common
-last chance handler always outputs the same message and terminates the
-program. This...
+It provides an internal "support" library, which offers
 
-* facilitates the execution of automated tests in batch mode (compared, for
-  example, to the handler in some Ravenscar libraries which just leave the
-  program running idle forever), and
+* A set of common helpers for test programs, such as an "Assert" procedure
+  and a set of "Identity" functions, some of which implemented in Ada and
+  exposed to C with straight symbol names to accommodate legacy uses.
 
-* provides an easy way to identify abornmal termination, with a stable output
-  whatever the RTS in use.
+* For cross configurations, a custom exception last-chance handler to all
+  the examples and testsuites, which always outputs the same message and
+  terminates the program.
 
+  This facilitates the execution of automated tests in batch mode (compared,
+  for example, to the handler in some Ravenscar libraries which just leave the
+  program running idle forever), and provides an easy way to identify abornmal
+  termination, with a stable output whatever the RTS in use.
+
+* For cross configurations, a set of common memory oriented subprograms to
+  compensate their possible absence in some environments with very restricted
+  GNAT runtimes.
+
+The directory also offers, through an separate project file, an alernative
+last_chance_handler which terminates a program silently without signalling an
+error condition. This is useful for tests intended to verify the behavior
+of the tool in situations where an unhandled exception occurs.
+
+This separate project is provided aside from the support library as a
+non-library project to make sure that the alternative last chance
+handler symbol gets incorporated in the link closure reliably with a
+standalone object file.
+
+Both projects are built once early and then reused as Externally_Built
+afterwards, possibly concurrently when the testsuite executes tests in
+parallel.
 
 General organization
 --------------------

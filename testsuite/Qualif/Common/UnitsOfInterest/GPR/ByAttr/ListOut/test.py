@@ -3,7 +3,7 @@ from SCOV.tctl import CovControl
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, list_to_file
 
-base_out = ["support", "test_or_ft", "test_and_tt", "test_and_tf"]
+base_out = ["test_or_ft", "test_and_tt", "test_and_tf"]
 
 wd = Wdir()
 

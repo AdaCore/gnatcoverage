@@ -261,29 +261,6 @@ class RuntimeInfo(object):
             assert False, 'Unknown runtime: {}'.format(runtime_name)
 
     @property
-    def need_libsupport(self):
-        """Libsupport considerations.
-
-        We rely on our support lib to provide a common last chance handler in
-        every configuration where this makes sense, in particular with light and
-        Ravenscar RTS libraries.
-
-        * Light profiles because some of these don't provide a handler at all.
-
-        * Ravenscar because some handlers fallthrough to a infinite idle loop,
-          unfriendly wrt testcase termination in automated nightly executions.
-
-        In addition, providing our last chance handler ensures we get
-        consistent output on unexpected exception, on any target configuration.
-
-        We can't override "last chance" handling and don't really need to for
-        full runtimes (which terminate on exceptions), native or cross.
-
-        This function controls whether we build the library and link with it.
-        """
-        return self.has_ravenscar_runtime or self.has_light_runtime
-
-    @property
     def gnatcov_rts_project(self):
         """Name of the gnatcov_rts project to use in instrumented projects."""
 

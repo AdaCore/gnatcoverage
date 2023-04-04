@@ -4,7 +4,7 @@ from SUITE.context import thistest
 from SUITE.cutils import Wdir
 
 
-base_out = ['support', 'test_or_ft', 'test_and_tt', 'test_and_tf']
+base_out = ['test_or_ft', 'test_and_tt', 'test_and_tf']
 wd = Wdir()
 
 # Check on lone node unit only

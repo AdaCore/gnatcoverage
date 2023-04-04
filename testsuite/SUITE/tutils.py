@@ -281,7 +281,7 @@ def gpr_emulator_package():
 
 
 def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
-           main_cargs=None, langs=None, deps=(), scenario_extra="",
+           main_cargs=None, langs=None, deps=None, scenario_extra="",
            compiler_extra="", extra=""):
     """
     Generate a simple PRJID.gpr project file to build executables for each main
@@ -293,7 +293,6 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     EXTRA, if any, at the end of the project file contents. Return the gpr file
     name.
     """
-    deps = '\n'.join('with "%s";' % dep for dep in deps)
 
     mains = to_list(mains)
     srcdirs = to_list(srcdirs)
@@ -326,11 +325,30 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     srcdirs = ', '.join('"%s"' % d for d in srcdirs_list)
     languages = ', '.join('"%s"' % lang for lang in langs)
 
-    # The base project file we need to extend, and the way to refer to it
-    # from the project contents. This provides a default last chance handler
-    # on which we rely to detect termination on exception occurrence.
-    basegpr = (("%s/support/base" % ROOT_DIR)
-               if RUNTIME_INFO.need_libsupport else None)
+    # In addition to the provided dependencies, figure out if this project
+    # should extend or with some support or helper facilities. These are
+    # designed with projects for test *programs* in mind, not for libraries,
+    # and would actually be plain incompatible with shared Library projects.
+    for_library = "Library" in extra
+
+    # The base project file we need to extend, which drags libsupport,
+    # and the way to refer to it from the project contents.
+    basegpr = (
+        "{}/support/base.gpr".format(ROOT_DIR) if not for_library else None)
+
+    # For projects with an Ada main, provide visibility on the alternative
+    # last chance handlers. Restricting this to Ada mains ensures that the
+    # dedicated object file for a given handler only gets included in the
+    # closure if the program requests the corresponding unit explicitly via
+    # a "with" clause, e.g. "with Silent_Last_Chance;".
+    #
+    # Account for callers that expect the "deps" argument they provide to
+    # remain unmodified, or which provide a tuple on input (unmutable).
+    deps = list(deps) if deps else []
+    if not for_library and ".adb" in gprmains:
+        deps.append("{}/support/lch.gpr".format(ROOT_DIR))
+
+    deps = '\n'.join('with "%s";' % dep for dep in deps)
 
     # If we have specific flags for the mains, append them. This is
     # typically something like:
