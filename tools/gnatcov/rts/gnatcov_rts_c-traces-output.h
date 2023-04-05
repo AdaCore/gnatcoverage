@@ -25,6 +25,17 @@ extern "C"
 {
 #endif
 
+  /* Smallest subset of functions needed for memory manipulations (memcpy and
+     memset). These functions must either be defined by the runtime (even if it
+     is in a bareboard environment), or provided by the user.
+
+     Note that we declare them ourselves, as the runtime may not provide the
+     string.h header: older versions of light runtimes did not package newlib,
+     and thus did not provide the string.h portable header.  Though the memcpy
+     and memset functions are provided by the light runtime in this case.  */
+  extern void *memcpy (void *__dest, const void *__src, size_t __n);
+  extern void *memset (void *__s, int __c, size_t __n);
+
   /* Callback for trace writing routines. Write the N bytes starting at SOURCE
      to the OUTPUT stream (OUTPUT is just forwarded from
      gnatcov_rts_generic_write_trace_file).  Return 0 if the write was

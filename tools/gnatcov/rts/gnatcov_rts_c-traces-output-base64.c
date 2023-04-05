@@ -21,7 +21,6 @@
 #include "gnatcov_rts_c-base_io.h"
 #include "gnatcov_rts_c-traces-output.h"
 #include <assert.h>
-#include <string.h>
 
 static const char *base64_alphabet
   = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

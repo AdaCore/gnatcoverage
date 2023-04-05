@@ -20,7 +20,6 @@
 #include "gnatcov_rts_c-traces-output.h"
 #include "gnatcov_rts_c-traces.h"
 #include <stdint.h>
-#include <string.h>
 
 const unsigned alignment = sizeof (void *);
 
