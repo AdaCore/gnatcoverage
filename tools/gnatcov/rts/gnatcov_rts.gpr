@@ -92,7 +92,21 @@ library project GNATcov_RTS is
    for Excluded_Source_Files use Excluded_Source_Files;
 
    package Compiler is
-      for Default_Switches ("C") use ("-O2", "-g", "-Wall", "-Wextra");
+      C_Extra_Switches := ();
+      case RTS_Profile is
+         when "embedded" =>
+
+           --  The rts for the embedded profile needs to remain compilable
+           --  in "freestanding" environments, where we might not have a libc
+           --  at hand.
+
+            C_Extra_Switches := ("-ffreestanding");
+         when "full" =>
+            null;
+      end case;
+
+      for Default_Switches ("C") use
+         ("-O2", "-g", "-Wall", "-Wextra") & C_Extra_Switches;
       for Default_Switches ("Ada") use ("-O2", "-g", "-gnatwa");
    end Compiler;
 
