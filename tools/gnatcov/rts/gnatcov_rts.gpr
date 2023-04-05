@@ -65,6 +65,8 @@ library project GNATcov_RTS is
            Excluded_Source_Files
            & ("gnatcov_rts-traces-output-files.adb",
               "gnatcov_rts-traces-output-files.ads",
+              "gnatcov_rts_c-os_interface.c",
+              "gnatcov_rts_c-os_interface.h",
               "gnatcov_rts_c-traces-output-files.c",
               "gnatcov_rts_c-traces-output-files.h");
       when "full" => null;
