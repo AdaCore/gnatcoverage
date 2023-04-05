@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 
-#include "gnatcov_rts_c_strings.h"
+#include "gnatcov_rts_c-strings.h"
 
 #ifdef __cplusplus
 extern "C"

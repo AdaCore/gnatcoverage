@@ -19,7 +19,7 @@
 
 #include <stdio.h>
 
-#include "gnatcov_rts_c_strings.h"
+#include "gnatcov_rts_c-strings.h"
 
 /* The libc implementation always provides fwrite.  Use this function to print
    to the standard output.  */

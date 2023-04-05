@@ -28,7 +28,7 @@
    implements them (these two units conflict with each other, so we include
    only one of them at link time).  */
 
-#include "gnatcov_rts_c_strings.h"
+#include "gnatcov_rts_c-strings.h"
 
 #ifdef __cplusplus
 extern "C"

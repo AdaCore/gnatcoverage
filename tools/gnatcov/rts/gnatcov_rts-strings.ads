@@ -22,7 +22,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Ada bindings for gnatcov_rts_c_strings.h
+--  Ada bindings for gnatcov_rts_c-strings.h
 
 with Interfaces.C; use Interfaces.C;
 

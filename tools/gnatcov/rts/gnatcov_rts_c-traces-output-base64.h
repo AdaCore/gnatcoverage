@@ -18,7 +18,7 @@
  ****************************************************************************/
 
 #include "gnatcov_rts_c-buffers.h"
-#include "gnatcov_rts_c_strings.h"
+#include "gnatcov_rts_c-strings.h"
 #include <stdint.h>
 
 #ifdef __cplusplus
