@@ -22,4 +22,8 @@ project LCH is
      for Units use ();
    end Coverage;
 
+   package Naming is
+     for Body ("Silent_Last_Chance") use
+       "silent_last_chance-" & Conf.Silent_Lch & ".adb";
+   end Naming;
 end LCH;

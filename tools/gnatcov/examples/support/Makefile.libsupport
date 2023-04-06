@@ -15,9 +15,15 @@ all: $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR) LIBSUPPORT LCH
 # latch the libsupport configuration parameters as a set of variables in a
 # "conf.gpr" project file rather than have them controlled with externals.
 
+# Pick a default kind of silent last chance handler, that users of this
+# Makefile can override if needed, e.g. for VxWorks kinds of configurations
+# which are cross targets with "full" runtimes akin to native profiles.
+SILENT_LCH = $(strip $(if $(TARGET), abort, exit))
+
 conf.gpr: force
 	sed -e 's/%TARGET%/$(TARGET)/g' \
 	    -e 's/%BOARD%/$(BOARD)/g' \
+	    -e 's/%SILENT_LCH%/$(SILENT_LCH)/g' \
 	    < conf-template.gpr > $@
 
 # ----------------------------------------------------------------------------
