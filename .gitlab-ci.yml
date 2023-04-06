@@ -42,7 +42,6 @@ build:
      - mem:16
   stage: build
   script:
-    - . ~/.aws_container_credentials
     - export PATH=/it/e3/bin:$PATH
     - *edge_vars
 
@@ -71,7 +70,6 @@ build_community:
      - mem:16
   stage: test
   script:
-    - . ~/.aws_container_credentials
     - export PATH=/it/e3/bin:$PATH
     - *edge_vars
 
@@ -83,7 +81,6 @@ build_community:
     - anod build --minimal gnatcov -Qno-c $EDGE_QUALIFIER
 
 .common_test_bits: &retrieve_gnatcoverage_extras_and_setup_anod_repo
-    - . ~/.aws_container_credentials
     - export PATH=/it/e3/bin:$PATH
     - *edge_vars
 
