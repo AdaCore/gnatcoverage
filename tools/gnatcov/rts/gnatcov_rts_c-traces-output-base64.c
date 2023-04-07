@@ -2,7 +2,7 @@
  *                                                                          *
  *                   GNATcoverage Instrumentation Runtime                   *
  *                                                                          *
- *                     Copyright (C) 2021-2022, AdaCore                     *
+ *                     Copyright (C) 2021-2023, AdaCore                     *
  *                                                                          *
  * GNATcoverage is free software; you can redistribute it and/or modify it  *
  * under terms of the GNU General Public License as published by the  Free  *
@@ -20,8 +20,6 @@
 #include "gnatcov_rts_c-traces-output-base64.h"
 #include "gnatcov_rts_c-base_io.h"
 #include "gnatcov_rts_c-traces-output.h"
-#include <assert.h>
-#include <string.h>
 
 static const char *base64_alphabet
   = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
