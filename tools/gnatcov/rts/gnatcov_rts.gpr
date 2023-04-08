@@ -65,6 +65,8 @@ library project GNATcov_RTS is
            Excluded_Source_Files
            & ("gnatcov_rts-traces-output-files.adb",
               "gnatcov_rts-traces-output-files.ads",
+              "gnatcov_rts_c-os_interface.c",
+              "gnatcov_rts_c-os_interface.h",
               "gnatcov_rts_c-traces-output-files.c",
               "gnatcov_rts_c-traces-output-files.h");
       when "full" => null;
@@ -90,7 +92,21 @@ library project GNATcov_RTS is
    for Excluded_Source_Files use Excluded_Source_Files;
 
    package Compiler is
-      for Default_Switches ("C") use ("-O2", "-g", "-Wall", "-Wextra");
+      C_Extra_Switches := ();
+      case RTS_Profile is
+         when "embedded" =>
+
+           --  The rts for the embedded profile needs to remain compilable
+           --  in "freestanding" environments, where we might not have a libc
+           --  at hand.
+
+            C_Extra_Switches := ("-ffreestanding");
+         when "full" =>
+            null;
+      end case;
+
+      for Default_Switches ("C") use
+         ("-O2", "-g", "-Wall", "-Wextra") & C_Extra_Switches;
       for Default_Switches ("Ada") use ("-O2", "-g", "-gnatwa");
    end Compiler;
 

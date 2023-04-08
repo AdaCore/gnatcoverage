@@ -3786,7 +3786,7 @@ package body Instrument.C is
 
          Create_File (Info, File, Filename);
 
-         File.Put_Line ("#include ""gnatcov_rts_c_strings.h""");
+         File.Put_Line ("#include ""gnatcov_rts_c-strings.h""");
 
          case Dump_Config.Channel is
             when Binary_File =>
