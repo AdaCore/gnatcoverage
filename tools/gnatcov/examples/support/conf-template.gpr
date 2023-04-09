@@ -1,0 +1,8 @@
+-- Libsupport configuration parameters
+
+abstract project Conf is
+
+   Target := "%TARGET%";
+   Board := "%BOARD%";
+
+end Conf;

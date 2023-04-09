@@ -7,8 +7,5 @@ abstract project Common is
    type Yes_No_Type is ("yes", "no");
    for Languages use ();
 
-   Target := external ("TARGET", "");
-   Board := external ("BOARD", "");
-
 end Common;
 

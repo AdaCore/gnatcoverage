@@ -24,7 +24,7 @@ General organization
 The facilities in this directory include a number of GNAT project files and
 Makefiles:
 
-* `common.gpr`: project file with common definitions for...
+* `common.gpr`: project file with common definitions
 
 * `libsupport.gpr`: project file for both build and use of the support library
   itself and
@@ -32,9 +32,15 @@ Makefiles:
 * `base.gpr`: project file to be extended by each example project file, to
   inherit a number of common attributes.
 
+Configuration parameters are latched in a `conf.gpr` project file at
+build time, allowing use without having to re-specify all the values
+through scenario variables afterwards. `conf.gpr` is generated from a
+`conf-template.gpr` file by substituting patterns with actual values.
+
 The general GPR hierarchy is as follows:
 
                :   common.gpr
+               :   conf.gpr  <-- conf-template.gpr
                :      w  w
                :      |  |
      support/  :      | libsupport.gpr (With common)

@@ -1,4 +1,4 @@
-with "common";
+with "conf";
 with "aunit";
 with "explore";
 
@@ -7,8 +7,8 @@ project Harness is
    for Languages use ("Ada");
    for Main use ("test_explore.adb");
    for Source_Dirs use ("harness/fixture", "harness/tests");
-   for Object_Dir use "obj/" & Common.Target & "/harness";
-   for Exec_Dir use "obj/" & Common.Target;
+   for Object_Dir use "obj/" & Conf.Target & "/harness";
+   for Exec_Dir use "obj/" & Conf.Target;
 
 end Harness;
 

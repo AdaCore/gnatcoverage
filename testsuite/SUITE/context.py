@@ -176,10 +176,8 @@ class Test (object):
 
             # gprconfig base, selecting runtime
             '--config=%s' % os.path.join(ROOT_DIR, BUILDER.SUITE_CGPR)]
-        self.gprvaroptions = ['-XTARGET=%s' % env.target.triplet]
 
-        if self.options.board:
-            self.gprvaroptions.append('-XBOARD=%s' % self.options.board)
+        self.gprvaroptions = []
 
         # Workaround a desynchronization between default build configuration
         # for TMS570 and GNATemulator's settings: see O519-032. We may get rid

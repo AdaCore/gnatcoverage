@@ -1,21 +1,26 @@
-# Simple makefile for building the zfp support library.
+# Simple makefile for building the support library for tests and examples.
 
 include Makefile.common
 
 # Tailored compilation options for libsupport. Allow source
-# coverage analysis by default, useful for testsuite at least:
+# coverage analysis with binary traces by default.
 LIBSUPPORT_CFLAGS=-fdump-scos -fpreserve-control-flow -g
 
-# Whether we want to have visibility on extra source directories for cross
-# configurations. No way to achieve this from the project file by looking just
-# at the value of "Target" in a manner compatible with old versions of
-# gprbuild (typically for our 7.0.2 based runs):
 
-USE_TARGET_SOURCE_DIRS = $(strip $(if $(TARGET), yes, no))
+all: $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR) LIBSUPPORT
 
-LIBSUPPORT_ARCHIVE = $(LIBSUPPORT_DIR)/libsupport.a
+# ----------------------------------------------------------------------------
 
-all: $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR) $(LIBSUPPORT_ARCHIVE)
+# To provide a single spot of control shared between build time and use time,
+# latch the libsupport configuration parameters as a set of variables in a
+# "conf.gpr" project file rather than have them controlled with externals.
+
+conf.gpr: force
+	sed -e 's/%TARGET%/$(TARGET)/g' \
+	    -e 's/%BOARD%/$(BOARD)/g' \
+	    < conf-template.gpr > $@
+
+# ----------------------------------------------------------------------------
 
 # In addition to the library where the constructed library should go, make
 # sure the target specific support source dir exists.  It might legitimately
@@ -25,15 +30,14 @@ all: $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR) $(LIBSUPPORT_ARCHIVE)
 $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR):
 	mkdir -p $@
 
-$(LIBSUPPORT_ARCHIVE): force
-	$(BUILDER) -XLIBSUPPORT_BUILD=yes -p -Plibsupport -f \
-                   -XUSE_TARGET_SOURCE_DIRS=$(USE_TARGET_SOURCE_DIRS) \
+LIBSUPPORT: conf.gpr force
+	$(BUILDER) -XLIBSUPPORT_BUILD=yes -p -Plibsupport.gpr -f \
                    -cargs $(LIBSUPPORT_CFLAGS)
-	$(BUILDER) -XLIBSUPPORT_BUILD=yes -p -Plibsupport -XUNITTEST=yes \
-                   -XUSE_TARGET_SOURCE_DIRS=$(USE_TARGET_SOURCE_DIRS) \
+	$(BUILDER) -XLIBSUPPORT_BUILD=yes -p -Plibsupport.gpr -f \
+                   -XUNITTEST=yes \
                    -cargs $(LIBSUPPORT_CFLAGS)
 
 clean:
 	$(RM) -rf lib obj
 
-.PHONY: force clean
+.PHONY: force clean LIBSUPPORT
