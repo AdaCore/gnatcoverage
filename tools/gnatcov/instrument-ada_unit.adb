@@ -64,6 +64,7 @@ package body Instrument.Ada_Unit is
 
    package GPR renames GNATCOLL.Projects;
    package LAL renames Libadalang.Analysis;
+   package LALCO renames Libadalang.Common;
 
    function Create_Context_Instrument
      (N : Libadalang.Analysis.Ada_Node'Class) return Context_Handle;
@@ -1169,8 +1170,14 @@ package body Instrument.Ada_Unit is
    --  the corresponding error message.
 
    procedure Remove_Warnings_And_Style_Checks_Pragmas
-     (Rewriter : Ada_Source_Rewriter'Class);
+     (Unit : Unit_Rewriting_Handle);
    --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit
+
+   procedure Write_To_File (Unit : Unit_Rewriting_Handle; Filename : String);
+   --  Unparse Unit into the file at Filename (creating it if needed).
+   --
+   --  Note that this calls Remove_Warnings_And_Style_Checks_Pragmas and
+   --  Put_Warnings_And_Style_Checks_Pragmas before unparsing the unit.
 
    ----------------------------
    -- Source level rewriting --
@@ -1212,7 +1219,8 @@ package body Instrument.Ada_Unit is
    Cannot_Instrument_Main_Error : exception;
    --  See Probe_Main
 
-   type Main_Instrumentation_Description is record
+   type Main_Instrumentation_Description (Synthetic : Boolean := False)
+   is record
       Main : Compilation_Unit_Name;
       --  Name of the compilation unit corresponding to the main body
 
@@ -1223,17 +1231,37 @@ package body Instrument.Ada_Unit is
       --  Resolved dump trigger after eventual override depending on the
       --  features available on the runtime.
 
-      Prelude : LAL.Ada_Node_List;
-      --  Prelude for the main compilation unit
+      Prelude : Node_Rewriting_Handle;
+      --  Prelude (list of nodes) for the main compilation unit
 
-      Subp_Body : LAL.Subp_Body;
-      --  Subprogram body in which to insert the code to dump coverage buffers.
+      Main_Decls : Node_Rewriting_Handle;
+      --  List of declarations for the procedure body that implements the main
+
+      Main_Stmts : Node_Rewriting_Handle;
+      --  List of statements for the procedure body that implements the main
+
+      case Synthetic is
+         when False =>
+            Subp_Body : LAL.Subp_Body;
+            --  Subprogram body in which to insert the code to dump coverage
+            --  buffers.
+
+         when True =>
+            Generic_Wrapper_Body_Filename : Unbounded_String;
+            Generic_Wrapper_Body          : Node_Rewriting_Handle;
+            --  See homonym arguments in Expand_Main_Generic_Instantiation
+      end case;
    end record;
    --  Nodes needed to instrument main subprograms so that they can dump
    --  coverage buffers.
+   --
+   --   Synthetic designates whether the main subprogram body comes from
+   --   sources (Synthetic => False) or was created to wrap a generic
+   --   subprogram instantiation (Synthetic => True).
 
    function Probe_Main
      (Dump_Config : Any_Dump_Config;
+      Info        : in out Project_Info;
       Rewriter    : Ada_Source_Rewriter'Class)
       return Main_Instrumentation_Description;
    --  Given a rewriter for the main source, return a description of the main
@@ -1241,6 +1269,65 @@ package body Instrument.Ada_Unit is
    --
    --  Emit a warning and raise a Cannot_Instrument_Main_Error if the main does
    --  not have a structure that is expected for a main.
+
+   procedure Stop_Probe_Main (Unit : Analysis_Unit; Message : String)
+   with No_Return;
+   --  Emit a warning with the given message and raise a
+   --  Cannot_Instrument_Main_Error exception.
+
+   procedure Expand_Main_Generic_Instantiation
+     (Main                          : Generic_Subp_Instantiation;
+      Info                          : in out Project_Info;
+      Generic_Wrapper_Body_Filename : out Unbounded_String;
+      Generic_Wrapper_Body          : out Node_Rewriting_Handle;
+      Prelude                       : out Node_Rewriting_Handle;
+      Main_Decls                    : out Node_Rewriting_Handle;
+      Main_Stmts                    : out Node_Rewriting_Handle);
+   --  Assuming that Main is a generic procedure instantiation acting as a main
+   --  for the project:
+   --
+   --    procedure [Main] is new ...
+   --
+   --  We need a procedure body in order to insert dumps for coverage buffers.
+   --  We also need Main to still be a spec-only unit, so that the GPR clause
+   --  "for Main use ("[main].ads");" stays valid.  To satisfy all these
+   --  constraints, this procedure does the following steps:
+   --
+   --  1. Move the instantiation to a new unit:
+   --
+   --     procedure Xcov_Wrapped_[Main] is new ...
+   --
+   --  2. Create a generic procedure (in which to insert dumps) wrapper for it:
+   --
+   --     [spec]
+   --     generic
+   --     procedure Xcov_Genwrap_[Main];
+   --
+   --     [body]
+   --     with Xcov_Wrapped_[Main];
+   --
+   --     procedure Xcov_Genwrap_[Main] is
+   --     begin
+   --        Xcov_Wrapped_[Main];
+   --     end Xcov_Genwrap_[Main];
+   --
+   --  3. Replace the original main spec with the following instantiation:
+   --
+   --     with Xcov_Genwrap_[Main];
+   --
+   --     procedure [Main] is new Xcov_Genwrap_[Main];
+   --
+   --  All new sources but the body of Xcov_Genwrap_[Main] are written to files
+   --  in Info's output directory. Nodes for the body are put into
+   --  Generic_Wrapper_Body/Main_Decls/Main_Stmts, and the filename where to
+   --  write it is assigned to Generic_Wrapper_Body_Filename.
+
+   function Simple_Dump_Proc_Call
+     (RH          : Rewriting_Handle;
+      Helper_Unit : Ada_Qualified_Name) return Node_Rewriting_Handle;
+   --  Assuming that RH is the rewriting handle for the main to instrument in
+   --  main-end mode and that Helper_Unit is the unit that contains the dump
+   --  procedure, return a call statement node for this dump procedure.
 
    procedure Insert_Simple_Dump_Proc_Calls
      (RH          : Rewriting_Handle;
@@ -6611,36 +6698,13 @@ package body Instrument.Ada_Unit is
 
    function Probe_Main
      (Dump_Config : Any_Dump_Config;
+      Info        : in out Project_Info;
       Rewriter    : Ada_Source_Rewriter'Class)
       return Main_Instrumentation_Description
    is
-      procedure Stop (Message : String) with No_Return;
-      --  Emit a warning with the given message and raise a
-      --  Cannot_Instrument_Main_Error exception.
-
-      ----------
-      -- Stop --
-      ----------
-
-      procedure Stop (Message : String) is
-         Filename : constant String :=
-           Ada.Directories.Simple_Name (To_String (Rewriter.Input_Filename));
-      begin
-         --  TODO??? Ideally, we would like to display the source location in
-         --  Filename that led to abort the instrumentation of this main. This
-         --  is not possible today since we are possibly rewriting a source
-         --  file that was already instrumented, so slocs do not reflect the
-         --  sources that users see.
-
-         Warn ("cannot dump coverage buffers in " & Filename & ": " & Message);
-         raise Cannot_Instrument_Main_Error;
-      end Stop;
-
       U   : Analysis_Unit;
+      CU  : LAL.Compilation_Unit;
       Tmp : LAL.Ada_Node;
-
-      CU        : LAL.Compilation_Unit;
-      Subp_Body : LAL.Subp_Body;
 
       Controlled_Types_Available : Boolean;
       Actual_Dump_Trigger        : Auto_Dump_Trigger;
@@ -6669,21 +6733,14 @@ package body Instrument.Ada_Unit is
 
       Tmp := U.Root;
       if Tmp.Kind /= Ada_Compilation_Unit then
-         Stop ("compilation unit expected");
+         Stop_Probe_Main (U, "compilation unit expected");
       else
          CU := Tmp.As_Compilation_Unit;
       end if;
 
       Tmp := CU.F_Body;
       if Tmp.Kind /= Ada_Library_Item then
-         Stop ("library item expected");
-      end if;
-
-      Tmp := Tmp.As_Library_Item.F_Item.As_Ada_Node;
-      if Tmp.Kind /= Ada_Subp_Body then
-         Stop ("subprogram body expected");
-      else
-         Subp_Body := Tmp.As_Subp_Body;
+         Stop_Probe_Main (U, "library item expected");
       end if;
 
       Controlled_Types_Available :=
@@ -6698,13 +6755,337 @@ package body Instrument.Ada_Unit is
 
       Main.Unit := To_Qualified_Name (CU.P_Syntactic_Fully_Qualified_Name);
 
-      return
-        (Main,
-         Controlled_Types_Available,
-         Actual_Dump_Trigger,
-         CU.F_Prelude,
-         Subp_Body);
+      Tmp := Tmp.As_Library_Item.F_Item.As_Ada_Node;
+      case Tmp.Kind is
+         when Ada_Subp_Body =>
+            declare
+               Subp_Body : constant LAL.Subp_Body := Tmp.As_Subp_Body;
+            begin
+               return
+                 (Synthetic                  => False,
+                  Main                       => Main,
+                  Controlled_Types_Available => Controlled_Types_Available,
+                  Actual_Dump_Trigger        => Actual_Dump_Trigger,
+                  Prelude                    => Handle (CU.F_Prelude),
+                  Main_Decls                 =>
+                    Handle (Subp_Body.F_Decls.F_Decls),
+                  Main_Stmts                 =>
+                    Handle (Subp_Body.F_Stmts.F_Stmts),
+                  Subp_Body                  => Subp_Body);
+            end;
+
+         when Ada_Generic_Subp_Instantiation =>
+            declare
+               Generic_Wrapper_Body_Filename : Unbounded_String;
+               Generic_Wrapper_Body          : Node_Rewriting_Handle;
+               Prelude                       : Node_Rewriting_Handle;
+               Main_Decls                    : Node_Rewriting_Handle;
+               Main_Stmts                    : Node_Rewriting_Handle;
+            begin
+               Expand_Main_Generic_Instantiation
+                 (Tmp.As_Generic_Subp_Instantiation,
+                  Info,
+                  Generic_Wrapper_Body_Filename,
+                  Generic_Wrapper_Body,
+                  Prelude,
+                  Main_Decls,
+                  Main_Stmts);
+               return
+                 (Synthetic                     => True,
+                  Main                          => Main,
+                  Controlled_Types_Available    => Controlled_Types_Available,
+                  Actual_Dump_Trigger           => Actual_Dump_Trigger,
+                  Prelude                       => Prelude,
+                  Main_Decls                    => Main_Decls,
+                  Main_Stmts                    => Main_Stmts,
+                  Generic_Wrapper_Body_Filename =>
+                    Generic_Wrapper_Body_Filename,
+                  Generic_Wrapper_Body          => Generic_Wrapper_Body);
+            end;
+
+         --  Note that a renaming ("procedure X renames ...") cannot be used as
+         --  a main program.
+
+         when others =>
+            Stop_Probe_Main (U, "subprogram body expected");
+      end case;
    end Probe_Main;
+
+   ---------------------
+   -- Stop_Probe_Main --
+   ---------------------
+
+   procedure Stop_Probe_Main (Unit : Analysis_Unit; Message : String) is
+      Filename : constant String :=
+        Ada.Directories.Simple_Name (Unit.Get_Filename);
+   begin
+      --  TODO??? Ideally, we would like to display the source location in
+      --  Filename that led to abort the instrumentation of this main. This
+      --  is not possible today since we are possibly rewriting a source
+      --  file that was already instrumented, so slocs do not reflect the
+      --  sources that users see.
+
+      Warn ("cannot dump coverage buffers in " & Filename & ": " & Message);
+      raise Cannot_Instrument_Main_Error;
+   end Stop_Probe_Main;
+
+   ---------------------------------------
+   -- Expand_Main_Generic_Instantiation --
+   ---------------------------------------
+
+   procedure Expand_Main_Generic_Instantiation
+     (Main                          : Generic_Subp_Instantiation;
+      Info                          : in out Project_Info;
+      Generic_Wrapper_Body_Filename : out Unbounded_String;
+      Generic_Wrapper_Body          : out Node_Rewriting_Handle;
+      Prelude                       : out Node_Rewriting_Handle;
+      Main_Decls                    : out Node_Rewriting_Handle;
+      Main_Stmts                    : out Node_Rewriting_Handle)
+   is
+      Unit : constant Analysis_Unit := Main.Unit;
+      UH   : constant Unit_Rewriting_Handle := Handle (Unit);
+      RH   : constant Rewriting_Handle := Handle (Unit.Context);
+
+      function Wrap_Name
+        (Orig_Name : Defining_Name;
+         Prefix    : String) return Node_Rewriting_Handle;
+      --  Return a node that is a copy of Orig_Name but with an additional
+      --  prefix for the identifier of the designated entity.
+      --
+      --  For instance:
+      --
+      --    Wrap_Name (<Foo>, "Prefix") = <Prefix_Foo>
+      --    Wrap_Name (<Foo.Bar>, "Prefix") = <Foo.Prefix_Bar>
+
+      Output_Dir : constant String := To_String (Info.Output_Dir);
+
+      function Filename
+        (Unit_Name : Node_Rewriting_Handle; Extension : String) return String;
+      --  Return the name of the source file in Output_Dir that contains a unit
+      --  of the given name and with the given extension.
+
+      ---------------
+      -- Wrap_Name --
+      ---------------
+
+      function Wrap_Name
+        (Orig_Name : Defining_Name;
+         Prefix    : String) return Node_Rewriting_Handle
+      is
+         Result : constant Node_Rewriting_Handle :=
+           Clone (Handle (Orig_Name.F_Name));
+
+         --  Get the identifier to rewrite
+
+         Id   : LAL.Name := Orig_Name.F_Name;
+         R_Id : Node_Rewriting_Handle := Result;
+      begin
+         case Id.Kind is
+            when LALCO.Ada_Dotted_Name =>
+               Id := Id.As_Dotted_Name.F_Suffix.As_Name;
+               R_Id := Child (R_Id, Dotted_Name_F_Suffix);
+
+            when LALCO.Ada_Identifier =>
+               null;
+
+            when others =>
+               Stop_Probe_Main
+                 (Unit, "unexpected unit name component: " & Id.Kind'Image);
+         end case;
+
+         --  Rewrite it and return the name
+
+         Set_Text (R_Id, To_Text (Prefix) & Id.Text);
+         return Result;
+      end Wrap_Name;
+
+      --------------
+      -- Filename --
+      --------------
+
+      function Filename
+        (Unit_Name : Node_Rewriting_Handle; Extension : String) return String
+      is
+         Result : Unbounded_String;
+
+         procedure Visit (N : Node_Rewriting_Handle);
+         --  Append to Result N's contribution to the requested filename
+
+         -----------
+         -- Visit --
+         -----------
+
+         procedure Visit (N : Node_Rewriting_Handle) is
+         begin
+            case Kind (N) is
+               when LALCO.Ada_Identifier =>
+                  Append (Result, To_UTF8 (Text (N)));
+
+               when LALCO.Ada_Dotted_Name =>
+                  Visit (Child (N, Dotted_Name_F_Prefix));
+                  Append (Result, '-');
+                  Visit (Child (N, Dotted_Name_F_Suffix));
+
+               when others =>
+
+                  --  Since we abort rewriting in Wrap_Name above for such
+                  --  cases, the following should be unreachable.
+
+                  raise Program_Error with
+                    "invalid unit name component: " & Kind (N)'Image;
+            end case;
+         end Visit;
+
+      --  Start of processing for Filenaem
+
+      begin
+         Visit (Unit_Name);
+         Append (Result, Extension);
+         return Output_Dir
+                / Ada.Characters.Handling.To_Lower (To_String (Result));
+      end Filename;
+
+      Wrapped_Prefix         : constant String := "Xcov_Wrapped_";
+      Generic_Wrapper_Prefix : constant String := "Xcov_Genwrap_";
+      --  Prefixes used to create names for the additional units created while
+      --  expanding this main.
+
+      Generic_Wrapper_Spec_Template : constant Text_Type :=
+        "generic" & Chars.LF
+        & "procedure {};" & Chars.LF;
+      Generic_Wrapper_Body_Template : constant Text_Type :=
+        "with {};" & Chars.LF
+        & Chars.LF
+        & "procedure {} is" & Chars.LF
+        & "begin" & Chars.LF
+        & "   {};" & Chars.LF
+        & "end {};" & Chars.LF;
+      Main_Template            : constant Text_Type :=
+        "with {};" & Chars.LF
+        & Chars.LF
+        & "procedure {} is new {};" & Chars.LF;
+      --  Templates used to produce the synthetic sources created while
+      --  expanding this main.
+
+      --  Step 1: rename the instantiation and move it to a new unit
+
+      Orig_Name : constant Defining_Name := Main.F_Subp_Name;
+
+      Main_Name            : constant Node_Rewriting_Handle :=
+        Clone (Handle (Orig_Name));
+      Wrapped_Name         : constant Node_Rewriting_Handle :=
+        Wrap_Name (Orig_Name, Wrapped_Prefix);
+      Generic_Wrapper_Name : constant Node_Rewriting_Handle :=
+        Wrap_Name (Orig_Name, Generic_Wrapper_Prefix);
+
+      Has_Error : Boolean := False;
+
+   --  Start of processing for Expand_Main_Generic_Instantiation
+
+   begin
+      --  In order for the renaming to be valid, update all references to this
+      --  instantiation in this unit. Emit a warning and skip the renaming if
+      --  for some reason we cannot get the references to update.
+
+      begin
+         for R of Orig_Name.P_Find_All_References (Units => (1 => Unit)) loop
+            case Kind (R) is
+               when Precise =>
+                  Replace (Handle (Ref (R)), Clone (Wrapped_Name));
+
+               when No_Ref | Imprecise =>
+                  null;
+
+               when LALCO.Error =>
+                  Has_Error := True;
+            end case;
+         end loop;
+      exception
+         when Property_Error =>
+            Has_Error := True;
+      end;
+      if Has_Error then
+         Report (Node => Orig_Name,
+                 Msg  => "Could not find all references to this subprogram",
+                 Kind => Low_Warning);
+      end if;
+
+      --  Rename the defining name itself and write the resulting unit in a new
+      --  source file (it will not change after this).
+
+      Replace (Handle (Orig_Name.F_Name), Clone (Wrapped_Name));
+      Write_To_File (UH, Filename (Wrapped_Name, ".ads"));
+
+      --  Step 2: create a generic procedure (in which to insert dumps) wrapper
+      --  for it. Do not write the body to a file right now since main
+      --  instrumentation may modify it.
+
+      Set_Root
+        (UH,
+         Create_From_Template
+           (RH,
+            Generic_Wrapper_Spec_Template,
+            (1 => Generic_Wrapper_Name),
+            Rule => Compilation_Unit_Rule));
+      Write_To_File (UH, Filename (Generic_Wrapper_Name, ".ads"));
+
+      Generic_Wrapper_Body :=
+        Create_From_Template
+          (RH,
+           Generic_Wrapper_Body_Template,
+           (1 => Wrapped_Name,
+            2 => Generic_Wrapper_Name,
+            3 => Wrapped_Name,
+            4 => Generic_Wrapper_Name),
+           Rule => Compilation_Unit_Rule);
+      Generic_Wrapper_Body_Filename :=
+        To_Unbounded_String (Filename (Generic_Wrapper_Name, ".adb"));
+
+      --  Code that is inserted to dump coverage buffers will land in this
+      --  wrapper: set Prelude, Main_Decls and Main_Stmts accordingly.
+
+      Prelude := Child (Generic_Wrapper_Body, Compilation_Unit_F_Prelude);
+      declare
+         Subp_Body : constant Node_Rewriting_Handle :=
+           Child
+             (Generic_Wrapper_Body,
+              (Compilation_Unit_F_Body, Library_Item_F_Item));
+      begin
+         Main_Decls :=
+           Child (Subp_Body, (Subp_Body_F_Decls, Declarative_Part_F_Decls));
+         Main_Stmts :=
+           Child (Subp_Body, (Subp_Body_F_Stmts, Handled_Stmts_F_Stmts));
+      end;
+
+      --  Step 3: replace the original main spec with the following
+      --  instantiation. No need to manually write it to a file: applying the
+      --  current rewriting session will do it.
+
+      Set_Root
+        (UH,
+         Create_From_Template
+           (RH,
+            Main_Template,
+            (1 => Generic_Wrapper_Name,
+             2 => Main_Name,
+             3 => Generic_Wrapper_Name),
+            Rule => Compilation_Unit_Rule));
+   end Expand_Main_Generic_Instantiation;
+
+   ---------------------------
+   -- Simple_Dump_Proc_Call --
+   ---------------------------
+
+   function Simple_Dump_Proc_Call
+     (RH          : Rewriting_Handle;
+      Helper_Unit : Ada_Qualified_Name) return Node_Rewriting_Handle
+   is
+      Dump_Procedure : Ada_Qualified_Name := Helper_Unit;
+   begin
+      Dump_Procedure.Append (Dump_Procedure_Name);
+      return Create_Regular_Node
+        (RH, Ada_Call_Stmt, (1 => To_Nodes (RH, Dump_Procedure)));
+   end Simple_Dump_Proc_Call;
 
    -----------------------------------
    -- Insert_Simple_Dump_Proc_Calls --
@@ -6720,10 +7101,8 @@ package body Instrument.Ada_Unit is
       --  statement list of each top level exception handler, and
       --  right before each return statment that applies to the main.
 
-      Dump_Procedure : Ada_Qualified_Name;
-      --  Name of the procedure to dump coverage buffers
-
-      Call_Stmt : Node_Rewriting_Handle;
+      Call_Stmt : constant Node_Rewriting_Handle :=
+        Simple_Dump_Proc_Call (RH, Helper_Unit);
       --  Call invoking the dump procedure
 
       function Process_Returns
@@ -6760,11 +7139,6 @@ package body Instrument.Ada_Unit is
    --  Start of processing for Insert_Simple_Dump_Proc_Calls
 
    begin
-      Dump_Procedure := Helper_Unit;
-      Dump_Procedure.Append (Dump_Procedure_Name);
-      Call_Stmt := Create_Regular_Node
-        (RH, Ada_Call_Stmt, (1 => To_Nodes (RH, Dump_Procedure)));
-
       --  Add a Dump_Buffer call at the end of the main's handeled statements
 
       Append_Child (Handled_Stmt_List, Call_Stmt);
@@ -6982,62 +7356,8 @@ package body Instrument.Ada_Unit is
 
    procedure Apply (Self : in out Ada_Source_Rewriter'Class) is
    begin
-      --  Automatically insert pragmas to disable style checks and
-      --  warnings in generated code: it is not our goal to make
-      --  instrumentation generate warning-free or well-formatted
-      --  code.
-
-      Remove_Warnings_And_Style_Checks_Pragmas (Self);
-
-      declare
-         use Ada.Strings.Wide_Wide_Unbounded.Aux;
-
-         Unit   : constant Unit_Rewriting_Handle := Handle (Self.Unit);
-         Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
-
-         --  To avoid copying the potentially big string for sources on the
-         --  secondary stack (and reduce the amount of copies anyway), use the
-         --  internal GNAT API to retreive the internal string access and
-         --  process it by chunks.
-
-         Source_Access : Big_Wide_Wide_String_Access;
-         Length        : Natural;
-
-         Chunk_Size : constant := 4096;
-         Position   : Natural;
-
-         Filename : constant String := To_String (Self.Output_Filename);
-         Out_File : Text_Files.File_Type;
-      begin
-         Abort_Rewriting (Self.Handle);
-         Out_File.Create (Filename);
-         Put_Warnings_And_Style_Checks_Pragmas (Out_File);
-
-         Get_Wide_Wide_String (Source, Source_Access, Length);
-         Position := Source_Access.all'First;
-
-         while Position <= Length loop
-            declare
-               Chunk_First : constant Natural := Position;
-               Chunk_Last  : constant Natural := Natural'Min
-                 (Chunk_First + Chunk_Size - 1, Length);
-
-               Chunk         : Wide_Wide_String renames
-                  Source_Access.all (Chunk_First .. Chunk_Last);
-               Encoded_Chunk : constant String :=
-                  Ada.Characters.Conversions.To_String (Chunk);
-            begin
-               Out_File.Put (Encoded_Chunk);
-               Position := Chunk_Last + 1;
-            end;
-         end loop;
-
-         Out_File.Close;
-         if Switches.Pretty_Print then
-            Text_Files.Run_GNATpp (Out_File);
-         end if;
-      end;
-
+      Write_To_File (Handle (Self.Unit), To_String (Self.Output_Filename));
+      Abort_Rewriting (Self.Handle);
       Self.Finalize;
    end Apply;
 
@@ -7058,7 +7378,7 @@ package body Instrument.Ada_Unit is
    ----------------------------------------------
 
    procedure Remove_Warnings_And_Style_Checks_Pragmas
-     (Rewriter : Ada_Source_Rewriter'Class)
+     (Unit : Unit_Rewriting_Handle)
    is
 
       function Should_Remove (Node : Node_Rewriting_Handle) return Boolean;
@@ -7119,8 +7439,67 @@ package body Instrument.Ada_Unit is
    --  Start of processing for Remove_Warnings_And_Style_Checks_Pragmas
 
    begin
-      Process (Handle (Rewriter.Unit.Root));
+      Process (Root (Unit));
    end Remove_Warnings_And_Style_Checks_Pragmas;
+
+   -------------------
+   -- Write_To_File --
+   -------------------
+
+   procedure Write_To_File (Unit : Unit_Rewriting_Handle; Filename : String) is
+   begin
+      --  Automatically insert pragmas to disable style checks and warnings in
+      --  generated code: it is not our goal to make instrumentation generate
+      --  warning-free or well-formatted code.
+
+      Remove_Warnings_And_Style_Checks_Pragmas (Unit);
+
+      declare
+         use Ada.Strings.Wide_Wide_Unbounded.Aux;
+
+         Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
+
+         --  To avoid copying the potentially big string for sources on the
+         --  secondary stack (and reduce the amount of copies anyway), use the
+         --  internal GNAT API to retreive the internal string access and
+         --  process it by chunks.
+
+         Source_Access : Big_Wide_Wide_String_Access;
+         Length        : Natural;
+
+         Chunk_Size : constant := 4096;
+         Position   : Natural;
+
+         Out_File : Text_Files.File_Type;
+      begin
+         Out_File.Create (Filename);
+         Put_Warnings_And_Style_Checks_Pragmas (Out_File);
+
+         Get_Wide_Wide_String (Source, Source_Access, Length);
+         Position := Source_Access.all'First;
+
+         while Position <= Length loop
+            declare
+               Chunk_First : constant Natural := Position;
+               Chunk_Last  : constant Natural := Natural'Min
+                 (Chunk_First + Chunk_Size - 1, Length);
+
+               Chunk         : Wide_Wide_String renames
+                  Source_Access.all (Chunk_First .. Chunk_Last);
+               Encoded_Chunk : constant String :=
+                  Ada.Characters.Conversions.To_String (Chunk);
+            begin
+               Out_File.Put (Encoded_Chunk);
+               Position := Chunk_Last + 1;
+            end;
+         end loop;
+
+         Out_File.Close;
+         if Switches.Pretty_Print then
+            Text_Files.Run_GNATpp (Out_File);
+         end if;
+      end;
+   end Write_To_File;
 
    -------------------------------
    -- Auto_Dump_Buffers_In_Main --
@@ -7151,7 +7530,7 @@ package body Instrument.Ada_Unit is
       --  a warning and do nothing.
 
       begin
-         Desc := Probe_Main (Dump_Config, Rewriter);
+         Desc := Probe_Main (Dump_Config, Info, Rewriter);
       exception
          when Cannot_Instrument_Main_Error =>
             return;
@@ -7169,8 +7548,6 @@ package body Instrument.Ada_Unit is
          Has_Controlled        => Desc.Controlled_Types_Available);
 
       declare
-         Prelude : constant Node_Rewriting_Handle := Handle (Desc.Prelude);
-
          With_Clause : constant Node_Rewriting_Handle :=
            Create_From_Template
              (RH,
@@ -7193,9 +7570,9 @@ package body Instrument.Ada_Unit is
               Rule      => Pragma_Rule);
 
       begin
-         Append_Child (Prelude, With_Clause);
-         Append_Child (Prelude, With_RTS_Clause);
-         Append_Child (Prelude, Runtime_Version_Check_Node);
+         Append_Child (Desc.Prelude, With_Clause);
+         Append_Child (Desc.Prelude, With_RTS_Clause);
+         Append_Child (Desc.Prelude, Runtime_Version_Check_Node);
       end;
 
       --  Depending on the chosen coverage buffers dump trigger, insert the
@@ -7215,8 +7592,6 @@ package body Instrument.Ada_Unit is
 
             Call_Expr : Node_Rewriting_Handle;
             Call_Decl : Node_Rewriting_Handle;
-            Decl_List : constant Node_Rewriting_Handle :=
-              Handle (Desc.Subp_Body.F_Decls.F_Decls);
          begin
             Register_Function := Helper_Unit;
             Register_Function.Append (Register_Dump_Function_Name);
@@ -7227,7 +7602,7 @@ package body Instrument.Ada_Unit is
                "Autodump_Dummy : {} := {};",
                (1 => To_Nodes (RH, Witness_Dummy_Type_Name), 2 => Call_Expr),
                Object_Decl_Rule);
-            Insert_Child (Decl_List, 1, Call_Decl);
+            Insert_Child (Desc.Main_Decls, 1, Call_Decl);
          end;
 
       when Main_End =>
@@ -7250,11 +7625,42 @@ package body Instrument.Ada_Unit is
 
          if Desc.Controlled_Types_Available then
             Insert_Controlled_Dump_Object_Decl
-              (RH, Helper_Unit, Handle (Desc.Subp_Body.F_Decls.F_Decls));
+              (RH, Helper_Unit, Desc.Main_Decls);
+
+         --  Past this, we know that we have to insert a call to the dump
+         --  procedure at points where to dump traces.
+
+         elsif Desc.Synthetic then
+
+            --  The code to instrument is synthetic: we do not have regular
+            --  nodes, and thus we cannot call Insert_Simple_Dump_Proc_Calls.
+            --  Fortunately, in this situation we know there there is only one
+            --  place where we want to dump coverage buffers: at the end of the
+            --  wrapper procedure body.
+
+            Append_Child
+              (Desc.Main_Stmts, Simple_Dump_Proc_Call (RH, Helper_Unit));
+
          else
             Insert_Simple_Dump_Proc_Calls (RH, Helper_Unit, Desc.Subp_Body);
          end if;
       end case;
+
+      --  In case we created synthetic sources, write them down before calling
+      --  Rewriter.Apply since these sources rely on the rewriting session.
+
+      if Desc.Synthetic then
+         declare
+            UH         : constant Unit_Rewriting_Handle :=
+              Handle (Rewriter.Unit);
+            Saved_Root : constant Node_Rewriting_Handle := Root (UH);
+         begin
+            Set_Root (UH, Desc.Generic_Wrapper_Body);
+            Write_To_File (UH, To_String (Desc.Generic_Wrapper_Body_Filename));
+            Set_Root (UH, Saved_Root);
+         end;
+      end if;
+
       Rewriter.Apply;
    end Auto_Dump_Buffers_In_Main;
 
