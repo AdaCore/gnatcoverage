@@ -6883,7 +6883,7 @@ package body Instrument.Ada_Unit is
          case Id.Kind is
             when LALCO.Ada_Dotted_Name =>
                Id := Id.As_Dotted_Name.F_Suffix.As_Name;
-               R_Id := Child (R_Id, Dotted_Name_F_Suffix);
+               R_Id := Child (R_Id, Member_Refs.Dotted_Name_F_Suffix);
 
             when LALCO.Ada_Identifier =>
                null;
@@ -6922,9 +6922,9 @@ package body Instrument.Ada_Unit is
                   Append (Result, To_UTF8 (Text (N)));
 
                when LALCO.Ada_Dotted_Name =>
-                  Visit (Child (N, Dotted_Name_F_Prefix));
+                  Visit (Child (N, Member_Refs.Dotted_Name_F_Prefix));
                   Append (Result, '-');
-                  Visit (Child (N, Dotted_Name_F_Suffix));
+                  Visit (Child (N, Member_Refs.Dotted_Name_F_Suffix));
 
                when others =>
 
@@ -7044,17 +7044,25 @@ package body Instrument.Ada_Unit is
       --  Code that is inserted to dump coverage buffers will land in this
       --  wrapper: set Prelude, Main_Decls and Main_Stmts accordingly.
 
-      Prelude := Child (Generic_Wrapper_Body, Compilation_Unit_F_Prelude);
+      Prelude :=
+        Child (Generic_Wrapper_Body, Member_Refs.Compilation_Unit_F_Prelude);
       declare
          Subp_Body : constant Node_Rewriting_Handle :=
            Child
              (Generic_Wrapper_Body,
-              (Compilation_Unit_F_Body, Library_Item_F_Item));
+              (Member_Refs.Compilation_Unit_F_Body,
+               Member_Refs.Library_Item_F_Item));
       begin
          Main_Decls :=
-           Child (Subp_Body, (Subp_Body_F_Decls, Declarative_Part_F_Decls));
+           Child
+             (Subp_Body,
+              (Member_Refs.Subp_Body_F_Decls,
+               Member_Refs.Declarative_Part_F_Decls));
          Main_Stmts :=
-           Child (Subp_Body, (Subp_Body_F_Stmts, Handled_Stmts_F_Stmts));
+           Child
+             (Subp_Body,
+              (Member_Refs.Subp_Body_F_Stmts,
+               Member_Refs.Handled_Stmts_F_Stmts));
       end;
 
       --  Step 3: replace the original main spec with the following
