@@ -1,0 +1,11 @@
+-- Libsupport configuration parameters
+
+abstract project Conf is
+
+   Target := "%TARGET%";
+   Board := "%BOARD%";
+
+   Silent_LCH := "%SILENT_LCH%";
+   -- Filename suffix of the silent_last_chance package body to use.
+
+end Conf;

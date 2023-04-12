@@ -1,7 +1,7 @@
 #include "identity.h"
 
 int
-identity (int n)
+id (int n)
 {
   return static_identity (n);
 }

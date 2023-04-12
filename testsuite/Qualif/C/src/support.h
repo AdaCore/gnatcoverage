@@ -8,7 +8,4 @@
 extern void
 assert (char cond);
 
-extern int
-identity (char value);
-
 #endif

@@ -2,7 +2,7 @@
 -- == Base GPR file to be extended by example GPRs ==
 -- ==================================================
 
-with "common", "libsupport";
+with "common.gpr", "libsupport.gpr";
 
 abstract project Base is
 

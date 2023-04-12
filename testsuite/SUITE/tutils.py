@@ -27,7 +27,8 @@ from SUITE.context import ROOT_DIR, thistest
 
 # Then mind our own business
 
-from SUITE.cutils import FatalError, contents_of, text_to_file, to_list
+from SUITE.cutils import (FatalError, contents_of, text_to_file, to_list,
+                          unhandled_exception_in)
 
 
 # Precompute some values we might be using repeatedly
@@ -41,6 +42,53 @@ VALGRIND = 'valgrind' + env.host.os.exeext
 
 MEMCHECK_LOG = 'memcheck.log'
 CALLGRIND_LOG = 'callgrind-{}.log'
+
+# ----------------------------------------------------------------------------
+#                 Notes on program and command execution paths
+#
+# Our tests execute lots of commands to instrument and build programs, to run
+# the programs themselves, to produce reports from coverage traces.
+#
+# For robustness, we strive to minimize the paths controlling such executions
+# within the testsuite. This lets us place important checks at critical spots
+# and retain confidence in what we are testing as the testsuite grows.
+#
+# Of particular interest are the paths used to execute test programs as the
+# notion of exit status may vary across execution environments and extra
+# checks on the program outputs are sometimes needed to detect some kinds of
+# failures.
+#
+# Here's a sketch of how various functions/methods cooperate for src/bin
+# trace modes and cross/native configurations. _Please_ keep the general
+# issue in mind when considering changes in this area.
+#
+#         [test.py(bin)]     [test.py(bin/src)]
+#              |             build_and_run
+#              v               |  |
+#              o-------(bin)---o  o----(src)-------o
+#              |                                   |
+#              |                                   |
+#              |             [driver.py(bin/src)]  |
+#              |             mode_execute          |
+#              |               |  |                |
+#              |  o----(bin)---o  o---(src)----o   |
+#              |  |                            |   |
+#              v  v                            |   |
+#              xrun                            |   |
+#               |                              |   |
+#               v                              |   |
+#              xcov                            v   v
+#                |                        run_cov_program
+#                |                             |
+#                | gnatcov run pgm             | pgm (native)
+#                | (now cross only)            | <target>-gnatemu pgm (cross)
+#                |                             |
+#                o-------------o  o------------o
+#                              |  |
+#                              v  v
+#                             cmdrun
+#
+# ----------------------------------------------------------------------------
 
 run_processes = []
 """
@@ -281,7 +329,7 @@ def gpr_emulator_package():
 
 
 def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
-           main_cargs=None, langs=None, deps=(), scenario_extra="",
+           main_cargs=None, langs=None, deps=None, scenario_extra="",
            compiler_extra="", extra=""):
     """
     Generate a simple PRJID.gpr project file to build executables for each main
@@ -293,7 +341,6 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     EXTRA, if any, at the end of the project file contents. Return the gpr file
     name.
     """
-    deps = '\n'.join('with "%s";' % dep for dep in deps)
 
     mains = to_list(mains)
     srcdirs = to_list(srcdirs)
@@ -326,11 +373,30 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     srcdirs = ', '.join('"%s"' % d for d in srcdirs_list)
     languages = ', '.join('"%s"' % lang for lang in langs)
 
-    # The base project file we need to extend, and the way to refer to it
-    # from the project contents. This provides a default last chance handler
-    # on which we rely to detect termination on exception occurrence.
-    basegpr = (("%s/support/base" % ROOT_DIR)
-               if RUNTIME_INFO.need_libsupport else None)
+    # In addition to the provided dependencies, figure out if this project
+    # should extend or with some support or helper facilities. These are
+    # designed with projects for test *programs* in mind, not for libraries,
+    # and would actually be plain incompatible with shared Library projects.
+    for_library = "Library" in extra
+
+    # The base project file we need to extend, which drags libsupport,
+    # and the way to refer to it from the project contents.
+    basegpr = (
+        "{}/support/base.gpr".format(ROOT_DIR) if not for_library else None)
+
+    # For projects with an Ada main, provide visibility on the alternative
+    # last chance handlers. Restricting this to Ada mains ensures that the
+    # dedicated object file for a given handler only gets included in the
+    # closure if the program requests the corresponding unit explicitly via
+    # a "with" clause, e.g. "with Silent_Last_Chance;".
+    #
+    # Account for callers that expect the "deps" argument they provide to
+    # remain unmodified, or which provide a tuple on input (unmutable).
+    deps = list(deps) if deps else []
+    if not for_library and ".adb" in gprmains:
+        deps.append("{}/support/lch.gpr".format(ROOT_DIR))
+
+    deps = '\n'.join('with "%s";' % dep for dep in deps)
 
     # If we have specific flags for the mains, append them. This is
     # typically something like:
@@ -555,13 +621,21 @@ def xcov_suite_args(covcmd, covargs,
     return result
 
 
-def cmdrun(cmd, inp=None, out=None, err=None, env=None, register_failure=True):
+def cmdrun(cmd, for_pgm, inp=None, out=None, err=None, env=None,
+           register_failure=True):
     """
     Execute the command+args list in CMD, redirecting its input, output and
     error streams to INP, OUT and ERR when not None, respectively. If ENV is
-    not None, pass it as the subprocess environment. Stop with a FatalError if
-    the execution status is not zero and REGISTER_FAILURE is True. Return the
-    process descriptor otherwise.
+    not None, pass it as the subprocess environment.
+
+    FOR_PGM tells if this execution actually runs a user/test program.
+
+    Stop with a FatalError if the execution status is not zero and
+    REGISTER_FAILURE is True. If FOR_PGM is also True (in addition to
+    REGISTER_FAILURE) also check the program's output for an occurrence
+    of unhandled exception in cross configurations.
+
+    In absence of fatal error, return the process descriptor.
     """
 
     # Setup a dictionary of Run input/output/error arguments for which a
@@ -576,10 +650,25 @@ def cmdrun(cmd, inp=None, out=None, err=None, env=None, register_failure=True):
 
     p = run_and_log(cmd, timeout=thistest.options.timeout, **kwargs)
 
-    thistest.stop_if(
-        register_failure and p.status != 0,
-        FatalError('"%s"' % ' '.join(cmd) + ' exit in error',
-                   outfile=out, outstr=p.out))
+    # Check for FataError conditions. Minimize the situations where we look
+    # into the program's output as this is a central spot.
+
+    if register_failure and p.status != 0:
+        output = contents_of(out) if out else p.out
+        thistest.stop(
+            FatalError(
+                '"%s"' % ' '.join(cmd) + ' exit in error',
+                outfile=out, outstr=output)
+        )
+
+    if register_failure and for_pgm and thistest.options.target:
+        output = contents_of(out) if out else p.out
+        thistest.stop_if(
+            unhandled_exception_in(output),
+            FatalError(
+                '"%s"' % ' '.join(cmd) + ' raised an unhandled exception',
+                outfile=out, outstr=output)
+        )
 
     return p
 
@@ -635,7 +724,8 @@ def xcov(args, out=None, err=None, inp=None, env=None, register_failure=True,
     # projects. They are pointless wrt coverage run or analysis activities
     # so we don't include them here.
     p = cmdrun(cmd=covpgm + covargs, inp=inp, out=out, err=err, env=env,
-               register_failure=register_failure)
+               register_failure=register_failure,
+               for_pgm=(covcmd == "run"))
 
     if thistest.options.enable_valgrind == 'memcheck':
         memcheck_log = contents_of(MEMCHECK_LOG)
@@ -725,14 +815,16 @@ def run_cov_program(executable, out=None, env=None, exec_args=None,
 
     args.append(executable)
     args.extend(exec_args)
-    return cmdrun(args, out=out, inp=inp, env=env, register_failure=register_failure)
+    return cmdrun(args, out=out, inp=inp, env=env,
+                  register_failure=register_failure,
+                  for_pgm=True)
 
 
 def do(command):
     """
     Execute COMMAND. Abort and dump output on failure. Return output otherwise.
     """
-    p = cmdrun(cmd=to_list(command), register_failure=True)
+    p = cmdrun(cmd=to_list(command), register_failure=True, for_pgm=False)
     return p.out
 
 

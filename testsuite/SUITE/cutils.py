@@ -15,6 +15,22 @@ from e3.fs import mkdir
 from e3.os.fs import cd, which
 from e3.os.process import Run
 
+def unhandled_exception_in(log):
+    """
+    Whether the provided execution log contains an indication
+    of a unhandled exception occurrence.
+    """
+
+    # Account for patterns emitted by either a regular runtime or
+    # our custom last_chance_handlers.
+    return re.search(
+        pattern=(
+            r"(!!! EXCEPTION RAISED !!!"
+            r"|"
+            r"raised [A-Z_]+ : [-._a-zA-Z]+:[0-9]+ \w+)"
+        ),
+        string=log
+    )
 
 def strip_prefix(prefix, string):
     """

@@ -1,7 +1,7 @@
-with "common.gpr";
+with "conf.gpr";
 
 project Aunit_variant extends "base" is
    for Source_Dirs use ("src");
-   for Object_Dir use "obj/" & Common.Target;
+   for Object_Dir use "obj/" & Conf.Target;
 end Aunit_variant;
 

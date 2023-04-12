@@ -5,7 +5,7 @@ from SUITE.cutils import Wdir, list_to_tmp
 
 
 # Mixing units and lists to exclude
-base_out = ["support", "test_or_ft", "test_and_tt", "test_and_tf"]
+base_out = ["test_or_ft", "test_and_tt", "test_and_tf"]
 
 wd = Wdir()
 

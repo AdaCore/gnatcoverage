@@ -35,7 +35,7 @@ from SCOV.instr import (add_last_chance_handler, default_dump_channel,
 from SUITE.context import thistest
 from SUITE.control import language_info, runtime_info
 from SUITE.cutils import ext, to_list, list_to_file, match, no_ext
-from SUITE.cutils import contents_of, lines_of
+from SUITE.cutils import contents_of, lines_of, unhandled_exception_in
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
 from SUITE.tutils import gprbuild_cargs_with
@@ -730,18 +730,19 @@ class SCOV_helper:
 
     def run_test(self, main):
         """Execute the MAIN program to produce an execution trace, and
-        trigger a failure if it raises an unhandled exception."""
+        always trigger a failure if it raises an unhandled exception."""
 
         out_file = self.mode_execute(main=main)
 
-        thistest.fail_if(
-            match(
-                r"(!!! EXCEPTION RAISED !!!"
-                r"|raised [A-Z_]+ : [-._a-zA-Z]+:[0-9]+ \w+)",
-                out_file
-            ),
-            "exception raised while running '%s'." % main
-        )
+        # The exception check is performed by the lower execution
+        # layers if we don't expect a failure from this test (out of
+        # our register_failure requests).
+
+        if self.testcase.expect_failures:
+            thistest.fail_if(
+                unhandled_exception_in(contents_of(out_file)),
+                "exception raised while running '%s'." % main
+            )
 
     def gen_one_xcov_report(self, inputs, format, options=""):
         """Helper for gen_xcov_reports, to produce one specific report for a
