@@ -4336,14 +4336,18 @@ package body Instrument.C is
 
    begin
 
-      --  Pass the source directories of the project file as -I options
+      --  Pass the source directories of the project file as -I options. Note
+      --  that this will duplicate with the project tree traversal below, but
+      --  we need this project source directories to be picked first. We thus
+      --  make sure to add them first to the PP_Search_Path list.
 
       Register_Source_Dirs (Info.Project);
 
       --  Pass the source directories of included projects as -I options
 
       Project.Iterate_Projects
-        (Info.Project, Register_Source_Dirs'Access, True);
+        (Info.Project, Register_Source_Dirs'Access,
+         Recursive => True, Include_Extended => True);
 
       --  Now get actual compiler switches from the project file for Filename.
       --  First try to get the switches specifically for Filename, then if
