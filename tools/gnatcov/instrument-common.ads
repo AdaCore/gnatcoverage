@@ -58,22 +58,14 @@ with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
-with GNAT.Regexp;
-
-with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
 with ALI_Files;             use ALI_Files;
 with Files_Table;           use Files_Table;
 with GNATcov_RTS;
-with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
-with Instrument.Base_Types; use Instrument.Base_Types;
 with Namet;                 use Namet;
-with SC_Obligations;        use SC_Obligations;
 with Slocs;                 use Slocs;
-with Switches;              use Switches;
 with Text_Files;
-with Types;                 use Types;
 
 package Instrument.Common is
 
@@ -523,17 +515,14 @@ package Instrument.Common is
    function Skip_Source_File
      (Self        : Language_Instrumenter;
       Source_File : GNATCOLL.Projects.File_Info) return Boolean
-   is (False);
-   --  Whether the instrumenter skips the given source file.
-   --
-   --  There is currently only one case where this is needed: the C
-   --  instrumenter must skip header files, as it instruments only bodies (.c
-   --  files).
+   is (True);
+   --  Whether the instrumenter skips the given source file. The default
+   --  (undefined) instrumenter skips every source file.
 
    procedure Instrument_Unit
      (Self        : in out Language_Instrumenter;
       CU_Name     : Compilation_Unit_Name;
-      Unit_Info   : in out Instrumented_Unit_Info) is abstract;
+      Unit_Info   : in out Instrumented_Unit_Info) is null;
    --  Instrument a single source file for the language that Self supports.
    --
    --  CU_Name must be the name of the compilation unit for this source file,
@@ -545,7 +534,7 @@ package Instrument.Common is
       Filename    : String;
       Instr_Units : CU_Name_Vectors.Vector;
       Dump_Config : Any_Dump_Config;
-      Info        : in out Project_Info) is abstract;
+      Info        : in out Project_Info) is null;
    --  Try to instrument the Filename source file (whose language is assumed
    --  to be Self's) to insert a call to dump the list of coverage buffers for
    --  all Instr_Units, according to the Dump_Config options. Do nothing if not
@@ -557,7 +546,7 @@ package Instrument.Common is
    procedure Emit_Buffers_List_Unit
      (Self              : Language_Instrumenter;
       Root_Project_Info : in out Project_Info;
-      Instr_Units       : CU_Name_Vectors.Vector) is abstract;
+      Instr_Units       : CU_Name_Vectors.Vector) is null;
    --  The variable holding the list of coverage buffers is exported to a
    --  unique C symbol whose name is defined by the Unit_Buffers_Array_Name
    --  function. This procedure should thus be called only once, for one of

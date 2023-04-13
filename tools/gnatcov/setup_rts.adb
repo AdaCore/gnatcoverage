@@ -41,7 +41,6 @@ with Outputs;       use Outputs;
 with Paths;         use Paths;
 with Subprocesses;  use Subprocesses;
 with Support_Files;
-with Switches;      use Switches;
 with Temp_Dirs;     use Temp_Dirs;
 with Text_Files;
 

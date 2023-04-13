@@ -18,42 +18,406 @@
 
 --  Source instrumentation
 
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Containers;          use Ada.Containers;
 with Ada.Containers.Indefinite_Ordered_Maps;
-with Ada.Containers.Ordered_Maps;
-with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with Ada.Text_IO;           use Ada.Text_IO;
+with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
+with Ada.Text_IO;             use Ada.Text_IO;
+with Ada.Strings.Unbounded.Equal_Case_Insensitive;
+with Ada.Strings.Unbounded.Less_Case_Insensitive;
 with Ada.Unchecked_Deallocation;
 
+with Interfaces; use Interfaces;
 with GNAT.OS_Lib;
 
-with GNATCOLL.Projects; use GNATCOLL.Projects;
-with GNATCOLL.JSON;     use GNATCOLL.JSON;
-with GNATCOLL.VFS;      use GNATCOLL.VFS;
-
-with Libadalang.Analysis;
+with GNATCOLL.JSON; use GNATCOLL.JSON;
+with GNATCOLL.VFS;  use GNATCOLL.VFS;
 
 with Checkpoints;
 with Coverage;
 with Files_Table;
-with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
+with Hex_Images;        use Hex_Images;
 with Instrument.Ada_Unit;
-with Instrument.Ada_Unit_Provider;
-with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Clean_Objdirs;
 with Instrument.C;
-with Instrument.Common;     use Instrument.Common;
-with JSON;                  use JSON;
+with Instrument.Common; use Instrument.Common;
+with JSON;              use JSON;
 with Outputs;
-with Paths;                 use Paths;
-with Project;               use Project;
-with SC_Obligations;
-with Switches;              use Switches;
+with Paths;             use Paths;
+with Project;
 
 package body Instrument is
+
+   -------------------
+   -- Language_Kind --
+   -------------------
+
+   function Language_Kind (Language : Some_Language) return Any_Language_Kind
+   is
+   begin
+      return (case Language is
+              when Ada_Language => Unit_Based_Language,
+              when C_Language
+                 | CPP_Language => File_Based_Language);
+   end Language_Kind;
+
+   ------------
+   -- To_Ada --
+   ------------
+
+   function To_Ada (Name : Ada_Qualified_Name) return String is
+      Result : Unbounded_String;
+   begin
+      for Id of Name loop
+         if Length (Result) > 0 then
+            Append (Result, ".");
+         end if;
+         Append (Result, To_String (Id));
+      end loop;
+
+      return +Result;
+   end To_Ada;
+
+   ---------
+   -- "<" --
+   ---------
+
+   function "<" (Left, Right : Compilation_Unit_Name) return Boolean is
+   begin
+      if Left.Language_Kind = Right.Language_Kind then
+         case Left.Language_Kind is
+            when Unit_Based_Language =>
+               if Left.Part = Right.Part then
+                  if Left.Unit.Length = Right.Unit.Length then
+                     for I in 1 .. Integer (Left.Unit.Length) loop
+                        declare
+                           Left_Id  : constant Unbounded_String :=
+                             Unbounded_String (Left.Unit.Element (I));
+                           Right_Id : constant Unbounded_String :=
+                             Unbounded_String (Right.Unit.Element (I));
+                        begin
+                           if not Equal_Case_Insensitive (Left_Id, Right_Id)
+                           then
+                              return Less_Case_Insensitive (Left_Id, Right_Id);
+                           end if;
+                        end;
+                     end loop;
+
+                     --  If we get there, they are equal
+
+                     return False;
+                  else
+                     return Left.Unit.Length < Right.Unit.Length;
+                  end if;
+               else
+                  return Left.Part < Right.Part;
+               end if;
+            when File_Based_Language =>
+               if Equal_Case_Insensitive
+                 (Left.Project_Name, Right.Project_Name)
+               then
+                  return Left.Filename < Right.Filename;
+               else
+                  return Less_Case_Insensitive
+                    (Left.Project_Name, Right.Project_Name);
+               end if;
+         end case;
+      else
+         return Left.Language_Kind < Right.Language_Kind;
+      end if;
+   end "<";
+
+   ---------
+   -- "=" --
+   ---------
+
+   function "=" (Left, Right : Compilation_Unit_Name) return Boolean
+   is
+      use Ada_Identifier_Vectors;
+   begin
+      if Left.Language_Kind = Right.Language_Kind then
+         case Left.Language_Kind is
+            when Unit_Based_Language =>
+               if Left.Part = Right.Part
+                  and then Left.Unit.Length = Right.Unit.Length
+               then
+                  for I in 1 .. Integer (Left.Unit.Length) loop
+                     if not Equal_Case_Insensitive
+                       (Unbounded_String (Left.Unit.Element (I)),
+                        Unbounded_String (Right.Unit.Element (I)))
+                     then
+                        return False;
+                     end if;
+                  end loop;
+
+                  --  If we get there, they are equal
+
+                  return True;
+               end if;
+               return False;
+            when File_Based_Language =>
+               return Left.Filename = Right.Filename
+                 and then Equal_Case_Insensitive
+                   (Left.Project_Name, Right.Project_Name);
+         end case;
+      else
+         return False;
+      end if;
+   end "=";
+
+   -------------------------
+   -- Qualified_Name_Slug --
+   -------------------------
+
+   function Qualified_Name_Slug (Name : Ada_Qualified_Name) return String
+   is
+      First  : Boolean := True;
+      Result : Ada_Identifier;
+   begin
+      --  Create a unique slug from the qualified name: replace occurences of
+      --  'z' with 'zz' and insert '_z_' between identifiers.
+
+      for Id of Name loop
+         if First then
+            First := False;
+         else
+            Append (Result, "_z_");
+         end if;
+         for I in 1 .. Length (Id) loop
+            declare
+               Char : constant Character := Element (Id, I);
+            begin
+               if Char in 'Z' | 'z' then
+                  Append (Result, "zz");
+               else
+                  Append (Result, Char);
+               end if;
+            end;
+         end loop;
+      end loop;
+      return To_String (Result);
+   end Qualified_Name_Slug;
+
+   ----------------------------
+   -- Instrumented_Unit_Slug --
+   ----------------------------
+
+   function Instrumented_Unit_Slug
+     (Instrumented_Unit : Compilation_Unit_Name) return String
+   is
+   begin
+      case Instrumented_Unit.Language_Kind is
+         when Unit_Based_Language =>
+            declare
+               Result : Ada_Identifier;
+            begin
+               --  Add a single letter so that the spec and body of the same
+               --  unit don't conflict.
+
+               Append (Result, Part_Tags (Instrumented_Unit.Part) & '_');
+
+               --  Append a unique suffix corresponding to the qualified name
+               --  of the unit to instrument.
+
+               Append (Result, Qualified_Name_Slug (Instrumented_Unit.Unit));
+               return To_String (Result);
+            end;
+
+         when File_Based_Language =>
+            declare
+               Result : Ada_Identifier;
+            begin
+               --  For a compilation unit in a file-based language, relying on
+               --  the filename only is not enough, as there can be multiple
+               --  sources with the same name belonging to different projects
+               --  in a project tree. To avoid name clashes, prepend the name
+               --  of the owning project to the computed slug.
+
+               Append
+                 (Result,
+                  Qualified_Name_Slug
+                    (To_Qualified_Name (+Instrumented_Unit.Project_Name)));
+
+               --  Add an unambiguous separator between the project name and
+               --  the rest of the slug.
+
+               Append (Result, "_z_z");
+
+               --  File names can contain characters that cannot appear in
+               --  identifiers. Furthermore, unlike for the identifier to
+               --  return, file names may be case sensitive. In order to
+               --  produce valid identifiers, encode everything that isn't a
+               --  lower case letter or a digit.
+
+               for C of "+" (Instrumented_Unit.Filename) loop
+                  if C in 'a' .. 'z' | '0' .. '9' then
+                     Append (Result, C);
+                  else
+                     Append
+                       (Result,
+                        "_" & Hex_Image (Unsigned_8'(Character'Pos (C))));
+                  end if;
+               end loop;
+
+               return To_String (Result);
+            end;
+      end case;
+   end Instrumented_Unit_Slug;
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (CU_Name : Compilation_Unit_Name) return String is
+   begin
+      case CU_Name.Language_Kind is
+         when Unit_Based_Language =>
+            return To_Ada (CU_Name.Unit)
+              & " "
+              & (case CU_Name.Part is
+                    when Unit_Spec     => "spec",
+                    when Unit_Body     => "body",
+                    when Unit_Separate => "subunit");
+         when File_Based_Language =>
+            return +CU_Name.Filename;
+      end case;
+   end Image;
+
+   -----------------------
+   -- To_Qualified_Name --
+   -----------------------
+
+   function To_Qualified_Name (Name : String) return Ada_Qualified_Name is
+      First : Positive := Name'First;
+      Unit  : Ada_Qualified_Name;
+   begin
+      --  Split Ada qualified name into its components
+
+      for J in Name'First .. Name'Last + 1 loop
+         if J = Name'Last + 1 or else Name (J) = '.' then
+            Unit.Append (To_Unbounded_String (Name (First .. J - 1)));
+            First := J + 1;
+         end if;
+      end loop;
+      return Unit;
+   end To_Qualified_Name;
+
+   ------------------
+   -- Canonicalize --
+   ------------------
+
+   function Canonicalize (Name : Ada_Qualified_Name) return Ada_Qualified_Name
+   is
+   begin
+      return Result : Ada_Qualified_Name := Name do
+         for N of Result loop
+            N := To_Unbounded_String (To_Lower (To_String (N)));
+         end loop;
+      end return;
+   end Canonicalize;
+
+   --------------------
+   -- To_Symbol_Name --
+   --------------------
+
+   function To_Symbol_Name (Name : Ada_Qualified_Name) return String is
+      Result : Unbounded_String;
+   begin
+      for Id of Name loop
+         if Length (Result) > 0 then
+            Append (Result, "_");
+         end if;
+         Append (Result, To_Lower (To_String (Id)));
+      end loop;
+
+      return +Result;
+   end To_Symbol_Name;
+
+   ----------------------
+   -- CU_Name_For_Unit --
+   ----------------------
+
+   function CU_Name_For_Unit
+     (Unit : Ada_Qualified_Name;
+      Part : Unit_Parts) return Compilation_Unit_Name
+   is
+   begin
+      return (Unit_Based_Language, Unit, Part);
+   end CU_Name_For_Unit;
+
+   -----------------------------
+   -- CU_Name_For_File --
+   -----------------------------
+
+   function CU_Name_For_File
+     (Filename     : Unbounded_String;
+      Project_Name : Unbounded_String) return Compilation_Unit_Name
+   is
+   begin
+      return (File_Based_Language, Filename, Project_Name);
+   end CU_Name_For_File;
+
+   ------------------------------
+   -- To_Compilation_Unit_Name --
+   ------------------------------
+
+   function To_Compilation_Unit_Name
+     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name
+   is
+   begin
+      case Language_Kind (To_Language (Source_File.Language)) is
+         when Unit_Based_Language =>
+            return CU_Name_For_Unit
+              (Unit => To_Qualified_Name (Source_File.Unit_Name),
+               Part => Source_File.Unit_Part);
+         when File_Based_Language =>
+            return CU_Name_For_File
+              (Filename     => +GNATCOLL.VFS."+" (Source_File.File.Base_Name),
+               Project_Name => +Source_File.Project.Name);
+      end case;
+   end To_Compilation_Unit_Name;
+
+   -----------------
+   -- To_Filename --
+   -----------------
+
+   function To_Filename
+     (Project  : Project_Type;
+      CU_Name  : Compilation_Unit_Name;
+      Language : Any_Language) return String is
+   begin
+      case CU_Name.Language_Kind is
+         when Unit_Based_Language =>
+            return +Project.File_From_Unit
+              (Unit_Name       => To_Ada (CU_Name.Unit),
+               Part            => CU_Name.Part,
+               Language        => Image (Language),
+               File_Must_Exist => False);
+         when File_Based_Language =>
+            return +CU_Name.Filename;
+      end case;
+   end To_Filename;
+
+   ----------------------------
+   -- Find_Instrumented_Unit --
+   ----------------------------
+
+   function Find_Instrumented_Unit
+     (CU_Name : Compilation_Unit_Name) return CU_Id
+   is
+      use Instrumented_Unit_To_CU_Maps;
+
+      Position : constant Cursor := Instrumented_Unit_CUs.Find (CU_Name);
+   begin
+      if Has_Element (Position) then
+         return Element (Position);
+      else
+         return No_CU_Id;
+      end if;
+   end Find_Instrumented_Unit;
 
    package GPR renames GNATCOLL.Projects;
 
@@ -130,60 +494,6 @@ package body Instrument is
    procedure Prepare_Output_Dirs (IC : Inst_Context);
    --  Make sure we have the expected tree of directories for the
    --  instrumentation output.
-
-   -----------
-   -- Image --
-   -----------
-
-   function Image (Dump_Trigger : Any_Dump_Trigger) return String is
-   begin
-      return (case Dump_Trigger is
-              when Manual                     => "manual",
-              when At_Exit                    => "atexit",
-              when Ravenscar_Task_Termination => "ravenscar-task-termination",
-              when Main_End                   => "main-end");
-   end Image;
-
-   function Image (Dump_Channel : Any_Dump_Channel) return String is
-   begin
-      return (case Dump_Channel is
-              when Binary_File            => "bin-file",
-              when Base64_Standard_Output => "base64-stdout");
-   end Image;
-
-   -----------
-   -- Value --
-   -----------
-
-   function Value (Dump_Trigger : String) return Any_Dump_Trigger is
-   begin
-      if Dump_Trigger = "manual" then
-         return Manual;
-      elsif Dump_Trigger = "atexit" then
-         return At_Exit;
-      elsif Dump_Trigger = "ravenscar-task-termination" then
-         return Ravenscar_Task_Termination;
-      elsif Dump_Trigger = "main-end" then
-         return Main_End;
-      else
-         return
-           (raise Constraint_Error
-            with "invalid dump trigger: " & Dump_Trigger);
-      end if;
-   end Value;
-
-   function Value (Dump_Channel : String) return Any_Dump_Channel is
-   begin
-      if Dump_Channel = "bin-file" then
-         return Binary_File;
-      elsif Dump_Channel = "base64-stdout" then
-         return Base64_Standard_Output;
-      else
-         return
-           (raise Constraint_Error
-            with "invalid dump channel: " & Dump_Channel);
-      end if;
-   end Value;
 
    -------------------
    -- Get_Or_Create --
@@ -305,19 +615,12 @@ package body Instrument is
       Ignored_Source_Files : access GNAT.Regexp.Regexp;
       Mains                : String_Vectors.Vector)
    is
-      use Libadalang.Analysis;
       use String_Vectors;
-
-      --  First create the context for Libadalang
-
-      Provider : constant Unit_Provider_Reference :=
-        Instrument.Ada_Unit_Provider.Create_Provider_From_Project;
 
       --  Initialize all the instrumenters
 
       Ada_Instrumenter : aliased Instrument.Ada_Unit.Ada_Instrumenter_Type :=
-        Instrument.Ada_Unit.Create_Ada_Instrumenter
-          (Provider, Language_Version);
+        Instrument.Ada_Unit.Create_Ada_Instrumenter (Language_Version);
       C_Instrumenter   : aliased Instrument.C.C_Instrumenter_Type :=
         (null record);
       CPP_Instrumenter : aliased Instrument.C.CPP_Instrumenter_Type :=
@@ -450,8 +753,6 @@ package body Instrument is
             end case;
          end;
       end Add_Instrumented_Unit_Wrapper;
-
-      use type Ada.Containers.Count_Type;
 
    --  Start of processing for Instrument_Units_Of_Interest
 

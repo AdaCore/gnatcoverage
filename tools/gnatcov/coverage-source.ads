@@ -22,7 +22,6 @@ with Checkpoints;             use Checkpoints;
 with Files_Table;             use Files_Table;
 with Instrument;              use Instrument;
 with Instrument.Input_Traces; use Instrument.Input_Traces;
-with Instrument.Base_Types;   use Instrument.Base_Types;
 with Traces;                  use Traces;
 with Traces_Names;            use Traces_Names;
 with Traces_Lines;            use Traces_Lines;

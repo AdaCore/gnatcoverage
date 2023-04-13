@@ -16,13 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Diagnostics;           use Diagnostics;
-with Files_Table;           use Files_Table;
-with Instrument.Base_Types; use Instrument.Base_Types;
-with Outputs;               use Outputs;
-with SC_Obligations;        use SC_Obligations;
-with Subprocesses;          use Subprocesses;
-with Types;                 use Types;
+with Diagnostics;    use Diagnostics;
+with Files_Table;    use Files_Table;
+with Outputs;        use Outputs;
 
 package body Instrument.Checkpoints is
 

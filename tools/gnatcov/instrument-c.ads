@@ -29,17 +29,13 @@ with Ada.Strings.Unbounded.Hash;
 with GNATCOLL.Projects;
 
 with Namet; use Namet;
-with Types; use Types;
 
 with Clang.Index;   use Clang.Index;
 with Clang.Rewrite; use Clang.Rewrite;
 
-with Files_Table;           use Files_Table;
-with Instrument.Base_Types; use Instrument.Base_Types;
-with Instrument.Common;     use Instrument.Common;
-with SC_Obligations;        use SC_Obligations;
-with Slocs;                 use Slocs;
-with Switches;              use Switches;
+with Files_Table;       use Files_Table;
+with Instrument.Common; use Instrument.Common;
+with Slocs;             use Slocs;
 
 package Instrument.C is
 

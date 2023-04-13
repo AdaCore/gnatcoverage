@@ -20,8 +20,8 @@
 
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
-with Instrument; use Instrument;
-with Strings;    use Strings;
+with Strings;  use Strings;
+with Switches; use Switches;
 
 package Setup_RTS is
 

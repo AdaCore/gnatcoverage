@@ -34,11 +34,11 @@ with GNATCOLL.Traces;
 with GNATCOLL.Projects.Aux;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
-with Instrument.Base_Types; use Instrument.Base_Types;
-with Inputs;                use Inputs;
-with Outputs;               use Outputs;
-with Paths;                 use Paths;
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Instrument;          use Instrument;
+with Inputs;              use Inputs;
+with Outputs;             use Outputs;
+with Paths;               use Paths;
 
 package body Project is
 
