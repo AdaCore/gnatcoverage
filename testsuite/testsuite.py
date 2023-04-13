@@ -1094,8 +1094,13 @@ class TestSuite(e3.testsuite.Testsuite):
 
         libsup_vars = []
 
-        if args.target:
-            libsup_vars.append("TARGET={}".format(args.target))
+        if self.env.is_cross:
+            # Beware that the TARGET variable set here is used as the
+            # --target switch to gprbuild calls from the Makefile, and
+            # the args.target value we receive might have os-version
+            # or machine extensions that aren't appropriate for that
+            # (e.g. aarch64-elf,unknown).
+            libsup_vars.append("TARGET={}".format(self.env.target.triplet))
 
         if args.board:
             libsup_vars.append("BOARD={}".format(args.board))
