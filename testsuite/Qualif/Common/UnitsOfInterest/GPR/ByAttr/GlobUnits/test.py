@@ -13,7 +13,7 @@ TestCase(category=None).run(covcontrol=CovControl(
 
 wd.to_subdir('wd_2')
 TestCase(category=None).run(covcontrol=CovControl(
-    units_out=['test*', 'support'],
+    units_out=['test*'],
     xreports=['ops.ads', 'ops.adb', 'ops-andthen.adb', 'ops-orelse.adb']))
 
 wd.to_subdir('wd_3')

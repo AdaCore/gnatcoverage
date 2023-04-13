@@ -3,7 +3,7 @@
 -- == with startup/init and minimum IO services                   ==
 -- =================================================================
 
-with "common";
+with "common.gpr", "conf.gpr";
 
 library project Libsupport is
 
@@ -15,15 +15,6 @@ library project Libsupport is
    --  Whether we are building/using for an Aunit context or not, with
    --  influence on the last_chance handler inclusion.
 
-   Use_Target_Source_Dirs : Common.Yes_No_Type
-     := external ("USE_TARGET_SOURCE_DIRS", "no");
-   --  Whether we are building/using for an Aunit context or not, with
-   --  influence on the last_chance handler inclusion.
-
-   Source_Dirs := ("src");
-   --  Variable where we compute the Source_Dirs attribute to use,
-   --  depending on the target, the board, and on the use of Aunit.
-
    --  Common library attributes:
    --  ==========================
 
@@ -31,8 +22,8 @@ library project Libsupport is
    for Library_Auto_Init use "False";
    for Languages use ("Ada", "C");
 
-   for Library_Dir use "lib/" & Common.Target;
-   for Object_Dir use "obj/" & Common.Target;
+   for Library_Dir use "lib/" & Conf.Target;
+   for Object_Dir use "obj/" & Conf.Target;
 
    --  We might have needs for both aunit and !aunit libs for a run
    --  so pick a different libname for each case:
@@ -49,16 +40,19 @@ library project Libsupport is
       when "yes" => for Externally_Built use "false";
    end case;
 
-   case Use_Target_Source_Dirs is
-      when "no" => null;
+   --  Now compute the set of source directories to use. A common one,
+   --  always, then an additional Target specific one. FOR SELDOM USES
+   --  ONLY. We don't wan't yet another zfp support approx here:
+   
+   Source_Dirs := ("src", "src/helpers");
 
-      when "yes" =>
-         --  Now compute the set of source directories to use. A common one,
-         --  always, then an additional Target specific one. FOR SELDOM USES
-         --  ONLY. We don't wan't yet another zfp support approx here:
+   case Conf.Target is
+      when "" => null;
+
+      when others =>
 
          Source_Dirs := Source_Dirs & ("src/memory");
-         Source_Dirs := Source_Dirs & ("src/" & Common.Target);
+         Source_Dirs := Source_Dirs & ("src/" & Conf.Target);
 
          --  Add whatever we need to find our Last Chance Handler, to
          --  force termination even in ravenscar configurations, and to
@@ -73,7 +67,8 @@ library project Libsupport is
               --  that the target RTS might not support. Allow board specific
               --  overrides of the last chance handler:
 
-              Source_Dirs := Source_Dirs & ("src/last_chance_" & Common.Board);
+              Source_Dirs := Source_Dirs &
+                ("src/last_chance_" & Conf.Board);
          end case;
 
     end case;

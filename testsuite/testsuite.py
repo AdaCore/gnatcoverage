@@ -1087,6 +1087,35 @@ class TestSuite(e3.testsuite.Testsuite):
         else:
             return name
 
+
+    def _build_libsupport(self):
+
+        args = self.main.args
+
+        libsup_vars = []
+
+        if args.target:
+            libsup_vars.append("TARGET={}".format(args.target))
+
+        if args.board:
+            libsup_vars.append("BOARD={}".format(args.board))
+
+        if args.RTS:
+            libsup_vars.append("RTS={}".format(args.RTS))
+
+        logfile = os.path.join(self.output_dir, 'build_support.out')
+
+        p = Run(['make', '--debug', '-C', 'support', '-f', 'Makefile.libsupport'] +
+                libsup_vars,
+                output=logfile)
+
+        if p.status != 0:
+            raise FatalError(
+                ("Problem during libsupport construction. %s:\n" %
+                 logfile) +
+                contents_of(logfile))
+
+
     def set_up(self):
         """
         Prepare the testsuite run: compute and dump discriminants, run
@@ -1204,23 +1233,7 @@ class TestSuite(e3.testsuite.Testsuite):
 
         # Build support library as needed
 
-        if control.runtime_info().need_libsupport:
-
-            targetargs = ["TARGET=%s" % self.env.target.triplet]
-            if self.main.args.board:
-                targetargs.append("BOARD=%s" % self.main.args.board)
-
-            logfile = os.path.join(self.output_dir, 'build_support.out')
-
-            p = Run(['make', '-C', 'support', '-f', 'Makefile.libsupport'] +
-                    targetargs + ["RTS=%s" % self.main.args.RTS],
-                    output=logfile)
-
-            if p.status != 0:
-                raise FatalError(
-                    ("Problem during libsupport construction. %s:\n" %
-                     logfile) +
-                    contents_of(logfile))
+        self._build_libsupport()
 
         # Initialize counter of consecutive failures, to stop the run
         # when it is visibly useless to keep going.

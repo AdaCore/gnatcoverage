@@ -1,0 +1,5 @@
+project Prj extends "../base_foo/base.gpr" is
+   for Main use ("test.c");
+   for Source_Dirs use (".");
+   for Object_Dir use "obj";
+end Prj;

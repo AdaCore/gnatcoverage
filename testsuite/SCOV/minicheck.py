@@ -110,7 +110,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     :return: Incomplete list of arguments to pass to `xcov` in order to run
         "gnatcov coverage". The only mandatory argument that is missing is the
         annotation format. The last N arguments correspond to trace files for
-        the given N mains.
+        the given N mains. Upon return, the progam execution log for each main
+        M is available as M_output.txt.
     """
     def abspath(path):
         return os.path.abspath(path) if absolute_paths else path
@@ -174,6 +175,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
             if scos else
             gprsw.cov_switches)
 
+    out_file_ = '{}_output.txt'
+
     if trace_mode == 'bin':
         # Build and run each main
         gprbuild_wrapper(gprsw.root_project)
@@ -189,7 +192,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
             eargs = ["-eargs"] + exec_args
 
         for m in mains:
-            xrun(run_args + [exepath(m)] + eargs, out='run.log',
+            out_file = out_file_.format(m)
+            xrun(run_args + [exepath(m)] + eargs, out=out_file,
                  env=program_env, register_failure=register_failure)
         trace_files = [abspath(tracename_for(m)) for m in mains]
 
@@ -277,7 +281,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
             # multiple traces in the current directory.
             rm(srctrace_pattern_for(m))
 
-            out_file = '{}_output.txt'.format(m)
+            out_file = out_file_.format(m)
             run_cov_program(exepath(m), out=out_file, env=program_env,
                             register_failure=register_failure,
                             exec_args=exec_args)
