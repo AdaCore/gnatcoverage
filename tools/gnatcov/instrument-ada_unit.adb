@@ -4891,6 +4891,23 @@ package body Instrument.Ada_Unit is
             when Ada_Named_Stmt =>
                Traverse_One (N.As_Named_Stmt.F_Stmt.As_Ada_Node);
 
+            when Ada_Package_Renaming_Decl
+               | Ada_Subp_Renaming_Decl
+               | Ada_Generic_Renaming_Decl
+               | Ada_Generic_Instantiation
+            =>
+               Set_Statement_Entry;
+               Enter_Scope
+                 (UIC        => UIC,
+                  Scope_Name =>
+                     N.As_Basic_Decl.P_Defining_Name.F_Name.Text,
+                  Sloc       => Sloc (N));
+               Extend_Statement_Sequence
+                 (UIC, N,
+                  (if N.Kind in Ada_Generic_Instantiation then 'i' else 'r'));
+               Set_Statement_Entry;
+               Exit_Scope (UIC);
+
             when others =>
 
                --  Determine required type character code, or ASCII.NUL if
@@ -4927,14 +4944,6 @@ package body Instrument.Ada_Unit is
                               Typ := 'd';
                            end if;
                         end;
-
-                     when Ada_Package_Renaming_Decl   |
-                          Ada_Subp_Renaming_Decl      |
-                          Ada_Generic_Renaming_Decl   =>
-                        Typ := 'r';
-
-                     when Ada_Generic_Instantiation =>
-                        Typ := 'i';
 
                      when Ada_Package_Body_Stub
                         | Ada_Protected_Body_Stub
