@@ -37,7 +37,7 @@ stages:
 
 build:
   services:
-     - image:sandbox
+     - image:gnatcov
      - cpu:8
      - mem:16
   stage: build
@@ -54,7 +54,7 @@ build:
 
     # Create the package
     - tar czf $PACKAGE_ABSOLUTE_NAME -C /
-        it/wave/x86_64-linux/gnatcov-build$EDGE_BUILD_SPACE_SUFFIX/install/
+        it/wave/x86_64-linux/gnatcov-instr$EDGE_BUILD_SPACE_SUFFIX/install/
 
     - cd $CI_PROJECT_DIR
     - ls -l $PACKAGE_BASE_NAME
@@ -65,7 +65,7 @@ build:
 
 build_standard:
   services:
-     - image:sandbox
+     - image:gnatcov
      - cpu:8
      - mem:16
   stage: test
@@ -82,7 +82,7 @@ build_standard:
 
 build_community:
   services:
-     - image:sandbox
+     - image:gnatcov
      - cpu:8
      - mem:16
   stage: test
@@ -129,8 +129,8 @@ build_community:
     # download the nightly one, which may not even exist (case of an edge build
     # failure that was fixed on that day).
     - mkdir -p fingerprints
-    - touch fingerprints/x86_64-linux.gnatcov-instr-build$EDGE_BUILD_SPACE_SUFFIX.install.json.assume-unchanged
-    - touch fingerprints/x86_64-linux.gnatcov-instr-build$EDGE_BUILD_SPACE_SUFFIX.download_bin.json.assume-unchanged
+    - touch fingerprints/x86_64-linux.gnatcov-instr$EDGE_BUILD_SPACE_SUFFIX.install.json.assume-unchanged
+    - touch fingerprints/x86_64-linux.gnatcov-instr$EDGE_BUILD_SPACE_SUFFIX.download_bin.json.assume-unchanged
 
     # Setup the CI directory to host coverage results
     - mkdir $CI_PROJECT_DIR/coverage
@@ -149,7 +149,7 @@ build_community:
 
 test_bin_traces:
   services:
-     - image:sandbox
+     - image:gnatcov
      - cpu:8
      - mem:16
   stage: test
@@ -169,7 +169,7 @@ test_bin_traces:
 
 test_src_traces:
   services:
-     - image:sandbox
+     - image:gnatcov
      - cpu:8
      - mem:16
   stage: test
@@ -190,7 +190,7 @@ test_src_traces:
 
 test_spark:
   services:
-     - image:sandbox
+     - image:gnatcov
      - cpu:8
      - mem:16
   stage: test
