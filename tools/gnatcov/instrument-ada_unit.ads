@@ -24,17 +24,12 @@ with Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Hash;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
-with GNATCOLL.Projects; use GNATCOLL.Projects;
-
 with Langkit_Support.Text; use Langkit_Support.Text;
 with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
 
-with Instrument.Base_Types; use Instrument.Base_Types;
 with Instrument.Common;     use Instrument.Common;
-with SC_Obligations;        use SC_Obligations;
 with Switches;
-with Types;                 use Types;
 
 package Instrument.Ada_Unit is
 
@@ -60,8 +55,7 @@ package Instrument.Ada_Unit is
    --  Instrumentation primitives for Ada
 
    function Create_Ada_Instrumenter
-     (Provider         : Unit_Provider_Reference;
-      Language_Version : Any_Language_Version) return Ada_Instrumenter_Type;
+     (Language_Version : Any_Language_Version) return Ada_Instrumenter_Type;
    --  Create an Ada instrumenter from the given provider, and the given
    --  language version.
 
@@ -85,6 +79,11 @@ package Instrument.Ada_Unit is
      (Self              : Ada_Instrumenter_Type;
       Root_Project_Info : in out Project_Info;
       Instr_Units       : CU_Name_Vectors.Vector);
+
+   overriding function Skip_Source_File
+     (Self        : Ada_Instrumenter_Type;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean
+   is (False);
 
    procedure Find_Ada_Units
      (Instrumenter : in out Ada_Instrumenter_Type;

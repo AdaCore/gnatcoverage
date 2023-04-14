@@ -30,8 +30,6 @@ with System.Storage_Elements;
 with GNAT.OS_Lib;        use GNAT.OS_Lib;
 with GNAT.Byte_Swapping; use GNAT.Byte_Swapping;
 
-with GNATCOLL.Projects;  use GNATCOLL.Projects;
-
 with Traces_Source; use Traces_Source;
 with Hex_Images;
 with Outputs;

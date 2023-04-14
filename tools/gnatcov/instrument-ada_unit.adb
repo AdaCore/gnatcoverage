@@ -43,22 +43,21 @@ with Libadalang.Sources;       use Libadalang.Sources;
 with GNATCOLL.Utils;
 with GNATCOLL.VFS;
 
-with ALI_Files;           use ALI_Files;
-with Coverage_Options;    use Coverage_Options;
-with Coverage;            use Coverage;
-with Diagnostics;         use Diagnostics;
-with Files_Table;         use Files_Table;
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
-with Namet;               use Namet;
-with Outputs;             use Outputs;
-with Paths;               use Paths;
+with ALI_Files;        use ALI_Files;
+with Coverage_Options; use Coverage_Options;
+with Coverage;         use Coverage;
+with Diagnostics;      use Diagnostics;
+with Files_Table;      use Files_Table;
+with Instrument.Ada_Unit_Provider;
+with Namet;            use Namet;
+with Outputs;          use Outputs;
+with Paths;            use Paths;
 with Project;
 with SCOs;
 with Slocs;
-with Snames;              use Snames;
+with Snames;           use Snames;
 with Table;
-with Text_Files;          use Text_Files;
-with Switches;            use Switches;
+with Text_Files;       use Text_Files;
 
 package body Instrument.Ada_Unit is
 
@@ -135,7 +134,7 @@ package body Instrument.Ada_Unit is
                   --  process only codepoints in the ASCII range and thus use
                   --  Langkit_Support.Text.Image.
 
-                  Identifier : constant Base_Types.Ada_Identifier :=
+                  Identifier : constant Ada_Identifier :=
                      To_Unbounded_String (Image (Name.Text));
                begin
                   Result.Append (Identifier);
@@ -4897,6 +4896,23 @@ package body Instrument.Ada_Unit is
             when Ada_Named_Stmt =>
                Traverse_One (N.As_Named_Stmt.F_Stmt.As_Ada_Node);
 
+            when Ada_Package_Renaming_Decl
+               | Ada_Subp_Renaming_Decl
+               | Ada_Generic_Renaming_Decl
+               | Ada_Generic_Instantiation
+            =>
+               Set_Statement_Entry;
+               Enter_Scope
+                 (UIC        => UIC,
+                  Scope_Name =>
+                     N.As_Basic_Decl.P_Defining_Name.F_Name.Text,
+                  Sloc       => Sloc (N));
+               Extend_Statement_Sequence
+                 (UIC, N,
+                  (if N.Kind in Ada_Generic_Instantiation then 'i' else 'r'));
+               Set_Statement_Entry;
+               Exit_Scope (UIC);
+
             when others =>
 
                --  Determine required type character code, or ASCII.NUL if
@@ -4933,14 +4949,6 @@ package body Instrument.Ada_Unit is
                               Typ := 'd';
                            end if;
                         end;
-
-                     when Ada_Package_Renaming_Decl   |
-                          Ada_Subp_Renaming_Decl      |
-                          Ada_Generic_Renaming_Decl   =>
-                        Typ := 'r';
-
-                     when Ada_Generic_Instantiation =>
-                        Typ := 'i';
 
                      when Ada_Package_Body_Stub
                         | Ada_Protected_Body_Stub
@@ -6611,9 +6619,11 @@ package body Instrument.Ada_Unit is
    -----------------------------
 
    function Create_Ada_Instrumenter
-     (Provider         : Unit_Provider_Reference;
-      Language_Version : Any_Language_Version) return Ada_Instrumenter_Type
+     (Language_Version : Any_Language_Version) return Ada_Instrumenter_Type
    is
+      Provider : constant Unit_Provider_Reference :=
+        Instrument.Ada_Unit_Provider.Create_Provider_From_Project;
+
       Instrumenter : Ada_Instrumenter_Type;
    begin
       Instrumenter.Provider := Provider;
@@ -7949,7 +7959,7 @@ package body Instrument.Ada_Unit is
    begin
       return Ada_Identifier_Vectors."&"
         (Sys_Buffers_Lists,
-         Instrument.Base_Types.Ada_Identifier (+Project_Name_Slug));
+         Instrument.Ada_Identifier (+Project_Name_Slug));
    end Buffers_List_Unit;
 
    ----------------------
@@ -7959,7 +7969,7 @@ package body Instrument.Ada_Unit is
    function Pure_Buffer_Unit
      (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name
    is
-      Simple_Name : Instrument.Base_Types.Ada_Identifier;
+      Simple_Name : Instrument.Ada_Identifier;
    begin
       Append (Simple_Name, 'P');
       Append (Simple_Name, Instrumented_Unit_Slug (Instrumented_Unit));

@@ -18,70 +18,156 @@
 
 --  Support for source instrumentation
 
+with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
 with GNAT.Regexp;
 
-with Strings; use Strings;
+with GNATCOLL.Projects; use GNATCOLL.Projects;
+
+with Types; use Types;
+
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with SC_Obligations;      use SC_Obligations;
+with Subprocesses;        use Subprocesses;
+with Strings;             use Strings;
+with Switches;            use Switches;
 
 package Instrument is
 
    package US renames Ada.Strings.Unbounded;
 
-   type Any_Dump_Trigger is
-     (Manual, At_Exit, Ravenscar_Task_Termination, Main_End);
-   --  Trigger to dump coverage buffers in instrumented programs. See the user
-   --  documentation for the --dump-trigger command-line option.
+   function Language_Kind
+     (Language : Some_Language) return Any_Language_Kind;
+   --  Returns the language kind (unit-based or file-based) for the given
+   --  language.
 
-   subtype Auto_Dump_Trigger is Any_Dump_Trigger range At_Exit .. Main_End;
+   type Ada_Identifier is new Ada.Strings.Unbounded.Unbounded_String;
+   --  Simple Ada identifier
 
-   type Any_Dump_Channel is (Binary_File, Base64_Standard_Output);
-   --  Channel where to dump coverage buffers. See the user documentation for
-   --  the --dump-channel command-line option.
+   package Ada_Identifier_Vectors is new Ada.Containers.Vectors
+     (Positive, Ada_Identifier);
 
-   --  Serialization/deserialization functions for the enumeration types. The
-   --  deserialization ones raise Constraint_Error exceptions for invalid input
-   --  strings.
+   subtype Ada_Qualified_Name is Ada_Identifier_Vectors.Vector;
+   --  Sequence of ada identifiers, representing a qualified name. For
+   --  instance: Scope_A.Scope_B.Scope_C
 
-   function Image (Dump_Trigger : Any_Dump_Trigger) return String;
-   function Image (Dump_Channel : Any_Dump_Channel) return String;
-   function Value (Dump_Trigger : String) return Any_Dump_Trigger;
-   function Value (Dump_Channel : String) return Any_Dump_Channel;
+   function "&" (Left, Right : Ada_Qualified_Name) return Ada_Qualified_Name
+      renames Ada_Identifier_Vectors."&";
 
-   type Any_Dump_Config (Channel : Any_Dump_Channel := Any_Dump_Channel'First)
+   function To_Ada (Name : Ada_Qualified_Name) return String
+     with Pre => not Name.Is_Empty;
+   --  Turn the given qualified name into Ada syntax
+
+   type Compilation_Unit_Name
+     (Language_Kind : Any_Language_Kind := Unit_Based_Language)
    is record
-      Trigger : Any_Dump_Trigger := Manual;
 
-      case Channel is
-         when Binary_File =>
-            Filename_Simple : Boolean := False;
-            --  Whether to generate source traces with simple filenames.
-            --
-            --  Controlled by --dump-filename-simple.
+      case Language_Kind is
+         when Unit_Based_Language =>
+            Unit : Ada_Qualified_Name := Ada_Identifier_Vectors.Empty_Vector;
+            Part : Unit_Parts         := Unit_Body;
+            --  Identifies an Ada compilation unit (unit-based)
 
-            Filename_Env_Var : US.Unbounded_String;
-            --  Name of the environment variable which, if set, contains the
-            --  default filename for created source traces. If empty, use the
-            --  default one (see Default_Trace_Filename_Env_Var in
-            --  GNATcov_RTS.Traces.Output.Files).
-            --
-            --  Controlled by --dump-filename-env-var.
+         when File_Based_Language =>
+            Filename : US.Unbounded_String;
+            --  Fallback for file-based languages (like C). We will use the
+            --  simple filename for now.
 
-            Filename_Prefix  : US.Unbounded_String;
-            --  Prefix for the source trace filename. If empty, use the
-            --  program's basename (see Default_Trace_Filename_Prefix in
-            --  GNATcov_RTS.Traces.Output.Files).
-            --
-            --  Controlled by --dump-filename-prefix.
+            Project_Name : US.Unbounded_String;
+            --  We also need the project name as different projects can have
+            --  the same file.
 
-         when others =>
-            null;
       end case;
    end record;
-   --  Bundle for all configuration related to automatic dump of coverage
-   --  buffers.
+   --  Unique identifier for an instrumented unit
 
-   type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012, Ada_2022);
+   Part_Tags : constant array (Unit_Parts) of Character :=
+     (Unit_Spec     => 'S',
+      Unit_Body     => 'B',
+      Unit_Separate => 'U');
+
+   function "=" (Left, Right : Compilation_Unit_Name) return Boolean;
+
+   function "<" (Left, Right : Compilation_Unit_Name) return Boolean;
+   --  Compare the result of a call to Instrumented_Unit_Slug (which gives
+   --  unique identifiers for each compilation unit name) for both operands.
+
+   function Image (CU_Name : Compilation_Unit_Name) return String;
+   --  Return a string representation of CU_Name for use in diagnostics
+
+   function Qualified_Name_Slug (Name : Ada_Qualified_Name) return String;
+   --  Given a qualified name, return a unique identifier to describe it. This
+   --  identifier can be used as a filename suffix / unit name, as it does
+   --  not contain any '-'.
+
+   function Instrumented_Unit_Slug
+     (Instrumented_Unit : Compilation_Unit_Name) return String;
+   --  Given a unit to instrument, return a unique identifier to describe it
+   --  (the so called slug).
+   --
+   --  One can use this slug to generate unique names for this unit.
+
+   function To_Qualified_Name (Name : String) return Ada_Qualified_Name;
+   --  Convert a String qualified name into our format
+
+   function Canonicalize (Name : Ada_Qualified_Name) return Ada_Qualified_Name;
+   --  Fold casing of Ada identifiers
+
+   function To_Symbol_Name (Name : Ada_Qualified_Name) return String
+      with Pre => not Name.Is_Empty;
+   --  Lower case each name of the qualified name, and joined them with an
+   --  underscore, to have a C-like syntax.
+   --
+   --  Example: passing the qualified name Foo.Bar will return the string
+   --  "foo_bar".
+
+   function CU_Name_For_Unit
+     (Unit : Ada_Qualified_Name;
+      Part : Unit_Parts) return Compilation_Unit_Name;
+   --  Return the compilation unit name for the Ada compilation unit
+   --  corresponding to the unit name and the unit part parameters.
+
+   function CU_Name_For_File
+     (Filename     : US.Unbounded_String;
+      Project_Name : US.Unbounded_String) return Compilation_Unit_Name;
+   --  Return the compilation unit name for the C translation unit
+   --  corresponding to the filename parameter.
+
+   function To_Compilation_Unit_Name
+     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name;
+   --  Return the compilation unit name corresponding to the unit in
+   --  Source_File.
+
+   function To_Filename
+     (Project  : Project_Type;
+      CU_Name  : Compilation_Unit_Name;
+      Language : Any_Language) return String;
+   --  Return the name of the file to contain the given compilation unit,
+   --  according to Project's naming scheme.
+
+   package Instrumented_Unit_To_CU_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Compilation_Unit_Name,
+      Element_Type => CU_Id);
+
+   Instrumented_Unit_CUs : Instrumented_Unit_To_CU_Maps.Map;
+   --  Associate a CU id for all instrumented units. Updated each time we
+   --  instrument a unit (or load a checkpoint) and used each time we read a
+   --  coverage buffer (or save to a checkpoint).
+
+   package SFI_To_PP_Cmd_Maps is
+     new Ada.Containers.Ordered_Maps
+       (Key_Type     => Source_File_Index,
+        Element_Type => Command_Type);
+
+   PP_Cmds : SFI_To_PP_Cmd_Maps.Map;
+   --  Save the preprocessing command for each unit that supports it
+
+   function Find_Instrumented_Unit
+     (CU_Name : Compilation_Unit_Name) return CU_Id;
+   --  Return the CU_Id corresponding to the given instrumented unit, or
+   --  No_CU_Id if not found.
 
    procedure Instrument_Units_Of_Interest
      (Dump_Config          : Any_Dump_Config;

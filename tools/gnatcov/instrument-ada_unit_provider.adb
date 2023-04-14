@@ -20,7 +20,6 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNATCOLL.Projects.Aux; use GNATCOLL.Projects.Aux;
-with GNATCOLL.Projects;     use GNATCOLL.Projects;
 
 with Libadalang.Unit_Files;
 
