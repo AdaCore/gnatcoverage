@@ -37,7 +37,7 @@ stages:
 
 build:
   services:
-     - image:sandbox
+     - image:gnatcov
      - cpu:8
      - mem:16
   stage: build
@@ -65,7 +65,7 @@ build:
 
 build_standard:
   services:
-     - image:sandbox
+     - image:gnatcov
      - cpu:8
      - mem:16
   stage: test
@@ -82,7 +82,7 @@ build_standard:
 
 build_community:
   services:
-     - image:sandbox
+     - image:gnatcov
      - cpu:8
      - mem:16
   stage: test
@@ -149,7 +149,7 @@ build_community:
 
 test_bin_traces:
   services:
-     - image:sandbox
+     - image:gnatcov
      - cpu:8
      - mem:16
   stage: test
@@ -169,7 +169,7 @@ test_bin_traces:
 
 test_src_traces:
   services:
-     - image:sandbox
+     - image:gnatcov
      - cpu:8
      - mem:16
   stage: test
@@ -190,7 +190,7 @@ test_src_traces:
 
 test_spark:
   services:
-     - image:sandbox
+     - image:gnatcov
      - cpu:8
      - mem:16
   stage: test
