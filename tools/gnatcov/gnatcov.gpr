@@ -126,6 +126,44 @@ project Gnatcov is
       for Body_Suffix ("C++") use ".cc";
    end Naming;
 
+   package Coverage is
+
+      --  Ignore units that have an alternative implementation in both parts
+      --  and that consists only in type definitions. GNATcoverage does not
+      --  yet support consolidation when there are units with a different
+      --  implementation.
+
+      Gnatcoverage_Excluded_Units := ("arch", "dis*", "qemu_traces_entries");
+
+      --  Also ignore the instrumentation part in the 32 bits part, consisting
+      --  only in stubs.
+
+      case Part is
+         when "lib32" | "lib64" | "driver" | "gnatcov32" =>
+            Gnatcoverage_Excluded_Units := Gnatcoverage_Excluded_Units
+              & ("instrument*");
+         when "gnatcov64" =>
+            null;
+      end case;
+      for Excluded_Units use Gnatcoverage_Excluded_Units;
+
+      Common_Switches := ("--level=stmt", "--no-subprojects");
+      for Switches ("instrument") use Common_Switches
+
+         --  Include the part as a trace filename prefix to differentiate
+         --  traces produced by the execution of the driver / gnatcov32 /
+         --  gnatcov64
+
+         & ("--dump-filename-prefix=" & Part)
+
+         --  Also rename the filename environment variable to avoid conflicting
+         --  with instrumented tests in the testing environment.
+
+         & ("--dump-filename-env-var=GNATCOV_TRACE_DIR");
+
+      for Switches ("coverage") use Common_Switches;
+   end Coverage;
+
    ----------------------------
    -- Configuration of mains --
    ----------------------------
