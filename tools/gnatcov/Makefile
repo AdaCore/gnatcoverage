@@ -213,10 +213,33 @@ bin:
 		exit 1; \
 	fi
 
-# Start with the 64-bit gnatcov, which has the largest closure
+ifdef INSTRUMENTED
+  # We need to instrument and build at the same time: the driver and gnatcov32
+  # builds share the same object directory, meaning that gnatcov will remove
+  # files resulting from the instrumentation of gnatcov32 when instrumenting
+  # the driver. This will be a problem: in the former case,
+  # gnatcov_bits_specific.adb is instrumented as a main but not in the latter
+  # case (gnatcov.adb is). This means that if we use the version that was not
+  # instrumented as a main to compile gnatcov32, running gnatcov32 will not
+  # dump execution traces.
+
+	gnatcov instrument -P gnatcov.gpr -XPART=gnatcov64
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov64 \
+    --src-subdirs=gnatcov-instr
+
+	gnatcov instrument -P gnatcov.gpr -XPART=gnatcov32
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov32 \
+    --src-subdirs=gnatcov-instr
+
+	gnatcov instrument -P gnatcov.gpr -XPART=driver
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=driver \
+    --src-subdirs=gnatcov-instr
+else
+  # Start with the 64-bit gnatcov, which has the largest closure
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov64
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov32
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=driver
+endif
 
 ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), adapter-$(a))
 .PHONY: $(ADAPTERS_TARGETS)
