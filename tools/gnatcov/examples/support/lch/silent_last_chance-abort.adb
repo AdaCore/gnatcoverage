@@ -14,7 +14,11 @@ package body Silent_Last_Chance is
       procedure C_Abort;
       pragma Import (C, C_abort, "abort");
       pragma No_Return (C_abort);
+
+      procedure Lch_Enter;
+      pragma Import (Ada, Lch_Enter, "__lch_enter");
    begin
+      Lch_Enter;
       C_abort;
    end Last_Chance_Handler;
 

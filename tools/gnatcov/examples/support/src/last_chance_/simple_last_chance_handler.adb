@@ -31,7 +31,12 @@ package body Simple_Last_Chance_Handler is
       procedure C_Abort;
       pragma Import (C, C_Abort, "abort");
       pragma No_Return (C_Abort);
+
+      procedure Lch_Enter;
+      pragma Import (Ada, Lch_Enter, "__lch_enter");
    begin
+      Lch_Enter;
+
       GNAT.IO.New_Line;
       GNAT.IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
       GNAT.IO.Put_Line ("!!! EXCEPTION RAISED !!!");

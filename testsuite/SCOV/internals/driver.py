@@ -28,7 +28,7 @@ from e3.os.fs import cd
 
 from SCOV.tctl import CAT, CovControl
 
-from SCOV.instr import (add_last_chance_handler, default_dump_channel,
+from SCOV.instr import (add_dumper_lch_hook, default_dump_channel,
                         default_dump_trigger, xcov_convert_base64,
                         xcov_instrument)
 
@@ -1307,10 +1307,13 @@ class SCOV_helper_src_traces(SCOV_helper):
             gpr_obj_dir=self.gpr_obj_dir,
             out=out)
 
-        # When exception propagation is not available, the "main-end" dump
-        # trigger will not work when the test driver ends with an unhandled
-        # exception. To workaround that, force the dump in the last chance
-        # handler.
+        # When exception propagation is not available, a test ending with an
+        # unhandled exception goes straight to the last_chance_handler from
+        # the point of the raise, bypassing the coverage buffers dump if the
+        # selected dump-trigger is "main-end". For such situations, provide by
+        # a last chance handler entry hook to dump the buffers at that point
+        # instead.
+
         if (self.dump_trigger == 'main-end'
             and not runtime_info().has_exception_propagation):
             # The only tests with multiple drivers are consolidation ones,
@@ -1320,12 +1323,11 @@ class SCOV_helper_src_traces(SCOV_helper):
             # driver to build.
             assert len(self.drivers) == 1
             if (language_info(self.drivers[0]).name == "Ada"):
-                add_last_chance_handler(
-                    instrument_gprsw.root_project,
-                    self.gpr_obj_dir,
-                    subdirs,
-                    no_ext(self.drivers[0]),
-                    silent=not self.testcase.expect_failures)
+                add_dumper_lch_hook(
+                    project=instrument_gprsw.root_project,
+                    obj_dir=self.gpr_obj_dir,
+                    subdirs=subdirs,
+                    main_unit=no_ext(self.drivers[0]))
 
         # Standard output might contain warnings indicating instrumentation
         # issues. This should not happen, so simply fail as soon as the output

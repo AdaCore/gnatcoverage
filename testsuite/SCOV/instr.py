@@ -177,28 +177,10 @@ def xcov_convert_base64(base64_file, output_trace_file, out=None, err=None,
          out=out, err=err, register_failure=register_failure)
 
 
-def add_last_chance_handler(project, obj_dir, subdirs, main_unit, silent):
+def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
     """
-    Add a unit to instrumented sources to hold a last chance handler.
-
-    Several mechanisms provide last chance handlers in cross setups. First,
-    libsupport.gpr provides a last chance handler (last_chance.adb) that prints
-    a "!!! ERROR !!!"-like pattern that the testsuite will detect as an error,
-    and base.gpr makes sure that the __gnat_last_chance_handler is undefined so
-    that the linker picks last_chance.o even though it is not in the main
-    compilation closure.
-
-    Second, some tests additionally provide a "silence_last_chance.adb" source
-    that defines this symbol, only this time, the handler prints no message.
-    Test drivers explicitly WITH this unit, so the linker will not pull
-    last_chance.o.
-
-    In instrumentation mode, we need the last chance handler to dump coverage
-    buffers, and to do that we want to call the procedure that dumps coverage
-    for the test driver closure. So we generate in the actual project
-    instrumented source directory ($obj_dir/gnatcov-instr or
-    $obj_dir/$subdirs/gnatcov-instr) a last chance handler. Which one precisely
-    depends on the ``silent`` argument.
+    Add a unit to instrumented sources to hold a last chance handler
+    entry hook dumping the coverage buffers for the given main_unit.
 
     :param str project: Instrumented project. This can be either the name of
         the project file, or the name of the project.
@@ -206,11 +188,8 @@ def add_last_chance_handler(project, obj_dir, subdirs, main_unit, silent):
         project.
     :param None|str subdirs: Value of --subdirs passed to gnatcov and gprbuild.
         None if this argument is not passed.
-    :param str main_unit: Name of the main unit for which the handler will call
+    :param str main_unit: Name of the main unit for which the hook will call
         the coverage buffers dump routine.
-    :param bool silent: Whether the last chance handler should be silent. If
-        not, it will print a "!!! ERROR !!!"-like pattern that the testsuite
-        will detect as an error.
     """
     # Amend obj_dir according to subdirs, if applicable
     if subdirs:
@@ -226,7 +205,7 @@ def add_last_chance_handler(project, obj_dir, subdirs, main_unit, silent):
     # computation.
     main_unit_slug = main_unit.replace('z', 'zz')
     auto_dump_unit = 'GNATcov_RTS.Buffers.DB_{}'.format(main_unit_slug)
-    handler_unit = 'Silent_Last_Chance' if silent else 'Last_Chance'
+    handler_unit = "Last_Chance_Dumper";
 
     def filename(prefix, ext):
         return os.path.join(obj_dir, '{}-gnatcov-instr'.format(project),
@@ -235,52 +214,32 @@ def add_last_chance_handler(project, obj_dir, subdirs, main_unit, silent):
     unit_prefix = handler_unit.lower()
     with open(filename(unit_prefix, 'ads'), 'w') as f:
         f.write("""
-        with System;
-
         package {unit_name} is
-           procedure Last_Chance_Handler
-             (Msg : System.Address; Line : Integer);
-           pragma Export
-             (C, Last_Chance_Handler, "__gnat_last_chance_handler");
-           pragma No_Return (Last_Chance_Handler);
+           procedure Lch_Enter;
+           pragma Export (Ada, Lch_Enter, "__lch_enter");
         end {unit_name};
         """.format(unit_name=handler_unit))
     with open(filename(unit_prefix, 'adb'), 'w') as f:
         f.write("""
-        with System;
-        with GNAT.IO;
         with {auto_dump_unit};
 
         package body {unit_name} is
-           procedure Last_Chance_Handler
-             (Msg : System.Address; Line : Integer)
-           is
-              pragma Unreferenced (Msg, Line);
-              procedure C_abort;
-              pragma Import (C, C_abort, "abort");
-              pragma No_Return (C_abort);
+           procedure Lch_Enter is
            begin
-              if not {silent} then
-                 GNAT.IO.New_Line;
-                 GNAT.IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
-                 GNAT.IO.Put_Line ("!!! EXCEPTION RAISED !!!");
-                 GNAT.IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
-              end if;
               {auto_dump_unit}.Dump_Buffers;
-              C_Abort;
-           end Last_Chance_Handler;
+           end;
         end {unit_name};
         """.format(unit_name=handler_unit,
-                   auto_dump_unit=auto_dump_unit,
-                   silent=silent))
+                   auto_dump_unit=auto_dump_unit))
 
-    # Add a "with" to this handler in the main to make sure the handler unit is
-    # included in the link.
+    # Amend the main unit to "with" the generated package so it gets
+    # included in the build. Insert the "with" clause after all pragmas
+    # to keep the code valid.
+
     main_file = filename(main_unit, 'adb')
     with open(main_file, 'r') as f:
         lines = f.read().splitlines()
 
-    # Insert the "with" clause after all pragmas to keep the code valid
     for i, line in enumerate(lines):
         if not line.strip().lower().startswith('pragma'):
             break

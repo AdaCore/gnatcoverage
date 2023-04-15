@@ -2,7 +2,7 @@
 --                                                                          --
 --                              GNATcoverage                                --
 --                                                                          --
---                    Copyright (C) 2014-2022, AdaCore                      --
+--                       Copyright (C) 2023, AdaCore                        --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,18 +16,11 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-package Libsupport is
+package body Libsupport is
 
-   --  Root package for our testsuite support library, aimed at filling RTS
-   --  gaps. This particular unit is always part of the closure, so there's
-   --  something to build a library from also in cases where no real "support"
-   --  is needed, e.g. with native configurations.
-
-   --  Default, noop, last_chance_handler entry hook, that individual tests
-   --  tests/examples may override by interposing an object file in the link
-   --  prior to the library archive.
-
-   procedure Lch_Enter;
-   pragma Export (Ada, Lch_Enter, "__lch_enter");
+   procedure Lch_Enter is
+   begin
+      null;
+   end Lch_Enter;
 
 end Libsupport;
