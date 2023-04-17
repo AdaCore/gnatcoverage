@@ -3,9 +3,12 @@
 include Makefile.common
 
 # Tailored compilation options for libsupport. Allow source
-# coverage analysis with binary traces by default.
-LIBSUPPORT_CFLAGS=-fdump-scos -fpreserve-control-flow -g
+# coverage analysis with binary traces by default, cross only
+# at this stage.
 
+ifneq ($(TARGET),)
+LIBSUPPORT_CFLAGS=-fdump-scos -fpreserve-control-flow -g
+endif
 
 all: $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR) LIBSUPPORT LCH
 
