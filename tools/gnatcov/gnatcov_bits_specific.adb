@@ -470,7 +470,16 @@ procedure GNATcov_Bits_Specific is
 
       Copy_Arg_List (Opt_Routines, Routines_Inputs);
       Copy_Arg_List (Opt_Exec, Exe_Inputs);
+
+      if not Args.String_List_Args (Opt_Checkpoint).Is_Empty
+        and then not Args.String_List_Args (Opt_Units).Is_Empty
+      then
+         Warn ("Specifying units of interest through --units has no effect on "
+               & "checkpoints");
+      end if;
+
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
+
       Copy_Arg_List (Opt_Ignore_Source_Files, Ignored_Source_Files);
 
       --  Compute the languages for which we want coverage analysis, or enable
