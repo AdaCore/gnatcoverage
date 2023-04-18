@@ -221,7 +221,8 @@ procedure GNATcov_Bits_Specific is
       then
          Report_Missing_Argument
            ("SCOs",
-            ", specifying Units in project or using --units/--scos/--sid");
+            ", specifying Units in project or using "
+            & "[--units and -P]|--scos|--sid");
       end if;
    end Check_User_Provided_SCOs;
 
@@ -1040,7 +1041,7 @@ procedure GNATcov_Bits_Specific is
          Project.Compute_Units_Of_Interest (Units_Inputs);
 
       else
-         if Inputs.Length (Units_Inputs) /= 0 then
+         if not Args.String_List_Args (Opt_Units).Is_Empty then
             Fatal_Error ("--units requires -P");
          end if;
          if not Args.String_List_Args (Opt_Projects).Is_Empty then
