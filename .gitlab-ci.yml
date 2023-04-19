@@ -158,12 +158,12 @@ test_bin_traces:
 
     # Test using anod
     - anod test gnatcov --target=leon3-elf -QRTS=embedded-leon3,-O0,instr $EDGE_QUALIFIER
+    - mv leon3-elf-linux64/gnatcov-O0-embedded-leon3-instr$EDGE_BUILD_SPACE_SUFFIX-test/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
         --xunit-name bin-traces
         leon3-elf-linux64/gnatcov-O0-embedded-leon3-instr$EDGE_BUILD_SPACE_SUFFIX-test/results/new/
-    - mv leon3-elf-linux64/gnatcov-O0-embedded-leon3-instr$EDGE_BUILD_SPACE_SUFFIX-test/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
 
   <<: *artifacts
 
@@ -178,13 +178,12 @@ test_src_traces:
 
     # Test using anod
     - anod test gnatcov -Qsrc-traces,instr $EDGE_QUALIFIER
+    - mv x86_64-linux/gnatcov-instr-src-traces$EDGE_BUILD_SPACE_SUFFIX-test/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
         --xunit-name src-traces
       x86_64-linux/gnatcov-instr-src-traces$EDGE_BUILD_SPACE_SUFFIX-test/results/new/
-    - cat /it/wave/log/x86_64-linux.gnatcov-instr-src-traces-test.test.log
-    - mv x86_64-linux/gnatcov-instr-src-traces$EDGE_BUILD_SPACE_SUFFIX-test/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
 
   <<: *artifacts
 
@@ -199,11 +198,11 @@ test_spark:
 
     # Test using anod
     - anod test gnatcov -Qspark-tests,src-traces,instr $EDGE_QUALIFIER
+    - mv x86_64-linux/gnatcov-instr-spark-tests-src-traces$EDGE_BUILD_SPACE_SUFFIX-test/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
         --xunit-name spark
       x86_64-linux/gnatcov-instr-spark-tests-src-traces$EDGE_BUILD_SPACE_SUFFIX-test/results/new/
-    - mv x86_64-linux/gnatcov-instr-spark-tests-src-traces$EDGE_BUILD_SPACE_SUFFIX-test/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
 
   <<: *artifacts
