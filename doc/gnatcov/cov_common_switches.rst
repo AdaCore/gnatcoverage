@@ -4,20 +4,20 @@
    is used by default.
 
 :cmd-option:`--output-dir` :
-   Request that the report files (index and annotated sources for the
-   ``xcov``, ``html`` and ``dhtml`` output formats) be output in the provided
-   directory. If not specified, the default is the root project's object
-   directory if using projects, and the current directory if not.
-   If more than one of the above annotation formats is requested, then each
-   report will be placed in a subdirectory named accordingly.
+   Request that the report files (index and annotated sources for the ``xcov``
+   and ``html`` output formats) be output in the provided directory. If not
+   specified, the default is the root project's object directory if using
+   projects, and the current directory if not. If more than one of the above
+   annotation formats is requested, then each report will be placed in a
+   subdirectory named accordingly.
 
 :cmd-option:`--report-title` :
-   Request that generated HTML documents (index and annotated sources for the
-   ``html`` and ``dhtml`` output formats) are assigned a customized title. For
-   instance, passing ``--report-title="Project ABC"`` will yield titles such
-   as: ``Project ABC - GNATcoverage Report``. If passed multiple times, passing
-   an empty string last will restore the default behavior. This option is
-   ignored is the selected output format does not support titles.
+   Request that generated HTML documents (index for the ``html`` output format)
+   are assigned a customized title. For instance, passing
+   ``--report-title="Project ABC"`` will yield titles such as: ``Project ABC -
+   GNATcoverage Report``. If passed multiple times, passing an empty string last
+   will restore the default behavior. This option is ignored is the selected
+   output format does not support titles.
 
 :cmd-option:`-T`, :cmd-option:`--trace` |marg|, |rarg| :
    Provide the set of execution traces for which a report is to be

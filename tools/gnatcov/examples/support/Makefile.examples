@@ -138,7 +138,7 @@ ckpt.list: force
 out-all-checkpoints/index.html: out-all-checkpoints $(ALL_CHECKPOINTS) ckpt.list
 	$(XCOV) coverage --level=$(XCOVLEVEL) \
 	 --checkpoint=@ckpt.list \
-	 --annotate=dhtml --output-dir=$(dir $@)
+	 --annotate=html --output-dir=$(dir $@)
 
 %.ckpt: %.trace
 	$(XCOV) coverage $(XCOVFILTER) --level=$(XCOVLEVEL) \
@@ -149,7 +149,7 @@ consolidate-traces: out-all-traces/index.html
 
 out-all-traces/index.html: out-all-traces $(ALL_TRACES)
 	$(XCOV) coverage $(XCOVFILTER) --level=$(XCOVLEVEL) \
-	 --annotate=dhtml $(ALL_TRACES) \
+	 --annotate=html $(ALL_TRACES) \
 	 --output-dir $(dir $@)
 
 # -----------------------------------------------------------------------
@@ -168,7 +168,7 @@ out-%: force
 
 out-%/index.html: out-% %.trace
 	$(XCOV) coverage $(XCOVFILTER) \
-	 --level=$(XCOVLEVEL) --annotate=dhtml $*.trace --output-dir $(dir $@)
+	 --level=$(XCOVLEVEL) --annotate=html $*.trace --output-dir $(dir $@)
 
 out-%/index.xml: out-% %.trace
 	$(XCOV) coverage $(XCOVFILTER) \

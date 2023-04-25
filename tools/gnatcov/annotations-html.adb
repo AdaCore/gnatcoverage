@@ -224,7 +224,7 @@ package body Annotations.Html is
       Annotations.Generate_Report
         (Pp,
          Show_Details,
-         Subdir => (if Show_Details then "html+" else "html"));
+         Subdir => (if Show_Details then "shtml+" else "shtml"));
    end Generate_Report;
 
    ---------

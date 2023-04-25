@@ -51,13 +51,12 @@ The available options are as follows:
    :cmd-option:`stmt+uc_mcdc`, all explained later in this chapter.
 
 :cmd-option:`-a`, :cmd-option:`--annotate` |marg|:
-   Request one or more output report formats.  All the criteria support
-   ``xcov[+]``, ``html[+]``, ``dhtml`` and ``report`` formats, with
-   interpretations that vary depending on the assessed criteria. See the
-   corresponding documentation later in this chapter for more details.
-   This option accepts comma separated values and/or can be specified
-   mulitple times on the command line, in which case there will be one
-   report produced for each of the requested formats.
+   Request one or more output report formats. All the criteria support
+   ``xcov[+]``, ``html`` and ``report`` formats, with interpretations that vary
+   depending on the assessed criteria. See the corresponding documentation later
+   in this chapter for more details. This option accepts comma separated values
+   and/or can be specified mulitple times on the command line, in which case
+   there will be one report produced for each of the requested formats.
 
 :cmd-option:`-o` :
    Request that the synthetic report produced by ``--annotate=report`` be
@@ -184,7 +183,7 @@ the following sections::
 
   gnatcov coverage --level=stmt+decision --scos=@alis --annotate=html t1 t2
   # Statement and Decision coverage assessments for two traces "t1" and "t2",
-  # producing html report files in the current directory.
+  # producing an html report in the current directory.
 
   gnatcov coverage --level=stmt+decision --scos=@alis --annotate=html @mytraces
   # Same report, with t1 and t2 listed in the "mytraces" text file
@@ -205,13 +204,12 @@ Output report formats (:cmd-option:`--annotate`)
 
 Source coverage reports may be produced in various formats, as requested with
 the :cmd-option:`--annotate` command line argument of |gcvcov|. The
-:cmd-option:`xcov`, :cmd-option:`html` and :cmd-option:`dhtml` formats produce
-a set of annotated source files, in the directory where |gcv| is launched
-unless overriden with a :cmd-option:`--output-dir` option. The
-:cmd-option:`report` output consists in a synthetic text report of
-:term:`coverage violations <Coverage Violation>` with respect to the requested
-criteria, produced on standard output by default or in the file specified by
-the :cmd-option:`-o` command line option.
+:cmd-option:`xcov` and :cmd-option:`html` formats produce a set of annotated
+source files, in the directory where |gcv| is launched unless overriden with a
+:cmd-option:`--output-dir` option. The :cmd-option:`report` output consists in a
+synthetic text report of :term:`coverage violations <Coverage Violation>` with
+respect to the requested criteria, produced on standard output by default or in
+the file specified by the :cmd-option:`-o` command line option.
 
 Later in this chapter we name output formats by the text to add to
 :cmd-option:`--annotate` on the command line. For example, we use "the
@@ -296,59 +294,44 @@ improperly satisfied obligation is an uncovered statement on line 7::
    7 -:          return V >= X2 and then V <= X1;
    STATEMENT "return V ..." at 7:10 not executed
 
-Annotated sources, html (:cmd-option:`=html[+]`)
-------------------------------------------------
 
-For source coverage criteria, |gcvcov| :cmd-option:`--annotate=html` produces
-an annotated version of each source file, in html format, named after the
-original source with an extra ``.html`` extension at the end.  Each annotated
-source page contains a summary of the assessment results followed by the
-original source lines, all numbered and marked with a coverage annotation as in
-the :cmd-option:`--annotate=xcov` case. Lines with obligations are colorized in
-green, orange or red for ``+``, ``!`` or ``-`` coverage respectively.
+Annotated sources, html (:cmd-option:`=html`)
+---------------------------------------------
 
-An `index.html` page is also produced, which contains a summary of the
-assessment context (assessed criteria, trace files involved, ...) and of the
-coverage results for all the units, with links to their annotated sources.
+For source coverage criteria, |gcvcov| :cmd-option:`--annotate=html` produces an
+index-based report under the HTML format (the other command names are aliases
+for backward compatibility).
+
+To navigate the report, open the index.html file using the browser of your
+choice. This index file contains a summary of the assessment context (assessed
+criteria, trace files involved, ...) and of the coverage results for all the
+units, with links to their annotated sources. If the :cmd-option:`-P` was used
+to designate the source units of interest, sources are indexed per-project.
+
+Note that some dynamic filtering / sorting can be applied:
+
+* Filter by kind of coverage obligations: either reporting on lines, or on
+  statement / decision / MCDC (one or several) obligations, depending on the
+  coverage level. See :ref:`synthetic-metrics` for more information.
+
+* Sort indexes by clicking on column headers, allowing for example sorts keyed
+  on unit names or on relative coverage achievement.
+
 See our :ref:`sample html index <sample_sc_html_index>` appendix for an
 example index page, which embeds a self-description of all the items it
-contains. See the :ref:`sample annotated source <sample_sc_html_unit>`
-appendix for a sample of html annotated source.
+contains.
 
-The page style is governed by a set of Cascading Style Sheet (CSS) parameters,
-fetched from a ``xcov.css`` file in the directory where |gcv| is launched. If
-this file is available when |gcv| starts, |gcv| uses it so users may setup a
-customized version if needed. If the file is not available, |gcv| creates a
-default one.
+The user can browse through an annotated version of the sources from the index.
+Each annotated source page contains a summary of the assessment results. This
+summary can be expanded to print subprogram metrics: the user can click on a
+subprogram's metrics to access it in the annotated source immediately. This
+summary is followed by the original source lines, all numbered and marked with a
+coverage annotation as in the :cmd-option:`--annotate=xcov` case. Lines with
+obligations are colorized in green, orange or red for ``+``, ``!`` or ``-``
+coverage respectively.
 
-Similarily to the :cmd-option:`xcov` format case,
-:cmd-option:`--annotate=html+` (with a trailing +) adds details about
-improperly satisfied obligations.  In the html version, these extra details are
-initially folded within their associated line and expanded by a mouse click on
-the line.
-
-Annotated sources, dynamic html (:cmd-option:`=dhtml`)
-------------------------------------------------------
-
-:cmd-option:`--annotate=dhtml` produces a *dynamic html* output, which
-essentially features:
-
-* A more modern look & feel compared to the :cmd-option:`html` formats
-  described earlier,
-
-* The ability to sort indexes by clicking on column headers, allowing for
-  example sorts keyed on unit names or on relative coverage achievement,
-
-* Per-project indexes on the root page when :cmd-option:`-P` was used to
-  designate the source units of interest.
-
-The option produces a set of `.js` javascript files implementing most of the
-report displays and interactions, as well as an `index.html` root page which
-users should open as an entry point to the report contents.
-
-The per-line details that differentiates :cmd-option:`html+` from
-:cmd-option:`html` are always produced, initially folded and available on line
-clicks as well.
+See the :ref:`sample annotated source <sample_sc_html_unit>` appendix for a
+sample of html annotated source.
 
 
 Violations summary, text (:cmd-option:`=report`)
@@ -827,8 +810,9 @@ following table summarizes the meaning of the possible annotations:
 absence of other known violations for that same line.
 
 When a trailing `+` is added to the format passed to :cmd-option:`--annotate`
-(:cmd-option:`=xcov+` or :cmd-option:`=html+`), a precise description of the
-actual violations is available for each line in addition to the annotation.
+(:cmd-option:`=xcov+`), a precise description of the actual violations is
+available for each line in addition to the annotation. The :cmd-option:`=html`
+provides it by default.
 
 Example program and assessments
 -------------------------------
@@ -1444,14 +1428,14 @@ kind involved in the assessed level (here, for
 total number of obligations of the given kind and the ratio of such
 obligations which have been fully discharged. The ``xcov`` obligation
 metrics don't distinguish partially covered from uncovered items. This
-information is available from the ``dhtml`` reports.
+information is available from the ``html`` report.
 
-For the ``dhtml`` output, synthetic metrics for all the units are
+For the ``html`` output, synthetic metrics for all the units are
 first displayed on the index page, together with metrics for the
 entire analysis and for sets of units grouped by GPR project.
 
 Initially, the line count based metrics are displayed, as illustrated
-by :numref:`dhtml-index-lines`. The main procedure source used in our ``xcov``
+by :numref:`html-index-lines`. The main procedure source used in our ``xcov``
 report example is the ``main.adb`` source here, single source encompassed
 by the ``main.gpr`` project:
 
@@ -1461,25 +1445,25 @@ names ("Stmt", "Decision" or "Mcdc").
 
 Each kind of obligation can be selected alone. Selecting multiple
 kinds is also allowed and just sums the individual counts.
-:numref:`dhtml-index-obligations` illustrates the results we get with
+:numref:`html-index-obligations` illustrates the results we get with
 the ``Stmt`` and ``Decision`` kinds selected together for our previous
 example:
 
-.. _dhtml-index-lines:
+.. _html-index-lines:
 
-.. figure:: dhtml-index-lines.*
+.. figure:: html-index-lines.*
   :scale: 42%
   :align: center
 
-  Dhtml index with line count based synthetic metrics
+  Html index with line count based synthetic metrics
 
-.. _dhtml-index-obligations:
+.. _html-index-obligations:
 
-.. figure:: dhtml-index-obligations.*
+.. figure:: html-index-obligations.*
   :scale: 42%
   :align: center
 
-  Dhtml index with obligations count based synthetic metrics (stmt+decision)
+  Html index with obligations count based synthetic metrics (stmt+decision)
 
 
 .. _rebase_opts:
@@ -1488,11 +1472,10 @@ Handling source relocation for annotated sources output formats
 ===============================================================
 
 For all annotated sources output formats
-(:cmd-option:`--annotate=xcov[+]|html[+]|dhtml)`, |gcv| needs access
-to the sources of the :term:`units of interest <Units of Interest>` to
-generate the output. The tool searches for sources in some default
-locations which are usually correct when the whole coverage analysis
-process is done on the same machine.
+(:cmd-option:`--annotate=xcov[+]|html)`, |gcv| needs access to the sources of
+the :term:`units of interest <Units of Interest>` to generate the output. The
+tool searches for sources in some default locations which are usually correct
+when the whole coverage analysis process is done on the same machine.
 
 When coverage reports are produced on a different machine than the one
 where the coverage run was done, or when sources are moved in the

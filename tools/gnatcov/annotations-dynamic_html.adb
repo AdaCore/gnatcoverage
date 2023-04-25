@@ -295,7 +295,7 @@ package body Annotations.Dynamic_Html is
       Annotations.Generate_Report
         (Pp,
          Show_Details => True,
-         Subdir       => "dhtml");
+         Subdir       => "html");
    end Generate_Report;
 
    ------------------------

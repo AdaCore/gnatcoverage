@@ -71,13 +71,12 @@ The available options are as follows:
    explained later in this chapter.
 
 :cmd-option:`-a`, :cmd-option:`--annotate` |marg|:
-   Request a specific output report format.  The two possible criteria support
-   ``xcov[+]``, ``html[+]``, ``dhtml`` and ``asm``, with interpretations that
-   vary  depending on the assessed criteria. See the corresponding
-   documentation later in this chapter for more details.
-   This option accepts comma separated values and/or can be specified multiple
-   times on the command line, in which case there will be one report produced
-   for each of the requested annotation formats.
+   Request a specific output report format. The two possible criteria support
+   ``xcov[+]``, ``html``, and ``asm``, with interpretations that vary depending
+   on the assessed criteria. See the corresponding documentation later in this
+   chapter for more details. This option accepts comma separated values and/or
+   can be specified multiple times on the command line, in which case there will
+   be one report produced for each of the requested annotation formats.
 
 .. include:: cov_common_switches.rst
 
@@ -118,11 +117,11 @@ The :cmd-option:`asm` format produces an annotated assembly output, with a
 coverage indication attached to every single instruction. This is the base
 information of interest to object coverage analysis, simply presented in
 different manners through the other possible output formats. The
-:cmd-option:`xcov`, :cmd-option:`html`, and :cmd-option:`dhtml` formats produce
-a set of annotated source files, in the directory where |gcv| is launched
-unless overriden with a :cmd-option:`--output-dir` option. Even though
-presented on sources, the annotations remain representative of object coverage
-metrics, synthesized for all the instructions associated with each source line.
+:cmd-option:`xcov` and :cmd-option:`html` formats produce a set of annotated
+source files, in the directory where |gcv| is launched unless overriden with a
+:cmd-option:`--output-dir` option. Even though presented on sources, the
+annotations remain representative of object coverage metrics, synthesized for
+all the instructions associated with each source line.
 
 Later in this chapter we name output formats by the text to add to
 :cmd-option:`--annotate` on the command line. For example, we use "the
@@ -257,37 +256,24 @@ With :cmd-option:`--annotate=xcov+` (extra ``+`` at the end), the machine
 instructions and their individual coverage status are printed next to their
 associated source line.
 
-Annotated sources, html (:cmd-option:`=html[+]`) or dynamic html (:cmd-option:`=dhtml`)
+Annotated sources, html (:cmd-option:`=html`)
 ---------------------------------------------------------------------------------------
 
-For object coverage criteria, |gcvcov| :cmd-option:`--annotate=html` produces
-an annotated version of each source file, in html format, named after the
-original source with an extra ``.html`` extension at the end.  Each annotated
-source page contains a summary of the assessment results followed by the
-original source lines, all numbered and marked with a coverage annotation as in
-the :cmd-option:`--annotate=xcov` case. In addition, lines with obligations are
+For object coverage criteria, |gcvcov| :cmd-option:`--annotate=html` produces an
+annotated version of each source file. Each annotated source page contains a
+summary of the assessment results followed by the original source lines, all
+numbered and marked with a coverage annotation as in the
+:cmd-option:`--annotate=xcov` case. In addition, lines with obligations are
 colorized in green, orange or red for ``+``, ``!`` or ``-`` coverage
 respectively. An `index.html` page is also produced, which contains a
 description of the assessment context (assessed criteria, set of trace files
 involved, ...) and a summary of the coverage results for all the units, with
 links to their annotated sources.
 
-Similarily to the :cmd-option:`xcov` format case,
-:cmd-option:`--annotate=html+` (with a trailing +) attaches to each line
-details about the coverage status of all the individual instructions generated
-for the line. These are folded within the line and expanded when a mouse click
-hits it.
-
-The page style is governed by a set of Cascading Style Sheet (CSS) parameters,
-fetched from a ``xcov.css`` file in the directory where |gcv| is launched. If
-this file is available when |gcv| starts, |gcv| uses it so users may setup a
-customized version if needed. If the file is not available, |gcv| creates a
-default one.
-
-As for source coverage criteria, the :cmd-option:`dhtml` variant produces a
-more elaborate kind of report, with sortable columns and per-project indexes on
-the root page when the units of interest were specified using the
-:cmd-option:`-P` option.
+Similarily to the :cmd-option:`xcov` format case, :cmd-option:`--annotate=html`
+attaches to each line details about the coverage status of all the individual
+instructions generated for the line. These are folded within the line and
+expanded when a mouse click hits it.
 
 .. _ocov-insn:
 
@@ -656,7 +642,7 @@ the corresponding source line in the :cmd-option:`=xcov` output (``!`` on line
   12 +:    end Count;
   13 .: end Genpos;
 
-And the :cmd-option:`=xcov+` (or :cmd-option:`=html+`) output gathers
+And the :cmd-option:`=xcov+` (or :cmd-option:`=html`) output gathers
 everything together, with the blocks of instructions coming from different
 instances identifiable by the associated object symbol names::
 
