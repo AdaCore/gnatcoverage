@@ -243,6 +243,7 @@ project Gnatcov is
         (Binutils_Build_Dir & "/opcodes/libopcodes.a",
          Binutils_Build_Dir & "/bfd/libbfd.a",
          Binutils_Build_Dir & "/libiberty/libiberty.a",
+         Binutils_Build_Dir & "/libsframe/.libs/libsframe.a",
          "-lz",
          "-static-libstdc++",
          "-static-libgcc");
