@@ -19,10 +19,14 @@ gprsw = gprsw=GPRswitches(
 )
 
 
-def build_run_coverage_and_check(covlevel, source_root=None):
+def build_run_coverage_and_check(covlevel, output_opt=None, source_root=None):
     extra_args = ["--annotate=cobertura"]
-    if source_root is not None:
+    if source_root:
         extra_args += ["--source-root", source_root]
+
+    filename = output_opt if output_opt else "cobertura.xml"
+    if output_opt:
+        extra_args += ["-o", output_opt]
 
     build_run_and_coverage(
         gprsw=gprsw,
@@ -31,15 +35,15 @@ def build_run_coverage_and_check(covlevel, source_root=None):
         extra_coverage_args=extra_args,
     )
     parser = etree.XMLParser(dtd_validation=True)
-    return etree.parse(os.path.join("obj", "cobertura.xml"), parser)
+    return etree.parse(os.path.join("obj", filename), parser)
 
 
 # For both source and object coverage, check that the output "cobertura.xml"
 # file is valid according to the cobertura.dtd standard.
 build_run_coverage_and_check("stmt+mcdc")
 if thistest.options.trace_mode == "bin":
-    build_run_coverage_and_check("insn")
-    build_run_coverage_and_check("branch")
+    build_run_coverage_and_check("insn", "cobertura-insn.xml")
+    build_run_coverage_and_check("branch", "cobertura-branch.xml")
 
 
 # Check that the --source-root option works as expected

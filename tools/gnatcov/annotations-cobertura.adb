@@ -51,7 +51,8 @@ package body Annotations.Cobertura is
      (Pattern_Matcher, Pattern_Matcher_Acc);
 
    type Cobertura_Pretty_Printer is new Pretty_Printer with record
-      Report_File : File_Type;
+      Report_Filename : Unbounded_String;
+      Report_File     : File_Type;
       --  "cobertura.xml" file
 
       Indentation : Natural := 0;
@@ -77,8 +78,7 @@ package body Annotations.Cobertura is
    -- XML generation --
    --------------------
 
-   Xml_Header       : constant String := "<?xml version=""1.0"" ?>";
-   Report_File_Name : constant String := "cobertura.xml";
+   Xml_Header : constant String := "<?xml version=""1.0"" ?>";
 
    function A (Name : String; Value : String) return String;
    --  Return a string representing an xml attribute whose name and value are
@@ -231,15 +231,24 @@ package body Annotations.Cobertura is
       --  always becomes "basename" instead of "/basename" regardless of
       --  whether the prefix is "/prefix" or "/prefix/".
 
-      Opt : Parser.String_Option renames Args.String_Args (Opt_Source_Root);
+      Source_Root_Opt : Parser.String_Option renames
+        Args.String_Args (Opt_Source_Root);
+      Output_Opt      : Parser.String_Option renames
+        Args.String_Args (Opt_Output);
    begin
-      if Opt.Present then
+      if Source_Root_Opt.Present then
          declare
-            Prefix : constant String := +Opt.Value & "/";
+            Prefix : constant String := +Source_Root_Opt.Value & "/";
          begin
             Pp.Source_Prefix_Pattern :=
               new Pattern_Matcher'(Compile (Paths.Glob_To_Regexp (Prefix)));
          end;
+      end if;
+
+      if Output_Opt.Present then
+         Pp.Report_Filename := Output_Opt.Value;
+      else
+         Pp.Report_Filename := +"cobertura.xml";
       end if;
 
       Annotations.Generate_Report (Pp, True, Subdir => "cobertura");
@@ -353,7 +362,7 @@ package body Annotations.Cobertura is
             & " to the output directory");
       end if;
 
-      Create_Output_File (Pp.Report_File, Report_File_Name);
+      Create_Output_File (Pp.Report_File, +Pp.Report_Filename);
 
       Pp.P (Xml_Header);
       Pp.P ("<!DOCTYPE coverage SYSTEM ""cobertura.dtd"">");
