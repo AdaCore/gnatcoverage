@@ -15,7 +15,7 @@ begin
 
       pragma Annotate                       -- # init_call
         (Xcov, Exempt_On, "auto init off"); -- # init_call
-      Initialize;                           -- # init_call
+      Initialize;                           -- # init_call_violation
       pragma Annotate (Xcov, Exempt_Off);   -- # init_call
    end if;
 end;

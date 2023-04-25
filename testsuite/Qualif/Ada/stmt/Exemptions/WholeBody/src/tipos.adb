@@ -4,10 +4,10 @@ begin
 
    pragma Annotate (Xcov, Exempt_On,       -- # xblock
                    "test exempting all");  -- # xblock
-   if X > 0 then                           -- # xblock
-      return X * 2;                        -- # xblock
+   if X > 0 then                           -- # xblock_if
+      return X * 2;                        -- # xblock_r1
    else                                    -- # xblock
-      return X;                            -- # xblock
+      return X;                            -- # xblock_r2
    end if;                                 -- # xblock
    pragma Annotate (Xcov, Exempt_Off);     -- # xblock
 end;

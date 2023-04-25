@@ -9,31 +9,31 @@ package body Stacks is
      (S : in out Stack; Op : Op_Kind; V : in out Integer)    -- # xregion
    is                                                        -- # xregion
    begin                                                     -- # xregion
-      case Op is                                             -- # xregion
+      case Op is                                             -- # xregion_1
          when Push =>                                        -- # xregion
-            if S.Vcount = S.Size then                        -- # xregion
-               raise Constraint_Error;                       -- # xregion
+            if S.Vcount = S.Size then                        -- # xregion_2
+               raise Constraint_Error;                       -- # xregion_3
             end if;                                          -- # xregion
                                                              -- # xregion
-            S.Vcount := S.Vcount + 1;                        -- # xregion
-            S.Values (S.Vcount) := V;                        -- # xregion
+            S.Vcount := S.Vcount + 1;                        -- # xregion_4
+            S.Values (S.Vcount) := V;                        -- # xregion_5
                                                              -- # xregion
          when Pop =>                                         -- # xregion
-            if S.Vcount = 0 then                             -- # xregion
-               raise Constraint_Error;                       -- # xregion
+            if S.Vcount = 0 then                             -- # xregion_6
+               raise Constraint_Error;                       -- # xregion_7
             end if;                                          -- # xregion
                                                              -- # xregion
-            V := S.Values (S.Vcount);                        -- # xregion
-            S.Vcount := S.Vcount - 1;                        -- # xregion
+            V := S.Values (S.Vcount);                        -- # xregion_8
+            S.Vcount := S.Vcount - 1;                        -- # xregion_9
       end case;                                              -- # xregion
    exception                                                 -- # xregion
       when Constraint_Error =>                               -- # xregion
-         S.Ecount := S.Ecount + 1;                           -- # xregion
+         S.Ecount := S.Ecount + 1;                           -- # xregion_10
    end;                                                      -- # xregion
                                                              -- # xregion
    function  Errcount (S : in Stack) return Natural is       -- # xregion
    begin                                                     -- # xregion
-      return S.Ecount;                                       -- # xregion
+      return S.Ecount;                                       -- # xregion_11
    end;                                                      -- # xregion
                                                              -- # xregion
    pragma Annotate  (Xcov, Exempt_Off);                      -- # xregion

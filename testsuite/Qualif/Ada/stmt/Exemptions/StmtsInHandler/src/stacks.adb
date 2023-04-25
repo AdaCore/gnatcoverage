@@ -26,7 +26,7 @@ package body Stacks is
 
          pragma Annotate                           -- # op_handler
            (Xcov, Exempt_On, "exception handler"); -- # op_handler
-         S.Ecount := S.Ecount + 1;                 -- # op_handler
+         S.Ecount := S.Ecount + 1;                 -- # op_handler_stmt
          pragma Annotate (Xcov, Exempt_Off);       -- # op_handler
    end;
 

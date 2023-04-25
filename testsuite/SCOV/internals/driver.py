@@ -44,8 +44,10 @@ from SUITE.tutils import (srctrace_pattern_for, srctracename_for,
                           tracename_for, ckptname_for, run_cov_program)
 
 from .cnotes import r0, r0c, xBlock0, xBlock1, lx0, lx1, lFullCov, lPartCov
+from .cnotes import Xr0, Xr0c
 from .cnotes import KnoteDict, elNoteKinds, erNoteKinds, rAntiKinds
 from .cnotes import xNoteKinds, sNoteKinds, dNoteKinds, cNoteKinds, tNoteKinds
+from .cnotes import XsNoteKinds, XoNoteKinds, XcNoteKinds
 from .cnotes import strict_p, deviation_p, anti_p, positive_p
 
 from .xnexpanders import XnotesExpander
@@ -187,9 +189,11 @@ r_lxp_for = {
 
 # Relevant emitted report notes
 r_ern_for = {
-    CAT.stmt: tNoteKinds + xNoteKinds + sNoteKinds,
-    CAT.decision: tNoteKinds + xNoteKinds + sNoteKinds + dNoteKinds,
-    CAT.mcdc: tNoteKinds + xNoteKinds + sNoteKinds + dNoteKinds + cNoteKinds,
+    CAT.stmt: tNoteKinds + xNoteKinds + sNoteKinds + XsNoteKinds,
+    CAT.decision: tNoteKinds + xNoteKinds + sNoteKinds + dNoteKinds +
+    XsNoteKinds + XoNoteKinds,
+    CAT.mcdc: tNoteKinds + xNoteKinds + sNoteKinds + dNoteKinds + cNoteKinds +
+    XsNoteKinds + XoNoteKinds + XcNoteKinds,
 }
 
 # Relevant report expectations
@@ -253,7 +257,6 @@ class _Xchecker:
         # expectations is stricter so the most correct in principle.
 
         for en in self.edict[ekind]:
-
             if not en.discharges and self.__discharges(en=en, xn=xn):
                 en.discharges = xn
                 xn.discharger = en
@@ -883,16 +886,7 @@ class SCOV_helper:
         # Checking that we do have the expected reports will be performed by
         # the regular coverage expectation assessments triggered below.
 
-        # Check if the "--all-messages" switch is activated. In the case of
-        # exempted violations, its use causes the report to show different
-        # informations than would otherwise be expected and that needs to be
-        # checked.
-
-        all_messages = "--all-messages" in self.covoptions
-
-        self.ernotes = RnotesExpander(
-                        "test.rep",
-                        all_messages=all_messages).ernotes
+        self.ernotes = RnotesExpander("test.rep").ernotes
 
         if self.covctl and self.covctl.xreports is not None:
             self.check_unexpected_reports()
@@ -978,8 +972,10 @@ class SCOV_helper:
         # Then augment with what is allowed to hit "0" or "0c" expectation
         # statements:
 
-        r_discharge_kdict.update({r0: r_ern_for[relevance_cat],
-                                  r0c: r_ern_for[relevance_cat]})
+        r_discharge_kdict.update({r0:   r_ern_for[relevance_cat],
+                                  r0c:  r_ern_for[relevance_cat],
+                                  Xr0:  r_ern_for[relevance_cat],
+                                  Xr0c: r_ern_for[relevance_cat]})
 
         # =xcov outputs, stricter_level micro relaxations only:
 
