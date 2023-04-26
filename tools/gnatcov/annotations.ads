@@ -41,10 +41,10 @@ package Annotations is
    type Annotation_Format is
      (Annotate_Asm,
       Annotate_Xcov,
-      Annotate_Html,
+      Annotate_Static_Html,
       Annotate_Xcov_Plus,
-      Annotate_Html_Plus,
-      Annotate_Dynamic_Html,
+      Annotate_Static_Html_Plus,
+      Annotate_Html,
       Annotate_Cobertura,
       Annotate_Xml,
       Annotate_Report,

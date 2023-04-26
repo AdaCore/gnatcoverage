@@ -99,6 +99,7 @@
 # lx0           : line part of exempted block, 0 deviations (=xcov)
 # lx1           : line part of exempted block, >0 deviations (=xcov)
 # lx2           : line part of exempted block, >0 undet. cov. items (=xcov)
+# lx            : line part of exempted block, do not check deviations (=xcov)
 # lNoCov        : line not covered (=xcov)
 # lPartCov      : line partially covered (=xcov)
 
@@ -141,10 +142,18 @@
 # oPartCov : one outcome not covered (=report)
 # oNoCov   : outcome never evaluated (=report)
 
+# Exempted violations. These are a subset of the violations described above
+# that are possible to find in exempted blocks. They have the same meaning but
+# are simply prefixed by an uppercase 'X' to express that they can only be
+# found in exempted regions. The relevant notes are:
+#
+# XsNoCov, XsPartCov, XsNotCoverable, XsUndetCov, XotNoCov, XofNoCov,
+# XoPartCov, XoNoCov, XcPartCov, r0, r0c
+
 # Annotations lower than strictNote won't trigger an unexpected annotation
 # failure if they appear in a place where they are not explicitly expected.
 
-(lNoCode, lFullCov,
+(lNoCode, lFullCov, lx,
  strictNote,
  r0, r0c, lx0, lx1, lx2,
  deviationNote,
@@ -155,14 +164,18 @@
  etNoCov, efNoCov, eNoCov, ePartCov, eUndetCov,
  otNoCov, ofNoCov, oNoCov, oPartCov,
  cPartCov,
+ XsNoCov, XsPartCov, XsNotCoverable, XsUndetCov,
+ XotNoCov, XofNoCov, XoPartCov, XoNoCov,
+ XcPartCov,
+ Xr0, Xr0c,
  blockNote,
- xBlock0, xBlock1, xBlock2) = range(38)
+ xBlock0, xBlock1, xBlock2) = range(50)
 
 NK_image = {None: "None",
             lNoCode: "lNoCode", lNotCoverable: "lNotCoverable",
             lUndetCov: "lUndetCov",
             lFullCov: "lFullCov", lNoCov: "lNoCov", lPartCov: "lPartCov",
-            r0: "r0", r0c: "r0c", lx0: "lx0", lx1: "lx1", lx2: "lx2",
+            r0: "r0", r0c: "r0c", lx0: "lx0", lx1: "lx1", lx2: "lx2", lx: "lx",
             sNoCov: "sNoCov", sPartCov: "sPartCov",
             sNotCoverable: "sNotCoverable", sUndetCov: "sUndetCov",
             dtAlways: "dtAlways", dfAlways: "dfAlways",
@@ -173,7 +186,13 @@ NK_image = {None: "None",
             otNoCov: "otNoCov", ofNoCov: "ofNoCov", oNoCov: "oNoCov",
             oPartCov: "oPartCov",
             xBlock0: "xBlock0", xBlock1: "xBlock1", xBlock2: "xBlock2",
-            cPartCov: "cPartCov"}
+            cPartCov: "cPartCov",
+            XsNoCov: "XsNoCov", XsPartCov: "XsPartCov",
+            XsNotCoverable: "XsNotCoverable", XsUndetCov: "XsUndetCov",
+            XotNoCov: "XotNoCov", XofNoCov: "XofNoCov", XoPartCov: "XoPartCov",
+            XoNoCov: "XoNoCov",
+            XcPartCov: "XcPartCov",
+            Xr0: "Xr0", Xr0c: "Xr0c"}
 
 
 # ===============================
@@ -185,7 +204,10 @@ NK_image = {None: "None",
 
 elNoteKinds = (lNoCode, lNotCoverable, lUndetCov, lNoCov, lPartCov, lFullCov,
                lx0, lx1, lx2)
-xlNoteKinds = elNoteKinds
+
+xlTransparentKinds = (lx,)
+
+xlNoteKinds = elNoteKinds+xlTransparentKinds
 
 # Report notes (=report), which feature anti-expectations that
 # explicitely state expection of absence of emitted notes
@@ -202,6 +224,18 @@ cNoteKinds = (etNoCov, efNoCov, ePartCov, eNoCov,  cPartCov, eUndetCov)
 # Exemption regions
 xNoteKinds = (xBlock0, xBlock1, xBlock2)
 
+
+# Exempted violations
+XsNoteKinds = (XsNoCov, XsPartCov, XsNotCoverable, XsUndetCov)
+
+XoNoteKinds = (XotNoCov, XofNoCov, XoPartCov, XoNoCov)
+
+XcNoteKinds = (XcPartCov,)
+
+XrAntiKinds = (Xr0, Xr0c)
+
+XNoteKinds = XsNoteKinds + XoNoteKinds + XcNoteKinds
+
 # Anti-expectations
 rAntiKinds = (r0, r0c)
 
@@ -212,8 +246,8 @@ tNoteKinds = (otNoCov, ofNoCov, oPartCov, oNoCov)
 # kinds in the Emitted Report Notes set because we do want to handle them as
 # if they could be emitted and report them as unmatched.
 
-erNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds+tNoteKinds
-xrNoteKinds = erNoteKinds+rAntiKinds
+erNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds+tNoteKinds+XNoteKinds
+xrNoteKinds = erNoteKinds+rAntiKinds+XrAntiKinds
 
 
 # ==========================
@@ -263,6 +297,52 @@ def anti_p(nkind):
     emitted indications.
     """
     return nkind in rAntiKinds
+
+
+def transparent_p(nkind):
+    """
+    TRANSPARENT expectations are those that should not produce an expected note
+    to be matched. It is relevant for exempted regions. For an exempted region,
+    we have one _line_ note emitted for each line of the block, one _report_
+    block note emitted for the entire region and one _report_ note for each
+    exempted violation within the region. For example:
+
+    foo.adb.xcov:
+        2 *:   pragma Annotate (Exempt_On, "comment"); -- # ex-region
+        3 *:   if Debug then                           -- # ex-region-test
+        4 *:      Count := Count + 1;                  -- # ex-region-bump
+        5 *:   end if;                                 -- # ex-region
+        6 *:   pragma Annotate (Exempt_Off);           -- # ex-region
+
+    report:
+        -- Exempted Regions --
+        foo.adb:2:4-6:4: 2 exempted violations, justification:
+        "comment"
+        foo.adb:3:7 decision outcome True never exercised
+        foo.adb:4:7 statement not executed
+
+    In expectation blocks, the line intended to match the emitted report block
+    note for the entire region is typically designed to match on all the lines
+    of the region to capture the sloc range. For example:
+
+    --# foo.adb
+    --# /ex-region/ l* ## x1
+
+    This matches all the lines, from 2 to 6, and creates a "l*" line note
+    expectation for each line that is indeed discharged by the .xcov output.
+
+    Now we need additional expectations for the emitted violation _report_
+    notes, and we need to prevent these from creating new line notes
+    expectations that would never be discharged. On our example, this would be
+    achieved with:
+
+    --# /ex-region-test l= ## dT-
+    --# /ex-region-bump l= ## s-
+
+    where the "l=" expectation is "transparent".
+    """
+
+    return nkind in xlTransparentKinds
 
 
 # ===========================
@@ -344,7 +424,7 @@ class Enote(Cnote):
     """Emitted note, as extracted from an xcov report."""
 
     def __init__(self, kind, segment, source, stag=None):
-        self.kind = kind        # The kind of emitted note
+        Cnote.__init__(self, kind)
         self.segment = segment  # The line segment it designates
         self.source = source    # The corresponding source name
         self.stag = stag        # The separation tag it contains

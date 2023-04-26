@@ -15,9 +15,9 @@ package body Ranges is
    begin
       pragma Annotate                                    -- # preValid
         (Xcov, Exempt_On, "expect no invalid ranges");   -- # preValid
-      if not (R1.Valid and then R2.Valid) then           -- # preValid
-         N_Invalid_Inputs := N_Invalid_Inputs + 1;       -- # preValid
-         return True;                                    -- # preValid
+      if not (R1.Valid and then R2.Valid) then           -- # preValid_if
+         N_Invalid_Inputs := N_Invalid_Inputs + 1;       -- # preValid_inc
+         return True;                                    -- # preValid_ret
       end if;                                            -- # preValid
       pragma Annotate (Xcov, Exempt_Off);                -- # preValid
 

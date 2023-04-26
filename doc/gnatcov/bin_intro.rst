@@ -64,9 +64,9 @@ trace production modes:
      - Yes
    * - *New features*
      - Often not
-     - Yes (source level metrics for C++, scoped metrics in dhtml)
+     - Yes (source level metrics for C++, scoped metrics in html)
 
-      
+
 Workflow overview
 -----------------
 

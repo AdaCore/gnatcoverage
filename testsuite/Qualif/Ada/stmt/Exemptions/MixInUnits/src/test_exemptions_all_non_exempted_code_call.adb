@@ -32,11 +32,13 @@ end Test_Exemptions_All_Non_Exempted_Code_Call;
 
 --# exemptions.adb
 -- /xswap/             l* ## x+
+-- /xswap_vio/         l= ## Xs-
 -- /swap_stmt/         l- ## s-
 
 -- /factorial/         l+ ## 0
 -- /1_factorial/       l+ ## 0
 -- /xfactorial/        l* ## x+
+-- /xfactorial_vio/    l= ## Xs-
 -- /elsif_factorial/   l+ ## 0
 -- /rec_factorial/     l+ ## 0
 

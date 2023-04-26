@@ -868,11 +868,20 @@ package body Annotations is
       elsif Option = "xcov+" then
          return Annotate_Xcov_Plus;
 
+      --  Note that we only keep these option names (html+ and dhtml) for
+      --  backward compatibility.
+
       elsif Option = "html+" then
-         return Annotate_Html_Plus;
+         return Annotate_Html;
 
       elsif Option = "dhtml" then
-         return Annotate_Dynamic_Html;
+         return Annotate_Html;
+
+      elsif Option = "shtml" then
+         return Annotate_Static_Html;
+
+      elsif Option = "shtml+" then
+         return Annotate_Static_Html_Plus;
 
       elsif Option = "report" then
          return Annotate_Report;

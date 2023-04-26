@@ -20,11 +20,13 @@ end Test_Exemptions_No_Call;
 
 --# exemptions.adb
 -- /xswap/             l* ## x+
+-- /xswap_vio/         l= ## Xs-
 -- /swap_stmt/         l- ## s-
 
 -- /factorial/         l- ## s-
 -- /1_factorial/       l- ## s-
 -- /xfactorial/        l* ## x+
+-- /xfactorial_vio/    l= ## Xs-
 -- /elsif_factorial/   l- ## s-
 -- /rec_factorial/     l- ## s-
 

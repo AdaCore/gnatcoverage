@@ -1663,7 +1663,7 @@ begin
             Fatal_Error ("XML report format support is not installed.");
          end if;
 
-         if Annotation (Annotate_Dynamic_Html)
+         if Annotation (Annotate_Html)
            and then not Annotations.Dynamic_Html.Installed
          then
             Fatal_Error
@@ -2313,16 +2313,16 @@ begin
                      Show_Details => Annotation (Annotate_Xcov_Plus));
                end if;
 
-               if Annotation (Annotate_Html)
-                 or else Annotation (Annotate_Html_Plus)
+               if Annotation (Annotate_Static_Html)
+                 or else Annotation (Annotate_Static_Html_Plus)
                then
                   Annotations.Html.Generate_Report
                     (Context'Unchecked_Access,
-                     Show_Details => Annotation (Annotate_Html_Plus),
+                     Show_Details => Annotation (Annotate_Static_Html_Plus),
                      Report_Title => Args.String_Args (Opt_Report_Title));
                end if;
 
-               if Annotation (Annotate_Dynamic_Html) then
+               if Annotation (Annotate_Html) then
                   Annotations.Dynamic_Html.Generate_Report
                     (Context'Unchecked_Access,
                      Report_Title => Args.String_Args (Opt_Report_Title));

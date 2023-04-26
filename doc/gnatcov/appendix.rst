@@ -71,10 +71,9 @@ where <sloc> is a source-filename:line:column source location of the
 problematic line.
 
 In annotated sources kinds of outputs, this materializes as '!' note indicating
-partial coverage on the affected lines, with the :cmd-option:`=report`
-violation text quoted above available as part of the line extra-details
-expanded on demand (:cmd-option:`=html+` and :cmd-option:`xcov+` output
-formats).
+partial coverage on the affected lines, with the :cmd-option:`=report` violation
+text quoted above available as part of the line extra-details expanded on demand
+(:cmd-option:`=html` and :cmd-option:`xcov+` output formats).
 
 .. _mcdc-limitations:
 

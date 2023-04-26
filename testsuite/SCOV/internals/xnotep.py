@@ -12,11 +12,13 @@ This depends on the thittest instance.
 import re
 
 from .cnotes import (
-    Xnote, block_p, cPartCov, dNoCov, dPartCov, dfAlways, dfNoCov, dtAlways,
-    dtNoCov, ePartCov, eNoCov, efNoCov, etNoCov, lFullCov, lNoCode, lNoCov,
-    lNotCoverable, lPartCov, lx0, lx1, lx2, oNoCov, oPartCov, ofNoCov,
-    otNoCov, r0, r0c, sNoCov, sNotCoverable, sPartCov, xBlock0, xBlock1,
-    xBlock2, xNoteKinds, lUndetCov, sUndetCov, dUndetCov, eUndetCov
+    Xnote, block_p, transparent_p, cPartCov, dNoCov, dPartCov, dfAlways,
+    dfNoCov, dtAlways, dtNoCov, ePartCov, eNoCov, efNoCov, etNoCov, lFullCov,
+    lNoCode, lNoCov, lNotCoverable, lPartCov, lx0, lx1, lx2, lx, oNoCov,
+    oPartCov, ofNoCov, otNoCov, r0, r0c, sNoCov, sNotCoverable, sPartCov,
+    xBlock0, xBlock1, xBlock2, xNoteKinds, lUndetCov, sUndetCov, dUndetCov,
+    eUndetCov, XsNoCov, XsPartCov, XsNotCoverable, XsUndetCov, XotNoCov,
+    XofNoCov, XoPartCov, XoNoCov, XcPartCov, Xr0, Xr0c
 )
 from .segments import Line, Section, Segment
 from .stags import Stag_from
@@ -169,7 +171,7 @@ class XnoteP:
 
     NK_for = {'l-': lNoCov, 'l!': lPartCov, 'l+': lFullCov,
               'l.': lNoCode, 'l0': lNotCoverable, 'l?': lUndetCov,
-              'l#': lx0, 'l*': lx1, 'l@': lx2,
+              'l#': lx0, 'l*': lx1, 'l@': lx2, 'l=': lx,
               's-': sNoCov, 's!': sPartCov, 's0': sNotCoverable,
               's?': sUndetCov,
               'dT*': dtAlways, 'dF*': dfAlways,
@@ -180,7 +182,19 @@ class XnoteP:
               'oT-': otNoCov, 'oF-': ofNoCov, 'o!': oPartCov, 'o-': oNoCov,
               'c!': cPartCov,
               'x0': xBlock0, 'x+': xBlock1, 'x?': xBlock2,
-              '0': r0, '0c': r0c}
+              '0': r0, '0c': r0c,
+              # Exempted notes
+              'Xs-': XsNoCov, 'Xs!': XsPartCov, 'Xs0': XsNotCoverable,
+              'Xs?': XsUndetCov,
+              'XoT-': XotNoCov, 'XoF-': XofNoCov, 'Xo!': XoPartCov,
+              'Xo-': XoNoCov, 'Xc!': XcPartCov,
+              'X0': Xr0, 'X0c': Xr0c}
+
+    # The notes prefixed with 'X' correspond to the type of violations we
+    # expect to encounter within an exempted block. In this context we cannot
+    # determine if a violation on a decision belongs to decision or MCDC
+    # coverage. Therefore we use the 'o' notes to express this lack of
+    # information.
 
     def __init__(self, text, stext=None, stag=None):
 
@@ -244,6 +258,6 @@ class XnoteP:
                 else self.kind)
 
         return (None
-                if kind is None
+                if kind is None or transparent_p(kind)
                 else self.factory.instanciate_over(tline=tline, block=block,
                                                    kind=kind))
