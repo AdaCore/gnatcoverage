@@ -28,8 +28,6 @@ with Ada.Strings.Wide_Wide_Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
 
 with Langkit_Support;
-with Langkit_Support.Generic_API.Introspection;
-use Langkit_Support.Generic_API.Introspection;
 with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
 with Langkit_Support.Symbols;  use Langkit_Support.Symbols;
 with Libadalang.Common;        use Libadalang.Common;
@@ -350,88 +348,6 @@ package body Instrument.Ada_Unit is
    is (Create_Defining_Name (UIC.Rewriting_Context,
                              Make_Identifier (UIC, D_Name)));
    --  Shortcut to create a defining identifier tree
-
-   -----------------------
-   -- Rewriting helpers --
-   -----------------------
-
-   --  TODO??? (eng/libadalang/langkit#642) Remove these helpers to use
-   --  Libadalang's once they are available.
-
-   Generic_Kinds : array (Ada_Node_Kind_Type) of Type_Ref;
-   --  Translate a Ada_Node_Kind_Type value (node type in the Libadalang API)
-   --  to the corresponding Struct_Member_Ref value (node type in the generic
-   --  Langkit_Support API).
-
-   function Child_Index
-     (Handle : Node_Rewriting_Handle;
-      Field  : Struct_Member_Ref) return Positive
-   is (Syntax_Field_Index (Field, Generic_Kinds (Kind (Handle))));
-   --  Return the index of the syntax field ``Field`` in the node designated by
-   --  ``Handle``.
-
-   function Child
-     (Handle : Node_Rewriting_Handle;
-      Field  : Struct_Member_Ref) return Node_Rewriting_Handle;
-   --  Return the node that is in the syntax Field for Handle
-
-   function Child
-     (Handle : Node_Rewriting_Handle;
-      Fields : Struct_Member_Ref_Array) return Node_Rewriting_Handle;
-   --  Return a child deep in the tree Handle.
-   --
-   --  Assuming Fields'Range is 1 .. N, this is a shortcut for:
-   --
-   --    C1 := Child (Handle, Fields (1));
-   --    C2 := Child (C1, Fields (2));
-   --    ...
-   --    CN_1 := Child (CN_2, Fields (N - 1));
-   --    CN := Child (CN_1, Fields (N));
-
-   procedure Set_Child
-     (Handle : Node_Rewriting_Handle;
-      Field  : Struct_Member_Ref;
-      Child  : Node_Rewriting_Handle);
-   --  If ``Child`` is ``No_Rewriting_Node``, untie the syntax field in
-   --  ``Handle`` corresponding to ``Field``, so it can be attached to another
-   --  one. Otherwise, ``Child`` must have no parent as it will be tied to
-   --  ``Handle``'s tree.
-
-   -----------
-   -- Child --
-   -----------
-
-   function Child
-     (Handle : Node_Rewriting_Handle;
-      Field  : Struct_Member_Ref) return Node_Rewriting_Handle
-   is
-   begin
-      return Child (Handle, Child_Index (Handle, Field));
-   end Child;
-
-   function Child
-     (Handle : Node_Rewriting_Handle;
-      Fields : Struct_Member_Ref_Array) return Node_Rewriting_Handle is
-   begin
-      return Result : Node_Rewriting_Handle := Handle do
-         for F of Fields loop
-            Result := Child (Result, F);
-         end loop;
-      end return;
-   end Child;
-
-   ---------------
-   -- Set_Child --
-   ---------------
-
-   procedure Set_Child
-     (Handle : Node_Rewriting_Handle;
-      Field  : Struct_Member_Ref;
-      Child  : Node_Rewriting_Handle)
-   is
-   begin
-      Set_Child (Handle, Child_Index (Handle, Field), Child);
-   end Set_Child;
 
    ---------------------
    -- Unbounded texts --
@@ -8829,34 +8745,4 @@ package body Instrument.Ada_Unit is
       end;
    end Find_Ada_Units;
 
-   --  Initialize the Generic_Kinds mapping. Ada_Node_Kind_Type is the set of
-   --  all concrete (non-abstract nodes) while All_Node_Types also returns
-   --  abstract types. Nodes that are common to both lists appear in the same
-   --  order, so all we need in order to build a 1:1 mapping is to filter out
-   --  abstract nodes from the result of All_Node_Types.
-   --
-   --  Reduced illustration:
-   --
-   --  * All_Node_Types:
-   --      Ada_Node(abstract), Identifier, Expr(abstract), Int_Literal
-   --  * Ada_Node_Kind_Type:
-   --      Identifier, Int_Literal
-
-   Nodes : constant Type_Ref_Array :=
-     All_Node_Types (Libadalang.Generic_API.Ada_Lang_Id);
-   Next  : Positive := Nodes'First;
-begin
-   for Kind in Ada_Node_Kind_Type loop
-      Search_Next_Concrete : loop
-         declare
-            N : Type_Ref renames Nodes (Next);
-         begin
-            Next := Next + 1;
-            if not Is_Abstract (N) then
-               Generic_Kinds (Kind) := N;
-               exit Search_Next_Concrete;
-            end if;
-         end;
-      end loop Search_Next_Concrete;
-   end loop;
 end Instrument.Ada_Unit;
