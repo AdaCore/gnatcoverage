@@ -14,7 +14,7 @@ import sys
 import itertools
 
 from e3.fs import mkdir, rm, cp
-from e3.os.fs import which
+from e3.os.fs import which, unixpath
 from e3.os.process import Run, quote_arg
 import e3.testsuite
 from e3.testsuite.control import AdaCoreLegacyTestControlCreator
@@ -110,7 +110,10 @@ class QlevelInfo(object):
         provided test directory, which may be relative to a testsuite
         root or absolute.
         """
-        return re.search(pattern=self.subtrees, string=test_dir)
+
+        # Expect filtering subtrees using forward slashes, so make
+        # sure the provided test_dir is amenable so such patterns.
+        return re.search(pattern=self.subtrees, string=unixpath(test_dir))
 
 
 RE_QCOMMON = "(Common|Appendix)"
@@ -148,6 +151,7 @@ QLEVEL_INFO = {
         levelid="doC", subtrees=RE_SUBTREE(re_crit="stmt"), xcovlevel="stmt"
     ),
 }
+
 
 # ===============================
 # == Compilation Flags Control ==
@@ -334,7 +338,7 @@ class TestPyRunner:
 
         # Create a "canonical" directory name for this testcase, useful to
         # simplify some platform-independent processings.
-        self.unix_test_dir = self.test_dir().replace("\\", "/")
+        self.unix_test_dir = unixpath(self.test_dir())
 
         # Load all relevant *.opt files to control the execution of this test
         self.test_control_creator = self.parse_opt()
@@ -954,7 +958,7 @@ class GroupPyDriver(TestDriver):
         # as for regular tests.
         test_rel_dir = os.path.relpath(test_dir, self.test_dir())
         test_name = "{}-{}".format(
-            self.test_name, test_rel_dir.replace("\\", "/").replace("/", "-")
+            self.test_name, unixpath(test_rel_dir).replace("/", "-")
         )
 
         # For debuggability, derive the group.py test environment
@@ -1024,7 +1028,7 @@ class TestSuite(e3.testsuite.Testsuite):
 
         # Run some name canonicalization and replace directory separators with
         # dashes.
-        result = result.replace("\\", "/").rstrip("/").replace("/", "-")
+        result = unixpath(result).rstrip("/").replace("/", "-")
 
         # Tests from the internal testsuite used to be located in the "tests"
         # subdirectory. They are now in "../extra/tests", but we want the GAIA
