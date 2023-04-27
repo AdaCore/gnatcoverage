@@ -1,13 +1,10 @@
 --  Test driver for exemptions. It calls subprograms from the functional
---  code, and it executes a part of the code in a part of the exempted
---  sections.
---
---  This driver executes not all but only a part of exempted code.
+--  code, and it executes all the code in all the exempted sections.
 
 with Exemptions;
 with Support;    use Support;
 
-procedure Test_Exemptions_Exempted_Code_Call is
+procedure Test_All_Exempted is
    I : Integer := 1;
    J : Integer := 2;
    K : Integer := 3;
@@ -22,7 +19,7 @@ begin
    Assert (Exemptions.Factorial (Positive'Last) = Positive'Last);
    --  Code in exemption section is executed
 
-end Test_Exemptions_Exempted_Code_Call;
+end Test_All_Exempted;
 
 --# exemptions.ads
 -- /decl/              l+ ## 0

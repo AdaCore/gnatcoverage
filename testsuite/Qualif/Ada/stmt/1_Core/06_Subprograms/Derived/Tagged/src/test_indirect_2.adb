@@ -6,7 +6,7 @@ with Derived_1;       use Derived_1;
 with Derived_2;       use Derived_2;
 with Subprogram_Pack; use Subprogram_Pack;
 with Support;         use Support;
-procedure Test_Derived_Subprograms_Indirect_2 is
+procedure Test_Indirect_2 is
    Var_T           : T           := (I => 1);
    Var_Derived_T_1 : Derived_T_1 := (I => 2);
    Var_Derived_T_2 : Derived_T_2 := (I => 3);
@@ -23,7 +23,7 @@ begin
    --  reported as uncovered
    Assert (Var_Derived_T_1.I = 4);
 
-end Test_Derived_Subprograms_Indirect_2;
+end Test_Indirect_2;
 
 --# subprogram_pack.adb
 -- /fun1/       l- ## s-
