@@ -110,40 +110,16 @@ control.
 
 In synthetic text reports, a single indication is emitted for each exempted
 region as a whole, and the indications for all the regions are grouped in a
-separate *Exempted Regions* report section, only present if there are
-exemption regions in the analysis scope. This section lists the exempted
-regions, displaying for each the source location span, the number of actually
-exempted violations in the region and the exemption justification text. It
-also includes a total count of the number of exempted regions at the end.
+separate *Exempted Regions* report section, only present if there are exemption
+regions in the analysis scope. This section lists the exempted regions,
+displaying for each the source location span, the number of actually exempted
+violations in the region, the exemption justification text and the observed
+exempted violations per regions. It also includes a total count of the number
+of exempted regions and another for exempted violations accross all sections at
+the end.
 
 The corresponding :cmd-option:`=report` excerpt below illustrates this for the
 ``Eassert`` example::
-
-   ...
-   =========================
-   == 3. EXEMPTED REGIONS ==
-   =========================
-
-   eassert.adb:8:4-12:4: 2 exempted violations, justification:
-   "assert condition never to be False"
-
-   1 exempted region.
-
-   =========================
-   == 4. ANALYSIS SUMMARY ==
-   =========================
-
-   No non-exempted STMT violation.
-   No non-exempted DECISION violation.
-   1 exempted region.
-
-The exempted violations are also displayed to let the user check that they
-match the expected ones. The report shows the previously mentioned information
-along with the observed violations under their corresponding exempted block,
-and the total number of exempted violations found across all exempted regions.
-
-The :cmd-option:`=report` excerpt below illustrates this for the ``Eassert``
-example::
 
    ...
    =========================
@@ -158,7 +134,14 @@ example::
    eassert.adb:9:8: statement not executed
 
    1 exempted region, 2 exempted violations.
-   ...
+
+   =========================
+   == 4. ANALYSIS SUMMARY ==
+   =========================
+
+   No non-exempted STMT violation.
+   No non-exempted DECISION violation.
+   1 exempted region, 2 exempted violations.
 
 The *Coverage Violations* section is renamed to convey that it contains
 "NON-EXEMPTED" violations only, and the *Analysis Summary* counters are
