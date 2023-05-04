@@ -938,9 +938,10 @@ package body Instrument.Input_Traces is
       subtype Whitespace is Character with Static_Predicate =>
          Whitespace in ' ' | ASCII.HT | ASCII.CR | ASCII.LF;
 
-      function Trim (S : String) return String;
-      --  Return S without its leading/trailing whitespaces, tabs, carriage
-      --  returns and newline characters (if any).
+      procedure Trim
+        (S : String; First : in out Positive; Last : in out Natural);
+      --  Adjust First/Last so that S (First .. Last) has no leading/trailing
+      --  whitespaces, tabs, carriage returns and newline characters.
 
       function Base64_Digit (C : Character) return Unsigned_8;
       --  Return the 6-bit number that the C Base64 digit means
@@ -955,9 +956,8 @@ package body Instrument.Input_Traces is
       -- Trim --
       ----------
 
-      function Trim (S : String) return String is
-         First : Positive := S'First;
-         Last  : Natural := S'Last;
+      procedure Trim
+        (S : String; First : in out Positive; Last : in out Natural) is
       begin
          while First in S'Range and then S (First) in Whitespace loop
             First := First + 1;
@@ -965,7 +965,6 @@ package body Instrument.Input_Traces is
          while Last in S'Range and then S (Last) in Whitespace loop
             Last := Last - 1;
          end loop;
-         return S (First .. Last);
       end Trim;
 
       ------------------
@@ -1027,17 +1026,60 @@ package body Instrument.Input_Traces is
       <<Read_Next_Line>>
       while not TIO.End_Of_File (Input) loop
          declare
-            Line : constant String := Trim (TIO.Get_Line (Input));
+            use type TIO.Count;
+
+            Reading_Trace : constant Boolean := BIO.Is_Open (Output);
+            Buffer        : String (1 .. 100);
+            First         : Positive := 1;
+            Last          : Natural;
          begin
-            if BIO.Is_Open (Output) then
-               if Line = End_Marker then
+            --  Try to read a line, abort if we reached the end of line
+
+            begin
+               TIO.Get_Line (Input, Buffer, Last);
+            exception
+               when TIO.End_Error =>
+                  exit;
+            end;
+
+            --  If the line is too long for our buffer:
+            --
+            --  * If we are in the middle of reading a source trace, stop with
+            --    an error: this is not supposed to happen as we dump source
+            --    traces with at most 80-columns wide lines.
+            --
+            --  * Otherwise, just skip that line.
+            --
+            --  Note that, for some reason, End_Of_Line may return False even
+            --  if we managed to read the full line. To consider that we did
+            --  manage to read the full line in such cases, also check the
+            --  column (1 = we reached the next line, so we managed to read the
+            --  previous line in one go).
+
+            if not TIO.End_Of_Line (Input) and then TIO.Col (Input) > 1 then
+               if Reading_Trace then
+                  Outputs.Fatal_Error
+                    ("Unexpected long line in Base64 trace");
+               else
+                  TIO.Skip_Line (Input);
+                  goto Read_Next_Line;
+               end if;
+            end if;
+
+            --  Remove leading/trailing whitespaces, which copy/pasting may
+            --  insert.
+
+            Trim (Buffer, First, Last);
+
+            if Reading_Trace then
+               if Buffer (First .. Last) = End_Marker then
                   BIO.Close (Output);
                   goto Read_Next_Line;
                end if;
 
                --  Expect groups of 4 characters
 
-               if Line'Length mod 4 /= 0 then
+               if Buffer (First .. Last)'Length mod 4 /= 0 then
                   Outputs.Fatal_Error
                     ("Invalid Base64 trace: incomplete group of 4 characters");
                end if;
@@ -1045,16 +1087,16 @@ package body Instrument.Input_Traces is
                --  Now process each group
 
                declare
-                  Next : Positive := Line'First;
+                  Next : Positive := First;
 
                   function D (Index : Natural) return Unsigned_8
-                  is (Base64_Digit (Line (Next + Index)));
+                  is (Base64_Digit (Buffer (Next + Index)));
 
                begin
-                  while Next <= Line'Last loop
+                  while Next <= Last loop
                      --  Here, process the Base64 digits in the slice:
                      --
-                     --    Line (Next .. Next + 3)
+                     --    Buffer (Next .. Next + 3)
                      --
                      --  This slice contains 4 Base64 digits, and each digit
                      --  encodes 6 bits (total: 24 bits), so we can decode 3
@@ -1065,11 +1107,11 @@ package body Instrument.Input_Traces is
                      BIO.Write
                        (Output,
                         Shift_Left (D (0), 2) or Shift_Right (D (1), 4));
-                     if Line (Next + 2) /= '=' then
+                     if Buffer (Next + 2) /= '=' then
                         BIO.Write
                           (Output,
                            Shift_Left (D (1), 4) or Shift_Right (D (2), 2));
-                        if Line (Next + 3) /= '=' then
+                        if Buffer (Next + 3) /= '=' then
                            BIO.Write (Output, Shift_Left (D (2), 6) or D (3));
                         end if;
                      end if;
@@ -1078,7 +1120,7 @@ package body Instrument.Input_Traces is
                   end loop;
                end;
 
-            elsif Line = Start_Marker then
+            elsif Buffer (First .. Last) = Start_Marker then
                Had_One_Trace := True;
                BIO.Create (Output, BIO.Out_File, Output_File);
             end if;
