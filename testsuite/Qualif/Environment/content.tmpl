@@ -113,11 +113,9 @@ In addition:
   present in the source programs at all, are disabled, for instance thanks to
   an Assertion_Policy pragma.
 
-* For statement, decision or mcdc analysis on Ada 2012, the tool is not
-  qualified to assess coverage of the new forms of expression introduced in
-  the language, in particular *conditional expressions*, *generalized
-  membership tests* with more than one alternative, and *quantified
-  expressions*.
+* For decision or mcdc analysis on Ada 2012, the tool is not
+  qualified to assess coverage *generalized membership tests* with
+  more than one alternative.
 
   Such expressions are only allowed in assertion/contracts contexts, disabled
   for coverage analysis purposes as previously described in this section.
