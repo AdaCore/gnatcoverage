@@ -143,6 +143,8 @@ class GPRswitches:
                  units=None,
                  no_subprojects=False,
                  externally_built_projects=False,
+                 relocate_build_tree=False,
+                 root_dir=None,
                  xvars=None,
                  subdirs=None):
         """
@@ -165,6 +167,8 @@ class GPRswitches:
         self.units = units or []
         self.no_subprojects = no_subprojects
         self.externally_built_projects = externally_built_projects
+        self.relocate_build_tree = relocate_build_tree
+        self.root_dir = root_dir
         self.xvars = xvars or []
         self.subdirs = subdirs
 
@@ -181,6 +185,12 @@ class GPRswitches:
 
         if self.subdirs:
             switches.append('--subdirs={}'.format(self.subdirs))
+
+        if self.relocate_build_tree:
+            switches.append('--relocate-build-tree')
+
+        if self.root_dir:
+            switches.append('--root-dir={}'.format(self.root_dir))
 
         return switches
 

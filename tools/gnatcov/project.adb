@@ -98,6 +98,13 @@ package body Project is
    --  Hold the object subdirectory to use (if any) for all loaded projects.
    --  Should be processed each time we load a project tree.
 
+   Build_Tree_Dir : Virtual_File;
+   --  The root of the build tree for the loaded projects
+
+   Root_Dir : Virtual_File;
+   --  The root dir of the project tree, to consider when Build_Root_Dir is
+   --  set.
+
    Externally_Built_Projects_Processing_Enabled : Boolean := False;
    --  Whether to include projects marked as externally built to processings
 
@@ -1352,6 +1359,18 @@ package body Project is
          Env.Set_Object_Subdir (+To_String (Obj_Subdir));
       end if;
 
+      if Build_Tree_Dir /= No_File then
+         Env.Set_Build_Tree_Dir (Build_Tree_Dir.Full_Name);
+
+         --  When the build tree directory is set, the root directory may be
+         --  specified explicitly from the command line. Otherwise, the project
+         --  file directory is used.
+
+         if Root_Dir /= No_File then
+            Env.Set_Root_Dir (Root_Dir.Full_Name);
+         end if;
+      end if;
+
       Prj_Tree := new Project_Tree;
       begin
          Prj_Tree.Load
@@ -1567,6 +1586,35 @@ package body Project is
    begin
       Externally_Built_Projects_Processing_Enabled := True;
    end Enable_Externally_Built_Projects_Processing;
+
+   -----------------------------------
+   -- Set_Build_Tree_Dir_To_Current --
+   -----------------------------------
+
+   procedure Set_Build_Tree_Dir_To_Current is
+   begin
+      Build_Tree_Dir := Get_Current_Dir;
+      Build_Tree_Dir.Normalize_Path;
+
+      if Env /= null then
+         Env.Set_Build_Tree_Dir
+           (Build_Tree_Dir.Full_Name);
+      end if;
+   end Set_Build_Tree_Dir_To_Current;
+
+   ------------------
+   -- Set_Root_Dir --
+   ------------------
+
+   procedure Set_Root_Dir (Dir : String) is
+   begin
+      Root_Dir := Create (+Dir);
+      Root_Dir.Normalize_Path;
+
+      if Env /= null then
+         Env.Set_Root_Dir (Root_Dir.Full_Name);
+      end if;
+   end Set_Root_Dir;
 
    ------------------
    -- Project_Name --
