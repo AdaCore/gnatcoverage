@@ -665,7 +665,8 @@ class QMAT:
                 else:
                     print("ERRRR !! inexistant target dir for %s" % tr)
 
-            [sync(tr) for tr in find(root=".", pattern="tc.dump")]
+            [sync(tr) for tr in find(root=".", pattern="tcs.dump")]
+
         env_chapter_dir = os.path.join(
             self.repodir, "testsuite", "Qualif", "Environment"
         )
