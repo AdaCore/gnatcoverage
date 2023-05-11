@@ -28,7 +28,7 @@ sys.path.append(LOCAL_TESTSUITE_DIR)
 
 TEST_LOG = "test.py.log"
 
-from SUITE.qdata import qdaf_in, stdf_in
+from SUITE.qdata import qdafs_from, stdf_in
 from SUITE.qdata import STATUSDATA_FILE, QLANGUAGES, QROOTDIR
 from SUITE.qdata import CTXDATA_FILE, Qdata
 from SUITE.control import BUILDER
@@ -133,26 +133,23 @@ class QualificationDataRepository(object):
         print("loading from %s" % dirname)
 
         # Some tests in the Common chapter have status data and multiple
-        # individual test data files in subdirectories. Their purpose is to
-        # verify the proper behavior of a general functionality such as the
-        # ability to use project files, not to verify that the tool assesses
-        # such or such criteria properly. Even if they use an internal
-        # facility that does this as well, the individual datapoints
-        # are irrelevant and shouldn't be loaded. The general test result
-        # remains of interest of course.
+        # individual test data files in subdirectories. To properly load
+        # these multiple test data files, load them one at a time and merge
+        # the entries in the Qdata object of the whole testcase.
 
         # Fetch the status data first, then complete it with test data
-        # at the same place if any.
+        # located in the directory tree rooted at dirname, if any.
 
         std = dutils.pload_from(stdf_in(dirname))
 
-        tcdf = qdaf_in(dirname)
+        tcdfs = qdafs_from(dirname)
 
-        qda = (
-            dutils.pload_from(tcdf)
-            if os.path.exists(tcdf)
-            else Qdata(tcid=dirname)
-        )
+        qda = Qdata(tcid=dirname)
+
+        for tcdf in tcdfs:
+            sub_qda = dutils.pload_from (tcdf)
+            for entry in sub_qda.entries:
+                qda.register (entry)
 
         qda.status = std.status
         qda.comment = std.comment
