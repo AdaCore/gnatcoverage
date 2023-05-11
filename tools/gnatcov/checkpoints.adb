@@ -515,8 +515,18 @@ package body Checkpoints is
 
    procedure SID_Load
      (Filename             : String;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp) is
+      Ignored_Source_Files : access GNAT.Regexp.Regexp)
+   is
+      SID_Re : constant GNAT.Regexp.Regexp := GNAT.Regexp.Compile (".*\.sid");
    begin
+      if not GNAT.Regexp.Match (Filename, SID_Re) then
+         Fatal_Error ("invalid "
+                      & Purpose_Name (Instrumentation)
+                      & " file "
+                      & Filename
+                      & ", name of file should have .sid extension");
+      end if;
+
       Checkpoint_Load (Filename, Instrumentation, Ignored_Source_Files);
    end SID_Load;
 

@@ -253,6 +253,8 @@ class Test (object):
         """Register a check failure when ACTUAL does not match regexp."""
         if isinstance(regexp, str):
             regexp = re.compile(regexp)
+        # Canonicalize to Unix-style line endings to have cross-platform checks
+        actual = actual.replace('\r\n', '\n')
         self.fail_if(
             not regexp.match(actual),
             'Unexpected {}. Expected:'
