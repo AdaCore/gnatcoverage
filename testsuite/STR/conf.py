@@ -11,28 +11,28 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import sys, os, glob
 
 doc_standard_name = "Tool Operational Verification and Validation Results"
 
 rst_prolog = ".. |str_doc| replace:: *%s*" % doc_standard_name
 
-common_file = os.path.join(
-    os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    ),
-    "gnatcoverage-git-clone",
-    "qualification",
-    "qm",
-    "common_conf.py",
-)
+# Locate and import common_conf.py
 
-if os.path.isfile(common_file):
-    exec(open(common_file).read())
-else:
-    print("Couldn't find common configuration file")
-    print(common_file)
-    print("from: %s" % __file__)
+work_dir = os.path.join(
+    os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.abspath(__file__))))
+)
+common_conf_glob = f"{work_dir}/*/qualification/qm/common_conf.py"
+common_conf_candidates = glob.glob(common_conf_glob)
+
+assert len(common_conf_candidates) == 1, \
+    f"{__file__} couldn't locate lone common_conf.py out of {common_conf_glob}"
+
+common_conf_py = common_conf_candidates[0]
+exec(open(common_conf_py).read())
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
