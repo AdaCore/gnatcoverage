@@ -24,6 +24,8 @@ with Instrument.Common; use Instrument.Common;
 
 package Instrument.Ada_Unit is
 
+   pragma Elaborate_Body;
+
    type Ada_Instrumenter_Type is new Language_Instrumenter with null record;
    --  Common instrumentation primitives for Ada
 

@@ -23,6 +23,8 @@ with Instrument.Common; use Instrument.Common;
 
 package Instrument.C is
 
+   pragma Elaborate_Body;
+
    type C_Family_Instrumenter_Type is
      abstract new Language_Instrumenter with null record;
    --  Common instrumentation primitives for C/C++
