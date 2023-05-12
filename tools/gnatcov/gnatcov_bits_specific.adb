@@ -1336,7 +1336,7 @@ begin
                Warn ("With source traces, entry barrier analysis (enabled"
                      & " with --analyze-entry-barriers) is only supported when"
                      & " when using a full runtime profile. In particular,"
-                     & " enabeling this option with a ravenscar profile will"
+                     & " enabling this option with a ravenscar profile will"
                      & " result in invalid code being emitted.");
             end if;
 
