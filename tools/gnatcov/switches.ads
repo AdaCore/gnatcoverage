@@ -273,6 +273,11 @@ package Switches is
    --  Create the Any_Dump_Config value corresponding to Default_Dump_Config
    --  and the given --dump-* arguments for source trace dumping.
 
+   function Unparse_Config
+     (Dump_Config : Any_Dump_Config) return String_Vectors.Vector;
+   --  Return a suitable set of gnatcov command line switches that represent
+   --  the given dump config.
+
    function Common_Switches
      (Cmd : Command_Line.Command_Type) return String_Vectors.Vector;
    --  Return the unparsed command line arguments supported by the given
