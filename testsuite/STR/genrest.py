@@ -1154,7 +1154,8 @@ class QDreport(object):
 
     def gen_suite_options(self):
         def literal(text):
-            return ":literal:`" + text.strip() + "`"
+            text = text.strip()
+            return ":literal:`" + text + "`" if text else "<none>"
 
         def str_relevant_switches_from(switches_string):
             """The list of individual pieces in `switches_string`

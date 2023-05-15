@@ -35,7 +35,9 @@ use GNATcoverage as follows:
 
   .. code-block:: text
 
-   gnatcov instrument [--target=<TARGET> --RTS=<RTS>] --level=<LVL> --dump-trigger=<DUMP_TRIGGER> --dump-channel=<DUMP_CHANNEL> -P<ROOT_PROJECT> <UNITS>
+   gnatcov instrument [--target=<TARGET> --RTS=<RTS>]
+      --dump-trigger=<DUMP_TRIGGER> --dump-channel=<DUMP_CHANNEL>
+      --level=<LVL> -P<ROOT_PROJECT> <UNITS>
 
 
 * Build the application and test executables with the GNAT Pro toolchain
@@ -60,7 +62,8 @@ use GNATcoverage as follows:
 
   .. code-block:: text
 
-   gnatcov coverage --annotate=report --level=<LVL> -P<ROOT_PROJECT> <UNITS> @<traces.list> -o <REPORT>
+   gnatcov coverage --annotate=report -o <REPORT>
+      --level=<LVL> -P<ROOT_PROJECT> <UNITS> @<traces.list>
 
 
 In the sample commands above:
