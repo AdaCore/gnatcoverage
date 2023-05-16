@@ -6,10 +6,10 @@
 with Pack;
 with Local_Instantiations;
 with Support;         use Support;
-procedure Test_Instantiations_Elab_Only is
+procedure Test_Elab_Only is
 begin
    Assert (Local_Instantiations.Pack_Instance.Var = 'A');
-end Test_Instantiations_Elab_Only;
+end Test_Elab_Only;
 
 --# pack.adb
 -- /new_value_g/   l- ## s-

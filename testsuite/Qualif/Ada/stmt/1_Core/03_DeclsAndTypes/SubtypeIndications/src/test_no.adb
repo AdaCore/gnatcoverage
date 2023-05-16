@@ -5,10 +5,10 @@
 with Subtype_Indications;
 with Support; use Support;
 
-procedure Test_Subtype_Indications_No is
+procedure Test_No is
 begin
    Assert (True);
-end Test_Subtype_Indications_No;
+end Test_No;
 
 --# subtype_indications.ads
 -- /dcl/ l+ ## 0

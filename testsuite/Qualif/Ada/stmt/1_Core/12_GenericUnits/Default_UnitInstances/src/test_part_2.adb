@@ -7,7 +7,7 @@ with Pack_Instance_Lib_Level;
 with Stacks;
 with Update;
 with Support;         use Support;
-procedure Test_Instantiations_Part_2 is
+procedure Test_Part_2 is
    S : Stacks.Stack;
    I : Integer := 1;
    J : Integer := 2;
@@ -23,7 +23,7 @@ begin
 
    Pack_Instance_Lib_Level.Swap (F1, F2);
    Assert (F1 = 2.0 and then F2 = 1.0);
-end Test_Instantiations_Part_2;
+end Test_Part_2;
 
 --# pack.adb
 -- /new_value_g/   l- ## s-

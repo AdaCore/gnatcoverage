@@ -8,10 +8,10 @@ with Pack_Instance_Lib_Level;
 with Stacks;
 with Update;
 with Support;         use Support;
-procedure Test_Instantiations_Elab_Only is
+procedure Test_Elab_Only is
 begin
    Assert (Pack_Instance_Lib_Level.Var = 0.0);
-end Test_Instantiations_Elab_Only;
+end Test_Elab_Only;
 
 --# pack.adb
 -- /new_value_g/   l- ## s-
