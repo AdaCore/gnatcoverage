@@ -1036,7 +1036,7 @@ package body Instrument.Input_Traces is
             First         : Positive := 1;
             Last          : Natural;
          begin
-            --  Try to read a line, abort if we reached the end of line
+            --  Try to read a line, abort if we reached the end of file
 
             begin
                TIO.Get_Line (Input, Buffer, Last);
