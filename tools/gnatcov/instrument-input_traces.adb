@@ -767,7 +767,7 @@ package body Instrument.Input_Traces is
                     (Unit => To_Qualified_Name (Unit_Name),
                      Part => Unit_Part_Map (Entry_Header.Unit_Part));
                when GNATcov_RTS.Buffers.File_Based_Language =>
-                  CU_Name := CU_Name_For_File (+Unit_Name, +Project_Name);
+                  CU_Name := CU_Name_For_File (+Unit_Name);
             end case;
 
             On_Trace_Entry

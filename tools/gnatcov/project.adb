@@ -16,14 +16,11 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
-with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
-with Ada.Strings.Unbounded.Hash;
 with Ada.Tags;
 with Ada.Text_IO;             use Ada.Text_IO;
 
@@ -242,17 +239,17 @@ package body Project is
    -- To_Project_Unit --
    ---------------------
 
-   function To_Project_Unit
-     (Unit_Name : String;
-      Project   : Project_Type;
-      Language  : Some_Language) return Files_Table.Project_Unit
+   function To_Project_Unit (Info : File_Info) return Files_Table.Project_Unit
    is
-      U : Project_Unit (Language_Kind (Language));
+      Language : constant Some_Language := To_Language (Info.Language);
+      U        : Project_Unit (Language_Kind (Language));
    begin
-      U.Unit_Name := +Unit_Name;
-      if U.Language = File_Based_Language then
-         U.Project_Name := +Project.Name;
-      end if;
+      case U.Language is
+         when File_Based_Language =>
+            U.Unit_Name := +(+Info.File.Full_Name);
+         when Unit_Based_Language =>
+            U.Unit_Name := +Info.Unit_Name;
+      end case;
       return U;
    end To_Project_Unit;
 
@@ -294,8 +291,7 @@ package body Project is
 
       Orig_Name : constant Unbounded_String :=
         +Fold_Filename_Casing (Original_Name);
-      Unit_Name : constant Project_Unit :=
-        To_Project_Unit (Original_Name, Info.Project, Language);
+      Unit_Name : constant Project_Unit := To_Project_Unit (Info);
 
       Ignored_Inserted : Boolean;
    begin
@@ -485,31 +481,17 @@ package body Project is
    -- Is_Unit_Of_Interest --
    -------------------------
 
-   function Is_Unit_Of_Interest
-     (Project   : Project_Type;
-      Unit_Name : String;
-      Language  : Some_Language) return Boolean
-   is
-      U : constant Project_Unit :=
-        To_Project_Unit (Unit_Name, Project, Language);
-   begin
-      return Unit_Map.Contains (U);
-   end Is_Unit_Of_Interest;
-
-   -------------------------
-   -- Is_Unit_Of_Interest --
-   -------------------------
-
    function Is_Unit_Of_Interest (Full_Name : String) return Boolean is
       FI        : constant File_Info :=
         Prj_Tree.Info (Create (+Full_Name));
+      LK        : constant Any_Language_Kind :=
+        Language_Kind (To_Language (FI.Language));
       Unit_Name : constant String :=
-        (case Language_Kind (To_Language (FI.Language)) is
+        (case LK is
          when Unit_Based_Language => FI.Unit_Name,
-         when File_Based_Language => +FI.File.Base_Name);
+         when File_Based_Language => Full_Name);
    begin
-      return Is_Unit_Of_Interest
-        (FI.Project, Unit_Name, To_Language (FI.Language));
+      return Unit_Map.Contains (Project_Unit'(LK, +Unit_Name));
    end Is_Unit_Of_Interest;
 
    -------------------------
@@ -539,23 +521,8 @@ package body Project is
             declare
                use Unit_Maps;
 
-               LI_Source_Unit : constant String := LI.Source.Unit_Name;
-               LI_Source_File : constant String := +LI.Source.File.Base_Name;
-
-               U  : constant String :=
-                 (if LI_Source_Unit'Length > 0
-                  then LI_Source_Unit
-                  else LI_Source_File);
-               --  For unit-based languages (Ada), retrieve unit name from
-               --  SCOs file. For file-based languages (C), fall back to
-               --  translation unit source file name instead.
-
                Cur : constant Cursor :=
-                 Unit_Map.Find
-                   (To_Project_Unit
-                      (U,
-                       Project_Type (LI.LI_Project.all),
-                       To_Language (LI.Source.Language)));
+                 Unit_Map.Find (To_Project_Unit (LI.Source.all));
             begin
                if Has_Element (Cur) then
                   Callback.all (+LI.Library_File.Full_Name);
@@ -599,17 +566,30 @@ package body Project is
       -- Process_Source_File --
       -------------------------
 
-      procedure Process_Source_File (Info : File_Info; Unit_Name : String) is
+      procedure Process_Source_File (Info : File_Info; Unit_Name : String)
+      is
+         pragma Unreferenced (Unit_Name);
+         Info_Lang : constant Some_Language := To_Language (Info.Language);
       begin
-         if (Language = All_Languages
-               or else
-             Language = To_Language (Info.Language))
-           and then
-             (Include_Stubs
-              or else Is_Unit_Of_Interest
-                (Info.Project, Unit_Name, To_Language (Info.Language)))
-         then
-            Callback (Info.Project, Info);
+         if Language = All_Languages or else Language = Info_Lang then
+
+            --  If this is a header, consider it a unit of interest. For now,
+            --  they can only be ignored through the --ignore-source-files
+            --  switch.
+
+            if (Language_Kind (Info_Lang) = File_Based_Language
+                and then Info.Unit_Part = Unit_Spec)
+
+              --  Otherwise, check if the unit is in the units of interest
+              --  map
+
+              or else
+                (Unit_Map.Contains (To_Project_Unit (Info))
+                 and then (Info.Unit_Part /= Unit_Separate
+                           or else Include_Stubs))
+            then
+               Callback (Info.Project, Info);
+            end if;
          end if;
       end Process_Source_File;
 
@@ -994,20 +974,25 @@ package body Project is
                procedure Process_Source_File
                  (Info : File_Info; Unit_Name : String)
                is
-                  Cur : Unit_Maps.Cursor;
+                  Cur              : Unit_Maps.Cursor;
+                  Actual_Unit_Name : constant String :=
+                    (if Info.Unit_Part = Unit_Separate
+                     then Prj_Tree.Info
+                       (Prj_Tree.Other_File (Info.File)).Unit_Name
+                     else Unit_Name);
                begin
                   --  Never try to perform coverage on our coverage runtime
                   --  library (in one of the gnatcov_rts*.gpr projects) or on
                   --  our coverage buffer units (in user projects).
 
-                  if Strings.Has_Prefix (Unit_Name, "gnatcov_rts.") then
+                  if Strings.Has_Prefix (Actual_Unit_Name, "gnatcov_rts.") then
                      return;
                   end if;
 
                   if not Units_Specified
                      or else (Has_Matcher
                               and then GNAT.Regexp.Match
-                                (To_Lower (Unit_Name),
+                                (To_Lower (Actual_Unit_Name),
                                  Units_Specified_Matcher))
                   then
                      Add_Unit
@@ -1089,7 +1074,8 @@ package body Project is
             Units_Present : String_Vectors.Vector;
             --  All units that were included
 
-            Patterns_Not_Covered : String_Vectors.Vector;
+            Patterns_Not_Covered : String_Sets.Set :=
+              To_String_Set (Unit_Patterns);
             --  Patterns that do not match any of the present units
 
             procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor);
@@ -1098,9 +1084,16 @@ package body Project is
             -- Add_To_Unit_Presents --
             --------------------------
 
-            procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor) is
+            procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor)
+            is
+               P_Unit    : constant Project_Unit := Unit_Maps.Key (C);
+               Unit_Name : constant Unbounded_String :=
+                 (case P_Unit.Language is
+                     when File_Based_Language =>
+                       +Ada.Directories.Simple_Name (+P_Unit.Unit_Name),
+                     when Unit_Based_Language => P_Unit.Unit_Name);
             begin
-               Units_Present.Append (Unit_Maps.Key (C).Unit_Name);
+               Units_Present.Append (Unit_Name);
             end Add_To_Unit_Presents;
 
          begin
@@ -1211,39 +1204,16 @@ package body Project is
       Units          : out Unit_Maps.Map;
       Defined        : out Boolean)
    is
-      package FI_Vectors is new Ada.Containers.Vectors
-        (Index_Type => Positive, Element_Type => File_Info);
-
-      use type FI_Vectors.Vector;
-
-      package Unit_Name_FI_Vector_Maps is new Ada.Containers.Ordered_Maps
-        (Key_Type     => Unbounded_String,
-         Element_Type => FI_Vectors.Vector);
-
-      Units_Present : String_Vectors.Vector;
-      --  List of all units in Prj
-
-      Unit_Present_To_FI : Unit_Name_FI_Vector_Maps.Map;
-      --  Map a unit name to a file information vector. A unit name can be
-      --  be mapped to multiple file info if there are homonym source files.
-
-      package Unit_Language_Maps is new Ada.Containers.Hashed_Maps
-        (Key_Type        => Unbounded_String,
-         Element_Type    => Some_Language,
-         Equivalent_Keys => "=",
-         Hash            => Hash);
-      Unit_Languages : Unit_Language_Maps.Map;
-      --  Language for each unit in Units_Present
 
       Unit_Patterns    : String_Vectors.Vector;
       Attr_For_Pattern : String_Maps.Map;
       --  Patterns identifying unit names and project attribute from which we
       --  got the pattern. We use Attr_For_Pattern for reporting purposes.
 
-      Patterns_Not_Covered : String_Vectors.Vector;
+      Patterns_Not_Covered : String_Sets.Set;
       --  Patterns that do not match any of the present unit
 
-      Ignored_Cur : Unit_Maps.Cursor;
+      Cur : Unit_Maps.Cursor;
 
       procedure Add_Pattern (Attr, Item : String);
       --  Add Item to Unit_Patterns. Also save from which project attribute
@@ -1267,18 +1237,39 @@ package body Project is
       -------------------------
 
       procedure Process_Source_File (Info : File_Info; Unit_Name : String) is
-
-         use Unit_Name_FI_Vector_Maps;
-
-         Key : constant Unbounded_String := +Unit_Name;
-         Cur : constant Cursor := Unit_Present_To_FI.Find (Key);
+         use type Ada.Containers.Count_Type;
+         use String_Vectors;
+         Actual_Unit_Name : Vector :=
+           To_Vector
+             (+(if Info.Unit_Part = Unit_Separate
+                then Prj_Tree.Info
+                   (Prj_Tree.Other_File (Info.File)).Unit_Name
+                else Unit_Name),
+              1);
       begin
-         Units_Present.Append (Key);
-         Unit_Languages.Include (Key, To_Language (Info.Language));
-         if Has_Element (Cur) then
-            Unit_Present_To_FI.Reference (Cur).Append (Info);
-         else
-            Unit_Present_To_FI.Insert (Key, FI_Vectors.To_Vector (Info, 1));
+         Match_Pattern_List
+           (Patterns_List        => Unit_Patterns,
+            Strings_List         => Actual_Unit_Name,
+            Patterns_Not_Covered => Patterns_Not_Covered);
+
+         --  Add it only if it matches one of the patterns
+
+         if not Actual_Unit_Name.Is_Empty then
+            declare
+               Lang : constant Some_Language := To_Language (Info.Language);
+            begin
+               Add_Unit
+                 (Units,
+                  Cur,
+                  Unit_Name,
+                  Info,
+                  Lang);
+               Units.Reference (Cur).Is_Stub :=
+                 (Info.Unit_Part = Unit_Separate
+                  or else
+                    (Lang in C_Family_Language
+                     and then Info.Unit_Part = Unit_Spec));
+            end;
          end if;
       end Process_Source_File;
 
@@ -1291,6 +1282,7 @@ package body Project is
 
       List_From_Project
         (Prj, List_Attr, List_File_Attr, Add_Pattern'Access, Defined);
+      Patterns_Not_Covered := To_String_Set (Unit_Patterns);
 
       if not Defined then
          return;
@@ -1301,28 +1293,13 @@ package body Project is
       --  source file name.
 
       Iterate_Source_Files
-        (Prj, Process_Source_File'Access, Recursive => False);
-
-      Match_Pattern_List (Patterns_List        => Unit_Patterns,
-                          Strings_List         => Units_Present,
-                          Patterns_Not_Covered => Patterns_Not_Covered);
+        (Prj, Process_Source_File'Access,
+         Recursive => False, Include_Stubs => True);
 
       for Pattern of Patterns_Not_Covered loop
          Warn ("no unit " & (+Pattern) & " in project " & Prj.Name & " ("
                & (+Attr_For_Pattern.Element (Pattern)) & " attribute)");
       end loop;
-
-      for Unit_Name of Units_Present loop
-         for Info of Unit_Present_To_FI (Unit_Name) loop
-            Add_Unit
-              (Units,
-               Ignored_Cur,
-               +Unit_Name,
-               Info,
-               Unit_Languages.Element (Unit_Name));
-         end loop;
-      end loop;
-
    end Units_From_Project;
 
    -----------------------

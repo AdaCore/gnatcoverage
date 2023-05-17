@@ -308,18 +308,10 @@ package Files_Table is
    type Project_Unit (Language : Any_Language_Kind := Unit_Based_Language)
    is record
       Unit_Name : Ada.Strings.Unbounded.Unbounded_String;
-
-      case Language is
-         when File_Based_Language =>
-            Project_Name : Ada.Strings.Unbounded.Unbounded_String;
-         when others =>
-            null;
-      end case;
    end record;
-   --  To uniquely identify a unit in a project tree, we need its unit name (or
-   --  base name for a C unit). For file-based languages such as C or C++, we
-   --  might have homonym base file names in different projects so we keep
-   --  track of the project name in addition.
+   --  To uniquely identify a unit in a project tree, we need its unit name.
+   --  It is the unit name for unit-based language, and the file fullname for
+   --  file-based languages.
 
    use type Ada.Strings.Unbounded.Unbounded_String;
 
@@ -328,10 +320,8 @@ package Files_Table is
       when Unit_Based_Language =>
          To_Lower (Ada.Strings.Unbounded.To_String (U.Unit_Name)),
       when File_Based_Language =>
-         Ada.Strings.Unbounded.To_String (U.Project_Name)
-         & ":"
-         & Fold_Filename_Casing
-             (Ada.Strings.Unbounded.To_String (U.Unit_Name)));
+         Fold_Filename_Casing
+          (Ada.Strings.Unbounded.To_String (U.Unit_Name)));
 
    function "<" (L, R : Project_Unit) return Boolean is
      (Image (L) < Image (R));

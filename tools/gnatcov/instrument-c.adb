@@ -3113,7 +3113,7 @@ package body Instrument.C is
 
       UIC.Instrumented_Unit := CU_Name;
       UIC.Buffer_Unit :=
-        CU_Name_For_File (+Buffer_Filename, CU_Name.Project_Name);
+        CU_Name_For_File (+Buffer_Filename);
 
       --  Import analysis options for the file to preprocess, then run the
       --  preprocessor.
@@ -3655,8 +3655,7 @@ package body Instrument.C is
                & "  .unit_name = " & Format_Str_Constant (+CU_Name.Filename)
                & ","
                & ASCII.LF
-               & "  .project_name = "
-               & Format_Str_Constant (+CU_Name.Project_Name) & ","
+               & "  .project_name = """","
                & ASCII.LF
 
                & "  .bit_maps_fingerprint = "
@@ -3894,8 +3893,7 @@ package body Instrument.C is
       Rew  : C_Source_Rewriter;
       Main : constant Compilation_Unit_Name :=
         (Language_Kind => File_Based_Language,
-         Filename      => +Ada.Directories.Simple_Name (Filename),
-         Project_Name  => +Info.Project.Name);
+         Filename      => +Ada.Directories.Full_Name (Filename));
 
       Insert_Extern_Location : Source_Location_T;
       --  Where to insert extern declarations
@@ -3909,8 +3907,9 @@ package body Instrument.C is
         Start_Sloc (Get_Translation_Unit_Cursor (Rew.TU));
       Main_Cursor := Get_Main (Rew.TU);
       if Main_Cursor = Get_Null_Cursor then
-         Outputs.Fatal_Error ("Could not find main function in "
-                              & (+Main.Filename));
+         Outputs.Fatal_Error
+           ("Could not find main function in "
+            & (Ada.Directories.Simple_Name (+Main.Filename)));
       end if;
 
       Emit_Dump_Helper_Unit
@@ -4683,10 +4682,7 @@ package body Instrument.C is
               (Of_Interest  => True,
                SFI          => Get_Index_From_Generic_Name
                                  (+File, Source_File),
-               CU_Name      =>
-                 CU_Name_For_File
-                   (Filename     => +Simple_Name (+File),
-                    Project_Name => UIC.Instrumented_Unit.Project_Name));
+               CU_Name      => CU_Name_For_File (File));
          else
             SOI := (Of_Interest => False);
          end if;

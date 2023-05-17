@@ -21,7 +21,6 @@ with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Streams; use Ada.Streams;
-with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Tags;
 with Ada.Unchecked_Deallocation;
@@ -226,22 +225,6 @@ package body Coverage.Source is
 
    Ignored_SF_Map : Unit_To_Ignored_Maps.Map;
 
-   function Unit_Name_For_Subunit (Qualified_Name : String) return String;
-   --  Return the unit name for the subunit whose name is Qualified_Name.
-   --  For instance, if foo-test.adb is a subunit for package Foo,
-   --  GNATCOLL.Projects should give us Foo.Test as a unit name, and this
-   --  function will return Foo.
-   --
-   --  As a safeguard, this checks that the result is the name of a unit of
-   --  interest: subunits cannot be units of interest.
-   --
-   --  If it can't be determined that the source file belongs to a unit of
-   --  interest, the empty string will be returned, and a warning will be
-   --  emitted.
-   --
-   --  Note that the Ada language rules guarantee that the name of the owning
-   --  unit is a prefix of the name of its subunits.
-
    --------------------------
    -- Basic_Block_Has_Code --
    --------------------------
@@ -290,47 +273,6 @@ package body Coverage.Source is
       end if;
    end Add_Unit;
 
-   ---------------------------
-   -- Unit_Name_For_Subunit --
-   ---------------------------
-
-   function Unit_Name_For_Subunit (Qualified_Name : String) return String
-   is
-      use Ada.Strings.Fixed;
-      First : constant Natural := Qualified_Name'First;
-      Sep   : Natural := Qualified_Name'Last;
-   begin
-      loop
-         Sep := Index (Source  => Qualified_Name,
-                       Pattern => ".",
-                       From    => Sep,
-                       Going   => Ada.Strings.Backward);
-
-         if Unit_List.Contains
-           (Project_Unit'
-              (Language  => Unit_Based_Language,
-               Unit_Name =>
-                 US.To_Unbounded_String
-                         (Qualified_Name (First .. Sep - 1))))
-         then
-            return Qualified_Name (First .. Sep - 1);
-         end if;
-         exit when Sep = 0;
-
-         --  Move past '.' character to start searching again
-
-         Sep := Sep - 1;
-      end loop;
-
-      --  If we got here, then there is no unit of interest whose name is a
-      --  prefix of the name of the subunit we are processing.
-
-      Report (Msg  => "Could not find the name of the owning unit of subunit "
-              & Qualified_Name & " among the units of interest",
-              Kind => Warning);
-      return "";
-   end Unit_Name_For_Subunit;
-
    -------------------------------------------
    -- Compute_Unit_Name_For_Ignored_Sources --
    -------------------------------------------
@@ -353,6 +295,7 @@ package body Coverage.Source is
         (Project : GNATCOLL.Projects.Project_Type;
          File    : GNATCOLL.Projects.File_Info)
       is
+         pragma Unreferenced (Project);
          use GNATCOLL.VFS;
          SFI : constant Source_File_Index := Get_Index_From_Generic_Name
            (+File.File.Full_Name, Source_File, Insert => False);
@@ -362,26 +305,7 @@ package body Coverage.Source is
       begin
          if FI /= null and then not FI.Unit.Known then
             declare
-               use type GNATCOLL.Projects.Unit_Parts;
-
-               Language  : constant Some_Language :=
-                 To_Language (File.Language);
-
-               --  For Ada, get the unit name for the compilation unit (no
-               --  subunit names). For file-based languages,
-               --  GNATCOLL.Projects.Unit_Name returns an empty string: we need
-               --  to get the file base name instead.
-
-               Unit_Name : constant String :=
-                 (case Language is
-                  when Ada_Language =>
-                    (if File.Unit_Part = GNATCOLL.Projects.Unit_Separate
-                     then Unit_Name_For_Subunit (File.Unit_Name)
-                     else File.Unit_Name),
-                  when others       => Get_Simple_Name (SFI));
-
-               Unit : constant Project_Unit :=
-                 To_Project_Unit (Unit_Name, Project, Language);
+               Unit : constant Project_Unit := To_Project_Unit (File);
             begin
                Consolidate_Source_File_Unit (SFI, Unit);
             end;

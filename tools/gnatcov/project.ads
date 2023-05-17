@@ -114,10 +114,7 @@ package Project is
    --  path of its main executable (including its suffix, for instance ".exe").
    --  Otherwise, return an empty string.
 
-   function To_Project_Unit
-     (Unit_Name : String;
-      Project   : Project_Type;
-      Language  : Some_Language) return Files_Table.Project_Unit;
+   function To_Project_Unit (Info : File_Info) return Files_Table.Project_Unit;
    --  Return the Project_Unit value that designates the same unit as
    --  Unit_Name/Project/Language.
 
@@ -132,15 +129,8 @@ package Project is
    --  and Is_Stub corresponds to the Unit_Info.Is_Stub field (see
    --  project.adb).
 
-   function Is_Unit_Of_Interest
-     (Project   : Project_Type;
-      Unit_Name : String;
-      Language  : Some_Language) return Boolean;
-   --  Return whether the unit Unit_Name that belongs to the project Project
-   --  is a unit of interest.
-
    function Is_Unit_Of_Interest (Full_Name : String) return Boolean;
-   --  Same as above, but given a full name
+   --  Return whether the given file is a unit of interest
 
    procedure Enumerate_SCOs_Files
      (Callback : access procedure (Lib_Name : String);

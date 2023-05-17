@@ -26,6 +26,7 @@ with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
+with Ada.Strings.Hash;
 with Ada.Strings.Unbounded.Equal_Case_Insensitive;
 with Ada.Strings.Unbounded.Less_Case_Insensitive;
 with Ada.Unchecked_Deallocation;
@@ -116,14 +117,7 @@ package body Instrument is
                   return Left.Part < Right.Part;
                end if;
             when File_Based_Language =>
-               if Equal_Case_Insensitive
-                 (Left.Project_Name, Right.Project_Name)
-               then
-                  return Left.Filename < Right.Filename;
-               else
-                  return Less_Case_Insensitive
-                    (Left.Project_Name, Right.Project_Name);
-               end if;
+               return Left.Filename < Right.Filename;
          end case;
       else
          return Left.Language_Kind < Right.Language_Kind;
@@ -142,10 +136,10 @@ package body Instrument is
          case Left.Language_Kind is
             when Unit_Based_Language =>
                if Left.Part = Right.Part
-                  and then Left.Unit.Length = Right.Unit.Length
+                  and then Length (Left.Unit) = Length (Right.Unit)
                then
-                  for I in 1 .. Integer (Left.Unit.Length) loop
-                     if not Equal_Case_Insensitive
+                  for I in 1 .. Integer (Length (Left.Unit)) loop
+                     if not Ada.Strings.Unbounded.Equal_Case_Insensitive
                        (Unbounded_String (Left.Unit.Element (I)),
                         Unbounded_String (Right.Unit.Element (I)))
                      then
@@ -159,15 +153,12 @@ package body Instrument is
                end if;
                return False;
             when File_Based_Language =>
-               return Left.Filename = Right.Filename
-                 and then Equal_Case_Insensitive
-                   (Left.Project_Name, Right.Project_Name);
+               return Left.Filename = Right.Filename;
          end case;
       else
          return False;
       end if;
    end "=";
-
    -------------------------
    -- Qualified_Name_Slug --
    -------------------------
@@ -227,45 +218,54 @@ package body Instrument is
             end;
 
          when File_Based_Language =>
-            declare
-               Result : Ada_Identifier;
-            begin
-               --  For a compilation unit in a file-based language, relying on
-               --  the filename only is not enough, as there can be multiple
-               --  sources with the same name belonging to different projects
-               --  in a project tree. To avoid name clashes, prepend the name
-               --  of the owning project to the computed slug.
-
-               Append
-                 (Result,
-                  Qualified_Name_Slug
-                    (To_Qualified_Name (+Instrumented_Unit.Project_Name)));
-
-               --  Add an unambiguous separator between the project name and
-               --  the rest of the slug.
-
-               Append (Result, "_z_z");
-
-               --  File names can contain characters that cannot appear in
-               --  identifiers. Furthermore, unlike for the identifier to
-               --  return, file names may be case sensitive. In order to
-               --  produce valid identifiers, encode everything that isn't a
-               --  lower case letter or a digit.
-
-               for C of "+" (Instrumented_Unit.Filename) loop
-                  if C in 'a' .. 'z' | '0' .. '9' then
-                     Append (Result, C);
-                  else
-                     Append
-                       (Result,
-                        "_" & Hex_Image (Unsigned_8'(Character'Pos (C))));
-                  end if;
-               end loop;
-
-               return To_String (Result);
-            end;
+            return Filename_Slug (+Instrumented_Unit.Filename);
       end case;
    end Instrumented_Unit_Slug;
+
+   -------------------
+   -- Filename_Slug --
+   -------------------
+
+   function Filename_Slug (Fullname : String) return String is
+      use Ada.Directories;
+      Result : Ada_Identifier;
+   begin
+      --  We use the basename slug, followed by a hash of the fullname, which
+      --  makes us confident that homonym files will be correctly handled.
+
+      --  File names can contain characters that cannot appear in
+      --  identifiers. Furthermore, unlike for the identifier to
+      --  return, file names may be case sensitive. In order to
+      --  produce valid identifiers, encode everything that isn't a
+      --  lower case letter or a digit.
+
+      --  To avoid a leading underscore, add a prefix
+
+      Append (Result, "z");
+
+      for C of Simple_Name (Fullname) loop
+         if C in 'a' .. 'z' | '0' .. '9' then
+            Append (Result, C);
+         else
+            Append
+              (Result,
+               "_" & Hex_Image
+                 (Interfaces.Unsigned_8'(Character'Pos (C))));
+         end if;
+      end loop;
+
+      --  Then, suffix with the hash
+
+      declare
+         Hash_Str : constant String :=
+           Ada.Containers.Hash_Type'Image (Ada.Strings.Hash (Fullname));
+      begin
+         --  Do not forget to remove the leading whitespace...
+
+         Append (Result, Hash_Str (2 .. Hash_Str'Last));
+      end;
+      return To_String (Result);
+   end Filename_Slug;
 
    -----------
    -- Image --
@@ -353,11 +353,10 @@ package body Instrument is
    -----------------------------
 
    function CU_Name_For_File
-     (Filename     : Unbounded_String;
-      Project_Name : Unbounded_String) return Compilation_Unit_Name
+     (Filename : US.Unbounded_String) return Compilation_Unit_Name
    is
    begin
-      return (File_Based_Language, Filename, Project_Name);
+      return (File_Based_Language, Filename);
    end CU_Name_For_File;
 
    ------------------------------
@@ -375,8 +374,7 @@ package body Instrument is
                Part => Source_File.Unit_Part);
          when File_Based_Language =>
             return CU_Name_For_File
-              (Filename     => +GNATCOLL.VFS."+" (Source_File.File.Base_Name),
-               Project_Name => +Source_File.Project.Name);
+              (Filename => +(+Source_File.File.Full_Name));
       end case;
    end To_Compilation_Unit_Name;
 

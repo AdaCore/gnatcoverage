@@ -75,10 +75,6 @@ package Instrument is
             --  Fallback for file-based languages (like C). We will use the
             --  simple filename for now.
 
-            Project_Name : US.Unbounded_String;
-            --  We also need the project name as different projects can have
-            --  the same file.
-
       end case;
    end record;
    --  Unique identifier for an instrumented unit
@@ -109,6 +105,12 @@ package Instrument is
    --
    --  One can use this slug to generate unique names for this unit.
 
+   function Filename_Slug (Fullname : String) return String;
+   --  Given a filename to instrument, return a unique identifier to describe
+   --  it (the so called slug).
+   --
+   --  One can use this slug to generate unique names for this unit.
+
    function To_Qualified_Name (Name : String) return Ada_Qualified_Name;
    --  Convert a String qualified name into our format
 
@@ -130,8 +132,7 @@ package Instrument is
    --  corresponding to the unit name and the unit part parameters.
 
    function CU_Name_For_File
-     (Filename     : US.Unbounded_String;
-      Project_Name : US.Unbounded_String) return Compilation_Unit_Name;
+     (Filename : US.Unbounded_String) return Compilation_Unit_Name;
    --  Return the compilation unit name for the C translation unit
    --  corresponding to the filename parameter.
 
