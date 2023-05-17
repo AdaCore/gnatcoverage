@@ -886,7 +886,7 @@ package Command_Line is
            & " specified prefix from the filenames in the report.",
          Commands     => (Cmd_Coverage => True, others => False),
          At_Most_Once => True,
-         Internal     => True)
+         Internal     => False)
      );
 
    String_List_Infos : constant String_List_Option_Info_Array :=
@@ -1084,7 +1084,7 @@ package Command_Line is
          Pattern                 => "[FORM|LIST]",
          Help                    =>
            "Generate a FORM report. FORM is one of:"
-           & ASCII.LF & "  asm, xcov, html, xcov+, report."
+           & ASCII.LF & "  asm, xcov, html, xcov+, cobertura, report."
            & ASCII.LF & "Multiple reports can be produced in a single"
            & " execution by passing a comma separated list of FORMs to this"
            & " option, or by specifying this option multiple times on the"
