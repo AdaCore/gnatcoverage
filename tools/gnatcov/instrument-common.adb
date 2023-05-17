@@ -27,6 +27,7 @@ with Interfaces;
 with Coverage;
 with Diagnostics;
 with Hex_Images;
+with Outputs; use Outputs;
 with Paths;   use Paths;
 with Project; use Project;
 with SCOs;
@@ -581,6 +582,232 @@ package body Instrument.Common is
          Remap_Scope_Entity (Child, SCO_Map);
       end loop;
    end Remap_Scope_Entity;
+
+   -----------------
+   -- Add_Options --
+   -----------------
+
+   procedure Add_Options
+     (Args          : in out String_Vectors.Vector;
+      Options       : Analysis_Options;
+      Pass_Builtins : Boolean := True;
+      Preprocessed  : Boolean := False) is
+
+      procedure Add_Macro_Switches (Macros : Macro_Set);
+      --  Add the given macro switches to Args
+
+      ------------------------
+      -- Add_Macro_Switches --
+      ------------------------
+
+      procedure Add_Macro_Switches (Macros : Macro_Set) is
+      begin
+         for M of Macros loop
+            if M.Define then
+               Args.Append ("-D" & M.Name & M.Args & "=" & M.Value);
+            else
+               Args.Append ("-U" & M.Name);
+            end if;
+         end loop;
+      end Add_Macro_Switches;
+
+   begin
+      for Dir of Options.PP_Search_Path loop
+         Args.Append (+"-I");
+         Args.Append (Dir);
+      end loop;
+
+      --  If the file was already pre-processed, do not pass macro command
+      --  line switches. Since preprocessed code can contain names of defined
+      --  macros, passing macro arguments for the parsing step could trigger
+      --  other expansions, and thus feed the parser with unexpected code.
+
+      if not Preprocessed then
+
+         --  Add builtin macros before macros from command line switches, as
+         --  the latter should have precedence over builtins and thus must
+         --  come last in Args.
+
+         if Pass_Builtins then
+            Add_Macro_Switches (Options.Builtin_Macros);
+         end if;
+         Add_Macro_Switches (Options.PP_Macros);
+      end if;
+
+      --  The -std switch also indicates the C/C++ version used, and
+      --  influences both the configuration of the preprocessor, and the
+      --  parsing of the file.
+
+      if Length (Options.Std) /= 0 then
+         Args.Append (Options.Std);
+      end if;
+
+   end Add_Options;
+
+   ----------------------------
+   -- Parse_Macro_Definition --
+   ----------------------------
+
+   procedure Parse_Macro_Definition
+     (Str        : String;
+      Parsed_Def : out Macro_Definition;
+      Success    : out Boolean)
+   is
+      Matches : Match_Array (0 .. 3);
+   begin
+      Match (Macro_Def_Regexp, Str, Matches);
+      if Matches (0) = No_Match then
+         Success := False;
+      else
+         Success := True;
+         Parsed_Def.Name := +Str (Matches (1).First .. Matches (1).Last);
+         if Matches (2) /= No_Match then
+            Parsed_Def.Args := +Str (Matches (2).First .. Matches (2).Last);
+         end if;
+         Parsed_Def.Value := +Str (Matches (3).First .. Matches (3).Last);
+      end if;
+   end Parse_Macro_Definition;
+
+   ------------------------------------
+   -- Parse_Cmdline_Macro_Definition --
+   ------------------------------------
+
+   procedure Parse_Cmdline_Macro_Definition
+     (Str        : String;
+      Parsed_Def : out Macro_Definition;
+      Success    : out Boolean)
+   is
+      Matches : Match_Array (0 .. 4);
+   begin
+      Match (Macro_Cmdline_Regexp, Str, Matches);
+      if Matches (0) = No_Match then
+         Success := False;
+      else
+         Success := True;
+         Parsed_Def.Name := +Str (Matches (1).First .. Matches (1).Last);
+         if Matches (2) /= No_Match then
+            Parsed_Def.Args := +Str (Matches (2).First .. Matches (2).Last);
+         end if;
+
+         --  Command line macros can have part of their value before the
+         --  assignment, e.g. "-DA(b)b" is equivalent to "#define A(b) b 1".
+
+         if Matches (3) /= No_Match then
+            Append
+              (Parsed_Def.Value,
+               Str (Matches (3).First .. Matches (3).Last) & " ");
+         end if;
+
+         --  If no value is given, then it is implicitly 1
+
+         if Matches (4) /= No_Match then
+            Append
+              (Parsed_Def.Value, Str (Matches (4).First .. Matches (4).Last));
+         else
+            Append (Parsed_Def.Value, " 1");
+         end if;
+      end if;
+   end Parse_Cmdline_Macro_Definition;
+
+   ----------------------
+   -- Import_From_Args --
+   ----------------------
+
+   procedure Import_From_Args
+     (Self : in out Analysis_Options; Args : String_Vectors.Vector)
+   is
+      I    : Natural := Args.First_Index;
+      Last : constant Integer := Args.Last_Index;
+
+      function Read_With_Argument
+        (Arg         : String;
+         Option_Name : Character;
+         Value       : out Unbounded_String) return Boolean;
+      --  Assuming that Arg starts with "-X" where X is Option_Name, try to
+      --  fetch the value for this option. If we managed to get one, return
+      --  True and set Value to it. Return False otherwise.
+
+      ------------------------
+      -- Read_With_Argument --
+      ------------------------
+
+      function Read_With_Argument
+        (Arg         : String;
+         Option_Name : Character;
+         Value       : out Unbounded_String) return Boolean
+      is
+         Prefix : constant String := "-" & Option_Name;
+      begin
+         if Arg = Prefix then
+
+            --  Option and value are two separate arguments (-O VALUE)
+
+            I := I + 1;
+            if I <= Last then
+               Value := Args (I);
+               return True;
+            end if;
+
+         elsif Has_Prefix (Arg, Prefix) then
+
+            --  Option and value are combined in a single argument (-OVALUE)
+
+            Value := +Arg (Arg'First + Prefix'Length .. Arg'Last);
+            return True;
+         end if;
+
+         return False;
+      end Read_With_Argument;
+
+   --  Start of processing for Import_From_Args
+
+   begin
+      while I <= Last loop
+         declare
+            A     : constant String := +Args (I);
+            Value : Unbounded_String;
+         begin
+
+            --  Process arguments we manage to handle, silently discard unknown
+            --  ones.
+            --
+            --  TODO??? In order to avoid surprising situations for users (for
+            --  instance typos in command line arguments), maybe we should emit
+            --  a warning for unknown arguments. However, given that this
+            --  procedure is called at least once per instrumented source file,
+            --  we would need to avoid emitting duplicate warnings.
+
+            if Read_With_Argument (A, 'I', Value) then
+               Self.PP_Search_Path.Append (Value);
+
+            elsif Read_With_Argument (A, 'D', Value) then
+               declare
+                  Macro_Def : Macro_Definition (Define => True);
+                  Success   : Boolean;
+               begin
+                  Parse_Cmdline_Macro_Definition
+                    (Str        => +Value,
+                     Parsed_Def => Macro_Def,
+                     Success    => Success);
+                  if Success then
+                     Self.PP_Macros.Include (Macro_Def);
+                  else
+                     Warn ("Failed to parse command-line macro definition: "
+                           & (+Value));
+                  end if;
+               end;
+
+            elsif Read_With_Argument (A, 'U', Value) then
+               Self.PP_Macros.Include ((Define => False, Name => Value));
+
+            elsif Has_Prefix (A, "-std=") then
+               Self.Std := +A;
+            end if;
+
+            I := I + 1;
+         end;
+      end loop;
+   end Import_From_Args;
 
    ------------------------------
    -- Buffer_Units_For_Closure --

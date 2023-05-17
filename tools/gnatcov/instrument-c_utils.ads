@@ -23,8 +23,8 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Clang.Index;   use Clang.Index;
 with Clang.Rewrite; use Clang.Rewrite;
 
-with Instrument.C; use Instrument.C;
-with Slocs;        use Slocs;
+with Instrument.Common; use Instrument.Common;
+with Slocs;             use Slocs;
 
 package Instrument.C_Utils is
 
