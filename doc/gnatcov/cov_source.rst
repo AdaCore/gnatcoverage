@@ -52,11 +52,12 @@ The available options are as follows:
 
 :cmd-option:`-a`, :cmd-option:`--annotate` |marg|:
    Request one or more output report formats. All the criteria support
-   ``xcov[+]``, ``html`` and ``report`` formats, with interpretations that vary
-   depending on the assessed criteria. See the corresponding documentation later
-   in this chapter for more details. This option accepts comma separated values
-   and/or can be specified mulitple times on the command line, in which case
-   there will be one report produced for each of the requested formats.
+   ``xcov[+]``, ``html``, ``cobertura`` and ``report`` formats, with
+   interpretations that vary depending on the assessed criteria. See the
+   corresponding documentation later in this chapter for more details. This
+   option accepts comma separated values and/or can be specified multiple times
+   on the command line, in which case there will be one report produced for each
+   of the requested formats.
 
 :cmd-option:`-o` :
    Request that the synthetic report produced by ``--annotate=report`` be
@@ -209,7 +210,10 @@ source files, in the directory where |gcv| is launched unless overriden with a
 :cmd-option:`--output-dir` option. The :cmd-option:`report` output consists in a
 synthetic text report of :term:`coverage violations <Coverage Violation>` with
 respect to the requested criteria, produced on standard output by default or in
-the file specified by the :cmd-option:`-o` command line option.
+the file specified by the :cmd-option:`-o` command line option. The
+:cmd-option:`cobertura` produce a single xml file containing a coverage report
+in the Cobertura format. Its name is by default `cobertura.xml` and can be
+altered using the :cmd-option:`-o` command line option.
 
 Later in this chapter we name output formats by the text to add to
 :cmd-option:`--annotate` on the command line. For example, we use "the
@@ -332,6 +336,30 @@ coverage respectively.
 
 See the :ref:`sample annotated source <sample_sc_html_unit>` appendix for a
 sample of html annotated source.
+
+
+Cobertura report (:cmd-option:`=cobertura`)
+-------------------------------------------
+
+:cmd-option:`--annotate=cobertura` produces a coverage report in the Cobertura
+format, as specified per the cobertura.dtd (document type description) that is
+generated alongside.
+
+This format specification is not maintained by gnatcov, and it does not thus
+provide all of the information that other report formats do, notably MC/DC
+coverage information, violation messages. Decision violations are output using
+the "branch" terminology of Cobertura (one decision being two branches, and
+either 0, 1 or 2 of those branches are covered).
+
+It is mainly provided for integration with external tools, such as continuous
+integration systems, e.g. gitlab, which supports integration of coverage reports
+into merge requests using this format.
+
+File names in this coverage report are absolute. Depending on the use context of
+this coverage report, it can also make sense to strip a given prefix from the
+absolute paths to make them relative to, e.g. a project root. The
+:cmd-option:`--source-root` command line option accepts a string prefix that
+will be removed from absolute path references in the report.
 
 
 Violations summary, text (:cmd-option:`=report`)
