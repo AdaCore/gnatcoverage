@@ -353,17 +353,6 @@ package body Instrument.C is
    -- Source instrumentation --
    ----------------------------
 
-   function Unit_Buffers_Array_Name (IC : Inst_Context) return String is
-      ("gnatcov_rts_buffers_array_" & (+IC.Project_Name));
-   --  Name of the symbol that references the
-   --  gnatcov_rts_coverage_buffers_array struct (defined for the whole
-   --  project). This struct is an array containing the coverage buffers of all
-   --  of the instrumented units.
-   --
-   --  We need this to be unique per root project instrumented, as gnatcov
-   --  gives the possibility to link two separately-instrumented libraries in
-   --  the same executable.
-
    function Buffers_List_Filename (IC : Inst_Context) return String is
      ("gnatcov_rts_c-buffers-lists-" & (+IC.Project_Name));
    --  Return the name of the unit containing the array of coverage buffers
@@ -3814,10 +3803,14 @@ package body Instrument.C is
                               & "gnatcov_rts_c-traces-output-base64.h""");
          end case;
          File.Put_Line ("#include <stdlib.h>");
-         File.Put_Line
-           ("#include """ & Buffers_List_Filename (IC)
-            & Source_Suffix (Instrumenter, GPR.Unit_Spec, Info.Project)
-            & """");
+
+         --  Import the coverage buffers
+
+         Put_Extern_Decl
+           (File,
+            Instrumenter,
+            "const struct gnatcov_rts_coverage_buffers_group_array",
+            Unit_Buffers_Array_Name (+IC.Project_Name));
 
          --  Emit the procedure to write the trace file
 
@@ -3826,7 +3819,8 @@ package body Instrument.C is
          File.Put_Line ("void " & Dump_Procedure & " (void) {");
 
          File.Put_Line (Indent1 & Output_Proc & " (");
-         File.Put_Line (Indent2 & "&" & Unit_Buffers_Array_Name (IC) & ",");
+         File.Put_Line
+           (Indent2 & "&" & Unit_Buffers_Array_Name (+IC.Project_Name) & ",");
          case IC.Dump_Config.Channel is
          when Binary_File =>
             declare
@@ -4248,7 +4242,7 @@ package body Instrument.C is
       declare
          Buffer_Array_Decl  : constant String :=
            "const struct gnatcov_rts_coverage_buffers_group_array "
-           & Unit_Buffers_Array_Name (IC);
+           & Unit_Buffers_Array_Name (+IC.Project_Name);
          Buffer_Unit_Length : constant String :=
            Count_Type'Image (Instr_Units.Length);
       begin
@@ -4300,7 +4294,7 @@ package body Instrument.C is
         (File_Header,
          Self,
          "const struct gnatcov_rts_coverage_buffers_group_array",
-         Unit_Buffers_Array_Name (IC));
+         Unit_Buffers_Array_Name (+IC.Project_Name));
    end Emit_Buffers_List_Unit;
 
    ---------------------
