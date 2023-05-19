@@ -923,3 +923,44 @@ The tool currently has the following limitations:
   may result in elaboration circularities in the generated harness;
 * heavy usage of preprocessor that affects constructs like subprogram profiles
   or tagged type hierarchies may result in improper test driver generation.
+
+.. _Automatic_testcase_generation:
+
+Automatically generating test cases (alpha)
+-------------------------------------------
+
+``gnattest`` provides a switch ``--gen-test-vectors`` that can be used to
+automatically generate test cases for all of the supported subprogram profiles.
+The number of generated test cases can be configured through the
+``--gen-test-num`` switch.
+
+``gnattest`` can automatically generate test cases unless any of the following
+are true:
+
+1. Any of the subprogram's "in" or "in out" mode parameters are of an
+   Access type or contain a sub-component of an Access type.
+2. Any of the subprogram's "in" or "in out" mode parameters are Subprogram
+   Access Types.
+3. Any of the subprogram's "in" or "in out" mode parameters are Limited types.
+4. Any of the subprogram's "in" or "out" mode parameters are tagged types.
+5. Any of the subprogram's "in" or "out" mode parameters is a private type of
+   a nested package.
+
+..
+   TODO: document a bit the value generation (mostly random, except for
+   unconstrained arrays and discriminated record).
+
+The generated test cases are then stored in a ad-hoc (and yet to be specified)
+JSON format, in files under the <obj_dir>/gnattest/tests/JSON_Tests directory.
+The generated JSON files are preserved through a ``gnattest`` rerun. The user is
+thus free to modify them, to e.g. fill in expected return values, though
+backward compatibility of the format is not guaranteed at this stage.
+
+``gnattest`` also generates Ada files to actually execute the test cases. Each test vector
+has its own AUnit test case, and all test cases for a specific subprogram are all
+stored in a dedicated file, namely
+<unit_name>-test_data-test_<subp_name>_<subp_hash>.ad[bs]. The content of these
+files is not preserved through a ``gnattest`` rerun.
+
+..
+   TODO: document the --unparse switch
