@@ -122,7 +122,7 @@ package Project is
    -- Unit identification --
    -------------------------
 
-   type Unique_Name (Language : Any_Language_Kind := Unit_Based_Language) is
+   type Project_Unit (Language : Any_Language_Kind := Unit_Based_Language) is
       record
          Unit_Name : Ada.Strings.Unbounded.Unbounded_String;
          case Language is
@@ -138,32 +138,32 @@ package Project is
 
    use type Ada.Strings.Unbounded.Unbounded_String;
 
-   function To_Unique_Name
+   function To_Project_Unit
      (Unit_Name : String;
       Project   : Project_Type;
-      Language  : Some_Language) return Unique_Name;
+      Language  : Some_Language) return Project_Unit;
 
-   function Image (U : Unique_Name) return String is
+   function Image (U : Project_Unit) return String is
      (case U.Language is
          when Unit_Based_Language => To_Lower (+U.Unit_Name),
          when File_Based_Language =>
             +U.Project_Name & ":" & Fold_Filename_Casing (+U.Unit_Name));
 
-   function "<" (L, R : Unique_Name) return Boolean is
+   function "<" (L, R : Project_Unit) return Boolean is
      (Image (L) < Image (R));
 
-   function "=" (L, R : Unique_Name) return Boolean is
+   function "=" (L, R : Project_Unit) return Boolean is
      (Image (L) = Image (R));
 
    package Unit_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Unique_Name);
+     (Element_Type => Project_Unit);
 
    --------------------------------------
    -- Accessors for project properties --
    --------------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : Unique_Name; Is_Subunit : Boolean));
+     (Callback : access procedure (Name : Project_Unit; Is_Subunit : Boolean));
    --  Call Callback once for every unit of interest. Name is the unit name,
    --  and Is_Subunit corresponds to the Unit_Info.Is_Subunit field (see
    --  project.adb).

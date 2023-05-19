@@ -645,19 +645,17 @@ package body Annotations.Report is
          New_Line (Output.all);
          declare
 
-            procedure Print_Ignored_File
-              (FI : Files_Table.File_Info);
+            procedure Print_Ignored_File (FI : Files_Table.File_Info);
             --  Print the name of the file and its ignore status on the report
 
-            procedure Print_Unit_Name (Name : Unique_Name);
+            procedure Print_Unit_Name (Unit : Project_Unit);
             --  Print Name on the report
 
             ------------------------
             -- Print_Ignored_File --
             ------------------------
 
-            procedure Print_Ignored_File
-              (FI : Files_Table.File_Info) is
+            procedure Print_Ignored_File (FI : Files_Table.File_Info) is
             begin
                if FI.Ignore_Status = Files_Table.Sometimes then
                   Put_Line (Output.all,
@@ -672,9 +670,9 @@ package body Annotations.Report is
             -- Print_Unit_Name --
             ---------------------
 
-            procedure Print_Unit_Name (Name : Unique_Name) is
+            procedure Print_Unit_Name (Unit : Project_Unit) is
             begin
-               Put_Line (Output.all, +Name.Unit_Name);
+               Put_Line (Output.all, +Unit.Unit_Name);
             end Print_Unit_Name;
          begin
             Iterate_On_Unit_List
