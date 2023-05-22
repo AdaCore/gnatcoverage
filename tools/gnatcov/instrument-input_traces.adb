@@ -164,7 +164,7 @@ package body Instrument.Input_Traces is
      (Stream      : in out Binary_Stream;
       File_Header : Trace_File_Header;
       Kind        : out Supported_Info_Kind;
-      Data        : out String_Access;
+      Data        : out GNAT.OS_Lib.String_Access;
       Result      : in out Read_Result)
       with Pre => Result.Success;
    --  Read a trace info entry from Stream. Return an error if something wrong
@@ -395,7 +395,7 @@ package body Instrument.Input_Traces is
      (Stream      : in out Binary_Stream;
       File_Header : Trace_File_Header;
       Kind        : out Supported_Info_Kind;
-      Data        : out String_Access;
+      Data        : out GNAT.OS_Lib.String_Access;
       Result      : in out Read_Result)
    is
       Ignored_EOF : Boolean;
@@ -661,7 +661,7 @@ package body Instrument.Input_Traces is
       loop
          declare
             Kind : Supported_Info_Kind;
-            Data : String_Access;
+            Data : GNAT.OS_Lib.String_Access;
          begin
             Read_Trace_Info (Stream, File_Header, Kind, Data, Result);
             if not Result.Success then

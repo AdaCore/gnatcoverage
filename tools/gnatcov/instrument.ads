@@ -18,11 +18,11 @@
 
 --  Support for source instrumentation
 
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded;
-
-with GNAT.Regexp;
+with Ada.Strings.Unbounded.Hash;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
@@ -37,6 +37,12 @@ with Switches;            use Switches;
 package Instrument is
 
    package US renames Ada.Strings.Unbounded;
+
+   package GPR renames GNATCOLL.Projects;
+
+   use type Ada.Containers.Count_Type;
+
+   Parallelism_Level : Natural := 1;
 
    function Language_Kind
      (Language : Some_Language) return Any_Language_Kind;
@@ -170,27 +176,58 @@ package Instrument is
    --  Return the CU_Id corresponding to the given instrumented unit, or
    --  No_CU_Id if not found.
 
-   procedure Instrument_Units_Of_Interest
-     (Dump_Config          : Any_Dump_Config;
-      Language_Version     : Any_Language_Version;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp;
-      Mains                : String_Vectors.Vector);
-   --  Generate instrumented sources for the source files of all units of
-   --  interest. Also save mappings between coverage buffers and SCOs for each
-   --  library units to SID files (one per library unit).
-   --
-   --  Depending on Dump_Config, instrument mains to schedule a call to the
-   --  dump procedure for the list of coverage buffers in all mains in the
-   --  project.
-   --
-   --  Language_Version restricts what source constructs the instrumenter is
-   --  allowed to use. For instance, if Ada_2005 (or a lower version) is
-   --  passed, it will not be allowed to introduce expression functions, and
-   --  thus will emit a warning when it needed to do so.
-   --
-   --  If Ignored_Source_File is non-null, ignore files whose names match the
-   --  accessed pattern.
-   --
-   --  Mains is the list of source files that were listed on the command line:
-   --  if non-empty, they replace the mains specified in project files.
+   type Lang_Array is array (Src_Supported_Language range <>)
+     of Unbounded_String;
+   type C_Lang_Array_Vec is array (C_Family_Language) of String_Vectors.Vector;
+
+   package String_Vectors_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Unbounded_String,
+      Element_Type    => String_Vectors.Vector,
+      Equivalent_Keys => Ada.Strings.Unbounded."=",
+      Hash            => Ada.Strings.Unbounded.Hash,
+      "="             => String_Vectors."=");
+
+   type Prj_Desc is record
+      Prj_Name : Unbounded_String;
+      --  Name for the project
+
+      Output_Dir : Unbounded_String;
+      --  Where the instrumented sources and coverage buffer units are
+      --  generated.
+
+      Spec_Suffix, Body_Suffix : Lang_Array (Src_Supported_Language);
+      --  Suffixes for the body and the spec
+
+      Dot_Replacement : Unbounded_String;
+      --  Character to use as identifier separator for file naming (used for
+      --  unit-based languages).
+
+      Compiler_Driver : Lang_Array (C_Family_Language);
+      --  Compiler used to compile the sources
+
+      Compiler_Options : C_Lang_Array_Vec;
+      --  For languages resorting to the compiler to preprocess sources, list
+      --  of compiler switches to pass to the preprocessor invocation.
+
+      Compiler_Options_Unit : String_Vectors_Maps.Map;
+      --  Compiler switches applying to a specific unit
+
+      Search_Paths : String_Vectors.Vector;
+      --  List of compiler switches to look up the project source directories
+
+   end record;
+   --  This record stores the information that is required from the project
+   --  for instrumentation purposes.
+
+   type Prj_Desc_Access is access Prj_Desc;
+
+   function Load_From_Command_Line return Prj_Desc;
+
+   function Unparse
+     (Desc      : Prj_Desc;
+      Unit_Name : Unbounded_String;
+      Lang      : Src_Supported_Language) return String_Vectors.Vector;
+   --  Return a list of command line switches holding all the project
+   --  information for the given Unit_Name of the language Lang.
+
 end Instrument;

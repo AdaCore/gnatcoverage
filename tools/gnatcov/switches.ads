@@ -119,6 +119,10 @@ package Switches is
    SPARK_Compat : Boolean := False;
    --  When True, tune the instrumenter for maximum SPARK compatibility
 
+   Files_Of_Interest : String_Sets.Set;
+   --  Lower abstraction for files of interest, when the --files switch is
+   --  used.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 

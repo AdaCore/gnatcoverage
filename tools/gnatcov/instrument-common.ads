@@ -50,23 +50,21 @@
 --    buffers for the unit.
 
 with Ada.Characters.Handling;         use Ada.Characters.Handling;
-with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded;           use Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
-with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
-with GNATCOLL.VFS;
 with GNAT.Regpat; use GNAT.Regpat;
 
-with ALI_Files;             use ALI_Files;
-with Files_Table;           use Files_Table;
+with GNATCOLL.JSON; use GNATCOLL.JSON;
+
+with ALI_Files;   use ALI_Files;
+with Files_Table; use Files_Table;
 with GNATcov_RTS;
-with Namet;                 use Namet;
-with Slocs;                 use Slocs;
+with Namet;       use Namet;
+with Slocs;       use Slocs;
 with Text_Files;
 
 package Instrument.Common is
@@ -133,15 +131,9 @@ package Instrument.Common is
    --  Given a unit to instrument, return the name of the symbol to use for the
    --  entity that contains address of the decision coverage buffer.
 
-   function Buffer_Unit
-     (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name;
-   --  Given a unit to instrument, return the name of the unit that holds
-   --  its coverage buffers (Coverage_Buffer_Type and
-   --  GNATcov_RTS_Coverage_Buffers records).
-
-   function Unit_Buffers_Name (Unit : Compilation_Unit_Name) return String;
+   function Unit_Buffers_Name (Unit : Project_Unit) return String;
    --  Name of the symbol that references the
-   --  gnatcov_rts_coverage_buffers_group struct for this unit.
+   --  gnatcov_rts_coverage_buffers_group struct for this file.
 
    function Unit_Buffers_Array_Name (Prj_Name : String) return String is
       ("gnatcov_rts_buffers_array_" & Prj_Name);
@@ -168,63 +160,15 @@ package Instrument.Common is
    --  returned literal expression (aggregate in Ada, compound expression in
    --  C/C++).
 
-   function Trace_Filename_Tag return String;
-   --  Tag for the source trace filename. This allows differentiating trace
-   --  files produced by a specific program instrumentation from the ones
-   --  produced by other instrumentations.
-
    package File_Sets is new Ada.Containers.Hashed_Sets
      (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
       "="                 => Ada.Strings.Unbounded."=",
       Equivalent_Elements => Ada.Strings.Unbounded."=",
       Hash                => Ada.Strings.Unbounded.Hash);
 
-   type Project_Info is record
-      Project : Project_Type;
-      --  Project that this record describes
-
-      Externally_Built : Boolean;
-      --  Whether this project is externally built. In that case, we assume its
-      --  units of interest have already been instrumented.
-
-      Output_Dir : Ada.Strings.Unbounded.Unbounded_String;
-      --  Subdirectory in the project file's object directory. All we generate
-      --  for this project must land in it.
-   end record;
-
-   type Project_Info_Access is access all Project_Info;
-
-   package Project_Info_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
-      Element_Type    => Project_Info_Access,
-      Equivalent_Keys => Ada.Strings.Unbounded."=",
-      Hash            => Ada.Strings.Unbounded.Hash);
-   --  Mapping from project name (as returned by GNATCOLL.Projects.Name) to
-   --  Project_Info records. Project_Info records are owned by this map, and
-   --  thus must be deallocated when maps are deallocated.
-
-   type Main_To_Instrument is record
-      CU_Name : Compilation_Unit_Name;
-      --  Compilation unit of the main to instrument
-
-      File : GNATCOLL.VFS.Virtual_File;
-      --  Source file to instrument
-
-      Prj_Info : Project_Info_Access;
-      --  Reference to the Project_Info record corresponding to the project
-      --  that owns the main to instrument.
-   end record;
-
-   package Main_To_Instrument_Vectors is new Ada.Containers.Vectors
-     (Positive, Main_To_Instrument);
-
    type Instrumented_Unit_Info is record
       Filename : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of the source file for this unit
-
-      Prj_Info : Project_Info_Access;
-      --  Reference to the Project_Info record corresponding to the project
-      --  that owns the source file for this unit.
 
       Language : Some_Language;
       --  Language for this unit
@@ -235,78 +179,6 @@ package Instrument.Common is
    package Instrumented_Unit_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Compilation_Unit_Name,
       Element_Type => Instrumented_Unit_Info_Access);
-
-   type Inst_Context is limited record
-      Project_Name : Ada.Strings.Unbounded.Unbounded_String;
-      --  Name of the root project. It is also used to name the list of buffers
-
-      Ignored_Source_Files_Present : Boolean;
-      Ignored_Source_Files         : GNAT.Regexp.Regexp;
-      --  If present, instrumentation will ignore files whose names match the
-      --  accessed pattern.
-
-      Instrumented_Units : Instrumented_Unit_Maps.Map;
-      --  Mapping from instrumented unit names to information used during
-      --  instrumentation.
-
-      Project_Info_Map : Project_Info_Maps.Map;
-      --  For each project that contains units of interest, this tracks a
-      --  Project_Info record.
-   end record;
-
-   function Create_Context
-     (Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;
-   --  Create an instrumentation context for the currently loaded project
-
-   procedure Destroy_Context (Context : in out Inst_Context);
-   --  Free dynamically allocated resources in Context
-
-   function Is_Ignored_Source_File
-     (Context : Inst_Context; Filename : String) return Boolean;
-   --  Return whether the instrumentation process must ignore the Filename
-   --  source file.
-
-   function Get_Or_Create_Project_Info
-     (Context : in out Inst_Context;
-      Project : Project_Type) return Project_Info_Access;
-   --  Return the Project_Info record corresponding to Project. Create it if it
-   --  does not exist.
-
-   function Unit_Info
-     (CU_Name : Compilation_Unit_Name;
-      Info    : out GNATCOLL.Projects.File_Info) return Boolean;
-   --  Look for a compilation unit in the loaded project. If found, put its
-   --  file info in Info and return True. Return False otherwise.
-
-   procedure Register_Main_To_Instrument
-     (Context : in out Inst_Context;
-      Mains   : in out Main_To_Instrument_Vectors.Vector;
-      File    : GNATCOLL.VFS.Virtual_File;
-      Project : Project_Type);
-   --  Register in Mains a main to be instrumented so that it dumps coverage
-   --  buffers. File is the source file for this main, and Project is the
-   --  project that owns this main. If File is actually a unit of interest in
-   --  Context, do nothing.
-
-   procedure Add_Instrumented_Unit
-     (Context     : in out Inst_Context;
-      Project     : GNATCOLL.Projects.Project_Type;
-      Source_File : GNATCOLL.Projects.File_Info);
-   --  Add the given source file to the list of units to instrument
-
-   function New_File
-     (Info : Project_Info; Name : String) return String;
-   --  Compute the path to the file to create in Info.Output_Dir
-
-   procedure Create_File
-     (Info : in out Project_Info;
-      File : in out Text_Files.File_Type;
-      Name : String);
-   --  Shortcut to Text_Files.Create: create a text file with the given name in
-   --  Info.Output_Dir.
-   --
-   --  Name can be a basename, a relative name or an absolute one: in all
-   --  cases, the basename is taken and the file is created in Info.Output_Dir.
 
    ------------------------------------------------------
    --  Common declarations for Ada / C instrumentation --
@@ -397,9 +269,12 @@ package Instrument.Common is
    package Allocated_Bits_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Allocated_Bits);
    --  Allocated bits in coverage buffers for low-level SCOs (one per source
-   --  file). Because of #include directives in C/C++, a single compilation
-   --  unit may yield multiple sets of coverage buffers: one for the compiled
-   --  source file, one for each included source.
+   --  file). A single compilation unit may yield multiple sets of coverage
+   --  buffers: one for each part of the unit in the case of unit-based
+   --  language units (the spec, the body, and the separates). It may also be
+   --  the case for unit of file-based languages: one for the compiled source
+   --  file and one for each included source (e.g. through inclusion directives
+   --  for C and C++).
 
    function Create_Unit_Bits
      (Allocated_Bits : in out Allocated_Bits_Vectors.Vector;
@@ -438,11 +313,11 @@ package Instrument.Common is
       Instrumented_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit being instrumented
 
-      Language_Version_Pragma : Unbounded_Wide_Wide_String;
-      --  Language version configuration pragma for unit, if any
-
       SFI : Source_File_Index := No_Source_File;
       --  Source file index of the compilation unit being instrumented
+
+      Fullname : Unbounded_String;
+      --  Fullname of the compilation unit being instrumented
 
       Buffer_Unit : Compilation_Unit_Name;
       --  Name of the compilation unit that holds coverage buffers for the
@@ -501,12 +376,11 @@ package Instrument.Common is
       Element_Type => Ada_Qualified_Name,
       "="          => Ada_Identifier_Vectors."=");
 
-   function Instr_Units_For_Closure
-     (IC   : Inst_Context;
-      Main : Compilation_Unit_Name) return CU_Name_Vectors.Vector;
-   --  Return the list of instrumented units in Main's closure
+   type Language_Instrumenter is abstract tagged record
+      Tag : Unbounded_String;
+      --  Tag specific to an instrumentation run
 
-   type Language_Instrumenter is abstract tagged null record;
+   end record;
    --  Set of operations to allow the instrumentation of sources files for a
    --  given language.
 
@@ -514,45 +388,62 @@ package Instrument.Common is
      (Self : Language_Instrumenter) return Src_Supported_Language is abstract;
    --  Return the language that this instrumenter is designed to process
 
-   function Skip_Source_File
-     (Self        : Language_Instrumenter;
-      Source_File : GNATCOLL.Projects.File_Info) return Boolean
-   is (True);
-   --  Whether the instrumenter skips the given source file. The default
-   --  (undefined) instrumenter skips every source file.
-
    procedure Instrument_Unit
-     (Self        : in out Language_Instrumenter;
-      CU_Name     : Compilation_Unit_Name;
-      Unit_Info   : in out Instrumented_Unit_Info) is null;
+     (Self              : in out Language_Instrumenter;
+      Unit_Name         : String;
+      Prj               : Prj_Desc;
+      Files_Of_Interest : String_Sets.Set) is null;
    --  Instrument a single source file for the language that Self supports.
    --
-   --  CU_Name must be the name of the compilation unit for this source file,
-   --  and Unit_Info must be the Instrumented_Unit_Info record corresponding to
-   --  this source file.
+   --  Unit_Name identifies this compilation unit (either through a unit name,
+   --  for Unit_Based_Language, or through a full name, for file-based). Prj
+   --  describes information coming from the project, and relevant to the
+   --  instrumentation of the unit. Files_Of_Interest provides the list of
+   --  files of interest, to ignore e.g. part of the unit (e.g. a separate)
+   --  when instrumenting it.
 
    procedure Auto_Dump_Buffers_In_Main
-     (Self        : in out Language_Instrumenter;
-      Filename    : String;
-      Instr_Units : CU_Name_Vectors.Vector;
-      Dump_Config : Any_Dump_Config;
-      Info        : in out Project_Info) is null;
+     (Self          : in out Language_Instrumenter;
+      Filename      : String;
+      Dump_Config   : Any_Dump_Config;
+      Prj           : Prj_Desc) is null;
    --  Try to instrument the Filename source file (whose language is assumed
-   --  to be Self's) to insert a call to dump the list of coverage buffers for
-   --  all Instr_Units, according to the Dump_Config options. Do nothing if not
-   --  successful.
-   --
-   --  Info must be the Project_Info record corresponding to the project that
-   --  owns Filename's compilation unit.
+   --  to be Self's) to insert a call to dump the list of coverage buffers,
+   --  assumed to be named after Prj.Prj_Name. Do nothing if not successful.
 
    procedure Emit_Buffers_List_Unit
-     (Self              : Language_Instrumenter;
-      Root_Project_Info : in out Project_Info;
-      Instr_Units       : CU_Name_Vectors.Vector) is null;
+     (Self        : Language_Instrumenter;
+      Instr_Units : Unit_Sets.Set;
+      Prj         : Prj_Desc) is null;
+   --  Emit in the root project a unit (in Self's language) to contain the list
+   --  of coverage buffers for the given instrumented files.
+   --
    --  The variable holding the list of coverage buffers is exported to a
    --  unique C symbol whose name is defined by the Unit_Buffers_Array_Name
    --  function. This procedure should thus be called only once, for one of
    --  the supported languages of the project.
+
+   function New_File
+     (Prj : Prj_Desc; Name : String) return String;
+   --  Compute the path to the file to create in Self.Output_Dir
+
+   procedure Create_File
+     (Prj  : Prj_Desc;
+      File : in out Text_Files.File_Type;
+      Name : String);
+   --  Shortcut to Text_Files.Create: create a text file with the given name in
+   --  Prj.Output_Dir.
+   --
+   --  Name can be a basename, a relative name or an absolute one: in all
+   --  cases, the basename is taken and the file is created in Prj.Output_Dir.
+
+   function To_Filename
+     (Prj      : Prj_Desc;
+      Lang     : Src_Supported_Language;
+      CU_Name  : Compilation_Unit_Name) return String;
+   --  Convert a Compilation_Unit_Name to a file basename, using the body /
+   --  spec suffix and dot replacement (for unit based languages) defined in
+   --  Prj.
 
    type Macro_Definition (Define : Boolean := True) is record
       Name : Unbounded_String;

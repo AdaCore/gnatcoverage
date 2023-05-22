@@ -182,15 +182,6 @@ package Project is
    --
    --  If no project is loaded, just return null.
 
-   function Runtime_Supports_Finalization return Boolean with
-     Pre => Is_Project_Loaded;
-   --  Return whether the configured runtime includes the Ada.Finalization unit
-
-   function Runtime_Supports_Task_Termination return Boolean with
-     Pre => Is_Project_Loaded;
-   --  Return whether the configured runtime has necessary units to implement
-   --  the ravenscar-task-termination dump trigger.
-
    function Switches (Op : String) return String_List_Access
       with Pre => Is_Project_Loaded;
    --  Return a list of gnatcov switches defined by the root project. Caller
@@ -243,5 +234,11 @@ package Project is
    --
    --  Unless Include_Extended is True, only process ultimate extending
    --  projects.
+
+   function Source_Suffix
+     (Lang    : Src_Supported_Language;
+      Part    : GNATCOLL.Projects.Unit_Parts;
+      Project : GNATCOLL.Projects.Project_Type) return String;
+   --  Return the filename suffix corresponding for Part files and Lang
 
 end Project;

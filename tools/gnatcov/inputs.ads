@@ -79,6 +79,10 @@ package Inputs is
      (Inputs : Inputs_Type) return String_Vectors.Vector;
    --  Convert an inputs list into a String_Vectors.Vector
 
+   function To_String_Set
+     (Inputs : Inputs_Type) return String_Sets.Set;
+   --  Convert an inputs list into a String_Sets.Set
+
    procedure Create_Matcher
      (Pattern_List     : String_Vectors.Vector;
       Matcher          : out GNAT.Regexp.Regexp;

@@ -37,6 +37,10 @@ package Instrument.C is
      (Self : C_Instrumenter_Type) return Src_Supported_Language
    is (C_Language);
 
+   function Create_C_Instrumenter
+     (Tag : Unbounded_String) return C_Instrumenter_Type
+   is (C_Instrumenter_Type'(others => <>));
+
    type CPP_Instrumenter_Type is
      new C_Family_Instrumenter_Type with null record;
    --  Instrumentation primitives for C++
@@ -45,8 +49,9 @@ package Instrument.C is
      (Self : CPP_Instrumenter_Type) return Src_Supported_Language
    is (CPP_Language);
 
-   C_Instrumenter   : aliased C_Instrumenter_Type := (null record);
-   CPP_Instrumenter : aliased CPP_Instrumenter_Type := (null record);
+   function Create_CPP_Instrumenter
+     (Tag : Unbounded_String) return CPP_Instrumenter_Type
+   is (CPP_Instrumenter_Type'(others => <>));
 
    procedure Postprocess_Source
      (Preprocessed_Filename  : String;

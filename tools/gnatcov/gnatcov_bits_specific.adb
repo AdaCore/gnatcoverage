@@ -27,6 +27,8 @@ with GNAT.OS_Lib;
 with GNAT.Regexp;
 with GNAT.Strings; use GNAT.Strings;
 
+with System.Multiprocessors;
+
 with Snames;
 
 with ALI_Files;
@@ -56,8 +58,13 @@ with Execs_Dbase;           use Execs_Dbase;
 with Files_Table;           use Files_Table;
 with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Inputs;                use Inputs;
+with Instrument;
+with Instrument.Common;     use Instrument.Common;
+with Instrument.Config;
+with Instrument.Main;
+with Instrument.Projects;
+with Instrument.Source;
 with Instrument.Input_Traces;
-with Instrument;            use Instrument;
 with Object_Locations;
 with Outputs;               use Outputs;
 with Perf_Counters;
@@ -98,6 +105,7 @@ procedure GNATcov_Bits_Specific is
    Checkpoints_Inputs   : Inputs.Inputs_Type;
    SID_Inputs           : Inputs.Inputs_Type;
    Ignored_Source_Files : Inputs.Inputs_Type;
+   Files_Of_Interest    : Inputs.Inputs_Type;
    Source_Rebase_Inputs : Inputs.Inputs_Type;
    Source_Search_Inputs : Inputs.Inputs_Type;
    Text_Start           : Pc_Type := 0;
@@ -481,6 +489,8 @@ procedure GNATcov_Bits_Specific is
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
 
       Copy_Arg_List (Opt_Ignore_Source_Files, Ignored_Source_Files);
+      Copy_Arg_List (Opt_Files, Files_Of_Interest);
+      Switches.Files_Of_Interest := To_String_Set (Files_Of_Interest);
 
       --  Compute the languages for which we want coverage analysis, or enable
       --  just the default ones.
@@ -1029,6 +1039,32 @@ procedure GNATcov_Bits_Specific is
             Copy_Arg_List (Opt_C_Opts, C_Opts);
             Copy_Arg_List (Opt_CPP_Opts, CPP_Opts);
 
+            if Args.String_Args (Opt_Parallelism_Level).Present then
+               declare
+                  Parallelism_Level : Natural;
+               begin
+                  begin
+                     Parallelism_Level :=
+                       Natural'Value
+                         (+Args.String_Args (Opt_Parallelism_Level).Value);
+                  exception
+                     when Constraint_Error =>
+                        Fatal_Error ("Parallelism level (-j or --jobs)"
+                                     & " must be a natural integer value");
+                  end;
+
+                  --  Limit the number of spawned subprocesses to the number
+                  --  of cores.
+
+                  if Parallelism_Level = 0 then
+                     Instrument.Parallelism_Level :=
+                       Positive (System.Multiprocessors.Number_Of_CPUs);
+                  else
+                     Instrument.Parallelism_Level := Parallelism_Level;
+                  end if;
+               end;
+            end if;
+
          when others =>
             null;
       end case;
@@ -1260,7 +1296,7 @@ begin
                Gargs        => Args.String_List_Args (Opt_Gargs));
          end;
 
-      when Cmd_Instrument =>
+      when Cmd_Instrument_Project =>
          if not Is_Project_Loaded then
             Fatal_Error ("instrumentation requires a project file;"
                          & " please use the -P option");
@@ -1287,10 +1323,8 @@ begin
             --  Matcher for the source files to ignore
 
             Language_Version : Any_Language_Version;
+            pragma Unreferenced (Language_Version);
 
-            Mains : String_Vectors.Vector renames Args.Remaining_Args;
-            --  Treat remaining command line arguments as a list of source
-            --  files to be processed as mains.
          begin
             Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
 
@@ -1322,16 +1356,6 @@ begin
                  ("(selected runtime from " & (+Setup_Cfg.Project_File) & ")");
             end if;
 
-            --  Even though instrumentation does not create any traces, the
-            --  structure of a SID file is basically a checkpoint, so it has a
-            --  Trace_Kind field in its header. Instead of leaving it to
-            --  Unknown (default value) mark it as Source_Trace_File so that
-            --  when the .sid file is loaded, it will set gnatcov in
-            --  "source trace mode" and it will be rejected if binary traces
-            --  have already been loaded.
-
-            Update_Current_Trace_Kind (Source_Trace_File);
-
             if Analyze_Entry_Barriers then
                Warn ("With source traces, entry barrier analysis (enabled"
                      & " with --analyze-entry-barriers) is only supported when"
@@ -1340,12 +1364,54 @@ begin
                      & " result in invalid code being emitted.");
             end if;
 
-            Instrument.Instrument_Units_Of_Interest
+            Instrument.Projects
               (Dump_Config          => Dump_Config,
-               Language_Version     => Language_Version,
                Ignored_Source_Files =>
                  (if Has_Matcher then Matcher'Access else null),
-               Mains                => Mains);
+               Mains                => Args.Remaining_Args);
+         end;
+
+      when Cmd_Instrument_Source =>
+         --  For the instrument-source command, and for the instrument-main,
+         --  we do not check the command-line semantics as these commands are
+         --  internal and spawned by a gnatcov main process. They are thus by
+         --  default well-formed, and if they are not, it is a gnatcov bug.
+         --
+         --  The unit to instrument is the trailing argument
+
+         declare
+            Instrumenter : Language_Instrumenter'Class := Instrument.Config;
+         begin
+            Instrument.Source
+              (Instrumenter      => Instrumenter,
+               Files_Of_Interest => Switches.Files_Of_Interest,
+               Prj               => Instrument.Load_From_Command_Line,
+               Unit_Name         => +Args.Remaining_Args.First_Element,
+               SID_Name          =>
+                 +Args.String_List_Args (Opt_SID).First_Element);
+         end;
+
+      when Cmd_Instrument_Main =>
+         declare
+            --  The dump config is loaded from the command line. The
+            --  implementation of the main instrumentation process assumes that
+            --  it is fully explicited, i.e. that nothing is left as default.
+
+            Dump_Config : constant Any_Dump_Config :=
+              Load_Dump_Config (Any_Dump_Config'(others => <>));
+
+            --  Trailing argument is the main to instrument
+
+            Main_Filename : constant String :=
+              +Args.Remaining_Args.First_Element;
+
+            Instrumenter : Language_Instrumenter'Class := Instrument.Config;
+         begin
+            Instrument.Main
+              (Instrumenter,
+               Dump_Config,
+               Main_Filename,
+               Instrument.Load_From_Command_Line);
          end;
 
       when Cmd_Scan_Objects =>

@@ -16,29 +16,26 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  Stub of Instrument.Ada_Unit, to avoid pulling a dependency to libadalang
---  when gnatcov is not built with Ada instrumentation support (basically the
---  gnatcov32 executable that have support for binary traces only).
-
 with Instrument.Common; use Instrument.Common;
 
-package Instrument.Ada_Unit is
+--  Implementation of the gnatcov instrument-main, which inserts a call to
+--  dump coverage buffers according to the various dump options passed
+--  on the command line.
 
-   pragma Elaborate_Body;
+procedure Instrument.Main
+  (Instrumenter  : in out Language_Instrumenter'Class;
+   Dump_Config   : Any_Dump_Config;
+   Main_Filename : String;
+   Prj           : Prj_Desc) is
+begin
+   --  If the dump-trigger is manual, there is nothing to do
 
-   type Ada_Instrumenter_Type is new Language_Instrumenter with null record;
-   --  Common instrumentation primitives for Ada
+   if Dump_Config.Trigger = Manual then
+      return;
+   end if;
 
-   overriding function Language
-     (Self : Ada_Instrumenter_Type) return Src_Supported_Language
-   is (Ada_Language);
-
-   function Create_Ada_Instrumenter
-     (Tag                    : Unbounded_String;
-      Config_Pragmas_Filename,
-      Mapping_Filename       : String;
-      Predefined_Source_Dirs : String_Vectors.Vector)
-      return Ada_Instrumenter_Type
-   is (Ada_Instrumenter_Type'(others => <>));
-
-end Instrument.Ada_Unit;
+   Instrumenter.Auto_Dump_Buffers_In_Main
+     (Filename    => Main_Filename,
+      Dump_Config => Dump_Config,
+      Prj         => Prj);
+end Instrument.Main;

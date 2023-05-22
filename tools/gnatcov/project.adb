@@ -31,9 +31,10 @@ with GNATCOLL.Traces;
 with GNATCOLL.Projects.Aux;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
+with Command_Line;        use Command_Line;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
-with Instrument;          use Instrument;
 with Inputs;              use Inputs;
+with Instrument;          use Instrument;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
 
@@ -230,10 +231,6 @@ package body Project is
    --
    --  Note that this also returns source files for mains that are not units of
    --  interest.
-
-   function Runtime_Has_File (Filename : Filesystem_String) return Boolean;
-   --  Return whether Filename can be found among the sources of the
-   --  configured Ada runtime.
 
    ---------------------
    -- To_Project_Unit --
@@ -631,51 +628,6 @@ package body Project is
       end;
    end Find_Source_File;
 
-   ----------------------
-   -- Runtime_Has_File --
-   ----------------------
-
-   function Runtime_Has_File (Filename : Filesystem_String) return Boolean is
-      Result_File : Virtual_File;
-      --  Virtual_File for Ada.Finalization. Only search predefined sources.
-      Ambiguous   : Boolean;
-      --  Required in the call for GNATCOLL.Projects.Create
-   begin
-      GNATCOLL.Projects.Create
-        (Self            => Prj_Tree.all,
-         Name            => Filename,
-         Use_Object_Path => False,
-         Ambiguous       => Ambiguous,
-         File            => Result_File,
-         Predefined_Only => True);
-
-      --  We don't expect there to be multiple homonyms for the runtime files
-
-      pragma Assert (not Ambiguous);
-      return Result_File /= No_File;
-   end Runtime_Has_File;
-
-   ------------------------------
-   -- Runtime_Has_Finalization --
-   ------------------------------
-
-   function Runtime_Supports_Finalization return Boolean is
-     (Runtime_Has_File ("a-finali.ads"));
-
-   ---------------------------------------
-   -- Runtime_Supports_Task_Termination --
-   ---------------------------------------
-
-   function Runtime_Supports_Task_Termination return Boolean is
-   begin
-      --  We need both Ada.Task_Identification (a-taside.ads) and
-      --  Ada.Task_Termination (a-taster.ads) to be able to use task
-      --  termination.
-
-      return Runtime_Has_File ("a-taster.ads")
-            and then Runtime_Has_File ("a-taside.ads");
-   end Runtime_Supports_Task_Termination;
-
    ----------------
    -- Initialize --
    ----------------
@@ -1009,7 +961,9 @@ package body Project is
                --  Units attributes only apply to the project itself.
 
                Iterate_Source_Files
-                 (Project, Process_Source_File'Access, Recursive => False);
+                 (Project, Process_Source_File'Access,
+                  Recursive     => False,
+                  Include_Stubs => True);
                Inc_Units_Defined := True;
             end;
          end if;
@@ -1646,7 +1600,7 @@ package body Project is
 
    procedure Finalize is
    begin
-      if Prj_Tree /= null then
+      if Prj_Tree /= null and then not Args.Bool_Args (Opt_Save_Temps) then
          GNATCOLL.Projects.Aux.Delete_All_Temp_Files (Prj_Tree.Root_Project);
       end if;
    end Finalize;
@@ -1659,5 +1613,47 @@ package body Project is
    begin
       return Prj_Tree;
    end Project;
+
+   -------------------
+   -- Source_Suffix --
+   -------------------
+
+   function Source_Suffix
+     (Lang    : Src_Supported_Language;
+      Part    : GNATCOLL.Projects.Unit_Parts;
+      Project : GNATCOLL.Projects.Project_Type) return String
+   is
+      Attr : constant Attribute_Pkg_String :=
+        Build
+          (Package_Name   => "Naming",
+           Attribute_Name =>
+             (case Part is
+              when Unit_Body     => "Body_Suffix",
+              when Unit_Spec     => "Spec_Suffix",
+              when Unit_Separate => raise Program_Error));
+   begin
+      case Part is
+         when Unit_Body =>
+            return Project.Attribute_Value
+              (Attribute => Attr,
+               Index     => Image (Lang),
+               Default   => (case Lang is
+                             when Ada_Language => ".adb",
+                             when C_Language   => ".c",
+                             when CPP_Language => ".cpp"));
+
+         when Unit_Spec =>
+            return Project.Attribute_Value
+              (Attribute => Attr,
+               Index     => Image (Lang),
+               Default   => (case Lang is
+                             when Ada_Language => ".ads",
+                             when C_Language   => ".h",
+                             when CPP_Language => ".hh"));
+
+         when Unit_Separate =>
+            return (raise Program_Error);
+      end case;
+   end Source_Suffix;
 
 end Project;

@@ -196,7 +196,7 @@ package body Switches is
       use Ada.Strings.Unbounded;
       Result : String_Vectors.Vector;
    begin
-      Result.Append (+"--dump-triger");
+      Result.Append (+"--dump-trigger");
       case Dump_Config.Trigger is
          when Manual =>
             Result.Append (+"manual");

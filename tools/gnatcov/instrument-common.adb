@@ -18,18 +18,13 @@
 
 with Ada.Containers; use Ada.Containers;
 with Ada.Directories;
-with Ada.Unchecked_Deallocation;
 
-with GNAT.OS_Lib;
-
-with Interfaces;
+with GNATCOLL.VFS;
 
 with Coverage;
 with Diagnostics;
-with Hex_Images;
 with Outputs; use Outputs;
 with Paths;   use Paths;
-with Project; use Project;
 with SCOs;
 
 package body Instrument.Common is
@@ -88,30 +83,18 @@ package body Instrument.Common is
       return Buffer_Symbol (Instrumented_Unit, "mcdc");
    end MCDC_Buffer_Symbol;
 
-   -----------------
-   -- Buffer_Unit --
-   -----------------
-
-   function Buffer_Unit
-     (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name
-   is
-      Simple_Name : Ada_Identifier;
-   begin
-      Append (Simple_Name, 'B');
-      Append (Simple_Name, Instrumented_Unit_Slug (Instrumented_Unit));
-      return CU_Name : Ada_Qualified_Name := Sys_Buffers do
-         CU_Name.Append (Simple_Name);
-      end return;
-   end Buffer_Unit;
-
    -----------------------
    -- Unit_Buffers_Name --
    -----------------------
 
-   function Unit_Buffers_Name (Unit : Compilation_Unit_Name) return String is
+   function Unit_Buffers_Name (Unit : Project_Unit) return String is
+      Slug : constant String :=
+        (case Unit.Language is
+            when Unit_Based_Language =>
+              Qualified_Name_Slug (To_Qualified_Name (+Unit.Unit_Name)),
+            when File_Based_Language => Filename_Slug (+Unit.Unit_Name));
    begin
-      return To_Symbol_Name (Sys_Buffers) & "_" & Instrumented_Unit_Slug (Unit)
-        & "_buffers";
+      return To_Symbol_Name (Sys_Buffers) & "_" & Slug & "_buffers";
    end Unit_Buffers_Name;
 
    ------------------------
@@ -157,255 +140,6 @@ package body Instrument.Common is
       Append (Result, Closing);
       return To_String (Result);
    end Format_Fingerprint;
-
-   ------------------------
-   -- Trace_Filename_Tag --
-   ------------------------
-
-   function Trace_Filename_Tag return String
-   is
-      --  Compute the tag for default source trace filenames. Use the current
-      --  time as a mostly unique identifier. Put it in hexadecimal form
-      --  without leading zeros to avoid too long names.
-
-      use Interfaces;
-      Time : constant Unsigned_64 :=
-        Unsigned_64 (GNAT.OS_Lib.To_C (GNAT.OS_Lib.Current_Time));
-      Tag  : constant String :=
-        Hex_Images.Strip_Zero_Padding
-          (Hex_Images.Hex_Image (Time));
-   begin
-      return Tag;
-   end Trace_Filename_Tag;
-
-   --------------------
-   -- Create_Context --
-   --------------------
-
-   function Create_Context
-     (Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context is
-   begin
-      return IC : Inst_Context do
-         IC.Project_Name := +Ada.Directories.Base_Name
-           (Project.Root_Project_Filename);
-         --  TODO??? Get the original casing for the project name
-
-         IC.Ignored_Source_Files_Present := Ignored_Source_Files /= null;
-         if Ignored_Source_Files /= null then
-            IC.Ignored_Source_Files := Ignored_Source_Files.all;
-         end if;
-      end return;
-   end Create_Context;
-
-   ---------------------
-   -- Destroy_Context --
-   ---------------------
-
-   procedure Destroy_Context (Context : in out Inst_Context) is
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Instrumented_Unit_Info, Instrumented_Unit_Info_Access);
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Project_Info, Project_Info_Access);
-   begin
-      --  Deallocate all Insrtrumented_Unit_Info in Context, and then clear the
-      --  hashed map, both to avoid dangling pointers and to make
-      --  Destroy_Context callable more than once, like conventional
-      --  deallocation procedures in Ada.
-
-      for Cur in Context.Instrumented_Units.Iterate loop
-         declare
-            IU : Instrumented_Unit_Info_Access :=
-               Instrumented_Unit_Maps.Element (Cur);
-         begin
-            Free (IU);
-         end;
-      end loop;
-      Context.Instrumented_Units := Instrumented_Unit_Maps.Empty_Map;
-
-      --  Likewise for Project_Info records
-
-      for Cur in Context.Project_Info_Map.Iterate loop
-         declare
-            PI : Project_Info_Access := Project_Info_Maps.Element (Cur);
-         begin
-            Free (PI);
-         end;
-      end loop;
-      Context.Project_Info_Map := Project_Info_Maps.Empty_Map;
-   end Destroy_Context;
-
-   ----------------------------
-   -- Is_Ignored_Source_File --
-   ----------------------------
-
-   function Is_Ignored_Source_File
-     (Context : Inst_Context; Filename : String) return Boolean is
-   begin
-      return
-        Context.Ignored_Source_Files_Present
-        and then GNAT.Regexp.Match
-                   (S => Fold_Filename_Casing (Filename),
-                    R => Context.Ignored_Source_Files);
-   end Is_Ignored_Source_File;
-
-   --------------------------------
-   -- Get_Or_Create_Project_Info --
-   --------------------------------
-
-   function Get_Or_Create_Project_Info
-     (Context : in out Inst_Context;
-      Project : Project_Type) return Project_Info_Access
-   is
-      use Project_Info_Maps;
-
-      --  Look for an existing Project_Info record corresponding to Project
-
-      Project_Name : constant Unbounded_String := +Project.Name;
-      Position     : constant Cursor := Context.Project_Info_Map.Find
-        (Project_Name);
-   begin
-      if Has_Element (Position) then
-         return Element (Position);
-
-      else
-         --  The requested Project_Info record does not exist yet. Create it,
-         --  register it and return it.
-
-         declare
-            Storage_Project : constant Project_Type :=
-              Project.Extending_Project (Recurse => True);
-            --  Actual project that will host instrumented sources: even when
-            --  we instrument an extended project, the resulting instrumented
-            --  sources must go to the ultimate extending project's object
-            --  directory. This is similar to the object directory that hosts
-            --  object files when GPRbuild processes a project that is
-            --  extended.
-
-            Result : constant Project_Info_Access := new Project_Info'
-              (Project          => Project,
-               Externally_Built => Project.Externally_Built,
-               Output_Dir       => +Project_Output_Dir (Storage_Project));
-         begin
-            Context.Project_Info_Map.Insert (Project_Name, Result);
-            return Result;
-         end;
-      end if;
-   end Get_Or_Create_Project_Info;
-
-   ---------------
-   -- Unit_Info --
-   ---------------
-
-   function Unit_Info
-     (CU_Name : Compilation_Unit_Name;
-      Info    : out GNATCOLL.Projects.File_Info) return Boolean
-   is
-      Prj  : Project_Type renames Project.Project.Root_Project;
-      File : constant GNATCOLL.VFS.Filesystem_String := Prj.File_From_Unit
-        (Unit_Name => To_Ada (CU_Name.Unit),
-         Part      => CU_Name.Part,
-         Language  => "Ada");
-   begin
-      if File'Length = 0 then
-         return False;
-      end if;
-
-      Info := Prj.Create_From_Project (File);
-      return True;
-   end Unit_Info;
-
-   ---------------------------------
-   -- Register_Main_To_Instrument --
-   ---------------------------------
-
-   procedure Register_Main_To_Instrument
-     (Context : in out Inst_Context;
-      Mains   : in out Main_To_Instrument_Vectors.Vector;
-      File    : GNATCOLL.VFS.Virtual_File;
-      Project : Project_Type)
-   is
-      File_Info : constant GNATCOLL.Projects.File_Info :=
-         Standard.Project.Project.Info (File);
-      CU_Name   : constant Compilation_Unit_Name :=
-         To_Compilation_Unit_Name (File_Info);
-      Prj_Info  : constant Project_Info_Access :=
-        Get_Or_Create_Project_Info (Context, Project);
-   begin
-      Mains.Append
-        (Main_To_Instrument'
-           (CU_Name  => CU_Name,
-            File     => File,
-            Prj_Info => Prj_Info));
-   end Register_Main_To_Instrument;
-
-   ---------------------------
-   -- Add_Instrumented_Unit --
-   ---------------------------
-
-   procedure Add_Instrumented_Unit
-     (Context     : in out Inst_Context;
-      Project     : GNATCOLL.Projects.Project_Type;
-      Source_File : GNATCOLL.Projects.File_Info)
-   is
-      use GNATCOLL.VFS;
-
-      SF_Basename : constant Filesystem_String := Source_File.File.Base_Name;
-   begin
-      pragma Assert (not (Is_Ignored_Source_File (Context, +SF_Basename)));
-
-      declare
-         CU_Name : constant Compilation_Unit_Name :=
-           To_Compilation_Unit_Name (Source_File);
-      begin
-         --  If we already planned to instrument this unit, do nothing more
-
-         if Context.Instrumented_Units.Contains (CU_Name) then
-            return;
-         end if;
-
-         --  Otherwise, add it to the list of instrumented units
-
-         declare
-            Unit_Info : constant Instrumented_Unit_Info_Access :=
-               new Instrumented_Unit_Info'
-                 (Filename => To_Unbounded_String
-                                (+Source_File.File.Full_Name),
-                  Prj_Info => Get_Or_Create_Project_Info (Context, Project),
-                  Language => To_Language (Source_File.Language));
-         begin
-            Context.Instrumented_Units.Insert (CU_Name, Unit_Info);
-         end;
-      end;
-   end Add_Instrumented_Unit;
-
-   --------------
-   -- New_File --
-   --------------
-
-   function New_File
-     (Info : Project_Info; Name : String) return String
-   is
-      Base_Filename   : constant String :=
-         Ada.Directories.Simple_Name (Name);
-      Output_Filename : constant String :=
-         To_String (Info.Output_Dir) / Base_Filename;
-   begin
-      return Output_Filename;
-   end New_File;
-
-   -----------------
-   -- Create_File --
-   -----------------
-
-   procedure Create_File
-     (Info : in out Project_Info;
-      File : in out Text_Files.File_Type;
-      Name : String)
-   is
-      Filename : constant String := New_File (Info, Name);
-   begin
-      File.Create (Filename);
-   end Create_File;
 
    --------------
    -- Next_Bit --
@@ -582,6 +316,67 @@ package body Instrument.Common is
          Remap_Scope_Entity (Child, SCO_Map);
       end loop;
    end Remap_Scope_Entity;
+
+   --------------
+   -- New_File --
+   --------------
+
+   function New_File
+     (Prj : Prj_Desc; Name : String) return String
+   is
+      Base_Filename   : constant String :=
+        Ada.Directories.Simple_Name (Name);
+      Output_Filename : constant String :=
+        To_String (Prj.Output_Dir) / Base_Filename;
+   begin
+      return Output_Filename;
+   end New_File;
+
+   -----------------
+   -- Create_File --
+   -----------------
+
+   procedure Create_File
+     (Prj  : Prj_Desc;
+      File : in out Text_Files.File_Type;
+      Name : String)
+   is
+      Filename : constant String := New_File (Prj, Name);
+   begin
+      File.Create (Filename);
+   end Create_File;
+
+   -----------------
+   -- To_Filename --
+   -----------------
+
+   function To_Filename
+     (Prj      : Prj_Desc;
+      Lang     : Src_Supported_Language;
+      CU_Name  : Compilation_Unit_Name) return String
+   is
+      Filename : Unbounded_String;
+   begin
+      case CU_Name.Language_Kind is
+         when Unit_Based_Language =>
+            for Id of CU_Name.Unit loop
+               if Length (Filename) > 0 then
+                  Append (Filename, Prj.Dot_Replacement);
+               end if;
+               Append (Filename, To_Lower (To_String (Id)));
+            end loop;
+
+            case CU_Name.Part is
+               when Unit_Body | Unit_Separate =>
+                  Append (Filename, Prj.Body_Suffix (Lang));
+               when Unit_Spec =>
+                  Append (Filename, Prj.Spec_Suffix (Lang));
+            end case;
+         when File_Based_Language =>
+            Filename := CU_Name.Filename;
+      end case;
+      return +Filename;
+   end To_Filename;
 
    -----------------
    -- Add_Options --
@@ -808,37 +603,6 @@ package body Instrument.Common is
          end;
       end loop;
    end Import_From_Args;
-
-   ------------------------------
-   -- Buffer_Units_For_Closure --
-   ------------------------------
-
-   function Instr_Units_For_Closure
-     (IC   : Inst_Context;
-      Main : Compilation_Unit_Name)
-      return CU_Name_Vectors.Vector
-   is
-      pragma Unreferenced (Main);
-      Result : CU_Name_Vectors.Vector;
-   begin
-      --  TODO??? Here, we need the list of files needed to build Main: specs
-      --  for units WITHed by main, their bodies, the separates, etc.  It's
-      --  unclear what GNATCOLL.Projects.Get_Closure does, but experimentations
-      --  show that it's not what we want. So for now, return an approximation:
-      --  buffer units for all instrumented units. In the future, we should
-      --  either get this service from GNATCOLL.Projects, either re-implement
-      --  it on top of Libadalang.
-
-      for Cur in IC.Instrumented_Units.Iterate loop
-         declare
-            Instr_Unit : constant Compilation_Unit_Name :=
-              Instrumented_Unit_Maps.Key (Cur);
-         begin
-            Result.Append (Instr_Unit);
-         end;
-      end loop;
-      return Result;
-   end Instr_Units_For_Closure;
 
 begin
    Sys_Prefix.Append (To_Unbounded_String ("GNATcov_RTS"));

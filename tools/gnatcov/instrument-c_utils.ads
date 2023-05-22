@@ -16,9 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers;        use Ada.Containers;
+with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with Clang.Index;   use Clang.Index;
 with Clang.Rewrite; use Clang.Rewrite;
