@@ -10,6 +10,7 @@
 
 import glob
 import os
+import re
 import time
 
 
@@ -42,6 +43,10 @@ VALGRIND = 'valgrind' + env.host.os.exeext
 
 MEMCHECK_LOG = 'memcheck.log'
 CALLGRIND_LOG = 'callgrind-{}.log'
+
+# Pattern to match the line in gprls' verbose output that specifies the full
+# path to the project file to analyze.
+GPRLS_PARSING_RE = re.compile(r'^.*\.gpr: info: Parsing "(.*)"$')
 
 # ----------------------------------------------------------------------------
 #                 Notes on program and command execution paths
@@ -538,6 +543,31 @@ def platform_specific_symbols(symbols):
     For instance for Windows, this prepends an underscore to every symbol name.
     """
     return [TARGET_INFO.to_platform_specific_symbol(sym) for sym in symbols]
+
+
+def locate_gpr_file(gprswitches):
+    """
+    Use gprls to locate the GPR file for ``gprswitches``'s root project.
+    """
+    # Run gprls to let GPR code do the complex project file resolution, enable
+    # verbose mode so that it prints the full path to the resolved file.
+    filename = gprswitches.root_project
+    args = ["gprls", "-P", filename, "-v"] + gprswitches.build_switches
+    if thistest.options.target:
+        args.append(f"--target={thistest.options.target}")
+    if thistest.options.RTS:
+        args.append(f"--RTS={thistest.options.RTS}")
+    gprls_output = Run(args).out
+
+    # Look for the resolved project filename in the output, complain if we
+    # could not find one.
+    for line in gprls_output.splitlines():
+        m = GPRLS_PARSING_RE.match(line)
+        if m is not None:
+            return m.group(1)
+    raise ValueError(
+        f"could not locate {filename} with gprls:\n{gprls_output}"
+    )
 
 
 def xcov_suite_args(covcmd, covargs,
