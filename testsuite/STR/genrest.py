@@ -1157,22 +1157,57 @@ class QDreport(object):
             text = text.strip()
             return ":literal:`" + text + "`" if text else "<none>"
 
+        def simplify(sw):
+            """Given a piece of the testuite.py command line used to execute
+            the qualification test run, return what should be inserted for
+            it in the list displayed in the STR document, if anything."""
+
+            # Simplify /path/to/whatever/testsuite.py:
+            if "testsuite.py" in sw:
+                return 'testsuite.py'
+
+            # Some switches are entirely meaningless wrt qualification
+            # and can be omitted from the STR:
+            if any(
+                sw.startswith(candidate)
+                    for candidate in [
+                        "--log-file=",
+                        "--old-output-dir=",
+                        "--output-dir=",
+                        "--failure-exit-code=",
+                        "--gaia-output",
+                        "--dump-environ",
+                        "--generate-text-report",
+                    ]
+            ):
+                return None
+
+            return sw
+
         def str_relevant_switches_from(switches_string):
             """The list of individual pieces in `switches_string`
-            which are of relevance to this STR document.  These are
-            all the switches except --log-file and --old-res + their
-            argument, of interest to gaia only."""
+            which are of relevance to this STR document."""
 
             result = []
             skip = False
             for sw in switches_string.split():
+
+                # If we are to skip this arg for a switch to drop
+                # encountered just before on the command line, do so:
                 if skip:
                     skip = False
                     continue
-                elif sw in ("--log-file", "--old-res"):
+
+                # If this is a switch to drop with an arg to follow,
+                # skip this switch and request skipping the arg: 
+                if sw in ["-t"]:
                     skip = True
                     continue
-                else:
+
+                # Now see if this switch can be simplified, possibly
+                # even entirely removed:
+                sw = simplify(sw)
+                if sw:
                     result.append(sw)
 
             return result
