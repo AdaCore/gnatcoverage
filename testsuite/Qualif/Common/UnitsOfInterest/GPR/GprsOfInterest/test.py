@@ -27,7 +27,10 @@ wd = Wdir('wd_')
 # --dump-units-to tests we need.
 
 cov_cmdline = build_and_run(
-    gprsw=GPRswitches(root_project=root_project),
+    gprsw=GPRswitches(
+        root_project=root_project,
+        xvars=[("BOARD", env.target.machine)],
+    ),
     mains=['root'],
     covlevel='stmt',
     gpr_obj_dir='../obj',
