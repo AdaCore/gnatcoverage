@@ -7,7 +7,7 @@ from e3.fs import mkdir
 
 from SUITE.context import thistest
 from SUITE.cutils import contents_of, ext, indent
-from SUITE.tutils import RUNTIME_INFO, GNATCOV_INFO, xcov
+from SUITE.tutils import RUNTIME_INFO, GNATCOV_INFO, locate_gpr_file, xcov
 
 
 def default_dump_trigger(mains):
@@ -85,7 +85,8 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
     # Capture the list of main file names, double quoted and comma separated.
     m = re.search(
         pattern=r"for Main use \((?P<mains>.*)\)",
-        string=contents_of(gprsw.root_project))
+        string=contents_of(locate_gpr_file(gprsw)),
+    )
 
     # If found, split then remove whitespaces and double quotes
     mains = []
