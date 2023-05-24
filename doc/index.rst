@@ -9,4 +9,8 @@
    gnatcov/gnatcov_part
    gnattest/gnattest_part
    integration/integration_part
+
+.. Appendix part - manual numbering
+
+.. toctree::
    gnatcov/gnatcov_bin_part
