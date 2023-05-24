@@ -696,8 +696,8 @@ is
       --  Headers are not instrumented by themselves, so exit early as soon
       --  as they have been added to the sources of interest.
 
-      if (Language in C_Family_Language
-          and then Source_File.Unit_Part = Unit_Spec)
+      if Language in C_Family_Language
+         and then Source_File.Unit_Part = Unit_Spec
       then
          return;
       end if;

@@ -93,10 +93,6 @@ extern "C"
     enum gnatcov_rts_unit_part unit_part;
     struct gnatcov_rts_string unit_name;
 
-    /* Project name for this compilation unit.  This is only initialized for
-       file-based languages (otherwise, it is an empty string).  */
-    struct gnatcov_rts_string project_name;
-
     /* Hash of buffer bit mappings for this unit, as gnatcov computes it (see
        SC_Obligations).  Used as a fast way to check that gnatcov will be able
        to interpret buffer bits from a source traces using buffer bit mappings

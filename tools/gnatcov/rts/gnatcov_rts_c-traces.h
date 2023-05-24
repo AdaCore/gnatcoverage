@@ -115,11 +115,6 @@ extern "C"
        describes.  */
     uint32_t unit_name_length;
 
-    /* For file-based languages, length of the project name this file belongs
-       to. For unit-based languages, the unit name is unique so this piece of
-       information is not needed (and thus will be 0).  */
-    uint32_t project_name_length;
-
     /* Number of bits in the statement, decision and MC/DC coverage buffers. */
     uint32_t statement_bit_count;
     uint32_t decision_bit_count;
@@ -148,7 +143,7 @@ extern "C"
 
     /* Padding used only to make the size of this trace entry header a multiple
        of 8 bytes. Must be zero.  */
-    uint8_t padding[1];
+    uint8_t padding[5];
   };
 
 #ifdef __cplusplus

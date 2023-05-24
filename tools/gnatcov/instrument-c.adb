@@ -3475,8 +3475,6 @@ package body Instrument.C is
                & "  .unit_name = " & Format_Str_Constant (+CU_Name.Filename)
                & ","
                & ASCII.LF
-               & "  .project_name = """","
-               & ASCII.LF
 
                & "  .bit_maps_fingerprint = "
                & Format_Fingerprint (SC_Obligations.Bit_Maps_Fingerprint (CU))
@@ -4064,7 +4062,7 @@ package body Instrument.C is
             File_Body.Put_Line ("}};");
          else
             File_Body.Put_Line (",");
-          end if;
+         end if;
       end loop;
 
       --  Emit the extern declaration of the buffers array in the header file

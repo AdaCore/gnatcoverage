@@ -136,7 +136,6 @@ package body Instrument.Input_Traces is
 
    type Trace_Entry_Elements is record
       Unit_Name        : System.Address;
-      Project_Name     : System.Address;
       Statement_Buffer : System.Address;
       Decision_Buffer  : System.Address;
       MCDC_Buffer      : System.Address;
@@ -493,7 +492,6 @@ package body Instrument.Input_Traces is
 
          if File_Header.Endianity /= Native_Endianity then
             Swap4 (Raw_Header.Unit_Name_Length'Address);
-            Swap4 (Raw_Header.Project_Name_Length'Address);
             Swap4 (Raw_Header.Statement_Bit_Count'Address);
             Swap4 (Raw_Header.Decision_Bit_Count'Address);
             Swap4 (Raw_Header.MCDC_Bit_Count'Address);
@@ -525,7 +523,7 @@ package body Instrument.Input_Traces is
             Create_Error (Result, "invalid bit buffer encoding");
             return False;
 
-         elsif Raw_Header.Padding /= (1 => ASCII.NUL) then
+         elsif Raw_Header.Padding /= (1 .. 5 => ASCII.NUL) then
             Create_Error (Result, "invalid entry header padding");
             return False;
          end if;
@@ -540,12 +538,9 @@ package body Instrument.Input_Traces is
          Unit_Name_Range        : constant Buffer_Range :=
             Range_For (File_Header.Alignment, 0,
                        Natural (Entry_Header.Unit_Name_Length));
-         Project_Name_Range     : constant Buffer_Range :=
-            Range_For (File_Header.Alignment, Offset_After (Unit_Name_Range),
-                       Natural (Entry_Header.Project_Name_Length));
          Statement_Buffer_Range : constant Buffer_Range :=
             Range_For (File_Header.Alignment,
-                       Offset_After (Project_Name_Range),
+                       Offset_After (Unit_Name_Range),
                        Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
                                     Entry_Header.Statement_Bit_Count));
          Decision_Buffer_Range  : constant Buffer_Range :=
@@ -578,7 +573,6 @@ package body Instrument.Input_Traces is
 
          Base_Address := Buffer_Address (Stream);
          Trace_Entry := (Base_Address + Unit_Name_Range.Offset,
-                         Base_Address + Project_Name_Range.Offset,
                          Base_Address + Statement_Buffer_Range.Offset,
                          Base_Address + Decision_Buffer_Range.Offset,
                          Base_Address + MCDC_Buffer_Range.Offset);
@@ -688,10 +682,6 @@ package body Instrument.Input_Traces is
             Unit_Name    : constant String
               (1 .. Natural (Entry_Header.Unit_Name_Length))
                with Import, Address => Trace_Entry.Unit_Name;
-
-            Project_Name : constant String
-              (1 .. Natural (Entry_Header.Project_Name_Length))
-               with Import, Address => Trace_Entry.Project_Name;
 
             function Convert is new Ada.Unchecked_Conversion
               (GNATcov_RTS.Buffers.Fingerprint_Type,

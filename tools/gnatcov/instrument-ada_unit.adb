@@ -8173,7 +8173,6 @@ package body Instrument.Ada_Unit is
 
             File.Put_Line ("   Unit_Name : constant String := """
                            & Unit_Name & """;");
-            File.Put_Line ("   Project_Name : constant String := """";");
             File.New_Line;
 
             File.Put_Line ("   Buffers : aliased constant"
@@ -8187,9 +8186,6 @@ package body Instrument.Ada_Unit is
             File.Put_Line ("      Unit_Part => " & Unit_Part & ",");
             File.Put_Line ("      Unit_Name =>"
                            & " (Unit_Name'Address, Unit_Name'Length),");
-
-            File.Put_Line ("      Project_Name =>"
-                           & " (Project_Name'Address, Project_Name'Length),");
 
             File.Put_Line ("      Bit_Maps_Fingerprint => "
                            & Format_Fingerprint

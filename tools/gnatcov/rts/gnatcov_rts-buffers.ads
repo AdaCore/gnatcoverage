@@ -78,7 +78,6 @@ package GNATcov_RTS.Buffers is
       Language                  : Any_Language_Kind;
       Unit_Part                 : Any_Unit_Part;
       Unit_Name                 : GNATcov_RTS_String;
-      Project_Name              : GNATcov_RTS_String;
       Bit_Maps_Fingerprint      : Fingerprint_Type;
       Statement, Decision, MCDC : System.Address;
       Statement_Last_Bit, Decision_Last_Bit,
