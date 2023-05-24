@@ -128,7 +128,7 @@ package body Instrument.Checkpoints is
                            /= PP_Cmds.Reference (Cur)
                      then
                         Warn ("inconsistent information for instrumented file "
-                              & Get_Unique_Name (SFI));
+                              & Get_Full_Name (SFI));
                      end if;
                   end;
                end if;
