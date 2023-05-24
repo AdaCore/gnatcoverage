@@ -1,6 +1,6 @@
-###########################################
-GNATcoverage Appendix - Using Binary Traces
-###########################################
+#############################################
+Appendix A. Using GNATcoverage Binary Traces
+#############################################
 
 .. toctree::
    :maxdepth: 3
