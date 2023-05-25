@@ -50,6 +50,7 @@ build:
     - anod vcs --add-repo gnatcoverage$EDGE_REPO_SUFFIX $CI_PROJECT_DIR
 
     # Build using anod
+    - anod build --minimal gnatcov $EDGE_QUALIFIER
     - anod build --minimal gnatcov -Qinstr $EDGE_QUALIFIER
 
     # Create the package
@@ -62,23 +63,6 @@ build:
   artifacts:
     paths:
       - $PACKAGE_BASE_NAME
-
-build_standard:
-  services:
-     - image:gnatcov
-     - cpu:8
-     - mem:16
-  stage: test
-  script:
-    - export PATH=/it/e3/bin:$PATH
-    - *edge_vars
-
-    # Setup the repository
-    - cd /it/wave
-    - anod vcs --add-repo gnatcoverage$EDGE_REPO_SUFFIX $CI_PROJECT_DIR
-
-    # Build using anod
-    - anod build --minimal gnatcov $EDGE_QUALIFIER
 
 build_community:
   services:
