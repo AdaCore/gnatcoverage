@@ -13,5 +13,9 @@ repos:
             IndentExternBlock: NoIndent,
 
             SpaceAfterCStyleCast: true,
-            UseTab: ForContinuationAndIndentation
+            UseTab: ForContinuationAndIndentation,
+            SpacesInLineCommentPrefix: {
+              Minimum: 0,
+              Maximum: -1
+            }
         }"]
