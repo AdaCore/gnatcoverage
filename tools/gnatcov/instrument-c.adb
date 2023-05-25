@@ -1822,6 +1822,13 @@ package body Instrument.C is
                   Process_Decisions (UIC, False_Expr, 'X');
                   return Child_Visit_Continue;
                end;
+            when Cursor_Lambda_Expr =>
+
+               --  Do not descend into lambdas, the decisions inside the lambda
+               --  will be taken care of while processing the statements in the
+               --  lambda.
+
+               return Child_Visit_Continue;
             when others =>
                null;
          end case;
