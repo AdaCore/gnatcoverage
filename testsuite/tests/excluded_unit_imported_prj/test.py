@@ -8,9 +8,15 @@ from SUITE.gprutils import GPRswitches
 from SUITE.cutils import contents_of, Wdir
 from SUITE.tutils import thistest, gprfor
 
+from e3.fs import mkdir
+
 Wdir('tmp_')
 
 prj1 = gprfor(mains=[], prjid='prj1', srcdirs=['../prj1'], objdir='obj-prj1')
+
+# Prevent warnings about inexistant obj dir, that some versions of gnatcov
+# might emit when instrumenting before building:
+mkdir("obj-prj1")
 
 # Check that ignoring pkg.c in the main project yields a warning, as the pkg.c
 # unit is in thr prj1 dependency and not in the root project.
