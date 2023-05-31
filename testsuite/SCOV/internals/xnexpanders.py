@@ -408,29 +408,6 @@ class UnitCX:
             if rn:
                 self.xrdict.register(rn)
 
-    # Fuzz block processing
-    #
-    # We identify block with the help of explicit comments, not with lone
-    # language constructs such as begin/end in Ada. Finding the proper couples
-    # of the latter is not easy and error prone.
-
-    def blopen_p(self, tline):
-        return re.match(r"^\s*begin\s*-- #", tline.text)
-
-    def blclose_p(self, tline):
-        return re.match(r"^\s*end;\s*-- #", tline.text)
-
-    def check_block_on(self, tline):
-
-        if self.blopen_p(tline):
-            self.current_block = Block(parent=self.current_block)
-
-        if self.blclose_p(tline):
-            thistest.stop_if(
-                not self.current_block,
-                FatalError("end of nonexistant block at\n=> " + tline.text))
-            self.current_block = self.current_block.parent
-
     # Kind subsitution rules processing
     #
     # For shared drivers that exercise boolean expressions in different
@@ -519,7 +496,6 @@ class UnitCX:
             if re.search(lx.lre, tline.text):
                 self.instanciate_notes_for(lx, tline, self.current_block,
                                            self.current_srules)
-        self.check_block_on(tline)
 
     def __init__(self, sref, LXset):
 

@@ -9,22 +9,22 @@ package body Stacks is
      (S : in out Stack; Op : Op_Kind; V : in out Integer)    -- # xregion
    is                                                        -- # xregion
    begin                                                     -- # xregion
-      case Op is                                             -- # xregion_1
+      case Op is                                             -- # xregion_01
          when Push =>                                        -- # xregion
-            if S.Vcount = S.Size then                        -- # xregion_2
-               raise Constraint_Error;                       -- # xregion_3
+            if S.Vcount = S.Size then                        -- # xregion_02
+               raise Constraint_Error;                       -- # xregion_03
             end if;                                          -- # xregion
                                                              -- # xregion
-            S.Vcount := S.Vcount + 1;                        -- # xregion_4
-            S.Values (S.Vcount) := V;                        -- # xregion_5
+            S.Vcount := S.Vcount + 1;                        -- # xregion_04
+            S.Values (S.Vcount) := V;                        -- # xregion_05
                                                              -- # xregion
          when Pop =>                                         -- # xregion
-            if S.Vcount = 0 then                             -- # xregion_6
-               raise Constraint_Error;                       -- # xregion_7
+            if S.Vcount = 0 then                             -- # xregion_06
+               raise Constraint_Error;                       -- # xregion_07
             end if;                                          -- # xregion
                                                              -- # xregion
-            V := S.Values (S.Vcount);                        -- # xregion_8
-            S.Vcount := S.Vcount - 1;                        -- # xregion_9
+            V := S.Values (S.Vcount);                        -- # xregion_08
+            S.Vcount := S.Vcount - 1;                        -- # xregion_09
       end case;                                              -- # xregion
    exception                                                 -- # xregion
       when Constraint_Error =>                               -- # xregion
