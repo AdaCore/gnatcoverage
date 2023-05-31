@@ -327,6 +327,12 @@ private
          --  the current scope entity. This is modified when entering a scope
          --  (updated to the current scope), and when leaving it (updated to
          --  the current scope parent, if any).
+
+         In_Decl_Expr : Boolean := False;
+         --  True when traversing nodes that are child of a declare expression.
+         --  Used to only insert constant object declarations in the declare
+         --  expression, as non-constant objects are not allowed per
+         --  RM 4.5.9 (5/5).
       end record;
 
    function Insert_MCDC_State
