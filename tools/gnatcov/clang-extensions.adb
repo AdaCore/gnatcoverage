@@ -20,6 +20,7 @@
 --  is done for the libclang Ada bindings themselves (to avoid having to use
 --  the String_T type that must be memory managed by the user for instance).
 
+with Clang.CX_File;   use Clang.CX_File;
 with Clang.CX_String; use Clang.CX_String;
 
 with Files_Table; use Files_Table;

@@ -21,8 +21,9 @@ with Ada.Containers;  use Ada.Containers;
 with Ada.Directories; use Ada.Directories;
 with Ada.Text_IO;     use Ada.Text_IO;
 
-with Clang.CX_String;  use Clang.CX_String;
-with Clang.Extensions; use Clang.Extensions;
+with Clang.CX_Diagnostic; use Clang.CX_Diagnostic;
+with Clang.CX_String;     use Clang.CX_String;
+with Clang.Extensions;    use Clang.Extensions;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
