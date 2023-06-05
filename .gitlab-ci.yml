@@ -16,6 +16,7 @@ variables:
    #  PACKAGE_REPOSITORY_PROJECT: eng/cov/ci-packages
    #  CI_FRAGMENTS: ci-fragments
    #  CI_FRAGMENTS_GIT: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/eng/it/$CI_FRAGMENTS
+   ANOD_GIT: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/eng/it/anod
    GNATCOVERAGE_EXTRA_GIT: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/eng/cov/gnatcoverage-extra
 
 .edge_vars: &edge_vars
@@ -30,6 +31,13 @@ variables:
         EDGE_REPO_SUFFIX=""
         EDGE_BUILD_SPACE_SUFFIX=""
     fi
+
+.common_anod_bits: &common_anod_bits
+  - cd /tmp
+  - git clone --depth 1 $ANOD_GIT
+  - cd /it/wave
+  - anod tune --anod-dir /tmp/anod
+  - anod vcs --add-repo gnatcoverage$EDGE_REPO_SUFFIX $CI_PROJECT_DIR
 
 stages:
   - build
@@ -46,8 +54,7 @@ build:
     - *edge_vars
 
     # Setup the repository
-    - cd /it/wave
-    - anod vcs --add-repo gnatcoverage$EDGE_REPO_SUFFIX $CI_PROJECT_DIR
+    - *common_anod_bits
 
     # Build using anod
     - anod build --minimal gnatcov $EDGE_QUALIFIER
@@ -75,7 +82,10 @@ build_community:
     - *edge_vars
 
     # Setup the repository
+    - cd /tmp
+    - git clone --depth 1 $ANOD_GIT
     - cd /it/wave
+    - anod tune --anod-dir /tmp/anod
     - anod vcs --add-repo gnatcoverage$EDGE_REPO_SUFFIX $CI_PROJECT_DIR
 
     # Build using anod
@@ -104,8 +114,7 @@ build_community:
     - git clone $GNATCOVERAGE_EXTRA_GIT -b $EXTRA_BRANCH
 
     # Setup the anod sandbox repositories
-    - cd /it/wave
-    - anod vcs --add-repo gnatcoverage$EDGE_REPO_SUFFIX $CI_PROJECT_DIR
+    - *common_anod_bits
     - anod vcs --add-repo gnatcoverage-extra$EDGE_REPO_SUFFIX /tmp/gnatcoverage-extra
 
     # Setup fingerprints so anod doesn't do unnecessary rebuilds and does not
