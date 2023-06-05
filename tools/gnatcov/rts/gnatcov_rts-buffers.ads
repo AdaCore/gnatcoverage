@@ -40,7 +40,13 @@ package GNATcov_RTS.Buffers is
 
    pragma Pure;
 
+   --  Any_Bit_Id is declared volatile here, as in order to instrument declare
+   --  expressions we need to declare a constant MC_DC_State (a subtype of
+   --  Any_Bit_Id) object, but prevent the compiler from optimizing out the
+   --  variable.
+
    type Any_Bit_Id is new int;
+   pragma Volatile (Any_Bit_Id);
 
    No_Bit_Id : constant Any_Bit_Id := -1;
 
