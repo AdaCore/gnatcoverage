@@ -59,7 +59,7 @@ package body Instrument.Checkpoints is
 
          for Cur in CP_IU_Map.Iterate loop
             declare
-               CP_Unit_Name : constant Compilation_Unit_Name := Key (Cur);
+               CP_Unit_Name : constant Compilation_Unit_Part := Key (Cur);
                Existing_Cur : constant Cursor :=
                  Instrumented_Unit_CUs.Find (CP_Unit_Name);
                CU_Ignored   : constant Boolean :=

@@ -68,7 +68,7 @@ package body Instrument is
    -- "<" --
    ---------
 
-   function "<" (Left, Right : Compilation_Unit_Name) return Boolean is
+   function "<" (Left, Right : Compilation_Unit_Part) return Boolean is
    begin
       if Left.Language_Kind = Right.Language_Kind then
          case Left.Language_Kind is
@@ -110,7 +110,7 @@ package body Instrument is
    -- "=" --
    ---------
 
-   function "=" (Left, Right : Compilation_Unit_Name) return Boolean
+   function "=" (Left, Right : Compilation_Unit_Part) return Boolean
    is
       use Ada_Identifier_Vectors;
    begin
@@ -179,7 +179,7 @@ package body Instrument is
    ----------------------------
 
    function Instrumented_Unit_Slug
-     (Instrumented_Unit : Compilation_Unit_Name) return String
+     (Instrumented_Unit : Compilation_Unit_Part) return String
    is
    begin
       case Instrumented_Unit.Language_Kind is
@@ -253,7 +253,7 @@ package body Instrument is
    -- Image --
    -----------
 
-   function Image (CU_Name : Compilation_Unit_Name) return String is
+   function Image (CU_Name : Compilation_Unit_Part) return String is
    begin
       case CU_Name.Language_Kind is
          when Unit_Based_Language =>
@@ -324,7 +324,7 @@ package body Instrument is
 
    function CU_Name_For_Unit
      (Unit : Ada_Qualified_Name;
-      Part : Unit_Parts) return Compilation_Unit_Name
+      Part : Unit_Parts) return Compilation_Unit_Part
    is
    begin
       return (Unit_Based_Language, Unit, Part);
@@ -335,7 +335,7 @@ package body Instrument is
    -----------------------------
 
    function CU_Name_For_File
-     (Filename : US.Unbounded_String) return Compilation_Unit_Name
+     (Filename : US.Unbounded_String) return Compilation_Unit_Part
    is
    begin
       return (File_Based_Language, Filename);
@@ -346,7 +346,7 @@ package body Instrument is
    ------------------------------
 
    function To_Compilation_Unit_Name
-     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name
+     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Part
    is
    begin
       case Language_Kind (To_Language (Source_File.Language)) is
@@ -366,7 +366,7 @@ package body Instrument is
 
    function To_Filename
      (Project  : Project_Type;
-      CU_Name  : Compilation_Unit_Name;
+      CU_Name  : Compilation_Unit_Part;
       Language : Any_Language) return String is
    begin
       case CU_Name.Language_Kind is
@@ -386,7 +386,7 @@ package body Instrument is
    ----------------------------
 
    function Find_Instrumented_Unit
-     (CU_Name : Compilation_Unit_Name) return CU_Id
+     (CU_Name : Compilation_Unit_Part) return CU_Id
    is
       use Instrumented_Unit_To_CU_Maps;
 

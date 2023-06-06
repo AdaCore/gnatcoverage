@@ -297,7 +297,7 @@ package body Instrument.C is
 
    procedure Emit_Dump_Helper_Unit
      (Dump_Config       : Any_Dump_Config;
-      Main              : Compilation_Unit_Name;
+      Main              : Compilation_Unit_Part;
       Helper_Unit       : out US.Unbounded_String;
       Instrumenter      : C_Family_Instrumenter_Type'Class;
       Prj               : Prj_Desc);
@@ -2820,7 +2820,7 @@ package body Instrument.C is
       Files_Of_Interest : String_Sets.Set)
    is
       UIC : C_Unit_Inst_Context;
-      CU_Name : constant Compilation_Unit_Name :=
+      CU_Name : constant Compilation_Unit_Part :=
         CU_Name_For_File (+Unit_Name);
 
       Orig_Filename : constant String  := Unit_Name;
@@ -3308,11 +3308,11 @@ package body Instrument.C is
 
    procedure Emit_Buffer_Unit
      (UIC          : C_Unit_Inst_Context'Class;
-      Unit         : Project_Unit;
+      Unit         : Compilation_Unit;
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj          : Prj_Desc)
    is
-      CU_Name : Compilation_Unit_Name renames UIC.Buffer_Unit;
+      CU_Name : Compilation_Unit_Part renames UIC.Buffer_Unit;
       File    : Text_Files.File_Type;
 
       Buffers_Count : constant Natural := Natural (UIC.Allocated_Bits.Length);
@@ -3414,7 +3414,7 @@ package body Instrument.C is
               UIC.Allocated_Bits.Constant_Reference (Buffers_Index);
 
             CU      : constant CU_Id := Buffers_CUs (Buffers_Index);
-            CU_Name : Compilation_Unit_Name renames
+            CU_Name : Compilation_Unit_Part renames
               Buffers_CU_Names.Constant_Reference (Buffers_Index);
 
             --  Symbol name for each kind of static buffer
@@ -3571,7 +3571,7 @@ package body Instrument.C is
 
    procedure Emit_Dump_Helper_Unit
      (Dump_Config       : Any_Dump_Config;
-      Main              : Compilation_Unit_Name;
+      Main              : Compilation_Unit_Part;
       Helper_Unit       : out US.Unbounded_String;
       Instrumenter      : C_Family_Instrumenter_Type'Class;
       Prj               : Prj_Desc)
@@ -3698,7 +3698,7 @@ package body Instrument.C is
       --  Name of file to contain helpers implementing the buffers dump
 
       Rew  : C_Source_Rewriter;
-      Main : constant Compilation_Unit_Name :=
+      Main : constant Compilation_Unit_Part :=
         (Language_Kind => File_Based_Language,
          Filename      => +Ada.Directories.Full_Name (Filename));
 

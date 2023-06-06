@@ -1145,7 +1145,7 @@ package body Instrument.Ada_Unit is
 
    type Main_Instrumentation_Description (Synthetic : Boolean := False)
    is record
-      Main : Compilation_Unit_Name;
+      Main : Compilation_Unit_Part;
       --  Name of the compilation unit corresponding to the main body
 
       Controlled_Types_Available : Boolean;
@@ -1293,7 +1293,7 @@ package body Instrument.Ada_Unit is
    --  addresses to its coverage buffers.
 
    procedure Emit_Buffer_Unit
-     (Buffer_Unit : Compilation_Unit_Name;
+     (Buffer_Unit : Compilation_Unit_Part;
       Prj         : Prj_Desc;
       Unit        : Project_Unit;
       Unit_Bits   : Allocated_Bits_Vectors.Vector;
@@ -1303,7 +1303,7 @@ package body Instrument.Ada_Unit is
    --  unit.
 
    procedure Emit_Pure_Buffer_Unit
-     (PB_Unit                        : Compilation_Unit_Name;
+     (PB_Unit                        : Compilation_Unit_Part;
       Prj                            : Prj_Desc;
       CU_Names                       : CU_Name_Vectors.Vector;
       Language_Version               : Unbounded_Wide_Wide_String;
@@ -1321,7 +1321,7 @@ package body Instrument.Ada_Unit is
      (Dump_Config           : Any_Dump_Config;
       Instrumenter          : Ada_Instrumenter_Type'Class;
       Prj                   : Prj_Desc;
-      Main                  : Compilation_Unit_Name;
+      Main                  : Compilation_Unit_Part;
       Helper_Unit           : out Ada_Qualified_Name;
       Override_Dump_Trigger : Any_Dump_Trigger := Manual;
       Has_Controlled        : Boolean := False);
@@ -6733,7 +6733,7 @@ package body Instrument.Ada_Unit is
       Controlled_Types_Available : Boolean;
       Actual_Dump_Trigger        : Auto_Dump_Trigger;
 
-      Main : Compilation_Unit_Name (Unit_Based_Language) :=
+      Main : Compilation_Unit_Part (Unit_Based_Language) :=
         (Language_Kind => Unit_Based_Language,
          Part          => Unit_Body,
          others        => <>);
@@ -7717,7 +7717,7 @@ package body Instrument.Ada_Unit is
       Instrumenter : in out Ada_Instrumenter_Type;
       Prj          : Prj_Desc)
    is
-      CU_Name   : Compilation_Unit_Name (Language_Kind => Unit_Based_Language);
+      CU_Name   : Compilation_Unit_Part (Language_Kind => Unit_Based_Language);
       Rewriter  : Ada_Source_Rewriter;
       Dummy_Ctx : constant Context_Handle :=
         Create_Context ("Instrumenting " & Filename);
@@ -8058,7 +8058,7 @@ package body Instrument.Ada_Unit is
    ----------------------
 
    procedure Emit_Buffer_Unit
-     (Buffer_Unit : Compilation_Unit_Name;
+     (Buffer_Unit : Compilation_Unit_Part;
       Prj         : Prj_Desc;
       Unit        : Project_Unit;
       Unit_Bits   : Allocated_Bits_Vectors.Vector;
@@ -8084,7 +8084,7 @@ package body Instrument.Ada_Unit is
       for I in 1 .. Last_Buffer_Index loop
          declare
             Unit_Bit : constant Allocated_Bits := Unit_Bits.Element (I);
-            CU_Name : constant Compilation_Unit_Name := CU_Names.Element (I);
+            CU_Name : constant Compilation_Unit_Part := CU_Names.Element (I);
             CU : constant CU_Id := CUs.Element (I);
 
             Fingerprint : Unbounded_String;
@@ -8235,7 +8235,7 @@ package body Instrument.Ada_Unit is
    ---------------------------
 
    procedure Emit_Pure_Buffer_Unit
-     (PB_Unit                        : Compilation_Unit_Name;
+     (PB_Unit                        : Compilation_Unit_Part;
       Prj                            : Prj_Desc;
       CU_Names                       : CU_Name_Vectors.Vector;
       Language_Version               : Unbounded_Wide_Wide_String;
@@ -8285,7 +8285,7 @@ package body Instrument.Ada_Unit is
       for I in 1 .. Last_Buffer_Index loop
          declare
             Suffix : constant String := "_" & Img (I);
-            CU_Name : constant Compilation_Unit_Name := CU_Names.Element (I);
+            CU_Name : constant Compilation_Unit_Part := CU_Names.Element (I);
          begin
             File.Put_Line ("package Buffers" & Suffix & " is");
             File.Put_Line ("   Statement_Buffer : constant System.Address;");
@@ -8320,7 +8320,7 @@ package body Instrument.Ada_Unit is
 
       if not Degenerate_Subprogram_Generics.Is_Empty then
          declare
-            PB_Unit_Body : Compilation_Unit_Name := PB_Unit;
+            PB_Unit_Body : Compilation_Unit_Part := PB_Unit;
          begin
             PB_Unit_Body.Part := GNATCOLL.Projects.Unit_Body;
 
@@ -8354,7 +8354,7 @@ package body Instrument.Ada_Unit is
      (Dump_Config           : Any_Dump_Config;
       Instrumenter          : Ada_Instrumenter_Type'Class;
       Prj                   : Prj_Desc;
-      Main                  : Compilation_Unit_Name;
+      Main                  : Compilation_Unit_Part;
       Helper_Unit           : out Ada_Qualified_Name;
       Override_Dump_Trigger : Any_Dump_Trigger := Manual;
       Has_Controlled        : Boolean := False)
@@ -8629,7 +8629,7 @@ package body Instrument.Ada_Unit is
       Instr_Units : Unit_Sets.Set;
       Prj         : Prj_Desc)
    is
-      Buffers_CU_Name : constant Compilation_Unit_Name :=
+      Buffers_CU_Name : constant Compilation_Unit_Part :=
         CU_Name_For_Unit
           (Buffers_List_Unit (+Prj.Prj_Name), GNATCOLL.Projects.Unit_Spec);
       File            : Text_Files.File_Type;

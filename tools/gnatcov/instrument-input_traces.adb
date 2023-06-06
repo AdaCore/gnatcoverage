@@ -715,7 +715,7 @@ package body Instrument.Input_Traces is
             function Last_Bit (Bit_Count : Any_Bit_Count) return Any_Bit_Id
             is (Any_Bit_Id (Bit_Count) - 1);
 
-            CU_Name : Compilation_Unit_Name;
+            CU_Name : Compilation_Unit_Part;
 
          begin
             Reserve (Statement_Buffer, Entry_Header.Statement_Bit_Count);
@@ -793,7 +793,7 @@ package body Instrument.Input_Traces is
       procedure On_Trace_Entry
         (Filename             : String;
          Fingerprint          : SC_Obligations.Fingerprint_Type;
-         CU_Name              : Compilation_Unit_Name;
+         CU_Name              : Compilation_Unit_Part;
          Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
          Stmt_Buffer          : Coverage_Buffer;
          Decision_Buffer      : Coverage_Buffer;
@@ -833,7 +833,7 @@ package body Instrument.Input_Traces is
       procedure On_Trace_Entry
         (Filename             : String;
          Fingerprint          : SC_Obligations.Fingerprint_Type;
-         CU_Name              : Compilation_Unit_Name;
+         CU_Name              : Compilation_Unit_Part;
          Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
          Stmt_Buffer          : Coverage_Buffer;
          Decision_Buffer      : Coverage_Buffer;

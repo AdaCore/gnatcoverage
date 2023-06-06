@@ -1705,7 +1705,7 @@ package body Coverage.Source is
    procedure Compute_Source_Coverage
      (Filename             : String;
       Fingerprint          : SC_Obligations.Fingerprint_Type;
-      CU_Name              : Compilation_Unit_Name;
+      CU_Name              : Compilation_Unit_Part;
       Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
       Stmt_Buffer          : Coverage_Buffer;
       Decision_Buffer      : Coverage_Buffer;

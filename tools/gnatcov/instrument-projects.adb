@@ -109,7 +109,7 @@ is
    --  thus must be deallocated when maps are deallocated.
 
    type Main_To_Instrument is record
-      CU_Name : Compilation_Unit_Name;
+      CU_Name : Compilation_Unit_Part;
       --  Compilation unit of the main to instrument
 
       File : GNATCOLL.VFS.Virtual_File;
@@ -488,7 +488,7 @@ is
    is
       File_Info : constant GNATCOLL.Projects.File_Info :=
          Standard.Project.Project.Info (File);
-      CU_Name   : constant Compilation_Unit_Name :=
+      CU_Name   : constant Compilation_Unit_Part :=
          To_Compilation_Unit_Name (File_Info);
       Prj_Info  : constant Project_Info_Access :=
         Get_Or_Create_Project_Info (Context, Project);

@@ -110,28 +110,28 @@ package Instrument.Common is
    --  handler.
 
    function Dump_Procedure_Symbol
-     (Main : Compilation_Unit_Name) return String
+     (Main : Compilation_Unit_Part) return String
    is
      ("gnatcov_rts_" & Instrumented_Unit_Slug (Main) & "_"
       & To_Lower (To_String (Dump_Procedure_Name)));
    --  Return the name of the exported symbol for the Dump_Buffers function
 
    function Statement_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name) return String;
+     (Instrumented_Unit : Compilation_Unit_Part) return String;
    --  Given a unit to instrument, return the name of the symbol to use for the
    --  entity that contains address of the statement coverage buffer.
 
    function Decision_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name) return String;
+     (Instrumented_Unit : Compilation_Unit_Part) return String;
    --  Given a unit to instrument, return the name of the symbol to use for the
    --  entity that contains address of the decision coverage buffer.
 
    function MCDC_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name) return String;
+     (Instrumented_Unit : Compilation_Unit_Part) return String;
    --  Given a unit to instrument, return the name of the symbol to use for the
    --  entity that contains address of the decision coverage buffer.
 
-   function Unit_Buffers_Name (Unit : Project_Unit) return String;
+   function Unit_Buffers_Name (Unit : Compilation_Unit) return String;
    --  Name of the symbol that references the
    --  gnatcov_rts_coverage_buffers_group struct for this file.
 
@@ -177,7 +177,7 @@ package Instrument.Common is
    type Instrumented_Unit_Info_Access is access all Instrumented_Unit_Info;
 
    package Instrumented_Unit_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Compilation_Unit_Name,
+     (Key_Type     => Compilation_Unit_Part,
       Element_Type => Instrumented_Unit_Info_Access);
 
    ------------------------------------------------------
@@ -310,7 +310,7 @@ package Instrument.Common is
      (Index_Type => Positive, Element_Type => Annotation_Couple);
 
    type Unit_Inst_Context is tagged record
-      Instrumented_Unit : Compilation_Unit_Name;
+      Instrumented_Unit : Compilation_Unit_Part;
       --  Name of the compilation unit being instrumented
 
       SFI : Source_File_Index := No_Source_File;
@@ -319,7 +319,7 @@ package Instrument.Common is
       Fullname : Unbounded_String;
       --  Fullname of the compilation unit being instrumented
 
-      Buffer_Unit : Compilation_Unit_Name;
+      Buffer_Unit : Compilation_Unit_Part;
       --  Name of the compilation unit that holds coverage buffers for the
       --  unit currently being instrumented (see Common.Buffer_Unit).
 
@@ -369,7 +369,7 @@ package Instrument.Common is
 
    package CU_Name_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
-      Element_Type => Compilation_Unit_Name);
+      Element_Type => Compilation_Unit_Part);
 
    package Ada_Qualified_Name_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
@@ -440,7 +440,7 @@ package Instrument.Common is
    function To_Filename
      (Prj      : Prj_Desc;
       Lang     : Src_Supported_Language;
-      CU_Name  : Compilation_Unit_Name) return String;
+      CU_Name  : Compilation_Unit_Part) return String;
    --  Convert a Compilation_Unit_Name to a file basename, using the body /
    --  spec suffix and dot replacement (for unit based languages) defined in
    --  Prj.

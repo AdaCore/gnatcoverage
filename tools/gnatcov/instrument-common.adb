@@ -30,7 +30,7 @@ with SCOs;
 package body Instrument.Common is
 
    function Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name;
+     (Instrumented_Unit : Compilation_Unit_Part;
       Buffer_Name       : String) return String;
    --  Helper for Statement_Buffer_Symbol and Decision_Buffer_Symbol. Return
    --  the name of the symbol for the entity that contains the address of a
@@ -45,7 +45,7 @@ package body Instrument.Common is
    -------------------
 
    function Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name;
+     (Instrumented_Unit : Compilation_Unit_Part;
       Buffer_Name       : String) return String
    is
       Slug : constant String := Instrumented_Unit_Slug (Instrumented_Unit);
@@ -58,7 +58,7 @@ package body Instrument.Common is
    -----------------------------
 
    function Statement_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name) return String is
+     (Instrumented_Unit : Compilation_Unit_Part) return String is
    begin
       return Buffer_Symbol (Instrumented_Unit, "stmt");
    end Statement_Buffer_Symbol;
@@ -68,7 +68,7 @@ package body Instrument.Common is
    ----------------------------
 
    function Decision_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name) return String is
+     (Instrumented_Unit : Compilation_Unit_Part) return String is
    begin
       return Buffer_Symbol (Instrumented_Unit, "dc");
    end Decision_Buffer_Symbol;
@@ -78,7 +78,7 @@ package body Instrument.Common is
    ------------------------
 
    function MCDC_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name) return String is
+     (Instrumented_Unit : Compilation_Unit_Part) return String is
    begin
       return Buffer_Symbol (Instrumented_Unit, "mcdc");
    end MCDC_Buffer_Symbol;
@@ -353,7 +353,7 @@ package body Instrument.Common is
    function To_Filename
      (Prj      : Prj_Desc;
       Lang     : Src_Supported_Language;
-      CU_Name  : Compilation_Unit_Name) return String
+      CU_Name  : Compilation_Unit_Part) return String
    is
       Filename : Unbounded_String;
    begin

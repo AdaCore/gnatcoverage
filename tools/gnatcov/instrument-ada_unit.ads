@@ -283,7 +283,7 @@ private
          Entities : Instrumentation_Entities;
          --  Bank of nodes to use during instrumentation
 
-         Pure_Buffer_Unit : Compilation_Unit_Name;
+         Pure_Buffer_Unit : Compilation_Unit_Part;
          --  Name of the compilation unit that holds addresses for the coverage
          --  buffers of the unit being instrumented.
 

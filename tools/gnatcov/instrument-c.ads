@@ -253,7 +253,7 @@ package Instrument.C is
             null;
          when True =>
             SFI     : Valid_Source_File_Index;
-            CU_Name : Compilation_Unit_Name;
+            CU_Name : Compilation_Unit_Part;
       end case;
    end record;
    --  Descriptor for a source file: Of_Interest determines if we should

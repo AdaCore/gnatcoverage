@@ -66,7 +66,7 @@ package Instrument is
      with Pre => not Name.Is_Empty;
    --  Turn the given qualified name into Ada syntax
 
-   type Compilation_Unit_Name
+   type Compilation_Unit_Part
      (Language_Kind : Any_Language_Kind := Unit_Based_Language)
    is record
 
@@ -83,20 +83,20 @@ package Instrument is
 
       end case;
    end record;
-   --  Unique identifier for an instrumented unit
+   --  Unique identifier for an instrumented unit part
 
    Part_Tags : constant array (Unit_Parts) of Character :=
      (Unit_Spec     => 'S',
       Unit_Body     => 'B',
       Unit_Separate => 'U');
 
-   function "=" (Left, Right : Compilation_Unit_Name) return Boolean;
+   function "=" (Left, Right : Compilation_Unit_Part) return Boolean;
 
-   function "<" (Left, Right : Compilation_Unit_Name) return Boolean;
+   function "<" (Left, Right : Compilation_Unit_Part) return Boolean;
    --  Compare the result of a call to Instrumented_Unit_Slug (which gives
    --  unique identifiers for each compilation unit name) for both operands.
 
-   function Image (CU_Name : Compilation_Unit_Name) return String;
+   function Image (CU_Name : Compilation_Unit_Part) return String;
    --  Return a string representation of CU_Name for use in diagnostics
 
    function Qualified_Name_Slug (Name : Ada_Qualified_Name) return String;
@@ -105,7 +105,7 @@ package Instrument is
    --  not contain any '-'.
 
    function Instrumented_Unit_Slug
-     (Instrumented_Unit : Compilation_Unit_Name) return String;
+     (Instrumented_Unit : Compilation_Unit_Part) return String;
    --  Given a unit to instrument, return a unique identifier to describe it
    --  (the so called slug).
    --
@@ -133,29 +133,29 @@ package Instrument is
 
    function CU_Name_For_Unit
      (Unit : Ada_Qualified_Name;
-      Part : Unit_Parts) return Compilation_Unit_Name;
+      Part : Unit_Parts) return Compilation_Unit_Part;
    --  Return the compilation unit name for the Ada compilation unit
    --  corresponding to the unit name and the unit part parameters.
 
    function CU_Name_For_File
-     (Filename : US.Unbounded_String) return Compilation_Unit_Name;
+     (Filename : US.Unbounded_String) return Compilation_Unit_Part;
    --  Return the compilation unit name for the C translation unit
    --  corresponding to the filename parameter.
 
    function To_Compilation_Unit_Name
-     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name;
+     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Part;
    --  Return the compilation unit name corresponding to the unit in
    --  Source_File.
 
    function To_Filename
      (Project  : Project_Type;
-      CU_Name  : Compilation_Unit_Name;
+      CU_Name  : Compilation_Unit_Part;
       Language : Any_Language) return String;
    --  Return the name of the file to contain the given compilation unit,
    --  according to Project's naming scheme.
 
    package Instrumented_Unit_To_CU_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Compilation_Unit_Name,
+     (Key_Type     => Compilation_Unit_Part,
       Element_Type => CU_Id);
 
    Instrumented_Unit_CUs : Instrumented_Unit_To_CU_Maps.Map;
@@ -172,7 +172,7 @@ package Instrument is
    --  Save the preprocessing command for each unit that supports it
 
    function Find_Instrumented_Unit
-     (CU_Name : Compilation_Unit_Name) return CU_Id;
+     (CU_Name : Compilation_Unit_Part) return CU_Id;
    --  Return the CU_Id corresponding to the given instrumented unit, or
    --  No_CU_Id if not found.
 
