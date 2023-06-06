@@ -215,11 +215,10 @@ package body Instrument is
       --  We use the basename slug, followed by a hash of the fullname, which
       --  makes us confident that homonym files will be correctly handled.
 
-      --  File names can contain characters that cannot appear in
-      --  identifiers. Furthermore, unlike for the identifier to
-      --  return, file names may be case sensitive. In order to
-      --  produce valid identifiers, encode everything that isn't a
-      --  lower case letter or a digit.
+      --  File names can contain characters that cannot appear in identifiers.
+      --  Furthermore, unlike for the identifier to return, file names may
+      --  be case sensitive. In order to produce valid identifiers, encode
+      --  everything that isn't a lower case letter or a digit.
 
       --  To avoid a leading underscore, add a prefix
 

@@ -6960,7 +6960,7 @@ package body Instrument.Ada_Unit is
             end case;
          end Visit;
 
-      --  Start of processing for Filenaem
+      --  Start of processing for Filename
 
       begin
          Visit (Unit_Name);
@@ -8067,7 +8067,8 @@ package body Instrument.Ada_Unit is
    is
       Pkg_Name : constant String := To_Ada (Buffer_Unit.Unit);
       --  Package name for the buffer unit
-      File : Text_Files.File_Type;
+
+      File              : Text_Files.File_Type;
       Last_Buffer_Index : constant Natural := Natural (Unit_Bits.Length);
    begin
       Create_File (Prj, File, To_Filename (Prj, Ada_Language, Buffer_Unit));

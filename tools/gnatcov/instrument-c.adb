@@ -2908,8 +2908,7 @@ package body Instrument.C is
       --  Initialize the C instrumentation context
 
       UIC.Instrumented_Unit := CU_Name;
-      UIC.Buffer_Unit :=
-        CU_Name_For_File (+Buffer_Filename);
+      UIC.Buffer_Unit := CU_Name_For_File (+Buffer_Filename);
       UIC.Files_Of_Interest := Files_Of_Interest;
 
       --  Import analysis options for the file to preprocess, then run the
