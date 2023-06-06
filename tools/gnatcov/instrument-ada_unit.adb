@@ -263,7 +263,10 @@ package body Instrument.Ada_Unit is
    is ((Natural (Sloc.Line), Natural (Sloc.Column)));
 
    function Expr_Needs_Parens (Kind : Ada_Node_Kind_Type) return Boolean
-   is (Kind in Ada_Quantified_Expr | Ada_If_Expr | Ada_Case_Expr);
+   is (Kind in Ada_Quantified_Expr
+              | Ada_If_Expr
+              | Ada_Case_Expr
+              | Ada_Decl_Expr);
    --  Whether nodes of type Kind must be wrapped with parens
 
    function Create_Identifier
@@ -1488,9 +1491,10 @@ package body Instrument.Ada_Unit is
 
       function Decl_Img return String is
         ("Discard_" & UIC.Instrumented_Unit.Part'Img & Bit_Img
-         & " : {}." & (if In_Generic and then Switches.SPARK_Compat
-                       then "Non_Volatile_"
-                       else "")
+         & " :" & (if UIC.In_Decl_Expr then " constant" else "") & " {}."
+         & (if In_Generic and then Switches.SPARK_Compat
+            then "Non_Volatile_"
+            else "")
          & "Witness_Dummy_Type := " & Call_Img);
 
    --  Start of processing for Make_Statement_Witness
@@ -1535,9 +1539,9 @@ package body Instrument.Ada_Unit is
          return;
       end if;
 
-      --  Special case of conditional and quantified expressions: we need to
-      --  move them along with their enclosing parentheses, if they exist.
-      --  Otherwise, add the needed parenthesis.
+      --  Special case of conditional, quantified and declare expressions: we
+      --  need to move them along with their enclosing parentheses, if they
+      --  exist. Otherwise, add the needed parenthesis.
 
       if Expr_Needs_Parens (N.Kind)
         and then Kind (N.Parent) = Ada_Paren_Expr
@@ -1654,7 +1658,8 @@ package body Instrument.Ada_Unit is
    is
       E             : Instrumentation_Entities renames UIC.Entities;
       Var_Decl_Img  : constant String :=
-        Name & "_Var : aliased {}.MCDC_State_Type;";
+        Name & "_Var :" & (if UIC.In_Decl_Expr then " constant" else "")
+        & " {}.MCDC_State_Type := 0;";
       Addr_Decl_Img : constant String :=
         Name & " : constant GNATCov_RTS.Sys.Address := "
         & Name & "_Var'Address;";
@@ -3002,7 +3007,6 @@ package body Instrument.Ada_Unit is
       --  more localized.
 
       procedure Process_Decisions_Defer (N : Ada_Node'Class; T : Character);
-      pragma Inline (Process_Decisions_Defer);
       --  This routine is logically the same as Process_Decisions, except that
       --  the arguments are saved in the SD table for later processing when
       --  Set_Statement_Entry is called, which goes through the saved entries
@@ -3010,6 +3014,8 @@ package body Instrument.Ada_Unit is
       --  enclosing statement must have already been added to the current
       --  statement sequence, so that nested decisions are properly
       --  identified as such.
+      --
+      --  This also processes any nested declare expressions.
 
       procedure Set_Statement_Entry;
       --  Output CS entries for all statements saved in table SC, and end the
@@ -3192,8 +3198,54 @@ package body Instrument.Ada_Unit is
       -----------------------------
 
       procedure Process_Decisions_Defer (N : Ada_Node'Class; T : Character) is
+         function Process_Decl_Expr (N : Ada_Node'Class) return Visit_Status;
+         --  Helper to Libadalang's Traverse. Only operates on Decl_Exprs,
+         --  instrument each declaration as a statement and process the nested
+         --  expressions.
+
+         -----------------------
+         -- Process_Decl_Expr --
+         -----------------------
+
+         function Process_Decl_Expr (N : Ada_Node'Class) return Visit_Status is
+         begin
+            if N.Kind in Ada_Decl_Expr then
+               declare
+                  Saved_Inserter     : constant Any_MCDC_State_Inserter :=
+                    UIC.MCDC_State_Inserter;
+                  Saved_In_Decl_Expr : constant Boolean := UIC.In_Decl_Expr;
+                  Local_Inserter     : aliased Default_MCDC_State_Inserter :=
+                    (Local_Decls => Handle (N.As_Decl_Expr.F_Decls));
+               begin
+                  Set_Statement_Entry;
+                  UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
+                  UIC.In_Decl_Expr := True;
+
+                  --  Traverse_declarations_And_Statements will instrument the
+                  --  declarations as statements, as well as instrument the
+                  --  nested decisions within those declarations.
+
+                  Traverse_Declarations_Or_Statements
+                    (UIC, N.As_Decl_Expr.F_Decls);
+                  UIC.MCDC_State_Inserter := Saved_Inserter;
+                  UIC.In_Decl_Expr := Saved_In_Decl_Expr;
+
+                  --  End the statement sequence right away as there isn't
+                  --  going to be any more statements that follow.
+
+                  Set_Statement_Entry;
+                  return Over;
+               end;
+            else
+               return Into;
+            end if;
+         end Process_Decl_Expr;
+
       begin
          SD.Append ((N.As_Ada_Node, T));
+         if not N.Is_Null then
+            N.Traverse (Process_Decl_Expr'Access);
+         end if;
       end Process_Decisions_Defer;
 
       -------------------------
@@ -5804,6 +5856,14 @@ package body Instrument.Ada_Unit is
                   return Into;
                end;
 
+            --  Declare expressions: do not process the nested decisions in the
+            --  declarations, as those will be processed when instrumenting
+            --  them, but do process the final expression.
+
+            when Ada_Decl_Expr =>
+               Process_Decisions (UIC, N.As_Decl_Expr.F_Expr, 'X');
+               return Over;
+
             --  All other cases, continue scan
 
             when others =>
@@ -5835,6 +5895,9 @@ package body Instrument.Ada_Unit is
       --
       --  We know have a decision as soon as we have a logical operator (by
       --  definition) or an IF-expression (its condition is a decision).
+      --
+      --  Do not recurse into the declarations of declare expressions as those
+      --  are handled separately.
 
       -----------
       -- Visit --
@@ -5842,7 +5905,12 @@ package body Instrument.Ada_Unit is
 
       function Visit (N : Ada_Node'Class) return Visit_Status is
       begin
-         if N.Kind in Ada_Expr
+         if N.Kind in Ada_Decl_List_Range
+           and then N.Parent /= No_Ada_Node
+           and then N.Parent.Kind in Ada_Decl_Expr
+         then
+            return Over;
+         elsif N.Kind in Ada_Expr
             and then (Is_Complex_Decision (UIC, N.As_Expr)
                       or else N.Kind = Ada_If_Expr)
          then

@@ -19,7 +19,7 @@ end;
 
 --# stacks.adb
 -- /xregion/      l* ## x+
--- /xregion_7/    l= ## Xs-
+-- /xregion_07/    l= ## Xs-
 
 -- /push_decl/ l+ ## 0
 -- /push_body/ l+ ## 0
