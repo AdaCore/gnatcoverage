@@ -220,7 +220,8 @@ package body Coverage.Source is
    --  the order of dump depends on its content, not on the way it was created.
 
    package Unit_To_Ignored_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type => Project_Unit, Element_Type => Ignored_Sources_Vector_Access);
+     (Key_Type     => Compilation_Unit,
+      Element_Type => Ignored_Sources_Vector_Access);
    --  Map units of interest to the list of associated ignored source files
 
    Ignored_SF_Map : Unit_To_Ignored_Maps.Map;
@@ -266,7 +267,7 @@ package body Coverage.Source is
    -- Add_Unit --
    --------------
 
-   procedure Add_Unit (Unit : Project_Unit) is
+   procedure Add_Unit (Unit : Compilation_Unit) is
    begin
       if not Unit_List_Invalidated then
          Unit_List.Include (Unit);
@@ -305,7 +306,7 @@ package body Coverage.Source is
       begin
          if FI /= null and then not FI.Unit.Known then
             declare
-               Unit : constant Project_Unit := To_Project_Unit (File);
+               Unit : constant Compilation_Unit := To_Compilation_Unit (File);
             begin
                Consolidate_Source_File_Unit (SFI, Unit);
             end;
@@ -373,7 +374,8 @@ package body Coverage.Source is
    --------------------------
 
    procedure Iterate_On_Unit_List
-     (Process_Unit        : not null access procedure (Name : Project_Unit);
+     (Process_Unit        : not null access procedure
+        (Name : Compilation_Unit);
       Process_Source_File : not null access procedure (FI : File_Info))
    is
    begin
@@ -396,7 +398,7 @@ package body Coverage.Source is
       procedure Print_Ignored_File (FI : Files_Table.File_Info);
       --  Print the name of the file and its ignore status
 
-      procedure Print_Unit_Name (Unit : Project_Unit);
+      procedure Print_Unit_Name (Unit : Compilation_Unit);
       --  Print the unit name
 
       ------------------------
@@ -416,7 +418,7 @@ package body Coverage.Source is
       -- Print_Unit_Name --
       ---------------------
 
-      procedure Print_Unit_Name (Unit : Project_Unit) is
+      procedure Print_Unit_Name (Unit : Compilation_Unit) is
       begin
          Put_Line (File, +Unit.Unit_Name);
       end Print_Unit_Name;
@@ -444,7 +446,7 @@ package body Coverage.Source is
          if not Unit_List_Invalidated then
             Ada.Containers.Count_Type'Output (CSS, Unit_List.Length);
             for N of Unit_List loop
-               Project_Unit'Output (CSS, N);
+               Compilation_Unit'Output (CSS, N);
             end loop;
          end if;
       end if;
@@ -598,7 +600,7 @@ package body Coverage.Source is
                         end if;
                         US.Unbounded_String'Read (CLS, Dummy);
                      else
-                        Unit_List.Include (Project_Unit'Input (CLS));
+                        Unit_List.Include (Compilation_Unit'Input (CLS));
                      end if;
                   end loop;
                end if;

@@ -305,17 +305,18 @@ package Files_Table is
    --  option --ignore-source-files. Consolidation rules are described in
    --  procedure Consolidate_Ignore_Status.
 
-   type Project_Unit (Language : Any_Language_Kind := Unit_Based_Language)
-   is record
+   type Compilation_Unit is record
+      Language  : Any_Language_Kind;
       Unit_Name : Ada.Strings.Unbounded.Unbounded_String;
    end record;
-   --  To uniquely identify a unit in a project tree, we need its unit name.
-   --  It is the unit name for unit-based language, and the file fullname for
+   --  This record is used to uniquely identify a unit of any language
+   --  supported by gnatcov. The unique identifier, stored as Unit_Name is
+   --  the unit name for unit-based language, and the file fullname for
    --  file-based languages.
 
    use type Ada.Strings.Unbounded.Unbounded_String;
 
-   function Image (U : Project_Unit) return String is
+   function Image (U : Compilation_Unit) return String is
      (case U.Language is
       when Unit_Based_Language =>
          To_Lower (Ada.Strings.Unbounded.To_String (U.Unit_Name)),
@@ -323,18 +324,18 @@ package Files_Table is
          Fold_Filename_Casing
           (Ada.Strings.Unbounded.To_String (U.Unit_Name)));
 
-   function "<" (L, R : Project_Unit) return Boolean is
+   function "<" (L, R : Compilation_Unit) return Boolean is
      (Image (L) < Image (R));
 
-   function "=" (L, R : Project_Unit) return Boolean is
+   function "=" (L, R : Compilation_Unit) return Boolean is
      (Image (L) = Image (R));
 
    package Unit_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Project_Unit);
+     (Element_Type => Compilation_Unit);
 
    type Owning_Unit (Known : Boolean := False) is record
       case Known is
-         when True  => Name : Project_Unit;
+         when True  => Name : Compilation_Unit;
          when False => null;
       end case;
    end record;
@@ -456,7 +457,7 @@ package Files_Table is
      (Index : Source_File_Index) return File_Info_Access;
 
    procedure Consolidate_Source_File_Unit
-     (Index : Valid_Source_File_Index; New_Unit : Project_Unit)
+     (Index : Valid_Source_File_Index; New_Unit : Compilation_Unit)
    with Pre => Get_File (Index).Kind = Source_File;
    --  Update the unit name info for the source file represented by Index.
    --  Does nothing if the new unit name is the empty string.

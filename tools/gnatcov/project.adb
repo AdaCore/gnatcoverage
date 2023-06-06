@@ -40,8 +40,8 @@ with Paths;               use Paths;
 
 package body Project is
 
-   subtype Project_Unit is Files_Table.Project_Unit;
-   use type Project_Unit;
+   subtype Compilation_Unit is Files_Table.Compilation_Unit;
+   use type Compilation_Unit;
 
    Coverage_Package      : aliased String := "coverage";
    Coverage_Package_List : aliased String_List :=
@@ -156,7 +156,7 @@ package body Project is
    end record;
 
    package Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
-     (Key_Type     => Project_Unit,
+     (Key_Type     => Compilation_Unit,
       Element_Type => Unit_Info);
 
    procedure Add_Unit
@@ -166,7 +166,7 @@ package body Project is
       Info           : File_Info;
       Language       : Some_Language);
    --  Add a Unit_Info entry to Units. The key for this new entry (which is a
-   --  Project_Unit) is computed using the Original_Name, and the
+   --  Compilation_Unit) is computed using the Original_Name, and the
    --  Info.Project_Name if the unit is of a file-based language.
 
    procedure Warn_Missing_Info (What_Info : String; Unit : in out Unit_Info);
@@ -232,15 +232,17 @@ package body Project is
    --  Note that this also returns source files for mains that are not units of
    --  interest.
 
-   ---------------------
-   -- To_Project_Unit --
-   ---------------------
+   -------------------------
+   -- To_Compilation_Unit --
+   -------------------------
 
-   function To_Project_Unit (Info : File_Info) return Files_Table.Project_Unit
+   function To_Compilation_Unit
+     (Info : File_Info) return Files_Table.Compilation_Unit
    is
       Language : constant Some_Language := To_Language (Info.Language);
-      U        : Project_Unit (Language_Kind (Language));
+      U        : Compilation_Unit;
    begin
+      U.Language := Language_Kind (Language);
       case U.Language is
          when File_Based_Language =>
             U.Unit_Name := +(+Info.File.Full_Name);
@@ -248,7 +250,7 @@ package body Project is
             U.Unit_Name := +Info.Unit_Name;
       end case;
       return U;
-   end To_Project_Unit;
+   end To_Compilation_Unit;
 
    ---------
    -- "+" --
@@ -288,7 +290,7 @@ package body Project is
 
       Orig_Name : constant Unbounded_String :=
         +Fold_Filename_Casing (Original_Name);
-      Unit_Name : constant Project_Unit := To_Project_Unit (Info);
+      Unit_Name : constant Compilation_Unit := To_Compilation_Unit (Info);
 
       Ignored_Inserted : Boolean;
    begin
@@ -460,7 +462,7 @@ package body Project is
    ---------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name    : Files_Table.Project_Unit;
+     (Callback : access procedure (Name    : Files_Table.Compilation_Unit;
                                    Is_Stub : Boolean))
    is
       use Unit_Maps;
@@ -488,7 +490,7 @@ package body Project is
          when Unit_Based_Language => FI.Unit_Name,
          when File_Based_Language => Full_Name);
    begin
-      return Unit_Map.Contains (Project_Unit'(LK, +Unit_Name));
+      return Unit_Map.Contains (Compilation_Unit'(LK, +Unit_Name));
    end Is_Unit_Of_Interest;
 
    -------------------------
@@ -519,7 +521,7 @@ package body Project is
                use Unit_Maps;
 
                Cur : constant Cursor :=
-                 Unit_Map.Find (To_Project_Unit (LI.Source.all));
+                 Unit_Map.Find (To_Compilation_Unit (LI.Source.all));
             begin
                if Has_Element (Cur) then
                   Callback.all (+LI.Library_File.Full_Name);
@@ -581,7 +583,7 @@ package body Project is
               --  map
 
               or else
-                (Unit_Map.Contains (To_Project_Unit (Info))
+                (Unit_Map.Contains (To_Compilation_Unit (Info))
                  and then (Info.Unit_Part /= Unit_Separate
                            or else Include_Stubs))
             then
@@ -974,7 +976,7 @@ package body Project is
          for Cur in Inc_Units.Iterate loop
             declare
                use Unit_Maps;
-               K : constant Project_Unit := Key (Cur);
+               K : constant Compilation_Unit := Key (Cur);
             begin
                if not Exc_Units.Contains (K) then
                   declare
@@ -1040,7 +1042,7 @@ package body Project is
 
             procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor)
             is
-               P_Unit    : constant Project_Unit := Unit_Maps.Key (C);
+               P_Unit    : constant Compilation_Unit := Unit_Maps.Key (C);
                Unit_Name : constant Unbounded_String :=
                  (case P_Unit.Language is
                      when File_Based_Language =>

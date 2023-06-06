@@ -289,7 +289,7 @@ package body Instrument.C is
 
    procedure Emit_Buffer_Unit
      (UIC          : C_Unit_Inst_Context'Class;
-      Unit         : Project_Unit;
+      Unit         : Compilation_Unit;
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj          : Prj_Desc);
    --  Emit the unit to contain coverage buffers for the given instrumented
@@ -3252,7 +3252,7 @@ package body Instrument.C is
 
       Emit_Buffer_Unit
         (UIC,
-         Project_Unit'
+         Compilation_Unit'
            (Language     => File_Based_Language,
             Unit_Name    => UIC.Fullname),
          Self,

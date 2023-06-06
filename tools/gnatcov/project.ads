@@ -114,16 +114,16 @@ package Project is
    --  path of its main executable (including its suffix, for instance ".exe").
    --  Otherwise, return an empty string.
 
-   function To_Project_Unit (Info : File_Info) return Files_Table.Project_Unit;
-   --  Return the Project_Unit value that designates the same unit as
-   --  Unit_Name/Project/Language.
+   function To_Compilation_Unit
+     (Info : File_Info) return Files_Table.Compilation_Unit;
+   --  Return the Compilation_Unit for Info
 
    --------------------------------------
    -- Accessors for project properties --
    --------------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : Files_Table.Project_Unit;
+     (Callback : access procedure (Name : Files_Table.Compilation_Unit;
                                    Is_Stub : Boolean));
    --  Call Callback once for every unit of interest. Name is the unit name,
    --  and Is_Stub corresponds to the Unit_Info.Is_Stub field (see

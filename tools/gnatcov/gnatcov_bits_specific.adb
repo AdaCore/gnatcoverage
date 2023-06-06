@@ -1763,7 +1763,7 @@ begin
          --  Build the list of units of interest from project files option
 
          declare
-            procedure Add_Unit (Unit : Project_Unit; Is_Stub : Boolean);
+            procedure Add_Unit (Unit : Compilation_Unit; Is_Stub : Boolean);
             --  Add Name to the list of names for units of interest. Do nothing
             --  if this is a stub for a unit-based language, since such stubs
             --  are implicitly part of another unit of interest.
@@ -1772,7 +1772,7 @@ begin
             -- Add_Unit --
             --------------
 
-            procedure Add_Unit (Unit : Project_Unit; Is_Stub : Boolean) is
+            procedure Add_Unit (Unit : Compilation_Unit; Is_Stub : Boolean) is
             begin
                if not Is_Stub or else Unit.Language = File_Based_Language then
                   Add_Unit (Unit);

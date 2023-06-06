@@ -87,7 +87,7 @@ package body Instrument.Common is
    -- Unit_Buffers_Name --
    -----------------------
 
-   function Unit_Buffers_Name (Unit : Project_Unit) return String is
+   function Unit_Buffers_Name (Unit : Compilation_Unit) return String is
       Slug : constant String :=
         (case Unit.Language is
             when Unit_Based_Language =>

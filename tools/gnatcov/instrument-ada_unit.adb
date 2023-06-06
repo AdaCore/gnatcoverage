@@ -923,7 +923,7 @@ package body Instrument.Ada_Unit is
 
    function Has_Matching_Pragma_For_Unit
      (Context : Analysis_Context;
-      Unit    : Compilation_Unit;
+      Unit    : LAL.Compilation_Unit;
       Filter  : access function (Node : Pragma_Node) return Boolean)
       return Boolean;
    --  Return whether Filter return True on at least one configuration pragma
@@ -945,7 +945,7 @@ package body Instrument.Ada_Unit is
    --  Return True if Prag_Node imposes a restrictions on use of finalization
 
    function Finalization_Restricted_In_Unit
-     (Context : Analysis_Context; Unit : Compilation_Unit) return Boolean;
+     (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean;
    --  Return True if Finalization is not available in this runtime, or if
    --  some control pragma restricts the usage of finalization in either Unit
    --  or the whole project.
@@ -956,7 +956,7 @@ package body Instrument.Ada_Unit is
    --  Ada.Task_Termination and/or Ada.Task_Identification.
 
    function Task_Termination_Restricted
-     (Context : Analysis_Context; Unit : Compilation_Unit) return Boolean;
+     (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean;
    --  Return True if tasking is not available in this runtime, or if some
    --  configuration pragma prevents the use of tasks and/or
    --  Ada.Task_Termination and/or Ada.Task_Identification in either the whole
@@ -1295,7 +1295,7 @@ package body Instrument.Ada_Unit is
    procedure Emit_Buffer_Unit
      (Buffer_Unit : Compilation_Unit_Part;
       Prj         : Prj_Desc;
-      Unit        : Project_Unit;
+      Unit        : Files_Table.Compilation_Unit;
       Unit_Bits   : Allocated_Bits_Vectors.Vector;
       CU_Names    : CU_Name_Vectors.Vector;
       CUs         : CU_Id_Vectors.Vector);
@@ -4251,7 +4251,7 @@ package body Instrument.Ada_Unit is
 
             when Ada_Compilation_Unit =>
                declare
-                  CUN          : constant Compilation_Unit :=
+                  CUN          : constant LAL.Compilation_Unit :=
                     N.As_Compilation_Unit;
                   CUN_Body     : constant Ada_Node := CUN.F_Body;
                   Is_Subunit   : constant Boolean :=
@@ -7236,7 +7236,7 @@ package body Instrument.Ada_Unit is
 
    function Has_Matching_Pragma_For_Unit
      (Context : Analysis_Context;
-      Unit    : Compilation_Unit;
+      Unit    : LAL.Compilation_Unit;
       Filter  : access function (Node : Pragma_Node) return Boolean)
       return Boolean
    is
@@ -7329,7 +7329,7 @@ package body Instrument.Ada_Unit is
    -------------------------------------
 
    function Finalization_Restricted_In_Unit
-     (Context : Analysis_Context; Unit : Compilation_Unit) return Boolean
+     (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean
    is
    begin
       return not Has_Unit (Context, "Ada.Finalization", Unit_Specification)
@@ -7387,7 +7387,7 @@ package body Instrument.Ada_Unit is
    ---------------------------------
 
    function Task_Termination_Restricted
-     (Context : Analysis_Context; Unit : Compilation_Unit) return Boolean
+     (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean
    is
    begin
       return not Has_Unit (Context, "Ada.Task.Termination", Unit_Specification)
@@ -8060,7 +8060,7 @@ package body Instrument.Ada_Unit is
    procedure Emit_Buffer_Unit
      (Buffer_Unit : Compilation_Unit_Part;
       Prj         : Prj_Desc;
-      Unit        : Project_Unit;
+      Unit        : Files_Table.Compilation_Unit;
       Unit_Bits   : Allocated_Bits_Vectors.Vector;
       CU_Names    : CU_Name_Vectors.Vector;
       CUs         : CU_Id_Vectors.Vector)
@@ -8761,11 +8761,11 @@ package body Instrument.Ada_Unit is
       Prj               : Prj_Desc;
       Files_Of_Interest : String_Sets.Set)
    is
-      Allocated_Bits : Allocated_Bits_Vectors.Vector;
+      Allocated_Bits    : Allocated_Bits_Vectors.Vector;
       Last_Buffer_Index : Natural := 0;
       CU_Names          : CU_Name_Vectors.Vector;
-      CUs    : CU_Id_Vectors.Vector;
-      Unit : constant Project_Unit :=
+      CUs               : CU_Id_Vectors.Vector;
+      Unit              : constant Files_Table.Compilation_Unit :=
         (Language => Unit_Based_Language, Unit_Name => +Unit_Name);
 
       UIC : Ada_Unit_Inst_Context;

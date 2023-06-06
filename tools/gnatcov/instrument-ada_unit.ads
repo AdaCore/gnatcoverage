@@ -270,7 +270,7 @@ private
          CU : CU_Id := No_CU_Id;
          --  SCO identifier of the compilation unit being instrumented
 
-         Root_Unit : Compilation_Unit;
+         Root_Unit : Libadalang.Analysis.Compilation_Unit;
          --  Node of compilation unit
 
          Source_Decisions  : Source_Decision_Vectors.Vector;

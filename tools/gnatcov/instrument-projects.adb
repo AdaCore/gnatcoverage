@@ -1193,7 +1193,7 @@ begin
    begin
       for LU_Info of Instrumented_Sources loop
          Instr_Units.Insert
-           (Project_Unit'(LU_Info.Language_Kind, LU_Info.Unit_Name));
+           (Compilation_Unit'(LU_Info.Language_Kind, LU_Info.Unit_Name));
       end loop;
       for Lang in Src_Supported_Language loop
          if Builtin_Support (Lang)
