@@ -76,11 +76,7 @@ package Instrument.Common is
    --  sources.
 
    Sys_Buffers : Ada_Qualified_Name;
-   --  Scope in Sys_Prefix for all packages to contain coverage buffers
-
-   Sys_Buffers_Lists : Ada_Qualified_Name;
-   --  Scope in Sys_Prefix for all packages to contain generic procedures for
-   --  iterations on coverage buffers.
+   --  Runtime package containing coverage buffer type definitions
 
    Statement_Buffer_Name : Ada_Qualified_Name;
    --  Qualified name (relative to the unit buffer package) of the buffer to

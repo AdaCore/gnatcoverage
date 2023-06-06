@@ -224,7 +224,7 @@ package body Instrument is
 
       Append (Result, "z");
 
-      for C of Simple_Name (Fullname) loop
+      for C of Base_Name (Fullname) loop
          if C in 'a' .. 'z' | '0' .. '9' then
             Append (Result, C);
          else
@@ -239,7 +239,7 @@ package body Instrument is
 
       declare
          Hash_Str : constant String :=
-           Ada.Containers.Hash_Type'Image (Ada.Strings.Hash (Fullname));
+           Hex_Image (Unsigned_32 (Ada.Strings.Hash (Fullname)));
       begin
          --  Do not forget to remove the leading whitespace...
 

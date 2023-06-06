@@ -605,13 +605,10 @@ package body Instrument.Common is
    end Import_From_Args;
 
 begin
-   Sys_Prefix.Append (To_Unbounded_String ("GNATcov_RTS"));
+   Sys_Prefix.Append (To_Unbounded_String ("GCVRT"));
 
-   Sys_Buffers := Sys_Prefix;
+   Sys_Buffers.Append (To_Unbounded_String ("GNATcov_RTS"));
    Sys_Buffers.Append (To_Unbounded_String ("Buffers"));
-
-   Sys_Buffers_Lists := Sys_Buffers;
-   Sys_Buffers_Lists.Append (To_Unbounded_String ("Lists"));
 
    Statement_Buffer_Name.Append (To_Unbounded_String ("Statement_Buffer"));
    Decision_Buffer_Name.Append  (To_Unbounded_String ("Decision_Buffer"));

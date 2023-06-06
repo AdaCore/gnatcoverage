@@ -939,7 +939,9 @@ package body Project is
                   --  library (in one of the gnatcov_rts*.gpr projects) or on
                   --  our coverage buffer units (in user projects).
 
-                  if Strings.Has_Prefix (Actual_Unit_Name, "gnatcov_rts.") then
+                  if Strings.Has_Prefix (Actual_Unit_Name, "gnatcov_rts.")
+                    or else Strings.Has_Prefix (Actual_Unit_Name, "gcvrt")
+                  then
                      return;
                   end if;
 

@@ -2830,7 +2830,7 @@ package body Instrument.C is
       Buffer_Filename : constant String :=
         New_File
           (Prj,
-           To_Symbol_Name (Sys_Buffers) & "_b_"
+           To_Symbol_Name (Sys_Prefix) & "_b_"
            & Instrumented_Unit_Slug (CU_Name)
            & (+Prj.Body_Suffix
              (C_Family_Instrumenter_Type'Class (Self).Language)));

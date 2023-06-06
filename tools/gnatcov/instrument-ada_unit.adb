@@ -1279,7 +1279,7 @@ package body Instrument.Ada_Unit is
      (Project_Name : String) return Ada_Qualified_Name;
    --  Returns the name of the unit containing the array of coverage buffers.
    --  It is named after the given project main name (e.g. if the
-   --  project p.gpr, its name is <Sys_Buffers_Lists>.<Slug for P>).
+   --  project p.gpr, its name is <Sys_Prefix>.<Slug for P>).
 
    function Buffer_Unit
      (Unit_Name : Ada_Qualified_Name) return Ada_Qualified_Name;
@@ -4337,14 +4337,23 @@ package body Instrument.Ada_Unit is
                   --  corresponding unit that contains coverage buffers.
 
                   declare
-                     Buffers_Unit : constant Node_Rewriting_Handle := To_Nodes
-                       (UIC.Rewriting_Context, UIC.Pure_Buffer_Unit.Unit);
-                     With_Clause  : constant Node_Rewriting_Handle :=
+                     Buffers_Unit        : constant Node_Rewriting_Handle :=
+                       To_Nodes
+                         (UIC.Rewriting_Context, UIC.Pure_Buffer_Unit.Unit);
+                     With_Buffers_Clause : constant Node_Rewriting_Handle :=
+                        Create_From_Template
+                          (UIC.Rewriting_Context, "with {};",
+                           (1 => To_Nodes
+                              (UIC.Rewriting_Context, Sys_Buffers)),
+                            With_Clause_Rule);
+                     With_PB_Clause      : constant Node_Rewriting_Handle :=
                         Create_From_Template
                           (UIC.Rewriting_Context, "with {};",
                            (1 => Buffers_Unit), With_Clause_Rule);
                   begin
-                     Append_Child (Handle (CUN.F_Prelude), With_Clause);
+                     Append_Child (Handle (CUN.F_Prelude),
+                                   With_Buffers_Clause);
+                     Append_Child (Handle (CUN.F_Prelude), With_PB_Clause);
                   end;
                end;
 
@@ -6574,7 +6583,8 @@ package body Instrument.Ada_Unit is
          declare
             Source_Name : constant String := To_String (N);
          begin
-            if not GNATCOLL.Utils.Starts_With (Source_Name, "gnatcov_rts")
+            if not (GNATCOLL.Utils.Starts_With (Source_Name, "gnatcov_rts")
+                    or else GNATCOLL.Utils.Starts_With (Source_Name, "gcvrt"))
             then
                --  If we have not done it yet, clarify which file we were
                --  instrumenting when we noticed that the source file N was
@@ -7605,6 +7615,13 @@ package body Instrument.Ada_Unit is
               Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
               Rule      => With_Clause_Rule);
 
+         With_Buffers_Clause : constant Node_Rewriting_Handle :=
+           Create_From_Template
+             (RH,
+              Template  => "with GNATcov_RTS.Buffers;",
+              Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
+              Rule      => With_Clause_Rule);
+
          Runtime_Version_Check_Node : constant Node_Rewriting_Handle :=
            Create_From_Template
              (RH,
@@ -7615,6 +7632,7 @@ package body Instrument.Ada_Unit is
       begin
          Append_Child (Desc.Prelude, With_Clause);
          Append_Child (Desc.Prelude, With_RTS_Clause);
+         Append_Child (Desc.Prelude, With_Buffers_Clause);
          Append_Child (Desc.Prelude, Runtime_Version_Check_Node);
       end;
 
@@ -8018,7 +8036,7 @@ package body Instrument.Ada_Unit is
         Qualified_Name_Slug (To_Qualified_Name (Project_Name));
    begin
       return Ada_Identifier_Vectors."&"
-        (Sys_Buffers_Lists, Instrument.Ada_Identifier (+Project_Name_Slug));
+        (Sys_Prefix, Instrument.Ada_Identifier (+Project_Name_Slug));
    end Buffers_List_Unit;
 
    -----------------
@@ -8032,7 +8050,7 @@ package body Instrument.Ada_Unit is
    begin
       Append (Simple_Name, "B");
       Append (Simple_Name, Ada_Identifier (+Qualified_Name_Slug (Unit_Name)));
-      return CU_Name : Ada_Qualified_Name := Sys_Buffers do
+      return CU_Name : Ada_Qualified_Name := Sys_Prefix do
          CU_Name.Append (Simple_Name);
       end return;
    end Buffer_Unit;
@@ -8048,7 +8066,7 @@ package body Instrument.Ada_Unit is
    begin
       Append (Simple_Name, 'P');
       Append (Simple_Name, Ada_Identifier (+Qualified_Name_Slug (Unit_Name)));
-      return CU_Name : Ada_Qualified_Name := Sys_Buffers do
+      return CU_Name : Ada_Qualified_Name := Sys_Prefix do
          CU_Name.Append (Simple_Name);
       end return;
    end Pure_Buffer_Unit;
@@ -8074,6 +8092,8 @@ package body Instrument.Ada_Unit is
       Create_File (Prj, File, To_Filename (Prj, Ada_Language, Buffer_Unit));
       Put_Warnings_And_Style_Checks_Pragmas (File);
       File.Put_Line ("with Interfaces.C; use Interfaces.C;");
+      File.Put_Line ("with System;");
+      File.Put_Line ("with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;");
       File.Put_Line
         ("with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;");
 
@@ -8276,6 +8296,7 @@ package body Instrument.Ada_Unit is
       File.Put_Line ("with System;");
 
       File.Put_Line ("with GNATcov_RTS;");
+      File.Put_Line ("with GNATcov_RTS.Buffers;");
       File.Put_Line (Runtime_Version_Check);
 
       File.New_Line;
@@ -8389,7 +8410,7 @@ package body Instrument.Ada_Unit is
    begin
       --  Create the name of the helper unit
 
-      Helper_Unit := Sys_Buffers;
+      Helper_Unit := Sys_Prefix;
       Helper_Unit.Append
         (To_Unbounded_String ("D") & Instrumented_Unit_Slug (Main));
 
@@ -8643,6 +8664,8 @@ package body Instrument.Ada_Unit is
          Create_File
            (Prj, File, To_Filename (Prj, Ada_Language, Buffers_CU_Name));
          Put_Warnings_And_Style_Checks_Pragmas (File);
+         File.Put_Line
+           ("with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;");
 
          for Instr_Unit of Instr_Units loop
 
