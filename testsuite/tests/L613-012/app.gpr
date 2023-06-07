@@ -1,0 +1,8 @@
+project App is
+   for Source_Dirs use (".");
+   for Object_Dir use "obj";
+   package Coverage is
+      for Units use ("PAK1", "PAK2");
+      --  PAK1 exists with different casing, PAK2 does not exist
+   end Coverage;
+end App;

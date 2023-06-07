@@ -1,0 +1,4 @@
+native     DEAD checking argument passing to qemu & gnatemu, NA on this platform
+visium-elf DEAD checking argument passing to qemu & gnatemu, NA on this platform
+lmp-elf    DEAD checking argument passing to qemu & gnatemu, NA on this platform
+vxworks    XFAIL mcdc without scos run on purpose, trace size limit overrun

@@ -1,0 +1,4 @@
+7.0.3 DEAD test requires compiler change from 2014-04, not in 7.0.3
+7.2.2 DEAD test requires compiler change from 2014-04, not in 7.2.2
+!bin-traces DEAD Coverage for C supported only with binary traces
+5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04

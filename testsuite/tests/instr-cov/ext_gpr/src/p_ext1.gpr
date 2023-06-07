@@ -1,0 +1,4 @@
+project P_Ext1 extends "p" is
+   for Source_Dirs use ("src-p_ext1");
+   for Object_Dir use "obj-p_ext1";
+end P_Ext1;

@@ -1,0 +1,8 @@
+project PKG_UNDER_TEST is
+
+   for SOURCE_DIRS use ("src_under_test");
+
+   for EXEC_DIR use "bin";
+   for OBJECT_DIR use "obj";
+
+end PKG_UNDER_TEST;

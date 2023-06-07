@@ -1,0 +1,5 @@
+--  This test checks the processing of gnatcov on externally built projects,
+--  which is supported only on native targets and with binary traces.
+!native    DEAD
+!linux     DEAD
+src-traces DEAD S918-031: src-traces and externally built projects

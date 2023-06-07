@@ -1,0 +1,11 @@
+Check coverage of excpetions that are raised in a subprogram body.
+
+We check for exceptions raised:
+     
+  - in a subprogram with a local handler
+
+  - in a subprogram without local handler, exception propogated upawards
+  
+  - unhandled exceptions?
+
+Implicitly and Explicitly raised exceptions.

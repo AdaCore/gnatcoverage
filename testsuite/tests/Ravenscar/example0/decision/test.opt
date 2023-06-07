@@ -1,0 +1,3 @@
+RTS_RAVENSCAR,!native
+RTS_FULL,!native
+ALL DEAD [M305-011] relies on Ravenscar constructs + strict priority based scheduling

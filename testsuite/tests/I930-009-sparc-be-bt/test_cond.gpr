@@ -1,0 +1,20 @@
+--with "../../support/support";
+
+project gen is
+
+   for Source_Dirs use ("src");
+   for Object_Dir use "obj";
+   for Exec_Dir use ".";
+   for Languages use ("Ada", "Asm");
+
+   for Main use ("test_cond.adb");
+
+--   package Builder renames Support.Builder;
+
+--   package Compiler renames Support.Compiler;
+
+--   package linker is
+--           for Switches ("test_cond.adb") use ("-Wl,-T,../gnu.ld,-v");
+--   end linker;
+
+end gen;

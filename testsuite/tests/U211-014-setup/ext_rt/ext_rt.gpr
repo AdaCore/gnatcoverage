@@ -1,0 +1,4 @@
+project Ext_RT extends "gnatcov_rts" is
+   for Object_Dir use "obj" & GNATcov_RTS'Object_Dir;
+   for Library_Dir use "obj" & GNATcov_RTS'Library_Dir;
+end Ext_RT;

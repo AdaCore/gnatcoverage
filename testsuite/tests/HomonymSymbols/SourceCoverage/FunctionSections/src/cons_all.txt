@@ -1,0 +1,7 @@
+drivers=test_1|test_2
+
+--# sum.c
+--  /sum-all/   l+ ## 0
+--  /sum-add/   l+ ## 0
+--  /sum-sub/   l+ ## 0
+--  /sum-none/  l- ## s-

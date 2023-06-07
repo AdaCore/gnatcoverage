@@ -1,0 +1,3 @@
+ppc-vx6     XFAIL minor issue of debug info not stripped through gc-section, L815-002
+e500v2-vx6  XFAIL minor issue of debug info not stripped through gc-section, L815-002
+!bin-traces DEAD Test a behavior that is specific to binary traces

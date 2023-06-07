@@ -1,0 +1,12 @@
+package body Mylib is
+
+   function Fact (N : Natural) return Natural is
+   begin
+      if N <= 1 then
+         return 1;
+      else
+         return N * Fact (N - 1);
+      end if;
+   end Fact;
+
+end Mylib;

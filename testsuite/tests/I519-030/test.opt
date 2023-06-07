@@ -1,0 +1,5 @@
+--  This is an -O1 specific test. No need to noise the runs we do for
+--  qualification tests at other levels. This test is also specific to object
+--  coverage, so applicable only to binary traces.
+bin-traces,CARGS_O1
+ALL DEAD

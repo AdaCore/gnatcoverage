@@ -1,0 +1,2 @@
+bareboard SKIP Static auto-initialized libraries are not supported in BB
+src-traces XFAIL S916-064: src-traces and Library_Interface project attributes

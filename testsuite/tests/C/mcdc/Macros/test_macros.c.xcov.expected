@@ -1,0 +1,99 @@
+25% of 16 lines covered
+29% statement coverage (5 out of 17)
+100% decision coverage (1 out of 1)
+50% MC/DC coverage (1 out of 2)
+
+Coverage level: stmt+mcdc
+   1 .: #include "pkg.h"
+   2 .: #include <stdio.h>
+   3 .: 
+   4 .: #define PRINT_HW printf ("Hello world!\n");
+   5 .: #define PRINT printf
+   6 .: #define HW "Hello world!\n"
+   7 .: #define PRINT_HW_PRINT_HW                                                     \
+   8 .:   PRINT_HW;                                                                   \
+   9 .:   PRINT_HW
+  10 .: #define WRAPPER_PRINT_HW PRINT_HW
+  11 .: #define ID(x) x
+  12 .: #define AND(x, y) ID (x) && y
+  13 .: #define WRAP_AND(x, y) AND (x, y)
+  14 .: #define WRAP_CMDLINE_MACRO_STMT CMDLINE_MACRO_STMT
+  15 .: 
+  16 .: void
+  17 .: macro_stmts ()
+  18 .: {
+  19 -:   PRINT_HW_PKG;
+statement "printf ("..." at 19:3 not executed
+  note: in definition of macro PRINT_HW_PKG at location pkg.h:1:22
+  note: from expansion of macro PRINT_HW_PKG at location test_macros.c:19:3
+  20 -:   PRINT_HW;
+statement "printf ("..." at 20:3 not executed
+  note: in definition of macro PRINT_HW at location test_macros.c:4:18
+  note: from expansion of macro PRINT_HW at location test_macros.c:20:3
+  21 -:   WRAPPER_PRINT_HW;
+statement "printf ("..." at 21:3 not executed
+  note: in definition of macro PRINT_HW at location test_macros.c:4:18
+  note: from expansion of macro PRINT_HW at location test_macros.c:10:26
+  note: from expansion of macro WRAPPER_PRINT_HW at location test_macros.c:21:3
+  22 -:   PRINT ("Hello world!\n");
+statement "printf ("..." at 22:3 not executed
+  note: in definition of macro PRINT at location test_macros.c:5:15
+  note: from expansion of macro PRINT at location test_macros.c:22:3
+  23 -:   PRINT (HW);
+statement "printf ("..." at 23:3 not executed
+  note: in definition of macro PRINT at location test_macros.c:5:15
+  note: from expansion of macro PRINT at location test_macros.c:23:3
+  24 -:   PRINT_HW_PRINT_HW;
+statement "printf ("..." at 24:3 not executed
+  note: in definition of macro PRINT_HW at location test_macros.c:4:18
+  note: from expansion of macro PRINT_HW at location test_macros.c:8:3
+  note: from expansion of macro PRINT_HW_PRINT_HW at location test_macros.c:24:3
+statement "printf ("..." at 24:3 not executed
+  note: in definition of macro PRINT_HW at location test_macros.c:4:18
+  note: from expansion of macro PRINT_HW at location test_macros.c:9:3
+  note: from expansion of macro PRINT_HW_PRINT_HW at location test_macros.c:24:3
+  25 -:   WRAP_CMDLINE_MACRO_STMT;
+statement "printf ("..." at 25:3 not executed
+  note: in definition of macro CMDLINE_MACRO_STMT at location <command line>
+  note: from expansion of macro CMDLINE_MACRO_STMT at location test_macros.c:14:33
+  note: from expansion of macro WRAP_CMDLINE_MACRO_STMT at location test_macros.c:25:3
+  26 -:   CMDLINE_MACRO_STMT;
+statement "printf ("..." at 26:3 not executed
+  note: in definition of macro CMDLINE_MACRO_STMT at location <command line>
+  note: from expansion of macro CMDLINE_MACRO_STMT at location test_macros.c:26:3
+  27 -:   CMDLINE_MACRO_DECL (a);
+statement "int a;" at 27:3 not executed
+  note: in definition of macro CMDLINE_MACRO_DECL at location <command line>
+  note: from expansion of macro CMDLINE_MACRO_DECL at location test_macros.c:27:3
+  28 -:   CMDLINE_MACRO_NO_VALUE (int b =);
+statement "int b = 1..." at 28:3 not executed
+  note: in definition of macro CMDLINE_MACRO_NO_VALUE at location <command line>
+  note: from expansion of macro CMDLINE_MACRO_NO_VALUE at location test_macros.c:28:3
+  29 .:   // Test that coverage obligations coming from built-in macros are reported
+  30 .:   // correctly.
+  31 -:   __linux + 1;
+statement "1 + 1" at 31:3 not executed
+  note: in definition of macro __linux at location <built-in>
+  note: from expansion of macro __linux at location test_macros.c:31:3
+  32 .: }
+  33 .: 
+  34 .: void
+  35 .: macro_decision_violations (int a, int b)
+  36 .: {
+  37 !:   if (WRAP_AND (ID (a), b))
+condition "a" at 37:7 has no independent influence pair, MC/DC not achieved
+  note: in definition of macro ID at location test_macros.c:11:15
+  note: from expansion of macro ID at location test_macros.c:12:19
+  note: from expansion of macro AND at location test_macros.c:13:24
+  note: from expansion of macro WRAP_AND at location test_macros.c:37:7
+  note: from expansion of macro ID at location test_macros.c:37:17
+  38 +:     PRINT_HW;
+  39 .: }
+  40 .: 
+  41 .: int
+  42 .: main ()
+  43 .: {
+  44 +:   macro_decision_violations (1, 0);
+  45 +:   macro_decision_violations (1, 1);
+  46 +:   return 0;
+  47 .: }

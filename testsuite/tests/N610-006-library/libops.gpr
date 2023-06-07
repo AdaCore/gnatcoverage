@@ -1,0 +1,11 @@
+library project Libops is
+   for Languages use ("Ada");
+   for Source_Dirs use ("libops");
+   for Object_Dir use "obj";
+
+   for Library_Name use "ops";
+   for Library_Kind use "static";
+   for Library_Dir use "lib";
+
+end Libops;
+

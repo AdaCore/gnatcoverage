@@ -1,0 +1,12 @@
+The and/or/xor non-shortcircuit operators are allowed for sc and dc
+assessments. They shall be processed as any other kind of computational
+operator.
+
+Testing Strategy:
+-----------------
+
+Provide testcases involving and/or/xor operators in decisions. Check
+that they are all accepted and processed without any particularity.
+
+Check that the presence of and/or/xor operators in an expression
+doesn't make it a decision out of explicit control-flow contexts.

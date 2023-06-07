@@ -1,0 +1,5 @@
+library project Mylib is
+   for Library_Name use "mylib";
+   for Library_Dir use "lib";
+   for Object_Dir use "obj";
+end Mylib;

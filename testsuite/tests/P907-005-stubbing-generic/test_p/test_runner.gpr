@@ -1,0 +1,12 @@
+with "../common.gpr";
+
+project Test_Runner extends "../sensors/sensors.gpr" is
+   for Source_Dirs use ("../stub_temperature", ".");
+   for Object_Dir use "obj";
+   for Main use ("tp1.adb");
+   package Compiler renames Common.Compiler;
+
+   package Coverage is
+      for Units use ("pressure_control");
+   end Coverage;
+end Test_Runner;

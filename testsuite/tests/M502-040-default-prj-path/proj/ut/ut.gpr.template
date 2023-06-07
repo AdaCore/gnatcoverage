@@ -1,0 +1,11 @@
+project UT extends "proj.gpr" is
+
+   for Source_Dirs use (".");
+   for Object_Dir use "obj";
+
+   for Main use ("main.adb");
+
+   {pkg_emulator}
+
+end UT;
+

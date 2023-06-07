@@ -1,0 +1,4 @@
+Check DC when a condition contains a call to class-wide operation as a
+condition. The simplest structure of a decision is used - it contains the
+only condition and no logical operations. The coverage of the code of the
+dispatching operations called from the decision is not checked.

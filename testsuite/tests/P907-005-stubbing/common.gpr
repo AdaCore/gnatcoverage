@@ -1,0 +1,5 @@
+abstract project common is
+  package compiler is
+    for switches ("Ada") use ("-gnata");
+  end compiler;
+end common;

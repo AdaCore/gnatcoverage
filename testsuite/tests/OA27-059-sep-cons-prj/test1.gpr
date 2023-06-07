@@ -1,0 +1,8 @@
+project Test1 extends "pkg_under_test" is
+
+   for Source_Dirs use ("test1");
+   for Main use ("main_test1.adb");
+   for Exec_Dir use "bin";
+   for Object_Dir use "obj1";
+
+end Test1;

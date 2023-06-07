@@ -1,0 +1,153 @@
+------------------------------------------------------------------------------
+--                        Couverture/Explore example                        --
+--                     Copyright (C) 2008-2009, AdaCore                     --
+------------------------------------------------------------------------------
+
+-------------------------
+-- Functional overview --
+-------------------------
+
+--  This example implements software pieces involved in the following
+--  imaginary situation:
+--
+--  - A pilotless robot is set on a field to explore, where we expect to
+--    find either regular ground or rock blocks.
+--
+--  - An inhabited station off the field communicates with the robot to
+--    control it and visualize the explored portions of the field.
+
+--  The robot is equipped with several devices:
+--
+--  - a steering engine, able to have the robot perform a short step
+--    forward or rotate 90 deg either way without advancing,
+--
+--  - a front radar, able to probe the field characteristics (ground or
+--    block) one step ahead,
+--
+--  - a locator, able to evaluate the robot's position and orientation on
+--    the field.
+--
+--  The robot communicates with the station via two communication links:
+--
+--  - a control link, through which the station sends commands for the
+--    robot to execute (probe ahead, step forward, ...)
+--
+--  - a situation link, through which the robot sends info about it's
+--    current situation (position, orientation, field ahead).
+--
+--  The field is modeled as a set of squares, each represented by a
+--  single character to denote the square nature:
+--
+--     '#' is a rock block, ' ' is regular ground, '~' is water
+--
+--     '?' is a square yet unexplored
+--
+--     '<', '>', '^' or 'v' is the robot heading west, east, north
+--     or south, respectively.
+
+--  Below is a schematic illustration of the various parts involved
+--  for a rectangular field delimited by rock blocks, a robot heading
+--  south and an 'S' to materialize the Station:
+--
+--            field                               view
+--          ##########                          ??????????
+--          #  #     #  <- control link         ?  #  ? ??
+--          #    v<==========================>S ??   R  ??
+--          #  ~     #   situation link ->      ?  ?    ??
+--          ##########                          ??????????
+--
+--  The Robot and Station active entities are both called Actors in this
+--  world, and Links are attached to local Ports owned by these actors.
+--
+--  The Robot runs in one of two modes: in Cautious mode, it wont execute
+--  unsafe commands like stepping forward with a rock block ahead.  In Dumb
+--  mode it executes all the commands it receives.
+
+--------------------
+-- Sample session --
+--------------------
+
+--  A user running the program is like sitting at the Station, able to type
+--  commands for the Robot to execute and to receive feedback on the new
+--  situation, from which the local view of the field is updated.  Below is
+--  sample session with explanatory comments in []:
+--
+--  $ ./explore
+--
+--  [The fake initial field is setup as a 5x5 area with blocks all around
+--   and 1 in the middle, like
+--
+--          #####
+--          #   #
+--          # # #
+--          #   #
+--          #####
+--
+--   Robot is arbitrarily placed in the upperwest corner, heading east]
+--
+--  'C'autious mode, 'D'umb mode
+--  'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? P
+--
+--       [Station asks for user input, user types "P" to probe ahead.
+--        Robot answers with it's current situation: position (x=2, y=2),
+--        looking east, square ahead is regular ground.
+--        Station displays its current knowledge of the field]:
+--
+--  ?????
+--  ?> ??
+--  ?????
+--  ?????
+--  ?????
+--
+--  [Probe command processing done, Next cycle ...]
+--
+--  'C'autious mode, 'D'umb mode
+--  'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? L
+--
+--       [User asks "rotate left (counterclockwise)", station sends out
+--        command followed by a Probe request.
+--        Robot processes both requests and answers: position unchanged,
+--        now heading north, square ahead is a block.
+--        Station displays its current knowledge of the field]:
+--
+--  ?#???
+--  ?^ ??
+--  ?????
+--  ?????
+--  ?????
+--
+--  [etc until user requests 'Q'uit or crashes the robot by asking
+--   it to step forward into a block, in Dumb mode]
+--
+
+-----------------------------------
+-- General software organization --
+-----------------------------------
+
+--  The set of units and essential abstractions involved is sketched below -
+--  units underlined, associated abstractions parenthesized).
+--
+--  This set is a pretty straightforward mapping of the general concepts
+--  involved, as described in the Functional Overview.  Only "Queues" is a
+--  pure support unit, offering the well known datastructure abstraction.
+--
+--  See the package specs for extra descriptive details.
+--
+--                              =======
+--                              Explore
+--                              =======
+--
+--   Geomaps (field Map, Situations + Situation_Links)
+--   =======
+--
+--   Actors (Actor)         Robots (Robot)        Stations (Station)
+--   ======                 ======                ========
+--
+--   Links (IOports, IOlinks)      Queues (Queue)
+--   =====                         ======
+--
+--   Controls (Robot_Control + Robot_Control_Links)
+--   ========
+
+package Overview is
+end Overview;

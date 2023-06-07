@@ -1,0 +1,22 @@
+V "GNAT Lib v7.3"
+A -mtune=generic
+A -march=x86-64
+P ZX
+
+RN
+RV NO_IMPLEMENTATION_PRAGMAS
+
+U expr%b		expr.adb		9afba2dd NE OO PK
+
+U expr%s		expr.ads		a0cd5364 EE NE OO PK
+
+D expr.ads		20140214111047 a0cd5364
+D expr.adb		20140214111226 3a36f1b9
+D system.ads		20120706154652 90249111
+X 1 expr.ads
+3K9*Expr 5e4 2|3b14 11t4
+4V13*Plus{integer} 4>19 4>22 4=35 2|4b13 10t7
+4i19 X{integer} 2|4b19 7r17 9r14
+4i22 Y{integer} 2|4b22 7r32 9r18
+4b35 Pos{boolean} 2|4b35 6r10 7m10
+
