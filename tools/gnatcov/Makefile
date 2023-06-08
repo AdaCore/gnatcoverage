@@ -12,7 +12,7 @@
 #
 # all
 #   bin        <- default
-#   adapters [ADAPTERS_LIST=dynamorio|valgrind|...]
+#   adapters [ADAPTERS_LIST=trace32|...]
 
 # ----------------
 # -- To install --
@@ -22,7 +22,7 @@
 #   install-bin
 #   install-examples
 #
-# install-adapters [ADAPTERS_LIST=dynamorio|valgrind|...]
+# install-adapters [ADAPTERS_LIST=trace32|...]
 #
 # All working with the PREFIX variable, that users may specify:
 
@@ -33,29 +33,6 @@ PREFIX=$(PWD)/local
 
 # By default, assume that the binutils dependency was built in the source tree.
 BINUTILS_BUILD_DIR?=$(BINUTILS_SRC_DIR)
-
-# Note for the trace adapters:
-# ----------------------------
-
-# When *building* adapters for native configurations, we usually need to know
-# the execution engine "prefix" to get access to e.g. header files (valgrind)
-# or cmake artifacts (dynamoRIO).
-
-# By default, we infer that prefix from the location of "valgrind" or "drrun"
-# on the PATH, and users may specify an alternate location by setting the
-# VALGRIND_PREFIX or DYNRIO_PREFIX Makefile variable.
-
-# When *installing* adapters, we need the location of the valgrind install
-# tree where the valgrind adapter needs to go. By default, we infer that from
-# the location of "valgrind" on the PATH.  Users may alter that choice by
-# setting the VALGRIND_PREFIX variable.
-
-# dynamorio doesn't need the client to be installed within it's own tree, so
-# we install within the bundled install tree, rooted at PREFIX and gnatcov
-# passes the complete client path to dynamorio.
-
-# Alternatively, users may specify a final location by setting the
-# VALGRIND_TOOL_INSTALL_DIR or DYNRIO_CLIENT_INSTALL_DIR variable.
 
 # ----------------
 # -- To cleanup --
@@ -106,11 +83,11 @@ endif
 # users get the core only by default in case they don't need the
 # adapters for their host, e.g. when building for gnatemu targets.
 
-# For example, a user who needs to build gnatcov on linux to perform
-# ppc-elf coverage only doesn't need the valgrind adapter for native
-# coverage. He might moreover be on a system where the adapter build
-# would fail (e.g. missing header files), so we really shouldn't try
-# to build these adapters by default.
+# For example, a user who needs to build gnatcov on linux to perform ppc-elf
+# coverage only doesn't need the trace32 adapter for the corresponding probe.
+# He might moreover be on a system where the adapter build would fail (e.g.
+# missing probe-specific files), so we really shouldn't try to build these
+# adapters by default.
 
 # So ...
 #
@@ -130,17 +107,17 @@ include architecture.mk
 
 ifeq ($(HOST_OS), windows)
 ifeq ($(BITS_ARCH), 32)
-DEFAULT_ADAPTERS = nexus dynamorio trace32
+DEFAULT_ADAPTERS = nexus trace32
 else
-DEFAULT_ADAPTERS = dynamorio
+DEFAULT_ADAPTERS =
 endif
 endif
 
 ifeq ($(HOST_OS), linux)
 ifeq ($(BITS_ARCH), 32)
-DEFAULT_ADAPTERS = valgrind
+DEFAULT_ADAPTERS =
 else
-DEFAULT_ADAPTERS = valgrind trace32
+DEFAULT_ADAPTERS = trace32
 endif
 endif
 
@@ -152,30 +129,6 @@ BUILD_MODE=dev
 # ================================================================
 # == Variables to pass down to sub-makefiles for trace adapters ==
 # ================================================================
-
-# For valgrind, we need a prefix indication at build time to find header
-# files, and at install time to place the "tool" within the valgrind install
-# tree.
-
-VALGRIND_PREFIX?=$(shell dirname `which valgrind`)/..
-
-valgrind_ADAPTER_BUILD_VARS=\
-  VALGRIND_PREFIX?=$(VALGRIND_PREFIX)
-
-valgrind_ADAPTER_INSTALL_VARS=\
-  VALGRIND_TOOL_INSTALL_DIR?=$(VALGRIND_PREFIX)/libexec/valgrind
-
-# For dynamorio, we need a prefix indication at build time to find header
-# files and cmake artifacts, and can always install within the gnatcov install
-# tree.
-
-DYNRIO_PREFIX?=$(shell dirname `which drrun`)/..
-
-dynamorio_ADAPTER_BUILD_VARS=\
-  DYNRIO_PREFIX?=$(DYNRIO_PREFIX)
-
-dynamorio_ADAPTER_INSTALL_VARS=\
-  DYNRIO_CLIENT_INSTALL_DIR?=$(PREFIX)/libexec/gnatcoverage/lib$(BITS_ARCH)
 
 # Trace32 and Nexus (iSystem) adapters use the same prefix as GNATcov
 trace32_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
