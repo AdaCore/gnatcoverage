@@ -30,11 +30,12 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   gpr_obj_dir=None, gpr_exe_dir=None, ignored_source_files=[],
                   separate_coverage=None, extra_args=[], extra_run_args=None,
                   extra_instr_args=None, extra_gprbuild_args=[],
-                  extra_gprbuild_cargs=[], absolute_paths=False,
-                  dump_trigger="auto", dump_channel="auto",
-                  check_gprbuild_output=False, trace_mode=None,
-                  runtime_project=None, gprsw_for_coverage=None,
-                  scos_for_run=True, register_failure=True, program_env=None,
+                  extra_gprbuild_cargs=[], extra_gprbuild_largs=[],
+                  absolute_paths=False, dump_trigger="auto",
+                  dump_channel="auto", check_gprbuild_output=False,
+                  trace_mode=None, runtime_project=None,
+                  gprsw_for_coverage=None, scos_for_run=True,
+                  register_failure=True, program_env=None,
                   tolerate_instrument_messages=None, exec_args=None,
                   auto_languages=True):
     """
@@ -80,6 +81,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         gprbuild.
     :param list[str] extra_gprbuild_cargs: List of arguments to pass to
         gprbuild's -cargs section.
+    :param list[str] extra_gprbuild_largs: List of arguments to pass to
+        gprbuild's -largs section.
     :param bool absolute_paths: If true, use absolute paths in the result.
     :param None|str dump_trigger: See xcov_instrument.
     :param None|str dump_channel: See xcov_instrument.
@@ -128,6 +131,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         gprbuild(root_project,
                  gargs=gprsw.build_switches + extra_gprbuild_args,
                  extracargs=extra_gprbuild_cargs,
+                 largs=extra_gprbuild_largs,
                  trace_mode=trace_mode,
                  runtime_project=runtime_project)
 
