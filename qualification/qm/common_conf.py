@@ -41,11 +41,10 @@ users = {
 roles = OrderedDict(
     [
         ("authors", {"description": "the authors of the document"}),
-        ("reviewers", {"description": "the reviewers of the document"}),
     ]
 )
 
-assignments = {"authors": ["hainque"], "reviewers": ["unassigned"]}
+assignments = {"authors": ["hainque"]}
 
 release = "DRAFT 0.0"
 version = "(version %s)" % release
