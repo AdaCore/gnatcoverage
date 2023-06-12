@@ -2,18 +2,18 @@ Compliance With Guidance
 ========================
 
 This section contains the compliance matrices with the guidance contained in
-section 12.2 of [|standard|] (or Appendix B of [|tool_standard|], as appropriate)
+section 12.2 of [|standard|] (or section 4.4(e) of [|tool_standard|], as appropriate)
 and section 11.3.2 of [|tool_standard|].
 
 .. tabularcolumns:: |p{0.15\linewidth}|p{0.10\linewidth}|p{0.65\linewidth}|
 
-.. csv-table:: Compliance with Section 12.2 of |standard| or Appendix B of |tool_standard|, as appropriate
+.. csv-table:: Compliance with Section 12.2 of |standard| or section 4.4(e) of |tool_standard|, as appropriate
    :delim: #
    :header: "Section", "Achieved", "Notes"
 
-   12.2.1 or Appendix B #Yes#GNATcoverage qualification is needed. See :ref:`certification-credit`.
-   12.2.2 or Appendix B #Yes#GNATcoverage impact corresponds to **Criteria 3**. According to Table 12-1 Tool Qualification Level is **TQL-5** for all software and assurance levels. See :ref:`tql`.
-
+   12.2.1 or 4.4(e) #Yes#GNATcoverage qualification is needed. See :ref:`certification-credit`.
+   12.2.2 #Yes#GNATcoverage impact corresponds to **Criteria 3**. According to Table 12-1 Tool Qualification Level is **TQL-5** for all assurance levels. See :ref:`tql`.
+   4.4(e) #Yes#GNATcoverage is a tool that cannot introduce an error in the output of the qualified tool, but may fail to detect an error in the tool life cycle data, hence the applicable TQL is **TQL-5**. See :ref:`tql`
 
 .. tabularcolumns:: |p{0.15\linewidth}|p{0.18\linewidth}|p{0.60\linewidth}|
 
