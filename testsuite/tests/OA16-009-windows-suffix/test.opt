@@ -1,0 +1,2 @@
+bin-traces,windows
+ALL DEAD This test variant has platform specific expectations and checks "gnatcov run" (bin traces specific)

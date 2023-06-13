@@ -1,0 +1,13 @@
+drivers=test_12|test_13
+
+--# fact.c
+--  /fact-partial/      l+ ## 0
+--  /fact-full/         l+ ## 0
+
+--# not.c
+--  /not-all/           l+ ## 0
+--  /not-false/         l+ ## 0
+--  /not-true/          l- ## s-
+
+--# double.c
+--  /double-partial/    l+ ## 0

@@ -1,0 +1,5 @@
+# Ignore packages B and C
+pkg_[bc].adb
+
+# Ignore all test procedures
+*-test.adb

@@ -1,0 +1,1 @@
+src-traces XFAIL C instrumentation does not yet support header analysis.

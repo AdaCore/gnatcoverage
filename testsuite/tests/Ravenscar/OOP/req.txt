@@ -1,0 +1,111 @@
+This is the first attempt to describe the testing strategy for "Tagged Types
+and Dispatching" (Ada OO features) part of the gnatcov test suite.
+
+1. In this particular part of the test suite tagged types and dispatching
+   should be considered as a specific language feature (a set of features)
+   that can bring a specific set of problems and difficulties to coverage
+   assessment tools, so they should be tested namely as a specific feature,
+   but not along with all the other language constructs. In particular this
+   means that we does not have to check all possible combinations of Ada OO
+   features with all possible syntax constructs.
+
+2. The testing strategy is based on a hypothesis that may be called as a
+   hypothesis of relative correctness:
+
+     "When testing the interaction between the various language constructs, it
+      is assumed that each of these constructs is implemented correctly. This
+      implies that the concrete representation of each construct is not
+      important."
+
+   Without such a hypothesis we will end up with combinatorial explosion very
+   soon.
+
+3. Ada OO features can bring the following difficulties to coverage analysis.
+
+   - Inheritance: in the inheritance hierarchy we may have operations
+     implicitly inherited from other operations. Such operations may be
+     called as ordinary subprograms, but they do not have the code
+     associated with them, instead, the code of the explicitly declared
+     subprogram the called operation is inherited from is actually executed.
+     It should be checked that the coverage information is generated for the
+     code that actually is called, and for nothing else.
+
+   - Overriding: when we have different "implementations" for "the same"
+     (primitive) operation in some inheritance hierarchy, it should be checked
+     that the coverage information is generated for the "implementation" that
+     actually is called, but not for the others (in particular, the coverage
+     information should not be generated for overridden subprogram in case
+     when an overriding subprogram is called);
+
+   - Dynamic dispatching (dynamic binding): we may have a situation when it is
+     not possible to determine which subprogram from the set of different
+     implementations of a primitive operation of some type is called. We
+     should check that the coverage information is generated only for the
+     actually called subprograms;
+
+   - Class-wide operations: they are interested in three aspects. First,
+     they may be considered as a special case of a subprogram (that can
+     operate on objects that have types that are not known in advance).
+     Second, a class-wide operation usually contains dispatching calls that
+     can be resolved only dynamically. Third, a class-wide operation can be
+     written for an abstract type when all the type operations defined as
+     abstract, and it may know nothing at all about subprograms it actually
+     calls.
+
+4. Ada OO features are closely related to each other, so we cannot avoid some
+   overlaps in testing strategy, requirements, test cases. We should not
+   consider this as any disadvantage, getting rid of these overlaps may be
+   more expensive for both developers and users of the test suite.
+
+5. Statement coverage.
+
+The following aspects should be checked:
+
+- Inheritance : when a derived subprogram is called, the coverage information
+                for the explicitly declared parent subprogram is generated
+                correctly;
+
+- Static binding: when in the hierarchy of dynamic types the called operation
+                can be detected statically, the code information for the
+                is correctly generated for the body of the subprogram that is
+                actually called, and no other code for no other subprogram
+                from the hierarchy is reported as covered;
+
+- Discpatching (dynamic binding) : if the subprogram to call is detected
+                dynamically, the coverage information is correctly generated
+                for the subprogram that has actually be called, and no other
+                code for no other subprogram from the hierarchy is reported as
+                covered;
+
+- Class-Wide operations: if a class-wide operation is called, the coverage
+                information is correctly generated for its code as well as for
+                all the subprograms called from the class-wide operation. The
+                subprograms that may be called from the class-wide operation
+                but that are not actually called with the given argument
+                should be reported as non-covered.
+
+- Multiple inheritance: similar to 'Dispatching', but called subprograms could
+                be from different inheritance hierarchies.
+
+6. Decision coverage.
+
+The following aspects should be checked:
+
+1. If a decision in some control structure contains a call to a dispatching
+   operation as one of the conditions involved then the coverage information
+   is correctly computed for this construct in case of dynamic binding.
+
+2. If a decision in some control structure contains a call to a class-wide
+   operation (containing some dynamic dispatching in its body) as one of the
+   conditions involved then the coverage information is correctly computed for
+   this construct in case of dynamic binding.
+
+3. For the body of a class-wide operation, the coverage information is
+   correctly computed, as well as for the dispatching operations that are
+   actually called from this class-wide operation.
+
+4. For the body a dispatching operation the coverage information is correctly
+   computed in case of a dynamic binding.
+
+The simplest form is used for each decision - it contains exactly one
+condition with no logical operation.

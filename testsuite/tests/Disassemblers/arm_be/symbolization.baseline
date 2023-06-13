@@ -1,0 +1,8 @@
+Section .text:            00000000-00000013
+<f>:
+00000000 -:  e0 80 00 00      add	r0, r0, r0
+00000004 -:  ea ff ff ff      b	0x8 <f+0x8>
+00000008 -:  e1 a0 f0 0e      mov	pc, lr
+<foo>:
+0000000c -:  e3 a0 00 01      mov	r0, #1
+00000010 -:  eb ff ff fa      bl	0x0 <f>

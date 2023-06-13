@@ -1,0 +1,2 @@
+!bin-traces   DEAD Binary traces specific testcase
+!x86_64-linux DEAD Embeds x86_64 assembly sources for Linux

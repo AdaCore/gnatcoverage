@@ -1,0 +1,1 @@
+!RTS_FULL DEAD Uses errno, which is not defined in embedded / light runtimes

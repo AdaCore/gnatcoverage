@@ -1,0 +1,3 @@
+RTS_ZFP DEAD Test requires System.Boolean_Array_Operations.Vector_Not
+5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
+7.1.2 DEAD support for expression functions weak in 7.1.2

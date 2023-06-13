@@ -1,0 +1,37 @@
+drivers=test_add|test_area
+
+-- We have the test on map area using a mult operation from the Math unit.
+--
+-- But this is not part of the tests of this unit per se, and is not specifying
+-- any expectation for it. We expect the indirect coverage to be visible when
+-- consolidating from traces, not from checkpoints.
+--
+-- In source trace mode, the trace for the "area" test does not contain any
+-- coverage information for the "math" unit, so trace-based consolidation
+-- behaves like the checkpoint-based one.
+
+--# maps.adb
+--  /eval/ l+ ## 0
+
+--# math.adb
+
+-- %cons: traces  %opts: --trace-mode=bin
+
+--  /check-add/  l+ ## 0
+--  /add/        l+ ## 0
+--  /check-mult/ l! ## dF-
+--  /mult/       l+ ## 0
+
+-- %cons: traces  %opts: --trace-mode=src
+
+--  /check-add/  l! ## dF-
+--  /add/        l+ ## 0
+--  /check-mult/ l- ## s-
+--  /mult/       l- ## s-
+
+-- %cons: checkpoints
+
+--  /check-add/  l! ## dF-
+--  /add/        l+ ## 0
+--  /check-mult/ l- ## s-
+--  /mult/       l- ## s-

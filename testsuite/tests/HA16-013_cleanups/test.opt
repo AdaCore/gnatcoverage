@@ -1,0 +1,1 @@
+!RTS_RAVENSCAR,!RTS_FULL DEAD test on exception propagation cleanups, zfp-irrelevant

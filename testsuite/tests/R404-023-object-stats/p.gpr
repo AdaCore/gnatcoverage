@@ -1,0 +1,15 @@
+--  In order to regenerate main.trace.asset, run:
+--
+--    gprbuild -Pp -p && gnatcov run -Pp -o main.trace.asset
+
+project P is
+   for Target use "arm-eabi";
+   for Runtime ("Ada") use "zfp-stm32f4";
+   for Exec_Dir use ".";
+   for Object_Dir use "obj";
+   for Main use ("main.adb");
+
+   package Compiler is
+      for Default_Switches ("Ada") use ("-O1", "-gnatp", "-g");
+   end Compiler;
+end P;

@@ -1,0 +1,21 @@
+The following things should be checked:
+
+1. If a decision in some control structure contains a call to a dispatching
+   operation as one of the conditions involved then the coverage information
+   is correctly computed for this construct in case of dynamic binding.
+
+2. If a decision in some control structure contains a call to a class-wide
+   operation (containing some dynamic dispatching in its body) as one of the
+   conditions involved then the coverage information is correctly computed for
+   this construct in case of dynamic binding.
+
+3. For the body of a class-wide operation, the coverage information is
+   correctly computed.
+
+4. For the body a dispatching operation the coverage information is correctly
+   computed in case of a dynamic binding.
+
+For the initial version of the test suite, the simplest form is used for each
+decision - it contains exactly one condition. The other parts of the test
+suite exercises complex decisions, and here we check only things specific to
+Ada OO features.

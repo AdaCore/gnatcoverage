@@ -1,0 +1,1 @@
+procedure Assert (X : Boolean);

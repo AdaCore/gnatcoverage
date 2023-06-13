@@ -1,0 +1,10 @@
+drivers=test_1|test_2
+
+--# not.c
+--  /not-all/       l+ ## 0
+--  /not-false/     l+ ## 0
+--  /not-true/      l- ## s-
+
+--# fact.c
+--  /fact-partial/  l+ ## 0
+--  /fact-full/     l+ ## 0

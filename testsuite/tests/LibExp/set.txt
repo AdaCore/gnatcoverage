@@ -1,0 +1,38 @@
+This directory hosts libraries of test drivers and functional
+code for expressions of a given topology. Ideas:
+
+o One family of drivers for e.g.
+
+    X and then Y
+    X or else Y
+    etc
+
+o State expectations for all the possible criteria
+  (stmt, decision, mcdc)
+
+o Provide helpers + functional code for a variety
+  of operand kinds. Drivers should be generic enough
+  not to care.
+
+o Each chapter should feature a "instanciation"
+  request to trigger execution of the test and validation
+  for the criterion it represents.
+
+o think about ways to have the tests accounted for in qualification runs
+  (if not in a subdir of <lang>/<crit> for example)
+
+DriverLib
+  Drivers written in Ada, used for C instances as well
+
+Ada/ExprLib
+  Ada implementation of the helpers and functional variants
+
+C/ExprLib
+  C implementation of the helpers and functional variants
+
+Testcase description:
+  Check correctness of _the criterion_ assessment etc
+
+
+test.py ??  QMAT tree ??
+

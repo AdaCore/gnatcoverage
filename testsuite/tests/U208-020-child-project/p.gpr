@@ -1,0 +1,4 @@
+project P is
+   for Source_Dirs use ("p-src");
+   for Object_Dir use "obj/p";
+end P;

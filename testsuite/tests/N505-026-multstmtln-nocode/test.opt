@@ -1,0 +1,4 @@
+7.0.3 DEAD 7.0.3 required SCO support for C implemented post 7.0 (may 2014)
+7.2.2 DEAD 7.2.2 required SCO support for C implemented post 7.2 (may 2014)
+!bin-traces DEAD Coverage for C supported only with binary traces
+5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
