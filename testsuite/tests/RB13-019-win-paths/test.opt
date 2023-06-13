@@ -1,2 +1,2 @@
-!native    DEAD
-src-traces DEAD source instrumentation not available for C
+arm-elf,stm32f4,bin-traces
+ALL DEAD Test tailored for bin traces on arm-elf/stm32f4
