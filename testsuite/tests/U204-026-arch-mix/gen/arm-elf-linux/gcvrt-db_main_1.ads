@@ -1,6 +1,8 @@
 pragma Style_Checks (Off); pragma Warnings (Off);
-package GNATcov_RTS.Buffers.DB_main_1 is
+with GNATcov_RTS.Buffers;
+package GCVRT.DB_main_1 is
 
    procedure Dump_Buffers;
    pragma Convention (C, Dump_Buffers);
-end GNATcov_RTS.Buffers.DB_main_1;
+
+end GCVRT.DB_main_1;
