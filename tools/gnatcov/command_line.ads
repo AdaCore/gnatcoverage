@@ -85,11 +85,13 @@ package Command_Line is
       Opt_Cancel_Annotate,
       Opt_All_Warnings,
       Opt_Save_Temps,
-      Opt_SPARK_Compat);
+      Opt_SPARK_Compat,
+      Opt_Relocate_Build_Tree);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
      (Opt_Project,
+      Opt_Root_Dir,
       Opt_Subdirs,
       Opt_Target,
       Opt_Runtime,
@@ -518,6 +520,13 @@ package Command_Line is
          Help      => "Enable the SPARK compatibility mode. This ensures"
                       & " instrumented code will be ghost compliant.",
          Commands  => (Cmd_Instrument => True, others => False),
+         Internal  => False),
+
+      Opt_Relocate_Build_Tree => Create
+        (Long_Name => "--relocate-build-tree",
+         Help      => "Relocate object, library and exec directories in the"
+                      & " current directory.",
+         Commands  => (Cmd_Setup => False, others => True),
          Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
@@ -526,6 +535,16 @@ package Command_Line is
          Pattern      => "[GPR]",
          Help         => "Use GPR as root project to locate SCOs, select"
                          & " units to analyze and find default options.",
+         Commands     => (Cmd_Setup => False, others => True),
+         At_Most_Once => True,
+         Internal     => False),
+      Opt_Root_Dir => Create
+        (Long_Name    => "--root-dir",
+         Pattern      => "[DIR]",
+         Help         => "When --relocate-build-tree is active, this"
+                         & " designates the topmost directory of the tree of"
+                         & " projects. By default the root project's directory"
+                         & " is used.",
          Commands     => (Cmd_Setup => False, others => True),
          At_Most_Once => True,
          Internal     => False),

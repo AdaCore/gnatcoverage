@@ -71,6 +71,16 @@ package Project is
    --  If Prj_Name maps to no loaded project, Compute_Units_Of_Interest will
    --  later emit an error.
 
+   procedure Set_Build_Tree_Dir_To_Current
+     with Pre => not Is_Project_Loaded;
+   --  Set the root build directory to current directory, for out of tree
+   --  builds.
+
+   procedure Set_Root_Dir (Dir : String)
+     with Pre => not Is_Project_Loaded;
+   --  Set the directory to consider as topmost directory when relocating
+   --  the build tree.
+
    procedure Load_Root_Project
      (Prj_Name                   : String;
       Target, Runtime, CGPR_File : String_Access;
