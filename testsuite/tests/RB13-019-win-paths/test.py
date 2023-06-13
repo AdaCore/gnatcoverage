@@ -3,39 +3,86 @@ Check that gnatcov does not complain about "same base name for files" and
 computes the expected code coverage when C files are compiled with a Makefile.
 
 This used not to work because in this build scenario on Windows, debug info
-used to contain unexpected double slash as directory separators.
+used contains unexpected double backslashes as directory separators.
 """
 
 import os.path
-
 import shutil
 
-from e3.os.process import Run
+from e3.fs import cp
+from e3.os.process import PIPE, Run, STDOUT
 
-from SCOV.minicheck import check_xcov_reports
-from SUITE.cutils import FatalError
-from SUITE.tutils import exepath_to, thistest, tracename_for, xcov, xrun
+from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
+from SUITE.control import env
+from SUITE.cutils import FatalError, Wdir
+from SUITE.gprutils import GPRswitches
+from SUITE.tutils import (
+    exepath_to, gprfor, thistest, tracename_for, xcov, xrun
+)
 
 
-if os.path.exists('coverage'):
-    shutil.rmtree('coverage')
-p = Run(['make', 'clean'])
+tmp = Wdir("tmp_")
 
-main = exepath_to('driver')
-main_trace = tracename_for('driver')
 
-p = Run(['make'])
+# Copy the C project in this temporary directory to avoid clutter in the test
+# sources.
+for f in ["Makefile", "libsrc"]:
+    cp(os.path.join("..", f), f, recursive=True)
+
+# Build libdriver.a
+p = Run(
+    [
+        "make",
+        f"CC={env.target.triplet}-gcc",
+        f"AR={env.target.triplet}-ar",
+        "CFLAGS={}".format(" ".join([
+            "-fpreserve-control-flow",
+            "-fdump-scos",
+            "-g",
+            "-save-temps",
+
+            # TODO??? This is necessary in order to have the C sources build
+            # with an arm-elf toolchain and a stm32f4 RTS, it is not clear if
+            # we could make this more generic.
+            "-mlittle-endian",
+            "-mfloat-abi=hard",
+            "-mcpu=cortex-m4",
+            "-mfpu=fpv4-sp-d16",
+        ])),
+    ],
+    output=PIPE,
+    error=STDOUT,
+)
+thistest.log("make output:\n" + p.out)
 thistest.stop_if(p.status != 0, FatalError('call to "make" failed'))
 
-xcflags = ['-cstmt+mcdc', '--scos=wibble.c.gli', '--scos=driver.c.gli']
-
-xrun(xcflags + [main])
-xcov(['coverage'] + xcflags
-     + ['-axcov', '--output-dir=coverage', '-T', main_trace])
+# Build the test program, run it and produce a coverage report
+build_run_and_coverage(
+    gprsw=GPRswitches(
+        root_project=gprfor(
+            prjid="main",
+            srcdirs=[".."],
+            mains=["main.adb"],
+            langs=["Ada"],
+        ),
+    ),
+    covlevel="stmt+mcdc",
+    mains=["main"],
+    scos=["obj/main"],
+    extra_gprbuild_args=["-vh"],
+    extra_gprbuild_largs=[f"-L{os.getcwd()}", "-ldriver"],
+    extra_coverage_args=[
+        "-axcov",
+        "--output-dir=coverage",
+        "--scos=wibble.c.gli",
+        "--scos=driver.c.gli",
+    ],
+)
 
 check_xcov_reports(
-    os.path.join('coverage', 'wibble.c.xcov'),
-    {os.path.join('coverage', 'wibble.c.xcov'): {'+': {8, 12}, '!': {6}}}
+    "wibble.c.xcov",
+    {"wibble.c.xcov": {"+": {8, 12}, "!": {6}}},
+    cwd="coverage"
 )
 
 thistest.result()

@@ -1,12 +1,14 @@
 CC=gcc
+AR=ar
 CFLAGS=-fpreserve-control-flow -fdump-scos -g -save-temps
 LDFLAGS=$(CFLAGS) -no-pie
 
-driver: driver.o wibble.o
+all: libdriver.a
 
-wibble.o: wibble.c wibble.h
+libdriver.a: driver.o wibble.o
+	$(AR) cru libdriver.a driver.o wibble.o
 
-driver.o: wibble.h driver.c
-
-clean:
-	rm -f *.o *.exe driver *.c.gli *.i *.s
+wibble.o: libsrc/wibble.c libsrc/wibble.h
+	$(CC) -o $@ -c $< $(CFLAGS)
+driver.o: libsrc/driver.c libsrc/wibble.h
+	$(CC) -o $@ -c $< $(CFLAGS)

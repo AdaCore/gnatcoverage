@@ -3,21 +3,23 @@
 #include <stdint.h>
 #include <stdio.h>
 
+extern void utils_print (const char *msg);
+
 int
 check (int condition)
 {
   if (condition)
     {
-      printf ("PASS\n");
+      utils_print ("PASS\n");
     }
   else
     {
-      printf ("FAIL\n");
+      utils_print ("FAIL\n");
     }
 }
 
 int
-main (int argc, char **argv)
+driver_main (void)
 {
   check (foo (3, 2) == 0);
   check (foo (3, 3) == 1);
