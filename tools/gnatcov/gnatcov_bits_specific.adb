@@ -56,7 +56,6 @@ with Decision_Map;          use Decision_Map;
 with Disassemble_Insn_Properties;
 with Execs_Dbase;           use Execs_Dbase;
 with Files_Table;           use Files_Table;
-with GNATcov_RTS.Buffers;   use GNATcov_RTS.Buffers;
 with Inputs;                use Inputs;
 with Instrument;
 with Instrument.Common;     use Instrument.Common;
@@ -1760,27 +1759,9 @@ begin
 
          Check_User_Provided_SCOs;
 
-         --  Build the list of units of interest from project files option
+         --  Build the list of units of interest from project files
 
-         declare
-            procedure Add_Unit (Unit : Compilation_Unit; Is_Stub : Boolean);
-            --  Add Name to the list of names for units of interest. Do nothing
-            --  if this is a stub for a unit-based language, since such stubs
-            --  are implicitly part of another unit of interest.
-
-            --------------
-            -- Add_Unit --
-            --------------
-
-            procedure Add_Unit (Unit : Compilation_Unit; Is_Stub : Boolean) is
-            begin
-               if not Is_Stub or else Unit.Language = File_Based_Language then
-                  Add_Unit (Unit);
-               end if;
-            end Add_Unit;
-         begin
-            Enumerate_Units_Of_Interest (Add_Unit'Access);
-         end;
+         Enumerate_Units_Of_Interest (Add_Unit'Access);
 
          --  Load routines from command line
 

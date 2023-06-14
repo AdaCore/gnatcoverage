@@ -114,6 +114,11 @@ package Project is
    --  path of its main executable (including its suffix, for instance ".exe").
    --  Otherwise, return an empty string.
 
+   function Owning_Unit_Name (Info : File_Info) return String
+     with Pre => Is_Project_Loaded;
+   --  Return the owning unit name meaning the unit name if this is a body /
+   --  specification, and the top parent unit name if this is a separate.
+
    function To_Compilation_Unit
      (Info : File_Info) return Files_Table.Compilation_Unit;
    --  Return the Compilation_Unit for Info
@@ -123,14 +128,8 @@ package Project is
    --------------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : Files_Table.Compilation_Unit;
-                                   Is_Stub : Boolean));
-   --  Call Callback once for every unit of interest. Name is the unit name,
-   --  and Is_Stub corresponds to the Unit_Info.Is_Stub field (see
-   --  project.adb).
-
-   function Is_Unit_Of_Interest (Full_Name : String) return Boolean;
-   --  Return whether the given file is a unit of interest
+     (Callback : access procedure (Name : Files_Table.Compilation_Unit));
+   --  Call Callback once for every unit of interest. Name is the unit name
 
    procedure Enumerate_SCOs_Files
      (Callback : access procedure (Lib_Name : String);

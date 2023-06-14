@@ -20,6 +20,7 @@ with Ada.Characters.Latin_1;
 with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
+with Ada.Directories;
 with Ada.Streams; use Ada.Streams;
 with Ada.Strings.Unbounded;
 with Ada.Tags;
@@ -222,9 +223,9 @@ package body Coverage.Source is
    package Unit_To_Ignored_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Compilation_Unit,
       Element_Type => Ignored_Sources_Vector_Access);
-   --  Map units of interest to the list of associated ignored source files
 
    Ignored_SF_Map : Unit_To_Ignored_Maps.Map;
+   --  Map units of interest to the list of associated ignored source files
 
    --------------------------
    -- Basic_Block_Has_Code --
@@ -306,7 +307,8 @@ package body Coverage.Source is
       begin
          if FI /= null and then not FI.Unit.Known then
             declare
-               Unit : constant Compilation_Unit := To_Compilation_Unit (File);
+               Unit : constant Compilation_Unit :=
+                 To_Compilation_Unit (File);
             begin
                Consolidate_Source_File_Unit (SFI, Unit);
             end;
@@ -346,13 +348,6 @@ package body Coverage.Source is
          if FI.Kind = Source_File
            and then FI.Ignore_Status in Always .. Sometimes
          then
-            --  If FI is a separate (Ada) or a header file (C/C++), it is not a
-            --  unit of interest itself: only the compilation unit is, so
-            --  Is_Unit_Of_Interest (FI.Full_Name.all) return False. Still, the
-            --  unit that owns this file is supposed to be known by now, so it
-            --  should be valid to access FI.Unit.Name (i.e. FI.Unit.Known
-            --  should be True).
-
             if not Ignored_SF_Map.Contains (FI.Unit.Name) then
                Vec := new Ignored_Sources_Vector.Vector;
                Ignored_SF_Map.Insert (FI.Unit.Name, Vec);
@@ -420,7 +415,12 @@ package body Coverage.Source is
 
       procedure Print_Unit_Name (Unit : Compilation_Unit) is
       begin
-         Put_Line (File, +Unit.Unit_Name);
+         case Unit.Language is
+            when File_Based_Language =>
+               Put_Line (File, Ada.Directories.Simple_Name (+Unit.Unit_Name));
+            when Unit_Based_Language =>
+               Put_Line (File, +Unit.Unit_Name);
+         end case;
       end Print_Unit_Name;
 
    --  Start of processing for Report_Units

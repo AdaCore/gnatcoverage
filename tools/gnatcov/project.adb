@@ -137,14 +137,6 @@ package body Project is
       --  Whether we found at least one source file in the projects of interest
       --  that matches this unit.
 
-      Is_Stub : Boolean;
-      --  Whether this record describes a source file that is not a bona fide
-      --  unit of interest: a subunit (Ada) or a header file (C/C++).
-      --
-      --  Such source files are not units of their own (in particular they
-      --  don't have their own LI file), but we still need them to appear in
-      --  unit lists, for reporting purposes.
-
       Language : Some_Language;
       --  Language for this unit
 
@@ -174,7 +166,9 @@ package body Project is
    --  Unit.
 
    Unit_Map : Unit_Maps.Map;
-   --  Map lower-case unit names to Unit_Info records for all units of interest
+   --  Map lower-case unit names to Unit_Info records for all units of
+   --  interest. This map contains header files (C/C++) but does not contain
+   --  separate (Ada) units.
 
    procedure Initialize
      (Target, Runtime, CGPR_File : GNAT.Strings.String_Access)
@@ -232,6 +226,19 @@ package body Project is
    --  Note that this also returns source files for mains that are not units of
    --  interest.
 
+   ----------------------
+   -- Owning_Unit_Name --
+   ----------------------
+
+   function Owning_Unit_Name (Info : File_Info) return String is
+   begin
+      if Info.Unit_Part = Unit_Separate then
+         return Prj_Tree.Info (Prj_Tree.Other_File (Info.File)).Unit_Name;
+      else
+         return Info.Unit_Name;
+      end if;
+   end Owning_Unit_Name;
+
    -------------------------
    -- To_Compilation_Unit --
    -------------------------
@@ -247,7 +254,7 @@ package body Project is
          when File_Based_Language =>
             U.Unit_Name := +(+Info.File.Full_Name);
          when Unit_Based_Language =>
-            U.Unit_Name := +Info.Unit_Name;
+            U.Unit_Name := +Owning_Unit_Name (Info);
       end case;
       return U;
    end To_Compilation_Unit;
@@ -282,29 +289,27 @@ package body Project is
       Info           : File_Info;
       Language       : Some_Language)
    is
-      Unit_Part : constant Unit_Parts := Info.Unit_Part;
-      Is_Stub   : constant Boolean :=
-        (case Language is
-         when C_Family_Language => Unit_Part = Unit_Spec,
-         when Ada_Language      => Unit_Part = Unit_Separate);
-
       Orig_Name : constant Unbounded_String :=
         +Fold_Filename_Casing (Original_Name);
       Unit_Name : constant Compilation_Unit := To_Compilation_Unit (Info);
 
       Ignored_Inserted : Boolean;
+      Is_Header        : Boolean := False;
    begin
-      --  Disable warnings for stub units as they do not have a corresponding
+      --  Disable warnings for header files as they do not have a corresponding
       --  library file.
+
+      if Language in C_Family_Language and then Info.Unit_Part = Unit_Spec then
+         Is_Header := True;
+      end if;
 
       Units.Insert
         (Key      => Unit_Name,
          New_Item => (Original_Name             => Orig_Name,
                       Present_In_Projects       => False,
-                      Is_Stub                   => Is_Stub,
                       Language                  => Language,
-                      LI_Seen                   => Is_Stub,
-                      Warned_About_Missing_Info => Is_Stub),
+                      LI_Seen                   => Is_Header,
+                      Warned_About_Missing_Info => Is_Header),
          Position => Cur,
          Inserted => Ignored_Inserted);
    end Add_Unit;
@@ -462,36 +467,14 @@ package body Project is
    ---------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name    : Files_Table.Compilation_Unit;
-                                   Is_Stub : Boolean))
+     (Callback : access procedure (Name : Files_Table.Compilation_Unit))
    is
       use Unit_Maps;
    begin
       for Cur in Unit_Map.Iterate loop
-         declare
-            Info : Unit_Info renames Reference (Unit_Map, Cur);
-         begin
-            Callback (Key (Cur), Info.Is_Stub);
-         end;
+         Callback (Key (Cur));
       end loop;
    end Enumerate_Units_Of_Interest;
-
-   -------------------------
-   -- Is_Unit_Of_Interest --
-   -------------------------
-
-   function Is_Unit_Of_Interest (Full_Name : String) return Boolean is
-      FI        : constant File_Info :=
-        Prj_Tree.Info (Create (+Full_Name));
-      LK        : constant Any_Language_Kind :=
-        Language_Kind (To_Language (FI.Language));
-      Unit_Name : constant String :=
-        (case LK is
-         when Unit_Based_Language => FI.Unit_Name,
-         when File_Based_Language => Full_Name);
-   begin
-      return Unit_Map.Contains (Compilation_Unit'(LK, +Unit_Name));
-   end Is_Unit_Of_Interest;
 
    -------------------------
    -- Enumerate_SCO_Files --
@@ -931,8 +914,7 @@ package body Project is
                   Cur              : Unit_Maps.Cursor;
                   Actual_Unit_Name : constant String :=
                     (if Info.Unit_Part = Unit_Separate
-                     then Prj_Tree.Info
-                       (Prj_Tree.Other_File (Info.File)).Unit_Name
+                     then Owning_Unit_Name (Info)
                      else Unit_Name);
                begin
                   --  Never try to perform coverage on our coverage runtime
@@ -1162,7 +1144,6 @@ package body Project is
       Units          : out Unit_Maps.Map;
       Defined        : out Boolean)
    is
-
       Unit_Patterns    : String_Vectors.Vector;
       Attr_For_Pattern : String_Maps.Map;
       --  Patterns identifying unit names and project attribute from which we
@@ -1200,8 +1181,7 @@ package body Project is
          Actual_Unit_Name : Vector :=
            To_Vector
              (+(if Info.Unit_Part = Unit_Separate
-                then Prj_Tree.Info
-                   (Prj_Tree.Other_File (Info.File)).Unit_Name
+                then Owning_Unit_Name (Info)
                 else Unit_Name),
               1);
       begin
@@ -1222,11 +1202,6 @@ package body Project is
                   Unit_Name,
                   Info,
                   Lang);
-               Units.Reference (Cur).Is_Stub :=
-                 (Info.Unit_Part = Unit_Separate
-                  or else
-                    (Lang in C_Family_Language
-                     and then Info.Unit_Part = Unit_Spec));
             end;
          end if;
       end Process_Source_File;
@@ -1644,7 +1619,7 @@ package body Project is
                Default   => (case Lang is
                              when Ada_Language => ".adb",
                              when C_Language   => ".c",
-                             when CPP_Language => ".cpp"));
+                             when CPP_Language => ".cc"));
 
          when Unit_Spec =>
             return Project.Attribute_Value

@@ -50,7 +50,7 @@ with Instrument.Source;
 with JSON;                use JSON;
 with Outputs;
 with Paths;               use Paths;
-with Project;
+with Project;             use Project;
 with Strings;             use Strings;
 with Support_Files;
 with Text_Files;          use Text_Files;
@@ -79,8 +79,6 @@ procedure Instrument.Projects
    Ignored_Source_Files : access GNAT.Regexp.Regexp;
    Mains                : String_Vectors.Vector)
 is
-   Prj_Tree : constant Project_Tree_Access := Project.Project;
-
    type Project_Info is record
       Project : Project_Type;
       --  Project that this record describes
@@ -656,15 +654,11 @@ is
       use Unit_Maps;
       Unit_Name : constant String :=
         (case Lang_Kind is
-            when Unit_Based_Language =>
-               (if Source_File.Unit_Part = Unit_Separate
-                then Prj_Tree.Info
-                  (Prj_Tree.Other_File (Source_File.File)).Unit_Name
-                else Source_File.Unit_Name),
+            when Unit_Based_Language => Owning_Unit_Name (Source_File),
             when File_Based_Language =>
               GNATCOLL.VFS."+" (Source_File.File.Full_Name));
 
-      Prj : constant Project_Info_Access :=
+      Prj_Info : constant Project_Info_Access :=
         Get_Or_Create_Project_Info (IC, Source_File.Project);
 
       LU_Info : constant Library_Unit_Info :=
@@ -672,7 +666,7 @@ is
          Instr_Project        => Project,
          Language_Kind        => Lang_Kind,
          Language             => Language,
-         All_Externally_Built => Prj.Externally_Built);
+         All_Externally_Built => Prj_Info.Externally_Built);
 
    begin
       --  Check if this is an ignored source file
@@ -709,7 +703,7 @@ is
          Cur_Ref : constant Unit_Maps.Reference_Type :=
            Instrumented_Sources.Reference (Unit_Name);
       begin
-         if not Prj.Externally_Built then
+         if not Prj_Info.Externally_Built then
             Cur_Ref.Instr_Project := Project;
             Cur_Ref.All_Externally_Built := False;
          end if;
@@ -751,7 +745,7 @@ is
                   Import_From_Args (Options, Args);
                end;
                Add_Options (Compiler_Opts, Options, Pass_Builtins => False);
-               Prj.Desc.Compiler_Options_Unit.Insert
+               Prj_Info.Desc.Compiler_Options_Unit.Insert
                  (LU_Info.Unit_Name, Compiler_Opts);
             end if;
          end;
