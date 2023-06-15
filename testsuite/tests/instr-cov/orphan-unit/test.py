@@ -27,7 +27,7 @@ if thistest.options.trace_mode == "src":
     thistest.fail_if_not_equal(
         '"gnatcov instrument" output',
         (
-            "warning: While instrumenting pkg-child.adb...\n"
+            "warning: While instrumenting pkg-child.ads...\n"
             "warning: Cannot find required source file: pkg.ads"
         ),
         contents_of("instrument.log").strip(),
