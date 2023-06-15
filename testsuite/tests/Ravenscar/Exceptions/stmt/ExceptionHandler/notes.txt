@@ -1,0 +1,9 @@
+Check coverage of exceptions that are raised in an exception handler
+
+We check for exceptions raised:
+     
+  - implicitly, e.g. an arithmetic operation that raises CE
+
+  - explicitly, via a "raise CE" stmt
+  
+  - reraised exceptions, i.e. via a "raise;" statement

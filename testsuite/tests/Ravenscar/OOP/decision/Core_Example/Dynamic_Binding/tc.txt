@@ -1,0 +1,6 @@
+Check DC when a dispatching operation is called (not as a condition of some
+decision, but on its own), and the called subprogram cannot be detected
+statically. DC is checked for the code of the dispatching operation itself and
+for the code of dispatching operations that can be called by it. The tests are
+structured according to the coverage of the decision in this IF statements in
+the dispatching operations being executed.

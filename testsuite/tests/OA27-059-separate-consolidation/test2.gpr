@@ -1,0 +1,10 @@
+project TEST2 is
+
+   for SOURCE_DIRS use ("src_under_test", "test2");
+
+   for MAIN use ("main_test2");
+
+   for EXEC_DIR use "bin";
+   for OBJECT_DIR use "obj2";
+
+end TEST2;

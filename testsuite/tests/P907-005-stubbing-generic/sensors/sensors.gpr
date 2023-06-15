@@ -1,0 +1,3 @@
+project sensors is
+  for languages use ("Ada");
+end sensors;

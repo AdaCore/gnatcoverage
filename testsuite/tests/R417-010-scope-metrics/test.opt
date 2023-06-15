@@ -1,0 +1,4 @@
+bin-traces DEAD no support for body metrics with binary traces
+RTS_ZFP DEAD no tasking support in light runtimes
+RTS_RAVENSCAR DEAD violates restrictions in the Jorvik profile
+5.04a1 DEAD Requires Ada 2012, unavailable in 5.04a1

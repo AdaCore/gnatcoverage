@@ -1,0 +1,19 @@
+V "GNAT Lib v6.4"
+A -O1
+A -fpreserve-control-flow
+A -fverbose-asm
+A -mregnames
+A -g
+P
+R nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+
+U in_range%b		in_range.adb		0993fb61 NE OO SU
+
+D in_range.adb		20100310172111 0993fb61
+D system.ads		20100303101734 23e63bde
+X 1 in_range.adb
+1V10*In_Range{boolean} 1b10 1>20 1>24 1>29 10t4
+1i20 X{integer} 3r7 5r10
+1i24 Min{integer} 3r11
+1i29 Max{integer} 5r14
+

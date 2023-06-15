@@ -1,0 +1,4 @@
+--  This test needs to check that --dump-channel is properly handled in a
+--  typical gnatcov usage workflow. To do this, it needs multiple dump channels
+--  to be supported, i.e. a native platform (bin-file and base64-stdout).
+!native DEAD

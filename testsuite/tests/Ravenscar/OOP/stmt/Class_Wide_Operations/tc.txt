@@ -1,0 +1,7 @@
+In the hierarchy of a (tagged) derived types, call primitive subprograms from
+the class-wide operation in such a way that the called subprogram is detected
+only dinamically.
+
+Verify that:
+
+* only the code of actually called subprograms is reported as covered;

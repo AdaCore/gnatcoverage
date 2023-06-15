@@ -1,0 +1,4 @@
+5.04a1 DEAD stack overflow not caused by instrumentation in 5.04
+RTS_EMBEDDED
+RTS_FULL
+ALL DEAD

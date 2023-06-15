@@ -1,0 +1,2 @@
+Check DC on ``A or else B`` as a Post aspect attached to a subprogram
+declaration.

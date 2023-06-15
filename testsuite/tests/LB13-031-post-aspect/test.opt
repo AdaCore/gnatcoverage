@@ -1,0 +1,4 @@
+7.0.3 DEAD testing coverage of expressions in aspects, implemented post 7.0.3
+src-traces XFAIL S606-037: src-traces and contracts
+5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
+leon3-elf,CARGS_O1,bin-traces XFAIL V906-019: contracts with NOP subp body in delay slot

@@ -1,0 +1,27 @@
+V "GNAT Lib v6.4"
+A -O1
+A -fpreserve-control-flow
+A -g
+A -mregnames
+P
+R nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+
+U flips%b		flips.adb		ef4d54cb NE OO PK
+
+U flips%s		flips.ads		81d0dffd EE NE OO PK
+
+D flips.ads		20100311144045 81d0dffd
+D flips.adb		20100311150436 6e9d8b36
+D system.ads		20071215102046 2b00703b
+X 1 flips.ads
+1K9*Flips 4e4 2|1b14 20t4
+2U14*Flip 2=20 2|6b14 9t7
+2b20 B{boolean} 2|6b20 8m7 8r16
+3U14*Flip_If 3>23 2|11b14 19t7
+3b23 P{boolean} 2|11b23 15r10
+X 2 flips.adb
+3b4 Ob{boolean} 17m10
+3b8 T{boolean} 4r21 12r32
+12b7 KB{boolean} 13r22
+13b7 B{boolean} 16m10 16r19 17r16
+

@@ -1,0 +1,18 @@
+V "GNAT Lib v6.4"
+A -O1
+A -fpreserve-control-flow
+A -gnatp
+A -g
+P
+R nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+
+U id%b			id.adb			ecec289f NE OO SU
+
+D id.adb		20100316135548 ecec289f
+D system.ads		20100316073307 23e63bde
+X 1 id.adb
+1V10*Id{integer} 1b10 1>14 8t4
+1i14 X{integer} 4r15
+2i4 X_Value{integer} 4m4 7r12
+6L3 Done 5r9
+

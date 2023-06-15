@@ -1,0 +1,7 @@
+In case of multiple inheritance, define class-vide operations for interface
+types and then check what is called and reported as covered in different
+hierarchies.
+
+Verify that:
+
+* only the code of actually called subprograms is reported as covered;

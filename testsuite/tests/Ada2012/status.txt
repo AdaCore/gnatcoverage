@@ -1,0 +1,114 @@
+Ada2012 specific items
+======================
+
+-----------
+Pre aspects
+-----------
+
+No code when deactivated.
+Few tests otherwise.
+
+Pre aspect is considered as a control flow context, so applies to dc & single
+op expressions as well. Is this what we want ? We don't do that for pragmas.
+
+-----------
+Post aspects
+------------
+
+Tool processing-wise, current status is same as Pre. 
+
+Turning a Post False is tough in real life though, so ...
+
+*Background discussion*
+
+ * keep as regular decision for mcdc ?
+
+ * claim nothing of interest at all ?
+
+ * in-between: "contract" expression, always same value,
+   but operand variations required ?
+
+----------------------
+Type_Invariant aspects
+----------------------
+
+Invariant expressions considered as decisions but are not processed
+correctly. Additional complexity is the lack of debug info in invariant
+checking subprograms (N212-009)
+
+Needs definition work prior to implementation.
+
+----------------
+For E of <array>
+----------------
+
+Works fine, as a regular for statement SC'wise. Few tests.
+
+----------
+X in 1|2|7
+----------
+
+Works fine, considered as single operand (condition). Few tests.
+
+*Background discussion*
+
+Should this be seen as a implicit nested decision with three tests ?
+Would complicate matters a lot and why not wonder the same about X < 0 ?
+
+--------------
+Expr functions
+--------------
+
+Work fine. Few tests.
+
+--------------
+If expressions
+--------------
+
+In deactivated Pre or Post, no code => no violation ever. Few tests.
+
+As of now, 
+
+* the IF is seen as a control flow context
+  => controlling expression is decision even if simple.
+
+* THEN/ELSE are not seen as control flow context and
+  expressions treated as decisions if complex, for mcdc
+
+* inaccurate results on degraded origins for ctl expr (N227-030)
+
+*Background discussion*
+
+How do we want to deal with the functional programming aspects of Ada2012 ?
+(N214-014)
+
+Introduce "expression" coverage, where subexpressions of if or case
+expressions need to be evaluated at least once ?
+
+
+------------------
+subtype predicates
+------------------
+
+To be evaluated.
+
+------------------
+in out to function
+------------------
+
+Works fine. Few tests checking that things "work" with stmts assignining
+to In Out of function, stmt & mcdc.
+
+----------------
+Case expressions
+----------------
+
+To be evaluated.
+
+----------------------
+Quantified Expressions
+----------------------
+
+Work fine. ForAll and ForSome are both considered as conditions.
+Complex expressions nested in the for-all/for-some predicate are
+seen as decisions.

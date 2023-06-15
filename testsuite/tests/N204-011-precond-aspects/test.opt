@@ -1,0 +1,4 @@
+7.0.3 DEAD relies on compiler support for 2012 Aspects, not all in 7.0.3
+7.2.2 DEAD relies on compiler support for 2012 Aspects, not all in 7.2.2
+src-traces XFAIL S606-037: src-traces and contracts
+5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04

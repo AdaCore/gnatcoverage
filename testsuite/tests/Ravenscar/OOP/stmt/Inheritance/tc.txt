@@ -1,0 +1,12 @@
+In the hierarchy of a (tagged) derived types, call inherited subprograms and
+subprograms that overrides the implicitly inherited operations.
+
+Verify that:
+
+* If an implicitly declared inherited subprogram is called, only (a part of)
+  the code of the explicitly declared subprogram it is inherited from is
+  reported as covered;
+
+* If an explicitly declared subprogram that overrides the implicitly
+  inherited subprogram is called, the code of the overriding subprogram is
+  reported as covered, but not the code of the subprogram being overridden;

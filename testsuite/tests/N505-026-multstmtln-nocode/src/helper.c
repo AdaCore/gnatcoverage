@@ -1,0 +1,5 @@
+void
+nop (void)
+{
+  return;
+}

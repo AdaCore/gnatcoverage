@@ -1,0 +1,9 @@
+coverage
+driver
+driver.exe
+*.gli
+*.dmap
+*.o
+*.trace
+*.i
+*.s

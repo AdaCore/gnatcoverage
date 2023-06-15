@@ -1,0 +1,9 @@
+warning: empty symbol empty_sym_in_between at 00000404 in section .text
+warning: empty symbol empty_last_sym at 00000808 in section .text
+warning: no symbols for 00000000-000003ff in section .text [ 1 ]
+warning: no symbols for 00000404-00000803 in section .text [ 1 ]
+warning: no symbols for 00000808-00000c07 in section .text [ 1 ]
+warning: empty symbol empty_sym_at_start at 00000000 in section .text
+warning: empty symbol empty_sym_in_between at 00000004 in section .text
+warning: empty symbol empty_sym_at_end at 00000408 in section .text
+warning: no symbols for 00000004-00000403 in section .text [ 1 ]

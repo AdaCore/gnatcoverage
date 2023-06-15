@@ -1,0 +1,14 @@
+Check for exception raised during package elaboration:
+
+We check:
+   Package elaborations in which the exceptions are raised and
+   handled within the same subprogram. These packages specs can appear
+   in a simple block, or a nexted block. The exceptions are either
+   handled immediately or propagated to an outer block within the same
+   subprogram.
+
+   Package elaborations in which the exceptions are propagated and
+   handled by another (calling) subprogram. We test exceptions raised
+   in library units and exceptions that are raised within a nested
+   subprogram. User defined as well as predefined (implicit and explicit)
+   exceptions are tested.

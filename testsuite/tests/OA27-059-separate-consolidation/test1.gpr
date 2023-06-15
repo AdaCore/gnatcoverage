@@ -1,0 +1,10 @@
+project TEST1 is
+
+   for SOURCE_DIRS use ("src_under_test", "test1");
+
+   for MAIN use ("main_test1.adb");
+
+   for EXEC_DIR use "bin";
+   for OBJECT_DIR use "obj1";
+
+end TEST1;

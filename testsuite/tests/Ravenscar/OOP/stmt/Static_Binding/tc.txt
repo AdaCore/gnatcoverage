@@ -1,0 +1,7 @@
+In the hierarchy of a (tagged) derived types, call primitive subprograms in
+such a way that the called subprogram is statically detected from arguments
+types.
+
+Verify that:
+
+* only the code of actually called subprograms is reported as covered;

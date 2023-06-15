@@ -1,0 +1,5 @@
+void
+bar (void)
+{
+  return;
+}
