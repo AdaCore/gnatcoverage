@@ -19,7 +19,7 @@ check(
     recurse=False,
     xreports=['boolops'])
 
-# -Pgen --projects=boolops.gpr --projects=intops.gpr, not recusrive
+# -Pgen --projects=boolops.gpr --projects=intops.gpr, not recursive
 # expect boolops & intops related reports
 
 check(
@@ -28,7 +28,7 @@ check(
     recurse=False,
     xreports=['boolops', 'intops'])
 
-# -Pgen --projects=boolops.gpr --projects=counters.gpr, not recusrive
+# -Pgen --projects=boolops.gpr --projects=counters.gpr, not recursive
 # expect boolops & counters related reports
 
 check(

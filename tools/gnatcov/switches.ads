@@ -119,6 +119,10 @@ package Switches is
    SPARK_Compat : Boolean := False;
    --  When True, tune the instrumenter for maximum SPARK compatibility
 
+   Files_Of_Interest : String_Sets.Set;
+   --  Lower abstraction for files of interest, when the --files switch is
+   --  used.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 
@@ -157,6 +161,11 @@ package Switches is
      (others => False);
    --  List of languages for which source files should be instrumented.
    --  Initialized during command line arguments parsing.
+
+   Builtin_Support : array (Src_Supported_Language) of Boolean :=
+     (others => True);
+   --  Whether gnatcov supports the given language. Used when building gnatcov
+   --  without C instrumentation support.
 
    ------------------------
    -- Target information --
@@ -272,6 +281,11 @@ package Switches is
      (Default_Dump_Config : Any_Dump_Config) return Any_Dump_Config;
    --  Create the Any_Dump_Config value corresponding to Default_Dump_Config
    --  and the given --dump-* arguments for source trace dumping.
+
+   function Unparse_Config
+     (Dump_Config : Any_Dump_Config) return String_Vectors.Vector;
+   --  Return a suitable set of gnatcov command line switches that represent
+   --  the given dump config.
 
    function Common_Switches
      (Cmd : Command_Line.Command_Type) return String_Vectors.Vector;

@@ -18,23 +18,19 @@
 
 with Ada.Containers; use Ada.Containers;
 with Ada.Directories;
-with Ada.Unchecked_Deallocation;
 
-with GNAT.OS_Lib;
-
-with Interfaces;
+with GNATCOLL.VFS;
 
 with Coverage;
 with Diagnostics;
-with Hex_Images;
+with Outputs; use Outputs;
 with Paths;   use Paths;
-with Project; use Project;
 with SCOs;
 
 package body Instrument.Common is
 
    function Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name;
+     (Instrumented_Unit : Compilation_Unit_Part;
       Buffer_Name       : String) return String;
    --  Helper for Statement_Buffer_Symbol and Decision_Buffer_Symbol. Return
    --  the name of the symbol for the entity that contains the address of a
@@ -49,7 +45,7 @@ package body Instrument.Common is
    -------------------
 
    function Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name;
+     (Instrumented_Unit : Compilation_Unit_Part;
       Buffer_Name       : String) return String
    is
       Slug : constant String := Instrumented_Unit_Slug (Instrumented_Unit);
@@ -62,7 +58,7 @@ package body Instrument.Common is
    -----------------------------
 
    function Statement_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name) return String is
+     (Instrumented_Unit : Compilation_Unit_Part) return String is
    begin
       return Buffer_Symbol (Instrumented_Unit, "stmt");
    end Statement_Buffer_Symbol;
@@ -72,7 +68,7 @@ package body Instrument.Common is
    ----------------------------
 
    function Decision_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name) return String is
+     (Instrumented_Unit : Compilation_Unit_Part) return String is
    begin
       return Buffer_Symbol (Instrumented_Unit, "dc");
    end Decision_Buffer_Symbol;
@@ -82,35 +78,23 @@ package body Instrument.Common is
    ------------------------
 
    function MCDC_Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Name) return String is
+     (Instrumented_Unit : Compilation_Unit_Part) return String is
    begin
       return Buffer_Symbol (Instrumented_Unit, "mcdc");
    end MCDC_Buffer_Symbol;
-
-   -----------------
-   -- Buffer_Unit --
-   -----------------
-
-   function Buffer_Unit
-     (Instrumented_Unit : Compilation_Unit_Name) return Ada_Qualified_Name
-   is
-      Simple_Name : Ada_Identifier;
-   begin
-      Append (Simple_Name, 'B');
-      Append (Simple_Name, Instrumented_Unit_Slug (Instrumented_Unit));
-      return CU_Name : Ada_Qualified_Name := Sys_Buffers do
-         CU_Name.Append (Simple_Name);
-      end return;
-   end Buffer_Unit;
 
    -----------------------
    -- Unit_Buffers_Name --
    -----------------------
 
-   function Unit_Buffers_Name (Unit : Compilation_Unit_Name) return String is
+   function Unit_Buffers_Name (Unit : Compilation_Unit) return String is
+      Slug : constant String :=
+        (case Unit.Language is
+            when Unit_Based_Language =>
+              Qualified_Name_Slug (To_Qualified_Name (+Unit.Unit_Name)),
+            when File_Based_Language => Filename_Slug (+Unit.Unit_Name));
    begin
-      return To_Symbol_Name (Sys_Buffers) & "_" & Instrumented_Unit_Slug (Unit)
-        & "_buffers";
+      return To_Symbol_Name (Sys_Buffers) & "_" & Slug & "_buffers";
    end Unit_Buffers_Name;
 
    ------------------------
@@ -156,255 +140,6 @@ package body Instrument.Common is
       Append (Result, Closing);
       return To_String (Result);
    end Format_Fingerprint;
-
-   ------------------------
-   -- Trace_Filename_Tag --
-   ------------------------
-
-   function Trace_Filename_Tag return String
-   is
-      --  Compute the tag for default source trace filenames. Use the current
-      --  time as a mostly unique identifier. Put it in hexadecimal form
-      --  without leading zeros to avoid too long names.
-
-      use Interfaces;
-      Time : constant Unsigned_64 :=
-        Unsigned_64 (GNAT.OS_Lib.To_C (GNAT.OS_Lib.Current_Time));
-      Tag  : constant String :=
-        Hex_Images.Strip_Zero_Padding
-          (Hex_Images.Hex_Image (Time));
-   begin
-      return Tag;
-   end Trace_Filename_Tag;
-
-   --------------------
-   -- Create_Context --
-   --------------------
-
-   function Create_Context
-     (Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context is
-   begin
-      return IC : Inst_Context do
-         IC.Project_Name := +Ada.Directories.Base_Name
-           (Project.Root_Project_Filename);
-         --  TODO??? Get the original casing for the project name
-
-         IC.Ignored_Source_Files_Present := Ignored_Source_Files /= null;
-         if Ignored_Source_Files /= null then
-            IC.Ignored_Source_Files := Ignored_Source_Files.all;
-         end if;
-      end return;
-   end Create_Context;
-
-   ---------------------
-   -- Destroy_Context --
-   ---------------------
-
-   procedure Destroy_Context (Context : in out Inst_Context) is
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Instrumented_Unit_Info, Instrumented_Unit_Info_Access);
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Project_Info, Project_Info_Access);
-   begin
-      --  Deallocate all Insrtrumented_Unit_Info in Context, and then clear the
-      --  hashed map, both to avoid dangling pointers and to make
-      --  Destroy_Context callable more than once, like conventional
-      --  deallocation procedures in Ada.
-
-      for Cur in Context.Instrumented_Units.Iterate loop
-         declare
-            IU : Instrumented_Unit_Info_Access :=
-               Instrumented_Unit_Maps.Element (Cur);
-         begin
-            Free (IU);
-         end;
-      end loop;
-      Context.Instrumented_Units := Instrumented_Unit_Maps.Empty_Map;
-
-      --  Likewise for Project_Info records
-
-      for Cur in Context.Project_Info_Map.Iterate loop
-         declare
-            PI : Project_Info_Access := Project_Info_Maps.Element (Cur);
-         begin
-            Free (PI);
-         end;
-      end loop;
-      Context.Project_Info_Map := Project_Info_Maps.Empty_Map;
-   end Destroy_Context;
-
-   ----------------------------
-   -- Is_Ignored_Source_File --
-   ----------------------------
-
-   function Is_Ignored_Source_File
-     (Context : Inst_Context; Filename : String) return Boolean is
-   begin
-      return
-        Context.Ignored_Source_Files_Present
-        and then GNAT.Regexp.Match
-                   (S => Fold_Filename_Casing (Filename),
-                    R => Context.Ignored_Source_Files);
-   end Is_Ignored_Source_File;
-
-   --------------------------------
-   -- Get_Or_Create_Project_Info --
-   --------------------------------
-
-   function Get_Or_Create_Project_Info
-     (Context : in out Inst_Context;
-      Project : Project_Type) return Project_Info_Access
-   is
-      use Project_Info_Maps;
-
-      --  Look for an existing Project_Info record corresponding to Project
-
-      Project_Name : constant Unbounded_String := +Project.Name;
-      Position     : constant Cursor := Context.Project_Info_Map.Find
-        (Project_Name);
-   begin
-      if Has_Element (Position) then
-         return Element (Position);
-
-      else
-         --  The requested Project_Info record does not exist yet. Create it,
-         --  register it and return it.
-
-         declare
-            Storage_Project : constant Project_Type :=
-              Project.Extending_Project (Recurse => True);
-            --  Actual project that will host instrumented sources: even when
-            --  we instrument an extended project, the resulting instrumented
-            --  sources must go to the ultimate extending project's object
-            --  directory. This is similar to the object directory that hosts
-            --  object files when GPRbuild processes a project that is
-            --  extended.
-
-            Result : constant Project_Info_Access := new Project_Info'
-              (Project          => Project,
-               Externally_Built => Project.Externally_Built,
-               Output_Dir       => +Project_Output_Dir (Storage_Project));
-         begin
-            Context.Project_Info_Map.Insert (Project_Name, Result);
-            return Result;
-         end;
-      end if;
-   end Get_Or_Create_Project_Info;
-
-   ---------------
-   -- Unit_Info --
-   ---------------
-
-   function Unit_Info
-     (CU_Name : Compilation_Unit_Name;
-      Info    : out GNATCOLL.Projects.File_Info) return Boolean
-   is
-      Prj  : Project_Type renames Project.Project.Root_Project;
-      File : constant GNATCOLL.VFS.Filesystem_String := Prj.File_From_Unit
-        (Unit_Name => To_Ada (CU_Name.Unit),
-         Part      => CU_Name.Part,
-         Language  => "Ada");
-   begin
-      if File'Length = 0 then
-         return False;
-      end if;
-
-      Info := Prj.Create_From_Project (File);
-      return True;
-   end Unit_Info;
-
-   ---------------------------------
-   -- Register_Main_To_Instrument --
-   ---------------------------------
-
-   procedure Register_Main_To_Instrument
-     (Context : in out Inst_Context;
-      Mains   : in out Main_To_Instrument_Vectors.Vector;
-      File    : GNATCOLL.VFS.Virtual_File;
-      Project : Project_Type)
-   is
-      File_Info : constant GNATCOLL.Projects.File_Info :=
-         Standard.Project.Project.Info (File);
-      CU_Name   : constant Compilation_Unit_Name :=
-         To_Compilation_Unit_Name (File_Info);
-      Prj_Info  : constant Project_Info_Access :=
-        Get_Or_Create_Project_Info (Context, Project);
-   begin
-      Mains.Append
-        (Main_To_Instrument'
-           (CU_Name  => CU_Name,
-            File     => File,
-            Prj_Info => Prj_Info));
-   end Register_Main_To_Instrument;
-
-   ---------------------------
-   -- Add_Instrumented_Unit --
-   ---------------------------
-
-   procedure Add_Instrumented_Unit
-     (Context     : in out Inst_Context;
-      Project     : GNATCOLL.Projects.Project_Type;
-      Source_File : GNATCOLL.Projects.File_Info)
-   is
-      use GNATCOLL.VFS;
-
-      SF_Basename : constant Filesystem_String := Source_File.File.Base_Name;
-   begin
-      pragma Assert (not (Is_Ignored_Source_File (Context, +SF_Basename)));
-
-      declare
-         CU_Name : constant Compilation_Unit_Name :=
-           To_Compilation_Unit_Name (Source_File);
-      begin
-         --  If we already planned to instrument this unit, do nothing more
-
-         if Context.Instrumented_Units.Contains (CU_Name) then
-            return;
-         end if;
-
-         --  Otherwise, add it to the list of instrumented units
-
-         declare
-            Unit_Info : constant Instrumented_Unit_Info_Access :=
-               new Instrumented_Unit_Info'
-                 (Filename => To_Unbounded_String
-                                (+Source_File.File.Full_Name),
-                  Prj_Info => Get_Or_Create_Project_Info (Context, Project),
-                  Language => To_Language (Source_File.Language));
-         begin
-            Context.Instrumented_Units.Insert (CU_Name, Unit_Info);
-         end;
-      end;
-   end Add_Instrumented_Unit;
-
-   --------------
-   -- New_File --
-   --------------
-
-   function New_File
-     (Info : Project_Info; Name : String) return String
-   is
-      Base_Filename   : constant String :=
-         Ada.Directories.Simple_Name (Name);
-      Output_Filename : constant String :=
-         To_String (Info.Output_Dir) / Base_Filename;
-   begin
-      return Output_Filename;
-   end New_File;
-
-   -----------------
-   -- Create_File --
-   -----------------
-
-   procedure Create_File
-     (Info : in out Project_Info;
-      File : in out Text_Files.File_Type;
-      Name : String)
-   is
-      Filename : constant String := New_File (Info, Name);
-   begin
-      File.Create (Filename);
-   end Create_File;
 
    --------------
    -- Next_Bit --
@@ -582,45 +317,298 @@ package body Instrument.Common is
       end loop;
    end Remap_Scope_Entity;
 
-   ------------------------------
-   -- Buffer_Units_For_Closure --
-   ------------------------------
+   --------------
+   -- New_File --
+   --------------
 
-   function Instr_Units_For_Closure
-     (IC   : Inst_Context;
-      Main : Compilation_Unit_Name)
-      return CU_Name_Vectors.Vector
+   function New_File
+     (Prj : Prj_Desc; Name : String) return String
    is
-      pragma Unreferenced (Main);
-      Result : CU_Name_Vectors.Vector;
+      Base_Filename   : constant String :=
+        Ada.Directories.Simple_Name (Name);
+      Output_Filename : constant String :=
+        To_String (Prj.Output_Dir) / Base_Filename;
    begin
-      --  TODO??? Here, we need the list of files needed to build Main: specs
-      --  for units WITHed by main, their bodies, the separates, etc.  It's
-      --  unclear what GNATCOLL.Projects.Get_Closure does, but experimentations
-      --  show that it's not what we want. So for now, return an approximation:
-      --  buffer units for all instrumented units. In the future, we should
-      --  either get this service from GNATCOLL.Projects, either re-implement
-      --  it on top of Libadalang.
+      return Output_Filename;
+   end New_File;
 
-      for Cur in IC.Instrumented_Units.Iterate loop
+   -----------------
+   -- Create_File --
+   -----------------
+
+   procedure Create_File
+     (Prj  : Prj_Desc;
+      File : in out Text_Files.File_Type;
+      Name : String)
+   is
+      Filename : constant String := New_File (Prj, Name);
+   begin
+      File.Create (Filename);
+   end Create_File;
+
+   -----------------
+   -- To_Filename --
+   -----------------
+
+   function To_Filename
+     (Prj      : Prj_Desc;
+      Lang     : Src_Supported_Language;
+      CU_Name  : Compilation_Unit_Part) return String
+   is
+      Filename : Unbounded_String;
+   begin
+      case CU_Name.Language_Kind is
+         when Unit_Based_Language =>
+            for Id of CU_Name.Unit loop
+               if Length (Filename) > 0 then
+                  Append (Filename, Prj.Dot_Replacement);
+               end if;
+               Append (Filename, To_Lower (To_String (Id)));
+            end loop;
+
+            case CU_Name.Part is
+               when Unit_Body | Unit_Separate =>
+                  Append (Filename, Prj.Body_Suffix (Lang));
+               when Unit_Spec =>
+                  Append (Filename, Prj.Spec_Suffix (Lang));
+            end case;
+         when File_Based_Language =>
+            Filename := CU_Name.Filename;
+      end case;
+      return +Filename;
+   end To_Filename;
+
+   -----------------
+   -- Add_Options --
+   -----------------
+
+   procedure Add_Options
+     (Args          : in out String_Vectors.Vector;
+      Options       : Analysis_Options;
+      Pass_Builtins : Boolean := True;
+      Preprocessed  : Boolean := False) is
+
+      procedure Add_Macro_Switches (Macros : Macro_Set);
+      --  Add the given macro switches to Args
+
+      ------------------------
+      -- Add_Macro_Switches --
+      ------------------------
+
+      procedure Add_Macro_Switches (Macros : Macro_Set) is
+      begin
+         for M of Macros loop
+            if M.Define then
+               Args.Append ("-D" & M.Name & M.Args & "=" & M.Value);
+            else
+               Args.Append ("-U" & M.Name);
+            end if;
+         end loop;
+      end Add_Macro_Switches;
+
+   begin
+      for Dir of Options.PP_Search_Path loop
+         Args.Append (+"-I");
+         Args.Append (Dir);
+      end loop;
+
+      --  If the file was already pre-processed, do not pass macro command
+      --  line switches. Since preprocessed code can contain names of defined
+      --  macros, passing macro arguments for the parsing step could trigger
+      --  other expansions, and thus feed the parser with unexpected code.
+
+      if not Preprocessed then
+
+         --  Add builtin macros before macros from command line switches, as
+         --  the latter should have precedence over builtins and thus must
+         --  come last in Args.
+
+         if Pass_Builtins then
+            Add_Macro_Switches (Options.Builtin_Macros);
+         end if;
+         Add_Macro_Switches (Options.PP_Macros);
+      end if;
+
+      --  The -std switch also indicates the C/C++ version used, and
+      --  influences both the configuration of the preprocessor, and the
+      --  parsing of the file.
+
+      if Length (Options.Std) /= 0 then
+         Args.Append (Options.Std);
+      end if;
+
+   end Add_Options;
+
+   ----------------------------
+   -- Parse_Macro_Definition --
+   ----------------------------
+
+   procedure Parse_Macro_Definition
+     (Str        : String;
+      Parsed_Def : out Macro_Definition;
+      Success    : out Boolean)
+   is
+      Matches : Match_Array (0 .. 3);
+   begin
+      Match (Macro_Def_Regexp, Str, Matches);
+      if Matches (0) = No_Match then
+         Success := False;
+      else
+         Success := True;
+         Parsed_Def.Name := +Str (Matches (1).First .. Matches (1).Last);
+         if Matches (2) /= No_Match then
+            Parsed_Def.Args := +Str (Matches (2).First .. Matches (2).Last);
+         end if;
+         Parsed_Def.Value := +Str (Matches (3).First .. Matches (3).Last);
+      end if;
+   end Parse_Macro_Definition;
+
+   ------------------------------------
+   -- Parse_Cmdline_Macro_Definition --
+   ------------------------------------
+
+   procedure Parse_Cmdline_Macro_Definition
+     (Str        : String;
+      Parsed_Def : out Macro_Definition;
+      Success    : out Boolean)
+   is
+      Matches : Match_Array (0 .. 4);
+   begin
+      Match (Macro_Cmdline_Regexp, Str, Matches);
+      if Matches (0) = No_Match then
+         Success := False;
+      else
+         Success := True;
+         Parsed_Def.Name := +Str (Matches (1).First .. Matches (1).Last);
+         if Matches (2) /= No_Match then
+            Parsed_Def.Args := +Str (Matches (2).First .. Matches (2).Last);
+         end if;
+
+         --  Command line macros can have part of their value before the
+         --  assignment, e.g. "-DA(b)b" is equivalent to "#define A(b) b 1".
+
+         if Matches (3) /= No_Match then
+            Append
+              (Parsed_Def.Value,
+               Str (Matches (3).First .. Matches (3).Last) & " ");
+         end if;
+
+         --  If no value is given, then it is implicitly 1
+
+         if Matches (4) /= No_Match then
+            Append
+              (Parsed_Def.Value, Str (Matches (4).First .. Matches (4).Last));
+         else
+            Append (Parsed_Def.Value, " 1");
+         end if;
+      end if;
+   end Parse_Cmdline_Macro_Definition;
+
+   ----------------------
+   -- Import_From_Args --
+   ----------------------
+
+   procedure Import_From_Args
+     (Self : in out Analysis_Options; Args : String_Vectors.Vector)
+   is
+      I    : Natural := Args.First_Index;
+      Last : constant Integer := Args.Last_Index;
+
+      function Read_With_Argument
+        (Arg         : String;
+         Option_Name : Character;
+         Value       : out Unbounded_String) return Boolean;
+      --  Assuming that Arg starts with "-X" where X is Option_Name, try to
+      --  fetch the value for this option. If we managed to get one, return
+      --  True and set Value to it. Return False otherwise.
+
+      ------------------------
+      -- Read_With_Argument --
+      ------------------------
+
+      function Read_With_Argument
+        (Arg         : String;
+         Option_Name : Character;
+         Value       : out Unbounded_String) return Boolean
+      is
+         Prefix : constant String := "-" & Option_Name;
+      begin
+         if Arg = Prefix then
+
+            --  Option and value are two separate arguments (-O VALUE)
+
+            I := I + 1;
+            if I <= Last then
+               Value := Args (I);
+               return True;
+            end if;
+
+         elsif Has_Prefix (Arg, Prefix) then
+
+            --  Option and value are combined in a single argument (-OVALUE)
+
+            Value := +Arg (Arg'First + Prefix'Length .. Arg'Last);
+            return True;
+         end if;
+
+         return False;
+      end Read_With_Argument;
+
+   --  Start of processing for Import_From_Args
+
+   begin
+      while I <= Last loop
          declare
-            Instr_Unit : constant Compilation_Unit_Name :=
-              Instrumented_Unit_Maps.Key (Cur);
+            A     : constant String := +Args (I);
+            Value : Unbounded_String;
          begin
-            Result.Append (Instr_Unit);
+
+            --  Process arguments we manage to handle, silently discard unknown
+            --  ones.
+            --
+            --  TODO??? In order to avoid surprising situations for users (for
+            --  instance typos in command line arguments), maybe we should emit
+            --  a warning for unknown arguments. However, given that this
+            --  procedure is called at least once per instrumented source file,
+            --  we would need to avoid emitting duplicate warnings.
+
+            if Read_With_Argument (A, 'I', Value) then
+               Self.PP_Search_Path.Append (Value);
+
+            elsif Read_With_Argument (A, 'D', Value) then
+               declare
+                  Macro_Def : Macro_Definition (Define => True);
+                  Success   : Boolean;
+               begin
+                  Parse_Cmdline_Macro_Definition
+                    (Str        => +Value,
+                     Parsed_Def => Macro_Def,
+                     Success    => Success);
+                  if Success then
+                     Self.PP_Macros.Include (Macro_Def);
+                  else
+                     Warn ("Failed to parse command-line macro definition: "
+                           & (+Value));
+                  end if;
+               end;
+
+            elsif Read_With_Argument (A, 'U', Value) then
+               Self.PP_Macros.Include ((Define => False, Name => Value));
+
+            elsif Has_Prefix (A, "-std=") then
+               Self.Std := +A;
+            end if;
+
+            I := I + 1;
          end;
       end loop;
-      return Result;
-   end Instr_Units_For_Closure;
+   end Import_From_Args;
 
 begin
-   Sys_Prefix.Append (To_Unbounded_String ("GNATcov_RTS"));
+   Sys_Prefix.Append (To_Unbounded_String ("GCVRT"));
 
-   Sys_Buffers := Sys_Prefix;
+   Sys_Buffers.Append (To_Unbounded_String ("GNATcov_RTS"));
    Sys_Buffers.Append (To_Unbounded_String ("Buffers"));
-
-   Sys_Buffers_Lists := Sys_Buffers;
-   Sys_Buffers_Lists.Append (To_Unbounded_String ("Lists"));
 
    Statement_Buffer_Name.Append (To_Unbounded_String ("Statement_Buffer"));
    Decision_Buffer_Name.Append  (To_Unbounded_String ("Decision_Buffer"));
