@@ -326,6 +326,9 @@ latex_preamble = (
 """
 )
 
+latex_elements = {
+    'preamble' : latex_preamble
+}
 
 # Documents to append as an appendix to all manuals.
 # latex_appendices = []
