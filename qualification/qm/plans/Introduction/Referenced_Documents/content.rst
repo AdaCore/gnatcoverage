@@ -25,13 +25,13 @@ for Safety-Critical Applications* - ERTS2 2010
 
 .. rubric:: GNAT Pro UG
 
-AdaCore: *GNAT User's Guide for Native Platforms*, part of the GNAT Pro 7.4.3
-release documentation (file *share/doc/gnat/pdf/gnat_ugn.pdf*).
+AdaCore: *GNAT User's Guide for Native Platforms*, part of the GNAT Pro
+|gnatpro_version| release documentation (file *share/doc/gnat/pdf/gnat_ugn.pdf*).
 
 .. rubric:: GNATcoverage UG
 
-AdaCore: *GNATcoverage User's Guide*, part of the GNATcoverage 1.4.3 release
-documentation (file *share/doc/gnatdas/pdf/gnatdas.pdf*).
+AdaCore: *GNATcoverage User's Guide*, part of the GNATcoverage
+|gnatcov_version| release documentation (file *share/doc/gnatdas/pdf/gnatdas.pdf*).
 
 .. rubric:: |plans_doc_title|
 
