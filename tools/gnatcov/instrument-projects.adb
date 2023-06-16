@@ -1118,7 +1118,7 @@ begin
                      if Length (Dump_Config.Filename_Prefix) = 0 then
                         Explicit_Dump_Config.Filename_Prefix :=
                           +(+Root_Project_Info.Project.Executable_Name
-                            (Main.File.Full_Name));
+                              (Main.File.Full_Name, Include_Suffix => True));
                      end if;
                end if;
 
