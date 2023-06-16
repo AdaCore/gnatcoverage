@@ -6490,8 +6490,10 @@ package body Instrument.Ada_Unit is
 
    procedure Exit_Scope (UIC : in out Ada_Unit_Inst_Context)
    is
-      Parent : Scope_Entity_Acc renames UIC.Current_Scope_Entity.Parent;
-      Scope  : Scope_Entity_Acc renames UIC.Current_Scope_Entity;
+      Parent : constant Scope_Entity_Acc := UIC.Current_Scope_Entity.Parent;
+      --  Latch the parent value before UIC.Current_Scope_Entity is freed
+
+      Scope : Scope_Entity_Acc renames UIC.Current_Scope_Entity;
    begin
       --  Update the last SCO for this scope entity
 
