@@ -78,8 +78,8 @@ package Instrument is
 
          when File_Based_Language =>
             Filename : US.Unbounded_String;
-            --  Fallback for file-based languages (like C). We will use the
-            --  simple filename for now.
+            --  Fallback for file-based languages (like C). We use the full
+            --  filename, for homonym resiliency.
 
       end case;
    end record;

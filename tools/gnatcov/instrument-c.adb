@@ -325,9 +325,6 @@ package body Instrument.C is
    procedure Run_Diagnostics (TU : Translation_Unit_T);
    --  Output clang diagnostics on the given translation unit
 
-   function Format_Str_Constant (Value : String) return String;
-   --  Return a gnatcov_rts_string literal corresponding to Value
-
    function Format_Array_Init_Expr
      (Exprs     : String_Vectors.Vector;
       Multiline : Boolean := False) return String;
@@ -3412,9 +3409,10 @@ package body Instrument.C is
             Unit_Bits     : Allocated_Bits renames
               UIC.Allocated_Bits.Constant_Reference (Buffers_Index);
 
-            CU      : constant CU_Id := Buffers_CUs (Buffers_Index);
-            CU_Name : Compilation_Unit_Part renames
+            CU          : constant CU_Id := Buffers_CUs (Buffers_Index);
+            CU_Name     : Compilation_Unit_Part renames
               Buffers_CU_Names.Constant_Reference (Buffers_Index);
+            CU_Filename : constant String := +CU_Name.Filename;
 
             --  Symbol name for each kind of static buffer
 
@@ -3470,8 +3468,14 @@ package body Instrument.C is
                --  refuse using STR to initialize a global data structure. To
                --  workaround this, emit a gnatcov_rtr_string literal
                --  ourselves.
+               --
+               --  We also have to be careful to escape the backslashes inside
+               --  the string, which can appear e.g. in in windows full
+               --  filenames.
 
-               & "  .unit_name = " & Format_Str_Constant (+CU_Name.Filename)
+               & "  .unit_name = "
+               & " {""" & Escape_Backslashes (CU_Filename) & """, "
+               & CU_Filename'Length'Image & "}"
                & ","
                & ASCII.LF
 
@@ -3657,7 +3661,8 @@ package body Instrument.C is
                File.Put_Line (Indent2 & Tag & ",");
                File.Put_Line (Indent2 & Simple & "),");
 
-               File.Put_Line (Indent2 & "STR (""" & (+Main.Filename)
+               File.Put_Line (Indent2 &   "STR ("""
+                              & Escape_Backslashes (+Main.Filename)
                               & """),");
                File.Put_Line (Indent2 & "gnatcov_rts_time_to_uint64()" & ",");
                File.Put_Line (Indent2 & "STR ("""")");
@@ -3670,7 +3675,8 @@ package body Instrument.C is
             --  program name is the name of the main, and there is no way to
             --  get the current execution time.
 
-            File.Put_Line (Indent2 & "STR (""" & (+Main.Filename) & """),");
+            File.Put_Line (Indent2 & "STR ("""
+                           & Escape_Backslashes (+Main.Filename) & """),");
             File.Put_Line (Indent2 & "0,");
             File.Put_Line (Indent2 & "STR ("""")");
 
@@ -3868,15 +3874,6 @@ package body Instrument.C is
       end case;
       Rew.Apply;
    end Auto_Dump_Buffers_In_Main;
-
-   -------------------------
-   -- Format_Str_Constant --
-   -------------------------
-
-   function Format_Str_Constant (Value : String) return String is
-   begin
-      return "{""" & Value & """," & Value'Length'Image & "}";
-   end Format_Str_Constant;
 
    ----------------
    -- Format_Def --

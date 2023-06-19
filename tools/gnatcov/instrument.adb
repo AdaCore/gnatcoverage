@@ -29,8 +29,8 @@ with Interfaces; use Interfaces;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with Command_Line;   use Command_Line;
-with Hex_Images; use Hex_Images;
+with Command_Line; use Command_Line;
+with Hex_Images;   use Hex_Images;
 
 package body Instrument is
 
