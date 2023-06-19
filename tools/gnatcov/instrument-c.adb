@@ -3594,7 +3594,7 @@ package body Instrument.C is
       --  Create the name of the helper unit
 
       Helper_Unit :=
-        To_Symbol_Name (Sys_Buffers)
+        To_Symbol_Name (Sys_Prefix)
         & "_d_"
         & Instrumented_Unit_Slug (Main)
         & Prj.Body_Suffix (Instrumenter.Language);
@@ -4009,7 +4009,7 @@ package body Instrument.C is
       Prj         : Prj_Desc)
    is
       Base_Filename  : constant String :=
-        "gnatcov_rts_c-buffers-lists-" & (+Prj.Prj_Name);
+        "gcvrtc-" & (+Prj.Prj_Name);
       CU_Name_Body   : constant String :=
         Base_Filename
         & (+Prj.Body_Suffix

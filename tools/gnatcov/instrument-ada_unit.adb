@@ -3379,7 +3379,7 @@ package body Instrument.Ada_Unit is
                      Old_Cond := Create_Call_Expr
                        (RC,
                         F_Name   => Create_Identifier
-                          (RC, To_Text (To_Ada (Sys_Prefix) & ".Std.Boolean")),
+                          (RC, To_Text ("GNATcov_RTS.Std.Boolean")),
                         F_Suffix => Create_Regular_Node
                           (RC,
                            Ada_Assoc_List,
