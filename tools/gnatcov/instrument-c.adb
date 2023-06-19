@@ -26,6 +26,9 @@ with Clang.Extensions; use Clang.Extensions;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
+with GNAT.Strings;
+
+with GNATCOLL.VFS;
 
 with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
@@ -39,6 +42,7 @@ with Inputs;              use Inputs;
 with Instrument.C_Utils;  use Instrument.C_Utils;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
+with Project;             use Project;
 with SCOs;
 with System;              use System;
 with Table;
@@ -46,6 +50,7 @@ with Text_Files;          use Text_Files;
 
 package body Instrument.C is
 
+   package GPR renames GNATCOLL.Projects;
    package US renames Ada.Strings.Unbounded;
 
    function To_Chars_Ptr_Array
@@ -55,6 +60,19 @@ package body Instrument.C is
 
    procedure Free (Self : in out chars_ptr_array);
    --  Free all strings in Self
+
+   function Compiler_Driver
+     (Project  : GNATCOLL.Projects.Project_Type;
+      Language : C_Family_Language) return String;
+   --  Return the command name for the compiler for Language in the given
+   --  Project.
+
+   function Source_Suffix
+     (Instrumenter : C_Family_Instrumenter_Type'Class;
+      Part         : GNATCOLL.Projects.Unit_Parts;
+      Project      : GNATCOLL.Projects.Project_Type) return String;
+   --  Return the filename suffix corresponding for Part files and the language
+   --  that Instrumenter handles in the given project.
 
    procedure Filter_Annotations;
    --  Remove any exemption annotations from the map that intersects a
@@ -72,8 +90,66 @@ package body Instrument.C is
    --  Preprocessing utilities --
    ------------------------------
 
+   Macro_Cmdline_Regexp : constant Pattern_Matcher := Compile (
+     "([a-zA-Z_]\w*)"
+     --  The name of the macro
+
+     & "(\(.*\))?"
+     --  The optional list of macro arguments
+
+     & "([^ =]+)?"
+     --  Then, there can be any character before the assignment: they will be
+     --  part of the macro value (e.g. A(b)b will yield #define A b 1)
+
+     & "(?:=(.*))?"
+     --  The macro value itself
+   );
+
+   Macro_Def_Regexp : constant Pattern_Matcher := Compile (
+     "#define"
+     & "(?: |\t)+"
+     --  "#define", then a non-empty blank
+
+     & "([a-zA-Z_]\w*)"
+     --  The name of the macro
+
+     & "(\(.*\))?"
+     --  The optional list of macro arguments
+
+     & "(.*)"
+     --  The macro value itself
+   );
+   --  Regular expression to analyze definitions for builtin macros (see
+   --  Builtin_Macros)
+
    type Macro_Set_Access is access Macro_Set;
    type Macro_Set_Cst_Access is access constant Macro_Set;
+   package Compiler_Macros_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Unbounded_String,
+      Element_Type    => Macro_Set_Access,
+      Equivalent_Keys => "=",
+      Hash            => Ada.Strings.Unbounded.Hash);
+   Compiler_Macros : Compiler_Macros_Maps.Map;
+   --  Cache for computed compiler builtin macros, to avoid relaunching the
+   --  compiler command every time a file is instrumented. Used in the
+   --  Builtin_Macros function only.
+
+   --  The three following functions are not used, but could be in the future,
+   --  when we will refine what is done with macros.
+
+   procedure Parse_Macro_Definition
+     (Str        : String;
+      Parsed_Def : out Macro_Definition;
+      Success    : out Boolean);
+     --  Parse a macro definition. If the parsing failed, set Success to False.
+     --  Otherwise, set Parsed_Def to the parsed definition and set Success to
+     --  True.
+
+   procedure Parse_Cmdline_Macro_Definition
+     (Str        : String;
+      Parsed_Def : out Macro_Definition;
+      Success    : out Boolean);
+   --  Same as above, but with a command-line macro definition
 
    function Builtin_Macros
      (Lang, Compiler, Std, Output_Dir : String) return Macro_Set_Cst_Access;
@@ -89,8 +165,8 @@ package body Instrument.C is
    procedure Preprocess_Source
      (Filename     : String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
       PP_Filename  : out Unbounded_String;
+      Info         : in out Project_Info;
       Options      : in out Analysis_Options);
    --  Preprocess the source at Filename and extend Options using the
    --  preprocessor output.
@@ -277,30 +353,40 @@ package body Instrument.C is
    ----------------------------
 
    procedure Record_PP_Info
-     (Orig_Filename : String;
-      UIC           : in out C_Unit_Inst_Context;
-      Instrumenter  : C_Family_Instrumenter_Type'Class);
+     (Unit_Info : Instrumented_Unit_Info;
+      UIC       : in out C_Unit_Inst_Context);
    --  Emit the low-level SCOs for the given unit. Do not process them: this is
    --  left to the other (instrumentation) pass.
+
+   procedure Instrument_Source_File
+     (CU_Name      : Compilation_Unit_Name;
+      Unit_Info    : Instrumented_Unit_Info;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      Prj_Info     : in out Project_Info;
+      UIC          : out C_Unit_Inst_Context);
+   --  Generate the instrumented source corresponding to CU_Name/Unit_Info.
+   --  Record instrumentation information in IC.
+   --
+   --  If the unit to instrument is also a main and the buffers dump trigger
+   --  is not manual, instrumented code will also dump the coverage buffers.
 
    ----------------------------
    -- Source instrumentation --
    ----------------------------
 
    procedure Emit_Buffer_Unit
-     (UIC          : C_Unit_Inst_Context'Class;
-      Unit         : Compilation_Unit;
-      Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc);
+     (Info         : in out Project_Info;
+      UIC          : C_Unit_Inst_Context'Class;
+      Instrumenter : C_Family_Instrumenter_Type'Class);
    --  Emit the unit to contain coverage buffers for the given instrumented
    --  unit, for the given instrumenter.
 
    procedure Emit_Dump_Helper_Unit
-     (Dump_Config       : Any_Dump_Config;
-      Main              : Compilation_Unit_Part;
-      Helper_Unit       : out US.Unbounded_String;
-      Instrumenter      : C_Family_Instrumenter_Type'Class;
-      Prj               : Prj_Desc);
+     (Dump_Config  : Any_Dump_Config;
+      Info         : in out Project_Info;
+      Main         : Compilation_Unit_Name;
+      Helper_Unit  : out US.Unbounded_String;
+      Instrumenter : C_Family_Instrumenter_Type'Class);
    --  Emit the unit to contain helpers to implement the automatic dump of
    --  coverage buffers for the given Main unit. Info must be the project that
    --  owns this main. Upon return, the name of this helper unit is stored in
@@ -311,9 +397,9 @@ package body Instrument.C is
 
    procedure Start_Rewriting
      (Self         : out C_Source_Rewriter;
+      Info         : in out Project_Info;
       Filename     : String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
       Preprocessed : Boolean := False);
    --  Start a rewriting session for the given file identified by its full
    --  name.
@@ -437,6 +523,24 @@ package body Instrument.C is
       end loop;
    end Free;
 
+   ---------------------
+   -- Compiler_Driver --
+   ---------------------
+
+   function Compiler_Driver
+     (Project  : GNATCOLL.Projects.Project_Type;
+      Language : C_Family_Language) return String is
+   begin
+      return Result : constant String :=
+        GNATCOLL.Projects.Attribute_Value
+          (Project, GPR.Compiler_Driver_Attribute, Image (Language))
+      do
+         if Result = "" then
+            Fatal_Error ("could not find a compiler for " & Image (Language));
+         end if;
+      end return;
+   end Compiler_Driver;
+
    ------------------------
    -- Filter_Annotations --
    ------------------------
@@ -477,6 +581,47 @@ package body Instrument.C is
          end;
       end loop;
    end Filter_Annotations;
+
+   -------------------
+   -- Source_Suffix --
+   -------------------
+
+   function Source_Suffix
+     (Instrumenter : C_Family_Instrumenter_Type'Class;
+      Part         : GNATCOLL.Projects.Unit_Parts;
+      Project      : GNATCOLL.Projects.Project_Type) return String
+   is
+      L    : constant C_Family_Language := Instrumenter.Language;
+      Attr : constant GPR.Attribute_Pkg_String :=
+        GPR.Build
+          (Package_Name   => "Naming",
+           Attribute_Name =>
+             (case Part is
+              when GPR.Unit_Body     => "Body_Suffix",
+              when GPR.Unit_Spec     => "Spec_Suffix",
+              when GPR.Unit_Separate => raise Program_Error));
+   begin
+      case Part is
+         when GPR.Unit_Body =>
+            return Project.Attribute_Value
+              (Attribute => Attr,
+               Index     => Image (L),
+               Default   => (case L is
+                             when C_Language   => ".c",
+                             when CPP_Language => ".cpp"));
+
+         when GPR.Unit_Spec =>
+            return Project.Attribute_Value
+              (Attribute => Attr,
+               Index     => Image (L),
+               Default   => (case L is
+                             when C_Language   => ".h",
+                             when CPP_Language => ".hh"));
+
+         when GPR.Unit_Separate =>
+            return (raise Program_Error);
+      end case;
+   end Source_Suffix;
 
    -----------------
    -- Enter_Scope --
@@ -2391,6 +2536,71 @@ package body Instrument.C is
       UIC.MCDC_State_Declaration_Node := Saved_MCDC_State_Declaration_Node;
    end Traverse_Declarations;
 
+   ----------------------------
+   -- Parse_Macro_Definition --
+   ----------------------------
+
+   procedure Parse_Macro_Definition
+     (Str        : String;
+      Parsed_Def : out Macro_Definition;
+      Success    : out Boolean)
+   is
+      Matches : Match_Array (0 .. 3);
+   begin
+      Match (Macro_Def_Regexp, Str, Matches);
+      if Matches (0) = No_Match then
+         Success := False;
+      else
+         Success := True;
+         Parsed_Def.Name := +Str (Matches (1).First .. Matches (1).Last);
+         if Matches (2) /= No_Match then
+            Parsed_Def.Args := +Str (Matches (2).First .. Matches (2).Last);
+         end if;
+         Parsed_Def.Value := +Str (Matches (3).First .. Matches (3).Last);
+      end if;
+   end Parse_Macro_Definition;
+
+   ------------------------------------
+   -- Parse_Cmdline_Macro_Definition --
+   ------------------------------------
+
+   procedure Parse_Cmdline_Macro_Definition
+     (Str        : String;
+      Parsed_Def : out Macro_Definition;
+      Success    : out Boolean)
+   is
+      Matches : Match_Array (0 .. 4);
+   begin
+      Match (Macro_Cmdline_Regexp, Str, Matches);
+      if Matches (0) = No_Match then
+         Success := False;
+      else
+         Success := True;
+         Parsed_Def.Name := +Str (Matches (1).First .. Matches (1).Last);
+         if Matches (2) /= No_Match then
+            Parsed_Def.Args := +Str (Matches (2).First .. Matches (2).Last);
+         end if;
+
+         --  Command line macros can have part of their value before the
+         --  assignment, e.g. "-DA(b)b" is equivalent to "#define A(b) b 1".
+
+         if Matches (3) /= No_Match then
+            Append
+              (Parsed_Def.Value,
+               Str (Matches (3).First .. Matches (3).Last) & " ");
+         end if;
+
+         --  If no value is given, then it is implicitly 1
+
+         if Matches (4) /= No_Match then
+            Append
+              (Parsed_Def.Value, Str (Matches (4).First .. Matches (4).Last));
+         else
+            Append (Parsed_Def.Value, " 1");
+         end if;
+      end if;
+   end Parse_Cmdline_Macro_Definition;
+
    --------------------
    -- Builtin_Macros --
    --------------------
@@ -2399,68 +2609,82 @@ package body Instrument.C is
      (Lang, Compiler, Std, Output_Dir : String) return Macro_Set_Cst_Access
    is
       use Ada.Characters.Handling;
-
-      PID : constant Unsigned_64 :=
-        Unsigned_64 (Pid_To_Integer (Current_Process_Id));
+      use Compiler_Macros_Maps;
 
       L      : constant String := To_Lower (Lang);
       Key    : constant Unbounded_String :=
         +Compiler & " -x " & L & " " & Std;
-      Result : constant Macro_Set_Access := new Macro_Set;
-
-      Args     : String_Vectors.Vector;
-      Basename : constant String :=
-        Ada.Directories.Simple_Name (Compiler)
-        & "_builtins_"
-        & Hex_Image (PID);
-      Filename : constant String := Output_Dir / Basename;
-      File     : Ada.Text_IO.File_Type;
+      Cur    : constant Cursor := Compiler_Macros.Find (Key);
+      Result : Macro_Set_Access;
    begin
-      --  Run the preprocessor on an empty file and write the
-      --  preprocessed sources to Filename.
+      --  If we already computed builtin macros for Compiler, return the cached
+      --  result. Compute it now otherwise.
 
-      Args.Append (+"-x");
-      Args.Append (+L);
-      if Std'Length /= 0 then
-         Args.Append (+Std);
-      end if;
-      Args.Append (+"-E");
-      Args.Append (+"-dM");
-      Args.Append (+"-");
+      if Has_Element (Cur) then
+         Result := Element (Cur);
 
-      Run_Command
-        (Command             => Compiler,
-         Arguments           => Args,
-         Origin_Command_Name =>
-           "getting built-in macros for " & (+Key),
-         Output_File         => Filename,
-         In_To_Null          => True);
-
-      --  Decode all macro definitions in Filename and store them in Result
-
-      Open (File, In_File, Filename);
-      while not End_Of_File (File) loop
+      else
+         Result := new Macro_Set;
          declare
-            Line      : constant String := Get_Line (File);
-            Macro_Def : Macro_Definition (Define => True);
-            Success   : Boolean;
+            Args     : String_Vectors.Vector;
+            Basename : constant String :=
+              Ada.Directories.Simple_Name (Compiler) & "_builtins";
+            Filename : constant String := Output_Dir / Basename;
+            File     : Ada.Text_IO.File_Type;
          begin
-            Parse_Macro_Definition
-              (Line,
-               Macro_Def,
-               Success);
-            if Success then
-               Result.Include (Macro_Def);
-            else
-               Warn
-                 ("Cannot parse a built-in macro definition for "
-                  & Compiler & ", ignoring it:" & ASCII.LF & "  "
-                  & Line);
+            --  Run the preprocessor on an empty file and write the
+            --  preprocessed sources to Filename.
+
+            Args.Append (+"-x");
+            Args.Append (+L);
+            if Std'Length /= 0 then
+               Args.Append (+Std);
             end if;
+            Args.Append (+"-E");
+            Args.Append (+"-dM");
+            Args.Append (+"-");
+
+            Run_Command
+              (Command             => Compiler,
+               Arguments           => Args,
+               Origin_Command_Name =>
+                 "getting built-in macros for " & (+Key),
+               Output_File         => Filename,
+               In_To_Null          => True);
+
+            --  Decode all macro definitions in Filename and store them in
+            --  Result.
+
+            Open (File, In_File, Filename);
+            while not End_Of_File (File) loop
+               declare
+                  Line      : constant String := Get_Line (File);
+                  Macro_Def : Macro_Definition (Define => True);
+                  Success   : Boolean;
+               begin
+                  Parse_Macro_Definition
+                    (Line,
+                     Macro_Def,
+                     Success);
+                  if Success then
+                     Result.Include (Macro_Def);
+                  else
+                     Warn
+                       ("Cannot parse a built-in macro definition for "
+                        & Compiler & ", ignoring it:" & ASCII.LF & "  "
+                        & Line);
+                  end if;
+               end;
+            end loop;
+            Close (File);
+            Delete_File (Filename);
+
+            --  Save Result in the cache for later use
+
+            Compiler_Macros.Insert (Key, Result);
          end;
-      end loop;
-      Close (File);
-      Delete_File (Filename);
+      end if;
+
       return Macro_Set_Cst_Access (Result);
    end Builtin_Macros;
 
@@ -2471,8 +2695,8 @@ package body Instrument.C is
    procedure Preprocess_Source
      (Filename     : String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
       PP_Filename  : out Unbounded_String;
+      Info         : in out Project_Info;
       Options      : in out Analysis_Options)
    is
       Cmd : Command_Type;
@@ -2485,26 +2709,31 @@ package body Instrument.C is
         Unsigned_64 (Pid_To_Integer (Current_Process_Id));
 
       Preprocessed_Filename : constant String :=
-        (+Prj.Output_Dir) / ("pp-" & Strip_Zero_Padding (Hex_Image (PID)));
+        (+Info.Output_Dir) / ("pp-" & Strip_Zero_Padding (Hex_Image (PID)));
       --  Preprocessed file. We then postprocess it to remove redundant line
       --  markers inserted by the preprocessor.
 
       Preprocessor_Output_Filename : constant String :=
-        (+Prj.Output_Dir) /
+        (+Info.Output_Dir) /
         ("pp-output-" & Strip_Zero_Padding (Hex_Image (PID)));
       Preprocessor_Output_File     : Ada.Text_IO.File_Type;
       --  File containing the preprocessor output (used to get include search
       --  paths).
    begin
-      PP_Filename := +New_File (Prj, Filename);
+      PP_Filename := +New_File (Info, Filename);
 
-      --  HACK: consider that the file was already preprocessed in that case
+      --  The file may have been preprocessed already, if we are instrumenting
+      --  it as a main after having instrumented it as a source. In this case,
+      --  we should not preprocess it again (as it will fail). HACK: if the
+      --  original filename is an instrumented file (in which case it is
+      --  equal to PP_Filename), skip the preprocessing step.
+
       if +PP_Filename = Filename then
          return;
       end if;
 
       Cmd :=
-        (Command => Prj.Compiler_Driver (Instrumenter.Language),
+        (Command => +Compiler_Driver (Info.Project, Instrumenter.Language),
          others  => <>);
 
       --  Add the preprocessing flag
@@ -2649,9 +2878,9 @@ package body Instrument.C is
 
    procedure Start_Rewriting
      (Self         : out C_Source_Rewriter;
+      Info         : in out Project_Info;
       Filename     : String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
       Preprocessed : Boolean := False)
    is
       PP_Filename : Unbounded_String := +Filename;
@@ -2659,10 +2888,10 @@ package body Instrument.C is
       Options : Analysis_Options;
       Args    : String_Vectors.Vector;
    begin
-      Import_Options (Options, Instrumenter, Prj, Filename);
+      Import_Options (Options, Instrumenter.Language, Info, Filename);
       if not Preprocessed then
          Preprocess_Source
-           (Filename, Instrumenter, Prj, PP_Filename, Options);
+           (Filename, Instrumenter, PP_Filename, Info, Options);
       end if;
 
       Self.CIdx :=
@@ -2752,11 +2981,11 @@ package body Instrument.C is
    --------------------
 
    procedure Record_PP_Info
-     (Orig_Filename : String;
-      UIC           : in out C_Unit_Inst_Context;
-      Instrumenter  : C_Family_Instrumenter_Type'Class)
+     (Unit_Info : Instrumented_Unit_Info;
+      UIC       : in out C_Unit_Inst_Context)
    is
-      Args : String_Vectors.Vector;
+      Orig_Filename : constant String  := +Unit_Info.Filename;
+      Args          : String_Vectors.Vector;
    begin
       UIC.Pass := Record_PP_Info_Pass'Access;
       UIC.CIdx :=
@@ -2768,8 +2997,7 @@ package body Instrument.C is
       --  the user's preprocessor.
 
       Add_Options (Args, UIC.Options);
-      String_Vectors.Append
-        (Args, Common_Parse_TU_Args (Instrumenter.Language));
+      String_Vectors.Append (Args, Common_Parse_TU_Args (Unit_Info.Language));
 
       --  TODO??? We should also inhibit the use of clang predefined macros,
       --  with the -undef option, but doing this yields parsing errors, and a
@@ -2809,31 +3037,24 @@ package body Instrument.C is
 
    end Record_PP_Info;
 
-   ---------------------
-   -- Instrument_Unit --
-   ---------------------
+   ----------------------------
+   -- Instrument_Source_File --
+   ----------------------------
 
-   procedure Instrument_Unit
-     (Self              : in out C_Family_Instrumenter_Type;
-      Unit_Name         : String;
-      Prj               : Prj_Desc;
-      Files_Of_Interest : String_Sets.Set)
+   procedure Instrument_Source_File
+     (CU_Name      : Compilation_Unit_Name;
+      Unit_Info    : Instrumented_Unit_Info;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      Prj_Info     : in out Project_Info;
+      UIC          : out C_Unit_Inst_Context)
    is
-      UIC : C_Unit_Inst_Context;
-      CU_Name : constant Compilation_Unit_Part :=
-        CU_Name_For_File (+Unit_Name);
-
-      Orig_Filename : constant String  := Unit_Name;
+      Orig_Filename : constant String  := +Unit_Info.Filename;
       PP_Filename   : Unbounded_String;
       --  Respectively original, and preprocessed filename
 
       Buffer_Filename : constant String :=
-        New_File
-          (Prj,
-           To_Symbol_Name (Sys_Prefix) & "_b_"
-           & Instrumented_Unit_Slug (CU_Name)
-           & (+Prj.Body_Suffix
-             (C_Family_Instrumenter_Type'Class (Self).Language)));
+        To_Symbol_Name (Sys_Buffers) & "_b_" & Instrumented_Unit_Slug (CU_Name)
+        & Source_Suffix (Instrumenter, GPR.Unit_Body, Prj_Info.Project);
       --  Name of the generated source file holding the coverage buffers
 
       Rewriter : C_Source_Rewriter;
@@ -2871,7 +3092,7 @@ package body Instrument.C is
          Put_Extern_Decl
            (UIC.Rewriter,
             Insert_Extern_Location,
-            Self,
+            Instrumenter,
             C_Type,
             Name,
             Array_Size,
@@ -2881,46 +3102,30 @@ package body Instrument.C is
    --  Start of processing for Instrument_Source_File
 
    begin
-      --  Exit early if there is no compiler driver found to preprocess the
-      --  source.
-
-      declare
-         Compiler_Driver : constant Unbounded_String :=
-           Prj.Compiler_Driver
-             (C_Family_Instrumenter_Type'Class (Self).Language);
-      begin
-         if Compiler_Driver = Null_Unbounded_String then
-            Outputs.Fatal_Error
-              ("could not find a compiler for "
-               & Image
-                 (C_Family_Instrumenter_Type'Class (Self).Language));
-         end if;
-      end;
-
       SCOs.Initialize;
 
       UIC.SFI := Get_Index_From_Generic_Name
         (Orig_Filename,
          Kind                => Files_Table.Source_File,
          Indexed_Simple_Name => True);
-      UIC.Fullname := +Orig_Filename;
 
       --  Initialize the C instrumentation context
 
       UIC.Instrumented_Unit := CU_Name;
-      UIC.Buffer_Unit := CU_Name_For_File (+Buffer_Filename);
-      UIC.Files_Of_Interest := Files_Of_Interest;
+      UIC.Buffer_Unit :=
+        CU_Name_For_File (+Buffer_Filename, CU_Name.Project_Name);
 
       --  Import analysis options for the file to preprocess, then run the
       --  preprocessor.
 
-      Import_Options (UIC.Options, Self, Prj, Unit_Name);
+      Import_Options
+        (UIC.Options, Instrumenter.Language, Prj_Info, Orig_Filename);
       Preprocess_Source
-        (Orig_Filename, Self, Prj, PP_Filename, UIC.Options);
+        (Orig_Filename, Instrumenter, PP_Filename, Prj_Info, UIC.Options);
 
       --  Start by recording preprocessing information
 
-      Record_PP_Info (Orig_Filename, UIC, Self);
+      Record_PP_Info (Unit_Info, UIC);
 
       --  Then record exemption annotations in the comments. Reuse the TU from
       --  the preprocessing information recording pass as we want the
@@ -2986,12 +3191,11 @@ package body Instrument.C is
 
       UIC.Pass := Instrument_Pass'Access;
 
-      Start_Rewriting
-        (Self         => Rewriter,
-         Filename     => +PP_Filename,
-         Instrumenter => Self,
-         Prj          => Prj,
-         Preprocessed => True);
+      Start_Rewriting (Self         => Rewriter,
+                       Info         => Prj_Info,
+                       Filename     => +PP_Filename,
+                       Instrumenter => Instrumenter,
+                       Preprocessed => True);
       UIC.TU := Rewriter.TU;
       UIC.Rewriter := Rewriter.Rewriter;
       Insert_Extern_Location :=
@@ -3113,7 +3317,7 @@ package body Instrument.C is
                   end if;
                end if;
 
-               --  Create mappings from allocated bits to the corresponding SCO
+               --  Create mappings from alloacted bits to the corresponding SCO
                --  discharging information (Bit_Maps).
 
                Bit_Maps :=
@@ -3243,29 +3447,7 @@ package body Instrument.C is
                       & " unsigned value");
 
       Rewriter.Apply;
-
-      --  Generate a buffer compilation unit defining coverage buffers that
-      --  will store execution witnesses. This CU is a C file rather than an
-      --  Ada file exporting the defined symboled to C. Indeed, we want it to
-      --  be compatible with a C-only compiler.
-
-      Emit_Buffer_Unit
-        (UIC,
-         Compilation_Unit'
-           (Language     => File_Based_Language,
-            Unit_Name    => UIC.Fullname),
-         Self,
-         Prj);
-
-      --  Update the Ignore_Status of the CU we instrumented
-
-      Files_Table.Consolidate_Ignore_Status
-        (Index  => Files_Table.Get_Index_From_Generic_Name
-           (Name                => Orig_Filename,
-            Kind                => Files_Table.Source_File,
-            Indexed_Simple_Name => True),
-         Status => Files_Table.Never);
-   end Instrument_Unit;
+   end Instrument_Source_File;
 
    ----------------------------
    -- Format_Array_Init_Expr --
@@ -3306,12 +3488,11 @@ package body Instrument.C is
    ----------------------
 
    procedure Emit_Buffer_Unit
-     (UIC          : C_Unit_Inst_Context'Class;
-      Unit         : Compilation_Unit;
-      Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc)
+     (Info         : in out Project_Info;
+      UIC          : C_Unit_Inst_Context'Class;
+      Instrumenter : C_Family_Instrumenter_Type'Class)
    is
-      CU_Name : Compilation_Unit_Part renames UIC.Buffer_Unit;
+      CU_Name : Compilation_Unit_Name renames UIC.Buffer_Unit;
       File    : Text_Files.File_Type;
 
       Buffers_Count : constant Natural := Natural (UIC.Allocated_Bits.Length);
@@ -3354,12 +3535,12 @@ package body Instrument.C is
    begin
       --  Compute Buffers_Filenames and Buffers_Projects
 
-      for Cur in UIC.Sources_Of_Interest_Info.Iterate loop
+      for Cur in UIC.Sources_Of_Interest.Iterate loop
          declare
             use Created_Unit_Maps;
 
             SOI   : Source_Of_Interest renames
-              UIC.Sources_Of_Interest_Info.Constant_Reference (Cur);
+              UIC.Sources_Of_Interest.Constant_Reference (Cur);
             Cur   : Cursor;
             Index : Natural;
          begin
@@ -3383,7 +3564,7 @@ package body Instrument.C is
 
       --  Start to emit the buffer unit
 
-      Create_File (Prj, File, +CU_Name.Filename);
+      Create_File (Info, File, +CU_Name.Filename);
 
       File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
       File.New_Line;
@@ -3413,7 +3594,7 @@ package body Instrument.C is
               UIC.Allocated_Bits.Constant_Reference (Buffers_Index);
 
             CU      : constant CU_Id := Buffers_CUs (Buffers_Index);
-            CU_Name : Compilation_Unit_Part renames
+            CU_Name : Compilation_Unit_Name renames
               Buffers_CU_Names.Constant_Reference (Buffers_Index);
 
             --  Symbol name for each kind of static buffer
@@ -3473,6 +3654,9 @@ package body Instrument.C is
 
                & "  .unit_name = " & Format_Str_Constant (+CU_Name.Filename)
                & ","
+               & ASCII.LF
+               & "  .project_name = "
+               & Format_Str_Constant (+CU_Name.Project_Name) & ","
                & ASCII.LF
 
                & "  .bit_maps_fingerprint = "
@@ -3558,7 +3742,7 @@ package body Instrument.C is
            (File,
             Instrumenter,
             "const struct gnatcov_rts_coverage_buffers_group",
-            Unit_Buffers_Name (Unit),
+            Unit_Buffers_Name (UIC.Instrumented_Unit),
             Init_Expr =>
               "{" & Img (Buffers_Count) & ", &" & Buffers_Array & "[0]}");
       end;
@@ -3569,11 +3753,11 @@ package body Instrument.C is
    ---------------------------
 
    procedure Emit_Dump_Helper_Unit
-     (Dump_Config       : Any_Dump_Config;
-      Main              : Compilation_Unit_Part;
-      Helper_Unit       : out US.Unbounded_String;
-      Instrumenter      : C_Family_Instrumenter_Type'Class;
-      Prj               : Prj_Desc)
+     (Dump_Config  : Any_Dump_Config;
+      Info         : in out Project_Info;
+      Main         : Compilation_Unit_Name;
+      Helper_Unit  : out US.Unbounded_String;
+      Instrumenter : C_Family_Instrumenter_Type'Class)
    is
       File : Text_Files.File_Type;
 
@@ -3593,7 +3777,8 @@ package body Instrument.C is
         To_Symbol_Name (Sys_Buffers)
         & "_d_"
         & Instrumented_Unit_Slug (Main)
-        & Prj.Body_Suffix (Instrumenter.Language);
+        & US.To_Unbounded_String
+            (Source_Suffix (Instrumenter, GPR.Unit_Body, Info.Project));
 
       --  Compute the qualified names we need for instrumentation
 
@@ -3604,7 +3789,7 @@ package body Instrument.C is
       begin
          --  Emit the package body
 
-         Create_File (Prj, File, Filename);
+         Create_File (Info, File, Filename);
 
          File.Put_Line ("#include ""gnatcov_rts_c-strings.h""");
 
@@ -3625,7 +3810,7 @@ package body Instrument.C is
            (File,
             Instrumenter,
             "const struct gnatcov_rts_coverage_buffers_group_array",
-            Unit_Buffers_Array_Name (+Prj.Prj_Name));
+            Unit_Buffers_Array_Name (Project.Project.Root_Project.Name));
 
          --  Emit the procedure to write the trace file
 
@@ -3635,18 +3820,26 @@ package body Instrument.C is
 
          File.Put_Line (Indent1 & Output_Proc & " (");
          File.Put_Line
-           (Indent2 & "&"
-            & Unit_Buffers_Array_Name (+Prj.Prj_Name) & ",");
+             (Indent2 & "&"
+              & Unit_Buffers_Array_Name (Project.Project.Root_Project.Name)
+              & ",");
          case Dump_Config.Channel is
          when Binary_File =>
             declare
+               use GNATCOLL.VFS;
+
                Env_Var : constant String :=
                  (if US.Length (Dump_Config.Filename_Env_Var) = 0
                   then "GNATCOV_RTS_DEFAULT_TRACE_FILENAME_ENV_VAR"
                   else """" & (+Dump_Config.Filename_Env_Var) & """");
                Prefix  : constant String :=
-                 """" & (+Dump_Config.Filename_Prefix) & """";
-               Tag     : constant String := """" & (+Instrumenter.Tag) & """";
+                 (if US.Length (Dump_Config.Filename_Prefix) = 0
+                  then """" & String'(+Info.Project.Executable_Name
+                                (+(+Main.Filename),
+                                 Include_Suffix => True)) & """"
+                  else """" & (+Dump_Config.Filename_Prefix) & """");
+               Tag     : constant String :=
+                 """" & Trace_Filename_Tag & """";
                Simple  : constant String :=
                  (if Dump_Config.Filename_Simple then "1" else "0");
             begin
@@ -3688,18 +3881,21 @@ package body Instrument.C is
    -------------------------------
 
    overriding procedure Auto_Dump_Buffers_In_Main
-     (Self          : in out C_Family_Instrumenter_Type;
-      Filename      : String;
-      Dump_Config   : Any_Dump_Config;
-      Prj           : Prj_Desc)
+     (Self        : in out C_Family_Instrumenter_Type;
+      Filename    : String;
+      Instr_Units : CU_Name_Vectors.Vector;
+      Dump_Config : Any_Dump_Config;
+      Info        : in out Project_Info)
    is
+
       Helper_Filename : US.Unbounded_String;
       --  Name of file to contain helpers implementing the buffers dump
 
       Rew  : C_Source_Rewriter;
-      Main : constant Compilation_Unit_Part :=
+      Main : constant Compilation_Unit_Name :=
         (Language_Kind => File_Based_Language,
-         Filename      => +Ada.Directories.Full_Name (Filename));
+         Filename      => +Ada.Directories.Simple_Name (Filename),
+         Project_Name  => +Info.Project.Name);
 
       Insert_Extern_Location : Source_Location_T;
       --  Where to insert extern declarations
@@ -3707,19 +3903,18 @@ package body Instrument.C is
       Main_Cursor : Cursor_T;
       --  Cursor of the main declaration
    begin
-      Rew.Start_Rewriting (Filename, Self, Prj);
+      Rew.Start_Rewriting (Info, Filename, Self);
 
       Insert_Extern_Location :=
         Start_Sloc (Get_Translation_Unit_Cursor (Rew.TU));
       Main_Cursor := Get_Main (Rew.TU);
       if Main_Cursor = Get_Null_Cursor then
-         Outputs.Fatal_Error
-           ("Could not find main function in "
-            & (Ada.Directories.Simple_Name (+Main.Filename)));
+         Outputs.Fatal_Error ("Could not find main function in "
+                              & (+Main.Filename));
       end if;
 
       Emit_Dump_Helper_Unit
-        (Dump_Config, Main, Helper_Filename, Self, Prj);
+        (Dump_Config, Info, Main, Helper_Filename, Self);
 
       Put_Extern_Decl
         (Rew.Rewriter,
@@ -4006,34 +4201,30 @@ package body Instrument.C is
         (Format_Extern_Decl (Instrumenter, C_Type, Name, Func_Args));
    end Put_Extern_Decl;
 
-   overriding procedure Emit_Buffers_List_Unit
-     (Self        : C_Family_Instrumenter_Type;
-      Instr_Units : Unit_Sets.Set;
-      Prj         : Prj_Desc)
-   is
-      Base_Filename  : constant String :=
-        "gnatcov_rts_c-buffers-lists-" & (+Prj.Prj_Name);
-      CU_Name_Body   : constant String :=
-        Base_Filename
-        & (+Prj.Body_Suffix
-           (C_Family_Instrumenter_Type'Class (Self).Language));
-      CU_Name_Header : constant String :=
-        Base_Filename
-        & (+Prj.Spec_Suffix
-           (C_Family_Instrumenter_Type'Class (Self).Language));
+   ----------------------------
+   -- Emit_Buffers_List_Unit --
+   ----------------------------
 
-      File_Body   : Text_Files.File_Type;
-      File_Header : Text_Files.File_Type;
+   overriding procedure Emit_Buffers_List_Unit
+     (Self              : C_Family_Instrumenter_Type;
+      Root_Project_Info : in out Project_Info;
+      Instr_Units       : CU_Name_Vectors.Vector)
+   is
+      Project_Name : String renames Root_Project_Info.Project.Name;
+      CU_Name_Body : constant String :=
+        "gnatcov_rts_c-buffers-lists-" & Project_Name
+        & Source_Suffix (Self, GPR.Unit_Body, Root_Project_Info.Project);
+      File_Body    : Text_Files.File_Type;
 
       Buffer_Array_Decl  : constant String :=
         "const struct gnatcov_rts_coverage_buffers_group_array "
-        & Unit_Buffers_Array_Name (+Prj.Prj_Name);
+        & Unit_Buffers_Array_Name (Project_Name);
       Buffer_Unit_Length : constant String :=
         Count_Type'Image (Instr_Units.Length);
    begin
       --  Emit the body to contain the list of buffers
 
-      Create_File (Prj, File_Body, CU_Name_Body);
+      Create_File (Root_Project_Info, File_Body, CU_Name_Body);
 
       File_Body.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
 
@@ -4047,33 +4238,308 @@ package body Instrument.C is
             Unit_Buffers_Name (Instr_Unit));
       end loop;
 
-      --  Then create an extern declaration for the buffer array (necessary in
-      --  C++ to set the C linkage), and finally the definition for that array.
+      --  Then create an extern declaration for the buffer array (necessary
+      --  in C++ to set the C linkage), and finally the definition for that
+      --  array.
 
       File_Body.Put_Line (Self.Extern_Prefix & Buffer_Array_Decl & ";");
       File_Body.Put_Line (Buffer_Array_Decl & " = {");
       File_Body.Put_Line ("  " & Buffer_Unit_Length & ",");
       File_Body.Put_Line
         ("  (const struct gnatcov_rts_coverage_buffers_group *[]) {");
-      for Instr_Unit of Instr_Units loop
-         File_Body.Put ("    &" & Unit_Buffers_Name (Instr_Unit));
-         if Instr_Unit = Instr_Units.Last_Element then
-            File_Body.Put_Line ("}};");
-         else
-            File_Body.Put_Line (",");
-         end if;
+      for Cur in Instr_Units.Iterate loop
+         declare
+            use CU_Name_Vectors;
+         begin
+            File_Body.Put ("    &" & Unit_Buffers_Name (Element (Cur)));
+            if To_Index (Cur) = Instr_Units.Last_Index then
+               File_Body.Put_Line ("}};");
+            else
+               File_Body.Put_Line (",");
+            end if;
+         end;
+      end loop;
+   end Emit_Buffers_List_Unit;
+
+   ---------------------
+   -- Instrument_Unit --
+   ---------------------
+
+   overriding procedure Instrument_Unit
+     (Self      : in out C_Family_Instrumenter_Type;
+      CU_Name   : Compilation_Unit_Name;
+      Unit_Info : in out Instrumented_Unit_Info)
+   is
+      Prj_Info : Project_Info renames Unit_Info.Prj_Info.all;
+      UIC      : C_Unit_Inst_Context;
+   begin
+      Instrument_Source_File
+        (CU_Name      => CU_Name,
+         Unit_Info    => Unit_Info,
+         Instrumenter => Self,
+         Prj_Info     => Prj_Info,
+         UIC          => UIC);
+
+      --  Generate a buffer compilation unit defining coverage buffers that
+      --  will store execution witnesses. This CU is a C file rather than an
+      --  Ada file exporting the defined symboled to C. Indeed, we want it to
+      --  be compatible with a C-only compiler.
+
+      Emit_Buffer_Unit (Prj_Info, UIC, Self);
+   end Instrument_Unit;
+
+   ----------------------
+   -- Skip_Source_File --
+   ----------------------
+
+   overriding function Skip_Source_File
+     (Self        : C_Family_Instrumenter_Type;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean is
+   begin
+      --  Do not instrument C headers: code in C header is meant to be
+      --  instrumented at the time it is included in a ".c" source.
+
+      return Source_File.Unit_Part = Unit_Spec;
+   end Skip_Source_File;
+
+   -----------------
+   -- Add_Options --
+   -----------------
+
+   procedure Add_Options
+     (Args          : in out String_Vectors.Vector;
+      Options       : Analysis_Options;
+      Pass_Builtins : Boolean := True;
+      Preprocessed  : Boolean := False) is
+
+      procedure Add_Macro_Switches (Macros : Macro_Set);
+      --  Add the given macro switches to Args
+
+      ------------------------
+      -- Add_Macro_Switches --
+      ------------------------
+
+      procedure Add_Macro_Switches (Macros : Macro_Set) is
+      begin
+         for M of Macros loop
+            if M.Define then
+               Args.Append ("-D" & M.Name & M.Args & "=" & M.Value);
+            else
+               Args.Append ("-U" & M.Name);
+            end if;
+         end loop;
+      end Add_Macro_Switches;
+
+   begin
+      for Dir of Options.PP_Search_Path loop
+         Args.Append (+"-I");
+         Args.Append (Dir);
       end loop;
 
-      --  Emit the extern declaration of the buffers array in the header file
+      --  If the file was already pre-processed, do not pass macro command
+      --  line switches. Since preprocessed code can contain names of defined
+      --  macros, passing macro arguments for the parsing step could trigger
+      --  other expansions, and thus feed the parser with unexpected code.
 
-      Create_File (Prj, File_Header, CU_Name_Header);
+      if not Preprocessed then
 
-      Put_Extern_Decl
-        (File_Header,
-         Self,
-         "const struct gnatcov_rts_coverage_buffers_group_array",
-         Unit_Buffers_Array_Name (+Prj.Prj_Name));
-   end Emit_Buffers_List_Unit;
+         --  Add builtin macros before macros from command line switches, as
+         --  the latter should have precedence over builtins and thus must
+         --  come last in Args.
+
+         if Pass_Builtins then
+            Add_Macro_Switches (Options.Builtin_Macros);
+         end if;
+         Add_Macro_Switches (Options.PP_Macros);
+      end if;
+
+      --  The -std switch also indicates the C/C++ version used, and
+      --  influences both the configuration of the preprocessor, and the
+      --  parsing of the file.
+
+      if Length (Options.Std) /= 0 then
+         Args.Append (Options.Std);
+      end if;
+
+   end Add_Options;
+
+   -------------------------
+   -- Import_From_Project --
+   -------------------------
+
+   procedure Import_From_Project
+     (Self     : out Analysis_Options;
+      Language : C_Family_Language;
+      Info     : Project_Info;
+      Filename : String)
+   is
+      procedure Register_Source_Dirs (P : GNATCOLL.Projects.Project_Type);
+      --  Add the source directories of P's project file to the search paths
+      --  to be passed as -I arguments later. The order in which the paths are
+      --  added to the search paths vector is the same order in which GNATCOLL
+      --  retrieves the files in the project tree. gprbuild also depends on
+      --  GNATCOLL which ensures we have the same behavior here.
+
+      --------------------------
+      -- Register_Source_Dirs --
+      --------------------------
+
+      procedure Register_Source_Dirs (P : GNATCOLL.Projects.Project_Type) is
+      begin
+         for Dir of P.Source_Dirs loop
+            Self.PP_Search_Path.Append
+              (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir)));
+         end loop;
+      end Register_Source_Dirs;
+
+      Switches : GNAT.Strings.String_List_Access;
+
+   begin
+
+      --  Pass the source directories of the project file as -I options. Note
+      --  that this will duplicate with the project tree traversal below, but
+      --  we need this project source directories to be picked first. We thus
+      --  make sure to add them first to the PP_Search_Path list.
+
+      Register_Source_Dirs (Info.Project);
+
+      --  Pass the source directories of included projects as -I options
+
+      Project.Iterate_Projects
+        (Info.Project, Register_Source_Dirs'Access,
+         Recursive => True, Include_Extended => True);
+
+      --  Now get actual compiler switches from the project file for Filename.
+      --  First try to get the switches specifically for Filename, then if
+      --  there are none fall back to default switches for C.
+
+      Switches :=
+        Info.Project.Attribute_Value
+          (Attribute => GPR.Build ("compiler", "switches"),
+           Index     => Simple_Name (Filename));
+
+      if Switches = null then
+         Switches :=
+           Info.Project.Attribute_Value
+             (Attribute => GPR.Compiler_Default_Switches_Attribute,
+              Index     => Image (Language));
+      end if;
+
+      --  If we manage to find appropriate switches, convert them to a string
+      --  vector import the switches.
+
+      if Switches /= null then
+         declare
+            Args : String_Vectors.Vector;
+         begin
+            for S of Switches.all loop
+               Args.Append (To_Unbounded_String (S.all));
+            end loop;
+            GNAT.Strings.Free (Switches);
+            Import_From_Args (Self, Args);
+         end;
+      end if;
+   end Import_From_Project;
+
+   ----------------------
+   -- Import_From_Args --
+   ----------------------
+
+   procedure Import_From_Args
+     (Self : in out Analysis_Options; Args : String_Vectors.Vector)
+   is
+      I    : Natural := Args.First_Index;
+      Last : constant Integer := Args.Last_Index;
+
+      function Read_With_Argument
+        (Arg         : String;
+         Option_Name : Character;
+         Value       : out Unbounded_String) return Boolean;
+      --  Assuming that Arg starts with "-X" where X is Option_Name, try to
+      --  fetch the value for this option. If we managed to get one, return
+      --  True and set Value to it. Return False otherwise.
+
+      ------------------------
+      -- Read_With_Argument --
+      ------------------------
+
+      function Read_With_Argument
+        (Arg         : String;
+         Option_Name : Character;
+         Value       : out Unbounded_String) return Boolean
+      is
+         Prefix : constant String := "-" & Option_Name;
+      begin
+         if Arg = Prefix then
+
+            --  Option and value are two separate arguments (-O VALUE)
+
+            I := I + 1;
+            if I <= Last then
+               Value := Args (I);
+               return True;
+            end if;
+
+         elsif Has_Prefix (Arg, Prefix) then
+
+            --  Option and value are combined in a single argument (-OVALUE)
+
+            Value := +Arg (Arg'First + Prefix'Length .. Arg'Last);
+            return True;
+         end if;
+
+         return False;
+      end Read_With_Argument;
+
+   --  Start of processing for Import_From_Args
+
+   begin
+      while I <= Last loop
+         declare
+            A     : constant String := +Args (I);
+            Value : Unbounded_String;
+         begin
+
+            --  Process arguments we manage to handle, silently discard unknown
+            --  ones.
+            --
+            --  TODO??? In order to avoid surprising situations for users (for
+            --  instance typos in command line arguments), maybe we should emit
+            --  a warning for unknown arguments. However, given that this
+            --  procedure is called at least once per instrumented source file,
+            --  we would need to avoid emitting duplicate warnings.
+
+            if Read_With_Argument (A, 'I', Value) then
+               Self.PP_Search_Path.Append (Value);
+
+            elsif Read_With_Argument (A, 'D', Value) then
+               declare
+                  Macro_Def : Macro_Definition (Define => True);
+                  Success   : Boolean;
+               begin
+                  Parse_Cmdline_Macro_Definition
+                    (Str        => +Value,
+                     Parsed_Def => Macro_Def,
+                     Success    => Success);
+                  if Success then
+                     Self.PP_Macros.Include (Macro_Def);
+                  else
+                     Warn ("Failed to parse command-line macro definition: "
+                           & (+Value));
+                  end if;
+               end;
+
+            elsif Read_With_Argument (A, 'U', Value) then
+               Self.PP_Macros.Include ((Define => False, Name => Value));
+
+            elsif Has_Prefix (A, "-std=") then
+               Self.Std := +A;
+            end if;
+
+            I := I + 1;
+         end;
+      end loop;
+   end Import_From_Args;
 
    ----------------
    -- Split_Args --
@@ -4145,31 +4611,18 @@ package body Instrument.C is
    --------------------
 
    procedure Import_Options
-     (Self         : out Analysis_Options;
-      Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
-      Filename     : String)
+     (Self     : out Analysis_Options;
+      Language : C_Family_Language;
+      Info     : Project_Info;
+      Filename : String)
    is
       Cmdline_Opts : constant String_Vectors.Vector :=
         To_String_Vector
-          (case C_Family_Language (Instrumenter.Language) is
+          (case Language is
               when C_Language   => C_Opts,
               when CPP_Language => CPP_Opts);
-      Prj_Options  : String_Vectors.Vector;
    begin
-      --  Grab the options from the project description. Note that the project
-      --  description is filled with compiler options in the -j1
-      --  implementation. Otherwise, the compiler switches in the project files
-      --  are passed through the command line directly.
-
-      if Prj.Compiler_Options_Unit.Contains (+Filename) then
-         Prj_Options.Append (Prj.Compiler_Options_Unit.Element (+Filename));
-      else
-         Prj_Options.Append (Prj.Compiler_Options (Instrumenter.Language));
-      end if;
-      Prj_Options.Append (Prj.Search_Paths);
-
-      Import_From_Args (Self, Prj_Options);
+      Import_From_Project (Self, Language, Info, Filename);
       for Args of Cmdline_Opts loop
          Import_From_Args (Self, Split_Args (Args));
       end loop;
@@ -4179,10 +4632,10 @@ package body Instrument.C is
 
       Self.Builtin_Macros :=
         Builtin_Macros
-          (Image (C_Family_Language (Instrumenter.Language)),
-           +Prj.Compiler_Driver (Instrumenter.Language),
+          (Image (Language),
+           Compiler_Driver (Info.Project, Language),
            +Self.Std,
-           +Prj.Output_Dir).all;
+           +Info.Output_Dir).all;
    end Import_Options;
 
    ---------------------------
@@ -4210,29 +4663,34 @@ package body Instrument.C is
       --  if it is missing.
 
       declare
+         use GNATCOLL.VFS;
          use Source_Of_Interest_Maps;
 
-         Cur : constant Cursor := UIC.Sources_Of_Interest_Info.Find (File);
+         Cur : constant Cursor := UIC.Sources_Of_Interest.Find (File);
          SOI : Source_Of_Interest;
+         FI  : GNATCOLL.Projects.File_Info;
       begin
          if Has_Element (Cur) then
-            return UIC.Sources_Of_Interest_Info.Reference (Cur).Of_Interest;
+            return UIC.Sources_Of_Interest.Reference (Cur).Of_Interest;
          end if;
 
          --  Consider that File is of interest iff it belongs to a loaded
-         --  project. TODO???: this should also consider units of interest
-         --  switches.
+         --  project.
 
-         if UIC.Files_Of_Interest.Contains (File) then
+         FI := Project.Project.Info (Create (+To_String (File)));
+         if FI.Project /= No_Project then
             SOI :=
               (Of_Interest  => True,
                SFI          => Get_Index_From_Generic_Name
                                  (+File, Source_File),
-               CU_Name      => CU_Name_For_File (File));
+               CU_Name      =>
+                 CU_Name_For_File
+                   (Filename     => +Simple_Name (+File),
+                    Project_Name => UIC.Instrumented_Unit.Project_Name));
          else
             SOI := (Of_Interest => False);
          end if;
-         UIC.Sources_Of_Interest_Info.Insert (File, SOI);
+         UIC.Sources_Of_Interest.Insert (File, SOI);
 
          return SOI.Of_Interest;
       end;

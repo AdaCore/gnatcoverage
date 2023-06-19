@@ -77,11 +77,9 @@ package Strings is
       "="          => Ada.Strings.Unbounded.Equal_Case_Insensitive);
    --  Case insensitive string set
 
-   function To_String_Set (V : String_Vectors.Vector) return String_Sets.Set;
-   --  Convert the given strings vector to a strings set
-
    function Vector_To_List
-     (V : String_Vectors.Vector) return String_List_Access;
+     (V : String_Vectors.Vector)
+      return String_List_Access;
 
    --  The stream type below allows arbitrary objects to be streamed
    --  from/to an unbounded string, which is used as a buffer of bytes.
@@ -89,11 +87,11 @@ package Strings is
    procedure Match_Pattern_List
      (Patterns_List        : String_Vectors.Vector;
       Strings_List         : in out String_Vectors.Vector;
-      Patterns_Not_Covered : in out String_Sets.Set);
+      Patterns_Not_Covered : out String_Vectors.Vector);
    --  Try matching each pattern of Patterns_List against each item of
    --  Strings_List (case-insensitively). Every item not matched is removed
-   --  from Strings_List. Also, each pattern that matched at least once is
-   --  removed from Patterns_Not_Covered.
+   --  from Strings_List. Also, each pattern that did not match at least once
+   --  is returned in Patterns_Not_Covered.
 
    type Unbounded_String_Stream
      (S : access Ada.Strings.Unbounded.Unbounded_String)

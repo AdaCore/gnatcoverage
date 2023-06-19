@@ -63,8 +63,6 @@ package body Instrument.Ada_Unit_Provider is
                  Get_Line (Dependencies_File);
             begin
                Provider.Unit_Map.Insert (To_Lower (Unit_Name), File_Fullname);
-               Provider.Filename_Map.Insert
-                 (File_Fullname, To_Lower (Unit_Name));
             end;
          end loop;
       exception
@@ -197,23 +195,5 @@ package body Instrument.Ada_Unit_Provider is
          end;
       end if;
    end Get_Unit;
-
-   --------------
-   -- Has_Unit --
-   --------------
-
-   function Has_Unit
-     (Provider  : Provider_Type;
-      Unit_Name : String;
-      Unit_Part : Unit_Parts) return Boolean
-   is
-      Unit_Name_And_Part : constant String :=
-        To_Lower (Unit_Name)
-        & (case Unit_Part is
-              when Unit_Spec => "%s",
-              when others    => "%b");
-   begin
-      return Provider.Unit_Map.Contains (Unit_Name_And_Part);
-   end Has_Unit;
 
 end Instrument.Ada_Unit_Provider;

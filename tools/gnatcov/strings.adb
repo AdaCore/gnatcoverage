@@ -93,20 +93,6 @@ package body Strings is
    end Has_Suffix;
 
    --------------------
-   -- To_String_Sets --
-   --------------------
-
-   function To_String_Set (V : String_Vectors.Vector) return String_Sets.Set
-   is
-      Result : String_Sets.Set;
-   begin
-      for Elem of V loop
-         Result.Include (Elem);
-      end loop;
-      return Result;
-   end To_String_Set;
-
-   --------------------
    -- Vector_To_List --
    --------------------
 
@@ -177,7 +163,7 @@ package body Strings is
    procedure Match_Pattern_List
      (Patterns_List        : String_Vectors.Vector;
       Strings_List         : in out String_Vectors.Vector;
-      Patterns_Not_Covered : in out String_Sets.Set)
+      Patterns_Not_Covered : out String_Vectors.Vector)
    is
       use Ada.Characters.Handling;
       use Ada.Strings.Unbounded;
@@ -186,6 +172,10 @@ package body Strings is
       Pattern_Length : constant Natural := Natural (Patterns_List.Length);
       Regexps        : array (0 .. Pattern_Length - 1) of GNAT.Regexp.Regexp;
       --  List of regexps, one for each pattern in Patterns_List
+
+      Regexps_Covered : array (0 .. Pattern_Length - 1) of Boolean :=
+        (others => False);
+      --  Record which Regexp of Regexps matched at least once
 
       Matching_Strings : String_Vectors.Vector;
       --  Result holder for Strings_List
@@ -212,18 +202,9 @@ package body Strings is
                end if;
 
                --  A unit matching this pattern was found; the pattern is
-               --  covered. Remove it from Patterns_Not_Covered.
+               --  covered.
 
-               declare
-                  Pattern : constant Unbounded_String :=
-                    Patterns_List.Element (I);
-                  Cur     : String_Sets.Cursor :=
-                    Patterns_Not_Covered.Find (Pattern);
-               begin
-                  if String_Sets.Has_Element (Cur) then
-                     Patterns_Not_Covered.Delete (Cur);
-                  end if;
-               end;
+               Regexps_Covered (I) := True;
 
                --  Continue the search in case other patterns match Str so that
                --  we can mark them as covered as well.
@@ -246,6 +227,12 @@ package body Strings is
       --  Return the matched strings and the patterns not covered
 
       Strings_List := Matching_Strings;
+
+      for I in Regexps_Covered'Range loop
+         if not Regexps_Covered (I) then
+            Patterns_Not_Covered.Append (Patterns_List.Element (I));
+         end if;
+      end loop;
 
    end Match_Pattern_List;
 

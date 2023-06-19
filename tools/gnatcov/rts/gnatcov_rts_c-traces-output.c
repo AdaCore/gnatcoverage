@@ -118,13 +118,14 @@ write_entry (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 {
   struct trace_entry_header header;
   header.unit_name_length = (uint32_t) buffers->unit_name.length;
+  header.project_name_length = (uint32_t) buffers->project_name.length;
   header.statement_bit_count = (uint32_t) buffers->statement_last_bit + 1;
   header.decision_bit_count = (uint32_t) buffers->decision_last_bit + 1;
   header.mcdc_bit_count = (uint32_t) buffers->mcdc_last_bit + 1;
   header.language_kind = (uint8_t) buffers->language_kind;
   header.unit_part = (uint8_t) buffers->unit_part;
   header.bit_buffer_encoding = GNATCOV_RTS_LSB_FIRST_BYTES;
-  memset (header.padding, 0, 5);
+  memset (header.padding, 0, 1);
   memcpy (&header.fingerprint, buffers->fingerprint, FINGERPRINT_SIZE);
   memcpy (&header.bit_maps_fingerprint, buffers->bit_maps_fingerprint,
 	  FINGERPRINT_SIZE);
@@ -132,6 +133,9 @@ write_entry (gnatcov_rts_write_bytes_callback write_bytes, void *output,
   write_bytes (output, (char *) &header, sizeof (header));
   write_bytes (output, buffers->unit_name.str, buffers->unit_name.length);
   write_padding (write_bytes, output, buffers->unit_name.length);
+  write_bytes (output, buffers->project_name.str,
+	       buffers->project_name.length);
+  write_padding (write_bytes, output, buffers->project_name.length);
   write_buffer (write_bytes, output, buffers->statement,
 		buffers->statement_last_bit + 1);
   write_buffer (write_bytes, output, buffers->decision,

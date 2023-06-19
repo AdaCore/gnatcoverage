@@ -20,9 +20,13 @@
 
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Finalization;
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
+
+with GNATCOLL.Projects;
 
 with Namet; use Namet;
 
@@ -39,22 +43,26 @@ package Instrument.C is
      abstract new Language_Instrumenter with null record;
    --  Common instrumentation primitives for C/C++
 
+   overriding function Skip_Source_File
+     (Self        : C_Family_Instrumenter_Type;
+      Source_File : GNATCOLL.Projects.File_Info) return Boolean;
+
    overriding procedure Instrument_Unit
-     (Self              : in out C_Family_Instrumenter_Type;
-      Unit_Name         : String;
-      Prj               : Prj_Desc;
-      Files_Of_Interest : String_Sets.Set);
+     (Self      : in out C_Family_Instrumenter_Type;
+      CU_Name   : Compilation_Unit_Name;
+      Unit_Info : in out Instrumented_Unit_Info);
 
    overriding procedure Auto_Dump_Buffers_In_Main
      (Self        : in out C_Family_Instrumenter_Type;
       Filename    : String;
+      Instr_Units : CU_Name_Vectors.Vector;
       Dump_Config : Any_Dump_Config;
-      Prj         : Prj_Desc);
+      Info        : in out Project_Info);
 
    overriding procedure Emit_Buffers_List_Unit
-     (Self        : C_Family_Instrumenter_Type;
-      Instr_Units : Unit_Sets.Set;
-      Prj         : Prj_Desc);
+     (Self              : C_Family_Instrumenter_Type;
+      Root_Project_Info : in out Project_Info;
+      Instr_Units       : CU_Name_Vectors.Vector);
 
    function Extern_Prefix
      (Self : C_Family_Instrumenter_Type) return String
@@ -69,12 +77,6 @@ package Instrument.C is
      (Self : C_Instrumenter_Type) return Src_Supported_Language
    is (C_Language);
 
-   function Create_C_Instrumenter
-     (Tag : Unbounded_String) return C_Instrumenter_Type
-   is (C_Instrumenter_Type'(Tag => Tag));
-   --  Create a C instrumenter. See the definition of the
-   --  Language_Instrumenter type for the arguments semantic.
-
    type CPP_Instrumenter_Type is
      new C_Family_Instrumenter_Type with null record;
    --  Instrumentation primitives for C++
@@ -86,12 +88,6 @@ package Instrument.C is
    overriding function Extern_Prefix
      (Self : CPP_Instrumenter_Type) return String
    is ("extern ""C"" ");
-
-   function Create_CPP_Instrumenter
-     (Tag : Unbounded_String) return CPP_Instrumenter_Type
-   is (CPP_Instrumenter_Type'(Tag => Tag));
-   --  Create a C++ instrumenter. See the definition of the
-   --  Language_Instrumenter type for the arguments semantic.
 
    type Instr_Scheme_Type is (Instr_Stmt, Instr_Expr);
    --  Depending on the statement construct, we can instrument it either with
@@ -236,14 +232,81 @@ package Instrument.C is
      (Key_Type     => Nat,
       Element_Type => PP_Info);
 
+   type Macro_Definition (Define : Boolean := True) is record
+      Name : Unbounded_String;
+      --  Name of the macro
+
+      case Define is
+         when True =>
+            Args : Unbounded_String;
+            --  String representation of the macro arguments, e.g. (x, y)
+
+            Value : Unbounded_String;
+            --  Value for the macro definition
+
+         when False =>
+            null;
+      end case;
+   end record;
+   --  Whether a macro should be defined, its name, and when it must be
+   --  defined, its optional arguments and value.
+
+   function "<" (L, R : Macro_Definition) return Boolean is (L.Name < R.Name);
+   --  As we store Macro_Definition in sets, we do not want two conflicting
+   --  definitions of the same macro to coexist. Thus, we compare only the
+   --  name, meaning that when we insert a new definition, it will replace
+   --  the previous one.
+
+   package Macro_Sets is new Ada.Containers.Ordered_Sets (Macro_Definition);
+   subtype Macro_Set is Macro_Sets.Set;
+
+   type Analysis_Options is record
+      PP_Search_Path : String_Vectors.Vector;
+      --  List of directories to search when looking for an included file
+
+      Builtin_Macros : Macro_Set;
+      --  Set of predefined macros for the project compiler driver
+
+      PP_Macros : Macro_Set;
+      --  Set of macros for the preprocessor
+
+      Std : Unbounded_String;
+      --  -std=X argument to pass to the preprocessor and the parser, or the
+      --  empty string.
+   end record;
+   --  Options to analyze (preprocess and/or parse) a compilation unit
+
+   procedure Add_Options
+     (Args          : in out String_Vectors.Vector;
+      Options       : Analysis_Options;
+      Pass_Builtins : Boolean := True;
+      Preprocessed  : Boolean := False);
+   --  Append to Args the command line options corresponding to Options. If
+   --  Pass_Builtins is True, pass builtin macros in Options to Args. If
+   --  Preprocessed is True, consider that we will use these options on a
+   --  file that was already preprocessed.
+
+   procedure Import_From_Project
+     (Self     : out Analysis_Options;
+      Language : C_Family_Language;
+      Info     : Project_Info;
+      Filename : String);
+   --  Initialize Self from compiler switches corresponding to the Filename
+   --  source file in the Info project.
+
+   procedure Import_From_Args
+     (Self : in out Analysis_Options; Args : String_Vectors.Vector);
+   --  Extract analysis options from the Args command line arguments and update
+   --  Self accordingly.
+
    function Split_Args (Args : Unbounded_String) return String_Vectors.Vector;
    --  Split a comma-separated list of arguments
 
    procedure Import_Options
-     (Self         : out Analysis_Options;
-      Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
-      Filename     : String);
+     (Self     : out Analysis_Options;
+      Language : C_Family_Language;
+      Info     : Project_Info;
+      Filename : String);
    --  Shortcut to call Import_From_Project, and Import_From_Args on the
    --  --c-opts/--c++-opts option.
 
@@ -253,7 +316,7 @@ package Instrument.C is
             null;
          when True =>
             SFI     : Valid_Source_File_Index;
-            CU_Name : Compilation_Unit_Part;
+            CU_Name : Compilation_Unit_Name;
       end case;
    end record;
    --  Descriptor for a source file: Of_Interest determines if we should
@@ -298,8 +361,7 @@ package Instrument.C is
          LL_PP_Info_Map : LL_SCO_PP_Info_Maps.Map;
          --  Preprocessing information for low level SCOs
 
-         Files_Of_Interest        : String_Sets.Set;
-         Sources_Of_Interest_Info : Source_Of_Interest_Maps.Map;
+         Sources_Of_Interest : Source_Of_Interest_Maps.Map;
          --  Records for each source file processed during the instrumentation
          --  whether it is a source of interest, and some properties if it is.
 

@@ -16,7 +16,4 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-package body Instrument.Ada_Unit is
-begin
-   Builtin_Support (Ada_Language) := False;
-end Instrument.Ada_Unit;
+pragma No_Body;

@@ -262,22 +262,6 @@ package body Inputs is
       return Res;
    end To_String_Vector;
 
-   -------------------
-   -- To_String_Set --
-   -------------------
-
-   function To_String_Set
-     (Inputs : Inputs_Type) return String_Sets.Set
-   is
-      use String_Sets;
-      Res : Set;
-   begin
-      for IE of Inputs loop
-         Res.Include (+IE.Name.all);
-      end loop;
-      return Res;
-   end To_String_Set;
-
    --------------------
    -- Create_Matcher --
    --------------------

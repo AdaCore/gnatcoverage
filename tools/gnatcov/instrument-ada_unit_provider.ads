@@ -65,14 +65,9 @@ package Instrument.Ada_Unit_Provider is
 
    overriding procedure Release (Provider : in out Provider_Type) is null;
 
-   function Has_Unit
-     (Provider  : Provider_Type;
-      Unit_Name : String;
-      Unit_Part : Unit_Parts) return Boolean;
-   --  Returns whether given unit is in the provider unit closure
-
 private
 
+   use US;
    use type GNATCOLL.VFS.Virtual_File;
 
    package String_Maps is new Ada.Containers.Indefinite_Hashed_Maps
@@ -85,9 +80,6 @@ private
    with record
       Unit_Map : String_Maps.Map;
       --  Mapping from unit name to file fullnames
-
-      Filename_Map  : String_Maps.Map;
-      --  Mapping from file fullnames to unit names
 
       Runtime_Files : String_Maps.Map;
       --  Mapping from a runtime file basename to its fullname

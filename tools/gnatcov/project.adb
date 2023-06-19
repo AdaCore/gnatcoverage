@@ -16,11 +16,14 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
+with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Hash;
 with Ada.Tags;
 with Ada.Text_IO;             use Ada.Text_IO;
 
@@ -31,17 +34,16 @@ with GNATCOLL.Traces;
 with GNATCOLL.Projects.Aux;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with Command_Line;        use Command_Line;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
-with Inputs;              use Inputs;
 with Instrument;          use Instrument;
+with Inputs;              use Inputs;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
 
 package body Project is
 
-   subtype Compilation_Unit is Files_Table.Compilation_Unit;
-   use type Compilation_Unit;
+   subtype Project_Unit is Files_Table.Project_Unit;
+   use type Project_Unit;
 
    Coverage_Package      : aliased String := "coverage";
    Coverage_Package_List : aliased String_List :=
@@ -137,6 +139,14 @@ package body Project is
       --  Whether we found at least one source file in the projects of interest
       --  that matches this unit.
 
+      Is_Stub : Boolean;
+      --  Whether this record describes a source file that is not a bona fide
+      --  unit of interest: a subunit (Ada) or a header file (C/C++).
+      --
+      --  Such source files are not units of their own (in particular they
+      --  don't have their own LI file), but we still need them to appear in
+      --  unit lists, for reporting purposes.
+
       Language : Some_Language;
       --  Language for this unit
 
@@ -148,7 +158,7 @@ package body Project is
    end record;
 
    package Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
-     (Key_Type     => Compilation_Unit,
+     (Key_Type     => Project_Unit,
       Element_Type => Unit_Info);
 
    procedure Add_Unit
@@ -158,7 +168,7 @@ package body Project is
       Info           : File_Info;
       Language       : Some_Language);
    --  Add a Unit_Info entry to Units. The key for this new entry (which is a
-   --  Compilation_Unit) is computed using the Original_Name, and the
+   --  Project_Unit) is computed using the Original_Name, and the
    --  Info.Project_Name if the unit is of a file-based language.
 
    procedure Warn_Missing_Info (What_Info : String; Unit : in out Unit_Info);
@@ -166,9 +176,7 @@ package body Project is
    --  Unit.
 
    Unit_Map : Unit_Maps.Map;
-   --  Map lower-case unit names to Unit_Info records for all units of
-   --  interest. This map contains header files (C/C++) but does not contain
-   --  separate (Ada) units.
+   --  Map lower-case unit names to Unit_Info records for all units of interest
 
    procedure Initialize
      (Target, Runtime, CGPR_File : GNAT.Strings.String_Access)
@@ -226,38 +234,27 @@ package body Project is
    --  Note that this also returns source files for mains that are not units of
    --  interest.
 
-   ----------------------
-   -- Owning_Unit_Name --
-   ----------------------
+   function Runtime_Has_File (Filename : Filesystem_String) return Boolean;
+   --  Return whether Filename can be found among the sources of the
+   --  configured Ada runtime.
 
-   function Owning_Unit_Name (Info : File_Info) return String is
-   begin
-      if Info.Unit_Part = Unit_Separate then
-         return Prj_Tree.Info (Prj_Tree.Other_File (Info.File)).Unit_Name;
-      else
-         return Info.Unit_Name;
-      end if;
-   end Owning_Unit_Name;
+   ---------------------
+   -- To_Project_Unit --
+   ---------------------
 
-   -------------------------
-   -- To_Compilation_Unit --
-   -------------------------
-
-   function To_Compilation_Unit
-     (Info : File_Info) return Files_Table.Compilation_Unit
+   function To_Project_Unit
+     (Unit_Name : String;
+      Project   : Project_Type;
+      Language  : Some_Language) return Files_Table.Project_Unit
    is
-      Language : constant Some_Language := To_Language (Info.Language);
-      U        : Compilation_Unit;
+      U : Project_Unit (Language_Kind (Language));
    begin
-      U.Language := Language_Kind (Language);
-      case U.Language is
-         when File_Based_Language =>
-            U.Unit_Name := +(+Info.File.Full_Name);
-         when Unit_Based_Language =>
-            U.Unit_Name := +Owning_Unit_Name (Info);
-      end case;
+      U.Unit_Name := +Unit_Name;
+      if U.Language = File_Based_Language then
+         U.Project_Name := +Project.Name;
+      end if;
       return U;
-   end To_Compilation_Unit;
+   end To_Project_Unit;
 
    ---------
    -- "+" --
@@ -289,27 +286,30 @@ package body Project is
       Info           : File_Info;
       Language       : Some_Language)
    is
+      Unit_Part : constant Unit_Parts := Info.Unit_Part;
+      Is_Stub   : constant Boolean :=
+        (case Language is
+         when C_Family_Language => Unit_Part = Unit_Spec,
+         when Ada_Language      => Unit_Part = Unit_Separate);
+
       Orig_Name : constant Unbounded_String :=
         +Fold_Filename_Casing (Original_Name);
-      Unit_Name : constant Compilation_Unit := To_Compilation_Unit (Info);
+      Unit_Name : constant Project_Unit :=
+        To_Project_Unit (Original_Name, Info.Project, Language);
 
       Ignored_Inserted : Boolean;
-      Is_Header        : Boolean := False;
    begin
-      --  Disable warnings for header files as they do not have a corresponding
+      --  Disable warnings for stub units as they do not have a corresponding
       --  library file.
-
-      if Language in C_Family_Language and then Info.Unit_Part = Unit_Spec then
-         Is_Header := True;
-      end if;
 
       Units.Insert
         (Key      => Unit_Name,
          New_Item => (Original_Name             => Orig_Name,
                       Present_In_Projects       => False,
+                      Is_Stub                   => Is_Stub,
                       Language                  => Language,
-                      LI_Seen                   => Is_Header,
-                      Warned_About_Missing_Info => Is_Header),
+                      LI_Seen                   => Is_Stub,
+                      Warned_About_Missing_Info => Is_Stub),
          Position => Cur,
          Inserted => Ignored_Inserted);
    end Add_Unit;
@@ -467,14 +467,50 @@ package body Project is
    ---------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : Files_Table.Compilation_Unit))
+     (Callback : access procedure (Name    : Files_Table.Project_Unit;
+                                   Is_Stub : Boolean))
    is
       use Unit_Maps;
    begin
       for Cur in Unit_Map.Iterate loop
-         Callback (Key (Cur));
+         declare
+            Info : Unit_Info renames Reference (Unit_Map, Cur);
+         begin
+            Callback (Key (Cur), Info.Is_Stub);
+         end;
       end loop;
    end Enumerate_Units_Of_Interest;
+
+   -------------------------
+   -- Is_Unit_Of_Interest --
+   -------------------------
+
+   function Is_Unit_Of_Interest
+     (Project   : Project_Type;
+      Unit_Name : String;
+      Language  : Some_Language) return Boolean
+   is
+      U : constant Project_Unit :=
+        To_Project_Unit (Unit_Name, Project, Language);
+   begin
+      return Unit_Map.Contains (U);
+   end Is_Unit_Of_Interest;
+
+   -------------------------
+   -- Is_Unit_Of_Interest --
+   -------------------------
+
+   function Is_Unit_Of_Interest (Full_Name : String) return Boolean is
+      FI        : constant File_Info :=
+        Prj_Tree.Info (Create (+Full_Name));
+      Unit_Name : constant String :=
+        (case Language_Kind (To_Language (FI.Language)) is
+         when Unit_Based_Language => FI.Unit_Name,
+         when File_Based_Language => +FI.File.Base_Name);
+   begin
+      return Is_Unit_Of_Interest
+        (FI.Project, Unit_Name, To_Language (FI.Language));
+   end Is_Unit_Of_Interest;
 
    -------------------------
    -- Enumerate_SCO_Files --
@@ -503,8 +539,23 @@ package body Project is
             declare
                use Unit_Maps;
 
+               LI_Source_Unit : constant String := LI.Source.Unit_Name;
+               LI_Source_File : constant String := +LI.Source.File.Base_Name;
+
+               U  : constant String :=
+                 (if LI_Source_Unit'Length > 0
+                  then LI_Source_Unit
+                  else LI_Source_File);
+               --  For unit-based languages (Ada), retrieve unit name from
+               --  SCOs file. For file-based languages (C), fall back to
+               --  translation unit source file name instead.
+
                Cur : constant Cursor :=
-                 Unit_Map.Find (To_Compilation_Unit (LI.Source.all));
+                 Unit_Map.Find
+                   (To_Project_Unit
+                      (U,
+                       Project_Type (LI.LI_Project.all),
+                       To_Language (LI.Source.Language)));
             begin
                if Has_Element (Cur) then
                   Callback.all (+LI.Library_File.Full_Name);
@@ -548,30 +599,17 @@ package body Project is
       -- Process_Source_File --
       -------------------------
 
-      procedure Process_Source_File (Info : File_Info; Unit_Name : String)
-      is
-         pragma Unreferenced (Unit_Name);
-         Info_Lang : constant Some_Language := To_Language (Info.Language);
+      procedure Process_Source_File (Info : File_Info; Unit_Name : String) is
       begin
-         if Language = All_Languages or else Language = Info_Lang then
-
-            --  If this is a header, consider it a unit of interest. For now,
-            --  they can only be ignored through the --ignore-source-files
-            --  switch.
-
-            if (Language_Kind (Info_Lang) = File_Based_Language
-                and then Info.Unit_Part = Unit_Spec)
-
-              --  Otherwise, check if the unit is in the units of interest
-              --  map
-
-              or else
-                (Unit_Map.Contains (To_Compilation_Unit (Info))
-                 and then (Info.Unit_Part /= Unit_Separate
-                           or else Include_Stubs))
-            then
-               Callback (Info.Project, Info);
-            end if;
+         if (Language = All_Languages
+               or else
+             Language = To_Language (Info.Language))
+           and then
+             (Include_Stubs
+              or else Is_Unit_Of_Interest
+                (Info.Project, Unit_Name, To_Language (Info.Language)))
+         then
+            Callback (Info.Project, Info);
          end if;
       end Process_Source_File;
 
@@ -612,6 +650,51 @@ package body Project is
          end if;
       end;
    end Find_Source_File;
+
+   ----------------------
+   -- Runtime_Has_File --
+   ----------------------
+
+   function Runtime_Has_File (Filename : Filesystem_String) return Boolean is
+      Result_File : Virtual_File;
+      --  Virtual_File for Ada.Finalization. Only search predefined sources.
+      Ambiguous   : Boolean;
+      --  Required in the call for GNATCOLL.Projects.Create
+   begin
+      GNATCOLL.Projects.Create
+        (Self            => Prj_Tree.all,
+         Name            => Filename,
+         Use_Object_Path => False,
+         Ambiguous       => Ambiguous,
+         File            => Result_File,
+         Predefined_Only => True);
+
+      --  We don't expect there to be multiple homonyms for the runtime files
+
+      pragma Assert (not Ambiguous);
+      return Result_File /= No_File;
+   end Runtime_Has_File;
+
+   ------------------------------
+   -- Runtime_Has_Finalization --
+   ------------------------------
+
+   function Runtime_Supports_Finalization return Boolean is
+     (Runtime_Has_File ("a-finali.ads"));
+
+   ---------------------------------------
+   -- Runtime_Supports_Task_Termination --
+   ---------------------------------------
+
+   function Runtime_Supports_Task_Termination return Boolean is
+   begin
+      --  We need both Ada.Task_Identification (a-taside.ads) and
+      --  Ada.Task_Termination (a-taster.ads) to be able to use task
+      --  termination.
+
+      return Runtime_Has_File ("a-taster.ads")
+            and then Runtime_Has_File ("a-taside.ads");
+   end Runtime_Supports_Task_Termination;
 
    ----------------
    -- Initialize --
@@ -911,26 +994,20 @@ package body Project is
                procedure Process_Source_File
                  (Info : File_Info; Unit_Name : String)
                is
-                  Cur              : Unit_Maps.Cursor;
-                  Actual_Unit_Name : constant String :=
-                    (if Info.Unit_Part = Unit_Separate
-                     then Owning_Unit_Name (Info)
-                     else Unit_Name);
+                  Cur : Unit_Maps.Cursor;
                begin
                   --  Never try to perform coverage on our coverage runtime
                   --  library (in one of the gnatcov_rts*.gpr projects) or on
                   --  our coverage buffer units (in user projects).
 
-                  if Strings.Has_Prefix (Actual_Unit_Name, "gnatcov_rts.")
-                    or else Strings.Has_Prefix (Actual_Unit_Name, "gcvrt")
-                  then
+                  if Strings.Has_Prefix (Unit_Name, "gnatcov_rts.") then
                      return;
                   end if;
 
                   if not Units_Specified
                      or else (Has_Matcher
                               and then GNAT.Regexp.Match
-                                (To_Lower (Actual_Unit_Name),
+                                (To_Lower (Unit_Name),
                                  Units_Specified_Matcher))
                   then
                      Add_Unit
@@ -947,9 +1024,7 @@ package body Project is
                --  Units attributes only apply to the project itself.
 
                Iterate_Source_Files
-                 (Project, Process_Source_File'Access,
-                  Recursive     => False,
-                  Include_Stubs => True);
+                 (Project, Process_Source_File'Access, Recursive => False);
                Inc_Units_Defined := True;
             end;
          end if;
@@ -960,7 +1035,7 @@ package body Project is
          for Cur in Inc_Units.Iterate loop
             declare
                use Unit_Maps;
-               K : constant Compilation_Unit := Key (Cur);
+               K : constant Project_Unit := Key (Cur);
             begin
                if not Exc_Units.Contains (K) then
                   declare
@@ -1014,8 +1089,7 @@ package body Project is
             Units_Present : String_Vectors.Vector;
             --  All units that were included
 
-            Patterns_Not_Covered : String_Sets.Set :=
-              To_String_Set (Unit_Patterns);
+            Patterns_Not_Covered : String_Vectors.Vector;
             --  Patterns that do not match any of the present units
 
             procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor);
@@ -1024,16 +1098,9 @@ package body Project is
             -- Add_To_Unit_Presents --
             --------------------------
 
-            procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor)
-            is
-               P_Unit    : constant Compilation_Unit := Unit_Maps.Key (C);
-               Unit_Name : constant Unbounded_String :=
-                 (case P_Unit.Language is
-                     when File_Based_Language =>
-                       +Ada.Directories.Simple_Name (+P_Unit.Unit_Name),
-                     when Unit_Based_Language => P_Unit.Unit_Name);
+            procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor) is
             begin
-               Units_Present.Append (Unit_Name);
+               Units_Present.Append (Unit_Maps.Key (C).Unit_Name);
             end Add_To_Unit_Presents;
 
          begin
@@ -1144,15 +1211,39 @@ package body Project is
       Units          : out Unit_Maps.Map;
       Defined        : out Boolean)
    is
+      package FI_Vectors is new Ada.Containers.Vectors
+        (Index_Type => Positive, Element_Type => File_Info);
+
+      use type FI_Vectors.Vector;
+
+      package Unit_Name_FI_Vector_Maps is new Ada.Containers.Ordered_Maps
+        (Key_Type     => Unbounded_String,
+         Element_Type => FI_Vectors.Vector);
+
+      Units_Present : String_Vectors.Vector;
+      --  List of all units in Prj
+
+      Unit_Present_To_FI : Unit_Name_FI_Vector_Maps.Map;
+      --  Map a unit name to a file information vector. A unit name can be
+      --  be mapped to multiple file info if there are homonym source files.
+
+      package Unit_Language_Maps is new Ada.Containers.Hashed_Maps
+        (Key_Type        => Unbounded_String,
+         Element_Type    => Some_Language,
+         Equivalent_Keys => "=",
+         Hash            => Hash);
+      Unit_Languages : Unit_Language_Maps.Map;
+      --  Language for each unit in Units_Present
+
       Unit_Patterns    : String_Vectors.Vector;
       Attr_For_Pattern : String_Maps.Map;
       --  Patterns identifying unit names and project attribute from which we
       --  got the pattern. We use Attr_For_Pattern for reporting purposes.
 
-      Patterns_Not_Covered : String_Sets.Set;
+      Patterns_Not_Covered : String_Vectors.Vector;
       --  Patterns that do not match any of the present unit
 
-      Cur : Unit_Maps.Cursor;
+      Ignored_Cur : Unit_Maps.Cursor;
 
       procedure Add_Pattern (Attr, Item : String);
       --  Add Item to Unit_Patterns. Also save from which project attribute
@@ -1176,33 +1267,18 @@ package body Project is
       -------------------------
 
       procedure Process_Source_File (Info : File_Info; Unit_Name : String) is
-         use type Ada.Containers.Count_Type;
-         use String_Vectors;
-         Actual_Unit_Name : Vector :=
-           To_Vector
-             (+(if Info.Unit_Part = Unit_Separate
-                then Owning_Unit_Name (Info)
-                else Unit_Name),
-              1);
+
+         use Unit_Name_FI_Vector_Maps;
+
+         Key : constant Unbounded_String := +Unit_Name;
+         Cur : constant Cursor := Unit_Present_To_FI.Find (Key);
       begin
-         Match_Pattern_List
-           (Patterns_List        => Unit_Patterns,
-            Strings_List         => Actual_Unit_Name,
-            Patterns_Not_Covered => Patterns_Not_Covered);
-
-         --  Add it only if it matches one of the patterns
-
-         if not Actual_Unit_Name.Is_Empty then
-            declare
-               Lang : constant Some_Language := To_Language (Info.Language);
-            begin
-               Add_Unit
-                 (Units,
-                  Cur,
-                  Unit_Name,
-                  Info,
-                  Lang);
-            end;
+         Units_Present.Append (Key);
+         Unit_Languages.Include (Key, To_Language (Info.Language));
+         if Has_Element (Cur) then
+            Unit_Present_To_FI.Reference (Cur).Append (Info);
+         else
+            Unit_Present_To_FI.Insert (Key, FI_Vectors.To_Vector (Info, 1));
          end if;
       end Process_Source_File;
 
@@ -1215,7 +1291,6 @@ package body Project is
 
       List_From_Project
         (Prj, List_Attr, List_File_Attr, Add_Pattern'Access, Defined);
-      Patterns_Not_Covered := To_String_Set (Unit_Patterns);
 
       if not Defined then
          return;
@@ -1226,13 +1301,28 @@ package body Project is
       --  source file name.
 
       Iterate_Source_Files
-        (Prj, Process_Source_File'Access,
-         Recursive => False, Include_Stubs => True);
+        (Prj, Process_Source_File'Access, Recursive => False);
+
+      Match_Pattern_List (Patterns_List        => Unit_Patterns,
+                          Strings_List         => Units_Present,
+                          Patterns_Not_Covered => Patterns_Not_Covered);
 
       for Pattern of Patterns_Not_Covered loop
          Warn ("no unit " & (+Pattern) & " in project " & Prj.Name & " ("
                & (+Attr_For_Pattern.Element (Pattern)) & " attribute)");
       end loop;
+
+      for Unit_Name of Units_Present loop
+         for Info of Unit_Present_To_FI (Unit_Name) loop
+            Add_Unit
+              (Units,
+               Ignored_Cur,
+               +Unit_Name,
+               Info,
+               Unit_Languages.Element (Unit_Name));
+         end loop;
+      end loop;
+
    end Units_From_Project;
 
    -----------------------
@@ -1579,7 +1669,7 @@ package body Project is
 
    procedure Finalize is
    begin
-      if Prj_Tree /= null and then not Args.Bool_Args (Opt_Save_Temps) then
+      if Prj_Tree /= null then
          GNATCOLL.Projects.Aux.Delete_All_Temp_Files (Prj_Tree.Root_Project);
       end if;
    end Finalize;
@@ -1592,47 +1682,5 @@ package body Project is
    begin
       return Prj_Tree;
    end Project;
-
-   -------------------
-   -- Source_Suffix --
-   -------------------
-
-   function Source_Suffix
-     (Lang    : Src_Supported_Language;
-      Part    : GNATCOLL.Projects.Unit_Parts;
-      Project : GNATCOLL.Projects.Project_Type) return String
-   is
-      Attr : constant Attribute_Pkg_String :=
-        Build
-          (Package_Name   => "Naming",
-           Attribute_Name =>
-             (case Part is
-              when Unit_Body     => "Body_Suffix",
-              when Unit_Spec     => "Spec_Suffix",
-              when Unit_Separate => raise Program_Error));
-   begin
-      case Part is
-         when Unit_Body =>
-            return Project.Attribute_Value
-              (Attribute => Attr,
-               Index     => Image (Lang),
-               Default   => (case Lang is
-                             when Ada_Language => ".adb",
-                             when C_Language   => ".c",
-                             when CPP_Language => ".cc"));
-
-         when Unit_Spec =>
-            return Project.Attribute_Value
-              (Attribute => Attr,
-               Index     => Image (Lang),
-               Default   => (case Lang is
-                             when Ada_Language => ".ads",
-                             when C_Language   => ".h",
-                             when CPP_Language => ".hh"));
-
-         when Unit_Separate =>
-            return (raise Program_Error);
-      end case;
-   end Source_Suffix;
 
 end Project;

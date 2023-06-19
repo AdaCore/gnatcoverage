@@ -59,7 +59,7 @@ package body Instrument.Checkpoints is
 
          for Cur in CP_IU_Map.Iterate loop
             declare
-               CP_Unit_Name : constant Compilation_Unit_Part := Key (Cur);
+               CP_Unit_Name : constant Compilation_Unit_Name := Key (Cur);
                Existing_Cur : constant Cursor :=
                  Instrumented_Unit_CUs.Find (CP_Unit_Name);
                CU_Ignored   : constant Boolean :=
@@ -128,7 +128,7 @@ package body Instrument.Checkpoints is
                            /= PP_Cmds.Reference (Cur)
                      then
                         Warn ("inconsistent information for instrumented file "
-                              & Get_Full_Name (SFI));
+                              & Get_Unique_Name (SFI));
                      end if;
                   end;
                end if;

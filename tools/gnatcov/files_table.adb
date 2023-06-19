@@ -621,7 +621,7 @@ package body Files_Table is
    ----------------------------------
 
    procedure Consolidate_Source_File_Unit
-     (Index : Valid_Source_File_Index; New_Unit : Compilation_Unit)
+     (Index : Valid_Source_File_Index; New_Unit : Project_Unit)
    is
       use Ada.Strings.Unbounded;
       FI : File_Info renames Files_Table.Element (Index).all;
@@ -1890,7 +1890,7 @@ package body Files_Table is
                Any_Ignore_Status'Write (S, FI.Ignore_Status);
                Boolean'Write (S, FI.Unit.Known);
                if FI.Unit.Known then
-                  Compilation_Unit'Output (S, FI.Unit.Name);
+                  Project_Unit'Output (S, FI.Unit.Name);
                end if;
             end if;
          end;
@@ -2042,7 +2042,7 @@ package body Files_Table is
                         if Unit_Known then
 
                            --  Starting with the version 13 of checkpoints,
-                           --  owning units are represented as Compilation_Unit
+                           --  owning units are represented as Project_Unit
                            --  values (they were mere strings before). Consider
                            --  the owning unit unknown if we do not have recent
                            --  formats.
@@ -2055,7 +2055,7 @@ package body Files_Table is
                               end;
                            else
                               FE.Unit := (Known => True,
-                                          Name  => Compilation_Unit'Input (S));
+                                          Name  => Project_Unit'Input (S));
                            end if;
                         end if;
                      end;
