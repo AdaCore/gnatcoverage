@@ -139,7 +139,7 @@ package body Paths is
 
          case Pat (I) is
 
-            --  '*' cannot be directly transalted as '.*' as you do not expect
+            --  '*' cannot be directly translated as '.*' as you do not expect
             --  '*' to match on more than one directory level:
             --  you would expect 'src_*/' to match 'src_1/' and 'src_2/', but
             --  not 'src_1/subdir/'.
