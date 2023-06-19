@@ -20,8 +20,8 @@ with Ada.Characters.Latin_1;
 with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
-with Ada.Directories;
 with Ada.Streams; use Ada.Streams;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Tags;
 with Ada.Unchecked_Deallocation;
@@ -221,11 +221,26 @@ package body Coverage.Source is
    --  the order of dump depends on its content, not on the way it was created.
 
    package Unit_To_Ignored_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Compilation_Unit,
-      Element_Type => Ignored_Sources_Vector_Access);
+     (Key_Type => Project_Unit, Element_Type => Ignored_Sources_Vector_Access);
+   --  Map units of interest to the list of associated ignored source files
 
    Ignored_SF_Map : Unit_To_Ignored_Maps.Map;
-   --  Map units of interest to the list of associated ignored source files
+
+   function Unit_Name_For_Subunit (Qualified_Name : String) return String;
+   --  Return the unit name for the subunit whose name is Qualified_Name.
+   --  For instance, if foo-test.adb is a subunit for package Foo,
+   --  GNATCOLL.Projects should give us Foo.Test as a unit name, and this
+   --  function will return Foo.
+   --
+   --  As a safeguard, this checks that the result is the name of a unit of
+   --  interest: subunits cannot be units of interest.
+   --
+   --  If it can't be determined that the source file belongs to a unit of
+   --  interest, the empty string will be returned, and a warning will be
+   --  emitted.
+   --
+   --  Note that the Ada language rules guarantee that the name of the owning
+   --  unit is a prefix of the name of its subunits.
 
    --------------------------
    -- Basic_Block_Has_Code --
@@ -268,12 +283,53 @@ package body Coverage.Source is
    -- Add_Unit --
    --------------
 
-   procedure Add_Unit (Unit : Compilation_Unit) is
+   procedure Add_Unit (Unit : Project_Unit) is
    begin
       if not Unit_List_Invalidated then
          Unit_List.Include (Unit);
       end if;
    end Add_Unit;
+
+   ---------------------------
+   -- Unit_Name_For_Subunit --
+   ---------------------------
+
+   function Unit_Name_For_Subunit (Qualified_Name : String) return String
+   is
+      use Ada.Strings.Fixed;
+      First : constant Natural := Qualified_Name'First;
+      Sep   : Natural := Qualified_Name'Last;
+   begin
+      loop
+         Sep := Index (Source  => Qualified_Name,
+                       Pattern => ".",
+                       From    => Sep,
+                       Going   => Ada.Strings.Backward);
+
+         if Unit_List.Contains
+           (Project_Unit'
+              (Language  => Unit_Based_Language,
+               Unit_Name =>
+                 US.To_Unbounded_String
+                         (Qualified_Name (First .. Sep - 1))))
+         then
+            return Qualified_Name (First .. Sep - 1);
+         end if;
+         exit when Sep = 0;
+
+         --  Move past '.' character to start searching again
+
+         Sep := Sep - 1;
+      end loop;
+
+      --  If we got here, then there is no unit of interest whose name is a
+      --  prefix of the name of the subunit we are processing.
+
+      Report (Msg  => "Could not find the name of the owning unit of subunit "
+              & Qualified_Name & " among the units of interest",
+              Kind => Warning);
+      return "";
+   end Unit_Name_For_Subunit;
 
    -------------------------------------------
    -- Compute_Unit_Name_For_Ignored_Sources --
@@ -297,7 +353,6 @@ package body Coverage.Source is
         (Project : GNATCOLL.Projects.Project_Type;
          File    : GNATCOLL.Projects.File_Info)
       is
-         pragma Unreferenced (Project);
          use GNATCOLL.VFS;
          SFI : constant Source_File_Index := Get_Index_From_Generic_Name
            (+File.File.Full_Name, Source_File, Insert => False);
@@ -307,8 +362,26 @@ package body Coverage.Source is
       begin
          if FI /= null and then not FI.Unit.Known then
             declare
-               Unit : constant Compilation_Unit :=
-                 To_Compilation_Unit (File);
+               use type GNATCOLL.Projects.Unit_Parts;
+
+               Language  : constant Some_Language :=
+                 To_Language (File.Language);
+
+               --  For Ada, get the unit name for the compilation unit (no
+               --  subunit names). For file-based languages,
+               --  GNATCOLL.Projects.Unit_Name returns an empty string: we need
+               --  to get the file base name instead.
+
+               Unit_Name : constant String :=
+                 (case Language is
+                  when Ada_Language =>
+                    (if File.Unit_Part = GNATCOLL.Projects.Unit_Separate
+                     then Unit_Name_For_Subunit (File.Unit_Name)
+                     else File.Unit_Name),
+                  when others       => Get_Simple_Name (SFI));
+
+               Unit : constant Project_Unit :=
+                 To_Project_Unit (Unit_Name, Project, Language);
             begin
                Consolidate_Source_File_Unit (SFI, Unit);
             end;
@@ -348,6 +421,13 @@ package body Coverage.Source is
          if FI.Kind = Source_File
            and then FI.Ignore_Status in Always .. Sometimes
          then
+            --  If FI is a separate (Ada) or a header file (C/C++), it is not a
+            --  unit of interest itself: only the compilation unit is, so
+            --  Is_Unit_Of_Interest (FI.Full_Name.all) return False. Still, the
+            --  unit that owns this file is supposed to be known by now, so it
+            --  should be valid to access FI.Unit.Name (i.e. FI.Unit.Known
+            --  should be True).
+
             if not Ignored_SF_Map.Contains (FI.Unit.Name) then
                Vec := new Ignored_Sources_Vector.Vector;
                Ignored_SF_Map.Insert (FI.Unit.Name, Vec);
@@ -369,8 +449,7 @@ package body Coverage.Source is
    --------------------------
 
    procedure Iterate_On_Unit_List
-     (Process_Unit        : not null access procedure
-        (Name : Compilation_Unit);
+     (Process_Unit        : not null access procedure (Name : Project_Unit);
       Process_Source_File : not null access procedure (FI : File_Info))
    is
    begin
@@ -393,7 +472,7 @@ package body Coverage.Source is
       procedure Print_Ignored_File (FI : Files_Table.File_Info);
       --  Print the name of the file and its ignore status
 
-      procedure Print_Unit_Name (Unit : Compilation_Unit);
+      procedure Print_Unit_Name (Unit : Project_Unit);
       --  Print the unit name
 
       ------------------------
@@ -413,14 +492,9 @@ package body Coverage.Source is
       -- Print_Unit_Name --
       ---------------------
 
-      procedure Print_Unit_Name (Unit : Compilation_Unit) is
+      procedure Print_Unit_Name (Unit : Project_Unit) is
       begin
-         case Unit.Language is
-            when File_Based_Language =>
-               Put_Line (File, Ada.Directories.Simple_Name (+Unit.Unit_Name));
-            when Unit_Based_Language =>
-               Put_Line (File, +Unit.Unit_Name);
-         end case;
+         Put_Line (File, +Unit.Unit_Name);
       end Print_Unit_Name;
 
    --  Start of processing for Report_Units
@@ -446,7 +520,7 @@ package body Coverage.Source is
          if not Unit_List_Invalidated then
             Ada.Containers.Count_Type'Output (CSS, Unit_List.Length);
             for N of Unit_List loop
-               Compilation_Unit'Output (CSS, N);
+               Project_Unit'Output (CSS, N);
             end loop;
          end if;
       end if;
@@ -600,7 +674,7 @@ package body Coverage.Source is
                         end if;
                         US.Unbounded_String'Read (CLS, Dummy);
                      else
-                        Unit_List.Include (Compilation_Unit'Input (CLS));
+                        Unit_List.Include (Project_Unit'Input (CLS));
                      end if;
                   end loop;
                end if;
@@ -1707,7 +1781,7 @@ package body Coverage.Source is
    procedure Compute_Source_Coverage
      (Filename             : String;
       Fingerprint          : SC_Obligations.Fingerprint_Type;
-      CU_Name              : Compilation_Unit_Part;
+      CU_Name              : Compilation_Unit_Name;
       Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
       Stmt_Buffer          : Coverage_Buffer;
       Decision_Buffer      : Coverage_Buffer;

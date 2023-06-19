@@ -225,6 +225,11 @@ package Traces_Source is
       --  Length of the unit name / filename for the unit this trace entry
       --  describes.
 
+      Project_Name_Length : Unsigned_32;
+      --  For file-based languages, length of the project name this file
+      --  belongs to. For unit-based languages, the unit name is unique so this
+      --  piece of information is not needed (thus will be 0).
+
       Statement_Bit_Count : Any_Bit_Count;
       Decision_Bit_Count  : Any_Bit_Count;
       MCDC_Bit_Count      : Any_Bit_Count;
@@ -251,22 +256,23 @@ package Traces_Source is
       --  be able to interpret buffer bits from a source traces using buffer
       --  bit mappings from SID files.
 
-      Padding : String (1 .. 5);
+      Padding : String (1 .. 1);
       --  Padding used only to make the size of this trace entry header a
       --  multiple of 8 bytes. Must be zero.
    end record;
 
    for Trace_Entry_Header use record
       Unit_Name_Length     at  0 range 0 .. 31;
-      Statement_Bit_Count  at  4 range 0 .. 31;
-      Decision_Bit_Count   at  8 range 0 .. 31;
-      MCDC_Bit_Count       at 12 range 0 .. 31;
-      Language_Kind        at 16 range 0 .. 7;
-      Unit_Part            at 17 range 0 .. 7;
-      Bit_Buffer_Encoding  at 18 range 0 .. 7;
-      Fingerprint          at 19 range 0 .. 20 * 8 - 1;
-      Bit_Maps_Fingerprint at 39 range 0 .. 20 * 8 - 1;
-      Padding              at 59 range 0 .. 5 * 8 - 1;
+      Project_Name_Length  at  4 range 0 .. 31;
+      Statement_Bit_Count  at  8 range 0 .. 31;
+      Decision_Bit_Count   at 12 range 0 .. 31;
+      MCDC_Bit_Count       at 16 range 0 .. 31;
+      Language_Kind        at 20 range 0 .. 7;
+      Unit_Part            at 21 range 0 .. 7;
+      Bit_Buffer_Encoding  at 22 range 0 .. 7;
+      Fingerprint          at 23 range 0 .. 20 * 8 - 1;
+      Bit_Maps_Fingerprint at 43 range 0 .. 20 * 8 - 1;
+      Padding              at 63 range 0 .. 7;
    end record;
 
    for Trace_Entry_Header'Size use 64 * 8;

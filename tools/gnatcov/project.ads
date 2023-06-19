@@ -114,22 +114,33 @@ package Project is
    --  path of its main executable (including its suffix, for instance ".exe").
    --  Otherwise, return an empty string.
 
-   function Owning_Unit_Name (Info : File_Info) return String
-     with Pre => Is_Project_Loaded;
-   --  Return the owning unit name meaning the unit name if this is a body /
-   --  specification, and the top parent unit name if this is a separate.
-
-   function To_Compilation_Unit
-     (Info : File_Info) return Files_Table.Compilation_Unit;
-   --  Return the Compilation_Unit for Info
+   function To_Project_Unit
+     (Unit_Name : String;
+      Project   : Project_Type;
+      Language  : Some_Language) return Files_Table.Project_Unit;
+   --  Return the Project_Unit value that designates the same unit as
+   --  Unit_Name/Project/Language.
 
    --------------------------------------
    -- Accessors for project properties --
    --------------------------------------
 
    procedure Enumerate_Units_Of_Interest
-     (Callback : access procedure (Name : Files_Table.Compilation_Unit));
-   --  Call Callback once for every unit of interest. Name is the unit name
+     (Callback : access procedure (Name : Files_Table.Project_Unit;
+                                   Is_Stub : Boolean));
+   --  Call Callback once for every unit of interest. Name is the unit name,
+   --  and Is_Stub corresponds to the Unit_Info.Is_Stub field (see
+   --  project.adb).
+
+   function Is_Unit_Of_Interest
+     (Project   : Project_Type;
+      Unit_Name : String;
+      Language  : Some_Language) return Boolean;
+   --  Return whether the unit Unit_Name that belongs to the project Project
+   --  is a unit of interest.
+
+   function Is_Unit_Of_Interest (Full_Name : String) return Boolean;
+   --  Same as above, but given a full name
 
    procedure Enumerate_SCOs_Files
      (Callback : access procedure (Lib_Name : String);
@@ -180,6 +191,15 @@ package Project is
    --  is responsible for deallocating the returned access.
    --
    --  If no project is loaded, just return null.
+
+   function Runtime_Supports_Finalization return Boolean with
+     Pre => Is_Project_Loaded;
+   --  Return whether the configured runtime includes the Ada.Finalization unit
+
+   function Runtime_Supports_Task_Termination return Boolean with
+     Pre => Is_Project_Loaded;
+   --  Return whether the configured runtime has necessary units to implement
+   --  the ravenscar-task-termination dump trigger.
 
    function Switches (Op : String) return String_List_Access
       with Pre => Is_Project_Loaded;
@@ -233,11 +253,5 @@ package Project is
    --
    --  Unless Include_Extended is True, only process ultimate extending
    --  projects.
-
-   function Source_Suffix
-     (Lang    : Src_Supported_Language;
-      Part    : GNATCOLL.Projects.Unit_Parts;
-      Project : GNATCOLL.Projects.Project_Type) return String;
-   --  Return the filename suffix corresponding for Part files and Lang
 
 end Project;

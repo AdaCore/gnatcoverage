@@ -18,11 +18,11 @@
 
 --  Support for source instrumentation
 
-with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded.Hash;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded;
+
+with GNAT.Regexp;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
@@ -37,12 +37,6 @@ with Switches;            use Switches;
 package Instrument is
 
    package US renames Ada.Strings.Unbounded;
-
-   package GPR renames GNATCOLL.Projects;
-
-   use type Ada.Containers.Count_Type;
-
-   Parallelism_Level : Natural := 1;
 
    function Language_Kind
      (Language : Some_Language) return Any_Language_Kind;
@@ -66,7 +60,7 @@ package Instrument is
      with Pre => not Name.Is_Empty;
    --  Turn the given qualified name into Ada syntax
 
-   type Compilation_Unit_Part
+   type Compilation_Unit_Name
      (Language_Kind : Any_Language_Kind := Unit_Based_Language)
    is record
 
@@ -81,22 +75,26 @@ package Instrument is
             --  Fallback for file-based languages (like C). We will use the
             --  simple filename for now.
 
+            Project_Name : US.Unbounded_String;
+            --  We also need the project name as different projects can have
+            --  the same file.
+
       end case;
    end record;
-   --  Unique identifier for an instrumented unit part
+   --  Unique identifier for an instrumented unit
 
    Part_Tags : constant array (Unit_Parts) of Character :=
      (Unit_Spec     => 'S',
       Unit_Body     => 'B',
       Unit_Separate => 'U');
 
-   function "=" (Left, Right : Compilation_Unit_Part) return Boolean;
+   function "=" (Left, Right : Compilation_Unit_Name) return Boolean;
 
-   function "<" (Left, Right : Compilation_Unit_Part) return Boolean;
+   function "<" (Left, Right : Compilation_Unit_Name) return Boolean;
    --  Compare the result of a call to Instrumented_Unit_Slug (which gives
    --  unique identifiers for each compilation unit name) for both operands.
 
-   function Image (CU_Name : Compilation_Unit_Part) return String;
+   function Image (CU_Name : Compilation_Unit_Name) return String;
    --  Return a string representation of CU_Name for use in diagnostics
 
    function Qualified_Name_Slug (Name : Ada_Qualified_Name) return String;
@@ -105,15 +103,9 @@ package Instrument is
    --  not contain any '-'.
 
    function Instrumented_Unit_Slug
-     (Instrumented_Unit : Compilation_Unit_Part) return String;
+     (Instrumented_Unit : Compilation_Unit_Name) return String;
    --  Given a unit to instrument, return a unique identifier to describe it
    --  (the so called slug).
-   --
-   --  One can use this slug to generate unique names for this unit.
-
-   function Filename_Slug (Fullname : String) return String;
-   --  Given a filename to instrument, return a unique identifier to describe
-   --  it (the so called slug).
    --
    --  One can use this slug to generate unique names for this unit.
 
@@ -133,29 +125,30 @@ package Instrument is
 
    function CU_Name_For_Unit
      (Unit : Ada_Qualified_Name;
-      Part : Unit_Parts) return Compilation_Unit_Part;
+      Part : Unit_Parts) return Compilation_Unit_Name;
    --  Return the compilation unit name for the Ada compilation unit
    --  corresponding to the unit name and the unit part parameters.
 
    function CU_Name_For_File
-     (Filename : US.Unbounded_String) return Compilation_Unit_Part;
+     (Filename     : US.Unbounded_String;
+      Project_Name : US.Unbounded_String) return Compilation_Unit_Name;
    --  Return the compilation unit name for the C translation unit
    --  corresponding to the filename parameter.
 
    function To_Compilation_Unit_Name
-     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Part;
+     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Name;
    --  Return the compilation unit name corresponding to the unit in
    --  Source_File.
 
    function To_Filename
      (Project  : Project_Type;
-      CU_Name  : Compilation_Unit_Part;
+      CU_Name  : Compilation_Unit_Name;
       Language : Any_Language) return String;
    --  Return the name of the file to contain the given compilation unit,
    --  according to Project's naming scheme.
 
    package Instrumented_Unit_To_CU_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Compilation_Unit_Part,
+     (Key_Type     => Compilation_Unit_Name,
       Element_Type => CU_Id);
 
    Instrumented_Unit_CUs : Instrumented_Unit_To_CU_Maps.Map;
@@ -172,62 +165,31 @@ package Instrument is
    --  Save the preprocessing command for each unit that supports it
 
    function Find_Instrumented_Unit
-     (CU_Name : Compilation_Unit_Part) return CU_Id;
+     (CU_Name : Compilation_Unit_Name) return CU_Id;
    --  Return the CU_Id corresponding to the given instrumented unit, or
    --  No_CU_Id if not found.
 
-   type Lang_Array is array (Src_Supported_Language range <>)
-     of Unbounded_String;
-   type C_Lang_Array_Vec is array (C_Family_Language) of String_Vectors.Vector;
-
-   package String_Vectors_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Unbounded_String,
-      Element_Type    => String_Vectors.Vector,
-      Equivalent_Keys => Ada.Strings.Unbounded."=",
-      Hash            => Ada.Strings.Unbounded.Hash,
-      "="             => String_Vectors."=");
-
-   type Prj_Desc is record
-      Prj_Name : Unbounded_String;
-      --  Name for the project
-
-      Output_Dir : Unbounded_String;
-      --  Where the instrumented sources and coverage buffer units are
-      --  generated.
-
-      Spec_Suffix, Body_Suffix : Lang_Array (Src_Supported_Language);
-      --  Suffixes for the body and the spec
-
-      Dot_Replacement : Unbounded_String;
-      --  Character to use as identifier separator for file naming (used for
-      --  unit-based languages).
-
-      Compiler_Driver : Lang_Array (C_Family_Language);
-      --  Compiler used to compile the sources
-
-      Compiler_Options : C_Lang_Array_Vec;
-      --  For languages resorting to the compiler to preprocess sources, list
-      --  of compiler switches to pass to the preprocessor invocation.
-
-      Compiler_Options_Unit : String_Vectors_Maps.Map;
-      --  Compiler switches applying to a specific unit
-
-      Search_Paths : String_Vectors.Vector;
-      --  List of compiler switches to look up the project source directories
-
-   end record;
-   --  This record stores the information that is required from the project
-   --  for instrumentation purposes.
-
-   type Prj_Desc_Access is access Prj_Desc;
-
-   function Load_From_Command_Line return Prj_Desc;
-
-   function Unparse
-     (Desc      : Prj_Desc;
-      Unit_Name : Unbounded_String;
-      Lang      : Src_Supported_Language) return String_Vectors.Vector;
-   --  Return a list of command line switches holding all the project
-   --  information for the given Unit_Name of the language Lang.
-
+   procedure Instrument_Units_Of_Interest
+     (Dump_Config          : Any_Dump_Config;
+      Language_Version     : Any_Language_Version;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp;
+      Mains                : String_Vectors.Vector);
+   --  Generate instrumented sources for the source files of all units of
+   --  interest. Also save mappings between coverage buffers and SCOs for each
+   --  library units to SID files (one per library unit).
+   --
+   --  Depending on Dump_Config, instrument mains to schedule a call to the
+   --  dump procedure for the list of coverage buffers in all mains in the
+   --  project.
+   --
+   --  Language_Version restricts what source constructs the instrumenter is
+   --  allowed to use. For instance, if Ada_2005 (or a lower version) is
+   --  passed, it will not be allowed to introduce expression functions, and
+   --  thus will emit a warning when it needed to do so.
+   --
+   --  If Ignored_Source_File is non-null, ignore files whose names match the
+   --  accessed pattern.
+   --
+   --  Mains is the list of source files that were listed on the command line:
+   --  if non-empty, they replace the mains specified in project files.
 end Instrument;

@@ -16,8 +16,4 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-package body Instrument.C is
-begin
-   Builtin_Support (C_Language) := False;
-   Builtin_Support (CPP_Language) := False;
-end Instrument.C;
+pragma No_Body;
