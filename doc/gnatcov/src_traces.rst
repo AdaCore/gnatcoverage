@@ -273,12 +273,20 @@ For more restricted environments where, say, there is limited file IO available
 to the program, a ``--dump-channel=base64-stdout`` kind of output is needed in
 association with the restricted coverage runtime.
 
-If none of the available automatic triggering option works out well, full
+If none of the available automatic triggering option work out well, full
 control is offered by the ``--dump-trigger=manual`` policy where the
 instrumenter doesn't actually add any code to main units for emitting the
-collected coverage data. You will have to emit this data somehow to allow
-analysing coverage afterwards, still, and can of course experiment with other
-possibilities just to get examples of possible ways to proceed.
+collected coverage data. You will have to indicate the point at which you wish
+to emit this data by inserting:
+
+- a ``pragma Annotate (Xcov, Dump_Buffers);`` pragma statement in Ada code;
+- a ``/* GNATCOV_DUMP_BUFFERS */`` comment on its own line in C code
+
+where necessary in your code. During instrumentation, |gcv| will replace them
+with a call to the procedure responsible for dumping the coverage buffers,
+at which point the source traces will be created during the execution of the
+program. Therefore, the pragma or comment should be placed at a location at
+which such a function call would be appropriate.
 
 .. _instr-tracename:
 

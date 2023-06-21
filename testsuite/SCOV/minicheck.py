@@ -37,7 +37,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   gprsw_for_coverage=None, scos_for_run=True,
                   register_failure=True, program_env=None,
                   tolerate_instrument_messages=None, exec_args=None,
-                  auto_languages=True):
+                  auto_languages=True, manual_prj_name=None):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -108,6 +108,10 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     :param None|list[str] exec_args: List of arguments to pass to the
         executable. This will only work for native configurations.
     :param bool auto_languages: See SUITE.tutils.xcov.
+    :param None|str manual_proj_name: when the dump trigger is manual, several
+        traces files (one per project) can be emitted if there are dump buffers
+        procedure calls in at least two distinct projects. This is the name of
+        the project which trace we want to consider.
 
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
@@ -283,7 +287,9 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
             # Remove potential existing source trace files: the name is
             # non-deterministic by default, so we want to avoid getting
             # multiple traces in the current directory.
-            rm(srctrace_pattern_for(m))
+            rm(srctrace_pattern_for(m,
+                                    dump_trigger == "manual",
+                                    manual_prj_name))
 
             out_file = out_file_.format(m)
             run_cov_program(exepath(m), out=out_file, env=program_env,
@@ -307,14 +313,20 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
             trace_file = None
 
             if known_channel in [None, "bin-file"]:
-                trace_file = srctracename_for(m, register_failure=False)
+                trace_file = srctracename_for(m,
+                                              register_failure=False,
+                                              manual=dump_trigger == "manual",
+                                              manual_prj_name=manual_prj_name)
 
             if (not trace_file
                 and (known_channel == "base64-stdout"
-                     or "source trace file ==" in contents_of(out_file))
-            ):
+                     or "source trace file ==" in contents_of(out_file))):
+
                 # Pick a trace name that is compatible with srctracename_for
-                trace_file = srctrace_pattern_for(m).replace("*", "unique")
+                src_pattern = srctrace_pattern_for(m,
+                                                   dump_trigger == "manual",
+                                                   manual_prj_name)
+                trace_file = src_pattern.replace("*", "unique")
 
                 # Here we're really supposed to have a trace in the output
                 # so we can be a tad stricter on the conversion outcome.

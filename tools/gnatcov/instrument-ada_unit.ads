@@ -76,6 +76,27 @@ package Instrument.Ada_Unit is
       Dump_Config   : Any_Dump_Config;
       Prj           : Prj_Desc);
 
+   overriding procedure Emit_Dump_Helper_Unit_Manual
+     (Self          : in out Ada_Instrumenter_Type;
+      Helper_Unit   : out Unbounded_String;
+      Dump_Config   : Any_Dump_Config;
+      Prj           : Prj_Desc);
+
+   overriding procedure Replace_Manual_Dump_Indication
+     (Self        : in out Ada_Instrumenter_Type;
+      Done        : in out Boolean;
+      Prj         : Prj_Desc;
+      Source      : GNATCOLL.Projects.File_Info);
+   --  Once the instrumentation has finished, if the dump trigger is "manual"
+   --  we expect the user to have indicated the place where a call to the
+   --  manual dump buffers procedure should be inserted by the pragma
+   --  statement:
+   --
+   --    pragma Annotate (Xcov, Dump_Buffers);
+   --
+   --  This pragma must be found and replaced by the actual call to the dump
+   --  procedure defined in the dump helper unit.
+
    overriding procedure Emit_Buffers_List_Unit
      (Self        : Ada_Instrumenter_Type;
       Instr_Units : Unit_Sets.Set;

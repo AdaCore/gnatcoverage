@@ -45,6 +45,10 @@ build_run_and_coverage(
     extra_instr_args=["--dump-trigger=manual"],
     extra_gprbuild_args=["-XCOV_BUILD=True"],
     extra_coverage_args=["--annotate=xcov", "-XCOV_BUILD=True"],
+    tolerate_instrument_messages="warning: no indication for dump location was"
+                                 " found, this might be caused by a"
+                                 " misspelling in the expected pragma"
+                                 " statement."
 )
 check_xcov_reports("*.xcov", {"main.adb.xcov": {"+": {5}}}, "obj")
 

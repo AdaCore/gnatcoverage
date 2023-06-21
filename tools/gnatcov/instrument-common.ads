@@ -106,11 +106,24 @@ package Instrument.Common is
    --  handler.
 
    function Dump_Procedure_Symbol
-     (Main : Compilation_Unit_Part) return String
+     (Main     : Compilation_Unit_Part;
+      Manual   : Boolean := False;
+      Prj_Name : String := "") return String
    is
-     ("gnatcov_rts_" & Instrumented_Unit_Slug (Main) & "_"
-      & To_Lower (To_String (Dump_Procedure_Name)));
+     ("gnatcov_rts_"
+      & (if Manual
+        then "manual"
+        else Instrumented_Unit_Slug (Main))
+      & "_"
+      & To_Lower (To_String (Dump_Procedure_Name))
+      & (if Manual
+        then "_" & Prj_Name
+        else ""));
    --  Return the name of the exported symbol for the Dump_Buffers function
+
+   function Is_Manual_Dump_Procedure_Symbol (Symbol : String) return Boolean;
+   --  For C, manual dump procedures are suffixed by the project's name. Check
+   --  that Symbol corresponds to the name of one such procedure.
 
    function Statement_Buffer_Symbol
      (Instrumented_Unit : Compilation_Unit_Part) return String;
@@ -435,6 +448,11 @@ package Instrument.Common is
    is (No_Compilation_Unit);
    --  Return the compilation unit holding coverage buffers
 
+   function Dump_Manual_Helper_Unit
+     (Self : Language_Instrumenter;
+      Prj  : Prj_Desc) return Compilation_Unit
+   is (No_Compilation_Unit);
+
    function Dump_Helper_Unit
      (Self : Language_Instrumenter;
       CU   : Compilation_Unit;
@@ -447,6 +465,25 @@ package Instrument.Common is
       Filename : String;
       Prj      : Prj_Desc) return Boolean is (False);
    --  Return whether the given file is a main or not
+
+   procedure Emit_Dump_Helper_Unit_Manual
+     (Self          : in out Language_Instrumenter;
+      Helper_Unit   : out Unbounded_String;
+      Dump_Config   : Any_Dump_Config;
+      Prj           : Prj_Desc) is null;
+   --  Emit the dump helper unit with the appropriate content to allow for a
+   --  simple call to a procedure dumping the coverage buffers to be made in
+   --  the instrumented source files.
+
+   procedure Replace_Manual_Dump_Indication
+     (Self        : in out Language_Instrumenter;
+      Done        : in out Boolean;
+      Prj         : Prj_Desc;
+      Source      : GNATCOLL.Projects.File_Info) is null;
+   --  Look for the pragma (for Ada) or comment (for C family languages)
+   --  indicating where the user wishes to the buffers to be dumped in Source.
+   --  When found, replace it with a call to the buffers dump procedure defined
+   --  in the dump helper unit.
 
    function New_File
      (Prj : Prj_Desc; Name : String) return String;

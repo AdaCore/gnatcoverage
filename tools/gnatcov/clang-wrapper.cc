@@ -311,7 +311,8 @@ clang_getElseLoc (CXCursor C)
       switch (S->getStmtClass ())
 	{
 	case Stmt::IfStmtClass:
-	  return translateSLoc (getCursorTU (C), cast<IfStmt> (S)->getElseLoc ());
+	  return translateSLoc (getCursorTU (C),
+				cast<IfStmt> (S)->getElseLoc ());
 	default:
 	  return clang_getNullLocation ();
 	}
@@ -326,7 +327,8 @@ clang_getWhileLoc (CXCursor C)
       switch (S->getStmtClass ())
 	{
 	case Stmt::DoStmtClass:
-	  return translateSLoc (getCursorTU (C), cast<DoStmt> (S)->getWhileLoc ());
+	  return translateSLoc (getCursorTU (C),
+				cast<DoStmt> (S)->getWhileLoc ());
 	default:
 	  return clang_getNullLocation ();
 	}
@@ -466,6 +468,36 @@ clang_getDeclName (CXCursor C)
   return createEmpty ();
 }
 
+/* Return the name of the callee. */
+
+extern "C" const CXString
+clang_getCalleeName (CXCursor C)
+{
+  if (clang_isExpression (C.kind))
+    {
+      const Expr *E = getCursorExpr (C);
+
+      if (E->getStmtClass () == Stmt::CallExprClass)
+	{
+	  const clang::CallExpr *CE = cast<clang::CallExpr> (E);
+	  const Decl *D = CE->getCalleeDecl ();
+
+	  auto getFunctionDeclName = [] (const FunctionDecl *FD) {
+	    const DeclarationName FunctionName = FD->getNameInfo ().getName ();
+	    return createDup (FunctionName.getAsString ().c_str ());
+	  };
+
+	  const clang::FunctionDecl *FD;
+	  if (D->getKind () == Decl::FunctionTemplate)
+	    FD = (cast<clang::FunctionTemplateDecl> (D))->getTemplatedDecl ();
+	  else
+	    FD = cast<clang::FunctionDecl> (D);
+	  return getFunctionDeclName (FD);
+	}
+    }
+  return createEmpty ();
+}
+
 /* Return the string representative of the operator for a binary or unary
    operator node.  */
 
@@ -596,7 +628,7 @@ clang_CXRewriter_insertTextAfterToken (CXRewriter Rew, CXSourceLocation Loc,
 
 extern "C" void
 clang_CXRewriter_insertTextBeforeToken (CXRewriter Rew, CXSourceLocation Loc,
-                                        const char *Insert)
+					const char *Insert)
 {
   assert (Rew);
   Rewriter &R = *reinterpret_cast<Rewriter *> (Rew);

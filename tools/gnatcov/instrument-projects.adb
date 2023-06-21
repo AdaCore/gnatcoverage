@@ -131,6 +131,9 @@ is
    package File_Info_Sets is new Ada.Containers.Indefinite_Ordered_Sets
      (Element_Type => File_Info, "<" => Less, "=" => Equal);
 
+   package Prj_Has_Manual_Helper_Sets is new
+     Ada.Containers.Indefinite_Ordered_Sets (Element_Type => Unbounded_String);
+
    type Library_Unit_Info is record
       Unit_Name : Unbounded_String;
       --  Name of this unit: unit name for unit-based languages, simple name
@@ -232,6 +235,22 @@ is
    --  Return the list of options to pass to a gnatcov instrument-source /
    --  instrument-main (depending on Purpose) for the given compilation unit
    --  LU_Info, belonging to the project Prj.
+
+   procedure Add_Project_Source
+     (Project : GPR.Project_Type; Source_File : GPR.File_Info);
+   --  Add Source_File to the C or Ada list of all project sources depending on
+   --  its language.
+
+   procedure Insert_Manual_Dump_Trigger
+     (Language             : Src_Supported_Language;
+      Project_Sources      : in out File_Info_Sets.Set;
+      Instrumenter         : in out Language_Instrumenter'Class;
+      Manual_Dump_Inserted : in out Boolean);
+   --  For all sources in Project_Sources of language Language, call
+   --  Replace_Manual_Dump_Indication. If a dump procedure call was inserted
+   --  and id there is not one already, also emit a dump helper unit for the
+   --  project the source belongs to. Set Manual_Dump_Inserted to True if at
+   --  least one manual dump indication was found.
 
    procedure Add_Instrumented_Unit
      (Project : GPR.Project_Type; Source_File : GPR.File_Info);
@@ -653,6 +672,35 @@ is
    --  an Ada file (to know which part of a compilation unit must be
    --  instrumented, i.e. spec / body / separates).
 
+   Project_Sources : File_Info_Sets.Set;
+   --  Sets of all Ada and C family source files of all projects. If the dump
+   --  trigger is "manual", traversing all these project sources will be
+   --  necessary to find the indication marking the location where the user
+   --  wishes the Dump_Buffers call to be inserted.
+
+   Prj_Has_Manual_Helper : Prj_Has_Manual_Helper_Sets.Set;
+   --  In the case of a manual dump config, set of names of projects for which
+   --  a manual dump helper unit has already been emitted.
+
+   ------------------------
+   -- Add_Project_Source --
+   ------------------------
+
+   procedure Add_Project_Source
+     (Project : GPR.Project_Type; Source_File : GPR.File_Info)
+   is
+      pragma Unreferenced (Project);
+   begin
+      --  Check if gnatcov was built with support for this language. If not,
+      --  exit early.
+
+      if not Builtin_Support (To_Language (Source_File.Language)) then
+         return;
+      end if;
+
+      Project_Sources.Insert (Source_File);
+   end Add_Project_Source;
+
    ---------------------------
    -- Add_Instrumented_Unit --
    ---------------------------
@@ -765,6 +813,100 @@ is
       end if;
    end Add_Instrumented_Unit;
 
+   --------------------------------
+   -- Insert_Manual_Dump_Trigger --
+   --------------------------------
+
+   procedure Insert_Manual_Dump_Trigger
+     (Language             : Src_Supported_Language;
+      Project_Sources      : in out File_Info_Sets.Set;
+      Instrumenter         : in out Language_Instrumenter'Class;
+      Manual_Dump_Inserted : in out Boolean)
+   is
+   begin
+      for Source_C in Project_Sources.Iterate loop
+         declare
+            Source : constant File_Info := File_Info_Sets.Element (Source_C);
+         begin
+            if To_Language (Source.Language) = Language then
+               declare
+                  use Prj_Has_Manual_Helper_Sets;
+
+                  Prj                  : constant Prj_Desc :=
+                    Get_Or_Create_Project_Info (IC, Source.Project).Desc;
+                  Helper_Unit          : Unbounded_String;
+                  Contained_Indication : Boolean := False;
+               begin
+
+                  Instrumenter.Replace_Manual_Dump_Indication
+                    (Contained_Indication,
+                     Prj,
+                     Source);
+
+                  if Contained_Indication
+                    and then
+                      Prj_Has_Manual_Helper.Find (Prj.Prj_Name) = No_Element
+                  then
+                     --  Only generate one manual dump helper unit per project
+
+                     Instrumenter.Emit_Dump_Helper_Unit_Manual
+                       (Helper_Unit, Dump_Config, Prj);
+
+                     declare
+                        use Files_Table;
+                        Instr_Units  : Unit_Sets.Set;
+                        Source_Files : GNATCOLL.VFS.File_Array_Access
+                          := Source.Project.Source_Files (Recursive => True);
+                     begin
+                        for S of Source_Files.all loop
+                           declare
+                              use Unit_Maps;
+                              Unit_C : constant Unit_Maps.Cursor :=
+                                Instrumented_Sources.Find
+                                  (+To_Compilation_Unit
+                                     (Project.Project.Info (S)).Unit_Name);
+                           begin
+                              if Unit_C /= Unit_Maps.No_Element then
+                                 declare
+                                    Unit       : constant Library_Unit_Info :=
+                                      Element (Unit_C);
+                                    Instr_Unit : constant Compilation_Unit :=
+                                      Compilation_Unit'
+                                        (Unit.Language_Kind,
+                                         Unit.Unit_Name);
+                                 begin
+                                    if not Instr_Units.Contains (Instr_Unit)
+                                    then
+                                       Instr_Units.Insert (Instr_Unit);
+                                    end if;
+                                 end;
+                              end if;
+                           end;
+                        end loop;
+
+                        --  The creation of the root project's buffers list
+                        --  unit is already taken care of by the regular
+                        --  instrumentation process, so skip it.
+
+                        if Prj.Prj_Name /= Root_Project_Info.Project.Name then
+                           Instrumenter.Emit_Buffers_List_Unit
+                             (Instr_Units, Prj);
+                        end if;
+
+                        GNATCOLL.VFS.Unchecked_Free (Source_Files);
+                     end;
+
+                     Prj_Has_Manual_Helper.Insert (Prj.Prj_Name);
+                  end if;
+
+                  Manual_Dump_Inserted :=
+                    Manual_Dump_Inserted or else Contained_Indication;
+               end;
+            end if;
+         end;
+      end loop;
+   end Insert_Manual_Dump_Trigger;
+
    ---------------------
    -- Clean_And_Print --
    ---------------------
@@ -780,6 +922,9 @@ is
    --  For each supported language, list of mains to instrument. Note that
    --  this is filled even when dump-trigger is manual: in that case the
    --  instrumentation of the main will do nothing.
+
+   Manual_Dump_Inserted : Boolean := False;
+   --  Whether or not a dump procedure was inserted in any source file
 
    Exec_Filename : constant String := Ada.Directories.Compose
      (Support_Files.Libexec_Dir,
@@ -812,7 +957,18 @@ begin
    for Lang in Src_Supported_Language loop
       if Src_Enabled_Languages (Lang) then
          Project.Enumerate_Sources
-           (Add_Instrumented_Unit'Access, Lang, Include_Stubs => True);
+           (Add_Instrumented_Unit'Access,
+            Lang,
+            Include_Stubs => True,
+            Only_UOIs     => True);
+
+         if Dump_Config.Trigger = Manual then
+            --  The expected manual dump indication can be located in any
+            --  source file, not only in sources of interest.
+
+            Project.Enumerate_Sources
+              (Add_Project_Source'Access, Lang, Include_Stubs => True);
+         end if;
       end if;
    end loop;
 
@@ -943,6 +1099,18 @@ begin
    C_Instrumenter := Create_C_Instrumenter (IC.Tag);
    CPP_Instrumenter := Create_CPP_Instrumenter (IC.Tag);
 
+   if Dump_Config.Trigger = Manual then
+      --  Replace manual dump indications for C-like languages
+
+      for Lang in C_Family_Language loop
+         Insert_Manual_Dump_Trigger
+           (Lang,
+            Project_Sources,
+            Instrumenters (Lang).all,
+            Manual_Dump_Inserted);
+      end loop;
+   end if;
+
    --  Write the files of interest to temporary files in the instrumentation
    --  directory.
 
@@ -973,6 +1141,7 @@ begin
       Instrument_Source_Args.Append
         (Common_Switches (Cmd_Instrument_Source));
       for Cur in Instrumented_Sources.Iterate loop
+
          declare
             Unit_Args : String_Vectors.Vector :=
               Instrument_Source_Args.Copy;
@@ -981,13 +1150,12 @@ begin
             --  instrumented for a specific unit).
 
             Unit_Name : constant String := Unit_Maps.Key (Cur);
-            LU_Info : constant Library_Unit_Info := Unit_Maps.Element (Cur);
-
-            Obj_SID : constant String :=
+            LU_Info   : constant Library_Unit_Info := Unit_Maps.Element (Cur);
+            Obj_SID   : constant String :=
               SID_Filename (LU_Info, In_Library_Dir => False);
 
-            Prj  : constant Project_Type := LU_Info.Instr_Project;
-            Desc : constant Prj_Desc :=
+            Prj       : constant Project_Type := LU_Info.Instr_Project;
+            Desc      : constant Prj_Desc :=
               IC.Project_Info_Map.Element (+Prj.Name).Desc;
          begin
             --  Skip instrumentation of the unit if it was already
@@ -1141,43 +1309,67 @@ begin
                               (Main.File.Full_Name, Include_Suffix => True));
                      end if;
                end if;
-
-               Unit_Args.Append (Unparse_Config (Explicit_Dump_Config));
-
-               --  Then append the main filename. If the main was instrumented
-               --  as a unit of interest before, then pass the instrumented
-               --  version.
-
-               if Instrumented_Sources.Contains (+Unit_Name) then
-                  Main_Filename :=
-                    +(+Root_Project_Info.Output_Dir) / (+Main.File.Base_Name);
-               else
-                  Main_Filename := +(+Main.File.Full_Name);
-               end if;
-
-               Unit_Args.Append (Main_Filename);
-
-               if Parallelism_Level = 1 then
-                  declare
-                     Instr_Units : String_Sets.Set;
-                  begin
-                     for Source of Files_Of_Interest loop
-                        Instr_Units.Insert (+(+Source.File.Full_Name));
-                     end loop;
-                     Instrument.Main
-                       (Instrumenter  => Instrumenters (Language).all,
-                        Dump_Config   => Explicit_Dump_Config,
-                        Main_Filename => +Main_Filename,
-                        Prj           => Main.Prj_Info.Desc);
-                  end;
-               else
-                  Instrument_Main_Pool.Run_Command
-                    (Command             => Exec_Filename,
-                     Arguments           => Unit_Args,
-                     Origin_Command_Name => "gnatcov instrument",
-                     Ignore_Error        => False);
-               end if;
             end;
+
+            if Dump_Config.Trigger /= Manual then
+               declare
+                  Unit_Name : constant Unbounded_String :=
+                    +(case Main.CU_Name.Language_Kind is
+                         when Unit_Based_Language =>
+                           To_Ada (Main.CU_Name.Unit),
+                         when File_Based_Language => (+Main.File.Full_Name));
+                  Unit_Args : String_Vectors.Vector :=
+                    Instrument_Main_Args.Copy;
+               begin
+                  Unit_Args.Append
+                    (Compilation_Unit_Options
+                       (IC,
+                        Main.Prj_Info.Desc,
+                        Library_Unit_Info'
+                          (Unit_Name            => Unit_Name,
+                           Instr_Project        => Main.Prj_Info.Project,
+                           Language_Kind        => Language_Kind (Language),
+                           Language             => Language,
+                           All_Externally_Built => False)));
+
+                  Unit_Args.Append (Unparse_Config (Explicit_Dump_Config));
+
+                  --  Then append the main filename. If the main was
+                  --  instrumented as a unit of interest before, then pass the
+                  --  instrumented version.
+
+                  if Instrumented_Sources.Contains (+Unit_Name) then
+                     Main_Filename :=
+                       +(+Root_Project_Info.Output_Dir)
+                       / (+Main.File.Base_Name);
+                  else
+                     Main_Filename := +(+Main.File.Full_Name);
+                  end if;
+
+                  Unit_Args.Append (Main_Filename);
+
+                  if Parallelism_Level = 1 then
+                     declare
+                        Instr_Units : String_Sets.Set;
+                     begin
+                        for Source of Files_Of_Interest loop
+                           Instr_Units.Insert (+(+Source.File.Full_Name));
+                        end loop;
+                        Instrument.Main
+                          (Instrumenter  => Instrumenters (Language).all,
+                           Dump_Config   => Explicit_Dump_Config,
+                           Main_Filename => +Main_Filename,
+                           Prj           => Main.Prj_Info.Desc);
+                     end;
+                  else
+                     Instrument_Main_Pool.Run_Command
+                       (Command             => Exec_Filename,
+                        Arguments           => Unit_Args,
+                        Origin_Command_Name => "gnatcov instrument",
+                        Ignore_Error        => False);
+                  end if;
+               end;
+            end if;
          end loop;
       end loop;
    end;
@@ -1218,6 +1410,25 @@ begin
       end loop;
    end;
 
+   if Dump_Config.Trigger = Manual then
+      Insert_Manual_Dump_Trigger
+        (Ada_Language,
+         Project_Sources,
+         Ada_Instrumenter,
+         Manual_Dump_Inserted);
+
+      --  At this point, all source files for all languages have been looked
+      --  through to insert a call to the manual dump procedure. If no call
+      --  has been inserted (i.e. no manual dump location indication was
+      --  found), warn the user.
+      if not Manual_Dump_Inserted then
+         Outputs.Warn
+           ("no indication for dump location was found, this might be"
+            & " caused by a misspelling in the expected pragma"
+            & " statement or comment.");
+      end if;
+   end if;
+
    Destroy_Context (IC);
 
    --  Save the dump trigger+channel information in the root project's
@@ -1239,9 +1450,11 @@ begin
       J.Set_Field ("dump-channel", Image (Dump_Config.Channel));
       Write (Filename, J, Compact => False);
    end;
+
 exception
-   --  We need to clear the object directories in case an exception (caught by
-   --  a global handler and not dealt with by the registered hook) was raised.
+   --  We need to clear the object directories in case an exception (caught
+   --  by a global handler and not dealt with by the registered hook) was
+   --  raised.
 
    when Binary_Files.Error
       | Ada.IO_Exceptions.Name_Error
