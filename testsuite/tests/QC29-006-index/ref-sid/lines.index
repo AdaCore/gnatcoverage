@@ -1,0 +1,27 @@
+lines
+
+Global:
+        -  69%, !  12%, +  18%     out of 33 lines
+
+
+Other sources:
+        -  69%, !  12%, +  18%     out of 33 lines
+
+    a.adb:
+        -   0%, !   0%, + 100%     out of 1 lines
+    a.ads:
+        -   -%, !   -%, +   -%     out of 0 lines
+    b.ads:
+        - 100%, !   0%, +   0%     out of 1 lines
+    bar.adb:
+        - 100%, !   0%, +   0%     out of 11 lines
+    bar.ads:
+        -   -%, !   -%, +   -%     out of 0 lines
+    foo.adb:
+        - 100%, !   0%, +   0%     out of 10 lines
+    foo.ads:
+        -   -%, !   -%, +   -%     out of 0 lines
+    lib.ads:
+        -   0%, !  33%, +  66%     out of 3 lines
+    main.adb:
+        -  14%, !  42%, +  42%     out of 7 lines

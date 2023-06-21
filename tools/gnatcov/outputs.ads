@@ -137,12 +137,13 @@ package Outputs is
    function Output_Dir_Defined return Boolean;
    --  True if the output directory has been set
 
-   procedure Set_Output_Dir (Output_Dir : String);
+   procedure Set_Output_Dir (Output_Dir : String; Subdir : Boolean := False);
    --  Set the path to the directory where report files will be stored.
    --  This procedure shall be called before any use of Create_Output_File
    --  (presumably when parsing xcov's options). The default output dir is
    --  the root project's object directory if using a project, or the current
-   --  directory if not.
+   --  directory if not. Subdir indicates wether the directory is an output
+   --  subdirectory.
 
    function Get_Output_Dir return String;
    --  Return the output dir. If Report_Output_Dir is null, initialize it
