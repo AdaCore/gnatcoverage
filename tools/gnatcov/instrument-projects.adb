@@ -800,9 +800,7 @@ begin
    --  First get the list of all units of interest
 
    for Lang in Src_Supported_Language loop
-      if Src_Enabled_Languages (Lang)
-        and then Root_Project_Info.Project.Has_Language (Image (Lang))
-      then
+      if Src_Enabled_Languages (Lang) then
          Project.Enumerate_Sources
            (Add_Instrumented_Unit'Access, Lang, Include_Stubs => True);
       end if;
