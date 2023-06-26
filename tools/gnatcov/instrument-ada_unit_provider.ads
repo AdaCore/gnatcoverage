@@ -86,9 +86,6 @@ private
       Unit_Map : String_Maps.Map;
       --  Mapping from unit name to file fullnames
 
-      Filename_Map  : String_Maps.Map;
-      --  Mapping from file fullnames to unit names
-
       Runtime_Files : String_Maps.Map;
       --  Mapping from a runtime file basename to its fullname
 

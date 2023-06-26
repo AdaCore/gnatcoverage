@@ -63,8 +63,6 @@ package body Instrument.Ada_Unit_Provider is
                  Get_Line (Dependencies_File);
             begin
                Provider.Unit_Map.Insert (To_Lower (Unit_Name), File_Fullname);
-               Provider.Filename_Map.Insert
-                 (File_Fullname, To_Lower (Unit_Name));
             end;
          end loop;
       exception
