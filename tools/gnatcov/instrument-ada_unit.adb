@@ -3338,11 +3338,27 @@ package body Instrument.Ada_Unit is
                      --  Now reattach old condition in the new OR ELSE node. We
                      --  will wrap it in parens to preserve the semantics of
                      --  the condition.
+                     --
+                     --  The two operands of the OR ELSE may not have the same
+                     --  type (Standard.Boolean for the Witness return type).
+                     --  We could convert the result of the witness call to the
+                     --  actual type of the expression, but this requires
+                     --  "withing" the package in which the derived boolean
+                     --  type is defined in case it is not visible. Instead, as
+                     --  this is a top-level boolean expression, we can simply
+                     --  convert the original expression to Standard.Boolean.
 
-                     Old_Cond := Create_Regular_Node
+                     Old_Cond := Create_Call_Expr
                        (RC,
-                        Ada_Paren_Expr,
-                        Children => (1 => Old_Cond));
+                        F_Name   => Create_Identifier
+                          (RC, To_Text (To_Ada (Sys_Prefix) & ".Std.Boolean")),
+                        F_Suffix => Create_Regular_Node
+                          (RC,
+                           Ada_Assoc_List,
+                           (1 => Create_Param_Assoc
+                              (RC,
+                               F_Designator => No_Node_Rewriting_Handle,
+                               F_R_Expr     => Old_Cond))));
 
                      Set_Child (New_Cond, 3, Old_Cond);
                   end;
