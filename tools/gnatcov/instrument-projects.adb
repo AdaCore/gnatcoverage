@@ -22,11 +22,14 @@ with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Directories;
 with Ada.Exceptions;
+with Ada.IO_Exceptions;
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
 with Ada.Unchecked_Deallocation;
+
+with GNAT.Exception_Actions;
 
 with Interfaces; use Interfaces;
 
@@ -38,6 +41,7 @@ with GNATCOLL.JSON;         use GNATCOLL.JSON;
 with GNATCOLL.VFS;
 with GNATCOLL.Projects.Aux; use GNATCOLL.Projects.Aux;
 
+with Binary_Files;
 with Command_Line;        use Command_Line;
 with Files_Table;
 with Hex_Images;          use Hex_Images;
@@ -235,6 +239,10 @@ is
    procedure Add_Instrumented_Unit
      (Project : GPR.Project_Type; Source_File : GPR.File_Info);
    --  Add this source file to the list of units to instrument
+
+   procedure Clean_And_Print (Exc : Ada.Exceptions.Exception_Occurrence);
+   --  Clean the instrumentation directories and print any relevant information
+   --  regarding the instrumentation context.
 
    -----------------------
    -- Load_From_Project --
@@ -752,6 +760,16 @@ is
       end if;
    end Add_Instrumented_Unit;
 
+   ---------------------
+   -- Clean_And_Print --
+   ---------------------
+
+   procedure Clean_And_Print (Exc : Ada.Exceptions.Exception_Occurrence) is
+   begin
+      Clean_Objdirs;
+      Outputs.Print_Internal_Error (Exc);
+   end Clean_And_Print;
+
    Mains_To_Instrument : array (Src_Supported_Language)
      of Main_To_Instrument_Vectors.Vector;
    --  For each supported language, list of mains to instrument. Note that
@@ -886,6 +904,16 @@ begin
    --  output directories.
 
    Prepare_Output_Dirs (IC);
+
+   --  Clean the instrumentation directories if the process terminated with
+   --  an exception. Note that we can't do this with a handler, as the
+   --  Clean_And_Print hook must be executed before local context objects at
+   --  the raise point are finalized. Using the
+   --  Register_Global_Unhandled_Action, the hook will be triggered before
+   --  local controlled objects are finalized.
+
+   GNAT.Exception_Actions.Register_Global_Unhandled_Action
+     (Clean_And_Print'Unrestricted_Access);
 
    --  Record in a file all of the files and headers of interest. We separate
    --  both as we do not expect to have coverage buffers for header files (the
@@ -1219,5 +1247,13 @@ begin
       J.Set_Field ("dump-channel", Image (Dump_Config.Channel));
       Write (Filename, J, Compact => False);
    end;
+exception
+   --  We need to clear the object directories in case an exception (caught by
+   --  a global handler and not dealt with by the registered hook) was raised.
 
+   when Binary_Files.Error
+      | Ada.IO_Exceptions.Name_Error
+      | Outputs.Xcov_Exit_Exc =>
+      Clean_Objdirs;
+      raise;
 end Instrument.Projects;

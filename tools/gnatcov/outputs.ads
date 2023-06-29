@@ -20,7 +20,8 @@
 --  (error messages and annotated reports).
 
 private with Ada.Finalization;
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Exceptions; use Ada.Exceptions;
+with Ada.Text_IO;    use Ada.Text_IO;
 
 with Types; use Types;
 
@@ -90,6 +91,9 @@ package Outputs is
    --        ... process foobar...
    --     end;
 
+   procedure Print_Internal_Error (Exc : Ada.Exceptions.Exception_Occurrence);
+   --  Display the given internal error along with the known context (see the
+   --  previous procedures).
    type Any_Internal_Error_Trigger is (
       None,
       --  Do not create an artificial internal error
