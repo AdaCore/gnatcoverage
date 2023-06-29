@@ -253,7 +253,8 @@ package body Annotations.Cobertura is
 
       Pp.Need_Sources := False;
 
-      Annotations.Generate_Report (Pp, True, Subdir => "cobertura");
+      Annotations.Generate_Report
+        (Pp, True, Context.Subps_Of_Interest, Subdir => "cobertura");
       Free (Pp.Source_Prefix_Pattern);
    end Generate_Report;
 

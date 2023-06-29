@@ -1082,17 +1082,16 @@ package body Instrument.Ada_Unit is
    --------------------------------
 
    procedure Enter_Scope
-     (UIC        : in out Ada_Unit_Inst_Context;
-      Scope_Name : Text_Type;
-      Sloc       : Source_Location);
+     (UIC  : in out Ada_Unit_Inst_Context;
+      Sloc : Source_Location;
+      Decl : Basic_Decl);
    --  Enter a scope. This must be completed with a call to the function
    --  Exit_Scope, defined below. Scope_Name is the name of the scope, which
    --  is defined at location Sloc. Assume that the scope first SCO is the next
    --  generated SCO (SCOs.SCO_Table.Last + 1). Update UIC.Current_Scope_Entity
    --  to the created entity.
 
-   procedure Exit_Scope (UIC : in out Ada_Unit_Inst_Context)
-     with Pre => UIC.Current_Scope_Entity /= null;
+   procedure Exit_Scope (UIC : in out Ada_Unit_Inst_Context);
    --  Exit the current scope, updating UIC.Current_Scope_Entity to
    --  UIC.Current_Scope_Entity.Parent, if any. Assume that the last generated
    --  SCO (SCOs.SCO_Table.Last) is the last SCO for the current scope.
@@ -2825,7 +2824,7 @@ package body Instrument.Ada_Unit is
                | Ada_Accept_Stmt_With_Stmts
                | Ada_Entry_Body =>
 
-                  --  A return statment may only appear within a callable
+                  --  A return statement may only appear within a callable
                   --  construct (RM 6.5 (4/2)), which are either subprogram
                   --  bodies, entry bodies or accept statements (RM 6.2)). As
                   --  Subp is a Subp_Body if we encounter an accept statement
@@ -4450,19 +4449,20 @@ package body Instrument.Ada_Unit is
 
          Process_Decisions_Defer (N_Spec.F_Subp_Params, 'X');
 
+         Enter_Scope
+           (UIC  => UIC,
+            Sloc => Sloc (N),
+            Decl => N);
+
          --  Nothing else to do except for the case of degenerate subprograms
          --  (null procedures and expression functions).
 
          if N.Kind in Ada_Null_Subp_Decl then
             Traverse_Degenerate_Subprogram (N, N_Spec);
          elsif N.Kind in Ada_Expr_Function then
-            Enter_Scope
-              (UIC        => UIC,
-               Scope_Name => N.As_Expr_Function.F_Subp_Spec.F_Subp_Name.Text,
-               Sloc       => Sloc (N));
             Traverse_Degenerate_Subprogram (N, N_Spec);
-            Exit_Scope (UIC);
          end if;
+         Exit_Scope (UIC);
       end Traverse_Subp_Decl_Or_Stub;
 
       ------------------
@@ -5151,10 +5151,9 @@ package body Instrument.Ada_Unit is
             =>
                Set_Statement_Entry;
                Enter_Scope
-                 (UIC        => UIC,
-                  Scope_Name =>
-                     N.As_Basic_Decl.P_Defining_Name.F_Name.Text,
-                  Sloc       => Sloc (N));
+                 (UIC  => UIC,
+                  Sloc => Sloc (N),
+                  Decl => N.As_Basic_Decl);
                Extend_Statement_Sequence
                  (UIC, N,
                   (if N.Kind in Ada_Generic_Instantiation then 'i' else 'r'));
@@ -5474,9 +5473,9 @@ package body Instrument.Ada_Unit is
    begin
       UIC.Ghost_Code := Safe_Is_Ghost (N);
       Enter_Scope
-        (UIC        => UIC,
-         Scope_Name => N.As_Package_Body.F_Package_Name.Text,
-         Sloc       => Sloc (N));
+        (UIC  => UIC,
+         Sloc => Sloc (N),
+         Decl => N.P_Previous_Part_For_Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       Traverse_Declarations_Or_Statements
@@ -5504,9 +5503,9 @@ package body Instrument.Ada_Unit is
    begin
       UIC.Ghost_Code := Safe_Is_Ghost (N);
       Enter_Scope
-        (UIC        => UIC,
-         Scope_Name => N.F_Package_Name.Text,
-         Sloc       => Sloc (N));
+        (UIC  => UIC,
+         Sloc => Sloc (N),
+         Decl => N.As_Basic_Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       Traverse_Declarations_Or_Statements
@@ -5604,14 +5603,12 @@ package body Instrument.Ada_Unit is
      (UIC : in out Ada_Unit_Inst_Context;
       N   : Ada_Node)
    is
-      Decls    : Declarative_Part;
-      HSS      : Handled_Stmts;
+      Decls : Declarative_Part;
+      HSS   : Handled_Stmts;
 
       Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
         UIC.MCDC_State_Inserter;
       Local_Inserter            : aliased Default_MCDC_State_Inserter;
-
-      Body_Name : Defining_Name;
    begin
       case Kind (N) is
          when Ada_Subp_Body =>
@@ -5620,7 +5617,6 @@ package body Instrument.Ada_Unit is
             begin
                Decls := SBN.F_Decls;
                HSS   := SBN.F_Stmts;
-               Body_Name := N.As_Subp_Body.F_Subp_Spec.F_Subp_Name;
             end;
 
          when Ada_Task_Body =>
@@ -5629,7 +5625,6 @@ package body Instrument.Ada_Unit is
             begin
                Decls := TBN.F_Decls;
                HSS   := TBN.F_Stmts;
-               Body_Name := N.As_Task_Body.F_Name;
             end;
 
          when Ada_Entry_Body =>
@@ -5638,17 +5633,24 @@ package body Instrument.Ada_Unit is
             begin
                Decls := EBN.F_Decls;
                HSS := EBN.F_Stmts;
-               Body_Name := N.As_Entry_Body.F_Entry_Name;
             end;
 
          when others =>
             raise Program_Error;
       end case;
 
-      Enter_Scope
-        (UIC        => UIC,
-         Scope_Name => Body_Name.Text,
-         Sloc       => Sloc (N));
+      declare
+         Previous_Part : constant Basic_Decl := N.As_Body_Node.P_Previous_Part;
+         Decl          : constant Basic_Decl :=
+           (if Previous_Part.Is_Null
+            then N.As_Body_Node.P_Subp_Spec_Or_Null.P_Parent_Basic_Decl
+            else Previous_Part);
+      begin
+         Enter_Scope
+           (UIC  => UIC,
+            Sloc => Sloc (N),
+            Decl => Decl);
+      end;
 
       Local_Inserter.Local_Decls := Handle (Decls.F_Decls);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
@@ -6833,23 +6835,34 @@ package body Instrument.Ada_Unit is
    -----------------
 
    procedure Enter_Scope
-     (UIC        : in out Ada_Unit_Inst_Context;
-      Scope_Name : Text_Type;
-      Sloc       : Source_Location)
+     (UIC  : in out Ada_Unit_Inst_Context;
+      Sloc : Source_Location;
+      Decl : Basic_Decl)
    is
-      New_Scope_Ent : constant Scope_Entity_Acc := new Scope_Entity'
-        (From     => SCO_Id (SCOs.SCO_Table.Last + 1),
-         To       => No_SCO_Id,
-         Name     => +Langkit_Support.Text.To_UTF8 (Scope_Name),
-         Sloc     => (Line => Natural (Sloc.Line),
-                       Column => Natural (Sloc.Column)),
-         Children => Scope_Entities_Vectors.Empty_Vector,
-         Parent   => UIC.Current_Scope_Entity);
+      Decl_SFI      : constant Source_File_Index :=
+        Get_Index_From_Generic_Name
+          (Decl.Unit.Get_Filename,
+           Kind                => Files_Table.Source_File,
+           Indexed_Simple_Name => True);
+      New_Scope_Ent : constant Scope_Entity :=
+        (From       => SCO_Id (SCOs.SCO_Table.Last + 1),
+         To         => No_SCO_Id,
+         Name       =>
+           +Langkit_Support.Text.To_UTF8 (Decl.P_Defining_Name.F_Name.Text),
+         Sloc       =>
+           (Line   => Natural (Sloc.Line),
+            Column => Natural (Sloc.Column)),
+         Identifier =>
+           (Decl_SFI  => Decl_SFI,
+            Decl_Line => Natural (Decl.Sloc_Range.Start_Line)));
+      Inserted : Scope_Entities_Trees.Cursor;
    begin
-      if UIC.Current_Scope_Entity /= null then
-         UIC.Current_Scope_Entity.Children.Append (New_Scope_Ent);
-      end if;
-      UIC.Current_Scope_Entity := New_Scope_Ent;
+      UIC.Scope_Entities.Insert_Child
+        (Parent   => UIC.Current_Scope_Entity,
+         Before   => Scope_Entities_Trees.No_Element,
+         New_Item => New_Scope_Ent,
+         Position => Inserted);
+      UIC.Current_Scope_Entity := Inserted;
    end Enter_Scope;
 
    ----------------
@@ -6858,10 +6871,12 @@ package body Instrument.Ada_Unit is
 
    procedure Exit_Scope (UIC : in out Ada_Unit_Inst_Context)
    is
-      Parent : constant Scope_Entity_Acc := UIC.Current_Scope_Entity.Parent;
+      use Scope_Entities_Trees;
+      Parent_Scope : constant Cursor := Parent (UIC.Current_Scope_Entity);
       --  Latch the parent value before UIC.Current_Scope_Entity is freed
 
-      Scope : Scope_Entity_Acc renames UIC.Current_Scope_Entity;
+      Scope : constant Reference_Type :=
+        UIC.Scope_Entities.Reference (UIC.Current_Scope_Entity);
    begin
       --  Update the last SCO for this scope entity
 
@@ -6871,18 +6886,13 @@ package body Instrument.Ada_Unit is
       --  only subprogram declarations for instance), discard it.
 
       if Scope.To < Scope.From then
-         if Parent /= null then
-            Parent.Children.Delete_Last;
-         end if;
-         Free (Scope);
+         UIC.Scope_Entities.Delete_Leaf (UIC.Current_Scope_Entity);
       end if;
 
       --  If this is not the top-level scope (we want to keep its reference
       --  after having traversed the AST), go up the scope tree.
 
-      if Parent /= null then
-         Scope := Parent;
-      end if;
+      UIC.Current_Scope_Entity := Parent_Scope;
    end Exit_Scope;
 
    ---------------------
@@ -8208,6 +8218,7 @@ package body Instrument.Ada_Unit is
       --  we can insert witness calls (which are not preelaborable).
 
       UIC.Root_Unit := Root_Analysis_Unit.Root.As_Compilation_Unit;
+      UIC.Current_Scope_Entity := UIC.Scope_Entities.Root;
 
       CU_Name.Part :=
         (case UIC.Root_Unit.P_Unit_Kind is
@@ -8238,7 +8249,8 @@ package body Instrument.Ada_Unit is
       --  file.
 
       UIC.Annotations.Clear;
-      UIC.Current_Scope_Entity := null;
+      UIC.Scope_Entities := Scope_Entities_Trees.Empty_Tree;
+      UIC.Current_Scope_Entity := UIC.Scope_Entities.Root;
       UIC.Degenerate_Subprogram_Index := 0;
       UIC.Source_Decisions := Source_Decision_Vectors.Empty;
       UIC.Source_Conditions := Source_Condition_Vectors.Empty;
@@ -8425,13 +8437,8 @@ package body Instrument.Ada_Unit is
           --  Remap low level SCOS in Scope_Entity records to high-level SCOs.
           --  See the comment for Scope_Entity.From/To.
 
-         if UIC.Current_Scope_Entity /= null then
-
-            --  Iterate through the package level body entities
-
-            Remap_Scope_Entity (UIC.Current_Scope_Entity, SCO_Map);
-            Set_Scope_Entity (UIC.CU, UIC.Current_Scope_Entity);
-         end if;
+         Remap_Scope_Entities (UIC.Scope_Entities, SCO_Map);
+         Set_Scope_Entities (UIC.CU, UIC.Scope_Entities);
       end;
 
       --  Emit the instrumented source file

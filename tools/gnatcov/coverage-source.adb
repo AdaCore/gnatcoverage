@@ -1754,6 +1754,26 @@ package body Coverage.Source is
                  when Unit_Separate => "separate");
       end Part_Image;
 
+      ST : Scope_Traversal_Type;
+
+      procedure Update_SCI_Wrapper
+        (SCO     : SCO_Id;
+         Tag     : SC_Tag;
+         Process : access procedure (SCI : in out Source_Coverage_Info));
+      --  Execute Process on the SCI for the given SCO and tag
+
+      procedure Update_SCI_Wrapper
+        (SCO     : SCO_Id;
+         Tag     : SC_Tag;
+         Process : access procedure (SCI : in out Source_Coverage_Info))
+      is
+      begin
+         Traverse_SCO (ST, SCO);
+         if Is_Active (ST, Subps_Of_Interest) then
+            Update_SCI (SCO, Tag, Process);
+         end if;
+      end Update_SCI_Wrapper;
+
    --  Start of processing for Compute_Source_Coverage
 
    begin
@@ -1806,15 +1826,18 @@ package body Coverage.Source is
 
       BM := Bit_Maps (CU);
 
+      ST := Scope_Traversal (CU);
       for J in Stmt_Buffer'Range loop
 
          --  If bit is set, statement has been executed
 
          if Stmt_Buffer (J) then
-            Update_SCI (BM.Statement_Bits (J), No_SC_Tag, Set_Executed'Access);
+            Update_SCI_Wrapper
+              (BM.Statement_Bits (J), No_SC_Tag, Set_Executed'Access);
          end if;
       end loop;
 
+      ST := Scope_Traversal (CU);
       for J in Decision_Buffer'Range loop
          if Decision_Buffer (J) then
             declare
@@ -1835,7 +1858,7 @@ package body Coverage.Source is
                end Set_Known_Outcome_Taken;
 
             begin
-               Update_SCI
+               Update_SCI_Wrapper
                  (Outcome_Info.D_SCO, No_SC_Tag,
                   Set_Known_Outcome_Taken'Access);
 
@@ -1845,6 +1868,7 @@ package body Coverage.Source is
          end if;
       end loop;
 
+      ST := Scope_Traversal (CU);
       for J in MCDC_Buffer'Range loop
          if MCDC_Buffer (J) then
             declare
@@ -1871,7 +1895,8 @@ package body Coverage.Source is
                end Add_Evaluation;
 
             begin
-               Update_SCI (MCDC_Info.D_SCO, No_SC_Tag, Add_Evaluation'Access);
+               Update_SCI_Wrapper
+                 (MCDC_Info.D_SCO, No_SC_Tag, Add_Evaluation'Access);
             end;
          end if;
       end loop;

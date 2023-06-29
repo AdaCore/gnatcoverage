@@ -138,9 +138,10 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_End_File (Pp : in out Xml_Pretty_Printer);
 
-   procedure Pretty_Print_Scope_Entity
-     (Pp        : in out Xml_Pretty_Printer;
-      Scope_Ent : Scope_Entity);
+   procedure Pretty_Print_Scope_Entities
+     (Pp             : in out Xml_Pretty_Printer;
+      File           : Source_File_Index;
+      Scope_Entities : Scope_Entities_Tree);
 
    procedure Pretty_Print_Start_Line
      (Pp       : in out Xml_Pretty_Printer;
@@ -293,7 +294,8 @@ package body Annotations.Xml is
          Context      => Context,
          others       => <>);
    begin
-      Annotations.Generate_Report (Pp, True, Subdir => "xml");
+      Annotations.Generate_Report
+        (Pp, True, Context.Subps_Of_Interest, Subdir => "xml");
    end Generate_Report;
 
    -------
@@ -565,36 +567,54 @@ package body Annotations.Xml is
             Dest_Index);
    end Pretty_Print_Start_File;
 
-   -------------------------------
-   -- Pretty_Print_Scope_Entity --
-   -------------------------------
+   ---------------------------------
+   -- Pretty_Print_Scope_Entities --
+   ---------------------------------
 
-   procedure Pretty_Print_Scope_Entity
-     (Pp        : in out Xml_Pretty_Printer;
-      Scope_Ent : Scope_Entity)
+   procedure Pretty_Print_Scope_Entities
+     (Pp             : in out Xml_Pretty_Printer;
+      File           : Source_File_Index;
+      Scope_Entities : Scope_Entities_Tree)
    is
-      FI : constant File_Info_Access :=
-        Get_File (First_Sloc (Scope_Ent.From).Source_File);
+      use Scope_Entities_Trees;
+
+      procedure Pp_Scope_Entity (Cur : Cursor);
+
+      ---------------------
+      -- Pp_Scope_Entity --
+      ---------------------
+
+      procedure Pp_Scope_Entity (Cur : Cursor)
+      is
+         Scope_Ent : constant Scope_Entity := Element (Cur);
+         Child     : Cursor := First_Child (Cur);
+      begin
+         Pp.ST ("scope_metric",
+                A ("scope_name", Scope_Ent.Name)
+                & A ("scope_line", Img (Scope_Ent.Sloc.Line)));
+         Print_Coverage_Li_Stats
+           (Pp,
+            Line_Metrics
+              (Get_File (File),
+               First_Sloc (Scope_Ent.From).L.Line,
+               Last_Sloc (Scope_Ent.To).L.Line),
+            Dest_Compilation_Unit);
+         Print_Coverage_Ob_Stats
+           (Pp,
+            Obligation_Metrics (Scope_Ent.From, Scope_Ent.To),
+            Dest_Compilation_Unit);
+         while Has_Element (Child) loop
+            Pp_Scope_Entity (Child);
+            Child := Next_Sibling (Child);
+         end loop;
+         Pp.ET ("scope_metric");
+      end Pp_Scope_Entity;
+
    begin
-      Pp.ST ("scope_metric",
-             A ("scope_name", Scope_Ent.Name)
-             & A ("scope_line", Img (Scope_Ent.Sloc.Line)));
-      Print_Coverage_Li_Stats
-        (Pp,
-         Line_Metrics
-           (FI,
-            First_Sloc (Scope_Ent.From).L.Line,
-            Last_Sloc (Scope_Ent.To).L.Line),
-         Dest_Compilation_Unit);
-      Print_Coverage_Ob_Stats
-        (Pp,
-         Obligation_Metrics (Scope_Ent.From, Scope_Ent.To),
-         Dest_Compilation_Unit);
-      for Child of Scope_Ent.Children loop
-         Pp.Pretty_Print_Scope_Entity (Child.all);
+      for Cur in Scope_Entities.Iterate_Children (Scope_Entities.Root) loop
+         Pp_Scope_Entity (Cur);
       end loop;
-      Pp.ET ("scope_metric");
-   end Pretty_Print_Scope_Entity;
+   end Pretty_Print_Scope_Entities;
 
    ----------------------------------------
    -- Pretty_Print_Start_Instruction_Set --

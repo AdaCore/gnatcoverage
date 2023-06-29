@@ -378,9 +378,9 @@ package Instrument.Common is
    --  source file, also append a new entry to the SCO_Unit_Table, otherwise
    --  complete its last entry.
 
-   procedure Remap_Scope_Entity
-     (Scope_Entity : Scope_Entity_Acc;
-      SCO_Map      : LL_HL_SCO_Map);
+   procedure Remap_Scope_Entities
+     (Scope_Entities : in out Scope_Entities_Tree;
+      SCO_Map        : LL_HL_SCO_Map);
    --  Convert low level SCOs in Scope_Entity to high-level SCOs using the
    --  mapping in SCO_Map.
 
@@ -396,7 +396,6 @@ package Instrument.Common is
    type Language_Instrumenter is abstract tagged record
       Tag : Unbounded_String;
       --  Tag specific to an instrumentation run
-
    end record;
    --  Set of operations to allow the instrumentation of sources files for a
    --  given language.

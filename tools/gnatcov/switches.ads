@@ -25,6 +25,7 @@ with Calendar_Utils;       use Calendar_Utils;
 with Command_Line;         use Command_Line;
 with Command_Line_Support; use Command_Line_Support;
 with Inputs;
+with SC_Obligations;
 with Strings;              use Strings;
 
 package Switches is
@@ -123,6 +124,9 @@ package Switches is
    Use_Full_Slugs : Boolean := False;
    --  When True, use full unit/filename slugs for generated buffer units
    --  instead of hashes.
+
+   Subps_Of_Interest : SC_Obligations.Scope_Id_Set;
+   --  List of subprograms of interest
 
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;

@@ -88,6 +88,7 @@ package body Annotations.Xcov is
       Annotations.Generate_Report
         (Pp,
          Show_Details,
+         Context.Subps_Of_Interest,
          Subdir        => (if Pp.Show_Details then "xcov+" else "xcov"),
          Clean_Pattern => "*.xcov");
    end Generate_Report;

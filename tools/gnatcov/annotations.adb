@@ -181,14 +181,8 @@ package body Annotations is
          return;
       end if;
 
-      declare
-         Scope_Ent : constant Scope_Entity_Acc :=
-           Get_Scope_Entity (Comp_Unit (File_Index));
-      begin
-         if Scope_Ent /= null and then Scope_Ent.all /= No_Scope_Entity then
-            Pretty_Print_Scope_Entity (Pp, Scope_Ent.all);
-         end if;
-      end;
+      Pretty_Print_Scope_Entities
+        (Pp, File_Index, Get_Scope_Entities (Comp_Unit (File_Index)));
       Iterate_On_Lines (FI, Process_One_Line'Access);
       Pretty_Print_End_File (Pp);
    end Disp_File_Line_State;
@@ -384,10 +378,11 @@ package body Annotations is
    ---------------------
 
    procedure Generate_Report
-     (Pp            : in out Pretty_Printer'Class;
-      Show_Details  : Boolean;
-      Subdir        : String := "";
-      Clean_Pattern : String := No_Cleaning)
+     (Pp               : in out Pretty_Printer'Class;
+      Show_Details     : Boolean;
+      Subp_Of_Interest : Scope_Id_Set;
+      Subdir           : String := "";
+      Clean_Pattern    : String := No_Cleaning)
    is
       use Coverage;
 
@@ -406,9 +401,11 @@ package body Annotations is
       -- Compute_File_State --
       ------------------------
 
-      procedure Compute_File_State (File_Index : Source_File_Index) is
-
-         FI : constant File_Info_Access := Get_File (File_Index);
+      procedure Compute_File_State (File_Index : Source_File_Index)
+      is
+         ST : Scope_Traversal_Type;
+         FI : constant File_Info_Access :=
+           Get_File (File_Index);
 
          procedure Compute_Line_State (L : Positive);
          --  Given a source line located in FI's source file, at line L,
@@ -422,6 +419,17 @@ package body Annotations is
             LI : constant Line_Info_Access := Get_Line (FI, L);
             S  : Line_State;
          begin
+            --  Check that this is a SCO for a subprogram of interest
+
+            if not Subp_Of_Interest.Is_Empty and then LI.SCOs /= null then
+               for SCO of LI.SCOs.all loop
+                  Traverse_SCO (ST, SCO);
+               end loop;
+               if not Is_Active (ST, Subps_Of_Interest) then
+                  return;
+               end if;
+            end if;
+
             --  Compute state for each coverage objective
 
             if Object_Coverage_Enabled then
@@ -457,6 +465,7 @@ package body Annotations is
          end if;
 
          Populate_Exemptions (File_Index);
+         ST := Scope_Traversal (Comp_Unit (File_Index));
          Iterate_On_Lines (FI, Compute_Line_State'Access);
 
          --  Update file statistics for line L. Note that this can be done

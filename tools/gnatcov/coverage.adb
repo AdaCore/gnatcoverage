@@ -17,9 +17,11 @@
 ------------------------------------------------------------------------------
 
 with Ada.Command_Line;
+with Ada.Containers;
 
 with Strings;       use Strings;
 with Support_Files; use Support_Files;
+with Switches;      use Switches;
 with Version;       use Version;
 
 package body Coverage is
@@ -232,17 +234,19 @@ package body Coverage is
       use Ada.Command_Line;
 
       Command : Unbounded_String :=
-         To_Unbounded_String (Support_Files.Gnatcov_Command_Name);
+        To_Unbounded_String (Support_Files.Gnatcov_Command_Name);
+
    begin
       for J in 1 .. Argument_Count loop
          Append (Command, ' ' & Argument (J));
       end loop;
 
       return Context'
-        (Timestamp => Clock,
-         Version   => To_Unbounded_String (Xcov_Version),
-         Command   => Command,
-         Levels    => To_Unbounded_String (Coverage_Option_Value));
+        (Timestamp         => Clock,
+         Version           => To_Unbounded_String (Xcov_Version),
+         Command           => Command,
+         Levels            => To_Unbounded_String (Coverage_Option_Value),
+         Subps_Of_Interest => Subps_Of_Interest);
    end Get_Context;
 
    ---------------

@@ -148,6 +148,7 @@ package Command_Line is
       Opt_Scos,
       Opt_Units,
       Opt_SID,
+      Opt_Subp_Of_Interest,
       Opt_Routines,
       Opt_Routines_List,
       Opt_Exec,
@@ -1096,6 +1097,15 @@ package Command_Line is
                         | Cmd_Instrument_Main => False,
                         others                => True),
          Internal   => False),
+      Opt_Subp_Of_Interest => Create
+        (Long_Name => "--subprograms",
+         Pattern   => "<file>:<line>",
+         Help      =>
+           "Restrict coverage analysis to specific subprograms designated by"
+         & " the specification source line for Ada, and by the body source"
+         & " for C/C++.",
+         Commands  => (Cmd_Coverage => True, others => False),
+         Internal  => False),
       Opt_Scenario_Var => Create
         (Short_Name => "-X",
          Pattern    => "[NAME]=[VALUE]",
