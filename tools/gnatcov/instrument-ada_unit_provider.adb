@@ -85,8 +85,16 @@ package body Instrument.Ada_Unit_Provider is
             if Runtime_Dir.Is_Directory then
                Files := Runtime_Dir.Read_Dir;
                for File of Files.all loop
-                  Provider.Runtime_Files.Insert
-                    (+File.Base_Name, +File.Full_Name);
+
+                  --  It is allowed to have multiple version of the same file
+                  --  in a project: the builder will pick the first one found.
+                  --  Apply the same semantics here, and ignore all later
+                  --  occurrences of a file already encountered.
+
+                  if not Provider.Runtime_Files.Contains (+File.Base_Name) then
+                     Provider.Runtime_Files.Insert
+                       (+File.Base_Name, +File.Full_Name);
+                  end if;
                end loop;
                Unchecked_Free (Files);
             end if;
@@ -116,7 +124,7 @@ package body Instrument.Ada_Unit_Provider is
 
       return Create_Unit_Provider_Reference
         (Create_Provider
-           (Runtime_Directories => Project.Runtime_Dirs,
+           (Runtime_Directories   => Project.Runtime_Dirs,
             Dependencies_Filename => Mapping_File));
    end Create_Provider_From_Project;
 
