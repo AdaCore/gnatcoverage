@@ -20,7 +20,6 @@ with Ada.Characters.Handling;
 with Ada.Command_Line;          use Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables; use Ada.Environment_Variables;
-with Ada.Exceptions;            use Ada.Exceptions;
 with Ada.Strings.Unbounded;     use Ada.Strings.Unbounded;
 
 with GNAT.Exception_Actions;
@@ -72,10 +71,6 @@ package body Outputs is
    Freed_Context : Context_Entry_Access;
    --  Linked list (through Context_Entry.Next) of already allocated and
    --  available Context_Entry records.
-
-   procedure Print_Internal_Error (Exc : Ada.Exceptions.Exception_Occurrence);
-   --  Display the given internal error along with the known context (see the
-   --  previous procedures).
 
    -------------------------
    --  Create_Output_File --

@@ -22,6 +22,8 @@ with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 with GNAT.Regpat;
 
+with Strings; use Strings;
+
 package body Paths is
 
    On_Windows : constant Boolean := GNAT.OS_Lib.Directory_Separator = '\';
@@ -137,7 +139,7 @@ package body Paths is
 
          case Pat (I) is
 
-            --  '*' cannot be directly transalted as '.*' as you do not expect
+            --  '*' cannot be directly translated as '.*' as you do not expect
             --  '*' to match on more than one directory level:
             --  you would expect 'src_*/' to match 'src_1/' and 'src_2/', but
             --  not 'src_1/subdir/'.
@@ -316,5 +318,24 @@ package body Paths is
              and then Path (Path'First) in 'A' .. 'Z' | 'a' ..  'z'
              and then Path (Path'First + 1) = ':';
    end Starts_With_Drive_Pattern;
+
+   -------------------------
+   -- Escape_Windows_Path --
+   -------------------------
+
+   function Escape_Backslashes (Str : String) return String
+   is
+      use Ada.Strings.Unbounded;
+      Result : Unbounded_String;
+   begin
+      for C of Str loop
+         if C = '\' then
+            Append (Result, "\\");
+         else
+            Append (Result, C);
+         end if;
+      end loop;
+      return +Result;
+   end Escape_Backslashes;
 
 end Paths;

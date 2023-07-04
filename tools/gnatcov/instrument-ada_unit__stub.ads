@@ -24,23 +24,21 @@ with Instrument.Common; use Instrument.Common;
 
 package Instrument.Ada_Unit is
 
+   pragma Elaborate_Body;
+
    type Ada_Instrumenter_Type is new Language_Instrumenter with null record;
    --  Common instrumentation primitives for Ada
-
-   function Create_Ada_Instrumenter
-     (Language_Version : Any_Language_Version) return Ada_Instrumenter_Type
-   is (Ada_Instrumenter_Type'(null record));
 
    overriding function Language
      (Self : Ada_Instrumenter_Type) return Src_Supported_Language
    is (Ada_Language);
 
-   procedure Find_Ada_Units
-     (Instrumenter : in out Ada_Instrumenter_Type;
-      CU_Name      : Compilation_Unit_Name;
-      Info         : GNATCOLL.Projects.File_Info;
-      Process_Unit : access procedure
-        (CU_Name : Compilation_Unit_Name;
-         Info    : GNATCOLL.Projects.File_Info)) is null;
+   function Create_Ada_Instrumenter
+     (Tag                    : Unbounded_String;
+      Config_Pragmas_Filename,
+      Mapping_Filename       : String;
+      Predefined_Source_Dirs : String_Vectors.Vector)
+      return Ada_Instrumenter_Type
+   is (Ada_Instrumenter_Type'(others => <>));
 
 end Instrument.Ada_Unit;

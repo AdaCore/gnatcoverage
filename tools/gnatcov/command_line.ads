@@ -59,7 +59,9 @@ package Command_Line is
       Cmd_Scan_Objects,
 
       Cmd_Setup,
-      Cmd_Instrument);
+      Cmd_Instrument_Project,
+      Cmd_Instrument_Source,
+      Cmd_Instrument_Main);
    --  Set of commands we support. More complete descriptions below.
 
    type Bool_Options is
@@ -113,6 +115,7 @@ package Command_Line is
       Opt_Dump_Channel,
       Opt_Dump_Filename_Env_Var,
       Opt_Dump_Filename_Prefix,
+      Opt_Dump_Filename_Tag,
       Opt_Ada,
       Opt_Dump_Units_To,
       Opt_Timezone,
@@ -121,6 +124,15 @@ package Command_Line is
       Opt_Path_Count_Limit,
       Opt_Install_Name,
       Opt_Runtime_Project,
+      Opt_Lang,
+      Opt_Parallelism_Level,
+      Opt_Compiler_Driver,
+      Opt_Spec_Suffix,
+      Opt_Body_Suffix,
+      Opt_Dot_Replacement,
+      Opt_Gnatem,
+      Opt_Gnatec,
+      Opt_Project_Name,
       Opt_Source_Root);
    --  Set of string options we support. More complete descriptions below.
 
@@ -145,8 +157,13 @@ package Command_Line is
       Opt_Restricted_To_Languages,
       Opt_Annotation_Format,
       Opt_C_Opts,
-      Opt_CPP_Opts);
+      Opt_CPP_Opts,
+      Opt_Files,
+      Opt_Runtime_Dir);
    --  Set of string list options we support. More complete descriptions below.
+
+   subtype Cmd_Instrument is Command_Type
+      range Cmd_Instrument_Project .. Cmd_Instrument_Main;
 
    package Parser is new Argparse
      (Command_Type, Bool_Options, String_Options, String_List_Options);
@@ -338,11 +355,24 @@ package Command_Line is
                         & " instrumentation and set up default arguments"
                         & " for future ""gnatcov instrument"" invocations.",
          Internal    => False),
-      Cmd_Instrument => Create
+      Cmd_Instrument_Project => Create
         (Name        => "instrument",
          Description => ("Instrument the given project and produce the"
                          & " associated Source Instrumentation Data files."),
-         Internal    => False));
+         Internal    => False),
+      Cmd_Instrument_Source => Create
+        (Name        => "instrument-source",
+         Description => "Instrument the given files, all belonging to the"
+                        & " same unit.",
+         Pattern     => "[FILES]",
+         Internal    => True),
+      Cmd_Instrument_Main => Create
+        (Name        => "instrument-main",
+         Description => "Insert dump trigger code in the the given main file,"
+                        & " dumping coverage buffers of all of the specified"
+                        & " files (through the --files switch).",
+         Pattern     => "--files=<files_of_interest> [MAIN]",
+         Internal    => True));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
      (Opt_Verbose => Create
@@ -356,7 +386,7 @@ package Command_Line is
                        & " transitively imported project.",
          Commands   => (Cmd_Run
                         | Cmd_Coverage
-                        | Cmd_Instrument
+                        | Cmd_Instrument_Project
                         | Cmd_Dump_CFG => True,
                         others         => False),
          Internal   => False),
@@ -367,7 +397,7 @@ package Command_Line is
                        & " transitively imported projects are not considered.",
          Commands   => (Cmd_Run
                         | Cmd_Coverage
-                        | Cmd_Instrument
+                        | Cmd_Instrument_Project
                         | Cmd_Dump_CFG => True,
                         others         => False),
          Internal   => False),
@@ -465,7 +495,10 @@ package Command_Line is
          Help      => "Valid only when --dump-channel=bin-file. Create simple"
                       & " filenames for source trace files (no PID/timestamp"
                       & " variations).",
-         Commands  => (Cmd_Setup | Cmd_Instrument => True, others => False),
+         Commands  => (Cmd_Setup
+                       | Cmd_Instrument_Project
+                       | Cmd_Instrument_Main => True,
+                       others                => False),
          Internal  => False),
 
       Opt_Allow_Mix_Trace_Kind => Create
@@ -526,10 +559,13 @@ package Command_Line is
          Pattern      => "[GPR]",
          Help         => "Use GPR as root project to locate SCOs, select"
                          & " units to analyze and find default options.",
-         Commands     => (Cmd_Setup => False, others => True),
+         Commands     => (Cmd_Setup
+                          | Cmd_Instrument_Source
+                          | Cmd_Instrument_Main => False,
+                          others => True),
          At_Most_Once => True,
          Internal     => False),
-      Opt_Subdirs => Create
+     Opt_Subdirs => Create
         (Long_Name    => "--subdirs",
          Pattern      => "[SUBDIR]",
          Help         => "When using project files, look for ALI/SID files in"
@@ -588,7 +624,9 @@ package Command_Line is
          Pattern      => "[SUBDIR]",
          Help         => "Subdirectory where XCOV or HTML report files should"
                          & " be produced.",
-         Commands     => (Cmd_Coverage => True, others => False),
+         Commands     => (Cmd_Coverage
+                          | Cmd_Instrument_Source
+                          | Cmd_Instrument_Main => True, others => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Tag => Create
@@ -753,7 +791,10 @@ package Command_Line is
                          & " to dump a base64 trace on the standard output"
                          & " using Ada.Text_IO. This is the preferred channel"
                          & " for non-native programs.",
-         Commands     => (Cmd_Setup | Cmd_Instrument => True, others => False),
+         Commands     => (Cmd_Setup
+                          | Cmd_Instrument_Project
+                          | Cmd_Instrument_Main => True,
+                          others                => False),
          At_Most_Once => False,
          Internal     => False,
          Pattern      => "bin-file|base64-stdout"),
@@ -762,14 +803,31 @@ package Command_Line is
          Help         => "Valid only when --dump-channel=bin-file. Name of the"
                          & " environment variable which, if set, contains the"
                          & " filename for created source traces.",
-         Commands     => (Cmd_Setup | Cmd_Instrument => True, others => False),
+         Commands     => (Cmd_Setup
+                          | Cmd_Instrument_Project
+                          | Cmd_Instrument_Main => True,
+                          others                => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Dump_Filename_Prefix => Create
         (Long_Name    => "--dump-filename-prefix",
          Help         => "Valid only when --dump-channel=bin-file. Select a"
                          & " filename prefix for created source traces.",
-         Commands     => (Cmd_Setup | Cmd_Instrument => True, others => False),
+         Commands     => (Cmd_Setup
+                          | Cmd_Instrument_Project
+                          | Cmd_Instrument_Main => True,
+                          others                => False),
+         At_Most_Once => False,
+         Internal     => False),
+
+      Opt_Dump_Filename_Tag => Create
+        (Long_Name    => "--dump-filename-tag",
+         Help         => "Valid only when --dump-channel=bin-file. Select a"
+                         & " filename tag for created source traces.",
+         Commands     => (Cmd_Setup
+                          | Cmd_Instrument_Project
+                          | Cmd_Instrument_Main => True,
+                          others                => False),
          At_Most_Once => False,
          Internal     => False),
 
@@ -878,6 +936,107 @@ package Command_Line is
          At_Most_Once => False,
          Internal     => False),
 
+      Opt_Lang => Create
+        (Long_Name => "--lang",
+         Pattern   => "[C|C++|Ada]",
+         Help      => "Language for the given compilation unit",
+         Commands  => (Cmd_Instrument_Main | Cmd_Instrument_Source => True,
+                       others                                      => False),
+         At_Most_Once => False,
+         Internal  => True),
+
+      Opt_Parallelism_Level => Create
+        (Short_Name   => "-j",
+         Long_Name    => "--jobs",
+         Pattern      => "POSITIVE",
+         Help         =>
+           "Maximal number of concurrently running tasks. Number of processors"
+           & " of the machine if set to 0. Defaults to 1.",
+         Commands     => (Cmd_Instrument_Project => True, others => False),
+         At_Most_Once => False,
+         Internal     => False),
+
+      Opt_Compiler_Driver => Create
+        (Long_Name    => "--compiler-driver",
+         Pattern      => "NAME",
+         Help         =>
+           "Compiler driver used to compile the source (e.g. gcc). This is"
+         & " used when instrumenting a C/C++ source, to retrieve builtin"
+         & " macros that may modify the file preprocessing.",
+         Commands     =>
+           (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+            others                                      => False),
+         At_Most_Once => False,
+         Internal     => True),
+
+      Opt_Body_Suffix => Create
+        (Long_Name    => "--body-suffix",
+         Pattern      => "NAME",
+         Help         =>
+           "Body suffix for source files created by the instrumenter for the"
+         & " instrumentation of a source",
+         Commands     =>
+           (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+            others                                      => False),
+         At_Most_Once => False,
+         Internal     => True),
+
+      Opt_Spec_Suffix => Create
+        (Long_Name    => "--spec-suffix",
+         Pattern      => "NAME",
+         Help         =>
+           "Spec suffix for source files created by the instrumenter for the"
+         & " instrumentation of a source",
+         Commands     =>
+           (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+            others                                      => False),
+         At_Most_Once => False,
+         Internal     => True),
+
+      Opt_Dot_Replacement => Create
+        (Long_Name    => "--dot-replacement",
+         Pattern      => "NAME",
+         Help         =>
+           "Dot replacement for source files created by the instrumenter for"
+         & " the instrumentation of a source",
+         Commands     =>
+           (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+            others                                      => False),
+         At_Most_Once => False,
+         Internal     => True),
+
+      Opt_Gnatem => Create
+        (Long_Name    => "--gnatem",
+         Pattern      => "NAME",
+         Help         =>
+           "Name of the file containing unit dependencies in the GNAT format.",
+         Commands     =>
+           (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+            others                                      => False),
+         At_Most_Once => False,
+         Internal     => True),
+
+      Opt_Gnatec => Create
+        (Long_Name    => "--gnatec",
+         Pattern      => "NAME",
+         Help         =>
+           "Name of the file containing configuration pragmas.",
+         Commands     =>
+           (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+            others                                      => False),
+         At_Most_Once => False,
+         Internal     => True),
+
+      Opt_Project_Name => Create
+        (Long_Name    => "--project-name",
+         Pattern      => "NAME",
+         Help         =>
+           "Name of the root project, without its gpr extension.",
+         Commands     =>
+           (Cmd_Instrument_Main => True, others => False),
+         At_Most_Once => False,
+         Internal     => True),
+
       Opt_Source_Root => Create
         (Long_Name    => "--source-root",
          Pattern      => "PATH",
@@ -900,7 +1059,10 @@ package Command_Line is
          Pattern    => "[GPR|@LISTFILE]",
          Help       => "Focus on specific projects within the transitive"
                        & " closure reachable from the root designated by -P.",
-         Commands   => (Cmd_Setup => False, others => True),
+         Commands   => (Cmd_Setup
+                        | Cmd_Instrument_Source
+                        | Cmd_Instrument_Main => False,
+                        others                => True),
          Internal   => False),
       Opt_Scenario_Var => Create
         (Short_Name => "-X",
@@ -951,8 +1113,8 @@ package Command_Line is
                          | Cmd_Coverage
                          | Cmd_Scan_Decisions
                          | Cmd_Map_Routines
-                         | Cmd_Instrument => True,
-                         others           => False),
+                         | Cmd_Instrument_Project => True,
+                         others                   => False),
          Internal    => False),
       Opt_SID => Create
         (Long_Name   => "--sid",
@@ -960,7 +1122,8 @@ package Command_Line is
          Help        => "Load Source Instrumentation Data from FILE for this"
                         & " operation; or do that for each file listed in"
                         & " LISTFILE.",
-         Commands    => (Cmd_Coverage => True, others => False),
+         Commands    => (Cmd_Coverage | Cmd_Instrument_Source => True,
+                         others                               => False),
          Internal    => False),
       Opt_Routines => Create
         (Long_Name   => "--routines",
@@ -1042,9 +1205,18 @@ package Command_Line is
                       & " Supports globbing patterns.",
          Commands  => (Cmd_Coverage
                        | Cmd_Map_Routines
-                       | Cmd_Instrument => True,
-                       others           => False),
+                       | Cmd_Instrument_Project => True,
+                       others                   => False),
          Internal  => False),
+
+      Opt_Files => Create
+        (Long_Name => "--files",
+         Pattern   => "[FILE|@LISTFILE]",
+         Help      => "Specify a list of source files of interest by their"
+                      & " full name.",
+         Commands => (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+                      others                                      => False),
+         Internal => True),
 
       Opt_Shared_Object => Create
         (Long_Name   => "--shared-object",
@@ -1070,12 +1242,13 @@ package Command_Line is
         (Long_Name               => "--restricted-to-languages",
          Pattern                 => "[LANGUAGE|LIST|@LISTFILE]",
          Help                    =>
-           "Restrict the set of languages for instrumentation. Supports Ada"
-           & " and C. As C support is still in beta state, the default is"
-           & " --restricted-to-languages=Ada. To enable both, pass"
-           & " --restricted-to-languages=Ada,C.",
-         Commands                => (Cmd_Setup | Cmd_Instrument => True,
-                                     others                     => False),
+           "Restrict the set of languages for instrumentation. Supports Ada, C"
+           & " and C++. As C++ support is still in beta state, the default is"
+           & " --restricted-to-languages=Ada,C. To enable C++, pass"
+           & " --restricted-to-languages=Ada,C,C++.",
+         Commands                => (Cmd_Setup
+                                     | Cmd_Instrument_Project => True,
+                                     others                   => False),
          Internal                => False,
          Accepts_Comma_Separator => True),
       Opt_Annotation_Format => Create
@@ -1109,7 +1282,17 @@ package Command_Line is
              "List of additional compiler switches to analayze C++ source"
              & " files.",
            Commands     => (Cmd_Instrument => True, others => False),
-           Internal     => False)
+           Internal     => False),
+
+      Opt_Runtime_Dir => Create
+        (Long_Name    => "--runtime-dir",
+         Pattern      => "NAME",
+         Help         =>
+           "Directories containing the compiler runtime sources.",
+         Commands     =>
+           (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+            others                                      => False),
+         Internal     => True)
      );
 
    procedure Bool_Callback

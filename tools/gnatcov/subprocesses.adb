@@ -361,21 +361,24 @@ package body Subprocesses is
             Output_File : Mapped_File;
             Region      : Mapped_Region;
             Str         : Str_Access;
-            Str_Last    : Natural := Last (Region);
+            Str_Last    : Natural;
          begin
             Output_File := Open_Read (+Self.Process_Infos (Id).Output_File);
             Region := Read (Output_File);
             Str := Data (Region);
+            Str_Last := Last (Region);
 
             --  The finalization of Ada.Text_IO always emits a newline after a
             --  call to Put. To avoid redundant line breaks in this situation,
             --  do not pass that newline to Put and call New_Line instead.
 
-            if Str_Last > 0 and then Str (Str_Last) = ASCII.LF then
-               Str_Last := Str_Last - 1;
+            if Str_Last > 0 then
+               if Str (Str_Last) = ASCII.LF then
+                  Str_Last := Str_Last - 1;
+               end if;
+               Put (Str (1 .. Str_Last));
+               New_Line;
             end if;
-            Put (Str (1 .. Str_Last));
-            New_Line;
 
             Free (Region);
             Close (Output_File);
@@ -430,22 +433,31 @@ package body Subprocesses is
       Pool.Process_Infos (Id).Output_File := +Output_File;
       Pool.Process_Infos (Id).Origin_Command_Name := +Origin_Command_Name;
       Pool.Process_Infos (Id).Command := +Command;
+      if Output_File = "" then
+
+         --  Redirect the output to a temporary file to avoid mangling
+         --  on the standard output. The dump of the output is done in
+         --  Wait_And_Finalize, through a later call to Run_Command, or
+         --  through the finalization of the process pool.
+
+         Pool.Process_Infos (Id).Output_File :=
+           +(Pool.Output_Dir.Directory_Name / "job-"
+             & Strings.Img (Id) & ".txt");
+         Pool.Process_Infos (Id).Output_To_Stdout := True;
+      else
+         Pool.Process_Infos (Id).Output_To_Stdout := False;
+      end if;
 
       Pool.Handles (Id) := Run_Command
         (Command,
          Arguments,
          Origin_Command_Name,
          Environment,
+         +Pool.Process_Infos (Id).Output_File,
 
-         --  Redirect the output to a temporary file to avoid mangling on the
-         --  standard output. The dump of the output is done in
-         --  Wait_And_Finalize, through a later call to Run_Command, or
-         --  through the finalization of the process pool.
+         --  TODO???: there will be mangling on the stderr if stdout was
+         --  redirected to an output file.
 
-         (if Output_File = ""
-          then Pool.Output_Dir.Directory_Name / "job-"
-               & Strings.Img (Id) & ".txt"
-          else Output_File),
          Err_To_Out   => Output_File = "",
          Out_To_Null  => Out_To_Null,
          In_To_Null   => In_To_Null,
