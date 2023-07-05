@@ -293,15 +293,6 @@ package body SC_Obligations is
       Current_Decision : SCO_Id := No_SCO_Id;
       --  Decision whose conditions are being processed
 
-      Current_Decision_Ignored : Boolean := False;
-      --  Whether the current decision is ignored or not.
-      --  Used to determine if we should load subsequent low-level entries.
-      --
-      --  Currently, only decision scos from entry barriers are ignored because
-      --  the instrumenter cannot instrument entry barriers for ravenscar
-      --  profiles, and we want to keep some consistency between the two
-      --  coverage modes.
-
       Current_Condition_Index : Any_Condition_Index;
       --  Index of current condition within the current decision (0-based, set
       --  to No_Condition_Index, i.e. -1, before the first condition of the
@@ -3265,7 +3256,6 @@ package body SC_Obligations is
             --  Decision
 
             pragma Assert (State.Current_Decision = No_SCO_Id);
-            State.Current_Decision_Ignored := False;
             State.Current_Decision := Add_SCO
               (SCO_Descriptor'
                  (Kind                => Decision,
@@ -3297,14 +3287,7 @@ package body SC_Obligations is
          when ' ' =>
             --  Condition
 
-            pragma Assert (State.Current_Decision /= No_SCO_Id
-                           or else State.Current_Decision_Ignored);
-
-            --  Do not process this entry if the current decision is ignored
-
-            if State.Current_Decision_Ignored then
-               return;
-            end if;
+            pragma Assert (State.Current_Decision /= No_SCO_Id);
 
             SCO_Vector.Update_Element
               (Index   => State.Current_Decision,
@@ -3333,22 +3316,16 @@ package body SC_Obligations is
             end if;
 
          when '!' =>
-            if not State.Current_Decision_Ignored then
-               BDD.Process_Not (New_Operator_SCO (Op_Not), State.Current_BDD);
-            end if;
+            BDD.Process_Not (New_Operator_SCO (Op_Not), State.Current_BDD);
 
          when '&' =>
-            if not State.Current_Decision_Ignored then
-               BDD.Process_And_Then (BDD_Vector,
-                                     New_Operator_SCO (Op_And_Then),
-                                     State.Current_BDD);
-            end if;
+            BDD.Process_And_Then (BDD_Vector,
+                                  New_Operator_SCO (Op_And_Then),
+                                  State.Current_BDD);
          when '|' =>
-            if not State.Current_Decision_Ignored then
-               BDD.Process_Or_Else (BDD_Vector,
-                                    New_Operator_SCO (Op_Or_Else),
-                                    State.Current_BDD);
-            end if;
+            BDD.Process_Or_Else (BDD_Vector,
+                                 New_Operator_SCO (Op_Or_Else),
+                                 State.Current_BDD);
 
          when 'H' =>
             --  Chaining indicator: not used yet
