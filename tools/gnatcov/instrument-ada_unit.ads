@@ -28,74 +28,72 @@ with Langkit_Support.Text; use Langkit_Support.Text;
 with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
 
-with Instrument.Common;     use Instrument.Common;
+with Files_Table;       use Files_Table;
+with Instrument.Ada_Unit_Provider;
+with Instrument.Common; use Instrument.Common;
 with Switches;
 
 package Instrument.Ada_Unit is
 
-   type Ada_Instrumenter_Type is new Language_Instrumenter
-     with record
-      Provider : Libadalang.Analysis.Unit_Provider_Reference;
-      --  Unit provider to create an analysis context (Context member below)
+   type Ada_Instrumenter_Type is new Language_Instrumenter with
+      record
+         Provider : Instrument.Ada_Unit_Provider.Provider_Type;
+         --  Unit provider to create an analysis context (Context member
+         --  below). We use a custom provider there, to be able to turn
+         --  a filename to our Compilation_Unit_Name internal representation,
+         --  and to not depend on project files in the unit instrumentation
+         --  process.
 
-      Event_Handler : Libadalang.Analysis.Event_Handler_Reference;
-      --  Event handler to warn about missing source files
+         Event_Handler : Libadalang.Analysis.Event_Handler_Reference;
+         --  Event handler to warn about missing source files
 
-      Context : Libadalang.Analysis.Analysis_Context;
-      --  Libadalang context to load all units to rewrite
+         Config_Pragmas_Filename : Unbounded_String;
+         --  File holding the list of configuration pragmas
 
-      Get_From_File_Count : Natural;
-      --  Count how many times we called Context.Get_From_File. See the
-      --  Max_Get_From_File_Count constant.
+         Context : Libadalang.Analysis.Analysis_Context;
+         --  Libadalang context to load all units to rewrite
 
-      Language_Version : Any_Language_Version;
-      --  See the eponym arguments in Instrument.Intrument_Units_Of_Interest
+         Get_From_File_Count : Natural;
+         --  Count how many times we called Context.Get_From_File. See the
+         --  Max_Get_From_File_Count constant.
 
-   end record;
+      end record;
    --  Instrumentation primitives for Ada
-
-   function Create_Ada_Instrumenter
-     (Language_Version : Any_Language_Version) return Ada_Instrumenter_Type;
-   --  Create an Ada instrumenter from the given provider, and the given
-   --  language version.
 
    overriding function Language
      (Self : Ada_Instrumenter_Type) return Switches.Src_Supported_Language
    is (Switches.Ada_Language);
 
    overriding procedure Instrument_Unit
-     (Self        : in out Ada_Instrumenter_Type;
-      CU_Name     : Compilation_Unit_Name;
-      Unit_Info   : in out Instrumented_Unit_Info);
+     (Self              : in out Ada_Instrumenter_Type;
+      Unit_Name         : String;
+      Prj               : Prj_Desc;
+      Files_Of_Interest : String_Sets.Set);
 
    overriding procedure Auto_Dump_Buffers_In_Main
-     (Self        : in out Ada_Instrumenter_Type;
-      Filename    : String;
-      Instr_Units : CU_Name_Vectors.Vector;
-      Dump_Config : Any_Dump_Config;
-      Info        : in out Project_Info);
+     (Self          : in out Ada_Instrumenter_Type;
+      Filename      : String;
+      Dump_Config   : Any_Dump_Config;
+      Prj           : Prj_Desc);
 
    overriding procedure Emit_Buffers_List_Unit
-     (Self              : Ada_Instrumenter_Type;
-      Root_Project_Info : in out Project_Info;
-      Instr_Units       : CU_Name_Vectors.Vector);
-
-   overriding function Skip_Source_File
      (Self        : Ada_Instrumenter_Type;
-      Source_File : GNATCOLL.Projects.File_Info) return Boolean
-   is (False);
+      Instr_Units : Unit_Sets.Set;
+      Prj         : Prj_Desc);
 
-   procedure Find_Ada_Units
-     (Instrumenter : in out Ada_Instrumenter_Type;
-      CU_Name      : Compilation_Unit_Name;
-      Info         : GNATCOLL.Projects.File_Info;
-      Process_Unit : access procedure
-        (CU_Name : Compilation_Unit_Name;
-         Info    : GNATCOLL.Projects.File_Info));
-   --  Consider that Info is a source file to instrument (i.e. a unit of
-   --  interest, CU_Name being the name of its compilation unit) and call
-   --  Process_Unit for all compilation units that must be instrumented with
-   --  it (i.e. related subunits, if present).
+   function Create_Ada_Instrumenter
+     (Tag                    : Unbounded_String;
+      Config_Pragmas_Filename,
+      Mapping_Filename       : String;
+      Predefined_Source_Dirs : String_Vectors.Vector)
+      return Ada_Instrumenter_Type;
+   --  Create an Ada instrumenter. Config_Pragmas_Filename is the fullname
+   --  to the configuration pragma file. Mapping_Filename is the fullname
+   --  to the mapping file, which maps unit names to file fullnames, and
+   --  Predefined_Source_Dirs is the list of directories hosting runtime
+   --  files. The two last parameters are used to instantiate our
+   --  custom unit provider, which does not rely on project files
+   --  (see Instrument.Ada_Unit_Provider).
 
    --  Private declarations relative to the AST traversal
 private
@@ -216,6 +214,10 @@ private
      new Ada.Containers.Vectors (Natural, Source_Condition);
 
    type Instrumentation_Entities is record
+      Buffers_Index : Natural := 0;
+      --  Index into the set of this units' coverage buffers group for the
+      --  source file being instrumented.
+
       Common_Buffers : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
       --  Qualified name for the unit that contains coverage buffer types and
       --  witness subprograms.
@@ -262,10 +264,13 @@ private
 
    type Ada_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
       record
+         Language_Version_Pragma : Unbounded_Wide_Wide_String;
+         --  Language version configuration pragma for unit, if any
+
          CU : CU_Id := No_CU_Id;
          --  SCO identifier of the compilation unit being instrumented
 
-         Root_Unit : Compilation_Unit;
+         Root_Unit : Libadalang.Analysis.Compilation_Unit;
          --  Node of compilation unit
 
          Source_Decisions  : Source_Decision_Vectors.Vector;
@@ -278,7 +283,7 @@ private
          Entities : Instrumentation_Entities;
          --  Bank of nodes to use during instrumentation
 
-         Pure_Buffer_Unit : Compilation_Unit_Name;
+         Pure_Buffer_Unit : Compilation_Unit_Part;
          --  Name of the compilation unit that holds addresses for the coverage
          --  buffers of the unit being instrumented.
 

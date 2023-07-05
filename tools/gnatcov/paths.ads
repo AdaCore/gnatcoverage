@@ -64,6 +64,10 @@ package Paths is
    --  of the service, this one always matches both Windows or Unix file path
    --  flavors.
 
+   function Escape_Backslashes (Str : String) return String;
+   --  Escape every backslash in the given Str, to turn it into a C-compatible
+   --  string.
+
    --  TODO??? Handle Unicode file names
 
 end Paths;

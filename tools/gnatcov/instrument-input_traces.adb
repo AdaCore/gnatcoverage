@@ -136,7 +136,6 @@ package body Instrument.Input_Traces is
 
    type Trace_Entry_Elements is record
       Unit_Name        : System.Address;
-      Project_Name     : System.Address;
       Statement_Buffer : System.Address;
       Decision_Buffer  : System.Address;
       MCDC_Buffer      : System.Address;
@@ -164,7 +163,7 @@ package body Instrument.Input_Traces is
      (Stream      : in out Binary_Stream;
       File_Header : Trace_File_Header;
       Kind        : out Supported_Info_Kind;
-      Data        : out String_Access;
+      Data        : out GNAT.OS_Lib.String_Access;
       Result      : in out Read_Result)
       with Pre => Result.Success;
    --  Read a trace info entry from Stream. Return an error if something wrong
@@ -395,7 +394,7 @@ package body Instrument.Input_Traces is
      (Stream      : in out Binary_Stream;
       File_Header : Trace_File_Header;
       Kind        : out Supported_Info_Kind;
-      Data        : out String_Access;
+      Data        : out GNAT.OS_Lib.String_Access;
       Result      : in out Read_Result)
    is
       Ignored_EOF : Boolean;
@@ -493,7 +492,6 @@ package body Instrument.Input_Traces is
 
          if File_Header.Endianity /= Native_Endianity then
             Swap4 (Raw_Header.Unit_Name_Length'Address);
-            Swap4 (Raw_Header.Project_Name_Length'Address);
             Swap4 (Raw_Header.Statement_Bit_Count'Address);
             Swap4 (Raw_Header.Decision_Bit_Count'Address);
             Swap4 (Raw_Header.MCDC_Bit_Count'Address);
@@ -525,7 +523,7 @@ package body Instrument.Input_Traces is
             Create_Error (Result, "invalid bit buffer encoding");
             return False;
 
-         elsif Raw_Header.Padding /= (1 => ASCII.NUL) then
+         elsif Raw_Header.Padding /= (1 .. 5 => ASCII.NUL) then
             Create_Error (Result, "invalid entry header padding");
             return False;
          end if;
@@ -540,12 +538,9 @@ package body Instrument.Input_Traces is
          Unit_Name_Range        : constant Buffer_Range :=
             Range_For (File_Header.Alignment, 0,
                        Natural (Entry_Header.Unit_Name_Length));
-         Project_Name_Range     : constant Buffer_Range :=
-            Range_For (File_Header.Alignment, Offset_After (Unit_Name_Range),
-                       Natural (Entry_Header.Project_Name_Length));
          Statement_Buffer_Range : constant Buffer_Range :=
             Range_For (File_Header.Alignment,
-                       Offset_After (Project_Name_Range),
+                       Offset_After (Unit_Name_Range),
                        Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
                                     Entry_Header.Statement_Bit_Count));
          Decision_Buffer_Range  : constant Buffer_Range :=
@@ -578,7 +573,6 @@ package body Instrument.Input_Traces is
 
          Base_Address := Buffer_Address (Stream);
          Trace_Entry := (Base_Address + Unit_Name_Range.Offset,
-                         Base_Address + Project_Name_Range.Offset,
                          Base_Address + Statement_Buffer_Range.Offset,
                          Base_Address + Decision_Buffer_Range.Offset,
                          Base_Address + MCDC_Buffer_Range.Offset);
@@ -661,7 +655,7 @@ package body Instrument.Input_Traces is
       loop
          declare
             Kind : Supported_Info_Kind;
-            Data : String_Access;
+            Data : GNAT.OS_Lib.String_Access;
          begin
             Read_Trace_Info (Stream, File_Header, Kind, Data, Result);
             if not Result.Success then
@@ -688,10 +682,6 @@ package body Instrument.Input_Traces is
             Unit_Name    : constant String
               (1 .. Natural (Entry_Header.Unit_Name_Length))
                with Import, Address => Trace_Entry.Unit_Name;
-
-            Project_Name : constant String
-              (1 .. Natural (Entry_Header.Project_Name_Length))
-               with Import, Address => Trace_Entry.Project_Name;
 
             function Convert is new Ada.Unchecked_Conversion
               (GNATcov_RTS.Buffers.Fingerprint_Type,
@@ -725,7 +715,7 @@ package body Instrument.Input_Traces is
             function Last_Bit (Bit_Count : Any_Bit_Count) return Any_Bit_Id
             is (Any_Bit_Id (Bit_Count) - 1);
 
-            CU_Name : Compilation_Unit_Name;
+            CU_Name : Compilation_Unit_Part;
 
          begin
             Reserve (Statement_Buffer, Entry_Header.Statement_Bit_Count);
@@ -767,7 +757,7 @@ package body Instrument.Input_Traces is
                     (Unit => To_Qualified_Name (Unit_Name),
                      Part => Unit_Part_Map (Entry_Header.Unit_Part));
                when GNATcov_RTS.Buffers.File_Based_Language =>
-                  CU_Name := CU_Name_For_File (+Unit_Name, +Project_Name);
+                  CU_Name := CU_Name_For_File (+Unit_Name);
             end case;
 
             On_Trace_Entry
@@ -803,7 +793,7 @@ package body Instrument.Input_Traces is
       procedure On_Trace_Entry
         (Filename             : String;
          Fingerprint          : SC_Obligations.Fingerprint_Type;
-         CU_Name              : Compilation_Unit_Name;
+         CU_Name              : Compilation_Unit_Part;
          Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
          Stmt_Buffer          : Coverage_Buffer;
          Decision_Buffer      : Coverage_Buffer;
@@ -843,7 +833,7 @@ package body Instrument.Input_Traces is
       procedure On_Trace_Entry
         (Filename             : String;
          Fingerprint          : SC_Obligations.Fingerprint_Type;
-         CU_Name              : Compilation_Unit_Name;
+         CU_Name              : Compilation_Unit_Part;
          Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
          Stmt_Buffer          : Coverage_Buffer;
          Decision_Buffer      : Coverage_Buffer;
