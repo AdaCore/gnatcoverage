@@ -34,7 +34,7 @@ package Instrument.Input_Traces is
       with procedure On_Trace_Entry
         (Filename             : String;
          Fingerprint          : SC_Obligations.Fingerprint_Type;
-         CU_Name              : Compilation_Unit_Name;
+         CU_Name              : Compilation_Unit_Part;
          Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
          Stmt_Buffer          : Coverage_Buffer;
          Decision_Buffer      : Coverage_Buffer;

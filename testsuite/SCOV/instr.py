@@ -205,7 +205,7 @@ def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
     # such unit per main. See instrument-common.ads to know more about the slug
     # computation.
     main_unit_slug = main_unit.replace('z', 'zz')
-    auto_dump_unit = 'GNATcov_RTS.Buffers.DB_{}'.format(main_unit_slug)
+    auto_dump_unit = 'GCVRT.DB_{}'.format(main_unit_slug)
     handler_unit = "Last_Chance_Dumper";
 
     def filename(prefix, ext):

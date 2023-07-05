@@ -13,7 +13,7 @@ Wdir('tmp_')
 prj1 = gprfor(mains=[], prjid='prj1', srcdirs=['../prj1'], objdir='obj-prj1')
 
 # Check that ignoring pkg.c in the main project yields a warning, as the pkg.c
-# unit is in thr prj1 dependency and not in the root project.
+# unit is in the prj1 dependency and not in the root project.
 extra_p = """
 package Coverage is
    for Excluded_Units use ("pkg.c");
