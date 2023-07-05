@@ -105,9 +105,6 @@ package Switches is
    --  If true, mixing trace kinds (binary and source) will not result in an
    --  error but only output a warning.
 
-   Analyze_Entry_Barriers : Boolean := False;
-   --  If True, instrument and do not discard SCOs from entry barriers
-
    Short_Circuit_And_Or : Boolean := False;
    --  If True, consider that standard boolean operators "and" and "or" have
    --  short-circuit semantics and instrument the operands of these operators

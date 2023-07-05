@@ -82,7 +82,6 @@ package Command_Line is
       Opt_Show_MCDC_Vectors,
       Opt_Dump_Filename_Simple,
       Opt_Allow_Mix_Trace_Kind,
-      Opt_Analyze_Entry_Barriers,
       Opt_Boolean_Short_Circuit_And_Or,
       Opt_Cancel_Annotate,
       Opt_All_Warnings,
@@ -507,15 +506,6 @@ package Command_Line is
          Help      => "Allow mixing binary and source traces. A warning will"
                       & " still be emitted.",
          Commands  => (Cmd_Coverage => True, others => False),
-         Internal  => True),
-
-      Opt_Analyze_Entry_Barriers => Create
-        (Long_Name => "--analyze-entry-barriers",
-         Help      => "Activate coverage analysis for entry barriers."
-                      & ASCII.LF & "Warning, this option should not be used"
-                      & " in source trace mode and with a ravenscar profile,"
-                      & " as the instrumenter will generate invalid code.",
-         Commands  => (Cmd_Instrument | Cmd_Coverage => True, others => False),
          Internal  => True),
 
       Opt_Boolean_Short_Circuit_And_Or => Create

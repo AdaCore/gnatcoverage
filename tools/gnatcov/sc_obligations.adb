@@ -3264,55 +3264,35 @@ package body SC_Obligations is
          when 'E' | 'G' | 'I' | 'P' | 'W' | 'X' | 'A' =>
             --  Decision
 
-            if SCOE.C1 = 'G' and then not Analyze_Entry_Barriers then
+            pragma Assert (State.Current_Decision = No_SCO_Id);
+            State.Current_Decision_Ignored := False;
+            State.Current_Decision := Add_SCO
+              (SCO_Descriptor'
+                 (Kind                => Decision,
+                  Origin              => CU,
+                  Control_Location    =>
 
-               --  entry barrier, ignore it as the instrumenter cannot
-               --  instrument it in the Ravenscar profile, and we should keep
-               --  the two coverage modes as coherent as possible.
+                  --  Control locations are only useful for dominance
+                  --  markers, which are only used with binary traces. As
+                  --  it is impractical to get the correct location with
+                  --  the C/C++ instrumenter, and as using incorrect slocs
+                  --  can create conflicts, ignore those in the
+                  --  instrumentation case.
 
-               State.Current_Decision_Ignored := True;
-               State.Current_Decision := No_SCO_Id;
-               State.Current_Condition_Index := No_Condition_Index;
-               Ignored_Slocs.Insert
-                 (Slocs.To_Sloc (Unit.Main_Source, From_Sloc));
+                    (if Provider = Compiler
+                     then Slocs.To_Sloc (Unit.Main_Source, From_Sloc)
+                     else No_Location),
 
-               if Verbose then
-                  Put_Line
-                    ("Ignoring SCO entry: ENTRY BARRIER at "
-                     & Image (Slocs.To_Sloc (Unit.Main_Source, From_Sloc)));
-               end if;
+                  D_Kind              => To_Decision_Kind (SCOE.C1),
+                  Last_Cond_Index     => 0,
+                  Aspect_Name         =>
+                    Get_Aspect_Id (SCOE.Pragma_Aspect_Name),
+                  others              => <>));
+            pragma Assert (not SCOE.Last);
 
-            else
-               pragma Assert (State.Current_Decision = No_SCO_Id);
-               State.Current_Decision_Ignored := False;
-               State.Current_Decision := Add_SCO
-                 (SCO_Descriptor'
-                    (Kind                => Decision,
-                     Origin              => CU,
-                     Control_Location    =>
-
-                     --  Control locations are only useful for dominance
-                     --  markers, which are only used with binary traces. As
-                     --  it is impractical to get the correct location with
-                     --  the C/C++ instrumenter, and as using incorrect slocs
-                     --  can create conflicts, ignore those in the
-                     --  instrumentation case.
-
-                       (if Provider = Compiler
-                        then Slocs.To_Sloc (Unit.Main_Source, From_Sloc)
-                        else No_Location),
-
-                     D_Kind              => To_Decision_Kind (SCOE.C1),
-                     Last_Cond_Index     => 0,
-                     Aspect_Name         =>
-                       Get_Aspect_Id (SCOE.Pragma_Aspect_Name),
-                     others              => <>));
-               pragma Assert (not SCOE.Last);
-
-               State.Current_BDD :=
-                 BDD.Create (BDD_Vector, State.Current_Decision);
-               State.Current_Condition_Index := No_Condition_Index;
-            end if;
+            State.Current_BDD :=
+              BDD.Create (BDD_Vector, State.Current_Decision);
+            State.Current_Condition_Index := No_Condition_Index;
 
          when ' ' =>
             --  Condition
