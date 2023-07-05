@@ -451,6 +451,7 @@ procedure GNATcov_Bits_Specific is
       Emit_Report              := not Args.Bool_Args (Opt_Cancel_Annotate);
       Save_Temps               := Args.Bool_Args (Opt_Save_Temps);
       SPARK_Compat             := Args.Bool_Args (Opt_SPARK_Compat);
+      Use_Full_Slugs           := Args.Bool_Args (Opt_Full_Slugs);
 
       if Args.Bool_Args (Opt_Recursive) then
          Warn ("--recursive is deprecated. Recursive is now the default"

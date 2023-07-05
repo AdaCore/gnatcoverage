@@ -87,7 +87,8 @@ package Command_Line is
       Opt_Cancel_Annotate,
       Opt_All_Warnings,
       Opt_Save_Temps,
-      Opt_SPARK_Compat);
+      Opt_SPARK_Compat,
+      Opt_Full_Slugs);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -551,7 +552,13 @@ package Command_Line is
          Help      => "Enable the SPARK compatibility mode. This ensures"
                       & " instrumented code will be ghost compliant.",
          Commands  => (Cmd_Instrument => True, others => False),
-         Internal  => False));
+         Internal  => False),
+
+      Opt_Full_Slugs => Create
+        (Long_Name => "--full-slugs",
+         Help      => "Use full unit slugs instead of hashes for buffer units",
+         Commands  => (Cmd_Instrument => True, others => False),
+         Internal  => True));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create

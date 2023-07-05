@@ -8051,7 +8051,8 @@ package body Instrument.Ada_Unit is
      (Project_Name : String) return Ada_Qualified_Name
    is
       Project_Name_Slug : constant String :=
-        Qualified_Name_Slug (To_Qualified_Name (Project_Name));
+        Qualified_Name_Slug
+          (To_Qualified_Name (Project_Name), Use_Hash => False);
    begin
       return Ada_Identifier_Vectors."&"
         (Sys_Prefix, Instrument.Ada_Identifier (+Project_Name_Slug));
