@@ -1,5 +1,3 @@
-pragma Ada_2012;
-
 with Ada.Text_IO; use Ada.Text_IO;
 
 package body Procedure_Under_Test is
@@ -18,7 +16,7 @@ package body Procedure_Under_Test is
          Result := Calculations (In_A, In_B);
       end if;
 
-      Put_Line (Result'Image);
+      Put_Line (Integer'Image (Result));
 
    end Test;
 
