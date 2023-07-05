@@ -5737,12 +5737,24 @@ package body Instrument.Ada_Unit is
                end if;
             end if;
 
+            --  Instrumenting static decisions would make them non-static by
+            --  wrapping them in a Witness call. This transformation would
+            --  trigger legality checks on the originally non-evaluated branch,
+            --  which could result in compilation errors specific to the
+            --  instrumented code, e.g. on:
+            --
+            --   X := (if <config.static-False>
+            --         then <out-of-range-static>
+            --         else <value>);
+            --
+            --  For this reason, refrain from instrumenting static decisions.
+
             UIC.Source_Decisions.Append
               (Source_Decision'
-                 (LL_SCO    => Current_Decision,
-                  Decision  => N.As_Expr,
-                  State     => MCDC_State,
-                  Is_Static => Is_Static_Expr (N.As_Expr)));
+                 (LL_SCO            => Current_Decision,
+                  Decision          => N.As_Expr,
+                  State             => MCDC_State,
+                  Do_Not_Instrument => Is_Static_Expr (N.As_Expr)));
          end if;
 
          --  For an aspect specification, which will be rewritten into a
@@ -7907,25 +7919,18 @@ package body Instrument.Ada_Unit is
          if Coverage.Enabled (Decision) or else MCDC_Coverage_Enabled then
             for SD of UIC.Source_Decisions loop
 
-               --  Instrumenting a static decision would make it non-static by
-               --  wrapping it in a Witness call. This transformation would
-               --  trigger legality checks on the originally non-evaluated
-               --  branch, which could result in compilation errors specific to
-               --  the instrumented code, e.g. on:
-               --
-               --   X := (if <config.static-False>
-               --         then <out-of-range-static>
-               --         else <value>);
-               --
-               --  Mark these decisions as non-instrumented so they are
+               --  Mark non-instrumented decisions as such so that they are
                --  properly reported.
 
-               if not SD.Is_Static then
-                  Insert_Decision_Witness
-                    (UIC, SD, Path_Count (SCO_Map (SD.LL_SCO)));
-               else
-                  Set_Decision_SCO_Non_Instr (SCO_Map (SD.LL_SCO));
-               end if;
+               declare
+                  HL_SCO : constant SCO_Id := SCO_Map (SD.LL_SCO);
+               begin
+                  if SD.Do_Not_Instrument then
+                     Set_Decision_SCO_Non_Instr (HL_SCO);
+                  else
+                     Insert_Decision_Witness (UIC, SD, Path_Count (HL_SCO));
+                  end if;
+               end;
             end loop;
 
             if MCDC_Coverage_Enabled then
