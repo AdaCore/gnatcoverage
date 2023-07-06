@@ -322,8 +322,15 @@ package body Instrument.C is
    --  beforehand. Otherwise, generate a preprocessed version of it in
    --  Info.Output_Dir and start a rewriting session on the latter.
 
-   procedure Run_Diagnostics (TU : Translation_Unit_T);
-   --  Output clang diagnostics on the given translation unit
+   procedure Run_Diagnostics (UIC : in out C_Unit_Inst_Context);
+   --  Output clang diagnostics on the given translation unit UIC.TU. Note
+   --  that we aggressively filter out diagnostics whose presumed location
+   --  file is not a file of interest. Indeed, system headers have a lot
+   --  of compiler-specific code, which means that some type / symbol names
+   --  will not be resolved by clang, as we preprocess the code with another
+   --  compiler configuration (e.g. gcc). This also means that compiler-
+   --  specific user code will issue false positives. TODO???: is it that
+   --  uncommon of an occurrence?
 
    function Format_Array_Init_Expr
      (Exprs     : String_Vectors.Vector;
@@ -1776,27 +1783,30 @@ package body Instrument.C is
    -- Run_Diagnostics --
    ---------------------
 
-   procedure Run_Diagnostics (TU : Translation_Unit_T) is
-      Num_Diag : constant unsigned := Get_Num_Diagnostics (TU);
+   procedure Run_Diagnostics (UIC : in out C_Unit_Inst_Context)
+   is
+      Num_Diag : constant unsigned := Get_Num_Diagnostics (UIC.TU);
    begin
       for I in 1 .. Num_Diag loop
          declare
             Diag     : constant Diagnostic_T :=
-              Get_Diagnostic (Unit => TU, Index => I - 1);
+              Get_Diagnostic (Unit => UIC.TU, Index => I - 1);
             Severity : constant Diagnostic_Severity_T :=
               Get_Diagnostic_Severity (Diag);
-            Str      : constant String :=
-              Format_Diagnostic
-                (Diagnostic => Diag,
-                 Options    => Default_Diagnostic_Display_Options);
          begin
-            case Severity is
-               when Diagnostic_Error | Diagnostic_Fatal =>
-                  Outputs.Warning_Or_Error
-                    ("Error when parsing the file " & Str);
-               when others =>
-                  null;
-            end case;
+            if Is_Source_Of_Interest (UIC, Get_Diagnostic_Location (Diag))
+            then
+               case Severity is
+                  when Diagnostic_Error | Diagnostic_Fatal =>
+                     Outputs.Warning_Or_Error
+                       ("Error when parsing the file "
+                        & Format_Diagnostic
+                          (Diagnostic => Diag,
+                           Options    => Default_Diagnostic_Display_Options));
+                  when others =>
+                     null;
+               end case;
+            end if;
          end;
       end loop;
    end Run_Diagnostics;
@@ -2126,7 +2136,9 @@ package body Instrument.C is
          --  statement source location range.
 
       begin
-         if Is_Null (N) or else not Is_Source_Of_Interest (UIC, N) then
+         if Is_Null (N)
+            or else not Is_Source_Of_Interest (UIC, Get_Cursor_Location (N))
+         then
             return;
          end if;
 
@@ -2319,7 +2331,7 @@ package body Instrument.C is
 
          --  Only traverse the function declarations that belong to a unit of
          --  interest.
-         if Is_Source_Of_Interest (UIC, N) then
+         if Is_Source_Of_Interest (UIC, Get_Cursor_Location (N)) then
 
             case Kind (N) is
 
@@ -2692,9 +2704,6 @@ package body Instrument.C is
                            & " options is passed to gnatcov instrument");
             raise Xcov_Exit_Exc;
          end if;
-         if Verbose then
-            Run_Diagnostics (Self.TU);
-         end if;
          Free (C_Args);
       end;
       Self.Rewriter := CX_Rewriter_Create (Self.TU);
@@ -2800,6 +2809,7 @@ package body Instrument.C is
               Options               => Translation_Unit_Keep_Going);
          Free (C_Args);
       end;
+      Run_Diagnostics (UIC);
       Traverse_Declarations
         (UIC => UIC,
          L   => Get_Children (Get_Translation_Unit_Cursor (UIC.TU)));
@@ -4187,14 +4197,14 @@ package body Instrument.C is
    ---------------------------
 
    function Is_Source_Of_Interest
-     (UIC : in out C_Unit_Inst_Context; N : Cursor_T) return Boolean
+     (UIC : in out C_Unit_Inst_Context;
+      Loc : Source_Location_T) return Boolean
    is
       --  Determine the file from which N originates
 
       C_File : aliased String_T;
       Line   : aliased unsigned;
       Column : aliased unsigned;
-      Loc    : constant Source_Location_T := Get_Cursor_Location (N);
       File   : Unbounded_String;
    begin
       Get_Presumed_Location (Location => Loc,
