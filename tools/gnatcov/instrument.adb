@@ -145,12 +145,26 @@ package body Instrument is
    -- Qualified_Name_Slug --
    -------------------------
 
-   function Qualified_Name_Slug (Name : Ada_Qualified_Name) return String
+   function Qualified_Name_Slug
+     (Name     : Ada_Qualified_Name;
+      Use_Hash : Boolean := not Switches.Use_Full_Slugs) return String
    is
       First  : Boolean := True;
       Result : Ada_Identifier;
    begin
-      --  Create a unique slug from the qualified name: replace occurences of
+      if Use_Hash then
+
+         --  Prefix the hash with "z_" to ensure the unit name slug doesn't
+         --  start with a digit.
+
+         return
+           "z" & Strip_Zero_Padding
+                    (Hex_Image
+                       (Unsigned_32
+                          (Ada.Strings.Hash (To_Symbol_Name (Name)))));
+      end if;
+
+      --  Create a unique slug from the qualified name: replace occurrences of
       --  'z' with 'zz' and insert '_z_' between identifiers.
 
       for Id of Name loop
@@ -208,10 +222,25 @@ package body Instrument is
    -- Filename_Slug --
    -------------------
 
-   function Filename_Slug (Fullname : String) return String is
+   function Filename_Slug
+     (Fullname : String;
+      Use_Hash : Boolean := not Switches.Use_Full_Slugs) return String
+   is
       use Ada.Directories;
       Result : Ada_Identifier;
+
+      Full_Name_Hash : constant String :=
+        Strip_Zero_Padding
+          (Hex_Image (Unsigned_32 (Ada.Strings.Hash (Fullname))));
    begin
+      if Use_Hash then
+
+         --  Prefix the hash with "z_" to ensure the filename slug doesn't
+         --  start with a digit.
+
+         return "z" & Full_Name_Hash;
+      end if;
+
       --  We use the basename slug, followed by a hash of the fullname, which
       --  makes us confident that homonym files will be correctly handled.
 
@@ -237,14 +266,7 @@ package body Instrument is
 
       --  Then, suffix with the hash
 
-      declare
-         Hash_Str : constant String :=
-           Hex_Image (Unsigned_32 (Ada.Strings.Hash (Fullname)));
-      begin
-         --  Do not forget to remove the leading whitespace...
-
-         Append (Result, Hash_Str (2 .. Hash_Str'Last));
-      end;
+      Append (Result, Full_Name_Hash);
       return To_String (Result);
    end Filename_Slug;
 

@@ -123,6 +123,10 @@ package Switches is
    --  Lower abstraction for files of interest, when the --files switch is
    --  used.
 
+   Use_Full_Slugs : Boolean := False;
+   --  When True, use full unit/filename slugs for generated buffer units
+   --  instead of hashes.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 
