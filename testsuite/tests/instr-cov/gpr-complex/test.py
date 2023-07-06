@@ -37,14 +37,16 @@ gprinstall(
     ],
 )
 
-# Add the newly installed library to gprbuild's project lookup path
+# Add the newly installed library to gprbuild's project lookup path. Use the
+# ADA_PROJECT_PATH environment variable to be compatible with the 5.04
+# toolchain.
 gpr_install_dir = os.path.join(install_dir, "share", "gpr")
-old_path = os.environ.get("GPR_PROJECT_PATH", "")
+old_path = os.environ.get("ADA_PROJECT_PATH", "")
 if old_path:
     new_path = "{}{}{}".format(gpr_install_dir, os.path.pathsep, old_path)
 else:
     new_path = gpr_install_dir
-os.environ["GPR_PROJECT_PATH"] = new_path
+os.environ["ADA_PROJECT_PATH"] = new_path
 
 
 def build_run_cov_and_check(main_prj, main_prj_obj_dir, expected_xcov):
