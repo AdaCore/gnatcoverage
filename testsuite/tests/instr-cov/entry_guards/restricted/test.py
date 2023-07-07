@@ -13,6 +13,7 @@ from SUITE.gprutils import GPRswitches
 for covlevel, slug, expected_coverage in [
     ("stmt", "st", {"+": {12, 13, 24}}),
     ("stmt+decision", "dc", {"+": {12, 13, 24}, "?": {21}}),
+    ("stmt+mcdc", "mc", {"+": {12, 13, 24}, "?": {21}}),
 ]:
     thistest.log(f"== {covlevel} ==")
     tmp = Wdir(f"tmp_{slug}")
