@@ -69,7 +69,7 @@ unit_name = (
 check_xcov_reports(
     "*.xcov",
     {
-        "main.c.xcov": {"+": {8}},
+        "main.c.xcov": {"+": {6}},
         (unit_name.lower() if "windows" in thistest.env.host.platform else unit_name)
         + ".c.xcov": {"+": {6}},
     },
