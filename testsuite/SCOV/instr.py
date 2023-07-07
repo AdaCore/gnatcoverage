@@ -201,12 +201,26 @@ def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
     if project.endswith('.gpr'):
         project = project[:-4]
 
-    # Unit that contain helper routines to dump coverage bufers. There is one
-    # such unit per main. See instrument-common.ads to know more about the slug
-    # computation.
-    main_unit_slug = main_unit.replace('z', 'zz')
-    auto_dump_unit = 'GCVRT.DB_{}'.format(main_unit_slug)
-    handler_unit = "Last_Chance_Dumper";
+    # Unit that contain helper routines to dump coverage buffers. There is one
+    # such unit per main. The only differences between two such units of the
+    # same project is the name of the main unit which is encoded in the trace (in
+    # place of the actual executable name). This is not checked by the testsuite
+    # so there should be no problem using the helper unit of a different main.
+
+    auto_dump_hash = None
+    for _,_, files in os.walk (os.path.join(obj_dir, f"{project}-gnatcov-instr")):
+        for file in files:
+            res = re.match(pattern="gcvrt-db_z([0-9a-f]+).adb",string=file)
+            if res:
+                auto_dump_hash = res.group(1)
+                break
+        if auto_dump_hash:
+            break
+
+    assert(auto_dump_hash is not None)
+
+    auto_dump_unit = 'GCVRT.DB_z{}'.format(auto_dump_hash)
+    handler_unit = "Last_Chance_Dumper"
 
     def filename(prefix, ext):
         return os.path.join(obj_dir, '{}-gnatcov-instr'.format(project),
