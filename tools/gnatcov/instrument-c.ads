@@ -328,9 +328,8 @@ package Instrument.C is
    --  Helper object to instrument a source file
 
    function Is_Source_Of_Interest
-     (UIC : in out C_Unit_Inst_Context;
-      Loc : Source_Location_T) return Boolean;
-   --  Track the source file from which Locs originates in
+     (UIC : in out C_Unit_Inst_Context; N : Cursor_T) return Boolean;
+   --  Track the source file from which N originates in
    --  UIC.Sources_Of_Interest. Return whether this source file is a source of
    --  interest.
 
