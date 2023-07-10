@@ -445,7 +445,6 @@ procedure GNATcov_Bits_Specific is
                                  or else All_Messages
                                  or else Verbose);
       Allow_Mixing_Trace_Kinds := Args.Bool_Args (Opt_Allow_Mix_Trace_Kind);
-      Analyze_Entry_Barriers   := Args.Bool_Args (Opt_Analyze_Entry_Barriers);
       Short_Circuit_And_Or     := Args.Bool_Args
                                     (Opt_Boolean_Short_Circuit_And_Or);
       Emit_Report              := not Args.Bool_Args (Opt_Cancel_Annotate);
@@ -1354,14 +1353,6 @@ begin
             then
                Warn
                  ("(selected runtime from " & (+Setup_Cfg.Project_File) & ")");
-            end if;
-
-            if Analyze_Entry_Barriers then
-               Warn ("With source traces, entry barrier analysis (enabled"
-                     & " with --analyze-entry-barriers) is only supported when"
-                     & " when using a full runtime profile. In particular,"
-                     & " enabling this option with a ravenscar profile will"
-                     & " result in invalid code being emitted.");
             end if;
 
             Instrument.Projects

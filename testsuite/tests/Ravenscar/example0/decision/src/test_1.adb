@@ -15,5 +15,5 @@ end;
 --  /pop_ttell/ l! ## dF-
 --  /pop_tell/  l+ ## 0
 --  /rch_do/    l+ ## 0
---  /wat_guard/ l. ## 0
+--  /wat_guard/ l+ ## 0
 --  /wat_do/    l+ ## 0

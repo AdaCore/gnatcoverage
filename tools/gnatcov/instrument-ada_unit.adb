@@ -962,6 +962,16 @@ package body Instrument.Ada_Unit is
    --  Ada.Task_Termination and/or Ada.Task_Identification in either the whole
    --  project or in Unit.
 
+   function Pragma_Restricts_Entry_Guards
+     (Prag_Node : Pragma_Node) return Boolean;
+   --  Return True if Node restricts entry guards so that we cannot instrument
+   --  them as decisions.
+
+   function Entry_Guards_Restricted
+     (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean;
+   --  Return if entry guards are restricted in this unit so that we cannot
+   --  instrument them as decisions.
+
    function Return_From_Subp_Body
      (Ret_Node : Return_Stmt; Subp : Subp_Body) return Boolean;
    --  Return whether Ret_Node is returning from Subp
@@ -2843,15 +2853,20 @@ package body Instrument.Ada_Unit is
    --  which aren't valid for a pragma.
 
    procedure Process_Decisions
-     (UIC : in out Ada_Unit_Inst_Context;
-      N   : Ada_Node'Class;
-      T   : Character);
+     (UIC               : in out Ada_Unit_Inst_Context;
+      N                 : Ada_Node'Class;
+      T                 : Character;
+      Do_Not_Instrument : Boolean := False);
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
    --  to output any decisions it contains. T is one of IEGPWX (for context of
    --  expression: if/exit when/entry guard/pragma/while/expression). If T is
    --  other than X, the node N is the if expression involved, and a decision
    --  is always present (at the very least a simple decision is present at the
    --  top level).
+   --
+   --  If Do_Not_Instrument, this creates SCOs for the decisions/conditions,
+   --  but plan not to instrument them, so that the decision can be reported as
+   --  such.
 
    --------------------------
    -- Internal Subprograms --
@@ -2968,8 +2983,9 @@ package body Instrument.Ada_Unit is
    --  output intermediate entries such as decision entries.
 
    type SD_Entry is record
-      Nod : Ada_Node;
-      Typ : Character;
+      Nod               : Ada_Node;
+      Typ               : Character;
+      Do_Not_Instrument : Boolean;
    end record;
    --  Used to store a single entry in the following table. Nod is the node to
    --  be searched for decisions.
@@ -3034,7 +3050,10 @@ package body Instrument.Ada_Unit is
       --  probably refactor this so the logic for determining it is
       --  more localized.
 
-      procedure Process_Decisions_Defer (N : Ada_Node'Class; T : Character);
+      procedure Process_Decisions_Defer
+        (N                 : Ada_Node'Class;
+         T                 : Character;
+         Do_Not_Instrument : Boolean := False);
       --  This routine is logically the same as Process_Decisions, except that
       --  the arguments are saved in the SD table for later processing when
       --  Set_Statement_Entry is called, which goes through the saved entries
@@ -3225,7 +3244,11 @@ package body Instrument.Ada_Unit is
       -- Process_Decisions_Defer --
       -----------------------------
 
-      procedure Process_Decisions_Defer (N : Ada_Node'Class; T : Character) is
+      procedure Process_Decisions_Defer
+        (N                 : Ada_Node'Class;
+         T                 : Character;
+         Do_Not_Instrument : Boolean := False)
+      is
          function Process_Decl_Expr (N : Ada_Node'Class) return Visit_Status;
          --  Helper to Libadalang's Traverse. Only operates on Decl_Exprs,
          --  instrument each declaration as a statement and process the nested
@@ -3270,7 +3293,7 @@ package body Instrument.Ada_Unit is
          end Process_Decl_Expr;
 
       begin
-         SD.Append ((N.As_Ada_Node, T));
+         SD.Append ((N.As_Ada_Node, T, Do_Not_Instrument));
          if not N.Is_Null then
             N.Traverse (Process_Decl_Expr'Access);
          end if;
@@ -3626,7 +3649,8 @@ package body Instrument.Ada_Unit is
                SDE : SD_Entry renames SD.Table (J);
 
             begin
-               Process_Decisions (UIC, SDE.Nod, SDE.Typ);
+               Process_Decisions
+                 (UIC, SDE.Nod, SDE.Typ, SDE.Do_Not_Instrument);
             end;
          end loop;
 
@@ -4443,13 +4467,18 @@ package body Instrument.Ada_Unit is
             when Ada_Entry_Body =>
                declare
                   Cond : constant Expr := As_Entry_Body (N).F_Barrier;
-
+                  Unit : LAL.Analysis_Unit;
                begin
                   Set_Statement_Entry;
 
-                  if Switches.Analyze_Entry_Barriers and then not Cond.Is_Null
-                  then
-                     Process_Decisions_Defer (Cond, 'G');
+                  if not Cond.Is_Null then
+                     Unit := Cond.Unit;
+                     Process_Decisions_Defer
+                       (N                 => Cond,
+                        T                 => 'G',
+                        Do_Not_Instrument =>
+                          Entry_Guards_Restricted
+                            (Unit.Context, Unit.Root.As_Compilation_Unit));
                   end if;
 
                   Traverse_Subprogram_Or_Task_Body (UIC, N);
@@ -5427,9 +5456,10 @@ package body Instrument.Ada_Unit is
    -----------------------
 
    procedure Process_Decisions
-     (UIC : in out Ada_Unit_Inst_Context;
-      N   : Ada_Node'Class;
-      T   : Character)
+     (UIC               : in out Ada_Unit_Inst_Context;
+      N                 : Ada_Node'Class;
+      T                 : Character;
+      Do_Not_Instrument : Boolean := False)
    is
       Mark : Nat;
       --  This is used to mark the location of a decision sequence in the SCO
@@ -5737,12 +5767,30 @@ package body Instrument.Ada_Unit is
                end if;
             end if;
 
+            --  Do not instrument this decision if we have already determined
+            --  from the context that instrumenting it could produce invalid
+            --  code.
+            --
+            --  Instrumenting static decisions would make them non-static by
+            --  wrapping them in a Witness call. This transformation would
+            --  trigger legality checks on the originally non-evaluated branch,
+            --  which could result in compilation errors specific to the
+            --  instrumented code, e.g. on:
+            --
+            --   X := (if <config.static-False>
+            --         then <out-of-range-static>
+            --         else <value>);
+            --
+            --  For this reason, also refrain from instrumenting static
+            --  decisions.
+
             UIC.Source_Decisions.Append
               (Source_Decision'
-                 (LL_SCO    => Current_Decision,
-                  Decision  => N.As_Expr,
-                  State     => MCDC_State,
-                  Is_Static => Is_Static_Expr (N.As_Expr)));
+                 (LL_SCO            => Current_Decision,
+                  Decision          => N.As_Expr,
+                  State             => MCDC_State,
+                  Do_Not_Instrument => Do_Not_Instrument
+                                       or else Is_Static_Expr (N.As_Expr)));
          end if;
 
          --  For an aspect specification, which will be rewritten into a
@@ -7425,6 +7473,48 @@ package body Instrument.Ada_Unit is
           (Context, Unit, Pragma_Prevents_Task_Termination'Access);
    end Task_Termination_Restricted;
 
+   -----------------------------------
+   -- Pragma_Restricts_Entry_Guards --
+   -----------------------------------
+
+   function Pragma_Restricts_Entry_Guards
+     (Prag_Node : Pragma_Node) return Boolean is
+   begin
+      --  We are looking for Restrictions pragmas with Pure_Barriers or
+      --  Simple_Barriers restrictions.
+
+      if Canonically_Equal (Prag_Node.F_Id.Text, "Restrictions") then
+         for Assoc of Prag_Node.F_Args loop
+            declare
+               Prag_Assoc : constant Pragma_Argument_Assoc :=
+                 Assoc.As_Pragma_Argument_Assoc;
+               Expr_Text  : constant Text_Type := Prag_Assoc.F_Expr.Text;
+            begin
+               if Prag_Assoc.F_Name.Is_Null
+                  and then (Canonically_Equal (Expr_Text, "Pure_Barriers")
+                              or else
+                            Canonically_Equal (Expr_Text, "Simple_Barriers"))
+               then
+                  return True;
+               end if;
+            end;
+         end loop;
+      end if;
+      return False;
+   end Pragma_Restricts_Entry_Guards;
+
+   -----------------------------
+   -- Entry_Guards_Restricted --
+   -----------------------------
+
+   function Entry_Guards_Restricted
+     (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean
+   is
+   begin
+      return Has_Matching_Pragma_For_Unit
+        (Context, Unit, Pragma_Restricts_Entry_Guards'Access);
+   end Entry_Guards_Restricted;
+
    -----------
    -- Apply --
    -----------
@@ -7907,25 +7997,18 @@ package body Instrument.Ada_Unit is
          if Coverage.Enabled (Decision) or else MCDC_Coverage_Enabled then
             for SD of UIC.Source_Decisions loop
 
-               --  Instrumenting a static decision would make it non-static by
-               --  wrapping it in a Witness call. This transformation would
-               --  trigger legality checks on the originally non-evaluated
-               --  branch, which could result in compilation errors specific to
-               --  the instrumented code, e.g. on:
-               --
-               --   X := (if <config.static-False>
-               --         then <out-of-range-static>
-               --         else <value>);
-               --
-               --  Mark these decisions as non-instrumented so they are
+               --  Mark non-instrumented decisions as such so that they are
                --  properly reported.
 
-               if not SD.Is_Static then
-                  Insert_Decision_Witness
-                    (UIC, SD, Path_Count (SCO_Map (SD.LL_SCO)));
-               else
-                  Set_Decision_SCO_Non_Instr (SCO_Map (SD.LL_SCO));
-               end if;
+               declare
+                  HL_SCO : constant SCO_Id := SCO_Map (SD.LL_SCO);
+               begin
+                  if SD.Do_Not_Instrument then
+                     Set_Decision_SCO_Non_Instr (HL_SCO);
+                  else
+                     Insert_Decision_Witness (UIC, SD, Path_Count (HL_SCO));
+                  end if;
+               end;
             end loop;
 
             if MCDC_Coverage_Enabled then
