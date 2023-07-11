@@ -3353,7 +3353,7 @@ package body Instrument.C is
 
       I : Positive := 1;
    begin
-      --  Compute Buffers_Filenames and Buffers_Projects
+      --  Compute Buffers_CUs and Buffers_CU_Names
 
       for Cur in UIC.Sources_Of_Interest_Info.Iterate loop
          declare
