@@ -316,11 +316,7 @@ package body Instrument.C is
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj          : Prj_Desc);
    --  Start a rewriting session for the given file identified by its full
-   --  name.
-   --
-   --  If Preprocessed is set to True, consider that the file was preprocessed
-   --  beforehand. Otherwise, generate a preprocessed version of it in
-   --  Info.Output_Dir and start a rewriting session on the latter.
+   --  name. If not already done, preprocess it beforehand.
 
    procedure Run_Diagnostics (TU : Translation_Unit_T);
    --  Output clang diagnostics on the given translation unit
@@ -2653,7 +2649,7 @@ package body Instrument.C is
       Instrumenter : C_Family_Instrumenter_Type'Class;
       Prj          : Prj_Desc)
    is
-      PP_Filename : Unbounded_String := +Filename;
+      PP_Filename : Unbounded_String;
 
       Options : Analysis_Options;
       Args    : String_Vectors.Vector;
@@ -2821,7 +2817,7 @@ package body Instrument.C is
       Prj               : Prj_Desc;
       Files_Of_Interest : String_Sets.Set)
    is
-      UIC : C_Unit_Inst_Context;
+      UIC     : C_Unit_Inst_Context;
       CU_Name : constant Compilation_Unit_Part :=
         CU_Name_For_File (+Unit_Name);
 
@@ -2830,12 +2826,8 @@ package body Instrument.C is
       --  Respectively original, and preprocessed filename
 
       Buffer_Filename : constant String :=
-        New_File
-          (Prj,
-           To_Symbol_Name (Sys_Prefix) & "_b_"
-           & Instrumented_Unit_Slug (CU_Name)
-           & (+Prj.Body_Suffix
-             (C_Family_Instrumenter_Type'Class (Self).Language)));
+        +Self.Buffer_Unit
+           (Compilation_Unit'(File_Based_Language, +Unit_Name), Prj).Unit_Name;
       --  Name of the generated source file holding the coverage buffers
 
       Rewriter : C_Source_Rewriter;
@@ -2918,7 +2910,11 @@ package body Instrument.C is
 
       Import_Options (UIC.Options, Self, Prj, Unit_Name);
       Preprocess_Source
-        (Orig_Filename, Self, Prj, PP_Filename, UIC.Options);
+        (Orig_Filename,
+         Self,
+         Prj,
+         PP_Filename,
+         UIC.Options);
 
       --  Start by recording preprocessing information
 
@@ -3597,11 +3593,9 @@ package body Instrument.C is
    begin
       --  Create the name of the helper unit
 
-      Helper_Unit :=
-        To_Symbol_Name (Sys_Prefix)
-        & "_d_"
-        & Instrumented_Unit_Slug (Main)
-        & Prj.Body_Suffix (Instrumenter.Language);
+      Helper_Unit := Instrumenter.Dump_Helper_Unit
+        (Compilation_Unit'(File_Based_Language, Main.Filename),
+         Prj).Unit_Name;
 
       --  Compute the qualified names we need for instrumentation
 
@@ -3879,6 +3873,75 @@ package body Instrument.C is
       Rew.Apply;
    end Auto_Dump_Buffers_In_Main;
 
+   -----------------
+   -- Buffer_Unit --
+   -----------------
+
+   function Buffer_Unit
+     (Self : C_Family_Instrumenter_Type;
+      CU   : Compilation_Unit;
+      Prj  : Prj_Desc) return Compilation_Unit
+   is
+      Filename : constant String :=
+        New_File
+          (Prj,
+           To_Symbol_Name (Sys_Prefix) & "_b_"
+           & Filename_Slug (+CU.Unit_Name)
+           & (+Prj.Body_Suffix
+             (C_Family_Instrumenter_Type'Class (Self).Language)));
+   begin
+      return Compilation_Unit'
+        (Language  => File_Based_Language,
+         Unit_Name => +Filename);
+   end Buffer_Unit;
+
+   ----------------------
+   -- Dump_Helper_Unit --
+   ----------------------
+
+   overriding function Dump_Helper_Unit
+     (Self : C_Family_Instrumenter_Type;
+      CU   : Compilation_Unit;
+      Prj  : Prj_Desc) return Compilation_Unit
+   is
+      Filename : constant String :=
+        New_File
+          (Prj,
+           To_Symbol_Name (Sys_Prefix)
+           & "_d_"
+           & Filename_Slug (+CU.Unit_Name)
+           & (+Prj.Body_Suffix
+             (C_Family_Instrumenter_Type'Class (Self).Language)));
+   begin
+      return Compilation_Unit'
+        (Language  => File_Based_Language,
+         Unit_Name => +Filename);
+   end Dump_Helper_Unit;
+
+   --------------
+   -- Has_Main --
+   --------------
+
+   overriding function Has_Main
+     (Self     : in out C_Family_Instrumenter_Type;
+      Filename : String;
+      Prj      : Prj_Desc) return Boolean
+   is
+      Rew : C_Source_Rewriter;
+
+      Main_Cursor : Cursor_T;
+      --  Cursor of the main declaration
+
+   begin
+      Rew.Start_Rewriting (Filename, Self, Prj);
+      Main_Cursor := Get_Main (Rew.TU);
+      if Main_Cursor = Get_Null_Cursor then
+         return False;
+      else
+         return True;
+      end if;
+   end Has_Main;
+
    ----------------
    -- Format_Def --
    ----------------
@@ -4007,73 +4070,81 @@ package body Instrument.C is
         (Format_Extern_Decl (Instrumenter, C_Type, Name, Func_Args));
    end Put_Extern_Decl;
 
+   ----------------------------
+   -- Emit_Buffers_List_Unit --
+   ----------------------------
+
    overriding procedure Emit_Buffers_List_Unit
      (Self        : C_Family_Instrumenter_Type;
       Instr_Units : Unit_Sets.Set;
       Prj         : Prj_Desc)
    is
-      Base_Filename  : constant String :=
-        "gcvrtc-" & (+Prj.Prj_Name);
-      CU_Name_Body   : constant String :=
-        Base_Filename
-        & (+Prj.Body_Suffix
-           (C_Family_Instrumenter_Type'Class (Self).Language));
-      CU_Name_Header : constant String :=
-        Base_Filename
-        & (+Prj.Spec_Suffix
-           (C_Family_Instrumenter_Type'Class (Self).Language));
+      Buffer_Symbols : String_Sets.Set;
+      Ignore_CU      : Compilation_Unit;
+   begin
+      for Instr_Unit of Instr_Units loop
+         Buffer_Symbols.Insert (+Unit_Buffers_Name (Instr_Unit));
+      end loop;
+      Ignore_CU :=
+        C_Family_Instrumenter_Type'Class (Self).Emit_Buffers_List_Unit
+          (Buffer_Symbols => Buffer_Symbols, Prj => Prj);
+   end Emit_Buffers_List_Unit;
 
-      File_Body   : Text_Files.File_Type;
-      File_Header : Text_Files.File_Type;
+   overriding function Emit_Buffers_List_Unit
+     (Self           : C_Family_Instrumenter_Type;
+      Buffer_Symbols : String_Sets.Set;
+      Prj            : Prj_Desc) return Compilation_Unit
+   is
+      CU_Name : constant Compilation_Unit :=
+        (Language => File_Based_Language,
+         Unit_Name =>
+           +New_File
+             (Prj,
+              "gcvrtc-" & (+Prj.Prj_Name)
+              & (+Prj.Body_Suffix
+                (C_Family_Instrumenter_Type'Class (Self).Language))));
+
+      CU_File : Text_Files.File_Type;
 
       Buffer_Array_Decl  : constant String :=
         "const struct gnatcov_rts_coverage_buffers_group_array "
         & Unit_Buffers_Array_Name (+Prj.Prj_Name);
       Buffer_Unit_Length : constant String :=
-        Count_Type'Image (Instr_Units.Length);
+        Count_Type'Image (Buffer_Symbols.Length);
    begin
       --  Emit the body to contain the list of buffers
 
-      Create_File (Prj, File_Body, CU_Name_Body);
+      CU_File.Create (+CU_Name.Unit_Name);
 
-      File_Body.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
+      CU_File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
 
       --  First create extern declarations for the buffers group of each unit
 
-      for Instr_Unit of Instr_Units loop
+      for BS of Buffer_Symbols loop
          Put_Extern_Decl
-           (File_Body,
+           (CU_File,
             Self,
             "const struct gnatcov_rts_coverage_buffers_group",
-            Unit_Buffers_Name (Instr_Unit));
+            +BS);
       end loop;
 
       --  Then create an extern declaration for the buffer array (necessary in
       --  C++ to set the C linkage), and finally the definition for that array.
 
-      File_Body.Put_Line (Self.Extern_Prefix & Buffer_Array_Decl & ";");
-      File_Body.Put_Line (Buffer_Array_Decl & " = {");
-      File_Body.Put_Line ("  " & Buffer_Unit_Length & ",");
-      File_Body.Put_Line
+      CU_File.Put_Line (Self.Extern_Prefix & Buffer_Array_Decl & ";");
+      CU_File.Put_Line (Buffer_Array_Decl & " = {");
+      CU_File.Put_Line ("  " & Buffer_Unit_Length & ",");
+      CU_File.Put_Line
         ("  (const struct gnatcov_rts_coverage_buffers_group *[]) {");
-      for Instr_Unit of Instr_Units loop
-         File_Body.Put ("    &" & Unit_Buffers_Name (Instr_Unit));
-         if Instr_Unit = Instr_Units.Last_Element then
-            File_Body.Put_Line ("}};");
+      for BS of Buffer_Symbols loop
+         CU_File.Put ("    &" & (+BS));
+         if BS = Buffer_Symbols.Last_Element then
+            CU_File.Put_Line ("}};");
          else
-            File_Body.Put_Line (",");
+            CU_File.Put_Line (",");
          end if;
       end loop;
-
-      --  Emit the extern declaration of the buffers array in the header file
-
-      Create_File (Prj, File_Header, CU_Name_Header);
-
-      Put_Extern_Decl
-        (File_Header,
-         Self,
-         "const struct gnatcov_rts_coverage_buffers_group_array",
-         Unit_Buffers_Array_Name (+Prj.Prj_Name));
+      return CU_Name;
    end Emit_Buffers_List_Unit;
 
    ----------------

@@ -1,0 +1,440 @@
+------------------------------------------------------------------------------
+--                                                                          --
+--                               GNATcoverage                               --
+--                                                                          --
+--                        Copyright (C) 2023, AdaCore                       --
+--                                                                          --
+-- GNATcoverage is free software; you can redistribute it and/or modify it  --
+-- under terms of the GNU General Public License as published by the  Free  --
+-- Software  Foundation;  either version 3,  or (at your option) any later  --
+-- version. This software is distributed in the hope that it will be useful --
+-- but WITHOUT ANY WARRANTY;  without even the implied warranty of MERCHAN- --
+-- TABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public --
+-- License for  more details.  You should have  received  a copy of the GNU --
+-- General  Public  License  distributed  with  this  software;   see  file --
+-- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
+-- of the license.                                                          --
+------------------------------------------------------------------------------
+
+with Ada.Directories;
+with Ada.Strings; use Ada.Strings;
+with Ada.Strings.Fixed;
+with Ada.Text_IO; use Ada.Text_IO;
+
+with GNAT.OS_Lib;
+with GNAT.Regexp; use GNAT.Regexp;
+with GNAT.Strings;
+
+with Coverage;
+with JSON;          use JSON;
+with Outputs;       use Outputs;
+with Paths;         use Paths;
+with Support_Files; use Support_Files;
+
+package body Instrument.Setup_Config is
+
+   GCC_Regexp : constant Regexp := Compile (".*gcc.*");
+   GXX_Regexp : constant Regexp := Compile (".*g\+\+.*");
+
+   function Find_Compiler_Prog
+     (Compiler_Driver    : String;
+      Program_Names      : String_Vectors.Vector;
+      Output_Dir         : String;
+      Fallback_To_System : Boolean := True) return String;
+   --  Locate the program whose name is one of Program_Names elements in the
+   --  Compiler_Driver installation directory. Output_Dir is the directory
+   --  where temporary output files are generated. If the program is not
+   --  found under the compiler driver installation, assume there is a
+   --  system installation if Fallback_To_System is True (and so return the
+   --  first name of Program_Names), otherwise error out.
+
+   function Find_Compiler_Prog
+     (Compiler_Driver    : String;
+      Program_Names      : String_Vectors.Vector;
+      Output_Dir         : String;
+      Fallback_To_System : Boolean := True) return String
+   is
+      Driver_Arguments : String_Vectors.Vector;
+      Output_Filename  : constant String :=
+        Output_Dir / "which-compiler-prog";
+      Output_File      : File_Type;
+   begin
+      for Program_Name of Program_Names loop
+         Driver_Arguments.Clear;
+         Driver_Arguments.Append (+"--print-prog-name");
+         Driver_Arguments.Append (Program_Name);
+
+         Run_Command
+           (Compiler_Driver,
+            Arguments           => Driver_Arguments,
+            Origin_Command_Name => "gnatcov instrument-setup",
+            Output_File         => Output_Filename);
+
+         --  Check if the output is a full path to an existing file. If this is
+         --  the case, then store the program path.
+
+         Open (Output_File, In_File, Output_Filename);
+         declare
+            Output : constant String := Get_Line (Output_File);
+         begin
+            Close (Output_File);
+            if Ada.Directories.Exists (Output) then
+               Ada.Directories.Delete_File (Output_Filename);
+               return Output;
+            end if;
+         end;
+      end loop;
+      Ada.Directories.Delete_File (Output_Filename);
+      if Fallback_To_System then
+         return +Program_Names.First_Element;
+      else
+         Outputs.Fatal_Error
+           ("Could not locate program " & (+Program_Names.First_Element)
+            & " in compiler driver installation.");
+      end if;
+   end Find_Compiler_Prog;
+
+   ---------------------
+   -- Generate_Config --
+   ---------------------
+
+   procedure Generate_Config
+     (Files_Of_Interest : String_Sets.Set;
+      Coverage_Level    : String;
+      Dump_Config       : Any_Dump_Config;
+      Compiler_Drivers  : String_Sets.Set;
+      Output_Dir        : String)
+   is
+      Config    : constant JSON_Value := Create_Object;
+      Compilers : constant JSON_Value := Create_Object;
+      Linkers   : constant JSON_Value := Create_Object;
+      --  For each compiler driver, location of the ld executable
+
+      Nms : constant JSON_Value := Create_Object;
+      --  For each compiler driver, location of the nm executable
+
+   begin
+      --  Find the installed gnatcov_rts, using gprls. TODO???: deal with non
+      --  native cases.
+      --
+      --  We are looking for the following lines:
+      --  Source Search Path:
+      --     some/path/to/include/
+      --  [...]
+      --  Object Search Path:
+      --     some/path/to/lib/gnatcov_rts.static
+
+      declare
+         use Ada.Strings.Fixed;
+
+         Args            : String_Vectors.Vector;
+         Output_Filename : constant String :=
+           Output_Dir / "gprls_output";
+         Output_File     : File_Type;
+      begin
+         Args.Append (+"-P");
+         Args.Append (+"gnatcov_rts");
+         Args.Append (+"-vP1");
+         Run_Command
+           (Command             => "gprls",
+            Arguments           => Args,
+            Origin_Command_Name => "gnatcov setup-integration",
+            Output_File         => Output_Filename);
+         Open (Output_File, In_File, Output_Filename);
+         while not End_Of_File (Output_File) loop
+            declare
+               Line : constant String := Get_Line (Output_File);
+            begin
+               if Line = "Source Search Path:" then
+                  Config.Set_Field
+                    ("gnatcov_rts_include_dir",
+                     Trim (Get_Line (Output_File), Left));
+               elsif Line = "Object Search Path:" then
+                  Config.Set_Field
+                    ("gnatcov_rts_object_dir",
+                     Trim (Get_Line (Output_File), Left));
+               end if;
+            end;
+         end loop;
+         Close (Output_File);
+      end;
+
+      --  Generate the compiler driver wrappers, checking that they are
+      --  supported.
+
+      for Compiler_Driver of Compiler_Drivers loop
+
+         --  Locate the compiler driver, and if it is not found, terminate
+         --  with an exception.
+
+         declare
+            use type GNAT.Strings.String_Access;
+            Compiler_Fullname : constant GNAT.OS_Lib.String_Access :=
+              GNAT.OS_Lib.Locate_Exec_On_Path (+Compiler_Driver);
+         begin
+            --  Check if the compiler executable is on the PATH
+
+            if Compiler_Fullname = null then
+               Outputs.Fatal_Error
+                 ("Could not locate compiler " & (+Compiler_Driver)
+                  & " on the PATH.");
+            end if;
+
+            --  Check if this is a supported compiler and instantiate the
+            --  compiler wrapper accordingly.
+
+            declare
+               Actual_Compiler_Driver : constant String :=
+                 GNAT.OS_Lib.Normalize_Pathname (Compiler_Fullname.all);
+               Actual_CD_Basename     : constant String :=
+                 Ada.Directories.Simple_Name (Actual_Compiler_Driver);
+               Success                : Boolean;
+               Matched                : Boolean := True;
+               Compiler_Identifier    : Unbounded_String;
+            begin
+               if GNAT.Regexp.Match (Actual_Compiler_Driver, GCC_Regexp)
+                 or else GNAT.Regexp.Match
+                   (Actual_Compiler_Driver, GXX_Regexp)
+               then
+                  Compiler_Identifier := +"gcc";
+               else
+                  Matched := False;
+               end if;
+
+               if Matched then
+                  Compilers.Set_Field
+                    (+Compiler_Driver, Compiler_Fullname.all);
+
+                  --  Then, find the linker associated to this compiler. Look
+                  --  for ld / ld.bfd. TODO???: this may need reworking when
+                  --  we want to support toolchain other than ours, not
+                  --  necessarily packaging ld.
+
+                  declare
+                     Linker_Programs  : String_Vectors.Vector;
+                  begin
+                     Linker_Programs.Append (+"ld");
+                     Linker_Programs.Append (+"ld.bfd");
+
+                     Linkers.Set_Field
+                       (+Compiler_Driver,
+                        Find_Compiler_Prog
+                          (Compiler_Driver => Actual_Compiler_Driver,
+                           Program_Names   => Linker_Programs,
+                           Output_Dir      => Output_Dir));
+                  end;
+
+                  --  Do the same with nm, as we need to be able to inspect the
+                  --  object / library file contents. TODO???: this may need
+                  --  reworking when we want to support toolchain other than
+                  --  ours, not necessarily packaging nm.
+
+                  declare
+                     Nm_Program  : String_Vectors.Vector;
+                  begin
+                     Nm_Program.Append (+"nm");
+
+                     Nms.Set_Field
+                       (+Compiler_Driver,
+                        Find_Compiler_Prog
+                          (Compiler_Driver => Actual_Compiler_Driver,
+                           Program_Names   => Nm_Program,
+                           Output_Dir      => Output_Dir));
+                  end;
+
+                  GNAT.OS_Lib.Copy_File
+                    (Support_Files.Libexec_Dir
+                     / ("compiler_wrappers-" & (+Compiler_Identifier)),
+                     Pathname => Output_Dir / (+Compiler_Driver),
+                     Success  => Success,
+                     Mode     => GNAT.OS_Lib.Overwrite,
+                     Preserve => GNAT.OS_Lib.Full);
+                  if not Success then
+                     Outputs.Fatal_Error
+                       ("Could not generate a compiler wrapper in the given"
+                        & " directory " & Output_Dir);
+                  end if;
+               else
+                  Outputs.Fatal_Error
+                    ("Unsupported compiler driver: " & Actual_CD_Basename);
+               end if;
+            end;
+
+         end;
+      end loop;
+      Config.Set_Field ("compilers", Compilers);
+      Config.Set_Field ("linkers", Linkers);
+      Config.Set_Field ("nms", Nms);
+
+      --  Then, register the files of interest
+
+      declare
+         Files_Of_Interest_JSON : JSON_Array;
+      begin
+         for F of Files_Of_Interest loop
+            Append (Files_Of_Interest_JSON, Create (+F));
+         end loop;
+         Config.Set_Field ("files-of-interest", Files_Of_Interest_JSON);
+      end;
+
+      --  Then, register the dump config that we will pass explicitly on the
+      --  command line.
+
+      declare
+         Dump_Config_JSON : constant JSON_Value := Create_Object;
+      begin
+         case Dump_Config.Trigger is
+            when Manual =>
+               Dump_Config_JSON.Set_Field ("dump-trigger", "manual");
+            when At_Exit =>
+               Dump_Config_JSON.Set_Field ("dump-trigger", "atexit");
+            when Ravenscar_Task_Termination =>
+               Dump_Config_JSON.Set_Field
+                 ("dump-trigger", "ravenscar-task-termination");
+            when Main_End =>
+               Dump_Config_JSON.Set_Field ("dump-trigger", "main-end");
+         end case;
+
+         case Dump_Config.Channel is
+            when Binary_File =>
+               Dump_Config_JSON.Set_Field ("dump-channel", "bin-file");
+               if Dump_Config.Filename_Simple then
+                  Dump_Config_JSON.Set_Field ("dump-filename-simple", True);
+               end if;
+               if Length (Dump_Config.Filename_Env_Var) /= 0 then
+                  Dump_Config_JSON.Set_Field
+                    ("dump-filename-env-var", Dump_Config.Filename_Env_Var);
+               end if;
+               if Length (Dump_Config.Filename_Prefix) /= 0 then
+                  Dump_Config_JSON.Set_Field
+                    ("dump-filename-prefix", Dump_Config.Filename_Prefix);
+               end if;
+            when Base64_Standard_Output =>
+               Dump_Config_JSON.Set_Field ("dump-channel", "base64-stdout");
+         end case;
+         Config.Set_Field ("dump-config", Dump_Config_JSON);
+      end;
+
+      Config.Set_Field ("coverage_level", Coverage_Level);
+      Config.Set_Field ("tag", Instrumentation_Tag);
+      Config.Set_Field ("save_temps", Switches.Save_Temps);
+      Config.Set_Field ("verbose", Switches.Verbose);
+
+      --  Dump the instrumentation configuration in a JSON file. Do not write
+      --  the compact representation of the JSON as we may reach the character
+      --  limit.
+
+      Write
+        (Filename => Output_Dir / Instrumentation_Config_Filename,
+         Value    => Config,
+         Compact  => False);
+   end Generate_Config;
+
+   -----------------
+   -- Load_Config --
+   -----------------
+
+   function Load_Config (Config_File : String) return Instrumentation_Config
+   is
+      Result      : Instrumentation_Config;
+      Channel     : Any_Dump_Channel;
+      Config_JSON : JSON_Value;
+      Parsed_JSON : constant Read_Result := JSON.Read (Config_File);
+   begin
+      if not Parsed_JSON.Success then
+         Outputs.Fatal_Error
+           ("Parsing errror while reading the instrumentation configuration"
+            & " file.");
+      end if;
+      Config_JSON := Parsed_JSON.Value;
+
+      Switches.Save_Temps := Config_JSON.Get ("save_temps");
+      Switches.Verbose := Config_JSON.Get ("verbose");
+      Coverage.Set_Coverage_Levels (Config_JSON.Get ("coverage_level"));
+
+      declare
+         FOI_JSON : constant JSON_Array :=
+           Config_JSON.Get ("files-of-interest");
+      begin
+         for FOI of FOI_JSON loop
+            Switches.Files_Of_Interest.Include (Get (FOI));
+         end loop;
+      end;
+
+      --  Read the dump config
+
+      declare
+         Dump_Config_JSON : constant JSON_Value :=
+           Config_JSON.Get ("dump-config");
+         Dump_Trigger_Str : constant String :=
+           Dump_Config_JSON.Get ("dump-trigger");
+         Dump_Channel_Str : constant String :=
+           Dump_Config_JSON.Get ("dump-channel");
+      begin
+         if Dump_Channel_Str = "bin-file" then
+            Channel := Binary_File;
+         elsif Dump_Channel_Str = "base64-stdout" then
+            Channel := Base64_Standard_Output;
+         else
+            Outputs.Fatal_Error ("unsupported dump channel");
+         end if;
+
+         declare
+            Dump_Config : Any_Dump_Config (Channel);
+         begin
+
+            if Dump_Trigger_Str = "atexit" then
+               Dump_Config.Trigger := At_Exit;
+            elsif Dump_Trigger_Str = "main-end" then
+               Dump_Config.Trigger := Main_End;
+            elsif Dump_Trigger_Str = "ravenscar-task-termination" then
+               Dump_Config.Trigger := Ravenscar_Task_Termination;
+            elsif Dump_Trigger_Str = "manual" then
+               Dump_Config.Trigger := Manual;
+            else
+               Outputs.Fatal_Error ("unsupported dump trigger");
+            end if;
+            Result.Dump_Config := Dump_Config;
+         end;
+      end;
+
+      declare
+
+         procedure Fill_String_Map
+           (Result      : out String_Maps.Map;
+            JSON_Object : JSON_Value);
+         --  Fill the Result string map with the contents of the given JSON
+         --  object
+
+         procedure Fill_String_Map
+           (Result      : out String_Maps.Map;
+            JSON_Object : JSON_Value)
+         is
+            procedure Insert_Element
+              (Key : UTF8_String; Value : JSON_Value);
+
+            procedure Insert_Element
+              (Key : UTF8_String; Value : JSON_Value) is
+            begin
+               Result.Insert (+Key, Get (Value));
+            end Insert_Element;
+         begin
+            Map_JSON_Object (JSON_Object, Insert_Element'Access);
+         end Fill_String_Map;
+
+      begin
+         Fill_String_Map
+           (Result.Compiler_Drivers, Config_JSON.Get ("compilers"));
+         Fill_String_Map (Result.Linkers, Config_JSON.Get ("linkers"));
+         Fill_String_Map (Result.Nms, Config_JSON.Get ("nms"));
+      end;
+
+      Result.Tag := Config_JSON.Get ("tag");
+         Result.GNATcov_RTS_Include_Dir :=
+           Config_JSON.Get ("gnatcov_rts_include_dir");
+         Result.GNATcov_RTS_Object_Dir :=
+           Config_JSON.Get ("gnatcov_rts_object_dir");
+      return Result;
+   end Load_Config;
+
+end Instrument.Setup_Config;

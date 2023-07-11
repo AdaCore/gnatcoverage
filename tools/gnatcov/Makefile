@@ -54,6 +54,7 @@ PGMNAME=gnatcov
 PGMPATH=obj32/$(BUILD_MODE)/$(PGMNAME)
 PGM32PATH=obj32/$(BUILD_MODE)/gnatcov32
 PGM64PATH=obj64/$(BUILD_MODE)/gnatcov64
+COMPILERPATH=obj64/$(BUILD_MODE)/compiler_wrappers-gcc
 
 # Directory name in the install tree
 DIRNAME=gnatcoverage
@@ -187,11 +188,16 @@ ifdef INSTRUMENTED
 	gnatcov instrument -j0 -P gnatcov.gpr -XPART=driver
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=driver \
     --src-subdirs=gnatcov-instr
+
+	gnatcov instrument -j0 -P gnatcov.gpr -XPART=compiler
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=compiler \
+    --src-subdirs=gnatcov-instr 
 else
   # Start with the 64-bit gnatcov, which has the largest closure
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov64
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov32
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=driver
+	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=compiler
 endif
 
 ADAPTER_TARGETS=$(foreach a, $(ADAPTERS_LIST), adapter-$(a))
@@ -251,6 +257,7 @@ install-bin:
 	$(CP) \
 	   $(PGM32PATH)$(exeext) \
 	   $(PGM64PATH)$(exeext) \
+     $(COMPILERPATH)$(exeext) \
 	   $(PREFIX)/libexec/gnatcoverage
 
 install-examples:

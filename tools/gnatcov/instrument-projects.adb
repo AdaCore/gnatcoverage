@@ -31,8 +31,6 @@ with Ada.Unchecked_Deallocation;
 
 with GNAT.Exception_Actions;
 
-with Interfaces; use Interfaces;
-
 with GNAT.OS_Lib;
 with GNAT.Regexp;
 with GNAT.Strings;
@@ -44,7 +42,6 @@ with GNATCOLL.Projects.Aux; use GNATCOLL.Projects.Aux;
 with Binary_Files;
 with Command_Line;        use Command_Line;
 with Files_Table;
-with Hex_Images;          use Hex_Images;
 with Instrument.Ada_Unit; use Instrument.Ada_Unit;
 with Instrument.C;        use Instrument.C;
 with Instrument.Clean_Objdirs;
@@ -796,20 +793,7 @@ is
 begin
    --  Set the instrumentation tag
 
-   declare
-      Time : constant Unsigned_64 :=
-        Unsigned_64
-          (GNAT.OS_Lib.To_C (GNAT.OS_Lib.Current_Time));
-      Tag  : constant String :=
-        Hex_Images.Strip_Zero_Padding
-          (Hex_Images.Hex_Image (Time));
-      --  Tag for the current instrumentation run. Passed on to instrument-main
-      --  invocations, to have the same tag for mains instrumented at the
-      --  same time.
-
-   begin
-      IC.Tag := +Tag;
-   end;
+   IC.Tag := +Instrumentation_Tag;
 
    --  Delete output directories from previous instrumentations
 

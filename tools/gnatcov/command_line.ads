@@ -61,7 +61,8 @@ package Command_Line is
       Cmd_Setup,
       Cmd_Instrument_Project,
       Cmd_Instrument_Source,
-      Cmd_Instrument_Main);
+      Cmd_Instrument_Main,
+      Cmd_Setup_Integration);
    --  Set of commands we support. More complete descriptions below.
 
    type Bool_Options is
@@ -161,11 +162,12 @@ package Command_Line is
       Opt_C_Opts,
       Opt_CPP_Opts,
       Opt_Files,
-      Opt_Runtime_Dir);
+      Opt_Runtime_Dir,
+      Opt_Compiler_Wrappers);
    --  Set of string list options we support. More complete descriptions below.
 
    subtype Cmd_Instrument is Command_Type
-      range Cmd_Instrument_Project .. Cmd_Instrument_Main;
+      range Cmd_Instrument_Project .. Cmd_Setup_Integration;
 
    package Parser is new Argparse
      (Command_Type, Bool_Options, String_Options, String_List_Options);
@@ -374,6 +376,20 @@ package Command_Line is
                         & " dumping coverage buffers of all of the specified"
                         & " files (through the --files switch).",
          Pattern     => "--files=<files_of_interest> [MAIN]",
+         Internal    => True),
+      Cmd_Setup_Integration => Create
+        (Name        => "setup-integration",
+         Description =>
+           "Generate the adequate configuration to use gnatcov in integrated"
+           & " instrumentation mode. The files of interest must be passed"
+           & " through the --files switch, the compiler driver in used through"
+           & " the --compilers switch, the runtime installation directory"
+           & " through the --runtime-install-dir switch, and the configuration"
+           & " and compiler driver wrappers are generated in the subdirectory"
+           & " pointed by the --output-dir switch.",
+         Pattern     =>
+           "--files=<files_of_interest> --compilers=<compiler>"
+         & " --runtime-install-dir=<dir> [--output-dir=<dir>]",
          Internal    => True));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
@@ -638,11 +654,11 @@ package Command_Line is
       Opt_Output_Directory => Create
         (Long_Name    => "--output-dir",
          Pattern      => "[SUBDIR]",
-         Help         => "Subdirectory where XCOV or HTML report files should"
-                         & " be produced.",
+         Help         => "Place the output files into SUBDIR.",
          Commands     => (Cmd_Coverage
                           | Cmd_Instrument_Source
-                          | Cmd_Instrument_Main => True, others => False),
+                          | Cmd_Instrument_Main
+                          | Cmd_Setup_Integration => True, others => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Tag => Create
@@ -1230,8 +1246,10 @@ package Command_Line is
          Pattern   => "[FILE|@LISTFILE]",
          Help      => "Specify a list of source files of interest by their"
                       & " full name.",
-         Commands => (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-                      others                                      => False),
+         Commands => (Cmd_Instrument_Source
+                      | Cmd_Instrument_Main
+                      | Cmd_Setup_Integration => True,
+                      others                 => False),
          Internal => True),
 
       Opt_Shared_Object => Create
@@ -1308,7 +1326,16 @@ package Command_Line is
          Commands     =>
            (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
             others                                      => False),
-         Internal     => True)
+         Internal     => True),
+
+      Opt_Compiler_Wrappers => Create
+        (Long_Name => "--compilers",
+         Pattern   => "NAME",
+         Help      =>
+           "List of compiler drivers for which we should generate wrappers."
+           & " Supported compilers are: gcc.",
+         Commands  => (others => True),
+         Internal  => True)
      );
 
    procedure Bool_Callback
