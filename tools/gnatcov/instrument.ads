@@ -99,9 +99,14 @@ package Instrument is
    function Image (CU_Name : Compilation_Unit_Part) return String;
    --  Return a string representation of CU_Name for use in diagnostics
 
-   function Qualified_Name_Slug (Name : Ada_Qualified_Name) return String;
-   --  Given a qualified name, return a unique identifier to describe it. This
-   --  identifier can be used as a filename suffix / unit name, as it does
+   function Qualified_Name_Slug
+     (Name     : Ada_Qualified_Name;
+      Use_Hash : Boolean := not Switches.Use_Full_Slugs) return String;
+   --  Given a qualified name, return a unique identifier to describe it.
+   --  This identifier is an 32bit hash of the identifiers in Name, if Use_Hash
+   --  is True, otherwise, it remains human readable.
+   --
+   --  This identifier can be used as a filename suffix / unit name, as it does
    --  not contain any '-'.
 
    function Instrumented_Unit_Slug
@@ -111,9 +116,13 @@ package Instrument is
    --
    --  One can use this slug to generate unique names for this unit.
 
-   function Filename_Slug (Fullname : String) return String;
+   function Filename_Slug
+     (Fullname : String;
+      Use_Hash : Boolean := not Switches.Use_Full_Slugs) return String;
    --  Given a filename to instrument, return a unique identifier to describe
-   --  it (the so called slug).
+   --  it (the so called slug). This is a hash of the filename if Use_Hash is
+   --  True, otherwise a human-readable slug of the base name with the same
+   --  hash concatenated at the end, to distinguish slugs from homonym files.
    --
    --  One can use this slug to generate unique names for this unit.
 

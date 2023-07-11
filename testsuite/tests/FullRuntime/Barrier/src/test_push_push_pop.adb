@@ -31,11 +31,11 @@ end Test_Push_Push_Pop;
 -- =/pop_test_tell/  l+ ## 0
 
 --%cov: --level=stmt\+decision
--- =/push_guard/     l. ## 0
+-- =/push_guard/     l+ ## 0
 -- =/push_do/        l+ ## 0
 -- =/push_test_tell/ l! ## dT-
 -- =/push_tell/      l- ## s-
--- =/pop_guard/      l. ## 0
+-- =/pop_guard/      l! ## dF-
 -- =/pop_do/         l+ ## 0
 -- =/pop_tell/       l+ ## 0
 -- =/pop_test_tell/  l! ## dF-

@@ -365,6 +365,8 @@ The list of unsupported constructs is as follows:
 * Recursive expression functions which are primitives of some tagged type,
 * Expression functions which are primitives of their return type, when it is a
   tagged type.
+* Protected bodies entry guards when the ``Simple_Barriers`` restriction or
+  the ``Pure_Barriers`` one apply.
 
 The simplest way to work around the limitation concerning expression functions
 is to turn them into regular functions, by giving them a proper body,

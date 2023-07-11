@@ -1,0 +1,4 @@
+--  These tests use protected bodies, which not available with light or
+--  embedded runtimes.
+RTS_FULL
+ALL DEAD
