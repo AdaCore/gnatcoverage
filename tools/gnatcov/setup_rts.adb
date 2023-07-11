@@ -541,6 +541,7 @@ package body Setup_RTS is
       --  is installed (without the ".gpr" extension).
 
       Args.Append (+To_Lower (Project_Name));
+      Args.Append (+"--sources-subdir=" & ("include" / "gnatcov_rts"));
 
       --  The project may not have been installed there yet, so ignore errors
 
@@ -744,6 +745,11 @@ package body Setup_RTS is
             if Prefix /= "" then
                Install_Args.Append (+("--prefix=" & Prefix));
             end if;
+
+            --  Avoid installing several time the same set of sources
+
+            Install_Args.Append
+              (+"--sources-subdir=" & ("include" / Install_Name));
 
             --  Let the project know about its installation name
 
