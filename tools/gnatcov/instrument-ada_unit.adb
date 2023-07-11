@@ -6094,7 +6094,8 @@ package body Instrument.Ada_Unit is
       --  otherwise return Into.
       --
       --  We know have a decision as soon as we have a logical operator (by
-      --  definition) or an IF-expression (its condition is a decision).
+      --  definition), an IF-expression (its condition is a decision), or a
+      --  quantified expression.
       --
       --  Do not recurse into the declarations of declare expressions as those
       --  are handled separately.
@@ -6111,8 +6112,9 @@ package body Instrument.Ada_Unit is
          then
             return Over;
          elsif N.Kind in Ada_Expr
-            and then (Is_Complex_Decision (UIC, N.As_Expr)
-                      or else N.Kind = Ada_If_Expr)
+            and then
+              (Is_Complex_Decision (UIC, N.As_Expr)
+               or else N.Kind in Ada_If_Expr | Ada_Quantified_Expr_Range)
          then
             return Stop;
          else
