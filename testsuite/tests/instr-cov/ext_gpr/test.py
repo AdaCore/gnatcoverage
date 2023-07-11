@@ -22,19 +22,19 @@ xcov_instrument(gprsw=GPRswitches(root_project="p_ext2.gpr"), covlevel="stmt")
 
 # Check that directories for instrumented sources are all empty except for the
 # ultimate extending project, which should contain all instrumented sources.
-thistest.fail_if_not_equal(
+thistest.fail_if_no_match(
     "instrumented directories",
     "\n".join([
-        "obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bpkg.ads",
-        "obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bpkg1.ads",
-        "obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bpkg2.ads",
-        "obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-p_ext2.ads",
-        "obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-ppkg.ads",
-        "obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-ppkg1.ads",
-        "obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-ppkg2.ads",
-        "obj-p_ext2/p_ext2-gnatcov-instr/pkg.ads",
-        "obj-p_ext2/p_ext2-gnatcov-instr/pkg1.ads",
-        "obj-p_ext2/p_ext2-gnatcov-instr/pkg2.ads",
+        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bz[a-f0-9]{8}\.ads",
+        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bz[a-f0-9]{8}\.ads",
+        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bz[a-f0-9]{8}\.ads",
+        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-p_ext2\.ads",
+        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",
+        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",
+        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",
+        r"obj-p_ext2/p_ext2-gnatcov-instr/pkg\.ads",
+        r"obj-p_ext2/p_ext2-gnatcov-instr/pkg1\.ads",
+        r"obj-p_ext2/p_ext2-gnatcov-instr/pkg2\.ads",
     ]),
     "\n".join(
         f.replace("\\", "/")

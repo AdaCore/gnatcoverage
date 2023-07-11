@@ -185,9 +185,9 @@ private
       State : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of MC/DC state local variable
 
-      Is_Static : Boolean := False;
-      --  Whether the decision expression is static (according to the RM
-      --  definition of static).
+      Do_Not_Instrument : Boolean;
+      --  Whether this decision should not be instrumented. This is set to True
+      --  when instrumenting the decision could create invalid Ada code.
    end record;
 
    type Source_Condition is record

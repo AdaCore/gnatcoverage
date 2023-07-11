@@ -251,6 +251,8 @@ package body Annotations.Cobertura is
          Pp.Report_Filename := +"cobertura.xml";
       end if;
 
+      Pp.Need_Sources := False;
+
       Annotations.Generate_Report (Pp, True, Subdir => "cobertura");
       Free (Pp.Source_Prefix_Pattern);
    end Generate_Report;
@@ -425,10 +427,6 @@ package body Annotations.Cobertura is
       --  Filename to mention in the coverage report. Use the full name, unless
       --  we can remove the prefix according to the --source-root option.
    begin
-      if not Info.Has_Source then
-         Skip := True;
-         return;
-      end if;
       Skip := False;
 
       --  Compute line and branch statistics

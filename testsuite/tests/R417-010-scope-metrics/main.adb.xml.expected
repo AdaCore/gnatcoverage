@@ -1,10 +1,10 @@
 <?xml version="1.0" ?>
 <source file="main.adb" coverage_level="stmt+mcdc">
  <scope_metric scope_name="Main" scope_line="6">
-  <metric kind="total_lines_of_relevance" count="23"/>
-  <metric kind="fully_covered" count="21" ratio="91"/>
+  <metric kind="total_lines_of_relevance" count="24"/>
+  <metric kind="fully_covered" count="22" ratio="92"/>
   <metric kind="partially_covered" count="0" ratio="0"/>
-  <metric kind="not_covered" count="2" ratio="9"/>
+  <metric kind="not_covered" count="2" ratio="8"/>
   <metric kind="undetermined_coverage" count="0" ratio="0"/>
   <metric kind="exempted_no_violation" count="0" ratio="0"/>
   <metric kind="exempted" count="0" ratio="0"/>
@@ -21,10 +21,10 @@
   </obligation_stats>
 
   <obligation_stats kind="Decision">
-   <metric kind="total_obligations_of_relevance" count="1"/>
-   <metric kind="fully_covered" count="0" ratio="0"/>
+   <metric kind="total_obligations_of_relevance" count="2"/>
+   <metric kind="fully_covered" count="1" ratio="50"/>
    <metric kind="partially_covered" count="0" ratio="0"/>
-   <metric kind="not_covered" count="1" ratio="100"/>
+   <metric kind="not_covered" count="1" ratio="50"/>
    <metric kind="undetermined_coverage" count="0" ratio="0"/>
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="0" ratio="0"/>
@@ -32,10 +32,10 @@
   </obligation_stats>
 
   <obligation_stats kind="MCDC">
-   <metric kind="total_obligations_of_relevance" count="2"/>
-   <metric kind="fully_covered" count="0" ratio="0"/>
+   <metric kind="total_obligations_of_relevance" count="3"/>
+   <metric kind="fully_covered" count="1" ratio="33"/>
    <metric kind="partially_covered" count="0" ratio="0"/>
-   <metric kind="not_covered" count="2" ratio="100"/>
+   <metric kind="not_covered" count="2" ratio="67"/>
    <metric kind="undetermined_coverage" count="0" ratio="0"/>
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="0" ratio="0"/>
@@ -777,10 +777,24 @@
 
  </src_mapping>
 
- <src_mapping coverage=".">
+ <src_mapping coverage="+">
   <src>
    <line num="43" exempted="FALSE" src="        when Is_Set is"/>
   </src>
+
+  <decision id="16" text="Is_Set" coverage="+">
+   <src>
+    <line num="43" column_begin="14" column_end="19" src="             Is_Set"/>
+   </src>
+
+   <condition id="17" text="Is_Set" coverage="+">
+    <src>
+     <line num="43" column_begin="14" column_end="19" src="             Is_Set"/>
+    </src>
+
+   </condition>
+
+  </decision>
 
  </src_mapping>
 
@@ -887,7 +901,7 @@
    <line num="56" exempted="FALSE" src="   N : Integer := 0;"/>
   </src>
 
-  <statement id="16" text="N : Integ..." coverage="+">
+  <statement id="18" text="N : Integ..." coverage="+">
    <src>
     <line num="56" column_begin="4" column_end="20" src="   N : Integer := 0;"/>
    </src>
@@ -908,7 +922,7 @@
    <line num="58" exempted="FALSE" src="   task T;"/>
   </src>
 
-  <statement id="17" text="task" coverage="+">
+  <statement id="19" text="task" coverage="+">
    <src>
     <line num="58" column_begin="4" column_end="7" src="   task"/>
    </src>
@@ -943,7 +957,7 @@
    <line num="62" exempted="FALSE" src="      Put_Line (&quot;Task T will delay for 4 seconds...&quot;);"/>
   </src>
 
-  <statement id="18" text="Put_Line ..." coverage="+">
+  <statement id="20" text="Put_Line ..." coverage="+">
    <src>
     <line num="62" column_begin="7" column_end="54" src="      Put_Line (&quot;Task T will delay for 4 seconds...&quot;);"/>
    </src>
@@ -957,7 +971,7 @@
    <line num="63" exempted="FALSE" src="      delay 4.0;"/>
   </src>
 
-  <statement id="19" text="delay 4.0..." coverage="+">
+  <statement id="21" text="delay 4.0..." coverage="+">
    <src>
     <line num="63" column_begin="7" column_end="16" src="      delay 4.0;"/>
    </src>
@@ -971,7 +985,7 @@
    <line num="64" exempted="FALSE" src="      Put_Line (&quot;Task T will set Obj...&quot;);"/>
   </src>
 
-  <statement id="20" text="Put_Line ..." coverage="+">
+  <statement id="22" text="Put_Line ..." coverage="+">
    <src>
     <line num="64" column_begin="7" column_end="42" src="      Put_Line (&quot;Task T will set Obj...&quot;);"/>
    </src>
@@ -985,7 +999,7 @@
    <line num="65" exempted="FALSE" src="      Obj.Set (5);"/>
   </src>
 
-  <statement id="21" text="Obj.Set (..." coverage="+">
+  <statement id="23" text="Obj.Set (..." coverage="+">
    <src>
     <line num="65" column_begin="7" column_end="18" src="      Obj.Set (5);"/>
    </src>
@@ -999,7 +1013,7 @@
    <line num="66" exempted="FALSE" src="      Put_Line (&quot;Task T has just set Obj...&quot;);"/>
   </src>
 
-  <statement id="22" text="Put_Line ..." coverage="+">
+  <statement id="24" text="Put_Line ..." coverage="+">
    <src>
     <line num="66" column_begin="7" column_end="46" src="      Put_Line (&quot;Task T has just set Obj...&quot;);"/>
    </src>
@@ -1027,7 +1041,7 @@
    <line num="69" exempted="FALSE" src="   Put_Line (&quot;Main application will get Obj...&quot;);"/>
   </src>
 
-  <statement id="23" text="Put_Line ..." coverage="+">
+  <statement id="25" text="Put_Line ..." coverage="+">
    <src>
     <line num="69" column_begin="4" column_end="49" src="   Put_Line (&quot;Main application will get Obj...&quot;);"/>
    </src>
@@ -1041,7 +1055,7 @@
    <line num="70" exempted="FALSE" src="   Obj.Get (N);"/>
   </src>
 
-  <statement id="24" text="Obj.Get (..." coverage="+">
+  <statement id="26" text="Obj.Get (..." coverage="+">
    <src>
     <line num="70" column_begin="4" column_end="15" src="   Obj.Get (N);"/>
    </src>
@@ -1055,7 +1069,7 @@
    <line num="71" exempted="FALSE" src="   Put_Line (&quot;Main application has just retrieved Obj...&quot;);"/>
   </src>
 
-  <statement id="25" text="Put_Line ..." coverage="+">
+  <statement id="27" text="Put_Line ..." coverage="+">
    <src>
     <line num="71" column_begin="4" column_end="59" src="   Put_Line (&quot;Main application has just retrieved Obj...&quot;);"/>
    </src>
@@ -1069,7 +1083,7 @@
    <line num="72" exempted="FALSE" src="   Put_Line (&quot;Number is: &quot; &amp; Integer&apos;Image (N));"/>
   </src>
 
-  <statement id="26" text="Put_Line ..." coverage="+">
+  <statement id="28" text="Put_Line ..." coverage="+">
    <src>
     <line num="72" column_begin="4" column_end="48" src="   Put_Line (&quot;Number is: &quot; &amp; Integer&apos;Image (N));"/>
    </src>
