@@ -4138,12 +4138,11 @@ package body Instrument.C is
         ("  (const struct gnatcov_rts_coverage_buffers_group *[]) {");
       for BS of Buffer_Symbols loop
          CU_File.Put ("    &" & (+BS));
-         if BS = Buffer_Symbols.Last_Element then
-            CU_File.Put_Line ("}};");
-         else
+         if BS /= Buffer_Symbols.Last_Element then
             CU_File.Put_Line (",");
          end if;
       end loop;
+      CU_File.Put_Line ("}};");
       return CU_Name;
    end Emit_Buffers_List_Unit;
 
