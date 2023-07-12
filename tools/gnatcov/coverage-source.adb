@@ -968,7 +968,8 @@ package body Coverage.Source is
                               Compute_MCDC_State (SCO, SCI.all));
                         end if;
 
-                     elsif SCO_State /= No_Code then
+                     elsif SCO_State not in No_Code | Undetermined_Coverage
+                     then
 
                         --  Case of MC/DC enabled, and decision is coverable
                         --  but at least one outcome was never taken: do not
