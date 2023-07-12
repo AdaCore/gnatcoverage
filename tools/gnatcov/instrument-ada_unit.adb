@@ -203,6 +203,7 @@ package body Instrument.Ada_Unit is
 
       --  Pragmas
 
+      Profile,
       Restrictions,
 
       --  Pragma Restrictions arguments
@@ -212,6 +213,14 @@ package body Instrument.Ada_Unit is
       No_Tasking,
       Pure_Barriers,
       Simple_Barriers,
+
+      --  Pragma Profile arguments
+
+      GNAT_Extended_Ravenscar,
+      GNAT_Ravenscar_EDF,
+      Jorvik,
+      Ravenscar,
+      Restricted,
 
       --  Annotations
 
@@ -224,22 +233,28 @@ package body Instrument.Ada_Unit is
      (Find (Symbols, Canonicalize (To_Wide_Wide_String (S'Image)).Symbol));
 
    Precomputed_Symbols : constant array (All_Symbols) of Symbol_Type :=
-     (Dynamic_Predicate => Precompute_Symbol (Dynamic_Predicate),
-      Invariant         => Precompute_Symbol (Invariant),
-      Post              => Precompute_Symbol (Post),
-      Postcondition     => Precompute_Symbol (Postcondition),
-      Pre               => Precompute_Symbol (Pre),
-      Precondition      => Precompute_Symbol (Precondition),
-      Predicate         => Precompute_Symbol (Predicate),
-      Static_Predicate  => Precompute_Symbol (Static_Predicate),
-      Type_Invariant    => Precompute_Symbol (Type_Invariant),
-      Restrictions      => Precompute_Symbol (Restrictions),
-      No_Dependence     => Precompute_Symbol (No_Dependence),
-      No_Finalization   => Precompute_Symbol (No_Finalization),
-      No_Tasking        => Precompute_Symbol (No_Tasking),
-      Pure_Barriers     => Precompute_Symbol (Pure_Barriers),
-      Simple_Barriers   => Precompute_Symbol (Simple_Barriers),
-      Xcov              => Precompute_Symbol (Xcov));
+     (Dynamic_Predicate       => Precompute_Symbol (Dynamic_Predicate),
+      Invariant               => Precompute_Symbol (Invariant),
+      Post                    => Precompute_Symbol (Post),
+      Postcondition           => Precompute_Symbol (Postcondition),
+      Pre                     => Precompute_Symbol (Pre),
+      Precondition            => Precompute_Symbol (Precondition),
+      Predicate               => Precompute_Symbol (Predicate),
+      Static_Predicate        => Precompute_Symbol (Static_Predicate),
+      Type_Invariant          => Precompute_Symbol (Type_Invariant),
+      Profile                 => Precompute_Symbol (Profile),
+      Restrictions            => Precompute_Symbol (Restrictions),
+      No_Dependence           => Precompute_Symbol (No_Dependence),
+      No_Finalization         => Precompute_Symbol (No_Finalization),
+      No_Tasking              => Precompute_Symbol (No_Tasking),
+      Pure_Barriers           => Precompute_Symbol (Pure_Barriers),
+      Simple_Barriers         => Precompute_Symbol (Simple_Barriers),
+      GNAT_Extended_Ravenscar => Precompute_Symbol (GNAT_Extended_Ravenscar),
+      GNAT_Ravenscar_EDF      => Precompute_Symbol (Dynamic_Predicate),
+      Jorvik                  => Precompute_Symbol (Jorvik),
+      Ravenscar               => Precompute_Symbol (Ravenscar),
+      Restricted              => Precompute_Symbol (Restricted),
+      Xcov                    => Precompute_Symbol (Xcov));
 
    function As_Symbol (S : All_Symbols) return Symbol_Type is
      (Precomputed_Symbols (S));
@@ -1041,9 +1056,15 @@ package body Instrument.Ada_Unit is
 
    Pragma_Restricts_Entry_Guards_Matchers : constant Pragma_Matcher_Array :=
      ((As_Symbol (Restrictions), null, As_Symbol (Pure_Barriers)),
-      (As_Symbol (Restrictions), null, As_Symbol (Simple_Barriers)));
+      (As_Symbol (Restrictions), null, As_Symbol (Simple_Barriers)),
+      (As_Symbol (Profile), null, As_Symbol (GNAT_Extended_Ravenscar)),
+      (As_Symbol (Profile), null, As_Symbol (GNAT_Ravenscar_EDF)),
+      (As_Symbol (Profile), null, As_Symbol (Jorvik)),
+      (As_Symbol (Profile), null, As_Symbol (Ravenscar)),
+      (As_Symbol (Profile), null, As_Symbol (Restricted)));
    --  Matchers for Restrictions pragmas that restrict entry guards so that we
-   --  cannot instrument them as decisions (Pure_Barriers and Simple_Barriers).
+   --  cannot instrument them as decisions (Pure_Barriers and Simple_Barriers,
+   --  plus various Ada runtime profiles).
 
    function Entry_Guards_Restricted
      (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean;

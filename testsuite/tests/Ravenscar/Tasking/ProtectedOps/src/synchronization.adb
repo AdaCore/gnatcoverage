@@ -21,7 +21,7 @@ package body Synchronization is
          Barrier := True;     -- # open_barrier
       end Put;
 
-      entry Get (Item : out Integer) when Barrier is
+      entry Get (Item : out Integer) when Barrier is -- # entry_guard
       begin
          Item := Element;     -- # get_element
          Barrier := False;    -- # close_barrier
