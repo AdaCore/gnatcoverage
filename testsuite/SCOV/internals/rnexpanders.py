@@ -434,7 +434,7 @@ class UCIchapter(Nchapter):
                           re_notes=re_notes)
 
     def re_summary(self):
-        return r"(\d+) undetermined coverage items[s]*\.$"
+        return r"(\d+) undetermined coverage item[s]*\.$"
 
 
 class SMRchapter(Rchapter):
