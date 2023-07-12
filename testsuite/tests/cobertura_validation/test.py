@@ -93,13 +93,12 @@ for prefix in ["src", "src/"]:
 # have to rely on sid files to convey the coverage obligations
 thistest.log("== Report with no sources ==")
 # No pkg.ads in the report as there are no coverage obligations for it
-expected_filenames = {
-    os.path.join(os.getcwd(), "src", filename)
-    for filename in {"lib.c", "pkg.adb", "test.adb"}
-}
+expected_filenames = {"lib.c", "pkg.adb", "test.adb"}
+
 build_run_coverage_and_check(
     "stmt",
     "cobertura-no_src.xml",
+    source_root=os.path.join(os.getcwd(), "src"),
     hide_src=True,
     expected_filenames=expected_filenames
 )
