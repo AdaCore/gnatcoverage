@@ -11,7 +11,9 @@ package body Sync is
       Has_Value := True; -- # psh_do
     end;
 
-    entry Pop (V : out Integer; Tell : Boolean) when Has_Value is
+    entry Pop (V : out Integer; Tell : Boolean)
+      when Has_Value -- # pop_guard
+    is
     begin
       V := Value;  -- # pop_do
       if Tell then -- # pop_ttell

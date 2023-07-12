@@ -201,6 +201,27 @@ package body Instrument.Ada_Unit is
       Static_Predicate,
       Type_Invariant,
 
+      --  Pragmas
+
+      Profile,
+      Restrictions,
+
+      --  Pragma Restrictions arguments
+
+      No_Dependence,
+      No_Finalization,
+      No_Tasking,
+      Pure_Barriers,
+      Simple_Barriers,
+
+      --  Pragma Profile arguments
+
+      GNAT_Extended_Ravenscar,
+      GNAT_Ravenscar_EDF,
+      Jorvik,
+      Ravenscar,
+      Restricted,
+
       --  Annotations
 
       Xcov);
@@ -212,16 +233,28 @@ package body Instrument.Ada_Unit is
      (Find (Symbols, Canonicalize (To_Wide_Wide_String (S'Image)).Symbol));
 
    Precomputed_Symbols : constant array (All_Symbols) of Symbol_Type :=
-     (Dynamic_Predicate => Precompute_Symbol (Dynamic_Predicate),
-      Invariant         => Precompute_Symbol (Invariant),
-      Post              => Precompute_Symbol (Post),
-      Postcondition     => Precompute_Symbol (Postcondition),
-      Pre               => Precompute_Symbol (Pre),
-      Precondition      => Precompute_Symbol (Precondition),
-      Predicate         => Precompute_Symbol (Predicate),
-      Static_Predicate  => Precompute_Symbol (Static_Predicate),
-      Type_Invariant    => Precompute_Symbol (Type_Invariant),
-      Xcov              => Precompute_Symbol (Xcov));
+     (Dynamic_Predicate       => Precompute_Symbol (Dynamic_Predicate),
+      Invariant               => Precompute_Symbol (Invariant),
+      Post                    => Precompute_Symbol (Post),
+      Postcondition           => Precompute_Symbol (Postcondition),
+      Pre                     => Precompute_Symbol (Pre),
+      Precondition            => Precompute_Symbol (Precondition),
+      Predicate               => Precompute_Symbol (Predicate),
+      Static_Predicate        => Precompute_Symbol (Static_Predicate),
+      Type_Invariant          => Precompute_Symbol (Type_Invariant),
+      Profile                 => Precompute_Symbol (Profile),
+      Restrictions            => Precompute_Symbol (Restrictions),
+      No_Dependence           => Precompute_Symbol (No_Dependence),
+      No_Finalization         => Precompute_Symbol (No_Finalization),
+      No_Tasking              => Precompute_Symbol (No_Tasking),
+      Pure_Barriers           => Precompute_Symbol (Pure_Barriers),
+      Simple_Barriers         => Precompute_Symbol (Simple_Barriers),
+      GNAT_Extended_Ravenscar => Precompute_Symbol (GNAT_Extended_Ravenscar),
+      GNAT_Ravenscar_EDF      => Precompute_Symbol (Dynamic_Predicate),
+      Jorvik                  => Precompute_Symbol (Jorvik),
+      Ravenscar               => Precompute_Symbol (Ravenscar),
+      Restricted              => Precompute_Symbol (Restricted),
+      Xcov                    => Precompute_Symbol (Xcov));
 
    function As_Symbol (S : All_Symbols) return Symbol_Type is
      (Precomputed_Symbols (S));
@@ -230,13 +263,63 @@ package body Instrument.Ada_Unit is
    function As_Name (Id : Identifier) return Name_Id;
    --  Canonicalize Id and return a corresponding Name_Id/Symbol_Type
 
+   function As_Symbol (Id : Text_Type) return Symbol_Type is
+     (Find (Symbols, Id));
+   --  Return a symbol for the given identifier Id. Note that Id is supposed
+   --  to be already canonicalized.
+
    function Pragma_Name (P : Pragma_Node) return Symbol_Type;
    function Pragma_Name (P : Pragma_Node) return Name_Id;
    --  Return a symbol from Symbols corresponding to the name of the given
    --  P pragma.
 
-   function Canonically_Equal (Left, Right : Text_Type) return Boolean;
-   --  Returns whether Left and Right are equal after canonicalization
+   type Pragma_Matcher is record
+      Pragma_Name : Symbol_Type;
+      Assoc_Name  : Symbol_Type;
+      Expr_Name   : Symbol_Type;
+   end record;
+   --  Matcher for a pragma: Pragma_Name is the name of the pragmas that can
+   --  match, while Assoc_Name and Expr_Name are the name/expression of at
+   --  least one of the pragma's arguments (Assoc_Name can be null).
+   --
+   --  For example, the following matcher:
+   --
+   --    (As_Symbol ("foo"), null, As_Symbol ("bar"))
+   --
+   --  can match:
+   --
+   --    pragma foo (bar);
+   --    pragma Foo (Bar);
+   --    pragma Foo (name, Bar);
+   --
+   --  but not:
+   --
+   --    pragma name (bar);         --  unexpected pragma name ("name")
+   --    pragma foo (bar => 1);     --  unexpected argument expr ("1")
+   --    pragma foo (name => bar);  --  unexpected argument name ("name")
+   --
+   --  And the following matcher:
+   --
+   --    (As_Symbol ("foo"), As_Symbol ("bar"), As_Symbol ("x.y"))
+   --
+   --  can match:
+   --
+   --    pragma foo (bar => x.y);
+   --    pragma Foo (Bar => X.Y);
+   --    pragma Foo (name, Bar => X.Y);
+   --
+   --  but not:
+   --
+   --    pragma foo (bar);        --  unexpected argument name (none)
+   --    pragma foo (bar => 1);   --  unexpected argument expr ("1")
+   --    pragma foo (name => x);  --  unexpected argument name ("name")
+
+   type Pragma_Matcher_Array is array (Positive range <>) of Pragma_Matcher;
+
+   function Matches
+     (P : Pragma_Node; Matchers : Pragma_Matcher_Array) return Boolean;
+   --  Return whether pragam P matches at least one of the given pragam
+   --  matchers.
 
    function Aspect_Assoc_Name (A : Aspect_Assoc) return Identifier;
    function Aspect_Assoc_Name (A : Aspect_Assoc) return Symbol_Type;
@@ -922,12 +1005,11 @@ package body Instrument.Ada_Unit is
    --  the return type of the expression function.
 
    function Has_Matching_Pragma_For_Unit
-     (Context : Analysis_Context;
-      Unit    : LAL.Compilation_Unit;
-      Filter  : access function (Node : Pragma_Node) return Boolean)
-      return Boolean;
-   --  Return whether Filter return True on at least one configuration pragma
-   --  that applies to Unit or system.ads.
+     (Context  : Analysis_Context;
+      Unit     : LAL.Compilation_Unit;
+      Matchers : Pragma_Matcher_Array) return Boolean;
+   --  Return whether at least one matcher in Matchers accepts at least one
+   --  configuration pragma that applies to Unit or system.ads.
 
    Unusable_System_Reported : Boolean := False;
    --  Global variable set to True once gnatcov emits a warning about a failure
@@ -940,9 +1022,12 @@ package body Instrument.Ada_Unit is
       Part    : Analysis_Unit_Kind) return Boolean;
    --  Return whether the given unit exists
 
-   function Pragma_Restricts_Finalization
-     (Prag_Node : Pragma_Node) return Boolean;
-   --  Return True if Prag_Node imposes a restrictions on use of finalization
+   Pragma_Restricts_Finalization_Matchers : constant Pragma_Matcher_Array :=
+     ((As_Symbol (Restrictions), null, As_Symbol (No_Finalization)),
+      (As_Symbol (Restrictions),
+       As_Symbol (No_Dependence),
+       As_Symbol ("ada.finalization")));
+   --  Matchers for pragmas that impose a restrictions on use of finalization
 
    function Finalization_Restricted_In_Unit
      (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean;
@@ -950,9 +1035,16 @@ package body Instrument.Ada_Unit is
    --  some control pragma restricts the usage of finalization in either Unit
    --  or the whole project.
 
-   function Pragma_Prevents_Task_Termination
-     (Prag_Node : Pragma_Node) return Boolean;
-   --  Return True if Node prevents the use of tasks and/or
+   Pragma_Prevents_Task_Termination_Matchers : constant Pragma_Matcher_Array :=
+     ((As_Symbol (Restrictions), null, As_Symbol (No_Finalization)),
+      (As_Symbol (Restrictions), null, As_Symbol (No_Tasking)),
+      (As_Symbol (Restrictions),
+       As_Symbol (No_Dependence),
+       As_Symbol ("ada.task_termination")),
+      (As_Symbol (Restrictions),
+       As_Symbol (No_Dependence),
+       As_Symbol ("ada.identification")));
+   --  Matchers for pragmas that prevent the use of tasks and/or
    --  Ada.Task_Termination and/or Ada.Task_Identification.
 
    function Task_Termination_Restricted
@@ -962,10 +1054,17 @@ package body Instrument.Ada_Unit is
    --  Ada.Task_Termination and/or Ada.Task_Identification in either the whole
    --  project or in Unit.
 
-   function Pragma_Restricts_Entry_Guards
-     (Prag_Node : Pragma_Node) return Boolean;
-   --  Return True if Node restricts entry guards so that we cannot instrument
-   --  them as decisions.
+   Pragma_Restricts_Entry_Guards_Matchers : constant Pragma_Matcher_Array :=
+     ((As_Symbol (Restrictions), null, As_Symbol (Pure_Barriers)),
+      (As_Symbol (Restrictions), null, As_Symbol (Simple_Barriers)),
+      (As_Symbol (Profile), null, As_Symbol (GNAT_Extended_Ravenscar)),
+      (As_Symbol (Profile), null, As_Symbol (GNAT_Ravenscar_EDF)),
+      (As_Symbol (Profile), null, As_Symbol (Jorvik)),
+      (As_Symbol (Profile), null, As_Symbol (Ravenscar)),
+      (As_Symbol (Profile), null, As_Symbol (Restricted)));
+   --  Matchers for Restrictions pragmas that restrict entry guards so that we
+   --  cannot instrument them as decisions (Pure_Barriers and Simple_Barriers,
+   --  plus various Ada runtime profiles).
 
    function Entry_Guards_Restricted
      (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean;
@@ -6264,20 +6363,90 @@ package body Instrument.Ada_Unit is
 
    end Safe_Is_Ghost;
 
-   -----------------------
-   -- Canonically_Equal --
-   -----------------------
+   -------------
+   -- Matches --
+   -------------
 
-   function Canonically_Equal (Left, Right : Text_Type) return Boolean is
-      Canonical_Left  : constant Symbolization_Result := Canonicalize (Left);
-      Canonical_Right : constant Symbolization_Result := Canonicalize (Right);
+   function Matches
+     (P : Pragma_Node; Matchers : Pragma_Matcher_Array) return Boolean
+   is
+      function As_Symbol (E : Expr) return Symbol_Type;
+      --  If E is an identifier or a dotted name involving identifiers only,
+      --  return a symbol that represents it. Return null otherwise.
+
+      ---------------
+      -- As_Symbol --
+      ---------------
+
+      function As_Symbol (E : Expr) return Symbol_Type is
+      begin
+         if E.Is_Null then
+            return null;
+         end if;
+
+         case Ada_Expr (E.Kind) is
+            when Libadalang.Common.Ada_Identifier =>
+               return As_Symbol (E.As_Identifier);
+
+            when Ada_Dotted_Name =>
+               declare
+                  DN     : constant Dotted_Name := E.As_Dotted_Name;
+                  Prefix : constant Symbol_Type :=
+                    As_Symbol (DN.F_Prefix.As_Expr);
+               begin
+                  return (if Prefix = null
+                          then null
+                          else Find
+                                 (Symbols,
+                                  Image (Prefix)
+                                  & "."
+                                  & Image (As_Symbol (DN.F_Suffix.As_Expr))));
+               end;
+
+            when others =>
+               return null;
+         end case;
+      end As_Symbol;
+
+      Pragma_Name : constant Symbol_Type := As_Symbol (P.F_Id);
+
+   --  Start of processing for Matches
+
    begin
-      --  If canonicalization failed for one of the two text types, assume they
-      --  are different.
+      for Matcher of Matchers loop
 
-      return Canonical_Left.Success
-            and then Canonical_Left = Canonical_Right;
-   end Canonically_Equal;
+         --  If this matcher accepts the pragma name, inspect its arguments
+
+         if Matcher.Pragma_Name = Pragma_Name then
+            for Assoc of P.F_Args loop
+               declare
+                  A : constant Pragma_Argument_Assoc :=
+                    Assoc.As_Pragma_Argument_Assoc;
+               begin
+                  if Matcher.Assoc_Name = null then
+
+                     --  We expect an "Expr_Name" expression
+
+                     if A.F_Name.Is_Null
+                        and then As_Symbol (A.F_Expr) = Matcher.Expr_Name
+                     then
+                        return True;
+                     end if;
+
+                  --  We expect a "Assoc_Name => Expr_Name" association
+
+                  elsif As_Symbol (A.F_Name.As_Expr) = Matcher.Assoc_Name
+                        and then As_Symbol (A.F_Expr) = Matcher.Expr_Name
+                  then
+                     return True;
+                  end if;
+               end;
+            end loop;
+         end if;
+      end loop;
+
+      return False;
+   end Matches;
 
    -----------------------
    -- Aspect_Assoc_Name --
@@ -7311,10 +7480,9 @@ package body Instrument.Ada_Unit is
    ----------------------------------
 
    function Has_Matching_Pragma_For_Unit
-     (Context : Analysis_Context;
-      Unit    : LAL.Compilation_Unit;
-      Filter  : access function (Node : Pragma_Node) return Boolean)
-      return Boolean
+     (Context  : Analysis_Context;
+      Unit     : LAL.Compilation_Unit;
+      Matchers : Pragma_Matcher_Array) return Boolean
    is
       System_Unit  : constant Analysis_Unit :=
         Context.Get_From_Provider ("System", Unit_Specification);
@@ -7342,7 +7510,7 @@ package body Instrument.Ada_Unit is
          Unusable_System_Reported := True;
       end if;
       for Prag_Node of Unit_Pragmas loop
-         if Filter.all (Prag_Node) then
+         if Matches (Prag_Node, Matchers) then
             return True;
          end if;
       end loop;
@@ -7363,43 +7531,6 @@ package body Instrument.Ada_Unit is
         (To_Text (Unit), Part) /= "";
    end Has_Unit;
 
-   -----------------------------------
-   -- Pragma_Restricts_Finalization --
-   -----------------------------------
-
-   function Pragma_Restricts_Finalization
-     (Prag_Node : Pragma_Node) return Boolean
-   is
-   begin
-      --  We are looking for pragmas of the form:
-      --     pragma Restrictions (No_Finalization);
-      --  or
-      --     pragma Restriction (No_Dependence => Ada.Finalization);
-
-      if Canonically_Equal (Prag_Node.F_Id.Text, "Restrictions") then
-         for Assoc of Prag_Node.F_Args loop
-            declare
-               Prag_Assoc : constant Pragma_Argument_Assoc :=
-                 Assoc.As_Pragma_Argument_Assoc;
-            begin
-               if not Prag_Assoc.F_Name.Is_Null
-                 and then
-                   (Canonically_Equal
-                      (Prag_Assoc.F_Name.Text, "No_Finalization")
-                    or else
-                      (Canonically_Equal
-                         (Prag_Assoc.F_Name.Text, "No_Dependence")
-                       and then Canonically_Equal (Prag_Assoc.F_Expr.Text,
-                                                   "Ada.Finalization")))
-               then
-                  return True;
-               end if;
-            end;
-         end loop;
-      end if;
-      return False;
-   end Pragma_Restricts_Finalization;
-
    -------------------------------------
    -- Finalization_Restricted_In_Unit --
    -------------------------------------
@@ -7410,53 +7541,8 @@ package body Instrument.Ada_Unit is
    begin
       return not Has_Unit (Context, "Ada.Finalization", Unit_Specification)
             or else Has_Matching_Pragma_For_Unit
-                      (Context, Unit, Pragma_Restricts_Finalization'Access);
+                      (Context, Unit, Pragma_Restricts_Finalization_Matchers);
    end Finalization_Restricted_In_Unit;
-
-   --------------------------------------
-   -- Pragma_Prevents_Task_Termination --
-   --------------------------------------
-
-   function Pragma_Prevents_Task_Termination
-     (Prag_Node : Pragma_Node) return Boolean
-   is
-   begin
-      --  We are looking for pragmas of the form:
-      --     pragma Restrictions (No_Tasking);
-      --  or
-      --     pragma Restriction (No_Dependence => Ada.Task_Termination);
-      --  or
-      --     pragma Restriction (No_Depenence => Ada.Task_Identification);
-
-      if Canonically_Equal (Prag_Node.F_Id.Text, "Restrictions") then
-         for Assoc of Prag_Node.F_Args loop
-            declare
-               Prag_Assoc : constant Pragma_Argument_Assoc :=
-                 Assoc.As_Pragma_Argument_Assoc;
-            begin
-               if not Prag_Assoc.F_Name.Is_Null
-                 and then
-                   (Canonically_Equal
-                      (Prag_Assoc.F_Name.Text, "No_Finalization")
-                    or else Canonically_Equal
-                      (Prag_Assoc.F_Name.Text, "No_Tasking")
-                    or else
-                      (Canonically_Equal
-                         (Prag_Assoc.F_Name.Text, "No_Dependence")
-                       and then
-                         (Canonically_Equal (Prag_Assoc.F_Expr.Text,
-                                             "Ada.Task_Termination")
-                          or else
-                            Canonically_Equal (Prag_Assoc.F_Expr.Text,
-                                               "Ada.Task_Identification"))))
-               then
-                  return True;
-               end if;
-            end;
-         end loop;
-      end if;
-      return False;
-   end Pragma_Prevents_Task_Termination;
 
    ---------------------------------
    -- Task_Termination_Restricted --
@@ -7470,38 +7556,8 @@ package body Instrument.Ada_Unit is
         or else not Has_Unit
           (Context, "Ada.Task.Identification", Unit_Specification)
         or else Has_Matching_Pragma_For_Unit
-          (Context, Unit, Pragma_Prevents_Task_Termination'Access);
+          (Context, Unit, Pragma_Prevents_Task_Termination_Matchers);
    end Task_Termination_Restricted;
-
-   -----------------------------------
-   -- Pragma_Restricts_Entry_Guards --
-   -----------------------------------
-
-   function Pragma_Restricts_Entry_Guards
-     (Prag_Node : Pragma_Node) return Boolean is
-   begin
-      --  We are looking for Restrictions pragmas with Pure_Barriers or
-      --  Simple_Barriers restrictions.
-
-      if Canonically_Equal (Prag_Node.F_Id.Text, "Restrictions") then
-         for Assoc of Prag_Node.F_Args loop
-            declare
-               Prag_Assoc : constant Pragma_Argument_Assoc :=
-                 Assoc.As_Pragma_Argument_Assoc;
-               Expr_Text  : constant Text_Type := Prag_Assoc.F_Expr.Text;
-            begin
-               if Prag_Assoc.F_Name.Is_Null
-                  and then (Canonically_Equal (Expr_Text, "Pure_Barriers")
-                              or else
-                            Canonically_Equal (Expr_Text, "Simple_Barriers"))
-               then
-                  return True;
-               end if;
-            end;
-         end loop;
-      end if;
-      return False;
-   end Pragma_Restricts_Entry_Guards;
 
    -----------------------------
    -- Entry_Guards_Restricted --
@@ -7512,7 +7568,7 @@ package body Instrument.Ada_Unit is
    is
    begin
       return Has_Matching_Pragma_For_Unit
-        (Context, Unit, Pragma_Restricts_Entry_Guards'Access);
+        (Context, Unit, Pragma_Restricts_Entry_Guards_Matchers);
    end Entry_Guards_Restricted;
 
    -----------

@@ -13,5 +13,6 @@ end;
 --  /exception/     l- ## s-
 --  /put_element/   l+ ## 0
 --  /open_barrier/  l+ ## 0
+--  /entry_guard/   l? ## d?
 --  /get_element/   l+ ## 0
 --  /close_barrier/ l+ ## 0
