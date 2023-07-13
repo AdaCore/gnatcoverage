@@ -426,7 +426,7 @@ class NCIchapter(Nchapter):
         return r"(No|\d+) coverage exclusion[s]*\.$"
 
 
-class UCIchapter (Nchapter):
+class UCIchapter(Nchapter):
     """Undetermined Coverage Items chapter."""
     def __init__(self, re_start, re_notes):
         Nchapter.__init__(self, re_start=re_start,
@@ -434,7 +434,7 @@ class UCIchapter (Nchapter):
                           re_notes=re_notes)
 
     def re_summary(self):
-        return r"(\d+) undetermined coverage items[s]*\.$"
+        return r"(\d+) undetermined coverage item[s]*\.$"
 
 
 class SMRchapter(Rchapter):
