@@ -1,2 +1,1 @@
 5.04a1 DEAD Quantified expressions not supported by gnat 5.04a1
-bin-traces XFAIL Requires compiler change, will be fixed by next stable bump
