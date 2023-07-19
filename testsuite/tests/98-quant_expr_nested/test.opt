@@ -1,2 +1,3 @@
 5.04a1 DEAD Quantified expressions not supported by gnat 5.04a1
+7.1.2 DEAD Ada 2012 support weak on 7.1.2
 bin-traces XFAIL Requires compiler change, will be fixed by next stable bump
