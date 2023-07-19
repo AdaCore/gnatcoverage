@@ -6032,6 +6032,8 @@ package body Instrument.Ada_Unit is
                end;
 
             when Ada_Quantified_Expr =>
+               Process_Decisions
+                  (UIC, N.As_Quantified_Expr.F_Loop_Spec, 'X');
                Process_Decisions (UIC, N.As_Quantified_Expr.F_Expr, 'W');
                return Over;
 
