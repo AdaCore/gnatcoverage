@@ -4854,7 +4854,12 @@ package body Instrument.Ada_Unit is
 
                         Extend_Statement_Sequence (UIC, N, 'F');
                         Process_Decisions_Defer
-                          (ISC.As_For_Loop_Spec, 'X');
+                          (ISC.As_For_Loop_Spec.F_Var_Decl, 'X');
+                        Process_Decisions_Defer
+                          (ISC.As_For_Loop_Spec.F_Iter_Expr, 'X');
+                        Process_Decisions_Defer
+                          (ISC.As_For_Loop_Spec.F_Iter_Filter, 'W');
+
                      end if;
                   end if;
 
@@ -6037,6 +6042,12 @@ package body Instrument.Ada_Unit is
                Process_Decisions (UIC, N.As_Quantified_Expr.F_Expr, 'W');
                return Over;
 
+            when Ada_For_Loop_Spec =>
+               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Var_Decl, 'X');
+               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Iter_Expr, 'X');
+               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Iter_Filter, 'W');
+               return Over;
+
             --  Aspects for which we don't want to instrument the decision
 
             when Ada_Aspect_Assoc =>
@@ -6096,8 +6107,8 @@ package body Instrument.Ada_Unit is
       --  otherwise return Into.
       --
       --  We know have a decision as soon as we have a logical operator (by
-      --  definition), an IF-expression (its condition is a decision), or a
-      --  quantified expression.
+      --  definition), an IF-expression (its condition is a decision), a
+      --  quantified expression or an iterator filter in a For_Loop_Spec.
       --
       --  Do not recurse into the declarations of declare expressions as those
       --  are handled separately.
@@ -6116,7 +6127,9 @@ package body Instrument.Ada_Unit is
          elsif N.Kind in Ada_Expr
             and then
               (Is_Complex_Decision (UIC, N.As_Expr)
-               or else N.Kind in Ada_If_Expr | Ada_Quantified_Expr_Range)
+               or else N.Kind in Ada_If_Expr | Ada_Quantified_Expr_Range
+               or else (N.Kind in Ada_For_Loop_Spec_Range
+                        and then not N.As_For_Loop_Spec.F_Iter_Filter.Is_Null))
          then
             return Stop;
          else
