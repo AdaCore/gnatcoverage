@@ -22,8 +22,9 @@
 
 with Interfaces.C; use Interfaces.C;
 
-with Clang.Index;   use Clang.Index;
-with Clang.Rewrite; use Clang.Rewrite;
+with Clang.CX_Source_Location; use Clang.CX_Source_Location;
+with Clang.Index;              use Clang.Index;
+with Clang.Rewrite;            use Clang.Rewrite;
 
 with Slocs; use Slocs;
 

@@ -19,8 +19,9 @@
 with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Vectors;
 
-with Clang.Index;   use Clang.Index;
-with Clang.Rewrite; use Clang.Rewrite;
+with Clang.CX_Source_Location; use Clang.CX_Source_Location;
+with Clang.Index;              use Clang.Index;
+with Clang.Rewrite;            use Clang.Rewrite;
 
 with Instrument.Common; use Instrument.Common;
 with Slocs;             use Slocs;

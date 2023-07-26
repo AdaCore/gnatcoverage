@@ -26,8 +26,9 @@ with Ada.Strings.Unbounded.Hash;
 
 with Namet; use Namet;
 
-with Clang.Index;   use Clang.Index;
-with Clang.Rewrite; use Clang.Rewrite;
+with Clang.CX_Source_Location; use Clang.CX_Source_Location;
+with Clang.Index;              use Clang.Index;
+with Clang.Rewrite;            use Clang.Rewrite;
 
 with Files_Table;       use Files_Table;
 with Instrument.Common; use Instrument.Common;
