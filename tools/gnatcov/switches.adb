@@ -349,7 +349,8 @@ package body Switches is
          case Ref.Kind is
             when String_Opt =>
                Complain := Ref.String_Option in
-                 Opt_Project | Opt_Target | Opt_Runtime | Opt_Subdirs;
+                 Opt_Project | Opt_Target | Opt_Runtime | Opt_Subdirs |
+                 Opt_Root_Dir;
             when others =>
                null;
          end case;
@@ -407,6 +408,18 @@ package body Switches is
 
       if Args.Bool_Args (Opt_Externally_Built_Projects) then
          Enable_Externally_Built_Projects_Processing;
+      end if;
+
+      if Args.Bool_Args (Opt_Relocate_Build_Tree) then
+         Set_Build_Tree_Dir_To_Current;
+
+         if Args.String_Args (Opt_Root_Dir).Present then
+            Set_Root_Dir (+Args.String_Args (Opt_Root_Dir).Value);
+         end if;
+
+      elsif Args.String_Args (Opt_Root_Dir).Present then
+         Fatal_Error
+           ("--root-dir cannot be used without --relocate-build-tree");
       end if;
 
       --  If the project file does not define a target, loading it needs the
