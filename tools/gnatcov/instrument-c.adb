@@ -313,8 +313,7 @@ package body Instrument.C is
      (Self         : out C_Source_Rewriter;
       Filename     : String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
-      Preprocessed : Boolean := False);
+      Prj          : Prj_Desc);
    --  Start a rewriting session for the given file identified by its full
    --  name.
    --
@@ -2495,8 +2494,10 @@ package body Instrument.C is
    begin
       PP_Filename := +New_File (Prj, Filename);
 
-      --  HACK: consider that the file was already preprocessed in that case
-      if +PP_Filename = Filename then
+      --  If the preprocessed output file already exists, consider that it was
+      --  already preprocessed and do nothing.
+
+      if Ada.Directories.Exists (+PP_Filename) then
          return;
       end if;
 
@@ -2648,8 +2649,7 @@ package body Instrument.C is
      (Self         : out C_Source_Rewriter;
       Filename     : String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
-      Preprocessed : Boolean := False)
+      Prj          : Prj_Desc)
    is
       PP_Filename : Unbounded_String := +Filename;
 
@@ -2657,10 +2657,13 @@ package body Instrument.C is
       Args    : String_Vectors.Vector;
    begin
       Import_Options (Options, Instrumenter, Prj, Filename);
-      if not Preprocessed then
-         Preprocess_Source
-           (Filename, Instrumenter, Prj, PP_Filename, Options);
-      end if;
+
+      Preprocess_Source
+        (Filename,
+         Instrumenter,
+         Prj,
+         PP_Filename,
+         Options);
 
       Self.CIdx :=
         Create_Index
@@ -2987,8 +2990,7 @@ package body Instrument.C is
         (Self         => Rewriter,
          Filename     => +PP_Filename,
          Instrumenter => Self,
-         Prj          => Prj,
-         Preprocessed => True);
+         Prj          => Prj);
       UIC.TU := Rewriter.TU;
       UIC.Rewriter := Rewriter.Rewriter;
       Insert_Extern_Location :=
