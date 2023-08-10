@@ -87,8 +87,8 @@ package Command_Line is
       Opt_All_Warnings,
       Opt_Save_Temps,
       Opt_SPARK_Compat,
-      Opt_Relocate_Build_Tree,
-      Opt_Full_Slugs);
+      Opt_Full_Slugs,
+      Opt_Relocate_Build_Tree);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -546,17 +546,18 @@ package Command_Line is
          Commands  => (Cmd_Instrument => True, others => False),
          Internal  => False),
 
+      Opt_Full_Slugs => Create
+        (Long_Name => "--full-slugs",
+         Help      => "Use full unit slugs instead of hashes for buffer units",
+         Commands  => (Cmd_Instrument => True, others => False),
+         Internal  => True),
+
       Opt_Relocate_Build_Tree => Create
         (Long_Name => "--relocate-build-tree",
          Help      => "Relocate object, library and exec directories in the"
                       & " current directory.",
          Commands  => (Cmd_Setup => False, others => True),
-         Internal  => False),
-      Opt_Full_Slugs => Create
-        (Long_Name => "--full-slugs",
-         Help      => "Use full unit slugs instead of hashes for buffer units",
-         Commands  => (Cmd_Instrument => True, others => False),
-         Internal  => True));
+         Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create
@@ -570,7 +571,6 @@ package Command_Line is
                           others => True),
          At_Most_Once => True,
          Internal     => False),
-
       Opt_Root_Dir => Create
         (Long_Name    => "--root-dir",
          Pattern      => "[DIR]",
@@ -581,8 +581,7 @@ package Command_Line is
          Commands     => (Cmd_Setup => False, others => True),
          At_Most_Once => True,
          Internal     => False),
-
-     Opt_Subdirs => Create
+      Opt_Subdirs => Create
         (Long_Name    => "--subdirs",
          Pattern      => "[SUBDIR]",
          Help         => "When using project files, look for ALI/SID files in"
