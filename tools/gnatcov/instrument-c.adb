@@ -40,7 +40,6 @@ with Coverage;            use Coverage;
 with Coverage_Options;
 with Hex_Images;          use Hex_Images;
 with Inputs;              use Inputs;
-with Instrument.C_Utils;  use Instrument.C_Utils;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
 with SCOs;
@@ -221,6 +220,11 @@ package body Instrument.C is
       Loc  : Source_Location_T;
       Text : String);
 
+   overriding procedure Register_CXX_For_Range
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class;
+      N    : Cursor_T);
+
    Record_PP_Info_Pass : aliased Record_PP_Info_Pass_Kind;
    Instrument_Pass     : aliased Instrument_Pass_Kind;
 
@@ -280,6 +284,54 @@ package body Instrument.C is
 
    function Insert_MCDC_State
      (UIC : in out C_Unit_Inst_Context'Class; Name : String) return String;
+
+   procedure Fix_CXX_For_Ranges (UIC : in out C_Unit_Inst_Context);
+   --  This procedure fixes C++ for ranges that were purposefully instrumented
+   --  wrongly. To instrument a C++ for range, we actually need to turn
+   --
+   --  for (int i = 0; auto j : {1, 2}) {}
+   --
+   --  into
+   --
+   --  {
+   --     witness_i(); int i = 0;
+   --     witness_j();
+   --     for (auto j : {1, 2}) {}
+   --  }
+   --
+   --  We introduce an outer scope to leave the initializer declaration
+   --  lifetime unchanged, and to be able to easily instrument both the
+   --  initializer declaration and the range expression.
+   --
+   --  Note that this is valid because you can't goto inside the loop
+   --  (and thus skip the execution of witness_j) as it is
+   --  forbidden to bypass declarations with initialization in C++,
+   --  which "auto j : {1, 2}" is.
+   --
+   --  Though we can't do that all at once, as this changes the shape as the
+   --  AST. As we rely on the AST node location to instrument statements and
+   --  decisions, we would be instrumenting the decision at the wrong place,
+   --  as we would instrument the initialization statement by moving it.
+   --
+   --  Thus, we do the normal instrumentation process, which will yield an
+   --  unvalid C++ sequence, that we can easily fix in this procedure, by
+   --  moving around the rewritten code.
+   --
+   --  The for ranges at the entry of this procedure will have been
+   --  instrumented as followed (the added code is identified by <>):
+   --
+   --  <witness_j();> for (<witness_i();> int i = 0; auto j : {1, 2}) {}<}>
+   --
+   --  Two things to note here: the witness_j is executed before "int i = 0;"
+   --  (which is wrong), and there is an unmatched closing brace.
+   --
+   --  To fix this, we actually need to move both the added code, _and_ the
+   --  initializer statement before the <witness_j();>, and insert an opening
+   --  brace before:
+   --
+   --  <{><witness_i();> int i = 0; <witness_j();> for (auto j : {1, 2}) {}<}>
+   --
+   --  and now we have valid, and correctly instrumented code.
 
    ----------------------------
    -- Source level rewriting --
@@ -1030,6 +1082,18 @@ package body Instrument.C is
       end if;
    end Insert_Text_After;
 
+   ----------------------------
+   -- Register_CXX_For_Range --
+   ----------------------------
+
+   overriding procedure Register_CXX_For_Range
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class;
+      N    : Cursor_T) is
+   begin
+      UIC.Instrumented_CXX_For_Ranges.Append (N);
+   end Register_CXX_For_Range;
+
    --------------------------
    -- Instrument_Statement --
    --------------------------
@@ -1305,6 +1369,43 @@ package body Instrument.C is
                                    Rew  => UIC.Rewriter);
       return Name;
    end Insert_MCDC_State;
+
+   ------------------------
+   -- Fix_CXX_For_Ranges --
+   ------------------------
+
+   procedure Fix_CXX_For_Ranges (UIC : in out C_Unit_Inst_Context) is
+   begin
+      for N of UIC.Instrumented_CXX_For_Ranges loop
+         declare
+            Loc           : constant Source_Location_T := Start_Sloc (N);
+            For_Init_Stmt : constant Cursor_T := Get_For_Init (N);
+            For_Init_Rng  : constant Source_Range_T :=
+              Get_Cursor_Extent (For_Init_Stmt);
+         begin
+            --  Get the rewritten text for the initializing statement and
+            --  move it before any rewritten text before the for statement.
+
+            CX_Rewriter_Insert_Text_Before
+              (UIC.Rewriter,
+               Loc,
+               CX_Rewriter_Get_Rewritten_Text (UIC.Rewriter, For_Init_Rng));
+
+            --  Open the outer scope. It was closed during the instrumentation
+            --  process, so we do not need to take care of that.
+
+            CX_Rewriter_Insert_Text_Before (UIC.Rewriter, Loc, "{");
+            CX_Rewriter_Remove_Text (UIC.Rewriter, For_Init_Rng);
+
+            --  for (; auto i : {1, 2}) is invalid C++ code so insert a dummy
+            --  initializing expression to avoid the null statement here, as
+            --  it is easier than trying to move around the comma.
+
+            CX_Rewriter_Insert_Text_Before
+              (UIC.Rewriter, Start_Sloc (For_Init_Stmt), "true");
+         end;
+      end loop;
+   end Fix_CXX_For_Ranges;
 
    type SC_Entry is record
       N : Cursor_T;
@@ -2134,14 +2235,28 @@ package body Instrument.C is
                   --  the range declaration initialization expression. Like all
                   --  statements, they can contain nested decisions.
 
-                  Extend_Statement_Sequence
-                    (For_Init_Stmt, ' ', Insertion_N => N);
-                  Process_Decisions_Defer (For_Init_Stmt, 'X');
+                  if not Is_Null (For_Init_Stmt) then
+
+                     --  See Fix_CXX_For_Ranges for an explanation of the
+                     --  below code.
+
+                     Extend_Statement_Sequence
+                       (For_Init_Stmt, ' ', Insertion_N  => For_Init_Stmt);
+                     Process_Decisions_Defer (For_Init_Stmt, 'X');
+
+                     --  Preemptively end the introduced outer scope as it is
+                     --  easier done when traversing the AST.
+
+                     Append (Trailing_Braces, '}');
+                     UIC.Pass.Register_CXX_For_Range (UIC, N);
+                  end if;
+
+                  --  Instrument the range as mentioned above
 
                   Extend_Statement_Sequence
                     (For_Range_Decl, ' ',
-                     Insertion_N  => For_Range_Decl,
-                     Instr_Scheme => Instr_Expr);
+                     Insertion_N  => N,
+                     Instr_Scheme => Instr_Stmt);
                   Process_Decisions_Defer (For_Range_Decl, 'X');
 
                   Set_Statement_Entry;
@@ -3314,6 +3429,11 @@ package body Instrument.C is
             end;
          end loop;
       end;
+
+      --  Once everything has been instrumented, fixup the for ranges. See the
+      --  documentation of Fix_CXX_For_Ranges.
+
+      Fix_CXX_For_Ranges (UIC);
 
       --  We import the extern declaration of symbols instead of including the
       --  header where they are defined.
