@@ -192,6 +192,13 @@ package body Instrument.C is
       First     : Boolean);
    --  Add an entry to UIC.Source_Conditions
 
+   procedure Report
+     (Pass : Instrument_Pass_Kind;
+      Node : Cursor_T;
+      Msg  : String;
+      Kind : Report_Kind := Diagnostics.Warning);
+   --  Report an instrumentation warning
+
    overriding procedure Insert_MCDC_State
      (Pass       : Instrument_Pass_Kind;
       UIC        : in out C_Unit_Inst_Context'Class;
@@ -201,19 +208,19 @@ package body Instrument.C is
 
    overriding procedure Insert_Text_Before_Token
      (Pass : Instrument_Pass_Kind;
-      Rew  : Rewriter_T;
+      UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String);
 
    overriding procedure Insert_Text_Before
      (Pass : Instrument_Pass_Kind;
-      Rew  : Rewriter_T;
+      UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String);
 
    overriding procedure Insert_Text_After
      (Pass : Instrument_Pass_Kind;
-      Rew  : Rewriter_T;
+      UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String);
 
@@ -944,7 +951,9 @@ package body Instrument.C is
       Name       : String;
       MCDC_State : out US.Unbounded_String) is
    begin
-      MCDC_State := +Insert_MCDC_State (UIC, Name);
+      if not UIC.Disable_Instrumentation then
+         MCDC_State := +Insert_MCDC_State (UIC, Name);
+      end if;
    end Insert_MCDC_State;
 
    ------------------------------
@@ -953,11 +962,13 @@ package body Instrument.C is
 
    overriding procedure Insert_Text_Before_Token
      (Pass : Instrument_Pass_Kind;
-      Rew  : Rewriter_T;
+      UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String) is
    begin
-      CX_Rewriter_Insert_Text_Before_Token (Rew, Loc, Text);
+      if not UIC.Disable_Instrumentation then
+         CX_Rewriter_Insert_Text_Before_Token (UIC.Rewriter, Loc, Text);
+      end if;
    end Insert_Text_Before_Token;
 
    ------------------------
@@ -966,11 +977,13 @@ package body Instrument.C is
 
    overriding procedure Insert_Text_Before
      (Pass : Instrument_Pass_Kind;
-      Rew  : Rewriter_T;
+      UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String) is
    begin
-      CX_Rewriter_Insert_Text_Before (Rew, Loc, Text);
+      if not UIC.Disable_Instrumentation then
+         CX_Rewriter_Insert_Text_Before (UIC.Rewriter, Loc, Text);
+      end if;
    end Insert_Text_Before;
 
    -----------------------
@@ -979,11 +992,13 @@ package body Instrument.C is
 
    overriding procedure Insert_Text_After
      (Pass : Instrument_Pass_Kind;
-      Rew  : Rewriter_T;
+      UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String) is
    begin
-      CX_Rewriter_Insert_Text_After (Rew, Loc, Text);
+      if not UIC.Disable_Instrumentation then
+         CX_Rewriter_Insert_Text_After (UIC.Rewriter, Loc, Text);
+      end if;
    end Insert_Text_After;
 
    --------------------------
@@ -997,11 +1012,15 @@ package body Instrument.C is
       Insertion_N  : Cursor_T;
       Instr_Scheme : Instr_Scheme_Type) is
    begin
-      UIC.Find_Instrumented_Entities (Last_File).Statements.Append
-        (C_Source_Statement'
-           (LL_SCO       => SCOs.SCO_Table.Last,
-            Instr_Scheme => Instr_Scheme,
-            Statement    => Insertion_N));
+      if UIC.Disable_Instrumentation then
+         UIC.Non_Instr_LL_SCOs.Include (SCO_Id (LL_SCO));
+      else
+         UIC.Find_Instrumented_Entities (Last_File).Statements.Append
+           (C_Source_Statement'
+              (LL_SCO       => LL_SCO,
+               Instr_Scheme => Instr_Scheme,
+               Statement    => Insertion_N));
+      end if;
    end Instrument_Statement;
 
    -------------------------
@@ -1015,11 +1034,15 @@ package body Instrument.C is
       Decision : Cursor_T;
       State    : US.Unbounded_String) is
    begin
-      UIC.Find_Instrumented_Entities (Last_File).Decisions.Append
-        (C_Source_Decision'
-           (LL_SCO   => LL_SCO,
-            Decision => Decision,
-            State    => State));
+      if UIC.Disable_Instrumentation then
+         UIC.Non_Instr_LL_SCOs.Include (SCO_Id (LL_SCO));
+      else
+         UIC.Find_Instrumented_Entities (Last_File).Decisions.Append
+           (C_Source_Decision'
+              (LL_SCO   => LL_SCO,
+               Decision => Decision,
+               State    => State));
+      end if;
    end Instrument_Decision;
 
    --------------------------
@@ -1034,13 +1057,36 @@ package body Instrument.C is
       State     : US.Unbounded_String;
       First     : Boolean) is
    begin
-      UIC.Find_Instrumented_Entities (Last_File).Conditions.Append
-        (C_Source_Condition'
-           (LL_SCO    => SCOs.SCO_Table.Last,
-            Condition => Condition,
-            State     => State,
-            First     => First));
+      if UIC.Disable_Instrumentation then
+         UIC.Non_Instr_LL_SCOs.Include (SCO_Id (LL_SCO));
+      else
+         UIC.Find_Instrumented_Entities (Last_File).Conditions.Append
+           (C_Source_Condition'
+              (LL_SCO    => LL_SCO,
+               Condition => Condition,
+               State     => State,
+               First     => First));
+      end if;
    end Instrument_Condition;
+
+   ------------
+   -- Report --
+   ------------
+
+   procedure Report
+     (Pass : Instrument_Pass_Kind;
+      Node : Cursor_T;
+      Msg  : String;
+      Kind : Report_Kind := Diagnostics.Warning)
+   is
+      Sloc : constant Source_Location := Start_Sloc (Node);
+   begin
+      Diagnostics.Report ((Source_File => Sloc.Source_File,
+                           L           => (Line   => Sloc.L.Line,
+                                           Column => Sloc.L.Column)),
+                          Msg,
+                          Kind);
+   end Report;
 
    -----------------------
    -- Make_Expr_Witness --
@@ -1312,7 +1358,9 @@ package body Instrument.C is
    --  Traverse a translation unit (top level declarations)
 
    procedure Process_Decisions
-     (UIC : in out C_Unit_Inst_Context; N : Cursor_T; T : Character);
+     (UIC : in out C_Unit_Inst_Context;
+      N   : Cursor_T;
+      T   : Character);
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
    --  to output any decisions it contains.
 
@@ -1356,7 +1404,9 @@ package body Instrument.C is
    -----------------------
 
    procedure Process_Decisions
-     (UIC : in out C_Unit_Inst_Context; N : Cursor_T; T : Character)
+     (UIC : in out C_Unit_Inst_Context;
+      N   : Cursor_T;
+      T   : Character)
    is
       Mark : Nat;
       --  This is used to mark the location of a decision sequence in the SCO
@@ -1869,6 +1919,8 @@ package body Instrument.C is
          --  being done with the instrumentation of the function (see the body
          --  of Traverse_Declarations).
 
+         Save_Disable_Instrumentation : constant Boolean :=
+           UIC.Disable_Instrumentation;
       begin
          if Curlify (N) then
             Append (Trailing_Braces, '}');
@@ -1899,15 +1951,22 @@ package body Instrument.C is
 
             when Cursor_If_Stmt =>
                Extend_Statement_Sequence (N, 'I');
+               Set_Statement_Entry;
 
                declare
                   Then_Part : constant Cursor_T := Get_Then (N);
                   Else_Part : constant Cursor_T := Get_Else (N);
                begin
-                  Process_Decisions_Defer (Get_Cond (N), 'I');
-                  Set_Statement_Entry;
-                  Traverse_Statements
-                    (UIC, To_Vector (Then_Part), TB);
+                  if Is_Constexpr (N) then
+                     UIC.Pass.Report
+                       (N,
+                        "gnatcov limitation: cannot instrument constexpr if"
+                        & " statement.");
+                     UIC.Disable_Instrumentation := True;
+                  end if;
+                  Process_Decisions (UIC, Get_Cond (N), 'I');
+                  UIC.Disable_Instrumentation := Save_Disable_Instrumentation;
+                  Traverse_Statements (UIC, To_Vector (Then_Part), TB);
 
                   --  Traverse the ELSE statements if present
 
@@ -1916,11 +1975,9 @@ package body Instrument.C is
                      --  Insert the trailing braces resulting from the
                      --  traversal of the then part before the else.
 
-                     UIC.Pass.Insert_Text_Before
-                       (UIC.Rewriter, Get_Else_Loc (N), +TB);
+                     UIC.Pass.Insert_Text_Before (UIC, Get_Else_Loc (N), +TB);
                      TB := +"";
-                     Traverse_Statements
-                       (UIC, To_Vector (Else_Part), TB);
+                     Traverse_Statements (UIC, To_Vector (Else_Part), TB);
                   end if;
                end;
 
@@ -1990,8 +2047,7 @@ package body Instrument.C is
                   --  Insert the trailing braces resulting from the body
                   --  traversal before the while.
 
-                  UIC.Pass.Insert_Text_After
-                    (UIC.Rewriter, Get_While_Loc (N), +TB);
+                  UIC.Pass.Insert_Text_After (UIC, Get_While_Loc (N), +TB);
                   TB := +"";
 
                   --  Process the while decision
@@ -2104,7 +2160,30 @@ package body Instrument.C is
                --  Process any embedded decisions
 
                if Has_Decision (N) then
-                  Process_Decisions_Defer (N, 'X');
+                  if Is_Constexpr (N) then
+
+                     --  HACK: as we rely on the value of
+                     --  UIC.Disable_Instrumentation to know if we should
+                     --  instrument a source coverage obligation, we
+                     --  have to process the decision before reenabling
+                     --  instrumentation. Call Process_Decisions instead of
+                     --  Process_Decisions_Defer, and Set_Statement_Entry
+                     --  before to flush the statement SCOs. TODO???: rework
+                     --  when eng/cov/gnatcoverage#107 is dealt with.
+
+                     UIC.Pass.Report
+                       (N,
+                        "gnatcov limitation: cannot instrument constexpr"
+                        & " variable declarations.");
+
+                     Set_Statement_Entry;
+                     UIC.Disable_Instrumentation := True;
+                     Process_Decisions (UIC, N, 'X');
+                     UIC.Disable_Instrumentation :=
+                       Save_Disable_Instrumentation;
+                  else
+                     Process_Decisions_Defer (N, 'X');
+                  end if;
                end if;
          end case;
 
@@ -2167,8 +2246,8 @@ package body Instrument.C is
          end if;
 
          SC.Append
-           ((N            => Insert_Cursor,
-             Insertion_N  =>
+           ((N           => Insert_Cursor,
+             Insertion_N =>
                  (if Is_Null (Insertion_N)
                   then N
                   else Insertion_N),
@@ -2232,9 +2311,7 @@ package body Instrument.C is
       -- Curlify --
       -------------
 
-      function Curlify (N : Cursor_T) return Boolean
-      is
-         Rew : Rewriter_T renames UIC.Rewriter;
+      function Curlify (N : Cursor_T) return Boolean is
       begin
          case Kind (N) is
             when Cursor_If_Stmt =>
@@ -2244,13 +2321,13 @@ package body Instrument.C is
                begin
                   if Kind (Then_Part) /= Cursor_Compound_Stmt then
                      UIC.Pass.Insert_Text_Before
-                       (Rew, Start_Sloc (Then_Part), "{");
+                       (UIC, Start_Sloc (Then_Part), "{");
                      if not Is_Null (Else_Part) then
                         --  Close the brace introduced to wrap the then part
                         --  if possible.
 
                         UIC.Pass.Insert_Text_Before
-                          (Rew, Get_Else_Loc (N), "}");
+                          (UIC, Get_Else_Loc (N), "}");
                      else
                         --  Otherwise, we need to insert a trailing brace
 
@@ -2264,7 +2341,7 @@ package body Instrument.C is
                     and then Kind (Else_Part) /= Cursor_Compound_Stmt
                   then
                      UIC.Pass.Insert_Text_Before
-                       (Rew, Start_Sloc (Else_Part), "{");
+                       (UIC, Start_Sloc (Else_Part), "{");
                      return True;
                   end if;
                   return False;
@@ -2276,9 +2353,9 @@ package body Instrument.C is
                begin
                   if Kind (Do_Body) /= Cursor_Compound_Stmt then
                      UIC.Pass.Insert_Text_Before
-                       (Rew, Start_Sloc (Do_Body), "{");
+                       (UIC, Start_Sloc (Do_Body), "{");
                      UIC.Pass.Insert_Text_Before
-                       (Rew, Get_While_Loc (N), "}");
+                       (UIC, Get_While_Loc (N), "}");
                   end if;
                   return False;
                end;
@@ -2289,7 +2366,7 @@ package body Instrument.C is
                   B : constant Cursor_T := Get_Body (N);
                begin
                   if Kind (B) /= Cursor_Compound_Stmt then
-                     UIC.Pass.Insert_Text_Before (Rew, Start_Sloc (B), "{");
+                     UIC.Pass.Insert_Text_Before (UIC, Start_Sloc (B), "{");
                      return True;
                   end if;
                   return False;
@@ -2309,7 +2386,7 @@ package body Instrument.C is
       for N of L loop
          if Length (Trailing_Braces) /= 0 then
             UIC.Pass.Insert_Text_Before
-              (UIC.Rewriter, Start_Sloc (N), +Trailing_Braces);
+              (UIC, Start_Sloc (N), +Trailing_Braces);
             Trailing_Braces := +"";
          end if;
          Traverse_One (N, Trailing_Braces);
@@ -2332,6 +2409,8 @@ package body Instrument.C is
       use Cursor_Vectors;
       Saved_MCDC_State_Declaration_Node : constant Cursor_T :=
         UIC.MCDC_State_Declaration_Node;
+      Save_Disable_Instrumentation      : constant Boolean :=
+        UIC.Disable_Instrumentation;
    begin
       for N of L loop
 
@@ -2350,31 +2429,42 @@ package body Instrument.C is
                   | Cursor_Destructor
                   | Cursor_Lambda_Expr =>
 
-                  UIC.Pass.Enter_Scope (UIC, N);
-
                   declare
-                     --  Get_Body returns a Compound_Stmt, convert it to
-                     --  a list of statements using the Get_Children
-                     --  utility.
-
                      Fun_Body : constant Cursor_T := Get_Body (N);
                      Stmts    : constant Cursor_Vectors.Vector :=
                        Get_Children (Fun_Body);
+                     --  Get_Body returns a Compound_Stmt, convert it to a list
+                     --  of statements using the Get_Children utility.
 
                      TB : Unbounded_String;
                      --  Trailing braces that should be inserted at the end
                      --  of the function body.
+
                   begin
+                     UIC.Pass.Enter_Scope (UIC, N);
+
+                     --  Do not instrument constexpr function as it would
+                     --  violate the constexpr restrictions.
+
+                     if Is_Constexpr (N) then
+                        UIC.Pass.Report
+                          (N,
+                           "gnatcov limitation: cannot instrument constexpr"
+                           & " functions.");
+                        UIC.Disable_Instrumentation := True;
+                     end if;
+
                      if Stmts.Length > 0 then
                         UIC.MCDC_State_Declaration_Node :=
                           Stmts.First_Element;
                         Traverse_Statements (UIC, Stmts, TB);
                         UIC.Pass.Insert_Text_Before_Token
-                          (UIC.Rewriter, End_Sloc (Fun_Body), +TB);
+                          (UIC, End_Sloc (Fun_Body), +TB);
                      end if;
+                     UIC.Pass.Exit_Scope (UIC);
+                     UIC.Disable_Instrumentation :=
+                       Save_Disable_Instrumentation;
                   end;
-
-                  UIC.Pass.Exit_Scope (UIC);
 
                --  Traverse the declarations of a namespace / linkage
                --  specification etc.
@@ -3068,6 +3158,7 @@ package body Instrument.C is
 
          UIC.Import_Annotations (UIC.CUs);
          Filter_Annotations;
+         Import_Non_Instrumented_LL_SCOs (UIC, SCO_Map);
 
          for Cur in UIC.Instrumented_Entities.Iterate loop
             declare

@@ -90,6 +90,20 @@ package body Clang.Extensions is
       return Opcode_Str;
    end Get_Opcode_Str;
 
+   ------------------
+   -- Is_Constexpr --
+   ------------------
+
+   function Is_Constexpr (C : Cursor_T) return Boolean
+   is
+      function Is_Constexpr_C (C : Cursor_T) return unsigned
+        with
+          Import, Convention => C,
+          External_Name => "clang_isConstexpr";
+   begin
+      return Is_Constexpr_C (C) /= 0;
+   end Is_Constexpr;
+
    -----------------------------------
    -- CX_Rewriter_Insert_Text_After --
    -----------------------------------
