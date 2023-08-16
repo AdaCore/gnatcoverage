@@ -124,6 +124,12 @@ package Clang.Extensions is
    --  Insert the text Insert before the token at the given location, and after
    --  any previously inserted string (at the same location).
 
+   function CX_Rewriter_Get_Rewritten_Text
+     (Rew : Rewriter_T;
+      R   : Source_Range_T) return String
+     with Inline;
+   --  Return the rewritten text for the given source range.
+
    function Get_Cursor_TU (C : Cursor_T) return Translation_Unit_T
    with
      Import, Convention => C,
