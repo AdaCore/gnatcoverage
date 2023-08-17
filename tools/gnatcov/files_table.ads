@@ -591,6 +591,19 @@ package Files_Table is
    --  Note that this will remove the "system header "flag (the "3" at the
    --  end of the line marker). We expect that this won't be a problem in
    --  practice.
+   --
+   --  Important: do not do that in case the code lines are pragma directives,
+   --  which are preprocessor directives that are preserved by a preprocessing
+   --  pass, e.g.
+   --  # 1 main.c
+   --  #pragma GCC diagnostic push
+   --  # 1 main.c
+   --  #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+   --
+   --  as we would otherwise produce the following (invalid) code:
+   --  # 1 main.c
+   --  #pragma GCC diagnostic push#pragma GCC diagnostic ignored \
+   --    "-Wimplicit-fallthrough"
 
 private
    --  Describe a source file - one element per line

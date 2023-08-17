@@ -2231,6 +2231,9 @@ package body Files_Table is
 
              );
 
+         PP_Directive_Pattern : constant GNAT.Regpat.Pattern_Matcher :=
+           Compile ("\s*#");
+
          Add_New_Line : Boolean := True;
 
          Line_Marker_Line : Integer;
@@ -2240,6 +2243,10 @@ package body Files_Table is
          Current_File : Unbounded_String;
          Current_Line : Integer := 0;
          --  Line and file of the currently-active line marker
+
+         PP_Directive_Matched : Boolean;
+         --  Whether the last line was a preprocessing directive, other than
+         --  a line directive.
 
          Matches : Match_Array (0 .. 3);
       begin
@@ -2256,6 +2263,7 @@ package body Files_Table is
                     +Line (Matches (2).First .. Matches (2).Last);
                   if Line_Marker_Line = Current_Line - 1
                     and then Line_Marker_File = Current_File
+                    and then not PP_Directive_Matched
                   then
                      --  We have a spurious line marker. Remove it, and write
                      --  the next line in continuation of the previous line.
@@ -2277,6 +2285,7 @@ package body Files_Table is
                      Put (Postprocessed_File, Line);
                   end if;
                else
+                  PP_Directive_Matched := Match (PP_Directive_Pattern, Line);
                   if Add_New_Line then
                      New_Line (Postprocessed_File);
                   end if;
