@@ -25,11 +25,9 @@ variables:
     then
         EDGE_QUALIFIER="-Qedge"
         EDGE_REPO_SUFFIX="-edge"
-        EDGE_BUILD_SPACE_SUFFIX="_edge"
     else
         EDGE_QUALIFIER=""
         EDGE_REPO_SUFFIX=""
-        EDGE_BUILD_SPACE_SUFFIX=""
     fi
 
 .common_anod_bits: &common_anod_bits
@@ -38,6 +36,7 @@ variables:
   - cd /it/wave
   - anod tune --anod-dir /tmp/anod
   - anod vcs --add-repo gnatcoverage$EDGE_REPO_SUFFIX $CI_PROJECT_DIR
+  - GCV_INSTR_BSN=$(anod eval gnatcov -Qinstr $EDGE_QUALIFIER build_space_name)
 
 stages:
   - build
@@ -61,8 +60,7 @@ build:
     - anod build --minimal gnatcov -Qinstr $EDGE_QUALIFIER
 
     # Create the package
-    - tar czf $PACKAGE_ABSOLUTE_NAME -C /
-        it/wave/x86_64-linux/gnatcov-instr$EDGE_BUILD_SPACE_SUFFIX/
+    - tar czf $PACKAGE_ABSOLUTE_NAME -C / it/wave/x86_64-linux/$GCV_INSTR_BSN
 
     - cd $CI_PROJECT_DIR
     - ls -l $PACKAGE_BASE_NAME
@@ -122,7 +120,7 @@ build_community:
     # download the nightly one, which may not even exist (case of an edge build
     # failure that was fixed on that day).
     - mkdir -p fingerprints
-    - touch fingerprints/x86_64-linux.gnatcov-instr$EDGE_BUILD_SPACE_SUFFIX.build.json.assume-unchanged
+    - touch fingerprints/x86_64-linux.$GCV_INSTR_BSN.build.json.assume-unchanged
 
     # Setup the CI directory to host coverage results
     - mkdir $CI_PROJECT_DIR/coverage
@@ -150,12 +148,13 @@ test_bin_traces:
 
     # Test using anod
     - anod test gnatcov --target=leon3-elf -QRTS=embedded-leon3,-O0,instr $EDGE_QUALIFIER
-    - mv leon3-elf-linux64/gnatcov-O0-embedded-leon3-instr$EDGE_BUILD_SPACE_SUFFIX-test/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
+    - TEST_BSN=$(anod eval --primitive=test gnatcov --target=leon3-elf -QRTS=embedded-leon3,-O0,instr $EDGE_QUALIFIER build_space_name)
+    - mv leon3-elf-linux64/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
         --xunit-name bin-traces
-        leon3-elf-linux64/gnatcov-O0-embedded-leon3-instr$EDGE_BUILD_SPACE_SUFFIX-test/results/new/
+        leon3-elf-linux64/$TEST_BSN/results/new/
 
   <<: *artifacts
 
@@ -170,12 +169,13 @@ test_src_traces:
 
     # Test using anod
     - anod test gnatcov -Qsrc-traces,instr $EDGE_QUALIFIER
-    - mv x86_64-linux/gnatcov-instr-src-traces$EDGE_BUILD_SPACE_SUFFIX-test/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
+    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr $EDGE_QUALIFIER build_space_name)
+    - mv x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
         --xunit-name src-traces
-      x86_64-linux/gnatcov-instr-src-traces$EDGE_BUILD_SPACE_SUFFIX-test/results/new/
+      x86_64-linux/$TEST_BSN/results/new/
 
   <<: *artifacts
 
@@ -190,11 +190,12 @@ test_spark:
 
     # Test using anod
     - anod test gnatcov -Qspark-tests,src-traces,instr $EDGE_QUALIFIER
-    - mv x86_64-linux/gnatcov-instr-spark-tests-src-traces$EDGE_BUILD_SPACE_SUFFIX-test/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
+    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qspark-tests,src-traces,instr $EDGE_QUALIFIER build_space_name)
+    - mv x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
         --xunit-name spark
-      x86_64-linux/gnatcov-instr-spark-tests-src-traces$EDGE_BUILD_SPACE_SUFFIX-test/results/new/
+      x86_64-linux/$TEST_BSN/results/new/
 
   <<: *artifacts
