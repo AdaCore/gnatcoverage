@@ -2363,7 +2363,8 @@ package body Instrument.C is
 
                when Cursor_Namespace
                   | Cursor_Class_Template
-                  | Cursor_Class_Decl =>
+                  | Cursor_Class_Decl
+                  | Cursor_Struct_Decl =>
 
                   UIC.Pass.Enter_Scope (UIC, N);
 
