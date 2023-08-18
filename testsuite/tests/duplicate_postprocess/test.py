@@ -25,7 +25,7 @@ build_run_and_coverage(
 thistest.fail_if(
     len(
         re.findall(
-            f"gcc{env.build.os.exeext} -E", contents_of("coverage.log")
+            f"gcc{env.build.os.exeext}' '-E'", contents_of("coverage.log")
         )
     )
     != 1,

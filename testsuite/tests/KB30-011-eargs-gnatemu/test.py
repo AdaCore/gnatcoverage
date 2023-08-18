@@ -26,11 +26,13 @@ trace_basename = os.path.basename(trace)
 gprbuild(gprfor(mains=[unit], srcdirs=['..']))
 
 
-def check_eargs(output, eargs, exe):
+def check_eargs(output, eargs, exe, protect_eargs=False):
     m = re.search('exec:\n  .*gnatemu.*', output)
     e = m.group(0)
+    if protect_eargs:
+        eargs = ' '.join ([f"'{arg}'" for arg in eargs.split(" ")])
     thistest.fail_if(
-        not re.search('--eargs .*%(eargs)s.* --eargs-end.*%(exe)s'
+        not re.search("'--eargs' .*%(eargs)s.* '--eargs-end'.*%(exe)s"
                       % {'eargs': eargs, 'exe': exe}, e),
         "failed to match eargs='%s' and exe='%s' in output: <<\n%s\n>>"
         % (eargs, exe, output))
@@ -98,7 +100,7 @@ eargs = '-version -m 512'
 extra = '--level=stmt'
 thistest.log(extra + ' eargs for qemu')
 output = gnatcovrun(extra=extra, exe=exe, eargs=eargs)
-check_eargs(output, eargs=eargs, exe=exe)
+check_eargs(output, eargs=eargs, exe=exe, protect_eargs=True)
 
 eargs1 = '-m 512'
 eargs2 = '-version'
