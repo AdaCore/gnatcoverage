@@ -305,8 +305,11 @@ is
          --  Pass the source directories of included projects as -I options
 
          Project.Iterate_Projects
-           (Prj, Register_Source_Dirs'Access,
-            Recursive => True, Include_Extended => True);
+           (Prj,
+            Register_Source_Dirs'Access,
+            Recursive                => True,
+            Include_Extended         => True,
+            Include_Externally_Built => True);
       end;
 
       --  Load the set of compiler switches for languages requiring it
