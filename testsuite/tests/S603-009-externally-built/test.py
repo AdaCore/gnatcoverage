@@ -10,6 +10,7 @@ import shutil
 from SCOV.instr import xcov_instrument
 from SCOV.minicheck import build_and_run, check_xcov_reports
 from SUITE.context import thistest
+from SUITE.control import env
 from SUITE.cutils import Wdir, contents_of, indent
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprinstall, xcov
@@ -28,13 +29,7 @@ install_dir = os.path.abspath('install')
 gpr_install_dir = os.path.join(install_dir, 'share', 'gpr')
 installed_mylib_gpr = os.path.join(gpr_install_dir, 'mylib.gpr')
 os.mkdir(install_dir)
-
-old_path = os.environ.get('GPR_PROJECT_PATH', '')
-if old_path:
-    new_path = '{}{}{}'.format(gpr_install_dir, os.path.pathsep, old_path)
-else:
-    new_path = gpr_install_dir
-os.environ['GPR_PROJECT_PATH'] = new_path
+env.add_search_path("GPR_PROJECT_PATH", gpr_install_dir)
 
 # Build and install the library project
 if thistest.options.trace_mode == 'src':

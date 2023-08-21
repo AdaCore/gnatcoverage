@@ -5,4 +5,3 @@ ALL DEAD
 --  GNAT5.04a1), and GNATcoll.projects uses it to compute environment
 --  information. This should be fixed when transitioning to libgpr2.
 5.04a1 XFAIL Incompatibility between gnatls and GNATCOLL.Projects
-src-traces XFAIL Pending resolution of gprinstall bug in V923-009
