@@ -5932,7 +5932,7 @@ package body Instrument.Ada_Unit is
             end if;
 
          else
-            Process_Decisions (UIC, N, 'X');
+            Process_Decisions (UIC, N, 'X', Do_Not_Instrument);
          end if;
       end Find_Nested_Decisions;
 
@@ -6027,33 +6027,48 @@ package body Instrument.Ada_Unit is
                   Alt  : constant Elsif_Expr_Part_List := IEN.F_Alternatives;
 
                begin
-                  Process_Decisions (UIC, IEN.F_Cond_Expr, 'I');
-                  Process_Decisions (UIC, IEN.F_Then_Expr, 'X');
+                  Process_Decisions
+                    (UIC, IEN.F_Cond_Expr, 'I', Do_Not_Instrument);
+                  Process_Decisions
+                    (UIC, IEN.F_Then_Expr, 'X', Do_Not_Instrument);
 
                   for J in 1 .. Alt.Children_Count loop
                      declare
                         EIN : constant Elsif_Expr_Part :=
                           Alt.Child (J).As_Elsif_Expr_Part;
                      begin
-                        Process_Decisions (UIC, EIN.F_Cond_Expr, 'I');
-                        Process_Decisions (UIC, EIN.F_Then_Expr, 'X');
+                        Process_Decisions
+                          (UIC, EIN.F_Cond_Expr, 'I', Do_Not_Instrument);
+                        Process_Decisions
+                          (UIC, EIN.F_Then_Expr, 'X', Do_Not_Instrument);
                      end;
                   end loop;
 
-                  Process_Decisions (UIC, IEN.F_Else_Expr, 'X');
+                  Process_Decisions
+                    (UIC, IEN.F_Else_Expr, 'X', Do_Not_Instrument);
                   return Over;
                end;
 
             when Ada_Quantified_Expr =>
                Process_Decisions
-                  (UIC, N.As_Quantified_Expr.F_Loop_Spec, 'X');
-               Process_Decisions (UIC, N.As_Quantified_Expr.F_Expr, 'W');
+                 (UIC,
+                  N.As_Quantified_Expr.F_Loop_Spec,
+                  'X',
+                  Do_Not_Instrument);
+               Process_Decisions
+                 (UIC, N.As_Quantified_Expr.F_Expr, 'W', Do_Not_Instrument);
                return Over;
 
             when Ada_For_Loop_Spec =>
-               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Var_Decl, 'X');
-               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Iter_Expr, 'X');
-               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Iter_Filter, 'W');
+               Process_Decisions
+                 (UIC, N.As_For_Loop_Spec.F_Var_Decl, 'X', Do_Not_Instrument);
+               Process_Decisions
+                 (UIC, N.As_For_Loop_Spec.F_Iter_Expr, 'X', Do_Not_Instrument);
+               Process_Decisions
+                 (UIC,
+                  N.As_For_Loop_Spec.F_Iter_Filter,
+                  'W',
+                  Do_Not_Instrument);
                return Over;
 
             --  Aspects for which we don't want to instrument the decision
@@ -6082,7 +6097,8 @@ package body Instrument.Ada_Unit is
             --  them, but do process the final expression.
 
             when Ada_Decl_Expr =>
-               Process_Decisions (UIC, N.As_Decl_Expr.F_Expr, 'X');
+               Process_Decisions
+                 (UIC, N.As_Decl_Expr.F_Expr, 'X', Do_Not_Instrument);
                return Over;
 
             --  All other cases, continue scan
