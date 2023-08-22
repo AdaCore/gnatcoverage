@@ -33,6 +33,9 @@ with Traces_Files; use Traces_Files;
 
 package Project is
 
+   Externally_Built_Projects_Processing_Enabled : Boolean := False;
+   --  Whether to include projects marked as externally built to processings
+
    -----------------------
    -- Lifetime handling --
    -----------------------
@@ -232,17 +235,20 @@ package Project is
       with Pre => Is_Project_Loaded;
 
    procedure Iterate_Projects
-     (Root_Project     : GNATCOLL.Projects.Project_Type;
-      Process          : access procedure
-                           (Prj : GNATCOLL.Projects.Project_Type);
-      Recursive        : Boolean;
-      Include_Extended : Boolean := False)
+     (Root_Project             : GNATCOLL.Projects.Project_Type;
+      Process                  : access procedure
+                                   (Prj : GNATCOLL.Projects.Project_Type);
+      Recursive                : Boolean;
+      Include_Extended         : Boolean := False;
+      Include_Externally_Built : Boolean :=
+        Externally_Built_Projects_Processing_Enabled)
       with Pre => Is_Project_Loaded;
    --  Call Process on Root_Project if Recursive is False, or on the whole
    --  project tree otherwise.
    --
-   --  Unless Include_Extended is True, only process ultimate extending
-   --  projects.
+   --  Set Include_Extended to True to process extended projects (otherwise,
+   --  only process ultimate extending projects). Set Include_Externally_Built
+   --  to True to process externally built projects.
 
    function Source_Suffix
      (Lang    : Src_Supported_Language;

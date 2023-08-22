@@ -103,9 +103,6 @@ package body Project is
    --  The root dir of the project tree, to consider when Build_Root_Dir is
    --  set.
 
-   Externally_Built_Projects_Processing_Enabled : Boolean := False;
-   --  Whether to include projects marked as externally built to processings
-
    type Project_Info is record
       Project : Project_Type;
       --  The project this info relates to
@@ -348,11 +345,13 @@ package body Project is
    ----------------------
 
    procedure Iterate_Projects
-     (Root_Project     : GNATCOLL.Projects.Project_Type;
-      Process          : access procedure
-                           (Prj : GNATCOLL.Projects.Project_Type);
-      Recursive        : Boolean;
-      Include_Extended : Boolean := False)
+     (Root_Project             : GNATCOLL.Projects.Project_Type;
+      Process                  : access procedure
+                                   (Prj : GNATCOLL.Projects.Project_Type);
+      Recursive                : Boolean;
+      Include_Extended         : Boolean := False;
+      Include_Externally_Built : Boolean :=
+        Externally_Built_Projects_Processing_Enabled)
    is
       Iter             : Project_Iterator := Start
         (Root_Project     => Root_Project,
@@ -380,7 +379,7 @@ package body Project is
             --  Skip externally built projects unless they are explicitly
             --  requested.
 
-            if (Externally_Built_Projects_Processing_Enabled
+            if (Include_Externally_Built
                 or else not Project.Externally_Built)
                and then not Visited_Projects.Contains (Name)
             then
