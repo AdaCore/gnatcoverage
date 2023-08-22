@@ -36,7 +36,6 @@ with Coverage;      use Coverage;
 with Outputs;
 with Perf_Counters; use Perf_Counters;
 with Project;
-with Strings;
 with Switches;
 
 package body Files_Table is

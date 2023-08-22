@@ -62,6 +62,7 @@ with Instrument.Common;     use Instrument.Common;
 with Instrument.Config;
 with Instrument.Main;
 with Instrument.Projects;
+with Instrument.Setup_Config;
 with Instrument.Source;
 with Instrument.Input_Traces;
 with Object_Locations;
@@ -105,6 +106,7 @@ procedure GNATcov_Bits_Specific is
    SID_Inputs           : Inputs.Inputs_Type;
    Ignored_Source_Files : Inputs.Inputs_Type;
    Files_Of_Interest    : Inputs.Inputs_Type;
+   Compiler_Drivers     : Inputs.Inputs_Type;
    Source_Rebase_Inputs : Inputs.Inputs_Type;
    Source_Search_Inputs : Inputs.Inputs_Type;
    Text_Start           : Pc_Type := 0;
@@ -489,6 +491,7 @@ procedure GNATcov_Bits_Specific is
 
       Copy_Arg_List (Opt_Ignore_Source_Files, Ignored_Source_Files);
       Copy_Arg_List (Opt_Files, Files_Of_Interest);
+      Copy_Arg_List (Opt_Compiler_Wrappers, Compiler_Drivers);
       Switches.Files_Of_Interest := To_String_Set (Files_Of_Interest);
 
       --  Compute the languages for which we want coverage analysis, or enable
@@ -1360,6 +1363,38 @@ begin
                Ignored_Source_Files =>
                  (if Has_Matcher then Matcher'Access else null),
                Mains                => Args.Remaining_Args);
+         end;
+
+      when Cmd_Setup_Integration =>
+         declare
+            --  Try to load the setup config from metadata installed with
+            --  instrumentation runtime, and from there, decode the --dump-*
+            --  options.
+
+            Runtime_Project : constant String :=
+              Value (Args, Opt_Runtime_Project, "gnatcov_rts");
+
+            Setup_Cfg : constant Setup_Config := Load
+              ("",
+               "",
+               Value (Args, Opt_Config),
+               Runtime_Project);
+            --  TODO???: we should not leave the target and runtime empty, but
+            --  we have no project to load here.
+
+            Dump_Config : constant Any_Dump_Config :=
+              Load_Dump_Config (Setup_Cfg.Default_Dump_Config);
+
+            Compiler_Drivers_Set : constant String_Sets.Set :=
+              To_String_Set (Compiler_Drivers);
+
+         begin
+            Instrument.Setup_Config.Generate_Config
+              (Files_Of_Interest => Switches.Files_Of_Interest,
+               Coverage_Level    => Coverage_Option_Value,
+               Dump_Config       => Dump_Config,
+               Compiler_Drivers  => Compiler_Drivers_Set,
+               Output_Dir        => Get_Output_Dir);
          end;
 
       when Cmd_Instrument_Source =>

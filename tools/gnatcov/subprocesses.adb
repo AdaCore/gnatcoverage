@@ -261,15 +261,20 @@ package body Subprocesses is
       Process_Types.Add_Argument (Args, Program.all);
       if Verbose then
          Put_Line ("exec:");
-         Put ("  " & Program.all);
+         Put ("  '" & Program.all & "'");
       end if;
       Free (Program);
 
       for A of Arguments loop
          Process_Types.Add_Argument (Args, +A);
          if Verbose then
-            Put (' ');
+
+            --  Quote the arguments to print empty strings and correctly
+            --  escape quoted strings.
+
+            Put (" '");
             Put (+A);
+            Put ("'");
          end if;
       end loop;
       if Verbose then

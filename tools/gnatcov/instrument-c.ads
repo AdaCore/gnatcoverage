@@ -57,6 +57,26 @@ package Instrument.C is
       Instr_Units : Unit_Sets.Set;
       Prj         : Prj_Desc);
 
+   overriding function Emit_Buffers_List_Unit
+     (Self           : C_Family_Instrumenter_Type;
+      Buffer_Symbols : String_Sets.Set;
+      Prj            : Prj_Desc) return Compilation_Unit;
+
+   overriding function Buffer_Unit
+     (Self : C_Family_Instrumenter_Type;
+      CU   : Compilation_Unit;
+      Prj  : Prj_Desc) return Compilation_Unit;
+
+   overriding function Dump_Helper_Unit
+     (Self : C_Family_Instrumenter_Type;
+      CU   : Compilation_Unit;
+      Prj  : Prj_Desc) return Compilation_Unit;
+
+   overriding function Has_Main
+     (Self     : in out C_Family_Instrumenter_Type;
+      Filename : String;
+      Prj      : Prj_Desc) return Boolean;
+
    function Extern_Prefix
      (Self : C_Family_Instrumenter_Type) return String
    is ("extern ");

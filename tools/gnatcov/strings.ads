@@ -17,12 +17,14 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers;
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Equal_Case_Insensitive;
+with Ada.Strings.Unbounded.Hash;
 with Ada.Strings.Unbounded.Less_Case_Insensitive;
 
 with GNAT.Strings; use GNAT.Strings;
@@ -76,6 +78,13 @@ package Strings is
       "<"          => Ada.Strings.Unbounded.Less_Case_Insensitive,
       "="          => Ada.Strings.Unbounded.Equal_Case_Insensitive);
    --  Case insensitive string set
+
+   package String_Vectors_Maps is new Ada.Containers.Hashed_Maps
+     (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
+      Element_Type    => String_Vectors.Vector,
+      Equivalent_Keys => Ada.Strings.Unbounded."=",
+      Hash            => Ada.Strings.Unbounded.Hash,
+      "="             => String_Vectors."=");
 
    function To_String_Set (V : String_Vectors.Vector) return String_Sets.Set;
    --  Convert the given strings vector to a strings set
