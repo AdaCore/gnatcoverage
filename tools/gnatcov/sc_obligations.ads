@@ -428,7 +428,7 @@ package SC_Obligations is
    --  item in the source. The input SCO argument is expected to designate a
    --  statement SCO.
 
-   package Non_Instrumented_SCO_Sets is
+   package SCO_Sets is
      new Ada.Containers.Ordered_Sets (Element_Type => SCO_Id);
 
    procedure Set_Stmt_SCO_Non_Instr (SCO : SCO_Id) with

@@ -96,11 +96,6 @@ package body Instrument.Ada_Unit is
       return Ada_Qualified_Name;
    --  Convert a Libadalang fully qualified name into our format
 
-   procedure Import_Non_Instrumented_LL_SCOs
-     (UIC : Ada_Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map);
-   --  Import the low level SCO in UIC marked as non-instrumented in the high
-   --  level non-instrumented SCO_Id sets.
-
    procedure Find_Ada_Units
      (Instrumenter : in out Ada_Instrumenter_Type;
       Filename     : String;
@@ -164,29 +159,6 @@ package body Instrument.Ada_Unit is
          end loop;
       end return;
    end To_Qualified_Name;
-
-   -------------------------------------
-   -- Import_Non_Instrumented_LL_SCOs --
-   -------------------------------------
-
-   procedure Import_Non_Instrumented_LL_SCOs
-     (UIC : Ada_Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map) is
-   begin
-      for LL_SCO of UIC.Non_Instr_LL_SCOs loop
-         declare
-            Remapped_SCO : constant SCO_Id := SCO_Map (Nat (LL_SCO));
-         begin
-            case Kind (Remapped_SCO) is
-               when Statement => Set_Stmt_SCO_Non_Instr (Remapped_SCO);
-               when Decision  => Set_Decision_SCO_Non_Instr (Remapped_SCO);
-               when Condition => Set_Decision_SCO_Non_Instr_For_MCDC
-                                   (Enclosing_Decision (Remapped_SCO));
-               when others =>
-                  null;
-            end case;
-         end;
-      end loop;
-   end Import_Non_Instrumented_LL_SCOs;
 
    type All_Symbols is
      (
@@ -2972,8 +2944,8 @@ package body Instrument.Ada_Unit is
    --  top level).
    --
    --  If Do_Not_Instrument, this creates SCOs for the decisions/conditions,
-   --  but plan not to instrument them, so that the decision can be reported as
-   --  such.
+   --  but plans not to instrument them, so that the decision can be reported
+   --  as such.
 
    --------------------------
    -- Internal Subprograms --
@@ -3067,6 +3039,10 @@ package body Instrument.Ada_Unit is
 
       In_Generic : Boolean := False;
       --  Wether this statment is generic code.
+
+      Do_Not_Instrument : Boolean;
+      --  Whether this statement should not be instrumented. This is set to
+      --  True when instrumenting the statement could create invalid Ada code.
    end record;
 
    package SC is new Table.Table
@@ -3126,8 +3102,7 @@ package body Instrument.Ada_Unit is
       SD_First : constant Nat := SD.Last + 1;
       --  Record first entries used in SC/SD at this recursive level
 
-      Current_Insertion_Info : aliased Insertion_Info :=
-        (Method => None, Unsupported => False);
+      Current_Insertion_Info : aliased Insertion_Info := (Method => None);
 
       procedure Extend_Statement_Sequence
         (UIC                 : Ada_Unit_Inst_Context;
@@ -3135,7 +3110,8 @@ package body Instrument.Ada_Unit is
          Typ                 : Character;
          Insertion_N         : Node_Rewriting_Handle :=
                                   No_Node_Rewriting_Handle;
-         Instrument_Location : Instrument_Location_Type := Before);
+         Instrument_Location : Instrument_Location_Type := Before;
+         Do_Not_Instrument   : Boolean := False);
       --  Extend the current statement sequence to encompass the node N.
       --
       --  Typ is the letter that identifies the type of statement/declaration
@@ -3206,7 +3182,8 @@ package body Instrument.Ada_Unit is
          Typ                 : Character;
          Insertion_N         : Node_Rewriting_Handle :=
                                   No_Node_Rewriting_Handle;
-         Instrument_Location : Instrument_Location_Type := Before)
+         Instrument_Location : Instrument_Location_Type := Before;
+         Do_Not_Instrument   : Boolean := False)
       is
          SR      : constant Source_Location_Range := N.Sloc_Range;
 
@@ -3344,7 +3321,8 @@ package body Instrument.Ada_Unit is
                         when others        => After)
                 else Instrument_Location),
 
-             In_Generic          => UIC.In_Generic));
+             In_Generic          => UIC.In_Generic,
+             Do_Not_Instrument   => Do_Not_Instrument));
       end Extend_Statement_Sequence;
 
       -----------------------------
@@ -3442,12 +3420,7 @@ package body Instrument.Ada_Unit is
 
             Raise_Stub_Internal_Error_For (Ada_Instrument_Insert_Stmt_Witness);
 
-            --  If the current code pattern is actually unsupported, do not
-            --  even try to insert the witness call or allocate bits for it in
-            --  the buffers. Mark the corresponding SCO as non-instrumented
-            --  instead.
-
-            if Insert_Info.Unsupported then
+            if SCE.Do_Not_Instrument then
                UIC.Non_Instr_LL_SCOs.Include (SCO_Id (LL_SCO_Id));
                return;
             end if;
@@ -3863,7 +3836,6 @@ package body Instrument.Ada_Unit is
          begin
 
             II.RH_List := Stmt_list_RH;
-            II.Unsupported := False;
             II.Index := 1;
             II.Rewriting_Offset := 0;
             II.Preelab := False;
@@ -3951,8 +3923,7 @@ package body Instrument.Ada_Unit is
          --  Witness insertion info for statements (for both null procedures
          --  and expression functions).
 
-         Unsupported : Boolean := False;
-         --  Temporary to compute New_Insertion_Info.Unsupported
+         Do_Not_Instrument : Boolean := False;
 
          EF_Inserter : aliased Expr_Func_MCDC_State_Inserter :=
            (N_Spec        => N_Spec,
@@ -3989,7 +3960,7 @@ package body Instrument.Ada_Unit is
 
          if Is_Generic (UIC, N.As_Basic_Decl) then
             if Is_Expr_Function then
-               Unsupported := True;
+               Do_Not_Instrument := True;
                Report (UIC, N,
                        "gnatcov limitation: "
                        & "cannot instrument generic expression functions."
@@ -4000,7 +3971,7 @@ package body Instrument.Ada_Unit is
                --  functions and null procedures, we are in the case of a
                --  generic null procedure here.
 
-               Unsupported := True;
+               Do_Not_Instrument := True;
                Report (UIC, N,
                        "gnatcov limitation:"
                        & " cannot instrument generic null procedures."
@@ -4036,7 +4007,7 @@ package body Instrument.Ada_Unit is
                --  so that the augmented EF is no longer a primitive of its
                --  return type. Need to check for potential freezing issues.
 
-               Unsupported := True;
+               Do_Not_Instrument := True;
                Report (UIC, N,
                        "gnatcov limitation:"
                        & " cannot instrument an expression function which is"
@@ -4047,7 +4018,7 @@ package body Instrument.Ada_Unit is
             elsif Is_Self_Referencing (UIC, N.As_Expr_Function)
                  and then not Common_Nodes.Ctrl_Type.Is_Null
             then
-               Unsupported := True;
+               Do_Not_Instrument := True;
                Report (UIC, N,
                        "gnatcov limitation:"
                        & " instrumenting a self referencing (i.e. recursive)"
@@ -4086,11 +4057,10 @@ package body Instrument.Ada_Unit is
 
             New_Insertion_Info :=
               (Method         => Expression_Function,
-               Unsupported    => Unsupported,
                Witness_Actual => No_Node_Rewriting_Handle,
                Witness_Formal => No_Node_Rewriting_Handle);
 
-            if not New_Insertion_Info.Unsupported then
+            if not Do_Not_Instrument then
 
                --  Pass all expression function parameters to the augmented
                --  expression function call.
@@ -4124,7 +4094,6 @@ package body Instrument.Ada_Unit is
 
             New_Insertion_Info :=
               (Method                => Statement,
-               Unsupported           => Unsupported,
                RH_List               => NP_Nodes.Stmt_List,
                Index                 => 1,
                Rewriting_Offset      => 0,
@@ -4153,18 +4122,9 @@ package body Instrument.Ada_Unit is
             declare
                N_Expr : constant Expr := N.As_Expr_Function.F_Expr;
             begin
-               Extend_Statement_Sequence (UIC, N_Expr, 'X');
-
-               --  For unsupported expression functions, creating a statement
-               --  obligation is enough: it will never be satisfied and thus
-               --  violations regarding conditions/decisions will not be
-               --  displayed, so no need to bother creating them and adding
-               --  special cases in decision processings for unsupported
-               --  expression functions.
-
-               if not New_Insertion_Info.Unsupported then
-                  Process_Decisions_Defer (N_Expr, 'X');
-               end if;
+               Extend_Statement_Sequence
+                 (UIC, N_Expr, 'X', Do_Not_Instrument => Do_Not_Instrument);
+               Process_Decisions_Defer (N_Expr, 'X', Do_Not_Instrument);
             end;
          else
             --  Even though there is a "null" keyword in the null procedure,
@@ -4172,10 +4132,11 @@ package body Instrument.Ada_Unit is
             --  the whole null procedure declaration to provide a sloc.
 
             Extend_Statement_Sequence
-              (UIC         => UIC,
-               N           => N,
-               Typ         => 'X',
-               Insertion_N => NP_Nodes.Null_Stmt);
+              (UIC               => UIC,
+               N                 => N,
+               Typ               => 'X',
+               Insertion_N       => NP_Nodes.Null_Stmt,
+               Do_Not_Instrument => Do_Not_Instrument);
          end if;
          Set_Statement_Entry;
 
@@ -4187,7 +4148,7 @@ package body Instrument.Ada_Unit is
          --  There is nothing else to do if we gave up instrumenting this
          --  subprogram.
 
-         if New_Insertion_Info.Unsupported then
+         if Do_Not_Instrument then
             return;
          end if;
 
@@ -5171,7 +5132,6 @@ package body Instrument.Ada_Unit is
                else Declaration);
             II : Insertion_Info (Method);
          begin
-            II.Unsupported := False;
             II.RH_List := Handle (L);
             II.Index := 0;
             II.Rewriting_Offset := 0;
@@ -5686,7 +5646,6 @@ package body Instrument.Ada_Unit is
          Op_NK : Ada_Node_Kind_Type;
 
       begin
-
          --  Logical operator
 
          if Is_Logical_Operator (UIC, N) then
@@ -5733,14 +5692,16 @@ package body Instrument.Ada_Unit is
          else
             Output_Element (N.As_Ada_Node);
 
+            if Decision_Static or else Do_Not_Instrument then
+               return;
+            end if;
             if MCDC_Coverage_Enabled then
                UIC.Source_Conditions.Append
                  (Source_Condition'
                     (LL_SCO          => SCOs.SCO_Table.Last,
                      Condition       => N.As_Expr,
                      State           => MCDC_State,
-                     First           => Condition_Count = 0,
-                     Decision_Static => Decision_Static));
+                     First           => Condition_Count = 0));
 
                Condition_Count := Condition_Count + 1;
             end if;
@@ -5778,6 +5739,9 @@ package body Instrument.Ada_Unit is
             SFI  => UIC.SFI,
             Last => False);
          Hash_Entries.Append ((Start_Sloc (N_SR), SCOs.SCO_Table.Last));
+         if Do_Not_Instrument then
+            UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
+         end if;
       end Output_Element;
 
       -------------------
@@ -5858,6 +5822,9 @@ package body Instrument.Ada_Unit is
             SFI                => UIC.SFI,
             Last               => False,
             Pragma_Aspect_Name => Nam);
+         if Do_Not_Instrument then
+            UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
+         end if;
 
          Current_Decision := SCOs.SCO_Table.Last;
 
@@ -5896,13 +5863,15 @@ package body Instrument.Ada_Unit is
             --  For this reason, also refrain from instrumenting static
             --  decisions.
 
-            UIC.Source_Decisions.Append
-              (Source_Decision'
-                 (LL_SCO            => Current_Decision,
-                  Decision          => N.As_Expr,
-                  State             => MCDC_State,
-                  Do_Not_Instrument => Do_Not_Instrument
-                                       or else Is_Static_Expr (N.As_Expr)));
+            if not (Do_Not_Instrument
+                    or else Is_Static_Expr (N.As_Expr))
+            then
+               UIC.Source_Decisions.Append
+                 (Source_Decision'
+                    (LL_SCO   => Current_Decision,
+                     Decision => N.As_Expr,
+                     State    => MCDC_State));
+            end if;
          end if;
 
          --  For an aspect specification, which will be rewritten into a
@@ -8224,18 +8193,10 @@ package body Instrument.Ada_Unit is
 
          if Coverage.Enabled (Decision) or else MCDC_Coverage_Enabled then
             for SD of UIC.Source_Decisions loop
-
-               --  Mark non-instrumented decisions as such so that they are
-               --  properly reported.
-
                declare
                   HL_SCO : constant SCO_Id := SCO_Map (SD.LL_SCO);
                begin
-                  if SD.Do_Not_Instrument then
-                     Set_Decision_SCO_Non_Instr (HL_SCO);
-                  else
-                     Insert_Decision_Witness (UIC, SD, Path_Count (HL_SCO));
-                  end if;
+                  Insert_Decision_Witness (UIC, SD, Path_Count (HL_SCO));
                end;
             end loop;
 
@@ -8248,11 +8209,6 @@ package body Instrument.Ada_Unit is
                --  We do not include a witness call for conditions which appear
                --  in a decision with a path count exceeding the limit to avoid
                --  generating overly large traces / run out of memory.
-               --
-               --  We also do not include witness calls for conditions of
-               --  static decision, as this would make the instrumented
-               --  expression non-static. Mark the enclosing decision as not
-               --  instrumented for MCDC instead.
                --
                --  As we go through each condition, mark their enclosing
                --  decision as not instrumented if their number of paths
@@ -8267,9 +8223,7 @@ package body Instrument.Ada_Unit is
                      --  If the number of paths in the decision binary diagram
                      --  exceeds the path count limit, we do not instrument it.
 
-                     if Path_Count (Decision) > Get_Path_Count_Limit
-                       and then not SC.Decision_Static
-                     then
+                     if Path_Count (Decision) > Get_Path_Count_Limit then
                         Set_Decision_SCO_Non_Instr_For_MCDC (Decision);
                      else
                         Insert_Condition_Witness
