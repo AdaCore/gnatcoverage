@@ -85,6 +85,7 @@ package body Instrument.C_Utils is
          Sloc := To_Sloc (0, 0);
       else
          Sloc := To_Sloc (Line, Column);
+         Filename := +Full_Name (+Filename);
       end if;
 
       Dispose_String (C_Filename);

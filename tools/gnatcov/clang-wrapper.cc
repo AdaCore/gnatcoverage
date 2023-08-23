@@ -333,7 +333,6 @@ clang_getWhileLoc (CXCursor C)
   return clang_getNullLocation ();
 }
 
-
 extern "C" CXCursor
 clang_getSubExpr (CXCursor C)
 {
@@ -601,7 +600,6 @@ clang_CXRewriter_insertTextBeforeToken (CXRewriter Rew, CXSourceLocation Loc,
 {
   assert (Rew);
   Rewriter &R = *reinterpret_cast<Rewriter *> (Rew);
-  const SourceManager &SM = R.getSourceMgr ();
 
   // Get the previous location, and insert after it
 

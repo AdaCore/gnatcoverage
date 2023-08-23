@@ -419,6 +419,35 @@ package Instrument.Common is
    --  function. This procedure should thus be called only once, for one of
    --  the supported languages of the project.
 
+   function Emit_Buffers_List_Unit
+     (Self           : Language_Instrumenter;
+      Buffer_Symbols : String_Sets.Set;
+      Prj            : Prj_Desc) return Compilation_Unit
+   is (No_Compilation_Unit);
+   --  Same as above except Buffer_Symbols contains the list of C symbols
+   --  holding coverage buffers for units of interest. Return the buffers list
+   --  compilation unit.
+
+   function Buffer_Unit
+     (Self : Language_Instrumenter;
+      CU   : Compilation_Unit;
+      Prj  : Prj_Desc) return Compilation_Unit
+   is (No_Compilation_Unit);
+   --  Return the compilation unit holding coverage buffers
+
+   function Dump_Helper_Unit
+     (Self : Language_Instrumenter;
+      CU   : Compilation_Unit;
+      Prj  : Prj_Desc) return Compilation_Unit
+   is (No_Compilation_Unit);
+   --  Return the compilation unit holding the dump helper subprogram
+
+   function Has_Main
+     (Self     : in out Language_Instrumenter;
+      Filename : String;
+      Prj      : Prj_Desc) return Boolean is (False);
+   --  Return whether the given file is a main or not
+
    function New_File
      (Prj : Prj_Desc; Name : String) return String;
    --  Compute the path to the file to create in Self.Output_Dir

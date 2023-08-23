@@ -44,13 +44,6 @@ from SUITE.control import BUILDER
 from SUITE.control import altrun_opt_for, altrun_attr_for
 from SUITE.control import cargs_opt_for, cargs_attr_for
 
-
-DEFAULT_TIMEOUT = 600
-"""
-Default timeout to use (in seconds) to run testcases. Users can override this
-using gnatpython.main's --timeout command-line option.
-"""
-
 VALGRIND_TIMEOUT_FACTOR = 2
 """
 When the testsuite runs with Valgrind (--enable-valgrind), the default timeout
@@ -595,7 +588,7 @@ class TestPyRunner:
 
         # Compute the testcase timeout, whose default vary depending on whether
         # we use Valgrind.
-        timeout = DEFAULT_TIMEOUT
+        timeout = int(self.test_control.opt_results["RLIMIT"])
         if mopt.enable_valgrind:
             timeout = VALGRIND_TIMEOUT_FACTOR * timeout
 

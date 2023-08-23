@@ -31,8 +31,6 @@ with Ada.Unchecked_Deallocation;
 
 with GNAT.Exception_Actions;
 
-with Interfaces; use Interfaces;
-
 with GNAT.OS_Lib;
 with GNAT.Regexp;
 with GNAT.Strings;
@@ -44,7 +42,6 @@ with GNATCOLL.Projects.Aux; use GNATCOLL.Projects.Aux;
 with Binary_Files;
 with Command_Line;        use Command_Line;
 with Files_Table;
-with Hex_Images;          use Hex_Images;
 with Instrument.Ada_Unit; use Instrument.Ada_Unit;
 with Instrument.C;        use Instrument.C;
 with Instrument.Clean_Objdirs;
@@ -272,6 +269,49 @@ is
       Result.Prj_Name := +Prj.Name;
       Result.Dot_Replacement := +Dot_Replacement;
 
+      --  Register the source directories of the project tree
+
+      declare
+         procedure Register_Source_Dirs
+           (P : GNATCOLL.Projects.Project_Type);
+         --  Add the source directories of P's project file to the search
+         --  paths to be passed as -I arguments later. The order in which
+         --  the paths are added to the search paths vector is the same
+         --  order in which GNATCOLL retrieves the files in the project
+         --  tree. gprbuild also depends on GNATCOLL which ensures we
+         --  have the same behavior here.
+
+         --------------------------
+         -- Register_Source_Dirs --
+         --------------------------
+
+         procedure Register_Source_Dirs
+           (P : GNATCOLL.Projects.Project_Type) is
+         begin
+            for Dir of P.Source_Dirs loop
+               Result.Search_Paths.Append
+                 ("-I" & (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir))));
+            end loop;
+         end Register_Source_Dirs;
+      begin
+         --  Pass the source directories of the project file as -I options.
+         --  Note that this will duplicate with the project tree traversal
+         --  below, but we need this project source directories to be
+         --  picked first. We thus make sure to add them first to the
+         --  PP_Search_Path list.
+
+         Register_Source_Dirs (Prj);
+
+         --  Pass the source directories of included projects as -I options
+
+         Project.Iterate_Projects
+           (Prj,
+            Register_Source_Dirs'Access,
+            Recursive                => True,
+            Include_Extended         => True,
+            Include_Externally_Built => True);
+      end;
+
       --  Load the set of compiler switches for languages requiring it
 
       for Lang in C_Family_Language loop
@@ -286,42 +326,7 @@ is
                  GPR.Compiler_Driver_Attribute,
                  Image (Lang));
 
-            procedure Register_Source_Dirs
-              (P : GNATCOLL.Projects.Project_Type);
-            --  Add the source directories of P's project file to the search
-            --  paths to be passed as -I arguments later. The order in which
-            --  the paths are added to the search paths vector is the same
-            --  order in which GNATCOLL retrieves the files in the project
-            --  tree. gprbuild also depends on GNATCOLL which ensures we
-            --  have the same behavior here.
-
-            --------------------------
-            -- Register_Source_Dirs --
-            --------------------------
-
-            procedure Register_Source_Dirs
-              (P : GNATCOLL.Projects.Project_Type) is
-            begin
-               for Dir of P.Source_Dirs loop
-                  Result.Search_Paths.Append
-                    ("-I" & (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir))));
-               end loop;
-            end Register_Source_Dirs;
          begin
-            --  Pass the source directories of the project file as -I options.
-            --  Note that this will duplicate with the project tree traversal
-            --  below, but we need this project source directories to be
-            --  picked first. We thus make sure to add them first to the
-            --  PP_Search_Path list.
-
-            Register_Source_Dirs (Prj);
-
-            --  Pass the source directories of included projects as -I options
-
-            Project.Iterate_Projects
-              (Prj, Register_Source_Dirs'Access,
-               Recursive => True, Include_Extended => True);
-
             --  Get the compiler switches from the project file. When
             --  registering a compilation unit for instrumentation, we also
             --  fill the compilation unit specific switches that will override
@@ -796,20 +801,7 @@ is
 begin
    --  Set the instrumentation tag
 
-   declare
-      Time : constant Unsigned_64 :=
-        Unsigned_64
-          (GNAT.OS_Lib.To_C (GNAT.OS_Lib.Current_Time));
-      Tag  : constant String :=
-        Hex_Images.Strip_Zero_Padding
-          (Hex_Images.Hex_Image (Time));
-      --  Tag for the current instrumentation run. Passed on to instrument-main
-      --  invocations, to have the same tag for mains instrumented at the
-      --  same time.
-
-   begin
-      IC.Tag := +Tag;
-   end;
+   IC.Tag := +Instrumentation_Tag;
 
    --  Delete output directories from previous instrumentations
 

@@ -32,6 +32,7 @@ with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Paths;               use Paths;
 with SC_Obligations;      use SC_Obligations;
 with Slocs;               use Slocs;
+with Strings;
 with Traces_Elf;          use Traces_Elf;
 with Traces_Dbase;        use Traces_Dbase;
 with Traces_Stats;        use Traces_Stats;
@@ -329,6 +330,9 @@ package Files_Table is
 
    function "=" (L, R : Compilation_Unit) return Boolean is
      (Image (L) = Image (R));
+
+   No_Compilation_Unit : constant Compilation_Unit :=
+     (Language => File_Based_Language, Unit_Name => Strings."+" (""));
 
    package Unit_Sets is new Ada.Containers.Ordered_Sets
      (Element_Type => Compilation_Unit);

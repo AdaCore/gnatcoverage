@@ -24,7 +24,8 @@ project Gnatcov is
    -- Mandatory externals --
    -------------------------
 
-   type Part_Type is ("lib32", "lib64", "driver", "gnatcov32", "gnatcov64");
+   type Part_Type is 
+     ("lib32", "lib64", "driver", "gnatcov32", "gnatcov64", "compiler");
    Part : Part_Type := external ("PART");
    --  Which program this project should build:
    --
@@ -36,6 +37,9 @@ project Gnatcov is
    --
    --  * "gnatcov32": the homonym program, for everything that needs to deal
    --    with binary traces of 32-bit programs.
+   --
+   --  * "compiler": a compiler wrapper executable, used to implement the
+   --    integrated instrumentation approach.
    --
    --  * "gnatcov64": the homonym program, for everything else.
 
@@ -59,7 +63,7 @@ project Gnatcov is
    --  "gnatcov64" configuration.
 
    case Part is
-      when "gnatcov64" => null;
+      when "gnatcov64" | "compiler" => null;
       when others      => C_Support := "False";
    end case;
 
@@ -84,8 +88,8 @@ project Gnatcov is
    type Bits_Type is ("32", "64");
    Bits : Bits_Type := "32";
    case Part is
-      when "lib64" | "gnatcov64"            => Bits := "64";
-      when "driver" | "lib32" | "gnatcov32" => Bits := "32";
+      when "lib64" | "gnatcov64" | "compiler" => Bits := "64";
+      when "driver" | "lib32" | "gnatcov32"   => Bits := "32";
    end case;
 
    -------------------------------------------
@@ -111,7 +115,7 @@ project Gnatcov is
                use "instrument-ada_unit__stub.adb";
             for Body ("Instrument.C") use "instrument-c__stub.adb";
             for Specification ("Instrument.C") use "instrument-c__stub.ads";
-         when "gnatcov64" =>
+         when "gnatcov64" | "compiler" =>
             null;
       end case;
 
@@ -175,6 +179,8 @@ project Gnatcov is
          for Main use  ("gnatcov.adb");
       when "gnatcov32" | "gnatcov64" =>
          for Main use ("gnatcov_bits_specific.adb");
+      when "compiler" =>
+         for Main use ("compiler_wrappers-gcc.adb");
    end case;
 
    package Builder is
@@ -274,7 +280,7 @@ project Gnatcov is
    Object_Dir := "";
    case Part is
       when "driver" | "lib32" | "gnatcov32" => Object_Dir := "obj32";
-      when "gnatcov64"                      => Object_Dir := "obj64";
+      when "gnatcov64" | "compiler"         => Object_Dir := "obj64";
 
       --  gnatcov64 uses the real instrumenter.adb while lib64 uses the stub
       --  one, so they cannot use the same object directory.

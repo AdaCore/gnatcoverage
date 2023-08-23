@@ -18,10 +18,8 @@
 
 --  Support for source instrumentation
 
-with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded.Hash;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
@@ -189,13 +187,6 @@ package Instrument is
      of Unbounded_String;
    type C_Lang_Array_Vec is array (C_Family_Language) of String_Vectors.Vector;
 
-   package String_Vectors_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Unbounded_String,
-      Element_Type    => String_Vectors.Vector,
-      Equivalent_Keys => Ada.Strings.Unbounded."=",
-      Hash            => Ada.Strings.Unbounded.Hash,
-      "="             => String_Vectors."=");
-
    type Prj_Desc is record
       Prj_Name : Unbounded_String;
       --  Name for the project
@@ -238,5 +229,9 @@ package Instrument is
       Lang      : Src_Supported_Language) return String_Vectors.Vector;
    --  Return a list of command line switches holding all the project
    --  information for the given Unit_Name of the language Lang.
+
+   function Instrumentation_Tag return String;
+   --  Generate a unique identifier that can be used to tag the current
+   --  instrumentation run.
 
 end Instrument;

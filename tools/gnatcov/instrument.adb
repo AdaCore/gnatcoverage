@@ -25,6 +25,8 @@ with Ada.Strings.Hash;
 with Ada.Strings.Unbounded.Equal_Case_Insensitive;
 with Ada.Strings.Unbounded.Less_Case_Insensitive;
 
+with GNAT.OS_Lib;
+
 with Interfaces; use Interfaces;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
@@ -533,5 +535,24 @@ package body Instrument is
 
       return Result;
    end Unparse;
+
+   -------------------------
+   -- Instrumentation_Tag --
+   -------------------------
+
+   function Instrumentation_Tag return String
+   is
+      Time : constant Unsigned_64 :=
+        Unsigned_64
+          (GNAT.OS_Lib.To_C (GNAT.OS_Lib.Current_Time));
+      Tag  : constant String :=
+        Hex_Images.Strip_Zero_Padding
+          (Hex_Images.Hex_Image (Time));
+      --  Tag for the current instrumentation run. Passed on to instrument-main
+      --  invocations, to have the same tag for mains instrumented at the
+      --  same time.
+   begin
+      return Tag;
+   end Instrumentation_Tag;
 
 end Instrument;
