@@ -608,10 +608,19 @@ clang_CXRewriter_insertTextBeforeToken (CXRewriter Rew, CXSourceLocation Loc,
   R.InsertTextAfter (Prv, Insert);
 }
 
-/* Wrappers around source location analysis functions.  */
+extern "C" CXString
+clang_CXRewriter_getRewrittenText (CXRewriter Rew, CXSourceRange Rng)
+{
+  assert (Rew);
+  Rewriter &R = *reinterpret_cast<Rewriter *> (Rew);
+  SourceRange SR = translateCXSourceRange (Rng);
+  return createDup (R.getRewrittenText (SR).c_str ());
+}
 
-extern "C" unsigned
-clang_isMacroLocation (CXSourceLocation Loc)
+  /* Wrappers around source location analysis functions.  */
+
+  extern "C" unsigned
+  clang_isMacroLocation (CXSourceLocation Loc)
 {
   const SourceLocation SLoc = translateSourceLocation (Loc);
   return SLoc.isMacroID () ? 1 : 0;

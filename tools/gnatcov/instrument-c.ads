@@ -31,6 +31,7 @@ with Clang.Index;              use Clang.Index;
 with Clang.Rewrite;            use Clang.Rewrite;
 
 with Files_Table;       use Files_Table;
+with Instrument.C_Utils; use Instrument.C_Utils;
 with Instrument.Common; use Instrument.Common;
 with Slocs;             use Slocs;
 
@@ -343,6 +344,11 @@ package Instrument.C is
 
          Current_File_Scope : Source_File_Index;
          --  Source file in wich the last scope encountered was opened.
+
+         Instrumented_CXX_For_Ranges : Cursor_Vectors.Vector;
+         --  List of instrumented for ranges. For an explanation of why we need
+         --  to store these, see the documentation of the Fix_CXX_For_Ranges
+         --  subprogram.
       end record;
 
    type C_Source_Rewriter is tagged limited private;
@@ -427,6 +433,12 @@ private
       Rew  : Rewriter_T;
       Loc  : Source_Location_T;
       Text : String) is null;
+
+   procedure Register_CXX_For_Range
+     (Pass : Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class;
+      N    : Cursor_T) is null;
+   --  See the documentation of Fix_CXX_For_Ranges
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
    with record
