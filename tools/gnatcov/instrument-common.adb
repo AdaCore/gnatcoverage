@@ -473,13 +473,13 @@ package body Instrument.Common is
          Add_Macro_Switches (Options.PP_Macros);
       end if;
 
-      --  The -std switch also indicates the C/C++ version used, and
-      --  influences both the configuration of the preprocessor, and the
-      --  parsing of the file.
+      --  Add other compiler switches as they may also influence both the
+      --  configuration of the preprocessor, and the parsing of the file. A
+      --  non-exhaustive list includes undefining macros through -U switches,
+      --  using -std to change the C++ standard in use, -fno-rtti to prevent
+      --  inclusion of runtime type information etc.
 
-      if Length (Options.Std) /= 0 then
-         Args.Append (Options.Std);
-      end if;
+      Args.Append (Options.Compiler_Switches);
 
    end Add_Options;
 
@@ -638,11 +638,21 @@ package body Instrument.Common is
 
             elsif Read_With_Argument (A, 'U', Value) then
                Self.PP_Macros.Include ((Define => False, Name => Value));
+               --  Account for all the switches that can influence the file
+               --  preprocessing.
 
-            elsif Has_Prefix (A, "-std=") then
-               Self.Std := +A;
+            elsif Has_Prefix (A, "-std")
+              or else Has_Prefix (A, "-fno-rtti")
+              or else Has_Prefix (A, "-fno-exceptions")
+
+              --  All the warning switches can influence the preprocessing
+              --  through the use of the __has_warning macro, e.g.
+              --  #if __has_warning("-Wimplicit-fallthrough")
+
+              or else Has_Prefix (A, "-W")
+            then
+               Self.Compiler_Switches.Append (+A);
             end if;
-
             I := I + 1;
          end;
       end loop;

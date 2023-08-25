@@ -80,15 +80,11 @@ package body Instrument.C is
    type Macro_Set_Cst_Access is access constant Macro_Set;
 
    function Builtin_Macros
-     (Lang, Compiler, Std, Output_Dir : String) return Macro_Set_Cst_Access;
-   --  Return the list of built-in macros for the given compiler, standard and
-   --  language. Output_Dir is used to store a temporary file.
-   --
-   --  Note that we could generate a fully-fledged preprocessor configuration
-   --  (the standard macros + the command-line defined macros with an
-   --  additional argument there), but it is more convenient to cache the
-   --  "light" preprocessor configuration that is determined by the compiler,
-   --  language and standard only.
+     (Lang, Compiler, Output_Dir : String;
+      Compiler_Switches : String_Vectors.Vector) return Macro_Set_Cst_Access;
+   --  Return the list of built-in macros for the given compiler, language and
+   --  according to the compiler switches. Output_Dir is used to store a
+   --  temporary file.
 
    procedure Preprocess_Source
      (Filename      : String;
@@ -2524,7 +2520,8 @@ package body Instrument.C is
    --------------------
 
    function Builtin_Macros
-     (Lang, Compiler, Std, Output_Dir : String) return Macro_Set_Cst_Access
+     (Lang, Compiler, Output_Dir : String;
+      Compiler_Switches : String_Vectors.Vector) return Macro_Set_Cst_Access
    is
       use Ada.Characters.Handling;
 
@@ -2532,8 +2529,6 @@ package body Instrument.C is
         Unsigned_64 (Pid_To_Integer (Current_Process_Id));
 
       L      : constant String := To_Lower (Lang);
-      Key    : constant Unbounded_String :=
-        +Compiler & " -x " & L & " " & Std;
       Result : constant Macro_Set_Access := new Macro_Set;
 
       Args     : String_Vectors.Vector;
@@ -2549,9 +2544,7 @@ package body Instrument.C is
 
       Args.Append (+"-x");
       Args.Append (+L);
-      if Std'Length /= 0 then
-         Args.Append (+Std);
-      end if;
+      Args.Append (Compiler_Switches);
       Args.Append (+"-E");
       Args.Append (+"-dM");
       Args.Append (+"-");
@@ -2559,8 +2552,7 @@ package body Instrument.C is
       Run_Command
         (Command             => Compiler,
          Arguments           => Args,
-         Origin_Command_Name =>
-           "getting built-in macros for " & (+Key),
+         Origin_Command_Name => "gnatcov instrument",
          Output_File         => Filename,
          In_To_Null          => True);
 
@@ -4532,8 +4524,8 @@ package body Instrument.C is
         Builtin_Macros
           (Image (C_Family_Language (Instrumenter.Language)),
            +Prj.Compiler_Driver (Instrumenter.Language),
-           +Self.Std,
-           +Prj.Output_Dir).all;
+           +Prj.Output_Dir,
+           Self.Compiler_Switches).all;
    end Import_Options;
 
    ---------------------------
