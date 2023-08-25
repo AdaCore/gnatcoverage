@@ -3110,7 +3110,8 @@ package body Instrument.C is
                            Decision  : constant SCO_Id :=
                              Enclosing_Decision (Condition);
                         begin
-                           if Path_Count (Decision) = 0 then
+                           if Path_Count (Decision) > Get_Path_Count_Limit
+                           then
                               Set_Decision_SCO_Non_Instr_For_MCDC (Decision);
                            else
                               Insert_Condition_Witness
