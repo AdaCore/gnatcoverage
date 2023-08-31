@@ -5,8 +5,10 @@ Check that gnatcov reports internal errors as expected.
 import re
 import os
 
+from SCOV.minicheck import build_and_run
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
+from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor, xcov
 
 
@@ -80,5 +82,20 @@ check(args=["instrument", "-P", prj, "--level=stmt"],
 check(args=["instrument", "-P", prj, "--level=stmt"],
       trigger="ada-instrument-insert-stmt-witness",
       info=r"Instrumenting ConcreteTypeDecl at [^\n]*main\.adb:6:4-6:26")
+
+# Instrument the example project, run its main to produce a source trace and
+# then trigger an internal error while loading the SID file.
+xcov_args = build_and_run(
+    gprsw=GPRswitches(root_project=prj),
+    covlevel="stmt",
+    mains=["main"],
+    extra_coverage_args=[],
+    trace_mode="src",
+)
+check(
+    args=xcov_args,
+    trigger="load-checkpoint",
+    info="Loading [^\n]*main\.sid",
+)
 
 thistest.result()

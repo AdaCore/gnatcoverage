@@ -548,11 +548,18 @@ package body Checkpoints is
       Purpose              : Checkpoint_Purpose;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
+      Dummy     : constant Context_Handle :=
+        Create_Context ("Loading " & Filename);
       SF        : Ada.Streams.Stream_IO.File_Type;
       CP_Header : Checkpoint_Header;
       Levels    : Levels_Type;
    begin
       Open (SF, In_File, Filename);
+
+      --  If requested, create an artificial internal error when loading
+      --  checkpoints.
+
+      Raise_Stub_Internal_Error_For (Load_Checkpoint);
 
       declare
          CLS : aliased Checkpoint_Load_State :=
