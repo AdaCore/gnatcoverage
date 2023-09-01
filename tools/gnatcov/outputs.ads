@@ -101,6 +101,9 @@ package Outputs is
       Arguments_Loading,
       --  Raise an error after Argparse's work and before loading arguments
 
+      Load_Checkpoint,
+      --  Raise an error when loading a checkpoint
+
       Ada_Instrument_Start_File,
       --  Raise an error when starting the instrumentation of a source file
 
