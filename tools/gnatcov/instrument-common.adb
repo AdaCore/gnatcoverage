@@ -201,7 +201,7 @@ package body Instrument.Common is
 
          --  Warn if the number of paths exceeded the limit
 
-         if Path_Count = 0 then
+         if Path_Count = 0 and then Coverage.MCDC_Coverage_Enabled then
             Diagnostics.Report
               (Decision_Sloc,
                "Number of distinct paths in the decision exceeds the limit"
