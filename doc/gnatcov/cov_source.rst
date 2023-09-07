@@ -777,6 +777,10 @@ performs Statement and Decision Coverage assessments combined together.
 * The iteration predicate of Ada quantified expressions, in the same
   contexts as for if-expressions.
 
+* The iterator filter predicate optionally present in a loop parameter
+  specification or in an iterator specification, in the same context as
+  if-expressions.
+
 The expression may be of essentially any type in C. In Ada, this may
 be the standard Boolean type, or subtypes of it, or derived types
 thereof. Here are a few examples show-casing decisions in a variety of
@@ -792,6 +796,9 @@ contexts::
 
   Z := (for all X of Container => P(X));  -- "P(X)", quantified-expression predicate
   T := (for some X of Container => P(X));
+
+  for I in 1 .. 10 when (I mod 2) = 0 loop ... -- "(I mod 2) = 0", iterator filter predicate
+  F := (for Elt of Container when Pred (Elt) => Elt); -- "Pred (Elt)", iterator filter predicate
 
 
 The coverage status of a decision obligation is determined as
