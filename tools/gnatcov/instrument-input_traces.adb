@@ -998,6 +998,14 @@ package body Instrument.Input_Traces is
       Start_Marker : constant String := "== GNATcoverage source trace file ==";
       End_Marker   : constant String := "== End ==";
 
+      Started_Trace : Boolean := False;
+      --  Whether we are in the middle of reading a source trace
+
+      Prefix      : String (1 .. 200) := (others => ASCII.NUL);
+      Prefix_Last : Natural := 0;
+      --  If Started_Trace is True, line prefix for the base64 dump for that
+      --  source trace.
+
    --  Start of processing for Extract_Base64_Trace
 
    begin
@@ -1005,12 +1013,49 @@ package body Instrument.Input_Traces is
       --  way to "continue" the loop (i.e. skip to the next iteration), which
       --  simplifies the loop body.
       --
-      --  Each time we come across a Start_Marker line, create the output trace
-      --  file, so that if there are several start/end couples in the input
-      --  file, we consider only the last one. This is convenient when running
-      --  GNATcoverage's testsuite, as we may have one trace per task
-      --  termination and this also makes sense in real life: the last trace
-      --  should be the one with the final coverage state.
+      --  Each time we come across a line that ends with Start_Marker, create
+      --  the output source trace file, take note of the rest of the line as
+      --  "the prefix" and ignore the next lines that do not have the same
+      --  prefix, then process all lines until finding a line with the
+      --  End_Marker. Then repeat with the remaining lines if another line ends
+      --  with Start_Marker.
+      --
+      --  For instance:
+      --
+      --     A> == GNATcoverage source trace file ==
+      --     B> == GNATcoverage source trace file ==
+      --     A> ...
+      --     A> == End ==
+      --     B> ...
+      --     B> == End ==
+      --
+      --  will create a source trace file for all lines with the "A> " prefix,
+      --  whereas:
+      --
+      --     A> == GNATcoverage source trace file ==
+      --     B> == GNATcoverage source trace file ==
+      --     A> ...
+      --     A> == End ==
+      --     B> ...
+      --     C> == GNATcoverage source trace file ==
+      --     B> == End ==
+      --     C> ...
+      --     C> == End ==
+      --
+      --  will first create a source trace file for all lines with the "A> "
+      --  prefix, then overwrite it with a file for all lines with the "C> "
+      --  prefix.
+      --
+      --  The prefix-related rules allow the processing of source traces for a
+      --  program with several concurrent traces dumps, as long as lines are
+      --  printed atomically and as long as each tasks writes a dedicated line
+      --  prefix.
+      --
+      --  The overwriting rules ensures that if there are several start/end
+      --  marker couples in the input file, we consider only the last one. This
+      --  is convenient when running GNATcoverage's testsuite, as we may have
+      --  one trace per task termination and this also makes sense in real
+      --  life: the last trace should be the one with the final coverage state.
 
       TIO.Open (Input, TIO.In_File, Input_File);
       <<Read_Next_Line>>
@@ -1018,10 +1063,10 @@ package body Instrument.Input_Traces is
          declare
             use type TIO.Count;
 
-            Reading_Trace : constant Boolean := BIO.Is_Open (Output);
-            Buffer        : String (1 .. 100);
-            First         : Positive := 1;
-            Last          : Natural;
+            Buffer      : String (1 .. 200);
+            Ignore_Line : Boolean;
+            First       : Positive := 1;
+            Last        : Natural;
          begin
             --  Try to read a line, abort if we reached the end of file
 
@@ -1032,11 +1077,25 @@ package body Instrument.Input_Traces is
                   exit;
             end;
 
+            --  Remove leading/trailing whitespaces, which copy/pasting may
+            --  insert.
+
+            Trim (Buffer, First, Last);
+
+            --  If we are in the middle of reading a source trace, ignore lines
+            --  that do not have the same prefix.
+
+            Ignore_Line :=
+              Started_Trace
+              and then not Has_Prefix (Buffer (First .. Last),
+                                       Prefix (Prefix'First .. Prefix_Last));
+
             --  If the line is too long for our buffer:
             --
-            --  * If we are in the middle of reading a source trace, stop with
-            --    an error: this is not supposed to happen as we dump source
-            --    traces with at most 80-columns wide lines.
+            --  * If that line has the current prefix and we are in the middle
+            --    of reading a source trace, stop with an error: this is not
+            --    supposed to happen as we dump source traces with at most
+            --    80-columns wide lines.
             --
             --  * Otherwise, just skip that line.
             --
@@ -1047,7 +1106,7 @@ package body Instrument.Input_Traces is
             --  previous line in one go).
 
             if not TIO.End_Of_Line (Input) and then TIO.Col (Input) > 1 then
-               if Reading_Trace then
+               if Started_Trace and then not Ignore_Line then
                   Outputs.Fatal_Error
                     ("Unexpected long line in Base64 trace");
                else
@@ -1056,64 +1115,95 @@ package body Instrument.Input_Traces is
                end if;
             end if;
 
-            --  Remove leading/trailing whitespaces, which copy/pasting may
-            --  insert.
+            --  If this line does not have the expected prefix, ignore it
 
-            Trim (Buffer, First, Last);
+            if Ignore_Line then
+               goto Read_Next_Line;
 
-            if Reading_Trace then
-               if Buffer (First .. Last) = End_Marker then
-                  BIO.Close (Output);
-                  goto Read_Next_Line;
+            --  If we have not started reading a trace, check if the current
+            --  line is the beginning of a trace.
+
+            elsif not Started_Trace then
+
+               --  If this is the beginning of a trace, keep track of the
+               --  current line prefix and open the source trace file to write.
+
+               if Has_Suffix (Buffer (First .. Last), Start_Marker) then
+                  Had_One_Trace := True;
+                  Started_Trace := True;
+                  declare
+                     Prefix_Length : constant Natural :=
+                       Last - First + 1 - Start_Marker'Length;
+                  begin
+                     Prefix_Last := Prefix_Length + Prefix'First - 1;
+                     Prefix (Prefix'First .. Prefix_Last) :=
+                       Buffer (First ..  First + Prefix_Length - 1);
+                  end;
+                  BIO.Create (Output, BIO.Out_File, Output_File);
                end if;
 
-               --  Expect groups of 4 characters
+               goto Read_Next_Line;
+            end if;
 
-               if Buffer (First .. Last)'Length mod 4 /= 0 then
-                  Outputs.Fatal_Error
-                    ("Invalid Base64 trace: incomplete group of 4 characters");
-               end if;
+            --  If execution reaches this point, we know that we are in the
+            --  middle of processing a source trace. Adjust First to strip the
+            --  line prefix.
 
-               --  Now process each group
+            pragma Assert (Started_Trace);
+            First := First + Prefix_Last - Prefix'First + 1;
 
-               declare
-                  Next : Positive := First;
+            --  If we reached the end of this source trace, close the file and
+            --  go to the next line.
 
-                  function D (Index : Natural) return Unsigned_8
-                  is (Base64_Digit (Buffer (Next + Index)));
+            if Buffer (First .. Last) = End_Marker then
+               BIO.Close (Output);
+               Started_Trace := False;
+               goto Read_Next_Line;
+            end if;
 
-               begin
-                  while Next <= Last loop
-                     --  Here, process the Base64 digits in the slice:
-                     --
-                     --    Buffer (Next .. Next + 3)
-                     --
-                     --  This slice contains 4 Base64 digits, and each digit
-                     --  encodes 6 bits (total: 24 bits), so we can decode 3
-                     --  bytes (3 * 8 bits).  The actual number of bytes to
-                     --  decode depends on the amount of padding characters
-                     --  ('=' character).
+            --  Otherwise, expect the rest of the line to be a groups of 4
+            --  base64 characters.
 
+            if Buffer (First .. Last)'Length mod 4 /= 0 then
+               Outputs.Fatal_Error
+                 ("Invalid Base64 trace: incomplete group of 4 characters");
+            end if;
+
+            --  Now process each group
+
+            declare
+               Next : Positive := First;
+
+               function D (Index : Natural) return Unsigned_8
+               is (Base64_Digit (Buffer (Next + Index)));
+
+            begin
+               while Next <= Last loop
+                  --  Here, process the Base64 digits in the slice:
+                  --
+                  --    Buffer (Next .. Next + 3)
+                  --
+                  --  This slice contains 4 Base64 digits, and each digit
+                  --  encodes 6 bits (total: 24 bits), so we can decode 3
+                  --  bytes (3 * 8 bits).  The actual number of bytes to
+                  --  decode depends on the amount of padding characters
+                  --  ('=' character).
+
+                  BIO.Write
+                    (Output,
+                     Shift_Left (D (0), 2) or Shift_Right (D (1), 4));
+                  if Buffer (Next + 2) /= '=' then
                      BIO.Write
                        (Output,
-                        Shift_Left (D (0), 2) or Shift_Right (D (1), 4));
-                     if Buffer (Next + 2) /= '=' then
-                        BIO.Write
-                          (Output,
-                           Shift_Left (D (1), 4) or Shift_Right (D (2), 2));
-                        if Buffer (Next + 3) /= '=' then
-                           BIO.Write (Output, Shift_Left (D (2), 6) or D (3));
-                        end if;
+                        Shift_Left (D (1), 4) or Shift_Right (D (2), 2));
+                     if Buffer (Next + 3) /= '=' then
+                        BIO.Write (Output, Shift_Left (D (2), 6) or D (3));
                      end if;
+                  end if;
 
-                     Next := Next + 4;
-                  end loop;
-               end;
-
-            elsif Buffer (First .. Last) = Start_Marker then
-               Had_One_Trace := True;
-               BIO.Create (Output, BIO.Out_File, Output_File);
-            end if;
+                  Next := Next + 4;
+               end loop;
+            end;
          end;
       end loop;
       TIO.Close (Input);
@@ -1123,7 +1213,8 @@ package body Instrument.Input_Traces is
 
       if not Had_One_Trace then
          Outputs.Fatal_Error ("No Base64 trace found");
-      elsif BIO.Is_Open (Output) then
+      elsif Started_Trace then
+         BIO.Close (Output);
          Outputs.Fatal_Error ("Incomplete Base64 trace");
       end if;
    end Extract_Base64_Trace;

@@ -77,7 +77,7 @@ package body Strings is
    function Has_Prefix (S : String; Prefix : String) return Boolean is
       Length : constant Integer := Prefix'Length;
    begin
-      return S'Length > Length
+      return S'Length >= Length
         and then S (S'First .. S'First + Length - 1) = Prefix;
    end Has_Prefix;
 
@@ -88,7 +88,7 @@ package body Strings is
    function Has_Suffix (S : String; Suffix : String) return Boolean is
       Length : constant Integer := Suffix'Length;
    begin
-      return S'Length > Length
+      return S'Length >= Length
         and then S (S'Last - Length + 1 .. S'Last) = Suffix;
    end Has_Suffix;
 
