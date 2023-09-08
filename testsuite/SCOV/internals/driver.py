@@ -1301,7 +1301,8 @@ class SCOV_helper_src_traces(SCOV_helper):
             dump_trigger=self.dump_trigger,
             gprsw=instrument_gprsw,
             gpr_obj_dir=self.gpr_obj_dir,
-            out=out)
+            out=out,
+            tolerate_messages=self.testcase.tolerate_messages)
 
         # When exception propagation is not available, a test ending with an
         # unhandled exception goes straight to the last_chance_handler from
@@ -1328,11 +1329,12 @@ class SCOV_helper_src_traces(SCOV_helper):
         # Standard output might contain warnings indicating instrumentation
         # issues. This should not happen, so simply fail as soon as the output
         # file is not empty.
-        thistest.fail_if(
-            os.path.getsize(out) > 0,
-            'xcov instrument standard output not empty ({}):'
-            '\n--'
-            '\n{}'.format(out, contents_of(out)))
+        if not self.testcase.tolerate_messages:
+            thistest.fail_if(
+                os.path.getsize(out) > 0,
+                'xcov instrument standard output not empty ({}):'
+                '\n--'
+                '\n{}'.format(out, contents_of(out)))
 
         # Now we can build, instructing gprbuild to fetch the instrumented
         # sources in their dedicated subdir:

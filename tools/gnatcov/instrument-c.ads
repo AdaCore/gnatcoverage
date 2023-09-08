@@ -30,6 +30,7 @@ with Clang.CX_Source_Location; use Clang.CX_Source_Location;
 with Clang.Index;              use Clang.Index;
 with Clang.Rewrite;            use Clang.Rewrite;
 
+with Diagnostics;       use Diagnostics;
 with Files_Table;       use Files_Table;
 with Instrument.Common; use Instrument.Common;
 with Slocs;             use Slocs;
@@ -368,7 +369,11 @@ package Instrument.C is
          --  which scope was originally opened in which file.
 
          Current_File_Scope : Source_File_Index;
-         --  Source file in wich the last scope encountered was opened.
+         --  Source file in which the last scope encountered was opened
+
+         Disable_Instrumentation : Boolean := False;
+         --  Set to True to deactivate instrumentation and prevent any code
+         --  rewriting.
       end record;
 
    type C_Source_Rewriter is tagged limited private;
@@ -438,21 +443,27 @@ private
 
    procedure Insert_Text_Before_Token
      (Pass : Pass_Kind;
-      Rew  : Rewriter_T;
+      UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String) is null;
 
    procedure Insert_Text_Before
      (Pass : Pass_Kind;
-      Rew  : Rewriter_T;
+      UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String) is null;
 
    procedure Insert_Text_After
      (Pass : Pass_Kind;
-      Rew  : Rewriter_T;
+      UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String) is null;
+
+   procedure Report
+     (Pass : Pass_Kind;
+      Node : Cursor_T;
+      Msg  : String;
+      Kind : Report_Kind := Diagnostics.Warning) is null;
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
    with record

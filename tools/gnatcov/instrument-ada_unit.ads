@@ -139,13 +139,6 @@ private
    --    in a case expression whose controlling expr is a witness call.
 
    type Insertion_Info (Method : Insertion_Method := None) is record
-
-      Unsupported : Boolean;
-      --  Whether we gave up on inserting witness calls. This is True when
-      --  processing a code pattern that we do not know how to instrument. Note
-      --  that we still processes such patterns to create the corresponding
-      --  coverage obligations.
-
       case Method is
          when Statement | Declaration =>
             RH_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
@@ -205,10 +198,6 @@ private
 
       State : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of MC/DC state local variable
-
-      Do_Not_Instrument : Boolean;
-      --  Whether this decision should not be instrumented. This is set to True
-      --  when instrumenting the decision could create invalid Ada code.
    end record;
 
    type Source_Condition is record
@@ -223,10 +212,6 @@ private
 
       First : Boolean;
       --  True if this condition is the first one in its decision
-
-      Decision_Static : Boolean := False;
-      --  True if the expression of the enclosing decision is static
-      --  (according to the RM definition of static).
    end record;
 
    package Source_Decision_Vectors is
@@ -344,9 +329,6 @@ private
          --
          --  Used when the SPARK compatibility mode is enabled, to insert
          --  non-volatile witness result variables to be ghost compliant.
-
-         Non_Instr_LL_SCOs : Non_Instrumented_SCO_Sets.Set;
-         --  Set of low level SCO ids that were not instrumented
 
          Current_Scope_Entity : Scope_Entity_Acc := null;
          --  Information about the name, sloc, SCO range and children scopes of

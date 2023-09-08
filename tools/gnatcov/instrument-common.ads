@@ -336,6 +336,9 @@ package Instrument.Common is
       --  Annotations created during the instrumentation process, to insert in
       --  ALI_Files.ALI_Annotations afterwards, when the compilation unit
       --  (SC_Obligations.CU_Info) for this annotation is ready.
+
+      Non_Instr_LL_SCOs : SCO_Sets.Set;
+      --  Set of low level SCO ids that were not instrumented
    end record;
 
    procedure Import_Annotations
@@ -343,6 +346,11 @@ package Instrument.Common is
    --  Import ALI annotations for this unit in the global annotations table.
    --  This should be called once the unit was instrumented and its low level
    --  SCOS have been transformed into high-level ones.
+
+   procedure Import_Non_Instrumented_LL_SCOs
+     (UIC : Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map);
+   --  Import the low level SCO in UIC marked as non-instrumented in the high
+   --  level non-instrumented SCO_Id sets.
 
    function Img (Bit : Any_Bit_Id) return String is
      (Strings.Img (Integer (Bit)));

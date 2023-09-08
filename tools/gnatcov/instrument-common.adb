@@ -216,7 +216,9 @@ package body Instrument.Common is
 
          --  Warn if the number of paths exceeded the limit
 
-         if Path_Count = 0 and then Coverage.MCDC_Coverage_Enabled then
+         if Path_Count > Get_Path_Count_Limit
+           and then Coverage.MCDC_Coverage_Enabled
+         then
             Diagnostics.Report
               (Decision_Sloc,
                "Number of distinct paths in the decision exceeds the limit"
@@ -257,6 +259,29 @@ package body Instrument.Common is
            (Key => Couple.Sloc, New_Item => Couple.Annotation);
       end loop;
    end Import_Annotations;
+
+   -------------------------------------
+   -- Import_Non_Instrumented_LL_SCOs --
+   -------------------------------------
+
+   procedure Import_Non_Instrumented_LL_SCOs
+     (UIC : Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map) is
+   begin
+      for LL_SCO of UIC.Non_Instr_LL_SCOs loop
+         declare
+            Remapped_SCO : constant SCO_Id := SCO_Map (Nat (LL_SCO));
+         begin
+            case Kind (Remapped_SCO) is
+               when Statement => Set_Stmt_SCO_Non_Instr (Remapped_SCO);
+               when Decision  => Set_Decision_SCO_Non_Instr (Remapped_SCO);
+               when Condition => Set_Decision_SCO_Non_Instr_For_MCDC
+                                   (Enclosing_Decision (Remapped_SCO));
+               when others =>
+                  null;
+            end case;
+         end;
+      end loop;
+   end Import_Non_Instrumented_LL_SCOs;
 
    -----------------
    -- Append_Unit --
