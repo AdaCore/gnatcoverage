@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling;
+with Ada.Characters.Latin_1;
 with Ada.Containers;  use Ada.Containers;
 with Ada.Directories; use Ada.Directories;
 with Ada.Text_IO;     use Ada.Text_IO;
@@ -27,6 +28,8 @@ with Clang.Extensions;    use Clang.Extensions;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
+
+with GNATCOLL.VFS;
 
 with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
@@ -88,11 +91,12 @@ package body Instrument.C is
    --  language and standard only.
 
    procedure Preprocess_Source
-     (Filename     : String;
-      Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
-      PP_Filename  : out Unbounded_String;
-      Options      : in out Analysis_Options);
+     (Filename      : String;
+      Instrumenter  : C_Family_Instrumenter_Type'Class;
+      Prj           : Prj_Desc;
+      PP_Filename   : out Unbounded_String;
+      Options       : in out Analysis_Options;
+      Keep_Comments : Boolean := False);
    --  Preprocess the source at Filename and extend Options using the
    --  preprocessor output.
    --
@@ -306,6 +310,11 @@ package body Instrument.C is
    --  coverage buffers for the given Main unit. Info must be the project that
    --  owns this main. Upon return, the name of this helper unit is stored in
    --  Helper_Unit.
+
+   procedure Check_Compiler_Driver
+     (Prj          : Prj_Desc;
+      Instrumenter : C_Family_Instrumenter_Type'Class);
+   --  Check that a compiler driver exists for Instrumenter's language
 
    procedure Apply (Self : in out C_Source_Rewriter);
    --  Overwrite the file with the rewritter modifications
@@ -2072,6 +2081,19 @@ package body Instrument.C is
             --  TODO??? there are probably missing special statements, such as
             --  ternary operator etc. Do that in a later step.
 
+            when Cursor_Call_Expr =>
+                  --  Check the name of the callee. If the callee is the manual
+                  --  dump buffers procedure, do nothing. It should not be
+                  --  considered for coverage analysis.
+
+               if not Is_Manual_Dump_Procedure_Symbol (Get_Callee_Name_Str (N))
+               then
+                  Extend_Statement_Sequence (N, ' ');
+                  if Has_Decision (N) then
+                     Process_Decisions_Defer (N, 'X');
+                  end if;
+               end if;
+
             when others =>
 
                --  Determine required type character code, or ASCII.NUL if
@@ -2463,11 +2485,12 @@ package body Instrument.C is
    -----------------------
 
    procedure Preprocess_Source
-     (Filename     : String;
-      Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc;
-      PP_Filename  : out Unbounded_String;
-      Options      : in out Analysis_Options)
+     (Filename      : String;
+      Instrumenter  : C_Family_Instrumenter_Type'Class;
+      Prj           : Prj_Desc;
+      PP_Filename   : out Unbounded_String;
+      Options       : in out Analysis_Options;
+      Keep_Comments : Boolean := False)
    is
       Cmd : Command_Type;
       --  The command to preprocess the file
@@ -2504,6 +2527,10 @@ package body Instrument.C is
          others  => <>);
 
       --  Add the preprocessing flag
+
+      if Keep_Comments then
+         Append_Arg (Cmd, "-C");
+      end if;
 
       Append_Arg (Cmd, "-E");
       Add_Options (Cmd.Arguments, Options, Pass_Builtins => False);
@@ -2878,18 +2905,7 @@ package body Instrument.C is
       --  Exit early if there is no compiler driver found to preprocess the
       --  source.
 
-      declare
-         Compiler_Driver : constant Unbounded_String :=
-           Prj.Compiler_Driver
-             (C_Family_Instrumenter_Type'Class (Self).Language);
-      begin
-         if Compiler_Driver = Null_Unbounded_String then
-            Outputs.Fatal_Error
-              ("could not find a compiler for "
-               & Image
-                 (C_Family_Instrumenter_Type'Class (Self).Language));
-         end if;
-      end;
+      Check_Compiler_Driver (Prj, Self);
 
       SCOs.Initialize;
 
@@ -2909,12 +2925,7 @@ package body Instrument.C is
       --  preprocessor.
 
       Import_Options (UIC.Options, Self, Prj, Unit_Name);
-      Preprocess_Source
-        (Orig_Filename,
-         Self,
-         Prj,
-         PP_Filename,
-         UIC.Options);
+      Preprocess_Source (Orig_Filename, Self, Prj, PP_Filename, UIC.Options);
 
       --  Start by recording preprocessing information
 
@@ -3591,18 +3602,22 @@ package body Instrument.C is
       Indent2 : constant String := Indent1 & "  ";
 
    begin
-      --  Create the name of the helper unit
+      --  Create the dump helper unit
 
-      Helper_Unit := Instrumenter.Dump_Helper_Unit
-        (Compilation_Unit'(File_Based_Language, Main.Filename),
-         Prj).Unit_Name;
+      Helper_Unit := (if Dump_Config.Trigger = Manual
+                      then
+                         Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name
+                      else Instrumenter.Dump_Helper_Unit
+                        (Compilation_Unit'(File_Based_Language, Main.Filename),
+                         Prj).Unit_Name);
 
       --  Compute the qualified names we need for instrumentation
 
       declare
          Filename       : constant String := +Helper_Unit;
-         Dump_Procedure : constant String := Dump_Procedure_Symbol (Main);
-
+         Dump_Procedure : constant String :=
+           Dump_Procedure_Symbol
+             (Main, Dump_Config.Trigger = Manual, Prj_Name => +Prj.Prj_Name);
       begin
          --  Emit the package body
 
@@ -3647,7 +3662,9 @@ package body Instrument.C is
                   then "GNATCOV_RTS_DEFAULT_TRACE_FILENAME_ENV_VAR"
                   else """" & (+Dump_Config.Filename_Env_Var) & """");
                Prefix  : constant String :=
-                 """" & (+Dump_Config.Filename_Prefix) & """";
+                 (if Dump_Config.Trigger = Manual
+                  then """" & (+Prj.Prj_Name) & """"
+                  else   """" & (+Dump_Config.Filename_Prefix) & """");
                Tag     : constant String := """" & (+Instrumenter.Tag) & """";
                Simple  : constant String :=
                  (if Dump_Config.Filename_Simple then "1" else "0");
@@ -3659,8 +3676,11 @@ package body Instrument.C is
                File.Put_Line (Indent2 & Tag & ",");
                File.Put_Line (Indent2 & Simple & "),");
 
-               File.Put_Line (Indent2 &   "STR ("""
-                              & Escape_Backslashes (+Main.Filename)
+               File.Put_Line (Indent2
+                              & "STR ("""
+                              & (if Dump_Config.Trigger = Manual
+                                 then +Prj.Prj_Name
+                                 else Escape_Backslashes (+Main.Filename))
                               & """),");
                File.Put_Line (Indent2 & "gnatcov_rts_time_to_uint64()" & ",");
                File.Put_Line (Indent2 & "STR ("""")");
@@ -3686,6 +3706,110 @@ package body Instrument.C is
          File.Close;
       end;
    end Emit_Dump_Helper_Unit;
+
+   ----------------------------------
+   -- Emit_Dump_Helper_Unit_Manual --
+   ----------------------------------
+
+   procedure Emit_Dump_Helper_Unit_Manual
+     (Self          : in out C_Family_Instrumenter_Type;
+      Helper_Unit   : out US.Unbounded_String;
+      Dump_Config   : Any_Dump_Config;
+      Prj           : Prj_Desc)
+   is
+      Main : Compilation_Unit_Part;
+      --  Since the dump trigger is "manual" and there is no main to be given,
+      --  the Main argument in the following call to Emit_Dump_Helper_Unit will
+      --  not be used.
+
+   begin
+      Emit_Dump_Helper_Unit
+        (Dump_Config  => Dump_Config,
+         Main         => Main,
+         Helper_Unit  => Helper_Unit,
+         Instrumenter => Self,
+         Prj          => Prj);
+   end Emit_Dump_Helper_Unit_Manual;
+
+   ------------------------------------
+   -- Replace_Manual_Dump_Indication --
+   ------------------------------------
+
+   procedure Replace_Manual_Dump_Indication
+     (Self        : in out C_Family_Instrumenter_Type;
+      Done        : in out Boolean;
+      Prj         : Prj_Desc;
+      Source      : GNATCOLL.Projects.File_Info)
+   is
+      Orig_Filename : constant String :=
+        GNATCOLL.VFS."+" (Source.File.Full_Name);
+   begin
+      Check_Compiler_Driver (Prj, Self);
+
+      declare
+         Options        : Analysis_Options;
+         PP_Filename    : Unbounded_String;
+         File           : Ada.Text_IO.File_Type;
+         Dummy_Main     : Compilation_Unit_Part;
+         Dump_Pat       : constant Pattern_Matcher :=
+           Compile ("^[\t ]*\/\* GNATCOV_DUMP_BUFFERS \*\/[ \t]*");
+         Matches        : Match_Array (0 .. 1);
+         Dump_Procedure : constant String :=
+           Dump_Procedure_Symbol
+             (Main => Dummy_Main, Manual => True, Prj_Name => +Prj.Prj_Name);
+         Contents       : Unbounded_String :=
+           "extern void " & To_Unbounded_String (Dump_Procedure) & " (void);";
+      begin
+         --  Preprocess the source, keeping the comment to look for the manual
+         --  dump indication later.
+
+         Import_Options (Options, Self, Prj, To_String (PP_Filename));
+         Preprocess_Source
+           (Orig_Filename, Self, Prj, PP_Filename, Options, True);
+
+         --  Look for the manual dump indication in the preprocessed file
+
+         Ada.Text_IO.Open
+           (File => File,
+            Mode => In_File,
+            Name => To_String (PP_Filename));
+
+         while not Ada.Text_IO.End_Of_File (File) loop
+            declare
+               Line : constant String := Get_Line (File);
+            begin
+               Match (Dump_Pat, Line, Matches);
+
+               if Matches (0) /= No_Match then
+                  Contents := Contents & Dump_Procedure & "();";
+                  Done := True;
+               else
+                  Contents := Contents & Line;
+               end if;
+
+               Contents := Contents & Ada.Characters.Latin_1.LF;
+            end;
+         end loop;
+
+         Ada.Text_IO.Close (File);
+
+         if Done then
+            --  Content now holds the text of the original file with calls to
+            --  the manual dump procedure where the indications and its extern
+            --  declaration were. Replace the original content of the file with
+            --  Content.
+
+            Ada.Text_IO.Open
+              (File => File,
+               Mode => Out_File,
+               Name => To_String (PP_Filename));
+
+            Ada.Text_IO.Put_Line (File, To_String (Contents));
+
+            Ada.Text_IO.Close (File);
+         end if;
+      end;
+   end Replace_Manual_Dump_Indication;
 
    -------------------------------
    -- Auto_Dump_Buffers_In_Main --
@@ -3895,6 +4019,27 @@ package body Instrument.C is
          Unit_Name => +Filename);
    end Buffer_Unit;
 
+   -----------------------------
+   -- Dump_Manual_Helper_Unit --
+   -----------------------------
+
+   overriding function Dump_Manual_Helper_Unit
+     (Self : C_Family_Instrumenter_Type;
+      Prj  : Prj_Desc) return Compilation_Unit
+   is
+      Filename : constant String :=
+        New_File
+          (Prj,
+           To_Symbol_Name (Sys_Prefix)
+           & "_d_b_" & To_String (Prj.Prj_Name)
+           & (+Prj.Body_Suffix
+             (C_Family_Instrumenter_Type'Class (Self).Language)));
+   begin
+      return Compilation_Unit'
+        (Language  => File_Based_Language,
+         Unit_Name => +Filename);
+   end Dump_Manual_Helper_Unit;
+
    ----------------------
    -- Dump_Helper_Unit --
    ----------------------
@@ -3941,6 +4086,23 @@ package body Instrument.C is
          return True;
       end if;
    end Has_Main;
+
+   ---------------------------
+   -- Check_Compiler_Driver --
+   ---------------------------
+
+   procedure Check_Compiler_Driver
+     (Prj          : Prj_Desc;
+      Instrumenter : C_Family_Instrumenter_Type'Class)
+   is
+      Compiler_Driver : constant Unbounded_String :=
+        Prj.Compiler_Driver (Instrumenter.Language);
+   begin
+      if Compiler_Driver = Null_Unbounded_String then
+         Outputs.Fatal_Error
+           ("could not find a compiler for " & Image (Instrumenter.Language));
+      end if;
+   end Check_Compiler_Driver;
 
    ----------------
    -- Format_Def --

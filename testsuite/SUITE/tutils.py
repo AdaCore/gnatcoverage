@@ -453,12 +453,21 @@ def tracename_for(pgmname):
     return exename_for(pgmname) + ".trace"
 
 
-def srctrace_pattern_for(pgmname):
-    """Glob pattern for the source trace file for the given program name"""
-    return exename_for(pgmname) + "*.srctrace"
+def srctrace_pattern_for(pgmname, manual=False, manual_prj_name=None):
+    """
+    Glob pattern for the source trace file for the given program name.
+
+    :param bool manual: Indicates if the trace file was created as a result of
+        a manual dump buffers procedure call.
+    :param None|str manual_prj_name: Trace files emitted in manual dump trigger
+        mode contain the name of the relevant project in their name.
+        manual_prj_name is the name of the project which trace we want to find.
+    """
+    return (manual_prj_name if manual else exename_for(pgmname)) + "*.srctrace"
 
 
-def srctracename_for(pgmname, register_failure=True):
+def srctracename_for(pgmname, register_failure=True, manual=False,
+                     manual_prj_name=None):
     """
     Name for the source trace file for the given program name.
 
@@ -470,7 +479,7 @@ def srctracename_for(pgmname, register_failure=True):
     stops the testcase. If "register_failure" is False, we just return None in
     that case.
     """
-    pattern = srctrace_pattern_for(pgmname)
+    pattern = srctrace_pattern_for(pgmname, manual, manual_prj_name)
     trace_files = glob.glob(pattern)
 
     if len(trace_files) == 1:

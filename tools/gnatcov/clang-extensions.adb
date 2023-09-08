@@ -54,6 +54,24 @@ package body Clang.Extensions is
       return DeclName;
    end Get_Decl_Name_Str;
 
+   -------------------------
+   -- Get_Callee_Name_Str --
+   -------------------------
+
+   function Get_Callee_Name_Str (C : Cursor_T) return String is
+
+      function Get_Callee_Name_Str_C (C : Cursor_T) return String_T
+        with
+          Import, Convention => C,
+          External_Name => "clang_getCalleeName";
+
+      CalleeName_Str_C : constant String_T := Get_Callee_Name_Str_C (C);
+      CalleeName       : constant String   := Get_C_String (CalleeName_Str_C);
+   begin
+      Dispose_String (CalleeName_Str_C);
+      return CalleeName;
+   end Get_Callee_Name_Str;
+
    --------------------
    -- Get_Opcode_Str --
    --------------------

@@ -39,6 +39,7 @@ use Libadalang.Generic_API.Introspection;
 with Libadalang.Sources;       use Libadalang.Sources;
 
 with GNATCOLL.Utils;
+with GNATCOLL.VFS;
 
 with ALI_Files;        use ALI_Files;
 with Coverage_Options; use Coverage_Options;
@@ -224,7 +225,8 @@ package body Instrument.Ada_Unit is
 
       --  Annotations
 
-      Xcov);
+      Xcov,
+      Dump_Buffers);
 
    Symbols : constant Symbol_Table := Create_Symbol_Table;
    --  Holder for name singletons
@@ -254,7 +256,8 @@ package body Instrument.Ada_Unit is
       Jorvik                  => Precompute_Symbol (Jorvik),
       Ravenscar               => Precompute_Symbol (Ravenscar),
       Restricted              => Precompute_Symbol (Restricted),
-      Xcov                    => Precompute_Symbol (Xcov));
+      Xcov                    => Precompute_Symbol (Xcov),
+      Dump_Buffers            => Precompute_Symbol (Dump_Buffers));
 
    function As_Symbol (S : All_Symbols) return Symbol_Type is
      (Precomputed_Symbols (S));
@@ -1425,6 +1428,11 @@ package body Instrument.Ada_Unit is
    --  See the documentation of the eponym fields of the Ada_Unit_Inst_Context
    --  record for the Language_Version and Degenerate_Subprogram_Generics
    --  parameters.
+
+   function Create_Manual_Helper_Unit_Name
+      (Prj : Prj_Desc)
+   return Ada_Qualified_Name;
+   --  Return the name for the dump helper unit for manual dump trigger
 
    procedure Emit_Dump_Helper_Unit
      (Dump_Config           : Any_Dump_Config;
@@ -7906,6 +7914,137 @@ package body Instrument.Ada_Unit is
       Rewriter.Apply;
    end Auto_Dump_Buffers_In_Main;
 
+   ------------------------------------
+   -- Replace_Manual_Dump_Indication --
+   ------------------------------------
+
+   overriding procedure Replace_Manual_Dump_Indication
+     (Self        : in out Ada_Instrumenter_Type;
+      Done        : in out Boolean;
+      Prj         : Prj_Desc;
+      Source      : GNATCOLL.Projects.File_Info)
+   is
+      Instrumented_Filename : constant String :=
+        +(Prj.Output_Dir & "/" & GNATCOLL.VFS."+" (Source.File.Base_Name));
+      Source_Filename       : constant String :=
+        GNATCOLL.VFS."+" (Source.File.Full_Name);
+      Instrumented_Exists   : constant Boolean :=
+        Ada.Directories.Exists (Instrumented_Filename);
+      File_To_Search        : constant String := (if Instrumented_Exists
+                                                  then Instrumented_Filename
+                                                  else Source_Filename);
+      Unit                  : constant Libadalang.Analysis.Analysis_Unit :=
+        Self.Context.Get_From_File (File_To_Search);
+
+      Rewriter              : Ada_Source_Rewriter;
+
+      function Find_And_Replace_Pragma
+        (N : Ada_Node'Class)
+         return Visit_Status;
+      --  If N is the expected pragma statement, replace it with the actual
+      --  call.
+
+      procedure Create_Directory_If_Not_Exists (Name : String);
+      --  Create the directory of name Name if it does not exist yet
+
+      function Find_And_Replace_Pragma (N : Ada_Node'Class) return Visit_Status
+      is
+         function Is_Expected_Argument
+           (Args : Base_Assoc_List;
+            Idx  : Positive;
+            Arg  : All_Symbols)
+            return Boolean
+         is ((As_Symbol
+             (Args.Child (Idx).As_Pragma_Argument_Assoc.F_Expr.As_Identifier)
+             = As_Symbol (Arg)));
+         --  Check if the argument of Prag_N at Index matches Arg
+
+      begin
+         if N.Kind = Ada_Pragma_Node then
+            declare
+               Prag_N    : constant Pragma_Node := N.As_Pragma_Node;
+               Prag_Args : constant Base_Assoc_List := Prag_N.F_Args;
+            begin
+               if Pragma_Name (Prag_N) = Name_Annotate
+                 and then Prag_Args.Children_Count = 2
+                 and then Is_Expected_Argument (Prag_Args, 1, Xcov)
+                 and then Is_Expected_Argument (Prag_Args, 2, Dump_Buffers)
+               then
+                  --  The pragma statement to be replaced by the actual call
+                  --  to Dump_Buffers has been found.
+
+                  if not Done then
+                     Start_Rewriting (Rewriter, Self, Prj, File_To_Search);
+                  end if;
+
+                  declare
+                     RH        : constant Rewriting_Handle := Rewriter.Handle;
+                     With_Unit : constant Node_Rewriting_Handle :=
+                       To_Nodes
+                         (RH,
+                          Create_Manual_Helper_Unit_Name (Prj));
+                     Dump_Call : constant  Node_Rewriting_Handle :=
+                       To_Nodes
+                         (RH,
+                          To_Qualified_Name (To_String (Dump_Procedure_Name)));
+                  begin
+                     --  Add the with clause only once in the file
+
+                     if not Done then
+                        Append_Child
+                          (Handle (Unit.Root.As_Compilation_Unit.F_Prelude),
+                           Create_From_Template
+                             (RH,
+                              Template  => "with {};",
+                              Arguments => (1 => With_Unit),
+                              Rule => With_Clause_Rule));
+                     end if;
+
+                     --  Insert the call to the dump procedure
+
+                     Replace
+                       (Handle (N),
+                        Create_From_Template
+                          (RH,
+                           "{}.{};",
+                           Arguments => (1 => With_Unit, 2 => Dump_Call),
+                           Rule => Call_Stmt_Rule));
+                  end;
+
+                  Done := True;
+                  return Over;
+               end if;
+            end;
+         end if;
+         return Into;
+      end Find_And_Replace_Pragma;
+
+      procedure Create_Directory_If_Not_Exists (Name : String)
+      is
+      begin
+         if not Ada.Directories.Exists (Name) then
+            Ada.Directories.Create_Directory (Name);
+         end if;
+      end Create_Directory_If_Not_Exists;
+
+   begin
+      --  If no pragma is found in this file then Start_Rewriting will not be
+      --  called. In this case, Rewriter.Handle will not be properly
+      --  initialized which will lead to finalization issues. To avoid this,
+      --  make sure it is set to No_Rewriting_Handle.
+
+      Rewriter.Handle := No_Rewriting_Handle;
+
+      Unit.Root.Traverse (Find_And_Replace_Pragma'Access);
+
+      if Done then
+         Create_Directory_If_Not_Exists
+           (GNATCOLL.VFS."+" (Source.Project.Object_Dir.Base_Dir_Name));
+         Create_Directory_If_Not_Exists (+Prj.Output_Dir);
+         Rewriter.Apply;
+      end if;
+   end Replace_Manual_Dump_Indication;
+
    ----------------------------
    -- Instrument_Source_File --
    ----------------------------
@@ -8543,6 +8682,22 @@ package body Instrument.Ada_Unit is
       end if;
    end Emit_Pure_Buffer_Unit;
 
+   ------------------------------------
+   -- Create_Manual_Helper_Unit_Name --
+   ------------------------------------
+
+   function Create_Manual_Helper_Unit_Name
+     (Prj : Prj_Desc)
+   return Ada_Qualified_Name
+   is
+      Helper_Unit : Ada_Qualified_Name;
+   begin
+      Helper_Unit := Sys_Prefix;
+      Helper_Unit.Append
+        (To_Unbounded_String ("D") & "B_manual_" & To_String (Prj.Prj_Name));
+      return Helper_Unit;
+   end Create_Manual_Helper_Unit_Name;
+
    ---------------------------
    -- Emit_Dump_Helper_Unit --
    ---------------------------
@@ -8574,7 +8729,7 @@ package body Instrument.Ada_Unit is
       --  Qualified names for the unit that contains the buffer output
       --  procedure, and for the procedure itself.
 
-      Dump_Trigger : constant Auto_Dump_Trigger :=
+      Dump_Trigger : constant Any_Dump_Trigger :=
         (if Override_Dump_Trigger = Manual
          then Dump_Config.Trigger
          else Override_Dump_Trigger);
@@ -8585,9 +8740,13 @@ package body Instrument.Ada_Unit is
    begin
       --  Create the name of the helper unit
 
-      Helper_Unit := Sys_Prefix;
-      Helper_Unit.Append
-        (To_Unbounded_String ("D") & Instrumented_Unit_Slug (Main));
+      if Dump_Config.Trigger = Manual then
+         Helper_Unit := Create_Manual_Helper_Unit_Name (Prj);
+      else
+         Helper_Unit := Sys_Prefix;
+         Helper_Unit.Append
+           (To_Unbounded_String ("D") & Instrumented_Unit_Slug (Main));
+      end if;
 
       --  Compute the qualified names we need for instrumentation
 
@@ -8651,6 +8810,8 @@ package body Instrument.Ada_Unit is
                                  & " out Dump_Controlled_Type);");
                   File.New_Line;
                end if;
+            when others =>
+               null;
          end case;
 
          File.Put_Line ("end " & Helper_Unit_Name & ";");
@@ -8710,7 +8871,9 @@ package body Instrument.Ada_Unit is
                   else """" & To_String (Dump_Config.Filename_Env_Var)
                        & """");
                Prefix  : constant String :=
-                 """" & To_String (Dump_Config.Filename_Prefix) & """";
+                 """" & To_String ((if Dump_Config.Trigger = Manual
+                                   then Prj.Prj_Name
+                                   else Dump_Config.Filename_Prefix)) & """";
                Tag     : constant String := """" & (+Instrumenter.Tag)  & """";
                Simple  : constant String :=
                  (if Dump_Config.Filename_Simple
@@ -8733,7 +8896,9 @@ package body Instrument.Ada_Unit is
             --  get the current execution time.
 
             File.Put_Line ("         Program_Name => """
-                           & To_Ada (Main.Unit) & """,");
+           & (if Dump_Trigger = Manual
+             then "manual_dump"","
+             else To_Ada (Main.Unit) & ""","));
             File.Put ("         Exec_Date => 0");
          end case;
          File.Put_Line (");");
@@ -8755,11 +8920,14 @@ package body Instrument.Ada_Unit is
                File.Put_Line ("   type Callback is access procedure;");
                File.Put_Line ("   pragma Convention (C, Callback);");
                File.New_Line;
+
                File.Put_Line ("   function atexit (Func : Callback)"
                               & " return Interfaces.C.int;");
                File.Put_Line ("   pragma Import (C, atexit);");
                File.Put_Line ("   Dummy : constant Interfaces.C.int :=");
-               File.Put_Line ("     atexit (" & Dump_Procedure & "'Access);");
+               File.Put_Line
+                 ("     atexit (" & Dump_Procedure & "'Access);");
+
                File.Put_Line ("begin");
                File.Put_Line ("   return (Data => False);");
                File.Put_Line
@@ -8810,12 +8978,44 @@ package body Instrument.Ada_Unit is
                   File.Put_Line ("   end Finalize;");
                   File.New_Line;
                end if;
+
+            when others =>
+               null;
          end case;
 
          File.Put_Line ("end " & Helper_Unit_Name & ";");
          File.Close;
       end;
    end Emit_Dump_Helper_Unit;
+
+   ----------------------------------
+   -- Emit_Dump_Helper_Unit_Manual --
+   ----------------------------------
+
+   procedure Emit_Dump_Helper_Unit_Manual
+     (Self          : in out Ada_Instrumenter_Type;
+      Helper_Unit   : out Unbounded_String;
+      Dump_Config   : Any_Dump_Config;
+      Prj           : Prj_Desc)
+   is
+      Main : Compilation_Unit_Part;
+      --  Since the dump trigger is "manual" and there is no main to be given,
+      --  the Main argument in the following call to Emit_Dump_Helper_Unit will
+      --  not be used.
+
+      Ada_Helper_Unit : Ada_Qualified_Name;
+   begin
+      Emit_Dump_Helper_Unit
+        (Dump_Config           => Dump_Config,
+         Instrumenter          => Self,
+         Prj                   => Prj,
+         Main                  => Main,
+         Helper_Unit           => Ada_Helper_Unit,
+         Override_Dump_Trigger => Manual,
+         Has_Controlled        => False);
+
+      Helper_Unit := To_Unbounded_String (To_Ada (Ada_Helper_Unit));
+   end Emit_Dump_Helper_Unit_Manual;
 
    ----------------------------
    -- Emit_Buffers_List_Unit --
@@ -8879,6 +9079,11 @@ package body Instrument.Ada_Unit is
             end;
          end loop;
 
+         if Instr_Units.Is_Empty then
+            File.Put_Line
+              ("   Dummy : aliased GNATcov_RTS_Coverage_Buffers_Group;");
+         end if;
+
          --  Create the list of coverage buffers
 
          File.Put_Line ("   List : constant GNATcov_RTS.Buffers.Lists"
@@ -8899,6 +9104,10 @@ package body Instrument.Ada_Unit is
                Index := Index + 1;
             end loop;
          end;
+
+         if Instr_Units.Is_Empty then
+            File.Put ("      1 => Dummy'Access);");
+         end if;
 
          File.Put_Line ("   C_List : constant GNATcov_RTS.Buffers.Lists"
                         & ".GNATcov_RTS_Coverage_Buffers_Group_Array :=");
@@ -8990,7 +9199,6 @@ package body Instrument.Ada_Unit is
          --  Instrument the file only if it is a file of interest
 
          if Files_Of_Interest.Contains (+Filename) then
-
             --  In verbose mode, always print a notice for the source file
             --  that we are about to instrument. In non-verbose mode, just get
             --  prepared to print it in case we emit a "source file missing"

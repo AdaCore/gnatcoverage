@@ -321,7 +321,8 @@ package body Coverage.Source is
       Enumerate_Sources
         (Callback'Access,
          Include_Stubs => True,
-         Language      => All_Languages);
+         Language      => All_Languages,
+         Only_UOIs     => True);
    end Compute_Unit_Name_For_Ignored_Sources;
 
    -------------------------

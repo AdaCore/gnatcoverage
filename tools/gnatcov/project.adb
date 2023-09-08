@@ -544,11 +544,13 @@ package body Project is
         (Project : GNATCOLL.Projects.Project_Type;
          File    : GNATCOLL.Projects.File_Info);
       Language      : Any_Language;
-      Include_Stubs : Boolean := False)
+      Include_Stubs : Boolean := False;
+      Only_UOIs     : Boolean := False)
    is
       procedure Process_Source_File (Info : File_Info; Unit_Name : String);
-      --  Callback for Iterate_Source_File. If Unit_Name is a unit of interest,
-      --  call "Callback" on this file.
+      --  Callback for Iterate_Source_File. If Only_UOIs is set to true, call
+      --  Callback the Unit_Name file is it a unit of interest. If Only_UOIs is
+      --  set to False, call Callback on all sources.
 
       -------------------------
       -- Process_Source_File --
@@ -571,10 +573,11 @@ package body Project is
               --  Otherwise, check if the unit is in the units of interest
               --  map
 
-              or else
-                (Unit_Map.Contains (To_Compilation_Unit (Info))
-                 and then (Info.Unit_Part /= Unit_Separate
-                           or else Include_Stubs))
+              or else (Only_UOIs
+                       and then (Unit_Map.Contains (To_Compilation_Unit (Info))
+                                 and then (Info.Unit_Part /= Unit_Separate
+                                           or else Include_Stubs)))
+              or else not Only_UOIs
             then
                Callback (Info.Project, Info);
             end if;

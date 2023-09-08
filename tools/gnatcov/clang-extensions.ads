@@ -86,6 +86,8 @@ package Clang.Extensions is
 
    function Get_Decl_Name_Str (C : Cursor_T) return String with Inline;
 
+   function Get_Callee_Name_Str (C : Cursor_T) return String with Inline;
+
    function Unwrap (C : Cursor_T) return Cursor_T
      with Import, Convention => C, External_Name => "clang_unwrap";
 
