@@ -337,6 +337,10 @@ package Instrument.Common is
       --  ALI_Files.ALI_Annotations afterwards, when the compilation unit
       --  (SC_Obligations.CU_Info) for this annotation is ready.
 
+      Disable_Instrumentation : Boolean := False;
+      --  Set to True to deactivate instrumentation and prevent any code
+      --  rewriting.
+
       Non_Instr_LL_SCOs : SCO_Sets.Set;
       --  Set of low level SCO ids that were not instrumented
    end record;
