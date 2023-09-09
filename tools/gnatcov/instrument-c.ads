@@ -379,14 +379,11 @@ package Instrument.C is
          Current_File_Scope : Scopes_In_Files_Map.Cursor;
          --  Source file in which the last scope encountered was opened
 
-         Disable_Instrumentation : Boolean := False;
-         --  Set to True to deactivate instrumentation and prevent any code
-         --  rewriting.
-
          Instrumented_CXX_For_Ranges : Cursor_Vectors.Vector;
          --  List of instrumented for ranges. For an explanation of why we need
          --  to store these, see the documentation of the Fix_CXX_For_Ranges
          --  subprogram.
+
       end record;
 
    type C_Source_Rewriter is tagged limited private;
