@@ -177,19 +177,19 @@ ifdef INSTRUMENTED
 	# use the version that was not instrumented as a main to compile
 	# gnatcov32, running gnatcov32 will not dump execution traces.
 
-	gnatcov instrument -j0 -P gnatcov.gpr -XPART=gnatcov64
+	gnatcov instrument -j0 -P gnatcov.gpr -XPART=gnatcov64 --c++-opts=$(CXXFLAGS)
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov64 \
 	  --src-subdirs=gnatcov-instr
 
-	gnatcov instrument -j0 -P gnatcov.gpr -XPART=gnatcov32
+	gnatcov instrument -j0 -P gnatcov.gpr -XPART=gnatcov32 --c++-opts=$(CXXFLAGS)
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov32 \
 	  --src-subdirs=gnatcov-instr
 
-	gnatcov instrument -j0 -P gnatcov.gpr -XPART=driver
+	gnatcov instrument -j0 -P gnatcov.gpr -XPART=driver --c++-opts=$(CXXFLAGS)
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=driver \
 	  --src-subdirs=gnatcov-instr
 
-	gnatcov instrument -j0 -P gnatcov.gpr -XPART=compiler
+	gnatcov instrument -j0 -P gnatcov.gpr -XPART=compiler --c++-opts=$(CXXFLAGS)
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=compiler \
 	  --src-subdirs=gnatcov-instr
 else
