@@ -301,7 +301,7 @@ package body SC_Obligations.BDD is
       BDD.Path_Count := Path_Count (BDD.Root_Condition);
    exception
       when Path_Limit_Error =>
-         BDD.Path_Count := 0;
+         BDD.Path_Count := Path_Count_Limit + 1;
    end Enumerate_Paths;
 
    ---------------

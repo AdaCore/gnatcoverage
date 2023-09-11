@@ -30,6 +30,7 @@ with Clang.CX_Source_Location; use Clang.CX_Source_Location;
 with Clang.Index;              use Clang.Index;
 with Clang.Rewrite;            use Clang.Rewrite;
 
+with Diagnostics;       use Diagnostics;
 with Files_Table;       use Files_Table;
 with Instrument.C_Utils; use Instrument.C_Utils;
 with Instrument.Common; use Instrument.Common;
@@ -53,6 +54,28 @@ package Instrument.C is
       Dump_Config : Any_Dump_Config;
       Prj         : Prj_Desc);
 
+   procedure Replace_Manual_Dump_Indication
+     (Self        : in out C_Family_Instrumenter_Type;
+      Done        : in out Boolean;
+      Prj         : Prj_Desc;
+      Source      : GNATCOLL.Projects.File_Info);
+   --  Preprocess Source and look through the text content of the preprocessed
+   --  file looking for manual dump indications. The C-like languages, the
+   --  expected indication is the comment alone on its line:
+   --
+   --  /* GNATCOV_DUMP_BUFFERS */
+   --
+   --  When one is found the text of the file is modified: the line is replaced
+   --  by a call to the manual dump procedure and an extern declaration for the
+   --  procedure is put at the beginning of the file.
+
+   procedure Emit_Dump_Helper_Unit_Manual
+     (Self          : in out C_Family_Instrumenter_Type;
+      Helper_Unit   : out US.Unbounded_String;
+      Dump_Config   : Any_Dump_Config;
+      Prj           : Prj_Desc);
+   --  Emit the dump helper unit
+
    overriding procedure Emit_Buffers_List_Unit
      (Self        : C_Family_Instrumenter_Type;
       Instr_Units : Unit_Sets.Set;
@@ -66,6 +89,10 @@ package Instrument.C is
    overriding function Buffer_Unit
      (Self : C_Family_Instrumenter_Type;
       CU   : Compilation_Unit;
+      Prj  : Prj_Desc) return Compilation_Unit;
+
+   overriding function Dump_Manual_Helper_Unit
+     (Self : C_Family_Instrumenter_Type;
       Prj  : Prj_Desc) return Compilation_Unit;
 
    overriding function Dump_Helper_Unit
@@ -349,6 +376,10 @@ package Instrument.C is
          --  List of instrumented for ranges. For an explanation of why we need
          --  to store these, see the documentation of the Fix_CXX_For_Ranges
          --  subprogram.
+
+         Disable_Instrumentation : Boolean := False;
+         --  Set to True to deactivate instrumentation and prevent any code
+         --  rewriting.
       end record;
 
    type C_Source_Rewriter is tagged limited private;
@@ -418,19 +449,19 @@ private
 
    procedure Insert_Text_Before_Token
      (Pass : Pass_Kind;
-      Rew  : Rewriter_T;
+      UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String) is null;
 
    procedure Insert_Text_Before
      (Pass : Pass_Kind;
-      Rew  : Rewriter_T;
+      UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String) is null;
 
    procedure Insert_Text_After
      (Pass : Pass_Kind;
-      Rew  : Rewriter_T;
+      UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String) is null;
 
@@ -439,6 +470,12 @@ private
       UIC  : in out C_Unit_Inst_Context'Class;
       N    : Cursor_T) is null;
    --  See the documentation of Fix_CXX_For_Ranges
+
+   procedure Report
+     (Pass : Pass_Kind;
+      Node : Cursor_T;
+      Msg  : String;
+      Kind : Report_Kind := Diagnostics.Warning) is null;
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
    with record

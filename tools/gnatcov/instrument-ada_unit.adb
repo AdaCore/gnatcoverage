@@ -39,6 +39,7 @@ use Libadalang.Generic_API.Introspection;
 with Libadalang.Sources;       use Libadalang.Sources;
 
 with GNATCOLL.Utils;
+with GNATCOLL.VFS;
 
 with ALI_Files;        use ALI_Files;
 with Coverage_Options; use Coverage_Options;
@@ -94,11 +95,6 @@ package body Instrument.Ada_Unit is
      (Name : Libadalang.Analysis.Unbounded_Text_Type_Array)
       return Ada_Qualified_Name;
    --  Convert a Libadalang fully qualified name into our format
-
-   procedure Import_Non_Instrumented_LL_SCOs
-     (UIC : Ada_Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map);
-   --  Import the low level SCO in UIC marked as non-instrumented in the high
-   --  level non-instrumented SCO_Id sets.
 
    procedure Find_Ada_Units
      (Instrumenter : in out Ada_Instrumenter_Type;
@@ -164,29 +160,6 @@ package body Instrument.Ada_Unit is
       end return;
    end To_Qualified_Name;
 
-   -------------------------------------
-   -- Import_Non_Instrumented_LL_SCOs --
-   -------------------------------------
-
-   procedure Import_Non_Instrumented_LL_SCOs
-     (UIC : Ada_Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map) is
-   begin
-      for LL_SCO of UIC.Non_Instr_LL_SCOs loop
-         declare
-            Remapped_SCO : constant SCO_Id := SCO_Map (Nat (LL_SCO));
-         begin
-            case Kind (Remapped_SCO) is
-               when Statement => Set_Stmt_SCO_Non_Instr (Remapped_SCO);
-               when Decision  => Set_Decision_SCO_Non_Instr (Remapped_SCO);
-               when Condition => Set_Decision_SCO_Non_Instr_For_MCDC
-                                   (Enclosing_Decision (Remapped_SCO));
-               when others =>
-                  null;
-            end case;
-         end;
-      end loop;
-   end Import_Non_Instrumented_LL_SCOs;
-
    type All_Symbols is
      (
       --  Aspects
@@ -224,7 +197,8 @@ package body Instrument.Ada_Unit is
 
       --  Annotations
 
-      Xcov);
+      Xcov,
+      Dump_Buffers);
 
    Symbols : constant Symbol_Table := Create_Symbol_Table;
    --  Holder for name singletons
@@ -254,7 +228,8 @@ package body Instrument.Ada_Unit is
       Jorvik                  => Precompute_Symbol (Jorvik),
       Ravenscar               => Precompute_Symbol (Ravenscar),
       Restricted              => Precompute_Symbol (Restricted),
-      Xcov                    => Precompute_Symbol (Xcov));
+      Xcov                    => Precompute_Symbol (Xcov),
+      Dump_Buffers            => Precompute_Symbol (Dump_Buffers));
 
    function As_Symbol (S : All_Symbols) return Symbol_Type is
      (Precomputed_Symbols (S));
@@ -1425,6 +1400,11 @@ package body Instrument.Ada_Unit is
    --  See the documentation of the eponym fields of the Ada_Unit_Inst_Context
    --  record for the Language_Version and Degenerate_Subprogram_Generics
    --  parameters.
+
+   function Create_Manual_Helper_Unit_Name
+      (Prj : Prj_Desc)
+   return Ada_Qualified_Name;
+   --  Return the name for the dump helper unit for manual dump trigger
 
    procedure Emit_Dump_Helper_Unit
      (Dump_Config           : Any_Dump_Config;
@@ -2964,8 +2944,8 @@ package body Instrument.Ada_Unit is
    --  top level).
    --
    --  If Do_Not_Instrument, this creates SCOs for the decisions/conditions,
-   --  but plan not to instrument them, so that the decision can be reported as
-   --  such.
+   --  but plans not to instrument them, so that the decision can be reported
+   --  as such.
 
    --------------------------
    -- Internal Subprograms --
@@ -3059,6 +3039,10 @@ package body Instrument.Ada_Unit is
 
       In_Generic : Boolean := False;
       --  Wether this statment is generic code.
+
+      Do_Not_Instrument : Boolean;
+      --  Whether this statement should not be instrumented. This is set to
+      --  True when instrumenting the statement could create invalid Ada code.
    end record;
 
    package SC is new Table.Table
@@ -3118,8 +3102,7 @@ package body Instrument.Ada_Unit is
       SD_First : constant Nat := SD.Last + 1;
       --  Record first entries used in SC/SD at this recursive level
 
-      Current_Insertion_Info : aliased Insertion_Info :=
-        (Method => None, Unsupported => False);
+      Current_Insertion_Info : aliased Insertion_Info := (Method => None);
 
       procedure Extend_Statement_Sequence
         (UIC                 : Ada_Unit_Inst_Context;
@@ -3127,7 +3110,8 @@ package body Instrument.Ada_Unit is
          Typ                 : Character;
          Insertion_N         : Node_Rewriting_Handle :=
                                   No_Node_Rewriting_Handle;
-         Instrument_Location : Instrument_Location_Type := Before);
+         Instrument_Location : Instrument_Location_Type := Before;
+         Do_Not_Instrument   : Boolean := False);
       --  Extend the current statement sequence to encompass the node N.
       --
       --  Typ is the letter that identifies the type of statement/declaration
@@ -3198,7 +3182,8 @@ package body Instrument.Ada_Unit is
          Typ                 : Character;
          Insertion_N         : Node_Rewriting_Handle :=
                                   No_Node_Rewriting_Handle;
-         Instrument_Location : Instrument_Location_Type := Before)
+         Instrument_Location : Instrument_Location_Type := Before;
+         Do_Not_Instrument   : Boolean := False)
       is
          SR      : constant Source_Location_Range := N.Sloc_Range;
 
@@ -3336,7 +3321,8 @@ package body Instrument.Ada_Unit is
                         when others        => After)
                 else Instrument_Location),
 
-             In_Generic          => UIC.In_Generic));
+             In_Generic          => UIC.In_Generic,
+             Do_Not_Instrument   => Do_Not_Instrument));
       end Extend_Statement_Sequence;
 
       -----------------------------
@@ -3434,12 +3420,7 @@ package body Instrument.Ada_Unit is
 
             Raise_Stub_Internal_Error_For (Ada_Instrument_Insert_Stmt_Witness);
 
-            --  If the current code pattern is actually unsupported, do not
-            --  even try to insert the witness call or allocate bits for it in
-            --  the buffers. Mark the corresponding SCO as non-instrumented
-            --  instead.
-
-            if Insert_Info.Unsupported then
+            if SCE.Do_Not_Instrument then
                UIC.Non_Instr_LL_SCOs.Include (SCO_Id (LL_SCO_Id));
                return;
             end if;
@@ -3855,7 +3836,6 @@ package body Instrument.Ada_Unit is
          begin
 
             II.RH_List := Stmt_list_RH;
-            II.Unsupported := False;
             II.Index := 1;
             II.Rewriting_Offset := 0;
             II.Preelab := False;
@@ -3943,8 +3923,7 @@ package body Instrument.Ada_Unit is
          --  Witness insertion info for statements (for both null procedures
          --  and expression functions).
 
-         Unsupported : Boolean := False;
-         --  Temporary to compute New_Insertion_Info.Unsupported
+         Do_Not_Instrument : Boolean := False;
 
          EF_Inserter : aliased Expr_Func_MCDC_State_Inserter :=
            (N_Spec        => N_Spec,
@@ -3981,7 +3960,7 @@ package body Instrument.Ada_Unit is
 
          if Is_Generic (UIC, N.As_Basic_Decl) then
             if Is_Expr_Function then
-               Unsupported := True;
+               Do_Not_Instrument := True;
                Report (UIC, N,
                        "gnatcov limitation: "
                        & "cannot instrument generic expression functions."
@@ -3992,7 +3971,7 @@ package body Instrument.Ada_Unit is
                --  functions and null procedures, we are in the case of a
                --  generic null procedure here.
 
-               Unsupported := True;
+               Do_Not_Instrument := True;
                Report (UIC, N,
                        "gnatcov limitation:"
                        & " cannot instrument generic null procedures."
@@ -4028,7 +4007,7 @@ package body Instrument.Ada_Unit is
                --  so that the augmented EF is no longer a primitive of its
                --  return type. Need to check for potential freezing issues.
 
-               Unsupported := True;
+               Do_Not_Instrument := True;
                Report (UIC, N,
                        "gnatcov limitation:"
                        & " cannot instrument an expression function which is"
@@ -4039,7 +4018,7 @@ package body Instrument.Ada_Unit is
             elsif Is_Self_Referencing (UIC, N.As_Expr_Function)
                  and then not Common_Nodes.Ctrl_Type.Is_Null
             then
-               Unsupported := True;
+               Do_Not_Instrument := True;
                Report (UIC, N,
                        "gnatcov limitation:"
                        & " instrumenting a self referencing (i.e. recursive)"
@@ -4078,11 +4057,10 @@ package body Instrument.Ada_Unit is
 
             New_Insertion_Info :=
               (Method         => Expression_Function,
-               Unsupported    => Unsupported,
                Witness_Actual => No_Node_Rewriting_Handle,
                Witness_Formal => No_Node_Rewriting_Handle);
 
-            if not New_Insertion_Info.Unsupported then
+            if not Do_Not_Instrument then
 
                --  Pass all expression function parameters to the augmented
                --  expression function call.
@@ -4116,7 +4094,6 @@ package body Instrument.Ada_Unit is
 
             New_Insertion_Info :=
               (Method                => Statement,
-               Unsupported           => Unsupported,
                RH_List               => NP_Nodes.Stmt_List,
                Index                 => 1,
                Rewriting_Offset      => 0,
@@ -4145,18 +4122,9 @@ package body Instrument.Ada_Unit is
             declare
                N_Expr : constant Expr := N.As_Expr_Function.F_Expr;
             begin
-               Extend_Statement_Sequence (UIC, N_Expr, 'X');
-
-               --  For unsupported expression functions, creating a statement
-               --  obligation is enough: it will never be satisfied and thus
-               --  violations regarding conditions/decisions will not be
-               --  displayed, so no need to bother creating them and adding
-               --  special cases in decision processings for unsupported
-               --  expression functions.
-
-               if not New_Insertion_Info.Unsupported then
-                  Process_Decisions_Defer (N_Expr, 'X');
-               end if;
+               Extend_Statement_Sequence
+                 (UIC, N_Expr, 'X', Do_Not_Instrument => Do_Not_Instrument);
+               Process_Decisions_Defer (N_Expr, 'X', Do_Not_Instrument);
             end;
          else
             --  Even though there is a "null" keyword in the null procedure,
@@ -4164,10 +4132,11 @@ package body Instrument.Ada_Unit is
             --  the whole null procedure declaration to provide a sloc.
 
             Extend_Statement_Sequence
-              (UIC         => UIC,
-               N           => N,
-               Typ         => 'X',
-               Insertion_N => NP_Nodes.Null_Stmt);
+              (UIC               => UIC,
+               N                 => N,
+               Typ               => 'X',
+               Insertion_N       => NP_Nodes.Null_Stmt,
+               Do_Not_Instrument => Do_Not_Instrument);
          end if;
          Set_Statement_Entry;
 
@@ -4179,7 +4148,7 @@ package body Instrument.Ada_Unit is
          --  There is nothing else to do if we gave up instrumenting this
          --  subprogram.
 
-         if New_Insertion_Info.Unsupported then
+         if Do_Not_Instrument then
             return;
          end if;
 
@@ -5163,7 +5132,6 @@ package body Instrument.Ada_Unit is
                else Declaration);
             II : Insertion_Info (Method);
          begin
-            II.Unsupported := False;
             II.RH_List := Handle (L);
             II.Index := 0;
             II.Rewriting_Offset := 0;
@@ -5678,7 +5646,6 @@ package body Instrument.Ada_Unit is
          Op_NK : Ada_Node_Kind_Type;
 
       begin
-
          --  Logical operator
 
          if Is_Logical_Operator (UIC, N) then
@@ -5725,14 +5692,16 @@ package body Instrument.Ada_Unit is
          else
             Output_Element (N.As_Ada_Node);
 
+            if Decision_Static or else Do_Not_Instrument then
+               return;
+            end if;
             if MCDC_Coverage_Enabled then
                UIC.Source_Conditions.Append
                  (Source_Condition'
                     (LL_SCO          => SCOs.SCO_Table.Last,
                      Condition       => N.As_Expr,
                      State           => MCDC_State,
-                     First           => Condition_Count = 0,
-                     Decision_Static => Decision_Static));
+                     First           => Condition_Count = 0));
 
                Condition_Count := Condition_Count + 1;
             end if;
@@ -5770,6 +5739,9 @@ package body Instrument.Ada_Unit is
             SFI  => UIC.SFI,
             Last => False);
          Hash_Entries.Append ((Start_Sloc (N_SR), SCOs.SCO_Table.Last));
+         if Do_Not_Instrument then
+            UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
+         end if;
       end Output_Element;
 
       -------------------
@@ -5850,6 +5822,9 @@ package body Instrument.Ada_Unit is
             SFI                => UIC.SFI,
             Last               => False,
             Pragma_Aspect_Name => Nam);
+         if Do_Not_Instrument then
+            UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
+         end if;
 
          Current_Decision := SCOs.SCO_Table.Last;
 
@@ -5888,13 +5863,15 @@ package body Instrument.Ada_Unit is
             --  For this reason, also refrain from instrumenting static
             --  decisions.
 
-            UIC.Source_Decisions.Append
-              (Source_Decision'
-                 (LL_SCO            => Current_Decision,
-                  Decision          => N.As_Expr,
-                  State             => MCDC_State,
-                  Do_Not_Instrument => Do_Not_Instrument
-                                       or else Is_Static_Expr (N.As_Expr)));
+            if not (Do_Not_Instrument
+                    or else Is_Static_Expr (N.As_Expr))
+            then
+               UIC.Source_Decisions.Append
+                 (Source_Decision'
+                    (LL_SCO   => Current_Decision,
+                     Decision => N.As_Expr,
+                     State    => MCDC_State));
+            end if;
          end if;
 
          --  For an aspect specification, which will be rewritten into a
@@ -5924,7 +5901,7 @@ package body Instrument.Ada_Unit is
             end if;
 
          else
-            Process_Decisions (UIC, N, 'X');
+            Process_Decisions (UIC, N, 'X', Do_Not_Instrument);
          end if;
       end Find_Nested_Decisions;
 
@@ -6019,33 +5996,48 @@ package body Instrument.Ada_Unit is
                   Alt  : constant Elsif_Expr_Part_List := IEN.F_Alternatives;
 
                begin
-                  Process_Decisions (UIC, IEN.F_Cond_Expr, 'I');
-                  Process_Decisions (UIC, IEN.F_Then_Expr, 'X');
+                  Process_Decisions
+                    (UIC, IEN.F_Cond_Expr, 'I', Do_Not_Instrument);
+                  Process_Decisions
+                    (UIC, IEN.F_Then_Expr, 'X', Do_Not_Instrument);
 
                   for J in 1 .. Alt.Children_Count loop
                      declare
                         EIN : constant Elsif_Expr_Part :=
                           Alt.Child (J).As_Elsif_Expr_Part;
                      begin
-                        Process_Decisions (UIC, EIN.F_Cond_Expr, 'I');
-                        Process_Decisions (UIC, EIN.F_Then_Expr, 'X');
+                        Process_Decisions
+                          (UIC, EIN.F_Cond_Expr, 'I', Do_Not_Instrument);
+                        Process_Decisions
+                          (UIC, EIN.F_Then_Expr, 'X', Do_Not_Instrument);
                      end;
                   end loop;
 
-                  Process_Decisions (UIC, IEN.F_Else_Expr, 'X');
+                  Process_Decisions
+                    (UIC, IEN.F_Else_Expr, 'X', Do_Not_Instrument);
                   return Over;
                end;
 
             when Ada_Quantified_Expr =>
                Process_Decisions
-                  (UIC, N.As_Quantified_Expr.F_Loop_Spec, 'X');
-               Process_Decisions (UIC, N.As_Quantified_Expr.F_Expr, 'W');
+                 (UIC,
+                  N.As_Quantified_Expr.F_Loop_Spec,
+                  'X',
+                  Do_Not_Instrument);
+               Process_Decisions
+                 (UIC, N.As_Quantified_Expr.F_Expr, 'W', Do_Not_Instrument);
                return Over;
 
             when Ada_For_Loop_Spec =>
-               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Var_Decl, 'X');
-               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Iter_Expr, 'X');
-               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Iter_Filter, 'W');
+               Process_Decisions
+                 (UIC, N.As_For_Loop_Spec.F_Var_Decl, 'X', Do_Not_Instrument);
+               Process_Decisions
+                 (UIC, N.As_For_Loop_Spec.F_Iter_Expr, 'X', Do_Not_Instrument);
+               Process_Decisions
+                 (UIC,
+                  N.As_For_Loop_Spec.F_Iter_Filter,
+                  'W',
+                  Do_Not_Instrument);
                return Over;
 
             --  Aspects for which we don't want to instrument the decision
@@ -6074,7 +6066,8 @@ package body Instrument.Ada_Unit is
             --  them, but do process the final expression.
 
             when Ada_Decl_Expr =>
-               Process_Decisions (UIC, N.As_Decl_Expr.F_Expr, 'X');
+               Process_Decisions
+                 (UIC, N.As_Decl_Expr.F_Expr, 'X', Do_Not_Instrument);
                return Over;
 
             --  All other cases, continue scan
@@ -7906,6 +7899,137 @@ package body Instrument.Ada_Unit is
       Rewriter.Apply;
    end Auto_Dump_Buffers_In_Main;
 
+   ------------------------------------
+   -- Replace_Manual_Dump_Indication --
+   ------------------------------------
+
+   overriding procedure Replace_Manual_Dump_Indication
+     (Self        : in out Ada_Instrumenter_Type;
+      Done        : in out Boolean;
+      Prj         : Prj_Desc;
+      Source      : GNATCOLL.Projects.File_Info)
+   is
+      Instrumented_Filename : constant String :=
+        +(Prj.Output_Dir & "/" & GNATCOLL.VFS."+" (Source.File.Base_Name));
+      Source_Filename       : constant String :=
+        GNATCOLL.VFS."+" (Source.File.Full_Name);
+      Instrumented_Exists   : constant Boolean :=
+        Ada.Directories.Exists (Instrumented_Filename);
+      File_To_Search        : constant String := (if Instrumented_Exists
+                                                  then Instrumented_Filename
+                                                  else Source_Filename);
+      Unit                  : constant Libadalang.Analysis.Analysis_Unit :=
+        Self.Context.Get_From_File (File_To_Search);
+
+      Rewriter              : Ada_Source_Rewriter;
+
+      function Find_And_Replace_Pragma
+        (N : Ada_Node'Class)
+         return Visit_Status;
+      --  If N is the expected pragma statement, replace it with the actual
+      --  call.
+
+      procedure Create_Directory_If_Not_Exists (Name : String);
+      --  Create the directory of name Name if it does not exist yet
+
+      function Find_And_Replace_Pragma (N : Ada_Node'Class) return Visit_Status
+      is
+         function Is_Expected_Argument
+           (Args : Base_Assoc_List;
+            Idx  : Positive;
+            Arg  : All_Symbols)
+            return Boolean
+         is ((As_Symbol
+             (Args.Child (Idx).As_Pragma_Argument_Assoc.F_Expr.As_Identifier)
+             = As_Symbol (Arg)));
+         --  Check if the argument of Prag_N at Index matches Arg
+
+      begin
+         if N.Kind = Ada_Pragma_Node then
+            declare
+               Prag_N    : constant Pragma_Node := N.As_Pragma_Node;
+               Prag_Args : constant Base_Assoc_List := Prag_N.F_Args;
+            begin
+               if Pragma_Name (Prag_N) = Name_Annotate
+                 and then Prag_Args.Children_Count = 2
+                 and then Is_Expected_Argument (Prag_Args, 1, Xcov)
+                 and then Is_Expected_Argument (Prag_Args, 2, Dump_Buffers)
+               then
+                  --  The pragma statement to be replaced by the actual call
+                  --  to Dump_Buffers has been found.
+
+                  if not Done then
+                     Start_Rewriting (Rewriter, Self, Prj, File_To_Search);
+                  end if;
+
+                  declare
+                     RH        : constant Rewriting_Handle := Rewriter.Handle;
+                     With_Unit : constant Node_Rewriting_Handle :=
+                       To_Nodes
+                         (RH,
+                          Create_Manual_Helper_Unit_Name (Prj));
+                     Dump_Call : constant  Node_Rewriting_Handle :=
+                       To_Nodes
+                         (RH,
+                          To_Qualified_Name (To_String (Dump_Procedure_Name)));
+                  begin
+                     --  Add the with clause only once in the file
+
+                     if not Done then
+                        Append_Child
+                          (Handle (Unit.Root.As_Compilation_Unit.F_Prelude),
+                           Create_From_Template
+                             (RH,
+                              Template  => "with {};",
+                              Arguments => (1 => With_Unit),
+                              Rule => With_Clause_Rule));
+                     end if;
+
+                     --  Insert the call to the dump procedure
+
+                     Replace
+                       (Handle (N),
+                        Create_From_Template
+                          (RH,
+                           "{}.{};",
+                           Arguments => (1 => With_Unit, 2 => Dump_Call),
+                           Rule => Call_Stmt_Rule));
+                  end;
+
+                  Done := True;
+                  return Over;
+               end if;
+            end;
+         end if;
+         return Into;
+      end Find_And_Replace_Pragma;
+
+      procedure Create_Directory_If_Not_Exists (Name : String)
+      is
+      begin
+         if not Ada.Directories.Exists (Name) then
+            Ada.Directories.Create_Directory (Name);
+         end if;
+      end Create_Directory_If_Not_Exists;
+
+   begin
+      --  If no pragma is found in this file then Start_Rewriting will not be
+      --  called. In this case, Rewriter.Handle will not be properly
+      --  initialized which will lead to finalization issues. To avoid this,
+      --  make sure it is set to No_Rewriting_Handle.
+
+      Rewriter.Handle := No_Rewriting_Handle;
+
+      Unit.Root.Traverse (Find_And_Replace_Pragma'Access);
+
+      if Done then
+         Create_Directory_If_Not_Exists
+           (GNATCOLL.VFS."+" (Source.Project.Object_Dir.Base_Dir_Name));
+         Create_Directory_If_Not_Exists (+Prj.Output_Dir);
+         Rewriter.Apply;
+      end if;
+   end Replace_Manual_Dump_Indication;
+
    ----------------------------
    -- Instrument_Source_File --
    ----------------------------
@@ -8069,18 +8193,10 @@ package body Instrument.Ada_Unit is
 
          if Coverage.Enabled (Decision) or else MCDC_Coverage_Enabled then
             for SD of UIC.Source_Decisions loop
-
-               --  Mark non-instrumented decisions as such so that they are
-               --  properly reported.
-
                declare
                   HL_SCO : constant SCO_Id := SCO_Map (SD.LL_SCO);
                begin
-                  if SD.Do_Not_Instrument then
-                     Set_Decision_SCO_Non_Instr (HL_SCO);
-                  else
-                     Insert_Decision_Witness (UIC, SD, Path_Count (HL_SCO));
-                  end if;
+                  Insert_Decision_Witness (UIC, SD, Path_Count (HL_SCO));
                end;
             end loop;
 
@@ -8094,11 +8210,6 @@ package body Instrument.Ada_Unit is
                --  in a decision with a path count exceeding the limit to avoid
                --  generating overly large traces / run out of memory.
                --
-               --  We also do not include witness calls for conditions of
-               --  static decision, as this would make the instrumented
-               --  expression non-static. Mark the enclosing decision as not
-               --  instrumented for MCDC instead.
-               --
                --  As we go through each condition, mark their enclosing
                --  decision as not instrumented if their number of paths
                --  exceeds our limit.
@@ -8109,13 +8220,14 @@ package body Instrument.Ada_Unit is
                      Decision  : constant SCO_Id :=
                        Enclosing_Decision (Condition);
                   begin
-                     if Path_Count (Decision) /= 0
-                        and then not SC.Decision_Static
-                     then
+                     --  If the number of paths in the decision binary diagram
+                     --  exceeds the path count limit, we do not instrument it.
+
+                     if Path_Count (Decision) > Get_Path_Count_Limit then
+                        Set_Decision_SCO_Non_Instr_For_MCDC (Decision);
+                     else
                         Insert_Condition_Witness
                           (UIC, SC, Offset_For_True (Condition));
-                     else
-                        Set_Decision_SCO_Non_Instr_For_MCDC (Decision);
                      end if;
                   end;
                end loop;
@@ -8543,6 +8655,22 @@ package body Instrument.Ada_Unit is
       end if;
    end Emit_Pure_Buffer_Unit;
 
+   ------------------------------------
+   -- Create_Manual_Helper_Unit_Name --
+   ------------------------------------
+
+   function Create_Manual_Helper_Unit_Name
+     (Prj : Prj_Desc)
+   return Ada_Qualified_Name
+   is
+      Helper_Unit : Ada_Qualified_Name;
+   begin
+      Helper_Unit := Sys_Prefix;
+      Helper_Unit.Append
+        (To_Unbounded_String ("D") & "B_manual_" & To_String (Prj.Prj_Name));
+      return Helper_Unit;
+   end Create_Manual_Helper_Unit_Name;
+
    ---------------------------
    -- Emit_Dump_Helper_Unit --
    ---------------------------
@@ -8574,7 +8702,7 @@ package body Instrument.Ada_Unit is
       --  Qualified names for the unit that contains the buffer output
       --  procedure, and for the procedure itself.
 
-      Dump_Trigger : constant Auto_Dump_Trigger :=
+      Dump_Trigger : constant Any_Dump_Trigger :=
         (if Override_Dump_Trigger = Manual
          then Dump_Config.Trigger
          else Override_Dump_Trigger);
@@ -8585,9 +8713,13 @@ package body Instrument.Ada_Unit is
    begin
       --  Create the name of the helper unit
 
-      Helper_Unit := Sys_Prefix;
-      Helper_Unit.Append
-        (To_Unbounded_String ("D") & Instrumented_Unit_Slug (Main));
+      if Dump_Config.Trigger = Manual then
+         Helper_Unit := Create_Manual_Helper_Unit_Name (Prj);
+      else
+         Helper_Unit := Sys_Prefix;
+         Helper_Unit.Append
+           (To_Unbounded_String ("D") & Instrumented_Unit_Slug (Main));
+      end if;
 
       --  Compute the qualified names we need for instrumentation
 
@@ -8651,6 +8783,8 @@ package body Instrument.Ada_Unit is
                                  & " out Dump_Controlled_Type);");
                   File.New_Line;
                end if;
+            when others =>
+               null;
          end case;
 
          File.Put_Line ("end " & Helper_Unit_Name & ";");
@@ -8710,7 +8844,9 @@ package body Instrument.Ada_Unit is
                   else """" & To_String (Dump_Config.Filename_Env_Var)
                        & """");
                Prefix  : constant String :=
-                 """" & To_String (Dump_Config.Filename_Prefix) & """";
+                 """" & To_String ((if Dump_Config.Trigger = Manual
+                                   then Prj.Prj_Name
+                                   else Dump_Config.Filename_Prefix)) & """";
                Tag     : constant String := """" & (+Instrumenter.Tag)  & """";
                Simple  : constant String :=
                  (if Dump_Config.Filename_Simple
@@ -8733,7 +8869,9 @@ package body Instrument.Ada_Unit is
             --  get the current execution time.
 
             File.Put_Line ("         Program_Name => """
-                           & To_Ada (Main.Unit) & """,");
+           & (if Dump_Trigger = Manual
+             then "manual_dump"","
+             else To_Ada (Main.Unit) & ""","));
             File.Put ("         Exec_Date => 0");
          end case;
          File.Put_Line (");");
@@ -8755,11 +8893,14 @@ package body Instrument.Ada_Unit is
                File.Put_Line ("   type Callback is access procedure;");
                File.Put_Line ("   pragma Convention (C, Callback);");
                File.New_Line;
+
                File.Put_Line ("   function atexit (Func : Callback)"
                               & " return Interfaces.C.int;");
                File.Put_Line ("   pragma Import (C, atexit);");
                File.Put_Line ("   Dummy : constant Interfaces.C.int :=");
-               File.Put_Line ("     atexit (" & Dump_Procedure & "'Access);");
+               File.Put_Line
+                 ("     atexit (" & Dump_Procedure & "'Access);");
+
                File.Put_Line ("begin");
                File.Put_Line ("   return (Data => False);");
                File.Put_Line
@@ -8810,12 +8951,44 @@ package body Instrument.Ada_Unit is
                   File.Put_Line ("   end Finalize;");
                   File.New_Line;
                end if;
+
+            when others =>
+               null;
          end case;
 
          File.Put_Line ("end " & Helper_Unit_Name & ";");
          File.Close;
       end;
    end Emit_Dump_Helper_Unit;
+
+   ----------------------------------
+   -- Emit_Dump_Helper_Unit_Manual --
+   ----------------------------------
+
+   procedure Emit_Dump_Helper_Unit_Manual
+     (Self          : in out Ada_Instrumenter_Type;
+      Helper_Unit   : out Unbounded_String;
+      Dump_Config   : Any_Dump_Config;
+      Prj           : Prj_Desc)
+   is
+      Main : Compilation_Unit_Part;
+      --  Since the dump trigger is "manual" and there is no main to be given,
+      --  the Main argument in the following call to Emit_Dump_Helper_Unit will
+      --  not be used.
+
+      Ada_Helper_Unit : Ada_Qualified_Name;
+   begin
+      Emit_Dump_Helper_Unit
+        (Dump_Config           => Dump_Config,
+         Instrumenter          => Self,
+         Prj                   => Prj,
+         Main                  => Main,
+         Helper_Unit           => Ada_Helper_Unit,
+         Override_Dump_Trigger => Manual,
+         Has_Controlled        => False);
+
+      Helper_Unit := To_Unbounded_String (To_Ada (Ada_Helper_Unit));
+   end Emit_Dump_Helper_Unit_Manual;
 
    ----------------------------
    -- Emit_Buffers_List_Unit --
@@ -8879,6 +9052,11 @@ package body Instrument.Ada_Unit is
             end;
          end loop;
 
+         if Instr_Units.Is_Empty then
+            File.Put_Line
+              ("   Dummy : aliased GNATcov_RTS_Coverage_Buffers_Group;");
+         end if;
+
          --  Create the list of coverage buffers
 
          File.Put_Line ("   List : constant GNATcov_RTS.Buffers.Lists"
@@ -8899,6 +9077,10 @@ package body Instrument.Ada_Unit is
                Index := Index + 1;
             end loop;
          end;
+
+         if Instr_Units.Is_Empty then
+            File.Put ("      1 => Dummy'Access);");
+         end if;
 
          File.Put_Line ("   C_List : constant GNATcov_RTS.Buffers.Lists"
                         & ".GNATcov_RTS_Coverage_Buffers_Group_Array :=");
@@ -8990,7 +9172,6 @@ package body Instrument.Ada_Unit is
          --  Instrument the file only if it is a file of interest
 
          if Files_Of_Interest.Contains (+Filename) then
-
             --  In verbose mode, always print a notice for the source file
             --  that we are about to instrument. In non-verbose mode, just get
             --  prepared to print it in case we emit a "source file missing"

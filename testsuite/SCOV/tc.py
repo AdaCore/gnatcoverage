@@ -123,10 +123,15 @@ class TestCase:
         # match this expression
         return [drv for drv in self.all_drivers if re.search(drv_expr, drv)]
 
-    def __init__(self, extradrivers="", extracargs="", category=CAT.auto):
+    def __init__(self, extradrivers="", extracargs="", category=CAT.auto,
+                 tolerate_messages=None):
         # By default, these test cases expect no error from subprocesses (xrun,
         # xcov, etc.)
         self.expect_failures = False
+
+        # Pass tolerate_messages to gnatcov instrument invocations (see the doc
+        # for xcov_instrument).
+        self.tolerate_messages = tolerate_messages
 
         # Step 1: Compute the list of drivers and consolidation specs
         #         to exercise
