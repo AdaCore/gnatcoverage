@@ -108,7 +108,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
     :param None|list[str] exec_args: List of arguments to pass to the
         executable. This will only work for native configurations.
     :param bool auto_languages: See SUITE.tutils.xcov.
-    :param None|str manual_proj_name: when the dump trigger is manual, several
+    :param None|str manual_prj_name: when the dump trigger is manual, several
         traces files (one per project) can be emitted if there are dump buffers
         procedure calls in at least two distinct projects. This is the name of
         the project which trace we want to consider.

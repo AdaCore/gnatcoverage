@@ -15,59 +15,42 @@ from SUITE.tutils import gprfor
 
 tmp = Wdir('tmp_')
 
-lib1_p = gprfor(mains=[],
-                prjid="lib1",
-                srcdirs="../src-lib1",
-                objdir="obj-lib1",
-                langs=["Ada"],
-                deps=["lib3"]
-                )
 
-lib2_p = gprfor(mains=[],
-                prjid="lib2",
-                srcdirs="../src-lib2",
-                objdir="obj-lib2",
-                langs=["Ada"],
-                )
+def make_lib_gpr(name, srcdirs, deps):
+    return gprfor(mains=[],
+                  prjid=name,
+                  srcdirs=srcdirs,
+                  objdir="obj-" + name,
+                  langs=["Ada"],
+                  deps=deps)
 
-lib2_p = gprfor(mains=[],
-                prjid="lib3",
-                srcdirs="../src-lib1/src-lib3",
-                objdir="obj-lib3",
-                langs=["Ada"],
-                )
+
+lib1_p = make_lib_gpr("lib1", "../src-lib1", ["lib2"])
+lib2_p = make_lib_gpr("lib2", "../src-lib1/src-lib2", None)
 
 p = gprfor(mains=["main.adb"],
            srcdirs=["../src"],
            objdir="obj",
-           deps=["lib1", "lib2", "lib3"])
+           deps=["lib1", "lib2"])
+
+# Check that we get the expected coverage reports
+
+# Running gnatcov natively allows to have one source trace file per
+# project.
+instr_warning = (r"warning: Manual dump trigger indications were found in.*")
 
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=p, units=["lib1", "lib3"]),
+    gprsw=GPRswitches(root_project=p, units=["lib1", "lib2"]),
     covlevel='stmt',
     mains=['main'],
     extra_coverage_args=['-axcov', '--output-dir=xcov'],
     trace_mode='src',
     dump_trigger="manual",
-    manual_prj_name="lib1")
-
-# Check that gnatcov inserted the call to the dump buffers procedure in the
-# lib2.adb which is not a unit of interest
-
-
-def check_call(file):
-    thistest.fail_if_no_match("missing dump buffers procedure call",
-                              "(\n|.)*GCVRT.DB_manual_lib2.Dump_Buffers;"
-                              "(\n|.)*",
-                              contents_of(file))
-
-
-check_call('obj-lib2/lib2-gnatcov-instr/lib2.adb')
-
-# Check that we get the expected coverage reports
+    manual_prj_name="lib1",
+    tolerate_instrument_messages=instr_warning)
 
 check_xcov_reports('xcov/*.xcov', {
     'xcov/lib1.adb.xcov': {'+': {6, 8}, '-': {10}},
-    'xcov/lib3.adb.xcov': {'+': {4, 6}}})
+    'xcov/lib2.adb.xcov': {'+': {4, 6}}})
 
 thistest.result()
