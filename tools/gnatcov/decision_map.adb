@@ -80,8 +80,6 @@ package body Decision_Map is
    --  Return the PC of the first conditional branch instruction in D_Occ.
    --  Used as unique identifier for occurrences.
 
-   package SCO_Sets is new Ada.Containers.Ordered_Sets (SCO_Id);
-
    type Call_Kind is (Normal, Raise_Exception, Finalizer);
    --  Classification of calls within a decision:
    --    - normal calls to subprograms

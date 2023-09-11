@@ -532,8 +532,8 @@ package body SC_Obligations is
       Inst_Vector         : Inst_Info_Vectors.Vector;
       BDD_Vector          : BDD.BDD_Vectors.Vector;
       SCO_Vector          : SCO_Vectors.Vector;
-      Non_Instr_SCOs      : Non_Instrumented_SCO_Sets.Set;
-      Non_Instr_MCDC_SCOs : Non_Instrumented_SCO_Sets.Set;
+      Non_Instr_SCOs      : SCO_Sets.Set;
+      Non_Instr_MCDC_SCOs : SCO_Sets.Set;
    end record;
 
    -----------------------------------------
@@ -592,7 +592,7 @@ package body SC_Obligations is
    SCO_Vector : SCO_Vectors.Vector renames SC_Vectors.SCO_Vector;
    --  Vector of high-level Source Coverage Obligations (for all units)
 
-   Non_Instr_SCOs : Non_Instrumented_SCO_Sets.Set renames
+   Non_Instr_SCOs : SCO_Sets.Set renames
      SC_Vectors.Non_Instr_SCOs;
    --  Set of SCOs that were not instrumented, either for stmt or decision.
    --
@@ -601,7 +601,7 @@ package body SC_Obligations is
    --  be removed once manual serialization of checkpoints/SID files is
    --  implemented.
 
-   Non_Instr_MCDC_SCOs : Non_Instrumented_SCO_Sets.Set renames
+   Non_Instr_MCDC_SCOs : SCO_Sets.Set renames
      SC_Vectors.Non_Instr_MCDC_SCOs;
    --  Set of decsion SCOs that were not instrumented for MCDC.
    --
@@ -740,7 +740,7 @@ package body SC_Obligations is
       end if;
 
       declare
-         use Non_Instrumented_SCO_Sets;
+         use SCO_Sets;
          CU_CP_Set : Set;
          CU_Set    : Set;
          Cur       : Cursor;
@@ -1522,8 +1522,8 @@ package body SC_Obligations is
       --  Load non-instrumented information
 
       if not Version_Less (S, Than => 9) then
-         Non_Instrumented_SCO_Sets.Set'Read (S, CP_Vectors.Non_Instr_SCOs);
-         Non_Instrumented_SCO_Sets.Set'Read
+         SCO_Sets.Set'Read (S, CP_Vectors.Non_Instr_SCOs);
+         SCO_Sets.Set'Read
            (S, CP_Vectors.Non_Instr_MCDC_SCOs);
       end if;
 
@@ -1660,8 +1660,8 @@ package body SC_Obligations is
       Inst_Info_Vectors.Vector'Write      (S, Inst_Vector);
       BDD.BDD_Vectors.Vector'Write        (S, BDD_Vector);
       SCO_Vectors.Vector'Write            (S, SCO_Vector);
-      Non_Instrumented_SCO_Sets.Set'Write (S, Non_Instr_SCOs);
-      Non_Instrumented_SCO_Sets.Set'Write (S, Non_Instr_MCDC_SCOs);
+      SCO_Sets.Set'Write (S, Non_Instr_SCOs);
+      SCO_Sets.Set'Write (S, Non_Instr_MCDC_SCOs);
    end Checkpoint_Save;
 
    ---------------
