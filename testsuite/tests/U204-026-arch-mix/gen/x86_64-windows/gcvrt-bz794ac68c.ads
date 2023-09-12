@@ -3,22 +3,22 @@ with Interfaces.C; use Interfaces.C;
 with System;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
-package GCVRT.Bmain_2 is
+package GCVRT.Bz794ac68c is
 
    pragma Preelaborate;
 
 package Buffers_1 is
    Statement_Buffer : Coverage_Buffer_Type (0 .. 0) := (others => False);
    Statement_Buffer_Address : constant System.Address := Statement_Buffer'Address;
-   pragma Export (C, Statement_Buffer_Address, "xcov__buf_stmt__B_main_2_1");
+   pragma Export (C, Statement_Buffer_Address, "xcov__buf_stmt__B_z794ac68c_1");
 
    Decision_Buffer : Coverage_Buffer_Type (0 .. -1) := (others => False);
    Decision_Buffer_Address : constant System.Address := Decision_Buffer'Address;
-   pragma Export (C, Decision_Buffer_Address, "xcov__buf_dc__B_main_2_1");
+   pragma Export (C, Decision_Buffer_Address, "xcov__buf_dc__B_z794ac68c_1");
 
    MCDC_Buffer : Coverage_Buffer_Type (0 .. -1) := (others => False);
    MCDC_Buffer_Address : constant System.Address := MCDC_Buffer'Address;
-   pragma Export (C, MCDC_Buffer_Address, "xcov__buf_mcdc__B_main_2_1");
+   pragma Export (C, MCDC_Buffer_Address, "xcov__buf_mcdc__B_z794ac68c_1");
 
    Unit_Name : constant String := "main_2";
 
@@ -39,6 +39,6 @@ end Buffers_1;
    Buffers_Group : aliased constant Coverage_Buffers_Group :=
    (1 => Buffers_1.Buffers'Access);
    C_Buffers_Group : aliased constant GNATcov_RTS_Coverage_Buffers_Group := ( 1, Buffers_Group'Address);
-      pragma Export (C, C_Buffers_Group, "gnatcov_rts_buffers_main_2_buffers");
+      pragma Export (C, C_Buffers_Group, "gnatcov_rts_buffers_z794ac68c_buffers");
 
-end GCVRT.Bmain_2;
+end GCVRT.Bz794ac68c;
