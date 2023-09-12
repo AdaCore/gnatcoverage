@@ -461,3 +461,72 @@ created in the same directory as each ``test_driver.gpr`` file. This file
 contains the name of the unit tested by the driver, and can be used to specify
 to |gcv| to only process the unit under test, by adding the switch
 :cmd-option:`--units=@units.list`.
+
+###########################################
+Using GNATtest with GNATfuzz (experimental)
+###########################################
+
+This section presents how a pre-existing GNATtest test harness can be used as
+a starting corpus for a GNATfuzz fuzzing campaign, and how inputs of interest
+found by GNATfuzz can be imported back into a GNATtest harness. These features
+are still experimental; the workflow and command line interface may change in
+the future.
+
+**************************
+Setting up the environment
+**************************
+
+To ensure the entire workflow functions properly, it's crucial to configure
+the various tools by setting specific environment variables.
+
+The first step is to setup the value generation runtime library. For detailed
+instructions on how to do so, see :ref:`Tgen_Env`.
+
+Then in order to activate the import and export of tests between GNATfuzz
+and GNATtest, the ``GNATFUZZ_TGEN`` environment variable must be set:
+
+.. code-block::bash
+   export GNATFUZZ_TGEN=1
+
+*******************************************
+Using GNATStudio to perform the integration
+*******************************************
+
+The simplest way to sequence the invocations of the two tools is to use the
+GNATstudio integration plugin.
+
+First, create a GNATtest harness project if it doesn't already exist, using the
+``Analyze -> GNATtest -> Generate harness project`` entries in the menu bar.
+Note that in the dialog box opening there is an option to generate tests inputs
+if needed.
+
+Then, exporting tests inputs from GNATtest to GNATfuzz and running a fuzzing
+campaign on a specific subprogram can be done by right-clicking on the
+declaration of the target subprogram, then selecting
+``GNATtest -> Start/Stop fuzzing subprogram``, as illustrated bellow.
+
+.. Image:: gs_menu.png
+
+This will first instrument sources and re-generate the GNATtest harness in order
+to be able to intercept the inputs passed to the subprogram, then run the test
+harness, dumping the inputs in a binary format that can be used by GNATfuzz.
+GNATstudio will then setup a fuzzing session on the subprogram, for which the
+parameters can be controlled through the various pop-up windows that will be
+displayed during the process.
+
+``gnatfuzz`` will periodically export newly found inputs in a human readable
+JSON format under ``<obj>/gnattest/test/JSON_Tests``, where ``<obj>`` designates
+the object directory of the project.
+
+The fuzzing session will stop once all the stopping criteria have been met. The
+fuzzing session can also be stopped early by right clicking on the subprogram
+declaration, then selecting ``GNATtest => Start/Stop fuzzing subprogram``.
+
+After the fuzzing sessions has ended, a new GNATtest harness will be
+regenerated, including the tests exported by the GNATfuzz session. These will
+appear in
+``<obj>/gnattest/tests/<unit_name>-test_data-test_<subp_name>_<subp_hash>.adb``,
+where ``<unit_name>`` is the name of the unit in which the subprogram is
+declared, ``<subp_name>`` is the name of the subprogram, and <subp_hash> is a
+hash based on the profile of the subprogram, in order to differentiate
+overloads.
