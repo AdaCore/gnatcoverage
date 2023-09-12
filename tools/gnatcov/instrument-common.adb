@@ -206,6 +206,7 @@ package body Instrument.Common is
          if Coverage.MCDC_Coverage_Enabled
             and then Length (State_Variable) > 0
             and then Path_Count > 0
+            and then Path_Count < Get_Path_Count_Limit
          then
             Result.Path_Bits_Base := Unit_Bits.Last_Path_Bit + 1;
             Unit_Bits.Last_Path_Bit :=
