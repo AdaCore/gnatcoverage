@@ -735,15 +735,6 @@ def xcov(args, out=None, err=None, inp=None, env=None, register_failure=True,
     covcmd = args[0]
     covargs = args[1:]
 
-    # gnatcov testsuite exercises C/C++ instrumentation, which are not
-    # activated by default.
-    if (
-        auto_languages
-        and not thistest.options.qualif_level
-        and covcmd == "instrument"
-    ):
-        covargs = ['--restricted-to-languages=Ada,C,C++'] + covargs
-
     if thistest.options.all_warnings:
         covargs = ['--all-warnings'] + covargs
 

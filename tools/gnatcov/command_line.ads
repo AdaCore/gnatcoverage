@@ -1277,9 +1277,7 @@ package Command_Line is
          Pattern                 => "[LANGUAGE|LIST|@LISTFILE]",
          Help                    =>
            "Restrict the set of languages for instrumentation. Supports Ada, C"
-           & " and C++. As C++ support is still in beta state, the default is"
-           & " --restricted-to-languages=Ada,C. To enable C++, pass"
-           & " --restricted-to-languages=Ada,C,C++.",
+           & " and C++.",
          Commands                => (Cmd_Setup
                                      | Cmd_Instrument_Project => True,
                                      others                   => False),

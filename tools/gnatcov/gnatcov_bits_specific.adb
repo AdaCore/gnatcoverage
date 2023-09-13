@@ -498,15 +498,10 @@ procedure GNATcov_Bits_Specific is
       --  just the default ones.
 
       if Args.String_List_Args (Opt_Restricted_To_Languages).Is_Empty then
-
-         --  C++ instrumentation is a beta feature and not yet fully
-         --  functional. It will thus not be part of the languages enabled by
-         --  default.
-
          Src_Enabled_Languages :=
            (Ada_Language => True,
             C_Language   => True,
-            CPP_Language => False);
+            CPP_Language => True);
       else
          for Arg of Args.String_List_Args (Opt_Restricted_To_Languages) loop
             Src_Enabled_Languages (To_Language (+Arg)) := True;
