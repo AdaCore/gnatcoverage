@@ -4744,7 +4744,6 @@ package body Instrument.Ada_Unit is
                   Prag_Args : constant Base_Assoc_List := Prag_N.F_Args;
                   Nam       : constant Name_Id := Pragma_Name (Prag_N);
                   Arg       : Positive := 1;
-                  Typ       : Character;
 
                   function Prag_Arg_Expr (Index : Positive) return Expr is
                     (Prag_Args.Child (Index).As_Pragma_Argument_Assoc.F_Expr);
@@ -4757,7 +4756,7 @@ package body Instrument.Ada_Unit is
                         | Name_Precondition
                         | Name_Postcondition
                         =>
-                        Typ := 'p';
+                        Instrument_Statement (UIC, N, 'p');
 
                         if Assertion_Coverage_Enabled then
                            declare
@@ -4788,20 +4787,6 @@ package body Instrument.Ada_Unit is
                         | Name_Check
                         | Name_Loop_Invariant
                      =>
-                        --  For Assert-like pragmas, we insert a statement
-                        --  witness and instrument the decision if the pragma
-                        --  is not disabled.
-                        --
-                        --  This is in line with what is done for pre/post
-                        --  aspects.
-
-                        if Nam = Name_Check then
-
-                           --  Skip check name
-
-                           Arg := 2;
-                        end if;
-
                         --  We consider that the assertion policy is
                         --  "disabled", except if any level of assertion
                         --  coverage is enabled.
@@ -4812,7 +4797,7 @@ package body Instrument.Ada_Unit is
                         --  later on.
 
                         if Assertion_Coverage_Enabled then
-                           Typ := 'P';
+                           Instrument_Statement (UIC, N, 'P');
                            declare
                               Index : Positive :=
                                 (case Nam is
@@ -4826,13 +4811,15 @@ package body Instrument.Ada_Unit is
                               end loop;
                            end;
                         else
-                           Typ := 'p';
+                           Instrument_Statement (UIC, N, 'p');
                         end if;
 
-                        --  Pre/postconditions can be inherited so SCO should
-                        --  never be deactivated???
-
                      when Name_Debug =>
+
+                        --  Note: conservatively assume that the check policy
+                        --  for pragma debug is enabled.
+
+                        Instrument_Statement (UIC, N, 'P');
                         if Prag_Args.Children_Count = 2 then
 
                            --  Case of a dyadic pragma Debug: first argument
@@ -4845,13 +4832,8 @@ package body Instrument.Ada_Unit is
 
                         Process_Expression (UIC, Prag_Arg_Expr (Arg), 'X');
 
-                        --  Note: conservatively assume that the check policy
-                        --  for all pragmas is enabled (see comment above for
-                        --  Assert case).
-
-                        Typ := 'P';
-
                      when Name_Annotate =>
+
                         --  If this is a coverage exemption, record it
 
                         if Prag_Args.Children_Count >= 2
@@ -4889,7 +4871,7 @@ package body Instrument.Ada_Unit is
                                  null;
                            end;
                         end if;
-                        Typ := 'P';
+                        Instrument_Statement (UIC, N, 'P');
 
                      --  Even though Compile_Time_* pragmas do contain
                      --  decisions, we cannot instrument them, as they would
@@ -4899,7 +4881,7 @@ package body Instrument.Ada_Unit is
 
                      when Name_Compile_Time_Error | Name_Compile_Time_Warning
                      =>
-                        Typ := 'P';
+                        Instrument_Statement (UIC, N, 'P');
 
                      --  For all other pragmas, we generate decision entries
                      --  for any embedded expressions, and the pragma is
@@ -4909,14 +4891,9 @@ package body Instrument.Ada_Unit is
                      --  related pragmas: [{Static,Dynamic}_]Predicate???
 
                      when others =>
+                        Instrument_Statement (UIC, N, 'P');
                         Process_Expression (UIC, N, 'X');
-                        Typ := 'P';
-
                   end case;
-
-                  --  Add statement SCO
-
-                  Instrument_Statement (UIC, N, Typ);
                end;
 
             --  Object or named number declaration
