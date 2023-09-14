@@ -34,6 +34,8 @@ p = gprfor(mains=["main.adb"],
            objdir="obj",
            deps=["lib1", "lib2"])
 
+instr_warning = (r"warning: Manual dump trigger indications were found in.*")
+
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=p, units=["lib1", "main"]),
     covlevel='stmt',
@@ -41,7 +43,8 @@ build_run_and_coverage(
     extra_coverage_args=['-axcov', '--output-dir=xcov'],
     trace_mode='src',
     dump_trigger="manual",
-    manual_prj_name="gen")
+    manual_prj_name="gen",
+    tolerate_instrument_messages=instr_warning)
 
 # Check that gnatcov inserted the call to the dump buffers procedure in the
 # lib2.adb which is not a unit of interest
