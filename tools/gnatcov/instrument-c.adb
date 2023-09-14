@@ -896,6 +896,17 @@ package body Instrument.C is
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
    begin
+      --  Insert a new entry to the UIC.Instrumented_Entities maps: even if
+      --  this SOI does not possess instrumented SCOs (it can be the case if
+      --  all of the code constructs are not instrumentable), we want an empty
+      --  Instrumented_Entities entry rather than no entry at all, to have
+      --  proper initialization of checkpoints structures (e.g. Statement_Bits)
+      --  later on.
+
+      if not UIC.Instrumented_Entities.Contains (From.Source_File) then
+         UIC.Instrumented_Entities.Insert (From.Source_File, (others => <>));
+      end if;
+
       Append_SCO
         (C1, C2, From.L, To.L, From.Source_File, Last, Pragma_Aspect_Name);
 
@@ -950,13 +961,9 @@ package body Instrument.C is
       SFI : Valid_Source_File_Index)
       return C_Instrumented_Entities_Maps.Reference_Type
    is
-      use C_Instrumented_Entities_Maps;
-      Cur   : Cursor;
       Dummy : Boolean;
    begin
-      UIC.Instrumented_Entities.Insert
-        (SFI, (others => <>), Cur, Dummy);
-      return UIC.Instrumented_Entities.Reference (Cur);
+      return UIC.Instrumented_Entities.Reference (SFI);
    end Find_Instrumented_Entities;
 
    -----------------------
@@ -3185,7 +3192,7 @@ package body Instrument.C is
                  UIC.Allocated_Bits.Reference (Ent.Buffers_Index);
                Bit_Maps  : CU_Bit_Maps;
             begin
-               --  Allocate bits in covearge buffers and insert the
+               --  Allocate bits in coverage buffers and insert the
                --  corresponding witness calls.
 
                for SS of Ent.Statements loop
@@ -4567,11 +4574,15 @@ package body Instrument.C is
          --  switches.
 
          if UIC.Files_Of_Interest.Contains (File) then
-            SOI :=
-              (Of_Interest  => True,
-               SFI          => Get_Index_From_Generic_Name
-                                 (+File, Source_File),
-               CU_Name      => CU_Name_For_File (File));
+            declare
+               SFI : constant Source_File_Index :=
+                 Get_Index_From_Generic_Name (+File, Source_File);
+            begin
+               SOI :=
+                 (Of_Interest  => True,
+                  SFI          => SFI,
+                  CU_Name      => CU_Name_For_File (File));
+            end;
          else
             SOI := (Of_Interest => False);
          end if;
