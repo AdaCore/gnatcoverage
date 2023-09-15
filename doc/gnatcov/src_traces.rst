@@ -288,6 +288,18 @@ at which point the source traces will be created during the execution of the
 program. Therefore, the pragma or comment should be placed at a location at
 which such a function call would be appropriate.
 
+A dump procedure is only able to dump the buffers of the project tree which
+root is the project it is called from. A dump procedure call done in a
+subproject will result in a trace containing all code of projects higher in the
+project tree marked as not covered.
+
+One source trace is dumped per call to the dump buffers procedure. For the
+``bin-file`` dump configuration, each trace is written in a file which name
+depends on the selected trace file naming scheme. For the ``base64-stdout``
+dump configuration the traces are sequentially dumped in the same output file,
+from which the |gcv| command ``extrace-base64-trace`` will be able to produce a
+source trace file.
+
 .. _instr-tracename:
 
 Controlling trace file names

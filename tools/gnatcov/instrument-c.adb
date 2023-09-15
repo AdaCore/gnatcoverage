@@ -3906,7 +3906,10 @@ package body Instrument.C is
             --  get the current execution time.
 
             File.Put_Line (Indent2 & "STR ("""
-                           & Escape_Backslashes (+Main.Filename) & """),");
+                           & (if Dump_Config.Trigger = Manual
+                             then +Prj.Prj_Name
+                             else Escape_Backslashes (+Main.Filename))
+                           & """),");
             File.Put_Line (Indent2 & "0,");
             File.Put_Line (Indent2 & "STR ("""")");
 

@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Characters.Latin_1;  use Ada.Characters.Latin_1;
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
@@ -823,6 +824,22 @@ is
       Instrumenter         : in out Language_Instrumenter'Class;
       Manual_Dump_Inserted : in out Boolean)
    is
+      function Dump_Helper_Output_Dir_Exists
+        (Source : File_Info; Prj : Prj_Desc)
+         return Boolean
+      is (Ada.Directories.Exists
+          (GNATCOLL.VFS."+" (Source.Project.Object_Dir.Base_Dir_Name))
+            and then Ada.Directories.Exists (+Prj.Output_Dir));
+      --  True if the project's object directory and the instrumented sources
+      --  directory exist, False otherwise.
+
+      package Non_Root_Src_Calls_Sets is new
+        Ada.Containers.Indefinite_Ordered_Sets (Element_Type => String);
+
+      Non_Root_Src_Calls : Non_Root_Src_Calls_Sets.Set;
+      --  Set of names of source files containing a dump buffers indication
+      --  that belong to a non-root project.
+
    begin
       for Source_C in Project_Sources.Iterate loop
          declare
@@ -834,8 +851,13 @@ is
 
                   Prj                  : constant Prj_Desc :=
                     Get_Or_Create_Project_Info (IC, Source.Project).Desc;
+                  Is_Root_Prj          : constant Boolean :=
+                    Prj.Prj_Name = Root_Project_Info.Project.Name;
+                  Source_Name          : constant String :=
+                    GNATCOLL.VFS."+" (Source.File.Full_Name);
                   Helper_Unit          : Unbounded_String;
                   Contained_Indication : Boolean := False;
+
                begin
 
                   Instrumenter.Replace_Manual_Dump_Indication
@@ -843,12 +865,27 @@ is
                      Prj,
                      Source);
 
-                  if Contained_Indication
-                    and then
-                      Prj_Has_Manual_Helper.Find (Prj.Prj_Name) = No_Element
+                  if Contained_Indication and then not Is_Root_Prj
                   then
-                     --  Only generate one manual dump helper unit per project
+                     --  A call to the dump buffers procedure is only able to
+                     --  dump the buffers of the project it is in and its
+                     --  subprojects, meaning coverage data for all projects
+                     --  higher in the project tree will be missing. Record
+                     --  what file this call was in to warn the user later.
 
+                     Non_Root_Src_Calls.Include (Source_Name);
+                  end if;
+
+                  --  Only generate one manual dump helper unit per project.
+                  --  At this point, if the project's object directory and the
+                  --  instrumented sources directory do not exist there is no
+                  --  need to emit the dump helper unit. There are no units of
+                  --  interest or call to a manual dump procedure for this
+                  --  project.
+
+                  if Prj_Has_Manual_Helper.Find (Prj.Prj_Name) = No_Element
+                    and then Dump_Helper_Output_Dir_Exists (Source, Prj)
+                  then
                      Instrumenter.Emit_Dump_Helper_Unit_Manual
                        (Helper_Unit, Dump_Config, Prj);
 
@@ -888,7 +925,7 @@ is
                         --  unit is already taken care of by the regular
                         --  instrumentation process, so skip it.
 
-                        if Prj.Prj_Name /= Root_Project_Info.Project.Name then
+                        if not Is_Root_Prj then
                            Instrumenter.Emit_Buffers_List_Unit
                              (Instr_Units, Prj);
                         end if;
@@ -905,6 +942,32 @@ is
             end if;
          end;
       end loop;
+
+      if not Non_Root_Src_Calls.Is_Empty then
+         --  For each manual dump call inserted in a file belonging to a
+         --  non-root project, warn the user the coverage data it will produce
+         --  will not cover the whole project tree.
+
+         declare
+            All_File_Names : Unbounded_String := +"";
+         begin
+            for File_Name of Non_Root_Src_Calls loop
+               All_File_Names :=
+                 All_File_Names & (+File_Name) & Ada.Characters.Latin_1.LF;
+            end loop;
+
+            Outputs.Warn ("Manual dump trigger indications were found in"
+                          & " subprojects in the following files:"
+                          & Ada.Characters.Latin_1.LF
+                          & (+All_File_Names)
+                          & "The coverage report built from the source traces"
+                          & " they will produce will show all code from"
+                          & " projects higher in the project tree as not"
+                          & " covered. To get a full coverage analysis,"
+                          & " consider placing the manual dump buffers"
+                          & " indication in the root project.");
+         end;
+      end if;
    end Insert_Manual_Dump_Trigger;
 
    ---------------------

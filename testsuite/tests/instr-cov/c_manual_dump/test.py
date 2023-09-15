@@ -34,9 +34,12 @@ lib_gpr = gprfor(mains=[],
 
 gprsw = GPRswitches(root_project=src_gpr)
 
+instr_warning = (r"warning: Manual dump trigger indications were found in.*")
+
 build_run_and_coverage(gprsw=gprsw, covlevel="stmt", mains=["main"],
                        extra_coverage_args=["-axcov"], dump_trigger="manual",
-                       manual_prj_name="main")
+                       manual_prj_name="main",
+                       tolerate_instrument_messages=instr_warning)
 
 # Check that that the dump call indication was correctly replaced in the sub
 # project
