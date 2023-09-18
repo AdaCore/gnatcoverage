@@ -552,9 +552,10 @@ package Instrument.Common is
       PP_Macros : Macro_Set;
       --  Set of macros for the preprocessor
 
-      Std : Unbounded_String;
-      --  -std=X argument to pass to the preprocessor and the parser, or the
-      --  empty string.
+      Compiler_Switches : String_Vectors.Vector;
+      --  List of compiler switches that can influence the file preprocessing.
+      --  The list should be amended alongside our discoveries. It is
+      --  currently: -std, -fno-exceptions, -fno-rtti, -W* switches.
    end record;
    --  Options to analyze (preprocess and/or parse) a compilation unit
 

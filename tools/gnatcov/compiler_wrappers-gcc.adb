@@ -361,6 +361,7 @@ is
             if Ends_With (Arg, ".c")
               or else Ends_With (Arg, ".cc")
               or else Ends_With (Arg, ".cpp")
+              or else Ends_With (Arg, ".cxx")
             then
                if Length (Result.Filename) = 0 then
                   Result.Filename := +Ada.Directories.Full_Name (+Arg);
