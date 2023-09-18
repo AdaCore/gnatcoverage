@@ -242,7 +242,7 @@ package body Annotations.Report is
          Open_Report_File (Final_Report_Name.all);
       end if;
 
-      Annotations.Generate_Report (Pp, True);
+      Annotations.Generate_Report (Pp, True, Context.Subps_Of_Interest);
       Close_Report_File;
    end Generate_Report;
 

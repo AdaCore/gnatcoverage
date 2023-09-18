@@ -315,9 +315,16 @@ package Instrument.C is
       Hash            => Hash,
       Equivalent_Keys => "=");
 
+   type File_Scope_Type is record
+      Scope_Entities       : Scope_Entities_Tree;
+      File_Scope_Entity    : Scope_Entities_Trees.Cursor;
+      Current_Scope_Entity : Scope_Entities_Trees.Cursor;
+   end record;
+   --  Store scope entities and the currently traversed scope
+
    package Scopes_In_Files_Map is new Ada.Containers.Ordered_Maps
      (Key_Type     => Source_File_Index,
-      Element_Type => Scope_Entity_Acc);
+      Element_Type => File_Scope_Type);
    --  Mapping from a source file to the tree of scopes opened within it. The
    --  root of each tree is the scope corresponding to the file itself in which
    --  all its scopes are stored.
@@ -368,7 +375,7 @@ package Instrument.C is
          --  after preprocessing. This is needed in order to keep track of
          --  which scope was originally opened in which file.
 
-         Current_File_Scope : Source_File_Index;
+         Current_File_Scope : Scopes_In_Files_Map.Cursor;
          --  Source file in which the last scope encountered was opened
 
          Disable_Instrumentation : Boolean := False;

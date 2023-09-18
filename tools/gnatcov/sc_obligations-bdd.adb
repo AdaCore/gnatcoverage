@@ -331,8 +331,6 @@ package body SC_Obligations.BDD is
          pragma Assert (BDD_Vector.Element (Dest).Kind /= Jump);
       end Patch_Jump;
 
-      use type Ada.Containers.Count_Type;
-
    --  Start of processing for Completed
 
    begin

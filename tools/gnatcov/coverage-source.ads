@@ -25,7 +25,6 @@ with Instrument.Input_Traces; use Instrument.Input_Traces;
 with Traces;                  use Traces;
 with Traces_Names;            use Traces_Names;
 with Traces_Lines;            use Traces_Lines;
-with SC_Obligations;          use SC_Obligations;
 
 package Coverage.Source is
 

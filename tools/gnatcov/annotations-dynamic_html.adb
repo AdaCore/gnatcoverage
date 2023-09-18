@@ -150,9 +150,10 @@ package body Annotations.Dynamic_Html is
 
    procedure Pretty_Print_End_File (Pp : in out Dynamic_Html);
 
-   procedure Pretty_Print_Scope_Entity
-     (Pp        : in out Dynamic_Html;
-      Scope_Ent : Scope_Entity);
+   procedure Pretty_Print_Scope_Entities
+     (Pp             : in out Dynamic_Html;
+      File           : Source_File_Index;
+      Scope_Entities : Scope_Entities_Tree);
 
    procedure Pretty_Print_Start_Line
      (Pp       : in out Dynamic_Html;
@@ -294,8 +295,9 @@ package body Annotations.Dynamic_Html is
    begin
       Annotations.Generate_Report
         (Pp,
-         Show_Details => True,
-         Subdir       => "html");
+         Show_Details     => True,
+         Subp_Of_Interest => Context.Subps_Of_Interest,
+         Subdir           => "html");
    end Generate_Report;
 
    ------------------------
@@ -516,15 +518,18 @@ package body Annotations.Dynamic_Html is
       Append (Pp.Source_List, Simplified);
    end Pretty_Print_End_File;
 
-   -------------------------------
-   -- Pretty_Print_Scope_Entity --
-   -------------------------------
+   ---------------------------------
+   -- Pretty_Print_Scope_Entities --
+   ---------------------------------
 
-   procedure Pretty_Print_Scope_Entity
-     (Pp        : in out Dynamic_Html;
-      Scope_Ent : Scope_Entity)
+   procedure Pretty_Print_Scope_Entities
+     (Pp             : in out Dynamic_Html;
+      File           : Source_File_Index;
+      Scope_Entities : Scope_Entities_Tree)
    is
-      function To_JSON (Scope_Ent : Scope_Entity) return JSON_Value;
+      use Scope_Entities_Trees;
+
+      function To_JSON (Cur : Cursor) return JSON_Value;
       --  Convert a scope entity to a JSON scoped metric: compute line and
       --  obligation statistics for the given scope and recursively for
       --  child scopes. Store the result as a JSON object, with the name and
@@ -534,37 +539,41 @@ package body Annotations.Dynamic_Html is
       -- To_JSON --
       -------------
 
-      function To_JSON (Scope_Ent : Scope_Entity) return JSON_Value is
+      function To_JSON (Cur : Cursor) return JSON_Value
+      is
+         Scope_Ent : constant Scope_Entity := Element (Cur);
+         Child     : Cursor := First_Child (Cur);
+
          Scope_Metrics_JSON          : constant JSON_Value := Create_Object;
          Children_Scope_Metrics_JSON : JSON_Array;
-         FI                          : constant File_Info_Access :=
-           Get_File (First_Sloc (Scope_Ent.From).Source_File);
-         Line_Stats                  : constant Li_Stat_Array :=
+         --  Representation of the scope metrics for the html format
+
+         Line_Stats : constant Li_Stat_Array :=
            Line_Metrics
-             (FI,
+             (Get_File (File),
               First_Sloc (Scope_Ent.From).L.Line,
               Last_Sloc (Scope_Ent.To).L.Line);
-         Ob_Stats                    : constant Ob_Stat_Array :=
+         Ob_Stats   : constant Ob_Stat_Array :=
            Obligation_Metrics (Scope_Ent.From, Scope_Ent.To);
       begin
          Scope_Metrics_JSON.Set_Field ("scopeName", Scope_Ent.Name);
          Scope_Metrics_JSON.Set_Field ("scopeLine", Scope_Ent.Sloc.Line);
          Scope_Metrics_JSON.Set_Field ("stats", To_JSON (Line_Stats));
          Scope_Metrics_JSON.Set_Field ("enAllStats", To_JSON (Ob_Stats));
-         for Child_Scope_Ent of Scope_Ent.Children loop
-            Append
-              (Children_Scope_Metrics_JSON,
-               To_JSON (Child_Scope_Ent.all));
+         while Has_Element (Child) loop
+            Append (Children_Scope_Metrics_JSON, To_JSON (Child));
+            Child := Next_Sibling (Child);
          end loop;
          Scope_Metrics_JSON.Set_Field
-           ("children",
-            Create (Children_Scope_Metrics_JSON));
+           ("children", Create (Children_Scope_Metrics_JSON));
          return Scope_Metrics_JSON;
       end To_JSON;
 
    begin
-      Pp.Scope_Metrics := To_JSON (Scope_Ent);
-   end Pretty_Print_Scope_Entity;
+      for Cur in Scope_Entities.Iterate_Children (Scope_Entities.Root) loop
+         Pp.Scope_Metrics := To_JSON (Cur);
+      end loop;
+   end Pretty_Print_Scope_Entities;
 
    -----------------------------
    -- Pretty_Print_Start_Line --

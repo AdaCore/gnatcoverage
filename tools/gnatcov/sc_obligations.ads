@@ -18,12 +18,13 @@
 
 --  Source Coverage Obligations
 
+with Ada.Containers;        use Ada.Containers;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
-with Ada.Streams;           use Ada.Streams;
+with Ada.Containers.Multiway_Trees;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNAT.Regexp;
@@ -148,35 +149,18 @@ package SC_Obligations is
    No_SCO_Id : constant SCO_Id := 0;
    subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
 
-   type Scope_Entity;
-   type Scope_Entity_Acc is access Scope_Entity;
-   --  Scope_Entity (SE) stores the SCO range, the name, the sloc and the
-   --  child scopes of a SE. Note that we assume that the SCOs of a SE can
-   --  be designated by a range. We thus include SCOs belonging to children
-   --  SEs.
-   --
-   --  For Ada, we support a granularity of package / subprogram / task /
-   --  entry scopes.
-   --
-   --  TODO??? implementation for C.
-   --
-   --  This information is computed by the instrumenters (that know what is
-   --  a scope, and what is not).
+   type Scope_Entity_Identifier is record
+      Decl_SFI  : Source_File_Index;
+      Decl_Line : Natural;
+   end record;
+   --  To have a unique identifier for the scope, we use the source file index
+   --  and line for the original declaration (which is the body declaration for
+   --  C/C++ and the specification declaration for Ada).
 
-   procedure Read
-     (S : access Root_Stream_Type'Class;
-      V : out Scope_Entity_Acc);
-   procedure Write (S : access Root_Stream_Type'Class; V : Scope_Entity_Acc);
-
-   for Scope_Entity_Acc'Read use Read;
-   for Scope_Entity_Acc'Write use Write;
-
-   procedure Free (Scope_Ent : in out Scope_Entity_Acc);
-
-   package Scope_Entities_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Pos,
-      Element_Type => Scope_Entity_Acc);
-   subtype Scope_Entities_Vector is Scope_Entities_Vectors.Vector;
+   function "<" (L, R : Scope_Entity_Identifier) return Boolean is
+     (if L.Decl_SFI = R.Decl_SFI
+      then L.Decl_Line < R.Decl_Line
+      else L.Decl_SFI < R.Decl_SFI);
 
    type Scope_Entity is record
       From, To : SCO_Id;
@@ -188,21 +172,70 @@ package SC_Obligations is
       Sloc : Local_Source_Location;
       --  Name (as it appears in the source) and sloc of this scope definition
 
-      Children : Scope_Entities_Vector;
-      --  Children scopes
-
-      Parent : Scope_Entity_Acc;
-      --  Reference to parent scope, null if this is a top-level scope
-
+      Identifier : Scope_Entity_Identifier;
+      --  Identifier for this scope entity
    end record;
+   --  Scope_Entity (SE) stores the SCO range, the name and the sloc of a SE.
+   --  Note that we assume that the SCOs of a SE can be designated by a range.
+   --
+   --  For Ada, we support a granularity of package / subprogram / task /
+   --  entry scopes.
+   --
+   --  For C/C++, we support a granularity of function declaration (including
+   --  template, constructor, destructor and lambda expressions) / namespace /
+   --  class (including template) scopes.
+   --
+   --  This information is computed by the instrumenters (that know what is
+   --  a scope, and what is not).
+
+   package Scope_Id_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => Scope_Entity_Identifier);
+   subtype Scope_Id_Set is Scope_Id_Sets.Set;
+
+   package Scope_Entities_Trees is new Ada.Containers.Multiway_Trees
+     (Element_Type => Scope_Entity);
+   subtype Scope_Entities_Tree is Scope_Entities_Trees.Tree;
+
+   subtype Tree_Iterator is
+     Scope_Entities_Trees.Tree_Iterator_Interfaces.Forward_Iterator'Class;
+   type Iterator_Acc is access Tree_Iterator;
+   package Scope_Stacks is new Ada.Containers.Doubly_Linked_Lists
+     (Element_Type => Scope_Entities_Trees.Cursor,
+      "="          => Scope_Entities_Trees."=");
+
+   type Scope_Traversal_Type is private;
+   --  Utilities type to efficiently traverse the scopes in a compilation unit.
+   --  This is a tree-like data structure, with an iterator pointing to the
+   --  currently traversed inner scope.
+   --
+   --  The intended use is to create a Scope_Traversal_Type using the
+   --  Scope_Traversal function, and then call Traverse_SCO every time
+   --  we traverse a SCO to update the scope traversal iterator, and call
+   --  Is_Active to know whether a given scope is active in the given
+   --  traversal.
+
+   function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type;
+   --  Return a scope traversal for the given compilation unit
+
+   procedure Traverse_SCO
+     (ST  : in out Scope_Traversal_Type;
+      SCO : SCO_Id);
+   --  Traverse the given SCO and update the Scope_Traversal accordingly. Note
+   --  that the scope traversal must be done on increasing SCOs identifiers.
+
+   function Is_Active
+     (ST                : Scope_Traversal_Type;
+      Subps_Of_Interest : Scope_Id_Set) return Boolean;
+   --  Return whether any of the scopes in Subps_Of_Interest is currently
+   --  active. Return True if Subps_Of_Interest is empty (i.e. consider all
+   --  subprograms of interest in that case).
 
    No_Scope_Entity : constant Scope_Entity :=
-     (From     => No_SCO_Id,
-      To       => No_SCO_Id,
-      Name     => +"",
-      Sloc     => No_Local_Location,
-      Children => Scope_Entities_Vectors.Empty_Vector,
-      Parent   => null);
+     (From       => No_SCO_Id,
+      To         => No_SCO_Id,
+      Name       => +"",
+      Sloc       => No_Local_Location,
+      Identifier => (Decl_SFI => 0, Decl_Line => 0));
 
    type Any_SCO_Kind is (Removed, Statement, Decision, Condition, Operator);
    subtype SCO_Kind is Any_SCO_Kind range Statement .. Operator;
@@ -679,12 +712,12 @@ package SC_Obligations is
      with Pre => Has_PP_Info (SCO);
    --  Return the preprocessing information (if any) for the given SCO
 
-   function Get_Scope_Entity (CU : CU_Id) return Scope_Entity_Acc;
-    --  Return description for top-level scope, if available. Return null
-    --  otherwise.
+   function Get_Scope_Entities (CU : CU_Id) return Scope_Entities_Trees.Tree;
+   --  Return the scope entities for the given compilation unit
 
-   procedure Set_Scope_Entity (CU : CU_Id; Scope_Ent : Scope_Entity_Acc);
-   --  Set the top level scope for the given unit
+   procedure Set_Scope_Entities
+     (CU : CU_Id; Scope_Entities : Scope_Entities_Trees.Tree);
+   --  Set the scope entities for the given unit
 
    -----------------
    -- Checkpoints --
@@ -1287,5 +1320,31 @@ private
 
    procedure Set_BDD_Node (C_SCO : SCO_Id; BDD_Node : BDD_Node_Id);
    --  Set the BDD node for the given condition SCO
+
+   type Scope_Traversal_Type is record
+      Scope_Entities : Scope_Entities_Tree;
+      --  Currently traversed scope entities
+
+      Scope_Stack   : Scope_Stacks.List;
+      Active_Scopes : Scope_Id_Set;
+      --  List of currently active scopes
+
+      Active_Scope_Ent : Scope_Entities_Trees.Cursor;
+      --  Innermost currently active scope
+
+      Next_Scope_Ent : Scope_Entities_Trees.Cursor;
+      --  Next active scope
+
+      It : Iterator_Acc;
+      --  Iterator to traverse the scope tree
+   end record;
+
+   No_Scope_Traversal : Scope_Traversal_Type :=
+     (Scope_Entities   => Scope_Entities_Trees.Empty_Tree,
+      Scope_Stack      => Scope_Stacks.Empty_List,
+      Active_Scopes    => Scope_Id_Sets.Empty_Set,
+      Active_Scope_Ent => Scope_Entities_Trees.No_Element,
+      Next_Scope_Ent   => Scope_Entities_Trees.No_Element,
+      It               => null);
 
 end SC_Obligations;

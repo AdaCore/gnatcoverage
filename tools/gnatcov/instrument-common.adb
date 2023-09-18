@@ -346,17 +346,20 @@ package body Instrument.Common is
    -- Remap_Scope_Entity --
    ------------------------
 
-   procedure Remap_Scope_Entity
-     (Scope_Entity : Scope_Entity_Acc;
-      SCO_Map      : LL_HL_SCO_Map) is
+   procedure Remap_Scope_Entities
+     (Scope_Entities : in out Scope_Entities_Tree;
+      SCO_Map        : LL_HL_SCO_Map) is
    begin
-      Scope_Entity.From := SCO_Map (Nat (Scope_Entity.From));
-      Scope_Entity.To   := SCO_Map (Nat (Scope_Entity.To));
-
-      for Child of Scope_Entity.Children loop
-         Remap_Scope_Entity (Child, SCO_Map);
+      for Scope_Entity in Scope_Entities.Iterate loop
+         declare
+            Ref : constant Scope_Entities_Trees.Reference_Type :=
+              Scope_Entities.Reference (Scope_Entity);
+         begin
+            Ref.From := SCO_Map (Nat (Ref.From));
+            Ref.To   := SCO_Map (Nat (Ref.To));
+         end;
       end loop;
-   end Remap_Scope_Entity;
+   end Remap_Scope_Entities;
 
    --------------
    -- New_File --

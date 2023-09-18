@@ -337,7 +337,8 @@ private
          --  Used when the SPARK compatibility mode is enabled, to insert
          --  non-volatile witness result variables to be ghost compliant.
 
-         Current_Scope_Entity : Scope_Entity_Acc := null;
+         Scope_Entities       : Scope_Entities_Tree;
+         Current_Scope_Entity : Scope_Entities_Trees.Cursor;
          --  Information about the name, sloc, SCO range and children scopes of
          --  the current scope entity. This is modified when entering a scope
          --  (updated to the current scope), and when leaving it (updated to
