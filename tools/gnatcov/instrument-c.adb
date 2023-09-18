@@ -4413,15 +4413,24 @@ package body Instrument.C is
       CU_File.Put_Line (Self.Extern_Prefix & Buffer_Array_Decl & ";");
       CU_File.Put_Line (Buffer_Array_Decl & " = {");
       CU_File.Put_Line ("  " & Buffer_Unit_Length & ",");
-      CU_File.Put_Line
-        ("  (const struct gnatcov_rts_coverage_buffers_group *[]) {");
-      for BS of Buffer_Symbols loop
-         CU_File.Put ("    &" & (+BS));
-         if BS /= Buffer_Symbols.Last_Element then
-            CU_File.Put_Line (",");
-         end if;
-      end loop;
-      CU_File.Put_Line ("}};");
+      if String_Sets.Length (Buffer_Symbols) = 0 then
+
+         --  If there are no units of interest, create a NULL pointer to avoid
+         --  having an empty array.
+
+         CU_File.Put_Line ("NULL");
+      else
+         CU_File.Put_Line
+           ("  (const struct gnatcov_rts_coverage_buffers_group *[]) {");
+         for BS of Buffer_Symbols loop
+            CU_File.Put ("    &" & (+BS));
+            if BS /= Buffer_Symbols.Last_Element then
+               CU_File.Put_Line (",");
+            end if;
+         end loop;
+         CU_File.Put_Line ("}");
+      end if;
+      CU_File.Put_Line ("};");
       return CU_Name;
    end Emit_Buffers_List_Unit;
 
