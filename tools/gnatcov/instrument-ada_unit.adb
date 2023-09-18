@@ -572,8 +572,9 @@ package body Instrument.Ada_Unit is
    --  instantiation of that generic subprogram. The statement witness and
    --  MC/DC state variable declarations are inserted in the generic body.
    --
-   --  For expression functions, there are three instrumentation strategies,
-   --  depending on its spec and the context in which it is declared.
+   --  For expression functions, there are four instrumentation strategies,
+   --  depending on its spec, the context in which it is declared and the
+   --  language version used.
    --
    --  In the first strategy (the "default" and most common one, which applies
    --  if not in one of the cases described bellow), we create a new augmented
@@ -600,6 +601,11 @@ package body Instrument.Ada_Unit is
    --  and entry bodies. This prevents us from inserting a nested package
    --  for the second strategy. To circumvent this, all expression functions
    --  declared in a protected body are transformed into regular functions.
+   --
+   --  The last strategy only applies to Ada 2022 sources. In that case, a
+   --  declare expression is used to prepend a list of declarations prior to
+   --  the expression of the expression function, and is used to host the
+   --  statement witness call, and MC/DC state holders.
    --
    --  Also note that we wrap the generic instantiation in a nested package,
    --  so that it does not introduce unwanted additional primitive operations.
@@ -763,6 +769,24 @@ package body Instrument.Ada_Unit is
    --    <Witness statement for stmt coverage>
    --    return ([origin expression plus witness call using MCDC_State_2]);
    --  end Foo;
+   --
+   --  Expression function in Ada 2022 sources example (4th strategy)
+   --  ==============================================================
+   --
+   --  In the following expression function, located in an Ada 2022 source:
+   --
+   --  function Foo (Arg : Arg_Type) return Boolean is (Arg.X or else Arg.Y);
+   --
+   --  the expression part is wrapped in a declare expression, in order to host
+   --  declarations for the stmt witness call and MC/DC state variable
+   --  declarations:
+   --
+   --  function Foo (Arg : Arg_Type) return Boolean is
+   --    (declare
+   --        <stmt witness declaration call>
+   --        <MC/DC state variable declaration>
+   --     begin
+   --        [origin expression plus decision & MC/DC witness calls]);
    --
    --
    --  The following record tracks several parse and rewriting nodes that are
@@ -3938,6 +3962,11 @@ package body Instrument.Ada_Unit is
          --  the expression function, the aspects need to be attached to the
          --  declaration and not the augmented expression function.
 
+         subtype Decl_Expr_Supported_Versions is Any_Language_Version range
+           Ada_2022 .. Any_Language_Version'Last;
+         --  Set of versions of the Ada language that support declare
+         --  expressions.
+
       --  Start of processing for Traverse_Degenerate_Subprogram
 
       begin
@@ -3957,6 +3986,102 @@ package body Instrument.Ada_Unit is
 
          UIC.Degenerate_Subprogram_Index :=
            UIC.Degenerate_Subprogram_Index + 1;
+
+         --  Deal with the "easy" Ada 2022 and onwards case for expression
+         --  functions:
+         --  Simply nest the expression in a declare expression, and use that
+         --  to host the statement witness call, and local declarations.
+
+         if UIC.Language_Version in Decl_Expr_Supported_Versions
+           and then Is_Expr_Function
+         then
+            declare
+               Expr_Func : constant Expr_Function := N.As_Expr_Function;
+               Decl_List : constant Node_Rewriting_Handle :=
+                 Create_Node (UIC.Rewriting_Context, Ada_Basic_Decl_List);
+               --  List of declarations to hold the statement witness call and
+               --  local MC/DC state holder variables.
+
+               Decl_Expr : constant Node_Rewriting_Handle :=
+                 Create_Decl_Expr
+                   (Handle  => UIC.Rewriting_Context,
+                    F_Decls => Decl_List,
+                    F_Expr  => Detach (Expr_Func.F_Expr));
+               --  Declare expression to hold the above list
+
+               Dummy_Decl : constant Node_Rewriting_Handle :=
+                 Create_From_Template
+                   (UIC.Rewriting_Context,
+                    "Dummy_Gnatcov_Decl : constant Boolean := False;",
+                    (1 .. 0 => No_Node_Rewriting_Handle),
+                    Rule => Object_Decl_Rule);
+               --  Dummy declaration to provide a node before which the
+               --  statement witness will be inserted.
+
+               Local_Insertion_Info : aliased Insertion_Info :=
+                 (Method      => Declaration,
+                  RH_List     => Decl_List,
+                  Preelab     => False,
+                  Parent      => null,
+                  Index       => 1,
+                  others      => <>);
+               --  Insertion info points to the newly created declaration list.
+               --  Index is 1 as we want to insert a witness call at the
+               --  beginning of the list.
+
+               Local_Inserter : aliased Default_MCDC_State_Inserter :=
+                 (Local_Decls => Decl_List);
+               --  MC/DC state inserter points to the new decl list as well
+
+               Saved_In_Decl_Expr : constant Boolean := UIC.In_Decl_Expr;
+               --  We are going to be inserting things as if we were
+               --  instrumenting a declare expression, save the flag to restore
+               --  it later.
+
+            begin
+               --  Add the dummy declaration to the declaration list
+
+               Append_Child (Decl_List, Dummy_Decl);
+
+               --  Tie the declare expression to the expression function's
+               --  F_Expr field, taking care to wrap it in parentheses.
+
+               Set_Child
+                 (Handle (Expr_Func),
+                  Member_Refs.Expr_Function_F_Expr,
+                  Create_Paren_Expr (UIC.Rewriting_Context, Decl_Expr));
+
+               UIC.Current_Insertion_Info :=
+                 Local_Insertion_Info'Unchecked_Access;
+               UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
+
+               --  Flag that we are in a declare expression, in order to force
+               --  the MC/DC state holder to be declared constant
+
+               UIC.In_Decl_Expr := True;
+
+               --  The declaration list above does not exist in the analysis
+               --  tree as we just created it, so letting Set_Statement_Entry
+               --  decide where to insert the statement witness does not work.
+               --  Instead, force the witness to go in the newly declared list
+               --  using the Insertion_N param.
+
+               Extend_Statement_Sequence
+                 (UIC,
+                  Expr_Func.F_Expr,
+                  'X',
+                  Insertion_N => Dummy_Decl);
+               Process_Decisions_Defer (Expr_Func.F_Expr, 'X');
+               Set_Statement_Entry;
+
+               --  Restore context
+
+               UIC.Current_Insertion_Info := Saved_Insertion_Info;
+               UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
+               UIC.In_Decl_Expr := Saved_In_Decl_Expr;
+               return;
+            end;
+         end if;
 
          if Is_Generic (UIC, N.As_Basic_Decl) then
             if Is_Expr_Function then
@@ -3992,7 +4117,7 @@ package body Instrument.Ada_Unit is
                --  override the original EF (because T2 may have different
                --  components compared to T). The instrumenter generates all
                --  the required functions, but since the names of the augmented
-               --  EFs are not necessarly consistent between the augmented EFs
+               --  EFs are not necessarily consistent between the augmented EFs
                --  for T and T2, we end up with missing some primitive
                --  overrides.
                --
@@ -5244,6 +5369,22 @@ package body Instrument.Ada_Unit is
                         if Index (Pragma_Name, "ada_") = Pragma_Name'First then
                            UIC.Language_Version_Pragma :=
                              To_Unbounded_Wide_Wide_String (Pragma_Name);
+                           declare
+                              Pragma_Str : constant String :=
+                                Image (N.As_Pragma_Node.F_Id.Text);
+                           begin
+                              if not
+                                Set_Language_Version
+                                  (UIC.Language_Version, From => Pragma_Str)
+                              then
+                                 Report
+                                 (UIC,
+                                    N,
+                                    "Unknown language pragma version: "
+                                    & Pragma_Str,
+                                    Kind => Warning);
+                              end if;
+                           end;
                         end if;
                      end;
                   end if;

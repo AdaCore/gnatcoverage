@@ -273,6 +273,13 @@ private
          Language_Version_Pragma : Unbounded_Wide_Wide_String;
          --  Language version configuration pragma for unit, if any
 
+         Language_Version : Any_Language_Version :=
+           Switches.Global_Language_Version;
+         --  Most recent version of the language that can be used during
+         --  instrumentation of the unit. It is determined by the language
+         --  version pragma if present, otherwise it defaults to the value
+         --  obtained from the --ada switch.
+
          CU : CU_Id := No_CU_Id;
          --  SCO identifier of the compilation unit being instrumented
 

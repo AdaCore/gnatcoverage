@@ -1319,26 +1319,14 @@ begin
             Has_Matcher : Boolean;
             --  Matcher for the source files to ignore
 
-            Language_Version : Any_Language_Version;
-            pragma Unreferenced (Language_Version);
-
          begin
             Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
 
             declare
                V : constant String := Value (Args, Opt_Ada, "2012");
             begin
-               if V in "83" | "1983" then
-                  Language_Version := Ada_83;
-               elsif V in "95" | "1995" then
-                  Language_Version := Ada_95;
-               elsif V in "05" | "2005" then
-                  Language_Version := Ada_2005;
-               elsif V in "12" | "2012" then
-                  Language_Version := Ada_2012;
-               elsif V in "22" | "2022" then
-                  Language_Version := Ada_2022;
-               else
+               if not Set_Language_Version (Global_Language_Version, From => V)
+               then
                   Fatal_Error ("Bad Ada language version: " & V);
                end if;
             end;

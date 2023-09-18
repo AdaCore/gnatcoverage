@@ -225,7 +225,14 @@ package Switches is
    --  Instrumentation-related switches --
    ---------------------------------------
 
-   type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012, Ada_2022);
+   type Any_Language_Version is
+     (Ada_1983, Ada_1995, Ada_2005, Ada_2012, Ada_2022);
+
+   function Set_Language_Version
+     (V : in out Any_Language_Version; From : String) return Boolean;
+   --  Try to find a language version substring in From. This will search for
+   --  the presence of any of the years defined in Any_Language_Version. If one
+   --  is found, update V accordingly and return True; return False otherwise.
 
    type Any_Dump_Trigger is
      (Manual, At_Exit, Ravenscar_Task_Termination, Main_End);
@@ -293,5 +300,9 @@ package Switches is
    --  Return the unparsed command line arguments supported by the given
    --  Cmd. This is used to propagate a set of switches to a gnatcov
    --  subprocess.
+
+   Global_Language_Version : Any_Language_Version;
+   --  Language version to be used in case no language version pragma is
+   --  present in the source being instrumented.
 
 end Switches;
