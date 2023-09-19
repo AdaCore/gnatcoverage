@@ -385,13 +385,12 @@ package Command_Line is
            "Generate the adequate configuration to use gnatcov in integrated"
            & " instrumentation mode. The files of interest must be passed"
            & " through the --files switch, the compiler driver in used through"
-           & " the --compilers switch, the runtime installation directory"
-           & " through the --runtime-install-dir switch, and the configuration"
-           & " and compiler driver wrappers are generated in the subdirectory"
-           & " pointed by the --output-dir switch.",
+           & " the --compilers switch, and the configuration and compiler"
+           & " driver wrappers are generated in the subdirectory pointed by"
+           & " the --output-dir switch.",
          Pattern     =>
            "--files=<files_of_interest> --compilers=<compiler>"
-         & " --runtime-install-dir=<dir> [--output-dir=<dir>]",
+         & " [--output-dir=<dir>]",
          Internal    => True));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
@@ -1351,7 +1350,7 @@ package Command_Line is
          Pattern   => "NAME",
          Help      =>
            "List of compiler drivers for which we should generate wrappers."
-           & " Supported compilers are: gcc.",
+           & " Supported compilers are: gcc, g++.",
          Commands  => (others => True),
          Internal  => True)
      );
