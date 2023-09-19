@@ -525,6 +525,7 @@ package Command_Line is
                       & " variations).",
          Commands  => (Cmd_Setup
                        | Cmd_Instrument_Project
+                       | Cmd_Setup_Integration
                        | Cmd_Instrument_Main => True,
                        others                => False),
          Internal  => False),
@@ -835,6 +836,7 @@ package Command_Line is
                          & " for non-native programs.",
          Commands     => (Cmd_Setup
                           | Cmd_Instrument_Project
+                          | Cmd_Setup_Integration
                           | Cmd_Instrument_Main => True,
                           others                => False),
          At_Most_Once => False,
@@ -847,6 +849,7 @@ package Command_Line is
                          & " filename for created source traces.",
          Commands     => (Cmd_Setup
                           | Cmd_Instrument_Project
+                          | Cmd_Setup_Integration
                           | Cmd_Instrument_Main => True,
                           others                => False),
          At_Most_Once => False,
@@ -857,6 +860,7 @@ package Command_Line is
                          & " filename prefix for created source traces.",
          Commands     => (Cmd_Setup
                           | Cmd_Instrument_Project
+                          | Cmd_Setup_Integration
                           | Cmd_Instrument_Main => True,
                           others                => False),
          At_Most_Once => False,
@@ -868,6 +872,7 @@ package Command_Line is
                          & " filename tag for created source traces.",
          Commands     => (Cmd_Setup
                           | Cmd_Instrument_Project
+                          | Cmd_Setup_Integration
                           | Cmd_Instrument_Main => True,
                           others                => False),
          At_Most_Once => False,
