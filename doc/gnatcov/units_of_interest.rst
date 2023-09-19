@@ -203,6 +203,23 @@ and then executing::
 
   gnatcov <command> --units=@units.list
 
+Conveying *subprograms* of interest
+*********************************
+
+|gcv| enables even finer grain control through the use of ``--subprograms``
+switch, which restricts coverage analysis to the specified list of subprograms
+of interest.
+
+The ``--subprograms`` switch expects a ``<full_filename>:<line>`` argument,
+where ``<full_filename>`` is the full path to the subprogram source, and
+``line`` is the specification line for Ada subprograms, and the body line for
+C/C++ functions.
+
+Every coverage obligation from non subprograms of interest is discarded and
+reported as *no code* in the various output formats, and the associated coverage
+data is ignored. This means that checkpoints will hold coverage data for
+subprograms of interest only.
+
 .. _gpr_context:
 
 Other switches or attributes of importance
