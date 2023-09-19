@@ -1,3 +1,5 @@
+#include "pkg.hh"
+
 constexpr int
 foo ()
 {

@@ -397,10 +397,10 @@ private
    function Find_Instrumented_Entities
      (UIC : in out C_Unit_Inst_Context'Class;
       SFI : Valid_Source_File_Index)
-      return C_Instrumented_Entities_Maps.Reference_Type;
+      return C_Instrumented_Entities_Maps.Reference_Type
+     with Pre => UIC.Instrumented_Entities.Contains (SFI);
    --  Return a reference to the UIC.Instrumented_Entities entry
-   --  corresponding to the source file that SFI designates. If there is no
-   --  such entry yet, create it.
+   --  corresponding to the source file that SFI designates.
 
    type Pass_Kind is abstract tagged null record;
 
