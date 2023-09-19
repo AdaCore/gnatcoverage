@@ -82,6 +82,18 @@ stored in files that we call :dfn:`Coverage Checkpoints`.
 
   Source instrumentation based Coverage analysis overview
 
+|gcv| also provides an alternate workflow that consists in integrating
+seamlessly into an existing build process possibly not involving the use of
+gprbuild. This is provided as an experimental feature and is available for
+C/C++, compiling with gcc/g++ on a linux host. The figure
+:numref:`fig-flow_integrated_instr` depicts this workflow that is more
+thoroughly detailed in the section :ref:`integrated_instr`.
+
+.. _fig-flow_integrated_instr:
+.. figure:: fig_flow_integrated_instr.*
+  :align: center
+
+  Integrated instrumentation based Coverage analysis overview
 
 A simple example
 ================
