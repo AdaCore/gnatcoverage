@@ -1951,6 +1951,13 @@ package body Instrument.C is
             Append (Trailing_Braces, '}');
          end if;
 
+         --  If this statement does not belong to a source of interest, skip
+         --  it altogether.
+
+         if Is_Null (N) or not Is_Source_Of_Interest (UIC, N) then
+            return;
+         end if;
+
          --  Initialize or extend current statement sequence. Note that for
          --  special cases such as IF and SWITCH statements we will modify
          --  the range to exclude internal statements that should not be
@@ -2248,7 +2255,7 @@ package body Instrument.C is
          --  statement source location range.
 
       begin
-         if Is_Null (N) or else not Is_Source_Of_Interest (UIC, N) then
+         if Is_Null (N) then
             return;
          end if;
 
