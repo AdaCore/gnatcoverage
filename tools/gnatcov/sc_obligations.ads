@@ -59,6 +59,21 @@ package SC_Obligations is
 
    subtype SFI_Vector is SFI_Vectors.Vector;
 
+   ------------------------
+   -- Types of decisions --
+   ------------------------
+
+   --  Decision_Kind denotes the various decision kinds identified in SCOs
+
+   type Decision_Kind is
+     (If_Statement,
+      Exit_Statement,
+      Entry_Guard,
+      Pragma_Decision,
+      While_Loop,
+      Expression,
+      Aspect);
+
    -----------------------
    -- Compilation units --
    -----------------------
@@ -546,6 +561,9 @@ package SC_Obligations is
    --  For a decision whose outcome is compile time known, return that outcome;
    --  otherwise return Unknown.
 
+   function Decision_Type (SCO : SCO_Id) return Decision_Kind;
+   --  Get the type of decision for SCO
+
    function Has_Multipath_Condition (SCO : SCO_Id) return Boolean;
    --  True if decison's BDD has a node reachable through more than one path
 
@@ -559,8 +577,13 @@ package SC_Obligations is
    --  expression appearing outside of a control structure.
 
    function Is_Assertion (SCO : SCO_Id) return Boolean;
-   --  True if SCO is for a pragma Assert/Pre/Postcondition/Check, or an
-   --  equivalent aspect.
+   --  True if SCO is for all pragmas except Debug and all aspects
+
+   function Is_Assertion_To_Cover (SCO : SCO_Id) return Boolean;
+   --  True if the SCO is an assertion SCO that should be covered by any level
+   --  of assertion coverage (ATC, ATCC), i.e. Assert, Assert_And_Cut, Assume,
+   --  Check, Loop_Invariant, Type_Invariant, Precondition, Postcondition
+   --  pragmas and Type_Invariant, Precondition and Postcondition aspects.
 
    function Is_If_Expression (SCO : SCO_Id) return Boolean;
    --  True if SCO is the decision of an IF expression

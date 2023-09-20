@@ -94,7 +94,15 @@ package Switches is
 
    Show_MCDC_Vectors : Boolean := False;
    --  If True, show the evaluation vectors for each decision where there is
-   --  an MCDC violation.
+   --  an MCDC violation. The "--show-mcdc-vectors" switch is now deprecated.
+   --  Displaying the evaluation vectors is possible for assertion coverage,
+   --  in which case keeping "mcdc" in the name can be missleading. This switch
+   --  is replaced by "--show-condition-vectors" that behaves the same way for
+   --  both MCDC and ATCC.
+
+   Show_Condition_Vectors : Boolean := False;
+   --  If True, show the evaluation vectors for each decision where there is
+   --  an MCDC or ATCC violation.
 
    Timezone : Any_Timezone := Local_Time;
    --  Control the date display format (either in local time, or UTC time)

@@ -501,8 +501,11 @@ procedure GNATcov_Bits_Specific is
       Keep_Reading_Traces      := Args.Bool_Args (Opt_Keep_Reading_Traces);
       Dump_Units               := Args.String_Args (Opt_Dump_Units_To).Present;
       Show_MCDC_Vectors        := (Args.Bool_Args (Opt_Show_MCDC_Vectors)
-                                 or else All_Messages
-                                 or else Verbose);
+                                   or else All_Messages
+                                   or else Verbose);
+      Show_Condition_Vectors   := (Args.Bool_Args (Opt_Show_Condition_Vectors)
+                                   or else All_Messages
+                                   or else Verbose);
       Allow_Mixing_Trace_Kinds := Args.Bool_Args (Opt_Allow_Mix_Trace_Kind);
       Short_Circuit_And_Or     := Args.Bool_Args
                                     (Opt_Boolean_Short_Circuit_And_Or);

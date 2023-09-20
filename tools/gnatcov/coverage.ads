@@ -39,7 +39,9 @@ package Coverage is
       when Stmt     => "Stmt",
       when Decision => "Decision",
       when MCDC     => "MCDC",
-      when UC_MCDC  => "UC_MCDC");
+      when UC_MCDC  => "UC_MCDC",
+      when ATC      => "ATC",
+      when ATCC     => "ATCC");
    --  Case sensitive version of Coverage_Level'Image
 
    procedure Set_Coverage_Levels (Opt : String);
@@ -59,6 +61,13 @@ package Coverage is
 
    function MCDC_Coverage_Enabled return Boolean;
    --  True if any MCDC_Coverage_Level is enabled
+
+   function Assertion_Condition_Coverage_Enabled return Boolean;
+   --  True if any level of assertion coverage requiring to compute the
+   --  coverage of separate conditions is enabled;
+
+   function Assertion_Coverage_Enabled return Boolean;
+   --  True if any Assertion_Coverage_Level is enabled
 
    function Object_Level return Object_Coverage_Level;
    --  If Object_Coverage_Enabled, return Insn or Branch, depending on which

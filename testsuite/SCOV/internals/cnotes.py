@@ -126,6 +126,11 @@
 
 # cPartCov : independent effect of condition not demonstrated (=report)
 
+# aNoCov    : assertion never evaluated (=report)
+# atNoCov   : assertion expression outcome TRUE never evaluated (=report)
+# acPartCov : assertion condition was never evaluated during an evaluation of
+#             the decision to True (=report)
+
 # xBlock0  : exempted block, 0 deviations (=report)
 # xBlock1  : exempted block, >0 deviations (=report)
 # xBlock2  : exempted block, >0 undetermined coverage items (=report)
@@ -168,8 +173,9 @@
  XotNoCov, XofNoCov, XoPartCov, XoNoCov,
  XcPartCov,
  Xr0, Xr0c,
+ aNoCov, atNoCov, acPartCov,
  blockNote,
- xBlock0, xBlock1, xBlock2) = range(50)
+ xBlock0, xBlock1, xBlock2) = range(53)
 
 NK_image = {None: "None",
             lNoCode: "lNoCode", lNotCoverable: "lNotCoverable",
@@ -192,7 +198,8 @@ NK_image = {None: "None",
             XotNoCov: "XotNoCov", XofNoCov: "XofNoCov", XoPartCov: "XoPartCov",
             XoNoCov: "XoNoCov",
             XcPartCov: "XcPartCov",
-            Xr0: "Xr0", Xr0c: "Xr0c"}
+            Xr0: "Xr0", Xr0c: "Xr0c",
+            aNoCov: "aNoCov", atNoCov: "atNoCov", acPartCov: "acPartCov"}
 
 
 # ===============================
@@ -221,6 +228,9 @@ dNoteKinds = (dtNoCov, dfNoCov, dPartCov, dNoCov, dtAlways, dfAlways, dUndetCov)
 # MCDC violations
 cNoteKinds = (etNoCov, efNoCov, ePartCov, eNoCov,  cPartCov, eUndetCov)
 
+# Assertion violations
+aNoteKinds = (aNoCov, atNoCov, acPartCov)
+
 # Exemption regions
 xNoteKinds = (xBlock0, xBlock1, xBlock2)
 
@@ -247,6 +257,7 @@ tNoteKinds = (otNoCov, ofNoCov, oPartCov, oNoCov)
 # if they could be emitted and report them as unmatched.
 
 erNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds+tNoteKinds+XNoteKinds
+erNoteKinds += aNoteKinds
 xrNoteKinds = erNoteKinds+rAntiKinds+XrAntiKinds
 
 

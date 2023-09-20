@@ -1203,10 +1203,25 @@ class XnotesExpander:
             or
             [('stmt', 'l+'), ('stmt+decision', 'l+')]
         """
-        level_from_char = {"s": "stmt",
-                           "d": "stmt+decision",
-                           "m": "stmt+mcdc",
-                           "u": "stmt+uc_mcdc"}
+        level_from_char = {"s": ["stmt"],
+                           "d": ["stmt+decision"],
+                           "m": ["stmt+mcdc"],
+                           "u": ["stmt+uc_mcdc"]}
+
+        def make_assert_lvl_combinaison(assert_lvl):
+            """
+            Add the assertion coverage level assert_lvl to other regular
+            coverage level combinaisons defined in level_from_char. Return the
+            list of combinaisons.
+            """
+            return [level_from_char[c][0] + "+" + assert_lvl
+                    for c in level_from_char]
+
+        assert_level_from_char = {"a": make_assert_lvl_combinaison("atc"),
+                                  "c": make_assert_lvl_combinaison("atcc")}
+
+        level_from_char.update(assert_level_from_char)
+
         result = text.split("=>")
 
         if len(result) == 1:
@@ -1220,7 +1235,12 @@ class XnotesExpander:
             note = result[1].lstrip(' ')
             lev_list = result[0].rstrip(' ')
 
-            return [(level_from_char[lchar], note) for lchar in lev_list]
+            res = []
+            for lchar in lev_list:
+                for combinaison in level_from_char[lchar]:
+                    res.append((combinaison, note))
+
+            return res
 
     def __select_lnote(self, text):
         """Decode text to return the line note for the current

@@ -203,7 +203,8 @@ package body Instrument.Common is
          --  If appropriate, allocate path bits for MC/DC: one bit per path in
          --  the decision.
 
-         if Coverage.MCDC_Coverage_Enabled
+         if (Coverage.MCDC_Coverage_Enabled
+               or else Coverage.Assertion_Condition_Coverage_Enabled)
             and then Length (State_Variable) > 0
             and then Path_Count > 0
             and then Path_Count < Get_Path_Count_Limit

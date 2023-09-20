@@ -946,7 +946,6 @@ package body Instrument.Ada_Unit is
       Common_Nodes                 : Degenerate_Subp_Common_Nodes;
       Formal_Params                : Node_Rewriting_Handle;
       Call_Params                  : Node_Rewriting_Handle;
-      Keep_Aspects                 : Boolean;
       Augmented_Expr_Function      : out Node_Rewriting_Handle;
       Augmented_Expr_Function_Decl : out Node_Rewriting_Handle;
       New_Expr_Function            : out Node_Rewriting_Handle);
@@ -979,7 +978,7 @@ package body Instrument.Ada_Unit is
    --  right before the original expression function's declaration.
    --
    --  If the original expression function is not defined in the same
-   --  declarative region as its prefious declaration, then there is no need to
+   --  declarative region as its previous declaration, then there is no need to
    --  insert a declaration for the augmented expression function, beause in
    --  that case it isn't a primitive.
 
@@ -2435,7 +2434,6 @@ package body Instrument.Ada_Unit is
       Common_Nodes                 : Degenerate_Subp_Common_Nodes;
       Formal_Params                : Node_Rewriting_Handle;
       Call_Params                  : Node_Rewriting_Handle;
-      Keep_Aspects                 : Boolean;
       Augmented_Expr_Function      : out Node_Rewriting_Handle;
       Augmented_Expr_Function_Decl : out Node_Rewriting_Handle;
       New_Expr_Function            : out Node_Rewriting_Handle)
@@ -2484,10 +2482,8 @@ package body Instrument.Ada_Unit is
         and then Augmented_Expr_Function_Needs_Decl
           (Common_Nodes.N.As_Expr_Function);
 
+      Orig_Aspects : constant Aspect_Spec := Common_Nodes.N.F_Aspects;
    begin
-      --  Create New_Expr_Function, which will go right after the augmented
-      --  expression function. Move all aspects from the original function to
-      --  the new one.
 
       New_Expr_Function :=
         Create_Expr_Function
@@ -2495,9 +2491,7 @@ package body Instrument.Ada_Unit is
            F_Overriding => Clone (Common_Nodes.N_Overriding),
            F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
            F_Expr       => Create_Paren_Expr (RC, Call_Expr),
-           F_Aspects    => (if Keep_Aspects
-                            then Detach (Common_Nodes.N.F_Aspects)
-                            else No_Node_Rewriting_Handle));
+           F_Aspects    => No_Node_Rewriting_Handle);
 
       --  The original expression function becomes the augmented one:
 
@@ -2537,10 +2531,12 @@ package body Instrument.Ada_Unit is
             Previous_Spec : constant Subp_Spec :=
               Common_Nodes.N.P_Previous_Part_For_Decl.As_Subp_Decl.F_Subp_Spec;
 
-            New_Spec : constant Node_Rewriting_Handle := Clone (Previous_Spec);
             --  Clone the spec of the original declaration
 
+            New_Spec : constant Node_Rewriting_Handle := Clone (Previous_Spec);
+
          begin
+
             --  Replace the original EF name by the augmented EF name
 
             Set_Child (New_Spec,
@@ -2570,6 +2566,55 @@ package body Instrument.Ada_Unit is
          end;
       else
          Augmented_Expr_Function_Decl := No_Node_Rewriting_Handle;
+
+         if not Orig_Aspects.Is_Null then
+            declare
+               function Replace_Attr_Subp_Name
+                 (N : Ada_Node'Class) return Visit_Status;
+               --  Replace all uses of the name of the original expression
+               --  function in an attribute reference in N with the name of the
+               --  new augmented expr function.
+
+               function Replace_Attr_Subp_Name
+                 (N : Ada_Node'Class) return Visit_Status is
+               begin
+                  if N.Kind = Ada_Attribute_Ref
+                    and then N.As_Attribute_Ref.F_Prefix.Text = Orig_Name_Text
+                  then
+                     Replace
+                       (Handle (N.As_Attribute_Ref.F_Prefix),
+                        Make_Identifier (UIC, Augmented_Expr_Func_Name));
+                  end if;
+                  return Into;
+               end Replace_Attr_Subp_Name;
+
+               Assocs  : constant Aspect_Assoc_List :=
+                 Orig_Aspects.F_Aspect_Assocs;
+               Idx     : Positive := 1;
+               Has_Elt : Boolean := Assocs.Aspect_Assoc_List_Has_Element (Idx);
+            begin
+               while Has_Elt loop
+                  declare
+                     Aspect_Expr : constant Expr :=
+                       Assocs.Aspect_Assoc_List_Element (Idx).F_Expr;
+                  begin
+                     if Aspect_Expr /= No_Expr then
+                        Traverse (Aspect_Expr, Replace_Attr_Subp_Name'Access);
+                     end if;
+
+                     Idx := Idx + 1;
+                     Has_Elt := Assocs.Aspect_Assoc_List_Has_Element (Idx);
+                  end;
+               end loop;
+            end;
+         end if;
+
+         --  Attach the aspect specifications of the original expression
+         --  function to the augmented one.
+
+         Set_Child (Augmented_Expr_Function,
+                    Member_Refs.Basic_Decl_F_Aspects,
+                    Detach (Orig_Aspects));
       end if;
 
       --  If the original expression function is ghost, so must be the
@@ -3120,7 +3165,6 @@ package body Instrument.Ada_Unit is
       Is_Select_Stmt_Alternative : Boolean       := False;
       Priv_Part                  : Private_Part  := No_Private_Part)
    is
-
       SC_First : constant Nat := SC.Last + 1;
       SD_First : constant Nat := SD.Last + 1;
       --  Record first entries used in SC/SD at this recursive level
@@ -3169,6 +3213,10 @@ package body Instrument.Ada_Unit is
       --  identified as such.
       --
       --  This also processes any nested declare expressions.
+
+      procedure Process_Contract (D : Basic_Decl'Class; Name : Text_Type)
+        with Pre => Assertion_Coverage_Enabled;
+      --  Register decision of contrat of name Name of declaration node D
 
       procedure Set_Statement_Entry;
       --  Output CS entries for all statements saved in table SC, and end the
@@ -3406,6 +3454,16 @@ package body Instrument.Ada_Unit is
             N.Traverse (Process_Decl_Expr'Access);
          end if;
       end Process_Decisions_Defer;
+
+      ----------------------
+      -- Process_Contract --
+      ----------------------
+
+      procedure Process_Contract (D : Basic_Decl'Class; Name : Text_Type) is
+      begin
+         Process_Decisions_Defer
+           (P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)), 'A');
+      end Process_Contract;
 
       -------------------------
       -- Set_Statement_Entry --
@@ -3955,12 +4013,6 @@ package body Instrument.Ada_Unit is
          --   MC/DC state inserter for this expression function (unused if
          --   instrumenting a null procedure).
 
-         Keep_Aspects : Boolean := True;
-         --  Whether to keep the aspects of the expression in the augmented
-         --  expression function or not. If we emit a forward declaration for
-         --  the expression function, the aspects need to be attached to the
-         --  declaration and not the augmented expression function.
-
          subtype Decl_Expr_Supported_Versions is Any_Language_Version range
            Ada_2022 .. Any_Language_Version'Last;
          --  Set of versions of the Ada language that support declare
@@ -4328,8 +4380,6 @@ package body Instrument.Ada_Unit is
             --  For expression functions, the aspects of the subprogram were
             --  moved to the newly created declaration, so they should not be
             --  added to the augmented function later on.
-
-            Keep_Aspects := False;
          end if;
 
          if Is_Expr_Function then
@@ -4347,7 +4397,6 @@ package body Instrument.Ada_Unit is
                   Common_Nodes,
                   Formal_Params,
                   Call_Params,
-                  Keep_Aspects,
                   Augmented_Expr_Function,
                   Augmented_Expr_Function_Decl,
                   New_Expr_Function);
@@ -4438,6 +4487,22 @@ package body Instrument.Ada_Unit is
       --------------------------------
 
       procedure Traverse_Subp_Decl_Or_Stub (N : Basic_Decl) is
+
+         procedure Process_Contracts (D : Basic_Decl'Class);
+         --  Register decisions of pre/postconditions for processing
+
+         -----------------------
+         -- Process_Contracts --
+         -----------------------
+
+         procedure Process_Contracts (D : Basic_Decl'Class) is
+         begin
+            if Assertion_Coverage_Enabled then
+               Process_Contract (D, "Pre");
+               Process_Contract (D, "Post");
+            end if;
+         end Process_Contracts;
+
          Dummy_Ctx : constant Context_Handle := Create_Context_Instrument (N);
 
          N_Spec : constant Subp_Spec := N.P_Subp_Spec_Or_Null.As_Subp_Spec;
@@ -4459,7 +4524,13 @@ package body Instrument.Ada_Unit is
 
          if N.Kind in Ada_Null_Subp_Decl then
             Traverse_Degenerate_Subprogram (N, N_Spec);
+
+         elsif N.Kind in Ada_Subp_Decl  then
+            Process_Contracts (N.As_Subp_Decl);
+
          elsif N.Kind in Ada_Expr_Function then
+            Process_Contracts (N.As_Expr_Function);
+
             Traverse_Degenerate_Subprogram (N, N_Spec);
          end if;
          Exit_Scope (UIC);
@@ -4984,14 +5055,40 @@ package body Instrument.Ada_Unit is
 
                begin
                   case Nam is
+                     when Name_Type_Invariant
+                        | Name_Precondition
+                        | Name_Postcondition
+                        =>
+                        Typ := 'p';
+
+                        if Assertion_Coverage_Enabled then
+                           declare
+                              Pragma_Name : constant String :=
+                                (case Nam is
+                                    when Name_Type_Invariant =>
+                                      "Type_Invariant",
+                                    when Name_Precondition =>
+                                       "Precondition",
+                                    when Name_Postcondition =>
+                                      "Postcondition",
+                                    when others => "");
+                              Location : constant String :=
+                                Ada.Directories.Simple_Name
+                                  (N.Unit.Get_Filename)
+                                & ":" & Image (Sloc (N));
+                           begin
+                              Warn ("gnatcov limitation: pragma " & Pragma_Name
+                                    & " ignored during instrumentation at "
+                                    & Location & ". Consider expressing it as"
+                                    & " an aspect instead.");
+                           end;
+                        end if;
+
                      when Name_Assert
                         | Name_Assert_And_Cut
                         | Name_Assume
                         | Name_Check
                         | Name_Loop_Invariant
-                        | Name_Type_Invariant
-                        | Name_Postcondition
-                        | Name_Precondition
                      =>
                         --  For Assert-like pragmas, we insert a statement
                         --  witness and instrument the decision if the pragma
@@ -5008,14 +5105,31 @@ package body Instrument.Ada_Unit is
                         end if;
 
                         --  We consider that the assertion policy is
-                        --  "disabled".
+                        --  "disabled", except if any level of assertion
+                        --  coverage is enabled.
                         --
                         --  In the compiler, we initially set the type to 'p'
                         --  (disabled pragma), and then switch it to 'P'
                         --  if/when the policy is determined to be enabled
                         --  later on.
 
-                        Typ := 'p';
+                        if Assertion_Coverage_Enabled then
+                           Typ := 'P';
+                           declare
+                              Index : Positive :=
+                                (case Nam is
+                                    when Name_Check => 2,
+                                    when others     => 1);
+                           begin
+                              while not Is_Null (Prag_Args.Child (Index)) loop
+                                 Process_Decisions_Defer
+                                   (Prag_Arg_Expr (Index), 'P');
+                                 Index := Index + 1;
+                              end loop;
+                           end;
+                        else
+                           Typ := 'p';
+                        end if;
 
                         --  Pre/postconditions can be inherited so SCO should
                         --  never be deactivated???
@@ -5174,6 +5288,10 @@ package body Instrument.Ada_Unit is
                            Typ := 's';
                         else
                            Typ := 't';
+                           if Assertion_Coverage_Enabled then
+                              Process_Contract
+                                (N.As_Concrete_Type_Decl, "Type_Invariant");
+                           end if;
                         end if;
 
                      --  Entity declaration nodes that may also be used
@@ -5603,22 +5721,24 @@ package body Instrument.Ada_Unit is
      (UIC : in out Ada_Unit_Inst_Context;
       N   : Ada_Node)
    is
-      Decls : Declarative_Part;
-      HSS   : Handled_Stmts;
+      Decls   : Declarative_Part;
+      HSS     : Handled_Stmts;
+      Aspects : Aspect_Spec := No_Aspect_Spec;
 
       Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
         UIC.MCDC_State_Inserter;
       Local_Inserter            : aliased Default_MCDC_State_Inserter;
+
    begin
       case Kind (N) is
          when Ada_Subp_Body =>
             declare
                SBN : constant Subp_Body := N.As_Subp_Body;
             begin
-               Decls := SBN.F_Decls;
-               HSS   := SBN.F_Stmts;
+               Decls   := SBN.F_Decls;
+               HSS     := SBN.F_Stmts;
+               Aspects := SBN.F_Aspects;
             end;
-
          when Ada_Task_Body =>
             declare
                TBN : constant Task_Body := N.As_Task_Body;
@@ -5654,6 +5774,30 @@ package body Instrument.Ada_Unit is
 
       Local_Inserter.Local_Decls := Handle (Decls.F_Decls);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
+
+      --  If assertion coverage is enabled, process the decisions in the
+      --  contracts. This is needed in the case of a subprogram body with
+      --  aspect with no prior declaration.
+
+      if Aspects /= No_Aspect_Spec and then Assertion_Coverage_Enabled then
+         declare
+            Assocs  : constant Aspect_Assoc_List := Aspects.F_Aspect_Assocs;
+            Idx     : Positive := 1;
+            Has_Elt : Boolean := Assocs.Aspect_Assoc_List_Has_Element (Idx);
+         begin
+            while Has_Elt loop
+               --  Defer the treatment of this decision
+               SD.Append
+                 ((As_Ada_Node
+                    (Assocs.Aspect_Assoc_List_Element (Idx).F_Expr),
+                  'A',
+                  False));
+
+               Idx := Idx + 1;
+               Has_Elt := Assocs.Aspect_Assoc_List_Has_Element (Idx);
+            end loop;
+         end;
+      end if;
 
       Traverse_Declarations_Or_Statements (UIC, L => Decls.F_Decls);
 
@@ -5728,8 +5872,9 @@ package body Instrument.Ada_Unit is
       Condition_Count : Natural := 0;
       --  Count of conditions for current decision (MC/DC only)
 
-      MCDC_State : Unbounded_String;
-      --  Name of MC/DC state local variable for current decision (MC/DC only)
+      Conditions_State : Unbounded_String;
+      --  Name of MC/DC and ATCC state local variable for current decision
+      --  (MC/DC and ATCC only).
 
       procedure Output_Decision_Operand
         (Operand         : Expr;
@@ -5753,9 +5898,9 @@ package body Instrument.Ada_Unit is
       --  False, and an entry is made in the condition hash table.
 
       procedure Output_Header (T : Character; N : Ada_Node'Class);
-      --  Outputs a decision header node. T is I/W/E/P for IF/WHILE/EXIT WHEN/
-      --  PRAGMA, and 'X' for the expression case. Resets Condition_Count to 0,
-      --  and initializes MCDC_State.
+      --  Outputs a decision header node. T is I/W/E/P/G/a or A for IF/WHILE/
+      --  EXIT WHEN/PRAGMA/ENTRY GUARD/ASPECT, and 'X' for the expression case.
+      --  Resets Condition_Count to 0, and initializes MCDC_State.
 
       procedure Find_Nested_Decisions (Operand : Expr);
       --  This is called on node Operand, the top level node of a decision,
@@ -5838,13 +5983,16 @@ package body Instrument.Ada_Unit is
             if Decision_Static or else Do_Not_Instrument then
                return;
             end if;
-            if MCDC_Coverage_Enabled then
+
+            if MCDC_Coverage_Enabled
+              or else Assertion_Condition_Coverage_Enabled
+            then
                UIC.Source_Conditions.Append
                  (Source_Condition'
-                    (LL_SCO          => SCOs.SCO_Table.Last,
-                     Condition       => N.As_Expr,
-                     State           => MCDC_State,
-                     First           => Condition_Count = 0));
+                    (LL_SCO    => SCOs.SCO_Table.Last,
+                     Condition => N.As_Expr,
+                     State     => Conditions_State,
+                     First     => Condition_Count = 0));
 
                Condition_Count := Condition_Count + 1;
             end if;
@@ -5897,6 +6045,9 @@ package body Instrument.Ada_Unit is
 
          Nam : Name_Id := Namet.No_Name;
          --  For the case of an aspect, aspect name
+
+         Is_Contract : constant Boolean := T in 'a' | 'A' | 'P';
+         --  Is the decision that of a contract
       begin
          case T is
             when 'I' | 'E' | 'W' | 'a' | 'A' =>
@@ -5906,7 +6057,7 @@ package body Instrument.Ada_Unit is
 
                Loc := Sloc (Parent (N));
 
-               if T = 'a' or else T = 'A' then
+               if T in 'a' | 'A' then
                   Nam := Aspect_Assoc_Name (N.Parent.As_Aspect_Assoc);
                end if;
 
@@ -5972,9 +6123,14 @@ package body Instrument.Ada_Unit is
          Current_Decision := SCOs.SCO_Table.Last;
 
          if Coverage.Enabled (Decision)
-            or else MCDC_Coverage_Enabled
+           or else MCDC_Coverage_Enabled
+           or else Assertion_Condition_Coverage_Enabled
          then
-            if MCDC_Coverage_Enabled then
+
+            if MCDC_Coverage_Enabled
+              or else (Is_Contract
+                       and then Assertion_Condition_Coverage_Enabled)
+            then
                Condition_Count := 0;
 
                if UIC.MCDC_State_Inserter = null then
@@ -5983,7 +6139,7 @@ package body Instrument.Ada_Unit is
                           & "cannot find local declarative part for MC/DC",
                           Kind => Diagnostics.Error);
                else
-                  MCDC_State := To_Unbounded_String
+                  Conditions_State := To_Unbounded_String
                     (UIC.MCDC_State_Inserter.Insert_MCDC_State
                        (UIC, Make_MCDC_State_Name (SCOs.SCO_Table.Last)));
                end if;
@@ -6011,16 +6167,19 @@ package body Instrument.Ada_Unit is
             then
                UIC.Source_Decisions.Append
                  (Source_Decision'
-                    (LL_SCO   => Current_Decision,
-                     Decision => N.As_Expr,
-                     State    => MCDC_State));
+                    (LL_SCO            => Current_Decision,
+                     Decision          => N.As_Expr,
+                     State             => Conditions_State,
+                     Do_Not_Instrument =>
+                       Do_Not_Instrument or else Is_Static_Expr (N.As_Expr),
+                     Is_Contract => Is_Contract));
             end if;
          end if;
 
          --  For an aspect specification, which will be rewritten into a
          --  pragma, enter a hash table entry now.
 
-         if T = 'a' then
+         if T in 'a' | 'A' then
             Hash_Entries.Append ((Loc, Current_Decision));
          end if;
 
@@ -6113,9 +6272,15 @@ package body Instrument.Ada_Unit is
                   SCOs.SCO_Table.Table (SCOs.SCO_Table.Last).Last := True;
                end if;
 
-               --  Process any embedded decisions
+               --  Process any embedded decisions.
+               --  For the sake of simplicity the coverage of nested decisions
+               --  in contract decisions should not be checked. Therefore they
+               --  should be instrumented.
 
-               Find_Nested_Decisions (EN);
+               if T /= 'P' then
+                  Find_Nested_Decisions (EN);
+               end if;
+
                return Over;
             end;
          end if;
@@ -7112,10 +7277,15 @@ package body Instrument.Ada_Unit is
          E.Unit_Buffers := To_Nodes (RH, UIC.Pure_Buffer_Unit.Unit);
          E.Statement_Buffer := Indexed_Buffer (Statement_Buffer_Name);
 
-         if Coverage.Enabled (Decision) or else MCDC_Coverage_Enabled then
+         if Coverage.Enabled (Decision)
+           or else MCDC_Coverage_Enabled
+           or else Assertion_Condition_Coverage_Enabled
+         then
             E.Decision_Buffer := Indexed_Buffer (Decision_Buffer_Name);
 
-            if MCDC_Coverage_Enabled then
+            if MCDC_Coverage_Enabled
+              or else Assertion_Condition_Coverage_Enabled
+            then
                E.MCDC_Buffer := Indexed_Buffer (MCDC_Buffer_Name);
             end if;
          end if;
@@ -8344,16 +8514,30 @@ package body Instrument.Ada_Unit is
 
          --  Insert calls to condition/decision witnesses
 
-         if Coverage.Enabled (Decision) or else MCDC_Coverage_Enabled then
+         if Coverage.Enabled (Decision) or else MCDC_Coverage_Enabled
+           or else Assertion_Condition_Coverage_Enabled
+         then
             for SD of UIC.Source_Decisions loop
                declare
                   HL_SCO : constant SCO_Id := SCO_Map (SD.LL_SCO);
+                  Should_Instrument : constant Boolean :=
+                    ((not SD.Is_Contract
+                     and then (Coverage.Enabled (Decision)
+                       or else MCDC_Coverage_Enabled))
+                     or else (SD.Is_Contract
+                       and then Assertion_Coverage_Enabled));
                begin
-                  Insert_Decision_Witness (UIC, SD, Path_Count (HL_SCO));
+                  if SD.Do_Not_Instrument then
+                     Set_Decision_SCO_Non_Instr (HL_SCO);
+                  elsif Should_Instrument then
+                     Insert_Decision_Witness (UIC, SD, Path_Count (HL_SCO));
+                  end if;
                end;
             end loop;
 
-            if MCDC_Coverage_Enabled then
+            if MCDC_Coverage_Enabled
+              or else Assertion_Condition_Coverage_Enabled
+            then
 
                --  As high-level SCO tables have been populated, we have built
                --  BDDs for each decision, and we can now set the correct MC/DC
@@ -8415,7 +8599,8 @@ package body Instrument.Ada_Unit is
                       (D_SCO, Outcome);
                end loop;
 
-               if MCDC_Coverage_Enabled
+               if (MCDC_Coverage_Enabled
+                   or else Assertion_Condition_Coverage_Enabled)
                   and then D_Bit_Alloc.Path_Bits_Base /= No_Bit_Id
                then
                   declare

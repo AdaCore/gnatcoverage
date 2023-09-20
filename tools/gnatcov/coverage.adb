@@ -95,6 +95,23 @@ package body Coverage is
       return MCDC_Coverage_Enabled_Cached;
    end MCDC_Coverage_Enabled;
 
+   --------------------------------
+   -- Assertion_Coverage_Enabled --
+   --------------------------------
+
+   function Assertion_Coverage_Enabled return Boolean is
+   begin
+      return Source_Coverage_Enabled
+        and then (Enabled (ATC) or else Enabled (ATCC));
+   end Assertion_Coverage_Enabled;
+
+   ------------------------------------------
+   -- Assertion_Condition_Coverage_Enabled --
+   ------------------------------------------
+
+   function Assertion_Condition_Coverage_Enabled return Boolean is
+     (Enabled (ATCC));
+
    ----------------
    -- MCDC_Level --
    ----------------
@@ -189,6 +206,12 @@ package body Coverage is
             Res.Include (Decision);
             if MCDC_Coverage_Enabled then
                Res.Include (MCDC_Level);
+            end if;
+         end if;
+         if Enabled (ATC) then
+            Res.Include (ATC);
+            if Enabled (ATCC) then
+               Res.Include (ATCC);
             end if;
          end if;
       end if;

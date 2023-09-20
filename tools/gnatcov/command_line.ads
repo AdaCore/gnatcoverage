@@ -81,6 +81,7 @@ package Command_Line is
       Opt_Externally_Built_Projects,
       Opt_GNAT_Pragmas,
       Opt_Show_MCDC_Vectors,
+      Opt_Show_Condition_Vectors,
       Opt_Dump_Filename_Simple,
       Opt_Allow_Mix_Trace_Kind,
       Opt_Boolean_Short_Circuit_And_Or,
@@ -503,9 +504,18 @@ package Command_Line is
 
       Opt_Show_MCDC_Vectors => Create
         (Long_Name => "--show-mcdc-vectors",
-         Help      => "If set, show MCDC evaluation vectors encountered for"
-                      & " decisions where there is at least a MCDC"
-                      & " violation on one of the conditions.",
+         Help      => "DEPRECATED: If set, show MCDC evaluation vectors"
+                      & " encountered for decisions where there is at least a"
+                      & " MCDC violation on one of the conditions. Prefer"
+                      & " using --show-condition-vectors.",
+         Commands  => (Cmd_Coverage => True, others => False),
+         Internal  => False),
+
+      Opt_Show_Condition_Vectors => Create
+        (Long_Name => "--show-condition-vectors",
+         Help      => "If set, show MCDC and ATCC evaluation vectors"
+                      & " encountered for decisions where there is at least a"
+                      & " MCDC or ATCC violation on one of the conditions.",
          Commands  => (Cmd_Coverage => True, others => False),
          Internal  => False),
 
