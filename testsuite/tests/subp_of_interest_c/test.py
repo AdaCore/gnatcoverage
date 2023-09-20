@@ -1,6 +1,8 @@
 """
 Check that the subprograms of interest mechanism works as expected on a C
-example.
+example. It also acts as a regression testcase as gnatcov used to crash when
+instrumenting a source including multiple headers, with at last one of them
+not having any coverage obligation.
 """
 
 import os

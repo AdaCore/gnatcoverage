@@ -3294,23 +3294,23 @@ package body Instrument.C is
                --  Associate these bit maps to the corresponding CU
 
                Set_Bit_Maps (UIC.CUs.Element (SFI), Bit_Maps);
+            end;
+         end loop;
 
-               --  Iterate through the package level body entities
+         --  Iterate through the package level body entities
 
-               Remap_Scopes (UIC.Scopes, SCO_Map);
+         Remap_Scopes (UIC.Scopes, SCO_Map);
 
-               for C in UIC.Scopes.Iterate loop
-                  declare
-                     CU : constant Created_Unit_Maps.Cursor :=
-                       UIC.CUs.Find (Scopes_In_Files_Map.Key (C));
-                  begin
-                     if Created_Unit_Maps.Has_Element (CU) then
-                        Set_Scope_Entities
-                          (Created_Unit_Maps.Element (CU),
-                           Scopes_In_Files_Map.Element (C).Scope_Entities);
-                     end if;
-                  end;
-               end loop;
+         for C in UIC.Scopes.Iterate loop
+            declare
+               CU : constant Created_Unit_Maps.Cursor :=
+                 UIC.CUs.Find (Scopes_In_Files_Map.Key (C));
+            begin
+               if Created_Unit_Maps.Has_Element (CU) then
+                  Set_Scope_Entities
+                    (Created_Unit_Maps.Element (CU),
+                     Scopes_In_Files_Map.Element (C).Scope_Entities);
+               end if;
             end;
          end loop;
       end;
