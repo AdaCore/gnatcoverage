@@ -19,6 +19,7 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;
 with Ada.Exceptions;
+with Ada.Strings.Fixed;
 
 with Outputs;  use Outputs;
 with Project;  use Project;
@@ -655,5 +656,29 @@ package body Switches is
       end loop;
       return Result;
    end Common_Switches;
+
+   --------------------------
+   -- Set_Language_Version --
+   --------------------------
+
+   function Set_Language_Version
+     (V : in out Any_Language_Version; From : String) return Boolean
+   is
+      use Ada.Strings.Fixed;
+   begin
+      for Ada_Version in Any_Language_Version loop
+         declare
+            Year : constant String := Ada_Version'Image (5 .. 8);
+         begin
+            if Index (From, Year) /= 0
+              or else Index (From, Year (7 .. 8)) /= 0
+            then
+               V := Ada_Version;
+               return True;
+            end if;
+         end;
+      end loop;
+      return False;
+   end Set_Language_Version;
 
 end Switches;

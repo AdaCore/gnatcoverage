@@ -25,7 +25,6 @@ with Instrument.Input_Traces; use Instrument.Input_Traces;
 with Traces;                  use Traces;
 with Traces_Names;            use Traces_Names;
 with Traces_Lines;            use Traces_Lines;
-with SC_Obligations;          use SC_Obligations;
 
 package Coverage.Source is
 
@@ -41,6 +40,11 @@ package Coverage.Source is
    --  A particularity here is that we automatically consider CU's statements
    --  which have an allocated bit in trace buffers (see
    --  SC_Obligations.Statement_Bit_Map) as having code.
+
+   function Decision_Requires_Assertion_Coverage (SCO : SCO_Id) return Boolean;
+   --  True if SCO is for a decision in a pragma/aspect whose coverage can be
+   --  checked by assertion coverage levels, and if any assertion coverage
+   --  level is enabled.
 
    procedure Compute_Source_Coverage
      (Subp_Key  : Subprogram_Key;

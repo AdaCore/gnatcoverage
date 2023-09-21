@@ -242,7 +242,7 @@ package body Annotations.Report is
          Open_Report_File (Final_Report_Name.all);
       end if;
 
-      Annotations.Generate_Report (Pp, True);
+      Annotations.Generate_Report (Pp, True, Context.Subps_Of_Interest);
       Close_Report_File;
    end Generate_Report;
 
@@ -415,7 +415,8 @@ package body Annotations.Report is
                Put
                  (Output.all,
                   To_Lower (SCO_Kind'Image (Kind (M.SCO)))
-                  & (if Switches.Show_MCDC_Vectors
+                  & (if (Switches.Show_MCDC_Vectors
+                    or else Switches.Show_Condition_Vectors)
                     and then Kind (M.SCO) = Condition
                     then Index (M.SCO)'Image
                     & " (" & SCO_Image (M.SCO) & ") "
@@ -533,6 +534,9 @@ package body Annotations.Report is
          Title : String;
          Item  : String)
       is
+         procedure Output_Message (C : Message_Vectors.Cursor);
+         --  Display the SCO violations messages stored at C
+
          Item_Count : Natural := 0;
          --  Count of the number of violation / error messages for the current
          --  section.
@@ -540,6 +544,58 @@ package body Annotations.Report is
          Msg_Count  : Natural := 0;
          --  Count of the number of messages (including info messages) for the
          --  current section.
+
+         --------------------
+         -- Output_Message --
+         --------------------
+
+         procedure Output_Message (C : Message_Vectors.Cursor) is
+            M            : Message renames Message_Vectors.Element (C);
+            Msg          : constant String := To_String (M.Msg);
+            First        : Natural := Msg'First;
+            Show_Vectors : constant Boolean :=
+              (Switches.Show_MCDC_Vectors
+               and then not Is_Assertion_To_Cover (M.SCO))
+              or else Switches.Show_Condition_Vectors;
+         begin
+            --  For info messages (such as the messages displayed with
+            --  --show-mcdc-vectors and --show-condition vectors), do not
+            --  display the SCO, as it is only used to attach the message to
+            --  the right report location.
+
+            if M.Kind /= Info and then M.SCO /= No_SCO_Id then
+               Put
+                 (Output.all, Image (First_Sloc (M.SCO), Unique_Name => True));
+               Put (Output.all, ": ");
+               if Msg (First) = '^' then
+                  First := First + 1;
+               else
+                  Put
+                    (Output.all,
+                     SCO_Kind_Image (M.SCO)
+                     & (if Show_Vectors and then Kind (M.SCO) = Condition
+                       then Index (M.SCO)'Image
+                       & " (" & SCO_Image (M.SCO) & ") "
+                       else " "));
+               end if;
+
+            else
+               Put (Output.all, Image (M.Sloc, Unique_Name => True));
+               Put (Output.all, ": ");
+            end if;
+
+            Output_Multiline_Msg
+              (Output => Output.all,
+               Text   => Msg (First .. Msg'Last));
+
+            if M.SCO /= No_SCO_Id and then M.Tag /= No_SC_Tag then
+               Put (Output.all,
+                    " (from " & Tag_Provider.Tag_Name (M.Tag) & ")");
+            end if;
+
+            New_Line (Output.all);
+            Output_Annotations (Output.all, SCO_Annotations (M.SCO));
+         end Output_Message;
 
       --  Start of processing for Messages_For_Section
 
@@ -609,6 +665,7 @@ package body Annotations.Report is
       for L in Coverage_Level loop
          if Enabled (L)
            or else (L = Decision and then MCDC_Coverage_Enabled)
+           or else (L in ATC | ATCC and then Assertion_Coverage_Enabled)
          then
             Messages_For_Section
               (Coverage_Level'Pos (L),
@@ -617,7 +674,6 @@ package body Annotations.Report is
          else
             pragma Assert
               (Pp.Nonexempted_Messages (Coverage_Level'Pos (L)).Is_Empty);
-            null;
          end if;
       end loop;
 
@@ -935,15 +991,24 @@ package body Annotations.Report is
             return Coverage_Level'Pos (Stmt);
 
          when Decision =>
-            if Is_Expression (SCO) then
+            if Is_Expression (SCO)
+              and then not Decision_Requires_Assertion_Coverage (SCO)
+            then
                return MCDC_Section;
-
+            elsif Decision_Requires_Assertion_Coverage (SCO) then
+               return Coverage_Level'Pos (ATC);
             else
                return Coverage_Level'Pos (Decision);
             end if;
 
          when Condition =>
-            return MCDC_Section;
+            if Enabled (ATCC)
+              and then Decision_Requires_Assertion_Coverage (SCO)
+            then
+               return Coverage_Level'Pos (ATCC);
+            else
+               return MCDC_Section;
+            end if;
 
          when others =>
             return Other_Errors;

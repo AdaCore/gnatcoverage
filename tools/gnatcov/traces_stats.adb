@@ -70,6 +70,8 @@ package body Traces_Stats is
          Decision => +"decision",
          MCDC     => +"MC/DC",
          UC_MCDC  => +"UC MC/DC",
+         ATC      => +"ATC",
+         ATCC     => +"ATCC",
          others   => +"");
       Res : Unbounded_String := +"";
 

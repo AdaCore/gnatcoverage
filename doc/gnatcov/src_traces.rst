@@ -374,19 +374,25 @@ Unsupported source constructs
 There are a few language constructs that |gcvins| doesn't support.
 The tool emits a warning when it encounters such cases and the corresponding
 code is not instrumented. Source coverage obligations are still emitted, and
-the unsupported constructs will be reported in a separate 
+the unsupported constructs will be reported in a separate
 ``Undetermined_Coverage`` category, to differentiate them from actual coverage
 violations.
 
 The list of unsupported constructs is as follows:
 
-* Generic expression functions,
 * Generic null procedures,
+* Protected bodies entry guards when the ``Simple_Barriers`` restriction or
+  the ``Pure_Barriers`` one apply.
+
+Additionally, if the Ada language version in use, indicated to the tool by
+either a ``pragma Ada_nnnn`` pragma in the sources or through the ``--ada``
+command line switch, is less or equal to Ada 2012, the following constructs are
+also unsupported:
+
+* Generic expression functions,
 * Recursive expression functions which are primitives of some tagged type,
 * Expression functions which are primitives of their return type, when it is a
   tagged type.
-* Protected bodies entry guards when the ``Simple_Barriers`` restriction or
-  the ``Pure_Barriers`` one apply.
 
 The simplest way to work around the limitation concerning expression functions
 is to turn them into regular functions, by giving them a proper body,
@@ -394,31 +400,27 @@ containing a single return statement with the original expression.
 Otherwise it is possible to exempt those constructs (see :ref:`exemptions`)
 and/or perform a manual coverage analysis for these special cases.
 
-Additionally, the MC/DC instrumentation of decisions with many conditions
-may require more memory than available (during instrumentation and/or at
-run-time) to enumerate the possible paths through the decision. To avoid this,
-|gcv| will not instrument such decisions for MC/DC, emitting a warning in the
-process, and the MC/DC coverage for each decision will be reported as
-``Undetermined_Coverage`` state. Should the default limit not be satisfactory,
-it can be tuned with the option :cmd-option:`--path-count-limit`.
+The MC/DC instrumentation of decisions with many conditions may require more
+memory than available (during instrumentation and/or at run-time) to enumerate
+the possible paths through the decision. To avoid this, |gcv| will not
+instrument such decisions for MC/DC, emitting a warning in the process, and the
+MC/DC coverage for each decision will be reported as ``Undetermined_Coverage``
+state. Should the default limit not be satisfactory, it can be tuned with the
+option :cmd-option:`--path-count-limit`.
 
-Source-coverage obligations limitations
+Other source-traces limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In Ada, variable or type declarations at the package level can yield elaboration
 code. Such code constructs are thus considered to have corresponding coverage
 obligations
 
-In the case where a `pragma Preelaborate` or the `No_Elaboration_Code`
-restriction affects the instrumented unit, variable / type declarations at the
-package level are not considered as coverage obligations. In the former case,
-elaboration code can still be emitted (in rare occurrences), but the pragma is
-too restrictive to instrument such code constructs. In the latter case, no
-elaboration code can be emitted so it is valid not to produce any coverage
-obligation.
-
-Global source traces limitations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In the case where a `pragma Preelaborate` restriction affects the instrumented
+unit, variable and type declarations at the package level are not considered as
+coverage obligations, although some elaboration code may still be emitted in
+rare instances. Note that declarations within a unit constrained by a
+``No_Elaboration_Code`` pragma don't produce coverage obligation either, which
+is always correct as no executable code can be emitted by the compiler for them.
 
 There are also a few limitations concerning the source trace workflow as a
 whole:

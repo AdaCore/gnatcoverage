@@ -79,15 +79,11 @@ package body Instrument.C is
    type Macro_Set_Cst_Access is access constant Macro_Set;
 
    function Builtin_Macros
-     (Lang, Compiler, Std, Output_Dir : String) return Macro_Set_Cst_Access;
-   --  Return the list of built-in macros for the given compiler, standard and
-   --  language. Output_Dir is used to store a temporary file.
-   --
-   --  Note that we could generate a fully-fledged preprocessor configuration
-   --  (the standard macros + the command-line defined macros with an
-   --  additional argument there), but it is more convenient to cache the
-   --  "light" preprocessor configuration that is determined by the compiler,
-   --  language and standard only.
+     (Lang, Compiler, Output_Dir : String;
+      Compiler_Switches : String_Vectors.Vector) return Macro_Set_Cst_Access;
+   --  Return the list of built-in macros for the given compiler, language and
+   --  according to the compiler switches. Output_Dir is used to store a
+   --  temporary file.
 
    procedure Preprocess_Source
      (Filename      : String;
@@ -141,15 +137,14 @@ package body Instrument.C is
 
    overriding procedure Exit_Scope
      (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class)
-     with Pre => UIC.Scopes.Contains (UIC.Current_File_Scope);
+      UIC  : in out C_Unit_Inst_Context'Class);
    --  Close the current scope, removing the current scope of the current file
    --  from UIC.Scopes if it does not contain SCOs. Assume that the last
    --  generated SCO (SCOs.SCO_Table.Last) is the last SCO for the current
    --  scope.
 
    procedure Remap_Scopes
-     (Scopes  : Scopes_In_Files_Map.Map;
+     (Scopes  : in out Scopes_In_Files_Map.Map;
       SCO_Map : LL_HL_SCO_Map);
    --  Convert low level SCOs in each scope for each file to high-level SCOs
    --  using the mapping in SCO_Map. Set the file's SCO range to cover all of
@@ -548,6 +543,10 @@ package body Instrument.C is
       UIC  : in out C_Unit_Inst_Context'Class;
       N    : Cursor_T)
    is
+      Inserted : Boolean;
+
+      File_Scope_Position : Scopes_In_Files_Map.Cursor;
+
       procedure Enter_File_Scope
         (UIC : in out C_Unit_Inst_Context'Class;
          SFI : Source_File_Index)
@@ -564,20 +563,40 @@ package body Instrument.C is
          SFI : Source_File_Index) is
       begin
          if not UIC.Scopes.Contains (SFI) then
+
+            --  Add a new entry to the file scopes map
+
+            UIC.Scopes.Insert
+              (SFI,
+               File_Scope_Type'(others => <>),
+               Position => File_Scope_Position,
+               Inserted => Inserted);
+
             declare
-               New_Scope_Ent : constant Scope_Entity_Acc := new Scope_Entity'
-                 (From     => SCO_Id (SCOs.SCO_Table.Last + 1),
-                  To       => No_SCO_Id,
-                  Name     => +Get_Simple_Name (SFI),
-                  Sloc     => (Line => 0, Column => 0),
-                  Children => Scope_Entities_Vectors.Empty_Vector,
-                  Parent   => null);
+               File_Scope    : constant Scopes_In_Files_Map.Reference_Type :=
+                 UIC.Scopes.Reference (File_Scope_Position);
+               New_Scope_Ent : constant Scope_Entity :=
+                 (From       => SCO_Id (SCOs.SCO_Table.Last + 1),
+                  To         => No_SCO_Id,
+                  Name       => +Get_Simple_Name (SFI),
+                  Sloc       => (Line => 0, Column => 0),
+                  Identifier => (Decl_SFI => SFI, Decl_Line => 0));
+
+               Scope_Entity_Position : Scope_Entities_Trees.Cursor;
             begin
-               UIC.Scopes.Insert (SFI, New_Scope_Ent);
+               File_Scope.Scope_Entities.Insert_Child
+                 (Parent   => File_Scope.Scope_Entities.Root,
+                  Before   => Scope_Entities_Trees.No_Element,
+                  New_Item => New_Scope_Ent,
+                  Position => Scope_Entity_Position);
+               File_Scope.Current_Scope_Entity := Scope_Entity_Position;
+               File_Scope.File_Scope_Entity := Scope_Entity_Position;
             end;
+         else
+            File_Scope_Position := UIC.Scopes.Find (SFI);
          end if;
 
-         UIC.Current_File_Scope := SFI;
+         UIC.Current_File_Scope := File_Scope_Position;
       end Enter_File_Scope;
 
       Sloc : constant Source_Location   := Start_Sloc (N);
@@ -596,22 +615,28 @@ package body Instrument.C is
       declare
          C             : constant Scopes_In_Files_Map.Cursor :=
            UIC.Scopes.Find (File);
-         Current_Scope : constant Scope_Entity_Acc :=
-           Scopes_In_Files_Map.Element (C);
-         New_Scope_Ent : constant Scope_Entity_Acc := new Scope_Entity'
-           (From     => SCO_Id (SCOs.SCO_Table.Last + 1),
-            To       => No_SCO_Id,
-            Name     => +Get_Decl_Name_Str (N),
-            Sloc     => Sloc.L,
-            Children => Scope_Entities_Vectors.Empty_Vector,
-            Parent   => Current_Scope);
+         File_Scope    : constant Scopes_In_Files_Map.Reference_Type :=
+           UIC.Scopes.Reference (C);
+         New_Scope_Ent : constant Scope_Entity :=
+           (From       => SCO_Id (SCOs.SCO_Table.Last + 1),
+            To         => No_SCO_Id,
+            Name       => +Get_Decl_Name_Str (N),
+            Sloc       => Sloc.L,
+            Identifier => (Decl_SFI => File, Decl_Line => Sloc.L.Line));
+         Inserted      : Scope_Entities_Trees.Cursor;
       begin
          --  Add New_Scope_Ent to the children of the last open scope in the
          --  file.
-         Current_Scope.Children.Append (New_Scope_Ent);
 
-         --  Set New_Scope_Ent as the current open scope for the file.
-         UIC.Scopes.Replace_Element (C, New_Scope_Ent);
+         File_Scope.Scope_Entities.Insert_Child
+           (Parent   => File_Scope.Current_Scope_Entity,
+            Before   => Scope_Entities_Trees.No_Element,
+            New_Item => New_Scope_Ent,
+            Position => Inserted);
+
+         --  Make the current scope entity point to the right one
+
+         File_Scope.Current_Scope_Entity := Inserted;
       end;
    end Enter_Scope;
 
@@ -623,44 +648,31 @@ package body Instrument.C is
      (Pass : Instrument_Pass_Kind;
       UIC  : in out C_Unit_Inst_Context'Class)
    is
-      C     : Scopes_In_Files_Map.Cursor :=
-        UIC.Scopes.Find (UIC.Current_File_Scope);
-      Scope : Scope_Entity_Acc := Scopes_In_Files_Map.Element (C);
+      File_Scope_Ref   : constant Scopes_In_Files_Map.Reference_Type :=
+        UIC.Scopes.Reference (UIC.Current_File_Scope);
+      Scope_Entity_Ref : constant Scope_Entities_Trees.Reference_Type :=
+        File_Scope_Ref.Scope_Entities.Reference
+          (File_Scope_Ref.Current_Scope_Entity);
+      Parent           : constant Scope_Entities_Trees.Cursor :=
+        Scope_Entities_Trees.Parent (File_Scope_Ref.Current_Scope_Entity);
    begin
-      --  If the scope associated to the current file is that of the file (no
-      --  parent), no scope is currently open in it. Then the scope that needs
-      --  closing is the current one of the file being instrumented.
+      Scope_Entity_Ref.To := SCO_Id (SCOs.SCO_Table.Last);
 
-      if Scope.Parent = null then
-         UIC.Current_File_Scope := UIC.SFI;
-         C     := UIC.Scopes.Find (UIC.SFI);
-         Scope := Scopes_In_Files_Map.Element (C);
+      --  Discard the scope entity if it has no associated SCOs
+
+      if Scope_Entity_Ref.To < Scope_Entity_Ref.From then
+         File_Scope_Ref.Scope_Entities.Delete_Leaf
+           (File_Scope_Ref.Current_Scope_Entity);
+      else
+         --  Update the last SCO for the file scope
+
+         File_Scope_Ref.Scope_Entities.Reference
+           (File_Scope_Ref.File_Scope_Entity).To := Scope_Entity_Ref.To;
       end if;
 
-      declare
-         Parent : constant Scope_Entity_Acc := Scope.Parent;
-      begin
-         --  Update the last SCO for this scope entity
+      --  Go back to the parent scope entity
 
-         Scope.To := SCO_Id (SCOs.SCO_Table.Last);
-
-         --  If the scope has no SCO, discard it
-
-         if Scope.To < Scope.From then
-            if Parent /= null then
-               Parent.Children.Delete_Last;
-            end if;
-            Free (Scope);
-         end if;
-
-         --  If this is not a top-level file scope (we want to keep its
-         --  reference after having traversed the AST), go up the scope tree
-         --  of the current file.
-
-         if Parent /= null then
-            UIC.Scopes.Replace_Element (C, Parent);
-         end if;
-      end;
+      File_Scope_Ref.Current_Scope_Entity := Parent;
    end Exit_Scope;
 
    ------------------
@@ -668,18 +680,24 @@ package body Instrument.C is
    ------------------
 
    procedure Remap_Scopes
-     (Scopes  : Scopes_In_Files_Map.Map;
+     (Scopes  : in out Scopes_In_Files_Map.Map;
       SCO_Map : LL_HL_SCO_Map) is
    begin
-      for S of Scopes loop
-         if not S.Children.Is_Empty then
-            for Child of S.Children loop
-               Remap_Scope_Entity (Child, SCO_Map);
-            end loop;
+      for Cur in Scopes.Iterate loop
+         declare
+            Ref        : constant Scopes_In_Files_Map.Reference_Type :=
+              Scopes.Reference (Cur);
+            File_Scope : Scope_Entity renames
+              Scope_Entities_Trees.Element (Ref.File_Scope_Entity);
+         begin
+            --  If the file scope is empty, remove it
 
-            S.From := S.Children.First_Element.From;
-            S.To   := S.Children.Last_Element.To;
-         end if;
+            if File_Scope.To < File_Scope.From then
+               Ref.Scope_Entities.Delete_Subtree (Ref.File_Scope_Entity);
+            else
+               Remap_Scope_Entities (Ref.Scope_Entities, SCO_Map);
+            end if;
+         end;
       end loop;
    end Remap_Scopes;
 
@@ -930,6 +948,17 @@ package body Instrument.C is
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
    begin
+      --  Insert a new entry to the UIC.Instrumented_Entities maps: even if
+      --  this SOI does not possess instrumented SCOs (it can be the case if
+      --  all of the code constructs are not instrumentable), we want an empty
+      --  Instrumented_Entities entry rather than no entry at all, to have
+      --  proper initialization of checkpoints structures (e.g. Statement_Bits)
+      --  later on.
+
+      if not UIC.Instrumented_Entities.Contains (From.Source_File) then
+         UIC.Instrumented_Entities.Insert (From.Source_File, (others => <>));
+      end if;
+
       Append_SCO
         (C1, C2, From.L, To.L, From.Source_File, Last, Pragma_Aspect_Name);
 
@@ -984,13 +1013,9 @@ package body Instrument.C is
       SFI : Valid_Source_File_Index)
       return C_Instrumented_Entities_Maps.Reference_Type
    is
-      use C_Instrumented_Entities_Maps;
-      Cur   : Cursor;
       Dummy : Boolean;
    begin
-      UIC.Instrumented_Entities.Insert
-        (SFI, (others => <>), Cur, Dummy);
-      return UIC.Instrumented_Entities.Reference (Cur);
+      return UIC.Instrumented_Entities.Reference (SFI);
    end Find_Instrumented_Entities;
 
    -----------------------
@@ -2027,6 +2052,13 @@ package body Instrument.C is
             Append (Trailing_Braces, '}');
          end if;
 
+         --  If this statement does not belong to a source of interest, skip
+         --  it altogether.
+
+         if Is_Null (N) or not Is_Source_Of_Interest (UIC, N) then
+            return;
+         end if;
+
          --  Initialize or extend current statement sequence. Note that for
          --  special cases such as IF and SWITCH statements we will modify
          --  the range to exclude internal statements that should not be
@@ -2338,7 +2370,7 @@ package body Instrument.C is
          --  statement source location range.
 
       begin
-         if Is_Null (N) or else not Is_Source_Of_Interest (UIC, N) then
+         if Is_Null (N) then
             return;
          end if;
 
@@ -2617,7 +2649,8 @@ package body Instrument.C is
    --------------------
 
    function Builtin_Macros
-     (Lang, Compiler, Std, Output_Dir : String) return Macro_Set_Cst_Access
+     (Lang, Compiler, Output_Dir : String;
+      Compiler_Switches : String_Vectors.Vector) return Macro_Set_Cst_Access
    is
       use Ada.Characters.Handling;
 
@@ -2625,8 +2658,6 @@ package body Instrument.C is
         Unsigned_64 (Pid_To_Integer (Current_Process_Id));
 
       L      : constant String := To_Lower (Lang);
-      Key    : constant Unbounded_String :=
-        +Compiler & " -x " & L & " " & Std;
       Result : constant Macro_Set_Access := new Macro_Set;
 
       Args     : String_Vectors.Vector;
@@ -2642,9 +2673,7 @@ package body Instrument.C is
 
       Args.Append (+"-x");
       Args.Append (+L);
-      if Std'Length /= 0 then
-         Args.Append (+Std);
-      end if;
+      Args.Append (Compiler_Switches);
       Args.Append (+"-E");
       Args.Append (+"-dM");
       Args.Append (+"-");
@@ -2652,8 +2681,7 @@ package body Instrument.C is
       Run_Command
         (Command             => Compiler,
          Arguments           => Args,
-         Origin_Command_Name =>
-           "getting built-in macros for " & (+Key),
+         Origin_Command_Name => "gnatcov instrument",
          Output_File         => Filename,
          In_To_Null          => True);
 
@@ -3286,7 +3314,7 @@ package body Instrument.C is
                  UIC.Allocated_Bits.Reference (Ent.Buffers_Index);
                Bit_Maps  : CU_Bit_Maps;
             begin
-               --  Allocate bits in covearge buffers and insert the
+               --  Allocate bits in coverage buffers and insert the
                --  corresponding witness calls.
 
                for SS of Ent.Statements loop
@@ -3388,8 +3416,9 @@ package body Instrument.C is
                        UIC.CUs.Find (Scopes_In_Files_Map.Key (C));
                   begin
                      if Created_Unit_Maps.Has_Element (CU) then
-                        Set_Scope_Entity (Created_Unit_Maps.Element (CU),
-                                          Scopes_In_Files_Map.Element (C));
+                        Set_Scope_Entities
+                          (Created_Unit_Maps.Element (CU),
+                           Scopes_In_Files_Map.Element (C).Scope_Entities);
                      end if;
                   end;
                end loop;
@@ -4511,15 +4540,24 @@ package body Instrument.C is
       CU_File.Put_Line (Self.Extern_Prefix & Buffer_Array_Decl & ";");
       CU_File.Put_Line (Buffer_Array_Decl & " = {");
       CU_File.Put_Line ("  " & Buffer_Unit_Length & ",");
-      CU_File.Put_Line
-        ("  (const struct gnatcov_rts_coverage_buffers_group *[]) {");
-      for BS of Buffer_Symbols loop
-         CU_File.Put ("    &" & (+BS));
-         if BS /= Buffer_Symbols.Last_Element then
-            CU_File.Put_Line (",");
-         end if;
-      end loop;
-      CU_File.Put_Line ("}};");
+      if String_Sets.Length (Buffer_Symbols) = 0 then
+
+         --  If there are no units of interest, create a NULL pointer to avoid
+         --  having an empty array.
+
+         CU_File.Put_Line ("NULL");
+      else
+         CU_File.Put_Line
+           ("  (const struct gnatcov_rts_coverage_buffers_group *[]) {");
+         for BS of Buffer_Symbols loop
+            CU_File.Put ("    &" & (+BS));
+            if BS /= Buffer_Symbols.Last_Element then
+               CU_File.Put_Line (",");
+            end if;
+         end loop;
+         CU_File.Put_Line ("}");
+      end if;
+      CU_File.Put_Line ("};");
       return CU_Name;
    end Emit_Buffers_List_Unit;
 
@@ -4629,8 +4667,8 @@ package body Instrument.C is
         Builtin_Macros
           (Image (C_Family_Language (Instrumenter.Language)),
            +Prj.Compiler_Driver (Instrumenter.Language),
-           +Self.Std,
-           +Prj.Output_Dir).all;
+           +Prj.Output_Dir,
+           Self.Compiler_Switches).all;
    end Import_Options;
 
    ---------------------------
@@ -4672,11 +4710,15 @@ package body Instrument.C is
          --  switches.
 
          if UIC.Files_Of_Interest.Contains (File) then
-            SOI :=
-              (Of_Interest  => True,
-               SFI          => Get_Index_From_Generic_Name
-                                 (+File, Source_File),
-               CU_Name      => CU_Name_For_File (File));
+            declare
+               SFI : constant Source_File_Index :=
+                 Get_Index_From_Generic_Name (+File, Source_File);
+            begin
+               SOI :=
+                 (Of_Interest  => True,
+                  SFI          => SFI,
+                  CU_Name      => CU_Name_For_File (File));
+            end;
          else
             SOI := (Of_Interest => False);
          end if;

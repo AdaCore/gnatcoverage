@@ -20,6 +20,8 @@ with Ada.Containers;  use Ada.Containers;
 with Ada.Directories; use Ada.Directories;
 with Ada.Exceptions;
 with Ada.IO_Exceptions;
+with Ada.Strings.Fixed;
+with Ada.Strings.Maps;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;     use Ada.Text_IO;
 
@@ -109,6 +111,7 @@ procedure GNATcov_Bits_Specific is
    Compiler_Drivers     : Inputs.Inputs_Type;
    Source_Rebase_Inputs : Inputs.Inputs_Type;
    Source_Search_Inputs : Inputs.Inputs_Type;
+   Subprograms_Inputs    : Inputs.Inputs_Type;
    Text_Start           : Pc_Type := 0;
    Output               : String_Access := null;
    Tag                  : String_Access := null;
@@ -312,6 +315,15 @@ procedure GNATcov_Bits_Specific is
 
          Inputs.Iterate (ALIs_Inputs, ALI_Files.Load_ALI'Access);
       end if;
+
+      --  If subprograms of interest were passed warn the user that they will
+      --  be ignored
+
+      if not Args.String_List_Args (Opt_Subp_Of_Interest).Is_Empty then
+         Warn
+           ("Ignoring --subprograms switches as this is not supported with"
+            & " binary traces.");
+      end if;
    end Load_All_ALIs;
 
    -------------------
@@ -328,6 +340,9 @@ procedure GNATcov_Bits_Specific is
 
       procedure SID_Load_Wrapper (Filename : String);
       --  Wrapper for SID_Load to include the ignored source file regexp
+
+      procedure Process_Subp_Input (Subp_Input : String);
+      --  Parse a value passed to --subprograms
 
       ------------------
       -- Add_SID_File --
@@ -347,6 +362,43 @@ procedure GNATcov_Bits_Specific is
          Checkpoints.SID_Load
            (Filename, (if Has_Matcher then Matcher'Access else null));
       end SID_Load_Wrapper;
+
+      ------------------------
+      -- Process_Subp_Input --
+      ------------------------
+
+      procedure Process_Subp_Input (Subp_Input : String)
+      is
+         Colon_Index : constant Natural :=
+           Ada.Strings.Fixed.Index (Subp_Input, Ada.Strings.Maps.To_Set (':'));
+         Filename    : constant String :=
+           Subp_Input (Subp_Input'First .. Colon_Index - 1);
+      begin
+         if Colon_Index = 0 then
+            raise Constraint_Error;
+         end if;
+         if not Exists (Filename) then
+            Outputs.Fatal_Error
+              ("Error when parsing --subprograms argument "
+               &  Subp_Input & ": file " & Filename & " does not exist");
+         end if;
+         Subps_Of_Interest.Include
+           (Scope_Entity_Identifier'
+              (Decl_SFI  =>
+                   Get_Index_From_Full_Name
+                      (Full_Name (Filename), Source_File),
+               Decl_Line =>
+                 Natural'Value
+                   (Subp_Input (Colon_Index + 1 .. Subp_Input'Last))));
+
+      exception
+            --  Deal gracefully with parsing errors
+
+         when Constraint_Error =>
+            Outputs.Fatal_Error
+              ("Wrong argument passed to --subprograms: "
+               & "expecting <file>:<line> but got " & Subp_Input);
+      end Process_Subp_Input;
 
    --  Start of processing for Load_All_SIDs
 
@@ -368,6 +420,11 @@ procedure GNATcov_Bits_Specific is
 
       Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
       Inputs.Iterate (SID_Inputs, SID_Load_Wrapper'Access);
+
+      --  Parse the listed subprograms of interest
+
+      Copy_Arg_List (Opt_Subp_Of_Interest, Subprograms_Inputs);
+      Iterate (Subprograms_Inputs, Process_Subp_Input'Access);
    end Load_All_SIDs;
 
    -----------------------
@@ -444,8 +501,11 @@ procedure GNATcov_Bits_Specific is
       Keep_Reading_Traces      := Args.Bool_Args (Opt_Keep_Reading_Traces);
       Dump_Units               := Args.String_Args (Opt_Dump_Units_To).Present;
       Show_MCDC_Vectors        := (Args.Bool_Args (Opt_Show_MCDC_Vectors)
-                                 or else All_Messages
-                                 or else Verbose);
+                                   or else All_Messages
+                                   or else Verbose);
+      Show_Condition_Vectors   := (Args.Bool_Args (Opt_Show_Condition_Vectors)
+                                   or else All_Messages
+                                   or else Verbose);
       Allow_Mixing_Trace_Kinds := Args.Bool_Args (Opt_Allow_Mix_Trace_Kind);
       Short_Circuit_And_Or     := Args.Bool_Args
                                     (Opt_Boolean_Short_Circuit_And_Or);
@@ -1319,26 +1379,14 @@ begin
             Has_Matcher : Boolean;
             --  Matcher for the source files to ignore
 
-            Language_Version : Any_Language_Version;
-            pragma Unreferenced (Language_Version);
-
          begin
             Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
 
             declare
                V : constant String := Value (Args, Opt_Ada, "2012");
             begin
-               if V in "83" | "1983" then
-                  Language_Version := Ada_83;
-               elsif V in "95" | "1995" then
-                  Language_Version := Ada_95;
-               elsif V in "05" | "2005" then
-                  Language_Version := Ada_2005;
-               elsif V in "12" | "2012" then
-                  Language_Version := Ada_2012;
-               elsif V in "22" | "2022" then
-                  Language_Version := Ada_2022;
-               else
+               if not Set_Language_Version (Global_Language_Version, From => V)
+               then
                   Fatal_Error ("Bad Ada language version: " & V);
                end if;
             end;

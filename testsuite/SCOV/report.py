@@ -16,6 +16,7 @@ import re
 
 from e3.fs import ls
 
+from SCOV.internals.driver import SCOV_helper
 from SCOV.internals.cnotes import xNoteKinds
 from SCOV.internals.tfiles import Tfile
 from SUITE.tutils import XCOV, thistest, frame
@@ -137,15 +138,6 @@ crit_for = {
     "stmt+decision": ["STMT", "DECISION"],
     "stmt+mcdc": ["STMT", "DECISION", "MCDC"],
     "stmt+uc_mcdc": ["STMT", "DECISION", "MCDC"]
-}
-
-# Base prefix of the working subdirectory for each xcovlevel. ??? This is
-# relying too much on knowledge about how the testuite driver works ...
-xcovlevel_from = {
-    "sc_": "stmt",
-    "dc_": "stmt+decision",
-    "mc_": "stmt+mcdc",
-    "uc_": "stmt+uc_mcdc"
 }
 
 
@@ -301,7 +293,9 @@ class ReportChecker:
         # applicable xcov-level
         self.__setup_expectations(
             ntraces=len(qde.drivers),
-            xcovlevel=xcovlevel_from[os.path.basename(qde.wdir)[0:3]],
+            xcovlevel=SCOV_helper.xcovlevel_for(self.tc,
+                                                os.path.basename
+                                                (qde.wdir)),
             xregions=xregions)
 
         reports = ls(os.path.join(qde.wdir, "test.rep"))

@@ -203,7 +203,8 @@ package body Instrument.Common is
          --  If appropriate, allocate path bits for MC/DC: one bit per path in
          --  the decision.
 
-         if Coverage.MCDC_Coverage_Enabled
+         if (Coverage.MCDC_Coverage_Enabled
+               or else Coverage.Assertion_Condition_Coverage_Enabled)
             and then Length (State_Variable) > 0
             and then Path_Count > 0
             and then Path_Count < Get_Path_Count_Limit
@@ -346,17 +347,20 @@ package body Instrument.Common is
    -- Remap_Scope_Entity --
    ------------------------
 
-   procedure Remap_Scope_Entity
-     (Scope_Entity : Scope_Entity_Acc;
-      SCO_Map      : LL_HL_SCO_Map) is
+   procedure Remap_Scope_Entities
+     (Scope_Entities : in out Scope_Entities_Tree;
+      SCO_Map        : LL_HL_SCO_Map) is
    begin
-      Scope_Entity.From := SCO_Map (Nat (Scope_Entity.From));
-      Scope_Entity.To   := SCO_Map (Nat (Scope_Entity.To));
-
-      for Child of Scope_Entity.Children loop
-         Remap_Scope_Entity (Child, SCO_Map);
+      for Scope_Entity in Scope_Entities.Iterate loop
+         declare
+            Ref : constant Scope_Entities_Trees.Reference_Type :=
+              Scope_Entities.Reference (Scope_Entity);
+         begin
+            Ref.From := SCO_Map (Nat (Ref.From));
+            Ref.To   := SCO_Map (Nat (Ref.To));
+         end;
       end loop;
-   end Remap_Scope_Entity;
+   end Remap_Scope_Entities;
 
    --------------
    -- New_File --
@@ -470,13 +474,13 @@ package body Instrument.Common is
          Add_Macro_Switches (Options.PP_Macros);
       end if;
 
-      --  The -std switch also indicates the C/C++ version used, and
-      --  influences both the configuration of the preprocessor, and the
-      --  parsing of the file.
+      --  Add other compiler switches as they may also influence both the
+      --  configuration of the preprocessor, and the parsing of the file. A
+      --  non-exhaustive list includes undefining macros through -U switches,
+      --  using -std to change the C++ standard in use, -fno-rtti to prevent
+      --  inclusion of runtime type information etc.
 
-      if Length (Options.Std) /= 0 then
-         Args.Append (Options.Std);
-      end if;
+      Args.Append (Options.Compiler_Switches);
 
    end Add_Options;
 
@@ -635,11 +639,21 @@ package body Instrument.Common is
 
             elsif Read_With_Argument (A, 'U', Value) then
                Self.PP_Macros.Include ((Define => False, Name => Value));
+               --  Account for all the switches that can influence the file
+               --  preprocessing.
 
-            elsif Has_Prefix (A, "-std=") then
-               Self.Std := +A;
+            elsif Has_Prefix (A, "-std")
+              or else Has_Prefix (A, "-fno-rtti")
+              or else Has_Prefix (A, "-fno-exceptions")
+
+              --  All the warning switches can influence the preprocessing
+              --  through the use of the __has_warning macro, e.g.
+              --  #if __has_warning("-Wimplicit-fallthrough")
+
+              or else Has_Prefix (A, "-W")
+            then
+               Self.Compiler_Switches.Append (+A);
             end if;
-
             I := I + 1;
          end;
       end loop;

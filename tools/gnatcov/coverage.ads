@@ -28,6 +28,7 @@ with Ada.Containers.Ordered_Sets;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with Coverage_Options; use Coverage_Options;
+with SC_Obligations;   use SC_Obligations;
 
 package Coverage is
 
@@ -38,7 +39,9 @@ package Coverage is
       when Stmt     => "Stmt",
       when Decision => "Decision",
       when MCDC     => "MCDC",
-      when UC_MCDC  => "UC_MCDC");
+      when UC_MCDC  => "UC_MCDC",
+      when ATC      => "ATC",
+      when ATCC     => "ATCC");
    --  Case sensitive version of Coverage_Level'Image
 
    procedure Set_Coverage_Levels (Opt : String);
@@ -58,6 +61,13 @@ package Coverage is
 
    function MCDC_Coverage_Enabled return Boolean;
    --  True if any MCDC_Coverage_Level is enabled
+
+   function Assertion_Condition_Coverage_Enabled return Boolean;
+   --  True if any level of assertion coverage requiring to compute the
+   --  coverage of separate conditions is enabled;
+
+   function Assertion_Coverage_Enabled return Boolean;
+   --  True if any Assertion_Coverage_Level is enabled
 
    function Object_Level return Object_Coverage_Level;
    --  If Object_Coverage_Enabled, return Insn or Branch, depending on which
@@ -108,19 +118,24 @@ package Coverage is
       Timestamp : Time;
       --  Timestamp of report generation
 
-      Version   : Unbounded_String;
+      Version : Unbounded_String;
       --  Gnatcov version
 
-      Command   : Unbounded_String;
+      Command : Unbounded_String;
       --  Gnatcov command line
 
-      Levels    : Unbounded_String;
+      Levels : Unbounded_String;
       --  Coverage option for enabled coverage levels
+
+      Subps_Of_Interest : Scope_Id_Set;
+      --  List of subprogram of interest. If empty, consider that all of
+      --  the subprograms are of interest.
    end record;
    type Context_Access is access all Context;
 
    function Get_Context return Context;
-   --  Return the description of the current coverage assessment context
+   --  Return the description of the current coverage assessment context.
+   --  Note: this must be called after the files table has been filled.
 
    function To_String (C : Context) return String;
    function From_String (S : String) return Context;

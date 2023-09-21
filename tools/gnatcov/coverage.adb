@@ -17,9 +17,11 @@
 ------------------------------------------------------------------------------
 
 with Ada.Command_Line;
+with Ada.Containers;
 
 with Strings;       use Strings;
 with Support_Files; use Support_Files;
+with Switches;      use Switches;
 with Version;       use Version;
 
 package body Coverage is
@@ -92,6 +94,23 @@ package body Coverage is
    begin
       return MCDC_Coverage_Enabled_Cached;
    end MCDC_Coverage_Enabled;
+
+   --------------------------------
+   -- Assertion_Coverage_Enabled --
+   --------------------------------
+
+   function Assertion_Coverage_Enabled return Boolean is
+   begin
+      return Source_Coverage_Enabled
+        and then (Enabled (ATC) or else Enabled (ATCC));
+   end Assertion_Coverage_Enabled;
+
+   ------------------------------------------
+   -- Assertion_Condition_Coverage_Enabled --
+   ------------------------------------------
+
+   function Assertion_Condition_Coverage_Enabled return Boolean is
+     (Enabled (ATCC));
 
    ----------------
    -- MCDC_Level --
@@ -189,6 +208,12 @@ package body Coverage is
                Res.Include (MCDC_Level);
             end if;
          end if;
+         if Enabled (ATC) then
+            Res.Include (ATC);
+            if Enabled (ATCC) then
+               Res.Include (ATCC);
+            end if;
+         end if;
       end if;
       return Res;
    end Source_Levels_Enabled;
@@ -232,17 +257,19 @@ package body Coverage is
       use Ada.Command_Line;
 
       Command : Unbounded_String :=
-         To_Unbounded_String (Support_Files.Gnatcov_Command_Name);
+        To_Unbounded_String (Support_Files.Gnatcov_Command_Name);
+
    begin
       for J in 1 .. Argument_Count loop
          Append (Command, ' ' & Argument (J));
       end loop;
 
       return Context'
-        (Timestamp => Clock,
-         Version   => To_Unbounded_String (Xcov_Version),
-         Command   => Command,
-         Levels    => To_Unbounded_String (Coverage_Option_Value));
+        (Timestamp         => Clock,
+         Version           => To_Unbounded_String (Xcov_Version),
+         Command           => Command,
+         Levels            => To_Unbounded_String (Coverage_Option_Value),
+         Subps_Of_Interest => Subps_Of_Interest);
    end Get_Context;
 
    ---------------
