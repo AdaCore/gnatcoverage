@@ -1,8 +1,8 @@
-with Assertions_2;
+with Catch_Assertions_2;
 
 procedure Test_Assertions_2 is
 begin
-   Assertions_2;
+   Catch_Assertions_2;
 end Test_Assertions_2;
 
 --# assertions.ads
@@ -27,4 +27,3 @@ end Test_Assertions_2;
 -- /same_ret/        l- ## s-
 --# assertions_2.adb
 -- /foo_2/           l+ ## c!
--- /catch_2/         l+ ## 0
