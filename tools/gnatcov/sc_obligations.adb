@@ -612,10 +612,10 @@ package body SC_Obligations is
         new Tree_Iterator'
           (Scope_Entities_Trees.Iterate
              (CU_Vector.Reference (CU).Element.Scope_Entities));
-      Result.Next_Scope_Ent := Result.It.First;
       Result.Scope_Stack := Scope_Stacks.Empty_List;
       Result.Active_Scopes := Scope_Id_Sets.Empty;
-      Result.Active_Scope_Ent := Scope_Entities_Trees.No_Element;
+      Result.Active_Scope_Ent := Result.It.First;
+      Result.Next_Scope_Ent := Result.It.Next (Result.Active_Scope_Ent);
       return Result;
    end Scope_Traversal;
 
@@ -629,29 +629,63 @@ package body SC_Obligations is
    is
       use Scope_Entities_Trees;
    begin
+      --  In some cases (C metaprogramming instances), e.g.
+      --
+      --  foo.h:
+      --    TYPE ret = 0;
+      --    return (TYPE) ret + 1;
+      --
+      --  foo.c:
+      --    int
+      --    one_int (void)
+      --    {
+      --    #define TYPE int
+      --    #include "foo.h"
+      --    #undef TYPE
+      --    }
+      --
+      --  Active_Scope_Ent is null in the aforementionned case, as the inner
+      --  scope for the statements in foo.h is the `one_int` function defined
+      --  in foo.c. The scope implementation assumes that scopes do not cross
+      --  sources, which does not hold here.
+      --
+      --  TODO???: This should be fixed by dealing with metaprogramming
+      --  instances in a more appropriate way, which should be done under
+      --  eng/cov/gnatcoverage#103. For now, return early in that case.
+
+      if ST.Active_Scope_Ent = No_Element then
+         return;
+      end if;
+
       --  Find the innermost scope featuring this SCO and update the list of
       --  active scopes as we go.
 
-      while ST.Next_Scope_Ent /= No_Element
-        and then SCO >= Element (ST.Next_Scope_Ent).From
+      while SCO > Element (ST.Active_Scope_Ent).To
+        or else (ST.Next_Scope_Ent /= No_Element
+                  and then SCO >= Element (ST.Next_Scope_Ent).From)
       loop
-         ST.Active_Scope_Ent := ST.Next_Scope_Ent;
+         --  We can enter the next scope only when we have reached its
+         --  parent scope. If the next scope is null, this means that we
+         --  are in the last scope of the unit.
 
-         --  Update the scope stack
+         if ST.Next_Scope_Ent /= No_Element
+           and then ST.Active_Scope_Ent = Parent (ST.Next_Scope_Ent)
+           and then SCO >= Element (ST.Next_Scope_Ent).From
+         then
+            ST.Active_Scope_Ent := ST.Next_Scope_Ent;
+            ST.Next_Scope_Ent := ST.It.Next (ST.Next_Scope_Ent);
+            ST.Scope_Stack.Append (ST.Active_Scope_Ent);
+            ST.Active_Scopes.Insert
+              (Element (ST.Active_Scope_Ent).Identifier);
+         else
+            --  Otherwise, go up the parent chain and pop the last entry from
+            --  the active scopes.
 
-         if not ST.Scope_Stack.Is_Empty then
-            while ST.Scope_Stack.Last_Element /= Parent (ST.Active_Scope_Ent)
-            loop
-               ST.Active_Scopes.Delete
-                 (Element (ST.Scope_Stack.Last_Element).Identifier);
-               ST.Scope_Stack.Delete_Last;
-               exit when ST.Scope_Stack.Is_Empty;
-            end loop;
+            ST.Active_Scope_Ent := Parent (ST.Active_Scope_Ent);
+            ST.Active_Scopes.Delete
+              (Element (ST.Scope_Stack.Last_Element).Identifier);
+            ST.Scope_Stack.Delete_Last;
          end if;
-         ST.Scope_Stack.Append (ST.Active_Scope_Ent);
-         ST.Active_Scopes.Insert
-           (Element (ST.Active_Scope_Ent).Identifier);
-         ST.Next_Scope_Ent := ST.It.Next (ST.Next_Scope_Ent);
       end loop;
    end Traverse_SCO;
 
