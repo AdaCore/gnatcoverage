@@ -1109,7 +1109,7 @@ package Command_Line is
          Internal   => False),
       Opt_Subp_Of_Interest => Create
         (Long_Name => "--subprograms",
-         Pattern   => "<file>:<line>",
+         Pattern   => "FILE:LINE",
          Help      =>
            "Restrict coverage analysis to specific subprograms designated by"
          & " the specification source line for Ada, and by the body source"
