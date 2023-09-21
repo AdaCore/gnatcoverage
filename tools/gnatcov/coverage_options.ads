@@ -24,7 +24,8 @@ with Strings; use Strings;
 
 package Coverage_Options is
 
-   type Coverage_Level is (Insn, Branch, Stmt, Decision, MCDC, UC_MCDC);
+   type Coverage_Level is
+     (Insn, Branch, Stmt, Decision, MCDC, UC_MCDC, ATC, ATCC);
    --  Coverage objectives supported by xcov. The following values are
    --  supported:
 
@@ -33,14 +34,25 @@ package Coverage_Options is
    --  * source coverage at statement level          (Stmt);
    --  * source coverage at decision level           (Decision);
    --  * source coverage at masking MC/DC level      (MCDC);
-   --  * source coverage at unique cause MC/DC level (UC_MCDC).
+   --  * source coverage at unique cause MC/DC level (UC_MCDC);
+   --  * source coverage at ATC level                (ATC);
+   --  * source coverage at ATCC level               (ATCC).
 
    --  The terms "instruction", "branch", "statement", "decision" and "MCDC"
    --  should be understood here as they are defined in the DO-178B standard;
    --  their meaning is also documented in Couverture's documentation.
+   --
+   --  The meaning of the assertion coverage level "ATC" should be understood
+   --  as follows:
+   --
+   --  * "ATC"  : the whole expression has been evaluated to True at least
+   --             once;
+   --  * "ATCC" : all the conditions of the decision have been evaluated at
+   --             least once as part of an evaluation to True of the whole
+   --             decision.
 
    subtype Object_Coverage_Level is Coverage_Level range Insn .. Branch;
-   subtype Source_Coverage_Level is Coverage_Level range Stmt .. UC_MCDC;
+   subtype Source_Coverage_Level is Coverage_Level range Stmt .. ATCC;
    subtype MCDC_Coverage_Level   is Coverage_Level range MCDC .. UC_MCDC;
 
    type Levels_Type is array (Coverage_Level) of Boolean;

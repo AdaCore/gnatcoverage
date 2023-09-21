@@ -25,6 +25,7 @@ with Calendar_Utils;       use Calendar_Utils;
 with Command_Line;         use Command_Line;
 with Command_Line_Support; use Command_Line_Support;
 with Inputs;
+with SC_Obligations;
 with Strings;              use Strings;
 
 package Switches is
@@ -93,7 +94,15 @@ package Switches is
 
    Show_MCDC_Vectors : Boolean := False;
    --  If True, show the evaluation vectors for each decision where there is
-   --  an MCDC violation.
+   --  an MCDC violation. The "--show-mcdc-vectors" switch is now deprecated.
+   --  Displaying the evaluation vectors is possible for assertion coverage,
+   --  in which case keeping "mcdc" in the name can be missleading. This switch
+   --  is replaced by "--show-condition-vectors" that behaves the same way for
+   --  both MCDC and ATCC.
+
+   Show_Condition_Vectors : Boolean := False;
+   --  If True, show the evaluation vectors for each decision where there is
+   --  an MCDC or ATCC violation.
 
    Timezone : Any_Timezone := Local_Time;
    --  Control the date display format (either in local time, or UTC time)
@@ -123,6 +132,9 @@ package Switches is
    Use_Full_Slugs : Boolean := False;
    --  When True, use full unit/filename slugs for generated buffer units
    --  instead of hashes.
+
+   Subps_Of_Interest : SC_Obligations.Scope_Id_Set;
+   --  List of subprograms of interest
 
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
@@ -225,7 +237,14 @@ package Switches is
    --  Instrumentation-related switches --
    ---------------------------------------
 
-   type Any_Language_Version is (Ada_83, Ada_95, Ada_2005, Ada_2012, Ada_2022);
+   type Any_Language_Version is
+     (Ada_1983, Ada_1995, Ada_2005, Ada_2012, Ada_2022);
+
+   function Set_Language_Version
+     (V : in out Any_Language_Version; From : String) return Boolean;
+   --  Try to find a language version substring in From. This will search for
+   --  the presence of any of the years defined in Any_Language_Version. If one
+   --  is found, update V accordingly and return True; return False otherwise.
 
    type Any_Dump_Trigger is
      (Manual, At_Exit, Ravenscar_Task_Termination, Main_End);
@@ -293,5 +312,9 @@ package Switches is
    --  Return the unparsed command line arguments supported by the given
    --  Cmd. This is used to propagate a set of switches to a gnatcov
    --  subprocess.
+
+   Global_Language_Version : Any_Language_Version;
+   --  Language version to be used in case no language version pragma is
+   --  present in the source being instrumented.
 
 end Switches;

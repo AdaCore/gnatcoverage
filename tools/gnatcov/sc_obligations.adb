@@ -20,6 +20,7 @@
 
 with Ada.Characters.Handling;     use Ada.Characters.Handling;
 with Ada.Strings.Fixed;           use Ada.Strings.Fixed;
+with Ada.Streams;                 use Ada.Streams;
 with Ada.Text_IO;                 use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
@@ -102,8 +103,8 @@ package body SC_Obligations is
       PP_Info_Map : SCO_PP_Info_Maps.Map;
       --  Information about preprocessing
 
-      Scope_Ent : Scope_Entity_Acc := null;
-      --  Top-level scope, used to output e.g. subprogram metrics
+      Scope_Entities : Scope_Entities_Tree := Scope_Entities_Trees.Empty_Tree;
+      --  Scope tree, used to output e.g. subprogram metrics
 
       case Provider is
          when Compiler =>
@@ -332,17 +333,6 @@ package body SC_Obligations is
 
    function To_Statement_Kind (C : Character) return Statement_Kind;
    --  Convert character code for statement kind to corresponding enum value
-
-   --  Decision_Kind denotes the various decision kinds identified in SCOs
-
-   type Decision_Kind is
-     (If_Statement,
-      Exit_Statement,
-      Entry_Guard,
-      Pragma_Decision,
-      While_Loop,
-      Expression,
-      Aspect);
 
    function To_Decision_Kind (C : Character) return Decision_Kind;
    --  Convert character code for decision kind to corresponding enum value
@@ -607,6 +597,77 @@ package body SC_Obligations is
    --
    --  ??? Same comment as above.
 
+   ---------------------
+   -- Scope_Traversal --
+   ---------------------
+
+   function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type
+   is
+      Result : Scope_Traversal_Type;
+   begin
+      if CU = No_CU_Id then
+         return No_Scope_Traversal;
+      end if;
+      Result.It :=
+        new Tree_Iterator'
+          (Scope_Entities_Trees.Iterate
+             (CU_Vector.Reference (CU).Element.Scope_Entities));
+      Result.Next_Scope_Ent := Result.It.First;
+      Result.Scope_Stack := Scope_Stacks.Empty_List;
+      Result.Active_Scopes := Scope_Id_Sets.Empty;
+      Result.Active_Scope_Ent := Scope_Entities_Trees.No_Element;
+      return Result;
+   end Scope_Traversal;
+
+   ------------------
+   -- Traverse_SCO --
+   ------------------
+
+   procedure Traverse_SCO
+     (ST  : in out Scope_Traversal_Type;
+      SCO : SCO_Id)
+   is
+      use Scope_Entities_Trees;
+   begin
+      --  Find the innermost scope featuring this SCO and update the list of
+      --  active scopes as we go.
+
+      while ST.Next_Scope_Ent /= No_Element
+        and then SCO >= Element (ST.Next_Scope_Ent).From
+      loop
+         ST.Active_Scope_Ent := ST.Next_Scope_Ent;
+
+         --  Update the scope stack
+
+         if not ST.Scope_Stack.Is_Empty then
+            while ST.Scope_Stack.Last_Element /= Parent (ST.Active_Scope_Ent)
+            loop
+               ST.Active_Scopes.Delete
+                 (Element (ST.Scope_Stack.Last_Element).Identifier);
+               ST.Scope_Stack.Delete_Last;
+               exit when ST.Scope_Stack.Is_Empty;
+            end loop;
+         end if;
+         ST.Scope_Stack.Append (ST.Active_Scope_Ent);
+         ST.Active_Scopes.Insert
+           (Element (ST.Active_Scope_Ent).Identifier);
+         ST.Next_Scope_Ent := ST.It.Next (ST.Next_Scope_Ent);
+      end loop;
+   end Traverse_SCO;
+
+   ---------------
+   -- Is_Active --
+   ---------------
+
+   function Is_Active
+     (ST                : Scope_Traversal_Type;
+      Subps_Of_Interest : Scope_Id_Set) return Boolean is
+   begin
+      return Subps_Of_Interest.Is_Empty
+        or else not Scope_Id_Sets.Is_Empty
+          (ST.Active_Scopes.Intersection (Subps_Of_Interest));
+   end Is_Active;
+
    -----------------
    -- Add_Address --
    -----------------
@@ -661,22 +722,6 @@ package body SC_Obligations is
    begin
       return CU_Vector.Reference (CU).Element.PP_Info_Map.Element (SCO);
    end Get_PP_Info;
-
-   ----------------------
-   -- Get_Scope_Entity --
-   ----------------------
-
-   function Get_Scope_Entity (CU : CU_Id) return Scope_Entity_Acc is
-   begin
-      if CU /= No_CU_Id then
-         declare
-            Info : constant CU_Info := CU_Vector.Reference (CU).Element.all;
-         begin
-            return Info.Scope_Ent;
-         end;
-      end if;
-      return null;
-   end Get_Scope_Entity;
 
    --------------------------------
    -- Checkpoint_Load_Merge_Unit --
@@ -833,9 +878,6 @@ package body SC_Obligations is
       --  Remap a SCO_Id. Note: this assumes possible forward references, and
       --  does not rely on SCO_Map.
 
-      procedure Remap_Scope_Entity (Scope_Ent : Scope_Entity_Acc);
-      --  Remap a Scope_Entity, including all of its children (recursively)
-
       ---------------
       -- Remap_BDD --
       ---------------
@@ -927,23 +969,6 @@ package body SC_Obligations is
             pragma Assert (S /= No_SCO_Id);
          end if;
       end Remap_SCO_Id;
-
-      ------------------------
-      -- Remap_Scope_Entity --
-      ------------------------
-
-      procedure Remap_Scope_Entity (Scope_Ent : Scope_Entity_Acc) is
-      begin
-         if Scope_Ent = null then
-            return;
-         end if;
-         Remap_SCO_Id (Scope_Ent.From);
-         Remap_SCO_Id (Scope_Ent.To);
-
-         for Child of Scope_Ent.Children loop
-            Remap_Scope_Entity (Child);
-         end loop;
-      end Remap_Scope_Entity;
 
    --  Start of processing for Checkpoint_Load_New_Unit
 
@@ -1129,7 +1154,11 @@ package body SC_Obligations is
 
          --  Remap SCOs span for scope entities
 
-         Remap_Scope_Entity (CP_CU.Scope_Ent);
+         for Scope_Ent of CP_CU.Scope_Entities loop
+            Remap_SCO_Id (Scope_Ent.From);
+            Remap_SCO_Id (Scope_Ent.To);
+            Remap_SFI (Relocs, Scope_Ent.Identifier.Decl_SFI);
+         end loop;
 
       end if;
 
@@ -1313,20 +1342,6 @@ package body SC_Obligations is
       end if;
    end Checkpoint_Load_Unit;
 
-   ----------
-   -- Free --
-   ----------
-
-   procedure Free (Scope_Ent : in out Scope_Entity_Acc) is
-      procedure Deallocate is new Ada.Unchecked_Deallocation
-        (Scope_Entity, Scope_Entity_Acc);
-   begin
-      for Child of Scope_Ent.Children loop
-         Free (Child);
-      end loop;
-      Deallocate (Scope_Ent);
-   end Free;
-
    procedure Free (CU : in out CU_Info) is
       procedure Free is new Ada.Unchecked_Deallocation
         (Statement_Bit_Map, Statement_Bit_Map_Access);
@@ -1341,9 +1356,6 @@ package body SC_Obligations is
          Free (CU.Bit_Maps.Statement_Bits);
          Free (CU.Bit_Maps.Decision_Bits);
          Free (CU.Bit_Maps.MCDC_Bits);
-      end if;
-      if CU.Scope_Ent /= null then
-         Free (CU.Scope_Ent);
       end if;
    end Free;
 
@@ -1424,23 +1436,8 @@ package body SC_Obligations is
       --  Checkpoint version 8 data (scoped metrics support)
 
       if not Version_Less (S, Than => 8) then
-         Scope_Entity_Acc'Read (S, V.Scope_Ent);
+         Scope_Entities_Tree'Read (S, V.Scope_Entities);
       end if;
-   end Read;
-
-   procedure Read (S : access Root_Stream_Type'Class; V : out Scope_Entity_Acc)
-   is
-   begin
-      V := new Scope_Entity;
-      SCO_Id'Read (S, V.From);
-      SCO_Id'Read (S, V.To);
-      Unbounded_String'Read (S, V.Name);
-      Local_Source_Location'Read (S, V.Sloc);
-      Scope_Entities_Vector'Read (S, V.Children);
-
-      --  Note that we don't stream Scope_Ent.Parent. We only need it at
-      --  instrumentation time, to help creating the scope tree.
-
    end Read;
 
    -----------
@@ -1482,23 +1479,7 @@ package body SC_Obligations is
                Fingerprint_Type'Write (S, V.Bit_Maps_Fingerprint);
             end if;
       end case;
-
-      Scope_Entity_Acc'Write (S, V.Scope_Ent);
-   end Write;
-
-   -----------
-   -- Write --
-   -----------
-
-   procedure Write (S : access Root_Stream_Type'Class; V : Scope_Entity_Acc) is
-      Scope_Ent : constant Scope_Entity :=
-        (if V = null then No_Scope_Entity else V.all);
-   begin
-      SCO_Id'Write (S, Scope_Ent.From);
-      SCO_Id'Write (S, Scope_Ent.To);
-      Unbounded_String'Write (S, Scope_Ent.Name);
-      Local_Source_Location'Write (S, Scope_Ent.Sloc);
-      Scope_Entities_Vector'Write (S, Scope_Ent.Children);
+      Scope_Entities_Tree'Write (S, V.Scope_Entities);
    end Write;
 
    ---------------------
@@ -1813,6 +1794,19 @@ package body SC_Obligations is
               then To_Tristate (Reachable_Outcomes (True))
               else Unknown);
    end Decision_Outcome;
+
+   -------------------
+   -- Decision_Type --
+   -------------------
+
+   function Decision_Type (SCO : SCO_Id) return Decision_Kind
+   is
+      D : constant SCO_Descriptor := SCO_Vector.Reference (SCO);
+   begin
+      pragma Assert (D.Kind = Decision);
+
+      return D.D_Kind;
+   end Decision_Type;
 
    ----------------------
    -- Degraded_Origins --
@@ -2210,6 +2204,7 @@ package body SC_Obligations is
         --  Disabled pragma?
 
         SCOD.S_Kind = Disabled_Pragma_Statement;
+
    end Ignore_SCO;
 
    ----------------------------
@@ -2398,7 +2393,7 @@ package body SC_Obligations is
    ------------------
 
    function Is_Assertion (SCO : SCO_Id) return Boolean is
-      SCOD  : SCO_Descriptor renames SCO_Vector (SCO);
+      SCOD : SCO_Descriptor renames SCO_Vector (SCO);
    begin
       pragma Assert (SCOD.Kind = Decision);
       case SCOD.D_Kind is
@@ -2408,7 +2403,7 @@ package body SC_Obligations is
             --  in the enclosing statement SCO.
 
             return SCO_Vector (Enclosing_Statement (SCO)).Pragma_Name
-                     /= Pragma_Debug;
+              /= Pragma_Debug;
 
          when Aspect =>
             --  Always True for aspects (Pre/Post/Predicate/Invariant)
@@ -2418,7 +2413,64 @@ package body SC_Obligations is
          when others =>
             return False;
       end case;
+
    end Is_Assertion;
+
+   ---------------------------
+   -- Is_Assertion_To_Cover --
+   ---------------------------
+
+   function Is_Assertion_To_Cover (SCO : SCO_Id) return Boolean
+   is
+      function Is_Pragma_Stmt_To_Cover (SCOD : SCO_Descriptor) return Boolean;
+      --  True if the pragma statement of SCOD belongs to the list of pragmas
+      --  supported by assertion coverage.
+
+      function Is_Pragma_Stmt_To_Cover (SCOD : SCO_Descriptor) return Boolean
+      is
+      begin
+         pragma Assert
+           (SCOD.Kind = Statement and then SCOD.S_Kind = Pragma_Statement);
+
+         return SCOD.Pragma_Name in
+           Pragma_Assert
+            | Pragma_Assert_And_Cut
+            | Pragma_Assume
+            | Pragma_Check
+            | Pragma_Loop_Invariant
+            | Pragma_Type_Invariant
+            | Pragma_Precondition
+            | Pragma_Postcondition;
+      end Is_Pragma_Stmt_To_Cover;
+
+      SCOD : SCO_Descriptor renames SCO_Vector (SCO);
+   begin
+      if SCOD.Kind = Statement and then SCOD.S_Kind = Pragma_Statement then
+         return Is_Pragma_Stmt_To_Cover (SCOD);
+
+      elsif SCOD.Kind = Decision then
+         case SCOD.D_Kind is
+         when Pragma_Decision =>
+            return
+              Is_Pragma_Stmt_To_Cover (SCO_Vector (Enclosing_Statement (SCO)));
+
+         when Aspect =>
+            return SCOD.Aspect_Name in
+              Aspect_Type_Invariant
+            | Aspect_Pre
+            | Aspect_Post;
+
+         when others =>
+            return False;
+         end case;
+
+      elsif SCOD.Kind = Condition then
+         return Is_Assertion_To_Cover (Enclosing_Decision (SCO));
+
+      else
+         return False;
+      end if;
+   end Is_Assertion_To_Cover;
 
    -------------------
    -- Is_Expression --
@@ -2453,18 +2505,14 @@ package body SC_Obligations is
       begin
          --  Return whether S_SCOD is a pragma Assert/Check/Pre/Post
 
-         return     (S_SCOD.S_Kind = Pragma_Statement
-                       or else
-                     S_SCOD.S_Kind = Disabled_Pragma_Statement)
-           and then (S_SCOD.Pragma_Name = Pragma_Assert
-                       or else
-                     S_SCOD.Pragma_Name = Pragma_Check
-                       or else
-                     S_SCOD.Pragma_Name = Pragma_Precondition
-                       or else
-                     S_SCOD.Pragma_Name = Pragma_Postcondition
-                       or else
-                     S_SCOD.Pragma_Name = Pragma_Loop_Invariant);
+         return (S_SCOD.S_Kind = Disabled_Pragma_Statement
+                 or else S_SCOD.S_Kind = Pragma_Statement)
+           and then S_SCOD.Pragma_Name in
+             Pragma_Assert
+               | Pragma_Check
+               | Pragma_Precondition
+               | Pragma_Postcondition
+               | Pragma_Loop_Invariant;
       end;
    end Is_Expression;
 
@@ -2541,12 +2589,9 @@ package body SC_Obligations is
       SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
       pragma Assert (SCOD.Kind = Statement);
    begin
-      return (SCOD.S_Kind = Pragma_Statement
-                 or else
-               SCOD.S_Kind = Disabled_Pragma_Statement)
-              and then (SCOD.Pragma_Name = Pragma_Precondition
-                          or else
-                        SCOD.Pragma_Name = Pragma_Postcondition);
+      return SCOD.S_Kind in Pragma_Statement | Disabled_Pragma_Statement
+        and then
+          SCOD.Pragma_Name in Pragma_Precondition | Pragma_Postcondition;
    end Is_Pragma_Pre_Post_Condition;
 
    -------------
@@ -4058,7 +4103,6 @@ package body SC_Obligations is
          --  associated conditional branch instruction.
 
          declare
-            use type Ada.Containers.Count_Type;
             SCOD  : SCO_Descriptor renames SCO_Vector.Reference (SCO);
             D_SCO : SCO_Id;
          begin
@@ -4197,14 +4241,27 @@ package body SC_Obligations is
         (GNAT.SHA1.Binary_Message_Digest'(GNAT.SHA1.Digest (Ctx)));
    end Set_Bit_Maps;
 
-   ----------------------
-   -- Set_Scope_Entity --
-   ----------------------
+   ------------------------
+   -- Get_Scope_Entities --
+   ------------------------
 
-   procedure Set_Scope_Entity  (CU : CU_Id; Scope_Ent : Scope_Entity_Acc) is
+   function Get_Scope_Entities (CU : CU_Id) return Scope_Entities_Tree is
    begin
-      CU_Vector.Reference (CU).Scope_Ent := Scope_Ent;
-   end Set_Scope_Entity;
+      if CU /= No_CU_Id then
+         return CU_Vector.Reference (CU).Element.Scope_Entities;
+      end if;
+      return Scope_Entities_Trees.Empty_Tree;
+   end Get_Scope_Entities;
+
+   ------------------------
+   -- Set_Scope_Entities --
+   ------------------------
+
+   procedure Set_Scope_Entities
+     (CU : CU_Id; Scope_Entities : Scope_Entities_Trees.Tree) is
+   begin
+      CU_Vector.Reference (CU).Scope_Entities := Scope_Entities;
+   end Set_Scope_Entities;
 
    -------------------------------
    -- Set_Operand_Or_Expression --

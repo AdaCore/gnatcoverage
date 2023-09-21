@@ -193,9 +193,10 @@ private
       State : Line_State) is null;
    --  Let Pp print the condition whose id is SCO
 
-   procedure Pretty_Print_Scope_Entity
-     (Pp        : in out Pretty_Printer;
-      Scope_Ent : Scope_Entity) is null;
+   procedure Pretty_Print_Scope_Entities
+     (Pp             : in out Pretty_Printer;
+      File           : Source_File_Index;
+      Scope_Entities : Scope_Entities_Tree) is null;
    --  Let Pp print the given body entity
 
    No_Cleaning : constant String := "DO NOT CLEAN";
@@ -206,17 +207,19 @@ private
    --  never need to clean a report dir with the above string as a pattern.
 
    procedure Generate_Report
-     (Pp            : in out Pretty_Printer'Class;
-      Show_Details  : Boolean;
-      Subdir        : String := "";
-      Clean_Pattern : String := No_Cleaning);
-   --  Let Pp generate the annotated sources. If Show_Details is False, only
-   --  a line state will be displayed. If Show_Details is True, a justification
-   --  is associated to this line state. If Subdir is not empty, this will be
-   --  subdirectory in which the report will be created if multiple reports are
-   --  requested. If Clean_Pattern is not No_Cleaning, all the files matching
-   --  Clean_Pattern in Output_Dir as well as in Output_Dir/Subdir will be
-   --  removed.
+     (Pp               : in out Pretty_Printer'Class;
+      Show_Details     : Boolean;
+      Subp_Of_Interest : Scope_Id_Set;
+      Subdir           : String := "";
+      Clean_Pattern    : String := No_Cleaning);
+   --  Let Pp generate the annotated sources. If Show_Details is False, only a
+   --  line state will be displayed. If Show_Details is True, a justification
+   --  is associated to this line state. Subp_Of_Interest contains the list
+   --  of subprograms of interest, empty if no subprogram of interest was
+   --  specified. If Subdir is not empty, this will be subdirectory in which
+   --  the report will be created if multiple reports are requested. If
+   --  Clean_Pattern is not No_Cleaning, all the files matching Clean_Pattern
+   --  in Output_Dir as well as in Output_Dir/Subdir will be removed.
 
    function Aggregated_State
      (Info              : Line_Info;
@@ -275,5 +278,11 @@ private
 
    function Obligation_Metrics (From, To : SCO_Id) return Ob_Stat_Array;
    --  Return obligation metrics for the given SCO range
+
+   function SCO_Kind_Image (SCO : SCO_Id) return String;
+   --  Get the string representation of the SCO_Kind of SCO. A special
+   --  treatment is needed for assertions. There is no assertion SCO_Kind but
+   --  some decision SCOs correspond to assertion decisions. The difference
+   --  needs to be made clear in the reports by not calling them the same.
 
 end Annotations;

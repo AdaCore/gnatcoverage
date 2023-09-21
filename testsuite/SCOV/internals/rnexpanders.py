@@ -11,9 +11,10 @@ from SUITE.context import thistest
 from .cnotes import (
     xBlock0, xBlock1, sNoCov, sPartCov, sNotCoverable, dfAlways, dtAlways,
     dfNoCov, dtNoCov, dNoCov, dPartCov, efNoCov, etNoCov, eNoCov, ePartCov,
-    cPartCov, Enote, KnoteDict, erNoteKinds, sUndetCov, dUndetCov, eUndetCov,
-    xBlock2, XsNoCov, XsPartCov, XsNotCoverable, XsUndetCov, XotNoCov,
-    XofNoCov, XoPartCov, XoNoCov, XcPartCov
+    cPartCov, aNoCov, atNoCov, acPartCov, Enote, KnoteDict, erNoteKinds,
+    sUndetCov, dUndetCov, eUndetCov, xBlock2, XsNoCov, XsPartCov,
+    XsNotCoverable, XsUndetCov, XotNoCov, XofNoCov, XoPartCov, XoNoCov,
+    XcPartCov
 )
 from .segments import Sloc, Sloc_from_match
 from .stags import Stag_from
@@ -79,7 +80,6 @@ class Rdiagline:
 
 
 def Rdiagline_from(text):
-
     p = re.match(Rdiagline.re, text)
 
     return Rdiagline(sloc=Sloc_from_match(p),
@@ -207,7 +207,6 @@ class Nblock(Rblock):
         self.enotes = []
 
     def try_parse_enote(self, rline):
-
         dline = Rdiagline_from(rline)
 
         # If no match at all, punt.
@@ -569,6 +568,22 @@ class RblockSet:
             VIOsection(re_start="UC_MCDC COVERAGE", re_notes=mcdc_notes))
         self.noteblocks.append(
             VIOsection(re_start="MCDC COVERAGE", re_notes=mcdc_notes))
+
+        # Assertion coverage
+
+        atc_notes = {
+            "contract expression outcome TRUE never": atNoCov,
+            "contract expression never evaluated": aNoCov,
+        }
+        self.noteblocks.append(
+            VIOsection(re_start="ATC COVERAGE", re_notes=atc_notes))
+
+        atcc_notes = {
+            "condition was never evaluated during an evaluation of the "
+            "decision to True": acPartCov
+        }
+        self.noteblocks.append(
+            VIOsection(re_start="ATCC COVERAGE", re_notes=atcc_notes))
 
         # Non coverable items
 

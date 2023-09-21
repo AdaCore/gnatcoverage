@@ -179,10 +179,16 @@ package body Coverage.Source is
       SCI : Source_Coverage_Info) return Line_State;
    --  Compute the MC/DC state of SCO, which is already covered for DC
 
+   function Compute_ATCC_State
+     (SCO : SCO_Id;
+      SCI : Source_Coverage_Info) return Line_State;
+   --  Compute the ATCC state of SCO, which is already covered for ATC
+
    function Decision_Requires_Coverage (SCO : SCO_Id) return Boolean;
    --  Always True for all decisions that are part of a control structure; for
    --  other decisions, True if All_Decisions is set, or if the decision is
-   --  complex and MC/DC is enabled. Note: this can be True even for decisions
+   --  complex and MC/DC is enabled. This function only checks for decisions
+   --  not belonging to assertions. Note: this can be True even for decisions
    --  that are not Decision_Coverable.
 
    procedure Update_State
@@ -618,6 +624,105 @@ package body Coverage.Source is
      (Line_Num  : Positive;
       Line_Info : Line_Info_Access)
    is
+      procedure Compute_Condition_Level_Line_State
+        (SCO       : SCO_Id;
+         SCO_State : Line_State;
+         Line_Info : Line_Info_Access;
+         SCI       : RW_Source_Coverage_Info_Access;
+         Level     : Coverage_Level)
+        with Pre => Level in MCDC | UC_MCDC | ATCC;
+         --  Complete computation of Level coverage state if SCO is covered for
+         --  the previous less strict coverage level. The coverage status for
+         --  decision coverage is SCO_State.
+         --
+         --  This function is useful for the levels that require to compute
+         --  the coverage of conditions, namely MCDC and ATCC. Their previous
+         --  less strict coverage levels are respectively Decision and ATC.
+
+      procedure Report_Insufficiently_Instrumented
+        (SCO       : SCO_Id;
+         Level     : Coverage_Level;
+         Line_Info : Line_Info_Access;
+         SCI       : RW_Source_Coverage_Info_Access);
+      --  Appropriately report the case in which a SCO is not sufficiently
+      --  instrumented to compute its coverage for MCDC or ATCC level.
+
+      ----------------------------------------
+      -- Compute_Condition_Level_Line_State --
+      ----------------------------------------
+
+      procedure Compute_Condition_Level_Line_State
+        (SCO       : SCO_Id;
+         SCO_State : Line_State;
+         Line_Info : Line_Info_Access;
+         SCI       : RW_Source_Coverage_Info_Access;
+         Level     : Coverage_Level)
+      is
+      begin
+         if SCO_State = Covered then
+
+            --  Complete computation of MC/DC/ATCC coverage state if SCO
+            --  is covered for decision/ATC coverage.
+
+            if not Decision_SCO_Instrumented_For_MCDC (SCO) then
+               Report_Insufficiently_Instrumented (SCO, Level, Line_Info, SCI);
+            else
+               Update_Line_State
+                 (Line_Info,
+                  SCO,
+                  SCI.Tag,
+                  Level,
+                  (if Level in MCDC_Coverage_Level
+                   then Compute_MCDC_State (SCO, SCI.all)
+                   else Compute_ATCC_State (SCO, SCI.all)));
+            end if;
+
+         elsif SCO_State not in No_Code | Undetermined_Coverage then
+
+            --  Case of MC/DC or ATCC enabled, and decision / ATC is coverable
+            --  but at least one outcome was never taken: do not report details
+            --  regarding MC/DC / ATCC coverage, just record that MC/DC / ATCC
+            --  is not achieved.
+
+            Update_Line_State (Line_Info, SCO, SCI.Tag, Level, Not_Covered);
+         end if;
+      end Compute_Condition_Level_Line_State;
+
+      -------------------------------------
+      -- Check_Sufficiently_Instrumented --
+      -------------------------------------
+
+      procedure Report_Insufficiently_Instrumented
+        (SCO       : SCO_Id;
+         Level     : Coverage_Level;
+         Line_Info : Line_Info_Access;
+         SCI       : RW_Source_Coverage_Info_Access)
+      is
+      begin
+         --  This decision was not instrumented for Level, so report only
+         --  once for the whole decision, but still mark each condition
+         --  as not instrumented.
+
+         for Cond_Index in 0 .. Last_Cond_Index (SCO) loop
+            Update_Line_State
+              (Line_Info,
+               Condition (SCO, Cond_Index),
+               SCI.Tag,
+               Level,
+               Undetermined_Coverage);
+         end loop;
+
+         Update_Line_State (Line_Info, SCO, SCI.Tag, Level, Covered);
+
+         Report_Coverage
+           (SCO,
+            SCI.Tag,
+            "was not instrumented for " & Image (Level),
+            Undetermined_Cov);
+      end Report_Insufficiently_Instrumented;
+
+      --  Local variables
+
       Multiple_Statements_Reported : Boolean := False;
       --  Set True when a diagnosis has been emitted for multiple statements
 
@@ -672,15 +777,13 @@ package body Coverage.Source is
                   --  statement is executed.
 
                   if Ignore_SCO (SCO) then
-
                      --  They are neither covered nor not-covered, and need
                      --  not be reported as bona fide statements excluded from
                      --  coverage analysis either (see below case).
-
                      null;
 
                   elsif Unit_Has_Code (SCO)
-                          and then not Basic_Block_Has_Code (SCO, SCI.Tag)
+                    and then not Basic_Block_Has_Code (SCO, SCI.Tag)
                   then
 
                      --  If a unit has any code at all, then a SCO is marked
@@ -783,25 +886,41 @@ package body Coverage.Source is
                   --  computed for the first line, and then cached in the SCI
                   --  and reused for subsequent lines.
 
-                  if Enabled (Decision) then
-                     SCO_State := SCI.State (Decision);
-                     Update_Line_State
-                       (Line_Info, SCO, SCI.Tag, Decision, SCO_State);
-                  end if;
+                  if Decision_Requires_Assertion_Coverage (SCO) then
 
-                  if MCDC_Coverage_Enabled then
-                     SCO_State := SCI.State (MCDC_Level);
+                     SCO_State := SCI.State (ATC);
                      Update_Line_State
-                       (Line_Info, SCO, SCI.Tag, MCDC_Level, SCO_State);
+                       (Line_Info, SCO, SCI.Tag, ATC, SCO_State);
+
+                     if Assertion_Condition_Coverage_Enabled then
+                        SCO_State := SCI.State (ATCC);
+                        Update_Line_State
+                          (Line_Info, SCO, SCI.Tag, ATCC, SCO_State);
+                     end if;
+                  else
+                     if Enabled (Decision) then
+                        SCO_State := SCI.State (Decision);
+                        Update_Line_State
+                          (Line_Info, SCO, SCI.Tag, Decision, SCO_State);
+                     end if;
+
+                     if MCDC_Coverage_Enabled then
+                        SCO_State := SCI.State (MCDC_Level);
+                        Update_Line_State
+                          (Line_Info, SCO, SCI.Tag, MCDC_Level, SCO_State);
+                     end if;
                   end if;
 
                elsif Kind (SCO) = Decision
-                 and then (Enabled (Decision) or else MCDC_Coverage_Enabled)
-                 and then Decision_Requires_Coverage (SCO)
+                 and then ((Decision_Requires_Coverage (SCO)
+                            and then (Enabled (Decision)
+                                      or else MCDC_Coverage_Enabled))
+                           or else Decision_Requires_Assertion_Coverage (SCO))
                then
                   --  Compute decision coverage state for this decision. Note
                   --  that the decision coverage information is also included
-                  --  in MC/DC coverage.
+                  --  in MC/DC coverage. The same goes for ATC and ATCC
+                  --  information.
 
                   if Decision_Outcome (SCO) /= Unknown then
                      --  Case of a compile time known decision: exclude from
@@ -832,49 +951,75 @@ package body Coverage.Source is
                           or else
                         SCI.Known_Outcome_Taken /= No_Outcome_Taken
                   then
-                     --  Here if at least one outcome has been exercised,
-                     --  determined either by conditional branch instructions
-                     --  (Outcome_Taken) or dominance (Known_Outcome_Taken).
+                     --  Assertion coverage
 
-                     SCO_State := Partially_Covered;
+                     if Decision_Requires_Assertion_Coverage (SCO) then
+                        --  Contract coverage level "Assertion True
+                        --  Coverage"
 
-                     declare
-                        Missing_Outcome : Tristate := Unknown;
-                     begin
-                        --  Indicate which outcome has never been taken: if
-                        --  FALSE has been taken then this is outcome TRUE,
-                        --  else FALSE.
+                        --  Assertions are never supposed to be evaluated
+                        --  to False. Therefore once they have been
+                        --  exercised and found to be True, they are
+                        --  covered.
 
-                        if SCI.Known_Outcome_Taken (False)
-                          /= SCI.Known_Outcome_Taken (True)
+                        if SCI.Outcome_Taken (True)
+                          or else SCI.Known_Outcome_Taken (True)
                         then
-                           Missing_Outcome :=
-                             To_Tristate (SCI.Known_Outcome_Taken (False));
-
-                        elsif not Degraded_Origins (SCO) then
-                           Missing_Outcome :=
-                             To_Tristate (SCI.Outcome_Taken (False));
-                        end if;
-
-                        if Missing_Outcome = Unknown then
-                           Report_Violation
-                             (SCO, SCI.Tag,
-                              "not exercised in both directions");
-
+                           SCO_State := Covered;
                         else
+                           SCO_State := Not_Covered;
                            Report_Violation
                              (SCO,
                               SCI.Tag,
-                              "outcome "
-                              & Missing_Outcome'Img & " never exercised");
+                              "outcome TRUE never exercised");
                         end if;
-                     end;
+
+                     else
+                        --  Here if at least one outcome has been exercised,
+                        --  determined either by conditional branch
+                        --  instructions (Outcome_Taken) or dominance
+                        --  (Known_Outcome_Taken).
+
+                        SCO_State := Partially_Covered;
+
+                        declare
+                           Missing_Outcome : Tristate := Unknown;
+                        begin
+                           --  Indicate which outcome has never been taken: if
+                           --  FALSE has been taken then this is outcome TRUE,
+                           --  else FALSE.
+
+                           if SCI.Known_Outcome_Taken (False)
+                             /= SCI.Known_Outcome_Taken (True)
+                           then
+                              Missing_Outcome :=
+                                To_Tristate (SCI.Known_Outcome_Taken (False));
+
+                           elsif not Degraded_Origins (SCO) then
+                              Missing_Outcome :=
+                                To_Tristate (SCI.Outcome_Taken (False));
+                           end if;
+
+                           if Missing_Outcome = Unknown then
+                              Report_Violation
+                                (SCO, SCI.Tag,
+                                 "not exercised in both directions");
+
+                           else
+                              Report_Violation
+                                (SCO,
+                                 SCI.Tag,
+                                 "outcome "
+                                 & Missing_Outcome'Img & " never exercised");
+                           end if;
+                        end;
+                     end if;
 
                   elsif Enclosing_Statement (SCO) = No_SCO_Id
                     or else (Basic_Block_Has_Code
-                              (Enclosing_Statement (SCO), SCI.Tag)
+                             (Enclosing_Statement (SCO), SCI.Tag)
                              and then Stmt_SCO_Instrumented
-                                        (Enclosing_Statement (SCO)))
+                               (Enclosing_Statement (SCO)))
                   then
                      --  Similar to the above for statement coverage: a
                      --  decision that cannot ever be executed is reported
@@ -915,7 +1060,6 @@ package body Coverage.Source is
                                  SCI.Tag,
                                  "was not instrumented for decision coverage",
                                  Kind => Undetermined_Cov);
-                              SCO_State := Undetermined_Coverage;
                            else
                               Report_Violation
                                 (SCO, SCI.Tag, "never evaluated");
@@ -924,61 +1068,37 @@ package body Coverage.Source is
                      end;
                   end if;
 
-                  Update_Line_State
-                    (Line_Info, SCO, SCI.Tag, Decision, SCO_State);
+                  --  Update the state of the line for all enabled source
+                  --  coverage levels.
 
-                  if MCDC_Coverage_Enabled then
-                     if SCO_State = Covered then
+                  if Decision_Requires_Assertion_Coverage (SCO) then
+                     --  If the SCO is in an assertion, update its state for
+                     --  the relevant assertion coverage levels...
 
-                        --  Complete computation of MC/DC coverage state if SCO
-                        --  is covered for decision coverage.
+                     Update_Line_State
+                       (Line_Info, SCO, SCI.Tag, ATC, SCO_State);
 
-                        if not Decision_SCO_Instrumented_For_MCDC (SCO) then
+                     if Enabled (ATCC) then
+                        Compute_Condition_Level_Line_State
+                          (SCO, SCO_State, Line_Info, SCI, ATCC);
+                     end if;
 
-                           --  This decision was not instrumented for MCDC,
-                           --  so report only once for the whole decision, but
-                           --  still mark each condition as not instrumented.
+                  else
+                     --  ...otherwise update the SCO state for the regular
+                     --  source coverage levels.
 
-                           for Cond_Index in 0 .. Last_Cond_Index (SCO) loop
-                              Update_Line_State
-                                (Line_Info,
-                                 Condition (SCO, Cond_Index),
-                                 SCI.Tag,
-                                 MCDC_Level,
-                                 Undetermined_Coverage);
-                           end loop;
+                     --  Update the SCO state for decision level
 
-                           Update_Line_State
-                             (Line_Info,
-                              SCO,
-                              SCI.Tag,
-                              MCDC_Level,
-                              Covered);
+                     Update_Line_State
+                       (Line_Info, SCO, SCI.Tag, Decision, SCO_State);
 
-                           Report_Coverage
-                             (SCO,
-                              SCI.Tag,
-                              "was not instrumented for MC/DC",
-                              Kind => Undetermined_Cov);
-                        else
-                           Update_Line_State
-                             (Line_Info,
-                              SCO,
-                              SCI.Tag,
-                              MCDC_Level,
-                              Compute_MCDC_State (SCO, SCI.all));
-                        end if;
+                     --  Compute and update the SCO state for MCDC level
 
-                     elsif SCO_State not in No_Code | Undetermined_Coverage
+                     if MCDC_Coverage_Enabled
+                       and then not Decision_Requires_Assertion_Coverage (SCO)
                      then
-
-                        --  Case of MC/DC enabled, and decision is coverable
-                        --  but at least one outcome was never taken: do not
-                        --  report details regarding MC/DC coverage, just
-                        --  record that MC/DC is not achieved.
-
-                        Update_Line_State
-                          (Line_Info, SCO, SCI.Tag, MCDC_Level, Not_Covered);
+                        Compute_Condition_Level_Line_State
+                          (SCO, SCO_State, Line_Info, SCI, MCDC_Level);
                      end if;
                   end if;
                end if;
@@ -987,7 +1107,6 @@ package body Coverage.Source is
 
          <<Next_SCO>> null;
       end loop;
-
       --  Record that this line has been processed
 
       Line_Info.Coverage_Processed := True;
@@ -1095,7 +1214,8 @@ package body Coverage.Source is
             --  Record and report the first eval pair that shows independent
             --  influence of Influent_Condition.
 
-            if Switches.Show_MCDC_Vectors
+            if (Switches.Show_MCDC_Vectors
+                or else Switches.Show_Condition_Vectors)
               and then Influent_Condition /= No_Condition_Index
             then
                Eval_Cond_Set_Map.Element
@@ -1125,7 +1245,8 @@ package body Coverage.Source is
 
       --  Find the last condition which has a violation
 
-      if Switches.Show_MCDC_Vectors then
+      if Switches.Show_MCDC_Vectors or else Switches.Show_Condition_Vectors
+      then
          for J in reverse Indep'Range loop
             if not Indep (J) then
                Last_Cond_No_Pair := J;
@@ -1147,7 +1268,10 @@ package body Coverage.Source is
                Tag => SCI.Tag,
                Msg => "has no independent influence pair, MC/DC not achieved");
 
-            if Switches.Show_MCDC_Vectors and then J = Last_Cond_No_Pair then
+            if (Switches.Show_MCDC_Vectors
+                or else Switches.Show_Condition_Vectors)
+              and then J = Last_Cond_No_Pair
+            then
 
                --  We want the MC/DC vector to be displayed with the MC/DC
                --  violations, after the last MC/DC violation of the decision.
@@ -1187,6 +1311,114 @@ package body Coverage.Source is
       pragma Assert (SCO_State = Covered or else not Degraded_Origins (SCO));
       return SCO_State;
    end Compute_MCDC_State;
+
+   ------------------------
+   -- Compute_ATCC_State --
+   ------------------------
+
+   function Compute_ATCC_State
+     (SCO : SCO_Id;
+      SCI : Source_Coverage_Info) return Line_State
+   is
+
+      function Emit_Evaluation_Vector_Message return String;
+      --  List all the evaluation vectors
+
+      ------------------------------------
+      -- Emit_Evaluation_Vector_Message --
+      ------------------------------------
+
+      function Emit_Evaluation_Vector_Message return String is
+         Msg : Unbounded_String;
+         EOL : constant String := "" & Ada.Characters.Latin_1.LF;
+      begin
+         Msg := To_Unbounded_String ("Decision of the form ")
+           & Expression_Image (SCO) & EOL;
+         Append (Msg, "Evaluation vectors found:" & EOL);
+
+         for Eval of SCI.Evaluations loop
+            Append (Msg, "    " & Image (Eval) & EOL);
+         end loop;
+
+         return To_String (Msg);
+
+      end Emit_Evaluation_Vector_Message;
+
+      SCO_State : Line_State := No_Code;
+
+      Last_Cond_Not_Evaluated : Condition_Index;
+      --  Condition index for which to dump the message. As the DHTML output
+      --  only displays the last registered violation for a line, we must
+      --  emit the evaluation vectors of the last reported violation.
+
+      Last_Cond_Idx : constant Condition_Index := Last_Cond_Index (SCO);
+      --  Index of last condition in decision
+
+      type Condition_Evaluated_Array is array
+        (Condition_Index'First .. Last_Cond_Idx) of Boolean;
+
+      Condition_Evaluated : Condition_Evaluated_Array := (others => False);
+
+   begin
+
+      --  Record if a condition has been evaluated during the overall
+      --  evaluation to true of its corresponding decision.
+
+      for Eval of SCI.Evaluations loop
+         if Eval.Outcome = True then
+            for I in Condition_Evaluated_Array'Range loop
+               Condition_Evaluated (I) :=
+                 Condition_Evaluated (I) or else Eval.Values (I) /= Unknown;
+            end loop;
+         end if;
+      end loop;
+
+      --  Find the last condition which has a violation
+
+      for I in reverse Condition_Evaluated'Range loop
+         if not Condition_Evaluated (I) then
+            Last_Cond_Not_Evaluated := I;
+            exit;
+         end if;
+      end loop;
+
+      --  Iterate over conditions and report
+
+      for I in Condition_Evaluated_Array'Range loop
+         if not Condition_Evaluated (I) then
+            Update_State
+              (SCO_State, Condition (SCO, I), SCI.Tag, ATCC, Not_Covered);
+            Report_Violation
+              (SCO => Condition (SCO, I),
+               Tag => SCI.Tag,
+               Msg => "was never evaluated during an evaluation of the " &
+                 "decision to True, ATCC not achieved");
+
+            if Switches.Show_Condition_Vectors
+              and then I = Last_Cond_Not_Evaluated
+            then
+               --  In much the same way is in Compute_MCDC_State, display the
+               --  vector with ATCC violations and after the last ATCC
+               --  violation of the decision.
+
+               Report_Coverage (SCO  => Condition (SCO, I),
+                                Tag  => SCI.Tag,
+                                Msg  => Emit_Evaluation_Vector_Message,
+                                Kind => Info);
+            end if;
+         else
+            Update_State
+              (SCO_State, Condition (SCO, I), SCI.Tag, ATCC, Covered);
+         end if;
+      end loop;
+
+      --  If we have degraded origins for SCO but we computed ATCC coverage
+      --  state then this means that ATC is achieved, and so ATCC must be
+      --  achieved as well (because this is a single condition decision).
+
+      pragma Assert (SCO_State = Covered or else not Degraded_Origins (SCO));
+      return SCO_State;
+   end Compute_ATCC_State;
 
    -----------------------------
    -- Compute_Source_Coverage --
@@ -1317,19 +1549,18 @@ package body Coverage.Source is
               or else (not Precise and then Multistatement_Line);
 
             if not (Propagating and No_Propagation) then
+                  --  Mark S_SCO as executed
 
-               --  Mark S_SCO as executed
+                  Report
+                    ((if Line_Executed then "line " else "")
+                     & "executed" & Tag_Suffix
+                     & (if Propagating then " (propagating)" else ""),
+                     SCO  => S_SCO,
+                     Exe  => Exe,
+                     PC   => PC,
+                     Kind => Notice);
 
-               Report
-                 ((if Line_Executed then "line " else "")
-                  & "executed" & Tag_Suffix
-                  & (if Propagating then " (propagating)" else ""),
-                  SCO  => S_SCO,
-                  Exe  => Exe,
-                  PC   => PC,
-                  Kind => Notice);
-
-               Update_SCI (S_SCO, Tag, Set_Executed'Access);
+                  Update_SCI (S_SCO, Tag, Set_Executed'Access);
             end if;
 
             exit when not Propagating and No_Propagation;
@@ -1754,6 +1985,26 @@ package body Coverage.Source is
                  when Unit_Separate => "separate");
       end Part_Image;
 
+      ST : Scope_Traversal_Type;
+
+      procedure Update_SCI_Wrapper
+        (SCO     : SCO_Id;
+         Tag     : SC_Tag;
+         Process : access procedure (SCI : in out Source_Coverage_Info));
+      --  Execute Process on the SCI for the given SCO and tag
+
+      procedure Update_SCI_Wrapper
+        (SCO     : SCO_Id;
+         Tag     : SC_Tag;
+         Process : access procedure (SCI : in out Source_Coverage_Info))
+      is
+      begin
+         Traverse_SCO (ST, SCO);
+         if Is_Active (ST, Subps_Of_Interest) then
+            Update_SCI (SCO, Tag, Process);
+         end if;
+      end Update_SCI_Wrapper;
+
    --  Start of processing for Compute_Source_Coverage
 
    begin
@@ -1806,15 +2057,18 @@ package body Coverage.Source is
 
       BM := Bit_Maps (CU);
 
+      ST := Scope_Traversal (CU);
       for J in Stmt_Buffer'Range loop
 
          --  If bit is set, statement has been executed
 
          if Stmt_Buffer (J) then
-            Update_SCI (BM.Statement_Bits (J), No_SC_Tag, Set_Executed'Access);
+            Update_SCI_Wrapper
+              (BM.Statement_Bits (J), No_SC_Tag, Set_Executed'Access);
          end if;
       end loop;
 
+      ST := Scope_Traversal (CU);
       for J in Decision_Buffer'Range loop
          if Decision_Buffer (J) then
             declare
@@ -1835,7 +2089,7 @@ package body Coverage.Source is
                end Set_Known_Outcome_Taken;
 
             begin
-               Update_SCI
+               Update_SCI_Wrapper
                  (Outcome_Info.D_SCO, No_SC_Tag,
                   Set_Known_Outcome_Taken'Access);
 
@@ -1845,6 +2099,7 @@ package body Coverage.Source is
          end if;
       end loop;
 
+      ST := Scope_Traversal (CU);
       for J in MCDC_Buffer'Range loop
          if MCDC_Buffer (J) then
             declare
@@ -1871,7 +2126,8 @@ package body Coverage.Source is
                end Add_Evaluation;
 
             begin
-               Update_SCI (MCDC_Info.D_SCO, No_SC_Tag, Add_Evaluation'Access);
+               Update_SCI_Wrapper
+                 (MCDC_Info.D_SCO, No_SC_Tag, Add_Evaluation'Access);
             end;
          end if;
       end loop;
@@ -1981,8 +2237,21 @@ package body Coverage.Source is
 
       return Switches.All_Decisions
         or else not Is_Expression (SCO)
-        or else (MCDC_Coverage_Enabled and then Last_Cond_Index (SCO) > 0);
+        or else (MCDC_Coverage_Enabled
+                 and then Last_Cond_Index (SCO) > 0);
    end Decision_Requires_Coverage;
+
+   ------------------------------------------
+   -- Decision_Requires_Assertion_Coverage --
+   ------------------------------------------
+
+   function Decision_Requires_Assertion_Coverage (SCO : SCO_Id) return Boolean
+   is
+   begin
+      pragma Assert (Kind (SCO) in Decision | Condition);
+
+      return Assertion_Coverage_Enabled and then Is_Assertion_To_Cover (SCO);
+   end Decision_Requires_Assertion_Coverage;
 
    --------------------
    -- Get_Line_State --

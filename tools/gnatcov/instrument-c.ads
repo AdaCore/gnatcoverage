@@ -316,9 +316,16 @@ package Instrument.C is
       Hash            => Hash,
       Equivalent_Keys => "=");
 
+   type File_Scope_Type is record
+      Scope_Entities       : Scope_Entities_Tree;
+      File_Scope_Entity    : Scope_Entities_Trees.Cursor;
+      Current_Scope_Entity : Scope_Entities_Trees.Cursor;
+   end record;
+   --  Store scope entities and the currently traversed scope
+
    package Scopes_In_Files_Map is new Ada.Containers.Ordered_Maps
      (Key_Type     => Source_File_Index,
-      Element_Type => Scope_Entity_Acc);
+      Element_Type => File_Scope_Type);
    --  Mapping from a source file to the tree of scopes opened within it. The
    --  root of each tree is the scope corresponding to the file itself in which
    --  all its scopes are stored.
@@ -369,13 +376,13 @@ package Instrument.C is
          --  after preprocessing. This is needed in order to keep track of
          --  which scope was originally opened in which file.
 
-         Current_File_Scope : Source_File_Index;
-         --  Source file in wich the last scope encountered was opened.
-
          Instrumented_CXX_For_Ranges : Cursor_Vectors.Vector;
          --  List of instrumented for ranges. For an explanation of why we need
          --  to store these, see the documentation of the Fix_CXX_For_Ranges
          --  subprogram.
+
+         Current_File_Scope : Scopes_In_Files_Map.Cursor;
+         --  Source file in which the last scope encountered was opened
 
          Disable_Instrumentation : Boolean := False;
          --  Set to True to deactivate instrumentation and prevent any code
@@ -396,10 +403,10 @@ private
    function Find_Instrumented_Entities
      (UIC : in out C_Unit_Inst_Context'Class;
       SFI : Valid_Source_File_Index)
-      return C_Instrumented_Entities_Maps.Reference_Type;
+      return C_Instrumented_Entities_Maps.Reference_Type
+     with Pre => UIC.Instrumented_Entities.Contains (SFI);
    --  Return a reference to the UIC.Instrumented_Entities entry
-   --  corresponding to the source file that SFI designates. If there is no
-   --  such entry yet, create it.
+   --  corresponding to the source file that SFI designates.
 
    type Pass_Kind is abstract tagged null record;
 

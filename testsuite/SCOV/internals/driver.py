@@ -936,6 +936,13 @@ class SCOV_helper:
             "stmt+decision": 2,
             "stmt+mcdc": 3,
             "stmt+uc_mcdc": 3,
+            "stmt+atc": 1,
+            "stmt+decision+atc": 2,
+            "stmt+decision+atcc": 2,
+            "stmt+mcdc+atc": 3,
+            "stmt+mcdc+atcc": 3,
+            "stmt+uc_mcdc+atc": 3,
+            "stmt+uc_mcdc+atcc": 3,
         }
 
         stricter_level = (
@@ -1163,6 +1170,43 @@ class SCOV_helper:
                 for scof in (self._locate_scofile(soi)
                              for soi in self.sources_of_interest())
                 if scof}
+
+    def wdbase_for(self, covlevel):
+        """
+        Compute a short base prefix for the working directory that will
+        contain the output of coverage analysis for level covlevel.
+
+        Uses the first letter of the highest level ('s' for "stmt" or 'u' for
+        "stmt+uc_mcdc") and the full name of the assertion level if assertion
+        coverage is enabled.
+        """
+        levels = covlevel.split("+")
+
+        if len(levels) == 1:
+            return "s_"
+
+        wdbase = levels[1][0]
+        wdbase += levels[-1] if self.assert_lvl else ""
+
+        return wdbase + "_"
+
+    def xcovlevel_for(self, wdname):
+        """
+        Compute the source coverage level from the working directory prefix
+        by matching the first letter of the highest coverage level plus the
+        full name of the assertion level is enabled.
+        """
+        res = "stmt"
+        wdbase = wdname.split('_')[0]
+
+        for lvl in ["decision", "mcdc", "uc_mcdc"]:
+            if wdbase[0] == lvl[0]:
+                res += "+" + lvl
+
+        if len(wdbase) > 1:
+            res += "+" + wdbase[1:]
+
+        return res
 
 
 class SCOV_helper_bin_traces(SCOV_helper):

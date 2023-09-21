@@ -198,6 +198,14 @@ private
 
       State : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of MC/DC state local variable
+
+      Do_Not_Instrument : Boolean;
+      --  Whether this decision should not be instrumented. This is set to True
+      --  when instrumenting the decision could create invalid Ada code.
+
+      Is_Contract : Boolean := False;
+      --  Whether the decision belongs to an assert-like pragma statement or an
+      --  equivalent aspect.
    end record;
 
    type Source_Condition is record
@@ -273,6 +281,13 @@ private
          Language_Version_Pragma : Unbounded_Wide_Wide_String;
          --  Language version configuration pragma for unit, if any
 
+         Language_Version : Any_Language_Version :=
+           Switches.Global_Language_Version;
+         --  Most recent version of the language that can be used during
+         --  instrumentation of the unit. It is determined by the language
+         --  version pragma if present, otherwise it defaults to the value
+         --  obtained from the --ada switch.
+
          CU : CU_Id := No_CU_Id;
          --  SCO identifier of the compilation unit being instrumented
 
@@ -330,7 +345,8 @@ private
          --  Used when the SPARK compatibility mode is enabled, to insert
          --  non-volatile witness result variables to be ghost compliant.
 
-         Current_Scope_Entity : Scope_Entity_Acc := null;
+         Scope_Entities       : Scope_Entities_Tree;
+         Current_Scope_Entity : Scope_Entities_Trees.Cursor;
          --  Information about the name, sloc, SCO range and children scopes of
          --  the current scope entity. This is modified when entering a scope
          --  (updated to the current scope), and when leaving it (updated to

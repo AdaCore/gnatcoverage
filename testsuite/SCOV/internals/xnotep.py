@@ -18,7 +18,8 @@ from .cnotes import (
     oPartCov, ofNoCov, otNoCov, r0, r0c, sNoCov, sNotCoverable, sPartCov,
     xBlock0, xBlock1, xBlock2, xNoteKinds, lUndetCov, sUndetCov, dUndetCov,
     eUndetCov, XsNoCov, XsPartCov, XsNotCoverable, XsUndetCov, XotNoCov,
-    XofNoCov, XoPartCov, XoNoCov, XcPartCov, Xr0, Xr0c
+    XofNoCov, XoPartCov, XoNoCov, XcPartCov, Xr0, Xr0c, aNoCov, atNoCov,
+    acPartCov
 )
 from .segments import Line, Section, Segment
 from .stags import Stag_from
@@ -181,6 +182,7 @@ class XnoteP:
               'e?': eUndetCov,
               'oT-': otNoCov, 'oF-': ofNoCov, 'o!': oPartCov, 'o-': oNoCov,
               'c!': cPartCov,
+              'a-': aNoCov, 'aT-': atNoCov, 'ac!': acPartCov,
               'x0': xBlock0, 'x+': xBlock1, 'x?': xBlock2,
               '0': r0, '0c': r0c,
               # Exempted notes
