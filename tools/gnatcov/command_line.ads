@@ -391,7 +391,7 @@ package Command_Line is
          Pattern     =>
            "--files=<files_of_interest> --compilers=<compiler>"
          & " [--output-dir=<dir>]",
-         Internal    => True));
+         Internal    => False));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
      (Opt_Verbose => Create
