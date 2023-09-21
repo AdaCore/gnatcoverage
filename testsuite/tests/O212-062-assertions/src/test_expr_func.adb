@@ -1,8 +1,8 @@
-with Expr_Func;
+with Catch_Expr_Func;
 
 procedure Test_Expr_Func is
 begin
-    Expr_Func;
+    Catch_Expr_Func;
 end Test_Expr_Func;
 
 --# expr_func.adb
@@ -15,4 +15,3 @@ end Test_Expr_Func;
 -- /dummy_decl/ l+ ## 0
 -- /foo_call/   l+ ## 0
 -- /bar_call/   l+ ## 0
--- /catch/      l+ ## 0
