@@ -487,12 +487,19 @@ clang_getCalleeName (CXCursor C)
             return createDup (FunctionName.getAsString ().c_str ());
           };
 
-          const clang::FunctionDecl *FD;
-          if (D->getKind () == Decl::FunctionTemplate)
-            FD = (cast<clang::FunctionTemplateDecl> (D))->getTemplatedDecl ();
-          else
-            FD = cast<clang::FunctionDecl> (D);
-          return getFunctionDeclName (FD);
+          switch (D->getKind ())
+            {
+            case Decl::FunctionTemplate:
+              return getFunctionDeclName ((cast<clang::FunctionTemplateDecl> (D))->getTemplatedDecl ());
+            case Decl::Function:
+            case Decl::CXXMethod:
+            case Decl::CXXConstructor:
+            case Decl::CXXDestructor:
+            case Decl::CXXConversion:
+              return getFunctionDeclName (cast<clang::FunctionDecl> (D));
+            default:
+              return createEmpty ();
+            }
         }
     }
   return createEmpty ();

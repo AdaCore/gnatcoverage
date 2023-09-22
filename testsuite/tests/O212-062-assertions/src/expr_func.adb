@@ -1,7 +1,7 @@
 pragma Assertion_Policy (Check);
 pragma Ada_2012;
 
-with Ada.Assertions;
+with Silent_Last_Chance;
 
 procedure Expr_Func
 is
@@ -21,9 +21,5 @@ is
 begin
     Dummy := Foo (0);                                  -- # foo_call
 
-    begin
-        Dummy := Bar (42);                             -- # bar_call
-    exception
-        when Ada.Assertions.Assertion_Error => null;   -- # catch
-    end;
+    Dummy := Bar (42);                                 -- # bar_call
 end Expr_Func;

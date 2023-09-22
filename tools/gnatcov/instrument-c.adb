@@ -149,6 +149,8 @@ package body Instrument.C is
    --  Convert low level SCOs in each scope for each file to high-level SCOs
    --  using the mapping in SCO_Map. Set the file's SCO range to cover all of
    --  its scopes' SCO ranges.
+   --
+   --  Also remove from the Scopes map empty file scopes.
 
    overriding procedure Append_SCO
      (Pass               : Instrument_Pass_Kind;
@@ -543,10 +545,6 @@ package body Instrument.C is
       UIC  : in out C_Unit_Inst_Context'Class;
       N    : Cursor_T)
    is
-      Inserted : Boolean;
-
-      File_Scope_Position : Scopes_In_Files_Map.Cursor;
-
       procedure Enter_File_Scope
         (UIC : in out C_Unit_Inst_Context'Class;
          SFI : Source_File_Index)
@@ -560,7 +558,11 @@ package body Instrument.C is
 
       procedure Enter_File_Scope
         (UIC : in out C_Unit_Inst_Context'Class;
-         SFI : Source_File_Index) is
+         SFI : Source_File_Index)
+      is
+         File_Scope_Position : Scopes_In_Files_Map.Cursor;
+
+         Inserted : Boolean;
       begin
          if not UIC.Scopes.Contains (SFI) then
 
@@ -681,24 +683,26 @@ package body Instrument.C is
 
    procedure Remap_Scopes
      (Scopes  : in out Scopes_In_Files_Map.Map;
-      SCO_Map : LL_HL_SCO_Map) is
+      SCO_Map : LL_HL_SCO_Map)
+   is
+      Res : Scopes_In_Files_Map.Map;
    begin
       for Cur in Scopes.Iterate loop
          declare
-            Ref        : constant Scopes_In_Files_Map.Reference_Type :=
-              Scopes.Reference (Cur);
-            File_Scope : Scope_Entity renames
-              Scope_Entities_Trees.Element (Ref.File_Scope_Entity);
+            File_Scope        : File_Scope_Type :=
+              Scopes_In_Files_Map.Element (Cur);
+            File_Scope_Entity : Scope_Entity renames
+              Scope_Entities_Trees.Element (File_Scope.File_Scope_Entity);
          begin
-            --  If the file scope is empty, remove it
+            --  If the file scope is empty, do not add it to the resulting map
 
-            if File_Scope.To < File_Scope.From then
-               Ref.Scope_Entities.Delete_Subtree (Ref.File_Scope_Entity);
-            else
-               Remap_Scope_Entities (Ref.Scope_Entities, SCO_Map);
+            if File_Scope_Entity.To >= File_Scope_Entity.From then
+               Remap_Scope_Entities (File_Scope.Scope_Entities, SCO_Map);
+               Res.Insert (Scopes_In_Files_Map.Key (Cur), File_Scope);
             end if;
          end;
       end loop;
+      Scopes := Res;
    end Remap_Scopes;
 
    ----------------
@@ -3405,23 +3409,23 @@ package body Instrument.C is
                --  Associate these bit maps to the corresponding CU
 
                Set_Bit_Maps (UIC.CUs.Element (SFI), Bit_Maps);
+            end;
+         end loop;
 
-               --  Iterate through the package level body entities
+         --  Iterate through the package level body entities
 
-               Remap_Scopes (UIC.Scopes, SCO_Map);
+         Remap_Scopes (UIC.Scopes, SCO_Map);
 
-               for C in UIC.Scopes.Iterate loop
-                  declare
-                     CU : constant Created_Unit_Maps.Cursor :=
-                       UIC.CUs.Find (Scopes_In_Files_Map.Key (C));
-                  begin
-                     if Created_Unit_Maps.Has_Element (CU) then
-                        Set_Scope_Entities
-                          (Created_Unit_Maps.Element (CU),
-                           Scopes_In_Files_Map.Element (C).Scope_Entities);
-                     end if;
-                  end;
-               end loop;
+         for C in UIC.Scopes.Iterate loop
+            declare
+               CU : constant Created_Unit_Maps.Cursor :=
+                 UIC.CUs.Find (Scopes_In_Files_Map.Key (C));
+            begin
+               if Created_Unit_Maps.Has_Element (CU) then
+                  Set_Scope_Entities
+                    (Created_Unit_Maps.Element (CU),
+                     Scopes_In_Files_Map.Element (C).Scope_Entities);
+               end if;
             end;
          end loop;
       end;
