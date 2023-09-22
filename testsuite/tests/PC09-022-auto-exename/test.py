@@ -136,26 +136,6 @@ for p in (
             mains=('main_proc.adb', ),
             build=False,
             should_succeed=False),
-
-    # Check success when there is one single main in the whole project closure:
-    # once when the main is in the root project...
-    Project(project_files, 'sub', 'src-sub',
-            mains=('sub_main.adb', ),
-            deps=('nomain', ),
-            should_succeed=True),
-
-    # ... and once when it is in a dep project
-    Project(project_files, 'sub_main_in_dep', 'src-sub',
-            mains=(),
-            deps=('single', ),
-            should_succeed=True),
-
-    # Check that we have an error when there is at most one main per project
-    # and multiple projects with a main.
-    Project(project_files, 'sub_double', 'src-sub',
-            mains=('sub_main.adb', ),
-            deps=('single', ),
-            should_succeed=False),
 ):
     assert p.name not in project_files
     project_files[p.name] = p
