@@ -69,9 +69,9 @@ package Coverage_Options is
    function Coverage_Option_Value (L : Levels_Type) return String;
    --  Return the coverage option value corresponding to L
 
-   function Source_Level_Options (Separator : String) return String;
-   --  Return a string expression listing the valid --level alternatives
-   --  for source coverage, separated by Separator.
+   function Source_Level_Options return String;
+   --  Return a regular expression string describing the valid --level
+   --  combinations of source coverage levels.
 
    function Object_Level_Options (Separator : String) return String;
    --  Return a string expression describing valid --level alternatives

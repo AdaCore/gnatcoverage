@@ -699,7 +699,7 @@ package Command_Line is
             & "  " & Object_Level_Options (Separator => ", ")
             & " (object coverage)"
             & ASCII.LF
-            & "  " & Source_Level_Options (Separator => ", ")
+            & "  " & Source_Level_Options
             & " (source coverage)"
             & ASCII.LF
             & "For the ""instrument"" command, "

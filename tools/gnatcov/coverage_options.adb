@@ -119,9 +119,19 @@ package body Coverage_Options is
    -- Source_Level_Options --
    --------------------------
 
-   function Source_Level_Options (Separator : String) return String is
+   function Source_Level_Options return String is
+      function Level_Str (L : Source_Coverage_Level) return String;
+      --  Return the lowercase string representation of L
+
+      function Level_Str (L : Source_Coverage_Level) return String
+        is (To_Lower (L'Img));
    begin
-      return Level_Options (Source_Levels_Option_Map, Separator);
+      return Level_Str (Stmt)
+        & "(+" & Level_Str (Decision) & "|"
+        & "+"  & Level_Str (MCDC)     & "|"
+        & "+"  & Level_Str (UC_MCDC)  & ")?"
+        & "(+" & Level_Str (ATC)      & "|"
+        & "+"  & Level_Str (ATCC)     & ")?";
    end Source_Level_Options;
 
    -------------------------------------
