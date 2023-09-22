@@ -462,6 +462,8 @@ contains the name of the unit tested by the driver, and can be used to specify
 to |gcv| to only process the unit under test, by adding the switch
 :cmd-option:`--units=@units.list`.
 
+.. _Gnattest_Gnatfuzz:
+
 ###########################################
 Using GNATtest with GNATfuzz (experimental)
 ###########################################
