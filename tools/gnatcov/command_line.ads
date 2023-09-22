@@ -995,7 +995,7 @@ package Command_Line is
       Opt_Parallelism_Level => Create
         (Short_Name   => "-j",
          Long_Name    => "--jobs",
-         Pattern      => "POSITIVE",
+         Pattern      => "NATURAL",
          Help         =>
            "Maximal number of concurrently running tasks. Number of processors"
            & " of the machine if set to 0. Defaults to 1.",

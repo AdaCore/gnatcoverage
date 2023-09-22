@@ -245,6 +245,10 @@ dump-channel, the ``--dump-filename-<>`` family of switches provides control
 over the name of trace files. See :ref:`instr-tracename` for more details on
 the default behavior and possibilities to alter it.
 
+The instrumentation process can be parallelized using the ``-j`` (shorthand for
+``--jobs``) switch. ``-j0`` can be used for maximal parallelism, and ``-jN``
+with N > 0 to specify the desired level of concurrency.
+
 
 Output strategies for main units
 --------------------------------
