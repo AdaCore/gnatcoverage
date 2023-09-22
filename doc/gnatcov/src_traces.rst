@@ -209,7 +209,7 @@ kinds of operations:
 ---------------------
 
 As for other commands, help on the command line interface is displayed
-by ``gnatcov instrument --help``. The general sysopsis is as follows::
+by ``gnatcov instrument --help``. The general synopsis is as follows::
 
   gnatcov instrument --level=<> <units-of-interest> [OPTIONS]
 
