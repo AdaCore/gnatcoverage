@@ -1,2 +1,3 @@
 bin-traces XFAIL Assertion coverage not yet supported for binary traces
-5.04a1,7.1.2 DEAD Test contains expression functions and Ada_2012 features
+5.04a1 DEAD Test contains expression functions and Ada_2012 features
+7.1.2 DEAD Test contains expression functions and Ada_2012 features
