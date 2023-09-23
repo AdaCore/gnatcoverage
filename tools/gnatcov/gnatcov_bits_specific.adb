@@ -1067,12 +1067,12 @@ procedure GNATcov_Bits_Specific is
                Fatal_Error
                  ("Instrumentation requires a source coverage level"
                   & ASCII.LF
-                  & "  (--level=" & Source_Level_Options ("|") & ")");
+                  & "  (--level=" & Source_Level_Options & ")");
             elsif not Source_Coverage_Enabled then
                Warn
                  ("Coverage level not specified on the command"
                   & " line or in the project file (--level="
-                  & Source_Level_Options ("|") & "), defaulting to ""stmt"".");
+                  & Source_Level_Options & "), defaulting to ""stmt"".");
                Set_Coverage_Levels ("stmt");
             end if;
 
@@ -1774,7 +1774,7 @@ begin
          if not (Source_Coverage_Enabled or else Object_Coverage_Enabled)
          then
             Warn ("Coverage level not specified on the command line or in the"
-                  & " project file (--level=" & Source_Level_Options ("|")
+                  & " project file (--level=" & Source_Level_Options
                   & "|" & Object_Level_Options ("|") & "), defaulting to"
                   & " ""stmt"".");
             Set_Coverage_Levels ("stmt");
@@ -1789,7 +1789,7 @@ begin
                  ("""report"" output format (from --annotate) is"
                     & " only for source coverage criteria"
                     & ASCII.LF
-                    & "  (--level=" & Source_Level_Options ("|")
+                    & "  (--level=" & Source_Level_Options
                     & ", not --level="
                     & Coverage_Option_Value (Current_Levels) & ")");
 

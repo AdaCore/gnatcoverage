@@ -1431,7 +1431,8 @@ package body Project is
    --  Start of processing for Enumerate_Mains
 
    begin
-      Iterate_Projects (Root_Project, Enumerate_Mains'Access, True);
+      Iterate_Projects
+        (Root_Project, Enumerate_Mains'Access, Recursive => False);
       return Result : Main_Source_File_Array (Mains.First_Index
                                               .. Mains.Last_Index)
       do

@@ -385,14 +385,13 @@ package Command_Line is
            "Generate the adequate configuration to use gnatcov in integrated"
            & " instrumentation mode. The files of interest must be passed"
            & " through the --files switch, the compiler driver in used through"
-           & " the --compilers switch, the runtime installation directory"
-           & " through the --runtime-install-dir switch, and the configuration"
-           & " and compiler driver wrappers are generated in the subdirectory"
-           & " pointed by the --output-dir switch.",
+           & " the --compilers switch, and the configuration and compiler"
+           & " driver wrappers are generated in the subdirectory pointed by"
+           & " the --output-dir switch.",
          Pattern     =>
            "--files=<files_of_interest> --compilers=<compiler>"
-         & " --runtime-install-dir=<dir> [--output-dir=<dir>]",
-         Internal    => True));
+         & " [--output-dir=<dir>]",
+         Internal    => False));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
      (Opt_Verbose => Create
@@ -526,6 +525,7 @@ package Command_Line is
                       & " variations).",
          Commands  => (Cmd_Setup
                        | Cmd_Instrument_Project
+                       | Cmd_Setup_Integration
                        | Cmd_Instrument_Main => True,
                        others                => False),
          Internal  => False),
@@ -699,7 +699,7 @@ package Command_Line is
             & "  " & Object_Level_Options (Separator => ", ")
             & " (object coverage)"
             & ASCII.LF
-            & "  " & Source_Level_Options (Separator => ", ")
+            & "  " & Source_Level_Options
             & " (source coverage)"
             & ASCII.LF
             & "For the ""instrument"" command, "
@@ -836,6 +836,7 @@ package Command_Line is
                          & " for non-native programs.",
          Commands     => (Cmd_Setup
                           | Cmd_Instrument_Project
+                          | Cmd_Setup_Integration
                           | Cmd_Instrument_Main => True,
                           others                => False),
          At_Most_Once => False,
@@ -848,6 +849,7 @@ package Command_Line is
                          & " filename for created source traces.",
          Commands     => (Cmd_Setup
                           | Cmd_Instrument_Project
+                          | Cmd_Setup_Integration
                           | Cmd_Instrument_Main => True,
                           others                => False),
          At_Most_Once => False,
@@ -858,6 +860,7 @@ package Command_Line is
                          & " filename prefix for created source traces.",
          Commands     => (Cmd_Setup
                           | Cmd_Instrument_Project
+                          | Cmd_Setup_Integration
                           | Cmd_Instrument_Main => True,
                           others                => False),
          At_Most_Once => False,
@@ -869,6 +872,7 @@ package Command_Line is
                          & " filename tag for created source traces.",
          Commands     => (Cmd_Setup
                           | Cmd_Instrument_Project
+                          | Cmd_Setup_Integration
                           | Cmd_Instrument_Main => True,
                           others                => False),
          At_Most_Once => False,
@@ -1351,7 +1355,7 @@ package Command_Line is
          Pattern   => "NAME",
          Help      =>
            "List of compiler drivers for which we should generate wrappers."
-           & " Supported compilers are: gcc.",
+           & " Supported compilers are: gcc, g++.",
          Commands  => (others => True),
          Internal  => True)
      );

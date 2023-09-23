@@ -573,7 +573,7 @@ package body Checkpoints is
          if CP_Header.Magic /= Checkpoint_Magic then
             Fatal_Error ("invalid checkpoint file " & Filename);
 
-         elsif CP_Header.Version not in Checkpoint_Version then
+         elsif CP_Header.Version /= Checkpoint_Version'Last then
             Fatal_Error
               ("invalid checkpoint version" & CP_Header.Version'Img);
 

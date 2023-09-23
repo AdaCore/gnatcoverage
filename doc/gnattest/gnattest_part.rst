@@ -926,10 +926,59 @@ The tool currently has the following limitations:
 
 .. _Automatic_testcase_generation:
 
-Automatically generating test cases (alpha)
--------------------------------------------
+Automatically generating test cases (experimental)
+--------------------------------------------------
 
-``gnattest`` provides a switch ``--gen-test-vectors`` that can be used to
+Please note that all the features described bellow are experimental, and the
+interface is subject to change.
+
+GNATtest has the capability to generate test inputs for subprograms under test.
+This test generation feature is also useable in conjunction with GNATfuzz, in
+order to use GNATtest harnesses (generated or manually written) as a starting
+corpus for a fuzzing session, and to integrate inputs of interest found by
+GNATfuzz back into the test harness. For more details, see section
+:ref:`Gnattest_Gnatfuzz`.
+
+.. _Tgen_Env:
+
+Setting up the test generation runtime
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Generation of values for Ada cannot be fully done statically, as the bounds of
+some types may only be defined at runtime. As such, the test generation feature
+requires the compilation and installation of a runtime project.
+
+The sources for that project are located at
+``<GNATdas_install_dir/share/tgen/tgen_rts``.
+
+To build the runtime, simply copy the above directory to a location of you
+choice, build the project using ``gprbuild``, install it using ``gprinstall``
+and make it available to the tools by referencing it in the ``GPR_PROJECT_PATH``
+environment variable:
+
+.. code-block:: sh
+
+  # Clean previous source if present
+  rm -rf /tmp/tgen_rts_src
+
+  # Copy the sources
+  cp -r <GNATdas_install_dir>/share/tgen/tgen_rts /tmp/tgen_rts_src
+
+  # Build the project
+  cd /tmp/tgen_rts_src
+  gprbuild -P tgen_rts.gpr
+
+  # Install the project (removing the previous one if needed)
+  gprinstall --uninstall -P tgen_rts.gpr --prefix=/tmp/tgen_rts_install
+  gprinstall -p -P tgen_rts.gpr --prefix=/tmp/tgen_rts_install
+
+  # Make it available to other tools
+  export GPR_PROJECT_PATH=/tmp/tgen_rts_install/share/gpr:$GPR_PROJECT_PATH
+
+Generating test inputs
+^^^^^^^^^^^^^^^^^^^^^^
+
+``gnattest`` provides a ``--gen-test-vectors`` switch that can be used to
 automatically generate test cases for all of the supported subprogram profiles.
 The number of generated test cases can be configured through the
 ``--gen-test-num`` switch.
@@ -946,12 +995,23 @@ are true:
 5. Any of the subprogram's "in" or "out" mode parameters is a private type of
    a nested package.
 
-..
-   TODO: document a bit the value generation (mostly random, except for
-   unconstrained arrays and discriminated record).
+Input value generation currently follows a simple strategy for each input
+parameter of the subprogram under test. Parameters of scalar types, and scalar
+components of composite types have their values uniformly generated. For
+unconstrained array types, a length is randomly chosen between 0 and 10
+elements, then the low bound is randomly chosen and the high bound computed
+accordingly to those two first points.
+
+For record discriminants, different strategies are chosen depending on the use
+of the discriminant within the record: If the discriminant constraints a array
+component, then the array strategy described above is used. If the discriminant
+is used in a variant part, generation will be biased in order to generated all
+possible shapes of the record (i.e. explore all variants). Otherwise, these are
+generated as any other scalar component.
+
 
 The generated test cases are then stored in a ad-hoc (and yet to be specified)
-JSON format, in files under the <obj_dir>/gnattest/tests/JSON_Tests directory.
+JSON format, in files under the ``<obj_dir>/gnattest/tests/JSON_Tests`` directory.
 The generated JSON files are preserved through a ``gnattest`` rerun. The user is
 thus free to modify them, to e.g. fill in expected return values, though
 backward compatibility of the format is not guaranteed at this stage.
@@ -959,8 +1019,15 @@ backward compatibility of the format is not guaranteed at this stage.
 ``gnattest`` also generates Ada files to actually execute the test cases. Each test vector
 has its own AUnit test case, and all test cases for a specific subprogram are all
 stored in a dedicated file, namely
-<unit_name>-test_data-test_<subp_name>_<subp_hash>.ad[bs]. The content of these
-files is not preserved through a ``gnattest`` rerun.
+``<unit_name>-test_data-test_<subp_name>_<subp_hash>.ad[bs]``, where
+``<unit_name>`` is the name of the unit in which the subprogram is declared,
+``<subp_name>`` is the name of the subprogram, and <subp_hash> is a hash based
+on the profile of the subprogram, in order to differentiate overloads.
+
+The content of these files are re-generated each time ``gnattest`` is invoked,
+independently of the presence of the ``--gen-test-vectors`` switch on the
+command line. It is thus not necessary to re-invoke ``gnattest`` with that
+switch more than once, unless the goal is to generate additional test inputs.
 
 ..
    TODO: document the --unparse switch
