@@ -32,6 +32,7 @@ with Clang.Rewrite;            use Clang.Rewrite;
 
 with Diagnostics;       use Diagnostics;
 with Files_Table;       use Files_Table;
+with Instrument.C_Utils; use Instrument.C_Utils;
 with Instrument.Common; use Instrument.Common;
 with Slocs;             use Slocs;
 
@@ -381,6 +382,11 @@ package Instrument.C is
          Disable_Instrumentation : Boolean := False;
          --  Set to True to deactivate instrumentation and prevent any code
          --  rewriting.
+
+         Instrumented_CXX_For_Ranges : Cursor_Vectors.Vector;
+         --  List of instrumented for ranges. For an explanation of why we need
+         --  to store these, see the documentation of the Fix_CXX_For_Ranges
+         --  subprogram.
       end record;
 
    type C_Source_Rewriter is tagged limited private;
@@ -471,6 +477,12 @@ private
       Node : Cursor_T;
       Msg  : String;
       Kind : Report_Kind := Diagnostics.Warning) is null;
+
+   procedure Register_CXX_For_Range
+     (Pass : Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class;
+      N    : Cursor_T) is null;
+   --  See the documentation of Fix_CXX_For_Ranges
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
    with record
