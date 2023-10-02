@@ -5193,6 +5193,16 @@ package body Instrument.Ada_Unit is
                         end if;
                         Typ := 'P';
 
+                     --  Even though Compile_Time_* pragmas do contain
+                     --  decisions, we cannot instrument them, as they would
+                     --  not be known at compile time anymore (this is a
+                     --  requirements for this pragma), so just generate a
+                     --  statement obligation for them.
+
+                     when Name_Compile_Time_Error | Name_Compile_Time_Warning
+                     =>
+                        Typ := 'P';
+
                      --  For all other pragmas, we generate decision entries
                      --  for any embedded expressions, and the pragma is
                      --  never disabled.
