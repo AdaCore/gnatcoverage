@@ -484,12 +484,6 @@ the various tools by setting specific environment variables.
 The first step is to setup the value generation runtime library. For detailed
 instructions on how to do so, see :ref:`Tgen_Env`.
 
-Then in order to activate the import and export of tests between GNATfuzz
-and GNATtest, the ``GNATFUZZ_TGEN`` environment variable must be set:
-
-.. code-block::bash
-   export GNATFUZZ_TGEN=1
-
 *******************************************
 Using GNATStudio to perform the integration
 *******************************************
