@@ -155,13 +155,12 @@ package body Text_Files is
    -- Run_GNATpp --
    ----------------
 
-   procedure Run_GNATpp (Self : Text_Files.File_Type) is
+   procedure Run_GNATpp (Filename : String) is
       use GNAT.OS_Lib;
 
-      Filename : constant String := US.To_String (Self.Filename);
-      Args     : constant Argument_List := (1 => Filename'Unrestricted_Access);
-      GNATpp   : String_Access := Locate_Exec_On_Path ("gnatpp");
-      Success  : Boolean;
+      Args    : constant Argument_List := (1 => Filename'Unrestricted_Access);
+      GNATpp  : String_Access := Locate_Exec_On_Path ("gnatpp");
+      Success : Boolean;
    begin
       if GNATpp = null then
          Put_Line ("gnatpp not available");

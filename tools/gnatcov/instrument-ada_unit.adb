@@ -26,6 +26,7 @@ pragma Warnings (Off, "* is an internal GNAT unit");
 with Ada.Strings.Wide_Wide_Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
 with Ada.Text_IO;                use Ada.Text_IO;
+with Ada.Streams.Stream_IO;
 
 with Langkit_Support;
 with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
@@ -8016,7 +8017,18 @@ package body Instrument.Ada_Unit is
 
       Remove_Warnings_And_Style_Checks_Pragmas (Unit);
 
+      --  Note: we need to open and write the instrumented source as a binary
+      --  file, to be consistent with Libadalang which retrieves the tokens
+      --  from a file opened in binary mode. It provides us with line
+      --  terminators when unparsing the user-defined tokens and we must be
+      --  careful to output these unaltered. On Windows for example, we get
+      --  CRLF line terminators in the LAL tokens, as CR is not automatically
+      --  stripped when opening a file in binary mode. If these line
+      --  terminators (CRLF) were written in a text file, calls to fwrite
+      --  would replace LF with CRLF, resulting in CRCRLF, which is incorrect.
+
       declare
+         use Ada.Streams.Stream_IO;
          use Ada.Strings.Wide_Wide_Unbounded.Aux;
 
          Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
@@ -8032,10 +8044,12 @@ package body Instrument.Ada_Unit is
          Chunk_Size : constant := 4096;
          Position   : Natural;
 
-         Out_File : Text_Files.File_Type;
+         File : Ada.Streams.Stream_IO.File_Type;
+         S    : Stream_Access;
       begin
-         Out_File.Create (Filename);
-         Put_Warnings_And_Style_Checks_Pragmas (Out_File);
+         Ada.Streams.Stream_IO.Create (File, Out_File, Filename);
+         S := Stream (File);
+         String'Write (S, "pragma Style_Checks (Off); pragma Warnings (Off);");
 
          Get_Wide_Wide_String (Source, Source_Access, Length);
          Position := Source_Access.all'First;
@@ -8051,14 +8065,14 @@ package body Instrument.Ada_Unit is
                Encoded_Chunk : constant String :=
                   Ada.Characters.Conversions.To_String (Chunk);
             begin
-               Out_File.Put (Encoded_Chunk);
+               String'Write (S, Encoded_Chunk);
                Position := Chunk_Last + 1;
             end;
          end loop;
 
-         Out_File.Close;
+         Close (File);
          if Switches.Pretty_Print then
-            Text_Files.Run_GNATpp (Out_File);
+            Text_Files.Run_GNATpp (Filename);
          end if;
       end;
    end Write_To_File;
@@ -8894,6 +8908,7 @@ package body Instrument.Ada_Unit is
    is
       Last_Buffer_Index : constant Natural := Natural (CU_Names.Length);
       Pkg_Name : constant String := To_Ada (PB_Unit.Unit);
+      Filename : constant String := To_Filename (Prj, Ada_Language, PB_Unit);
       File     : Text_Files.File_Type;
 
       procedure Put_Language_Version_Pragma;
@@ -8919,7 +8934,7 @@ package body Instrument.Ada_Unit is
    --  Start of processing for Emit_Pure_Buffer_Unit
 
    begin
-      Create_File (Prj, File, To_Filename (Prj, Ada_Language, PB_Unit));
+      Create_File (Prj, File, Filename);
 
       Put_Warnings_And_Style_Checks_Pragmas (File);
       Put_Language_Version_Pragma;
@@ -8967,17 +8982,19 @@ package body Instrument.Ada_Unit is
 
       Text_Files.Close (File);
       if Switches.Pretty_Print then
-         Text_Files.Run_GNATpp (File);
+         Text_Files.Run_GNATpp (Filename);
       end if;
 
       if not Degenerate_Subprogram_Generics.Is_Empty then
          declare
-            PB_Unit_Body : Compilation_Unit_Part := PB_Unit;
+            PB_Unit_Body : constant Compilation_Unit_Part :=
+              (Language_Kind => Unit_Based_Language,
+               Unit          => PB_Unit.Unit,
+               Part          => GNATCOLL.Projects.Unit_Body);
+            PB_Filename  : constant String :=
+              To_Filename (Prj, Ada_Language, PB_Unit_Body);
          begin
-            PB_Unit_Body.Part := GNATCOLL.Projects.Unit_Body;
-
-            Create_File
-              (Prj, File, To_Filename (Prj, Ada_Language, PB_Unit_Body));
+            Create_File (Prj, File, PB_Filename);
 
             Put_Warnings_And_Style_Checks_Pragmas (File);
             Put_Language_Version_Pragma;
@@ -8992,7 +9009,7 @@ package body Instrument.Ada_Unit is
 
             Text_Files.Close (File);
             if Switches.Pretty_Print then
-               Text_Files.Run_GNATpp (File);
+               Text_Files.Run_GNATpp (PB_Filename);
             end if;
          end;
       end if;

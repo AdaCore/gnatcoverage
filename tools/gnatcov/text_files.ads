@@ -96,8 +96,7 @@ package Text_Files is
            Inline;
    --  Close the text file that Self references
 
-   procedure Run_GNATpp (Self : File_Type)
-      with Pre => not Self.Is_Open;
+   procedure Run_GNATpp (Filename : String);
    --  Run "gnatpp" on the given file (i.e. reformat/pretty-print it)
 
    procedure Run_Clang_Format (Filename : String);
