@@ -210,7 +210,7 @@ example, this would be like:
   gnatcov instrument -PPkg1.Test_Data.Tests/test_driver.gpr --dump-trigger=main-end --level=stmt   --projects=Prj --units=@Pkg1.Test_Data.Tests/units.list
 
   Building Pkg1.Test_Data.Tests/test_driver.gpr:
-  gprbuild  -PPkg1.Test_Data.Tests/test_driver.gpr  -o test_driver --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts_full
+  gprbuild  -PPkg1.Test_Data.Tests/test_driver.gpr  -o test_driver --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts
   ...
 
   Running Pkg1.Test_Data.Tests/test_driver.gpr:
@@ -226,7 +226,7 @@ example, this would be like:
   gnatcov instrument -PPkg2.Test_Data.Tests/test_driver.gpr --dump-trigger=main-end --level=stmt   --projects=Prj --units=@Pkg2.Test_Data.Tests/units.list
 
   Building Pkg2.Test_Data.Tests/test_driver.gpr:
-  gprbuild  -PPkg2.Test_Data.Tests/test_driver.gpr  -o test_driver --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts_full
+  gprbuild  -PPkg2.Test_Data.Tests/test_driver.gpr  -o test_driver --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts
   ...
 
   Running Pkg2.Test_Data.Tests/test_driver.gpr:
@@ -313,7 +313,7 @@ which outputs:
   gnatcov instrument -Ptest_driver.gpr --dump-trigger=main-end --level=stmt   --projects=Prj
 
   Building test_driver.gpr:
-  gprbuild  -Ptest_driver.gpr  -o test_driver --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts_full
+  gprbuild  -Ptest_driver.gpr  -o test_driver --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts
   ...
   Running test_driver.gpr:
   GNATCOV_TRACE_FILE=test_driver-gnattest_td.srctrace ./test_driver
