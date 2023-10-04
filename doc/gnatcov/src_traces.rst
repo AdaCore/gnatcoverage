@@ -209,7 +209,7 @@ kinds of operations:
 ---------------------
 
 As for other commands, help on the command line interface is displayed
-by ``gnatcov instrument --help``. The general sysopsis is as follows::
+by ``gnatcov instrument --help``. The general synopsis is as follows::
 
   gnatcov instrument --level=<> <units-of-interest> [OPTIONS]
 
@@ -244,6 +244,10 @@ In addition, for trace files produced automatically from a ``bin-file``
 dump-channel, the ``--dump-filename-<>`` family of switches provides control
 over the name of trace files. See :ref:`instr-tracename` for more details on
 the default behavior and possibilities to alter it.
+
+The instrumentation process can be parallelized using the ``-j`` (shorthand for
+``--jobs``) switch. ``-j0`` can be used for maximal parallelism, and ``-jN``
+with N > 0 to specify the desired level of concurrency.
 
 
 Output strategies for main units
@@ -681,24 +685,13 @@ of trace data to standard output.
 Setting up the coverage runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We just "build" the runtime library project as we would build a regular
-program for our target configuration, specifying the target name and the
-intended base Ada runtime library.
+As seen in the :ref:`instr-rts` section, we use the ``gnatcov setup`` command to
+build and install the :term:`coverage runtime <Coverage Runtime>`::
 
 For our intended target environment, this would be something like::
 
-  # Copy the sources into a fresh local place for the build:
-  cp -rp <gnatcoverage-install>/share/gnatcoverage/gnatcov_rts <gnatcov_rts-build-dir>
-
-  # Build and install the library to a place of our choice. Pick gnatcov_rts.gpr as
-  # we won't be emitting source trace files directly:
-
-  cd <gnatcov_rts-build-dir>
-  gprbuild -Pgnatcov_rts.gpr --target=powerpc-wrs-vxworks7r2 --RTS=rtp -f -p
-
-  rm -rf <gnatcov_rts-ppc-install-dir>
-  gprinstall -Pgnatcov_rts.gpr --target=powerpc-wrs-vxworks7r2 --RTS=rtp \
-    -p --prefix=<gnatcov_rts-ppc-install-dir>
+  gnatcov setup --target=powerpc-wrs-vxworks7r2 --RTS=rtp \
+    --prefix=<gnatcov_rts-ppc-install-dir>
 
   # Allow references to the coverage runtime project from other project files:
   export GPR_PROJECT_PATH=<gnatcov_rts-ppc-install-dir>/share/gpr
@@ -789,20 +782,10 @@ For the sake of the example, we will consider that
 Setting up the coverage runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-On a native system such as Linux or Windows, the simplest is to pick a
-*gnatcov_rts_full.gpr* variant, thanks to which we will be able to produce
-trace files directly. We go for a straightforward setup assuming we will use
-the default full Ada runtime (no specific :cmd-option:`--RTS` option)::
+As seen in the :ref:`instr-rts` section, we use the ``gnatcov setup`` command to
+build and install the :term:`coverage runtime <Coverage Runtime>`::
 
-  # Copy the sources into a fresh local place for the build:
-  cp -rp <gnatcoverage-install>/share/gnatcoverage/gnatcov_rts <gnatcov_rts-build-dir>
-
-  # Build and install the library to a place of our choice.
-  cd <gnatcov_rts-build-dir>
-  gprbuild -Pgnatcov_rts_full.gpr -f -p
-
-  rm -rf <gnatcov_rts-install-dir>
-  gprinstall -Pgnatcov_rts_full.gpr -p --prefix=<gnatcov_rts-install-dir>
+  gnatcov setup --prefix=<gnatcov_rts-install-dir>
 
   # Allow references to the coverage runtime project from other project files:
   export GPR_PROJECT_PATH=<gnatcov_rts-install-dir>/share/gpr
@@ -884,7 +867,7 @@ such as::
   gnatcov instrument -Pcode.gpr -XCODE_LIBMODE=instrument --level=stmt+decision
 
   gprbuild -f -Pcode.gpr -XCODE_LIBMODE=build -p
-    --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts_full.gpr
+    --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts.gpr
 
 Both commands proceed with ``Externally_Built`` ``"False"``. There is no main
 unit attached to the library per se, so no need for
@@ -912,7 +895,7 @@ the trace file.
 The build of instrumented tests then proceeds as follows::
 
   gprbuild -Ptests.gpr -p
-    --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts_full.gpr
+    --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts.gpr
 
 And a regular execution in the host environment would produce a source
 trace in addition to performing the original functional operations.

@@ -25,8 +25,8 @@ cov_args = build_and_run(
 )
 
 # Produce a coverage report and a checkpoint with the subprogram switch. Check
-# that the coverage report contains only coverage data for the specific
-# subprogram for source traces. For binary traces, simply check that the
+# that the coverage report contains only coverage data for the specified
+# subprograms for source traces. For binary traces, simply check that the
 # gnatcov coverage invocation yields the expected warning.
 os.mkdir("xcov_subp")
 xcov(
@@ -36,6 +36,10 @@ xcov(
         "trace.ckpt",
         "--subprograms",
         f"{os.path.join('..', 'src', 'pkg.ads')}:4",
+        "--subprograms",
+        f"{os.path.join('..', 'src', 'pkg.adb')}:10",
+        "--subprograms",
+        f"{os.path.join('..', 'src', 'pkg.adb')}:12",
         "--output-dir=xcov_subp",
     ],
     out="coverage.log",
@@ -52,7 +56,7 @@ else:
         "*.xcov",
         {
             "main.adb.xcov": {},
-            "pkg.adb.xcov": {"+": {6}},
+            "pkg.adb.xcov": {"+": {6, 10, 12}},
         },
         "xcov_subp",
     )
@@ -68,7 +72,7 @@ else:
         "*.xcov",
         {
             "main.adb.xcov": {"-": {5, 6}},
-            "pkg.adb.xcov": {"+": {6}, "-": {11}},
+            "pkg.adb.xcov": {"+": {6, 10, 12}, "-": {11, 14, 15, 16}},
         },
         "xcov_no_subp",
     )
