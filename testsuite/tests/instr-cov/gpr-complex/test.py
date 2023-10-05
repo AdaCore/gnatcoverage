@@ -83,8 +83,7 @@ build_run_cov_and_check(
 # belonging to the library. We should fix this (and adjust coverage
 # expectations) if possible.
 thistest.log("== Redefining Pkg body ==")
-expected_xcov = {"pkg.adb.xcov": {"+": {7}}, "pkg-bar.adb.xcov": {"+": {4}}}
-# Should be: {"pkg.adb.xcov": {"+": {7}}, "pkg-bar.adb.xcov": {"+": {5}}}
+expected_xcov = {"pkg.adb.xcov": {"+": {7}}, "pkg-bar.adb.xcov": {"+": {3}}}
 build_run_cov_and_check(
     "main_body.gpr",
     main_prj_obj_dir="obj-main_body",
@@ -94,8 +93,7 @@ build_run_cov_and_check(
 
 # Now the main project defines an alternate separate.
 thistest.log("== Redefining Pkg.Bar separate ==")
-expected_xcov = {"pkg.adb.xcov": {"+": {6}}, "pkg-bar.adb.xcov": {"+": {5}}}
-# Should be: {"pkg.adb.xcov": {"+": {5}}, "pkg-bar.adb.xcov": {"+": {5}}}
+expected_xcov = {"pkg.adb.xcov": {"+": {5}}, "pkg-bar.adb.xcov": {"+": {5}}}
 build_run_cov_and_check(
     "main_sep.gpr",
     main_prj_obj_dir="obj-main_sep",
@@ -105,15 +103,10 @@ build_run_cov_and_check(
 # Now the main project defines an alternate spec.
 thistest.log("== Redefining Pkg spec ==")
 expected_xcov = {
-    "pkg.adb.xcov": {"+": {6}},
-    "pkg-bar.adb.xcov": {"+": {4}},
+    "pkg.adb.xcov": {"+": {5}},
+    "pkg-bar.adb.xcov": {"+": {3}},
     "pkg.ads.xcov": {"+": {4}},
 }
-# Should be: {
-#    "pkg.adb.xcov": {"+": {5}},
-#    "pkg-bar.adb.xcov": {"+": {3}},
-#    "pkg.ads.xcov": {"+": {4}},
-# }
 build_run_cov_and_check(
     "main_spec.gpr",
     main_prj_obj_dir="obj-main_spec",
