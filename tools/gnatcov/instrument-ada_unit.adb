@@ -412,6 +412,19 @@ package body Instrument.Ada_Unit is
                              Make_Identifier (UIC, D_Name)));
    --  Shortcut to create a defining identifier tree
 
+   function Make_Std_Ref
+     (UIC    : Ada_Unit_Inst_Context'Class;
+      Entity : Text_Type) return Node_Rewriting_Handle
+   is (Create_From_Template
+         (UIC.Rewriting_Context,
+          "GNATcov_RTS.Std." & Entity, (1 .. 0 => <>),
+          Rule => Expr_Rule));
+   --  Language-defined entities such as "Standard" or "Boolean" may be hidden
+   --  by entities defined in the code to instrument. To avoid compilation
+   --  issues, we have an accessible package that renames Standard in
+   --  GNATcov_RTS: this function allows to refer to standard entities from
+   --  this renaming.
+
    ---------------------
    -- Unbounded texts --
    ---------------------
@@ -1481,10 +1494,7 @@ package body Instrument.Ada_Unit is
             --  very well be). To avoid issues, we have an accessible package
             --  that renames Standard in GNATcov_RTS.
 
-            To_Type_Indentifier :=
-              Create_Identifier
-                (IC.Rewriting_Context,
-                 To_Text ("GNATcov_RTS.Std.Boolean"));
+            To_Type_Indentifier := Make_Std_Ref (IC, "Boolean");
          end if;
 
          return Create_Call_Expr
@@ -3566,7 +3576,7 @@ package body Instrument.Ada_Unit is
                         F_Ids          => Formal_Def_Id,
                         F_Has_Aliased  => No_Node_Rewriting_Handle,
                         F_Mode         => No_Node_Rewriting_Handle,
-                        F_Type_Expr    => Make_Identifier (UIC, "Boolean"),
+                        F_Type_Expr    => Make_Std_Ref (UIC, "Boolean"),
                         F_Default_Expr => No_Node_Rewriting_Handle,
                         F_Aspects      => No_Node_Rewriting_Handle);
                   end;
