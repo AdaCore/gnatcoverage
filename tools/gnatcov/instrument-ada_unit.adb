@@ -8560,7 +8560,8 @@ package body Instrument.Ada_Unit is
    is
       Last_Buffer_Index : constant Natural := Natural (CU_Names.Length);
       Pkg_Name : constant String := To_Ada (PB_Unit.Unit);
-      Filename : constant String := To_Filename (Prj, Ada_Language, PB_Unit);
+      Filename : constant String :=
+        New_File (Prj, To_Filename (Prj, Ada_Language, PB_Unit));
       File     : Text_Files.File_Type;
 
       procedure Put_Language_Version_Pragma;
@@ -8586,7 +8587,7 @@ package body Instrument.Ada_Unit is
    --  Start of processing for Emit_Pure_Buffer_Unit
 
    begin
-      Create_File (Prj, File, Filename);
+      File.Create (Filename);
 
       Put_Warnings_And_Style_Checks_Pragmas (File);
       Put_Language_Version_Pragma;
@@ -8644,9 +8645,9 @@ package body Instrument.Ada_Unit is
                Unit          => PB_Unit.Unit,
                Part          => GNATCOLL.Projects.Unit_Body);
             PB_Filename  : constant String :=
-              To_Filename (Prj, Ada_Language, PB_Unit_Body);
+              New_File (Prj, To_Filename (Prj, Ada_Language, PB_Unit_Body));
          begin
-            Create_File (Prj, File, PB_Filename);
+            File.Create (PB_Filename);
 
             Put_Warnings_And_Style_Checks_Pragmas (File);
             Put_Language_Version_Pragma;

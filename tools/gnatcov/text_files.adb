@@ -169,7 +169,7 @@ package body Text_Files is
       Spawn (GNATpp.all, Args, Success);
       Free (GNATpp);
       if not Success then
-         Put_Line ("pretty-printing " & Filename & " failed!");
+         Outputs.Warn ("pretty-printing " & Filename & " failed!");
       end if;
    end Run_GNATpp;
 
