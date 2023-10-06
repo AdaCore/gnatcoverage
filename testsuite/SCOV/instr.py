@@ -5,6 +5,8 @@ import re
 
 from e3.fs import mkdir
 
+import libadalang as lal
+
 from SUITE.context import thistest
 from SUITE.cutils import contents_of, ext, indent
 from SUITE.tutils import RUNTIME_INFO, GNATCOV_INFO, locate_gpr_file, xcov
@@ -251,19 +253,31 @@ def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
     # included in the build. Insert the "with" clause after all pragmas
     # to keep the code valid.
 
-    main_file = filename(main_unit, 'adb')
-    with open(main_file, 'r') as f:
-        lines = f.read().splitlines()
+    main_file = filename(main_unit, "adb")
 
-    for i, line in enumerate(lines):
-        if not line.strip().lower().startswith('pragma'):
-            break
-    else:
-        assert False, 'Could not find a non-pragma line'
-    lines.insert(i, 'with {};'.format(handler_unit))
+    context = lal.AnalysisContext()
+    unit = context.get_from_file(main_file)
 
-    with open(main_file, 'w') as f:
-        f.write('\n'.join(lines))
+    # Assume that the root node is a CompilationUnit. Then look for the token
+    # right before the start of the body node: this is where we will insert the
+    # with_handler clause.
+    assert not unit.diagnostics
+    assert isinstance(unit.root, lal.CompilationUnit)
+    after_body_token = unit.lookup_token(unit.root.f_body.sloc_range.start)
+    before_body_token = after_body_token.previous
+
+    # build the new source
+    new_source = "".join(
+        [
+            ""
+            if before_body_token is None
+            else lal.Token.text_range(unit.first_token, before_body_token),
+            "with {};".format(handler_unit),
+            lal.Token.text_range(after_body_token, unit.last_token),
+        ]
+    )
+    with open(main_file, "w") as f:
+        f.write(new_source)
 
 
 def available_ada_dump_triggers():
