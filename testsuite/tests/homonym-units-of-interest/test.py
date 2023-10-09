@@ -23,7 +23,9 @@ prj2 = gprfor(mains=[], prjid='prj2', srcdirs=['../prj2'], objdir='obj-prj2')
 p = gprfor(mains=['test.c'], deps=['prj1', 'prj2'], srcdirs=['..'])
 
 xcov_args = build_and_run(
-    gprsw=GPRswitches(root_project=p),
+    # TODO: The test fails if we pass an absolute path to root_project, which
+    # is unexpected.
+    gprsw=GPRswitches(root_project=os.path.basename(p)),
     covlevel='stmt+mcdc',
     mains=['test'],
     extra_coverage_args=['--annotate=xcov', '--output-dir=xcov'],

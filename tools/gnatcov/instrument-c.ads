@@ -376,17 +376,14 @@ package Instrument.C is
          --  after preprocessing. This is needed in order to keep track of
          --  which scope was originally opened in which file.
 
+         Current_File_Scope : Scopes_In_Files_Map.Cursor;
+         --  Source file in which the last scope encountered was opened
+
          Instrumented_CXX_For_Ranges : Cursor_Vectors.Vector;
          --  List of instrumented for ranges. For an explanation of why we need
          --  to store these, see the documentation of the Fix_CXX_For_Ranges
          --  subprogram.
 
-         Current_File_Scope : Scopes_In_Files_Map.Cursor;
-         --  Source file in which the last scope encountered was opened
-
-         Disable_Instrumentation : Boolean := False;
-         --  Set to True to deactivate instrumentation and prevent any code
-         --  rewriting.
       end record;
 
    type C_Source_Rewriter is tagged limited private;
@@ -472,17 +469,17 @@ private
       Loc  : Source_Location_T;
       Text : String) is null;
 
-   procedure Register_CXX_For_Range
-     (Pass : Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class;
-      N    : Cursor_T) is null;
-   --  See the documentation of Fix_CXX_For_Ranges
-
    procedure Report
      (Pass : Pass_Kind;
       Node : Cursor_T;
       Msg  : String;
       Kind : Report_Kind := Diagnostics.Warning) is null;
+
+   procedure Register_CXX_For_Range
+     (Pass : Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class;
+      N    : Cursor_T) is null;
+   --  See the documentation of Fix_CXX_For_Ranges
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
    with record
