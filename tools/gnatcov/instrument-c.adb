@@ -1407,69 +1407,6 @@ package body Instrument.C is
       end loop;
    end Fix_CXX_For_Ranges;
 
-   type SC_Entry is record
-      N : Cursor_T;
-      --  Original statement node, used to compute macro expansion information
-      --  related to this SCO.
-
-      Insertion_N : Cursor_T;
-      --  If not null, node where the witness call should be inserted.
-      --  Otherwise, the insertion node will be N.
-
-      From : Source_Location;
-      To   : Source_Location;
-      Typ  : Character;
-
-      Instr_Scheme : Instr_Scheme_Type := Instr_Stmt;
-   end record;
-
-   package SC is new Table.Table
-     (Table_Component_Type => SC_Entry,
-      Table_Index_Type     => Nat,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 1000,
-      Table_Increment      => 200,
-      Table_Name           => "SCO_SC");
-   --  Used to store statement components for a CS entry to be output as a
-   --  result of the call to this procedure. SC.Last is the last entry stored,
-   --  so the current statement sequence is represented by SC_Array (SC_First
-   --  .. SC.Last), where SC_First is saved on entry to each recursive call to
-   --  the routine.
-   --
-   --  Extend_Statement_Sequence adds an entry to this array, and then
-   --  Set_Statement_Entry clears the entries starting with SC_First, copying
-   --  these entries to the main SCO output table. The reason that we do the
-   --  temporary caching of results in this array is that we want the SCO table
-   --  entries for a given CS line to be contiguous, and the processing may
-   --  output intermediate entries such as decision entries.
-
-   type SD_Entry is record
-      Nod : Cursor_T;
-      Typ : Character;
-   end record;
-   --  Used to store a single entry in the following table. Nod is the node to
-   --  be searched for decisions for the case of Process_Decisions_Defer with a
-   --  node argument (with Lst set to No_Ada_Node. Lst is the list to be
-   --  searched for decisions for the case of Process_Decisions_Defer with a
-   --  List argument (in which case Nod is set to No_Ada_Node).
-
-   package SD is new Table.Table
-     (Table_Component_Type => SD_Entry,
-      Table_Index_Type     => Nat,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 1000,
-      Table_Increment      => 200,
-      Table_Name           => "SCO_SD");
-   --  Used to store possible decision information. Instead of calling the
-   --  Process_Decisions procedures directly, we call Process_Decisions_Defer,
-   --  which simply stores the arguments in this table. Then when we clear
-   --  out a statement sequence using Set_Statement_Entry, after generating
-   --  the CS lines for the statements, the entries in this table result in
-   --  calls to Process_Decision. The reason for doing things this way is to
-   --  ensure that decisions are output after the CS line for the statements
-   --  in which the decisions occur.
-   --
-
    -------------------------
    -- Traverse_Statements --
    -------------------------
@@ -1884,24 +1821,6 @@ package body Instrument.C is
       Hash_Entries.Free;
    end Process_Decisions;
 
-   procedure Process_Decisions_Defer (N : Cursor_T; T : Character)
-   with Inline;
-   --  This routine is logically the same as Process_Decisions, except that the
-   --  arguments are saved in the SD table for later processing when
-   --  Set_Statement_Entry is called, which goes through the saved entries
-   --  making the corresponding calls to Process_Decision. Note: the enclosing
-   --  statement must have already been added to the current statement
-   --  sequence, so that nested decisions are properly identified as such.
-
-   -----------------------------
-   -- Process_Decisions_Defer --
-   -----------------------------
-
-   procedure Process_Decisions_Defer (N : Cursor_T; T : Character) is
-   begin
-      SD.Append ((N, T));
-   end Process_Decisions_Defer;
-
    ------------------
    -- Has_Decision --
    ------------------
@@ -1995,25 +1914,28 @@ package body Instrument.C is
       L               : Cursor_Vectors.Vector;
       Trailing_Braces : out Unbounded_String)
    is
-      SC_First : constant Nat := SC.Last + 1;
-      SD_First : constant Nat := SD.Last + 1;
-
       procedure Traverse_One
         (N : Cursor_T; Trailing_Braces : out Unbounded_String);
       --  Traverse a statement. Set Trailing_Braces to the list of braces that
       --  should be inserted after this statement.
 
-      procedure Extend_Statement_Sequence
+      procedure Instrument_Statement
         (N            : Cursor_T;
          Typ          : Character;
          Insertion_N  : Cursor_T := Get_Null_Cursor;
          Instr_Scheme : Instr_Scheme_Type := Instr_Stmt);
-      --  Add an entry to the SC table
-
-      procedure Set_Statement_Entry;
-      --  Output CS entries for all statements saved in table SC, and end the
-      --  current CS sequence. Then output entries for all decisions nested in
-      --  these statements, which have been deferred so far.
+      --  Instrument the statement N.
+      --
+      --  Typ is the letter that identifies the type of statement/declaration
+      --  that is being instrumented.
+      --
+      --  N is the original node from user code, and controls the source
+      --  location assigned to the statement SCO.
+      --
+      --  In general, this is also where the witness statement is inserted, but
+      --  in some rare cases, it needs to be inserted at a different place,
+      --  or in a different manner: this is configured by the Insertion_N and
+      --  Instr_Scheme formals.
 
       function Curlify (N : Cursor_T) return Boolean;
       --  Rewrite control flow statements (if else, for, while etc.) with
@@ -2063,32 +1985,13 @@ package body Instrument.C is
             return;
          end if;
 
-         --  Initialize or extend current statement sequence. Note that for
-         --  special cases such as IF and SWITCH statements we will modify
-         --  the range to exclude internal statements that should not be
-         --  counted as part of the current statement sequence.
          case Kind (N) is
 
-            --  Label, which breaks the current statement sequence, but the
-            --  label itself is not included in the next statement sequence,
-            --  since it generates no code.
-
-            when Cursor_Label_Ref =>
-               Set_Statement_Entry;
-
-            --  Compound statement, which breaks the current statement sequence
-
             when Cursor_Compound_Stmt =>
-               Set_Statement_Entry;
-
                Traverse_Statements (UIC, Get_Children (N), TB);
 
-            --  If statement, which breaks the current statement sequence, but
-            --  we include the condition in the current sequence.
-
             when Cursor_If_Stmt =>
-               Extend_Statement_Sequence (N, 'I');
-               Set_Statement_Entry;
+               Instrument_Statement (N, 'I');
 
                declare
                   Then_Part : constant Cursor_T := Get_Then (N);
@@ -2118,17 +2021,13 @@ package body Instrument.C is
                   end if;
                end;
 
-            --  Switch statement, which breaks the current statement sequence,
-            --  but we include the expression in the current sequence.
-
             when Cursor_Switch_Stmt =>
-               Extend_Statement_Sequence (N, 'C');
+               Instrument_Statement (N, 'C');
                declare
                   Switch_Cond : constant Cursor_T := Get_Cond (N);
                   Alt         : constant Cursor_T := Get_Body (N);
                begin
-                  Process_Decisions_Defer (Switch_Cond, 'X');
-                  Set_Statement_Entry;
+                  Process_Decisions (UIC, Switch_Cond, 'X');
 
                   --  Process case branches
 
@@ -2144,11 +2043,6 @@ package body Instrument.C is
                   Traverse_Statements (UIC, To_Vector (Case_Body), TB);
                end;
 
-            --  Loop ends the current statement sequence, but we include
-            --  the iteration scheme if present in the current sequence.
-            --  But the body of the loop starts a new sequence, since it
-            --  may not be executed as part of the current sequence.
-
             when Cursor_While_Stmt =>
                declare
                   While_Body : constant Cursor_T := Get_Body (N);
@@ -2159,19 +2053,16 @@ package body Instrument.C is
                   --  If the loop condition is a declaration, instrument its
                   --  initialization expression.
 
-                  Extend_Statement_Sequence
+                  Instrument_Statement
                     (N, 'W',
                      Insertion_N  => (if Is_Null (Cond_Var)
                                       then Cond
                                       else Get_Var_Init_Expr (Cond_Var)),
                      Instr_Scheme => Instr_Expr);
 
-                  Process_Decisions_Defer (Cond, 'W');
-                  Set_Statement_Entry;
+                  Process_Decisions (UIC, Cond, 'W');
                   Traverse_Statements (UIC, To_Vector (While_Body), TB);
                end;
-
-            --  Do while statement. Ends the current statement sequence.
 
             when Cursor_Do_Stmt =>
                declare
@@ -2189,14 +2080,11 @@ package body Instrument.C is
 
                   --  Process the while decision
 
-                  Extend_Statement_Sequence
+                  Instrument_Statement
                     (Do_While, 'W', Instr_Scheme => Instr_Expr);
-                  Process_Decisions_Defer (Do_While, 'W');
-                  Set_Statement_Entry;
+                  Process_Decisions (UIC, Do_While, 'W');
 
                end;
-
-            --  For statement. Ends the current statement sequence
 
             when Cursor_For_Stmt =>
                declare
@@ -2205,24 +2093,20 @@ package body Instrument.C is
                   For_Inc  : constant Cursor_T := Get_For_Inc (N);
                   For_Body : constant Cursor_T := Get_Body (N);
                begin
-                  Extend_Statement_Sequence
+                  Instrument_Statement
                     (For_Init, ' ', Insertion_N => N);
-                  Extend_Statement_Sequence
+                  Instrument_Statement
                     (For_Cond, 'F', Instr_Scheme => Instr_Expr);
 
                   --  The guard expression for the FOR loop is a decision. The
                   --  closest match for this kind of decision is a while loop.
 
-                  Process_Decisions_Defer (For_Cond, 'W');
-
-                  Set_Statement_Entry;
+                  Process_Decisions (UIC, For_Cond, 'W');
 
                   Traverse_Statements (UIC, To_Vector (For_Body), TB);
 
-                  Extend_Statement_Sequence
+                  Instrument_Statement
                     (For_Inc, ' ', Instr_Scheme => Instr_Expr);
-
-                  Set_Statement_Entry;
                end;
 
             when Cursor_CXX_For_Range_Stmt =>
@@ -2240,9 +2124,9 @@ package body Instrument.C is
                      --  See Fix_CXX_For_Ranges for an explanation of the
                      --  below code.
 
-                     Extend_Statement_Sequence
+                     Instrument_Statement
                        (For_Init_Stmt, ' ', Insertion_N  => For_Init_Stmt);
-                     Process_Decisions_Defer (For_Init_Stmt, 'X');
+                     Process_Decisions (UIC, For_Init_Stmt, 'X');
 
                      --  Preemptively end the introduced outer scope as it is
                      --  easier done when traversing the AST.
@@ -2253,28 +2137,21 @@ package body Instrument.C is
 
                   --  Instrument the range as mentioned above
 
-                  Extend_Statement_Sequence
+                  Instrument_Statement
                     (For_Range_Decl, ' ',
                      Insertion_N  => N,
                      Instr_Scheme => Instr_Stmt);
-                  Process_Decisions_Defer (For_Range_Decl, 'X');
-
-                  Set_Statement_Entry;
+                  Process_Decisions (UIC, For_Range_Decl, 'X');
 
                   --  Generate obligations for body statements
 
                   Traverse_Statements (UIC, To_Vector (For_Body), TB);
                end;
 
-           --  Unconditional goto, which is included in the current statement
-           --  sequence, but then terminates it.
-
             when Cursor_Goto_Stmt | Cursor_Indirect_Goto_Stmt =>
-               Extend_Statement_Sequence (N, ' ');
-               Set_Statement_Entry;
+               Instrument_Statement (N, ' ');
 
             when Cursor_Label_Stmt =>
-               Set_Statement_Entry;
                Traverse_Statements (UIC, Get_Children (N), TB);
 
             when Cursor_Stmt_Expr =>
@@ -2295,9 +2172,9 @@ package body Instrument.C is
 
                if not Is_Manual_Dump_Procedure_Symbol (Get_Callee_Name_Str (N))
                then
-                  Extend_Statement_Sequence (N, ' ');
+                  Instrument_Statement (N, ' ');
                   if Has_Decision (N) then
-                     Process_Decisions_Defer (N, 'X');
+                     Process_Decisions (UIC, N, 'X');
                   end if;
                end if;
 
@@ -2306,34 +2183,22 @@ package body Instrument.C is
                --  Determine required type character code, or ASCII.NUL if
                --  no SCO should be generated for this node.
 
-               Extend_Statement_Sequence (N, ' ');
+               Instrument_Statement (N, ' ');
 
                --  Process any embedded decisions
 
                if Has_Decision (N) then
                   if Is_Constexpr (N) then
-
-                     --  HACK: as we rely on the value of
-                     --  UIC.Disable_Instrumentation to know if we should
-                     --  instrument a source coverage obligation, we
-                     --  have to process the decision before reenabling
-                     --  instrumentation. Call Process_Decisions instead of
-                     --  Process_Decisions_Defer, and Set_Statement_Entry
-                     --  before to flush the statement SCOs. TODO???: rework
-                     --  when eng/cov/gnatcoverage#107 is dealt with.
-
                      UIC.Pass.Report
                        (N,
                         "gnatcov limitation: cannot instrument constexpr"
                         & " variable declarations.");
-
-                     Set_Statement_Entry;
                      UIC.Disable_Instrumentation := True;
                      Process_Decisions (UIC, N, 'X');
                      UIC.Disable_Instrumentation :=
                        Save_Disable_Instrumentation;
                   else
-                     Process_Decisions_Defer (N, 'X');
+                     Process_Decisions (UIC, N, 'X');
                   end if;
                end if;
          end case;
@@ -2348,11 +2213,11 @@ package body Instrument.C is
             L   => Get_Lambda_Exprs (N));
       end Traverse_One;
 
-      -------------------------------
-      -- Extend_Statement_Sequence --
-      -------------------------------
+      --------------------------
+      -- Instrument_Statement --
+      --------------------------
 
-      procedure Extend_Statement_Sequence
+      procedure Instrument_Statement
         (N            : Cursor_T;
          Typ          : Character;
          Insertion_N  : Cursor_T := Get_Null_Cursor;
@@ -2396,67 +2261,21 @@ package body Instrument.C is
             T := End_Sloc (To_Node);
          end if;
 
-         SC.Append
-           ((N           => Insert_Cursor,
-             Insertion_N =>
-                 (if Is_Null (Insertion_N)
-                  then N
-                  else Insertion_N),
-             From         => F,
-             To           => T,
-             Typ          => Typ,
-             Instr_Scheme => Instr_Scheme));
-      end Extend_Statement_Sequence;
+         UIC.Pass.Append_SCO
+           (UIC  => UIC,
+            N    => N,
+            C1   => 'S',
+            C2   => Typ,
+            From => F,
+            To   => T,
+            Last => True);
 
-      -------------------------
-      -- Set_Statement_Entry --
-      -------------------------
-
-      procedure Set_Statement_Entry is
-         SC_Last : constant Types.Int := SC.Last;
-         SD_Last : constant Types.Int := SD.Last;
-      begin
-         for J in SC_First .. SC_Last loop
-            declare
-               SCE : SC_Entry renames SC.Table (J);
-            begin
-               UIC.Pass.Append_SCO
-                 (UIC  => UIC,
-                  N    => SCE.N,
-                  C1   => 'S',
-                  C2   => SCE.Typ,
-                  From => SCE.From,
-                  To   => SCE.To,
-                  Last => (J = SC_Last));
-
-               UIC.Pass.Instrument_Statement
-                 (UIC          => UIC,
-                  LL_SCO       => SCOs.SCO_Table.Last,
-                  Insertion_N  => SCE.Insertion_N,
-                  Instr_Scheme => SCE.Instr_Scheme);
-            end;
-         end loop;
-
-         --  Clear out used section of SC table
-
-         SC.Set_Last (SC_First - 1);
-
-         --  Output any embedded decisions
-
-         for J in SD_First .. SD_Last loop
-            declare
-               SDE : SD_Entry renames SD.Table (J);
-
-            begin
-               Process_Decisions (UIC, SDE.Nod, SDE.Typ);
-            end;
-         end loop;
-
-         --  Clear out used section of SD table
-
-         SD.Set_Last (SD_First - 1);
-
-      end Set_Statement_Entry;
+         UIC.Pass.Instrument_Statement
+           (UIC          => UIC,
+            LL_SCO       => SCOs.SCO_Table.Last,
+            Insertion_N  => (if Is_Null (Insertion_N) then N else Insertion_N),
+            Instr_Scheme => Instr_Scheme);
+      end Instrument_Statement;
 
       -------------
       -- Curlify --
@@ -2529,8 +2348,6 @@ package body Instrument.C is
 
       use Cursor_Vectors;
 
-      Emit_SCOs : Boolean := False;
-
    --  Start of processing for Traverse_Statements
 
    begin
@@ -2541,12 +2358,7 @@ package body Instrument.C is
             Trailing_Braces := +"";
          end if;
          Traverse_One (N, Trailing_Braces);
-         Emit_SCOs := True;
       end loop;
-
-      if Emit_SCOs then
-         Set_Statement_Entry;
-      end if;
    end Traverse_Statements;
 
    ---------------------------

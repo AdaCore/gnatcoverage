@@ -782,12 +782,12 @@
    <line num="43" exempted="FALSE" src="        when Is_Set is"/>
   </src>
 
-  <decision id="16" text="Is_Set" coverage="+">
+  <decision id="14" text="Is_Set" coverage="+">
    <src>
     <line num="43" column_begin="14" column_end="19" src="             Is_Set"/>
    </src>
 
-   <condition id="17" text="Is_Set" coverage="+">
+   <condition id="15" text="Is_Set" coverage="+">
     <src>
      <line num="43" column_begin="14" column_end="19" src="             Is_Set"/>
     </src>
@@ -852,7 +852,7 @@
    <line num="51" exempted="FALSE" src="         V := Local;"/>
   </src>
 
-  <statement id="14" text="V := Loca..." coverage="+">
+  <statement id="16" text="V := Loca..." coverage="+">
    <src>
     <line num="51" column_begin="10" column_end="20" src="         V := Local;"/>
    </src>
@@ -866,7 +866,7 @@
    <line num="52" exempted="FALSE" src="         Is_Set := False;"/>
   </src>
 
-  <statement id="15" text="Is_Set :=..." coverage="+">
+  <statement id="17" text="Is_Set :=..." coverage="+">
    <src>
     <line num="52" column_begin="10" column_end="25" src="         Is_Set := False;"/>
    </src>

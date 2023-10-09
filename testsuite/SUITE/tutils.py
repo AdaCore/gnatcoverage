@@ -335,7 +335,7 @@ def gpr_emulator_package():
 
 def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
            main_cargs=None, langs=None, deps=None, scenario_extra="",
-           compiler_extra="", extra=""):
+           compiler_extra="", extra="", cwd=None):
     """
     Generate a simple PRJID.gpr project file to build executables for each main
     source file in the MAINS list, sources in SRCDIRS. Inexistant directories
@@ -345,8 +345,12 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     COMPILER_EXTRA, if any, at the end of the Compiler package contents. Add
     EXTRA, if any, at the end of the project file contents. Return the gpr file
     name.
+
+    If CWD is None, generate the project file in the current directory.
+    Generate it in the CWD directory otherwise.
     """
 
+    cwd = cwd or os.getcwd()
     mains = to_list(mains)
     srcdirs = to_list(srcdirs)
     langs = to_list(langs)
@@ -365,14 +369,18 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
     # Likewise for source dirs. Filter on existence, to allow widening the set
     # of tentative dirs while preventing complaints from gprbuild about
     # inexistent ones.
-    srcdirs_list = [d for d in srcdirs if os.path.exists(d)]
+    srcdirs_list = [
+        d
+        for d in srcdirs
+        if os.path.exists(os.path.join(cwd, d))
+    ]
 
     # Determine the language(s) from the sources if they are not explicitly
     # passed as parameters.
     if not langs:
         lang_infos = [language_info(src)
                       for srcdir in srcdirs_list
-                      for src in os.listdir(srcdir)]
+                      for src in os.listdir(os.path.join(cwd, srcdir))]
         langs = set(li.name for li in lang_infos if li)
 
     srcdirs = ', '.join('"%s"' % d for d in srcdirs_list)
@@ -434,7 +442,9 @@ def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
         'pkg_emulator': gpr_emulator_package(),
         'extra': extra}
 
-    return text_to_file(text=gprtext, filename=prjid + ".gpr")
+    return text_to_file(
+        text=gprtext, filename=os.path.join(cwd, prjid + ".gpr")
+    )
 
 
 # The following functions abstract away the possible presence of extensions at
