@@ -714,10 +714,10 @@ clang_CXRewriter_getRewrittenText (CXRewriter Rew, CXSourceRange Rng)
   return createDup (R.getRewrittenText (SR).c_str ());
 }
 
-  /* Wrappers around source location analysis functions.  */
+/* Wrappers around source location analysis functions.  */
 
-  extern "C" unsigned
-  clang_isMacroLocation (CXSourceLocation Loc)
+extern "C" unsigned
+clang_isMacroLocation (CXSourceLocation Loc)
 {
   const SourceLocation SLoc = translateSourceLocation (Loc);
   return SLoc.isMacroID () ? 1 : 0;
