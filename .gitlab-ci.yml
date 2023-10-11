@@ -49,6 +49,8 @@ build:
      - mem:16
   stage: build
   script:
+    - (unset GITLAB_TOKEN; require_issue)
+
     - export PATH=/it/e3/bin:$PATH
     - *edge_vars
 
