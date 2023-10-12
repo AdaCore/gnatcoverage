@@ -24,7 +24,7 @@ xargs = ['-XFOO=foo1', '-Xbar=bar1']
 xcovargs = ['-P', gpr, '-v', program_path] + xargs
 
 p = xrun(xcovargs)
-for arg in xargs + ["'-P' '*%s'" % gpr]:
+for arg in xargs + ["'-P' '*%s'" % re.escape(gpr)]:
     thistest.fail_if(
         not re.search('gnatemu.*%s' % arg, p.out),
         'couldn\'t find "%s" on the gnatemu command line out of %s' %
