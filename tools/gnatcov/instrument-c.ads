@@ -54,11 +54,11 @@ package Instrument.C is
       Dump_Config : Any_Dump_Config;
       Prj         : Prj_Desc);
 
-   procedure Replace_Manual_Dump_Indication
-     (Self        : in out C_Family_Instrumenter_Type;
-      Done        : in out Boolean;
-      Prj         : Prj_Desc;
-      Source      : GNATCOLL.Projects.File_Info);
+   overriding procedure Replace_Manual_Dump_Indication
+     (Self   : in out C_Family_Instrumenter_Type;
+      Done   : in out Boolean;
+      Prj    : in out Prj_Desc;
+      Source : GNATCOLL.Projects.File_Info);
    --  Preprocess Source and look through the text content of the preprocessed
    --  file looking for manual dump indications. The C-like languages, the
    --  expected indication is the comment alone on its line:
@@ -69,7 +69,7 @@ package Instrument.C is
    --  by a call to the manual dump procedure and an extern declaration for the
    --  procedure is put at the beginning of the file.
 
-   procedure Emit_Dump_Helper_Unit_Manual
+   overriding procedure Emit_Dump_Helper_Unit_Manual
      (Self          : in out C_Family_Instrumenter_Type;
       Helper_Unit   : out US.Unbounded_String;
       Dump_Config   : Any_Dump_Config;
