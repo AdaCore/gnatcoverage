@@ -3966,7 +3966,7 @@ package body Instrument.C is
    -- Emit_Dump_Helper_Unit_Manual --
    ----------------------------------
 
-   procedure Emit_Dump_Helper_Unit_Manual
+   overriding procedure Emit_Dump_Helper_Unit_Manual
      (Self          : in out C_Family_Instrumenter_Type;
       Helper_Unit   : out US.Unbounded_String;
       Dump_Config   : Any_Dump_Config;
@@ -3990,14 +3990,14 @@ package body Instrument.C is
    -- Replace_Manual_Dump_Indication --
    ------------------------------------
 
-   procedure Replace_Manual_Dump_Indication
-     (Self        : in out C_Family_Instrumenter_Type;
-      Done        : in out Boolean;
-      Prj         : Prj_Desc;
-      Source      : GNATCOLL.Projects.File_Info)
+   overriding procedure Replace_Manual_Dump_Indication
+     (Self   : in out C_Family_Instrumenter_Type;
+      Done   : in out Boolean;
+      Prj    : in out Prj_Desc;
+      Source : GNATCOLL.Projects.File_Info)
    is
-      Orig_Filename : constant String :=
-        GNATCOLL.VFS."+" (Source.File.Full_Name);
+      use GNATCOLL.VFS;
+      Orig_Filename : constant String := +Source.File.Full_Name;
    begin
       Check_Compiler_Driver (Prj, Self);
 
@@ -4021,6 +4021,25 @@ package body Instrument.C is
          Import_Options (Options, Self, Prj, Orig_Filename);
          Preprocess_Source
            (Orig_Filename, Self, Prj, PP_Filename, Options, True);
+         declare
+            use String_Vectors_Maps;
+            Cur      : Cursor;
+            Inserted : Boolean;
+         begin
+            --  We need to save the search paths that were used to preprocess
+            --  the file, as they must be passed on to clang parsing
+            --  invocations (especially when we are parsing the original file
+            --  to record preprocessing information).
+
+            for Path of Options.PP_Search_Path loop
+               Prj.Compiler_Options_Unit.Insert
+                 (Key       => +(+Source.File.Full_Name),
+                  New_Item  => String_Vectors.Empty_Vector,
+                  Position  => Cur,
+                  Inserted  => Inserted);
+               Prj.Compiler_Options_Unit.Reference (Cur).Append ("-I" & Path);
+            end loop;
+         end;
 
          --  Look for the manual dump indication in the preprocessed file
 

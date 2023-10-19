@@ -849,8 +849,9 @@ is
                declare
                   use Prj_Has_Manual_Helper_Sets;
 
-                  Prj                  : constant Prj_Desc :=
-                    Get_Or_Create_Project_Info (IC, Source.Project).Desc;
+                  Prj_Info             : constant Project_Info_Access :=
+                    Get_Or_Create_Project_Info (IC, Source.Project);
+                  Prj                  : Prj_Desc renames Prj_Info.Desc;
                   Is_Root_Prj          : constant Boolean :=
                     Prj.Prj_Name = Root_Project_Info.Project.Name;
                   Source_Name          : constant String :=
@@ -859,10 +860,9 @@ is
                   Contained_Indication : Boolean := False;
 
                begin
-
                   Instrumenter.Replace_Manual_Dump_Indication
                     (Contained_Indication,
-                     Prj,
+                     Prj_Info.Desc,
                      Source);
 
                   if Contained_Indication and then not Is_Root_Prj
@@ -1244,7 +1244,7 @@ begin
 
             --  According to the set parallelism level, instrument in
             --  the same process (thus reusing the libadalang context, which
-            --  is a big gain of time), or spawn another instrmentation
+            --  is a big gain of time), or spawn another instrumentation
             --  process.
 
             if Parallelism_Level = 1 then
