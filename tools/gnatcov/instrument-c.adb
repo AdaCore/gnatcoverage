@@ -4018,7 +4018,7 @@ package body Instrument.C is
          --  Preprocess the source, keeping the comment to look for the manual
          --  dump indication later.
 
-         Import_Options (Options, Self, Prj, To_String (PP_Filename));
+         Import_Options (Options, Self, Prj, Orig_Filename);
          Preprocess_Source
            (Orig_Filename, Self, Prj, PP_Filename, Options, True);
 
