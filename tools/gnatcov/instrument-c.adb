@@ -92,8 +92,8 @@ package body Instrument.C is
       PP_Filename   : out Unbounded_String;
       Options       : in out Analysis_Options;
       Keep_Comments : Boolean := False);
-   --  Preprocess the source at Filename and extend Options using the
-   --  preprocessor output.
+   --  Preprocess the source at Filename and extend Options using the Prj and
+   --  the preprocessor output to retrieve standard search paths.
    --
    --  This uses the compiler in the Compiler_Driver project attribute to
    --  preprocess the file, assuming that it accepts the -E flag, to preprocess
@@ -2750,6 +2750,7 @@ package body Instrument.C is
       --  File containing the preprocessor output (used to get include search
       --  paths).
    begin
+      Import_Options (Options, Instrumenter, Prj, Filename);
       PP_Filename := +New_File (Prj, Filename);
 
       --  If the preprocessed output file already exists, consider that it was
@@ -2925,8 +2926,6 @@ package body Instrument.C is
       Options : Analysis_Options;
       Args    : String_Vectors.Vector;
    begin
-      Import_Options (Options, Instrumenter, Prj, Filename);
-
       Preprocess_Source
         (Filename,
          Instrumenter,
@@ -3165,10 +3164,9 @@ package body Instrument.C is
       UIC.Buffer_Unit := CU_Name_For_File (+Buffer_Filename);
       UIC.Files_Of_Interest := Files_Of_Interest;
 
-      --  Import analysis options for the file to preprocess, then run the
-      --  preprocessor.
+      --  Run the preprocessor (this also takes care of importing the
+      --  preprocessor options into UIC.Options).
 
-      Import_Options (UIC.Options, Self, Prj, Unit_Name);
       Preprocess_Source (Orig_Filename, Self, Prj, PP_Filename, UIC.Options);
 
       --  Start by recording preprocessing information
@@ -4018,7 +4016,6 @@ package body Instrument.C is
          --  Preprocess the source, keeping the comment to look for the manual
          --  dump indication later.
 
-         Import_Options (Options, Self, Prj, Orig_Filename);
          Preprocess_Source
            (Orig_Filename, Self, Prj, PP_Filename, Options, True);
          declare
