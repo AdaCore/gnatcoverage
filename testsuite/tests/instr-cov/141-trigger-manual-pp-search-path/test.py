@@ -21,17 +21,12 @@ from SUITE.gprutils import GPRswitches
 
 tmp = Wdir("tmp_")
 
-prj = gprfor(
-    prjid="main",
-    srcdirs=[".."],
-    mains=["main.c"],
-)
-
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=prj),
+    gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["main.c"])),
     covlevel="stmt",
     mains=["main"],
-    extra_instr_args=["--dump-trigger=manual"],
+    dump_trigger="manual",
+    manual_prj_name="gen",
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
     trace_mode="src",
 )
