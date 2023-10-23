@@ -2750,6 +2750,13 @@ package body Instrument.C is
       Append (Command_Line_Args, +"-x");
       Append (Command_Line_Args, +To_Lower (Image (Lang)));
 
+      --  As we also pass compiler warning switches, as they can influence the
+      --  preprocessing through the use of the __has_warning macro, we make
+      --  sure to disable warnings on unknown warnings (as some warnings are
+      --  e.g. gcc-specific and won't be recognized by clang).
+
+      Append (Command_Line_Args, +"-Wno-unknown-warning-option");
+
       return Command_Line_Args;
    end Common_Parse_TU_Args;
 
