@@ -1424,12 +1424,11 @@ package body Instrument.C is
       L   : Cursor_Vectors.Vector);
    --  Traverse a translation unit (top level declarations)
 
-   procedure Process_Decisions
+   procedure Process_Expression
      (UIC : in out C_Unit_Inst_Context;
       N   : Cursor_T;
       T   : Character);
-   --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
-   --  to output any decisions it contains.
+   --  Process the decisions, and the lambda expressions in N
 
    --------------------------
    -- Internal Subprograms --
@@ -1466,325 +1465,367 @@ package body Instrument.C is
       end if;
    end Is_Complex_Decision;
 
-   -----------------------
-   -- Process_Decisions --
-   -----------------------
+   ------------------------
+   -- Process_Expression --
+   ------------------------
 
-   procedure Process_Decisions
+   procedure Process_Expression
      (UIC : in out C_Unit_Inst_Context;
       N   : Cursor_T;
       T   : Character)
    is
-      Mark : Nat;
-      --  This is used to mark the location of a decision sequence in the SCO
-      --  table. We use it for backing out a simple decision in an expression
-      --  context that contains only NOT operators.
+      function Process_Lambda_Expr
+        (Cursor : Cursor_T) return Child_Visit_Result_T;
+      --  Helper for Visit_Children. Process every lambda expr under Cursor,
+      --  _but_ the lambda expressions nested in other lambda expressions.
 
-      Mark_Hash : Nat;
-      --  Likewise for the putative SCO_Raw_Hash_Table entries: see below
+      procedure Process_Decisions
+        (UIC : in out C_Unit_Inst_Context;
+         N   : Cursor_T;
+         T   : Character);
 
-      type Hash_Entry is record
-         Sloc      : Source_Location;
-         SCO_Index : Nat;
-      end record;
-      --  We must register all conditions/pragmas in SCO_Raw_Hash_Table.
-      --  However we cannot register them at the same time we are adding the
-      --  corresponding SCO entries to the raw table since we may discard them
-      --  later on. So instead we put all putative conditions into Hash_Entries
-      --  (see below) and register them once we are sure we keep them.
-      --
-      --  This data structure holds the conditions/pragmas to register in
-      --  SCO_Raw_Hash_Table.
+      -------------------------
+      -- Process_Lambda_Expr --
+      -------------------------
 
-      package Hash_Entries is new Table.Table
-        (Table_Component_Type => Hash_Entry,
-         Table_Index_Type     => Nat,
-         Table_Low_Bound      => 1,
-         Table_Initial        => 10,
-         Table_Increment      => 10,
-         Table_Name           => "Hash_Entries");
-      --  Hold temporarily (i.e. free'd before returning) the Hash_Entry before
-      --  they are registered in SCO_Raw_Hash_Table.
-
-      ---------------------------------
-      -- Decision-specific variables --
-      ---------------------------------
-
-      --  The following variables are related to the current decision being
-      --  processed by this call to Process_Decisions. Note that in the case
-      --  of nested decisions, this subprogram recurses, so we do not have to
-      --  worry about overwriting them.
-
-      Current_Decision : Nat;
-      --  Low level SCO id of current decision
-
-      X_Not_Decision : Boolean;
-      --  This flag keeps track of whether a decision sequence in the SCO table
-      --  contains only NOT operators, and is for an expression context (T=X).
-      --  The flag will be set False if T is other than X, or if an operator
-      --  other than NOT is in the sequence.
-
-      Condition_Count : Natural := 0;
-      --  Count of conditions for current decision (MC/DC only)
-
-      MCDC_State : US.Unbounded_String;
-      --  Name of MC/DC state local variable for current decision (MC/DC only)
-
-      procedure Output_Decision_Operand (Operand : Cursor_T);
-      --  The node Operand is the top level logical operator of a decision, or
-      --  it is one of the operands of a logical operator belonging to a single
-      --  complex decision. This (recursive) routine outputs the sequence of
-      --  table entries corresponding to the node. Note that we do not process
-      --  the sub- operands to look for further decisions, that processing is
-      --  done in Find_Nested_Decisions, because we can't get decisions mixed
-      --  up in the global table. Call has no effect if Operand is Empty.
-      --  Increments Condition_Count (recursively) for each condition.
-
-      procedure Output_Element (N : Cursor_T);
-      --  Node N is an operand of a logical operator that is not itself a
-      --  logical operator, or it is a simple decision. This routine outputs
-      --  the table entry for the element, with C1 set to ' '. Last is set
-      --  False, and an entry is made in the condition hash table.
-
-      procedure Output_Header (T : Character; N : Cursor_T);
-      --  Outputs a decision header node. T is I/W/E/P for IF/WHILE/EXIT WHEN/
-      --  PRAGMA, and 'X' for the expression case. Resets Condition_Count to 0,
-      --  and initializes MCDC_State.
-
-      procedure Find_Nested_Decisions (Operand : Cursor_T);
-      --  This is called on node Operand, the top level node of a decision,
-      --  or on one of its operands or suboperands after generating the full
-      --  output for the complex decision. It process the suboperands of the
-      --  decision looking for nested decisions.
-
-      function Process_Node (N : Cursor_T) return Child_Visit_Result_T;
-      --  Processes one node in the traversal, looking for logical operators,
-      --  and if one is found, outputs the appropriate table entries.
-
-      -----------------------------
-      -- Output_Decision_Operand --
-      -----------------------------
-
-      procedure Output_Decision_Operand (Operand : Cursor_T) is
-         C1 : Character;
-         C2 : Character;
-         --  C1 holds a character that identifies the operation while C2
-         --  indicates whether we are sure (' ') or not ('?') this operation
-         --  belongs to the decision. '?' entries will be filtered out in the
-         --  second (SCO_Record_Filtered) pass.
-
-         N : constant Cursor_T := Unwrap (Operand);
-
-         L, R : Cursor_T;
-
-         Op_N : constant String := Get_Opcode_Str (N);
-
+      function Process_Lambda_Expr
+        (Cursor : Cursor_T) return Child_Visit_Result_T is
       begin
+         if Kind (Cursor) = Cursor_Lambda_Expr then
+            Traverse_Declarations
+              (UIC => UIC,
+               L   => Cursor_Vectors.To_Vector (Cursor, 1));
+            return Child_Visit_Continue;
+         end if;
+         return Child_Visit_Recurse;
+      end Process_Lambda_Expr;
 
-         --  Logical operator
+      -----------------------
+      -- Process_Decisions --
+      -----------------------
 
-         if Is_Logical_Operator (N) then
-            if Op_N = "!" then
-               C1 := '!';
-               L := Get_Null_Cursor;
-               R := Get_Sub_Expr (N);
+      procedure Process_Decisions
+        (UIC : in out C_Unit_Inst_Context;
+         N   : Cursor_T;
+         T   : Character)
+      is
+         Mark : Nat;
+         --  This is used to mark the location of a decision sequence in the
+         --  SCO table. We use it for backing out a simple decision in an
+         --  expression context that contains only NOT operators.
+
+         Mark_Hash : Nat;
+         --  Likewise for the putative SCO_Raw_Hash_Table entries: see below
+
+         type Hash_Entry is record
+            Sloc      : Source_Location;
+            SCO_Index : Nat;
+         end record;
+         --  We must register all conditions/pragmas in SCO_Raw_Hash_Table.
+         --  However we cannot register them at the same time we are adding the
+         --  corresponding SCO entries to the raw table since we may discard
+         --  them later on. So instead we put all putative conditions into
+         --  Hash_Entries (see below) and register them once we are sure we
+         --  keep them.
+         --
+         --  This data structure holds the conditions/pragmas to register in
+         --  SCO_Raw_Hash_Table.
+
+         package Hash_Entries is new Table.Table
+           (Table_Component_Type => Hash_Entry,
+            Table_Index_Type     => Nat,
+            Table_Low_Bound      => 1,
+            Table_Initial        => 10,
+            Table_Increment      => 10,
+            Table_Name           => "Hash_Entries");
+         --  Hold temporarily (i.e. free'd before returning) the Hash_Entry
+         --  before they are registered in SCO_Raw_Hash_Table.
+
+         ---------------------------------
+         -- Decision-specific variables --
+         ---------------------------------
+
+         --  The following variables are related to the current decision being
+         --  processed by this call to Process_Decisions. Note that in the case
+         --  of nested decisions, this subprogram recurses, so we do not have
+         --  to worry about overwriting them.
+
+         Current_Decision : Nat;
+         --  Low level SCO id of current decision
+
+         X_Not_Decision : Boolean;
+         --  This flag keeps track of whether a decision sequence in the
+         --  SCO table contains only NOT operators, and is for an expression
+         --  context (T=X). The flag will be set False if T is other than X,
+         --  or if an operator other than NOT is in the sequence.
+
+         Condition_Count : Natural := 0;
+         --  Count of conditions for current decision (MC/DC only)
+
+         MCDC_State : US.Unbounded_String;
+         --  Name of MC/DC state local variable for current decision (MC/DC
+         --  only).
+
+         procedure Output_Decision_Operand (Operand : Cursor_T);
+         --  The node Operand is the top level logical operator of a decision,
+         --  or it is one of the operands of a logical operator belonging to
+         --  a single complex decision. This (recursive) routine outputs the
+         --  sequence of table entries corresponding to the node. Note that we
+         --  do not process the sub- operands to look for further decisions,
+         --  that processing is done in Find_Nested_Decisions, because we can't
+         --  get decisions mixed up in the global table. Call has no effect
+         --  if Operand is Empty. Increments Condition_Count (recursively)
+         --  for each condition.
+
+         procedure Output_Element (N : Cursor_T);
+         --  Node N is an operand of a logical operator that is not itself a
+         --  logical operator, or it is a simple decision. This routine outputs
+         --  the table entry for the element, with C1 set to ' '. Last is set
+         --  False, and an entry is made in the condition hash table.
+
+         procedure Output_Header (T : Character; N : Cursor_T);
+         --  Outputs a decision header node. T is I/W/E/P for IF/WHILE/EXIT
+         --  WHEN/ PRAGMA, and 'X' for the expression case. Resets
+         --  Condition_Count to 0, and initializes MCDC_State.
+
+         procedure Find_Nested_Decisions (Operand : Cursor_T);
+         --  This is called on node Operand, the top level node of a decision,
+         --  or on one of its operands or suboperands after generating the full
+         --  output for the complex decision. It process the suboperands of the
+         --  decision looking for nested decisions.
+
+         function Process_Node (N : Cursor_T) return Child_Visit_Result_T;
+         --  Processes one node in the traversal, looking for logical
+         --  operators, and if one is found, outputs the appropriate
+         --  table entries.
+
+         -----------------------------
+         -- Output_Decision_Operand --
+         -----------------------------
+
+         procedure Output_Decision_Operand (Operand : Cursor_T) is
+            C1 : Character;
+            C2 : Character;
+            --  C1 holds a character that identifies the operation while C2
+            --  indicates whether we are sure (' ') or not ('?') this operation
+            --  belongs to the decision. '?' entries will be filtered out in
+            --  the second (SCO_Record_Filtered) pass.
+
+            N : constant Cursor_T := Unwrap (Operand);
+
+            L, R : Cursor_T;
+
+            Op_N : constant String := Get_Opcode_Str (N);
+
+         begin
+
+            --  Logical operator
+
+            if Is_Logical_Operator (N) then
+               if Op_N = "!" then
+                  C1 := '!';
+                  L := Get_Null_Cursor;
+                  R := Get_Sub_Expr (N);
+
+               else
+                  --  N is a binary logical operator
+
+                  L := Get_LHS (N);
+                  R := Get_RHS (N);
+                  if Op_N = "||" then
+                     C1 := '|';
+                  else
+                     pragma Assert (Op_N = "&&");
+                     C1 := '&';
+                  end if;
+               end if;
+
+               C2 := ' ';
+
+               UIC.Pass.Append_SCO
+                 (UIC  => UIC,
+                  N    => N,
+                  C1   => C1,
+                  C2   => C2,
+                  From => Sloc (Get_Operator_Loc (N)),
+                  To   => Slocs.No_Location,
+                  Last => False);
+
+               Hash_Entries.Append ((Sloc      => Start_Sloc (N),
+                                     SCO_Index => SCOs.SCO_Table.Last));
+
+               if not Is_Null (L) then
+                  Output_Decision_Operand (L);
+               end if;
+               Output_Decision_Operand (R);
+
+               --  Not a logical operator -> condition
 
             else
-               --  N is a binary logical operator
+               Output_Element (N);
 
-               L := Get_LHS (N);
-               R := Get_RHS (N);
-               if Op_N = "||" then
-                  C1 := '|';
-               else
-                  pragma Assert (Op_N = "&&");
-                  C1 := '&';
+               if MCDC_Coverage_Enabled then
+                  UIC.Pass.Instrument_Condition
+                    (UIC       => UIC,
+                     LL_SCO    => SCOs.SCO_Table.Last,
+                     Condition => N,
+                     State     => MCDC_State,
+                     First     => Condition_Count = 0);
+
+                  Condition_Count := Condition_Count + 1;
                end if;
             end if;
+         end Output_Decision_Operand;
 
-            C2 := ' ';
+         --------------------
+         -- Output_Element --
+         --------------------
 
+         procedure Output_Element (N : Cursor_T) is
+         begin
             UIC.Pass.Append_SCO
               (UIC  => UIC,
                N    => N,
-               C1   => C1,
-               C2   => C2,
-               From => Sloc (Get_Operator_Loc (N)),
-               To   => Slocs.No_Location,
+               C1   => ' ',
+               C2   => 'c',
+               From => Start_Sloc (N),
+               To   => End_Sloc (N),
+               Last => False);
+            Hash_Entries.Append ((Start_Sloc (N), SCOs.SCO_Table.Last));
+         end Output_Element;
+
+         -------------------
+         -- Output_Header --
+         -------------------
+
+         procedure Output_Header (T : Character; N : Cursor_T) is
+         begin
+            UIC.Pass.Append_SCO
+              (UIC  => UIC,
+               N    => N,
+               C1   => T,
+               C2   => ' ',
+               From => Start_Sloc (N),
+               To   => End_Sloc (N),
                Last => False);
 
-            Hash_Entries.Append ((Sloc      => Start_Sloc (N),
-                                  SCO_Index => SCOs.SCO_Table.Last));
+            Current_Decision := SCOs.SCO_Table.Last;
 
-            if not Is_Null (L) then
-               Output_Decision_Operand (L);
-            end if;
-            Output_Decision_Operand (R);
+            if Coverage.Enabled (Coverage_Options.Decision)
+              or else MCDC_Coverage_Enabled
+            then
+               if MCDC_Coverage_Enabled then
+                  Condition_Count := 0;
 
-         --  Not a logical operator -> condition
+                  UIC.Pass.Insert_MCDC_State
+                    (UIC,
+                     Make_MCDC_State_Name (SCOs.SCO_Table.Last),
+                     MCDC_State);
+               end if;
 
-         else
-            Output_Element (N);
-
-            if MCDC_Coverage_Enabled then
-               UIC.Pass.Instrument_Condition
-                 (UIC       => UIC,
-                  LL_SCO    => SCOs.SCO_Table.Last,
-                  Condition => N,
-                  State     => MCDC_State,
-                  First     => Condition_Count = 0);
-
-               Condition_Count := Condition_Count + 1;
-            end if;
-         end if;
-      end Output_Decision_Operand;
-
-      --------------------
-      -- Output_Element --
-      --------------------
-
-      procedure Output_Element (N : Cursor_T) is
-      begin
-         UIC.Pass.Append_SCO
-           (UIC  => UIC,
-            N    => N,
-            C1   => ' ',
-            C2   => 'c',
-            From => Start_Sloc (N),
-            To   => End_Sloc (N),
-            Last => False);
-         Hash_Entries.Append ((Start_Sloc (N), SCOs.SCO_Table.Last));
-      end Output_Element;
-
-      -------------------
-      -- Output_Header --
-      -------------------
-
-      procedure Output_Header (T : Character; N : Cursor_T) is
-      begin
-         UIC.Pass.Append_SCO
-           (UIC  => UIC,
-            N    => N,
-            C1   => T,
-            C2   => ' ',
-            From => Start_Sloc (N),
-            To   => End_Sloc (N),
-            Last => False);
-
-         Current_Decision := SCOs.SCO_Table.Last;
-
-         if Coverage.Enabled (Coverage_Options.Decision)
-           or else MCDC_Coverage_Enabled
-         then
-            if MCDC_Coverage_Enabled then
-               Condition_Count := 0;
-
-               UIC.Pass.Insert_MCDC_State
-                 (UIC, Make_MCDC_State_Name (SCOs.SCO_Table.Last), MCDC_State);
+               UIC.Pass.Instrument_Decision
+                 (UIC      => UIC,
+                  LL_SCO   => Current_Decision,
+                  Decision => N,
+                  State    => MCDC_State);
             end if;
 
-            UIC.Pass.Instrument_Decision
-              (UIC      => UIC,
-               LL_SCO   => Current_Decision,
-               Decision => N,
-               State    => MCDC_State);
-         end if;
+         end Output_Header;
 
-      end Output_Header;
+         ---------------------------
+         -- Find_Nested_Decisions --
+         ---------------------------
 
-      ---------------------------
-      -- Find_Nested_Decisions --
-      ---------------------------
+         procedure Find_Nested_Decisions (Operand : Cursor_T) is
+            N : constant Cursor_T := Unwrap (Operand);
+         begin
+            if Is_Logical_Operator (N) then
 
-      procedure Find_Nested_Decisions (Operand : Cursor_T) is
-         N : constant Cursor_T := Unwrap (Operand);
-      begin
-         if Is_Logical_Operator (N) then
+               if Kind (N) = Cursor_Unary_Operator then
+                  Find_Nested_Decisions (Get_Sub_Expr (N));
 
-            if Kind (N) = Cursor_Unary_Operator then
-               Find_Nested_Decisions (Get_Sub_Expr (N));
+               else
+                  Find_Nested_Decisions (Get_LHS (N));
+                  Find_Nested_Decisions (Get_RHS (N));
+                  X_Not_Decision := False;
+               end if;
 
             else
-               Find_Nested_Decisions (Get_LHS (N));
-               Find_Nested_Decisions (Get_RHS (N));
-               X_Not_Decision := False;
+               Process_Decisions (UIC, N, 'X');
+            end if;
+         end Find_Nested_Decisions;
+
+         ------------------
+         -- Process_Node --
+         ------------------
+
+         function Process_Node (N : Cursor_T) return Child_Visit_Result_T is
+            --  Test for the two cases where N is the root node of some
+            --  decision:
+
+            Decision_Root : constant Boolean :=
+
+               --  Simple decision at outer level: a boolean expression (which
+               --  is not a logical operator) appearing as the operand of an
+               --  IF, WHILE, FOR construct.
+
+              (N = Process_Decisions.N and then T /= 'X')
+              or else
+
+               --  Complex decision, whether at outer level or nested: a
+               --  boolean expression involving a logical operator.
+
+              Is_Complex_Decision (N);
+
+         begin
+            if Decision_Root then
+               declare
+                  T  : Character;
+
+               begin
+                  --  If outer level, then type comes from call, otherwise it
+                  --  is more deeply nested and counts as X for expression.
+
+                  if N = Process_Decisions.N then
+                     T := Process_Decisions.T;
+                  else
+                     T := 'X';
+                  end if;
+
+                  --  Output header for sequence
+
+                  X_Not_Decision := T = 'X' and then Get_Opcode_Str (N) = "!";
+                  Mark      := SCOs.SCO_Table.Last;
+                  Mark_Hash := Hash_Entries.Last;
+                  Output_Header (T, N);
+
+                  --  Output the decision (recursively traversing operands)
+
+                  Output_Decision_Operand (N);
+
+                  --  If the decision was in an expression context (T =
+                  --  'X') and contained only NOT operators, then we do not
+                  --  output it, so delete the associated SCO entries. As a
+                  --  consequence, no instrumentation will be emitted.
+
+                  if X_Not_Decision then
+                     SCOs.SCO_Table.Set_Last (Mark);
+                     Hash_Entries.Set_Last (Mark_Hash);
+
+                     --  Otherwise, set Last in last table entry to mark end
+
+                  else
+                     SCOs.SCO_Table.Table (SCOs.SCO_Table.Last).Last := True;
+                  end if;
+
+                  --  Process any embedded decisions
+
+                  Find_Nested_Decisions (N);
+                  return Child_Visit_Continue;
+               end;
             end if;
 
-         else
-            Process_Decisions (UIC, N, 'X');
-         end if;
-      end Find_Nested_Decisions;
-
-      ------------------
-      -- Process_Node --
-      ------------------
-
-      function Process_Node (N : Cursor_T) return Child_Visit_Result_T is
-         --  Test for the two cases where N is the root node of some decision:
-
-         Decision_Root : constant Boolean :=
-
-           --  Simple decision at outer level: a boolean expression (which is
-           --  not a logical operator) appearing as the operand of an IF,
-           --  WHILE, FOR construct.
-
-           (N = Process_Decisions.N and then T /= 'X')
-             or else
-
-           --  Complex decision, whether at outer level or nested: a boolean
-           --  expression involving a logical operator.
-
-           Is_Complex_Decision (N);
-
-      begin
-         if Decision_Root then
-            declare
-               T  : Character;
-
-            begin
-               --  If outer level, then type comes from call, otherwise it
-               --  is more deeply nested and counts as X for expression.
-
-               if N = Process_Decisions.N then
-                  T := Process_Decisions.T;
-               else
-                  T := 'X';
-               end if;
-
-               --  Output header for sequence
-
-               X_Not_Decision := T = 'X' and then Get_Opcode_Str (N) = "!";
-               Mark      := SCOs.SCO_Table.Last;
-               Mark_Hash := Hash_Entries.Last;
-               Output_Header (T, N);
-
-               --  Output the decision (recursively traversing operands)
-
-               Output_Decision_Operand (N);
-
-               --  If the decision was in an expression context (T = 'X')
-               --  and contained only NOT operators, then we do not output
-               --  it, so delete the associated SCO entries. As a consequence,
-               --  no instrumentation will be emitted.
-
-               if X_Not_Decision then
-                  SCOs.SCO_Table.Set_Last (Mark);
-                  Hash_Entries.Set_Last (Mark_Hash);
-
-               --  Otherwise, set Last in last table entry to mark end
-
-               else
-                  SCOs.SCO_Table.Table (SCOs.SCO_Table.Last).Last := True;
-               end if;
-
-               --  Process any embedded decisions
-
-               Find_Nested_Decisions (N);
-               return Child_Visit_Continue;
-            end;
-         end if;
-
-         case Kind (N) is
+            case Kind (N) is
             when Cursor_Conditional_Operator =>
                declare
                   Cond       : constant Cursor_T := Get_Cond (N);
@@ -1805,21 +1846,26 @@ package body Instrument.C is
                return Child_Visit_Continue;
             when others =>
                null;
-         end case;
+            end case;
 
-         return Child_Visit_Recurse;
-      end Process_Node;
+            return Child_Visit_Recurse;
+         end Process_Node;
 
-   --  Start of processing for Process_Decisions
+      --  Start of processing for Process_Decisions
+
+      begin
+         if Is_Null (N) then
+            return;
+         end if;
+         Hash_Entries.Init;
+         Visit (N, Process_Node'Access);
+         Hash_Entries.Free;
+      end Process_Decisions;
 
    begin
-      if Is_Null (N) then
-         return;
-      end if;
-      Hash_Entries.Init;
-      Visit (N, Process_Node'Access);
-      Hash_Entries.Free;
-   end Process_Decisions;
+      Process_Decisions (UIC, N, T);
+      Visit (N, Process_Lambda_Expr'Access);
+   end Process_Expression;
 
    ------------------
    -- Has_Decision --
@@ -2004,7 +2050,7 @@ package body Instrument.C is
                         & " statement.");
                      UIC.Disable_Instrumentation := True;
                   end if;
-                  Process_Decisions (UIC, Get_Cond (N), 'I');
+                  Process_Expression (UIC, Get_Cond (N), 'I');
                   UIC.Disable_Instrumentation := Save_Disable_Instrumentation;
                   Traverse_Statements (UIC, To_Vector (Then_Part), TB);
 
@@ -2027,7 +2073,7 @@ package body Instrument.C is
                   Switch_Cond : constant Cursor_T := Get_Cond (N);
                   Alt         : constant Cursor_T := Get_Body (N);
                begin
-                  Process_Decisions (UIC, Switch_Cond, 'X');
+                  Process_Expression (UIC, Switch_Cond, 'X');
 
                   --  Process case branches
 
@@ -2060,7 +2106,7 @@ package body Instrument.C is
                                       else Get_Var_Init_Expr (Cond_Var)),
                      Instr_Scheme => Instr_Expr);
 
-                  Process_Decisions (UIC, Cond, 'W');
+                  Process_Expression (UIC, Cond, 'W');
                   Traverse_Statements (UIC, To_Vector (While_Body), TB);
                end;
 
@@ -2082,7 +2128,7 @@ package body Instrument.C is
 
                   Instrument_Statement
                     (Do_While, 'W', Instr_Scheme => Instr_Expr);
-                  Process_Decisions (UIC, Do_While, 'W');
+                  Process_Expression (UIC, Do_While, 'W');
 
                end;
 
@@ -2101,7 +2147,7 @@ package body Instrument.C is
                   --  The guard expression for the FOR loop is a decision. The
                   --  closest match for this kind of decision is a while loop.
 
-                  Process_Decisions (UIC, For_Cond, 'W');
+                  Process_Expression (UIC, For_Cond, 'W');
 
                   Traverse_Statements (UIC, To_Vector (For_Body), TB);
 
@@ -2126,7 +2172,7 @@ package body Instrument.C is
 
                      Instrument_Statement
                        (For_Init_Stmt, ' ', Insertion_N  => For_Init_Stmt);
-                     Process_Decisions (UIC, For_Init_Stmt, 'X');
+                     Process_Expression (UIC, For_Init_Stmt, 'X');
 
                      --  Preemptively end the introduced outer scope as it is
                      --  easier done when traversing the AST.
@@ -2141,7 +2187,7 @@ package body Instrument.C is
                     (For_Range_Decl, ' ',
                      Insertion_N  => N,
                      Instr_Scheme => Instr_Stmt);
-                  Process_Decisions (UIC, For_Range_Decl, 'X');
+                  Process_Expression (UIC, For_Range_Decl, 'X');
 
                   --  Generate obligations for body statements
 
@@ -2174,7 +2220,7 @@ package body Instrument.C is
                then
                   Instrument_Statement (N, ' ');
                   if Has_Decision (N) then
-                     Process_Decisions (UIC, N, 'X');
+                     Process_Expression (UIC, N, 'X');
                   end if;
                end if;
 
@@ -2187,30 +2233,21 @@ package body Instrument.C is
 
                --  Process any embedded decisions
 
-               if Has_Decision (N) then
-                  if Is_Constexpr (N) then
-                     UIC.Pass.Report
-                       (N,
-                        "gnatcov limitation: cannot instrument constexpr"
-                        & " variable declarations.");
-                     UIC.Disable_Instrumentation := True;
-                     Process_Decisions (UIC, N, 'X');
-                     UIC.Disable_Instrumentation :=
-                       Save_Disable_Instrumentation;
-                  else
-                     Process_Decisions (UIC, N, 'X');
-                  end if;
+               if Is_Constexpr (N) then
+                  UIC.Pass.Report
+                    (N,
+                     "gnatcov limitation: cannot instrument constexpr"
+                     & " variable declarations.");
+                  UIC.Disable_Instrumentation := True;
+                  Process_Expression (UIC, N, 'X');
+                  UIC.Disable_Instrumentation :=
+                    Save_Disable_Instrumentation;
+               else
+                  Process_Expression (UIC, N, 'X');
                end if;
          end case;
 
          Append (Trailing_Braces, TB);
-
-         --  Traverse lambda expressions, if any. Do not register them as
-         --  scopes.
-
-         Traverse_Declarations
-           (UIC => UIC,
-            L   => Get_Lambda_Exprs (N));
       end Traverse_One;
 
       --------------------------
@@ -2712,6 +2749,13 @@ package body Instrument.C is
 
       Append (Command_Line_Args, +"-x");
       Append (Command_Line_Args, +To_Lower (Image (Lang)));
+
+      --  As we also pass compiler warning switches, as they can influence the
+      --  preprocessing through the use of the __has_warning macro, we make
+      --  sure to disable warnings on unknown warnings (as some warnings are
+      --  e.g. gcc-specific and won't be recognized by clang).
+
+      Append (Command_Line_Args, +"-Wno-unknown-warning-option");
 
       return Command_Line_Args;
    end Common_Parse_TU_Args;

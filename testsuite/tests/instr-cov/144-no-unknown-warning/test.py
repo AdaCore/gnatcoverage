@@ -1,6 +1,6 @@
 """
-Check that we consider unit-specific compiler switches (that have an effect on
-the preprocessing) when using the manual dump-trigger. We used to ignore them.
+Check that gnatcov does not yield "unknown warning warnings" when parsing a
+file with warnings not recognized by clang.
 """
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
@@ -14,23 +14,15 @@ tmp = Wdir("tmp_")
 build_run_and_coverage(
     gprsw=GPRswitches(
         root_project=gprfor(
-            srcdirs=[".."], mains=["main.c"], main_cargs=["-DMAIN=1"]
+            srcdirs=[".."], mains=["main.c"], main_cargs=["-Wtrampolines"]
         )
     ),
     covlevel="stmt",
     mains=["main"],
-    dump_trigger="manual",
-    manual_prj_name="gen",
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
     trace_mode="src",
 )
 
-check_xcov_reports(
-    "*.xcov",
-    {
-        "main.c.xcov": {"+": {5}, "-": {7}},
-    },
-    "xcov",
-)
+check_xcov_reports("xcov/*.xcov", {"xcov/main.c.xcov": {"+": {4}}})
 
 thistest.result()
