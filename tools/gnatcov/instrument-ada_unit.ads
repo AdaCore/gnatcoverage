@@ -144,12 +144,6 @@ private
             RH_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
             --  Rewriting handle for the statement/declaration list
 
-            Index : Natural := 0;
-            --  Index of the element in RH_List being traversed
-
-            Rewriting_Offset : Integer := 0;
-            --  Count of nodes inserted/removed in current list so far
-
             Preelab : Boolean := False;
             --  Whether we are traversing a list of top-level declarations in a
             --  preelaborate package. In this context, we cannot insert witness
