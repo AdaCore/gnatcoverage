@@ -16,30 +16,26 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  Stub of Instrument.Ada_Unit, to avoid pulling a dependency to libadalang
---  when gnatcov is not built with Ada instrumentation support (basically the
---  gnatcov32 executable that have support for binary traces only).
+with Langkit_Support.File_Readers; use Langkit_Support.File_Readers;
 
-with Instrument.Common; use Instrument.Common;
+--  Helpers to implement support for the Ada sources.
+--
+--  Just like for the Ada unit provider (Instrument.Ada_Unit_Provider), we need
+--  the Ada instrumenter to work without loading the GPR tree. To achieve this,
+--  preprocessor configuration data is first extracted from project files, then
+--  stored in a JSON file (Create_Preprocessor_Data_File below), which the Ada
+--  instrumenter can then load (Create_Preprocessor below).
 
-package Instrument.Ada_Unit is
+package Instrument.Ada_Preprocessing is
 
-   pragma Elaborate_Body;
+   procedure Create_Preprocessor_Data_File (Filename : String);
+   --  Write in Filename a JSON representation of the preprocessor data
+   --  extracted from the root project
 
-   type Ada_Instrumenter_Type is new Language_Instrumenter with null record;
-   --  Common instrumentation primitives for Ada
+   function Create_Preprocessor
+     (Filename : String) return File_Reader_Reference;
+   --  Load preprocessor data from a file written by
+   --  Create_Preprocessor_Data_File and create a file reader to preprocess Ada
+   --  sources according to this data.
 
-   overriding function Language
-     (Self : Ada_Instrumenter_Type) return Src_Supported_Language
-   is (Ada_Language);
-
-   function Create_Ada_Instrumenter
-     (Tag                        : Unbounded_String;
-      Config_Pragmas_Filename,
-      Mapping_Filename           : String;
-      Predefined_Source_Dirs     : String_Vectors.Vector;
-      Preprocessor_Data_Filename : String)
-      return Ada_Instrumenter_Type
-   is (Ada_Instrumenter_Type'(others => <>));
-
-end Instrument.Ada_Unit;
+end Instrument.Ada_Preprocessing;
