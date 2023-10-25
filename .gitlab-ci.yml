@@ -1,11 +1,7 @@
-# This bit is used to make sure we don't run too many pipelines:
-# don't run the branch CI when a merge request is already open for the
-# branch.
 workflow:
   rules:
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
-      when: never
-    - when: always
+    # Run the CI on merge requests only
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
 variables:
    PACKAGE_BASE_NAME: gnatcoverage.tar.gz
@@ -43,13 +39,14 @@ stages:
   - test
 
 build:
+  interruptible: true
   services:
      - image:gnatcov
      - cpu:8
      - mem:16
   stage: build
   script:
-    - (unset GITLAB_TOKEN; require_issue)
+    - require_issue
 
     - export PATH=/it/e3/bin:$PATH
     - *edge_vars
@@ -72,6 +69,7 @@ build:
       - $PACKAGE_BASE_NAME
 
 build_community:
+  interruptible: true
   services:
      - image:gnatcov
      - cpu:8
@@ -140,6 +138,7 @@ build_community:
         path: coverage/cobertura.xml
 
 test_bin_traces:
+  interruptible: true
   services:
      - image:gnatcov
      - cpu:8
@@ -161,6 +160,7 @@ test_bin_traces:
   <<: *artifacts
 
 test_src_traces:
+  interruptible: true
   services:
      - image:gnatcov
      - cpu:8
@@ -182,6 +182,7 @@ test_src_traces:
   <<: *artifacts
 
 test_spark:
+  interruptible: true
   services:
      - image:gnatcov
      - cpu:8
