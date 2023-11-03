@@ -128,6 +128,17 @@ package body Coverage is
       end if;
    end MCDC_Level;
 
+   -------------------------------
+   -- Assertion_Condition_Level --
+   -------------------------------
+
+   function Assertion_Condition_Level return Contract_Condition_Level is
+   begin
+      pragma Assert (Assertion_Condition_Coverage_Enabled);
+      pragma Assert (Enabled (ATCC));
+      return ATCC;
+   end Assertion_Condition_Level;
+
    ----------------
    -- Object_Level --
    ----------------
@@ -208,7 +219,7 @@ package body Coverage is
                Res.Include (MCDC_Level);
             end if;
          end if;
-         if Enabled (ATC) then
+         if Assertion_Coverage_Enabled then
             Res.Include (ATC);
             if Enabled (ATCC) then
                Res.Include (ATCC);

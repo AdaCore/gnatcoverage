@@ -34,8 +34,8 @@ package Annotations.Xml is
    --  The following sections will describe each file type. The following
    --  convention will be used to denotate possible values for attributes:
    --
-   --  * COVERAGE_KIND: can be either 'insn', 'branch', 'stmt',
-   --             'stmt+decision', 'stmt+mcdc'.
+   --  * COVERAGE_KIND: can be either 'insn', 'branch', or one matching
+   --              'stmt(\+(decision|mcdc|uc_mcdc))?(\+(atc|atcc)?)?'
    --  * COVERAGE: can be either '+' (total coverage for the chosen coverage
    --              criteria), '-' (null coverage), '!' (partial coverage) or
    --              '.' (no code for this line).

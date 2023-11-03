@@ -1041,49 +1041,68 @@ package body Annotations is
                Update_Level_Stats (SCO, Get_Line_State (SCO, Stmt), Stmt);
             when Decision =>
                if Coverage.Assertion_Coverage_Enabled
-                 and then Decision_Type (SCO) in Pragma_Decision | Aspect
+                 and then Is_Assertion (SCO)
                then
                   Update_Level_Stats
                     (SCO, Get_Line_State (SCO, ATC), ATC);
                else
                   Update_Level_Stats
                     (SCO, Get_Line_State (SCO, Decision), Decision);
-
-                  --  Conditions in that decision
-
-                  if Coverage.MCDC_Coverage_Enabled then
-                     for J in
-                       Condition_Index'First .. Last_Cond_Index (SCO)
-                     loop
-                        declare
-                           Condition_SCO : constant SCO_Id :=
-                             Condition (SCO, J);
-
-                           MCDC_State : constant SCO_State :=
-                             Get_Line_State (SCO, MCDC);
-                           --  If the parent decision is partially covered,
-                           --  then the SCO_State for each condition will be
-                           --  No_Code, and the SCO_State for the MCDC
-                           --  Coverage_Level associated to the parent decision
-                           --  SCO will be Not_Covered.
-
-                           Condition_State : SCO_State;
-
-                        begin
-                           if MCDC_State = Not_Covered then
-                              Condition_State := Not_Covered;
-                           else
-                              Condition_State :=
-                                Get_Line_State
-                                  (Condition_SCO, Coverage.MCDC_Level);
-                           end if;
-
-                           Update_Level_Stats
-                             (SCO, Condition_State, Coverage.MCDC_Level);
-                        end;
-                     end loop;
-                  end if;
                end if;
+
+               declare
+                  Assertion_Decision : constant Boolean :=
+                    Coverage.Assertion_Condition_Coverage_Enabled
+                    and then Is_Assertion (SCO);
+               begin
+                  if Coverage.MCDC_Coverage_Enabled or else Assertion_Decision
+                  then
+                     declare
+                        Condition_Level : constant Coverage_Level :=
+                          (if Assertion_Decision
+                           then Coverage.Assertion_Condition_Level
+                           else Coverage.MCDC_Level);
+                     begin
+
+                        --  Conditions in that decision
+
+                        for J in
+                          Condition_Index'First .. Last_Cond_Index (SCO)
+                        loop
+                           declare
+                              Condition_SCO : constant SCO_Id :=
+                                Condition (SCO, J);
+
+                              Line_Condition_State : constant SCO_State :=
+                                Get_Line_State (SCO,
+                                                (if Assertion_Decision
+                                                 then ATCC
+                                                 else MCDC));
+                              --  If the parent decision is partially covered,
+                              --  then the SCO_State for each condition will be
+                              --  No_Code, and the SCO_State for the
+                              --  MCDC/Assertion condition Coverage_Level
+                              --  associated to the parent decision SCO will be
+                              --  Not_Covered.
+
+                              Condition_State : SCO_State;
+
+                           begin
+                              if Line_Condition_State = Not_Covered then
+                                 Condition_State := Not_Covered;
+                              else
+                                 Condition_State :=
+                                   Get_Line_State
+                                     (Condition_SCO, (Condition_Level));
+                              end if;
+
+                              Update_Level_Stats
+                                (SCO, Condition_State, Condition_Level);
+                           end;
+                        end loop;
+                     end;
+                  end if;
+               end;
             when others =>
                null;
          end case;
