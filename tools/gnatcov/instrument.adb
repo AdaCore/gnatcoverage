@@ -154,18 +154,6 @@ package body Instrument is
       First  : Boolean := True;
       Result : Ada_Identifier;
    begin
-      if Use_Hash then
-
-         --  Prefix the hash with "z_" to ensure the unit name slug doesn't
-         --  start with a digit.
-
-         return
-           "z" & Strip_Zero_Padding
-                    (Hex_Image
-                       (Unsigned_32
-                          (Ada.Strings.Hash (To_Symbol_Name (Name)))));
-      end if;
-
       --  Create a unique slug from the qualified name: replace occurrences of
       --  'z' with 'zz' and insert '_z_' between identifiers.
 
@@ -187,7 +175,20 @@ package body Instrument is
             end;
          end loop;
       end loop;
-      return To_String (Result);
+
+      if Use_Hash then
+
+         --  Prefix the hash with "z" to ensure the unit name slug doesn't
+         --  start with a digit.
+
+         return
+           "z" & Strip_Zero_Padding
+                    (Hex_Image
+                       (Unsigned_32
+                          (Ada.Strings.Hash (To_String (Result)))));
+      else
+         return To_String (Result);
+      end if;
    end Qualified_Name_Slug;
 
    ----------------------------
