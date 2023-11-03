@@ -51,9 +51,10 @@ package Coverage_Options is
    --             least once as part of an evaluation to True of the whole
    --             decision.
 
-   subtype Object_Coverage_Level is Coverage_Level range Insn .. Branch;
-   subtype Source_Coverage_Level is Coverage_Level range Stmt .. ATCC;
-   subtype MCDC_Coverage_Level   is Coverage_Level range MCDC .. UC_MCDC;
+   subtype Object_Coverage_Level    is Coverage_Level range Insn .. Branch;
+   subtype Source_Coverage_Level    is Coverage_Level range Stmt .. ATCC;
+   subtype MCDC_Coverage_Level      is Coverage_Level range MCDC .. UC_MCDC;
+   subtype Contract_Condition_Level is Coverage_Level range ATCC .. ATCC;
 
    type Levels_Type is array (Coverage_Level) of Boolean;
    --  Set of Coverage_Levels
