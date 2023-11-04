@@ -18,6 +18,6 @@
 
 --  Namespace for units generated for instrumentation purposes
 
-package GCVRT is 
+package GCVRT is
    pragma Pure;
 end GCVRT;
