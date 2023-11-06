@@ -46,6 +46,7 @@ with ALI_Files;        use ALI_Files;
 with Coverage_Options; use Coverage_Options;
 with Coverage;         use Coverage;
 with Diagnostics;      use Diagnostics;
+with Instrument.Ada_Preprocessing;
 with Namet;            use Namet;
 with Outputs;          use Outputs;
 with Paths;            use Paths;
@@ -6756,7 +6757,8 @@ package body Instrument.Ada_Unit is
       Instrumenter.Context := Create_Context
         (Unit_Provider =>
            Create_Unit_Provider_Reference (Instrumenter.Provider),
-         Event_Handler => Instrumenter.Event_Handler);
+         Event_Handler => Instrumenter.Event_Handler,
+         File_Reader   => Instrumenter.File_Reader);
       Instrumenter.Get_From_File_Count := 0;
 
       --  Load configuration pragmas. TODO???: clarify what happens when there
@@ -9010,10 +9012,11 @@ package body Instrument.Ada_Unit is
    -----------------------------
 
    function Create_Ada_Instrumenter
-     (Tag                    : Unbounded_String;
+     (Tag                        : Unbounded_String;
       Config_Pragmas_Filename,
-      Mapping_Filename       : String;
-      Predefined_Source_Dirs : String_Vectors.Vector)
+      Mapping_Filename           : String;
+      Predefined_Source_Dirs     : String_Vectors.Vector;
+      Preprocessor_Data_Filename : String)
       return Ada_Instrumenter_Type
    is
       Instrumenter : Ada_Instrumenter_Type;
@@ -9025,6 +9028,13 @@ package body Instrument.Ada_Unit is
       Instrumenter.Provider :=
         Instrument.Ada_Unit_Provider.Create_Provider
           (Predefined_Source_Dirs, Mapping_Filename);
+
+      --  Create a file reader, to let Libadalang preprocess source files that
+      --  need it.
+
+      Instrumenter.File_Reader :=
+        Instrument.Ada_Preprocessing.Create_Preprocessor
+          (Preprocessor_Data_Filename);
 
       --  Create the event handler, to report when Libadalang cannot read a
       --  required source file.

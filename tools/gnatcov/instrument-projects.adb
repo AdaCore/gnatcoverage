@@ -44,6 +44,7 @@ with Binary_Files;
 with Command_Line;        use Command_Line;
 with Files_Table;
 with Instrument.Ada_Unit; use Instrument.Ada_Unit;
+with Instrument.Ada_Preprocessing;
 with Instrument.C;        use Instrument.C;
 with Instrument.Clean_Objdirs;
 with Instrument.Common;   use Instrument.Common;
@@ -173,6 +174,10 @@ is
       --  fullname. This is passed on to gnatcov instrument-source invokations
       --  (for Ada), to know which part of a unit (spec / body / separate) must
       --  be instrumented.
+
+      Ada_Preprocessor_Data_File : Unbounded_String;
+      --  JSON file that contains the preprocessor data necessary to analyze
+      --  Ada sources (see Instrument.Ada_Unit.Create_Preprocessor_Data_File).
 
       Ignored_Source_Files_Present : Boolean;
       Ignored_Source_Files         : GNAT.Regexp.Regexp;
@@ -615,6 +620,8 @@ is
       begin
          Result.Append ("--gnatem=" & IC.Mapping_File);
          Result.Append ("--gnatec=" & IC.Config_Pragmas_File);
+         Result.Append
+           ("--ada-preprocessor-data=" & IC.Ada_Preprocessor_Data_File);
 
          --  Load the predefined source directories
 
@@ -1136,6 +1143,11 @@ begin
      +Create_Config_Pragmas_File (Project.Project.Root_Project);
    IC.Sources_Of_Interest_Response_File :=
      +To_String (Root_Project_Info.all.Output_Dir) / ".sources_of_interest";
+   IC.Ada_Preprocessor_Data_File :=
+     +To_String (Root_Project_Info.all.Output_Dir) / "prep-data.json";
+
+   Instrument.Ada_Preprocessing.Create_Preprocessor_Data_File
+     (+IC.Ada_Preprocessor_Data_File);
 
    --  Set the runtime directories
 
@@ -1155,10 +1167,11 @@ begin
 
    Ada_Instrumenter :=
      Create_Ada_Instrumenter
-       (IC.Tag,
-        +IC.Config_Pragmas_File,
-        +IC.Mapping_File,
-        IC.Predefined_Source_Dirs);
+       (Tag => IC.Tag,
+        Config_Pragmas_Filename    => +IC.Config_Pragmas_File,
+        Mapping_Filename           => +IC.Mapping_File,
+        Predefined_Source_Dirs     => IC.Predefined_Source_Dirs,
+        Preprocessor_Data_Filename => +IC.Ada_Preprocessor_Data_File);
    C_Instrumenter := Create_C_Instrumenter (IC.Tag);
    CPP_Instrumenter := Create_CPP_Instrumenter (IC.Tag);
 
@@ -1439,6 +1452,7 @@ begin
 
    if not Args.Bool_Args (Opt_Save_Temps) then
       Ada.Directories.Delete_File (+IC.Sources_Of_Interest_Response_File);
+      Ada.Directories.Delete_File (+IC.Ada_Preprocessor_Data_File);
    end if;
 
    --  Emit the unit to contain the list of coverage buffers, exported to a
