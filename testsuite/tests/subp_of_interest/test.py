@@ -47,8 +47,8 @@ xcov(
 if thistest.options.trace_mode == "bin":
     thistest.fail_if_no_match(
         "gnatcov coverage output",
-        "warning: Ignoring --subprograms switches as this is not supported with"
-        " binary traces.",
+        "warning: Ignoring --subprograms switches as this is not supported"
+        " with binary traces.",
         contents_of("coverage.log"),
     )
 else:
@@ -61,9 +61,9 @@ else:
         "xcov_subp",
     )
 
-    # Then check that the checkpoint contains only coverage data for the specific
-    # subprogram. To do this, produce a new coverage report from the checkpoint
-    # without using the --subprograms switch.
+    # Then check that the checkpoint contains only coverage data for the
+    # specific subprogram. To do this, produce a new coverage report from the
+    # checkpoint without using the --subprograms switch.
     xcov(
         cov_args[:-1]
         + ["--checkpoint", "trace.ckpt", "--output-dir=xcov_no_subp"]
@@ -90,10 +90,12 @@ else:
         regexp=r".*Wrong argument passed to --subprograms: .*",
         actual=contents_of("xcov-wrong1.txt"),
     )
-    
+
     # Case 2: line number is not a number
     xcov(
-        cov_args + ["--subprograms", f"{os.path.join('..', 'src', 'pkg.ads')}:b",],
+        cov_args + [
+            "--subprograms", f"{os.path.join('..', 'src', 'pkg.ads')}:b",
+        ],
         out="xcov-wrong2.txt",
         register_failure=False,
     )
@@ -102,7 +104,7 @@ else:
         regexp=r".*Wrong argument passed to --subprograms: .*",
         actual=contents_of("xcov-wrong2.txt"),
     )
-    
+
     # Case 3: file does not exist
     xcov(
         cov_args + ["--subprograms", "dumb-file-name:4"],
@@ -111,11 +113,12 @@ else:
     )
     thistest.fail_if_no_match(
         what="unexpected coverage output",
-        regexp=r".*Error when parsing --subprograms argument dumb-file-name:4:"
-        r".*dumb-file-name does not exist",
+        regexp=(
+            r".*Error when parsing --subprograms argument dumb-file-name:4:"
+            r".*dumb-file-name does not exist"
+        ),
         actual=contents_of("xcov-wrong3.txt"),
     )
-
 
 
 thistest.result()

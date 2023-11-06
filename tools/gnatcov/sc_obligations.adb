@@ -601,8 +601,7 @@ package body SC_Obligations is
    -- Scope_Traversal --
    ---------------------
 
-   function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type
-   is
+   function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type is
       Result : Scope_Traversal_Type;
    begin
       if CU = No_CU_Id then
@@ -614,8 +613,7 @@ package body SC_Obligations is
              (CU_Vector.Reference (CU).Element.Scope_Entities));
       Result.Scope_Stack := Scope_Stacks.Empty_List;
       Result.Active_Scopes := Scope_Id_Sets.Empty;
-      Result.Active_Scope_Ent := Result.It.First;
-      Result.Next_Scope_Ent := Result.It.Next (Result.Active_Scope_Ent);
+      Set_Active_Scope_Ent (Result, Result.It.First);
       return Result;
    end Scope_Traversal;
 
@@ -623,10 +621,7 @@ package body SC_Obligations is
    -- Traverse_SCO --
    ------------------
 
-   procedure Traverse_SCO
-     (ST  : in out Scope_Traversal_Type;
-      SCO : SCO_Id)
-   is
+   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id) is
       use Scope_Entities_Trees;
    begin
       --  In some cases (C metaprogramming instances), e.g.
@@ -662,18 +657,17 @@ package body SC_Obligations is
 
       while SCO > Element (ST.Active_Scope_Ent).To
         or else (ST.Next_Scope_Ent /= No_Element
-                  and then SCO >= Element (ST.Next_Scope_Ent).From)
+                 and then SCO >= Element (ST.Next_Scope_Ent).From)
       loop
-         --  We can enter the next scope only when we have reached its
-         --  parent scope. If the next scope is null, this means that we
-         --  are in the last scope of the unit.
+         --  We can enter the next scope only when we have reached its parent
+         --  scope. If the next scope is null, this means that we are in the
+         --  last scope of the unit.
 
          if ST.Next_Scope_Ent /= No_Element
            and then ST.Active_Scope_Ent = Parent (ST.Next_Scope_Ent)
            and then SCO >= Element (ST.Next_Scope_Ent).From
          then
-            ST.Active_Scope_Ent := ST.Next_Scope_Ent;
-            ST.Next_Scope_Ent := ST.It.Next (ST.Next_Scope_Ent);
+            Set_Active_Scope_Ent (ST, ST.Next_Scope_Ent);
             ST.Scope_Stack.Append (ST.Active_Scope_Ent);
             ST.Active_Scopes.Insert
               (Element (ST.Active_Scope_Ent).Identifier);
@@ -688,6 +682,18 @@ package body SC_Obligations is
          end if;
       end loop;
    end Traverse_SCO;
+
+   --------------------------
+   -- Set_Active_Scope_Ent --
+   --------------------------
+
+   procedure Set_Active_Scope_Ent
+     (ST        : in out Scope_Traversal_Type;
+      Scope_Ent : Scope_Entities_Trees.Cursor) is
+   begin
+      ST.Active_Scope_Ent := Scope_Ent;
+      ST.Next_Scope_Ent := ST.It.Next (Scope_Ent);
+   end Set_Active_Scope_Ent;
 
    ---------------
    -- Is_Active --
@@ -1375,6 +1381,10 @@ package body SC_Obligations is
          end;
       end if;
    end Checkpoint_Load_Unit;
+
+   ----------
+   -- Free --
+   ----------
 
    procedure Free (CU : in out CU_Info) is
       procedure Free is new Ada.Unchecked_Deallocation

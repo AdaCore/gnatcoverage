@@ -367,14 +367,15 @@ procedure GNATcov_Bits_Specific is
       -- Process_Subp_Input --
       ------------------------
 
-      procedure Process_Subp_Input (Subp_Input : String)
-      is
-         Colon_Index : constant Natural :=
+      procedure Process_Subp_Input (Subp_Input : String) is
+         Column_Index : constant Natural :=
            Ada.Strings.Fixed.Index (Subp_Input, Ada.Strings.Maps.To_Set (':'));
-         Filename    : constant String :=
-           Subp_Input (Subp_Input'First .. Colon_Index - 1);
+         Filename     : String renames
+           Subp_Input (Subp_Input'First .. Column_Index - 1);
+         Column       : String renames
+           Subp_Input (Column_Index + 1 .. Subp_Input'Last);
       begin
-         if Colon_Index = 0 then
+         if Column_Index = 0 then
             raise Constraint_Error;
          end if;
          if not Exists (Filename) then
@@ -385,14 +386,10 @@ procedure GNATcov_Bits_Specific is
          Subps_Of_Interest.Include
            (Scope_Entity_Identifier'
               (Decl_SFI  =>
-                   Get_Index_From_Full_Name
-                      (Full_Name (Filename), Source_File),
-               Decl_Line =>
-                 Natural'Value
-                   (Subp_Input (Colon_Index + 1 .. Subp_Input'Last))));
-
+                 Get_Index_From_Full_Name (Full_Name (Filename), Source_File),
+               Decl_Line => Natural'Value (Column)));
       exception
-            --  Deal gracefully with parsing errors
+         --  Deal gracefully with parsing errors
 
          when Constraint_Error =>
             Outputs.Fatal_Error
@@ -1771,8 +1768,7 @@ begin
          --  Warn when the user hasn't explicitly set a coverage level and
          --  default to stmt.
 
-         if not (Source_Coverage_Enabled or else Object_Coverage_Enabled)
-         then
+         if not (Source_Coverage_Enabled or else Object_Coverage_Enabled) then
             Warn ("Coverage level not specified on the command line or in the"
                   & " project file (--level=" & Source_Level_Options
                   & "|" & Object_Level_Options ("|") & "), defaulting to"

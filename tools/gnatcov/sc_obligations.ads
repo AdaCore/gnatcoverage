@@ -180,7 +180,7 @@ package SC_Obligations is
    type Scope_Entity is record
       From, To : SCO_Id;
       --  SCO range for this scope. As scope entities are computed during
-      --  instrumentation, From and To designates low level SCOs that are then
+      --  instrumentation, From and To designate low level SCOs that are then
       --  converted to high level SCOs after processing the low level SCOs.
 
       Name : Unbounded_String;
@@ -232,9 +232,7 @@ package SC_Obligations is
    function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type;
    --  Return a scope traversal for the given compilation unit
 
-   procedure Traverse_SCO
-     (ST  : in out Scope_Traversal_Type;
-      SCO : SCO_Id);
+   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id);
    --  Traverse the given SCO and update the Scope_Traversal accordingly. Note
    --  that the scope traversal must be done on increasing SCOs identifiers.
 
@@ -1365,6 +1363,12 @@ private
       It : Iterator_Acc;
       --  Iterator to traverse the scope tree
    end record;
+
+   procedure Set_Active_Scope_Ent
+     (ST        : in out Scope_Traversal_Type;
+      Scope_Ent : Scope_Entities_Trees.Cursor);
+   --  Set ST.Active_Scope_Ent to Scope_Ent and set ST.Next_Scope_Ent to the
+   --  next one according to ST's iterator.
 
    No_Scope_Traversal : Scope_Traversal_Type :=
      (Scope_Entities   => Scope_Entities_Trees.Empty_Tree,
