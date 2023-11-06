@@ -413,18 +413,19 @@ state. Should the default limit not be satisfactory, it can be tuned with the
 option :cmd-option:`--path-count-limit`.
 
 Other source-traces limitations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In Ada, variable or type declarations at the package level can yield elaboration
 code. Such code constructs are thus considered to have corresponding coverage
 obligations
 
-In the case where a `pragma Preelaborate` restriction affects the instrumented
-unit, variable and type declarations at the package level are not considered as
-coverage obligations, although some elaboration code may still be emitted in
-rare instances. Note that declarations within a unit constrained by a
-``No_Elaboration_Code`` pragma don't produce coverage obligation either, which
-is always correct as no executable code can be emitted by the compiler for them.
+In the case where a ``pragma Preelaborate`` restriction affects the
+instrumented unit, variable and type declarations at the package level are not
+considered as coverage obligations, although some elaboration code may still be
+emitted in rare instances. Note that declarations within a unit constrained by
+a ``No_Elaboration_Code`` pragma don't produce coverage obligation either,
+which is always correct as no executable code can be emitted by the compiler
+for them.
 
 There are also a few limitations concerning the source trace workflow as a
 whole:
@@ -686,7 +687,7 @@ Setting up the coverage runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 As seen in the :ref:`instr-rts` section, we use the ``gnatcov setup`` command to
-build and install the :term:`coverage runtime <Coverage Runtime>`::
+build and install the :term:`coverage runtime <Coverage Runtime>`.
 
 For our intended target environment, this would be something like::
 
