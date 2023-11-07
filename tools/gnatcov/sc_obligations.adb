@@ -4362,9 +4362,15 @@ package body SC_Obligations is
    ------------------------
 
    procedure Set_Scope_Entities
-     (CU : CU_Id; Scope_Entities : Scope_Entities_Trees.Tree) is
+     (CU : CU_Id; Scope_Entities : Scope_Entities_Trees.Tree)
+   is
+      SE : Scope_Entities_Trees.Tree renames
+        CU_Vector.Reference (CU).Scope_Entities;
    begin
-      CU_Vector.Reference (CU).Scope_Entities := Scope_Entities;
+      --  Scopes are supposed to be set only once per compilation unit
+
+      pragma Assert (SE.Is_Empty);
+      SE := Scope_Entities;
    end Set_Scope_Entities;
 
    -------------------------------
