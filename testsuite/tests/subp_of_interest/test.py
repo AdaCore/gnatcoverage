@@ -35,6 +35,9 @@ def check_xcov(label, args, expected_output=""):
 
 tmp = Wdir("tmp_")
 
+pkg_spec = os.path.join("..", "src", "pkg.ads")
+pkg_body = os.path.join("..", "src", "pkg.adb")
+
 thistest.log("== Checkpoint creation ==")
 cov_args = build_and_run(
     gprsw=GPRswitches(
@@ -55,12 +58,9 @@ check_xcov(
     + [
         "--save-checkpoint",
         "trace.ckpt",
-        "--subprograms",
-        f"{os.path.join('..', 'src', 'pkg.ads')}:4",
-        "--subprograms",
-        f"{os.path.join('..', 'src', 'pkg.adb')}:10",
-        "--subprograms",
-        f"{os.path.join('..', 'src', 'pkg.adb')}:12",
+        f"--subprograms={pkg_spec}:4",
+        f"--subprograms={pkg_body}:10",
+        f"--subprograms={pkg_body}:12",
     ],
     expected_output=(
         ""
@@ -115,9 +115,7 @@ if src_traces:
     # Case 2: line number is not a number
     thistest.log("== Bad line number ==")
     xcov(
-        cov_args + [
-            "--subprograms", f"{os.path.join('..', 'src', 'pkg.ads')}:b",
-        ],
+        cov_args + ["--subprograms", f"{pkg_spec}:b"],
         out="xcov-wrong2.txt",
         register_failure=False,
     )
@@ -138,7 +136,23 @@ if src_traces:
         what="unexpected coverage output",
         regexp=(
             r".*Error when parsing --subprograms argument dumb-file-name:4:"
-            r".*dumb-file-name does not exist"
+            r" unknown source file"
+        ),
+        actual=contents_of("xcov-wrong3.txt"),
+    )
+
+    # Case 4: scope does not exist
+    thistest.log("== No such scope ==")
+    xcov(
+        cov_args + [f"--subprograms={pkg_body}:14"],
+        out="xcov-wrong3.txt",
+        register_failure=False,
+    )
+    thistest.fail_if_no_match(
+        what="unexpected coverage output",
+        regexp=(
+            f".*Error when parsing --subprograms argument {pkg_body}:14:"
+            " unknown subprogram"
         ),
         actual=contents_of("xcov-wrong3.txt"),
     )

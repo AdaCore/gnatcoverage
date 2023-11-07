@@ -1236,6 +1236,11 @@ package body SC_Obligations is
             Remap_SCO_Id (Scope_Ent.From);
             Remap_SCO_Id (Scope_Ent.To);
             Remap_SFI (Relocs, Scope_Ent.Identifier.Decl_SFI);
+
+            --  Register each scope identifiers to make them available to users
+            --  on the command line.
+
+            Available_Subps_Of_Interest.Include (Scope_Ent.Identifier);
          end loop;
 
       end if;

@@ -87,6 +87,7 @@ with Traces_Files;          use Traces_Files;
 with Traces_Files_Registry; use Traces_Files_Registry;
 with Traces_Names;          use Traces_Names;
 with Traces_Source;
+with Types;                 use Types;
 with Version;
 
 procedure GNATcov_Bits_Specific is
@@ -374,20 +375,30 @@ procedure GNATcov_Bits_Specific is
            Subp_Input (Subp_Input'First .. Column_Index - 1);
          Column       : String renames
            Subp_Input (Column_Index + 1 .. Subp_Input'Last);
+
+         Identifier : Scope_Entity_Identifier;
       begin
          if Column_Index = 0 then
             raise Constraint_Error;
          end if;
-         if not Exists (Filename) then
+         Identifier.Decl_SFI :=
+           Get_Index_From_Full_Name
+             (Full_Name => Full_Name (Filename),
+              Kind      => Source_File,
+              Insert    => False);
+         if Identifier.Decl_SFI = No_Source_File then
             Outputs.Fatal_Error
               ("Error when parsing --subprograms argument "
-               &  Subp_Input & ": file " & Filename & " does not exist");
+               & Subp_Input & ": unknown source file");
          end if;
-         Subps_Of_Interest.Include
-           (Scope_Entity_Identifier'
-              (Decl_SFI  =>
-                 Get_Index_From_Full_Name (Full_Name (Filename), Source_File),
-               Decl_Line => Natural'Value (Column)));
+         Identifier.Decl_Line := Natural'Value (Column);
+
+         if not Available_Subps_Of_Interest.Contains (Identifier) then
+            Outputs.Fatal_Error
+              ("Error when parsing --subprograms argument "
+               & Subp_Input & ": unknown subprogram");
+         end if;
+         Subps_Of_Interest.Include (Identifier);
       exception
          --  Deal gracefully with parsing errors
 

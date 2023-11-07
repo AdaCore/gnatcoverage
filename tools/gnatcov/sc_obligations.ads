@@ -214,6 +214,11 @@ package SC_Obligations is
      (Element_Type => Scope_Entity_Identifier);
    subtype Scope_Id_Set is Scope_Id_Sets.Set;
 
+   Available_Subps_Of_Interest : SC_Obligations.Scope_Id_Set;
+   --  Set of subprograms of interest known so far. This is used to validate
+   --  that entries added to Switches.Subp_Of_Interest do exist, i.e. raise
+   --  errors when a requested subprogram of interest is unknown.
+
    package Scope_Entities_Trees is new Ada.Containers.Multiway_Trees
      (Element_Type => Scope_Entity);
    subtype Scope_Entities_Tree is Scope_Entities_Trees.Tree;
