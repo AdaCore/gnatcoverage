@@ -1359,9 +1359,6 @@ private
    --  Set the BDD node for the given condition SCO
 
    type Scope_Traversal_Type is record
-      Scope_Entities : Scope_Entities_Tree;
-      --  Currently traversed scope entities
-
       Scope_Stack   : Scope_Stacks.List;
       Active_Scopes : Scope_Id_Set;
       --  List of currently active scopes
@@ -1383,8 +1380,7 @@ private
    --  next one according to ST's iterator.
 
    No_Scope_Traversal : Scope_Traversal_Type :=
-     (Scope_Entities   => Scope_Entities_Trees.Empty_Tree,
-      Scope_Stack      => Scope_Stacks.Empty_List,
+     (Scope_Stack      => Scope_Stacks.Empty_List,
       Active_Scopes    => Scope_Id_Sets.Empty_Set,
       Active_Scope_Ent => Scope_Entities_Trees.No_Element,
       Next_Scope_Ent   => Scope_Entities_Trees.No_Element,
