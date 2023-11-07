@@ -143,6 +143,11 @@ package body Slocs is
    -- Image --
    -----------
 
+   function Image (Sloc : Local_Source_Location) return String is
+   begin
+      return Img (Sloc.Line) & ":" & Img (Sloc.Column);
+   end Image;
+
    function Image
      (Sloc        : Source_Location;
       Unique_Name : Boolean := False) return String is

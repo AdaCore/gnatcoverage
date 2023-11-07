@@ -418,6 +418,16 @@ procedure GNATcov_Bits_Specific is
       Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
       Inputs.Iterate (SID_Inputs, SID_Load_Wrapper'Access);
 
+      --  Now that all the scope entities that can be referenced by
+      --  --subprograms are known, dump them in verbose mode.
+
+      if Verbose then
+         for CU in 1 .. Last_CU loop
+            Put_Line ("Scopes for " & Image (CU) & ":");
+            Dump (Get_Scope_Entities (CU), Line_Prefix => "| ");
+         end loop;
+      end if;
+
       --  Parse the listed subprograms of interest
 
       Copy_Arg_List (Opt_Subp_Of_Interest, Subprograms_Inputs);

@@ -108,6 +108,11 @@ package SC_Obligations is
    No_CU_Id : constant CU_Id := 0;
    subtype Valid_CU_Id is CU_Id range No_CU_Id + 1 .. CU_Id'Last;
 
+   function Image (CU : CU_Id) return String;
+
+   function Last_CU return CU_Id;
+   --  Return the last compilation unit that was created so far
+
    package CU_Id_Vectors is new Ada.Containers.Vectors (Positive, CU_Id);
 
    function Provider (CU : CU_Id) return SCO_Provider;
@@ -203,6 +208,8 @@ package SC_Obligations is
    --  This information is computed by the instrumenters (that know what is
    --  a scope, and what is not).
 
+   function Image (SE : Scope_Entity) return String;
+
    package Scope_Id_Sets is new Ada.Containers.Ordered_Sets
      (Element_Type => Scope_Entity_Identifier);
    subtype Scope_Id_Set is Scope_Id_Sets.Set;
@@ -210,6 +217,11 @@ package SC_Obligations is
    package Scope_Entities_Trees is new Ada.Containers.Multiway_Trees
      (Element_Type => Scope_Entity);
    subtype Scope_Entities_Tree is Scope_Entities_Trees.Tree;
+
+   procedure Dump
+     (Scope_Entities : Scope_Entities_Trees.Tree; Line_Prefix : String := "");
+   --  Debug helper: print a representation of Scope_Entities on the standard
+   --  output. Each line that is printed has the given Line_Prefix.
 
    subtype Tree_Iterator is
      Scope_Entities_Trees.Tree_Iterator_Interfaces.Forward_Iterator'Class;

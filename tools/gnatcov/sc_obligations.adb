@@ -597,6 +597,44 @@ package body SC_Obligations is
    --
    --  ??? Same comment as above.
 
+   -----------
+   -- Image --
+   -----------
+
+   function Image (SE : Scope_Entity) return String is
+   begin
+      return
+        "Scope for "
+        & Ada.Strings.Unbounded.To_String (SE.Name)
+        & "[" & Slocs.Image (SE.Sloc)
+        & "], identifier at "
+        & Get_Simple_Name (SE.Identifier.Decl_SFI)
+        & ":" & Img (SE.Identifier.Decl_Line);
+   end Image;
+
+   ----------
+   -- Dump --
+   ----------
+
+   procedure Dump
+     (Scope_Entities : Scope_Entities_Trees.Tree; Line_Prefix : String := "")
+   is
+      use Scope_Entities_Trees;
+   begin
+      for Cur in Scope_Entities.Iterate loop
+         declare
+            Prefix : constant String :=
+              Line_Prefix & (1 .. 2 * (Natural (Depth (Cur)) - 2) => ' ');
+            SE     : Scope_Entity renames
+              Scope_Entities.Constant_Reference (Cur);
+         begin
+            Put_Line (Prefix & Image (SE));
+            Put_Line (Prefix & "... from " & Image (SE.From));
+            Put_Line (Prefix & "    to   " & Image (SE.To));
+         end;
+      end loop;
+   end Dump;
+
    ---------------------
    -- Scope_Traversal --
    ---------------------
@@ -2698,6 +2736,28 @@ package body SC_Obligations is
       end if;
       return Sloc;
    end Last_Sloc;
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (CU : CU_Id) return String is
+   begin
+      return
+        (if CU = No_CU_Id
+         then "No CU"
+         else "CU "
+              & Get_Full_Name (CU_Vector.Constant_Reference (CU).Main_Source));
+   end Image;
+
+   -------------
+   -- Last_CU --
+   -------------
+
+   function Last_CU return CU_Id is
+   begin
+      return CU_Vector.Last_Index;
+   end Last_CU;
 
    --------------
    -- Provider --

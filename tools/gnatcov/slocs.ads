@@ -37,6 +37,8 @@ package Slocs is
    function "<"  (L, R : Local_Source_Location) return Boolean;
    function "<=" (L, R : Local_Source_Location) return Boolean;
 
+   function Image (Sloc : Local_Source_Location) return String;
+
    No_Local_Location : constant Local_Source_Location := (0, 0);
 
    type Local_Source_Location_Range is record
