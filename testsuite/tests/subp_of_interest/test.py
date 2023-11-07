@@ -13,8 +13,29 @@ from SUITE.cutils import contents_of, Wdir
 from SUITE.tutils import gprfor, xcov
 from SUITE.gprutils import GPRswitches
 
+
+src_traces = thistest.options.trace_mode == "src"
+
+
+def check_xcov(label, args, expected_output=""):
+    """
+    Run xcov with the given aruments and check its output.
+
+    Also pass it --output-dir={label}, and create that directory beforehand.
+    """
+    log = f"{label}.log"
+    os.mkdir(label)
+    xcov(args + [f"--output-dir={label}"], out=log)
+    thistest.fail_if_not_equal(
+        "'gnatcov coverage' output",
+        expected_output,
+        contents_of(log).strip(),
+    )
+
+
 tmp = Wdir("tmp_")
 
+thistest.log("== Checkpoint creation ==")
 cov_args = build_and_run(
     gprsw=GPRswitches(
         gprfor(srcdirs=os.path.join("..", "src"), mains=["main.adb"])
@@ -28,8 +49,8 @@ cov_args = build_and_run(
 # that the coverage report contains only coverage data for the specified
 # subprograms for source traces. For binary traces, simply check that the
 # gnatcov coverage invocation yields the expected warning.
-os.mkdir("xcov_subp")
-xcov(
+check_xcov(
+    "xcov_subp",
     cov_args
     + [
         "--save-checkpoint",
@@ -40,18 +61,15 @@ xcov(
         f"{os.path.join('..', 'src', 'pkg.adb')}:10",
         "--subprograms",
         f"{os.path.join('..', 'src', 'pkg.adb')}:12",
-        "--output-dir=xcov_subp",
     ],
-    out="coverage.log",
-)
-if thistest.options.trace_mode == "bin":
-    thistest.fail_if_no_match(
-        "gnatcov coverage output",
+    expected_output=(
+        ""
+        if src_traces else
         "warning: Ignoring --subprograms switches as this is not supported"
-        " with binary traces.",
-        contents_of("coverage.log"),
-    )
-else:
+        " with binary traces."
+    ),
+)
+if src_traces:
     check_xcov_reports(
         "*.xcov",
         {
@@ -64,9 +82,11 @@ else:
     # Then check that the checkpoint contains only coverage data for the
     # specific subprogram. To do this, produce a new coverage report from the
     # checkpoint without using the --subprograms switch.
-    xcov(
+    thistest.log("== xcov_no_subp ==")
+    check_xcov(
+        "xcov_no_subp",
         cov_args[:-1]
-        + ["--checkpoint", "trace.ckpt", "--output-dir=xcov_no_subp"]
+        + ["--checkpoint", "trace.ckpt"],
     )
     check_xcov_reports(
         "*.xcov",
@@ -80,6 +100,7 @@ else:
     # Also check the warnings when the subprogram switch is ill-formed
 
     # Case 1: missing colon in the argument
+    thistest.log("== Missing colon ==")
     xcov(
         cov_args + ["--subprograms", "no-colon"],
         out="xcov-wrong1.txt",
@@ -92,6 +113,7 @@ else:
     )
 
     # Case 2: line number is not a number
+    thistest.log("== Bad line number ==")
     xcov(
         cov_args + [
             "--subprograms", f"{os.path.join('..', 'src', 'pkg.ads')}:b",
@@ -106,6 +128,7 @@ else:
     )
 
     # Case 3: file does not exist
+    thistest.log("== No such file ==")
     xcov(
         cov_args + ["--subprograms", "dumb-file-name:4"],
         out="xcov-wrong3.txt",
