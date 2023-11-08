@@ -246,12 +246,19 @@ package SC_Obligations is
    --  Is_Active to know whether a given scope is active in the given
    --  traversal.
 
-   function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type;
+   function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type
+     with Post => Last_SCO (Scope_Traversal'Result) = No_SCO_Id;
    --  Return a scope traversal for the given compilation unit
 
-   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id);
+   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id)
+     with Pre  => Last_SCO (ST) <= SCO,
+          Post => Last_SCO (ST) = SCO;
    --  Traverse the given SCO and update the Scope_Traversal accordingly. Note
    --  that the scope traversal must be done on increasing SCOs identifiers.
+
+   function Last_SCO (ST : Scope_Traversal_Type) return SCO_Id;
+   --  Return the last SCO that was passed to Traverse_SCO, or No_SCO_Id if
+   --  Traverse_SCO has not been called yet on ST.
 
    function Is_Active
      (ST                : Scope_Traversal_Type;
@@ -1376,6 +1383,11 @@ private
 
       It : Iterator_Acc;
       --  Iterator to traverse the scope tree
+
+      Last_SCO : SCO_Id;
+      --  Keep track of the last SCO requested with Traverse_SCO. We use this
+      --  to check that SCOs are requested in the right order (lower Ids to
+      --  higher ones).
    end record;
 
    procedure Set_Active_Scope_Ent
@@ -1389,6 +1401,7 @@ private
       Active_Scopes    => Scope_Id_Sets.Empty_Set,
       Active_Scope_Ent => Scope_Entities_Trees.No_Element,
       Next_Scope_Ent   => Scope_Entities_Trees.No_Element,
-      It               => null);
+      It               => null,
+      Last_SCO         => No_SCO_Id);
 
 end SC_Obligations;

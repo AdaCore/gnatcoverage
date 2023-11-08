@@ -664,6 +664,7 @@ package body SC_Obligations is
       Result.Scope_Stack := Scope_Stacks.Empty_List;
       Result.Active_Scopes := Scope_Id_Sets.Empty;
       Set_Active_Scope_Ent (Result, Result.It.First);
+      Result.Last_SCO := No_SCO_Id;
       return Result;
    end Scope_Traversal;
 
@@ -674,6 +675,8 @@ package body SC_Obligations is
    procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id) is
       use Scope_Entities_Trees;
    begin
+      ST.Last_SCO := SCO;
+
       --  In some cases (C metaprogramming instances), e.g.
       --
       --  foo.h:
@@ -732,6 +735,15 @@ package body SC_Obligations is
          end if;
       end loop;
    end Traverse_SCO;
+
+   --------------
+   -- Last_SCO --
+   --------------
+
+   function Last_SCO (ST : Scope_Traversal_Type) return SCO_Id is
+   begin
+      return ST.Last_SCO;
+   end Last_SCO;
 
    --------------------------
    -- Set_Active_Scope_Ent --
