@@ -260,12 +260,11 @@ package SC_Obligations is
    --  Return the last SCO that was passed to Traverse_SCO, or No_SCO_Id if
    --  Traverse_SCO has not been called yet on ST.
 
-   function Is_Active
-     (ST                : Scope_Traversal_Type;
-      Subps_Of_Interest : Scope_Id_Set) return Boolean;
-   --  Return whether any of the scopes in Subps_Of_Interest is currently
-   --  active. Return True if Subps_Of_Interest is empty (i.e. consider all
-   --  subprograms of interest in that case).
+   function In_Scope_Of_Interest (ST : Scope_Traversal_Type) return Boolean;
+   --  Return whether at least one scope in Switches.Subps_Of_Interest contains
+   --  Last_SCO (ST). Note that this also returns True if
+   --  Switches.Subps_Of_Interest is empty (i.e. consider that all subprograms
+   --  are of interest in that case).
 
    No_Scope_Entity : constant Scope_Entity :=
      (From       => No_SCO_Id,

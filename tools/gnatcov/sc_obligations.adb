@@ -757,18 +757,16 @@ package body SC_Obligations is
       ST.Next_Scope_Ent := ST.It.Next (Scope_Ent);
    end Set_Active_Scope_Ent;
 
-   ---------------
-   -- Is_Active --
-   ---------------
+   --------------------------
+   -- In_Scope_Of_Interest --
+   --------------------------
 
-   function Is_Active
-     (ST                : Scope_Traversal_Type;
-      Subps_Of_Interest : Scope_Id_Set) return Boolean is
+   function In_Scope_Of_Interest (ST : Scope_Traversal_Type) return Boolean is
    begin
       return Subps_Of_Interest.Is_Empty
         or else not Scope_Id_Sets.Is_Empty
           (ST.Active_Scopes.Intersection (Subps_Of_Interest));
-   end Is_Active;
+   end In_Scope_Of_Interest;
 
    -----------------
    -- Add_Address --
