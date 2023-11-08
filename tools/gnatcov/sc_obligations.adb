@@ -19,6 +19,7 @@
 --  Source Coverage Obligations
 
 with Ada.Characters.Handling;     use Ada.Characters.Handling;
+with Ada.Exceptions;
 with Ada.Strings.Fixed;           use Ada.Strings.Fixed;
 with Ada.Streams;                 use Ada.Streams;
 with Ada.Text_IO;                 use Ada.Text_IO;
@@ -49,6 +50,17 @@ package body SC_Obligations is
    subtype Source_Location is Slocs.Source_Location;
    No_Location : Source_Location renames Slocs.No_Location;
    --  (not SCOs.Source_Location)
+
+   function SCOs_Nested_And_Ordered
+     (Tree : Scope_Entities_Trees.Tree) return Boolean;
+   --  Return whether nodes in Tree are:
+   --
+   --  * properly nested: SCO ranges (Element.From .. Element.To) are disjoint
+   --    for two sibling elements, and all nodes' SCO ranges are included in
+   --    its parents';
+   --
+   --  * properly ordered: if E1 and E2 are consecutive siblings, E1.To must be
+   --    smaller than E2.From.
 
    ---------------
    -- Instances --
@@ -1242,6 +1254,7 @@ package body SC_Obligations is
 
             Available_Subps_Of_Interest.Include (Scope_Ent.Identifier);
          end loop;
+         pragma Assert (SCOs_Nested_And_Ordered (CP_CU.Scope_Entities));
 
       end if;
 
@@ -4362,6 +4375,106 @@ package body SC_Obligations is
       return Scope_Entities_Trees.Empty_Tree;
    end Get_Scope_Entities;
 
+   -----------------------------
+   -- SCOs_Nested_And_Ordered --
+   -----------------------------
+
+   function SCOs_Nested_And_Ordered
+     (Tree : Scope_Entities_Trees.Tree) return Boolean
+   is
+      use Scope_Entities_Trees;
+
+      Failure : exception;
+      --  Exception raised when the nesting/ordering invariant is found to be
+      --  broken.
+
+      Lower_Bound : SCO_Id := No_SCO_Id;
+      --  At every step of the check, this designates the minimum possible SCO
+      --  value for the .From component for the next element to inspect.
+
+      procedure Check_Element (Cur : Cursor);
+      --  Check that Cur's From/To SCOs range is not empty and
+      --  Parent_From .. Parent_To range and that they are correctly ordered.
+
+      -------------------
+      -- Check_Element --
+      -------------------
+
+      procedure Check_Element (Cur : Cursor) is
+         SE    : Scope_Entity renames Tree.Constant_Reference (Cur);
+         Child : Cursor := First_Child (Cur);
+
+         Last : SCO_Id;
+         --  SCO range upper bound for Cur's last child, or SE.From if there is
+         --  no child.
+      begin
+         --  Check that SCO ranges are never empty
+
+         if SE.From > SE.To then
+            raise Failure with "empty SCO range for " & Image (SE);
+         end if;
+
+         --  Check that the SCO range lower bound is both:
+         --
+         --  * greater or equal to the parent's lower bound (this is the first
+         --    half of the nesting check;
+         --
+         --  * greater than the previous sibling (if any: this checks the
+         --    ordering).
+
+         if SE.From < Lower_Bound then
+            raise Failure with "SCO lower bound too low for " & Image (SE);
+         end if;
+         Lower_Bound := SE.From;
+         Last := SE.From;
+
+         while Has_Element (Child) loop
+            Check_Element (Child);
+            Child := Next_Sibling (Child);
+            Last := Lower_Bound;
+
+            --  The next sibling's SCO range cannot overlap with the current's
+
+            Lower_Bound := Lower_Bound + 1;
+         end loop;
+
+         --  Check that the SCO range upper bound is greater or equal to
+         --  the upper bound of the last child's upper bound (this is the
+         --  second half of the nesting check).
+
+         if SE.To < Last then
+            raise Failure with "SCO higher bound too low for " & Image (SE);
+         end if;
+         Lower_Bound := SE.To;
+      end Check_Element;
+
+      Cur : Cursor := First_Child (Tree.Root);
+
+   --  Start of processing for SCOs_Nested_And_Ordered
+
+   begin
+      while Has_Element (Cur) loop
+         Check_Element (Cur);
+         Cur := Next_Sibling (Cur);
+      end loop;
+      return True;
+
+   exception
+      when Exc : Failure =>
+
+         --  In case of failure, be helpful and print the offending tree for
+         --  the verbose mode.
+
+         if Verbose then
+            Put_Line
+              ("The following tree of scopes breaks the nesting/ordering"
+               & " invariant:");
+            Put_Line (Ada.Exceptions.Exception_Message (Exc));
+            Dump (Tree, "| ");
+         end if;
+         return False;
+   end SCOs_Nested_And_Ordered;
+
    ------------------------
    -- Set_Scope_Entities --
    ------------------------
@@ -4375,7 +4488,14 @@ package body SC_Obligations is
       --  Scopes are supposed to be set only once per compilation unit
 
       pragma Assert (SE.Is_Empty);
+
+      pragma Assert (SCOs_Nested_And_Ordered (Scope_Entities));
       SE := Scope_Entities;
+
+      if Verbose then
+         Put_Line ("Setting scopes for " & Image (CU) & ":");
+         Dump (SE, Line_Prefix => "| ");
+      end if;
    end Set_Scope_Entities;
 
    -------------------------------
