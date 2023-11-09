@@ -62,6 +62,15 @@ package body SC_Obligations is
    --  * properly ordered: if E1 and E2 are consecutive siblings, E1.To must be
    --    smaller than E2.From.
 
+   function Covers_SCO (SE : Scope_Entity; SCO : SCO_Id) return Boolean
+   is (SCO in SE.From .. SE.To);
+   --  Return whether SCO is covered by SE's SCO range
+
+   function Covers_SCO
+     (Cur : Scope_Entities_Trees.Cursor; SCO : SCO_Id) return Boolean
+   is (Covers_SCO (Scope_Entities_Trees.Element (Cur), SCO));
+   --  Return whether SCO is covered by that element's SCO range
+
    ---------------
    -- Instances --
    ---------------
@@ -658,13 +667,10 @@ package body SC_Obligations is
          return No_Scope_Traversal;
       end if;
       Result.It :=
-        new Tree_Iterator'
-          (Scope_Entities_Trees.Iterate
-             (CU_Vector.Reference (CU).Element.Scope_Entities));
-      Result.Scope_Stack := Scope_Stacks.Empty_List;
-      Result.Active_Scopes := Scope_Id_Sets.Empty;
-      Set_Active_Scope_Ent (Result, Result.It.First);
+        new Tree_Iterator'(CU_Vector.Reference (CU).Scope_Entities.Iterate);
       Result.Last_SCO := No_SCO_Id;
+      Result.Current_SE := Scope_Entities_Trees.No_Element;
+      Result.Next_SE := Result.It.First;
       return Result;
    end Scope_Traversal;
 
@@ -674,66 +680,30 @@ package body SC_Obligations is
 
    procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id) is
       use Scope_Entities_Trees;
+      Progressed : Boolean := False;
    begin
       ST.Last_SCO := SCO;
 
-      --  In some cases (C metaprogramming instances), e.g.
-      --
-      --  foo.h:
-      --    TYPE ret = 0;
-      --    return (TYPE) ret + 1;
-      --
-      --  foo.c:
-      --    int
-      --    one_int (void)
-      --    {
-      --    #define TYPE int
-      --    #include "foo.h"
-      --    #undef TYPE
-      --    }
-      --
-      --  Active_Scope_Ent is null in the aforementionned case, as the inner
-      --  scope for the statements in foo.h is the `one_int` function defined
-      --  in foo.c. The scope implementation assumes that scopes do not cross
-      --  sources, which does not hold here.
-      --
-      --  TODO???: This should be fixed by dealing with metaprogramming
-      --  instances in a more appropriate way, which should be done under
-      --  eng/cov/gnatcoverage#103. For now, return early in that case.
+      --  Move Next_SE forward in the iterator until we go past the deepest
+      --  scope that covers SCO. Update Current_SE along the way.
 
-      if ST.Active_Scope_Ent = No_Element then
-         return;
-      end if;
-
-      --  Find the innermost scope featuring this SCO and update the list of
-      --  active scopes as we go.
-
-      while SCO > Element (ST.Active_Scope_Ent).To
-        or else (ST.Next_Scope_Ent /= No_Element
-                 and then SCO >= Element (ST.Next_Scope_Ent).From)
-      loop
-         --  We can enter the next scope only when we have reached its parent
-         --  scope. If the next scope is null, this means that we are in the
-         --  last scope of the unit.
-
-         if ST.Next_Scope_Ent /= No_Element
-           and then ST.Active_Scope_Ent = Parent (ST.Next_Scope_Ent)
-           and then SCO >= Element (ST.Next_Scope_Ent).From
-         then
-            Set_Active_Scope_Ent (ST, ST.Next_Scope_Ent);
-            ST.Scope_Stack.Append (ST.Active_Scope_Ent);
-            ST.Active_Scopes.Insert
-              (Element (ST.Active_Scope_Ent).Identifier);
-         else
-            --  Otherwise, go up the parent chain and pop the last entry from
-            --  the active scopes.
-
-            ST.Active_Scope_Ent := Parent (ST.Active_Scope_Ent);
-            ST.Active_Scopes.Delete
-              (Element (ST.Scope_Stack.Last_Element).Identifier);
-            ST.Scope_Stack.Delete_Last;
-         end if;
+      while Has_Element (ST.Next_SE) and then Covers_SCO (ST.Next_SE, SCO) loop
+         ST.Current_SE := ST.Next_SE;
+         ST.Next_SE := ST.It.Next (ST.Next_SE);
+         Progressed := True;
       end loop;
+
+      --  If we have not found a more specific scope for SCO, we still may need
+      --  to update Current_SE in case the requested SCO is not covered anymore
+      --  by Current_SE.
+
+      if not Progressed then
+         while Has_Element (ST.Current_SE)
+               and then not Covers_SCO (ST.Current_SE, SCO)
+         loop
+            ST.Current_SE := Parent (ST.Current_SE);
+         end loop;
+      end if;
    end Traverse_SCO;
 
    --------------
@@ -746,26 +716,31 @@ package body SC_Obligations is
    end Last_SCO;
 
    --------------------------
-   -- Set_Active_Scope_Ent --
-   --------------------------
-
-   procedure Set_Active_Scope_Ent
-     (ST        : in out Scope_Traversal_Type;
-      Scope_Ent : Scope_Entities_Trees.Cursor) is
-   begin
-      ST.Active_Scope_Ent := Scope_Ent;
-      ST.Next_Scope_Ent := ST.It.Next (Scope_Ent);
-   end Set_Active_Scope_Ent;
-
-   --------------------------
    -- In_Scope_Of_Interest --
    --------------------------
 
    function In_Scope_Of_Interest (ST : Scope_Traversal_Type) return Boolean is
+      use Scope_Entities_Trees;
+      Cur : Cursor;
    begin
-      return Subps_Of_Interest.Is_Empty
-        or else not Scope_Id_Sets.Is_Empty
-          (ST.Active_Scopes.Intersection (Subps_Of_Interest));
+      --  If no subprogram of interest was requested, consider that they are
+      --  all of interest.
+
+      if Subps_Of_Interest.Is_Empty then
+         return True;
+      end if;
+
+      --  Otherwise, find at least one scope that covers SCO and that is a
+      --  subprogram of interest.
+
+      Cur := ST.Current_SE;
+      while Has_Element (Cur) loop
+         if Subps_Of_Interest.Contains (Element (Cur).Identifier) then
+            return True;
+         end if;
+         Cur := Parent (Cur);
+      end loop;
+      return False;
    end In_Scope_Of_Interest;
 
    -----------------

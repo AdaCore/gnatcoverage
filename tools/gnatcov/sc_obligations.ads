@@ -1370,16 +1370,6 @@ private
    --  Set the BDD node for the given condition SCO
 
    type Scope_Traversal_Type is record
-      Scope_Stack   : Scope_Stacks.List;
-      Active_Scopes : Scope_Id_Set;
-      --  List of currently active scopes
-
-      Active_Scope_Ent : Scope_Entities_Trees.Cursor;
-      --  Innermost currently active scope
-
-      Next_Scope_Ent : Scope_Entities_Trees.Cursor;
-      --  Next active scope
-
       It : Iterator_Acc;
       --  Iterator to traverse the scope tree
 
@@ -1387,20 +1377,18 @@ private
       --  Keep track of the last SCO requested with Traverse_SCO. We use this
       --  to check that SCOs are requested in the right order (lower Ids to
       --  higher ones).
+
+      Current_SE : Scope_Entities_Trees.Cursor;
+      --  Scope that is the deepest in the scope tree and that covers Last_SCO
+
+      Next_SE : Scope_Entities_Trees.Cursor;
+      --  Next scope that Traverse_SCO needs to consider
    end record;
 
-   procedure Set_Active_Scope_Ent
-     (ST        : in out Scope_Traversal_Type;
-      Scope_Ent : Scope_Entities_Trees.Cursor);
-   --  Set ST.Active_Scope_Ent to Scope_Ent and set ST.Next_Scope_Ent to the
-   --  next one according to ST's iterator.
-
    No_Scope_Traversal : Scope_Traversal_Type :=
-     (Scope_Stack      => Scope_Stacks.Empty_List,
-      Active_Scopes    => Scope_Id_Sets.Empty_Set,
-      Active_Scope_Ent => Scope_Entities_Trees.No_Element,
-      Next_Scope_Ent   => Scope_Entities_Trees.No_Element,
-      It               => null,
-      Last_SCO         => No_SCO_Id);
+     (It            => null,
+      Last_SCO      => No_SCO_Id,
+      Current_SE    => Scope_Entities_Trees.No_Element,
+      Next_SE       => Scope_Entities_Trees.No_Element);
 
 end SC_Obligations;
