@@ -1232,7 +1232,16 @@ package body SC_Obligations is
          for Scope_Ent of CP_CU.Scope_Entities loop
             Remap_SCO_Id (Scope_Ent.From);
             Remap_SCO_Id (Scope_Ent.To);
-            Remap_SFI (Relocs, Scope_Ent.Identifier.Decl_SFI);
+
+            --  Scopes whose identifier references ignored source files will
+            --  lose their identifier: such scopes will remain, but users will
+            --  not be able to mark them of interest.
+
+            if SFI_Ignored (Relocs, Scope_Ent.Identifier.Decl_SFI) then
+               Scope_Ent.Identifier := No_Scope_Entity_Identifier;
+            else
+               Remap_SFI (Relocs, Scope_Ent.Identifier.Decl_SFI);
+            end if;
 
             --  Register each scope identifiers to make them available to users
             --  on the command line.
@@ -1240,7 +1249,6 @@ package body SC_Obligations is
             Available_Subps_Of_Interest.Include (Scope_Ent.Identifier);
          end loop;
          pragma Assert (SCOs_Nested_And_Ordered (CP_CU.Scope_Entities));
-
       end if;
 
       --  Preallocate line table entries for last file

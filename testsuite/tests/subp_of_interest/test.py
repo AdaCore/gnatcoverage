@@ -53,15 +53,16 @@ cov_args = build_and_run(
 # that the coverage report contains only coverage data for the specified
 # subprograms for source traces. For binary traces, simply check that the
 # gnatcov coverage invocation yields the expected warning.
+ckpt_filename = "trace.ckpt"
 check_xcov(
     "xcov_subp",
     cov_args
     + [
         "--save-checkpoint",
-        "trace.ckpt",
+        ckpt_filename,
         f"--subprograms={pkg_spec}:4",
-        f"--subprograms={pkg_body}:10",
-        f"--subprograms={pkg_body}:12",
+        f"--subprograms={pkg_body}:19",
+        f"--subprograms={pkg_body}:20",
     ],
     expected_output=(
         ""
@@ -70,12 +71,14 @@ check_xcov(
         " with binary traces."
     ),
 )
+cov_ckpt_args = cov_args[:-1] + ["--checkpoint", ckpt_filename]
 if src_traces:
     check_xcov_reports(
         "*.xcov",
         {
             "main.adb.xcov": {},
-            "pkg.adb.xcov": {"+": {6, 10, 12}},
+            "pkg.ads.xcov": {},
+            "pkg.adb.xcov": {"+": {11, 19, 30}},
         },
         "xcov_subp",
     )
@@ -84,18 +87,35 @@ if src_traces:
     # specific subprogram. To do this, produce a new coverage report from the
     # checkpoint without using the --subprograms switch.
     thistest.log("== xcov_no_subp ==")
-    check_xcov(
-        "xcov_no_subp",
-        cov_args[:-1]
-        + ["--checkpoint", "trace.ckpt"],
-    )
+    check_xcov("xcov_no_subp", cov_ckpt_args)
     check_xcov_reports(
         "*.xcov",
         {
             "main.adb.xcov": {"-": {5, 6}},
-            "pkg.adb.xcov": {"+": {6, 10, 12}, "-": {11, 14, 15, 16}},
+            "pkg.ads.xcov": {"-": {7}},
+            "pkg.adb.xcov": {"+": {11, 19, 30}, "-": {22, 33, 34, 35}},
         },
         "xcov_no_subp",
+    )
+
+    # Check that we can still select subprograms of interest declared in the
+    # package body, when the package specification is ignored through
+    # --ignored-source-files.
+    thistest.log("== xcov_ignore ==")
+    check_xcov(
+        "xcov_ignore",
+        cov_args + [
+            f"--subprograms={pkg_body}:20",
+            "--ignore-source-files=pkg.ads",
+        ],
+    )
+    check_xcov_reports(
+        "*.xcov",
+        {
+            "main.adb.xcov": {},
+            "pkg.adb.xcov": {"+": {30}},
+        },
+        "xcov_ignore",
     )
 
     # Also check the warnings when the subprogram switch is ill-formed

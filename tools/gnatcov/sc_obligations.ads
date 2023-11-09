@@ -177,6 +177,9 @@ package SC_Obligations is
    --  and line for the original declaration (which is the body declaration for
    --  C/C++ and the specification declaration for Ada).
 
+   No_Scope_Entity_Identifier : constant Scope_Entity_Identifier :=
+     (Decl_SFI => No_Source_File, Decl_Line => 0);
+
    function "<" (L, R : Scope_Entity_Identifier) return Boolean is
      (if L.Decl_SFI = R.Decl_SFI
       then L.Decl_Line < R.Decl_Line
@@ -271,7 +274,7 @@ package SC_Obligations is
       To         => No_SCO_Id,
       Name       => +"",
       Sloc       => No_Local_Location,
-      Identifier => (Decl_SFI => 0, Decl_Line => 0));
+      Identifier => No_Scope_Entity_Identifier);
 
    type Any_SCO_Kind is (Removed, Statement, Decision, Condition, Operator);
    subtype SCO_Kind is Any_SCO_Kind range Statement .. Operator;
