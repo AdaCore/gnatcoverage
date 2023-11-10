@@ -32,6 +32,7 @@ with GPR2.Containers;
 with GPR2.Log;
 with GPR2.Path_Name;
 with GPR2.Project.Attribute;
+with GPR2.Project.Attribute_Index;
 with GPR2.Project.Configuration;
 with GPR2.Project.Registry.Attribute;
 with GPR2.Project.Tree;
@@ -168,6 +169,11 @@ package body Setup_RTS is
    --  Write Config as a JSON file in Project_Dir for the Project_Name runtime
    --  project to install. Use a filename that will match the Install'Artifacts
    --  attribute in the runtime project file.
+
+   function Has_Shared_Lib
+     (RTS_Dir : String; Shared_Lib_Ext : String) return Boolean;
+   --  Return whether there is any file with extension Shared_Lib_Ext in the
+   --  directory RTS_Dir/adalib.
 
    ------------------
    -- Load_Project --
@@ -491,23 +497,64 @@ package body Setup_RTS is
          end;
       end if;
 
-      --  Query the support for libraries in this configuration. When GPRconfig
-      --  fails to find the toolchain for the requested target/RTS, it only
-      --  emits warnings (no Invalid_Project exception raised in the call to
-      --  Load above). In this case, we reach this point and have an empty
-      --  string for the Library_Support attribute.
+      --  First, determine what kind of library is supported by the current
+      --  target / RTS configuration. If we have full library support, still
+      --  try to determine if we have access to a shared Ada runtime as it is
+      --  not always available.
+      --
+      --  To do this, we search in the <Runtime_Dir>/adalib directory any file
+      --  with a <Shared_Library_Suffix> extension. If we can't find anything
+      --  then assume only static libraries are supported.
+      --
+      --  If GPRconfig fails to find a toolchain, it only emits warnings (no
+      --  Invalid_Project exception raise in the call to Load above), so when
+      --  reaching this point, assume empty strings for all the attributes,
+      --  (and thus no library support).
 
       declare
-         Attr_Id : constant GPR2.Q_Attribute_Id :=
-           GPR2.Project.Registry.Attribute.Library_Support;
-         Attr    : constant GPR2.Project.Attribute.Object :=
-           Prj.Configuration.Corresponding_View.Attribute (Attr_Id);
-         LS      : constant String :=
-           (if Attr.Is_Defined
-            then String (Attr.Value.Text)
-            else "");
+         function Config_Attribute
+           (Id    : GPR2.Q_Attribute_Id;
+            Index : GPR2.Project.Attribute_Index.Object :=
+              GPR2.Project.Attribute_Index.Undefined) return String;
+         --  Return the string value for the attribute denoted by Id, at Index.
+         --  If the attribute value is not defined, return the empty string.
+
+         ----------------------
+         -- Config_Attribute --
+         ----------------------
+
+         function Config_Attribute
+           (Id    : GPR2.Q_Attribute_Id;
+            Index : GPR2.Project.Attribute_Index.Object :=
+              GPR2.Project.Attribute_Index.Undefined) return String
+         is
+            Attr : constant GPR2.Project.Attribute.Object :=
+              Prj.Configuration.Corresponding_View.Attribute (Id, Index);
+         begin
+            return (if Attr.Is_Defined then String (Attr.Value.Text) else "");
+         end Config_Attribute;
+
+         Lib_Support_Str : constant String :=
+           Config_Attribute (GPR2.Project.Registry.Attribute.Library_Support);
+
+         RTS_Dir : constant String :=
+           Config_Attribute
+             (GPR2.Project.Registry.Attribute.Runtime_Dir,
+              Index =>
+                GPR2.Project.Attribute_Index.Create (GPR2.Ada_Language));
+
+         Shared_Lib_Ext : constant String :=
+           Config_Attribute
+             (GPR2.Project.Registry.Attribute.Shared_Library_Suffix);
       begin
-         Lib_Support := Library_Support'Value (LS);
+         Lib_Support := Library_Support'Value (Lib_Support_Str);
+
+         if Lib_Support = Full
+           and then not Has_Shared_Lib (RTS_Dir, Shared_Lib_Ext)
+         then
+            Lib_Support := Static_Only;
+         end if;
+
       exception
          when Constraint_Error =>
             Fatal_Error ("Cannot get library support for this configuration");
@@ -1113,5 +1160,36 @@ package body Setup_RTS is
 
       return Had_Warnings;
    end Check_RTS_Profile;
+
+   --------------------
+   -- Has_Shared_Lib --
+   --------------------
+
+   function Has_Shared_Lib
+     (RTS_Dir : String; Shared_Lib_Ext : String) return Boolean
+   is
+      Lib_Dir_Search : Search_Type;
+   begin
+      if not Exists (RTS_Dir) then
+         return False;
+      end if;
+
+      Start_Search
+        (Lib_Dir_Search,
+         Directory =>
+         RTS_Dir & GNAT.OS_Lib.Directory_Separator & "adalib",
+         Pattern   => "*" & Shared_Lib_Ext,
+         Filter    =>
+           (Ordinary_File => True, others => False));
+
+      return Res : constant Boolean := More_Entries (Lib_Dir_Search) do
+         End_Search (Lib_Dir_Search);
+      end return;
+
+   exception
+      when Ada.Directories.Name_Error =>
+         End_Search (Lib_Dir_Search);
+         return False;
+   end Has_Shared_Lib;
 
 end Setup_RTS;
