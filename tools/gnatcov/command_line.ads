@@ -1128,9 +1128,10 @@ package Command_Line is
         (Long_Name => "--subprograms",
          Pattern   => "FILE:LINE",
          Help      =>
-           "Restrict coverage analysis to specific subprograms designated by"
-         & " the specification source line for Ada, and by the body source"
-         & " for C/C++.",
+           "Experimental feature: restrict coverage analysis to specific"
+           & " subprograms designated by the specification source line for"
+           & " Ada, or to specific functions designated by the definition"
+           & " source line for C/C++.",
          Commands  => (Cmd_Coverage => True, others => False),
          Internal  => False),
       Opt_Scenario_Var => Create
