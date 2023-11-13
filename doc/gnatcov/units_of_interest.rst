@@ -203,8 +203,9 @@ and then executing::
 
   gnatcov <command> --units=@units.list
 
-Conveying *subprograms* of interest
-***********************************
+Conveying *subprograms* of interest (experimental)
+**************************************************
+>>>>>>> 9544dc8f5 (Mark the --subprograms switch as experimental)
 
 |gcv| enables even finer grain control through the use of ``--subprograms``
 switch, which restricts coverage analysis to the specified list of subprograms
