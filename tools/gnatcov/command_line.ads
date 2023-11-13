@@ -136,6 +136,7 @@ package Command_Line is
       Opt_Dot_Replacement,
       Opt_Gnatem,
       Opt_Gnatec,
+      Opt_Ada_Preprocessor_Data,
       Opt_Project_Name,
       Opt_Source_Root);
    --  Set of string options we support. More complete descriptions below.
@@ -1068,6 +1069,18 @@ package Command_Line is
          Pattern      => "NAME",
          Help         =>
            "Name of the file containing configuration pragmas.",
+         Commands     =>
+           (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+            others                                      => False),
+         At_Most_Once => False,
+         Internal     => True),
+
+      Opt_Ada_Preprocessor_Data => Create
+        (Long_Name    => "--ada-preprocessor-data",
+         Pattern      => "NAME",
+         Help         =>
+           "Name of the file containing preprocessor configuration data for"
+           & " Ada.",
          Commands     =>
            (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
             others                                      => False),

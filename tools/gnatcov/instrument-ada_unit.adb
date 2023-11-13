@@ -46,6 +46,7 @@ with ALI_Files;        use ALI_Files;
 with Coverage_Options; use Coverage_Options;
 with Coverage;         use Coverage;
 with Diagnostics;      use Diagnostics;
+with Instrument.Ada_Preprocessing;
 with Namet;            use Namet;
 with Outputs;          use Outputs;
 with Paths;            use Paths;
@@ -550,10 +551,6 @@ package body Instrument.Ada_Unit is
    --  Ensure that the unit being instrumented has a dependency on the named
    --  Unit, which must be specified in the normalized form expected for
    --  FQN_Sets (lower case, period separated, fully qualified).
-
-   function Index_In_Rewriting_Tree (N : Ada_Node'Class) return Positive;
-   --  Assuming that the rewriting node for N has a parent, return its index in
-   --  that parent's list of children.
 
    function Make_MCDC_State_Name (LL_SCO_Id : Nat) return String is
      ("MCDC_State_" & Img (Integer (LL_SCO_Id)));
@@ -1564,7 +1561,7 @@ package body Instrument.Ada_Unit is
 
       --  The second child of RH_Call is its list of actual parameters
 
-      Append_Child (Child (RH_Call, 2), D);
+      Insert_Last (Child (RH_Call, Member_Refs.Call_Expr_F_Suffix), D);
       return Convert_To (IC, B_Type, D_Type, RH_Call);
    end Make_Decision_Witness;
 
@@ -1612,8 +1609,9 @@ package body Instrument.Ada_Unit is
 
       --  The second child of RH_Call is its list of actual parameters
 
-      Append_Child
-        (Child (RH_Call, 2), Convert_To (IC, C_Type, B_Type, RH_Cond));
+      Insert_Last
+        (Child (RH_Call, Member_Refs.Call_Expr_F_Suffix),
+         Convert_To (IC, C_Type, B_Type, RH_Cond));
       return Convert_To (IC, B_Type, C_Type, RH_Call);
    end Make_Condition_Witness;
 
@@ -1765,7 +1763,7 @@ package body Instrument.Ada_Unit is
          return;
       end if;
 
-      Append_Child
+      Insert_Last
         (Handle (UIC.Root_Unit.F_Prelude),
          Create_From_Template
            (RH,
@@ -1775,27 +1773,6 @@ package body Instrument.Ada_Unit is
 
       UIC.Withed_Units.Include (Unit);
    end Ensure_With;
-
-   -----------------------------
-   -- Index_In_Rewriting_Tree --
-   -----------------------------
-
-   function Index_In_Rewriting_Tree (N : Ada_Node'Class) return Positive is
-      RH : constant Node_Rewriting_Handle := Handle (N);
-      P  : constant Node_Rewriting_Handle := Parent (RH);
-   begin
-      pragma Assert (P /= No_Node_Rewriting_Handle);
-      for I in 1 .. Children_Count (P) loop
-         if Child (P, I) = RH then
-            return I;
-         end if;
-      end loop;
-
-      --  If we reach this point, this means the rewriting tree is corrupted (a
-      --  node does not belong to its parent's children).
-
-      return (raise Program_Error with "corrupted rewriting tree");
-   end Index_In_Rewriting_Tree;
 
    -----------------------
    -- Insert_MCDC_State --
@@ -1814,35 +1791,21 @@ package body Instrument.Ada_Unit is
         Name & " : constant GNATCov_RTS.Sys.Address := "
         & Name & "_Var'Address;";
 
+      Decl       : constant Node_Rewriting_Handle :=
+        Create_From_Template
+         (UIC.Rewriting_Context,
+          Template  => To_Wide_Wide_String (Var_Decl_Img),
+          Arguments => (1 => E.Common_Buffers),
+          Rule      => Object_Decl_Rule);
+      Rep_Clause : constant Node_Rewriting_Handle :=
+        Create_From_Template
+         (UIC.Rewriting_Context,
+          Template  => To_Wide_Wide_String (Addr_Decl_Img),
+          Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
+          Rule      => Object_Decl_Rule);
    begin
-      Insert_Child
-        (Inserter.Local_Decls, 1,
-         Create_From_Template
-          (UIC.Rewriting_Context,
-           Template  => To_Wide_Wide_String (Var_Decl_Img),
-           Arguments => (1 => E.Common_Buffers),
-           Rule      => Object_Decl_Rule));
-      Insert_Child
-        (Inserter.Local_Decls, 2,
-         Create_From_Template
-          (UIC.Rewriting_Context,
-           Template  => To_Wide_Wide_String (Addr_Decl_Img),
-           Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
-           Rule      => Object_Decl_Rule));
-
-      --  If we are adding MCDC state variables to the decls currently being
-      --  instrumented, we need to indicate that we just added two extra
-      --  elements in the list of declarations, so that following insertions
-      --  are made at the correct index in this list.
-
-      if UIC.Current_Insertion_Info /= null
-        and then UIC.Current_Insertion_Info.Method = Declaration
-        and then UIC.Current_Insertion_Info.RH_List = Inserter.Local_Decls
-      then
-         UIC.Current_Insertion_Info.Rewriting_Offset :=
-           UIC.Current_Insertion_Info.Rewriting_Offset + 2;
-      end if;
-
+      Insert_First (Inserter.Local_Decls, Rep_Clause);
+      Insert_First (Inserter.Local_Decls, Decl);
       return Name;
    end Insert_MCDC_State;
 
@@ -2203,7 +2166,7 @@ package body Instrument.Ada_Unit is
          --  Create the generic formal type node and add it to the list of
          --  generic formals.
 
-         Append_Child
+         Insert_Last
            (NP_Nodes.Formals,
             Create_Generic_Formal_Type_Decl
               (RC,
@@ -2250,7 +2213,7 @@ package body Instrument.Ada_Unit is
             if Actual.Kind = Ada_Subtype_Indication then
                Actual := TE.As_Subtype_Indication.F_Name.As_Ada_Node;
             end if;
-            Append_Child (NP_Nodes.Inst_Params, Clone (Actual));
+            Insert_Last (NP_Nodes.Inst_Params, Clone (Actual));
          end;
 
          --  Return a reference to this formal
@@ -2267,7 +2230,7 @@ package body Instrument.Ada_Unit is
          return;
       end if;
       for J in 1 .. Common_Nodes.N_Params.Children_Count loop
-         Append_Child
+         Insert_Last
            (NP_Nodes.Param_Specs,
             Gen_Proc_Param_For
               (Common_Nodes.N_Params.Child (J).As_Param_Spec));
@@ -2430,8 +2393,8 @@ package body Instrument.Ada_Unit is
          end;
       end if;
 
-      Append_Child (Inserter.Formal_Params, State_Param_Spec);
-      Append_Child (Inserter.Call_Params, State_Actual);
+      Insert_Last (Inserter.Formal_Params, State_Param_Spec);
+      Insert_Last (Inserter.Call_Params, State_Actual);
 
       return Name & ".State'Address";
    end Insert_MCDC_State;
@@ -2663,8 +2626,8 @@ package body Instrument.Ada_Unit is
          --  Put the augmented expression function in the wrapper package, and
          --  return its handle instead of the one of the expression function.
 
-         Append_Child (Common_Nodes.Wrapper_Pkg_Decls,
-                       Child  => Augmented_Expr_Function);
+         Insert_Last
+           (Common_Nodes.Wrapper_Pkg_Decls, Augmented_Expr_Function);
 
          Augmented_Expr_Function := Common_Nodes.Wrapper_Pkg;
       end if;
@@ -3173,12 +3136,6 @@ package body Instrument.Ada_Unit is
             then Handle (N)
             else Insertion_N);
 
-         Index : constant Natural :=
-           (case UIC.Current_Insertion_Info.Method is
-               when Statement | Declaration =>
-                 UIC.Current_Insertion_Info.Index,
-               when others => 0);
-
       begin
          case Kind (N) is
             when Ada_Accept_Stmt | Ada_Accept_Stmt_With_Stmts =>
@@ -3329,12 +3286,10 @@ package body Instrument.Ada_Unit is
            and then Typ /= 'p'
          then
             declare
-               Insert_List : Node_Rewriting_Handle;
-               Insert_Pos  : Natural;
-               Insert_Info : Insertion_Info_Access :=
-                 UIC.Current_Insertion_Info;
-
                Bit : Any_Bit_Id;
+
+               Insert_Info : constant Insertion_Info_Access :=
+                 UIC.Current_Insertion_Info;
 
                LL_SCO_Id : constant Nat := SCOs.SCO_Table.Last;
             begin
@@ -3420,13 +3375,17 @@ package body Instrument.Ada_Unit is
                                     F_Designator => No_Node_Rewriting_Handle,
                                     F_R_Expr     => Old_Cond))));
 
-                        Set_Child (New_Cond, 3, Old_Cond);
+                        Set_Child
+                          (New_Cond, Member_Refs.Bin_Op_F_Right, Old_Cond);
                      end;
 
                   else
-                     if Kind (Actual_Insertion_N) = Ada_Accept_Stmt_With_Stmts
-                       and then Instrument_Location = After
-                     then
+                     declare
+                        Ref_Node       : Node_Rewriting_Handle;
+                        Insert_Sibling : Boolean;
+                        Is_Before      : Boolean;
+                        Witness_Call   : Node_Rewriting_Handle;
+                     begin
                         --  In the case of an accept_statement containing a
                         --  sequence of statements, if Instrument_Location
                         --  is After, we want to call the witness after the
@@ -3434,96 +3393,73 @@ package body Instrument.Ada_Unit is
                         --  statements are executed, so insert the witness
                         --  call in the inner statement list at first position.
 
-                        Insert_List :=
-                          Child (Actual_Insertion_N,
-                                 (Member_Refs.Accept_Stmt_With_Stmts_F_Stmts,
-                                  Member_Refs.Handled_Stmts_F_Stmts));
-                        Insert_Pos  := 1;
+                        if Kind (Actual_Insertion_N)
+                              = Ada_Accept_Stmt_With_Stmts
+                           and then Instrument_Location = After
+                        then
+                           Ref_Node := Child
+                             (Actual_Insertion_N,
+                              (Member_Refs.Accept_Stmt_With_Stmts_F_Stmts,
+                               Member_Refs.Handled_Stmts_F_Stmts));
+                           Insert_Sibling := False;
 
-                     else
-                        if Instrument_Location = Before_Parent then
-                           Insert_Info := Insert_Info.Parent;
-                           Insert_Pos := Insert_Info.Index;
                         else
-                           Insert_Pos := Index;
+                           Ref_Node := Actual_Insertion_N;
+                           Insert_Sibling := True;
+
+                           --  Set Is_Before according to the requested
+                           --  insertion mode.
+                           --
+                           --  Also update Ref_Node so that it is the
+                           --  "reference" node to use for insertion, i.e. the
+                           --  sibling in the target insertion list (Ref_List,
+                           --  below).
+                           --
+                           --  Note that the witness is inserted at the current
+                           --  location of the statement, so that it will occur
+                           --  immediately *before* it in the instrumented
+                           --  sources. This is necessary because we want to
+                           --  mark a statement as executed anytime it has
+                           --  commenced execution (including in cases it
+                           --  raises an exception or otherwise transfers
+                           --  control). However in some special cases we have
+                           --  to insert after the statement, see the comment
+                           --  for Instrument_Location_Type.
+
+                           declare
+                              Ref_List : Node_Rewriting_Handle;
+                           begin
+                              case Instrument_Location is
+                                 when Before =>
+                                    Is_Before := True;
+                                    Ref_List := Insert_Info.RH_List;
+
+                                 when Before_Parent =>
+                                    Is_Before := True;
+                                    Ref_List := Insert_Info.Parent.RH_List;
+
+                                 when After =>
+                                    Is_Before := False;
+                                    Ref_List := Insert_Info.RH_List;
+
+                                 --  The cases where we need to instrument
+                                 --  inside an expression are handled before,
+                                 --  as they do not trigger the insertion of a
+                                 --  new statement in a statement list.
+
+                                 when Inside_Expr =>
+                                    raise Program_Error;
+                              end case;
+
+                              while Parent (Ref_Node) /= Ref_List loop
+                                 Ref_Node := Parent (Ref_Node);
+                              end loop;
+                           end;
                         end if;
 
-                        Insert_List := Insert_Info.RH_List;
+                        --  Insert witness statement or declaration
 
-                        --  Adjust insertion to account for any insertion
-                        --  performed outside of the processing of the current
-                        --  list (case of the above special processing for
-                        --  accept statements). Note that SCE.N might not be a
-                        --  direct element of the enclosing list (e.g. in the
-                        --  case where it is a named statement), so we must
-                        --  first go up to the parent of SCE.N that *is* an
-                        --  element of that list, and *then* scan forward to
-                        --  determine the current position of that parent note
-                        --  within the list.
-
-                        declare
-                           RH_Element_Node : Node_Rewriting_Handle :=
-                             Actual_Insertion_N;
-                           RH_Children_Count : constant Natural :=
-                             Children_Count (Insert_Info.RH_List);
-                        begin
-                           --  Find the parent of N that is an element of the
-                           --  enclosing list.
-
-                           while Parent (RH_Element_Node)
-                             /= Insert_Info.RH_List
-                           loop
-                              RH_Element_Node := Parent (RH_Element_Node);
-                           end loop;
-
-                           --  Scan forward in enclosing list for adjusted
-                           --  position of the element node.
-
-                           while Child
-                             (Insert_Info.RH_List,
-                              Integer (Insert_Pos
-                                + Insert_Info.Rewriting_Offset))
-                             /= RH_Element_Node
-                           loop
-                              Insert_Info.Rewriting_Offset :=
-                                Insert_Info.Rewriting_Offset + 1;
-                              pragma Assert
-                                (Insert_Pos + Insert_Info.Rewriting_Offset
-                                 <= RH_Children_Count);
-                           end loop;
-                        end;
-
-                        --  The witness is inserted at the current location of
-                        --  the statement, so that it will occur immediately
-                        --  *before* it in the instrumented sources. This
-                        --  is necessary because we want to mark a statement
-                        --  as executed anytime it has commenced execution
-                        --  (including in cases it raises an exception or
-                        --  otherwise transfers control). However in some
-                        --  special cases we have to insert after the
-                        --  statement, see the comment for
-                        --  Instrument_Location_Type.
-                        --
-                        --  The cases where we need to instrument inside an
-                        --  expression are handled before, as they do not
-                        --  trigger the insertion of a new statement in a
-                        --  statement list.
-
-                        Insert_Pos := Insert_Pos
-                          + Insert_Info.Rewriting_Offset
-                          + (case Instrument_Location is
-                                when Before | Before_Parent => 0,
-                                when After                  => 1,
-                                when Inside_Expr            =>
-                                   raise Program_Error);
-                     end if;
-
-                     --  Insert witness statement or declaration
-
-                     Insert_Child
-                       (Handle => Insert_List,
-                        Index  => Insert_Pos,
-                        Child  =>
+                        Witness_Call :=
                           Make_Statement_Witness
                             (UIC,
                              Bit        => Bit,
@@ -3533,19 +3469,18 @@ package body Instrument.Ada_Unit is
                                    when Declaration => Declaration,
                                    when Expression_Function | None =>
                                       raise Program_Error),
-                             In_Generic => UIC.In_Generic));
+                             In_Generic => UIC.In_Generic);
 
-                     --  Update the rewriting offset iff we inserted an
-                     --  element in the current rewriting list: that offset
-                     --  specifically refers to that list, whereas we may
-                     --  have inserted an item in a nested list, in which case
-                     --  we will adjust automatically the rewriting offset
-                     --  accordingly when processing that list.
-
-                     if Insert_Info.RH_List = Insert_List then
-                        Insert_Info.Rewriting_Offset :=
-                          Insert_Info.Rewriting_Offset + 1;
-                     end if;
+                        if Insert_Sibling then
+                           if Is_Before then
+                              Insert_Before (Ref_Node, Witness_Call);
+                           else
+                              Insert_After (Ref_Node, Witness_Call);
+                           end if;
+                        else
+                           Insert_First (Ref_Node, Witness_Call);
+                        end if;
+                     end;
                   end if;
 
                when Expression_Function =>
@@ -3611,6 +3546,11 @@ package body Instrument.Ada_Unit is
         (N      : Basic_Decl;
          N_Spec : Subp_Spec)
       is
+         Stub : constant Node_Rewriting_Handle :=
+           Make_Identifier (UIC, "Stub");
+         --  Placeholder for the the degenerate subprogram node while it is
+         --  rewritten.
+
          --  See the "Degenerate subprograms" comment section above for a
          --  description of the of transformation we implement in this
          --  procedure.
@@ -3625,10 +3565,6 @@ package body Instrument.Ada_Unit is
            UIC.MCDC_State_Inserter;
          --  Likewise for MC/DC state inserter
 
-         procedure Insert (New_Node : Node_Rewriting_Handle);
-         --  Insert New_Node in sequence at original location of the degenerate
-         --  subprogram.
-
          procedure To_Regular_Subprogram (N : Base_Subp_Body);
          --  Turns N into an instrumented regular function, by creating a
          --  function with the same subp_spec as the original expression
@@ -3638,22 +3574,6 @@ package body Instrument.Ada_Unit is
          --
          --  The SCO associated with the new single statement has the
          --  sloc of the whole original subprogram.
-
-         ------------
-         -- Insert --
-         ------------
-
-         procedure Insert (New_Node : Node_Rewriting_Handle) is
-         begin
-            Insert_Child
-              (Handle => Saved_Insertion_Info.RH_List,
-               Index  => Saved_Insertion_Info.Index
-               + Saved_Insertion_Info.Rewriting_Offset
-               + 1,
-               Child  => New_Node);
-            Saved_Insertion_Info.Rewriting_Offset :=
-              Saved_Insertion_Info.Rewriting_Offset + 1;
-         end Insert;
 
          ---------------------------
          -- To_Regular_Subprogram --
@@ -3700,8 +3620,6 @@ package body Instrument.Ada_Unit is
          begin
 
             II.RH_List := Stmt_list_RH;
-            II.Index := 1;
-            II.Rewriting_Offset := 0;
             II.Preelab := False;
             II.Parent := Saved_Insertion_Info;
 
@@ -3856,7 +3774,6 @@ package body Instrument.Ada_Unit is
                   RH_List     => Decl_List,
                   Preelab     => False,
                   Parent      => null,
-                  Index       => 1,
                   others      => <>);
                --  Insertion info points to the newly created declaration list.
                --  Index is 1 as we want to insert a witness call at the
@@ -3874,7 +3791,7 @@ package body Instrument.Ada_Unit is
             begin
                --  Add the dummy declaration to the declaration list
 
-               Append_Child (Decl_List, Dummy_Decl);
+               Insert_Last (Decl_List, Dummy_Decl);
 
                --  Tie the declare expression to the expression function's
                --  F_Expr field, taking care to wrap it in parentheses.
@@ -4025,7 +3942,7 @@ package body Instrument.Ada_Unit is
                   for Id of Common_Nodes.N_Params.Child (J)
                            .As_Param_Spec.F_Ids.Children
                   loop
-                     Append_Child
+                     Insert_Last
                        (Call_Params, Make_Identifier (UIC, Id.Text));
                   end loop;
                end loop;
@@ -4046,19 +3963,17 @@ package body Instrument.Ada_Unit is
             --  procedure (NP_Nodes.Null_Stmt).
 
             New_Insertion_Info :=
-              (Method           => Statement,
-               RH_List          => NP_Nodes.Stmt_List,
-               Index            => 1,
-               Rewriting_Offset => 0,
+              (Method  => Statement,
+               RH_List => NP_Nodes.Stmt_List,
 
                --  Even if the current package has elaboration restrictions,
                --  this Insertion_Info is used to insert a witness call in the
                --  procedure in the generic body: the elaboration restriction
                --  does not apply there.
 
-               Preelab          => False,
+               Preelab => False,
 
-               Parent           => null);
+               Parent  => null);
          end if;
 
          ----------------------------------
@@ -4107,23 +4022,15 @@ package body Instrument.Ada_Unit is
 
             --  Pass the witness call to the augmented expression function
 
-            Append_Child (Call_Params, New_Insertion_Info.Witness_Actual);
-            Append_Child (Formal_Params, New_Insertion_Info.Witness_Formal);
+            Insert_Last (Call_Params, New_Insertion_Info.Witness_Actual);
+            Insert_Last (Formal_Params, New_Insertion_Info.Witness_Formal);
          end if;
 
          ----------------------------
          -- 3. Rework declarations --
          ----------------------------
 
-         --  Remove the original declaration (N) from the tree. Note that since
-         --  .RH_List (the instrumented list of declarations from which N must
-         --  be removed) may contain more elements than before instrumenting.
-         --  So in order to remove it, we must recompute N's index in .RH_List.
-
-         Remove_Child
-           (Saved_Insertion_Info.RH_List, Index_In_Rewriting_Tree (N));
-         Saved_Insertion_Info.Rewriting_Offset :=
-           Saved_Insertion_Info.Rewriting_Offset - 1;
+         Replace (Handle (N), Stub);
 
          --  For null procedures, if there is no previous declaration, generate
          --  one, keeping the original aspects and default parameters. Then
@@ -4146,11 +4053,13 @@ package body Instrument.Ada_Unit is
             and then (not Is_Expr_Function
                       or else Is_Self_Referencing (UIC, N.As_Expr_Function))
          then
-            Insert (Create_Subp_Decl
-              (RC,
-               F_Overriding => Detach (Common_Nodes.N_Overriding),
-               F_Subp_Spec  => Clone (N_Spec),
-               F_Aspects    => Detach (N.F_Aspects)));
+            Insert_Before
+              (Stub,
+               Create_Subp_Decl
+                 (RC,
+                  F_Overriding => Detach (Common_Nodes.N_Overriding),
+                  F_Subp_Spec  => Clone (N_Spec),
+                  F_Aspects    => Detach (N.F_Aspects)));
 
             --  For expression functions, the aspects of the subprogram were
             --  moved to the newly created declaration, so they should not be
@@ -4179,8 +4088,8 @@ package body Instrument.Ada_Unit is
                --  First comes the augmented expression function, then the new
                --  expression function.
 
-               Insert (Augmented_Expr_Function);
-               Insert (New_Expr_Function);
+               Insert_Before (Stub, Augmented_Expr_Function);
+               Insert_Before (Stub, New_Expr_Function);
 
                --  If we need to insert a declaration for the new expression
                --  function, find the correct spot to add it, and keep track
@@ -4194,22 +4103,11 @@ package body Instrument.Ada_Unit is
                      --  This property cannot fail because to reach this point
                      --  we will already have succesfully queried the previous
                      --  part of N in Augmented_Expr_Function_Needs_Decl.
-
-                     Insert_List  : constant Node_Rewriting_Handle :=
-                       Handle (Previous_Decl.Parent);
-                     Insert_Index : constant Positive :=
-                       Index_In_Rewriting_Tree (Previous_Decl);
                   begin
-                     Insert_Child (Insert_List,
-                                   Insert_Index,
-                                   Augmented_Expr_Function_Decl);
-                     if Insert_List = Saved_Insertion_Info.RH_List then
-                        Saved_Insertion_Info.Rewriting_Offset :=
-                          Saved_Insertion_Info.Rewriting_Offset + 1;
-                     end if;
+                     Insert_Before
+                       (Handle (Previous_Decl), Augmented_Expr_Function_Decl);
                   end;
                end if;
-
             end;
 
          else
@@ -4233,14 +4131,14 @@ package body Instrument.Ada_Unit is
 
                --  Insert the renaming in the wrapper package
 
-               Append_Child (Common_Nodes.Wrapper_Pkg_Decls, Instance);
+               Insert_Last (Common_Nodes.Wrapper_Pkg_Decls, Instance);
 
                --  Push the wrapper package and the renaming down to the end of
                --  the current list of declarations.
 
-               Append_Child
+               Insert_Last
                  (Common_Nodes.Append_List, Common_Nodes.Wrapper_Pkg);
-               Append_Child (Common_Nodes.Append_List, Renaming_Decl);
+               Insert_Last (Common_Nodes.Append_List, Renaming_Decl);
 
                --  Unparse the generic subprogram now, for later insertion in
                --  the pure buffers unit (at which time the rewriting context
@@ -4255,6 +4153,11 @@ package body Instrument.Ada_Unit is
                        To_Unbounded_Wide_Wide_String (Unparse (Subp_Body))));
             end;
          end if;
+
+         --  Now that we have inserted the replacement declarations, remove the
+         --  stub.
+
+         Remove_Child (Stub);
       end Traverse_Degenerate_Subprogram;
 
       --------------------------------
@@ -4423,9 +4326,8 @@ package body Instrument.Ada_Unit is
                           (UIC.Rewriting_Context, "with {};",
                            (1 => Buffers_Unit), With_Clause_Rule);
                   begin
-                     Append_Child (Handle (CUN.F_Prelude),
-                                   With_Buffers_Clause);
-                     Append_Child (Handle (CUN.F_Prelude), With_PB_Clause);
+                     Insert_Last (Handle (CUN.F_Prelude), With_Buffers_Clause);
+                     Insert_Last (Handle (CUN.F_Prelude), With_PB_Clause);
                   end;
                end;
 
@@ -5062,8 +4964,6 @@ package body Instrument.Ada_Unit is
             II : Insertion_Info (Method);
          begin
             II.RH_List := Handle (L);
-            II.Index := 0;
-            II.Rewriting_Offset := 0;
             II.Preelab := Preelab;
             II.Parent := Saved_Insertion_Info;
 
@@ -5084,10 +4984,6 @@ package body Instrument.Ada_Unit is
          declare
             N : constant Ada_Node := L.Child (J);
          begin
-            if Current_Insertion_Info.Method in Statement | Declaration then
-               Current_Insertion_Info.Index := J;
-            end if;
-
             --  Only traverse the nodes if they are not ghost entities
 
             if not (UIC.Ghost_Code
@@ -6861,7 +6757,8 @@ package body Instrument.Ada_Unit is
       Instrumenter.Context := Create_Context
         (Unit_Provider =>
            Create_Unit_Provider_Reference (Instrumenter.Provider),
-         Event_Handler => Instrumenter.Event_Handler);
+         Event_Handler => Instrumenter.Event_Handler,
+         File_Reader   => Instrumenter.File_Reader);
       Instrumenter.Get_From_File_Count := 0;
 
       --  Load configuration pragmas. TODO???: clarify what happens when there
@@ -7406,10 +7303,7 @@ package body Instrument.Ada_Unit is
          then
             --  Child_Index is 0 based whereas Insert_Child is 1 based
 
-            Insert_Child
-              (Handle (Node.Parent),
-               Node.Child_Index + 1,
-               Clone (Call_Stmt));
+            Insert_Before (Handle (Node), Clone (Call_Stmt));
             return Over;
          else
             return Into;
@@ -7424,7 +7318,7 @@ package body Instrument.Ada_Unit is
    begin
       --  Add a Dump_Buffer call at the end of the main's handeled statements
 
-      Append_Child (Handled_Stmt_List, Call_Stmt);
+      Insert_Last (Handled_Stmt_List, Call_Stmt);
 
       --  Add a Dump_Buffer call before any return statement that returns from
       --  the main.
@@ -7446,7 +7340,7 @@ package body Instrument.Ada_Unit is
                Exn_Stmt_List : constant Node_Rewriting_Handle :=
                  Handle (Exn_Handler.F_Stmts);
             begin
-               Append_Child (Exn_Stmt_List, Clone (Call_Stmt));
+               Insert_Last (Exn_Stmt_List, Clone (Call_Stmt));
             end;
          end if;
       end loop;
@@ -7478,7 +7372,7 @@ package body Instrument.Ada_Unit is
       --  Insert the declaration as the first declaration in the
       --  list to ensure it is finalized last.
 
-      Insert_Child (Decls, 1, Dump_Object_Decl);
+      Insert_First (Decls, Dump_Object_Decl);
    end Insert_Controlled_Dump_Object_Decl;
 
    ----------------------------------
@@ -7627,7 +7521,7 @@ package body Instrument.Ada_Unit is
 
          declare
             Symbol : constant Symbolization_Result :=
-               Canonicalize (Text (Child (Node, 1)));
+              Canonicalize (Text (Child (Node, Member_Refs.Pragma_Node_F_Id)));
          begin
             return (Symbol.Success
                     and then Symbol.Symbol in "warnings" | "style_checks");
@@ -7647,19 +7541,13 @@ package body Instrument.Ada_Unit is
          --  Go through all children in reverse order so that we can remove
          --  pragmas in one pass.
 
-         for I in reverse 1 .. Children_Count (Node) loop
-            declare
-               Child : constant Node_Rewriting_Handle :=
-                  Libadalang.Rewriting.Child (Node, I);
-            begin
-               if Child /= No_Node_Rewriting_Handle
-                 and then Should_Remove (Child)
-               then
-                  Remove_Child (Node, I);
-               else
-                  Process (Child);
-               end if;
-            end;
+         for Child of Children (Node) loop
+            if Child /= No_Node_Rewriting_Handle and then Should_Remove (Child)
+            then
+               Remove_Child (Child);
+            else
+               Process (Child);
+            end if;
          end loop;
       end Process;
 
@@ -7813,10 +7701,10 @@ package body Instrument.Ada_Unit is
               Rule      => Pragma_Rule);
 
       begin
-         Append_Child (Desc.Prelude, With_Clause);
-         Append_Child (Desc.Prelude, With_RTS_Clause);
-         Append_Child (Desc.Prelude, With_Buffers_Clause);
-         Append_Child (Desc.Prelude, Runtime_Version_Check_Node);
+         Insert_Last (Desc.Prelude, With_Clause);
+         Insert_Last (Desc.Prelude, With_RTS_Clause);
+         Insert_Last (Desc.Prelude, With_Buffers_Clause);
+         Insert_Last (Desc.Prelude, Runtime_Version_Check_Node);
       end;
 
       --  Depending on the chosen coverage buffers dump trigger, insert the
@@ -7846,7 +7734,7 @@ package body Instrument.Ada_Unit is
                "Autodump_Dummy : {} := {};",
                (1 => To_Nodes (RH, Witness_Dummy_Type_Name), 2 => Call_Expr),
                Object_Decl_Rule);
-            Insert_Child (Desc.Main_Decls, 1, Call_Decl);
+            Insert_First (Desc.Main_Decls, Call_Decl);
          end;
 
       when Main_End =>
@@ -7882,7 +7770,7 @@ package body Instrument.Ada_Unit is
             --  place where we want to dump coverage buffers: at the end of the
             --  wrapper procedure body.
 
-            Append_Child
+            Insert_Last
               (Desc.Main_Stmts, Simple_Dump_Proc_Call (RH, Helper_Unit));
 
          else
@@ -7985,7 +7873,7 @@ package body Instrument.Ada_Unit is
                      --  Add the with clause only once in the file
 
                      if not Done then
-                        Append_Child
+                        Insert_Last
                           (Handle (Unit.Root.As_Compilation_Unit.F_Prelude),
                            Create_From_Template
                              (RH,
@@ -9124,10 +9012,11 @@ package body Instrument.Ada_Unit is
    -----------------------------
 
    function Create_Ada_Instrumenter
-     (Tag                    : Unbounded_String;
+     (Tag                        : Unbounded_String;
       Config_Pragmas_Filename,
-      Mapping_Filename       : String;
-      Predefined_Source_Dirs : String_Vectors.Vector)
+      Mapping_Filename           : String;
+      Predefined_Source_Dirs     : String_Vectors.Vector;
+      Preprocessor_Data_Filename : String)
       return Ada_Instrumenter_Type
    is
       Instrumenter : Ada_Instrumenter_Type;
@@ -9139,6 +9028,13 @@ package body Instrument.Ada_Unit is
       Instrumenter.Provider :=
         Instrument.Ada_Unit_Provider.Create_Provider
           (Predefined_Source_Dirs, Mapping_Filename);
+
+      --  Create a file reader, to let Libadalang preprocess source files that
+      --  need it.
+
+      Instrumenter.File_Reader :=
+        Instrument.Ada_Preprocessing.Create_Preprocessor
+          (Preprocessor_Data_Filename);
 
       --  Create the event handler, to report when Libadalang cannot read a
       --  required source file.

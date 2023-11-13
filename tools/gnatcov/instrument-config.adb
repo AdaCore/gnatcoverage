@@ -35,13 +35,15 @@ begin
    case Language is
       when Ada_Language =>
          return Create_Ada_Instrumenter
-           (Tag                     => Tag,
-            Config_Pragmas_Filename =>
+           (Tag                        => Tag,
+            Config_Pragmas_Filename    =>
                +Args.String_Args (Opt_Gnatec).Value,
-            Mapping_Filename        =>
+            Mapping_Filename           =>
                +Args.String_Args (Opt_Gnatem).Value,
-            Predefined_Source_Dirs  =>
-               Args.String_List_Args (Opt_Runtime_Dir));
+            Predefined_Source_Dirs     =>
+               Args.String_List_Args (Opt_Runtime_Dir),
+            Preprocessor_Data_Filename =>
+               +Args.String_Args (Opt_Ada_Preprocessor_Data).Value);
       when C_Language =>
          return Create_C_Instrumenter (Tag => Tag);
       when CPP_Language =>

@@ -1,0 +1,1 @@
+* -Dlog=false -c

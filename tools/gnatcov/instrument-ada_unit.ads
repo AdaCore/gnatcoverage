@@ -24,6 +24,7 @@ with Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Hash;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
+with Langkit_Support.File_Readers;
 with Langkit_Support.Text; use Langkit_Support.Text;
 with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
@@ -43,6 +44,9 @@ package Instrument.Ada_Unit is
          --  a filename to our Compilation_Unit_Name internal representation,
          --  and to not depend on project files in the unit instrumentation
          --  process.
+
+         File_Reader : Langkit_Support.File_Readers.File_Reader_Reference;
+         --  File reader to preprocess source files when needed
 
          Event_Handler : Libadalang.Analysis.Event_Handler_Reference;
          --  Event handler to warn about missing source files
@@ -103,18 +107,28 @@ package Instrument.Ada_Unit is
       Prj         : Prj_Desc);
 
    function Create_Ada_Instrumenter
-     (Tag                    : Unbounded_String;
+     (Tag                        : Unbounded_String;
       Config_Pragmas_Filename,
-      Mapping_Filename       : String;
-      Predefined_Source_Dirs : String_Vectors.Vector)
+      Mapping_Filename           : String;
+      Predefined_Source_Dirs     : String_Vectors.Vector;
+      Preprocessor_Data_Filename : String)
       return Ada_Instrumenter_Type;
-   --  Create an Ada instrumenter. Config_Pragmas_Filename is the fullname
-   --  to the configuration pragma file. Mapping_Filename is the fullname
-   --  to the mapping file, which maps unit names to file fullnames, and
-   --  Predefined_Source_Dirs is the list of directories hosting runtime
-   --  files. The two last parameters are used to instantiate our
-   --  custom unit provider, which does not rely on project files
-   --  (see Instrument.Ada_Unit_Provider).
+   --  Create an Ada instrumenter.
+   --
+   --  Config_Pragmas_Filename is the fullname to the configuration pragma
+   --  file.
+   --
+   --  Mapping_Filename is the fullname to the mapping file, which maps unit
+   --  names to file fullnames.
+   --
+   --  Predefined_Source_Dirs is the list of directories hosting runtime files.
+   --
+   --  Both Mapping_Filename and Predefined_Source_Dirs are used to instantiate
+   --  our custom unit provider, which does not rely on project files (see
+   --  Instrument.Ada_Unit_Provider).
+   --
+   --  Preprocessor_Data_Filename is the name of the file that contains
+   --  preprocessor configuration data (see Instrument.Ada_Preprocessing).
 
    --  Private declarations relative to the AST traversal
 private
@@ -143,12 +157,6 @@ private
          when Statement | Declaration =>
             RH_List : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
             --  Rewriting handle for the statement/declaration list
-
-            Index : Natural := 0;
-            --  Index of the element in RH_List being traversed
-
-            Rewriting_Offset : Integer := 0;
-            --  Count of nodes inserted/removed in current list so far
 
             Preelab : Boolean := False;
             --  Whether we are traversing a list of top-level declarations in a
