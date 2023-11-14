@@ -382,7 +382,7 @@ package body Traces_Files_Registry is
             CP_File := new Trace_File_Element;
             CP_File.Filename := Name;
 
-            if Checkpoints.Version_Less (CLS, Than => 2) then
+            if CLS.Version_Less (Than => 2) then
 
                --  Before version 2, there were only binary traces and we
                --  streamed metadata as trace infos.

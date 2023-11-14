@@ -583,7 +583,7 @@ package body Checkpoints is
             --  Check that we are loading the kind of checkpoint we are
             --  expecting (Purpose).
 
-            if not Version_Less (CLS'Access, Than => 2) then
+            if not CLS.Version_Less (Than => 2) then
                declare
                   CP_Purpose : constant Checkpoint_Purpose :=
                      Checkpoint_Purpose'Input (CLS.Stream);
@@ -600,7 +600,7 @@ package body Checkpoints is
             --  Check the kind of binary traces that were used to create this
             --  checkpoint.
 
-            if not Version_Less (CLS'Access, Than => 7) then
+            if not CLS.Version_Less (Than => 7) then
                declare
                   Bits : constant Binary_Traces_Bits :=
                     Binary_Traces_Bits'Input (CLS.Stream);
@@ -624,7 +624,7 @@ package body Checkpoints is
                end if;
             end;
 
-            if not Version_Less (CLS'Access, Than => 6) then
+            if not CLS.Version_Less (Than => 6) then
                declare
                   CP_Trace_Kind : Any_Accepted_Trace_Kind;
                begin
@@ -635,7 +635,7 @@ package body Checkpoints is
 
             Files_Table.Checkpoint_Load (CLS'Access, Ignored_Source_Files);
             SC_Obligations.Checkpoint_Load (CLS'Access);
-            if not Version_Less (CLS'Access, Than => 2) then
+            if not CLS.Version_Less (Than => 2) then
                Instrument.Checkpoints.Checkpoint_Load (CLS'Access);
             end if;
             Coverage.Source.Checkpoint_Load (CLS'Access);

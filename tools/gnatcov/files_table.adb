@@ -2033,7 +2033,7 @@ package body Files_Table is
 
                   FE.Ignore_Status := Unknown;
                   FE.Unit := (Known => False);
-                  if not Checkpoints.Version_Less (CLS, Than => 5) then
+                  if not CLS.Version_Less (Than => 5) then
                      FE.Ignore_Status := Any_Ignore_Status'Input (S);
                      declare
                         Unit_Known : constant Boolean := Boolean'Input (S);
@@ -2046,7 +2046,7 @@ package body Files_Table is
                            --  the owning unit unknown if we do not have recent
                            --  formats.
 
-                           if Checkpoints.Version_Less (CLS, Than => 13) then
+                           if CLS.Version_Less (Than => 13) then
                               declare
                                  Dummy : constant String := String'Input (S);
                               begin

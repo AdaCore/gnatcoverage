@@ -78,8 +78,7 @@ private package SC_Obligations.BDD is
    --  Work around compiler bug: bogus warning???
 
    procedure Read
-     (S : access Root_Stream_Type'Class;
-      V : out BDD_Node);
+     (S : access Root_Stream_Type'Class; V : out BDD_Node);
    procedure Write
      (S : access Root_Stream_Type'Class;
       V : BDD_Node);
@@ -118,9 +117,7 @@ private package SC_Obligations.BDD is
    end record;
 
    pragma Warnings (Off, "* is not referenced");
-   procedure Read
-     (S : access Root_Stream_Type'Class;
-      V : out BDD_Type);
+   procedure Read (S : access Root_Stream_Type'Class; V : out BDD_Type);
    procedure Write
      (S : access Root_Stream_Type'Class;
       V : BDD_Type);

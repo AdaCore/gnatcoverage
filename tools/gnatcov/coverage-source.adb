@@ -477,8 +477,7 @@ package body Coverage.Source is
    procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
       use SCI_Vector_Vectors;
 
-      Stream_Tags : constant Boolean :=
-         not Checkpoints.Version_Less (CLS, Than => 2);
+      Stream_Tags : constant Boolean := not CLS.Version_Less (Than => 2);
       --  Before version 2, we streamed mere tags in the checkpoint. We stream
       --  tag provider names since then.
 
@@ -573,7 +572,7 @@ package body Coverage.Source is
          --  Before version 3, this list was not streamed. In this case, be
          --  conservative and consider that we don't have a valid list.
 
-         if Checkpoints.Version_Less (CLS, Than => 3) then
+         if CLS.Version_Less (Than => 3) then
             Invalidate_Unit_List
               (US.To_String (CLS.Filename)
                & " does not contain the list of units (obsolete format)");
@@ -581,8 +580,7 @@ package body Coverage.Source is
          else
             declare
                Invalidated : constant Boolean := Boolean'Input (CLS);
-               Obsolete    : constant Boolean :=
-                 Checkpoints.Version_Less (CLS, Than => 12);
+               Obsolete    : constant Boolean := CLS.Version_Less (Than => 12);
                Dummy       : US.Unbounded_String;
             begin
                if Invalidated then

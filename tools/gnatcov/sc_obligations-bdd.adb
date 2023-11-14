@@ -81,10 +81,8 @@ package body SC_Obligations.BDD is
    -- Read --
    ----------
 
-   procedure Read
-     (S : access Root_Stream_Type'Class;
-      V : out BDD_Type)
-   is
+   procedure Read (S : access Root_Stream_Type'Class; V : out BDD_Type) is
+      CLS : Stateful_Stream renames Stateful_Stream (S.all);
    begin
       SCO_Id'Read       (S, V.Decision);
       BDD_Node_Id'Read  (S, V.Root_Condition);
@@ -93,15 +91,13 @@ package body SC_Obligations.BDD is
       BDD_Node_Id'Read  (S, V.First_Multipath_Condition);
       Reachability'Read (S, V.Reachable_Outcomes);
 
-      if not Version_Less (S, Than => 2) then
+      if not CLS.Version_Less (Than => 2) then
          Natural'Read (S, V.Path_Count);
       end if;
    end Read;
 
-   procedure Read
-     (S : access Root_Stream_Type'Class;
-      V : out BDD_Node)
-   is
+   procedure Read (S : access Root_Stream_Type'Class; V : out BDD_Node) is
+      CLS      : Stateful_Stream renames Stateful_Stream (S.all);
       New_BDDN : BDD_Node (BDD_Node_Kind'Input (S));
       pragma Warnings (Off, New_BDDN);
 
@@ -122,7 +118,7 @@ package body SC_Obligations.BDD is
 
             --  Checkpoint version 2 data (instrumentation support)
 
-            if not Version_Less (S, 2) then
+            if not CLS.Version_Less (2) then
                Natural'Read (S, V.Path_Offset);
             end if;
 

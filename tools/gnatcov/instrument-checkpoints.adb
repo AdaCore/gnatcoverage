@@ -95,7 +95,7 @@ package body Instrument.Checkpoints is
 
       --  Load the mappings for preprocessing commands
 
-      if not Version_Less (CLS, Than => 8) then
+      if not CLS.Version_Less (Than => 8) then
          declare
             CP_PP_Cmds : SFI_To_PP_Cmd_Maps.Map;
             CP_SFI     : Source_File_Index;
