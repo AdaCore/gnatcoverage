@@ -481,6 +481,8 @@ clang_getCalleeName (CXCursor C)
         {
           const clang::CallExpr *CE = cast<clang::CallExpr> (E);
           const Decl *D = CE->getCalleeDecl ();
+          if (!D)
+            return createEmpty ();
 
           auto getFunctionDeclName = [] (const FunctionDecl *FD) {
             const DeclarationName FunctionName = FD->getNameInfo ().getName ();

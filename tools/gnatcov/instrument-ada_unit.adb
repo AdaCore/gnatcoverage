@@ -8225,10 +8225,10 @@ package body Instrument.Ada_Unit is
    ------------------------------------
 
    overriding procedure Replace_Manual_Dump_Indication
-     (Self        : in out Ada_Instrumenter_Type;
-      Done        : in out Boolean;
-      Prj         : Prj_Desc;
-      Source      : GNATCOLL.Projects.File_Info)
+     (Self   : in out Ada_Instrumenter_Type;
+      Done   : in out Boolean;
+      Prj    : in out Prj_Desc;
+      Source : GNATCOLL.Projects.File_Info)
    is
       Instrumented_Filename : constant String :=
         +(Prj.Output_Dir & "/" & GNATCOLL.VFS."+" (Source.File.Base_Name));
