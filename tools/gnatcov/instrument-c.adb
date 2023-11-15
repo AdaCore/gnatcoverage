@@ -735,6 +735,7 @@ package body Instrument.C is
       --  a Local_Source_Location as it can refer to #included files.
 
       Info.Actual_Source_Range := (From.L, To.L);
+      Info.PP_Source_Range := No_Local_Range;
 
       --  Check if this is comes from a macro expansion, in which case we need
       --  to record some information, for reporting purposes.
