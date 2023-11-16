@@ -597,12 +597,49 @@ package body SC_Obligations is
    --
    --  ??? Same comment as above.
 
+   -----------
+   -- Image --
+   -----------
+
+   function Image (SE : Scope_Entity) return String is
+   begin
+      return
+        "Scope for "
+        & Ada.Strings.Unbounded.To_String (SE.Name)
+        & "[" & Slocs.Image (SE.Sloc)
+        & "], identifier at "
+        & Get_Simple_Name (SE.Identifier.Decl_SFI)
+        & ":" & Img (SE.Identifier.Decl_Line);
+   end Image;
+
+   ----------
+   -- Dump --
+   ----------
+
+   procedure Dump
+     (Scope_Entities : Scope_Entities_Trees.Tree; Line_Prefix : String := "")
+   is
+      use Scope_Entities_Trees;
+   begin
+      for Cur in Scope_Entities.Iterate loop
+         declare
+            Prefix : constant String :=
+              Line_Prefix & (1 .. 2 * (Natural (Depth (Cur)) - 2) => ' ');
+            SE     : Scope_Entity renames
+              Scope_Entities.Constant_Reference (Cur);
+         begin
+            Put_Line (Prefix & Image (SE));
+            Put_Line (Prefix & "... from " & Image (SE.From));
+            Put_Line (Prefix & "    to   " & Image (SE.To));
+         end;
+      end loop;
+   end Dump;
+
    ---------------------
    -- Scope_Traversal --
    ---------------------
 
-   function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type
-   is
+   function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type is
       Result : Scope_Traversal_Type;
    begin
       if CU = No_CU_Id then
@@ -614,8 +651,7 @@ package body SC_Obligations is
              (CU_Vector.Reference (CU).Element.Scope_Entities));
       Result.Scope_Stack := Scope_Stacks.Empty_List;
       Result.Active_Scopes := Scope_Id_Sets.Empty;
-      Result.Active_Scope_Ent := Result.It.First;
-      Result.Next_Scope_Ent := Result.It.Next (Result.Active_Scope_Ent);
+      Set_Active_Scope_Ent (Result, Result.It.First);
       return Result;
    end Scope_Traversal;
 
@@ -623,10 +659,7 @@ package body SC_Obligations is
    -- Traverse_SCO --
    ------------------
 
-   procedure Traverse_SCO
-     (ST  : in out Scope_Traversal_Type;
-      SCO : SCO_Id)
-   is
+   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id) is
       use Scope_Entities_Trees;
    begin
       --  In some cases (C metaprogramming instances), e.g.
@@ -662,18 +695,17 @@ package body SC_Obligations is
 
       while SCO > Element (ST.Active_Scope_Ent).To
         or else (ST.Next_Scope_Ent /= No_Element
-                  and then SCO >= Element (ST.Next_Scope_Ent).From)
+                 and then SCO >= Element (ST.Next_Scope_Ent).From)
       loop
-         --  We can enter the next scope only when we have reached its
-         --  parent scope. If the next scope is null, this means that we
-         --  are in the last scope of the unit.
+         --  We can enter the next scope only when we have reached its parent
+         --  scope. If the next scope is null, this means that we are in the
+         --  last scope of the unit.
 
          if ST.Next_Scope_Ent /= No_Element
            and then ST.Active_Scope_Ent = Parent (ST.Next_Scope_Ent)
            and then SCO >= Element (ST.Next_Scope_Ent).From
          then
-            ST.Active_Scope_Ent := ST.Next_Scope_Ent;
-            ST.Next_Scope_Ent := ST.It.Next (ST.Next_Scope_Ent);
+            Set_Active_Scope_Ent (ST, ST.Next_Scope_Ent);
             ST.Scope_Stack.Append (ST.Active_Scope_Ent);
             ST.Active_Scopes.Insert
               (Element (ST.Active_Scope_Ent).Identifier);
@@ -688,6 +720,18 @@ package body SC_Obligations is
          end if;
       end loop;
    end Traverse_SCO;
+
+   --------------------------
+   -- Set_Active_Scope_Ent --
+   --------------------------
+
+   procedure Set_Active_Scope_Ent
+     (ST        : in out Scope_Traversal_Type;
+      Scope_Ent : Scope_Entities_Trees.Cursor) is
+   begin
+      ST.Active_Scope_Ent := Scope_Ent;
+      ST.Next_Scope_Ent := ST.It.Next (Scope_Ent);
+   end Set_Active_Scope_Ent;
 
    ---------------
    -- Is_Active --
@@ -1192,6 +1236,11 @@ package body SC_Obligations is
             Remap_SCO_Id (Scope_Ent.From);
             Remap_SCO_Id (Scope_Ent.To);
             Remap_SFI (Relocs, Scope_Ent.Identifier.Decl_SFI);
+
+            --  Register each scope identifiers to make them available to users
+            --  on the command line.
+
+            Available_Subps_Of_Interest.Include (Scope_Ent.Identifier);
          end loop;
 
       end if;
@@ -1375,6 +1424,10 @@ package body SC_Obligations is
          end;
       end if;
    end Checkpoint_Load_Unit;
+
+   ----------
+   -- Free --
+   ----------
 
    procedure Free (CU : in out CU_Info) is
       procedure Free is new Ada.Unchecked_Deallocation
@@ -2688,6 +2741,28 @@ package body SC_Obligations is
       end if;
       return Sloc;
    end Last_Sloc;
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (CU : CU_Id) return String is
+   begin
+      return
+        (if CU = No_CU_Id
+         then "No CU"
+         else "CU "
+              & Get_Full_Name (CU_Vector.Constant_Reference (CU).Main_Source));
+   end Image;
+
+   -------------
+   -- Last_CU --
+   -------------
+
+   function Last_CU return CU_Id is
+   begin
+      return CU_Vector.Last_Index;
+   end Last_CU;
 
    --------------
    -- Provider --
@@ -4292,9 +4367,15 @@ package body SC_Obligations is
    ------------------------
 
    procedure Set_Scope_Entities
-     (CU : CU_Id; Scope_Entities : Scope_Entities_Trees.Tree) is
+     (CU : CU_Id; Scope_Entities : Scope_Entities_Trees.Tree)
+   is
+      SE : Scope_Entities_Trees.Tree renames
+        CU_Vector.Reference (CU).Scope_Entities;
    begin
-      CU_Vector.Reference (CU).Scope_Entities := Scope_Entities;
+      --  Scopes are supposed to be set only once per compilation unit
+
+      pragma Assert (SE.Is_Empty);
+      SE := Scope_Entities;
    end Set_Scope_Entities;
 
    -------------------------------

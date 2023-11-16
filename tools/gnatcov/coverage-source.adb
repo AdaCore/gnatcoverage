@@ -1948,6 +1948,7 @@ package body Coverage.Source is
    is
       CU : CU_Id;
       BM : CU_Bit_Maps;
+      ST : Scope_Traversal_Type;
 
       procedure Set_Executed (SCI : in out Source_Coverage_Info);
       --  Mark SCI as executed
@@ -1961,6 +1962,12 @@ package body Coverage.Source is
                (Part_Image (CU_Name.Part) & " " & To_Ada (CU_Name.Unit)),
             when File_Based_Language => +CU_Name.Filename);
       --  Helper to refer to the instrumented unit in an error message
+
+      procedure Update_SCI_Wrapper
+        (SCO     : SCO_Id;
+         Tag     : SC_Tag;
+         Process : access procedure (SCI : in out Source_Coverage_Info));
+      --  Execute Process on the SCI for the given SCO and tag
 
       ------------------
       -- Set_Executed --
@@ -1985,13 +1992,9 @@ package body Coverage.Source is
                  when Unit_Separate => "separate");
       end Part_Image;
 
-      ST : Scope_Traversal_Type;
-
-      procedure Update_SCI_Wrapper
-        (SCO     : SCO_Id;
-         Tag     : SC_Tag;
-         Process : access procedure (SCI : in out Source_Coverage_Info));
-      --  Execute Process on the SCI for the given SCO and tag
+      ------------------------
+      -- Update_SCI_Wrapper --
+      ------------------------
 
       procedure Update_SCI_Wrapper
         (SCO     : SCO_Id;

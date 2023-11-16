@@ -13,8 +13,32 @@ from SUITE.cutils import contents_of, Wdir
 from SUITE.tutils import gprfor, xcov
 from SUITE.gprutils import GPRswitches
 
+
+src_traces = thistest.options.trace_mode == "src"
+
+
+def check_xcov(label, args, expected_output=""):
+    """
+    Run xcov with the given aruments and check its output.
+
+    Also pass it --output-dir={label}, and create that directory beforehand.
+    """
+    log = f"{label}.log"
+    os.mkdir(label)
+    xcov(args + [f"--output-dir={label}"], out=log)
+    thistest.fail_if_not_equal(
+        "'gnatcov coverage' output",
+        expected_output,
+        contents_of(log).strip(),
+    )
+
+
 tmp = Wdir("tmp_")
 
+pkg_spec = os.path.join("..", "src", "pkg.ads")
+pkg_body = os.path.join("..", "src", "pkg.adb")
+
+thistest.log("== Checkpoint creation ==")
 cov_args = build_and_run(
     gprsw=GPRswitches(
         gprfor(srcdirs=os.path.join("..", "src"), mains=["main.adb"])
@@ -28,30 +52,24 @@ cov_args = build_and_run(
 # that the coverage report contains only coverage data for the specified
 # subprograms for source traces. For binary traces, simply check that the
 # gnatcov coverage invocation yields the expected warning.
-os.mkdir("xcov_subp")
-xcov(
+check_xcov(
+    "xcov_subp",
     cov_args
     + [
         "--save-checkpoint",
         "trace.ckpt",
-        "--subprograms",
-        f"{os.path.join('..', 'src', 'pkg.ads')}:4",
-        "--subprograms",
-        f"{os.path.join('..', 'src', 'pkg.adb')}:10",
-        "--subprograms",
-        f"{os.path.join('..', 'src', 'pkg.adb')}:12",
-        "--output-dir=xcov_subp",
+        f"--subprograms={pkg_spec}:4",
+        f"--subprograms={pkg_body}:10",
+        f"--subprograms={pkg_body}:12",
     ],
-    out="coverage.log",
+    expected_output=(
+        ""
+        if src_traces else
+        "warning: Ignoring --subprograms switches as this is not supported"
+        " with binary traces."
+    ),
 )
-if thistest.options.trace_mode == "bin":
-    thistest.fail_if_no_match(
-        "gnatcov coverage output",
-        "warning: Ignoring --subprograms switches as this is not supported with"
-        " binary traces.",
-        contents_of("coverage.log"),
-    )
-else:
+if src_traces:
     check_xcov_reports(
         "*.xcov",
         {
@@ -61,12 +79,14 @@ else:
         "xcov_subp",
     )
 
-    # Then check that the checkpoint contains only coverage data for the specific
-    # subprogram. To do this, produce a new coverage report from the checkpoint
-    # without using the --subprograms switch.
-    xcov(
+    # Then check that the checkpoint contains only coverage data for the
+    # specific subprogram. To do this, produce a new coverage report from the
+    # checkpoint without using the --subprograms switch.
+    thistest.log("== xcov_no_subp ==")
+    check_xcov(
+        "xcov_no_subp",
         cov_args[:-1]
-        + ["--checkpoint", "trace.ckpt", "--output-dir=xcov_no_subp"]
+        + ["--checkpoint", "trace.ckpt"],
     )
     check_xcov_reports(
         "*.xcov",
@@ -80,6 +100,7 @@ else:
     # Also check the warnings when the subprogram switch is ill-formed
 
     # Case 1: missing colon in the argument
+    thistest.log("== Missing colon ==")
     xcov(
         cov_args + ["--subprograms", "no-colon"],
         out="xcov-wrong1.txt",
@@ -90,10 +111,11 @@ else:
         regexp=r".*Wrong argument passed to --subprograms: .*",
         actual=contents_of("xcov-wrong1.txt"),
     )
-    
+
     # Case 2: line number is not a number
+    thistest.log("== Bad line number ==")
     xcov(
-        cov_args + ["--subprograms", f"{os.path.join('..', 'src', 'pkg.ads')}:b",],
+        cov_args + ["--subprograms", f"{pkg_spec}:b"],
         out="xcov-wrong2.txt",
         register_failure=False,
     )
@@ -102,8 +124,9 @@ else:
         regexp=r".*Wrong argument passed to --subprograms: .*",
         actual=contents_of("xcov-wrong2.txt"),
     )
-    
+
     # Case 3: file does not exist
+    thistest.log("== No such file ==")
     xcov(
         cov_args + ["--subprograms", "dumb-file-name:4"],
         out="xcov-wrong3.txt",
@@ -111,11 +134,28 @@ else:
     )
     thistest.fail_if_no_match(
         what="unexpected coverage output",
-        regexp=r".*Error when parsing --subprograms argument dumb-file-name:4:"
-        r".*dumb-file-name does not exist",
+        regexp=(
+            r".*Error when parsing --subprograms argument dumb-file-name:4:"
+            r" unknown source file"
+        ),
         actual=contents_of("xcov-wrong3.txt"),
     )
 
+    # Case 4: scope does not exist
+    thistest.log("== No such scope ==")
+    xcov(
+        cov_args + [f"--subprograms={pkg_body}:14"],
+        out="xcov-wrong3.txt",
+        register_failure=False,
+    )
+    thistest.fail_if_no_match(
+        what="unexpected coverage output",
+        regexp=(
+            f".*Error when parsing --subprograms argument {pkg_body}:14:"
+            " unknown subprogram"
+        ),
+        actual=contents_of("xcov-wrong3.txt"),
+    )
 
 
 thistest.result()

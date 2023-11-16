@@ -108,6 +108,11 @@ package SC_Obligations is
    No_CU_Id : constant CU_Id := 0;
    subtype Valid_CU_Id is CU_Id range No_CU_Id + 1 .. CU_Id'Last;
 
+   function Image (CU : CU_Id) return String;
+
+   function Last_CU return CU_Id;
+   --  Return the last compilation unit that was created so far
+
    package CU_Id_Vectors is new Ada.Containers.Vectors (Positive, CU_Id);
 
    function Provider (CU : CU_Id) return SCO_Provider;
@@ -180,7 +185,7 @@ package SC_Obligations is
    type Scope_Entity is record
       From, To : SCO_Id;
       --  SCO range for this scope. As scope entities are computed during
-      --  instrumentation, From and To designates low level SCOs that are then
+      --  instrumentation, From and To designate low level SCOs that are then
       --  converted to high level SCOs after processing the low level SCOs.
 
       Name : Unbounded_String;
@@ -203,13 +208,25 @@ package SC_Obligations is
    --  This information is computed by the instrumenters (that know what is
    --  a scope, and what is not).
 
+   function Image (SE : Scope_Entity) return String;
+
    package Scope_Id_Sets is new Ada.Containers.Ordered_Sets
      (Element_Type => Scope_Entity_Identifier);
    subtype Scope_Id_Set is Scope_Id_Sets.Set;
 
+   Available_Subps_Of_Interest : SC_Obligations.Scope_Id_Set;
+   --  Set of subprograms of interest known so far. This is used to validate
+   --  that entries added to Switches.Subp_Of_Interest do exist, i.e. raise
+   --  errors when a requested subprogram of interest is unknown.
+
    package Scope_Entities_Trees is new Ada.Containers.Multiway_Trees
      (Element_Type => Scope_Entity);
    subtype Scope_Entities_Tree is Scope_Entities_Trees.Tree;
+
+   procedure Dump
+     (Scope_Entities : Scope_Entities_Trees.Tree; Line_Prefix : String := "");
+   --  Debug helper: print a representation of Scope_Entities on the standard
+   --  output. Each line that is printed has the given Line_Prefix.
 
    subtype Tree_Iterator is
      Scope_Entities_Trees.Tree_Iterator_Interfaces.Forward_Iterator'Class;
@@ -232,9 +249,7 @@ package SC_Obligations is
    function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type;
    --  Return a scope traversal for the given compilation unit
 
-   procedure Traverse_SCO
-     (ST  : in out Scope_Traversal_Type;
-      SCO : SCO_Id);
+   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id);
    --  Traverse the given SCO and update the Scope_Traversal accordingly. Note
    --  that the scope traversal must be done on increasing SCOs identifiers.
 
@@ -1349,9 +1364,6 @@ private
    --  Set the BDD node for the given condition SCO
 
    type Scope_Traversal_Type is record
-      Scope_Entities : Scope_Entities_Tree;
-      --  Currently traversed scope entities
-
       Scope_Stack   : Scope_Stacks.List;
       Active_Scopes : Scope_Id_Set;
       --  List of currently active scopes
@@ -1366,9 +1378,14 @@ private
       --  Iterator to traverse the scope tree
    end record;
 
+   procedure Set_Active_Scope_Ent
+     (ST        : in out Scope_Traversal_Type;
+      Scope_Ent : Scope_Entities_Trees.Cursor);
+   --  Set ST.Active_Scope_Ent to Scope_Ent and set ST.Next_Scope_Ent to the
+   --  next one according to ST's iterator.
+
    No_Scope_Traversal : Scope_Traversal_Type :=
-     (Scope_Entities   => Scope_Entities_Trees.Empty_Tree,
-      Scope_Stack      => Scope_Stacks.Empty_List,
+     (Scope_Stack      => Scope_Stacks.Empty_List,
       Active_Scopes    => Scope_Id_Sets.Empty_Set,
       Active_Scope_Ent => Scope_Entities_Trees.No_Element,
       Next_Scope_Ent   => Scope_Entities_Trees.No_Element,

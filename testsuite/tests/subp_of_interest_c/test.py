@@ -10,8 +10,8 @@ import os.path
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
-from SUITE.cutils import contents_of, Wdir
-from SUITE.tutils import gprfor, xcov
+from SUITE.cutils import Wdir
+from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
 tmp = Wdir("tmp_")

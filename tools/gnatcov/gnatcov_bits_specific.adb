@@ -87,6 +87,7 @@ with Traces_Files;          use Traces_Files;
 with Traces_Files_Registry; use Traces_Files_Registry;
 with Traces_Names;          use Traces_Names;
 with Traces_Source;
+with Types;                 use Types;
 with Version;
 
 procedure GNATcov_Bits_Specific is
@@ -367,32 +368,39 @@ procedure GNATcov_Bits_Specific is
       -- Process_Subp_Input --
       ------------------------
 
-      procedure Process_Subp_Input (Subp_Input : String)
-      is
-         Colon_Index : constant Natural :=
+      procedure Process_Subp_Input (Subp_Input : String) is
+         Column_Index : constant Natural :=
            Ada.Strings.Fixed.Index (Subp_Input, Ada.Strings.Maps.To_Set (':'));
-         Filename    : constant String :=
-           Subp_Input (Subp_Input'First .. Colon_Index - 1);
+         Filename     : String renames
+           Subp_Input (Subp_Input'First .. Column_Index - 1);
+         Column       : String renames
+           Subp_Input (Column_Index + 1 .. Subp_Input'Last);
+
+         Identifier : Scope_Entity_Identifier;
       begin
-         if Colon_Index = 0 then
+         if Column_Index = 0 then
             raise Constraint_Error;
          end if;
-         if not Exists (Filename) then
+         Identifier.Decl_SFI :=
+           Get_Index_From_Full_Name
+             (Full_Name => Full_Name (Filename),
+              Kind      => Source_File,
+              Insert    => False);
+         if Identifier.Decl_SFI = No_Source_File then
             Outputs.Fatal_Error
               ("Error when parsing --subprograms argument "
-               &  Subp_Input & ": file " & Filename & " does not exist");
+               & Subp_Input & ": unknown source file");
          end if;
-         Subps_Of_Interest.Include
-           (Scope_Entity_Identifier'
-              (Decl_SFI  =>
-                   Get_Index_From_Full_Name
-                      (Full_Name (Filename), Source_File),
-               Decl_Line =>
-                 Natural'Value
-                   (Subp_Input (Colon_Index + 1 .. Subp_Input'Last))));
+         Identifier.Decl_Line := Natural'Value (Column);
 
+         if not Available_Subps_Of_Interest.Contains (Identifier) then
+            Outputs.Fatal_Error
+              ("Error when parsing --subprograms argument "
+               & Subp_Input & ": unknown subprogram");
+         end if;
+         Subps_Of_Interest.Include (Identifier);
       exception
-            --  Deal gracefully with parsing errors
+         --  Deal gracefully with parsing errors
 
          when Constraint_Error =>
             Outputs.Fatal_Error
@@ -420,6 +428,16 @@ procedure GNATcov_Bits_Specific is
 
       Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
       Inputs.Iterate (SID_Inputs, SID_Load_Wrapper'Access);
+
+      --  Now that all the scope entities that can be referenced by
+      --  --subprograms are known, dump them in verbose mode.
+
+      if Verbose then
+         for CU in 1 .. Last_CU loop
+            Put_Line ("Scopes for " & Image (CU) & ":");
+            Dump (Get_Scope_Entities (CU), Line_Prefix => "| ");
+         end loop;
+      end if;
 
       --  Parse the listed subprograms of interest
 
@@ -1771,8 +1789,7 @@ begin
          --  Warn when the user hasn't explicitly set a coverage level and
          --  default to stmt.
 
-         if not (Source_Coverage_Enabled or else Object_Coverage_Enabled)
-         then
+         if not (Source_Coverage_Enabled or else Object_Coverage_Enabled) then
             Warn ("Coverage level not specified on the command line or in the"
                   & " project file (--level=" & Source_Level_Options
                   & "|" & Object_Level_Options ("|") & "), defaulting to"
