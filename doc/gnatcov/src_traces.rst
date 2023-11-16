@@ -362,6 +362,31 @@ within the same environment, the variable name for a program can actually be
 tailored by passing a :cmd-option:`--dump-filename-env-var` switch to |gcvins|,
 providing the variable name to use.
 
+Support for preprocessing
+-------------------------
+
+|gcvins| automatically detects preprocessor configuration from the compiler
+switches present in project files (``-gnatep`` and ``-gnateD`` for Ada sources,
+``-D`` and the like for C/C++ sources).  It then runs preprocessing on the
+source code *before* the instrumentation itself happens.  This allows gnatcov
+to compute the code coverage only for code that is left "enabled" by
+preprocessing directives: disabled code (for instance what follows ``#if Debug
+then`` in Ada when the preprocessing symbol ``Debug`` is set to ``False``) is
+ignored and thus creates no coverage obligation. Note that consolidation will
+not help including code from all "preprocessing branches" in coverage reports,
+as gnatcov requires (and checks) that coverage obligations are the same for two
+units to consolidate.
+
+Ada pecularities
+^^^^^^^^^^^^^^^^
+
+The coverage obligations for code that comes from symbol expansion (for
+example, ``$Foo = 42`` expanded into ``My_Variable = 42`` with
+``-Dfoo=My_Variable``) designate expanded code.  Even though line numbers are
+preserved during preprocessing, column numbers may be different between the
+original code and the preprocessed code and thus the coverage report.
+
+
 .. _instr-limitations:
 
 |gcvins| limitations
@@ -413,24 +438,24 @@ state. Should the default limit not be satisfactory, it can be tuned with the
 option :cmd-option:`--path-count-limit`.
 
 Other source-traces limitations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In Ada, variable or type declarations at the package level can yield elaboration
 code. Such code constructs are thus considered to have corresponding coverage
-obligations
+obligations.
 
-In the case where a `pragma Preelaborate` restriction affects the instrumented
-unit, variable and type declarations at the package level are not considered as
-coverage obligations, although some elaboration code may still be emitted in
-rare instances. Note that declarations within a unit constrained by a
-``No_Elaboration_Code`` pragma don't produce coverage obligation either, which
-is always correct as no executable code can be emitted by the compiler for them.
+In the case where a ``pragma Preelaborate`` restriction affects the
+instrumented unit, variable and type declarations at the package level are not
+considered as coverage obligations, although some elaboration code may still be
+emitted in rare instances. Note that declarations within a unit constrained by
+a ``No_Elaboration_Code`` pragma don't produce coverage obligation either,
+which is always correct as no executable code can be emitted by the compiler
+for them.
 
 There are also a few limitations concerning the source trace workflow as a
 whole:
 
-- Separate analysis of generic package instances is not supported,
-- Preprocessing directives are ignored by the source instrumenter.
+- Separate analysis of generic package instances is not supported.
 
 Toolchain-specific limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -686,7 +711,7 @@ Setting up the coverage runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 As seen in the :ref:`instr-rts` section, we use the ``gnatcov setup`` command to
-build and install the :term:`coverage runtime <Coverage Runtime>`::
+build and install the :term:`coverage runtime <Coverage Runtime>`.
 
 For our intended target environment, this would be something like::
 
