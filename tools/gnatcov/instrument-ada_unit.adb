@@ -4049,7 +4049,7 @@ package body Instrument.Ada_Unit is
             declare
                Expr_Func : constant Expr_Function := N.As_Expr_Function;
                Decl_List : constant Node_Rewriting_Handle :=
-                 Create_Node (UIC.Rewriting_Context, Ada_Basic_Decl_List);
+                 Create_Node (UIC.Rewriting_Context, Ada_Ada_Node_List);
                --  List of declarations to hold the statement witness call and
                --  local MC/DC state holder variables.
 
