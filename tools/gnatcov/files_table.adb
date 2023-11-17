@@ -2243,7 +2243,7 @@ package body Files_Table is
          Current_Line : Integer := 0;
          --  Line and file of the currently-active line marker
 
-         PP_Directive_Matched : Boolean;
+         PP_Directive_Matched : Boolean := False;
          --  Whether the last line was a preprocessing directive, other than
          --  a line directive.
 
