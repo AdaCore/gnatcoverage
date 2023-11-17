@@ -21,6 +21,7 @@ with Ada.Strings.Hash;
 
 with GNAT.Regexp;
 
+with Checkpoints; use Checkpoints;
 with Paths;
 
 package body Strings is
@@ -91,6 +92,40 @@ package body Strings is
       return S'Length >= Length
         and then S (S'Last - Length + 1 .. S'Last) = Suffix;
    end Has_Suffix;
+
+   ----------
+   -- Read --
+   ----------
+
+   procedure Read
+     (CLS   : access Checkpoints.Checkpoint_Load_State;
+      Value : out String_Vectors.Vector)
+   is
+      procedure Read is new Read_Vector
+        (Index_Type   => Natural,
+         Element_Type => Ada.Strings.Unbounded.Unbounded_String,
+         "="          => Ada.Strings.Unbounded."=",
+         Vectors      => String_Vectors,
+         Read_Element => Read);
+   begin
+      Read (CLS.all, Value);
+   end Read;
+
+   procedure Read
+     (CLS   : access Checkpoints.Checkpoint_Load_State;
+      Value : out String_Maps.Map)
+   is
+      procedure Read is new Read_Map
+        (Key_Type     => Ada.Strings.Unbounded.Unbounded_String,
+         Element_Type => Ada.Strings.Unbounded.Unbounded_String,
+         Map_Type     => String_Maps.Map,
+         Clear        => String_Maps.Clear,
+         Insert       => String_Maps.Insert,
+         Read_Key     => Read,
+         Read_Element => Read);
+   begin
+      Read (CLS.all, Value);
+   end Read;
 
    --------------------
    -- To_String_Sets --

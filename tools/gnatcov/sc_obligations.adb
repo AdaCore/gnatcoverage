@@ -144,13 +144,9 @@ package body SC_Obligations is
    procedure Free (CU : in out CU_Info);
 
    pragma Warnings (Off, "* is not referenced");
-   procedure Read
-     (S : access Root_Stream_Type'Class;
-      V : out CU_Info);
    procedure Write (S : access Root_Stream_Type'Class; V : CU_Info);
    pragma Warnings (On, "* is not referenced");
 
-   for CU_Info'Read use Read;
    for CU_Info'Write use Write;
 
    function Has_SCOs (CUI : CU_Info) return Boolean is
@@ -461,11 +457,9 @@ package body SC_Obligations is
    end record;
 
    pragma Warnings (Off, "* is not referenced");
-   procedure Read (S : access Root_Stream_Type'Class; V : out SCO_Descriptor);
    procedure Write (S : access Root_Stream_Type'Class; V : SCO_Descriptor);
    pragma Warnings (On, "* is not referenced");
 
-   for SCO_Descriptor'Read use Read;
    for SCO_Descriptor'Write use Write;
 
    Removed_SCO_Descriptor : constant SCO_Descriptor := (Kind => Removed);
@@ -548,6 +542,82 @@ package body SC_Obligations is
    -----------------------------------------
    -- Helper routines for Checkpoint_Load --
    -----------------------------------------
+
+   procedure Read is new Read_Vector
+     (Index_Type   => Pos,
+      Element_Type => Source_File_Index,
+      "="          => "=",
+      Vectors      => SFI_Vectors,
+      Read_Element => Read);
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out Expansion_Info);
+   --  Read an Expansion_Info from CLS
+
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out PP_Info);
+   --  Read a PP_Info from CLS
+
+   procedure Read is new Read_Map
+     (Key_Type     => SCO_Id,
+      Element_Type => PP_Info,
+      Map_Type     => SCO_PP_Info_Maps.Map,
+      Clear        => SCO_PP_Info_Maps.Clear,
+      Insert       => SCO_PP_Info_Maps.Insert,
+      Read_Key     => Read,
+      Read_element => Read);
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out Scope_Entity);
+   --  Read a Scope_Entity from CLS
+
+   procedure Read is new Read_Tree
+     (Element_Type   => Scope_Entity,
+      "="            => "=",
+      Multiway_Trees => Scope_Entities_Trees,
+      Read_Element   => Read);
+
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out CU_Info);
+   --  Read a CU_Info from CLS
+
+   procedure Read is new Read_Vector
+     (Valid_CU_Id, CU_Info, "=", CU_Info_Vectors, Read);
+   --  Read a vector of CU_Info records from CLS and append them to CU_Vector
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Element : out Inst_Info);
+   --  Read an Inst_Info from CLS
+
+   procedure Read is new Read_Vector
+     (Index_Type   => Valid_Inst_Id,
+      Element_Type => Inst_Info,
+      "="          => "=",
+      Vectors      => Inst_Info_Vectors,
+      Read_Element => Read);
+
+   procedure Read is new Read_Set
+     (Element_Type => Pc_Type,
+      Set_Type     => PC_Sets.Set,
+      Clear        => PC_Sets.Clear,
+      Insert       => PC_Sets.Insert,
+      Read_Element => Read);
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Element : out SCO_Descriptor);
+   --  Read a SCO_Descriptor from CLS
+
+   procedure Read is new Read_Set
+     (Element_Type => SCO_Id,
+      Set_Type     => SCO_Sets.Set,
+      Clear        => SCO_Sets.Clear,
+      Insert       => SCO_Sets.Insert,
+      Read_Element => Read);
+
+   procedure Read is new Read_Vector
+     (Index_Type   => Valid_SCO_Id,
+      Element_Type => SCO_Descriptor,
+      "="          => "=",
+      Vectors      => SCO_Vectors,
+      Read_Element => Read);
 
    procedure Checkpoint_Load_Merge_Unit
      (CLS        : access Checkpoint_Load_State;
@@ -798,6 +868,200 @@ package body SC_Obligations is
    begin
       return CU_Vector.Reference (CU).Element.PP_Info_Map.Element (SCO);
    end Get_PP_Info;
+
+   ----------
+   -- Read --
+   ----------
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out Expansion_Info)
+   is
+   begin
+      Value.Macro_Name := CLS.Read_Unbounded_String;
+      Value.Sloc := CLS.Read_Source_Location;
+   end Read;
+
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out PP_Info) is
+      Result : PP_Info (SCO_PP_Kind'Val (CLS.Read_U8));
+      Count  : Interfaces.Integer_32;
+   begin
+      Result.Actual_Source_Range := CLS.Read_Local_Source_Location_Range;
+      Result.PP_Source_Range := CLS.Read_Local_Source_Location_Range;
+
+      Result.Expansion_Stack.Clear;
+      Count := CLS.Read_I32;
+      for I in 1 .. Count loop
+         declare
+            EI : Expansion_Info;
+         begin
+            Read (CLS, EI);
+            Result.Expansion_Stack.Append (EI);
+         end;
+      end loop;
+
+      case Result.Kind is
+         when In_Expansion =>
+            Read (CLS, Result.Definition_Loc);
+
+         when others =>
+            null;
+      end case;
+
+      Value := Result;
+   end Read;
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out Scope_Entity)
+   is
+   begin
+      Value.From := CLS.Read_SCO;
+      Value.To := CLS.Read_SCO;
+
+      Value.Name := CLS.Read_Unbounded_String;
+      Value.Sloc := CLS.Read_Local_Source_Location;
+
+      Value.Identifier.Decl_SFI := CLS.Read_SFI;
+      Value.Identifier.Decl_Line := CLS.Read_Integer;
+   end Read;
+
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out CU_Info)
+   is
+      Element_Template : CU_Info (SCO_Provider'Val (CLS.Read_U8));
+   begin
+      Value := Element_Template;
+
+      --  Checkpoint version 1 data
+
+      Value.Origin := CLS.Read_SFI;
+      Value.Main_Source := CLS.Read_SFI;
+      Value.First_SCO := CLS.Read_SCO;
+      Value.Last_SCO := CLS.Read_SCO;
+      Value.First_Instance := CLS.Read_Inst;
+      Value.Last_Instance := CLS.Read_Inst;
+      Read (CLS, Value.Deps);
+      Value.Has_Code := CLS.Read_Boolean;
+      Value.Fingerprint := CLS.Read_Fingerprint;
+      Read (CLS, Value.PP_Info_Map);
+
+      case Value.Provider is
+         when Compiler =>
+            null;
+         when Instrumenter =>
+
+            --  By default, use "no fingerprint" for buffer bit maps
+            --  fingerprints: by design checkpoints contains neither bit maps
+            --  nor their fingerprints (all source traces are processed before
+            --  loading checkpoints, and bit maps are needed only to interpret
+            --  source traces).
+
+            Value.Bit_Maps_Fingerprint := No_Fingerprint;
+
+            if Purpose_Of (CLS) = Instrumentation then
+               declare
+                  Stmt_First, DC_First, MCDC_First : Bit_Id;
+                  Stmt_Last, DC_Last, MCDC_Last    : Any_Bit_Id;
+               begin
+                  Stmt_First := CLS.Read_Bit_Id;
+                  Stmt_Last := CLS.Read_Bit_Id;
+                  Value.Bit_Maps.Statement_Bits :=
+                    new Statement_Bit_Map (Stmt_First .. Stmt_Last);
+                  for SCO of Value.Bit_Maps.Statement_Bits.all loop
+                     SCO := CLS.Read_SCO;
+                  end loop;
+
+                  DC_First := CLS.Read_Bit_Id;
+                  DC_Last := CLS.Read_Bit_Id;
+                  Value.Bit_Maps.Decision_Bits :=
+                    new Decision_Bit_Map (DC_First .. DC_Last);
+                  for Info of Value.Bit_Maps.Decision_Bits.all loop
+                     Info.D_SCO := CLS.Read_SCO;
+                     Info.Outcome := CLS.Read_Boolean;
+                  end loop;
+
+                  MCDC_First := CLS.Read_Bit_Id;
+                  MCDC_Last := CLS.Read_Bit_Id;
+                  Value.Bit_Maps.MCDC_Bits :=
+                    new MCDC_Bit_Map (MCDC_First .. MCDC_Last);
+                  for Info of Value.Bit_Maps.MCDC_Bits.all loop
+                     Info.D_SCO := CLS.Read_SCO;
+                     Info.Path_Index := CLS.Read_Integer;
+                  end loop;
+               end;
+               Value.Bit_Maps_Fingerprint := CLS.Read_Fingerprint;
+            end if;
+      end case;
+
+      Read (CLS, Value.Scope_Entities);
+   end Read;
+
+   procedure Read (CLS : in out Checkpoint_Load_State; Element : out Inst_Info)
+   is
+   begin
+      Element.Sloc := CLS.Read_Source_Location;
+      Element.Enclosing_Instance := CLS.Read_Inst;
+      Element.Comp_Unit := CLS.Read_CU;
+   end Read;
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Element : out SCO_Descriptor)
+   is
+      SCOD : SCO_Descriptor (SCO_Kind'Val (CLS.Read_U8));
+   begin
+      if SCOD.Kind = Removed then
+         Element := Removed_SCO_Descriptor;
+         return;
+      end if;
+
+      SCOD.Origin     := CLS.Read_CU;
+      SCOD.Sloc_Range := CLS.Read_Source_Location_Range;
+      SCOD.Parent     := CLS.Read_SCO;
+
+      case SCOD.Kind is
+      when Removed =>
+         raise Program_Error with "unreachable code";
+
+      when Statement =>
+         SCOD.S_Kind         := Statement_Kind'Val (CLS.Read_U8);
+         SCOD.Dominant       := CLS.Read_SCO;
+         SCOD.Dominant_Value := CLS.Read_Tristate;
+         SCOD.Dominant_Sloc  := CLS.Read_Source_Location;
+         SCOD.Handler_Range  := CLS.Read_Source_Location_Range;
+         SCOD.Pragma_Name    := Pragma_Id'Val (CLS.Read_U8);
+
+      when Condition =>
+         SCOD.Value := CLS.Read_Tristate;
+         Read (CLS, SCOD.PC_Set);
+         SCOD.BDD_Node := CLS.Read_BDD_Node;
+         SCOD.Index := CLS.Read_Condition;
+
+      when Decision =>
+         SCOD.Expression       := CLS.Read_SCO;
+         SCOD.D_Kind           := Decision_Kind'Val (CLS.Read_U8);
+         SCOD.Control_Location := CLS.Read_Source_Location;
+         SCOD.Last_Cond_Index  := CLS.Read_Condition;
+         SC_Obligations.BDD.Read (CLS'Access, SCOD.Decision_BDD);
+         SCOD.Degraded_Origins := CLS.Read_Boolean;
+         SCOD.Aspect_Name      := Aspect_Id'Val (CLS.Read_U8);
+         SCOD.Path_Count       := CLS.Read_Integer;
+
+      when Operator =>
+         declare
+            First : constant Operand_Position :=
+              Operand_Position'Val (CLS.Read_U8);
+            Last  : constant Operand_Position :=
+              Operand_Position'Val (CLS.Read_U8);
+         begin
+            pragma Assert (First = Left);
+            pragma Assert (Last = Right);
+
+            SCOD.Operands (Left) := CLS.Read_SCO;
+            SCOD.Operands (Right) := CLS.Read_SCO;
+         end;
+         SCOD.Op_Kind := Operator_Kind'Val (CLS.Read_U8);
+      end case;
+
+      Element := SCOD;
+   end Read;
 
    --------------------------------
    -- Checkpoint_Load_Merge_Unit --
@@ -1444,63 +1708,6 @@ package body SC_Obligations is
 
    --  Procedures below use comparisons on checkpoint format versions
 
-   ----------
-   -- Read --
-   ----------
-
-   procedure Read
-     (S : access Root_Stream_Type'Class;
-      V : out CU_Info)
-   is
-      CLS : Stateful_Stream renames Stateful_Stream (S.all);
-
-      New_CUI : CU_Info (SCO_Provider'Input (S));
-      pragma Warnings (Off, New_CUI);
-      --  Used only for discriminant and default initialization
-
-   begin
-      --  Set CUI's discriminant
-
-      V := New_CUI;
-
-      Source_File_Index'Read    (S, V.Origin);
-      Source_File_Index'Read    (S, V.Main_Source);
-      SCO_Id'Read               (S, V.First_SCO);
-      SCO_Id'Read               (S, V.Last_SCO);
-      Inst_Id'Read              (S, V.First_Instance);
-      Inst_Id'Read              (S, V.Last_Instance);
-      SFI_Vector'Read           (S, V.Deps);
-      Boolean'Read              (S, V.Has_Code);
-      Fingerprint_Type'Read     (S, V.Fingerprint);
-      SCO_PP_Info_Maps.Map'Read (S, V.PP_Info_Map);
-
-      case V.Provider is
-         when Compiler =>
-            null;
-         when Instrumenter =>
-
-            --  By default, use "no fingerprint" for buffer bit maps
-            --  fingerprints: by design checkpoints contains neither bit maps
-            --  nor their fingerprints (all source traces are processed before
-            --  loading checkpoints, and bit maps are needed only to interpret
-            --  source traces).
-
-            V.Bit_Maps_Fingerprint := No_Fingerprint;
-
-            if CLS.Purpose_Of = Instrumentation then
-               V.Bit_Maps.Statement_Bits :=
-                 new Statement_Bit_Map'(Statement_Bit_Map'Input (S));
-               V.Bit_Maps.Decision_Bits :=
-                 new Decision_Bit_Map'(Decision_Bit_Map'Input (S));
-               V.Bit_Maps.MCDC_Bits :=
-                 new MCDC_Bit_Map'(MCDC_Bit_Map'Input (S));
-               Fingerprint_Type'Read (S, V.Bit_Maps_Fingerprint);
-            end if;
-      end case;
-
-      Scope_Entities_Tree'Read (S, V.Scope_Entities);
-   end Read;
-
    -----------
    -- Write --
    -----------
@@ -1544,22 +1751,21 @@ package body SC_Obligations is
 
    procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
       CP_Vectors : Source_Coverage_Vectors;
-      S          : constant access Root_Stream_Type'Class := CLS.all'Access;
       Relocs     : Checkpoint_Relocations renames CLS.Relocations;
    begin
       --  Load data from stream
       --  This part must be kept consistent with Checkpoint_Save
 
-      CU_Info_Vectors.Vector'Read   (S, CP_Vectors.CU_Vector);
-      ALI_Annotation_Maps.Map'Read  (S, CP_Vectors.ALI_Annotations);
-      Inst_Info_Vectors.Vector'Read (S, CP_Vectors.Inst_Vector);
-      BDD.BDD_Vectors.Vector'Read   (S, CP_Vectors.BDD_Vector);
-      SCO_Vectors.Vector'Read       (S, CP_Vectors.SCO_Vector);
+      Read (CLS.all, CP_Vectors.CU_Vector);
+      Read (CLS, CP_Vectors.ALI_Annotations);
+      Read (CLS.all, CP_Vectors.Inst_Vector);
+      SC_Obligations.BDD.Read (CLS, CP_Vectors.BDD_Vector);
+      Read (CLS.all, CP_Vectors.SCO_Vector);
 
       --  Load non-instrumented information
 
-      SCO_Sets.Set'Read (S, CP_Vectors.Non_Instr_SCOs);
-      SCO_Sets.Set'Read (S, CP_Vectors.Non_Instr_MCDC_SCOs);
+      Read (CLS.all, CP_Vectors.Non_Instr_SCOs);
+      Read (CLS.all, CP_Vectors.Non_Instr_MCDC_SCOs);
 
       --  Allocate mapping tables for SCOs, instance identifiers and BDD nodes
 
@@ -3844,59 +4050,6 @@ package body SC_Obligations is
          return SC_Tag (Remap_Inst_Id (Relocs, Inst_Id (CP_Tag)));
       end if;
    end Map_Tag;
-
-   ----------
-   -- Read --
-   ----------
-
-   procedure Read (S : access Root_Stream_Type'Class; V : out SCO_Descriptor)
-   is
-      SCOD : SCO_Descriptor (SCO_Kind'Input (S));
-   begin
-      if SCOD.Kind = Removed then
-         V := Removed_SCO_Descriptor;
-         return;
-      end if;
-
-      SCOD.Origin     := CU_Id'Input (S);
-      SCOD.Sloc_Range := Source_Location_Range'Input (S);
-      SCOD.Parent     := SCO_Id'Input (S);
-
-      case SCOD.Kind is
-      when Removed =>
-         raise Program_Error with "unreachable code";
-
-      when Statement =>
-         SCOD.S_Kind         := Statement_Kind'Input (S);
-         SCOD.Dominant       := SCO_Id'Input (S);
-         SCOD.Dominant_Value := Tristate'Input (S);
-         SCOD.Dominant_Sloc  := Source_Location'Input (S);
-         SCOD.Handler_Range  := Source_Location_Range'Input (S);
-         SCOD.Pragma_Name    := Pragma_Id'Input (S);
-
-      when Condition =>
-         SCOD.Value    := Tristate'Input (S);
-         SCOD.PC_Set   := PC_Sets.Set'Input (S);
-         SCOD.BDD_Node := BDD_Node_Id'Input (S);
-         SCOD.Index    := Condition_Index'Input (S);
-
-      when Decision =>
-         SCOD.Expression       := SCO_Id'Input (S);
-         SCOD.D_Kind           := Decision_Kind'Input (S);
-         SCOD.Control_Location := Source_Location'Input (S);
-         SCOD.Last_Cond_Index  := Any_Condition_Index'Input (S);
-         SCOD.Decision_BDD     := BDD.BDD_Type'Input (S);
-         SCOD.Degraded_Origins := Boolean'Input (S);
-         SCOD.Aspect_Name      := Aspect_Id'Input (S);
-         SCOD.Path_Count       := Natural'Input (S);
-
-      when Operator =>
-         SCOD.Operands := Operand_Pair'Input (S);
-         SCOD.Op_Kind := Operator_Kind'Input (S);
-      end case;
-
-      V := SCOD;
-   end Read;
 
    -----------
    -- Write --

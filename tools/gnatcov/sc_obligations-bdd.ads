@@ -77,20 +77,22 @@ private package SC_Obligations.BDD is
    pragma Warnings (Off, "* is not referenced");
    --  Work around compiler bug: bogus warning???
 
-   procedure Read
-     (S : access Root_Stream_Type'Class; V : out BDD_Node);
    procedure Write
      (S : access Root_Stream_Type'Class;
       V : BDD_Node);
    pragma Warnings (On, "* is not referenced");
 
-   for BDD_Node'Read use Read;
    for BDD_Node'Write use Write;
 
    package BDD_Vectors is
      new Ada.Containers.Vectors
        (Index_Type   => Valid_BDD_Node_Id,
         Element_Type => BDD_Node);
+
+   procedure Read
+     (CLS    : access Checkpoints.Checkpoint_Load_State;
+      Vector : out BDD_Vectors.Vector);
+   --  Read a BDD_Vectors.Vector from CLS
 
    type Reachability is array (Boolean) of Boolean;
 
@@ -117,14 +119,16 @@ private package SC_Obligations.BDD is
    end record;
 
    pragma Warnings (Off, "* is not referenced");
-   procedure Read (S : access Root_Stream_Type'Class; V : out BDD_Type);
    procedure Write
      (S : access Root_Stream_Type'Class;
       V : BDD_Type);
    pragma Warnings (On, "* is not referenced");
 
-   for BDD_Type'Read use Read;
    for BDD_Type'Write use Write;
+
+   procedure Read
+     (CLS : access Checkpoints.Checkpoint_Load_State; Value : out BDD_Type);
+   --  Read a BDD_Type from CLS
 
    procedure Allocate
      (BDD_Vector : in out BDD_Vectors.Vector;

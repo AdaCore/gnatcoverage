@@ -24,6 +24,7 @@ with Ada.Strings.Unbounded.Hash;
 
 with Interfaces.C;
 
+with Checkpoints; use Checkpoints;
 with Outputs;
 with Qemu_Traces; use Qemu_Traces;
 
@@ -374,18 +375,17 @@ package body Traces_Files_Registry is
    begin
       loop
          declare
-            Name    : constant Unbounded_String :=
-               Unbounded_String'Input (CLS);
+            Name    : constant Unbounded_String := CLS.Read_Unbounded_String;
             CP_File : Trace_File_Element_Acc;
          begin
             exit when Length (Name) = 0;
             CP_File := new Trace_File_Element;
             CP_File.Filename := Name;
-            Trace_File_Kind'Read  (CLS, CP_File.Kind);
-            Unbounded_String'Read (CLS, CP_File.Context);
-            Unbounded_String'Read (CLS, CP_File.Program_Name);
-            Unbounded_String'Read (CLS, CP_File.Time);
-            Unbounded_String'Read (CLS, CP_File.User_Data);
+            CP_File.Kind := Trace_File_Kind'Val (CLS.Read_U8);
+            CLS.Read (CP_File.Context);
+            CLS.Read (CP_File.Program_Name);
+            CLS.Read (CP_File.Time);
+            CLS.Read (CP_File.User_Data);
 
             Add_Traces_File (CP_File);
          end;

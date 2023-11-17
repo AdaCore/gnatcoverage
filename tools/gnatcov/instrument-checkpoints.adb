@@ -55,7 +55,7 @@ package body Instrument.Checkpoints is
          use Instrumented_Unit_To_CU_Maps;
          CP_IU_Map : Map;
       begin
-         Map'Read (CLS.Stream, CP_IU_Map);
+         Read (CLS.all, CP_IU_Map);
 
          for Cur in CP_IU_Map.Iterate loop
             declare
@@ -99,7 +99,7 @@ package body Instrument.Checkpoints is
          CP_PP_Cmds : SFI_To_PP_Cmd_Maps.Map;
          CP_SFI     : Source_File_Index;
       begin
-         SFI_To_PP_Cmd_Maps.Map'Read (CLS.Stream, CP_PP_Cmds);
+         Read (CLS.all, CP_PP_Cmds);
 
          for CP_Cur in CP_PP_Cmds.Iterate loop
 
@@ -121,7 +121,7 @@ package body Instrument.Checkpoints is
                      PP_Cmds.Insert (SFI, CP_PP_Cmds.Reference (CP_Cur));
 
                   --  Otherwise, warn if the already known command and the
-                     --  loaded one are different.
+                  --  loaded one are different.
 
                   elsif CP_PP_Cmds.Reference (CP_Cur)
                         /= PP_Cmds.Reference (Cur)

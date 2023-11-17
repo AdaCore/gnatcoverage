@@ -66,6 +66,35 @@ package body Instrument is
       return +Result;
    end To_Ada;
 
+   ----------
+   -- Read --
+   ----------
+
+   procedure Read
+     (CLS   : in out Checkpoints.Checkpoint_Load_State;
+      Value : out Ada_Identifier) is
+   begin
+      Value := Ada_Identifier (CLS.Read_Unbounded_String);
+   end Read;
+
+   procedure Read
+     (CLS   : in out Checkpoints.Checkpoint_Load_State;
+      Value : out Compilation_Unit_Part)
+   is
+      CUP : Compilation_Unit_Part (CLS.Read_Language_Kind);
+   begin
+      case CUP.Language_Kind is
+         when Unit_Based_Language =>
+            Read (CLS, CUP.Unit);
+            CUP.Part := Unit_Parts'Val (CLS.Read_U8);
+
+         when File_Based_Language =>
+            CUP.Filename := CLS.Read_Unbounded_String;
+      end case;
+
+      Value := CUP;
+   end Read;
+
    ---------
    -- "<" --
    ---------

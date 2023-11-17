@@ -29,6 +29,8 @@ with Ada.Strings.Unbounded.Less_Case_Insensitive;
 
 with GNAT.Strings; use GNAT.Strings;
 
+limited with Checkpoints;
+
 package Strings is
 
    function Hash (El : String_Access) return Ada.Containers.Hash_Type;
@@ -67,11 +69,21 @@ package Strings is
       Element_Type => Ada.Strings.Unbounded.Unbounded_String,
       "="          => Ada.Strings.Unbounded."=");
 
+   procedure Read
+     (CLS   : access Checkpoints.Checkpoint_Load_State;
+      Value : out String_Vectors.Vector);
+   --  Read a String_Vectors.Vector from CLS
+
    package String_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Ada.Strings.Unbounded.Unbounded_String,
       Element_Type => Ada.Strings.Unbounded.Unbounded_String,
       "<"          => Ada.Strings.Unbounded."<",
       "="          => Ada.Strings.Unbounded."=");
+
+   procedure Read
+     (CLS   : access Checkpoints.Checkpoint_Load_State;
+      Value : out String_Maps.Map);
+   --  Read a String_Maps.Map from CLS
 
    package String_Sets is new Ada.Containers.Ordered_Sets
      (Element_Type => Ada.Strings.Unbounded.Unbounded_String,

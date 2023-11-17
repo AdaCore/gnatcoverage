@@ -1956,13 +1956,12 @@ package body Files_Table is
    is
       pragma Assert
         (CLS.Purpose = Instrumentation or else Ignored_Source_Files = null);
-      S      : access Ada.Streams.Root_Stream_Type'Class renames CLS.Stream;
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
 
       --  1) Read header
 
-      CP_First_SFI : constant Source_File_Index := Source_File_Index'Input (S);
-      CP_Last_SFI  : constant Source_File_Index := Source_File_Index'Input (S);
+      CP_First_SFI : constant Source_File_Index := CLS.Read_SFI;
+      CP_Last_SFI  : constant Source_File_Index := CLS.Read_SFI;
       CP_SFI       : Source_File_Index;
 
       --  2) Read file table entries
@@ -1999,14 +1998,15 @@ package body Files_Table is
       --  Pass 1: load all file entries from checkpoint
 
       loop
-         Source_File_Index'Read (S, CP_SFI);
+         CP_SFI := CLS.Read_SFI;
          exit when CP_SFI = No_Source_File;
 
          declare
             FE                  : File_Entry renames CP_Entries (CP_SFI);
-            Name                : constant String := String'Input (S);
-            Kind                : constant File_Kind := File_Kind'Input (S);
-            Indexed_Simple_Name : constant Boolean := Boolean'Input (S);
+            Name                : constant String := CLS.Read_String;
+            Kind                : constant File_Kind :=
+              File_Kind'Val (CLS.Read_U8);
+            Indexed_Simple_Name : constant Boolean := CLS.Read_Boolean;
 
             --  Do not call Ada.Directories.Simple_Name on artificial file
             --  names: such names are known to make Simple_Name raise a
@@ -2027,23 +2027,21 @@ package body Files_Table is
                when Source_File =>
                   FE := (Kind => Source_File, others => <>);
 
-                  --  Dumping ignored source files requires information that is
-                  --  not available before checkpoint version 13.
-
                   FE.Ignore_Status := Unknown;
                   FE.Unit := (Known => False);
-                  FE.Ignore_Status := Any_Ignore_Status'Input (S);
+                  FE.Ignore_Status := Any_Ignore_Status'Val (CLS.Read_U8);
                   declare
-                     Unit_Known : constant Boolean := Boolean'Input (S);
+                     Unit_Known : constant Boolean := CLS.Read_Boolean;
                   begin
                      if Unit_Known then
-                        FE.Unit := (Known => True,
-                                    Name  => Compilation_Unit'Input (S));
+                        FE.Unit :=
+                          (Known => True,
+                           Name  => CLS.Read_Compilation_Unit);
                      end if;
                   end;
                when Library_File =>
                   FE := (Kind => Library_File, others => <>);
-                  FE.Main_Source := Source_File_Index'Input (S);
+                  FE.Main_Source := CLS.Read_SFI;
                   pragma Assert (FE.Main_Source /= No_Source_File);
             end case;
             FE.Name := new String'(Name);

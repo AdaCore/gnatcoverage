@@ -26,6 +26,7 @@ with GNATCOLL.Projects; use GNATCOLL.Projects;
 
 with Types; use Types;
 
+with Checkpoints;         use Checkpoints;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with SC_Obligations;      use SC_Obligations;
 with Subprocesses;        use Subprocesses;
@@ -50,6 +51,11 @@ package Instrument is
    type Ada_Identifier is new Ada.Strings.Unbounded.Unbounded_String;
    --  Simple Ada identifier
 
+   procedure Read
+     (CLS   : in out Checkpoints.Checkpoint_Load_State;
+      Value : out Ada_Identifier);
+   --  Read an Ada_Identifier from CLS
+
    package Ada_Identifier_Vectors is new Ada.Containers.Vectors
      (Positive, Ada_Identifier);
 
@@ -63,6 +69,12 @@ package Instrument is
    function To_Ada (Name : Ada_Qualified_Name) return String
      with Pre => not Name.Is_Empty;
    --  Turn the given qualified name into Ada syntax
+
+   procedure Read is new Read_Vector
+     (Index_Type   => Positive,
+      Element_Type => Ada_Identifier,
+      Vectors      => Ada_Identifier_Vectors,
+      Read_Element => Read);
 
    type Compilation_Unit_Part
      (Language_Kind : Any_Language_Kind := Unit_Based_Language)
@@ -82,6 +94,11 @@ package Instrument is
       end case;
    end record;
    --  Unique identifier for an instrumented unit part
+
+   procedure Read
+     (CLS   : in out Checkpoints.Checkpoint_Load_State;
+      Value : out Compilation_Unit_Part);
+   --  Read a Compilation_Unit_Part from CLS
 
    Part_Tags : constant array (Unit_Parts) of Character :=
      (Unit_Spec     => 'S',
@@ -165,6 +182,15 @@ package Instrument is
      (Key_Type     => Compilation_Unit_Part,
       Element_Type => CU_Id);
 
+   procedure Read is new Read_Map
+     (Key_Type     => Compilation_Unit_Part,
+      Element_Type => CU_Id,
+      Map_Type     => Instrumented_Unit_To_CU_Maps.Map,
+      Clear        => Instrumented_Unit_To_CU_Maps.Clear,
+      Insert       => Instrumented_Unit_To_CU_Maps.Insert,
+      Read_Key     => Read,
+      Read_Element => Read);
+
    Instrumented_Unit_CUs : Instrumented_Unit_To_CU_Maps.Map;
    --  Associate a CU id for all instrumented units. Updated each time we
    --  instrument a unit (or load a checkpoint) and used each time we read a
@@ -174,6 +200,15 @@ package Instrument is
      new Ada.Containers.Ordered_Maps
        (Key_Type     => Source_File_Index,
         Element_Type => Command_Type);
+
+   procedure Read is new Read_Map
+     (Key_Type     => Source_File_Index,
+      Element_Type => Command_Type,
+      Map_Type     => SFI_To_PP_Cmd_Maps.Map,
+      Clear        => SFI_To_PP_Cmd_Maps.Clear,
+      Insert       => SFI_To_PP_Cmd_Maps.Insert,
+      Read_Key     => Read,
+      Read_Element => Read);
 
    PP_Cmds : SFI_To_PP_Cmd_Maps.Map;
    --  Save the preprocessing command for each unit that supports it

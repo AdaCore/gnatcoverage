@@ -215,4 +215,17 @@ package body MC_DC is
       return Result;
    end To_Vector;
 
+   ----------
+   -- Read --
+   ----------
+
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out Evaluation)
+   is
+   begin
+      Value.Decision := CLS.Read_SCO;
+      Read (CLS, Value.Values);
+      Value.Outcome := CLS.Read_Tristate;
+      Value.Next_Condition := CLS.Read_Condition;
+   end Read;
+
 end MC_DC;

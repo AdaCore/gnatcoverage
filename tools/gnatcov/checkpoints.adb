@@ -19,13 +19,16 @@
 with Ada.Streams.Stream_IO; use Ada.Streams.Stream_IO;
 with Ada.Unchecked_Deallocation;
 
+pragma Warnings (Off, "* is an internal GNAT unit");
+with Ada.Strings.Unbounded.Aux; use Ada.Strings.Unbounded.Aux;
+pragma Warnings (On, "* is an internal GNAT unit");
+
 with Interfaces; use Interfaces;
 
 with Coverage.Source;
 with Coverage_Options; use Coverage_Options;
 with Instrument.Checkpoints;
 with Outputs;          use Outputs;
-with Traces;           use Traces;
 with Traces_Files;     use Traces_Files;
 with Traces_Files_Registry;
 
@@ -548,11 +551,9 @@ package body Checkpoints is
       Purpose              : Checkpoint_Purpose;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
-      Dummy     : constant Context_Handle :=
+      Dummy : constant Context_Handle :=
         Create_Context ("Loading " & Filename);
-      SF        : Ada.Streams.Stream_IO.File_Type;
-      CP_Header : Checkpoint_Header;
-      Levels    : Levels_Type;
+      SF    : Ada.Streams.Stream_IO.File_Type;
    begin
       Open (SF, In_File, Filename);
 
@@ -568,49 +569,69 @@ package body Checkpoints is
             Filename => To_Unbounded_String (Filename),
             Purpose  => Purpose,
             others   => <>);
+
+         Magic : String (Checkpoint_Magic'Range);
       begin
-         Checkpoint_Header'Read (CLS.Stream, CP_Header);
-         if CP_Header.Magic /= Checkpoint_Magic then
+         CLS.Read (Magic);
+         if Magic /= Checkpoint_Magic then
             Fatal_Error ("invalid checkpoint file " & Filename);
+         end if;
 
-         elsif CP_Header.Version /= Checkpoint_Version'Last then
-            Fatal_Error
-              ("invalid checkpoint version" & CP_Header.Version'Img);
+         CLS.Version := CLS.Read_U32;
+         if CLS.Version /= Checkpoint_Version'Last then
+            Fatal_Error ("invalid checkpoint version" & CLS.Version'Img);
+         end if;
 
-         else
-            CLS.Version := CP_Header.Version;
+         --  Check that we are loading the kind of checkpoint we are
+         --  expecting (Purpose).
 
-            --  Check that we are loading the kind of checkpoint we are
-            --  expecting (Purpose).
+         declare
+            CP_Purpose : constant Checkpoint_Purpose :=
+              Checkpoint_Purpose'Val (CLS.Read_U8);
+         begin
+            if CP_Purpose /= Purpose then
+               Fatal_Error
+                 (Filename & " is a " & Purpose_Name (CP_Purpose)
+                  & " while a " & Purpose_Name (Purpose)
+                  & " was expected");
+            end if;
+         end;
 
-            declare
-               CP_Purpose : constant Checkpoint_Purpose :=
-                  Checkpoint_Purpose'Input (CLS.Stream);
-            begin
-               if CP_Purpose /= Purpose then
-                  Fatal_Error
-                    (Filename & " is a " & Purpose_Name (CP_Purpose)
-                     & " while a " & Purpose_Name (Purpose)
-                     & " was expected");
-               end if;
-            end;
+         --  Check the kind of binary traces that were used to create this
+         --  checkpoint.
 
-            --  Check the kind of binary traces that were used to create this
-            --  checkpoint.
+         declare
+            Bits : constant Binary_Traces_Bits :=
+              Binary_Traces_Bits'Val (CLS.Read_U8);
+         begin
+            if Bits not in Undetermined | Supported_Bits then
+               Fatal_Error
+                 (Filename & " was created with " & Image (Bits)
+                  & " whereas the selected target requires "
+                  & Image (Supported_Bits));
+            end if;
+         end;
 
-            declare
-               Bits : constant Binary_Traces_Bits :=
-                 Binary_Traces_Bits'Input (CLS.Stream);
-            begin
-               if Bits not in Undetermined | Supported_Bits then
-                  Fatal_Error
-                    (Filename & " was created with " & Image (Bits)
-                     & " whereas the selected target requires "
-                     & Image (Supported_Bits));
-               end if;
-            end;
+         --  Check that the checkpoint to load covers all the coverage levels
+         --  that are selected for this run.
+         --
+         --  See the note on checkpoint version compatibility for the tedious
+         --  reading code.
 
-            Levels_Type'Read (CLS.Stream, Levels);
+         declare
+            CP_Levels : U8_Array (1 .. 8);
+            Levels    : Levels_Type;
+         begin
+            CLS.Read (CP_Levels);
+            Levels :=
+              (Insn     => Boolean'Val (CP_Levels (1)),
+               Branch   => Boolean'Val (CP_Levels (2)),
+               Stmt     => Boolean'Val (CP_Levels (3)),
+               Decision => Boolean'Val (CP_Levels (4)),
+               MCDC     => Boolean'Val (CP_Levels (5)),
+               UC_MCDC  => Boolean'Val (CP_Levels (6)),
+               ATC      => Boolean'Val (CP_Levels (7)),
+               ATCC     => Boolean'Val (CP_Levels (8)));
             declare
                Error_Msg : constant String :=
                  Coverage.Is_Load_Allowed (Filename, Levels);
@@ -619,22 +640,18 @@ package body Checkpoints is
                   Fatal_Error (Error_Msg);
                end if;
             end;
+         end;
 
-            declare
-               CP_Trace_Kind : Any_Accepted_Trace_Kind;
-            begin
-               Any_Accepted_Trace_Kind'Read (CLS.Stream, CP_Trace_Kind);
-               Update_Current_Trace_Kind (CP_Trace_Kind);
-            end;
+         Update_Current_Trace_Kind
+           (Any_Accepted_Trace_Kind'Val (CLS.Read_U8));
 
-            Files_Table.Checkpoint_Load (CLS'Access, Ignored_Source_Files);
-            SC_Obligations.Checkpoint_Load (CLS'Access);
-            Instrument.Checkpoints.Checkpoint_Load (CLS'Access);
-            Coverage.Source.Checkpoint_Load (CLS'Access);
-            Traces_Files_Registry.Checkpoint_Load (CLS'Access);
+         Files_Table.Checkpoint_Load (CLS'Access, Ignored_Source_Files);
+         SC_Obligations.Checkpoint_Load (CLS'Access);
+         Instrument.Checkpoints.Checkpoint_Load (CLS'Access);
+         Coverage.Source.Checkpoint_Load (CLS'Access);
+         Traces_Files_Registry.Checkpoint_Load (CLS'Access);
 
-            Free (CLS.Relocations);
-         end if;
+         Free (CLS.Relocations);
       end;
 
       Close (SF);
@@ -680,5 +697,510 @@ package body Checkpoints is
    begin
       Stream.Stream.Write (Item);
    end Write;
+
+   --  Note for the Read* procedures below: using stream attributes for
+   --  well-defined elementary data types (String, Unsigned_*) can be
+   --  considered stable enough that it will preserve backwards and platform
+   --  compatibility, except maybe for endianity. For now, gnatcov is supported
+   --  on little-endian platforms only, so we should be fine.
+
+   -------------------
+   -- Read_BDD_Node --
+   -------------------
+
+   function Read_BDD_Node
+     (Self : in out Checkpoint_Load_State) return BDD_Node_Id is
+   begin
+      return BDD_Node_Id (Self.Read_I32);
+   end Read_BDD_Node;
+
+   -----------------
+   -- Read_Bit_Id --
+   -----------------
+
+   function Read_Bit_Id
+     (Self : in out Checkpoint_Load_State) return Any_Bit_Id
+   is
+   begin
+      return Any_Bit_Id (Self.Read_I32);
+   end Read_Bit_Id;
+
+   ------------------
+   -- Read_Boolean --
+   ------------------
+
+   function Read_Boolean (Self : in out Checkpoint_Load_State) return Boolean
+   is
+   begin
+      return Boolean'Val (Self.Read_U8);
+   end Read_Boolean;
+
+   -------------
+   -- Read_CU --
+   -------------
+
+   function Read_CU (Self : in out Checkpoint_Load_State) return CU_Id is
+   begin
+      return CU_Id (Self.Read_I32);
+   end Read_CU;
+
+   ---------------------------
+   -- Read_Compilation_Unit --
+   ---------------------------
+
+   function Read_Compilation_Unit
+     (Self : in out Checkpoint_Load_State) return Compilation_Unit
+   is
+      Language : constant Any_Language_Kind := Self.Read_Language_Kind;
+   begin
+      return (Language => Language, Unit_Name => Self.Read_Unbounded_String);
+   end Read_Compilation_Unit;
+
+   --------------------
+   -- Read_Condition --
+   --------------------
+
+   function Read_Condition
+     (Self : in out Checkpoint_Load_State) return Any_Condition_Index is
+   begin
+      return Any_Condition_Index (Self.Read_I32);
+   end Read_Condition;
+
+   ----------------------
+   -- Read_Fingerprint --
+   ----------------------
+
+   function Read_Fingerprint
+     (Self : in out Checkpoint_Load_State)
+      return SC_Obligations.Fingerprint_Type
+   is
+      Buffer : String (1 .. SC_Obligations.Fingerprint_Type'Length);
+      I      : Positive := 1;
+   begin
+      Self.Read (Buffer);
+      return Result : SC_Obligations.Fingerprint_Type do
+         for Digit of Result loop
+            Digit := Character'Pos (Buffer (I));
+            I := I + 1;
+         end loop;
+      end return;
+   end Read_Fingerprint;
+
+   --------------
+   -- Read_I32 --
+   --------------
+
+   function Read_I32
+     (Self : in out Checkpoint_Load_State) return Interfaces.Integer_32 is
+   begin
+      return Interfaces.Integer_32'Input (Self.Stream);
+   end Read_I32;
+
+   ------------------
+   -- Read_Integer --
+   ------------------
+
+   function Read_Integer (Self : in out Checkpoint_Load_State) return Integer
+   is
+   begin
+      return Integer (Self.Read_I32);
+   end Read_Integer;
+
+   ---------------
+   -- Read_Inst --
+   ---------------
+
+   function Read_Inst (Self : in out Checkpoint_Load_State) return Inst_Id is
+   begin
+      return Inst_Id (Self.Read_I32);
+   end Read_Inst;
+
+   ------------------------
+   -- Read_Language_Kind --
+   ------------------------
+
+   function Read_Language_Kind
+     (Self : in out Checkpoint_Load_State) return Any_Language_Kind is
+   begin
+      return Any_Language_Kind'Val (Self.Read_U32);
+   end Read_Language_Kind;
+
+   ---------------------
+   -- Read_Line_State --
+   ---------------------
+
+   function Read_Line_State
+     (Self : in out Checkpoint_Load_State) return Any_Line_State is
+   begin
+      return Any_Line_State'Val (Self.Read_U8);
+   end Read_Line_State;
+
+   --------------------------------
+   -- Read_Local_Source_Location --
+   --------------------------------
+
+   function Read_Local_Source_Location
+     (Self : in out Checkpoint_Load_State) return Local_Source_Location
+   is
+      Line   : constant Natural := Self.Read_Integer;
+      Column : constant Integer := Self.Read_Integer;
+   begin
+      return (Line, Column);
+   end Read_Local_Source_Location;
+
+   --------------------------------------
+   -- Read_Local_Source_Location_Range --
+   --------------------------------------
+
+   function Read_Local_Source_Location_Range
+     (Self : in out Checkpoint_Load_State) return Local_Source_Location_Range
+   is
+      First : constant Local_Source_Location :=
+        Self.Read_Local_Source_Location;
+      Last  : constant Local_Source_Location :=
+        Self.Read_Local_Source_Location;
+   begin
+      return (First, Last);
+   end Read_Local_Source_Location_Range;
+
+   -------------
+   -- Read_PC --
+   -------------
+
+   function Read_PC (Self : in out Checkpoint_Load_State) return Pc_Type is
+   begin
+      case Pc_Type'Size is
+         when 32 =>
+            return Pc_Type (Self.Read_U32);
+         when 64 =>
+            return Pc_Type (Self.Read_U64);
+         when others =>
+            raise Program_Error;
+      end case;
+   end Read_PC;
+
+   --------------
+   -- Read_SCO --
+   --------------
+
+   function Read_SCO (Self : in out Checkpoint_Load_State) return SCO_Id is
+   begin
+      return SCO_Id (Self.Read_I32);
+   end Read_SCO;
+
+   --------------
+   -- Read_SFI --
+   --------------
+
+   function Read_SFI
+     (Self : in out Checkpoint_Load_State) return Source_File_Index is
+   begin
+      return Source_File_Index (Self.Read_I32);
+   end Read_SFI;
+
+   --------------------------
+   -- Read_Source_Location --
+   --------------------------
+
+   function Read_Source_Location
+     (Self : in out Checkpoint_Load_State) return Source_Location
+   is
+   begin
+      return Result : Source_Location do
+         Self.Read (Result);
+      end return;
+   end Read_Source_Location;
+
+   --------------------------------
+   -- Read_Source_Location_Range --
+   --------------------------------
+
+   function Read_Source_Location_Range
+     (Self : in out Checkpoint_Load_State) return Source_Location_Range is
+   begin
+      return Result : Source_Location_Range do
+         Result.Source_File := Self.Read_SFI;
+         Result.L := Self.Read_Local_Source_Location_Range;
+      end return;
+   end Read_Source_Location_Range;
+
+   -----------------
+   -- Read_String --
+   -----------------
+
+   function Read_String (Self : in out Checkpoint_Load_State) return String is
+      First : constant Positive := Self.Read_Integer;
+      Last  : constant Natural := Self.Read_Integer;
+   begin
+      return Result : String (First .. Last) do
+         Self.Read (Result);
+      end return;
+   end Read_String;
+
+   -------------------
+   -- Read_Tristate --
+   -------------------
+
+   function Read_Tristate
+     (Self : in out Checkpoint_Load_State) return Tristate is
+   begin
+      return Tristate'Val (Self.Read_U8);
+   end Read_Tristate;
+
+   -------------
+   -- Read_U8 --
+   -------------
+
+   function Read_U8
+     (Self : in out Checkpoint_Load_State) return Interfaces.Unsigned_8 is
+   begin
+      return Interfaces.Unsigned_8'Input (Self.Stream);
+   end Read_U8;
+
+   --------------
+   -- Read_U16 --
+   --------------
+
+   function Read_U16
+     (Self : in out Checkpoint_Load_State) return Interfaces.Unsigned_16 is
+   begin
+      return Interfaces.Unsigned_16'Input (Self.Stream);
+   end Read_U16;
+
+   --------------
+   -- Read_U32 --
+   --------------
+
+   function Read_U32
+     (Self : in out Checkpoint_Load_State) return Interfaces.Unsigned_32 is
+   begin
+      return Interfaces.Unsigned_32'Input (Self.Stream);
+   end Read_U32;
+
+   --------------
+   -- Read_U64 --
+   --------------
+
+   function Read_U64
+     (Self : in out Checkpoint_Load_State) return Interfaces.Unsigned_64 is
+   begin
+      return Interfaces.Unsigned_64'Input (Self.Stream);
+   end Read_U64;
+
+   ---------------------------
+   -- Read_Unbounded_String --
+   ---------------------------
+
+   function Read_Unbounded_String
+     (Self : in out Checkpoint_Load_State) return Unbounded_String
+   is
+   begin
+      return Result : Unbounded_String do
+         Read (Self, Result);
+      end return;
+   end Read_Unbounded_String;
+
+   --------------
+   -- Read_Map --
+   --------------
+
+   procedure Read_Map
+     (Self : in out Checkpoint_Load_State; Map : out Map_Type)
+   is
+      Count : constant Interfaces.Integer_32 := Self.Read_I32;
+   begin
+      Clear (Map);
+      for I in 1 .. Count loop
+         declare
+            Key     : Key_Type;
+            Element : Element_Type;
+         begin
+            Read_Key (Self, Key);
+            Read_Element (Self, Element);
+            Insert (Map, Key, Element);
+         end;
+      end loop;
+   end Read_Map;
+
+   --------------
+   -- Read_Set --
+   --------------
+
+   procedure Read_Set
+     (Self : in out Checkpoint_Load_State; Set : out Set_Type)
+   is
+      Count : constant Interfaces.Integer_32 := Self.Read_I32;
+   begin
+      Clear (Set);
+      for I in 1 .. Count loop
+         declare
+            Element : Element_Type;
+         begin
+            Read_Element (Self, Element);
+            Insert (Set, Element);
+         end;
+      end loop;
+   end Read_Set;
+
+   ---------------
+   -- Read_Tree --
+   ---------------
+
+   procedure Read_Tree
+     (Self : in out Checkpoint_Load_State; Tree : out Multiway_Trees.Tree)
+   is
+      procedure Read_Children (Parent : Multiway_Trees.Cursor);
+      --  Read a list of child subtrees and append them to Parent
+
+      procedure Read_Subtree (Parent : Multiway_Trees.Cursor);
+      --  Read a subtree and append it to Parent
+
+      -------------------
+      -- Read_Children --
+      -------------------
+
+      procedure Read_Children (Parent : Multiway_Trees.Cursor) is
+         Count : constant Natural := Self.Read_Integer;
+      begin
+         for I in 1 .. Count loop
+            Read_Subtree (Parent);
+         end loop;
+      end Read_Children;
+
+      ------------------
+      -- Read_Subtree --
+      ------------------
+
+      procedure Read_Subtree (Parent : Multiway_Trees.Cursor) is
+         Element : Element_Type;
+      begin
+         Read_Element (Self, Element);
+         Tree.Append_Child (Parent, Element);
+         Read_Children (Multiway_Trees.Last_Child (Parent));
+      end Read_Subtree;
+
+      Count : constant Natural := Self.Read_Integer;
+
+   --  Start of processing for Read
+
+   begin
+      Tree.Clear;
+      if Count > 0 then
+         Read_Children (Tree.Root);
+      end if;
+   end Read_Tree;
+
+   -----------------
+   -- Read_Vector --
+   -----------------
+
+   procedure Read_Vector
+     (Self : in out Checkpoint_Load_State; Vector : out Vectors.Vector)
+   is
+      procedure Process (Element : in out Element_Type);
+      --  Call Read_Element on Element
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (Element : in out Element_Type) is
+      begin
+         Read_Element (Self, Element);
+      end Process;
+
+      Length : constant Interfaces.Integer_32 := Self.Read_I32;
+
+   --  Start of processing for Read_Vector
+
+   begin
+      Vector.Clear;
+      Vector.Set_Length (Ada.Containers.Count_Type (Length));
+      for Cur in Vector.Iterate loop
+         Vector.Update_Element (Cur, Process'Access);
+      end loop;
+   end Read_Vector;
+
+   ----------
+   -- Read --
+   ----------
+
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out U8_Array)
+   is
+   begin
+      U8_Array'Read (Self.Stream, Value);
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out CU_Id) is
+   begin
+      Value := Self.Read_CU;
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Pc_Type) is
+   begin
+      Value := Self.Read_PC;
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out SCO_Id) is
+   begin
+      Value := Self.Read_SCO;
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Source_File_Index) is
+   begin
+      Value := Self.Read_SFI;
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Source_Location) is
+   begin
+      Value.Source_File := Self.Read_SFI;
+      Value.L := Self.Read_Local_Source_Location;
+   end Read;
+
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out String) is
+   begin
+      String'Read (Self.Stream, Value);
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Tristate) is
+   begin
+      Value := Self.Read_Tristate;
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Unbounded_String)
+   is
+      procedure Set (S : out String);
+      --  Callback for Set_String: set S with bytes read from Self
+
+      ---------
+      -- Set --
+      ---------
+
+      procedure Set (S : out String) is
+      begin
+         Self.Read (S);
+      end Set;
+
+      First : constant Positive := Self.Read_Integer;
+      Last  : constant Natural := Self.Read_Integer;
+      subtype Fixed_String is String (First .. Last);
+      Length : constant Natural := Fixed_String'Length;
+
+   --  Start of processing for Read
+
+   begin
+      if Length = 0 then
+         Value := Null_Unbounded_String;
+      else
+         Set_String (Value, Length, Set'Access);
+      end if;
+   end Read;
 
 end Checkpoints;

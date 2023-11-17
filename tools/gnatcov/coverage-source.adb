@@ -69,6 +69,13 @@ package body Coverage.Source is
 
    package Evaluation_Sets is new Ada.Containers.Ordered_Sets (Evaluation);
 
+   procedure Read is new Read_Set
+     (Element_Type => Evaluation,
+      Set_Type     => Evaluation_Sets.Set,
+      Clear        => Evaluation_Sets.Clear,
+      Insert       => Evaluation_Sets.Insert,
+      Read_Element => Read);
+
    type Outcome_Taken_Type is array (Boolean) of Boolean;
    No_Outcome_Taken    : constant Outcome_Taken_Type := (others => False);
    Both_Outcomes_Taken : constant Outcome_Taken_Type := (others => True);
@@ -119,17 +126,12 @@ package body Coverage.Source is
    end record;
    type Source_Coverage_Info_Access is access constant Source_Coverage_Info;
    type RW_Source_Coverage_Info_Access is access Source_Coverage_Info;
-   procedure Read_SCI
-     (S   : access Root_Stream_Type'Class;
-      SCI : out RW_Source_Coverage_Info_Access);
-   --  Allocate a new SCI initialized from S
 
    procedure Write_SCI
      (S   : access Root_Stream_Type'Class;
       SCI : RW_Source_Coverage_Info_Access);
    --  Output SCI.all to S
 
-   for RW_Source_Coverage_Info_Access'Read use Read_SCI;
    for RW_Source_Coverage_Info_Access'Write use Write_SCI;
 
    procedure Free is
@@ -144,6 +146,24 @@ package body Coverage.Source is
      (Index_Type   => Valid_SCO_Id,
       Element_Type => SCI_Vectors.Vector,
       "="          => SCI_Vectors."=");
+
+   procedure Read
+     (CLS   : in out Checkpoint_Load_State;
+      Value : out RW_Source_Coverage_Info_Access);
+   --  Allocate a new SCI initialized from CLS
+
+   procedure Read is new Read_Vector
+     (Index_Type   => Natural,
+      Element_Type => RW_Source_Coverage_Info_Access,
+      Vectors      => SCI_Vectors,
+      Read_Element => Read);
+
+   procedure Read is new Read_Vector
+     (Index_Type   => Valid_SCO_Id,
+      Element_Type => SCI_Vectors.Vector,
+      "="          => SCI_Vectors."=",
+      Vectors      => SCI_Vector_Vectors,
+      Read_Element => Read);
 
    SCI_Vector : SCI_Vector_Vectors.Vector;
 
@@ -486,7 +506,7 @@ package body Coverage.Source is
       --  tag provider is the default (i.e. no coverage separation), or same
       --  as checkpoint.
 
-      CP_Tag_Provider := To_Unbounded_String (String'Input (CLS));
+      CP_Tag_Provider := CLS.Read_Unbounded_String;
       if Tag_Provider.all not in Default_Tag_Provider_Type
         and then Tag_Provider_Name /= To_String (CP_Tag_Provider)
       then
@@ -504,7 +524,7 @@ package body Coverage.Source is
       --  Even if we cannot merge coverage information, we must read it in
       --  order to be able to decode the rest of the checkpoint.
 
-      SCI_Vector_Vectors.Vector'Read (CLS, CP_SCI_Vector);
+      Read (CLS.all, CP_SCI_Vector);
 
       if not Do_Merge then
          return;
@@ -547,19 +567,18 @@ package body Coverage.Source is
       --  units of interest.
 
       if CLS.Purpose = Consolidation then
-
          declare
-            Invalidated : constant Boolean := Boolean'Input (CLS);
+            Invalidated : constant Boolean := CLS.Read_Boolean;
             Dummy       : US.Unbounded_String;
          begin
             if Invalidated then
                Invalidate_Unit_List
                  (US.To_String (CLS.Filename)
-                  & " does not contain the list of units (produced with --scos"
-                  & " or --sid)");
+                  & " does not contain the list of units (produced with"
+                  & " --scos or --sid)");
             else
-               for I in 1 .. Ada.Containers.Count_Type'Input (CLS) loop
-                  Unit_List.Include (Compilation_Unit'Input (CLS));
+               for I in 1 .. CLS.Read_Integer loop
+                  Unit_List.Include (CLS.Read_Compilation_Unit);
                end loop;
             end if;
          end;
@@ -2395,23 +2414,59 @@ package body Coverage.Source is
       Update_SCI (SCO, Tag, Merge_SCI'Access);
    end Merge_Checkpoint_SCI;
 
-   --------------
-   -- Read_SCI --
-   --------------
+   ----------
+   -- Read --
+   ----------
 
-   procedure Read_SCI
-     (S   : access Root_Stream_Type'Class;
-      SCI : out RW_Source_Coverage_Info_Access)
+   procedure Read
+     (CLS   : in out Checkpoint_Load_State;
+      Value : out RW_Source_Coverage_Info_Access)
    is
-      CP_SCI : constant Source_Coverage_Info :=
-        Source_Coverage_Info'Input (S);
+      CP_SCI : Source_Coverage_Info (SCO_Kind'Val (CLS.Read_U8));
    begin
+      CP_SCI.Tag := SC_Tag (CLS.Read_I32);
+
+      declare
+         States : array (1 .. 8) of Line_State;
+      begin
+         for I in States'Range loop
+            States (I) := CLS.Read_Line_State;
+         end loop;
+         CP_SCI.State (Insn)     := States (1);
+         CP_SCI.State (Branch)   := States (2);
+         CP_SCI.State (Stmt)     := States (3);
+         CP_SCI.State (Decision) := States (4);
+         CP_SCI.State (MCDC)     := States (5);
+         CP_SCI.State (UC_MCDC)  := States (6);
+         CP_SCI.State (ATC)      := States (7);
+         CP_SCI.State (ATCC)     := States (8);
+      end;
+
+      case CP_SCI.Kind is
+         when Statement =>
+            CP_SCI.Basic_Block_Has_Code := CLS.Read_Boolean;
+            CP_SCI.Executed := CLS.Read_Boolean;
+            CP_SCI.Line_Executed := CLS.Read_Boolean;
+
+         when Decision =>
+            CP_SCI.Outcome_Taken (False) := CLS.Read_Boolean;
+            CP_SCI.Outcome_Taken (True) := CLS.Read_Boolean;
+
+            CP_SCI.Known_Outcome_Taken (False) := CLS.Read_Boolean;
+            CP_SCI.Known_Outcome_Taken (True) := CLS.Read_Boolean;
+
+            Read (CLS, CP_SCI.Evaluations);
+
+         when others =>
+            null;
+      end case;
+
       if CP_SCI = Default_SCIs (CP_SCI.Kind).all then
-         SCI := null;
+         Value := null;
       else
-         SCI := new Source_Coverage_Info'(CP_SCI);
+         Value := new Source_Coverage_Info'(CP_SCI);
       end if;
-   end Read_SCI;
+   end Read;
 
    ------------------------
    -- Report_If_Excluded --

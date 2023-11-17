@@ -23,6 +23,7 @@ with Ada.Text_IO;             use Ada.Text_IO;
 with GNAT.Regpat; use GNAT.Regpat;
 with SCOs;
 
+with Checkpoints; use Checkpoints;
 with Diagnostics; use Diagnostics;
 with Files_Table; use Files_Table;
 with Get_SCOs;
@@ -30,6 +31,10 @@ with Inputs;      use Inputs;
 with Outputs;     use Outputs;
 
 package body ALI_Files is
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out ALI_Annotation);
+   --  Read a ALI_Annotation from CLS
 
    -----------------------------------------------
    -- Regular expressions for ALI files parsing --
@@ -622,29 +627,6 @@ package body ALI_Files is
       return ALI_Index;
    end Load_ALI;
 
-   ----------
-   -- Read --
-   ----------
-
-   procedure Read
-     (S : access Root_Stream_Type'Class;
-      V : out ALI_Annotation)
-   is
-   begin
-      CU_Id'Read (S, V.CU);
-      ALI_Annotation_Kind'Read (S, V.Kind);
-
-      declare
-         Msg : constant String := String'Input (S);
-      begin
-         if Msg'Length > 0 then
-            V.Message := new String'(Msg);
-         end if;
-      end;
-      V.Violation_Count := 0;
-      V.Undetermined_Cov_Count := 0;
-   end Read;
-
    -----------
    -- Write --
    -----------
@@ -659,5 +641,43 @@ package body ALI_Files is
          String'Output (S, "");
       end if;
    end Write;
+
+   ----------
+   -- Read --
+   ----------
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out ALI_Annotation) is
+   begin
+      Value.CU := CLS.Read_CU;
+      Value.Kind := ALI_Annotation_Kind'Val (CLS.Read_U8);
+
+      declare
+         Msg : constant String := CLS.Read_String;
+      begin
+         if Msg'Length > 0 then
+            Value.Message := new String'(Msg);
+         end if;
+      end;
+
+      Value.Violation_Count := 0;
+      Value.Undetermined_Cov_Count := 0;
+   end Read;
+
+   procedure Read
+     (CLS   : access Checkpoints.Checkpoint_Load_State;
+      Value : out ALI_Annotation_Maps.Map)
+   is
+      procedure Read_Map is new Checkpoints.Read_Map
+        (Key_Type     => Source_Location,
+         Element_Type => ALI_Annotation,
+         Map_Type     => ALI_Annotation_Maps.Map,
+         Clear        => ALI_Annotation_Maps.Clear,
+         Insert       => ALI_Annotation_Maps.Insert,
+         Read_Key     => Read,
+         Read_Element => Read);
+   begin
+      Read_Map (CLS.all, Value);
+   end Read;
 
 end ALI_Files;

@@ -67,6 +67,19 @@ package body Subprocesses is
         and then L.Arguments = R.Arguments;
    end "=";
 
+   ----------
+   -- Read --
+   ----------
+
+   procedure Read
+     (CLS   : in out Checkpoints.Checkpoint_Load_State;
+      Value : out Command_Type) is
+   begin
+      Value.Command := CLS.Read_Unbounded_String;
+      Read (CLS'Access, Value.Arguments);
+      Read (CLS'Access, Value.Environment);
+   end Read;
+
    ----------------
    -- Append_Arg --
    ----------------

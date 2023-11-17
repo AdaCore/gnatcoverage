@@ -16,8 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Checkpoints; use Checkpoints;
-
 package Instrument.Checkpoints is
 
    --  Note: the following procedures must be called after the SCO units
