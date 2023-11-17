@@ -381,57 +381,11 @@ package body Traces_Files_Registry is
             exit when Length (Name) = 0;
             CP_File := new Trace_File_Element;
             CP_File.Filename := Name;
-
-            if CLS.Version_Less (Than => 2) then
-
-               --  Before version 2, there were only binary traces and we
-               --  streamed metadata as trace infos.
-
-               CP_File.Kind := Binary_Trace_File;
-               CP_File.Context := Null_Unbounded_String;
-               CP_File.Program_Name := Null_Unbounded_String;
-               CP_File.Time := Null_Unbounded_String;
-               CP_File.User_Data := Null_Unbounded_String;
-
-               declare
-                  Kind : Info_Kind_Type;
-                  Data : Unbounded_String;
-               begin
-                  loop
-                     Info_Kind_Type'Read (CLS, Kind);
-                     exit when Kind = Info_End;
-
-                     Unbounded_String'Read (CLS, Data);
-                     case Kind is
-                        when Exec_File_Name =>
-                           CP_File.Program_Name := Data;
-                        when Date_Time =>
-                           CP_File.Time := To_Unbounded_String
-                             (Format_Date_Info (To_String (Data)));
-                        when User_Data =>
-                           CP_File.User_Data := Data;
-                        when Coverage_Context =>
-                           CP_File.Context := Data;
-                        when others =>
-                           null;
-                     end case;
-                  end loop;
-               end;
-
-               --  All traces in checkpoints are supposed to have a coverage
-               --  context.
-
-               if Length (CP_File.Context) = 0 then
-                  raise Program_Error;
-               end if;
-
-            else
-               Trace_File_Kind'Read (CLS, CP_File.Kind);
-               Unbounded_String'Read (CLS, CP_File.Context);
-               Unbounded_String'Read (CLS, CP_File.Program_Name);
-               Unbounded_String'Read (CLS, CP_File.Time);
-               Unbounded_String'Read (CLS, CP_File.User_Data);
-            end if;
+            Trace_File_Kind'Read  (CLS, CP_File.Kind);
+            Unbounded_String'Read (CLS, CP_File.Context);
+            Unbounded_String'Read (CLS, CP_File.Program_Name);
+            Unbounded_String'Read (CLS, CP_File.Time);
+            Unbounded_String'Read (CLS, CP_File.User_Data);
 
             Add_Traces_File (CP_File);
          end;

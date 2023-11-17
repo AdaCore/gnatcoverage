@@ -2033,32 +2033,15 @@ package body Files_Table is
 
                   FE.Ignore_Status := Unknown;
                   FE.Unit := (Known => False);
-                  if not CLS.Version_Less (Than => 5) then
-                     FE.Ignore_Status := Any_Ignore_Status'Input (S);
-                     declare
-                        Unit_Known : constant Boolean := Boolean'Input (S);
-                     begin
-                        if Unit_Known then
-
-                           --  Starting with the version 13 of checkpoints,
-                           --  owning units are represented as Compilation_Unit
-                           --  values (they were mere strings before). Consider
-                           --  the owning unit unknown if we do not have recent
-                           --  formats.
-
-                           if CLS.Version_Less (Than => 13) then
-                              declare
-                                 Dummy : constant String := String'Input (S);
-                              begin
-                                 null;
-                              end;
-                           else
-                              FE.Unit := (Known => True,
-                                          Name  => Compilation_Unit'Input (S));
-                           end if;
-                        end if;
-                     end;
-                  end if;
+                  FE.Ignore_Status := Any_Ignore_Status'Input (S);
+                  declare
+                     Unit_Known : constant Boolean := Boolean'Input (S);
+                  begin
+                     if Unit_Known then
+                        FE.Unit := (Known => True,
+                                    Name  => Compilation_Unit'Input (S));
+                     end if;
+                  end;
                when Library_File =>
                   FE := (Kind => Library_File, others => <>);
                   FE.Main_Source := Source_File_Index'Input (S);

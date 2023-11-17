@@ -82,7 +82,6 @@ package body SC_Obligations.BDD is
    ----------
 
    procedure Read (S : access Root_Stream_Type'Class; V : out BDD_Type) is
-      CLS : Stateful_Stream renames Stateful_Stream (S.all);
    begin
       SCO_Id'Read       (S, V.Decision);
       BDD_Node_Id'Read  (S, V.Root_Condition);
@@ -90,17 +89,12 @@ package body SC_Obligations.BDD is
       BDD_Node_Id'Read  (S, V.Last_Node);
       BDD_Node_Id'Read  (S, V.First_Multipath_Condition);
       Reachability'Read (S, V.Reachable_Outcomes);
-
-      if not CLS.Version_Less (Than => 2) then
-         Natural'Read (S, V.Path_Count);
-      end if;
+      Natural'Read      (S, V.Path_Count);
    end Read;
 
    procedure Read (S : access Root_Stream_Type'Class; V : out BDD_Node) is
-      CLS      : Stateful_Stream renames Stateful_Stream (S.all);
       New_BDDN : BDD_Node (BDD_Node_Kind'Input (S));
       pragma Warnings (Off, New_BDDN);
-
    begin
       --  Set discriminant
 
@@ -115,12 +109,7 @@ package body SC_Obligations.BDD is
             Boolean'Read      (S, V.Parent_Value);
             SCO_Id'Read       (S, V.C_SCO);
             Destinations'Read (S, V.Dests);
-
-            --  Checkpoint version 2 data (instrumentation support)
-
-            if not CLS.Version_Less (2) then
-               Natural'Read (S, V.Path_Offset);
-            end if;
+            Natural'Read      (S, V.Path_Offset);
 
          when Jump =>
             BDD_Node_Id'Read (S, V.Dest);

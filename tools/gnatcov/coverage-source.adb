@@ -23,7 +23,6 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Streams; use Ada.Streams;
 with Ada.Strings.Unbounded;
-with Ada.Tags;
 with Ada.Unchecked_Deallocation;
 
 with Interfaces;
@@ -477,10 +476,6 @@ package body Coverage.Source is
    procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
       use SCI_Vector_Vectors;
 
-      Stream_Tags : constant Boolean := not CLS.Version_Less (Than => 2);
-      --  Before version 2, we streamed mere tags in the checkpoint. We stream
-      --  tag provider names since then.
-
       CP_Tag_Provider : Unbounded_String;
       CP_SCI_Vector   : SCI_Vector_Vectors.Vector;
       Relocs          : Checkpoint_Relocations renames CLS.Relocations;
@@ -491,23 +486,7 @@ package body Coverage.Source is
       --  tag provider is the default (i.e. no coverage separation), or same
       --  as checkpoint.
 
-      if Stream_Tags then
-         CP_Tag_Provider := To_Unbounded_String (String'Input (CLS));
-      else
-         declare
-            Tag : Ada.Tags.Tag;
-         begin
-            Ada.Tags.Tag'Read (CLS, Tag);
-            CP_Tag_Provider := To_Unbounded_String (Tag_Providers.Name (Tag));
-         exception
-            when Constraint_Error =>
-               Warn ("cannot read " & To_String (CLS.Filename)
-                     & ", it was produced with an incompatible version of "
-                     & "gnatcov");
-               CP_Tag_Provider := To_Unbounded_String ("<unknown>");
-         end;
-      end if;
-
+      CP_Tag_Provider := To_Unbounded_String (String'Input (CLS));
       if Tag_Provider.all not in Default_Tag_Provider_Type
         and then Tag_Provider_Name /= To_String (CP_Tag_Provider)
       then
@@ -569,48 +548,21 @@ package body Coverage.Source is
 
       if CLS.Purpose = Consolidation then
 
-         --  Before version 3, this list was not streamed. In this case, be
-         --  conservative and consider that we don't have a valid list.
-
-         if CLS.Version_Less (Than => 3) then
-            Invalidate_Unit_List
-              (US.To_String (CLS.Filename)
-               & " does not contain the list of units (obsolete format)");
-
-         else
-            declare
-               Invalidated : constant Boolean := Boolean'Input (CLS);
-               Obsolete    : constant Boolean := CLS.Version_Less (Than => 12);
-               Dummy       : US.Unbounded_String;
-            begin
-               if Invalidated then
-                  Invalidate_Unit_List
-                    (US.To_String (CLS.Filename)
-                     & " does not contain the list of units (produced with"
-                     & " --scos or --sid)");
-               else
-                  for I in 1 .. Ada.Containers.Count_Type'Input (CLS) loop
-
-                     --  From version 3 up to version 11, Unit_List used to
-                     --  be a set of unbounded strings, and did not support
-                     --  homonym source files. If we are in that case, read the
-                     --  old Unit_List from the checkpoint and then discard it.
-
-                     if Obsolete then
-                        if I = 1 then
-                           Invalidate_Unit_List
-                             (US.To_String (CLS.Filename)
-                              & " does not contain the list of units (obsolete"
-                              & " format)");
-                        end if;
-                        US.Unbounded_String'Read (CLS, Dummy);
-                     else
-                        Unit_List.Include (Compilation_Unit'Input (CLS));
-                     end if;
-                  end loop;
-               end if;
-            end;
-         end if;
+         declare
+            Invalidated : constant Boolean := Boolean'Input (CLS);
+            Dummy       : US.Unbounded_String;
+         begin
+            if Invalidated then
+               Invalidate_Unit_List
+                 (US.To_String (CLS.Filename)
+                  & " does not contain the list of units (produced with --scos"
+                  & " or --sid)");
+            else
+               for I in 1 .. Ada.Containers.Count_Type'Input (CLS) loop
+                  Unit_List.Include (Compilation_Unit'Input (CLS));
+               end loop;
+            end if;
+         end;
       end if;
    end Checkpoint_Load;
 
