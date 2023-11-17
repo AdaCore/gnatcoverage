@@ -6,6 +6,7 @@ message for binary traces.
 
 import os
 import os.path
+import re
 
 from SCOV.minicheck import build_and_run, check_xcov_reports
 from SUITE.context import thistest
@@ -151,8 +152,8 @@ if src_traces:
     thistest.fail_if_no_match(
         what="unexpected coverage output",
         regexp=(
-            f".*Error when parsing --subprograms argument {pkg_body}:14:"
-            " unknown subprogram"
+            ".*Error when parsing --subprograms argument"
+            f" {re.escape(pkg_body)}:14: unknown subprogram"
         ),
         actual=contents_of("xcov-wrong3.txt"),
     )
