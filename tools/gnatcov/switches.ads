@@ -134,7 +134,7 @@ package Switches is
    --  instead of hashes.
 
    Subps_Of_Interest : SC_Obligations.Scope_Id_Set;
-   --  List of subprograms of interest
+   --  List of subprograms of interest requested by users on the command line
 
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
