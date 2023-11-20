@@ -106,7 +106,11 @@ package body Subprocesses is
          if Success then
             Put_Line (Command & " finished");
          else
-            Error (Origin_Command_Name & " failed");
+            --  Do not use Error as this sets the exit status to Failure, but
+            --  here we are precisely ignoring the fact that the subprocess
+            --  failed.
+
+            Warning_Or_Error (Origin_Command_Name & " failed");
          end if;
       end if;
    end Check_Status;
