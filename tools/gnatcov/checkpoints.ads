@@ -241,9 +241,6 @@ package Checkpoints is
          Filename : Unbounded_String;
          --  Name of the checkpoint being written/read
 
-         Version : Checkpoint_Version;
-         --  Format version for the checkpoint being written/read
-
          Purpose : Checkpoint_Purpose;
          --  Purpose for the checkpoint being written/read
       end record;
@@ -256,14 +253,6 @@ package Checkpoints is
      (Stream : in out Stateful_Stream;
       Item   : Stream_Element_Array);
    --  Read/write from/to underlying stream
-
-   use type Interfaces.Unsigned_32;
-   function Version_Less
-     (SS : Stateful_Stream'Class; Than : Checkpoint_Version) return Boolean
-   is (SS.Version < Than)
-     with Inline;
-   --  This is provided as a function to prevent the compiler from generating
-   --  "can never be greater than" warnings.
 
    function Purpose_Of
      (SS : Stateful_Stream'Class) return Checkpoint_Purpose
@@ -279,8 +268,19 @@ package Checkpoints is
    --  Global state shared across phases of a checkpoint load
 
    type Checkpoint_Load_State is new Stateful_Stream with record
+      Version : Checkpoint_Version;
+      --  Format version for the checkpoint being read
+
       Relocations : Checkpoint_Relocations;
    end record;
+
+   use type Interfaces.Unsigned_32;
+   function Version_Less
+     (CLS : Checkpoint_Load_State; Than : Checkpoint_Version) return Boolean
+   is (CLS.Version < Than)
+     with Inline;
+   --  This is provided as a function to prevent the compiler from generating
+   --  "can never be greater than" warnings.
 
    procedure Checkpoint_Save
      (Filename : String;

@@ -443,8 +443,7 @@ package body Checkpoints is
       Context  : access Coverage.Context;
       Purpose  : Checkpoint_Purpose)
    is
-      Version : constant Checkpoint_Version := Checkpoint_Version'Last;
-      SF      : Ada.Streams.Stream_IO.File_Type;
+      SF : Ada.Streams.Stream_IO.File_Type;
    begin
       Create (SF, Out_File, Filename);
 
@@ -455,12 +454,11 @@ package body Checkpoints is
            (Root_Stream_Type with
             Stream   => Stream (SF),
             Filename => To_Unbounded_String (Filename),
-            Version  => Version,
             Purpose  => Purpose);
          Supported_Levels : Levels_Type := Current_Levels;
       begin
          Checkpoint_Header'Write
-           (CSS.Stream, (Version => Version, others => <>));
+           (CSS.Stream, (Version => Checkpoint_Version'Last, others => <>));
 
          Checkpoint_Purpose'Write (CSS.Stream, Purpose);
 
