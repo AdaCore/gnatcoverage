@@ -90,7 +90,7 @@ private package SC_Obligations.BDD is
         Element_Type => BDD_Node);
 
    procedure Read
-     (CLS    : access Checkpoints.Checkpoint_Load_State;
+     (CLS    : in out Checkpoints.Checkpoint_Load_State;
       Vector : out BDD_Vectors.Vector);
    --  Read a BDD_Vectors.Vector from CLS
 
@@ -127,7 +127,7 @@ private package SC_Obligations.BDD is
    for BDD_Type'Write use Write;
 
    procedure Read
-     (CLS : access Checkpoints.Checkpoint_Load_State; Value : out BDD_Type);
+     (CLS : in out Checkpoints.Checkpoint_Load_State; Value : out BDD_Type);
    --  Read a BDD_Type from CLS
 
    procedure Allocate

@@ -665,7 +665,7 @@ package body ALI_Files is
    end Read;
 
    procedure Read
-     (CLS   : access Checkpoints.Checkpoint_Load_State;
+     (CLS   : in out Checkpoints.Checkpoint_Load_State;
       Value : out ALI_Annotation_Maps.Map)
    is
       procedure Read_Map is new Checkpoints.Read_Map
@@ -677,7 +677,7 @@ package body ALI_Files is
          Read_Key     => Read,
          Read_Element => Read);
    begin
-      Read_Map (CLS.all, Value);
+      Read_Map (CLS, Value);
    end Read;
 
 end ALI_Files;

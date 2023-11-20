@@ -370,7 +370,7 @@ package body Traces_Files_Registry is
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State)
+   procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State)
    is
    begin
       loop

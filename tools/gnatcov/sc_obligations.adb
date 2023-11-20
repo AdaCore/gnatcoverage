@@ -620,7 +620,7 @@ package body SC_Obligations is
       Read_Element => Read);
 
    procedure Checkpoint_Load_Merge_Unit
-     (CLS        : access Checkpoint_Load_State;
+     (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : CU_Info;
       Real_CU_Id : CU_Id);
@@ -628,7 +628,7 @@ package body SC_Obligations is
    --  whose ID is Real_CU_Id.
 
    procedure Checkpoint_Load_New_Unit
-     (CLS        : access Checkpoint_Load_State;
+     (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
       CP_CU_Id   : CU_Id;
@@ -637,7 +637,7 @@ package body SC_Obligations is
    --  interest. The newly assigned CU_Id is returned in New_CU_Id.
 
    procedure Checkpoint_Load_Unit
-     (CLS        : access Checkpoint_Load_State;
+     (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
       CP_CU_Id   : CU_Id;
@@ -1039,7 +1039,7 @@ package body SC_Obligations is
          SCOD.D_Kind           := Decision_Kind'Val (CLS.Read_U8);
          SCOD.Control_Location := CLS.Read_Source_Location;
          SCOD.Last_Cond_Index  := CLS.Read_Condition;
-         SC_Obligations.BDD.Read (CLS'Access, SCOD.Decision_BDD);
+         SC_Obligations.BDD.Read (CLS, SCOD.Decision_BDD);
          SCOD.Degraded_Origins := CLS.Read_Boolean;
          SCOD.Aspect_Name      := Aspect_Id'Val (CLS.Read_U8);
          SCOD.Path_Count       := CLS.Read_Integer;
@@ -1068,7 +1068,7 @@ package body SC_Obligations is
    --------------------------------
 
    procedure Checkpoint_Load_Merge_Unit
-     (CLS        : access Checkpoint_Load_State;
+     (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : CU_Info;
       Real_CU_Id : CU_Id)
@@ -1186,7 +1186,7 @@ package body SC_Obligations is
    ------------------------------
 
    procedure Checkpoint_Load_New_Unit
-     (CLS        : access Checkpoint_Load_State;
+     (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
       CP_CU_Id   : CU_Id;
@@ -1573,7 +1573,7 @@ package body SC_Obligations is
    --------------------------
 
    procedure Checkpoint_Load_Unit
-     (CLS        : access Checkpoint_Load_State;
+     (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
       CP_CU_Id   : CU_Id;
@@ -1749,23 +1749,23 @@ package body SC_Obligations is
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
+   procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State) is
       CP_Vectors : Source_Coverage_Vectors;
       Relocs     : Checkpoint_Relocations renames CLS.Relocations;
    begin
       --  Load data from stream
       --  This part must be kept consistent with Checkpoint_Save
 
-      Read (CLS.all, CP_Vectors.CU_Vector);
+      Read (CLS, CP_Vectors.CU_Vector);
       Read (CLS, CP_Vectors.ALI_Annotations);
-      Read (CLS.all, CP_Vectors.Inst_Vector);
+      Read (CLS, CP_Vectors.Inst_Vector);
       SC_Obligations.BDD.Read (CLS, CP_Vectors.BDD_Vector);
-      Read (CLS.all, CP_Vectors.SCO_Vector);
+      Read (CLS, CP_Vectors.SCO_Vector);
 
       --  Load non-instrumented information
 
-      Read (CLS.all, CP_Vectors.Non_Instr_SCOs);
-      Read (CLS.all, CP_Vectors.Non_Instr_MCDC_SCOs);
+      Read (CLS, CP_Vectors.Non_Instr_SCOs);
+      Read (CLS, CP_Vectors.Non_Instr_MCDC_SCOs);
 
       --  Allocate mapping tables for SCOs, instance identifiers and BDD nodes
 

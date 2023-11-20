@@ -1951,7 +1951,7 @@ package body Files_Table is
    ---------------------
 
    procedure Checkpoint_Load
-     (CLS                  : access Checkpoint_Load_State;
+     (CLS                  : in out Checkpoint_Load_State;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
       pragma Assert

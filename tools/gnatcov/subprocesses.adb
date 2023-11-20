@@ -76,8 +76,8 @@ package body Subprocesses is
       Value : out Command_Type) is
    begin
       Value.Command := CLS.Read_Unbounded_String;
-      Read (CLS'Access, Value.Arguments);
-      Read (CLS'Access, Value.Environment);
+      Read (CLS, Value.Arguments);
+      Read (CLS, Value.Environment);
    end Read;
 
    ----------------

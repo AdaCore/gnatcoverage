@@ -70,7 +70,7 @@ package Strings is
       "="          => Ada.Strings.Unbounded."=");
 
    procedure Read
-     (CLS   : access Checkpoints.Checkpoint_Load_State;
+     (CLS   : in out Checkpoints.Checkpoint_Load_State;
       Value : out String_Vectors.Vector);
    --  Read a String_Vectors.Vector from CLS
 
@@ -81,7 +81,7 @@ package Strings is
       "="          => Ada.Strings.Unbounded."=");
 
    procedure Read
-     (CLS   : access Checkpoints.Checkpoint_Load_State;
+     (CLS   : in out Checkpoints.Checkpoint_Load_State;
       Value : out String_Maps.Map);
    --  Read a String_Maps.Map from CLS
 

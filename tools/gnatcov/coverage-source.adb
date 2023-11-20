@@ -493,7 +493,7 @@ package body Coverage.Source is
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
+   procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State) is
       use SCI_Vector_Vectors;
 
       CP_Tag_Provider : Unbounded_String;
@@ -524,7 +524,7 @@ package body Coverage.Source is
       --  Even if we cannot merge coverage information, we must read it in
       --  order to be able to decode the rest of the checkpoint.
 
-      Read (CLS.all, CP_SCI_Vector);
+      Read (CLS, CP_SCI_Vector);
 
       if not Do_Merge then
          return;

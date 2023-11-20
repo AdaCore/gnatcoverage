@@ -48,14 +48,14 @@ package body Instrument.Checkpoints is
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load (CLS : access Checkpoint_Load_State) is
+   procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State) is
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
    begin
       declare
          use Instrumented_Unit_To_CU_Maps;
          CP_IU_Map : Map;
       begin
-         Read (CLS.all, CP_IU_Map);
+         Read (CLS, CP_IU_Map);
 
          for Cur in CP_IU_Map.Iterate loop
             declare
@@ -99,7 +99,7 @@ package body Instrument.Checkpoints is
          CP_PP_Cmds : SFI_To_PP_Cmd_Maps.Map;
          CP_SFI     : Source_File_Index;
       begin
-         Read (CLS.all, CP_PP_Cmds);
+         Read (CLS, CP_PP_Cmds);
 
          for CP_Cur in CP_PP_Cmds.Iterate loop
 

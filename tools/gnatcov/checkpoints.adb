@@ -563,7 +563,7 @@ package body Checkpoints is
       Raise_Stub_Internal_Error_For (Load_Checkpoint);
 
       declare
-         CLS : aliased Checkpoint_Load_State :=
+         CLS : Checkpoint_Load_State :=
            (Root_Stream_Type with
             Stream   => Stream (SF),
             Filename => To_Unbounded_String (Filename),
@@ -645,11 +645,11 @@ package body Checkpoints is
          Update_Current_Trace_Kind
            (Any_Accepted_Trace_Kind'Val (CLS.Read_U8));
 
-         Files_Table.Checkpoint_Load (CLS'Access, Ignored_Source_Files);
-         SC_Obligations.Checkpoint_Load (CLS'Access);
-         Instrument.Checkpoints.Checkpoint_Load (CLS'Access);
-         Coverage.Source.Checkpoint_Load (CLS'Access);
-         Traces_Files_Registry.Checkpoint_Load (CLS'Access);
+         Files_Table.Checkpoint_Load (CLS, Ignored_Source_Files);
+         SC_Obligations.Checkpoint_Load (CLS);
+         Instrument.Checkpoints.Checkpoint_Load (CLS);
+         Coverage.Source.Checkpoint_Load (CLS);
+         Traces_Files_Registry.Checkpoint_Load (CLS);
 
          Free (CLS.Relocations);
       end;

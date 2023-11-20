@@ -32,7 +32,7 @@ package body SC_Obligations.BDD is
    procedure Read (CLS : in out Checkpoint_Load_State; Value : out BDD_Node);
    --  Read a BDD_Node from CLS
 
-   procedure Read is new Read_Vector
+   procedure Read_BDD_Vector is new Read_Vector
      (Index_Type   => Valid_BDD_Node_Id,
       Element_Type => BDD_Node,
       "="          => "=",
@@ -132,7 +132,7 @@ package body SC_Obligations.BDD is
    ----------
 
    procedure Read
-     (CLS : access Checkpoints.Checkpoint_Load_State; Value : out BDD_Type) is
+     (CLS : in out Checkpoints.Checkpoint_Load_State; Value : out BDD_Type) is
    begin
       Value.Decision := CLS.Read_SCO;
       Value.Root_Condition := CLS.Read_BDD_Node;
@@ -173,10 +173,10 @@ package body SC_Obligations.BDD is
    end Read;
 
    procedure Read
-     (CLS    : access Checkpoints.Checkpoint_Load_State;
+     (CLS    : in out Checkpoints.Checkpoint_Load_State;
       Vector : out BDD_Vectors.Vector) is
    begin
-      Read (CLS.all, Vector);
+      Read_BDD_Vector (CLS, Vector);
    end Read;
 
    ---------------------

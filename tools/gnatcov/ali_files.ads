@@ -77,7 +77,7 @@ package ALI_Files is
         Element_Type => ALI_Annotation);
 
    procedure Read
-     (CLS   : access Checkpoints.Checkpoint_Load_State;
+     (CLS   : in out Checkpoints.Checkpoint_Load_State;
       Value : out ALI_Annotation_Maps.Map);
    --  Read a ALI_Annotation_Maps.Map from CLS
 

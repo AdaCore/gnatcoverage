@@ -573,7 +573,7 @@ package Files_Table is
    --  Clear the internal data structures used to create checkpoints
 
    procedure Checkpoint_Load
-     (CLS                  : access Checkpoints.Checkpoint_Load_State;
+     (CLS                  : in out Checkpoints.Checkpoint_Load_State;
       Ignored_Source_Files : access GNAT.Regexp.Regexp);
    --  Load checkpointed files table from S and merge in current state.
    --  Ignore_Source_Files should be null if the checkpoint purpose is

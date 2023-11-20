@@ -98,7 +98,7 @@ package body Strings is
    ----------
 
    procedure Read
-     (CLS   : access Checkpoints.Checkpoint_Load_State;
+     (CLS   : in out Checkpoints.Checkpoint_Load_State;
       Value : out String_Vectors.Vector)
    is
       procedure Read is new Read_Vector
@@ -108,11 +108,11 @@ package body Strings is
          Vectors      => String_Vectors,
          Read_Element => Read);
    begin
-      Read (CLS.all, Value);
+      Read (CLS, Value);
    end Read;
 
    procedure Read
-     (CLS   : access Checkpoints.Checkpoint_Load_State;
+     (CLS   : in out Checkpoints.Checkpoint_Load_State;
       Value : out String_Maps.Map)
    is
       procedure Read is new Read_Map
@@ -124,7 +124,7 @@ package body Strings is
          Read_Key     => Read,
          Read_Element => Read);
    begin
-      Read (CLS.all, Value);
+      Read (CLS, Value);
    end Read;
 
    --------------------
