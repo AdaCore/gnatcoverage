@@ -87,7 +87,16 @@ package MC_DC is
       Vectors      => Condition_Evaluation_Vectors,
       Read_Element => Read);
 
+   procedure Write is new Write_Vector
+     (Index_Type    => Condition_Index,
+      Element_Type  => Tristate,
+      Vectors       => Condition_Evaluation_Vectors,
+      Write_Element => Write);
+
    procedure Read (CLS : in out Checkpoint_Load_State; Value : out Evaluation);
    --  Read an Evaluation from CLS
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : Evaluation);
+   --  Write an Evalution to CSS
 
 end MC_DC;

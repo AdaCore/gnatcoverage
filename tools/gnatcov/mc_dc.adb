@@ -228,4 +228,16 @@ package body MC_DC is
       Value.Next_Condition := CLS.Read_Condition;
    end Read;
 
+   -----------
+   -- Write --
+   -----------
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : Evaluation) is
+   begin
+      CSS.Write_SCO (Value.Decision);
+      Write (CSS, Value.Values);
+      CSS.Write (Value.Outcome);
+      CSS.Write_Condition (Value.Next_Condition);
+   end Write;
+
 end MC_DC;

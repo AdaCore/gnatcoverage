@@ -36,6 +36,10 @@ package body ALI_Files is
      (CLS : in out Checkpoint_Load_State; Value : out ALI_Annotation);
    --  Read a ALI_Annotation from CLS
 
+   procedure Write
+     (CSS : in out Checkpoint_Save_State; Value : ALI_Annotation);
+   --  Write a ALI_Annotation to CSS
+
    -----------------------------------------------
    -- Regular expressions for ALI files parsing --
    -----------------------------------------------
@@ -627,21 +631,6 @@ package body ALI_Files is
       return ALI_Index;
    end Load_ALI;
 
-   -----------
-   -- Write --
-   -----------
-
-   procedure Write (S : access Root_Stream_Type'Class; V : ALI_Annotation) is
-   begin
-      CU_Id'Write (S, V.CU);
-      ALI_Annotation_Kind'Write (S, V.Kind);
-      if V.Message /= null then
-         String'Output (S, V.Message.all);
-      else
-         String'Output (S, "");
-      end if;
-   end Write;
-
    ----------
    -- Read --
    ----------
@@ -679,5 +668,37 @@ package body ALI_Files is
    begin
       Read_Map (CLS, Value);
    end Read;
+
+   -----------
+   -- Write --
+   -----------
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : ALI_Annotation)
+   is
+   begin
+      CSS.Write_CU (Value.CU);
+      CSS.Write_U8 (ALI_Annotation_Kind'Pos (Value.Kind));
+      CSS.Write_Unbounded (if Value.Message = null
+                           then ""
+                           else Value.Message.all);
+   end Write;
+
+   procedure Write
+     (CSS   : in out Checkpoints.Checkpoint_Save_State;
+      Value : ALI_Annotation_Maps.Map)
+   is
+      procedure Write_Map is new Checkpoints.Write_Map
+        (Key_Type      => Source_Location,
+         Element_Type  => ALI_Annotation,
+         Map_Type      => ALI_Annotation_Maps.Map,
+         Cursor_Type   => ALI_Annotation_Maps.Cursor,
+         Length        => ALI_Annotation_Maps.Length,
+         Iterate       => ALI_Annotation_Maps.Iterate,
+         Query_Element => ALI_Annotation_Maps.Query_Element,
+         Write_Key     => Write,
+         Write_Element => Write);
+   begin
+      Write_Map (CSS, Value);
+   end Write;
 
 end ALI_Files;

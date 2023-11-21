@@ -60,6 +60,10 @@ package Subprocesses is
       Value : out Command_Type);
    --  Read a Command_Type from CLS
 
+   procedure Write
+     (CSS : in out Checkpoints.Checkpoint_Save_State; Value : Command_Type);
+   --  Write a Command_Type to CSS
+
    Null_Command : constant Command_Type := (others => <>);
 
    procedure Append_Arg (Cmd : in out Command_Type; Arg : String);

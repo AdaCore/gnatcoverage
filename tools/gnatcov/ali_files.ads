@@ -19,7 +19,6 @@
 --  ALI files reader
 
 with Ada.Containers.Ordered_Maps;
-with Ada.Streams; use Ada.Streams;
 
 with GNAT.Regexp;
 with GNAT.Strings; use GNAT.Strings;
@@ -68,9 +67,6 @@ package ALI_Files is
       --  This is relevant only for source trace based coverage analysis.
    end record;
 
-   procedure Write (S : access Root_Stream_Type'Class; V : ALI_Annotation);
-   for ALI_Annotation'Write use Write;
-
    package ALI_Annotation_Maps is
      new Ada.Containers.Ordered_Maps
        (Key_Type     => Source_Location,
@@ -80,6 +76,11 @@ package ALI_Files is
      (CLS   : in out Checkpoints.Checkpoint_Load_State;
       Value : out ALI_Annotation_Maps.Map);
    --  Read a ALI_Annotation_Maps.Map from CLS
+
+   procedure Write
+     (CSS   : in out Checkpoints.Checkpoint_Save_State;
+      Value : ALI_Annotation_Maps.Map);
+   --  Write a ALI_Annotation_Maps.Map to CSS
 
    ALI_Annotations : ALI_Annotation_Maps.Map;
 

@@ -95,6 +95,32 @@ package body Instrument is
       Value := CUP;
    end Read;
 
+   -----------
+   -- Write --
+   -----------
+
+   procedure Write
+     (CSS : in out Checkpoints.Checkpoint_Save_State; Value : Ada_Identifier)
+   is
+   begin
+      CSS.Write (Unbounded_String (Value));
+   end Write;
+
+   procedure Write
+     (CSS   : in out Checkpoints.Checkpoint_Save_State;
+      Value : Compilation_Unit_Part) is
+   begin
+      CSS.Write (Value.Language_Kind);
+      case Value.Language_Kind is
+         when Unit_Based_Language =>
+            Write (CSS, Value.Unit);
+            CSS.Write_U8 (Unit_Parts'Pos (Value.Part));
+
+         when File_Based_Language =>
+            CSS.Write (Value.Filename);
+      end case;
+   end Write;
+
    ---------
    -- "<" --
    ---------

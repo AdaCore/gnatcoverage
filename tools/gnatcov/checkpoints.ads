@@ -19,6 +19,7 @@
 --  This unit controls the generation and processing of coverage state
 --  checkpoint files for incremental coverage.
 
+with Ada.Containers;        use Ada.Containers;
 with Ada.Containers.Multiway_Trees;
 with Ada.Containers.Vectors;
 with Ada.Streams;           use Ada.Streams;
@@ -475,6 +476,145 @@ package Checkpoints is
      (Self : in out Checkpoint_Load_State; Value : out Tristate);
    procedure Read
      (Self : in out Checkpoint_Load_State; Value : out Unbounded_String);
+
+   ---------------------------------------------
+   -- Helpers to implement checkpoints saving --
+   ---------------------------------------------
+
+   --  All the Write* procedures below serialize specific data types to
+   --  checkpoints. There is no overload (functions have different names) for
+   --  numeric data types in order to avoid ambiguities when writing for
+   --  instance:
+   --
+   --     CSS.Write_U8 (My_Type'Pos (Numeric_Data));
+   --
+   --  Also define generic procedures to write containers (maps, multiway
+   --  trees, sets, vectors).
+
+   procedure Write_BDD_Node
+     (Self : in out Checkpoint_Save_State; Value : BDD_Node_Id);
+   procedure Write_Bit_Id
+     (Self : in out Checkpoint_Save_State; Value : Any_Bit_Id);
+   procedure Write_CU (Self : in out Checkpoint_Save_State; Value : CU_Id);
+   procedure Write_Condition
+     (Self : in out Checkpoint_Save_State; Value : Any_Condition_Index);
+   procedure Write_Count
+     (Self : in out Checkpoint_Save_State; Value : Count_Type);
+   procedure Write_I32
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Integer_32);
+   procedure Write_Inst (Self : in out Checkpoint_Save_State; Value : Inst_Id);
+   procedure Write_Integer
+     (Self : in out Checkpoint_Save_State; Value : Integer);
+   procedure Write_PC (Self : in out Checkpoint_Save_State; Value : Pc_Type);
+   procedure Write_SCO (Self : in out Checkpoint_Save_State; Value : SCO_Id);
+   procedure Write_SFI
+     (Self : in out Checkpoint_Save_State; Value : Source_File_Index);
+   procedure Write_U8
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Unsigned_8);
+   procedure Write_U16
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Unsigned_16);
+   procedure Write_U32
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Unsigned_32);
+   procedure Write_U64
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Unsigned_64);
+
+   procedure Write (Self : in out Checkpoint_Save_State; Value : Boolean);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Compilation_Unit);
+   procedure Write
+     (Self  : in out Checkpoint_Save_State;
+      Value : SC_Obligations.Fingerprint_Type);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Any_Language_Kind);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Any_Line_State);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Local_Source_Location);
+   procedure Write
+     (Self  : in out Checkpoint_Save_State;
+      Value : Local_Source_Location_Range);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Source_Location);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Source_Location_Range);
+   procedure Write (Self : in out Checkpoint_Save_State; Value : String);
+   procedure Write (Self : in out Checkpoint_Save_State; Value : Tristate);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Unbounded_String);
+
+   procedure Write_Unbounded
+     (Self : in out Checkpoint_Save_State; Value : String);
+
+   generic
+      type Key_Type is private;
+      type Element_Type is private;
+      type Map_Type is private;
+      type Cursor_Type is private;
+
+      with function Length (Self : Map_Type) return Count_Type is <>;
+      with procedure Iterate
+        (Self    : Map_Type;
+         Process : not null access procedure (Position : Cursor_Type));
+      with procedure Query_Element
+        (Position : Cursor_Type;
+         Process  : not null access
+                      procedure (Key : Key_Type; Element : Element_Type));
+
+      with procedure Write_Key
+        (Self : in out Checkpoint_Save_State; Key : Key_Type);
+      with procedure Write_Element
+        (Self : in out Checkpoint_Save_State; Element : Element_Type);
+   procedure Write_Map
+     (Self : in out Checkpoint_Save_State; Map : Map_Type);
+   --  Generic implementation to write a map to a checkpoint. Since there are
+   --  two flavors for maps (ordered and hashed), do not take a instantiated
+   --  formal package, but rather the only three map primitives that we need:
+   --  Length, Iterate and Query_Element.
+
+   generic
+      type Element_Type is private;
+      type Set_Type is private;
+      type Cursor_Type is private;
+
+      with function Length (Self : Set_Type) return Count_Type is <>;
+      with procedure Iterate
+        (Self    : Set_Type;
+         Process : not null access procedure (Position : Cursor_Type));
+      with procedure Query_Element
+        (Position : Cursor_Type;
+         Process  : not null access procedure (Element : Element_Type));
+
+      with procedure Write_Element
+        (Self : in out Checkpoint_Save_State; Element : Element_Type);
+   procedure Write_Set
+     (Self : in out Checkpoint_Save_State; Set : Set_Type);
+   --  Generic implementation to write a set to a checkpoint. Since there are
+   --  two flavors for sets (ordered and hashed), do not take a instantiated
+   --  formal package, but rather the only three set primitives that we need:
+   --  Length, Iterate and Query_Element.
+
+   generic
+      type Element_Type is private;
+      with function "=" (Left, Right : Element_Type) return Boolean is <>;
+      with package Multiway_Trees is new Ada.Containers.Multiway_Trees
+        (Element_Type, "=");
+      with procedure Write_Element
+        (Self : in out Checkpoint_Save_State; Element : Element_Type);
+   procedure Write_Tree
+     (Self : in out Checkpoint_Save_State; Tree : Multiway_Trees.Tree);
+   --  Generic implementation to write a multiway tree from a checkpoint
+
+   generic
+      type Index_Type is range <>;
+      type Element_Type is private;
+      with function "=" (Left, Right : Element_Type) return Boolean is <>;
+      with package Vectors is new Ada.Containers.Vectors
+        (Index_Type, Element_Type, "=");
+      with procedure Write_Element
+        (Self : in out Checkpoint_Save_State; Element : Element_Type);
+   procedure Write_Vector
+     (Self : in out Checkpoint_Save_State; Vector : Vectors.Vector);
+   --  Generic implementation to write a vector tree to a checkpoint
 
 private
 

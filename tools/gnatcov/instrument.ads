@@ -56,6 +56,10 @@ package Instrument is
       Value : out Ada_Identifier);
    --  Read an Ada_Identifier from CLS
 
+   procedure Write
+     (CSS : in out Checkpoints.Checkpoint_Save_State; Value : Ada_Identifier);
+   --  Write an Ada_Identifier to CSS
+
    package Ada_Identifier_Vectors is new Ada.Containers.Vectors
      (Positive, Ada_Identifier);
 
@@ -75,6 +79,12 @@ package Instrument is
       Element_Type => Ada_Identifier,
       Vectors      => Ada_Identifier_Vectors,
       Read_Element => Read);
+
+   procedure Write is new Write_Vector
+     (Index_Type    => Positive,
+      Element_Type  => Ada_Identifier,
+      Vectors       => Ada_Identifier_Vectors,
+      Write_Element => Write);
 
    type Compilation_Unit_Part
      (Language_Kind : Any_Language_Kind := Unit_Based_Language)
@@ -99,6 +109,11 @@ package Instrument is
      (CLS   : in out Checkpoints.Checkpoint_Load_State;
       Value : out Compilation_Unit_Part);
    --  Read a Compilation_Unit_Part from CLS
+
+   procedure Write
+     (CSS   : in out Checkpoints.Checkpoint_Save_State;
+      Value : Compilation_Unit_Part);
+   --  Write a Compilation_Unit_Part to CSS
 
    Part_Tags : constant array (Unit_Parts) of Character :=
      (Unit_Spec     => 'S',
@@ -191,6 +206,17 @@ package Instrument is
       Read_Key     => Read,
       Read_Element => Read);
 
+   procedure Write is new Write_Map
+     (Key_Type      => Compilation_Unit_Part,
+      Element_Type  => CU_Id,
+      Map_Type      => Instrumented_Unit_To_CU_Maps.Map,
+      Cursor_Type   => Instrumented_Unit_To_CU_Maps.Cursor,
+      Length        => Instrumented_Unit_To_CU_Maps.Length,
+      Iterate       => Instrumented_Unit_To_CU_Maps.Iterate,
+      Query_Element => Instrumented_Unit_To_CU_Maps.Query_Element,
+      Write_Key     => Write,
+      Write_Element => Write_CU);
+
    Instrumented_Unit_CUs : Instrumented_Unit_To_CU_Maps.Map;
    --  Associate a CU id for all instrumented units. Updated each time we
    --  instrument a unit (or load a checkpoint) and used each time we read a
@@ -209,6 +235,17 @@ package Instrument is
       Insert       => SFI_To_PP_Cmd_Maps.Insert,
       Read_Key     => Read,
       Read_Element => Read);
+
+   procedure Write is new Write_Map
+     (Key_Type      => Source_File_Index,
+      Element_Type  => Command_Type,
+      Map_Type      => SFI_To_PP_Cmd_Maps.Map,
+      Cursor_Type   => SFI_To_PP_Cmd_Maps.Cursor,
+      Length        => SFI_To_PP_Cmd_Maps.Length,
+      Iterate       => SFI_To_PP_Cmd_Maps.Iterate,
+      Query_Element => SFI_To_PP_Cmd_Maps.Query_Element,
+      Write_Key     => Write_SFI,
+      Write_Element => Write);
 
    PP_Cmds : SFI_To_PP_Cmd_Maps.Map;
    --  Save the preprocessing command for each unit that supports it

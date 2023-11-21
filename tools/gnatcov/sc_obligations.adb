@@ -18,11 +18,10 @@
 
 --  Source Coverage Obligations
 
-with Ada.Characters.Handling;     use Ada.Characters.Handling;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Exceptions;
-with Ada.Strings.Fixed;           use Ada.Strings.Fixed;
-with Ada.Streams;                 use Ada.Streams;
-with Ada.Text_IO;                 use Ada.Text_IO;
+with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
+with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with Interfaces;
@@ -142,12 +141,6 @@ package body SC_Obligations is
    end record;
 
    procedure Free (CU : in out CU_Info);
-
-   pragma Warnings (Off, "* is not referenced");
-   procedure Write (S : access Root_Stream_Type'Class; V : CU_Info);
-   pragma Warnings (On, "* is not referenced");
-
-   for CU_Info'Write use Write;
 
    function Has_SCOs (CUI : CU_Info) return Boolean is
      (CUI.First_SCO <= CUI.Last_SCO);
@@ -456,12 +449,6 @@ package body SC_Obligations is
       end case;
    end record;
 
-   pragma Warnings (Off, "* is not referenced");
-   procedure Write (S : access Root_Stream_Type'Class; V : SCO_Descriptor);
-   pragma Warnings (On, "* is not referenced");
-
-   for SCO_Descriptor'Write use Write;
-
    Removed_SCO_Descriptor : constant SCO_Descriptor := (Kind => Removed);
 
    package SCO_Vectors is
@@ -647,6 +634,90 @@ package body SC_Obligations is
    --  New_CU_Id is the corresponding CU_Id in the current context, and is
    --  either an already existing CU_Id (if the unit was already known),
    --  or a newly assigned one (if not).
+
+   -----------------------------------------
+   -- Helper routines for Checkpoint_Save --
+   -----------------------------------------
+
+   procedure Write is new Write_Vector
+     (Index_Type    => Pos,
+      Element_Type  => Source_File_Index,
+      "="           => "=",
+      Vectors       => SFI_Vectors,
+      Write_Element => Write_SFI);
+
+   procedure Write
+     (CSS : in out Checkpoint_Save_State; Value : Expansion_Info);
+   --  Write an Expansion_Info to CSS
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : PP_Info);
+   --  Write a PP_Info to CSS
+
+   procedure Write is new Write_Map
+     (Key_Type      => SCO_Id,
+      Element_Type  => PP_Info,
+      Map_Type      => SCO_PP_Info_Maps.Map,
+      Cursor_Type   => SCO_PP_Info_Maps.Cursor,
+      Length        => SCO_PP_Info_Maps.Length,
+      Iterate       => SCO_PP_Info_Maps.Iterate,
+      Query_Element => SCO_PP_Info_Maps.Query_Element,
+      Write_Key     => Write_SCO,
+      Write_Element => Write);
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : Scope_Entity);
+   --  Write a Scope_Entity to CSS
+
+   procedure Write is new Write_Tree
+     (Element_Type    => Scope_Entity,
+      "="             => "=",
+      Multiway_Trees  => Scope_Entities_Trees,
+      Write_Element   => Write);
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : CU_Info);
+   --  Write a CU_Info to CSS
+
+   procedure Write is new Write_Vector
+     (Valid_CU_Id, CU_Info, "=", CU_Info_Vectors, Write);
+   --  Write a vector of CU_Info records to CSS
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : Inst_Info);
+   --  Write an Inst_Info to CSS
+
+   procedure Write is new Write_Vector
+     (Index_Type   => Valid_Inst_Id,
+      Element_Type => Inst_Info,
+      "="          => "=",
+      Vectors      => Inst_Info_Vectors,
+      Write_Element => Write);
+
+   procedure Write is new Write_Set
+     (Element_Type  => Pc_Type,
+      Set_Type      => PC_Sets.Set,
+      Cursor_Type   => PC_Sets.Cursor,
+      Length        => PC_Sets.Length,
+      Iterate       => PC_Sets.Iterate,
+      Query_Element => PC_Sets.Query_Element,
+      Write_Element => Write_PC);
+
+   procedure Write
+     (CSS : in out Checkpoint_Save_State; Value : SCO_Descriptor);
+   --  Write a SCO_Descriptor to CSS
+
+   procedure Write is new Write_Set
+     (Element_Type  => SCO_Id,
+      Set_Type      => SCO_Sets.Set,
+      Cursor_Type   => SCO_Sets.Cursor,
+      Length        => SCO_Sets.Length,
+      Iterate       => SCO_Sets.Iterate,
+      Query_Element => SCO_Sets.Query_Element,
+      Write_Element => Write_SCO);
+
+   procedure Write is new Write_Vector
+     (Index_Type    => Valid_SCO_Id,
+      Element_Type  => SCO_Descriptor,
+      "="           => "=",
+      Vectors       => SCO_Vectors,
+      Write_Element => Write);
 
    ------------------
    -- Local tables --
@@ -1685,6 +1756,154 @@ package body SC_Obligations is
       end if;
    end Checkpoint_Load_Unit;
 
+   -----------
+   -- Write --
+   -----------
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : Expansion_Info)
+   is
+   begin
+      CSS.Write (Value.Macro_Name);
+      CSS.Write (Value.Sloc);
+   end Write;
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : PP_Info) is
+   begin
+      CSS.Write_U8 (SCO_PP_Kind'Pos (Value.Kind));
+      CSS.Write (Value.Actual_Source_Range);
+      CSS.Write (Value.PP_Source_Range);
+
+      CSS.Write_Count (Value.Expansion_Stack.Length);
+      for EI of Value.Expansion_Stack loop
+         Write (CSS, EI);
+      end loop;
+
+      case Value.Kind is
+         when In_Expansion =>
+            Write (CSS, Value.Definition_Loc);
+
+         when others =>
+            null;
+      end case;
+   end Write;
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : Scope_Entity)
+   is
+   begin
+      CSS.Write_SCO (Value.From);
+      CSS.Write_SCO (Value.To);
+
+      CSS.Write (Value.Name);
+      CSS.Write (Value.Sloc);
+
+      CSS.Write_SFI (Value.Identifier.Decl_SFI);
+      CSS.Write_Integer (Value.Identifier.Decl_Line);
+   end Write;
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : CU_Info) is
+   begin
+      CSS.Write_U8   (SCO_Provider'Pos (Value.Provider));
+      CSS.Write_SFI  (Value.Origin);
+      CSS.Write_SFI  (Value.Main_Source);
+      CSS.Write_SCO  (Value.First_SCO);
+      CSS.Write_SCO  (Value.Last_SCO);
+      CSS.Write_Inst (Value.First_Instance);
+      CSS.Write_Inst (Value.Last_Instance);
+      Write     (CSS, Value.Deps);
+      CSS.Write      (Value.Has_Code);
+      CSS.Write      (Value.Fingerprint);
+      Write     (CSS, Value.PP_Info_Map);
+
+      case Value.Provider is
+         when Compiler =>
+            null;
+
+         when Instrumenter =>
+            if CSS.Purpose_Of = Instrumentation then
+               CSS.Write_Bit_Id (Value.Bit_Maps.Statement_Bits.all'First);
+               CSS.Write_Bit_Id (Value.Bit_Maps.Statement_Bits.all'Last);
+               for SCO of Value.Bit_Maps.Statement_Bits.all loop
+                  CSS.Write_SCO (SCO);
+               end loop;
+
+               CSS.Write_Bit_Id (Value.Bit_Maps.Decision_Bits.all'First);
+               CSS.Write_Bit_Id (Value.Bit_Maps.Decision_Bits.all'Last);
+               for Info of Value.Bit_Maps.Decision_Bits.all loop
+                  CSS.Write_SCO (Info.D_SCO);
+                  CSS.Write (Info.Outcome);
+               end loop;
+
+               CSS.Write_Bit_Id (Value.Bit_Maps.MCDC_Bits.all'First);
+               CSS.Write_Bit_Id (Value.Bit_Maps.MCDC_Bits.all'Last);
+               for Info of Value.Bit_Maps.MCDC_Bits.all loop
+                  CSS.Write_SCO (Info.D_SCO);
+                  CSS.Write_Integer (Info.Path_Index);
+               end loop;
+
+               CSS.Write (Value.Bit_Maps_Fingerprint);
+            end if;
+      end case;
+
+      Write (CSS, Value.Scope_Entities);
+   end Write;
+
+   procedure Write
+     (CSS : in out Checkpoint_Save_State; Value : Inst_Info) is
+   begin
+      CSS.Write (Value.Sloc);
+      CSS.Write_Inst (Value.Enclosing_Instance);
+      CSS.Write_CU (Value.Comp_Unit);
+   end Write;
+
+   procedure Write
+     (CSS : in out Checkpoint_Save_State; Value : SCO_Descriptor) is
+   begin
+      CSS.Write_U8 (SCO_Kind'Pos (Value.Kind));
+      if Value.Kind = Removed then
+         return;
+      end if;
+
+      CSS.Write_CU  (Value.Origin);
+      CSS.Write     (Value.Sloc_Range);
+      CSS.Write_SCO (Value.Parent);
+
+      case Value.Kind is
+      when Removed =>
+         raise Program_Error with "unreachable code";
+
+      when Statement =>
+         CSS.Write_U8 (Statement_Kind'Pos (Value.S_Kind));
+         CSS.Write_SCO (Value.Dominant);
+         CSS.Write     (Value.Dominant_Value);
+         CSS.Write     (Value.Dominant_Sloc);
+         CSS.Write     (Value.Handler_Range);
+         CSS.Write_U8  (Pragma_Id'Pos (Value.Pragma_Name));
+
+      when Condition =>
+         CSS.Write           (Value.Value);
+         Write        (CSS,   Value.PC_Set);
+         CSS.Write_BDD_Node  (Value.BDD_Node);
+         CSS.Write_Condition (Value.Index);
+
+      when Decision =>
+         CSS.Write_SCO        (Value.Expression);
+         CSS.Write_U8 (Decision_Kind'Pos (Value.D_Kind));
+         CSS.Write           (Value.Control_Location);
+         CSS.Write_Condition (Value.Last_Cond_Index);
+         BDD.Write      (CSS, Value.Decision_BDD);
+         CSS.Write           (Value.Degraded_Origins);
+         CSS.Write_U8 (Aspect_Id'Pos (Value.Aspect_Name));
+         CSS.Write_Integer   (Value.Path_Count);
+
+      when Operator =>
+         CSS.Write_U8 (Operand_Position'Pos (Left));
+         CSS.Write_U8 (Operand_Position'Pos (Right));
+         CSS.Write_SCO (Value.Operands (Left));
+         CSS.Write_SCO (Value.Operands (Right));
+         CSS.Write_U8 (Operator_Kind'Pos (Value.Op_Kind));
+      end case;
+   end Write;
+
    ----------
    -- Free --
    ----------
@@ -1705,45 +1924,6 @@ package body SC_Obligations is
          Free (CU.Bit_Maps.MCDC_Bits);
       end if;
    end Free;
-
-   --  Procedures below use comparisons on checkpoint format versions
-
-   -----------
-   -- Write --
-   -----------
-
-   procedure Write (S : access Root_Stream_Type'Class; V : CU_Info) is
-      CLS : Stateful_Stream renames Stateful_Stream (S.all);
-   begin
-      SCO_Provider'Write (S, V.Provider);
-      Source_File_Index'Write (S, V.Origin);
-      Source_File_Index'Write (S, V.Main_Source);
-      SCO_Id'Write            (S, V.First_SCO);
-      SCO_Id'Write            (S, V.Last_SCO);
-      Inst_Id'Write           (S, V.First_Instance);
-      Inst_Id'Write           (S, V.Last_Instance);
-      SFI_Vector'Write        (S, V.Deps);
-      Boolean'Write           (S, V.Has_Code);
-      Fingerprint_Type'Write  (S, V.Fingerprint);
-
-      SCO_PP_Info_Maps.Map'Write (S, V.PP_Info_Map);
-
-      case V.Provider is
-         when Compiler =>
-            null;
-         when Instrumenter =>
-            if CLS.Purpose_Of = Instrumentation then
-               Statement_Bit_Map'Output
-                 (S, V.Bit_Maps.Statement_Bits.all);
-               Decision_Bit_Map'Output
-                 (S, V.Bit_Maps.Decision_Bits.all);
-               MCDC_Bit_Map'Output
-                 (S, V.Bit_Maps.MCDC_Bits.all);
-               Fingerprint_Type'Write (S, V.Bit_Maps_Fingerprint);
-            end if;
-      end case;
-      Scope_Entities_Tree'Write (S, V.Scope_Entities);
-   end Write;
 
    ---------------------
    -- Checkpoint_Load --
@@ -1892,15 +2072,14 @@ package body SC_Obligations is
    ---------------------
 
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
-      S : constant access Root_Stream_Type'Class := CSS.all'Access;
    begin
-      CU_Info_Vectors.Vector'Write        (S, CU_Vector);
-      ALI_Annotation_Maps.Map'Write       (S, ALI_Annotations);
-      Inst_Info_Vectors.Vector'Write      (S, Inst_Vector);
-      BDD.BDD_Vectors.Vector'Write        (S, BDD_Vector);
-      SCO_Vectors.Vector'Write            (S, SCO_Vector);
-      SCO_Sets.Set'Write (S, Non_Instr_SCOs);
-      SCO_Sets.Set'Write (S, Non_Instr_MCDC_SCOs);
+      Write (CSS.all, CU_Vector);
+      Write (CSS.all, ALI_Annotations);
+      Write (CSS.all, Inst_Vector);
+      BDD.Write (CSS.all, BDD_Vector);
+      Write (CSS.all, SCO_Vector);
+      Write (CSS.all, Non_Instr_SCOs);
+      Write (CSS.all, Non_Instr_MCDC_SCOs);
    end Checkpoint_Save;
 
    ---------------
@@ -4050,61 +4229,6 @@ package body SC_Obligations is
          return SC_Tag (Remap_Inst_Id (Relocs, Inst_Id (CP_Tag)));
       end if;
    end Map_Tag;
-
-   -----------
-   -- Write --
-   -----------
-
-   procedure Write (S : access Root_Stream_Type'Class; V : SCO_Descriptor) is
-   begin
-      SCO_Kind'Output (S, V.Kind);
-      if V.Kind = Removed then
-         return;
-      end if;
-
-      CU_Id'Output                 (S, V.Origin);
-      Source_Location_Range'Output (S, V.Sloc_Range);
-      SCO_Id'Output                (S, V.Parent);
-
-      case V.Kind is
-      when Removed =>
-         raise Program_Error with "unreachable code";
-
-      when Statement =>
-         Statement_Kind'Output        (S, V.S_Kind);
-         SCO_Id'Output                (S, V.Dominant);
-         Tristate'Output              (S, V.Dominant_Value);
-         Source_Location'Output       (S, V.Dominant_Sloc);
-         Source_Location_Range'Output (S, V.Handler_Range);
-         Pragma_Id'Output             (S, V.Pragma_Name);
-
-      when Condition =>
-         Tristate'Output        (S, V.Value);
-         PC_Sets.Set'Output     (S, V.PC_Set);
-         BDD_Node_Id'Output     (S, V.BDD_Node);
-         Condition_Index'Output (S, V.Index);
-
-      when Decision | Operator =>
-         case V.Kind is
-         when Decision =>
-            SCO_Id'Output              (S, V.Expression);
-            Decision_Kind'Output       (S, V.D_Kind);
-            Source_Location'Output     (S, V.Control_Location);
-            Any_Condition_Index'Output (S, V.Last_Cond_Index);
-            BDD.BDD_Type'Output        (S, V.Decision_BDD);
-            Boolean'Output             (S, V.Degraded_Origins);
-            Aspect_Id'Output           (S, V.Aspect_Name);
-            Natural'Output             (S, V.Path_Count);
-
-         when Operator =>
-            Operand_Pair'Output  (S, V.Operands);
-            Operator_Kind'Output (S, V.Op_Kind);
-
-         when others =>
-            null;
-         end case;
-      end case;
-   end Write;
 
    -------------------
    -- Next_BDD_Node --

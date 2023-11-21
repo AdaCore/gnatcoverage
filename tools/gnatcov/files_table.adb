@@ -18,7 +18,6 @@
 
 with Ada.Containers.Hashed_Maps;
 with Ada.Directories;
-with Ada.Streams;
 with Ada.Unchecked_Deallocation;
 
 with System;
@@ -1860,12 +1859,11 @@ package body Files_Table is
    ---------------------
 
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
-      S : access Ada.Streams.Root_Stream_Type'Class renames CSS.Stream;
    begin
       --  1) Output first and last SFIs
 
-      Source_File_Index'Write (S, Files_Table.First_Index);
-      Source_File_Index'Write (S, Files_Table.Last_Index);
+      CSS.Write_SFI (Files_Table.First_Index);
+      CSS.Write_SFI (Files_Table.Last_Index);
 
       --  2) Output file table info for each file
       --  Note that we need LI files there, not just source files with
@@ -1875,20 +1873,22 @@ package body Files_Table is
          declare
             FI : File_Info_Access renames File_Vectors.Element (FI_C);
          begin
-            Source_File_Index'Write (S, File_Vectors.To_Index (FI_C));
-            String'Output (S, (if FI.Full_Name /= null
-                               then FI.Full_Name.all
-                               else FI.Simple_Name.all));
-            File_Kind'Write (S, FI.Kind);
-            Boolean'Write (S, FI.Indexed_Simple_Name);
+            CSS.Write_SFI (File_Vectors.To_Index (FI_C));
+            CSS.Write_Unbounded
+              (String_Access'
+                 (if FI.Full_Name /= null
+                  then FI.Full_Name
+                  else FI.Simple_Name).all);
+            CSS.Write_U8 (File_Kind'Pos (FI.Kind));
+            CSS.Write (FI.Indexed_Simple_Name);
             if FI.Kind = Library_File then
                pragma Assert (FI.Main_Source /= No_Source_File);
-               Source_File_Index'Write (S, FI.Main_Source);
+               CSS.Write_SFI (FI.Main_Source);
             elsif FI.Kind = Source_File then
-               Any_Ignore_Status'Write (S, FI.Ignore_Status);
-               Boolean'Write (S, FI.Unit.Known);
+               CSS.Write_U8 (Any_Ignore_Status'Pos (FI.Ignore_Status));
+               CSS.Write (FI.Unit.Known);
                if FI.Unit.Known then
-                  Compilation_Unit'Output (S, FI.Unit.Name);
+                  CSS.Write (FI.Unit.Name);
                end if;
             end if;
          end;
@@ -1896,7 +1896,7 @@ package body Files_Table is
 
       --  No_Source_File marks end of file table info
 
-      Source_File_Index'Write (S, No_Source_File);
+      CSS.Write_SFI (No_Source_File);
    end Checkpoint_Save;
 
    ----------------------

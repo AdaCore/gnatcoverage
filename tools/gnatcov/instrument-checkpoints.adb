@@ -28,10 +28,8 @@ package body Instrument.Checkpoints is
 
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
    begin
-      Instrumented_Unit_To_CU_Maps.Map'Write
-        (CSS.Stream, Instrumented_Unit_CUs);
-      SFI_To_PP_Cmd_Maps.Map'Write
-        (CSS.Stream, PP_Cmds);
+      Write (CSS.all, Instrumented_Unit_CUs);
+      Write (CSS.all, PP_Cmds);
    end Checkpoint_Save;
 
    ----------------------

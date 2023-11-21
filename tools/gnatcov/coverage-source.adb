@@ -76,6 +76,15 @@ package body Coverage.Source is
       Insert       => Evaluation_Sets.Insert,
       Read_Element => Read);
 
+   procedure Write is new Write_Set
+     (Element_Type  => Evaluation,
+      Set_Type      => Evaluation_Sets.Set,
+      Cursor_Type   => Evaluation_Sets.Cursor,
+      Length        => Evaluation_Sets.Length,
+      Iterate       => Evaluation_Sets.Iterate,
+      Query_Element => Evaluation_Sets.Query_Element,
+      Write_Element => Write);
+
    type Outcome_Taken_Type is array (Boolean) of Boolean;
    No_Outcome_Taken    : constant Outcome_Taken_Type := (others => False);
    Both_Outcomes_Taken : constant Outcome_Taken_Type := (others => True);
@@ -152,11 +161,22 @@ package body Coverage.Source is
       Value : out RW_Source_Coverage_Info_Access);
    --  Allocate a new SCI initialized from CLS
 
+   procedure Write
+     (CSS   : in out Checkpoint_Save_State;
+      Value : RW_Source_Coverage_Info_Access);
+   --  Write a SCI to CSS
+
    procedure Read is new Read_Vector
      (Index_Type   => Natural,
       Element_Type => RW_Source_Coverage_Info_Access,
       Vectors      => SCI_Vectors,
       Read_Element => Read);
+
+   procedure Write is new Write_Vector
+     (Index_Type    => Natural,
+      Element_Type  => RW_Source_Coverage_Info_Access,
+      Vectors       => SCI_Vectors,
+      Write_Element => Write);
 
    procedure Read is new Read_Vector
      (Index_Type   => Valid_SCO_Id,
@@ -164,6 +184,13 @@ package body Coverage.Source is
       "="          => SCI_Vectors."=",
       Vectors      => SCI_Vector_Vectors,
       Read_Element => Read);
+
+   procedure Write is new Write_Vector
+     (Index_Type    => Valid_SCO_Id,
+      Element_Type  => SCI_Vectors.Vector,
+      "="           => SCI_Vectors."=",
+      Vectors       => SCI_Vector_Vectors,
+      Write_Element => Write);
 
    SCI_Vector : SCI_Vector_Vectors.Vector;
 
@@ -462,17 +489,17 @@ package body Coverage.Source is
 
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
    begin
-      String'Output (CSS, Tag_Provider_Name);
-      SCI_Vector_Vectors.Vector'Write (CSS.Stream, SCI_Vector);
+      CSS.Write_Unbounded (Tag_Provider_Name);
+      Write (CSS.all, SCI_Vector);
 
       --  For checkpoints only, stream the list of names for units of interest
 
       if CSS.Purpose = Consolidation then
-         Boolean'Output (CSS, Unit_List_Invalidated);
+         CSS.Write (Unit_List_Invalidated);
          if not Unit_List_Invalidated then
-            Ada.Containers.Count_Type'Output (CSS, Unit_List.Length);
+            CSS.Write_Count (Unit_List.Length);
             for N of Unit_List loop
-               Compilation_Unit'Output (CSS, N);
+               Write (CSS.all, N);
             end loop;
          end if;
       end if;
@@ -2467,6 +2494,40 @@ package body Coverage.Source is
          Value := new Source_Coverage_Info'(CP_SCI);
       end if;
    end Read;
+
+   -----------
+   -- Write --
+   -----------
+
+   procedure Write
+     (CSS   : in out Checkpoint_Save_State;
+      Value : RW_Source_Coverage_Info_Access) is
+   begin
+      CSS.Write_U8 (SCO_Kind'Pos (Value.Kind));
+      CSS.Write_I32 (Interfaces.Integer_32 (Value.Tag));
+      for S of Value.State loop
+         CSS.Write (S);
+      end loop;
+
+      case Value.Kind is
+         when Statement =>
+            CSS.Write (Value.Basic_Block_Has_Code);
+            CSS.Write (Value.Executed);
+            CSS.Write (Value.Line_Executed);
+
+         when Decision =>
+            CSS.Write (Value.Outcome_Taken (False));
+            CSS.Write (Value.Outcome_Taken (True));
+
+            CSS.Write (Value.Known_Outcome_Taken (False));
+            CSS.Write (Value.Known_Outcome_Taken (True));
+
+            Write (CSS, Value.Evaluations);
+
+         when others =>
+            null;
+      end case;
+   end Write;
 
    ------------------------
    -- Report_If_Excluded --

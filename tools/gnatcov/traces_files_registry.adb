@@ -332,7 +332,7 @@ package body Traces_Files_Registry is
         (Coverage.To_String (Context.all));
    begin
       for TF of Files loop
-         Unbounded_String'Output (CSS, TF.Filename);
+         CSS.Write (TF.Filename);
 
          declare
             --  If this trace file does not come from a checkpoint (TF.Context
@@ -344,17 +344,17 @@ package body Traces_Files_Registry is
                 then This_Context
                 else TF.Context);
          begin
-            Trace_File_Kind'Write  (CSS, TF.Kind);
-            Unbounded_String'Write (CSS, TF_Context);
-            Unbounded_String'Write (CSS, TF.Program_Name);
-            Unbounded_String'Write (CSS, TF.Time);
-            Unbounded_String'Write (CSS, TF.User_Data);
+            CSS.Write_U8 (Trace_File_Kind'Pos (TF.Kind));
+            CSS.Write (TF_Context);
+            CSS.Write (TF.Program_Name);
+            CSS.Write (TF.Time);
+            CSS.Write (TF.User_Data);
          end;
       end loop;
 
       --  Mark end of list with empty string
 
-      String'Output (CSS, "");
+      CSS.Write_Unbounded ("");
    end Checkpoint_Save;
 
    ----------------------

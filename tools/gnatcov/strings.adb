@@ -127,6 +127,41 @@ package body Strings is
       Read (CLS, Value);
    end Read;
 
+   -----------
+   -- Write --
+   -----------
+
+   procedure Write
+     (CSS   : in out Checkpoints.Checkpoint_Save_State;
+      Value : String_Vectors.Vector)
+   is
+      procedure Write is new Write_Vector
+        (Index_Type    => Natural,
+         Element_Type  => Ada.Strings.Unbounded.Unbounded_String,
+         "="           => Ada.Strings.Unbounded."=",
+         Vectors       => String_Vectors,
+         Write_Element => Write);
+   begin
+      Write (CSS, Value);
+   end Write;
+
+   procedure Write
+     (CSS : in out Checkpoints.Checkpoint_Save_State; Value : String_Maps.Map)
+   is
+      procedure Write is new Write_Map
+        (Key_Type      => Ada.Strings.Unbounded.Unbounded_String,
+         Element_Type  => Ada.Strings.Unbounded.Unbounded_String,
+         Map_Type      => String_Maps.Map,
+         Cursor_Type   => String_Maps.Cursor,
+         Length        => String_Maps.Length,
+         Iterate       => String_Maps.Iterate,
+         Query_Element => String_Maps.Query_Element,
+         Write_Key     => Write,
+         Write_Element => Write);
+   begin
+      Write (CSS, Value);
+   end Write;
+
    --------------------
    -- To_String_Sets --
    --------------------

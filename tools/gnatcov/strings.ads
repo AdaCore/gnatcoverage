@@ -74,6 +74,11 @@ package Strings is
       Value : out String_Vectors.Vector);
    --  Read a String_Vectors.Vector from CLS
 
+   procedure Write
+     (CSS   : in out Checkpoints.Checkpoint_Save_State;
+      Value : String_Vectors.Vector);
+   --  Write a String_Vectors.Vector to CSS
+
    package String_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Ada.Strings.Unbounded.Unbounded_String,
       Element_Type => Ada.Strings.Unbounded.Unbounded_String,
@@ -84,6 +89,10 @@ package Strings is
      (CLS   : in out Checkpoints.Checkpoint_Load_State;
       Value : out String_Maps.Map);
    --  Read a String_Maps.Map from CLS
+
+   procedure Write
+     (CSS : in out Checkpoints.Checkpoint_Save_State; Value : String_Maps.Map);
+   --  Write a String_Maps.Map to CSS
 
    package String_Sets is new Ada.Containers.Ordered_Sets
      (Element_Type => Ada.Strings.Unbounded.Unbounded_String,
