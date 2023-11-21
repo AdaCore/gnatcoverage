@@ -40,7 +40,7 @@ from SUITE.qdata import SUITE_context, TC_status, TOOL_info, OPT_info_from
 
 import SUITE.control as control
 
-from SUITE.control import BUILDER
+from SUITE.control import BUILDER, _runtime_info
 from SUITE.control import altrun_opt_for, altrun_attr_for
 from SUITE.control import cargs_opt_for, cargs_attr_for
 
@@ -1382,31 +1382,11 @@ class TestSuite(e3.testsuite.Testsuite):
         support library in use, as conveyed by the --RTS command-line
         option.
         """
+        return _runtime_info(
+            self.main.args.RTS,
+            self.env.target.platform
+        ).discrs
 
-        # Match light-tasking before light otherwise the wrong discriminant
-        # will be selected.
-
-        # ex --RTS=powerpc-elf/light-tasking or --RTS=light-tasking
-
-        if "light-tasking" in self.main.args.RTS:
-            return ["RTS_RAVENSCAR", "RTS_LIGHT_TASKING"]
-
-        # --RTS=light-<board> or --RTS=light (e.g. for VxWorks) correspond to
-        # the former zfp-<board> variants
-
-        elif "light" in self.main.args.RTS or "zfp" in self.main.args.RTS:
-            return ["RTS_ZFP"]
-
-        # ex --RTS=powerpc-elf/embedded or --RTS=embedded or --RTS=ravenscar
-
-        elif ("embedded" in self.main.args.RTS
-              or "ravenscar" in self.main.args.RTS):
-            return ["RTS_RAVENSCAR", "RTS_EMBEDDED"]
-
-        # ex --RTS=native or --RTS=kernel, or no --RTS at all
-
-        else:
-            return ["RTS_FULL"]
 
     def _toolchain_discriminants(self):
         """
