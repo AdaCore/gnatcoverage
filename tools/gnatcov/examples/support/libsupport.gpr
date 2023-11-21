@@ -20,7 +20,8 @@ library project Libsupport is
 
    for Library_Kind use "static";
    for Library_Auto_Init use "False";
-   for Languages use ("Ada", "C");
+
+   Langs := ("Ada");
 
    for Library_Dir use "lib/" & Conf.Target;
    for Object_Dir use "obj/" & Conf.Target;
@@ -47,9 +48,11 @@ library project Libsupport is
    Source_Dirs := ("src", "src/helpers");
 
    case Conf.Target is
-      when "" => null;
+      when "" | "c" => null;
 
       when others =>
+
+         Langs := Langs & ("C");
 
          Source_Dirs := Source_Dirs & ("src/memory");
          Source_Dirs := Source_Dirs & ("src/" & Conf.Target);
@@ -71,7 +74,9 @@ library project Libsupport is
                 ("src/last_chance_" & Conf.Board);
          end case;
 
-    end case;
+   end case;
+
+   for Languages use Langs;
 
    for Source_Dirs use Source_Dirs;
 
