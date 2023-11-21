@@ -1,2 +1,3 @@
 !native DEAD Shared libraries exist only for native platforms
 bin-traces XFAIL OA05-051: bin-traces and shared libs
+RTS_ZFP DEAD can't build shared gnatcov_rts with light runtime

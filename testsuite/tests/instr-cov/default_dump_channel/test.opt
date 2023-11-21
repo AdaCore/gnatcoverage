@@ -1,2 +1,3 @@
 !src-traces DEAD Checks a feature specific to the instrumenter
 !native     DEAD Checks the default dump channel (bin-file, native only)
+RTS_ZFP     DEAD requires bin-file available

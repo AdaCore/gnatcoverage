@@ -852,6 +852,14 @@ def run_cov_program(executable, out=None, env=None, exec_args=None,
         # failing. Redirecting the standard input to /dev/null works around
         # this issue.
         inp = DEVNULL
+    else:
+        # Native programs using a light runtime can't set the exit code, and
+        # will often terminate with a non-zero status code even though nothing
+        # went wrong. There is thus no point in checking the exit code in this
+        # configuration.
+        register_failure = (
+            register_failure and not RUNTIME_INFO.has_light_runtime
+        )
 
     args.append(executable)
     args.extend(exec_args)

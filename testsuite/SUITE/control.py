@@ -252,7 +252,10 @@ class RuntimeInfo(object):
         elif self.runtime_name.startswith('zfp'):
             self.has_light_runtime = True
             self.has_exception_propagation = False
-        elif self.runtime_name.startswith('light-'):
+        elif (
+            self.runtime_name == "light" 
+            or self.runtime_name.startswith('light-')
+        ):
             self.has_light_runtime = True
             self.has_exception_propagation = False
         elif self.runtime_name == 'kernel':
