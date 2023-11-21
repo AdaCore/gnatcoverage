@@ -291,7 +291,12 @@ def gprbuild(project,
     # Now cleanup, do build and check status
     thistest.cleanup(project)
 
-    args = (to_list(BUILDER.BASE_COMMAND) +
+    builder = thistest.suite_gprpgm_for(os.path.basename(BUILDER.BASE_COMMAND))
+
+    if builder is None:
+        builder = BUILDER.BASE_COMMAND
+
+    args = (to_list(builder) +
             ['-P%s' % project] + all_gargs + all_cargs + all_largs)
     p = run_and_log(args, output=out, timeout=thistest.options.timeout)
     if register_failure:

@@ -459,6 +459,12 @@ class Test (object):
         """
         return getattr(thistest.options, 'gnatcov_%s' % cmd, None)
 
+    def suite_gprpgm_for(self, pgm):
+        """
+        Alternate program to launch in lieu of "gpr<tool>",
+        """
+        return getattr(thistest.options, pgm, None)
+
     def support_dir(self):
         return os.path.join(ROOT_DIR, 'support')
 

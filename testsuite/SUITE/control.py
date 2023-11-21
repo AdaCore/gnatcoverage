@@ -384,16 +384,19 @@ ALTRUN_HOOK_PAIRS = (('pre', 'testsuite'),
                      ('pre', 'testcase'),
                      ('post', 'testcase'))
 
+# Allowed alternatives for the --gpr<tool> family of command line options
+ALTRUN_GPR = ('gprbuild', )
 
-def altrun_opt_for(p0, p1):
+
+def altrun_opt_for(p0, p1=None):
     """Name of the command line option controlling the ALTRUN (P0, P1) pair."""
-    return "%s_%s" % (p0, p1)
+    return "%s_%s" % (p0, p1) if p1 else p0
 
 
-def altrun_attr_for(p0, p1):
+def altrun_attr_for(p0, p1=None):
     """Name of our internal controlling options attribute for the
     ALTRUN (P0, P1) pair."""
-    return "%s_%s" % (p0, p1)
+    return "%s_%s" % (p0, p1) if p1 else p0
 
 
 def cargs_opt_for(lang):
@@ -421,6 +424,14 @@ def add_shared_options_to(parser, toplevel):
             '--%s' % altrun_opt_for(pgm, cmd), dest=altrun_attr_for(pgm, cmd),
             metavar="CMD",
             help='Use CMD instead of "%s %s"' % (pgm, cmd))
+
+    # --gpr<tool> family
+    for pgm in ALTRUN_GPR:
+        parser.add_argument(
+            f'--{altrun_opt_for(pgm)}', dest=altrun_attr_for(pgm),
+            metavar="CMD",
+            help=f'use CMD instead of "{pgm}"'
+        )
 
     # Valgrind control
     parser.add_argument(
