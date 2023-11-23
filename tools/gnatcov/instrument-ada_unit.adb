@@ -4631,13 +4631,16 @@ package body Instrument.Ada_Unit is
                         --  sake of completeness.
 
                         Instrument_Statement (UIC, N, 'F');
-                        Process_Expression
-                          (UIC, ISC.As_For_Loop_Spec.F_Var_Decl, 'X');
-                        Process_Expression
-                          (UIC, ISC.As_For_Loop_Spec.F_Iter_Expr, 'X');
-                        Process_Expression
-                          (UIC, ISC.As_For_Loop_Spec.F_Iter_Filter, 'W');
-
+                        declare
+                           LS : constant For_Loop_Spec := ISC.As_For_Loop_Spec;
+                        begin
+                           Process_Expression (UIC, LS.F_Var_Decl, 'X');
+                           Process_Expression (UIC, LS.F_Iter_Expr, 'X');
+                           if not LS.F_Iter_Filter.Is_Null then
+                              Process_Expression
+                                (UIC, LS.F_Iter_Filter.F_Expr, 'W');
+                           end if;
+                        end;
                      end if;
                   end if;
 
@@ -5955,9 +5958,15 @@ package body Instrument.Ada_Unit is
                return Over;
 
             when Ada_For_Loop_Spec =>
-               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Var_Decl, 'X');
-               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Iter_Expr, 'X');
-               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Iter_Filter, 'W');
+               declare
+                  LS : constant For_Loop_Spec := N.As_For_Loop_Spec;
+               begin
+                  Process_Decisions (UIC, LS.F_Var_Decl, 'X');
+                  Process_Decisions (UIC, LS.F_Iter_Expr, 'X');
+                  if not LS.F_Iter_Filter.Is_Null then
+                     Process_Decisions (UIC, LS.F_Iter_Filter.F_Expr, 'W');
+                  end if;
+               end;
                return Over;
 
                --  Aspects for which we don't want to instrument the decision
