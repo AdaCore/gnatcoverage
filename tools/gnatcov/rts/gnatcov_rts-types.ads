@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                     Copyright (C) 2019-2023, AdaCore                     --
+--                     Copyright (C) 2021-2023, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -22,27 +22,26 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+--  Basic types to use in source trace buffers. We try to avoid using types
+--  from Interfaces and Interfaces.C, and in general to minimize the set of
+--  dependencies of GNATcov_RTS on the Ada runtime, so that we can compute code
+--  coverage for these runtime units.
+--
 --  This unit needs to be compilable with Ada 95 compilers
 
-with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
-with GNATcov_RTS.Types;         use GNATcov_RTS.Types;
+with System;
 
-package GNATcov_RTS.Traces.Output.Base64 is
+package GNATcov_RTS.Types is
 
-   procedure Write_Trace_File
-     (Buffers_Groups : Coverage_Buffers_Group_Array;
-      Program_Name   : String;
-      Exec_Date      : Unsigned_64;
-      User_Data      : String := "");
+   pragma Pure;
 
-   procedure Write_Trace_File_Wrapper
-     (Buffers_Groups : Coverage_Buffers_Group_Array;
-      Program_Name   : String;
-      Exec_Date      : Unsigned_64;
-      User_Data      : String := "") renames Write_Trace_File;
-   --  Renaming to mirror the API in GNATcov_RTS.Traces.Output.Files. This
-   --  avoids special cases in the generation of automatic buffer dumps: except
-   --  for the package that is WITHed, generated code is the same for
-   --  --dump-channel=bin-file and for base64-stdout.
+   type Unsigned_8 is mod 2 ** 8;
+   type Unsigned_64 is mod 2 ** 64;
 
-end GNATcov_RTS.Traces.Output.Base64;
+   --  We assume here that Integer (Ada) is a correct mapping for int (C)
+
+   type int is new Integer;
+   type unsigned is mod 2 ** int'Size;
+   type size_t is mod System.Memory_Size;
+
+end GNATcov_RTS.Types;
