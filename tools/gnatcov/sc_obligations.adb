@@ -623,14 +623,17 @@ package body SC_Obligations is
    -----------
 
    function Image (SE : Scope_Entity) return String is
+      Identifier_Image : constant String :=
+        (if SE.Identifier.Decl_SFI = No_Source_File
+         then "ignored"
+         else "at " & Get_Simple_Name (SE.Identifier.Decl_SFI)
+              & ":" & Img (SE.Identifier.Decl_Line));
    begin
       return
         "Scope for "
         & Ada.Strings.Unbounded.To_String (SE.Name)
         & "[" & Slocs.Image (SE.Sloc)
-        & "], identifier at "
-        & Get_Simple_Name (SE.Identifier.Decl_SFI)
-        & ":" & Img (SE.Identifier.Decl_Line);
+        & "], identifier " & Identifier_Image;
    end Image;
 
    ----------
