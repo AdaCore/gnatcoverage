@@ -23,6 +23,8 @@
 ------------------------------------------------------------------------------
 
 --  Ada bindings for gnatcov_rts_c-strings.h
+--
+--  This unit needs to be compilable with Ada 95 compilers
 
 with Interfaces.C; use Interfaces.C;
 
