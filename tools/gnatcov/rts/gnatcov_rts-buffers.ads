@@ -28,12 +28,9 @@
 --
 --  This unit needs to be compilable with Ada 95 compilers.
 
-with Interfaces;
-with Interfaces.C; use Interfaces.C;
-
 with System;
-with System.Storage_Elements;
 
+with GNATcov_RTS.Types;   use GNATcov_RTS.Types;
 with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 
 package GNATcov_RTS.Buffers is
@@ -68,8 +65,10 @@ package GNATcov_RTS.Buffers is
    type Any_Language_Kind is (Unit_Based_Language, File_Based_Language);
    pragma Convention (C, Any_Language_Kind);
 
-   type Fingerprint_Type is
-     new System.Storage_Elements.Storage_Array (1 .. 20);
+   type Fingerprint_Type is array (1 .. 20) of Unsigned_8;
+   for Fingerprint_Type'Component_Size use 8;
+   for Fingerprint_Type'Size use 20 * 8;
+
    --  Hash type to perform consistency checks over Source Coverage
    --  Obligations. 20-byte to hold a SHA-1.
 
