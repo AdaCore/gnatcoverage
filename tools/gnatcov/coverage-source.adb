@@ -2003,7 +2003,7 @@ package body Coverage.Source is
       is
       begin
          Traverse_SCO (ST, SCO);
-         if Is_Active (ST, Subps_Of_Interest) then
+         if In_Scope_Of_Interest (ST) then
             Update_SCI (SCO, Tag, Process);
          end if;
       end Update_SCI_Wrapper;

@@ -177,6 +177,9 @@ package SC_Obligations is
    --  and line for the original declaration (which is the body declaration for
    --  C/C++ and the specification declaration for Ada).
 
+   No_Scope_Entity_Identifier : constant Scope_Entity_Identifier :=
+     (Decl_SFI => No_Source_File, Decl_Line => 0);
+
    function "<" (L, R : Scope_Entity_Identifier) return Boolean is
      (if L.Decl_SFI = R.Decl_SFI
       then L.Decl_Line < R.Decl_Line
@@ -246,26 +249,32 @@ package SC_Obligations is
    --  Is_Active to know whether a given scope is active in the given
    --  traversal.
 
-   function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type;
+   function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type
+     with Post => Last_SCO (Scope_Traversal'Result) = No_SCO_Id;
    --  Return a scope traversal for the given compilation unit
 
-   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id);
+   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id)
+     with Pre  => Last_SCO (ST) <= SCO,
+          Post => Last_SCO (ST) = SCO;
    --  Traverse the given SCO and update the Scope_Traversal accordingly. Note
    --  that the scope traversal must be done on increasing SCOs identifiers.
 
-   function Is_Active
-     (ST                : Scope_Traversal_Type;
-      Subps_Of_Interest : Scope_Id_Set) return Boolean;
-   --  Return whether any of the scopes in Subps_Of_Interest is currently
-   --  active. Return True if Subps_Of_Interest is empty (i.e. consider all
-   --  subprograms of interest in that case).
+   function Last_SCO (ST : Scope_Traversal_Type) return SCO_Id;
+   --  Return the last SCO that was passed to Traverse_SCO, or No_SCO_Id if
+   --  Traverse_SCO has not been called yet on ST.
+
+   function In_Scope_Of_Interest (ST : Scope_Traversal_Type) return Boolean;
+   --  Return whether at least one scope in Switches.Subps_Of_Interest contains
+   --  Last_SCO (ST). Note that this also returns True if
+   --  Switches.Subps_Of_Interest is empty (i.e. consider that all subprograms
+   --  are of interest in that case).
 
    No_Scope_Entity : constant Scope_Entity :=
      (From       => No_SCO_Id,
       To         => No_SCO_Id,
       Name       => +"",
       Sloc       => No_Local_Location,
-      Identifier => (Decl_SFI => 0, Decl_Line => 0));
+      Identifier => No_Scope_Entity_Identifier);
 
    type Any_SCO_Kind is (Removed, Statement, Decision, Condition, Operator);
    subtype SCO_Kind is Any_SCO_Kind range Statement .. Operator;
@@ -1364,31 +1373,25 @@ private
    --  Set the BDD node for the given condition SCO
 
    type Scope_Traversal_Type is record
-      Scope_Stack   : Scope_Stacks.List;
-      Active_Scopes : Scope_Id_Set;
-      --  List of currently active scopes
-
-      Active_Scope_Ent : Scope_Entities_Trees.Cursor;
-      --  Innermost currently active scope
-
-      Next_Scope_Ent : Scope_Entities_Trees.Cursor;
-      --  Next active scope
-
       It : Iterator_Acc;
       --  Iterator to traverse the scope tree
+
+      Last_SCO : SCO_Id;
+      --  Keep track of the last SCO requested with Traverse_SCO. We use this
+      --  to check that SCOs are requested in the right order (lower Ids to
+      --  higher ones).
+
+      Current_SE : Scope_Entities_Trees.Cursor;
+      --  Scope that is the deepest in the scope tree and that covers Last_SCO
+
+      Next_SE : Scope_Entities_Trees.Cursor;
+      --  Next scope that Traverse_SCO needs to consider
    end record;
 
-   procedure Set_Active_Scope_Ent
-     (ST        : in out Scope_Traversal_Type;
-      Scope_Ent : Scope_Entities_Trees.Cursor);
-   --  Set ST.Active_Scope_Ent to Scope_Ent and set ST.Next_Scope_Ent to the
-   --  next one according to ST's iterator.
-
    No_Scope_Traversal : Scope_Traversal_Type :=
-     (Scope_Stack      => Scope_Stacks.Empty_List,
-      Active_Scopes    => Scope_Id_Sets.Empty_Set,
-      Active_Scope_Ent => Scope_Entities_Trees.No_Element,
-      Next_Scope_Ent   => Scope_Entities_Trees.No_Element,
-      It               => null);
+     (It            => null,
+      Last_SCO      => No_SCO_Id,
+      Current_SE    => Scope_Entities_Trees.No_Element,
+      Next_SE       => Scope_Entities_Trees.No_Element);
 
 end SC_Obligations;

@@ -426,7 +426,7 @@ package body Annotations is
                for SCO of LI.SCOs.all loop
                   Traverse_SCO (ST, SCO);
                end loop;
-               if not Is_Active (ST, Subps_Of_Interest) then
+               if not In_Scope_Of_Interest (ST) then
                   return;
                end if;
             end if;
