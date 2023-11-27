@@ -22,11 +22,17 @@ with Checkpoints;             use Checkpoints;
 with Files_Table;             use Files_Table;
 with Instrument;              use Instrument;
 with Instrument.Input_Traces; use Instrument.Input_Traces;
+with Logging;
 with Traces;                  use Traces;
 with Traces_Names;            use Traces_Names;
 with Traces_Lines;            use Traces_Lines;
 
 package Coverage.Source is
+
+   Ignore_Exemptions_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("IGNORE_EXEMPTIONS");
+   --  Note that enabling this trace will make gnatcov ignore source coverage
+   --  exemptions (exemption pragmas will have no effect).
 
    procedure Initialize_SCI;
    --  Initialize source coverage information vector once SCOs have been loaded

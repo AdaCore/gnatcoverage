@@ -26,7 +26,6 @@ with Checkpoints; use Checkpoints;
 with Diagnostics; use Diagnostics;
 with Outputs;
 with Slocs;
-with Switches;    use Switches;
 
 package body SC_Obligations.BDD is
 
@@ -356,7 +355,7 @@ package body SC_Obligations.BDD is
 
       Enumerate_Paths (BDD_Vector, BDD, Count_Paths);
 
-      if Verbose then
+      if SCOs_Trace.Is_Active then
          Dump_BDD (BDD_Vector, BDD);
       end if;
    end Completed;

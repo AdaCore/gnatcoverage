@@ -239,9 +239,10 @@ package body Inputs is
       end Get_CRC32;
 
    begin
-      if Switches.Verbose then
-         Put_Line ("--- notice: open """ & File_Name & """ (CRC32 = "
-                   & Get_CRC32 & ")");
+      if Switches.Misc_Trace.Is_Active then
+         Switches.Misc_Trace.Trace
+           ("--- notice: open """ & File_Name
+            & """ (CRC32 = " & Get_CRC32 & ")");
       end if;
    end Log_File_Open;
 

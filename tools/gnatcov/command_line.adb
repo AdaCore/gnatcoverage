@@ -34,8 +34,26 @@ package body Command_Line is
       case Option is
          when Opt_Include =>
             Result.Remaining_Args.Append (+"--include");
+
          when Opt_Exclude =>
             Result.Remaining_Args.Append (+"--exclude");
+
+         when Opt_Quiet =>
+
+            --  "--quiet" cancels all the previous requests to enable logs
+            --  ("--log") and cancels any previuos request for full verbosity
+            --  ("--verbose").
+
+            Result.Bool_Args (Opt_Verbose) := False;
+            Result.String_List_Args (Opt_Log).Clear;
+
+         when Opt_Verbose =>
+
+            --  "--verbose" cancels any previous request for quiet verbosity
+            --  ("--quiet").
+
+            Result.Bool_Args (Opt_Quiet) := False;
+
          when others =>
             null;
       end case;

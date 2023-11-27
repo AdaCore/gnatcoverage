@@ -17,8 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Argparse;
-with Command_Line_Support; use Command_Line_Support;
-with Coverage_Options;     use Coverage_Options;
+with Coverage_Options; use Coverage_Options;
 
 package Command_Line is
 
@@ -28,6 +27,8 @@ package Command_Line is
       Cmd_Help,
       Cmd_Help_Internal,
       Cmd_Version,
+
+      Cmd_List_Logs,
 
       Cmd_Run,
       Cmd_Convert,
@@ -67,13 +68,13 @@ package Command_Line is
 
    type Bool_Options is
      (Opt_Verbose,
+      Opt_Quiet,
       Opt_Recursive,
       Opt_No_Subprojects,
       Opt_All_Decisions,
       Opt_All_Messages,
       Opt_Include,
       Opt_Exclude,
-      Opt_Branch_Stats,
       Opt_Excluded_SCOs,
       Opt_Keep_Edges,
       Opt_Pretty_Print,
@@ -142,7 +143,7 @@ package Command_Line is
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
-     (Opt_Debug,
+     (Opt_Log,
       Opt_Projects,
       Opt_Scenario_Var,
       Opt_Eargs,
@@ -191,6 +192,13 @@ package Command_Line is
         (Name        => "--version",
          Description => "Display the version.",
          Internal    => False),
+
+      Cmd_List_Logs    => Create
+        (Name          => "list-logs",
+         Pattern       => "",
+         Description   =>
+           "Dump the list of GNATcov available logs (GNATCOLL traces).",
+         Internal      => True),
 
       Cmd_Run => Create
         (Name        => "run",
@@ -399,6 +407,10 @@ package Command_Line is
         (Long_Name => "--verbose", Short_Name => "-v",
          Help      => "Print lots of debugging information.",
          Internal  => True),
+      Opt_Quiet => Create
+        (Long_Name => "--quiet", Short_Name => "-q",
+         Help      => "Print nothing but errors/warnings.",
+         Internal  => False),
       Opt_Recursive => Create
         (Long_Name  => "--recursive",
          Help       => "DEPRECATED: In addition to those designated by"
@@ -445,12 +457,6 @@ package Command_Line is
                            & " the command line to the list of routines",
          Commands       => (Cmd_Disp_Routines => True, others => False),
          Internal       => False),
-      Opt_Branch_Stats => Create
-        (Long_Name => "--stats",
-         Help      => "Dump statistics about branch instructions after the"
-                      & " static analysis pass.",
-         Commands   => (Cmd_Map_Routines => True, others => False),
-         Internal  => True),
       Opt_Excluded_SCOs => Create
         (Long_Name => "--non-coverable",
          Help      => "Report SCOs whose coverage cannot be established due to"
@@ -1109,10 +1115,10 @@ package Command_Line is
      );
 
    String_List_Infos : constant String_List_Option_Info_Array :=
-     (Opt_Debug => Create
-        (Short_Name => "-d",
-         Pattern    => Debug_Command_Line_Pattern,
-         Help       => Debug_Command_Line_Help,
+     (Opt_Log => Create
+        (Long_Name  => "--log",
+         Pattern    => "[GNATCOLL_TRACE_NAME]",
+         Help       => "Enable logging for the given GNATCOLL trace name.",
          Internal   => True),
       Opt_Projects => Create
         (Long_Name  => "--projects",

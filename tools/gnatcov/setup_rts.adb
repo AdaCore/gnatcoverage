@@ -20,7 +20,6 @@ with Ada.Characters.Handling;   use Ada.Characters.Handling;
 with Ada.Directories;           use Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Exceptions;            use Ada.Exceptions;
-with Ada.Text_IO;               use Ada.Text_IO;
 
 with GNAT.OS_Lib;
 with GNAT.Regexp;
@@ -442,7 +441,7 @@ package body Setup_RTS is
            Logs.Has_Error
            or else (Has_Ada and then not Prj.Has_Runtime_Project);
       begin
-         Logs.Output_Messages (Information => Verbose);
+         Logs.Output_Messages (Information => Setup_RTS_Trace.Is_Active);
          if Has_Error then
             Fatal_Error ("Could not load the coverage runtime project file");
          end if;
@@ -453,15 +452,12 @@ package body Setup_RTS is
          then To_Unbounded_String (String (Prj.Runtime (Main_Language)))
          else Null_Unbounded_String);
 
-      --  In verbose mode, show the actual names for the target and the runtime
-      --  that GPR2 uses. They can be slightly different from the names users
-      --  passed.
+      --  Show the actual names for the target and the runtime that GPR2 uses.
+      --  They can be slightly different from the names users passed.
 
-      if Verbose then
-         Put_Line
-           ("Actual target: " & String (Prj.Target (Canonical => True)));
-         Put_Line ("Actual RTS: " & To_String (Actual_RTS));
-      end if;
+      Setup_RTS_Trace.Trace
+        ("Actual target: " & String (Prj.Target (Canonical => True)));
+      Setup_RTS_Trace.Trace ("Actual RTS: " & To_String (Actual_RTS));
 
       --  The best heuristic we have to determine if the actual runtime is
       --  "full" is to look for an Ada source file that is typically found in
@@ -560,9 +556,7 @@ package body Setup_RTS is
             Fatal_Error ("Cannot get library support for this configuration");
       end;
 
-      if Verbose then
-         Put_Line ("Library support: " & Lib_Support'Image);
-      end if;
+      Setup_RTS_Trace.Trace ("Library support: " & Lib_Support'Image);
    end Load_Project_Parameters;
 
    ---------------
@@ -573,8 +567,11 @@ package body Setup_RTS is
       Dummy : Boolean;
       Args  : String_Vectors.Vector;
    begin
-      if Verbose then
-         Put_Line ("Trying to uninstall " & Project_Name & " from " & Prefix);
+      Setup_RTS_Trace.Trace
+        ("Trying to uninstall " & Project_Name & " from " & Prefix);
+
+      if Quiet then
+         Args.Append (+"-q");
       end if;
 
       Args.Append (+"--uninstall");
@@ -596,7 +593,7 @@ package body Setup_RTS is
         (Command             => "gprinstall",
          Arguments           => Args,
          Origin_Command_Name => "gprinstall",
-         Out_To_Null         => not Verbose,
+         Out_To_Null         => not Setup_RTS_Trace.Is_Active,
          Ignore_Error        => True);
    end Uninstall;
 
@@ -715,9 +712,8 @@ package body Setup_RTS is
          then Auto_RTS_Profile
          else RTS_Profile);
 
-      if Verbose then
-         Put_Line ("Actual RTS profile: " & Actual_RTS_Profile'Image);
-      end if;
+      Setup_RTS_Trace.Trace
+        ("Actual RTS profile: " & Actual_RTS_Profile'Image);
 
       --  Create the temporary directory to host the build of the
       --  instrumentation runtime and other temporary files.
@@ -791,6 +787,10 @@ package body Setup_RTS is
             end if;
             if Prefix /= "" then
                Install_Args.Append (+("--prefix=" & Prefix));
+            end if;
+
+            if Quiet then
+               Common_Args.Append (+"-q");
             end if;
 
             --  Avoid installing several time the same set of sources
@@ -888,8 +888,8 @@ package body Setup_RTS is
 
       Load_Project (Prj, Prj_Filename, Target, RTS, Config_File);
       if Prj.Log_Messages.Has_Error then
-         if Verbose then
-            Put_Line
+         if Setup_RTS_Trace.Is_Active then
+            Setup_RTS_Trace.Trace
               ("Could not load the coverage runtime project to get dump"
                & " options defaults: " & Runtime_Project);
             Prj.Log_Messages.Output_Messages;
@@ -901,11 +901,9 @@ package body Setup_RTS is
       --  then look for the config file under it.
 
       Project_File := Create (+Prj.Root_Project.Path_Name.Value);
-      if Verbose then
-         Put_Line
-           ("Loaded the coverage runtime project at: "
-            & (+Project_File.Full_Name));
-      end if;
+      Setup_RTS_Trace.Trace
+        ("Loaded the coverage runtime project at: "
+         & (+Project_File.Full_Name));
 
       declare
          Prefix               : constant Virtual_File :=
@@ -919,19 +917,19 @@ package body Setup_RTS is
 
       if Setup_Config_File.Is_Regular_File then
          Result := Load (+Project_File.Full_Name, Setup_Config_File);
-      elsif Verbose then
-         Put_Line ("Could not find the setup config file: "
-                   & (+Setup_Config_File.Full_Name));
+      elsif Setup_RTS_Trace.Is_Active then
+         Setup_RTS_Trace.Trace
+           ("Could not find the setup config file: "
+            & (+Setup_Config_File.Full_Name));
          raise Load_Setup_Config_Error;
       end if;
 
       --  At that point, setup config file was loaded successfully. Otherwise,
       --  we will return through the below exception handler.
 
-      if Verbose then
-         Put_Line ("Successfully loaded the setup configuration file "
-                   & (+Setup_Config_File.Full_Name) & ".");
-      end if;
+      Setup_RTS_Trace.Trace
+        ("Successfully loaded the setup configuration file "
+         & (+Setup_Config_File.Full_Name) & ".");
       return Result;
 
    exception
@@ -958,9 +956,10 @@ package body Setup_RTS is
             end return;
          end if;
 
-      elsif Verbose then
-         Put_Line ("Parsing error while reading the setup config file:");
-         Put_Line (Format_Parsing_Error (Parsed_JSON.Error));
+      elsif Setup_RTS_Trace.Is_Active then
+         Setup_RTS_Trace.Trace
+           ("Parsing error while reading the setup config file:");
+         Setup_RTS_Trace.Trace (Format_Parsing_Error (Parsed_JSON.Error));
       end if;
 
       raise Load_Setup_Config_Error;
@@ -1063,11 +1062,9 @@ package body Setup_RTS is
 
    exception
       when Exc : Format_Error =>
-         if Verbose then
-            Put_Line
-              ("Setup config file decoding error: "
-               & Exception_Information (Exc));
-         end if;
+         Setup_RTS_Trace.Trace
+           ("Setup config file decoding error: "
+            & Exception_Information (Exc));
          raise Load_Setup_Config_Error;
    end Load;
 

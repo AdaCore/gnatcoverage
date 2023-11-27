@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2022, AdaCore                     --
+--                        Copyright (C) 2023, AdaCore                       --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,39 +16,35 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.Strings; use GNAT.Strings;
+with GNATCOLL.Traces;
 
-with Inputs;
-with Logging;
+with Strings; use Strings;
 
-package Rundrv is
+package Logging is
 
-   Rundrv_Trace : constant Logging.GNATCOLL_Trace :=
-     Logging.Create_Trace ("RUNDRV");
+   subtype GNATCOLL_Trace is GNATCOLL.Traces.Logger;
+   --  Convenience subtype so that trace creation requires "with Switches;"
+   --  only instead of also "with GNATCOLL.Traces;".
 
-   type SO_Set_Kind is (None, Some_SO, All_SO);
-   type SO_Set_Type (Kind : SO_Set_Kind := Some_SO) is record
-      case Kind is
-         when None    => null;
-         when Some_SO => Set : Inputs.Inputs_Type;
-         when All_SO  => null;
-      end case;
-   end record;
-   --  Holder for a set of selected shared objects to include in trace files
+   GNATCOLL_Trace_Prefix : constant String := "gnatcov.";
+   --  Prefix to use for all GNATCOLL traces defined in GNATcov
 
-   procedure Driver
-     (Exe_File      : String;
-      Target_Family : String_Access;
-      Target_Board  : String_Access;
-      Tag           : String_Access;
-      Output        : String_Access;
-      Histmap       : String_Access;
-      Kernel        : String_Access;
-      Eargs         : String_List_Access;
-      SO_Set        : SO_Set_Type);
-   --  Run Exe_File on an instrumented execution environment (depending on
-   --  Target: GNATemulator, Valgrind, DynamoRIO, etc). Pass Eargs as
-   --  command-line arguments for Exe_File. Write traces in the Output trace
-   --  file. If Tag is not null, append it to the trace header.
+   function Create_Trace (Unit_Name : String) return GNATCOLL_Trace;
+   --  Wrapper around GNATCOLL.Traces.Create to create GNATcov-specific traces
+   --  (with GNATCOLL_Trace_Prefix and standard settings).
 
-end Rundrv;
+   procedure Initialize (Verbose : Boolean; To_Enable : String_Vectors.Vector);
+   --  Initialize GNATCOLL traces from the ".gnatdebug" config file, if any.
+   --
+   --  Then, if Verbose is True, make all GNATcov traces active. Otherwise,
+   --  enable GNATcov traces whose name is included in To_Enable.
+
+   procedure Get_Configuration
+     (Verbose   : out Boolean;
+      To_Enable : out String_Vectors.Vector);
+   --  Get the arguments that were passed to Initialize
+
+   procedure Print_List;
+   --  Print the list of GNATcov traces on the standard output
+
+end Logging;

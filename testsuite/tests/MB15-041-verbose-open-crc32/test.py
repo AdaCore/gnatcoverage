@@ -19,7 +19,7 @@ SCOS_FILES = [
 
 CWD_LINE_PREFIX = 'CWD = '
 LOG_OPEN_RE = re.compile(
-    r'--- notice: open "(?P<file>[^"]+)"'
+    r'\[GNATCOV\.MISC\] --- notice: open "(?P<file>[^"]+)"'
     r' \(CRC32 = 0x(?P<crc32>[0-9a-f]{8})\)'
 )
 
