@@ -48,6 +48,10 @@ package body Instrument.Setup_Config is
    --  system installation if Fallback_To_System is True (and so return the
    --  first name of Program_Names), otherwise error out.
 
+   ------------------------
+   -- Find_Compiler_Prog --
+   ------------------------
+
    function Find_Compiler_Prog
      (Compiler_Driver    : String;
       Program_Names      : String_Vectors.Vector;
@@ -334,8 +338,7 @@ package body Instrument.Setup_Config is
    -- Load_Config --
    -----------------
 
-   function Load_Config (Config_File : String) return Instrumentation_Config
-   is
+   function Load_Config (Config_File : String) return Instrumentation_Config is
       Result      : Instrumentation_Config;
       Channel     : Any_Dump_Channel;
       Config_JSON : JSON_Value;
