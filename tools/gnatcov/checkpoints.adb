@@ -583,36 +583,32 @@ package body Checkpoints is
             --  Check that we are loading the kind of checkpoint we are
             --  expecting (Purpose).
 
-            if not Version_Less (CLS'Access, Than => 2) then
-               declare
-                  CP_Purpose : constant Checkpoint_Purpose :=
-                     Checkpoint_Purpose'Input (CLS.Stream);
-               begin
-                  if CP_Purpose /= Purpose then
-                     Fatal_Error
-                       (Filename & " is a " & Purpose_Name (CP_Purpose)
-                        & " while a " & Purpose_Name (Purpose)
-                        & " was expected");
-                  end if;
-               end;
-            end if;
+            declare
+               CP_Purpose : constant Checkpoint_Purpose :=
+                  Checkpoint_Purpose'Input (CLS.Stream);
+            begin
+               if CP_Purpose /= Purpose then
+                  Fatal_Error
+                    (Filename & " is a " & Purpose_Name (CP_Purpose)
+                     & " while a " & Purpose_Name (Purpose)
+                     & " was expected");
+               end if;
+            end;
 
             --  Check the kind of binary traces that were used to create this
             --  checkpoint.
 
-            if not Version_Less (CLS'Access, Than => 7) then
-               declare
-                  Bits : constant Binary_Traces_Bits :=
-                    Binary_Traces_Bits'Input (CLS.Stream);
-               begin
-                  if Bits not in Undetermined | Supported_Bits then
-                     Fatal_Error
-                       (Filename & " was created with " & Image (Bits)
-                        & " whereas the selected target requires "
-                        & Image (Supported_Bits));
-                  end if;
-               end;
-            end if;
+            declare
+               Bits : constant Binary_Traces_Bits :=
+                 Binary_Traces_Bits'Input (CLS.Stream);
+            begin
+               if Bits not in Undetermined | Supported_Bits then
+                  Fatal_Error
+                    (Filename & " was created with " & Image (Bits)
+                     & " whereas the selected target requires "
+                     & Image (Supported_Bits));
+               end if;
+            end;
 
             Levels_Type'Read (CLS.Stream, Levels);
             declare
@@ -624,20 +620,16 @@ package body Checkpoints is
                end if;
             end;
 
-            if not Version_Less (CLS'Access, Than => 6) then
-               declare
-                  CP_Trace_Kind : Any_Accepted_Trace_Kind;
-               begin
-                  Any_Accepted_Trace_Kind'Read (CLS.Stream, CP_Trace_Kind);
-                  Update_Current_Trace_Kind (CP_Trace_Kind);
-               end;
-            end if;
+            declare
+               CP_Trace_Kind : Any_Accepted_Trace_Kind;
+            begin
+               Any_Accepted_Trace_Kind'Read (CLS.Stream, CP_Trace_Kind);
+               Update_Current_Trace_Kind (CP_Trace_Kind);
+            end;
 
             Files_Table.Checkpoint_Load (CLS'Access, Ignored_Source_Files);
             SC_Obligations.Checkpoint_Load (CLS'Access);
-            if not Version_Less (CLS'Access, Than => 2) then
-               Instrument.Checkpoints.Checkpoint_Load (CLS'Access);
-            end if;
+            Instrument.Checkpoints.Checkpoint_Load (CLS'Access);
             Coverage.Source.Checkpoint_Load (CLS'Access);
             Traces_Files_Registry.Checkpoint_Load (CLS'Access);
 

@@ -147,9 +147,7 @@ package body SC_Obligations is
    procedure Read
      (S : access Root_Stream_Type'Class;
       V : out CU_Info);
-   procedure Write
-     (S : access Root_Stream_Type'Class;
-      V : CU_Info);
+   procedure Write (S : access Root_Stream_Type'Class; V : CU_Info);
    pragma Warnings (On, "* is not referenced");
 
    for CU_Info'Read use Read;
@@ -813,7 +811,6 @@ package body SC_Obligations is
    is
       Relocs  : Checkpoint_Relocations renames CLS.Relocations;
       Real_CU : CU_Info renames CU_Vector.Reference (Real_CU_Id).Element.all;
-      S       : constant access Root_Stream_Type'Class := CLS.all'Access;
    begin
       --  Here we already have loaded full SCO information for this CU, so
       --  all we need to do is to populate the tables mapping the SCO and
@@ -855,12 +852,6 @@ package body SC_Obligations is
       Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
 
       --  Non-Instrumented SCO sets
-
-      if Version_Less (S, Than => 9) then
-
-         --  Nothing to do
-         return;
-      end if;
 
       declare
          use SCO_Sets;
@@ -938,7 +929,6 @@ package body SC_Obligations is
       New_CU_Id  : out CU_Id)
    is
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
-      S      : constant access Root_Stream_Type'Class := CLS.all'Access;
 
       New_First_Instance : Inst_Id;
       New_First_SCO      : SCO_Id;
@@ -1270,24 +1260,22 @@ package body SC_Obligations is
          end;
       end loop;
 
-      --  If we have information about non instrumented units, import them as
-      --  is. Only import SCOs that belong to this CU, as others SCOs might
-      --  belong to a CU already present in the current execution, and which
-      --  would not be simply imported as is.
+      --  Import information about non instrumented units. Only import SCOs
+      --  that belong to this CU, as others SCOs might belong to a CU already
+      --  present in the current execution, and which would not be simply
+      --  imported as is.
 
-      if not Version_Less (S, Than => 9) then
-         for SCO of CP_Vectors.Non_Instr_SCOs loop
-            if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
-               Non_Instr_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
-            end if;
-         end loop;
+      for SCO of CP_Vectors.Non_Instr_SCOs loop
+         if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
+            Non_Instr_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
+         end if;
+      end loop;
 
-         for SCO of CP_Vectors.Non_Instr_MCDC_SCOs loop
-            if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
-               Non_Instr_MCDC_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
-            end if;
-         end loop;
-      end if;
+      for SCO of CP_Vectors.Non_Instr_MCDC_SCOs loop
+         if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
+            Non_Instr_MCDC_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
+         end if;
+      end loop;
 
       --  Perform final fixups and insert CU
 
@@ -1465,12 +1453,9 @@ package body SC_Obligations is
      (S : access Root_Stream_Type'Class;
       V : out CU_Info)
    is
-      Provider : constant SCO_Provider :=
-        (if Version_Less (S, Than => 2)
-         then Compiler else SCO_Provider'Input (S));
-      --  Discriminant for v2 data
+      CLS : Stateful_Stream renames Stateful_Stream (S.all);
 
-      New_CUI  : CU_Info (Provider);
+      New_CUI : CU_Info (SCO_Provider'Input (S));
       pragma Warnings (Off, New_CUI);
       --  Used only for discriminant and default initialization
 
@@ -1479,76 +1464,52 @@ package body SC_Obligations is
 
       V := New_CUI;
 
-      --  Checkpoint version 1 data
-
-      Source_File_Index'Read (S, V.Origin);
-      Source_File_Index'Read (S, V.Main_Source);
-      SCO_Id'Read            (S, V.First_SCO);
-      SCO_Id'Read            (S, V.Last_SCO);
-      Inst_Id'Read           (S, V.First_Instance);
-      Inst_Id'Read           (S, V.Last_Instance);
-      SFI_Vector'Read        (S, V.Deps);
-      Boolean'Read           (S, V.Has_Code);
-      Fingerprint_Type'Read  (S, V.Fingerprint);
-
-      --  Checkpoint version 8 preprocessing information
-
-      if not Version_Less (S, Than => 8) then
-         SCO_PP_Info_Maps.Map'Read (S, V.PP_Info_Map);
-      end if;
+      Source_File_Index'Read    (S, V.Origin);
+      Source_File_Index'Read    (S, V.Main_Source);
+      SCO_Id'Read               (S, V.First_SCO);
+      SCO_Id'Read               (S, V.Last_SCO);
+      Inst_Id'Read              (S, V.First_Instance);
+      Inst_Id'Read              (S, V.Last_Instance);
+      SFI_Vector'Read           (S, V.Deps);
+      Boolean'Read              (S, V.Has_Code);
+      Fingerprint_Type'Read     (S, V.Fingerprint);
+      SCO_PP_Info_Maps.Map'Read (S, V.PP_Info_Map);
 
       case V.Provider is
          when Compiler =>
             null;
          when Instrumenter =>
 
-            --  Checkpoint version 2 data (instrumentation support)
-
             --  By default, use "no fingerprint" for buffer bit maps
-            --  fingerprints: either the SID file we load is too old to have
-            --  such fingerprints, either we are loading a checkpoint, and by
-            --  design checkpoints contains neither bit maps nor their
-            --  fingerprints (all source traces are processed before loading
-            --  checkpoints, and bit maps are needed only to interpret source
-            --  traces).
+            --  fingerprints: by design checkpoints contains neither bit maps
+            --  nor their fingerprints (all source traces are processed before
+            --  loading checkpoints, and bit maps are needed only to interpret
+            --  source traces).
 
             V.Bit_Maps_Fingerprint := No_Fingerprint;
 
-            if not Version_Less (S, Than => 2)
-               and then Purpose_Of (S) = Instrumentation
-            then
+            if CLS.Purpose_Of = Instrumentation then
                V.Bit_Maps.Statement_Bits :=
                  new Statement_Bit_Map'(Statement_Bit_Map'Input (S));
                V.Bit_Maps.Decision_Bits :=
                  new Decision_Bit_Map'(Decision_Bit_Map'Input (S));
                V.Bit_Maps.MCDC_Bits :=
                  new MCDC_Bit_Map'(MCDC_Bit_Map'Input (S));
-               if not Version_Less (S, Than => 11) then
-                  Fingerprint_Type'Read (S, V.Bit_Maps_Fingerprint);
-               end if;
+               Fingerprint_Type'Read (S, V.Bit_Maps_Fingerprint);
             end if;
       end case;
 
-      --  Checkpoint version 8 data (scoped metrics support)
-
-      if not Version_Less (S, Than => 8) then
-         Scope_Entities_Tree'Read (S, V.Scope_Entities);
-      end if;
+      Scope_Entities_Tree'Read (S, V.Scope_Entities);
    end Read;
 
    -----------
    -- Write --
    -----------
 
-   procedure Write
-     (S : access Root_Stream_Type'Class;
-      V : CU_Info)
-   is
+   procedure Write (S : access Root_Stream_Type'Class; V : CU_Info) is
+      CLS : Stateful_Stream renames Stateful_Stream (S.all);
    begin
       SCO_Provider'Write (S, V.Provider);
-
-      --  Checkpoint version 1 data
-
       Source_File_Index'Write (S, V.Origin);
       Source_File_Index'Write (S, V.Main_Source);
       SCO_Id'Write            (S, V.First_SCO);
@@ -1565,7 +1526,7 @@ package body SC_Obligations is
          when Compiler =>
             null;
          when Instrumenter =>
-            if Purpose_Of (S) = Instrumentation then
+            if CLS.Purpose_Of = Instrumentation then
                Statement_Bit_Map'Output
                  (S, V.Bit_Maps.Statement_Bits.all);
                Decision_Bit_Map'Output
@@ -1598,11 +1559,8 @@ package body SC_Obligations is
 
       --  Load non-instrumented information
 
-      if not Version_Less (S, Than => 9) then
-         SCO_Sets.Set'Read (S, CP_Vectors.Non_Instr_SCOs);
-         SCO_Sets.Set'Read
-           (S, CP_Vectors.Non_Instr_MCDC_SCOs);
-      end if;
+      SCO_Sets.Set'Read (S, CP_Vectors.Non_Instr_SCOs);
+      SCO_Sets.Set'Read (S, CP_Vectors.Non_Instr_MCDC_SCOs);
 
       --  Allocate mapping tables for SCOs, instance identifiers and BDD nodes
 
@@ -3928,20 +3886,7 @@ package body SC_Obligations is
          SCOD.Index    := Condition_Index'Input (S);
 
       when Decision =>
-
-         --  Before version 2, decisions shared Operations's Operand member,
-         --  and stored the expression as its Right array item.
-
-         if Version_Less (S, Than => 2) then
-            declare
-               Operands : constant Operand_Pair := Operand_Pair'Input (S);
-            begin
-               SCOD.Expression := Operands (Right);
-            end;
-         else
-            SCOD.Expression       := SCO_Id'Input (S);
-         end if;
-
+         SCOD.Expression       := SCO_Id'Input (S);
          SCOD.D_Kind           := Decision_Kind'Input (S);
          SCOD.Control_Location := Source_Location'Input (S);
          SCOD.Last_Cond_Index  := Any_Condition_Index'Input (S);
