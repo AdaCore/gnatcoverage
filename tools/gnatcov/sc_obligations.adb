@@ -19,6 +19,7 @@
 --  Source Coverage Obligations
 
 with Ada.Characters.Handling;     use Ada.Characters.Handling;
+with Ada.Exceptions;
 with Ada.Strings.Fixed;           use Ada.Strings.Fixed;
 with Ada.Streams;                 use Ada.Streams;
 with Ada.Text_IO;                 use Ada.Text_IO;
@@ -49,6 +50,26 @@ package body SC_Obligations is
    subtype Source_Location is Slocs.Source_Location;
    No_Location : Source_Location renames Slocs.No_Location;
    --  (not SCOs.Source_Location)
+
+   function SCOs_Nested_And_Ordered
+     (Tree : Scope_Entities_Trees.Tree) return Boolean;
+   --  Return whether nodes in Tree are:
+   --
+   --  * properly nested: SCO ranges (Element.From .. Element.To) are disjoint
+   --    for two sibling elements, and all nodes' SCO ranges are included in
+   --    its parents';
+   --
+   --  * properly ordered: if E1 and E2 are consecutive siblings, E1.To must be
+   --    smaller than E2.From.
+
+   function Covers_SCO (SE : Scope_Entity; SCO : SCO_Id) return Boolean
+   is (SCO in SE.From .. SE.To);
+   --  Return whether SCO is covered by SE's SCO range
+
+   function Covers_SCO
+     (Cur : Scope_Entities_Trees.Cursor; SCO : SCO_Id) return Boolean
+   is (Covers_SCO (Scope_Entities_Trees.Element (Cur), SCO));
+   --  Return whether SCO is covered by that element's SCO range
 
    ---------------
    -- Instances --
@@ -126,9 +147,7 @@ package body SC_Obligations is
    procedure Read
      (S : access Root_Stream_Type'Class;
       V : out CU_Info);
-   procedure Write
-     (S : access Root_Stream_Type'Class;
-      V : CU_Info);
+   procedure Write (S : access Root_Stream_Type'Class; V : CU_Info);
    pragma Warnings (On, "* is not referenced");
 
    for CU_Info'Read use Read;
@@ -602,14 +621,17 @@ package body SC_Obligations is
    -----------
 
    function Image (SE : Scope_Entity) return String is
+      Identifier_Image : constant String :=
+        (if SE.Identifier.Decl_SFI = No_Source_File
+         then "ignored"
+         else "at " & Get_Simple_Name (SE.Identifier.Decl_SFI)
+              & ":" & Img (SE.Identifier.Decl_Line));
    begin
       return
         "Scope for "
         & Ada.Strings.Unbounded.To_String (SE.Name)
         & "[" & Slocs.Image (SE.Sloc)
-        & "], identifier at "
-        & Get_Simple_Name (SE.Identifier.Decl_SFI)
-        & ":" & Img (SE.Identifier.Decl_Line);
+        & "], identifier " & Identifier_Image;
    end Image;
 
    ----------
@@ -646,12 +668,10 @@ package body SC_Obligations is
          return No_Scope_Traversal;
       end if;
       Result.It :=
-        new Tree_Iterator'
-          (Scope_Entities_Trees.Iterate
-             (CU_Vector.Reference (CU).Element.Scope_Entities));
-      Result.Scope_Stack := Scope_Stacks.Empty_List;
-      Result.Active_Scopes := Scope_Id_Sets.Empty;
-      Set_Active_Scope_Ent (Result, Result.It.First);
+        new Tree_Iterator'(CU_Vector.Reference (CU).Scope_Entities.Iterate);
+      Result.Last_SCO := No_SCO_Id;
+      Result.Current_SE := Scope_Entities_Trees.No_Element;
+      Result.Next_SE := Result.It.First;
       return Result;
    end Scope_Traversal;
 
@@ -661,90 +681,68 @@ package body SC_Obligations is
 
    procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id) is
       use Scope_Entities_Trees;
+      Progressed : Boolean := False;
    begin
-      --  In some cases (C metaprogramming instances), e.g.
-      --
-      --  foo.h:
-      --    TYPE ret = 0;
-      --    return (TYPE) ret + 1;
-      --
-      --  foo.c:
-      --    int
-      --    one_int (void)
-      --    {
-      --    #define TYPE int
-      --    #include "foo.h"
-      --    #undef TYPE
-      --    }
-      --
-      --  Active_Scope_Ent is null in the aforementionned case, as the inner
-      --  scope for the statements in foo.h is the `one_int` function defined
-      --  in foo.c. The scope implementation assumes that scopes do not cross
-      --  sources, which does not hold here.
-      --
-      --  TODO???: This should be fixed by dealing with metaprogramming
-      --  instances in a more appropriate way, which should be done under
-      --  eng/cov/gnatcoverage#103. For now, return early in that case.
+      ST.Last_SCO := SCO;
 
-      if ST.Active_Scope_Ent = No_Element then
-         return;
-      end if;
+      --  Move Next_SE forward in the iterator until we go past the deepest
+      --  scope that covers SCO. Update Current_SE along the way.
 
-      --  Find the innermost scope featuring this SCO and update the list of
-      --  active scopes as we go.
-
-      while SCO > Element (ST.Active_Scope_Ent).To
-        or else (ST.Next_Scope_Ent /= No_Element
-                 and then SCO >= Element (ST.Next_Scope_Ent).From)
-      loop
-         --  We can enter the next scope only when we have reached its parent
-         --  scope. If the next scope is null, this means that we are in the
-         --  last scope of the unit.
-
-         if ST.Next_Scope_Ent /= No_Element
-           and then ST.Active_Scope_Ent = Parent (ST.Next_Scope_Ent)
-           and then SCO >= Element (ST.Next_Scope_Ent).From
-         then
-            Set_Active_Scope_Ent (ST, ST.Next_Scope_Ent);
-            ST.Scope_Stack.Append (ST.Active_Scope_Ent);
-            ST.Active_Scopes.Insert
-              (Element (ST.Active_Scope_Ent).Identifier);
-         else
-            --  Otherwise, go up the parent chain and pop the last entry from
-            --  the active scopes.
-
-            ST.Active_Scope_Ent := Parent (ST.Active_Scope_Ent);
-            ST.Active_Scopes.Delete
-              (Element (ST.Scope_Stack.Last_Element).Identifier);
-            ST.Scope_Stack.Delete_Last;
-         end if;
+      while Has_Element (ST.Next_SE) and then Covers_SCO (ST.Next_SE, SCO) loop
+         ST.Current_SE := ST.Next_SE;
+         ST.Next_SE := ST.It.Next (ST.Next_SE);
+         Progressed := True;
       end loop;
+
+      --  If we have not found a more specific scope for SCO, we still may need
+      --  to update Current_SE in case the requested SCO is not covered anymore
+      --  by Current_SE.
+
+      if not Progressed then
+         while Has_Element (ST.Current_SE)
+               and then not Covers_SCO (ST.Current_SE, SCO)
+         loop
+            ST.Current_SE := Parent (ST.Current_SE);
+         end loop;
+      end if;
    end Traverse_SCO;
 
-   --------------------------
-   -- Set_Active_Scope_Ent --
-   --------------------------
+   --------------
+   -- Last_SCO --
+   --------------
 
-   procedure Set_Active_Scope_Ent
-     (ST        : in out Scope_Traversal_Type;
-      Scope_Ent : Scope_Entities_Trees.Cursor) is
+   function Last_SCO (ST : Scope_Traversal_Type) return SCO_Id is
    begin
-      ST.Active_Scope_Ent := Scope_Ent;
-      ST.Next_Scope_Ent := ST.It.Next (Scope_Ent);
-   end Set_Active_Scope_Ent;
+      return ST.Last_SCO;
+   end Last_SCO;
 
-   ---------------
-   -- Is_Active --
-   ---------------
+   --------------------------
+   -- In_Scope_Of_Interest --
+   --------------------------
 
-   function Is_Active
-     (ST                : Scope_Traversal_Type;
-      Subps_Of_Interest : Scope_Id_Set) return Boolean is
+   function In_Scope_Of_Interest (ST : Scope_Traversal_Type) return Boolean is
+      use Scope_Entities_Trees;
+      Cur : Cursor;
    begin
-      return Subps_Of_Interest.Is_Empty
-        or else not Scope_Id_Sets.Is_Empty
-          (ST.Active_Scopes.Intersection (Subps_Of_Interest));
-   end Is_Active;
+      --  If no subprogram of interest was requested, consider that they are
+      --  all of interest.
+
+      if Subps_Of_Interest.Is_Empty then
+         return True;
+      end if;
+
+      --  Otherwise, find at least one scope that covers SCO and that is a
+      --  subprogram of interest.
+
+      Cur := ST.Current_SE;
+      while Has_Element (Cur) loop
+         if Subps_Of_Interest.Contains (Element (Cur).Identifier) then
+            return True;
+         end if;
+         Cur := Parent (Cur);
+      end loop;
+      return False;
+   end In_Scope_Of_Interest;
 
    -----------------
    -- Add_Address --
@@ -813,7 +811,6 @@ package body SC_Obligations is
    is
       Relocs  : Checkpoint_Relocations renames CLS.Relocations;
       Real_CU : CU_Info renames CU_Vector.Reference (Real_CU_Id).Element.all;
-      S       : constant access Root_Stream_Type'Class := CLS.all'Access;
    begin
       --  Here we already have loaded full SCO information for this CU, so
       --  all we need to do is to populate the tables mapping the SCO and
@@ -855,12 +852,6 @@ package body SC_Obligations is
       Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
 
       --  Non-Instrumented SCO sets
-
-      if Version_Less (S, Than => 9) then
-
-         --  Nothing to do
-         return;
-      end if;
 
       declare
          use SCO_Sets;
@@ -938,7 +929,6 @@ package body SC_Obligations is
       New_CU_Id  : out CU_Id)
    is
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
-      S      : constant access Root_Stream_Type'Class := CLS.all'Access;
 
       New_First_Instance : Inst_Id;
       New_First_SCO      : SCO_Id;
@@ -1235,14 +1225,23 @@ package body SC_Obligations is
          for Scope_Ent of CP_CU.Scope_Entities loop
             Remap_SCO_Id (Scope_Ent.From);
             Remap_SCO_Id (Scope_Ent.To);
-            Remap_SFI (Relocs, Scope_Ent.Identifier.Decl_SFI);
+
+            --  Scopes whose identifier references ignored source files will
+            --  lose their identifier: such scopes will remain, but users will
+            --  not be able to mark them of interest.
+
+            if SFI_Ignored (Relocs, Scope_Ent.Identifier.Decl_SFI) then
+               Scope_Ent.Identifier := No_Scope_Entity_Identifier;
+            else
+               Remap_SFI (Relocs, Scope_Ent.Identifier.Decl_SFI);
+            end if;
 
             --  Register each scope identifiers to make them available to users
             --  on the command line.
 
             Available_Subps_Of_Interest.Include (Scope_Ent.Identifier);
          end loop;
-
+         pragma Assert (SCOs_Nested_And_Ordered (CP_CU.Scope_Entities));
       end if;
 
       --  Preallocate line table entries for last file
@@ -1261,24 +1260,22 @@ package body SC_Obligations is
          end;
       end loop;
 
-      --  If we have information about non instrumented units, import them as
-      --  is. Only import SCOs that belong to this CU, as others SCOs might
-      --  belong to a CU already present in the current execution, and which
-      --  would not be simply imported as is.
+      --  Import information about non instrumented units. Only import SCOs
+      --  that belong to this CU, as others SCOs might belong to a CU already
+      --  present in the current execution, and which would not be simply
+      --  imported as is.
 
-      if not Version_Less (S, Than => 9) then
-         for SCO of CP_Vectors.Non_Instr_SCOs loop
-            if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
-               Non_Instr_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
-            end if;
-         end loop;
+      for SCO of CP_Vectors.Non_Instr_SCOs loop
+         if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
+            Non_Instr_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
+         end if;
+      end loop;
 
-         for SCO of CP_Vectors.Non_Instr_MCDC_SCOs loop
-            if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
-               Non_Instr_MCDC_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
-            end if;
-         end loop;
-      end if;
+      for SCO of CP_Vectors.Non_Instr_MCDC_SCOs loop
+         if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
+            Non_Instr_MCDC_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
+         end if;
+      end loop;
 
       --  Perform final fixups and insert CU
 
@@ -1456,12 +1453,9 @@ package body SC_Obligations is
      (S : access Root_Stream_Type'Class;
       V : out CU_Info)
    is
-      Provider : constant SCO_Provider :=
-        (if Version_Less (S, Than => 2)
-         then Compiler else SCO_Provider'Input (S));
-      --  Discriminant for v2 data
+      CLS : Stateful_Stream renames Stateful_Stream (S.all);
 
-      New_CUI  : CU_Info (Provider);
+      New_CUI : CU_Info (SCO_Provider'Input (S));
       pragma Warnings (Off, New_CUI);
       --  Used only for discriminant and default initialization
 
@@ -1470,76 +1464,52 @@ package body SC_Obligations is
 
       V := New_CUI;
 
-      --  Checkpoint version 1 data
-
-      Source_File_Index'Read (S, V.Origin);
-      Source_File_Index'Read (S, V.Main_Source);
-      SCO_Id'Read            (S, V.First_SCO);
-      SCO_Id'Read            (S, V.Last_SCO);
-      Inst_Id'Read           (S, V.First_Instance);
-      Inst_Id'Read           (S, V.Last_Instance);
-      SFI_Vector'Read        (S, V.Deps);
-      Boolean'Read           (S, V.Has_Code);
-      Fingerprint_Type'Read  (S, V.Fingerprint);
-
-      --  Checkpoint version 8 preprocessing information
-
-      if not Version_Less (S, Than => 8) then
-         SCO_PP_Info_Maps.Map'Read (S, V.PP_Info_Map);
-      end if;
+      Source_File_Index'Read    (S, V.Origin);
+      Source_File_Index'Read    (S, V.Main_Source);
+      SCO_Id'Read               (S, V.First_SCO);
+      SCO_Id'Read               (S, V.Last_SCO);
+      Inst_Id'Read              (S, V.First_Instance);
+      Inst_Id'Read              (S, V.Last_Instance);
+      SFI_Vector'Read           (S, V.Deps);
+      Boolean'Read              (S, V.Has_Code);
+      Fingerprint_Type'Read     (S, V.Fingerprint);
+      SCO_PP_Info_Maps.Map'Read (S, V.PP_Info_Map);
 
       case V.Provider is
          when Compiler =>
             null;
          when Instrumenter =>
 
-            --  Checkpoint version 2 data (instrumentation support)
-
             --  By default, use "no fingerprint" for buffer bit maps
-            --  fingerprints: either the SID file we load is too old to have
-            --  such fingerprints, either we are loading a checkpoint, and by
-            --  design checkpoints contains neither bit maps nor their
-            --  fingerprints (all source traces are processed before loading
-            --  checkpoints, and bit maps are needed only to interpret source
-            --  traces).
+            --  fingerprints: by design checkpoints contains neither bit maps
+            --  nor their fingerprints (all source traces are processed before
+            --  loading checkpoints, and bit maps are needed only to interpret
+            --  source traces).
 
             V.Bit_Maps_Fingerprint := No_Fingerprint;
 
-            if not Version_Less (S, Than => 2)
-               and then Purpose_Of (S) = Instrumentation
-            then
+            if CLS.Purpose_Of = Instrumentation then
                V.Bit_Maps.Statement_Bits :=
                  new Statement_Bit_Map'(Statement_Bit_Map'Input (S));
                V.Bit_Maps.Decision_Bits :=
                  new Decision_Bit_Map'(Decision_Bit_Map'Input (S));
                V.Bit_Maps.MCDC_Bits :=
                  new MCDC_Bit_Map'(MCDC_Bit_Map'Input (S));
-               if not Version_Less (S, Than => 11) then
-                  Fingerprint_Type'Read (S, V.Bit_Maps_Fingerprint);
-               end if;
+               Fingerprint_Type'Read (S, V.Bit_Maps_Fingerprint);
             end if;
       end case;
 
-      --  Checkpoint version 8 data (scoped metrics support)
-
-      if not Version_Less (S, Than => 8) then
-         Scope_Entities_Tree'Read (S, V.Scope_Entities);
-      end if;
+      Scope_Entities_Tree'Read (S, V.Scope_Entities);
    end Read;
 
    -----------
    -- Write --
    -----------
 
-   procedure Write
-     (S : access Root_Stream_Type'Class;
-      V : CU_Info)
-   is
+   procedure Write (S : access Root_Stream_Type'Class; V : CU_Info) is
+      CLS : Stateful_Stream renames Stateful_Stream (S.all);
    begin
       SCO_Provider'Write (S, V.Provider);
-
-      --  Checkpoint version 1 data
-
       Source_File_Index'Write (S, V.Origin);
       Source_File_Index'Write (S, V.Main_Source);
       SCO_Id'Write            (S, V.First_SCO);
@@ -1556,7 +1526,7 @@ package body SC_Obligations is
          when Compiler =>
             null;
          when Instrumenter =>
-            if Purpose_Of (S) = Instrumentation then
+            if CLS.Purpose_Of = Instrumentation then
                Statement_Bit_Map'Output
                  (S, V.Bit_Maps.Statement_Bits.all);
                Decision_Bit_Map'Output
@@ -1589,11 +1559,8 @@ package body SC_Obligations is
 
       --  Load non-instrumented information
 
-      if not Version_Less (S, Than => 9) then
-         SCO_Sets.Set'Read (S, CP_Vectors.Non_Instr_SCOs);
-         SCO_Sets.Set'Read
-           (S, CP_Vectors.Non_Instr_MCDC_SCOs);
-      end if;
+      SCO_Sets.Set'Read (S, CP_Vectors.Non_Instr_SCOs);
+      SCO_Sets.Set'Read (S, CP_Vectors.Non_Instr_MCDC_SCOs);
 
       --  Allocate mapping tables for SCOs, instance identifiers and BDD nodes
 
@@ -3919,20 +3886,7 @@ package body SC_Obligations is
          SCOD.Index    := Condition_Index'Input (S);
 
       when Decision =>
-
-         --  Before version 2, decisions shared Operations's Operand member,
-         --  and stored the expression as its Right array item.
-
-         if Version_Less (S, Than => 2) then
-            declare
-               Operands : constant Operand_Pair := Operand_Pair'Input (S);
-            begin
-               SCOD.Expression := Operands (Right);
-            end;
-         else
-            SCOD.Expression       := SCO_Id'Input (S);
-         end if;
-
+         SCOD.Expression       := SCO_Id'Input (S);
          SCOD.D_Kind           := Decision_Kind'Input (S);
          SCOD.Control_Location := Source_Location'Input (S);
          SCOD.Last_Cond_Index  := Any_Condition_Index'Input (S);
@@ -4362,6 +4316,106 @@ package body SC_Obligations is
       return Scope_Entities_Trees.Empty_Tree;
    end Get_Scope_Entities;
 
+   -----------------------------
+   -- SCOs_Nested_And_Ordered --
+   -----------------------------
+
+   function SCOs_Nested_And_Ordered
+     (Tree : Scope_Entities_Trees.Tree) return Boolean
+   is
+      use Scope_Entities_Trees;
+
+      Failure : exception;
+      --  Exception raised when the nesting/ordering invariant is found to be
+      --  broken.
+
+      Lower_Bound : SCO_Id := No_SCO_Id;
+      --  At every step of the check, this designates the minimum possible SCO
+      --  value for the .From component for the next element to inspect.
+
+      procedure Check_Element (Cur : Cursor);
+      --  Check that Cur's From/To SCOs range is not empty and
+      --  Parent_From .. Parent_To range and that they are correctly ordered.
+
+      -------------------
+      -- Check_Element --
+      -------------------
+
+      procedure Check_Element (Cur : Cursor) is
+         SE    : Scope_Entity renames Tree.Constant_Reference (Cur);
+         Child : Cursor := First_Child (Cur);
+
+         Last : SCO_Id;
+         --  SCO range upper bound for Cur's last child, or SE.From if there is
+         --  no child.
+      begin
+         --  Check that SCO ranges are never empty
+
+         if SE.From > SE.To then
+            raise Failure with "empty SCO range for " & Image (SE);
+         end if;
+
+         --  Check that the SCO range lower bound is both:
+         --
+         --  * greater or equal to the parent's lower bound (this is the first
+         --    half of the nesting check;
+         --
+         --  * greater than the previous sibling (if any: this checks the
+         --    ordering).
+
+         if SE.From < Lower_Bound then
+            raise Failure with "SCO lower bound too low for " & Image (SE);
+         end if;
+         Lower_Bound := SE.From;
+         Last := SE.From;
+
+         while Has_Element (Child) loop
+            Check_Element (Child);
+            Child := Next_Sibling (Child);
+            Last := Lower_Bound;
+
+            --  The next sibling's SCO range cannot overlap with the current's
+
+            Lower_Bound := Lower_Bound + 1;
+         end loop;
+
+         --  Check that the SCO range upper bound is greater or equal to
+         --  the upper bound of the last child's upper bound (this is the
+         --  second half of the nesting check).
+
+         if SE.To < Last then
+            raise Failure with "SCO higher bound too low for " & Image (SE);
+         end if;
+         Lower_Bound := SE.To;
+      end Check_Element;
+
+      Cur : Cursor := First_Child (Tree.Root);
+
+   --  Start of processing for SCOs_Nested_And_Ordered
+
+   begin
+      while Has_Element (Cur) loop
+         Check_Element (Cur);
+         Cur := Next_Sibling (Cur);
+      end loop;
+      return True;
+
+   exception
+      when Exc : Failure =>
+
+         --  In case of failure, be helpful and print the offending tree for
+         --  the verbose mode.
+
+         if Verbose then
+            Put_Line
+              ("The following tree of scopes breaks the nesting/ordering"
+               & " invariant:");
+            Put_Line (Ada.Exceptions.Exception_Message (Exc));
+            Dump (Tree, "| ");
+         end if;
+         return False;
+   end SCOs_Nested_And_Ordered;
+
    ------------------------
    -- Set_Scope_Entities --
    ------------------------
@@ -4375,7 +4429,14 @@ package body SC_Obligations is
       --  Scopes are supposed to be set only once per compilation unit
 
       pragma Assert (SE.Is_Empty);
+
+      pragma Assert (SCOs_Nested_And_Ordered (Scope_Entities));
       SE := Scope_Entities;
+
+      if Verbose then
+         Put_Line ("Setting scopes for " & Image (CU) & ":");
+         Dump (SE, Line_Prefix => "| ");
+      end if;
    end Set_Scope_Entities;
 
    -------------------------------

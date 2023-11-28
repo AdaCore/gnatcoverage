@@ -253,15 +253,15 @@ package Checkpoints is
 
    use type Interfaces.Unsigned_32;
    function Version_Less
-     (CS : access Root_Stream_Type'Class; Than : Checkpoint_Version)
-      return Boolean is (Stateful_Stream (CS.all).Version < Than)
+     (SS : Stateful_Stream'Class; Than : Checkpoint_Version) return Boolean
+   is (SS.Version < Than)
      with Inline;
    --  This is provided as a function to prevent the compiler from generating
    --  "can never be greater than" warnings.
 
    function Purpose_Of
-     (CS : access Root_Stream_Type'Class) return Checkpoint_Purpose
-   is (Stateful_Stream (CS.all).Purpose)
+     (SS : Stateful_Stream'Class) return Checkpoint_Purpose
+   is (SS.Purpose)
      with Inline;
    --  Shortcut to get the purpose of a stream that is known to be an instance
    --  of Stateful_Stream.
