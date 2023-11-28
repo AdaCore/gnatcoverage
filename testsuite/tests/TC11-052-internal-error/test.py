@@ -17,7 +17,7 @@ def check(args, trigger, info):
     out = f"{trigger}.log"
     env = dict(os.environ)
     env["GNATCOV_INTERNAL_ERROR_TRIGGER"] = trigger
-    p = xcov(args, out=out, env=env, register_failure=False)
+    p = xcov(args + ["-q"], out=out, env=env, register_failure=False)
     thistest.fail_if(
         p.status == 0,
         "gnatcov returned success exit code, error expected"
