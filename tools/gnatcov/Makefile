@@ -156,6 +156,10 @@ BIN_COMMON_BUILD_ARGS=\
  -largs $(LD_FLAGS) \
  -cargs:c++ $(CXXFLAGS) \
  -gargs
+INSTR_COMMON_ARGS=\
+  -j$(PARALLEL_BUILD) \
+  -P gnatcov.gpr \
+  --c++-opts=$(CXXFLAGS)
 
 bin:
 # Unlike BINUTILS_BUILD_DIR for which we have a default fallback,
@@ -177,19 +181,19 @@ ifdef INSTRUMENTED
 	# use the version that was not instrumented as a main to compile
 	# gnatcov32, running gnatcov32 will not dump execution traces.
 
-	gnatcov instrument -j0 -P gnatcov.gpr -XPART=gnatcov64 --c++-opts=$(CXXFLAGS)
+	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=gnatcov64
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov64 \
 	  --src-subdirs=gnatcov-instr
 
-	gnatcov instrument -j0 -P gnatcov.gpr -XPART=gnatcov32 --c++-opts=$(CXXFLAGS)
+	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=gnatcov32
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov32 \
 	  --src-subdirs=gnatcov-instr
 
-	gnatcov instrument -j0 -P gnatcov.gpr -XPART=driver --c++-opts=$(CXXFLAGS)
+	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=driver
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=driver \
 	  --src-subdirs=gnatcov-instr
 
-	gnatcov instrument -j0 -P gnatcov.gpr -XPART=compiler --c++-opts=$(CXXFLAGS)
+	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=compiler
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=compiler \
 	  --src-subdirs=gnatcov-instr
 else
