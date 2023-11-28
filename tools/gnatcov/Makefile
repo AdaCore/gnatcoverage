@@ -124,7 +124,7 @@ endif
 
 ADAPTERS_LIST=$(DEFAULT_ADAPTERS)
 
-PARALLEL_BUILD=0
+PROCESSORS=0
 BUILD_MODE=dev
 
 # ================================================================
@@ -147,7 +147,7 @@ all: bin adapters
 # "instrument" support is needed.
 
 BIN_COMMON_BUILD_ARGS=\
- -Pgnatcov.gpr -p -j$(PARALLEL_BUILD) \
+ -Pgnatcov.gpr -p -j$(PROCESSORS) \
  -XBUILD_MODE=$(BUILD_MODE) \
  -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
  -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
@@ -157,7 +157,7 @@ BIN_COMMON_BUILD_ARGS=\
  -cargs:c++ $(CXXFLAGS) \
  -gargs
 INSTR_COMMON_ARGS=\
-  -j$(PARALLEL_BUILD) \
+  -j$(PROCESSORS) \
   -P gnatcov.gpr \
   --c++-opts=$(CXXFLAGS)
 
@@ -222,7 +222,7 @@ adapters: $(ADAPTER_TARGETS)
 #######################
 
 ppc_genopc:
-	$(GPRBUILD) -j$(PARALLEL_BUILD) -Pgnatcov $(EXTRA_ADAFLAGS) $@
+	$(GPRBUILD) -j$(PROCESSORS) -Pgnatcov $(EXTRA_ADAFLAGS) $@
 
 ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 	./ppc_genopc > $@
