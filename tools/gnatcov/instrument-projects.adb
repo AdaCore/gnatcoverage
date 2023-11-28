@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Characters.Latin_1;  use Ada.Characters.Latin_1;
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
@@ -954,23 +953,22 @@ is
          --  will not cover the whole project tree.
 
          declare
-            All_File_Names : Unbounded_String := +"";
+            All_File_Names : Unbounded_String;
          begin
             for File_Name of Non_Root_Src_Calls loop
-               All_File_Names :=
-                 All_File_Names & (+File_Name) & Ada.Characters.Latin_1.LF;
+               Append (All_File_Names, File_Name);
+               Append (All_File_Names, ASCII.LF);
             end loop;
 
-            Outputs.Warn ("Manual dump trigger indications were found in"
-                          & " subprojects in the following files:"
-                          & Ada.Characters.Latin_1.LF
-                          & (+All_File_Names)
-                          & "The coverage report built from the source traces"
-                          & " they will produce will show all code from"
-                          & " projects higher in the project tree as not"
-                          & " covered. To get a full coverage analysis,"
-                          & " consider placing the manual dump buffers"
-                          & " indication in the root project.");
+            Outputs.Warn
+              ("Manual dump trigger indications were found in subprojects in"
+               & " the following files:" & ASCII.LF
+               & (+All_File_Names)
+               & "The coverage report built from the source traces they will"
+               & " produce will show all code from projects higher in the"
+               & " project tree as not covered. To get a full coverage"
+               & " analysis, consider placing the manual dump buffers"
+               & " indication in the root project.");
          end;
       end if;
    end Insert_Manual_Dump_Trigger;
