@@ -27,10 +27,14 @@ with Ada.Strings.Unbounded;
 
 with GNATCOLL.OS.Process; use GNATCOLL.OS.Process;
 
+with Logging;
 with Strings;   use Strings;
 with Temp_Dirs; use Temp_Dirs;
 
 package Subprocesses is
+
+   Subprocesses_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("SUBPROCESSES");
 
    type Command_Type is record
       Command : Ada.Strings.Unbounded.Unbounded_String;

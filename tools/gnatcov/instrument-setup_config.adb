@@ -27,6 +27,7 @@ with GNAT.Strings;
 
 with Coverage;
 with JSON;          use JSON;
+with Logging;
 with Outputs;       use Outputs;
 with Paths;         use Paths;
 with Support_Files; use Support_Files;
@@ -47,6 +48,10 @@ package body Instrument.Setup_Config is
    --  found under the compiler driver installation, assume there is a
    --  system installation if Fallback_To_System is True (and so return the
    --  first name of Program_Names), otherwise error out.
+
+   ------------------------
+   -- Find_Compiler_Prog --
+   ------------------------
 
    function Find_Compiler_Prog
      (Compiler_Driver    : String;
@@ -318,7 +323,20 @@ package body Instrument.Setup_Config is
       Config.Set_Field ("coverage_level", Coverage_Level);
       Config.Set_Field ("tag", Instrumentation_Tag);
       Config.Set_Field ("save_temps", Switches.Save_Temps);
-      Config.Set_Field ("verbose", Switches.Verbose);
+
+      Config.Set_Field ("quiet", Switches.Quiet);
+      declare
+         Verbose   : Boolean;
+         To_Enable : String_Vectors.Vector;
+         Names     : JSON_Array;
+      begin
+         Logging.Get_Configuration (Verbose, To_Enable);
+         for N of To_Enable loop
+            Append (Names, Create (+N));
+         end loop;
+         Config.Set_Field ("verbose", Verbose);
+         Config.Set_Field ("logs", Names);
+      end;
 
       --  Dump the instrumentation configuration in a JSON file. Do not write
       --  the compact representation of the JSON as we may reach the character
@@ -334,8 +352,7 @@ package body Instrument.Setup_Config is
    -- Load_Config --
    -----------------
 
-   function Load_Config (Config_File : String) return Instrumentation_Config
-   is
+   function Load_Config (Config_File : String) return Instrumentation_Config is
       Result      : Instrumentation_Config;
       Channel     : Any_Dump_Channel;
       Config_JSON : JSON_Value;
@@ -349,8 +366,19 @@ package body Instrument.Setup_Config is
       Config_JSON := Parsed_JSON.Value;
 
       Switches.Save_Temps := Config_JSON.Get ("save_temps");
-      Switches.Verbose := Config_JSON.Get ("verbose");
       Coverage.Set_Coverage_Levels (Config_JSON.Get ("coverage_level"));
+
+      declare
+         Verbose   : Boolean;
+         To_Enable : String_Vectors.Vector;
+      begin
+         Switches.Quiet := Config_JSON.Get ("quiet");
+         Verbose := Config_JSON.Get ("verbose");
+         for N of JSON_Array'(Config_JSON.Get ("logs")) loop
+            To_Enable.Append (+N.Get);
+         end loop;
+         Logging.Initialize (Verbose, To_Enable);
+      end;
 
       declare
          FOI_JSON : constant JSON_Array :=

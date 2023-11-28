@@ -29,17 +29,21 @@ limited with Checkpoints;
 with Coverage_Options;    use Coverage_Options;
 with Diagnostics;         use Diagnostics;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Logging;
 with Paths;               use Paths;
 with SC_Obligations;      use SC_Obligations;
 with Slocs;               use Slocs;
 with Strings;
-with Traces_Elf;          use Traces_Elf;
 with Traces_Dbase;        use Traces_Dbase;
-with Traces_Stats;        use Traces_Stats;
+with Traces_Elf;          use Traces_Elf;
 with Traces_Lines;        use Traces_Lines;
+with Traces_Stats;        use Traces_Stats;
 with Types;               use Types;
 
 package Files_Table is
+
+   Files_Table_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("FILE_TABLE");
 
    --  This package manages a source file table and, for each file, a table of
    --  its source lines. Coverage information can be associated with each

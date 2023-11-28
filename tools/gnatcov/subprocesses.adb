@@ -26,9 +26,8 @@ with GNATCOLL.Mmap;  use GNATCOLL.Mmap;
 with GNATCOLL.OS.FS; use GNATCOLL.OS.FS;
 with GNATCOLL.OS.Process_Types;
 
-with Outputs;  use Outputs;
-with Paths;    use Paths;
-with Switches; use Switches;
+with Outputs; use Outputs;
+with Paths;   use Paths;
 
 package body Subprocesses is
 
@@ -102,9 +101,9 @@ package body Subprocesses is
       if not Ignore_Error and then not Success then
          Fatal_Error (Origin_Command_Name & " failed: aborting");
 
-      elsif Verbose then
+      elsif Subprocesses_Trace.Is_Active then
          if Success then
-            Put_Line (Command & " finished");
+            Subprocesses_Trace.Trace (Command & " finished");
          else
             --  Do not use Error as this sets the exit status to Failure, but
             --  here we are precisely ignoring the fact that the subprocess
@@ -245,45 +244,42 @@ package body Subprocesses is
       --  Instantiate environment variables
 
       Process_Types.Import (Env);
-      if Verbose and then not Environment.Is_Empty then
-         Put_Line ("env:");
+      if not Environment.Is_Empty then
+         Subprocesses_Trace.Trace ("env:");
       end if;
       for Env_Var in Environment.Iterate loop
          declare
             Name  : constant String := +String_Maps.Key (Env_Var);
             Value : constant String := +String_Maps.Element (Env_Var);
          begin
-            if Verbose then
-               Put_Line ("  " & Name & "='" & Value & "'");
-            end if;
+            Subprocesses_Trace.Trace ("  " & Name & "='" & Value & "'");
             Process_Types.Set_Variable (Env, Name, Value);
          end;
       end loop;
 
       --  Instantiate the argument list
 
-      Process_Types.Add_Argument (Args, Program.all);
-      if Verbose then
-         Put_Line ("exec:");
-         Put ("  '" & Program.all & "'");
-      end if;
-      Free (Program);
+      declare
+         use Ada.Strings.Unbounded;
+         Log : Unbounded_String;
+      begin
+         Process_Types.Add_Argument (Args, Program.all);
+         Append (Log, "exec:");
+         Append (Log, " '" & Program.all & "'");
+         Free (Program);
 
-      for A of Arguments loop
-         Process_Types.Add_Argument (Args, +A);
-         if Verbose then
+         for A of Arguments loop
+            Process_Types.Add_Argument (Args, +A);
 
             --  Quote the arguments to print empty strings and correctly
             --  escape quoted strings.
 
-            Put (" '");
-            Put (+A);
-            Put ("'");
-         end if;
-      end loop;
-      if Verbose then
-         New_Line;
-      end if;
+            Append (Log, " '");
+            Append (Log, A);
+            Append (Log, "'");
+         end loop;
+         Subprocesses_Trace.Trace (+Log);
+      end;
 
       --  Actually run the subprocess
 

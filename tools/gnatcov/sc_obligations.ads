@@ -35,6 +35,7 @@ with Types; use Types;
 
 limited with Checkpoints;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Logging;
 with Slocs;               use Slocs;
 with Strings;             use Strings;
 with Traces;              use Traces;
@@ -46,6 +47,12 @@ package SC_Obligations is
    --  tampering checks.
 
    pragma Suppress (Tampering_Check);
+
+   SCOs_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("SCOS");
+
+   Scope_Entities_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("SCOPE_ENTITIES");
 
    ------------------
    -- Source files --

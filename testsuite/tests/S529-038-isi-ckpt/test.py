@@ -106,7 +106,7 @@ xcov(['coverage', '-v', '--annotate=xcov', '--level=stmt+mcdc',
       '--checkpoint', ckpt(1), trace(1)],
      out='leak.log')
 thistest.fail_if(
-    'discarding source trace entry for unknown instrumented unit: body of'
-    ' main1' not in lines_of('leak.log'))
+    '[GNATCOV.MISC] discarding source trace entry for unknown instrumented'
+    ' unit: body of main1' not in lines_of('leak.log'))
 
 thistest.result()

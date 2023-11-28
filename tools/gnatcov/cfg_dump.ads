@@ -19,10 +19,14 @@
 with GNAT.Strings; use GNAT.Strings;
 
 with Inputs;
+with Logging;
 with Object_Locations; use Object_Locations;
 with Slocs;            use Slocs;
 
 package CFG_Dump is
+
+   CFG_Dump_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("CFG_DUMP");
 
    type Output_Format is (None, Dot, SVG, PDF, PNG);
    --  Format used to output the CFG. None stands for "output the Dot graph

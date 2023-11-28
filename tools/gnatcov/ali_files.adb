@@ -28,7 +28,6 @@ with Files_Table; use Files_Table;
 with Get_SCOs;
 with Inputs;      use Inputs;
 with Outputs;     use Outputs;
-with Switches;    use Switches;
 
 package body ALI_Files is
 
@@ -386,9 +385,7 @@ package body ALI_Files is
 
       --  Here once the ALI file has been succesfully opened
 
-      if Verbose then
-         Put_Line ("Loading SCOs from " & ALI_Filename);
-      end if;
+      SCOs_Trace.Trace ("Loading SCOs from " & ALI_Filename);
 
       Expected_Annotation_Kind := Exempt_On;
       Expected_Annotation_Msg  := null;

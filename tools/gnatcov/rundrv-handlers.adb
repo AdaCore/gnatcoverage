@@ -106,7 +106,7 @@ package body Rundrv.Handlers is
    begin
       Native := True;
       Cmd := (Command => +Cmd_Name, others => <>);
-      if not Verbose then
+      if not Rundrv_Trace.Is_Active then
          Append_Arg (Cmd, "--quiet");
       end if;
       Append_Arg (Cmd, "--tool=coverage");
@@ -146,7 +146,7 @@ package body Rundrv.Handlers is
       --  -quiet silences the warnings emitted by DynamoRIO on the assumption
       --  that it is invoked from an official release install tree.
 
-      if not Verbose then
+      if not Rundrv_Trace.Is_Active then
          Append_Arg (Cmd, "-quiet");
       end if;
       Append_Arg (Cmd, "-no_follow_children");

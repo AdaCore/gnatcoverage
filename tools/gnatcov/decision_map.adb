@@ -1891,11 +1891,11 @@ package body Decision_Map is
 
          --  Mark instruction address for full (historical) traces collection
          --  (for MC/DC source coverage analysis) if required by decision
-         --  structure (presence of multiple paths) or if Debug_Full_History
-         --  is set.
+         --  structure (presence of multiple paths) or if Full_History_Trace is
+         --  enabled.
 
          if Has_Multipath_Condition (Enclosing_Decision (CBI.Condition))
-           or else Debug_Full_History
+           or else Full_History_Trace.Is_Active
          then
             Add_Entry
               (Base  => Decision_Map_Base,
@@ -2485,11 +2485,10 @@ package body Decision_Map is
    --  Start of processing for Analyze_Routine
 
    begin
-      if Branch_Stats then
+      if Branch_Stats_Trace.Is_Active then
          Put_Line ("Branch statistics for " & Subp_Name, '^');
-
-      elsif Verbose then
-         Put_Line ("building decision map for " & Subp_Name);
+      else
+         Misc_Trace.Trace ("building decision map for " & Subp_Name);
       end if;
 
       Context.Subprg :=
@@ -2769,7 +2768,7 @@ package body Decision_Map is
 
       --  All done if doing only statement coverage
 
-      if not (Branch_Stats
+      if not (Branch_Stats_Trace.Is_Active
                 or else Enabled (Decision)
                 or else MCDC_Coverage_Enabled)
       then
@@ -2873,7 +2872,7 @@ package body Decision_Map is
 
       --  Statistics processing
 
-      if Branch_Stats then
+      if Branch_Stats_Trace.Is_Active then
 
          --  Update statistics
 

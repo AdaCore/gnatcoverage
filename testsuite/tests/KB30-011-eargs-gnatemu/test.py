@@ -27,7 +27,7 @@ gprbuild(gprfor(mains=[unit], srcdirs=['..']))
 
 
 def check_eargs(output, eargs, exe, protect_eargs=False):
-    m = re.search('exec:\n  .*gnatemu.*', output)
+    m = re.search('exec: .*gnatemu.*', output)
     e = m.group(0)
     if protect_eargs:
         eargs = ' '.join ([f"'{arg}'" for arg in eargs.split(" ")])

@@ -45,7 +45,6 @@ with Qemu_Traces;
 with SC_Obligations;
 with Strings;
 with Support_Files;
-with Switches;
 with Traces;       use Traces;
 with Traces_Dbase;
 with Traces_Elf;   use Traces_Elf;
@@ -1750,29 +1749,16 @@ package body CFG_Dump is
       Context.Keep_Edges := Keep_Edges;
       Context.Tag_Executed := Inputs.Length (Traces_Files_List) > 0;
 
-      if Switches.Verbose then
-         Report
-           (Msg  => "Hello, this is the dumper!",
-            Kind => Notice);
-         Report
-           (Msg  => "Dumping code from: " & Exec_Path,
-            Kind => Notice);
-         Report
-           (Msg  =>
-              (if Output = null
-               then "To standard output"
-               else "To " & Output.all),
-            Kind => Notice);
-         Report
-           (Msg  => "Format: " & Output_Format'Image (Format),
-            Kind => Notice);
-         Report
-           (Msg  =>
-              (if Keep_Edges
-               then "Keep edges that follow exception raises"
-               else "Strip edges that follow exception raises"),
-            Kind => Notice);
-      end if;
+      CFG_Dump_Trace.Trace ("Dumping code from: " & Exec_Path);
+      CFG_Dump_Trace.Trace
+        (if Output = null
+         then "To standard output"
+         else "To " & Output.all);
+      CFG_Dump_Trace.Trace ("Format: " & Output_Format'Image (Format));
+      CFG_Dump_Trace.Trace
+        (if Keep_Edges
+         then "Keep edges that follow exception raises"
+         else "Strip edges that follow exception raises");
 
       begin
          Execs_Dbase.Open_Exec (Exec_Path, 0, Context.Exec);
@@ -1781,38 +1767,26 @@ package body CFG_Dump is
             Fatal_Error ("Could not open " & Exec_Path);
       end;
 
-      if Switches.Verbose then
-         Report (Msg => "Reading symbols...", Kind => Notice);
-      end if;
+      CFG_Dump_Trace.Trace ("Reading symbols...");
       Build_Symbols (Context.Exec.all);
 
       Translate_Locations (Ctx.Exec, Locations, Context.Locs);
 
       if Context.Group_By_Condition then
          Coverage.Set_Coverage_Levels ("stmt+mcdc");
-         if Switches.Verbose then
-            Report (Msg => "Loading ALI files...", Kind => Notice);
-         end if;
+         CFG_Dump_Trace.Trace ("Loading ALI files...");
          Inputs.Iterate (SCO_Files_List, Load_SCOs'Access);
          Coverage.Source.Initialize_SCI;
 
-         if Switches.Verbose then
-            Report (Msg => "Reading routine names...", Kind => Notice);
-         end if;
+         CFG_Dump_Trace.Trace ("Reading routine names...");
          Read_Routine_Names (Context.Exec.all, Exclude => False);
       end if;
 
-      if Switches.Verbose then
-         Report (Msg => "Reading debug line info...", Kind => Notice);
-      end if;
+      CFG_Dump_Trace.Trace ("Reading debug line info...");
       Build_Debug_Lines (Context.Exec.all);
 
       if Context.Group_By_Condition then
-         if Switches.Verbose then
-            Report
-              (Msg => "Performing static analysis for decisions...",
-               Kind => Notice);
-         end if;
+         CFG_Dump_Trace.Trace ("Performing static analysis for decisions...");
          Decision_Map.Analyze (Context.Exec);
       end if;
 
@@ -1826,13 +1800,10 @@ package body CFG_Dump is
             exit when Section = null;
 
             if Section.Section_Name.all = ".text" then
-               if Switches.Verbose then
-                  Report
-                    (Msg => "ELF section #"
-                     & Strings.Img (Integer (Section.Section_Sec_Idx))
-                     & " looks interesting: loading its instructions...",
-                     Kind => Notice);
-               end if;
+               CFG_Dump_Trace.Trace
+                 ("ELF section #"
+                  & Strings.Img (Integer (Section.Section_Sec_Idx))
+                  & " looks interesting: loading its instructions...");
                Load_Section_Content (Context.Exec.all, Section);
                Collect_Instructions (Ctx, Section);
             end if;

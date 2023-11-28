@@ -171,7 +171,7 @@ package body Object_Locations is
          begin
             if Loc /= No_Proc_Location then
                Proc_Locs.Append (Loc);
-               if Switches.Verbose then
+               if Switches.Misc_Trace.Is_Active then
                   Report
                     (Msg  =>
                        ("Location: " & Image (Loc)
@@ -179,7 +179,7 @@ package body Object_Locations is
                      Kind => Notice);
                end if;
 
-            elsif Switches.Verbose then
+            elsif Switches.Misc_Trace.Is_Active then
                Report
                  (Msg  => "Ignore location: " & Image (User_Loc),
                   Kind => Notice);

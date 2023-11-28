@@ -48,7 +48,6 @@ with Check_SCOs;
 with Checkpoints;
 with Command_Line;          use Command_Line;
 use Command_Line.Parser;
-with Command_Line_Support;
 with Convert;
 with Coverage.Source;       use Coverage.Source;
 with Coverage.Tags;         use Coverage.Tags;
@@ -67,6 +66,7 @@ with Instrument.Projects;
 with Instrument.Setup_Config;
 with Instrument.Source;
 with Instrument.Input_Traces;
+with Logging;
 with Object_Locations;
 with Outputs;               use Outputs;
 with Perf_Counters;
@@ -430,11 +430,11 @@ procedure GNATcov_Bits_Specific is
       Inputs.Iterate (SID_Inputs, SID_Load_Wrapper'Access);
 
       --  Now that all the scope entities that can be referenced by
-      --  --subprograms are known, dump them in verbose mode.
+      --  --subprograms are known, dump them if requested.
 
-      if Verbose then
+      if Scope_Entities_Trace.Is_Active then
          for CU in 1 .. Last_CU loop
-            Put_Line ("Scopes for " & Image (CU) & ":");
+            Scope_Entities_Trace.Trace ("Scopes for " & Image (CU) & ":");
             Dump (Get_Scope_Entities (CU), Line_Prefix => "| ");
          end loop;
       end if;
@@ -509,21 +509,17 @@ procedure GNATcov_Bits_Specific is
    begin
       --  First, handle all options...
 
-      Verbose                  := Args.Bool_Args (Opt_Verbose);
       Switches.All_Decisions   := Args.Bool_Args (Opt_All_Decisions);
       Switches.All_Messages    := Args.Bool_Args (Opt_All_Messages);
-      Branch_Stats             := Args.Bool_Args (Opt_Branch_Stats);
       Excluded_SCOs            := Args.Bool_Args (Opt_Excluded_SCOs);
       Keep_Edges               := Args.Bool_Args (Opt_Keep_Edges);
       Pretty_Print             := Args.Bool_Args (Opt_Pretty_Print);
       Keep_Reading_Traces      := Args.Bool_Args (Opt_Keep_Reading_Traces);
       Dump_Units               := Args.String_Args (Opt_Dump_Units_To).Present;
       Show_MCDC_Vectors        := (Args.Bool_Args (Opt_Show_MCDC_Vectors)
-                                   or else All_Messages
-                                   or else Verbose);
+                                   or else All_Messages);
       Show_Condition_Vectors   := (Args.Bool_Args (Opt_Show_Condition_Vectors)
-                                   or else All_Messages
-                                   or else Verbose);
+                                   or else All_Messages);
       Allow_Mixing_Trace_Kinds := Args.Bool_Args (Opt_Allow_Mix_Trace_Kind);
       Short_Circuit_And_Or     := Args.Bool_Args
                                     (Opt_Boolean_Short_Circuit_And_Or);
@@ -734,22 +730,6 @@ procedure GNATcov_Bits_Specific is
                Fatal_Error ("Invalid output format: " & Arg);
          end;
       end if;
-
-      for Arg of Args.String_List_Args (Opt_Debug) loop
-         for Char of Ada.Strings.Unbounded.To_String (Arg) loop
-            declare
-               use Command_Line_Support;
-
-               Switch : constant Debug_Type := Debug_Switches_Map (Char);
-            begin
-               if Switch = None then
-                  Fatal_Error ("Invalid debug switch: -d" & Char);
-               else
-                  Debug_Switches (Switch) := True;
-               end if;
-            end;
-         end loop;
-      end loop;
 
       for Arg of Args.String_List_Args (Opt_Shared_Object) loop
          declare
@@ -1252,7 +1232,7 @@ begin
    Raise_Stub_Internal_Error_For (Arguments_Loading);
    Process_Arguments;
 
-   if Verbose then
+   if Misc_Trace.Is_Active then
       Show_Version;
       Show_CWD;
       Perf_Counters.Enable;
@@ -1275,9 +1255,12 @@ begin
          Print_Usage (Arg_Parser, True, False);
 
       when Cmd_Version =>
-         if not Verbose then
+         if not Misc_Trace.Is_Active then
             Show_Version;
          end if;
+
+      when Cmd_List_Logs =>
+         Logging.Print_List;
 
       when Cmd_Disp_Routines =>
          declare
@@ -1545,7 +1528,7 @@ begin
          begin
             Load_All_ALIs (Check_SCOs => True);
             Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
-            if Verbose then
+            if SCOs_Trace.Is_Active then
                SC_Obligations.Report_SCOs_Without_Code;
             end if;
             SC_Obligations.Report_Units_Without_Code;
@@ -2166,8 +2149,9 @@ begin
 
                Build_Debug_Compile_Units (Exe_File.all);
 
-               if Verbose and then Trace_File /= null then
-                  Put_Line ("Processing traces from " & Trace_Filename);
+               if Trace_File /= null then
+                  Misc_Trace.Trace
+                    ("Processing traces from " & Trace_Filename);
                end if;
 
                Load_Code_And_Traces (Exe_File, Base'Access);
@@ -2377,7 +2361,7 @@ begin
             end if;
          end if;
 
-         if Source_Coverage_Enabled and then Verbose then
+         if Source_Coverage_Enabled and then SCOs_Trace.Is_Active then
             SC_Obligations.Report_Units_Without_Code;
          end if;
 
@@ -2611,7 +2595,7 @@ begin
 
    end case;
 
-   if Verbose then
+   if Misc_Trace.Is_Active then
       Perf_Counters.Display;
    end if;
 

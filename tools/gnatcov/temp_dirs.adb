@@ -17,8 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Directories; use Ada.Directories;
-with Ada.Text_IO;     use Ada.Text_IO;
-
 with Interfaces; use Interfaces;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
@@ -47,10 +45,7 @@ package body Temp_Dirs is
          then Unique_Name
          else Current_Directory / Unique_Name);
    begin
-      if Verbose then
-         Put_Line
-           ("Creating temporary directory: " & Name);
-      end if;
+      Misc_Trace.Trace ("Creating temporary directory: " & Name);
 
       --  In directory creation fails and we raise an exception, make sure to
       --  leave a null directory name so that finalization does not try to

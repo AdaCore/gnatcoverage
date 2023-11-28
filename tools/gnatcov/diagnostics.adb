@@ -282,7 +282,7 @@ package body Diagnostics is
       --  always reported in the annotated sources or report output, so it's
       --  fine to omit them here.
 
-      if Verbose
+      if Diagnostics_Trace.Is_Active
          or else (M.Kind < Violation and then not Suppress_Message (M))
       then
          Put_Line (Image (M));

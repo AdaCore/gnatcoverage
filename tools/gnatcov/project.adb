@@ -22,7 +22,6 @@ with Ada.Containers.Vectors;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Tags;
-with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.OS_Lib;
 with GNAT.Regexp;
@@ -688,11 +687,11 @@ package body Project is
                               & "gnatls",
             GNAT_Version => Gnatls_Version,
             Errors       => null);
-         if Verbose and then Gnatls_Version /= null then
-            Put_Line
+         if Gnatls_Version /= null then
+            Misc_Trace.Trace
               ("default paths set from GNATLS " & Gnatls_Version.all);
-            Free (Gnatls_Version);
          end if;
+         Free (Gnatls_Version);
       end;
 
       --  Set scenario variables

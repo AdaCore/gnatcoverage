@@ -562,7 +562,7 @@ package body Annotations is
 
       Cur : constant Cursor := ALI_Annotations.Floor (Sloc);
    begin
-      if not Debug_Ignore_Exemptions
+      if not Ignore_Exemptions_Trace.Is_Active
         and then Cur /= No_Element
         and then Key (Cur).Source_File = Sloc.Source_File
       then

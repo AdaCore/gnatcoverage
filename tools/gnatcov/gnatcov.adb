@@ -20,8 +20,6 @@ with Ada.Command_Line;          use Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables; use Ada.Environment_Variables;
 with Ada.Strings.Fixed;         use Ada.Strings.Fixed;
-with Ada.Text_IO;               use Ada.Text_IO;
-
 with GNAT.OS_Lib;
 with GNAT.Strings; use GNAT.Strings;
 
@@ -39,7 +37,6 @@ begin
    --  forwarding all arguments as-is.
 
    Parse_Arguments (From_Driver => True);
-   Verbose := Args.Bool_Args (Opt_Verbose);
 
    --  Determine if the target is 32-bit or 64-bit: consider it's 32-bit unless
    --  we can find the "64" substring before the first dash.
@@ -85,9 +82,7 @@ begin
 
       Success : Boolean;
    begin
-      if Verbose then
-         Put_Line ("Running: " & Exec_Filename);
-      end if;
+      Misc_Trace.Trace ("Running: " & Exec_Filename);
 
       --  Make sure that the arch-specific entry point knows what the prefix is
       --  so that it can locale support files. Also make sure that the name of
@@ -114,11 +109,9 @@ begin
          --  exitted with an error". To avoid overly verbose output in the
          --  latter case (the bits-specific entry point is already supposed to
          --  print an explicit error message), restrict the following message
-         --  to the verbose mode.
+         --  to a trace.
 
-         if Verbose then
-            Put_Line ("Could not spawn " & Exec_Filename & ": aborting");
-         end if;
+         Misc_Trace.Trace ("Could not spawn " & Exec_Filename & ": aborting");
       end if;
    end;
 exception
