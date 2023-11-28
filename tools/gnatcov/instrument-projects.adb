@@ -948,6 +948,7 @@ is
       end loop;
 
       if not Non_Root_Src_Calls.Is_Empty then
+
          --  For each manual dump call inserted in a file belonging to a
          --  non-root project, warn the user the coverage data it will produce
          --  will not cover the whole project tree.
