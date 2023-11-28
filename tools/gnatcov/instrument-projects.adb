@@ -1038,7 +1038,7 @@ is
         C_Language   => C_Instrumenter'Access,
         CPP_Language => CPP_Instrumenter'Access);
 
-   --  Start of processing for Instrument_Units_Of_Interest
+--  Start of processing for Instrument_Units_Of_Interest
 
 begin
    --  Set the instrumentation tag
@@ -1203,6 +1203,7 @@ begin
    CPP_Instrumenter := Create_CPP_Instrumenter (IC.Tag);
 
    if Dump_Config.Trigger = Manual then
+
       --  Replace manual dump indications for C-like languages
 
       for Lang in C_Family_Language loop
@@ -1248,7 +1249,6 @@ begin
       Instrument_Source_Args.Append
         (Common_Switches (Cmd_Instrument_Source));
       for Cur in Instrumented_Sources.Iterate loop
-
          declare
             Unit_Args : String_Vectors.Vector :=
               Instrument_Source_Args.Copy;
@@ -1274,12 +1274,7 @@ begin
 
             --  Add the arguments that are specific to the compilation unit
 
-            Unit_Args.Append
-              (Compilation_Unit_Options
-                 (IC,
-                  Desc,
-                  LU_Info));
-
+            Unit_Args.Append (Compilation_Unit_Options (IC, Desc, LU_Info));
             Unit_Args.Append (+"--sid=" & Obj_SID);
 
             --  We instrument the body, spec and separates as a whole
