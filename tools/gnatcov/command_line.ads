@@ -1116,10 +1116,12 @@ package Command_Line is
 
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Log => Create
-        (Long_Name  => "--log",
-         Pattern    => "[GNATCOLL_TRACE_NAME]",
-         Help       => "Enable logging for the given GNATCOLL trace name.",
-         Internal   => True),
+        (Long_Name               => "--log",
+         Pattern                 => "[GNATCOLL_TRACE_NAME]",
+         Help                    =>
+           "Enable logging for the given GNATCOLL trace name.",
+         Internal                => True,
+         Accepts_Comma_Separator => True),
       Opt_Projects => Create
         (Long_Name  => "--projects",
          Pattern    => "[GPR|@LISTFILE]",
