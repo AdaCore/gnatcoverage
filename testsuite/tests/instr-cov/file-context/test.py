@@ -52,17 +52,20 @@ log = do_instr("verbose", ["-v"])
 actual_lines = [
     line
     for line in lines_of(log)
-    if line.startswith("Instrumenting ") or line.startswith("warning: ")
+    if (
+        line.startswith("[GNATCOV.MISC] Instrumenting ")
+        or line.startswith("warning: ")
+    )
 ]
 thistest.fail_if_not_equal(
     f'"gnatcov instrument" output',
-    "\n".join(actual_lines),
     "\n".join([
-        "Instrumenting main.adb",
+        "[GNATCOV.MISC] Instrumenting main.adb",
         "warning: Cannot find required source file: missing_a.ads",
         "warning: Cannot find required source file: missing_b.ads",
-        "Instrumenting pkg.ads",
+        "[GNATCOV.MISC] Instrumenting pkg.ads",
     ]),
+    "\n".join(actual_lines),
 )
 
 thistest.result()

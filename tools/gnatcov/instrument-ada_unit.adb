@@ -25,7 +25,6 @@ with Ada.Strings.Wide_Wide_Fixed;
 pragma Warnings (Off, "* is an internal GNAT unit");
 with Ada.Strings.Wide_Wide_Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
-with Ada.Text_IO;                use Ada.Text_IO;
 with Ada.Streams.Stream_IO;
 
 with Langkit_Support;
@@ -2805,7 +2804,7 @@ package body Instrument.Ada_Unit is
       Report (UIC,
               Common_Nodes.N,
               "failed to determine return type of expression function: "
-              & (if Switches.Verbose
+              & (if Switches.Misc_Trace.Is_Active
                  then Ada.Exceptions.Exception_Message (Exc)
                  else Ada.Exceptions.Exception_Information (Exc)),
               Low_Warning);
@@ -9105,8 +9104,8 @@ package body Instrument.Ada_Unit is
             --  prepared to print it in case we emit a "source file missing"
             --  warning through Libadalang's event handler.
 
-            if Verbose then
-               Put_Line ("Instrumenting " & Basename);
+            if Switches.Misc_Trace.Is_Active then
+               Switches.Misc_Trace.Trace ("Instrumenting " & Basename);
             else
                Event_Handler.Instrumented_File :=
                  To_Unbounded_String (Basename);

@@ -36,7 +36,6 @@ with Coverage;      use Coverage;
 with Outputs;
 with Perf_Counters; use Perf_Counters;
 with Project;
-with Switches;
 
 package body Files_Table is
 
@@ -316,12 +315,10 @@ package body Files_Table is
       --  are canonicalized.
 
    begin
-      if Switches.Verbose then
-         Put_Line ("Adding source rebase:");
-         Put_Line ("  Glob   -> " & Old_Prefix);
-         Put_Line ("  Regexp -> " & Regexp);
-         Put_Line ("  Will become: " & New_Prefix);
-      end if;
+      Files_Table_Trace.Trace ("Adding source rebase:");
+      Files_Table_Trace.Trace ("  Glob   -> " & Old_Prefix);
+      Files_Table_Trace.Trace ("  Regexp -> " & Regexp);
+      Files_Table_Trace.Trace ("  Will become: " & New_Prefix);
 
       E := new Source_Rebase_Entry'
         (Old_Prefix => new Pattern_Matcher'(Compile (Regexp, Flags)),
@@ -735,9 +732,10 @@ package body Files_Table is
       Info_Simple : File_Info_Access;
 
    begin
-      if Switches.Debug_File_Table then
-         Put_Line ("GIFN: <<" & Full_Name & ">> ISN=" & Indexed_Simple_Name'Img
-                   & " Insert=" & Insert'Img);
+      if Files_Table_Trace.Is_Active then
+         Files_Table_Trace.Trace
+           ("GIFN: <<" & Full_Name & ">> ISN=" & Indexed_Simple_Name'Img
+            & " Insert=" & Insert'Img);
       end if;
 
       --  First lookup the full path in the Renaming_Map as this file can
@@ -840,8 +838,8 @@ package body Files_Table is
       end;
 
    <<Do_Return>>
-      if Switches.Debug_File_Table then
-         Put_Line (" ->" & Res'Img);
+      if Files_Table_Trace.Is_Active then
+         Files_Table_Trace.Trace (" ->" & Res'Img);
       end if;
       if Res in Valid_Source_File_Index then
          Consolidate_File_Kind (Res, Kind);
@@ -867,8 +865,9 @@ package body Files_Table is
         Simple_Name_Map.Find (Simple_Path);
       Res : Source_File_Index;
    begin
-      if Switches.Debug_File_Table then
-         Put ("GISN: <<" & Simple_Name & ">> Insert=" & Insert'Img);
+      if Files_Table_Trace.Is_Active then
+         Files_Table_Trace.Trace
+           ("GISN: <<" & Simple_Name & ">> Insert=" & Insert'Img);
       end if;
 
       if Cur /= Simple_Name_Maps.No_Element then
@@ -891,8 +890,8 @@ package body Files_Table is
          Simple_Name_Map.Insert (Simple_Path, Res);
       end if;
 
-      if Switches.Debug_File_Table then
-         Put_Line (" ->" & Res'Img);
+      if Files_Table_Trace.Is_Active then
+         Files_Table_Trace.Trace (" ->" & Res'Img);
       end if;
 
       if Res in Valid_Source_File_Index then
@@ -914,9 +913,9 @@ package body Files_Table is
    is
       Result : Source_File_Index;
    begin
-      if Switches.Debug_File_Table then
-         Put ("GIGN: <<" & Name
-              & ">> ISN=" & Indexed_Simple_Name'Img & " -> ");
+      if Files_Table_Trace.Is_Active then
+         Files_Table_Trace.Trace
+           ("GIGN: <<" & Name & ">> ISN=" & Indexed_Simple_Name'Img & " -> ");
       end if;
 
       if Is_Absolute_Path (Name) then
@@ -1360,14 +1359,14 @@ package body Files_Table is
 
          pragma Assert (not Files_Table_Frozen);
 
-         if Switches.Debug_File_Table then
+         if Files_Table_Trace.Is_Active then
             declare
                Name : constant String_Access :=
                  (if FI.Full_Name = null
                   then FI.Simple_Name
                   else FI.Full_Name);
             begin
-               Put_Line
+               Files_Table_Trace.Trace
                  ("Promoting " & Name.all & " from stub to source file");
             end;
          end if;
@@ -2066,10 +2065,9 @@ package body Files_Table is
               and then GNAT.Regexp.Match (+Create (+FE.Name.all).Base_Name,
                                           Ignored_Source_Files.all)
             then
-               if Switches.Verbose then
-                  Put_Line ("Ignored SFI from SID file:" & CP_SFI'Image
-                            & " (" & FE.Name.all & ")");
-               end if;
+               Files_Table_Trace.Trace
+                 ("Ignored SFI from SID file:" & CP_SFI'Image
+                  & " (" & FE.Name.all & ")");
                Ignore_SFI (Relocs, CP_SFI);
 
                --  Still insert this source file in the files table to keep
@@ -2140,10 +2138,9 @@ package body Files_Table is
                end if;
 
                Set_SFI_Map (Relocs, CP_SFI, SFI);
-               if Switches.Verbose then
-                  Put_Line ("Remap " & FE.Name.all & ":" & CP_SFI'Img
-                            & " ->" & Remap_SFI (Relocs, CP_SFI)'Img);
-               end if;
+               Files_Table_Trace.Trace
+                 ("Remap " & FE.Name.all & ":" & CP_SFI'Img
+                  & " ->" & Remap_SFI (Relocs, CP_SFI)'Img);
             end if;
          end;
       end loop;

@@ -57,7 +57,7 @@ begin
       Context'Access,
       Purpose => Checkpoints.Instrumentation);
 
-   if Switches.Verbose then
+   if SC_Obligations.SCOs_Trace.Is_Active then
       SC_Obligations.Dump_All_SCOs;
    end if;
 

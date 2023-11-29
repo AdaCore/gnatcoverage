@@ -24,8 +24,20 @@ with System;     use System;
 
 with Arch;       use Arch;
 with Elf_Common; use Elf_Common;
+with Logging;
 
 package Traces is
+
+   Full_History_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("FULL_HISTORY");
+   --  Note that enabling this trace will keep full historical traces for MC/DC
+   --  even for decisions that do not require it (decisions without multi-path
+   --  conditions).
+
+   Branch_Stats_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("BRANCH_STATS");
+   --  Trace to dump statistics about branch instructions after the static
+   --  analysis pass.
 
    Big_Endian_Host : constant Boolean := Default_Bit_Order = High_Order_First;
    --  Host order is determined by System.Default_Bit_Order

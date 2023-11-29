@@ -249,8 +249,8 @@ package body SC_Obligations is
       --  nonsensical.
 
       Fingerprint_Buffer : Unbounded_String;
-      --  In verbose mode, buffer to hold the bytes used to compute the
-      --  fingerprint.
+      --  When SCOs_Trace is active, buffer to hold the bytes used to compute
+      --  the fingerprint.
    end record;
    --  Information about a compilation unit to load, i.e. to create a CU_Info
    --  record and the associated information.
@@ -1156,8 +1156,8 @@ package body SC_Obligations is
 
             SCO_Vector.Append (New_SCOD);
             Set_SCO_Id_Map (Relocs, Old_SCO_Id, SCO_Vector.Last_Index);
-            if Verbose then
-               Put_Line
+            if SCOs_Trace.Is_Active then
+               SCOs_Trace.Trace
                  ("Loaded from checkpoint: "
                   & Image (SCO_Vector.Last_Index)
                   & " (was #" & Trim (Old_SCO_Id'Img, Side => Ada.Strings.Both)
@@ -1341,11 +1341,10 @@ package body SC_Obligations is
 
       New_CU_Id := Comp_Unit (CP_CU.Main_Source);
 
-      if Verbose then
-         Put_Line ("Remapped CU: id " & New_CU_Id'Img
-                   & ", main source" & CP_CU.Main_Source'Img
-                   & " " & Get_Full_Name (CP_CU.Main_Source));
-      end if;
+      SCOs_Trace.Trace
+        ("Remapped CU: id " & New_CU_Id'Img
+         & ", main source" & CP_CU.Main_Source'Img
+         & " " & Get_Full_Name (CP_CU.Main_Source, Or_Simple => True));
 
       --  Case 1: CU not already present. Load all SCO information
       --  from checkpoint.
@@ -1600,9 +1599,8 @@ package body SC_Obligations is
                  SFI_Ignored (Relocs, CP_CU.Main_Source);
             begin
                if Origin_Ignored or else Main_Source_Ignored then
-                  if Switches.Verbose then
-                     Put_Line ("Ignoring CU from SID file: Id" & CP_CU_Id'Img);
-                  end if;
+                  SCOs_Trace.Trace
+                    ("Ignoring CU from SID file: Id" & CP_CU_Id'Img);
 
                   --  If we cannot load this CU *not* because its main source
                   --  is ignored, but rather because the origin is ignored,
@@ -2944,7 +2942,7 @@ package body SC_Obligations is
    is
    begin
       GNAT.SHA1.Update (Unit_Info.Fingerprint_Context, S);
-      if Verbose then
+      if SCOs_Trace.Is_Active then
          Append (Unit_Info.Fingerprint_Buffer, S);
       end if;
    end Append_For_Fingerprint;
@@ -3054,13 +3052,14 @@ package body SC_Obligations is
       --  If requested, show the string used to compute fingerprint for each
       --  unit.
 
-      if Verbose then
+      if SCOs_Trace.Is_Active then
          for Unit_Info of Infos loop
-            Put_Line ("Computing fingerprint for "
-                      & Unit_Info.File_Name_Ptr.all & " SCOs from:");
-            Put_Line ("BEGIN ...");
-            Put_Line (To_String (Unit_Info.Fingerprint_Buffer));
-            Put_Line ("... END");
+            SCOs_Trace.Trace
+              ("Computing fingerprint for "
+               & Unit_Info.File_Name_Ptr.all & " SCOs from:");
+            SCOs_Trace.Trace ("BEGIN ...");
+            SCOs_Trace.Trace (To_String (Unit_Info.Fingerprint_Buffer));
+            SCOs_Trace.Trace ("... END");
          end loop;
       end if;
    end Build_CU_Load_Info;
@@ -3430,7 +3429,7 @@ package body SC_Obligations is
                SCO_Vector.Update_Element
                  (State.Current_BDD.Decision, Update_Decision_BDD'Access);
 
-               if Verbose then
+               if SCOs_Trace.Is_Active then
                   Dump_Decision (State.Current_Decision);
                end if;
                State.Current_Decision := No_SCO_Id;
@@ -3644,17 +3643,13 @@ package body SC_Obligations is
                --  SCO containing First
 
             begin
-               if Verbose then
-                  Put ("Processing: " & Image (SCO));
-                  if SCOD.Kind = Decision then
-                     if SCOD.Last_Cond_Index > 0 then
-                        Put (" (complex)");
-                     else
-                        Put (" (simple)");
-                     end if;
-                  end if;
-                  New_Line;
-               end if;
+               SCOs_Trace.Trace
+                 ("Processing: " & Image (SCO)
+                  & (if SCOD.Kind = Decision
+                     then (if SCOD.Last_Cond_Index > 0
+                           then " (complex)"
+                           else " (simple)")
+                     else ""));
 
                case SCOD.Kind is
                   when Removed =>
@@ -4406,11 +4401,12 @@ package body SC_Obligations is
          --  In case of failure, be helpful and print the offending tree for
          --  the verbose mode.
 
-         if Verbose then
-            Put_Line
+         if Scope_Entities_Trace.Is_Active then
+            Scope_Entities_Trace.Trace
               ("The following tree of scopes breaks the nesting/ordering"
                & " invariant:");
-            Put_Line (Ada.Exceptions.Exception_Message (Exc));
+            Scope_Entities_Trace.Trace
+              (Ada.Exceptions.Exception_Message (Exc));
             Dump (Tree, "| ");
          end if;
          return False;
@@ -4433,8 +4429,8 @@ package body SC_Obligations is
       pragma Assert (SCOs_Nested_And_Ordered (Scope_Entities));
       SE := Scope_Entities;
 
-      if Verbose then
-         Put_Line ("Setting scopes for " & Image (CU) & ":");
+      if Scope_Entities_Trace.Is_Active then
+         Scope_Entities_Trace.Trace ("Setting scopes for " & Image (CU) & ":");
          Dump (SE, Line_Prefix => "| ");
       end if;
    end Set_Scope_Entities;

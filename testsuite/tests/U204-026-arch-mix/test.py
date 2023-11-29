@@ -165,7 +165,7 @@ thistest.fail_if_no_match(
 # 4. Check that we can use source traces produced on a different host
 #
 
-thistest.log("== 3. src-traces mix ==")
+thistest.log("== 4. src-traces mix ==")
 mkdir("4-xcov")
 sid_list = "sids.txt"
 with open(sid_list, "w") as f:

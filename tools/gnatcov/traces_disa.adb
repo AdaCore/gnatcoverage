@@ -25,7 +25,6 @@ with Disassemblers;     use Disassemblers;
 with Execs_Dbase;
 with Hex_Images;        use Hex_Images;
 with Highlighting;      use Highlighting;
-with Switches;
 with Traces_Files;
 
 package body Traces_Disa is
@@ -86,7 +85,7 @@ package body Traces_Disa is
       Off : Pc_Type := Addr;
       I : Pc_Type;
    begin
-      if Switches.Debug_Break_Long_Instructions then
+      if Break_Long_Instructions_Trace.Is_Active then
          while
             --  Make sure we process each byte of the given instruction.
             Off <= Insn.Last

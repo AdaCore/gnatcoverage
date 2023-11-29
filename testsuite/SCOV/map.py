@@ -54,7 +54,7 @@ class MapChecker:
 
         # Run xcov map-routines and check absence of errors
         mapoutput = do(maybe_valgrind([
-            XCOV, 'map-routines', '-v', f'--target={env.target.triplet}',
+            XCOV, 'map-routines', f'--target={env.target.triplet}',
             '--scos=@{}'.format(list_to_file(self.alis)),
         ] + self.execs))
 

@@ -2813,7 +2813,7 @@ package body Instrument.C is
                            & " options is passed to gnatcov instrument");
             raise Xcov_Exit_Exc;
          end if;
-         if Verbose then
+         if Misc_Trace.Is_Active then
             Run_Diagnostics (Self.TU);
          end if;
          Free (C_Args);

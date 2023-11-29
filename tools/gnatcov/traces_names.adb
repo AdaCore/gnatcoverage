@@ -226,8 +226,9 @@ package body Traces_Names is
          Tag := Element (Cur).Routine_Tag;
       end if;
 
-      if Verbose and then Tag /= No_SC_Tag then
-         Put_Line ("Routine tag" & Tag'Img & ": "  & Key_To_Name (Key).all);
+      if Tag /= No_SC_Tag then
+         Misc_Trace.Trace
+           ("Routine tag" & Tag'Img & ": "  & Key_To_Name (Key).all);
       end if;
    end Add_Routine;
 

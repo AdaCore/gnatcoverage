@@ -21,14 +21,19 @@ with Ada.Strings.Unbounded;
 
 with GNAT.Strings; use GNAT.Strings;
 
-with Calendar_Utils;       use Calendar_Utils;
-with Command_Line;         use Command_Line;
-with Command_Line_Support; use Command_Line_Support;
+with Calendar_Utils; use Calendar_Utils;
+with Command_Line;   use Command_Line;
 with Inputs;
+with Logging;
 with SC_Obligations;
-with Strings;              use Strings;
+with Strings;        use Strings;
 
 package Switches is
+
+   Misc_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("MISC");
+   --  Trace to log all messages for which creating a dedicated trace was not
+   --  worth it.
 
    procedure Parse_Arguments (From_Driver : Boolean);
    --  Load arguments from command-line and from the project file (if any) into
@@ -64,8 +69,12 @@ package Switches is
    -- Miscellaneous switches --
    ----------------------------
 
-   Verbose : Boolean := False;
-   --  Verbose informational output
+   Quiet : Boolean := False;
+   --  Whenther the "--quiet/-q" command line switch is active.
+   --
+   --  When it is, do not display information about progress on the standard
+   --  output.  Intended output, such as the "report" coverage output when no
+   --  "--output/-o" argument is passed is still emitted in this case.
 
    All_Decisions : Boolean := False;
    --  If True, perform decision coverage in stmt+decision mode even for
@@ -79,10 +88,6 @@ package Switches is
    Recursive_Projects : Boolean := False;
    --  When a project file is specified using -P, also consider all imported
    --  projects for coverage.
-
-   Branch_Stats : Boolean := False;
-   --  If True, dump statistics about branch instructions after the static
-   --  analysis pass.
 
    Excluded_SCOs : Boolean := False;
    --  If True, report SCOs whose coverage cannot be established due to
@@ -211,27 +216,6 @@ package Switches is
    S_Variables : Key_Element_Maps.Map;
    --  All defined scenario variables, as provided through -X options on
    --  the command line.
-
-   ------------------------------
-   -- Debugging switches (-d?) --
-   ------------------------------
-
-   Debug_Switches : array (Valid_Debug_Type) of Boolean := (others => False);
-   --  For each debug switches, tell whether it's enabled
-
-   --  Convenience shortcuts:
-
-   Debug_Break_Long_Instructions : Boolean renames
-      Debug_Switches (Break_Long_Instructions);
-
-   Debug_Full_History : Boolean renames
-      Debug_Switches (Full_History);
-
-   Debug_Ignore_Exemptions : Boolean renames
-      Debug_Switches (Ignore_Exemptions);
-
-   Debug_File_Table : Boolean renames
-     Debug_Switches (File_Table);
 
    ---------------------------------------
    --  Instrumentation-related switches --

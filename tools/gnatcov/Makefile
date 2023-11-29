@@ -124,7 +124,7 @@ endif
 
 ADAPTERS_LIST=$(DEFAULT_ADAPTERS)
 
-PARALLEL_BUILD=0
+PROCESSORS=0
 BUILD_MODE=dev
 
 # ================================================================
@@ -147,7 +147,7 @@ all: bin adapters
 # "instrument" support is needed.
 
 BIN_COMMON_BUILD_ARGS=\
- -Pgnatcov.gpr -p -j$(PARALLEL_BUILD) \
+ -Pgnatcov.gpr -p -j$(PROCESSORS) \
  -XBUILD_MODE=$(BUILD_MODE) \
  -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
  -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
@@ -156,6 +156,10 @@ BIN_COMMON_BUILD_ARGS=\
  -largs $(LD_FLAGS) \
  -cargs:c++ $(CXXFLAGS) \
  -gargs
+INSTR_COMMON_ARGS=\
+  -j$(PROCESSORS) \
+  -P gnatcov.gpr \
+  --c++-opts=$(CXXFLAGS)
 
 bin:
 # Unlike BINUTILS_BUILD_DIR for which we have a default fallback,
@@ -177,19 +181,19 @@ ifdef INSTRUMENTED
 	# use the version that was not instrumented as a main to compile
 	# gnatcov32, running gnatcov32 will not dump execution traces.
 
-	gnatcov instrument -j0 -P gnatcov.gpr -XPART=gnatcov64 --c++-opts=$(CXXFLAGS)
+	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=gnatcov64
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov64 \
 	  --src-subdirs=gnatcov-instr
 
-	gnatcov instrument -j0 -P gnatcov.gpr -XPART=gnatcov32 --c++-opts=$(CXXFLAGS)
+	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=gnatcov32
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov32 \
 	  --src-subdirs=gnatcov-instr
 
-	gnatcov instrument -j0 -P gnatcov.gpr -XPART=driver --c++-opts=$(CXXFLAGS)
+	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=driver
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=driver \
 	  --src-subdirs=gnatcov-instr
 
-	gnatcov instrument -j0 -P gnatcov.gpr -XPART=compiler --c++-opts=$(CXXFLAGS)
+	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=compiler
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=compiler \
 	  --src-subdirs=gnatcov-instr
 else
@@ -218,7 +222,7 @@ adapters: $(ADAPTER_TARGETS)
 #######################
 
 ppc_genopc:
-	$(GPRBUILD) -j$(PARALLEL_BUILD) -Pgnatcov $(EXTRA_ADAFLAGS) $@
+	$(GPRBUILD) -j$(PROCESSORS) -Pgnatcov $(EXTRA_ADAFLAGS) $@
 
 ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 	./ppc_genopc > $@

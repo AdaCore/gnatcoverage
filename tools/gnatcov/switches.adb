@@ -21,9 +21,8 @@ with Ada.Command_Line;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
 
-with Outputs;  use Outputs;
-with Project;  use Project;
-with Switches; use Switches;
+with Outputs; use Outputs;
+with Project; use Project;
 
 package body Switches is
 
@@ -542,6 +541,13 @@ package body Switches is
 
       Args := Parse (Command_Line_Args);
       Load_Project_Arguments (From_Driver);
+
+      --  Enable logs according to the logs/verbosity options
+
+      Logging.Initialize
+        (Verbose   => Args.Bool_Args (Opt_Verbose),
+         To_Enable => Args.String_List_Args (Opt_Log));
+      Quiet := Args.Bool_Args (Opt_Quiet);
 
       --  Loading the project may have set a new target/RTS: update our
       --  internal state accordingly.

@@ -48,7 +48,8 @@ p = xcov(['coverage', '-v', '-axcov', '--output-dir=xcov',
           '--sid', unrelated_sid, trace_file],
          out='coverage.log')
 thistest.fail_if(
-    'discarding source trace entry for unknown instrumented unit: body of pkg'
+    '[GNATCOV.MISC] discarding source trace entry for unknown instrumented'
+    ' unit: body of pkg'
     not in lines_of('coverage.log'))
 
 thistest.result()

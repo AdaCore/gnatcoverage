@@ -37,12 +37,16 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
 with Coverage;       use Coverage;
+with Logging;
 with SC_Obligations; use SC_Obligations;
 with Slocs;          use Slocs;
 with Traces;         use Traces;
 with Traces_Elf;     use Traces_Elf;
 
 package Diagnostics is
+
+   Diagnostics_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("DIAGNOSTICS");
 
    type Report_Kind is
      (Notice,

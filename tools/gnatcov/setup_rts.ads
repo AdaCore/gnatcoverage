@@ -20,10 +20,14 @@
 
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
+with Logging;
 with Strings;  use Strings;
 with Switches; use Switches;
 
 package Setup_RTS is
+
+   Setup_RTS_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("SETUP_RTS");
 
    type Any_RTS_Profile is (Auto, Full, Embedded);
    --  See documentation for the --rts-profile option

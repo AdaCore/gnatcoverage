@@ -1651,7 +1651,7 @@ package body Coverage.Source is
                      Inferred_Values := Infer_Values (SCO);
                      Inferred_Values.Append (CBE.Origin);
 
-                     if Debug_Full_History then
+                     if Full_History_Trace.Is_Active then
                         --  In full history debugging mode, we record the
                         --  evaluation history and check it against the
                         --  inferred vector.
@@ -1713,7 +1713,7 @@ package body Coverage.Source is
                           & "abandoning evaluation", Kind => Notice);
 
                         if Has_Multipath_Condition (D_SCO)
-                          or else Debug_Full_History
+                          or else Full_History_Trace.Is_Active
                         then
                            Evaluation_Stack.Delete_Last;
                         end if;
@@ -1765,7 +1765,7 @@ package body Coverage.Source is
                when 3 =>
                   if MCDC_Coverage_Enabled
                        and then (Has_Multipath_Condition (D_SCO)
-                                   or else Debug_Full_History)
+                                   or else Full_History_Trace.Is_Active)
                   then
                      --  For MC/DC we need full historical traces, not just
                      --  accumulated traces.
@@ -1972,10 +1972,9 @@ package body Coverage.Source is
          --  just log the fact that we skip this trace entry in the verbose
          --  about, just in case.
 
-         if Verbose then
-            Put_Line ("discarding source trace entry for unknown instrumented"
-                      & " unit: " & Unit_Image);
-         end if;
+         Misc_Trace.Trace
+           ("discarding source trace entry for unknown instrumented unit: "
+            & Unit_Image);
          return;
 
       elsif Provider (CU) /= Instrumenter then
@@ -2131,7 +2130,9 @@ package body Coverage.Source is
 
       --  No-op if decision has no multi-path condition and not debugging
 
-      if not (Has_Multipath_Condition (D_SCO) or else Debug_Full_History) then
+      if not (Has_Multipath_Condition (D_SCO)
+              or else Full_History_Trace.Is_Active)
+      then
          return;
       end if;
 

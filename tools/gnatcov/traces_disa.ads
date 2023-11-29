@@ -19,11 +19,17 @@
 with Binary_Files;      use Binary_Files;
 with Disa_Symbolize;    use Disa_Symbolize;
 with Elf_Disassemblers; use Elf_Disassemblers;
+with Logging;
 with Traces;            use Traces;
 with Traces_Dbase;      use Traces_Dbase;
 with Traces_Elf;        use Traces_Elf;
 
 package Traces_Disa is
+
+   Break_Long_Instructions_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("BREAK_LONG_INSTRUCTIONS");
+   --  Note that enabling this trace will break long instructions in
+   --  disassemblies, a la objdump.
 
    function Get_Label
      (Sym : Symbolizer'Class; Info : Address_Info_Acc) return String;
