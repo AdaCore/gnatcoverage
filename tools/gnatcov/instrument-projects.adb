@@ -28,6 +28,7 @@ with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
+with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
 with GNAT.Exception_Actions;
@@ -265,6 +266,10 @@ is
    procedure Clean_And_Print (Exc : Ada.Exceptions.Exception_Occurrence);
    --  Clean the instrumentation directories and print any relevant information
    --  regarding the instrumentation context.
+
+   procedure Show_Progress (Language : Some_Language; Unit_Name : String);
+   --  If quiet mode is not enabled, show instrumentation progress by printing
+   --  the language/unit name that are being instrumented.
 
    -----------------------
    -- Load_From_Project --
@@ -987,6 +992,37 @@ is
       Outputs.Print_Internal_Error (Exc);
    end Clean_And_Print;
 
+   -------------------
+   -- Show_Progress --
+   -------------------
+
+   procedure Show_Progress (Language : Some_Language; Unit_Name : String) is
+   begin
+      if Quiet then
+         return;
+      end if;
+
+      declare
+         Language_Name        : constant String :=
+           "[" & Image (Language)  & "]";
+         Filename_Indentation : constant String :=
+           (1 .. 16 - Language_Name'Length => ' ');
+      begin
+         Put ("   ");
+         Put (Language_Name);
+         Put (Filename_Indentation);
+
+         --  To keep progress logs readable, use source basenames for
+         --  file-based languages.
+
+         if Language_Kind (Language) = File_Based_Language then
+            Put_Line (Ada.Directories.Simple_Name (Unit_Name));
+         else
+            Put_Line (Unit_Name);
+         end if;
+      end;
+   end Show_Progress;
+
    Mains_To_Instrument : array (Src_Supported_Language)
      of Main_To_Instrument_Vectors.Vector;
    --  For each supported language, list of mains to instrument. Note that
@@ -1203,6 +1239,10 @@ begin
       Sources_Of_Interest_File.Close;
    end;
 
+   if not Quiet then
+      Put_Line ("Coverage instrumentation");
+   end if;
+
    --  Instrument every unit of interest asynchronously
 
    declare
@@ -1254,6 +1294,8 @@ begin
             --  We instrument the body, spec and separates as a whole
 
             Unit_Args.Append (+Unit_Name);
+
+            Show_Progress (LU_Info.Language, Unit_Name);
 
             --  According to the set parallelism level, instrument in
             --  the same process (thus reusing the libadalang context, which
