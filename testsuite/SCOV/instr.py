@@ -38,8 +38,8 @@ def default_dump_channel():
         return 'base64-stdout'
 
 
-def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
-                    dump_channel="auto", gpr_obj_dir=None,
+def xcov_instrument(gprsw, covlevel, quiet=True, extra_args=[],
+                    dump_trigger="auto", dump_channel="auto", gpr_obj_dir=None,
                     runtime_project=None, out=None, err=None,
                     tolerate_messages=None, register_failure=True,
                     auto_config_args=True, auto_target_args=True,
@@ -50,6 +50,7 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
     :param GPRswitches gprsw: Project file command line switches to honor.
     :param None|str covlevel: Coverage level for the instrumentation
         (--level argument). Not passed if None.
+    :param bool quiet: Whether to pass the "--quiet" flag.
     :param list[str] extra_args: Extra arguments to append to the command line.
     :param None|str dump_trigger: If None, do not pass the --dump-trigger
         argument. If "auto", pass the result of default_dump_trigger().
@@ -97,6 +98,8 @@ def xcov_instrument(gprsw, covlevel, extra_args=[], dump_trigger="auto",
         mains = [main.strip(' "') for main in mains]
 
     args = ['instrument'] + covlevel_args
+    if quiet:
+        args.append("--quiet")
 
     if dump_trigger:
         if dump_trigger == "auto":

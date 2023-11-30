@@ -26,16 +26,16 @@ from SUITE.tutils import (
 
 COV_RE = re.compile(r'^ *(\d+) (.):.*$')
 
-def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
-                  gpr_obj_dir=None, gpr_exe_dir=None, ignored_source_files=[],
-                  separate_coverage=None, extra_args=[], extra_run_args=None,
-                  extra_instr_args=None, extra_gprbuild_args=[],
-                  extra_gprbuild_cargs=[], extra_gprbuild_largs=[],
-                  absolute_paths=False, dump_trigger="auto",
-                  dump_channel="auto", check_gprbuild_output=False,
-                  trace_mode=None, runtime_project=None,
-                  gprsw_for_coverage=None, scos_for_run=True,
-                  register_failure=True, program_env=None,
+def build_and_run(gprsw, covlevel, mains, extra_coverage_args, quiet=True,
+                  scos=None, gpr_obj_dir=None, gpr_exe_dir=None,
+                  ignored_source_files=[], separate_coverage=None,
+                  extra_args=[], extra_run_args=None, extra_instr_args=None,
+                  extra_gprbuild_args=[], extra_gprbuild_cargs=[],
+                  extra_gprbuild_largs=[], absolute_paths=False,
+                  dump_trigger="auto", dump_channel="auto",
+                  check_gprbuild_output=False, trace_mode=None,
+                  runtime_project=None, gprsw_for_coverage=None,
+                  scos_for_run=True, register_failure=True, program_env=None,
                   tolerate_instrument_messages=None, exec_args=None,
                   auto_languages=True, manual_prj_name=None):
     """
@@ -56,6 +56,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         "gnatcov coverage" command-line returned. This is just for convenience:
         one can pass an empty list here and manually append extra arguments to
         the result.
+    :param bool quiet: Whether to pass "--quiet" to "gnatcov.
     :param None|list[str] scos: Optional list of SCOs files (ALI or SID) must
         be passed to gnatcov. These files must have no extension (for instance:
         'obj/foo' instead of 'obj/foo.ali'. If absent, we pass "-P" to "gnatcov
@@ -170,6 +171,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
          for pattern in ignored_source_files])
     if separate_coverage:
         cov_or_instr_args.extend(['-S', separate_coverage])
+    if quiet:
+        cov_or_instr_args.append("--quiet")
 
     # Compute arguments to specify units of interest.
     if trace_mode == 'bin':
@@ -213,14 +216,20 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
 
         # Instrument the project and build the result
         extra_instr_args = cov_or_instr_args + list(extra_instr_args or [])
-        xcov_instrument(gprsw, covlevel, extra_args=extra_instr_args,
-                        gpr_obj_dir=gpr_obj_dir, dump_trigger=dump_trigger,
-                        dump_channel=dump_channel,
-                        runtime_project=runtime_project,
-                        out='instrument.log',
-                        register_failure=register_failure,
-                        tolerate_messages=tolerate_instrument_messages,
-                        auto_languages=auto_languages)
+        xcov_instrument(
+            gprsw,
+            covlevel,
+            quiet=False,
+            extra_args=extra_instr_args,
+            gpr_obj_dir=gpr_obj_dir,
+            dump_trigger=dump_trigger,
+            dump_channel=dump_channel,
+            runtime_project=runtime_project,
+            out='instrument.log',
+            register_failure=register_failure,
+            tolerate_messages=tolerate_instrument_messages,
+            auto_languages=auto_languages,
+        )
         gprbuild_wrapper(gprsw.root_project)
 
         # Retrieve the dump_channel that "gnatcov instrument" actually used,
