@@ -2027,7 +2027,6 @@ package body Files_Table is
                when Source_File =>
                   FE := (Kind => Source_File, others => <>);
 
-                  FE.Ignore_Status := Unknown;
                   FE.Unit := (Known => False);
                   FE.Ignore_Status := Any_Ignore_Status'Val (CLS.Read_U8);
                   declare
