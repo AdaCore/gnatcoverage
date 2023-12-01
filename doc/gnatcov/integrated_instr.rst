@@ -147,7 +147,7 @@ directory:
 
 .. code-block:: sh
 
-   cmake .. -CMAKE_CXX_COMPILER=<my_project>/build/g++
+   cmake .. -DCMAKE_CXX_COMPILER=<my_project>/build/g++
 
 The default generator for CMake is "Unix Makefiles", so we can then run the
 build process with ``make``, and our executable which will produce a source trace
