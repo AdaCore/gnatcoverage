@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling;
-with Ada.Characters.Latin_1;
 with Ada.Containers;  use Ada.Containers;
 with Ada.Directories; use Ada.Directories;
 with Ada.Text_IO;     use Ada.Text_IO;
@@ -30,6 +29,7 @@ with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
 
 with GNATCOLL.VFS;
+with GNATCOLL.Mmap;
 
 with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
@@ -3851,16 +3851,15 @@ package body Instrument.C is
       declare
          Options        : Analysis_Options;
          PP_Filename    : Unbounded_String;
-         File           : Ada.Text_IO.File_Type;
          Dummy_Main     : Compilation_Unit_Part;
          Dump_Pat       : constant Pattern_Matcher :=
-           Compile ("^[\t ]*\/\* GNATCOV_DUMP_BUFFERS \*\/[ \t]*");
+           Compile
+             ("^[\t ]*\/\* GNATCOV_DUMP_BUFFERS \*\/[ \t]*",
+              Flags => Multiple_Lines);
          Matches        : Match_Array (0 .. 1);
          Dump_Procedure : constant String :=
            Dump_Procedure_Symbol
              (Main => Dummy_Main, Manual => True, Prj_Name => +Prj.Prj_Name);
-         Contents       : Unbounded_String :=
-           "extern void " & To_Unbounded_String (Dump_Procedure) & " (void);";
       begin
          --  Preprocess the source, keeping the comment to look for the manual
          --  dump indication later.
@@ -3887,47 +3886,84 @@ package body Instrument.C is
             end loop;
          end;
 
-         --  Look for the manual dump indication in the preprocessed file
+         --  Look for the manual dump indication in the preprocessed file. Use
+         --  the GNATCOLL.Mmap API to map the file contents in memory, as we
+         --  may need to rewrite it to the source file, with the manual dump
+         --  indication replaced by an actual call to the dump buffers
+         --  function.
 
-         Ada.Text_IO.Open
-           (File => File,
-            Mode => In_File,
-            Name => To_String (PP_Filename));
+         declare
+            use GNATCOLL.Mmap;
+            File         : Mapped_File := Open_Read (To_String (PP_Filename));
+            Region       : Mapped_Region := Read (File);
+            Raw_Str      : constant Str_Access := Data (Region);
+            Raw_Str_Last : constant Natural := Last (Region);
+            Str          : String renames Raw_Str (1 .. Raw_Str_Last);
 
-         while not Ada.Text_IO.End_Of_File (File) loop
-            declare
-               Line : constant String := Get_Line (File);
-            begin
-               Match (Dump_Pat, Line, Matches);
+            Tmp_Filename : constant String := +PP_Filename & ".tmp";
+            Output_File  : Ada.Text_IO.File_Type;
+            --  Temporary file containing the new version of the original file,
+            --  with inserted calls to dump buffers. The original file is then
+            --  overwritten by this temporary file.
 
-               if Matches (0) /= No_Match then
-                  Contents := Contents & Dump_Procedure & "();";
+            Index : Positive := 1;
+            --  Starting index, or last index of the previous match in the
+            --  original file.
+
+         begin
+            Has_Manual_Indication := False;
+            while Index in Str'Range loop
+               Match (Dump_Pat, Str (Index .. Str'Last), Matches);
+               exit when Matches (0) = No_Match;
+
+               --  Open the output file if this is the first match we find,
+               --  then forward the source code that appear before the match
+               --  unchanged.
+
+               if not Has_Manual_Indication then
+                  Create (Output_File, Out_File, Tmp_Filename);
                   Has_Manual_Indication := True;
-               else
-                  Contents := Contents & Line;
                end if;
+               Put (Output_File, Str (Index .. Matches (0).First));
 
-               Contents := Contents & Ada.Characters.Latin_1.LF;
-            end;
-         end loop;
+               --  Replace the match with the call to the dump procedure
 
-         Ada.Text_IO.Close (File);
+               Put (Output_File, Dump_Procedure & "();");
+               Index := Matches (0).Last + 1;
+            end loop;
 
-         if Has_Manual_Indication then
-            --  Content now holds the text of the original file with calls to
-            --  the manual dump procedure where the indications and its extern
-            --  declaration were. Replace the original content of the file with
-            --  Content.
+            --  If we had a manual indication, and thus wrote a modified source
+            --  file, overwrite the original source file with it.
 
-            Ada.Text_IO.Open
-              (File => File,
-               Mode => Out_File,
-               Name => To_String (PP_Filename));
+            if Has_Manual_Indication then
+               declare
+                  Tmp_File : constant Virtual_File := Create (+Tmp_Filename);
+                  Success  : Boolean;
+               begin
+                  --  Flush the rest of the file contents
 
-            Ada.Text_IO.Put_Line (File, To_String (Contents));
+                  Ada.Text_IO.Put (Output_File, Str (Index .. Str'Last));
+                  Ada.Text_IO.Close (Output_File);
 
-            Ada.Text_IO.Close (File);
-         end if;
+                  Free (Region);
+                  Close (File);
+
+                  --  Overwrite the original file with its newer version
+
+                  Tmp_File.Rename
+                    (Full_Name => Create (+(+PP_Filename)),
+                     Success   => Success);
+                  if not Success then
+                     Outputs.Fatal_Error
+                       ("Failed to replace manual dump indication for Source "
+                        & (+Source.File.Full_Name));
+                  end if;
+               end;
+            else
+               Free (Region);
+               Close (File);
+            end if;
+         end;
       end;
    end Replace_Manual_Dump_Indication;
 
