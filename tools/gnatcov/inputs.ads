@@ -39,7 +39,17 @@ package Inputs is
    --  May raise Name_Error or Status_Error if the corresponding text file
    --  cannot be opened.
 
-   type Inputs_Type is private;
+   type Inputs_Entry is record
+      Name, Qualifier : String_Access;
+   end record;
+
+   function Equal (L, R : Inputs_Entry) return Boolean;
+
+   package Input_Lists is new Ada.Containers.Doubly_Linked_Lists
+     (Element_Type => Inputs_Entry,
+      "="          => Equal);
+
+   type Inputs_Type is new Input_Lists.List with null record;
    --  Input lists. Can be used to accumulate the arguments given on
    --  a command line.
 
@@ -68,7 +78,8 @@ package Inputs is
    --  Go through the input list and call Process on each entry (qualifiers are
    --  ignored in the first variant).
 
-   function Length (Inputs : Inputs_Type) return Ada.Containers.Count_Type;
+   function Length (Inputs : Inputs_Type) return Ada.Containers.Count_Type
+     with Inline;
    --  Return the number of elements in Inputs
 
    procedure Log_File_Open (File_Name : String);
@@ -103,21 +114,5 @@ package Inputs is
       Has_Matcher      : out Boolean;
       Case_Insensitive : Boolean := False);
    --  Overload to work on Inputs.Inputs_Type values
-
-private
-
-   type Inputs_Entry is record
-      Name, Qualifier : String_Access;
-   end record;
-
-   function Equal (L, R : Inputs_Entry) return Boolean;
-
-   package Input_Lists is new Ada.Containers.Doubly_Linked_Lists
-     (Element_Type => Inputs_Entry,
-      "="          => Equal);
-
-   type Inputs_Type is new Input_Lists.List with null record;
-
-   pragma Inline (Length);
 
 end Inputs;
