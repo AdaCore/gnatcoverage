@@ -20,6 +20,7 @@ with Ada.Directories;       use Ada.Directories;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
+with Command_Line;      use Command_Line;
 with Instrument.Common; use Instrument.Common;
 with Project;
 
@@ -62,9 +63,11 @@ begin
    --  through extended projects, as their object directories can interfere
    --  with the build of the extending project.
 
-   Project.Iterate_Projects
-     (Root_Project     => Project.Project.Root_Project,
-      Process          => Clean_Subdir'Access,
-      Recursive        => True,
-      Include_Extended => True);
+   if not Args.Bool_Args (Opt_Save_Temps) then
+      Project.Iterate_Projects
+        (Root_Project     => Project.Project.Root_Project,
+         Process          => Clean_Subdir'Access,
+         Recursive        => True,
+         Include_Extended => True);
+   end if;
 end Instrument.Clean_Objdirs;
