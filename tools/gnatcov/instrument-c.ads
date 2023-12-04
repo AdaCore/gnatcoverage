@@ -55,10 +55,10 @@ package Instrument.C is
       Prj         : Prj_Desc);
 
    overriding procedure Replace_Manual_Dump_Indication
-     (Self   : in out C_Family_Instrumenter_Type;
-      Done   : in out Boolean;
-      Prj    : in out Prj_Desc;
-      Source : GNATCOLL.Projects.File_Info);
+     (Self                  : in out C_Family_Instrumenter_Type;
+      Prj                   : in out Prj_Desc;
+      Source                : GNATCOLL.Projects.File_Info;
+      Has_Manual_Indication : out Boolean);
    --  Preprocess Source and look through the text content of the preprocessed
    --  file looking for manual dump indications. The C-like languages, the
    --  expected indication is the comment alone on its line:
