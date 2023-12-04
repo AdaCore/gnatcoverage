@@ -3838,10 +3838,10 @@ package body Instrument.C is
    ------------------------------------
 
    overriding procedure Replace_Manual_Dump_Indication
-     (Self   : in out C_Family_Instrumenter_Type;
-      Done   : in out Boolean;
-      Prj    : in out Prj_Desc;
-      Source : GNATCOLL.Projects.File_Info)
+     (Self                  : in out C_Family_Instrumenter_Type;
+      Prj                   : in out Prj_Desc;
+      Source                : GNATCOLL.Projects.File_Info;
+      Has_Manual_Indication : out Boolean)
    is
       use GNATCOLL.VFS;
       Orig_Filename : constant String := +Source.File.Full_Name;
@@ -3902,7 +3902,7 @@ package body Instrument.C is
 
                if Matches (0) /= No_Match then
                   Contents := Contents & Dump_Procedure & "();";
-                  Done := True;
+                  Has_Manual_Indication := True;
                else
                   Contents := Contents & Line;
                end if;
@@ -3913,7 +3913,7 @@ package body Instrument.C is
 
          Ada.Text_IO.Close (File);
 
-         if Done then
+         if Has_Manual_Indication then
             --  Content now holds the text of the original file with calls to
             --  the manual dump procedure where the indications and its extern
             --  declaration were. Replace the original content of the file with

@@ -486,14 +486,17 @@ package Instrument.Common is
    --  the instrumented source files.
 
    procedure Replace_Manual_Dump_Indication
-     (Self   : in out Language_Instrumenter;
-      Done   : in out Boolean;
-      Prj    : in out Prj_Desc;
-      Source : GNATCOLL.Projects.File_Info) is null;
+     (Self                  : in out Language_Instrumenter;
+      Prj                   : in out Prj_Desc;
+      Source                : GNATCOLL.Projects.File_Info;
+      Has_Manual_Indication : out Boolean) is null;
    --  Look for the pragma (for Ada) or comment (for C family languages)
    --  indicating where the user wishes to the buffers to be dumped in Source.
    --  When found, replace it with a call to the buffers dump procedure defined
    --  in the dump helper unit.
+   --
+   --  Has_Manual_Indication indicates whether a manual dump indication was
+   --  found - and replaced with a call to dump buffers - in the given source.
 
    function New_File
      (Prj : Prj_Desc; Name : String) return String;
