@@ -25,16 +25,8 @@ You need, on your `PATH`:
 
 * gprbuild >= 1.3.0
 
-* GNATpython and rlimit. If you don't have a binary package at hand, you may
-  install the necessary subset with:
-
-    ```shell
-    git clone https://forge.open-do.org/anonscm/git/gnatpython/gnatpython.git
-    ```
-
-  Add the extracted directory to your `PYTHONPATH`, then compile rlimit and add
-  it to your `PATH`. Or run `./setup.py` install to install the GNATpython
-  package in your Python distribution.
+* The [e3-core](https://github.com/AdaCore/e3-core/) and
+  [e3-testsuite](https://github.com/adacore/e3-testsuite/) Python packages.
 
 * The GNAT toolchain that you wish be used to compile the tests (recent enough
   wrt `-fpreserve-control-flow`).
