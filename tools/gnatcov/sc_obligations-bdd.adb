@@ -29,6 +29,26 @@ with Slocs;
 
 package body SC_Obligations.BDD is
 
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out BDD_Node);
+   --  Read a BDD_Node from CLS
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : BDD_Node);
+   --  Write a BDD_Node to CSS
+
+   procedure Read_BDD_Vector is new Read_Vector
+     (Index_Type   => Valid_BDD_Node_Id,
+      Element_Type => BDD_Node,
+      "="          => "=",
+      Vectors      => BDD_Vectors,
+      Read_Element => Read);
+
+   procedure Write_BDD_Vector is new Write_Vector
+     (Index_Type    => Valid_BDD_Node_Id,
+      Element_Type  => BDD_Node,
+      "="           => "=",
+      Vectors       => BDD_Vectors,
+      Write_Element => Write);
+
    package Arcs_Stacks is
      new Ada.Containers.Vectors
        (Index_Type   => Natural,
@@ -80,39 +100,52 @@ package body SC_Obligations.BDD is
    -- Read --
    ----------
 
-   procedure Read (S : access Root_Stream_Type'Class; V : out BDD_Type) is
+   procedure Read
+     (CLS : in out Checkpoints.Checkpoint_Load_State; Value : out BDD_Type) is
    begin
-      SCO_Id'Read       (S, V.Decision);
-      BDD_Node_Id'Read  (S, V.Root_Condition);
-      BDD_Node_Id'Read  (S, V.First_Node);
-      BDD_Node_Id'Read  (S, V.Last_Node);
-      BDD_Node_Id'Read  (S, V.First_Multipath_Condition);
-      Reachability'Read (S, V.Reachable_Outcomes);
-      Natural'Read      (S, V.Path_Count);
+      Value.Decision := CLS.Read_SCO;
+      Value.Root_Condition := CLS.Read_BDD_Node;
+      Value.First_Node := CLS.Read_BDD_Node;
+      Value.Last_Node := CLS.Read_BDD_Node;
+      Value.First_Multipath_Condition := CLS.Read_BDD_Node;
+
+      Value.Reachable_Outcomes (False) := CLS.Read_Boolean;
+      Value.Reachable_Outcomes (True) := CLS.Read_Boolean;
+
+      Value.Path_Count := CLS.Read_Integer;
    end Read;
 
-   procedure Read (S : access Root_Stream_Type'Class; V : out BDD_Node) is
-      New_BDDN : BDD_Node (BDD_Node_Kind'Input (S));
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out BDD_Node) is
+      New_BDDN : BDD_Node (BDD_Node_Kind'Val (CLS.Read_U8));
       pragma Warnings (Off, New_BDDN);
+
    begin
       --  Set discriminant
 
-      V := New_BDDN;
+      Value := New_BDDN;
 
-      case V.Kind is
+      case Value.Kind is
          when Outcome =>
-            Boolean'Read (S, V.Decision_Outcome);
+            Value.Decision_Outcome := CLS.Read_Boolean;
 
          when Condition =>
-            BDD_Node_Id'Read  (S, V.Parent);
-            Boolean'Read      (S, V.Parent_Value);
-            SCO_Id'Read       (S, V.C_SCO);
-            Destinations'Read (S, V.Dests);
-            Natural'Read      (S, V.Path_Offset);
+            Value.Parent := CLS.Read_BDD_Node;
+            Value.Parent_Value := CLS.Read_Boolean;
+            Value.C_SCO := CLS.Read_SCO;
+            Value.Dests (False) := CLS.Read_BDD_Node;
+            Value.Dests (True) := CLS.Read_BDD_Node;
+            Value.Path_Offset := CLS.Read_Integer;
 
          when Jump =>
-            BDD_Node_Id'Read (S, V.Dest);
+            Value.Dest := CLS.Read_BDD_Node;
       end case;
+   end Read;
+
+   procedure Read
+     (CLS    : in out Checkpoints.Checkpoint_Load_State;
+      Vector : out BDD_Vectors.Vector) is
+   begin
+      Read_BDD_Vector (CLS, Vector);
    end Read;
 
    -----------
@@ -120,40 +153,47 @@ package body SC_Obligations.BDD is
    -----------
 
    procedure Write
-     (S : access Root_Stream_Type'Class;
-      V : BDD_Type)
-   is
+     (CSS : in out Checkpoints.Checkpoint_Save_State; Value : BDD_Type) is
    begin
-      SCO_Id'Write       (S, V.Decision);
-      BDD_Node_Id'Write  (S, V.Root_Condition);
-      BDD_Node_Id'Write  (S, V.First_Node);
-      BDD_Node_Id'Write  (S, V.Last_Node);
-      BDD_Node_Id'Write  (S, V.First_Multipath_Condition);
-      Reachability'Write (S, V.Reachable_Outcomes);
-      Natural'Write      (S, V.Path_Count);
+      CSS.Write_SCO      (Value.Decision);
+      CSS.Write_BDD_Node (Value.Root_Condition);
+      CSS.Write_BDD_Node (Value.First_Node);
+      CSS.Write_BDD_Node (Value.Last_Node);
+      CSS.Write_BDD_Node (Value.First_Multipath_Condition);
+
+      CSS.Write (Value.Reachable_Outcomes (False));
+      CSS.Write (Value.Reachable_Outcomes (True));
+
+      CSS.Write_Integer (Value.Path_Count);
+   end Write;
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : BDD_Node) is
+   begin
+      CSS.Write_U8 (BDD_Node_Kind'Pos (Value.Kind));
+
+      case Value.Kind is
+         when Outcome =>
+            CSS.Write (Value.Decision_Outcome);
+
+         when Condition =>
+            CSS.Write_BDD_Node (Value.Parent);
+            CSS.Write          (Value.Parent_Value);
+            CSS.Write_SCO      (Value.C_SCO);
+            CSS.Write_BDD_Node (Value.Dests (False));
+            CSS.Write_BDD_Node (Value.Dests (True));
+            CSS.Write_Integer  (Value.Path_Offset);
+
+         when Jump =>
+            CSS.Write_BDD_Node (Value.Dest);
+      end case;
    end Write;
 
    procedure Write
-     (S : access Root_Stream_Type'Class;
-      V : BDD_Node)
+     (CSS    : in out Checkpoints.Checkpoint_Save_State;
+      Vector : BDD_Vectors.Vector)
    is
    begin
-      BDD_Node_Kind'Write (S, V.Kind);
-
-      case V.Kind is
-         when Outcome =>
-            Boolean'Write (S, V.Decision_Outcome);
-
-         when Condition =>
-            BDD_Node_Id'Write  (S, V.Parent);
-            Boolean'Write      (S, V.Parent_Value);
-            SCO_Id'Write       (S, V.C_SCO);
-            Destinations'Write (S, V.Dests);
-            Natural'Write      (S, V.Path_Offset);
-
-         when Jump =>
-            BDD_Node_Id'Write (S, V.Dest);
-      end case;
+      Write_BDD_Vector (CSS, Vector);
    end Write;
 
    ---------------------

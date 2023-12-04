@@ -18,8 +18,6 @@
 
 --  Binary Decision Diagrams
 
-with Ada.Streams; use Ada.Streams;
-
 private package SC_Obligations.BDD is
 
    Path_Count_Limit : Natural := 1024;
@@ -77,20 +75,20 @@ private package SC_Obligations.BDD is
    pragma Warnings (Off, "* is not referenced");
    --  Work around compiler bug: bogus warning???
 
-   procedure Read
-     (S : access Root_Stream_Type'Class; V : out BDD_Node);
-   procedure Write
-     (S : access Root_Stream_Type'Class;
-      V : BDD_Node);
-   pragma Warnings (On, "* is not referenced");
-
-   for BDD_Node'Read use Read;
-   for BDD_Node'Write use Write;
-
    package BDD_Vectors is
      new Ada.Containers.Vectors
        (Index_Type   => Valid_BDD_Node_Id,
         Element_Type => BDD_Node);
+
+   procedure Read
+     (CLS    : in out Checkpoints.Checkpoint_Load_State;
+      Vector : out BDD_Vectors.Vector);
+   --  Read a BDD_Vectors.Vector from CLS
+
+   procedure Write
+     (CSS    : in out Checkpoints.Checkpoint_Save_State;
+      Vector : BDD_Vectors.Vector);
+   --  Write a BDD_Vectors.Vector to CSS
 
    type Reachability is array (Boolean) of Boolean;
 
@@ -116,15 +114,13 @@ private package SC_Obligations.BDD is
       --  Count of paths from root condition to any outcome
    end record;
 
-   pragma Warnings (Off, "* is not referenced");
-   procedure Read (S : access Root_Stream_Type'Class; V : out BDD_Type);
-   procedure Write
-     (S : access Root_Stream_Type'Class;
-      V : BDD_Type);
-   pragma Warnings (On, "* is not referenced");
+   procedure Read
+     (CLS : in out Checkpoints.Checkpoint_Load_State; Value : out BDD_Type);
+   --  Read a BDD_Type from CLS
 
-   for BDD_Type'Read use Read;
-   for BDD_Type'Write use Write;
+   procedure Write
+     (CSS : in out Checkpoints.Checkpoint_Save_State; Value : BDD_Type);
+   --  Write a BDD_Type to CSS
 
    procedure Allocate
      (BDD_Vector : in out BDD_Vectors.Vector;

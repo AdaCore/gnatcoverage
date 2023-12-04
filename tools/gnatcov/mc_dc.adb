@@ -215,4 +215,29 @@ package body MC_DC is
       return Result;
    end To_Vector;
 
+   ----------
+   -- Read --
+   ----------
+
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out Evaluation)
+   is
+   begin
+      Value.Decision := CLS.Read_SCO;
+      Read (CLS, Value.Values);
+      Value.Outcome := CLS.Read_Tristate;
+      Value.Next_Condition := CLS.Read_Condition;
+   end Read;
+
+   -----------
+   -- Write --
+   -----------
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : Evaluation) is
+   begin
+      CSS.Write_SCO (Value.Decision);
+      Write (CSS, Value.Values);
+      CSS.Write (Value.Outcome);
+      CSS.Write_Condition (Value.Next_Condition);
+   end Write;
+
 end MC_DC;

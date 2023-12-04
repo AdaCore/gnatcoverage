@@ -20,6 +20,7 @@
 
 with Ada.Containers.Vectors;
 
+with Checkpoints;    use Checkpoints;
 with SC_Obligations; use SC_Obligations;
 
 package MC_DC is
@@ -79,5 +80,23 @@ package MC_DC is
 
    function Image (EV : Condition_Evaluation_Vectors.Vector) return String;
    --  Image of EV, for reporting purposes
+
+   procedure Read is new Read_Vector
+     (Index_Type   => Condition_Index,
+      Element_Type => Tristate,
+      Vectors      => Condition_Evaluation_Vectors,
+      Read_Element => Read);
+
+   procedure Write is new Write_Vector
+     (Index_Type    => Condition_Index,
+      Element_Type  => Tristate,
+      Vectors       => Condition_Evaluation_Vectors,
+      Write_Element => Write);
+
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out Evaluation);
+   --  Read an Evaluation from CLS
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : Evaluation);
+   --  Write an Evalution to CSS
 
 end MC_DC;

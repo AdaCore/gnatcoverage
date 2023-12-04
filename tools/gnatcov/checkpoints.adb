@@ -19,24 +19,22 @@
 with Ada.Streams.Stream_IO; use Ada.Streams.Stream_IO;
 with Ada.Unchecked_Deallocation;
 
+pragma Warnings (Off, "* is an internal GNAT unit");
+with Ada.Strings.Unbounded.Aux; use Ada.Strings.Unbounded.Aux;
+pragma Warnings (On, "* is an internal GNAT unit");
+
 with Interfaces; use Interfaces;
 
 with Coverage.Source;
 with Coverage_Options; use Coverage_Options;
 with Instrument.Checkpoints;
 with Outputs;          use Outputs;
-with Traces;           use Traces;
 with Traces_Files;     use Traces_Files;
 with Traces_Files_Registry;
 
 package body Checkpoints is
 
    Checkpoint_Magic : constant String := "GNATcov checkpoint" & ASCII.NUL;
-
-   type Checkpoint_Header is record
-      Magic   : String (1 .. Checkpoint_Magic'Length) := Checkpoint_Magic;
-      Version : Interfaces.Unsigned_32;
-   end record;
 
    procedure Free is new Ada.Unchecked_Deallocation
      (SFI_Map_Array, SFI_Map_Acc);
@@ -440,8 +438,7 @@ package body Checkpoints is
       Context  : access Coverage.Context;
       Purpose  : Checkpoint_Purpose)
    is
-      Version : constant Checkpoint_Version := Checkpoint_Version'Last;
-      SF      : Ada.Streams.Stream_IO.File_Type;
+      SF : Ada.Streams.Stream_IO.File_Type;
    begin
       Create (SF, Out_File, Filename);
 
@@ -452,14 +449,14 @@ package body Checkpoints is
            (Root_Stream_Type with
             Stream   => Stream (SF),
             Filename => To_Unbounded_String (Filename),
-            Version  => Version,
             Purpose  => Purpose);
          Supported_Levels : Levels_Type := Current_Levels;
       begin
-         Checkpoint_Header'Write
-           (CSS.Stream, (Version => Version, others => <>));
+         --  Write the checkpoint header: magic, version and purpose
 
-         Checkpoint_Purpose'Write (CSS.Stream, Purpose);
+         CSS.Write (Checkpoint_Magic);
+         CSS.Write_U32 (Checkpoint_Version'Last);
+         CSS.Write_U8 (Checkpoint_Purpose'Pos (Purpose));
 
          --  Describe the binary traces (if any) that contributed to the
          --  creation of this checkpoint.
@@ -470,7 +467,7 @@ package body Checkpoints is
                when Unknown | Source_Trace_File         => Undetermined,
                when Binary_Trace_File | All_Trace_Files => Supported_Bits);
          begin
-            Binary_Traces_Bits'Write (CSS.Stream, Bits);
+            CSS.Write_U8 (Binary_Traces_Bits'Pos (Bits));
          end;
 
          --  Instrumentation is the same for all MC/DC variants, so a
@@ -482,9 +479,13 @@ package body Checkpoints is
             Supported_Levels (MCDC_Coverage_Level'Range) := (others => True);
             Supported_Levels (Decision) := True;
          end if;
-         Levels_Type'Write (CSS.Stream, Supported_Levels);
-         Traces_Files.Any_Accepted_Trace_Kind'Write
-           (CSS.Stream, Traces_Files.Currently_Accepted_Trace_Kind);
+         for Level in Insn .. ATCC loop
+            CSS.Write (Supported_Levels (Level));
+         end loop;
+
+         CSS.Write_U8
+           (Traces_Files.Any_Accepted_Trace_Kind'Pos
+              (Traces_Files.Currently_Accepted_Trace_Kind));
 
          Files_Table.Checkpoint_Save (CSS'Access);
          SC_Obligations.Checkpoint_Save (CSS'Access);
@@ -548,11 +549,9 @@ package body Checkpoints is
       Purpose              : Checkpoint_Purpose;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
-      Dummy     : constant Context_Handle :=
+      Dummy : constant Context_Handle :=
         Create_Context ("Loading " & Filename);
-      SF        : Ada.Streams.Stream_IO.File_Type;
-      CP_Header : Checkpoint_Header;
-      Levels    : Levels_Type;
+      SF    : Ada.Streams.Stream_IO.File_Type;
    begin
       Open (SF, In_File, Filename);
 
@@ -562,55 +561,75 @@ package body Checkpoints is
       Raise_Stub_Internal_Error_For (Load_Checkpoint);
 
       declare
-         CLS : aliased Checkpoint_Load_State :=
+         CLS : Checkpoint_Load_State :=
            (Root_Stream_Type with
             Stream   => Stream (SF),
             Filename => To_Unbounded_String (Filename),
             Purpose  => Purpose,
             others   => <>);
+
+         Magic : String (Checkpoint_Magic'Range);
       begin
-         Checkpoint_Header'Read (CLS.Stream, CP_Header);
-         if CP_Header.Magic /= Checkpoint_Magic then
+         CLS.Read (Magic);
+         if Magic /= Checkpoint_Magic then
             Fatal_Error ("invalid checkpoint file " & Filename);
+         end if;
 
-         elsif CP_Header.Version /= Checkpoint_Version'Last then
-            Fatal_Error
-              ("invalid checkpoint version" & CP_Header.Version'Img);
+         CLS.Version := CLS.Read_U32;
+         if CLS.Version /= Checkpoint_Version'Last then
+            Fatal_Error ("invalid checkpoint version" & CLS.Version'Img);
+         end if;
 
-         else
-            CLS.Version := CP_Header.Version;
+         --  Check that we are loading the kind of checkpoint we are
+         --  expecting (Purpose).
 
-            --  Check that we are loading the kind of checkpoint we are
-            --  expecting (Purpose).
+         declare
+            CP_Purpose : constant Checkpoint_Purpose :=
+              Checkpoint_Purpose'Val (CLS.Read_U8);
+         begin
+            if CP_Purpose /= Purpose then
+               Fatal_Error
+                 (Filename & " is a " & Purpose_Name (CP_Purpose)
+                  & " while a " & Purpose_Name (Purpose)
+                  & " was expected");
+            end if;
+         end;
 
-            declare
-               CP_Purpose : constant Checkpoint_Purpose :=
-                  Checkpoint_Purpose'Input (CLS.Stream);
-            begin
-               if CP_Purpose /= Purpose then
-                  Fatal_Error
-                    (Filename & " is a " & Purpose_Name (CP_Purpose)
-                     & " while a " & Purpose_Name (Purpose)
-                     & " was expected");
-               end if;
-            end;
+         --  Check the kind of binary traces that were used to create this
+         --  checkpoint.
 
-            --  Check the kind of binary traces that were used to create this
-            --  checkpoint.
+         declare
+            Bits : constant Binary_Traces_Bits :=
+              Binary_Traces_Bits'Val (CLS.Read_U8);
+         begin
+            if Bits not in Undetermined | Supported_Bits then
+               Fatal_Error
+                 (Filename & " was created with " & Image (Bits)
+                  & " whereas the selected target requires "
+                  & Image (Supported_Bits));
+            end if;
+         end;
 
-            declare
-               Bits : constant Binary_Traces_Bits :=
-                 Binary_Traces_Bits'Input (CLS.Stream);
-            begin
-               if Bits not in Undetermined | Supported_Bits then
-                  Fatal_Error
-                    (Filename & " was created with " & Image (Bits)
-                     & " whereas the selected target requires "
-                     & Image (Supported_Bits));
-               end if;
-            end;
+         --  Check that the checkpoint to load covers all the coverage levels
+         --  that are selected for this run.
+         --
+         --  See the note on checkpoint version compatibility for the tedious
+         --  reading code.
 
-            Levels_Type'Read (CLS.Stream, Levels);
+         declare
+            CP_Levels : U8_Array (1 .. 8);
+            Levels    : Levels_Type;
+         begin
+            CLS.Read (CP_Levels);
+            Levels :=
+              (Insn     => Boolean'Val (CP_Levels (1)),
+               Branch   => Boolean'Val (CP_Levels (2)),
+               Stmt     => Boolean'Val (CP_Levels (3)),
+               Decision => Boolean'Val (CP_Levels (4)),
+               MCDC     => Boolean'Val (CP_Levels (5)),
+               UC_MCDC  => Boolean'Val (CP_Levels (6)),
+               ATC      => Boolean'Val (CP_Levels (7)),
+               ATCC     => Boolean'Val (CP_Levels (8)));
             declare
                Error_Msg : constant String :=
                  Coverage.Is_Load_Allowed (Filename, Levels);
@@ -619,22 +638,18 @@ package body Checkpoints is
                   Fatal_Error (Error_Msg);
                end if;
             end;
+         end;
 
-            declare
-               CP_Trace_Kind : Any_Accepted_Trace_Kind;
-            begin
-               Any_Accepted_Trace_Kind'Read (CLS.Stream, CP_Trace_Kind);
-               Update_Current_Trace_Kind (CP_Trace_Kind);
-            end;
+         Update_Current_Trace_Kind
+           (Any_Accepted_Trace_Kind'Val (CLS.Read_U8));
 
-            Files_Table.Checkpoint_Load (CLS'Access, Ignored_Source_Files);
-            SC_Obligations.Checkpoint_Load (CLS'Access);
-            Instrument.Checkpoints.Checkpoint_Load (CLS'Access);
-            Coverage.Source.Checkpoint_Load (CLS'Access);
-            Traces_Files_Registry.Checkpoint_Load (CLS'Access);
+         Files_Table.Checkpoint_Load (CLS, Ignored_Source_Files);
+         SC_Obligations.Checkpoint_Load (CLS);
+         Instrument.Checkpoints.Checkpoint_Load (CLS);
+         Coverage.Source.Checkpoint_Load (CLS);
+         Traces_Files_Registry.Checkpoint_Load (CLS);
 
-            Free (CLS.Relocations);
-         end if;
+         Free (CLS.Relocations);
       end;
 
       Close (SF);
@@ -680,5 +695,893 @@ package body Checkpoints is
    begin
       Stream.Stream.Write (Item);
    end Write;
+
+   --  Note for the Read* procedures below: using stream attributes for
+   --  well-defined elementary data types (String, Unsigned_*) can be
+   --  considered stable enough that it will preserve backwards and platform
+   --  compatibility, except maybe for endianity. For now, gnatcov is supported
+   --  on little-endian platforms only, so we should be fine.
+
+   -------------------
+   -- Read_BDD_Node --
+   -------------------
+
+   function Read_BDD_Node
+     (Self : in out Checkpoint_Load_State) return BDD_Node_Id is
+   begin
+      return BDD_Node_Id (Self.Read_I32);
+   end Read_BDD_Node;
+
+   -----------------
+   -- Read_Bit_Id --
+   -----------------
+
+   function Read_Bit_Id
+     (Self : in out Checkpoint_Load_State) return Any_Bit_Id
+   is
+   begin
+      return Any_Bit_Id (Self.Read_I32);
+   end Read_Bit_Id;
+
+   ------------------
+   -- Read_Boolean --
+   ------------------
+
+   function Read_Boolean (Self : in out Checkpoint_Load_State) return Boolean
+   is
+   begin
+      return Boolean'Val (Self.Read_U8);
+   end Read_Boolean;
+
+   -------------
+   -- Read_CU --
+   -------------
+
+   function Read_CU (Self : in out Checkpoint_Load_State) return CU_Id is
+   begin
+      return CU_Id (Self.Read_I32);
+   end Read_CU;
+
+   ---------------------------
+   -- Read_Compilation_Unit --
+   ---------------------------
+
+   function Read_Compilation_Unit
+     (Self : in out Checkpoint_Load_State) return Compilation_Unit
+   is
+      Language : constant Any_Language_Kind := Self.Read_Language_Kind;
+   begin
+      return (Language => Language, Unit_Name => Self.Read_Unbounded_String);
+   end Read_Compilation_Unit;
+
+   --------------------
+   -- Read_Condition --
+   --------------------
+
+   function Read_Condition
+     (Self : in out Checkpoint_Load_State) return Any_Condition_Index is
+   begin
+      return Any_Condition_Index (Self.Read_I32);
+   end Read_Condition;
+
+   ----------------------
+   -- Read_Fingerprint --
+   ----------------------
+
+   function Read_Fingerprint
+     (Self : in out Checkpoint_Load_State)
+      return SC_Obligations.Fingerprint_Type
+   is
+      Buffer : String (1 .. SC_Obligations.Fingerprint_Type'Length);
+      I      : Positive := 1;
+   begin
+      Self.Read (Buffer);
+      return Result : SC_Obligations.Fingerprint_Type do
+         for Digit of Result loop
+            Digit := Character'Pos (Buffer (I));
+            I := I + 1;
+         end loop;
+      end return;
+   end Read_Fingerprint;
+
+   --------------
+   -- Read_I32 --
+   --------------
+
+   function Read_I32
+     (Self : in out Checkpoint_Load_State) return Interfaces.Integer_32 is
+   begin
+      return Interfaces.Integer_32'Input (Self.Stream);
+   end Read_I32;
+
+   ------------------
+   -- Read_Integer --
+   ------------------
+
+   function Read_Integer (Self : in out Checkpoint_Load_State) return Integer
+   is
+   begin
+      return Integer (Self.Read_I32);
+   end Read_Integer;
+
+   ---------------
+   -- Read_Inst --
+   ---------------
+
+   function Read_Inst (Self : in out Checkpoint_Load_State) return Inst_Id is
+   begin
+      return Inst_Id (Self.Read_I32);
+   end Read_Inst;
+
+   ------------------------
+   -- Read_Language_Kind --
+   ------------------------
+
+   function Read_Language_Kind
+     (Self : in out Checkpoint_Load_State) return Any_Language_Kind is
+   begin
+      return Any_Language_Kind'Val (Self.Read_U32);
+   end Read_Language_Kind;
+
+   ---------------------
+   -- Read_Line_State --
+   ---------------------
+
+   function Read_Line_State
+     (Self : in out Checkpoint_Load_State) return Any_Line_State is
+   begin
+      return Any_Line_State'Val (Self.Read_U8);
+   end Read_Line_State;
+
+   --------------------------------
+   -- Read_Local_Source_Location --
+   --------------------------------
+
+   function Read_Local_Source_Location
+     (Self : in out Checkpoint_Load_State) return Local_Source_Location
+   is
+      Line   : constant Natural := Self.Read_Integer;
+      Column : constant Integer := Self.Read_Integer;
+   begin
+      return (Line, Column);
+   end Read_Local_Source_Location;
+
+   --------------------------------------
+   -- Read_Local_Source_Location_Range --
+   --------------------------------------
+
+   function Read_Local_Source_Location_Range
+     (Self : in out Checkpoint_Load_State) return Local_Source_Location_Range
+   is
+      First : constant Local_Source_Location :=
+        Self.Read_Local_Source_Location;
+      Last  : constant Local_Source_Location :=
+        Self.Read_Local_Source_Location;
+   begin
+      return (First, Last);
+   end Read_Local_Source_Location_Range;
+
+   -------------
+   -- Read_PC --
+   -------------
+
+   function Read_PC (Self : in out Checkpoint_Load_State) return Pc_Type is
+   begin
+      case Pc_Type'Size is
+         when 32 =>
+            return Pc_Type (Self.Read_U32);
+         when 64 =>
+            return Pc_Type (Self.Read_U64);
+         when others =>
+            raise Program_Error;
+      end case;
+   end Read_PC;
+
+   --------------
+   -- Read_SCO --
+   --------------
+
+   function Read_SCO (Self : in out Checkpoint_Load_State) return SCO_Id is
+   begin
+      return SCO_Id (Self.Read_I32);
+   end Read_SCO;
+
+   --------------
+   -- Read_SFI --
+   --------------
+
+   function Read_SFI
+     (Self : in out Checkpoint_Load_State) return Source_File_Index is
+   begin
+      return Source_File_Index (Self.Read_I32);
+   end Read_SFI;
+
+   --------------------------
+   -- Read_Source_Location --
+   --------------------------
+
+   function Read_Source_Location
+     (Self : in out Checkpoint_Load_State) return Source_Location
+   is
+   begin
+      return Result : Source_Location do
+         Self.Read (Result);
+      end return;
+   end Read_Source_Location;
+
+   --------------------------------
+   -- Read_Source_Location_Range --
+   --------------------------------
+
+   function Read_Source_Location_Range
+     (Self : in out Checkpoint_Load_State) return Source_Location_Range is
+   begin
+      return Result : Source_Location_Range do
+         Result.Source_File := Self.Read_SFI;
+         Result.L := Self.Read_Local_Source_Location_Range;
+      end return;
+   end Read_Source_Location_Range;
+
+   -----------------
+   -- Read_String --
+   -----------------
+
+   function Read_String (Self : in out Checkpoint_Load_State) return String is
+      First : constant Positive := Self.Read_Integer;
+      Last  : constant Natural := Self.Read_Integer;
+   begin
+      return Result : String (First .. Last) do
+         Self.Read (Result);
+      end return;
+   end Read_String;
+
+   -------------------
+   -- Read_Tristate --
+   -------------------
+
+   function Read_Tristate
+     (Self : in out Checkpoint_Load_State) return Tristate is
+   begin
+      return Tristate'Val (Self.Read_U8);
+   end Read_Tristate;
+
+   -------------
+   -- Read_U8 --
+   -------------
+
+   function Read_U8
+     (Self : in out Checkpoint_Load_State) return Interfaces.Unsigned_8 is
+   begin
+      return Interfaces.Unsigned_8'Input (Self.Stream);
+   end Read_U8;
+
+   --------------
+   -- Read_U16 --
+   --------------
+
+   function Read_U16
+     (Self : in out Checkpoint_Load_State) return Interfaces.Unsigned_16 is
+   begin
+      return Interfaces.Unsigned_16'Input (Self.Stream);
+   end Read_U16;
+
+   --------------
+   -- Read_U32 --
+   --------------
+
+   function Read_U32
+     (Self : in out Checkpoint_Load_State) return Interfaces.Unsigned_32 is
+   begin
+      return Interfaces.Unsigned_32'Input (Self.Stream);
+   end Read_U32;
+
+   --------------
+   -- Read_U64 --
+   --------------
+
+   function Read_U64
+     (Self : in out Checkpoint_Load_State) return Interfaces.Unsigned_64 is
+   begin
+      return Interfaces.Unsigned_64'Input (Self.Stream);
+   end Read_U64;
+
+   ---------------------------
+   -- Read_Unbounded_String --
+   ---------------------------
+
+   function Read_Unbounded_String
+     (Self : in out Checkpoint_Load_State) return Unbounded_String
+   is
+   begin
+      return Result : Unbounded_String do
+         Read (Self, Result);
+      end return;
+   end Read_Unbounded_String;
+
+   --------------
+   -- Read_Map --
+   --------------
+
+   procedure Read_Map
+     (Self : in out Checkpoint_Load_State; Map : out Map_Type)
+   is
+      Count : constant Interfaces.Integer_32 := Self.Read_I32;
+   begin
+      Clear (Map);
+      for I in 1 .. Count loop
+         declare
+            Key     : Key_Type;
+            Element : Element_Type;
+         begin
+            Read_Key (Self, Key);
+            Read_Element (Self, Element);
+            Insert (Map, Key, Element);
+         end;
+      end loop;
+   end Read_Map;
+
+   --------------
+   -- Read_Set --
+   --------------
+
+   procedure Read_Set
+     (Self : in out Checkpoint_Load_State; Set : out Set_Type)
+   is
+      Count : constant Interfaces.Integer_32 := Self.Read_I32;
+   begin
+      Clear (Set);
+      for I in 1 .. Count loop
+         declare
+            Element : Element_Type;
+         begin
+            Read_Element (Self, Element);
+            Insert (Set, Element);
+         end;
+      end loop;
+   end Read_Set;
+
+   ---------------
+   -- Read_Tree --
+   ---------------
+
+   procedure Read_Tree
+     (Self : in out Checkpoint_Load_State; Tree : out Multiway_Trees.Tree)
+   is
+      procedure Read_Children (Parent : Multiway_Trees.Cursor);
+      --  Read a list of child subtrees and append them to Parent
+
+      procedure Read_Subtree (Parent : Multiway_Trees.Cursor);
+      --  Read a subtree and append it to Parent
+
+      -------------------
+      -- Read_Children --
+      -------------------
+
+      procedure Read_Children (Parent : Multiway_Trees.Cursor) is
+         Count : constant Natural := Self.Read_Integer;
+      begin
+         for I in 1 .. Count loop
+            Read_Subtree (Parent);
+         end loop;
+      end Read_Children;
+
+      ------------------
+      -- Read_Subtree --
+      ------------------
+
+      procedure Read_Subtree (Parent : Multiway_Trees.Cursor) is
+         Element : Element_Type;
+      begin
+         Read_Element (Self, Element);
+         Tree.Append_Child (Parent, Element);
+         Read_Children (Multiway_Trees.Last_Child (Parent));
+      end Read_Subtree;
+
+      Count : constant Natural := Self.Read_Integer;
+
+   --  Start of processing for Read
+
+   begin
+      Tree.Clear;
+      if Count > 0 then
+         Read_Children (Tree.Root);
+      end if;
+   end Read_Tree;
+
+   -----------------
+   -- Read_Vector --
+   -----------------
+
+   procedure Read_Vector
+     (Self : in out Checkpoint_Load_State; Vector : out Vectors.Vector)
+   is
+      procedure Process (Element : in out Element_Type);
+      --  Call Read_Element on Element
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (Element : in out Element_Type) is
+      begin
+         Read_Element (Self, Element);
+      end Process;
+
+      Length : constant Interfaces.Integer_32 := Self.Read_I32;
+
+   --  Start of processing for Read_Vector
+
+   begin
+      Vector.Clear;
+      Vector.Set_Length (Ada.Containers.Count_Type (Length));
+      for Cur in Vector.Iterate loop
+         Vector.Update_Element (Cur, Process'Access);
+      end loop;
+   end Read_Vector;
+
+   ----------
+   -- Read --
+   ----------
+
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out U8_Array)
+   is
+   begin
+      U8_Array'Read (Self.Stream, Value);
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out CU_Id) is
+   begin
+      Value := Self.Read_CU;
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Pc_Type) is
+   begin
+      Value := Self.Read_PC;
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out SCO_Id) is
+   begin
+      Value := Self.Read_SCO;
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Source_File_Index) is
+   begin
+      Value := Self.Read_SFI;
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Source_Location) is
+   begin
+      Value.Source_File := Self.Read_SFI;
+      Value.L := Self.Read_Local_Source_Location;
+   end Read;
+
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out String) is
+   begin
+      String'Read (Self.Stream, Value);
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Tristate) is
+   begin
+      Value := Self.Read_Tristate;
+   end Read;
+
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Unbounded_String)
+   is
+      procedure Set (S : out String);
+      --  Callback for Set_String: set S with bytes read from Self
+
+      ---------
+      -- Set --
+      ---------
+
+      procedure Set (S : out String) is
+      begin
+         Self.Read (S);
+      end Set;
+
+      First : constant Positive := Self.Read_Integer;
+      Last  : constant Natural := Self.Read_Integer;
+      subtype Fixed_String is String (First .. Last);
+      Length : constant Natural := Fixed_String'Length;
+
+   --  Start of processing for Read
+
+   begin
+      if Length = 0 then
+         Value := Null_Unbounded_String;
+      else
+         Set_String (Value, Length, Set'Access);
+      end if;
+   end Read;
+
+   --------------------
+   -- Write_BDD_Node --
+   --------------------
+
+   procedure Write_BDD_Node
+     (Self : in out Checkpoint_Save_State; Value : BDD_Node_Id) is
+   begin
+      Self.Write_I32 (Interfaces.Integer_32 (Value));
+   end Write_BDD_Node;
+
+   ------------------
+   -- Write_Bit_Id --
+   ------------------
+
+   procedure Write_Bit_Id
+     (Self : in out Checkpoint_Save_State; Value : Any_Bit_Id) is
+   begin
+      Self.Write_I32 (Interfaces.Integer_32 (Value));
+   end Write_Bit_Id;
+
+   --------------
+   -- Write_CU --
+   --------------
+
+   procedure Write_CU (Self : in out Checkpoint_Save_State; Value : CU_Id) is
+   begin
+      Self.Write_I32 (Interfaces.Integer_32 (Value));
+   end Write_CU;
+
+   ---------------------
+   -- Write_Condition --
+   ---------------------
+
+   procedure Write_Condition
+     (Self : in out Checkpoint_Save_State; Value : Any_Condition_Index) is
+   begin
+      Self.Write_I32 (Interfaces.Integer_32 (Value));
+   end Write_Condition;
+
+   -----------------
+   -- Write_Count --
+   -----------------
+
+   procedure Write_Count
+     (Self : in out Checkpoint_Save_State; Value : Count_Type) is
+   begin
+      Self.Write_I32 (Interfaces.Integer_32 (Value));
+   end Write_Count;
+
+   ---------------
+   -- Write_I32 --
+   ---------------
+
+   procedure Write_I32
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Integer_32) is
+   begin
+      Interfaces.Integer_32'Write (Self.Stream, Value);
+   end Write_I32;
+
+   ----------------
+   -- Write_Inst --
+   ----------------
+
+   procedure Write_Inst (Self : in out Checkpoint_Save_State; Value : Inst_Id)
+   is
+   begin
+      Self.Write_I32 (Interfaces.Integer_32 (Value));
+   end Write_Inst;
+
+   -------------------
+   -- Write_Integer --
+   -------------------
+
+   procedure Write_Integer
+     (Self : in out Checkpoint_Save_State; Value : Integer) is
+   begin
+      Self.Write_I32 (Interfaces.Integer_32 (Value));
+   end Write_Integer;
+
+   --------------
+   -- Write_PC --
+   --------------
+
+   procedure Write_PC (Self : in out Checkpoint_Save_State; Value : Pc_Type) is
+   begin
+      case Pc_Type'Size is
+         when 32 =>
+            Self.Write_U32 (Interfaces.Unsigned_32 (Value));
+         when 64 =>
+            Self.Write_U64 (Interfaces.Unsigned_64 (Value));
+         when others =>
+            raise Program_Error;
+      end case;
+   end Write_PC;
+
+   ---------------
+   -- Write_SCO --
+   ---------------
+
+   procedure Write_SCO (Self : in out Checkpoint_Save_State; Value : SCO_Id) is
+   begin
+      Self.Write_I32 (Interfaces.Integer_32 (Value));
+   end Write_SCO;
+
+   ---------------
+   -- Write_SFI --
+   ---------------
+
+   procedure Write_SFI
+     (Self : in out Checkpoint_Save_State; Value : Source_File_Index) is
+   begin
+      Self.Write_I32 (Interfaces.Integer_32 (Value));
+   end Write_SFI;
+
+   --------------
+   -- Write_U8 --
+   --------------
+
+   procedure Write_U8
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Unsigned_8) is
+   begin
+      Interfaces.Unsigned_8'Write (Self.Stream, Value);
+   end Write_U8;
+
+   ---------------
+   -- Write_U16 --
+   ---------------
+
+   procedure Write_U16
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Unsigned_16) is
+   begin
+      Interfaces.Unsigned_16'Write (Self.Stream, Value);
+   end Write_U16;
+
+   ---------------
+   -- Write_U32 --
+   ---------------
+
+   procedure Write_U32
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Unsigned_32) is
+   begin
+      Interfaces.Unsigned_32'Write (Self.Stream, Value);
+   end Write_U32;
+
+   ---------------
+   -- Write_U64 --
+   ---------------
+
+   procedure Write_U64
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Unsigned_64) is
+   begin
+      Interfaces.Unsigned_64'Write (Self.Stream, Value);
+   end Write_U64;
+
+   -----------
+   -- Write --
+   -----------
+
+   procedure Write (Self : in out Checkpoint_Save_State; Value : Boolean) is
+   begin
+      Self.Write_U8 (Boolean'Pos (Value));
+   end Write;
+
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Compilation_Unit) is
+   begin
+      Self.Write (Value.Language);
+      Self.Write (Value.Unit_Name);
+   end Write;
+
+   procedure Write
+     (Self  : in out Checkpoint_Save_State;
+      Value : SC_Obligations.Fingerprint_Type)
+   is
+      Buffer : String (1 .. SC_Obligations.Fingerprint_Type'Length);
+      I      : Positive := 1;
+   begin
+      for Digit of Value loop
+         Buffer (I) := Character'Val (Digit);
+         I := I + 1;
+      end loop;
+      Self.Write (Buffer);
+   end Write;
+
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Any_Language_Kind) is
+   begin
+      Self.Write_U32 (Any_Language_Kind'Pos (Value));
+   end Write;
+
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Any_Line_State) is
+   begin
+      Self.Write_U8 (Any_Line_State'Pos (Value));
+   end Write;
+
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Local_Source_Location) is
+   begin
+      Self.Write_Integer (Value.Line);
+      Self.Write_Integer (Value.Column);
+   end Write;
+
+   procedure Write
+     (Self  : in out Checkpoint_Save_State;
+      Value : Local_Source_Location_Range) is
+   begin
+      Self.Write (Value.First_Sloc);
+      Self.Write (Value.Last_Sloc);
+   end Write;
+
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Source_Location) is
+   begin
+      Self.Write_SFI (Value.Source_File);
+      Self.Write (Value.L);
+   end Write;
+
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Source_Location_Range) is
+   begin
+      Self.Write_SFI (Value.Source_File);
+      Self.Write (Value.L);
+   end Write;
+
+   procedure Write (Self : in out Checkpoint_Save_State; Value : String) is
+   begin
+      String'Write (Self.Stream, Value);
+   end Write;
+
+   procedure Write (Self : in out Checkpoint_Save_State; Value : Tristate) is
+   begin
+      Self.Write_U8 (Tristate'Pos (Value));
+   end Write;
+
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Unbounded_String)
+   is
+      S : Big_String_Access;
+      L : Natural;
+   begin
+      Get_String (Value, S, L);
+      Self.Write_Unbounded (S.all (1 .. L));
+   end Write;
+
+   ---------------------
+   -- Write_Unbounded --
+   ---------------------
+
+   procedure Write_Unbounded
+     (Self : in out Checkpoint_Save_State; Value : String) is
+   begin
+      Self.Write_Integer (Value'First);
+      Self.Write_Integer (Value'Last);
+      Self.Write (Value);
+   end Write_Unbounded;
+
+   ---------------
+   -- Write_Map --
+   ---------------
+
+   procedure Write_Map
+     (Self : in out Checkpoint_Save_State; Map : Map_Type)
+   is
+      procedure Process (Position : Cursor_Type);
+      --  Write the key/element couple designated by Position to the checkpoint
+
+      procedure Process (Key : Key_Type; Element : Element_Type);
+      --  Write the Key/Element couple to the checkpoint
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (Position : Cursor_Type) is
+      begin
+         Query_Element (Position, Process'Access);
+      end Process;
+
+      procedure Process (Key : Key_Type; Element : Element_Type) is
+      begin
+         Write_Key (Self, Key);
+         Write_Element (Self, Element);
+      end Process;
+
+   --  Start of processing for Write_Map
+
+   begin
+      Self.Write_Count (Length (Map));
+      Iterate (Map, Process'Access);
+   end Write_Map;
+
+   ---------------
+   -- Write_Set --
+   ---------------
+
+   procedure Write_Set
+     (Self : in out Checkpoint_Save_State; Set : Set_Type)
+   is
+      procedure Process (Position : Cursor_Type);
+      --  Write the element designated by Position to the checkpoint
+
+      procedure Process (Element : Element_Type);
+      --  Write Element to the checkpoint
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (Position : Cursor_Type) is
+      begin
+         Query_Element (Position, Process'Access);
+      end Process;
+
+      procedure Process (Element : Element_Type) is
+      begin
+         Write_Element (Self, Element);
+      end Process;
+
+   --  Start of processing for Write_Set
+
+   begin
+      Self.Write_Count (Length (Set));
+      Iterate (Set, Process'Access);
+   end Write_Set;
+
+   ----------------
+   -- Write_Tree --
+   ----------------
+
+   procedure Write_Tree
+     (Self : in out Checkpoint_Save_State; Tree : Multiway_Trees.Tree)
+   is
+      procedure Write_Children (Parent : Multiway_Trees.Cursor);
+      --  Write the list of Parent's child subtrees
+
+      procedure Write_Subtree (Parent : Multiway_Trees.Cursor);
+      --  Write the subtree rooted at Parent
+
+      --------------------
+      -- Write_Children --
+      --------------------
+
+      procedure Write_Children (Parent : Multiway_Trees.Cursor) is
+      begin
+         Self.Write_Count (Multiway_Trees.Child_Count (Parent));
+         for Child in Tree.Iterate_Children (Parent) loop
+            Write_Subtree (Child);
+         end loop;
+      end Write_Children;
+
+      -------------------
+      -- Write_Subtree --
+      -------------------
+
+      procedure Write_Subtree (Parent : Multiway_Trees.Cursor) is
+      begin
+         Write_Element (Self, Tree.Constant_Reference (Parent));
+         Write_Children (Parent);
+      end Write_Subtree;
+
+   --  Start of processing for Write_Tree
+
+   begin
+      Self.Write_Count (Tree.Node_Count - 1);
+      if not Tree.Is_Empty then
+         Write_Children (Tree.Root);
+      end if;
+   end Write_Tree;
+
+   ------------------
+   -- Write_Vector --
+   ------------------
+
+   procedure Write_Vector
+     (Self : in out Checkpoint_Save_State; Vector : Vectors.Vector) is
+   begin
+      Self.Write_I32 (Interfaces.Integer_32 (Vector.Length));
+      for Element of Vector loop
+         Write_Element (Self, Element);
+      end loop;
+   end Write_Vector;
 
 end Checkpoints;
