@@ -141,7 +141,7 @@ is
       --  We rely on object file symbols to know what coverage buffers we
       --  should dump at link time. Nevertheless, an object file referenced in
       --  a link command (which we get through the -### verbose switch) does
-      --  not necessarily exists yet: it can be a temporary file created by a
+      --  not necessarily exist yet: it can be a temporary file created by a
       --  previous compilation command that belongs to the same compiler driver
       --  invocation (e.g. when compiling and linking at the same time).
       --
