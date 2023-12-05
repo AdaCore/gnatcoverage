@@ -65,8 +65,8 @@ is
 
    No_Compilation_Command : constant Compilation_Command_Type :=
      (Language                => All_Languages,
-      Filename                => +"",
-      Target                  => +"",
+      Filename                => Null_Unbounded_String,
+      Target                  => Null_Unbounded_String,
       Instrumentation_Sources => String_Vectors.Empty_Vector);
 
    package Compilation_Command_Vectors is new Ada.Containers.Vectors
@@ -84,8 +84,8 @@ is
    --  driver.
 
    No_Assembly_Command : constant Assembly_Command_Type :=
-     (Filename => +"",
-      Target   => +"");
+     (Filename => Null_Unbounded_String,
+      Target   => Null_Unbounded_String);
 
    package Assembly_Command_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Assembly_Command_Type);
@@ -115,7 +115,7 @@ is
       Libraries    => String_Vectors.Empty_Vector,
       Object_Files => String_Vectors.Empty_Vector,
       Source_Files => String_Vectors.Empty_Vector,
-      Target       => +"");
+      Target       => Null_Unbounded_String);
 
    type Compilation_Database is record
       Compilation_Commands : Compilation_Command_Vectors.Vector;
@@ -220,7 +220,7 @@ is
       for C of Command loop
          if C = ' ' and then Arg /= "" then
             Result.Append (Arg);
-            Arg := +"";
+            Arg := Null_Unbounded_String;
          else
             Append (Arg, C);
          end if;
