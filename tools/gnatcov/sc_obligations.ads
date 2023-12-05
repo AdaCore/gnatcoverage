@@ -783,7 +783,7 @@ package SC_Obligations is
    procedure Checkpoint_Clear;
    --  Clear the internal data structures used to create checkpoints
 
-   procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State);
+   procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
    --  Load checkpointed SCOs from stream and merge them in current state
 
    ---------------------------

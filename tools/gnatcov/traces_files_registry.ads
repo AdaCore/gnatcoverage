@@ -106,7 +106,7 @@ package Traces_Files_Registry is
    procedure Checkpoint_Clear;
    --  Clear the internal data structures used to create checkpoints
 
-   procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State);
+   procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
    --  Load list of trace files from S
 
 end Traces_Files_Registry;

@@ -19,6 +19,9 @@
 --  This unit controls the generation and processing of coverage state
 --  checkpoint files for incremental coverage.
 
+with Ada.Containers;        use Ada.Containers;
+with Ada.Containers.Multiway_Trees;
+with Ada.Containers.Vectors;
 with Ada.Streams;           use Ada.Streams;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Interfaces;
@@ -27,8 +30,12 @@ with GNAT.Regexp;
 with Types; use Types;
 
 with Coverage;
-with Files_Table;    use Files_Table;
-with SC_Obligations; use SC_Obligations;
+with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Files_Table;         use Files_Table;
+with Slocs;               use Slocs;
+with SC_Obligations;      use SC_Obligations;
+with Traces;              use Traces;
+with Traces_Lines;        use Traces_Lines;
 
 package Checkpoints is
 
@@ -235,9 +242,6 @@ package Checkpoints is
          Filename : Unbounded_String;
          --  Name of the checkpoint being written/read
 
-         Version : Checkpoint_Version;
-         --  Format version for the checkpoint being written/read
-
          Purpose : Checkpoint_Purpose;
          --  Purpose for the checkpoint being written/read
       end record;
@@ -250,14 +254,6 @@ package Checkpoints is
      (Stream : in out Stateful_Stream;
       Item   : Stream_Element_Array);
    --  Read/write from/to underlying stream
-
-   use type Interfaces.Unsigned_32;
-   function Version_Less
-     (SS : Stateful_Stream'Class; Than : Checkpoint_Version) return Boolean
-   is (SS.Version < Than)
-     with Inline;
-   --  This is provided as a function to prevent the compiler from generating
-   --  "can never be greater than" warnings.
 
    function Purpose_Of
      (SS : Stateful_Stream'Class) return Checkpoint_Purpose
@@ -273,8 +269,19 @@ package Checkpoints is
    --  Global state shared across phases of a checkpoint load
 
    type Checkpoint_Load_State is new Stateful_Stream with record
+      Version : Checkpoint_Version;
+      --  Format version for the checkpoint being read
+
       Relocations : Checkpoint_Relocations;
    end record;
+
+   use type Interfaces.Unsigned_32;
+   function Version_Less
+     (CLS : Checkpoint_Load_State; Than : Checkpoint_Version) return Boolean
+   is (CLS.Version < Than)
+     with Inline;
+   --  This is provided as a function to prevent the compiler from generating
+   --  "can never be greater than" warnings.
 
    procedure Checkpoint_Save
      (Filename : String;
@@ -293,6 +300,321 @@ package Checkpoints is
 
    procedure Checkpoint_Load (Filename : String);
    --  Load a checkpoint file into internal data structures
+
+   --  Note on checkpoint version compatibility: our goal for (de)serialization
+   --  code is to avoid unintentional unintentional changes to the
+   --  checkpoint/SID file format. Consider for instance the following
+   --  hypothetical deserialization code:
+   --
+   --    Levels : Coverage_Options.Levels_Type;
+   --
+   --    Levels :=
+   --      (for Level in Coverage_Options.Coverage_Level =>
+   --       CLS.Read_Boolean);
+   --
+   --  This reads N booleans from the checkpoints, N being the number of
+   --  enumeration values defined for Coverage_Levels. If a patch adds a new
+   --  enumeration value (creation of a new coverage level), then this code
+   --  will suddenly read one more boolean from the checkpoint, silently
+   --  breaking the checkpoint file format, whereas such changes mandate the
+   --  creation of a new checkpoint version number (see above).
+   --
+   --  To avoid this kind of problem, we deserialize code like the above with
+   --  more "manual" code:
+   --
+   --    CP_Levels : U8_Array (1 .. 8);
+   --    Levels    : Levels_Type;
+   --
+   --    CLS.Read (CP_Levels);
+   --    Levels :=
+   --      (Insn     => Boolean'Val (CP_Levels (1)),
+   --       Branch   => Boolean'Val (CP_Levels (2)),
+   --       [...]
+   --
+   --  The above will not compile when adding a new coverage level, since the
+   --  aggregate and Levels will not have the same length.
+
+   ----------------------------------------------
+   -- Helpers to implement checkpoints loading --
+   ----------------------------------------------
+
+   --  All the Read_* functions below read bytes from the checkpoint and decode
+   --  specific data types. There is no overload (functions have different
+   --  names) to avoid ambiguities when writing for instance:
+   --
+   --     My_Type'Val (CLS.Read_U8)
+   --
+   --  Also define generic procedures to read and decode containers (maps,
+   --  multiway trees, sets, vectors). For these, we prefer procedures with OUT
+   --  parameters rather than functions to avoid unecessary copies for the
+   --  decoded values (functions are more convenient, so we keep them for small
+   --  data types). Yet, in order to be able to instantiate Read procedures for
+   --  containers, we also define several Read procedure that wrap the Read_*
+   --  functions.
+
+   type U8_Array is array (Positive range <>) of Interfaces.Unsigned_8;
+
+   function Read_BDD_Node
+     (Self : in out Checkpoint_Load_State) return BDD_Node_Id;
+   function Read_Bit_Id
+     (Self : in out Checkpoint_Load_State) return Any_Bit_Id;
+   function Read_Boolean (Self : in out Checkpoint_Load_State) return Boolean;
+   function Read_CU (Self : in out Checkpoint_Load_State) return CU_Id;
+   function Read_Compilation_Unit
+     (Self : in out Checkpoint_Load_State) return Compilation_Unit;
+   function Read_Condition
+     (Self : in out Checkpoint_Load_State) return Any_Condition_Index;
+   function Read_Fingerprint
+     (Self : in out Checkpoint_Load_State)
+      return SC_Obligations.Fingerprint_Type;
+   function Read_I32
+     (Self : in out Checkpoint_Load_State) return Interfaces.Integer_32;
+   function Read_Inst (Self : in out Checkpoint_Load_State) return Inst_Id;
+   function Read_Integer (Self : in out Checkpoint_Load_State) return Integer;
+   function Read_Language_Kind
+     (Self : in out Checkpoint_Load_State) return Any_Language_Kind;
+   function Read_Line_State
+     (Self : in out Checkpoint_Load_State) return Any_Line_State;
+   function Read_Local_Source_Location
+     (Self : in out Checkpoint_Load_State) return Local_Source_Location;
+   function Read_Local_Source_Location_Range
+     (Self : in out Checkpoint_Load_State) return Local_Source_Location_Range;
+   function Read_PC (Self : in out Checkpoint_Load_State) return Pc_Type;
+   function Read_SCO (Self : in out Checkpoint_Load_State) return SCO_Id;
+   function Read_SFI
+     (Self : in out Checkpoint_Load_State) return Source_File_Index;
+   function Read_Source_Location
+     (Self : in out Checkpoint_Load_State) return Source_Location;
+   function Read_Source_Location_Range
+     (Self : in out Checkpoint_Load_State) return Source_Location_Range;
+   function Read_String (Self : in out Checkpoint_Load_State) return String;
+   function Read_Tristate
+     (Self : in out Checkpoint_Load_State) return Tristate;
+   function Read_U8
+     (Self : in out Checkpoint_Load_State) return Interfaces.Unsigned_8;
+   function Read_U16
+     (Self : in out Checkpoint_Load_State) return Interfaces.Unsigned_16;
+   function Read_U32
+     (Self : in out Checkpoint_Load_State) return Interfaces.Unsigned_32;
+   function Read_U64
+     (Self : in out Checkpoint_Load_State) return Interfaces.Unsigned_64;
+   function Read_Unbounded_String
+     (Self : in out Checkpoint_Load_State) return Unbounded_String;
+
+   generic
+      type Key_Type is private;
+      type Element_Type is private;
+      type Map_Type is private;
+
+      with procedure Clear (Self : in out Map_Type);
+      with procedure Insert
+        (Self : in out Map_Type; Key : Key_Type; Element : Element_Type);
+
+      with procedure Read_Key
+        (Self : in out Checkpoint_Load_State; Key : out Key_Type);
+      with procedure Read_Element
+        (Self : in out Checkpoint_Load_State; Element : out Element_Type);
+   procedure Read_Map
+     (Self : in out Checkpoint_Load_State; Map : out Map_Type);
+   --  Generic implementation to read a map from a checkpoint. Since there are
+   --  two flavors for maps (ordered and hashed), do not take a instantiated
+   --  formal package, but rather the only two map primitives that we need:
+   --  Clear and Insert.
+
+   generic
+      type Element_Type is private;
+      type Set_Type is private;
+
+      with procedure Clear (Self : in out Set_Type);
+      with procedure Insert (Self : in out Set_Type; Element : Element_Type);
+
+      with procedure Read_Element
+        (Self : in out Checkpoint_Load_State; Element : out Element_Type);
+   procedure Read_Set
+     (Self : in out Checkpoint_Load_State; Set : out Set_Type);
+   --  Generic implementation to read a set from a checkpoint. Since there are
+   --  two flavors for sets (ordered and hashed), do not take a instantiated
+   --  formal package, but rather the only two set primitives that we need:
+   --  Clear and Insert.
+
+   generic
+      type Element_Type is private;
+      with function "=" (Left, Right : Element_Type) return Boolean is <>;
+      with package Multiway_Trees is new Ada.Containers.Multiway_Trees
+        (Element_Type, "=");
+      with procedure Read_Element
+        (Self : in out Checkpoint_Load_State; Element : out Element_Type);
+   procedure Read_Tree
+     (Self : in out Checkpoint_Load_State; Tree : out Multiway_Trees.Tree);
+   --  Generic implementation to read a multiway tree from a checkpoint
+
+   generic
+      type Index_Type is range <>;
+      type Element_Type is private;
+      with function "=" (Left, Right : Element_Type) return Boolean is <>;
+      with package Vectors is new Ada.Containers.Vectors
+        (Index_Type, Element_Type, "=");
+      with procedure Read_Element
+        (Self : in out Checkpoint_Load_State; Element : out Element_Type);
+   procedure Read_Vector
+     (Self : in out Checkpoint_Load_State; Vector : out Vectors.Vector);
+   --  Generic implementation to read a vector tree from a checkpoint
+
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out U8_Array);
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out CU_Id);
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Pc_Type);
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out SCO_Id);
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Source_File_Index);
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Source_Location);
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out String);
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Tristate);
+   procedure Read
+     (Self : in out Checkpoint_Load_State; Value : out Unbounded_String);
+
+   ---------------------------------------------
+   -- Helpers to implement checkpoints saving --
+   ---------------------------------------------
+
+   --  All the Write* procedures below serialize specific data types to
+   --  checkpoints. There is no overload (functions have different names) for
+   --  numeric data types in order to avoid ambiguities when writing for
+   --  instance:
+   --
+   --     CSS.Write_U8 (My_Type'Pos (Numeric_Data));
+   --
+   --  Also define generic procedures to write containers (maps, multiway
+   --  trees, sets, vectors).
+
+   procedure Write_BDD_Node
+     (Self : in out Checkpoint_Save_State; Value : BDD_Node_Id);
+   procedure Write_Bit_Id
+     (Self : in out Checkpoint_Save_State; Value : Any_Bit_Id);
+   procedure Write_CU (Self : in out Checkpoint_Save_State; Value : CU_Id);
+   procedure Write_Condition
+     (Self : in out Checkpoint_Save_State; Value : Any_Condition_Index);
+   procedure Write_Count
+     (Self : in out Checkpoint_Save_State; Value : Count_Type);
+   procedure Write_I32
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Integer_32);
+   procedure Write_Inst (Self : in out Checkpoint_Save_State; Value : Inst_Id);
+   procedure Write_Integer
+     (Self : in out Checkpoint_Save_State; Value : Integer);
+   procedure Write_PC (Self : in out Checkpoint_Save_State; Value : Pc_Type);
+   procedure Write_SCO (Self : in out Checkpoint_Save_State; Value : SCO_Id);
+   procedure Write_SFI
+     (Self : in out Checkpoint_Save_State; Value : Source_File_Index);
+   procedure Write_U8
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Unsigned_8);
+   procedure Write_U16
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Unsigned_16);
+   procedure Write_U32
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Unsigned_32);
+   procedure Write_U64
+     (Self : in out Checkpoint_Save_State; Value : Interfaces.Unsigned_64);
+
+   procedure Write (Self : in out Checkpoint_Save_State; Value : Boolean);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Compilation_Unit);
+   procedure Write
+     (Self  : in out Checkpoint_Save_State;
+      Value : SC_Obligations.Fingerprint_Type);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Any_Language_Kind);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Any_Line_State);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Local_Source_Location);
+   procedure Write
+     (Self  : in out Checkpoint_Save_State;
+      Value : Local_Source_Location_Range);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Source_Location);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Source_Location_Range);
+   procedure Write (Self : in out Checkpoint_Save_State; Value : String);
+   procedure Write (Self : in out Checkpoint_Save_State; Value : Tristate);
+   procedure Write
+     (Self : in out Checkpoint_Save_State; Value : Unbounded_String);
+
+   procedure Write_Unbounded
+     (Self : in out Checkpoint_Save_State; Value : String);
+
+   generic
+      type Key_Type is private;
+      type Element_Type is private;
+      type Map_Type is private;
+      type Cursor_Type is private;
+
+      with function Length (Self : Map_Type) return Count_Type is <>;
+      with procedure Iterate
+        (Self    : Map_Type;
+         Process : not null access procedure (Position : Cursor_Type));
+      with procedure Query_Element
+        (Position : Cursor_Type;
+         Process  : not null access
+                      procedure (Key : Key_Type; Element : Element_Type));
+
+      with procedure Write_Key
+        (Self : in out Checkpoint_Save_State; Key : Key_Type);
+      with procedure Write_Element
+        (Self : in out Checkpoint_Save_State; Element : Element_Type);
+   procedure Write_Map
+     (Self : in out Checkpoint_Save_State; Map : Map_Type);
+   --  Generic implementation to write a map to a checkpoint. Since there are
+   --  two flavors for maps (ordered and hashed), do not take a instantiated
+   --  formal package, but rather the only three map primitives that we need:
+   --  Length, Iterate and Query_Element.
+
+   generic
+      type Element_Type is private;
+      type Set_Type is private;
+      type Cursor_Type is private;
+
+      with function Length (Self : Set_Type) return Count_Type is <>;
+      with procedure Iterate
+        (Self    : Set_Type;
+         Process : not null access procedure (Position : Cursor_Type));
+      with procedure Query_Element
+        (Position : Cursor_Type;
+         Process  : not null access procedure (Element : Element_Type));
+
+      with procedure Write_Element
+        (Self : in out Checkpoint_Save_State; Element : Element_Type);
+   procedure Write_Set
+     (Self : in out Checkpoint_Save_State; Set : Set_Type);
+   --  Generic implementation to write a set to a checkpoint. Since there are
+   --  two flavors for sets (ordered and hashed), do not take a instantiated
+   --  formal package, but rather the only three set primitives that we need:
+   --  Length, Iterate and Query_Element.
+
+   generic
+      type Element_Type is private;
+      with function "=" (Left, Right : Element_Type) return Boolean is <>;
+      with package Multiway_Trees is new Ada.Containers.Multiway_Trees
+        (Element_Type, "=");
+      with procedure Write_Element
+        (Self : in out Checkpoint_Save_State; Element : Element_Type);
+   procedure Write_Tree
+     (Self : in out Checkpoint_Save_State; Tree : Multiway_Trees.Tree);
+   --  Generic implementation to write a multiway tree from a checkpoint
+
+   generic
+      type Index_Type is range <>;
+      type Element_Type is private;
+      with function "=" (Left, Right : Element_Type) return Boolean is <>;
+      with package Vectors is new Ada.Containers.Vectors
+        (Index_Type, Element_Type, "=");
+      with procedure Write_Element
+        (Self : in out Checkpoint_Save_State; Element : Element_Type);
+   procedure Write_Vector
+     (Self : in out Checkpoint_Save_State; Vector : Vectors.Vector);
+   --  Generic implementation to write a vector tree to a checkpoint
 
 private
 

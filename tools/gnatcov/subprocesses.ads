@@ -27,6 +27,7 @@ with Ada.Strings.Unbounded;
 
 with GNATCOLL.OS.Process; use GNATCOLL.OS.Process;
 
+with Checkpoints;
 with Logging;
 with Strings;   use Strings;
 with Temp_Dirs; use Temp_Dirs;
@@ -53,6 +54,15 @@ package Subprocesses is
    function "=" (L, R : Command_Type) return Boolean;
    --  Note: the equality comparison does not consider the commands'
    --  environment.
+
+   procedure Read
+     (CLS   : in out Checkpoints.Checkpoint_Load_State;
+      Value : out Command_Type);
+   --  Read a Command_Type from CLS
+
+   procedure Write
+     (CSS : in out Checkpoints.Checkpoint_Save_State; Value : Command_Type);
+   --  Write a Command_Type to CSS
 
    Null_Command : constant Command_Type := (others => <>);
 

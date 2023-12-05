@@ -24,6 +24,7 @@ with Ada.Strings.Unbounded.Hash;
 
 with Interfaces.C;
 
+with Checkpoints; use Checkpoints;
 with Outputs;
 with Qemu_Traces; use Qemu_Traces;
 
@@ -331,7 +332,7 @@ package body Traces_Files_Registry is
         (Coverage.To_String (Context.all));
    begin
       for TF of Files loop
-         Unbounded_String'Output (CSS, TF.Filename);
+         CSS.Write (TF.Filename);
 
          declare
             --  If this trace file does not come from a checkpoint (TF.Context
@@ -343,17 +344,17 @@ package body Traces_Files_Registry is
                 then This_Context
                 else TF.Context);
          begin
-            Trace_File_Kind'Write  (CSS, TF.Kind);
-            Unbounded_String'Write (CSS, TF_Context);
-            Unbounded_String'Write (CSS, TF.Program_Name);
-            Unbounded_String'Write (CSS, TF.Time);
-            Unbounded_String'Write (CSS, TF.User_Data);
+            CSS.Write_U8 (Trace_File_Kind'Pos (TF.Kind));
+            CSS.Write (TF_Context);
+            CSS.Write (TF.Program_Name);
+            CSS.Write (TF.Time);
+            CSS.Write (TF.User_Data);
          end;
       end loop;
 
       --  Mark end of list with empty string
 
-      String'Output (CSS, "");
+      CSS.Write_Unbounded ("");
    end Checkpoint_Save;
 
    ----------------------
@@ -369,23 +370,22 @@ package body Traces_Files_Registry is
    -- Checkpoint_Load --
    ---------------------
 
-   procedure Checkpoint_Load (CLS : access Checkpoints.Checkpoint_Load_State)
+   procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State)
    is
    begin
       loop
          declare
-            Name    : constant Unbounded_String :=
-               Unbounded_String'Input (CLS);
+            Name    : constant Unbounded_String := CLS.Read_Unbounded_String;
             CP_File : Trace_File_Element_Acc;
          begin
             exit when Length (Name) = 0;
             CP_File := new Trace_File_Element;
             CP_File.Filename := Name;
-            Trace_File_Kind'Read  (CLS, CP_File.Kind);
-            Unbounded_String'Read (CLS, CP_File.Context);
-            Unbounded_String'Read (CLS, CP_File.Program_Name);
-            Unbounded_String'Read (CLS, CP_File.Time);
-            Unbounded_String'Read (CLS, CP_File.User_Data);
+            CP_File.Kind := Trace_File_Kind'Val (CLS.Read_U8);
+            CLS.Read (CP_File.Context);
+            CLS.Read (CP_File.Program_Name);
+            CLS.Read (CP_File.Time);
+            CLS.Read (CP_File.User_Data);
 
             Add_Traces_File (CP_File);
          end;

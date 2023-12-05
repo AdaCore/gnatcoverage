@@ -152,7 +152,7 @@ package Coverage.Source is
    procedure Checkpoint_Clear;
    --  Clear the internal data structures used to create checkpoints
 
-   procedure Checkpoint_Load (CLS : access Checkpoint_Load_State);
+   procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State);
    --  Load checkpointed coverage state from S and merge into current state
 
 end Coverage.Source;

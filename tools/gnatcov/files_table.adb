@@ -18,7 +18,6 @@
 
 with Ada.Containers.Hashed_Maps;
 with Ada.Directories;
-with Ada.Streams;
 with Ada.Unchecked_Deallocation;
 
 with System;
@@ -1860,12 +1859,11 @@ package body Files_Table is
    ---------------------
 
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
-      S : access Ada.Streams.Root_Stream_Type'Class renames CSS.Stream;
    begin
       --  1) Output first and last SFIs
 
-      Source_File_Index'Write (S, Files_Table.First_Index);
-      Source_File_Index'Write (S, Files_Table.Last_Index);
+      CSS.Write_SFI (Files_Table.First_Index);
+      CSS.Write_SFI (Files_Table.Last_Index);
 
       --  2) Output file table info for each file
       --  Note that we need LI files there, not just source files with
@@ -1875,20 +1873,22 @@ package body Files_Table is
          declare
             FI : File_Info_Access renames File_Vectors.Element (FI_C);
          begin
-            Source_File_Index'Write (S, File_Vectors.To_Index (FI_C));
-            String'Output (S, (if FI.Full_Name /= null
-                               then FI.Full_Name.all
-                               else FI.Simple_Name.all));
-            File_Kind'Write (S, FI.Kind);
-            Boolean'Write (S, FI.Indexed_Simple_Name);
+            CSS.Write_SFI (File_Vectors.To_Index (FI_C));
+            CSS.Write_Unbounded
+              (String_Access'
+                 (if FI.Full_Name /= null
+                  then FI.Full_Name
+                  else FI.Simple_Name).all);
+            CSS.Write_U8 (File_Kind'Pos (FI.Kind));
+            CSS.Write (FI.Indexed_Simple_Name);
             if FI.Kind = Library_File then
                pragma Assert (FI.Main_Source /= No_Source_File);
-               Source_File_Index'Write (S, FI.Main_Source);
+               CSS.Write_SFI (FI.Main_Source);
             elsif FI.Kind = Source_File then
-               Any_Ignore_Status'Write (S, FI.Ignore_Status);
-               Boolean'Write (S, FI.Unit.Known);
+               CSS.Write_U8 (Any_Ignore_Status'Pos (FI.Ignore_Status));
+               CSS.Write (FI.Unit.Known);
                if FI.Unit.Known then
-                  Compilation_Unit'Output (S, FI.Unit.Name);
+                  CSS.Write (FI.Unit.Name);
                end if;
             end if;
          end;
@@ -1896,7 +1896,7 @@ package body Files_Table is
 
       --  No_Source_File marks end of file table info
 
-      Source_File_Index'Write (S, No_Source_File);
+      CSS.Write_SFI (No_Source_File);
    end Checkpoint_Save;
 
    ----------------------
@@ -1951,18 +1951,17 @@ package body Files_Table is
    ---------------------
 
    procedure Checkpoint_Load
-     (CLS                  : access Checkpoint_Load_State;
+     (CLS                  : in out Checkpoint_Load_State;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
       pragma Assert
         (CLS.Purpose = Instrumentation or else Ignored_Source_Files = null);
-      S      : access Ada.Streams.Root_Stream_Type'Class renames CLS.Stream;
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
 
       --  1) Read header
 
-      CP_First_SFI : constant Source_File_Index := Source_File_Index'Input (S);
-      CP_Last_SFI  : constant Source_File_Index := Source_File_Index'Input (S);
+      CP_First_SFI : constant Source_File_Index := CLS.Read_SFI;
+      CP_Last_SFI  : constant Source_File_Index := CLS.Read_SFI;
       CP_SFI       : Source_File_Index;
 
       --  2) Read file table entries
@@ -1999,14 +1998,15 @@ package body Files_Table is
       --  Pass 1: load all file entries from checkpoint
 
       loop
-         Source_File_Index'Read (S, CP_SFI);
+         CP_SFI := CLS.Read_SFI;
          exit when CP_SFI = No_Source_File;
 
          declare
             FE                  : File_Entry renames CP_Entries (CP_SFI);
-            Name                : constant String := String'Input (S);
-            Kind                : constant File_Kind := File_Kind'Input (S);
-            Indexed_Simple_Name : constant Boolean := Boolean'Input (S);
+            Name                : constant String := CLS.Read_String;
+            Kind                : constant File_Kind :=
+              File_Kind'Val (CLS.Read_U8);
+            Indexed_Simple_Name : constant Boolean := CLS.Read_Boolean;
 
             --  Do not call Ada.Directories.Simple_Name on artificial file
             --  names: such names are known to make Simple_Name raise a
@@ -2027,23 +2027,20 @@ package body Files_Table is
                when Source_File =>
                   FE := (Kind => Source_File, others => <>);
 
-                  --  Dumping ignored source files requires information that is
-                  --  not available before checkpoint version 13.
-
-                  FE.Ignore_Status := Unknown;
                   FE.Unit := (Known => False);
-                  FE.Ignore_Status := Any_Ignore_Status'Input (S);
+                  FE.Ignore_Status := Any_Ignore_Status'Val (CLS.Read_U8);
                   declare
-                     Unit_Known : constant Boolean := Boolean'Input (S);
+                     Unit_Known : constant Boolean := CLS.Read_Boolean;
                   begin
                      if Unit_Known then
-                        FE.Unit := (Known => True,
-                                    Name  => Compilation_Unit'Input (S));
+                        FE.Unit :=
+                          (Known => True,
+                           Name  => CLS.Read_Compilation_Unit);
                      end if;
                   end;
                when Library_File =>
                   FE := (Kind => Library_File, others => <>);
-                  FE.Main_Source := Source_File_Index'Input (S);
+                  FE.Main_Source := CLS.Read_SFI;
                   pragma Assert (FE.Main_Source /= No_Source_File);
             end case;
             FE.Name := new String'(Name);

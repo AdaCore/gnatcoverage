@@ -16,8 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Checkpoints; use Checkpoints;
-
 package Instrument.Checkpoints is
 
    --  Note: the following procedures must be called after the SCO units
@@ -29,7 +27,7 @@ package Instrument.Checkpoints is
    procedure Checkpoint_Clear;
    --  Clear the internal data structures used to create checkpoints
 
-   procedure Checkpoint_Load (CLS : access Checkpoint_Load_State);
+   procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State);
    --  Load instrumentation-specific data from stream and merge them in the
    --  current state.
 
