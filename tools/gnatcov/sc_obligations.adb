@@ -2741,9 +2741,21 @@ package body SC_Obligations is
          return "<no SCO>";
       else
          declare
-            SCOD : constant SCO_Descriptor := SCO_Vector (SCO);
+            SCOD           : SCO_Descriptor renames SCO_Vector.Reference (SCO);
+            From_Assertion : constant Boolean := Assertion_Coverage_Enabled
+              and then
+                ((SCOD.Kind = Decision
+                  and then SCOD.D_Kind in Pragma_Decision | Aspect)
+                 or else
+                   (SCOD.Kind = Condition
+                    and then SCO_Vector.Reference
+                      (Enclosing_Decision (SCO)).D_Kind in
+                        Pragma_Decision | Aspect));
          begin
             return "SCO #" & Trim (SCO'Img, Side => Ada.Strings.Both) & ": "
+              & (if From_Assertion
+                 then "ASSERTION "
+                 else "")
               & SCO_Kind'Image (SCOD.Kind)
               & Op_Kind_Image
               & Sloc_Image (SCOD.Sloc_Range);
