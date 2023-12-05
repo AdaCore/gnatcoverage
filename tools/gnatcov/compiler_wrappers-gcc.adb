@@ -224,7 +224,7 @@ is
       for C of Command loop
          if C = ' ' and then Arg /= "" then
             Result.Append (Arg);
-            Arg := +"";
+            Arg := Null_Unbounded_String;
          else
             Append (Arg, C);
          end if;
