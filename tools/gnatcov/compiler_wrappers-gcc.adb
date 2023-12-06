@@ -765,8 +765,8 @@ begin
    Comp_DB :=
      Parse_Compiler_Driver_Command (Context, Instr_Dir, Compiler_Driver_Opts);
 
-   --  Generate an artificial project description to pass compiler
-   --  switches and default spec / body suffixes.
+   --  Generate an artificial project description to pass compiler switches and
+   --  default spec / body suffixes.
 
    Prj.Prj_Name := +"main";
    Prj.Output_Dir := +Instr_Dir.Directory_Name;
