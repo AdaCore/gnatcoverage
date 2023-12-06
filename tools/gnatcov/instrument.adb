@@ -475,7 +475,7 @@ package body Instrument is
       Unit_Name : Unbounded_String;
       Lang      : Src_Supported_Language) return String_Vectors.Vector
    is
-      Result : String_Vectors.Vector;
+      Result        : String_Vectors.Vector;
       Compiler_Opts : String_Vectors.Vector;
    begin
       --  Pass the right body / spec suffixes

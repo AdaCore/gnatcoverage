@@ -1446,6 +1446,7 @@ begin
          end;
 
       when Cmd_Instrument_Source =>
+
          --  For the instrument-source command, and for the instrument-main,
          --  we do not check the command-line semantics as these commands are
          --  internal and spawned by a gnatcov main process. They are thus by
