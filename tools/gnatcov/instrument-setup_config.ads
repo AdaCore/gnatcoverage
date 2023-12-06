@@ -18,6 +18,8 @@
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 
+with Files_Handling; use Files_Handling;
+
 package Instrument.Setup_Config is
 
    type Instrumentation_Config is record
@@ -50,7 +52,7 @@ package Instrument.Setup_Config is
    --  Simple name of the file containing the instrumentation configuration
 
    procedure Generate_Config
-     (Files_Of_Interest : String_Sets.Set;
+     (Files_Of_Interest : File_Sets.Set;
       Coverage_Level    : String;
       Dump_Config       : Any_Dump_Config;
       Compiler_Drivers  : String_Sets.Set;

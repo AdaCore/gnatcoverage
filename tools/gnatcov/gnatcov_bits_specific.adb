@@ -29,8 +29,6 @@ with GNAT.OS_Lib;
 with GNAT.Regexp;
 with GNAT.Strings; use GNAT.Strings;
 
-with GNATCOLL.VFS;
-
 with System.Multiprocessors;
 
 with Snames;
@@ -59,6 +57,7 @@ with Coverage_Options;      use Coverage_Options;
 with Decision_Map;          use Decision_Map;
 with Disassemble_Insn_Properties;
 with Execs_Dbase;           use Execs_Dbase;
+with Files_Handling;        use Files_Handling;
 with Files_Table;           use Files_Table;
 with Inputs;                use Inputs;
 with Instrument;
@@ -556,13 +555,8 @@ procedure GNATcov_Bits_Specific is
       Copy_Arg_List (Opt_Compiler_Wrappers, Compiler_Drivers);
 
       for File of Files_Of_Interest loop
-         declare
-            use GNATCOLL.VFS;
-            F : constant Virtual_File := Create (+File.Name.all);
-         begin
-            F.Normalize_Path;
-            Switches.Files_Of_Interest.Include (+(+Full_Name (F)));
-         end;
+         Switches.Files_Of_Interest.Include
+           (Create_Normalized (File.Name.all));
       end loop;
 
       --  Compute the languages for which we want coverage analysis, or enable
