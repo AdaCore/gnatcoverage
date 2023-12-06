@@ -58,11 +58,12 @@ with GNAT.Regpat; use GNAT.Regpat;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 
-with ALI_Files;   use ALI_Files;
-with Files_Table; use Files_Table;
+with ALI_Files;      use ALI_Files;
+with Files_Handling; use Files_Handling;
+with Files_Table;    use Files_Table;
 with GNATcov_RTS;
-with Namet;       use Namet;
-with Slocs;       use Slocs;
+with Namet;          use Namet;
+with Slocs;          use Slocs;
 with Text_Files;
 
 package Instrument.Common is
@@ -404,7 +405,7 @@ package Instrument.Common is
      (Self              : in out Language_Instrumenter;
       Unit_Name         : String;
       Prj               : Prj_Desc;
-      Files_Of_Interest : String_Sets.Set) is null;
+      Files_Of_Interest : File_Sets.Set) is null;
    --  Instrument a single source file for the language that Self supports.
    --
    --  Unit_Name identifies this compilation unit (either through a unit name,

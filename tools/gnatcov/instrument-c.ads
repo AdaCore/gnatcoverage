@@ -18,22 +18,24 @@
 
 --  Instrumentation of a C source file
 
-with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Finalization;
 
 with Namet; use Namet;
 
+with GNATCOLL.VFS; use GNATCOLL.VFS;
+
 with Clang.CX_Source_Location; use Clang.CX_Source_Location;
 with Clang.Index;              use Clang.Index;
 with Clang.Rewrite;            use Clang.Rewrite;
 
-with Diagnostics;       use Diagnostics;
-with Files_Table;       use Files_Table;
+with Diagnostics;        use Diagnostics;
+with Files_Handling;     use Files_Handling;
+with Files_Table;        use Files_Table;
 with Instrument.C_Utils; use Instrument.C_Utils;
-with Instrument.Common; use Instrument.Common;
-with Slocs;             use Slocs;
+with Instrument.Common;  use Instrument.Common;
+with Slocs;              use Slocs;
 
 package Instrument.C is
 
@@ -45,7 +47,7 @@ package Instrument.C is
      (Self              : in out C_Family_Instrumenter_Type;
       Unit_Name         : String;
       Prj               : Prj_Desc;
-      Files_Of_Interest : String_Sets.Set);
+      Files_Of_Interest : File_Sets.Set);
 
    overriding procedure Auto_Dump_Buffers_In_Main
      (Self        : in out C_Family_Instrumenter_Type;
@@ -309,11 +311,11 @@ package Instrument.C is
    --  gnatcov's file table and Project_Name is the name of the project that
    --  owns this source file.
 
-   package Source_Of_Interest_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Unbounded_String,
-      Element_Type    => Source_Of_Interest,
-      Hash            => Strings.Hash,
-      Equivalent_Keys => "=");
+   package Source_Of_Interest_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Virtual_File,
+      Element_Type => Source_Of_Interest,
+      "<"          => GNATCOLL.VFS."<",
+      "="          => "=");
 
    type File_Scope_Type is record
       Scope_Entities       : Scope_Entities_Tree;
@@ -353,7 +355,7 @@ package Instrument.C is
          LL_PP_Info_Map : LL_SCO_PP_Info_Maps.Map;
          --  Preprocessing information for low level SCOs
 
-         Files_Of_Interest        : String_Sets.Set;
+         Files_Of_Interest        : File_Sets.Set;
          Sources_Of_Interest_Info : Source_Of_Interest_Maps.Map;
          --  Records for each source file processed during the instrumentation
          --  whether it is a source of interest, and some properties if it is.

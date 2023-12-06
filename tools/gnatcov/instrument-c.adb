@@ -29,7 +29,6 @@ with Clang.Extensions;    use Clang.Extensions;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
 
-with GNATCOLL.VFS;
 with GNATCOLL.Mmap;
 
 with Interfaces;           use Interfaces;
@@ -2933,7 +2932,7 @@ package body Instrument.C is
      (Self              : in out C_Family_Instrumenter_Type;
       Unit_Name         : String;
       Prj               : Prj_Desc;
-      Files_Of_Interest : String_Sets.Set)
+      Files_Of_Interest : File_Sets.Set)
    is
       UIC     : C_Unit_Inst_Context;
       CU_Name : constant Compilation_Unit_Part :=
@@ -3844,7 +3843,6 @@ package body Instrument.C is
       Source                : GNATCOLL.Projects.File_Info;
       Has_Manual_Indication : out Boolean)
    is
-      use GNATCOLL.VFS;
       Orig_Filename : constant String := +Source.File.Full_Name;
    begin
       Check_Compiler_Driver (Prj, Self);
@@ -3868,7 +3866,7 @@ package body Instrument.C is
          Preprocess_Source
            (Orig_Filename, Self, Prj, PP_Filename, Options, True);
          declare
-            use String_Vectors_Maps;
+            use Files_Handling.File_To_String_Vectors_Maps;
             Cur      : Cursor;
             Inserted : Boolean;
          begin
@@ -3879,7 +3877,7 @@ package body Instrument.C is
 
             for Path of Options.PP_Search_Path loop
                Prj.Compiler_Options_Unit.Insert
-                 (Key       => +(+Source.File.Full_Name),
+                 (Key       => Source.File,
                   New_Item  => String_Vectors.Empty_Vector,
                   Position  => Cur,
                   Inserted  => Inserted);
@@ -4557,6 +4555,7 @@ package body Instrument.C is
       Prj          : Prj_Desc;
       Filename     : String)
    is
+      File         : constant Virtual_File := Create_Normalized (Filename);
       Cmdline_Opts : constant String_Vectors.Vector :=
         (case C_Family_Language (Instrumenter.Language) is
             when C_Language   => C_Opts,
@@ -4568,8 +4567,8 @@ package body Instrument.C is
       --  implementation. Otherwise, the compiler switches in the project files
       --  are passed through the command line directly.
 
-      if Prj.Compiler_Options_Unit.Contains (+Filename) then
-         Prj_Options.Append (Prj.Compiler_Options_Unit.Element (+Filename));
+      if Prj.Compiler_Options_Unit.Contains (File) then
+         Prj_Options.Append (Prj.Compiler_Options_Unit.Element (File));
       else
          Prj_Options.Append (Prj.Compiler_Options (Instrumenter.Language));
       end if;
@@ -4604,13 +4603,13 @@ package body Instrument.C is
       Line   : aliased unsigned;
       Column : aliased unsigned;
       Loc    : constant Source_Location_T := Get_Cursor_Location (N);
-      File   : Unbounded_String;
+      File   : Virtual_File;
    begin
       Get_Presumed_Location (Location => Loc,
                              Filename => C_File'Access,
                              Line     => Line'Access,
                              Column   => Column'Access);
-      File := +Ada.Directories.Full_Name (Get_C_String (C_File));
+      File := Create_Normalized (Get_C_String (C_File));
 
       --  Look for a corresponding entry in UIC.Sources_Of_Interest, create one
       --  if it is missing.
@@ -4632,12 +4631,12 @@ package body Instrument.C is
          if UIC.Files_Of_Interest.Contains (File) then
             declare
                SFI : constant Source_File_Index :=
-                 Get_Index_From_Generic_Name (+File, Source_File);
+                 Get_Index_From_Generic_Name (+File.Full_Name, Source_File);
             begin
                SOI :=
                  (Of_Interest  => True,
                   SFI          => SFI,
-                  CU_Name      => CU_Name_For_File (File));
+                  CU_Name      => CU_Name_For_File (Full_Name (File)));
             end;
          else
             SOI := (Of_Interest => False);

@@ -9058,7 +9058,7 @@ package body Instrument.Ada_Unit is
      (Self              : in out Ada_Instrumenter_Type;
       Unit_Name         : String;
       Prj               : Prj_Desc;
-      Files_Of_Interest : String_Sets.Set)
+      Files_Of_Interest : File_Sets.Set)
    is
       Allocated_Bits    : Allocated_Bits_Vectors.Vector;
       Last_Buffer_Index : Natural := 0;
@@ -9089,7 +9089,7 @@ package body Instrument.Ada_Unit is
       begin
          --  Instrument the file only if it is a file of interest
 
-         if Files_Of_Interest.Contains (+Filename) then
+         if Files_Of_Interest.Contains (Create_Normalized (Filename)) then
             --  In verbose mode, always print a notice for the source file
             --  that we are about to instrument. In non-verbose mode, just get
             --  prepared to print it in case we emit a "source file missing"
