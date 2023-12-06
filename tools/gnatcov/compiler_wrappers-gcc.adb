@@ -180,12 +180,14 @@ procedure Compiler_Wrappers.Gcc is
 
    function Parse_Compiler_Driver_Command
      (Context : in out Parsing_Context;
+      Prj     : in out Prj_Desc;
       Tmp_Dir : Temporary_Directory;
       Args    : String_Vectors.Vector) return Compilation_Database;
    --  Parse a compiler driver command
 
    function Parse_Compilation_Command
      (Context : in out Parsing_Context;
+      Prj     : in out Prj_Desc;
       Command : String_Vectors.Vector) return Compilation_Command_Type;
    --  Parse a compilation command
 
@@ -296,6 +298,7 @@ procedure Compiler_Wrappers.Gcc is
 
    function Parse_Compiler_Driver_Command
      (Context : in out Parsing_Context;
+      Prj     : in out Prj_Desc;
       Tmp_Dir : Temporary_Directory;
       Args    : String_Vectors.Vector) return Compilation_Database
    is
@@ -340,7 +343,7 @@ procedure Compiler_Wrappers.Gcc is
                then
                   declare
                      CC_Command : constant Compilation_Command_Type :=
-                       Parse_Compilation_Command (Context, Command);
+                       Parse_Compilation_Command (Context, Prj, Command);
                   begin
                      if CC_Command /= No_Compilation_Command then
                         Result.Compilation_Commands.Append (CC_Command);
@@ -382,9 +385,15 @@ procedure Compiler_Wrappers.Gcc is
 
    function Parse_Compilation_Command
      (Context : in out Parsing_Context;
+      Prj     : in out Prj_Desc;
       Command : String_Vectors.Vector) return Compilation_Command_Type
    is
       use String_Vectors;
+      PP_Args : String_Vectors.Vector;
+      --  List of arguments that should be passed to the preprocessor
+      --  invocation: basically all of the arguments except the compiled source
+      --  and the -o switch.
+
       Result : Compilation_Command_Type;
       Cur    : Cursor := First (Command);
    begin
@@ -393,6 +402,11 @@ procedure Compiler_Wrappers.Gcc is
       elsif Ends_With (Command.First_Element, "cc1") then
          Result.Language := C_Language;
       end if;
+
+      --  Skip the first argument as it is the compiler executable, and not
+      --  a compiler argument.
+
+      Cur := Next (Cur);
 
       while Has_Element (Cur) loop
          declare
@@ -403,11 +417,13 @@ procedure Compiler_Wrappers.Gcc is
             --  would find the positional argument but it is not
             --  straightforward.
 
-            if Arg = "-dumpbase" or else Arg = "-dumpbase-ext" then
+            if +Arg in "-dumpbase" | "-dumpbase-ext" then
                Cur := Next (Cur);
-            end if;
 
-            if Ends_With (Arg, ".c")
+            --  TODO??? the user can configure the file extension and the
+            --  implementation should be resilient to this.
+
+            elsif Ends_With (Arg, ".c")
               or else Ends_With (Arg, ".cc")
               or else Ends_With (Arg, ".cpp")
               or else Ends_With (Arg, ".cxx")
@@ -421,8 +437,11 @@ procedure Compiler_Wrappers.Gcc is
                      & ". Keeping the former, which was parsed before.");
                end if;
             elsif Arg = "-o" then
+               Cur := Next (Cur);
                Result.Target :=
                  Create_Normalized (+String_Vectors.Element (Cur));
+            else
+               PP_Args.Append (Arg);
             end if;
          end;
          Cur := Next (Cur);
@@ -431,6 +450,8 @@ procedure Compiler_Wrappers.Gcc is
       if Result.File = No_File or else Result.Target = No_File then
          return No_Compilation_Command;
       end if;
+      Prj.Compiler_Driver (Result.Language) := Command.First_Element;
+      Prj.Compiler_Options_Unit.Insert (Result.File, PP_Args);
       Context.Source_Mapping.Include (Result.Target, Result.File);
       return Result;
    end Parse_Compilation_Command;
@@ -762,8 +783,8 @@ begin
 
    --  Parse the compiler driver invocation
 
-   Comp_DB :=
-     Parse_Compiler_Driver_Command (Context, Instr_Dir, Compiler_Driver_Opts);
+   Comp_DB := Parse_Compiler_Driver_Command
+     (Context, Prj, Instr_Dir, Compiler_Driver_Opts);
 
    --  Generate an artificial project description to pass compiler switches and
    --  default spec / body suffixes.
@@ -774,8 +795,6 @@ begin
      (C_Language => +".h", CPP_Language => +".hh", others => <>);
    Prj.Body_Suffix :=
      (C_Language => +".c", CPP_Language => +".cc", others => <>);
-   Prj.Compiler_Driver := (others => Context.Orig_Compiler_Driver);
-   Prj.Compiler_Options := (others => Compiler_Driver_Opts);
 
    --  Then, invoke the right set of gnatcov commands
 
@@ -791,12 +810,15 @@ begin
            Comp_DB.Compilation_Commands.Reference (Cur);
          Instrumenter     : Language_Instrumenter'Class :=
            (case Comp_Command.Language is
-            when C_Language   => Create_C_Instrumenter (Instr_Config.Tag),
-            when CPP_Language => Create_CPP_Instrumenter (Instr_Config.Tag),
-            when others       =>
-               raise Program_Error
-                 with "Unsupported language for integrated"
-                      & " instrumentation");
+           when C_Language   =>
+             Create_C_Instrumenter
+                (Instr_Config.Tag, Integrated_Instrumentation),
+           when CPP_Language =>
+             Create_CPP_Instrumenter
+                (Instr_Config.Tag, Integrated_Instrumentation),
+           when others       =>
+              raise Program_Error
+                with "Unsupported language for integrated instrumentation");
 
          Fullname    : constant String := +Comp_Command.File.Full_Name;
          Simple_Name : constant String := +Comp_Command.File.Base_Name;
@@ -861,7 +883,8 @@ begin
    if Comp_DB.Link_Command /= No_Link_Command then
       declare
          Instrumenter : constant Language_Instrumenter'Class :=
-           Create_C_Instrumenter (Instr_Config.Tag);
+           Create_C_Instrumenter
+             (Instr_Config.Tag, Integrated_Instrumentation);
          --  Emit the buffers list unit as a C compilation unit as it is
          --  compilable by a C / C++ compiler, which are the languages
          --  supported by the integrated instrumentation scheme.

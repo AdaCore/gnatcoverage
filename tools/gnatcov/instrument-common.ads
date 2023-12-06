@@ -556,6 +556,10 @@ package Instrument.Common is
       --  List of compiler switches that can influence the file preprocessing.
       --  The list should be amended alongside our discoveries. It is
       --  currently: -std, -fno-exceptions, -fno-rtti, -W* switches.
+
+      Raw_Switches : String_Vectors.Vector;
+      --  List of switches passed to the compiler driver without filtering
+
    end record;
    --  Options to analyze (preprocess and/or parse) a compilation unit
 

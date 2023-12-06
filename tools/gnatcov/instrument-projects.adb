@@ -1188,8 +1188,9 @@ begin
         Mapping_Filename           => +IC.Mapping_File,
         Predefined_Source_Dirs     => IC.Predefined_Source_Dirs,
         Preprocessor_Data_Filename => +IC.Ada_Preprocessor_Data_File);
-   C_Instrumenter := Create_C_Instrumenter (IC.Tag);
-   CPP_Instrumenter := Create_CPP_Instrumenter (IC.Tag);
+   C_Instrumenter := Create_C_Instrumenter (IC.Tag, Project_Instrumentation);
+   CPP_Instrumenter :=
+     Create_CPP_Instrumenter (IC.Tag, Project_Instrumentation);
 
    if Dump_Config.Trigger = Manual then
 

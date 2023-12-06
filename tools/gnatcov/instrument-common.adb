@@ -601,6 +601,8 @@ package body Instrument.Common is
    --  Start of processing for Import_From_Args
 
    begin
+      Self.Raw_Switches.Append_Vector (Args);
+
       while I <= Last loop
          declare
             A     : constant String := +Args (I);

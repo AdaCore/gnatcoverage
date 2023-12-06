@@ -45,8 +45,10 @@ begin
             Preprocessor_Data_Filename =>
                +Args.String_Args (Opt_Ada_Preprocessor_Data).Value);
       when C_Language =>
-         return Create_C_Instrumenter (Tag => Tag);
+         return Create_C_Instrumenter
+           (Tag => Tag, Instr_Mode => Project_Instrumentation);
       when CPP_Language =>
-         return Create_CPP_Instrumenter (Tag => Tag);
+         return Create_CPP_Instrumenter
+           (Tag => Tag, Instr_Mode => Project_Instrumentation);
    end case;
 end Instrument.Config;

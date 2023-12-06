@@ -72,12 +72,11 @@ package body Instrument.C is
    --  Preprocessing utilities --
    ------------------------------
 
-   type Macro_Set_Access is access Macro_Set;
-   type Macro_Set_Cst_Access is access constant Macro_Set;
-
-   function Builtin_Macros
+   procedure Get_Builtin_Macros
      (Lang, Compiler, Output_Dir : String;
-      Compiler_Switches : String_Vectors.Vector) return Macro_Set_Cst_Access;
+      Compiler_Switches          : String_Vectors.Vector;
+      Instr_Mode                 : Instrumentation_Mode;
+      Result                     : out Macro_Set);
    --  Return the list of built-in macros for the given compiler, language and
    --  according to the compiler switches. Output_Dir is used to store a
    --  temporary file.
@@ -2499,18 +2498,18 @@ package body Instrument.C is
    -- Builtin_Macros --
    --------------------
 
-   function Builtin_Macros
+   procedure Get_Builtin_Macros
      (Lang, Compiler, Output_Dir : String;
-      Compiler_Switches : String_Vectors.Vector) return Macro_Set_Cst_Access
+      Compiler_Switches          : String_Vectors.Vector;
+      Instr_Mode                 : Instrumentation_Mode;
+      Result                     : out Macro_Set)
    is
       use Ada.Characters.Handling;
 
       PID : constant Unsigned_64 :=
         Unsigned_64 (Pid_To_Integer (Current_Process_Id));
 
-      L      : constant String := To_Lower (Lang);
-      Result : constant Macro_Set_Access := new Macro_Set;
-
+      L        : constant String := To_Lower (Lang);
       Args     : String_Vectors.Vector;
       Basename : constant String :=
         Ada.Directories.Simple_Name (Compiler)
@@ -2522,8 +2521,16 @@ package body Instrument.C is
       --  Run the preprocessor on an empty file and write the
       --  preprocessed sources to Filename.
 
-      Args.Append (+"-x");
-      Args.Append (+L);
+      --  If we are in the integrated instrumentation mode, we use the compiler
+      --  (as opposed to the compiler driver) to preprocess the source file.
+      --  The compiler - which is specific to the language - does not accept
+      --  the -x switch, so do not pass it in this case.
+
+      if Instr_Mode = Project_Instrumentation then
+         Args.Append (+"-x");
+         Args.Append (+L);
+      end if;
+
       Args.Append (Compiler_Switches);
       Args.Append (+"-E");
       Args.Append (+"-dM");
@@ -2561,8 +2568,7 @@ package body Instrument.C is
       end loop;
       Close (File);
       Delete_File (Filename);
-      return Macro_Set_Cst_Access (Result);
-   end Builtin_Macros;
+   end Get_Builtin_Macros;
 
    -----------------------
    -- Preprocess_Source --
@@ -2611,14 +2617,18 @@ package body Instrument.C is
         (Command => Prj.Compiler_Driver (Instrumenter.Language),
          others  => <>);
 
-      --  Add the preprocessing flag
-
       if Keep_Comments then
          Append_Arg (Cmd, "-C");
       end if;
 
+      --  Add the preprocessing flag
+
       Append_Arg (Cmd, "-E");
-      Add_Options (Cmd.Arguments, Options, Pass_Builtins => False);
+
+      --  Add all of the compiler / compiler driver options to the
+      --  preprocessing command line.
+
+      Append_Args (Cmd, Options.Raw_Switches);
 
       Append_Arg (Cmd, Filename);
 
@@ -4582,12 +4592,13 @@ package body Instrument.C is
       --  Now, we can generate the preprocessor configuration (i.e. the set
       --  of predefined macros).
 
-      Self.Builtin_Macros :=
-        Builtin_Macros
-          (Image (C_Family_Language (Instrumenter.Language)),
-           +Prj.Compiler_Driver (Instrumenter.Language),
-           +Prj.Output_Dir,
-           Self.Compiler_Switches).all;
+      Get_Builtin_Macros
+        (Image (C_Family_Language (Instrumenter.Language)),
+         +Prj.Compiler_Driver (Instrumenter.Language),
+         +Prj.Output_Dir,
+         Self.Compiler_Switches,
+         Instrumenter.Instr_Mode,
+         Self.Builtin_Macros);
    end Import_Options;
 
    ---------------------------
