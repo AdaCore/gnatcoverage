@@ -74,8 +74,11 @@ package Coverage is
    --  one is enabled (it is illegal to have both enabled).
 
    function MCDC_Level return MCDC_Coverage_Level;
-   --  If MCDC_Coverage_Level_Enabled, return MCDC or UC_MCDC, depending on
+   --  If MCDC_Coverage_Enabled, return MCDC or UC_MCDC, depending on
    --  which one is enabled (it is illegal to have both enabled).
+
+   function Assertion_Condition_Level return Contract_Condition_Level;
+   --  If Assertion_Condition_Coverage_Enabled, return ATCC.
 
    function Coverage_Option_Value return String;
    --  Return the coverage option value for the currently enabled levels
