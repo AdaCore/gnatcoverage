@@ -43,8 +43,10 @@ begin
             Predefined_Source_Dirs  =>
                Args.String_List_Args (Opt_Runtime_Dir));
       when C_Language =>
-         return Create_C_Instrumenter (Tag => Tag);
+         return Create_C_Instrumenter
+           (Tag => Tag, Instr_Mode => Project_Instrumentation);
       when CPP_Language =>
-         return Create_CPP_Instrumenter (Tag => Tag);
+         return Create_CPP_Instrumenter
+           (Tag => Tag, Instr_Mode => Project_Instrumentation);
    end case;
 end Instrument.Config;

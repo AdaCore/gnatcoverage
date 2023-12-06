@@ -1147,12 +1147,13 @@ begin
 
    Ada_Instrumenter :=
      Create_Ada_Instrumenter
-       (IC.Tag,
-        +IC.Config_Pragmas_File,
-        +IC.Mapping_File,
-        IC.Predefined_Source_Dirs);
-   C_Instrumenter := Create_C_Instrumenter (IC.Tag);
-   CPP_Instrumenter := Create_CPP_Instrumenter (IC.Tag);
+       (Tag => IC.Tag,
+        Config_Pragmas_Filename => +IC.Config_Pragmas_File,
+        Mapping_Filename        => +IC.Mapping_File,
+        Predefined_Source_Dirs  => IC.Predefined_Source_Dirs);
+   C_Instrumenter := Create_C_Instrumenter (IC.Tag, Project_Instrumentation);
+   CPP_Instrumenter :=
+     Create_CPP_Instrumenter (IC.Tag, Project_Instrumentation);
 
    if Dump_Config.Trigger = Manual then
       --  Replace manual dump indications for C-like languages

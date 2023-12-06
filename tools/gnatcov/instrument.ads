@@ -43,6 +43,9 @@ package Instrument is
 
    Parallelism_Level : Natural := 1;
 
+   type Instrumentation_Mode is
+     (Project_Instrumentation, Integrated_Instrumentation);
+
    function Language_Kind
      (Language : Some_Language) return Any_Language_Kind;
    --  Returns the language kind (unit-based or file-based) for the given

@@ -41,7 +41,10 @@ with Slocs;              use Slocs;
 package Instrument.C is
 
    type C_Family_Instrumenter_Type is
-     abstract new Language_Instrumenter with null record;
+     abstract new Language_Instrumenter with
+      record
+         Instr_Mode : Instrumentation_Mode;
+      end record;
    --  Common instrumentation primitives for C/C++
 
    overriding procedure Instrument_Unit
@@ -121,8 +124,9 @@ package Instrument.C is
    is (C_Language);
 
    function Create_C_Instrumenter
-     (Tag : Unbounded_String) return C_Instrumenter_Type
-   is (C_Instrumenter_Type'(Tag => Tag));
+     (Tag        : Unbounded_String;
+      Instr_Mode : Instrumentation_Mode) return C_Instrumenter_Type
+   is (C_Instrumenter_Type'(Tag => Tag, Instr_Mode => Instr_Mode));
    --  Create a C instrumenter. See the definition of the
    --  Language_Instrumenter type for the arguments semantic.
 
@@ -139,8 +143,9 @@ package Instrument.C is
    is ("extern ""C"" ");
 
    function Create_CPP_Instrumenter
-     (Tag : Unbounded_String) return CPP_Instrumenter_Type
-   is (CPP_Instrumenter_Type'(Tag => Tag));
+     (Tag        : Unbounded_String;
+      Instr_Mode : Instrumentation_Mode) return CPP_Instrumenter_Type
+   is (CPP_Instrumenter_Type'(Tag => Tag, Instr_Mode => Instr_Mode));
    --  Create a C++ instrumenter. See the definition of the
    --  Language_Instrumenter type for the arguments semantic.
 
