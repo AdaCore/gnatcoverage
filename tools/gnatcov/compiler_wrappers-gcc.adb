@@ -357,7 +357,7 @@ is
             --  we would find the positional argument but it is not
             --  straightforward.
 
-            if Arg = +"-dumpbase" or else Arg = +"-dumpbase-ext" then
+            if Arg = "-dumpbase" or else Arg = "-dumpbase-ext" then
                Cur := Next (Cur);
             end if;
 
@@ -456,17 +456,17 @@ is
          declare
             Arg : constant Unbounded_String := Element (Cur);
          begin
-            if Arg = +"-L" then
+            if Arg = "-L" then
                Result.Library_Dirs.Append (Element (Next (Cur)));
             elsif Starts_With (Arg, "-L") then
                Result.Library_Dirs.Append
                  (Unbounded_Slice (Arg, 3, Length (Arg)));
-            elsif Arg = +"-l" then
+            elsif Arg = "-l" then
                Result.Libraries.Append (Element (Next (Cur)));
             elsif Starts_With (Arg, "-l") then
                Result.Libraries.Append
                  (Unbounded_Slice (Arg, 3, Length (Arg)));
-            elsif Arg = +"-o" then
+            elsif Arg = "-o" then
                Result.Target := Element (Next (Cur));
             elsif Ends_With (Arg, ".o") then
                if Context.Source_Mapping.Contains (Arg) then
