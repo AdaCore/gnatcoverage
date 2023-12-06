@@ -49,8 +49,7 @@
 --    units are replacements for the original units. They fill the coverage
 --    buffers for the unit.
 
-with Ada.Characters.Handling;         use Ada.Characters.Handling;
-with Ada.Containers.Hashed_Sets;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
@@ -168,12 +167,6 @@ package Instrument.Common is
    --  Opening and Closing are strings used at the beginning and the end of the
    --  returned literal expression (aggregate in Ada, compound expression in
    --  C/C++).
-
-   package File_Sets is new Ada.Containers.Hashed_Sets
-     (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
-      "="                 => Ada.Strings.Unbounded."=",
-      Equivalent_Elements => Ada.Strings.Unbounded."=",
-      Hash                => Ada.Strings.Unbounded.Hash);
 
    type Instrumented_Unit_Info is record
       Filename : Ada.Strings.Unbounded.Unbounded_String;
