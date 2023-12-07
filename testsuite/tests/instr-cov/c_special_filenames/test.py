@@ -3,32 +3,56 @@ Test that the instrumentation of C sources with filenames that contain uncommon
 characters produces valid instrumented sources.
 """
 
+import os.path
+
+from e3.fs import cp
+
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
+from SUITE.control import env
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
 from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
+
+# Copy the sources in the temporary directory. Note that we cannot test the
+# case of a filename containing a double quote or a backslash on Windows
+# because of filename restrictions on that platform.
+copy_map = {
+    "ada_main.adb": "ada_main.adb",
+    "bar.c": "src bar.c" if env.build.os.name == "windows" else 'src\\"bar.c',
+    "foo.c": "src foo$@.c",
+    "main.c": "main.c",
+}
+for src, dest in copy_map.items():
+    cp(os.path.join("..", src), dest)
+
+# Compute the expected coverage report from the actual source filenames. Note
+# that in xcov filenames, "gnatcov coverage" first turns '\' to '/' (during
+# path separator canonicalization) and then the unique filename machinery turns
+# '/' to '-'.
+coverage_data = {
+    "ada_main.adb": {"+": {7, 9}},
+    "bar.c": {"+": {4, 5}, "-": {7}},
+    "foo.c": {"+": {4}},
+    "main.c": {"+": {7, 8}},
+}
+expected_report = {
+    "{}.xcov".format(copy_map[filename].replace("\\", "-")): report
+    for filename, report in coverage_data.items()
+}
 
 build_run_and_coverage(
     gprsw=GPRswitches(
-        root_project=gprfor(srcdirs=['..'], mains=['main.c', 'ada_main.adb'])
+        root_project=gprfor(srcdirs=["."], mains=["main.c", "ada_main.adb"])
     ),
-    covlevel='stmt',
-    mains=['main', 'ada_main'],
-    extra_coverage_args=['-axcov', '--output-dir=xcov'],
-    trace_mode='src',
+    covlevel="stmt",
+    mains=["main", "ada_main"],
+    extra_coverage_args=["-axcov", "--output-dir=xcov"],
+    trace_mode="src",
 )
-check_xcov_reports(
-    '*.xcov',
-    {
-        'main.c.xcov': {'+': {6}},
-        '$foo@bar$.c.xcov': {'+': {4}},
-        'ada_main.adb.xcov': {'+': {9}},
-    },
-    'xcov',
-)
+check_xcov_reports("*.xcov", expected_report, "xcov")
 
 thistest.result()
