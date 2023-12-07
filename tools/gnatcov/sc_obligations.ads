@@ -25,7 +25,6 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Containers.Multiway_Trees;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNAT.Regexp;
 with GNAT.SHA1;
@@ -47,6 +46,8 @@ package SC_Obligations is
    --  tampering checks.
 
    pragma Suppress (Tampering_Check);
+
+   use all type Unbounded_String;
 
    SCOs_Trace : constant Logging.GNATCOLL_Trace :=
      Logging.Create_Trace ("SCOS");

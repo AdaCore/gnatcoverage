@@ -17,12 +17,15 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling;
-with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
 with GNAT.Regpat;
 
+with Strings; use Strings;
+
 package body Paths is
+
+   use all type Unbounded_String;
 
    On_Windows : constant Boolean := GNAT.OS_Lib.Directory_Separator = '\';
 
@@ -107,7 +110,6 @@ package body Paths is
    --------------------
 
    function Glob_To_Regexp (Pattern : String) return String is
-      use Ada.Strings.Unbounded;
       use GNAT.Regpat;
 
       Pat : constant String :=
@@ -185,8 +187,7 @@ package body Paths is
                --  De-duplicate directory separators so that "a//b" can match
                --  "a/b".
 
-               if Length (Res) = 0 or else Element (Res, Length (Res)) /= '/'
-               then
+               if Res = "" or else Element (Res, Length (Res)) /= '/' then
                   Append (Res, '/');
                end if;
 
@@ -195,7 +196,7 @@ package body Paths is
          end case;
          I := I + 1;
       end loop;
-      return To_String (Res);
+      return +Res;
    end Glob_To_Regexp;
 
    --------------------------
@@ -280,7 +281,6 @@ package body Paths is
       --
       --  At least for dirsep purposes, we craft the new value incrementally.
 
-      use Ada.Strings.Unbounded;
       use Ada.Characters.Handling;
       Res : Unbounded_String;
 
@@ -303,7 +303,7 @@ package body Paths is
          end if;
       end loop;
 
-      return To_String (Res);
+      return +Res;
    end Normalize_Windows_Pattern;
 
    -------------------------------

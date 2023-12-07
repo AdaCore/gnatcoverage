@@ -18,8 +18,6 @@
 
 --  This package implements the "setup" gnatcov command.
 
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-
 with Logging;
 with Strings;  use Strings;
 with Switches; use Switches;

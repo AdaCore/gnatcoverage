@@ -51,7 +51,7 @@ package body Text_Files is
       return Boolean is
    begin
       Open (Self.File, Mode, Name);
-      Self.Filename := US.To_Unbounded_String (Name);
+      Self.Filename := +Name;
       return True;
    exception
       when Use_Error | Name_Error =>
@@ -69,7 +69,7 @@ package body Text_Files is
       return Boolean is
    begin
       Create (Self.File, Mode, Name);
-      Self.Filename := US.To_Unbounded_String (Name);
+      Self.Filename := +Name;
       return True;
    exception
       when Use_Error | Name_Error =>

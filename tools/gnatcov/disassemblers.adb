@@ -16,16 +16,18 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with Ada.Text_IO;           use Ada.Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 
 with Arch;
 with Interfaces; use Interfaces;
 with Hex_Images; use Hex_Images;
+with Strings;    use Strings;
 with Outputs;
 with Version;
 
 package body Disassemblers is
+
+   use all type Unbounded_String;
 
    ---------
    -- "<" --
@@ -62,10 +64,10 @@ package body Disassemblers is
          Append (Dump, Hex_Image (Get (Bin, I)));
          I := I + 1;
       end loop;
-      if Length (Dump) = 0 then
+      if Dump = "" then
          Append (Dump, "<empty>");
       end if;
-      return To_String (Dump);
+      return +Dump;
    end Dump_Bin;
 
    ------------------------------

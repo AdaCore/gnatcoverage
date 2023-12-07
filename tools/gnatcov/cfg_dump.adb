@@ -22,7 +22,6 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Exceptions; use Ada.Exceptions;
-with Ada.Strings.Unbounded;
 with Ada.Text_IO;    use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
@@ -43,7 +42,7 @@ with Highlighting;
 with Outputs;      use Outputs;
 with Qemu_Traces;
 with SC_Obligations;
-with Strings;
+with Strings;      use Strings;
 with Support_Files;
 with Traces;       use Traces;
 with Traces_Dbase;
@@ -53,10 +52,7 @@ with Traces_Files;
 package body CFG_Dump is
 
    use type Pc_Type;
-
-   function To_Unbounded_String
-     (S : String) return Ada.Strings.Unbounded.Unbounded_String
-      renames Ada.Strings.Unbounded.To_Unbounded_String;
+   use all type Unbounded_String;
 
    procedure Load_SCOs (ALI_Filename : String);
    --  Wrapper for SC_Obligations.Load_SCOs, assumes there is no source file to
@@ -345,7 +341,7 @@ package body CFG_Dump is
       State : Disassembly_State;
       --  Disassembled instructions
 
-      Disas_Error : Ada.Strings.Unbounded.Unbounded_String;
+      Disas_Error : Unbounded_String;
       --  Hold the error message when disassembling failed
 
       PC      : Pc_Type := Code.First;
@@ -492,8 +488,7 @@ package body CFG_Dump is
                   --  assume instructions are not supposed to do that.
 
                   State := Invalid_Insn;
-                  Disas_Error := To_Unbounded_String
-                    ("Insn crosses a symbol's upper address");
+                  Disas_Error := +"Insn crosses a symbol's upper address";
                end if;
             end if;
 
@@ -624,8 +619,7 @@ package body CFG_Dump is
 
             when Invalid_Insn =>
                Disassemblers.Abort_Disassembler_Error
-                 (PC, Slice (Code, PC, Code.Last),
-                  Ada.Strings.Unbounded.To_String (Disas_Error));
+                 (PC, Slice (Code, PC, Code.Last), +Disas_Error);
 
             when Skip_Padding =>
 
@@ -1007,7 +1001,6 @@ package body CFG_Dump is
    ----------------
 
    procedure Output_CFG (Context : Context_Access) is
-      use Ada.Strings.Unbounded;
       use type SC_Obligations.SCO_Id;
       subtype SCO_Id is SC_Obligations.SCO_Id;
 
@@ -1170,7 +1163,7 @@ package body CFG_Dump is
             Append (Prefix, "<U>");
             Insert (Suffix, 1, "</U>");
          end if;
-         return To_String (Prefix) & Text & To_String (Suffix);
+         return +Prefix & Text & (+Suffix);
       end Styled;
 
       -----------------------
@@ -1232,7 +1225,7 @@ package body CFG_Dump is
                   Append (Result, C);
             end case;
          end loop;
-         return To_String (Result);
+         return +Result;
       end HTML_Escape;
 
       -------------------------
@@ -1259,7 +1252,7 @@ package body CFG_Dump is
             Append (Result, "<BR ALIGN=""left""/>");
             Previous (Sloc);
          end loop;
-         return To_String (Result);
+         return +Result;
       end Format_Slocs_For_PC;
 
       -------------------------
@@ -1386,7 +1379,7 @@ package body CFG_Dump is
             end;
             Append (Result, "<BR ALIGN=""left""/>");
          end loop;
-         return To_String (Result);
+         return +Result;
       end Format_Basic_Block_Label;
 
       ------------------------
@@ -1501,9 +1494,9 @@ package body CFG_Dump is
             else Edge_Unselected_Color);
 
       begin
-         Put (F, To_String (Edge.From_Id));
+         Put (F, +Edge.From_Id);
          Put (F, " -> ");
-         Put (F, To_String (Edge.To_Id));
+         Put (F, +Edge.To_Id);
          Put (F, " [color=""#" & Color & """,penwidth=3,style=");
          Put (F, (case Edge.Kind is
                  when Fallthrough                   => "solid",
@@ -1518,7 +1511,6 @@ package body CFG_Dump is
                use Decision_Map;
                use Decision_Map.Cond_Branch_Maps;
                use SC_Obligations;
-               use Strings;
 
                This_Branch  : Decision_Map.Cond_Branch_Info renames
                  Reference (Cond_Branch_Map, Edge.Info.Branch_Info);
@@ -1614,15 +1606,15 @@ package body CFG_Dump is
                     Get_Cond_Edge_Info (BB.Last_Element, Successor);
                begin
                   Edges.Append
-                    ((To_Unbounded_String (Node_Id (Address (BB.all))),
-                     To_Unbounded_String (Id),
-                     Successor.Kind,
-                     Selected =>
-                       (not Successor.Known
-                        or else not Context.Other_Outcome.Contains
-                          (Successor_Key'Unchecked_Access)),
-                     Executed => Element (Succ_Cur),
-                     Info     => Edge_Info));
+                    ((+Node_Id (Address (BB.all)),
+                      +Id,
+                      Successor.Kind,
+                      Selected =>
+                        (not Successor.Known
+                         or else not Context.Other_Outcome.Contains
+                           (Successor_Key'Unchecked_Access)),
+                      Executed => Element (Succ_Cur),
+                      Info     => Edge_Info));
                   if not Successor.Known then
                      Put_Line (F, Id & " [shape=ellipse, label=<???>];");
                   end if;
@@ -1707,12 +1699,12 @@ package body CFG_Dump is
                        Get_Cond_Edge_Info (Insn, Successor);
                   begin
                      Edges.Append
-                       ((To_Unbounded_String (Node_Id (Address (Insn))),
-                        To_Unbounded_String (Node_Id (Successor.Address)),
-                        Successor.Kind,
-                        Selected => False,
-                        Executed => False,
-                        Info     => Edge_Info));
+                       ((+Node_Id (Address (Insn)),
+                         +Node_Id (Successor.Address),
+                         Successor.Kind,
+                         Selected => False,
+                         Executed => False,
+                         Info     => Edge_Info));
                   end;
                end if;
             end loop;
@@ -1957,8 +1949,6 @@ package body CFG_Dump is
    -----------------
 
    function Expand_Tabs (S : String; Start : Positive) return String is
-      use Ada.Strings.Unbounded;
-
       Column : Positive := Start;
       Result : Unbounded_String;
    begin
@@ -1976,7 +1966,7 @@ package body CFG_Dump is
             Column := Column + 1;
          end if;
       end loop;
-      return To_String (Result);
+      return +Result;
    end Expand_Tabs;
 
 end CFG_Dump;

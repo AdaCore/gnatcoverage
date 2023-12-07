@@ -1181,8 +1181,8 @@ package body Instrument.Ada_Unit is
    type Ada_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
      with
       record
-         Input_Filename  : Ada.Strings.Unbounded.Unbounded_String;
-         Output_Filename : Ada.Strings.Unbounded.Unbounded_String;
+         Input_Filename  : Unbounded_String;
+         Output_Filename : Unbounded_String;
 
          Unit   : Libadalang.Analysis.Analysis_Unit;
          Handle : Libadalang.Rewriting.Rewriting_Handle;
@@ -1527,7 +1527,7 @@ package body Instrument.Ada_Unit is
         & (if Is_MCDC
            then ", {}"
            & ", " & Img (Bits.Path_Bits_Base)
-           & ", " & To_String (MCDC_State)
+           & ", " & (+MCDC_State)
            else "")
         & ")";
 
@@ -1577,7 +1577,7 @@ package body Instrument.Ada_Unit is
    is
       E        : Instrumentation_Entities renames IC.Entities;
       Call_Img : constant String :=
-        "{}.Witness (" & To_String (MCDC_State) & ","
+        "{}.Witness (" & (+MCDC_State) & ","
         & Img (Offset) & "," & First'Img & ")";
 
       RH_Call : constant Node_Rewriting_Handle :=
@@ -1682,7 +1682,7 @@ package body Instrument.Ada_Unit is
    begin
       --  No instrumentation for condition if there is no local state variable
 
-      if Length (SC.State) = 0 then
+      if SC.State = "" then
          return;
       end if;
 
@@ -3534,7 +3534,7 @@ package body Instrument.Ada_Unit is
          Process_Expression
            (UIC,
             P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)),
-           'A');
+            'A');
       end Process_Contract;
 
       ------------------------------------
@@ -6657,8 +6657,8 @@ package body Instrument.Ada_Unit is
          raise Xcov_Exit_Exc;
       end if;
 
-      Self.Input_Filename := To_Unbounded_String (Input_Filename);
-      Self.Output_Filename := To_Unbounded_String (Output_Filename);
+      Self.Input_Filename := +Input_Filename;
+      Self.Output_Filename := +Output_Filename;
       Self.Unit := Unit;
       Self.Handle := Start_Rewriting (Instrumenter.Context);
    end Start_Rewriting;
@@ -6699,8 +6699,8 @@ package body Instrument.Ada_Unit is
       --  which should be unique in Ada projects anyway.
 
       declare
-         N : constant Unbounded_String := To_Unbounded_String
-           (Ada.Directories.Simple_Name (Langkit_Support.Text.Image (Name)));
+         N : constant Unbounded_String :=
+           +Ada.Directories.Simple_Name (Langkit_Support.Text.Image (Name));
       begin
          if Self.Reported_Files.Contains (N) then
             return;
@@ -6712,7 +6712,7 @@ package body Instrument.Ada_Unit is
          --  hierarchy.
 
          declare
-            Source_Name : constant String := To_String (N);
+            Source_Name : constant String := +N;
          begin
             if not (GNATCOLL.Utils.Starts_With (Source_Name, "gnatcov_rts")
                     or else GNATCOLL.Utils.Starts_With (Source_Name, "gcvrt"))
@@ -6721,9 +6721,9 @@ package body Instrument.Ada_Unit is
                --  instrumenting when we noticed that the source file N was
                --  missing.
 
-               if Length (Self.Instrumented_File) > 0 then
+               if Self.Instrumented_File /= "" then
                   Warn ("While instrumenting "
-                        & To_String (Self.Instrumented_File)
+                        & (+Self.Instrumented_File)
                         & "...");
                   Self.Instrumented_File := Null_Unbounded_String;
                end if;
@@ -7112,8 +7112,7 @@ package body Instrument.Ada_Unit is
       begin
          Visit (Unit_Name);
          Append (Result, Extension);
-         return Output_Dir
-                / Ada.Characters.Handling.To_Lower (To_String (Result));
+         return Output_Dir / Ada.Characters.Handling.To_Lower (+Result);
       end Filename;
 
       Wrapped_Prefix         : constant String := "Xcov_Wrapped_";
@@ -7210,7 +7209,7 @@ package body Instrument.Ada_Unit is
             4 => Generic_Wrapper_Name),
            Rule => Compilation_Unit_Rule);
       Generic_Wrapper_Body_Filename :=
-        To_Unbounded_String (Filename (Generic_Wrapper_Name, ".adb"));
+        +Filename (Generic_Wrapper_Name, ".adb");
 
       --  Code that is inserted to dump coverage buffers will land in this
       --  wrapper: set Prelude, Main_Decls and Main_Stmts accordingly.
@@ -7476,7 +7475,7 @@ package body Instrument.Ada_Unit is
 
    procedure Apply (Self : in out Ada_Source_Rewriter'Class) is
    begin
-      Write_To_File (Handle (Self.Unit), To_String (Self.Output_Filename));
+      Write_To_File (Handle (Self.Unit), +Self.Output_Filename);
       Abort_Rewriting (Self.Handle);
       Self.Finalize;
    end Apply;
@@ -7787,7 +7786,7 @@ package body Instrument.Ada_Unit is
             Saved_Root : constant Node_Rewriting_Handle := Root (UH);
          begin
             Set_Root (UH, Desc.Generic_Wrapper_Body);
-            Write_To_File (UH, To_String (Desc.Generic_Wrapper_Body_Filename));
+            Write_To_File (UH, +Desc.Generic_Wrapper_Body_Filename);
             Set_Root (UH, Saved_Root);
          end;
       end if;
@@ -8577,7 +8576,7 @@ package body Instrument.Ada_Unit is
    begin
       Helper_Unit := Sys_Prefix;
       Helper_Unit.Append
-        (To_Unbounded_String ("D") & "B_manual_" & To_String (Prj.Prj_Name));
+        (To_Unbounded_String ("D" & "B_manual_" & (+Prj.Prj_Name)));
       return Helper_Unit;
    end Create_Manual_Helper_Unit_Name;
 
@@ -8628,7 +8627,7 @@ package body Instrument.Ada_Unit is
       else
          Helper_Unit := Sys_Prefix;
          Helper_Unit.Append
-           (To_Unbounded_String ("D") & Instrumented_Unit_Slug (Main));
+           (To_Unbounded_String ("D" & Instrumented_Unit_Slug (Main)));
       end if;
 
       --  Compute the qualified names we need for instrumentation
@@ -8749,14 +8748,14 @@ package body Instrument.Ada_Unit is
                Indent2 : constant String := Indent1 & "  ";
 
                Env_Var : constant String :=
-                 (if Length (Dump_Config.Filename_Env_Var) = 0
+                 (if Dump_Config.Filename_Env_Var = ""
                   then U & ".Default_Trace_Filename_Env_Var"
-                  else """" & To_String (Dump_Config.Filename_Env_Var)
+                  else """" & (+Dump_Config.Filename_Env_Var)
                        & """");
                Prefix  : constant String :=
-                 """" & To_String ((if Dump_Config.Trigger = Manual
-                                   then Prj.Prj_Name
-                                   else Dump_Config.Filename_Prefix)) & """";
+                 """" & (if Dump_Config.Trigger = Manual
+                         then +Prj.Prj_Name
+                         else +Dump_Config.Filename_Prefix) & """";
                Tag     : constant String := """" & (+Instrumenter.Tag)  & """";
                Simple  : constant String :=
                  (if Dump_Config.Filename_Simple
@@ -8779,9 +8778,9 @@ package body Instrument.Ada_Unit is
             --  get the current execution time.
 
             File.Put_Line ("         Program_Name => """
-           & (if Dump_Trigger = Manual
-             then "manual_dump"","
-             else To_Ada (Main.Unit) & ""","));
+                           & (if Dump_Trigger = Manual
+                             then "manual_dump"","
+                             else To_Ada (Main.Unit) & ""","));
             File.Put ("         Exec_Date => 0");
          end case;
          File.Put_Line (");");
@@ -8897,7 +8896,7 @@ package body Instrument.Ada_Unit is
          Override_Dump_Trigger => Manual,
          Has_Controlled        => False);
 
-      Helper_Unit := To_Unbounded_String (To_Ada (Ada_Helper_Unit));
+      Helper_Unit := +To_Ada (Ada_Helper_Unit);
    end Emit_Dump_Helper_Unit_Manual;
 
    ----------------------------
@@ -9098,8 +9097,7 @@ package body Instrument.Ada_Unit is
             if Switches.Misc_Trace.Is_Active then
                Switches.Misc_Trace.Trace ("Instrumenting " & Basename);
             else
-               Event_Handler.Instrumented_File :=
-                 To_Unbounded_String (Basename);
+               Event_Handler.Instrumented_File := +Basename;
             end if;
 
             Last_Buffer_Index := Last_Buffer_Index + 1;

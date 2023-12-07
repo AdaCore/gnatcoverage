@@ -19,7 +19,6 @@
 with Ada.Command_Line;
 with Ada.Containers;
 
-with Strings;       use Strings;
 with Support_Files; use Support_Files;
 with Switches;      use Switches;
 with Version;       use Version;
@@ -267,9 +266,7 @@ package body Coverage is
    function Get_Context return Context is
       use Ada.Command_Line;
 
-      Command : Unbounded_String :=
-        To_Unbounded_String (Support_Files.Gnatcov_Command_Name);
-
+      Command : Unbounded_String := +Support_Files.Gnatcov_Command_Name;
    begin
       for J in 1 .. Argument_Count loop
          Append (Command, ' ' & Argument (J));
@@ -277,9 +274,9 @@ package body Coverage is
 
       return Context'
         (Timestamp         => Clock,
-         Version           => To_Unbounded_String (Xcov_Version),
+         Version           => +Xcov_Version,
          Command           => Command,
-         Levels            => To_Unbounded_String (Coverage_Option_Value),
+         Levels            => +Coverage_Option_Value,
          Subps_Of_Interest => Subps_Of_Interest);
    end Get_Context;
 
@@ -288,11 +285,11 @@ package body Coverage is
    ---------------
 
    function To_String (C : Context) return String is
-      US  : aliased Unbounded_String;
-      USS : aliased Unbounded_String_Stream (US'Access);
+      S  : aliased Unbounded_String;
+      SS : aliased Unbounded_String_Stream (S'Access);
    begin
-      Context'Output (USS'Access, C);
-      return To_String (US);
+      Context'Output (SS'Access, C);
+      return +S;
    end To_String;
 
    -----------------
@@ -300,10 +297,10 @@ package body Coverage is
    -----------------
 
    function From_String (S : String) return Context is
-      US  : aliased Unbounded_String := To_Unbounded_String (S);
-      USS : aliased Unbounded_String_Stream (US'Access);
+      Str : aliased Unbounded_String := +S;
+      SS  : aliased Unbounded_String_Stream (Str'Access);
    begin
-      return Context'Input (USS'Access);
+      return Context'Input (SS'Access);
    end From_String;
 
 end Coverage;

@@ -26,6 +26,7 @@ with Project; use Project;
 
 package body Switches is
 
+   use type Unbounded_String;
    use Command_Line.Parser;
 
    function Command_Line_Args return String_List_Access;
@@ -113,8 +114,8 @@ package body Switches is
       Dump_Channel          : Any_Dump_Channel;
       Dump_Trigger          : Any_Dump_Trigger;
       Dump_Filename_Simple  : Boolean := False;
-      Dump_Filename_Env_Var : Ada.Strings.Unbounded.Unbounded_String;
-      Dump_Filename_Prefix  : Ada.Strings.Unbounded.Unbounded_String;
+      Dump_Filename_Env_Var : Unbounded_String;
+      Dump_Filename_Prefix  : Unbounded_String;
    begin
       --  First, load the config from Default_Dump_Config, then override it
       --  using command-line arguments.
@@ -193,7 +194,6 @@ package body Switches is
    function Unparse_Config
      (Dump_Config : Any_Dump_Config) return String_Vectors.Vector
    is
-      use Ada.Strings.Unbounded;
       Result : String_Vectors.Vector;
    begin
       Result.Append (+"--dump-trigger");
@@ -213,11 +213,11 @@ package body Switches is
             if Dump_Config.Filename_Simple then
                Result.Append (+"--dump-filename-simple");
             end if;
-            if Length (Dump_Config.Filename_Env_Var) /= 0 then
+            if Dump_Config.Filename_Env_Var /= "" then
                Result.Append
                  ("--dump-filename-env-var=" & Dump_Config.Filename_Env_Var);
             end if;
-            if Length (Dump_Config.Filename_Prefix) /= 0 then
+            if Dump_Config.Filename_Prefix /= "" then
                Result.Append
                  (+"--dump-filename-prefix=" & Dump_Config.Filename_Prefix);
             end if;

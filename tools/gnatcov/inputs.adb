@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.CRC32;
@@ -289,7 +288,6 @@ package body Inputs is
       Has_Matcher      : out Boolean;
       Case_Insensitive : Boolean := False)
    is
-      use Ada.Strings.Unbounded;
       use String_Vectors;
 
       Pattern : Unbounded_String;
@@ -337,7 +335,7 @@ package body Inputs is
       String_Vectors.Iterate (Pattern_List, Process'Access);
       Has_Matcher := not First;
       if Has_Matcher then
-         Matcher := GNAT.Regexp.Compile (Pattern => To_String (Pattern));
+         Matcher := GNAT.Regexp.Compile (Pattern => +Pattern);
       end if;
    end Create_Matcher;
 

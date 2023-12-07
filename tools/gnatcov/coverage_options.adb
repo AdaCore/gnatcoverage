@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 package body Coverage_Options is
 
@@ -44,13 +43,13 @@ package body Coverage_Options is
    begin
       for J in L'Range loop
          if L (J) then
-            if Length (Option) /= 0 then
+            if Option /= "" then
                Append (Option, '+');
             end if;
             Append (Option, To_Lower (J'Img));
          end if;
       end loop;
-      return To_String (Option);
+      return +Option;
    end Coverage_Option_Value;
 
    -----------------------------
@@ -93,7 +92,7 @@ package body Coverage_Options is
 
       procedure Put_Option (Cur : Cursor) is
       begin
-         if Length (Options) /= 0 then
+         if Options /= "" then
             Append (Options, Separator);
          end if;
          Append (Options, Key (Cur).all);
@@ -103,7 +102,7 @@ package body Coverage_Options is
 
    begin
       Map.Iterate (Put_Option'Access);
-      return To_String (Options);
+      return +Options;
    end Level_Options;
 
    --------------------------

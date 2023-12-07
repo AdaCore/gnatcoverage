@@ -19,7 +19,6 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.Strings; use GNAT.Strings;
@@ -33,7 +32,7 @@ with Logging;
 with Paths;               use Paths;
 with SC_Obligations;      use SC_Obligations;
 with Slocs;               use Slocs;
-with Strings;
+with Strings;             use Strings;
 with Traces_Dbase;        use Traces_Dbase;
 with Traces_Elf;          use Traces_Elf;
 with Traces_Lines;        use Traces_Lines;
@@ -41,6 +40,8 @@ with Traces_Stats;        use Traces_Stats;
 with Types;               use Types;
 
 package Files_Table is
+
+   use all type Unbounded_String;
 
    Files_Table_Trace : constant Logging.GNATCOLL_Trace :=
      Logging.Create_Trace ("FILE_TABLE");
@@ -316,22 +317,17 @@ package Files_Table is
 
    type Compilation_Unit is record
       Language  : Any_Language_Kind;
-      Unit_Name : Ada.Strings.Unbounded.Unbounded_String;
+      Unit_Name : Unbounded_String;
    end record;
    --  This record is used to uniquely identify a unit of any language
    --  supported by gnatcov. The unique identifier, stored as Unit_Name is
    --  the unit name for unit-based language, and the file fullname for
    --  file-based languages.
 
-   use type Ada.Strings.Unbounded.Unbounded_String;
-
    function Image (U : Compilation_Unit) return String is
      (case U.Language is
-      when Unit_Based_Language =>
-         To_Lower (Ada.Strings.Unbounded.To_String (U.Unit_Name)),
-      when File_Based_Language =>
-         Fold_Filename_Casing
-          (Ada.Strings.Unbounded.To_String (U.Unit_Name)));
+      when Unit_Based_Language => To_Lower (+U.Unit_Name),
+      when File_Based_Language => Fold_Filename_Casing (+U.Unit_Name));
 
    function "<" (L, R : Compilation_Unit) return Boolean is
      (Image (L) < Image (R));

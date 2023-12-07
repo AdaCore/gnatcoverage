@@ -25,8 +25,6 @@ with Ada.Exceptions;
 with Ada.IO_Exceptions;
 with Ada.Strings;
 with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
-with Ada.Strings.Unbounded.Hash;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
@@ -54,7 +52,6 @@ with JSON;                use JSON;
 with Outputs;
 with Paths;               use Paths;
 with Project;             use Project;
-with Strings;             use Strings;
 with Support_Files;
 with Text_Files;          use Text_Files;
 
@@ -90,7 +87,7 @@ is
       --  Whether this project is externally built. In that case, we assume its
       --  units of interest have already been instrumented.
 
-      Output_Dir : Ada.Strings.Unbounded.Unbounded_String;
+      Output_Dir : Unbounded_String;
       --  Subdirectory in the project file's object directory. All we generate
       --  for this project must land in it.
 
@@ -101,10 +98,10 @@ is
    type Project_Info_Access is access all Project_Info;
 
    package Project_Info_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
+     (Key_Type        => Unbounded_String,
       Element_Type    => Project_Info_Access,
-      Equivalent_Keys => Ada.Strings.Unbounded."=",
-      Hash            => Ada.Strings.Unbounded.Hash);
+      Equivalent_Keys => "=",
+      Hash            => Strings.Hash);
    --  Mapping from project name (as returned by GNATCOLL.Projects.Name) to
    --  Project_Info records. Project_Info records are owned by this map, and
    --  thus must be deallocated when maps are deallocated.
@@ -375,7 +372,7 @@ is
                   Args : String_Vectors.Vector;
                begin
                   for S of Switches.all loop
-                     Args.Append (To_Unbounded_String (S.all));
+                     Args.Append (+S.all);
                   end loop;
                   GNAT.Strings.Free (Switches);
                   Import_From_Args (Options, Args);
@@ -557,7 +554,7 @@ is
       --  with ".sid". Also make sure to use the most extending project in the
       --  hierarchy, which is where GPRbuild puts ALI/object files.
 
-      SID_Basename : US.Unbounded_String;
+      SID_Basename : Unbounded_String;
 
       Project  : constant GPR.Project_Type :=
         GPR.Extending_Project
@@ -812,7 +809,7 @@ is
                   Args : String_Vectors.Vector;
                begin
                   for S of Switches.all loop
-                     Args.Append (To_Unbounded_String (S.all));
+                     Args.Append (+S.all);
                   end loop;
                   GNAT.Strings.Free (Switches);
                   Import_From_Args (Options, Args);
@@ -1169,9 +1166,9 @@ begin
    IC.Config_Pragmas_File :=
      +Create_Config_Pragmas_File (Project.Project.Root_Project);
    IC.Sources_Of_Interest_Response_File :=
-     +To_String (Root_Project_Info.all.Output_Dir) / ".sources_of_interest";
+     +(+Root_Project_Info.all.Output_Dir) / ".sources_of_interest";
    IC.Ada_Preprocessor_Data_File :=
-     +To_String (Root_Project_Info.all.Output_Dir) / "prep-data.json";
+     +(+Root_Project_Info.all.Output_Dir) / "prep-data.json";
 
    Instrument.Ada_Preprocessing.Create_Preprocessor_Data_File
      (+IC.Ada_Preprocessor_Data_File);
@@ -1407,7 +1404,7 @@ begin
                   --  here: we use the executable name, that is retrieved from
                   --  the project.
 
-                     if Length (Dump_Config.Filename_Prefix) = 0 then
+                     if Dump_Config.Filename_Prefix = "" then
                         Explicit_Dump_Config.Filename_Prefix :=
                           +(+Root_Project_Info.Project.Executable_Name
                               (Main.File.Full_Name, Include_Suffix => True));

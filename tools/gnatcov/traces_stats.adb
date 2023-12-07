@@ -16,12 +16,13 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Strings.Fixed;     use Ada.Strings.Fixed;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
 with Strings; use Strings;
 
 package body Traces_Stats is
+
+   use all type Unbounded_String;
 
    ---------------
    -- Get_Total --
@@ -73,7 +74,7 @@ package body Traces_Stats is
          ATC      => +"ATC",
          ATCC     => +"ATCC",
          others   => +"");
-      Res : Unbounded_String := +"";
+      Res           : Unbounded_String := Null_Unbounded_String;
 
       function Trimmed_Image (N : Natural) return String is
         (Trim (Natural'Image (N), Ada.Strings.Left));

@@ -22,7 +22,6 @@ with Ada.Exceptions;
 with Ada.IO_Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Maps;
-with Ada.Strings.Unbounded;
 with Ada.Text_IO;     use Ada.Text_IO;
 
 with GNAT.OS_Lib;
@@ -1199,9 +1198,7 @@ procedure GNATcov_Bits_Specific is
 
    procedure Report_Bad_Trace (Trace_Filename : String; Result : Read_Result)
    is
-      Message : constant String :=
-         Trace_Filename & ": "
-         & Ada.Strings.Unbounded.To_String (Result.Error);
+      Message : constant String := Trace_Filename & ": " & (+Result.Error);
    begin
       if Keep_Reading_Traces then
          Outputs.Error (Message);
@@ -1875,8 +1872,6 @@ begin
          --  Read and process traces
 
          declare
-            use Ada.Strings.Unbounded;
-
             Bin_Traces_Present : Boolean := False;
             Src_Traces_Present : Boolean := False;
 
@@ -2126,7 +2121,7 @@ begin
                Trace_Filename : constant String :=
                  (if Trace_File = null
                   then ""
-                  else To_String (Trace_File.Filename));
+                  else +Trace_File.Filename);
                Exe_File : Exe_File_Acc;
             begin
                Init_Base (Base);
@@ -2182,7 +2177,7 @@ begin
                Trace_Filename : constant String :=
                  (if Trace_File = null
                   then ""
-                  else To_String (Trace_File.Filename));
+                  else +Trace_File.Filename);
 
                Current_Exec            : Exe_File_Acc;
                Current_Sym             : Address_Info_Acc;

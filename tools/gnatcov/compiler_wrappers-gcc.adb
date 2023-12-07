@@ -22,7 +22,6 @@ with Ada.Containers.Vectors;
 with Ada.Directories;       use Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Strings;           use Ada.Strings;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Text_IO;           use Ada.Text_IO;
 
 with GNAT.OS_Lib;
@@ -43,8 +42,10 @@ with Switches;                use Switches;
 with Temp_Dirs;               use Temp_Dirs;
 with Traces_Files;
 
-procedure Compiler_Wrappers.Gcc
-is
+procedure Compiler_Wrappers.Gcc is
+
+   use all type Unbounded_String;
+
    type Compilation_Command_Type is record
       Language : Any_Language;
       --  Language of the file that is compiled

@@ -23,6 +23,9 @@ with GNAT.Strings; use GNAT.Strings;
 with Strings; use Strings;
 
 package Inputs is
+
+   use all type Unbounded_String;
+
    --  This package provides a simple way to accumulate a set of
    --  command line inputs into a container, plus basic support for
    --  reading such inputs from a list in a file.

@@ -19,7 +19,6 @@
 with Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Exceptions;          use Ada.Exceptions;
-with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 pragma Warnings (Off, "* is an internal GNAT unit");
@@ -125,7 +124,7 @@ package body Annotations.Dynamic_Html is
       Source_List         : JSON_Array;
       --  The sources array in the index, containing all source mappings
 
-      Title_Prefix        : Ada.Strings.Unbounded.Unbounded_String;
+      Title_Prefix        : Unbounded_String;
       --  Prefix to use for titles in generated HTML documents
 
       Scope_Metrics       : JSON_Value;
@@ -226,7 +225,7 @@ package body Annotations.Dynamic_Html is
    --  Write Item (String) into Output
 
    procedure W
-     (Item     : Ada.Strings.Unbounded.Unbounded_String;
+     (Item     : Unbounded_String;
       Output   : Ada.Text_IO.File_Type;
       New_Line : Boolean := True)
    with Pre => Ada.Text_IO.Is_Open (Output);
@@ -812,7 +811,7 @@ package body Annotations.Dynamic_Html is
          Message.Set_Field ("sco", Image (M.SCO, With_Sloc => False));
       end if;
 
-      Message.Set_Field ("message", To_String (M.Msg));
+      Message.Set_Field ("message", +M.Msg);
       Pp.Current_Mapping.Get ("messages").Append (Message);
    end Pretty_Print_Message;
 
@@ -835,18 +834,18 @@ package body Annotations.Dynamic_Html is
    end W;
 
    procedure W
-     (Item     : Ada.Strings.Unbounded.Unbounded_String;
+     (Item     : Unbounded_String;
       Output   : Ada.Text_IO.File_Type;
       New_Line : Boolean := True)
    is
       use Ada.Text_IO;
 
-      Buffer : Aux.Big_String_Access;
+      Buffer : US.Aux.Big_String_Access;
       Last   : Natural;
-      First  : constant Natural := Aux.Big_String'First;
+      First  : constant Natural := US.Aux.Big_String'First;
 
    begin
-      Aux.Get_String (Item, Buffer, Last);
+      US.Aux.Get_String (Item, Buffer, Last);
       Put (File => Output, Item => Buffer (First .. Last));
 
       if New_Line then
@@ -1119,7 +1118,7 @@ package body Annotations.Dynamic_Html is
                     (In_Filename  => Source_Name,
                      Out_Filename => Target_Name,
                      Pattern      => "<title>.*</title>",
-                     Replacement  => "  <title>" & To_String (Pp.Title_Prefix)
+                     Replacement  => "  <title>" & (+Pp.Title_Prefix)
                                      & "GNATcoverage Report</title>");
                else
                   Copy_File (Source_Name, Target_Name);

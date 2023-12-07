@@ -23,7 +23,6 @@ with Ada.Containers;        use Ada.Containers;
 with Ada.Containers.Multiway_Trees;
 with Ada.Containers.Vectors;
 with Ada.Streams;           use Ada.Streams;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Interfaces;
 
 with GNAT.Regexp;
@@ -34,6 +33,7 @@ with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Files_Table;         use Files_Table;
 with Slocs;               use Slocs;
 with SC_Obligations;      use SC_Obligations;
+with Strings;             use Strings;
 with Traces;              use Traces;
 with Traces_Lines;        use Traces_Lines;
 

@@ -618,10 +618,9 @@ package body Files_Table is
    procedure Consolidate_Source_File_Unit
      (Index : Valid_Source_File_Index; New_Unit : Compilation_Unit)
    is
-      use Ada.Strings.Unbounded;
       FI : File_Info renames Files_Table.Element (Index).all;
    begin
-      pragma Assert (New_Unit.Unit_Name /= Null_Unbounded_String);
+      pragma Assert (New_Unit.Unit_Name /= "");
       if FI.Kind /= Source_File then
          null;
       elsif not FI.Unit.Known then
@@ -2017,10 +2016,7 @@ package body Files_Table is
                then Name
                else Ada.Directories.Simple_Name (Name));
          begin
-            Set_SFI_Simple_Name
-              (Relocs,
-               CP_SFI,
-               Ada.Strings.Unbounded.To_Unbounded_String (Simple_Name));
+            Set_SFI_Simple_Name (Relocs, CP_SFI, +Simple_Name);
             case Kind is
                when Stub_File =>
                   FE := (Kind => Stub_File, others => <>);
@@ -2182,8 +2178,6 @@ package body Files_Table is
      (Preprocessed_Filename  : String;
       Postprocessed_Filename : String)
    is
-      use Ada.Strings.Unbounded;
-      use Strings;
       Preprocessed_File  : Ada.Text_IO.File_Type;
       Postprocessed_File : Ada.Text_IO.File_Type;
    begin

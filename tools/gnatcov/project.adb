@@ -19,8 +19,7 @@
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Containers.Vectors;
-with Ada.Directories;         use Ada.Directories;
-with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
+with Ada.Directories; use Ada.Directories;
 with Ada.Tags;
 
 with GNAT.OS_Lib;
@@ -37,6 +36,8 @@ with Outputs;             use Outputs;
 with Paths;               use Paths;
 
 package body Project is
+
+   use type Unbounded_String;
 
    subtype Compilation_Unit is Files_Table.Compilation_Unit;
    use type Compilation_Unit;
@@ -334,7 +335,7 @@ package body Project is
       end if;
 
       Warn ("no " & What_Info & " file found for unit "
-            & To_String (Unit.Original_Name));
+            & (+Unit.Original_Name));
       Unit.Warned_About_Missing_Info := True;
    end Warn_Missing_Info;
 
@@ -1265,8 +1266,8 @@ package body Project is
       Initialize (Target, Runtime, CGPR_File);
       pragma Assert (Env /= null);
 
-      if Obj_Subdir /= Null_Unbounded_String then
-         Env.Set_Object_Subdir (+To_String (Obj_Subdir));
+      if Obj_Subdir /= "" then
+         Env.Set_Object_Subdir (+(+Obj_Subdir));
       end if;
 
       if Build_Tree_Dir /= No_File then
@@ -1295,8 +1296,8 @@ package body Project is
             Fatal_Error ("Could not load the project file, aborting.");
       end;
 
-      if Obj_Subdir /= Null_Unbounded_String then
-         Env.Set_Object_Subdir (+To_String (Obj_Subdir));
+      if Obj_Subdir /= "" then
+         Env.Set_Object_Subdir (+(+Obj_Subdir));
       end if;
 
       --  If we were asked only to load the project file, stop there (i.e.
@@ -1478,7 +1479,7 @@ package body Project is
 
    procedure Set_Subdirs (Subdir : String) is
    begin
-      Obj_Subdir := To_Unbounded_String (Subdir);
+      Obj_Subdir := +Subdir;
 
       --  The --subdirs switch is relevant only if projects are used, otherwise
       --  it can safely be ignored. If projects are not loaded yet, the

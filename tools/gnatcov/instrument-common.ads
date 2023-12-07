@@ -54,7 +54,6 @@ with Ada.Containers.Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded.Hash;
 
 with GNAT.Regpat; use GNAT.Regpat;
 
@@ -170,13 +169,13 @@ package Instrument.Common is
    --  C/C++).
 
    package File_Sets is new Ada.Containers.Hashed_Sets
-     (Element_Type        => Ada.Strings.Unbounded.Unbounded_String,
-      "="                 => Ada.Strings.Unbounded."=",
-      Equivalent_Elements => Ada.Strings.Unbounded."=",
-      Hash                => Ada.Strings.Unbounded.Hash);
+     (Element_Type        => Unbounded_String,
+      "="                 => "=",
+      Equivalent_Elements => "=",
+      Hash                => Strings.Hash);
 
    type Instrumented_Unit_Info is record
-      Filename : Ada.Strings.Unbounded.Unbounded_String;
+      Filename : Unbounded_String;
       --  Name of the source file for this unit
 
       Language : Some_Language;

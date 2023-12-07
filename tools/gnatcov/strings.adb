@@ -103,8 +103,8 @@ package body Strings is
    is
       procedure Read is new Read_Vector
         (Index_Type   => Natural,
-         Element_Type => Ada.Strings.Unbounded.Unbounded_String,
-         "="          => Ada.Strings.Unbounded."=",
+         Element_Type => Unbounded_String,
+         "="          => "=",
          Vectors      => String_Vectors,
          Read_Element => Read);
    begin
@@ -116,8 +116,8 @@ package body Strings is
       Value : out String_Maps.Map)
    is
       procedure Read is new Read_Map
-        (Key_Type     => Ada.Strings.Unbounded.Unbounded_String,
-         Element_Type => Ada.Strings.Unbounded.Unbounded_String,
+        (Key_Type     => Unbounded_String,
+         Element_Type => Unbounded_String,
          Map_Type     => String_Maps.Map,
          Clear        => String_Maps.Clear,
          Insert       => String_Maps.Insert,
@@ -137,8 +137,8 @@ package body Strings is
    is
       procedure Write is new Write_Vector
         (Index_Type    => Natural,
-         Element_Type  => Ada.Strings.Unbounded.Unbounded_String,
-         "="           => Ada.Strings.Unbounded."=",
+         Element_Type  => Unbounded_String,
+         "="           => "=",
          Vectors       => String_Vectors,
          Write_Element => Write);
    begin
@@ -149,8 +149,8 @@ package body Strings is
      (CSS : in out Checkpoints.Checkpoint_Save_State; Value : String_Maps.Map)
    is
       procedure Write is new Write_Map
-        (Key_Type      => Ada.Strings.Unbounded.Unbounded_String,
-         Element_Type  => Ada.Strings.Unbounded.Unbounded_String,
+        (Key_Type      => Unbounded_String,
+         Element_Type  => Unbounded_String,
          Map_Type      => String_Maps.Map,
          Cursor_Type   => String_Maps.Cursor,
          Length        => String_Maps.Length,
@@ -205,7 +205,6 @@ package body Strings is
       Last   : out Ada.Streams.Stream_Element_Offset)
    is
       use Ada.Streams;
-      use Ada.Strings.Unbounded;
 
       Last_Index : constant Natural :=
         Natural'Min (Length (Stream.S.all),
@@ -231,8 +230,6 @@ package body Strings is
      (Stream : in out Unbounded_String_Stream;
       Item   : Ada.Streams.Stream_Element_Array)
    is
-      use Ada.Strings.Unbounded;
-
       Item_S : String (1 .. Item'Length);
       for Item_S'Address use Item'Address;
       pragma Import (Ada, Item_S);
@@ -250,7 +247,6 @@ package body Strings is
       Patterns_Not_Covered : in out String_Sets.Set)
    is
       use Ada.Characters.Handling;
-      use Ada.Strings.Unbounded;
       use String_Vectors;
 
       Pattern_Length : constant Natural := Natural (Patterns_List.Length);

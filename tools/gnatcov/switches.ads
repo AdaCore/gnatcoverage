@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Indefinite_Ordered_Maps;
-with Ada.Strings.Unbounded;
 
 with GNAT.Strings; use GNAT.Strings;
 
@@ -261,7 +260,7 @@ package Switches is
             --
             --  Controlled by --dump-filename-simple.
 
-            Filename_Env_Var : Ada.Strings.Unbounded.Unbounded_String;
+            Filename_Env_Var : Unbounded_String;
             --  Name of the environment variable which, if set, contains the
             --  default filename for created source traces. If empty, use the
             --  default one (see Default_Trace_Filename_Env_Var in
@@ -269,7 +268,7 @@ package Switches is
             --
             --  Controlled by --dump-filename-env-var.
 
-            Filename_Prefix  : Ada.Strings.Unbounded.Unbounded_String;
+            Filename_Prefix  : Unbounded_String;
             --  Prefix for the source trace filename. If empty, use the
             --  program's basename (see Default_Trace_Filename_Prefix in
             --  GNATcov_RTS.Traces.Output.Files).

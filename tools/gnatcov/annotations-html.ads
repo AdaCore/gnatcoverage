@@ -16,8 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-
 with Annotations.Xml; use Annotations.Xml;
 with Command_Line;
 with Coverage;
@@ -37,8 +35,7 @@ package Annotations.Html is
      (Report_Title : Command_Line.Parser.String_Option)
       return Unbounded_String
    is ((if Report_Title.Present and then Length (Report_Title.Value) > 0
-        then To_Unbounded_String
-          (To_Xml_String (To_String (Report_Title.Value & " - ")))
+        then +(To_Xml_String (+Report_Title.Value & " - "))
         else Null_Unbounded_String));
    --  If Report_Title is present and non-empty, return the corresponding
    --  report title prefix (for instance: "foo" -> "foo - "). Return an empty

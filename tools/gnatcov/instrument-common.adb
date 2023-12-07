@@ -153,7 +153,7 @@ package body Instrument.Common is
          Append (Result, Strings.Img (Integer (Byte)));
       end loop;
       Append (Result, Closing);
-      return To_String (Result);
+      return +Result;
    end Format_Fingerprint;
 
    --------------
@@ -205,7 +205,7 @@ package body Instrument.Common is
 
          if (Coverage.MCDC_Coverage_Enabled
                or else Coverage.Assertion_Condition_Coverage_Enabled)
-            and then Length (State_Variable) > 0
+            and then State_Variable /= ""
             and then Path_Count > 0
             and then Path_Count < Get_Path_Count_Limit
          then
@@ -371,8 +371,7 @@ package body Instrument.Common is
    is
       Base_Filename   : constant String :=
         Ada.Directories.Simple_Name (Name);
-      Output_Filename : constant String :=
-        To_String (Prj.Output_Dir) / Base_Filename;
+      Output_Filename : constant String := (+Prj.Output_Dir) / Base_Filename;
    begin
       return Output_Filename;
    end New_File;
@@ -405,7 +404,7 @@ package body Instrument.Common is
       case CU_Name.Language_Kind is
          when Unit_Based_Language =>
             for Id of CU_Name.Unit loop
-               if Length (Filename) > 0 then
+               if Filename /= "" then
                   Append (Filename, Prj.Dot_Replacement);
                end if;
                Append (Filename, To_Lower (To_String (Id)));

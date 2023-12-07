@@ -770,7 +770,7 @@ package body SC_Obligations is
    begin
       return
         "Scope for "
-        & Ada.Strings.Unbounded.To_String (SE.Name)
+        & (+SE.Name)
         & "[" & Slocs.Image (SE.Sloc)
         & "], identifier " & Identifier_Image;
    end Image;
@@ -1709,7 +1709,7 @@ package body SC_Obligations is
 
             function CU_Image return String is
               (Get_Simple_Name (CP_CU.Origin)
-               & " (from " & To_String (CLS.Filename) & ")");
+               & " (from " & (+CLS.Filename) & ")");
             --  Helper to refer to the compilation unit in an error message
 
          begin
@@ -1999,9 +1999,9 @@ package body SC_Obligations is
                        ("gnatcov limitation: ignoring unit "
                         & Get_Simple_Name
                             (Remap_SFI (Relocs, CP_CU.Main_Source))
-                        & " from " & To_String (CLS.Filename)
+                        & " from " & (+CLS.Filename)
                         & " because "
-                        & To_String (Get_Simple_Name (Relocs, CP_CU.Origin))
+                        & (+Get_Simple_Name (Relocs, CP_CU.Origin))
                         & " is ignored");
                   end if;
 
@@ -2282,14 +2282,14 @@ package body SC_Obligations is
    begin
       case Kind (Op_SCO) is
          when Condition =>
-            return To_Unbounded_String ('C' & Img (Integer (Index (Op_SCO))));
+            return +('C' & Img (Integer (Index (Op_SCO))));
 
          when Decision =>
             return Expression_Image (SCO_Vector.Reference (Op_SCO).Expression);
 
          when Operator =>
             declare
-               Result : Unbounded_String := To_Unbounded_String ("(");
+               Result : Unbounded_String := +"(";
                Binary : constant Boolean := Op_Kind (Op_SCO) /= Op_Not;
             begin
                for J in Operand_Position'Range loop
@@ -2314,13 +2314,14 @@ package body SC_Obligations is
                   end;
                end loop;
 
-               return Result & ')';
+               Append (Result, ')');
+               return Result;
             end;
 
          when others =>
-            return To_Unbounded_String
-              ("Expected expression SCO kind (Decision, Condition or Operator)"
-               & ", but got " & SCO_Kind'Image (Kind (Op_SCO)));
+            return
+              +("Expected expression SCO kind (Decision, Condition or"
+                & " Operator), but got " & SCO_Kind'Image (Kind (Op_SCO)));
       end case;
    end Expression_Image;
 
@@ -2331,7 +2332,7 @@ package body SC_Obligations is
    procedure Dump_Decision (SCO : SCO_Id) is
    begin
       Put_Line ("Reconstructed expression for " & Image (SCO));
-      Put_Line (To_String (Expression_Image (SCO)));
+      Put_Line (+Expression_Image (SCO));
    end Dump_Decision;
 
    ---------------
@@ -3455,7 +3456,7 @@ package body SC_Obligations is
               ("Computing fingerprint for "
                & Unit_Info.File_Name_Ptr.all & " SCOs from:");
             SCOs_Trace.Trace ("BEGIN ...");
-            SCOs_Trace.Trace (To_String (Unit_Info.Fingerprint_Buffer));
+            SCOs_Trace.Trace (+Unit_Info.Fingerprint_Buffer);
             SCOs_Trace.Trace ("... END");
          end loop;
       end if;

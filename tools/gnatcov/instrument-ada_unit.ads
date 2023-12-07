@@ -20,7 +20,6 @@
 
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded;
 with Ada.Strings.Wide_Wide_Hash;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
@@ -204,7 +203,7 @@ private
       Decision : Expr;
       --  Decision expression
 
-      State : Ada.Strings.Unbounded.Unbounded_String;
+      State : Unbounded_String;
       --  Name of MC/DC state local variable
 
       Is_Contract : Boolean := False;
@@ -219,7 +218,7 @@ private
       Condition : Expr;
       --  Condition expression
 
-      State : Ada.Strings.Unbounded.Unbounded_String;
+      State : Unbounded_String;
       --  Name of MC/DC state local variable
 
       First : Boolean;

@@ -16,10 +16,13 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Containers.Indefinite_Ordered_Maps;
 
+with Strings; use Strings;
+
 package body Factory_Registry is
+
+   use all type Unbounded_String;
 
    type Factory_Record is record
       Factory : Create_Function;
@@ -106,7 +109,7 @@ package body Factory_Registry is
 
          Append (Result, Key (Cur));
       end loop;
-      return To_String (Result);
+      return +Result;
    end Registered_Names;
 
 end Factory_Registry;

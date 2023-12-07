@@ -20,7 +20,6 @@ with Ada.Characters.Handling;
 with Ada.Command_Line;          use Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables; use Ada.Environment_Variables;
-with Ada.Strings.Unbounded;     use Ada.Strings.Unbounded;
 
 with GNAT.Exception_Actions;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
@@ -32,7 +31,7 @@ with Version;
 
 package body Outputs is
 
-   Report_Output_Dir : GNAT.OS_Lib.String_Access := null;
+   Report_Output_Dir : String_Access := null;
    --  Name of the output directory. The reports will be generated
    --  in this directory.
 
@@ -130,7 +129,7 @@ package body Outputs is
          declare
             Name      : constant String := Simple_Name (Dir_Entry);
             Full_Name : constant Unbounded_String :=
-              To_Unbounded_String (Dir / Name);
+              +(Dir / Name);
          begin
             if not Ignored_Files.Contains (Full_Name) then
                To_Delete.Append (Full_Name);
@@ -142,7 +141,7 @@ package body Outputs is
       --  Do the deletion
 
       for Name of To_Delete loop
-         Delete_File (To_String (Name));
+         Delete_File (+Name);
       end loop;
    end Clean_Dir;
 
@@ -220,7 +219,7 @@ package body Outputs is
 
       --  Properly fill it and put it on the current contexts stack
 
-      Set_Unbounded_String (Ctx.Info, Message);
+      Ctx.Info := +Message;
       Ctx.Next := Current_Context;
       Current_Context := Ctx;
 

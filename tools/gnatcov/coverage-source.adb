@@ -16,13 +16,11 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Latin_1;
 with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Streams; use Ada.Streams;
-with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
 with Interfaces;
@@ -40,7 +38,6 @@ with MC_DC;               use MC_DC;
 with Outputs;             use Outputs;
 with Project;             use Project;
 with Slocs;               use Slocs;
-with Strings;             use Strings;
 with Switches;            use Switches;
 with Traces_Elf;          use Traces_Elf;
 with Types;
@@ -265,8 +262,6 @@ package body Coverage.Source is
 
    Unit_List_Invalidated : Boolean := False;
    --  Keeps track of whether Invalidate_Unit_List was called
-
-   package US renames Ada.Strings.Unbounded;
 
    Unit_List : Unit_Sets.Set;
    --  List of names for units of interest. Store it as an ordered set so that
@@ -535,11 +530,11 @@ package body Coverage.Source is
 
       CP_Tag_Provider := CLS.Read_Unbounded_String;
       if Tag_Provider.all not in Default_Tag_Provider_Type
-        and then Tag_Provider_Name /= To_String (CP_Tag_Provider)
+        and then Tag_Provider_Name /= +CP_Tag_Provider
       then
          Warn ("cannot merge coverage information from "
-               & To_String (CLS.Filename)
-               & " as it is separated by " & To_String (CP_Tag_Provider));
+               & (+CLS.Filename)
+               & " as it is separated by " & (+CP_Tag_Provider));
          Do_Merge := False;
       end if;
 
@@ -596,11 +591,11 @@ package body Coverage.Source is
       if CLS.Purpose = Consolidation then
          declare
             Invalidated : constant Boolean := CLS.Read_Boolean;
-            Dummy       : US.Unbounded_String;
+            Dummy       : Unbounded_String;
          begin
             if Invalidated then
                Invalidate_Unit_List
-                 (US.To_String (CLS.Filename)
+                 (+CLS.Filename
                   & " does not contain the list of units (produced with"
                   & " --scos or --sid)");
             else
@@ -1162,11 +1157,9 @@ package body Coverage.Source is
       function Emit_Evaluation_Vector_Message return String is
          Msg         : Unbounded_String;
          No_Pair_Msg : Unbounded_String;
-         EOL         : constant String := "" & Ada.Characters.Latin_1.LF;
       begin
-         Msg := To_Unbounded_String ("Decision of the form ")
-           & Expression_Image (SCO) & EOL;
-         Append (Msg, "Evaluation vectors found:" & EOL);
+         Msg := +"Decision of the form " & Expression_Image (SCO) & ASCII.LF;
+         Append (Msg, "Evaluation vectors found:" & ASCII.LF);
 
          for Eval of SCI.Evaluations loop
             declare
@@ -1174,24 +1167,23 @@ package body Coverage.Source is
                  Eval_Cond_Set_Map.Element (Eval).all;
             begin
                if not Cond_Set.Is_Empty then  --  This evaluation is in a pair
-                  Append (Msg, "    " & Image (Eval)
-                          & "  In a pair for ");
+                  Append (Msg, "    " & Image (Eval) & "  In a pair for ");
                   for Cond of Cond_Set loop
                      Append (Msg, 'C' & Img (Integer (Cond)));
                      if Cond < Cond_Set.Last_Element then
                         Append (Msg, ", ");
                      end if;
                   end loop;
-                  Append (Msg, EOL);
+                  Append (Msg, ASCII.LF);
                else
                   Append
-                    (No_Pair_Msg,
-                     "    " & Image (Eval) & "  Not part of any pair" & EOL);
+                    (No_Pair_Msg, "    " & Image (Eval)
+                     & "  Not part of any pair" & ASCII.LF);
                end if;
             end;
          end loop;
 
-         return To_String (Msg & No_Pair_Msg);
+         return +(Msg & No_Pair_Msg);
       end Emit_Evaluation_Vector_Message;
 
    --  Start of processing for Compute_MCDC_State
@@ -1328,18 +1320,15 @@ package body Coverage.Source is
 
       function Emit_Evaluation_Vector_Message return String is
          Msg : Unbounded_String;
-         EOL : constant String := "" & Ada.Characters.Latin_1.LF;
       begin
-         Msg := To_Unbounded_String ("Decision of the form ")
-           & Expression_Image (SCO) & EOL;
-         Append (Msg, "Evaluation vectors found:" & EOL);
+         Msg := +"Decision of the form " & Expression_Image (SCO) & ASCII.LF;
+         Append (Msg, "Evaluation vectors found:" & ASCII.LF);
 
          for Eval of SCI.Evaluations loop
-            Append (Msg, "    " & Image (Eval) & EOL);
+            Append (Msg, "    " & Image (Eval) & ASCII.LF);
          end loop;
 
-         return To_String (Msg);
-
+         return +Msg;
       end Emit_Evaluation_Vector_Message;
 
       SCO_State : Line_State := No_Code;

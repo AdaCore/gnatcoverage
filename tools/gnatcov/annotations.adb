@@ -19,7 +19,6 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Characters.Latin_1;
 with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
 
@@ -39,8 +38,6 @@ with Switches;         use Switches;
 with Traces_Disa;
 
 package body Annotations is
-
-   package US renames Ada.Strings.Unbounded;
 
    -------------------------
    -- Get_Unique_Filename --
@@ -643,7 +640,6 @@ package body Annotations is
 
    function Message_Annotation (M : Message) return String is
       use Coverage, Coverage.Tags;
-      use Ada.Strings.Unbounded;
    begin
       if M.SCO /= No_SCO_Id then
          return SCO_Kind_Image (M.SCO)
@@ -664,9 +660,9 @@ package body Annotations is
            & (if M.Tag = No_SC_Tag
               then ""
               else " (from " & Tag_Provider.Tag_Name (M.Tag) & ")")
-           & " " & To_String (M.Msg);
+           & " " & (+M.Msg);
       else
-         return Image (M.Sloc, Unique_Name => True) & ": " & To_String (M.Msg);
+         return Image (M.Sloc, Unique_Name => True) & ": " & (+M.Msg);
       end if;
    end Message_Annotation;
 
@@ -677,18 +673,17 @@ package body Annotations is
    function Original_Processing_Context (TF : Trace_File_Element) return String
    is
       use Calendar_Utils;
-      use Ada.Strings.Unbounded;
    begin
-      if Length (TF.Context) = 0 then
+      if TF.Context = "" then
          return "";
 
       else
          declare
             Orig_Context : constant Coverage.Context :=
-              Coverage.From_String (To_String (TF.Context));
+              Coverage.From_String (+TF.Context);
          begin
-            return To_String (Orig_Context.Command)
-              & " @ " & Image (Orig_Context.Timestamp);
+            return
+              +Orig_Context.Command & " @ " & Image (Orig_Context.Timestamp);
          end;
       end if;
    end Original_Processing_Context;
@@ -702,11 +697,11 @@ package body Annotations is
       Sloc_Start : Source_Location := First_Sloc (SCO);
       Sloc_End   : Source_Location := End_Lex_Element (Last_Sloc (SCO));
       Sloc_Bound : Source_Location;
-      Line       : US.Unbounded_String;
+      Line       : Unbounded_String;
       Col_Start  : Natural;
       Col_End    : Natural;
 
-      Desc : US.Unbounded_String;
+      Desc : Unbounded_String;
       --  SCO description: shortened view of the SCO tokens, with a macro
       --  expansion annotation if the SCO comes from a macro expansion.
 
@@ -793,11 +788,10 @@ package body Annotations is
 
       if Sloc_Bound <= Sloc_End then
          Col_End := Natural'Min (US.Length (Line), Sloc_Bound.L.Column);
-         US.Append (Desc,
-                    +US.Unbounded_Slice (Line, Col_Start, Col_End) & "...");
+         Append (Desc, +Unbounded_Slice (Line, Col_Start, Col_End) & "...");
       else
          Col_End := Natural'Min (US.Length (Line), Sloc_End.L.Column);
-         US.Append (Desc, US.Unbounded_Slice (Line, Col_Start, Col_End));
+         Append (Desc, Unbounded_Slice (Line, Col_Start, Col_End));
       end if;
       return +Desc;
    end SCO_Text;
@@ -807,7 +801,6 @@ package body Annotations is
    ---------------------
 
    function SCO_Annotations (SCO : SCO_Id) return String_Vectors.Vector is
-      use Ada.Strings.Unbounded;
    begin
       if Has_PP_Info (SCO) then
          declare
