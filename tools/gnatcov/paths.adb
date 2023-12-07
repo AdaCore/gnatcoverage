@@ -317,4 +317,22 @@ package body Paths is
              and then Path (Path'First + 1) = ':';
    end Starts_With_Drive_Pattern;
 
+   ----------------------------
+   -- Workaround_Simple_Name --
+   ----------------------------
+
+   function Workaround_Simple_Name (Path : String) return String is
+   begin
+      --  Return the Path suffix that precedes the first directory separator
+      --  according to the current platform. Return the full string if there is
+      --  no separator.
+
+      for I in reverse Path'Range loop
+         if Path (I) = '/' or else (On_Windows and then Path (I) = '\') then
+            return Path (I + 1 .. Path'Last);
+         end if;
+      end loop;
+      return Path;
+   end Workaround_Simple_Name;
+
 end Paths;

@@ -217,20 +217,63 @@ is
    ----------------
 
    function Split_Args (Command : String) return String_Vectors.Vector is
+      type State_Kind is
+        (No_Argument, Simple_Argument, Quoted_Argument);
+
+      State  : State_Kind := No_Argument;
       Arg    : Unbounded_String;
       Result : String_Vectors.Vector;
-   begin
-      for C of Command loop
-         if C = ' ' and then Arg /= "" then
+
+      procedure Append_Arg;
+
+      ----------------
+      -- Append_Arg --
+      ----------------
+
+      procedure Append_Arg is
+      begin
+         if State /= No_Argument then
             Result.Append (Arg);
+            State := No_Argument;
             Arg := Null_Unbounded_String;
-         else
-            Append (Arg, C);
          end if;
+      end Append_Arg;
+
+      C : Character;
+      I : Natural := Command'First;
+
+   begin
+      while I <= Command'Last loop
+         C := Command (I);
+         case State is
+            when No_Argument =>
+               if C = '"' then
+                  State := Quoted_Argument;
+               elsif C /= ' ' then
+                  State := Simple_Argument;
+                  Append (Arg, C);
+               end if;
+
+            when Simple_Argument =>
+               if C = ' ' then
+                  Append_Arg;
+               else
+                  Append (Arg, C);
+               end if;
+
+            when Quoted_Argument =>
+               if C = '\' then
+                  I := I + 1;
+                  Append (Arg, Command (I));
+               elsif C = '"' then
+                  Append_Arg;
+               else
+                  Append (Arg, C);
+               end if;
+         end case;
+         I := I + 1;
       end loop;
-      if Arg /= "" then
-         Result.Append (Arg);
-      end if;
+      Append_Arg;
       return Result;
    end Split_Args;
 

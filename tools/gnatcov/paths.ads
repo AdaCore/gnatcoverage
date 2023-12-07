@@ -66,4 +66,9 @@ package Paths is
 
    --  TODO??? Handle Unicode file names
 
+   function Workaround_Simple_Name (Path : String) return String;
+   --  TODO??? (eng/toolchain/gnat#603) The native GNAT runtime has a bug on
+   --  Unix systems: Ada.Directories.Simple_Name misbehaves in the presence of
+   --  backslashes. Provide our own implementation as a workaround.
+
 end Paths;
