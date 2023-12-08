@@ -42,12 +42,10 @@ with Highlighting;
 with Outputs;      use Outputs;
 with Qemu_Traces;
 with SC_Obligations;
-with Strings;      use Strings;
 with Support_Files;
 with Traces;       use Traces;
 with Traces_Dbase;
 with Traces_Elf;   use Traces_Elf;
-with Traces_Files;
 
 package body CFG_Dump is
 
@@ -266,7 +264,7 @@ package body CFG_Dump is
    procedure Tag_Executed_Instructions
      (Context           : Context_Access;
       Exec_Path         : String;
-      Traces_Files_List : Inputs.Inputs_Type);
+      Traces_Files_List : Requested_Trace_Vectors.Vector);
    --  Extract traces from each file and use them to tag instructions if they
    --  have been executed. This pass works on the CFG.
 
@@ -799,11 +797,10 @@ package body CFG_Dump is
    procedure Tag_Executed_Instructions
      (Context           : Context_Access;
       Exec_Path         : String;
-      Traces_Files_List : Inputs.Inputs_Type)
+      Traces_Files_List : Requested_Trace_Vectors.Vector)
    is
       use type Interfaces.Unsigned_8;
       use Traces_Dbase;
-      use Traces_Files;
 
       Base : Traces_Base;
 
@@ -984,7 +981,9 @@ package body CFG_Dump is
       --  Import all trace entries to the database, so that they are sorted by
       --  address
 
-      Inputs.Iterate (Traces_Files_List, Import_Traces'Access);
+      for RT of Traces_Files_List loop
+         Import_Traces (+RT.Filename);
+      end loop;
 
       --  And then, use them to tag instructions
 
@@ -1726,20 +1725,18 @@ package body CFG_Dump is
                    Locations         : User_Locations;
                    Output            : String_Access;
                    Format            : Output_Format;
-                   SCO_Files_List    : Inputs.Inputs_Type;
-                   Traces_Files_List : Inputs.Inputs_Type;
+                   SCO_Files_List    : String_Vectors.Vector;
+                   Traces_Files_List : Requested_Trace_Vectors.Vector;
                    Keep_Edges        : Boolean)
    is
-      use Ada.Containers;
-
       Context           : aliased Context_Type;
       Ctx               : constant Context_Access :=
         Context'Unrestricted_Access;
       Output_File       : aliased File_Type;
    begin
-      Context.Group_By_Condition := Inputs.Length (SCO_Files_List) > 0;
+      Context.Group_By_Condition := not SCO_Files_List.Is_Empty;
       Context.Keep_Edges := Keep_Edges;
-      Context.Tag_Executed := Inputs.Length (Traces_Files_List) > 0;
+      Context.Tag_Executed := not Traces_Files_List.Is_Empty;
 
       CFG_Dump_Trace.Trace ("Dumping code from: " & Exec_Path);
       CFG_Dump_Trace.Trace
@@ -1767,7 +1764,9 @@ package body CFG_Dump is
       if Context.Group_By_Condition then
          Coverage.Set_Coverage_Levels ("stmt+mcdc");
          CFG_Dump_Trace.Trace ("Loading ALI files...");
-         Inputs.Iterate (SCO_Files_List, Load_SCOs'Access);
+         for SCO_File of SCO_Files_List loop
+            Load_SCOs (+SCO_File);
+         end loop;
          Coverage.Source.Initialize_SCI;
 
          CFG_Dump_Trace.Trace ("Reading routine names...");

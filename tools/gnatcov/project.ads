@@ -25,7 +25,6 @@ with GNAT.Strings; use GNAT.Strings;
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
-with Inputs;
 with Files_Table;
 with Strings;      use Strings;
 with Switches;     use Switches;
@@ -105,7 +104,8 @@ package Project is
    --  interest. This is meant to be used only in the gnatcov driver, where we
    --  just need to determine the target.
 
-   procedure Compute_Units_Of_Interest (Override_Units : Inputs.Inputs_Type);
+   procedure Compute_Units_Of_Interest
+     (Override_Units : String_Vectors.Vector);
    --  Compute the sets of projects and units of interest from Add_Project,
    --  Override_Units and project files data.
    --

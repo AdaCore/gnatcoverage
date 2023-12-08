@@ -18,10 +18,12 @@
 
 with GNAT.Strings; use GNAT.Strings;
 
-with Inputs;
 with Logging;
+with Strings; use Strings;
 
 package Rundrv is
+
+   use all type Unbounded_String;
 
    Rundrv_Trace : constant Logging.GNATCOLL_Trace :=
      Logging.Create_Trace ("RUNDRV");
@@ -30,7 +32,7 @@ package Rundrv is
    type SO_Set_Type (Kind : SO_Set_Kind := Some_SO) is record
       case Kind is
          when None    => null;
-         when Some_SO => Set : Inputs.Inputs_Type;
+         when Some_SO => Set : String_Vectors.Vector;
          when All_SO  => null;
       end case;
    end record;

@@ -29,14 +29,11 @@ with Execs_Dbase;
 with Outputs;
 with Qemu_Traces;
 with Rundrv.Config; use Rundrv.Config;
-with Strings;       use Strings;
 with Subprocesses;  use Subprocesses;
 with Traces_Elf;
 with Traces_Files;  use Traces_Files;
 
 package body Rundrv is
-
-   use all type Unbounded_String;
 
    package Env renames Ada.Environment_Variables;
 

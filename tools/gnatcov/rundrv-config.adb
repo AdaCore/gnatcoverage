@@ -19,11 +19,8 @@
 with GNAT.Regpat; use GNAT.Regpat;
 
 with Rundrv.Handlers; use Rundrv.Handlers;
-with Strings;         use Strings;
 
 package body Rundrv.Config is
-
-   use all type Unbounded_String;
 
    procedure Get_Builtin_Driver
      (Context : Context_Type;

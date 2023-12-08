@@ -39,7 +39,6 @@ with ALI_Files;           use ALI_Files;
 with Coverage;            use Coverage;
 with Coverage_Options;
 with Hex_Images;          use Hex_Images;
-with Inputs;              use Inputs;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
 with SCOs;
@@ -4514,10 +4513,9 @@ package body Instrument.C is
       Filename     : String)
    is
       Cmdline_Opts : constant String_Vectors.Vector :=
-        To_String_Vector
-          (case C_Family_Language (Instrumenter.Language) is
-              when C_Language   => C_Opts,
-              when CPP_Language => CPP_Opts);
+        (case C_Family_Language (Instrumenter.Language) is
+            when C_Language   => C_Opts,
+            when CPP_Language => CPP_Opts);
       Prj_Options  : String_Vectors.Vector;
    begin
       --  Grab the options from the project description. Note that the project

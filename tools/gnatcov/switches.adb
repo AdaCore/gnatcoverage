@@ -20,7 +20,9 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
+with Ada.Text_IO; use Ada.Text_IO;
 
+with Inputs;
 with Outputs; use Outputs;
 with Project; use Project;
 
@@ -81,16 +83,78 @@ package body Switches is
       end if;
    end Copy_Arg;
 
+   ---------------------
+   -- Expand_Argument --
+   ---------------------
+
+   function Expand_Argument (Argument : String) return String_Vectors.Vector is
+      Result : String_Vectors.Vector;
+
+      procedure Process (Argument : String);
+
+      -------------
+      -- Process --
+      -------------
+
+      procedure Process (Argument : String) is
+      begin
+         if Argument'Length = 0 then
+            return;
+         end if;
+
+         if Argument (Argument'First) /= '@' then
+            Result.Append (+Argument);
+         elsif Argument'Length > 1 then
+            if Argument (Argument'First + 1) /= '@' then
+               declare
+                  File_Name : constant String :=
+                    Argument (Argument'First + 1 .. Argument'Last);
+               begin
+                  Inputs.Read_List_From_File (File_Name, Process'Access);
+               exception
+                  when Name_Error | Status_Error =>
+                     Fatal_Error ("cannot open input list: " & File_Name);
+               end;
+            else
+               Result.Append (+Argument (Argument'First + 1 .. Argument'Last));
+            end if;
+         end if;
+      end Process;
+
+   --  Start of processing for Expand_Argument
+
+   begin
+      Process (Argument);
+      return Result;
+   end Expand_Argument;
+
+   ------------------------------
+   -- Append_Expanded_Argument --
+   ------------------------------
+
+   procedure Append_Expanded_Argument
+     (Argument : String; List : in out String_Vectors.Vector) is
+   begin
+      List.Append_Vector (Expand_Argument (Argument));
+   end Append_Expanded_Argument;
+
    -------------------
    -- Copy_Arg_List --
    -------------------
 
    procedure Copy_Arg_List
      (Option : String_List_Options;
-      List   : in out Inputs.Inputs_Type) is
+      List   : in out String_Vectors.Vector) is
    begin
-      for Arg of Args.String_List_Args (Option) loop
-         Inputs.Add_Input (List, +Arg);
+      Copy_Arg_List (Args.String_List_Args (Option), List);
+   end Copy_Arg_List;
+
+   procedure Copy_Arg_List
+     (Args : String_Vectors.Vector;
+      List  : in out String_Vectors.Vector) is
+   begin
+      for Arg of Args loop
+         Append_Expanded_Argument (+Arg, List);
       end loop;
    end Copy_Arg_List;
 

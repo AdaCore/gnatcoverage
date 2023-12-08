@@ -187,7 +187,7 @@ package body Project is
    procedure Build_Prj_Map with Pre => Is_Project_Loaded;
    --  Add entries in Prj_Map for all relevant projects
 
-   procedure Build_Unit_Map (Override_Units : Inputs.Inputs_Type);
+   procedure Build_Unit_Map (Override_Units : String_Vectors.Vector);
    --  Add entries in Unit_Map for all units of interest
 
    procedure List_From_Project
@@ -826,10 +826,8 @@ package body Project is
    -- Build_Unit_Map --
    --------------------
 
-   procedure Build_Unit_Map (Override_Units : Inputs.Inputs_Type) is
-      use type Ada.Containers.Count_Type;
-
-      Units_Specified : constant Boolean := Length (Override_Units) > 0;
+   procedure Build_Unit_Map (Override_Units : String_Vectors.Vector) is
+      Units_Specified : constant Boolean := not Override_Units.Is_Empty;
       --  Whether the user requested a specific set of units of interest
       --  through the --units command-line argument.
 
@@ -840,21 +838,9 @@ package body Project is
       Has_Matcher             : Boolean;
       --  Matcher for the list of units of interest
 
-      procedure Add_Pattern (Item : String);
-      --  Add the pattern Item lower-cased to Unit_Patterns
-
       procedure Process_Project (Project : Project_Type);
       --  Compute the list of units of interest in Project and call
       --  Enumerate_In_Single_Projects for Project.
-
-      -----------------
-      -- Add_Pattern --
-      -----------------
-
-      procedure Add_Pattern (Item : String) is
-      begin
-         Unit_Patterns.Append (+To_Lower (Item));
-      end Add_Pattern;
 
       ---------------------
       -- Process_Project --
@@ -997,7 +983,9 @@ package body Project is
       --  First, lower case all the units / patterns specified on the command
       --  line.
 
-      Iterate (Override_Units, Add_Pattern'Access);
+      for Pattern of Override_Units loop
+         Unit_Patterns.Append (+To_Lower (+Pattern));
+      end loop;
 
       --  Then, create a regexp matching all the patterns specified.
       --  Regardless of the current platform, the casing of unit names is not
@@ -1321,7 +1309,8 @@ package body Project is
    -- Compute_Units_Of_Interest --
    -------------------------------
 
-   procedure Compute_Units_Of_Interest (Override_Units : Inputs.Inputs_Type) is
+   procedure Compute_Units_Of_Interest (Override_Units : String_Vectors.Vector)
+   is
    begin
       Build_Prj_Map;
       Build_Unit_Map (Override_Units);

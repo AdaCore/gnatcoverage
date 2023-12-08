@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Containers.Vectors;
 with Interfaces;  use Interfaces;
 private with System.Storage_Elements;
 
@@ -254,6 +255,17 @@ package Traces_Files is
 
    procedure Dump_Raw_Trace_File (Filename : String);
    --  Raw dump of a trace file
+
+   type Requested_Trace is record
+      Filename   : Unbounded_String;
+      Executable : Unbounded_String;
+   end record;
+   --  Trace file that is passed to gnatcov for analysis. Filename designates
+   --  the trace file, and, if non-empty, Executable overrides the binary used
+   --  for decision mapping when analyzing this trace file.
+
+   package Requested_Trace_Vectors is new Ada.Containers.Vectors
+     (Positive, Requested_Trace);
 
 private
 
