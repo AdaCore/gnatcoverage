@@ -1194,6 +1194,8 @@ package body Coverage.Source is
          return To_String (Msg & No_Pair_Msg);
       end Emit_Evaluation_Vector_Message;
 
+   --  Start of processing for Compute_MCDC_State
+
    begin
       for Cur of SCI.Evaluations loop
          Eval_Cond_Set_Map.Include (Cur, new Condition_Set.Set);
@@ -1354,6 +1356,8 @@ package body Coverage.Source is
         (Condition_Index'First .. Last_Cond_Idx) of Boolean;
 
       Condition_Evaluated : Condition_Evaluated_Array := (others => False);
+
+   --  Start of processing for Compute_ATCC_State
 
    begin
 
