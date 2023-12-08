@@ -1296,7 +1296,7 @@ package Command_Line is
                       | Cmd_Instrument_Main
                       | Cmd_Setup_Integration => True,
                       others                 => False),
-         Internal => True),
+         Internal => False),
 
       Opt_Shared_Object => Create
         (Long_Name   => "--shared-object",
