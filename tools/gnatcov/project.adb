@@ -30,7 +30,6 @@ with GNATCOLL.Traces;
 with GNATCOLL.Projects.Aux;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with Command_Line;        use Command_Line;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Inputs;              use Inputs;
 with Instrument;          use Instrument;
@@ -1629,7 +1628,7 @@ package body Project is
 
    procedure Finalize is
    begin
-      if Prj_Tree /= null and then not Args.Bool_Args (Opt_Save_Temps) then
+      if Prj_Tree /= null and then not Save_Temps then
          GNATCOLL.Projects.Aux.Delete_All_Temp_Files (Prj_Tree.Root_Project);
       end if;
    end Finalize;

@@ -1478,7 +1478,7 @@ begin
       end loop;
    end;
 
-   if not Args.Bool_Args (Opt_Save_Temps) then
+   if not Save_Temps then
       Ada.Directories.Delete_File (+IC.Sources_Of_Interest_Response_File);
       Ada.Directories.Delete_File (+IC.Ada_Preprocessor_Data_File);
    end if;
