@@ -1,0 +1,6 @@
+project Libgnat is
+
+   for Source_Dirs use ("adainclude");
+   for Object_Dir use "adainclude";
+
+end Libgnat;

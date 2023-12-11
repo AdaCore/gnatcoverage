@@ -1,1 +1,2 @@
 !native DEAD Test specific to source trace binary files directly produced by automatic main instrumentation
+RTS_ZFP DEAD Test required bin-file dump channel to be available

@@ -24,6 +24,8 @@ lib
 /testsuite/suite.cgpr
 /testsuite/support
 /testsuite/tmp
+/testsuite/altrun/ccg_native/ccg_gnatcov_rts
+/testsuite/altrun/ccg_native/adainclude
 gnatcov-loc.xml
 gnatinspect.db
 README.html

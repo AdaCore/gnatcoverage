@@ -1,1 +1,2 @@
 !native,src-traces DEAD Check default trace file name (dump-channel=bin-file)
+native,RTS_ZFP DEAD Check default trace file name (dump-channel=bin-file)
