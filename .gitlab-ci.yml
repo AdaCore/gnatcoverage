@@ -68,6 +68,28 @@ build:
     paths:
       - $PACKAGE_BASE_NAME
 
+build_docs:
+  stage: build
+  services:
+     - image:e3
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || ($CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH)
+      changes:
+        - doc/**/*
+      when: always
+  script:
+    - unset GITLAB_TOKEN
+    - generic_anod_ci
+    - . /tmp/ci_env.sh
+    - anod build gnatdas-doc --latest
+    - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/gnatdas-doc/install/share/doc/gnatdas/ $CI_PROJECT_DIR
+  artifacts:
+    when:
+      always
+    paths:
+      - gnatdas/pdf/gnatdas.pdf
+      - gnatdas/html
+
 build_community:
   interruptible: true
   services:
