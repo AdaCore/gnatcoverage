@@ -178,7 +178,7 @@ is
    function Parse_Compiler_Driver_Command
      (Context : in out Parsing_Context;
       Tmp_Dir : Temporary_Directory;
-      Command : String_Vectors.Vector) return Compilation_Database;
+      Args    : String_Vectors.Vector) return Compilation_Database;
    --  Parse a compiler driver command
 
    function Parse_Compilation_Command
@@ -202,6 +202,11 @@ is
       Compiler_Driver : String;
       Config          : Instrumentation_Config) return String_Sets.Set;
    --  Return the list of coverage buffer symbols in the link closure
+
+   procedure Run_Original_Compiler
+     (Context : Parsing_Context;
+      Args    : String_Vectors.Vector);
+   --  Run the wrapped compiler with the given Args
 
    ----------------
    -- Split_Args --
@@ -247,8 +252,9 @@ is
    function Parse_Compiler_Driver_Command
      (Context : in out Parsing_Context;
       Tmp_Dir : Temporary_Directory;
-      Command : String_Vectors.Vector) return Compilation_Database
+      Args    : String_Vectors.Vector) return Compilation_Database
    is
+      use type String_Vectors.Vector;
       Result              : Compilation_Database;
       Parsed_Link_Command : Boolean := False;
       Commands_Filename   : constant String :=
@@ -258,18 +264,11 @@ is
       --  the command we are intercepting is a compile / link target and not
       --  a preprocessing / -### action.
 
-      declare
-         Arguments : String_Vectors.Vector;
-      begin
-         Arguments.Append_Vector (Command);
-         Arguments.Delete_First;
-         Arguments.Prepend (+"-###");
-         Run_Command
-           (+Context.Orig_Compiler_Driver,
-            Arguments,
-            "gnatcov",
-            Output_File => Commands_Filename);
-      end;
+      Run_Command
+        (+Context.Orig_Compiler_Driver,
+         String_Vectors.To_Vector (+"-###", 1) & Args,
+         "gnatcov",
+         Output_File => Commands_Filename);
 
       --  Then, parse the files containing the list of launched commands, using
       --  the following heuristics:
@@ -287,6 +286,9 @@ is
                Line : constant String := Get_Line (Commands_File);
                Command : constant String_Vectors.Vector := Split_Args (Line);
             begin
+               if Line = "" then
+                  goto Continue;
+               end if;
                if Ends_With (Command.First_Element, "cc1")
                  or else Ends_With (Command.First_Element, "cc1plus")
                then
@@ -321,6 +323,7 @@ is
                     (Parse_Link_Command (Context, Command));
                   Parsed_Link_Command := True;
                end if;
+               <<Continue>>
             end;
          end loop;
       end;
@@ -379,16 +382,10 @@ is
          Cur := Next (Cur);
       end loop;
 
-      --  Error out if the parsing failed
-
-      if Length (Result.Filename) = 0 then
-         Outputs.Fatal_Error
-           ("Could not find source file in compilation command: "
-            & Img (Command));
-      elsif Length (Result.Target) = 0 then
-         Outputs.Fatal_Error
-           ("Could not find output file in compilation command: "
-            & Img (Command));
+      if Length (Result.Filename) = 0
+         or else Length (Result.Target) = 0
+      then
+         return No_Compilation_Command;
       end if;
       Context.Source_Mapping.Include (Result.Target, Result.Filename);
       return Result;
@@ -622,6 +619,20 @@ is
       return Result;
    end Coverage_Buffer_Symbols;
 
+   ---------------------------
+   -- Run_Original_Compiler --
+   ---------------------------
+
+   procedure Run_Original_Compiler
+     (Context : Parsing_Context;
+      Args    : String_Vectors.Vector) is
+   begin
+      Run_Command
+        (Command             => +Context.Orig_Compiler_Driver,
+         Arguments           => Args,
+         Origin_Command_Name => "compiler");
+   end Run_Original_Compiler;
+
    Compiler_Wrapper_Dir : constant String := Containing_Directory
      (GNAT.OS_Lib.Locate_Exec_On_Path (Command_Name).all);
    --  Directory that contains the current program
@@ -634,9 +645,6 @@ is
 
    Instr_Dir : Temporary_Directory;
    --  Directory holding instrumentation artefacts
-
-   Command : String_Vectors.Vector;
-   --  Original compiler driver invocation
 
    Comp_DB : Compilation_Database;
 
@@ -665,21 +673,30 @@ begin
    Tag_Provider := Tag_Providers.Create (Default_Tag_Provider_Name);
    Traces_Files.Update_Current_Trace_Kind (Traces_Files.Source_Trace_File);
 
-   --  Load the command line
-
-   Command.Append (+Command_Name);
-   for I in 1 .. Argument_Count loop
-      Compiler_Driver_Opts.Append (+Argument (I));
-   end loop;
-   Command.Append_Vector (Compiler_Driver_Opts);
-
    Context.Orig_Compiler_Driver :=
      Instr_Config.Compiler_Drivers.Element
        (+Ada.Directories.Simple_Name (Command_Name));
 
+   --  Load the command line
+
+   for I in 1 .. Argument_Count loop
+      Compiler_Driver_Opts.Append (+Argument (I));
+   end loop;
+
+   --  If this driver invocation is not meant to compile a source file, there
+   --  is no instrumentation to do: just run the original driver and exit.
+
+   for Arg of Compiler_Driver_Opts loop
+      if +Arg in "-###" | "-E" then
+         Run_Original_Compiler (Context, Compiler_Driver_Opts);
+         return;
+      end if;
+   end loop;
+
    --  Parse the compiler driver invocation
 
-   Comp_DB := Parse_Compiler_Driver_Command (Context, Instr_Dir, Command);
+   Comp_DB :=
+     Parse_Compiler_Driver_Command (Context, Instr_Dir, Compiler_Driver_Opts);
 
    --  Generate an artificial project description to pass compiler
    --  switches and default spec / body suffixes.
@@ -803,10 +820,8 @@ begin
 
    declare
       Output_Dir : constant String := +Prj.Output_Dir;
-      New_Args   : String_Vectors.Vector := Command.Copy;
+      New_Args   : String_Vectors.Vector := Compiler_Driver_Opts;
    begin
-      New_Args.Delete_First;
-
       New_Args.Prepend ("-I" & Instr_Config.GNATcov_RTS_Include_Dir);
 
       if Comp_DB.Link_Command /= No_Link_Command then
@@ -878,10 +893,7 @@ begin
                      Args_Compilation.Append (Instr_Artifact);
                      Args_Compilation.Append (+"-o");
                      Args_Compilation.Append (+Instr_Artifact_Object_Name);
-                     Run_Command
-                       (Command             => +Context.Orig_Compiler_Driver,
-                        Arguments           => Args_Compilation,
-                        Origin_Command_Name => "compiler wrapper");
+                     Run_Original_Compiler (Context, Args_Compilation);
 
                      Context.Instrumentation_Objects
                        .Reference (Comp_Command.Filename)
@@ -894,10 +906,7 @@ begin
 
       --  Finally, run the alternate compiler driver invocation
 
-      Run_Command
-        (Command             => +Context.Orig_Compiler_Driver,
-         Arguments           => New_Args,
-         Origin_Command_Name => "compiler");
+      Run_Original_Compiler (Context, New_Args);
 
       if Comp_DB.Link_Command = No_Link_Command then
 
