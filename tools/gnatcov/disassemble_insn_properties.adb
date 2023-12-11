@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling;
-with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces;  use Interfaces;
 
@@ -28,14 +27,11 @@ with Disassemblers;
 with Elf_Disassemblers;
 with Hex_Images;
 with Highlighting;
+with Strings;           use Strings;
 with Traces_Elf;        use Traces_Elf;
 with Traces;            use Traces;
 
 package body Disassemble_Insn_Properties is
-
-   function "+" (S : String) return Ada.Strings.Unbounded.Unbounded_String
-                 renames Ada.Strings.Unbounded.To_Unbounded_String;
-   --  Shortcut to To_Unbounded_String
 
    function "+" (PC : Pc_Type) return JSON_Value is
      (Create ("0x" & Hex_Images.Hex_Image (PC)));
@@ -43,9 +39,7 @@ package body Disassemble_Insn_Properties is
    --  represent addresses as hexadecimal strings in order not to rely on JSON
    --  libraries implementation constraints about abritrarily sized integers.
 
-   Branch_Kind_Strings : constant
-     array (Branch_Kind)
-     of Ada.Strings.Unbounded.Unbounded_String :=
+   Branch_Kind_Strings : constant array (Branch_Kind) of Unbounded_String :=
      (Br_None => +"none",
       Br_Call => +"call",
       Br_Ret  => +"return",

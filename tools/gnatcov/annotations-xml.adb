@@ -19,7 +19,6 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Text_IO;             use Ada.Text_IO;
-with Ada.Strings.Unbounded;
 with Interfaces;
 
 with GNAT.OS_Lib;
@@ -32,8 +31,6 @@ with Traces_Disa;   use Traces_Disa;
 with Traces_Files;  use Traces_Files;
 
 package body Annotations.Xml is
-
-   package ASU renames Ada.Strings.Unbounded;
 
    XSD_Basename : constant String := "gnatcov-xml-report.xsd";
    XSD_Filename : constant String := Support_Files.In_Lib_Dir (XSD_Basename);
@@ -80,9 +77,7 @@ package body Annotations.Xml is
    Trace_File_Name : constant String := "trace.xml";
 
    function A (Name : String; Value : Character) return String;
-   function A
-     (Name  : String;
-      Value : Ada.Strings.Unbounded.Unbounded_String) return String;
+   function A (Name : String; Value : Unbounded_String) return String;
    function A (Name : String; Value : String) return String;
    --  Return a string representing an xml attribute whose name
    --  and value are given in parameter. id est
@@ -256,12 +251,9 @@ package body Annotations.Xml is
       return " " & Name & "=" & '"' & To_Xml_String (Value) & '"';
    end A;
 
-   function A
-     (Name  : String;
-      Value : Ada.Strings.Unbounded.Unbounded_String) return String
-   is
+   function A (Name : String; Value : Unbounded_String) return String is
    begin
-      return A (Name, Ada.Strings.Unbounded.To_String (Value));
+      return A (Name, +Value);
    end A;
 
    function A (Name : String; Value : Character) return String is
@@ -426,22 +418,18 @@ package body Annotations.Xml is
       M  : Message)
    is
       use Interfaces;
-      use Ada.Strings.Unbounded;
-
-      Attributes : Unbounded_String :=
-        ASU.To_Unbounded_String (A ("kind", To_Lower (M.Kind'Img)));
+      Attributes : Unbounded_String := +A ("kind", To_Lower (M.Kind'Img));
    begin
       if M.PC /= 0 then
-         Attributes := Attributes & A ("address", Hex_Image (M.PC));
+         Append (Attributes, A ("address", Hex_Image (M.PC)));
       end if;
 
       if M.SCO /= No_SCO_Id then
-         Attributes := Attributes
-           & A ("SCO", Image (M.SCO, With_Sloc => False));
+         Append (Attributes, A ("SCO", Image (M.SCO, With_Sloc => False)));
       end if;
 
-      Attributes := Attributes & A ("message", To_String (M.Msg));
-      Pp.T ("message", To_String (Attributes));
+      Append (Attributes, A ("message", +M.Msg));
+      Pp.T ("message", +Attributes);
    end Pretty_Print_Message;
 
    ------------------------
@@ -706,8 +694,6 @@ package body Annotations.Xml is
       -----------------------
 
       procedure Process_One_Trace (TF : Trace_File_Element) is
-         use Ada.Strings.Unbounded;
-
          Attributes : Unbounded_String;
       begin
          Append (Attributes,
@@ -716,7 +702,7 @@ package body Annotations.Xml is
                  & A ("program", TF.Program_Name)
                  & A ("date", TF.Time)
                  & A ("tag", TF.User_Data));
-         Pp.T ("trace", To_String (Attributes), Dest_Trace_Info);
+         Pp.T ("trace", +Attributes, Dest_Trace_Info);
       end Process_One_Trace;
 
    --  Start of processing for Print_Trace_Info
@@ -739,8 +725,6 @@ package body Annotations.Xml is
       Sloc_Start : Source_Location;
       Sloc_End   : Source_Location)
    is
-      use Ada.Strings.Unbounded;
-
       Current_Line_Sloc : Source_Location := Sloc_Start;
    begin
       Pp.ST ("src");
@@ -750,22 +734,20 @@ package body Annotations.Xml is
          Current_Line_Sloc.L.Line := Line_Num;
 
          declare
-            Attributes : Unbounded_String :=
-              To_Unbounded_String (A ("num", Img (Line_Num)));
+            Attributes : Unbounded_String := +A ("num", Img (Line_Num));
             Line       : constant String := Get_Line (Current_Line_Sloc);
             Src_Start  : Natural := Line'First;
             Src_End    : Natural := Line'Last;
          begin
             if Line_Num = Sloc_Start.L.Line then
                Src_Start := Natural'Min (Src_End, Sloc_Start.L.Column);
-               Attributes := Attributes
-                 & A ("column_begin", Img (Sloc_Start.L.Column));
+               Append
+                 (Attributes, A ("column_begin", Img (Sloc_Start.L.Column)));
             end if;
 
             if Line_Num = Sloc_End.L.Line then
                Src_End := Natural'Min (Src_End, Sloc_End.L.Column);
-               Attributes := Attributes
-                 & A ("column_end", Img (Sloc_End.L.Column));
+               Append (Attributes, A ("column_end", Img (Sloc_End.L.Column)));
             end if;
 
             if Line'Length /= 0 then
@@ -774,16 +756,16 @@ package body Annotations.Xml is
                      Spaces : constant String (1 .. Src_Start - 1) :=
                                 (others => ' ');
                   begin
-                     Attributes := Attributes
-                       & A ("src", Spaces & Line (Src_Start .. Src_End));
+                     Append
+                       (Attributes,
+                        A ("src", Spaces & Line (Src_Start .. Src_End)));
                   end;
                else
-                  Attributes := Attributes
-                    & A ("src", Line (Src_Start .. Src_End));
+                  Append (Attributes, A ("src", Line (Src_Start .. Src_End)));
                end if;
             end if;
 
-            Pp.T ("line", To_String (Attributes));
+            Pp.T ("line", +Attributes);
          end;
       end loop;
       Pp.ET ("src");

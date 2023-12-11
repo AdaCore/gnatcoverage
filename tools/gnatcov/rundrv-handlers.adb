@@ -26,7 +26,6 @@ with Arch;
 with Coverage;      use Coverage;
 with Paths;         use Paths;
 with Support_Files;
-with Strings;       use Strings;
 with Switches;      use Switches;
 
 package body Rundrv.Handlers is

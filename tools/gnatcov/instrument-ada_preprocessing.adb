@@ -73,11 +73,10 @@ package body Instrument.Ada_Preprocessing is
       begin
          for Cur in Map.Iterate loop
             declare
-               Name  : constant US.Unbounded_String :=
-                 Definition_Maps.Key (Cur);
+               Name  : constant Unbounded_String := Definition_Maps.Key (Cur);
                Value : Value_Type renames Map.Constant_Reference (Cur);
             begin
-               Result.Set_Field (US.To_String (Name), Serialize (Value));
+               Result.Set_Field (+Name, Serialize (Value));
             end;
          end loop;
          return Result;
@@ -150,11 +149,11 @@ package body Instrument.Ada_Preprocessing is
       begin
          for Cur in File_Configs.Iterate loop
             declare
-               Filename : constant US.Unbounded_String :=
+               Filename : constant Unbounded_String :=
                  File_Config_Maps.Key (Cur);
             begin
                Map.Set_Field
-                 (US.To_String (Filename),
+                 (+Filename,
                   Serialize (File_Configs.Constant_Reference (Cur)));
             end;
          end loop;
@@ -165,8 +164,7 @@ package body Instrument.Ada_Preprocessing is
 
       declare
          File : Ada.Text_IO.File_Type;
-         Doc  : constant US.Unbounded_String :=
-           Result.Write (Compact => False);
+         Doc  : constant Unbounded_String := Result.Write (Compact => False);
       begin
          Create (File, Out_File, Filename);
          Put_Line (File, Doc);
@@ -234,8 +232,7 @@ package body Instrument.Ada_Preprocessing is
 
                procedure Process (Name : UTF8_String; Value : JSON_Value) is
                begin
-                  Result.Insert
-                    (US.To_Unbounded_String (Name), Deserialize (Value));
+                  Result.Insert (+Name, Deserialize (Value));
                end Process;
             begin
                Desc.Map_JSON_Object (Process'Access);
@@ -301,8 +298,7 @@ package body Instrument.Ada_Preprocessing is
                 ("Loading preprocessor data from temporary file " & Filename
                  & " for " & Name);
          begin
-            File_Configs.Insert
-              (US.To_Unbounded_String (Name), Deserialize (Value));
+            File_Configs.Insert (+Name, Deserialize (Value));
          end Process;
       begin
          File_Configs_Desc.Map_JSON_Object (Process'Access);

@@ -22,7 +22,6 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Text_IO;              use Ada.Text_IO;
 with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
 with GNAT.OS_Lib;
@@ -424,7 +423,7 @@ package body Annotations.Cobertura is
       Branches_Valid, Branches_Covered : Natural;
       Branch_Rate                      : Rate_Type;
 
-      Filename : Unbounded_String := To_Unbounded_String (Info.Full_Name.all);
+      Filename : Unbounded_String := +Info.Full_Name.all;
       --  Filename to mention in the coverage report. Use the full name, unless
       --  we can remove the prefix according to the --source-root option.
    begin
@@ -459,15 +458,14 @@ package body Annotations.Cobertura is
             Matches             : GNAT.Regpat.Match_Array (0 .. 0);
             First, Last         : Natural;
             Normalized_Filename : constant String :=
-              Paths.Normalize_For_Regexp (To_String (Filename));
+              Paths.Normalize_For_Regexp (+Filename);
          begin
             GNAT.Regpat.Match
               (Pp.Source_Prefix_Pattern.all, Normalized_Filename, Matches);
             if Matches (0) /= GNAT.Regpat.No_Match then
                First := Matches (0).Last + 1;
                Last := Normalized_Filename'Last;
-               Filename :=
-                 To_Unbounded_String (Normalized_Filename (First .. Last));
+               Filename := +Normalized_Filename (First .. Last);
             end if;
          end;
       end if;
@@ -480,7 +478,7 @@ package body Annotations.Cobertura is
       Pp.ST ("classes");
       Pp.ST ("class",
              A ("name", Simple_Source_Filename)
-             & A ("filename", To_String (Filename))
+             & A ("filename", +Filename)
              & A ("line-rate", Img (Line_Rate))
              & A ("branch-rate", Img (Branch_Rate))
              & A ("complexity", "-1"));

@@ -39,7 +39,6 @@ with ALI_Files;           use ALI_Files;
 with Coverage;            use Coverage;
 with Coverage_Options;
 with Hex_Images;          use Hex_Images;
-with Inputs;              use Inputs;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
 with SCOs;
@@ -48,8 +47,6 @@ with Table;
 with Text_Files;          use Text_Files;
 
 package body Instrument.C is
-
-   package US renames Ada.Strings.Unbounded;
 
    function To_Chars_Ptr_Array
      (V : String_Vectors.Vector) return chars_ptr_array;
@@ -176,7 +173,7 @@ package body Instrument.C is
       UIC      : in out C_Unit_Inst_Context'Class;
       LL_SCO   : Nat;
       Decision : Cursor_T;
-      State    : US.Unbounded_String);
+      State    : Unbounded_String);
    --  Add an entry to UIC.Source_Decisions
 
    overriding procedure Instrument_Condition
@@ -184,7 +181,7 @@ package body Instrument.C is
       UIC       : in out C_Unit_Inst_Context'Class;
       LL_SCO    : Nat;
       Condition : Cursor_T;
-      State     : US.Unbounded_String;
+      State     : Unbounded_String;
       First     : Boolean);
    --  Add an entry to UIC.Source_Conditions
 
@@ -199,7 +196,7 @@ package body Instrument.C is
      (Pass       : Instrument_Pass_Kind;
       UIC        : in out C_Unit_Inst_Context'Class;
       Name       : String;
-      MCDC_State : out US.Unbounded_String);
+      MCDC_State : out Unbounded_String);
    --  Wrapper around Insert_MCDC_State overload
 
    overriding procedure Insert_Text_Before_Token
@@ -359,7 +356,7 @@ package body Instrument.C is
    procedure Emit_Dump_Helper_Unit
      (Dump_Config       : Any_Dump_Config;
       Main              : Compilation_Unit_Part;
-      Helper_Unit       : out US.Unbounded_String;
+      Helper_Unit       : out Unbounded_String;
       Instrumenter      : C_Family_Instrumenter_Type'Class;
       Prj               : Prj_Desc);
    --  Emit the unit to contain helpers to implement the automatic dump of
@@ -745,7 +742,7 @@ package body Instrument.C is
             Expansion_Stack : Expansion_Lists.List;
             Definition_Info : Expansion_Info;
 
-            Macro_Expansion_Name    : US.Unbounded_String;
+            Macro_Expansion_Name    : Unbounded_String;
             Immediate_Expansion_Loc : Source_Location_T;
             Macro_Arg_Expanded_Loc  : Source_Location_T;
          begin
@@ -919,7 +916,7 @@ package body Instrument.C is
                --  then it means the location refers to a token paste, or
                --  stringization and not a macro at all. Let's walk past it.
 
-               if Length (Macro_Expansion_Name) /= 0 then
+               if Macro_Expansion_Name /= "" then
                   Expansion_Stack.Append
                     ((Macro_Name => Macro_Expansion_Name,
                       Sloc       =>
@@ -1031,7 +1028,7 @@ package body Instrument.C is
      (Pass       : Instrument_Pass_Kind;
       UIC        : in out C_Unit_Inst_Context'Class;
       Name       : String;
-      MCDC_State : out US.Unbounded_String) is
+      MCDC_State : out Unbounded_String) is
    begin
       if not UIC.Disable_Instrumentation then
          MCDC_State := +Insert_MCDC_State (UIC, Name);
@@ -1126,7 +1123,7 @@ package body Instrument.C is
       UIC      : in out C_Unit_Inst_Context'Class;
       LL_SCO   : Nat;
       Decision : Cursor_T;
-      State    : US.Unbounded_String) is
+      State    : Unbounded_String) is
    begin
       if UIC.Disable_Instrumentation then
          UIC.Non_Instr_LL_SCOs.Include (SCO_Id (LL_SCO));
@@ -1148,7 +1145,7 @@ package body Instrument.C is
       UIC       : in out C_Unit_Inst_Context'Class;
       LL_SCO    : Nat;
       Condition : Cursor_T;
-      State     : US.Unbounded_String;
+      State     : Unbounded_String;
       First     : Boolean) is
    begin
       if UIC.Disable_Instrumentation then
@@ -1260,7 +1257,7 @@ package body Instrument.C is
    begin
       --  No instrumentation for condition if there is no local state variable
 
-      if US.Length (SC.State) = 0 then
+      if SC.State = "" then
          return;
       end if;
 
@@ -1276,7 +1273,7 @@ package body Instrument.C is
            (N    => SC.Condition,
             Text =>
               "gnatcov_rts_witness_condition ("
-              & US.To_String (SC.State) & ", "
+              & (+SC.State) & ", "
               & Img (Offset) & ", "
               & First_Image & ", "
               & "(",
@@ -1335,7 +1332,7 @@ package body Instrument.C is
                Text => ", " & MCDC_Buffer_Symbol (UIC.Instrumented_Unit)
                        & Buffers_Subscript (Buffers_Index) & ", "
                        & Img (Bits.Path_Bits_Base) & ", "
-                       & US.To_String (SD.State),
+                       & (+SD.State),
                Rew  => UIC.Rewriter);
          end if;
          Insert_Text_After_Start_Of (N    => N,
@@ -1563,7 +1560,7 @@ package body Instrument.C is
          Condition_Count : Natural := 0;
          --  Count of conditions for current decision (MC/DC only)
 
-         MCDC_State : US.Unbounded_String;
+         MCDC_State : Unbounded_String;
          --  Name of MC/DC state local variable for current decision (MC/DC
          --  only).
 
@@ -2390,7 +2387,7 @@ package body Instrument.C is
 
    begin
       for N of L loop
-         if Length (Trailing_Braces) /= 0 then
+         if Trailing_Braces /= "" then
             UIC.Pass.Insert_Text_Before
               (UIC, Start_Sloc (N), +Trailing_Braces);
             Trailing_Braces := +"";
@@ -3400,13 +3397,13 @@ package body Instrument.C is
          if Multiline then
             Append (Result, "  ");
          end if;
-         Append (Result, To_String (Exprs.Element (I)));
+         Append (Result, (+Exprs.Element (I)));
       end loop;
       if Multiline then
          Append (Result, ASCII.LF);
       end if;
       Append (Result, "}");
-      return To_String (Result);
+      return (+Result);
    end Format_Array_Init_Expr;
 
    ----------------------
@@ -3686,7 +3683,7 @@ package body Instrument.C is
    procedure Emit_Dump_Helper_Unit
      (Dump_Config       : Any_Dump_Config;
       Main              : Compilation_Unit_Part;
-      Helper_Unit       : out US.Unbounded_String;
+      Helper_Unit       : out Unbounded_String;
       Instrumenter      : C_Family_Instrumenter_Type'Class;
       Prj               : Prj_Desc)
    is
@@ -3758,7 +3755,7 @@ package body Instrument.C is
          when Binary_File =>
             declare
                Env_Var : constant String :=
-                 (if US.Length (Dump_Config.Filename_Env_Var) = 0
+                 (if Dump_Config.Filename_Env_Var = ""
                   then "GNATCOV_RTS_DEFAULT_TRACE_FILENAME_ENV_VAR"
                   else """" & (+Dump_Config.Filename_Env_Var) & """");
                Prefix  : constant String :=
@@ -3818,7 +3815,7 @@ package body Instrument.C is
 
    overriding procedure Emit_Dump_Helper_Unit_Manual
      (Self          : in out C_Family_Instrumenter_Type;
-      Helper_Unit   : out US.Unbounded_String;
+      Helper_Unit   : out Unbounded_String;
       Dump_Config   : Any_Dump_Config;
       Prj           : Prj_Desc)
    is
@@ -3863,7 +3860,7 @@ package body Instrument.C is
            Dump_Procedure_Symbol
              (Main => Dummy_Main, Manual => True, Prj_Name => +Prj.Prj_Name);
          Contents       : Unbounded_String :=
-           "extern void " & To_Unbounded_String (Dump_Procedure) & " (void);";
+           +("extern void " & Dump_Procedure & " (void);");
       begin
          --  Preprocess the source, keeping the comment to look for the manual
          --  dump indication later.
@@ -3895,7 +3892,7 @@ package body Instrument.C is
          Ada.Text_IO.Open
            (File => File,
             Mode => In_File,
-            Name => To_String (PP_Filename));
+            Name => (+PP_Filename));
 
          while not Ada.Text_IO.End_Of_File (File) loop
             declare
@@ -3925,9 +3922,9 @@ package body Instrument.C is
             Ada.Text_IO.Open
               (File => File,
                Mode => Out_File,
-               Name => To_String (PP_Filename));
+               Name => (+PP_Filename));
 
-            Ada.Text_IO.Put_Line (File, To_String (Contents));
+            Ada.Text_IO.Put_Line (File, (+Contents));
 
             Ada.Text_IO.Close (File);
          end if;
@@ -3944,7 +3941,7 @@ package body Instrument.C is
       Dump_Config   : Any_Dump_Config;
       Prj           : Prj_Desc)
    is
-      Helper_Filename : US.Unbounded_String;
+      Helper_Filename : Unbounded_String;
       --  Name of file to contain helpers implementing the buffers dump
 
       Rew  : C_Source_Rewriter;
@@ -4154,7 +4151,7 @@ package body Instrument.C is
         New_File
           (Prj,
            To_Symbol_Name (Sys_Prefix)
-           & "_d_b_" & To_String (Prj.Prj_Name)
+           & "_d_b_" & (+Prj.Prj_Name)
            & (+Prj.Body_Suffix
              (C_Family_Instrumenter_Type'Class (Self).Language)));
    begin
@@ -4221,7 +4218,7 @@ package body Instrument.C is
       Compiler_Driver : constant Unbounded_String :=
         Prj.Compiler_Driver (Instrumenter.Language);
    begin
-      if Compiler_Driver = Null_Unbounded_String then
+      if Compiler_Driver = "" then
          Outputs.Fatal_Error
            ("could not find a compiler for " & Image (Instrumenter.Language));
       end if;
@@ -4279,7 +4276,7 @@ package body Instrument.C is
          Append (Result, Init_Expr);
       end if;
       Append (Result, ';');
-      return To_String (Result);
+      return +Result;
    end Format_Def;
 
    --------------------
@@ -4516,10 +4513,9 @@ package body Instrument.C is
       Filename     : String)
    is
       Cmdline_Opts : constant String_Vectors.Vector :=
-        To_String_Vector
-          (case C_Family_Language (Instrumenter.Language) is
-              when C_Language   => C_Opts,
-              when CPP_Language => CPP_Opts);
+        (case C_Family_Language (Instrumenter.Language) is
+            when C_Language   => C_Opts,
+            when CPP_Language => CPP_Opts);
       Prj_Options  : String_Vectors.Vector;
    begin
       --  Grab the options from the project description. Note that the project

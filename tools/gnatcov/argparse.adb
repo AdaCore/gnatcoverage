@@ -21,7 +21,6 @@ with Ada.Containers.Generic_Array_Sort;
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Vectors;
 with Ada.Exceptions;
-with Ada.Strings.Unbounded.Hash;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
@@ -52,7 +51,7 @@ package body Argparse is
 
    package Long_Options_Index is new Ada.Containers.Hashed_Maps
      (Key_Type        => Unbounded_String,
-      Hash            => Ada.Strings.Unbounded.Hash,
+      Hash            => Strings.Hash,
       Element_Type    => Option_Reference_Vector,
       Equivalent_Keys => "=");
 
@@ -139,8 +138,7 @@ package body Argparse is
      (Parser  : Parser_Type;
       Command : Valid_Commands)
       return String
-   is
-     (To_String (Parser.Data.Command_Infos (Command).Name));
+   is (+Parser.Data.Command_Infos (Command).Name);
 
    -----------------
    -- Option_Name --
@@ -160,11 +158,11 @@ package body Argparse is
    function Option_Name (Option : Option_Info'Class) return String is
       Result : Unbounded_String;
    begin
-      if Length (Option.Long_Name) > 0 then
+      if Option.Long_Name /= "" then
          Append (Result, Option.Long_Name);
       end if;
-      if Length (Option.Short_Name) > 0 then
-         if Length (Result) > 0 then
+      if Option.Short_Name /= "" then
+         if Result /= "" then
             Append (Result, '|');
          end if;
          Append (Result, Option.Short_Name);
@@ -250,7 +248,7 @@ package body Argparse is
       Result : String_Vectors.Vector;
 
       function Name (Opt : Option_Info'Class) return Unbounded_String is
-        (if Length (Opt.Long_Name) = 0
+        (if Opt.Long_Name = ""
          then Opt.Short_Name
          else Opt.Long_Name);
       --  Some options such as -P do not defined a long name. In this case,
@@ -445,7 +443,7 @@ package body Argparse is
             return "";
          end if;
 
-         return (if Length (Candidate) = 0
+         return (if Candidate = ""
                  then " [...]"
                  else " " & (+Candidate));
       end Get_Pattern;
@@ -751,7 +749,7 @@ package body Argparse is
       begin
          if Callback /= null then
             Callback (Result, Ref);
-            return Length (Result.Error) > 0;
+            return Result.Error /= "";
          end if;
          return False;
       end Invoke_Callback;
@@ -1132,9 +1130,7 @@ package body Argparse is
          Opt : constant Option_Info_Access := Get_Option (Parser, Ref);
       begin
          for Name of Split_Option_Text (+Opt.Long_Name) loop
-            if Length (Name) < 2
-              or else Element (Name, 1) /= '-'
-            then
+            if Length (Name) < 2 or else Element (Name, 1) /= '-' then
                raise Program_Error
                  with "Invalid option long name: " & (+Name);
             end if;
@@ -1305,11 +1301,11 @@ package body Argparse is
 
       function "<" (Left, Right : Option_Info_Access) return Boolean is
          Left_Str : constant Unbounded_String :=
-           (if Length (Left.Long_Name) = 0
+           (if Left.Long_Name = ""
             then Left.Short_Name
             else Left.Long_Name);
          Right_Str : constant Unbounded_String :=
-           (if Length (Right.Long_Name) = 0
+           (if Right.Long_Name = ""
             then Right.Short_Name
             else Right.Long_Name);
       begin
@@ -1516,7 +1512,7 @@ package body Argparse is
       if Column /= 0 then
          Append (Result, ASCII.LF);
       end if;
-      return To_String (Result);
+      return +Result;
    end Wrap;
 
 end Argparse;

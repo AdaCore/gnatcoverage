@@ -20,7 +20,6 @@
 
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 
@@ -35,11 +34,10 @@ with Switches;            use Switches;
 
 package Instrument is
 
-   package US renames Ada.Strings.Unbounded;
-
    package GPR renames GNATCOLL.Projects;
 
    use type Ada.Containers.Count_Type;
+   use all type Unbounded_String;
 
    Parallelism_Level : Natural := 1;
 
@@ -48,7 +46,7 @@ package Instrument is
    --  Returns the language kind (unit-based or file-based) for the given
    --  language.
 
-   type Ada_Identifier is new Ada.Strings.Unbounded.Unbounded_String;
+   type Ada_Identifier is new Unbounded_String;
    --  Simple Ada identifier
 
    procedure Read
@@ -97,7 +95,7 @@ package Instrument is
             --  Identifies an Ada compilation unit (unit-based)
 
          when File_Based_Language =>
-            Filename : US.Unbounded_String;
+            Filename : Unbounded_String;
             --  Fallback for file-based languages (like C). We use the full
             --  filename, for homonym resiliency.
 
@@ -177,7 +175,7 @@ package Instrument is
    --  corresponding to the unit name and the unit part parameters.
 
    function CU_Name_For_File
-     (Filename : US.Unbounded_String) return Compilation_Unit_Part;
+     (Filename : Unbounded_String) return Compilation_Unit_Part;
    --  Return the compilation unit name for the C translation unit
    --  corresponding to the filename parameter.
 

@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
 
 with GNAT.Regexp;  use GNAT.Regexp;
@@ -56,6 +55,7 @@ package body Decision_Map is
 
    use Ada.Containers;
    use Coverage;
+   use all type Unbounded_String;
 
    Decision_Map_Base : Traces_Base;
    --  The decision map is a list of code addresses, so we manage it as a
@@ -543,12 +543,11 @@ package body Decision_Map is
 
             if Report_If_Unexpected then
                declare
-                  use Ada.Strings.Unbounded;
                   Msg : Unbounded_String;
                begin
-                  Msg := To_Unbounded_String
-                    ("unexpected condition" & CI'Img
-                     & " in decision " & Image (DS_Top.Decision));
+                  Msg :=
+                    +("unexpected condition" & CI'Img
+                      & " in decision " & Image (DS_Top.Decision));
 
                   if Tag /= No_SC_Tag then
                      Append (Msg, ", tag=" & Tag_Provider.Tag_Name (Tag));
@@ -559,7 +558,7 @@ package body Decision_Map is
                   --  We will silence it unless explicitely requested with a
                   --  verbose mode.
 
-                  Report (Exec, Insn.First, To_String (Msg), Kind => Notice);
+                  Report (Exec, Insn.First, +Msg, Kind => Notice);
                end;
             end if;
             return False;

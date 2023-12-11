@@ -23,7 +23,6 @@
 --  abort gnatcov in case of subprocess failure.
 
 with Ada.Finalization;
-with Ada.Strings.Unbounded;
 
 with GNATCOLL.OS.Process; use GNATCOLL.OS.Process;
 
@@ -34,11 +33,13 @@ with Temp_Dirs; use Temp_Dirs;
 
 package Subprocesses is
 
+   use all type Unbounded_String;
+
    Subprocesses_Trace : constant Logging.GNATCOLL_Trace :=
      Logging.Create_Trace ("SUBPROCESSES");
 
    type Command_Type is record
-      Command : Ada.Strings.Unbounded.Unbounded_String;
+      Command : Unbounded_String;
       --  Command (executable file) to run
 
       Arguments : String_Vectors.Vector;
@@ -169,8 +170,8 @@ package Subprocesses is
 private
 
    type Process_Info is record
-      Command, Origin_Command_Name : Ada.Strings.Unbounded.Unbounded_String;
-      Output_File                  : Ada.Strings.Unbounded.Unbounded_String;
+      Command, Origin_Command_Name : Unbounded_String;
+      Output_File                  : Unbounded_String;
       Ignore_Error                 : Boolean;
       --  Information specific to a subprocess, filled when calling the
       --  Run_Command overload running a subprocess in a process pool. See the

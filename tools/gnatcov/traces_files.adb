@@ -288,8 +288,7 @@ package body Traces_Files is
    is
    begin
       if not Result.Success then
-         Fatal_Error
-           (Filename & ": " & US.To_String (Result.Error));
+         Fatal_Error (Filename & ": " & (+Result.Error));
       end if;
    end Success_Or_Fatal_Error;
 
@@ -568,7 +567,7 @@ package body Traces_Files is
 
    begin
       return Desc : Trace_File_Descriptor (Writeable => Mode /= Read_File) do
-         Desc.Filename := US.To_Unbounded_String (Filename);
+         Desc.Filename := +Filename;
          case Mode is
             when Read_File =>
                Log_File_Open (Filename);
@@ -926,7 +925,7 @@ package body Traces_Files is
       Raw_Entry : Trace_Entry_IO.Ref;
    begin
       Open_Trace_File (Filename, Desc, Trace_File);
-      Trace_File.Filename := US.To_Unbounded_String (Filename);
+      Trace_File.Filename := +Filename;
       Process_Info_Entries (Trace_File, Result);
       if not Result.Success then
          return;
@@ -1179,7 +1178,7 @@ package body Traces_Files is
          Mmap.Free (Desc.Region);
          Mmap.Close (Desc.File);
       end if;
-      Desc.Filename := US.Null_Unbounded_String;
+      Desc.Filename := Null_Unbounded_String;
    end Close_Trace_File;
 
    --------------------------------
@@ -1325,7 +1324,6 @@ package body Traces_Files is
    ---------------------
 
    procedure Dump_Trace_File (Filename : String; Raw : Boolean) is
-      use Ada.Strings.Unbounded;
 
       procedure Process_Info_Entries
         (Trace_File : Trace_File_Type;
@@ -1399,7 +1397,7 @@ package body Traces_Files is
       begin
          Put_Line ("Loading shared object " & Filename);
          Put_Line ("   at " & Hex_Image (First) & " .. " & Hex_Image (Last));
-         return To_Unbounded_String (Filename);
+         return +Filename;
       end Load_Shared_Object;
 
       -------------------------
@@ -1760,7 +1758,7 @@ package body Traces_Files is
    is
    begin
       Trace_File := Trace_File_Type'
-        (Filename    => US.To_Unbounded_String (Filename),
+        (Filename    => +Filename,
          Header      => (Kind, Pc_Type_Size, Big_Endian_Host, 0),
          First_Infos => null,
          Last_Infos  => null);
@@ -1772,8 +1770,7 @@ package body Traces_Files is
 
    procedure Create_Error (Result : out Read_Result; Error : String) is
    begin
-      Result := (Success => False,
-                 Error   => Ada.Strings.Unbounded.To_Unbounded_String (Error));
+      Result := (Success => False, Error => +Error);
    end Create_Error;
 
 end Traces_Files;

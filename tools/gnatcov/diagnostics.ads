@@ -34,12 +34,12 @@
 --  output at the time the report procedure is called.
 
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded;
 
 with Coverage;       use Coverage;
 with Logging;
 with SC_Obligations; use SC_Obligations;
 with Slocs;          use Slocs;
+with Strings;        use Strings;
 with Traces;         use Traces;
 with Traces_Elf;     use Traces_Elf;
 
@@ -66,7 +66,7 @@ package Diagnostics is
       Sloc : Source_Location;
       SCO  : SCO_Id;
       Tag  : SC_Tag;
-      Msg  : Ada.Strings.Unbounded.Unbounded_String;
+      Msg  : Unbounded_String;
    end record;
 
    package Message_Vectors is new Ada.Containers.Vectors

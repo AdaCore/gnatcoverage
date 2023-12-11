@@ -16,14 +16,13 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-
 pragma Warnings (Off, "* is an internal GNAT unit");
    with Ada.Strings.Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
 
 with GNAT.Strings; use GNAT.Strings;
 
+with Strings; use Strings;
 with Text_Files;
 
 package body JSON is
@@ -38,8 +37,8 @@ package body JSON is
       File    : Text_Files.File_Type;
       Content : constant Unbounded_String := Value.Write (Compact => Compact);
 
-      Buffer : Aux.Big_String_Access;
-      First  : constant Natural := Aux.Big_String'First;
+      Buffer : US.Aux.Big_String_Access;
+      First  : constant Natural := US.Aux.Big_String'First;
       Last   : Natural;
    begin
       File.Create (Filename);
@@ -49,7 +48,7 @@ package body JSON is
       --  copying the whole string. This is not just for performance: using
       --  To_String could for instance make GNAT's secondary stack overflow.
 
-      Aux.Get_String (Content, Buffer, Last);
+      US.Aux.Get_String (Content, Buffer, Last);
       File.Put (Buffer (First .. Last));
    end Write;
 
@@ -63,7 +62,7 @@ package body JSON is
    end Read;
 
    function Read (File : Virtual_File) return Read_Result is
-      Content : GNAT.Strings.String_Access := File.Read_File;
+      Content : String_Access := File.Read_File;
    begin
       return Parsed_JSON : constant Read_Result :=
          GNATCOLL.JSON.Read (Content.all)

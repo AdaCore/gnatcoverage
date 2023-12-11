@@ -19,8 +19,7 @@
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Containers.Vectors;
-with Ada.Directories;         use Ada.Directories;
-with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
+with Ada.Directories; use Ada.Directories;
 with Ada.Tags;
 
 with GNAT.OS_Lib;
@@ -37,6 +36,8 @@ with Outputs;             use Outputs;
 with Paths;               use Paths;
 
 package body Project is
+
+   use type Unbounded_String;
 
    subtype Compilation_Unit is Files_Table.Compilation_Unit;
    use type Compilation_Unit;
@@ -186,7 +187,7 @@ package body Project is
    procedure Build_Prj_Map with Pre => Is_Project_Loaded;
    --  Add entries in Prj_Map for all relevant projects
 
-   procedure Build_Unit_Map (Override_Units : Inputs.Inputs_Type);
+   procedure Build_Unit_Map (Override_Units : String_Vectors.Vector);
    --  Add entries in Unit_Map for all units of interest
 
    procedure List_From_Project
@@ -334,7 +335,7 @@ package body Project is
       end if;
 
       Warn ("no " & What_Info & " file found for unit "
-            & To_String (Unit.Original_Name));
+            & (+Unit.Original_Name));
       Unit.Warned_About_Missing_Info := True;
    end Warn_Missing_Info;
 
@@ -825,10 +826,8 @@ package body Project is
    -- Build_Unit_Map --
    --------------------
 
-   procedure Build_Unit_Map (Override_Units : Inputs.Inputs_Type) is
-      use type Ada.Containers.Count_Type;
-
-      Units_Specified : constant Boolean := Length (Override_Units) > 0;
+   procedure Build_Unit_Map (Override_Units : String_Vectors.Vector) is
+      Units_Specified : constant Boolean := not Override_Units.Is_Empty;
       --  Whether the user requested a specific set of units of interest
       --  through the --units command-line argument.
 
@@ -839,21 +838,9 @@ package body Project is
       Has_Matcher             : Boolean;
       --  Matcher for the list of units of interest
 
-      procedure Add_Pattern (Item : String);
-      --  Add the pattern Item lower-cased to Unit_Patterns
-
       procedure Process_Project (Project : Project_Type);
       --  Compute the list of units of interest in Project and call
       --  Enumerate_In_Single_Projects for Project.
-
-      -----------------
-      -- Add_Pattern --
-      -----------------
-
-      procedure Add_Pattern (Item : String) is
-      begin
-         Unit_Patterns.Append (+To_Lower (Item));
-      end Add_Pattern;
 
       ---------------------
       -- Process_Project --
@@ -996,7 +983,9 @@ package body Project is
       --  First, lower case all the units / patterns specified on the command
       --  line.
 
-      Iterate (Override_Units, Add_Pattern'Access);
+      for Pattern of Override_Units loop
+         Unit_Patterns.Append (+To_Lower (+Pattern));
+      end loop;
 
       --  Then, create a regexp matching all the patterns specified.
       --  Regardless of the current platform, the casing of unit names is not
@@ -1265,8 +1254,8 @@ package body Project is
       Initialize (Target, Runtime, CGPR_File);
       pragma Assert (Env /= null);
 
-      if Obj_Subdir /= Null_Unbounded_String then
-         Env.Set_Object_Subdir (+To_String (Obj_Subdir));
+      if Obj_Subdir /= "" then
+         Env.Set_Object_Subdir (+(+Obj_Subdir));
       end if;
 
       if Build_Tree_Dir /= No_File then
@@ -1295,8 +1284,8 @@ package body Project is
             Fatal_Error ("Could not load the project file, aborting.");
       end;
 
-      if Obj_Subdir /= Null_Unbounded_String then
-         Env.Set_Object_Subdir (+To_String (Obj_Subdir));
+      if Obj_Subdir /= "" then
+         Env.Set_Object_Subdir (+(+Obj_Subdir));
       end if;
 
       --  If we were asked only to load the project file, stop there (i.e.
@@ -1320,7 +1309,8 @@ package body Project is
    -- Compute_Units_Of_Interest --
    -------------------------------
 
-   procedure Compute_Units_Of_Interest (Override_Units : Inputs.Inputs_Type) is
+   procedure Compute_Units_Of_Interest (Override_Units : String_Vectors.Vector)
+   is
    begin
       Build_Prj_Map;
       Build_Unit_Map (Override_Units);
@@ -1478,7 +1468,7 @@ package body Project is
 
    procedure Set_Subdirs (Subdir : String) is
    begin
-      Obj_Subdir := To_Unbounded_String (Subdir);
+      Obj_Subdir := +Subdir;
 
       --  The --subdirs switch is relevant only if projects are used, otherwise
       --  it can safely be ignored. If projects are not loaded yet, the

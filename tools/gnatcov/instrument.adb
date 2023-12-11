@@ -22,8 +22,6 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Strings;
 with Ada.Strings.Hash;
-with Ada.Strings.Unbounded.Equal_Case_Insensitive;
-with Ada.Strings.Unbounded.Less_Case_Insensitive;
 
 with GNAT.OS_Lib;
 
@@ -57,7 +55,7 @@ package body Instrument is
       Result : Unbounded_String;
    begin
       for Id of Name loop
-         if Length (Result) > 0 then
+         if Result /= "" then
             Append (Result, ".");
          end if;
          Append (Result, To_String (Id));
@@ -139,9 +137,11 @@ package body Instrument is
                            Right_Id : constant Unbounded_String :=
                              Unbounded_String (Right.Unit.Element (I));
                         begin
-                           if not Equal_Case_Insensitive (Left_Id, Right_Id)
+                           if not Strings.Equal_Case_Insensitive
+                                    (Left_Id, Right_Id)
                            then
-                              return Less_Case_Insensitive (Left_Id, Right_Id);
+                              return Strings.Less_Case_Insensitive
+                                       (Left_Id, Right_Id);
                            end if;
                         end;
                      end loop;
@@ -178,7 +178,7 @@ package body Instrument is
                   and then Length (Left.Unit) = Length (Right.Unit)
                then
                   for I in 1 .. Integer (Length (Left.Unit)) loop
-                     if not Ada.Strings.Unbounded.Equal_Case_Insensitive
+                     if not Strings.Equal_Case_Insensitive
                        (Unbounded_String (Left.Unit.Element (I)),
                         Unbounded_String (Right.Unit.Element (I)))
                      then
@@ -388,7 +388,7 @@ package body Instrument is
       Result : Unbounded_String;
    begin
       for Id of Name loop
-         if Length (Result) > 0 then
+         if Result /= "" then
             Append (Result, "_");
          end if;
          Append (Result, To_Lower (To_String (Id)));
@@ -414,8 +414,7 @@ package body Instrument is
    -----------------------------
 
    function CU_Name_For_File
-     (Filename : US.Unbounded_String) return Compilation_Unit_Part
-   is
+     (Filename : Unbounded_String) return Compilation_Unit_Part is
    begin
       return (File_Based_Language, Filename);
    end CU_Name_For_File;
@@ -534,17 +533,17 @@ package body Instrument is
    begin
       --  Pass the right body / spec suffixes
 
-      if Desc.Body_Suffix (Lang) /= Null_Unbounded_String then
+      if Desc.Body_Suffix (Lang) /= "" then
          Result.Append (+"--body-suffix");
          Result.Append (Desc.Body_Suffix (Lang));
       end if;
 
-      if Desc.Spec_Suffix (Lang) /= Null_Unbounded_String then
+      if Desc.Spec_Suffix (Lang) /= "" then
          Result.Append (+"--spec-suffix");
          Result.Append (Desc.Spec_Suffix (Lang));
       end if;
 
-      if Desc.Dot_Replacement /= Null_Unbounded_String then
+      if Desc.Dot_Replacement /= "" then
          Result.Append (+"--dot-replacement");
          Result.Append (Desc.Dot_Replacement);
       end if;
@@ -580,7 +579,7 @@ package body Instrument is
             Result.Append (Compiler_Opts_Str);
          end;
 
-         if Desc.Compiler_Driver (Lang) /= Null_Unbounded_String then
+         if Desc.Compiler_Driver (Lang) /= "" then
             Result.Append (+"--compiler-driver");
             Result.Append (Desc.Compiler_Driver (Lang));
          end if;

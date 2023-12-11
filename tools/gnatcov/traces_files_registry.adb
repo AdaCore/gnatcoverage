@@ -20,7 +20,6 @@ with Ada.Calendar;
 with Ada.Calendar.Conversions;
 with Ada.Containers.Generic_Sort;
 with Ada.Containers.Hashed_Sets;
-with Ada.Strings.Unbounded.Hash;
 
 with Interfaces.C;
 
@@ -30,7 +29,7 @@ with Qemu_Traces; use Qemu_Traces;
 
 package body Traces_Files_Registry is
 
-   use Ada.Strings.Unbounded;
+   use type Unbounded_String;
 
    package Traces_Files_Sets is new Ada.Containers.Hashed_Sets
      (Element_Type        => Trace_File_Element_Acc,
@@ -112,12 +111,12 @@ package body Traces_Files_Registry is
       use type Ada.Containers.Hash_Type;
    begin
       return
-        Hash (Element.Filename)
+        Strings.Hash (Element.Filename)
         + Trace_File_Kind'Pos (Element.Kind)
-        + Hash (Element.Context)
-        + Hash (Element.Program_Name)
-        + Hash (Element.Time)
-        + Hash (Element.User_Data);
+        + Strings.Hash (Element.Context)
+        + Strings.Hash (Element.Program_Name)
+        + Strings.Hash (Element.Time)
+        + Strings.Hash (Element.User_Data);
    end Hash;
 
    -------------------------------
@@ -131,7 +130,7 @@ package body Traces_Files_Registry is
    begin
       return Result : constant Trace_File_Element_Acc := new Trace_File_Element
       do
-         Result.Filename := To_Unbounded_String (Filename);
+         Result.Filename := +Filename;
          Result.Kind := Kind;
          Result.Context := Null_Unbounded_String;
       end return;
@@ -146,12 +145,9 @@ package body Traces_Files_Registry is
       File    : Trace_File_Type)
    is
    begin
-      Element.Program_Name := To_Unbounded_String
-        (Get_Info (File, Exec_File_Name));
-      Element.Time := To_Unbounded_String
-        (Format_Date_Info (Get_Info (File, Date_Time)));
-      Element.User_Data := To_Unbounded_String
-        (Get_Info (File, User_Data));
+      Element.Program_Name := +Get_Info (File, Exec_File_Name);
+      Element.Time := +Format_Date_Info (Get_Info (File, Date_Time));
+      Element.User_Data := +Get_Info (File, User_Data);
    end Update_From_Binary_Trace;
 
    ------------------------------
@@ -174,7 +170,7 @@ package body Traces_Files_Registry is
             raise Program_Error;
 
          when Info_Program_Name =>
-            Element.Program_Name := To_Unbounded_String (Data);
+            Element.Program_Name := +Data;
 
          when Info_Exec_Date =>
             declare
@@ -196,8 +192,7 @@ package body Traces_Files_Registry is
 
                if Data'Length /= 8 then
                   Outputs.Fatal_Error
-                    (To_String (Element.Filename)
-                     & "invalid execution date format");
+                    (+Element.Filename & "invalid execution date format");
                end if;
                for I in reverse Data'Range loop
                   Timestamp := 2 ** 8 * Timestamp + Character'Pos (Data (I));
@@ -237,13 +232,12 @@ package body Traces_Files_Registry is
                   Info_Date.Hour  := Unsigned_8 (Hour);
                   Info_Date.Min   := Unsigned_8 (Minute);
                   Info_Date.Sec   := Unsigned_8 (int'Min (Second, 59));
-                  Element.Time    := To_Unbounded_String
-                    (Format_Date_Info (Info_Date_As_String));
+                  Element.Time    := +Format_Date_Info (Info_Date_As_String);
                end;
             end;
 
          when Info_User_Data =>
-            Element.User_Data := To_Unbounded_String (Data);
+            Element.User_Data := +Data;
       end case;
    end Update_From_Source_Trace;
 
@@ -328,8 +322,8 @@ package body Traces_Files_Registry is
      (CSS     : access Checkpoints.Checkpoint_Save_State;
       Context : access Coverage.Context)
    is
-      This_Context : constant Unbounded_String := To_Unbounded_String
-        (Coverage.To_String (Context.all));
+      This_Context : constant Unbounded_String :=
+        +Coverage.To_String (Context.all);
    begin
       for TF of Files loop
          CSS.Write (TF.Filename);
@@ -340,7 +334,7 @@ package body Traces_Files_Registry is
             --  actually been processed: record in in its infos.
 
             TF_Context : constant Unbounded_String :=
-               (if Length (TF.Context) = 0
+               (if TF.Context = ""
                 then This_Context
                 else TF.Context);
          begin
@@ -378,7 +372,7 @@ package body Traces_Files_Registry is
             Name    : constant Unbounded_String := CLS.Read_Unbounded_String;
             CP_File : Trace_File_Element_Acc;
          begin
-            exit when Length (Name) = 0;
+            exit when Name = "";
             CP_File := new Trace_File_Element;
             CP_File.Filename := Name;
             CP_File.Kind := Trace_File_Kind'Val (CLS.Read_U8);

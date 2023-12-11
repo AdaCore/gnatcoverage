@@ -38,6 +38,8 @@ with Types;                 use Types;
 
 package Annotations is
 
+   use all type Unbounded_String;
+
    type Annotation_Format is
      (Annotate_Asm,
       Annotate_Xcov,

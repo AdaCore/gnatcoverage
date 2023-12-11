@@ -17,13 +17,11 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Indefinite_Ordered_Maps;
-with Ada.Strings.Unbounded;
 
 with GNAT.Strings; use GNAT.Strings;
 
 with Calendar_Utils; use Calendar_Utils;
 with Command_Line;   use Command_Line;
-with Inputs;
 with Logging;
 with SC_Obligations;
 with Strings;        use Strings;
@@ -60,10 +58,33 @@ package Switches is
    --  Copy the string for Option into Variable. If the option is present, this
    --  allocates a new string in Variable.
 
+   function Expand_Argument (Argument : String) return String_Vectors.Vector;
+   --  If Argument starts with a '@' character, consider that it is a response
+   --  file: read it and return its contents as a vector, assuming the
+   --  following format:
+   --
+   --  * lines starting with '#' are ignored,
+   --  * lines that start with '@@' are included with the leading '@' removed,
+   --  * the other lines that start with '@' are treated as filenames and
+   --    processed recursively,
+   --  * one item per line,
+   --  * no blanks allowed.
+   --
+   --  Otherwise, just return a 1-element vector to contain Argument.
+
+   procedure Append_Expanded_Argument
+     (Argument : String; List : in out String_Vectors.Vector);
+   --  Expand Argument and append the resulting arguments to List
+
    procedure Copy_Arg_List
      (Option : String_List_Options;
-      List   : in out Inputs.Inputs_Type);
-   --  Copy the list of strings referenced in Option to the List input list
+      List   : in out String_Vectors.Vector);
+   procedure Copy_Arg_List
+     (Args : String_Vectors.Vector;
+      List  : in out String_Vectors.Vector);
+   --  Copy the list of strings referenced in Option to the List input list,
+   --  expanding arguments that start with '@' according to rules described in
+   --  Inputs.Expand_Argument.
 
    ----------------------------
    -- Miscellaneous switches --
@@ -144,11 +165,11 @@ package Switches is
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 
-   Units_Inputs : Inputs.Inputs_Type;
+   Units_Inputs : String_Vectors.Vector;
    --  List of names for requested units of interest
 
-   C_Opts   : Inputs.Inputs_Type;
-   CPP_Opts : Inputs.Inputs_Type;
+   C_Opts   : String_Vectors.Vector;
+   CPP_Opts : String_Vectors.Vector;
 
    type Any_Language is
      (All_Languages, Ada_Language, C_Language, CPP_Language);
@@ -261,7 +282,7 @@ package Switches is
             --
             --  Controlled by --dump-filename-simple.
 
-            Filename_Env_Var : Ada.Strings.Unbounded.Unbounded_String;
+            Filename_Env_Var : Unbounded_String;
             --  Name of the environment variable which, if set, contains the
             --  default filename for created source traces. If empty, use the
             --  default one (see Default_Trace_Filename_Env_Var in
@@ -269,7 +290,7 @@ package Switches is
             --
             --  Controlled by --dump-filename-env-var.
 
-            Filename_Prefix  : Ada.Strings.Unbounded.Unbounded_String;
+            Filename_Prefix  : Unbounded_String;
             --  Prefix for the source trace filename. If empty, use the
             --  program's basename (see Default_Trace_Filename_Prefix in
             --  GNATcov_RTS.Traces.Output.Files).

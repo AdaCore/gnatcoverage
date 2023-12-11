@@ -449,7 +449,7 @@ package body Setup_RTS is
 
       Actual_RTS :=
         (if Prj.Has_Runtime_Project
-         then To_Unbounded_String (String (Prj.Runtime (Main_Language)))
+         then +String (Prj.Runtime (Main_Language))
          else Null_Unbounded_String);
 
       --  Show the actual names for the target and the runtime that GPR2 uses.
@@ -457,7 +457,7 @@ package body Setup_RTS is
 
       Setup_RTS_Trace.Trace
         ("Actual target: " & String (Prj.Target (Canonical => True)));
-      Setup_RTS_Trace.Trace ("Actual RTS: " & To_String (Actual_RTS));
+      Setup_RTS_Trace.Trace ("Actual RTS: " & (+Actual_RTS));
 
       --  The best heuristic we have to determine if the actual runtime is
       --  "full" is to look for an Ada source file that is typically found in
@@ -585,7 +585,7 @@ package body Setup_RTS is
       --  is installed (without the ".gpr" extension).
 
       Args.Append (+To_Lower (Project_Name));
-      Args.Append (+"--sources-subdir=" & ("include" / "gnatcov_rts"));
+      Args.Append (+("--sources-subdir=" & ("include" / "gnatcov_rts")));
 
       --  The project may not have been installed there yet, so ignore errors
 
@@ -647,8 +647,7 @@ package body Setup_RTS is
             then Dir
             else Dir & GNAT.OS_Lib.Path_Separator & Path);
       begin
-         Env.Insert
-           (To_Unbounded_String (Var_Name), To_Unbounded_String (New_Path));
+         Env.Insert (+Var_Name, +New_Path);
       end;
 
       --  Now run gprbuild and gprinstall
@@ -736,8 +735,7 @@ package body Setup_RTS is
 
          Dump_Config         : constant Any_Dump_Config :=
            Load_Dump_Config
-             (Default_Dump_Config
-                (Actual_RTS_Profile, To_String (Actual_RTS)));
+             (Default_Dump_Config (Actual_RTS_Profile, +Actual_RTS));
       begin
          --  Try to uninstall a previous installation of the instrumentation
          --  runtime in the requested prefix. This is to avoid installation
@@ -796,7 +794,7 @@ package body Setup_RTS is
             --  Avoid installing several time the same set of sources
 
             Install_Args.Append
-              (+"--sources-subdir=" & ("include" / Install_Name));
+              (+("--sources-subdir=" & ("include" / Install_Name)));
 
             --  Let the project know about its installation name
 
@@ -952,7 +950,7 @@ package body Setup_RTS is
       if Parsed_JSON.Success then
          if Parsed_JSON.Value.Kind = JSON_Object_Type then
             return Result : Setup_Config := Load (Parsed_JSON.Value) do
-               Result.Project_File := To_Unbounded_String (Project_File);
+               Result.Project_File := +Project_File;
             end return;
          end if;
 
@@ -1020,7 +1018,7 @@ package body Setup_RTS is
 
    begin
       declare
-         RTS_Profile : constant String := To_String (Get ("rts-profile"));
+         RTS_Profile : constant String := +Get ("rts-profile");
       begin
          Result.RTS_Profile := Value (RTS_Profile);
          Result.RTS_Profile_Present := True;
@@ -1030,14 +1028,14 @@ package body Setup_RTS is
       end;
 
       begin
-         Channel := Value (To_String (Get ("dump-channel")));
+         Channel := Value (+Get ("dump-channel"));
       exception
          when Constraint_Error =>
             raise Format_Error with "invalid dump-channel field";
       end;
 
       begin
-         Trigger := Value (To_String (Get ("dump-trigger")));
+         Trigger := Value (+Get ("dump-trigger"));
       exception
          when Constraint_Error =>
             raise Format_Error with "invalid dump-trigger field";

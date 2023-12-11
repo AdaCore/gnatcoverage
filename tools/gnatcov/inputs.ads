@@ -16,13 +16,14 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Doubly_Linked_Lists;
 with GNAT.Regexp;
-with GNAT.Strings; use GNAT.Strings;
 
 with Strings; use Strings;
 
 package Inputs is
+
+   use all type Unbounded_String;
+
    --  This package provides a simple way to accumulate a set of
    --  command line inputs into a container, plus basic support for
    --  reading such inputs from a list in a file.
@@ -39,60 +40,9 @@ package Inputs is
    --  May raise Name_Error or Status_Error if the corresponding text file
    --  cannot be opened.
 
-   type Inputs_Entry is record
-      Name, Qualifier : String_Access;
-   end record;
-
-   function Equal (L, R : Inputs_Entry) return Boolean;
-
-   package Input_Lists is new Ada.Containers.Doubly_Linked_Lists
-     (Element_Type => Inputs_Entry,
-      "="          => Equal);
-
-   type Inputs_Type is new Input_Lists.List with null record;
-   --  Input lists. Can be used to accumulate the arguments given on
-   --  a command line.
-
-   procedure Add_Input
-     (Inputs    : in out Inputs_Type;
-      Name      : String;
-      Qualifier : String_Access := null);
-   --  If Name does not begin with '@', it is an input: add it to Inputs.
-   --
-   --  If Name begins with '@', it is a file name; this corresponding
-   --  file constains a list of inputs to append to Inputs, in the format
-   --  described by Read_List_From_File.
-   --
-   --  If Name begins with '@@', it is an input ('@' is escaped): add
-   --  Name (Name'First + 1 .. Name'Last) to Inputs.
-
-   --  An optional qualifier may be provided for each input
-
-   procedure Iterate
-     (Inputs  : Inputs_Type;
-      Process : not null access procedure (Input : String));
-   procedure Iterate
-     (Inputs  : Inputs_Type;
-      Process : not null access procedure
-        (Input : String; Qualifier : String));
-   --  Go through the input list and call Process on each entry (qualifiers are
-   --  ignored in the first variant).
-
-   function Length (Inputs : Inputs_Type) return Ada.Containers.Count_Type
-     with Inline;
-   --  Return the number of elements in Inputs
-
    procedure Log_File_Open (File_Name : String);
    --  When in verbose mode, add a debug message indicating that File_Name is
    --  open. Try to include the CRC32 checksum.
-
-   function To_String_Vector
-     (Inputs : Inputs_Type) return String_Vectors.Vector;
-   --  Convert an inputs list into a String_Vectors.Vector
-
-   function To_String_Set
-     (Inputs : Inputs_Type) return String_Sets.Set;
-   --  Convert an inputs list into a String_Sets.Set
 
    procedure Create_Matcher
      (Pattern_List     : String_Vectors.Vector;
@@ -107,12 +57,5 @@ package Inputs is
    --  insensitive. Note that it may be case insensitive even if
    --  Case_Insensitive is False (for instance on Windows, where all glob
    --  patterns are interpreted as case insensitive).
-
-   procedure Create_Matcher
-     (Pattern_List     : Inputs.Inputs_Type;
-      Matcher          : out GNAT.Regexp.Regexp;
-      Has_Matcher      : out Boolean;
-      Case_Insensitive : Boolean := False);
-   --  Overload to work on Inputs.Inputs_Type values
 
 end Inputs;

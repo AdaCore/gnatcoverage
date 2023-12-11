@@ -24,7 +24,8 @@
 --  directory.
 
 private with Ada.Finalization;
-private with Ada.Strings.Unbounded;
+
+private with Strings;
 
 package Temp_Dirs is
 
@@ -44,7 +45,8 @@ package Temp_Dirs is
 
 private
 
-   use Ada.Strings.Unbounded;
+   use Strings;
+   use type Unbounded_String;
 
    type Temporary_Directory is new Ada.Finalization.Limited_Controlled with
    record

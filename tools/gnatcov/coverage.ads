@@ -25,12 +25,14 @@
 
 with Ada.Calendar;          use Ada.Calendar;
 with Ada.Containers.Ordered_Sets;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with Coverage_Options; use Coverage_Options;
 with SC_Obligations;   use SC_Obligations;
+with Strings;          use Strings;
 
 package Coverage is
+
+   use all type Unbounded_String;
 
    function Image (Level : Coverage_Level) return String is
      (case Level is
