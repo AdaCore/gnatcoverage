@@ -22,8 +22,6 @@ with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 with GNAT.Regpat;
 
-with Strings; use Strings;
-
 package body Paths is
 
    On_Windows : constant Boolean := GNAT.OS_Lib.Directory_Separator = '\';
@@ -319,23 +317,22 @@ package body Paths is
              and then Path (Path'First + 1) = ':';
    end Starts_With_Drive_Pattern;
 
-   -------------------------
-   -- Escape_Windows_Path --
-   -------------------------
+   ----------------------------
+   -- Workaround_Simple_Name --
+   ----------------------------
 
-   function Escape_Backslashes (Str : String) return String
-   is
-      use Ada.Strings.Unbounded;
-      Result : Unbounded_String;
+   function Workaround_Simple_Name (Path : String) return String is
    begin
-      for C of Str loop
-         if C = '\' then
-            Append (Result, "\\");
-         else
-            Append (Result, C);
+      --  Return the Path suffix that precedes the first directory separator
+      --  according to the current platform. Return the full string if there is
+      --  no separator.
+
+      for I in reverse Path'Range loop
+         if Path (I) = '/' or else (On_Windows and then Path (I) = '\') then
+            return Path (I + 1 .. Path'Last);
          end if;
       end loop;
-      return +Result;
-   end Escape_Backslashes;
+      return Path;
+   end Workaround_Simple_Name;
 
 end Paths;
