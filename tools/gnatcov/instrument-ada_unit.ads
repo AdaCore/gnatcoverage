@@ -199,10 +199,6 @@ private
       State : Ada.Strings.Unbounded.Unbounded_String;
       --  Name of MC/DC state local variable
 
-      Do_Not_Instrument : Boolean;
-      --  Whether this decision should not be instrumented. This is set to True
-      --  when instrumenting the decision could create invalid Ada code.
-
       Is_Contract : Boolean := False;
       --  Whether the decision belongs to an assert-like pragma statement or an
       --  equivalent aspect.

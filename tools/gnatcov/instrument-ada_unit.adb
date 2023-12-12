@@ -2999,11 +2999,10 @@ package body Instrument.Ada_Unit is
    --  the regular alternative processing typically involves attribute queries
    --  which aren't valid for a pragma.
 
-   procedure Process_Decisions
-     (UIC               : in out Ada_Unit_Inst_Context;
-      N                 : Ada_Node'Class;
-      T                 : Character;
-      Do_Not_Instrument : Boolean := False);
+   procedure Process_Expression
+     (UIC : in out Ada_Unit_Inst_Context;
+      N   : Ada_Node'Class;
+      T   : Character);
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
    --  to output any decisions it contains. T is one of IEGPWX (for context of
    --  expression: if/exit when/entry guard/pragma/while/expression). If T is
@@ -3011,19 +3010,11 @@ package body Instrument.Ada_Unit is
    --  is always present (at the very least a simple decision is present at the
    --  top level).
    --
-   --  If Do_Not_Instrument, this creates SCOs for the decisions/conditions,
-   --  but plans not to instrument them, so that the decision can be reported
-   --  as such.
+   --  This also processes any nested declare expressions.
 
    --------------------------
    -- Internal Subprograms --
    --------------------------
-
-   function Has_Decision
-     (UIC : Ada_Unit_Inst_Context; T : Ada_Node'Class) return Boolean;
-   --  T is the node for a subtree. Returns True if any (sub)expression in T
-   --  contains a nested decision (i.e. either is a logical operator, or
-   --  contains a logical operator in its subtree).
 
    function Operator (N : Expr'Class) return Op;
    --  Return the operator node of an unary or binary expression, or No_Op if
@@ -3050,12 +3041,6 @@ package body Instrument.Ada_Unit is
    -- Traverse_Declarations_Or_Statements --
    -----------------------------------------
 
-   --  Tables used by Traverse_Declarations_Or_Statements for temporarily
-   --  holding statement and decision entries. These are declared globally
-   --  since they are shared by recursive calls to this procedure.
-   --
-   --  ??? Clarify terminology (CS, SC, SD)
-
    type Instrument_Location_Type is
      (Before, After, Before_Parent, Inside_Expr);
    --  Where to insert the witness call for a statement:
@@ -3079,83 +3064,6 @@ package body Instrument.Ada_Unit is
    --  statement, or as a declaration (before or after). Such occurrences are
    --  elsif statements. In this case, we will insert the witness call inside
    --  the underlying boolean expression.
-   --
-   --  SC_Entry is a single entry in the following table, From:To represents
-   --  the range of entries in the CS line entry, and typ is the type, with
-   --  space meaning that no type letter will accompany the entry.
-
-   type SC_Entry is record
-      N           : Ada_Node;
-      --  Original statement node, providing the source location associated
-      --  with the statement SCO.
-
-      Insertion_N : Node_Rewriting_Handle;
-      --  Rewriting handle of the node indicating where the witness call for
-      --  the statement is to be inserted.
-
-      From : Source_Location;
-      To   : Source_Location;
-      Typ  : Character;
-
-      Index : Natural := 0;
-      --  1-based index of N in enclosing list, if any
-
-      Instrument_Location : Instrument_Location_Type := Before;
-      --  Position where to insert the witness call relative to Insertion_N
-      --  (see declaration of Instrument_Location_Type for the meaning of
-      --  the various values).
-
-      In_Generic : Boolean := False;
-      --  Wether this statment is generic code.
-
-      Do_Not_Instrument : Boolean;
-      --  Whether this statement should not be instrumented. This is set to
-      --  True when instrumenting the statement could create invalid Ada code.
-   end record;
-
-   package SC is new Table.Table
-     (Table_Component_Type => SC_Entry,
-      Table_Index_Type     => Nat,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 1000,
-      Table_Increment      => 200,
-      Table_Name           => "SCO_SC");
-   --  Used to store statement components for a CS entry to be output as a
-   --  result of the call to this procedure. SC.Last is the last entry stored,
-   --  so the current statement sequence is represented by SC_Array (SC_First
-   --  .. SC.Last), where SC_First is saved on entry to each recursive call to
-   --  the routine.
-   --
-   --  Extend_Statement_Sequence adds an entry to this array, and then
-   --  Set_Statement_Entry clears the entries starting with SC_First, copying
-   --  these entries to the main SCO output table. The reason that we do the
-   --  temporary caching of results in this array is that we want the SCO table
-   --  entries for a given CS line to be contiguous, and the processing may
-   --  output intermediate entries such as decision entries.
-
-   type SD_Entry is record
-      Nod               : Ada_Node;
-      Typ               : Character;
-      Do_Not_Instrument : Boolean;
-   end record;
-   --  Used to store a single entry in the following table. Nod is the node to
-   --  be searched for decisions.
-
-   package SD is new Table.Table
-     (Table_Component_Type => SD_Entry,
-      Table_Index_Type     => Nat,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 1000,
-      Table_Increment      => 200,
-      Table_Name           => "SCO_SD");
-   --  Used to store possible decision information. Instead of calling the
-   --  Process_Decisions procedures directly, we call Process_Decisions_Defer,
-   --  which simply stores the arguments in this table. Then when we clear
-   --  out a statement sequence using Set_Statement_Entry, after generating
-   --  the CS lines for the statements, the entries in this table result in
-   --  calls to Process_Decision. The reason for doing things this way is to
-   --  ensure that decisions are output after the CS line for the statements
-   --  in which the decisions occur.
 
    procedure Traverse_Declarations_Or_Statements
      (UIC                        : in out Ada_Unit_Inst_Context;
@@ -3165,24 +3073,17 @@ package body Instrument.Ada_Unit is
       Is_Select_Stmt_Alternative : Boolean       := False;
       Priv_Part                  : Private_Part  := No_Private_Part)
    is
-      SC_First : constant Nat := SC.Last + 1;
-      SD_First : constant Nat := SD.Last + 1;
-      --  Record first entries used in SC/SD at this recursive level
-
       Current_Insertion_Info : aliased Insertion_Info := (Method => None);
 
-      procedure Extend_Statement_Sequence
-        (UIC                 : Ada_Unit_Inst_Context;
-         N                   : Ada_Node'Class;
-         Typ                 : Character;
-         Insertion_N         : Node_Rewriting_Handle :=
-                                  No_Node_Rewriting_Handle;
-         Instrument_Location : Instrument_Location_Type := Before;
-         Do_Not_Instrument   : Boolean := False);
-      --  Extend the current statement sequence to encompass the node N.
+      procedure Instrument_Statement
+        (UIC         : in out Ada_Unit_Inst_Context;
+         N           : Ada_Node'Class;
+         Typ         : Character;
+         Insertion_N : Node_Rewriting_Handle := No_Node_Rewriting_Handle);
+      --  Instrument the statement N.
       --
       --  Typ is the letter that identifies the type of statement/declaration
-      --  that is being added to the sequence.
+      --  that is being instrumented.
       --
       --  N is the original node from user code, and controls the source
       --  location assigned to the statement SCO.
@@ -3192,36 +3093,13 @@ package body Instrument.Ada_Unit is
       --  (case of a degenerated subprogram, which gets rewritten into a
       --  generic). In that case, Insertion_N indicates where to insert the
       --  witness.
-      --
-      --  Instrument_Location gives further information on how the witness call
-      --  should be inserted.
-      --
-      --  ??? Instrument_Location is sometimes ignored, we should
-      --  probably refactor this so the logic for determining it is
-      --  more localized.
 
-      procedure Process_Decisions_Defer
-        (N                 : Ada_Node'Class;
-         T                 : Character;
-         Do_Not_Instrument : Boolean := False);
-      --  This routine is logically the same as Process_Decisions, except that
-      --  the arguments are saved in the SD table for later processing when
-      --  Set_Statement_Entry is called, which goes through the saved entries
-      --  making the corresponding calls to Process_Decision. Note: the
-      --  enclosing statement must have already been added to the current
-      --  statement sequence, so that nested decisions are properly
-      --  identified as such.
-      --
-      --  This also processes any nested declare expressions.
-
-      procedure Process_Contract (D : Basic_Decl'Class; Name : Text_Type)
+      procedure Process_Contract
+        (UIC  : in out Ada_Unit_Inst_Context;
+         D    : Basic_Decl'Class;
+         Name : Text_Type)
         with Pre => Assertion_Coverage_Enabled;
       --  Register decision of contrat of name Name of declaration node D
-
-      procedure Set_Statement_Entry;
-      --  Output CS entries for all statements saved in table SC, and end the
-      --  current CS sequence. Then output entries for all decisions nested in
-      --  these statements, which have been deferred so far.
 
       procedure Traverse_One (N : Ada_Node);
       --  Traverse one declaration or statement
@@ -3243,33 +3121,52 @@ package body Instrument.Ada_Unit is
 
       RC : Rewriting_Handle renames UIC.Rewriting_Context;
 
-      -------------------------------
-      -- Extend_Statement_Sequence --
-      -------------------------------
+      --------------------------
+      -- Instrument_Statement --
+      --------------------------
 
-      procedure Extend_Statement_Sequence
-        (UIC                 : Ada_Unit_Inst_Context;
-         N                   : Ada_Node'Class;
-         Typ                 : Character;
-         Insertion_N         : Node_Rewriting_Handle :=
-                                  No_Node_Rewriting_Handle;
-         Instrument_Location : Instrument_Location_Type := Before;
-         Do_Not_Instrument   : Boolean := False)
+      procedure Instrument_Statement
+        (UIC         : in out Ada_Unit_Inst_Context;
+         N           : Ada_Node'Class;
+         Typ         : Character;
+         Insertion_N : Node_Rewriting_Handle := No_Node_Rewriting_Handle)
       is
-         SR      : constant Source_Location_Range := N.Sloc_Range;
+         Instrument_Location : Instrument_Location_Type := Before;
+         --  See the documentation of Instrument_Location_Type for more
+         --  information.
 
-         F       : Source_Location := Start_Sloc (SR);
-         T       : Source_Location := Inclusive_End_Sloc (SR);
+         Dummy_Ctx : constant Context_Handle := Create_Context_Instrument (N);
+
+         Is_Pragma          : constant Boolean := N.Kind = Ada_Pragma_Node;
+         Pragma_Aspect_Name : constant Name_Id :=
+           (if Is_Pragma
+            then Pragma_Name (N.As_Pragma_Node)
+            else Namet.No_Name);
+
+         SR      : constant Source_Location_Range := N.Sloc_Range;
+         From    : Source_Location := Start_Sloc (SR);
+         To      : Source_Location := Inclusive_End_Sloc (SR);
          --  Source location bounds used to produre a SCO statement. By
          --  default, this should cover the same source location range as N,
          --  however for nodes that can contain themselves other statements
-         --  (for instance IN statements), we select an end bound that appears
+         --  (for instance IF statements), we select an end bound that appears
          --  before the first nested statement (see To_Node below).
 
          To_Node : Ada_Node := No_Ada_Node;
          --  In the case of simple statements, set to No_Ada_Node and unused.
          --  Otherwise, use F and this node's end sloc for the emitted
          --  statement source location range.
+
+         Actual_Insertion_N : constant Node_Rewriting_Handle :=
+           (if Insertion_N = No_Node_Rewriting_Handle
+            then Handle (N)
+            else Insertion_N);
+
+         Index : constant Natural :=
+           (case UIC.Current_Insertion_Info.Method is
+               when Statement | Declaration =>
+                 UIC.Current_Insertion_Info.Index,
+               when others => 0);
 
       begin
          case Kind (N) is
@@ -3299,6 +3196,7 @@ package body Instrument.Ada_Unit is
 
             when Ada_Elsif_Stmt_Part =>
                To_Node := N.As_Elsif_Stmt_Part.F_Cond_Expr.As_Ada_Node;
+               Instrument_Location := Inside_Expr;
 
             when Ada_If_Stmt =>
                To_Node := N.As_If_Stmt.F_Cond_Expr.As_Ada_Node;
@@ -3313,7 +3211,7 @@ package body Instrument.Ada_Unit is
                | Ada_Single_Protected_Decl
                | Ada_Single_Task_Decl
             =>
-               T := F;
+               To := From;
 
             when Ada_Protected_Type_Decl
                | Ada_Task_Type_Decl
@@ -3356,7 +3254,7 @@ package body Instrument.Ada_Unit is
                   Null_Token : constant Token_Reference :=
                     NNT (NNT (N.As_Null_Subp_Decl.F_Subp_Spec.Token_End));
                begin
-                  F := Start_Sloc (Sloc_Range (Data (Null_Token)));
+                  From := Start_Sloc (Sloc_Range (Data (Null_Token)));
                end;
 
             when others =>
@@ -3364,461 +3262,335 @@ package body Instrument.Ada_Unit is
          end case;
 
          if not To_Node.Is_Null then
-            T := Inclusive_End_Sloc (To_Node.Sloc_Range);
+            To := Inclusive_End_Sloc (To_Node.Sloc_Range);
          end if;
 
-         SC.Append
-           ((N                   => N.As_Ada_Node,
-             Insertion_N         =>
-                 (if Insertion_N = No_Node_Rewriting_Handle
-                  then Handle (N)
-                  else Insertion_N),
-             From                => F,
-             To                  => T,
-             Typ                 => Typ,
-             Index               => (case UIC.Current_Insertion_Info.Method is
-                                     when Statement | Declaration =>
-                                       UIC.Current_Insertion_Info.Index,
-                                     when others => 0),
-             Instrument_Location =>
-               --  See the comment attached to the declaration of the
-               --  Instrument_Location_Type.
+         Instrument_Location :=
+         --  See the comment attached to the declaration of the
+         --  Instrument_Location_Type.
 
-               (if Is_Select_Stmt_Alternative
-                   and then N = L.Children (L.Children'First)
-                then (case N.Kind is
-                        when Ada_Delay_Stmt
-                           | Ada_Call_Stmt => Before_Parent,
-                        when others        => After)
-                else Instrument_Location),
+           (if Is_Select_Stmt_Alternative
+            and then N = L.Children (L.Children'First)
+            then (case N.Kind is
+                 when Ada_Delay_Stmt
+                   | Ada_Call_Stmt => Before_Parent,
+                 when others => After)
+            else Instrument_Location);
 
-             In_Generic          => UIC.In_Generic,
-             Do_Not_Instrument   => Do_Not_Instrument));
-      end Extend_Statement_Sequence;
+         Append_SCO
+           (C1                 => 'S',
+            C2                 => Typ,
+            From               => +From,
+            To                 => +To,
+            SFI                => UIC.SFI,
+            Last               => True,
+            Pragma_Aspect_Name => Pragma_Aspect_Name);
 
-      -----------------------------
-      -- Process_Decisions_Defer --
-      -----------------------------
+         --  Insert a witness call for this statement obligation
+         --  unless...
 
-      procedure Process_Decisions_Defer
-        (N                 : Ada_Node'Class;
-         T                 : Character;
-         Do_Not_Instrument : Boolean := False)
-      is
-         function Process_Decl_Expr (N : Ada_Node'Class) return Visit_Status;
-         --  Helper to Libadalang's Traverse. Only operates on Decl_Exprs,
-         --  instrument each declaration as a statement and process the nested
-         --  expressions.
+         if
+           --  ... there is no enclosing list to which a witness call
+           --  can be attached.
 
-         -----------------------
-         -- Process_Decl_Expr --
-         -----------------------
+           UIC.Current_Insertion_Info.Method /= None
 
-         function Process_Decl_Expr (N : Ada_Node'Class) return Visit_Status is
-         begin
-            if N.Kind in Ada_Decl_Expr then
-               declare
-                  Saved_Inserter     : constant Any_MCDC_State_Inserter :=
-                    UIC.MCDC_State_Inserter;
-                  Saved_In_Decl_Expr : constant Boolean := UIC.In_Decl_Expr;
-                  Local_Inserter     : aliased Default_MCDC_State_Inserter :=
-                    (Local_Decls => Handle (N.As_Decl_Expr.F_Decls));
-               begin
-                  Set_Statement_Entry;
-                  UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
-                  UIC.In_Decl_Expr := True;
+         --  ... this is a top-level declaration in a Preelaborate
+         --  package.
 
-                  --  Traverse_declarations_And_Statements will instrument the
-                  --  declarations as statements, as well as instrument the
-                  --  nested decisions within those declarations.
+           and then (UIC.Current_Insertion_Info.Method
+                     not in Statement | Declaration
+                     or else not UIC.Current_Insertion_Info.Preelab)
 
-                  Traverse_Declarations_Or_Statements
-                    (UIC, N.As_Decl_Expr.F_Decls);
-                  UIC.MCDC_State_Inserter := Saved_Inserter;
-                  UIC.In_Decl_Expr := Saved_In_Decl_Expr;
+           --  ... this is a pragma that we know for certain will not
+           --  generate code (such as Annotate or elaboration control
+           --  pragmas).
 
-                  --  End the statement sequence right away as there isn't
-                  --  going to be any more statements that follow.
+           and then (not Is_Pragma
+                     or else
+                     Pragma_Might_Generate_Code
+                       (Case_Insensitive_Get_Pragma_Id
+                            (Pragma_Aspect_Name)))
 
-                  Set_Statement_Entry;
-                  return Over;
-               end;
-            else
-               return Into;
-            end if;
-         end Process_Decl_Expr;
+             --  ... this is a disabled pragma that we assume will not
+             --  generate code.
 
-      begin
-         SD.Append ((N.As_Ada_Node, T, Do_Not_Instrument));
-         if not N.Is_Null then
-            N.Traverse (Process_Decl_Expr'Access);
+           and then Typ /= 'p'
+         then
+            declare
+               Insert_List : Node_Rewriting_Handle;
+               Insert_Pos  : Natural;
+               Insert_Info : Insertion_Info_Access :=
+                 UIC.Current_Insertion_Info;
+
+               Bit : Any_Bit_Id;
+
+               LL_SCO_Id : constant Nat := SCOs.SCO_Table.Last;
+            begin
+               --  Create an artificial internal error, if requested
+
+               Raise_Stub_Internal_Error_For
+                 (Ada_Instrument_Insert_Stmt_Witness);
+
+               --  If the current code pattern is actually unsupported, do
+               --  not even try to insert the witness call or allocate bits
+               --  for it in the buffers. Mark the corresponding SCO as
+               --  non-instrumented instead.
+
+               if UIC.Disable_Instrumentation then
+                  UIC.Non_Instr_LL_SCOs.Include (SCO_Id (LL_SCO_Id));
+                  return;
+               end if;
+
+               --  Allocate a bit in the statement coverage buffer
+
+               Bit := Allocate_Statement_Bit (UIC.Unit_Bits, LL_SCO_Id);
+
+               case Insert_Info.Method is
+
+               when Statement | Declaration =>
+
+                  if Instrument_Location = Inside_Expr then
+                     declare
+                        Old_Cond : Node_Rewriting_Handle := Actual_Insertion_N;
+                        New_Cond : constant Node_Rewriting_Handle :=
+                          Create_Regular_Node
+                            (RC,
+                             Ada_Bin_Op,
+                             Children =>
+                               (1 => Make_Statement_Witness
+                                  (UIC,
+                                   Bit        => Bit,
+                                   Flavor     => Function_Call,
+                                   In_Generic => UIC.In_Generic),
+
+                                2 => Make (UIC, Ada_Op_Or_Else),
+
+                                --  Placeholder for relocation of old condition
+                                --  after it is detached from the tree.
+
+                                3 => No_Node_Rewriting_Handle));
+
+                     begin
+                        --  Detach old condition from tree and replace it with
+                        --  OR ELSE node.
+
+                        Replace (Old_Cond, New_Cond);
+
+                        --  Now reattach old condition in new OR ELSE node. If
+                        --  it is AND, OR, XOR, AND THEN binary operation or an
+                        --  IF expression, or a quantified expression (FOR ALL,
+                        --  FOR SOME), we need to wrap it in parens to generate
+                        --  valid code.
+
+                        --  Now reattach old condition in the new OR ELSE node.
+                        --  We will wrap it in parens to preserve the semantics
+                        --  of the condition.
+                        --
+                        --  The two operands of the OR ELSE may not have the
+                        --  same type (Standard.Boolean for the Witness return
+                        --  type). We could convert the result of the witness
+                        --  call to the actual type of the expression, but this
+                        --  requires "withing" the package in which the derived
+                        --  boolean type is defined in case it is not visible.
+                        --  Instead, as this is a top-level boolean expression,
+                        --  we can simply convert the original expression to
+                        --  Standard.Boolean.
+
+                        Old_Cond := Create_Call_Expr
+                          (RC,
+                           F_Name   => Create_Identifier
+                             (RC, To_Text ("GNATcov_RTS.Std.Boolean")),
+                           F_Suffix => Create_Regular_Node
+                             (RC,
+                              Ada_Assoc_List,
+                              (1 => Create_Param_Assoc
+                                   (RC,
+                                    F_Designator => No_Node_Rewriting_Handle,
+                                    F_R_Expr     => Old_Cond))));
+
+                        Set_Child (New_Cond, 3, Old_Cond);
+                     end;
+
+                  else
+                     if Kind (Actual_Insertion_N) = Ada_Accept_Stmt_With_Stmts
+                       and then Instrument_Location = After
+                     then
+                        --  In the case of an accept_statement containing a
+                        --  sequence of statements, if Instrument_Location
+                        --  is After, we want to call the witness after the
+                        --  entry has been accepted, but before the enclosed
+                        --  statements are executed, so insert the witness
+                        --  call in the inner statement list at first position.
+
+                        Insert_List :=
+                          Child (Actual_Insertion_N,
+                                 (Member_Refs.Accept_Stmt_With_Stmts_F_Stmts,
+                                  Member_Refs.Handled_Stmts_F_Stmts));
+                        Insert_Pos  := 1;
+
+                     else
+                        if Instrument_Location = Before_Parent then
+                           Insert_Info := Insert_Info.Parent;
+                           Insert_Pos := Insert_Info.Index;
+                        else
+                           Insert_Pos := Index;
+                        end if;
+
+                        Insert_List := Insert_Info.RH_List;
+
+                        --  Adjust insertion to account for any insertion
+                        --  performed outside of the processing of the current
+                        --  list (case of the above special processing for
+                        --  accept statements). Note that SCE.N might not be a
+                        --  direct element of the enclosing list (e.g. in the
+                        --  case where it is a named statement), so we must
+                        --  first go up to the parent of SCE.N that *is* an
+                        --  element of that list, and *then* scan forward to
+                        --  determine the current position of that parent note
+                        --  within the list.
+
+                        declare
+                           RH_Element_Node : Node_Rewriting_Handle :=
+                             Actual_Insertion_N;
+                           RH_Children_Count : constant Natural :=
+                             Children_Count (Insert_Info.RH_List);
+                        begin
+                           --  Find the parent of N that is an element of the
+                           --  enclosing list.
+
+                           while Parent (RH_Element_Node)
+                             /= Insert_Info.RH_List
+                           loop
+                              RH_Element_Node := Parent (RH_Element_Node);
+                           end loop;
+
+                           --  Scan forward in enclosing list for adjusted
+                           --  position of the element node.
+
+                           while Child
+                             (Insert_Info.RH_List,
+                              Integer (Insert_Pos
+                                + Insert_Info.Rewriting_Offset))
+                             /= RH_Element_Node
+                           loop
+                              Insert_Info.Rewriting_Offset :=
+                                Insert_Info.Rewriting_Offset + 1;
+                              pragma Assert
+                                (Insert_Pos + Insert_Info.Rewriting_Offset
+                                 <= RH_Children_Count);
+                           end loop;
+                        end;
+
+                        --  The witness is inserted at the current location of
+                        --  the statement, so that it will occur immediately
+                        --  *before* it in the instrumented sources. This
+                        --  is necessary because we want to mark a statement
+                        --  as executed anytime it has commenced execution
+                        --  (including in cases it raises an exception or
+                        --  otherwise transfers control). However in some
+                        --  special cases we have to insert after the
+                        --  statement, see the comment for
+                        --  Instrument_Location_Type.
+                        --
+                        --  The cases where we need to instrument inside an
+                        --  expression are handled before, as they do not
+                        --  trigger the insertion of a new statement in a
+                        --  statement list.
+
+                        Insert_Pos := Insert_Pos
+                          + Insert_Info.Rewriting_Offset
+                          + (case Instrument_Location is
+                                when Before | Before_Parent => 0,
+                                when After                  => 1,
+                                when Inside_Expr            =>
+                                   raise Program_Error);
+                     end if;
+
+                     --  Insert witness statement or declaration
+
+                     Insert_Child
+                       (Handle => Insert_List,
+                        Index  => Insert_Pos,
+                        Child  =>
+                          Make_Statement_Witness
+                            (UIC,
+                             Bit        => Bit,
+                             Flavor     =>
+                               (case Insert_Info.Method is
+                                   when Statement => Procedure_Call,
+                                   when Declaration => Declaration,
+                                   when Expression_Function | None =>
+                                      raise Program_Error),
+                             In_Generic => UIC.In_Generic));
+
+                     --  Update the rewriting offset iff we inserted an
+                     --  element in the current rewriting list: that offset
+                     --  specifically refers to that list, whereas we may
+                     --  have inserted an item in a nested list, in which case
+                     --  we will adjust automatically the rewriting offset
+                     --  accordingly when processing that list.
+
+                     if Insert_Info.RH_List = Insert_List then
+                        Insert_Info.Rewriting_Offset :=
+                          Insert_Info.Rewriting_Offset + 1;
+                     end if;
+                  end if;
+
+               when Expression_Function =>
+
+                  --  Create both the witness call and a formal parameter to
+                  --  accept it as an actual.
+
+                  declare
+                     RC : constant Rewriting_Handle := UIC.Rewriting_Context;
+
+                     Formal_Name   : constant Node_Rewriting_Handle :=
+                       Make_Identifier (UIC, "Dummy_Witness_Result");
+                     Formal_Def_Id : constant Node_Rewriting_Handle :=
+                       Create_Regular_Node
+                         (RC,
+                          Ada_Defining_Name_List,
+                          Children => (1 => Create_Defining_Name
+                                       (RC, Formal_Name)));
+                  begin
+                     Insert_Info.Witness_Actual := Make_Statement_Witness
+                       (UIC,
+                        Bit        => Bit,
+                        Flavor     => Function_Call,
+                        In_Generic => UIC.In_Generic);
+
+                     Insert_Info.Witness_Formal := Create_Param_Spec
+                       (RC,
+                        F_Ids          => Formal_Def_Id,
+                        F_Has_Aliased  => No_Node_Rewriting_Handle,
+                        F_Mode         => No_Node_Rewriting_Handle,
+                        F_Type_Expr    => Make_Identifier (UIC, "Boolean"),
+                        F_Default_Expr => No_Node_Rewriting_Handle,
+                        F_Aspects      => No_Node_Rewriting_Handle);
+                  end;
+
+               when None =>
+                  raise Program_Error;
+               end case;
+            end;
          end if;
-      end Process_Decisions_Defer;
+      end Instrument_Statement;
 
       ----------------------
       -- Process_Contract --
       ----------------------
 
-      procedure Process_Contract (D : Basic_Decl'Class; Name : Text_Type) is
+      procedure Process_Contract
+        (UIC  : in out Ada_Unit_Inst_Context;
+         D    : Basic_Decl'Class;
+         Name : Text_Type) is
       begin
-         Process_Decisions_Defer
-           (P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)), 'A');
+         Process_Expression
+           (UIC,
+            P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)),
+           'A');
       end Process_Contract;
-
-      -------------------------
-      -- Set_Statement_Entry --
-      -------------------------
-
-      procedure Set_Statement_Entry is
-         SC_Last : constant Int := SC.Last;
-         SD_Last : constant Int := SD.Last;
-
-         procedure Insert_Statement_Witness (SCE : SC_Entry; LL_SCO_Id : Nat)
-           with Pre =>
-             (case UIC.Current_Insertion_Info.Method is
-              when Statement | Declaration =>
-                not UIC.Current_Insertion_Info.Preelab
-                  and then
-                UIC.Current_Insertion_Info.RH_List /= No_Node_Rewriting_Handle,
-              when Expression_Function     => True,
-              when None                    => False);
-         --  Insert statement witness call for the given SCE
-
-         ------------------------------
-         -- Insert_Statement_Witness --
-         ------------------------------
-
-         procedure Insert_Statement_Witness
-           (SCE : SC_Entry; LL_SCO_Id : Nat)
-         is
-            Insert_List : Node_Rewriting_Handle;
-            Insert_Pos  : Natural;
-            Insert_Info : Insertion_Info_Access := UIC.Current_Insertion_Info;
-
-            Bit : Any_Bit_Id;
-         begin
-            --  Create an artificial internal error, if requested
-
-            Raise_Stub_Internal_Error_For (Ada_Instrument_Insert_Stmt_Witness);
-
-            if SCE.Do_Not_Instrument then
-               UIC.Non_Instr_LL_SCOs.Include (SCO_Id (LL_SCO_Id));
-               return;
-            end if;
-
-            --  Allocate a bit in the statement coverage buffer
-
-            Bit := Allocate_Statement_Bit (UIC.Unit_Bits, LL_SCO_Id);
-
-            case Insert_Info.Method is
-
-            when Statement | Declaration =>
-
-               if SCE.Instrument_Location = Inside_Expr then
-                  declare
-                     Old_Cond : Node_Rewriting_Handle := SCE.Insertion_N;
-                     New_Cond : constant Node_Rewriting_Handle :=
-                       Create_Regular_Node
-                         (RC,
-                          Ada_Bin_Op,
-                          Children =>
-                            (1 => Make_Statement_Witness
-                               (UIC,
-                                Bit        => Bit,
-                                Flavor     => Function_Call,
-                                In_Generic => SCE.In_Generic),
-
-                             2 => Make (UIC, Ada_Op_Or_Else),
-
-                             --  Placeholder for relocation of old condition
-                             --  after it is detached from the tree.
-
-                             3 => No_Node_Rewriting_Handle));
-
-                  begin
-                     --  Detach old condition from tree and replace it with
-                     --  OR ELSE node.
-
-                     Replace (Old_Cond, New_Cond);
-
-                     --  Now reattach old condition in new OR ELSE node. If it
-                     --  is AND, OR, XOR, AND THEN binary operation or an IF
-                     --  expression, or a quantified expression (FOR ALL, FOR
-                     --  SOME), we need to wrap it in parens to generate valid
-                     --  code.
-
-                     --  Now reattach old condition in the new OR ELSE node. We
-                     --  will wrap it in parens to preserve the semantics of
-                     --  the condition.
-                     --
-                     --  The two operands of the OR ELSE may not have the same
-                     --  type (Standard.Boolean for the Witness return type).
-                     --  We could convert the result of the witness call to the
-                     --  actual type of the expression, but this requires
-                     --  "withing" the package in which the derived boolean
-                     --  type is defined in case it is not visible. Instead, as
-                     --  this is a top-level boolean expression, we can simply
-                     --  convert the original expression to Standard.Boolean.
-
-                     Old_Cond := Create_Call_Expr
-                       (RC,
-                        F_Name   => Create_Identifier
-                          (RC, To_Text ("GNATcov_RTS.Std.Boolean")),
-                        F_Suffix => Create_Regular_Node
-                          (RC,
-                           Ada_Assoc_List,
-                           (1 => Create_Param_Assoc
-                              (RC,
-                               F_Designator => No_Node_Rewriting_Handle,
-                               F_R_Expr     => Old_Cond))));
-
-                     Set_Child (New_Cond, 3, Old_Cond);
-                  end;
-
-               else
-                  if Kind (SCE.Insertion_N) = Ada_Accept_Stmt_With_Stmts
-                     and then SCE.Instrument_Location = After
-                  then
-                     --  In the case of an accept_statement containing a
-                     --  sequence of statements, if Instrument_Location is
-                     --  After, we want to call the witness after the entry has
-                     --  been accepted, but before the enclosed statements are
-                     --  executed, so insert the witness call in the inner
-                     --  statement list at first position.
-
-                     Insert_List :=
-                       Child (SCE.Insertion_N,
-                              (Member_Refs.Accept_Stmt_With_Stmts_F_Stmts,
-                               Member_Refs.Handled_Stmts_F_Stmts));
-                     Insert_Pos  := 1;
-
-                  else
-                     if SCE.Instrument_Location = Before_Parent then
-                        Insert_Info := Insert_Info.Parent;
-                        Insert_Pos := Insert_Info.Index;
-                     else
-                        Insert_Pos := SCE.Index;
-                     end if;
-
-                     Insert_List := Insert_Info.RH_List;
-
-                     --  Adjust insertion to account for any insertion
-                     --  performed outside of the processing of the current
-                     --  list (case of the above special processing for accept
-                     --  statements).  Note that SCE.N might not be a direct
-                     --  element of the enclosing list (e.g. in the case where
-                     --  it is a named statement), so we must first go up to
-                     --  the parent of SCE.N that *is* an element of that list,
-                     --  and *then* scan forward to determine the current
-                     --  position of that parent note within the list.
-
-                     declare
-                        RH_Element_Node : Node_Rewriting_Handle :=
-                          SCE.Insertion_N;
-                        RH_Children_Count : constant Natural :=
-                          Children_Count (Insert_Info.RH_List);
-                     begin
-                        --  Find the parent of SCE.N that is an element of the
-                        --  enclosing list.
-
-                        while Parent (RH_Element_Node)
-                          /= Insert_Info.RH_List
-                        loop
-                           RH_Element_Node := Parent (RH_Element_Node);
-                        end loop;
-
-                        --  Scan forward in enclosing list for adjusted
-                        --  position of the element node.
-
-                        while Child
-                          (Insert_Info.RH_List,
-                           Integer (Insert_Pos
-                             + Insert_Info.Rewriting_Offset))
-                          /= RH_Element_Node
-                        loop
-                           Insert_Info.Rewriting_Offset :=
-                             Insert_Info.Rewriting_Offset + 1;
-                           pragma Assert
-                             (Insert_Pos + Insert_Info.Rewriting_Offset
-                              <= RH_Children_Count);
-                        end loop;
-                     end;
-
-                     --  The witness is inserted at the current location of the
-                     --  statement, so that it will occur immediately *before*
-                     --  it in the instrumented sources. This is necessary
-                     --  because we want to mark a statement as executed
-                     --  anytime it has commenced execution (including in cases
-                     --  it raises an exception or otherwise transfers
-                     --  control). However in some special cases we have to
-                     --  insert after the statement, see comment for
-                     --  Instrument_Location_Type.
-                     --
-                     --  The cases where we need to instrument inside an
-                     --  expression are handled before, as they do not trigger
-                     --  the insertion of a new statement in a statement list.
-
-                     Insert_Pos := Insert_Pos
-                       + Insert_Info.Rewriting_Offset
-                       + (case SCE.Instrument_Location is
-                             when Before | Before_Parent => 0,
-                             when After                  => 1,
-                             when Inside_Expr            =>
-                                raise Program_Error);
-                  end if;
-
-                  --  Insert witness statement or declaration
-
-                  Insert_Child
-                    (Handle => Insert_List,
-                     Index  => Insert_Pos,
-                     Child  =>
-                       Make_Statement_Witness
-                         (UIC,
-                          Bit        => Bit,
-                          Flavor     =>
-                            (case Insert_Info.Method is
-                             when Statement => Procedure_Call,
-                             when Declaration => Declaration,
-                             when Expression_Function | None =>
-                                    raise Program_Error),
-                          In_Generic => SCE.In_Generic));
-
-                  --  Update the rewriting offset iff we inserted an element in
-                  --  the current rewriting list: that offset specifically
-                  --  refers to that list, whereas we may have inserted an item
-                  --  in a nested list, in which case we will adjust
-                  --  automatically the rewriting offset accordingly when
-                  --  processing that list.
-
-                  if Insert_Info.RH_List = Insert_List then
-                     Insert_Info.Rewriting_Offset :=
-                       Insert_Info.Rewriting_Offset + 1;
-                  end if;
-               end if;
-
-            when Expression_Function =>
-
-               --  Create both the witness call and a formal parameter to
-               --  accept it as an actual.
-
-               declare
-                  RC : constant Rewriting_Handle := UIC.Rewriting_Context;
-
-                  Formal_Name   : constant Node_Rewriting_Handle :=
-                    Make_Identifier (UIC, "Dummy_Witness_Result");
-                  Formal_Def_Id : constant Node_Rewriting_Handle :=
-                    Create_Regular_Node
-                      (RC,
-                       Ada_Defining_Name_List,
-                       Children => (1 => Create_Defining_Name
-                                           (RC, Formal_Name)));
-               begin
-                  Insert_Info.Witness_Actual := Make_Statement_Witness
-                    (UIC,
-                     Bit        => Bit,
-                     Flavor     => Function_Call,
-                     In_Generic => SCE.In_Generic);
-
-                  Insert_Info.Witness_Formal := Create_Param_Spec
-                    (RC,
-                     F_Ids          => Formal_Def_Id,
-                     F_Has_Aliased  => No_Node_Rewriting_Handle,
-                     F_Mode         => No_Node_Rewriting_Handle,
-                     F_Type_Expr    => Make_Identifier (UIC, "Boolean"),
-                     F_Default_Expr => No_Node_Rewriting_Handle,
-                     F_Aspects      => No_Node_Rewriting_Handle);
-               end;
-
-            when None =>
-               raise Program_Error;
-            end case;
-         end Insert_Statement_Witness;
-
-      --  Start of processing for Set_Statement_Entry
-
-      begin
-         --  Output statement entries from saved entries in SC table
-
-         for J in SC_First .. SC_Last loop
-            declare
-               SCE       : SC_Entry renames SC.Table (J);
-               Dummy_Ctx : constant Context_Handle :=
-                 Create_Context_Instrument (SCE.N);
-
-               Is_Pragma          : constant Boolean :=
-                 SCE.N.Kind = Ada_Pragma_Node;
-               Pragma_Aspect_Name : constant Name_Id :=
-                 (if Is_Pragma
-                  then Pragma_Name (SCE.N.As_Pragma_Node)
-                  else Namet.No_Name);
-
-            begin
-               Append_SCO
-                 (C1                 => 'S',
-                  C2                 => SCE.Typ,
-                  From               => +SCE.From,
-                  To                 => +SCE.To,
-                  SFI                => UIC.SFI,
-                  Last               => (J = SC_Last),
-                  Pragma_Aspect_Name => Pragma_Aspect_Name);
-
-               --  Insert a witness call for this statement obligation
-               --  unless...
-
-               if
-                  --  ... there is no enclosing list to which a witness call
-                  --  can be attached.
-
-                  UIC.Current_Insertion_Info.Method /= None
-
-                  --  ... this is a top-level declaration in a Preelaborate
-                  --  package.
-
-                  and then (UIC.Current_Insertion_Info.Method
-                              not in Statement | Declaration
-                            or else not UIC.Current_Insertion_Info.Preelab)
-
-                  --  ... this is a pragma that we know for certain will not
-                  --  generate code (such as Annotate or elaboration control
-                  --  pragmas).
-
-                  and then (not Is_Pragma
-                            or else
-                            Pragma_Might_Generate_Code
-                              (Case_Insensitive_Get_Pragma_Id
-                                 (Pragma_Aspect_Name)))
-
-                   --  ... this is a disabled pragma that we assume will not
-                   --  generate code.
-
-                   and then SCE.Typ /= 'p'
-               then
-                  Insert_Statement_Witness (SCE, SCOs.SCO_Table.Last);
-               end if;
-            end;
-         end loop;
-
-         --  Clear out used section of SC table
-
-         SC.Set_Last (SC_First - 1);
-
-         --  Output any embedded decisions
-
-         for J in SD_First .. SD_Last loop
-            declare
-               SDE : SD_Entry renames SD.Table (J);
-
-            begin
-               Process_Decisions
-                 (UIC, SDE.Nod, SDE.Typ, SDE.Do_Not_Instrument);
-            end;
-         end loop;
-
-         --  Clear out used section of SD table
-
-         SD.Set_Last (SD_First - 1);
-      end Set_Statement_Entry;
 
       ------------------------------------
       -- Traverse_Degenerate_Subprogram --
@@ -3928,7 +3700,7 @@ package body Instrument.Ada_Unit is
 
             --  Add witness statement for the single statement
 
-            Extend_Statement_Sequence
+            Instrument_Statement
               (UIC         => UIC,
                N           => N,
                Typ         => ' ',
@@ -3938,7 +3710,7 @@ package body Instrument.Ada_Unit is
             --  dealing with an expression function
 
             if N.Kind = Ada_Expr_Function then
-               Process_Decisions_Defer (N.As_Expr_Function.F_Expr, 'X');
+               Process_Expression (UIC, N.As_Expr_Function.F_Expr, 'X');
             end if;
 
             --  Insert the new regular function in place of the old subprogram
@@ -3952,8 +3724,6 @@ package body Instrument.Ada_Unit is
                        F_Decls      => Proc_Decls,
                        F_Stmts      => Stmts_RH,
                        F_End_Name   => Proc_Name));
-
-            Set_Statement_Entry;
 
             UIC.Current_Insertion_Info := Saved_Insertion_Info;
             UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
@@ -4004,7 +3774,8 @@ package body Instrument.Ada_Unit is
          --  Witness insertion info for statements (for both null procedures
          --  and expression functions).
 
-         Do_Not_Instrument : Boolean := False;
+         Save_Disable_Instrumentation : constant Boolean :=
+           UIC.Disable_Instrumentation;
 
          EF_Inserter : aliased Expr_Func_MCDC_State_Inserter :=
            (N_Spec        => N_Spec,
@@ -4117,13 +3888,8 @@ package body Instrument.Ada_Unit is
                --  Instead, force the witness to go in the newly declared list
                --  using the Insertion_N param.
 
-               Extend_Statement_Sequence
-                 (UIC,
-                  Expr_Func.F_Expr,
-                  'X',
-                  Insertion_N => Dummy_Decl);
-               Process_Decisions_Defer (Expr_Func.F_Expr, 'X');
-               Set_Statement_Entry;
+               Instrument_Statement (UIC, Expr_Func.F_Expr, 'X', Dummy_Decl);
+               Process_Expression (UIC, Expr_Func.F_Expr, 'X');
 
                --  Restore context
 
@@ -4136,7 +3902,7 @@ package body Instrument.Ada_Unit is
 
          if Is_Generic (UIC, N.As_Basic_Decl) then
             if Is_Expr_Function then
-               Do_Not_Instrument := True;
+               UIC.Disable_Instrumentation := True;
                Report (UIC, N,
                        "gnatcov limitation: "
                        & "cannot instrument generic expression functions."
@@ -4147,7 +3913,7 @@ package body Instrument.Ada_Unit is
                --  functions and null procedures, we are in the case of a
                --  generic null procedure here.
 
-               Do_Not_Instrument := True;
+               UIC.Disable_Instrumentation := True;
                Report (UIC, N,
                        "gnatcov limitation:"
                        & " cannot instrument generic null procedures."
@@ -4183,7 +3949,7 @@ package body Instrument.Ada_Unit is
                --  so that the augmented EF is no longer a primitive of its
                --  return type. Need to check for potential freezing issues.
 
-               Do_Not_Instrument := True;
+               UIC.Disable_Instrumentation := True;
                Report (UIC, N,
                        "gnatcov limitation:"
                        & " cannot instrument an expression function which is"
@@ -4194,7 +3960,7 @@ package body Instrument.Ada_Unit is
             elsif Is_Self_Referencing (UIC, N.As_Expr_Function)
                  and then not Common_Nodes.Ctrl_Type.Is_Null
             then
-               Do_Not_Instrument := True;
+               UIC.Disable_Instrumentation := True;
                Report (UIC, N,
                        "gnatcov limitation:"
                        & " instrumenting a self referencing (i.e. recursive)"
@@ -4236,7 +4002,7 @@ package body Instrument.Ada_Unit is
                Witness_Actual => No_Node_Rewriting_Handle,
                Witness_Formal => No_Node_Rewriting_Handle);
 
-            if not Do_Not_Instrument then
+            if not UIC.Disable_Instrumentation then
 
                --  Pass all expression function parameters to the augmented
                --  expression function call.
@@ -4269,19 +4035,19 @@ package body Instrument.Ada_Unit is
             --  procedure (NP_Nodes.Null_Stmt).
 
             New_Insertion_Info :=
-              (Method                => Statement,
-               RH_List               => NP_Nodes.Stmt_List,
-               Index                 => 1,
-               Rewriting_Offset      => 0,
+              (Method           => Statement,
+               RH_List          => NP_Nodes.Stmt_List,
+               Index            => 1,
+               Rewriting_Offset => 0,
 
                --  Even if the current package has elaboration restrictions,
                --  this Insertion_Info is used to insert a witness call in the
                --  procedure in the generic body: the elaboration restriction
                --  does not apply there.
 
-               Preelab               => False,
+               Preelab          => False,
 
-               Parent                => null);
+               Parent           => null);
          end if;
 
          ----------------------------------
@@ -4298,23 +4064,20 @@ package body Instrument.Ada_Unit is
             declare
                N_Expr : constant Expr := N.As_Expr_Function.F_Expr;
             begin
-               Extend_Statement_Sequence
-                 (UIC, N_Expr, 'X', Do_Not_Instrument => Do_Not_Instrument);
-               Process_Decisions_Defer (N_Expr, 'X', Do_Not_Instrument);
+               Instrument_Statement (UIC, N_Expr, 'X');
+               Process_Expression (UIC, N_Expr, 'X');
             end;
          else
             --  Even though there is a "null" keyword in the null procedure,
             --  is no dedicated node for it in the Libadalang parse tree: use
             --  the whole null procedure declaration to provide a sloc.
 
-            Extend_Statement_Sequence
-              (UIC               => UIC,
-               N                 => N,
-               Typ               => 'X',
-               Insertion_N       => NP_Nodes.Null_Stmt,
-               Do_Not_Instrument => Do_Not_Instrument);
+            Instrument_Statement
+              (UIC         => UIC,
+               N           => N,
+               Typ         => 'X',
+               Insertion_N => NP_Nodes.Null_Stmt);
          end if;
-         Set_Statement_Entry;
 
          --  Restore saved insertion context
 
@@ -4324,7 +4087,8 @@ package body Instrument.Ada_Unit is
          --  There is nothing else to do if we gave up instrumenting this
          --  subprogram.
 
-         if Do_Not_Instrument then
+         if UIC.Disable_Instrumentation then
+            UIC.Disable_Instrumentation := Save_Disable_Instrumentation;
             return;
          end if;
 
@@ -4498,8 +4262,8 @@ package body Instrument.Ada_Unit is
          procedure Process_Contracts (D : Basic_Decl'Class) is
          begin
             if Assertion_Coverage_Enabled then
-               Process_Contract (D, "Pre");
-               Process_Contract (D, "Post");
+               Process_Contract (UIC, D, "Pre");
+               Process_Contract (UIC, D, "Post");
             end if;
          end Process_Contracts;
 
@@ -4508,11 +4272,9 @@ package body Instrument.Ada_Unit is
          N_Spec : constant Subp_Spec := N.P_Subp_Spec_Or_Null.As_Subp_Spec;
 
       begin
-         Set_Statement_Entry;
-
          --  Process decisions nested in formal parameters
 
-         Process_Decisions_Defer (N_Spec.F_Subp_Params, 'X');
+         Process_Expression (UIC, N_Spec.F_Subp_Params, 'X');
 
          Enter_Scope
            (UIC  => UIC,
@@ -4545,11 +4307,6 @@ package body Instrument.Ada_Unit is
 
          Saved_In_Generic : constant Boolean := UIC.In_Generic;
       begin
-         --  Initialize or extend current statement sequence. Note that for
-         --  special cases such as IF and Case statements we will modify
-         --  the range to exclude internal statements that should not be
-         --  counted as part of the current statement sequence.
-
          case N.Kind is
             --  Top of the tree: Compilation unit
 
@@ -4664,7 +4421,6 @@ package body Instrument.Ada_Unit is
             --  Package declaration
 
             when Ada_Package_Decl =>
-               Set_Statement_Entry;
                Traverse_Package_Declaration
                  (UIC, N.As_Base_Package_Decl, Preelab);
 
@@ -4672,7 +4428,6 @@ package body Instrument.Ada_Unit is
 
             when Ada_Generic_Package_Decl =>
                UIC.In_Generic := True;
-               Set_Statement_Entry;
                Traverse_Generic_Package_Declaration
                  (UIC, N.As_Generic_Package_Decl, Preelab);
                UIC.In_Generic := Saved_In_Generic;
@@ -4681,7 +4436,6 @@ package body Instrument.Ada_Unit is
 
             when Ada_Package_Body =>
                UIC.In_Generic := Is_Generic (UIC, N.As_Basic_Decl);
-               Set_Statement_Entry;
                Traverse_Package_Body (UIC, N.As_Package_Body, Preelab);
                UIC.In_Generic := Saved_In_Generic;
 
@@ -4697,8 +4451,8 @@ package body Instrument.Ada_Unit is
             --  Entry declaration
 
             when Ada_Entry_Decl =>
-               Process_Decisions_Defer
-                 (As_Entry_Decl (N).F_Spec.F_Entry_Params, 'X');
+               Process_Expression
+                 (UIC, As_Entry_Decl (N).F_Spec.F_Entry_Params, 'X');
 
             --  Generic subprogram declaration
 
@@ -4707,10 +4461,10 @@ package body Instrument.Ada_Unit is
                   GSD : constant Generic_Subp_Decl := As_Generic_Subp_Decl (N);
                begin
                   UIC.In_Generic := True;
-                  Process_Decisions_Defer
-                    (GSD.F_Formal_Part.F_Decls, 'X');
-                  Process_Decisions_Defer
-                    (GSD.F_Subp_Decl.F_Subp_Spec.F_Subp_Params, 'X');
+                  Process_Expression
+                    (UIC, GSD.F_Formal_Part.F_Decls, 'X');
+                  Process_Expression
+                    (UIC, GSD.F_Subp_Decl.F_Subp_Spec.F_Subp_Params, 'X');
                   UIC.In_Generic := Saved_In_Generic;
                end;
 
@@ -4722,7 +4476,6 @@ package body Instrument.Ada_Unit is
                if Is_Generic (UIC, N.As_Basic_Decl) then
                   UIC.In_Generic := True;
                end if;
-               Set_Statement_Entry;
                Traverse_Subprogram_Or_Task_Body (UIC, N);
                UIC.In_Generic := Saved_In_Generic;
 
@@ -4732,17 +4485,18 @@ package body Instrument.Ada_Unit is
                declare
                   Cond : constant Expr := As_Entry_Body (N).F_Barrier;
                   Unit : LAL.Analysis_Unit;
-               begin
-                  Set_Statement_Entry;
 
+                  Save_Disable_Instrumentation : constant Boolean :=
+                    UIC.Disable_Instrumentation;
+               begin
                   if not Cond.Is_Null then
                      Unit := Cond.Unit;
-                     Process_Decisions_Defer
-                       (N                 => Cond,
-                        T                 => 'G',
-                        Do_Not_Instrument =>
-                          Entry_Guards_Restricted
-                            (Unit.Context, Unit.Root.As_Compilation_Unit));
+                     UIC.Disable_Instrumentation :=
+                       Entry_Guards_Restricted
+                         (Unit.Context, Unit.Root.As_Compilation_Unit);
+                     Process_Expression (UIC, Cond, 'G');
+                     UIC.Disable_Instrumentation :=
+                       Save_Disable_Instrumentation;
                   end if;
 
                   Traverse_Subprogram_Or_Task_Body (UIC, N);
@@ -4751,35 +4505,14 @@ package body Instrument.Ada_Unit is
             --  Protected body
 
             when Ada_Protected_Body =>
-               Set_Statement_Entry;
                Traverse_Declarations_Or_Statements
                  (UIC, L => As_Protected_Body (N).F_Decls.F_Decls);
 
-            --  Exit statement, which is an exit statement in the SCO sense,
-            --  so it is included in the current statement sequence, but
-            --  then it terminates this sequence. We also have to process
-            --  any decisions in the exit statement expression.
-
             when Ada_Exit_Stmt =>
-               Extend_Statement_Sequence (UIC, N, 'E');
-               declare
-                  Cond : constant Expr := As_Exit_Stmt (N).F_Cond_Expr;
-               begin
-                  Process_Decisions_Defer (Cond, 'E');
-                  Set_Statement_Entry;
-               end;
-
-            --  Label, which breaks the current statement sequence, but the
-            --  label itself is not included in the next statement sequence,
-            --  since it generates no code.
-
-            when Ada_Label =>
-               Set_Statement_Entry;
-
-            --  Block statement, which breaks the current statement sequence
+               Instrument_Statement (UIC, N, 'E');
+               Process_Expression (UIC, As_Exit_Stmt (N).F_Cond_Expr, 'E');
 
             when Ada_Decl_Block | Ada_Begin_Block =>
-               Set_Statement_Entry;
 
                if N.Kind = Ada_Decl_Block then
                   Traverse_Declarations_Or_Statements
@@ -4793,18 +4526,14 @@ package body Instrument.Ada_Unit is
                            when Ada_Begin_Block => As_Begin_Block (N).F_Stmts,
                            when others          => raise Program_Error));
 
-            --  If statement, which breaks the current statement sequence,
-            --  but we include the condition in the current sequence.
-
             when Ada_If_Stmt =>
-               Extend_Statement_Sequence (UIC, N, 'I');
+               Instrument_Statement (UIC, N, 'I');
 
                declare
                   If_N : constant If_Stmt := N.As_If_Stmt;
                   Alt  : constant Elsif_Stmt_Part_List := If_N.F_Alternatives;
                begin
-                  Process_Decisions_Defer (If_N.F_Cond_Expr, 'I');
-                  Set_Statement_Entry;
+                  Process_Expression (UIC, If_N.F_Cond_Expr, 'I');
 
                   --  Now we traverse the statements in the THEN part
 
@@ -4819,23 +4548,16 @@ package body Instrument.Ada_Unit is
                         Elif : constant Elsif_Stmt_Part :=
                           Alt.Child (J).As_Elsif_Stmt_Part;
                      begin
-                        --  We generate a statement sequence for the construct
-                        --  "ELSIF condition", so that we have a statement for
-                        --  the resulting decisions.
-
-                        Extend_Statement_Sequence
+                        Instrument_Statement
                           (UIC,
                            Ada_Node (Elif), 'I',
-                           Insertion_N         => Handle (Elif.F_Cond_Expr),
-                           Instrument_Location => Inside_Expr);
-                        Process_Decisions_Defer (Elif.F_Cond_Expr, 'I');
-                        Set_Statement_Entry;
+                           Insertion_N => Handle (Elif.F_Cond_Expr));
+                        Process_Expression (UIC, Elif.F_Cond_Expr, 'I');
 
                         --  Traverse the statements in the ELSIF
 
                         Traverse_Declarations_Or_Statements
-                          (UIC,
-                           L => Elif.F_Stmts.As_Ada_Node_List);
+                          (UIC, L => Elif.F_Stmts.As_Ada_Node_List);
                      end;
                   end loop;
 
@@ -4846,18 +4568,14 @@ package body Instrument.Ada_Unit is
                      L => If_N.F_Else_Stmts.As_Ada_Node_List);
                end;
 
-            --  CASE statement, which breaks the current statement sequence,
-            --  but we include the expression in the current sequence.
-
             when Ada_Case_Stmt =>
-               Extend_Statement_Sequence (UIC, N, 'C');
+               Instrument_Statement (UIC, N, 'C');
                declare
                   Case_N : constant Case_Stmt := N.As_Case_Stmt;
                   Alt_L  : constant Case_Stmt_Alternative_List :=
                     Case_N.F_Alternatives;
                begin
-                  Process_Decisions_Defer (Case_N.F_Expr, 'X');
-                  Set_Statement_Entry;
+                  Process_Expression (UIC, Case_N.F_Expr, 'X');
 
                   --  Process case branches
 
@@ -4876,8 +4594,7 @@ package body Instrument.Ada_Unit is
             --  ACCEPT statement
 
             when Ada_Accept_Stmt | Ada_Accept_Stmt_With_Stmts =>
-               Extend_Statement_Sequence (UIC, N, 'A');
-               Set_Statement_Entry;
+               Instrument_Statement (UIC, N, 'A');
 
                if N.Kind = Ada_Accept_Stmt_With_Stmts then
                   --  Process sequence of statements
@@ -4892,8 +4609,7 @@ package body Instrument.Ada_Unit is
             --  conditional_entry_call, and asynchronous_select).
 
             when Ada_Select_Stmt =>
-               Extend_Statement_Sequence (UIC, N, 'S');
-               Set_Statement_Entry;
+               Instrument_Statement (UIC, N, 'S');
 
                declare
                   Sel_N : constant Select_Stmt := As_Select_Stmt (N);
@@ -4907,7 +4623,7 @@ package body Instrument.Ada_Unit is
                         Guard := Alt.F_Cond_Expr;
 
                         if not Guard.Is_Null then
-                           Process_Decisions (UIC, Guard, 'G');
+                           Process_Expression (UIC, Guard, 'G');
                         end if;
 
                         --  Traverse the select_alternative,
@@ -4939,45 +4655,33 @@ package body Instrument.Ada_Unit is
             when Ada_Terminate_Alternative =>
                null;
 
-            --  Unconditional exit points, which are included in the current
-            --  statement sequence, but then terminate it.
-
             when Ada_Goto_Stmt
                | Ada_Raise_Stmt
                | Ada_Requeue_Stmt
             =>
-               Extend_Statement_Sequence (UIC, N, ' ');
-               Set_Statement_Entry;
+               Instrument_Statement (UIC, N, ' ');
 
             --  Simple return statement. which is an exit point, but we
             --  have to process the return expression for decisions.
 
             when Ada_Return_Stmt =>
-               Extend_Statement_Sequence (UIC, N, ' ');
-               Process_Decisions_Defer
-                 (N.As_Return_Stmt.F_Return_Expr, 'X');
-               Set_Statement_Entry;
+               Instrument_Statement (UIC, N, ' ');
+               Process_Expression
+                 (UIC, N.As_Return_Stmt.F_Return_Expr, 'X');
 
             --  Extended return statement
 
             when Ada_Extended_Return_Stmt =>
-               Extend_Statement_Sequence (UIC, N, 'R');
+               Instrument_Statement (UIC, N, 'R');
                declare
                   ER_N : constant Extended_Return_Stmt :=
                     N.As_Extended_Return_Stmt;
                begin
-                  Process_Decisions_Defer (ER_N.F_Decl, 'X');
-                  Set_Statement_Entry;
+                  Process_Expression (UIC, ER_N.F_Decl, 'X');
 
                   Traverse_Handled_Statement_Sequence
-                    (UIC,
-                     N => ER_N.F_Stmts);
+                    (UIC, N => ER_N.F_Stmts);
                end;
-
-            --  Loop ends the current statement sequence, but we include
-            --  the iteration scheme if present in the current sequence.
-            --  But the body of the loop starts a new sequence, since it
-            --  may not be executed as part of the current sequence.
 
             when Ada_Base_Loop_Stmt =>
                declare
@@ -4987,16 +4691,12 @@ package body Instrument.Ada_Unit is
                begin
                   if not ISC.Is_Null then
 
-                     --  If iteration scheme present, extend the current
-                     --  statement sequence to include the iteration scheme
-                     --  and process any decisions it contains.
-
                      --  WHILE loop
 
                      if ISC.Kind = Ada_While_Loop_Spec then
-                        Extend_Statement_Sequence (UIC, N, 'W');
-                        Process_Decisions_Defer
-                          (ISC.As_While_Loop_Spec.F_Expr, 'W');
+                        Instrument_Statement (UIC, N, 'W');
+                        Process_Expression
+                          (UIC, ISC.As_While_Loop_Spec.F_Expr, 'W');
 
                      --  FOR loop
 
@@ -5017,18 +4717,16 @@ package body Instrument.Ada_Unit is
                         --  Still go through them to generate SCOs, for the
                         --  sake of completeness.
 
-                        Extend_Statement_Sequence (UIC, N, 'F');
-                        Process_Decisions_Defer
-                          (ISC.As_For_Loop_Spec.F_Var_Decl, 'X');
-                        Process_Decisions_Defer
-                          (ISC.As_For_Loop_Spec.F_Iter_Expr, 'X');
-                        Process_Decisions_Defer
-                          (ISC.As_For_Loop_Spec.F_Iter_Filter, 'W');
+                        Instrument_Statement (UIC, N, 'F');
+                        Process_Expression
+                          (UIC, ISC.As_For_Loop_Spec.F_Var_Decl, 'X');
+                        Process_Expression
+                          (UIC, ISC.As_For_Loop_Spec.F_Iter_Expr, 'X');
+                        Process_Expression
+                          (UIC, ISC.As_For_Loop_Spec.F_Iter_Filter, 'W');
 
                      end if;
                   end if;
-
-                  Set_Statement_Entry;
 
                   Traverse_Declarations_Or_Statements
                     (UIC,
@@ -5046,7 +4744,6 @@ package body Instrument.Ada_Unit is
                   Prag_Args : constant Base_Assoc_List := Prag_N.F_Args;
                   Nam       : constant Name_Id := Pragma_Name (Prag_N);
                   Arg       : Positive := 1;
-                  Typ       : Character;
 
                   function Prag_Arg_Expr (Index : Positive) return Expr is
                     (Prag_Args.Child (Index).As_Pragma_Argument_Assoc.F_Expr);
@@ -5059,7 +4756,7 @@ package body Instrument.Ada_Unit is
                         | Name_Precondition
                         | Name_Postcondition
                         =>
-                        Typ := 'p';
+                        Instrument_Statement (UIC, N, 'p');
 
                         if Assertion_Coverage_Enabled then
                            declare
@@ -5090,20 +4787,6 @@ package body Instrument.Ada_Unit is
                         | Name_Check
                         | Name_Loop_Invariant
                      =>
-                        --  For Assert-like pragmas, we insert a statement
-                        --  witness and instrument the decision if the pragma
-                        --  is not disabled.
-                        --
-                        --  This is in line with what is done for pre/post
-                        --  aspects.
-
-                        if Nam = Name_Check then
-
-                           --  Skip check name
-
-                           Arg := 2;
-                        end if;
-
                         --  We consider that the assertion policy is
                         --  "disabled", except if any level of assertion
                         --  coverage is enabled.
@@ -5114,7 +4797,7 @@ package body Instrument.Ada_Unit is
                         --  later on.
 
                         if Assertion_Coverage_Enabled then
-                           Typ := 'P';
+                           Instrument_Statement (UIC, N, 'P');
                            declare
                               Index : Positive :=
                                 (case Nam is
@@ -5122,38 +4805,35 @@ package body Instrument.Ada_Unit is
                                     when others     => 1);
                            begin
                               while not Is_Null (Prag_Args.Child (Index)) loop
-                                 Process_Decisions_Defer
-                                   (Prag_Arg_Expr (Index), 'P');
+                                 Process_Expression
+                                   (UIC, Prag_Arg_Expr (Index), 'P');
                                  Index := Index + 1;
                               end loop;
                            end;
                         else
-                           Typ := 'p';
+                           Instrument_Statement (UIC, N, 'p');
                         end if;
 
-                        --  Pre/postconditions can be inherited so SCO should
-                        --  never be deactivated???
-
                      when Name_Debug =>
+
+                        --  Note: conservatively assume that the check policy
+                        --  for pragma debug is enabled.
+
+                        Instrument_Statement (UIC, N, 'P');
                         if Prag_Args.Children_Count = 2 then
 
                            --  Case of a dyadic pragma Debug: first argument
                            --  is a P decision, any nested decision in the
                            --  second argument is an X decision.
 
-                           Process_Decisions_Defer (Prag_Arg_Expr (Arg), 'P');
+                           Process_Expression (UIC, Prag_Arg_Expr (Arg), 'P');
                            Arg := 2;
                         end if;
 
-                        Process_Decisions_Defer (Prag_Arg_Expr (Arg), 'X');
-
-                        --  Note: conservatively assume that the check policy
-                        --  for all pragmas is enabled (see comment above for
-                        --  Assert case).
-
-                        Typ := 'P';
+                        Process_Expression (UIC, Prag_Arg_Expr (Arg), 'X');
 
                      when Name_Annotate =>
+
                         --  If this is a coverage exemption, record it
 
                         if Prag_Args.Children_Count >= 2
@@ -5191,7 +4871,7 @@ package body Instrument.Ada_Unit is
                                  null;
                            end;
                         end if;
-                        Typ := 'P';
+                        Instrument_Statement (UIC, N, 'P');
 
                      --  Even though Compile_Time_* pragmas do contain
                      --  decisions, we cannot instrument them, as they would
@@ -5201,7 +4881,7 @@ package body Instrument.Ada_Unit is
 
                      when Name_Compile_Time_Error | Name_Compile_Time_Warning
                      =>
-                        Typ := 'P';
+                        Instrument_Statement (UIC, N, 'P');
 
                      --  For all other pragmas, we generate decision entries
                      --  for any embedded expressions, and the pragma is
@@ -5211,14 +4891,9 @@ package body Instrument.Ada_Unit is
                      --  related pragmas: [{Static,Dynamic}_]Predicate???
 
                      when others =>
-                        Process_Decisions_Defer (N, 'X');
-                        Typ := 'P';
-
+                        Instrument_Statement (UIC, N, 'P');
+                        Process_Expression (UIC, N, 'X');
                   end case;
-
-                  --  Add statement SCO
-
-                  Extend_Statement_Sequence (UIC, N, Typ);
                end;
 
             --  Object or named number declaration
@@ -5228,19 +4903,13 @@ package body Instrument.Ada_Unit is
             when Ada_Number_Decl
                | Ada_Object_Decl
             =>
-               Extend_Statement_Sequence (UIC, N, 'o');
-
-               if Has_Decision (UIC, N) then
-                  Process_Decisions_Defer (N, 'X');
-               end if;
-
-            --  All other cases, which extend the current statement sequence
-            --  but do not terminate it, even if they have nested decisions.
+               Instrument_Statement (UIC, N, 'o');
+               Process_Expression (UIC, N, 'X');
 
             when Ada_Protected_Type_Decl
                | Ada_Task_Type_Decl
             =>
-               Extend_Statement_Sequence (UIC, N, 't');
+               Instrument_Statement (UIC, N, 't');
                declare
                   Disc_N : constant Discriminant_Part :=
                     (case N.Kind is
@@ -5251,17 +4920,15 @@ package body Instrument.Ada_Unit is
                         when others                  =>
                            raise Program_Error);
                begin
-                  Process_Decisions_Defer (Disc_N, 'X');
+                  Process_Expression (UIC, Disc_N, 'X');
                end;
-               Set_Statement_Entry;
 
                Traverse_Sync_Definition (UIC, N);
 
             when Ada_Single_Protected_Decl
                | Ada_Single_Task_Decl
             =>
-               Extend_Statement_Sequence (UIC, N, 'o');
-               Set_Statement_Entry;
+               Instrument_Statement (UIC, N, 'o');
 
                Traverse_Sync_Definition (UIC, N);
 
@@ -5273,15 +4940,13 @@ package body Instrument.Ada_Unit is
                | Ada_Generic_Renaming_Decl
                | Ada_Generic_Instantiation
             =>
-               Set_Statement_Entry;
                Enter_Scope
                  (UIC  => UIC,
                   Sloc => Sloc (N),
                   Decl => N.As_Basic_Decl);
-               Extend_Statement_Sequence
+               Instrument_Statement
                  (UIC, N,
                   (if N.Kind in Ada_Generic_Instantiation then 'i' else 'r'));
-               Set_Statement_Entry;
                Exit_Scope (UIC);
 
             when others =>
@@ -5300,7 +4965,9 @@ package body Instrument.Ada_Unit is
                            Typ := 't';
                            if Assertion_Coverage_Enabled then
                               Process_Contract
-                                (N.As_Concrete_Type_Decl, "Type_Invariant");
+                                (UIC,
+                                 N.As_Concrete_Type_Decl,
+                                 "Type_Invariant");
                            end if;
                         end if;
 
@@ -5331,6 +4998,7 @@ package body Instrument.Ada_Unit is
                         | Ada_Task_Body_Stub
                         | Ada_Use_Package_Clause
                         | Ada_Use_Type_Clause
+                        | Ada_Label
                      =>
                         Typ := ASCII.NUL;
 
@@ -5343,15 +5011,13 @@ package body Instrument.Ada_Unit is
                   end case;
 
                   if Typ /= ASCII.NUL then
-                     Extend_Statement_Sequence (UIC, N, Typ);
+                     Instrument_Statement (UIC, N, Typ);
                   end if;
                end;
 
                --  Process any embedded decisions
 
-               if Has_Decision (UIC, N) then
-                  Process_Decisions_Defer (N, 'X');
-               end if;
+               Process_Expression (UIC, N, 'X');
          end case;
       end Traverse_One;
 
@@ -5424,12 +5090,6 @@ package body Instrument.Ada_Unit is
             end if;
          end;
       end loop;
-
-      --  End sequence of statements and flush deferred decisions
-
-      if not P.Is_Null or else Items_Count > 0 then
-         Set_Statement_Entry;
-      end if;
 
       --  Pop insertion info
 
@@ -5549,7 +5209,7 @@ package body Instrument.Ada_Unit is
       Preelab : Boolean)
    is
    begin
-      Process_Decisions (UIC, N.F_Formal_Part, 'X');
+      Process_Expression (UIC, N.F_Formal_Part, 'X');
       Traverse_Package_Declaration
         (UIC, N.F_Package_Decl.As_Base_Package_Decl, Preelab);
    end Traverse_Generic_Package_Declaration;
@@ -5782,9 +5442,6 @@ package body Instrument.Ada_Unit is
             Decl => Decl);
       end;
 
-      Local_Inserter.Local_Decls := Handle (Decls.F_Decls);
-      UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
-
       --  If assertion coverage is enabled, process the decisions in the
       --  contracts. This is needed in the case of a subprogram body with
       --  aspect with no prior declaration.
@@ -5796,19 +5453,19 @@ package body Instrument.Ada_Unit is
             Has_Elt : Boolean := Assocs.Aspect_Assoc_List_Has_Element (Idx);
          begin
             while Has_Elt loop
-               --  Defer the treatment of this decision
-               SD.Append
-                 ((As_Ada_Node
+               Process_Expression
+                 (UIC,
+                  As_Ada_Node
                     (Assocs.Aspect_Assoc_List_Element (Idx).F_Expr),
-                  'A',
-                  False));
-
+                  'A');
                Idx := Idx + 1;
                Has_Elt := Assocs.Aspect_Assoc_List_Has_Element (Idx);
             end loop;
          end;
       end if;
 
+      Local_Inserter.Local_Decls := Handle (Decls.F_Decls);
+      UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
       Traverse_Declarations_Or_Statements (UIC, L => Decls.F_Decls);
 
       Traverse_Handled_Statement_Sequence (UIC, N => HSS);
@@ -5820,246 +5477,301 @@ package body Instrument.Ada_Unit is
       UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
    end Traverse_Subprogram_Or_Task_Body;
 
-   -----------------------
-   -- Process_Decisions --
-   -----------------------
+   ------------------------
+   -- Process_Expression --
+   ------------------------
 
-   procedure Process_Decisions
-     (UIC               : in out Ada_Unit_Inst_Context;
-      N                 : Ada_Node'Class;
-      T                 : Character;
-      Do_Not_Instrument : Boolean := False)
+   procedure Process_Expression
+     (UIC : in out Ada_Unit_Inst_Context;
+      N   : Ada_Node'Class;
+      T   : Character)
    is
-      Mark : Nat;
-      --  This is used to mark the location of a decision sequence in the SCO
-      --  table. We use it for backing out a simple decision in an expression
-      --  context that contains only NOT operators.
+      function Process_Decl_Expr (N : Ada_Node'Class) return Visit_Status;
+      --  Helper to Libadalang's Traverse. Only operates on Decl_Exprs,
+      --  instrument each declaration as a statement and process the nested
+      --  expressions.
 
-      Mark_Hash : Nat;
-      --  Likewise for the putative SCO_Raw_Hash_Table entries: see below
+      procedure Process_Decisions
+        (UIC : in out Ada_Unit_Inst_Context;
+         N   : Ada_Node'Class;
+         T   : Character);
 
-      type Hash_Entry is record
-         Sloc      : Source_Location;
-         SCO_Index : Nat;
-      end record;
-      --  We must register all conditions/pragmas in SCO_Raw_Hash_Table.
-      --  However we cannot register them in the same time we are adding the
-      --  corresponding SCO entries to the raw table since we may discard them
-      --  later on. So instead we put all putative conditions into Hash_Entries
-      --  (see below) and register them once we are sure we keep them.
-      --
-      --  This data structure holds the conditions/pragmas to register in
-      --  SCO_Raw_Hash_Table.
+      -----------------------
+      -- Process_Decl_Expr --
+      -----------------------
 
-      package Hash_Entries is new Table.Table
-        (Table_Component_Type => Hash_Entry,
-         Table_Index_Type     => Nat,
-         Table_Low_Bound      => 1,
-         Table_Initial        => 10,
-         Table_Increment      => 10,
-         Table_Name           => "Hash_Entries");
-      --  Hold temporarily (i.e. free'd before returning) the Hash_Entry before
-      --  they are registered in SCO_Raw_Hash_Table.
-
-      ---------------------------------
-      -- Decision-specific variables --
-      ---------------------------------
-
-      --  The following variables are related to the current decision being
-      --  processed by this call to Process_Decisions. Note that in the case
-      --  of nested decisions, this subprogram recurses, so we do not have to
-      --  worry about overwriting them.
-
-      Current_Decision : Nat;
-      --  Low level SCO id of current decision
-
-      X_Not_Decision : Boolean;
-      --  This flag keeps track of whether a decision sequence in the SCO table
-      --  contains only NOT operators, and is for an expression context (T=X).
-      --  The flag will be set False if T is other than X, or if an operator
-      --  other than NOT is in the sequence.
-
-      Condition_Count : Natural := 0;
-      --  Count of conditions for current decision (MC/DC only)
-
-      Conditions_State : Unbounded_String;
-      --  Name of MC/DC and ATCC state local variable for current decision
-      --  (MC/DC and ATCC only).
-
-      procedure Output_Decision_Operand
-        (Operand         : Expr;
-         Decision_Static : Boolean);
-      --  The node Operand is the top level logical operator of a decision, or
-      --  it is one of the operands of a logical operator belonging to a single
-      --  complex decision. This (recursive) routine outputs the sequence of
-      --  table entries corresponding to the node. Note that we do not process
-      --  the sub- operands to look for further decisions, that processing is
-      --  done in Find_Nested_Decisions, because we can't get decisions mixed
-      --  up in the global table. Call has no effect if Operand is Empty.
-      --  Increments Condition_Count (recursively) for each condition.
-      --
-      --  Decision_Static indicates whether the expression of the whole
-      --  decision is static, and should thus not be instrumented.
-
-      procedure Output_Element (N : Ada_Node);
-      --  Node N is an operand of a logical operator that is not itself a
-      --  logical operator, or it is a simple decision. This routine outputs
-      --  the table entry for the element, with C1 set to ' '. Last is set
-      --  False, and an entry is made in the condition hash table.
-
-      procedure Output_Header (T : Character; N : Ada_Node'Class);
-      --  Outputs a decision header node. T is I/W/E/P/G/a or A for IF/WHILE/
-      --  EXIT WHEN/PRAGMA/ENTRY GUARD/ASPECT, and 'X' for the expression case.
-      --  Resets Condition_Count to 0, and initializes MCDC_State.
-
-      procedure Find_Nested_Decisions (Operand : Expr);
-      --  This is called on node Operand, the top level node of a decision,
-      --  or on one of its operands or suboperands after generating the full
-      --  output for the complex decision. It process the suboperands of the
-      --  decision looking for nested decisions.
-
-      function Process_Node (N : Ada_Node'Class) return Visit_Status;
-      --  Processes one node in the traversal, looking for logical operators,
-      --  and if one is found, outputs the appropriate table entries.
-
-      -----------------------------
-      -- Output_Decision_Operand --
-      -----------------------------
-
-      procedure Output_Decision_Operand
-        (Operand : Expr; Decision_Static : Boolean)
-      is
-         C1 : Character;
-         C2 : Character;
-         --  C1 holds a character that identifies the operation while C2
-         --  indicates whether we are sure (' ') or not ('?') this operation
-         --  belongs to the decision. '?' entries will be filtered out in the
-         --  second (SCO_Record_Filtered) pass.
-
-         N : constant Expr := Unwrap (Operand);
-
-         L, R : Expr;
-
-         Op_N  : Op;
-         Op_NK : Ada_Node_Kind_Type;
-
+      function Process_Decl_Expr (N : Ada_Node'Class) return Visit_Status is
       begin
-         --  Logical operator
+         if N.Kind in Ada_Decl_Expr then
+            declare
+               Saved_Inserter     : constant Any_MCDC_State_Inserter :=
+                 UIC.MCDC_State_Inserter;
+               Saved_In_Decl_Expr : constant Boolean := UIC.In_Decl_Expr;
+               Local_Inserter     : aliased Default_MCDC_State_Inserter :=
+                 (Local_Decls => Handle (N.As_Decl_Expr.F_Decls));
+            begin
+               UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
+               UIC.In_Decl_Expr := True;
 
-         if Is_Logical_Operator (UIC, N) then
-            Op_N := Operator (N);
-            Op_NK := Op_N.Kind;
+               --  Traverse_Declarations_Or_Statements will instrument the
+               --  declarations as statements, as well as instrument the
+               --  nested decisions within those declarations.
 
-            if Op_NK = Ada_Op_Not then
-               C1 := '!';
-               L := No_Expr;
-               R := N.As_Un_Op.F_Expr;
+               Traverse_Declarations_Or_Statements
+                 (UIC, N.As_Decl_Expr.F_Decls);
+               UIC.MCDC_State_Inserter := Saved_Inserter;
+               UIC.In_Decl_Expr := Saved_In_Decl_Expr;
+
+               return Over;
+            end;
+         else
+            return Into;
+         end if;
+      end Process_Decl_Expr;
+
+      -----------------------
+      -- Process_Decisions --
+      -----------------------
+
+      procedure Process_Decisions
+        (UIC : in out Ada_Unit_Inst_Context;
+         N   : Ada_Node'Class;
+         T   : Character)
+      is
+         Mark : Nat;
+         --  This is used to mark the location of a decision sequence in the
+         --  SCO table. We use it for backing out a simple decision in an
+         --  expression context that contains only NOT operators.
+
+         Mark_Hash : Nat;
+         --  Likewise for the putative SCO_Raw_Hash_Table entries: see below
+
+         type Hash_Entry is record
+            Sloc      : Source_Location;
+            SCO_Index : Nat;
+         end record;
+         --  We must register all conditions/pragmas in SCO_Raw_Hash_Table.
+         --  However we cannot register them in the same time we are adding the
+         --  corresponding SCO entries to the raw table since we may discard
+         --  them later on. So instead we put all putative conditions into
+         --  Hash_Entries (see below) and register them once we are sure we
+         --  keep them.
+         --
+         --  This data structure holds the conditions/pragmas to register in
+         --  SCO_Raw_Hash_Table.
+
+         package Hash_Entries is new Table.Table
+           (Table_Component_Type => Hash_Entry,
+            Table_Index_Type     => Nat,
+            Table_Low_Bound      => 1,
+            Table_Initial        => 10,
+            Table_Increment      => 10,
+            Table_Name           => "Hash_Entries");
+         --  Hold temporarily (i.e. free'd before returning) the Hash_Entry
+         --  before they are registered in SCO_Raw_Hash_Table.
+
+         ---------------------------------
+         -- Decision-specific variables --
+         ---------------------------------
+
+         --  The following variables are related to the current decision being
+         --  processed by this call to Process_Decisions. Note that in the case
+         --  of nested decisions, this subprogram recurses, so we do not have
+         --  to worry about overwriting them.
+
+         Current_Decision : Nat;
+         --  Low level SCO id of current decision
+
+         X_Not_Decision : Boolean;
+         --  This flag keeps track of whether a decision sequence in the
+         --  SCO table contains only NOT operators, and is for an expression
+         --  context (T=X). The flag will be set False if T is other than X,
+         --  or if an operator other than NOT is in the sequence.
+
+         Condition_Count : Natural := 0;
+         --  Count of conditions for current decision (MC/DC only)
+
+         Conditions_State : Unbounded_String;
+         --  Name of MC/DC and ATCC state local variable for current
+         --  decision (MC/DC and ATCC only).
+
+         procedure Output_Decision_Operand
+           (Operand         : Expr;
+            Decision_Static : Boolean);
+         --  The node Operand is the top level logical operator of a decision,
+         --  or it is one of the operands of a logical operator belonging to
+         --  a single complex decision. This (recursive) routine outputs the
+         --  sequence of table entries corresponding to the node. Note that we
+         --  do not process the sub- operands to look for further decisions,
+         --  that processing is done in Find_Nested_Decisions, because we can't
+         --  get decisions mixed up in the global table. Call has no effect
+         --  if Operand is Empty. Increments Condition_Count (recursively)
+         --  for each condition.
+         --
+         --  Decision_Static indicates whether the expression of the whole
+         --  decision is static, and should thus not be instrumented.
+
+         procedure Output_Element (N : Ada_Node);
+         --  Node N is an operand of a logical operator that is not itself a
+         --  logical operator, or it is a simple decision. This routine outputs
+         --  the table entry for the element, with C1 set to ' '. Last is set
+         --  False, and an entry is made in the condition hash table.
+
+         procedure Output_Header (T : Character; N : Ada_Node'Class);
+         --  Outputs a decision header node. T is I/W/E/P for IF/WHILE/EXIT
+         --  WHEN/ PRAGMA, and 'X' for the expression case. Resets
+         --  Condition_Count to 0, and initializes Conditions_State.
+
+         procedure Find_Nested_Decisions (Operand : Expr);
+         --  This is called on node Operand, the top level node of a decision,
+         --  or on one of its operands or suboperands after generating the full
+         --  output for the complex decision. It process the suboperands of the
+         --  decision looking for nested decisions.
+
+         function Process_Node (N : Ada_Node'Class) return Visit_Status;
+         --  Processes one node in the traversal, looking for logical
+         --  operators, and if one is found, outputs the appropriate
+         --  table entries.
+
+         -----------------------------
+         -- Output_Decision_Operand --
+         -----------------------------
+
+         procedure Output_Decision_Operand
+           (Operand : Expr; Decision_Static : Boolean)
+         is
+            C1 : Character;
+            C2 : Character;
+            --  C1 holds a character that identifies the operation while C2
+            --  indicates whether we are sure (' ') or not ('?') this operation
+            --  belongs to the decision. '?' entries will be filtered out in
+            --  the second (SCO_Record_Filtered) pass.
+
+            N : constant Expr := Unwrap (Operand);
+
+            L, R : Expr;
+
+            Op_N  : Op;
+            Op_NK : Ada_Node_Kind_Type;
+
+         begin
+            --  Logical operator
+
+            if Is_Logical_Operator (UIC, N) then
+               Op_N := Operator (N);
+               Op_NK := Op_N.Kind;
+
+               if Op_NK = Ada_Op_Not then
+                  C1 := '!';
+                  L := No_Expr;
+                  R := N.As_Un_Op.F_Expr;
+
+               else
+                  declare
+                     BN : constant Bin_Op := N.As_Bin_Op;
+                  begin
+                     L := BN.F_Left;
+                     R := BN.F_Right;
+                     if Op_NK in Ada_Op_Or | Ada_Op_Or_Else then
+                        C1 := '|';
+                     else
+                        pragma Assert (Op_NK in Ada_Op_And | Ada_Op_And_Then);
+                        C1 := '&';
+                     end if;
+                  end;
+               end if;
+
+               C2 := ' ';
+               Append_SCO
+                 (C1   => C1,
+                  C2   => C2,
+                  From => +Sloc (Op_N),
+                  To   => Slocs.No_Local_Location,
+                  SFI  => UIC.SFI,
+                  Last => False);
+
+               Hash_Entries.Append ((Sloc (N), SCOs.SCO_Table.Last));
+
+               if not L.Is_Null then
+                  Output_Decision_Operand (L, Decision_Static);
+               end if;
+               Output_Decision_Operand (R, Decision_Static);
+
+               --  Not a logical operator -> condition
 
             else
+               Output_Element (N.As_Ada_Node);
+
+               if Decision_Static or else UIC.Disable_Instrumentation then
+                  return;
+               end if;
+               if MCDC_Coverage_Enabled
+                 or else Assertion_Condition_Coverage_Enabled
+               then
+                  UIC.Source_Conditions.Append
+                    (Source_Condition'
+                       (LL_SCO          => SCOs.SCO_Table.Last,
+                        Condition       => N.As_Expr,
+                        State           => Conditions_State,
+                        First           => Condition_Count = 0));
+
+                  Condition_Count := Condition_Count + 1;
+               end if;
+            end if;
+         end Output_Decision_Operand;
+
+         --------------------
+         -- Output_Element --
+         --------------------
+
+         procedure Output_Element (N : Ada_Node) is
+            N_SR : constant Source_Location_Range := N.Sloc_Range;
+            C2   : Character := 'c';
+         begin
+            if Is_Static_Expr (N.As_Expr) then
+
+               --  This condition is static: record its value in the SCO
+
                declare
-                  BN : constant Bin_Op := N.As_Bin_Op;
+                  Eval : constant String := Bool_Expr_Eval (N.As_Expr);
                begin
-                  L := BN.F_Left;
-                  R := BN.F_Right;
-                  if Op_NK in Ada_Op_Or | Ada_Op_Or_Else then
-                     C1 := '|';
-                  else pragma Assert (Op_NK in Ada_Op_And | Ada_Op_And_Then);
-                     C1 := '&';
+                  if Eval = "True" then
+                     C2 := 't';
+                  elsif Eval = "False" then
+                     C2 := 'f';
                   end if;
                end;
             end if;
 
-            C2 := ' ';
             Append_SCO
-              (C1   => C1,
+              (C1   => ' ',
                C2   => C2,
-               From => +Sloc (Op_N),
-               To   => Slocs.No_Local_Location,
+               From => +Start_Sloc (N_SR),
+               To   => +Inclusive_End_Sloc (N_SR),
                SFI  => UIC.SFI,
                Last => False);
-
-            Hash_Entries.Append ((Sloc (N), SCOs.SCO_Table.Last));
-
-            if not L.Is_Null then
-               Output_Decision_Operand (L, Decision_Static);
+            Hash_Entries.Append ((Start_Sloc (N_SR), SCOs.SCO_Table.Last));
+            if UIC.Disable_Instrumentation then
+               UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
             end if;
-            Output_Decision_Operand (R, Decision_Static);
+         end Output_Element;
 
-         --  Not a logical operator -> condition
+         -------------------
+         -- Output_Header --
+         -------------------
 
-         else
-            Output_Element (N.As_Ada_Node);
+         procedure Output_Header (T : Character; N : Ada_Node'Class) is
+            Loc : Source_Location := No_Source_Location;
+            --  Node whose Sloc is used for the decision
 
-            if Decision_Static or else Do_Not_Instrument then
-               return;
-            end if;
+            Nam : Name_Id := Namet.No_Name;
+            --  For the case of an aspect, aspect name
 
-            if MCDC_Coverage_Enabled
-              or else Assertion_Condition_Coverage_Enabled
-            then
-               UIC.Source_Conditions.Append
-                 (Source_Condition'
-                    (LL_SCO    => SCOs.SCO_Table.Last,
-                     Condition => N.As_Expr,
-                     State     => Conditions_State,
-                     First     => Condition_Count = 0));
+            Is_Contract : constant Boolean := T in 'a' | 'A' | 'P';
+            --  Is the decision that of a contract
 
-               Condition_Count := Condition_Count + 1;
-            end if;
-         end if;
-      end Output_Decision_Operand;
-
-      --------------------
-      -- Output_Element --
-      --------------------
-
-      procedure Output_Element (N : Ada_Node) is
-         N_SR : constant Source_Location_Range := N.Sloc_Range;
-         C2   : Character := 'c';
-      begin
-         if Is_Static_Expr (N.As_Expr) then
-
-            --  This condition is static: record its value in the SCO
-
-            declare
-               Eval : constant String := Bool_Expr_Eval (N.As_Expr);
-            begin
-               if Eval = "True" then
-                  C2 := 't';
-               elsif Eval = "False" then
-                  C2 := 'f';
-               end if;
-            end;
-         end if;
-
-         Append_SCO
-           (C1   => ' ',
-            C2   => C2,
-            From => +Start_Sloc (N_SR),
-            To   => +Inclusive_End_Sloc (N_SR),
-            SFI  => UIC.SFI,
-            Last => False);
-         Hash_Entries.Append ((Start_Sloc (N_SR), SCOs.SCO_Table.Last));
-         if Do_Not_Instrument then
-            UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
-         end if;
-      end Output_Element;
-
-      -------------------
-      -- Output_Header --
-      -------------------
-
-      procedure Output_Header (T : Character; N : Ada_Node'Class) is
-         Loc : Source_Location := No_Source_Location;
-         --  Node whose Sloc is used for the decision
-
-         Nam : Name_Id := Namet.No_Name;
-         --  For the case of an aspect, aspect name
-
-         Is_Contract : constant Boolean := T in 'a' | 'A' | 'P';
-         --  Is the decision that of a contract
-      begin
-         case T is
+         begin
+            case T is
             when 'I' | 'E' | 'W' | 'a' | 'A' =>
 
                --  For IF, EXIT, WHILE, or aspects, the token SLOC is that of
@@ -6112,201 +5824,199 @@ package body Instrument.Ada_Unit is
 
                null;
 
-            --  No other possibilities
+               --  No other possibilities
 
             when others =>
                raise Program_Error;
-         end case;
+            end case;
 
-         Append_SCO
-           (C1                 => T,
-            C2                 => ' ',
-            From               => +Loc,
-            To                 => Slocs.No_Local_Location,
-            SFI                => UIC.SFI,
-            Last               => False,
-            Pragma_Aspect_Name => Nam);
-         if Do_Not_Instrument then
-            UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
-         end if;
+            Append_SCO
+              (C1                 => T,
+               C2                 => ' ',
+               From               => +Loc,
+               To                 => Slocs.No_Local_Location,
+               SFI                => UIC.SFI,
+               Last               => False,
+               Pragma_Aspect_Name => Nam);
+            if UIC.Disable_Instrumentation then
+               UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
+            end if;
 
-         Current_Decision := SCOs.SCO_Table.Last;
+            Current_Decision := SCOs.SCO_Table.Last;
 
-         if Coverage.Enabled (Decision)
-           or else MCDC_Coverage_Enabled
-           or else Assertion_Condition_Coverage_Enabled
-         then
-
-            if MCDC_Coverage_Enabled
-              or else (Is_Contract
-                       and then Assertion_Condition_Coverage_Enabled)
+            if Coverage.Enabled (Decision)
+              or else MCDC_Coverage_Enabled
+                          or else Assertion_Condition_Coverage_Enabled
             then
-               Condition_Count := 0;
+               if MCDC_Coverage_Enabled
+                 or else (Is_Contract
+                          and then Assertion_Condition_Coverage_Enabled)
+               then
+                  Condition_Count := 0;
 
-               if UIC.MCDC_State_Inserter = null then
-                  Report (UIC, N,
-                          "gnatcov limitation: "
-                          & "cannot find local declarative part for MC/DC",
-                          Kind => Diagnostics.Error);
-               else
-                  Conditions_State := To_Unbounded_String
-                    (UIC.MCDC_State_Inserter.Insert_MCDC_State
-                       (UIC, Make_MCDC_State_Name (SCOs.SCO_Table.Last)));
+                  if UIC.MCDC_State_Inserter = null then
+                     Report (UIC, N,
+                             "gnatcov limitation: "
+                             & "cannot find local declarative part for MC/DC",
+                             Kind => Diagnostics.Error);
+                  else
+                     Conditions_State := To_Unbounded_String
+                       (UIC.MCDC_State_Inserter.Insert_MCDC_State
+                          (UIC, Make_MCDC_State_Name (SCOs.SCO_Table.Last)));
+                  end if;
+               end if;
+
+               --  Do not instrument this decision if we have already
+               --  determined from the context that instrumenting it
+               --  could produce invalid code.
+               --
+               --  Instrumenting static decisions would make them non-static by
+               --  wrapping them in a Witness call. This transformation would
+               --  trigger legality checks on the originally non-evaluated
+               --  branch, which could result in compilation errors specific
+               --  to the instrumented code, e.g. on:
+               --
+               --   X := (if <config.static-False>
+               --         then <out-of-range-static>
+               --         else <value>);
+               --
+               --  For this reason, also refrain from instrumenting static
+               --  decisions.
+
+               if not (UIC.Disable_Instrumentation
+                       or else Is_Static_Expr (N.As_Expr))
+               then
+                  UIC.Source_Decisions.Append
+                    (Source_Decision'
+                       (LL_SCO      => Current_Decision,
+                        Decision    => N.As_Expr,
+                        State       => Conditions_State,
+                        Is_Contract => Is_Contract));
                end if;
             end if;
 
-            --  Do not instrument this decision if we have already determined
-            --  from the context that instrumenting it could produce invalid
-            --  code.
-            --
-            --  Instrumenting static decisions would make them non-static by
-            --  wrapping them in a Witness call. This transformation would
-            --  trigger legality checks on the originally non-evaluated branch,
-            --  which could result in compilation errors specific to the
-            --  instrumented code, e.g. on:
-            --
-            --   X := (if <config.static-False>
-            --         then <out-of-range-static>
-            --         else <value>);
-            --
-            --  For this reason, also refrain from instrumenting static
-            --  decisions.
+            --  For an aspect specification, which will be rewritten into a
+            --  pragma, enter a hash table entry now.
 
-            if not (Do_Not_Instrument
-                    or else Is_Static_Expr (N.As_Expr))
-            then
-               UIC.Source_Decisions.Append
-                 (Source_Decision'
-                    (LL_SCO            => Current_Decision,
-                     Decision          => N.As_Expr,
-                     State             => Conditions_State,
-                     Do_Not_Instrument =>
-                       Do_Not_Instrument or else Is_Static_Expr (N.As_Expr),
-                     Is_Contract => Is_Contract));
+            if T in 'a' | 'A' then
+               Hash_Entries.Append ((Loc, Current_Decision));
             end if;
-         end if;
 
-         --  For an aspect specification, which will be rewritten into a
-         --  pragma, enter a hash table entry now.
+         end Output_Header;
 
-         if T in 'a' | 'A' then
-            Hash_Entries.Append ((Loc, Current_Decision));
-         end if;
+         ---------------------------
+         -- Find_Nested_Decisions --
+         ---------------------------
 
-      end Output_Header;
+         procedure Find_Nested_Decisions (Operand : Expr) is
+            N : constant Expr := Unwrap (Operand);
+         begin
+            if Is_Logical_Operator (UIC, N) then
+               if N.Kind = Ada_Un_Op then
+                  Find_Nested_Decisions (N.As_Un_Op.F_Expr);
 
-      ---------------------------
-      -- Find_Nested_Decisions --
-      ---------------------------
-
-      procedure Find_Nested_Decisions (Operand : Expr) is
-         N : constant Expr := Unwrap (Operand);
-      begin
-         if Is_Logical_Operator (UIC, N) then
-            if N.Kind = Ada_Un_Op then
-               Find_Nested_Decisions (N.As_Un_Op.F_Expr);
+               else
+                  Find_Nested_Decisions (N.As_Bin_Op.F_Left);
+                  Find_Nested_Decisions (N.As_Bin_Op.F_Right);
+                  X_Not_Decision := False;
+               end if;
 
             else
-               Find_Nested_Decisions (N.As_Bin_Op.F_Left);
-               Find_Nested_Decisions (N.As_Bin_Op.F_Right);
-               X_Not_Decision := False;
+               Process_Decisions (UIC, N, 'X');
+            end if;
+         end Find_Nested_Decisions;
+
+         ------------------
+         -- Process_Node --
+         ------------------
+
+         function Process_Node (N : Ada_Node'Class) return Visit_Status is
+            --  Test for the two cases where N is the root node of some
+            --  decision:
+
+            Decision_Root : constant Boolean :=
+
+            --  Simple decision at outer level: a boolean expression (which
+            --  is not a logical operator or short circuit form) appearing
+            --  as the operand of an IF, WHILE, EXIT WHEN, or special PRAGMA
+            --  construct.
+
+              (N = Process_Decisions.N and then T /= 'X')
+              or else
+
+            --  Complex decision, whether at outer level or nested: a boolean
+            --  expression involving a logical operator.
+
+              (N.Kind in Ada_Expr
+               and then Is_Complex_Decision (UIC, N.As_Expr));
+
+         begin
+            if Decision_Root then
+               declare
+                  EN : constant Expr := N.As_Expr;
+                  T  : Character;
+
+               begin
+                  --  If outer level, then type comes from call, otherwise it
+                  --  is more deeply nested and counts as X for expression.
+
+                  if N = Process_Decisions.N then
+                     T := Process_Decisions.T;
+                  else
+                     T := 'X';
+                  end if;
+
+                  --  Output header for sequence
+
+                  X_Not_Decision := T = 'X' and then N.Kind = Ada_Op_Not;
+                  Mark      := SCOs.SCO_Table.Last;
+                  Mark_Hash := Hash_Entries.Last;
+                  Output_Header (T, N);
+
+                  --  Output the decision (recursively traversing operands)
+
+                  Output_Decision_Operand
+                    (EN, Is_Static_Expr (N.As_Expr));
+
+                  --  If the decision was in an expression context (T =
+                  --  'X') and contained only NOT operators, then we don't
+                  --  output it, so delete the associated SCO entries. As a
+                  --  consequence, no instrumentation will be emitted.
+
+                  if X_Not_Decision then
+                     SCOs.SCO_Table.Set_Last (Mark);
+                     Hash_Entries.Set_Last (Mark_Hash);
+
+                     --  Otherwise, set Last in last table entry to mark end
+
+                  else
+                     SCOs.SCO_Table.Table (SCOs.SCO_Table.Last).Last := True;
+                  end if;
+
+               --  Process any embedded decisions. For the sake of simplicity
+               --  the coverage of nested decisions in contract decisions
+               --  should not be checked. Therefore they should be
+               --  instrumented.
+
+                  if T /= 'P' then
+                     Find_Nested_Decisions (EN);
+                  end if;
+                  return Over;
+               end;
             end if;
 
-         else
-            Process_Decisions (UIC, N, 'X', Do_Not_Instrument);
-         end if;
-      end Find_Nested_Decisions;
+            --  Here for cases that are known to not be logical operators
 
-      ------------------
-      -- Process_Node --
-      ------------------
+            case N.Kind is
+               --  CASE expression
 
-      function Process_Node (N : Ada_Node'Class) return Visit_Status is
-         --  Test for the two cases where N is the root node of some decision:
-
-         Decision_Root : constant Boolean :=
-
-           --  Simple decision at outer level: a boolean expression (which is
-           --  not a logical operator or short circuit form) appearing as the
-           --  operand of an IF, WHILE, EXIT WHEN, or special PRAGMA construct.
-
-           (N = Process_Decisions.N and then T /= 'X')
-             or else
-
-           --  Complex decision, whether at outer level or nested: a boolean
-           --  expression involving a logical operator.
-
-           (N.Kind in Ada_Expr
-            and then Is_Complex_Decision (UIC, N.As_Expr));
-
-      begin
-         if Decision_Root then
-            declare
-               EN : constant Expr := N.As_Expr;
-               T  : Character;
-
-            begin
-               --  If outer level, then type comes from call, otherwise it
-               --  is more deeply nested and counts as X for expression.
-
-               if N = Process_Decisions.N then
-                  T := Process_Decisions.T;
-               else
-                  T := 'X';
-               end if;
-
-               --  Output header for sequence
-
-               X_Not_Decision := T = 'X' and then N.Kind = Ada_Op_Not;
-               Mark      := SCOs.SCO_Table.Last;
-               Mark_Hash := Hash_Entries.Last;
-               Output_Header (T, N);
-
-               --  Output the decision (recursively traversing operands)
-
-               Output_Decision_Operand
-                 (EN, Is_Static_Expr (N.As_Expr));
-
-               --  If the decision was in an expression context (T = 'X')
-               --  and contained only NOT operators, then we don't output
-               --  it, so delete the associated SCO entries. As a consequence,
-               --  no instrumentation will be emitted.
-
-               if X_Not_Decision then
-                  SCOs.SCO_Table.Set_Last (Mark);
-                  Hash_Entries.Set_Last (Mark_Hash);
-
-                  --  Otherwise, set Last in last table entry to mark end
-
-               else
-                  SCOs.SCO_Table.Table (SCOs.SCO_Table.Last).Last := True;
-               end if;
-
-               --  Process any embedded decisions.
-               --  For the sake of simplicity the coverage of nested decisions
-               --  in contract decisions should not be checked. Therefore they
-               --  should be instrumented.
-
-               if T /= 'P' then
-                  Find_Nested_Decisions (EN);
-               end if;
-
-               return Over;
-            end;
-         end if;
-
-         --  Here for cases that are known to not be logical operators
-
-         case N.Kind is
-            --  CASE expression
-
-            --  Really hard to believe this is correct given the special
-            --  handling for if expressions below ???
+               --  Really hard to believe this is correct given the special
+               --  handling for if expressions below ???
 
             when Ada_Case_Expr =>
                return Into; -- ???
 
-            --  IF expression: processed like an if statement
+               --  IF expression: processed like an if statement
 
             when Ada_If_Expr =>
                declare
@@ -6314,51 +6024,36 @@ package body Instrument.Ada_Unit is
                   Alt  : constant Elsif_Expr_Part_List := IEN.F_Alternatives;
 
                begin
-                  Process_Decisions
-                    (UIC, IEN.F_Cond_Expr, 'I', Do_Not_Instrument);
-                  Process_Decisions
-                    (UIC, IEN.F_Then_Expr, 'X', Do_Not_Instrument);
+                  Process_Decisions (UIC, IEN.F_Cond_Expr, 'I');
+                  Process_Decisions (UIC, IEN.F_Then_Expr, 'X');
 
                   for J in 1 .. Alt.Children_Count loop
                      declare
                         EIN : constant Elsif_Expr_Part :=
                           Alt.Child (J).As_Elsif_Expr_Part;
                      begin
-                        Process_Decisions
-                          (UIC, EIN.F_Cond_Expr, 'I', Do_Not_Instrument);
-                        Process_Decisions
-                          (UIC, EIN.F_Then_Expr, 'X', Do_Not_Instrument);
+                        Process_Decisions (UIC, EIN.F_Cond_Expr, 'I');
+                        Process_Decisions (UIC, EIN.F_Then_Expr, 'X');
                      end;
                   end loop;
 
-                  Process_Decisions
-                    (UIC, IEN.F_Else_Expr, 'X', Do_Not_Instrument);
+                  Process_Decisions (UIC, IEN.F_Else_Expr, 'X');
                   return Over;
                end;
 
             when Ada_Quantified_Expr =>
                Process_Decisions
-                 (UIC,
-                  N.As_Quantified_Expr.F_Loop_Spec,
-                  'X',
-                  Do_Not_Instrument);
-               Process_Decisions
-                 (UIC, N.As_Quantified_Expr.F_Expr, 'W', Do_Not_Instrument);
+                 (UIC, N.As_Quantified_Expr.F_Loop_Spec, 'X');
+               Process_Decisions (UIC, N.As_Quantified_Expr.F_Expr, 'W');
                return Over;
 
             when Ada_For_Loop_Spec =>
-               Process_Decisions
-                 (UIC, N.As_For_Loop_Spec.F_Var_Decl, 'X', Do_Not_Instrument);
-               Process_Decisions
-                 (UIC, N.As_For_Loop_Spec.F_Iter_Expr, 'X', Do_Not_Instrument);
-               Process_Decisions
-                 (UIC,
-                  N.As_For_Loop_Spec.F_Iter_Filter,
-                  'W',
-                  Do_Not_Instrument);
+               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Var_Decl, 'X');
+               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Iter_Expr, 'X');
+               Process_Decisions (UIC, N.As_For_Loop_Spec.F_Iter_Filter, 'W');
                return Over;
 
-            --  Aspects for which we don't want to instrument the decision
+               --  Aspects for which we don't want to instrument the decision
 
             when Ada_Aspect_Assoc =>
                declare
@@ -6379,80 +6074,39 @@ package body Instrument.Ada_Unit is
                   return Into;
                end;
 
-            --  Declare expressions: do not process the nested decisions in the
-            --  declarations, as those will be processed when instrumenting
-            --  them, but do process the final expression.
+               --  Declare expressions: do not process the nested decisions
+               --  in the declarations, as those will be processed when
+               --  instrumenting them, but do process the final expression.
 
             when Ada_Decl_Expr =>
-               Process_Decisions
-                 (UIC, N.As_Decl_Expr.F_Expr, 'X', Do_Not_Instrument);
+               Process_Decisions (UIC, N.As_Decl_Expr.F_Expr, 'X');
                return Over;
 
-            --  All other cases, continue scan
+               --  All other cases, continue scan
 
             when others =>
                return Into;
-         end case;
-      end Process_Node;
+            end case;
+         end Process_Node;
 
-   --  Start of processing for Process_Decisions
+         --  Start of processing for Process_Decisions
+
+      begin
+         if N.Is_Null then
+            return;
+         end if;
+         Hash_Entries.Init;
+         N.Traverse (Process_Node'Access);
+         Hash_Entries.Free;
+      end Process_Decisions;
 
    begin
       if N.Is_Null then
          return;
       end if;
-      Hash_Entries.Init;
-      N.Traverse (Process_Node'Access);
-      Hash_Entries.Free;
-   end Process_Decisions;
-
-   ------------------
-   -- Has_Decision --
-   ------------------
-
-   function Has_Decision
-     (UIC : Ada_Unit_Inst_Context; T : Ada_Node'Class) return Boolean
-   is
-      function Visit (N : Ada_Node'Class) return Visit_Status;
-      --  If N's kind indicates the presence of a decision, return Stop,
-      --  otherwise return Into.
-      --
-      --  We know have a decision as soon as we have a logical operator (by
-      --  definition), an IF-expression (its condition is a decision), a
-      --  quantified expression or an iterator filter in a For_Loop_Spec.
-      --
-      --  Do not recurse into the declarations of declare expressions as those
-      --  are handled separately.
-
-      -----------
-      -- Visit --
-      -----------
-
-      function Visit (N : Ada_Node'Class) return Visit_Status is
-      begin
-         if N.Kind in Ada_Decl_List_Range
-           and then N.Parent /= No_Ada_Node
-           and then N.Parent.Kind in Ada_Decl_Expr
-         then
-            return Over;
-         elsif N.Kind in Ada_Expr
-            and then
-              (Is_Complex_Decision (UIC, N.As_Expr)
-               or else N.Kind in Ada_If_Expr | Ada_Quantified_Expr_Range
-               or else (N.Kind in Ada_For_Loop_Spec_Range
-                        and then not N.As_For_Loop_Spec.F_Iter_Filter.Is_Null))
-         then
-            return Stop;
-         else
-            return Into;
-         end if;
-      end Visit;
-
-   --  Start of processing for Has_Decision
-
-   begin
-      return T.Traverse (Visit'Access) = Stop;
-   end Has_Decision;
+      Process_Decisions (UIC, N, T);
+      N.Traverse (Process_Decl_Expr'Access);
+   end Process_Expression;
 
    -------------------------
    -- Is_Logical_Operator --
@@ -8537,9 +8191,7 @@ package body Instrument.Ada_Unit is
                      or else (SD.Is_Contract
                        and then Assertion_Coverage_Enabled));
                begin
-                  if SD.Do_Not_Instrument then
-                     Set_Decision_SCO_Non_Instr (HL_SCO);
-                  elsif Should_Instrument then
+                  if Should_Instrument then
                      Insert_Decision_Witness (UIC, SD, Path_Count (HL_SCO));
                   end if;
                end;
