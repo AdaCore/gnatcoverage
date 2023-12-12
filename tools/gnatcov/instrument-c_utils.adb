@@ -245,37 +245,6 @@ package body Instrument.C_Utils is
       return Res;
    end Get_Children;
 
-   ----------------------
-   -- Get_Lambda_Exprs --
-   ----------------------
-
-   function Get_Lambda_Exprs (N : Cursor_T) return Cursor_Vectors.Vector is
-      Res : Vector;
-
-      function Process (Cursor : Cursor_T) return Child_Visit_Result_T;
-      --  Helper for Visit_Children. Add every lambda expr under Cursor to Res,
-      --  _but_ the lambda expressions nested in other lambda expressions.
-
-      -------------
-      -- Process --
-      -------------
-
-      function Process (Cursor : Cursor_T) return Child_Visit_Result_T is
-      begin
-         if Kind (Cursor) = Cursor_Lambda_Expr then
-            Res.Append (Cursor);
-            return Child_Visit_Continue;
-         end if;
-         return Child_Visit_Recurse;
-      end Process;
-
-   --  Start of processing for Get_Lambda_Exprs
-
-   begin
-      Visit_Children (N, Process'Access);
-      return Res;
-   end Get_Lambda_Exprs;
-
    ---------------
    -- To_Vector --
    ---------------
