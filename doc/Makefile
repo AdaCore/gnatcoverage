@@ -41,7 +41,7 @@ prepare-installdir.%:
 # expect to have a line like << master_doc = "bla" or 'bla' >> someplace.
 
 MASTER_DOC=$(shell sed -n -e \
-   "s/master_doc.*=[^'\"]*['\"]\([^'\"]*\).*/\1/p" conf.py)
+	"s/master_doc.*=[^'\"]*['\"]\([^'\"]*\).*/\1/p" conf.py)
 
 # Make sure the PDF we install has a meaningful name and leave the html
 # alone so internal hyperlinks to the toplevel page remain functional.
@@ -107,9 +107,9 @@ prepare-builddir.%: $(PREPARE_IMAGES)
 # bits to find it in index.rst.
 look_for_gnatfuzz:
 	if [ -e "gnatfuzz/gnatfuzz_part.rst" ]; then \
-	   if [ "`grep "gnatfuzz" index.rst`" =  "" ]; then \
-	      echo "   gnatfuzz/gnatfuzz_part" >> index.rst; \
-	   fi; \
+		if [ "`grep "gnatfuzz" index.rst`" =  "" ]; then \
+			sed -i -e 's/\.\. Optional GNATfuzz part/   gnatfuzz\/gnatfuzz_part/g' index.rst; \
+		fi; \
 	fi
 
 build.pdf: look_for_gnatfuzz prepare-builddir.pdf
