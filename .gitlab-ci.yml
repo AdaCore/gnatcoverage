@@ -42,7 +42,7 @@ build:
   interruptible: true
   services:
      - image:gnatcov
-     - cpu:8
+     - cpu:16
      - mem:16
   stage: build
   script:
@@ -163,7 +163,7 @@ test_bin_traces:
   interruptible: true
   services:
      - image:gnatcov
-     - cpu:8
+     - cpu:16
      - mem:16
   stage: test
   script:
@@ -185,7 +185,7 @@ test_src_traces:
   interruptible: true
   services:
      - image:gnatcov
-     - cpu:8
+     - cpu:16
      - mem:16
   stage: test
   script:
@@ -207,7 +207,7 @@ test_spark:
   interruptible: true
   services:
      - image:gnatcov
-     - cpu:8
+     - cpu:16
      - mem:16
   stage: test
   script:
