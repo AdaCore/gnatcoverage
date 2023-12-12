@@ -212,6 +212,6 @@ for f in all_rt_src:
 
 # Create the library per se.
 run(
-    ["ar", "rcs", os.path.join(adainclude_dir, "libgnat.a")] + all_obj_files,
+    ["ar", "rcs", os.path.join(local_rt, "libgnat.a")] + all_obj_files,
     what="archival of the Ada runtime",
 )
