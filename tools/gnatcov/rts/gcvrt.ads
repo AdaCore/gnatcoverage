@@ -17,6 +17,8 @@
 ------------------------------------------------------------------------------
 
 --  Namespace for units generated for instrumentation purposes
+--
+--  This unit needs to be compilable with Ada 95 compilers
 
 package GCVRT is 
    pragma Pure;

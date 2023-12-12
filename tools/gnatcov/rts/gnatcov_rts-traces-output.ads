@@ -23,7 +23,11 @@
 ------------------------------------------------------------------------------
 
 --  Namespace for all support packages required to dump traces
+--
+--  This unit needs to be compilable with Ada 95 compilers
 
 package GNATcov_RTS.Traces.Output is
+
+   pragma Pure;
 
 end GNATcov_RTS.Traces.Output;
