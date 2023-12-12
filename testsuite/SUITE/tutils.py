@@ -291,7 +291,10 @@ def gprbuild(project,
     # Now cleanup, do build and check status
     thistest.cleanup(project)
 
-    builder = thistest.suite_gprpgm_for(os.path.basename(BUILDER.BASE_COMMAND))
+    # lookup the hook for the executable name without extension
+    builder = thistest.suite_gprpgm_for(
+        os.path.splitext(os.path.basename(BUILDER.BASE_COMMAND))[0]
+    )
 
     if builder is None:
         builder = BUILDER.BASE_COMMAND
