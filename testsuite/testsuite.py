@@ -40,7 +40,7 @@ from SUITE.qdata import SUITE_context, TC_status, TOOL_info, OPT_info_from
 
 import SUITE.control as control
 
-from SUITE.control import BUILDER
+from SUITE.control import BUILDER, _runtime_info
 from SUITE.control import altrun_opt_for, altrun_attr_for
 from SUITE.control import cargs_opt_for, cargs_attr_for
 
@@ -578,6 +578,15 @@ class TestPyRunner:
             testcase_cmd.append('--%(opt)s=%(val)s' % {
                 'opt': altrun_opt_for(pgm, cmd),
                 'val': getattr(mopt, altrun_attr_for(pgm, cmd))})
+
+        # --gpr<tool> family
+        for pgm in control.ALTRUN_GPR:
+            if getattr(mopt, altrun_attr_for(pgm)) is None:
+                continue
+            testcase_cmd.append(
+                f"--{altrun_opt_for(pgm)}="
+                f"{getattr(mopt, altrun_attr_for(pgm))}"
+            )
 
         # --cargs family
 
@@ -1373,31 +1382,11 @@ class TestSuite(e3.testsuite.Testsuite):
         support library in use, as conveyed by the --RTS command-line
         option.
         """
+        return _runtime_info(
+            self.main.args.RTS,
+            self.env.target.platform
+        ).discrs
 
-        # Match light-tasking before light otherwise the wrong discriminant
-        # will be selected.
-
-        # ex --RTS=powerpc-elf/light-tasking or --RTS=light-tasking
-
-        if "light-tasking" in self.main.args.RTS:
-            return ["RTS_RAVENSCAR", "RTS_LIGHT_TASKING"]
-
-        # --RTS=light-<board> or --RTS=light (e.g. for VxWorks) correspond to
-        # the former zfp-<board> variants
-
-        elif "light" in self.main.args.RTS or "zfp" in self.main.args.RTS:
-            return ["RTS_ZFP"]
-
-        # ex --RTS=powerpc-elf/embedded or --RTS=embedded or --RTS=ravenscar
-
-        elif ("embedded" in self.main.args.RTS
-              or "ravenscar" in self.main.args.RTS):
-            return ["RTS_RAVENSCAR", "RTS_EMBEDDED"]
-
-        # ex --RTS=native or --RTS=kernel, or no --RTS at all
-
-        else:
-            return ["RTS_FULL"]
 
     def _toolchain_discriminants(self):
         """
@@ -1480,7 +1469,9 @@ class TestSuite(e3.testsuite.Testsuite):
             ["kernel", "altrun"] +
             [altrun_attr_for(p0, p1)
              for p0, p1 in (control.ALTRUN_HOOK_PAIRS
-                            + control.ALTRUN_GNATCOV_PAIRS)])
+                            + control.ALTRUN_GNATCOV_PAIRS)] +
+            [altrun_attr_for(p0) for p0 in control.ALTRUN_GPR]
+        )
 
         for attr in attributes_to_resolve:
             current_value = getattr(self.main.args, attr)
@@ -1582,7 +1573,7 @@ class TestSuite(e3.testsuite.Testsuite):
         self.maybe_exec(
             bin=self._bin_for("setup", indir=ctldir), edir=ctldir)
 
-        def install_altrun_for(p0, p1, binbase):
+        def install_altrun_for(p0, p1=None, binbase=None):
             """Establish an implicit value for the --P0_P1 command line option
             if we find a matching binary program in the altrun subdir we are
             processing. BINBASE provides the binary base name to use."""
@@ -1613,6 +1604,10 @@ class TestSuite(e3.testsuite.Testsuite):
 
         for pgm, cmd in control.ALTRUN_GNATCOV_PAIRS:
             install_altrun_for(p0=pgm, p1=cmd, binbase="c%s" % cmd)
+
+        # For the gpr<tool> replacements, map on binaries called cgpr<tool>:
+        for pgm in control.ALTRUN_GPR:
+            install_altrun_for(p0=pgm, p1=None, binbase=f"c{pgm}")
 
 
 if __name__ == "__main__":

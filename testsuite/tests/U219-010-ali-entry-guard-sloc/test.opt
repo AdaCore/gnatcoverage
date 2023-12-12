@@ -1,1 +1,2 @@
 !native DEAD Uses full runtime only constructs
+RTS_ZFP DEAD Uses full runtime only constructs

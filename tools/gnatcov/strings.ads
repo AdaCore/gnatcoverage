@@ -33,6 +33,19 @@ limited with Checkpoints;
 
 package Strings is
 
+   package US renames Ada.Strings.Unbounded;
+   subtype Unbounded_String is US.Unbounded_String;
+   use all type Unbounded_String;
+   Null_Unbounded_String : Unbounded_String renames US.Null_Unbounded_String;
+   function Hash (S : Unbounded_String) return Ada.Containers.Hash_Type
+   renames US.Hash;
+   function Equal_Case_Insensitive
+     (Left, Right : Unbounded_String) return Boolean
+   renames US.Equal_Case_Insensitive;
+   function Less_Case_Insensitive
+     (Left, Right : Unbounded_String) return Boolean
+   renames US.Less_Case_Insensitive;
+
    function Hash (El : String_Access) return Ada.Containers.Hash_Type;
    --  Compute a hash from El.all
 
@@ -54,20 +67,15 @@ package Strings is
    function Has_Suffix (S : String; Suffix : String) return Boolean;
    --  True if S ends with Suffix
 
-   function "+"
-     (S : String)
-      return Ada.Strings.Unbounded.Unbounded_String
-      renames Ada.Strings.Unbounded.To_Unbounded_String;
+   function "+" (S : String) return Unbounded_String
+   renames To_Unbounded_String;
 
-   function "+"
-     (S : Ada.Strings.Unbounded.Unbounded_String)
-      return String
-      renames Ada.Strings.Unbounded.To_String;
+   function "+" (S : Unbounded_String) return String renames To_String;
 
    package String_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Natural,
-      Element_Type => Ada.Strings.Unbounded.Unbounded_String,
-      "="          => Ada.Strings.Unbounded."=");
+      Element_Type => Unbounded_String,
+      "="          => "=");
 
    procedure Read
      (CLS   : in out Checkpoints.Checkpoint_Load_State;
@@ -80,10 +88,10 @@ package Strings is
    --  Write a String_Vectors.Vector to CSS
 
    package String_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Ada.Strings.Unbounded.Unbounded_String,
-      Element_Type => Ada.Strings.Unbounded.Unbounded_String,
-      "<"          => Ada.Strings.Unbounded."<",
-      "="          => Ada.Strings.Unbounded."=");
+     (Key_Type     => Unbounded_String,
+      Element_Type => Unbounded_String,
+      "<"          => "<",
+      "="          => "=");
 
    procedure Read
      (CLS   : in out Checkpoints.Checkpoint_Load_State;
@@ -95,16 +103,16 @@ package Strings is
    --  Write a String_Maps.Map to CSS
 
    package String_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Ada.Strings.Unbounded.Unbounded_String,
-      "<"          => Ada.Strings.Unbounded.Less_Case_Insensitive,
-      "="          => Ada.Strings.Unbounded.Equal_Case_Insensitive);
+     (Element_Type => Unbounded_String,
+      "<"          => Less_Case_Insensitive,
+      "="          => Equal_Case_Insensitive);
    --  Case insensitive string set
 
    package String_Vectors_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
+     (Key_Type        => Unbounded_String,
       Element_Type    => String_Vectors.Vector,
-      Equivalent_Keys => Ada.Strings.Unbounded."=",
-      Hash            => Ada.Strings.Unbounded.Hash,
+      Equivalent_Keys => "=",
+      Hash            => Hash,
       "="             => String_Vectors."=");
 
    function To_String_Set (V : String_Vectors.Vector) return String_Sets.Set;
@@ -125,8 +133,7 @@ package Strings is
    --  from Strings_List. Also, each pattern that matched at least once is
    --  removed from Patterns_Not_Covered.
 
-   type Unbounded_String_Stream
-     (S : access Ada.Strings.Unbounded.Unbounded_String)
+   type Unbounded_String_Stream (S : access Unbounded_String)
    is new Ada.Streams.Root_Stream_Type with record
       Read_Index : Positive := 1;
    end record;

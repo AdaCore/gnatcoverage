@@ -19,8 +19,9 @@
 --  Convenience wrapper around Ada.Text_IO.
 
 private with Ada.Finalization;
-private with Ada.Strings.Unbounded;
 with Ada.Text_IO;
+
+private with Strings;
 
 package Text_Files is
 
@@ -105,11 +106,11 @@ package Text_Files is
 private
 
    use Ada.Text_IO;
-   package US renames Ada.Strings.Unbounded;
+   use Strings;
 
    type File_Type is new Ada.Finalization.Limited_Controlled with record
       File     : Ada.Text_IO.File_Type;
-      Filename : US.Unbounded_String;
+      Filename : Unbounded_String;
    end record;
 
    overriding procedure Finalize (Self : in out File_Type);

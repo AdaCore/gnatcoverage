@@ -18,7 +18,6 @@
 
 with Ada.Directories;  use Ada.Directories;
 with Ada.Environment_Variables;
-with Ada.Strings.Unbounded;
 with Ada.Unchecked_Conversion;
 
 with Interfaces;
@@ -29,15 +28,14 @@ with Binary_Files;
 with Execs_Dbase;
 with Outputs;
 with Qemu_Traces;
-with Subprocesses;  use Subprocesses;
 with Rundrv.Config; use Rundrv.Config;
+with Subprocesses;  use Subprocesses;
 with Traces_Elf;
 with Traces_Files;  use Traces_Files;
 
 package body Rundrv is
 
    package Env renames Ada.Environment_Variables;
-   package US renames Ada.Strings.Unbounded;
 
    Native_Warning : constant String :=
       "Support for coverage of non-instrumented native programs is deprecated"
@@ -172,7 +170,7 @@ package body Rundrv is
       --  command to run, as we just need to create the trace file header: do
       --  not call Run_Command in this case.
 
-      if US.Length (Run_Cmd.Command) > 0 then
+      if Run_Cmd.Command /= "" then
          Dummy := Run_Command (Run_Cmd, "gnatcov run", Ignore_Error => True);
       end if;
    end Driver;

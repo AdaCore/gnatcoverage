@@ -19,7 +19,6 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 with Ada.Containers.Indefinite_Ordered_Maps;
-with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with ALI_Files;
@@ -104,10 +103,7 @@ package body Annotations.Report is
         "="          => Message_Vectors."=");
 
    package String_Vectors is
-     new Ada.Containers.Vectors
-       (Natural,
-        Ada.Strings.Unbounded.Unbounded_String,
-        Ada.Strings.Unbounded."=");
+     new Ada.Containers.Vectors (Natural, Unbounded_String, "=");
 
    type Report_Pretty_Printer is new Pretty_Printer with record
       Current_File_Index : Source_File_Index;
@@ -302,7 +298,6 @@ package body Annotations.Report is
 
    procedure Pretty_Print_End (Pp : in out Report_Pretty_Printer) is
       use ALI_Files, ALI_Files.ALI_Annotation_Maps;
-      use Ada.Strings.Unbounded;
 
       Output : constant File_Access := Get_Output;
 
@@ -397,7 +392,7 @@ package body Annotations.Report is
 
       procedure Output_Message (C : Message_Vectors.Cursor) is
          M     : Message renames Message_Vectors.Element (C);
-         Msg   : constant String := To_String (M.Msg);
+         Msg   : constant String := +M.Msg;
          First : Natural := Msg'First;
       begin
 
@@ -551,7 +546,7 @@ package body Annotations.Report is
 
          procedure Output_Message (C : Message_Vectors.Cursor) is
             M            : Message renames Message_Vectors.Element (C);
-            Msg          : constant String := To_String (M.Msg);
+            Msg          : constant String := +M.Msg;
             First        : Natural := Msg'First;
             Show_Vectors : constant Boolean :=
               (Switches.Show_MCDC_Vectors
@@ -625,19 +620,18 @@ package body Annotations.Report is
          --  Append summary line for general summary chapter
 
          Pp.Summary.Append
-           (To_Unbounded_String
-              (Pluralize
-                 (Item_Count,
-                    (case MC is
-                       when Coverage_Violations =>
-                        Non_Exempted
-                          & Coverage_Level'Val (MC)'Img & " " & Item,
-                       when Other_Errors        =>
-                         "other message",
-                       when Coverage_Exclusions  =>
-                         "coverage exclusion",
-                       when Undetermined_Coverage =>
-                         "undetermined coverage item")) & "."));
+           (+(Pluralize
+                (Item_Count,
+                   (case MC is
+                      when Coverage_Violations =>
+                       Non_Exempted
+                         & Coverage_Level'Val (MC)'Img & " " & Item,
+                      when Other_Errors        =>
+                        "other message",
+                      when Coverage_Exclusions  =>
+                        "coverage exclusion",
+                      when Undetermined_Coverage =>
+                        "undetermined coverage item")) & "."));
 
          --  Count of total (coverable) and covered SCOs is displayed only
          --  if --all-messages is specified.
@@ -725,7 +719,7 @@ package body Annotations.Report is
       New_Line (Output.all);
 
       for L of Pp.Summary loop
-         Put_Line (Output.all, To_String (L));
+         Put_Line (Output.all, +L);
       end loop;
 
       if Has_Exempted_Region then
@@ -835,8 +829,6 @@ package body Annotations.Report is
    ------------------------
 
    procedure Pretty_Print_Start (Pp : in out Report_Pretty_Printer) is
-      use Ada.Strings.Unbounded;
-
       Output : constant File_Access := Get_Output;
 
       procedure Process_One_Trace (TF : Trace_File_Element);
@@ -850,11 +842,11 @@ package body Annotations.Report is
          Orig_Context : constant String := Original_Processing_Context (TF);
       begin
          New_Line (Output.all);
-         Put_Line (Output.all, To_String (TF.Filename));
+         Put_Line (Output.all, +TF.Filename);
          Put_Line (Output.all, "  kind     : " & Image (TF.Kind));
-         Put_Line (Output.all, "  program  : " & To_String (TF.Program_Name));
-         Put_Line (Output.all, "  date     : " & To_String (TF.Time));
-         Put_Line (Output.all, "  tag      : " & To_String (TF.User_Data));
+         Put_Line (Output.all, "  program  : " & (+TF.Program_Name));
+         Put_Line (Output.all, "  date     : " & (+TF.Time));
+         Put_Line (Output.all, "  tag      : " & (+TF.User_Data));
 
          --  For a trace that has been processed in an earlier run, provide
          --  information on original coverage assessment context.
@@ -875,15 +867,14 @@ package body Annotations.Report is
       Put_Line (Output.all, "Date and time of execution: "
                 & Image (Pp.Context.Timestamp));
       Put_Line (Output.all, "Tool version: XCOV "
-                & To_String (Pp.Context.Version));
+                & (+Pp.Context.Version));
       New_Line (Output.all);
 
       Put_Line (Output.all, "Command line:");
-      Put_Line (Output.all, To_String (Pp.Context.Command));
+      Put_Line (Output.all, +Pp.Context.Command);
       New_Line (Output.all);
 
-      Put_Line (Output.all, "Coverage level: "
-                & To_String (Pp.Context.Levels));
+      Put_Line (Output.all, "Coverage level: " & (+Pp.Context.Levels));
       New_Line (Output.all);
 
       Put_Line (Output.all, "Trace files:");

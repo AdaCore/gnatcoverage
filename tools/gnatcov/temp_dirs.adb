@@ -52,7 +52,7 @@ package body Temp_Dirs is
       --  remove it.
 
       Create_Directory (Name);
-      Self.Name := To_Unbounded_String (Name);
+      Self.Name := +Name;
       Self.Auto_Delete := Auto_Delete;
    end Create_Temporary_Directory;
 
@@ -62,7 +62,7 @@ package body Temp_Dirs is
 
    function Directory_Name (Self : Temporary_Directory) return String is
    begin
-      return To_String (Self.Name);
+      return +Self.Name;
    end Directory_Name;
 
    --------------
@@ -71,8 +71,8 @@ package body Temp_Dirs is
 
    overriding procedure Finalize (Self : in out Temporary_Directory) is
    begin
-      if Self.Name /= Null_Unbounded_String and then Self.Auto_Delete then
-         Delete_Tree (To_String (Self.Name));
+      if Self.Name /= "" and then Self.Auto_Delete then
+         Delete_Tree (+Self.Name);
          Self.Name := Null_Unbounded_String;
       end if;
    end Finalize;

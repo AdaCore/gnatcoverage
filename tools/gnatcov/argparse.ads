@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 private with Ada.Finalization;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
 with GNAT.Strings;
 
@@ -100,6 +99,8 @@ generic
    --  Enumeration type providing the set of multiple strings options
 
 package Argparse is
+
+   use all type Unbounded_String;
 
    -----------------------
    -- Commands handling --
@@ -350,8 +351,8 @@ package Argparse is
      (Args       : in out Parsed_Arguments;
       Other_Args : Parsed_Arguments)
      with Pre =>
-       (Ada.Strings.Unbounded.Length (Args.Error) = 0
-        and then Ada.Strings.Unbounded.Length (Other_Args.Error) = 0
+       (Args.Error = ""
+        and then Other_Args.Error = ""
         and then
           (Args.Command = No_Command
            or else Args.Command = Other_Args.Command));

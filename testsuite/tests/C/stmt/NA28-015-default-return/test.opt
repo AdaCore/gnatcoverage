@@ -1,1 +1,2 @@
 !x86-linux,!x86_64-linux DEAD test relies on passing command line arguments
+RTS_ZFP DEAD test relies on bin-file dump channel

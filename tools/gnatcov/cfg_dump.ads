@@ -18,10 +18,11 @@
 
 with GNAT.Strings; use GNAT.Strings;
 
-with Inputs;
 with Logging;
 with Object_Locations; use Object_Locations;
 with Slocs;            use Slocs;
+with Strings;          use Strings;
+with Traces_Files;     use Traces_Files;
 
 package CFG_Dump is
 
@@ -36,8 +37,8 @@ package CFG_Dump is
                    Locations         : User_Locations;
                    Output            : String_Access;
                    Format            : Output_Format;
-                   SCO_Files_List    : Inputs.Inputs_Type;
-                   Traces_Files_List : Inputs.Inputs_Type;
+                   SCO_Files_List    : String_Vectors.Vector;
+                   Traces_Files_List : Requested_Trace_Vectors.Vector;
                    Keep_Edges        : Boolean);
 
 end CFG_Dump;

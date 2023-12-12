@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.Regpat; use GNAT.Regpat;
@@ -29,8 +28,11 @@ with Files_Table; use Files_Table;
 with Get_SCOs;
 with Inputs;      use Inputs;
 with Outputs;     use Outputs;
+with Strings;     use Strings;
 
 package body ALI_Files is
+
+   use all type Unbounded_String;
 
    procedure Read
      (CLS : in out Checkpoint_Load_State; Value : out ALI_Annotation);
@@ -72,8 +74,6 @@ package body ALI_Files is
    -------------
 
    function Unquote (Filename : String) return String is
-      use Ada.Strings.Unbounded;
-
       Result   : Unbounded_String;
       In_Quote : Boolean := False;
       --  True when we just met a double quote inside a quoted filename. False
@@ -96,7 +96,7 @@ package body ALI_Files is
                Append (Result, C);
             end if;
          end loop;
-         return To_String (Result);
+         return +Result;
       end if;
    end Unquote;
 
@@ -366,17 +366,13 @@ package body ALI_Files is
       --  Check that the first line is a valid ALI V line.
 
       declare
-         use Ada.Strings.Unbounded;
-
          V_Line    : constant String := Get_Stripped_Line (ALI_File);
-
          Error_Msg : Unbounded_String;
       begin
          Match (V_Matcher, V_Line, Matches);
          if Matches (0) = No_Match then
             Error_Msg :=
-              To_Unbounded_String
-                ("malformed ALI file """ & ALI_Filename & """");
+              +("malformed ALI file """ & ALI_Filename & """");
 
             if V_Line'Length > 3
                  and then
@@ -388,7 +384,7 @@ package body ALI_Files is
                   & "to load ALIs from list use ""--scos=@"
                   & ALI_Filename & """");
             end if;
-            Fatal_Error (To_String (Error_Msg));
+            Fatal_Error (+Error_Msg);
          end if;
       end;
 

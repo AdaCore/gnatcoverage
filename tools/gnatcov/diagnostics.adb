@@ -140,9 +140,7 @@ package body Diagnostics is
          end if;
       end Tag_Image;
 
-      use Ada.Strings.Unbounded;
-
-      Msg   : constant String := To_String (M.Msg);
+      Msg   : constant String := +M.Msg;
       First : Natural         := Msg'First;
 
    --  Start of processing for Image
@@ -206,8 +204,6 @@ package body Diagnostics is
       Tag  : SC_Tag          := No_SC_Tag;
       Kind : Report_Kind     := Error)
    is
-      use Ada.Strings.Unbounded;
-
       M : constant Message :=
             (Kind => Kind,
              Exe  => Exe,
@@ -215,7 +211,7 @@ package body Diagnostics is
              Sloc => Sloc,
              SCO  => SCO,
              Tag  => Tag,
-             Msg  => To_Unbounded_String (Msg));
+             Msg  => +Msg);
    begin
       Output_Message (M);
       Store_Message (M);

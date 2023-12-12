@@ -35,6 +35,11 @@ library project GNATcov_RTS is
    --  gnatcov_rts_c-base_io.c C unit instead (implemented on top of libc's
    --  stdout/fwrite/putchar).
 
+   For_CCG : Boolean := external ("GNATCOV_RTS_FOR_CCG", "false");
+   --  Whether to configure the project for compilation with CCG. This means
+   --  excluding C from the source languages, as there is no C compiler for that
+   --  environment and C sources need to be managed manually.
+
    RTS_Profile : RTS_Profile_Type :=
      external ("GNATCOV_RTS_RTS_PROFILE", "full");
 
@@ -42,18 +47,24 @@ library project GNATcov_RTS is
    -- Configuration logic --
    -------------------------
 
-   Languages := ("C");
+   Languages := ();
    Excluded_Source_Files := ();
 
    --  Compute the set of languages for this project. When Ada is enabled,
    --  exclude the C implementation for stdout output primitives.
 
    case With_Ada is
-      when "false" => null;
+      when "false" =>
+         Languages := ("C");
       when "true"  =>
-         Languages := Languages & ("Ada");
-         Excluded_Source_Files :=
-           Excluded_Source_Files & ("gnatcov_rts_c-base_io.c");
+         Languages := ("Ada");
+         case For_CCG is
+            when "true"  => null;
+            when "false" =>
+               Excluded_Source_Files :=
+                  Excluded_Source_Files & ("gnatcov_rts_c-base_io.c");
+               Languages := Languages & ("C");
+         end case;
    end case;
 
    --  If the runtime does not have support to create files, exclude units that
@@ -64,11 +75,17 @@ library project GNATcov_RTS is
          Excluded_Source_Files :=
            Excluded_Source_Files
            & ("gnatcov_rts-traces-output-files.adb",
-              "gnatcov_rts-traces-output-files.ads",
-              "gnatcov_rts_c-os_interface.c",
-              "gnatcov_rts_c-os_interface.h",
-              "gnatcov_rts_c-traces-output-files.c",
-              "gnatcov_rts_c-traces-output-files.h");
+              "gnatcov_rts-traces-output-files.ads");
+         case For_CCG is
+            when "true"  => null;
+            when "false" =>
+               Excluded_Source_Files :=
+                 Excluded_Source_Files
+                 & ("gnatcov_rts_c-os_interface.c",
+                    "gnatcov_rts_c-os_interface.h",
+                    "gnatcov_rts_c-traces-output-files.c",
+                    "gnatcov_rts_c-traces-output-files.h");
+         end case;
       when "full" => null;
    end case;
 

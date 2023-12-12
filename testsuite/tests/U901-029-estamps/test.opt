@@ -1,1 +1,2 @@
 src-traces,!native DEAD checking trace stamp, no way to get from BB programs
+native,RTS_ZFP DEAD checking trace stamp, no way to get it from light runtime

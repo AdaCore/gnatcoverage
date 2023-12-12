@@ -16,13 +16,14 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Strings.Unbounded;
+with Strings; use Strings;
 
 package body Highlighting is
 
+   use all type Unbounded_String;
+
    function Get_Token_Last
-     (Buffer : Buffer_Type;
-      First : Natural) return Natural;
+     (Buffer : Buffer_Type; First : Natural) return Natural;
    --  Return the last character index in Buffer of the token that starts at
    --  index First.
 
@@ -31,8 +32,7 @@ package body Highlighting is
    --------------------
 
    function Get_Token_Last
-     (Buffer : Buffer_Type;
-      First : Natural) return Natural
+     (Buffer : Buffer_Type; First : Natural) return Natural
    is
       Position : Natural := First + 1;
    begin
@@ -173,8 +173,6 @@ package body Highlighting is
 
    function Format_Token (Text : String; Kind : Some_Token_Kind) return String
    is
-      use Ada.Strings.Unbounded;
-
       Hex_Digits : constant array (0 .. 15) of Character := "0123456789abcdef";
       Result     : Unbounded_String;
 
@@ -197,7 +195,7 @@ package body Highlighting is
             end if;
          end;
       end loop;
-      return To_String (Result);
+      return +Result;
    end Format_Token;
 
 end Highlighting;

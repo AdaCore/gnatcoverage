@@ -448,7 +448,7 @@ package body Checkpoints is
          CSS              : aliased Checkpoint_Save_State :=
            (Root_Stream_Type with
             Stream   => Stream (SF),
-            Filename => To_Unbounded_String (Filename),
+            Filename => +Filename,
             Purpose  => Purpose);
          Supported_Levels : Levels_Type := Current_Levels;
       begin
@@ -564,7 +564,7 @@ package body Checkpoints is
          CLS : Checkpoint_Load_State :=
            (Root_Stream_Type with
             Stream   => Stream (SF),
-            Filename => To_Unbounded_String (Filename),
+            Filename => +Filename,
             Purpose  => Purpose,
             others   => <>);
 

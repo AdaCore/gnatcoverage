@@ -241,20 +241,29 @@ class RuntimeInfo(object):
         self.has_kernel_runtime = False
         self.has_light_runtime = False
         self.has_exception_propagation = True
+        self.discrs = []
 
         if not self.runtime_name:
             self.has_full_runtime = True
+            self.discrs = ["RTS_FULL"]
         elif 'embedded' in self.runtime_name:
             self.has_ravenscar_runtime = True
+            self.discrs = ["RTS_RAVENSCAR", "RTS_EMBEDDED"]
         elif 'light-tasking' in self.runtime_name:
             self.has_ravenscar_runtime = True
             self.has_exception_propagation = False
+            self.discrs = ["RTS_RAVENSCAR", "RTS_LIGHT_TASKING"]
         elif self.runtime_name.startswith('zfp'):
             self.has_light_runtime = True
             self.has_exception_propagation = False
-        elif self.runtime_name.startswith('light-'):
+            self.discrs = ["RTS_ZFP"]
+        elif (
+            self.runtime_name == "light" 
+            or self.runtime_name.startswith('light-')
+        ):
             self.has_light_runtime = True
             self.has_exception_propagation = False
+            self.discrs = ["RTS_ZFP"]
         elif self.runtime_name == 'kernel':
             self.has_kernel_runtime = True
         else:
@@ -273,10 +282,17 @@ class RuntimeInfo(object):
             else 'gnatcov_rts'
         )
 
-def runtime_info(runtime=None):
-    if runtime is None:
-        runtime = env.main_options.RTS
+def _runtime_info(runtime, target):
+    if target == "c":
+        assert not runtime
+        # CCG's runtime has no name, but it is for our purposes equivalent
+        # to a light runtime.
+        runtime = "light"
     return RuntimeInfo(runtime)
+
+
+def runtime_info():
+    return _runtime_info(env.main_options.RTS, env.target.platform)
 
 
 # Target specificities. We don't have many variants but need to match each
@@ -381,16 +397,19 @@ ALTRUN_HOOK_PAIRS = (('pre', 'testsuite'),
                      ('pre', 'testcase'),
                      ('post', 'testcase'))
 
+# Allowed alternatives for the --gpr<tool> family of command line options
+ALTRUN_GPR = ('gprbuild', )
 
-def altrun_opt_for(p0, p1):
+
+def altrun_opt_for(p0, p1=None):
     """Name of the command line option controlling the ALTRUN (P0, P1) pair."""
-    return "%s_%s" % (p0, p1)
+    return "%s_%s" % (p0, p1) if p1 else p0
 
 
-def altrun_attr_for(p0, p1):
+def altrun_attr_for(p0, p1=None):
     """Name of our internal controlling options attribute for the
     ALTRUN (P0, P1) pair."""
-    return "%s_%s" % (p0, p1)
+    return "%s_%s" % (p0, p1) if p1 else p0
 
 
 def cargs_opt_for(lang):
@@ -418,6 +437,14 @@ def add_shared_options_to(parser, toplevel):
             '--%s' % altrun_opt_for(pgm, cmd), dest=altrun_attr_for(pgm, cmd),
             metavar="CMD",
             help='Use CMD instead of "%s %s"' % (pgm, cmd))
+
+    # --gpr<tool> family
+    for pgm in ALTRUN_GPR:
+        parser.add_argument(
+            f'--{altrun_opt_for(pgm)}', dest=altrun_attr_for(pgm),
+            metavar="CMD",
+            help=f'use CMD instead of "{pgm}"'
+        )
 
     # Valgrind control
     parser.add_argument(

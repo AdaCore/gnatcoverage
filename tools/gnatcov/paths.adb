@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling;
-with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
 with GNAT.Regpat;
@@ -25,6 +24,8 @@ with GNAT.Regpat;
 with Strings; use Strings;
 
 package body Paths is
+
+   use all type Unbounded_String;
 
    On_Windows : constant Boolean := GNAT.OS_Lib.Directory_Separator = '\';
 
@@ -109,7 +110,6 @@ package body Paths is
    --------------------
 
    function Glob_To_Regexp (Pattern : String) return String is
-      use Ada.Strings.Unbounded;
       use GNAT.Regpat;
 
       Pat : constant String :=
@@ -187,8 +187,7 @@ package body Paths is
                --  De-duplicate directory separators so that "a//b" can match
                --  "a/b".
 
-               if Length (Res) = 0 or else Element (Res, Length (Res)) /= '/'
-               then
+               if Res = "" or else Element (Res, Length (Res)) /= '/' then
                   Append (Res, '/');
                end if;
 
@@ -197,7 +196,7 @@ package body Paths is
          end case;
          I := I + 1;
       end loop;
-      return To_String (Res);
+      return +Res;
    end Glob_To_Regexp;
 
    --------------------------
@@ -282,7 +281,6 @@ package body Paths is
       --
       --  At least for dirsep purposes, we craft the new value incrementally.
 
-      use Ada.Strings.Unbounded;
       use Ada.Characters.Handling;
       Res : Unbounded_String;
 
@@ -305,7 +303,7 @@ package body Paths is
          end if;
       end loop;
 
-      return To_String (Res);
+      return +Res;
    end Normalize_Windows_Pattern;
 
    -------------------------------
@@ -319,23 +317,22 @@ package body Paths is
              and then Path (Path'First + 1) = ':';
    end Starts_With_Drive_Pattern;
 
-   -------------------------
-   -- Escape_Windows_Path --
-   -------------------------
+   ----------------------------
+   -- Workaround_Simple_Name --
+   ----------------------------
 
-   function Escape_Backslashes (Str : String) return String
-   is
-      use Ada.Strings.Unbounded;
-      Result : Unbounded_String;
+   function Workaround_Simple_Name (Path : String) return String is
    begin
-      for C of Str loop
-         if C = '\' then
-            Append (Result, "\\");
-         else
-            Append (Result, C);
+      --  Return the Path suffix that precedes the first directory separator
+      --  according to the current platform. Return the full string if there is
+      --  no separator.
+
+      for I in reverse Path'Range loop
+         if Path (I) = '/' or else (On_Windows and then Path (I) = '\') then
+            return Path (I + 1 .. Path'Last);
          end if;
       end loop;
-      return +Result;
-   end Escape_Backslashes;
+      return Path;
+   end Workaround_Simple_Name;
 
 end Paths;

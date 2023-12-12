@@ -24,6 +24,8 @@ with Strings; use Strings;
 
 package Coverage_Options is
 
+   use all type Unbounded_String;
+
    type Coverage_Level is
      (Insn, Branch, Stmt, Decision, MCDC, UC_MCDC, ATC, ATCC);
    --  Coverage objectives supported by xcov. The following values are

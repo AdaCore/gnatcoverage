@@ -291,7 +291,12 @@ def gprbuild(project,
     # Now cleanup, do build and check status
     thistest.cleanup(project)
 
-    args = (to_list(BUILDER.BASE_COMMAND) +
+    builder = thistest.suite_gprpgm_for(os.path.basename(BUILDER.BASE_COMMAND))
+
+    if builder is None:
+        builder = BUILDER.BASE_COMMAND
+
+    args = (to_list(builder) +
             ['-P%s' % project] + all_gargs + all_cargs + all_largs)
     p = run_and_log(args, output=out, timeout=thistest.options.timeout)
     if register_failure:
@@ -836,7 +841,7 @@ def run_cov_program(executable, out=None, env=None, exec_args=None,
     inp = None
 
     # If we are in a cross configuration, run the program using GNATemulator
-    if thistest.options.target:
+    if thistest.options.target and thistest.env.target.platform != "c":
         kernel = thistest.options.kernel
         board = thistest.options.board or thistest.env.target.machine
         args.append('{}-gnatemu'.format(thistest.env.target.triplet))
@@ -852,6 +857,14 @@ def run_cov_program(executable, out=None, env=None, exec_args=None,
         # failing. Redirecting the standard input to /dev/null works around
         # this issue.
         inp = DEVNULL
+    else:
+        # Native programs using a light runtime can't set the exit code, and
+        # will often terminate with a non-zero status code even though nothing
+        # went wrong. There is thus no point in checking the exit code in this
+        # configuration.
+        register_failure = (
+            register_failure and not RUNTIME_INFO.has_light_runtime
+        )
 
     args.append(executable)
     args.extend(exec_args)

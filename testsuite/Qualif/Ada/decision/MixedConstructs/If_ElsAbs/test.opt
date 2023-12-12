@@ -1,0 +1,1 @@
+c XFAIL Runtime check bug in CCG, see eng/toolchain/gnat-llvm#73

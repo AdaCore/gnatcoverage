@@ -22,7 +22,6 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Finalization;
-with Ada.Strings.Unbounded.Hash;
 
 with Namet; use Namet;
 
@@ -71,7 +70,7 @@ package Instrument.C is
 
    overriding procedure Emit_Dump_Helper_Unit_Manual
      (Self          : in out C_Family_Instrumenter_Type;
-      Helper_Unit   : out US.Unbounded_String;
+      Helper_Unit   : out Unbounded_String;
       Dump_Config   : Any_Dump_Config;
       Prj           : Prj_Desc);
    --  Emit the dump helper unit
@@ -187,7 +186,7 @@ package Instrument.C is
       Decision : Cursor_T;
       --  Decision expression
 
-      State : Ada.Strings.Unbounded.Unbounded_String;
+      State : Unbounded_String;
       --  Name of MC/DC state local variable
    end record;
 
@@ -198,7 +197,7 @@ package Instrument.C is
       Condition : Cursor_T;
       --  Condition expression
 
-      State : Ada.Strings.Unbounded.Unbounded_String;
+      State : Unbounded_String;
       --  Name of MC/DC state local variable
 
       First : Boolean;
@@ -313,7 +312,7 @@ package Instrument.C is
    package Source_Of_Interest_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => Unbounded_String,
       Element_Type    => Source_Of_Interest,
-      Hash            => Hash,
+      Hash            => Strings.Hash,
       Equivalent_Keys => "=");
 
    type File_Scope_Type is record
@@ -395,6 +394,14 @@ package Instrument.C is
    --  UIC.Sources_Of_Interest. Return whether this source file is a source of
    --  interest.
 
+   function C_String_Literal (Str : String) return String;
+   --  Turn Str into the corresponding C string literal. For instance:
+   --
+   --    C_String_Literal ("foo") = """foo"""
+   --    C_String_Literal ("a\b") = """a\\b"""
+   --    C_String_Literal ("a\b") = """a\\b"""
+   --    C_String_Literal ("a""b") = """a\""b"""
+
 private
 
    function Find_Instrumented_Entities
@@ -435,21 +442,21 @@ private
       UIC      : in out C_Unit_Inst_Context'Class;
       LL_SCO   : Nat;
       Decision : Cursor_T;
-      State    : US.Unbounded_String) is null;
+      State    : Unbounded_String) is null;
 
    procedure Instrument_Condition
      (Pass      : Pass_Kind;
       UIC       : in out C_Unit_Inst_Context'Class;
       LL_SCO    : Nat;
       Condition : Cursor_T;
-      State     : US.Unbounded_String;
+      State     : Unbounded_String;
       First     : Boolean) is null;
 
    procedure Insert_MCDC_State
      (Pass       : Pass_Kind;
       UIC        : in out C_Unit_Inst_Context'Class;
       Name       : String;
-      MCDC_State : out US.Unbounded_String) is null;
+      MCDC_State : out Unbounded_String) is null;
 
    procedure Insert_Text_Before_Token
      (Pass : Pass_Kind;
@@ -493,7 +500,7 @@ private
       --  Such declarations must go before being used, so this should
       --  correspond to the first rewritable location.
 
-      Output_Filename : Ada.Strings.Unbounded.Unbounded_String;
+      Output_Filename : Unbounded_String;
    end record;
 
    overriding procedure Initialize (Self : in out C_Source_Rewriter);

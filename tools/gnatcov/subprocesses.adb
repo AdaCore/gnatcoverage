@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Strings;
 with Ada.Text_IO; use Ada.Text_IO;
 
 with GNAT.OS_Lib;
@@ -60,7 +59,6 @@ package body Subprocesses is
 
    function "=" (L, R : Command_Type) return Boolean
    is
-      use Ada.Strings.Unbounded;
       use String_Vectors;
    begin
       return L.Command = R.Command
@@ -285,7 +283,6 @@ package body Subprocesses is
       --  Instantiate the argument list
 
       declare
-         use Ada.Strings.Unbounded;
          Log : Unbounded_String;
       begin
          Process_Types.Add_Argument (Args, Program.all);
@@ -485,7 +482,7 @@ package body Subprocesses is
          Environment,
          +Pool.Process_Infos (Id).Output_File,
 
-         --  TODO???: there will be mangling on the stderr if stdout was
+         --  TODO??? there will be mangling on the stderr if stdout was
          --  redirected to an output file.
 
          Err_To_Out   => Output_File = "",

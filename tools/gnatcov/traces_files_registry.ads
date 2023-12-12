@@ -17,13 +17,12 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Vectors;
-with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
 with Checkpoints;
 with Coverage;
+with Strings;      use Strings;
 with Traces_Files; use Traces_Files;
-
 with Traces_Source;
 
 --  This package keeps track of all processed trace files
@@ -31,26 +30,26 @@ with Traces_Source;
 package Traces_Files_Registry is
 
    type Trace_File_Element is limited record
-      Filename : Ada.Strings.Unbounded.Unbounded_String;
+      Filename : Unbounded_String;
       --  File name for the trace file, as passed to "gnatcov coverage"
 
       Kind : Trace_File_Kind;
       --  Kind of trace file this describes
 
-      Context : Ada.Strings.Unbounded.Unbounded_String;
+      Context : Unbounded_String;
       --  Empty string if this trace file was loaded by this instance of
       --  gnatcov.  Otherwise, string to be decoded with Coverage.From_String,
       --  that describes the context where this trace file has actually been
       --  processed.
 
-      Program_Name : Ada.Strings.Unbounded.Unbounded_String;
+      Program_Name : Unbounded_String;
       --  Name of the program that was executed to produce this trace
 
-      Time : Ada.Strings.Unbounded.Unbounded_String;
+      Time : Unbounded_String;
       --  Production time for this trace file. The date format is the one
       --  returned by Traces_Files.Format_Date_Info.
 
-      User_Data : Ada.Strings.Unbounded.Unbounded_String;
+      User_Data : Unbounded_String;
       --  Custom user data attached to this trace file
    end record;
 

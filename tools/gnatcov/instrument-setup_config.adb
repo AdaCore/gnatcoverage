@@ -318,11 +318,11 @@ package body Instrument.Setup_Config is
                if Dump_Config.Filename_Simple then
                   Dump_Config_JSON.Set_Field ("dump-filename-simple", True);
                end if;
-               if Length (Dump_Config.Filename_Env_Var) /= 0 then
+               if Dump_Config.Filename_Env_Var /= "" then
                   Dump_Config_JSON.Set_Field
                     ("dump-filename-env-var", Dump_Config.Filename_Env_Var);
                end if;
-               if Length (Dump_Config.Filename_Prefix) /= 0 then
+               if Dump_Config.Filename_Prefix /= "" then
                   Dump_Config_JSON.Set_Field
                     ("dump-filename-prefix", Dump_Config.Filename_Prefix);
                end if;

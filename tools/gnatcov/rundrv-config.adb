@@ -16,12 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-
 with GNAT.Regpat; use GNAT.Regpat;
 
 with Rundrv.Handlers; use Rundrv.Handlers;
-with Strings;         use Strings;
 
 package body Rundrv.Config is
 
@@ -57,7 +54,7 @@ package body Rundrv.Config is
    --  arguments list.
 
    type Builtin_Target_Type is record
-      Pattern        : Ada.Strings.Unbounded.Unbounded_String;
+      Pattern        : Unbounded_String;
       --  Pattern used to match a target family string
 
       Driver_Creator : Driver_Creator_Type;
@@ -139,8 +136,7 @@ package body Rundrv.Config is
    -- Available_Targets --
    -----------------------
 
-   function Available_Targets return String
-   is
+   function Available_Targets return String is
       Result : Unbounded_String;
       First  : Boolean := True;
    begin
@@ -150,9 +146,9 @@ package body Rundrv.Config is
          end if;
          First := False;
 
-         Append (Result, +T.Pattern);
+         Append (Result, T.Pattern);
       end loop;
-      return To_String (Result);
+      return +Result;
    end Available_Targets;
 
 end Rundrv.Config;

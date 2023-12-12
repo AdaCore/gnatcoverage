@@ -458,7 +458,7 @@ package body Annotations.Html is
 
       Pi ("<html lang=""en"">");
       Pi ("<head>");
-      Pi ("  <title>" & To_String (Pp.Title_Prefix)
+      Pi ("  <title>" & (+Pp.Title_Prefix)
           & "Coverage results</title>");
       Pi ("  <link rel=""stylesheet"" type=""text/css"" href=""xcov.css"">");
       Pi ("</head>");
@@ -484,11 +484,11 @@ package body Annotations.Html is
 
       for El of Sorted_Traces_Files loop
          Pi ("    <tr>");
-         Pi ("      <td>" & To_String (El.Filename) & "</td>");
+         Pi ("      <td>" & (+El.Filename) & "</td>");
          Pi ("      <td>" & Image (El.Kind) & "</td>");
-         Pi ("      <td>" & To_String (El.Program_Name) & "</td>");
-         Pi ("      <td>" & To_String (El.Time) & "</td>");
-         Pi ("      <td>" & To_String (El.User_Data) & "</td>");
+         Pi ("      <td>" & (+El.Program_Name) & "</td>");
+         Pi ("      <td>" & (+El.Time) & "</td>");
+         Pi ("      <td>" & (+El.User_Data) & "</td>");
          Pi ("    </tr>");
       end loop;
 
@@ -598,7 +598,7 @@ package body Annotations.Html is
 
       Plh (Pp, "<html lang=""en"">");
       Plh (Pp, "<head>");
-      Plh (Pp, "  <title>" & To_String (Pp.Title_Prefix) & "Coverage of "
+      Plh (Pp, "  <title>" & (+Pp.Title_Prefix) & "Coverage of "
                 & To_Xml_String (Simple_Source_Filename) & "</title>");
       Plh (Pp, "  <link rel=""stylesheet"" type=""text/css"" "
              & "href=""xcov.css"">");

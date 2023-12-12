@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Direct_IO;
-with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
@@ -911,7 +910,7 @@ package body Instrument.Input_Traces is
    begin
       Read_Source_Trace_File (Filename, Result);
       if not Result.Success then
-         Outputs.Fatal_Error (Ada.Strings.Unbounded.To_String (Result.Error));
+         Outputs.Fatal_Error (+Result.Error);
       end if;
    end Dump_Source_Trace_File;
 

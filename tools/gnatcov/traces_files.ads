@@ -16,7 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Strings.Unbounded;
+with Ada.Containers.Vectors;
 with Interfaces;  use Interfaces;
 private with System.Storage_Elements;
 
@@ -26,6 +26,7 @@ with GNATCOLL.Mmap;
 
 with Binary_Files; use Binary_Files;
 with Qemu_Traces;  use Qemu_Traces;
+with Strings;      use Strings;
 with Traces_Dbase; use Traces_Dbase;
 with Traces;
 
@@ -34,7 +35,7 @@ package Traces_Files is
    type Read_Result (Success : Boolean := True) is record
       case Success is
          when False =>
-            Error : Ada.Strings.Unbounded.Unbounded_String;
+            Error : Unbounded_String;
          when True =>
             null;
       end case;
@@ -255,9 +256,19 @@ package Traces_Files is
    procedure Dump_Raw_Trace_File (Filename : String);
    --  Raw dump of a trace file
 
+   type Requested_Trace is record
+      Filename   : Unbounded_String;
+      Executable : Unbounded_String;
+   end record;
+   --  Trace file that is passed to gnatcov for analysis. Filename designates
+   --  the trace file, and, if non-empty, Executable overrides the binary used
+   --  for decision mapping when analyzing this trace file.
+
+   package Requested_Trace_Vectors is new Ada.Containers.Vectors
+     (Positive, Requested_Trace);
+
 private
 
-   package US renames Ada.Strings.Unbounded;
    package SSE renames System.Storage_Elements;
    package Mmap renames GNATCOLL.Mmap;
 
@@ -285,7 +296,7 @@ private
    end record;
 
    type Trace_File_Type is record
-      Filename : US.Unbounded_String;
+      Filename : Unbounded_String;
       Header   : Trace_File_Header;
 
       --  Linked list of infos
@@ -295,7 +306,7 @@ private
    end record;
 
    type Trace_File_Descriptor (Writeable : Boolean := False) is record
-      Filename : US.Unbounded_String;
+      Filename : Unbounded_String;
       Header   : Trace_File_Header;
 
       --  Use memory mapping to read trace files (for efficiency), and
@@ -355,6 +366,6 @@ private
      (Trace_File.Header.Kind);
 
    function Filename (Trace_File : Trace_File_Type) return String is
-     (US.To_String (Trace_File.Filename));
+     (+Trace_File.Filename);
 
 end Traces_Files;
