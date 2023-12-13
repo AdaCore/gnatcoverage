@@ -3937,6 +3937,7 @@ package body Instrument.C is
 
             if Has_Manual_Indication then
                declare
+                  PP_File  : constant Virtual_File := Create (+(+PP_Filename));
                   Tmp_File : constant Virtual_File := Create (+Tmp_Filename);
                   Success  : Boolean;
                begin
@@ -3950,8 +3951,9 @@ package body Instrument.C is
 
                   --  Overwrite the original file with its newer version
 
+                  PP_File.Delete (Success);
                   Tmp_File.Rename
-                    (Full_Name => Create (+(+PP_Filename)),
+                    (Full_Name => PP_File,
                      Success   => Success);
                   if not Success then
                      Outputs.Fatal_Error
