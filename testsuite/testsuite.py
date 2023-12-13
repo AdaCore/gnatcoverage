@@ -1104,8 +1104,11 @@ class TestSuite(e3.testsuite.Testsuite):
             # (e.g. aarch64-elf,unknown).
             libsup_vars.append("TARGET={}".format(self.env.target.triplet))
 
-        if args.board:
-            libsup_vars.append("BOARD={}".format(args.board))
+        # The BOARD variable is used to fill the Emulator package Board
+        # attribute, so convert the argument to a gnatemu name.
+        board = control.gnatemu_board_name(args.board)
+        if board:
+            libsup_vars.append("BOARD={}".format(board))
 
         if args.RTS:
             libsup_vars.append("RTS={}".format(args.RTS))
