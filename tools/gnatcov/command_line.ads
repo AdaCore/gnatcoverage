@@ -171,7 +171,14 @@ package Command_Line is
    --  Set of string list options we support. More complete descriptions below.
 
    subtype Cmd_Instrument is Command_Type
-      range Cmd_Instrument_Project .. Cmd_Setup_Integration;
+     range Cmd_Instrument_Project .. Cmd_Instrument_Main;
+
+   subtype Cmd_Instrument_With_Setup is Command_Type
+     range Cmd_Instrument_Project .. Cmd_Setup_Integration;
+
+   subtype Cmd_All_Setups is Command_Type
+   with Static_Predicate =>
+     Cmd_All_Setups in Cmd_Setup | Cmd_Setup_Integration;
 
    package Parser is new Argparse
      (Command_Type, Bool_Options, String_Options, String_List_Options);
@@ -590,7 +597,7 @@ package Command_Line is
         (Long_Name => "--relocate-build-tree",
          Help      => "Relocate object, library and exec directories in the"
                       & " current directory.",
-         Commands  => (Cmd_Setup => False, others => True),
+         Commands  => (Cmd_All_Setups => False, others => True),
          Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
@@ -600,6 +607,7 @@ package Command_Line is
          Help         => "Use GPR as root project to locate SCOs, select"
                          & " units to analyze and find default options.",
          Commands     => (Cmd_Setup
+                          | Cmd_Setup_Integration
                           | Cmd_Instrument_Source
                           | Cmd_Instrument_Main => False,
                           others => True),
@@ -612,7 +620,7 @@ package Command_Line is
                          & " designates the topmost directory of the tree of"
                          & " projects. By default the root project's directory"
                          & " is used.",
-         Commands     => (Cmd_Setup => False, others => True),
+         Commands     => (Cmd_All_Setups => False, others => True),
          At_Most_Once => True,
          Internal     => False),
       Opt_Subdirs => Create
@@ -621,7 +629,7 @@ package Command_Line is
          Help         => "When using project files, look for ALI/SID files in"
                          & " the provided SUBDIR of the projects' build"
                          & " directory.",
-         Commands     => (Cmd_Setup => False, others => True),
+         Commands     => (Cmd_All_Setups => False, others => True),
          At_Most_Once => False,
          Internal     => False),
       Opt_Target => Create
@@ -638,6 +646,7 @@ package Command_Line is
                          & " ""Target""/""Runtime"" attributes. It is also"
                          & " needed for ""run"" commands without a project"
                          & " file.",
+         Commands     => (Cmd_Setup_Integration => False, others => True),
          At_Most_Once => True,
          Internal     => False),
       Opt_Runtime => Create
@@ -647,6 +656,7 @@ package Command_Line is
                          & " to build the analyzed programs. If project files"
                          & " don't already set the runtime, this is required"
                          & " for correct project files processing.",
+         Commands     => (Cmd_Setup_Integration => False, others => True),
          At_Most_Once => True,
          Internal     => False),
       Opt_Config => Create
@@ -715,8 +725,8 @@ package Command_Line is
          Commands     => (Cmd_Run
                           | Cmd_Coverage
                           | Cmd_Convert
-                          | Cmd_Instrument => True,
-                          others           => False),
+                          | Cmd_Instrument_With_Setup => True,
+                          others                      => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Text_Start => Create
@@ -986,7 +996,7 @@ package Command_Line is
            "Name of the installed instrumentation runtime project (see"
            & " ""gnatcov setup""'s ""--install-name"" option). By default, use"
            & " ""gnatcov_rts"".",
-         Commands     => (Cmd_Instrument => True, others => False),
+         Commands     => (Cmd_Instrument_With_Setup => True, others => False),
          At_Most_Once => False,
          Internal     => False),
 
@@ -1128,6 +1138,7 @@ package Command_Line is
          Help       => "Focus on specific projects within the transitive"
                        & " closure reachable from the root designated by -P.",
          Commands   => (Cmd_Setup
+                        | Cmd_Setup_Integration
                         | Cmd_Instrument_Source
                         | Cmd_Instrument_Main => False,
                         others                => True),
@@ -1146,7 +1157,7 @@ package Command_Line is
         (Short_Name => "-X",
          Pattern    => "[NAME]=[VALUE]",
          Help       => "Define a scenario variable for project files.",
-         Commands   => (Cmd_Setup => False, others => True),
+         Commands   => (Cmd_All_Setups => False, others => True),
          Internal   => False),
       Opt_Eargs => Create
         (Long_Name  => "-eargs",
