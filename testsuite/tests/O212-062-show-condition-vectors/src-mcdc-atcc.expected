@@ -1,0 +1,47 @@
+(.|\n)*
+
+2\.3\. MCDC COVERAGE
+-+
+
+pkg\.adb:13:25: condition 1 \("B"\) has no independent influence pair, MC/DC not achieved
+pkg\.adb:13:36: condition 2 \("C"\) has no independent influence pair, MC/DC not achieved
+pkg\.adb:13:14: Decision of the form \(\(\(C0 and then C1\) and then C2\) or else C3\)
+Evaluation vectors found:
+    F - - F  -> FALSE  In a pair for C0, C3
+    T T F T  -> TRUE  In a pair for C3
+    T T T -  -> TRUE  In a pair for C0
+
+pkg\.adb:34:24: condition 1 \("B"\) has no independent influence pair, MC/DC not achieved
+pkg\.adb:34:13: Decision of the form \(C0 and then C1\)
+Evaluation vectors found:
+    F -  -> FALSE  In a pair for C0
+    T T  -> TRUE  In a pair for C0
+
+
+3 violations\.
+(.|\n)*
+
+2\.5\. ATCC COVERAGE
+-+
+
+pkg\.adb:24:50: condition 1 \("A"\) was never evaluated during an evaluation of the decision to True, ATCC not achieved
+pkg\.adb:24:60: condition 2 \("B"\) was never evaluated during an evaluation of the decision to True, ATCC not achieved
+pkg\.adb:24:25: Decision of the form \(\(C0 or else C1\) or else C2\)
+Evaluation vectors found:
+    F F F  -> FALSE
+    T - -  -> TRUE
+
+pkg\.adb:25:35: condition 1 \("Id \(A or ..."\) was never evaluated during an evaluation of the decision to True, ATCC not achieved
+pkg\.adb:25:25: Decision of the form \(C0 or else C1\)
+Evaluation vectors found:
+    T -  -> TRUE
+
+pkg\.adb:40:48: condition 2 \("A"\) was never evaluated during an evaluation of the decision to True, ATCC not achieved
+pkg\.adb:40:26: Decision of the form \(\(C0 and then C1\) or else C2\)
+Evaluation vectors found:
+    F - F  -> FALSE
+    T T -  -> TRUE
+
+
+4 violations\.
+(.|\n)*
