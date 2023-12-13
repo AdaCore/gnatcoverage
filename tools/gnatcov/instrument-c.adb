@@ -19,6 +19,7 @@
 with Ada.Characters.Handling;
 with Ada.Containers;  use Ada.Containers;
 with Ada.Directories; use Ada.Directories;
+with Ada.Streams.Stream_IO;
 with Ada.Text_IO;     use Ada.Text_IO;
 
 with Clang.CX_Diagnostic; use Clang.CX_Diagnostic;
@@ -3893,6 +3894,7 @@ package body Instrument.C is
          --  function.
 
          declare
+            use Ada.Streams.Stream_IO;
             use GNATCOLL.Mmap;
             File         : Mapped_File := Open_Read (To_String (PP_Filename));
             Region       : Mapped_Region := Read (File);
@@ -3901,10 +3903,14 @@ package body Instrument.C is
             Str          : String renames Raw_Str (1 .. Raw_Str_Last);
 
             Tmp_Filename : constant String := +PP_Filename & ".tmp";
-            Output_File  : Ada.Text_IO.File_Type;
+
+            Output_File : Ada.Streams.Stream_IO.File_Type;
+            S           : Ada.Streams.Stream_IO.Stream_Access;
             --  Temporary file containing the new version of the original file,
             --  with inserted calls to dump buffers. The original file is then
-            --  overwritten by this temporary file.
+            --  overwritten by this temporary file. This file is opened as a
+            --  binary file, as we are going to write contents retrieved
+            --  through mmap (thus binary content) to it.
 
             Index : Positive := 1;
             --  Starting index, or last index of the previous match in the
@@ -3922,13 +3928,14 @@ package body Instrument.C is
 
                if not Has_Manual_Indication then
                   Create (Output_File, Out_File, Tmp_Filename);
+                  S := Stream (Output_File);
                   Has_Manual_Indication := True;
                end if;
-               Put (Output_File, Str (Index .. Matches (0).First));
+               String'Write (S, Str (Index .. Matches (0).First));
 
                --  Replace the match with the call to the dump procedure
 
-               Put (Output_File, Dump_Procedure & "();");
+               String'Write (S, Dump_Procedure & "();");
                Index := Matches (0).Last + 1;
             end loop;
 
@@ -3937,21 +3944,23 @@ package body Instrument.C is
 
             if Has_Manual_Indication then
                declare
+                  PP_File  : constant Virtual_File := Create (+(+PP_Filename));
                   Tmp_File : constant Virtual_File := Create (+Tmp_Filename);
                   Success  : Boolean;
                begin
                   --  Flush the rest of the file contents
 
-                  Ada.Text_IO.Put (Output_File, Str (Index .. Str'Last));
-                  Ada.Text_IO.Close (Output_File);
+                  String'Write (S, Str (Index .. Str'Last));
+                  Close (Output_File);
 
                   Free (Region);
                   Close (File);
 
                   --  Overwrite the original file with its newer version
 
+                  PP_File.Delete (Success);
                   Tmp_File.Rename
-                    (Full_Name => Create (+(+PP_Filename)),
+                    (Full_Name => PP_File,
                      Success   => Success);
                   if not Success then
                      Outputs.Fatal_Error
