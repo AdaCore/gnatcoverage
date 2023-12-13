@@ -49,8 +49,7 @@
 --    units are replacements for the original units. They fill the coverage
 --    buffers for the unit.
 
-with Ada.Characters.Handling;         use Ada.Characters.Handling;
-with Ada.Containers.Hashed_Sets;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
@@ -59,11 +58,12 @@ with GNAT.Regpat; use GNAT.Regpat;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 
-with ALI_Files;   use ALI_Files;
-with Files_Table; use Files_Table;
+with ALI_Files;      use ALI_Files;
+with Files_Handling; use Files_Handling;
+with Files_Table;    use Files_Table;
 with GNATcov_RTS;
-with Namet;       use Namet;
-with Slocs;       use Slocs;
+with Namet;          use Namet;
+with Slocs;          use Slocs;
 with Text_Files;
 
 package Instrument.Common is
@@ -167,12 +167,6 @@ package Instrument.Common is
    --  Opening and Closing are strings used at the beginning and the end of the
    --  returned literal expression (aggregate in Ada, compound expression in
    --  C/C++).
-
-   package File_Sets is new Ada.Containers.Hashed_Sets
-     (Element_Type        => Unbounded_String,
-      "="                 => "=",
-      Equivalent_Elements => "=",
-      Hash                => Strings.Hash);
 
    type Instrumented_Unit_Info is record
       Filename : Unbounded_String;
@@ -411,7 +405,7 @@ package Instrument.Common is
      (Self              : in out Language_Instrumenter;
       Unit_Name         : String;
       Prj               : Prj_Desc;
-      Files_Of_Interest : String_Sets.Set) is null;
+      Files_Of_Interest : File_Sets.Set) is null;
    --  Instrument a single source file for the language that Self supports.
    --
    --  Unit_Name identifies this compilation unit (either through a unit name,
@@ -562,6 +556,10 @@ package Instrument.Common is
       --  List of compiler switches that can influence the file preprocessing.
       --  The list should be amended alongside our discoveries. It is
       --  currently: -std, -fno-exceptions, -fno-rtti, -W* switches.
+
+      Raw_Switches : String_Vectors.Vector;
+      --  List of switches passed to the compiler driver without filtering
+
    end record;
    --  Options to analyze (preprocess and/or parse) a compilation unit
 

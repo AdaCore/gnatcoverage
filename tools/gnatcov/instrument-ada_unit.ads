@@ -28,6 +28,7 @@ with Langkit_Support.Text; use Langkit_Support.Text;
 with Libadalang.Analysis;  use Libadalang.Analysis;
 with Libadalang.Rewriting; use Libadalang.Rewriting;
 
+with Files_Handling;    use Files_Handling;
 with Files_Table;       use Files_Table;
 with Instrument.Ada_Unit_Provider;
 with Instrument.Common; use Instrument.Common;
@@ -71,7 +72,7 @@ package Instrument.Ada_Unit is
      (Self              : in out Ada_Instrumenter_Type;
       Unit_Name         : String;
       Prj               : Prj_Desc;
-      Files_Of_Interest : String_Sets.Set);
+      Files_Of_Interest : File_Sets.Set);
 
    overriding procedure Auto_Dump_Buffers_In_Main
      (Self          : in out Ada_Instrumenter_Type;

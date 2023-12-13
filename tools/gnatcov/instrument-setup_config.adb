@@ -25,6 +25,8 @@ with GNAT.OS_Lib;
 with GNAT.Regexp; use GNAT.Regexp;
 with GNAT.Strings;
 
+with GNATCOLL.VFS; use GNATCOLL.VFS;
+
 with Coverage;
 with JSON;          use JSON;
 with Logging;
@@ -104,7 +106,7 @@ package body Instrument.Setup_Config is
    ---------------------
 
    procedure Generate_Config
-     (Files_Of_Interest : String_Sets.Set;
+     (Files_Of_Interest : File_Sets.Set;
       Coverage_Level    : String;
       Dump_Config       : Any_Dump_Config;
       Compiler_Drivers  : String_Sets.Set;
@@ -289,7 +291,7 @@ package body Instrument.Setup_Config is
          Files_Of_Interest_JSON : JSON_Array;
       begin
          for F of Files_Of_Interest loop
-            Append (Files_Of_Interest_JSON, Create (+F));
+            Append (Files_Of_Interest_JSON, Create (+F.Full_Name));
          end loop;
          Config.Set_Field ("files-of-interest", Files_Of_Interest_JSON);
       end;
@@ -397,7 +399,7 @@ package body Instrument.Setup_Config is
            Config_JSON.Get ("files-of-interest");
       begin
          for FOI of FOI_JSON loop
-            Switches.Files_Of_Interest.Include (Get (FOI));
+            Switches.Files_Of_Interest.Include (Create_Normalized (Get (FOI)));
          end loop;
       end;
 

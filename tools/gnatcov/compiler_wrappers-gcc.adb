@@ -24,9 +24,12 @@ with Ada.Environment_Variables;
 with Ada.Strings;           use Ada.Strings;
 with Ada.Text_IO;           use Ada.Text_IO;
 
+with GNATCOLL.VFS; use GNATCOLL.VFS;
+
 with GNAT.OS_Lib;
 
 with Coverage.Tags;           use Coverage.Tags;
+with Files_Handling;          use Files_Handling;
 with Files_Table;             use Files_Table;
 with GNATcov_RTS.Buffers;     use GNATcov_RTS.Buffers;
 with Instrument;              use Instrument;
@@ -50,11 +53,11 @@ procedure Compiler_Wrappers.Gcc is
       Language : Any_Language;
       --  Language of the file that is compiled
 
-      Filename : Unbounded_String;
-      --  Full name of the file that is compiled
+      File : Virtual_File;
+      --  File that is compiled
 
-      Target : Unbounded_String;
-      --  Name of the output assembly file (passed through the -o switch)
+      Target : Virtual_File;
+      --  Output assembly file (passed through the -o switch)
 
       Instrumentation_Sources : String_Vectors.Vector;
       --  List of sources produced by the instrumentation process. It does not
@@ -66,18 +69,18 @@ procedure Compiler_Wrappers.Gcc is
 
    No_Compilation_Command : constant Compilation_Command_Type :=
      (Language                => All_Languages,
-      Filename                => Null_Unbounded_String,
-      Target                  => Null_Unbounded_String,
+      File                    => No_File,
+      Target                  => No_File,
       Instrumentation_Sources => String_Vectors.Empty_Vector);
 
    package Compilation_Command_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Compilation_Command_Type);
 
    type Assembly_Command_Type is record
-      Filename : Unbounded_String;
-      --  Name of the assembly file (positional argument)
+      Filename : Virtual_File;
+      --  Assembly file (positional argument)
 
-      Target : Unbounded_String;
+      Target : Virtual_File;
       --  Output object file (passed through the -o switch)
 
    end record;
@@ -85,8 +88,7 @@ procedure Compiler_Wrappers.Gcc is
    --  driver.
 
    No_Assembly_Command : constant Assembly_Command_Type :=
-     (Filename => Null_Unbounded_String,
-      Target   => Null_Unbounded_String);
+     (Filename => No_File, Target => No_File);
 
    package Assembly_Command_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Assembly_Command_Type);
@@ -98,14 +100,14 @@ procedure Compiler_Wrappers.Gcc is
       Libraries : String_Vectors.Vector;
       --  List of libraries (passed through -l switches)
 
-      Object_Files  : String_Vectors.Vector;
+      Object_Files  : File_Vectors.Vector;
       --  List of object files (positional arguments)
 
-      Source_Files  : String_Vectors.Vector;
+      Source_Files  : File_Vectors.Vector;
       --  When the compiler driver command compiles and links, this contains
       --  the list of files that are compiled by the compiler driver command.
 
-      Target : Unbounded_String;
+      Target : Virtual_File;
       --  Output executable file (passed through the -o switch)
 
    end record;
@@ -114,9 +116,9 @@ procedure Compiler_Wrappers.Gcc is
    No_Link_Command : constant Link_Command_Type :=
      (Library_Dirs => String_Vectors.Empty_Vector,
       Libraries    => String_Vectors.Empty_Vector,
-      Object_Files => String_Vectors.Empty_Vector,
-      Source_Files => String_Vectors.Empty_Vector,
-      Target       => Null_Unbounded_String);
+      Object_Files => File_Vectors.Empty_Vector,
+      Source_Files => File_Vectors.Empty_Vector,
+      Target       => No_File);
 
    type Compilation_Database is record
       Compilation_Commands : Compilation_Command_Vectors.Vector;
@@ -136,7 +138,7 @@ procedure Compiler_Wrappers.Gcc is
       Orig_Compiler_Driver : Unbounded_String;
       --  Full path to the original compiler driver
 
-      Source_Mapping : String_Maps.Map;
+      Source_Mapping : File_To_File_Maps.Map;
       --  We rely on object file symbols to know what coverage buffers we
       --  should dump at link time. Nevertheless, an object file referenced in
       --  a link command (which we get through the -### verbose switch) does
@@ -151,7 +153,7 @@ procedure Compiler_Wrappers.Gcc is
       --  The Source_Mapping thus maps the temporary object files to the
       --  original source.
 
-      Instrumentation_Objects : String_Vectors_Maps.Map;
+      Instrumentation_Objects : File_To_String_Vectors_Maps.Map;
       --  Maps the original source name to the instrumentation artifact objects
       --  (e.g. coverage buffers unit, dump helper unit).
 
@@ -178,12 +180,14 @@ procedure Compiler_Wrappers.Gcc is
 
    function Parse_Compiler_Driver_Command
      (Context : in out Parsing_Context;
+      Prj     : in out Prj_Desc;
       Tmp_Dir : Temporary_Directory;
       Args    : String_Vectors.Vector) return Compilation_Database;
    --  Parse a compiler driver command
 
    function Parse_Compilation_Command
      (Context : in out Parsing_Context;
+      Prj     : in out Prj_Desc;
       Command : String_Vectors.Vector) return Compilation_Command_Type;
    --  Parse a compilation command
 
@@ -294,6 +298,7 @@ procedure Compiler_Wrappers.Gcc is
 
    function Parse_Compiler_Driver_Command
      (Context : in out Parsing_Context;
+      Prj     : in out Prj_Desc;
       Tmp_Dir : Temporary_Directory;
       Args    : String_Vectors.Vector) return Compilation_Database
    is
@@ -338,7 +343,7 @@ procedure Compiler_Wrappers.Gcc is
                then
                   declare
                      CC_Command : constant Compilation_Command_Type :=
-                       Parse_Compilation_Command (Context, Command);
+                       Parse_Compilation_Command (Context, Prj, Command);
                   begin
                      if CC_Command /= No_Compilation_Command then
                         Result.Compilation_Commands.Append (CC_Command);
@@ -380,9 +385,15 @@ procedure Compiler_Wrappers.Gcc is
 
    function Parse_Compilation_Command
      (Context : in out Parsing_Context;
+      Prj     : in out Prj_Desc;
       Command : String_Vectors.Vector) return Compilation_Command_Type
    is
       use String_Vectors;
+      PP_Args : String_Vectors.Vector;
+      --  List of arguments that should be passed to the preprocessor
+      --  invocation: basically all of the arguments except the compiled source
+      --  and the -o switch.
+
       Result : Compilation_Command_Type;
       Cur    : Cursor := First (Command);
    begin
@@ -391,6 +402,11 @@ procedure Compiler_Wrappers.Gcc is
       elsif Ends_With (Command.First_Element, "cc1") then
          Result.Language := C_Language;
       end if;
+
+      --  Skip the first argument as it is the compiler executable, and not
+      --  a compiler argument.
+
+      Cur := Next (Cur);
 
       while Has_Element (Cur) loop
          declare
@@ -401,37 +417,42 @@ procedure Compiler_Wrappers.Gcc is
             --  would find the positional argument but it is not
             --  straightforward.
 
-            if Arg = +"-dumpbase" or else Arg = +"-dumpbase-ext" then
+            if +Arg in "-dumpbase" | "-dumpbase-ext" then
                Cur := Next (Cur);
-            end if;
 
-            if Ends_With (Arg, ".c")
+            --  TODO??? the user can configure the file extension and the
+            --  implementation should be resilient to this.
+
+            elsif Ends_With (Arg, ".c")
               or else Ends_With (Arg, ".cc")
               or else Ends_With (Arg, ".cpp")
               or else Ends_With (Arg, ".cxx")
             then
-               if Length (Result.Filename) = 0 then
-                  Result.Filename := +Ada.Directories.Full_Name (+Arg);
+               if Result.File = No_File then
+                  Result.File := Create_Normalized (+Arg);
                else
                   Outputs.Warn
                     ("Found multiple filenames in the compiler invocation: "
-                     & (+Result.Filename) & " and " & (+Arg)
+                     & (+Result.File.Base_Name) & " and " & (+Arg)
                      & ". Keeping the former, which was parsed before.");
                end if;
             elsif Arg = "-o" then
+               Cur := Next (Cur);
                Result.Target :=
-                 String_Vectors.Element (String_Vectors.Next (Cur));
+                 Create_Normalized (+String_Vectors.Element (Cur));
+            else
+               PP_Args.Append (Arg);
             end if;
          end;
          Cur := Next (Cur);
       end loop;
 
-      if Length (Result.Filename) = 0
-         or else Length (Result.Target) = 0
-      then
+      if Result.File = No_File or else Result.Target = No_File then
          return No_Compilation_Command;
       end if;
-      Context.Source_Mapping.Include (Result.Target, Result.Filename);
+      Prj.Compiler_Driver (Result.Language) := Command.First_Element;
+      Prj.Compiler_Options_Unit.Insert (Result.File, PP_Args);
+      Context.Source_Mapping.Include (Result.Target, Result.File);
       return Result;
    end Parse_Compilation_Command;
 
@@ -452,20 +473,21 @@ procedure Compiler_Wrappers.Gcc is
          begin
             if Arg = "-o" then
                Result.Target :=
-                 String_Vectors.Element (String_Vectors.Next (Cur));
+                 Create_Normalized
+                   (+String_Vectors.Element (String_Vectors.Next (Cur)));
             elsif Ends_With (Arg, ".s") then
-               Result.Filename := Arg;
+               Result.Filename := Create_Normalized (+Arg);
             end if;
          end;
       end loop;
 
       --  Error out if the parsing failed
 
-      if Length (Result.Filename) = 0 then
+      if Result.Filename = No_File then
          Outputs.Fatal_Error
            ("Could not find assembly file in assembly command: "
             & Img (Command));
-      elsif Length (Result.Target) = 0 then
+      elsif Result.Target = No_File then
          Outputs.Fatal_Error
            ("Could not find output file in assembly command: "
             & Img (Command));
@@ -500,33 +522,38 @@ procedure Compiler_Wrappers.Gcc is
          declare
             Arg : constant Unbounded_String := Element (Cur);
          begin
-            if Arg = +"-L" then
+            if Arg = "-L" then
                Result.Library_Dirs.Append (Element (Next (Cur)));
             elsif Starts_With (Arg, "-L") then
                Result.Library_Dirs.Append
                  (Unbounded_Slice (Arg, 3, Length (Arg)));
-            elsif Arg = +"-l" then
+            elsif Arg = "-l" then
                Result.Libraries.Append (Element (Next (Cur)));
             elsif Starts_With (Arg, "-l") then
                Result.Libraries.Append
                  (Unbounded_Slice (Arg, 3, Length (Arg)));
-            elsif Arg = +"-o" then
-               Result.Target := Element (Next (Cur));
+            elsif Arg = "-o" then
+               Result.Target := Create_Normalized (+Element (Next (Cur)));
             elsif Ends_With (Arg, ".o") then
-               if Context.Source_Mapping.Contains (Arg) then
-                  Result.Source_Files.Append
-                    (Context.Source_Mapping.Element (Arg));
-               else
-                  Result.Object_Files.Append (Arg);
-               end if;
+               declare
+                  Object_File : constant Virtual_File :=
+                    Create_Normalized (+Arg);
+               begin
+                  if Context.Source_Mapping.Contains (Object_File) then
+                     Result.Source_Files.Append
+                       (Context.Source_Mapping.Element (Object_File));
+                  else
+                     Result.Object_Files.Append (Create_Normalized (+Arg));
+                  end if;
+               end;
             elsif Ends_With (Arg, ".a") then
                Result.Libraries.Append (Arg);
             end if;
          end;
       end loop;
 
-      if Length (Result.Target) = 0 then
-         Result.Target := +"a.out";
+      if Result.Target = No_File then
+         Result.Target := Create_Normalized ("a.out");
       end if;
 
       return Result;
@@ -543,7 +570,7 @@ procedure Compiler_Wrappers.Gcc is
       Config          : Instrumentation_Config) return String_Sets.Set
    is
       function Coverage_Buffer_Symbols
-        (Symbol_File : String) return String_Sets.Set;
+        (Symbol_File : Virtual_File) return String_Sets.Set;
       --  Return the list of coverage buffer symbols in the given symbol file
       --  (object or library file).
 
@@ -552,11 +579,11 @@ procedure Compiler_Wrappers.Gcc is
       -----------------------------
 
       function Coverage_Buffer_Symbols
-        (Symbol_File : String) return String_Sets.Set
+        (Symbol_File : Virtual_File) return String_Sets.Set
       is
          Args            : String_Vectors.Vector;
          Output_Filename : constant String :=
-           Tmp_Dir / ("nm_" & Filename_Slug (Symbol_File));
+           Tmp_Dir / ("nm_" & Filename_Slug (+Symbol_File.Full_Name));
          Output_File     : File_Type;
 
          Result         : String_Sets.Set;
@@ -566,7 +593,7 @@ procedure Compiler_Wrappers.Gcc is
          --  Use the compiler nm to dump the list of symbols
 
          Args.Append (+"--format=just-symbol");
-         Args.Append (+Symbol_File);
+         Args.Append (Full_Name (Symbol_File));
 
          --  The command can fail with e.g. "file format not recognized" for
          --  system libraries. TODO??? investigate why. We should also avoid
@@ -616,7 +643,7 @@ procedure Compiler_Wrappers.Gcc is
       --  Start by dealing with object files
 
       for Object_File of Command.Object_Files loop
-         Result.Union (Coverage_Buffer_Symbols (+Object_File));
+         Result.Union (Coverage_Buffer_Symbols (Object_File));
       end loop;
 
       --  Then, deal with library files
@@ -633,12 +660,12 @@ procedure Compiler_Wrappers.Gcc is
             Ada.Environment_Variables.Value ("LIBRARY_PATH", ""));
 
          for Library of Command.Libraries loop
-
             if Ends_With (Library, ".a") then
 
                --  Library filename on the command line, no need to look it up
 
-               Result.Union (Coverage_Buffer_Symbols (+Library));
+               Result.Union
+                 (Coverage_Buffer_Symbols (Create_Normalized (+Library)));
             else
                --  Simple library name passed to the -l option, search the
                --  actual file on the library path.
@@ -650,7 +677,9 @@ procedure Compiler_Wrappers.Gcc is
                       ("lib" & (+Library) & ".a", +Library_Path);
                begin
                   if Library_File /= null then
-                     Result.Union (Coverage_Buffer_Symbols (Library_File.all));
+                     Result.Union
+                       (Coverage_Buffer_Symbols
+                          (Create_Normalized (Library_File.all)));
                      GNAT.OS_Lib.Free (Library_File);
                   end if;
                end;
@@ -666,7 +695,7 @@ procedure Compiler_Wrappers.Gcc is
             declare
                Unit : constant Compilation_Unit :=
                  (Language  => File_Based_Language,
-                  Unit_Name => Source);
+                  Unit_Name => Full_Name (Source));
             begin
                Result.Insert (+Unit_Buffers_Name (Unit));
             end;
@@ -754,11 +783,11 @@ begin
 
    --  Parse the compiler driver invocation
 
-   Comp_DB :=
-     Parse_Compiler_Driver_Command (Context, Instr_Dir, Compiler_Driver_Opts);
+   Comp_DB := Parse_Compiler_Driver_Command
+     (Context, Prj, Instr_Dir, Compiler_Driver_Opts);
 
-   --  Generate an artificial project description to pass compiler
-   --  switches and default spec / body suffixes.
+   --  Generate an artificial project description to pass compiler switches and
+   --  default spec / body suffixes.
 
    Prj.Prj_Name := +"main";
    Prj.Output_Dir := +Instr_Dir.Directory_Name;
@@ -766,8 +795,6 @@ begin
      (C_Language => +".h", CPP_Language => +".hh", others => <>);
    Prj.Body_Suffix :=
      (C_Language => +".c", CPP_Language => +".cc", others => <>);
-   Prj.Compiler_Driver := (others => Context.Orig_Compiler_Driver);
-   Prj.Compiler_Options := (others => Compiler_Driver_Opts);
 
    --  Then, invoke the right set of gnatcov commands
 
@@ -783,24 +810,25 @@ begin
            Comp_DB.Compilation_Commands.Reference (Cur);
          Instrumenter     : Language_Instrumenter'Class :=
            (case Comp_Command.Language is
-            when C_Language   => Create_C_Instrumenter (Instr_Config.Tag),
-            when CPP_Language => Create_CPP_Instrumenter (Instr_Config.Tag),
-            when others       =>
-               raise Program_Error
-                 with "Unsupported language for integrated"
-                      & " instrumentation");
+           when C_Language   =>
+             Create_C_Instrumenter
+                (Instr_Config.Tag, Integrated_Instrumentation),
+           when CPP_Language =>
+             Create_CPP_Instrumenter
+                (Instr_Config.Tag, Integrated_Instrumentation),
+           when others       =>
+              raise Program_Error
+                with "Unsupported language for integrated instrumentation");
 
-         Fullname    : constant String :=
-           Ada.Directories.Full_Name (+Comp_Command.Filename);
-         Simple_Name : constant String :=
-           Workaround_Simple_Name (+Comp_Command.Filename);
+         Fullname    : constant String := +Comp_Command.File.Full_Name;
+         Simple_Name : constant String := +Comp_Command.File.Base_Name;
          Instr_Name  : constant String := (+Prj.Output_Dir) / Simple_Name;
 
       begin
          --  Start by instrumenting the file as a source, if it is a unit of
          --  interest.
 
-         if Files_Of_Interest.Contains (+Fullname) then
+         if Files_Of_Interest.Contains (Comp_Command.File) then
 
             --  Pass the compiler switches through the project description
 
@@ -819,7 +847,7 @@ begin
             Comp_Command_Ref.Instrumentation_Sources.Append
               (Instrumenter.Buffer_Unit
                  (Compilation_Unit'
-                      (File_Based_Language, Comp_Command.Filename),
+                    (File_Based_Language, Full_Name (Comp_Command.File)),
                   Prj)
                .Unit_Name);
             Instrumented_Files.Include (+Fullname);
@@ -855,7 +883,8 @@ begin
    if Comp_DB.Link_Command /= No_Link_Command then
       declare
          Instrumenter : constant Language_Instrumenter'Class :=
-           Create_C_Instrumenter (Instr_Config.Tag);
+           Create_C_Instrumenter
+             (Instr_Config.Tag, Integrated_Instrumentation);
          --  Emit the buffers list unit as a C compilation unit as it is
          --  compilable by a C / C++ compiler, which are the languages
          --  supported by the integrated instrumentation scheme.
@@ -934,7 +963,7 @@ begin
 
             else
                Context.Instrumentation_Objects.Insert
-                 (Comp_Command.Filename, String_Vectors.Empty);
+                 (Comp_Command.File, String_Vectors.Empty);
 
                for Instr_Artifact of Comp_Command.Instrumentation_Sources loop
                   declare
@@ -953,7 +982,7 @@ begin
                      Run_Original_Compiler (Context, Args_Compilation);
 
                      Context.Instrumentation_Objects
-                       .Reference (Comp_Command.Filename)
+                       .Reference (Comp_Command.File)
                        .Append (+Instr_Artifact_Object_Name);
                   end;
                end loop;
@@ -973,14 +1002,16 @@ begin
          for Assembly_Command of Comp_DB.Assembly_Commands loop
             if Context.Source_Mapping.Contains (Assembly_Command.Filename) then
                declare
-                  Orig_Source   : constant Unbounded_String :=
+                  Orig_Source   : constant Virtual_File :=
                     Context.Source_Mapping.Element (Assembly_Command.Filename);
                   Instr_Objects : constant String_Vectors.Vector :=
                     Context.Instrumentation_Objects.Element (Orig_Source);
                   Packaged_Name : constant String :=
                     New_File
-                      (Prj, "instr_" & Filename_Slug (+Orig_Source) & ".a");
-                  Success       : Boolean;
+                      (Prj,
+                       "instr_" & Filename_Slug (+Orig_Source.Full_Name)
+                       & ".a");
+                  Success : Boolean;
                begin
                   if not Instr_Objects.Is_Empty then
                      declare
@@ -988,7 +1019,7 @@ begin
                      begin
                         Args_Ld.Append (+"-r");
                         Args_Ld.Append_Vector (Instr_Objects);
-                        Args_Ld.Append (Assembly_Command.Target);
+                        Args_Ld.Append (Full_Name (Assembly_Command.Target));
                         Args_Ld.Append (+"-o");
                         Args_Ld.Append (+Packaged_Name);
                         Run_Command
@@ -1004,7 +1035,7 @@ begin
 
                         GNAT.OS_Lib.Copy_File
                           (Packaged_Name,
-                           +Assembly_Command.Target,
+                           +Assembly_Command.Target.Full_Name,
                            Success,
                            Mode     => GNAT.OS_Lib.Overwrite,
                            Preserve => GNAT.OS_Lib.Full);

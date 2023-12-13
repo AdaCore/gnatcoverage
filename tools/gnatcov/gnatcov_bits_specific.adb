@@ -28,8 +28,6 @@ with GNAT.OS_Lib;
 with GNAT.Regexp;
 with GNAT.Strings; use GNAT.Strings;
 
-with GNATCOLL.VFS;
-
 with System.Multiprocessors;
 
 with Snames;
@@ -57,6 +55,7 @@ with Coverage_Options;      use Coverage_Options;
 with Decision_Map;          use Decision_Map;
 with Disassemble_Insn_Properties;
 with Execs_Dbase;           use Execs_Dbase;
+with Files_Handling;        use Files_Handling;
 with Files_Table;           use Files_Table;
 with Inputs;                use Inputs;
 with Instrument;
@@ -551,14 +550,8 @@ procedure GNATcov_Bits_Specific is
       Copy_Arg_List (Opt_Files, Files_Of_Interest);
       Copy_Arg_List (Opt_Compiler_Wrappers, Compiler_Drivers);
 
-      for Filename of Files_Of_Interest loop
-         declare
-            use GNATCOLL.VFS;
-            F : constant Virtual_File := Create (+(+Filename));
-         begin
-            F.Normalize_Path;
-            Switches.Files_Of_Interest.Include (+(+Full_Name (F)));
-         end;
+      for File of Files_Of_Interest loop
+         Switches.Files_Of_Interest.Include (Create_Normalized (+File));
       end loop;
 
       --  Compute the languages for which we want coverage analysis, or enable
@@ -1405,6 +1398,7 @@ begin
          end;
 
       when Cmd_Instrument_Source =>
+
          --  For the instrument-source command, and for the instrument-main,
          --  we do not check the command-line semantics as these commands are
          --  internal and spawned by a gnatcov main process. They are thus by
