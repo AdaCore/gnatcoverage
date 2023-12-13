@@ -14,6 +14,6 @@ from SUITE.tutils import xcov
 tmp = Wdir("tmp_")
 
 filename = "setup.log"
-xcov(["setup", "-q"], out=filename, force_project_args=True)
+xcov(["setup", "--prefix=.", "-q"], out=filename, force_project_args=True)
 thistest.fail_if_not_equal("gnatcov setup output", "", contents_of(filename))
 thistest.result()
