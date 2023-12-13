@@ -236,7 +236,7 @@ package body Traces_Elf is
       pragma Assert (L.Kind = R.Kind);
 
       function Names_Lt (LN, RN : String_Access) return Boolean;
-      --  Compare desginated strings, null is higher than any non-null string
+      --  Compare designated strings, null is higher than any non-null string
 
       --------------
       -- Names_Lt --
@@ -775,7 +775,7 @@ package body Traces_Elf is
       --  of interest, or until we can conclude that there is no such
       --  Addres_Info.
       --
-      --  We can conclude that PC is contained in an Addres_Info or not as soon
+      --  We can conclude that PC is contained in an Address_Info or not as soon
       --  as we reach a top level Info. If PC is not contained in that top
       --  level Address_Info, then PC isn't contained in any of those.
 
@@ -3057,8 +3057,7 @@ package body Traces_Elf is
                   Reset_Lines;
 
                when DW_LNE_set_address =>
-                  Read_Address
-                    (Exec, Base, Off, Arch.Arch_Addr'Size / 8, Pc);
+                  Read_Address (Exec, Base, Off, Arch.Arch_Addr'Size / 8, Pc);
                   Base_Pc := Pc;
 
                when DW_LNE_define_file =>
@@ -3340,7 +3339,7 @@ package body Traces_Elf is
 
    function Get_Sloc
      (Set : Address_Info_Sets.Set;
-      PC   : Pc_Type) return Source_Location
+      PC  : Pc_Type) return Source_Location
    is
       SL : constant Source_Locations :=
          Get_Slocs (Set, PC, Non_Empty_Only => True);
