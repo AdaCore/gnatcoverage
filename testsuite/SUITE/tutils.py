@@ -11,18 +11,19 @@
 import glob
 import os
 import re
+import sys
 import time
 
 
-from e3.os.fs import touch, unixpath
+from e3.os.fs import touch, unixpath, which
 from e3.os.process import DEVNULL, Run
 
 
 # Expose a few other items as a test util facilities as well
 
 from SUITE import control
-from SUITE.control import (BUILDER, KNOWN_LANGUAGES, env, language_info,
-                           xcov_pgm)
+from SUITE.control import (BUILDER, KNOWN_LANGUAGES, env, gnatemu_board_name,
+                           language_info, xcov_pgm)
 from SUITE.context import ROOT_DIR, thistest
 
 
@@ -327,10 +328,11 @@ def gpr_emulator_package():
     If there is a board name, return a package Emulator to be included in a GPR
     file to provide this information to GNATemulator.
     """
+    gnatemu_board = gnatemu_board_name(env.target.machine)
     return ('package Emulator is\n'
             '   for Board use "{}";\n'
-            'end Emulator;'.format(env.target.machine)
-            if env.target.machine else '')
+            'end Emulator;'.format(gnatemu_board)
+            if gnatemu_board else '')
 
 
 def gprfor(mains, prjid="gen", srcdirs="src", objdir=None, exedir=".",
@@ -622,8 +624,9 @@ def xcov_suite_args(covcmd, covargs,
     #   --> gnatcov run --target=iSystem-5554
     #
     # Such board indications are intended for probe based targets.
-    if thistest.options.board:
-        targetarg = thistest.options.board
+    gnatemu_board = gnatemu_board_name(thistest.options.board)
+    if gnatemu_board:
+        targetarg = gnatemu_board
 
     # Otherwise, pass the target triplet indication, completed by a board
     # extension if we also have a target "machine":
@@ -640,8 +643,9 @@ def xcov_suite_args(covcmd, covargs,
     # --target argument to "gnatcov" as soon as we work with a 32bit target.
     elif thistest.options.target or env.target.cpu.bits != 64:
         targetarg = env.target.triplet
-        if env.target.machine and env.target.machine != "unknown":
-            targetarg += ",%s" % env.target.machine
+        board_name = gnatemu_board_name(env.target.machine)
+        if board_name and board_name != "unknown":
+            targetarg += ",%s" % board_name
 
     else:
         targetarg = None
@@ -810,7 +814,7 @@ def xrun(args, out=None, env=None, register_failure=True,
     if (
         thistest.options.trace_size_limit and
         thistest.options.target and
-        not thistest.options.board
+        not gnatemu_board_name(thistest.options.board)
     ):
         if '-eargs' not in runargs:
             runargs.append('-eargs')
@@ -834,23 +838,29 @@ def run_cov_program(executable, out=None, env=None, exec_args=None,
     exec_args = exec_args or []
     inp = None
 
-    # If we are in a cross configuration, run the program using GNATemulator
-    if thistest.options.target:
-        kernel = thistest.options.kernel
-        board = thistest.options.board or thistest.env.target.machine
-        args.append('{}-gnatemu'.format(thistest.env.target.triplet))
-        if kernel:
-            args.append('--kernel=' + kernel)
-        if board:
-            args.append('--board=' + board)
+    # If we are in a cross configuration, run the program using run-cross2
+    if thistest.options.target and thistest.env.target.platform != "c":
+        # We absolutely need a machine name to run programs with run-cross2
+        assert thistest.options.board or thistest.env.target.machine
 
-        # If GNATemulator runs as a background process in an interactive shell,
-        # the Linux kernel will send a SIGTTIN when GNATemulator tries to read
-        # the standard input (which is the interactive shell by default). This
-        # will result in an abnormal GNATemulator termination, and the test
-        # failing. Redirecting the standard input to /dev/null works around
-        # this issue.
-        inp = DEVNULL
+        # run-cross2 is a python script. As Windows does not parse shebangs,
+        # use the python executable as main program instead of the script.
+        args.append(sys.executable)
+        args.append(which("run-cross2"))
+        target = thistest.env.target.platform
+        if thistest.options.board:
+            target += f",,{thistest.options.board}"
+        else:
+            target += f",,{thistest.env.target.machine}"
+        args.append(f"--target={target}")
+    else:
+        # Native programs using a light runtime can't set the exit code, and
+        # will often terminate with a non-zero status code even though nothing
+        # went wrong. There is thus no point in checking the exit code in this
+        # configuration.
+        register_failure = (
+            register_failure and not RUNTIME_INFO.has_light_runtime
+        )
 
     args.append(executable)
     args.extend(exec_args)
