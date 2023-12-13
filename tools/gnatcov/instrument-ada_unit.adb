@@ -7808,10 +7808,10 @@ package body Instrument.Ada_Unit is
    ------------------------------------
 
    overriding procedure Replace_Manual_Dump_Indication
-     (Self   : in out Ada_Instrumenter_Type;
-      Done   : in out Boolean;
-      Prj    : in out Prj_Desc;
-      Source : GNATCOLL.Projects.File_Info)
+     (Self                  : in out Ada_Instrumenter_Type;
+      Prj                   : in out Prj_Desc;
+      Source                : GNATCOLL.Projects.File_Info;
+      Has_Manual_Indication : out Boolean)
    is
       Instrumented_Filename : constant String :=
         +(Prj.Output_Dir & "/" & GNATCOLL.VFS."+" (Source.File.Base_Name));
@@ -7862,7 +7862,7 @@ package body Instrument.Ada_Unit is
                   --  The pragma statement to be replaced by the actual call
                   --  to Dump_Buffers has been found.
 
-                  if not Done then
+                  if not Has_Manual_Indication then
                      Start_Rewriting (Rewriter, Self, Prj, File_To_Search);
                   end if;
 
@@ -7879,7 +7879,7 @@ package body Instrument.Ada_Unit is
                   begin
                      --  Add the with clause only once in the file
 
-                     if not Done then
+                     if not Has_Manual_Indication then
                         Insert_Last
                           (Handle (Unit.Root.As_Compilation_Unit.F_Prelude),
                            Create_From_Template
@@ -7900,7 +7900,7 @@ package body Instrument.Ada_Unit is
                            Rule => Call_Stmt_Rule));
                   end;
 
-                  Done := True;
+                  Has_Manual_Indication := True;
                   return Over;
                end if;
             end;
@@ -7922,11 +7922,12 @@ package body Instrument.Ada_Unit is
       --  initialized which will lead to finalization issues. To avoid this,
       --  make sure it is set to No_Rewriting_Handle.
 
+      Has_Manual_Indication := False;
       Rewriter.Handle := No_Rewriting_Handle;
 
       Unit.Root.Traverse (Find_And_Replace_Pragma'Access);
 
-      if Done then
+      if Has_Manual_Indication then
          Create_Directory_If_Not_Exists
            (GNATCOLL.VFS."+" (Source.Project.Object_Dir.Base_Dir_Name));
          Create_Directory_If_Not_Exists (+Prj.Output_Dir);

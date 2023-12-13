@@ -83,7 +83,16 @@ another location, pass the :cmd-option:`--prefix` option:
 
 .. code-block:: sh
 
-   gnatcov setup --prefix=/usr/local
+   gnatcov setup --prefix=/usr/custom
+
+When installing the coverage runtime to a non-default location, tools that
+process project files must be instructed how to find the coverage runtime
+project file that is installed.  To achieve this, update the
+``GPR_PROJECT_PATH`` environment variable:
+
+.. code-block:: sh
+
+   export GPR_PROJECT_PATH=$GPR_PROJECT_PATH:/usr/custom/share/gpr
 
 
 Multiple runtimes in the same prefix

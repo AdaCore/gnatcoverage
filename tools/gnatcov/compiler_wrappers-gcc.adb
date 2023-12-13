@@ -519,6 +519,8 @@ procedure Compiler_Wrappers.Gcc is
                else
                   Result.Object_Files.Append (Arg);
                end if;
+            elsif Ends_With (Arg, ".a") then
+               Result.Libraries.Append (Arg);
             end if;
          end;
       end loop;
@@ -631,17 +633,28 @@ procedure Compiler_Wrappers.Gcc is
             Ada.Environment_Variables.Value ("LIBRARY_PATH", ""));
 
          for Library of Command.Libraries loop
-            declare
-               use type GNAT.OS_Lib.String_Access;
-               Library_File : GNAT.OS_Lib.String_Access :=
-                 GNAT.OS_Lib.Locate_Regular_File
-                   ("lib" & (+Library) & ".a", +Library_Path);
-            begin
-               if Library_File /= null then
-                  Result.Union (Coverage_Buffer_Symbols (Library_File.all));
-                  GNAT.OS_Lib.Free (Library_File);
-               end if;
-            end;
+
+            if Ends_With (Library, ".a") then
+
+               --  Library filename on the command line, no need to look it up
+
+               Result.Union (Coverage_Buffer_Symbols (+Library));
+            else
+               --  Simple library name passed to the -l option, search the
+               --  actual file on the library path.
+
+               declare
+                  use type GNAT.OS_Lib.String_Access;
+                  Library_File : GNAT.OS_Lib.String_Access :=
+                    GNAT.OS_Lib.Locate_Regular_File
+                      ("lib" & (+Library) & ".a", +Library_Path);
+               begin
+                  if Library_File /= null then
+                     Result.Union (Coverage_Buffer_Symbols (Library_File.all));
+                     GNAT.OS_Lib.Free (Library_File);
+                  end if;
+               end;
+            end if;
          end loop;
       end;
 
