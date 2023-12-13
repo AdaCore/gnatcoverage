@@ -206,9 +206,10 @@ package body Setup_RTS is
               GPR2.Project.Configuration.Load (F);
          begin
             Project.Load
-              (Filename => PF,
-               Context  => Context,
-               Config   => Config);
+              (Filename         => PF,
+               Context          => Context,
+               Absent_Dir_Error => GPR2.Project.Tree.No_Error,
+               Config           => Config);
          exception
             when GPR2.Project_Error =>
                null;
@@ -233,6 +234,7 @@ package body Setup_RTS is
                Project.Load_Autoconf
                  (Filename          => PF,
                   Context           => Context,
+                  Absent_Dir_Error  => GPR2.Project.Tree.No_Error,
                   Target            => Actual_Target,
                   Language_Runtimes => RTS_Map);
             exception
