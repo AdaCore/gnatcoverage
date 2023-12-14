@@ -24,7 +24,6 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with GNATcov_RTS.Base_IO; use GNATcov_RTS.Base_IO;
 with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 
 package body GNATcov_RTS.Traces.Output.Base64 is
