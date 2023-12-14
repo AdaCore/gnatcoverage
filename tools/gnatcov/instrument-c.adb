@@ -2529,6 +2529,13 @@ package body Instrument.C is
       if Instr_Mode = Project_Instrumentation then
          Args.Append (+"-x");
          Args.Append (+L);
+      else
+         --  Add the -quiet switch to prevent the compiler from outputting
+         --  execution time statistics. TODO??? check whether this is compiler
+         --  specific (cc1 / cc1plus) when implementing integrated
+         --  instrumentation support for other compilers.
+
+         Args.Append (+"-quiet");
       end if;
 
       Args.Append (Compiler_Switches);

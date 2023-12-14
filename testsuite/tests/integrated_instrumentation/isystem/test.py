@@ -7,7 +7,7 @@ import os
 import os.path
 
 from SUITE.control import env
-from SUITE.cutils import Wdir
+from SUITE.cutils import contents_of, Wdir
 from SCOV.minicheck import check_xcov_reports
 from SUITE.tutils import cmdrun, srctracename_for, thistest, xcov
 
@@ -27,6 +27,7 @@ xcov(
 env.add_search_path(env_var="PATH", path=os.getcwd())
 
 # Then, run the compile + link command
+gcc_output = "gcc.out"
 cmdrun(
     [
         "gcc",
@@ -36,7 +37,14 @@ cmdrun(
         "-isystem",
         os.path.join("..", "include"),
     ],
+    out=gcc_output,
     for_pgm=False,
+)
+
+thistest.fail_if_not_equal(
+    "compiler output",
+    "",
+    contents_of(gcc_output),
 )
 
 # Run the executable
