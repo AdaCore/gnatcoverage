@@ -31,8 +31,9 @@ with Interfaces; use Interfaces;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with Command_Line; use Command_Line;
-with Hex_Images;   use Hex_Images;
+with Command_Line;   use Command_Line;
+with Files_Handling; use Files_Handling;
+with Hex_Images;     use Hex_Images;
 
 package body Instrument is
 
@@ -474,7 +475,7 @@ package body Instrument is
       Unit_Name : Unbounded_String;
       Lang      : Src_Supported_Language) return String_Vectors.Vector
    is
-      Result : String_Vectors.Vector;
+      Result        : String_Vectors.Vector;
       Compiler_Opts : String_Vectors.Vector;
    begin
       --  Pass the right body / spec suffixes
@@ -496,12 +497,16 @@ package body Instrument is
 
       if Lang in C_Family_Language then
          Compiler_Opts.Append (Desc.Search_Paths);
-         if Desc.Compiler_Options_Unit.Contains (Unit_Name) then
-            Compiler_Opts.Append
-              (Desc.Compiler_Options_Unit.Element (Unit_Name));
-         else
-            Compiler_Opts.Append (Desc.Compiler_Options (Lang));
-         end if;
+         declare
+            File : constant Virtual_File := Create_Normalized (+Unit_Name);
+         begin
+            if Desc.Compiler_Options_Unit.Contains (File) then
+               Compiler_Opts.Append
+                 (Desc.Compiler_Options_Unit.Element (File));
+            else
+               Compiler_Opts.Append (Desc.Compiler_Options (Lang));
+            end if;
+         end;
          if not Compiler_Opts.Is_Empty then
             case C_Family_Language (Lang) is
                when CPP_Language =>

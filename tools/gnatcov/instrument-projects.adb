@@ -37,11 +37,12 @@ with GNAT.Regexp;
 with GNAT.Strings;
 
 with GNATCOLL.JSON;         use GNATCOLL.JSON;
-with GNATCOLL.VFS;
+with GNATCOLL.VFS;          use GNATCOLL.VFS;
 with GNATCOLL.Projects.Aux; use GNATCOLL.Projects.Aux;
 
 with Binary_Files;
 with Command_Line;        use Command_Line;
+with Files_Handling;      use Files_Handling;
 with Files_Table;
 with Instrument.Ada_Unit; use Instrument.Ada_Unit;
 with Instrument.C;        use Instrument.C;
@@ -123,11 +124,10 @@ is
    package Main_To_Instrument_Vectors is new Ada.Containers.Vectors
      (Positive, Main_To_Instrument);
 
-   use type GNATCOLL.VFS.Filesystem_String;
    function Less (L, R : File_Info) return Boolean is
      (L.File.Full_Name < R.File.Full_Name);
    function Equal (L, R : File_Info) return Boolean is
-     (L.File.Full_Name = R.File.Full_Name);
+     (Equal (L.File.Full_Name, R.File.Full_Name));
 
    package File_Info_Sets is new Ada.Containers.Indefinite_Ordered_Sets
      (Element_Type => File_Info, "<" => Less, "=" => Equal);
@@ -539,8 +539,6 @@ is
      (LU_Info        : Library_Unit_Info;
       In_Library_Dir : Boolean) return String
    is
-      use GNATCOLL.VFS;
-
       --  Determine in which project we will put this SID file, and the
       --  basename for the SID file to create. Mimic how GNAT creates ALI
       --  files: use the project of the main source of the library unit, start
@@ -665,8 +663,8 @@ is
    Instrumented_Sources : Unit_Maps.Map;
    --  List of units that should be instrumented
 
-   Files_Of_Interest_Str_Set : String_Sets.Set;
-   Files_Of_Interest         : File_Info_Sets.Set;
+   Files_Of_Interest      : File_Sets.Set;
+   Files_Of_Interest_Info : File_Info_Sets.Set;
    --  List of files of interest.
    --
    --  This is passed on to instrument-source invocations when instrumenting
@@ -746,8 +744,8 @@ is
 
       --  Otherwise, this is a source of interest
 
-      Files_Of_Interest.Insert (Source_File);
-      Files_Of_Interest_Str_Set.Insert (+(+Source_File.File.Full_Name));
+      Files_Of_Interest_Info.Insert (Source_File);
+      Files_Of_Interest.Insert (Source_File.File);
 
       --  Headers are not instrumented by themselves, so exit early as soon
       --  as they have been added to the sources of interest.
@@ -808,7 +806,7 @@ is
                end;
                Add_Options (Compiler_Opts, Options, Pass_Builtins => False);
                Prj_Info.Desc.Compiler_Options_Unit.Insert
-                 (LU_Info.Unit_Name, Compiler_Opts);
+                 (Create_Normalized (+LU_Info.Unit_Name), Compiler_Opts);
             end if;
          end;
       end if;
@@ -1039,15 +1037,15 @@ begin
    --  this is not supported. TODO???: we should probably issue a warning
    --  there.
 
-   for Source of Files_Of_Interest.Copy loop
+   for Source of Files_Of_Interest_Info.Copy loop
       if Source.Unit_Part = Unit_Separate then
          declare
             Parent_Unit : constant GNATCOLL.Projects.File_Info :=
               Project.Project.Info
                 (Project.Project.Other_File (Source.File));
          begin
-            if not Files_Of_Interest.Contains (Parent_Unit) then
-               Files_Of_Interest.Delete (Source);
+            if not Files_Of_Interest_Info.Contains (Parent_Unit) then
+               Files_Of_Interest_Info.Delete (Source);
             end if;
          end;
       end if;
@@ -1077,8 +1075,6 @@ begin
    else
       for Filename of Mains loop
          declare
-            use GNATCOLL.VFS;
-
             F       : constant String := +Filename;
             Info    : constant File_Info :=
               Project.Project.Root_Project.Create_From_Project (+F);
@@ -1107,7 +1103,7 @@ begin
 
    --  Check early if there are no sources of interest
 
-   if Files_Of_Interest.Length = 0 then
+   if Files_Of_Interest_Info.Length = 0 then
       Outputs.Fatal_Error ("No unit to instrument.");
    end if;
 
@@ -1139,15 +1135,11 @@ begin
 
    --  Set the runtime directories
 
-   declare
-      use GNATCOLL.VFS;
-   begin
-      for Dir of
-        Project.Project.Root_Project.Get_Environment.Predefined_Source_Path
-      loop
-         IC.Predefined_Source_Dirs.Append (+(+Full_Name (Dir)));
-      end loop;
-   end;
+   for Dir of
+     Project.Project.Root_Project.Get_Environment.Predefined_Source_Path
+   loop
+      IC.Predefined_Source_Dirs.Append (Full_Name (Dir));
+   end loop;
 
    --  Initialize the instrumenters: we will use them when parallelization is
    --  disabled, but also to generate the unit holding the list of buffers,
@@ -1155,12 +1147,13 @@ begin
 
    Ada_Instrumenter :=
      Create_Ada_Instrumenter
-       (IC.Tag,
-        +IC.Config_Pragmas_File,
-        +IC.Mapping_File,
-        IC.Predefined_Source_Dirs);
-   C_Instrumenter := Create_C_Instrumenter (IC.Tag);
-   CPP_Instrumenter := Create_CPP_Instrumenter (IC.Tag);
+       (Tag => IC.Tag,
+        Config_Pragmas_Filename => +IC.Config_Pragmas_File,
+        Mapping_Filename        => +IC.Mapping_File,
+        Predefined_Source_Dirs  => IC.Predefined_Source_Dirs);
+   C_Instrumenter := Create_C_Instrumenter (IC.Tag, Project_Instrumentation);
+   CPP_Instrumenter :=
+     Create_CPP_Instrumenter (IC.Tag, Project_Instrumentation);
 
    if Dump_Config.Trigger = Manual then
       --  Replace manual dump indications for C-like languages
@@ -1184,7 +1177,7 @@ begin
    begin
       Sources_Of_Interest_File.Create
         (+IC.Sources_Of_Interest_Response_File);
-      for Source of Files_Of_Interest loop
+      for Source of Files_Of_Interest_Info loop
          Sources_Of_Interest_File.Put_Line (+Source.File.Full_Name);
       end loop;
       Sources_Of_Interest_File.Close;
@@ -1252,7 +1245,7 @@ begin
                  (Unit_Name         => Unit_Name,
                   SID_Name          => Obj_SID,
                   Instrumenter      => Instrumenters (LU_Info.Language).all,
-                  Files_Of_Interest => Files_Of_Interest_Str_Set,
+                  Files_Of_Interest => Files_Of_Interest,
                   Prj               => Desc);
             else
                --  Asynchronously instrument
@@ -1284,8 +1277,6 @@ begin
             --  creates automatically, the library directory may not
             --  exist: create it if needed.
 
-            declare
-               use GNATCOLL.VFS;
             begin
                Create (Create (+Lib_SID).Dir_Name).Make_Dir;
             exception
@@ -1406,7 +1397,7 @@ begin
                        +(+Root_Project_Info.Output_Dir)
                        / (+Main.File.Base_Name);
                   else
-                     Main_Filename := +(+Main.File.Full_Name);
+                     Main_Filename := Full_Name (Main.File);
                   end if;
 
                   Unit_Args.Append (Main_Filename);
@@ -1415,8 +1406,8 @@ begin
                      declare
                         Instr_Units : String_Sets.Set;
                      begin
-                        for Source of Files_Of_Interest loop
-                           Instr_Units.Insert (+(+Source.File.Full_Name));
+                        for Source of Files_Of_Interest_Info loop
+                           Instr_Units.Insert (Full_Name (Source.File));
                         end loop;
                         Instrument.Main
                           (Instrumenter  => Instrumenters (Language).all,

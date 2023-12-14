@@ -24,6 +24,8 @@ with GNAT.Strings; use GNAT.Strings;
 with Calendar_Utils;       use Calendar_Utils;
 with Command_Line;         use Command_Line;
 with Command_Line_Support; use Command_Line_Support;
+
+with Files_Handling; use Files_Handling;
 with Inputs;
 with SC_Obligations;
 with Strings;              use Strings;
@@ -125,7 +127,7 @@ package Switches is
    SPARK_Compat : Boolean := False;
    --  When True, tune the instrumenter for maximum SPARK compatibility
 
-   Files_Of_Interest : String_Sets.Set;
+   Files_Of_Interest : File_Sets.Set;
    --  Lower abstraction for files of interest, when the --files switch is
    --  used.
 

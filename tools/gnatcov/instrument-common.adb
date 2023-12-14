@@ -457,8 +457,8 @@ package body Instrument.Common is
          Args.Append (Dir);
       end loop;
 
-      --  If the file was already pre-processed, do not pass macro command
-      --  line switches. Since preprocessed code can contain names of defined
+      --  If the file was already preprocessed, do not pass macro command line
+      --  switches. Since preprocessed code can contain names of defined
       --  macros, passing macro arguments for the parsing step could trigger
       --  other expansions, and thus feed the parser with unexpected code.
 
@@ -602,6 +602,8 @@ package body Instrument.Common is
    --  Start of processing for Import_From_Args
 
    begin
+      Self.Raw_Switches.Append_Vector (Args);
+
       while I <= Last loop
          declare
             A     : constant String := +Args (I);

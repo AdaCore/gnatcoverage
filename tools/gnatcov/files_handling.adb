@@ -16,37 +16,26 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Command_Line;        use Command_Line;
-with Instrument.Ada_Unit; use Instrument.Ada_Unit;
-with Instrument.C;        use Instrument.C;
-with Instrument.Common;   use Instrument.Common;
-with Strings;             use Strings;
+package body Files_Handling is
 
---  Return the instrumenter configuration generated from the command line
+   -----------------------
+   -- Create_Normalized --
+   -----------------------
 
-function Instrument.Config return Language_Instrumenter'Class
-is
-   use Command_Line.Parser;
-   Language : constant Some_Language :=
-     To_Language (+Args.String_Args (Opt_Lang).Value);
-   Tag      : constant Unbounded_String :=
-     Value_Or_Null (Args.String_Args (Opt_Dump_Filename_Tag));
-begin
-   case Language is
-      when Ada_Language =>
-         return Create_Ada_Instrumenter
-           (Tag                     => Tag,
-            Config_Pragmas_Filename =>
-               +Args.String_Args (Opt_Gnatec).Value,
-            Mapping_Filename        =>
-               +Args.String_Args (Opt_Gnatem).Value,
-            Predefined_Source_Dirs  =>
-               Args.String_List_Args (Opt_Runtime_Dir));
-      when C_Language =>
-         return Create_C_Instrumenter
-           (Tag => Tag, Instr_Mode => Project_Instrumentation);
-      when CPP_Language =>
-         return Create_CPP_Instrumenter
-           (Tag => Tag, Instr_Mode => Project_Instrumentation);
-   end case;
-end Instrument.Config;
+   function Create_Normalized (Filename : String) return Virtual_File is
+      Result : constant Virtual_File := Create_From_Base (+Filename);
+   begin
+      Result.Normalize_Path;
+      return Result;
+   end Create_Normalized;
+
+   ---------------
+   -- Full_Name --
+   ---------------
+
+   function Full_Name (File : Virtual_File) return Unbounded_String is
+   begin
+      return +(+File.Full_Name);
+   end Full_Name;
+
+end Files_Handling;

@@ -26,6 +26,7 @@ with GNATCOLL.Projects; use GNATCOLL.Projects;
 
 with Types; use Types;
 
+with Files_Handling;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with SC_Obligations;      use SC_Obligations;
 with Subprocesses;        use Subprocesses;
@@ -41,6 +42,9 @@ package Instrument is
    use type Ada.Containers.Count_Type;
 
    Parallelism_Level : Natural := 1;
+
+   type Instrumentation_Mode is
+     (Project_Instrumentation, Integrated_Instrumentation);
 
    function Language_Kind
      (Language : Some_Language) return Any_Language_Kind;
@@ -209,7 +213,7 @@ package Instrument is
       --  For languages resorting to the compiler to preprocess sources, list
       --  of compiler switches to pass to the preprocessor invocation.
 
-      Compiler_Options_Unit : String_Vectors_Maps.Map;
+      Compiler_Options_Unit : Files_Handling.File_To_String_Vectors_Maps.Map;
       --  Compiler switches applying to a specific unit
 
       Search_Paths : String_Vectors.Vector;
