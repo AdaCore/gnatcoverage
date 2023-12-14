@@ -291,14 +291,27 @@ def gprbuild(project,
     # Now cleanup, do build and check status
     thistest.cleanup(project)
 
-    builder = thistest.suite_gprpgm_for(os.path.basename(BUILDER.BASE_COMMAND))
+    # lookup the hook for the executable name without extension
+    builder = thistest.suite_gprpgm_for(
+        os.path.splitext(os.path.basename(BUILDER.BASE_COMMAND))[0]
+    )
+
+    has_altrun = builder is not None
 
     if builder is None:
         builder = BUILDER.BASE_COMMAND
 
     args = (to_list(builder) +
             ['-P%s' % project] + all_gargs + all_cargs + all_largs)
-    p = run_and_log(args, output=out, timeout=thistest.options.timeout)
+    # If there is an altrun hook for gprbuild, it may be a script.
+    # Instruct the Run primitive to parse the shebang to invoke the correct
+    # interpreter in that case.
+    p = run_and_log(
+        args,
+        output=out,
+        timeout=thistest.options.timeout,
+        parse_shebang=has_altrun,
+    )
     if register_failure:
         thistest.stop_if(p.status != 0,
                          FatalError("gprbuild exit in error", out))

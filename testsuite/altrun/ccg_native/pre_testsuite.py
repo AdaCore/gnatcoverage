@@ -28,11 +28,13 @@ base_rts_dir = os.path.join(
 
 def run(cmd, what):
     """
-    Run the command represented by cmd in a subprocess. If the exit status is
-    not success and ignore_failure is True, print f"{what} failed" followed by
-    the command output on the standard output and exit with an error.
-    Otherwise, return the output of the command execution.
+    Run the command represented by cmd in a subprocess, appending the
+    executable extension for the platform to the first element of cmd. If the
+    exit status is not success and ignore_failure is True, print
+    f"{what} failed" followed by the command output on the standard output and
+    exit with an error. Otherwise, return the output of the command execution.
     """
+    cmd[0] = cmd[0] + exeext
     p = Run(cmd)
     if p.status != 0:
         print(f"{what} failed:")
@@ -212,6 +214,6 @@ for f in all_rt_src:
 
 # Create the library per se.
 run(
-    ["ar", "rcs", os.path.join(adainclude_dir, "libgnat.a")] + all_obj_files,
+    ["ar", "rcs", os.path.join(local_rt, "libgnat.a")] + all_obj_files,
     what="archival of the Ada runtime",
 )

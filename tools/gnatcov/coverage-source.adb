@@ -40,6 +40,7 @@ with Project;             use Project;
 with Slocs;               use Slocs;
 with Switches;            use Switches;
 with Traces_Elf;          use Traces_Elf;
+with Traces_Files;        use Traces_Files;
 with Types;
 
 package body Coverage.Source is
@@ -1074,7 +1075,7 @@ package body Coverage.Source is
                           (SCO, SCO_State, Line_Info, SCI, ATCC);
                      end if;
 
-                  else
+                  elsif Decision_Requires_Coverage (SCO) then
                      --  ...otherwise update the SCO state for the regular
                      --  source coverage levels.
 
@@ -2243,7 +2244,9 @@ package body Coverage.Source is
    begin
       pragma Assert (Kind (SCO) in Decision | Condition);
 
-      return Assertion_Coverage_Enabled and then Is_Assertion_To_Cover (SCO);
+      return Currently_Accepted_Trace_Kind /= Binary_Trace_File
+        and then Assertion_Coverage_Enabled
+        and then Is_Assertion_To_Cover (SCO);
    end Decision_Requires_Assertion_Coverage;
 
    --------------------

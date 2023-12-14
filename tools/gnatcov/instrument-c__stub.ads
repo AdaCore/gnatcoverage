@@ -38,7 +38,8 @@ package Instrument.C is
    is (C_Language);
 
    function Create_C_Instrumenter
-     (Tag : Unbounded_String) return C_Instrumenter_Type
+     (Tag        : Unbounded_String;
+      Instr_Mode : Instrumentation_Mode) return C_Instrumenter_Type
    is (C_Instrumenter_Type'(others => <>));
 
    type CPP_Instrumenter_Type is
@@ -50,7 +51,8 @@ package Instrument.C is
    is (CPP_Language);
 
    function Create_CPP_Instrumenter
-     (Tag : Unbounded_String) return CPP_Instrumenter_Type
+     (Tag        : Unbounded_String;
+      Instr_Mode : Instrumentation_Mode) return CPP_Instrumenter_Type
    is (CPP_Instrumenter_Type'(others => <>));
 
    procedure Postprocess_Source

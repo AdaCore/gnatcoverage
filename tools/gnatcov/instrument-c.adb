@@ -19,6 +19,7 @@
 with Ada.Characters.Handling;
 with Ada.Containers;  use Ada.Containers;
 with Ada.Directories; use Ada.Directories;
+with Ada.Streams.Stream_IO;
 with Ada.Text_IO;     use Ada.Text_IO;
 
 with Clang.CX_Diagnostic; use Clang.CX_Diagnostic;
@@ -28,7 +29,6 @@ with Clang.Extensions;    use Clang.Extensions;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
 
-with GNATCOLL.VFS;
 with GNATCOLL.Mmap;
 
 with Interfaces;           use Interfaces;
@@ -72,12 +72,11 @@ package body Instrument.C is
    --  Preprocessing utilities --
    ------------------------------
 
-   type Macro_Set_Access is access Macro_Set;
-   type Macro_Set_Cst_Access is access constant Macro_Set;
-
-   function Builtin_Macros
+   procedure Get_Builtin_Macros
      (Lang, Compiler, Output_Dir : String;
-      Compiler_Switches : String_Vectors.Vector) return Macro_Set_Cst_Access;
+      Compiler_Switches          : String_Vectors.Vector;
+      Instr_Mode                 : Instrumentation_Mode;
+      Result                     : out Macro_Set);
    --  Return the list of built-in macros for the given compiler, language and
    --  according to the compiler switches. Output_Dir is used to store a
    --  temporary file.
@@ -2499,18 +2498,18 @@ package body Instrument.C is
    -- Builtin_Macros --
    --------------------
 
-   function Builtin_Macros
+   procedure Get_Builtin_Macros
      (Lang, Compiler, Output_Dir : String;
-      Compiler_Switches : String_Vectors.Vector) return Macro_Set_Cst_Access
+      Compiler_Switches          : String_Vectors.Vector;
+      Instr_Mode                 : Instrumentation_Mode;
+      Result                     : out Macro_Set)
    is
       use Ada.Characters.Handling;
 
       PID : constant Unsigned_64 :=
         Unsigned_64 (Pid_To_Integer (Current_Process_Id));
 
-      L      : constant String := To_Lower (Lang);
-      Result : constant Macro_Set_Access := new Macro_Set;
-
+      L        : constant String := To_Lower (Lang);
       Args     : String_Vectors.Vector;
       Basename : constant String :=
         Ada.Directories.Simple_Name (Compiler)
@@ -2522,8 +2521,16 @@ package body Instrument.C is
       --  Run the preprocessor on an empty file and write the
       --  preprocessed sources to Filename.
 
-      Args.Append (+"-x");
-      Args.Append (+L);
+      --  If we are in the integrated instrumentation mode, we use the compiler
+      --  (as opposed to the compiler driver) to preprocess the source file.
+      --  The compiler - which is specific to the language - does not accept
+      --  the -x switch, so do not pass it in this case.
+
+      if Instr_Mode = Project_Instrumentation then
+         Args.Append (+"-x");
+         Args.Append (+L);
+      end if;
+
       Args.Append (Compiler_Switches);
       Args.Append (+"-E");
       Args.Append (+"-dM");
@@ -2561,8 +2568,7 @@ package body Instrument.C is
       end loop;
       Close (File);
       Delete_File (Filename);
-      return Macro_Set_Cst_Access (Result);
-   end Builtin_Macros;
+   end Get_Builtin_Macros;
 
    -----------------------
    -- Preprocess_Source --
@@ -2611,14 +2617,18 @@ package body Instrument.C is
         (Command => Prj.Compiler_Driver (Instrumenter.Language),
          others  => <>);
 
-      --  Add the preprocessing flag
-
       if Keep_Comments then
          Append_Arg (Cmd, "-C");
       end if;
 
+      --  Add the preprocessing flag
+
       Append_Arg (Cmd, "-E");
-      Add_Options (Cmd.Arguments, Options, Pass_Builtins => False);
+
+      --  Add all of the compiler / compiler driver options to the
+      --  preprocessing command line.
+
+      Append_Args (Cmd, Options.Raw_Switches);
 
       Append_Arg (Cmd, Filename);
 
@@ -2932,7 +2942,7 @@ package body Instrument.C is
      (Self              : in out C_Family_Instrumenter_Type;
       Unit_Name         : String;
       Prj               : Prj_Desc;
-      Files_Of_Interest : String_Sets.Set)
+      Files_Of_Interest : File_Sets.Set)
    is
       UIC     : C_Unit_Inst_Context;
       CU_Name : constant Compilation_Unit_Part :=
@@ -3843,7 +3853,6 @@ package body Instrument.C is
       Source                : GNATCOLL.Projects.File_Info;
       Has_Manual_Indication : out Boolean)
    is
-      use GNATCOLL.VFS;
       Orig_Filename : constant String := +Source.File.Full_Name;
    begin
       Check_Compiler_Driver (Prj, Self);
@@ -3867,7 +3876,7 @@ package body Instrument.C is
          Preprocess_Source
            (Orig_Filename, Self, Prj, PP_Filename, Options, True);
          declare
-            use String_Vectors_Maps;
+            use Files_Handling.File_To_String_Vectors_Maps;
             Cur      : Cursor;
             Inserted : Boolean;
          begin
@@ -3878,7 +3887,7 @@ package body Instrument.C is
 
             for Path of Options.PP_Search_Path loop
                Prj.Compiler_Options_Unit.Insert
-                 (Key       => +(+Source.File.Full_Name),
+                 (Key       => Source.File,
                   New_Item  => String_Vectors.Empty_Vector,
                   Position  => Cur,
                   Inserted  => Inserted);
@@ -3893,6 +3902,7 @@ package body Instrument.C is
          --  function.
 
          declare
+            use Ada.Streams.Stream_IO;
             use GNATCOLL.Mmap;
             File         : Mapped_File := Open_Read (To_String (PP_Filename));
             Region       : Mapped_Region := Read (File);
@@ -3901,10 +3911,14 @@ package body Instrument.C is
             Str          : String renames Raw_Str (1 .. Raw_Str_Last);
 
             Tmp_Filename : constant String := +PP_Filename & ".tmp";
-            Output_File  : Ada.Text_IO.File_Type;
+
+            Output_File : Ada.Streams.Stream_IO.File_Type;
+            S           : Ada.Streams.Stream_IO.Stream_Access;
             --  Temporary file containing the new version of the original file,
             --  with inserted calls to dump buffers. The original file is then
-            --  overwritten by this temporary file.
+            --  overwritten by this temporary file. This file is opened as a
+            --  binary file, as we are going to write contents retrieved
+            --  through mmap (thus binary content) to it.
 
             Index : Positive := 1;
             --  Starting index, or last index of the previous match in the
@@ -3922,13 +3936,14 @@ package body Instrument.C is
 
                if not Has_Manual_Indication then
                   Create (Output_File, Out_File, Tmp_Filename);
+                  S := Stream (Output_File);
                   Has_Manual_Indication := True;
                end if;
-               Put (Output_File, Str (Index .. Matches (0).First));
+               String'Write (S, Str (Index .. Matches (0).First));
 
                --  Replace the match with the call to the dump procedure
 
-               Put (Output_File, Dump_Procedure & "();");
+               String'Write (S, Dump_Procedure & "();");
                Index := Matches (0).Last + 1;
             end loop;
 
@@ -3937,21 +3952,23 @@ package body Instrument.C is
 
             if Has_Manual_Indication then
                declare
+                  PP_File  : constant Virtual_File := Create (+(+PP_Filename));
                   Tmp_File : constant Virtual_File := Create (+Tmp_Filename);
                   Success  : Boolean;
                begin
                   --  Flush the rest of the file contents
 
-                  Ada.Text_IO.Put (Output_File, Str (Index .. Str'Last));
-                  Ada.Text_IO.Close (Output_File);
+                  String'Write (S, Str (Index .. Str'Last));
+                  Close (Output_File);
 
                   Free (Region);
                   Close (File);
 
                   --  Overwrite the original file with its newer version
 
+                  PP_File.Delete (Success);
                   Tmp_File.Rename
-                    (Full_Name => Create (+(+PP_Filename)),
+                    (Full_Name => PP_File,
                      Success   => Success);
                   if not Success then
                      Outputs.Fatal_Error
@@ -4548,6 +4565,7 @@ package body Instrument.C is
       Prj          : Prj_Desc;
       Filename     : String)
    is
+      File         : constant Virtual_File := Create_Normalized (Filename);
       Cmdline_Opts : constant String_Vectors.Vector :=
         (case C_Family_Language (Instrumenter.Language) is
             when C_Language   => C_Opts,
@@ -4559,8 +4577,8 @@ package body Instrument.C is
       --  implementation. Otherwise, the compiler switches in the project files
       --  are passed through the command line directly.
 
-      if Prj.Compiler_Options_Unit.Contains (+Filename) then
-         Prj_Options.Append (Prj.Compiler_Options_Unit.Element (+Filename));
+      if Prj.Compiler_Options_Unit.Contains (File) then
+         Prj_Options.Append (Prj.Compiler_Options_Unit.Element (File));
       else
          Prj_Options.Append (Prj.Compiler_Options (Instrumenter.Language));
       end if;
@@ -4574,12 +4592,13 @@ package body Instrument.C is
       --  Now, we can generate the preprocessor configuration (i.e. the set
       --  of predefined macros).
 
-      Self.Builtin_Macros :=
-        Builtin_Macros
-          (Image (C_Family_Language (Instrumenter.Language)),
-           +Prj.Compiler_Driver (Instrumenter.Language),
-           +Prj.Output_Dir,
-           Self.Compiler_Switches).all;
+      Get_Builtin_Macros
+        (Image (C_Family_Language (Instrumenter.Language)),
+         +Prj.Compiler_Driver (Instrumenter.Language),
+         +Prj.Output_Dir,
+         Self.Compiler_Switches,
+         Instrumenter.Instr_Mode,
+         Self.Builtin_Macros);
    end Import_Options;
 
    ---------------------------
@@ -4595,13 +4614,13 @@ package body Instrument.C is
       Line   : aliased unsigned;
       Column : aliased unsigned;
       Loc    : constant Source_Location_T := Get_Cursor_Location (N);
-      File   : Unbounded_String;
+      File   : Virtual_File;
    begin
       Get_Presumed_Location (Location => Loc,
                              Filename => C_File'Access,
                              Line     => Line'Access,
                              Column   => Column'Access);
-      File := +Ada.Directories.Full_Name (Get_C_String (C_File));
+      File := Create_Normalized (Get_C_String (C_File));
 
       --  Look for a corresponding entry in UIC.Sources_Of_Interest, create one
       --  if it is missing.
@@ -4623,12 +4642,12 @@ package body Instrument.C is
          if UIC.Files_Of_Interest.Contains (File) then
             declare
                SFI : constant Source_File_Index :=
-                 Get_Index_From_Generic_Name (+File, Source_File);
+                 Get_Index_From_Generic_Name (+File.Full_Name, Source_File);
             begin
                SOI :=
                  (Of_Interest  => True,
                   SFI          => SFI,
-                  CU_Name      => CU_Name_For_File (File));
+                  CU_Name      => CU_Name_For_File (Full_Name (File)));
             end;
          else
             SOI := (Of_Interest => False);

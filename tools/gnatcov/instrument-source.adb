@@ -18,8 +18,8 @@
 
 with Checkpoints;       use Checkpoints;
 with Coverage;
+with Files_Handling;    use Files_Handling;
 with Instrument.Common; use Instrument.Common;
-with Strings;           use Strings;
 with Traces_Files;      use Traces_Files;
 
 --  Implementation of the gnatcov instrument-source command, which instrument
@@ -30,7 +30,7 @@ procedure Instrument.Source
   (Unit_Name         : String;
    SID_Name          : String;
    Instrumenter      : in out Language_Instrumenter'Class;
-   Files_Of_Interest : String_Sets.Set;
+   Files_Of_Interest : File_Sets.Set;
    Prj               : Prj_Desc)
 is
    Context : aliased Coverage.Context := Coverage.Get_Context;

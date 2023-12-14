@@ -5,8 +5,6 @@ import re
 
 from e3.fs import mkdir
 
-import libadalang as lal
-
 from SUITE.context import thistest
 from SUITE.cutils import contents_of, ext, indent
 from SUITE.tutils import RUNTIME_INFO, GNATCOV_INFO, locate_gpr_file, xcov
@@ -197,6 +195,11 @@ def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
     :param str main_unit: Name of the main unit for which the hook will call
         the coverage buffers dump routine.
     """
+    # Isolate the dependency to the libadalang module. This means that a user
+    # testing natively (thus not needing the support for last chance handlers)
+    # will not need to install the libadalang python module.
+    import libadalang as lal
+
     # Amend obj_dir according to subdirs, if applicable
     if subdirs:
         obj_dir = os.path.join(obj_dir, subdirs)

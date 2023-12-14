@@ -18,34 +18,39 @@
 
 --  Instrumentation of a C source file
 
-with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Finalization;
 
 with Namet; use Namet;
 
+with GNATCOLL.VFS; use GNATCOLL.VFS;
+
 with Clang.CX_Source_Location; use Clang.CX_Source_Location;
 with Clang.Index;              use Clang.Index;
 with Clang.Rewrite;            use Clang.Rewrite;
 
-with Diagnostics;       use Diagnostics;
-with Files_Table;       use Files_Table;
+with Diagnostics;        use Diagnostics;
+with Files_Handling;     use Files_Handling;
+with Files_Table;        use Files_Table;
 with Instrument.C_Utils; use Instrument.C_Utils;
-with Instrument.Common; use Instrument.Common;
-with Slocs;             use Slocs;
+with Instrument.Common;  use Instrument.Common;
+with Slocs;              use Slocs;
 
 package Instrument.C is
 
    type C_Family_Instrumenter_Type is
-     abstract new Language_Instrumenter with null record;
+     abstract new Language_Instrumenter with
+      record
+         Instr_Mode : Instrumentation_Mode;
+      end record;
    --  Common instrumentation primitives for C/C++
 
    overriding procedure Instrument_Unit
      (Self              : in out C_Family_Instrumenter_Type;
       Unit_Name         : String;
       Prj               : Prj_Desc;
-      Files_Of_Interest : String_Sets.Set);
+      Files_Of_Interest : File_Sets.Set);
 
    overriding procedure Auto_Dump_Buffers_In_Main
      (Self        : in out C_Family_Instrumenter_Type;
@@ -118,8 +123,9 @@ package Instrument.C is
    is (C_Language);
 
    function Create_C_Instrumenter
-     (Tag : Unbounded_String) return C_Instrumenter_Type
-   is (C_Instrumenter_Type'(Tag => Tag));
+     (Tag        : Unbounded_String;
+      Instr_Mode : Instrumentation_Mode) return C_Instrumenter_Type
+   is (C_Instrumenter_Type'(Tag => Tag, Instr_Mode => Instr_Mode));
    --  Create a C instrumenter. See the definition of the
    --  Language_Instrumenter type for the arguments semantic.
 
@@ -136,8 +142,9 @@ package Instrument.C is
    is ("extern ""C"" ");
 
    function Create_CPP_Instrumenter
-     (Tag : Unbounded_String) return CPP_Instrumenter_Type
-   is (CPP_Instrumenter_Type'(Tag => Tag));
+     (Tag        : Unbounded_String;
+      Instr_Mode : Instrumentation_Mode) return CPP_Instrumenter_Type
+   is (CPP_Instrumenter_Type'(Tag => Tag, Instr_Mode => Instr_Mode));
    --  Create a C++ instrumenter. See the definition of the
    --  Language_Instrumenter type for the arguments semantic.
 
@@ -309,11 +316,11 @@ package Instrument.C is
    --  gnatcov's file table and Project_Name is the name of the project that
    --  owns this source file.
 
-   package Source_Of_Interest_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Unbounded_String,
-      Element_Type    => Source_Of_Interest,
-      Hash            => Strings.Hash,
-      Equivalent_Keys => "=");
+   package Source_Of_Interest_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Virtual_File,
+      Element_Type => Source_Of_Interest,
+      "<"          => GNATCOLL.VFS."<",
+      "="          => "=");
 
    type File_Scope_Type is record
       Scope_Entities       : Scope_Entities_Tree;
@@ -353,7 +360,7 @@ package Instrument.C is
          LL_PP_Info_Map : LL_SCO_PP_Info_Maps.Map;
          --  Preprocessing information for low level SCOs
 
-         Files_Of_Interest        : String_Sets.Set;
+         Files_Of_Interest        : File_Sets.Set;
          Sources_Of_Interest_Info : Source_Of_Interest_Maps.Map;
          --  Records for each source file processed during the instrumentation
          --  whether it is a source of interest, and some properties if it is.
