@@ -775,8 +775,8 @@ package body Traces_Elf is
       --  of interest, or until we can conclude that there is no such
       --  Addres_Info.
       --
-      --  We can conclude that PC is contained in an Address_Info or not as soon
-      --  as we reach a top level Info. If PC is not contained in that top
+      --  We can conclude that PC is contained in an Address_Info or not as
+      --  soon as we reach a top level Info. If PC is not contained in that top
       --  level Address_Info, then PC isn't contained in any of those.
 
       Candidate := Set.Floor (PC_Addr'Unchecked_Access);
