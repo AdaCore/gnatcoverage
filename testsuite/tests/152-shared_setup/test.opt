@@ -1,0 +1,3 @@
+!native DEAD Test requires both shared lib support and available light runtime
+7.1.2 DEAD Light runtime not provided by this toolchain
+5.04a1 DEAD Light runtime not provided by this toolchain
