@@ -28,6 +28,7 @@
 --  This unit needs to be compilable with Ada 95 compilers
 
 with System;
+pragma Warnings (Off, System);
 
 package GNATcov_RTS is
 
@@ -35,6 +36,8 @@ package GNATcov_RTS is
 
    package Std renames Standard;
    package Sys renames System;
+   pragma Warnings (Off, Std);
+   pragma Warnings (Off, Sys);
 
    Version : constant := 5;
    --  For compatibility with the GNATcoverage in use, GNATcov_RTS is
