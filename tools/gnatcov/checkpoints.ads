@@ -29,13 +29,13 @@ with GNAT.Regexp;
 with Types; use Types;
 
 with Coverage;
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
-with Files_Table;         use Files_Table;
-with Slocs;               use Slocs;
-with SC_Obligations;      use SC_Obligations;
-with Strings;             use Strings;
-with Traces;              use Traces;
-with Traces_Lines;        use Traces_Lines;
+with Files_Table;    use Files_Table;
+with Slocs;          use Slocs;
+with SC_Obligations; use SC_Obligations;
+with Strings;        use Strings;
+with Traces;         use Traces;
+with Traces_Lines;   use Traces_Lines;
+with Traces_Source;  use Traces_Source;
 
 package Checkpoints is
 
@@ -372,7 +372,7 @@ package Checkpoints is
    function Read_Inst (Self : in out Checkpoint_Load_State) return Inst_Id;
    function Read_Integer (Self : in out Checkpoint_Load_State) return Integer;
    function Read_Language_Kind
-     (Self : in out Checkpoint_Load_State) return Any_Language_Kind;
+     (Self : in out Checkpoint_Load_State) return Supported_Language_Kind;
    function Read_Line_State
      (Self : in out Checkpoint_Load_State) return Any_Line_State;
    function Read_Local_Source_Location
@@ -525,7 +525,7 @@ package Checkpoints is
      (Self  : in out Checkpoint_Save_State;
       Value : SC_Obligations.Fingerprint_Type);
    procedure Write
-     (Self : in out Checkpoint_Save_State; Value : Any_Language_Kind);
+     (Self : in out Checkpoint_Save_State; Value : Supported_Language_Kind);
    procedure Write
      (Self : in out Checkpoint_Save_State; Value : Any_Line_State);
    procedure Write

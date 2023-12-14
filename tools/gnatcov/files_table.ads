@@ -25,19 +25,19 @@ with GNAT.Strings; use GNAT.Strings;
 with GNAT.Regexp;
 
 limited with Checkpoints;
-with Coverage_Options;    use Coverage_Options;
-with Diagnostics;         use Diagnostics;
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
+with Coverage_Options; use Coverage_Options;
+with Diagnostics;      use Diagnostics;
 with Logging;
-with Paths;               use Paths;
-with SC_Obligations;      use SC_Obligations;
-with Slocs;               use Slocs;
-with Strings;             use Strings;
-with Traces_Dbase;        use Traces_Dbase;
-with Traces_Elf;          use Traces_Elf;
-with Traces_Lines;        use Traces_Lines;
-with Traces_Stats;        use Traces_Stats;
-with Types;               use Types;
+with Paths;            use Paths;
+with SC_Obligations;   use SC_Obligations;
+with Slocs;            use Slocs;
+with Strings;          use Strings;
+with Traces_Dbase;     use Traces_Dbase;
+with Traces_Elf;       use Traces_Elf;
+with Traces_Lines;     use Traces_Lines;
+with Traces_Source;    use Traces_Source;
+with Traces_Stats;     use Traces_Stats;
+with Types;            use Types;
 
 package Files_Table is
 
@@ -316,7 +316,7 @@ package Files_Table is
    --  procedure Consolidate_Ignore_Status.
 
    type Compilation_Unit is record
-      Language  : Any_Language_Kind;
+      Language  : Supported_Language_Kind;
       Unit_Name : Unbounded_String;
    end record;
    --  This record is used to uniquely identify a unit of any language

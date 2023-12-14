@@ -39,8 +39,8 @@ package body Instrument is
    -- Language_Kind --
    -------------------
 
-   function Language_Kind (Language : Some_Language) return Any_Language_Kind
-   is
+   function Language_Kind
+     (Language : Some_Language) return Supported_Language_Kind is
    begin
       return (case Language is
               when Ada_Language => Unit_Based_Language,
@@ -340,9 +340,9 @@ package body Instrument is
             return To_Ada (CU_Name.Unit)
               & " "
               & (case CU_Name.Part is
-                    when Unit_Spec     => "spec",
-                    when Unit_Body     => "body",
-                    when Unit_Separate => "subunit");
+                    when GNATCOLL.Projects.Unit_Spec     => "spec",
+                    when GNATCOLL.Projects.Unit_Body     => "body",
+                    when GNATCOLL.Projects.Unit_Separate => "subunit");
          when File_Based_Language =>
             return +CU_Name.Filename;
       end case;

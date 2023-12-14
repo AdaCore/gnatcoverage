@@ -28,19 +28,19 @@ with Interfaces;
 with GNATCOLL.Projects;
 with GNATCOLL.VFS;
 
-with Binary_Files;        use Binary_Files;
-with Coverage.Tags;       use Coverage.Tags;
-with Decision_Map;        use Decision_Map;
-with Diagnostics;         use Diagnostics;
-with Elf_Disassemblers;   use Elf_Disassemblers;
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
-with MC_DC;               use MC_DC;
-with Outputs;             use Outputs;
-with Project;             use Project;
-with Slocs;               use Slocs;
-with Switches;            use Switches;
-with Traces_Elf;          use Traces_Elf;
-with Traces_Files;        use Traces_Files;
+with Binary_Files;      use Binary_Files;
+with Coverage.Tags;     use Coverage.Tags;
+with Decision_Map;      use Decision_Map;
+with Diagnostics;       use Diagnostics;
+with Elf_Disassemblers; use Elf_Disassemblers;
+with MC_DC;             use MC_DC;
+with Outputs;           use Outputs;
+with Project;           use Project;
+with Slocs;             use Slocs;
+with Switches;          use Switches;
+with Traces_Elf;        use Traces_Elf;
+with Traces_Files;      use Traces_Files;
+with Traces_Source;     use Traces_Source;
 with Types;
 
 package body Coverage.Source is
@@ -1974,12 +1974,11 @@ package body Coverage.Source is
 
       function Part_Image (Part : GNATCOLL.Projects.Unit_Parts) return String
       is
-         use all type GNATCOLL.Projects.Unit_Parts;
       begin
          return (case Part is
-                 when Unit_Body => "body of",
-                 when Unit_Spec => "spec of",
-                 when Unit_Separate => "separate");
+                 when GNATCOLL.Projects.Unit_Body => "body of",
+                 when GNATCOLL.Projects.Unit_Spec => "spec of",
+                 when GNATCOLL.Projects.Unit_Separate => "separate");
       end Part_Image;
 
       ------------------------

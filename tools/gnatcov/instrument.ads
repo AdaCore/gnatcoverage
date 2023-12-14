@@ -25,13 +25,13 @@ with GNATCOLL.Projects; use GNATCOLL.Projects;
 
 with Types; use Types;
 
-with Checkpoints;         use Checkpoints;
+with Checkpoints;    use Checkpoints;
 with Files_Handling;
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
-with SC_Obligations;      use SC_Obligations;
-with Subprocesses;        use Subprocesses;
-with Strings;             use Strings;
-with Switches;            use Switches;
+with SC_Obligations; use SC_Obligations;
+with Strings;        use Strings;
+with Subprocesses;   use Subprocesses;
+with Switches;       use Switches;
+with Traces_Source;  use Traces_Source;
 
 package Instrument is
 
@@ -46,7 +46,7 @@ package Instrument is
      (Project_Instrumentation, Integrated_Instrumentation);
 
    function Language_Kind
-     (Language : Some_Language) return Any_Language_Kind;
+     (Language : Some_Language) return Supported_Language_Kind;
    --  Returns the language kind (unit-based or file-based) for the given
    --  language.
 
@@ -89,13 +89,13 @@ package Instrument is
       Write_Element => Write);
 
    type Compilation_Unit_Part
-     (Language_Kind : Any_Language_Kind := Unit_Based_Language)
+     (Language_Kind : Supported_Language_Kind := Unit_Based_Language)
    is record
 
       case Language_Kind is
          when Unit_Based_Language =>
             Unit : Ada_Qualified_Name := Ada_Identifier_Vectors.Empty_Vector;
-            Part : Unit_Parts         := Unit_Body;
+            Part : Unit_Parts         := GNATCOLL.Projects.Unit_Body;
             --  Identifies an Ada compilation unit (unit-based)
 
          when File_Based_Language =>
@@ -118,9 +118,9 @@ package Instrument is
    --  Write a Compilation_Unit_Part to CSS
 
    Part_Tags : constant array (Unit_Parts) of Character :=
-     (Unit_Spec     => 'S',
-      Unit_Body     => 'B',
-      Unit_Separate => 'U');
+     (GNATCOLL.Projects.Unit_Spec     => 'S',
+      GNATCOLL.Projects.Unit_Body     => 'B',
+      GNATCOLL.Projects.Unit_Separate => 'U');
 
    function "=" (Left, Right : Compilation_Unit_Part) return Boolean;
 
