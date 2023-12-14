@@ -106,8 +106,23 @@ library project GNATcov_RTS is
       end case;
 
       for Default_Switches ("C") use
-         ("-O2", "-g", "-Wall", "-Wextra") & C_Extra_Switches;
-      for Default_Switches ("Ada") use ("-O2", "-g", "-gnatwa");
+        ("-O2", "-g", "-Wall", "-Wextra") & C_Extra_Switches;
+      for Default_Switches ("Ada") use
+        ("-O2", "-g",
+
+         --  Enable all warnings to raise awareness about issues, but do not
+         --  treat them as errors so that users are not blocked because of
+         --  warnings.
+
+         "-gnatwa",
+
+         --  Disable warnings for No_Exception_Propagation: this restriction is
+         --  common on restricted runtimes, but are not actionable in the
+         --  context of the coverage runtime: we have to convert size_t values
+         --  to Natural, we have to assume that addresses are correctly aligned
+         --  in "for X'Address use Y;" clauses.
+
+         "-gnatw.X");
    end Compiler;
 
    package Install is
