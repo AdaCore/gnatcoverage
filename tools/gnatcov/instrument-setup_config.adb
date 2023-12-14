@@ -472,10 +472,10 @@ package body Instrument.Setup_Config is
       end;
 
       Result.Tag := Config_JSON.Get ("tag");
-         Result.GNATcov_RTS_Include_Dir :=
-           Config_JSON.Get ("gnatcov_rts_include_dir");
-         Result.GNATcov_RTS_Object_Dir :=
-           Config_JSON.Get ("gnatcov_rts_object_dir");
+      Result.GNATcov_RTS_Include_Dir :=
+        Config_JSON.Get ("gnatcov_rts_include_dir");
+      Result.GNATcov_RTS_Object_Dir :=
+        Config_JSON.Get ("gnatcov_rts_object_dir");
       return Result;
    end Load_Config;
 
