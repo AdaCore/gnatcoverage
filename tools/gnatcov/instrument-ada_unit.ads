@@ -83,10 +83,10 @@ package Instrument.Ada_Unit is
       Prj           : Prj_Desc);
 
    overriding procedure Replace_Manual_Dump_Indication
-     (Self   : in out Ada_Instrumenter_Type;
-      Done   : in out Boolean;
-      Prj    : in out Prj_Desc;
-      Source : GNATCOLL.Projects.File_Info);
+     (Self                  : in out Ada_Instrumenter_Type;
+      Prj                   : in out Prj_Desc;
+      Source                : GNATCOLL.Projects.File_Info;
+      Has_Manual_Indication : out Boolean);
    --  Once the instrumentation has finished, if the dump trigger is "manual"
    --  we expect the user to have indicated the place where a call to the
    --  manual dump buffers procedure should be inserted by the pragma

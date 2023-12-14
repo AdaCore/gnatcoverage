@@ -861,9 +861,9 @@ is
 
                begin
                   Instrumenter.Replace_Manual_Dump_Indication
-                    (Contained_Indication,
-                     Prj_Info.Desc,
-                     Source);
+                    (Prj_Info.Desc,
+                     Source,
+                     Contained_Indication);
 
                   if Contained_Indication and then not Is_Root_Prj
                   then
