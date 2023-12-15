@@ -622,7 +622,9 @@ def xcov_suite_args(covcmd, covargs,
     are True.
     """
     project_handling_enabled = (
-        force_project_args or any(arg.startswith('-P') for arg in covargs)
+        force_project_args
+        or covcmd in ("setup", "setup-integration")
+        or any(arg.startswith('-P') for arg in covargs)
     )
 
     # If --config is asked and project handling is involved, pass it and stop
