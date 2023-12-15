@@ -28,7 +28,6 @@ with Ada.Command_Line;
 
 with Interfaces; use Interfaces;
 
-with GNATcov_RTS.Base_IO;       use GNATcov_RTS.Base_IO;
 with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 
 package GNATcov_RTS.Traces.Output.Files is

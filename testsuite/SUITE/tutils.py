@@ -757,6 +757,15 @@ def xcov(args, out=None, err=None, inp=None, env=None, register_failure=True,
     arguments.
     """
 
+    # Defensive code: running "gnatcov setup" with no prefix will install
+    # gnatcov_rts in gprbuild's prefix, i.e. the current test will try to
+    # modify a global resource. This is always an error, so reject it before it
+    # causes hard to trace damage elsewhere.
+    assert (
+        args[0] != "setup"
+        or any(arg.startswith("--prefix") for arg in args)
+    )
+
     # Make ARGS a list from whatever it is, to allow unified processing.
     # Then fetch the requested command, always first:
     args = to_list(args)

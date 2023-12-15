@@ -1029,7 +1029,7 @@ procedure GNATcov_Bits_Specific is
                   & " is missing (required for ""convert"")");
             end if;
 
-         when Cmd_Instrument =>
+         when Cmd_Instrument_With_Setup =>
 
             --  Ensure we have a source coverage level. If not, we might have
             --  either an object level specified, or possibly no --level at

@@ -77,8 +77,9 @@ package body GNATcov_RTS.Buffers is
    -------------
 
    procedure Witness (Buffer_Address : System.Address; Bit : Bit_Id) is
-      Ignored : GNATcov_RTS_Bool :=
+      Ignored : constant GNATcov_RTS_Bool :=
         GNATcov_RTS_Witness (Buffer_Address, Bit);
+      pragma Unreferenced (Ignored);
    begin
       null;
    end Witness;
