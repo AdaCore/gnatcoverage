@@ -18,7 +18,7 @@
 
 --  Stub of Instrument.Ada_Unit, to avoid pulling a dependency to libadalang
 --  when gnatcov is not built with Ada instrumentation support (basically the
---  gnatcov32 executable that have support for binary traces only).
+--  gnatcov32 executable that has support for binary traces only).
 
 with Instrument.Common; use Instrument.Common;
 
