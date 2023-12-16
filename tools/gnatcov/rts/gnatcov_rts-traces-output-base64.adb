@@ -46,11 +46,15 @@ package body GNATcov_RTS.Traces.Output.Base64 is
       Exec_Date      : Unsigned_64;
       User_Data      : String := "") is
    begin
+      --  See the note about -gnatw.X in gnatcov_rts.gpr
+
+      pragma Warnings (Off);
       Write_Trace_File_C
         ((Buffers_Groups'Length, Buffers_Groups'Address),
          (Program_Name'Address, Program_Name'Length),
          Exec_Date,
          (User_Data'Address, User_Data'Length));
+      pragma Warnings (On);
    end Write_Trace_File;
 
 end GNATcov_RTS.Traces.Output.Base64;

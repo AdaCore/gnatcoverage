@@ -130,16 +130,27 @@ library project GNATcov_RTS is
          --  Enable all warnings to raise awareness about issues, but do not
          --  treat them as errors so that users are not blocked because of
          --  warnings.
+         --
+         --  Note that we would like to use the -gnatw.X switch here to disable
+         --  warnings for No_Exception_Propagation. This restriction is common
+         --  on restricted runtimes, but these warnings are not actionable in
+         --  the context of the coverage runtime:
+         --
+         --  * We have to convert size_t values to Natural in order to
+         --    convert C strings into Ada's String type.
+         --  * We have to assume that addresses are correctly aligned in "for
+         --    X'Address use Y;" clauses.
+         --
+         --  These operations necessarily involve implicit checks; short of a
+         --  gnatcov bug, these checks are never supposed to trigger, and so
+         --  it is legitimate for them to trigger the last chance handler.
+         --
+         --  Since -gnatw.X is not available with old GNAT toolchain and since
+         --  we need gnatcov_rts.gpr to build with these toolchains, we resort
+         --  to temporarily disable warnings with "pragma Warnings" on several
+         --  occasions in GNATcov_RTS's sources.
 
-         "-gnatwa",
-
-         --  Disable warnings for No_Exception_Propagation: this restriction is
-         --  common on restricted runtimes, but are not actionable in the
-         --  context of the coverage runtime: we have to convert size_t values
-         --  to Natural, we have to assume that addresses are correctly aligned
-         --  in "for X'Address use Y;" clauses.
-
-         "-gnatw.X");
+         "-gnatwa");
    end Compiler;
 
    package Install is
