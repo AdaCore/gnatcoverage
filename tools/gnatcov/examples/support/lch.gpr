@@ -13,6 +13,7 @@ project LCH is
    end case;
 
    for Source_Dirs use ("lch");
+   for Object_Dir use "obj/lch";
 
    --  Make sure recursive project file inclusions don't get
    --  to produce reports for parts of this support lib, never
