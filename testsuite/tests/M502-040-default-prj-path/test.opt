@@ -1,1 +1,2 @@
 native DEAD test works by simulating a missing/non-working native gnatls
+src-traces DEAD test specific to gnatcov run

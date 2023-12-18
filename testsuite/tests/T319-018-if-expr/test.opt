@@ -1,2 +1,3 @@
 RTS_ZFP DEAD Test requires dynamic interface conversions
+RTS_LIGHT_TASKING DEAD Test requires dynamic interface conversions
 5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
