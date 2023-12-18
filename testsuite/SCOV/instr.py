@@ -20,7 +20,11 @@ def default_dump_trigger(mains):
     # It does not make sense to have a dump-trigger=ravenscar-task-termination
     # if the main is not an Ada program.
     elif (all([ext(main) == 'adb' for main in mains])
-          and RUNTIME_INFO.has_ravenscar_runtime):
+          and RUNTIME_INFO.has_ravenscar_runtime
+          # TODO: There seems to be a problem with light-tasking runtimes and
+          # task-termination, so default back to main end in that case.
+          # See eng/cov/gnatcoverage#191
+          and "light-tasking" not in RUNTIME_INFO.runtime_name):
         return 'ravenscar-task-termination'
     else:
         return 'main-end'
@@ -292,7 +296,10 @@ def available_ada_dump_triggers():
     """
     if RUNTIME_INFO.has_full_runtime:
         return ["main-end", "atexit"]
-    elif RUNTIME_INFO.has_ravenscar_runtime:
+    elif (RUNTIME_INFO.has_ravenscar_runtime
+          # TODO: remove once --dump-trigger=ravenscar-task-termination is
+          # fixed, see eng/das/cov/gnatcoverage#191.
+          and "light-tasking" not in RUNTIME_INFO.runtime_name):
         return ["main-end", "ravenscar-task-termination"]
     else:
         return ["main-end"]
