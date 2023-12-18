@@ -55,7 +55,7 @@ build:
     - *common_anod_bits
 
     # Build using anod
-    - anod build --minimal gnatcov $EDGE_QUALIFIER
+    - anod install gnatcov $EDGE_QUALIFIER --latest
     - anod build --minimal gnatcov -Qinstr $EDGE_QUALIFIER
 
     # Package all components created so far
