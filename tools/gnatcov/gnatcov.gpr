@@ -101,7 +101,7 @@ project Gnatcov is
 
       --  In order to reduce the size of produced executables, whenever
       --  possible, use stubs for units that pull big dependencies into the
-      --  link closure (Libadalang, Libclang).
+      --  link closure (GPR2, Libadalang, Libclang).
       --
       --  Removing such a dependency is possible when the associated feature is
       --  not used in the selected part: for instance, the gnatcov driver does
@@ -122,6 +122,8 @@ project Gnatcov is
                use "instrument-ada_unit__stub.ads";
             for Body ("Instrument.Ada_Unit")
                use "instrument-ada_unit__stub.adb";
+
+            for Body ("Setup_RTS") use "setup_rts__stub.adb";
       end case;
 
       case C_Support is
