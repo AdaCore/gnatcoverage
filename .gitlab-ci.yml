@@ -58,8 +58,9 @@ build:
     - anod build --minimal gnatcov $EDGE_QUALIFIER
     - anod build --minimal gnatcov -Qinstr $EDGE_QUALIFIER
 
-    # Create the package
-    - tar czf $PACKAGE_ABSOLUTE_NAME -C / it/wave/x86_64-linux/$GCV_INSTR_BSN
+    # Package all components created so far
+    - anod-copy-components --standalone-export /it/wave /it/wave/exp-comps
+    - tar czf $PACKAGE_ABSOLUTE_NAME -C / it/wave/exp-comps
 
     - cd $CI_PROJECT_DIR
     - ls -l $PACKAGE_BASE_NAME
@@ -115,10 +116,6 @@ build_community:
     - export PATH=/it/e3/bin:$PATH
     - *edge_vars
 
-    # Unpack the artifact then delete it
-    - tar zxf $PACKAGE_ABSOLUTE_NAME -C /
-    - rm -f $PACKAGE_ABSOLUTE_NAME
-
     # Get the gnatcoverage-extra repository. If we're testing a 'sync/' branch,
     # expect the same for that repo.
 
@@ -137,12 +134,12 @@ build_community:
     - *common_anod_bits
     - anod vcs --add-repo gnatcoverage-extra$EDGE_REPO_SUFFIX /tmp/gnatcoverage-extra
 
-    # Setup fingerprints so anod doesn't do unnecessary rebuilds and does not
-    # try to download gnatcov/edge: we have rebuilt it so we do not need to
-    # download the nightly one, which may not even exist (case of an edge build
-    # failure that was fixed on that day).
-    - mkdir -p fingerprints
-    - touch fingerprints/x86_64-linux.$GCV_INSTR_BSN.build.json.assume-unchanged
+    # Import components from the artifact and install the instrumented gnatcov,
+    # then remove temporaries to save disk space.
+    - tar zxf $PACKAGE_ABSOLUTE_NAME -C /
+    - anod-copy-components /it/wave/exp-comps /it/wave
+    - anod install gnatcov -Qinstr $EDGE_QUALIFIER
+    - rm -rf $PACKAGE_ABSOLUTE_NAME /it/wave/exp-comps
 
     # Setup the CI directory to host coverage results
     - mkdir $CI_PROJECT_DIR/coverage
@@ -170,7 +167,7 @@ test_bin_traces:
     - *retrieve_gnatcoverage_extras_and_setup_anod_repo
 
     # Test using anod
-    - anod test gnatcov --target=leon3-elf -QRTS=embedded-leon3,-O0,instr $EDGE_QUALIFIER
+    - anod test gnatcov --minimal --target=leon3-elf -QRTS=embedded-leon3,-O0,instr $EDGE_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov --target=leon3-elf -QRTS=embedded-leon3,-O0,instr $EDGE_QUALIFIER build_space_name)
     - mv leon3-elf-linux64/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
@@ -192,7 +189,7 @@ test_src_traces:
     - *retrieve_gnatcoverage_extras_and_setup_anod_repo
 
     # Test using anod
-    - anod test gnatcov -Qsrc-traces,instr $EDGE_QUALIFIER
+    - anod test gnatcov --minimal -Qsrc-traces,instr $EDGE_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr $EDGE_QUALIFIER build_space_name)
     - mv x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
@@ -214,7 +211,7 @@ test_spark:
     - *retrieve_gnatcoverage_extras_and_setup_anod_repo
 
     # Test using anod
-    - anod test gnatcov -Qspark-tests,src-traces,instr $EDGE_QUALIFIER
+    - anod test gnatcov --minimal -Qspark-tests,src-traces,instr $EDGE_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Qspark-tests,src-traces,instr $EDGE_QUALIFIER build_space_name)
     - mv x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
