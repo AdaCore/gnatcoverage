@@ -107,12 +107,18 @@ project Gnatcov is
 
       case Part is
          when "lib32" | "lib64" | "driver" | "gnatcov32" =>
+            for Specification ("Instrument.Ada_Preprocessing")
+               use "instrument-ada_preprocessing__stub.ads";
+            for Body ("Instrument.Ada_Preprocessing")
+               use "instrument-ada_preprocessing__stub.adb";
+
             for Specification ("Instrument.Ada_Unit")
                use "instrument-ada_unit__stub.ads";
             for Body ("Instrument.Ada_Unit")
                use "instrument-ada_unit__stub.adb";
-            for Body ("Instrument.C") use "instrument-c__stub.adb";
+
             for Specification ("Instrument.C") use "instrument-c__stub.ads";
+            for Body ("Instrument.C") use "instrument-c__stub.adb";
          when "gnatcov64" | "compiler" =>
             null;
       end case;
