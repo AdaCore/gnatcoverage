@@ -1113,6 +1113,13 @@ class TestSuite(e3.testsuite.Testsuite):
         if args.RTS:
             libsup_vars.append("RTS={}".format(args.RTS))
 
+        # QNX + run-cross2 will report an abort as an abnormal program
+        # termination, which is not the point of the silent last chance
+        # handler. QNX however does provide the exit function, so use that
+        # instead.
+        if "qnx" in args.target:
+            libsup_vars.append("SILENT_LCH=exit")
+
         logfile = os.path.join(self.output_dir, 'build_support.out')
 
         p = Run(['make', '--debug', '-C', 'support', '-f', 'Makefile.libsupport'] +
