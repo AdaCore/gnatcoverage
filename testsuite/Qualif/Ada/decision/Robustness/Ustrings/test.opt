@@ -1,3 +1,4 @@
 RTS_ZFP DEAD no support for unbounded strings in ZFP runtimes
+RTS_LIGHT_TASKING DEAD no support for unbounded string in light-tasking runtimes
 CARGS_O1,7.1.2,bin-traces XFAIL Debug info issue fixed post 7.0, PB30-044
 5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04

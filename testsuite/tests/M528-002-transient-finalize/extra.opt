@@ -1,3 +1,4 @@
-RTS_ZFP        DEAD Involves controlled objects
-7.0.3          DEAD testing transient controlled finalizers, requires post 7.0.3
+RTS_ZFP DEAD Involves controlled objects
+RTS_LIGHT_TASKING DEAD Involes controlled objects
+7.0.3 DEAD testing transient controlled finalizers, requires post 7.0.3
 5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
