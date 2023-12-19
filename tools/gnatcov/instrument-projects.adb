@@ -570,13 +570,13 @@ is
             declare
                Src_Body_Basename : constant String := +Project.File_From_Unit
                  (Unit_Name       => +LU_Info.Unit_Name,
-                  Part            => Unit_Body,
-                  Language        =>  Image (LU_Info.Language),
+                  Part            => GNATCOLL.Projects.Unit_Body,
+                  Language        => Image (LU_Info.Language),
                   File_Must_Exist => True);
                Src_Spec_Basename : constant String := +Project.File_From_Unit
                  (Unit_Name       => +LU_Info.Unit_Name,
-                  Part            => Unit_Spec,
-                  Language        =>  Image (LU_Info.Language),
+                  Part            => GNATCOLL.Projects.Unit_Spec,
+                  Language        => Image (LU_Info.Language),
                   File_Must_Exist => True);
                Src_Basename      : constant String :=
                  (if Src_Body_Basename = ""
@@ -717,7 +717,7 @@ is
    is
       Language  : constant Src_Supported_Language :=
         To_Language (Source_File.Language);
-      Lang_Kind : constant Any_Language_Kind := Language_Kind (Language);
+      Lang_Kind : constant Supported_Language_Kind := Language_Kind (Language);
 
       use Unit_Maps;
       Unit_Name : constant String :=
@@ -759,7 +759,7 @@ is
       --  as they have been added to the sources of interest.
 
       if Language in C_Family_Language
-         and then Source_File.Unit_Part = Unit_Spec
+         and then Source_File.Unit_Part = GNATCOLL.Projects.Unit_Spec
       then
          return;
       end if;
@@ -1069,7 +1069,7 @@ begin
    --  there.
 
    for Source of Files_Of_Interest_Info.Copy loop
-      if Source.Unit_Part = Unit_Separate then
+      if Source.Unit_Part = GNATCOLL.Projects.Unit_Separate then
          declare
             Parent_Unit : constant GNATCOLL.Projects.File_Info :=
               Project.Project.Info

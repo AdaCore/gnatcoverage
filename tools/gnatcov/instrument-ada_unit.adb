@@ -75,6 +75,11 @@ package body Instrument.Ada_Unit is
    is (Instrument.Common.Format_Fingerprint (Fingerprint, "(", ")"));
    --  Helper to format a String literal for a fingerprint
 
+   function "+" (Part : Analysis_Unit_Kind) return GNATCOLL.Projects.Unit_Parts
+   is (case Part is
+       when LALCO.Unit_Body          => GNATCOLL.Projects.Unit_Body,
+       when LALCO.Unit_Specification => GNATCOLL.Projects.Unit_Spec);
+
    -------------------------------
    -- Create_Context_Instrument --
    -------------------------------
@@ -6882,7 +6887,7 @@ package body Instrument.Ada_Unit is
 
       Main : Compilation_Unit_Part (Unit_Based_Language) :=
         (Language_Kind => Unit_Based_Language,
-         Part          => Unit_Body,
+         Part          => GNATCOLL.Projects.Unit_Body,
          others        => <>);
       --  Note that we can't get the compilation unit name using the
       --  To_Compilation_Unit_Name overload taking a File_Info parameter,
@@ -7965,10 +7970,7 @@ package body Instrument.Ada_Unit is
       UIC.Root_Unit := Root_Analysis_Unit.Root.As_Compilation_Unit;
       UIC.Current_Scope_Entity := UIC.Scope_Entities.Root;
 
-      CU_Name.Part :=
-        (case UIC.Root_Unit.P_Unit_Kind is
-            when Unit_Body => Unit_Body,
-            when Unit_Specification => Unit_Spec);
+      CU_Name.Part := +UIC.Root_Unit.P_Unit_Kind;
       CU_Name.Unit := To_Qualified_Name
         (UIC.Root_Unit.P_Decl.P_Fully_Qualified_Name_Array);
 
@@ -9130,20 +9132,13 @@ package body Instrument.Ada_Unit is
       --  spec / body / both.
 
       for Part in Analysis_Unit_Kind loop
-         declare
-            function Convert (Part : Analysis_Unit_Kind) return Unit_Parts is
-              (case Part is
-                  when Unit_Body          => Unit_Body,
-                  when Unit_Specification => Unit_Spec);
-         begin
-            if Self.Provider.Has_Unit (Unit_Name, Convert (Part)) then
-               Find_Ada_Units
-                 (Self,
-                  Self.Provider.Get_Unit_Filename
-                    (Langkit_Support.Text.From_UTF8 (Unit_Name), Part),
-                  Instrument_Source_File_Wrapper'Access);
-            end if;
-         end;
+         if Self.Provider.Has_Unit (Unit_Name, +Part) then
+            Find_Ada_Units
+              (Self,
+               Self.Provider.Get_Unit_Filename
+                 (Langkit_Support.Text.From_UTF8 (Unit_Name), Part),
+               Instrument_Source_File_Wrapper'Access);
+         end if;
       end loop;
 
       --  Once the unit was instrumented, emit the coverage buffer units
@@ -9194,7 +9189,7 @@ package body Instrument.Ada_Unit is
                      Find_Ada_Units
                        (Instrumenter,
                         Instrumenter.Context.Unit_Provider.Get
-                        .Get_Unit_Filename (Subunit_FQN, Unit_Body),
+                        .Get_Unit_Filename (Subunit_FQN, LALCO.Unit_Body),
                        Process_Unit);
                   end if;
                end;

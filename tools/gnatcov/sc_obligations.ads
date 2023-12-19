@@ -18,7 +18,7 @@
 
 --  Source Coverage Obligations
 
-with Ada.Containers;        use Ada.Containers;
+with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Ordered_Maps;
@@ -33,11 +33,10 @@ with Namet;
 with Types; use Types;
 
 limited with Checkpoints;
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with Logging;
-with Slocs;               use Slocs;
-with Strings;             use Strings;
-with Traces;              use Traces;
+with Slocs;   use Slocs;
+with Strings; use Strings;
+with Traces;  use Traces;
 
 package SC_Obligations is
 
@@ -667,6 +666,10 @@ package SC_Obligations is
 
    --  For units whose SCOs come from source instrumentation, maintain
    --  mapping of coverage buffer bit indices to SCO info.
+
+   type Any_Bit_Id is new Integer;
+   No_Bit_Id : constant Any_Bit_Id := -1;
+   subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
 
    type Statement_Bit_Map is array (Bit_Id range <>) of SCO_Id;
    type Statement_Bit_Map_Access is access all Statement_Bit_Map;

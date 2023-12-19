@@ -411,9 +411,11 @@ package body Instrument.Common is
             end loop;
 
             case CU_Name.Part is
-               when Unit_Body | Unit_Separate =>
+               when GNATCOLL.Projects.Unit_Body
+                  | GNATCOLL.Projects.Unit_Separate
+               =>
                   Append (Filename, Prj.Body_Suffix (Lang));
-               when Unit_Spec =>
+               when GNATCOLL.Projects.Unit_Spec =>
                   Append (Filename, Prj.Spec_Suffix (Lang));
             end case;
          when File_Based_Language =>

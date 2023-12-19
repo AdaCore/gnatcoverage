@@ -31,7 +31,6 @@ with GNAT.OS_Lib;
 with Coverage.Tags;           use Coverage.Tags;
 with Files_Handling;          use Files_Handling;
 with Files_Table;             use Files_Table;
-with GNATcov_RTS.Buffers;     use GNATcov_RTS.Buffers;
 with Instrument;              use Instrument;
 with Instrument.C;            use Instrument.C;
 with Instrument.Common;       use Instrument.Common;
@@ -44,6 +43,7 @@ with Subprocesses;            use Subprocesses;
 with Switches;                use Switches;
 with Temp_Dirs;               use Temp_Dirs;
 with Traces_Files;
+with Traces_Source;           use Traces_Source;
 
 procedure Compiler_Wrappers.Gcc is
 

@@ -749,7 +749,7 @@ package body Checkpoints is
    function Read_Compilation_Unit
      (Self : in out Checkpoint_Load_State) return Compilation_Unit
    is
-      Language : constant Any_Language_Kind := Self.Read_Language_Kind;
+      Language : constant Supported_Language_Kind := Self.Read_Language_Kind;
    begin
       return (Language => Language, Unit_Name => Self.Read_Unbounded_String);
    end Read_Compilation_Unit;
@@ -818,9 +818,9 @@ package body Checkpoints is
    ------------------------
 
    function Read_Language_Kind
-     (Self : in out Checkpoint_Load_State) return Any_Language_Kind is
+     (Self : in out Checkpoint_Load_State) return Supported_Language_Kind is
    begin
-      return Any_Language_Kind'Val (Self.Read_U32);
+      return Supported_Language_Kind'Val (Self.Read_U32);
    end Read_Language_Kind;
 
    ---------------------
@@ -1386,9 +1386,9 @@ package body Checkpoints is
    end Write;
 
    procedure Write
-     (Self : in out Checkpoint_Save_State; Value : Any_Language_Kind) is
+     (Self : in out Checkpoint_Save_State; Value : Supported_Language_Kind) is
    begin
-      Self.Write_U32 (Any_Language_Kind'Pos (Value));
+      Self.Write_U32 (Supported_Language_Kind'Pos (Value));
    end Write;
 
    procedure Write

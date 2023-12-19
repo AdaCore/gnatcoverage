@@ -24,15 +24,13 @@
 
 with Interfaces; use Interfaces;
 
-with GNATcov_RTS.Buffers;
+with GNATCOLL.Projects;
 
 --  Describes the content of a source trace file. Should be kept up to date
 --  when the trace format is modified. It is notably used to parse source
 --  traces in gnatcov.
 
 package Traces_Source is
-
-   package Buffers renames GNATcov_RTS.Buffers;
 
    --  Execution of an instrumented program sets bits in its coverage buffers.
    --  These bits convey information that GNATcov will later on use to
@@ -77,43 +75,38 @@ package Traces_Source is
    --  Hash type to perform consistency checks
 
    type Any_Unit_Part is new Unsigned_8;
-   Not_Applicable_Part : constant Any_Unit_Part :=
-      Buffers.Any_Unit_Part'Pos (Buffers.Not_Applicable_Part);
-   Unit_Body           : constant Any_Unit_Part :=
-      Buffers.Any_Unit_Part'Pos (Buffers.Unit_Body);
-   Unit_Spec           : constant Any_Unit_Part :=
-      Buffers.Any_Unit_Part'Pos (Buffers.Unit_Spec);
-   Unit_Separate       : constant Any_Unit_Part :=
-      Buffers.Any_Unit_Part'Pos (Buffers.Unit_Separate);
+   Not_Applicable_Part : constant Any_Unit_Part := 0;
+   Unit_Body           : constant Any_Unit_Part := 1;
+   Unit_Spec           : constant Any_Unit_Part := 2;
+   Unit_Separate       : constant Any_Unit_Part := 3;
    subtype All_Unit_Part is
       Any_Unit_Part range Not_Applicable_Part .. Unit_Separate;
    subtype Supported_Unit_Part is
       Any_Unit_Part range Unit_Body .. Unit_Separate;
    --  Describe the kind of unit referenced by a trace entry
 
-   Unit_Part_Map : constant
-      array (Buffers.Any_Unit_Part) of All_Unit_Part :=
-     (Buffers.Not_Applicable_Part => Not_Applicable_Part,
-      Buffers.Unit_Body           => Unit_Body,
-      Buffers.Unit_Spec           => Unit_Spec,
-      Buffers.Unit_Separate       => Unit_Separate);
+   function "+"
+     (Part : Supported_Unit_Part) return GNATCOLL.Projects.Unit_Parts
+   is (case Part is
+       when Unit_Body     => GNATCOLL.Projects.Unit_Body,
+       when Unit_Spec     => GNATCOLL.Projects.Unit_Spec,
+       when Unit_Separate => GNATCOLL.Projects.Unit_Separate);
+   function "+"
+     (Part : GNATCOLL.Projects.Unit_Parts) return Supported_Unit_Part
+   is (case Part is
+       when GNATCOLL.Projects.Unit_Body     => Unit_Body,
+       when GNATCOLL.Projects.Unit_Spec     => Unit_Spec,
+       when GNATCOLL.Projects.Unit_Separate => Unit_Separate);
 
    type Any_Bit_Count is new Unsigned_32;
    --  Number of bits contained in a coverage buffer
 
    type Any_Language_Kind is new Unsigned_8;
-   Unit_Based_Language : constant Any_Language_Kind :=
-     Buffers.Any_Language_Kind'Pos (Buffers.Unit_Based_Language);
-   File_Based_Language : constant Any_Language_Kind :=
-     Buffers.Any_Language_Kind'Pos (Buffers.File_Based_Language);
+   Unit_Based_Language : constant Any_Language_Kind := 0;
+   File_Based_Language : constant Any_Language_Kind := 1;
    subtype Supported_Language_Kind is
      Any_Language_Kind range Unit_Based_Language .. File_Based_Language;
    --  Language kind for a compilation unit
-
-   Any_Language_Kind_Map : constant
-      array (Buffers.Any_Language_Kind) of Supported_Language_Kind :=
-     (Buffers.Unit_Based_Language => Unit_Based_Language,
-      Buffers.File_Based_Language => File_Based_Language);
 
    -----------------------
    -- Trace file header --
@@ -220,6 +213,8 @@ package Traces_Source is
    subtype Supported_Bit_Buffer_Encoding is
       Any_Bit_Buffer_Encoding range LSB_First_Bytes .. LSB_First_Bytes;
 
+   type Fingerprint_Type is new String (1 .. 20);
+
    type Trace_Entry_Header is record
       Unit_Name_Length : Unsigned_32;
       --  Length of the unit name / filename for the unit this trace entry
@@ -240,12 +235,12 @@ package Traces_Source is
       Bit_Buffer_Encoding : Any_Bit_Buffer_Encoding;
       --  Encoding used to represent statement and decision coverage buffers
 
-      Fingerprint : Buffers.Fingerprint_Type;
+      Fingerprint : Fingerprint_Type;
       --  Hash of SCO info for this unit. Useds a fast way to check that
       --  coverage obligations and coverage data are consistent. Specific hash
       --  values are computed during instrumentation.
 
-      Bit_Maps_Fingerprint : Buffers.Fingerprint_Type;
+      Bit_Maps_Fingerprint : Fingerprint_Type;
       --  Hash of buffer bit mappings for this unit, as gnatcov computes it
       --  (see SC_Obligations).  Used as a fast way to check that gnatcov will
       --  be able to interpret buffer bits from a source traces using buffer
