@@ -1,10 +1,8 @@
-pragma Ada_2012;
 pragma Assertion_Policy (Check);
 
 procedure Main
 is
    function ATCC_Violation (X : Boolean) return Boolean
-   with Pre => (X or else not X)
    is
       function Id (X : Boolean) return Boolean is
       begin
@@ -16,6 +14,7 @@ is
 
       Dummy : Boolean := Id (True);
    begin
+      pragma Assert (X or else not X);
       return Id (False);
    end ATCC_Violation;
 begin

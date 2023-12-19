@@ -15,8 +15,8 @@
    <metric kind="exempted" count="0" ratio="0"/>
    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
    <obligation_stats kind="Stmt">
-    <metric kind="total_obligations_of_relevance" count="8"/>
-    <metric kind="fully_covered" count="8" ratio="100"/>
+    <metric kind="total_obligations_of_relevance" count="9"/>
+    <metric kind="fully_covered" count="9" ratio="100"/>
     <metric kind="partially_covered" count="0" ratio="0"/>
     <metric kind="not_covered" count="0" ratio="0"/>
     <metric kind="undetermined_coverage" count="0" ratio="0"/>
@@ -79,8 +79,8 @@
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
     <obligation_stats kind="Stmt">
-     <metric kind="total_obligations_of_relevance" count="8"/>
-     <metric kind="fully_covered" count="8" ratio="100"/>
+     <metric kind="total_obligations_of_relevance" count="9"/>
+     <metric kind="fully_covered" count="9" ratio="100"/>
      <metric kind="partially_covered" count="0" ratio="0"/>
      <metric kind="not_covered" count="0" ratio="0"/>
      <metric kind="undetermined_coverage" count="0" ratio="0"/>
