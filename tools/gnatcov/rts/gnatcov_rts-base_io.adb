@@ -33,8 +33,13 @@ package body GNATcov_RTS.Base_IO is
    ---------
 
    procedure Put (S : GNATcov_RTS_String) is
+
+      --  See the note about -gnatw.X in gnatcov_rts.gpr
+
+      pragma Warnings (Off);
       Str : String (1 .. Integer (S.Length));
       for Str'Address use S.Str;
+      pragma Warnings (On);
    begin
       GNAT.IO.Put (Str);
    end Put;
