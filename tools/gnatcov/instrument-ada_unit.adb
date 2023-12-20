@@ -166,6 +166,7 @@ package body Instrument.Ada_Unit is
 
       Dynamic_Predicate,
       Invariant,
+      Ghost_Predicate,
       Post,
       Postcondition,
       Pre,
@@ -208,6 +209,7 @@ package body Instrument.Ada_Unit is
 
    Precomputed_Symbols : constant array (All_Symbols) of Symbol_Type :=
      (Dynamic_Predicate       => Precompute_Symbol (Dynamic_Predicate),
+      Ghost_Predicate         => Precompute_Symbol (Ghost_Predicate),
       Invariant               => Precompute_Symbol (Invariant),
       Post                    => Precompute_Symbol (Post),
       Postcondition           => Precompute_Symbol (Postcondition),
@@ -5965,6 +5967,7 @@ package body Instrument.Ada_Unit is
                begin
                   if Aspect_Assoc_Name (AN) in As_Symbol (Dynamic_Predicate)
                     | As_Symbol (Invariant)
+                    | As_Symbol (Ghost_Predicate)
                     | As_Symbol (Post)
                     | As_Symbol (Postcondition)
                     | As_Symbol (Pre)
