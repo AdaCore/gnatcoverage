@@ -160,6 +160,10 @@ INSTR_COMMON_ARGS=\
   -j$(PROCESSORS) \
   -P gnatcov.gpr \
   --c++-opts=$(CXXFLAGS)
+INSTR_BIN_BUILD_ARGS=\
+  $(BIN_COMMON_BUILD_ARGS) \
+  --src-subdirs=gnatcov-instr \
+  --implicit-with=gnatcov_rts
 
 bin:
 # Unlike BINUTILS_BUILD_DIR for which we have a default fallback,
@@ -182,20 +186,16 @@ ifdef INSTRUMENTED
 	# gnatcov32, running gnatcov32 will not dump execution traces.
 
 	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=gnatcov64
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov64 \
-	  --src-subdirs=gnatcov-instr
+	$(GPRBUILD) $(INSTR_BIN_BUILD_ARGS) -XPART=gnatcov64
 
 	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=gnatcov32
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov32 \
-	  --src-subdirs=gnatcov-instr
+	$(GPRBUILD) $(INSTR_BIN_BUILD_ARGS) -XPART=gnatcov32
 
 	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=driver
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=driver \
-	  --src-subdirs=gnatcov-instr
+	$(GPRBUILD) $(INSTR_BIN_BUILD_ARGS) -XPART=driver
 
 	gnatcov instrument $(INSTR_COMMON_ARGS) -XPART=compiler
-	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=compiler \
-	  --src-subdirs=gnatcov-instr
+	$(GPRBUILD) $(INSTR_BIN_BUILD_ARGS) -XPART=compiler
 else
 	# Start with the 64-bit gnatcov, which has the largest closure
 	$(GPRBUILD) $(BIN_COMMON_BUILD_ARGS) -XPART=gnatcov64

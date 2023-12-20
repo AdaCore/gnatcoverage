@@ -28,6 +28,8 @@ with Project; use Project;
 
 package body Instrument.Ada_Unit_Provider is
 
+   package LALCO renames Libadalang.Common;
+
    ---------------------
    -- Create_Provider --
    ---------------------
@@ -192,8 +194,8 @@ package body Instrument.Ada_Unit_Provider is
                Libadalang.Unit_Files.File_From_Unit (Name, Kind);
             Kind_Name  : constant Text_Type :=
               (case Kind is
-               when Unit_Specification => "specification file",
-               when Unit_Body          => "body file");
+               when LALCO.Unit_Specification => "specification file",
+               when LALCO.Unit_Body          => "body file");
             Error      : constant Text_Type :=
                "Could not find source file for " & Name & " (" & Kind_Name
                & ")";
@@ -216,7 +218,7 @@ package body Instrument.Ada_Unit_Provider is
       Unit_Name_And_Part : constant String :=
         To_Lower (Unit_Name)
         & (case Unit_Part is
-              when Unit_Spec => "%s",
+              when GNATCOLL.Projects.Unit_Spec => "%s",
               when others    => "%b");
    begin
       return Provider.Unit_Map.Contains (Unit_Name_And_Part);

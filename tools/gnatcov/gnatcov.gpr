@@ -1,7 +1,5 @@
 with "gnat_util", "gnatcoll", "gpr2", "libadalang", "libclang";
 
-with "rts/gnatcov_rts";
-
 project Gnatcov is
 
    type Boolean is ("False", "True");

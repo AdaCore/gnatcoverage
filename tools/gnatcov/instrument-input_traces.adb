@@ -29,23 +29,10 @@ with System.Storage_Elements;
 with GNAT.OS_Lib;        use GNAT.OS_Lib;
 with GNAT.Byte_Swapping; use GNAT.Byte_Swapping;
 
-with Traces_Source; use Traces_Source;
 with Hex_Images;
 with Outputs;
 
 package body Instrument.Input_Traces is
-
-   Unit_Part_Map : constant array (Supported_Unit_Part) of Unit_Parts :=
-     (Traces_Source.Unit_Body     => GNATCOLL.Projects.Unit_Body,
-      Traces_Source.Unit_Spec     => GNATCOLL.Projects.Unit_Spec,
-      Traces_Source.Unit_Separate => GNATCOLL.Projects.Unit_Separate);
-
-   Language_Map : constant array (Supported_Language_Kind)
-     of GNATcov_RTS.Buffers.Any_Language_Kind :=
-       (Traces_Source.Unit_Based_Language =>
-          GNATcov_RTS.Buffers.Unit_Based_Language,
-        Traces_Source.File_Based_Language =>
-          GNATcov_RTS.Buffers.File_Based_Language);
 
    Native_Endianity : constant Supported_Endianity :=
       Traces_Source.Native_Endianity;
@@ -683,7 +670,7 @@ package body Instrument.Input_Traces is
                with Import, Address => Trace_Entry.Unit_Name;
 
             function Convert is new Ada.Unchecked_Conversion
-              (GNATcov_RTS.Buffers.Fingerprint_Type,
+              (Traces_Source.Fingerprint_Type,
                SC_Obligations.Fingerprint_Type);
             Fingerprint          : constant SC_Obligations.Fingerprint_Type :=
                Convert (Entry_Header.Fingerprint);
@@ -750,12 +737,12 @@ package body Instrument.Input_Traces is
                goto Cleanup_And_Exit;
             end if;
 
-            case Language_Map (Entry_Header.Language_Kind) is
-               when GNATcov_RTS.Buffers.Unit_Based_Language =>
+            case Supported_Language_Kind (Entry_Header.Language_Kind) is
+               when Traces_Source.Unit_Based_Language =>
                   CU_Name := CU_Name_For_Unit
                     (Unit => To_Qualified_Name (Unit_Name),
-                     Part => Unit_Part_Map (Entry_Header.Unit_Part));
-               when GNATcov_RTS.Buffers.File_Based_Language =>
+                     Part => +Entry_Header.Unit_Part);
+               when Traces_Source.File_Based_Language =>
                   CU_Name := CU_Name_For_File (+Unit_Name);
             end case;
 
@@ -847,10 +834,10 @@ package body Instrument.Input_Traces is
          end if;
 
          case CU_Name.Language_Kind is
-            when GNATcov_RTS.Buffers.Unit_Based_Language =>
+            when Traces_Source.Unit_Based_Language =>
                Put ("Unit " & To_Ada (CU_Name.Unit) & " (" & CU_Name.Part'Image
                     & ", ");
-            when GNATcov_RTS.Buffers.File_Based_Language =>
+            when Traces_Source.File_Based_Language =>
                Put ("Unit " & (+CU_Name.Filename) & " (");
          end case;
 

@@ -29,11 +29,11 @@ with GNATCOLL.Traces;
 with GNATCOLL.Projects.Aux;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
-with Inputs;              use Inputs;
-with Instrument;          use Instrument;
-with Outputs;             use Outputs;
-with Paths;               use Paths;
+with Inputs;     use Inputs;
+with Instrument; use Instrument;
+with Outputs;    use Outputs;
+with Paths;      use Paths;
+with Traces_Source;
 
 package body Project is
 
@@ -41,6 +41,8 @@ package body Project is
 
    subtype Compilation_Unit is Files_Table.Compilation_Unit;
    use type Compilation_Unit;
+
+   use type Traces_Source.Supported_Language_Kind;
 
    Coverage_Package      : aliased String := "coverage";
    Coverage_Package_List : aliased String_List :=
@@ -254,9 +256,9 @@ package body Project is
    begin
       U.Language := Language_Kind (Language);
       case U.Language is
-         when File_Based_Language =>
+         when Traces_Source.File_Based_Language =>
             U.Unit_Name := +(+Info.File.Full_Name);
-         when Unit_Based_Language =>
+         when Traces_Source.Unit_Based_Language =>
             U.Unit_Name := +Owning_Unit_Name (Info);
       end case;
       return U;
@@ -566,7 +568,7 @@ package body Project is
             --  they can only be ignored through the --ignore-source-files
             --  switch.
 
-            if (Language_Kind (Info_Lang) = File_Based_Language
+            if (Language_Kind (Info_Lang) = Traces_Source.File_Based_Language
                 and then Info.Unit_Part = Unit_Spec)
 
               --  Otherwise, check if the unit is in the units of interest
@@ -1025,9 +1027,9 @@ package body Project is
                P_Unit    : constant Compilation_Unit := Unit_Maps.Key (C);
                Unit_Name : constant Unbounded_String :=
                  (case P_Unit.Language is
-                     when File_Based_Language =>
-                       +Ada.Directories.Simple_Name (+P_Unit.Unit_Name),
-                     when Unit_Based_Language => P_Unit.Unit_Name);
+                  when Traces_Source.File_Based_Language =>
+                    +Ada.Directories.Simple_Name (+P_Unit.Unit_Name),
+                  when Traces_Source.Unit_Based_Language => P_Unit.Unit_Name);
             begin
                Units_Present.Append (Unit_Name);
             end Add_To_Unit_Presents;
