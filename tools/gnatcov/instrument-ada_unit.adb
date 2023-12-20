@@ -4688,7 +4688,7 @@ package body Instrument.Ada_Unit is
                                     when Name_Postcondition =>
                                       "Postcondition",
                                     when others => "");
-                              Location : constant String :=
+                              Location    : constant String :=
                                 Ada.Directories.Simple_Name
                                   (N.Unit.Get_Filename)
                                 & ":" & Image (Sloc (N));
