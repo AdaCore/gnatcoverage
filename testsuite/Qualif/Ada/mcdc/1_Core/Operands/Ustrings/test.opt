@@ -1,1 +1,2 @@
 RTS_ZFP DEAD no support for unbounded strings in ZFP runtimes
+RTS_LIGHT_TASKING DEAD no support for unbounded strings in light-tasking runtimes

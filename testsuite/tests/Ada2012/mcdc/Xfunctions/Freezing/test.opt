@@ -1,1 +1,2 @@
 RTS_ZFP DEAD Test relies on advanced use of tagged types
+RTS_LIGHT_TASKING DEAD Requires language features not available in the runtime
