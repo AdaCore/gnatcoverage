@@ -1,1 +1,2 @@
 RTS_ZFP DEAD Test only makes sense with exception propagation
+RTS_LIGHT_TASKING DEAD Test only makes sens with exception propagation

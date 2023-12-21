@@ -5,7 +5,7 @@ Check the selection of projects of interest, with combinations of
 
 from SCOV.minicheck import build_and_run
 from SUITE.context import thistest
-from SUITE.control import env
+from SUITE.control import env, gnatemu_board_name
 from SUITE.cutils import Wdir, lines_of
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import xcov
@@ -15,7 +15,8 @@ import e3.fs
 
 
 root_project = os.path.abspath('root.gpr')
-board_arg = '-XBOARD={}'.format(env.target.machine)
+board = gnatemu_board_name(env.target.machine)
+board_arg = '-XBOARD={}'.format(board)
 wd = Wdir('wd_')
 
 # Every project of interest is setup to feature a single unit named after the
@@ -29,7 +30,7 @@ wd = Wdir('wd_')
 cov_cmdline = build_and_run(
     gprsw=GPRswitches(
         root_project=root_project,
-        xvars=[("BOARD", env.target.machine)],
+        xvars=[("BOARD", board)],
     ),
     mains=['root'],
     covlevel='stmt',

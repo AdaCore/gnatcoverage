@@ -1,1 +1,2 @@
-src-traces,RTS_ZFP DEAD Cannot dump coverage buffers in this test without non-local execption propagation
+src-traces,RTS_ZFP DEAD Cannot dump coverage buffers in this test without non-local exception propagation
+src-traces,RTS_LIGHT_TASKING DEAD requires exception propagation
