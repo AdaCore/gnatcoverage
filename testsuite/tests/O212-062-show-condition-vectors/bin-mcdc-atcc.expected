@@ -3,32 +3,32 @@
 2\.3\. MCDC COVERAGE
 -+
 
-pkg\.adb:13:25: condition 1 \("B"\) has no independent influence pair, MC/DC not achieved
-pkg\.adb:13:36: condition 2 \("C"\) has no independent influence pair, MC/DC not achieved
-pkg\.adb:13:14: Decision of the form \(\(\(C0 and then C1\) and then C2\) or else C3\)
+pkg\.adb:18:25: condition 1 \("B"\) has no independent influence pair, MC/DC not achieved
+pkg\.adb:18:36: condition 2 \("C"\) has no independent influence pair, MC/DC not achieved
+pkg\.adb:18:14: Decision of the form \(\(\(C0 and then C1\) and then C2\) or else C3\)
 Evaluation vectors found:
     F - - F  -> FALSE  In a pair for C0, C3
     T T F T  -> TRUE  In a pair for C3
     T T T -  -> TRUE  In a pair for C0
 
-pkg\.adb:24:50: condition 1 \("A"\) has no independent influence pair, MC/DC not achieved
-pkg\.adb:24:60: condition 2 \("B"\) has no independent influence pair, MC/DC not achieved
-pkg\.adb:24:25: Decision of the form \(\(C0 or else C1\) or else C2\)
+pkg\.adb:29:50: condition 1 \("A"\) has no independent influence pair, MC/DC not achieved
+pkg\.adb:29:60: condition 2 \("B"\) has no independent influence pair, MC/DC not achieved
+pkg\.adb:29:25: Decision of the form \(\(C0 or else C1\) or else C2\)
 Evaluation vectors found:
     F F F  -> FALSE  In a pair for C0
     T - -  -> TRUE  In a pair for C0
 
-pkg\.adb:25:25: contract expression outcome FALSE never exercised
-pkg\.adb:25:39: decision never evaluated
-pkg\.adb:34:24: condition 1 \("B"\) has no independent influence pair, MC/DC not achieved
-pkg\.adb:34:13: Decision of the form \(C0 and then C1\)
+pkg\.adb:30:25: contract expression outcome FALSE never exercised
+pkg\.adb:30:39: decision never evaluated
+pkg\.adb:39:24: condition 1 \("B"\) has no independent influence pair, MC/DC not achieved
+pkg\.adb:39:13: Decision of the form \(C0 and then C1\)
 Evaluation vectors found:
     F -  -> FALSE  In a pair for C0
     T T  -> TRUE  In a pair for C0
 
-pkg\.adb:40:37: condition 1 \("B"\) has no independent influence pair, MC/DC not achieved
-pkg\.adb:40:48: condition 2 \("A"\) has no independent influence pair, MC/DC not achieved
-pkg\.adb:40:26: Decision of the form \(\(C0 and then C1\) or else C2\)
+pkg\.adb:45:37: condition 1 \("B"\) has no independent influence pair, MC/DC not achieved
+pkg\.adb:45:48: condition 2 \("A"\) has no independent influence pair, MC/DC not achieved
+pkg\.adb:45:26: Decision of the form \(\(C0 and then C1\) or else C2\)
 Evaluation vectors found:
     F - F  -> FALSE  In a pair for C0
     T T -  -> TRUE  In a pair for C0
