@@ -61,6 +61,7 @@ with Inputs;                use Inputs;
 with Instrument;
 with Instrument.Common;     use Instrument.Common;
 with Instrument.Config;
+with Instrument.Gcc_Wrapper;
 with Instrument.Input_Traces;
 with Instrument.Main;
 with Instrument.Projects;
@@ -1396,6 +1397,15 @@ begin
                Compiler_Drivers  => Compiler_Drivers_Set,
                Output_Dir        => Get_Output_Dir);
          end;
+
+      when Cmd_Gcc_Wrapper =>
+         if Args.Remaining_Args.Length /= 2 then
+            Fatal_Error ("exactly two positional arguments expected");
+         end if;
+         Instrument.Gcc_Wrapper
+           (Config_File   => +Args.Remaining_Args.Element (0),
+            Compiler_Exec => +Args.Remaining_Args.Element (1),
+            Cargs         => Args.String_List_Args (Opt_Cargs));
 
       when Cmd_Instrument_Source =>
 

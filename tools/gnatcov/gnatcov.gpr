@@ -61,8 +61,8 @@ project Gnatcov is
    --  "gnatcov64" configuration.
 
    case Part is
-      when "gnatcov64" | "compiler" => null;
-      when others                   => C_Support := "False";
+      when "gnatcov64" => null;
+      when others      => C_Support := "False";
    end case;
 
    type Build_Mode_Type is ("dev", "prod", "boot");
