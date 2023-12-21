@@ -168,7 +168,7 @@ test_bin_traces:
 
     # Test using anod
     - anod test gnatcov --minimal --target=leon3-elf,,qemu -QRTS=embedded-leon3,-O0,instr $EDGE_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov --target=leon3-elf -QRTS=embedded-leon3,-O0,instr $EDGE_QUALIFIER build_space_name)
+    - TEST_BSN=$(anod eval --primitive=test gnatcov --target=leon3-elf,,qemu -QRTS=embedded-leon3,-O0,instr $EDGE_QUALIFIER build_space_name)
     - mv leon3-elf-linux64/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
         --failure-exit-code 1
