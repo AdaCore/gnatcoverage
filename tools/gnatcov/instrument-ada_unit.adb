@@ -8010,6 +8010,14 @@ package body Instrument.Ada_Unit is
       UIC.Unit_Bits.Decision_Bits := LL_Decision_SCO_Bit_Allocs.Empty;
       UIC.Unit_Bits.Statement_Bits := LL_Statement_SCO_Bit_Allocs.Empty;
 
+      --  Instrumentation of another source file in the same unit may have
+      --  produced non-instrumented low-level SCOs in UIC.Non_Instr_LL_SCOs,
+      --  which were later converted to high-level SCOS, and the low-level SCO
+      --  table was since then cleared, so UIC.Non_Instr_LL_SCOs may contain
+      --  stale entries: clear it.
+
+      UIC.Non_Instr_LL_SCOs.Clear;
+
       Initialize_Rewriting (UIC, Instrumenter);
       UIC.Instrumented_Unit := CU_Name;
 
