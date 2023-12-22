@@ -3601,7 +3601,7 @@ package body Instrument.C is
                --  filenames.
 
                & "  .unit_name = "
-               & " {""" & Escape_Backslashes (CU_Filename) & """, "
+               & " {" & C_String_Literal (CU_Filename) & ", "
                & CU_Filename'Length'Image & "}"
                & ","
                & ASCII.LF
@@ -3793,11 +3793,12 @@ package body Instrument.C is
                File.Put_Line (Indent2 & Simple & "),");
 
                File.Put_Line (Indent2
-                              & "STR ("""
-                              & (if Dump_Config.Trigger = Manual
-                                 then +Prj.Prj_Name
-                                 else Escape_Backslashes (+Main.Filename))
-                              & """),");
+                              & "STR ("
+                              & C_String_Literal
+                                  (if Dump_Config.Trigger = Manual
+                                   then +Prj.Prj_Name
+                                   else +Main.Filename)
+                              & "),");
                File.Put_Line (Indent2 & "gnatcov_rts_time_to_uint64()" & ",");
                File.Put_Line (Indent2 & "STR ("""")");
             end;
@@ -3809,11 +3810,12 @@ package body Instrument.C is
             --  program name is the name of the main, and there is no way to
             --  get the current execution time.
 
-            File.Put_Line (Indent2 & "STR ("""
-                           & (if Dump_Config.Trigger = Manual
-                             then +Prj.Prj_Name
-                             else Escape_Backslashes (+Main.Filename))
-                           & """),");
+            File.Put_Line (Indent2 & "STR ("
+                           & C_String_Literal
+                               (if Dump_Config.Trigger = Manual
+                                then +Prj.Prj_Name
+                                else +Main.Filename)
+                           & "),");
             File.Put_Line (Indent2 & "0,");
             File.Put_Line (Indent2 & "STR ("""")");
 
@@ -4665,5 +4667,26 @@ package body Instrument.C is
          return SOI.Of_Interest;
       end;
    end Is_Source_Of_Interest;
+
+   ----------------------
+   -- C_String_Literal --
+   ----------------------
+
+   function C_String_Literal (Str : String) return String is
+      Result : Unbounded_String;
+   begin
+      Append (Result, '"');
+      for C of Str loop
+         if C = '\' then
+            Append (Result, "\\");
+         elsif C = '"' then
+            Append (Result, "\""");
+         else
+            Append (Result, C);
+         end if;
+      end loop;
+      Append (Result, '"');
+      return +Result;
+   end C_String_Literal;
 
 end Instrument.C;

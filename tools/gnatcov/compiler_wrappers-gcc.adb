@@ -141,7 +141,7 @@ is
       --  We rely on object file symbols to know what coverage buffers we
       --  should dump at link time. Nevertheless, an object file referenced in
       --  a link command (which we get through the -### verbose switch) does
-      --  not necessarily exists yet: it can be a temporary file created by a
+      --  not necessarily exist yet: it can be a temporary file created by a
       --  previous compilation command that belongs to the same compiler driver
       --  invocation (e.g. when compiling and linking at the same time).
       --
@@ -216,22 +216,64 @@ is
    -- Split_Args --
    ----------------
 
-   function Split_Args (Command : String) return String_Vectors.Vector
-   is
-      Arg : Unbounded_String;
+   function Split_Args (Command : String) return String_Vectors.Vector is
+      type State_Kind is
+        (No_Argument, Simple_Argument, Quoted_Argument);
+
+      State  : State_Kind := No_Argument;
+      Arg    : Unbounded_String;
       Result : String_Vectors.Vector;
-   begin
-      for C of Command loop
-         if C = ' ' and then Arg /= "" then
+
+      procedure Append_Arg;
+
+      ----------------
+      -- Append_Arg --
+      ----------------
+
+      procedure Append_Arg is
+      begin
+         if State /= No_Argument then
             Result.Append (Arg);
-            Arg := +"";
-         else
-            Append (Arg, C);
+            State := No_Argument;
+            Arg := Null_Unbounded_String;
          end if;
+      end Append_Arg;
+
+      C : Character;
+      I : Natural := Command'First;
+
+   begin
+      while I <= Command'Last loop
+         C := Command (I);
+         case State is
+            when No_Argument =>
+               if C = '"' then
+                  State := Quoted_Argument;
+               elsif C /= ' ' then
+                  State := Simple_Argument;
+                  Append (Arg, C);
+               end if;
+
+            when Simple_Argument =>
+               if C = ' ' then
+                  Append_Arg;
+               else
+                  Append (Arg, C);
+               end if;
+
+            when Quoted_Argument =>
+               if C = '\' then
+                  I := I + 1;
+                  Append (Arg, Command (I));
+               elsif C = '"' then
+                  Append_Arg;
+               else
+                  Append (Arg, C);
+               end if;
+         end case;
+         I := I + 1;
       end loop;
-      if Arg /= "" then
-         Result.Append (Arg);
-      end if;
+      Append_Arg;
       return Result;
    end Split_Args;
 
@@ -265,9 +307,9 @@ is
       Commands_Filename   : constant String :=
         Tmp_Dir.Directory_Name / "commands";
    begin
-      --  Expand the command line using gcc's -### option. TODO??? check if
-      --  the command we are intercepting is a compile / link target and not
-      --  a preprocessing / -### action.
+      --  Expand the command line using gcc's -### option. TODO??? check if the
+      --  command we are intercepting is a compile / link target and not a
+      --  preprocessing / -### action.
 
       Run_Command
         (+Context.Orig_Compiler_Driver,
@@ -277,10 +319,11 @@ is
 
       --  Then, parse the files containing the list of launched commands, using
       --  the following heuristics:
+      --
       --    * If the command is a cc1 invocation (first argument end with cc1),
       --      assume compilation command.
       --    * If the command is an as invocation, assume assembly command.
-      --    * If the command is a collect2 invocation, assume link command
+      --    * If the command is a collect2 invocation, assume link command.
 
       declare
          Commands_File : File_Type;
@@ -288,7 +331,7 @@ is
          Open (Commands_File, In_File, Commands_Filename);
          while not End_Of_File (Commands_File) loop
             declare
-               Line : constant String := Get_Line (Commands_File);
+               Line    : constant String := Get_Line (Commands_File);
                Command : constant String_Vectors.Vector := Split_Args (Line);
             begin
                if Line = "" then
@@ -369,8 +412,8 @@ is
             Arg : constant Unbounded_String :=
               String_Vectors.Element (Cur);
          begin
-            --  Skip switches arguments that look like filenames. Ideally,
-            --  we would find the positional argument but it is not
+            --  Skip switches arguments that look like filenames. Ideally, we
+            --  would find the positional argument but it is not
             --  straightforward.
 
             if +Arg in "-dumpbase" | "-dumpbase-ext" then
@@ -552,7 +595,7 @@ is
          Args.Append (Full_Name (Symbol_File));
 
          --  The command can fail with e.g. "file format not recognized" for
-         --  system libraries. TODO???: investigate why. We should also avoid
+         --  system libraries. TODO??? investigate why. We should also avoid
          --  invoking nm on system libraries altogether.
 
          Ignore_Success :=
@@ -571,7 +614,7 @@ is
          while not End_Of_File (Output_File) loop
             declare
                Line_Str : constant String := Get_Line (Output_File);
-               Line : constant Unbounded_String := +Line_Str;
+               Line     : constant Unbounded_String := +Line_Str;
             begin
                if Starts_With (Line, "gnatcov_rts_buffers")
 
@@ -681,7 +724,7 @@ is
 
    Instr_Config_File : constant String :=
      Compiler_Wrapper_Dir / Instrumentation_Config_Filename;
-   Instr_Config : Instrumentation_Config :=
+   Instr_Config      : Instrumentation_Config :=
      Load_Config (Instr_Config_File);
    --  Instrumentation configuration previously generated by the setup step
 
@@ -705,6 +748,8 @@ is
 
    Instrumented_Files : String_Sets.Set;
    --  List of instrumented files (files of interest / main files / both)
+
+--  Start of processing for Compiler_Wrappers.GCC
 
 begin
    Create_Temporary_Directory
@@ -793,7 +838,7 @@ begin
                Unit_Name         => Fullname,
 
                --  Generate all the SID files under the same directory as the
-               --  compiler wrapper as they must persist. TODO???: deal with
+               --  compiler wrapper as they must persist. TODO??? deal with
                --  homonym files in SID names.
 
                SID_Name => Compiler_Wrapper_Dir / (Simple_Name & ".sid"));
@@ -851,9 +896,7 @@ begin
               Config          => Instr_Config);
       begin
          Buffers_List_Unit :=
-           Instrumenter.Emit_Buffers_List_Unit
-             (Buffer_Symbols,
-              Prj);
+           Instrumenter.Emit_Buffers_List_Unit (Buffer_Symbols, Prj);
       end;
    end if;
 
@@ -887,8 +930,8 @@ begin
          begin
             if Ada.Directories.Exists (+Arg) then
                declare
-                  Base      : constant String := Simple_Name (+Arg);
-                  Fullname  : constant String := Full_Name (+Arg);
+                  Base     : constant String := Simple_Name (+Arg);
+                  Fullname : constant String := Full_Name (+Arg);
                begin
                   if Instrumented_Files.Contains (+Fullname) then
                      New_Args.Replace_Element (I, +(Output_Dir / Base));
@@ -967,7 +1010,7 @@ begin
                       (Prj,
                        "instr_" & Filename_Slug (+Orig_Source.Full_Name)
                        & ".a");
-                  Success : Boolean;
+                  Success       : Boolean;
                begin
                   if not Instr_Objects.Is_Empty then
                      declare
@@ -985,9 +1028,9 @@ begin
                            Arguments           => Args_Ld,
                            Origin_Command_Name => "compiler wrapper");
 
-                        --  Finally, replace the original object file with
-                        --  the newly created library file, packaging both
-                        --  the instrumented source and its coverage buffer.
+                        --  Finally, replace the original object file with the
+                        --  newly created library file, packaging both the
+                        --  instrumented source and its coverage buffer.
 
                         GNAT.OS_Lib.Copy_File
                           (Packaged_Name,

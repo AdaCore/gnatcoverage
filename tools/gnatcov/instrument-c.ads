@@ -402,6 +402,14 @@ package Instrument.C is
    --  UIC.Sources_Of_Interest. Return whether this source file is a source of
    --  interest.
 
+   function C_String_Literal (Str : String) return String;
+   --  Turn Str into the corresponding C string literal. For instance:
+   --
+   --    C_String_Literal ("foo") = """foo"""
+   --    C_String_Literal ("a\b") = """a\\b"""
+   --    C_String_Literal ("a\b") = """a\\b"""
+   --    C_String_Literal ("a""b") = """a\""b"""
+
 private
 
    function Find_Instrumented_Entities
