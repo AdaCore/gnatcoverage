@@ -3947,6 +3947,11 @@ package body Instrument.C is
                   Create (Output_File, Out_File, Tmp_Filename);
                   S := Stream (Output_File);
                   Has_Manual_Indication := True;
+
+                  --  Put an external decl for the buffers dump function
+
+                  String'Write
+                    (S, "extern void " & Dump_Procedure & "(void);");
                end if;
                String'Write (S, Str (Index .. Matches (0).First));
 

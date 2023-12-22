@@ -41,6 +41,12 @@ build_run_and_coverage(gprsw=gprsw, covlevel="stmt", mains=["main"],
                        manual_prj_name="main",
                        tolerate_instrument_messages=instr_warning)
 
+thistest.fail_if_not_equal(
+    what="gprbuild output not empty",
+    expected="",
+    actual=contents_of("gprbuild.out").strip()
+)
+
 # Check that that the dump call indication was correctly replaced in the sub
 # project
 
