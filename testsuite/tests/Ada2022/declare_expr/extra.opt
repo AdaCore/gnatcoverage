@@ -1,1 +1,2 @@
 RTS_ZFP DEAD tests propagate exceptions
+RTS_LIGHT_TASKING DEAD Test propagates exceptions

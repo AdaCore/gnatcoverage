@@ -1,1 +1,2 @@
-!RTS_RAVENSCAR,!RTS_FULL DEAD test on exception propagation cleanups, zfp-irrelevant
+RTS_ZFP DEAD test on exception propagation cleanups, zfp-irrelevant
+RTS_LIGHT_TASKING DEAD test on exception propagation cleanups, light-tasking irrelevant

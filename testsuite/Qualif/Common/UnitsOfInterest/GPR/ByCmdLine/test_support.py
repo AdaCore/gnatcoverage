@@ -8,7 +8,7 @@ from e3.fs import mkdir, sync_tree
 
 from SCOV.tc import TestCase
 from SCOV.tctl import CovControl
-from SUITE.control import env
+from SUITE.control import env, gnatemu_board_name
 from SUITE.cutils import to_list, Wdir
 from SUITE.gprutils import GPRswitches
 
@@ -108,7 +108,7 @@ def check(root_project, recurse, projects=None, units=None, xreports=None):
                 projects=projects,
                 units=units,
                 no_subprojects=no_subprojects,
-                xvars=[('BOARD', env.target.machine)],
+                xvars=[('BOARD', gnatemu_board_name(env.target.machine))],
             ),
 
             xreports=ctl_xreports,

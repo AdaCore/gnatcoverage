@@ -371,6 +371,29 @@ class GnatcovInfo:
 def gnatcov_info():
     return GnatcovInfo()
 
+
+# Mapping between run-cross2 board names and gnatemu board names
+BOARD_INFO = {
+    # generic
+    "qemu" : "",
+    # aarch64-elf
+    "qemu-zynqmp" : "",
+    # arm-elf
+    "qemu-stm32" : "stm32f4",
+    "qemu-tms570" : "tms570",
+    # ppc-elf:
+    "qemu-8641d" : "",
+    None : ""
+}
+
+def gnatemu_board_name(name):
+    """
+    Return the gnatemu board name corresponding to the run-cross2 board name
+    passed as argument. If name is unknown in the mapping, return it
+    unchanged.
+    """
+    return BOARD_INFO.get(name, name)
+
 # Allowed pairs for the --gnatcov-<cmd> family of command line options:
 ALTRUN_GNATCOV_PAIRS = (('gnatcov', 'run'), )
 
