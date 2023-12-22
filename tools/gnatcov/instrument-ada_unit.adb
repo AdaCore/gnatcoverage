@@ -9095,6 +9095,7 @@ package body Instrument.Ada_Unit is
          --  Instrument the file only if it is a file of interest
 
          if Files_Of_Interest.Contains (Create_Normalized (Filename)) then
+
             --  In verbose mode, always print a notice for the source file
             --  that we are about to instrument. In non-verbose mode, just get
             --  prepared to print it in case we emit a "source file missing"
