@@ -463,8 +463,8 @@ package body Setup_RTS is
 
       --  The best heuristic we have to determine if the actual runtime is
       --  "full" is to look for an Ada source file that is typically found in
-      --  full runtime: "a-comlin.ads" for the Ada.Command_Line unit. If we do
-      --  not have it, consider that the runtime is embedded.
+      --  full runtime: "g-os_lib.ads" for the GNAT.OS_Lib unit. If we do not
+      --  have it, consider that the runtime is embedded.
       --
       --  When only C is enabled and we do not have a runtime at hand to guess
       --  what is available, fall back to the full profile for native
@@ -473,7 +473,7 @@ package body Setup_RTS is
       Auto_RTS_Profile := Embedded;
       if Has_Ada then
          for F of Prj.Runtime_Project.Sources loop
-            if F.Path_Name.Simple_Name = "a-comlin.ads" then
+            if F.Path_Name.Simple_Name = "g-os_lib.ads" then
                Auto_RTS_Profile := Full;
                exit;
             end if;
