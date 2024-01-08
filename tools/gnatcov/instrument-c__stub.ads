@@ -16,8 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  Stub of Instrument.C, to avoid pulling a dependency to libclang when
---  gnatcov is not built with C instrumentation support.
+--  Stub of Instrument.C: see the note about Stubs in gnatcov.gpr
 
 with Instrument.Common; use Instrument.Common;
 

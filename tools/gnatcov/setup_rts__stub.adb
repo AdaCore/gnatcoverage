@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+--  Stub for the body of Setup_RTS: see the note about Stubs in gnatcov.gpr
+
 package body Setup_RTS is
 
    -----------

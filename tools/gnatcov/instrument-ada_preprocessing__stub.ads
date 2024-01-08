@@ -16,10 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  Stub of Instrument.Ada_Preprocessing, to avoid pulling a dependency to
---  libadalang when gnatcov is not built with Ada instrumentation support
---  (basically the gnatcov32 executable that has support for binary traces
---  only).
+--  Stub of Instrument.Ada_Preprocessing: see the note about Stubs in
+--  gnatcov.gpr.
 
 package Instrument.Ada_Preprocessing is
 

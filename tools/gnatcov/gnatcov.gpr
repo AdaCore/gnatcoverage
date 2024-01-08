@@ -99,6 +99,10 @@ project Gnatcov is
       for Specification ("Qemu_Traces_Entries")
          use"qemu_traces_entries__" & Bits & ".ads";
 
+      -----------
+      -- Stubs --
+      -----------
+
       --  In order to reduce the size of produced executables, whenever
       --  possible, use stubs for units that pull big dependencies into the
       --  link closure (GPR2, Libadalang, Libclang).
