@@ -36,6 +36,11 @@ extern "C"
   /* Return the current process ID as an unsigned 64-bit integer.  */
   extern uint64_t gnatcov_rts_getpid (void);
 
+  /* Return the value of errno.  This is used to provide a symbol for the Ada
+     part of GNATcov_RTS to be able to access the value of errno, without
+     relying on GNAT.OS_Lib.  */
+  extern int gnatcov_rts_get_errno (void);
+
 #ifdef __cplusplus
 }
 #endif

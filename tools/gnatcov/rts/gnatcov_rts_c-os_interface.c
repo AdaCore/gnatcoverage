@@ -17,6 +17,7 @@
  *                                                                          *
  ****************************************************************************/
 
+#include <errno.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -43,4 +44,10 @@ gnatcov_rts_getpid (void)
 #else
   return (uint64_t) getpid ();
 #endif
+}
+
+int
+gnatcov_rts_get_errno (void)
+{
+  return errno;
 }
