@@ -21,6 +21,7 @@ with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Containers;             use Ada.Containers;
 with Ada.Exceptions;
+with Ada.Finalization;
 with Ada.Strings.Wide_Wide_Fixed;
 pragma Warnings (Off, "* is an internal GNAT unit");
 with Ada.Strings.Wide_Wide_Unbounded.Aux;
