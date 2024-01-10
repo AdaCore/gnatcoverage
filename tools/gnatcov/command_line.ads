@@ -63,7 +63,8 @@ package Command_Line is
       Cmd_Instrument_Project,
       Cmd_Instrument_Source,
       Cmd_Instrument_Main,
-      Cmd_Setup_Integration);
+      Cmd_Setup_Integration,
+      Cmd_Gcc_Wrapper);
    --  Set of commands we support. More complete descriptions below.
 
    type Bool_Options is
@@ -146,6 +147,7 @@ package Command_Line is
      (Opt_Log,
       Opt_Projects,
       Opt_Scenario_Var,
+      Opt_Cargs,
       Opt_Eargs,
       Opt_Gargs,
       Opt_Scos,
@@ -407,7 +409,13 @@ package Command_Line is
          Pattern     =>
            "--files=<files_of_interest> --compilers=<compiler>"
          & " [--output-dir=<dir>]",
-         Internal    => False));
+         Internal    => False),
+      Cmd_Gcc_Wrapper => Create
+        (Name        => "gcc-wrapper",
+         Description =>
+           "Implementation of the GCC wrapper for integrated instrumentation.",
+         Pattern     => "[JSON-CONFIG-FILE]",
+         Internal    => True));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
      (Opt_Verbose => Create
@@ -1109,7 +1117,8 @@ package Command_Line is
          Help         =>
            "Name of the root project, without its gpr extension.",
          Commands     =>
-           (Cmd_Instrument_Main => True, others => False),
+           (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+            others                                      => False),
          At_Most_Once => False,
          Internal     => True),
 
@@ -1159,6 +1168,13 @@ package Command_Line is
          Help       => "Define a scenario variable for project files.",
          Commands   => (Cmd_All_Setups => False, others => True),
          Internal   => False),
+      Opt_Cargs => Create
+        (Long_Name  => "--cargs",
+         Pattern    => "[CARGS ...]",
+         Help       => "Pass CARGS arguments to the wrapped compiler.",
+         Commands   => (Cmd_Gcc_Wrapper => True, others => False),
+         Internal   => True,
+         Greedy     => True),
       Opt_Eargs => Create
         (Long_Name  => "-eargs",
          Pattern    => "[EARGS ...]",

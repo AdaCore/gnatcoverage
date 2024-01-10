@@ -16,28 +16,18 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  Stub of Instrument.Ada_Unit: see the note about Stubs in gnatcov.gpr
+package body Instrument.Ada_Preprocessing is
 
-with Instrument.Common; use Instrument.Common;
+   -------------------------
+   -- Create_Preprocessor --
+   -------------------------
 
-package Instrument.Ada_Unit is
+   function Create_Preprocessor
+     (Filename : String) return File_Reader_Reference
+   is
+      pragma Unreferenced (Filename);
+   begin
+      return (raise Program_Error);
+   end Create_Preprocessor;
 
-   pragma Elaborate_Body;
-
-   type Ada_Instrumenter_Type is new Language_Instrumenter with null record;
-   --  Common instrumentation primitives for Ada
-
-   overriding function Language
-     (Self : Ada_Instrumenter_Type) return Src_Supported_Language
-   is (Ada_Language);
-
-   function Create_Ada_Instrumenter
-     (Tag                        : Unbounded_String;
-      Config_Pragmas_Filename,
-      Mapping_Filename           : String;
-      Predefined_Source_Dirs     : String_Vectors.Vector;
-      Preprocessor_Data_Filename : String)
-      return Ada_Instrumenter_Type
-   is (Ada_Instrumenter_Type'(others => <>));
-
-end Instrument.Ada_Unit;
+end Instrument.Ada_Preprocessing;

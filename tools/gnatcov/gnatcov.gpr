@@ -61,8 +61,8 @@ project Gnatcov is
    --  "gnatcov64" configuration.
 
    case Part is
-      when "gnatcov64" | "compiler" => null;
-      when others                   => C_Support := "False";
+      when "gnatcov64" => null;
+      when others      => C_Support := "False";
    end case;
 
    type Build_Mode_Type is ("dev", "prod", "boot");
@@ -99,22 +99,35 @@ project Gnatcov is
       for Specification ("Qemu_Traces_Entries")
          use"qemu_traces_entries__" & Bits & ".ads";
 
-      --  Tools that don't need instrumentation support might nevertheless
-      --  rely on sources that drag dependencies on the "instrument" source
-      --  unit, even though the instrumentation feature is never actually
-      --  used. Provide a stub body for such tools, which significantly
-      --  reduces the size of executables:
+      -----------
+      -- Stubs --
+      -----------
+
+      --  In order to reduce the size of produced executables, whenever
+      --  possible, use stubs for units that pull big dependencies into the
+      --  link closure (GPR2, Libadalang, Libclang).
+      --
+      --  Removing such a dependency is possible when the associated feature is
+      --  not used in the selected part: for instance, the gnatcov driver does
+      --  not perform any source instrumentation itself (it delegates it to
+      --  gnatcov64), so it does not need to be linked with Libadalang nor
+      --  Libclang.
 
       case Part is
-         when "lib32" | "lib64" | "driver" | "gnatcov32" =>
+         when "gnatcov64" =>
+            null;
+         when others =>
+            for Specification ("Instrument.Ada_Preprocessing")
+               use "instrument-ada_preprocessing__stub.ads";
+            for Body ("Instrument.Ada_Preprocessing")
+               use "instrument-ada_preprocessing__stub.adb";
+
             for Specification ("Instrument.Ada_Unit")
                use "instrument-ada_unit__stub.ads";
             for Body ("Instrument.Ada_Unit")
                use "instrument-ada_unit__stub.adb";
-            for Body ("Instrument.C") use "instrument-c__stub.adb";
-            for Specification ("Instrument.C") use "instrument-c__stub.ads";
-         when "gnatcov64" | "compiler" =>
-            null;
+
+            for Body ("Setup_RTS") use "setup_rts__stub.adb";
       end case;
 
       case C_Support is
