@@ -329,7 +329,7 @@ sphinx_target_for = {
     }
 
 # The master GIT repo where our source artifacts reside
-GIT_MASTER = "ssh://git.adacore.com/gnatcoverage-qualification"
+GIT_MASTER = "git@ssh.gitlab.adacore-it.com:eng/das/cov/gnatcoverage-qualification.git"
 
 # The subdir name for this clone, relative to --root
 GIT_CLONE_SUBDIR = "gnatcoverage-git-clone"
