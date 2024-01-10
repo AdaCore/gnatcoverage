@@ -2,8 +2,6 @@ SC requirements for subprogram declarations and calls
 =====================================================
 
 
-%REQ_ID%
-
 
 
 SC shall be assessed correctly within each kind of subprogram,

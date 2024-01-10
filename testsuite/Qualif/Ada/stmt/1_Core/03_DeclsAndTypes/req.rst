@@ -1,8 +1,6 @@
 SC requirements for ARM chap. 3 : Declarations and Types
 ========================================================
 
-%REQ_ID%
-
 Declarations that were never elaborated as part of the program execution shall
 be reported as uncovered.
 

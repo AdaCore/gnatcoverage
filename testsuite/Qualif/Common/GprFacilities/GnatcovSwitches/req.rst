@@ -1,8 +1,6 @@
 Requirements for gnatcov command switches in project files
 ================================================================
 
-%REQ_ID%
-
 The tool shall handle *Switches* attributes in the Coverage package of
 the root project file, indexed by gnatcov command name and where the
 value is a list of switch strings that could be passed to the gnatcov

@@ -1,8 +1,6 @@
 SC requirements for statement sequences and control-flow transfers
 ==================================================================
 
-%REQ_ID%
-
 Statement coverage shall be assessed correctly for straightline sequences
 (basic blocks) of statements, and combinations of such using jump-like control
 flow transfers (goto, return, raise, exit).

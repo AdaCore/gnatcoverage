@@ -2,8 +2,6 @@ SC requirements for No_Return pragmas on subprograms
 ====================================================
 
 
-%REQ_ID%
-
 SC assessments shall not be influenced by the presence of a No_Return pragma
 attached to a subprogram. In particular, calls to such subprograms, statements
 within such subprograms or within subprograms called by them shall be

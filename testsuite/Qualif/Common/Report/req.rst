@@ -1,8 +1,6 @@
 Output report format
 ====================
 
-%REQ_ID%
-
 The tool qualified output is the synthetic report produced by the
 :literal:`--annotate=report` command line option. The output report shall:
 

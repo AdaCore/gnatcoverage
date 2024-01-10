@@ -202,7 +202,7 @@ import os.path
 import re
 import sys
 
-# This lets us access modules that the testuite
+# This lets us access modules that the testsuite
 # code features:
 MY_TESTSUITE_DIR = os.path.abspath("../testsuite")
 sys.path.append(MY_TESTSUITE_DIR)
@@ -675,7 +675,7 @@ class QMAT:
                 if os.path.exists(target_dir):
                     cp(tr, target_dir)
                 else:
-                    print("ERRRR !! inexistant target dir for %s" % tr)
+                    print("ERROR !! inexistent target dir for %s" % tr)
 
             [sync(tr) for tr in find(root=".", pattern="tcs.dump")]
 
@@ -684,7 +684,19 @@ class QMAT:
         )
         self.process_imports(env_chapter_dir)
 
-        self.__qm_build(part="tor")
+        announce("building %s %s" % (self.this_docformat, "TOR"))
+
+        os.chdir(os.path.join(self.repodir, "qualification", "tor", "scripts"))
+
+        run(
+            "python genrest.py --dolevel %s --force" % (self.o.dolevel)
+        )
+        run(
+            "make %s" % (self.this_docformat),
+            env={"GENBUNDLE_DOLEVEL": self.o.dolevel},
+        )
+
+        self.__latch_into(dir=self.itemsdir(), part="tor", toplevel=False)
 
     # ------------------------------
     # -- dump_kit_consistency_log --

@@ -2,8 +2,6 @@ SC requirements for generalized Loop iterations (ARM 5.5.2)
 ===========================================================
 
 
-%REQ_ID%
-
 Generalized loop iterators are similar to simple For loop statements in
 structure so share the same set of structural coverage requirements.
 

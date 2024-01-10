@@ -1,8 +1,6 @@
 Use of SCO files to state Units Of Interest
 ===========================================
 
-%REQ_ID%
-
 As an alternative to the use of project file facilities to designate
 Units Of Interest for an analysis, the tool shall let users specify
 those units by listing their corresponding .ali files with a set of

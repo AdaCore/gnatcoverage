@@ -2,8 +2,6 @@ SC requirements for Return statements
 =====================================
 
 
-%REQ_ID%
-
 
 
 A RETURN statement is both a statement per se and a control flow

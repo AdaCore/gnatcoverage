@@ -2,8 +2,6 @@ SC requirements for parameter modes
 ===================================
 
 
-%REQ_ID%
-
 The formal mode of subprogram parameters shall not influence the coverage
 assessment of statements referring to those parameters.
 

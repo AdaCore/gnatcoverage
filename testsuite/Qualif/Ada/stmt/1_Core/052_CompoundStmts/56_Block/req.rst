@@ -2,8 +2,6 @@ SC requirements for Block statements (ARM 5.6)
 ==============================================
 
 
-%REQ_ID%
-
 
 
 A block statement contains a sequence of statements and, optionally,

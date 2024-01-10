@@ -19,6 +19,3 @@ directions:
 
 
 .. qmlink:: IndexImporter
-
-   :allclass:TORReq
-

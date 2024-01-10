@@ -5,8 +5,6 @@ DC requirements for combinations of statement and decision constructs
 representative of application code.
 
 
-%REQ_ID%
-
 
 Correct coverage is reported for programs that use a combination of
 Ada constructs, with arbitrary levels of syntactic nesting

@@ -2,8 +2,6 @@ SC requirements for If statements (ARM 5.3)
 ===========================================
 
 
-%REQ_ID%
-
 
 
 An IF statement comprises an IF branch, zero or more ELSIF branches and zero

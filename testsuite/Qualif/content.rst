@@ -8,7 +8,7 @@ GNATcoverage - |standard| Qualification Material: |tor_doc_title|
 .. csv-table::
    :delim: ;
    :widths: 10, 90
-   :header: "Designation", "Referenced document"
+   :header: "Designation"; "Referenced document"
 
    |plans_doc| ; |project_name_it| - |plans_doc_title| (|plans_doc_id|)
    Ada 2012 LRM ; Ada 2012 Reference Manual. Language and Standard Libraries, ISO/IEC 8652:2012(E)
@@ -57,4 +57,3 @@ GNATcoverage - |standard| Qualification Material: |tor_doc_title|
 
    Index
    Appendix
-

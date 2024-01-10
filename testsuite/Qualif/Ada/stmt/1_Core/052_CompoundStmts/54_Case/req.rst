@@ -2,8 +2,6 @@ SC requirements for Case statements (ARM 5.4)
 =============================================
 
 
-%REQ_ID%
-
 
 
 A CASE statement starts with a *header* that introduces the controlling

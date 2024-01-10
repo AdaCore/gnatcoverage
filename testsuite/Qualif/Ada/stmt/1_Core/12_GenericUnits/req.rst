@@ -2,8 +2,6 @@ SC requirements for ARM chap. 12 : Generic Units
 ================================================
 
 
-%REQ_ID%
-
 For a given `generic` source (package or subprogram), the tool
 aggregates the coverage achieved by different instantiations of the
 entities offered by this source.

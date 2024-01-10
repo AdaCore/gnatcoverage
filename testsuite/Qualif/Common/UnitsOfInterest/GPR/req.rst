@@ -1,8 +1,6 @@
 Use of GPR project files to state Units Of Interest
 ===================================================
 
-%REQ_ID%
-
 The tool shall support the use of project file facilities to
 let users designate Units Of Interest for an analysis, as a replacement
 of the mechanism where users would instead provide an explicit list

@@ -1,5 +1,5 @@
 .. csv-table::
-   :header: "Item #", "Description", "Expected value"
+   :header: "Item #"| "Description"| "Expected value"
    :widths: 5, 30, 60
    :delim:  |
 

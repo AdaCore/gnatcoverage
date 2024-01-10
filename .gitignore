@@ -32,3 +32,16 @@ gnatinspect.db
 README.html
 TAGS
 *.~undo-tree~
+*.log
+
+# temporary output of genrest.py
+qualification/tor/scripts/source/
+
+# generated output of genbundle.py
+**/build
+**/source
+
+# vscode local settings
+.env
+.vscode
+
