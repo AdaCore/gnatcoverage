@@ -85,9 +85,9 @@ package Project is
    --  the build tree.
 
    procedure Load_Root_Project
-     (Prj_Name                   : String;
-      Target, Runtime, CGPR_File : String_Access;
-      From_Driver                : Boolean := False)
+     (Prj_Name                           : String;
+      Target, Runtime, CGPR_File, DB_Dir : GNAT.Strings.String_Access;
+      From_Driver                        : Boolean := False)
       with Pre  => not Is_Project_Loaded
                    and then ((Target = null and then Runtime = null)
                              or else CGPR_File = null),
@@ -96,6 +96,7 @@ package Project is
    --  Project_File_Extension). Target is the target prefix, or NULL in the
    --  native case. Runtime is the Ada runtime to use, or NULL in the default
    --  runtime case. CGPR_File is the path to the configuration project file,
+   --  if any. DB_Dir is the path to the additional knowledge base directory,
    --  if any.
    --
    --  Note that Target/Runtime must not be provided if a configuration project

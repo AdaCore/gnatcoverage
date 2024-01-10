@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<gprconfig>
+  <compiler_description>
+      <name>MY_GCC</name>
+      <executable>gcc</executable>
+      <version>1.0</version>
+      <languages>C</languages>
+  </compiler_description>
+
+  <configuration>
+      <compilers>
+          <compiler name="MY_GCC" language="C" />
+      </compilers>
+      <config>
+          package Compiler is
+             for Driver ("C") use "gcc";
+             for Leading_Required_Switches   ("C") use
+                ("-c", "-x", "c") &amp; Compiler'Leading_Required_Switches ("C");
+             for Include_Switches ("C") use ("-I");
+          end Compiler;
+      </config>
+  </configuration>
+</gprconfig>
