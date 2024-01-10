@@ -298,6 +298,7 @@ package Argparse is
    --  empty value. This is specified thanks to the Present discriminant.
 
    function Value_Or_Null (Opt : String_Option) return Unbounded_String;
+   function Value_Or_Null (Opt : String_Option) return String;
    --  If Opt is present, return its value. Return the empty string otherwise.
 
    type Bool_Array is array (Bool_Options) of Boolean;

@@ -80,6 +80,7 @@ package body Setup_RTS is
       Target       : String;
       RTS          : String;
       Config_File  : String;
+      Db_Dir       : String;
       Prefix       : String;
       RTS_Profile  : Any_RTS_Profile;
       Install_Name : String;
