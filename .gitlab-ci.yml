@@ -7,32 +7,11 @@ variables:
    PACKAGE_BASE_NAME: gnatcoverage.tar.gz
    PACKAGE_ABSOLUTE_NAME: $CI_PROJECT_DIR/$PACKAGE_BASE_NAME
 
-   #  These are not needed at the moment, but will be useful when we migrate
-   #  to a multi-stage pipeline.
-   #  PACKAGE_REPOSITORY_PROJECT: eng/cov/ci-packages
-   #  CI_FRAGMENTS: ci-fragments
-   #  CI_FRAGMENTS_GIT: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/eng/it/$CI_FRAGMENTS
-   ANOD_GIT: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/eng/it/anod
-   GNATCOVERAGE_EXTRA_GIT: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/eng/cov/gnatcoverage-extra
-
-.edge_vars: &edge_vars
-  - |
-    if [ $CI_COMMIT_BRANCH = edge ] || [ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME = edge ]
-    then
-        EDGE_QUALIFIER="-Qedge"
-        EDGE_REPO_SUFFIX="-edge"
-    else
-        EDGE_QUALIFIER=""
-        EDGE_REPO_SUFFIX=""
-    fi
-
-.common_anod_bits: &common_anod_bits
-  - cd /tmp
-  - git clone --depth 1 $ANOD_GIT
-  - cd /it/wave
-  - anod tune --anod-dir /tmp/anod
-  - anod vcs --add-repo gnatcoverage$EDGE_REPO_SUFFIX $CI_PROJECT_DIR
-  - GCV_INSTR_BSN=$(anod eval gnatcov -Qinstr $EDGE_QUALIFIER build_space_name)
+.basic_setup: &basic_setup
+  - unset GITLAB_TOKEN
+  - generic_anod_ci --add-dep eng/das/cov/gnatcoverage-extra
+  - cat /tmp/ci_env.sh
+  - . /tmp/ci_env.sh
 
 stages:
   - build
@@ -41,26 +20,20 @@ stages:
 build:
   interruptible: true
   services:
-     - image:gnatcov
+     - image:e3
      - cpu:16
      - mem:16
   stage: build
   script:
     - require_issue
-
-    - export PATH=/it/e3/bin:$PATH
-    - *edge_vars
-
-    # Setup the repository
-    - *common_anod_bits
-
+    - *basic_setup
     # Build using anod
-    - anod install gnatcov $EDGE_QUALIFIER --latest
-    - anod build --minimal gnatcov -Qinstr $EDGE_QUALIFIER
+    - anod install gnatcov $ACI_TRACK_QUALIFIER --latest
+    - anod build --minimal gnatcov -Qinstr $ACI_TRACK_QUALIFIER
 
     # Package all components created so far
-    - anod-copy-components --standalone-export /it/wave /it/wave/exp-comps
-    - tar czf $PACKAGE_ABSOLUTE_NAME -C / it/wave/exp-comps
+    - anod-copy-components --standalone-export $ANOD_DEFAULT_SANDBOX_DIR $ANOD_DEFAULT_SANDBOX_DIR/exp-comps
+    - tar czf $PACKAGE_ABSOLUTE_NAME -C / $ANOD_DEFAULT_SANDBOX_DIR/exp-comps
 
     - cd $CI_PROJECT_DIR
     - ls -l $PACKAGE_BASE_NAME
@@ -79,9 +52,7 @@ build_docs:
         - doc/**/*
       when: always
   script:
-    - unset GITLAB_TOKEN
-    - generic_anod_ci
-    - . /tmp/ci_env.sh
+    - *basic_setup
     - anod build gnatdas-doc --latest
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/gnatdas-doc/install/share/doc/gnatdas/ $CI_PROJECT_DIR
   artifacts:
@@ -94,55 +65,29 @@ build_docs:
 build_community:
   interruptible: true
   services:
-     - image:gnatcov
+     - image:e3
      - cpu:8
      - mem:16
   stage: test
   script:
-    - export PATH=/it/e3/bin:$PATH
-    - *edge_vars
-
-    # Setup the repository
-    - cd /tmp
-    - git clone --depth 1 $ANOD_GIT
-    - cd /it/wave
-    - anod tune --anod-dir /tmp/anod
-    - anod vcs --add-repo gnatcoverage$EDGE_REPO_SUFFIX $CI_PROJECT_DIR
-
+    - *basic_setup
     # Build using anod
-    - anod build --minimal gnatcov -Qno-c $EDGE_QUALIFIER
+    - anod build --minimal gnatcov -Qno-c $ACI_TRACK_QUALIFIER $ACI_TRACK_QUALIFIER
 
-.common_test_bits: &retrieve_gnatcoverage_extras_and_setup_anod_repo
-    - export PATH=/it/e3/bin:$PATH
-    - *edge_vars
-
-    # Get the gnatcoverage-extra repository. If we're testing a 'sync/' branch,
-    # expect the same for that repo.
-
-    - cd /tmp
-    - EXTRA_BRANCH=master
-    - if [[ $CI_COMMIT_BRANCH =~ ^sync/ ]]; then
-         EXTRA_BRANCH=$CI_COMMIT_BRANCH;
-      elif [[ $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ ^sync/ ]]; then
-         EXTRA_BRANCH=$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME;
-      elif [ $CI_COMMIT_BRANCH = edge ] || [ $CI_MERGE_REQUEST_TARGET_BRANCH_NAME = edge ]; then
-         EXTRA_BRANCH=edge;
-      fi
-    - git clone $GNATCOVERAGE_EXTRA_GIT -b $EXTRA_BRANCH
-
-    # Setup the anod sandbox repositories
-    - *common_anod_bits
-    - anod vcs --add-repo gnatcoverage-extra$EDGE_REPO_SUFFIX /tmp/gnatcoverage-extra
+.common_test_bits: &basic_test_setup
+    # Setup the sandbox
+    - *basic_setup
 
     # Import components from the artifact and install the instrumented gnatcov,
     # then remove temporaries to save disk space.
     - tar zxf $PACKAGE_ABSOLUTE_NAME -C /
-    - anod-copy-components /it/wave/exp-comps /it/wave
-    - anod install gnatcov -Qinstr $EDGE_QUALIFIER
-    - rm -rf $PACKAGE_ABSOLUTE_NAME /it/wave/exp-comps
+    - anod-copy-components $ANOD_DEFAULT_SANDBOX_DIR/exp-comps $ANOD_DEFAULT_SANDBOX_DIR
+    - anod install gnatcov -Qinstr $ACI_TRACK_QUALIFIER
+    - rm -rf $PACKAGE_ABSOLUTE_NAME $ANOD_DEFAULT_SANDBOX_DIR/exp-comps
 
     # Setup the CI directory to host coverage results
     - mkdir $CI_PROJECT_DIR/coverage
+
 
 .common_artifacts_bits: &artifacts
   artifacts:
@@ -159,65 +104,65 @@ build_community:
 test_bin_traces:
   interruptible: true
   services:
-     - image:gnatcov
+     - image:e3
      - cpu:16
      - mem:16
   stage: test
   script:
-    - *retrieve_gnatcoverage_extras_and_setup_anod_repo
+    - *basic_test_setup
 
     # Test using anod
-    - anod test gnatcov --minimal --target=leon3-elf,,qemu -QRTS=embedded-leon3,-O0,instr $EDGE_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov --target=leon3-elf,,qemu -QRTS=embedded-leon3,-O0,instr $EDGE_QUALIFIER build_space_name)
-    - mv leon3-elf-linux64/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
+    - anod test gnatcov --minimal --target=leon3-elf,,qemu -QRTS=embedded-leon3,-O0,instr $ACI_TRACK_QUALIFIER
+    - TEST_BSN=$(anod eval --primitive=test gnatcov --target=leon3-elf,,qemu -QRTS=embedded-leon3,-O0,instr $ACI_TRACK_QUALIFIER build_space_name)
+    - mv $ANOD_DEFAULT_SANDBOX_DIR/leon3-elf-linux64/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
         --xunit-name bin-traces
-        leon3-elf-linux64/$TEST_BSN/results/new/
+        $ANOD_DEFAULT_SANDBOX_DIR/leon3-elf-linux64/$TEST_BSN/results/new/
 
   <<: *artifacts
 
 test_src_traces:
   interruptible: true
   services:
-     - image:gnatcov
+     - image:e3
      - cpu:16
      - mem:16
   stage: test
   script:
-    - *retrieve_gnatcoverage_extras_and_setup_anod_repo
+    - *basic_test_setup
 
     # Test using anod
-    - anod test gnatcov --minimal -Qsrc-traces,instr $EDGE_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr $EDGE_QUALIFIER build_space_name)
-    - mv x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
+    - anod test gnatcov --minimal -Qsrc-traces,instr $ACI_TRACK_QUALIFIER
+    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
+    - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
         --xunit-name src-traces
-      x86_64-linux/$TEST_BSN/results/new/
+        $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/results/new/
 
   <<: *artifacts
 
 test_spark:
   interruptible: true
   services:
-     - image:gnatcov
+     - image:e3
      - cpu:16
      - mem:16
   stage: test
   script:
-    - *retrieve_gnatcoverage_extras_and_setup_anod_repo
+    - *basic_test_setup
 
     # Test using anod
-    - anod test gnatcov --minimal -Qspark-tests,src-traces,instr $EDGE_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qspark-tests,src-traces,instr $EDGE_QUALIFIER build_space_name)
-    - mv x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
+    - anod test gnatcov --minimal -Qspark-tests,src-traces,instr $ACI_TRACK_QUALIFIER
+    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qspark-tests,src-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
+    - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - e3-testsuite-report
         --failure-exit-code 1
         --xunit-output $CI_PROJECT_DIR/xunit_output.xml
         --xunit-name spark
-      x86_64-linux/$TEST_BSN/results/new/
+        $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/results/new/
 
   <<: *artifacts
