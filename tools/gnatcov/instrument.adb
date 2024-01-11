@@ -484,12 +484,14 @@ package body Instrument is
 
    function Load_From_Command_Line return Prj_Desc is
       use Command_Line.Parser;
-      Language    : constant Some_Language :=
+      Language : constant Some_Language :=
         To_Language (+Args.String_Args (Opt_Lang).Value);
-      Result : Prj_Desc;
+      Result   : Prj_Desc;
 
       procedure Fill_If_Present
         (Opt : String_Options; Field : out Unbounded_String);
+      --  If option Opt is present on the command line, copy its valaue to
+      --  Field.
 
       ---------------------
       -- Fill_If_Present --
@@ -504,6 +506,9 @@ package body Instrument is
             Field := +Value (Args, Opt);
          end if;
       end Fill_If_Present;
+
+   --  Start of processing for Load_From_Command_Line
+
    begin
       if Language in C_Family_Language then
          Fill_If_Present
