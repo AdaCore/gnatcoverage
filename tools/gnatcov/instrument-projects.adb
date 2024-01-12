@@ -1352,6 +1352,8 @@ begin
       --  the main in the project file, if not specified explicitly on the
       --  command line.
 
+      First_Main : Boolean := True;
+      --  Whether the next main to instrument is the first one
    begin
       Instrument_Main_Args.Append (+"instrument-main");
 
@@ -1402,19 +1404,24 @@ begin
 
             if Dump_Config.Trigger /= Manual then
                declare
-                  Unit_Name : constant Unbounded_String :=
-                    +(case Main.CU_Name.Language_Kind is
-                         when Unit_Based_Language =>
-                           To_Ada (Main.CU_Name.Unit),
-                         when File_Based_Language => (+Main.File.Full_Name));
+                  Unit_Name : constant String :=
+                    (case Main.CU_Name.Language_Kind is
+                     when Unit_Based_Language => To_Ada (Main.CU_Name.Unit),
+                     when File_Based_Language => +Main.File.Full_Name);
                   Unit_Args : String_Vectors.Vector := Instrument_Main_Args;
                begin
+                  if not Quiet and then First_Main then
+                     First_Main := False;
+                     Put_Line ("Main instrumentation");
+                  end if;
+                  Show_Progress (Language, Unit_Name);
+
                   Unit_Args.Append
                     (Compilation_Unit_Options
                        (IC,
                         Main.Prj_Info.Desc,
                         Library_Unit_Info'
-                          (Unit_Name            => Unit_Name,
+                          (Unit_Name            => +Unit_Name,
                            Instr_Project        => Main.Prj_Info.Project,
                            Language_Kind        => Language_Kind (Language),
                            Language             => Language,
@@ -1426,7 +1433,7 @@ begin
                   --  instrumented as a unit of interest before, then pass the
                   --  instrumented version.
 
-                  if Instrumented_Sources.Contains (+Unit_Name) then
+                  if Instrumented_Sources.Contains (Unit_Name) then
                      Main_Filename :=
                        +(+Root_Project_Info.Output_Dir)
                        / (+Main.File.Base_Name);
