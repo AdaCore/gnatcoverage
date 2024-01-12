@@ -2,7 +2,7 @@
  *                                                                          *
  *                              GNATcoverage                                *
  *                                                                          *
- *                   Copyright (C) 2012-2022, AdaCore                       *
+ *                     Copyright (C) 2012-2024, AdaCore                     *
  *                                                                          *
  * GNATcoverage is free software; you can redistribute it  and/or modify it *
  * under terms of the GNU General Public License as published by the Free   *
@@ -20,7 +20,8 @@
 /* Our local last chance handlers for Ada rely on "abort", and this is not
    part of the standard RTS on leon.  */
 
-void abort (void)
+void
+abort (void)
 {
-  asm ("mov 0, %g1; ta 0");
+  asm("mov 0, %g1; ta 0");
 }
