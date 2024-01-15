@@ -1376,10 +1376,10 @@ begin
               Value (Args, Opt_Runtime_Project, "gnatcov_rts");
 
             Setup_Cfg : constant Setup_Config := Load
-              ("",
-               "",
-               Value (Args, Opt_Config),
-               Runtime_Project);
+              (Target          => "",
+               RTS             => "",
+               Config_File     => Value (Args, Opt_Config),
+               Runtime_Project => Runtime_Project);
             --  TODO??? We should not leave the target and runtime empty, but
             --  we have no project to load here.
 
