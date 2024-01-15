@@ -139,30 +139,16 @@ package body Instrument.Setup_Config is
          Output_Filename : constant String :=
            Output_Dir / "gprls_output";
          Output_File     : File_Type;
-         GPRLS_Success   : Boolean;
       begin
          Args.Append (+"-P");
          Args.Append (+Runtime_Project);
          Args.Append (+"-vP1");
-         GPRLS_Success := Run_Command
+         Run_Command
            (Command             => "gprls",
             Arguments           => Args,
             Origin_Command_Name => "gnatcov setup-integration",
-            Output_File         => Output_Filename,
-            Ignore_Error        => True);
+            Output_File         => Output_Filename);
          Open (Output_File, In_File, Output_Filename);
-         if not GPRLS_Success then
-            Outputs.Error
-              ("Failed locating or loading the " & Runtime_Project
-               & " project file");
-            Warning_Or_Error ("Is the project available on the"
-                              & " GPR_PROJECT_PATH?");
-            Warning_Or_Error ("gprls output was:");
-            while not End_Of_File (Output_File) loop
-               Warning_Or_Error (Get_Line (Output_File));
-            end loop;
-            raise Xcov_Exit_Exc;
-         end if;
          while not End_Of_File (Output_File) loop
             declare
                Line : constant String := Get_Line (Output_File);

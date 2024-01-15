@@ -124,7 +124,7 @@ package Setup_RTS is
    --  Load the setup config associated to the project file called
    --  Runtime_Project (that project is loaded using Target, RTS and
    --  Config_File). If we cannot load the runtime project file or if the setup
-   --  config is missing from this project, just return Default_Setup_Config.
+   --  config is missing from this project, abort with a fatal error.
 
    function Check_RTS_Profile
      (Profile     : Resolved_RTS_Profile;

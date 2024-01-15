@@ -16,10 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Handling;   use Ada.Characters.Handling;
-with Ada.Directories;           use Ada.Directories;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Directories;         use Ada.Directories;
 with Ada.Environment_Variables;
-with Ada.Exceptions;            use Ada.Exceptions;
 
 with GNAT.OS_Lib;
 with GNAT.Regexp;
@@ -139,11 +138,6 @@ package body Setup_RTS is
    --  If Library_Kind is not an empty string, build for that library kind and
    --  install it as a variant.
 
-   Load_Setup_Config_Error : exception;
-   --  Exception raised when loading the setup config file failed (because the
-   --  runtime project could not be loaded / the config file could not be
-   --  decoded etc.).
-
    function Load
      (Project_File      : String;
       Setup_Config_File : Virtual_File) return Setup_Config;
@@ -155,11 +149,6 @@ package body Setup_RTS is
    is ("setup-config-" & To_Lower (Base_Name (Project_Name)) & ".json");
    --  Return the base filename for the setup config file corresponding to the
    --  given Project_Name.
-
-   function Load (J : JSON_Value) return Setup_Config
-   with Pre => J.Kind = JSON_Object_Type;
-   --  Helper for the public Load function: load a setup config from the given
-   --  JSON document.
 
    procedure Save_Setup_Config
      (Project_Dir  : String;
@@ -859,7 +848,6 @@ package body Setup_RTS is
       Config_File     : String;
       Runtime_Project : String) return Setup_Config
    is
-      Result            : Setup_Config := Default_Setup_Config;
       Setup_Config_File : Virtual_File;
 
       Prj_Ext      : constant String := ".gpr";
@@ -887,14 +875,15 @@ package body Setup_RTS is
       --  fails to load, just return the default setup config.
 
       Load_Project (Prj, Prj_Filename, Target, RTS, Config_File);
-      if Prj.Log_Messages.Has_Error then
-         if Setup_RTS_Trace.Is_Active then
-            Setup_RTS_Trace.Trace
-              ("Could not load the coverage runtime project to get dump"
-               & " options defaults: " & Runtime_Project);
-            Prj.Log_Messages.Output_Messages;
-         end if;
-         raise Load_Setup_Config_Error;
+      if Prj.Log_Messages.Has_Error
+         or else (Src_Enabled_Languages (Ada_Language)
+                  and then not Prj.Has_Runtime_Project)
+      then
+         Error
+           ("Could not load the coverage runtime project " & Runtime_Project);
+         Prj.Log_Messages.Output_Messages
+           (Information => Setup_RTS_Trace.Is_Active);
+         raise Xcov_Exit_Exc;
       end if;
 
       --  The project file is in $PREFIX/share/gpr, so get $PREFIX first and
@@ -915,72 +904,58 @@ package body Setup_RTS is
            Prefix / (+"share") / (+"gnatcov_rts") / (+Config_File_Basename);
       end;
 
-      if Setup_Config_File.Is_Regular_File then
-         Result := Load (+Project_File.Full_Name, Setup_Config_File);
-      elsif Setup_RTS_Trace.Is_Active then
-         Setup_RTS_Trace.Trace
+      if not Setup_Config_File.Is_Regular_File then
+         Error
            ("Could not find the setup config file: "
             & (+Setup_Config_File.Full_Name));
-         raise Load_Setup_Config_Error;
+         Fatal_Error
+           ("Please install the coverage runtime with ""gnatcov setup""");
       end if;
 
-      --  At that point, setup config file was loaded successfully. Otherwise,
-      --  we will return through the below exception handler.
-
-      Setup_RTS_Trace.Trace
-        ("Successfully loaded the setup configuration file "
-         & (+Setup_Config_File.Full_Name) & ".");
-      return Result;
-
-   exception
-      when Load_Setup_Config_Error =>
-         return Result;
+      return Result : constant Setup_Config :=
+        Load (+Project_File.Full_Name, Setup_Config_File)
+      do
+         Setup_RTS_Trace.Trace
+           ("Successfully loaded the setup configuration file "
+            & (+Setup_Config_File.Full_Name) & ".");
+      end return;
    end Load;
 
    function Load
      (Project_File      : String;
       Setup_Config_File : Virtual_File) return Setup_Config
    is
-      --  Load and parse the setup config file
+      J : JSON_Value;
+      --  Top-level object in the Setup_Config_File JSON file, validated to be
+      --  an object (JSON mapping).
 
-      Parsed_JSON : constant Read_Result := Read (Setup_Config_File);
-   begin
-      --  If parsing was successful, load the various parameters from the JSON
-      --  document. Otherwise, unless the verbose mode is active, silently
-      --  ignore the setup config file.
-
-      if Parsed_JSON.Success then
-         if Parsed_JSON.Value.Kind = JSON_Object_Type then
-            return Result : Setup_Config := Load (Parsed_JSON.Value) do
-               Result.Project_File := +Project_File;
-            end return;
-         end if;
-
-      elsif Setup_RTS_Trace.Is_Active then
-         Setup_RTS_Trace.Trace
-           ("Parsing error while reading the setup config file:");
-         Setup_RTS_Trace.Trace (Format_Parsing_Error (Parsed_JSON.Error));
-      end if;
-
-      raise Load_Setup_Config_Error;
-   end Load;
-
-   function Load (J : JSON_Value) return Setup_Config is
-
-      Format_Error : exception;
-      --  Exception to raise in this function when the format of the setup
-      --  config file is unexpected and loading it cannot continue.
+      procedure Stop_With_Error (Message : String) with No_Return;
+      --  Output an error for the loading of the config file with the given
+      --  message and raise a Xcov_Exit_Exc exception.
 
       procedure Check_Field (Name : String; Kind : JSON_Value_Type);
-      --  Raise a Format_Error exception if J does not have a Name field or if
-      --  that field does not have the given kind.
+      --  Stop with a fatal error if J does not have a Name field or if that
+      --  field does not have the given kind.
 
       function Get (Name : String) return Unbounded_String;
-      --  Return the Name field in J as a string. If there is no such field or
-      --  if it is not a string, raise a Format_Error exception.
+      --  Return the Name field in J as a string. Stop with a fatal error if
+      --  there is no such field or if it is not a string.
 
       function Get (Name : String) return Boolean;
       --  Likewise, but for a boolean field
+
+      ---------------------
+      -- Stop_With_Error --
+      ---------------------
+
+      procedure Stop_With_Error (Message : String) is
+      begin
+         Error
+           ("Error while loading the setup config file "
+             & (+Setup_Config_File.Full_Name));
+         Error (Message);
+         raise Xcov_Exit_Exc;
+      end Stop_With_Error;
 
       -----------------
       -- Check_Field --
@@ -989,11 +964,11 @@ package body Setup_RTS is
       procedure Check_Field (Name : String; Kind : JSON_Value_Type) is
       begin
          if not J.Has_Field (Name) then
-            raise Format_Error with "missing " & Name & " field";
+            Stop_With_Error ("missing " & Name & " field");
          end if;
 
          if J.Get (Name).Kind /= Kind then
-            raise Format_Error with "invalid " & Name & " field";
+            Stop_With_Error ("invalid " & Name & " field");
          end if;
       end Check_Field;
 
@@ -1013,12 +988,27 @@ package body Setup_RTS is
          return J.Get (Name);
       end Get;
 
-      Result : Setup_Config := Default_Setup_Config;
+      --  Load and parse the setup config file
+
+      Parsed_JSON : constant Read_Result := Read (Setup_Config_File);
+      Result      : Setup_Config := Default_Setup_Config;
 
       Channel : Any_Dump_Channel;
       Trigger : Any_Dump_Trigger;
 
+   --  Start of processing for Load
+
    begin
+      if not Parsed_JSON.Success then
+         Stop_With_Error (Format_Parsing_Error (Parsed_JSON.Error));
+      end if;
+
+      Result.Project_File := +Project_File;
+      J := Parsed_JSON.Value;
+      if J.Kind /= JSON_Object_Type then
+         Stop_With_Error ("Object expected at the top-level");
+      end if;
+
       declare
          RTS_Profile : constant String := +Get ("rts-profile");
       begin
@@ -1026,21 +1016,21 @@ package body Setup_RTS is
          Result.RTS_Profile_Present := True;
       exception
          when Constraint_Error =>
-            raise Format_Error with "invalid rts-profile field";
+            Stop_With_Error ("invalid rts-profile field");
       end;
 
       begin
          Channel := Value (+Get ("dump-channel"));
       exception
          when Constraint_Error =>
-            raise Format_Error with "invalid dump-channel field";
+            Stop_With_Error ("invalid dump-channel field");
       end;
 
       begin
          Trigger := Value (+Get ("dump-trigger"));
       exception
          when Constraint_Error =>
-            raise Format_Error with "invalid dump-trigger field";
+            Stop_With_Error ("invalid dump-trigger field");
       end;
 
       case Channel is
@@ -1059,13 +1049,6 @@ package body Setup_RTS is
       end case;
 
       return Result;
-
-   exception
-      when Exc : Format_Error =>
-         Setup_RTS_Trace.Trace
-           ("Setup config file decoding error: "
-            & Exception_Information (Exc));
-         raise Load_Setup_Config_Error;
    end Load;
 
    -----------------------
