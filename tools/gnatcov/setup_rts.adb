@@ -24,8 +24,8 @@ with Ada.Exceptions;            use Ada.Exceptions;
 with GNAT.OS_Lib;
 with GNAT.Regexp;
 
-with GNATCOLL.JSON;     use GNATCOLL.JSON;
-with GNATCOLL.VFS;      use GNATCOLL.VFS;
+with GNATCOLL.JSON; use GNATCOLL.JSON;
+with GNATCOLL.VFS;  use GNATCOLL.VFS;
 with GPR2.Context;
 with GPR2.Containers;
 with GPR2.Log;
@@ -36,12 +36,12 @@ with GPR2.Project.Configuration;
 with GPR2.Project.Registry.Attribute;
 with GPR2.Project.Tree;
 
-with JSON;          use JSON;
-with Outputs;       use Outputs;
-with Paths;         use Paths;
-with Subprocesses;  use Subprocesses;
+with JSON;         use JSON;
+with Outputs;      use Outputs;
+with Paths;        use Paths;
+with Subprocesses; use Subprocesses;
 with Support_Files;
-with Temp_Dirs;     use Temp_Dirs;
+with Temp_Dirs;    use Temp_Dirs;
 with Text_Files;
 
 package body Setup_RTS is
