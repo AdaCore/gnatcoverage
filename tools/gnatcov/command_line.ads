@@ -1349,8 +1349,9 @@ package Command_Line is
         (Long_Name               => "--restricted-to-languages",
          Pattern                 => "[LANGUAGE|LIST|@LISTFILE]",
          Help                    =>
-           "Restrict the set of languages for instrumentation. Supports Ada, C"
-           & " and C++.",
+           "Restrict the set of languages for units of interest. Supports Ada,"
+           & " C and C++. Note that main units of other languages may still be"
+           & " instrumented to dump the coverage state to trace files.",
          Commands                => (Cmd_Setup
                                      | Cmd_Instrument_Project => True,
                                      others                   => False),
