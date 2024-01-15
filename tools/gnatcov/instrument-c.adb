@@ -4020,6 +4020,8 @@ package body Instrument.C is
       Main_Cursor : Cursor_T;
       --  Cursor of the main declaration
    begin
+      Check_Compiler_Driver (Prj, Self);
+
       Rew.Start_Rewriting (Filename, Self, Prj);
 
       Insert_Extern_Location :=
