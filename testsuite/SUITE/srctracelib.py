@@ -95,7 +95,7 @@ class SrcTraceFile(object):
 
     MAGIC = b'GNATcov source trace file' + b'\x00' * 7
 
-    FORMAT_VERSION = 2
+    FORMAT_VERSION = 3
 
     ENDIANITY_NAMES = {
         0: 'little-endian',
