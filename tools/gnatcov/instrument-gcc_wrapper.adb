@@ -312,7 +312,7 @@ is
       Commands_Filename   : constant String :=
         Tmp_Dir.Directory_Name / "commands";
    begin
-      --  Expand the command line using gcc's -### option. TODO??? check if the
+      --  Expand the command line using gcc's -### option. TODO??? Check if the
       --  command we are intercepting is a compile / link target and not a
       --  preprocessing / -### action.
 
@@ -424,7 +424,7 @@ is
             if +Arg in "-dumpbase" | "-dumpbase-ext" then
                Cur := Next (Cur);
 
-            --  TODO??? the user can configure the file extension and the
+            --  TODO??? The user can configure the file extension and the
             --  implementation should be resilient to this.
 
             elsif Ends_With (Arg, ".c")
@@ -600,7 +600,7 @@ is
          Args.Append (Full_Name (Symbol_File));
 
          --  The command can fail with e.g. "file format not recognized" for
-         --  system libraries. TODO??? investigate why. We should also avoid
+         --  system libraries. TODO??? Investigate why. We should also avoid
          --  invoking nm on system libraries altogether.
 
          Ignore_Success :=
@@ -830,7 +830,7 @@ begin
                Unit_Name         => Fullname,
 
                --  Generate all the SID files under the same directory as the
-               --  compiler wrapper as they must persist. TODO??? deal with
+               --  compiler wrapper as they must persist. TODO??? Deal with
                --  homonym files in SID names.
 
                SID_Name => Compiler_Wrapper_Dir / (Simple_Name & ".sid"));

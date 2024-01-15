@@ -4075,20 +4075,19 @@ package body SC_Obligations is
                      if (Enclosing_SCO /= No_SCO_Id
                          and then Equivalent
                            (SCOD, SCO_Vector (Enclosing_SCO)))
-
-                        --  The only form of SCO overlapping we allow is
-                        --  SCO nesting. A statement can contain nested
-                        --  statements, e.g. with C++ lambda expressions.
-                        --  We reject every other kind of overlapping.
+                        --  The only form of SCO overlapping we allow is SCO
+                        --  nesting. A statement can contain nested statements,
+                        --  e.g. with C++ lambda expressions.  We reject every
+                        --  other kind of overlapping.
                         --
-                        --  TODO???: with C headers, we can have multiple
-                        --  times the same SCO if the header is included
-                        --  multiple times. This will result in a buggy
-                        --  behavior if the included code expansion varies (as
-                        --  we may accept nested SCO that come from the second
-                        --  inclusion, but that are nested in a SCO from the
-                        --  first inclusion, which makes no sense). Consider
-                        --  this as a marginal use case for now.
+                        --  TODO??? With C headers, we can have multiple times
+                        --  the same SCO if the header is included multiple
+                        --  times. This will result in a buggy behavior if the
+                        --  included code expansion varies (as we may accept
+                        --  nested SCO that come from the second inclusion, but
+                        --  that are nested in a SCO from the first inclusion,
+                        --  which makes no sense). Consider this as a marginal
+                        --  use case for now.
 
                         or else Invalid_Overlap (SCOD, Enclosing_SCO)
                         or else Invalid_Overlap

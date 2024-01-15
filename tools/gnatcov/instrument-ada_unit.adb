@@ -6769,7 +6769,7 @@ package body Instrument.Ada_Unit is
          File_Reader   => Instrumenter.File_Reader);
       Instrumenter.Get_From_File_Count := 0;
 
-      --  Load configuration pragmas. TODO???: clarify what happens when there
+      --  Load configuration pragmas. TODO??? Clarify what happens when there
       --  is a local configuration pragma file.
 
       Libadalang.Config_Pragmas.Set_Mapping

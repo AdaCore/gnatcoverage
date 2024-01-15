@@ -121,8 +121,8 @@ package body Instrument.Setup_Config is
       --  For each compiler driver, location of the nm executable
 
    begin
-      --  Find the installed gnatcov_rts, using gprls. TODO???: deal with non
-      --  native cases.
+      --  Find the installed gnatcov_rts, using gprls. TODO??? Deal with cross
+      --  cases.
       --
       --  We are looking for the following lines:
       --  Source Search Path:
@@ -225,8 +225,8 @@ package body Instrument.Setup_Config is
                     (+Compiler_Driver, Compiler_Fullname.all);
 
                   --  Then, find the linker associated to this compiler. Look
-                  --  for ld / ld.bfd. TODO???: this may need reworking when
-                  --  we want to support toolchain other than ours, not
+                  --  for ld / ld.bfd. TODO??? This may need reworking when we
+                  --  want to support toolchain other than ours, not
                   --  necessarily packaging ld.
 
                   declare
@@ -244,7 +244,7 @@ package body Instrument.Setup_Config is
                   end;
 
                   --  Do the same with nm, as we need to be able to inspect the
-                  --  object / library file contents. TODO???: this may need
+                  --  object / library file contents. TODO??? This may need
                   --  reworking when we want to support toolchain other than
                   --  ours, not necessarily packaging nm.
 

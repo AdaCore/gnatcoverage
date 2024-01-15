@@ -727,7 +727,7 @@ package body Instrument.C is
          return;
       end if;
 
-      --  TODO??? the actual source range should be a Source_Location, and not
+      --  TODO??? The actual source range should be a Source_Location, and not
       --  a Local_Source_Location as it can refer to #included files.
 
       Info.Actual_Source_Range := (From.L, To.L);
@@ -2205,7 +2205,7 @@ package body Instrument.C is
             when Cursor_Null_Stmt =>
                null;
 
-            --  TODO??? there are probably missing special statements, such as
+            --  TODO??? There are probably missing special statements, such as
             --  ternary operator etc. Do that in a later step.
 
             when Cursor_Call_Expr =>
@@ -2531,7 +2531,7 @@ package body Instrument.C is
          Args.Append (+L);
       else
          --  Add the -quiet switch to prevent the compiler from outputting
-         --  execution time statistics. TODO??? check whether this is compiler
+         --  execution time statistics. TODO??? Check whether this is compiler
          --  specific (cc1 / cc1plus) when implementing integrated
          --  instrumentation support for other compilers.
 
@@ -4650,7 +4650,7 @@ package body Instrument.C is
          end if;
 
          --  Consider that File is of interest iff it belongs to a loaded
-         --  project. TODO???: this should also consider units of interest
+         --  project. TODO??? This should also consider units of interest
          --  switches.
 
          if UIC.Files_Of_Interest.Contains (File) then
