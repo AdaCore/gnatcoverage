@@ -1065,8 +1065,7 @@ begin
    end loop;
 
    --  Remove all of the separate whose parent unit was not instrumented, as
-   --  this is not supported. TODO???: we should probably issue a warning
-   --  there.
+   --  this is not supported. TODO??? We should probably issue a warning there.
 
    for Source of Files_Of_Interest_Info.Copy loop
       if Source.Unit_Part = GNATCOLL.Projects.Unit_Separate then
