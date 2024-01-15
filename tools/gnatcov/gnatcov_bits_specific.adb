@@ -1395,7 +1395,8 @@ begin
                Coverage_Level    => Coverage_Option_Value,
                Dump_Config       => Dump_Config,
                Compiler_Drivers  => Compiler_Drivers_Set,
-               Output_Dir        => Get_Output_Dir);
+               Output_Dir        => Get_Output_Dir,
+               Runtime_Project   => Runtime_Project);
          end;
 
       when Cmd_Gcc_Wrapper =>
