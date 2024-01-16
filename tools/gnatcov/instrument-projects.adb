@@ -1065,8 +1065,7 @@ begin
    end loop;
 
    --  Remove all of the separate whose parent unit was not instrumented, as
-   --  this is not supported. TODO???: we should probably issue a warning
-   --  there.
+   --  this is not supported. TODO??? We should probably issue a warning there.
 
    for Source of Files_Of_Interest_Info.Copy loop
       if Source.Unit_Part = GNATCOLL.Projects.Unit_Separate then
@@ -1240,8 +1239,7 @@ begin
         (Common_Switches (Cmd_Instrument_Source));
       for Cur in Instrumented_Sources.Iterate loop
          declare
-            Unit_Args : String_Vectors.Vector :=
-              Instrument_Source_Args.Copy;
+            Unit_Args : String_Vectors.Vector := Instrument_Source_Args;
             --  Args specific to a gnatcov instrument-source invocation
             --  (e.g. the common arguments + the sources that must be
             --  instrumented for a specific unit).
@@ -1373,8 +1371,7 @@ begin
                       when Unit_Based_Language =>
                         To_Ada (Main.CU_Name.Unit),
                       when File_Based_Language => (+Main.File.Full_Name));
-               Unit_Args : String_Vectors.Vector :=
-                 Instrument_Main_Args.Copy;
+               Unit_Args : String_Vectors.Vector := Instrument_Main_Args;
             begin
                Unit_Args.Append
                  (Compilation_Unit_Options
@@ -1410,8 +1407,7 @@ begin
                          when Unit_Based_Language =>
                            To_Ada (Main.CU_Name.Unit),
                          when File_Based_Language => (+Main.File.Full_Name));
-                  Unit_Args : String_Vectors.Vector :=
-                    Instrument_Main_Args.Copy;
+                  Unit_Args : String_Vectors.Vector := Instrument_Main_Args;
                begin
                   Unit_Args.Append
                     (Compilation_Unit_Options

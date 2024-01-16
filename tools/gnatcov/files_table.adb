@@ -1534,7 +1534,7 @@ package body Files_Table is
 
       Try_Open (File, Name.all, Success);
 
-      --  TODO???: the FI.Full_Name can only be null in binary traces, when
+      --  TODO??? The FI.Full_Name can only be null in binary traces, when
       --  loading SCOs from a library file while there is no debug info for the
       --  corresponding SCOs. Remove the code below and check that FI.Full_Name
       --  is not null if / when binary traces are deprecated.
