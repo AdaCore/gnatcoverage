@@ -8777,6 +8777,9 @@ package body Instrument.Ada_Unit is
                Indent1 : constant String := "         ";
                Indent2 : constant String := Indent1 & "  ";
 
+               Project_Name_Str : constant String :=
+                 """" & (+Prj.Prj_Name) & """";
+
                Env_Var : constant String :=
                  (if Dump_Config.Filename_Env_Var = ""
                   then U & ".Default_Trace_Filename_Env_Var"
@@ -8797,7 +8800,8 @@ package body Instrument.Ada_Unit is
                File.Put_Line (Indent2 & "(Prefix => " & Prefix & ",");
                File.Put_Line (Indent2 & " Env_Var => " & Env_Var & ",");
                File.Put_Line (Indent2 & " Tag => " & Tag & ",");
-               File.Put (Indent2 & " Simple => " & Simple & ") ");
+               File.Put (Indent2 & " Simple => " & Simple & "),");
+               File.Put_Line (Indent1 & "Program_Name => " & Project_Name_Str);
             end;
 
          when Base64_Standard_Output =>
@@ -8809,8 +8813,8 @@ package body Instrument.Ada_Unit is
 
             File.Put_Line ("         Program_Name => """
                            & (if Dump_Trigger = Manual
-                             then "manual_dump"","
-                             else To_Ada (Main.Unit) & ""","));
+                              then +Prj.Prj_Name
+                              else To_Ada (Main.Unit) & ""","));
             File.Put ("         Exec_Date => 0");
          end case;
          File.Put_Line (");");

@@ -95,7 +95,7 @@ package body GNATcov_RTS.Traces.Output.Files is
    procedure Write_Trace_File
      (Buffers_Groups : Coverage_Buffers_Group_Array;
       Filename       : String := Default_Trace_Filename;
-      Program_Name   : String := Ada.Command_Line.Command_Name;
+      Program_Name   : String := "unknown";
       Exec_Date      : Time   := Clock;
       User_Data      : String := "")
    is
@@ -121,7 +121,7 @@ package body GNATcov_RTS.Traces.Output.Files is
    procedure Write_Trace_File_Wrapper
      (Buffers_Groups : Coverage_Buffers_Group_Array;
       Filename       : String := Default_Trace_Filename;
-      Program_Name   : String := Ada.Command_Line.Command_Name;
+      Program_Name   : String := "unknown";
       Exec_Date      : Time   := Clock;
       User_Data      : String := "")
    is

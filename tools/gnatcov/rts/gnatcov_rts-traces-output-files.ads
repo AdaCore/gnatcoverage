@@ -24,8 +24,6 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with Ada.Command_Line;
-
 with Interfaces; use Interfaces;
 
 with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
@@ -58,7 +56,7 @@ package GNATcov_RTS.Traces.Output.Files is
    procedure Write_Trace_File
      (Buffers_Groups : Coverage_Buffers_Group_Array;
       Filename       : String := Default_Trace_Filename;
-      Program_Name   : String := Ada.Command_Line.Command_Name;
+      Program_Name   : String := "unknown";
       Exec_Date      : Time   := Clock;
       User_Data      : String := "");
    --  Write a trace file in Filename to contain the data in Buffers_Groups.
@@ -67,7 +65,7 @@ package GNATcov_RTS.Traces.Output.Files is
    procedure Write_Trace_File_Wrapper
      (Buffers_Groups : Coverage_Buffers_Group_Array;
       Filename       : String := Default_Trace_Filename;
-      Program_Name   : String := Ada.Command_Line.Command_Name;
+      Program_Name   : String := "unknown";
       Exec_Date      : Time   := Clock;
       User_Data      : String := "");
    --  Wrapper around Write_Trace_File that writes an error message to the
