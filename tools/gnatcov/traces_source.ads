@@ -48,12 +48,13 @@ package Traces_Source is
    --  trace entries start and end on byte/half word/word/long word boundaries.
 
    type Trace_File_Format_Version is new Unsigned_32;
-   Current_Version : Trace_File_Format_Version := 2;
+   Current_Version : Trace_File_Format_Version := 3;
    --  Expected value of the Trace_File_Header.Format_Version field.
    --
    --  0 -- initial version
    --  1 -- extend trace entry model to account for C files
    --  2 -- introduce fingerprints for bit maps
+   --  3 -- remove the project name from trace entries
 
    type Any_Alignment is new Unsigned_8;
    subtype Supported_Alignment is Any_Alignment;

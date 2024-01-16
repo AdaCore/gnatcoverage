@@ -1,5 +1,4 @@
-pragma Style_Checks (Off); pragma Warnings (Off);
-with Ada.Text_IO; use Ada.Text_IO;
+pragma Style_Checks (Off); pragma Warnings (Off);with Ada.Text_IO; use Ada.Text_IO;
 
 with GNATcov_RTS.Buffers;with GCVRT.Pz3791e32c;package body Pkg is
 
@@ -17,4 +16,3 @@ with GNATcov_RTS.Buffers;with GCVRT.Pz3791e32c;package body Pkg is
    end Compute;
 
 end Pkg;
-
