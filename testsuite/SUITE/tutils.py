@@ -146,11 +146,6 @@ def gprbuild_gargs_with(thisgargs,
         '-XSTYLE_CHECKS=',  # style checks off
         '-p'                # create missing directories (obj, typically)
     ]
-
-    # Add our testsuite configuration options (selecting target model and board
-    # essentially).
-    result.extend(thistest.gprconfoptions)
-    result.extend(thistest.gprvaroptions)
     result.extend(to_list(thisgargs))
 
     # If we work with source instrumentation, add the dependency on the
@@ -246,6 +241,41 @@ def gprbuild_largs_with(thislargs):
 
     return all_largs
 
+def gpr_common_args(project, auto_config_args=True):
+    """
+    Return common GPR tools options for the current testsuite run.
+
+    :param auto_config_args: if False, do not add the --config argument.
+    """
+    gproptions = []
+
+    gproptions.append(
+        # verbose mode for verifiability in qualif mode.
+        # quiet mode for performance (less io) otherwise.
+        '-v' if thistest.options.qualif_level else '-q',
+    )
+    if auto_config_args:
+        gproptions.append('--config={}'
+                           .format(os.path.join(ROOT_DIR, BUILDER.SUITE_CGPR)))
+
+    # Workaround a desynchronization between default build configuration
+    # for TMS570 and GNATemulator's settings: see O519-032. We may get rid
+    # of this kludge one day adapting GNATemulator.
+    if thistest.options.RTS and thistest.options.RTS.endswith('-tms570'):
+        gproptions.append('-XLOADER=LORAM')
+
+    # For trace32 runs where the test is executed on a real board, we
+    # choose to have both the code and data in RAM. The default is to run
+    # from flash which would take more time for the probe to program. It
+    # would also wear out the flash memory.
+    if (
+        thistest.options.gnatcov_run and
+        'trace32' in thistest.options.gnatcov_run
+    ):
+        gproptions.append('-XLOADER=RAM')
+
+    return gproptions
+
 
 def gprbuild(project,
              scovcargs=True,
@@ -256,7 +286,8 @@ def gprbuild(project,
              trace_mode=None,
              runtime_project=None,
              out='gprbuild.out',
-             register_failure=True):
+             register_failure=True,
+             auto_config_args=True):
     """
     Cleanup & build the provided PROJECT file using gprbuild, passing
     GARGS/CARGS/LARGS as gprbuild/cargs/largs command-line switches. Each
@@ -275,6 +306,8 @@ def gprbuild(project,
 
     Stop with a FatalError if the execution status is not zero and
     REGISTER_FAILURE is True. Return the process descriptor otherwise.
+
+    If AUTO_CONFIG_ARGS is False, do not pass the --config argument.
     """
 
     # Fetch options, from what is requested specifically here
@@ -288,12 +321,15 @@ def gprbuild(project,
     all_cargs = gprbuild_cargs_with(scovcargs=scovcargs,
                                     suitecargs=suitecargs,
                                     thiscargs=extracargs)
+    common_args = gpr_common_args(project, auto_config_args)
 
     # Now cleanup, do build and check status
-    thistest.cleanup(project)
+    thistest.cleanup(project, common_args)
 
-    args = (to_list(BUILDER.BASE_COMMAND) +
-            ['-P%s' % project] + all_gargs + all_cargs + all_largs)
+    args = (
+        to_list(BUILDER.BASE_COMMAND) +
+        ['-P%s' % project] + common_args + all_gargs + all_cargs + all_largs
+    )
     p = run_and_log(args, output=out, timeout=thistest.options.timeout)
     if register_failure:
         thistest.stop_if(p.status != 0,
@@ -312,8 +348,7 @@ def gprinstall(project, gargs=None):
     args = ['gprinstall', '-P', project, '-p']
 
     # Add mandatory options, such as target and RTS info
-    args.extend(thistest.gprconfoptions)
-    args.extend(thistest.gprvaroptions)
+    args.extend(gpr_common_args(project))
 
     # Add user-provided arguments
     args.extend(to_list(gargs))
