@@ -31,8 +31,9 @@ extern "C"
 
    0 -- initial version
    1 -- extend trace entry model to account for C files
-   2 -- introduce fingerprints for bit maps  */
-#define GNATCOV_RTS_CURRENT_VERSION 2
+   2 -- introduce fingerprints for bit maps
+   3 -- remove the project name from trace entries  */
+#define GNATCOV_RTS_CURRENT_VERSION 3
 
 /* LSB_First_Bytes: bit buffers are encoded as sequences of bytes.
 

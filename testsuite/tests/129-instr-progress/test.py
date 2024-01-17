@@ -3,6 +3,7 @@ Check that "gnatcov instrument" correctly reports progress about the
 instrumented units.
 """
 
+import dataclasses
 import os
 import os.path
 
@@ -45,22 +46,39 @@ check_xcov_reports(
     cwd="xcov",
 )
 
+
 # Units are not instrumented in a particular order: we only want to check that
 # all of them are listed with the expected formatting.
-output = lines_of("instrument.log")
-thistest.fail_if_not_equal(
-    "First line of 'gnatcov instrument' output",
-    "".join(output[:1]),
-    "Coverage instrumentation",
-)
+@dataclasses.dataclass
+class Section:
+    label: str
+    lines: list[str]
+
+
+sections = [Section("<pre-section>", [])]
+for line in lines_of("instrument.log"):
+    if line.startswith(" "):
+        sections[-1].lines.append(line)
+    else:
+        sections.append(Section(line, []))
+
+sorted_lines = []
+for section in sections:
+    sorted_lines.append(section.label)
+    sorted_lines += sorted(section.lines)
+
 thistest.fail_if_not_equal(
     "'gnatcov instrument' output",
     "\n".join([
+        "<pre-section>",
+        "Coverage instrumentation",
         "   [Ada]           main",
         "   [C++]           cpp_unit.cpp",
         "   [C]             c_unit.c",
+        "Main instrumentation",
+        "   [Ada]           main",
     ]),
-    "\n".join(sorted(output[1:])),
+    "\n".join(sorted_lines),
 )
 
 thistest.result()
