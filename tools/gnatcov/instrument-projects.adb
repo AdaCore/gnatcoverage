@@ -608,33 +608,22 @@ is
       LU_Info : Library_Unit_Info) return String_Vectors.Vector
    is
       Result : String_Vectors.Vector;
-
-      procedure Compilation_Unit_Options_Ada;
-
-      ----------------------------------
-      -- Compilation_Unit_Options_Ada --
-      ----------------------------------
-
-      procedure Compilation_Unit_Options_Ada is
-      begin
-         Result.Append ("--gnatem=" & IC.Mapping_File);
-         Result.Append ("--gnatec=" & IC.Config_Pragmas_File);
-         Result.Append
-           ("--ada-preprocessor-data=" & IC.Ada_Preprocessor_Data_File);
-
-         --  Load the predefined source directories
-
-         for Dir of IC.Predefined_Source_Dirs loop
-            Result.Append ("--runtime-dir=" & Dir);
-         end loop;
-      end Compilation_Unit_Options_Ada;
-
    begin
       --  Depending on the language, pass the right set of options
 
       case LU_Info.Language is
          when Ada_Language =>
-            Compilation_Unit_Options_Ada;
+            Result.Append ("--gnatem=" & IC.Mapping_File);
+            Result.Append ("--gnatec=" & IC.Config_Pragmas_File);
+            Result.Append
+              ("--ada-preprocessor-data=" & IC.Ada_Preprocessor_Data_File);
+
+            --  Load the predefined source directories
+
+            for Dir of IC.Predefined_Source_Dirs loop
+               Result.Append ("--runtime-dir=" & Dir);
+            end loop;
+
          when others =>
             null;
       end case;
