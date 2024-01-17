@@ -1,1 +1,1 @@
-src-traces XFAIL U705-016: overloading resolution bug in LAL
+src-traces XFAIL eng/libadalang/libadalang#1224: overloading resolution bug
