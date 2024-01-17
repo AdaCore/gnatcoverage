@@ -24,7 +24,8 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with Interfaces; use Interfaces;
+with Interfaces;           use Interfaces;
+with Interfaces.C.Strings; use Interfaces.C.Strings;
 
 with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 
@@ -45,7 +46,7 @@ package GNATcov_RTS.Traces.Output.Files is
      (Env_Var : String  := Default_Trace_Filename_Env_Var;
       Prefix  : String  := "gnatcov";
       Tag     : String  := "";
-      Simple  : Boolean := False) return String;
+      Simple  : Boolean := False) return chars_ptr;
    --  Return the default name of the trace file to write. Please refer to the
    --  gnatcov_rts_default_trace_filename function defined in
    --  gnatcov_rts_c-traces-output-files.h for more information.
@@ -55,7 +56,7 @@ package GNATcov_RTS.Traces.Output.Files is
 
    procedure Write_Trace_File
      (Buffers_Groups : Coverage_Buffers_Group_Array;
-      Filename       : String := Default_Trace_Filename;
+      Filename       : chars_ptr := Default_Trace_Filename;
       Program_Name   : String := "unknown";
       Exec_Date      : Time   := Clock;
       User_Data      : String := "");
@@ -64,7 +65,7 @@ package GNATcov_RTS.Traces.Output.Files is
 
    procedure Write_Trace_File_Wrapper
      (Buffers_Groups : Coverage_Buffers_Group_Array;
-      Filename       : String := Default_Trace_Filename;
+      Filename       : chars_ptr := Default_Trace_Filename;
       Program_Name   : String := "unknown";
       Exec_Date      : Time   := Clock;
       User_Data      : String := "");
