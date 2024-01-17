@@ -42,10 +42,6 @@ package Instrument.Ada_Unit_Provider is
    --  through Runtime_Directories, and from a mapping file in the same format
    --  as the file passed through -gnatem in the compiler invocation.
 
-   function Create_Provider_From_Project return Unit_Provider_Reference;
-   --  Uses the loaded project (Project.Project) to generate a mapping
-   --  file and create a unit provider from it.
-
    overriding function Get_Unit_Filename
      (Provider : Provider_Type;
       Name     : Text_Type;
