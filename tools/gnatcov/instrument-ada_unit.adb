@@ -8681,7 +8681,7 @@ package body Instrument.Ada_Unit is
          case Dump_Trigger is
             when At_Exit | Ravenscar_Task_Termination =>
                File.Put_Line
-                 ("function "
+                 ("   function "
                   & To_String (Register_Dump_Function_Name) & " return "
                   & To_Ada (Witness_Dummy_Type_Name) & ";");
                File.New_Line;
@@ -8823,24 +8823,25 @@ package body Instrument.Ada_Unit is
                --  Emit a function to schedule a trace dump with atexit
 
                File.Put_Line
-                 ("function "
+                 ("   function "
                   & To_String (Register_Dump_Function_Name) & " return "
                   & To_Ada (Witness_Dummy_Type_Name) & " is");
-               File.Put_Line ("   type Callback is access procedure;");
-               File.Put_Line ("   pragma Convention (C, Callback);");
+               File.Put_Line (Indent1 & "type Callback is access procedure;");
+               File.Put_Line (Indent1 & "pragma Convention (C, Callback);");
                File.New_Line;
 
-               File.Put_Line ("   function atexit (Func : Callback)"
+               File.Put_Line (Indent1 & "function atexit (Func : Callback)"
                               & " return Interfaces.C.int;");
-               File.Put_Line ("   pragma Import (C, atexit);");
-               File.Put_Line ("   Dummy : constant Interfaces.C.int :=");
+               File.Put_Line (Indent1 & "pragma Import (C, atexit);");
                File.Put_Line
-                 ("     atexit (" & Dump_Procedure & "'Access);");
+                 (Indent1 & "Dummy : constant Interfaces.C.int :=");
+               File.Put_Line
+                 (Indent2 & "atexit (" & Dump_Procedure & "'Access);");
 
-               File.Put_Line ("begin");
-               File.Put_Line ("   return (Data => False);");
+               File.Put_Line ("   begin");
+               File.Put_Line (Indent1 & "return (Data => False);");
                File.Put_Line
-                 ("end " & To_String (Register_Dump_Function_Name) & ";");
+                 ("   end " & To_String (Register_Dump_Function_Name) & ";");
                File.New_Line;
 
             when Ravenscar_Task_Termination =>
