@@ -169,29 +169,6 @@ class Test (object):
         self.report = _ReportOutput(self.options.report_file)
         self.current_test_index = 0
 
-        self.gprconfoptions = [
-            # verbose mode for verifiability in qualif mode.
-            # quiet mode for performance (less io) otherwise.
-            '-v' if self.options.qualif_level else '-q',
-
-            # gprconfig base, selecting runtime
-            '--config=%s' % os.path.join(ROOT_DIR, BUILDER.SUITE_CGPR)]
-
-        self.gprvaroptions = []
-
-        # Workaround a desynchronization between default build configuration
-        # for TMS570 and GNATemulator's settings: see O519-032. We may get rid
-        # of this kludge one day adapting GNATemulator.
-        if self.options.RTS and self.options.RTS.endswith('-tms570'):
-            self.gprvaroptions.append('-XLOADER=LORAM')
-
-        # For trace32 runs where the test is executed on a real board, we
-        # choose to have both the code and data in RAM. The default is to run
-        # from flash which would take more time for the probe to program. It
-        # would also wear out the flash memory.
-        if self.options.gnatcov_run and 'trace32' in self.options.gnatcov_run:
-            self.gprvaroptions.append('-XLOADER=RAM')
-
         # Whether this test will be using project files to locate SCOs when
         # running gnatcov.  This is decided on a per gnatcov invocation basis.
         # self.options.gnatcov states whether we're queried to do this for
@@ -208,10 +185,9 @@ class Test (object):
         # environment variable.
         os.environ['GNATCOV_NO_NATIVE_WARNING'] = '1'
 
-    def cleanup(self, project):
+    def cleanup(self, project, options):
         """Cleanup possible remnants of previous builds."""
-        Run([GPRCLEAN, "-P%s" % project] +
-            self.gprconfoptions + self.gprvaroptions)
+        Run([GPRCLEAN, "-P%s" % project] + options)
         rm('*.xcov')
         rm('*.bin')
 
