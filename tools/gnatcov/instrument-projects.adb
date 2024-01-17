@@ -1182,7 +1182,7 @@ begin
 
    Ada_Instrumenter :=
      Create_Ada_Instrumenter
-       (Tag => IC.Tag,
+       (Tag                        => IC.Tag,
         Config_Pragmas_Filename    => +IC.Config_Pragmas_File,
         Mapping_Filename           => +IC.Mapping_File,
         Predefined_Source_Dirs     => IC.Predefined_Source_Dirs,
