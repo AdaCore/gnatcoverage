@@ -56,9 +56,30 @@ package Instrument.Setup_Config is
       Coverage_Level    : String;
       Dump_Config       : Any_Dump_Config;
       Compiler_Drivers  : String_Sets.Set;
-      Output_Dir        : String);
-   --  Setup the configuration to use the integrated-mode of gnatcov
+      Output_Dir        : String;
+      Runtime_Project   : String);
+   --  Setup the configuration to use the integrated-mode of gnatcov.
+   --
+   --  Files_Of_Interest is the set of files that needs to be instrumented as
+   --  units of interest.
+   --
+   --  Coverage_Level is the coverage level for which to instrument the files
+   --  of interest.
+   --
+   --  Dump_Config is the dump configuration to use for the sources to
+   --  instrument.
+   --
+   --  Compiler_Drivers is the set of names for the compiler drivers to wrap
+   --  for instrumentation.
+   --
+   --  Output_Dir is the name of the directory in which the compiler wrappers
+   --  and instrumentation artifacts are put.
+   --
+   --  Runtime_Project is the name of the coverage runtime project that was
+   --  installed by "gnatcov setup".
 
    function Load_Config (Config_File : String) return Instrumentation_Config;
+   --  Read the configuration file that "gnatcov setup-integration" created and
+   --  return the instrumentation configuration that is decoded from it.
 
 end Instrument.Setup_Config;
