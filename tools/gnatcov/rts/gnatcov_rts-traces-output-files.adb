@@ -25,6 +25,7 @@
 --  This unit needs to be compilable with Ada 95 compilers
 
 with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Unchecked_Conversion;
 
 with Interfaces.C; use Interfaces.C;
 
@@ -134,13 +135,34 @@ package body GNATcov_RTS.Traces.Output.Files is
    exception
       when IO_Error =>
          declare
-            C_Error_Msg : constant chars_ptr := C_Strerror (C_Errno);
-            Error_Msg   : constant String := Value (C_Error_Msg);
+            function "+" is new Ada.Unchecked_Conversion
+              (chars_ptr, System.Address);
+
+            Error_Msg : constant chars_ptr := C_Strerror (C_Errno);
+
+            --  Since we cannot use the secondary stack, it is not possible to
+            --  call Interfaces.C.Strings.Value to turn chars_ptr values into
+            --  String ones. Workaround this with overlays.
+
+            Error_Msg_Length : constant Natural :=
+              Natural (Strlen (Error_Msg));
+            Filename_Length  : constant Natural := Natural (Strlen (Filename));
+
+            Ada_Error_Msg : String (1 .. Error_Msg_Length);
+            for Ada_Error_Msg'Address use +Error_Msg;
+            pragma Import (Ada, Ada_Error_Msg);
+
+            Ada_Filename : String (1 .. Filename_Length);
+            for Ada_Filename'Address use +Filename;
+            pragma Import (Ada, Ada_Filename);
          begin
-            Ada.Text_IO.Put_Line
+            Put
               (Standard_Error,
-               "Error occurred while creating the trace file "
-               & Value (Filename) & ": " & Error_Msg);
+               "Error occurred while creating the trace file ");
+            Put (Standard_Error, Ada_Filename);
+            Put (Standard_Error, ": ");
+            Put (Standard_Error, Ada_Error_Msg);
+            New_Line (Standard_Error);
          end;
    end Write_Trace_File_Wrapper;
 
