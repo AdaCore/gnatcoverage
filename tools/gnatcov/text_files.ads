@@ -21,7 +21,7 @@
 private with Ada.Finalization;
 with Ada.Text_IO;
 
-private with Strings;
+with Strings; use Strings;
 
 package Text_Files is
 
@@ -80,9 +80,15 @@ package Text_Files is
    procedure Put (Self : in out File_Type; Item : String)
       with Pre => Self.Is_Open,
            Inline;
+   procedure Put (Self : in out File_Type; Item : Unbounded_String)
+      with Pre => Self.Is_Open,
+           Inline;
    --  Write Item to Self
 
    procedure Put_Line (Self : in out File_Type; Item : String)
+      with Pre => Self.Is_Open,
+           Inline;
+   procedure Put_Line (Self : in out File_Type; Item : Unbounded_String)
       with Pre => Self.Is_Open,
            Inline;
    --  Write Item to Self and start a new line
@@ -106,7 +112,6 @@ package Text_Files is
 private
 
    use Ada.Text_IO;
-   use Strings;
 
    type File_Type is new Ada.Finalization.Limited_Controlled with record
       File     : Ada.Text_IO.File_Type;

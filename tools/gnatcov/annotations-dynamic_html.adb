@@ -20,10 +20,7 @@ with Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Exceptions;          use Ada.Exceptions;
 with Ada.Text_IO;
-
-pragma Warnings (Off, "* is an internal GNAT unit");
-   with Ada.Strings.Unbounded.Aux;
-pragma Warnings (On, "* is an internal GNAT unit");
+with Ada.Text_IO.Unbounded_IO;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 
@@ -838,15 +835,9 @@ package body Annotations.Dynamic_Html is
       Output   : Ada.Text_IO.File_Type;
       New_Line : Boolean := True)
    is
-      use Ada.Text_IO;
-
-      Buffer : US.Aux.Big_String_Access;
-      Last   : Natural;
-      First  : constant Natural := US.Aux.Big_String'First;
-
+      use Ada.Text_IO.Unbounded_IO;
    begin
-      US.Aux.Get_String (Item, Buffer, Last);
-      Put (File => Output, Item => Buffer (First .. Last));
+      Put (File => Output, Item => Item);
 
       if New_Line then
          NL (Output => Output);

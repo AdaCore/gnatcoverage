@@ -16,10 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-pragma Warnings (Off, "* is an internal GNAT unit");
-   with Ada.Strings.Unbounded.Aux;
-pragma Warnings (On, "* is an internal GNAT unit");
-
 with GNAT.Strings; use GNAT.Strings;
 
 with Strings; use Strings;
@@ -36,20 +32,9 @@ package body JSON is
    is
       File    : Text_Files.File_Type;
       Content : constant Unbounded_String := Value.Write (Compact => Compact);
-
-      Buffer : US.Aux.Big_String_Access;
-      First  : constant Natural := US.Aux.Big_String'First;
-      Last   : Natural;
    begin
       File.Create (Filename);
-
-      --  Get direct access to the string access under the Content unbounded
-      --  string. This is the only way to write that string to a file without
-      --  copying the whole string. This is not just for performance: using
-      --  To_String could for instance make GNAT's secondary stack overflow.
-
-      US.Aux.Get_String (Content, Buffer, Last);
-      File.Put (Buffer (First .. Last));
+      File.Put (Content);
    end Write;
 
    ----------
