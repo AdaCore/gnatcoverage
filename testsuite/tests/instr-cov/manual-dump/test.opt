@@ -1,2 +1,0 @@
-bin-traces DEAD Check features specific to instrumentation.
-!RTS_FULL  DEAD Uses the full instrumentation runtime.
