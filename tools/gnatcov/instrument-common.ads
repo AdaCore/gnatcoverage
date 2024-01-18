@@ -474,7 +474,6 @@ package Instrument.Common is
 
    procedure Emit_Dump_Helper_Unit_Manual
      (Self          : in out Language_Instrumenter;
-      Helper_Unit   : out Unbounded_String;
       Dump_Config   : Any_Dump_Config;
       Prj           : Prj_Desc) is null;
    --  Emit the dump helper unit with the appropriate content to allow for a

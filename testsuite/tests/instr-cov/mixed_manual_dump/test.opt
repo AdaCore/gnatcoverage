@@ -1,0 +1,2 @@
+bin-traces DEAD test feature specific to source traces
+RTS_ZFP DEAD test uses stdio

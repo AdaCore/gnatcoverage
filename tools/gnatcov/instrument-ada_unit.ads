@@ -85,9 +85,12 @@ package Instrument.Ada_Unit is
 
    overriding procedure Emit_Dump_Helper_Unit_Manual
      (Self          : in out Ada_Instrumenter_Type;
-      Helper_Unit   : out Unbounded_String;
       Dump_Config   : Any_Dump_Config;
       Prj           : Prj_Desc);
+
+   overriding function Dump_Manual_Helper_Unit
+     (Self : Ada_Instrumenter_Type;
+      Prj  : Prj_Desc) return Files_Table.Compilation_Unit;
 
    overriding procedure Replace_Manual_Dump_Indication
      (Self                  : in out Ada_Instrumenter_Type;

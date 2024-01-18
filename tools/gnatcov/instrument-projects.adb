@@ -130,9 +130,6 @@ is
    package File_Info_Sets is new Ada.Containers.Indefinite_Ordered_Sets
      (Element_Type => File_Info, "<" => Less, "=" => Equal);
 
-   package Prj_Has_Manual_Helper_Sets is new
-     Ada.Containers.Indefinite_Ordered_Sets (Element_Type => Unbounded_String);
-
    type Library_Unit_Info is record
       Unit_Name : Unbounded_String;
       --  Name of this unit: unit name for unit-based languages, simple name
@@ -683,9 +680,9 @@ is
    --  necessary to find the indication marking the location where the user
    --  wishes the Dump_Buffers call to be inserted.
 
-   Prj_Has_Manual_Helper : Prj_Has_Manual_Helper_Sets.Set;
-   --  In the case of a manual dump config, set of names of projects for which
-   --  a manual dump helper unit has already been emitted.
+   Emitted_Manual_Helpers : String_Sets.Set;
+   --  In the case of a manual dump config, set of names of manual dump helper
+   --  units that have been emitted thus far.
 
    ------------------------
    -- Add_Project_Source --
@@ -848,7 +845,7 @@ is
       for Source of Project_Sources loop
          if To_Language (Source.Language) = Language then
             declare
-               use Prj_Has_Manual_Helper_Sets;
+               use String_Sets;
 
                Prj_Info             : constant Project_Info_Access :=
                  Get_Or_Create_Project_Info (IC, Source.Project);
@@ -857,8 +854,10 @@ is
                  Prj.Prj_Name = Root_Project_Info.Project.Name;
                Source_Name          : constant String :=
                  GNATCOLL.VFS."+" (Source.File.Full_Name);
-               Helper_Unit          : Unbounded_String;
                Contained_Indication : Boolean := False;
+               Helper_Unit_Name     : constant Unbounded_String :=
+                 Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name;
+
             begin
                Instrumenter.Replace_Manual_Dump_Indication
                  (Prj_Info.Desc,
@@ -876,17 +875,17 @@ is
                   Non_Root_Src_Calls.Include (Source_Name);
                end if;
 
-               --  Only generate one manual dump helper unit per project. At
-               --  this point, if the project's object directory and the
-               --  instrumented sources directory do not exist there is no need
-               --  to emit the dump helper unit. There are no units of interest
-               --  or call to a manual dump procedure for this project.
+               --  Check if we haven't already generated a helper unit for this
+               --  project and instrumenter. At this point, if the project's
+               --  object directory and the instrumented sources directory do
+               --  not exist there is no need to emit the dump helper unit.
+               --  There are no units of interest or call to a manual dump
+               --  procedure for this project.
 
-               if Prj_Has_Manual_Helper.Find (Prj.Prj_Name) = No_Element
+               if not Emitted_Manual_Helpers.Contains (Helper_Unit_Name)
                  and then Dump_Helper_Output_Dir_Exists (Source, Prj)
                then
-                  Instrumenter.Emit_Dump_Helper_Unit_Manual
-                    (Helper_Unit, Dump_Config, Prj);
+                  Instrumenter.Emit_Dump_Helper_Unit_Manual (Dump_Config, Prj);
 
                   declare
                      use Files_Table;
@@ -930,7 +929,7 @@ is
                      GNATCOLL.VFS.Unchecked_Free (Source_Files);
                   end;
 
-                  Prj_Has_Manual_Helper.Insert (Prj.Prj_Name);
+                  Emitted_Manual_Helpers.Insert (Helper_Unit_Name);
                end if;
 
                Manual_Dump_Inserted :=
