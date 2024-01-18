@@ -162,14 +162,7 @@ package body Instrument.Ada_Preprocessing is
 
       --  Create the requested file
 
-      declare
-         File : Ada.Text_IO.File_Type;
-         Doc  : constant Unbounded_String := Result.Write (Compact => False);
-      begin
-         Create (File, Out_File, Filename);
-         Put_Line (File, Doc);
-         Close (File);
-      end;
+      JSON.Write (Filename, Result, Compact => False);
    end Create_Preprocessor_Data_File;
 
    -------------------------
