@@ -137,7 +137,7 @@ package Command_Line is
       Opt_Body_Suffix,
       Opt_Dot_Replacement,
       Opt_Gnatem,
-      Opt_Gnatec,
+      Opt_Config_Pragmas_Mapping,
       Opt_Ada_Preprocessor_Data,
       Opt_Project_Name,
       Opt_Source_Root);
@@ -1088,11 +1088,11 @@ package Command_Line is
          At_Most_Once => False,
          Internal     => True),
 
-      Opt_Gnatec => Create
-        (Long_Name    => "--gnatec",
+      Opt_Config_Pragmas_Mapping => Create
+        (Long_Name    => "--config-pragmas-mapping",
          Pattern      => "NAME",
          Help         =>
-           "Name of the file containing configuration pragmas.",
+           "Name of the file containing the configuration pragmas mapping.",
          Commands     =>
            (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
             others                                      => False),

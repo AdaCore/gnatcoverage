@@ -162,7 +162,15 @@ is
    --  dealing with homonym in different projects).
 
    type Inst_Context is limited record
-      Mapping_File, Config_Pragmas_File : Unbounded_String;
+      Mapping_File : Unbounded_String;
+      --  File that describes the mapping of units to source files for all Ada
+      --  units.
+
+      Config_Pragmas_Mapping : Unbounded_String;
+      --  File that describes the mapping of Ada source files to configuration
+      --  pragma files. See the Save_Config_Pragmas_Mapping and
+      --  Load_Config_Pragmas_Mapping procedures in Instrument.Ada_Unit for
+      --  more information.
 
       Predefined_Source_Dirs : String_Vectors.Vector;
 
@@ -608,33 +616,23 @@ is
       LU_Info : Library_Unit_Info) return String_Vectors.Vector
    is
       Result : String_Vectors.Vector;
-
-      procedure Compilation_Unit_Options_Ada;
-
-      ----------------------------------
-      -- Compilation_Unit_Options_Ada --
-      ----------------------------------
-
-      procedure Compilation_Unit_Options_Ada is
-      begin
-         Result.Append ("--gnatem=" & IC.Mapping_File);
-         Result.Append ("--gnatec=" & IC.Config_Pragmas_File);
-         Result.Append
-           ("--ada-preprocessor-data=" & IC.Ada_Preprocessor_Data_File);
-
-         --  Load the predefined source directories
-
-         for Dir of IC.Predefined_Source_Dirs loop
-            Result.Append ("--runtime-dir=" & Dir);
-         end loop;
-      end Compilation_Unit_Options_Ada;
-
    begin
       --  Depending on the language, pass the right set of options
 
       case LU_Info.Language is
          when Ada_Language =>
-            Compilation_Unit_Options_Ada;
+            Result.Append ("--gnatem=" & IC.Mapping_File);
+            Result.Append
+              ("--config-pragmas-mapping=" & IC.Config_Pragmas_Mapping);
+            Result.Append
+              ("--ada-preprocessor-data=" & IC.Ada_Preprocessor_Data_File);
+
+            --  Load the predefined source directories
+
+            for Dir of IC.Predefined_Source_Dirs loop
+               Result.Append ("--runtime-dir=" & Dir);
+            end loop;
+
          when others =>
             null;
       end case;
@@ -1158,12 +1156,15 @@ begin
 
    IC.Mapping_File :=
      +Create_Ada_Mapping_File (Project.Project.Root_Project);
-   IC.Config_Pragmas_File :=
-     +Create_Config_Pragmas_File (Project.Project.Root_Project);
+   IC.Config_Pragmas_Mapping :=
+     +(+Root_Project_Info.all.Output_Dir) / "config-pragmas.json";
    IC.Sources_Of_Interest_Response_File :=
      +(+Root_Project_Info.all.Output_Dir) / ".sources_of_interest";
    IC.Ada_Preprocessor_Data_File :=
      +(+Root_Project_Info.all.Output_Dir) / "prep-data.json";
+
+   Instrument.Ada_Unit.Save_Config_Pragmas_Mapping
+     (+IC.Config_Pragmas_Mapping);
 
    Instrument.Ada_Preprocessing.Create_Preprocessor_Data_File
      (+IC.Ada_Preprocessor_Data_File);
@@ -1182,8 +1183,8 @@ begin
 
    Ada_Instrumenter :=
      Create_Ada_Instrumenter
-       (Tag => IC.Tag,
-        Config_Pragmas_Filename    => +IC.Config_Pragmas_File,
+       (Tag                        => IC.Tag,
+        Config_Pragmas_Mapping     => +IC.Config_Pragmas_Mapping,
         Mapping_Filename           => +IC.Mapping_File,
         Predefined_Source_Dirs     => IC.Predefined_Source_Dirs,
         Preprocessor_Data_Filename => +IC.Ada_Preprocessor_Data_File);
@@ -1470,6 +1471,7 @@ begin
    end;
 
    if not Save_Temps then
+      Ada.Directories.Delete_File (+IC.Config_Pragmas_Mapping);
       Ada.Directories.Delete_File (+IC.Sources_Of_Interest_Response_File);
       Ada.Directories.Delete_File (+IC.Ada_Preprocessor_Data_File);
    end if;
