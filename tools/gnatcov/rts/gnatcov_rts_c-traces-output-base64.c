@@ -124,7 +124,7 @@ write_bytes (void *output, const void *bytes, unsigned count)
       buffer->bytes[buffer->next] = bytes_array[i];
       buffer->next = buffer->next + 1;
       if (buffer->next == 3)
-	flush (buffer);
+        flush (buffer);
     }
   return 0;
 }
@@ -141,7 +141,7 @@ gnatcov_rts_write_trace_file_base64 (
   gnatcov_rts_put_string (newline_string);
   gnatcov_rts_put_string (begin_string);
   gnatcov_rts_generic_write_trace_file (&buffer, buffers_groups, program_name,
-					exec_date, user_data, write_bytes);
+                                        exec_date, user_data, write_bytes);
   flush (&buffer);
   if (buffer.columns != 0)
     gnatcov_rts_put_string (newline_string);
