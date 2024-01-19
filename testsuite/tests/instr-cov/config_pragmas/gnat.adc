@@ -1,1 +1,1 @@
-pragma Restrictions (Pure_Barriers);
+pragma Restrictions (Simple_Barriers);
