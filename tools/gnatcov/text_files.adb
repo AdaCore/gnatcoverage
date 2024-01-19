@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Text_IO.Unbounded_IO; use Ada.Text_IO.Unbounded_IO;
+
 with GNAT.OS_Lib;
 
 with Outputs;
@@ -113,11 +115,21 @@ package body Text_Files is
       Put (Self.File, Item);
    end Put;
 
+   procedure Put (Self : in out File_Type; Item : Unbounded_String) is
+   begin
+      Put (Self.File, Item);
+   end Put;
+
    --------------
    -- Put_Line --
    --------------
 
    procedure Put_Line (Self : in out File_Type; Item : String) is
+   begin
+      Put_Line (Self.File, Item);
+   end Put_Line;
+
+   procedure Put_Line (Self : in out File_Type; Item : Unbounded_String) is
    begin
       Put_Line (Self.File, Item);
    end Put_Line;

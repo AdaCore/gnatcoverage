@@ -19,12 +19,9 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Text_IO;             use Ada.Text_IO;
 
-with GNATCOLL.Projects.Aux; use GNATCOLL.Projects.Aux;
-
 with Libadalang.Unit_Files;
 
 with Outputs;
-with Project; use Project;
 
 package body Instrument.Ada_Unit_Provider is
 
@@ -105,30 +102,6 @@ package body Instrument.Ada_Unit_Provider is
 
       return Provider;
    end Create_Provider;
-
-   ----------------------------------
-   -- Create_Provider_From_Project --
-   ----------------------------------
-
-   function Create_Provider_From_Project return Unit_Provider_Reference
-   is
-      Mapping_File : constant String :=
-        Create_Ada_Mapping_File (Project.Project.Root_Project);
-      --  The mapping file will be removed by the Finalize procedure in
-      --  project.adb.
-
-   begin
-      if Mapping_File = "" then
-         Outputs.Fatal_Error
-           ("Error when creating the mapping file for the project "
-            & Project.Project.Root_Project.Name);
-      end if;
-
-      return Create_Unit_Provider_Reference
-        (Create_Provider
-           (Runtime_Directories   => Project.Runtime_Dirs,
-            Dependencies_Filename => Mapping_File));
-   end Create_Provider_From_Project;
 
    -----------------------
    -- Get_Unit_Filename --

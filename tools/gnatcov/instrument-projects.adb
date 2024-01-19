@@ -130,9 +130,6 @@ is
    package File_Info_Sets is new Ada.Containers.Indefinite_Ordered_Sets
      (Element_Type => File_Info, "<" => Less, "=" => Equal);
 
-   package Prj_Has_Manual_Helper_Sets is new
-     Ada.Containers.Indefinite_Ordered_Sets (Element_Type => Unbounded_String);
-
    type Library_Unit_Info is record
       Unit_Name : Unbounded_String;
       --  Name of this unit: unit name for unit-based languages, simple name
@@ -162,7 +159,15 @@ is
    --  dealing with homonym in different projects).
 
    type Inst_Context is limited record
-      Mapping_File, Config_Pragmas_File : Unbounded_String;
+      Mapping_File : Unbounded_String;
+      --  File that describes the mapping of units to source files for all Ada
+      --  units.
+
+      Config_Pragmas_Mapping : Unbounded_String;
+      --  File that describes the mapping of Ada source files to configuration
+      --  pragma files. See the Save_Config_Pragmas_Mapping and
+      --  Load_Config_Pragmas_Mapping procedures in Instrument.Ada_Unit for
+      --  more information.
 
       Predefined_Source_Dirs : String_Vectors.Vector;
 
@@ -608,33 +613,23 @@ is
       LU_Info : Library_Unit_Info) return String_Vectors.Vector
    is
       Result : String_Vectors.Vector;
-
-      procedure Compilation_Unit_Options_Ada;
-
-      ----------------------------------
-      -- Compilation_Unit_Options_Ada --
-      ----------------------------------
-
-      procedure Compilation_Unit_Options_Ada is
-      begin
-         Result.Append ("--gnatem=" & IC.Mapping_File);
-         Result.Append ("--gnatec=" & IC.Config_Pragmas_File);
-         Result.Append
-           ("--ada-preprocessor-data=" & IC.Ada_Preprocessor_Data_File);
-
-         --  Load the predefined source directories
-
-         for Dir of IC.Predefined_Source_Dirs loop
-            Result.Append ("--runtime-dir=" & Dir);
-         end loop;
-      end Compilation_Unit_Options_Ada;
-
    begin
       --  Depending on the language, pass the right set of options
 
       case LU_Info.Language is
          when Ada_Language =>
-            Compilation_Unit_Options_Ada;
+            Result.Append ("--gnatem=" & IC.Mapping_File);
+            Result.Append
+              ("--config-pragmas-mapping=" & IC.Config_Pragmas_Mapping);
+            Result.Append
+              ("--ada-preprocessor-data=" & IC.Ada_Preprocessor_Data_File);
+
+            --  Load the predefined source directories
+
+            for Dir of IC.Predefined_Source_Dirs loop
+               Result.Append ("--runtime-dir=" & Dir);
+            end loop;
+
          when others =>
             null;
       end case;
@@ -685,9 +680,9 @@ is
    --  necessary to find the indication marking the location where the user
    --  wishes the Dump_Buffers call to be inserted.
 
-   Prj_Has_Manual_Helper : Prj_Has_Manual_Helper_Sets.Set;
-   --  In the case of a manual dump config, set of names of projects for which
-   --  a manual dump helper unit has already been emitted.
+   Emitted_Manual_Helpers : String_Sets.Set;
+   --  In the case of a manual dump config, set of names of manual dump helper
+   --  units that have been emitted thus far.
 
    ------------------------
    -- Add_Project_Source --
@@ -850,7 +845,7 @@ is
       for Source of Project_Sources loop
          if To_Language (Source.Language) = Language then
             declare
-               use Prj_Has_Manual_Helper_Sets;
+               use String_Sets;
 
                Prj_Info             : constant Project_Info_Access :=
                  Get_Or_Create_Project_Info (IC, Source.Project);
@@ -859,8 +854,10 @@ is
                  Prj.Prj_Name = Root_Project_Info.Project.Name;
                Source_Name          : constant String :=
                  GNATCOLL.VFS."+" (Source.File.Full_Name);
-               Helper_Unit          : Unbounded_String;
                Contained_Indication : Boolean := False;
+               Helper_Unit_Name     : constant Unbounded_String :=
+                 Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name;
+
             begin
                Instrumenter.Replace_Manual_Dump_Indication
                  (Prj_Info.Desc,
@@ -878,17 +875,17 @@ is
                   Non_Root_Src_Calls.Include (Source_Name);
                end if;
 
-               --  Only generate one manual dump helper unit per project. At
-               --  this point, if the project's object directory and the
-               --  instrumented sources directory do not exist there is no need
-               --  to emit the dump helper unit. There are no units of interest
-               --  or call to a manual dump procedure for this project.
+               --  Check if we haven't already generated a helper unit for this
+               --  project and instrumenter. At this point, if the project's
+               --  object directory and the instrumented sources directory do
+               --  not exist there is no need to emit the dump helper unit.
+               --  There are no units of interest or call to a manual dump
+               --  procedure for this project.
 
-               if Prj_Has_Manual_Helper.Find (Prj.Prj_Name) = No_Element
+               if not Emitted_Manual_Helpers.Contains (Helper_Unit_Name)
                  and then Dump_Helper_Output_Dir_Exists (Source, Prj)
                then
-                  Instrumenter.Emit_Dump_Helper_Unit_Manual
-                    (Helper_Unit, Dump_Config, Prj);
+                  Instrumenter.Emit_Dump_Helper_Unit_Manual (Dump_Config, Prj);
 
                   declare
                      use Files_Table;
@@ -932,7 +929,7 @@ is
                      GNATCOLL.VFS.Unchecked_Free (Source_Files);
                   end;
 
-                  Prj_Has_Manual_Helper.Insert (Prj.Prj_Name);
+                  Emitted_Manual_Helpers.Insert (Helper_Unit_Name);
                end if;
 
                Manual_Dump_Inserted :=
@@ -1158,12 +1155,15 @@ begin
 
    IC.Mapping_File :=
      +Create_Ada_Mapping_File (Project.Project.Root_Project);
-   IC.Config_Pragmas_File :=
-     +Create_Config_Pragmas_File (Project.Project.Root_Project);
+   IC.Config_Pragmas_Mapping :=
+     +(+Root_Project_Info.all.Output_Dir) / "config-pragmas.json";
    IC.Sources_Of_Interest_Response_File :=
      +(+Root_Project_Info.all.Output_Dir) / ".sources_of_interest";
    IC.Ada_Preprocessor_Data_File :=
      +(+Root_Project_Info.all.Output_Dir) / "prep-data.json";
+
+   Instrument.Ada_Unit.Save_Config_Pragmas_Mapping
+     (+IC.Config_Pragmas_Mapping);
 
    Instrument.Ada_Preprocessing.Create_Preprocessor_Data_File
      (+IC.Ada_Preprocessor_Data_File);
@@ -1182,8 +1182,8 @@ begin
 
    Ada_Instrumenter :=
      Create_Ada_Instrumenter
-       (Tag => IC.Tag,
-        Config_Pragmas_Filename    => +IC.Config_Pragmas_File,
+       (Tag                        => IC.Tag,
+        Config_Pragmas_Mapping     => +IC.Config_Pragmas_Mapping,
         Mapping_Filename           => +IC.Mapping_File,
         Predefined_Source_Dirs     => IC.Predefined_Source_Dirs,
         Preprocessor_Data_Filename => +IC.Ada_Preprocessor_Data_File);
@@ -1470,6 +1470,7 @@ begin
    end;
 
    if not Save_Temps then
+      Ada.Directories.Delete_File (+IC.Config_Pragmas_Mapping);
       Ada.Directories.Delete_File (+IC.Sources_Of_Interest_Response_File);
       Ada.Directories.Delete_File (+IC.Ada_Preprocessor_Data_File);
    end if;

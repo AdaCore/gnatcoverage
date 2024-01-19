@@ -24,9 +24,10 @@ with Ada.Strings.Wide_Wide_Hash;
 with Ada.Strings.Wide_Wide_Unbounded; use Ada.Strings.Wide_Wide_Unbounded;
 
 with Langkit_Support.File_Readers;
-with Langkit_Support.Text; use Langkit_Support.Text;
-with Libadalang.Analysis;  use Libadalang.Analysis;
-with Libadalang.Rewriting; use Libadalang.Rewriting;
+with Langkit_Support.Text;      use Langkit_Support.Text;
+with Libadalang.Analysis;       use Libadalang.Analysis;
+with Libadalang.Config_Pragmas; use Libadalang.Config_Pragmas;
+with Libadalang.Rewriting;      use Libadalang.Rewriting;
 
 with Files_Handling;    use Files_Handling;
 with Files_Table;       use Files_Table;
@@ -51,8 +52,10 @@ package Instrument.Ada_Unit is
          Event_Handler : Libadalang.Analysis.Event_Handler_Reference;
          --  Event handler to warn about missing source files
 
-         Config_Pragmas_Filename : Unbounded_String;
-         --  File holding the list of configuration pragmas
+         Config_Pragmas_Mapping : Unbounded_String;
+         --  Filename for a JSON description file of a configuration pragmas
+         --  mapping: see the Save_Config_Pragmas_Mapping and
+         --  Load_Config_Pragmas_Mapping procedures below.
 
          Context : Libadalang.Analysis.Analysis_Context;
          --  Libadalang context to load all units to rewrite
@@ -82,9 +85,12 @@ package Instrument.Ada_Unit is
 
    overriding procedure Emit_Dump_Helper_Unit_Manual
      (Self          : in out Ada_Instrumenter_Type;
-      Helper_Unit   : out Unbounded_String;
       Dump_Config   : Any_Dump_Config;
       Prj           : Prj_Desc);
+
+   overriding function Dump_Manual_Helper_Unit
+     (Self : Ada_Instrumenter_Type;
+      Prj  : Prj_Desc) return Files_Table.Compilation_Unit;
 
    overriding procedure Replace_Manual_Dump_Indication
      (Self                  : in out Ada_Instrumenter_Type;
@@ -106,17 +112,29 @@ package Instrument.Ada_Unit is
       Instr_Units : Unit_Sets.Set;
       Prj         : Prj_Desc);
 
+   procedure Save_Config_Pragmas_Mapping (Filename : String);
+   --  Create a configuration pragmas mapping for the loaded project and write
+   --  a JSON description file of it to Filename.
+
+   procedure Load_Config_Pragmas_Mapping
+     (Context  : Analysis_Context;
+      Mapping  : out Config_Pragmas_Mapping;
+      Filename : String);
+   --  Create a config pragmas mapping from the JSON description in Filename
+   --  (created by the Save_Config_Pragmas_Mapping procedure) and assign it to
+   --  Mapping. Context is used to create the analysis units in Mapping.
+
    function Create_Ada_Instrumenter
      (Tag                        : Unbounded_String;
-      Config_Pragmas_Filename,
+      Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
       Predefined_Source_Dirs     : String_Vectors.Vector;
       Preprocessor_Data_Filename : String)
       return Ada_Instrumenter_Type;
    --  Create an Ada instrumenter.
    --
-   --  Config_Pragmas_Filename is the fullname to the configuration pragma
-   --  file.
+   --  Config_Pragmas_Mapping is the fullname to the configuration pragma
+   --  mapping file (created by the Save_Config_Pragmas_Mapping procedure).
    --
    --  Mapping_Filename is the fullname to the mapping file, which maps unit
    --  names to file fullnames.

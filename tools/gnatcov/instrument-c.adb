@@ -3831,21 +3831,22 @@ package body Instrument.C is
    ----------------------------------
 
    overriding procedure Emit_Dump_Helper_Unit_Manual
-     (Self          : in out C_Family_Instrumenter_Type;
-      Helper_Unit   : out Unbounded_String;
-      Dump_Config   : Any_Dump_Config;
-      Prj           : Prj_Desc)
+     (Self        : in out C_Family_Instrumenter_Type;
+      Dump_Config : Any_Dump_Config;
+      Prj         : Prj_Desc)
    is
       Main : Compilation_Unit_Part;
       --  Since the dump trigger is "manual" and there is no main to be given,
       --  the Main argument in the following call to Emit_Dump_Helper_Unit will
       --  not be used.
 
+      Dummy_Unit_Name : Unbounded_String;
+
    begin
       Emit_Dump_Helper_Unit
         (Dump_Config  => Dump_Config,
          Main         => Main,
-         Helper_Unit  => Helper_Unit,
+         Helper_Unit  => Dummy_Unit_Name,
          Instrumenter => Self,
          Prj          => Prj);
    end Emit_Dump_Helper_Unit_Manual;

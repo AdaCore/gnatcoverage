@@ -36,8 +36,8 @@ begin
       when Ada_Language =>
          return Create_Ada_Instrumenter
            (Tag                        => Tag,
-            Config_Pragmas_Filename    =>
-               +Args.String_Args (Opt_Gnatec).Value,
+            Config_Pragmas_Mapping     =>
+               +Args.String_Args (Opt_Config_Pragmas_Mapping).Value,
             Mapping_Filename           =>
                +Args.String_Args (Opt_Gnatem).Value,
             Predefined_Source_Dirs     =>

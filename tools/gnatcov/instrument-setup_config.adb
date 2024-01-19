@@ -110,7 +110,8 @@ package body Instrument.Setup_Config is
       Coverage_Level    : String;
       Dump_Config       : Any_Dump_Config;
       Compiler_Drivers  : String_Sets.Set;
-      Output_Dir        : String)
+      Output_Dir        : String;
+      Runtime_Project   : String)
    is
       Config    : constant JSON_Value := Create_Object;
       Compilers : constant JSON_Value := Create_Object;
@@ -121,8 +122,8 @@ package body Instrument.Setup_Config is
       --  For each compiler driver, location of the nm executable
 
    begin
-      --  Find the installed gnatcov_rts, using gprls. TODO??? Deal with cross
-      --  cases.
+      --  Find the installed coverage runtime, using gprls. TODO??? Deal with
+      --  cross cases.
       --
       --  We are looking for the following lines:
       --  Source Search Path:
@@ -138,28 +139,16 @@ package body Instrument.Setup_Config is
          Output_Filename : constant String :=
            Output_Dir / "gprls_output";
          Output_File     : File_Type;
-         GPRLS_Success   : Boolean;
       begin
          Args.Append (+"-P");
-         Args.Append (+"gnatcov_rts");
+         Args.Append (+Runtime_Project);
          Args.Append (+"-vP1");
-         GPRLS_Success := Run_Command
+         Run_Command
            (Command             => "gprls",
             Arguments           => Args,
             Origin_Command_Name => "gnatcov setup-integration",
-            Output_File         => Output_Filename,
-            Ignore_Error        => True);
+            Output_File         => Output_Filename);
          Open (Output_File, In_File, Output_Filename);
-         if not GPRLS_Success then
-            Outputs.Error ("Failed locating or loading gnatcov_rts.gpr");
-            Warning_Or_Error ("Is the project available on the"
-                              & " GPR_PROJECT_PATH?");
-            Warning_Or_Error ("gprls output was:");
-            while not End_Of_File (Output_File) loop
-               Warning_Or_Error (Get_Line (Output_File));
-            end loop;
-            raise Xcov_Exit_Exc;
-         end if;
          while not End_Of_File (Output_File) loop
             declare
                Line : constant String := Get_Line (Output_File);

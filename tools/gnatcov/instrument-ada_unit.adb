@@ -32,13 +32,13 @@ with Langkit_Support;
 with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
 with Langkit_Support.Symbols;  use Langkit_Support.Symbols;
 with Libadalang.Common;        use Libadalang.Common;
-with Libadalang.Config_Pragmas;
 with Libadalang.Expr_Eval;
 with Libadalang.Generic_API;
 with Libadalang.Generic_API.Introspection;
 use Libadalang.Generic_API.Introspection;
 with Libadalang.Sources;       use Libadalang.Sources;
 
+with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.Utils;
 with GNATCOLL.VFS;
 
@@ -47,9 +47,11 @@ with Coverage_Options; use Coverage_Options;
 with Coverage;         use Coverage;
 with Diagnostics;      use Diagnostics;
 with Instrument.Ada_Preprocessing;
+with JSON;             use JSON;
 with Namet;            use Namet;
 with Outputs;          use Outputs;
 with Paths;            use Paths;
+with Project;
 with SCOs;
 with Slocs;
 with Snames;           use Snames;
@@ -6778,16 +6780,15 @@ package body Instrument.Ada_Unit is
          File_Reader   => Instrumenter.File_Reader);
       Instrumenter.Get_From_File_Count := 0;
 
-      --  Load configuration pragmas. TODO??? Clarify what happens when there
-      --  is a local configuration pragma file.
-
-      Libadalang.Config_Pragmas.Set_Mapping
-        (Instrumenter.Context,
-         Libadalang.Config_Pragmas.Config_Pragmas_Mapping'
-           (Global_Pragmas =>
-             Instrumenter.Context.Get_From_File
-              (+Instrumenter.Config_Pragmas_Filename),
-            others         => <>));
+      declare
+         Mapping : Config_Pragmas_Mapping;
+      begin
+         Load_Config_Pragmas_Mapping
+           (Instrumenter.Context,
+            Mapping,
+            +Instrumenter.Config_Pragmas_Mapping);
+         Set_Mapping (Instrumenter.Context, Mapping);
+      end;
    end Create_LAL_Context;
 
    -------------------
@@ -8588,6 +8589,20 @@ package body Instrument.Ada_Unit is
       end if;
    end Emit_Pure_Buffer_Unit;
 
+   -----------------------------
+   -- Dump_Manual_Helper_Unit --
+   -----------------------------
+
+   overriding function Dump_Manual_Helper_Unit
+     (Self : Ada_Instrumenter_Type;
+      Prj  : Prj_Desc) return Files_Table.Compilation_Unit
+   is
+      pragma Unreferenced (Self);
+   begin
+      return (Language  => Unit_Based_Language,
+              Unit_Name => +To_Ada (Create_Manual_Helper_Unit_Name (Prj)));
+   end Dump_Manual_Helper_Unit;
+
    ------------------------------------
    -- Create_Manual_Helper_Unit_Name --
    ------------------------------------
@@ -8899,28 +8914,25 @@ package body Instrument.Ada_Unit is
    ----------------------------------
 
    procedure Emit_Dump_Helper_Unit_Manual
-     (Self          : in out Ada_Instrumenter_Type;
-      Helper_Unit   : out Unbounded_String;
-      Dump_Config   : Any_Dump_Config;
-      Prj           : Prj_Desc)
+     (Self        : in out Ada_Instrumenter_Type;
+      Dump_Config : Any_Dump_Config;
+      Prj         : Prj_Desc)
    is
       Main : Compilation_Unit_Part;
       --  Since the dump trigger is "manual" and there is no main to be given,
       --  the Main argument in the following call to Emit_Dump_Helper_Unit will
       --  not be used.
 
-      Ada_Helper_Unit : Ada_Qualified_Name;
+      Dummy_Ada_Helper_Unit : Ada_Qualified_Name;
    begin
       Emit_Dump_Helper_Unit
         (Dump_Config           => Dump_Config,
          Instrumenter          => Self,
          Prj                   => Prj,
          Main                  => Main,
-         Helper_Unit           => Ada_Helper_Unit,
+         Helper_Unit           => Dummy_Ada_Helper_Unit,
          Override_Dump_Trigger => Manual,
          Has_Controlled        => False);
-
-      Helper_Unit := +To_Ada (Ada_Helper_Unit);
    end Emit_Dump_Helper_Unit_Manual;
 
    ----------------------------
@@ -9029,13 +9041,108 @@ package body Instrument.Ada_Unit is
       end;
    end Emit_Buffers_List_Unit;
 
+   ---------------------------------
+   -- Save_Config_Pragmas_Mapping --
+   ---------------------------------
+
+   procedure Save_Config_Pragmas_Mapping (Filename : String) is
+      function "+" (Unit : Analysis_Unit) return JSON_Value
+      is (if Unit = No_Analysis_Unit
+          then Create
+          else Create (Unit.Get_Filename));
+      --  Get the filename of Unit as a JSON string, or the JSON null if Unit
+      --  is null.
+
+      --  First, compute the configuration pragmas mapping for all sources in
+      --  the loaded project.
+
+      Context : constant Analysis_Context := Create_Context;
+      Mapping : constant Config_Pragmas_Mapping :=
+        Import_From_Project (Context, Project.Project.all);
+
+      --  Then, turn this mapping into a JSON description
+
+      Desc  : constant JSON_Value := Create_Object;
+      Local : constant JSON_Value := Create_Object;
+   begin
+      Desc.Set_Field ("local_pragmas", Local);
+      Desc.Set_Field ("global_pragmas", +Mapping.Global_Pragmas);
+
+      for Cur in Mapping.Local_Pragmas.Iterate loop
+         declare
+            Source_File  : constant Analysis_Unit := Unit_Maps.Key (Cur);
+            Pragmas_File : constant Analysis_Unit := Unit_Maps.Element (Cur);
+         begin
+            Local.Set_Field (Source_File.Get_Filename, +Pragmas_File);
+         end;
+      end loop;
+
+      --  Finally, write that JSON description to the requested file.
+      --
+      --  No need to be space-efficient here, and a non-compact form will be
+      --  easier for debugging.
+
+      Write (Filename, Desc, Compact => False);
+   end Save_Config_Pragmas_Mapping;
+
+   ---------------------------------
+   -- Load_Config_Pragmas_Mapping --
+   ---------------------------------
+
+   procedure Load_Config_Pragmas_Mapping
+     (Context  : Analysis_Context;
+      Mapping  : out Config_Pragmas_Mapping;
+      Filename : String)
+   is
+      --  Parse the JSON description
+
+      Result : constant Read_Result := JSON.Read (Filename);
+   begin
+      if not Result.Success then
+         Outputs.Error ("Cannot read " & Filename);
+         Outputs.Fatal_Error (Format_Parsing_Error (Result.Error));
+      end if;
+
+      --  Decode it into the final mapping
+
+      declare
+         Global : constant JSON_Value := Result.Value.Get ("global_pragmas");
+      begin
+         if Global.Kind /= JSON_Null_Type then
+            Mapping.Global_Pragmas := Context.Get_From_File (Global.Get);
+         end if;
+      end;
+
+      declare
+         procedure Process (Name : String; Value : JSON_Value);
+         --  Insert an entry to Mapping.Local_Pragmas corresponding to the
+         --  source file at Name and the configuration pragmas file at Value (a
+         --  JSON string).
+
+         -------------
+         -- Process --
+         -------------
+
+         procedure Process (Name : String; Value : JSON_Value) is
+            Source_File  : constant Analysis_Unit :=
+              Context.Get_From_File (Name);
+            Pragmas_File : constant Analysis_Unit :=
+              Context.Get_From_File (Value.Get);
+         begin
+            Mapping.Local_Pragmas.Insert (Source_File, Pragmas_File);
+         end Process;
+      begin
+         Result.Value.Get ("local_pragmas").Map_JSON_Object (Process'Access);
+      end;
+   end Load_Config_Pragmas_Mapping;
+
    -----------------------------
    -- Create_Ada_Instrumenter --
    -----------------------------
 
    function Create_Ada_Instrumenter
      (Tag                        : Unbounded_String;
-      Config_Pragmas_Filename,
+      Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
       Predefined_Source_Dirs     : String_Vectors.Vector;
       Preprocessor_Data_Filename : String)
@@ -9065,7 +9172,7 @@ package body Instrument.Ada_Unit is
 
       --  Save the location of the file holding the configuration pragmas
 
-      Instrumenter.Config_Pragmas_Filename := +Config_Pragmas_Filename;
+      Instrumenter.Config_Pragmas_Mapping := +Config_Pragmas_Mapping;
 
       --  Then, create the analysis context
 

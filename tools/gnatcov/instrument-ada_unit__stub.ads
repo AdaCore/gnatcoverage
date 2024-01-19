@@ -31,9 +31,11 @@ package Instrument.Ada_Unit is
      (Self : Ada_Instrumenter_Type) return Src_Supported_Language
    is (Ada_Language);
 
+   procedure Save_Config_Pragmas_Mapping (Filename : String) is null;
+
    function Create_Ada_Instrumenter
      (Tag                        : Unbounded_String;
-      Config_Pragmas_Filename,
+      Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
       Predefined_Source_Dirs     : String_Vectors.Vector;
       Preprocessor_Data_Filename : String)
