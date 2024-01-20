@@ -16,9 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Exceptions;           use Ada.Exceptions;
-with Ada.Text_IO;              use Ada.Text_IO;
-with Ada.Text_IO.Unbounded_IO; use Ada.Text_IO.Unbounded_IO;
+with Ada.Exceptions; use Ada.Exceptions;
+with Ada.Text_IO;    use Ada.Text_IO;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 

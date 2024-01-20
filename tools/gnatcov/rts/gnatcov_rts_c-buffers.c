@@ -30,8 +30,8 @@ gnatcov_rts_witness (uint8_t *buffer, gnatcov_rts_bit_id bit)
 
 gnatcov_rts_bool
 gnatcov_rts_witness_decision (uint8_t *buffer, gnatcov_rts_bit_id false_bit,
-			      gnatcov_rts_bit_id true_bit,
-			      gnatcov_rts_bool value)
+                              gnatcov_rts_bit_id true_bit,
+                              gnatcov_rts_bool value)
 {
   gnatcov_rts_witness (buffer, value ? true_bit : false_bit);
   return value;
@@ -39,23 +39,23 @@ gnatcov_rts_witness_decision (uint8_t *buffer, gnatcov_rts_bit_id false_bit,
 
 gnatcov_rts_bool
 gnatcov_rts_witness_decision_mcdc (uint8_t *decision_buffer,
-				   gnatcov_rts_bit_id false_bit,
-				   gnatcov_rts_bit_id true_bit,
-				   uint8_t *mcdc_buffer,
-				   gnatcov_rts_bit_id mcdc_base,
-				   gnatcov_rts_bit_id *mcdc_path_address,
-				   gnatcov_rts_bool value)
+                                   gnatcov_rts_bit_id false_bit,
+                                   gnatcov_rts_bit_id true_bit,
+                                   uint8_t *mcdc_buffer,
+                                   gnatcov_rts_bit_id mcdc_base,
+                                   gnatcov_rts_bit_id *mcdc_path_address,
+                                   gnatcov_rts_bool value)
 {
   gnatcov_rts_bit_id mcdc_path_index = *mcdc_path_address;
   gnatcov_rts_witness (mcdc_buffer, mcdc_base + mcdc_path_index);
   return gnatcov_rts_witness_decision (decision_buffer, false_bit, true_bit,
-				       value);
+                                       value);
 }
 
 gnatcov_rts_bool
 gnatcov_rts_witness_condition (gnatcov_rts_bit_id *mcdc_path_address,
-			       gnatcov_rts_bit_id offset_for_true,
-			       gnatcov_rts_bool first, gnatcov_rts_bool value)
+                               gnatcov_rts_bit_id offset_for_true,
+                               gnatcov_rts_bool first, gnatcov_rts_bool value)
 {
   gnatcov_rts_bit_id *mcdc_path_index
     = (gnatcov_rts_bit_id *) mcdc_path_address;
