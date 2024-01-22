@@ -26,8 +26,6 @@
 
 with Ada.Text_IO; use Ada.Text_IO;
 
-with GNAT.OS_Lib;
-
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 
@@ -130,9 +128,12 @@ package body GNATcov_RTS.Traces.Output.Files is
 
       function C_Strerror (Errnum : C.int) return C.Strings.chars_ptr;
       pragma Import (C, C_Strerror, "strerror");
-      --  GNAT.OS_Lib.Errno_Message is not available in GNAT 5.04a1. Use the
-      --  C function to get a descriptive error message from the value of
-      --  errno.
+      --  strerror is already a function, we can bind to its symbol directly
+
+      function C_Errno return C.Int;
+      pragma Import (C, C_Errno, "gnatcov_rts_get_errno");
+      --  Get the errno value through the wrapper declared in
+      --  gnatcov_rts_c-os_interface.h.
 
    begin
       Write_Trace_File
@@ -140,8 +141,7 @@ package body GNATcov_RTS.Traces.Output.Files is
    exception
       when IO_Error =>
          declare
-            C_Error_Msg : constant chars_ptr :=
-              C_Strerror (C.int (GNAT.OS_Lib.Errno));
+            C_Error_Msg : constant chars_ptr := C_Strerror (C_Errno);
             Error_Msg   : constant String := Value (C_Error_Msg);
          begin
             Ada.Text_IO.Put_Line
