@@ -6,11 +6,13 @@ This is a regression test, gnatcov used to not emit the helper unit for one of
 the language kinds, resulting in the instrumented sources failing to build.
 """
 
+import os
+
 from SCOV.minicheck import build_and_run, check_xcov_reports, xcov
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
-from SUITE.tutils import gprfor, run_cov_program
+from SUITE.tutils import gprfor, run_cov_program, exepath_to
 
 Wdir("tmp_")
 
@@ -37,13 +39,15 @@ cov_args = build_and_run(
     extra_coverage_args=["-axcov", c_trace_name],
 )
 
-run_cov_program("./main_c", env={"GNATCOV_TRACE_FILE": c_trace_name})
+env = dict(os.environ)
+env["GNATCOV_TRACE_FILE"] = c_trace_name
+run_cov_program(exepath_to("main_c"), env=env)
 xcov(cov_args)
 check_xcov_reports(
     "*.xcov",
     {
         "main_ada.adb.xcov": {"+": {5}},
-        "main_c.c.xcov": {"+": {6}},
+        "main_c.c.xcov": {"+": {6}, '-': {8}},
     },
     cwd="obj")
 
