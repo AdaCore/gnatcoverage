@@ -3762,7 +3762,11 @@ package body Instrument.C is
 
          File.New_Line;
          File.Put (Instrumenter.Extern_Prefix);
-         File.Put_Line ("void " & Dump_Procedure & " (void) {");
+         File.Put_Line ("void " & Dump_Procedure & " ("
+                        & (if Dump_Config.Trigger = Manual
+                           then "char *prefix"
+                           else "void")
+                        & ") {");
 
          File.Put_Line (Indent1 & Output_Proc & " (");
          File.Put_Line
@@ -3777,7 +3781,7 @@ package body Instrument.C is
                   else """" & (+Dump_Config.Filename_Env_Var) & """");
                Prefix  : constant String :=
                  (if Dump_Config.Trigger = Manual
-                  then """" & (+Prj.Prj_Name) & """"
+                  then "prefix"
                   else   """" & (+Dump_Config.Filename_Prefix) & """");
                Tag     : constant String := """" & (+Instrumenter.Tag) & """";
                Simple  : constant String :=
@@ -3871,9 +3875,9 @@ package body Instrument.C is
          Dummy_Main     : Compilation_Unit_Part;
          Dump_Pat       : constant Pattern_Matcher :=
            Compile
-             ("^[\t ]*\/\* GNATCOV_DUMP_BUFFERS \*\/[ \t]*",
+             ("^[\t ]*\/\* GNATCOV_DUMP_BUFFERS (\((.*)\))? \*\/[ \t]*",
               Flags => Multiple_Lines);
-         Matches        : Match_Array (0 .. 1);
+         Matches        : Match_Array (0 .. 2);
          Dump_Procedure : constant String :=
            Dump_Procedure_Symbol
              (Main => Dummy_Main, Manual => True, Prj_Name => +Prj.Prj_Name);
@@ -3950,13 +3954,21 @@ package body Instrument.C is
                   --  Put an external decl for the buffers dump function
 
                   String'Write
-                    (S, "extern void " & Dump_Procedure & "(void);");
+                    (S, "extern void " & Dump_Procedure & "(char *prefix);");
                end if;
                String'Write (S, Str (Index .. Matches (0).First));
 
-               --  Replace the match with the call to the dump procedure
+               --  Replace the match with the call to the dump procedure.
+               --  Use the project name as prefix if none is given by the user.
 
-               String'Write (S, Dump_Procedure & "();");
+               if Matches (2) = No_Match then
+                  String'Write
+                    (S, Dump_Procedure & "(" & (+Prj.Prj_Name) & ");");
+               else
+                  String'Write
+                    (S, Dump_Procedure & "("
+                        & Str (Matches (2).First .. Matches (2).Last) & ");");
+               end if;
                Index := Matches (0).Last + 1;
             end loop;
 

@@ -7968,7 +7968,7 @@ package body Instrument.Ada_Unit is
                Prag_Args : constant Base_Assoc_List := Prag_N.F_Args;
             begin
                if Pragma_Name (Prag_N) = Name_Annotate
-                 and then Prag_Args.Children_Count = 2
+                 and then Prag_Args.Children_Count in 2 .. 3
                  and then Is_Expected_Argument (Prag_Args, 1, Xcov)
                  and then Is_Expected_Argument (Prag_Args, 2, Dump_Buffers)
                then
@@ -7989,6 +7989,14 @@ package body Instrument.Ada_Unit is
                        To_Nodes
                          (RH,
                           To_Qualified_Name (To_String (Dump_Procedure_Name)));
+                     Dump_Args : constant Node_Rewriting_Handle :=
+                       (if Prag_Args.Children_Count = 3
+                        then Detach (Prag_Args.Child (3))
+                        else Create_Token_Node
+                               (RH,
+                                Kind => Ada_String_Literal,
+                                Text => To_Text
+                                          ("""" & (+Prj.Prj_Name) & """")));
                   begin
                      --  Add the with clause only once in the file
 
@@ -8008,8 +8016,10 @@ package body Instrument.Ada_Unit is
                        (Handle (N),
                         Create_From_Template
                           (RH,
-                           "{}.{};",
-                           Arguments => (1 => With_Unit, 2 => Dump_Call),
+                           "{}.{} ({});",
+                           Arguments => (1 => With_Unit,
+                                         2 => Dump_Call,
+                                         3 => Dump_Args),
                            Rule => Call_Stmt_Rule));
                   end;
 
@@ -8866,9 +8876,15 @@ package body Instrument.Ada_Unit is
 
          File.Put_Line ("   pragma No_Tagged_Streams;");
          File.New_Line;
-
-         File.Put_Line ("   procedure " & Dump_Procedure & ";");
-         File.Put_Line ("   pragma Convention (C, " & Dump_Procedure & ");");
+         File.Put_Line ("   procedure " & Dump_Procedure
+                        & (if Dump_Trigger = Manual
+                           then " (Prefix : String)"
+                           else "")
+                        & ";");
+         if Dump_Trigger /= Manual then
+            File.Put_Line
+              ("   pragma Convention (C, " & Dump_Procedure & ");");
+         end if;
          File.New_Line;
 
          case Dump_Trigger is
@@ -8934,7 +8950,11 @@ package body Instrument.Ada_Unit is
 
          --  Emit the procedure to write the trace file
 
-         File.Put_Line ("   procedure " & Dump_Procedure & " is");
+         File.Put_Line ("   procedure " & Dump_Procedure
+                        & (if Dump_Trigger = Manual
+                           then " (Prefix : String)"
+                           else "")
+                        &  " is");
 
          case Dump_Config.Channel is
             when Binary_File =>
@@ -8945,9 +8965,9 @@ package body Instrument.Ada_Unit is
                      else """" & (+Dump_Config.Filename_Env_Var)
                           & """");
                   Prefix  : constant String :=
-                    """" & (if Dump_Config.Trigger = Manual
-                            then +Prj.Prj_Name
-                            else +Dump_Config.Filename_Prefix) & """";
+                    (if Dump_Config.Trigger = Manual
+                     then "Prefix"
+                     else """" & (+Dump_Config.Filename_Prefix) & """");
                   Tag     : constant String :=
                     """" & (+Instrumenter.Tag)  & """";
                   Simple  : constant String :=

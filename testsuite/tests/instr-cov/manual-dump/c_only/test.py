@@ -53,7 +53,7 @@ thistest.fail_if_not_equal(
 lib_file = 'obj/lib-gnatcov-instr/foo.c'
 thistest.fail_if_no_match
 ("missing Dump_Buffers call",
- "(\n|.)*gnatcov_rts_manual_dump_buffers_lib ();(\n|.)*",
+ r"(\n|.)*gnatcov_rts_manual_dump_buffers_lib \(.*\);(\n|.)*",
  contents_of(lib_file))
 
 # Check that we got the expected coverage report
