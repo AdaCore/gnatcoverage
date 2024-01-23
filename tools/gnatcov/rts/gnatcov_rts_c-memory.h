@@ -17,33 +17,28 @@
  *                                                                          *
  ****************************************************************************/
 
-#include "gnatcov_rts_c-buffers.h"
-#include "gnatcov_rts_c-strings.h"
+#ifndef GNATCOV_RTS_C_MEMORY_H
+#define GNATCOV_RTS_C_MEMORY_H
+
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-  /* Callback for trace writing routines. Write the N bytes starting at SOURCE
-     to the OUTPUT stream (OUTPUT is just forwarded from
-     gnatcov_rts_generic_write_trace_file).  Return 0 if the write was
-     successful and return any non-zero value in case of error.  */
-  typedef int (*gnatcov_rts_write_bytes_callback) (void *output,
-                                                   const void *source,
-                                                   unsigned n);
+  /* Smallest subset of functions needed for memory manipulations (memcpy and
+     memset). These functions must either be defined by the runtime (even if it
+     is in a bareboard environment), or provided by the user.
 
-  /* Write a trace file to contain the given coverage BUFFERS_GROUPS to the
-     OUTPUT stream using the WRITE_BYTES callback.  PROGRAM_NAME, EXEC_DATE and
-     USER_DATA are included as metadata in the trace file.  Return 0 if the
-     write was successful, and return any non-zero value in case of error.  */
-  extern int gnatcov_rts_generic_write_trace_file (
-    void *output,
-    const struct gnatcov_rts_coverage_buffers_group_array *buffers_groups,
-    struct gnatcov_rts_string program_name, uint64_t exec_date,
-    struct gnatcov_rts_string user_data,
-    gnatcov_rts_write_bytes_callback write_bytes);
+     Note that we declare them ourselves, as the runtime may not provide the
+     string.h header: older versions of light runtimes did not package newlib,
+     and thus did not provide the string.h portable header.  Though the memcpy
+     and memset functions are provided by the light runtime in this case.  */
+  extern void *memcpy (void *__dest, const void *__src, size_t __n);
+  extern void *memset (void *__s, int __c, size_t __n);
 
 #ifdef __cplusplus
 }
 #endif
+#endif // GNATCOV_RTS_C_MEMORY_H

@@ -34,7 +34,8 @@ lib_gpr = gprfor(mains=[],
 
 gprsw = GPRswitches(root_project=src_gpr)
 
-instr_warning = (r"warning: Manual dump trigger indications were found in.*")
+instr_warning = (r"warning: Manual buffer dump/reset indications were found"
+                 r" in.*")
 
 build_run_and_coverage(gprsw=gprsw, covlevel="stmt", mains=["main"],
                        extra_coverage_args=["-axcov"], dump_trigger="manual",

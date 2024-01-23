@@ -34,7 +34,8 @@ p = gprfor(prjid="gen",
            objdir="obj",
            deps=["lib1", "lib2"])
 
-instr_warning = (r"warning: Manual dump trigger indications were found in.*")
+instr_warning = (r"warning: Manual buffer dump/reset indications were found"
+                 r" in.*")
 
 cov_args = build_and_run(
     gprsw=GPRswitches(root_project=p, units=["lib1", "main"]),

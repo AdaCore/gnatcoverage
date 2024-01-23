@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "gnatcov_rts_c-memory.h"
 #include "gnatcov_rts_c-os_interface.h"
 #include "gnatcov_rts_c-traces-output-files.h"
 #include "gnatcov_rts_c-traces-output.h"

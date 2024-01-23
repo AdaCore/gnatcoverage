@@ -18,6 +18,7 @@
  ****************************************************************************/
 
 #include "gnatcov_rts_c-buffers.h"
+#include "gnatcov_rts_c-memory.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -64,4 +65,42 @@ gnatcov_rts_witness_condition (gnatcov_rts_bit_id *mcdc_path_address,
   if (value)
     *mcdc_path_index += offset_for_true;
   return value;
+}
+
+void
+gnatcov_rts_reset_buffers (const struct gnatcov_rts_coverage_buffers *buffs)
+{
+  if (buffs == NULL)
+    return;
+
+  if (buffs->statement != NULL)
+    memset (buffs->statement, 0, buffs->statement_last_bit + 1);
+  if (buffs->decision != NULL)
+    memset (buffs->decision, 0, buffs->decision_last_bit + 1);
+  if (buffs->mcdc != NULL)
+    memset (buffs->mcdc, 0, buffs->mcdc_last_bit + 1);
+}
+
+void
+gnatcov_rts_reset_buffer_group (
+  const struct gnatcov_rts_coverage_buffers_group *group)
+{
+  if (group == NULL)
+    return;
+
+  unsigned i;
+  for (i = 0; i < group->length; i++)
+    gnatcov_rts_reset_buffers (group->buffers[i]);
+}
+
+void
+gnatcov_rts_reset_group_array (
+  const struct gnatcov_rts_coverage_buffers_group_array *arr)
+{
+  if (arr == NULL)
+    return;
+
+  unsigned i;
+  for (i = 0; i < arr->length; i++)
+    gnatcov_rts_reset_buffer_group (arr->groups[i]);
 }

@@ -208,7 +208,8 @@ package body Instrument.Ada_Unit is
       --  Annotations
 
       Xcov,
-      Dump_Buffers);
+      Dump_Buffers,
+      Reset_Buffers);
 
    Symbols : constant Symbol_Table := Create_Symbol_Table;
    --  Holder for name singletons
@@ -240,7 +241,8 @@ package body Instrument.Ada_Unit is
       Ravenscar               => Precompute_Symbol (Ravenscar),
       Restricted              => Precompute_Symbol (Restricted),
       Xcov                    => Precompute_Symbol (Xcov),
-      Dump_Buffers            => Precompute_Symbol (Dump_Buffers));
+      Dump_Buffers            => Precompute_Symbol (Dump_Buffers),
+      Reset_Buffers           => Precompute_Symbol (Reset_Buffers));
 
    function As_Symbol (S : All_Symbols) return Symbol_Type is
      (Precomputed_Symbols (S));
@@ -7916,15 +7918,16 @@ package body Instrument.Ada_Unit is
       Rewriter.Apply;
    end Auto_Dump_Buffers_In_Main;
 
-   ------------------------------------
-   -- Replace_Manual_Dump_Indication --
-   ------------------------------------
+   --------------------------------
+   -- Replace_Manual_Indications --
+   --------------------------------
 
-   overriding procedure Replace_Manual_Dump_Indication
-     (Self                  : in out Ada_Instrumenter_Type;
-      Prj                   : in out Prj_Desc;
-      Source                : GNATCOLL.Projects.File_Info;
-      Has_Manual_Indication : out Boolean)
+   overriding procedure Replace_Manual_Indications
+     (Self                 : in out Ada_Instrumenter_Type;
+      Prj                  : in out Prj_Desc;
+      Source               : GNATCOLL.Projects.File_Info;
+      Has_Dump_Indication  : out Boolean;
+      Has_Reset_Indication : out Boolean)
    is
       Instrumented_Filename : constant String :=
         +(Prj.Output_Dir & "/" & GNATCOLL.VFS."+" (Source.File.Base_Name));
@@ -7970,26 +7973,29 @@ package body Instrument.Ada_Unit is
                if Pragma_Name (Prag_N) = Name_Annotate
                  and then Prag_Args.Children_Count in 2 .. 3
                  and then Is_Expected_Argument (Prag_Args, 1, Xcov)
-                 and then Is_Expected_Argument (Prag_Args, 2, Dump_Buffers)
+                 and then
+                   (Is_Expected_Argument (Prag_Args, 2, Dump_Buffers)
+                    or else Is_Expected_Argument (Prag_Args, 2, Reset_Buffers))
                then
                   --  The pragma statement to be replaced by the actual call
-                  --  to Dump_Buffers has been found.
+                  --  to Dump_Buffers / Reset_Buffers has been found.
 
-                  if not Has_Manual_Indication then
+                  if not (Has_Dump_Indication or else Has_Reset_Indication)
+                  then
                      Start_Rewriting (Rewriter, Self, Prj, File_To_Search);
                   end if;
 
                   declare
-                     RH        : constant Rewriting_Handle := Rewriter.Handle;
-                     With_Unit : constant Node_Rewriting_Handle :=
+                     RH         : constant Rewriting_Handle := Rewriter.Handle;
+                     With_Unit  : constant Node_Rewriting_Handle :=
                        To_Nodes
                          (RH,
                           Create_Manual_Helper_Unit_Name (Prj));
-                     Dump_Call : constant  Node_Rewriting_Handle :=
+                     Dump_Call  : constant  Node_Rewriting_Handle :=
                        To_Nodes
                          (RH,
                           To_Qualified_Name (To_String (Dump_Procedure_Name)));
-                     Dump_Args : constant Node_Rewriting_Handle :=
+                     Dump_Args  : constant Node_Rewriting_Handle :=
                        (if Prag_Args.Children_Count = 3
                         then Detach (Prag_Args.Child (3))
                         else Create_Token_Node
@@ -7997,10 +8003,16 @@ package body Instrument.Ada_Unit is
                                 Kind => Ada_String_Literal,
                                 Text => To_Text
                                           ("""" & (+Prj.Prj_Name) & """")));
+                     Reset_Call  : constant Node_Rewriting_Handle :=
+                       To_Nodes
+                         (RH,
+                          To_Qualified_Name
+                            (To_String (Reset_Procedure_Name)));
                   begin
                      --  Add the with clause only once in the file
 
-                     if not Has_Manual_Indication then
+                     if not (Has_Dump_Indication or else Has_Reset_Indication)
+                     then
                         Insert_Last
                           (Handle (Unit.Root.As_Compilation_Unit.F_Prelude),
                            Create_From_Template
@@ -8010,20 +8022,46 @@ package body Instrument.Ada_Unit is
                               Rule => With_Clause_Rule));
                      end if;
 
-                     --  Insert the call to the dump procedure
+                     if Is_Expected_Argument (Prag_Args, 2, Dump_Buffers) then
 
-                     Replace
-                       (Handle (N),
-                        Create_From_Template
-                          (RH,
-                           "{}.{} ({});",
-                           Arguments => (1 => With_Unit,
-                                         2 => Dump_Call,
-                                         3 => Dump_Args),
-                           Rule => Call_Stmt_Rule));
+                        --  Insert the call to the dump procedure
+
+                        if Switches.Misc_Trace.Is_Active then
+                           Switches.Misc_Trace.Trace
+                             ("Found buffer dump indication at "
+                              & Image (N.Full_Sloc_Image));
+                        end if;
+
+                        Replace
+                          (Handle (N),
+                           Create_From_Template
+                             (RH,
+                              "{}.{} ({});",
+                              Arguments => (1 => With_Unit,
+                                            2 => Dump_Call,
+                                            3 => Dump_Args),
+                              Rule => Call_Stmt_Rule));
+                        Has_Dump_Indication := True;
+                     else
+
+                        --  Insert the call to the reset procedure
+
+                        if Switches.Misc_Trace.Is_Active then
+                           Switches.Misc_Trace.Trace
+                             ("Found buffer reset indication at "
+                              & Image (N.Full_Sloc_Image));
+                        end if;
+
+                        Replace
+                          (Handle (N),
+                           Create_From_Template
+                             (RH,
+                              "{}.{};",
+                              Arguments => (1 => With_Unit, 2 => Reset_Call),
+                              Rule => Call_Stmt_Rule));
+                        Has_Reset_Indication := True;
+                     end if;
                   end;
-
-                  Has_Manual_Indication := True;
                   return Over;
                end if;
             end;
@@ -8045,18 +8083,19 @@ package body Instrument.Ada_Unit is
       --  initialized which will lead to finalization issues. To avoid this,
       --  make sure it is set to No_Rewriting_Handle.
 
-      Has_Manual_Indication := False;
+      Has_Dump_Indication := False;
+      Has_Reset_Indication := False;
       Rewriter.Handle := No_Rewriting_Handle;
 
       Unit.Root.Traverse (Find_And_Replace_Pragma'Access);
 
-      if Has_Manual_Indication then
+      if Has_Dump_Indication or else Has_Reset_Indication then
          Create_Directory_If_Not_Exists
            (GNATCOLL.VFS."+" (Source.Project.Object_Dir.Base_Dir_Name));
          Create_Directory_If_Not_Exists (+Prj.Output_Dir);
          Rewriter.Apply;
       end if;
-   end Replace_Manual_Dump_Indication;
+   end Replace_Manual_Indications;
 
    ----------------------------
    -- Instrument_Source_File --
@@ -8838,8 +8877,10 @@ package body Instrument.Ada_Unit is
          Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
          Dump_Procedure   : constant String := To_String (Dump_Procedure_Name);
          Output_Unit_Str  : constant String := To_Ada (Output_Unit);
-
          Project_Name_Str : constant String := """" & (+Prj.Prj_Name) & """";
+         Reset_Procedure  : constant String :=
+           To_String (Reset_Procedure_Name);
+         Sys_Lists        : Ada_Qualified_Name := Sys_Buffers;
 
          --  Indentation levels relative to the body of library-level
          --  subprograms.
@@ -8848,9 +8889,13 @@ package body Instrument.Ada_Unit is
          Indent2 : constant String := Indent1 & "  ";
          Indent3 : constant String := Indent2 & "  ";
       begin
+         Sys_Lists.Append (To_Unbounded_String ("Lists"));
+
          --  Emit the package spec. This includes one Dump_Buffers procedure,
          --  which dumps all coverage buffers in Main's closure to the source
-         --  trace file.
+         --  trace file, and in the case of manual dump trigger, a
+         --  Reset_Buffers procedure which will resets all coverage buffers in
+         --  the project tree rooted at the project to which Main belongs.
 
          Create_File
            (Prj,
@@ -8904,8 +8949,9 @@ package body Instrument.Ada_Unit is
                                  & " out Dump_Controlled_Type);");
                   File.New_Line;
                end if;
-            when others =>
-               null;
+            when Manual =>
+               File.Put_Line ("   procedure " & Reset_Procedure & ";");
+               File.New_Line;
          end case;
 
          File.Put_Line ("end " & Helper_Unit_Name & ";");
@@ -8925,6 +8971,7 @@ package body Instrument.Ada_Unit is
          Put_Warnings_And_Style_Checks_Pragmas (File);
 
          Put_With (Output_Unit);
+         Put_With (Sys_Lists);
          File.Put_Line ("with Interfaces.C;");
 
          case Dump_Trigger is
@@ -9102,8 +9149,19 @@ package body Instrument.Ada_Unit is
                   File.New_Line;
                end if;
 
-            when others =>
-               null;
+            when Manual =>
+
+               --  Emit Buffer reset procedure
+
+               File.Put_Line ("   procedure " & Reset_Procedure & " is");
+               File.Put_Line ("   begin");
+               File.Put_Line ("      " & To_Ada (Sys_Lists)
+                              & ".Reset_Group_Array_Buffers");
+               File.Put_Line ("        ("
+                              & To_Ada (Buffers_List_Unit (+Prj.Prj_Name))
+                              & ".C_List);");
+               File.Put_Line ("end " & Reset_Procedure & ";");
+               File.New_Line;
          end case;
 
          File.Put_Line ("end " & Helper_Unit_Name & ";");

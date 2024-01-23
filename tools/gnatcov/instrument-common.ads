@@ -97,6 +97,13 @@ package Instrument.Common is
    --  Name of the procedure (in main dump helper packages) that dumps all
    --  coverage buffers to the source trace file.
 
+   Reset_Procedure_Name : constant Ada_Identifier :=
+     To_Unbounded_String ("Reset_Buffers");
+   --  Name of the procedure (in main dump helper packages) that resets all the
+   --  coverage buffers accessible from that dump helper package (i.e. the
+   --  whole project tree, rooted at the project to which the helper unit
+   --  belongs).
+
    Register_Dump_Function_Name : constant Ada_Identifier :=
       To_Unbounded_String ("Register_Dump_Buffers");
    --  Name of the function (in main dump helper packages) that registers the
@@ -119,9 +126,15 @@ package Instrument.Common is
         else ""));
    --  Return the name of the exported symbol for the Dump_Buffers function
 
-   function Is_Manual_Dump_Procedure_Symbol (Symbol : String) return Boolean;
-   --  For C, manual dump procedures are suffixed by the project's name. Check
-   --  that Symbol corresponds to the name of one such procedure.
+   function Reset_Procedure_Symbol (Prj_Name : String) return String is
+     ("gnatcov_rts_" & To_Lower (To_String (Reset_Procedure_Name))
+      & "_" & Prj_Name);
+   --  Return the name of the exported symbol for the Reset_Buffers procedure
+
+   function Is_Manual_Indication_Procedure_Symbol
+     (Symbol : String) return Boolean;
+   --  For C, manual dump/reset procedures are suffixed by the project's name.
+   --  Check that Symbol corresponds to the name of one such procedure.
 
    function Statement_Buffer_Symbol
      (Instrumented_Unit : Compilation_Unit_Part) return String;
@@ -352,7 +365,7 @@ package Instrument.Common is
      (Strings.Img (Integer (Bit)));
 
    Runtime_Version_Check : constant String :=
-     "pragma Compile_Time_Error (GNATcov_RTS.Version /= 5, "
+     "pragma Compile_Time_Error (GNATcov_RTS.Version /= 6, "
      & """Incompatible GNATcov_RTS version, please use"
      & " the GNATcov_RTS project provided with your"
      & " GNATcoverage distribution."");";
@@ -480,18 +493,23 @@ package Instrument.Common is
    --  simple call to a procedure dumping the coverage buffers to be made in
    --  the instrumented source files.
 
-   procedure Replace_Manual_Dump_Indication
+   procedure Replace_Manual_Indications
      (Self                  : in out Language_Instrumenter;
       Prj                   : in out Prj_Desc;
       Source                : GNATCOLL.Projects.File_Info;
-      Has_Manual_Indication : out Boolean) is null;
-   --  Look for the pragma (for Ada) or comment (for C family languages)
-   --  indicating where the user wishes to the buffers to be dumped in Source.
-   --  When found, replace it with a call to the buffers dump procedure defined
-   --  in the dump helper unit.
+      Has_Dump_Indication   : out Boolean;
+      Has_Reset_Indication  : out Boolean) is null;
+   --  Look for the pragmas (for Ada) or comments (for C family languages)
+   --  indicating where the user wishes to the buffers to be dumped and/or
+   --  reset in Source.
+   --  When found, replace it with a call to the buffers dump/reset procedure
+   --  defined in the dump helper unit.
    --
-   --  Has_Manual_Indication indicates whether a manual dump indication was
+   --  Has_Dump_Indication indicates whether a manual dump indication was
    --  found - and replaced with a call to dump buffers - in the given source.
+   --
+   --  Likewise, Has_Reset_Indication indicates whether a manual buffer reset
+   --  indication was found and processed.
 
    function New_File
      (Prj : Prj_Desc; Name : String) return String;

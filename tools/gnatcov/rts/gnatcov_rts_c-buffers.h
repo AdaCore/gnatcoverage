@@ -137,7 +137,7 @@ extern "C"
   /* Set the boolean corresponding to BIT to true in BUFFER in various
      context.  */
   extern gnatcov_rts_bool gnatcov_rts_witness (uint8_t *buffer,
-					       gnatcov_rts_bit_id bit);
+                                               gnatcov_rts_bit_id bit);
 
   /* Decisions */
 
@@ -145,8 +145,8 @@ extern "C"
      BUFFER.  Set the one corresponding to TRUE_BIT otherwise.  */
   extern gnatcov_rts_bool
   gnatcov_rts_witness_decision (uint8_t *buffer, gnatcov_rts_bit_id false_bit,
-				gnatcov_rts_bit_id true_bit,
-				gnatcov_rts_bool value);
+                                gnatcov_rts_bit_id true_bit,
+                                gnatcov_rts_bool value);
 
   /* Same as above, and also set the bit determined by MCDC_BASE and the
      gnatcov_rts_bit_id value at MCDC_PATH_ADDRESS in the buffer at
@@ -167,6 +167,26 @@ extern "C"
   extern gnatcov_rts_bool gnatcov_rts_witness_condition (
     gnatcov_rts_bit_id *mcdc_path_address, gnatcov_rts_bit_id offset_for_true,
     gnatcov_rts_bool first, gnatcov_rts_bool value);
+
+  /*********************/
+  /* Clear subprograms */
+  /*********************/
+
+  /* The following subprograms may be called to clear coverage buffers,
+     and thus reset the coverage execution information accumulated.  */
+
+  /* Clear the buffers for a single unit.  */
+  void
+  gnatcov_rts_reset_buffers (const struct gnatcov_rts_coverage_buffers *buffs);
+
+  /* Clear the buffers for a whole buffer group.  */
+  void gnatcov_rts_reset_buffer_group (
+    const struct gnatcov_rts_coverage_buffers_group *group);
+
+  /* Set all the values in all the buffers of each group denoted by arr to
+     zero. This clears the buffers of all coverage levels.  */
+  extern void gnatcov_rts_reset_group_array (
+    const struct gnatcov_rts_coverage_buffers_group_array *arr);
 
 #ifdef __cplusplus
 }

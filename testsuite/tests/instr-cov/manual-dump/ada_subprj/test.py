@@ -37,7 +37,8 @@ p = gprfor(mains=["main.adb"],
 
 # Running gnatcov natively allows to have one source trace file per
 # project.
-instr_warning = (r"warning: Manual dump trigger indications were found in.*")
+instr_warning = (r"warning: Manual buffer dump/reset indications were"
+                 r" found in.*")
 
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=p, units=["lib1", "lib2"]),
