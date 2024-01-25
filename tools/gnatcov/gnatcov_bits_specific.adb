@@ -1305,6 +1305,7 @@ begin
                Target       => Target,
                RTS          => Value (Args, Opt_Runtime),
                Config_File  => Value (Args, Opt_Config),
+               Db_Dir       => Value (Args, Opt_Db),
                Prefix       => Value (Args, Opt_Prefix),
                RTS_Profile  => RTS_Profile,
                Install_Name => Install_Name,
