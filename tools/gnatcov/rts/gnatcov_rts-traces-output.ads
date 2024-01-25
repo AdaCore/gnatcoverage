@@ -29,5 +29,6 @@
 package GNATcov_RTS.Traces.Output is
 
    pragma Pure;
+   pragma No_Elaboration_Code_All;
 
 end GNATcov_RTS.Traces.Output;

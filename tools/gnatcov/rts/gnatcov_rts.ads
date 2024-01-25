@@ -33,6 +33,7 @@ pragma Warnings (Off, System);
 package GNATcov_RTS is
 
    pragma Pure;
+   pragma No_Elaboration_Code_All;
 
    package Std renames Standard;
    package Sys renames System;
