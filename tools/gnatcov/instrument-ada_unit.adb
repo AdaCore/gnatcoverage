@@ -7931,7 +7931,7 @@ package body Instrument.Ada_Unit is
 
       Root_Analysis_Unit : Analysis_Unit;
 
-      Preelab : Boolean;
+      Preelab : Boolean := False;
       --  Set to True if Unit is required to be preelaborable, i.e. it is
       --  either preelaborated, or the declaration of a remote types or remote
       --  call interface library unit. In this case, do not generate any
@@ -7961,14 +7961,19 @@ package body Instrument.Ada_Unit is
         (UIC.Root_Unit.P_Decl.P_Fully_Qualified_Name_Array);
 
       begin
-         Preelab := (UIC.Root_Unit.P_Is_Preelaborable
-                     or else UIC.Root_Unit.P_Has_Restriction
-                       (To_Unbounded_Text ("No_Elaboration_Code")))
-           and then UIC.Root_Unit.F_Body.Kind = Ada_Library_Item
-           and then UIC.Root_Unit.F_Body.As_Library_Item.F_Item.Kind in
-             Ada_Package_Decl
-               | Ada_Package_Body
-                 | Ada_Generic_Package_Decl;
+         --  Top-level (relative to the source file) declarations can be
+         --  instrumented even when they belong to preelaborate units: they
+         --  just need not to be library-level declarations.
+
+         if UIC.Root_Unit.F_Body.Kind = Ada_Library_Item
+            and then UIC.Root_Unit.F_Body.As_Library_Item.F_Item.Kind in
+             Ada_Package_Decl | Ada_Package_Body | Ada_Generic_Package_Decl;
+         then
+            Preelab :=
+              UIC.Root_Unit.P_Is_Preelaborable
+              or else UIC.Root_Unit.P_Has_Restriction
+                        (To_Unbounded_Text ("No_Elaboration_Code"))
+         end if;
       exception
          when Libadalang.Common.Property_Error =>
             Report
