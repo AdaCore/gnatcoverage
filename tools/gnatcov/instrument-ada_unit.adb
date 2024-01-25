@@ -8674,6 +8674,15 @@ package body Instrument.Ada_Unit is
          end if;
          File.Put_Line ("package " & Helper_Unit_Name & " is");
          File.New_Line;
+
+         --  Do not generate routines to deal with streaming attributes in this
+         --  helper unit: we do not need them, and they can bring in the
+         --  secondary stack, which may in turn violate the No_Secondary_Stack
+         --  restriction from user projects.
+
+         File.Put_Line ("   pragma No_Tagged_Streams;");
+         File.New_Line;
+
          File.Put_Line ("   procedure " & Dump_Procedure & ";");
          File.Put_Line ("   pragma Convention (C, " & Dump_Procedure & ");");
          File.New_Line;
@@ -8688,9 +8697,9 @@ package body Instrument.Ada_Unit is
 
             when Main_End =>
                if Has_Controlled then
-                  File.Put_Line ("   type Dump_Controlled_Type is new"
-                                 & " Ada.Finalization.Controlled with");
-                  File.Put_Line ("     null record;");
+                  File.Put_Line ("   type Dump_Controlled_Type is new");
+                  File.Put_Line ("     Ada.Finalization.Limited_Controlled");
+                  File.Put_Line ("     with null record;");
                   File.Put_Line ("   overriding procedure Finalize (Self : in"
                                  & " out Dump_Controlled_Type);");
                   File.New_Line;
