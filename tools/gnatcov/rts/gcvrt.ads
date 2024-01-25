@@ -20,6 +20,9 @@
 --
 --  This unit needs to be compilable with Ada 95 compilers
 
-package GCVRT is 
+package GCVRT is
+
    pragma Pure;
+   pragma No_Elaboration_Code_All;
+
 end GCVRT;

@@ -299,6 +299,9 @@ private
          --  Name of the compilation unit that holds addresses for the coverage
          --  buffers of the unit being instrumented.
 
+         Has_No_Elaboration_Code_All : Boolean;
+         --  Whether the No_Elaboration_Code_All applies to this unit
+
          Withed_Units : FQN_Sets.Set;
          --  Set of units for which we have WITH clauses
 
