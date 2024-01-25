@@ -7954,12 +7954,12 @@ package body Instrument.Ada_Unit is
       Root_Analysis_Unit : Analysis_Unit;
 
       Preelab : Boolean;
-      --  Set to True if Unit is required to be preelaborable, i.e.  it is
-      --  either preelaborated, or the declaration of a remote types or
-      --  remote call interface library unit. In this case, do not generate
-      --  any witness calls for elaboration of declarations: they would be
-      --  pointless (there is no elaboration code anyway) and, in any case,
-      --  illegal.
+      --  Set to True if Unit is required to be preelaborable, i.e. it is
+      --  either preelaborated, or the declaration of a remote types or remote
+      --  call interface library unit. In this case, do not generate any
+      --  witness calls for elaboration of library-level declarations: they
+      --  would be pointless (there is no elaboration code anyway) and illegal
+      --  (because of the No_Elaboration_Code restriction).
 
       Has_Pragma_SCAO : Boolean;
       --  Whether there is a pragma Short_Circuit_And_Or that applies to this
