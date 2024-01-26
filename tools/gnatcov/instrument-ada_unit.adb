@@ -1096,6 +1096,11 @@ package body Instrument.Ada_Unit is
    function Parent_Decl (Decl : Basic_Decl'Class) return Basic_Decl;
    --  Return the parent declaration for Decl, or No_Basic_Decl if Decl has no
    --  parent, or if we cannot find it.
+
+   function Has_No_Elaboration_Code_All
+     (Unit : LAL.Compilation_Unit) return Boolean;
+   --  Return whether the No_Elaboration_Code_All aspect/pragma applies to Unit
+
    --------------------------------
    -- Instrumentation extensions --
    --------------------------------
@@ -1433,15 +1438,19 @@ package body Instrument.Ada_Unit is
       Prj                            : Prj_Desc;
       CU_Names                       : CU_Name_Vectors.Vector;
       Language_Version               : Unbounded_Wide_Wide_String;
-      Degenerate_Subprogram_Generics : Generic_Subp_Vectors.Vector);
+      Degenerate_Subprogram_Generics : Generic_Subp_Vectors.Vector;
+      Has_No_Elaboration_Code_All    : Boolean);
    --  Emit the unit to contain addresses for the coverage buffers of all of
    --  the compilation unit parts in CU_Names. PB_Unit holds the name of
    --  the pure buffer unit, which is generated in the output dir specified in
    --  the project description Prj.
    --
    --  See the documentation of the eponym fields of the Ada_Unit_Inst_Context
-   --  record for the Language_Version and Degenerate_Subprogram_Generics
-   --  parameters.
+   --  record for the following formals:
+   --
+   --  * Language_Version
+   --  * Degenerate_Subprogram_Generics
+   --  * Has_No_Elaboration_Code_All
 
    function Create_Manual_Helper_Unit_Name
       (Prj : Prj_Desc)
@@ -2905,6 +2914,61 @@ package body Instrument.Ada_Unit is
             Kind => Warning);
          return No_Basic_Decl;
    end Parent_Decl;
+
+   ---------------------------------
+   -- Has_No_Elaboration_Code_All --
+   ---------------------------------
+
+   function Has_No_Elaboration_Code_All
+     (Unit : LAL.Compilation_Unit) return Boolean
+   is
+      Id : constant Unbounded_Text_Type :=
+        To_Unbounded_Text ("No_Elaboration_Code_All");
+      CU : LAL.Compilation_Unit := Unit;
+   begin
+      while not CU.Is_Null loop
+         case CU.F_Body.Kind is
+            when Ada_Library_Item =>
+
+               --  The pragma/aspect can appear in the body or in the spec:
+               --  check both.
+
+               declare
+                  Parts : constant array (1 .. 2) of LAL.Compilation_Unit :=
+                    (CU, CU.P_Other_Part);
+               begin
+                  for P of Parts loop
+                     if not P.Is_Null
+                        and then P.F_Body.As_Library_Item.F_Item
+                                 .P_Has_Aspect (Id)
+                     then
+                        return True;
+                     end if;
+                  end loop;
+                  exit;
+               end;
+
+            when Ada_Subunit =>
+
+               --  For subunits, the pragma/aspect applies only when present in
+               --  the "root" body or its spec.
+
+               declare
+                  Next : Ada_Node := CU.F_Body.As_Subunit.P_Body_Root.Parent;
+               begin
+                  while Next.Kind /= Ada_Compilation_Unit loop
+                     Next := Next.Parent;
+                  end loop;
+                  CU := Next.As_Compilation_Unit;
+               end;
+
+            when others =>
+               exit;
+         end case;
+      end loop;
+
+      return False;
+   end Has_No_Elaboration_Code_All;
 
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --
@@ -7953,13 +8017,16 @@ package body Instrument.Ada_Unit is
 
       Root_Analysis_Unit : Analysis_Unit;
 
-      Preelab : Boolean;
-      --  Set to True if Unit is required to be preelaborable, i.e.  it is
-      --  either preelaborated, or the declaration of a remote types or
-      --  remote call interface library unit. In this case, do not generate
-      --  any witness calls for elaboration of declarations: they would be
-      --  pointless (there is no elaboration code anyway) and, in any case,
-      --  illegal.
+      Preelab : Boolean := False;
+      --  Set to True if Unit is required to be preelaborable, i.e. it is
+      --  either preelaborated, or the declaration of a remote types or remote
+      --  call interface library unit. In this case, do not generate any
+      --  witness calls for elaboration of library-level declarations: they
+      --  would be pointless (there is no elaboration code anyway) and illegal
+      --  (because of the No_Elaboration_Code restriction).
+
+      Has_No_Elab_Code_All : Boolean;
+      --  Whether the No_Elaboration_Code_All applies to this source file
 
       Has_Pragma_SCAO : Boolean;
       --  Whether there is a pragma Short_Circuit_And_Or that applies to this
@@ -7969,25 +8036,47 @@ package body Instrument.Ada_Unit is
 
       Root_Analysis_Unit := Rewriter.Rewritten_Unit;
 
-      --  Determine whether Unit is required to be preelaborable, and whether
-      --  we can insert witness calls (which are not preelaborable).
-
       UIC.Root_Unit := Root_Analysis_Unit.Root.As_Compilation_Unit;
       UIC.Current_Scope_Entity := UIC.Scope_Entities.Root;
+
+      --  Determine if this source file/unit has the No_Elaboration_Code_All
+      --  pragma/aspect.
+
+      begin
+         Has_No_Elab_Code_All := Has_No_Elaboration_Code_All (UIC.Root_Unit);
+      exception
+         when Libadalang.Common.Property_Error =>
+            Report
+              (Msg  => "failed to determine No_Elaboration_Code_All constraint"
+                       & " for " & Filename,
+               Kind => Warning);
+            Has_No_Elab_Code_All := False;
+      end;
+      UIC.Has_No_Elaboration_Code_All :=
+        UIC.Has_No_Elaboration_Code_All or else Has_No_Elab_Code_All;
+
+      --  Determine whether Unit is required to be preelaborable, and whether
+      --  we can insert witness calls (which are not preelaborable).
 
       CU_Name.Part := +UIC.Root_Unit.P_Unit_Kind;
       CU_Name.Unit := To_Qualified_Name
         (UIC.Root_Unit.P_Decl.P_Fully_Qualified_Name_Array);
 
       begin
-         Preelab := (UIC.Root_Unit.P_Is_Preelaborable
-                     or else UIC.Root_Unit.P_Has_Restriction
-                       (To_Unbounded_Text ("No_Elaboration_Code")))
-           and then UIC.Root_Unit.F_Body.Kind = Ada_Library_Item
-           and then UIC.Root_Unit.F_Body.As_Library_Item.F_Item.Kind in
-             Ada_Package_Decl
-               | Ada_Package_Body
-                 | Ada_Generic_Package_Decl;
+         --  Top-level (relative to the source file) declarations can be
+         --  instrumented even when they belong to preelaborate units: they
+         --  just need not to be library-level declarations.
+
+         if UIC.Root_Unit.F_Body.Kind = Ada_Library_Item
+            and then UIC.Root_Unit.F_Body.As_Library_Item.F_Item.Kind in
+             Ada_Package_Decl | Ada_Package_Body | Ada_Generic_Package_Decl
+         then
+            Preelab :=
+              UIC.Root_Unit.P_Is_Preelaborable
+              or else UIC.Root_Unit.P_Has_Restriction
+                        (To_Unbounded_Text ("No_Elaboration_Code"))
+              or else Has_No_Elab_Code_All;
+         end if;
       exception
          when Libadalang.Common.Property_Error =>
             Report
@@ -8468,7 +8557,8 @@ package body Instrument.Ada_Unit is
       Prj                            : Prj_Desc;
       CU_Names                       : CU_Name_Vectors.Vector;
       Language_Version               : Unbounded_Wide_Wide_String;
-      Degenerate_Subprogram_Generics : Generic_Subp_Vectors.Vector)
+      Degenerate_Subprogram_Generics : Generic_Subp_Vectors.Vector;
+      Has_No_Elaboration_Code_All    : Boolean)
    is
       Last_Buffer_Index : constant Natural := Natural (CU_Names.Length);
       Pkg_Name : constant String := To_Ada (PB_Unit.Unit);
@@ -8513,7 +8603,16 @@ package body Instrument.Ada_Unit is
       File.Put_Line ("package " & Pkg_Name & " is");
       File.New_Line;
       File.Put_Line ("   pragma Pure;");
+
+      --  If the instrumented unit has the No_Elaboration_Code_All pragma, all
+      --  its dependencies must have this pragma too, so this pure buffer unit
+      --  has to have it.
+
+      if Has_No_Elaboration_Code_All then
+         File.Put_Line ("   pragma No_Elaboration_Code_All;");
+      end if;
       File.New_Line;
+
       for I in 1 .. Last_Buffer_Index loop
          declare
             Suffix : constant String := "_" & Img (I);
@@ -9291,6 +9390,11 @@ package body Instrument.Ada_Unit is
         CU_Name_For_Unit
           (Pure_Buffer_Unit (To_Qualified_Name (Unit_Name)), GPR.Unit_Spec);
 
+      --  We consider that theer is no No_Elaboration_Code_All pragma/aspect
+      --  until we see one.
+
+      UIC.Has_No_Elaboration_Code_All := False;
+
       --  Try to find the spec and / or the body for this compilation unit
       --  using the unit provider. Then retrieve the separate unit from the
       --  spec / body / both.
@@ -9319,7 +9423,8 @@ package body Instrument.Ada_Unit is
          Prj                            => Prj,
          CU_Names                       => CU_Names,
          Language_Version               => UIC.Language_Version_Pragma,
-         Degenerate_Subprogram_Generics => UIC.Degenerate_Subprogram_Generics);
+         Degenerate_Subprogram_Generics => UIC.Degenerate_Subprogram_Generics,
+         Has_No_Elaboration_Code_All    => UIC.Has_No_Elaboration_Code_All);
    end Instrument_Unit;
 
    --------------------
