@@ -1238,9 +1238,10 @@ package body Project is
    -----------------------
 
    procedure Load_Root_Project
-     (Prj_Name                           : String;
-      Target, Runtime, CGPR_File, DB_Dir : GNAT.Strings.String_Access;
-      From_Driver                        : Boolean := False)
+     (Prj_Name                   : String;
+      Target, Runtime, CGPR_File : GNAT.Strings.String_Access;
+      DB_Dir                     : String;
+      From_Driver                : Boolean := False)
    is
    begin
       if Prj_Tree /= null then
@@ -1258,8 +1259,8 @@ package body Project is
 
       --  Include the additional knowledge base
 
-      if DB_Dir /= null then
-         Env.Add_Config_Dir (Create (+DB_Dir.all));
+      if DB_Dir /= "" then
+         Env.Add_Config_Dir (Create (+DB_Dir));
       end if;
 
       if Obj_Subdir /= "" then

@@ -509,7 +509,7 @@ package body Switches is
          Target_Family,
          Runtime,
          CGPR_File,
-         new String'(Value_Or_Null (Args.String_Args (Opt_Db))),
+         Value_Or_Null (Args.String_Args (Opt_Db)),
          From_Driver);
 
       --  Get common and command-specific switches, decode them (if any) and
