@@ -84,9 +84,10 @@ package Project is
    --  the build tree.
 
    procedure Load_Root_Project
-     (Prj_Name                           : String;
-      Target, Runtime, CGPR_File, DB_Dir : GNAT.Strings.String_Access;
-      From_Driver                        : Boolean := False)
+     (Prj_Name                   : String;
+      Target, Runtime, CGPR_File : GNAT.Strings.String_Access;
+      DB_Dir                     : String;
+      From_Driver                : Boolean := False)
       with Pre  => not Is_Project_Loaded
                    and then ((Target = null and then Runtime = null)
                              or else CGPR_File = null),
