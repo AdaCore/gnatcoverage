@@ -1,0 +1,7 @@
+library project GNATcov_RTS_Custom extends "gnatcov_rts.gpr" is
+   for Object_Dir use "obj";
+   for Library_Dir use "lib";
+   for Library_Name use "gnatcov_rts_custom";
+   for Library_Kind use "static";
+   for Toolchain_Name ("C") use "MY_GCC";
+end GNATcov_RTS_Custom;

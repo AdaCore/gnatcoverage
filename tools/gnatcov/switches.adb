@@ -505,7 +505,12 @@ package body Switches is
       --  project subsystem and load the root project.
 
       Load_Root_Project
-        (Root_Project.all, Target_Family, Runtime, CGPR_File, From_Driver);
+        (Root_Project.all,
+         Target_Family,
+         Runtime,
+         CGPR_File,
+         new String'(Value_Or_Null (Args.String_Args (Opt_Db))),
+         From_Driver);
 
       --  Get common and command-specific switches, decode them (if any) and
       --  store the result in Project_Args, then merge it into Args.

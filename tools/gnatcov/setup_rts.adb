@@ -665,6 +665,7 @@ package body Setup_RTS is
       Target       : String;
       RTS          : String;
       Config_File  : String;
+      Db_Dir       : String;
       Prefix       : String;
       RTS_Profile  : Any_RTS_Profile;
       Install_Name : String;
@@ -774,6 +775,10 @@ package body Setup_RTS is
             end if;
             if Config_File /= "" then
                Common_Args.Append (+("--config=" & Config_File));
+            end if;
+            if Db_Dir /= "" then
+               Common_Args.Append (+"--db");
+               Common_Args.Append (+Db_Dir);
             end if;
             if Prefix /= "" then
                Install_Args.Append (+("--prefix=" & Prefix));
