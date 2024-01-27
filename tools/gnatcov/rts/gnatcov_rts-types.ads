@@ -34,6 +34,7 @@ with System;
 package GNATcov_RTS.Types is
 
    pragma Pure;
+   pragma No_Elaboration_Code_All;
 
    type Unsigned_8 is mod 2 ** 8;
    type Unsigned_64 is mod 2 ** 64;

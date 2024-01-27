@@ -28,7 +28,7 @@ build:
     - require_issue
     - *basic_setup
     # Build using anod
-    - anod install gnatcov $ACI_TRACK_QUALIFIER --latest
+    - anod build gnatcov $ACI_TRACK_QUALIFIER --minimal
     - anod build --minimal gnatcov -Qinstr $ACI_TRACK_QUALIFIER
 
     # Package all components created so far
@@ -82,6 +82,7 @@ build_community:
     # then remove temporaries to save disk space.
     - tar zxf $PACKAGE_ABSOLUTE_NAME -C /
     - anod-copy-components $ANOD_DEFAULT_SANDBOX_DIR/exp-comps $ANOD_DEFAULT_SANDBOX_DIR
+    - anod install gnatcov $ACI_TRACK_QUALIFIER
     - anod install gnatcov -Qinstr $ACI_TRACK_QUALIFIER
     - rm -rf $PACKAGE_ABSOLUTE_NAME $ANOD_DEFAULT_SANDBOX_DIR/exp-comps
 
