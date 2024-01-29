@@ -773,6 +773,12 @@ begin
       end if;
    end loop;
 
+   --  Get the files of interest
+
+   for C in Instr_Config.File_To_SID.Iterate loop
+      Files_Of_Interest.Insert (File_To_String_Maps.Key (C));
+   end loop;
+
    --  Parse the compiler driver invocation
 
    Comp_DB := Parse_Compiler_Driver_Command (Context, Prj, Instr_Dir, Cargs);
@@ -815,25 +821,24 @@ begin
          Simple_Name : constant String := +Comp_Command.File.Base_Name;
          Instr_Name  : constant String := (+Prj.Output_Dir) / Simple_Name;
 
+         FI : constant File_To_String_Maps.Cursor :=
+           Instr_Config.File_To_SID.Find (Comp_Command.File);
       begin
          --  Start by instrumenting the file as a source, if it is a unit of
          --  interest.
 
-         if Files_Of_Interest.Contains (Comp_Command.File) then
+         if File_To_String_Maps.Has_Element (FI) then
 
             --  Pass the compiler switches through the project description
 
             Instrument.Source
-              (Instrumenter      => Instrumenter,
-               Files_Of_Interest => Switches.Files_Of_Interest,
-               Prj               => Prj,
-               Unit_Name         => Fullname,
-
-               --  Generate all the SID files under the same directory as the
-               --  compiler wrapper as they must persist. TODO??? Deal with
-               --  homonym files in SID names.
-
-               SID_Name => Compiler_Wrapper_Dir / (Simple_Name & ".sid"));
+              (Unit_Name         => Fullname,
+               SID_Name          =>
+                 Compiler_Wrapper_Dir /
+                   (+File_To_String_Maps.Element (FI)),
+               Instrumenter      => Instrumenter,
+               Files_Of_Interest => Files_Of_Interest,
+               Prj               => Prj);
 
             Comp_Command_Ref.Instrumentation_Sources.Append
               (Instrumenter.Buffer_Unit

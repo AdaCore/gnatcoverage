@@ -28,6 +28,7 @@ with GNAT.Strings;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 with Coverage;
+with Files_Table;   use Files_Table;
 with JSON;          use JSON;
 with Logging;
 with Outputs;       use Outputs;
@@ -277,11 +278,29 @@ package body Instrument.Setup_Config is
       --  Then, register the files of interest
 
       declare
+         SFIs                   : SFI_Sets.Set;
          Files_Of_Interest_JSON : JSON_Array;
+
+         File_Info : JSON_Value;
+         --  JSON object containing the name of the file and its SID file
+
       begin
+         --  Start by adding into the files table all of the files of interest
+
          for F of Files_Of_Interest loop
-            Append (Files_Of_Interest_JSON, Create (+F.Full_Name));
+            SFIs.Insert (Get_Index_From_Full_Name (+F.Full_Name, Source_File));
          end loop;
+
+         --  Then, compute file information (SID name) for every file of
+         --  interest and add entries into the generated configuration.
+
+         for SFI of SFIs loop
+            File_Info := Create_Object;
+            File_Info.Set_Field ("source-file", Get_Full_Name (SFI));
+            File_Info.Set_Field ("sid-file", Get_Unique_Filename (SFI, "sid"));
+            Append (Files_Of_Interest_JSON, File_Info);
+         end loop;
+
          Config.Set_Field ("files-of-interest", Files_Of_Interest_JSON);
       end;
 
@@ -388,7 +407,9 @@ package body Instrument.Setup_Config is
            Config_JSON.Get ("files-of-interest");
       begin
          for FOI of FOI_JSON loop
-            Switches.Files_Of_Interest.Include (Create_Normalized (Get (FOI)));
+            Result.File_To_SID.Insert
+              (Create_Normalized (FOI.Get ("source-file")),
+               FOI.Get ("sid-file"));
          end loop;
       end;
 

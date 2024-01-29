@@ -26,17 +26,23 @@ copy_map = {
 for src, dest in copy_map.items():
     cp(os.path.join("..", src), dest)
 
-# Compute the expected coverage report from the actual source filenames. Note
-# that in xcov filenames, "gnatcov coverage" first turns '\' to '/' (during
-# path separator canonicalization) and then the unique filename machinery turns
-# '/' to '-'.
+# Compute canonicalized filenames, which will be the base names for gnatcov
+# artifacts (SID and xcov files). Note that "gnatcov" first turns '\' to '/'
+# (during path separator canonicalization) and then the unique filename
+# machinery turns '/' to '-'.
+canonicalized_filenames = {
+    filename: mapped.replace("\\", "-")
+    for filename, mapped in copy_map.items()
+}
+
+# Compute the expected coverage report from the actual source filenames
 coverage_data = {
     "test.c": {"+": {7, 8, 9}},
     "foo.c": {"+": {4, 7}, "-": {5}},
     "bar.c": {"+": {4}},
 }
 expected_report = {
-    "{}.xcov".format(copy_map[filename].replace("\\", "-")): report
+    "{}.xcov".format(canonicalized_filenames[filename]): report
     for filename, report in coverage_data.items()
 }
 
@@ -56,7 +62,7 @@ cmdrun(["gcc", "-o", "test program"] + sources, for_pgm=False)
 cmdrun(["test program"], for_pgm=False)
 
 # Check coverage expectations
-sid_args = [f"--sid={filename}.sid" for filename in sources]
+sid_args = [f"--sid={filename}.sid" for filename in canonicalized_filenames.values()]
 xcov(
     ["coverage", "-cstmt", "-axcov", srctracename_for("test")]
     + sid_args

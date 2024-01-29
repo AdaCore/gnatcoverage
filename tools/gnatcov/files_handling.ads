@@ -19,6 +19,7 @@
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
+with Ada.Strings.Unbounded;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
@@ -55,5 +56,11 @@ package Files_Handling is
       Element_Type => Virtual_File,
       "<"          => GNATCOLL.VFS."<",
       "="          => GNATCOLL.VFS."=");
+
+   package File_To_String_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Virtual_File,
+      Element_Type => Unbounded_String,
+      "<"          => GNATCOLL.VFS."<",
+      "="          => Ada.Strings.Unbounded."=");
 
 end Files_Handling;
