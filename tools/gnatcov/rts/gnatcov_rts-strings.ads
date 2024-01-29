@@ -31,7 +31,9 @@ with GNATcov_RTS.Types; use GNATcov_RTS.Types;
 package GNATcov_RTS.Strings is
 
    pragma Pure;
+   pragma Warnings (Off);
    pragma No_Elaboration_Code_All;
+   pragma Warnings (On);
 
    type GNATcov_RTS_String is record
       Str    : System.Address;

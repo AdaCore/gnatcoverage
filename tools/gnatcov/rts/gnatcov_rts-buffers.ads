@@ -36,7 +36,9 @@ with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 package GNATcov_RTS.Buffers is
 
    pragma Pure;
+   pragma Warnings (Off);
    pragma No_Elaboration_Code_All;
+   pragma Warnings (On);
 
    --  Any_Bit_Id is declared volatile here, as in order to instrument declare
    --  expressions we need to declare a constant MC_DC_State (a subtype of
