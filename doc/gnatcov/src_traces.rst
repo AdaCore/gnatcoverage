@@ -519,6 +519,22 @@ absolutely require :command:`gprbuild` to build the instrumented programs,
 even though we have augmented that builder with a few features to make that
 process very efficient and straightforward.
 
+.. note::
+
+   The variety of supported compilers/compiler versions/optional warnings makes
+   it an irrealistic goal for |gcvins| (and source code generators in general) to
+   produce warning-free code. For instance, a hypothetical compiler is
+   perfectly allowed to warn when functions have more than X statements; yet it
+   would not be reasonable for |gcvins| to accomodate this restriction.
+
+   It is important to note that these are warnings (notes that the compiler can
+   emit on code deemed suspicious, but which do not abort compilation), as
+   opposed to errors, which do abort compilation.
+
+   For these reasons, the most reasonable thing to do with automatically
+   generated code is to disable “warnings-as-error” (``-gnatwn`` for GNAT,
+   ``-Wno-error`` for GCC) when building instrumented code.
+
 Extracting a trace from standard output
 =======================================
 
