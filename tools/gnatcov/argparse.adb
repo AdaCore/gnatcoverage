@@ -185,6 +185,11 @@ package body Argparse is
       end if;
    end Value_Or_Null;
 
+   function Value_Or_Null (Opt : String_Option) return String is
+   begin
+      return +Value_Or_Null (Opt);
+   end Value_Or_Null;
+
    ----------------
    -- Is_Present --
    ----------------

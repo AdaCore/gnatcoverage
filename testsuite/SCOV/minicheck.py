@@ -37,7 +37,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                   gprsw_for_coverage=None, scos_for_run=True,
                   register_failure=True, program_env=None,
                   tolerate_instrument_messages=None, exec_args=None,
-                  auto_languages=True, manual_prj_name=None):
+                  auto_languages=True, manual_prj_name=None,
+                  auto_config_args=True):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -112,6 +113,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
         traces files (one per project) can be emitted if there are dump buffers
         procedure calls in at least two distinct projects. This is the name of
         the project which trace we want to consider.
+    :param bool auto_config_args: If False, do not pass the --config argument
+        to gprbuild and gnatcov invocations.
 
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
@@ -137,7 +140,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                  extracargs=extra_gprbuild_cargs,
                  largs=extra_gprbuild_largs,
                  trace_mode=trace_mode,
-                 runtime_project=runtime_project)
+                 runtime_project=runtime_project,
+                 auto_config_args=auto_config_args)
 
         if check_gprbuild_output:
             gprbuild_out = contents_of('gprbuild.out')
@@ -220,7 +224,8 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
                         out='instrument.log',
                         register_failure=register_failure,
                         tolerate_messages=tolerate_instrument_messages,
-                        auto_languages=auto_languages)
+                        auto_languages=auto_languages,
+                        auto_config_args=auto_config_args)
         gprbuild_wrapper(gprsw.root_project)
 
         # Retrieve the dump_channel that "gnatcov instrument" actually used,
@@ -352,17 +357,19 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, scos=None,
 
 
 def build_run_and_coverage(out='coverage.log', err=None, register_failure=True,
-                           **kwargs):
+                           auto_config_args=True, **kwargs):
     """
     Helper to call build_and_run and then invoke `xcov`.
 
     This invokes `xcov` with the command-line that build_and_run returns to
     perform the "gnatcov coverage" step.
 
-    `out`, `err` and `register_failure` are forwarded to `xcov`, other
+    `out` and `err` are forwarded to `xcov`, `register_failure` and
+    `auto_config_args` are reported to `xcov` and `build_and_run`, other
     arguments are forwarded to `build_and_run`.
     """
-    xcov_args = build_and_run(register_failure=register_failure, **kwargs)
+    xcov_args = build_and_run(register_failure=register_failure,
+                              auto_config_args=auto_config_args, **kwargs)
     xcov(xcov_args, out=out, err=err, register_failure=register_failure)
 
 

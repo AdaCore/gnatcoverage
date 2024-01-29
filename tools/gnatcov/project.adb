@@ -1251,6 +1251,7 @@ package body Project is
    procedure Load_Root_Project
      (Prj_Name                   : String;
       Target, Runtime, CGPR_File : GNAT.Strings.String_Access;
+      DB_Dir                     : String;
       From_Driver                : Boolean := False)
    is
    begin
@@ -1266,6 +1267,12 @@ package body Project is
       pragma Assert (Env = null);
       Initialize (Target, Runtime, CGPR_File);
       pragma Assert (Env /= null);
+
+      --  Include the additional knowledge base
+
+      if DB_Dir /= "" then
+         Env.Add_Config_Dir (Create (+DB_Dir));
+      end if;
 
       if Obj_Subdir /= Null_Unbounded_String then
          Env.Set_Object_Subdir (+To_String (Obj_Subdir));

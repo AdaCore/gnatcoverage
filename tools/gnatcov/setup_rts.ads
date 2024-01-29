@@ -54,6 +54,7 @@ package Setup_RTS is
       Target       : String;
       RTS          : String;
       Config_File  : String;
+      Db_Dir       : String;
       Prefix       : String;
       RTS_Profile  : Any_RTS_Profile;
       Install_Name : String;
@@ -62,7 +63,8 @@ package Setup_RTS is
    --  project.
    --
    --  Target/RTS/Config_File are the standard GPR loading parameters to use
-   --  for the build.
+   --  for the build. DB_Dir is the path to the additional knowledge base
+   --  directory, if any.
    --
    --  Prefix is the installation prefix to pass to gprinstall (--prefix
    --  argument). If the empty string is passed, do not pass --prefix to

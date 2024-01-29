@@ -137,7 +137,8 @@ package Command_Line is
       Opt_Gnatem,
       Opt_Gnatec,
       Opt_Project_Name,
-      Opt_Source_Root);
+      Opt_Source_Root,
+      Opt_Db);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -1091,6 +1092,17 @@ package Command_Line is
            "Option specific to the Cobertura coverage report: remove the"
            & " specified prefix from the filenames in the report.",
          Commands     => (Cmd_Coverage => True, others => False),
+         At_Most_Once => True,
+         Internal     => False),
+
+      Opt_Db => Create
+        (Long_Name    => "--db",
+         Pattern      => "DIR",
+         Help         =>
+           "Parse DIR as an additional GPR knowledge base directory.",
+         Commands     => (Cmd_Setup_Integration
+                          | Cmd_Instrument_Source
+                          | Cmd_Instrument_Main => False, others => True),
          At_Most_Once => True,
          Internal     => False)
      );
