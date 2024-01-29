@@ -39,27 +39,6 @@ with Traces_Disa;
 
 package body Annotations is
 
-   -------------------------
-   -- Get_Unique_Filename --
-   -------------------------
-
-   function Get_Unique_Filename
-     (File      : Source_File_Index;
-      Extension : String) return String
-   is
-      --  Just take the unique name and turn path separators into dashes.
-      --  It should be enough...
-
-      Result : String := Get_Unique_Name (File);
-   begin
-      for C of Result loop
-         if C in '/' | '\' then
-            C := '-';
-         end if;
-      end loop;
-      return Result & '.' & Extension;
-   end Get_Unique_Filename;
-
    procedure Disp_File_Line_State
      (Pp         : in out Pretty_Printer'Class;
       File_Index : Source_File_Index;
