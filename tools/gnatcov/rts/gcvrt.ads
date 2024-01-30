@@ -23,6 +23,8 @@
 package GCVRT is
 
    pragma Pure;
+   pragma Warnings (Off);
    pragma No_Elaboration_Code_All;
+   pragma Warnings (On);
 
 end GCVRT;
