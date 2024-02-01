@@ -22,6 +22,11 @@ Then the process essentially goes like:
 #. Build the instrumented code using the generated compiler wrapper(s);
 #. Execute the program to produce a trace.
 
+The compiler wrapper embeds knowledge through the ``gnatcov_config.json``
+configuration file that is generated alongside it. It is thus necessary to
+re-run the setup step it if the closure of sources of interest, or if the build
+environment (e.g. the path for the original compiler) changes.
+
 
 Specifying instrumentation switches
 ===================================
