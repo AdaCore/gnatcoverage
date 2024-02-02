@@ -2065,6 +2065,8 @@ package body SC_Obligations is
       Inst_Vector.Clear;
       BDD_Vector.Clear;
       SCO_Vector.Clear;
+      Non_Instr_SCOs.Clear;
+      Non_Instr_MCDC_SCOs.Clear;
    end Checkpoint_Clear;
 
    ---------------------
