@@ -237,7 +237,29 @@ package body Project is
    function Owning_Unit_Name (Info : File_Info) return String is
    begin
       if Info.Unit_Part = Unit_Separate then
-         return Prj_Tree.Info (Prj_Tree.Other_File (Info.File)).Unit_Name;
+         declare
+            Other : constant File_Info :=
+              Prj_Tree.Info (Prj_Tree.Other_File (Info.File));
+         begin
+            --  TODO??? (eng/das/cov/gnatcoverage#217)
+            --  GNATCOLL.Projects.Other_File misbehaves for some subunits in
+            --  the Ada runtime: work around this bug here until it is fixed.
+
+            if Other.Unit_Name /= "" then
+               return Other.Unit_Name;
+            end if;
+
+            declare
+               Unit_Name : constant String := Info.Unit_Name;
+            begin
+               if Unit_Name in "s.tpopsp" | "s.tporft" then
+                  return "s.taprop";
+               end if;
+
+               raise Program_Error with
+                 "cannot determine owning unit for separate " & Unit_Name;
+            end;
+         end;
       else
          return Info.Unit_Name;
       end if;
