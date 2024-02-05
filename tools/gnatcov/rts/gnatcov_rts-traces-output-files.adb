@@ -25,9 +25,9 @@
 --  This unit needs to be compilable with Ada 95 compilers
 
 with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Unchecked_Conversion;
 
-with Interfaces.C;         use Interfaces.C;
-with Interfaces.C.Strings; use Interfaces.C.Strings;
+with Interfaces.C; use Interfaces.C;
 
 with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 
@@ -59,22 +59,20 @@ package body GNATcov_RTS.Traces.Output.Files is
      (Env_Var : String  := Default_Trace_Filename_Env_Var;
       Prefix  : String  := "gnatcov";
       Tag     : String  := "";
-      Simple  : Boolean := False) return String
+      Simple  : Boolean := False) return chars_ptr
    is
       Env_Var_C : chars_ptr := New_String (Env_Var);
       Prefix_C  : chars_ptr := New_String (Prefix);
       Tag_C     : chars_ptr := New_String (Tag);
       Simple_C  : constant unsigned  := Boolean'Pos (Simple);
 
-      Trace_Filename_C : chars_ptr :=
+      Result : constant chars_ptr :=
         Default_Trace_Filename_C (Env_Var_C, Prefix_C, Tag_C, Simple_C);
-      Trace_Filename   : constant String := Value (Trace_Filename_C);
    begin
       Free (Env_Var_C);
       Free (Prefix_C);
       Free (Tag_C);
-      Free (Trace_Filename_C);
-      return Trace_Filename;
+      return Result;
    end Default_Trace_Filename;
 
    -----------
@@ -94,24 +92,20 @@ package body GNATcov_RTS.Traces.Output.Files is
 
    procedure Write_Trace_File
      (Buffers_Groups : Coverage_Buffers_Group_Array;
-      Filename       : String := Default_Trace_Filename;
-      Program_Name   : String := Ada.Command_Line.Command_Name;
+      Filename       : chars_ptr := Default_Trace_Filename;
+      Program_Name   : String := "unknown";
       Exec_Date      : Time   := Clock;
-      User_Data      : String := "")
-   is
-      Filename_C : chars_ptr := New_String (Filename);
+      User_Data      : String := "") is
    begin
       if Write_Trace_File_C
            ((Buffers_Groups'Length, Buffers_Groups'Address),
-            Filename_C,
+            Filename,
             (Program_Name'Address, Program_Name'Length),
             Interfaces.Unsigned_64 (Exec_Date),
             (User_Data'Address, User_Data'Length)) = 1
       then
-         Free (Filename_C);
          raise IO_Error;
       end if;
-      Free (Filename_C);
    end Write_Trace_File;
 
    ------------------------------
@@ -120,8 +114,8 @@ package body GNATcov_RTS.Traces.Output.Files is
 
    procedure Write_Trace_File_Wrapper
      (Buffers_Groups : Coverage_Buffers_Group_Array;
-      Filename       : String := Default_Trace_Filename;
-      Program_Name   : String := Ada.Command_Line.Command_Name;
+      Filename       : chars_ptr := Default_Trace_Filename;
+      Program_Name   : String := "unknown";
       Exec_Date      : Time   := Clock;
       User_Data      : String := "")
    is
@@ -141,13 +135,34 @@ package body GNATcov_RTS.Traces.Output.Files is
    exception
       when IO_Error =>
          declare
-            C_Error_Msg : constant chars_ptr := C_Strerror (C_Errno);
-            Error_Msg   : constant String := Value (C_Error_Msg);
+            function "+" is new Ada.Unchecked_Conversion
+              (chars_ptr, System.Address);
+
+            Error_Msg : constant chars_ptr := C_Strerror (C_Errno);
+
+            --  Since we cannot use the secondary stack, it is not possible to
+            --  call Interfaces.C.Strings.Value to turn chars_ptr values into
+            --  String ones. Workaround this with overlays.
+
+            Error_Msg_Length : constant Natural :=
+              Natural (Strlen (Error_Msg));
+            Filename_Length  : constant Natural := Natural (Strlen (Filename));
+
+            Ada_Error_Msg : String (1 .. Error_Msg_Length);
+            for Ada_Error_Msg'Address use +Error_Msg;
+            pragma Import (Ada, Ada_Error_Msg);
+
+            Ada_Filename : String (1 .. Filename_Length);
+            for Ada_Filename'Address use +Filename;
+            pragma Import (Ada, Ada_Filename);
          begin
-            Ada.Text_IO.Put_Line
+            Put
               (Standard_Error,
-               "Error occurred while creating the trace file " & Filename
-               & ": " & Error_Msg);
+               "Error occurred while creating the trace file ");
+            Put (Standard_Error, Ada_Filename);
+            Put (Standard_Error, ": ");
+            Put (Standard_Error, Ada_Error_Msg);
+            New_Line (Standard_Error);
          end;
    end Write_Trace_File_Wrapper;
 
