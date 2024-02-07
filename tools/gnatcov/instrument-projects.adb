@@ -200,7 +200,8 @@ is
    --  Create an instrumentation context for the currently loaded project
 
    procedure Destroy_Context (Context : in out Inst_Context);
-   --  Free dynamically allocated resources in Context
+   --  Free dynamically allocated resources in Context, and cleanup temporary
+   --  files.
 
    function Is_Ignored_Source_File
      (Context : Inst_Context; Filename : String) return Boolean;
@@ -414,6 +415,7 @@ is
    ---------------------
 
    procedure Destroy_Context (Context : in out Inst_Context) is
+      use Ada.Directories;
       procedure Free is new Ada.Unchecked_Deallocation
         (Project_Info, Project_Info_Access);
    begin
@@ -430,6 +432,20 @@ is
          end;
       end loop;
       Context.Project_Info_Map := Project_Info_Maps.Empty_Map;
+
+      --  Cleanup temporary artifacts if not instructed to keep them
+
+      if not Save_Temps then
+         if Exists (+Context.Config_Pragmas_Mapping) then
+            Delete_File (+Context.Config_Pragmas_Mapping);
+         end if;
+         if Exists (+Context.Sources_Of_Interest_Response_File) then
+            Delete_File (+Context.Sources_Of_Interest_Response_File);
+         end if;
+         if Exists (+Context.Ada_Preprocessor_Data_File) then
+            Delete_File (+Context.Ada_Preprocessor_Data_File);
+         end if;
+      end if;
    end Destroy_Context;
 
    ----------------------------
@@ -1474,12 +1490,6 @@ begin
          end loop;
       end loop;
    end;
-
-   if not Save_Temps then
-      Ada.Directories.Delete_File (+IC.Config_Pragmas_Mapping);
-      Ada.Directories.Delete_File (+IC.Sources_Of_Interest_Response_File);
-      Ada.Directories.Delete_File (+IC.Ada_Preprocessor_Data_File);
-   end if;
 
    --  Emit the unit to contain the list of coverage buffers, exported to a
    --  C symbol, in one of the language supported by the project.
