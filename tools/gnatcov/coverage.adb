@@ -20,7 +20,6 @@ with Ada.Command_Line;
 with Ada.Containers;
 
 with Support_Files; use Support_Files;
-with Switches;      use Switches;
 with Version;       use Version;
 
 package body Coverage is
@@ -276,8 +275,7 @@ package body Coverage is
         (Timestamp         => Clock,
          Version           => +Xcov_Version,
          Command           => Command,
-         Levels            => +Coverage_Option_Value,
-         Subps_Of_Interest => Subps_Of_Interest);
+         Levels            => +Coverage_Option_Value);
    end Get_Context;
 
    ---------------

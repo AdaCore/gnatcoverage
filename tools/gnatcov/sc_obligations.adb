@@ -910,6 +910,19 @@ package body SC_Obligations is
       return False;
    end In_Scope_Of_Interest;
 
+   --------------------------
+   -- In_Scope_Of_Interest --
+   --------------------------
+
+   function In_Scope_Of_Interest
+     (ST  : in out Scope_Traversal_Type;
+      SCO : SCO_Id) return Boolean
+   is
+   begin
+      Traverse_SCO (ST, SCO);
+      return In_Scope_Of_Interest (ST);
+   end In_Scope_Of_Interest;
+
    -----------------
    -- Add_Address --
    -----------------

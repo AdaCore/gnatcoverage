@@ -614,7 +614,8 @@ package body Coverage.Source is
 
    procedure Compute_Line_State
      (Line_Num  : Positive;
-      Line_Info : Line_Info_Access)
+      Line_Info : Line_Info_Access;
+      ST        : in out Scope_Traversal_Type)
    is
       procedure Compute_Condition_Level_Line_State
         (SCO       : SCO_Id;
@@ -744,7 +745,13 @@ package body Coverage.Source is
       --  Examine each SCO associated with line
 
       for SCO of Line_Info.SCOs.all loop
-         if Kind (SCO) = Removed then
+
+         --  Skip the discarded SCOs and those not in a subprogram of interest
+
+         if Kind (SCO) = Removed
+           or else (not Subps_Of_Interest.Is_Empty
+                    and then not In_Scope_Of_Interest (ST, SCO))
+         then
             goto Next_SCO;
          end if;
 

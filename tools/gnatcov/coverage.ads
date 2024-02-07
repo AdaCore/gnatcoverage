@@ -27,7 +27,6 @@ with Ada.Calendar;          use Ada.Calendar;
 with Ada.Containers.Ordered_Sets;
 
 with Coverage_Options; use Coverage_Options;
-with SC_Obligations;   use SC_Obligations;
 with Strings;          use Strings;
 
 package Coverage is
@@ -131,10 +130,6 @@ package Coverage is
 
       Levels : Unbounded_String;
       --  Coverage option for enabled coverage levels
-
-      Subps_Of_Interest : Scope_Id_Set;
-      --  List of subprogram of interest. If empty, consider that all of
-      --  the subprograms are of interest.
    end record;
    type Context_Access is access all Context;
 

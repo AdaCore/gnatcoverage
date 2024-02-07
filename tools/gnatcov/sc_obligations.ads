@@ -273,6 +273,12 @@ package SC_Obligations is
    --  also returns True if Switches.Subps_Of_Interest is empty (i.e. consider
    --  that all subprograms are of interest in that case).
 
+   function In_Scope_Of_Interest
+     (ST : in out Scope_Traversal_Type; SCO : SCO_Id) return Boolean with
+     Pre => Get_CU (ST) = No_CU_Id
+           or else SCO in First_SCO (Get_CU (ST)) .. Last_SCO (Get_CU (ST));
+   --  Shortcut for Traverse_SCO (ST, SCO); return In_Scope_Of_Interest (ST);
+
    No_Scope_Entity : constant Scope_Entity :=
      (From       => No_SCO_Id,
       To         => No_SCO_Id,
