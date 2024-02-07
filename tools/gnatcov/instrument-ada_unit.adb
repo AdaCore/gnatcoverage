@@ -1225,6 +1225,18 @@ package body Instrument.Ada_Unit is
    --  If there are parsing errors while reading Input_Filename, this raises a
    --  fatal error and prints the corresponding error messages.
 
+   procedure Start_Rewriting
+     (Self         : out Ada_Source_Rewriter'Class;
+      Instrumenter : in out Ada_Instrumenter_Type'Class;
+      Prj          : Prj_Desc;
+      Unit         : Analysis_Unit);
+   --  Same as above, but initiating the rewriting session from Unit, skipping
+   --  the diagnostics checks.
+   --
+   --  This variation must be used if some analysis on a unit had already taken
+   --  place, in order to avoid a new call to Get_From_File, potentially
+   --  resetting the context, voiding all previous references.
+
    function Rewritten_Unit
      (Self : Ada_Source_Rewriter'Class)
       return Libadalang.Analysis.Analysis_Unit;
@@ -6765,12 +6777,8 @@ package body Instrument.Ada_Unit is
       Prj            : Prj_Desc;
       Input_Filename : String)
    is
-      Base_Filename   : constant String :=
-         Ada.Directories.Simple_Name (Input_Filename);
-      Output_Filename : constant String :=
-        New_File (Prj, Base_Filename);
-      Unit            : constant Analysis_Unit :=
-         Get_From_File (Instrumenter, Input_Filename);
+      Unit : constant Analysis_Unit :=
+        Get_From_File (Instrumenter, Input_Filename);
    begin
       if Unit.Has_Diagnostics then
          Outputs.Error ("instrumentation failed for " & Input_Filename);
@@ -6781,8 +6789,25 @@ package body Instrument.Ada_Unit is
          end loop;
          raise Xcov_Exit_Exc;
       end if;
+      Start_Rewriting (Self, Instrumenter, Prj, Unit);
+   end Start_Rewriting;
 
-      Self.Input_Filename := +Input_Filename;
+   ---------------------
+   -- Start_Rewriting --
+   ---------------------
+
+   procedure Start_Rewriting
+     (Self         : out Ada_Source_Rewriter'Class;
+      Instrumenter : in out Ada_Instrumenter_Type'Class;
+      Prj          : Prj_Desc;
+      Unit         : Analysis_Unit)
+   is
+      Base_Filename   : constant String :=
+         Ada.Directories.Simple_Name (Unit.Get_Filename);
+      Output_Filename : constant String :=
+        New_File (Prj, Base_Filename);
+   begin
+      Self.Input_Filename := +Unit.Get_Filename;
       Self.Output_Filename := +Output_Filename;
       Self.Unit := Unit;
       Self.Handle := Start_Rewriting (Instrumenter.Context);
@@ -7943,6 +7968,9 @@ package body Instrument.Ada_Unit is
 
       Rewriter              : Ada_Source_Rewriter;
 
+      Dummy_Ctx : constant Context_Handle :=
+        Create_Context ("Searching manual indications in " & Source_Filename);
+
       function Find_And_Replace_Pragma
         (N : Ada_Node'Class)
          return Visit_Status;
@@ -7982,7 +8010,7 @@ package body Instrument.Ada_Unit is
 
                   if not (Has_Dump_Indication or else Has_Reset_Indication)
                   then
-                     Start_Rewriting (Rewriter, Self, Prj, File_To_Search);
+                     Start_Rewriting (Rewriter, Self, Prj, Unit);
                   end if;
 
                   declare
