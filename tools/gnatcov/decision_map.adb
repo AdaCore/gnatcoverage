@@ -80,12 +80,13 @@ package body Decision_Map is
    --  Return the PC of the first conditional branch instruction in D_Occ.
    --  Used as unique identifier for occurrences.
 
-   type Call_Kind is (Normal, Raise_Exception, Finalizer);
+   type Call_Kind is (Normal, Raise_Exception, Finalizer, Finalization_Exp);
    --  Classification of calls within a decision:
    --    - normal calls to subprograms
    --    - calls that are known to raise an exception
    --    - calls to generated block finalizers / cleanup code
-
+   --    - calls to finalization expansion symbols - excluding finalizers
+   --
    --  A basic block in object code
 
    package Outcome_Reached_Maps is new Ada.Containers.Ordered_Maps
@@ -161,6 +162,8 @@ package body Decision_Map is
 
    Finalizer_Symbol_Pattern : constant Regexp := Compile
      (".*___finalizer\.[0-9]+");
+   Pre_Finalizer_Symbol_Pattern : constant Regexp := Compile
+     ("system__finalization_primitives__.*");
 
    package Pc_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
@@ -410,6 +413,9 @@ package body Decision_Map is
 
          elsif Is_Finalizer_Symbol (Sym_Name) then
             BB.Call := Finalizer;
+
+         elsif Is_Finalization_Expansion_Symbol (Sym_Name) then
+            BB.Call := Finalization_Exp;
          end if;
       end;
 
@@ -2196,9 +2202,15 @@ package body Decision_Map is
                  else
                    False));
 
-         --  Decision for the jump at the end of BB (if any)
+         --  If this is a call to a finalization symbol (besides the finalizer
+         --  itself), assume that we remain in the decision. Otherwise, look
+         --  for the decision for the jump at the end of BB (if any).
 
-         D_SCO_For_Jump := Decision_Of_Jump (BB.To_PC);
+         if BB.Branch = Br_Call and then BB.Call = Finalization_Exp then
+            D_SCO_For_Jump := D_SCO;
+         else
+            D_SCO_For_Jump := Decision_Of_Jump (BB.To_PC);
+         end if;
 
          --  If in an IF-expression, and we're branching into a decision other
          --  than a nested one (or outside of any decision), then have reached
@@ -2289,7 +2301,7 @@ package body Decision_Map is
                      Edge_Info.Dest_Kind := Raise_Exception;
                   end if;
 
-               elsif BB.Call = Normal then
+               elsif BB.Call in Normal | Finalization_Exp then
                   Next_Dest := (BB.To + 1, Delay_Slot => No_PC);
                   After_Call := True;
                   goto Follow_Jump;
@@ -3189,6 +3201,15 @@ package body Decision_Map is
    begin
       return Match (Name, Finalizer_Symbol_Pattern);
    end Is_Finalizer_Symbol;
+
+   --------------------------------------
+   -- Is_Finalization_Expansion_Symbol --
+   --------------------------------------
+
+   function Is_Finalization_Expansion_Symbol (Name : String) return Boolean is
+   begin
+      return Match (Name, Pre_Finalizer_Symbol_Pattern);
+   end Is_Finalization_Expansion_Symbol;
 
    ---------------
    -- Write_Map --

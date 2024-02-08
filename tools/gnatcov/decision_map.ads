@@ -54,6 +54,10 @@ package Decision_Map is
    function Is_Finalizer_Symbol (Name : String) return Boolean;
    --  Return whether Name corresponds to a finalizer symbol name
 
+   function Is_Finalization_Expansion_Symbol (Name : String) return Boolean;
+   --  Return whether Name corresponds to a finalization expansion name,
+   --  excluding finalizers themselves.
+
    ---------------------------------
    -- Control flow graph analysis --
    ---------------------------------
