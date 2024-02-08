@@ -6371,9 +6371,9 @@ package body Instrument.Ada_Unit is
       return not (for all DN of N.P_Defining_Names => not DN.P_Is_Ghost_Code);
    exception
       when E : Property_Error =>
-         Report (N,
-                 Msg => "Could not determine if decl is ghost: "
-                 & Ada.Exceptions.Exception_Information (E),
+         Report (Node => N,
+                 Msg  => "Could not determine if decl is ghost: "
+                         & Ada.Exceptions.Exception_Information (E),
                  Kind => Low_Warning);
          return False;
 
@@ -6384,9 +6384,9 @@ package body Instrument.Ada_Unit is
       return N.P_Is_Ghost_Code;
    exception
       when E : Property_Error =>
-         Report (N,
-                 Msg => "Could not determine if stmt is ghost: "
-                 & Ada.Exceptions.Exception_Information (E),
+         Report (Node => N,
+                 Msg  => "Could not determine if stmt is ghost: "
+                         & Ada.Exceptions.Exception_Information (E),
                  Kind => Low_Warning);
          return False;
 
