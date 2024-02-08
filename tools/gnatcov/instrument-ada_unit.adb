@@ -1000,6 +1000,10 @@ package body Instrument.Ada_Unit is
    --  generated is a primitive of a tagged type, and if that tagged type is
    --  the return type of the expression function.
 
+   function Has_Access_Attribute_Ref (E : Expr) return Boolean;
+   --  Return whether E or one of its subexpressions is a reference to the
+   --  'Access, 'Unchecked_Access or 'Unrestricted_Access attributes.
+
    function Has_Matching_Pragma_For_Unit
      (Context  : Analysis_Context;
       Unit     : LAL.Compilation_Unit;
@@ -2811,6 +2815,38 @@ package body Instrument.Ada_Unit is
       return False;
    end Return_Type_Is_Controlling;
 
+   ------------------------------
+   -- Has_Access_Attribute_Ref --
+   ------------------------------
+
+   function Has_Access_Attribute_Ref (E : Expr) return Boolean is
+
+      function Process_Node (N : Ada_Node'Class) return Visit_Status;
+      --  Helper for Libadalang.Analysis.Traverse. Return Stop if an access
+      --  attribute reference is found, Into otherwise.
+
+      ------------------
+      -- Process_Node --
+      ------------------
+
+      function Process_Node (N : Ada_Node'Class) return Visit_Status is
+      begin
+         if N.Kind = Ada_Attribute_Ref
+            and then Canonicalize (N.As_Attribute_Ref.F_Attribute.Text).Symbol
+                     in "access" | "unchecked_access" | "unrestricted_access"
+         then
+            return Stop;
+         end if;
+
+         return Into;
+      end Process_Node;
+
+   --  Start of processing for Has_Access_Attribute_Ref
+
+   begin
+      return E.Traverse (Process_Node'Access) = Stop;
+   end Has_Access_Attribute_Ref;
+
    ---------------------------
    -- Return_From_Subp_Body --
    ---------------------------
@@ -3793,12 +3829,17 @@ package body Instrument.Ada_Unit is
            UIC.Degenerate_Subprogram_Index + 1;
 
          --  Deal with the "easy" Ada 2022 and onwards case for expression
-         --  functions:
-         --  Simply nest the expression in a declare expression, and use that
-         --  to host the statement witness call, and local declarations.
+         --  functions: simply nest the expression in a declare expression, and
+         --  use that to host the statement witness call, and local
+         --  declarations.
+         --
+         --  Note that this is not legal if the expression function body
+         --  contains *any* reference to a
+         --  'Access/'Unchecked_Access/'Unrestricted_Access attribute.
 
          if UIC.Language_Version in Decl_Expr_Supported_Versions
            and then Is_Expr_Function
+           and then not Has_Access_Attribute_Ref (N.As_Expr_Function.F_Expr)
          then
             declare
                Expr_Func : constant Expr_Function := N.As_Expr_Function;
