@@ -4995,9 +4995,7 @@ package body Instrument.Ada_Unit is
                            Typ := 't';
                            if Assertion_Coverage_Enabled then
                               Process_Contract
-                                (UIC,
-                                 N.As_Concrete_Type_Decl,
-                                 "Type_Invariant");
+                                (UIC, N.As_Basic_Decl, "Type_Invariant");
                            end if;
                         end if;
 
