@@ -83,20 +83,25 @@ package body Instrument.Common is
       return Buffer_Symbol (Instrumented_Unit, "mcdc");
    end MCDC_Buffer_Symbol;
 
-   -------------------------------------
-   -- Is_Manual_Dump_Procedure_Symbol --
-   -------------------------------------
+   Dump_Pattern  : constant Pattern_Matcher :=
+      Compile (Dump_Procedure_Symbol
+        ((File_Based_Language, Null_Unbounded_String), Manual => True));
+   Reset_Pattern : constant Pattern_Matcher :=
+     Compile (Reset_Procedure_Symbol (""));
+   --  Precomputed patterns to be used as helpers for
+   --  Is_Manual_Indication_Procedure_Symbol.
 
-   function Is_Manual_Dump_Procedure_Symbol (Symbol : String) return Boolean
+   -------------------------------------------
+   -- Is_Manual_Indication_Procedure_Symbol --
+   -------------------------------------------
+
+   function Is_Manual_Indication_Procedure_Symbol
+     (Symbol : String) return Boolean
    is
-      Dummy_Main : Compilation_Unit_Part;
-      Pattern    : constant Pattern_Matcher :=
-        Compile (Dump_Procedure_Symbol (Dummy_Main, Manual => True));
-      Matches    : Match_Array (0 .. 0);
    begin
-      Match (Pattern, Symbol, Matches);
-      return Matches (0) /= No_Match;
-   end Is_Manual_Dump_Procedure_Symbol;
+      return Match (Dump_Pattern, Symbol)
+            or else Match (Reset_Pattern, Symbol);
+   end Is_Manual_Indication_Procedure_Symbol;
 
    -----------------------
    -- Unit_Buffers_Name --

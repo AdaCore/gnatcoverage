@@ -2213,7 +2213,8 @@ package body Instrument.C is
                   --  dump buffers procedure, do nothing. It should not be
                   --  considered for coverage analysis.
 
-               if not Is_Manual_Dump_Procedure_Symbol (Get_Callee_Name_Str (N))
+               if not Is_Manual_Indication_Procedure_Symbol
+                        (Get_Callee_Name_Str (N))
                then
                   Instrument_Statement (N, ' ');
                   if Has_Decision (N) then
@@ -3728,16 +3729,19 @@ package body Instrument.C is
       --  Compute the qualified names we need for instrumentation
 
       declare
-         Filename       : constant String := +Helper_Unit;
-         Dump_Procedure : constant String :=
+         Filename        : constant String := +Helper_Unit;
+         Dump_Procedure  : constant String :=
            Dump_Procedure_Symbol
              (Main, Dump_Config.Trigger = Manual, Prj_Name => +Prj.Prj_Name);
+         Reset_Procedure : constant String :=
+           Reset_Procedure_Symbol (+Prj.Prj_Name);
       begin
          --  Emit the package body
 
          Create_File (Prj, File, Filename);
 
          File.Put_Line ("#include ""gnatcov_rts_c-strings.h""");
+         File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
 
          case Dump_Config.Channel is
             when Binary_File =>
@@ -3762,7 +3766,11 @@ package body Instrument.C is
 
          File.New_Line;
          File.Put (Instrumenter.Extern_Prefix);
-         File.Put_Line ("void " & Dump_Procedure & " (void) {");
+         File.Put_Line ("void " & Dump_Procedure & " ("
+                        & (if Dump_Config.Trigger = Manual
+                           then "char *prefix"
+                           else "void")
+                        & ") {");
 
          File.Put_Line (Indent1 & Output_Proc & " (");
          File.Put_Line
@@ -3777,7 +3785,7 @@ package body Instrument.C is
                   else """" & (+Dump_Config.Filename_Env_Var) & """");
                Prefix  : constant String :=
                  (if Dump_Config.Trigger = Manual
-                  then """" & (+Prj.Prj_Name) & """"
+                  then "prefix"
                   else   """" & (+Dump_Config.Filename_Prefix) & """");
                Tag     : constant String := """" & (+Instrumenter.Tag) & """";
                Simple  : constant String :=
@@ -3822,6 +3830,16 @@ package body Instrument.C is
 
          File.Put_Line ("}");
 
+         --  Emit the procedure to clear the buffer groups
+
+         File.New_Line;
+         File.Put (Instrumenter.Extern_Prefix);
+         File.Put_Line ("void " & Reset_Procedure & "(void) {");
+         File.Put_Line (Indent1 & "gnatcov_rts_reset_group_array (");
+         File.Put_Line
+           (Indent2 & "&" & Unit_Buffers_Array_Name (+Prj.Prj_Name) & ");");
+         File.Put_Line ("}");
+
          File.Close;
       end;
    end Emit_Dump_Helper_Unit;
@@ -3851,32 +3869,41 @@ package body Instrument.C is
          Prj          => Prj);
    end Emit_Dump_Helper_Unit_Manual;
 
-   ------------------------------------
-   -- Replace_Manual_Dump_Indication --
-   ------------------------------------
+   --------------------------------
+   -- Replace_Manual_Indications --
+   --------------------------------
 
-   overriding procedure Replace_Manual_Dump_Indication
-     (Self                  : in out C_Family_Instrumenter_Type;
-      Prj                   : in out Prj_Desc;
-      Source                : GNATCOLL.Projects.File_Info;
-      Has_Manual_Indication : out Boolean)
+   overriding procedure Replace_Manual_Indications
+     (Self                 : in out C_Family_Instrumenter_Type;
+      Prj                  : in out Prj_Desc;
+      Source               : GNATCOLL.Projects.File_Info;
+      Has_Dump_Indication  : out Boolean;
+      Has_Reset_Indication : out Boolean)
    is
       Orig_Filename : constant String := +Source.File.Full_Name;
    begin
       Check_Compiler_Driver (Prj, Self);
 
       declare
-         Options        : Analysis_Options;
-         PP_Filename    : Unbounded_String;
-         Dummy_Main     : Compilation_Unit_Part;
-         Dump_Pat       : constant Pattern_Matcher :=
+         Options         : Analysis_Options;
+         PP_Filename     : Unbounded_String;
+         Dummy_Main      : Compilation_Unit_Part;
+         Dump_Pat        : constant Pattern_Matcher :=
            Compile
-             ("^[\t ]*\/\* GNATCOV_DUMP_BUFFERS \*\/[ \t]*",
+             ("^[\t ]*\/\* GNATCOV_DUMP_BUFFERS (\((.+)\))? ?\*\/[ \t]*",
               Flags => Multiple_Lines);
-         Matches        : Match_Array (0 .. 1);
-         Dump_Procedure : constant String :=
+         Reset_Pat       : constant Pattern_Matcher :=
+           Compile
+             ("^[\t ]*\/\* GNATCOV_RESET_BUFFERS \*\/[ \t]*",
+              Flags => Multiple_Lines);
+         Matches_Dump    : Match_Array (0 .. 2);
+         Matches_Reset   : Match_Array (0 .. 0);
+         Dump_Procedure  : constant String :=
            Dump_Procedure_Symbol
              (Main => Dummy_Main, Manual => True, Prj_Name => +Prj.Prj_Name);
+         Reset_Procedure : constant String :=
+           Reset_Procedure_Symbol (+Prj.Prj_Name);
+
       begin
          --  Preprocess the source, keeping the comment to look for the manual
          --  dump indication later.
@@ -3933,37 +3960,97 @@ package body Instrument.C is
             --  original file.
 
          begin
-            Has_Manual_Indication := False;
+            Has_Dump_Indication := False;
+            Has_Reset_Indication := False;
+            Match (Dump_Pat, Str (Index .. Str'Last), Matches_Dump);
+            Match (Reset_Pat, Str (Index .. Str'Last), Matches_Reset);
             while Index in Str'Range loop
-               Match (Dump_Pat, Str (Index .. Str'Last), Matches);
-               exit when Matches (0) = No_Match;
+               --  No matches, nothing left to do
+               exit when Matches_Dump (0) = No_Match
+                        and then Matches_Reset (0) = No_Match;
 
                --  Open the output file if this is the first match we find,
                --  then forward the source code that appear before the match
                --  unchanged.
 
-               if not Has_Manual_Indication then
+               if not (Has_Dump_Indication or else Has_Reset_Indication) then
                   Create (Output_File, Out_File, Tmp_Filename);
                   S := Stream (Output_File);
-                  Has_Manual_Indication := True;
 
-                  --  Put an external decl for the buffers dump function
+                  --  Put an external decl for the buffers dump and reset
+                  --  functions.
 
                   String'Write
-                    (S, "extern void " & Dump_Procedure & "(void);");
+                    (S, "extern void " & Dump_Procedure & "(char *prefix);");
+                  String'Write
+                    (S, "extern void " & Reset_Procedure & "(void);");
                end if;
-               String'Write (S, Str (Index .. Matches (0).First));
 
-               --  Replace the match with the call to the dump procedure
+               --  If we only have a Dump match, or it is the first of the two
+               --  to match, insert a dump buffer procedure call in place of
+               --  the match.
 
-               String'Write (S, Dump_Procedure & "();");
-               Index := Matches (0).Last + 1;
+               if Matches_Reset (0) = No_Match
+                 or else Matches_Reset (0).First > Matches_Dump (0).First
+               then
+
+                  if Switches.Misc_Trace.Is_Active then
+                     Switches.Misc_Trace.Trace
+                       ("Found buffer dump indication in file "
+                        & (+Source.File.Base_Name));
+                  end if;
+
+                  Has_Dump_Indication := True;
+                  String'Write (S, Str (Index .. Matches_Dump (0).First));
+
+                  --  If we had a prefix specified in the comment, include it
+                  --  in the dump procedure call.
+
+                  if Matches_Dump (1) /= No_Match then
+                     String'Write
+                       (S, Dump_Procedure & "("
+                           & Str
+                               (Matches_Dump (2).First
+                                .. Matches_Dump (2).Last)
+                           & ");");
+
+                  --  Otherwise use the project name as prefix
+
+                  else
+                     String'Write
+                       (S, Dump_Procedure & "(""" & (+Prj.Prj_Name) & """);");
+                  end if;
+                  Index := Matches_Dump (0).Last + 1;
+
+                  --  Search for the next dump indication
+
+                  Match (Dump_Pat, Str (Index .. Str'Last), Matches_Dump);
+               else
+
+                  --  Otherwise we only have a Reset match, or the reset
+                  --  indication comes before the next Dump indication.
+
+                  if Switches.Misc_Trace.Is_Active then
+                     Switches.Misc_Trace.Trace
+                       ("Found buffer reset indication in file "
+                        & (+Source.File.Base_Name));
+                  end if;
+
+                  Has_Reset_Indication := True;
+                  String'Write (S, Str (Index .. Matches_Reset (0).First));
+                  String'Write (S, Reset_Procedure & "();");
+                  Index := Matches_Reset (0).Last + 1;
+
+                  --  Search for the next reset indication
+
+                  Match (Reset_Pat, Str (Index .. Str'Last), Matches_Reset);
+               end if;
             end loop;
 
             --  If we had a manual indication, and thus wrote a modified source
             --  file, overwrite the original source file with it.
 
-            if Has_Manual_Indication then
+            if Has_Dump_Indication or else Has_Reset_Indication then
                declare
                   PP_File  : constant Virtual_File := Create (+(+PP_Filename));
                   Tmp_File : constant Virtual_File := Create (+Tmp_Filename);
@@ -3995,7 +4082,7 @@ package body Instrument.C is
             end if;
          end;
       end;
-   end Replace_Manual_Dump_Indication;
+   end Replace_Manual_Indications;
 
    -------------------------------
    -- Auto_Dump_Buffers_In_Main --

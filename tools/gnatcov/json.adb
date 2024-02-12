@@ -35,6 +35,7 @@ package body JSON is
    begin
       File.Create (Filename);
       File.Put (Content);
+      File.Close;
    end Write;
 
    ----------

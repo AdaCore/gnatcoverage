@@ -38,9 +38,10 @@ extern "C"
 
      * "PREFIX.srctrace" if SIMPLE is True.
 
-     * "PREFIX-TAG-PID-CLOCK.srctrace" if SIMPLE is False (PID is the current
-       process ID and CLOCK is the execution timestamp). The "-TAG" part is
-       omitted if TAG is the empty string.
+     * "PREFIX-TAG-PID-CLOCK-COUNT.srctrace" if SIMPLE is False (PID is the
+       current process ID, CLOCK is the execution timestamp, COUNT is the
+       number of previously dumped traces by the program).  The "-TAG" part
+       is omitted if TAG is the empty string.
 
      If the ENV_VAR environment variable is defined and not empty, then:
 
@@ -50,9 +51,9 @@ extern "C"
 
      * otherwise, just return the content of that environment variable.  */
   extern char *gnatcov_rts_default_trace_filename (const char *env_var,
-						   const char *prefix,
-						   const char *tag,
-						   unsigned simple);
+                                                   const char *prefix,
+                                                   const char *tag,
+                                                   unsigned simple);
 
   /* Write a trace file in FILENAME to contain the data in BUFFERS_GROUPS.
 
