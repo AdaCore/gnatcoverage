@@ -1,0 +1,9 @@
+project Test_Exp extends "lib" is
+   for Source_Dirs use
+     ("../src/stub_add",
+      "../src/stub_mult",
+      "../src/test_exp");
+   for Object_Dir use "obj/test_exp";
+   for Exec_Dir use "bin";
+   for Main use ("test_exp.adb");
+end Test_Exp;
