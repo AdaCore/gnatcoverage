@@ -137,6 +137,10 @@ package body SC_Obligations is
    function Has_SCOs (CUI : CU_Info) return Boolean is
      (CUI.First_SCO <= CUI.Last_SCO);
 
+   function Are_Bit_Maps_In_Range
+     (Bit_Maps : CU_Bit_Maps; CU : CU_Info) return Boolean;
+   --  Return whether all SCOs referenced in Bit_Maps belong to CU
+
    package CU_Info_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Valid_CU_Id,
       Element_Type => CU_Info);
@@ -4252,6 +4256,23 @@ package body SC_Obligations is
       SCO_Vector.Reference (C_SCO).BDD_Node := BDD_Node;
    end Set_BDD_Node;
 
+   ---------------------------
+   -- Are_Bit_Maps_In_Range --
+   ---------------------------
+
+   function Are_Bit_Maps_In_Range
+     (Bit_Maps : CU_Bit_Maps; CU : CU_Info) return Boolean
+   is
+      subtype SCO_Range is SCO_Id range CU.First_SCO .. CU.Last_SCO;
+   begin
+      return
+        (for all SCO of Bit_Maps.Statement_Bits.all => SCO in SCO_Range)
+        and then (for all Info of Bit_Maps.Decision_Bits.all
+                  => Info.D_SCO in SCO_Range)
+        and then (for all Info of Bit_Maps.MCDC_Bits.all
+                  => Info.D_SCO in SCO_Range);
+   end Are_Bit_Maps_In_Range;
+
    ------------------
    -- Set_Bit_Maps --
    ------------------
@@ -4263,6 +4284,8 @@ package body SC_Obligations is
       Ctx : GNAT.SHA1.Context;
       LF  : constant String := (1 => ASCII.LF);
    begin
+      pragma Assert (Are_Bit_Maps_In_Range (Bit_Maps, Info));
+
       Info.Bit_Maps := Bit_Maps;
 
       --  Compute the fingerprint for these bit maps
