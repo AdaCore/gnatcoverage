@@ -1,0 +1,1 @@
+bin-traces XFAIL eng/das/cov/gnatcoverage#227: never worked with bin-traces

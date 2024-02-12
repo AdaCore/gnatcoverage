@@ -4620,6 +4620,36 @@ package body SC_Obligations is
       Ctx  : GNAT.SHA1.Context;
       LF   : constant String := (1 => ASCII.LF);
 
+      procedure Update (SCO : SCO_Id);
+      --  Helper for fingerprint computation: update Ctx to include a reference
+      --  to the given SCO. That infomation is made relative to CU's first SCO,
+      --  so that during consolidation, bit maps are treated as equivalent
+      --  modulo SCO relocation. For instance, the following units/maps should
+      --  be equivalent:
+      --
+      --    CU #1
+      --      First_SCO => 10
+      --      Last_SCO  => 12
+      --      Statement_Bits => (1 => 10, 2 => 11, 3 => 12)
+      --
+      --    CU #2
+      --      First_SCO => 20
+      --      Last_SCO  => 22
+      --      Statement_Bits => (1 => 20, 2 => 21, 3 => 22)
+      --
+      --  Because when we attempt to consolidate CUs #1 and #2, the bit maps
+      --  will be equal after the relocation of SCOs #20..#22 to #10..#12.
+
+      ------------
+      -- Update --
+      ------------
+
+      procedure Update (SCO : SCO_Id) is
+         Relative_SCO : constant SCO_Id := SCO - Info.First_SCO;
+      begin
+         Update (Ctx, Relative_SCO'Image);
+      end Update;
+
    begin
       pragma Assert (Are_Bit_Maps_In_Range (Bit_Maps, Info));
 
@@ -4629,19 +4659,21 @@ package body SC_Obligations is
 
       Update (Ctx, "stmt:");
       for Id of Bit_Maps.Statement_Bits.all loop
-         Update (Ctx, Id'Image);
+         Update (Id);
       end loop;
       Update (Ctx, LF);
 
       Update (Ctx, "dc:");
       for D of Bit_Maps.Decision_Bits.all loop
-         Update (Ctx, D.D_SCO'Image & ":" & D.Outcome'Image);
+         Update (D.D_SCO);
+         Update (Ctx, ":" & D.Outcome'Image);
       end loop;
       Update (Ctx, LF);
 
       Update (Ctx, "mcdc:");
       for M of Bit_Maps.MCDC_Bits.all loop
-         Update (Ctx, M.D_SCO'Image & ":" & M.Path_Index'Image);
+         Update (M.D_SCO);
+         Update (Ctx, ":" & M.Path_Index'Image);
       end loop;
       Update (Ctx, LF);
 
