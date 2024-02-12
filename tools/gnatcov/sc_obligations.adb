@@ -4617,8 +4617,9 @@ package body SC_Obligations is
       use GNAT.SHA1;
 
       Info : CU_Info renames CU_Vector.Reference (CU);
-      Ctx : GNAT.SHA1.Context;
-      LF  : constant String := (1 => ASCII.LF);
+      Ctx  : GNAT.SHA1.Context;
+      LF   : constant String := (1 => ASCII.LF);
+
    begin
       pragma Assert (Are_Bit_Maps_In_Range (Bit_Maps, Info));
 
