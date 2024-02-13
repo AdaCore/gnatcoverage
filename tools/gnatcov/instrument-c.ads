@@ -58,20 +58,25 @@ package Instrument.C is
       Dump_Config : Any_Dump_Config;
       Prj         : Prj_Desc);
 
-   overriding procedure Replace_Manual_Dump_Indication
-     (Self                  : in out C_Family_Instrumenter_Type;
-      Prj                   : in out Prj_Desc;
-      Source                : GNATCOLL.Projects.File_Info;
-      Has_Manual_Indication : out Boolean);
+   overriding procedure Replace_Manual_Indications
+     (Self                 : in out C_Family_Instrumenter_Type;
+      Prj                  : in out Prj_Desc;
+      Source               : GNATCOLL.Projects.File_Info;
+      Has_Dump_Indication  : out Boolean;
+      Has_Reset_Indication : out Boolean);
    --  Preprocess Source and look through the text content of the preprocessed
-   --  file looking for manual dump indications. The C-like languages, the
-   --  expected indication is the comment alone on its line:
+   --  file looking for manual dump/reset indications. For C-like languages,
+   --  the expected indication are comments alone on their line:
    --
    --  /* GNATCOV_DUMP_BUFFERS */
    --
+   --  or
+   --
+   --  /* GNATOV_RESET_BUFFERS */
+   --
    --  When one is found the text of the file is modified: the line is replaced
-   --  by a call to the manual dump procedure and an extern declaration for the
-   --  procedure is put at the beginning of the file.
+   --  by a call to the manual dump/reset procedure and an extern declaration
+   --  for the procedure is put at the beginning of the file.
 
    overriding procedure Emit_Dump_Helper_Unit_Manual
      (Self        : in out C_Family_Instrumenter_Type;

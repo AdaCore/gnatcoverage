@@ -38,9 +38,9 @@ class Test:
 default_prefix = exename_for("main")
 
 for t in [
-    Test("none", f"{default_prefix}-*-*-*.srctrace"),
+    Test("none", f"{default_prefix}-*-*-*-0.srctrace"),
     Test("simple", f"{default_prefix}.srctrace", ["--dump-filename-simple"]),
-    Test("prefix", "bar-*-*-*.srctrace", ["--dump-filename-prefix=bar"]),
+    Test("prefix", "bar-*-*-*-0.srctrace", ["--dump-filename-prefix=bar"]),
     Test("env-var",
          "mytrace.srctrace",
          ["--dump-filename-env-var=MY_TRACE_FILE"],

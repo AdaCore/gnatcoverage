@@ -22,36 +22,18 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Namespace for all support packages required to do instrumentation-based
---  coverage computation in GNATcoverage.
-
 --  This unit needs to be compilable with Ada 95 compilers
 
-with System;
-pragma Warnings (Off, System);
+package body GNATcov_RTS.Buffers.Lists is
 
-package GNATcov_RTS is
+   procedure Clear_Buffers_C (Arr : System.Address);
+   pragma Import (C, Clear_Buffers_C, "gnatcov_rts_reset_group_array");
 
-   pragma Pure;
-   pragma Warnings (Off);
-   pragma No_Elaboration_Code_All;
-   pragma Warnings (On);
+   procedure Reset_Group_Array_Buffers
+     (Arr : GNATcov_RTS_Coverage_Buffers_Group_Array)
+   is
+   begin
+      Clear_Buffers_C (Arr'Address);
+   end Reset_Group_Array_Buffers;
 
-   package Std renames Standard;
-   package Sys renames System;
-   pragma Warnings (Off, Std);
-   pragma Warnings (Off, Sys);
-
-   Version : constant := 6;
-   --  For compatibility with the GNATcoverage in use, GNATcov_RTS is
-   --  versioned.
-   --
-   --  1 -- initial runtime version
-   --  2 -- extend trace entry model to account for C files
-   --  3 -- add a renaming of the Standard and System packages in GNATcov_RTS
-   --  4 -- add C witness functions / buffer types
-   --  5 -- add a non-volatile version of the Witness_Dummy_Type and
-   --       the associated Witness function.
-   --  6 -- buffer clear mechanism and trace filename indices
-
-end GNATcov_RTS;
+end GNATcov_RTS.Buffers.Lists;

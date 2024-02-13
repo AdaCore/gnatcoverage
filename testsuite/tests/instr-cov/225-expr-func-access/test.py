@@ -24,9 +24,9 @@ build_run_and_coverage(
 check_xcov_reports(
     "*.xcov",
     {
-        "main.adb.xcov": {
-            "+": {7, 9, 10, 13, 16, 19, 22, 23, 25, 26, 28, 29, 31, 32}
-        }
+        "main.adb.xcov": {"+": {9, 10, 12, 13, 15, 16}},
+        "pkg.ads.xcov": {},
+        "pkg.adb.xcov": {"+": {6, 9, 12}},
     },
     cwd="xcov",
 )

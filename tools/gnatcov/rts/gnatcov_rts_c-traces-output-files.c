@@ -25,9 +25,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "gnatcov_rts_c-memory.h"
 #include "gnatcov_rts_c-os_interface.h"
 #include "gnatcov_rts_c-traces-output-files.h"
 #include "gnatcov_rts_c-traces-output.h"
+
+uint32_t gnatcov_rts_trace_dump_counter = 0;
 
 static int
 write_bytes (void *output, const void *bytes, unsigned count)
@@ -97,15 +100,18 @@ char *
 gnatcov_rts_default_trace_basename (const char *prefix, const char *tag,
                                     unsigned simple)
 {
+
   char *extension = ".srctrace";
   if (simple)
     return concat (prefix, extension, NULL);
 
+  char *trace_nb = hex_str (gnatcov_rts_trace_dump_counter++);
   char *pid = hex_str (gnatcov_rts_getpid ());
   char *time = hex_str (gnatcov_rts_time_to_uint64 ());
-  char *suffix = concat ("-", pid, "-", time, extension, NULL);
+  char *suffix = concat ("-", pid, "-", time, "-", trace_nb, extension, NULL);
   free (pid);
   free (time);
+  free (trace_nb);
 
   char *res;
 

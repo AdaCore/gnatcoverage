@@ -18,6 +18,7 @@
  ****************************************************************************/
 
 #include "gnatcov_rts_c-traces-output.h"
+#include "gnatcov_rts_c-memory.h"
 #include "gnatcov_rts_c-traces.h"
 #include <stdint.h>
 

@@ -200,7 +200,8 @@ is
    --  Create an instrumentation context for the currently loaded project
 
    procedure Destroy_Context (Context : in out Inst_Context);
-   --  Free dynamically allocated resources in Context
+   --  Free dynamically allocated resources in Context, and cleanup temporary
+   --  files.
 
    function Is_Ignored_Source_File
      (Context : Inst_Context; Filename : String) return Boolean;
@@ -255,7 +256,7 @@ is
       Instrumenter         : in out Language_Instrumenter'Class;
       Manual_Dump_Inserted : in out Boolean);
    --  For all sources in Project_Sources of language Language, call
-   --  Replace_Manual_Dump_Indication. If a dump procedure call was inserted
+   --  Replace_Manual_Indications. If a dump procedure call was inserted
    --  and id there is not one already, also emit a dump helper unit for the
    --  project the source belongs to. Set Manual_Dump_Inserted to True if at
    --  least one manual dump indication was found.
@@ -414,6 +415,7 @@ is
    ---------------------
 
    procedure Destroy_Context (Context : in out Inst_Context) is
+      use Ada.Directories;
       procedure Free is new Ada.Unchecked_Deallocation
         (Project_Info, Project_Info_Access);
    begin
@@ -430,6 +432,20 @@ is
          end;
       end loop;
       Context.Project_Info_Map := Project_Info_Maps.Empty_Map;
+
+      --  Cleanup temporary artifacts if not instructed to keep them
+
+      if not Save_Temps then
+         if Exists (+Context.Config_Pragmas_Mapping) then
+            Delete_File (+Context.Config_Pragmas_Mapping);
+         end if;
+         if Exists (+Context.Sources_Of_Interest_Response_File) then
+            Delete_File (+Context.Sources_Of_Interest_Response_File);
+         end if;
+         if Exists (+Context.Ada_Preprocessor_Data_File) then
+            Delete_File (+Context.Ada_Preprocessor_Data_File);
+         end if;
+      end if;
    end Destroy_Context;
 
    ----------------------------
@@ -854,23 +870,26 @@ is
                  Prj.Prj_Name = Root_Project_Info.Project.Name;
                Source_Name          : constant String :=
                  GNATCOLL.VFS."+" (Source.File.Full_Name);
-               Contained_Indication : Boolean := False;
                Helper_Unit_Name     : constant Unbounded_String :=
                  Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name;
-
+               Had_Dump_Indication  : Boolean := False;
+               Had_Reset_Indication : Boolean := False;
             begin
-               Instrumenter.Replace_Manual_Dump_Indication
+               Instrumenter.Replace_Manual_Indications
                  (Prj_Info.Desc,
                   Source,
-                  Contained_Indication);
+                  Had_Dump_Indication,
+                  Had_Reset_Indication);
 
-               if Contained_Indication and then not Is_Root_Prj then
+               if (Had_Dump_Indication or else Had_Reset_Indication)
+                 and then not Is_Root_Prj
+               then
 
-                  --  A call to the dump buffers procedure is only able to dump
-                  --  the buffers of the project it is in and its subprojects,
-                  --  meaning coverage data for all projects higher in the
-                  --  project tree will be missing. Record what file this call
-                  --  was in to warn the user later.
+                  --  A call to the dump/reset buffers procedure is only able
+                  --  to dump/reset the buffers of the project it is in and its
+                  --  subprojects, meaning coverage data for all projects
+                  --  higher in the project tree will be missing or not reset.
+                  --  Record what file this call was in to warn the user later.
 
                   Non_Root_Src_Calls.Include (Source_Name);
                end if;
@@ -933,16 +952,16 @@ is
                end if;
 
                Manual_Dump_Inserted :=
-                 Manual_Dump_Inserted or else Contained_Indication;
+                 Manual_Dump_Inserted or else Had_Dump_Indication;
             end;
          end if;
       end loop;
 
       if not Non_Root_Src_Calls.Is_Empty then
 
-         --  For each manual dump call inserted in a file belonging to a
+         --  For each manual dump/reset call inserted in a file belonging to a
          --  non-root project, warn the user the coverage data it will produce
-         --  will not cover the whole project tree.
+         --  will not cover the whole project tree or may be inconsistent.
 
          declare
             All_File_Names : Unbounded_String;
@@ -953,14 +972,17 @@ is
             end loop;
 
             Outputs.Warn
-              ("Manual dump trigger indications were found in subprojects in"
-               & " the following files:" & ASCII.LF
+              ("Manual buffer dump/reset indications were found in subprojects"
+               & " in the following files:" & ASCII.LF
                & (+All_File_Names)
                & "The coverage report built from the source traces they will"
                & " produce will show all code from projects higher in the"
                & " project tree as not covered. To get a full coverage"
                & " analysis, consider placing the manual dump buffers"
-               & " indication in the root project.");
+               & " indication in the root project." & ASCII.LF & ASCII.LF
+               & "Additionally, resetting the buffers in a subproject may"
+               & " result in incoherent coverage reports from traces dumped"
+               & " from a source in a parent project.");
          end;
       end if;
    end Insert_Manual_Dump_Trigger;
@@ -1468,12 +1490,6 @@ begin
          end loop;
       end loop;
    end;
-
-   if not Save_Temps then
-      Ada.Directories.Delete_File (+IC.Config_Pragmas_Mapping);
-      Ada.Directories.Delete_File (+IC.Sources_Of_Interest_Response_File);
-      Ada.Directories.Delete_File (+IC.Ada_Preprocessor_Data_File);
-   end if;
 
    --  Emit the unit to contain the list of coverage buffers, exported to a
    --  C symbol, in one of the language supported by the project.

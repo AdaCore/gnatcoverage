@@ -92,11 +92,12 @@ package Instrument.Ada_Unit is
      (Self : Ada_Instrumenter_Type;
       Prj  : Prj_Desc) return Files_Table.Compilation_Unit;
 
-   overriding procedure Replace_Manual_Dump_Indication
-     (Self                  : in out Ada_Instrumenter_Type;
-      Prj                   : in out Prj_Desc;
-      Source                : GNATCOLL.Projects.File_Info;
-      Has_Manual_Indication : out Boolean);
+   overriding procedure Replace_Manual_Indications
+     (Self                 : in out Ada_Instrumenter_Type;
+      Prj                  : in out Prj_Desc;
+      Source               : GNATCOLL.Projects.File_Info;
+      Has_Dump_Indication  : out Boolean;
+      Has_Reset_Indication : out Boolean);
    --  Once the instrumentation has finished, if the dump trigger is "manual"
    --  we expect the user to have indicated the place where a call to the
    --  manual dump buffers procedure should be inserted by the pragma
@@ -105,6 +106,14 @@ package Instrument.Ada_Unit is
    --    pragma Annotate (Xcov, Dump_Buffers);
    --
    --  This pragma must be found and replaced by the actual call to the dump
+   --  procedure defined in the dump helper unit.
+   --
+   --  Likewise, if the user wishes to reset the coverage buffers during the
+   --  execution, it should be done through a pragma statement:
+   --
+   --    pragma Annotate (Xcov, Reset_Buffers);
+   --
+   --  If found, this pragma will be replaced by a call to the buffer reset
    --  procedure defined in the dump helper unit.
 
    overriding procedure Emit_Buffers_List_Unit
