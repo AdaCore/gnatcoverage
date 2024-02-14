@@ -1,6 +1,6 @@
 with Assert, Pkg; use Pkg;
 
-procedure Test_DT is   
+procedure Test_DT is
 begin
    Assert (Foo (abc));
 end;
@@ -11,5 +11,3 @@ end;
 -- /evalC/  s=>l+, dmu=>l! ## 0
 -- /dtrue/  l+ ## 0
 -- /dfalse/ l- ## s-
-
-

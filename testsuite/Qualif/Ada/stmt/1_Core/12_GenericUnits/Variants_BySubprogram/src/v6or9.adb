@@ -1,12 +1,12 @@
 with Vops, Support; use Support;
 
 package body V6or9 is
-   
+
    procedure Check (V6inc, V6mult, V9inc, V9mult : Boolean) is
       package V6 is new Vops (Size => 6);  -- # i:V6
       V6i : V6.Vector_Type := (others => 2);
       V6m : V6.Vector_Type := (others => 2);
-      
+
       package V9 is new Vops (Size => 9);    -- # i:V9
       V9i : V9.Vector_Type := (others => 3);
       V9m : V9.Vector_Type := (others => 3);
@@ -26,7 +26,6 @@ package body V6or9 is
       if V9mult then -- # stmt
          V9.Mult (V9m, 2);   -- # 9m
          Assert (V9m(1) = 6); -- # 9m
-      end if;      
+      end if;
    end;
 end;
-

@@ -3,11 +3,11 @@ pragma Ada_2012;
 with Support; use Support;
 
 package body Ops is
-   
+
    type T_Point is record
       X, Y : Integer;
    end record;
-   
+
    function Set_Q (P : T_Point; Q: out T_Quarter) return Integer is
    begin
       if P.X > 0 and then P.Y > 0 then    -- # test-q1
@@ -27,8 +27,8 @@ package body Ops is
          return 0; -- # q0
       end if;
    end;
-                       
-   function Quarter (X, Y : Integer) return T_Quarter is      
+
+   function Quarter (X, Y : Integer) return T_Quarter is
       P : T_Point := (X => X, Y => Y);
       Q : T_Quarter;
       Hint : Integer;
@@ -37,5 +37,5 @@ package body Ops is
       Assert (Hint = T_Quarter'Pos (Q)); -- # stmt
       return Q; -- # stmt
    end;
-   
+
 end;

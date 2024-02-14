@@ -13,4 +13,3 @@ end;
 --  /test_factor/ l+ ## 0
 --  /fpos/        l+ ## 0
 --  /fneg/        l+ ## 0
-

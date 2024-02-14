@@ -26,4 +26,3 @@ package body Slists.Forall is
    end;
 
 end;
-

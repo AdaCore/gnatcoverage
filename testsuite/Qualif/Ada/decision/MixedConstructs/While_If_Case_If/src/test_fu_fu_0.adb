@@ -11,10 +11,10 @@ begin
    --  Inner If decision not reached.
 
    Prepend (S'Unchecked_Access, SL);
-   
+
    S.Active := False;
    Forall_In (SL, Activate, Active_Only => False);
-   
+
    S.Active := False;
    Forall_In (SL, Inhibit, Active_Only => True);
 end;
@@ -30,4 +30,3 @@ end;
 -- /FA_tinhibitHB/ l- ## 0c
 -- /FA_inhibit/    l- ## s-
 -- /FA_next/       l+ ## 0
-

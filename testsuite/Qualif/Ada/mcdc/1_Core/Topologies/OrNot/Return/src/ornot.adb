@@ -4,4 +4,3 @@ package body Ornot is
       return A or else (not B);  -- # evalStmt :o/e:
    end;
 end;
-

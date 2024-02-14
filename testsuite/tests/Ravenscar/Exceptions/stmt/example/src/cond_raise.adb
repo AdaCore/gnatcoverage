@@ -1,11 +1,11 @@
 package body Cond_Raise is
-   
+
    procedure Raise_If (Cond : Boolean) is
    begin
       if Cond then  -- # test_cond
          N_Raise := N_Raise + 1;  -- # raise
          raise Constraint_Error;  -- # raise
-         
+
          --  Repeating # raise is done on purpose here, to let
          --  test drivers designate the set of lines/statements
          --  that all get to execute or not depending on Cond.
@@ -22,5 +22,3 @@ package body Cond_Raise is
          N_In_Handler := N_In_Handler + 1; -- # in_handler
    end;
 end;
-
-

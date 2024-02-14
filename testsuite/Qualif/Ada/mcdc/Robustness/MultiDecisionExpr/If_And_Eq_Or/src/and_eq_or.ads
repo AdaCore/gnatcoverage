@@ -9,5 +9,3 @@ function And_Eq_Or (A, B, C, D : Boolean) return Boolean;
 -- 1) F F  F
 -- 2) T X  T
 -- 3) F T  T
-
-

@@ -6,4 +6,3 @@ package body PorPandPorP is
       return Values ((A or else B) and then (C or else D)); -- # evalStmt :o/e:
    end;
 end;
-

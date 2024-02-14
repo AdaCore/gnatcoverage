@@ -17,4 +17,3 @@ package body Flip is
       return Doflip (X, Bomb => Identity(False)); -- # returnVal
    end;
 end;
-

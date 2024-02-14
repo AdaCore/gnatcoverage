@@ -9,5 +9,3 @@ end;
 --  /eval0/  l! ## dT-
 --  /true/   l- ## s-
 --  /false/  l+ ## 0
-
-

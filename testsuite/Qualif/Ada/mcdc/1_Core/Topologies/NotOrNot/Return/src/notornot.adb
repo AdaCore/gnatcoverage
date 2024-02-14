@@ -4,4 +4,3 @@ package body Notornot is
       return (not A) or else (not B);  -- # evalStmt :o/e:
    end;
 end;
-

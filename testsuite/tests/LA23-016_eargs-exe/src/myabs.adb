@@ -2,8 +2,7 @@ function Myabs (X : Integer) return Integer is
 begin
    if X < 0 then
       return -X;
-   else 
+   else
       return X;
    end if;
 end;
-

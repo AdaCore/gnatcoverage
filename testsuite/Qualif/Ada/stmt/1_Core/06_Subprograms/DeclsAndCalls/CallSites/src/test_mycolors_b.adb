@@ -10,4 +10,3 @@ end;
 --  /red/   l- ## s-
 --  /green/ l- ## s-
 --  /blue/  l+ ## 0
-

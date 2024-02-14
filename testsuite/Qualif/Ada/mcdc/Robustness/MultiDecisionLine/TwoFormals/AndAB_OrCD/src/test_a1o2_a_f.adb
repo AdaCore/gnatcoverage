@@ -8,4 +8,3 @@ end;
 
 --# a1o2.adb
 -- /evals/ l! ## c!:"B" # eT-:"C or else D"
-

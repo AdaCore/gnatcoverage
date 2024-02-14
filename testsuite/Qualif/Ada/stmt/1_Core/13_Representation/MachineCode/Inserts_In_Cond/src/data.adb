@@ -1,10 +1,10 @@
 with System.Machine_Code; use System.Machine_Code;
 
 package body Data is
-   
+
    function Id (X, Pathno: Integer) return Integer is
       Copy : Integer := X;
-      pragma Volatile (Copy);      
+      pragma Volatile (Copy);
    begin
       if Pathno = 1 then
          Asm ("nop", Volatile => True);  -- # asm_1
@@ -13,5 +13,5 @@ package body Data is
       end if;
       return Copy;
    end;
-   
+
 end;

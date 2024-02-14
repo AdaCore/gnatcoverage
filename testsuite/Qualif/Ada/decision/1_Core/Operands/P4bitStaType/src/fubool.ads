@@ -1,13 +1,13 @@
 package FUBOOL is
-   
+
    type Bit4 is mod 2 ** 4;
    for Bit4'Size use 4;
-   
+
    type Bitmap is array (1 .. 8) of Bit4;
    pragma Pack (Bitmap);
-   
+
    Data : Bitmap := (1 .. 4 => 0, 5 .. 8 => 7);
-   
+
    function Eval (R1, R2 : Integer) return Boolean;
    -- Whether data(R1 + R2) > 5
 

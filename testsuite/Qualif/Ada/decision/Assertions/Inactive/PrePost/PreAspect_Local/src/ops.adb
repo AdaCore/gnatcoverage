@@ -1,14 +1,14 @@
 pragma Ada_12;
 
 package body Ops is
-   
+
    pragma Assertion_Policy (Pre => Disable);
-   
+
    procedure Apply (Op : T_Operation; A : in out T_Operand; B : T_Operand) is
-     
+
      procedure Perform (Op : T_Operation; A : in out T_Operand; B : T_Operand)
        with Pre => (A.Valid and then B.Valid); -- # cond
-   
+
      procedure Perform
        (Op : T_Operation; A : in out T_Operand; B : T_Operand) is
      begin
@@ -21,5 +21,5 @@ package body Ops is
    begin
       Perform (Op, A, B);
    end;
-   
+
 end;

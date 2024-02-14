@@ -8,9 +8,9 @@ procedure Test_OPB is
 begin
    CV.B := 5;
    Assert (CV(Op_B) = 5);
-   
+
    CC.B := 12;
-   Assert (CC(Op_B) = 12);   
+   Assert (CC(Op_B) = 12);
 end;
 
 --# ops.adb

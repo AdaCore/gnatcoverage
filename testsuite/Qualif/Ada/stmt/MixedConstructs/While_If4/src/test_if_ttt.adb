@@ -5,27 +5,27 @@ procedure Test_If_TTT is
    SL  : Sensor_List;
    S1, S2, S3 : aliased Sensor (Hist_Size =>5);
 begin
-   Prepend (S1'Unchecked_Access, SL);   
+   Prepend (S1'Unchecked_Access, SL);
    Prepend (S2'Unchecked_Access, SL);
    Prepend (S3'Unchecked_Access, SL);
-   
+
    --  Arrange to 'skip', 'fault' and 'ok'
-   
+
    S1.ALB := 1;
    S1.AHB := 1;
    S1.V   := 3;
    S1.Active := False;
-   
+
    S2.ALB := 1;
    S2.AHB := 1;
    S2.V   := 2;
    S2.Active := True;
-   
+
    S3.ALB := 1;
    S3.AHB := 1;
    S3.V   := 1;
    S3.Active := True;
-   
+
    declare
       Skip, Fault, Ok : Sensor_List;
    begin
@@ -48,4 +48,3 @@ end;
 -- /AF_fault/ l+ ## 0
 -- /AF_ok/    l+ ## 0
 -- /AF_next/  l+ ## 0
-

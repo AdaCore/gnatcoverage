@@ -9,6 +9,3 @@ package FUOR is
    function Mod0_Or (OpA, OpB : Modop) return Boolean;
    --  Whether OpA.X mod OpA.Y or OpB.X mod OpB.Y is null
 end;
-
-
-

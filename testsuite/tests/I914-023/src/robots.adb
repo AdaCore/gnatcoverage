@@ -23,5 +23,3 @@ package body Robots is
    end;
 
 end;
-
-

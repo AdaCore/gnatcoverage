@@ -25,4 +25,3 @@ end Test_CNFN;
 --  =/test-out/ l- ## s-@(i:RF), s-@(i:RC)
 --  =/in-range/   l- ## s-@(i:RF), s-@(i:RC)
 --  =/out-range/  l- ## s-@(i:RF), s-@(i:RC)
-

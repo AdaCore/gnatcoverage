@@ -12,4 +12,3 @@ begin
    Assert (N_LT0 = 1);
    Assert (N_GE0 = 0);
 end;
-

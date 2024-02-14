@@ -4,7 +4,7 @@ with Silent_Last_Chance;
 procedure Test_B is
    X : Integer;
 begin
-   Assert 
+   Assert
      (Plus ((Value => 5, Valid => True),
             (Value => 7, Valid => True)) = 12
      );

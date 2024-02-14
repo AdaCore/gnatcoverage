@@ -1,5 +1,5 @@
 package body FUOR is
-   
+
    function Orelse (Ops : Operands) return Boolean is
       A : Ref renames Ops.A; -- # decl
       B : Ref renames Ops.B; -- # decl

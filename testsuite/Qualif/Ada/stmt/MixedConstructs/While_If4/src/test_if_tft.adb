@@ -5,21 +5,21 @@ procedure Test_If_TFT is
    SL  : Sensor_List;
    S1, S2 : aliased Sensor (Hist_Size =>5);
 begin
-   Prepend (S1'Unchecked_Access, SL);   
+   Prepend (S1'Unchecked_Access, SL);
    Prepend (S2'Unchecked_Access, SL);
-   
+
    --  Arrange to 'skip' and 'ok' only
-   
+
    S1.ALB := 1;
    S1.AHB := 1;
    S1.V   := 1;
    S1.Active := True;
-   
+
    S2.ALB := 1;
    S2.AHB := 1;
    S2.V   := 2;
    S2.Active := False;
-   
+
    declare
       Skip, Fault, Ok : Sensor_List;
    begin
@@ -42,4 +42,3 @@ end;
 -- /AF_fault/ l- ## s-
 -- /AF_ok/    l+ ## 0
 -- /AF_next/  l+ ## 0
-

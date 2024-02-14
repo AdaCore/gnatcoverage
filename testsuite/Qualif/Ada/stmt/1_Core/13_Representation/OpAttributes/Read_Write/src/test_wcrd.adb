@@ -7,7 +7,7 @@ begin
    Mystreams.Sint_Mode := Copy;
    Sint'Write (P'Access, X);
    Assert (Latch = 1);
-   
+
    Mystreams.Sint_Mode := Double;
    Sint'Read (P'Access, X);
    Assert (X.Value = 2);
@@ -24,4 +24,3 @@ end;
 
 --  /pread/  l- ## s-
 --  /pwrite/ l- ## s-
-

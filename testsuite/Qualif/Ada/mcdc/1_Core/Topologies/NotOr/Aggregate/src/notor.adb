@@ -10,6 +10,3 @@ package body Notor is
       return E.Value;  -- # returnValue
    end;
 end;
-
-
-

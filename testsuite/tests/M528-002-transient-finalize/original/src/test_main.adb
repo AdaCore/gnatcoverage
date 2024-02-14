@@ -19,8 +19,8 @@ procedure Test_Main is
          return False; -- # dfalse
       end if;
    end Foo;
-   
-   
+
+
 begin
    if Foo (abc) then -- # outer_test_xok
       Log ("ok");    -- # outer_ok
@@ -60,4 +60,3 @@ end;
 -- /outer_test_xfail/ s=>l+, dmu=>l! ## s=>0, dmu=>dT-
 -- /outer_err/  l- ## s-
 -- /outer_ok/   l+ ## 0
-

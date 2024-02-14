@@ -3,6 +3,6 @@ package Optypes is
      Valid : Boolean := False;
      Value : Integer;
    end record;
-   
+
    type T_Operation is (Op_Add, Op_Sub);
 end;

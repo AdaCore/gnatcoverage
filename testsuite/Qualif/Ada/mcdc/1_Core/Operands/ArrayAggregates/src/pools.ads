@@ -20,4 +20,3 @@ package Pools is
    Valid_Loc : Pool  := (others => 'C');
 
 end;
-

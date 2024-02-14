@@ -3,7 +3,7 @@ package body AndCOr is
    begin
       return B or else C;  -- # orelse :o/e:
    end;
-   
+
    function F (A, B, C : Boolean) return Boolean is
       Value : array (Boolean) of Boolean := (False => False, True => True);
    begin

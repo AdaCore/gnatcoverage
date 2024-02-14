@@ -70,7 +70,7 @@ begin
          SR_Situation_Link);
    end;
 
-   --  Then run just one cycle 
+   --  Then run just one cycle
 
    Run (S);
    Run (R);

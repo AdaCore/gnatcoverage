@@ -1,10 +1,10 @@
 package FUBOOL is
-   
+
    type Bitmap is array (1 .. 32) of Boolean;
    pragma Pack (Bitmap);
-   
+
    Data : Bitmap :=  (1 .. 16 => False, 17 .. 32 => True);
-   
+
    function Eval (R1, R2 : Integer) return Boolean;
    -- Whether data(R1 + R2) = True
 

@@ -4,4 +4,3 @@
 
 with Support, Gcom; use Support;
 package Comi_NoInit is new Gcom (Auto_Init => Identity(False));
-

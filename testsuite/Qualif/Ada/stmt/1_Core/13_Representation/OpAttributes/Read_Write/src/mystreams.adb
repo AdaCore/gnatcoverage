@@ -1,6 +1,6 @@
 
 package body Mystreams is
-   
+
    procedure Sint_Read
      (S : not null access Root_Stream_Type'Class;
       Item : out Sint) is
@@ -10,8 +10,8 @@ package body Mystreams is
          when Copy => Item.Value := Latch;         -- # read_copy
       end case;
    end;
-                      
-   procedure Sint_Write 
+
+   procedure Sint_Write
      (S : not null access Root_Stream_Type'Class;
       Item : in Sint) is
    begin
@@ -20,9 +20,9 @@ package body Mystreams is
          when Copy => Latch := Item.Value;        -- # write_copy
       end case;
    end;
-   
+
    --
-   
+
    overriding procedure Read
      (Port   : in out Port_T;
       Buffer : out Stream_Element_Array;
@@ -31,7 +31,7 @@ package body Mystreams is
    begin
       null; -- # pread
    end Read;
-   
+
    overriding procedure Write
      (Port   : in out Port_T;
       Buffer : Stream_Element_Array)

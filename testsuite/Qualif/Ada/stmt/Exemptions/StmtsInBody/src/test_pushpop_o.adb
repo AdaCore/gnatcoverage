@@ -9,10 +9,10 @@ begin
    Push (S, 1);
    Push (S, 2);
    Assert (Errcount (S) = 0);
-   
+
    Push (S, 3);
    Assert (Errcount (S) = 1);
-   
+
    Pop (S, V);
    Assert (V = 2);
 end;

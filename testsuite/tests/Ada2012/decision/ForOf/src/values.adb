@@ -1,7 +1,7 @@
 pragma Ada_2012;
 
 package body Values is
-   
+
    procedure Process (A : in out Array_Type; Bump : Boolean) is
    begin
       for E of A loop -- # stmt
@@ -11,5 +11,5 @@ package body Values is
          end if;
       end loop;
    end;
-   
+
 end;

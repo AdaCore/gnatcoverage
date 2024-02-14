@@ -1,13 +1,13 @@
 pragma Unsuppress (All_Checks);
 
 package body Ctxt is
-   
+
    generic
       Iraise : Boolean;
       Xraise : Boolean;
    package G_Checker is
    end;
-   
+
    package body G_Checker is
    begin
       declare
@@ -28,7 +28,7 @@ package body Ctxt is
       Check (Iraise => Iraise, Xraise => Xraise); -- # pre
      end;
    end;
-     
+
    procedure Run (Iraise, Xraise : Boolean) is
       package Checker is
          new G_Checker (Iraise => Iraise, Xraise => Xraise);

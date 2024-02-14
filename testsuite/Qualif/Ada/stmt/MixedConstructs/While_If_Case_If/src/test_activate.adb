@@ -7,16 +7,16 @@ procedure Test_Activate is
 begin
    S1.ALB := 1;
    S1.AHB := 10;
-   
+
    S2.ALB := 5;
    S2.AHB := 15;
 
    Prepend (S1'Unchecked_Access, SL);
    Prepend (S2'Unchecked_Access, SL);
-   
+
    Forall_In (SL, Activate, Active_Only => True);
    Assert ((not S1.Active) and then (not S2.Active));
-   
+
    Forall_In (SL, Activate);
    Assert (S1.Active and then S2.Active);
 end;
@@ -32,4 +32,3 @@ end;
 -- /FA_tinhibitHB/ l- ## 0c
 -- /FA_inhibit/    l- ## s-
 -- /FA_next/       l+ ## 0
-

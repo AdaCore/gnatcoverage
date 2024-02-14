@@ -13,4 +13,3 @@ end;
 --  /stmt/ l+ ## 0
 --  /test/ l+ ## 0
 --  /eval/ l- ## s-
-

@@ -7,6 +7,3 @@ is
 begin
    return A + B; -- # stmt
 end;
-   
-
-

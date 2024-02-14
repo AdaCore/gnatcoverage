@@ -12,12 +12,12 @@ begin
 
   Assert (Sensors.N_Tests_C = 1);
   Assert (Sensors.N_Tests_F = 1);
-  
+
   Assert (RC.In_Range_Count = 1);
   Assert (RC.Out_Of_Range_Count = 0);
   Assert (RF.In_Range_Count = 0);
   Assert (RF.Out_Of_Range_Count = 1);
-  
+
 end Test_CIFO;
 
 --# sensors.adb

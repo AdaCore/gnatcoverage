@@ -15,4 +15,3 @@ package body AndCor is
       end return;
    end;
 end;
-

@@ -5,5 +5,3 @@ package Services is
    procedure To_Be_Called;
    procedure Not_To_Be_Called;
 end;
-
-

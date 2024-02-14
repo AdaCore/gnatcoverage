@@ -14,4 +14,3 @@ end;
 --  /or-true/   l- ## s-
 --  /eval-xor/  s=>l+, d=>l! ## s=>0, d=>dT-
 --  /xor-true/  l- ## s-
-

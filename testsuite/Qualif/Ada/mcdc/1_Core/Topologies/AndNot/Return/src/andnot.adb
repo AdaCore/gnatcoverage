@@ -4,4 +4,3 @@ package body Andnot is
       return A and then not B;  -- # evalStmt :o/e:
    end;
 end;
-

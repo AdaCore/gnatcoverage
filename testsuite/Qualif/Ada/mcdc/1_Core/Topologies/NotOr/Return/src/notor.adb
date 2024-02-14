@@ -4,4 +4,3 @@ package body Notor is
       return (not A) or else B;  -- # evalStmt :o/e:
    end;
 end;
-

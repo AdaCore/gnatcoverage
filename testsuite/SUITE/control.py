@@ -258,7 +258,7 @@ class RuntimeInfo(object):
             self.has_exception_propagation = False
             self.discrs = ["RTS_ZFP"]
         elif (
-            self.runtime_name == "light" 
+            self.runtime_name == "light"
             or self.runtime_name.startswith('light-')
         ):
             self.has_light_runtime = True

@@ -12,4 +12,3 @@ package body Andnot is
       return Value;         -- # returnValue
    end;
 end;
-

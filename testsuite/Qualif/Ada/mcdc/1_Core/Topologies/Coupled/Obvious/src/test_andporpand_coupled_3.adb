@@ -49,4 +49,3 @@ end Test_AndPorPand_Coupled_3;
 -- /returnValue/        l+ ## 0
 -- /returnTrue/         l+ ## 0
 -- /returnFalse/        l+ ## 0
-

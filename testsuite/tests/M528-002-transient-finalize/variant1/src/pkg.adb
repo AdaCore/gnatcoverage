@@ -1,5 +1,5 @@
 package body Pkg is
-   
+
    function Foo (Var : Unbounded_String) return Boolean is
    begin
       if Var = To_Unbounded_String ("abc")        -- # evalA
@@ -11,5 +11,5 @@ package body Pkg is
          return False; -- # dfalse
       end if;
    end Foo;
-   
+
 end;

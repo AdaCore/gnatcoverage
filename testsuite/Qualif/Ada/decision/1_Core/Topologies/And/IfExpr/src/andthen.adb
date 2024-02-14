@@ -5,6 +5,3 @@ package body Andthen is
       return (if A and then B then True else False); -- # andthen :o/d:
    end;
 end;
-
-
-

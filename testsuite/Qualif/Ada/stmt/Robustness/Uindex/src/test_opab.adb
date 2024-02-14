@@ -8,13 +8,13 @@ procedure Test_OPAB is
 begin
    CV(Op_A) := 12;
    Assert (CV.A = 12);
-   
+
    CV.B := 5;
    Assert (CV(Op_B) = 5);
-   
+
    CC.A := 12;
    Assert (CC(Op_A) = 12);
-   
+
    CC.B := 5;
    Assert (CC(Op_B) = 5);
 end;

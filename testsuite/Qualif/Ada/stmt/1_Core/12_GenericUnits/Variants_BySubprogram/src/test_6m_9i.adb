@@ -4,7 +4,7 @@ procedure Test_6m_9i is
 begin
    V6or9.Check (V6inc  => False,
                 V6mult => True,
-                V9inc  => True, 
+                V9inc  => True,
                 V9mult => False);
 end;
 
@@ -23,4 +23,3 @@ end;
 -- %cov: -S instance
 --  =/mult/  l! ## s-@(i:V9)
 --  =/inc/   l! ## s-@(i:V6)
-

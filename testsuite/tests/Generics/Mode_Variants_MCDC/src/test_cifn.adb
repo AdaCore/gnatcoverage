@@ -8,7 +8,7 @@ begin
 
   Assert (Sensors.N_Tests_C = 1);
   Assert (Sensors.N_Tests_F = 0);
-  
+
   Assert (RC.In_Range_Count = 1);
   Assert (RC.Out_Of_Range_Count = 0);
   Assert (RF.In_Range_Count = 0);
@@ -39,11 +39,9 @@ end Test_CIFN;
 -- %cov: -S instance
 --  =/test-out/ l! ## s-@(i:RF), dT-@(i:RC)
 --  =/in-range/   l! ## s-@(i:RF)
---  =/out-range/  l- ## s-@(i:RF), s-@(i:RC) 
+--  =/out-range/  l- ## s-@(i:RF), s-@(i:RC)
 
 -- %cov: -S routine %cargs: !-gnatn
 --  =/test-out/  l! ## s-@(sensors__rf__test), dT-@(sensors__rc__test)
 --  =/in-range/  l! ## s-@(sensors__rf__test)
 --  =/out-range/  l- ## s-@(sensors__rf__test), s-@(sensors__rc__test)
-
-

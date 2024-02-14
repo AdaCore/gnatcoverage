@@ -8,4 +8,3 @@ package LOOP_Statements_Support is
    type Big_Sample is array (Natural range <>) of Integer;
 
 end LOOP_Statements_Support;
-

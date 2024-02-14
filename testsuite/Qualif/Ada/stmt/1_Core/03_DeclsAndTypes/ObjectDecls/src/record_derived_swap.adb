@@ -12,4 +12,3 @@ begin
       V2  := Tmp;                      -- # if
    end if;
 end Record_Derived_Swap;
-

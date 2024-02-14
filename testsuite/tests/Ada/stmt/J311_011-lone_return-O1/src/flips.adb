@@ -11,4 +11,3 @@ package body Flips is
    end;
 
 end;
-

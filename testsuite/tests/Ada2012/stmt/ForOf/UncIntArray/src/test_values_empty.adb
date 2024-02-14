@@ -5,8 +5,7 @@ procedure Test_Values_EMPTY is
 begin
    Arg.Do_Loop_Over (LA);
 end;
- 
+
 --# values-arg.adb
 --  /stmt/    l+ ## 0
 --  /loop_op/ l- ## s-
-

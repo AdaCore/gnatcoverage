@@ -34,4 +34,3 @@ end Test_T;
 -- /true/        l+ ## 0
 -- /false/       l- ## s-
 -- /exc/         l- ## s-
-

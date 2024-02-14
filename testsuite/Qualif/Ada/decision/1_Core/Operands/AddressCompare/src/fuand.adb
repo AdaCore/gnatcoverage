@@ -2,9 +2,9 @@ with Support; use Support;
 with System;
 
 package body Fuand is
-   
+
    use type System.Address;
-   
+
    function Eval (R1, R2 : Integer) return Boolean is
    begin
       if R1+R2 > 12          -- # eval0

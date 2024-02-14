@@ -5,4 +5,3 @@ package body Andthen is
       return (if A and then B then True else False);  -- # evalStmt :o/d:
    end;
 end;
-

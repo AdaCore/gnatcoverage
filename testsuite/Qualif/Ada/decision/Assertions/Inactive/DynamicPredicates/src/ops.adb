@@ -1,6 +1,6 @@
 
 package body Ops is
-   
+
    procedure Check (P : T_Pair) is
    begin
       if P.X > 0 then -- # test_pos

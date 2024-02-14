@@ -13,4 +13,3 @@ package Vbufs is
    procedure Push (V : Value; VB : in out Vbuffer);
 
 end;
-

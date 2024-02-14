@@ -4,15 +4,15 @@ with Sensors.Status; use Sensors, Sensors.Status;
 
 procedure Test_Check_Brok is
    S : aliased Sensor (Hist_Size => 5);
-   
+
 begin
    S.ALB := 5;
    S.AHB := 10;
-   
+
    S.V := 15;
    Sample (S);
    Assert (Status_Of (S) = Check);
-   
+
    Sample (S);
    Assert (Status_Of (S) = Broken);
 end;

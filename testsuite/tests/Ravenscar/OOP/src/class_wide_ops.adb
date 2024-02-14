@@ -4,4 +4,3 @@ package body Class_Wide_Ops is
       Handle (A);
    end Handle_Alert;
 end;
-

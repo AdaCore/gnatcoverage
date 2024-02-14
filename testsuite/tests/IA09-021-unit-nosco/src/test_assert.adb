@@ -6,5 +6,3 @@ procedure Test_Assert is
 begin
    Checks.Assert (X = 12);
 end;
-
-

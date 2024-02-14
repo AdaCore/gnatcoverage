@@ -1,7 +1,7 @@
 with State; use State;
 
 package body Values is
-   
+
    function One return Float is
    begin
       return 1.0; -- # stmt
@@ -10,7 +10,7 @@ package body Values is
          Dtick; -- # out
          return 2.0; -- # out
    end;
-   
+
    function Value_Of (X : Integer) return Integer is
    begin
       return X; -- # stmt
@@ -20,14 +20,14 @@ package body Values is
       when Program_Error =>
          return 66; -- # out
    end;
-   
+
    function Value_Of_X return Integer is
    begin
       return X; -- # stmt
    exception
       when others => return 50; -- # out
    end;
-   
+
    procedure Latch (V : Integer) is
    begin
       Tick; -- # stmt
@@ -38,5 +38,3 @@ package body Values is
       end;
    end;
 end;
-
-  

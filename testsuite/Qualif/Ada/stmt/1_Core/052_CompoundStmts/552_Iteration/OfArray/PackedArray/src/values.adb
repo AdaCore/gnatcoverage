@@ -5,7 +5,7 @@ package body Values is
    begin
       E := E * 2;
    end;
-   
+
    procedure Check_Value (E : Num; V : Integer) is
    begin
       Assert (Integer(E) = V);

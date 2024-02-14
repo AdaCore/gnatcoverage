@@ -7,4 +7,3 @@ package body Notor is
       return Values ((not A) or else B); -- # evalStmt :o/e:
    end;
 end;
-

@@ -12,4 +12,3 @@ package body Notand is
       return Value;                -- # returnValue
    end;
 end;
-

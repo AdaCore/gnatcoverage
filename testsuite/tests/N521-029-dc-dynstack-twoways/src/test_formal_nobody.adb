@@ -12,4 +12,3 @@ end;
 --  /test_formal/  l! ## dF-
 --  /formal/       l+ ## 0
 --  /casual/       l- ## s-
-

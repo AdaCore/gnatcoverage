@@ -6,14 +6,14 @@ procedure Test_If_FTF is
    S : aliased Sensor (Hist_Size =>5);
 begin
    Prepend (S'Unchecked_Access, SL);
-   
+
    --  Arrange to 'fault' only
-   
+
    S.ALB := 1;
    S.AHB := 1;
    S.V   := 5;
    S.Active := True;
-   
+
    declare
       Skip, Fault, Ok : Sensor_List;
    begin
@@ -36,4 +36,3 @@ end;
 -- /AF_fault/ l+ ## 0
 -- /AF_ok/    l- ## s-
 -- /AF_next/  l+ ## 0
-

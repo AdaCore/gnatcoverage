@@ -1,5 +1,5 @@
 package body AndCor is
-   
+
    function Orelse (B, C : Boolean) return Boolean is
    begin
       loop
@@ -8,7 +8,7 @@ package body AndCor is
       end loop;
       return True;     -- # orTrue
    end;
-   
+
    function F (A, B, C : Boolean) return Boolean is
    begin
       loop

@@ -10,4 +10,3 @@ package body AndIdOr is
       return E.Value;  -- # returnValue
    end;
 end;
-

@@ -3,4 +3,3 @@ package Slists.Forall is
    procedure ForAll_In
      (SL : Sensor_List; Op : Sensor_Op; Active_Only : Boolean := False);
 end;
-

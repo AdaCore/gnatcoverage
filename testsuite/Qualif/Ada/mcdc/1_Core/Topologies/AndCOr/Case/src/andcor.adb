@@ -1,5 +1,5 @@
 package body AndCOr is
-   
+
    function Orelse (B, C : Boolean) return Boolean is
    begin
       case B or else C is -- # orelse :o/e:
@@ -7,7 +7,7 @@ package body AndCOr is
 	 when False => return False; -- # orFalse
       end case;
    end;
-   
+
    function F (A, B, C : Boolean) return Boolean is
    begin
       case A and then Orelse (B, C) is -- # andthen :o/e:

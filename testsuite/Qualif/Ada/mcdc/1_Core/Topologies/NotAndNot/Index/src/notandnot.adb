@@ -7,4 +7,3 @@ package body Notandnot is
       return Values ((not A) and then (not B)); -- # evalStmt :o/e:
    end;
 end;
-

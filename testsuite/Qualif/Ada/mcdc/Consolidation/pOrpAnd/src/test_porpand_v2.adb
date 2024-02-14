@@ -7,5 +7,3 @@ end;
 
 --# porpand.adb
 -- /eval/ l! ## eT-
-
-

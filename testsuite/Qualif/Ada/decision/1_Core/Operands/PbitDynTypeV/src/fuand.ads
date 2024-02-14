@@ -1,17 +1,17 @@
 with Params;
 
 package FUAND is
-   
+
    type Bit is mod 2;
    type Bitmap is array (Natural range <>) of Bit;
    pragma Pack (Bitmap);
-   
+
    Data : Bitmap (1 .. Params.Mapsize) := (1 .. 16 => 0, others => 1);
-   
+
    type XY is record
       X, Y : Integer;
    end record;
-   
+
    function Eval (R1, R2 : XY) return Boolean;
    -- data(R1.X + R2.X) = 1 and then data(R1.Y + R2+Y) = 1
 

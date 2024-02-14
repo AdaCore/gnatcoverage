@@ -7,4 +7,3 @@ function Orelse (A, B : Boolean) return Boolean;
 --  F F    F      v0
 --  F T    T      v1
 --  T X    T      v2
-

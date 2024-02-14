@@ -24,4 +24,3 @@ end;
 
 --# ops-isub.adb
 --  /isub/  l+ ## 0
-

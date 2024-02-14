@@ -14,5 +14,5 @@ package body Val is
    begin
       R := To_Bool (A); -- # eval
    end;
-   
+
 end;

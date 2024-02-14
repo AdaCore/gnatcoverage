@@ -11,4 +11,3 @@ p = Run (['gnatmake', '-f', '-g', '-p', '-Paltrun', "crun.adb"],
 
 if p.status != 0:
     sys.exit(1)
-

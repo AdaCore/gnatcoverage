@@ -7,7 +7,7 @@ package body Fuand is
       -- Safe conversion here, possible raise from Args.Bool
       return Bool (Intval(A)) and then Bool (Intval(B)); -- # eval
    end;
-   
+
    procedure Andthen (A, B : Integer; R : out Boolean) is
    begin
       R := Andthen (A, B); -- # eval

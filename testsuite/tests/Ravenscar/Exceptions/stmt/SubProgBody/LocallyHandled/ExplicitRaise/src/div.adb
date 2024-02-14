@@ -1,6 +1,6 @@
 package body Div is
    procedure Divide (X, Y: Integer; Res: out Integer) is
-   begin 
+   begin
       if Y = 0 then           -- # explicit_check
          raise My_Constraint_Error;  -- # explicit_raise
       else

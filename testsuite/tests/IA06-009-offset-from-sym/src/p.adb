@@ -5,4 +5,3 @@ procedure P is
 begin
    X := X + 1;
 end;
-

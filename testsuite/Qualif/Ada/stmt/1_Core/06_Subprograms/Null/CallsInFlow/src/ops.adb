@@ -1,15 +1,15 @@
 
 package body Ops is
-   
+
    procedure Nop3 (X: in out Integer) is null; -- # do_nop3
-   
+
    procedure Nop2 (X: in out Integer) is null; -- # do_nop2
-      
-   procedure Inc (X : in out Integer) is 
+
+   procedure Inc (X : in out Integer) is
    begin
       X := X + 1; -- # do_inc
-   end;     
-   
+   end;
+
 
    procedure Do_Pv1 (X : in out Integer; Opcode : T_Opcode) is
    begin
@@ -23,7 +23,7 @@ package body Ops is
          Nop3 (X); -- # pv1_nop3
       end if;
    end;
-   
+
    procedure Do_Pv2 (X : in out Integer; Opcode : T_Opcode) is
    begin
       case Opcode is -- # pv2_test
@@ -37,7 +37,7 @@ package body Ops is
             Nop3 (X);  -- # pv2_nop3
       end case;
    end;
-   
+
    procedure Process (X : in out Integer;
                       Opcode : T_Opcode;
                       Pv : T_Processing_Variant)
@@ -48,5 +48,5 @@ package body Ops is
          when Pv2 => Do_Pv2 (X, Opcode); -- # pv2_call
       end case;
    end;
-      
+
 end;

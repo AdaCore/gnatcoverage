@@ -4,7 +4,7 @@ with Values.ARG, Support; use Values, Support;
 
 -- test with Early Return
 
-procedure Test_Values_ARG_ER is   
+procedure Test_Values_ARG_ER is
 begin
    ARG.Do_Loop_Over
      (VA, Early_Return => True, Max_Iterations => VA'Length);
@@ -22,4 +22,3 @@ end;
 --  /exit/        l- ## s-
 --  /loop_op/   l- ## s-
 --  /post-loop/ l- ## s-
-

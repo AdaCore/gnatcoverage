@@ -17,5 +17,3 @@ end;
 --# sys.adb
 --  /ifa/ l+ ## 0
 --  /ifnota/ l+ ## 0
-
-

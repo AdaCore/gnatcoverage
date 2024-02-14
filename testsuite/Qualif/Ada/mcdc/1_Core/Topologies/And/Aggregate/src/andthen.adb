@@ -10,6 +10,3 @@ package body Andthen is
       return E.Value;  -- # returnValue
    end;
 end;
-
-
-

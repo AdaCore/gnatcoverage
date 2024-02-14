@@ -5,4 +5,3 @@ package body Kops is
       X := X + K;
    end Inc;
 end;
-

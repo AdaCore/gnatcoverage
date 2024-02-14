@@ -40,4 +40,3 @@ end Test_Exemptions_No_Call;
 -- /xelab_1/           l# ## x0
 -- /elab/              l+ ## 0
 -- /xelab_2/           l# ## x0
-

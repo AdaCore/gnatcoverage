@@ -19,4 +19,3 @@ function C3 (A, B, C : Boolean) return Boolean;
 -- ip(A) = 1,5
 -- ip(B) = 1,3
 -- ip(C) = 2,3 4,5 + 2,5 3,4
-

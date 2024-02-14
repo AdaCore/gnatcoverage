@@ -30,6 +30,3 @@ exception
    when Constraint_Error =>
       Result := 0;                        -- # exc
 end Check_Class_Wide_Condition;
-
-
-

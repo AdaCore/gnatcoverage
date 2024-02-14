@@ -6,15 +6,15 @@ procedure Test_FU_TX is
 
 begin
    -- Outer If both True and False. Inner If True only from T or else X.
-   
+
    S.ALB := 1;
    S.AHB := 15;
-   
+
    Assert (Status_Of (S) = Undecidable);
-   
+
    S.V := 0; -- < low bound
    Sample (S);
-   
+
    Assert (Status_Of (S) = Check);
 end;
 

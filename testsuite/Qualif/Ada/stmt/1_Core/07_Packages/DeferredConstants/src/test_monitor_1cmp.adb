@@ -5,7 +5,7 @@ procedure Test_Monitor_1Cmp is
 begin
    Assert (Did_Initial_Probe = True);
    Assert (Did_Other_Probe = False);
-   
+
    Compare_With_Initial_State_Now;
    Assert (Did_Other_Probe = True);
    Assert (N_Matches = 0);
