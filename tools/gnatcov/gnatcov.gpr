@@ -222,7 +222,7 @@ project Gnatcov is
       case Build_Mode is
          when "dev" =>
             Mode_Switches := ("-O0", "-g");
-            Ada_Mode_Switches := ("-gnata");
+            Ada_Mode_Switches := ("-gnata", "-gnatwe");
             C_Mode_Switches := ("-Werror");
             CPP_Mode_Switches := ("-Werror");
 
