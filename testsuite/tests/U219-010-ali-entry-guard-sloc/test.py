@@ -22,8 +22,8 @@ xcov_args = build_and_run(
 
 checked_xcov(xcov_args, "coverage.log")
 
-check_xcov_reports("obj/*.xcov", {
-    "obj/main.adb.xcov": {"+": {11, 12, 13}, "-": {16, 17, 20, 21}},
+check_xcov_reports("obj", {
+    "main.adb.xcov": {"+": {11, 12, 13}, "-": {16, 17, 20, 21}},
 })
 
 thistest.result()

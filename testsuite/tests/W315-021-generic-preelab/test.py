@@ -18,13 +18,12 @@ build_run_and_coverage(
 )
 
 check_xcov_reports(
-    "*.xcov",
+    "obj",
     {
         "test.adb.xcov": {"+": {4, 6}},
         "pkg.ads.xcov": {"+": {}},
         "pkg.adb.xcov": {"+": {4}},
     },
-    "obj",
 )
 
 thistest.result()

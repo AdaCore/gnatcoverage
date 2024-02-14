@@ -30,8 +30,6 @@ with open(os.path.join("obj", "gen-gnatcov-instr", "main.adb"), "rb") as f:
         comment="wrong line ending in instrumented source",
     )
 
-check_xcov_reports('xcov/*.xcov', {
-    'xcov/main.adb.xcov': {'+': {5}},
-})
+check_xcov_reports('xcov', {'main.adb.xcov': {'+': {5}}})
 
 thistest.result()

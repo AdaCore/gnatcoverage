@@ -41,13 +41,9 @@ for discr in ('be', 'le'):
     xcov_dir = f'xcov-{discr}'
     xcov(xcov_args + ['--output-dir', xcov_dir, f'{discr}.srctrace'],
          out=f'coverage-{discr}.log')
-    check_xcov_reports(
-        '*.xcov',
-        {
-            'main.adb.xcov': {'+': {5, 7, 8}},
-            'pkg.adb.xcov':  {'+': {6, 8}, '!': {5}},
-        },
-        xcov_dir,
-    )
+    check_xcov_reports(xcov_dir, {
+        'main.adb.xcov': {'+': {5, 7, 8}},
+        'pkg.adb.xcov':  {'+': {6, 8}, '!': {5}},
+    })
 
 thistest.result()

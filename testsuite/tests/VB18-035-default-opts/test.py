@@ -44,11 +44,7 @@ cov_log = "coverage_no_level.log"
 xcov(cov_args + ["-axcov"], out=cov_log)
 
 check_log("coverage", cov_log)
-check_xcov_reports(
-    "*.xcov",
-    {"main.adb.xcov": {"+": {2, 5, 6}, "-": {8}}},
-    cwd="obj"
-)
+check_xcov_reports("obj", {"main.adb.xcov": {"+": {2, 5, 6}, "-": {8}}})
 
 # 3. Run the coverage command without specifying an annotation format and
 # check if there is a report on the standard output.

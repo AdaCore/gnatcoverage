@@ -50,7 +50,7 @@ xcov(
     ]
 )
 check_xcov_reports(
-    "*.xcov",
+    ".",
     {
         "main.c.xcov": {"+": {8, 9}},
         "lib.c.xcov": {"+": {6}},

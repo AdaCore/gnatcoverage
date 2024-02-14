@@ -95,6 +95,6 @@ for label, interleaved_outputs, trailing_output, cov in [
             trace_filename,
         ]
     )
-    check_xcov_reports("*.xcov", cov, cwd=xcov_dir)
+    check_xcov_reports(xcov_dir, cov)
 
 thistest.result()

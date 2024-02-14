@@ -19,8 +19,8 @@ build_run_and_coverage(
 
 # App_Base is extended by App; App overrides Coverage'Units so that only Values
 # (not Values.Aux) is selected.
-check_xcov_reports('obj/*.xcov', {
-    'obj/values.ads.xcov': {},
-    'obj/values.adb.xcov': {'+': {5, 6}, '-': {8}}})
+check_xcov_reports('obj', {
+    'values.ads.xcov': {},
+    'values.adb.xcov': {'+': {5, 6}, '-': {8}}})
 
 thistest.result()

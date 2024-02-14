@@ -48,7 +48,7 @@ build_run_and_coverage(
     extra_coverage_args=["--annotate=xcov", "--output-dir=out-instr"],
 )
 
-check_xcov_reports("*.xcov", expected_reports, "out-instr")
+check_xcov_reports("out-instr", expected_reports)
 
 # Check if relative path for GPR works correctly
 build_run_and_coverage(
@@ -58,7 +58,7 @@ build_run_and_coverage(
     extra_coverage_args=["--annotate=xcov", "--output-dir=out-instr"],
 )
 
-check_xcov_reports("*.xcov", expected_reports, "out-instr")
+check_xcov_reports("out-instr", expected_reports)
 
 os.environ["GPR_PROJECT_PATH"] += os.pathsep + os.path.dirname(tests_gpr)
 build_run_and_coverage(
@@ -68,6 +68,6 @@ build_run_and_coverage(
     extra_coverage_args=["--annotate=xcov", "--output-dir=out-instr"],
 )
 
-check_xcov_reports("*.xcov", expected_reports, "out-instr")
+check_xcov_reports("out-instr", expected_reports)
 
 thistest.result()

@@ -30,7 +30,7 @@ build_run_and_coverage(
     gpr_obj_dir=obj_dir,
     gpr_exe_dir=obj_dir,
     trace_mode='src')
-check_xcov_reports('xcov/*.xcov', {'xcov/main.adb.xcov': {
+check_xcov_reports('xcov', {'main.adb.xcov': {
     '+': {4, 5, 7, 9, 11, 12, 15},
     '!': {13},
 }})

@@ -35,8 +35,6 @@ xcov_args.extend(['--annotate=xcov', '--output-dir=xcov'])
 
 xcov(xcov_args)
 
-check_xcov_reports('xcov/*.xcov', {
-    'xcov/main.adb.xcov': {'+': {2}, '!': {5}, '-': {6}},
-})
+check_xcov_reports('xcov', {'main.adb.xcov': {'+': {2}, '!': {5}, '-': {6}}})
 
 thistest.result()

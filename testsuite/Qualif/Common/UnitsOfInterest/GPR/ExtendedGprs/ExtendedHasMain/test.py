@@ -36,9 +36,9 @@ build_run_and_coverage(
 # In blob.ads, we expect either '+' or '.' on everything, depending
 # on the toolchain. Let check_xcov_reports refine that.
 
-check_xcov_reports('ext-obj/*.xcov', {
-    'ext-obj/blob.ads.xcov': {},
-    'ext-obj/main1.adb.xcov': {'+': {5}},
-    'ext-obj/main2.adb.xcov': {'+': {5, 6}}})
+check_xcov_reports('ext-obj', {
+    'blob.ads.xcov': {},
+    'main1.adb.xcov': {'+': {5}},
+    'main2.adb.xcov': {'+': {5, 6}}})
 
 thistest.result()

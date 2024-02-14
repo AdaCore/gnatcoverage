@@ -99,11 +99,7 @@ def check_one_exec(cov_args, lang):
             cov_args + [f"--output-dir={output_dir}", traces[i]],
             out=f"coverage_{lang}_{i}.log"
         )
-        check_xcov_reports(
-            "*.xcov",
-            get_expected_cov(traces[i]),
-            cwd=output_dir
-        )
+        check_xcov_reports(output_dir, get_expected_cov(traces[i]))
 
 prj_id = "p"
 
@@ -142,14 +138,13 @@ xcov(
     out="consolidated.log"
 )
 check_xcov_reports(
-    "*.xcov",
+    output_dir,
     {
         "main_ada.adb.xcov": {'+': {7, 10, 13}},
         "pkg.adb.xcov": {'+': {5}},
         "main_c.c.xcov": {'+': {8, 11, 14}, '-': {16}},
         "pkh.c.xcov": {'+': {6}}
     },
-    cwd=output_dir
 )
 
 thistest.result()

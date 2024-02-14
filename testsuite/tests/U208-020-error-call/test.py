@@ -22,5 +22,5 @@ build_run_and_coverage(
     mains=["main"],
     extra_coverage_args=["--annotate=xcov"])
 
-check_xcov_reports('obj/main.c.xcov', {'obj/main.c.xcov': {'+': {6, 7}}})
+check_xcov_reports('obj', {'main.c.xcov': {'+': {6, 7}}})
 thistest.result()

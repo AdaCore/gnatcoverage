@@ -97,7 +97,7 @@ def run_test(label, slug, main, helper, recursive, projects=[], units=[],
     expected_cov = {}
     for c in expected_cov_list:
         expected_cov.update(c)
-    check_xcov_reports('*.xcov', expected_cov, 'obj-main')
+    check_xcov_reports('obj-main', expected_cov)
 
     # Check that all xcov report files are created in obj-main (i.e. the root
     # project).

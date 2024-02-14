@@ -35,7 +35,7 @@ if thistest.options.trace_mode == 'src':
 def tryseq(label, scoargs):
     thistest.log('== {} =='.format(label))
     xcov(coverage_base_args + scoargs)
-    check_xcov_reports('*.xcov', expected_reports)
+    check_xcov_reports('.', expected_reports)
 
 
 if thistest.options.trace_mode == 'src':

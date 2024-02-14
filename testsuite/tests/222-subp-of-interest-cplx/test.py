@@ -52,10 +52,6 @@ build_run_and_coverage(
     extra_coverage_args=["--subprograms=pkg.ads:3", "-axcov"]
 )
 
-check_xcov_reports(
-    "*.xcov",
-    {"pkg.adb.xcov": {"!": {12, 13}, "+": {14, 15}}},
-    cwd="obj"
-)
+check_xcov_reports("obj", {"pkg.adb.xcov": {"!": {12, 13}, "+": {14, 15}}})
 
 thistest.result()

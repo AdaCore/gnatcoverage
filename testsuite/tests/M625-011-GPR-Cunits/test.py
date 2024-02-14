@@ -33,11 +33,10 @@ thistest.fail_if(
     contents_of(coverage_log)
 )
 
-check_xcov_reports('*.xcov', {
+check_xcov_reports('.', {
     'foo.c.xcov': {'+': {6}},
     'bar.c.xcov': {'+': {6}},
     'bar.h.xcov': {'+': {9}}
-}
-)
+})
 
 thistest.result()

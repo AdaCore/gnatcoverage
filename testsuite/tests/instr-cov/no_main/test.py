@@ -25,8 +25,6 @@ build_run_and_coverage(
     gpr_obj_dir=obj_dir,
     gpr_exe_dir=obj_dir,
     trace_mode='src')
-check_xcov_reports('xcov/*.xcov', {
-    'xcov/pkg.adb.xcov':  {'+': {5, 6, 8}},
-})
+check_xcov_reports('xcov', {'pkg.adb.xcov':  {'+': {5, 6, 8}}})
 
 thistest.result()

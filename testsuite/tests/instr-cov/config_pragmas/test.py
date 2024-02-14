@@ -30,13 +30,12 @@ build_run_and_coverage(
 # pkg.adb, which will then not compile because the witness call inserted for
 # that decision violates the Pure_Barrier restriction.
 check_xcov_reports(
-    "*.xcov",
+    "xcov",
     {
         "main.adb.xcov": {"+": {4, 6, 8, 10}},
         "pkg.ads.xcov": {"+": {6}},
         "pkg.adb.xcov": {"+": {12}, "-": {23}, "?": {20}},
     },
-    cwd="xcov",
 )
 
 thistest.result()

@@ -45,6 +45,6 @@ with open(orig_sid, "w") as f:
 
 # Compute the coverage report and check its contents (sanity check)
 xcov(xcov_args, out="coverage.log")
-check_xcov_reports("*.xcov", {"pkg.adb.xcov": {'+': {11}}}, "output")
+check_xcov_reports("output", {"pkg.adb.xcov": {'+': {11}}})
 
 thistest.result()

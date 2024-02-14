@@ -56,6 +56,6 @@ build_run_and_coverage(
     extra_coverage_args=["--units=pck", "-axcov"],
 )
 
-check_xcov_reports("*.xcov", {"pck.adb.xcov": {"+": {9, 10, 11}}}, "obj")
+check_xcov_reports("obj", {"pck.adb.xcov": {"+": {9, 10, 11}}})
 
 thistest.result()

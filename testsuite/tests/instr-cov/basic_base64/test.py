@@ -19,9 +19,9 @@ build_run_and_coverage(
     trace_mode='src',
     dump_trigger='main-end',
     dump_channel='base64-stdout')
-check_xcov_reports('xcov/*.xcov', {
-    'xcov/main.adb.xcov': {'+': {5, 7, 8}},
-    'xcov/pkg.adb.xcov':  {'+': {5, 6, 8}},
+check_xcov_reports('xcov', {
+    'main.adb.xcov': {'+': {5, 7, 8}},
+    'pkg.adb.xcov':  {'+': {5, 6, 8}},
 })
 
 thistest.result()

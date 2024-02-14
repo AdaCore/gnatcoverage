@@ -25,6 +25,6 @@ build_run_and_coverage(
     extra_coverage_args=["--annotate=xcov"],
 )
 
-check_xcov_reports("*.xcov", {"main.adb.xcov": {"+": {3}}}, gpr_obj_dir)
+check_xcov_reports(gpr_obj_dir, {"main.adb.xcov": {"+": {3}}})
 
 thistest.result()

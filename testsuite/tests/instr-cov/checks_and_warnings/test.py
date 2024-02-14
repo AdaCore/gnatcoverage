@@ -27,9 +27,9 @@ build_run_and_coverage(
     extra_gprbuild_cargs=['-gnatwae'],
     check_gprbuild_output=True,
     trace_mode='src')
-check_xcov_reports('xcov/*.xcov', {
-    'xcov/main.adb.xcov': {'+': {13}},
-    'xcov/pkg.ads.xcov': {'+': {2}},
+check_xcov_reports('xcov', {
+    'main.adb.xcov': {'+': {13}},
+    'pkg.ads.xcov': {'+': {2}},
 })
 
 thistest.result()

@@ -40,7 +40,7 @@ build_run_and_coverage(
     trace_mode="src",
 )
 check_xcov_reports(
-    "*.xcov",
+    "xcov",
     {
         "test_eval.adb.xcov": {"+": {4}, "!": {12}, "-": {13}},
         "vm.ads.xcov": {"+": {3, 4, 6, 7, 16, 17}},
@@ -77,7 +77,6 @@ check_xcov_reports(
             },
         },
     },
-    cwd="xcov",
 )
 
 thistest.result()

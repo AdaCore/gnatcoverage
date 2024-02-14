@@ -44,7 +44,7 @@ thistest.fail_if_not_equal(
     'warning: no unit main (from --units) in the projects of interest',
     contents_of(log_file).strip())
 
-check_xcov_reports('*.xcov', {'helper.adb.xcov': {'+': {3}}}, 'obj-main')
+check_xcov_reports('obj-main', {'helper.adb.xcov': {'+': {3}}})
 
 # Check that all xcov report files are created in obj-main (i.e. the root
 # project).

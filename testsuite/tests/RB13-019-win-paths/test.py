@@ -79,10 +79,6 @@ build_run_and_coverage(
     ],
 )
 
-check_xcov_reports(
-    "wibble.c.xcov",
-    {"wibble.c.xcov": {"+": {8, 12}, "!": {6}}},
-    cwd="coverage"
-)
+check_xcov_reports("coverage", {"wibble.c.xcov": {"+": {8, 12}, "!": {6}}})
 
 thistest.result()

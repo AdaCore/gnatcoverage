@@ -33,11 +33,10 @@ def check_one(units, output_dir, xcov_args):
     for dir in possible_output_dirs:
         thistest.log(f"inspecting {dir}")
         check_xcov_reports(
-            "*.xcov",
+            dir,
             {f"{unit}.adb.xcov": expected_cov_per_unit[unit] for unit in units}
             if dir == output_dir
             else {},
-            cwd=dir,
         )
 
 

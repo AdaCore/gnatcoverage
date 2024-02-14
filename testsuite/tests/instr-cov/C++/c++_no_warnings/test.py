@@ -20,6 +20,6 @@ build_run_and_coverage(
     trace_mode='src',
 )
 
-check_xcov_reports('xcov/*.xcov', {'xcov/main.cpp.xcov': {'+': {4}}})
+check_xcov_reports('xcov', {'main.cpp.xcov': {'+': {4}}})
 
 thistest.result()

@@ -39,7 +39,7 @@ def try_one(subdir, extra_covargs, xreports, xwarnings):
         mains=['test_t'],
         extra_coverage_args=['--annotate=xcov'] + extra_covargs)
 
-    check_xcov_reports('obj/*.xcov', xreports)
+    check_xcov_reports('obj', xreports)
 
     wlog = contents_of('coverage.log')
     for xw in xwarnings:
@@ -54,8 +54,8 @@ try_one(
     subdir="wd_1",
     extra_covargs=[],
     xreports={
-        'obj/flip.adb.xcov': {'+': {3}},
-        'obj/test_t.adb.xcov': {'+': {4, 6}}},
+        'flip.adb.xcov': {'+': {3}},
+        'test_t.adb.xcov': {'+': {4, 6}}},
     xwarnings=[])
 
 try_one(

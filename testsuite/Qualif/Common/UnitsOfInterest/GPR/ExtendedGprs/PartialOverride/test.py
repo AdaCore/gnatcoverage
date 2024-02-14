@@ -37,9 +37,9 @@ build_run_and_coverage(
     gpr_obj_dir='obj-ext',
     gpr_exe_dir='obj-ext')
 
-check_xcov_reports('obj-ext/*.xcov', {
-    'obj-ext/main.adb.xcov': {'+': {5}},
-    'obj-ext/helper.ads.xcov': {},
-    'obj-ext/helper.adb.xcov': {'+': {4}}})
+check_xcov_reports('obj-ext', {
+    'main.adb.xcov': {'+': {5}},
+    'helper.ads.xcov': {},
+    'helper.adb.xcov': {'+': {4}}})
 
 thistest.result()

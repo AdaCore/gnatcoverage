@@ -41,8 +41,6 @@ thistest.fail_if_no_match(
     " inconsistent with the corresponding Source Instrumentation Data",
     contents_of("coverage.log").strip(),
 )
-check_xcov_reports(
-    "*.xcov", {"main.adb.xcov": {"-": {4, 5, 7, 11, 12, 14}}}, "obj"
-)
+check_xcov_reports("obj", {"main.adb.xcov": {"-": {4, 5, 7, 11, 12, 14}}})
 
 thistest.result()

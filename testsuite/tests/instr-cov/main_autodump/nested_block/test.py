@@ -34,25 +34,25 @@ main_names = ["simple_no_decl", "simple_decl", "simple_exn", "simple_only_exn",
 # the mains got instrumented and build correctly.
 expected_results = {
     "dotted-decl": {
-        "xcov/dotted-decl.adb.xcov": {'+': {7, 12, 13, 17, 18}}
+        "dotted-decl.adb.xcov": {'+': {7, 12, 13, 17, 18}}
     },
     "dotted-no_decl": {
-        "xcov/dotted-no_decl.adb.xcov": {'+': {6, 9, 10}}
+        "dotted-no_decl.adb.xcov": {'+': {6, 9, 10}}
     },
     "dotted-exn": {
-        "xcov/dotted-exn.adb.xcov": {'+': {4, 9, 12, 13, 16}}
+        "dotted-exn.adb.xcov": {'+': {4, 9, 12, 13, 16}}
     },
     "simple_decl": {
-        "xcov/simple_decl.adb.xcov": {'+': {10, 15, 16, 19, 20}}
+        "simple_decl.adb.xcov": {'+': {10, 15, 16, 19, 20}}
     },
     "simple_no_decl": {
-        "xcov/simple_no_decl.adb.xcov": {'+': {6, 9}}
+        "simple_no_decl.adb.xcov": {'+': {6, 9}}
     },
     "simple_exn": {
-        "xcov/simple_exn.adb.xcov": {'+': {4, 9, 12, 13, 16}}
+        "simple_exn.adb.xcov": {'+': {4, 9, 12, 13, 16}}
     },
     "simple_only_exn": {
-        "xcov/simple_only_exn.adb.xcov": {'+': {10, 13, 14, 18}, '-': {20}}
+        "simple_only_exn.adb.xcov": {'+': {10, 13, 14, 18}, '-': {20}}
     }
 }
 
@@ -70,7 +70,7 @@ def do_one_main(main_name):
         covlevel='stmt',
         mains=[main_name],
         extra_coverage_args=['-axcov', '--output-dir=xcov'])
-    check_xcov_reports('xcov/*.xcov', expected_results[main_name])
+    check_xcov_reports('xcov', expected_results[main_name])
 
 
 for main_name in main_names:

@@ -50,6 +50,6 @@ build_run_and_coverage(
                                  " misspelling in the expected pragma"
                                  " statement."
 )
-check_xcov_reports("*.xcov", {"main.adb.xcov": {"+": {5}}}, "obj")
+check_xcov_reports("obj", {"main.adb.xcov": {"+": {5}}})
 
 thistest.result()

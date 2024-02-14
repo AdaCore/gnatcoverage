@@ -25,11 +25,10 @@ build_run_and_coverage(
     gpr_exe_dir=obj_dir,
     trace_mode='src')
 check_xcov_reports(
-    '*.xcov',
+    'xcov',
     {'pkg.ads.xcov': {'+': {12, 15}, '-': {11, 14}},
      'pkg.adb.xcov': {'+': {5, 6}, '-': {8}},
      'pkg-child.ads.xcov': {'+': {9}, '-': {10, 12, 13}}},
-    "xcov"
 )
 
 thistest.result()

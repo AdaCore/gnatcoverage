@@ -119,9 +119,7 @@ for tc in [
 
         # Sanity check that expected trace
         xcov(xcov_args + traces, out="coverage.log")
-        check_xcov_reports("xcov/*.xcov", {
-            "xcov/main.adb.xcov": {"+": {5}},
-        })
+        check_xcov_reports("xcov", {"main.adb.xcov": {"+": {5}}})
     finally:
         wd.to_homedir()
 

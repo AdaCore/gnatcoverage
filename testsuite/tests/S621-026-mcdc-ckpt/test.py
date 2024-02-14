@@ -26,7 +26,7 @@ for i in (1, 2):
 xcov(['coverage', '--annotate=xcov', '--level=stmt+mcdc',
       '--checkpoint=c1.ckpt', '--checkpoint=c2.ckpt'])
 
-check_xcov_reports('*.xcov', {
+check_xcov_reports('.', {
     'main1.adb.xcov': {'+': {5}},
     'main2.adb.xcov': {'+': {5, 7, 11, 12, 13, 15}, '!': {4}}})
 

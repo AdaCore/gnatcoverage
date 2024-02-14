@@ -67,7 +67,7 @@ def do_one_level(level):
         expected_cov["testconditions.adb.xcov"]['+'].add(17)
         expected_cov["compute.c.xcov"]['+'].add(4)
 
-    check_xcov_reports("*.xcov", expected_cov, cwd="obj")
+    check_xcov_reports("obj", expected_cov)
 
     if level == "stmt+mcdc":
         # The order in which sources are instrumented is not specified, so sort

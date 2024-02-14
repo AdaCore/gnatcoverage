@@ -29,11 +29,7 @@ def check_trace (cov_args, traces, index):
     thistest.log(f"======= Checking trace {index + 1} =========")
     output_dir=f"report_{index + 1}"
     xcov(cov_args + [traces[index], f"--output-dir={output_dir}"], out=f"xcov_{index}")
-    check_xcov_reports(
-        "*.xcov",
-        {"main.adb.xcov": expected_cov[index]},
-        cwd=output_dir
-    )
+    check_xcov_reports(output_dir, {"main.adb.xcov": expected_cov[index]})
 
 
 cov_args = build_and_run(

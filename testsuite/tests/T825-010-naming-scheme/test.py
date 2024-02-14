@@ -28,12 +28,12 @@ build_run_and_coverage(
     mains=['main'],
     extra_coverage_args=['-axcov', '--output-dir=report']
 )
-check_xcov_reports('report/*.xcov', {
-    'report/main.adb.xcov': {'+': {5}},
-    'report/p.1.ada.xcov': {},
-    'report/p.2.ada.xcov': {'+': {4}},
-    'report/p__q.1.ada.xcov': {'+': {3}},
-    'report/p__q.2.ada.xcov': {'+': {6}},
+check_xcov_reports('report', {
+    'main.adb.xcov': {'+': {5}},
+    'p.1.ada.xcov': {},
+    'p.2.ada.xcov': {'+': {4}},
+    'p__q.1.ada.xcov': {'+': {3}},
+    'p__q.2.ada.xcov': {'+': {6}},
 })
 
 thistest.result()

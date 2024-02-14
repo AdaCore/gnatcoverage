@@ -45,7 +45,7 @@ build_run_and_coverage(
     extra_coverage_args=['--annotate=xcov', '--output-dir=.'],
     extra_gprbuild_args=['-XLIBRARY_TYPE=relocatable'])
 
-check_xcov_reports('*.xcov', {
+check_xcov_reports('.', {
     'mylib.adb.xcov': {'+': {5, 6}, '-': {8}},
     'mylib.ads.xcov': {}})
 

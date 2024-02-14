@@ -44,6 +44,6 @@ xcov_args = build_run_and_coverage(
     extra_coverage_args=["-axcov", "--output-dir=."],
 )
 
-check_xcov_reports("*.xcov", {"main.c.xcov": {"+": {6, 7}}})
+check_xcov_reports(".", {"main.c.xcov": {"+": {6, 7}}})
 
 thistest.result()

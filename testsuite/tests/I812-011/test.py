@@ -59,6 +59,6 @@ for arg in [
     [tlist]
 ]:
     xcov(xcov_args + ['--annotate=xcov'] + arg)
-    check_xcov_reports('*.xcov', {'main.adb.xcov': {'+': {3}}})
+    check_xcov_reports('.', {'main.adb.xcov': {'+': {3}}})
 
 thistest.result()

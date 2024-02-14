@@ -64,7 +64,7 @@ def build_run_cov_and_check(main_prj, main_prj_obj_dir, expected_xcov):
             "--units=pkg",
         ],
     )
-    check_xcov_reports("*.xcov", expected_xcov, main_prj_obj_dir)
+    check_xcov_reports(main_prj_obj_dir, expected_xcov)
 
 
 # Try the simple case: the main project extends the library, but does not

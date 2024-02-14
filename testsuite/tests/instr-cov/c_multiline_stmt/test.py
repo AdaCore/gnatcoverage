@@ -42,12 +42,11 @@ build_run_and_coverage(
 )
 
 check_xcov_reports(
-    "*.xcov",
+    "xcov",
     {
         "main.c.xcov": {"+": {6, 12, 17, 26, 31, 32}, "-": {27, 28}},
         "pkg.c.xcov": {"+": {4}},
     },
-    "xcov",
 )
 
 tmp.to_homedir()
@@ -70,6 +69,6 @@ build_run_and_coverage(
     trace_mode="src",
 )
 
-check_xcov_reports("*.xcov", {"pkg.c.xcov": {"+": {4}}}, "xcov")
+check_xcov_reports("xcov", {"pkg.c.xcov": {"+": {4}}})
 
 thistest.result()

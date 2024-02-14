@@ -62,10 +62,10 @@ xcov(["coverage", "-P", p, "--projects", "p", "-cstmt", "-axcov",
       "-Cc1.ckpt", "-Cc2.ckpt"],
      out="log-cons.txt")
 check_empty("log-cons.txt")
-check_xcov_reports("report/*.xcov", {
-    "report/main.adb.xcov": {"+": {5}},
-    "report/pkg.adb.xcov": {"+": {2}},
-    "report/pkg-test.adb.xcov": {"-": {8, 9}},
+check_xcov_reports("report", {
+    "main.adb.xcov": {"+": {5}},
+    "pkg.adb.xcov": {"+": {2}},
+    "pkg-test.adb.xcov": {"-": {8, 9}},
 })
 
 thistest.result()

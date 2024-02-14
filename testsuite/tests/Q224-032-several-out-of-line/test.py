@@ -24,6 +24,6 @@ xrun([main], 'run.log')
 checked_xcov(['coverage', '-P{}'.format(gpr), '-cstmt', '-axcov',
               '--output-dir=.', trace],
              'coverage.log')
-check_xcov_reports('*.xcov', {'bar.c.xcov': {'+': {4}}, })
+check_xcov_reports('.', {'bar.c.xcov': {'+': {4}}})
 
 thistest.result()

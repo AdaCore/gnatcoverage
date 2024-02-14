@@ -67,13 +67,12 @@ unit_name = (
 # have the same case as the original filename.
 
 check_xcov_reports(
-    "*.xcov",
+    "obj",
     {
         "main.c.xcov": {"+": {6}},
         (unit_name.lower() if "windows" in thistest.env.host.platform else unit_name)
         + ".c.xcov": {"+": {6}},
     },
-    "obj",
 )
 
 thistest.result()

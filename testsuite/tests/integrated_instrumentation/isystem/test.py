@@ -60,6 +60,6 @@ xcov(
         srctracename_for("test"),
     ]
 )
-check_xcov_reports("*.xcov", {"test.c.xcov": {"+": {6, 7}}})
+check_xcov_reports(".", {"test.c.xcov": {"+": {6, 7}}})
 
 thistest.result()
