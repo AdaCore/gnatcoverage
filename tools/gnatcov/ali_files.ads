@@ -36,14 +36,15 @@ package ALI_Files is
 
    pragma Suppress (Tampering_Check);
 
-   type ALI_Annotation_Kind is (Exempt_On, Exempt_Off, Dump_Buffers);
+   type ALI_Annotation_Kind is
+     (Exempt_On, Exempt_Off, Dump_Buffers, Reset_Buffers);
 
    type ALI_Annotation is record
       CU : CU_Id;
       --  Compilation unit whose LI file this annotation comes from
 
       Kind : ALI_Annotation_Kind;
-      --  On or Off
+      --  On or Off, Dump or Reset coverage buffers
 
       Message : String_Access;
       --  When Kind = Exempt_On, justification message for the exemption.
