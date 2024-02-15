@@ -14,4 +14,3 @@ package Sensors is
    -- latch current sensor value for S in its history buffer
 
 end;
-

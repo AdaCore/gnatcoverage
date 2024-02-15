@@ -19,4 +19,3 @@ private
       ((B => B));                                                -- # func_ret_1
 
 end Pack_Type_Invariant;
-

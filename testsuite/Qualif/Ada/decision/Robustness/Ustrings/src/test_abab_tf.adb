@@ -6,7 +6,7 @@ begin
    Check (Which => Long, S => "");
    Check (Which => Short, S => "A*1");
    Check (Which => Mapped, S => "22");
-   
+
    Tryme (A => "A", N => 2, B => "B", X => 1);
    Check (Which => Long, S => "");
    Check (Which => Short, S => "A*2");

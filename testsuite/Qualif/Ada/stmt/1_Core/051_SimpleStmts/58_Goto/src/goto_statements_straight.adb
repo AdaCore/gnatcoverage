@@ -23,4 +23,3 @@ package body GOTO_Statements_Straight is
    end;
 
 end GOTO_Statements_Straight;
-

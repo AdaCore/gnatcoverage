@@ -28,4 +28,3 @@ end;
 -- =/double/ l! ## s!,dT-:"if Double"
 -- =/triple/ l! ## s!,dT-:"if Triple"
 -- =/hits/   l! ## s!,dT-
-

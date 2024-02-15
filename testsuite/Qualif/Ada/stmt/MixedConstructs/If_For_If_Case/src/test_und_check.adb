@@ -4,21 +4,21 @@ with Sensors.Status; use Sensors, Sensors.Status;
 
 procedure Test_Und_Check is
    S : aliased Sensor (Hist_Size => 5);
-   
+
 begin
    S.ALB := 5;
    S.AHB := 10;
-   
+
    Assert (Status_Of (S) = Undecidable);
-   
+
    S.V := 1;
    Sample (S);
    Assert (Status_Of (S) = Check);
-   
+
    S.V := 5;
    Sample (S);
    Assert (Status_Of (S) = Check);
-   
+
 end;
 
 --# sensors-status.adb

@@ -7,4 +7,3 @@ package body Notand is
       return Values ((not A) and then B); -- # evalStmt :o/e:
    end;
 end;
-

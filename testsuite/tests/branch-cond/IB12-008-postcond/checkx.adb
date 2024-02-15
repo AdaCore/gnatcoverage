@@ -3,4 +3,3 @@ procedure CheckX (X : Integer) is
 begin
    null;
 end;
-

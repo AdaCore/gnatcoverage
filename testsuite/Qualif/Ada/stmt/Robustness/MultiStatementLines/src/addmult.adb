@@ -5,4 +5,3 @@ begin
 
    S := X + Y; P := X * Y; -- # compute
 end;
-

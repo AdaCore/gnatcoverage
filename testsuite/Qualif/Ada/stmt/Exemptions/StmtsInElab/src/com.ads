@@ -14,4 +14,3 @@ package Com is
    --  The package elaboration body calls Initialize if Auto_Initialize
    --  is True, which can never happen.
 end;
-

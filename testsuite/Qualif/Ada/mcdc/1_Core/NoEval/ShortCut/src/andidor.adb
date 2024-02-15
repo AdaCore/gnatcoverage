@@ -11,4 +11,3 @@ begin
       return False;  -- # false
    end if;
 end;
-

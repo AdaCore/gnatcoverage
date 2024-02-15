@@ -11,4 +11,3 @@ private
    type PR is new R with null record;
    procedure PPR1 (X : access PR) is null; -- # npb
 end Pak;
-

@@ -1,8 +1,8 @@
 package FUAND is
-   
+
    subtype RangeP is Integer range 10 .. 15;
    subtype RangeM is Integer range 1 .. 5;
-   
+
    function Eval (R1, R2 : Integer) return Boolean;
 
    -- Whether R1+R2 is in RangeP and then R1-R2 is in RangeM

@@ -5,7 +5,7 @@ generic
    Size : in Integer;
 package Vops is
    type Vector_Type is array (1 .. Size) of Integer;
-   
+
    procedure Inc (V : in out Vector_Type; Amount : Integer);
    procedure Mult (V : in out Vector_Type; Amount : Integer);
 end;

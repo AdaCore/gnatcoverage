@@ -1,7 +1,7 @@
 package body Environ is
-   
+
    X : Value := 0;
-   
+
    function Probe return State is
    begin
       X := X + 1; -- # probe
@@ -12,10 +12,9 @@ package body Environ is
       end if;
       return (X => X); -- # probe
    end;
-   
+
    function Match (A, B : State) return Boolean is
    begin
       return A.X = B.X; -- # compare
    end;
 end;
-

@@ -26,4 +26,3 @@ end Test_Pret_Part;
 -- /proc2_3/            l- ## s-
 -- /proc2_others/       l- ## s-
 -- /proc2_fin/          l- ## s-
-

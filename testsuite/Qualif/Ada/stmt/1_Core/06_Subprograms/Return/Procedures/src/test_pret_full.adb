@@ -37,4 +37,3 @@ end Test_Pret_Full;
 -- /proc2_3/            l+ ## 0
 -- /proc2_others/       l+ ## 0
 -- /proc2_fin/          l+ ## 0
-

@@ -6,6 +6,3 @@ package body Notornot is
       return E;  -- # returnValue
    end;
 end;
-
-
-

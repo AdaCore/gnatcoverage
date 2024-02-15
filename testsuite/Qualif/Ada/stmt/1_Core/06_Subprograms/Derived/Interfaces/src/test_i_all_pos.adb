@@ -10,16 +10,16 @@ procedure Test_I_All_Pos is
 begin
    IO.Value := 1;
    Characterize (IO);
-   
+
    FO.Value := -11.0;
    Characterize (FO);
-   
+
    FO.Value := 117.0;
    Characterize (FO);
-   
+
    FO.Value := 0.0;
    Characterize (FO);
-   
+
    Assert (N_Positives = 2);
    Assert (N_Negatives = 1);
    Assert (N_Zeroes = 1);
@@ -37,4 +37,3 @@ end;
 --  /char_test_neg_float/ l+ ## 0
 --  /char_neg_float/  l+ ## 0
 --  /char_zero_float/  l+ ## 0
-

@@ -9,4 +9,3 @@ package body Evals is
       VB := B;
    end;
 end;
-

@@ -3,7 +3,7 @@ pragma Ada_2012;
 with Support; use Support;
 
 package body Values.ARG is
-     
+
    procedure Do_Loop_Over
      (A : in out Array_Type;
       Early_Return : Boolean;
@@ -23,5 +23,5 @@ package body Values.ARG is
       end loop;
       Assert (N_Iterations <= Max_Iterations); -- # post-loop
    end;
-   
+
 end;

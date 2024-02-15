@@ -8,4 +8,3 @@ begin
    Other_Proc (True, True);
    Other_Proc (False, True);
 end Main;
-

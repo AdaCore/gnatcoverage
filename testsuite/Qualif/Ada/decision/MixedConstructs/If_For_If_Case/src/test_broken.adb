@@ -3,24 +3,24 @@ with Sensors.Status; use Sensors, Sensors.Status;
 
 procedure Test_Broken is
    S : aliased Sensor (Hist_Size => 5);
-   
+
 begin
    S.ALB := 1;
    S.AHB := 10;
-   
+
    --  Two history entries, both out of range
-   
-   S.V := 15;   
+
+   S.V := 15;
    Sample (S);
    Sample (S);
-   
+
    Assert (Status_Of (S) = Broken);
-      
+
    --  A third entry, in range. Still two out of range.
-   
-   S.V := 5;   
+
+   S.V := 5;
    Sample (S);
-   
+
    Assert (Status_Of (S) = Broken);
 end;
 

@@ -9,4 +9,3 @@ end Test_Loc;
 --  /false/ l- ## s-
 --  /ret/   l+ ## 0
 --  /exc/   l- ## s-
-

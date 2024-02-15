@@ -11,10 +11,10 @@ begin
    --  Inner If False only from F or else F.
 
    Prepend (S'Unchecked_Access, SL);
-   
+
    S.Active := False;
    Forall_In (SL, Inhibit, Active_Only => True);
-   
+
    S.Active := True;
    S.ALB := 1;
    S.AHB := 12;
@@ -33,4 +33,3 @@ end;
 -- /FA_tinhibitHB/ l! ## 0
 -- /FA_inhibit/    l- ## s-
 -- /FA_next/       l+ ## 0
-

@@ -6,15 +6,15 @@ package body FUAND_Helper is
    begin
       Assert (Fuand.Eval (R1, R2_FX) = False);
    end;
-   
+
    procedure Eval_TF_F is
    begin
-      Assert (Fuand.Eval (R1, R2_TF) = False);		     
+      Assert (Fuand.Eval (R1, R2_TF) = False);
    end;
-   
+
    procedure Eval_TT_T is
    begin
-      Assert (Fuand.Eval (R1, R2_TT) = True);		     
+      Assert (Fuand.Eval (R1, R2_TT) = True);
    end;
 
 end;

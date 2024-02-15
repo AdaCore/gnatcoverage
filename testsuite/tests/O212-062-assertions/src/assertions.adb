@@ -25,7 +25,7 @@ package body Assertions is
    -- Same --
    ----------
 
-   function Same (A, B : Boolean) return Boolean 
+   function Same (A, B : Boolean) return Boolean
    is
       --  Subprogram body with aspect without prior declaration
 

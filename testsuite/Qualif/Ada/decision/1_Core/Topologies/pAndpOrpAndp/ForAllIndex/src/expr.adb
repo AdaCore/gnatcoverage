@@ -11,6 +11,3 @@ package body Expr is
       return (for all I in Irange => (AA(I) and then BB(I)) or else (CC(I) and then DD(I))); -- # eval :o/d:
    end;
 end;
-
-
-

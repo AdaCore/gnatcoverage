@@ -1,4 +1,4 @@
 package P2 is
-   pragma Pure;   
+   pragma Pure;
    type Int is new Integer;
 end;

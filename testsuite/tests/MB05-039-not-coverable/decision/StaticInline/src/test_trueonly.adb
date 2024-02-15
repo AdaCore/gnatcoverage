@@ -1,6 +1,6 @@
 with Trueonly;
 
-procedure Test_Trueonly is   
+procedure Test_Trueonly is
 begin
    Trueonly;
 end;
@@ -12,6 +12,3 @@ end;
 
 -- %cov: --non-coverable
 --  =/else/ l0 ## s0
-
-
-

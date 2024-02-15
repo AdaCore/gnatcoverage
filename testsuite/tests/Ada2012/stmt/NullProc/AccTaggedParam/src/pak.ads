@@ -5,4 +5,3 @@ package Pak is
    procedure PR2 (X : access R) is null; -- # npb
    procedure Call;
 end Pak;
-

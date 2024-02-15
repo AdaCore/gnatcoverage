@@ -1,9 +1,9 @@
 package body Ops is
-   
+
    type T_Point is record
       X, Y : Integer;
    end record;
-   
+
    procedure Set_Q (P : T_Point; Q : out T_Quarter) is
    begin
       if P.X > 0 and then P.Y > 0 then    -- # test-q1
@@ -18,12 +18,12 @@ package body Ops is
          Q := Q0; -- # q0
       end if;
    end;
-                       
-   function Quarter (X, Y : Integer) return T_Quarter is      
+
+   function Quarter (X, Y : Integer) return T_Quarter is
       Q : T_Quarter;
    begin
       Set_Q ((X => X, Y => Y), Q); -- # stmt
       return Q; -- # stmt
    end;
-   
+
 end;

@@ -1,5 +1,5 @@
 with Support, Vectors; use Support, Vectors;
-                
+
 procedure Test_Vectors_Neg is
 begin
    Assert (Sum_All_Abs (N => 7, Value => -4) = 28);
@@ -11,4 +11,3 @@ end;
 --  /pos-stmt/ l- ## s-
 --  /neg-decl/ l+ ## 0
 --  /neg-stmt/ l+ ## 0
-

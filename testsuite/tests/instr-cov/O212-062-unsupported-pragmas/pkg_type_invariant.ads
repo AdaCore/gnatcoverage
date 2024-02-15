@@ -21,4 +21,3 @@ private
 
    function Get_Value (R : Bool_Record) return Boolean is (R.B);
 end Pkg_Type_Invariant;
-

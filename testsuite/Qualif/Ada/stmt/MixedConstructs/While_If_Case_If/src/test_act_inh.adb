@@ -8,7 +8,7 @@ begin
    S1.ALB := 1;
    S1.AHB := 10;
    S1.V   := 5;  -- # in range
-   
+
    S2.ALB := 5;
    S2.AHB := 15;
    S2.V   := 1;  -- # < low bound
@@ -20,10 +20,10 @@ begin
    Prepend (S1'Unchecked_Access, SL);
    Prepend (S2'Unchecked_Access, SL);
    Prepend (S3'Unchecked_Access, SL);
-   
+
    Forall_In (SL, Activate);
    Assert (S1.Active and then S2.Active and then S3.Active);
-   
+
    Forall_In (SL, Inhibit);
    Assert (S1.Active and then (not S2.Active) and then (not S3.Active));
 end;
@@ -39,4 +39,3 @@ end;
 -- /FA_tinhibitHB/ l+ ## 0
 -- /FA_inhibit/    l+ ## 0
 -- /FA_next/       l+ ## 0
-

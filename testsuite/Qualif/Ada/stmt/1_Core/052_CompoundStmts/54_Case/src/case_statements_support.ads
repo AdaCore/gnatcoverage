@@ -8,4 +8,3 @@ package CASE_Statements_Support is
    subtype Int_Range_2 is Integer range 11 .. 20;
 
 end CASE_Statements_Support;
-

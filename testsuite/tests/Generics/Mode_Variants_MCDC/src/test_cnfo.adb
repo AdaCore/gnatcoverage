@@ -36,5 +36,3 @@ end Test_CNFO;
 --  =/test-out/  l! ## s-@(sensors__rc__test), dF-@(sensors__rf__test)
 --  =/in-range/  l- ## s-@(sensors__rf__test), s-@(sensors__rc__test)
 --  =/out-range/  l! ## s-@(sensors__rc__test)
-
-

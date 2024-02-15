@@ -1,4 +1,3 @@
-package Values_NRPF is   
+package Values_NRPF is
    procedure Check;
 end;
-

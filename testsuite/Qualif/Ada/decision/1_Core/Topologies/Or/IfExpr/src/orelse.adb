@@ -5,6 +5,3 @@ package body Orelse is
       return (if A or else B then True else False); -- # orelse :o/d:
    end;
 end;
-
-
-

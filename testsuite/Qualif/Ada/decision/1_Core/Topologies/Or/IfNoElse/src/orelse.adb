@@ -7,6 +7,3 @@ package body Orelse is
       return False;     -- # retFalse
    end;
 end;
-
-
-

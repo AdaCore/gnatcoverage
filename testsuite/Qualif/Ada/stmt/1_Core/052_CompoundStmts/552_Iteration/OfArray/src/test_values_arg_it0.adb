@@ -4,7 +4,7 @@ with Values.ARG, Support; use Values, Support;
 
 -- test with limit to 0 iteration
 
-procedure Test_Values_ARG_IT0 is   
+procedure Test_Values_ARG_IT0 is
 begin
    ARG.Do_Loop_Over
      (VA, Early_Return => False, Max_Iterations => 0);
@@ -22,4 +22,3 @@ end;
 --  /exit/        l+ ## 0
 --  /loop_op/   l- ## s-
 --  /post-loop/ l+ ## 0
-

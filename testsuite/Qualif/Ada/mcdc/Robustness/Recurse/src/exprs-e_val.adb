@@ -1,10 +1,10 @@
 with Simple_Pools;
 
 package body Exprs.E_Val is
-   
+
    package Bval_Pool is new Simple_Pools.Basic_Pool
      (Data_Type => Bval, Capacity => 64);
-   
+
    function Eval (E : Bval) return Boolean is
    begin
       return E.V;
@@ -18,4 +18,3 @@ package body Exprs.E_Val is
    end;
 
 end;
-

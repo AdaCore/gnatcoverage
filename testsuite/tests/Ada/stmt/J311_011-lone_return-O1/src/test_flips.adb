@@ -6,7 +6,7 @@ procedure Test_Flips is
 begin
    Flip (B);
    Assert (B = False);
-   
+
    Flip (X);
    Assert (X = -5);
 end;

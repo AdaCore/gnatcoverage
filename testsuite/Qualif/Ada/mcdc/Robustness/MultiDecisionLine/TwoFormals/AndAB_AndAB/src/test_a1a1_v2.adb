@@ -10,4 +10,3 @@ end;
 
 --# a1a1.adb
 -- /evals/  l! ## eT-:"A and then B," # eT-:"A and then B)"
-

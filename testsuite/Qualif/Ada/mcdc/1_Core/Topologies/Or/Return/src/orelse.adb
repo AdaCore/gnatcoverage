@@ -4,4 +4,3 @@ package body Orelse is
       return A or else B;  -- # evalStmt :o/e:
    end;
 end;
-

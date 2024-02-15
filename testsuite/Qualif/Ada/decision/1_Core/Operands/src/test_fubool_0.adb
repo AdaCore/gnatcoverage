@@ -9,5 +9,3 @@ end;
 --  /eval0/  l- ## s-
 --  /true/   l- ## s-
 --  /false/  l- ## s-
-
-

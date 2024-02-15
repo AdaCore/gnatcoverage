@@ -5,5 +5,3 @@ package body Sensors is
       Vbufs.Push (S.V, S.History);
    end;
 end;
-
-

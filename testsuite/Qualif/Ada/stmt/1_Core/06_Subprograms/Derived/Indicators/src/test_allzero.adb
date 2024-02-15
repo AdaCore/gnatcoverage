@@ -8,7 +8,7 @@ begin
    Characterize2 (IV);
    T_Int_Characterize1 (IV);
    T_Int_Characterize2 (IV);
-   
+
    Assert (N_Positives = 0);
    Assert (N_Negatives = 0);
    Assert (N_Zeroes = 4);
@@ -20,4 +20,3 @@ end;
 --  /test_neg/ l+ ## 0
 --  /neg/      l- ## s-
 --  /zero/     l+ ## 0
-

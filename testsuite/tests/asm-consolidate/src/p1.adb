@@ -7,5 +7,3 @@ begin
    Stuff1.Run;
    Lib.Adjust (X);
 end;
-
-  

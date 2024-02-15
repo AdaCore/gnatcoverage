@@ -8,6 +8,3 @@ package body Andthen is
       end if;
    end;
 end;
-
-
-

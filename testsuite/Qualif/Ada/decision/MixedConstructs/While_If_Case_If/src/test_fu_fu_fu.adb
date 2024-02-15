@@ -12,16 +12,16 @@ begin
 
    Prepend (S1'Unchecked_Access, SL);
    Prepend (S2'Unchecked_Access, SL);
-   
+
    S1.Active := False;
    S2.Active := False;
    Forall_In (SL, Inhibit, Active_Only => True);
-   
+
    S1.Active := True;
    S1.ALB := 1;
    S1.AHB := 12;
    S1.V := 0; -- < low bound
-   
+
    S2.Active := True;
    S2.ALB := 1;
    S2.AHB := 12;
@@ -40,4 +40,3 @@ end;
 -- /FA_tinhibitHB/ l+ ## 0
 -- /FA_inhibit/    l+ ## 0
 -- /FA_next/       l+ ## 0
-

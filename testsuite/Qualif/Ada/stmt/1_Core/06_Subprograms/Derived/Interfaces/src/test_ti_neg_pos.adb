@@ -10,16 +10,16 @@ procedure Test_TI_Neg_Pos is
 begin
    Assign_Id_To (IO);
    Assert (IO.Id >= 0);
-   
+
    IO.Value := -1;
    Characterize (IO);
-   
+
    Assign_Id_To (FO);
    Assert (FO.Id >= 0);
-   
+
    FO.Value := 11.0;
    Characterize (FO);
-   
+
    Assert (N_Positives = 1);
    Assert (N_Negatives = 1);
    Assert (N_Zeroes = 0);
@@ -41,4 +41,3 @@ end;
 --  /char_test_neg_float/ l- ## s-
 --  /char_neg_float/  l- ## s-
 --  /char_zero_float/  l- ## s-
-

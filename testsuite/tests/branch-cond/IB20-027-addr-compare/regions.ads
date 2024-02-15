@@ -7,5 +7,3 @@ package Regions is
 
    procedure Check (R : Region);
 end;
-
-

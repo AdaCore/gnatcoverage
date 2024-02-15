@@ -23,4 +23,3 @@ end;
 -- %cov: -S instance
 --  =/mult/  l- ## s-@(i:V6), s-@(i:V9)
 --  =/inc/   l+ ## 0
-

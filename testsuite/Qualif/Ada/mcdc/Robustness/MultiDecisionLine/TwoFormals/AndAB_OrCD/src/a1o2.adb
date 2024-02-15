@@ -7,4 +7,3 @@ package body A1O2 is
       Eval (A and then B, C or else D); -- # evals
    end;
 end;
-

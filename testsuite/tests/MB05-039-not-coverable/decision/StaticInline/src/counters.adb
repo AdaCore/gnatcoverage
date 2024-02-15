@@ -4,4 +4,3 @@ package body Counters is
       X := X + 1;
    end;
 end;
-

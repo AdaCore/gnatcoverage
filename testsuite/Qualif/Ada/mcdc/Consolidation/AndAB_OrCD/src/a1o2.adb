@@ -13,5 +13,3 @@ package body A1O2 is
       return Andthen (A and then B, C or else D); -- # evals
    end;
 end;
-
-

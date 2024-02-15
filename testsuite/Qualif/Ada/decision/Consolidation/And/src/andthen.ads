@@ -7,4 +7,3 @@ function Andthen (A, B : Boolean) return Boolean;
 --  F X    F      v0
 --  T F    F      v1
 --  T T    T      v2
-

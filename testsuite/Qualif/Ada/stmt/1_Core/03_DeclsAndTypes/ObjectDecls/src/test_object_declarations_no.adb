@@ -40,4 +40,3 @@ end Test_Object_Declarations_No;
 --# record_impl_init_swap.adb
 --  /stmt/ l- ## s-
 --  /if/   l- ## s-
-

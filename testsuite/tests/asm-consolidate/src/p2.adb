@@ -5,5 +5,3 @@ procedure P2 is
 begin
    Lib.Adjust (X);
 end;
-
-  

@@ -8,7 +8,7 @@ begin
 
   Assert (Sensors.N_Tests_C = 1);
   Assert (Sensors.N_Tests_F = 0);
-  
+
   Assert (RC.In_Range_Count = 1);
   Assert (RC.Out_Of_Range_Count = 0);
   Assert (RF.In_Range_Count = 0);
@@ -36,4 +36,3 @@ end Test_CIFN;
 --  =/test-out/ l! ## s-@(i:RF)
 --  =/in-range/   l! ## s-@(i:RF)
 --  =/out-range/  l- ## s-@(i:RF), s-@(i:RC)
-

@@ -1,2 +1,2 @@
-native DEAD testing gnatcov/gnatemu interaction, no gnatemu on native 
+native DEAD testing gnatcov/gnatemu interaction, no gnatemu on native
 src-traces DEAD gnatcov/gnatemu interaction not relevant for the trace mode

@@ -3,13 +3,13 @@ with Sensors.Status; use Sensors, Sensors.Status;
 
 procedure Test_F_FF is
    S : Sensor;
-   
+
 begin
    -- Outer If False only. Inner If False only from F or else F.
    S.ALB := 1;
    S.AHB := 15;
    S.V := 5; -- in range
-   
+
    Sample (S);
    Assert (Status_Of (S) = Ok);
 end;

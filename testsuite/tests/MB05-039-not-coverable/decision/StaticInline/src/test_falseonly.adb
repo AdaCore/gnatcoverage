@@ -1,6 +1,6 @@
 with Falseonly;
 
-procedure Test_Falseonly is   
+procedure Test_Falseonly is
 begin
    Falseonly;
 end;
@@ -12,6 +12,3 @@ end;
 
 -- %cov: --non-coverable
 --  =/then/ l0 ## s0
-
-
-

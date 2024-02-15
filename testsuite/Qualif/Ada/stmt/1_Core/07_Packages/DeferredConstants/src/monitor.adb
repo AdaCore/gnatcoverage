@@ -1,7 +1,7 @@
 with Environ; use Environ;
 
 package body Monitor is
-   
+
    procedure Compare_With_Initial_State_Now is
       Current_Environ_State : State := Environ.Probe; -- # compare
    begin
@@ -9,5 +9,5 @@ package body Monitor is
          N_Matches := N_Matches + 1;                               -- # match
       end if;
    end;
-         
+
 end;

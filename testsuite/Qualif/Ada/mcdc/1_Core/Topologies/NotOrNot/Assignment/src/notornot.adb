@@ -12,4 +12,3 @@ package body Notornot is
       return Value;         -- # returnValue
    end;
 end;
-

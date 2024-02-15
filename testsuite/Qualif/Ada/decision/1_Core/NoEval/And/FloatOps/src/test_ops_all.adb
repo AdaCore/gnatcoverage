@@ -4,7 +4,7 @@ procedure Test_Ops_All is
 begin
    Assert (not Both_Ok (Cs_Ok, Cs_Ko));
    Assert (Both_Ok (Cs_Ok, Cs_Ok));
-   
+
    Assert (not Both_Ok (Cs_Ov, Cs_Ok));
    Assert (N_Ok = 1);
    Assert (N_Ko = 1);
@@ -16,4 +16,3 @@ end;
 --  /ok/    l+ ## 0
 --  /ko/    l+ ## 0
 --  /ov/    l+ ## 0
-

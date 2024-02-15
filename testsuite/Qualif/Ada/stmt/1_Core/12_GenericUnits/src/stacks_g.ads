@@ -18,9 +18,9 @@ private
    --  We use a small static size here to prevent dragging dependencies to
    --  memcpy, malloc or secondary stack services, irrelevant to the purpose
    --  of the testcase family we serve.
-   
+
    type Value_Array is array (1 .. 5) of Value; -- # elab
-   
+
    type Stack is record           -- # elab
       Store : Value_Array;        -- # line-elab
       N_Values : Natural := 0;    -- # line-elab

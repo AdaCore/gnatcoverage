@@ -6,7 +6,7 @@
 with Math; use Math;
 
 package body Maps is
-   
+
    function Area (R : Rectangle_T) return Natural is
    begin
       return Eval (Mult, R.L, R.W); -- # eval

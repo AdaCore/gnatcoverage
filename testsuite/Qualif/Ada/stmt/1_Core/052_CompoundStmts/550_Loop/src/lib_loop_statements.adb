@@ -1,9 +1,9 @@
 with Lib_Init;
 
 package body Lib_Loop_Statements is
-   
+
    N : Integer;
-   
+
    function N_Ones return Integer is
    begin
       N := 0; -- # count
@@ -14,7 +14,7 @@ package body Lib_Loop_Statements is
       end loop;
       return N; -- # count
    end;
-   
+
 begin
    N := 0; -- # elab
    while N < Lib_Init.N1 loop         -- # test-init

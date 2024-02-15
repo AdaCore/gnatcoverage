@@ -1,10 +1,10 @@
 with Doraise; use Doraise;
 
 package Ctxt is
-   
+
    -- A few globals that let us insert statements at various
    -- spots and sanity check the logic we ran through.
-   
+
    X : Integer := 0;
    Handled : Integer := 0;
 

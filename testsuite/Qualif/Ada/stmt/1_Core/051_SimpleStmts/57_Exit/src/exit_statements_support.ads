@@ -7,4 +7,3 @@ package EXIT_Statements_Support is
    type Matrix_Sample is array (Natural range <>, Natural range <>) of Integer;
 
 end EXIT_Statements_Support;
-

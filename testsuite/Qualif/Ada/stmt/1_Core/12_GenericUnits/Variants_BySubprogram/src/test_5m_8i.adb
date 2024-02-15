@@ -9,7 +9,7 @@ procedure Test_5m_8i is
 begin
    V5.Inc (V5o, 3);
    Assert (V5o(1) = 4);
-   
+
    V8.Mult (V8o, 2);
    Assert (V5o(2) = 4);
 end;
@@ -28,5 +28,3 @@ end;
 --# v5.ads
 
 --# v8.ads
-
-

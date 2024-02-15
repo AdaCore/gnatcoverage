@@ -13,5 +13,3 @@ function Orelse (A, B : Boolean) return Boolean;
 
 -- ip(A) = 0,2 0,3
 -- ip(B) = 0,1
-
-

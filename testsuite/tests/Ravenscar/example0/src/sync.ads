@@ -46,4 +46,3 @@ package Sync is
   -- then True.
 
 end;
-

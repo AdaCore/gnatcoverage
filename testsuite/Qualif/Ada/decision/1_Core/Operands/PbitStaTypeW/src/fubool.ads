@@ -1,11 +1,11 @@
 package FUBOOL is
-   
+
    type Bit is mod 2;
    type Bitmap is array (1 .. 1024) of Bit;
    pragma Pack (Bitmap);
-   
+
    Data : Bitmap := (1 .. 512 => 0, 513 .. 1024 => 1);
-   
+
    function Eval (R1, R2 : Integer) return Boolean;
    -- Whether data(R1 + R2) = 1
 

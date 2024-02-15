@@ -53,4 +53,3 @@ end Test_AndPorPand_Coupled_Alt_2;
 -- /returnValue/        l+ ## 0
 -- /returnTrue/         l+ ## 0
 -- /returnFalse/        l+ ## 0
-

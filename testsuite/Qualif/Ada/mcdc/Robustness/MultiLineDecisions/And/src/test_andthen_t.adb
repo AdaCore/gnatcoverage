@@ -10,4 +10,3 @@ end;
 -- /eval1/  l! ## 0
 -- /true/   l+ ## 0
 -- /false/  l- ## s-
-

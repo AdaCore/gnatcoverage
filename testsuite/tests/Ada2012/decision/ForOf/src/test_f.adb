@@ -3,8 +3,8 @@ pragma Ada_2012;
 with Support, Values; use Support, Values;
 
 procedure Test_F is
-   
-   LA : Array_Type := 
+
+   LA : Array_Type :=
      (1 => (X => 2, Count => 0));
 begin
    Process (LA, Bump => False);
@@ -16,5 +16,3 @@ end;
 --  /stmt/ l+ ## 0
 --  /eval/ l! ## dT-
 --  /true/ l- ## s-
-
-   

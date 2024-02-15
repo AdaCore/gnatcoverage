@@ -10,6 +10,3 @@ package Fuor is
    R2_FT : String := "12345";
    R2_TX : String := "123";
 end;
-
-
-

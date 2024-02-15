@@ -20,6 +20,3 @@ package body Expr is
       return F (A, B, X => Support.Identity(False)); -- # retVal
    end;
 end;
-
-
-

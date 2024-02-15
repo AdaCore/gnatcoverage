@@ -13,5 +13,3 @@ function Andthen (A, B : Boolean) return Boolean;
 
 -- ip(A) = 3,0 3,1
 -- ip(B) = 3,2
-
-

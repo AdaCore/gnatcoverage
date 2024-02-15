@@ -31,8 +31,3 @@ end Test_Subtype_Indications_Full;
 -- /2_stmt/      l+ ## 0
 -- /3_local_dcl/ l+ ## 0
 -- /3_stmt/      l+ ## 0
-
-
-
-
-

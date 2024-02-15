@@ -1,7 +1,7 @@
 with Ada.Finalization; use Ada.Finalization;
 
 package body Foo is
-   
+
    type Witness is new Ada.Finalization.Controlled with record
       Value : Integer;
    end record;
@@ -39,4 +39,3 @@ package body Foo is
    end Try;
 
 end;
-

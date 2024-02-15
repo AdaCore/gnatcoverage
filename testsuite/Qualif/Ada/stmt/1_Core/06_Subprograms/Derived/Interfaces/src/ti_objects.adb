@@ -1,8 +1,8 @@
 package body TI_Objects is
-   
+
    N_Id_Recall : Integer := 0;
    Next_Id : Integer := 0;
-   
+
    procedure Assign_Id_To (O : in out Identifiable) is
    begin
       if O.Id > 0 then           -- # id_test
@@ -12,7 +12,7 @@ package body TI_Objects is
          Next_Id := Next_Id + 1; -- # id_assign
       end if;
    end;
-   
+
    procedure Characterize (IV : T_Int) is
    begin
       if IV.Value > 0 then        -- # char_test_pos_int
@@ -23,7 +23,7 @@ package body TI_Objects is
          N_Zeroes := N_Zeroes + 1; -- # char_zero_int
       end if;
    end;
-   
+
    procedure Characterize (FV : T_Float) is
    begin
       if FV.Value > 0.0 then        -- # char_test_pos_float
@@ -34,5 +34,5 @@ package body TI_Objects is
          N_Zeroes := N_Zeroes + 1; -- # char_zero_float
       end if;
    end;
-           
+
 end;

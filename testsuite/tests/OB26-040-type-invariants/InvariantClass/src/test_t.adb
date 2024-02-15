@@ -5,7 +5,7 @@ procedure Test_T is
    CIO : CI (UB => 2);
    STIO : STI (UB => 10);
    CTIO : CTI (UB => 4);
-   
+
 begin
    null;
 end;
@@ -16,4 +16,3 @@ end;
 --  /ci/  l! ## dF-
 --  /sti/ l! ## dF-
 --  /cti/ l! ## dF-
-

@@ -24,4 +24,3 @@ package body IF_Statements is
    end Set_Max;
 
 end IF_Statements;
-

@@ -9,6 +9,3 @@ package FUAND is
    function Mod0_And (OpA, OpB : Modop) return Boolean;
    --  Whether OpA.X mod OpA.Y and OpB.X mod OpB.Y are null
 end;
-
-
-

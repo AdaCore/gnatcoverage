@@ -8,15 +8,15 @@ begin
    -- While decision covered from loop over non empty list
    -- First If decision True only from T or else X.
    -- Inner If decision False only from F or else F.
-   
+
    S1.ALB := 1;
    S1.AHB := 15;
    S1.V := 5;    -- in range
    Prepend (S1'Unchecked_Access, SL);
-   
+
    S1.Active := True;
    for X in False .. True loop
-      Forall_In (SL, Inhibit, Active_Only => X);   
+      Forall_In (SL, Inhibit, Active_Only => X);
    end loop;
 end;
 
@@ -31,4 +31,3 @@ end;
 -- /FA_tinhibitHB/ l! ## 0
 -- /FA_inhibit/    l- ## s-
 -- /FA_next/       l+ ## 0
-

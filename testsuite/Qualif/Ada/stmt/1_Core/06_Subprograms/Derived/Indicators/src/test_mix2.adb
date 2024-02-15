@@ -11,17 +11,17 @@ procedure Test_Mix2 is
 begin
    Characterize1 (IV0);
    Characterize1 (IVpos);
-   
+
    Characterize2 (IV0);
    Characterize2 (IVneg);
-   
+
    T_Int_Characterize1 (IVpos);
    T_Int_Characterize1 (IVneg);
-   
+
    T_Int_Characterize2 (IV0);
    T_Int_Characterize2 (IVpos);
    T_Int_Characterize2 (IVneg);
-   
+
    Assert (N_Positives = 3);
    Assert (N_Negatives = 3);
    Assert (N_Zeroes = 3);
@@ -51,4 +51,3 @@ end;
 --  /test_neg_i2/ l+ ## 0
 --  /neg_i2/      l+ ## 0
 --  /zero_i2/     l+ ## 0
-

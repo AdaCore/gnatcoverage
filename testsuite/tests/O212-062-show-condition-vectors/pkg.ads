@@ -4,4 +4,3 @@ package Pkg is
 
    procedure Other_Proc (A, B : Boolean);
 end Pkg;
-

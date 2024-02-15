@@ -38,4 +38,3 @@ def toctree(l, depth=2):
              "   :maxdepth: %s\n" % depth]
             + ["   %s" % item for item in l]),
         post = 1)
-

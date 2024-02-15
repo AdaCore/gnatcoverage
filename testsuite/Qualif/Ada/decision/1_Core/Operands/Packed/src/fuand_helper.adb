@@ -1,7 +1,7 @@
 with FUAND, Support; use FUAND, Support;
 
 package body FUAND_Helper is
-   
+
    procedure Eval_FX_F is
    begin
       Assert (not Andthen ((Sand => True, A => 0, B => 0)));
@@ -18,4 +18,3 @@ package body FUAND_Helper is
    end;
 
 end;
-

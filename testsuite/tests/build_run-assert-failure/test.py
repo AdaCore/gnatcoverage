@@ -40,4 +40,3 @@ else:
 thistest = Test()
 
 thistest.result()
-

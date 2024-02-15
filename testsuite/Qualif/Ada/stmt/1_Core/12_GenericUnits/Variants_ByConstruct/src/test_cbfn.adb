@@ -7,19 +7,19 @@ begin
    --  C in range (!low !high => Out-False)
 
   Sensors.Test (37.0, C);
-            
+
    --  C out of range (!low, high => Out-True)
 
   Sensors.Test (200.0, C);
-  
+
   Assert (Sensors.N_Tests_C = 2);
   Assert (Sensors.N_Tests_F = 0);
-  
+
   Assert (RC.In_Range_Count = 1);
   Assert (RC.Out_Of_Range_Count = 1);
   Assert (RF.In_Range_Count = 0);
   Assert (RF.Out_Of_Range_Count = 0);
-  
+
 end Test_CBFN;
 
 --# sensors.adb

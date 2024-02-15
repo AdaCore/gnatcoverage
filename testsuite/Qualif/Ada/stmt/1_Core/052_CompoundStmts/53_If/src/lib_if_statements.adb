@@ -3,7 +3,7 @@ with Lib_Init;
 -- part of the IF statement below gets exercised.
 
 package body Lib_If_Statements is
-   
+
    Values : array (1 .. 8) of Integer;
 
    function Probe (Slot : Integer) return Integer is
@@ -17,5 +17,5 @@ begin
       Values := (others => 0); -- # do_elsif
    else
       Values := (others => -1); -- # do_else
-   end if;      
+   end if;
 end;

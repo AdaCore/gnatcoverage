@@ -21,4 +21,3 @@ end;
 --  /test/ l! ## dF-
 --  /long/ l+ ## 0
 --  /short/ l- ## s-
-

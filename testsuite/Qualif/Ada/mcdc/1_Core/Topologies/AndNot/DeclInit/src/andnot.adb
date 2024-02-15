@@ -6,6 +6,3 @@ package body Andnot is
       return E;  -- # returnValue
    end;
 end;
-
-
-

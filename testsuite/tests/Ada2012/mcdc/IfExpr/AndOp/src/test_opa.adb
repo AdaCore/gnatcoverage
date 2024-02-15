@@ -5,10 +5,10 @@ begin
    --   A op1 B op2 Outer
    --   F T   F T   T
    --   F F   F T   F
-   
+
    Assert (Filter (A => False, Valat => True, Valaf => True,
                    B => False, Valbt => True, Valbf => True) = True);
-   
+
    Assert (Filter (A => False, Valat => True, Valaf => False,
                    B => False, Valbt => True, Valbf => True) = False);
 end;

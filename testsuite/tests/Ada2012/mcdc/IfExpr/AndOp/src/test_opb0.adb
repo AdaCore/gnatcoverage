@@ -4,7 +4,7 @@ procedure Test_Opb0 is
 begin
    --   A op1 B op2 Outer
    --   F F   X X   F
-   
+
    Assert (Filter (A => False, Valat => False, Valaf => False,
                    B => False, Valbt => True, Valbf => True) = False);
 end;

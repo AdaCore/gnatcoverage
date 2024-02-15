@@ -4,5 +4,5 @@ package body Exprs.E_And is
    begin
       return E.A.all.Eval and then E.B.all.Eval; -- # eval
    end;
-   
+
 end;

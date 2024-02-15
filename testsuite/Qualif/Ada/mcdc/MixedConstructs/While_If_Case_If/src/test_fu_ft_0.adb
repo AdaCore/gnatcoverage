@@ -28,4 +28,3 @@ end;
 -- /FA_tinhibitHB/ l- ## 0c
 -- /FA_inhibit/    l- ## s-
 -- /FA_next/       l+ ## 0
-

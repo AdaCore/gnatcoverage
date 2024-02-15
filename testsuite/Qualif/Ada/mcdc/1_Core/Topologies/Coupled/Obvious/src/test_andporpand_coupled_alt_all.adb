@@ -61,4 +61,3 @@ end Test_AndPorPand_Coupled_Alt_All;
 -- /returnValue/        l+ ## 0
 -- /returnTrue/         l+ ## 0
 -- /returnFalse/        l+ ## 0
-

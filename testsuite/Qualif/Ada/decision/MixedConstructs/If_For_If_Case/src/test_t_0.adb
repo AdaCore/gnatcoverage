@@ -3,7 +3,7 @@ with Sensors.Status; use Sensors, Sensors.Status;
 
 procedure Test_T_0 is
    S : aliased Sensor;
-   
+
 begin
    -- Outer If True only. Inner If not reached.
    S.V := 5;

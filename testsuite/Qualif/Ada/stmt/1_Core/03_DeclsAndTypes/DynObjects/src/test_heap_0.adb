@@ -14,4 +14,3 @@ end;
 --  /pos-stmt/ l- ## s-
 --  /neg-decl/ l- ## s-
 --  /neg-stmt/ l- ## s-
-

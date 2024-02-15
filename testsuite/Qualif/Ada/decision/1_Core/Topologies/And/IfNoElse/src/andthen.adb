@@ -7,6 +7,3 @@ package body Andthen is
       return False;      -- # retFalse
    end;
 end;
-
-
-
