@@ -48,10 +48,10 @@ def __langdir_for(lang):
     # only keep the non-digital start of the language name as the subdir
     # to search:
     return re.match(RE_LANG, string=lang).group(1)
-    
+
 def __langversion_for(lang):
     return re.match(RE_LANG, string=lang).group(2)
-    
+
 def __reqset_triggers_for (lang, chapter):
 
     return '\n'.join(
@@ -94,7 +94,7 @@ def __gen_model_for(dolevel, languages):
                     __langversion_for(ada_lang),
 
                 'extra_block':
-                    __extra_block_for(dolevel=dolevel) 
+                    __extra_block_for(dolevel=dolevel)
                 }
             )
 
@@ -133,7 +133,7 @@ def __gen_lrm_ref_for(lang):
 
     output.close()
     input.close()
-    
+
 # =======================================================================
 # ==                          MAIN SCRIPT BODY                         ==
 # =======================================================================
