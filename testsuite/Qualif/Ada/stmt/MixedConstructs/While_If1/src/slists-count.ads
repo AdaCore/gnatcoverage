@@ -6,4 +6,3 @@ package Slists.Count is
       SP : SP_Access := Pass'Access;
       NT, NF : out Natural);
 end;
-

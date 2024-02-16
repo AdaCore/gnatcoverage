@@ -10,4 +10,3 @@ package Instances is
    function My_Max_From_Two is
       new More_If_Statements.Max_From_Two (Integer);
 end;
-

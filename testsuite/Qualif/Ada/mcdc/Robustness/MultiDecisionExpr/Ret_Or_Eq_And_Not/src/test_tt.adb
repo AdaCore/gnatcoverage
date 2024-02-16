@@ -7,5 +7,3 @@ end;
 
 --# or_eq_and_not.adb
 --  /eval/ l! ## eF-:"A", eF-:"C"
-
- 

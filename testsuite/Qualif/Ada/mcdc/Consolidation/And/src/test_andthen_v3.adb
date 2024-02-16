@@ -7,5 +7,3 @@ end;
 
 --# andthen.adb
 --  /eval/ l! ## eF-
-
-

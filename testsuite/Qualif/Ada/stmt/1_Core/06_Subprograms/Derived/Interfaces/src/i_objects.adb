@@ -1,5 +1,5 @@
 package body I_Objects is
-   
+
    procedure Characterize (IV : T_Int) is
    begin
       if IV.Value > 0 then        -- # char_test_pos_int
@@ -10,7 +10,7 @@ package body I_Objects is
          N_Zeroes := N_Zeroes + 1; -- # char_zero_int
       end if;
    end;
-   
+
    procedure Characterize (FV : T_Float) is
    begin
       if FV.Value > 0.0 then        -- # char_test_pos_float
@@ -21,5 +21,5 @@ package body I_Objects is
          N_Zeroes := N_Zeroes + 1; -- # char_zero_float
       end if;
    end;
-           
+
 end;

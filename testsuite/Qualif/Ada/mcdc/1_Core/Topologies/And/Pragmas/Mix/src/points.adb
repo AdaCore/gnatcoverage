@@ -23,5 +23,3 @@ package body Points is
       return P1.X = P2.X and then P1.Y = P2.Y; -- # retSXY
    end;
 end;
-
-

@@ -7,4 +7,3 @@ package body AndPorP is
       return Values (A and then (B or else C)); -- # evalStmt :o/e:
    end;
 end;
-

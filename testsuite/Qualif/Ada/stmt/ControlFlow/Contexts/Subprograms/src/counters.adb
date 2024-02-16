@@ -26,5 +26,3 @@ package body Counters is
       end;
    end;
 end;
-
-

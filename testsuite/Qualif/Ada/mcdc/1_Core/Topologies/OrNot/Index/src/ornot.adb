@@ -7,4 +7,3 @@ package body Ornot is
       return Values (A or else (not B)); -- # evalStmt :o/e:
    end;
 end;
-

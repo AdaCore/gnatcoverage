@@ -4,4 +4,3 @@ package body Andthen is
       return A and then B;  -- # evalStmt :o/e:
    end;
 end;
-

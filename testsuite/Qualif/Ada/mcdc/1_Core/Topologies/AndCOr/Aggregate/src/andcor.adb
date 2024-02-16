@@ -23,6 +23,3 @@ package body Andcor is
    end;
 
 end;
-
-
-

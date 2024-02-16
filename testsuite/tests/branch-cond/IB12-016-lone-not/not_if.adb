@@ -6,4 +6,3 @@ begin
       return not A;
    end if;
 end;
-

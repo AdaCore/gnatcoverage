@@ -50,5 +50,3 @@ end Test_AndPorPand_Coupled_2;
 -- /returnValue/        l+ ## 0
 -- /returnTrue/         l+ ## 0
 -- /returnFalse/        l+ ## 0
-
-

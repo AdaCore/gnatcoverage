@@ -20,4 +20,3 @@ package CASE_Statements is
    --  CASE statement with OTHERS choice, with alternatives with one and with
    --  multiple choices, choices are values or ranges.
 end CASE_Statements;
-

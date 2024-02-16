@@ -2,7 +2,7 @@ pragma Unsuppress (All_Checks);
 pragma Check_Float_Overflow;
 
 package body Ops is
-   
+
    function One_Ok (A, B : Capsum) return Boolean is
    begin
       if A.X + A. Y <= A.Cap or else B.X + B.Y <= B.Cap then -- # test

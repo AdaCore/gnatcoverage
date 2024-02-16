@@ -19,4 +19,3 @@ begin
       Assert (Skip.Len = 0 and then Fault.Len = 1 and then Ok.Len = 0);
    end;
 end;
-

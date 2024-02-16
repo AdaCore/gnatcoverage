@@ -10,4 +10,3 @@ end;
 --# p2.adb
 --  /or/   l! ## eF-
 --  /comp/ l- ## s-
-

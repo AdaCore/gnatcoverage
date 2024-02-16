@@ -8,7 +8,7 @@ package body Pkg is
    procedure Mystery (A, B, C : Boolean)
    is
       function Id (B : Boolean) return Boolean;
-      
+
       function Id (B : Boolean) return Boolean is
       begin
          return B;

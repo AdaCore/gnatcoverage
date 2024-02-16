@@ -39,4 +39,3 @@ end;
 
 --  %cargs: -O1
 --  =/do_nop1/ ~l- ## ~s-
-

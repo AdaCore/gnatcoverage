@@ -55,4 +55,3 @@ end Test_ELSE_Path;
 -- /max/         l+ ## 0
 -- /ifmax/       l- ## s-
 -- /elsemax/     l+ ## 0
-

@@ -17,4 +17,3 @@ package Actuators is
    procedure Fast_Increment
      (A : in out Actuator; Value : Integer);
 end;
-

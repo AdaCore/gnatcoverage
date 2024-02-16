@@ -1,10 +1,10 @@
 package body Ops is
-   
+
    type T_Point is record
       X, Y : Integer;
       Q : T_Quarter;
    end record;
-   
+
    procedure Set_Q (P : in out T_Point) is
       Q : T_Quarter;
    begin
@@ -21,12 +21,12 @@ package body Ops is
       end if;
       P.Q := Q; -- # stmt
    end;
-                       
-   function Quarter (X, Y : Integer) return T_Quarter is      
+
+   function Quarter (X, Y : Integer) return T_Quarter is
       P : T_Point := (X => X, Y => Y, Q => <>);
    begin
       Set_Q (P);  -- # stmt
       return P.Q; -- # stmt
    end;
-   
+
 end;

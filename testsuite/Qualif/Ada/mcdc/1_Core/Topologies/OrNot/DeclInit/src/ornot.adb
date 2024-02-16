@@ -6,6 +6,3 @@ package body Ornot is
       return E;  -- # returnValue
    end;
 end;
-
-
-

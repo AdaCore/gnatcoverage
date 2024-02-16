@@ -10,6 +10,3 @@ package body Ornot is
       return E.Value;  -- # returnValue
    end;
 end;
-
-
-

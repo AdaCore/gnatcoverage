@@ -26,4 +26,3 @@ end;
 -- /CO_incT/   l- ## s-
 -- /CO_incF/   l+ ## 0
 -- /CO_next/   l+ ## 0
-

@@ -1,5 +1,5 @@
 package body AndIdOr is
-   
+
    type My_Type (Value : Boolean) is null record;
 
    function F (A, B, C : Boolean) return Boolean is

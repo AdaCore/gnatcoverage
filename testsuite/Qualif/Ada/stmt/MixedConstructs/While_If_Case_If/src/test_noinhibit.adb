@@ -7,14 +7,14 @@ procedure Test_Noinhibit is
 begin
    -- get into the inhibit case selection, arranging for the
    -- if statement there to always evaluate false
-   
+
    S1.ALB := 1;
    S1.AHB := 10;
    S1.V   := 5;  -- # in range
    S1.Active := True;
-   
+
    Prepend (S1'Unchecked_Access, SL);
-   
+
    Forall_In (SL, Inhibit);
    Assert (S1.Active);
 end;
@@ -30,4 +30,3 @@ end;
 -- /FA_tinhibitHB/ l+ ## 0
 -- /FA_inhibit/    l- ## s-
 -- /FA_next/       l+ ## 0
-

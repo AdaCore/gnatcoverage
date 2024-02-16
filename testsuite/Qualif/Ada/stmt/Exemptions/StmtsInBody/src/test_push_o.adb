@@ -9,7 +9,7 @@ begin
    Push (S, 1);
    Push (S, 3);
    Assert (Errcount (S) = 0);
-   
+
    Push (S, 4);
    Assert (Errcount (S) = 1);
 end;

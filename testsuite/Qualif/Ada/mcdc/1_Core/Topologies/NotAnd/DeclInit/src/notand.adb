@@ -6,6 +6,3 @@ package body Notand is
       return E;  -- # returnValue
    end;
 end;
-
-
-

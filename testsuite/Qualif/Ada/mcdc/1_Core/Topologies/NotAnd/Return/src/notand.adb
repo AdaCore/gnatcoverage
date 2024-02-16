@@ -4,4 +4,3 @@ package body Notand is
       return (not A) and then B;  -- # evalStmt :o/e:
    end;
 end;
-

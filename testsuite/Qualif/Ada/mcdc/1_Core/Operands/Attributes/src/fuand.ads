@@ -11,6 +11,3 @@ package FUAND is
    function Poslen_And_Eql (Ops : Keys) return Boolean;
    --  Whether Ops.A'Length is positive and the same as Ops.B'Length
 end;
-
-
-

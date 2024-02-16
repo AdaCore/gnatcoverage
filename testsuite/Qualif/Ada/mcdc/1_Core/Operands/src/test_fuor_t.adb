@@ -10,4 +10,3 @@ end;
 --# fuor.adb
 --  /evalA/   l! ## eF-
 --  /evalB/   l! ## 0
-

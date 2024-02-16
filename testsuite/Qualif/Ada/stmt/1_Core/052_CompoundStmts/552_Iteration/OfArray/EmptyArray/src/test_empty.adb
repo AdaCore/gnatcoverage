@@ -3,7 +3,7 @@ with Values.Arg, Support; use Values, Support;
 procedure Test_Empty is
 begin
    Arg.Do_Loop_Over (EA, Early_Return => False, Max_Iterations => EA'Length);
-end; 
+end;
 --# values-arg.adb
 --  /decl/    l+ ## 0
 --  /test-return/ l+ ## 0
@@ -13,5 +13,3 @@ end;
 --  /exit/        l- ## s-
 --  /loop_op/   l- ## s-
 --  /post-loop/ l+ ## 0
-
-

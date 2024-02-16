@@ -17,6 +17,3 @@ package body Andthen is
       return F (A, B, Identity(False)); -- # retVal
    end;
 end;
-
-
-

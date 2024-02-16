@@ -7,7 +7,7 @@ procedure Test_DF_DT is
 begin
    Doif_FX_FT;
    Doif_FX_TX;
-   
+
    Doif_TF_FT;
    Doif_TF_TX;
 end;
@@ -25,4 +25,3 @@ end;
 -- /AF_fault/ l+ ## 0
 -- /AF_ok/    l- ## s-
 -- /AF_next/  l+ ## 0
-

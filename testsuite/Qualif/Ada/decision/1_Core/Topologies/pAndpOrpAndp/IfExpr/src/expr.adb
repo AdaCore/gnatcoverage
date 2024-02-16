@@ -5,6 +5,3 @@ package body Expr is
       return (if (A and then B) or else (C and then D) then True else False); -- # eval :o/d:
    end;
 end;
-
-
-

@@ -5,4 +5,3 @@ package body Flip is
       return (if not X then True else False);    -- # ifx-eval :o/d:
    end;
 end;
-

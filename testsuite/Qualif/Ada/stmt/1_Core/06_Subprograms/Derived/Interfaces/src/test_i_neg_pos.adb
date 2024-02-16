@@ -10,10 +10,10 @@ procedure Test_I_Neg_Pos is
 begin
    IO.Value := -1;
    Characterize (IO);
-   
+
    FO.Value := 11.0;
    Characterize (FO);
-   
+
    Assert (N_Positives = 1);
    Assert (N_Negatives = 1);
    Assert (N_Zeroes = 0);
@@ -31,4 +31,3 @@ end;
 --  /char_test_neg_float/ l- ## s-
 --  /char_neg_float/  l- ## s-
 --  /char_zero_float/  l- ## s-
-

@@ -1,13 +1,13 @@
 with State; use State;
 
 package body IFS is
-   
+
    -- Expose various cases with if statements controled by constant guards,
    --  which are simplified early-on by the compiler front-end.
-   
+
    -- Whether a code-less "if XX then" stmt becomes coverable itself
    -- depends on whether it dominates coverable statements.
-   
+
    procedure If_F_Var_Last is
    begin
       Tick;       -- # reach
@@ -15,7 +15,7 @@ package body IFS is
          Dtick;   -- # out
       end if;
    end;
-   
+
    procedure If_F_Cmp_Last is
    begin
       Tick;              -- # reach
@@ -23,7 +23,7 @@ package body IFS is
          Dtick;          -- # out
       end if;
    end;
-   
+
    procedure If_F_Var_Not_Last is
    begin
       Tick;     -- # reach
@@ -41,9 +41,9 @@ package body IFS is
       end if;
       Tick;      -- # reach
    end;
-   
+
    --
-   
+
    procedure Ifelse_F_Var_Last is
    begin
       Tick;       -- # reach
@@ -53,7 +53,7 @@ package body IFS is
          Tick;    -- # reach
       end if;
    end;
-   
+
    procedure Ifelse_F_Cmp_Last is
    begin
       Tick;       -- # reach
@@ -63,7 +63,7 @@ package body IFS is
          Tick;    -- # reach
       end if;
    end;
-   
+
    procedure Ifelse_F_Var_Not_Last is
    begin
       Tick;       -- # reach
@@ -74,7 +74,7 @@ package body IFS is
       end if;
       Tick;              -- # reach
    end;
-   
+
    procedure Ifelse_F_Cmp_Not_Last is
    begin
       Tick;      -- # reach
@@ -85,9 +85,9 @@ package body IFS is
       end if;
       Tick;      -- # reach
    end;
-   
+
    --
-   
+
    procedure Ifelse_T_Var_Last is
    begin
       Tick;       -- # reach
@@ -97,7 +97,7 @@ package body IFS is
          Dtick;   -- # out
       end if;
    end;
-   
+
    procedure Ifelse_T_Cmp_Last is
    begin
       Tick;      -- # reach
@@ -105,9 +105,9 @@ package body IFS is
          Tick;   -- # reach
       else
          Dtick;  -- # out
-      end if;      
+      end if;
    end;
-   
+
    procedure Ifelse_T_Var_Not_Last is
    begin
       Tick;       -- # reach
@@ -118,7 +118,7 @@ package body IFS is
       end if;
       Tick;       -- # reach
    end;
-   
+
    procedure Ifelse_T_Cmp_Not_Last is
    begin
       Tick;      -- # reach
@@ -129,5 +129,5 @@ package body IFS is
       end if;
       Tick;      -- # reach
    end;
-   
+
 end;

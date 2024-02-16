@@ -1,4 +1,4 @@
 package Monitor is
-   procedure Touch;   
+   procedure Touch;
    Nops : Integer := 0;
 end;

@@ -16,7 +16,7 @@ procedure Elab (Val: Integer) is
 
 begin
    declare
-      X : integer ;                             -- # decl 
+      X : integer ;                             -- # decl
       package Pack is
          I : integer range 2..10 := func(Val);  -- # implicit_violation
       end Pack;

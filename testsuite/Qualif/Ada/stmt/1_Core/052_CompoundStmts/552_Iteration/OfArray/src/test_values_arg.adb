@@ -2,7 +2,7 @@ pragma Ada_2012;
 
 with Values.ARG, Support; use Values, Support;
 
-procedure Test_Values_ARG is   
+procedure Test_Values_ARG is
 begin
    ARG.Do_Loop_Over
      (VA, Early_Return => False, Max_Iterations => VA'Length);
@@ -20,4 +20,3 @@ end;
 --  /exit/        l- ## s-
 --  /loop_op/   l+ ## 0
 --  /post-loop/ l+ ## 0
-

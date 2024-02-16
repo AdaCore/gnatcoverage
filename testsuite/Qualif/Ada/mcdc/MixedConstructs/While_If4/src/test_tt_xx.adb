@@ -18,4 +18,3 @@ end;
 -- /AF_fault/ l- ## s-
 -- /AF_ok/    l- ## s-
 -- /AF_next/  l+ ## 0
-

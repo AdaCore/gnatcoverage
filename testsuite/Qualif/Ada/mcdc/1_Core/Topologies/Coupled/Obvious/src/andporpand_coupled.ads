@@ -9,4 +9,3 @@ package AndPorPand_Coupled is
    function F3 (A, B, C : Boolean) return Boolean;
 
 end AndPorPand_Coupled;
-

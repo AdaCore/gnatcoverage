@@ -6,10 +6,10 @@ with MX; use MX;
 procedure Test_Exempt_XR23 is
 begin
    Trigger_XR1;
-   
+
    -- Region 1 raises an exception, force running the other blocks
    -- without the exempted regions.
-   
+
    Trigger_0XR;
 end;
 

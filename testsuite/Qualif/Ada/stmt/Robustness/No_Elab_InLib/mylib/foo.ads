@@ -5,4 +5,3 @@ package Foo is
    X : Myint := 12;             -- # decl
    procedure Set_X (V : Myint); -- # decl
 end;
-

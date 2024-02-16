@@ -10,5 +10,3 @@ end;
 -- /div/     l- ## s-
 -- /retval/  l- ## s-
 -- /handle/  l+ ## 0
-
-

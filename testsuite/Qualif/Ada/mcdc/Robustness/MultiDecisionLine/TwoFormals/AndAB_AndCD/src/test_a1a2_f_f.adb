@@ -5,10 +5,9 @@ begin
    Process (A => True, B => False, C => True, D => False);
    Process (A => False, B => False, C => True, D => False);
    Process (A => False, B => True, C => True, D => False);
-   
+
    Process (A => False, B => True, C => False, D => True);
 end;
 
 --# a1a2.adb
 -- /evals/ l! ## eT-:"A and then B" # eT-:"C and then D"
-

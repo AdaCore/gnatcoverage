@@ -16,4 +16,3 @@ end;
 
 -- %cargs: -O1
 -- =/xpos/        l0 ## s0
-

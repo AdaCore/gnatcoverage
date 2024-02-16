@@ -6,14 +6,14 @@ begin
    --   F T   F T   T
    --   F F   F T   F
    --   F T   F F   F
-   
+
    Assert (Filter (A => False, Valat => True, Valaf => True,
                    B => False, Valbt => True, Valbf => True) = True);
-   
+
    Assert (Filter (A => False, Valat => True, Valaf => False,
                    B => False, Valbt => True, Valbf => True) = False);
-   
-   Assert (Filter (A => False, Valat => True, Valaf => True,                   
+
+   Assert (Filter (A => False, Valat => True, Valaf => True,
                    B => False, Valbt => True, Valbf => False) = False);
 end;
 

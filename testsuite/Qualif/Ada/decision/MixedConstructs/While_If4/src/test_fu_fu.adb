@@ -3,15 +3,15 @@ with Doif_TF_FT, Doif_TF_TX, Doif_TF_FF, Doif_TT_XX;
 
 procedure Test_FU_FU is
 begin
-   Doif_FX_FT;   
+   Doif_FX_FT;
    Doif_TF_FT;
-   
+
    Doif_FX_TX;
    Doif_TF_TX;
-   
+
    Doif_FX_FF;
    Doif_TF_FF;
-   
+
    Doif_TT_XX;
 end;
 
@@ -28,4 +28,3 @@ end;
 -- /AF_fault/ l+ ## 0
 -- /AF_ok/    l+ ## 0
 -- /AF_next/  l+ ## 0
-

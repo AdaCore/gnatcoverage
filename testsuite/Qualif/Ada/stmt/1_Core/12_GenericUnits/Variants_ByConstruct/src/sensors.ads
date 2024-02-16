@@ -10,6 +10,6 @@ package Sensors is
    type Temp_Unit is (C, F);
 
    procedure Test (Value : Float; Unit : Temp_Unit);
-   
+
    N_Tests_C, N_Tests_F : Natural := 0;
 end Sensors;

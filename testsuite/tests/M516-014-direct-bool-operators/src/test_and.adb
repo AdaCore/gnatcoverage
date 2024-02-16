@@ -15,4 +15,3 @@ end;
 --  /or-true/   l+ ## 0
 --  /eval-xor/  l+ ## 0
 --  /xor-true/  l+ ## 0
-

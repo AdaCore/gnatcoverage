@@ -6,6 +6,3 @@ package FUOR is
      (S, Post1, Post2 : String; Max : Integer) return Boolean;
    --  Whether Op & Post1 or Op & Post2 remain <= Max in length
 end;
-
-
-

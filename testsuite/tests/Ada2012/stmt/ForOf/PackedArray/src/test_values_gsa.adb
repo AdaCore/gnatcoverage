@@ -11,4 +11,3 @@ end;
 --# values-global.adb
 --  /stmt/    l+ ## 0
 --  /loop_op/ l+ ## 0
-

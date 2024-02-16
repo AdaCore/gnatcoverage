@@ -10,6 +10,3 @@ package body Notand is
       return E.Value;  -- # returnValue
    end;
 end;
-
-
-

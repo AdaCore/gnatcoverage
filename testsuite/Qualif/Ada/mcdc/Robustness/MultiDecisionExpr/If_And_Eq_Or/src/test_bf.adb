@@ -11,4 +11,3 @@ end;
 --  /eval/  l! ## c!:"A", eT-:"C"
 --  /true/  l+ ## 0
 --  /false/ l+ ## 0
-

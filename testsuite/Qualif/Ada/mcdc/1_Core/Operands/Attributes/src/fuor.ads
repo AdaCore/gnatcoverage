@@ -11,6 +11,3 @@ package FUOR is
    function Empty_Or_Eql (Ops : Keys) return Boolean;
    --  Whether Ops.A'Length is null or the same as Ops.B'Length
 end;
-
-
-

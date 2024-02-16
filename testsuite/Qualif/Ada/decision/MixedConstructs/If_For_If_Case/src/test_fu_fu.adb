@@ -3,18 +3,18 @@ with Sensors.Status; use Sensors, Sensors.Status;
 
 procedure Test_FU_FU is
    S : Sensor;
-   
+
 begin
    -- Outer and Inner If both True and False.
-   
+
    S.ALB := 1;
    S.AHB := 15;
-   
+
    Assert (Status_Of (S) = Undecidable);
 
-   S.V := 0; -- < low bound   
+   S.V := 0; -- < low bound
    Sample (S);
-   
+
 
    S.V := 5; -- in range
    Sample (S);

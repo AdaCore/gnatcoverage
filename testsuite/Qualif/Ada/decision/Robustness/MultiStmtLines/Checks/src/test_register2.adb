@@ -24,5 +24,3 @@ end Test_Register2;
 -- %tags:(7.1.2|7.2.2), bin-traces
 --  =/init/   l! ## s!, dF-
 --  =/triple/ l! ## s!, dT-
-
-

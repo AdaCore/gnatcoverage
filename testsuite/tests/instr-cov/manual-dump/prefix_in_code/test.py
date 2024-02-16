@@ -64,7 +64,7 @@ def check_one_trace(cov_args, lang):
 
 prj_id = "p"
 
-# Instrument build and run 
+# Instrument build and run
 cov_args = build_and_run(
     gprsw=GPRswitches(
         gprfor(

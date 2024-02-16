@@ -10,22 +10,22 @@ procedure Test_TI_All_Neg is
 begin
    Assign_Id_To (IO);
    Assert (IO.Id >= 0);
-   
+
    IO.Value := -1;
    Characterize (IO);
-   
+
    IO.Value := 1;
    Characterize (IO);
-   
+
    IO.Value := 0;
    Characterize (IO);
-   
+
    Assign_Id_To (FO);
    Assert (FO.Id >= 0);
-   
+
    FO.Value := -11.0;
    Characterize (FO);
-   
+
    Assert (N_Positives = 1);
    Assert (N_Negatives = 2);
    Assert (N_Zeroes = 1);
@@ -47,4 +47,3 @@ end;
 --  /char_test_neg_float/ l+ ## 0
 --  /char_neg_float/  l+ ## 0
 --  /char_zero_float/  l- ## s-
-

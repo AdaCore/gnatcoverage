@@ -10,6 +10,3 @@ package body Andnot is
       return E.Value;  -- # returnValue
    end;
 end;
-
-
-

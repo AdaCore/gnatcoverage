@@ -7,4 +7,3 @@ package body Flip is
       return False;  -- # returnFalse
    end;
 end;
-

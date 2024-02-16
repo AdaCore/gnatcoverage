@@ -7,4 +7,3 @@ package Evals is
 
    procedure Eval (A, B : Boolean);
 end;
-

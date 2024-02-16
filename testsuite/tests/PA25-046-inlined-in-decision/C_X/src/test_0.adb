@@ -8,4 +8,3 @@ end;
 --# p2.adb
 --  /or/   l- ## s-
 --  /comp/ l- ## s-
-

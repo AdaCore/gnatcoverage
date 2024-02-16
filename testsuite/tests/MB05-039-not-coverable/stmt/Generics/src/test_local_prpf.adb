@@ -17,4 +17,3 @@ end;
 
 --  %cargs: -O1
 --  =/xneg/       l0 ## s0
-

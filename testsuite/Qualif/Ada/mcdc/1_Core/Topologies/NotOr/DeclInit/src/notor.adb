@@ -6,6 +6,3 @@ package body Notor is
       return E;  -- # returnValue
    end;
 end;
-
-
-

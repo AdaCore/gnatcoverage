@@ -10,6 +10,3 @@ package body Notornot is
       return E.Value;  -- # returnValue
    end;
 end;
-
-
-

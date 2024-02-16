@@ -14,4 +14,3 @@ package body Check is
       pragma Warnings (On, "index for * may assume lower bound of 1");
    end;
 end;
-

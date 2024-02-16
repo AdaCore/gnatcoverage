@@ -11,10 +11,10 @@ procedure Test_Mix1 is
 begin
    Characterize1 (IV0);
    Characterize2 (IVpos);
-   
+
    T_Int_Characterize1 (IVpos);
    T_Int_Characterize2 (IVneg);
-   
+
    Assert (N_Positives = 2);
    Assert (N_Negatives = 1);
    Assert (N_Zeroes = 1);
@@ -44,4 +44,3 @@ end;
 --  /test_neg_i2/ l+ ## 0
 --  /neg_i2/      l+ ## 0
 --  /zero_i2/     l- ## s-
-

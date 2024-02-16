@@ -1,6 +1,6 @@
 
 package body Ops is
-   
+
    procedure Apply (Op : T_Operation; A : in out T_Operand; B : T_Operand) is
    begin
       if Op = Op_Add then -- # test_add
@@ -9,5 +9,5 @@ package body Ops is
          A.Value := A.Value - B.Value; -- # sub
       end if;
    end;
-   
+
 end;

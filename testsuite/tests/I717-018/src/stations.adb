@@ -123,10 +123,10 @@ package body Stations is
 
       Put_Line ("'C'autious mode, 'D'umb mode");
       Put ("'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? ");
-      
+
       --  Dummy version here, for compilation and basic run check in
       --  batch mode.
-      
+
    end Run;
 
    ----------

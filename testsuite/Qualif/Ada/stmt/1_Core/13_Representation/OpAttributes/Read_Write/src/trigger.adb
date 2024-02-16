@@ -1,11 +1,11 @@
 with Mystreams; use Mystreams;
 
 package body Trigger is
-   
+
    -- point here is to have calls via operational attributes
    -- conditioned, controlling that they are not marked covered
    -- just because they are special sorts of calls.
-   
+
    procedure Run (Op : Opkind) is
       P : aliased Port_T;
       X : Sint := (Value => 1);
@@ -16,4 +16,3 @@ package body Trigger is
       end case;
    end;
 end;
- 

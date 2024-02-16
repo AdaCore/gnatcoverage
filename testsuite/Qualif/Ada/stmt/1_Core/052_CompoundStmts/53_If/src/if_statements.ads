@@ -14,4 +14,3 @@ package IF_Statements is
    --  Set Res to maximun from Arg1 and Arg2. The body contains IF statement
    --  without ELSE path and without ELSIF path
 end IF_Statements;
-

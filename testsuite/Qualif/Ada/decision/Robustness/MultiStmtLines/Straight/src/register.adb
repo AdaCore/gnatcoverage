@@ -19,7 +19,7 @@ begin
    -- if/else; simple decision
    if Hit > 0 then This_Score := Hit; else This_Score := 0; End if; -- # init
 
-   -- if/no-else; simple decision. No check nor expr eval 
+   -- if/no-else; simple decision. No check nor expr eval
    if Double then This_Score := Times (This_Score, 2); end if; -- # double
 
    -- if/no-else; stmt; simple decision

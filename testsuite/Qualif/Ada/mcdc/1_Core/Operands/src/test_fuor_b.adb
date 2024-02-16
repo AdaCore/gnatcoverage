@@ -9,4 +9,3 @@ end;
 --# fuor.adb
 --  /evalA/   l! ## c!:"Op"
 --  /evalB/   l! ## 0
-

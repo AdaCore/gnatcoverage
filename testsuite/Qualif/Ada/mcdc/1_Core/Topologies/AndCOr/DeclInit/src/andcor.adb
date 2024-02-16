@@ -19,6 +19,3 @@ package body AndCor is
    end;
 
 end;
-
-
-

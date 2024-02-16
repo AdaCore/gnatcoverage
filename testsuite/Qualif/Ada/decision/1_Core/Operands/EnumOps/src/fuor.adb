@@ -4,7 +4,7 @@ package body FUOR is
    begin
       if Ops.A = TT or else Ops.B = TT then -- # eval0
          return True; -- # true
-      else 
+      else
          return False; -- # false
       end if;
    end;

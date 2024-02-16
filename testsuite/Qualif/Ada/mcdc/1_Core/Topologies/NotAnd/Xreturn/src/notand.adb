@@ -6,4 +6,3 @@ package body Notand is
       end return;
    end;
 end;
-

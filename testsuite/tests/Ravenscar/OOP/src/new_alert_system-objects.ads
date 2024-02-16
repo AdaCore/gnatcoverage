@@ -12,4 +12,3 @@ package New_Alert_System.Objects is
    Empty_High_Alert : High_Alert :=
      High_Alert'(Empty_Medium_Alert with Ring_Alarm_At => Zero_Time);
 end New_Alert_System.Objects;
-

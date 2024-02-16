@@ -8,14 +8,14 @@ begin
    exception
       when Program_Error => null;
    end;
-   
+
    begin
       P2;
-      Assert (Vars.N_Post_Raise = 0); 
+      Assert (Vars.N_Post_Raise = 0);
    exception
       when Program_Error => null;
    end;
-     
+
 end;
 
 --# p1.adb p2.adb vars.adb

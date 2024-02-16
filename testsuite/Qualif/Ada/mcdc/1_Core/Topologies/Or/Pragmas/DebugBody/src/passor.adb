@@ -6,4 +6,3 @@ begin
    pragma Debug (Assert (A or else B)); -- # eval
    null; -- # stmt
 end;
-

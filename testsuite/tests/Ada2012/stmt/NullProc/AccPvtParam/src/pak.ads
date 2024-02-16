@@ -10,4 +10,3 @@ package Pak is
 private
    type PR is new R with null record;
 end Pak;
-

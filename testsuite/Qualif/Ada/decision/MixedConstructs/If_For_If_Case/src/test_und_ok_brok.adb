@@ -4,20 +4,20 @@ with Sensors.Status; use Sensors, Sensors.Status;
 
 procedure Test_Und_Ok_Brok is
    S : aliased Sensor (Hist_Size => 5);
-   
+
 begin
    S.ALB := 5;
    S.AHB := 10;
-   
+
    Assert (Status_Of (S) = Undecidable);
-   
+
    S.V := 5;
    Sample (S);
    Assert (Status_Of (S) = Ok);
-   
+
    S.V := 1;
    Sample (S);
-   
+
    S.V := 40;
    Sample (S);
    Assert (Status_Of (S) = Broken);

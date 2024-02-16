@@ -8,5 +8,3 @@ end;
 
 --# or_eq_and_not.adb
 --  /eval/ l! ## c!:"B", c!:"not D"
-
- 

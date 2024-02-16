@@ -32,5 +32,3 @@ end Test_Foo;
 --# foo.ads
 
 --  /decl/      ~l+ ## 0
-
-

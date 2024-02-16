@@ -19,4 +19,3 @@ begin
     Assert (M = Natural'Min (X, 2));  -- # common
     return M;                         -- # common
 end;
-

@@ -1,9 +1,9 @@
-      
+
 package body Monitor is
-   
+
    Moncalls : Natural := 0;
    pragma Volatile (Moncalls);
-   
+
    procedure Op is
    begin
       if Count_Ops then          -- # called

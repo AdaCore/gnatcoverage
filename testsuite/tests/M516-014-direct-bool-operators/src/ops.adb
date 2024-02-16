@@ -1,5 +1,5 @@
 package body Ops is
-   
+
    procedure Eval (A, B : Boolean) is
    begin
       if A and B then        -- # eval-and
@@ -13,6 +13,3 @@ package body Ops is
       end if;
    end;
 end;
-     
-
-  

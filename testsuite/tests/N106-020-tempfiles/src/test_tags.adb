@@ -4,8 +4,8 @@ with Actions; use Actions;
 --  conditional sections of expectation statements depending on
 --  the testsuite discriminants.
 
-procedure Test_Tags is   
-begin   
+procedure Test_Tags is
+begin
    Process (5, Process_Positive'Access);
    Process (-5, Process_Negative'Access);
    Process (0, Process_Zero'Access);

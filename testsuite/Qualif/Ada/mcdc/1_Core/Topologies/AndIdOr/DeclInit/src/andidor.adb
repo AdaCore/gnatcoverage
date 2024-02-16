@@ -6,4 +6,3 @@ package body AndIdOr is
       return R;  -- # returnValue
    end;
 end;
-

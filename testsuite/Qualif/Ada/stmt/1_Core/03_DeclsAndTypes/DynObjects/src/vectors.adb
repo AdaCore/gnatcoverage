@@ -1,11 +1,11 @@
 
 package body Vectors is
-   
+
    function All_Same (N : Integer; Value : Integer) return Vector is
    begin
       return Vector'(1 .. N => Value);  -- # on-call
    end;
-   
+
    function Sum_All_In (V : Vector) return Integer is
       Sum : Integer := 0;    -- # on-call
    begin
@@ -14,12 +14,12 @@ package body Vectors is
       end loop;
       return Sum;            -- # on-call
    end;
-   
+
    function Sum_All_Abs (N : Integer; Value : Integer) return Integer is
    begin
       --  point here is to have conditional object declarations resorting to a
       --  function returning unconstrained for initializers
-      
+
       if Value > 0 then -- # on-call
          declare
             V : Vector := All_Same (N, Value); -- # pos-decl
@@ -34,5 +34,5 @@ package body Vectors is
          end;
       end if;
    end;
-   
+
 end;

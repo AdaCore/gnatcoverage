@@ -7,4 +7,3 @@ end;
 
 --# a1o2.adb
 -- /evals/ l! ## eF-:"A and then B" # eT-:"C or else D"
-

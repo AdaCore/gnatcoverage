@@ -1,5 +1,5 @@
 package body Heap is
-   
+
    function Ptr_To_Abs (X : Integer) return Integer_Access is
    begin
       if X > 0 then -- # on-call

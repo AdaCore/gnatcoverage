@@ -1,5 +1,5 @@
 with Vectors; use Vectors;
-                
+
 procedure Test_Vectors_0 is
 begin
    null;
@@ -11,4 +11,3 @@ end;
 --  /pos-stmt/ l- ## s-
 --  /neg-decl/ l- ## s-
 --  /neg-stmt/ l- ## s-
-

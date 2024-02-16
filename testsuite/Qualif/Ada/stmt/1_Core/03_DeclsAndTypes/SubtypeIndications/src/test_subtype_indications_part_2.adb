@@ -30,8 +30,3 @@ end Test_Subtype_Indications_Part_2;
 -- /2_stmt/      l+ ## 0
 -- /3_local_dcl/ l+ ## 0
 -- /3_stmt/      l+ ## 0
-
-
-
-
-

@@ -19,7 +19,7 @@ with Support;       use Support;
 procedure Test_Object_Declarations_Full is
    package Decls_Pack_Matrix is new Decls_Pack_Matrix_G (1, 2);
    use Decls_Pack_Matrix;
-   
+
    package Decls_Pack_Records is new Decls_Pack_Records_G;
    use Decls_Pack_Records;
 
@@ -37,7 +37,7 @@ procedure Test_Object_Declarations_Full is
 
    Coord1 : Coordinate := Coordinate_Zero;
    Coord2 : Coordinate := (1.0, 1.0);
-   
+
    Coord_Value1 : aliased Coordinate := (1.0, 2.0);
    Coord_Value2 : aliased Coordinate := (3.0, 4.0);
    Coord_Var1 : Access_All_Coordinate := Coord_Value1'Unchecked_Access;
@@ -48,10 +48,10 @@ procedure Test_Object_Declarations_Full is
 
    Matr1 : Matrix := (1 => (1 => 1));
    Matr2 : Matrix := (1 => (1 => 2));
-   
+
    P_Var1 : T_Private := Get_Private (10);
    P_Var2 : T_Private := Get_Private (20);
-   
+
    Int_Value1 : aliased Integer := 1;
    Int_Value2 : aliased Integer := 2;
    Var1 : Access_All_Integer := Int_Value1'Unchecked_Access;
@@ -97,7 +97,7 @@ begin
    Assert (Coord2 = Coordinate_Zero and then Coord1 = (1.0, 1.0));
 
    --  Call all the subprograms from library packages
-   
+
    Decls_Pack_1.Local_Swap (Int1, Int2);
    Assert (Int1 = 1 and then Int2 = 2);
    Assert (Decls_Pack_1.Local_Fun (Mon) = Tue);
@@ -112,7 +112,7 @@ begin
 
    Decls_Pack_Records.Local_Swap (Coord1, Coord2);
    Assert (Coord1 = Coordinate_Zero and then Coord2 = (1.0, 1.0));
-   
+
    Decls_Pack_Derived_Records.Local_Swap (V1, V2);
    Assert (V1.X = 2.0  and then
            V1.Y = 20.0 and then
