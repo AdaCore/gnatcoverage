@@ -8,4 +8,3 @@ library project Libops is
    for Library_Dir use "lib";
 
 end Libops;
-
