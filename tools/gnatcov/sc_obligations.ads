@@ -238,9 +238,6 @@ package SC_Obligations is
    --  Debug helper: print a representation of Scope_Entities on the standard
    --  output. Each line that is printed has the given Line_Prefix.
 
-   subtype Tree_Iterator is
-     Scope_Entities_Trees.Tree_Iterator_Interfaces.Forward_Iterator'Class;
-   type Iterator_Acc is access Tree_Iterator;
    package Scope_Stacks is new Ada.Containers.Doubly_Linked_Lists
      (Element_Type => Scope_Entities_Trees.Cursor,
       "="          => Scope_Entities_Trees."=");
@@ -256,25 +253,31 @@ package SC_Obligations is
    --  Is_Active to know whether a given scope is active in the given
    --  traversal.
 
-   function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type
-     with Post => Last_SCO (Scope_Traversal'Result) = No_SCO_Id;
+   function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type;
    --  Return a scope traversal for the given compilation unit
 
-   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id)
-     with Pre  => Last_SCO (ST) <= SCO,
-          Post => Last_SCO (ST) = SCO;
-   --  Traverse the given SCO and update the Scope_Traversal accordingly. Note
-   --  that the scope traversal must be done on increasing SCOs identifiers.
+   function Get_CU (ST : Scope_Traversal_Type) return CU_Id;
+   --  Return the compilation unit id which ST is currently traversing
 
-   function Last_SCO (ST : Scope_Traversal_Type) return SCO_Id;
-   --  Return the last SCO that was passed to Traverse_SCO, or No_SCO_Id if
-   --  Traverse_SCO has not been called yet on ST.
+   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id) with
+     Pre => Get_CU (ST) = No_CU_Id
+           or else SCO in First_SCO (Get_CU (ST)) .. Last_SCO (Get_CU (ST));
+   --  Position ST on the inner-most scope that contains SCO.
+   --
+   --  This does nothing on a scope traversal type not initialized, or
+   --  initialized on a CU with no scopes attached to it.
 
    function In_Scope_Of_Interest (ST : Scope_Traversal_Type) return Boolean;
    --  Return whether at least one scope in Switches.Subps_Of_Interest contains
-   --  Last_SCO (ST). Note that this also returns True if
-   --  Switches.Subps_Of_Interest is empty (i.e. consider that all subprograms
-   --  are of interest in that case).
+   --  the last SCO on which Traverse_SCO (ST, ...) was called. Note that this
+   --  also returns True if Switches.Subps_Of_Interest is empty (i.e. consider
+   --  that all subprograms are of interest in that case).
+
+   function In_Scope_Of_Interest
+     (ST : in out Scope_Traversal_Type; SCO : SCO_Id) return Boolean with
+     Pre => Get_CU (ST) = No_CU_Id
+           or else SCO in First_SCO (Get_CU (ST)) .. Last_SCO (Get_CU (ST));
+   --  Shortcut for Traverse_SCO (ST, SCO); return In_Scope_Of_Interest (ST);
 
    No_Scope_Entity : constant Scope_Entity :=
      (From       => No_SCO_Id,
@@ -1384,25 +1387,13 @@ private
    --  Set the BDD node for the given condition SCO
 
    type Scope_Traversal_Type is record
-      It : Iterator_Acc;
-      --  Iterator to traverse the scope tree
+      CU  : CU_Id := No_CU_Id;
+      --  Id of the compilation unit we are currently traversing
 
-      Last_SCO : SCO_Id;
-      --  Keep track of the last SCO requested with Traverse_SCO. We use this
-      --  to check that SCOs are requested in the right order (lower Ids to
-      --  higher ones).
-
-      Current_SE : Scope_Entities_Trees.Cursor;
-      --  Scope that is the deepest in the scope tree and that covers Last_SCO
-
-      Next_SE : Scope_Entities_Trees.Cursor;
-      --  Next scope that Traverse_SCO needs to consider
+      Cur : Scope_Entities_Trees.Cursor := Scope_Entities_Trees.No_Element;
+      --  Current position in the scope tree
    end record;
 
-   No_Scope_Traversal : Scope_Traversal_Type :=
-     (It            => null,
-      Last_SCO      => No_SCO_Id,
-      Current_SE    => Scope_Entities_Trees.No_Element,
-      Next_SE       => Scope_Entities_Trees.No_Element);
+   No_Scope_Traversal : constant Scope_Traversal_Type := (others => <>);
 
 end SC_Obligations;

@@ -378,7 +378,6 @@ package body Annotations is
    procedure Generate_Report
      (Pp               : in out Pretty_Printer'Class;
       Show_Details     : Boolean;
-      Subp_Of_Interest : Scope_Id_Set;
       Subdir           : String := "";
       Clean_Pattern    : String := No_Cleaning)
    is
@@ -417,23 +416,12 @@ package body Annotations is
             LI : constant Line_Info_Access := Get_Line (FI, L);
             S  : Line_State;
          begin
-            --  Check that this is a SCO for a subprogram of interest
-
-            if not Subp_Of_Interest.Is_Empty and then LI.SCOs /= null then
-               for SCO of LI.SCOs.all loop
-                  Traverse_SCO (ST, SCO);
-               end loop;
-               if not In_Scope_Of_Interest (ST) then
-                  return;
-               end if;
-            end if;
-
             --  Compute state for each coverage objective
 
             if Object_Coverage_Enabled then
                Object.Compute_Line_State (LI);
             else
-               Source.Compute_Line_State (L, LI);
+               Source.Compute_Line_State (L, LI, ST);
             end if;
 
             --  Compute aggregated line state before exemption

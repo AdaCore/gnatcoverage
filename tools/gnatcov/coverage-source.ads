@@ -23,6 +23,7 @@ with Files_Table;             use Files_Table;
 with Instrument;              use Instrument;
 with Instrument.Input_Traces; use Instrument.Input_Traces;
 with Logging;
+with SC_Obligations;          use SC_Obligations;
 with Traces;                  use Traces;
 with Traces_Names;            use Traces_Names;
 with Traces_Lines;            use Traces_Lines;
@@ -73,9 +74,14 @@ package Coverage.Source is
 
    procedure Compute_Line_State
      (Line_Num  : Positive;
-      Line_Info : Line_Info_Access);
+      Line_Info : Line_Info_Access;
+      ST        : in out Scope_Traversal_Type);
    --  Set Line.State based on coverage information accumulated on all SCOs
    --  that cover the given line.
+   --
+   --  ST is used to filter the SCOs not belonging to subprograms of interest,
+   --  it must be initialized to the CU for which we are computing coverage or
+   --  left uninitialized.
 
    subtype SCO_State is Line_State range Not_Covered .. Undetermined_Coverage;
    function Get_Line_State
