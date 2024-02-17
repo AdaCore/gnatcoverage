@@ -211,7 +211,6 @@ private
    procedure Generate_Report
      (Pp               : in out Pretty_Printer'Class;
       Show_Details     : Boolean;
-      Subp_Of_Interest : Scope_Id_Set;
       Subdir           : String := "";
       Clean_Pattern    : String := No_Cleaning);
    --  Let Pp generate the annotated sources. If Show_Details is False, only a

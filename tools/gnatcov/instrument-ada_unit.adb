@@ -4313,6 +4313,10 @@ package body Instrument.Ada_Unit is
 
          N_Spec : constant Subp_Spec := N.P_Subp_Spec_Or_Null.As_Subp_Spec;
 
+         Prev_Part : constant Basic_Decl := N.P_Previous_Part_For_Decl;
+         --  If this is a null procedure or an expression function, it may have
+         --  a previous declaration that must be used as scope identifier.
+
       begin
          --  Process decisions nested in formal parameters
 
@@ -4321,7 +4325,7 @@ package body Instrument.Ada_Unit is
          Enter_Scope
            (UIC  => UIC,
             Sloc => Sloc (N),
-            Decl => N);
+            Decl => (if Prev_Part.Is_Null then N else Prev_Part));
 
          --  Nothing else to do except for the case of degenerate subprograms
          --  (null procedures and expression functions).

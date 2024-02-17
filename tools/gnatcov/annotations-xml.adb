@@ -287,7 +287,7 @@ package body Annotations.Xml is
          others       => <>);
    begin
       Annotations.Generate_Report
-        (Pp, True, Context.Subps_Of_Interest, Subdir => "xml");
+        (Pp, True, Subdir => "xml");
    end Generate_Report;
 
    -------
