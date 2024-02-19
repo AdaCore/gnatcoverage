@@ -3,6 +3,9 @@ Check that warnings about projects not contributing to the selection of units
 of interest are emitted when expected.
 """
 
+import os.path
+import glob
+
 from e3.fs import mkdir
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
@@ -94,7 +97,21 @@ def run_test(label, slug, main, helper, recursive, projects=[], units=[],
     expected_cov = {}
     for c in expected_cov_list:
         expected_cov.update(c)
-    check_xcov_reports('obj-*/*.xcov', expected_cov)
+    check_xcov_reports('*.xcov', expected_cov, 'obj-main')
+
+    # Check that all xcov report files are created in obj-main (i.e. the root
+    # project).
+    xcov_files = glob.glob('obj-*/*.xcov')
+    extra_xcov_files = [
+        f
+        for f in xcov_files
+        if os.path.dirname(f) != 'obj-main'
+    ]
+    thistest.fail_if_not_equal(
+        "misplaced xcov report files",
+        "",
+        "\n".join(extra_xcov_files),
+    )
 
 
 # For all testcases, we set up three projects:
@@ -110,10 +127,10 @@ def run_test(label, slug, main, helper, recursive, projects=[], units=[],
 #   project of interest (--projects) unless not recursive (no warnings
 #   are expected in this mode). The point of having this project loaded is to
 #   check that indeed gnatcov does not warn about "empty".
-main = {'obj-main/main.adb.xcov': {'+': {6, 7}}}
-main_support = {'obj-main/main_support.adb.xcov': {'+': {3}}}
-helper = {'obj-main/helper.adb.xcov': {'+': {5}}}
-helper_support = {'obj-main/helper_support.adb.xcov': {'+': {3}}}
+main = {'main.adb.xcov': {'+': {6, 7}}}
+main_support = {'main_support.adb.xcov': {'+': {3}}}
+helper = {'helper.adb.xcov': {'+': {5}}}
+helper_support = {'helper_support.adb.xcov': {'+': {3}}}
 
 
 # Check when --units is passed
