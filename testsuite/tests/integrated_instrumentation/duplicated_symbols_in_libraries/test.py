@@ -25,10 +25,8 @@ Wdir("tmp_")
 cwd = os.getcwd()
 
 # Copy the sources and the Makefile in the temporary directory
-cp(os.path.join("..", "Makefile"), ".")
-cp(os.path.join("..", "main.c"), ".")
-cp(os.path.join("..", "libbar"), ".", recursive=True)
-cp(os.path.join("..", "libfoo"), ".", recursive=True)
+for item in ["Makefile", "libbar", "libfoo", "main.c"]:
+    cp(os.path.join("..", item), ".", recursive=True)
 
 # Then, setup the instrumentation process
 xcov(
