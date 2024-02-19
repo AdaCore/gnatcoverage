@@ -26,4 +26,3 @@ abstract project Base is
    end Linker;
 
 end Base;
-
