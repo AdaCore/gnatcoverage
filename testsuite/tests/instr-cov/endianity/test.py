@@ -37,15 +37,13 @@ with open('be.srctrace', 'wb') as f:
     tf.write(f)
 
 # Check that gnatcov decodes both the same way
-xcov(xcov_args + ['--output-dir=xcov-le', 'le.srctrace'],
-     out='coverage-le.log')
-xcov(xcov_args + ['--output-dir=xcov-be', 'be.srctrace'],
-     out='coverage-be.log')
-check_xcov_reports('xcov-*/*.xcov', {
-    'xcov-le/main.adb.xcov': {'+': {5, 7, 8}},
-    'xcov-be/main.adb.xcov': {'+': {5, 7, 8}},
-    'xcov-le/pkg.adb.xcov':  {'+': {6, 8}, '!': {5}},
-    'xcov-be/pkg.adb.xcov':  {'+': {6, 8}, '!': {5}},
-})
+for discr in ('be', 'le'):
+    xcov_dir = f'xcov-{discr}'
+    xcov(xcov_args + ['--output-dir', xcov_dir, f'{discr}.srctrace'],
+         out=f'coverage-{discr}.log')
+    check_xcov_reports(xcov_dir, {
+        'main.adb.xcov': {'+': {5, 7, 8}},
+        'pkg.adb.xcov':  {'+': {6, 8}, '!': {5}},
+    })
 
 thistest.result()

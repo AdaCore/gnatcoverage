@@ -33,12 +33,11 @@ build_run_and_coverage(
 )
 
 check_xcov_reports(
-    "*.xcov",
+    "obj",
     expected_cov={
         "pkg_1.ads.xcov": {"?": {10}, "+": {12}},
         "pkg_2.ads.xcov": {"?": {10}, "+": {12}},
     },
-    cwd="obj",
 )
 
 thistest.result()

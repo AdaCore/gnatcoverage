@@ -67,9 +67,9 @@ trace_file = sorted(glob.glob(srctrace_pattern_for(
 )))[-1]
 
 xcov(cov_args + [trace_file], out="coverage.log")
-check_xcov_reports('xcov/*.xcov', {
-    'xcov/main.adb.xcov': {'+': {12, 15, 19, 24, 26, 27, 28},
-                           '-': {21, 29}},
-    'xcov/lib1.adb.xcov': {'+': {4, 7}}})
+check_xcov_reports('xcov', {
+    'main.adb.xcov': {'+': {12, 15, 19, 24, 26, 27, 28},
+                      '-': {21, 29}},
+    'lib1.adb.xcov': {'+': {4, 7}}})
 
 thistest.result()

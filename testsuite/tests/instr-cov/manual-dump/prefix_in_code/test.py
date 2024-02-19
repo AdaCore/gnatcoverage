@@ -60,7 +60,7 @@ def check_one_trace(cov_args, lang):
         cov_args + [f"--output-dir={output_dir}"] + trace,
         out=f"coverage_{lang}.log"
     )
-    check_xcov_reports("*.xcov", expected_cov[lang], cwd=output_dir)
+    check_xcov_reports(output_dir, expected_cov[lang])
 
 prj_id = "p"
 

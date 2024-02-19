@@ -33,6 +33,6 @@ if thistest.options.trace_mode == "src":
         contents_of("instrument.log").strip(),
     )
 
-check_xcov_reports("*.xcov", expected_cov, "obj")
+check_xcov_reports("obj", expected_cov)
 
 thistest.result()

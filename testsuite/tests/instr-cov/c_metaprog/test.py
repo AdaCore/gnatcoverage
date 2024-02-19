@@ -22,6 +22,6 @@ build_run_and_coverage(
     trace_mode="src",
 )
 
-check_xcov_reports("obj/*.xcov", {"obj/main.c.xcov": {"+": {4, 7}}})
+check_xcov_reports("obj", {"main.c.xcov": {"+": {4, 7}}})
 
 thistest.result()

@@ -61,6 +61,6 @@ xcov(
     ["coverage", "-cstmt", "-axcov", srctracename_for("test")]
     + sid_args
 )
-check_xcov_reports("*.xcov", expected_report)
+check_xcov_reports(".", expected_report)
 
 thistest.result()

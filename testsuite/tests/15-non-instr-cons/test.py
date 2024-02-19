@@ -41,12 +41,6 @@ xcov(xcov_args + ["--save-checkpoint=test_f.ckpt", trace_f])
 # Try to consolidate the checkpoint
 xcov(xcov_args + ["-Ctest_t.ckpt", "-Ctest_f.ckpt", "-axcov"])
 
-check_xcov_reports(
-    "*.xcov",
-    expected_cov={
-        "pkg.ads.xcov": {"?": {10}, "+": {5,6,7}},
-    },
-    cwd="obj",
-)
+check_xcov_reports("obj", {"pkg.ads.xcov": {"?": {10}, "+": {5,6,7}}})
 
 thistest.result()

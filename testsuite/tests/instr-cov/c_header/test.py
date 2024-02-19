@@ -24,12 +24,11 @@ build_run_and_coverage(
     trace_mode='src',
 )
 check_xcov_reports(
-    '*.xcov',
+    'xcov',
     {
         'main.c.xcov': {'+': {6, 7}},
         'fact.h.xcov': {'+': {4, 5, 7}},
     },
-    "xcov"
 )
 
 # Check that the header file is not instrumented

@@ -24,10 +24,9 @@ build_run_and_coverage(
 )
 
 # Check the expected results
-check_xcov_reports("*.xcov",
+check_xcov_reports("obj",
                    {"main.adb.xcov": {},
-                    "pkg.adb.xcov" : {'-': {10}}},
-                   cwd="obj")
+                    "pkg.adb.xcov" : {'-': {10}}})
 
 # Check that we do not have any duplicate messages. In this case, we only
 # expect a single statment violation.

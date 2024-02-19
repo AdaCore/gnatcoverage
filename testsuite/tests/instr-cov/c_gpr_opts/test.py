@@ -29,12 +29,11 @@ build_run_and_coverage(
 )
 
 check_xcov_reports(
-    "*.xcov",
+    "xcov",
     {
         "main.c.xcov": {"+": {16, 19}},
         "hello.c.xcov": {"+": {7}},
     },
-    cwd="xcov",
 )
 
 thistest.result()

@@ -4,6 +4,9 @@ outside of the set of projects selected through --projects is properly
 reported.
 """
 
+import os.path
+import glob
+
 from e3.fs import mkdir
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
@@ -41,6 +44,20 @@ thistest.fail_if_not_equal(
     'warning: no unit main (from --units) in the projects of interest',
     contents_of(log_file).strip())
 
-check_xcov_reports('obj-*/*.xcov', {'obj-main/helper.adb.xcov': {'+': {3}}})
+check_xcov_reports('obj-main', {'helper.adb.xcov': {'+': {3}}})
+
+# Check that all xcov report files are created in obj-main (i.e. the root
+# project).
+xcov_files = glob.glob('obj-*/*.xcov')
+extra_xcov_files = [
+    f
+    for f in xcov_files
+    if os.path.dirname(f) != 'obj-main'
+]
+thistest.fail_if_not_equal(
+    "misplaced xcov report files",
+    "",
+    "\n".join(extra_xcov_files),
+)
 
 thistest.result()

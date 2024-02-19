@@ -45,6 +45,6 @@ build_run_and_coverage(
     mains=["test_main"],
 )
 
-check_xcov_reports("*.xcov", {"code.adb.xcov": {"!": {4}}}, cwd="xcov")
+check_xcov_reports("xcov", {"code.adb.xcov": {"!": {4}}})
 
 thistest.result()

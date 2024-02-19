@@ -31,6 +31,6 @@ expected_cov = {
     "pkg.ads.xcov": {"+": {2}},
     "pkg.adb.xcov": {"-": {2}},
 }
-check_xcov_reports("*.xcov", expected_cov, "obj")
+check_xcov_reports("obj", expected_cov)
 
 thistest.result()

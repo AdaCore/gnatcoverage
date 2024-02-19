@@ -31,7 +31,7 @@ build_run_and_coverage(
     register_failure=False,
 )
 check_xcov_reports(
-    "*.xcov", {"main.c.xcov": {"+": {4, 5, 6, 12, 13}, "-": {14}}}, "xcov"
+    "xcov", {"main.c.xcov": {"+": {4, 5, 6, 12, 13}, "-": {14}}}
 )
 
 tmp_no_return.to_homedir()

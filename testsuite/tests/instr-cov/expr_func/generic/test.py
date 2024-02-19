@@ -31,7 +31,7 @@ build_run_and_coverage(
 )
 
 # We only expect non-instrumented lines
-check_xcov_reports("*.xcov", {"pkg.ads.xcov": {"?": {16, 19}}})
+check_xcov_reports(".", {"pkg.ads.xcov": {"?": {16, 19}}})
 
 # Check that both expression functions are reported as warnings
 warning_msg = (

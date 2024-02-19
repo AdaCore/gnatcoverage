@@ -32,14 +32,13 @@ build_run_and_coverage(
     trace_mode="src",
 )
 check_xcov_reports(
-    "*.xcov",
+    "xcov",
     {
         "pkg_1.adb.xcov": {"+": {8, 17, 26, 27, 29}, "?": {15}},
         "pkg_1.ads.xcov": {},
         "pkg_2.adb.xcov": {"+": {12, 13, 15, 24}, "?": {22}},
         "pkg_2.ads.xcov": {},
     },
-    cwd="xcov",
 )
 
 thistest.result()

@@ -20,10 +20,6 @@ build_run_and_coverage(
     extra_coverage_args=['-axcov', '--output-dir=xcov'],
     trace_mode='src',
 )
-check_xcov_reports(
-    '*.xcov',
-    {'main.c.xcov': {'+': {4, 5, 7}, '-': {9}}},
-    'xcov'
-)
+check_xcov_reports('xcov', {'main.c.xcov': {'+': {4, 5, 7}, '-': {9}}})
 
 thistest.result()

@@ -76,12 +76,11 @@ def check_report(prj_ignore, prj_of_interest):
         else 'pkg.c.xcov'
     )
     check_xcov_reports(
-        '*.xcov',
+        'xcov',
         {
             xcov_homonoym_filename: {'!': {4}},
             'test.c.xcov': {'+': {7, 8, 9}}
         },
-        'xcov'
     )
     wd.to_homedir()
 

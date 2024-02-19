@@ -75,11 +75,7 @@ def consolidate_and_check(variant_basename,
             " not empty:\n  " + contents_of(log_filename)
         )
 
-    check_xcov_reports(
-        os.path.join(output_dir_name, "*.xcov"),
-        {os.path.join(output_dir_name, filename): results
-         for filename, results in expected_xcov_results.items()}
-    )
+    check_xcov_reports(output_dir_name, expected_xcov_results)
 
 
 def run_variant(variant_basename,

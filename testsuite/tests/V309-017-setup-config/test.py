@@ -91,7 +91,7 @@ for label, rt_name, dump_args, expected_dump_channel in [
         dump_channel=None,
         trace_mode="src",
     )
-    check_xcov_reports("*.xcov", {"foo.adb.xcov": {"+": {5}}})
+    check_xcov_reports(".", {"foo.adb.xcov": {"+": {5}}})
 
     # Make sure that the metadata contains the expected dump channel
     with open("obj/gnatcov-instr.json") as f:

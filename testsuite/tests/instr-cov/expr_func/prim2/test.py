@@ -31,9 +31,9 @@ build_run_and_coverage(
 # Coverage expectations aren't really important, we want to check that
 # the instrumented code is valid.
 
-check_xcov_reports('xcov/*.xcov', {
-    'xcov/main.adb.xcov': {'+': {6}},
-    'xcov/pak.ads.xcov' : {'+': {4, 5, 6, 14, 16, 17, 18, 23}, '-': {8, 10}},
-    'xcov/pak.adb.xcov' : {'!': {6}, '+': {8}}})
+check_xcov_reports('xcov', {
+    'main.adb.xcov': {'+': {6}},
+    'pak.ads.xcov' : {'+': {4, 5, 6, 14, 16, 17, 18, 23}, '-': {8, 10}},
+    'pak.adb.xcov' : {'!': {6}, '+': {8}}})
 
 thistest.result()

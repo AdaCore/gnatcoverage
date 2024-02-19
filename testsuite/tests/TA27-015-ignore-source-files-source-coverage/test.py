@@ -43,11 +43,11 @@ def check(report_name, args, expected_files):
     checked_xcov(args + ['-axcov', '--output-dir='+report_name],
                  f'{report_name}_out.txt')
     expected = {
-        os.path.join(report_name, filename):
-        expected_res_dict[filename]
+        filename: expected_res_dict[filename]
         for filename in expected_files
     }
-    check_xcov_reports(os.path.join(report_name, 'pkg*.xcov'), expected)
+    expected["main.adb.xcov"] = {"+": {5, 6}}
+    check_xcov_reports(report_name, expected)
 
 
 # Check that not passing the option has no effect

@@ -23,7 +23,6 @@ xrun(['-cinsn', exepath_to('main')])
 xcov(['coverage', '-cinsn', '-axcov', '-Pgen', tracename_for('main')])
 
 # Check that line 3 is correctly marked as partially covered
-check_xcov_reports('main.c.xcov',
-                   {'main.c.xcov': {'-': {4}, '!': {3}}})
+check_xcov_reports('.', {'main.c.xcov': {'-': {4}, '!': {3}}})
 
 thistest.result()

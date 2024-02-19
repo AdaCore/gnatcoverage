@@ -17,12 +17,6 @@ build_run_and_coverage(
     extra_coverage_args=["--annotate=xcov", "--ignore-source-files=foo.c"],
 )
 
-check_xcov_reports(
-    "*.xcov",
-    {
-        "test.c.xcov": {"+": {6, 7}}
-    },
-    "obj",
-)
+check_xcov_reports("obj", {"test.c.xcov": {"+": {6, 7}}})
 
 thistest.result()

@@ -52,6 +52,6 @@ if thistest.options.trace_mode == "src":
 
     expected_coverage.pop("identity.h.xcov")
 
-check_xcov_reports("*.xcov", expected_coverage, "obj")
+check_xcov_reports("obj", expected_coverage)
 
 thistest.result()

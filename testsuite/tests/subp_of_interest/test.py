@@ -74,13 +74,12 @@ check_xcov(
 cov_ckpt_args = cov_args[:-1] + ["--checkpoint", ckpt_filename]
 if src_traces:
     check_xcov_reports(
-        "*.xcov",
+        "xcov_subp",
         {
             "main.adb.xcov": {},
             "pkg.ads.xcov": {},
             "pkg.adb.xcov": {"+": {11, 19, 30}},
         },
-        "xcov_subp",
     )
 
     # Then check that the checkpoint contains only coverage data for the
@@ -89,13 +88,12 @@ if src_traces:
     thistest.log("== xcov_no_subp ==")
     check_xcov("xcov_no_subp", cov_ckpt_args)
     check_xcov_reports(
-        "*.xcov",
+        "xcov_no_subp",
         {
             "main.adb.xcov": {"-": {5, 6}},
             "pkg.ads.xcov": {"-": {7}},
             "pkg.adb.xcov": {"+": {11, 19, 30}, "-": {22, 33, 34, 35}},
         },
-        "xcov_no_subp",
     )
 
     # Check that we can still select subprograms of interest declared in the
@@ -110,12 +108,11 @@ if src_traces:
         ],
     )
     check_xcov_reports(
-        "*.xcov",
+        "xcov_ignore",
         {
             "main.adb.xcov": {},
             "pkg.adb.xcov": {"+": {30}},
         },
-        "xcov_ignore",
     )
 
     # Also check the warnings when the subprogram switch is ill-formed

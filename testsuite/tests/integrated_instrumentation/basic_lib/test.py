@@ -58,9 +58,6 @@ xcov(
         srctracename_for("main"),
     ]
 )
-check_xcov_reports(
-    "*.xcov",
-    {"bar.c.xcov": {"+": {4}}, "foo.c.xcov": {"+": {4}}},
-)
+check_xcov_reports(".", {"bar.c.xcov": {"+": {4}}, "foo.c.xcov": {"+": {4}}})
 
 thistest.result()

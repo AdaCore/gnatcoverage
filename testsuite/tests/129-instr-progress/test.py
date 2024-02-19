@@ -37,13 +37,12 @@ build_run_and_coverage(
 # Sanity check: the insrument-build-coverage process completed with the
 # expected results.
 check_xcov_reports(
-    "*xcov",
+    "xcov",
     {
         "main.adb.xcov": {"+": {7, 8}},
         "c_unit.c.xcov": {"+": {8}},
         "cpp_unit.cpp.xcov": {"+": {10}},
     },
-    cwd="xcov",
 )
 
 

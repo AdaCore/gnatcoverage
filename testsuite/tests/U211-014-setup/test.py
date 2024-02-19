@@ -140,7 +140,7 @@ def check_full(label, setup_args, prj_config, runtime_project=rt_prj,
         "Successfully loaded the setup configuration file"
         not in contents_of("instrument.log"),
         "Failed to load the setup config file in `gnatcov instrument`")
-    check_xcov_reports("*.xcov", prj_config.expected_cov, f"xcov-{label}")
+    check_xcov_reports(f"xcov-{label}", prj_config.expected_cov)
 
 
 # "gnatcov setup" (+ relevant target options) is supposed to work out of the

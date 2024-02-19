@@ -47,6 +47,6 @@ build_run_and_coverage(
     # same kind as the others, so force relocatable.
     extra_gprbuild_args=['-XLIBRARY_TYPE=relocatable'])
 
-check_xcov_reports('*.xcov', {'mylib.adb.xcov': {'+': {5, 6}, '-': {8}}})
+check_xcov_reports('.', {'mylib.adb.xcov': {'+': {5, 6}, '-': {8}}})
 
 thistest.result()

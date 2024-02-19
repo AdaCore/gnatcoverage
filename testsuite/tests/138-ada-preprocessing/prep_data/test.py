@@ -107,9 +107,7 @@ for t in [
             extra_coverage_args=["-axcov", "--output-dir=xcov"],
             trace_mode="src",
         )
-        check_xcov_reports(
-            "*.xcov", {"pkg.adb.xcov": t.expected_cov}, cwd="xcov"
-        )
+        check_xcov_reports("xcov", {"pkg.adb.xcov": t.expected_cov})
 
     tmp.to_homedir()
     thistest.log("")

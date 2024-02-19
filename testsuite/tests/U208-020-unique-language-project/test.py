@@ -31,7 +31,7 @@ for f in os.listdir("obj/ada_prj-gnatcov-instr"):
             "of an Ada project should only produce Ada files.")
         break
 
-check_xcov_reports('obj/main.adb.xcov', {'obj/main.adb.xcov': {'+': {3}}})
+check_xcov_reports('obj', {'main.adb.xcov': {'+': {3}}})
 
 build_run_and_coverage(
     gprsw=GPRswitches(
@@ -47,5 +47,5 @@ for f in os.listdir("obj/c_prj-gnatcov-instr"):
             "of a C project should only produce C files.")
         break
 
-check_xcov_reports('obj/main.c.xcov', {'obj/main.c.xcov': {'+': {4}}})
+check_xcov_reports('obj', {'main.c.xcov': {'+': {4}}})
 thistest.result()

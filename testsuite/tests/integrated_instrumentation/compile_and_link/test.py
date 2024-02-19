@@ -51,6 +51,6 @@ xcov(
         srctracename_for("test"),
     ]
 )
-check_xcov_reports("*.xcov", {"pkg.c.xcov": {"+": {4}}})
+check_xcov_reports(".", {"pkg.c.xcov": {"+": {4}}})
 
 thistest.result()

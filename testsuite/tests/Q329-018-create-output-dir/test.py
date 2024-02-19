@@ -29,7 +29,5 @@ thistest.fail_if(
     'gnatcov does not say it is creating directories, it should')
 
 # Finally, check we have the expected reports
-check_xcov_reports(
-    os.path.join(output_dir, '*.xcov'),
-    {os.path.join(output_dir, 'foo.adb.xcov'): {'+': {5}}})
+check_xcov_reports(output_dir, {'foo.adb.xcov': {'+': {5}}})
 thistest.result()

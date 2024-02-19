@@ -38,6 +38,6 @@ thistest.fail_if_no_match(
     actual=contents_of(log_file),
 )
 
-check_xcov_reports("*.xcov", {"main.adb.xcov": {"+": {2, 5, 6}}})
+check_xcov_reports(".", {"main.adb.xcov": {"+": {2, 5, 6}}})
 
 thistest.result()

@@ -86,8 +86,6 @@ thistest.fail_if(expected != actual,
 # obligations coming from the first instrumentation. Besides, since it
 # discarded info from the trace file, gnatcov is supposed to report violations
 # for all coverage obligations related to the first version of "main.adb".
-check_xcov_reports('xcov/*.xcov', {
-    'xcov/main.adb.xcov': {'-': {5}},
-})
+check_xcov_reports('xcov', {'main.adb.xcov': {'-': {5}}})
 
 thistest.result()

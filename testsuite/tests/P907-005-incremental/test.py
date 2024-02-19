@@ -43,7 +43,7 @@ checked_xcov(base_args + ['--annotate=xcov', '--checkpoint=c2.ckpt',
 
 # Finally, check we have the expected reports
 check_xcov_reports(
-    '*.xcov',
+    '.',
     {'math.adb.xcov': {'+': {7, 12, 13, 14, 18, 19}, '!': {17}},
      'math.ads.xcov': {}})
 

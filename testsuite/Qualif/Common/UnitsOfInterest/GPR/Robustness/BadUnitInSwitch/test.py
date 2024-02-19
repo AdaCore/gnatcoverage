@@ -38,6 +38,6 @@ thistest.fail_if_not_equal(
     ' interest',
     log_lines)
 
-check_xcov_reports('obj/*.xcov', {'obj/main.adb.xcov': {'+': {5}}})
+check_xcov_reports('obj', {'main.adb.xcov': {'+': {5}}})
 
 thistest.result()

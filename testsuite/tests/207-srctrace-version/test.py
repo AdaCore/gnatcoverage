@@ -64,7 +64,7 @@ if p.status != 0:
 # Otherwise, check the coverage report
 else:
     check_xcov_reports(
-        "*.xcov",
+        ".",
         {
             "main.adb.xcov": {"+": {15, 16}, "!": {12}},
             "foo.c.xcov": {"!": {6}}

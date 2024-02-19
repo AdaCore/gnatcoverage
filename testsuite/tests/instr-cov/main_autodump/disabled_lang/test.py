@@ -26,9 +26,7 @@ build_run_and_coverage(
     trace_mode="src",
     auto_languages=False,
 )
-check_xcov_reports(
-    "*.xcov", {"tested.c.xcov": {"+": {5}, "-": {7}}}, cwd="xcov"
-)
+check_xcov_reports("xcov", {"tested.c.xcov": {"+": {5}, "-": {7}}})
 tmp.to_homedir()
 
 # Now check with a project that contains an Ada unit (to analyze) driven by a
@@ -47,12 +45,11 @@ build_run_and_coverage(
     auto_languages=False,
 )
 check_xcov_reports(
-    "*.xcov",
+    "xcov",
     {
         "pkg.adb.xcov": {"+": {10, 22}, "-": {12, 23}},
         "pkg.ads.xcov": {},
     },
-    cwd="xcov"
 )
 tmp.to_homedir()
 

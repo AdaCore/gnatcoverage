@@ -28,12 +28,12 @@ build_run_and_coverage(
 )
 
 check_xcov_reports(
-    '*.xcov',
+    'xcov',
     {
         'pkg.h.xcov': {'+': {7, 8}, '!': {6}},
         'pkg.c.xcov': {'!': {4}},
         'test.c.xcov': {'+': {6, 7, 8}}
     },
-    'xcov')
+)
 
 thistest.result()

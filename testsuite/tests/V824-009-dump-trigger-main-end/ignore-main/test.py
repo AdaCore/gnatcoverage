@@ -21,6 +21,6 @@ build_run_and_coverage(
     dump_trigger='main-end',
 )
 
-check_xcov_reports('*.xcov', {'foo.c.xcov': {'+': {4}}}, 'xcov')
+check_xcov_reports('xcov', {'foo.c.xcov': {'+': {4}}})
 
 thistest.result()

@@ -30,6 +30,6 @@ thistest.fail_if_not_equal(
     'warning: no unit no_such_unit in project gen (coverage.units attribute)',
     contents_of(log_file).strip())
 
-check_xcov_reports('obj/*.xcov', {'obj/main.adb.xcov': {'+': {5}}})
+check_xcov_reports('obj', {'main.adb.xcov': {'+': {5}}})
 
 thistest.result()

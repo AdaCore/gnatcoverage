@@ -69,11 +69,11 @@ clean_output_directory()
 xcov(args + ['--level=stmt'], 'cons-stmt.log')
 
 expected = {
-    os.path.join('output', 'math.adb.xcov'): {
-        '+': {7, 12, 13, 14, 17, 18, 19}},
-    os.path.join('output', 'math.ads.xcov'): {}}
+    'math.adb.xcov': {'+': {7, 12, 13, 14, 17, 18, 19}},
+    'math.ads.xcov': {},
+}
 
 # Finally, check we have the expected reports for the --level=stmt
 # consolidation.
-check_xcov_reports(os.path.join('output', '*.xcov'), expected)
+check_xcov_reports('output', expected)
 thistest.result()

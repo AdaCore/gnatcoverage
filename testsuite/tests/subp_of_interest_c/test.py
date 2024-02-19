@@ -31,13 +31,12 @@ cov_args = build_run_and_coverage(
 )
 
 check_xcov_reports(
-    "*.xcov",
+    "obj",
     {
         "main.c.xcov": {},
         "bar.h.xcov": {},
         "pkg.c.xcov": {"+": {4}},
     },
-    "obj",
 )
 
 thistest.result()

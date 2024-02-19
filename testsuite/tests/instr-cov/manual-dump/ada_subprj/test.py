@@ -50,8 +50,8 @@ build_run_and_coverage(
     manual_prj_name="lib1",
     tolerate_instrument_messages=instr_warning)
 
-check_xcov_reports('xcov/*.xcov', {
-    'xcov/lib1.adb.xcov': {'+': {6, 8}, '-': {10}},
-    'xcov/lib2.adb.xcov': {'+': {4, 6}}})
+check_xcov_reports('xcov', {
+    'lib1.adb.xcov': {'+': {6, 8}, '-': {10}},
+    'lib2.adb.xcov': {'+': {4, 6}}})
 
 thistest.result()

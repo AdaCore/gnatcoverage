@@ -27,10 +27,6 @@ for dump_trigger in available_ada_dump_triggers():
     )
 
     # We expect all lines to be covered
-    check_xcov_reports(
-        "*.xcov",
-        {"main.adb.xcov": {"+": {6, 9, 13, 14, 15, 19}}},
-        cwd="obj",
-    )
+    check_xcov_reports("obj", {"main.adb.xcov": {"+": {6, 9, 13, 14, 15, 19}}})
 
 thistest.result()

@@ -483,20 +483,16 @@ def check_xcov_content(filename, expected_cov):
     )
 
 
-def check_xcov_reports(xcov_filename_pattern, expected_cov, cwd=None):
+def check_xcov_reports(reports_dir, expected_cov):
     """
     Check the set of XCOV report files and their content.
 
-    Collect files that match "xcov_filename_pattern" (a glob pattern) and check
-    the set of files matches "expected_cov". Then, check that each report
-    matches the expected coverage results.
+    This checks that the set of "*.xcov" files in the directory "reports_dir"
+    matches files mentionned in "expected_cov" and that each report matches the
+    expected coverage result.
 
     "expected_cov" is a mapping: filename -> coverage data. See
     "check_xcov_content" for the coverage data format.
-
-    If "cwd" is not None, it must be a valid directory name, and both the
-    filename patterns and the file names in expected_cov must be relative to
-    it.
     """
 
     def fmt_sorted_indented_list(items):
@@ -508,29 +504,24 @@ def check_xcov_reports(xcov_filename_pattern, expected_cov, cwd=None):
     def canonicalize_file(filename):
         return filename.replace('\\', '/')
 
-    home_dir = None
-    try:
-        if cwd is not None:
-            home_dir = os.getcwd()
-            os.chdir(cwd)
+    xcov_files = {
+        canonicalize_file(filename)
+        for filename in os.listdir(reports_dir)
+        if filename.endswith(".xcov")
+    }
+    expected_cov = {
+        canonicalize_file(filename): cov_data
+        for filename, cov_data in expected_cov.items()
+    }
 
-        xcov_files = {canonicalize_file(filename)
-                      for filename in glob.glob(xcov_filename_pattern)}
-        expected_cov = {canonicalize_file(filename): cov_data
-                        for filename, cov_data in expected_cov.items()}
+    thistest.fail_if(
+        xcov_files != set(expected_cov),
+        "Unexpected XCOV files. Expected:\n"
+        f"{fmt_sorted_indented_list(expected_cov)}\n"
+        "But got instead:\n"
+        f"{fmt_sorted_indented_list(xcov_files)}\n"
+    )
 
-        thistest.fail_if(
-            xcov_files != set(expected_cov),
-            'Unexpected XCOV files. Expected:\n'
-            '{}\n'
-            'But got instead:\n'
-            '{}\n'.format(fmt_sorted_indented_list(expected_cov),
-                          fmt_sorted_indented_list(xcov_files))
-        )
-
-        for filename, cov_data in expected_cov.items():
-            if filename in xcov_files:
-                check_xcov_content(filename, cov_data)
-    finally:
-        if home_dir is not None:
-            os.chdir(home_dir)
+    for filename, cov_data in expected_cov.items():
+        if filename in xcov_files:
+            check_xcov_content(os.path.join(reports_dir, filename), cov_data)
