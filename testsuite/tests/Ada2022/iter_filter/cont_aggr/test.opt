@@ -1,1 +1,1 @@
-RTS_ZFP DEAD Test uses Ada.Containers, not available in that profile
+!RTS_FULL DEAD Test uses Ada.Containers, not available in that profile
