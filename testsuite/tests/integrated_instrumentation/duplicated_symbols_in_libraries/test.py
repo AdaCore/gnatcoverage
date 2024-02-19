@@ -81,14 +81,11 @@ thistest.fail_if_no_match(
     f'\r?\n  {os.path.join(cwd, "libbar", "bar.c")}',
     contents_of(log_file),
 )
-check_xcov_reports(
-    "*.xcov",
-    {
-        "libbar-bar.c.xcov": {"+": {4}},
-        "libbar-foo.c.xcov": {"+": {4}},
-        "libfoo-bar.c.xcov": {"-": {4}},
-        "libfoo-foo.c.xcov": {"-": {4}},
-    },
-)
+check_xcov_reports(".", {
+    "libbar-bar.c.xcov": {"+": {4}},
+    "libbar-foo.c.xcov": {"+": {4}},
+    "libfoo-bar.c.xcov": {"-": {4}},
+    "libfoo-foo.c.xcov": {"-": {4}},
+})
 
 thistest.result()
