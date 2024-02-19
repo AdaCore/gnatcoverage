@@ -163,7 +163,7 @@ package Outputs is
 
    function Get_PP_Filename
      (SFI : Source_File_Index) return String
-     is (PP_Temp_Dir.Directory_Name / (Get_Unique_Name (SFI) & ".pp"));
+     is (PP_Temp_Dir.Directory_Name / (Get_Unique_Filename (SFI, "pp")));
 
    procedure Clean_Dir
      (Dir           : String;

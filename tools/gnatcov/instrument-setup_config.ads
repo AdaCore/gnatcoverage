@@ -46,6 +46,9 @@ package Instrument.Setup_Config is
       --  instrumented sources in the instrumented main executable. For now,
       --  we always link it statically.
 
+      File_To_SID : File_To_String_Maps.Map;
+      --  Maps a source file to its SID basename
+
    end record;
 
    Instrumentation_Config_Filename : constant String := "gnatcov_config.json";

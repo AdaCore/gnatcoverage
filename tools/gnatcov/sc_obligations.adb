@@ -4533,9 +4533,6 @@ package body SC_Obligations is
    -------------------------------
 
    procedure Report_Units_Without_Code is
-
-      package SFI_Sets is new Ada.Containers.Ordered_Sets
-        (Valid_Source_File_Index);
       Reported_Origins : SFI_Sets.Set;
       --  Keep track of origins that we reported, so that we don't report the
       --  same origin twice. This happens when multiple compilation units share
