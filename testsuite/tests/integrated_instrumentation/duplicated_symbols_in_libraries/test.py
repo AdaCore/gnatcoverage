@@ -15,9 +15,9 @@ import os.path
 
 from e3.fs import cp
 
+from SCOV.minicheck import check_xcov_reports
 from SUITE.control import env
 from SUITE.cutils import contents_of, Wdir
-from SCOV.minicheck import check_xcov_reports, checked_xcov
 from SUITE.tutils import cmdrun, srctracename_for, thistest, xcov
 
 Wdir("tmp_")
