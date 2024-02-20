@@ -38,6 +38,6 @@ build_run_and_coverage(
 # Check that we have coverage result only for the project of interest, as
 # specified in the gpr file.
 
-check_xcov_reports("*.xcov", {"b.adb.xcov": {"+": {6}}})
+check_xcov_reports(".", {"b.adb.xcov": {"+": {6}}})
 
 thistest.result()

@@ -29,7 +29,7 @@ build_run_and_coverage(
 # TODO: update coverage expectations once compiler bug
 # has been fixed and XFAIL is removed.
 
-check_xcov_reports('xcov/*.xcov', {'xcov/main.adb.xcov': {
+check_xcov_reports('xcov', {'main.adb.xcov': {
     '+': {4, 5, 7, 12, 14, 17, 19, 21, 22, 23, 24}
 }})
 

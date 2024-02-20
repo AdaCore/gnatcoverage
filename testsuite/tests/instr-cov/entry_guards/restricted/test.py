@@ -28,7 +28,7 @@ for covlevel, slug, expected_coverage in [
         extra_coverage_args=["-axcov", "--output-dir=."],
     )
     check_xcov_reports(
-        "*.xcov", {"pkg.adb.xcov": expected_coverage, "pkg.ads.xcov": {}}
+        ".", {"pkg.adb.xcov": expected_coverage, "pkg.ads.xcov": {}}
     )
 
     tmp.to_homedir()

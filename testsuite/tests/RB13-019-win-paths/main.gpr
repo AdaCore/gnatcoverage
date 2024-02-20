@@ -16,7 +16,7 @@ for Object_Dir use "./obj";
 for Languages use ("Ada");
 
 package Compiler is
-for Switches("main.adb") use 
+for Switches("main.adb") use
   Compiler'Default_Switches ("Ada") & ();
 
 

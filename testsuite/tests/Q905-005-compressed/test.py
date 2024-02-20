@@ -19,6 +19,6 @@ xrun([main], 'run.log')
 checked_xcov(['coverage', '-P{}'.format(gpr), '-cstmt', '-axcov',
               '--output-dir=.', trace],
              'coverage.log')
-check_xcov_reports('*.xcov', {'foo.adb.xcov': {'+': {6, 7, 9, 13}}, })
+check_xcov_reports('.', {'foo.adb.xcov': {'+': {6, 7, 9, 13}}})
 
 thistest.result()

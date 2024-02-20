@@ -88,8 +88,6 @@ else:
 # with the expected coverage data.
 clean_output_directory()
 p = checked_xcov(xcov_args + ['--output-dir=output'] + trace_files, 'cons.log')
-check_xcov_reports(
-    '*.xcov', {'pkg_under_test.adb.xcov': {'+': {7, 8, 10}}}, 'output'
-)
+check_xcov_reports('output', {'pkg_under_test.adb.xcov': {'+': {7, 8, 10}}})
 
 thistest.result()

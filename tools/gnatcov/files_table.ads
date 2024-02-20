@@ -152,6 +152,13 @@ package Files_Table is
    --  (2) after rebasing them using the rebase list;
    --  (3) from the source search path.
 
+   function Get_Unique_Filename
+     (Index     : Source_File_Index;
+      Extension : String) return String
+     with Pre => Get_File (Index).Kind = Source_File;
+   --  Wrapper around Get_Unique_Name, replacing slashes with dashes in the
+   --  unique name and suffixing with Extension.
+
    procedure Add_Source_Rebase (Old_Prefix : String; New_Prefix : String);
    --  Add a new entry to the rebase list.  This entry says that a file
    --  whose name is Old_Prefix & "something" should be found in

@@ -88,6 +88,6 @@ build_run_and_coverage(
     manual_prj_name=os.path.splitext(prj)[0]
 )
 
-check_xcov_reports("*.xcov", expected_cov, cwd="obj")
+check_xcov_reports("obj", expected_cov)
 
 thistest.result()

@@ -20,12 +20,11 @@ build_run_and_coverage(
 )
 
 check_xcov_reports(
-    "*.xcov",
+    "obj",
     {
         "test.cpp.xcov": {"+": {6, 7}},
         "pkg.c.xcov": {"+": {4}},
     },
-    "obj",
 )
 
 thistest.result()

@@ -90,7 +90,7 @@ def check_coverage(project, externally_built, expected_cov,
     if not register_failure:
         return p
 
-    check_xcov_reports(os.path.join(output_dir, '*.xcov'), expected_cov)
+    check_xcov_reports(output_dir, expected_cov)
 
 
 # First, make sure that "gnatcov coverage" on an externally built project
@@ -120,18 +120,16 @@ thistest.fail_if(not expected_log.match(coverage_log),
 # It should not complain with --externally-built-projects
 p = check_coverage(
     project='mylib.gpr', externally_built=True,
-    expected_cov={os.path.join(output_dir, 'mylib.adb.xcov'): {'+': {5, 6},
-                                                               '-': {8}}})
+    expected_cov={'mylib.adb.xcov': {'+': {5, 6}, '-': {8}}})
 
 # Make sure coverage computation gives the expected result with and without
 # --externally-built-projects
 check_coverage(
     project=main_gpr, externally_built=False,
-    expected_cov={os.path.join(output_dir, 'main.adb.xcov'): {'+': {4, 6}}})
+    expected_cov={'main.adb.xcov': {'+': {4, 6}}})
 check_coverage(
     project=main_gpr, externally_built=True,
-    expected_cov={os.path.join(output_dir, 'main.adb.xcov'): {'+': {4, 6}},
-                  os.path.join(output_dir, 'mylib.adb.xcov'): {'+': {5, 6},
-                                                               '-': {8}}})
+    expected_cov={'main.adb.xcov': {'+': {4, 6}},
+                  'mylib.adb.xcov': {'+': {5, 6}, '-': {8}}})
 
 thistest.result()

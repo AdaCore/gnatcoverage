@@ -19,9 +19,11 @@ from SUITE.tutils import gprfor
 
 def check_results():
     check_xcov_reports(
-        "main.adb.xcov",
-        {"main.adb.xcov": {"!": {42, 43, 53, 54}, "+": {81, 82, 87, 88}}},
-        cwd="obj",
+        "obj",
+        {
+            "main.adb.xcov": {"!": {42, 43, 53, 54}, "+": {81, 82, 87, 88}},
+            "type_pkg.ads.xcov": {},
+        },
     )
 
 

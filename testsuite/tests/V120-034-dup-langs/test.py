@@ -23,8 +23,6 @@ xcov_args = build_run_and_coverage(
     trace_mode="src",
 )
 
-check_xcov_reports("obj/*.xcov", {
-    "obj/main.adb.xcov": {"+": {2, 5}, "-": {6}},
-})
+check_xcov_reports("obj", {"main.adb.xcov": {"+": {2, 5}, "-": {6}}})
 
 thistest.result()

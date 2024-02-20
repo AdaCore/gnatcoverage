@@ -11,4 +11,3 @@ project Harness is
    for Exec_Dir use "obj/" & Conf.Target;
 
 end Harness;
-

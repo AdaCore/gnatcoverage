@@ -41,9 +41,7 @@ build_run_and_coverage(
 )
 
 check_xcov_reports(
-    "*.xcov",
-    {"calculations.c.xcov": {"+": {8, 9, 10, 11, 19, 20, 21, 22, 23}}},
-    "xcov",
+    "xcov", {"calculations.c.xcov": {"+": {8, 9, 10, 11, 19, 20, 21, 22, 23}}}
 )
 
 thistest.result()

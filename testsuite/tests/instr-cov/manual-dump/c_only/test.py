@@ -59,9 +59,9 @@ thistest.fail_if_no_match
 
 # Check that we got the expected coverage report
 
-check_xcov_reports("obj/*.xcov",
-                   {"obj/main.c.xcov": {"+": {6, 12, 15, 20, 22},
-                                        "-": {18, 26}},
-                    "obj/foo.c.xcov": {"+": {4, 8}}})
+check_xcov_reports("obj",
+                   {"main.c.xcov": {"+": {6, 12, 15, 20, 22},
+                                    "-": {18, 26}},
+                    "foo.c.xcov": {"+": {4, 8}}})
 
 thistest.result()

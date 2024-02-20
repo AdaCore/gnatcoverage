@@ -19,7 +19,6 @@
 with Ada.Containers;  use Ada.Containers;
 with Ada.Containers.Vectors;
 with Ada.Directories; use Ada.Directories;
-with Ada.Environment_Variables;
 with Ada.Strings;     use Ada.Strings;
 with Ada.Text_IO;     use Ada.Text_IO;
 
@@ -98,31 +97,13 @@ is
      (Index_Type => Positive, Element_Type => Assembly_Command_Type);
 
    type Link_Command_Type is record
-      Library_Dirs  : String_Vectors.Vector;
-      --  List of library directories arguments (passed through -L switches)
-
-      Libraries : String_Vectors.Vector;
-      --  List of libraries (passed through -l switches)
-
-      Object_Files  : File_Vectors.Vector;
-      --  List of object files (positional arguments)
-
-      Source_Files  : File_Vectors.Vector;
-      --  When the compiler driver command compiles and links, this contains
-      --  the list of files that are compiled by the compiler driver command.
-
       Target : Virtual_File;
       --  Output executable file (passed through the -o switch)
 
    end record;
    --  Information relative to a link command launched by the compiler driver
 
-   No_Link_Command : constant Link_Command_Type :=
-     (Library_Dirs => String_Vectors.Empty_Vector,
-      Libraries    => String_Vectors.Empty_Vector,
-      Object_Files => File_Vectors.Empty_Vector,
-      Source_Files => File_Vectors.Empty_Vector,
-      Target       => No_File);
+   No_Link_Command : constant Link_Command_Type := (Target => No_File);
 
    type Compilation_Database is record
       Compilation_Commands : Compilation_Command_Vectors.Vector;
@@ -201,16 +182,16 @@ is
    --  Parse an assembly command
 
    function Parse_Link_Command
-     (Context : Parsing_Context;
-      Command : String_Vectors.Vector) return Link_Command_Type;
+     (Command : String_Vectors.Vector) return Link_Command_Type;
    --  Parse a link command
 
    function Coverage_Buffer_Symbols
-     (Tmp_Dir         : String;
-      Command         : Link_Command_Type;
+     (Symbol_File     : Virtual_File;
+      Tmp_Dir         : String;
       Compiler_Driver : String;
       Config          : Instrumentation_Config) return String_Sets.Set;
-   --  Return the list of coverage buffer symbols in the link closure
+   --  Return the list of coverage buffer symbols in the given symbol file
+   --  (object or library file).
 
    procedure Run_Original_Compiler
      (Context : Parsing_Context;
@@ -373,7 +354,7 @@ is
                         & " commands, which is not supported");
                   end if;
                   Result.Link_Command :=
-                    (Parse_Link_Command (Context, Command));
+                    (Parse_Link_Command (Command));
                   Parsed_Link_Command := True;
                end if;
                <<Continue>>
@@ -514,8 +495,7 @@ is
    ------------------------
 
    function Parse_Link_Command
-     (Context : Parsing_Context;
-      Command : String_Vectors.Vector) return Link_Command_Type
+     (Command : String_Vectors.Vector) return Link_Command_Type
    is
       use String_Vectors;
       Result : Link_Command_Type;
@@ -526,32 +506,8 @@ is
          declare
             Arg : constant Unbounded_String := Element (Cur);
          begin
-            if Arg = "-L" then
-               Result.Library_Dirs.Append (Element (Next (Cur)));
-            elsif Starts_With (Arg, "-L") then
-               Result.Library_Dirs.Append
-                 (Unbounded_Slice (Arg, 3, Length (Arg)));
-            elsif Arg = "-l" then
-               Result.Libraries.Append (Element (Next (Cur)));
-            elsif Starts_With (Arg, "-l") then
-               Result.Libraries.Append
-                 (Unbounded_Slice (Arg, 3, Length (Arg)));
-            elsif Arg = "-o" then
+            if Arg = "-o" then
                Result.Target := Create_Normalized (+Element (Next (Cur)));
-            elsif Ends_With (Arg, ".o") then
-               declare
-                  Object_File : constant Virtual_File :=
-                    Create_Normalized (+Arg);
-               begin
-                  if Context.Source_Mapping.Contains (Object_File) then
-                     Result.Source_Files.Append
-                       (Context.Source_Mapping.Element (Object_File));
-                  else
-                     Result.Object_Files.Append (Create_Normalized (+Arg));
-                  end if;
-               end;
-            elsif Ends_With (Arg, ".a") then
-               Result.Libraries.Append (Arg);
             end if;
          end;
       end loop;
@@ -568,144 +524,57 @@ is
    -----------------------------
 
    function Coverage_Buffer_Symbols
-     (Tmp_Dir         : String;
-      Command         : Link_Command_Type;
+     (Symbol_File     : Virtual_File;
+      Tmp_Dir         : String;
       Compiler_Driver : String;
       Config          : Instrumentation_Config) return String_Sets.Set
    is
-      function Coverage_Buffer_Symbols
-        (Symbol_File : Virtual_File) return String_Sets.Set;
-      --  Return the list of coverage buffer symbols in the given symbol file
-      --  (object or library file).
-
-      -----------------------------
-      -- Coverage_Buffer_Symbols --
-      -----------------------------
-
-      function Coverage_Buffer_Symbols
-        (Symbol_File : Virtual_File) return String_Sets.Set
-      is
-         Args            : String_Vectors.Vector;
-         Output_Filename : constant String :=
-           Tmp_Dir / ("nm_" & Filename_Slug (+Symbol_File.Full_Name));
-         Output_File     : File_Type;
-
-         Result         : String_Sets.Set;
-         Ignore_Success : Boolean;
-
-      begin
-         --  Use the compiler nm to dump the list of symbols
-
-         Args.Append (+"--format=just-symbol");
-         Args.Append (Full_Name (Symbol_File));
-
-         --  The command can fail with e.g. "file format not recognized" for
-         --  system libraries. TODO??? Investigate why. We should also avoid
-         --  invoking nm on system libraries altogether.
-
-         Ignore_Success :=
-           Run_Command
-             (Command             =>
-                +Config.Nms.Element (+Base_Name (Compiler_Driver)),
-              Arguments           => Args,
-              Origin_Command_Name => "compiler wrapper",
-              Output_File         => Output_Filename,
-              Ignore_Error        => True);
-
-         --  Each line of the output is a symbol
-
-         Open (Output_File, In_File, Output_Filename);
-
-         while not End_Of_File (Output_File) loop
-            declare
-               Line_Str : constant String := Get_Line (Output_File);
-               Line     : constant Unbounded_String := +Line_Str;
-            begin
-               if Starts_With (Line, "gnatcov_rts_buffers")
-
-                 --  The buffer list symbols is also referenced in the link
-                 --  closure: make sure not to pick it as it is named
-                 --  gnatcov_rts_buffers_array_<prj_name>, so
-                 --  gnatcov_rts_buffers_array_main in our case.
-
-                 and then Ends_With (Line, "_buffers")
-               then
-                  Result.Insert (Line);
-               end if;
-            end;
-         end loop;
-         Close (Output_File);
-         return Result;
-      end Coverage_Buffer_Symbols;
+      Args            : String_Vectors.Vector;
+      Output_Filename : constant String :=
+        Tmp_Dir / ("nm_" & Filename_Slug (+Symbol_File.Full_Name));
+      Output_File     : File_Type;
 
       Result : String_Sets.Set;
 
    begin
-      --  Search through object files and libraries the list of coverage buffer
-      --  symbols.
+      --  Use the compiler nm to dump the list of symbols
 
-      --  Start by dealing with object files
+      Args.Append (+"--format=just-symbol");
+      Args.Append (Full_Name (Symbol_File));
+      Run_Command
+        (Command             =>
+           +Config.Nms.Element (+Base_Name (Compiler_Driver)),
+         Arguments           => Args,
+         Origin_Command_Name => "compiler wrapper",
+         Output_File         => Output_Filename);
 
-      for Object_File of Command.Object_Files loop
-         Result.Union (Coverage_Buffer_Symbols (Object_File));
-      end loop;
+      --  Each line of the output is a symbol
 
-      --  Then, deal with library files
+      Open (Output_File, In_File, Output_Filename);
 
-      declare
-         Library_Path : Unbounded_String;
-      begin
-         for Library_Dir of Command.Library_Dirs loop
-            Append (Library_Path, Library_Dir);
-            Append (Library_Path, GNAT.OS_Lib.Path_Separator);
-         end loop;
-         Append
-           (Library_Path,
-            Ada.Environment_Variables.Value ("LIBRARY_PATH", ""));
+      while not End_Of_File (Output_File) loop
+         declare
+            Line : constant Unbounded_String := +Get_Line (Output_File);
+         begin
+            if Starts_With (Line, "gnatcov_rts_buffers")
 
-         for Library of Command.Libraries loop
-            if Ends_With (Library, ".a") then
+              --  The buffer list symbol is also referenced in the link
+              --  closure: make sure not to pick it as it is named
+              --  gnatcov_rts_buffers_array_<prj_name>, so
+              --  gnatcov_rts_buffers_array_main in our case.
 
-               --  Library filename on the command line, no need to look it up
-
-               Result.Union
-                 (Coverage_Buffer_Symbols (Create_Normalized (+Library)));
-            else
-               --  Simple library name passed to the -l option, search the
-               --  actual file on the library path.
-
-               declare
-                  use type GNAT.OS_Lib.String_Access;
-                  Library_File : GNAT.OS_Lib.String_Access :=
-                    GNAT.OS_Lib.Locate_Regular_File
-                      ("lib" & (+Library) & ".a", +Library_Path);
-               begin
-                  if Library_File /= null then
-                     Result.Union
-                       (Coverage_Buffer_Symbols
-                          (Create_Normalized (Library_File.all)));
-                     GNAT.OS_Lib.Free (Library_File);
-                  end if;
-               end;
+              and then Ends_With (Line, "_buffers")
+            then
+               Result.Insert (Line);
             end if;
-         end loop;
-      end;
-
-      --  Deal with sources that were compiled _and_ linked by the same driver
-      --  command.
-
-      for Source of Command.Source_Files loop
-         if Switches.Files_Of_Interest.Contains (Source) then
-            declare
-               Unit : constant Compilation_Unit :=
-                 (Language  => File_Based_Language,
-                  Unit_Name => Full_Name (Source));
-            begin
-               Result.Insert (+Unit_Buffers_Name (Unit));
-            end;
-         end if;
+         end;
       end loop;
 
+      if not Save_Temps then
+         Delete (Output_File);
+      else
+         Close (Output_File);
+      end if;
       return Result;
    end Coverage_Buffer_Symbols;
 
@@ -749,6 +618,9 @@ is
    Instrumented_Files : String_Sets.Set;
    --  List of instrumented files (files of interest / main files / both)
 
+   Files_Of_Interest : File_Sets.Set;
+   --  List of files of interest
+
 --  Start of processing for Compiler_Wrappers.GCC
 
 begin
@@ -771,6 +643,12 @@ begin
          Run_Original_Compiler (Context, Cargs);
          return;
       end if;
+   end loop;
+
+   --  Get the files of interest
+
+   for C in Instr_Config.File_To_SID.Iterate loop
+      Files_Of_Interest.Insert (File_To_String_Maps.Key (C));
    end loop;
 
    --  Parse the compiler driver invocation
@@ -815,25 +693,24 @@ begin
          Simple_Name : constant String := +Comp_Command.File.Base_Name;
          Instr_Name  : constant String := (+Prj.Output_Dir) / Simple_Name;
 
+         FI : constant File_To_String_Maps.Cursor :=
+           Instr_Config.File_To_SID.Find (Comp_Command.File);
       begin
          --  Start by instrumenting the file as a source, if it is a unit of
          --  interest.
 
-         if Files_Of_Interest.Contains (Comp_Command.File) then
+         if File_To_String_Maps.Has_Element (FI) then
 
             --  Pass the compiler switches through the project description
 
             Instrument.Source
-              (Instrumenter      => Instrumenter,
-               Files_Of_Interest => Switches.Files_Of_Interest,
-               Prj               => Prj,
-               Unit_Name         => Fullname,
-
-               --  Generate all the SID files under the same directory as the
-               --  compiler wrapper as they must persist. TODO??? Deal with
-               --  homonym files in SID names.
-
-               SID_Name => Compiler_Wrapper_Dir / (Simple_Name & ".sid"));
+              (Unit_Name         => Fullname,
+               SID_Name          =>
+                 Compiler_Wrapper_Dir /
+                   (+File_To_String_Maps.Element (FI)),
+               Instrumenter      => Instrumenter,
+               Files_Of_Interest => Files_Of_Interest,
+               Prj               => Prj);
 
             Comp_Command_Ref.Instrumentation_Sources.Append
               (Instrumenter.Buffer_Unit
@@ -869,7 +746,9 @@ begin
       end;
    end loop;
 
-   --  Then, deal with the link command
+   --  If this is a link command, add an empty buffers list unit to the link
+   --  closure. We will compute the correct buffers list unit at the second
+   --  link.
 
    if Comp_DB.Link_Command /= No_Link_Command then
       declare
@@ -880,15 +759,9 @@ begin
          --  compilable by a C / C++ compiler, which are the languages
          --  supported by the integrated instrumentation scheme.
 
-         Buffer_Symbols : constant String_Sets.Set :=
-           Coverage_Buffer_Symbols
-             (Tmp_Dir         => +Prj.Output_Dir,
-              Command         => Comp_DB.Link_Command,
-              Compiler_Driver => Compiler_Exec,
-              Config          => Instr_Config);
       begin
          Buffers_List_Unit :=
-           Instrumenter.Emit_Buffers_List_Unit (Buffer_Symbols, Prj);
+           Instrumenter.Emit_Buffers_List_Unit (String_Sets.Empty_Set, Prj);
       end;
    end if;
 
@@ -1035,6 +908,46 @@ begin
                end;
             end if;
          end loop;
+      end if;
+
+      --  If this was a link command, the first link is done with a dummy
+      --  buffers unit list, to know precisely the list of buffer symbols
+      --  included in the executable. We generate an accurate buffers unit list
+      --  by inspecting the executable symbols, and link a second time with
+      --  this buffers unit list.
+      --
+      --  Note that the buffers list unit compilation unit is included in the
+      --  compiler driver invocation (through New_Args), and the buffers
+      --  list compilation unit generated below overwrites the dummy one.
+
+      if Comp_DB.Link_Command /= No_Link_Command
+         and then Ada.Directories.Exists
+           (+Comp_DB.Link_Command.Target.Full_Name)
+      then
+         declare
+            Instrumenter : constant Language_Instrumenter'Class :=
+              Create_C_Instrumenter
+                (Instr_Config.Tag, Integrated_Instrumentation);
+            --  Emit the buffers list unit as a C compilation unit as it is
+            --  compilable by a C / C++ compiler, which are the languages
+            --  supported by the integrated instrumentation scheme.
+
+         begin
+            --  Generate the buffers list unit
+
+            Buffers_List_Unit :=
+              Instrumenter.Emit_Buffers_List_Unit
+                (Coverage_Buffer_Symbols
+                   (Symbol_File     => Comp_DB.Link_Command.Target,
+                    Tmp_Dir         => +Prj.Output_Dir,
+                    Compiler_Driver => Compiler_Exec,
+                    Config          => Instr_Config),
+                 Prj);
+
+            --  Then, re-run the link with the correct buffers list unit
+
+            Run_Original_Compiler (Context, New_Args);
+         end;
       end if;
    end;
 

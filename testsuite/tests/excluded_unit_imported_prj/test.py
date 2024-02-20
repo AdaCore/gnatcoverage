@@ -40,12 +40,11 @@ thistest.fail_if_not_equal(
 
 # Check that pkg.c is not ignored by checking the report contents
 check_xcov_reports(
-    '*.xcov',
+    'obj',
     {
         'pkg.c.xcov': {'!': {4}},
         'test.c.xcov': {'+': {6, 7}}
     },
-    'obj'
 )
 
 thistest.result()

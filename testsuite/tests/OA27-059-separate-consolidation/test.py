@@ -93,13 +93,6 @@ thistest.fail_if(
 clean_output_directory()
 xcov_args = build_and_run_tests(['pkg_under_test-pkg_test.adb'])
 p = checked_xcov(xcov_args, 'cons-2.log')
-check_xcov_reports(
-    os.path.join('output', '*.xcov'),
-    {
-        os.path.join('output', 'pkg_under_test.adb.xcov'): {
-            '+': {7, 8, 10},
-        }
-    }
-)
+check_xcov_reports('output', {'pkg_under_test.adb.xcov': {'+': {7, 8, 10}}})
 
 thistest.result()

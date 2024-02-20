@@ -66,6 +66,8 @@ package SC_Obligations is
 
    subtype SFI_Vector is SFI_Vectors.Vector;
 
+   package SFI_Sets is new Ada.Containers.Ordered_Sets (Source_File_Index);
+
    ------------------------
    -- Types of decisions --
    ------------------------

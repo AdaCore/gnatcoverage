@@ -120,6 +120,6 @@ xcov(
     ]
 )
 
-check_xcov_reports("*.xcov", {"main.adb.xcov": {"+": {5}}}, cwd="obj")
+check_xcov_reports("obj", {"main.adb.xcov": {"+": {5}}})
 
 thistest.result()

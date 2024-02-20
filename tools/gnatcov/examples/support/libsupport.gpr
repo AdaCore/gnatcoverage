@@ -44,7 +44,7 @@ library project Libsupport is
    --  Now compute the set of source directories to use. A common one,
    --  always, then an additional Target specific one. FOR SELDOM USES
    --  ONLY. We don't wan't yet another zfp support approx here:
-   
+
    Source_Dirs := ("src", "src/helpers");
 
    case Conf.Target is

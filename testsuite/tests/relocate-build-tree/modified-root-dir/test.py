@@ -57,6 +57,6 @@ build_run_and_coverage(
     extra_coverage_args=["--annotate=xcov", "--output-dir=out-instr"],
 )
 
-check_xcov_reports("*.xcov", expected_reports, "out-instr")
+check_xcov_reports("out-instr", expected_reports)
 
 thistest.result()

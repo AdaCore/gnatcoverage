@@ -8,4 +8,3 @@ abstract project Common is
    for Languages use ();
 
 end Common;
-

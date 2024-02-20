@@ -37,7 +37,6 @@ thistest.fail_if(expected != actual,
                  'but got:\n'
                  '{}'.format(indent(expected), indent(actual)))
 
-check_xcov_reports('*.xcov', {'main.adb.xcov': {},
-                              'generic_hello.adb.xcov': {}})
+check_xcov_reports('.', {'main.adb.xcov': {}, 'generic_hello.adb.xcov': {}})
 
 thistest.result()

@@ -25,9 +25,7 @@ xcov_args = build_run_and_coverage(
 )
 
 # For the xcov report kind we can check the actual content
-check_xcov_reports("obj/xcov/*.xcov", {
-    "obj/xcov/main.adb.xcov": {"+": {2, 5}, "-": {6}},
-})
+check_xcov_reports("obj/xcov", {"main.adb.xcov": {"+": {2, 5}, "-": {6}}})
 
 # Check that there is a report in the log of the coverage command
 thistest.fail_if_no_match(

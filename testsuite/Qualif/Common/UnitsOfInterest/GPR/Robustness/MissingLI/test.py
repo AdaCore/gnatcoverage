@@ -46,6 +46,6 @@ thistest.fail_if_not_equal(
     'warning: no {} file found for unit helper'.format(what),
     contents_of(log_file).strip())
 
-check_xcov_reports('obj/*.xcov', {'obj/main.adb.xcov': {'+': {3}}})
+check_xcov_reports('obj', {'main.adb.xcov': {'+': {3}}})
 
 thistest.result()

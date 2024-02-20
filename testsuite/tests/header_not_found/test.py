@@ -24,7 +24,7 @@ def process(gpr_dir, expected_cov):
         gpr_exe_dir=gpr_obj_dir,
         extra_coverage_args=["--annotate=xcov"],
     )
-    check_xcov_reports("*.xcov", expected_cov, gpr_obj_dir)
+    check_xcov_reports(gpr_obj_dir, expected_cov)
 
 
 # Check that the header in the extended project is picked by gnatcov instrument

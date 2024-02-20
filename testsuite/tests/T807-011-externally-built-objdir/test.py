@@ -48,9 +48,9 @@ build_run_and_coverage(
     trace_mode='src'
 )
 
-check_xcov_reports('report/*.xcov', {
-    'report/ops.ads.xcov': {},
-    'report/ops.adb.xcov': {'+': {4, 5}, '-': {6}},
+check_xcov_reports('report', {
+    'ops.ads.xcov': {},
+    'ops.adb.xcov': {'+': {4, 5}, '-': {6}},
 })
 
 # Re-run the instrumenter on the main, to check that it does not re-create a

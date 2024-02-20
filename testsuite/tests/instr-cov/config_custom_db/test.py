@@ -41,6 +41,6 @@ build_run_and_coverage(
     extra_instr_args=["--runtime-project", "gnatcov_rts_custom"],
     auto_config_args=False,
 )
-check_xcov_reports("*.xcov", {"main.c.xcov": {"+": {4}}}, "xcov")
+check_xcov_reports("xcov", {"main.c.xcov": {"+": {4}}})
 
 thistest.result()

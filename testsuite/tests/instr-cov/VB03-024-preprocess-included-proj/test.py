@@ -49,9 +49,9 @@ gprsw = GPRswitches(root_project=src_gpr)
 build_run_and_coverage(gprsw=gprsw, covlevel="stmt", mains=["main"],
                        extra_coverage_args=["-axcov"])
 
-check_xcov_reports("obj/*.xcov",
-                   {"obj/main.c.xcov": {"+": {6, 7, 8}},
-                    "obj/pkg1.c.xcov": {"+": {7, 8}},
-                    "obj/pkg2.c.xcov": {"+": {6}}})
+check_xcov_reports("obj",
+                   {"main.c.xcov": {"+": {6, 7, 8}},
+                    "pkg1.c.xcov": {"+": {7, 8}},
+                    "pkg2.c.xcov": {"+": {6}}})
 
 thistest.result()

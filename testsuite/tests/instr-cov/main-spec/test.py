@@ -32,13 +32,12 @@ for dump_trigger in available_ada_dump_triggers():
         extra_coverage_args=["--annotate=xcov"],
     )
     check_xcov_reports(
-        "*.xcov",
+        "obj",
         {
             "generic_main.adb.xcov": {"+": {5}},
             "inst_main.ads.xcov": {},
             "pkg-child_main.ads.xcov": {},
         },
-        "obj",
     )
 
 thistest.result()

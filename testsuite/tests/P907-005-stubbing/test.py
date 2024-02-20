@@ -55,7 +55,7 @@ checked_xcov(['coverage', '-P', os.path.join('..', 'sensors', 'sensors.gpr'),
 
 # Finally, check we have the expected reports
 check_xcov_reports(
-    '*.xcov',
+    '.',
     {
         'pressure_control.adb.xcov': {
             '+': {10, 18, 19},

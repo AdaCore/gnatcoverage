@@ -84,23 +84,19 @@ def gnatcov_coverage(keep_reading_traces):
 
 # Make sure that without --keep-reading-traces, no coverage report is produced
 gnatcov_coverage(False)
-check_xcov_reports('obj/*.xcov', {})
-
-
-def in_obj(filename):
-    return os.path.join('obj', filename)
+check_xcov_reports('obj', {})
 
 
 # Make sure that with it, both the first and the last trace files contributed
 # to coverage assessment, while the middle one was skipped.
 gnatcov_coverage(True)
 check_xcov_reports(
-    in_obj('*.xcov'),
-    {in_obj('pkg.adb.xcov'): {'+': {11, 12, 14, 17, 18},
-                              '-': {15}},
-     in_obj('main_a.adb.xcov'): {'+': {5}},
-     in_obj('main_b.adb.xcov'): {'-': {5}},
-     in_obj('main_c.adb.xcov'): {'+': {5}}}
+    'obj',
+    {'pkg.adb.xcov': {'+': {11, 12, 14, 17, 18},
+                      '-': {15}},
+     'main_a.adb.xcov': {'+': {5}},
+     'main_b.adb.xcov': {'-': {5}},
+     'main_c.adb.xcov': {'+': {5}}}
 )
 
 thistest.result()

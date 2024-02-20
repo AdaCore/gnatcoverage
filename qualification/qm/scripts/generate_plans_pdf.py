@@ -4,4 +4,3 @@ import generate_doc
 # toplevel driver for qmat generation. Not an unreasonable name anyway.
 
 generate_doc.generate_pdf('PLANS', 'build/latexpdf')
-

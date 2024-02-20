@@ -34,10 +34,10 @@ thistest.fail_if_no_match(
 
 xcov(xcov_args)
 
-check_xcov_reports('xcov/*.xcov', {
-    'xcov/pkg_type_invariant.ads.xcov': {'+': {6, 13, 14, 15, 16, 20},
-                                         '-': {22}},
-    'xcov/main.adb.xcov': {'+': {6, 8, 12}},
+check_xcov_reports('xcov', {
+    'pkg_type_invariant.ads.xcov': {'+': {6, 13, 14, 15, 16, 20},
+                                    '-': {22}},
+    'main.adb.xcov': {'+': {6, 8, 12}},
 })
 
 thistest.result()

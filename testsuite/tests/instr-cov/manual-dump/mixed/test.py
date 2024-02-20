@@ -44,11 +44,11 @@ env["GNATCOV_TRACE_FILE"] = c_trace_name
 run_cov_program(exepath_to("main_c"), env=env)
 xcov(cov_args)
 check_xcov_reports(
-    "*.xcov",
+    "obj",
     {
         "main_ada.adb.xcov": {"+": {5}},
         "main_c.c.xcov": {"+": {6}, '-': {8}},
     },
-    cwd="obj")
+)
 
 thistest.result()

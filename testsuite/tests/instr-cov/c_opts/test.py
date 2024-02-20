@@ -49,6 +49,6 @@ for excerpt in ["-DBACKSLASH=\\", "-DDOUBLE_BACKSLASH=\\", "-DCOMMA=,"]:
         f"{excerpt} macro definition not found in {log_file}"
     )
 
-check_xcov_reports("*.xcov", {"main.c.xcov": {"+": {7, 14}}}, cwd="xcov")
+check_xcov_reports("xcov", {"main.c.xcov": {"+": {7, 14}}})
 
 thistest.result()

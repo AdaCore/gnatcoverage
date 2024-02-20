@@ -32,12 +32,11 @@ build_run_and_coverage(
 )
 
 check_xcov_reports(
-    "*.xcov",
+    "xcov",
     {
         "main.cpp.xcov": {"+": {6, 7, 8, 9}},
         "cmdline.cpp.xcov": {"+": {11, 12, 13, 21, 27}, "-": {23, 24}},
     },
-    "xcov"
 )
 
 tmp.to_homedir()

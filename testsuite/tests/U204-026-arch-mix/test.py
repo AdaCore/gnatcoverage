@@ -45,13 +45,12 @@ def check_reports(xcov_dir):
     mains.
     """
     check_xcov_reports(
-        "*.xcov",
+        xcov_dir,
         {
             "main_1.adb.xcov": {"+": {5}},
             "main_2.adb.xcov": {"+": {5}},
             "pkg.adb.xcov": {"+": {12, 14}, "!": {11}}
         },
-        xcov_dir,
     )
 
 

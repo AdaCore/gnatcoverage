@@ -1312,6 +1312,24 @@ package body Files_Table is
       return File.Unique_Name.all;
    end Get_Unique_Name;
 
+   -------------------------
+   -- Get_Unique_Filename --
+   -------------------------
+
+   function Get_Unique_Filename
+     (Index     : Source_File_Index;
+      Extension : String) return String
+   is
+      Result : String := Get_Unique_Name (Index);
+   begin
+      for C of Result loop
+         if C in '/' | '\' then
+            C := '-';
+         end if;
+      end loop;
+      return Result & '.' & Extension;
+   end Get_Unique_Filename;
+
    ----------------------
    -- Create_File_Info --
    ----------------------

@@ -30,7 +30,7 @@ build_run_and_coverage(
 )
 
 # We only expect non-instrumented lines
-check_xcov_reports("*.xcov", {"pkg.ads.xcov": {"?": {6}}})
+check_xcov_reports(".", {"pkg.ads.xcov": {"?": {6}}})
 
 # Check that the null procedure is reported as a warning
 warning_msg = (

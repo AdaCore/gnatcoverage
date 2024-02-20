@@ -21,6 +21,6 @@ build_run_and_coverage(
     dump_channel="base64-stdout",
 )
 
-check_xcov_reports("*.xcov", {"main.adb.xcov": {"+": {5, 6}}}, "obj")
+check_xcov_reports("obj", {"main.adb.xcov": {"+": {5, 6}}})
 
 thistest.result()

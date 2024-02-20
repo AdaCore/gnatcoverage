@@ -19,8 +19,8 @@ build_run_and_coverage(
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
     trace_mode="src",
 )
-check_xcov_reports("xcov/*.xcov", {
-    "xcov/main.adb.xcov": {"+": {14, 15, 18, 19, 30, 32}, "-": {20, 23, 25}},
+check_xcov_reports("xcov", {
+    "main.adb.xcov": {"+": {14, 15, 18, 19, 30, 32}, "-": {20, 23, 25}},
 })
 
 thistest.result()

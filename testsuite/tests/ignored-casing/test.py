@@ -29,7 +29,7 @@ build_run_and_coverage(
         "--annotate=xcov", "--output-dir=out-cov", ignore_opt
     ],
 )
-check_xcov_reports("*.xcov", expected_reports, "out-cov")
+check_xcov_reports("out-cov", expected_reports)
 
 # Then check it on "gnatcov instrument". This separate test makes sense as
 # --ignore-source-files exercises different code paths depending on the gnatcov
@@ -43,6 +43,6 @@ build_run_and_coverage(
     extra_coverage_args=["--annotate=xcov", "--output-dir=out-instr"],
     trace_mode="src"
 )
-check_xcov_reports("*.xcov", expected_reports, "out-instr")
+check_xcov_reports("out-instr", expected_reports)
 
 thistest.result()

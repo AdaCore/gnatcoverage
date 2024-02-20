@@ -20,7 +20,7 @@ build_run_and_coverage(
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
 )
 check_xcov_reports(
-    "*.xcov",
+    "xcov",
     {
         "main.adb.xcov": {
             "+": {5},
@@ -30,7 +30,6 @@ check_xcov_reports(
         "pkg.adb.xcov": {"!": {9}},
         "pkg.ads.xcov": {},
     },
-    cwd="xcov",
 )
 
 thistest.result()

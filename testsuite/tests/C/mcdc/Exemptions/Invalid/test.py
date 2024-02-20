@@ -23,9 +23,8 @@ build_run_and_coverage(
 )
 
 check_xcov_reports(
-    "*.xcov",
-    expected_cov={"main.c.xcov": {"+": {7, 15}, "!": {5, 17}, "-": {9}}},
-    cwd="obj"
+    "obj",
+    {"main.c.xcov": {"+": {7, 15}, "!": {5, 17}, "-": {9}}},
 )
 
 thistest.fail_if_no_match(
