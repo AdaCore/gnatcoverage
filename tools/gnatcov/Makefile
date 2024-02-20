@@ -108,7 +108,7 @@ include architecture.mk
 
 ifeq ($(HOST_OS), windows)
 ifeq ($(BITS_ARCH), 32)
-DEFAULT_ADAPTERS = nexus trace32
+DEFAULT_ADAPTERS = trace32
 else
 DEFAULT_ADAPTERS =
 endif
@@ -131,9 +131,8 @@ BUILD_MODE=dev
 # == Variables to pass down to sub-makefiles for trace adapters ==
 # ================================================================
 
-# Trace32 and Nexus (iSystem) adapters use the same prefix as GNATcov
+# The Trace32 adapter use the same prefix as GNATcov
 trace32_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
-nexus_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
 
 .PHONY: default all adapters bin $(PGMPATH)
 
