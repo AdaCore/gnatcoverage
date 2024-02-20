@@ -325,6 +325,12 @@ package body Instrument.Ada_Unit is
    --  not ghost. This is what we need here, as we need to instrument the
    --  declaration if if at least one defined name is not ghost.
 
+   function Safe_Previous_Part_For_Decl
+     (N : Basic_Decl'Class) return Basic_Decl;
+   --  Wrapper around P_Previous_Part_For_Decl to protect ourselves against
+   --  property errors. If the property fails for some reason, return the null
+   --  node.
+
    function Op_Symbol_To_Name
      (Op : Libadalang.Analysis.Name) return Wide_Wide_String;
    --  Given an operator symbol (in its source representation
@@ -2537,9 +2543,19 @@ package body Instrument.Ada_Unit is
             --  it should be based on the previous declaration of the original
             --  EF to avoid potential visibility issues introduced by
             --  use-clauses in between the declaration and the completion.
+            --
+            --  Note that Needs_Decl can be true True only when
+            --  Augmented_Expr_Function_Needs_Decl returns True, and that can
+            --  happen only when it managed to get the previous part of
+            --  Common_Node.N, so the call to P_Previous_Part_For_Decl below is
+            --  guaranteed to return a non-null node.
+
+            Previous_Decl : constant Basic_Decl :=
+              Common_Nodes.N.P_Previous_Part_For_Decl;
+            pragma Assert (not Previous_Decl.Is_Null);
 
             Previous_Spec : constant Subp_Spec :=
-              Common_Nodes.N.P_Previous_Part_For_Decl.As_Subp_Decl.F_Subp_Spec;
+              Previous_Decl.As_Subp_Decl.F_Subp_Spec;
 
             --  Clone the spec of the original declaration
 
@@ -2701,21 +2717,10 @@ package body Instrument.Ada_Unit is
 
       --  Check that N has a previous declaration
 
-      begin
-         Previous_Decl := N.P_Previous_Part_For_Decl;
-
-         if Previous_Decl.Is_Null or else Previous_Decl = No_Ada_Node then
-            return False;
-         end if;
-      exception
-         when Exc : Property_Error =>
-            Report (Node => N,
-                    Msg  => "Could not determine if expression function"
-                    & " declaration has a previous part or not: "
-                    & Ada.Exceptions.Exception_Information (Exc),
-                    Kind => Warning);
-            return False;
-      end;
+      Previous_Decl := Safe_Previous_Part_For_Decl (N);
+      if Previous_Decl.Is_Null then
+         return False;
+      end if;
 
       --  Check that N is in a public or private part of a package decl
       --  or that N and its previous part are declared in the same declarative
@@ -4228,9 +4233,11 @@ package body Instrument.Ada_Unit is
                   declare
                      Previous_Decl : constant Basic_Decl :=
                        N.P_Previous_Part_For_Decl;
-                     --  This property cannot fail because to reach this point
-                     --  we will already have succesfully queried the previous
-                     --  part of N in Augmented_Expr_Function_Needs_Decl.
+                     pragma Assert (not Previous_Decl.Is_Null);
+                     --  P_Previous_Part_For_Decl cannot fail because to reach
+                     --  this point we will already have succesfully queried
+                     --  the previous part of N in
+                     --  Augmented_Expr_Function_Needs_Decl.
                   begin
                      Insert_Before
                        (Handle (Previous_Decl), Augmented_Expr_Function_Decl);
@@ -4313,7 +4320,7 @@ package body Instrument.Ada_Unit is
 
          N_Spec : constant Subp_Spec := N.P_Subp_Spec_Or_Null.As_Subp_Spec;
 
-         Prev_Part : constant Basic_Decl := N.P_Previous_Part_For_Decl;
+         Prev_Part : constant Basic_Decl := Safe_Previous_Part_For_Decl (N);
          --  If this is a null procedure or an expression function, it may have
          --  a previous declaration that must be used as scope identifier.
 
@@ -4368,7 +4375,7 @@ package body Instrument.Ada_Unit is
                      then Basic_Decl (CUN_Body.As_Subunit.F_Body)
                      else CUN_Body.As_Library_Item.F_Item);
                   CU_Prev_Decl : constant Basic_Decl :=
-                    CU_Decl.P_Previous_Part_For_Decl;
+                    Safe_Previous_Part_For_Decl (CU_Decl);
                begin
                   --  For a library unit, scan context clause. If this is a
                   --  body, also obtain WITH clauses from the spec. Also
@@ -5298,12 +5305,22 @@ package body Instrument.Ada_Unit is
         UIC.MCDC_State_Inserter;
       Local_Inserter            : aliased Default_MCDC_State_Inserter :=
         (Local_Decls => Handle (N.F_Decls.F_Decls));
+
+      --  Fetch the package decl corresponding to N. If that fails,
+      --  Safe_Previous_Part_For_Decl emits a warning: use the package body
+      --  instead as an approximation.
+
+      Decl : Basic_Decl := Safe_Previous_Part_For_Decl (N);
    begin
+      if Decl.Is_Null then
+         Decl := N.As_Basic_Decl;
+      end if;
+
       UIC.Ghost_Code := Safe_Is_Ghost (N);
       Enter_Scope
         (UIC  => UIC,
          Sloc => Sloc (N),
-         Decl => N.P_Previous_Part_For_Decl);
+         Decl => Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       Traverse_Declarations_Or_Statements
@@ -6371,9 +6388,9 @@ package body Instrument.Ada_Unit is
       return not (for all DN of N.P_Defining_Names => not DN.P_Is_Ghost_Code);
    exception
       when E : Property_Error =>
-         Report (N,
-                 Msg => "Could not determine if decl is ghost: "
-                 & Ada.Exceptions.Exception_Information (E),
+         Report (Node => N,
+                 Msg  => "Could not determine if decl is ghost: "
+                         & Ada.Exceptions.Exception_Information (E),
                  Kind => Low_Warning);
          return False;
 
@@ -6384,13 +6401,31 @@ package body Instrument.Ada_Unit is
       return N.P_Is_Ghost_Code;
    exception
       when E : Property_Error =>
-         Report (N,
-                 Msg => "Could not determine if stmt is ghost: "
-                 & Ada.Exceptions.Exception_Information (E),
+         Report (Node => N,
+                 Msg  => "Could not determine if stmt is ghost: "
+                         & Ada.Exceptions.Exception_Information (E),
                  Kind => Low_Warning);
          return False;
 
    end Safe_Is_Ghost;
+
+   ---------------------------------
+   -- Safe_Previous_Part_For_Decl --
+   ---------------------------------
+
+   function Safe_Previous_Part_For_Decl
+     (N : Basic_Decl'Class) return Basic_Decl
+   is
+   begin
+      return N.P_Previous_Part_For_Decl;
+   exception
+      when E : Property_Error =>
+         Report (Node => N,
+                 Msg  => "Could not resolve the previous declaration: "
+                         & Ada.Exceptions.Exception_Information (E),
+                 Kind => Warning);
+         return No_Basic_Decl;
+   end Safe_Previous_Part_For_Decl;
 
    -------------
    -- Matches --
