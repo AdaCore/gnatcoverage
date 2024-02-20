@@ -79,16 +79,16 @@ class Runner:
 
     def run(self):
 
-        print '============== GNATCOV RUN ==================='
+        print('============== GNATCOV RUN ===================')
 
         if not self.args:
-            print 'gnatcov: missing EXE for run'
+            print('gnatcov: missing EXE for run')
             os.exit(1)
 
         Run(
             ['gnatcov', 'run'] + self.run_command_line() + self.args)
 
-        print '=============================================='
+        print('==============================================')
 
 
 runner = Runner()

@@ -24,18 +24,18 @@ def format_symbol(symbol):
 def debug_interval(intval):
     seen_bounds = set()
     for i, bound in enumerate(intval.bounds):
-        print '{:02} - {:x}'.format(i, bound),
         try:
             value = intval.values[bound]
         except KeyError:
-            print ''
+            suffix = ''
         else:
-            print '-> {:x}'.format(intval.bounds[i + 1]), value
+            suffix = '-> {:x}'.format(intval.bounds[i + 1]), value
+        print('{:02} - {:x}{}'.format(i, bound, suffix))
         seen_bounds.add(bound)
-    print '---'
+    print('---')
     for unseen in set(intval.values.keys()) - seen_bounds:
-        print '-> {:x}'.format(unseen), intval.values[unseen]
-    print '---'
+        print('-> {:x}'.format(unseen), intval.values[unseen])
+    print('---')
 
 def get_sym_info(exe_filename):
     """Parse symbol info in `exe_filename` and return it as an interval map,
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     try:
         symbol = sym_info[address]
     except KeyError:
-        print 'Not found'
+        print('Not found')
         sys.exit(1)
     else:
         print(

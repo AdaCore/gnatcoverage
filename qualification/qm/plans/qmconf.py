@@ -17,8 +17,8 @@ if os.path.isfile(common_file):
         os.path.dirname(common_file),
         "qm_prolog.py"))
 else:
-    print "Couldn't find common configuration file"
-    print common_file
-    print "from: %s" % __file__
+    print("Couldn't find common configuration file")
+    print(common_file)
+    print("from: %s" % __file__)
 
 doc_id = plans_doc_id
