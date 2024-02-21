@@ -15,9 +15,9 @@ import os.path
 
 from e3.fs import cp
 
+from SCOV.minicheck import check_xcov_reports
 from SUITE.control import env
 from SUITE.cutils import contents_of, Wdir
-from SCOV.minicheck import check_xcov_reports, checked_xcov
 from SUITE.tutils import cmdrun, srctracename_for, thistest, xcov
 
 Wdir("tmp_")
@@ -25,10 +25,8 @@ Wdir("tmp_")
 cwd = os.getcwd()
 
 # Copy the sources and the Makefile in the temporary directory
-cp(os.path.join("..", "Makefile"), ".")
-cp(os.path.join("..", "main.c"), ".")
-cp(os.path.join("..", "libbar"), ".", recursive=True)
-cp(os.path.join("..", "libfoo"), ".", recursive=True)
+for item in ["Makefile", "libbar", "libfoo", "main.c"]:
+    cp(os.path.join("..", item), ".", recursive=True)
 
 # Then, setup the instrumentation process
 xcov(
@@ -83,14 +81,11 @@ thistest.fail_if_no_match(
     f'\r?\n  {os.path.join(cwd, "libbar", "bar.c")}',
     contents_of(log_file),
 )
-check_xcov_reports(
-    "*.xcov",
-    {
-        "libbar-bar.c.xcov": {"+": {4}},
-        "libbar-foo.c.xcov": {"+": {4}},
-        "libfoo-bar.c.xcov": {"-": {4}},
-        "libfoo-foo.c.xcov": {"-": {4}},
-    },
-)
+check_xcov_reports(".", {
+    "libbar-bar.c.xcov": {"+": {4}},
+    "libbar-foo.c.xcov": {"+": {4}},
+    "libfoo-bar.c.xcov": {"-": {4}},
+    "libfoo-foo.c.xcov": {"-": {4}},
+})
 
 thistest.result()
