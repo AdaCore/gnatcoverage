@@ -910,7 +910,10 @@ is
                      use Files_Table;
                      Instr_Units  : Unit_Sets.Set;
                      Source_Files : GNATCOLL.VFS.File_Array_Access :=
-                       Source.Project.Source_Files (Recursive => True);
+                       Source.Project.Source_Files
+                         (Recursive                => True,
+                          Include_Externally_Built =>
+                            Externally_Built_Projects_Processing_Enabled);
                   begin
                      for S of Source_Files.all loop
                         declare
