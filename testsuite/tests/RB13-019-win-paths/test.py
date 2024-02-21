@@ -79,6 +79,10 @@ build_run_and_coverage(
     ],
 )
 
-check_xcov_reports("coverage", {"wibble.c.xcov": {"+": {8, 12}, "!": {6}}})
+check_xcov_reports("coverage", {
+    "wibble.c.xcov": {"+": {8, 12}, "!": {6}},
+    "main.adb.xcov": {"+": {7}},
+    "driver.c.xcov": {"+": {13, 24, 25, 27}, "!": {11}, "-": {17}},
+})
 
 thistest.result()
