@@ -22,9 +22,12 @@ with Ada.Directories;   use Ada.Directories;
 with Ada.Strings;       use Ada.Strings;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
+with GNATCOLL.VFS; use GNATCOLL.VFS;
+
 with Arch;
 with Coverage;      use Coverage;
 with Paths;         use Paths;
+with Project;
 with Support_Files;
 with Switches;      use Switches;
 
@@ -245,8 +248,9 @@ package body Rundrv.Handlers is
          Append_Arg (Cmd, "--board=" & Context.Target_Board.all);
       end if;
 
-      if Root_Project /= null then
-         Append_Arg (Cmd, "-P", Root_Project.all);
+      if Project.Is_Project_Loaded then
+         Append_Arg
+           (Cmd, "-P", +Project.Project.Root_Project.Project_Path.Full_Name);
 
          declare
             use Key_Element_Maps;

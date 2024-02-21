@@ -425,6 +425,9 @@ package body Switches is
       end Check_Allowed_Option;
 
       Project_Args : Parsed_Arguments;
+      Root_Project : String_Access;
+      Runtime      : String_Access;
+      CGPR_File    : String_Access;
 
    --  Start of processing for Load_Project_Arguments
 
@@ -622,8 +625,6 @@ package body Switches is
       --  internal state accordingly.
 
       Load_Target_Option (Default_Target => True);
-      Copy_Arg (Opt_Runtime, Runtime);
-      Copy_Arg (Opt_Config, CGPR_File);
    end Parse_Arguments;
 
    -----------
