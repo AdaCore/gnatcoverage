@@ -916,6 +916,17 @@ is
                             Externally_Built_Projects_Processing_Enabled);
                   begin
                      for S of Source_Files.all loop
+
+                        --  First, check if S is even a source of a language we
+                        --  recognize. If not, it can't have been instrumented
+                        --  so skip it.
+
+                        if To_Language_Or_All
+                          (Project.Project.Info (S).Language) = All_Languages
+                        then
+                           goto Skip_File;
+                        end if;
+
                         declare
                            use Unit_Maps;
                            Unit_C : constant Unit_Maps.Cursor :=
@@ -938,6 +949,7 @@ is
                               end;
                            end if;
                         end;
+                        <<Skip_File>>
                      end loop;
 
                      --  The creation of the root project's buffers list unit
