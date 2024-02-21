@@ -1,0 +1,6 @@
+--  The very purpose of this test is to check the correct support of
+--  gnatcov_rts' full profile on embedded runtimes: the only currently known
+--  configuration where this makes sense is the light-tasking runtime for a QNX
+--  target.
+src-traces,qnx,RTS_LIGHT_TASKING
+ALL DEAD
