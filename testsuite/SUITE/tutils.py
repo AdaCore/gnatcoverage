@@ -157,7 +157,7 @@ def gprbuild_gargs_with(thisgargs,
             runtime_project or RUNTIME_INFO.gnatcov_rts_project
         )
         result += [
-            f"--implicit-with={runtime_project}.gpr",
+            f"--implicit-with={runtime_project}",
             "--src-subdirs=gnatcov-instr",
         ]
 
