@@ -398,6 +398,9 @@ package body SC_Obligations is
             Pragma_Name : Pragma_Id := Pragma_Id'First;
             --  For a Pragma_Statement, corresponding pragma identifier
 
+            Stmt_Instrumented : Boolean := True;
+            --  Whether this SCO was instrumented
+
          when Condition =>
             Value : Tristate;
             --  Indicates whether this condition is always true, always false,
@@ -442,6 +445,12 @@ package body SC_Obligations is
             Path_Count : Natural := 0;
             --  Count of distinct paths through the BDD from the root condition
             --  to any outcome.
+
+            Decision_Instrumented : Boolean := True;
+            --  Whether this SCO was instrumented for decision coverage
+
+            Decision_Instrumented_For_MCDC : Boolean := True;
+            --  Whether this SCO was instrumented for MC/DC coverage
 
          when Operator =>
             Operands : Operand_Pair := (others => No_SCO_Id);
@@ -521,13 +530,11 @@ package body SC_Obligations is
    --  contain data loaded from a checkpoint.
 
    type Source_Coverage_Vectors is record
-      CU_Vector           : CU_Info_Vectors.Vector;
-      ALI_Annotations     : ALI_Annotation_Maps.Map;
-      Inst_Vector         : Inst_Info_Vectors.Vector;
-      BDD_Vector          : BDD.BDD_Vectors.Vector;
-      SCO_Vector          : SCO_Vectors.Vector;
-      Non_Instr_SCOs      : SCO_Sets.Set;
-      Non_Instr_MCDC_SCOs : SCO_Sets.Set;
+      CU_Vector       : CU_Info_Vectors.Vector;
+      ALI_Annotations : ALI_Annotation_Maps.Map;
+      Inst_Vector     : Inst_Info_Vectors.Vector;
+      BDD_Vector      : BDD.BDD_Vectors.Vector;
+      SCO_Vector      : SCO_Vectors.Vector;
    end record;
 
    -----------------------------------------
@@ -745,21 +752,6 @@ package body SC_Obligations is
 
    SCO_Vector : SCO_Vectors.Vector renames SC_Vectors.SCO_Vector;
    --  Vector of high-level Source Coverage Obligations (for all units)
-
-   Non_Instr_SCOs : SCO_Sets.Set renames
-     SC_Vectors.Non_Instr_SCOs;
-   --  Set of SCOs that were not instrumented, either for stmt or decision.
-   --
-   --  ??? This should really be part of the SCO_Descriptor record, but doing
-   --  so would break backwards compatibility with checkpoints. This set should
-   --  be removed once manual serialization of checkpoints/SID files is
-   --  implemented.
-
-   Non_Instr_MCDC_SCOs : SCO_Sets.Set renames
-     SC_Vectors.Non_Instr_MCDC_SCOs;
-   --  Set of decsion SCOs that were not instrumented for MCDC.
-   --
-   --  ??? Same comment as above.
 
    -----------
    -- Image --
@@ -1141,6 +1133,10 @@ package body SC_Obligations is
          SCOD.Handler_Range  := CLS.Read_Source_Location_Range;
          SCOD.Pragma_Name    := Pragma_Id'Val (CLS.Read_U8);
 
+         --  See the TODO in the declaration of Checkpoint_Version
+
+         SCOD.Stmt_Instrumented := True;
+
       when Condition =>
          SCOD.Value := CLS.Read_Tristate;
          Read (CLS, SCOD.PC_Set);
@@ -1156,6 +1152,11 @@ package body SC_Obligations is
          SCOD.Degraded_Origins := CLS.Read_Boolean;
          SCOD.Aspect_Name      := Aspect_Id'Val (CLS.Read_U8);
          SCOD.Path_Count       := CLS.Read_Integer;
+
+         --  See the TODO in the declaration of Checkpoint_Version
+
+         SCOD.Decision_Instrumented          := True;
+         SCOD.Decision_Instrumented_For_MCDC := True;
 
       when Operator =>
          declare
@@ -1189,11 +1190,16 @@ package body SC_Obligations is
       Relocs  : Checkpoint_Relocations renames CLS.Relocations;
       Real_CU : CU_Info renames CU_Vector.Reference (Real_CU_Id).Element.all;
    begin
-      --  Here we already have loaded full SCO information for this CU, so
-      --  all we need to do is to populate the tables mapping the SCO and
-      --  instance IDs for this unit in the checkpoint to their counterparts
-      --  in the current context, and merge non-instrumented SCO information
-      --  if available.
+      --  Here we already have loaded full SCO information for this CU. There
+      --  are two things to do:
+      --
+      --  * Populate the tables mapping the SCO and instance IDs for this unit
+      --    in the checkpoint to their counterparts in the current context, and
+      --    merge non-instrumented SCO information if available.
+      --
+      --  * Merge the information about non instrumented SCOs. We consider that
+      --    a SCO was instrumented iff at least one merged unit has it
+      --    instrumented.
 
       --  SCOs
 
@@ -1206,6 +1212,31 @@ package body SC_Obligations is
                          Old_SCO_Id
                          + Real_CU.First_SCO
                          - CP_CU.First_SCO);
+
+         declare
+            Old_SCOD : SCO_Descriptor renames
+              CP_Vectors.SCO_Vector (Old_SCO_Id);
+            SCOD     : SCO_Descriptor renames
+              SCO_Vector (Remap_SCO_Id (Relocs, Old_SCO_Id));
+         begin
+            case SCOD.Kind is
+               when Statement =>
+                  if Old_SCOD.Stmt_Instrumented then
+                     SCOD.Stmt_Instrumented := True;
+                  end if;
+
+               when Decision =>
+                  if Old_SCOD.Decision_Instrumented then
+                     SCOD.Decision_Instrumented := True;
+                  end if;
+                  if Old_SCOD.Decision_Instrumented_For_MCDC then
+                     SCOD.Decision_Instrumented_For_MCDC := True;
+                  end if;
+
+               when others =>
+                  null;
+            end case;
+         end;
       end loop;
 
       --  Instances
@@ -1227,71 +1258,6 @@ package body SC_Obligations is
       --  Has_Code indication
 
       Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
-
-      --  Non-Instrumented SCO sets
-
-      declare
-         use SCO_Sets;
-         CU_CP_Set : Set;
-         CU_Set    : Set;
-         Cur       : Cursor;
-         Prev      : Cursor;
-      begin
-         --  First process the non instrumented SCOs for stmt and decision
-         --
-         --  Since the CU we are loading from the CP is already in the current
-         --  execution tables, a SCO is non-instrumented iff it was marked as
-         --  non-instrumented in the current execution, as well as in the CP.
-         --
-         --  We need to take care not to process any SCO outside of the one of
-         --  this CU, so we build "local" sets containing only the SCOs in the
-         --  current CU to compute the intersection.
-
-         for SCO of CP_Vectors.Non_Instr_SCOs loop
-            if SCO /= No_SCO_Id
-              and then SCO in CP_CU.First_SCO .. CP_CU.Last_SCO
-            then
-               CU_CP_Set.Insert (Remap_SCO_Id (Relocs, SCO));
-            end if;
-         end loop;
-
-         Cur := Non_Instr_SCOs.Ceiling (Real_CU.First_SCO);
-         while Has_Element (Cur) and then Element (Cur) <= Real_CU.Last_SCO
-         loop
-            CU_Set.Insert (Element (Cur));
-            Prev := Cur;
-            Next (Cur);
-
-            --  Remove the element from the main set so we can insert the
-            --  intersection of the CU-specific sets later.
-
-            Non_Instr_SCOs.Delete (Prev);
-         end loop;
-         Non_Instr_SCOs.Union (CU_Set.Intersection (CU_CP_Set));
-
-         --  Same processing for MCDC SCOs
-
-         CU_Set.Clear;
-         CU_CP_Set.Clear;
-
-         for SCO of CP_Vectors.Non_Instr_MCDC_SCOs loop
-            if SCO /= No_SCO_Id
-              and then SCO in CP_CU.First_SCO .. CP_CU.Last_SCO
-            then
-               CU_CP_Set.Insert (Remap_SCO_Id (Relocs, SCO));
-            end if;
-         end loop;
-
-         Cur := Non_Instr_MCDC_SCOs.Ceiling (Real_CU.First_SCO);
-         while Has_Element (Cur) and then Element (Cur) <= Real_CU.Last_SCO
-         loop
-            CU_Set.Insert (Element (Cur));
-            Prev := Cur;
-            Next (Cur);
-            Non_Instr_MCDC_SCOs.Delete (Prev);
-         end loop;
-         Non_Instr_MCDC_SCOs.Union (CU_Set.Intersection (CU_CP_Set));
-      end;
    end Checkpoint_Load_Merge_Unit;
 
    ------------------------------
@@ -1637,23 +1603,6 @@ package body SC_Obligations is
          end;
       end loop;
 
-      --  Import information about non instrumented units. Only import SCOs
-      --  that belong to this CU, as others SCOs might belong to a CU already
-      --  present in the current execution, and which would not be simply
-      --  imported as is.
-
-      for SCO of CP_Vectors.Non_Instr_SCOs loop
-         if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
-            Non_Instr_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
-         end if;
-      end loop;
-
-      for SCO of CP_Vectors.Non_Instr_MCDC_SCOs loop
-         if SCO in CP_CU.First_SCO .. CP_CU.Last_SCO then
-            Non_Instr_MCDC_SCOs.Insert (Remap_SCO_Id (Relocs, SCO));
-         end if;
-      end loop;
-
       --  Perform final fixups and insert CU
 
       CP_CU.Last_Instance :=
@@ -1984,10 +1933,49 @@ package body SC_Obligations is
       SC_Obligations.BDD.Read (CLS, CP_Vectors.BDD_Vector);
       Read (CLS, CP_Vectors.SCO_Vector);
 
-      --  Load non-instrumented information
+      --  Initialize all the *Instrument* SCO_Descriptor components from "maps"
+      --  in CLS. See the TODO in the declaration of Checkpoint_Version.
 
-      Read (CLS, CP_Vectors.Non_Instr_SCOs);
-      Read (CLS, CP_Vectors.Non_Instr_MCDC_SCOs);
+      declare
+         SCOs : SCO_Sets.Set;
+      begin
+         --  First read uninstrumented SCOs for stmt/decision
+
+         Read (CLS, SCOs);
+         for SCO of SCOs loop
+            declare
+               SCOD : SCO_Descriptor renames CP_Vectors.SCO_Vector (SCO);
+            begin
+               case SCOD.Kind is
+                  when Statement =>
+                     SCOD.Stmt_Instrumented := False;
+                  when Decision =>
+                     SCOD.Decision_Instrumented := False;
+                  when others =>
+                     Fatal_Error
+                       ("invalid non-instrumented SCO: " & SCOD.Kind'Image);
+               end case;
+            end;
+         end loop;
+
+         --  Then read uninstrumented SCOs for MC/DC
+
+         Read (CLS, SCOs);
+         for SCO of SCOs loop
+            declare
+               SCOD : SCO_Descriptor renames CP_Vectors.SCO_Vector (SCO);
+            begin
+               case SCOD.Kind is
+                  when Decision =>
+                     SCOD.Decision_Instrumented_For_MCDC := False;
+                  when others =>
+                     Fatal_Error
+                       ("invalid non-instrumented SCO for MC/DC: "
+                        & SCOD.Kind'Image);
+               end case;
+            end;
+         end loop;
+      end;
 
       --  Allocate mapping tables for SCOs, instance identifiers and BDD nodes
 
@@ -2107,8 +2095,6 @@ package body SC_Obligations is
       Inst_Vector.Clear;
       BDD_Vector.Clear;
       SCO_Vector.Clear;
-      Non_Instr_SCOs.Clear;
-      Non_Instr_MCDC_SCOs.Clear;
    end Checkpoint_Clear;
 
    ---------------------
@@ -2122,8 +2108,47 @@ package body SC_Obligations is
       Write (CSS.all, Inst_Vector);
       BDD.Write (CSS.all, BDD_Vector);
       Write (CSS.all, SCO_Vector);
-      Write (CSS.all, Non_Instr_SCOs);
-      Write (CSS.all, Non_Instr_MCDC_SCOs);
+
+      --  Write sets of uninstrumented SCOs. See the TODO in the declaration of
+      --  Checkpoint_Version.
+      --
+      --  First build sets of non instrumented SCOs from SCO_Vector, then write
+      --  these sets to the checkpoint.
+
+      declare
+         Non_Instr_SCOs, Non_Instr_MCDC_SCOs : SCO_Sets.Set;
+      begin
+         for SCO in 1 .. SCO_Vector.Last_Index loop
+            declare
+               SCOD              : SCO_Descriptor renames SCO_Vector (SCO);
+               Instr, Instr_MCDC : Boolean := True;
+            begin
+               case SCOD.Kind is
+                  when Statement =>
+                     Instr := SCOD.Stmt_Instrumented;
+                  when Decision =>
+                     Instr := SCOD.Decision_Instrumented;
+                     Instr_MCDC := SCOD.Decision_Instrumented_For_MCDC;
+                  when others =>
+                     null;
+               end case;
+
+               --  Beware that the booleans in SCO_Descriptor are true for
+               --  *instrumented* SCOs while set elements indicate
+               --  *non-instrumented* SCOs.
+
+               if not Instr then
+                  Non_Instr_SCOs.Insert (SCO);
+               end if;
+               if not Instr_MCDC then
+                  Non_Instr_MCDC_SCOs.Insert (SCO);
+               end if;
+            end;
+         end loop;
+
+         Write (CSS.all, Non_Instr_SCOs);
+         Write (CSS.all, Non_Instr_MCDC_SCOs);
+      end;
    end Checkpoint_Save;
 
    ---------------
@@ -2694,8 +2719,9 @@ package body SC_Obligations is
    ----------------------------
 
    procedure Set_Stmt_SCO_Non_Instr (SCO : SCO_Id) is
+      SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
    begin
-      Non_Instr_SCOs.Include (SCO);
+      SCOD.Stmt_Instrumented := False;
    end Set_Stmt_SCO_Non_Instr;
 
    --------------------------------
@@ -2703,8 +2729,9 @@ package body SC_Obligations is
    --------------------------------
 
    procedure Set_Decision_SCO_Non_Instr (SCO : SCO_Id) is
+      SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
    begin
-      Non_Instr_SCOs.Include (SCO);
+      SCOD.Decision_Instrumented := False;
    end Set_Decision_SCO_Non_Instr;
 
    -----------------------------------------
@@ -2712,8 +2739,9 @@ package body SC_Obligations is
    -----------------------------------------
 
    procedure Set_Decision_SCO_Non_Instr_For_MCDC (SCO : SCO_Id) is
+      SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
    begin
-      Non_Instr_MCDC_SCOs.Include (SCO);
+      SCOD.Decision_Instrumented_For_MCDC := False;
    end Set_Decision_SCO_Non_Instr_For_MCDC;
 
    ---------------------------
@@ -2721,22 +2749,22 @@ package body SC_Obligations is
    ---------------------------
 
    function Stmt_SCO_Instrumented (SCO : SCO_Id) return Boolean is
-     (not Non_Instr_SCOs.Contains (SCO));
+     (SCO_Vector (SCO).Stmt_Instrumented);
 
    -------------------------------
    -- Decision_SCO_Instrumented --
    -------------------------------
 
    function Decision_SCO_Instrumented (SCO : SCO_Id) return Boolean is
-      (not Non_Instr_SCOs.Contains (SCO));
+     (SCO_Vector (SCO).Decision_Instrumented);
 
    ----------------------------------------
    -- Decision_SCO_Instrumented_For_MCDC --
    ----------------------------------------
 
    function Decision_SCO_Instrumented_For_MCDC
-     (SCO : SCO_Id) return Boolean  is
-     (not Non_Instr_MCDC_SCOs.Contains (SCO));
+     (SCO : SCO_Id) return Boolean
+   is (SCO_Vector (SCO).Decision_Instrumented_For_MCDC);
 
    -----------
    -- Image --

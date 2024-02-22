@@ -59,6 +59,12 @@ package Checkpoints is
    --  13 -- Extend Files_Table.File_Info to distinguish homonym source files
    --
    --  Note that we always use the last version when creating a checkpoint.
+   --
+   --  TODO for the next checkpoint version:
+   --
+   --  * Inline the "instrumented?" booleans in SCO_Descriptor
+   --    (de)serialization. They are currently stored as separate "maps" in
+   --    SIDs/checkpoints.
 
    type Checkpoint_Purpose is (Instrumentation, Consolidation);
    --  Purpose of checkpoint can be to provide:
