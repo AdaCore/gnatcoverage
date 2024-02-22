@@ -3709,9 +3709,8 @@ package body Instrument.C is
 
       Output_Proc : constant String :=
         (case Dump_Config.Channel is
-            when Binary_File => "gnatcov_rts_write_trace_file_wrapper",
-            when Base64_Standard_Output =>
-              "gnatcov_rts_write_trace_file_base64");
+         when Binary_File            => "gnatcov_rts_write_trace_file",
+         when Base64_Standard_Output => "gnatcov_rts_write_trace_file_base64");
 
       Indent1 : constant String := "    ";
       Indent2 : constant String := Indent1 & "  ";
