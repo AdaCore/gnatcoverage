@@ -34,7 +34,6 @@ with Interfaces;
 with Outputs;
 with Project;
 with Support_Files;    use Support_Files;
-with Switches;
 with Traces_Disa;
 with Traces_Files;     use Traces_Files;
 
@@ -429,7 +428,7 @@ package body Annotations.Dynamic_Html is
 
       declare
          P_Name : constant String :=
-           (if Switches.Root_Project /= null
+           (if Is_Project_Loaded
             then Project_Name (Info.Full_Name.all)
             else "");
          --  Note that P_Name can be "" here either because we don't have a

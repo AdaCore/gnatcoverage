@@ -221,15 +221,6 @@ package Switches is
    -- Project related switches that may need to be propagated --
    -------------------------------------------------------------
 
-   Root_Project : String_Access := null;
-   --  Project name as specified to the -P option of the command line
-
-   Runtime : String_Access := null;
-   --  Name of the runtime (--RTS or defined in the project file)
-
-   CGPR_File : String_Access := null;
-   --  Name of the configuration project file
-
    package Key_Element_Maps is
      new Ada.Containers.Indefinite_Ordered_Maps
        (Key_Type     => String,
