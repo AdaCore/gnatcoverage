@@ -30,16 +30,7 @@ with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 
 package body GNATcov_RTS.Traces.Output.Files is
 
-   function Write_Trace_File_C
-     (Buffers_Groups : GNATcov_RTS_Coverage_Buffers_Group_Array;
-      Filename       : chars_ptr;
-      Program_Name   : GNATcov_RTS_String;
-      Exec_Date      : Unsigned_64;
-      User_Data      : GNATcov_RTS_String) return int;
-   pragma Import
-     (C, Write_Trace_File_C, External_Name => "gnatcov_rts_write_trace_file");
-
-   procedure Write_Trace_File_Wrapper_C
+   procedure Write_Trace_File_C
      (Buffers_Groups : GNATcov_RTS_Coverage_Buffers_Group_Array;
       Filename       : chars_ptr;
       Program_Name   : GNATcov_RTS_String;
@@ -47,8 +38,8 @@ package body GNATcov_RTS.Traces.Output.Files is
       User_Data      : GNATcov_RTS_String);
    pragma Import
      (C,
-      Write_Trace_File_Wrapper_C,
-      External_Name => "gnatcov_rts_write_trace_file_wrapper");
+      Write_Trace_File_C,
+      External_Name => "gnatcov_rts_write_trace_file");
 
    function Default_Trace_Filename_C
      (Env_Var : chars_ptr;
@@ -117,48 +108,9 @@ package body GNATcov_RTS.Traces.Output.Files is
       User_Data_C      : constant GNATcov_RTS_String :=
         (User_Data'Address, User_Data'Length);
       pragma Warnings (On);
-
-      Result : constant int :=
-        Write_Trace_File_C
-          (Buffers_Groups_C,
-           Filename,
-           Program_Name_C,
-           Exec_Date_C,
-           User_Data_C);
    begin
-      if Result = 1 then
-         pragma Warnings (Off);
-         raise IO_Error;
-         pragma Warnings (On);
-      end if;
-   end Write_Trace_File;
-
-   ------------------------------
-   -- Write_Trace_File_Wrapper --
-   ------------------------------
-
-   procedure Write_Trace_File_Wrapper
-     (Buffers_Groups : Coverage_Buffers_Group_Array;
-      Filename       : chars_ptr := Default_Trace_Filename;
-      Program_Name   : String := "unknown";
-      Exec_Date      : Time   := Clock;
-      User_Data      : String := "")
-   is
-      --  See the note about -gnatw.X in gnatcov_rts.gpr
-
-      pragma Warnings (Off);
-      Buffers_Groups_C : constant GNATcov_RTS_Coverage_Buffers_Group_Array :=
-        (Buffers_Groups'Length, Buffers_Groups'Address);
-      Program_Name_C   : constant GNATcov_RTS_String :=
-        (Program_Name'Address, Program_Name'Length);
-      Exec_Date_C      : constant Unsigned_64 :=
-        Interfaces.Unsigned_64 (Exec_Date);
-      User_Data_C      : constant GNATcov_RTS_String :=
-        (User_Data'Address, User_Data'Length);
-      pragma Warnings (On);
-   begin
-      Write_Trace_File_Wrapper_C
+      Write_Trace_File_C
         (Buffers_Groups_C, Filename, Program_Name_C, Exec_Date_C, User_Data_C);
-   end Write_Trace_File_Wrapper;
+   end Write_Trace_File;
 
 end GNATcov_RTS.Traces.Output.Files;
