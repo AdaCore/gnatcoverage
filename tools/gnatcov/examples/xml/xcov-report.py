@@ -8,7 +8,7 @@ def show_violations():
     def pp(source):
         output = source.pp_violations(r.get_levels())
         if output:
-            print output
+            print(output)
     r.visitor(pp)
 
 if __name__ == '__main__':
