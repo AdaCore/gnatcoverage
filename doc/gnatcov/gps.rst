@@ -39,7 +39,7 @@ respective menu items under the
 
 Also Note that you can select a prebuilt gnatcov runtime under the same menu.
 This will skip the "build the gnatcov runtime" step, and will be especially
-useful if you bring modifications to this runtime. By default, GNATstudio will
+useful if you bring modifications to this runtime. By default, GNAT Studio will
 rebuild the runtime that is shipped with GNATcoverage and reinstall it in a
 temporary directory every time.
 
@@ -58,6 +58,19 @@ file with annotations that represent the coverage state:
 Note that the Locations view reports all non-covered lines. It makes navigation
 easy as you only have to click on a diagnostic to go to the corresponding line.
 
+Viewing a coverage report produced outside of GNAT Studio
+=========================================================
+
+If the workflow is not adapted to your process, GNAT Studio also supports
+displaying a coverage report produced externally, by first loading the coverage
+data using any of the actionable `Load Data` item under
+:menuselection:`Analyze --> Coverage`.
+
+GNAT Studio expects a coverage report under the xcov+ format, under the object
+directory of the project (<prj_obj>), or under <prj_obj>/xcov+.
+
+Then you can visualize the report by clicking on
+:menuselection:`Analyze --> Coverage --> Show coverage report`.
 
 GNATtest scenario
 =================
