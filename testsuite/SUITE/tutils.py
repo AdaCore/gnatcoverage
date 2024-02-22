@@ -15,6 +15,7 @@ import sys
 import time
 
 
+from e3.fs import cp
 from e3.os.fs import touch, unixpath, which
 from e3.os.process import DEVNULL, Run
 
@@ -157,7 +158,7 @@ def gprbuild_gargs_with(thisgargs,
             runtime_project or RUNTIME_INFO.gnatcov_rts_project
         )
         result += [
-            f"--implicit-with={runtime_project}.gpr",
+            f"--implicit-with={runtime_project}",
             "--src-subdirs=gnatcov-instr",
         ]
 
@@ -900,22 +901,32 @@ def run_cov_program(executable, out=None, env=None, exec_args=None,
     args = []
     exec_args = exec_args or []
     inp = None
+    use_pycross = False
 
     # If we are in a cross configuration, run the program using run-cross2
     if thistest.options.target and thistest.env.target.platform != "c":
+        use_pycross = True
+
         # We absolutely need a machine name to run programs with run-cross2
         assert thistest.options.board or thistest.env.target.machine
 
-        # run-cross2 is a python script. As Windows does not parse shebangs,
-        # use the python executable as main program instead of the script.
-        args.append(sys.executable)
-        args.append(which("run-cross2"))
         target = thistest.env.target.platform
         if thistest.options.board:
             target += f",,{thistest.options.board}"
         else:
             target += f",,{thistest.env.target.machine}"
-        args.append(f"--target={target}")
+
+        # run-cross2 is a python script. As Windows does not parse shebangs,
+        # use the python executable as main program instead of the script.
+        args += [
+            sys.executable,
+            which("run-cross2"),
+            f"--target={target}",
+            # Instruct pycross to preserve temporary files, which includes the
+            # directory that is mounted in the target's filesystem. This is
+            # where the source trace may be created (see below).
+            "--save-temps",
+        ]
     else:
         # Native programs using a light runtime can't set the exit code, and
         # will often terminate with a non-zero status code even though nothing
@@ -927,9 +938,24 @@ def run_cov_program(executable, out=None, env=None, exec_args=None,
 
     args.append(executable)
     args.extend(exec_args)
-    return cmdrun(args, out=out, inp=inp, env=env,
-                  register_failure=register_failure,
-                  for_pgm=True)
+    result = cmdrun(
+        args,
+        out=out,
+        inp=inp,
+        env=env,
+        register_failure=register_failure,
+        for_pgm=True,
+    )
+
+    # If the program was run under pycross, hoist source traces that the
+    # program may have created on the target filesystem so that the rest of the
+    # testsuite finds sources traces where they expect: in the current
+    # directory.
+    if use_pycross:
+        for filename in glob.glob("hostfs-*/test/*.srctrace"):
+            cp(filename, ".")
+
+    return result
 
 
 def do(command):
