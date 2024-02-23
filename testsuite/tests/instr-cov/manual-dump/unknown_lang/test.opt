@@ -1,0 +1,2 @@
+x86_64-linux
+ALL DEAD test contains assembly sources, only compiles on x86_64-linux

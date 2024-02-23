@@ -51,9 +51,6 @@ package GNATcov_RTS.Traces.Output.Files is
    --  gnatcov_rts_default_trace_filename function defined in
    --  gnatcov_rts_c-traces-output-files.h for more information.
 
-   IO_Error : exception;
-   --  Exception we raise in case of errors during the trace file creation
-
    procedure Write_Trace_File
      (Buffers_Groups : Coverage_Buffers_Group_Array;
       Filename       : chars_ptr := Default_Trace_Filename;
@@ -61,15 +58,7 @@ package GNATcov_RTS.Traces.Output.Files is
       Exec_Date      : Time   := Clock;
       User_Data      : String := "");
    --  Write a trace file in Filename to contain the data in Buffers_Groups.
-   --  If unsuccessful, raise IO_Error and leave the error code in errno.
-
-   procedure Write_Trace_File_Wrapper
-     (Buffers_Groups : Coverage_Buffers_Group_Array;
-      Filename       : chars_ptr := Default_Trace_Filename;
-      Program_Name   : String := "unknown";
-      Exec_Date      : Time   := Clock;
-      User_Data      : String := "");
-   --  Wrapper around Write_Trace_File that writes an error message to the
-   --  standard error if the trace file could not be written.
+   --  If the source trace file creation fails, print an error message on the
+   --  standard error.
 
 end GNATcov_RTS.Traces.Output.Files;

@@ -8936,8 +8936,7 @@ package body Instrument.Ada_Unit is
          Output_Unit.Append (To_Unbounded_String ("Traces"));
          Output_Unit.Append (To_Unbounded_String ("Output." & Unit));
 
-         Output_Proc := Output_Unit
-           & To_Unbounded_String ("Write_Trace_File_Wrapper");
+         Output_Proc := Output_Unit & To_Unbounded_String ("Write_Trace_File");
       end;
 
       declare

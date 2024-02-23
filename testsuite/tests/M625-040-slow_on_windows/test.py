@@ -16,7 +16,7 @@ def run(action, repeat, tag):
     for i in range(repeat):
         action()
     end = time.clock()
-    print '%s: %2.5f' % (tag, end-start)
+    print('%s: %2.5f' % (tag, end-start))
 
 
 def eval_gprbuild():
@@ -35,16 +35,16 @@ def eval(what):
     ps.strip_dirs()
     ps.sort_stats('time')
 
-    print "==================="
-    print "== %s ==" % what
+    print("===================")
+    print("== %s ==" % what)
 
-    print "-- profiling stats --"
+    print("-- profiling stats --")
     ps.print_stats()
 
-    print "-- callers --"
+    print("-- callers --")
     ps.print_callers()
 
-    print "-- callees --"
+    print("-- callees --")
     ps.print_callees()
 
 

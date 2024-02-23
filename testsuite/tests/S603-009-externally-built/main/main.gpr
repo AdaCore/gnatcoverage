@@ -1,6 +1,0 @@
-with "mylib";
-
-project Main is
-   for Object_Dir use "obj";
-   for Main use ("main.adb");
-end Main;

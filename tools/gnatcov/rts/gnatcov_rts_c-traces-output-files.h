@@ -63,16 +63,9 @@ extern "C"
      EXEC_DATE is given to produce the timestamp. Use the current
      time by default.
 
-     Return 0 if the trace creation was successful, 1 otherwise.  In case of
-     error, ERRNO is left to the number for the cause of error.  */
-  extern int gnatcov_rts_write_trace_file (
-    const struct gnatcov_rts_coverage_buffers_group_array *buffers_groups,
-    const char *filename, struct gnatcov_rts_string program_name,
-    uint64_t exec_date, struct gnatcov_rts_string user_data);
-
-  /* Call gnatcov_rts_write_trace_file and print an error message on the
-     standard error if the trace could not be created.  */
-  extern void gnatcov_rts_write_trace_file_wrapper (
+     If the source trace file creation fails, print an error message on the
+     standard error.  */
+  extern void gnatcov_rts_write_trace_file (
     const struct gnatcov_rts_coverage_buffers_group_array *buffers_groups,
     const char *filename, struct gnatcov_rts_string program_name,
     uint64_t exec_date, struct gnatcov_rts_string user_data);
