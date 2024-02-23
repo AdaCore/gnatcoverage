@@ -27,6 +27,7 @@ check_xcov_reports(
         "gen.ads.xcov": {},
         "non_ghost_inst.ads.xcov": {}
     },
+    discard_empty=False,
 )
 
 thistest.result()

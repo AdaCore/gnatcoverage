@@ -58,11 +58,13 @@ checked_xcov(['coverage', '-P', os.path.join('..', 'sensors', 'sensors.gpr'),
 check_xcov_reports(
     '.',
     {
+        'pressure_control.ads.xcov': {},
         'pressure_control.adb.xcov': {
             '+': {10, 18, 19},
             '!': {11},
             '-': {12},
         },
+        'temperature_control.ads.xcov': {},
         'temperature_control.adb.xcov': {
             '+': {10, 18, 19},
             '!': {11},

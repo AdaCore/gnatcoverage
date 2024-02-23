@@ -26,7 +26,8 @@ xcov_args_no_trace = xcov_args[:-1]
 trace_file = xcov_args[-1]
 
 expected_res_dict = {'pkg.adb.xcov': {'-': {7}},
-                     'pkg-say_goodbye.adb.xcov': {'-': {9}}}
+                     'pkg-say_goodbye.adb.xcov': {'-': {9}},
+                     'pkg.ads.xcov': {}}
 
 
 def check(report_name, args, expected_files):
@@ -48,22 +49,22 @@ def check(report_name, args, expected_files):
         for filename in expected_files
     }
     expected["main.adb.xcov"] = {"+": {5, 6}}
-    check_xcov_reports(report_name, expected)
+    check_xcov_reports(report_name, expected, discard_empty=False)
 
 
 # Check that not passing the option has no effect
 check('report0', xcov_args + ['--save-checkpoint=full.ckpt'],
-      ['pkg.adb.xcov', 'pkg-say_goodbye.adb.xcov'])
+      ['pkg.adb.xcov', 'pkg-say_goodbye.adb.xcov', 'pkg.ads.xcov'])
 
 # Check that --ignore-source-files has the expected effect on the 'coverage'
 # command.
 check('report1', xcov_args + ['--ignore-source-files=pkg-say_goodbye.adb'],
-      ['pkg.adb.xcov'])
+      ['pkg.adb.xcov', 'pkg.ads.xcov'])
 
 # Check that --ignore-source-files does not filter checkpoint loading
 check('report2', xcov_args_no_trace +
       ['--ignore-source-files=pkg-say_goodbye.adb', '-Cfull.ckpt'],
-      ['pkg.adb.xcov', 'pkg-say_goodbye.adb.xcov'])
+      ['pkg.adb.xcov', 'pkg-say_goodbye.adb.xcov', 'pkg.ads.xcov'])
 
 # Check that in presence of bot a checkpoint and a SID file,
 # --ignore-source-files filters the SID file but not the checkpoint.
@@ -71,7 +72,7 @@ checked_xcov(xcov_args + ['--ignore-source-files=pkg-say_goodbye.adb',
                           '--save-checkpoint=pkg.ckpt'],
              'report3_out.txt')
 check('report3', xcov_args + ['--ignore-source-files=pkg*.adb', '-Cpkg.ckpt'],
-      ['pkg.adb.xcov'])
+      ['pkg.adb.xcov', 'pkg.ads.xcov'])
 
 # Check that if a file is ignored when creating the checkpoint, then it is not
 # present when loading that checkpoint.
@@ -79,6 +80,6 @@ checked_xcov(xcov_args + ['--save-checkpoint=pkg_goodbye.ckpt',
                           '--ignore-source-files=pkg.adb'],
              'report4_out.txt')
 check('report4', xcov_args_no_trace + ['-Cpkg_goodbye.ckpt'],
-      ['pkg-say_goodbye.adb.xcov'])
+      ['pkg-say_goodbye.adb.xcov', 'pkg.ads.xcov'])
 
 thistest.result()

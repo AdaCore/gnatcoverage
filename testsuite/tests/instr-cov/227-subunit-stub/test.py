@@ -109,6 +109,8 @@ thistest.fail_if_not_equal(
 check_xcov_reports(
     "xcov",
     {
+        "lib.ads.xcov": {},
+        "lib.adb.xcov": {},
         "lib-add.adb.xcov": {"-": {3, 4, 6, 7, 8, 10}},
         "lib-mult.adb.xcov": {"+": {5}, "!": {4}, "-": {6, 7, 9}},
         "lib-exp.adb.xcov": {"+": {5}, "!": {4}, "-": {6, 7, 9}},

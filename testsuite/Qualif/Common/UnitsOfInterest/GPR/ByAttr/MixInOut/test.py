@@ -10,7 +10,7 @@ wd.to_subdir("wd_1")
 TestCase(category=None).run(
     covcontrol=CovControl(units_in=["ops", "ops.andthen"],
                           ulist_out=list_to_tmp(["ops"]),
-                          xreports=["ops-andthen.adb"]))
+                          xreports=["ops-andthen.ads", "ops-andthen.adb"]))
 
 TestCase(category=None).run(
     covcontrol=CovControl(units_in=["ops", "ops.andthen"],

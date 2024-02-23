@@ -22,7 +22,7 @@ check(
     root_project='gen.gpr',
     recurse=True,
     units=['boolops.andthen'],
-    xreports=['boolops.ads', 'boolops-andthen.adb'])
+    xreports=['boolops.ads', 'boolops-andthen.ads', 'boolops-andthen.adb'])
 
 # --units=counters in closure, counters reports only
 # despite the attribute in boolops.gpr

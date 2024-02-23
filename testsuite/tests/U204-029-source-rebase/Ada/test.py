@@ -26,7 +26,10 @@ run_variant(
     mains_list=["disjoint_main_1.adb"],
     units_lists=[["Pkg1"]],
     origin_src_dir="src",
-    expected_xcov_results={"pkg1.adb.xcov": {'+': {8, 9, 11}}},
+    expected_xcov_results={
+        "pkg1.ads.xcov": {},
+        "pkg1.adb.xcov": {'+': {8, 9, 11}}
+    },
     rebase_dir="/some/random/dir",
 )
 
@@ -37,7 +40,10 @@ run_variant(
     mains_list=["disjoint_main_1.adb"],
     units_lists=[["Pkg1"]],
     origin_src_dir="src",
-    expected_xcov_results={"pkg1.adb.xcov": {'+': {8, 9, 11}}},
+    expected_xcov_results={
+        "pkg1.ads.xcov": {},
+        "pkg1.adb.xcov": {'+': {8, 9, 11}}
+    },
     suppress_src_dir=True,
 )
 
@@ -49,7 +55,9 @@ run_variant(
     units_lists=[["Pkg1"], ["Pkg2"]],
     origin_src_dir="src",
     expected_xcov_results={
+        "pkg1.ads.xcov": {},
         "pkg1.adb.xcov": {'+': {8, 9, 11}},
+        "pkg2.ads.xcov": {},
         "pkg2.adb.xcov": {'+': {8, 9, 11}}
     },
     suppress_src_dir=True,
@@ -72,7 +80,9 @@ run_variant(
     units_lists=[["Pkg1", "Pkg2"]] * 2,
     origin_src_dir="src",
     expected_xcov_results={
+        "pkg1.ads.xcov": {},
         "pkg1.adb.xcov": {'+': {8, 9, 11}},
+        "pkg2.ads.xcov": {},
         "pkg2.adb.xcov": {'+': {8, 9, 11}}
     },
 )

@@ -70,7 +70,11 @@ def build_run_cov_and_check(main_prj, main_prj_obj_dir, expected_xcov):
 # Try the simple case: the main project extends the library, but does not
 # redefine anything.
 thistest.log("== Simple case ==")
-expected_xcov = {"pkg.adb.xcov": {"+": {5}}, "pkg-bar.adb.xcov": {"+": {3}}}
+expected_xcov = {
+    "pkg.ads.xcov": {},
+    "pkg.adb.xcov": {"+": {5}},
+    "pkg-bar.adb.xcov": {"+": {3}},
+}
 build_run_cov_and_check(
     "main_simple.gpr",
     main_prj_obj_dir="obj-main_simple",
@@ -83,7 +87,11 @@ build_run_cov_and_check(
 # belonging to the library. We should fix this (and adjust coverage
 # expectations) if possible.
 thistest.log("== Redefining Pkg body ==")
-expected_xcov = {"pkg.adb.xcov": {"+": {7}}, "pkg-bar.adb.xcov": {"+": {3}}}
+expected_xcov = {
+    "pkg.ads.xcov": {},
+    "pkg.adb.xcov": {"+": {7}},
+    "pkg-bar.adb.xcov": {"+": {3}},
+}
 build_run_cov_and_check(
     "main_body.gpr",
     main_prj_obj_dir="obj-main_body",
@@ -93,7 +101,11 @@ build_run_cov_and_check(
 
 # Now the main project defines an alternate separate.
 thistest.log("== Redefining Pkg.Bar separate ==")
-expected_xcov = {"pkg.adb.xcov": {"+": {5}}, "pkg-bar.adb.xcov": {"+": {5}}}
+expected_xcov = {
+    "pkg.ads.xcov": {},
+    "pkg.adb.xcov": {"+": {5}},
+    "pkg-bar.adb.xcov": {"+": {5}},
+}
 build_run_cov_and_check(
     "main_sep.gpr",
     main_prj_obj_dir="obj-main_sep",
@@ -103,6 +115,7 @@ build_run_cov_and_check(
 # Now the main project defines an alternate spec.
 thistest.log("== Redefining Pkg spec ==")
 expected_xcov = {
+    "pkg.ads.xcov": {},
     "pkg.adb.xcov": {"+": {5}},
     "pkg-bar.adb.xcov": {"+": {3}},
     "pkg.ads.xcov": {"+": {4}},

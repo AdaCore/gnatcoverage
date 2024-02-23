@@ -13,6 +13,7 @@ Wdir("tmp_")
 
 expected_cov = {"main.adb.xcov": {"+": {5}}}
 if thistest.options.trace_mode == "src":
+    expected_cov["pkg-child.ads.xcov"] = {}
     expected_cov["pkg-child.adb.xcov"] = {"-": {6}}
 
 build_run_and_coverage(

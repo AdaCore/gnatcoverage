@@ -18,6 +18,15 @@ tmp = Wdir()
 main_sources = ["inst_main.ads", "pkg-child_main.ads"]
 mains = [os.path.splitext(f)[0] for f in main_sources]
 
+expected_cov = {
+    "generic_main.adb.xcov": {"+": {5}},
+    "inst_main.ads.xcov": {},
+    "pkg-child_main.ads.xcov": {},
+}
+if thistest.options.trace_mode == "src":
+    expected_cov["generic_main.ads.xcov"] = {}
+    expected_cov["pkg.ads.xcov"] = {}
+
 # Explicitly test all available dump triggers to maximize coverage
 for dump_trigger in available_ada_dump_triggers():
     thistest.log(f"== {dump_trigger} ==")
@@ -31,13 +40,6 @@ for dump_trigger in available_ada_dump_triggers():
         mains=mains,
         extra_coverage_args=["--annotate=xcov"],
     )
-    check_xcov_reports(
-        "obj",
-        {
-            "generic_main.adb.xcov": {"+": {5}},
-            "inst_main.ads.xcov": {},
-            "pkg-child_main.ads.xcov": {},
-        },
-    )
+    check_xcov_reports("obj", expected_cov, discard_empty=False)
 
 thistest.result()

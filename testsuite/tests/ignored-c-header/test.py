@@ -37,7 +37,8 @@ expected_coverage = {
 # depends on the "identity.c". As a result, ignoring "identity.c" implicitly
 # ignores "identity.h", and gnatcov is supposed to warn for this case.
 #
-# This also implies that gnatcov will not emit a report for "identity.h".
+# Since gnatcov emits a report for all source files, we still expect a report
+# for "identify.h".
 #
 # For binary traces, the CU for "identity.h" does not depend on "identity.c"
 # (its Origin is "identity.c.gli", instead), so the above is not true.
@@ -50,7 +51,7 @@ if thistest.options.trace_mode == "src":
         cov_log,
     )
 
-    expected_coverage.pop("identity.h.xcov")
+    expected_coverage["identity.h.xcov"] = {}
 
 check_xcov_reports("obj", expected_coverage)
 

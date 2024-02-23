@@ -25,6 +25,7 @@ build_run_and_coverage(
     trace_mode='src')
 check_xcov_reports('xcov',
                    {'main.adb.xcov': {'+': {5, 6}},
-                    'pkg.adb.xcov': {'+': {5}}})
+                    'pkg.adb.xcov': {'+': {5}},
+                    'pkg.ads.xcov': {}})
 
 thistest.result()

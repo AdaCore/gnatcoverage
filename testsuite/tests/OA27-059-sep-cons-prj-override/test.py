@@ -110,6 +110,7 @@ p = checked_xcov(xcov_args + ['--output-dir=output'] + trace_files, 'cons.log')
 check_xcov_reports(
     'output',
     {
+        'pkg_under_test.ads.xcov': {},
         'pkg_under_test.adb.xcov': {'+': {7, 8, 10}},
         'pkg_under_test-some_procedure.adb.xcov': {'-': {5}},
     },

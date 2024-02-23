@@ -13,6 +13,7 @@ from SUITE.tutils import thistest, gprfor
 ignore_opt = "--ignore-source-files=Pkg.adb"
 expected_reports = {
     "main.adb.xcov": {"+": {5}},
+    "pkg.ads.xcov": {},
 }
 if env.build.os.name != "windows":
     expected_reports["pkg.adb.xcov"] = {"+": {7}}
@@ -47,7 +48,7 @@ build_run_and_coverage(
     extra_coverage_args=["--annotate=xcov", "--output-dir=out-instr"],
     trace_mode="src"
 )
-check_xcov_reports("out-instr", expected_reports)
+check_xcov_reports("out-instr", expected_reports, discard_empty=False)
 tmp.to_homedir()
 
 thistest.result()
