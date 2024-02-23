@@ -37,6 +37,7 @@ def check(report_name, args, expected_files):
     fact that the results for a file should be the same accross all runs
     and than coverage results match corresponding ones in expected_res_dict.
     """
+    thistest.log(f"== {report_name} ==")
 
     # Create report dir to avoid warning message
     os.mkdir(report_name)
