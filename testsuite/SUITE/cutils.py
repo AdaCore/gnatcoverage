@@ -120,19 +120,20 @@ def list_to_file(lines, filename="tmp.list"):
     return text_to_file("\n".join(lines) + "\n", filename)
 
 
-def list_to_tmp(lines, dir=None):
+def list_to_tmp(lines, dirname=None):
     """
-    Write list LINES to a temporary file in DIR (or the current directory), one
-    item per line. Return the temporary file name, chosen not to conflict with
-    already exisiting files.
+    Write list LINES to a temporary file in DIRNAME (or the current directory),
+    one item per line. Return the temporary file name, chosen not to conflict
+    with already exisiting files.
     """
     # By default, create the temporary file in the current working directory.
     # Make sure the returned path is absolute, so that the result can be used
     # even after the current working directory changes (which happens often in
     # testcases).
-    dir = os.getcwd() if dir is None else os.path.abspath(dir)
+    dirname = os.getcwd() if dirname is None else os.path.abspath(dirname)
     return text_to_file(
-        "\n".join(lines) + "\n", tempfile.mktemp(dir=dir, suffix=".list")
+        "\n".join(lines) + "\n",
+        tempfile.mktemp(dir=dirname, suffix=".list"),
     )
 
 
@@ -203,14 +204,14 @@ def ndirs_in(path):
     return nsplits
 
 
-def output_of(cmd, dir=None):
+def output_of(cmd, dirname=None):
     """
-    Execute CMD and return it's output, switching to DIR before if not None,
-    and switching back to the original cwd as needed.
+    Execute CMD and return it's output, switching to DIRNAME before if not
+    None, and switching back to the original cwd as needed.
     """
     cwd = os.getcwd()
-    if dir is not None:
-        cd(dir)
+    if dirname is not None:
+        cd(dirname)
     output = Run(cmd.split()).out
     cd(cwd)
     return output
@@ -230,16 +231,16 @@ class Wdir:
         if subdir:
             self.to_subdir(subdir)
 
-    def to_subdir(self, dir):
+    def to_subdir(self, dirname):
         """
-        Change the current directory to `dir`, relative to `self`'s home
+        Change the current directory to `dirname`, relative to `self`'s home
         directory. Create it if needed, after first removing it.
         """
         self.to_homedir()
-        if os.path.exists(dir):
-            shutil.rmtree(dir)
-        mkdir(dir)
-        cd(dir)
+        if os.path.exists(dirname):
+            shutil.rmtree(dirname)
+        mkdir(dirname)
+        cd(dirname)
 
     def to_homedir(self):
         """

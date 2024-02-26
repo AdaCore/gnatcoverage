@@ -20,7 +20,7 @@ def default_dump_trigger(mains):
     # It does not make sense to have a dump-trigger=ravenscar-task-termination
     # if the main is not an Ada program.
     elif (
-        all([ext(main) == "adb" for main in mains])
+        all(ext(main) == "adb" for main in mains)
         and RUNTIME_INFO.has_ravenscar_runtime
         # TODO: There seems to be a problem with light-tasking runtimes and
         # task-termination, so default back to main end in that case.
@@ -46,7 +46,7 @@ def xcov_instrument(
     gprsw,
     covlevel,
     quiet=True,
-    extra_args=[],
+    extra_args=None,
     dump_trigger="auto",
     dump_channel="auto",
     gpr_obj_dir=None,
@@ -66,7 +66,8 @@ def xcov_instrument(
     :param None|str covlevel: Coverage level for the instrumentation
         (--level argument). Not passed if None.
     :param bool quiet: Whether to pass the "--quiet" flag.
-    :param list[str] extra_args: Extra arguments to append to the command line.
+    :param list[str] | None extra_args: Extra arguments to append to the
+        command line.
     :param None|str dump_trigger: If None, do not pass the --dump-trigger
         argument. If "auto", pass the result of default_dump_trigger().
         Otherwise, pass the given value.
@@ -127,7 +128,7 @@ def xcov_instrument(
     if runtime_project:
         args += ["--runtime-project", runtime_project]
 
-    args += gprsw.cov_switches + extra_args
+    args += gprsw.cov_switches + (extra_args or [])
 
     if thistest.options.pretty_print:
         args.append("--pretty-print")
@@ -168,7 +169,7 @@ def xcov_instrument(
         #    app.gpr:4:23: warning: object directory "obj" not found
 
         messages = re.findall(
-            pattern="(?:!!!|\*\*\*|warning:).*$",
+            pattern=r"(?:!!!|\*\*\*|warning:).*$",
             string=output,
             flags=re.MULTILINE,
         )
@@ -240,9 +241,10 @@ def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
 
     # Unit that contain helper routines to dump coverage buffers. There is one
     # such unit per main. The only differences between two such units of the
-    # same project is the name of the main unit which is encoded in the trace (in
-    # place of the actual executable name). This is not checked by the testsuite
-    # so there should be no problem using the helper unit of a different main.
+    # same project is the name of the main unit which is encoded in the trace
+    # (in place of the actual executable name). This is not checked by the
+    # testsuite so there should be no problem using the helper unit of a
+    # different main.
 
     auto_dump_hash = None
     for _, _, files in os.walk(

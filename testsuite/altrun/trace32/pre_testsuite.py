@@ -7,8 +7,8 @@ from t32api import PATH_TO_T32_HOME, PATH_TO_T32
 # ---------
 # -- log --
 # ---------
-def log(str):
-    print("trace32/pre_testsuite.py:" + str)
+def log(msg):
+    print("trace32/pre_testsuite.py:" + msg)
 
 
 altrun_dir_path = os.path.dirname(os.path.realpath(__file__))

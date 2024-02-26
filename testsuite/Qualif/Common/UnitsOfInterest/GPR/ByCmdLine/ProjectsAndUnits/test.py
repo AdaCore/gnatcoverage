@@ -43,7 +43,7 @@ check(
 
 check(
     root_project="../boolops/boolops",
-    units=["@%s" % list_to_tmp(["boolops"], dir="tmp_files")],
+    units=["@%s" % list_to_tmp(["boolops"], dirname="tmp_files")],
     recurse=True,
     xreports=["boolops.ads", "boolops.adb"],
 )

@@ -311,7 +311,7 @@ class IndentationGuard(object):
     def __enter__(self):
         self.formatter.push_indent(self.addend)
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exptype, value, traceback):
         self.formatter.pop_indent()
 
 

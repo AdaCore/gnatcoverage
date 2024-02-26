@@ -37,20 +37,20 @@ class TestCase(object):
         self,
         test_drivers,
         coverage_expectations,
-        extra_sourcedirs=[],
+        extra_sourcedirs=None,
         level="branch",
         annotate="asm",
-        extra_xcov_args=[],
+        extra_xcov_args=None,
     ):
         self.test_drivers = test_drivers
         self.coverage_expectations = {
             TARGET_INFO.to_platform_specific_symbol(symbol): data
             for symbol, data in coverage_expectations.items()
         }
-        self.extra_sourcedirs = extra_sourcedirs
+        self.extra_sourcedirs = extra_sourcedirs or []
         self.level = level
         self.annotate = annotate
-        self.extra_xcov_args = extra_xcov_args
+        self.extra_xcov_args = extra_xcov_args or []
 
     def run(self, register_failure=True):
         """

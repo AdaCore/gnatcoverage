@@ -266,12 +266,12 @@ QLEVEL_INFO = {
 #   option.
 
 
-def maybe_exec(log, bin, args=None, edir=None):
+def maybe_exec(log, binfile, args=None, edir=None):
     """
-    Execute the provided BIN program file, if any.
+    Execute the provided BINFILE program file, if any.
 
     Run this program in the current working directory EDIR is None. Otherwise,
-    run it in the location where BIN resides if EDIR is "...", or in EDIR's
+    run it in the location where BINFILE resides if EDIR is "...", or in EDIR's
     value otherwise.
 
     Pass the provided list of ARGS, if any, on the command line. Skip possible
@@ -283,20 +283,22 @@ def maybe_exec(log, bin, args=None, edir=None):
     Return the process object.
     """
 
-    if not bin:
+    if not binfile:
         return
 
-    to_run = [sys.executable, bin] if bin.endswith(".py") else [bin]
+    to_run = (
+        [sys.executable, binfile] if binfile.endswith(".py") else [binfile]
+    )
 
     if args:
         to_run.extend([arg for arg in args if arg])
 
     if edir == "...":
-        edir = os.path.dirname(bin)
+        edir = os.path.dirname(binfile)
 
     p = Run(to_run, cwd=edir)
 
-    log += "\nRunning hook: {}\n".format(bin)
+    log += "\nRunning hook: {}\n".format(binfile)
     log += p.out
 
     return p
@@ -618,16 +620,16 @@ class TestPyRunner:
         self.testcase_cmd = testcase_cmd
         self.testcase_timeout = timeout
 
-    def maybe_exec(self, bin, args=None, edir=None):
+    def maybe_exec(self, binfile, args=None, edir=None):
         """
         Shortcut for the global maybe_exec. Log the result in
         ``self.result.log`` and abort the testcase on failure.
         """
-        if not bin:
+        if not binfile:
             return
 
-        if maybe_exec(self.result.log, bin, args, edir).status != 0:
-            raise TestAbortWithError("Altrun hook failed ({})".format(bin))
+        if maybe_exec(self.result.log, binfile, args, edir).status != 0:
+            raise TestAbortWithError("Altrun hook failed ({})".format(binfile))
 
     def run(self):
         mopt = self.env.main_options
@@ -943,7 +945,7 @@ class GroupPyDriver(TestDriver):
             )
 
         # Look for all "test.py" that were generated under this test directory
-        for dirpath, dirnames, filenames in os.walk(self.test_dir()):
+        for dirpath, _, filenames in os.walk(self.test_dir()):
             if "test.py" in filenames:
                 self.add_test_py_run(dag, dirpath, next(indexes))
 
@@ -1188,7 +1190,7 @@ class TestSuite(e3.testsuite.Testsuite):
 
         # Most SPARK testcases require Ada 2022
 
-        if getattr(args, "spark_tests"):
+        if args.spark_tests:
             setattr(args, attr_cargs_ada, cargs_ada + " -gnat2022")
 
         # Expect an explicit -gnatec if we're running for qualification
@@ -1285,7 +1287,7 @@ class TestSuite(e3.testsuite.Testsuite):
         # TODO: re-implement this feature
         self.n_consecutive_failures = 0
 
-        self.maybe_exec(bin=self.main.args.pre_testsuite, edir="...")
+        self.maybe_exec(binfile=self.main.args.pre_testsuite, edir="...")
 
         # Make testsuite options and the discriminants file available from
         # testcases.
@@ -1293,7 +1295,7 @@ class TestSuite(e3.testsuite.Testsuite):
         self.env.discr_file = self._discriminants_log()
 
     def tear_down(self):
-        self.maybe_exec(bin=self.main.args.post_testsuite, edir="...")
+        self.maybe_exec(binfile=self.main.args.post_testsuite, edir="...")
 
     # -----------------------------------
     # -- Early comments about this run --
@@ -1573,19 +1575,20 @@ class TestSuite(e3.testsuite.Testsuite):
     # -- altrun hooks & friends --
     # -----------------------------
 
-    def maybe_exec(self, bin, args=None, edir=None):
+    def maybe_exec(self, binfile, args=None, edir=None):
         """
         Shortcut for the global maybe_exec. Log the result in the altrun log
         file, and abort the testsuite on failure.
         """
-        if not bin:
+        if not binfile:
             return
 
         log = Log("")
-        p = maybe_exec(log, bin, args, edir)
+        p = maybe_exec(log, binfile, args, edir)
         self._push_altrun(log.log.splitlines())
         exit_if(
-            p.status != 0, "Altrun hook failed ({}):\n{}".format(bin, p.out)
+            p.status != 0,
+            "Altrun hook failed ({}):\n{}".format(binfile, p.out),
         )
 
     def _bin_for(self, base, indir=None):
@@ -1634,26 +1637,28 @@ class TestSuite(e3.testsuite.Testsuite):
         # hook of interest. Switch to the local directory for the setup step,
         # designed for local operations:
 
-        self.maybe_exec(bin=self._bin_for("setup", indir=ctldir), edir=ctldir)
+        self.maybe_exec(
+            binfile=self._bin_for("setup", indir=ctldir), edir=ctldir
+        )
 
         def install_altrun_for(p0, p1=None, binbase=None):
             """Establish an implicit value for the --P0_P1 command line option
             if we find a matching binary program in the altrun subdir we are
             processing. BINBASE provides the binary base name to use."""
 
-            bin = self._bin_for(os.path.join(ctldir, binbase))
+            binfile = self._bin_for(os.path.join(ctldir, binbase))
 
-            if not bin:
+            if not binfile:
                 return
 
             attr = altrun_attr_for(p0, p1)
             exit_if(
                 getattr(self.main.args, attr),
-                "%s altrun conflicts with explicit --%s" % (bin, attr),
+                "%s altrun conflicts with explicit --%s" % (binfile, attr),
             )
 
-            self._push_altrun(["hooking %s to %s" % (attr, bin)])
-            setattr(self.main.args, attr, bin)
+            self._push_altrun(["hooking %s to %s" % (attr, binfile)])
+            setattr(self.main.args, attr, binfile)
 
         # For the toplevel testsuite driver hooks, map on binaries
         # matching the command line option names:

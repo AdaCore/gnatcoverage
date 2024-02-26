@@ -38,7 +38,7 @@ from SCOV.instr import (
 
 from SUITE.context import thistest
 from SUITE.control import language_info, runtime_info
-from SUITE.cutils import ext, to_list, list_to_file, match, no_ext
+from SUITE.cutils import ext, to_list, list_to_file, no_ext
 from SUITE.cutils import contents_of, lines_of, unhandled_exception_in
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
@@ -765,10 +765,12 @@ class SCOV_helper:
                 "exception raised while running '%s'." % main,
             )
 
-    def gen_one_xcov_report(self, inputs, format, options=""):
-        """Helper for gen_xcov_reports, to produce one specific report for a
-        particulat FORMAT, from provided INPUTS. The command output is saved
-        in a file named FORMAT.out."""
+    def gen_one_xcov_report(self, inputs, report_format, options=""):
+        """
+        Helper for gen_xcov_reports, to produce one specific report for a
+        particular REPORT_FORMAT, from provided INPUTS. The command output is
+        saved in a file named REPORT_FORMAT.out.
+        """
 
         # Compute the set of arguments we are to pass to gnatcov coverage.
 
@@ -780,7 +782,7 @@ class SCOV_helper:
         # descriptions.
 
         covargs = (
-            ["--annotate=" + format, inputs]
+            ["--annotate=" + report_format, inputs]
             + self.covoptions
             + to_list(options)
         )
@@ -791,7 +793,7 @@ class SCOV_helper:
         # Run, latching standard output in a file so we can check contents on
         # return.
 
-        ofile = format + ".out"
+        ofile = report_format + ".out"
         xcov(args=["coverage"] + covargs, out=ofile)
 
         # Standard output might typically contain labeling warnings issued
@@ -873,7 +875,7 @@ class SCOV_helper:
 
         self.gen_one_xcov_report(
             inputs,
-            format="report",
+            report_format="report",
             options=sco_options + save_checkpoint_options + ["-o", "test.rep"],
         )
 
@@ -886,7 +888,7 @@ class SCOV_helper:
         if thistest.options.qualif_level:
             return
 
-        self.gen_one_xcov_report(inputs, format="xcov", options=sco_options)
+        self.gen_one_xcov_report(inputs, report_format="xcov", options=sco_options)
 
     def check_unexpected_reports(self):
         """Check that we don't have unexpected reports or notes."""
@@ -1002,9 +1004,9 @@ class SCOV_helper:
 
         r_discharge_kdict = (
             {
-                # let an emitted xBlock1 discharge an xBlock0 expectation, as an
-                # extra exempted violations are most likely irrelevant for the
-                # category
+                # Let an emitted xBlock1 discharge an xBlock0 expectation, as
+                # an extra exempted violations are most likely irrelevant for
+                # the category.
                 xBlock0: [xBlock0, xBlock1]
             }
             if stricter_level
