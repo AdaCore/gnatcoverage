@@ -100,7 +100,7 @@ _create_base_disassembler (enum bfd_architecture arch, const char *options)
     }
 
   init_disassemble_info (&(dh->dinfo), ds, (fprintf_ftype) stream_printf,
-			 (fprintf_styled_ftype) stream_styled_printf);
+                         (fprintf_styled_ftype) stream_styled_printf);
   dh->dinfo.arch = arch;
   if (options)
     {
@@ -141,7 +141,7 @@ _create_arm_arch_disassembler (unsigned char for_thumb)
    represented by DH.  */
 void
 set_disassembler_symbolizer (disassemble_handle *const dh,
-			     void *const symbolizer, print_symbol_cb addr_cb)
+                             void *const symbolizer, print_symbol_cb addr_cb)
 {
   symbolizer_data *sym_data = dh->dinfo.application_data;
 
@@ -247,9 +247,9 @@ delete_disassembler (disassemble_handle *const dh)
    Returns the size of the disassembled instruction.  */
 int
 disassemble_to_text (disassemble_handle *const dh, bfd_vma pc,
-		     char *const dest, unsigned int dest_size,
-		     bfd_byte *const insn_buffer, unsigned int ib_size,
-		     enum bfd_endian endian)
+                     char *const dest, unsigned int dest_size,
+                     bfd_byte *const insn_buffer, unsigned int ib_size,
+                     enum bfd_endian endian)
 {
   int size;
 

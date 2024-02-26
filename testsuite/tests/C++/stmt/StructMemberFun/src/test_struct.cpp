@@ -1,5 +1,8 @@
-struct Foo {
-  void bar (){
+struct Foo
+{
+  void
+  bar ()
+  {
     return; // # member-fun
   }
 };
@@ -8,7 +11,7 @@ int
 main (void)
 {
   struct Foo foo; // # decl
-  foo.bar();      // # call
+  foo.bar ();     // # call
   return 0;       // # return
 }
 

@@ -37,14 +37,14 @@ extern void delete_stream (disassembler_stream *const ds);
 extern int stream_printf (disassembler_stream *ptr, const char *format, ...);
 
 extern int stream_styled_printf (disassembler_stream *ptr,
-				 enum disassembler_style style,
-				 const char *format, ...);
+                                 enum disassembler_style style,
+                                 const char *format, ...);
 
 extern void clear_stream (disassembler_stream *const ds);
 
 extern unsigned char stream_is_empty (disassembler_stream *const ds);
 
 extern void set_stream_buffer (disassembler_stream *const ds, char *const buff,
-			       int size);
+                               int size);
 
 #endif /* !DIS_STREAM_H_ */

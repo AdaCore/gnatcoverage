@@ -10,11 +10,11 @@ main (void)
   struct sensor_list l;
 
   sensor_init (1, 10, &s1);
-  s1.value = 5;                 /* in range */
+  s1.value = 5; /* in range */
   sensor_init (5, 15, &s2);
-  s2.value = 1;                 /* < low bound */
+  s2.value = 1; /* < low bound */
   sensor_init (5, 15, &s3);
-  s3.value = 45;                /* > high bound */
+  s3.value = 45; /* > high bound */
 
   slist_init (&l);
   slist_prepend (&s1, &l);
@@ -22,12 +22,12 @@ main (void)
   slist_prepend (&s3, &l);
 
   slist_forall_in (&l, SENSOR_ACTIVATE, false);
-  assert ( s1.active);
-  assert ( s2.active);
-  assert ( s3.active);
+  assert (s1.active);
+  assert (s2.active);
+  assert (s3.active);
 
   slist_forall_in (&l, SENSOR_INHIBIT, false);
-  assert ( s1.active);
+  assert (s1.active);
   assert (!s2.active);
   assert (!s3.active);
   return 0;

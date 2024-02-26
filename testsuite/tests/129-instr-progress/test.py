@@ -41,7 +41,7 @@ check_xcov_reports(
     {
         "main.adb.xcov": {"+": {7, 8}},
         "c_unit.c.xcov": {"+": {8}},
-        "cpp_unit.cpp.xcov": {"+": {10}},
+        "cpp_unit.cpp.xcov": {"+": {11}},
     },
 )
 

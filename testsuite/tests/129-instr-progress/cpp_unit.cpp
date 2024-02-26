@@ -1,6 +1,7 @@
 #include <iostream>
 
-extern "C" {
+extern "C"
+{
   extern void cpp_func (void);
 }
 

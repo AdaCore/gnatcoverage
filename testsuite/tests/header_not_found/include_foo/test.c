@@ -1,6 +1,7 @@
 #include "support.h"
 
-int main()
+int
+main ()
 {
-  return foo();
+  return foo ();
 }

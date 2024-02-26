@@ -1,6 +1,6 @@
-#define DISABLE_WARNINGS                                        \
-  _Pragma ("GCC diagnostic push")                               \
-  _Pragma ("GCC diagnostic ignored \"-Wimplicit-fallthrough\"")
+#define DISABLE_WARNINGS                                                      \
+  _Pragma ("GCC diagnostic push")                                             \
+    _Pragma ("GCC diagnostic ignored \"-Wimplicit-fallthrough\"")
 
 DISABLE_WARNINGS
 

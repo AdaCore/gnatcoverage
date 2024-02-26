@@ -492,7 +492,8 @@ clang_getCalleeName (CXCursor C)
           switch (D->getKind ())
             {
             case Decl::FunctionTemplate:
-              return getFunctionDeclName ((cast<clang::FunctionTemplateDecl> (D))->getTemplatedDecl ());
+              return getFunctionDeclName (
+                (cast<clang::FunctionTemplateDecl> (D))->getTemplatedDecl ());
             case Decl::Function:
             case Decl::CXXMethod:
             case Decl::CXXConstructor:

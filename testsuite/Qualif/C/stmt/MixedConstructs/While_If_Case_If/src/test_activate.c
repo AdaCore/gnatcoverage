@@ -21,8 +21,8 @@ main (void)
   assert (!s2.active);
 
   slist_forall_in (&l, SENSOR_ACTIVATE, false);
-  assert ( s1.active);
-  assert ( s2.active);
+  assert (s1.active);
+  assert (s2.active);
   return 0;
 }
 

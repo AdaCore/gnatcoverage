@@ -1,8 +1,8 @@
 #include "mylib.h"
 
 int
-main()
+main ()
 {
-   foo();
-   return 0;
+  foo ();
+  return 0;
 }

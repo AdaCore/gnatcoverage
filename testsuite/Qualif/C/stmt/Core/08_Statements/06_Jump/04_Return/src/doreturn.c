@@ -3,8 +3,8 @@
 int
 doreturn (int cond)
 {
-  if (cond)     // # body
-    return 1;   // # cond-true
+  if (cond)   // # body
+    return 1; // # cond-true
   else
-    return 0;   // # cond-false
+    return 0; // # cond-false
 }

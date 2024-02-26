@@ -3,7 +3,7 @@
 static void
 nop (int *arg)
 {
-  ++*arg;       // # statements-aux-all
+  ++*arg; // # statements-aux-all
 }
 
 int
@@ -13,5 +13,5 @@ run_statements (int full, int arg)
   if (full)     // # statements-aux-all
     nop (&arg); // # statements-cond
 
-  return arg;   // # statements-aux-all
+  return arg; // # statements-aux-all
 }
