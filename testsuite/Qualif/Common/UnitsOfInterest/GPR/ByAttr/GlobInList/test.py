@@ -6,9 +6,12 @@ from SUITE.cutils import Wdir, list_to_file
 wd = Wdir()
 
 wd.to_subdir("wd_1")
-TestCase(category=None).run(covcontrol=CovControl(
-    ulist_in="../" + list_to_file(["ops*"]),
-    units_out=['ops.orelse'],
-    xreports=["ops.ads", "ops.adb", "ops-andthen.ads", "ops-andthen.adb"]))
+TestCase(category=None).run(
+    covcontrol=CovControl(
+        ulist_in="../" + list_to_file(["ops*"]),
+        units_out=["ops.orelse"],
+        xreports=["ops.ads", "ops.adb", "ops-andthen.ads", "ops-andthen.adb"],
+    )
+)
 
 thistest.result()

@@ -10,8 +10,13 @@ from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
 
-def run_variant(variant_name, extra_instr_cppargs, extra_gprbuild_cargs,
-                tolerate_instrument_messages=None, pred=lambda: True):
+def run_variant(
+    variant_name,
+    extra_instr_cppargs,
+    extra_gprbuild_cargs,
+    tolerate_instrument_messages=None,
+    pred=lambda: True,
+):
     """
     Build and run the project with the given arguments, and check the predicate
     holds.
@@ -24,8 +29,9 @@ def run_variant(variant_name, extra_instr_cppargs, extra_gprbuild_cargs,
 
     tmp = Wdir(f"tmp_{variant_name}")
     build_and_run(
-        gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."],
-                                              mains=["main.cpp"])),
+        gprsw=GPRswitches(
+            root_project=gprfor(srcdirs=[".."], mains=["main.cpp"])
+        ),
         covlevel="stmt",
         mains=["main"],
         extra_instr_args=[f"--c++-opts={','.join(extra_instr_cppargs)}"],
@@ -37,8 +43,7 @@ def run_variant(variant_name, extra_instr_cppargs, extra_gprbuild_cargs,
     )
 
     thistest.fail_if(
-        not pred(),
-        f"Unexpected assertion failure for variant {variant_name}"
+        not pred(), f"Unexpected assertion failure for variant {variant_name}"
     )
 
     tmp.to_homedir()

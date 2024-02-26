@@ -9,13 +9,21 @@ import re
 
 from SUITE.control import env
 from SUITE.cutils import Wdir, match, to_list, list_to_file
-from SUITE.tutils import (XCOV, thistest, gprfor, gprbuild, exename_for, do,
-                          maybe_valgrind)
+from SUITE.tutils import (
+    XCOV,
+    thistest,
+    gprfor,
+    gprbuild,
+    exename_for,
+    do,
+    maybe_valgrind,
+)
 
 
 class MapChecker:
-    def __init__(self, sources, options="", execs=None, alis=None,
-                 ensure_dcscos=True):
+    def __init__(
+        self, sources, options="", execs=None, alis=None, ensure_dcscos=True
+    ):
         self.sources = to_list(sources)
         self.options = options
         self.ensure_dcscos = ensure_dcscos
@@ -25,45 +33,56 @@ class MapChecker:
             self.execs = to_list(execs)
         else:
             self.execs = [
-                exename_for(source.split('.')[0])
-                for source in self.sources
+                exename_for(source.split(".")[0]) for source in self.sources
             ]
 
         if alis is not None:
             self.alis = to_list(alis)
         else:
-            self.alis = [os.path.join("obj", "%s.ali" % source.split('.')[0])
-                         for source in self.sources]
+            self.alis = [
+                os.path.join("obj", "%s.ali" % source.split(".")[0])
+                for source in self.sources
+            ]
 
     def run(self):
-        tmp = Wdir('tmp_')
+        tmp = Wdir("tmp_")
 
         # Compile all the sources.  This method will not work if there are
         # sources that are not in the "." directory, but since executabes are
         # processed next, there will be an error if not all sources are
         # compiled.
-        project = gprfor(
-            self.sources, srcdirs=[".."], main_cargs=self.options)
+        project = gprfor(self.sources, srcdirs=[".."], main_cargs=self.options)
         gprbuild(project, gargs=["-bargs", "-z"])
 
         # If requested, check at least one non statement SCO in alis
         if self.ensure_dcscos:
             for ali in self.alis:
-                thistest.fail_if(not match('^C[^S ]', ali, re.MULTILINE),
-                                 "couldn't find non-statement SCO in %s" % ali)
+                thistest.fail_if(
+                    not match("^C[^S ]", ali, re.MULTILINE),
+                    "couldn't find non-statement SCO in %s" % ali,
+                )
 
         # Run xcov map-routines and check absence of errors
-        mapoutput = do(maybe_valgrind([
-            XCOV, 'map-routines', f'--target={env.target.triplet}',
-            '--scos=@{}'.format(list_to_file(self.alis)),
-        ] + self.execs))
+        mapoutput = do(
+            maybe_valgrind(
+                [
+                    XCOV,
+                    "map-routines",
+                    f"--target={env.target.triplet}",
+                    "--scos=@{}".format(list_to_file(self.alis)),
+                ]
+                + self.execs
+            )
+        )
 
-        maperrors = [str(m) for m in
-                     re.findall(r"(\*\*\*|\!\!\!)(.*)", mapoutput)]
+        maperrors = [
+            str(m) for m in re.findall(r"(\*\*\*|\!\!\!)(.*)", mapoutput)
+        ]
 
-        thistest.log('\n'.join(maperrors))
+        thistest.log("\n".join(maperrors))
         thistest.fail_if(
             maperrors,
-            "expect no map-routines error for %s" % ", ".join(self.sources))
+            "expect no map-routines error for %s" % ", ".join(self.sources),
+        )
 
         tmp.to_homedir()

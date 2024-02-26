@@ -15,25 +15,28 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import tracename_for
 
 test_drivers = {
-    'test': {'p.s': ['-g']},
+    "test": {"p.s": ["-g"]},
 }
 
 coverage_expectations = {
     # There is only one "p" routine and we should consolidate them: we expect
     # only one "+" covered "p" routine.
-    'p': {'-': 0, '!': 0, '+': 1},
+    "p": {"-": 0, "!": 0, "+": 1},
 }
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
-shutil.copy(os.path.join('..', 'test.c'), 'test.c')
+shutil.copy(os.path.join("..", "test.c"), "test.c")
 
 # Select an assembly source that fits the build platform
-variant = 'default'
-if env.build.os.name == 'windows':
-    variant = 'win32' if env.build.cpu.bits == 32 else 'win64'
-shutil.copy(os.path.join('..', 'p-{}.s'.format(variant)), 'p.s')
+variant = "default"
+if env.build.os.name == "windows":
+    variant = "win32" if env.build.cpu.bits == 32 else "win64"
+shutil.copy(os.path.join("..", "p-{}.s".format(variant)), "p.s")
 
-TestCase(test_drivers, coverage_expectations,
-         extra_xcov_args=[tracename_for('test')]).run()
+TestCase(
+    test_drivers,
+    coverage_expectations,
+    extra_xcov_args=[tracename_for("test")],
+).run()
 thistest.result()

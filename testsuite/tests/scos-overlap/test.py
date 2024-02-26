@@ -81,7 +81,7 @@ def run_variant(label, col_ranges, expected_warnings):
     thistest.fail_if_not_equal(
         '"gnatcov instrument" warnings',
         "\n".join(str(w) for w in expected_warnings),
-        "\n".join(line.rstrip() for line in contents_of(log).splitlines())
+        "\n".join(line.rstrip() for line in contents_of(log).splitlines()),
     )
 
     wd.to_homedir()

@@ -16,6 +16,7 @@ from SUITE.gprutils import GPRswitches
 
 tmp = Wdir()
 
+
 def warning_re_for(filename, sloc):
     """
     Return a regexp for the warning expected for the given file name and source
@@ -34,7 +35,9 @@ def do_one_level(level):
     tmp.to_subdir(f"tmp_{level}")
     thistest.log(f"===== {level} =====")
 
-    gpr = gprfor(mains=["test_eval.adb"], srcdirs=["../src"], langs=["Ada", "C"])
+    gpr = gprfor(
+        mains=["test_eval.adb"], srcdirs=["../src"], langs=["Ada", "C"]
+    )
 
     build_run_and_coverage(
         gprsw=GPRswitches(root_project=gpr),
@@ -62,11 +65,11 @@ def do_one_level(level):
     # coverage items in the report.
 
     if level == "stmt+mcdc":
-        expected_cov["testconditions.adb.xcov"]['?'] = {17}
-        expected_cov["compute.c.xcov"]['?'] = {4}
+        expected_cov["testconditions.adb.xcov"]["?"] = {17}
+        expected_cov["compute.c.xcov"]["?"] = {4}
     else:
-        expected_cov["testconditions.adb.xcov"]['+'].add(17)
-        expected_cov["compute.c.xcov"]['+'].add(4)
+        expected_cov["testconditions.adb.xcov"]["+"].add(17)
+        expected_cov["compute.c.xcov"]["+"].add(4)
 
     check_xcov_reports("obj", expected_cov, discard_empty=False)
 
@@ -78,12 +81,16 @@ def do_one_level(level):
 
         thistest.fail_if_no_match(
             what="Unexpected/missing warnings for MC/DC path limit",
-            regexp="^" + "\n".join([
-                warning_re_for("compute.c", "4:11"),
-                warning_re_for("testconditions.adb", "17:9"),
-            ]),
+            regexp="^"
+            + "\n".join(
+                [
+                    warning_re_for("compute.c", "4:11"),
+                    warning_re_for("testconditions.adb", "17:9"),
+                ]
+            ),
             actual=log,
         )
+
 
 # Run the mcdc case
 do_one_level("stmt+mcdc")

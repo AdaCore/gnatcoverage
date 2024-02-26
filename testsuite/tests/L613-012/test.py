@@ -3,12 +3,13 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprbuild, xcov
 
 
-wd = Wdir('tmp_')
+wd = Wdir("tmp_")
 
-gprbuild('../app.gpr')
-xcov(args='map-routines -P../app', out='xcov.out')
-output = contents_of('xcov.out')
+gprbuild("../app.gpr")
+xcov(args="map-routines -P../app", out="xcov.out")
+output = contents_of("xcov.out")
 
 thistest.fail_if(
-    'no unit PAK2 in project App (coverage.units attribute)' not in output)
+    "no unit PAK2 in project App (coverage.units attribute)" not in output
+)
 thistest.result()

@@ -13,11 +13,11 @@ Wdir("tmp_")
 
 prj_name = "prj"
 
-prj=gprfor(
+prj = gprfor(
     mains=["main_ada.adb"],
     prjid=prj_name,
     langs=["Ada", "Asm"],
-    srcdirs=[".."]
+    srcdirs=[".."],
 )
 
 build_run_and_coverage(
@@ -26,7 +26,7 @@ build_run_and_coverage(
     covlevel="stmt",
     extra_coverage_args=["-axcov"],
     dump_trigger="manual",
-    manual_prj_name=prj_name
+    manual_prj_name=prj_name,
 )
 
 check_xcov_reports("obj", {"main_ada.adb.xcov": {"+": {9}}})

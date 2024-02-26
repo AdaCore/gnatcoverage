@@ -21,8 +21,9 @@ from e3.fs import find
 # --testsuite-dir, though the two should be consistent wrt the python script
 # sources (e.g. the CTXdata structure must match)
 
-LOCAL_TESTSUITE_DIR = \
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOCAL_TESTSUITE_DIR = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
+)
 sys.path.append(LOCAL_TESTSUITE_DIR)
 
 TEST_LOG = "test.py.log"
@@ -35,9 +36,22 @@ from SUITE.control import BUILDER
 from SUITE import dutils
 
 from SCOV.internals.cnotes import (
-    r0, r0c, xBlock0, sNoCov, sPartCov,
-    dtNoCov, dfNoCov, dPartCov, dNoCov, etNoCov, efNoCov, ePartCov,
-    eNoCov, cPartCov, xBlock1)
+    r0,
+    r0c,
+    xBlock0,
+    sNoCov,
+    sPartCov,
+    dtNoCov,
+    dfNoCov,
+    dPartCov,
+    dNoCov,
+    etNoCov,
+    efNoCov,
+    ePartCov,
+    eNoCov,
+    cPartCov,
+    xBlock1,
+)
 from SUITE.cutils import FatalError, lines_of
 from REST import rest
 
@@ -62,6 +76,7 @@ def exit_if(p, msg):
         print(msg)
         sys.exit(1)
 
+
 # ================================================
 # == QDregistry - Qualification Data repository ==
 # ================================================
@@ -83,7 +98,6 @@ def exit_if(p, msg):
 
 
 class QualificationDataRepository(object):
-
     def __init__(self, testsuite_dir):
         """Initialize a Qualification Data repository.
 
@@ -135,13 +149,16 @@ class QualificationDataRepository(object):
         tcdf = qdaf_in(dirname)
 
         qda = (
-            dutils.pload_from(tcdf) if os.path.exists(tcdf)
-            else Qdata(tcid=dirname))
+            dutils.pload_from(tcdf)
+            if os.path.exists(tcdf)
+            else Qdata(tcid=dirname)
+        )
 
         qda.status = std.status
         qda.comment = std.comment
 
         self.qdl.append(qda)
+
 
 # =======================================
 # == Qualification report and helpers  ==
@@ -156,7 +173,6 @@ class QualificationDataRepository(object):
 
 class Column(object):
     def __init__(self, htext, legend="", hidden=False):
-
         # HTEXT is the column header text,
         # LEGEND is a brief description of the column contents,
         # HIDDEN tells if the column should not be displayed
@@ -167,113 +183,104 @@ class Column(object):
 
 
 class colid(object):
-
     # Testcase description and status, for testcase table
 
-    tc = Column(
-        htext="testcase", legend="Testcase Identifier")
+    tc = Column(htext="testcase", legend="Testcase Identifier")
 
-    sta = Column(
-        htext="status",
-        legend="Execution status"
-    )
+    sta = Column(htext="status", legend="Execution status")
 
-    cat = Column(
-        htext="Test category", legend="Test category")
+    cat = Column(htext="Test category", legend="Test category")
 
     # Expectation counters, for testcase table and counters summary
 
     nov = Column(
         htext="nov",
-        legend="Number of expected absence of violations in testcase")
+        legend="Number of expected absence of violations in testcase",
+    )
 
     scv = Column(
         htext="scv",
-        legend="Number of expected STATEMENT Coverage violations in testcase")
+        legend="Number of expected STATEMENT Coverage violations in testcase",
+    )
 
     dcv = Column(
         htext="dcv",
-        legend="Number of expected DECISION Coverage violations in testcase")
+        legend="Number of expected DECISION Coverage violations in testcase",
+    )
 
     mcv = Column(
         htext="mcv",
-        legend="Number of expected MCDC Coverage violations in testcase")
+        legend="Number of expected MCDC Coverage violations in testcase",
+    )
 
     xbv = Column(
         htext="xbv",
         legend="Number of expected EXEMPTION "
-        "blocks with violations in testcase")
+        "blocks with violations in testcase",
+    )
 
-    igv = Column(
-        htext="igv", legend="counters to be ignored", hidden=True)
+    igv = Column(htext="igv", legend="counters to be ignored", hidden=True)
 
     # Status counters and overall status, for status summary
 
     failed = Column(
         htext="failed",
-        legend="Number of tests with status *failed* in category")
+        legend="Number of tests with status *failed* in category",
+    )
 
     passed = Column(
         htext="passed",
-        legend="Number of tests with status *passed* in category")
+        legend="Number of tests with status *passed* in category",
+    )
 
     xfail = Column(
-        htext="xfail",
-        legend="Number of tests with status *xfail* in category")
+        htext="xfail", legend="Number of tests with status *xfail* in category"
+    )
 
     ovsta = Column(
         htext="testsuite status",
         legend="Testsuite overall status, *passed* if all tests were "
-        "*passed* or *xfail*")
+        "*passed* or *xfail*",
+    )
 
     # Other status counters
 
-    uok = Column(
-        htext="uok", legend="Test ran OK despite expected to fail")
+    uok = Column(htext="uok", legend="Test ran OK despite expected to fail")
 
     # Columns for legend sub-tables
 
-    colname = Column(
-        htext="column", legend=None)
+    colname = Column(htext="column", legend=None)
 
-    legend = Column(
-        htext="legend", legend=None)
+    legend = Column(htext="legend", legend=None)
+
 
 # ------------------------------------
 # -- Mappings to column identifiers --
 # ------------------------------------
 
 column_for = {
-
     # When counting notes, map note kinds to table columns
-
     r0: colid.nov,
     r0c: colid.igv,
     xBlock0: colid.nov,
-
     sNoCov: colid.scv,
     sPartCov: colid.scv,
-
     dtNoCov: colid.dcv,
     dfNoCov: colid.dcv,
     dPartCov: colid.dcv,
     dNoCov: colid.dcv,
-
     etNoCov: colid.mcv,
     efNoCov: colid.mcv,
     ePartCov: colid.mcv,
     eNoCov: colid.mcv,
     cPartCov: colid.mcv,
-
     xBlock1: colid.xbv,
-
     # When checking status, map text passed by toplevel driver
     # to column.
-
-    'PASS': colid.passed,
-    'XPASS': colid.passed,
-    'FAIL': colid.failed,
-    'XFAIL': colid.xfail,
+    "PASS": colid.passed,
+    "XPASS": colid.passed,
+    "FAIL": colid.failed,
+    "XFAIL": colid.xfail,
 }
 
 # -------------------------------
@@ -282,9 +289,9 @@ column_for = {
 
 # Violation counters we care about for each possible do-level
 viocnt_columns_for = {
-    'doA': (colid.nov, colid.igv, colid.scv, colid.dcv, colid.mcv, colid.xbv),
-    'doB': (colid.nov, colid.igv, colid.scv, colid.dcv, colid.xbv),
-    'doC': (colid.nov, colid.igv, colid.scv, colid.xbv)
+    "doA": (colid.nov, colid.igv, colid.scv, colid.dcv, colid.mcv, colid.xbv),
+    "doB": (colid.nov, colid.igv, colid.scv, colid.dcv, colid.xbv),
+    "doC": (colid.nov, colid.igv, colid.scv, colid.xbv),
 }
 
 # Status counters
@@ -303,7 +310,6 @@ stacnt_columns = (colid.passed, colid.xfail, colid.failed)
 
 
 class CountersCell(object):
-
     def __init__(self):
         self.expected = 0
         self.satisfied = 0
@@ -318,17 +324,18 @@ class CountersCell(object):
         self.expected += other.expected
         self.satisfied += other.satisfied
 
+
 # Cell to hold a simple integer value
 # -----------------------------------
 
 
 class IntCell(object):
-
     def __init__(self, initval=0):
         self.value = initval
 
     def img(self, details=False):
         return "%d" % self.value
+
 
 # Cell to hold a simple text
 # --------------------------
@@ -341,6 +348,7 @@ class TextCell(object):
     def img(self, details=False):
         return "%s" % self.text
 
+
 # Cell to hold a TC id in a context where the language
 # and test category are explicit by some other means
 # -----------------------------------------------------
@@ -351,7 +359,6 @@ class TcidCell(object):
         self.text = text
 
     def img(self, details=False):
-
         # Arrange to strip:
         #
         # * The common leading part that can be inferred from the tc
@@ -369,17 +376,20 @@ class TcidCell(object):
         # Applied in sequence and the order matters.
 
         re_strip = collections.OrderedDict(
-            ((QROOTDIR + "/", ""),
-             ("(Ada|C)/(stmt|decision|mcdc)/", ""),
-             ("Common/Report/", ""),
-             ("^[0-9]+_", ""),
-             ("/[0-9]+_", "/"))
+            (
+                (QROOTDIR + "/", ""),
+                ("(Ada|C)/(stmt|decision|mcdc)/", ""),
+                ("Common/Report/", ""),
+                ("^[0-9]+_", ""),
+                ("/[0-9]+_", "/"),
             )
+        )
         img = self.text
         for r in re_strip:
             img = re.sub(pattern=r, repl=re_strip[r], string=img)
 
         return img
+
 
 # Cell to hold a qualification status
 # -----------------------------------
@@ -387,7 +397,6 @@ class TcidCell(object):
 
 class QstatusCell(object):
     def __init__(self, text):
-
         # TEXT is the precise test execution status provided by the toplevel
         # driver (with uok, xfail, ...). Switch to the qualification status by
         # mapping to the status counter column.
@@ -396,6 +405,7 @@ class QstatusCell(object):
 
     def img(self, details=False):
         return "%s" % self.colid.htext
+
 
 # =============
 # == RSTfile ==
@@ -408,7 +418,7 @@ class RSTfile(object):
         self.open(filename)
 
     def open(self, filename):
-        self.fd = open("source/" + filename, 'w')
+        self.fd = open("source/" + filename, "w")
 
     def write(self, text, pre=0, post=1):
         self.fd.write(rest.isolate(text=text, pre=pre, post=post))
@@ -416,15 +426,14 @@ class RSTfile(object):
     def close(self):
         self.fd.close()
 
+
 # ==============
 # == RSTtable ==
 # ==============
 
 
 class RSTtable(object):
-
     def __init__(self, title, text, columns, contents):
-
         # COLUMNS is the list of columns for this table, CONTENTS is a
         # list of {col -> text} dictionaries, one per table line.  Compared
         # to CONTENTS.keys(), COLUMNS is useful to enforce a column order.
@@ -443,7 +452,6 @@ class RSTtable(object):
         self.text = text
 
     def __dump_description(self):
-
         # Dump the table title, descriptive text and legend
 
         if self.title:
@@ -458,12 +466,14 @@ class RSTtable(object):
         # as a (description-less) table itself ...
 
         ASCIItable(
-            title=None, text=None,
+            title=None,
+            text=None,
             columns=(colid.colname, colid.legend),
             contents=[
-                {colid.colname: rest.emph(col.htext),
-                 colid.legend: col.legend} for col in self.columns]
-            ).dump_to(self.rstf)
+                {colid.colname: rest.emph(col.htext), colid.legend: col.legend}
+                for col in self.columns
+            ],
+        ).dump_to(self.rstf)
 
     def __dump_contents(self):
         [self.dump_centry(ce) for ce in self.contents]
@@ -486,7 +496,6 @@ class RSTtable(object):
     # -------------
 
     def dump_to(self, rstf):
-
         self.rstf = rstf
 
         self.__dump_description()
@@ -507,33 +516,37 @@ class RSTtable(object):
 
 
 class CSVtable(RSTtable):
-
-    def __init__(self, title, text, columns, contents,
-                 delim='&', controls=()):
-
+    def __init__(self, title, text, columns, contents, delim="&", controls=()):
         self.controls = controls
         self.delim = delim
         RSTtable.__init__(
-            self, title=title, text=text,
-            columns=columns, contents=contents)
+            self, title=title, text=text, columns=columns, contents=contents
+        )
 
     def dump_header(self):
-        text = '\n' + '\n'.join(
-            ['.. csv-table::',
-             '   :delim: ' + self.delim,
-             '   :header: %s' % " , ".join(
-                    ['"%s"' % col.htext for col in self.columns])
-             ] + ['   ' + ctl for ctl in self.controls]
-            ) + "\n"
+        text = (
+            "\n"
+            + "\n".join(
+                [
+                    ".. csv-table::",
+                    "   :delim: " + self.delim,
+                    "   :header: %s"
+                    % " , ".join(['"%s"' % col.htext for col in self.columns]),
+                ]
+                + ["   " + ctl for ctl in self.controls]
+            )
+            + "\n"
+        )
         self.rstf.write(text)
 
     def dump_centry(self, ce):
         entryl = (" %s " % self.delim).join(
-            ["   %s" % ce[col] for col in self.columns])
+            ["   %s" % ce[col] for col in self.columns]
+        )
         self.rstf.write(entryl)
 
     def dump_footer(self):
-        self.rstf.write('\n')
+        self.rstf.write("\n")
 
 
 # ================
@@ -551,43 +564,42 @@ class CSVtable(RSTtable):
 
 
 class ASCIItable(RSTtable):
-
     def __init__(self, title, text, columns, contents):
         RSTtable.__init__(
-            self, title=title, text=text,
-            columns=columns, contents=contents)
+            self, title=title, text=text, columns=columns, contents=contents
+        )
         self.__compute_widths()
 
     def __compute_widths(self):
-
         # Compute the current width of every column, as the max of
         # all the texts (on every contents + header line)
 
         # This is useful to align the text of every column, for both
         # content rows and the ReST table separation lines.
 
-        self.width = dict(
-            [(col, 0) for col in self.columns])
+        self.width = dict([(col, 0) for col in self.columns])
 
         # Maximize column width over contents entries
 
-        [self.width.__setitem__(
-                col, max(self.width[col], len(centry[col])))
-         for centry in self.contents for col in self.columns]
+        [
+            self.width.__setitem__(col, max(self.width[col], len(centry[col])))
+            for centry in self.contents
+            for col in self.columns
+        ]
 
         # Maximize column width with length of column header
 
-        [self.width.__setitem__(
-                col, max(self.width[col], len(col.htext)))
-         for col in self.columns]
+        [
+            self.width.__setitem__(col, max(self.width[col], len(col.htext)))
+            for col in self.columns
+        ]
 
     def dump_header(self):
-        sepl = " ".join(
-            ["=" * self.width[col] for col in self.columns])
+        sepl = " ".join(["=" * self.width[col] for col in self.columns])
 
         headl = " ".join(
-            ["%-*s" % (self.width[col], col.htext)
-             for col in self.columns])
+            ["%-*s" % (self.width[col], col.htext) for col in self.columns]
+        )
 
         self.rstf.write(sepl)
         self.rstf.write(headl)
@@ -595,12 +607,12 @@ class ASCIItable(RSTtable):
 
     def dump_centry(self, ce):
         entryl = " ".join(
-            ["%-*s" % (self.width[col], ce[col]) for col in self.columns])
+            ["%-*s" % (self.width[col], ce[col]) for col in self.columns]
+        )
         self.rstf.write(entryl)
 
     def dump_footer(self):
-        sepl = " ".join(
-            ["=" * self.width[col] for col in self.columns])
+        sepl = " ".join(["=" * self.width[col] for col in self.columns])
         self.rstf.write(sepl, post=2)
 
 
@@ -635,27 +647,29 @@ class ASCIItable(RSTtable):
 
 
 class LISTtable(RSTtable):
-
     def __init__(self, title, text, columns, contents):
         RSTtable.__init__(
-            self, title=title, text=text,
-            columns=columns, contents=contents)
+            self, title=title, text=text, columns=columns, contents=contents
+        )
 
     def dump_header(self):
-        self.rstf.write('.. list-table::')
-        self.rstf.write('   :header-rows: 1', post=2)
+        self.rstf.write(".. list-table::")
+        self.rstf.write("   :header-rows: 1", post=2)
 
-        self.rstf.write('   * ' + "\n     ".join(
-            ["- %s" % col.htext for col in self.columns]
-        ))
+        self.rstf.write(
+            "   * "
+            + "\n     ".join(["- %s" % col.htext for col in self.columns])
+        )
 
     def dump_centry(self, ce):
-        self.rstf.write('   * ' + "\n     ".join(
-            ["- %s" % ce[col] for col in self.columns]
-        ))
+        self.rstf.write(
+            "   * "
+            + "\n     ".join(["- %s" % ce[col] for col in self.columns])
+        )
 
     def dump_footer(self):
-        self.rstf.write('\n', post=2)
+        self.rstf.write("\n", post=2)
+
 
 # ==============
 # == QDreport ==
@@ -690,35 +704,34 @@ class Category(object):
 
 
 class QDreport(object):
-
     def __init__(self, options):
-
         self.o = options
 
         # Fetch the testsuite execution context
 
         self.suitedata = dutils.jload_from(
-            os.path.join(self.o.testsuite_dir, CTXDATA_FILE))
+            os.path.join(self.o.testsuite_dir, CTXDATA_FILE)
+        )
 
         # Pick the testsuite dolevel if none was provided. Check
         # consistency otherwise:
 
-        suite_dolevel = self.suitedata['options']['dolevel']
+        suite_dolevel = self.suitedata["options"]["dolevel"]
 
         fail_if(
             not suite_dolevel,
-            "Testsuite at %s was not run in qualification mode" % (
-                self.o.testsuite_dir)
-            )
+            "Testsuite at %s was not run in qualification mode"
+            % (self.o.testsuite_dir),
+        )
 
         if self.o.dolevel is None:
             self.o.dolevel = suite_dolevel
         else:
             fail_if(
                 self.o.dolevel != suite_dolevel,
-                "explicit dolevel (%s) doesn't match testsuite (%s)" % (
-                    self.o.dolevel, suite_dolevel)
-                )
+                "explicit dolevel (%s) doesn't match testsuite (%s)"
+                % (self.o.dolevel, suite_dolevel),
+            )
 
         # Setup the list of violation counters we care about wrt the
         # targetted do-level:
@@ -737,34 +750,41 @@ class QDreport(object):
         # categories from common ones.
 
         lang_categories = [
-            (Category(
-                    lang=lang, name="%s STATEMENT Coverage" % lang,
-                    matcher="%s/%s/stmt" % (QROOTDIR, lang)),
-             Category(
-                    lang=lang, name="%s DECISION Coverage" % lang,
-                    matcher="%s/%s/decision" % (QROOTDIR, lang)),
-             Category(
-                    lang=lang, name="%s MCDC Coverage" % lang,
-                    matcher="%s/%s/mcdc" % (QROOTDIR, lang))
-             ) for lang in QLANGUAGES
-            ]
+            (
+                Category(
+                    lang=lang,
+                    name="%s STATEMENT Coverage" % lang,
+                    matcher="%s/%s/stmt" % (QROOTDIR, lang),
+                ),
+                Category(
+                    lang=lang,
+                    name="%s DECISION Coverage" % lang,
+                    matcher="%s/%s/decision" % (QROOTDIR, lang),
+                ),
+                Category(
+                    lang=lang,
+                    name="%s MCDC Coverage" % lang,
+                    matcher="%s/%s/mcdc" % (QROOTDIR, lang),
+                ),
+            )
+            for lang in QLANGUAGES
+        ]
 
         lang_categories = [
-            cat for lang_cats in lang_categories for cat in lang_cats]
+            cat for lang_cats in lang_categories for cat in lang_cats
+        ]
 
         other_categories = [
             Category(
-                name="REPORT Format",
-                matcher="%s/Common/Report" % QROOTDIR),
-
+                name="REPORT Format", matcher="%s/Common/Report" % QROOTDIR
+            ),
             Category(
                 name="Testsuite Selftest",
                 matcher="%s/Appendix/Testsuite" % QROOTDIR,
-                internal=True),
-
-            Category(
-                name="Others", matcher=".")
-            ]
+                internal=True,
+            ),
+            Category(name="Others", matcher="."),
+        ]
 
         self.categories = lang_categories + other_categories
 
@@ -774,18 +794,19 @@ class QDreport(object):
         # were run). This is useful e.g. to decide which sets of compilation
         # options should be displayed in the environment description items.
 
-        self.languages = set(
-            [cat.lang for cat in lang_categories if cat.qdl])
+        self.languages = set([cat.lang for cat in lang_categories if cat.qdl])
 
-        self.dump_trigger=None
-        self.dump_channel=None
+        self.dump_trigger = None
+        self.dump_channel = None
 
         # Gather effectively used dump-trigger and dump channel from the logs
         # in source trace mode.
 
         if self.suitedata["options"]["trace_mode"] == "src":
-            self.dump_trigger, self.dump_channel = \
-                self.gather_trigger_and_channel()
+            (
+                self.dump_trigger,
+                self.dump_channel,
+            ) = self.gather_trigger_and_channel()
 
         self.gen_envinfo(sepfile="env.rst")
 
@@ -812,24 +833,22 @@ class QDreport(object):
         """
         if "gnatcov instrument" in line:
             matcher = re.search(
-                pattern=f"--dump-{option_name}" + r"(?:=| )(\S*) ",
-                string=line
+                pattern=f"--dump-{option_name}" + r"(?:=| )(\S*) ", string=line
             )
             if matcher is None:
-                raise FatalError (
+                raise FatalError(
                     comment=f"Found no dump {option_name} in gnatcov"
-                            f"instrument command line: {line}"
+                    f"instrument command line: {line}"
                 )
             if current_value and matcher.group(1) != current_value:
-                raise FatalError (
+                raise FatalError(
                     comment=f"Inconsistent dump {option_name} found:"
-                            f" got {matcher.group(1)}"
-                            f" but expected {current_value}"
+                    f" got {matcher.group(1)}"
+                    f" but expected {current_value}"
                 )
             return matcher.group(1)
         else:
             return current_value
-
 
     def gather_trigger_and_channel(self):
         """
@@ -840,22 +859,22 @@ class QDreport(object):
         """
         current_dt = None
         current_dc = None
-        for p in find (self.o.testsuite_dir, TEST_LOG):
+        for p in find(self.o.testsuite_dir, TEST_LOG):
             for line in lines_of(p):
                 current_dt = self._check_one_dump_option(
-                    line, "trigger", current_dt)
+                    line, "trigger", current_dt
+                )
                 current_dc = self._check_one_dump_option(
-                    line, "channel", current_dc)
+                    line, "channel", current_dc
+                )
         return (current_dt, current_dc)
-
 
     def categorize(self, qda):
         for cat in self.categories:
             if cat.trymatch(qda):
                 return
 
-        raise FatalError(
-            comment="unable to categorize testcase %s" % qda.tcid)
+        raise FatalError(comment="unable to categorize testcase %s" % qda.tcid)
 
     # --------------------
     # -- compute_tcdata --
@@ -882,26 +901,27 @@ class QDreport(object):
             cell.satisfied += 1
 
     def tcdata_for(self, qd):
-
         # Process one qualification data item, producing a report data line
         # for one testcase
 
         this_tcdata = dict(
-            [(colid.tc, TcidCell(qd.tcid))] +
-            [(key, CountersCell()) for key in self.viocnt_columns] +
-            [(colid.sta, QstatusCell(qd.status))]
-            )
+            [(colid.tc, TcidCell(qd.tcid))]
+            + [(key, CountersCell()) for key in self.viocnt_columns]
+            + [(colid.sta, QstatusCell(qd.status))]
+        )
 
-        [self.count(note=note, cell=this_tcdata[column_for[note.kind]])
-         for qde in qd.entries for src in qde.xrnotes
-         for notelist in qde.xrnotes[src].values()
-         for note in notelist]
+        [
+            self.count(note=note, cell=this_tcdata[column_for[note.kind]])
+            for qde in qd.entries
+            for src in qde.xrnotes
+            for notelist in qde.xrnotes[src].values()
+            for note in notelist
+        ]
 
         return this_tcdata
 
     def compute_tcdata(self):
-        self.tcdata = dict(
-            [(qd, self.tcdata_for(qd)) for qd in self.qdl])
+        self.tcdata = dict([(qd, self.tcdata_for(qd)) for qd in self.qdl])
 
     # ------------------
     # -- gen_tctables --
@@ -917,18 +937,19 @@ class QDreport(object):
     # =========== ======== ======== ... =======
 
     def tcdict_for(self, qd):
-
         # Arrange to provide details on the expected versus satisfied
         # violation counts only when the test has failed somehow:
 
         details = column_for[qd.status] != colid.passed
 
         return dict(
-            [(col, "%s" % self.tcdata[qd][col].img(details))
-             for col in self.tcdata[qd]])
+            [
+                (col, "%s" % self.tcdata[qd][col].img(details))
+                for col in self.tcdata[qd]
+            ]
+        )
 
     def gen_tctables(self, sepfile=None):
-
         if sepfile:
             self.rstf = RSTfile(sepfile)
 
@@ -977,18 +998,21 @@ class QDreport(object):
                 "\n\n"
                 "A general summary of all the results is provided in the "
                 ":ref:`tssummary` section of this report.\n"
-                ),
+            ),
             columns=self.tccolumns(),
             contents=None,
-            ).dump_to(self.rstf)
+        ).dump_to(self.rstf)
 
-        [LISTtable(
+        [
+            LISTtable(
                 title=("%s tests [ %s/... ]" % (cat.name, cat.qmprefix)),
                 text=None,
                 columns=self.tccolumns(),
-                contents=[self.tcdict_for(qd) for qd in cat.qdl]
-                ).dump_to(self.rstf)
-         for cat in self.categories if cat.qdl and not cat.internal]
+                contents=[self.tcdict_for(qd) for qd in cat.qdl],
+            ).dump_to(self.rstf)
+            for cat in self.categories
+            if cat.qdl and not cat.internal
+        ]
 
         if sepfile:
             self.rstf.close()
@@ -1010,29 +1034,31 @@ class QDreport(object):
 
     def sumcolumns(self):
         return (
-            (colid.cat,)            # category
-            + stacnt_columns        # #passed, #failed, #xfail
-            + self.viocnt_columns   # nov, scv, ...
-            + (colid.ovsta,))       # testsuite status
+            (colid.cat,)  # category
+            + stacnt_columns  # #passed, #failed, #xfail
+            + self.viocnt_columns  # nov, scv, ...
+            + (colid.ovsta,)
+        )  # testsuite status
 
     def init_data_for(self, catid):
-
         # Initial data for the line corresponding to category CATID. The
         # overall status column is set separately, once the final counter
         # values are known
 
         return dict(
-            [(colid.cat, TextCell(catid))] +
-            [(col, IntCell()) for col in stacnt_columns] +
-            [(col, CountersCell()) for col in self.viocnt_columns])
+            [(colid.cat, TextCell(catid))]
+            + [(col, IntCell()) for col in stacnt_columns]
+            + [(col, CountersCell()) for col in self.viocnt_columns]
+        )
 
     def do_sum(self, qd, catsum):
-        [catsum[key].augment_by(self.tcdata[qd][key])
-         for key in self.viocnt_columns]
+        [
+            catsum[key].augment_by(self.tcdata[qd][key])
+            for key in self.viocnt_columns
+        ]
         catsum[column_for[qd.status]].value += 1
 
     def sumdata_for(self, cat, totsum):
-
         # Compute the summary data for category CAT, and accumulate
         # into the TOTSUM total summary along the way
 
@@ -1049,16 +1075,19 @@ class QDreport(object):
         # TOTSUM summary and return
 
         thissum.__setitem__(
-            colid.ovsta, TextCell(
-                "%s" % "passed" if thissum[colid.failed].value == 0
-                else "failed"))
+            colid.ovsta,
+            TextCell(
+                "%s" % "passed"
+                if thissum[colid.failed].value == 0
+                else "failed"
+            ),
+        )
 
         [self.do_sum(qd=qd, catsum=totsum) for qd in cat.qdl]
 
         return thissum
 
     def sumdata(self):
-
         # Compute the base data for the summary table. This is a list of
         # {colid -> Cell} dictionaries, with one list entry for each test
         # category + a total. Something like
@@ -1074,28 +1103,38 @@ class QDreport(object):
         totsum = self.init_data_for("Total")
 
         catsums = [
-            csum for csum in [self.sumdata_for(cat, totsum)
-                              for cat in self.categories if cat.qdl]
-            if csum]
+            csum
+            for csum in [
+                self.sumdata_for(cat, totsum)
+                for cat in self.categories
+                if cat.qdl
+            ]
+            if csum
+        ]
 
         totsum.__setitem__(
-            colid.ovsta, TextCell(
-                "%s" % "PASSED" if totsum[colid.failed].value == 0
-                else "FAILED"))
+            colid.ovsta,
+            TextCell(
+                "%s" % "PASSED"
+                if totsum[colid.failed].value == 0
+                else "FAILED"
+            ),
+        )
 
         return catsums + [totsum]
 
     def sumcontents(self):
-
         # Compute the list of { colid -> text } dictionaries for the summary
         # table, with a list entry for each test category (+ total)
 
-        return [dict([(col, "%s" % catsum[col].img())
-                      for col in self.sumcolumns()])
-                for catsum in self.sumdata()]
+        return [
+            dict(
+                [(col, "%s" % catsum[col].img()) for col in self.sumcolumns()]
+            )
+            for catsum in self.sumdata()
+        ]
 
     def gen_tssummary(self, sepfile):
-
         if sepfile:
             self.rstf = RSTfile(sepfile)
 
@@ -1110,8 +1149,8 @@ class QDreport(object):
             "refer to the :ref:`tctable` section of this report for an "
             "explanation of the legend. ",
             columns=self.sumcolumns(),
-            contents=self.sumcontents()
-            ).dump_to(self.rstf)
+            contents=self.sumcontents(),
+        ).dump_to(self.rstf)
 
         if sepfile:
             self.rstf.close()
@@ -1121,7 +1160,6 @@ class QDreport(object):
     # -----------------------------
 
     def gen_suite_options(self):
-
         def literal(text):
             return ":literal:`" + text.strip() + "`"
 
@@ -1137,7 +1175,7 @@ class QDreport(object):
                 if skip:
                     skip = False
                     continue
-                elif sw in ('--log-file', '--old-res'):
+                elif sw in ("--log-file", "--old-res"):
                     skip = True
                     continue
                 else:
@@ -1150,8 +1188,8 @@ class QDreport(object):
             of the form <switch>=<value> in SWITCHES_STRING."""
 
             return dict(
-                [sw.split('=') for
-                 sw in switches_string.split() if '=' in sw])
+                [sw.split("=") for sw in switches_string.split() if "=" in sw]
+            )
 
         itemno = Column(htext="Item #", legend=None)
 
@@ -1170,42 +1208,52 @@ class QDreport(object):
         # - BUILDER.SCOV_CARGS (e.g. -fdump-scos),
         # - --cargs family
 
-        suite_options = self.suitedata['options']
-        suite_cmdline = self.suitedata['cmdline']
+        suite_options = self.suitedata["options"]
+        suite_cmdline = self.suitedata["cmdline"]
         csv_contents = []
 
         # Filter from the command line switches which have no
         # qualification context value per se and would display badly
         # within the table.
 
-        suite_cmdline = ' '.join(
-            str_relevant_switches_from(suite_cmdline))
+        suite_cmdline = " ".join(str_relevant_switches_from(suite_cmdline))
 
         csv_contents.append(
-            {itemno: "N/A",
-             item: "testsuite execution command line",
-             value: literal(suite_cmdline)
-             })
+            {
+                itemno: "N/A",
+                item: "testsuite execution command line",
+                value: literal(suite_cmdline),
+            }
+        )
 
         csv_contents.append(
-            {itemno: "s1",
-             item: "compiler switches - language independent",
-             value: literal(' '.join(
-                 BUILDER.SCOV_CARGS(
-                     collections.namedtuple(
-                         'SuiteOptions', suite_options.keys())
-                     (*suite_options.values())) +
-                 [suite_options['cargs']]))
-             })
+            {
+                itemno: "s1",
+                item: "compiler switches - language independent",
+                value: literal(
+                    " ".join(
+                        BUILDER.SCOV_CARGS(
+                            collections.namedtuple(
+                                "SuiteOptions", suite_options.keys()
+                            )(*suite_options.values())
+                        )
+                        + [suite_options["cargs"]]
+                    )
+                ),
+            }
+        )
 
         for lang in self.languages:
             lang_cargs = suite_options["cargs_%s" % lang]
 
             if lang_cargs:
                 csv_contents.append(
-                    {itemno: "s1",
-                     item: "compiler switches - %s specific" % lang,
-                     value: literal(lang_cargs)})
+                    {
+                        itemno: "s1",
+                        item: "compiler switches - %s specific" % lang,
+                        value: literal(lang_cargs),
+                    }
+                )
 
             # If we have a -gnatec=bla.adc in the languages cargs,
             # arrange to dump the contents of bla.adc within a separate
@@ -1219,50 +1267,63 @@ class QDreport(object):
                 # command line is relative to the testsuite/ subdirectory.
                 # We're call within the STR subdir so ...
 
-                with open("../%s" % adc, 'r') as f:
+                with open("../%s" % adc, "r") as f:
                     adc_contents = f.read().strip()
 
                 csv_contents.append(
-                    {itemno: "s1",
-                     item: "contents of %s, designated by -gnatec" % adc,
-                     value: (literal(adc_contents) if adc_contents
-                             else rest.emph("empty"))})
+                    {
+                        itemno: "s1",
+                        item: "contents of %s, designated by -gnatec" % adc,
+                        value: (
+                            literal(adc_contents)
+                            if adc_contents
+                            else rest.emph("empty")
+                        ),
+                    }
+                )
 
         # If we have a --RTS=bla on the command line, display it as the
         # qualification "runtime profile".
 
         opts_with_eq = switches_with_eq_from(suite_cmdline)
-        rts = opts_with_eq.get('--RTS', None)
+        rts = opts_with_eq.get("--RTS", None)
 
         csv_contents.append(
-            {itemno: "s2",
-             item: "runtime profile",
-             value: literal(
-                 ("--RTS=%s" % rts)) if rts
-                 else rest.emph("no --RTS switch")})
+            {
+                itemno: "s2",
+                item: "runtime profile",
+                value: literal(("--RTS=%s" % rts))
+                if rts
+                else rest.emph("no --RTS switch"),
+            }
+        )
 
         if self.dump_trigger:
             csv_contents.append(
-                {itemno: "s3",
-                 item:  "GNATcov dump trigger option value",
-                 value: literal (f"--dump-trigger={self.dump_trigger}")
-                })
+                {
+                    itemno: "s3",
+                    item: "GNATcov dump trigger option value",
+                    value: literal(f"--dump-trigger={self.dump_trigger}"),
+                }
+            )
         if self.dump_channel:
             csv_contents.append(
-                {itemno: "s4",
-                 item:  "GNATcov dump channel option value",
-                 value: literal(f"--dump-channel={self.dump_channel}")
-                })
+                {
+                    itemno: "s4",
+                    item: "GNATcov dump channel option value",
+                    value: literal(f"--dump-channel={self.dump_channel}"),
+                }
+            )
 
         CSVtable(
-            title=None, text=None,
+            title=None,
+            text=None,
             columns=(itemno, item, value),
             controls=[":widths: 7, 30, 60"],
-            contents=csv_contents
-            ).dump_to(self.rstf)
+            contents=csv_contents,
+        ).dump_to(self.rstf)
 
     def gen_suite_environ(self):
-
         # We construct a table like
         #
         # Environment item | <data 1, no title> | <data 2, no title>
@@ -1279,63 +1340,72 @@ class QDreport(object):
 
         v2 = Column(htext="", legend=None)
 
-        suite_gnatpro = self.suitedata['gnatpro']
-        suite_gnatcov = self.suitedata['gnatcov']
-        suite_gnatemu = self.suitedata['gnatemu']
-        suite_other = self.suitedata['other']
+        suite_gnatpro = self.suitedata["gnatpro"]
+        suite_gnatcov = self.suitedata["gnatcov"]
+        suite_gnatemu = self.suitedata["gnatemu"]
+        suite_other = self.suitedata["other"]
 
         # Base table entries, always there:
 
         table_entries = [
-            {itemno: "e1",
-             item: "testsuite execution timestamp & host system",
-             v1: self.suitedata['runstamp'],
-             v2: self.suitedata['host']
-             },
-            {itemno: "e2",
-             item: "GNATcov executable & version",
-             v1: suite_gnatcov['exename'],
-             v2: suite_gnatcov['version']
-             },
-            {itemno: "e3",
-             item: "GNAT Pro executable & version",
-             v1: suite_gnatpro['exename'],
-             v2: suite_gnatpro['version']
-             },
-            ]
+            {
+                itemno: "e1",
+                item: "testsuite execution timestamp & host system",
+                v1: self.suitedata["runstamp"],
+                v2: self.suitedata["host"],
+            },
+            {
+                itemno: "e2",
+                item: "GNATcov executable & version",
+                v1: suite_gnatcov["exename"],
+                v2: suite_gnatcov["version"],
+            },
+            {
+                itemno: "e3",
+                item: "GNAT Pro executable & version",
+                v1: suite_gnatpro["exename"],
+                v2: suite_gnatpro["version"],
+            },
+        ]
 
         # Add a gnatemu version, unless known to be irrelevant (native,
         # or when a --board option is passed).
 
-        suite_options = self.suitedata['options']
-        if suite_options['target'] and not suite_options['board']:
+        suite_options = self.suitedata["options"]
+        if suite_options["target"] and not suite_options["board"]:
             table_entries.append(
-                {itemno: "e4",
-                 item: "GNATemu executable & version",
-                 v1: suite_gnatemu['exename'],
-                 v2: suite_gnatemu['version']})
+                {
+                    itemno: "e4",
+                    item: "GNATemu executable & version",
+                    v1: suite_gnatemu["exename"],
+                    v2: suite_gnatemu["version"],
+                }
+            )
 
         # Add the "other tool" version if we have it
 
         if suite_other:
             table_entries.append(
-                {itemno: "e5",
-                 item: "Other toolset executable & version",
-                 v1: suite_other['exename'],
-                 v2: suite_other['version']})
+                {
+                    itemno: "e5",
+                    item: "Other toolset executable & version",
+                    v1: suite_other["exename"],
+                    v2: suite_other["version"],
+                }
+            )
 
         CSVtable(
-            title=None, text=None,
+            title=None,
+            text=None,
             columns=(itemno, item, v1, v2),
             controls=[":widths: 7, 25, 20, 48"],
-            delim='|',
-            contents=table_entries
-            ).dump_to(self.rstf)
+            delim="|",
+            contents=table_entries,
+        ).dump_to(self.rstf)
 
         # ??? qemu-system-ppc ???
 
     def gen_envinfo(self, sepfile=None):
-
         if sepfile:
             self.rstf = RSTfile(sepfile)
 
@@ -1353,33 +1423,39 @@ class QDreport(object):
     # ---------------
 
     def gen_index(self, sepfiles):
-
         self.rstf = RSTfile("index.rst")
-        self.rstf.write(rest.chapter('GNATcoverage Software Test Results'))
+        self.rstf.write(rest.chapter("GNATcoverage Software Test Results"))
         self.rstf.write(rest.toctree(sepfiles, depth=1))
         self.rstf.close()
+
 
 # ======================
 # == main entry point ==
 # ======================
 
-valid_dolevels = ('doA', 'doB', 'doC')
+valid_dolevels = ("doA", "doB", "doC")
 
 if __name__ == "__main__":
-
     op = optparse.OptionParser(usage="%prog <options>")
 
     op.add_option(
-        "--dolevel", dest="dolevel", default=None,
-        type='choice', choices=valid_dolevels,
+        "--dolevel",
+        dest="dolevel",
+        default=None,
+        type="choice",
+        choices=valid_dolevels,
         help="Target DO178 qualification level. "
-        "Defaults to the one of testsuite-dir.")
+        "Defaults to the one of testsuite-dir.",
+    )
 
     default_testsuite_dir = LOCAL_TESTSUITE_DIR
     op.add_option(
-        "--testsuite-dir", dest="testsuite_dir", default=default_testsuite_dir,
+        "--testsuite-dir",
+        dest="testsuite_dir",
+        default=default_testsuite_dir,
         help="Name of a directory where the testsuite was run. "
-        "Defaults to \"%s\"." % default_testsuite_dir)
+        'Defaults to "%s".' % default_testsuite_dir,
+    )
 
     (options, args) = op.parse_args()
 

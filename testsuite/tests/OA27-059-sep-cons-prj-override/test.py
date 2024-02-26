@@ -16,18 +16,18 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import gprbuild
 
 
-wd = Wdir('tmp_')
+wd = Wdir("tmp_")
 
 # Copy project sources in the temporary director
 for f in [
-    'pkg_under_test.gpr',
-    'src_under_test',
-    'test1',
-    'test1.gpr',
-    'test2',
-    'test2.gpr'
+    "pkg_under_test.gpr",
+    "src_under_test",
+    "test1",
+    "test1.gpr",
+    "test2",
+    "test2.gpr",
 ]:
-    sync_tree(os.path.join('..', f), f)
+    sync_tree(os.path.join("..", f), f)
 
 
 class Testcase(object):
@@ -37,28 +37,28 @@ class Testcase(object):
 
     @property
     def project_file(self):
-        return f'{self.name}.gpr'
+        return f"{self.name}.gpr"
 
     @property
     def main(self):
-        return f'main_{self.name}'
+        return f"main_{self.name}"
 
     def obj_dir(self, *args):
         return os.path.join(self._objdir, *args)
 
     def exe_dir(self, *args):
-        return os.path.join('bin', *args)
+        return os.path.join("bin", *args)
 
 
 def clean_output_directory():
-    rm('output')
-    mkdir('output')
+    rm("output")
+    mkdir("output")
 
 
-test1 = Testcase('test1', 'obj1')
-test2 = Testcase('test2', 'obj2')
+test1 = Testcase("test1", "obj1")
+test2 = Testcase("test2", "obj2")
 testcases = [test1, test2]
-gprsw_for_cov = GPRswitches(root_project='pkg_under_test.gpr')
+gprsw_for_cov = GPRswitches(root_project="pkg_under_test.gpr")
 
 # The goal of this testcase is to check that the --ignore-source-files
 # command-line argument, when provided, takes precedence over the
@@ -69,7 +69,7 @@ gprsw_for_cov = GPRswitches(root_project='pkg_under_test.gpr')
 # --ignore-source-files take precedence, we pass it to ignore only
 # pkg_under_test-pkg_test.adb, so that pkg_under_test-some_procedure.adb
 # should show up in coverage reports.
-overriding_ignored_source_file = 'pkg_under_test-pkg_test.adb'
+overriding_ignored_source_file = "pkg_under_test-pkg_test.adb"
 
 # Build the test material: program and traces
 trace_files = []
@@ -93,26 +93,26 @@ for testcase in testcases:
 # (in source trace mode, to get SID files). Since instrumentation uses the
 # "ignore source files" information, we also need to pass --ignore-source-files
 # here.
-if thistest.options.trace_mode == 'bin':
+if thistest.options.trace_mode == "bin":
     gprbuild(gprsw_for_cov.root_project)
 else:
     xcov_instrument(
         gprsw=gprsw_for_cov,
         covlevel=None,
-        extra_args=[f'--ignore-source-files={overriding_ignored_source_file}'],
+        extra_args=[f"--ignore-source-files={overriding_ignored_source_file}"],
     )
 
 # The presence of pkg_under_test-some_procedure.adb and the absence of
 # pkg_under_test-pkg_test.adb prove that --ignored-source-files took
 # precedence over the Coverage'Ignored_Source_Files project attribute.
 clean_output_directory()
-p = checked_xcov(xcov_args + ['--output-dir=output'] + trace_files, 'cons.log')
+p = checked_xcov(xcov_args + ["--output-dir=output"] + trace_files, "cons.log")
 check_xcov_reports(
-    'output',
+    "output",
     {
-        'pkg_under_test.ads.xcov': {},
-        'pkg_under_test.adb.xcov': {'+': {7, 8, 10}},
-        'pkg_under_test-some_procedure.adb.xcov': {'-': {5}},
+        "pkg_under_test.ads.xcov": {},
+        "pkg_under_test.adb.xcov": {"+": {7, 8, 10}},
+        "pkg_under_test-some_procedure.adb.xcov": {"-": {5}},
     },
 )
 

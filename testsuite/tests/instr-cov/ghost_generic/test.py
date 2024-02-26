@@ -25,7 +25,7 @@ check_xcov_reports(
         "main.adb.xcov": {"+": {11, 15}},
         "gen.adb.xcov": {"+": {9}, "-": {4}},
         "gen.ads.xcov": {},
-        "non_ghost_inst.ads.xcov": {}
+        "non_ghost_inst.ads.xcov": {},
     },
     discard_empty=False,
 )

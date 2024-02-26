@@ -20,7 +20,7 @@ def check_empty(filename):
     content = contents_of(filename)
     thistest.fail_if(
         content,
-        f'Output of "gnatcov coverage" not empty ({filename}):\n\n{content}'
+        f'Output of "gnatcov coverage" not empty ({filename}):\n\n{content}',
     )
 
 
@@ -37,7 +37,8 @@ build_run_and_coverage(
     covlevel="stmt",
     mains=["main"],
     extra_coverage_args=["--save-checkpoint=c1.ckpt"],
-    out="log-cov1.txt")
+    out="log-cov1.txt",
+)
 check_empty("log-cov1.txt")
 
 # Build and run test1.gpr's main.adb, then compute a partial coverage report
@@ -50,23 +51,38 @@ build_run_and_coverage(
     mains=["main"],
     ignored_source_files=["pkg-test.adb"],
     extra_coverage_args=["--save-checkpoint=c2.ckpt"],
-    out="log-cov2.txt")
+    out="log-cov2.txt",
+)
 check_empty("log-cov2.txt")
 
 # Avoid the "info: creating output path report" message
 os.mkdir("report")
 
 # Consolidate both partial reports and produce an XCOV report
-xcov(["coverage", "-P", p, "--projects", "p", "-cstmt", "-axcov",
-      "--output-dir=report",
-      "-Cc1.ckpt", "-Cc2.ckpt"],
-     out="log-cons.txt")
+xcov(
+    [
+        "coverage",
+        "-P",
+        p,
+        "--projects",
+        "p",
+        "-cstmt",
+        "-axcov",
+        "--output-dir=report",
+        "-Cc1.ckpt",
+        "-Cc2.ckpt",
+    ],
+    out="log-cons.txt",
+)
 check_empty("log-cons.txt")
-check_xcov_reports("report", {
-    "main.adb.xcov": {"+": {5}},
-    "pkg.ads.xcov": {},
-    "pkg.adb.xcov": {"+": {2}},
-    "pkg-test.adb.xcov": {"-": {8, 9}},
-})
+check_xcov_reports(
+    "report",
+    {
+        "main.adb.xcov": {"+": {5}},
+        "pkg.ads.xcov": {},
+        "pkg.adb.xcov": {"+": {2}},
+        "pkg-test.adb.xcov": {"-": {8, 9}},
+    },
+)
 
 thistest.result()

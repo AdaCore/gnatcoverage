@@ -15,18 +15,18 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import gprbuild
 
 
-wd = Wdir('tmp_')
+wd = Wdir("tmp_")
 
 # Copy project sources in the temporary director
 for f in [
-    'pkg_under_test.gpr',
-    'src_under_test',
-    'test1',
-    'test1.gpr',
-    'test2',
-    'test2.gpr'
+    "pkg_under_test.gpr",
+    "src_under_test",
+    "test1",
+    "test1.gpr",
+    "test2",
+    "test2.gpr",
 ]:
-    sync_tree(os.path.join('..', f), f)
+    sync_tree(os.path.join("..", f), f)
 
 
 class Testcase(object):
@@ -36,28 +36,28 @@ class Testcase(object):
 
     @property
     def project_file(self):
-        return f'{self.name}.gpr'
+        return f"{self.name}.gpr"
 
     @property
     def main(self):
-        return f'main_{self.name}'
+        return f"main_{self.name}"
 
     def obj_dir(self, *args):
         return os.path.join(self._objdir, *args)
 
     def exe_dir(self, *args):
-        return os.path.join('bin', *args)
+        return os.path.join("bin", *args)
 
 
 def clean_output_directory():
-    rm('output')
-    mkdir('output')
+    rm("output")
+    mkdir("output")
 
 
-test1 = Testcase('test1', 'obj1')
-test2 = Testcase('test2', 'obj2')
+test1 = Testcase("test1", "obj1")
+test2 = Testcase("test2", "obj2")
 testcases = [test1, test2]
-gprsw_for_cov = GPRswitches(root_project='pkg_under_test.gpr')
+gprsw_for_cov = GPRswitches(root_project="pkg_under_test.gpr")
 
 # Build the test material: program and traces
 trace_files = []
@@ -78,7 +78,7 @@ for testcase in testcases:
 # project. This requires the extended project to have its own ALI/SID files, so
 # build this project (in binary trace mode, to get ALI files) or instrument it
 # (in source trace mode, to get SID files).
-if thistest.options.trace_mode == 'bin':
+if thistest.options.trace_mode == "bin":
     gprbuild(gprsw_for_cov.root_project)
 else:
     xcov_instrument(gprsw=gprsw_for_cov, covlevel=None)
@@ -87,12 +87,12 @@ else:
 # conflicting symbols between test1 and test2, and succeeds to create a report
 # with the expected coverage data.
 clean_output_directory()
-p = checked_xcov(xcov_args + ['--output-dir=output'] + trace_files, 'cons.log')
+p = checked_xcov(xcov_args + ["--output-dir=output"] + trace_files, "cons.log")
 check_xcov_reports(
-    'output',
+    "output",
     {
-        'pkg_under_test.ads.xcov': {},
-        'pkg_under_test.adb.xcov': {'+': {7, 8, 10}},
+        "pkg_under_test.ads.xcov": {},
+        "pkg_under_test.adb.xcov": {"+": {7, 8, 10}},
     },
 )
 

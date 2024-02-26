@@ -9,24 +9,29 @@ wd = Wdir()
 
 
 def check(subdir, opspkg, xreports):
-
     wd.to_subdir(subdir)
 
-    ops_gpr = gprfor(
-        mains=[], prjid="ops", srcdirs="../src/ops", extra=opspkg
+    ops_gpr = gprfor(mains=[], prjid="ops", srcdirs="../src/ops", extra=opspkg)
+
+    TestCase(category=None).run(
+        covcontrol=CovControl(
+            deps=["../ops.gpr"], units_in=[], xreports=xreports
+        )
     )
 
-    TestCase(category=None).run(covcontrol=CovControl(
-        deps=["../ops.gpr"], units_in=[], xreports = xreports
-    ))
 
 # ops.gpr: no attribute
 
 check(
     opspkg="",
-    xreports=["ops.adb", "ops.ads",
-              "ops-andthen.ads", "ops-andthen.adb",
-              "ops-orelse.ads", "ops-orelse.adb"],
+    xreports=[
+        "ops.adb",
+        "ops.ads",
+        "ops-andthen.ads",
+        "ops-andthen.adb",
+        "ops-orelse.ads",
+        "ops-orelse.adb",
+    ],
     subdir="wd_1",
 )
 
@@ -50,8 +55,8 @@ check(
 
 check(
     opspkg=gprcov_for(
-        units_in=["ops", "ops.orelse", "ops.andthen"],
-        units_out=["ops.orelse"]),
+        units_in=["ops", "ops.orelse", "ops.andthen"], units_out=["ops.orelse"]
+    ),
     xreports=["ops.ads", "ops.adb", "ops-andthen.ads", "ops-andthen.adb"],
     subdir="wd_3",
 )

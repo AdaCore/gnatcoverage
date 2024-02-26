@@ -10,34 +10,54 @@ import re
 
 from e3.fs import ls
 
-from .cnotes import (KnoteDict, Enote, elNoteKinds, lNoCode, lFullCov,
-                     lPartCov, lNoCov, lNotCoverable, lUndetCov, lx0, lx1,
-                     lx2)
+from .cnotes import (
+    KnoteDict,
+    Enote,
+    elNoteKinds,
+    lNoCode,
+    lFullCov,
+    lPartCov,
+    lNoCov,
+    lNotCoverable,
+    lUndetCov,
+    lx0,
+    lx1,
+    lx2,
+)
 from .segments import Line
 from .tfiles import Tfile
 
 
 class LnotesExpander:
-
-    NK_for = {'.': lNoCode, '0': lNotCoverable, '?': lUndetCov,
-              '+': lFullCov, '-': lNoCov, '!': lPartCov,
-              '#': lx0, '*': lx1, '@': lx2}
+    NK_for = {
+        ".": lNoCode,
+        "0": lNotCoverable,
+        "?": lUndetCov,
+        "+": lFullCov,
+        "-": lNoCov,
+        "!": lPartCov,
+        "#": lx0,
+        "*": lx1,
+        "@": lx2,
+    }
 
     def process_tline(self, tline):
-        m = re.match(r'\s*([0-9]+) (.):', tline.text)
+        m = re.match(r"\s*([0-9]+) (.):", tline.text)
         if m:
             self.elnotes[self.source].register(
-                Enote(kind=self.NK_for[m.group(2)],
-                      segment=Line(int(m.group(1))),
-                      source=self.source))
+                Enote(
+                    kind=self.NK_for[m.group(2)],
+                    segment=Line(int(m.group(1))),
+                    source=self.source,
+                )
+            )
 
     def listing_to_enotes(self, dotxcov):
-        self.source = dotxcov.rsplit('.', 1)[0]
+        self.source = dotxcov.rsplit(".", 1)[0]
         self.elnotes[self.source] = KnoteDict(elNoteKinds)
         Tfile(filename=dotxcov, process=self.process_tline)
 
     def __init__(self, dotxcov_pattern):
-
         # xcov --annotate=xcov produces a set of .xcov annotated unit sources,
         # each featuring a synthetic note per line.
 

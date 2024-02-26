@@ -21,14 +21,17 @@ macro_args = [
 ]
 copts_args = "--c-opts=" + ",".join(macro_args)
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."],
-                                          mains=["test_macros.c"])),
+    gprsw=GPRswitches(
+        root_project=gprfor(srcdirs=[".."], mains=["test_macros.c"])
+    ),
     covlevel="stmt+mcdc",
     mains=["test_macros"],
     extra_instr_args=[copts_args],
-    extra_coverage_args=["--annotate=xcov+"]
+    extra_coverage_args=["--annotate=xcov+"],
 )
 
-thistest.fail_if_diff(os.path.join("..", "test_macros.c.xcov.expected"),
-                      os.path.join("obj", "test_macros.c.xcov"))
+thistest.fail_if_diff(
+    os.path.join("..", "test_macros.c.xcov.expected"),
+    os.path.join("obj", "test_macros.c.xcov"),
+)
 thistest.result()

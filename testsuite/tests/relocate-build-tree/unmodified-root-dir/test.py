@@ -14,7 +14,7 @@ from SUITE.tutils import gprfor
 
 
 expected_reports = {
-    "ops.adb.xcov": {'+': {4, 5}, '-': {6}},
+    "ops.adb.xcov": {"+": {4, 5}, "-": {6}},
     "ops.ads.xcov": {},
 }
 

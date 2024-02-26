@@ -25,19 +25,19 @@ from SUITE.cutils import output_of, version
 
 
 # List of languages we support qualification tests for
-QLANGUAGES = ['Ada']
+QLANGUAGES = ["Ada"]
 
 # String that identifies a qualification test at the beginning of it's
 # sub-directory name relative to the testsuite root
-QROOTDIR = 'Qualif'
+QROOTDIR = "Qualif"
 
 # Extension of datafiles dumped for the purpose of the STR document
 # production
-STREXT = '.dump'
+STREXT = ".dump"
 
 # Name of a directory where context data aimed at the STR production engine
 # will be dropped by the testsuite execution driver
-QSTRBOX_DIR = '_strbox'
+QSTRBOX_DIR = "_strbox"
 
 
 #
@@ -58,41 +58,45 @@ QSTRBOX_DIR = '_strbox'
 
 # Name of a file, relative to the testsuite toplevel directory, where the
 # testsuite data of use for the STR production will be made available.
-CTXDATA_FILE = os.path.join(QSTRBOX_DIR, 'suite' + STREXT)
+CTXDATA_FILE = os.path.join(QSTRBOX_DIR, "suite" + STREXT)
 
 
 def TOOL_info(exename, ver=None):
     """Context data for a tool involved in a testsuite run."""
-    return {'exename': exename,
-            'version': ver or version(exename)}
+    return {"exename": exename, "version": ver or version(exename)}
 
 
 def OPT_info_from(options):
     """Context data for the command line options info of relevance."""
-    return {'target': options.target,
-            'board': options.board,
-            'trace_mode': options.trace_mode,
-            'dolevel': options.qualif_level,
-            'cargs': options.cargs,
-            'cargs_Ada': options.cargs_Ada,
-            'cargs_C': options.cargs_C}
+    return {
+        "target": options.target,
+        "board": options.board,
+        "trace_mode": options.trace_mode,
+        "dolevel": options.qualif_level,
+        "cargs": options.cargs,
+        "cargs_Ada": options.cargs_Ada,
+        "cargs_C": options.cargs_C,
+    }
 
 
-def SUITE_context(treeref, runstamp, host, cmdline, options, gnatpro, gnatemu,
-                  gnatcov, other):
+def SUITE_context(
+    treeref, runstamp, host, cmdline, options, gnatpro, gnatemu, gnatcov, other
+):
     """
     Toplevel context data structure, wrapping up all the relevant items
     together.
     """
-    return {'runstamp': runstamp,
-            'treeref': treeref,
-            'cmdline': cmdline,
-            'options': options,
-            'host': host,
-            'gnatpro': gnatpro,
-            'gnatemu': gnatemu,
-            'gnatcov': gnatcov,
-            'other': other}
+    return {
+        "runstamp": runstamp,
+        "treeref": treeref,
+        "cmdline": cmdline,
+        "options": options,
+        "host": host,
+        "gnatpro": gnatpro,
+        "gnatemu": gnatemu,
+        "gnatcov": gnatcov,
+        "other": other,
+    }
 
 
 class TC_status:
@@ -111,6 +115,7 @@ class TC_status:
 #
 # Qualification Data classes, filled and dumped by testcases
 #
+
 
 class QDentry:
     def __init__(self, xfile, drivers, xrnotes, wdir):
@@ -132,6 +137,7 @@ class Qdata:
     sequence of QDentry instances; typically one per SCOV_helper execution
     (that is, per driver + consolidation spec).
     """
+
     def __init__(self, tcid):
         # These are filled and dumped by the testcase execution itself:
         self.entries = []
@@ -143,10 +149,10 @@ class Qdata:
         self.entries.append(ob)
 
     def flush(self):
-        dutils.pdump_to(qdaf_in('.'), o=self)
+        dutils.pdump_to(qdaf_in("."), o=self)
 
 
-QUALDATA_FILE = 'tc' + STREXT
+QUALDATA_FILE = "tc" + STREXT
 
 
 def qdaf_in(dirname):
@@ -158,7 +164,7 @@ def qdaf_in(dirname):
     return os.path.join(dirname, QUALDATA_FILE)
 
 
-STATUSDATA_FILE = 'tcs' + STREXT
+STATUSDATA_FILE = "tcs" + STREXT
 
 
 def stdf_in(dirname):
@@ -174,4 +180,4 @@ def treeref_at(dirname):
     directory trees.
     """
     # Assuming git, sha1 for the HEAD reference
-    return output_of('git rev-parse HEAD', dir=dirname).rstrip('\n')
+    return output_of("git rev-parse HEAD", dir=dirname).rstrip("\n")

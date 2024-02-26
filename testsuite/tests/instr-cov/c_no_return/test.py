@@ -17,17 +17,17 @@ tmp_no_return = Wdir("tmp_no_return")
 # Check when the main function does not exit through a return
 build_run_and_coverage(
     gprsw=GPRswitches(
-        root_project=gprfor(srcdirs=[os.path.join("..", "no_return")], mains=["main.c"])
+        root_project=gprfor(
+            srcdirs=[os.path.join("..", "no_return")], mains=["main.c"]
+        )
     ),
     covlevel="stmt",
     mains=["main"],
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
     trace_mode="src",
     dump_trigger="main-end",
-
     # With older toolchains, a missing return results in an arbitrary exit
     # code, so let's ignore failures.
-
     register_failure=False,
 )
 check_xcov_reports(

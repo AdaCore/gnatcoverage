@@ -8,7 +8,7 @@ from SUITE.cutils import Wdir, match
 from SUITE.tutils import exepath_to, tracename_for, xcov, xrun
 
 
-Wdir('tmp_')
+Wdir("tmp_")
 
 # gprbuild(project = gprfor(['test_robots.adb']))
 
@@ -24,9 +24,16 @@ Wdir('tmp_')
 #
 # We seek the reported status of the associated cond branch instructions
 # directly:
-xrun(exepath_to('../test_robots'))
-xcov(['coverage', '--level=branch', '--annotate=asm',
-      tracename_for('test_robots')], 'robots.out')
+xrun(exepath_to("../test_robots"))
+xcov(
+    [
+        "coverage",
+        "--level=branch",
+        "--annotate=asm",
+        tracename_for("test_robots"),
+    ],
+    "robots.out",
+)
 
 # Expect something like ...
 
@@ -36,9 +43,13 @@ xcov(['coverage', '--level=branch', '--annotate=asm',
 #   18 +:         and then Unsafe (C)
 # [...]
 # fffc0204 >:  40 9e 00 20  bne-   cr7,0xfffc0238 <robots__run+00000078>
-thistest.fail_if(not match('fff003dc v:  40 9e 00 20      bne', 'robots.out'),
-                 'expect Mode = Cautious always true')
-thistest.fail_if(not match('fff003f8 v:  40 9e 00 48      bne', 'robots.out'),
-                 'expect Unsafe (C) always false')
+thistest.fail_if(
+    not match("fff003dc v:  40 9e 00 20      bne", "robots.out"),
+    "expect Mode = Cautious always true",
+)
+thistest.fail_if(
+    not match("fff003f8 v:  40 9e 00 48      bne", "robots.out"),
+    "expect Unsafe (C) always false",
+)
 
 thistest.result()

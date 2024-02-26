@@ -101,7 +101,7 @@ run_log = "run.log"
 # Ignore exit status as there's no way with a light runtime to set the exit
 # status to 0.
 run_cov_program(
-    exepath_to ("main"),
+    exepath_to("main"),
     out=run_log,
     register_failure=False,
 )

@@ -68,15 +68,17 @@ for section in sections:
 
 thistest.fail_if_not_equal(
     "'gnatcov instrument' output",
-    "\n".join([
-        "<pre-section>",
-        "Coverage instrumentation",
-        "   [Ada]           main",
-        "   [C++]           cpp_unit.cpp",
-        "   [C]             c_unit.c",
-        "Main instrumentation",
-        "   [Ada]           main",
-    ]),
+    "\n".join(
+        [
+            "<pre-section>",
+            "Coverage instrumentation",
+            "   [Ada]           main",
+            "   [C++]           cpp_unit.cpp",
+            "   [C]             c_unit.c",
+            "Main instrumentation",
+            "   [Ada]           main",
+        ]
+    ),
     "\n".join(sorted_lines),
 )
 

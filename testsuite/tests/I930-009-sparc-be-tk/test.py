@@ -8,7 +8,7 @@ from SUITE.cutils import Wdir, match
 from SUITE.tutils import exepath_to, tracename_for, xcov, xrun
 
 
-Wdir('tmp_')
+Wdir("tmp_")
 
 # gprbuild(project = gprfor(['test_robots.adb']))
 # gprbuild('test_cond.gpr');
@@ -25,10 +25,19 @@ Wdir('tmp_')
 
 # We seek the reported status of the associated cond branch instructions
 # directly:
-xrun(exepath_to('../test_cond'))
-xcov(['coverage', '--level=branch', '--annotate=asm',
-      tracename_for('test_cond')], 'cond.out')
-thistest.fail_if(not match('40001400 >:  12 80 00 04      bne', 'cond.out'),
-                 'branch should be taken')
+xrun(exepath_to("../test_cond"))
+xcov(
+    [
+        "coverage",
+        "--level=branch",
+        "--annotate=asm",
+        tracename_for("test_cond"),
+    ],
+    "cond.out",
+)
+thistest.fail_if(
+    not match("40001400 >:  12 80 00 04      bne", "cond.out"),
+    "branch should be taken",
+)
 
 thistest.result()

@@ -67,7 +67,7 @@ thistest.log("=== Step 3: all units in obj/xcov ===")
 check_one(
     ["main.adb", "pkg.adb", "pkg.ads"],
     os.path.join("obj", "xcov"),
-    xcov_args + ["-axcov,html"]
+    xcov_args + ["-axcov,html"],
 )
 
 # An finally check that the subdir is also cleaned when once again generating

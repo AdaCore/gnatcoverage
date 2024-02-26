@@ -31,18 +31,18 @@ class Spoint:
         self.c = col
 
     def pastoreq(self, other):
-        return (self.lineno > other.lineno
-                or (self.lineno == other.lineno
-                    and (self.c >= other.c or other.c == 0)))
+        return self.lineno > other.lineno or (
+            self.lineno == other.lineno and (self.c >= other.c or other.c == 0)
+        )
 
     def beforeq(self, other):
-        return (self.lineno < other.lineno
-                or (self.lineno == other.lineno
-                    and (self.c <= other.c or other.c == 0)))
+        return self.lineno < other.lineno or (
+            self.lineno == other.lineno and (self.c <= other.c or other.c == 0)
+        )
 
 
 def Spoint_from(text):
-    items = text.split(':', 1)
+    items = text.split(":", 1)
     return Spoint(line=int(items[0]), col=int(items[1]))
 
 
@@ -52,12 +52,14 @@ def Spoint_from(text):
 # gnatcov outputs. The _str_ images do not need to match the format expected
 # by their _from sibling in the same class.
 
+
 class Section:
     """
     A Section is the association of two slocs to materialize the start and the
     end of a source section, and which knows to determine if it is included
     within another section.
     """
+
     #        ...
     #  l0 -> 3: if a and then b then
     #           ^
@@ -75,27 +77,35 @@ class Section:
         self.sp1 = Spoint(line=l1, col=c1)
 
     def within(self, other):
-        return (self.sp0.pastoreq(other.sp0)
-                and self.sp1.beforeq(other.sp1))
+        return self.sp0.pastoreq(other.sp0) and self.sp1.beforeq(other.sp1)
 
     def __str__(self):
         return "section %d:%d-%d:%d" % (
-            self.sp0.lineno, self.sp0.c, self.sp1.lineno, self.sp1.c)
+            self.sp0.lineno,
+            self.sp0.c,
+            self.sp1.lineno,
+            self.sp1.c,
+        )
 
 
 def Section_from(text):
-    topitems = text.split('-', 1)
-    subitems0 = topitems[0].split(':', 1)
-    subitems1 = topitems[1].split(':', 1)
-    return Section(l0=int(subitems0[0]), c0=int(subitems0[1]),
-                   l1=int(subitems1[0]), c1=int(subitems1[1]))
+    topitems = text.split("-", 1)
+    subitems0 = topitems[0].split(":", 1)
+    subitems1 = topitems[1].split(":", 1)
+    return Section(
+        l0=int(subitems0[0]),
+        c0=int(subitems0[1]),
+        l1=int(subitems1[0]),
+        c1=int(subitems1[1]),
+    )
 
 
-class Segment (Section):
+class Segment(Section):
     """
     A Segment is a Section for which the start and end are known to be on the
     same line.
     """
+
     def __init__(self, lno, clo, chi):
         Section.__init__(self, l0=lno, c0=clo, l1=lno, c1=chi)
 
@@ -104,15 +114,16 @@ class Segment (Section):
 
 
 def Segment_from(text):
-    topitems = text.split(':', 1)
-    subitems = topitems[1].split('-', 1)
-    return Segment(lno=int(topitems[0]),
-                   clo=int(subitems[0]),
-                   chi=int(subitems[1]))
+    topitems = text.split(":", 1)
+    subitems = topitems[1].split("-", 1)
+    return Segment(
+        lno=int(topitems[0]), clo=int(subitems[0]), chi=int(subitems[1])
+    )
 
 
 class Line(Segment):
     """A Line is a Segment spanning from first to last column."""
+
     def __init__(self, lno):
         Segment.__init__(self, lno=lno, clo=0, chi=0)
 
@@ -121,7 +132,7 @@ class Line(Segment):
 
 
 def Line_from(text):
-    items = text.split(':', 1)
+    items = text.split(":", 1)
     return Line(lno=int(items[0]))
 
 
@@ -129,6 +140,7 @@ class Point(Segment):
     """
     A Point is a Segment for which the start and end columns are identical.
     """
+
     def __init__(self, lno, col):
         Segment.__init__(self, lno=lno, clo=col, chi=col)
 
@@ -137,7 +149,7 @@ class Point(Segment):
 
 
 def Point_from(text):
-    items = text.split(':', 1)
+    items = text.split(":", 1)
     return Point(lno=int(items[0]), col=int(items[1]))
 
 
@@ -188,15 +200,16 @@ class Sloc:
 
     # Note that the registered LANGINFO extensions embed the '.'  character,
 
-    re = '(?P<sbase>[^ ]*)(?P<ext>%s):(?P<sec>[^ ]*)' % '|'.join(
-        ext
-        for li in LANGINFO.values()
-        for ext in li.src_ext)
+    re = "(?P<sbase>[^ ]*)(?P<ext>%s):(?P<sec>[^ ]*)" % "|".join(
+        ext for li in LANGINFO.values() for ext in li.src_ext
+    )
 
 
 def Sloc_from_match(m):
-    return Sloc(filename=''.join([m.group("sbase"), m.group("ext")]),
-                section=Section_within(m.group("sec")))
+    return Sloc(
+        filename="".join([m.group("sbase"), m.group("ext")]),
+        section=Section_within(m.group("sec")),
+    )
 
 
 def Sloc_from(text):

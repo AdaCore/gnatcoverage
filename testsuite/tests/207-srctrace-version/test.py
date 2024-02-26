@@ -36,7 +36,7 @@ p = xcov(
         "-T=../reference.srctrace",
     ],
     register_failure=False,
-    out=coverage_log
+    out=coverage_log,
 )
 
 # If there was an error, the trace format changed between when the trace was
@@ -47,8 +47,8 @@ if p.status != 0:
         "*** Ensure the trace format version was properly bumped if you made a"
         " breaking change in the trace format ***\n",
         regexp=r".*gnatcov(\.exe)?: ../reference.srctrace:"
-               r" unsupported format version",
-        actual=contents_of(coverage_log)
+        r" unsupported format version",
+        actual=contents_of(coverage_log),
     )
 
     # If the correct message was found then great, the trace format number was
@@ -67,8 +67,8 @@ else:
         ".",
         {
             "main.adb.xcov": {"+": {15, 16}, "!": {12}},
-            "foo.c.xcov": {"!": {6}}
-        }
+            "foo.c.xcov": {"!": {6}},
+        },
     )
 
 thistest.result()

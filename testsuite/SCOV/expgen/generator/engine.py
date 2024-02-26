@@ -39,15 +39,15 @@ def run(group_py):
         with env.get_dir(group_py_dir):
             generate_all(env)
     except GenerationError as e:
-        sys.stderr.write('{}: error: {}\n'.format(e.context, e.message))
+        sys.stderr.write("{}: error: {}\n".format(e.context, e.message))
         sys.exit(1)
 
 
 def generate_all(env):
     """Generate code for all topology directories in the current directory."""
     # Each directory contains drivers for a given topology.
-    for topo_dir in os.listdir('.'):
-        if not os.path.isdir(topo_dir) or topo_dir == 'src':
+    for topo_dir in os.listdir("."):
+        if not os.path.isdir(topo_dir) or topo_dir == "src":
             continue
         with env.get_dir(topo_dir):
             generate_topology(topo_dir, env)
@@ -60,27 +60,28 @@ def generate_topology(topo_dir, env):
 
     # Look at all drivers to collect the truth vectors involved. Extract the
     # topology used and check that each driver use the same one.
-    with env.get_dir('src'):
-        for driver in os.listdir('.'):
-            if not driver.startswith('test_') or not driver.endswith('.adb'):
+    with env.get_dir("src"):
+        for driver in os.listdir("."):
+            if not driver.startswith("test_") or not driver.endswith(".adb"):
                 continue
 
-            drv_topo = parsing.parse_driver(
-                topo_dir, driver, truth_vectors
-            )
+            drv_topo = parsing.parse_driver(topo_dir, driver, truth_vectors)
 
             # Check that this driver has a topology and that its topology is
             # not different from others.
             if drv_topo is None:
                 raise DriverError(
-                    topo_dir, driver, None, 'This driver has no topology')
-            elif (
-                topo is not None
-                and not utils.is_topology_equal(topo.expression, drv_topo)
+                    topo_dir, driver, None, "This driver has no topology"
+                )
+            elif topo is not None and not utils.is_topology_equal(
+                topo.expression, drv_topo
             ):
                 raise DriverError(
-                    topo_dir, driver, None,
-                    'This driver has a different topology from other one')
+                    topo_dir,
+                    driver,
+                    None,
+                    "This driver has a different topology from other one",
+                )
             topo = topology.Topology(drv_topo)
 
     # If we happen to get here for subdirectories that are not aimed at
@@ -116,7 +117,7 @@ def generate_language(env, topo, truth_vectors, lang):
         ]
         first_unused_op_kind = i + topo.arity
 
-        with env.get_dir('Op{}'.format(i)):
+        with env.get_dir("Op{}".format(i)):
             generate_ctx_op(env, topo, truth_vectors, lang, ctx, op_kinds)
 
     # If some operand kinds were not used in the previous combination, use them
@@ -140,15 +141,12 @@ def generate_language(env, topo, truth_vectors, lang):
                 operand_kinds_to_test[(k + j) % len(operand_kinds_to_test)]
                 for j in range(topo.arity)
             ]
-            with env.get_dir('Op{}'.format(i)):
+            with env.get_dir("Op{}".format(i)):
                 generate_ctx_op(env, topo, truth_vectors, lang, ctx, op_kinds)
 
 
 def generate_ctx_op(env, topo, truth_vectors, lang, ctx, op_kinds):
-    formal_names = [
-        'X{}'.format(i + 1)
-        for i in range(topo.arity)
-    ]
+    formal_names = ["X{}".format(i + 1) for i in range(topo.arity)]
     operands = [
         op_kind.get_operand(name)
         for name, op_kind in zip(formal_names, op_kinds)
@@ -159,26 +157,25 @@ def generate_ctx_op(env, topo, truth_vectors, lang, ctx, op_kinds):
     program = ctx.get_program(decision)
 
     # Generate the needed type declarations in the TYPES module.
-    used_types = utils.make_type_set(sum(
-        (tuple(op_kind.used_types) for op_kind in op_kinds),
-        ()
-    ))
+    used_types = utils.make_type_set(
+        sum((tuple(op_kind.used_types) for op_kind in op_kinds), ())
+    )
 
-    with env.get_dir('src'):
+    with env.get_dir("src"):
         # First generate types needed by operands.
         with open(
-            lang.get_specification_filename(lang.TYPES_MODULE), 'w'
+            lang.get_specification_filename(lang.TYPES_MODULE), "w"
         ) as types_fp:
             lang.serialize_specification_types(types_fp, used_types)
 
         # Then generate the ADA binding for the run module...
         with open(
-            ada.get_specification_filename(ada.RUN_MODULE), 'w'
+            ada.get_specification_filename(ada.RUN_MODULE), "w"
         ) as run_fp:
             ada.serialize_run_module_interface(run_fp, lang, truth_vectors)
         # ... and the run module itself, in the decided language.
         with open(
-            lang.get_implementation_filename(lang.RUN_MODULE), 'w'
+            lang.get_implementation_filename(lang.RUN_MODULE), "w"
         ) as run_fp:
             lang.serialize_run_module_implementation(
                 run_fp, op_kinds, truth_vectors
@@ -187,59 +184,59 @@ def generate_ctx_op(env, topo, truth_vectors, lang, ctx, op_kinds):
         # And finally generate the specification and the implementation for the
         # computing module.
         with open(
-            lang.get_specification_filename(lang.COMPUTING_MODULE), 'w'
+            lang.get_specification_filename(lang.COMPUTING_MODULE), "w"
         ) as comp_fp:
             lang.serialize_specification_program(
                 comp_fp, program, formal_names, formal_types
             )
 
         with open(
-            lang.get_implementation_filename(lang.COMPUTING_MODULE), 'w'
+            lang.get_implementation_filename(lang.COMPUTING_MODULE), "w"
         ) as comp_fp:
-
             # Prepend the "computing" module implementation with some comments
             # documenting the operands usage and the target of the context.
 
             def get_doc(instance):
-                text = type(instance).__doc__ or '<no documentation>'
-                text = ' '.join(text.split())
+                text = type(instance).__doc__ or "<no documentation>"
+                text = " ".join(text.split())
                 return textwrap.wrap(text, 72)
 
             lines = []
-            lines.append('Operands:')
+            lines.append("Operands:")
             for name, op_kind in zip(formal_names, op_kinds):
-                lines.append('  - {}: {}'.format(name, type(op_kind).__name__))
+                lines.append("  - {}: {}".format(name, type(op_kind).__name__))
                 lines.extend(
-                    '    {}'.format(line)
-                    for line in get_doc(op_kind)
+                    "    {}".format(line) for line in get_doc(op_kind)
                 )
-            lines.append('Context: {}'.format(type(ctx).__name__))
-            lines.extend(
-                '    {}'.format(line)
-                for line in get_doc(ctx)
-            )
+            lines.append("Context: {}".format(type(ctx).__name__))
+            lines.extend("    {}".format(line) for line in get_doc(ctx))
 
             # Serialize the implementation code itself.
             for line in lines:
                 comp_fp.write(lang.format_comment(line))
-                comp_fp.write('\n')
-            comp_fp.write('\n')
+                comp_fp.write("\n")
+            comp_fp.write("\n")
             lang.serialize_implementation(
-                comp_fp, program, formal_names, formal_types,
-                one_operand_per_line
+                comp_fp,
+                program,
+                formal_names,
+                formal_types,
+                one_operand_per_line,
             )
 
     # The "test.py" testcase file is hardcoded...
-    with open('test.py', 'w') as test_fp:
-        test_fp.write("""\
+    with open("test.py", "w") as test_fp:
+        test_fp.write(
+            """\
 from SCOV.tc import *
 from SCOV.tctl import CAT
 
 [TestCase(category=cat).run() for cat in CAT.critcats]
 thistest.result()
-""")
+"""
+        )
 
     # Properly tag it as generated, so that the testsuite framework does not
     # treat it as a regular testcase next time.
-    with open('.generated', 'w'):
+    with open(".generated", "w"):
         pass

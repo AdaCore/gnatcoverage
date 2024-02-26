@@ -5,22 +5,20 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import exepath_to, gprbuild, gprfor, xcov, xrun
 
 
-wd = Wdir('wd_')
+wd = Wdir("wd_")
 
 # We have two candidate main drivers. Craft a gpr
 # with a Main attribute listing only the first one.
 
-mainbase1 = 'test_tt'
-mainunit1 = mainbase1 + '.adb'
+mainbase1 = "test_tt"
+mainunit1 = mainbase1 + ".adb"
 exe1 = exepath_to(mainbase1)
 
-mainbase2 = 'test_tf'
-mainunit2 = mainbase2 + '.adb'
+mainbase2 = "test_tf"
+mainunit2 = mainbase2 + ".adb"
 exe2 = exepath_to(mainbase2)
 
-gprname = gprfor(
-    srcdirs=['../../../../src', '../../src'],
-    mains=[mainunit1])
+gprname = gprfor(srcdirs=["../../../../src", "../../src"], mains=[mainunit1])
 
 # Build both executables, passing both main unit
 # names on the command line:
@@ -32,22 +30,23 @@ gprbuild(project=gprname, gargs=[mainunit1, mainunit2])
 # at least an entry showing actual execution of something
 # for this particular case.
 
+
 def check(explicit_exe):
-
     outbase = explicit_exe if explicit_exe else "noexe"
-    trace = '%s.trace' % outbase
-    dump = '%s.dt' % outbase
+    trace = "%s.trace" % outbase
+    dump = "%s.dt" % outbase
 
-    runcmd = ['-P', gprname, '-o', trace]
+    runcmd = ["-P", gprname, "-o", trace]
     if explicit_exe:
         runcmd.append(explicit_exe)
 
     xrun(runcmd)
-    xcov(['dump-trace', trace], out=dump)
+    xcov(["dump-trace", trace], out=dump)
 
     thistest.fail_if(
-        len(re.findall('t block$', contents_of(dump), flags=re.M)) < 1,
-        'with %s, no block trace entry found in %s' % (outbase, trace))
+        len(re.findall("t block$", contents_of(dump), flags=re.M)) < 1,
+        "with %s, no block trace entry found in %s" % (outbase, trace),
+    )
 
 
 # With an explicit exe1, we just confirm what the Main attribute

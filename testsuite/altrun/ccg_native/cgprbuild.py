@@ -60,7 +60,10 @@ def main():
     parser.add_argument("--src-subdirs", dest="src_subdirs")
     parser.add_argument("--implicit-with", dest="implicit_with")
     parser.add_argument(
-        "-X", dest="scenario", action="append", type=parse_scenario,
+        "-X",
+        dest="scenario",
+        action="append",
+        type=parse_scenario,
     )
     parser.add_argument("-v", dest="verbose", action="store_true")
 
@@ -71,7 +74,9 @@ def main():
     # Substitute the "--implicit-with=gnatcov_rts.gpr" to point it toward our
     # own custom RTS.
     ccg_gnatcov_rts = os.path.join(
-        altrun_dir, "ccg_gnatcov_rts", "gnatcov_rts.gpr",
+        altrun_dir,
+        "ccg_gnatcov_rts",
+        "gnatcov_rts.gpr",
     )
     custom_rts_dir = None
     if args.implicit_with and "gnatcov_rts" in args.implicit_with:
@@ -117,9 +122,9 @@ def main():
 
     # Assume single main per project file
     main_name = os.path.basename(get_attr(prj, "Main")).split(".")[0]
-    prj_dir   = get_attr(prj, "Project_Dir")
-    exec_dir  = os.path.join(prj_dir, get_attr(prj, "Exec_Dir"))
-    obj_dir   = os.path.join(prj_dir, get_attr(prj, "Object_Dir"))
+    prj_dir = get_attr(prj, "Project_Dir")
+    exec_dir = os.path.join(prj_dir, get_attr(prj, "Exec_Dir"))
+    obj_dir = os.path.join(prj_dir, get_attr(prj, "Object_Dir"))
 
     # Get the list of all the generated C files that need to be compiled. gprls
     # will return a list of ".o" files, so replace the extension to ".c"

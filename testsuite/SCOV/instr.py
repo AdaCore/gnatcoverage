@@ -15,19 +15,21 @@ def default_dump_trigger(mains):
     if thistest.options.default_dump_trigger:
         return thistest.options.default_dump_trigger
     elif RUNTIME_INFO.has_full_runtime:
-        return 'atexit'
+        return "atexit"
 
     # It does not make sense to have a dump-trigger=ravenscar-task-termination
     # if the main is not an Ada program.
-    elif (all([ext(main) == 'adb' for main in mains])
-          and RUNTIME_INFO.has_ravenscar_runtime
-          # TODO: There seems to be a problem with light-tasking runtimes and
-          # task-termination, so default back to main end in that case.
-          # See eng/cov/gnatcoverage#191
-          and "light-tasking" not in RUNTIME_INFO.runtime_name):
-        return 'ravenscar-task-termination'
+    elif (
+        all([ext(main) == "adb" for main in mains])
+        and RUNTIME_INFO.has_ravenscar_runtime
+        # TODO: There seems to be a problem with light-tasking runtimes and
+        # task-termination, so default back to main end in that case.
+        # See eng/cov/gnatcoverage#191
+        and "light-tasking" not in RUNTIME_INFO.runtime_name
+    ):
+        return "ravenscar-task-termination"
     else:
-        return 'main-end'
+        return "main-end"
 
 
 def default_dump_channel():
@@ -35,17 +37,28 @@ def default_dump_channel():
     if thistest.options.default_dump_channel:
         return thistest.options.default_dump_channel
     elif RUNTIME_INFO.has_full_runtime:
-        return 'bin-file'
+        return "bin-file"
     else:
-        return 'base64-stdout'
+        return "base64-stdout"
 
 
-def xcov_instrument(gprsw, covlevel, quiet=True, extra_args=[],
-                    dump_trigger="auto", dump_channel="auto", gpr_obj_dir=None,
-                    runtime_project=None, out=None, err=None,
-                    tolerate_messages=None, register_failure=True,
-                    auto_config_args=True, auto_target_args=True,
-                    auto_languages=True):
+def xcov_instrument(
+    gprsw,
+    covlevel,
+    quiet=True,
+    extra_args=[],
+    dump_trigger="auto",
+    dump_channel="auto",
+    gpr_obj_dir=None,
+    runtime_project=None,
+    out=None,
+    err=None,
+    tolerate_messages=None,
+    register_failure=True,
+    auto_config_args=True,
+    auto_target_args=True,
+    auto_languages=True,
+):
     """
     Run "gnatcov instrument" on a project.
 
@@ -82,7 +95,7 @@ def xcov_instrument(gprsw, covlevel, quiet=True, extra_args=[],
     if gpr_obj_dir:
         mkdir(gpr_obj_dir)
 
-    covlevel_args = [] if covlevel is None else ['--level', covlevel]
+    covlevel_args = [] if covlevel is None else ["--level", covlevel]
 
     # We want to get the mains to know which dump-trigger should be passed to
     # the instrumentation command.
@@ -96,10 +109,10 @@ def xcov_instrument(gprsw, covlevel, quiet=True, extra_args=[],
     # If found, split then remove whitespaces and double quotes
     mains = []
     if m:
-        mains = m.group('mains').split(',')
+        mains = m.group("mains").split(",")
         mains = [main.strip(' "') for main in mains]
 
-    args = ['instrument'] + covlevel_args
+    args = ["instrument"] + covlevel_args
     if quiet:
         args.append("--quiet")
 
@@ -117,7 +130,7 @@ def xcov_instrument(gprsw, covlevel, quiet=True, extra_args=[],
     args += gprsw.cov_switches + extra_args
 
     if thistest.options.pretty_print:
-        args.append('--pretty-print')
+        args.append("--pretty-print")
 
     out = out or "instrument.log"
     result = xcov(
@@ -140,9 +153,9 @@ def xcov_instrument(gprsw, covlevel, quiet=True, extra_args=[],
     # effort attempt at creating objects dirs beforehand but doing
     # that is cumbersome for some of the more convoluted tests.
     if GNATCOV_INFO.major_at_most(22):
-        re_tolerate_messages = '|'.join(
-            "(?:{})".format(mre) for mre in [
-                "object directory.*not found", re_tolerate_messages]
+        re_tolerate_messages = "|".join(
+            "(?:{})".format(mre)
+            for mre in ["object directory.*not found", re_tolerate_messages]
         )
 
     if register_failure:
@@ -155,25 +168,33 @@ def xcov_instrument(gprsw, covlevel, quiet=True, extra_args=[],
         #    app.gpr:4:23: warning: object directory "obj" not found
 
         messages = re.findall(
-            pattern="(?:!!!|\*\*\*|warning:).*$", string=output,
-            flags=re.MULTILINE)
+            pattern="(?:!!!|\*\*\*|warning:).*$",
+            string=output,
+            flags=re.MULTILINE,
+        )
 
         unexpected_messages = [
-            w for w in messages
+            w
+            for w in messages
             if not re.search(pattern=re_tolerate_messages, string=w)
         ]
         thistest.fail_if(
             unexpected_messages,
             f"Unexpected messages in the output of 'gnatcov instrument':"
-            f"\n{indent(output)}" + \
-            (f"\n(allowed: {tolerate_messages})" if tolerate_messages else "")
+            f"\n{indent(output)}"
+            + (
+                f"\n(allowed: {tolerate_messages})"
+                if tolerate_messages
+                else ""
+            ),
         )
 
     return result
 
 
-def xcov_convert_base64(base64_file, output_trace_file, out=None, err=None,
-                        register_failure=True):
+def xcov_convert_base64(
+    base64_file, output_trace_file, out=None, err=None, register_failure=True
+):
     """Extract a trace file out of a Base64 file.
 
     :param str base64_file: Name of the file to read.
@@ -181,8 +202,12 @@ def xcov_convert_base64(base64_file, output_trace_file, out=None, err=None,
 
     See SUITE.tutils.xcov for the other supported options.
     """
-    xcov(['extract-base64-trace', base64_file, output_trace_file],
-         out=out, err=err, register_failure=register_failure)
+    xcov(
+        ["extract-base64-trace", base64_file, output_trace_file],
+        out=out,
+        err=err,
+        register_failure=register_failure,
+    )
 
 
 def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
@@ -210,7 +235,7 @@ def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
 
     # Make sure we have a lowe-cased project *name* (not a filename)
     project = os.path.basename(project).lower()
-    if project.endswith('.gpr'):
+    if project.endswith(".gpr"):
         project = project[:-4]
 
     # Unit that contain helper routines to dump coverage buffers. There is one
@@ -220,34 +245,44 @@ def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
     # so there should be no problem using the helper unit of a different main.
 
     auto_dump_hash = None
-    for _,_, files in os.walk (os.path.join(obj_dir, f"{project}-gnatcov-instr")):
+    for _, _, files in os.walk(
+        os.path.join(obj_dir, f"{project}-gnatcov-instr")
+    ):
         for file in files:
-            res = re.match(pattern="gcvrt-db_z([0-9a-f]+).adb",string=file)
+            res = re.match(pattern="gcvrt-db_z([0-9a-f]+).adb", string=file)
             if res:
                 auto_dump_hash = res.group(1)
                 break
         if auto_dump_hash:
             break
 
-    assert(auto_dump_hash is not None)
+    assert auto_dump_hash is not None
 
-    auto_dump_unit = 'GCVRT.DB_z{}'.format(auto_dump_hash)
+    auto_dump_unit = "GCVRT.DB_z{}".format(auto_dump_hash)
     handler_unit = "Last_Chance_Dumper"
 
     def filename(prefix, ext):
-        return os.path.join(obj_dir, '{}-gnatcov-instr'.format(project),
-                            '{}.{}'.format(prefix, ext))
+        return os.path.join(
+            obj_dir,
+            "{}-gnatcov-instr".format(project),
+            "{}.{}".format(prefix, ext),
+        )
 
     unit_prefix = handler_unit.lower()
-    with open(filename(unit_prefix, 'ads'), 'w') as f:
-        f.write("""
+    with open(filename(unit_prefix, "ads"), "w") as f:
+        f.write(
+            """
         package {unit_name} is
            procedure Lch_Enter;
            pragma Export (Ada, Lch_Enter, "__lch_enter");
         end {unit_name};
-        """.format(unit_name=handler_unit))
-    with open(filename(unit_prefix, 'adb'), 'w') as f:
-        f.write("""
+        """.format(
+                unit_name=handler_unit
+            )
+        )
+    with open(filename(unit_prefix, "adb"), "w") as f:
+        f.write(
+            """
         with {auto_dump_unit};
 
         package body {unit_name} is
@@ -256,8 +291,10 @@ def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
               {auto_dump_unit}.Dump_Buffers;
            end;
         end {unit_name};
-        """.format(unit_name=handler_unit,
-                   auto_dump_unit=auto_dump_unit))
+        """.format(
+                unit_name=handler_unit, auto_dump_unit=auto_dump_unit
+            )
+        )
 
     # Amend the main unit to "with" the generated package so it gets
     # included in the build. Insert the "with" clause after all pragmas
@@ -296,10 +333,12 @@ def available_ada_dump_triggers():
     """
     if RUNTIME_INFO.has_full_runtime:
         return ["main-end", "atexit"]
-    elif (RUNTIME_INFO.has_ravenscar_runtime
-          # TODO: remove once --dump-trigger=ravenscar-task-termination is
-          # fixed, see eng/das/cov/gnatcoverage#191.
-          and "light-tasking" not in RUNTIME_INFO.runtime_name):
+    elif (
+        RUNTIME_INFO.has_ravenscar_runtime
+        # TODO: remove once --dump-trigger=ravenscar-task-termination is
+        # fixed, see eng/das/cov/gnatcoverage#191.
+        and "light-tasking" not in RUNTIME_INFO.runtime_name
+    ):
         return ["main-end", "ravenscar-task-termination"]
     else:
         return ["main-end"]

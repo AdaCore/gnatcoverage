@@ -27,7 +27,9 @@ build_run_and_coverage(
     covlevel="stmt",
     mains=["main"],
     extra_coverage_args=[
-        "--annotate=xcov", "--output-dir=out-cov", ignore_opt
+        "--annotate=xcov",
+        "--output-dir=out-cov",
+        ignore_opt,
     ],
 )
 check_xcov_reports("out-cov", expected_reports)
@@ -46,7 +48,7 @@ build_run_and_coverage(
     mains=["main"],
     extra_instr_args=[ignore_opt],
     extra_coverage_args=["--annotate=xcov", "--output-dir=out-instr"],
-    trace_mode="src"
+    trace_mode="src",
 )
 check_xcov_reports("out-instr", expected_reports, discard_empty=False)
 tmp.to_homedir()

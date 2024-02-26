@@ -9,27 +9,33 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor
 
 
-tmp = Wdir('wd_')
+tmp = Wdir("wd_")
 
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=gprfor(
-        'main.adb',
-        srcdirs='..',
-        extra=gprcov_for(units_in=['no_such_unit', 'main']))),
-    covlevel='stmt',
-    mains=['main'],
+    gprsw=GPRswitches(
+        root_project=gprfor(
+            "main.adb",
+            srcdirs="..",
+            extra=gprcov_for(units_in=["no_such_unit", "main"]),
+        )
+    ),
+    covlevel="stmt",
+    mains=["main"],
     tolerate_instrument_messages="no unit.*in project",
-    extra_coverage_args=['-axcov'],
+    extra_coverage_args=["-axcov"],
 )
 
-log_file = ('coverage.log'
-            if thistest.options.trace_mode == 'bin' else
-            'instrument.log')
+log_file = (
+    "coverage.log"
+    if thistest.options.trace_mode == "bin"
+    else "instrument.log"
+)
 thistest.fail_if_not_equal(
-    'gnatcov output',
-    'warning: no unit no_such_unit in project gen (coverage.units attribute)',
-    contents_of(log_file).strip())
+    "gnatcov output",
+    "warning: no unit no_such_unit in project gen (coverage.units attribute)",
+    contents_of(log_file).strip(),
+)
 
-check_xcov_reports('obj', {'main.adb.xcov': {'+': {5}}})
+check_xcov_reports("obj", {"main.adb.xcov": {"+": {5}}})
 
 thistest.result()

@@ -13,22 +13,31 @@ wd = Wdir()
 
 # Out overlaps In
 wd.to_subdir("wd_1")
-TestCase(category=None).run(covcontrol=CovControl(
-    units_in=["ops", "ops.andthen"],
-    units_out=["ops.andthen"],
-    xreports=["ops.ads", "ops.adb"]))
+TestCase(category=None).run(
+    covcontrol=CovControl(
+        units_in=["ops", "ops.andthen"],
+        units_out=["ops.andthen"],
+        xreports=["ops.ads", "ops.adb"],
+    )
+)
 
-TestCase(category=None).run(covcontrol=CovControl(
-    units_in=["ops", "ops.andthen", "ops.orelse"],
-    units_out=["ops", "ops.andthen"],
-    xreports=["ops-orelse.ads", "ops-orelse.adb"]))
+TestCase(category=None).run(
+    covcontrol=CovControl(
+        units_in=["ops", "ops.andthen", "ops.orelse"],
+        units_out=["ops", "ops.andthen"],
+        xreports=["ops-orelse.ads", "ops-orelse.adb"],
+    )
+)
 
 # Out does not overlap In
 wd.to_subdir("wd_2")
 
-TestCase(category=None).run(covcontrol=CovControl(
-    units_in=["ops", "ops.orelse"],
-    units_out=["ops.andthen"],
-    xreports=["ops.ads", "ops.adb", "ops-orelse.ads", "ops-orelse.adb"]))
+TestCase(category=None).run(
+    covcontrol=CovControl(
+        units_in=["ops", "ops.orelse"],
+        units_out=["ops.andthen"],
+        xreports=["ops.ads", "ops.adb", "ops-orelse.ads", "ops-orelse.adb"],
+    )
+)
 
 thistest.result()

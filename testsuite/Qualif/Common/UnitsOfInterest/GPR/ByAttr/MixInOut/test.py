@@ -8,13 +8,19 @@ from SUITE.cutils import Wdir, list_to_tmp
 wd = Wdir()
 wd.to_subdir("wd_1")
 TestCase(category=None).run(
-    covcontrol=CovControl(units_in=["ops", "ops.andthen"],
-                          ulist_out=list_to_tmp(["ops"]),
-                          xreports=["ops-andthen.ads", "ops-andthen.adb"]))
+    covcontrol=CovControl(
+        units_in=["ops", "ops.andthen"],
+        ulist_out=list_to_tmp(["ops"]),
+        xreports=["ops-andthen.ads", "ops-andthen.adb"],
+    )
+)
 
 TestCase(category=None).run(
-    covcontrol=CovControl(units_in=["ops", "ops.andthen"],
-                          units_out=["ops.andthen"],
-                          xreports=["ops.ads", "ops.adb"]))
+    covcontrol=CovControl(
+        units_in=["ops", "ops.andthen"],
+        units_out=["ops.andthen"],
+        xreports=["ops.ads", "ops.adb"],
+    )
+)
 
 thistest.result()

@@ -5,26 +5,29 @@ from test_support import check
 # expect intops, boolops & counters reports
 
 check(
-    root_project='gen.gpr',
+    root_project="gen.gpr",
     recurse=True,
-    xreports=['intops', 'boolops', 'counters'])
+    xreports=["intops", "boolops", "counters"],
+)
 
 # -Pgen --projects=intops.gpr, recursive,
 # expect intops & counters reports
 
 check(
-    root_project='gen.gpr',
-    projects=['intops'],
+    root_project="gen.gpr",
+    projects=["intops"],
     recurse=True,
-    xreports=['intops', 'counters'])
+    xreports=["intops", "counters"],
+)
 
 # -Pgen --projects=boolops.gpr, recursive,
 # expect boolops & counters reports
 
 check(
-    root_project='gen.gpr',
-    projects=['boolops'],
+    root_project="gen.gpr",
+    projects=["boolops"],
     recurse=True,
-    xreports=['boolops', 'counters'])
+    xreports=["boolops", "counters"],
+)
 
 thistest.result()

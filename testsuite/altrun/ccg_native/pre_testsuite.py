@@ -114,10 +114,12 @@ def prepare_rts():
     # Flag it as externally built
     amend_file(
         custom_rts_prj,
-        [(
-            "end GNATcov_RTS;",
-            'for Externally_Built use "True"; end GNATcov_RTS;'
-        )],
+        [
+            (
+                "end GNATcov_RTS;",
+                'for Externally_Built use "True"; end GNATcov_RTS;',
+            )
+        ],
     )
 
 
@@ -163,7 +165,7 @@ prj_str = run(
         "--target=c",
         "--display=json-compact",
     ],
-    what="gprinspect invocation"
+    what="gprinspect invocation",
 )
 try:
     prj_info = json.loads(prj_str)

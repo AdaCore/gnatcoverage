@@ -36,59 +36,60 @@ class Runner:
         op = optparse.OptionParser()
 
         # --level and --target are expected to always be there:
-        op.add_option('--level', dest='covlevel', default=None)
-        op.add_option('--target', dest='target', default=None)
+        op.add_option("--level", dest="covlevel", default=None)
+        op.add_option("--target", dest="target", default=None)
 
         # For source coverage tests not using project files:
-        op.add_option('--scos', dest='scos', default=None)
+        op.add_option("--scos", dest="scos", default=None)
 
         # For tests using project files
-        op.add_option('-P', dest='gpr', default=None)
-        op.add_option('--recursive', dest='recurse', default=False,
-                      action='store_true')
-        op.add_option('--projects', dest='projects', default=None)
-        op.add_option('--units', dest='units', default=None)
+        op.add_option("-P", dest="gpr", default=None)
+        op.add_option(
+            "--recursive", dest="recurse", default=False, action="store_true"
+        )
+        op.add_option("--projects", dest="projects", default=None)
+        op.add_option("--units", dest="units", default=None)
 
         # Then a few optional items
-        op.add_option('-o', dest='ofile', default=None)
+        op.add_option("-o", dest="ofile", default=None)
         self.options, self.args = op.parse_args()
 
     def run_command_line(self):
         """Compute a list of command line arguments to pass to
         gnatcov run from what we have received."""
 
-        args = ['--level=%s' % self.options.covlevel,
-                '--target=%s' % self.options.target]
+        args = [
+            "--level=%s" % self.options.covlevel,
+            "--target=%s" % self.options.target,
+        ]
 
         if self.options.scos:
-            args.append('--scos=%s' % self.options.scos)
+            args.append("--scos=%s" % self.options.scos)
 
         if self.options.gpr:
-            args.append('-P=%s' % self.options.gpr)
+            args.append("-P=%s" % self.options.gpr)
         if self.options.gpr:
-            args.append('--projects=%s' % self.options.projects)
+            args.append("--projects=%s" % self.options.projects)
         if self.options.gpr:
-            args.append('--units=%s' % self.options.units)
+            args.append("--units=%s" % self.options.units)
         if self.options.recurse:
-            args.append('--recursive')
+            args.append("--recursive")
 
         if self.options.ofile:
-            args.append('-o %s' % self.options.ofile)
+            args.append("-o %s" % self.options.ofile)
 
         return args
 
     def run(self):
-
-        print('============== GNATCOV RUN ===================')
+        print("============== GNATCOV RUN ===================")
 
         if not self.args:
-            print('gnatcov: missing EXE for run')
+            print("gnatcov: missing EXE for run")
             os.exit(1)
 
-        Run(
-            ['gnatcov', 'run'] + self.run_command_line() + self.args)
+        Run(["gnatcov", "run"] + self.run_command_line() + self.args)
 
-        print('==============================================')
+        print("==============================================")
 
 
 runner = Runner()

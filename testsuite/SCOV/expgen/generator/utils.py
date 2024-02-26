@@ -26,12 +26,10 @@ class Environment(object):
             self.env.pop_dir()
 
     def __init__(self):
-        self.dir_stack = [
-            os.getcwd()
-        ]
+        self.dir_stack = [os.getcwd()]
 
     def get_dir(self, subdir):
-        """ Return a new directory guard for `subdir`."""
+        """Return a new directory guard for `subdir`."""
         return self.DirectoryGuard(self, subdir)
 
     def push_dir(self, subdir):

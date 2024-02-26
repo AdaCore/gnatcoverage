@@ -9,14 +9,15 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import gprbuild, gprfor, xcov
 
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
-gprbuild(gprfor(['hello.adb'], srcdirs='../src'))
+gprbuild(gprfor(["hello.adb"], srcdirs="../src"))
 
-xcov(['map-routines', '--scos=obj/hello.ali', 'obj/hello.o'], "out")
+xcov(["map-routines", "--scos=obj/hello.ali", "obj/hello.o"], "out")
 
 dif = diff("../expected", "out")
 thistest.fail_if(
-    dif, "out != expected on exemption pragma placement rules:\n" + dif)
+    dif, "out != expected on exemption pragma placement rules:\n" + dif
+)
 
 thistest.result()

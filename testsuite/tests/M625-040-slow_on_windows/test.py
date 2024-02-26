@@ -7,8 +7,8 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import exename_for, gprbuild, gprfor, xrun
 
 
-Wdir('tmp_')
-gpr = gprfor(srcdirs=['..'], mains=['p.adb'])
+Wdir("tmp_")
+gpr = gprfor(srcdirs=[".."], mains=["p.adb"])
 
 
 def run(action, repeat, tag):
@@ -16,7 +16,7 @@ def run(action, repeat, tag):
     for i in range(repeat):
         action()
     end = time.clock()
-    print('%s: %2.5f' % (tag, end-start))
+    print("%s: %2.5f" % (tag, end - start))
 
 
 def eval_gprbuild():
@@ -33,7 +33,7 @@ def eval(what):
 
     ps = pstats.Stats(profiler)
     ps.strip_dirs()
-    ps.sort_stats('time')
+    ps.sort_stats("time")
 
     print("===================")
     print("== %s ==" % what)

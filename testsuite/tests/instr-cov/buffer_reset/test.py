@@ -12,44 +12,44 @@ from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
-tmp=Wdir("tmp_")
+tmp = Wdir("tmp_")
 
 # Map from language to the corresponding main report name, and lines with
 # coverage obligations.
 main_lines = {
     "ada": ("main_ada.adb.xcov", [7, 10, 13]),
-    "c": ("main_c.c.xcov", [8, 11, 14, 16])
+    "c": ("main_c.c.xcov", [8, 11, 14, 16]),
 }
 
 # Units which will only have a partial coverage result in them, regardless of
 # the trace.
 default_part_cov = {
-    "ada": {"pkg.adb.xcov": {'!': {5}}, "pkg.ads.xcov": {}},
-    "c": {"pkh.c.xcov": {'!': {6}}},
+    "ada": {"pkg.adb.xcov": {"!": {5}}, "pkg.ads.xcov": {}},
+    "c": {"pkh.c.xcov": {"!": {6}}},
 }
 
 # Default "nothing executed" expected result for each unit
 default_no_cov = {
     "ada": {
-        "main_ada.adb.xcov": {'-': {7, 10, 13}},
-        "pkg.adb.xcov": {'-': {5}},
+        "main_ada.adb.xcov": {"-": {7, 10, 13}},
+        "pkg.adb.xcov": {"-": {5}},
         "pkg.ads.xcov": {},
     },
     "c": {
-        "main_c.c.xcov": {'-': {8, 11, 14, 16}},
-        "pkh.c.xcov": {'-': {6}},
-    }
+        "main_c.c.xcov": {"-": {8, 11, 14, 16}},
+        "pkh.c.xcov": {"-": {6}},
+    },
 }
 
-def get_expected_cov (trace_name):
+
+def get_expected_cov(trace_name):
     """
     Generate an expected coverage results based on the prefix of the trace
     indicating which main was executed, and its index.
     """
     match = re.match(pattern=r"(.*)-(\d)\.srctrace", string=trace_name)
     thistest.fail_if(
-        not match,
-        comment="trace name not in expected format: " + trace_name
+        not match, comment="trace name not in expected format: " + trace_name
     )
     trace_lang = match.group(1)
     idx = int(match.group(2))
@@ -58,18 +58,18 @@ def get_expected_cov (trace_name):
     lines = main_lines[trace_lang][1]
     for lang in ("ada", "c"):
         if lang == trace_lang:
-            expected_cov.update({
-                main_lines[lang][0]: {
-                    '+': {lines[idx]},
-                    '-': {lines[i] for i in range(len(lines)) if i != idx}
+            expected_cov.update(
+                {
+                    main_lines[lang][0]: {
+                        "+": {lines[idx]},
+                        "-": {lines[i] for i in range(len(lines)) if i != idx},
+                    }
                 }
-            })
+            )
             expected_cov.update(default_part_cov[lang])
         else:
-            expected_cov.update (default_no_cov[lang])
+            expected_cov.update(default_no_cov[lang])
     return expected_cov
-
-
 
 
 def check_one_exec(cov_args, lang):
@@ -88,8 +88,7 @@ def check_one_exec(cov_args, lang):
     # There is three dump indications in each main, we should thus have the
     # same number of traces.
     thistest.fail_if(
-        len (traces) != 3,
-        comment=f"expected 3 traces, found {len(traces)}"
+        len(traces) != 3, comment=f"expected 3 traces, found {len(traces)}"
     )
     traces.sort()
 
@@ -98,9 +97,10 @@ def check_one_exec(cov_args, lang):
         output_dir = f"output_{lang}_{i}/"
         xcov(
             cov_args + [f"--output-dir={output_dir}", traces[i]],
-            out=f"coverage_{lang}_{i}.log"
+            out=f"coverage_{lang}_{i}.log",
         )
         check_xcov_reports(output_dir, get_expected_cov(traces[i]))
+
 
 prj_id = "p"
 
@@ -118,7 +118,7 @@ cov_args = build_and_run(
     dump_trigger="manual",
     manual_prj_name=prj_id,
     extra_coverage_args=["-axcov+"],
-    extra_instr_args=["--dump-filename-simple"]
+    extra_instr_args=["--dump-filename-simple"],
 )
 
 # Check the individual trace contents for each executable
@@ -127,25 +127,24 @@ for lang in ["c", "ada"]:
 
 # Do a consolidated check with all the traces. We expect exactly six traces and
 # no coverage violations except for the final return statement in the c main.
-thistest.log ("========== global consolidated check =========")
+thistest.log("========== global consolidated check =========")
 all_traces = glob.glob("*.srctrace")
 thistest.fail_if(
-    len(all_traces) != 6,
-    comment=f"expected 6 traces, got {len(all_traces)}"
+    len(all_traces) != 6, comment=f"expected 6 traces, got {len(all_traces)}"
 )
 output_dir = "consolidated/"
 xcov(
     cov_args + [f"--output-dir={output_dir}"] + all_traces,
-    out="consolidated.log"
+    out="consolidated.log",
 )
 check_xcov_reports(
     output_dir,
     {
-        "main_ada.adb.xcov": {'+': {7, 10, 13}},
+        "main_ada.adb.xcov": {"+": {7, 10, 13}},
         "pkg.ads.xcov": {},
-        "pkg.adb.xcov": {'+': {5}},
-        "main_c.c.xcov": {'+': {8, 11, 14}, '-': {16}},
-        "pkh.c.xcov": {'+': {6}}
+        "pkg.adb.xcov": {"+": {5}},
+        "main_c.c.xcov": {"+": {8, 11, 14}, "-": {16}},
+        "pkh.c.xcov": {"+": {6}},
     },
 )
 

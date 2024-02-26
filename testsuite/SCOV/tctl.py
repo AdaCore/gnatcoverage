@@ -28,8 +28,17 @@ class CovControl:
       (covoptions).
     """
 
-    def __init__(self, deps=(), units_in=None, ulist_in=None, units_out=None,
-                 ulist_out=None, xreports=None, gprsw=None, covoptions=''):
+    def __init__(
+        self,
+        deps=(),
+        units_in=None,
+        ulist_in=None,
+        units_out=None,
+        ulist_out=None,
+        xreports=None,
+        gprsw=None,
+        covoptions="",
+    ):
         # To control "with" dependencies (set of projects that will be withed
         # by the one we will be generating for the testcase):
         self.deps = list(deps)
@@ -64,8 +73,7 @@ class CovControl:
         self.xreports = xreports
 
     def unexpected(self, source):
-        return (self.xreports is not None and
-                source not in self.xreports)
+        return self.xreports is not None and source not in self.xreports
 
     def expected(self, source):
         return not self.unexpected(source)
@@ -75,22 +83,26 @@ class CovControl:
         Whether honoring this control object implictly requires the use of a
         project file.
         """
-        return (self.deps
-                or self.gprsw
-                or self.units_in is not None
-                or self.units_out is not None
-                or self.ulist_in is not None
-                or self.ulist_out is not None)
+        return (
+            self.deps
+            or self.gprsw
+            or self.units_in is not None
+            or self.units_out is not None
+            or self.ulist_in is not None
+            or self.ulist_out is not None
+        )
 
     def gpr(self):
         """
         The GPR Coverage package corresponding to our lists of attribute
         contents, as a multiline string.
         """
-        return gprcov_for(units_in=self.units_in,
-                          units_out=self.units_out,
-                          ulist_in=self.ulist_in,
-                          ulist_out=self.ulist_out)
+        return gprcov_for(
+            units_in=self.units_in,
+            units_out=self.units_out,
+            ulist_in=self.ulist_in,
+            ulist_out=self.ulist_out,
+        )
 
 
 class _Category:
@@ -99,6 +111,7 @@ class _Category:
     A specific category tells the testsuite engine which coverage notes are
     relevant for a testcase execution.
     """
+
     def __init__(self, name):
         self.name = name
 
@@ -111,12 +124,12 @@ class CAT:
     """
 
     # Set of criteria related categories
-    stmt = _Category(name='stmt')
-    decision = _Category(name='decision')
-    mcdc = _Category(name='mcdc')
+    stmt = _Category(name="stmt")
+    decision = _Category(name="decision")
+    mcdc = _Category(name="mcdc")
 
     critcats = (stmt, decision, mcdc)
 
     # Special value asking to determine the category from the Testcase
     # location (relative pathname from the testsuite root)
-    auto = _Category(name='auto')
+    auto = _Category(name="auto")

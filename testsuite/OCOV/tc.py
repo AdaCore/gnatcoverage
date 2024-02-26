@@ -8,8 +8,14 @@ from e3.fs import mkdir
 from SUITE.context import thistest
 import SUITE.control
 from SUITE.cutils import Wdir
-from SUITE.tutils import (gprbuild, gprfor, tracename_for, unixpath_to, xcov,
-                          xrun)
+from SUITE.tutils import (
+    gprbuild,
+    gprfor,
+    tracename_for,
+    unixpath_to,
+    xcov,
+    xrun,
+)
 
 # Cache some values we need repeatedly
 
@@ -17,23 +23,24 @@ TARGET_INFO = SUITE.control.target_info()
 
 
 class TestCase(object):
-
-    ROUTINES_FILE = 'routines.list'
-    RESULT_FILE = 'coverage.result'
+    ROUTINES_FILE = "routines.list"
+    RESULT_FILE = "coverage.result"
 
     SYMBOL_COVERAGE_PATTERN = re.compile(
-        '^([a-zA-Z_][a-zA-Z0-9_]*)'  # Symbol name
-        ' ([-!+]): '                 # Symbol coverage result
-        '[0-9a-f]+-[0-9a-f]+\n$'     # Address range for the symbol
+        "^([a-zA-Z_][a-zA-Z0-9_]*)"  # Symbol name
+        " ([-!+]): "  # Symbol coverage result
+        "[0-9a-f]+-[0-9a-f]+\n$"  # Address range for the symbol
     )
-    NO_COV, PART_COV, FULL_COV = '-!+'
+    NO_COV, PART_COV, FULL_COV = "-!+"
 
     def __init__(
         self,
-        test_drivers, coverage_expectations,
+        test_drivers,
+        coverage_expectations,
         extra_sourcedirs=[],
-        level='branch', annotate='asm',
-        extra_xcov_args=[]
+        level="branch",
+        annotate="asm",
+        extra_xcov_args=[],
     ):
         self.test_drivers = test_drivers
         self.coverage_expectations = {
@@ -46,10 +53,10 @@ class TestCase(object):
         self.extra_xcov_args = extra_xcov_args
 
     def run(self, register_failure=True):
-        '''
+        """
         Return if "gnatcov coverage" executed properly.
-        '''
-        Wdir('tmp_')
+        """
+        Wdir("tmp_")
 
         # Compile and run separately each test driver.
         for test_driver, switches in self.test_drivers.items():
@@ -63,45 +70,44 @@ class TestCase(object):
         # Consolidate resulting traces and parse the object coverage results.
         # If consolidation fails, return False.
         if (
-            not self._consolidate_traces(self.RESULT_FILE,
-                                         register_failure) and
-            not register_failure
+            not self._consolidate_traces(self.RESULT_FILE, register_failure)
+            and not register_failure
         ):
             return False
 
         # We can parse the result only if the output is an annotated ASM.
-        if self.annotate == 'asm':
+        if self.annotate == "asm":
             coverage_result = self._parse_coverage_results(self.RESULT_FILE)
 
             # Compare results with expectations...
             thistest.fail_if(
                 coverage_result != self.coverage_expectations,
-                'Coverage result:\n'
-                '{}'
-                'do not match coverage expectations:\n'
-                '{}'.format(
+                "Coverage result:\n"
+                "{}"
+                "do not match coverage expectations:\n"
+                "{}".format(
                     self.format_coverage(coverage_result),
-                    self.format_coverage(self.coverage_expectations)
-                )
+                    self.format_coverage(self.coverage_expectations),
+                ),
             )
         return True
 
     def _compile(self, test_driver, compile_unit_switches):
-        mkdir('{}-obj'.format(test_driver))
+        mkdir("{}-obj".format(test_driver))
 
         project_file = gprfor(
-            mains=[test_driver + '.c'],
+            mains=[test_driver + ".c"],
             prjid=test_driver,
-            srcdirs=['..'] + self.extra_sourcedirs,
-            objdir='{}-obj'.format(test_driver),
-            langs=['C', 'ASM'],
-            compiler_extra='\n'.join(
-                ('for Switches("{}") use '
-                 ' Compiler\'Default_Switches ("C") & ({});').format(
-                    cu, self.fmt_list(switches)
-                )
+            srcdirs=[".."] + self.extra_sourcedirs,
+            objdir="{}-obj".format(test_driver),
+            langs=["C", "ASM"],
+            compiler_extra="\n".join(
+                (
+                    'for Switches("{}") use '
+                    ' Compiler\'Default_Switches ("C") & ({});'
+                ).format(cu, self.fmt_list(switches))
                 for cu, switches in compile_unit_switches.items()
-            )
+            ),
         )
 
         # We never want the testuite optimization options or source coverage
@@ -113,18 +119,18 @@ class TestCase(object):
         xrun(unixpath_to(test_driver))
 
     def _generate_routines_list(self):
-        with open(self.ROUTINES_FILE, 'w') as f:
+        with open(self.ROUTINES_FILE, "w") as f:
             for routine in self.coverage_expectations:
-                f.write('{}\n'.format(routine))
+                f.write("{}\n".format(routine))
 
     def _consolidate_traces(self, output, register_failure):
         xcov_args = [
-            'coverage',
-            '--level=' + self.level,
-            '--annotate=' + self.annotate,
+            "coverage",
+            "--level=" + self.level,
+            "--annotate=" + self.annotate,
         ]
-        if self.level in ('insn', 'branch'):
-            xcov_args.append('--routines=@' + self.ROUTINES_FILE)
+        if self.level in ("insn", "branch"):
+            xcov_args.append("--routines=@" + self.ROUTINES_FILE)
         xcov_args.extend(self.extra_xcov_args)
         xcov_args.extend(map(tracename_for, self.test_drivers))
         p = xcov(xcov_args, out=output, register_failure=register_failure)
@@ -136,7 +142,7 @@ class TestCase(object):
             lambda: {self.NO_COV: 0, self.PART_COV: 0, self.FULL_COV: 0}
         )
 
-        with open(input_file, 'r') as f:
+        with open(input_file, "r") as f:
             for line in f:
                 m = self.SYMBOL_COVERAGE_PATTERN.match(line)
                 if m:
@@ -146,13 +152,13 @@ class TestCase(object):
         return result
 
     def fmt_list(self, items):
-        '''
+        """
         Format a list of string for the GPR file.
 
         >>> fmt_list(('a', 'b', 'c'))
         "a", "b", "c"
-        '''
-        return ', '.join(['"{}"'.format(item) for item in items])
+        """
+        return ", ".join(['"{}"'.format(item) for item in items])
 
     def format_coverage(self, coverage):
         result = []
@@ -162,6 +168,6 @@ class TestCase(object):
                 symbol,
                 cov_result[self.NO_COV],
                 cov_result[self.PART_COV],
-                cov_result[self.FULL_COV]
+                cov_result[self.FULL_COV],
             )
-        return ''.join(result)
+        return "".join(result)

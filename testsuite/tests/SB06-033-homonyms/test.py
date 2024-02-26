@@ -15,7 +15,7 @@ from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
 
 
-wd = Wdir('tmp_')
+wd = Wdir("tmp_")
 log_dir = os.getcwd()
 wd.to_homedir()
 
@@ -30,45 +30,68 @@ def try_run(cmd, out_file):
     out = contents_of(out_file)
     thistest.fail_if(
         p.status != 0,
-        'Unexpected failure.\n'
-        'Command was:\n'
-        '%s\n'
-        'Output was:\n'
-        '%s' % (' '.join(cmd), out))
+        "Unexpected failure.\n"
+        "Command was:\n"
+        "%s\n"
+        "Output was:\n"
+        "%s" % (" ".join(cmd), out),
+    )
     return out
 
 
-os.chdir(in_home('libfoo'))
-rm('install', recursive=True)
+os.chdir(in_home("libfoo"))
+rm("install", recursive=True)
 
-try_run(['gprbuild', '-f', '-Plibfoo.gpr', '-p'], 'gprbuild-libfoo.txt')
-try_run(['gprinstall', '-f', '-Plibfoo.gpr', '-p',
-         '--prefix=install', '--project-subdir=gpr'],
-        'gprinstall.txt')
+try_run(["gprbuild", "-f", "-Plibfoo.gpr", "-p"], "gprbuild-libfoo.txt")
+try_run(
+    [
+        "gprinstall",
+        "-f",
+        "-Plibfoo.gpr",
+        "-p",
+        "--prefix=install",
+        "--project-subdir=gpr",
+    ],
+    "gprinstall.txt",
+)
 
-os.chdir(in_home('app'))
+os.chdir(in_home("app"))
 
-try_run(['gprbuild', '-f', '-Pdefault.gpr', '-p'], 'gprbuild-app.txt')
-try_run(['gnatcov', 'run', 'obj/main'], 'gnatcov-run.txt')
+try_run(["gprbuild", "-f", "-Pdefault.gpr", "-p"], "gprbuild-app.txt")
+try_run(["gnatcov", "run", "obj/main"], "gnatcov-run.txt")
 
 # The very goal of this testcase is to compute code coverage for a unit that
 # belongs to a project installed with gprinstall, so we need to enable the
 # processing of externally built projects.
-log_file = 'gnatcov-coverage.txt'
-log = try_run(['gnatcov', 'coverage',
-               '--annotate=xcov',
-               '--level=stmt',
-               '-Pdefault', '--externally-built-projects',
-               'main.trace'], log_file)
+log_file = "gnatcov-coverage.txt"
+log = try_run(
+    [
+        "gnatcov",
+        "coverage",
+        "--annotate=xcov",
+        "--level=stmt",
+        "-Pdefault",
+        "--externally-built-projects",
+        "main.trace",
+    ],
+    log_file,
+)
 thistest.fail_if_no_match(
     '"gnatcov output" ({})'.format(log_file),
-    'Warning: same base name for files:'
-    '\r?\n  [^\n]+{}'
-    '\r?\n  [^\n]+{}'
-    .format(os.path.join('SB06-033-homonyms', 'libfoo', 'install', 'include',
-                         'libfoo', 'lib.adb'),
-            os.path.join('SB06-033-homonyms', 'libfoo', 'lib.adb')),
-    log
+    "Warning: same base name for files:"
+    "\r?\n  [^\n]+{}"
+    "\r?\n  [^\n]+{}".format(
+        os.path.join(
+            "SB06-033-homonyms",
+            "libfoo",
+            "install",
+            "include",
+            "libfoo",
+            "lib.adb",
+        ),
+        os.path.join("SB06-033-homonyms", "libfoo", "lib.adb"),
+    ),
+    log,
 )
 
 thistest.result()

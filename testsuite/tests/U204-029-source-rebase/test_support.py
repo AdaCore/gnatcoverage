@@ -11,7 +11,7 @@ from SUITE.tutils import gprfor, xcov
 
 
 def out_of_source_checkpoint(
-        variant_name, main, units, origin_src_dir, suppress_src_dir
+    variant_name, main, units, origin_src_dir, suppress_src_dir
 ):
     """
     Create a checkpoint with a copy of the sources in origin_src_dir, using
@@ -30,13 +30,13 @@ def out_of_source_checkpoint(
 
     build_run_and_coverage(
         gprsw=GPRswitches(
-            gprfor(mains=[main],
-                   srcdirs=local_src_dir,
-                   objdir="obj"),
-            units=units),
+            gprfor(mains=[main], srcdirs=local_src_dir, objdir="obj"),
+            units=units,
+        ),
         covlevel="stmt",
         mains=[os.path.splitext(main)[0]],
-        extra_coverage_args=[f"--save-checkpoint={checkpoint_name}"])
+        extra_coverage_args=[f"--save-checkpoint={checkpoint_name}"],
+    )
 
     if suppress_src_dir:
         shutil.rmtree(local_src_dir)
@@ -44,12 +44,14 @@ def out_of_source_checkpoint(
     return (checkpoint_name, os.path.abspath(local_src_dir))
 
 
-def consolidate_and_check(variant_basename,
-                          expected_xcov_results,
-                          expect_failure,
-                          checkpoints,
-                          rebase_opts,
-                          output_dir_name):
+def consolidate_and_check(
+    variant_basename,
+    expected_xcov_results,
+    expect_failure,
+    checkpoints,
+    rebase_opts,
+    output_dir_name,
+):
     """
     Consolidate the given set of checkpoints and create xcov reports.
     The xcov reports are checked against expected_xcov_results, and if
@@ -58,34 +60,39 @@ def consolidate_and_check(variant_basename,
     """
     log_filename = f"coverage-{output_dir_name}.log"
     mkdir(output_dir_name)
-    xcov(["coverage", "-cstmt", "-axcov", f"--output-dir={output_dir_name}"]
-         + [f"-C{checkpoint}" for checkpoint in checkpoints]
-         + rebase_opts,
-         out=log_filename)
+    xcov(
+        ["coverage", "-cstmt", "-axcov", f"--output-dir={output_dir_name}"]
+        + [f"-C{checkpoint}" for checkpoint in checkpoints]
+        + rebase_opts,
+        out=log_filename,
+    )
 
     if expect_failure:
         thistest.fail_if_no_match(
             f"'gnatcov coverage' output ({variant_basename}-{output_dir_name})",
             r"^(warning: can't open .*\n)+$",
-            contents_of(log_filename))
+            contents_of(log_filename),
+        )
     else:
         thistest.fail_if(
             not empty(log_filename),
             f"'gnatcov coverage' output ({variant_basename}-{output_dir_name})"
-            " not empty:\n  " + contents_of(log_filename)
+            " not empty:\n  " + contents_of(log_filename),
         )
 
     check_xcov_reports(output_dir_name, expected_xcov_results)
 
 
-def run_variant(variant_basename,
-                mains_list,
-                units_lists,
-                origin_src_dir,
-                expected_xcov_results,
-                rebase_dir=None,
-                expect_failure=False,
-                suppress_src_dir=False):
+def run_variant(
+    variant_basename,
+    mains_list,
+    units_lists,
+    origin_src_dir,
+    expected_xcov_results,
+    rebase_dir=None,
+    expect_failure=False,
+    suppress_src_dir=False,
+):
     """
     Create a set of checkpoints using, for checkpoint i, the sources in
     origin_src_dir, the main in mains_list[i] and the units in units_lists[i].
@@ -108,12 +115,18 @@ def run_variant(variant_basename,
     # Create a checkpoint for each set of main/units_of_interest and retrieve
     # the checkpoint's name, as well as the path to the source directory used
     # to create said checkpoint.
-    checkpoints, prefixes = zip(*[
-        out_of_source_checkpoint(
-            f"{variant_basename}_{i}", main, units, origin_src_dir,
-            suppress_src_dir)
-        for i, (main, units) in enumerate(zip(mains_list, units_lists))
-    ])
+    checkpoints, prefixes = zip(
+        *[
+            out_of_source_checkpoint(
+                f"{variant_basename}_{i}",
+                main,
+                units,
+                origin_src_dir,
+                suppress_src_dir,
+            )
+            for i, (main, units) in enumerate(zip(mains_list, units_lists))
+        ]
+    )
 
     # Test individual options passed to gnatcov for each checkpoint
     consolidate_and_check(
@@ -122,8 +135,9 @@ def run_variant(variant_basename,
         expect_failure,
         checkpoints,
         rebase_opts=[
-            f"--source-rebase={prefix}={rebase_dir}" for prefix in prefixes],
-        output_dir_name="simple"
+            f"--source-rebase={prefix}={rebase_dir}" for prefix in prefixes
+        ],
+        output_dir_name="simple",
     )
 
     # Test using one globbing pattern to specify source rebase for all
@@ -135,13 +149,13 @@ def run_variant(variant_basename,
         expect_failure,
         checkpoints,
         rebase_opts=[f"--source-rebase={glob_pattern}={rebase_dir}"],
-        output_dir_name="globbing_pattern"
+        output_dir_name="globbing_pattern",
     )
 
     # Test using a response file to specify source rebase for all checkpoints
     response_file_name = "src-rebase.txt"
 
-    with open(response_file_name, 'w') as f:
+    with open(response_file_name, "w") as f:
         f.writelines([f"{prefix}={rebase_dir}\n" for prefix in prefixes])
 
     consolidate_and_check(
@@ -150,7 +164,7 @@ def run_variant(variant_basename,
         expect_failure,
         checkpoints,
         rebase_opts=[f"--source-rebase=@{response_file_name}"],
-        output_dir_name="response_file"
+        output_dir_name="response_file",
     )
 
     wd.to_homedir()

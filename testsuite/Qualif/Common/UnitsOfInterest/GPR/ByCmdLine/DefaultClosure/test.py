@@ -10,9 +10,10 @@ from test_support import check
 # expect intops, boolops and conters related reports
 
 check(
-    root_project='gen.gpr',
+    root_project="gen.gpr",
     recurse=None,
-    xreports=['intops', 'boolops', 'counters'])
+    xreports=["intops", "boolops", "counters"],
+)
 
 # -Pgen, non recursive would yield an empty set of
 # units of interest, so try another level first:
@@ -21,18 +22,20 @@ check(
 # expect intops and counters related reports
 
 check(
-    root_project='gen.gpr',
-    projects=['intops'],
+    root_project="gen.gpr",
+    projects=["intops"],
     recurse=None,
-    xreports=['intops', 'counters'])
+    xreports=["intops", "counters"],
+)
 
 # -Pgen --projects=intops --no-subprojects
 # expect intops related report only
 
 check(
-    root_project='gen.gpr',
-    projects=['intops'],
+    root_project="gen.gpr",
+    projects=["intops"],
     recurse=False,
-    xreports=['intops'])
+    xreports=["intops"],
+)
 
 thistest.result()

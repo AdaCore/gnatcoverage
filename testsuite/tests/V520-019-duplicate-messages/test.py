@@ -20,24 +20,26 @@ build_run_and_coverage(
     covlevel="stmt",
     mains=["main"],
     extra_coverage_args=["-areport,xcov", "--output-dir=obj"],
-    out="coverage.log"
+    out="coverage.log",
 )
 
 # Check the expected results
-expected_cov = {"main.adb.xcov": {}, "pkg.adb.xcov" : {'-': {10}}}
+expected_cov = {"main.adb.xcov": {}, "pkg.adb.xcov": {"-": {10}}}
 if thistest.options.trace_mode == "src":
     expected_cov["pkg.ads.xcov"] = {}
 check_xcov_reports("obj", expected_cov, discard_empty=False)
 
 # Check that we do not have any duplicate messages. In this case, we only
 # expect a single statment violation.
-thistest.fail_if_no_match("More than one violation detected",
-                          r"(.|\n)*2.1. STMT COVERAGE"
-                          r"\n------------------"
-                          r"\n"
-                          r"\npkg.adb:10:7: statement not executed"
-                          r"\n"
-                          r"\n1 violation.(.|\n)*",
-                          contents_of("coverage.log"))
+thistest.fail_if_no_match(
+    "More than one violation detected",
+    r"(.|\n)*2.1. STMT COVERAGE"
+    r"\n------------------"
+    r"\n"
+    r"\npkg.adb:10:7: statement not executed"
+    r"\n"
+    r"\n1 violation.(.|\n)*",
+    contents_of("coverage.log"),
+)
 
 thistest.result()

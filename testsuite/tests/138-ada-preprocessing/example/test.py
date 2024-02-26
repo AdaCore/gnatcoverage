@@ -48,18 +48,30 @@ check_xcov_reports(
             "+": {
                 # Eval header
                 13,
-
                 # Pop
-                27, 31,
-
+                27,
+                31,
                 # Push
-                43, 44,
-
+                43,
+                44,
                 # Eval loop
-                61, 62, 70, 72, 87, 89, 90, 96,
-
+                61,
+                62,
+                70,
+                72,
+                87,
+                89,
+                90,
+                96,
                 # Eval wrapper
-                117, 118, 121, 122, 123, 125, 126, 127,
+                117,
+                118,
+                121,
+                122,
+                123,
+                125,
+                126,
+                127,
             },
             "!": {
                 # Branch condition evaluation
@@ -68,12 +80,11 @@ check_xcov_reports(
             "-": {
                 # Jump
                 75,
-
                 # Branch jump
                 79,
-
                 # Push_Lit, Add
-                83, 94,
+                83,
+                94,
             },
         },
     },

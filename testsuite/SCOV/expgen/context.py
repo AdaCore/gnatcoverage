@@ -46,8 +46,8 @@ class LanguageSpecific(Context):
 
 # Tag for statements whose execution depends on the outcome of the decision
 # expression.
-ON_TRUE_TAG = ast.Tag('on-true', None, None)
-ON_FALSE_TAG = ast.Tag('on-false', None, None)
+ON_TRUE_TAG = ast.Tag("on-true", None, None)
+ON_FALSE_TAG = ast.Tag("on-false", None, None)
 
 
 class Call(Context):
@@ -56,23 +56,25 @@ class Call(Context):
     function, and return the result of this call.
 
     The user must provide an implementation for this function.
-    """''
+    """ ""
 
     TAG_CONTEXT = ast.TagTypes.EXPRESSION
 
     def get_program(self, param):
-        temp_name = 'result'
+        temp_name = "result"
         temp_usage = ast.VariableUsage(temp_name)
 
         return ast.Program(
-            [(temp_name, ast.BooleanType), ],
+            [
+                (temp_name, ast.BooleanType),
+            ],
             [
                 ast.Assign(
                     temp_usage,
-                    ast.Call(ast.VariableUsage('identity'), [param])
+                    ast.Call(ast.VariableUsage("identity"), [param]),
                 ),
                 ast.Return(temp_usage),
-            ]
+            ],
         )
 
 
@@ -87,13 +89,17 @@ class If(Context):
     def get_program(self, condition):
         return ast.Program(
             [],  # No local variable
-            [ast.If(
-                condition,
-                ast.TaggedNode(ON_TRUE_TAG,
-                               ast.Return(ast.LitteralBoolean(True))),
-                ast.TaggedNode(ON_FALSE_TAG,
-                               ast.Return(ast.LitteralBoolean(False)))
-            )]
+            [
+                ast.If(
+                    condition,
+                    ast.TaggedNode(
+                        ON_TRUE_TAG, ast.Return(ast.LitteralBoolean(True))
+                    ),
+                    ast.TaggedNode(
+                        ON_FALSE_TAG, ast.Return(ast.LitteralBoolean(False))
+                    ),
+                )
+            ],
         )
 
 
@@ -111,21 +117,24 @@ class While(Context):
             [
                 ast.While(
                     condition,
-                    ast.TaggedNode(ON_TRUE_TAG,
-                                   ast.Return(ast.LitteralBoolean(True)))
+                    ast.TaggedNode(
+                        ON_TRUE_TAG, ast.Return(ast.LitteralBoolean(True))
+                    ),
                 ),
-                ast.TaggedNode(ON_FALSE_TAG,
-                               ast.Return(ast.LitteralBoolean(False)))
-            ]
+                ast.TaggedNode(
+                    ON_FALSE_TAG, ast.Return(ast.LitteralBoolean(False))
+                ),
+            ],
         )
 
 
 class Return(Context):
-
     TAG_CONTEXT = ast.TagTypes.EXPRESSION
 
     def get_program(self, condition):
         return ast.Program(
             [],
-            [ast.Return(condition), ]
+            [
+                ast.Return(condition),
+            ],
         )

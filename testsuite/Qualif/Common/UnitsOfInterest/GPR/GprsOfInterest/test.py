@@ -14,10 +14,10 @@ import os
 import e3.fs
 
 
-root_project = os.path.abspath('root.gpr')
+root_project = os.path.abspath("root.gpr")
 board = gnatemu_board_name(env.target.machine)
-board_arg = '-XBOARD={}'.format(board)
-wd = Wdir('wd_')
+board_arg = "-XBOARD={}".format(board)
+wd = Wdir("wd_")
 
 # Every project of interest is setup to feature a single unit named after the
 # project. Dumping the units of interest for a given analysis, with
@@ -32,12 +32,13 @@ cov_cmdline = build_and_run(
         root_project=root_project,
         xvars=[("BOARD", board)],
     ),
-    mains=['root'],
-    covlevel='stmt',
-    gpr_obj_dir='../obj',
-    gpr_exe_dir='../obj',
+    mains=["root"],
+    covlevel="stmt",
+    gpr_obj_dir="../obj",
+    gpr_exe_dir="../obj",
     extra_args=[board_arg],
-    extra_coverage_args=[])
+    extra_coverage_args=[],
+)
 
 trace = cov_cmdline[-1]
 
@@ -52,25 +53,35 @@ def check(options, xunits):
 
     # Compute the name of a unique output dir for the reports,
     # based on the options.
-    opt_str = ''.join(
-        [opt.
-         replace('--projects=', '').
-         replace('root', 'r').
-         replace('../', '').
-         replace('.gpr', '').
-         replace('_X=True', '').
-         replace('--no-subprojects', 'ns').
-         strip('-')
-         for opt in options])
+    opt_str = "".join(
+        [
+            opt.replace("--projects=", "")
+            .replace("root", "r")
+            .replace("../", "")
+            .replace(".gpr", "")
+            .replace("_X=True", "")
+            .replace("--no-subprojects", "ns")
+            .strip("-")
+            for opt in options
+        ]
+    )
 
-    odir = 'tmp_' + opt_str
-    ofile = os.path.join(odir, 'dump-units')
+    odir = "tmp_" + opt_str
+    ofile = os.path.join(odir, "dump-units")
 
-    xcov(['coverage', trace, '--level=stmt', '--annotate=xcov',
-          '--output-dir={}'.format(odir),
-          '--dump-units-to={}'.format(ofile),
-          board_arg] + options,
-         out='cov-' + opt_str + '.log')
+    xcov(
+        [
+            "coverage",
+            trace,
+            "--level=stmt",
+            "--annotate=xcov",
+            "--output-dir={}".format(odir),
+            "--dump-units-to={}".format(ofile),
+            board_arg,
+        ]
+        + options,
+        out="cov-" + opt_str + ".log",
+    )
 
     # Primary check, from the list of units reported by --dump-units-to
 
@@ -81,7 +92,8 @@ def check(options, xunits):
         runits != xunits,
         "for options '{}', reported list of units not as expected:\n"
         "expected: {}\n"
-        "obtained: {}".format(' '.join(options), xunits, runits))
+        "obtained: {}".format(" ".join(options), xunits, runits),
+    )
 
     # Secondary check, from the set of generated reports
 
@@ -92,14 +104,16 @@ def check(options, xunits):
     # subdir part and the extension.
 
     runits = set(
-        os.path.basename(r).split('.')[0] for r in
-        e3.fs.ls(os.path.join(odir, '*.xcov')))
+        os.path.basename(r).split(".")[0]
+        for r in e3.fs.ls(os.path.join(odir, "*.xcov"))
+    )
 
     thistest.fail_if(
         runits != xunits,
         "for options '{}', list of units from reports not as expected:\n"
         "expected: {}\n"
-        "obtained: {}".format(' '.join(options), xunits, runits))
+        "obtained: {}".format(" ".join(options), xunits, runits),
+    )
 
 
 # -P alone, recursive or not
@@ -107,22 +121,23 @@ def check(options, xunits):
 
 # No externally built
 
-check(options=['-P', '../root.gpr'],
-      xunits=['root', 'ssa', 'a1', 'ssb', 'b1', 'common'])
+check(
+    options=["-P", "../root.gpr"],
+    xunits=["root", "ssa", "a1", "ssb", "b1", "common"],
+)
 
-check(options=['-P', '../root.gpr', '--no-subprojects'],
-      xunits=['root'])
+check(options=["-P", "../root.gpr", "--no-subprojects"], xunits=["root"])
 
-check(options=['-P', '../ssa.gpr'],
-      xunits=['ssa', 'a1', 'common'])
+check(options=["-P", "../ssa.gpr"], xunits=["ssa", "a1", "common"])
 
-check(options=['-P', '../ssa.gpr', '--no-subprojects'],
-      xunits=['ssa'])
+check(options=["-P", "../ssa.gpr", "--no-subprojects"], xunits=["ssa"])
 
 # ssa externally built
 
-check(options=['-P', '../root.gpr', '-XSSA_X=True'],
-      xunits=['root', 'a1', 'ssb', 'b1', 'common'])
+check(
+    options=["-P", "../root.gpr", "-XSSA_X=True"],
+    xunits=["root", "a1", "ssb", "b1", "common"],
+)
 
 
 # -P --projects, recursive or not
@@ -131,40 +146,67 @@ check(options=['-P', '../root.gpr', '-XSSA_X=True'],
 # No externally built
 
 # Recursive from single child of root, not including root
-check(options=['-P', '../root.gpr', '--projects=ssa'],
-      xunits=['ssa', 'a1', 'common'])
+check(
+    options=["-P", "../root.gpr", "--projects=ssa"],
+    xunits=["ssa", "a1", "common"],
+)
 
-check(options=['-P', '../root.gpr', '--projects=ssb'],
-      xunits=['ssb', 'b1', 'common'])
+check(
+    options=["-P", "../root.gpr", "--projects=ssb"],
+    xunits=["ssb", "b1", "common"],
+)
 
 # Non recursive from single child of root, not including root
-check(options=['-P', '../root.gpr', '--projects=ssa', '--no-subprojects'],
-      xunits=['ssa'])
+check(
+    options=["-P", "../root.gpr", "--projects=ssa", "--no-subprojects"],
+    xunits=["ssa"],
+)
 
-check(options=['-P', '../root.gpr', '--projects=ssb', '--no-subprojects'],
-      xunits=['ssb'])
+check(
+    options=["-P", "../root.gpr", "--projects=ssb", "--no-subprojects"],
+    xunits=["ssb"],
+)
 
 # Non recursive from multiple children of root, not including root
-check(options=['-P', '../root.gpr',
-               '--projects=ssa', '--projects=ssb',
-               '--no-subprojects'],
-      xunits=['ssa', 'ssb'])
+check(
+    options=[
+        "-P",
+        "../root.gpr",
+        "--projects=ssa",
+        "--projects=ssb",
+        "--no-subprojects",
+    ],
+    xunits=["ssa", "ssb"],
+)
 
-check(options=['-P', '../root.gpr',
-               '--projects=ssa', '--projects=b1',
-               '--no-subprojects'],
-      xunits=['ssa', 'b1'])
+check(
+    options=[
+        "-P",
+        "../root.gpr",
+        "--projects=ssa",
+        "--projects=b1",
+        "--no-subprojects",
+    ],
+    xunits=["ssa", "b1"],
+)
 
 # Non recursive including root
-check(options=['-P', '../root.gpr',
-               '--projects=root', '--projects=ssb',
-               '--no-subprojects'],
-      xunits=['root', 'ssb'])
+check(
+    options=[
+        "-P",
+        "../root.gpr",
+        "--projects=root",
+        "--projects=ssb",
+        "--no-subprojects",
+    ],
+    xunits=["root", "ssb"],
+)
 
 # ssb externally built
 
-check(options=['-P', '../root.gpr',
-               '--projects=ssb', '-XSSB_X=True'],
-      xunits=['b1', 'common'])
+check(
+    options=["-P", "../root.gpr", "--projects=ssb", "-XSSB_X=True"],
+    xunits=["b1", "common"],
+)
 
 thistest.result()

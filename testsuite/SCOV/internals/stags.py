@@ -25,13 +25,16 @@ TARGET_INFO = SUITE.control.target_info()
 
 class Stag:
     """Abstract separation tag."""
+
     def __init__(self, text):
         self.text = text
 
     def match(self, other):
-        return (False
-                if self.__class__ != other.__class__
-                else self.match_akin(other))
+        return (
+            False
+            if self.__class__ != other.__class__
+            else self.match_akin(other)
+        )
 
 
 def Stag_from(text, from_report):
@@ -49,6 +52,7 @@ def Stag_from(text, from_report):
 
 class Rtag(Stag):
     """Routine separation tag. Text is routine name."""
+
     def __init__(self, text):
         Stag.__init__(self, text)
 
@@ -65,11 +69,11 @@ class Itag(Stag):
 
     def __init__(self, text):
         Stag.__init__(self, text)
-        self.components = [Sloc_from(part)
-                           for part in text.rstrip(']').split('[')]
+        self.components = [
+            Sloc_from(part) for part in text.rstrip("]").split("[")
+        ]
 
     def __all_components_match(self, other):
-
         # Check whether any component pair is found not to match:
 
         for c1, c2 in zip(self.components, other.components):
@@ -82,5 +86,6 @@ class Itag(Stag):
         return True
 
     def match_akin(self, other):
-        return (len(self.components) == len(other.components)
-                and self.__all_components_match(other))
+        return len(self.components) == len(
+            other.components
+        ) and self.__all_components_match(other)

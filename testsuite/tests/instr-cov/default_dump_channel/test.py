@@ -15,8 +15,14 @@ import os
 
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
-from SUITE.tutils import (exename_for, exepath_to, gprbuild, gprfor,
-                          run_cov_program, xcov)
+from SUITE.tutils import (
+    exename_for,
+    exepath_to,
+    gprbuild,
+    gprfor,
+    run_cov_program,
+    xcov,
+)
 
 
 @dataclass
@@ -41,16 +47,20 @@ for t in [
     Test("none", f"{default_prefix}-*-*-*-0.srctrace"),
     Test("simple", f"{default_prefix}.srctrace", ["--dump-filename-simple"]),
     Test("prefix", "bar-*-*-*-0.srctrace", ["--dump-filename-prefix=bar"]),
-    Test("env-var",
-         "mytrace.srctrace",
-         ["--dump-filename-env-var=MY_TRACE_FILE"],
-         {"MY_TRACE_FILE": "mytrace.srctrace"}),
+    Test(
+        "env-var",
+        "mytrace.srctrace",
+        ["--dump-filename-env-var=MY_TRACE_FILE"],
+        {"MY_TRACE_FILE": "mytrace.srctrace"},
+    ),
 ]:
     tmp = Wdir(f"tmp_{t.label}")
 
     prj = gprfor(mains=["main.adb"], srcdirs=[".."])
-    xcov(["instrument", "-P", prj, "-cstmt", "--dump-trigger=atexit"]
-         + t.options)
+    xcov(
+        ["instrument", "-P", prj, "-cstmt", "--dump-trigger=atexit"]
+        + t.options
+    )
     gprbuild(prj, trace_mode="src")
 
     env = dict(os.environ)
@@ -59,7 +69,7 @@ for t in [
 
     thistest.fail_if(
         len(glob.glob(t.srctrace_pattern)) != 1,
-        f"{t.label}: could not find a file matching {t.srctrace_pattern}"
+        f"{t.label}: could not find a file matching {t.srctrace_pattern}",
     )
 
     tmp.to_homedir()

@@ -104,7 +104,7 @@ class AndThen(Expression):
         self.rhs = rhs
 
     def __repr__(self):
-        return '({} and {})'.format(self.lhs, self.rhs)
+        return "({} and {})".format(self.lhs, self.rhs)
 
     @property
     def operands(self):
@@ -119,7 +119,7 @@ class OrElse(Expression):
         self.rhs = rhs
 
     def __repr__(self):
-        return '({} or {})'.format(self.lhs, self.rhs)
+        return "({} or {})".format(self.lhs, self.rhs)
 
     @property
     def operands(self):
@@ -133,7 +133,7 @@ class Not(Expression):
         self.expr = expr
 
     def __repr__(self):
-        return 'not {}'.format(self.expr)
+        return "not {}".format(self.expr)
 
     @property
     def operands(self):
@@ -258,14 +258,16 @@ class BDD(object):
 
     def write_dot(self, f):
         """Emit this BDD as a dot diagram to the "f" file."""
-        print('False [shape=box];', file=f)
-        print('True [shape=box];', file=f)
+        print("False [shape=box];", file=f)
+        print("True [shape=box];", file=f)
         for c in self.edges:
-            print('{} [shape=circle];'.format(c), file=f)
+            print("{} [shape=circle];".format(c), file=f)
         for e in self.edges.values():
-            print('{e.condition} -> {e.for_false} [label=false];\n'
-                  '{e.condition} -> {e.for_true} [label=true];'
-                  .format(e=e), file=f)
+            print(
+                "{e.condition} -> {e.for_false} [label=false];\n"
+                "{e.condition} -> {e.for_true} [label=true];".format(e=e),
+                file=f,
+            )
 
 
 class IndexedBDD(object):
@@ -350,9 +352,11 @@ class IndexedBDD(object):
             # Create an IndexedBDD edge for the BDD edge corresponding to
             # "node".
             simple_edge = self.bdd.edges[node]
-            edge = IndexedBDD.EdgePair(simple_edge.condition,
-                                       simple_edge.for_false,
-                                       simple_edge.for_true)
+            edge = IndexedBDD.EdgePair(
+                simple_edge.condition,
+                simple_edge.for_false,
+                simple_edge.for_true,
+            )
 
             # Compute outgoing edges for both destination nodes
             compute_edges(simple_edge.for_false)
@@ -380,14 +384,18 @@ class IndexedBDD(object):
 
     def write_dot(self, f):
         """Emit this indexed BDD as a dot diagram to the "f" file."""
+
         def node_id(offset, node):
-            return '{}_{}'.format(node, offset)
+            return "{}_{}".format(node, offset)
 
         def output_node(offset, node):
-            print('{} [shape={}];'.format(
-                node_id(offset, node),
-                'circle' if isinstance(node, Condition) else 'box'
-            ), file=f)
+            print(
+                "{} [shape={}];".format(
+                    node_id(offset, node),
+                    "circle" if isinstance(node, Condition) else "box",
+                ),
+                file=f,
+            )
 
         def process_edges(offset, node):
             self_id = node_id(offset, node)
@@ -405,11 +413,18 @@ class IndexedBDD(object):
             right_id = node_id(right_offset, edge_pair.for_true)
             output_node(right_offset, edge_pair.for_true)
 
-            print('{} -> {} [label="false+{}"];\n'
-                  '{} -> {} [label="true+{}"];'
-                  .format(self_id, left_id, 0,
-                          self_id, right_id, edge_pair.offset_for_true),
-                  file=f)
+            print(
+                '{} -> {} [label="false+{}"];\n'
+                '{} -> {} [label="true+{}"];'.format(
+                    self_id,
+                    left_id,
+                    0,
+                    self_id,
+                    right_id,
+                    edge_pair.offset_for_true,
+                ),
+                file=f,
+            )
 
             process_edges(left_offset, edge_pair.for_false)
             process_edges(right_offset, edge_pair.for_true)
@@ -427,38 +442,39 @@ def ada_eval_code(ibdd):
     variable.
     """
     result = [
-        'function Decision',
+        "function Decision",
     ]
     for i, cond in enumerate(ibdd.conditions):
-        param = '{}{} : Boolean := False'.format(
-            ('  (' if i == 0 else '   '),
-            cond
+        param = "{}{} : Boolean := False".format(
+            ("  (" if i == 0 else "   "), cond
         )
-        param += ';' if i < len(ibdd.conditions) - 1 else ') return Boolean'
+        param += ";" if i < len(ibdd.conditions) - 1 else ") return Boolean"
         result.append(param)
-    result.extend([
-        'is',
-        '   Index  : Positive := 1;',
-        '   Result : Boolean;',
-        'begin',
-    ])
+    result.extend(
+        [
+            "is",
+            "   Index  : Positive := 1;",
+            "   Result : Boolean;",
+            "begin",
+        ]
+    )
 
-    result_label = 'Return_Result'
+    result_label = "Return_Result"
 
     def cond_label(cond):
-        return 'Cond_{}'.format(cond)
+        return "Cond_{}".format(cond)
 
     visited = {False, True}
 
     def process_single_edge(node, offset):
         if offset:
-            result.append('      Index := Index + {};'.format(offset))
+            result.append("      Index := Index + {};".format(offset))
 
         if isinstance(node, bool):
-            result.append('      Result := {};'.format(node))
-            result.append('      goto {};'.format(result_label))
+            result.append("      Result := {};".format(node))
+            result.append("      goto {};".format(result_label))
         else:
-            result.append('      goto {};'.format(cond_label(node)))
+            result.append("      goto {};".format(cond_label(node)))
 
     def process_edges(node):
         if node in visited:
@@ -466,27 +482,29 @@ def ada_eval_code(ibdd):
         visited.add(node)
         edge_pair = ibdd.edges[node]
 
-        result.append('   <<{}>> if {} then'.format(cond_label(node), node))
+        result.append("   <<{}>> if {} then".format(cond_label(node), node))
         process_single_edge(edge_pair.for_true, edge_pair.offset_for_true)
-        result.append('   else')
+        result.append("   else")
         process_single_edge(edge_pair.for_false, 0)
-        result.append('   end if;')
+        result.append("   end if;")
 
         process_edges(edge_pair.for_false)
         process_edges(edge_pair.for_true)
 
     process_edges(ibdd.entry_condition)
 
-    result.extend([
-        '   <<{}>> Witnessed_Index := Index;'.format(result_label),
-        '   return Result;',
-        'end Decision;'
-    ])
-    return '\n'.join(result)
+    result.extend(
+        [
+            "   <<{}>> Witnessed_Index := Index;".format(result_label),
+            "   return Result;",
+            "end Decision;",
+        ]
+    )
+    return "\n".join(result)
 
 
-def indent(text, prefix='   '):
-    return '\n'.join(prefix + line for line in text.splitlines())
+def indent(text, prefix="   "):
+    return "\n".join(prefix + line for line in text.splitlines())
 
 
 def test(name, expr):
@@ -494,38 +512,38 @@ def test(name, expr):
     ibdd = IndexedBDD(bdd)
 
     # Graphical diagram to show the various BDDs forms
-    dot_file = '{}.dot'.format(name)
-    png_file = '{}.png'.format(name)
+    dot_file = "{}.dot".format(name)
+    png_file = "{}.png".format(name)
 
-    with open(dot_file, 'w') as f:
-        print('digraph InstrumentMCDC {', file=f)
+    with open(dot_file, "w") as f:
+        print("digraph InstrumentMCDC {", file=f)
 
         print('decision [shape=box,label="{}"];'.format(expr), file=f)
 
-        print('subgraph cluster_BDD {', file=f)
+        print("subgraph cluster_BDD {", file=f)
         print('label="BDD";', file=f)
-        print('color=black;', file=f)
+        print("color=black;", file=f)
         bdd.write_dot(f)
-        print('}', file=f)
+        print("}", file=f)
 
-        print('subgraph cluster_IndexedBDD {', file=f)
+        print("subgraph cluster_IndexedBDD {", file=f)
         print('label="Indexed BDD";', file=f)
-        print('color=black;', file=f)
+        print("color=black;", file=f)
         ibdd.write_dot(f)
-        print('}', file=f)
+        print("}", file=f)
 
-        print('}', file=f)
-    subprocess.check_call(['dot', '-Tpng', '-o', png_file, dot_file])
+        print("}", file=f)
+    subprocess.check_call(["dot", "-Tpng", "-o", png_file, dot_file])
 
     # Small program to test the code that the ada_eval_code function above
     # emits.
-    ada_file = '{}.adb'.format(name)
+    ada_file = "{}.adb".format(name)
 
-    with open(ada_file, 'w') as f:
-        print('procedure {} is'.format(name), file=f)
-        print('   Witnessed_Index : Positive;', file=f)
+    with open(ada_file, "w") as f:
+        print("procedure {} is".format(name), file=f)
+        print("   Witnessed_Index : Positive;", file=f)
         print(indent(ada_eval_code(ibdd)), file=f)
-        print('begin', file=f)
+        print("begin", file=f)
 
         # Enumerate all possible decision evaluations and emit assertions to
         # check that 1) the decision evaluates the expected boolean result and
@@ -551,30 +569,35 @@ def test(name, expr):
         enumerate_tests(ibdd.entry_condition, [])
 
         for index, (path, result) in enumerate(tests, 1):
-            print('  pragma Assert(Decision ({}) = {});'.format(
-                ', '.join('{} => {}'.format(cond, value)
-                          for cond, value in path),
-                result
-            ), file=f)
-            print('  pragma Assert (Witnessed_Index = {});'.format(index),
-                  file=f)
+            print(
+                "  pragma Assert(Decision ({}) = {});".format(
+                    ", ".join(
+                        "{} => {}".format(cond, value) for cond, value in path
+                    ),
+                    result,
+                ),
+                file=f,
+            )
+            print(
+                "  pragma Assert (Witnessed_Index = {});".format(index), file=f
+            )
 
-        print('end {};'.format(name), file=f)
+        print("end {};".format(name), file=f)
 
-    subprocess.check_call(['gnatmake', '-q', '-g', '-gnata', ada_file])
-    subprocess.check_call(['./{}'.format(name)])
+    subprocess.check_call(["gnatmake", "-q", "-g", "-gnata", ada_file])
+    subprocess.check_call(["./{}".format(name)])
 
 
-if __name__ == '__main__':
-    A = Condition('A')
-    B = Condition('B')
-    C = Condition('C')
-    D = Condition('D')
-    E = Condition('E')
-    F = Condition('F')
-    G = Condition('G')
+if __name__ == "__main__":
+    A = Condition("A")
+    B = Condition("B")
+    C = Condition("C")
+    D = Condition("D")
+    E = Condition("E")
+    F = Condition("F")
+    G = Condition("G")
 
-    test('test_1', Not(A & B) | C)
-    test('test_2', (A & Not(B)) | (C & (D | E)))
-    test('test_3', (A & B & C & D) | (E & (F | G)))
-    test('test_4', (A & (B | C)))
+    test("test_1", Not(A & B) | C)
+    test("test_2", (A & Not(B)) | (C & (D | E)))
+    test("test_3", (A & B & C & D) | (E & (F | G)))
+    test("test_4", (A & (B | C)))

@@ -13,12 +13,13 @@ from SUITE.tutils import gprfor, xcov
 Wdir("tmp_")
 
 xcov_args = build_and_run(
-    gprsw=GPRswitches(root_project=gprfor(["test_engines.adb"],
-                                          srcdirs="../src")),
+    gprsw=GPRswitches(
+        root_project=gprfor(["test_engines.adb"], srcdirs="../src")
+    ),
     covlevel="stmt",
     mains=["test_engines"],
     extra_coverage_args=["--annotate=xcov"],
-    scos=["obj/engines"]
+    scos=["obj/engines"],
 )
 
 xcov(xcov_args + ["--source-search=./src"], out="warnings1.txt")
@@ -31,12 +32,16 @@ thistest.fail_if(not empty("warnings2.txt"), "Source search unsuccessful")
 
 # Same test but with a response file
 source_search_filename = os.path.abspath("src-search.txt")
-with open(source_search_filename, 'w') as f:
+with open(source_search_filename, "w") as f:
     f.write(os.path.join("..", "newsrc"))
 
-xcov(xcov_args + [f"--source-search=@{source_search_filename}"], out="warnings3.txt")
-thistest.fail_if(not empty("warnings3.txt"),
-                 "Source search unsuccessful (response file)")
+xcov(
+    xcov_args + [f"--source-search=@{source_search_filename}"],
+    out="warnings3.txt",
+)
+thistest.fail_if(
+    not empty("warnings3.txt"), "Source search unsuccessful (response file)"
+)
 
 os.rename("../newsrc", "../src")
 
