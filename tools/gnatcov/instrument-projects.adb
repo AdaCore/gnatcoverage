@@ -247,8 +247,8 @@ is
 
    procedure Add_Project_Source
      (Project : GPR.Project_Type; Source_File : GPR.File_Info);
-   --  Add Source_File to the C or Ada list of all project sources depending on
-   --  its language.
+   --  If an instrumenter supports Source_File's language and if Project is not
+   --  externally built, add Source_File to Project_Sources.
 
    procedure Insert_Manual_Dump_Trigger
      (Language             : Src_Supported_Language;
@@ -705,18 +705,13 @@ is
    ------------------------
 
    procedure Add_Project_Source
-     (Project : GPR.Project_Type; Source_File : GPR.File_Info)
-   is
-      pragma Unreferenced (Project);
+     (Project : GPR.Project_Type; Source_File : GPR.File_Info) is
    begin
-      --  Check if gnatcov was built with support for this language. If not,
-      --  exit early.
-
-      if not Builtin_Support (To_Language (Source_File.Language)) then
-         return;
+      if Builtin_Support (To_Language (Source_File.Language))
+         and then not Project.Externally_Built
+      then
+         Project_Sources.Insert (Source_File);
       end if;
-
-      Project_Sources.Insert (Source_File);
    end Add_Project_Source;
 
    ---------------------------
