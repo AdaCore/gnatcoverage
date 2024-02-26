@@ -479,8 +479,8 @@ class LRMTableImporter(ArtifactImporter):
             pdf_items,
             title="TOR/LRM Traceability Matrix for Ada %s" % language_version,
             headers=["Section", "Title", "Applicable", "Comment"],
-            latex_format="|p{0.08\linewidth}|p{0.20\linewidth}|"
-            + "p{0.10\linewidth}|p{0.50\linewidth}|",
+            latex_format=r"|p{0.08\linewidth}|p{0.20\linewidth}|"
+            + r"p{0.10\linewidth}|p{0.50\linewidth}|",
         )
 
         html_table = writer.csv_table(
@@ -491,10 +491,10 @@ class LRMTableImporter(ArtifactImporter):
 
         output += (
             writer.paragraph(
-                "This particular table is established for **Ada %s**."
-                % language_version
-                + "\n\The requirement identifiers in this table were shortened by "
-                "removing the *%s* common prefix.\n\n" % REQ_NAME_PREFIX
+                "This particular table is established for **Ada"
+                f" {language_version}**."
+                "\n\\The requirement identifiers in this table were shortened"
+                f" by removing the *{REQ_NAME_PREFIX}* common prefix.\n\n"
             )
             + writer.only(pdf_table, "latex")
             + writer.only(html_table, "html")
@@ -594,9 +594,9 @@ class TCIndexImporter(ArtifactImporter):
 
         output += writer.toctree(
             [
-                "/%s/content" % artifact_hash(*l)
-                for l in links
-                if not is_tc_or_set(l[0]) or is_tc_or_set(parent)
+                "/%s/content" % artifact_hash(*link)
+                for link in links
+                if not is_tc_or_set(link[0]) or is_tc_or_set(parent)
             ],
             hidden=True,
         )
@@ -710,9 +710,9 @@ class ToplevelIndexImporter(ArtifactImporter):
 
         output += writer.toctree(
             [
-                "/%s/content" % artifact_hash(*l)
-                for l in links
-                if not is_tc_or_set(l[0])
+                "/%s/content" % artifact_hash(*link)
+                for link in links
+                if not is_tc_or_set(link[0])
             ],
             hidden=True,
         )
@@ -784,9 +784,9 @@ class SubsetIndexTocTree(ArtifactImporter):
 
         output = writer.toctree(
             [
-                "/%s/content" % artifact_hash(*l)
-                for l in links
-                if not is_tc_or_set(l[0])
+                "/%s/content" % artifact_hash(*link)
+                for link in links
+                if not is_tc_or_set(link[0])
             ],
             hidden=True,
         )
@@ -804,9 +804,9 @@ class SubsetIndexImporter(SubsetIndexTable):
 
         output += writer.toctree(
             [
-                "/%s/content" % artifact_hash(*l)
-                for l in links
-                if not is_tc_or_set(l[0])
+                "/%s/content" % artifact_hash(*link)
+                for link in links
+                if not is_tc_or_set(link[0])
             ],
             hidden=True,
         )
@@ -967,14 +967,12 @@ class TestCaseImporter(ArtifactImporter):
                 func_list, driver_list, helper_list, fillvalue=""
             )
 
-        html_content = writer.csv_table([k for k in for_table_qmref], headers)
+        html_content = writer.csv_table(list(for_table_qmref), headers)
 
         result += writer.only(html_content, "html")
 
         if do_pdf:
-            latex_content = writer.csv_table(
-                [k for k in for_table], headers
-            ).strip()
+            latex_content = writer.csv_table(list(for_table), headers).strip()
             result += writer.only(latex_content, "latex")
 
         output = "\n\n" + writer.minipage(result, r"\linewidth") + "|\n\n"
@@ -1061,7 +1059,7 @@ class IndexImporter(ArtifactImporter):
             self.items,
             headers=["Kind", "Identification", "Description"],
             latex_format=(
-                "|p{0.05\linewidth}|p{0.47\linewidth}||p{0.37\linewidth}|"
+                r"|p{0.05\linewidth}|p{0.47\linewidth}||p{0.37\linewidth}|"
             ),
         )
 
@@ -1213,7 +1211,10 @@ class TestCasesImporter(ArtifactImporter):
         for desc in links_dict.keys():
             pdf_output += writer.subsubsection(desc) + "\n"
             pdf_output += writer.toctree(
-                ["/%s/content" % artifact_hash(*l) for l in links_dict[desc]],
+                [
+                    "/%s/content" % artifact_hash(*link)
+                    for link in links_dict[desc]
+                ],
                 hidden=True,
             )
 
@@ -1243,7 +1244,7 @@ class TestCasesImporter(ArtifactImporter):
         # Build the html output
 
         html_output = writer.toctree(
-            ["/%s/content" % artifact_hash(*l) for l in mixed_links],
+            ["/%s/content" % artifact_hash(*link) for link in mixed_links],
             hidden=True,
         )
 

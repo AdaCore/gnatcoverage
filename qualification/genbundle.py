@@ -196,16 +196,20 @@ from e3.fs import cp, mv, rm, mkdir, ls, find
 
 from datetime import date
 
-import optparse, sys, os.path, shutil, re, hashlib
+import hashlib
+import optparse
+import os.path
+import re
+import sys
 
 # This lets us access modules that the testuite
 # code features:
 MY_TESTSUITE_DIR = os.path.abspath("../testsuite")
 sys.path.append(MY_TESTSUITE_DIR)
 
-from SUITE.qdata import CTXDATA_FILE, treeref_at
-from SUITE.cutils import contents_of, output_of
-from SUITE.dutils import jload_from
+from SUITE.qdata import CTXDATA_FILE, treeref_at  # noqa: E402
+from SUITE.cutils import contents_of, output_of  # noqa: E402
+from SUITE.dutils import jload_from  # noqa: E402
 
 # =======================================================================
 # ==                         MISC UTILITY FUNCTIONS                    ==
@@ -234,7 +238,7 @@ def warn_if(p, msg):
         print("\n!!! WARNING: %s !!!\n" % msg)
 
 
-def run_list(cmd, dir=None, env=None):
+def run_list(cmd, dirname=None, env=None):
     """Execute the provided CMD command-list (command name + arguments),
     temporarily switching to the DIR directory unless None, dumping a .log
     file tracking the command output in the directory where the command
@@ -261,7 +265,7 @@ def run_list(cmd, dir=None, env=None):
     os.chdir(oriwd)
 
 
-def run(s, dir=None, env=None):
+def run(s, dirname=None, env=None):
     run_list(s.split(), dir, env=env)
 
 
@@ -323,7 +327,7 @@ def current_gitbranch_at(dirname):
     os.chdir(dirname)
 
     this_branch = re.search(
-        pattern="\* (?P<branchname>\S*)", string=output_of("git branch")
+        pattern=r"\* (?P<branchname>\S*)", string=output_of("git branch")
     ).group("branchname")
 
     os.chdir(cwd)
@@ -373,20 +377,20 @@ class QMAT:
 
         self.passno = 0
 
-    def process_imports(self, dir):
+    def process_imports(self, dirname):
         """
-        Process the template file in dir, replacing the occurrences of
+        Process the template file in dirname, replacing the occurrences of
         <%name%> in the text by the contents of name_<trace_mode>.rst,
         according to the qualification parameters
         """
 
         def replace_one(p):
             return contents_of(
-                os.path.join(dir, p.group(1) + f"_{self.o.trace_mode}.rst")
+                os.path.join(dirname, p.group(1) + f"_{self.o.trace_mode}.rst")
             )
 
-        template_content = contents_of(os.path.join(dir, "content.tmpl"))
-        with open(os.path.join(dir, "content.rst"), "w") as f:
+        template_content = contents_of(os.path.join(dirname, "content.tmpl"))
+        with open(os.path.join(dirname, "content.rst"), "w") as f:
             f.write(
                 re.sub(
                     pattern=r"<%([^%]+)%>",
@@ -404,10 +408,10 @@ class QMAT:
         Prepare the content files by choosing the correct content_*.rst file
         according to the qualification parameters.
         """
-        for dir in dirs:
+        for dirname in dirs:
             cp(
-                os.path.join(dir, f"content_{self.o.trace_mode}.rst"),
-                os.path.join(dir, f"content.rst"),
+                os.path.join(dirname, f"content_{self.o.trace_mode}.rst"),
+                os.path.join(dirname, "content.rst"),
             )
 
     # --------------------
@@ -543,15 +547,15 @@ class QMAT:
     #
     # for the html versions.
 
-    def __latch_into(self, dir, part, toplevel, copy_from=None):
+    def __latch_into(self, dirname, part, toplevel, copy_from=None):
         this_target_is_tree = self.this_docformat == "html"
 
         # Compute the target dir or file name for our copy:
 
         this_target = (
-            dir
+            dirname
             if toplevel and this_target_is_tree
-            else os.path.join(dir, self.kititem_for(part=part))
+            else os.path.join(dirname, self.kititem_for(part=part))
         )
 
         # Compute the source dir or file name for our copy:
@@ -638,7 +642,7 @@ class QMAT:
             env={"GENBUNDLE_DOLEVEL": self.o.dolevel},
         )
 
-        self.__latch_into(dir=self.itemsdir(), part=part, toplevel=False)
+        self.__latch_into(dirname=self.itemsdir(), part=part, toplevel=False)
 
     # ---------------
     # -- build_tor --
@@ -703,7 +707,7 @@ class QMAT:
             "git merge-base %s %s" % (local_treeref, suite_treeref)
         ).strip(" \n")
 
-        (first, next) = (
+        (first, next_item) = (
             (suite_treeref, local_treeref)
             if merge_base == suite_treeref
             else (local_treeref, suite_treeref)
@@ -711,7 +715,7 @@ class QMAT:
             else (None, None)
         )
 
-        if first == None:
+        if first is None:
             log.write("!!! local and suite tree refs aren't sequential !!!\n")
             return
 
@@ -720,7 +724,7 @@ class QMAT:
             % ("suite" if first == local_treeref else "local")
         )
 
-        gitlog_cmd = "git rev-list --oneline %s ^%s" % (next, first)
+        gitlog_cmd = "git rev-list --oneline %s ^%s" % (next_item, first)
         log.write("\n".join(["", gitlog_cmd, "--", output_of(gitlog_cmd), ""]))
 
     def __dump_version_consistency_info(self, log, suite_ctxdata):
@@ -910,7 +914,7 @@ class QMAT:
 
         run("make %s" % sphinx_target_for[self.this_docformat])
 
-        self.__latch_into(dir=self.itemsdir(), part="str", toplevel=False)
+        self.__latch_into(dirname=self.itemsdir(), part="str", toplevel=False)
 
     # -----------------
     # -- build_plans --
@@ -930,18 +934,18 @@ class QMAT:
     # -- build_kit --
     # ---------------
 
-    def __relocate_into(self, dir, part):
+    def __relocate_into(self, dirname, part):
         the_item = self.kititem_for(part=part)
 
         item_source_path = os.path.join(self.itemsdir(), the_item)
-        item_target_path = os.path.join(dir, the_item)
+        item_target_path = os.path.join(dirname, the_item)
 
         remove(item_target_path)
 
         print("move : %s" % item_source_path)
-        print("into : %s" % dir)
+        print("into : %s" % dirname)
 
-        mv(item_source_path, dir)
+        mv(item_source_path, dirname)
 
     def build_kit(self):
         announce("building %s kit" % self.this_docformat)
@@ -981,7 +985,8 @@ class QMAT:
 
         mkdir(kitdir)
 
-        [self.__relocate_into(dir=kitdir, part=part) for part in self.o.parts]
+        for part in self.o.parts:
+            self.__relocate_into(dirname=kitdir, part=part)
 
         run("zip -q -r %(kitdir)s.zip %(kitdir)s" % {"kitdir": kitdir})
 
