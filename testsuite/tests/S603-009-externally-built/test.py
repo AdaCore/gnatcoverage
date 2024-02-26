@@ -156,7 +156,10 @@ def check_one(dump_trigger, lib_prj):
         project="mylib.gpr",
         externally_built=True,
         trace_file=trace_file,
-        expected_cov={"mylib.adb.xcov": {"+": {5, 6}, "-": {8}}},
+        expected_cov={
+            "mylib.adb.xcov": {"+": {5, 6}, "-": {8}},
+            "mylib.ads.xcov": {},
+        },
     )
 
     # Make sure coverage computation gives the expected result with and
@@ -174,6 +177,7 @@ def check_one(dump_trigger, lib_prj):
         expected_cov={
             "main.adb.xcov": {"+": {4, 6}},
             "mylib.adb.xcov": {"+": {5, 6}, "-": {8}},
+            "mylib.ads.xcov": {},
         },
     )
 

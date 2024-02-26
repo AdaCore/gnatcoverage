@@ -52,6 +52,7 @@ def do_one_level(level):
     expected_cov = {
         "test_eval.adb.xcov": {"+": {11, 13, 19, 20}},
         "testconditions.adb.xcov": {"+": {22, 23, 24, 25, 26, 27}},
+        "testconditions.ads.xcov": {},
         "compute.c.xcov": {"+": {5, 6}},
     }
 
@@ -67,7 +68,7 @@ def do_one_level(level):
         expected_cov["testconditions.adb.xcov"]['+'].add(17)
         expected_cov["compute.c.xcov"]['+'].add(4)
 
-    check_xcov_reports("obj", expected_cov)
+    check_xcov_reports("obj", expected_cov, discard_empty=False)
 
     if level == "stmt+mcdc":
         # The order in which sources are instrumented is not specified, so sort

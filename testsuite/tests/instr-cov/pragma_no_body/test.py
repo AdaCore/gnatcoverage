@@ -20,7 +20,9 @@ build_run_and_coverage(
 )
 check_xcov_reports('xcov', {
     'main.adb.xcov': {'+': {5}},
+    'orig_pkg.ads.xcov': {},
     'orig_pkg.adb.xcov': {'+': {4}},
+    'pkg.ads.xcov': {},
 })
 
 thistest.result()

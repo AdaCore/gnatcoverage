@@ -22,6 +22,9 @@ build_run_and_coverage(
 xcov(['coverage', '-cstmt', '-axcov', '-Cmain.ckpt'])
 
 expected_reports = ['foo.adb.xcov', 'main.adb.xcov']
+if thistest.options.trace_mode == "src":
+    expected_reports += ['bar.ads.xcov', 'foo.ads.xcov']
+expected_reports.sort()
 got_reports = sorted(glob.glob('*.xcov'))
 thistest.fail_if(
     got_reports != expected_reports,

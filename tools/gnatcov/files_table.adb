@@ -1825,7 +1825,8 @@ package body Files_Table is
       if Object_Coverage_Enabled then
          return File.Has_Object_Coverage_Info;
       else
-         return File.Has_Source_Coverage_Info;
+         return File.Kind = Source_File
+                and then File.Ignore_Status in Sometimes | Never;
       end if;
    end To_Display;
 

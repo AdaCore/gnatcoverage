@@ -44,14 +44,15 @@ tmp = Wdir("tmp_")
 
 build_run_and_coverage(
     gprsw=GPRswitches(
-        root_project=gprfor(mains=["main.adb"],srcdirs=[".."]),
-        units=["Pkg"]
+        root_project=gprfor(mains=["main.adb"], srcdirs=[".."]), units=["Pkg"]
     ),
     covlevel="stmt+decision",
     mains=["main"],
-    extra_coverage_args=["--subprograms=pkg.ads:3", "-axcov"]
+    extra_coverage_args=["--subprograms=pkg.ads:3", "-axcov"],
 )
 
-check_xcov_reports("obj", {"pkg.adb.xcov": {"!": {12, 13}, "+": {14, 15}}})
+check_xcov_reports(
+    "obj", {"pkg.ads.xcov": {}, "pkg.adb.xcov": {"!": {12, 13}, "+": {14, 15}}}
+)
 
 thistest.result()

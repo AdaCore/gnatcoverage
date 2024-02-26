@@ -44,6 +44,7 @@ for discr in ('be', 'le'):
     check_xcov_reports(xcov_dir, {
         'main.adb.xcov': {'+': {5, 7, 8}},
         'pkg.adb.xcov':  {'+': {6, 8}, '!': {5}},
-    })
+        'pkg.ads.xcov':  {},
+    }, discard_empty=False)
 
 thistest.result()

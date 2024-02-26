@@ -35,8 +35,8 @@ for main, out_file in zip(mains, out_files):
     run_cov_program(exepath_to(main), out=out_file)
 
 # Expected coverage report for both program executions:
-main1_cov = {"pkg.adb.xcov": {"+": {11, 14}, "-": {12}}}
-main2_cov = {"pkg.adb.xcov": {"+": {11, 12}, "-": {14}}}
+main1_cov = {"pkg.adb.xcov": {"+": {11, 14}, "-": {12}}, "pkg.ads.xcov": {}}
+main2_cov = {"pkg.adb.xcov": {"+": {11, 12}, "-": {14}}, "pkg.ads.xcov": {}}
 
 # Now combine them with different prefixes and check that "gnatcov
 # extract-base64-trace" correctly loads the last one.
@@ -95,6 +95,6 @@ for label, interleaved_outputs, trailing_output, cov in [
             trace_filename,
         ]
     )
-    check_xcov_reports(xcov_dir, cov)
+    check_xcov_reports(xcov_dir, cov, discard_empty=False)
 
 thistest.result()

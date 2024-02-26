@@ -18,9 +18,11 @@ from SUITE.gprutils import GPRswitches
 # each project, designated by project short name.
 _xreports = {
     'boolops':  ['boolops.ads', 'boolops.adb',
-                 'boolops-andthen.adb', 'boolops-orelse.adb'],
+                 'boolops-andthen.ads', 'boolops-andthen.adb',
+                 'boolops-orelse.ads', 'boolops-orelse.adb'],
     'intops':   ['intops.ads', 'intops.adb',
-                 'intops-add.adb', 'intops-sub.adb'],
+                 'intops-add.ads', 'intops-add.adb',
+                 'intops-sub.ads', 'intops-sub.adb'],
     'counters': ['counters.ads', 'counters.adb'],
 }
 all_projects = list(_xreports)

@@ -70,6 +70,8 @@ xcov(cov_args + [trace_file], out="coverage.log")
 check_xcov_reports('xcov', {
     'main.adb.xcov': {'+': {12, 15, 19, 24, 26, 27, 28},
                       '-': {21, 29}},
-    'lib1.adb.xcov': {'+': {4, 7}}})
+    'lib1.adb.xcov': {'+': {4, 7}},
+    'lib1.ads.xcov': {},
+})
 
 thistest.result()

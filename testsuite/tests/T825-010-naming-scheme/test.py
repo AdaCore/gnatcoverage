@@ -34,6 +34,6 @@ check_xcov_reports('report', {
     'p.2.ada.xcov': {'+': {4}},
     'p__q.1.ada.xcov': {'+': {3}},
     'p__q.2.ada.xcov': {'+': {6}},
-})
+}, discard_empty=False)
 
 thistest.result()

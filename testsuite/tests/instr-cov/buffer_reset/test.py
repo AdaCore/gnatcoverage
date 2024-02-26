@@ -24,7 +24,7 @@ main_lines = {
 # Units which will only have a partial coverage result in them, regardless of
 # the trace.
 default_part_cov = {
-    "ada": {"pkg.adb.xcov": {'!': {5}}},
+    "ada": {"pkg.adb.xcov": {'!': {5}}, "pkg.ads.xcov": {}},
     "c": {"pkh.c.xcov": {'!': {6}}},
 }
 
@@ -33,6 +33,7 @@ default_no_cov = {
     "ada": {
         "main_ada.adb.xcov": {'-': {7, 10, 13}},
         "pkg.adb.xcov": {'-': {5}},
+        "pkg.ads.xcov": {},
     },
     "c": {
         "main_c.c.xcov": {'-': {8, 11, 14, 16}},
@@ -141,6 +142,7 @@ check_xcov_reports(
     output_dir,
     {
         "main_ada.adb.xcov": {'+': {7, 10, 13}},
+        "pkg.ads.xcov": {},
         "pkg.adb.xcov": {'+': {5}},
         "main_c.c.xcov": {'+': {8, 11, 14}, '-': {16}},
         "pkh.c.xcov": {'+': {6}}

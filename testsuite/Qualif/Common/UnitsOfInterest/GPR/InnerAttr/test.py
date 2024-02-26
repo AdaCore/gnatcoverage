@@ -24,7 +24,9 @@ def check(subdir, opspkg, xreports):
 
 check(
     opspkg="",
-    xreports=["ops.adb", "ops.ads", "ops-andthen.adb", "ops-orelse.adb"],
+    xreports=["ops.adb", "ops.ads",
+              "ops-andthen.ads", "ops-andthen.adb",
+              "ops-orelse.ads", "ops-orelse.adb"],
     subdir="wd_1",
 )
 
@@ -32,7 +34,7 @@ check(
 
 check(
     opspkg=gprcov_for(units_in=["ops.andthen"]),
-    xreports=["ops-andthen.adb"],
+    xreports=["ops-andthen.ads", "ops-andthen.adb"],
     subdir="wd_2",
 )
 
@@ -40,7 +42,7 @@ check(
 
 check(
     opspkg=gprcov_for(units_out=["ops.andthen"]),
-    xreports=["ops.ads", "ops.adb", "ops-orelse.adb"],
+    xreports=["ops.ads", "ops.adb", "ops-orelse.ads", "ops-orelse.adb"],
     subdir="wd_3",
 )
 
@@ -50,7 +52,7 @@ check(
     opspkg=gprcov_for(
         units_in=["ops", "ops.orelse", "ops.andthen"],
         units_out=["ops.orelse"]),
-    xreports=["ops.ads", "ops.adb", "ops-andthen.adb"],
+    xreports=["ops.ads", "ops.adb", "ops-andthen.ads", "ops-andthen.adb"],
     subdir="wd_3",
 )
 

@@ -55,6 +55,7 @@ try_one(
     extra_covargs=[],
     xreports={
         'flip.adb.xcov': {'+': {3}},
+        'flip.ads.xcov': {},
         'test_t.adb.xcov': {'+': {4, 6}}},
     xwarnings=[])
 

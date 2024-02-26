@@ -100,5 +100,11 @@ checked_xcov(['coverage', '-c', covlevel, '--annotate=xcov', output_arg,
              'cons.log')
 
 # Finally, check we have the expected reports
-check_xcov_reports('output', {'pkg.adb.xcov': {'+': {5, 6, 8}}})
+check_xcov_reports(
+    'output',
+    {
+        'pkg.ads.xcov': {},
+        'pkg.adb.xcov': {'+': {5, 6, 8}}
+    },
+)
 thistest.result()
