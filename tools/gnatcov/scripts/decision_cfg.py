@@ -31,7 +31,7 @@ STYLES = {
     BRANCH: STYLE_BRANCH_TAKEN,
 }
 
-SLOC_RANGE = re.compile("^([^:]*):(\d+):(\d+)-(\d+):(\d+)$")
+SLOC_RANGE = re.compile(r"^([^:]*):(\d+):(\d+)-(\d+):(\d+)$")
 SlocRange = collections.namedtuple(
     "SlocRange", "filename" " start_line start_column" " end_line end_column"
 )
@@ -159,8 +159,6 @@ class ArchPPC32(Arch):
 
         # Branch can go to an absolute address, to the link register or to the
         # control register.
-        dest_in_reg = False
-        return_from_subroutine = False
         if mnemonic.endswith("l") or mnemonic.endswith("la"):
             # Branch and Link (call)
             if "ctr" in mnemonic:
@@ -279,7 +277,7 @@ def parse_program(string):
         (elf_machine,) = arch_struct.unpack(f.read(2))
         try:
             arch = ARCHITECTURES[elf_machine]
-        except:
+        except KeyError:
             raise argparse.ArgumentTypeError(
                 "{}: unhandled architecture ({})".format(string, elf_machine)
             )
@@ -700,7 +698,7 @@ if __name__ == "__main__":
         else:
             # We are not supposed to end up here since args.location items come
             # from arguments parsing.
-            assert False
+            raise AssertionError
 
     locations = Locations(
         sym_info, accepted_symbols, accepted_addr_ranges, accepted_slocs
@@ -730,7 +728,7 @@ if __name__ == "__main__":
 
     # Use the BDD, and especially its EXCEPTION edges info to tag as
     # uncoverable the successors of basic blocks that raise an exception.
-    for pc, basic_block in decision_cfg.items():
+    for _, basic_block in decision_cfg.items():
         last_insn = basic_block[-1]
         try:
             branch_info = bdd_info[last_insn.pc]

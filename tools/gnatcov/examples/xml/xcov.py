@@ -2,7 +2,6 @@
 """API to read xcov XML coverage reports"""
 
 from xml.dom import minidom
-from time import strftime
 
 
 COVERAGE_STATE = {
@@ -257,8 +256,8 @@ class SrcMapping(object):
         # Register messages
         for m in self.messages:
             self.source.messages[m.sco_id] = m
-        for l in self.src_lines:
-            self.source.lines[l.num] = l
+        for line in self.src_lines:
+            self.source.lines[line.num] = line
 
     def get_non_exempted_violations(self, levels):
         """Report violations (as done by xcov --annotate=report)
@@ -336,13 +335,11 @@ class SourceFile(object):
         return [line for sm in self.src_mappings for line in sm.src_lines]
 
     def get_non_exempted_violations(self, levels):
-        list_ = [
-            sm.get_non_exempted_violations(levels) for sm in self.src_mappings
-        ]
-        list_ = [l for l in list_ if l is not None]
         result = []
-        for l in list_:
-            result.extend(l)
+        for sm in self.src_mappings:
+            violations = sm.get_non_exempted_violations(levels)
+            if violations is not None:
+                result.extend(violations)
         return result
 
     def pp_violations(self, levels):
@@ -392,7 +389,7 @@ class XCovReport(object):
         ]
 
     def get_levels(self):
-        return [p for p in self.coverage_level.split("+")]
+        return self.coverage_level.split("+")
 
     def visitor(self, func):
         for src in self.source_names:

@@ -242,7 +242,7 @@ class BDD(object):
                 root = compute_edges(expr.expr, for_true, for_false)
 
             else:
-                assert False
+                raise AssertionError
 
             return root
 

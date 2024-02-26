@@ -85,7 +85,7 @@ if __name__ == "__main__":
     if overlap_syms:
         sys.stderr.write("warning: some symbols overlap with others:\n")
         for sym in overlap_syms:
-            sys.stderr.write("  - {}\n".format(syminfo.format_symbol(sym)))
+            sys.stderr.write("  - {}\n".format(sym_info.format_symbol(sym)))
     try:
         symbol = sym_info[address]
     except KeyError:
