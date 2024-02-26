@@ -7,7 +7,6 @@ used contains unexpected double backslashes as directory separators.
 """
 
 import os.path
-import shutil
 
 from e3.fs import cp
 from e3.os.process import PIPE, Run, STDOUT
@@ -16,14 +15,7 @@ from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.control import env
 from SUITE.cutils import FatalError, Wdir
 from SUITE.gprutils import GPRswitches
-from SUITE.tutils import (
-    exepath_to,
-    gprfor,
-    thistest,
-    tracename_for,
-    xcov,
-    xrun,
-)
+from SUITE.tutils import gprfor, thistest
 
 
 tmp = Wdir("tmp_")
@@ -47,9 +39,9 @@ p = Run(
                     "-fdump-scos",
                     "-g",
                     "-save-temps",
-                    # TODO??? This is necessary in order to have the C sources build
-                    # with an arm-elf toolchain and a stm32f4 RTS, it is not clear if
-                    # we could make this more generic.
+                    # TODO??? This is necessary in order to have the C sources
+                    # build with an arm-elf toolchain and a stm32f4 RTS, it is
+                    # not clear if we could make this more generic.
                     "-mlittle-endian",
                     "-mfloat-abi=hard",
                     "-mcpu=cortex-m4",

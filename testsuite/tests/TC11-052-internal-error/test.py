@@ -22,6 +22,7 @@ def check(args, trigger, info):
         p.status == 0, "gnatcov returned success exit code, error expected"
     )
 
+    trigger_msg = trigger.upper().replace("-", "_")
     expected_output = re.compile(
         "\n".join(
             [
@@ -29,10 +30,11 @@ def check(args, trigger, info):
                 "== gnatcov bug detected ==",
                 "",
                 "gnatcov just encountered an internal error:",
-                f"raised CONSTRAINT_ERROR : {trigger.upper().replace('-', '_')}",
+                f"raised CONSTRAINT_ERROR : {trigger_msg}",
                 # Depending on how gnatcov is built, exception info may contain
                 # stack traces.
-                "((Load address: [x0-9a-f]+\n)?Call stack traceback locations:",
+                "((Load address: [x0-9a-f]+\n)?Call stack traceback"
+                " locations:",
                 "[x0-9a-f ]+",
                 ")?",
                 "",
@@ -104,7 +106,7 @@ xcov_args = build_and_run(
 check(
     args=xcov_args,
     trigger="load-checkpoint",
-    info="Loading [^\n]*main\.sid",
+    info=r"Loading [^\n]*main\.sid",
 )
 
 thistest.result()

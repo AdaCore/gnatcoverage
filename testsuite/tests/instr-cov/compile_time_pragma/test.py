@@ -3,9 +3,6 @@ Check that the decision/conditions of Compile_Time_Error pragmas are not
 instrumented.
 """
 
-import os
-import os.path
-
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir

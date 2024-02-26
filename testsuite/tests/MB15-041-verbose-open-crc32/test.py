@@ -39,8 +39,8 @@ def list_to_text(items):
 
 
 def check_same_files(expected, found):
-    expected = set(unixpath(path) for path in expected)
-    found = set(unixpath(path) for path in found)
+    expected = {unixpath(path) for path in expected}
+    found = {unixpath(path) for path in found}
     thistest.fail_if(
         expected != found,
         "Expecting:\n{}"
@@ -55,7 +55,7 @@ def check_logging(log_file, expected_files):
     """
     # Rebase all input path to the temporary directory.
     base = os.getcwd()
-    expected_files = set(os.path.join(base, path) for path in expected_files)
+    expected_files = {os.path.join(base, path) for path in expected_files}
 
     checksums = {}
     gnatcov_cwd = None
@@ -88,9 +88,9 @@ def check_logging(log_file, expected_files):
             expected_checksum = crc32(fp.read()) & 0xFFFFFFFF
         thistest.fail_if(
             expected_checksum != checksum,
-            "Bad checksum for {}: expecting CRC32={:#08x}, but found {:#08x}".format(
-                filename, expected_checksum, checksum
-            ),
+            f"Bad checksum for {filename}:"
+            f" expecting CRC32={expected_checksum:#08x},"
+            f" but found {checksum:#08x}",
         )
 
 

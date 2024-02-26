@@ -11,11 +11,11 @@ wd = Wdir("tmp_")
 
 # Get the list of pragmas that gnatcov knows
 xcov(["dump-pragmas"], out="gnatcov.txt")
-gnatcov_names = set(line.strip() for line in lines_of("gnatcov.txt"))
+gnatcov_names = {line.strip() for line in lines_of("gnatcov.txt")}
 
 # Get the list of pragmas that GNAT knows
 xcov(["dump-pragmas", "--gnat-pragmas"], out="gnat.txt")
-gnat_names = set(line.strip() for line in lines_of("gnat.txt"))
+gnat_names = {line.strip() for line in lines_of("gnat.txt")}
 
 # Check that gnatcov knows about all pragmas from gnat_util
 missing_names = "\n".join(sorted(gnat_names - gnatcov_names))

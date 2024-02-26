@@ -97,8 +97,8 @@ for prefix in ["src", "src/"]:
         expected_filenames=expected_filenames,
     )
 
-# Check that the report can be emitted in the absence of the project sources. We
-# have to rely on sid files to convey the coverage obligations
+# Check that the report can be emitted in the absence of the project sources.
+# We have to rely on sid files to convey the coverage obligations
 thistest.log("== Report with no sources ==")
 # No pkg.ads in the report as there are no coverage obligations for it
 expected_filenames = {"lib.c", "pkg.adb", "test.adb"}

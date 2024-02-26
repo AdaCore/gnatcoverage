@@ -3,8 +3,6 @@ Check that units with the No_Elaboration_Code_All pragma still compile after
 instrumentation.
 """
 
-import os.path
-
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir

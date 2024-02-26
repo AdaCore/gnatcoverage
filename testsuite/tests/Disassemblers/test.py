@@ -90,7 +90,7 @@ for test_dir, tc in testcases.items():
     path = os.path.join(tmp.homedir, test_dir)
     tmp_sub = Wdir(test_dir)
 
-    testcases = list(sorted(filter(is_asm, os.listdir(path))))
+    testcases = sorted(filter(is_asm, os.listdir(path)))
 
     # Prepare object file from assembly sources.
     project = gprfor(testcases, srcdirs=path, main_cargs=tc.cargs)

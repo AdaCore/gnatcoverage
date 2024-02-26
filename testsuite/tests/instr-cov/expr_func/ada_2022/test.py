@@ -1,6 +1,6 @@
 """
-Check that limitations concerning expression function instrumentation are lifted
-when Ada 2022, and thus declare expressions are available.
+Check that limitations concerning expression function instrumentation are
+lifted when Ada 2022, and thus declare expressions are available.
 
 This test reflects the various limitations that are documented in the user
 manual:

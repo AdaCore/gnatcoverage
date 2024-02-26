@@ -28,7 +28,9 @@ build_run_and_coverage(
     covlevel="stmt+mcdc",
     mains=["main"],
     trace_mode="src",
-    tolerate_instrument_messages="cannot instrument generic expression function",
+    tolerate_instrument_messages=(
+        "cannot instrument generic expression function"
+    ),
 )
 
 check_xcov_reports(

@@ -29,10 +29,10 @@ gprbuild(gpr)
 libsym = target_info().to_platform_specific_symbol("lib__adjust")
 
 
-def address_range_for(symname, bin):
+def address_range_for(symname, binfile):
     m = re.search(
         pattern=r"(?P<address_range>\S*-\S*) symbol for %s" % symname,
-        string=xcov(["dump-symbols", bin]).out,
+        string=xcov(["dump-symbols", binfile]).out,
     )
 
     return m.group("address_range")
