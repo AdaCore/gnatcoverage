@@ -3203,6 +3203,24 @@ package body Instrument.Ada_Unit is
         with Pre => Assertion_Coverage_Enabled;
       --  Register decision of contrat of name Name of declaration node D
 
+      function Prag_Arg_Expr (Args : Base_Assoc_List; I : Positive) return Expr
+      is
+        (Args.Child (I).As_Pragma_Argument_Assoc.F_Expr);
+      --  Return the expression for the Index'th argument of a pragma's
+      --  arguments.
+
+      procedure Process_Annotation
+        (N         : Ada_Node;
+         Prag_Args : Base_Assoc_List)
+        with Pre =>
+          N.Kind = Ada_Pragma_Node
+          and then Pragma_Name (N.As_Pragma_Node) = Name_Annotate;
+      --  Handle an Annotate pragma.
+      --
+      --  If this is not an Xcov annotation, do nothing. Otherwise, decode it
+      --  and add it to our internal tables. If the pragma is not correctly
+      --  formatted (decoding failure), just emit a warning.
+
       procedure Traverse_One (N : Ada_Node);
       --  Traverse one declaration or statement
 
@@ -3665,6 +3683,143 @@ package body Instrument.Ada_Unit is
             P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)),
             'A');
       end Process_Contract;
+
+      ------------------------
+      -- Process_Annotation --
+      ------------------------
+
+      procedure Process_Annotation
+        (N         : Ada_Node;
+         Prag_Args : Base_Assoc_List)
+      is
+         function Get_Arg
+           (Prag_Args : Base_Assoc_List;
+            I         : Natural)
+            return Symbol_Type
+         is
+           (if Prag_Arg_Expr (Prag_Args, I).Kind =
+              Libadalang.Common.Ada_Identifier
+            then As_Symbol (Prag_Arg_Expr (Prag_Args, I).As_Identifier)
+            else null);
+         --  Attempt to get the pragma's Ith argument as an identifier. If
+         --  it is not an identifier, return null. Else, return the identifier
+         --  as a symbol.
+
+         Nb_Children : constant Natural := Prag_Args.Children_Count;
+         Kind        : Symbol_Type;
+         Result      : ALI_Annotation;
+
+      --  Start of processing for Process_Annotation
+
+      begin
+         --  Ignore all but Xcov annotations
+
+         if Get_Arg (Prag_Args, 1) /= As_Symbol (Xcov) then
+            return;
+         end if;
+
+         --  Decode the annotation kind
+
+         if Nb_Children = 1 then
+            Report (N, "Xcov annotation kind missing", Warning);
+            return;
+         end if;
+
+         Kind := Get_Arg (Prag_Args, 2);
+         begin
+            Result.Kind := ALI_Annotation_Kind'Value (Image (Kind));
+         exception
+            when Constraint_Error =>
+               Report
+                 (N,
+                  "Invalid Xcov annotation kind"
+                  & (if Kind /= null
+                     then ": " & Image (Kind)
+                     else ""),
+                  Warning);
+               return;
+         end;
+
+         --  Now that the annotation kind is known, validate the remaining
+         --  arguments expected for that kind.
+
+         case Result.Kind is
+            when Exempt_On =>
+
+               --  Expected formats:
+               --  * (Xcov, Exempt_On)
+               --  * (Xcov, Exempt_On, "Justification")
+
+               case Nb_Children is
+               when 2 =>
+                  Report
+                    (N, "No justification given for exempted region", Warning);
+                  UIC.Annotations.Append
+                    (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+
+               when 3 =>
+                  if Prag_Arg_Expr (Prag_Args, 3).Kind /= Ada_String_Literal
+                  then
+                     Report
+                       (N,
+                        "Invalid justification argument: string literal"
+                        & " expected",
+                        Warning);
+                     return;
+                  end if;
+                  Result.Message := new String'
+                    (To_String (Prag_Arg_Expr (Prag_Args, 3).Text));
+
+                  UIC.Annotations.Append
+                    (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+
+               when others =>
+                  Report (N, "At most 3 pragma arguments allowed", Warning);
+                  return;
+               end case;
+
+            when Exempt_Off =>
+               if Nb_Children > 2 then
+                  Report
+                    (N, "At most 2 pragma arguments allowed", Warning);
+                  return;
+               end if;
+
+               UIC.Annotations.Append
+                    (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+
+            when Dump_Buffers =>
+
+               --  Expected formats:
+               --  * (Xcov, Dump_Buffers)
+               --  * (Xcov, Dump_Buffers, Prefix)
+
+               case Nb_Children is
+                  when 2 =>
+                     null;
+
+                  when 3 =>
+                     if Prag_Arg_Expr (Prag_Args, 3).Kind not in
+                       Ada_String_Literal | Libadalang.Common.Ada_Identifier
+                     then
+                        Report
+                          (N,
+                           "Invalid prefix argument: string literal expected",
+                           Warning);
+                     end if;
+
+                  when others =>
+                     Report (N, "At most 3 pragma arguments allowed", Warning);
+                     return;
+               end case;
+
+            when Reset_Buffers =>
+               if Nb_Children /= 2 then
+                  Report (N, "At most 2 pragma arguments allowed", Warning);
+                  return;
+               end if;
+         end case;
+      end Process_Annotation;
 
       ------------------------------------
       -- Traverse_Degenerate_Subprogram --
@@ -4800,11 +4955,6 @@ package body Instrument.Ada_Unit is
                   Nam       : constant Name_Id := Pragma_Name (Prag_N);
                   Arg       : Positive := 1;
 
-                  function Prag_Arg_Expr (Index : Positive) return Expr is
-                    (Prag_Args.Child (Index).As_Pragma_Argument_Assoc.F_Expr);
-                  --  Return the expression for the Index'th argument of the
-                  --  pragma.
-
                begin
                   case Nam is
                      when Name_Type_Invariant
@@ -4861,7 +5011,8 @@ package body Instrument.Ada_Unit is
                            begin
                               while not Is_Null (Prag_Args.Child (Index)) loop
                                  Process_Expression
-                                   (UIC, Prag_Arg_Expr (Index), 'P');
+                                   (UIC,
+                                    Prag_Arg_Expr (Prag_Args, Index), 'P');
                                  Index := Index + 1;
                               end loop;
                            end;
@@ -4881,51 +5032,20 @@ package body Instrument.Ada_Unit is
                            --  is a P decision, any nested decision in the
                            --  second argument is an X decision.
 
-                           Process_Expression (UIC, Prag_Arg_Expr (Arg), 'P');
+                           Process_Expression
+                             (UIC, Prag_Arg_Expr (Prag_Args, Arg), 'P');
                            Arg := 2;
                         end if;
 
-                        Process_Expression (UIC, Prag_Arg_Expr (Arg), 'X');
+                        Process_Expression
+                          (UIC, Prag_Arg_Expr (Prag_Args, Arg), 'X');
 
                      when Name_Annotate =>
 
-                        --  If this is a coverage exemption, record it
+                        --  If this is a coverage exemption, record it. Raise
+                        --  a warning if the annotation could not be processed.
 
-                        if Prag_Args.Children_Count >= 2
-                           and then As_Symbol (Prag_Arg_Expr (1).As_Identifier)
-                                      = As_Symbol (Xcov)
-                        then
-                           declare
-                              Ann_Kind : constant Symbol_Type :=
-                                As_Symbol (Prag_Arg_Expr (2).As_Identifier);
-                              Ann      : ALI_Annotation;
-                           begin
-                              Ann.Kind :=
-                                ALI_Annotation_Kind'Value (Image (Ann_Kind));
-                              Ann.CU := No_CU_Id;
-
-                              if Ann.Kind = Exempt_On
-                                 and then Prag_Args.Children_Count >= 3
-                                 and then Prag_Arg_Expr (3).Kind
-                                            = Ada_String_Literal
-                              then
-                                 Ann.Message :=
-                                   new String'
-                                     (To_String (Prag_Arg_Expr (3)
-                                                 .As_String_Literal.Text));
-                              end if;
-
-                              UIC.Annotations.Append
-                                (Annotation_Couple'
-                                   ((UIC.SFI, +Sloc (N)), Ann));
-
-                           exception
-                              when Constraint_Error =>
-                                 --  Invalid annotation kind for Xcov: ignore
-
-                                 null;
-                           end;
-                        end if;
+                        Process_Annotation (N, Prag_Args);
                         Instrument_Statement (UIC, N, 'P');
 
                      --  Even though Compile_Time_* pragmas do contain
