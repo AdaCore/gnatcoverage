@@ -925,18 +925,38 @@ package body Annotations.Dynamic_Html is
    -------------
 
    function To_JSON (Stats : Counter_Array) return JSON_Value is
+
       Line_Stats : constant JSON_Value := Create_Object;
+
+      procedure Set_If_Not_Null (Field : String; Stat : Natural);
+      --  Wrapper around Line_Stats.Set_Field. Set Field to Stat if Stat is not
+      --  null, do nothing otherwise.
+
+      ---------------------
+      -- Set_If_Not_Null --
+      ---------------------
+
+      procedure Set_If_Not_Null (Field : String; Stat : Natural) is
+      begin
+         if Stat > 0 then
+            Line_Stats.Set_Field (Field, Stat);
+         end if;
+      end Set_If_Not_Null;
+
+   --  Start of processing for To_JSON
+
    begin
-      Line_Stats.Set_Field ("noCode", Stats (No_Code));
-      Line_Stats.Set_Field ("covered", Stats (Covered));
-      Line_Stats.Set_Field
-        ("partiallyCovered", Stats (Partially_Covered));
-      Line_Stats.Set_Field ("notCovered", Stats (Not_Covered));
-      Line_Stats.Set_Field ("notCoverable", Stats (Not_Coverable));
-      Line_Stats.Set_Field
-        ("exemptedNoViolation", Stats (Exempted_No_Violation));
-      Line_Stats.Set_Field
+      Set_If_Not_Null ("noCode", Stats (No_Code));
+      Set_If_Not_Null ("covered", Stats (Covered));
+      Set_If_Not_Null ("partiallyCovered", Stats (Partially_Covered));
+      Set_If_Not_Null ("notCovered", Stats (Not_Covered));
+      Set_If_Not_Null ("notCoverable", Stats (Not_Coverable));
+      Set_If_Not_Null ("undeterminedCoverage", Stats (Undetermined_Coverage));
+      Set_If_Not_Null ("exemptedNoViolation", Stats (Exempted_No_Violation));
+      Set_If_Not_Null
         ("exemptedWithViolation", Stats (Exempted_With_Violation));
+      Set_If_Not_Null
+        ("exemptedWithUndetCov", Stats (Exempted_With_Undetermined_Cov));
       return Line_Stats;
    end To_JSON;
 
@@ -964,22 +984,10 @@ package body Annotations.Dynamic_Html is
         (Level            : Coverage_Level;
          Obligation_Stats : SCO_Tally)
       is
-         Level_Stats  : constant JSON_Value := Create_Object;
+         Level_Stats  : constant JSON_Value :=
+           To_JSON (Obligation_Stats.Stats);
          Stats_Holder : constant JSON_Value := Create_Object;
       begin
-         Level_Stats.Set_Field ("covered", Obligation_Stats.Stats (Covered));
-         Level_Stats.Set_Field
-           ("notCovered", Obligation_Stats.Stats (Not_Covered));
-         Level_Stats.Set_Field
-           ("partiallyCovered", Obligation_Stats.Stats (Partially_Covered));
-         Level_Stats.Set_Field
-           ("notCoverable", Obligation_Stats.Stats (Not_Coverable));
-         Level_Stats.Set_Field
-           ("exemptedNoViolation",
-            Obligation_Stats.Stats (Exempted_No_Violation));
-         Level_Stats.Set_Field
-           ("exemptedWithViolation",
-            Obligation_Stats.Stats (Exempted_With_Violation));
          Stats_Holder.Set_Field ("stats", Level_Stats);
          Stats_Holder.Set_Field ("level", Image (Level));
          Append (Ob_Stats_JSON, Stats_Holder);
