@@ -48,10 +48,10 @@ def run_test(
     main,
     helper,
     recursive,
-    projects=[],
-    units=[],
-    projects_warned=[],
-    expected_cov_list=[],
+    projects=None,
+    units=None,
+    projects_warned=None,
+    expected_cov_list=None,
 ):
     """
     Produce a coverage report for the given parameters and check the emitted
@@ -63,12 +63,17 @@ def run_test(
     :param ProjectConfig main: Configuration for the "main" project.
     :param ProjectConfig helper: Configuration for the "helper" project.
     :param bool recursive: Whether to not pass --no-subprojects.
-    :param list[str] projects: List of projects to pass with --projects.
-    :param list[str] units: List of units to pass with --units.
-    :param list[str] projects_warned: List of projects for which we expected
-        warnings.
+    :param list[str] | None projects: List of projects to pass with --projects.
+    :param list[str] | None units: List of units to pass with --units.
+    :param list[str] | None projects_warned: List of projects for which we
+        expected warnings.
     :param expected_cov: List of expected coverage reports.
     """
+    projects = projects or []
+    units = units or []
+    projects_warned = projects_warned or []
+    expected_cov_list = expected_cov_list or []
+
     thistest.log("== [{}] {} ==".format(slug, label))
     tmp.to_subdir("wd_/{}".format(slug))
 
@@ -115,8 +120,9 @@ def run_test(
     )
 
     expected_cov = {}
-    for c in expected_cov_list:
-        expected_cov.update(c)
+    if expected_cov_list:
+        for c in expected_cov_list:
+            expected_cov.update(c)
     check_xcov_reports("obj-main", expected_cov)
 
     # Check that all xcov report files are created in obj-main (i.e. the root
