@@ -1089,6 +1089,7 @@ begin
             Only_UOIs     => True);
 
          if Dump_Config.Trigger = Manual then
+
             --  The expected manual dump indication can be located in any
             --  source file, not only in sources of interest.
 
