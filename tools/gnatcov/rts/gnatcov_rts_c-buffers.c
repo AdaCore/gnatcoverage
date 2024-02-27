@@ -22,51 +22,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-gnatcov_rts_bool
-gnatcov_rts_witness (uint8_t *buffer, gnatcov_rts_bit_id bit)
-{
-  buffer[bit] = 1;
-  return 1;
-}
-
-gnatcov_rts_bool
-gnatcov_rts_witness_decision (uint8_t *buffer, gnatcov_rts_bit_id false_bit,
-                              gnatcov_rts_bit_id true_bit,
-                              gnatcov_rts_bool value)
-{
-  gnatcov_rts_witness (buffer, value ? true_bit : false_bit);
-  return value;
-}
-
-gnatcov_rts_bool
-gnatcov_rts_witness_decision_mcdc (uint8_t *decision_buffer,
-                                   gnatcov_rts_bit_id false_bit,
-                                   gnatcov_rts_bit_id true_bit,
-                                   uint8_t *mcdc_buffer,
-                                   gnatcov_rts_bit_id mcdc_base,
-                                   gnatcov_rts_bit_id *mcdc_path_address,
-                                   gnatcov_rts_bool value)
-{
-  gnatcov_rts_bit_id mcdc_path_index = *mcdc_path_address;
-  gnatcov_rts_witness (mcdc_buffer, mcdc_base + mcdc_path_index);
-  return gnatcov_rts_witness_decision (decision_buffer, false_bit, true_bit,
-                                       value);
-}
-
-gnatcov_rts_bool
-gnatcov_rts_witness_condition (gnatcov_rts_bit_id *mcdc_path_address,
-                               gnatcov_rts_bit_id offset_for_true,
-                               gnatcov_rts_bool first, gnatcov_rts_bool value)
-{
-  gnatcov_rts_bit_id *mcdc_path_index
-    = (gnatcov_rts_bit_id *) mcdc_path_address;
-  if (first)
-    *mcdc_path_index = 0;
-  if (value)
-    *mcdc_path_index += offset_for_true;
-  return value;
-}
-
 void
 gnatcov_rts_reset_buffers (const struct gnatcov_rts_coverage_buffers *buffs)
 {
