@@ -12,21 +12,21 @@ from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
 # Create object directory to avoid GPR warning
 mkdir("obj")
 
 p = xcov_instrument(
-    GPRswitches(root_project=gprfor(srcdirs=['..'], mains=['main.c'])),
-    covlevel='stmt',
+    GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["main.c"])),
+    covlevel="stmt",
     register_failure=False,
 )
-thistest.fail_if_not_equal('gnatcov instrument status code', 1, p.status)
+thistest.fail_if_not_equal("gnatcov instrument status code", 1, p.status)
 thistest.fail_if_no_match(
-    'gnatcov instrument output',
-    '.*gnatcov.*: Could not find main function in main.c',
-    contents_of('instrument.log').strip(),
+    "gnatcov instrument output",
+    ".*gnatcov.*: Could not find main function in main.c",
+    contents_of("instrument.log").strip(),
 )
 
 thistest.result()

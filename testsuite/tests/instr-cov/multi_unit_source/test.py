@@ -27,11 +27,15 @@ extra = """
 """
 
 mkdir("obj")
-prj = gprfor(srcdirs=[os.path.join("..", "src")], mains=["main.adb"], extra=extra)
+prj = gprfor(
+    srcdirs=[os.path.join("..", "src")], mains=["main.adb"], extra=extra
+)
 
 # Check that the instrumentation crashes and does not leave stale
 # instrumentation artefacts when trying to instrument the multi-unit source.
-xcov_instrument(gprsw=GPRswitches(prj), covlevel="stmt", register_failure=False)
+xcov_instrument(
+    gprsw=GPRswitches(prj), covlevel="stmt", register_failure=False
+)
 thistest.fail_if_no_match(
     "gnatcov instrument output",
     (

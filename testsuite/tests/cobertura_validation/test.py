@@ -18,13 +18,19 @@ tmp = Wdir("tmp_")
 
 sync_tree(os.path.join("..", "src"), "src")
 
-gprsw = gprsw = GPRswitches(root_project=gprfor(srcdirs=["src"], mains=["test.adb"]))
+gprsw = gprsw = GPRswitches(
+    root_project=gprfor(srcdirs=["src"], mains=["test.adb"])
+)
 
 scos_list = ["obj/lib.c", "obj/pkg", "obj/test"]
 
 
 def build_run_coverage_and_check(
-    covlevel, output_opt=None, source_root=None, hide_src=False, expected_filenames=None
+    covlevel,
+    output_opt=None,
+    source_root=None,
+    hide_src=False,
+    expected_filenames=None,
 ):
     # We need to use manually designated SCOs if we are to remove the sources
     # from the project.
@@ -86,7 +92,9 @@ for prefix in ["src", "src/"]:
     thistest.log(f"== Prefix: {prefix} ==")
 
     build_run_coverage_and_check(
-        "stmt", source_root=os.path.join(os.getcwd(), prefix), expected_filenames=expected_filenames
+        "stmt",
+        source_root=os.path.join(os.getcwd(), prefix),
+        expected_filenames=expected_filenames,
     )
 
 # Check that the report can be emitted in the absence of the project sources. We
@@ -100,7 +108,7 @@ build_run_coverage_and_check(
     "cobertura-no_src.xml",
     source_root=os.path.join(os.getcwd(), "src"),
     hide_src=True,
-    expected_filenames=expected_filenames
+    expected_filenames=expected_filenames,
 )
 
 thistest.result()

@@ -1,4 +1,3 @@
-
 LRMREF = "LRMREF:"
 
 
@@ -12,9 +11,9 @@ def parse_req(artifact):
     ref_list = []
 
     for line in loc.get_content().splitlines():
-
         if line.lstrip().startswith(LRMREF):
-            ref_list = ['/%s' % k.strip()
-                        for k in line.split(LRMREF, 1)[1].split(',')]
+            ref_list = [
+                "/%s" % k.strip() for k in line.split(LRMREF, 1)[1].split(",")
+            ]
 
     return ref_list

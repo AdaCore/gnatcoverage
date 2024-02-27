@@ -27,33 +27,28 @@ tmp = Wdir()
 #
 # The mains of the form "*no_decl" have no top level decalrations nor exception
 # handlers, and should not have their qualified names renamed.
-main_names = ["simple_no_decl", "simple_decl", "simple_exn", "simple_only_exn",
-              "dotted-decl", "dotted-no_decl", "dotted-exn"]
+main_names = [
+    "simple_no_decl",
+    "simple_decl",
+    "simple_exn",
+    "simple_only_exn",
+    "dotted-decl",
+    "dotted-no_decl",
+    "dotted-exn",
+]
 
 # The expected results are not really of imporance here, what matters is that
 # the mains got instrumented and build correctly.
 expected_results = {
-    "dotted-decl": {
-        "dotted-decl.adb.xcov": {'+': {7, 12, 13, 17, 18}}
-    },
-    "dotted-no_decl": {
-        "dotted-no_decl.adb.xcov": {'+': {6, 9, 10}}
-    },
-    "dotted-exn": {
-        "dotted-exn.adb.xcov": {'+': {4, 9, 12, 13, 16}}
-    },
-    "simple_decl": {
-        "simple_decl.adb.xcov": {'+': {10, 15, 16, 19, 20}}
-    },
-    "simple_no_decl": {
-        "simple_no_decl.adb.xcov": {'+': {6, 9}}
-    },
-    "simple_exn": {
-        "simple_exn.adb.xcov": {'+': {4, 9, 12, 13, 16}}
-    },
+    "dotted-decl": {"dotted-decl.adb.xcov": {"+": {7, 12, 13, 17, 18}}},
+    "dotted-no_decl": {"dotted-no_decl.adb.xcov": {"+": {6, 9, 10}}},
+    "dotted-exn": {"dotted-exn.adb.xcov": {"+": {4, 9, 12, 13, 16}}},
+    "simple_decl": {"simple_decl.adb.xcov": {"+": {10, 15, 16, 19, 20}}},
+    "simple_no_decl": {"simple_no_decl.adb.xcov": {"+": {6, 9}}},
+    "simple_exn": {"simple_exn.adb.xcov": {"+": {4, 9, 12, 13, 16}}},
     "simple_only_exn": {
-        "simple_only_exn.adb.xcov": {'+': {10, 13, 14, 18}, '-': {20}}
-    }
+        "simple_only_exn.adb.xcov": {"+": {10, 13, 14, 18}, "-": {20}}
+    },
 }
 
 
@@ -62,15 +57,15 @@ def do_one_main(main_name):
     create a project, instrument build and compute coverage reports for the given
     main, from the expected results dictionnary defined above.
     """
-    tmp.to_subdir(f'tmp_{main_name}')
-    p = gprfor(mains=[f"{main_name}.adb"],
-               srcdirs=[".."])
+    tmp.to_subdir(f"tmp_{main_name}")
+    p = gprfor(mains=[f"{main_name}.adb"], srcdirs=[".."])
     build_run_and_coverage(
-        gprsw=GPRswitches(root_project=p, units=[main_name.replace('-', '.')]),
-        covlevel='stmt',
+        gprsw=GPRswitches(root_project=p, units=[main_name.replace("-", ".")]),
+        covlevel="stmt",
         mains=[main_name],
-        extra_coverage_args=['-axcov', '--output-dir=xcov'])
-    check_xcov_reports('xcov', expected_results[main_name])
+        extra_coverage_args=["-axcov", "--output-dir=xcov"],
+    )
+    check_xcov_reports("xcov", expected_results[main_name])
 
 
 for main_name in main_names:

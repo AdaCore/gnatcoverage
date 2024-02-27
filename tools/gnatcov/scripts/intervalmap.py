@@ -22,10 +22,10 @@ class IntervalMap(object):
         """
 
         if not isinstance(interval, slice):
-            raise TypeError('Interval required')
+            raise TypeError("Interval required")
 
         elif interval.start is None or interval.stop is None:
-            raise ValueError('Interval must have integer bounds')
+            raise ValueError("Interval must have integer bounds")
 
         elif interval.start >= interval.stop:
             # Do nothing for the empty interval.
@@ -65,11 +65,12 @@ class IntervalMap(object):
                 if self.bounds[start_insert_index - 1] in self.values:
                     # Example: [3;4[ is added to bounds [1;6]
                     raise ValueError(
-                        '[{};{}[ is inside previously added'
-                        ' interval [{};{}['.format(
-                            interval.start, interval.stop,
+                        "[{};{}[ is inside previously added"
+                        " interval [{};{}[".format(
+                            interval.start,
+                            interval.stop,
                             self.bounds[start_insert_index - 1],
-                            self.bounds[start_insert_index]
+                            self.bounds[start_insert_index],
                         )
                     )
 
@@ -84,36 +85,44 @@ class IntervalMap(object):
 
         elif stop_insert_index > start_insert_index + 1:
             # Example: [2;4[ is added to bounds [1;3;5]
-            raise ValueError('[{};{}[ contains previous bound {}'.format(
-                interval.start, interval.stop,
-                self.bounds[start_insert_index + 1]
-            ))
+            raise ValueError(
+                "[{};{}[ contains previous bound {}".format(
+                    interval.start,
+                    interval.stop,
+                    self.bounds[start_insert_index + 1],
+                )
+            )
 
         else:
             # Here, start_insert_index + 1 == stop_insert_index.
             if self.bounds[start_insert_index] != interval.start:
                 # Example: [1;3[ is added to bounds [2;4]
-                raise ValueError('[{};{}[ contains previous bound {}'.format(
-                    interval.start, interval.stop,
-                    self.bounds[start_insert_index]
-                ))
+                raise ValueError(
+                    "[{};{}[ contains previous bound {}".format(
+                        interval.start,
+                        interval.stop,
+                        self.bounds[start_insert_index],
+                    )
+                )
 
             # The starting bound is already inserted: just check it doesn't
             # start any previously added interval.
             elif interval.start in self.values:
                 # Example: [3; 4] is added to bounds [1;2;3;5]
                 raise ValueError(
-                    '[{};{}[ overlaps with previously added'
-                    ' interval [{};{}['.format(
-                        interval.start, interval.stop,
-                        interval.start, self.bounds[start_insert_index + 1]
+                    "[{};{}[ overlaps with previously added"
+                    " interval [{};{}[".format(
+                        interval.start,
+                        interval.stop,
+                        interval.start,
+                        self.bounds[start_insert_index + 1],
                     )
                 )
 
             # The starting bound is already inserted: check for the ending one.
             elif (
-                stop_insert_index >= len(self.bounds) or
-                self.bounds[stop_insert_index] != interval.stop
+                stop_insert_index >= len(self.bounds)
+                or self.bounds[stop_insert_index] != interval.stop
             ):
                 # Example: [2; 4] is added to bounds [1;2;4;5]
                 self.bounds.insert(stop_insert_index, interval.stop)
@@ -125,7 +134,6 @@ class IntervalMap(object):
         # And finally, insert the value itself!
         self.values[interval.start] = value
 
-
     def __getitem__(self, key):
         """Return the value associated to the interval that contains `key`.
 
@@ -134,15 +142,14 @@ class IntervalMap(object):
 
         start_bound_index = bisect.bisect_right(self.bounds, key)
         if start_bound_index < 1:
-            raise KeyError('No interval contains {}'.format(key))
+            raise KeyError("No interval contains {}".format(key))
         else:
             start_bound = self.bounds[start_bound_index - 1]
 
         return self.values[start_bound]
 
     def __contains__(self, key):
-        """Return if `key` belongs to some covered interval.
-        """
+        """Return if `key` belongs to some covered interval."""
         try:
             self[key]
         except KeyError:
@@ -176,13 +183,15 @@ class IntervalMap(object):
             yield item
 
     def __repr__(self):
-        return '{{{}}}'.format(', '.join(
-            '[{}; {}[: {}'.format(low, high, repr(value))
-            for (low, high), value in self.items()
-        ))
+        return "{{{}}}".format(
+            ", ".join(
+                "[{}; {}[: {}".format(low, high, repr(value))
+                for (low, high), value in self.items()
+            )
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Run tests...
 
     m = IntervalMap()
@@ -208,51 +217,51 @@ if __name__ == '__main__':
             last_bound_starts_interval = starts_interval
 
     def add(low, high, value, exception_expected=None):
-        print('Adding [{}; {}[: {}'.format(low, high, repr(value)))
+        print("Adding [{}; {}[: {}".format(low, high, repr(value)))
         try:
             m[low:high] = value
         except Exception as e:
             if exception_expected and isinstance(e, exception_expected):
-                print('  {}: {}'.format(type(e).__name__, e))
+                print("  {}: {}".format(type(e).__name__, e))
             else:
                 raise
         else:
             if exception_expected:
                 raise RuntimeError(
-                    'I was expecting an error, but nothing happened.'
+                    "I was expecting an error, but nothing happened."
                 )
             else:
-                print('  ', m)
-                print('  >>', m.bounds)
+                print("  ", m)
+                print("  >>", m.bounds)
 
         sanity_check()
 
-    print('Empty interval map')
-    print('  ', m)
+    print("Empty interval map")
+    print("  ", m)
 
-    add(1, 4, 'B')
+    add(1, 4, "B")
 
-    add(0, 2, 'Z', ValueError)
-    add(0, 4, 'Z', ValueError)
-    add(0, 5, 'Z', ValueError)
+    add(0, 2, "Z", ValueError)
+    add(0, 4, "Z", ValueError)
+    add(0, 5, "Z", ValueError)
 
-    add(1, 2, 'Z', ValueError)
-    add(1, 4, 'Z', ValueError)
-    add(1, 5, 'Z', ValueError)
+    add(1, 2, "Z", ValueError)
+    add(1, 4, "Z", ValueError)
+    add(1, 5, "Z", ValueError)
 
-    add(2, 3, 'Z', ValueError)
-    add(2, 4, 'Z', ValueError)
-    add(2, 5, 'Z', ValueError)
+    add(2, 3, "Z", ValueError)
+    add(2, 4, "Z", ValueError)
+    add(2, 5, "Z", ValueError)
 
-    add(3, 0, 'Z')
+    add(3, 0, "Z")
 
-    add(0, 1, 'A')
-    add(4, 5, 'B')
+    add(0, 1, "A")
+    add(4, 5, "B")
 
-    add(10, 15, 'D')
-    add(20, 25, 'F')
-    add(30, 35, 'H')
+    add(10, 15, "D")
+    add(20, 25, "F")
+    add(30, 35, "H")
 
-    add(5, 8, 'C')
-    add(18, 20, 'E')
-    add(25, 30, 'G')
+    add(5, 8, "C")
+    add(18, 20, "E")
+    add(25, 30, "G")

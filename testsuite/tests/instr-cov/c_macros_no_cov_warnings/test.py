@@ -10,14 +10,14 @@ from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=gprfor(srcdirs=['..'], mains=['main.c'])),
-    covlevel='stmt',
-    mains=['main'],
-    extra_coverage_args=['-axml'],
-    trace_mode='src',
+    gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["main.c"])),
+    covlevel="stmt",
+    mains=["main"],
+    extra_coverage_args=["-axml"],
+    trace_mode="src",
 )
 
 # Check that gnatcov coverage did not raise any warning

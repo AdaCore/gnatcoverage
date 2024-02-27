@@ -14,16 +14,19 @@ build_run_and_coverage(
     gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."], mains="main.adb")),
     covlevel="stmt",
     mains=["main"],
-    extra_coverage_args=["-a", "xml"])
+    extra_coverage_args=["-a", "xml"],
+)
 
-if thistest.options.trace_mode == 'src':
-    expected_match = \
-        '<line num="5" column_begin="4" column_end="22" '\
+if thistest.options.trace_mode == "src":
+    expected_match = (
+        '<line num="5" column_begin="4" column_end="22" '
         'src="   Put_Line (&quot;Hello&quot;);"/>'
+    )
 else:
-    expected_match = \
-        '<line num="5" column_begin="4" column_end="19" '\
+    expected_match = (
+        '<line num="5" column_begin="4" column_end="19" '
         'src="   Put_Line (&quot;Hello"/>'
+    )
 
-thistest.fail_if(expected_match not in contents_of('obj/main.adb.xml'))
+thistest.fail_if(expected_match not in contents_of("obj/main.adb.xml"))
 thistest.result()

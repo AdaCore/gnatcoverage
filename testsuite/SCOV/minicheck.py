@@ -15,30 +15,62 @@ import re
 
 from e3.fs import rm
 
-from SCOV.instr import (default_dump_channel, xcov_convert_base64,
-                        xcov_instrument)
+from SCOV.instr import (
+    default_dump_channel,
+    xcov_convert_base64,
+    xcov_instrument,
+)
 from SUITE.cutils import contents_of, indent
 from SUITE.tutils import (
-    exepath_to, gprbuild, run_cov_program, srctrace_pattern_for,
-    srctracename_for, thistest, tracename_for, xcov, xrun, GNATCOV_INFO
+    exepath_to,
+    gprbuild,
+    run_cov_program,
+    srctrace_pattern_for,
+    srctracename_for,
+    thistest,
+    tracename_for,
+    xcov,
+    xrun,
+    GNATCOV_INFO,
 )
 
 
-COV_RE = re.compile(r'^ *(\d+) (.):.*$')
+COV_RE = re.compile(r"^ *(\d+) (.):.*$")
 
-def build_and_run(gprsw, covlevel, mains, extra_coverage_args, quiet=True,
-                  scos=None, gpr_obj_dir=None, gpr_exe_dir=None,
-                  ignored_source_files=[], separate_coverage=None,
-                  extra_args=[], extra_run_args=None, extra_instr_args=None,
-                  extra_gprbuild_args=[], extra_gprbuild_cargs=[],
-                  extra_gprbuild_largs=[], absolute_paths=False,
-                  dump_trigger="auto", dump_channel="auto",
-                  check_gprbuild_output=False, trace_mode=None,
-                  runtime_project=None, gprsw_for_coverage=None,
-                  scos_for_run=True, register_failure=True, program_env=None,
-                  tolerate_instrument_messages=None, exec_args=None,
-                  auto_languages=True, manual_prj_name=None,
-                  auto_config_args=True):
+
+def build_and_run(
+    gprsw,
+    covlevel,
+    mains,
+    extra_coverage_args,
+    quiet=True,
+    scos=None,
+    gpr_obj_dir=None,
+    gpr_exe_dir=None,
+    ignored_source_files=[],
+    separate_coverage=None,
+    extra_args=[],
+    extra_run_args=None,
+    extra_instr_args=None,
+    extra_gprbuild_args=[],
+    extra_gprbuild_cargs=[],
+    extra_gprbuild_largs=[],
+    absolute_paths=False,
+    dump_trigger="auto",
+    dump_channel="auto",
+    check_gprbuild_output=False,
+    trace_mode=None,
+    runtime_project=None,
+    gprsw_for_coverage=None,
+    scos_for_run=True,
+    register_failure=True,
+    program_env=None,
+    tolerate_instrument_messages=None,
+    exec_args=None,
+    auto_languages=True,
+    manual_prj_name=None,
+    auto_config_args=True,
+):
     """
     Prepare a project to run a coverage analysis on it.
 
@@ -124,75 +156,81 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, quiet=True,
         the given N mains. Upon return, the progam execution log for each main
         M is available as M_output.txt.
     """
+
     def abspath(path):
         return os.path.abspath(path) if absolute_paths else path
 
     def exepath(main):
         main = os.path.join(
             gpr_exe_dir,
-            (os.path.join(gprsw.subdirs, main) if gprsw.subdirs else main))
+            (os.path.join(gprsw.subdirs, main) if gprsw.subdirs else main),
+        )
         return abspath(exepath_to(main))
 
     def gprbuild_wrapper(root_project):
-
         # Honor build relevant switches from gprsw here
-        gprbuild(root_project,
-                 gargs=gprsw.build_switches + extra_gprbuild_args,
-                 extracargs=extra_gprbuild_cargs,
-                 largs=extra_gprbuild_largs,
-                 trace_mode=trace_mode,
-                 runtime_project=runtime_project,
-                 auto_config_args=auto_config_args)
+        gprbuild(
+            root_project,
+            gargs=gprsw.build_switches + extra_gprbuild_args,
+            extracargs=extra_gprbuild_cargs,
+            largs=extra_gprbuild_largs,
+            trace_mode=trace_mode,
+            runtime_project=runtime_project,
+            auto_config_args=auto_config_args,
+        )
 
         if check_gprbuild_output:
-            gprbuild_out = contents_of('gprbuild.out')
+            gprbuild_out = contents_of("gprbuild.out")
             thistest.fail_if(
                 gprbuild_out,
-                "gprbuild's output (gprbuild.out) is not empty:\n{}"
-                .format(indent(gprbuild_out)))
+                "gprbuild's output (gprbuild.out) is not empty:\n{}".format(
+                    indent(gprbuild_out)
+                ),
+            )
 
     # When instrumenting, we expect units of interest to be provided
     # through GPR switches:
-    assert not (scos and trace_mode == 'src')
+    assert not (scos and trace_mode == "src")
 
-    gpr_exe_dir = gpr_exe_dir or '.'
-    gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, 'obj')
+    gpr_exe_dir = gpr_exe_dir or "."
+    gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, "obj")
 
     trace_mode = trace_mode or thistest.options.trace_mode
 
     # Use a --level=<l> form for --level to faciliate locating and
     # replacing the switch at once as a whole if need be.
-    covlevel_args = [] if covlevel is None else ['--level={}'.format(covlevel)]
+    covlevel_args = [] if covlevel is None else ["--level={}".format(covlevel)]
 
-    xcov_args = ['coverage'] + covlevel_args
+    xcov_args = ["coverage"] + covlevel_args
     trace_files = []
 
     # Arguments to pass to "gnatcov coverage" (bin trace mode) or "gnatcov
     # instrument" (src trace mode), in addition to those conveyed by gprsw.
-    cov_or_instr_args = (
-        extra_args +
-        ['--ignore-source-files={}'.format(pattern)
-         for pattern in ignored_source_files])
+    cov_or_instr_args = extra_args + [
+        "--ignore-source-files={}".format(pattern)
+        for pattern in ignored_source_files
+    ]
     if separate_coverage:
-        cov_or_instr_args.extend(['-S', separate_coverage])
+        cov_or_instr_args.extend(["-S", separate_coverage])
     if quiet:
         cov_or_instr_args.append("--quiet")
 
     # Compute arguments to specify units of interest.
-    if trace_mode == 'bin':
-        scos_arg = '--scos'
-        scos_ext = 'ali'
+    if trace_mode == "bin":
+        scos_arg = "--scos"
+        scos_ext = "ali"
     else:
-        scos_arg = '--sid'
-        scos_ext = 'sid'
-    scos = (['{}={}.{}'.format(scos_arg, abspath(a), scos_ext)
-             for a in scos]
-            if scos else
-            gprsw.cov_switches)
+        scos_arg = "--sid"
+        scos_ext = "sid"
+    scos = (
+        ["{}={}.{}".format(scos_arg, abspath(a), scos_ext) for a in scos]
+        if scos
+        else gprsw.cov_switches
+    )
 
-    out_file_ = '{}_output.txt'
+    out_file_ = "{}_output.txt"
 
-    if trace_mode == 'bin':
+    if trace_mode == "bin":
         # Build and run each main
         gprbuild_wrapper(gprsw.root_project)
         run_args = covlevel_args + extra_args
@@ -208,13 +246,17 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, quiet=True,
 
         for m in mains:
             out_file = out_file_.format(m)
-            xrun(run_args + [exepath(m)] + eargs, out=out_file,
-                 env=program_env, register_failure=register_failure)
+            xrun(
+                run_args + [exepath(m)] + eargs,
+                out=out_file,
+                env=program_env,
+                register_failure=register_failure,
+            )
         trace_files = [abspath(tracename_for(m)) for m in mains]
 
         xcov_args.extend(cov_or_instr_args)
 
-    elif trace_mode == 'src':
+    elif trace_mode == "src":
         if dump_channel == "auto":
             dump_channel = default_dump_channel()
 
@@ -229,7 +271,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, quiet=True,
             dump_trigger=dump_trigger,
             dump_channel=dump_channel,
             runtime_project=runtime_project,
-            out='instrument.log',
+            out="instrument.log",
             register_failure=register_failure,
             tolerate_messages=tolerate_instrument_messages,
             auto_languages=auto_languages,
@@ -264,10 +306,12 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, quiet=True,
         # Fail if we expected to be able to retrieve the dump channel
         # actually used, but don't have it:
         thistest.fail_if(
-            register_failure and GNATCOV_INFO.has_setup
+            register_failure
+            and GNATCOV_INFO.has_setup
             and actual_dump_channel is None,
             "Unable to retrieve actual dump_channel from {}".format(
-                params_file)
+                params_file
+            ),
         )
 
         # At this point, dump_channel is either None (request not to pass an
@@ -277,11 +321,12 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, quiet=True,
         # If an explicit dump channel was provided to gnatcov instrument and
         # we have the actual dump channel used, the two should be consistent:
         thistest.fail_if(
-            dump_channel and actual_dump_channel
+            dump_channel
+            and actual_dump_channel
             and dump_channel != actual_dump_channel,
             "requested dump_channel ({}) != actual ({})".format(
                 dump_channel, actual_dump_channel
-            )
+            ),
         )
 
         # Now execute each main and collect the trace files we can. Tests
@@ -301,14 +346,20 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, quiet=True,
             # Remove potential existing source trace files: the name is
             # non-deterministic by default, so we want to avoid getting
             # multiple traces in the current directory.
-            rm(srctrace_pattern_for(m,
-                                    dump_trigger == "manual",
-                                    manual_prj_name))
+            rm(
+                srctrace_pattern_for(
+                    m, dump_trigger == "manual", manual_prj_name
+                )
+            )
 
             out_file = out_file_.format(m)
-            run_cov_program(exepath(m), out=out_file, env=program_env,
-                            register_failure=register_failure,
-                            exec_args=exec_args)
+            run_cov_program(
+                exepath(m),
+                out=out_file,
+                env=program_env,
+                register_failure=register_failure,
+                exec_args=exec_args,
+            )
 
             # See if we have a trace file at hand or if could create one from
             # a base64 trace in the output. Operate best effort here, simply
@@ -327,25 +378,28 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, quiet=True,
             trace_file = None
 
             if known_channel in [None, "bin-file"]:
-                trace_file = srctracename_for(m,
-                                              register_failure=False,
-                                              manual=dump_trigger == "manual",
-                                              manual_prj_name=manual_prj_name)
+                trace_file = srctracename_for(
+                    m,
+                    register_failure=False,
+                    manual=dump_trigger == "manual",
+                    manual_prj_name=manual_prj_name,
+                )
 
-            if (not trace_file
-                and (known_channel == "base64-stdout"
-                     or "source trace file ==" in contents_of(out_file))):
-
+            if not trace_file and (
+                known_channel == "base64-stdout"
+                or "source trace file ==" in contents_of(out_file)
+            ):
                 # Pick a trace name that is compatible with srctracename_for
-                src_pattern = srctrace_pattern_for(m,
-                                                   dump_trigger == "manual",
-                                                   manual_prj_name)
+                src_pattern = srctrace_pattern_for(
+                    m, dump_trigger == "manual", manual_prj_name
+                )
                 trace_file = src_pattern.replace("*", "unique")
 
                 # Here we're really supposed to have a trace in the output
                 # so we can be a tad stricter on the conversion outcome.
-                xcov_convert_base64(out_file, trace_file,
-                                    register_failure=register_failure)
+                xcov_convert_base64(
+                    out_file, trace_file, register_failure=register_failure
+                )
 
             if trace_file:
                 trace_files.append(abspath(trace_file))
@@ -353,7 +407,7 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, quiet=True,
         xcov_args.extend(cov_or_instr_args)
 
     else:
-        assert False, 'Unknown trace mode: {}'.format(trace_mode)
+        assert False, "Unknown trace mode: {}".format(trace_mode)
 
     # If provided, pass "gnatcov coverage"-specific project arguments, which
     # replace the list of SCOS.
@@ -365,8 +419,13 @@ def build_and_run(gprsw, covlevel, mains, extra_coverage_args, quiet=True,
     return xcov_args + extra_coverage_args + trace_files
 
 
-def build_run_and_coverage(out='coverage.log', err=None, register_failure=True,
-                           auto_config_args=True, **kwargs):
+def build_run_and_coverage(
+    out="coverage.log",
+    err=None,
+    register_failure=True,
+    auto_config_args=True,
+    **kwargs,
+):
     """
     Helper to call build_and_run and then invoke `xcov`.
 
@@ -377,8 +436,11 @@ def build_run_and_coverage(out='coverage.log', err=None, register_failure=True,
     `auto_config_args` are reported to `xcov` and `build_and_run`, other
     arguments are forwarded to `build_and_run`.
     """
-    xcov_args = build_and_run(register_failure=register_failure,
-                              auto_config_args=auto_config_args, **kwargs)
+    xcov_args = build_and_run(
+        register_failure=register_failure,
+        auto_config_args=auto_config_args,
+        **kwargs,
+    )
     xcov(xcov_args, out=out, err=err, register_failure=register_failure)
 
 
@@ -390,9 +452,9 @@ def checked_xcov(args, out_file):
     out = contents_of(out_file)
     thistest.fail_if(
         out,
-        'gnatcov output not empty ({}):\n'
-        '   {}\n'
-        '{}'.format(out_file, ' '.join(args), out)
+        "gnatcov output not empty ({}):\n"
+        "   {}\n"
+        "{}".format(out_file, " ".join(args), out),
     )
 
 
@@ -405,11 +467,15 @@ def fmt_cov(cov_data):
     """
     result = []
     for cov_char in sorted(cov_data):
-        result.append('{}({})'.format(
-            cov_char, ', '.join(str(lineno)
-                                for lineno in sorted(cov_data[cov_char]))
-        ))
-    return ' '.join(result)
+        result.append(
+            "{}({})".format(
+                cov_char,
+                ", ".join(
+                    str(lineno) for lineno in sorted(cov_data[cov_char])
+                ),
+            )
+        )
+    return " ".join(result)
 
 
 def check_xcov_content(filename, expected_cov, trace_mode=None):
@@ -431,15 +497,15 @@ def check_xcov_content(filename, expected_cov, trace_mode=None):
         """
         Remove entries in "data" that contain empty sets of lines.
         """
-        return {annotation: lines
-                for annotation, lines in data.items()
-                if lines}
+        return {
+            annotation: lines for annotation, lines in data.items() if lines
+        }
 
     # Check that expected coverage data contain only supported line annotations
-    invalid_line_annotations = set(expected_cov) - {'+', '!', '-', '?'}
-    assert not invalid_line_annotations, (
-        'Invalid line annotations: {}'
-        .format(' '.join(sorted(invalid_line_annotations))))
+    invalid_line_annotations = set(expected_cov) - {"+", "!", "-", "?"}
+    assert not invalid_line_annotations, "Invalid line annotations: {}".format(
+        " ".join(sorted(invalid_line_annotations))
+    )
 
     got_cov = collections.defaultdict(set)
     dot_lines = set()
@@ -449,7 +515,7 @@ def check_xcov_content(filename, expected_cov, trace_mode=None):
             if m:
                 lineno, cov_char = m.groups()
                 lineno = int(lineno)
-                if cov_char == '.':
+                if cov_char == ".":
                     dot_lines.add(lineno)
                 else:
                     got_cov[cov_char].add(lineno)
@@ -464,22 +530,24 @@ def check_xcov_content(filename, expected_cov, trace_mode=None):
 
     refined_expectations = collections.defaultdict(set)
     refined_expectations.update(expected_cov)
-    for line in got_cov.get('+', set()):
+    for line in got_cov.get("+", set()):
         if line not in expected_non_dot_lines:
-            refined_expectations['+'].add(line)
+            refined_expectations["+"].add(line)
 
     got_cov = remove_empty_sets(got_cov)
     refined_expectations = remove_empty_sets(refined_expectations)
 
     thistest.fail_if(
         got_cov != refined_expectations,
-        '{}: unexpected coverage report content:\n'
-        'Expected:   {}\n'
-        'Refined to: {}\n'
-        'But got:    {}\n'.format(
-            filename, fmt_cov(expected_cov), fmt_cov(refined_expectations),
-            fmt_cov(got_cov)
-        )
+        "{}: unexpected coverage report content:\n"
+        "Expected:   {}\n"
+        "Refined to: {}\n"
+        "But got:    {}\n".format(
+            filename,
+            fmt_cov(expected_cov),
+            fmt_cov(refined_expectations),
+            fmt_cov(got_cov),
+        ),
     )
 
 
@@ -516,17 +584,16 @@ def check_xcov_reports(reports_dir, expected_cov, discard_empty=None):
     """
 
     def fmt_sorted_indented_list(items):
-        return '\n'.join('  {}'.format(s) for s in sorted(items))
+        return "\n".join("  {}".format(s) for s in sorted(items))
 
     # Avoid discrepancies between filenames on Windows and Unix. Although it is
     # not the canonical representation, Windows supports using slash as
     # separators, so use it.
     def canonicalize_file(filename):
-        return filename.replace('\\', '/')
+        return filename.replace("\\", "/")
 
-    if (
-        discard_empty
-        or (discard_empty is None and thistest.options.trace_mode == "bin")
+    if discard_empty or (
+        discard_empty is None and thistest.options.trace_mode == "bin"
     ):
         expected_cov = {
             filename: expectations
@@ -549,7 +616,7 @@ def check_xcov_reports(reports_dir, expected_cov, discard_empty=None):
         "Unexpected XCOV files. Expected:\n"
         f"{fmt_sorted_indented_list(expected_cov)}\n"
         "But got instead:\n"
-        f"{fmt_sorted_indented_list(xcov_files)}\n"
+        f"{fmt_sorted_indented_list(xcov_files)}\n",
     )
 
     for filename, cov_data in expected_cov.items():

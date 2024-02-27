@@ -23,6 +23,7 @@ class BaseTestcase:
 @dataclass
 class InstrErrorTestcase(BaseTestcase):
     """Testcase that expects an instrumentation error."""
+
     expected_msg: str
     """Regexp for the expected instrumentation error message."""
 

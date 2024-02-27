@@ -24,7 +24,8 @@ db_args = ["--db", "../my_config"]
 
 # Setup with our custom toolchain
 xcov(
-    ["setup", "--prefix=install"] + db_args
+    ["setup", "--prefix=install"]
+    + db_args
     + ["../gnatcov-rt-custom/gnatcov_rts_custom.gpr"],
     register_failure=True,
     auto_config_args=False,

@@ -6,6 +6,7 @@ class LRMParser(qm.LocationParser):
     The parser used by the QM to parse lrm_ref file and creates
     LRM section locations.
     """
+
     def __init__(self):
         self.relpath = None
 
@@ -15,15 +16,14 @@ class LRMParser(qm.LocationParser):
         lines = []
         self.parent = parent
 
-        with open(path, 'r') as fd:
+        with open(path, "r") as fd:
             lines = fd.read().splitlines()
 
         for line in lines:
+            if line.startswith("#"):
+                continue
 
-            if line.startswith('#'):
-               continue
-
-            if line.startswith('Note'):
+            if line.startswith("Note"):
                 break
 
             if len(line.strip()) > 0:
@@ -31,4 +31,5 @@ class LRMParser(qm.LocationParser):
 
 
 qm.LocationParser.register_repository_factory(
-    'lrm', '*.txt', LRMParser(), False)
+    "lrm", "*.txt", LRMParser(), False
+)

@@ -28,7 +28,7 @@ run_variant(
     origin_src_dir="src",
     expected_xcov_results={
         "pkg1.ads.xcov": {},
-        "pkg1.adb.xcov": {'+': {8, 9, 11}}
+        "pkg1.adb.xcov": {"+": {8, 9, 11}},
     },
     rebase_dir="/some/random/dir",
 )
@@ -42,7 +42,7 @@ run_variant(
     origin_src_dir="src",
     expected_xcov_results={
         "pkg1.ads.xcov": {},
-        "pkg1.adb.xcov": {'+': {8, 9, 11}}
+        "pkg1.adb.xcov": {"+": {8, 9, 11}},
     },
     suppress_src_dir=True,
 )
@@ -56,9 +56,9 @@ run_variant(
     origin_src_dir="src",
     expected_xcov_results={
         "pkg1.ads.xcov": {},
-        "pkg1.adb.xcov": {'+': {8, 9, 11}},
+        "pkg1.adb.xcov": {"+": {8, 9, 11}},
         "pkg2.ads.xcov": {},
-        "pkg2.adb.xcov": {'+': {8, 9, 11}}
+        "pkg2.adb.xcov": {"+": {8, 9, 11}},
     },
     suppress_src_dir=True,
 )
@@ -81,9 +81,9 @@ run_variant(
     origin_src_dir="src",
     expected_xcov_results={
         "pkg1.ads.xcov": {},
-        "pkg1.adb.xcov": {'+': {8, 9, 11}},
+        "pkg1.adb.xcov": {"+": {8, 9, 11}},
         "pkg2.ads.xcov": {},
-        "pkg2.adb.xcov": {'+': {8, 9, 11}}
+        "pkg2.adb.xcov": {"+": {8, 9, 11}},
     },
 )
 

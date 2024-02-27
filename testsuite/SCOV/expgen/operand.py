@@ -67,14 +67,14 @@ class LanguageSpecific(Operand):
             if type_ is self.PARAM_TYPE:
                 param_type = xtype
 
-        assert param_type is not None, (
-            'PARAM_TYPE must be present in USED_TYPES'
-        )
+        assert (
+            param_type is not None
+        ), "PARAM_TYPE must be present in USED_TYPES"
 
         # Convert ACTUALS to ast.XLitteral nodes.
         actuals = {
-            False:  ast.XLitteral(self.LANGUAGE, self.ACTUALS[False]),
-            True:   ast.XLitteral(self.LANGUAGE, self.ACTUALS[True]),
+            False: ast.XLitteral(self.LANGUAGE, self.ACTUALS[False]),
+            True: ast.XLitteral(self.LANGUAGE, self.ACTUALS[True]),
         }
 
         super(LanguageSpecific, self).__init__(xtypes, param_type, actuals)
@@ -109,9 +109,7 @@ class Variable(Operand):
 
     def __init__(self):
         super(Variable, self).__init__(
-            (ast.BooleanType, ),
-            ast.BooleanType,
-            self.ACTUALS
+            (ast.BooleanType,), ast.BooleanType, self.ACTUALS
         )
 
     def get_operand(self, param):
@@ -125,36 +123,28 @@ class IntegerComparison(Operand):
     # Each factory takes the compared integer and returns (a false actual, a
     # true one).
     ACTUALS_MAKERS = {
-        ast.RelOp.GT:
-            lambda value: (value - 1, value + 1),
-        ast.RelOp.GE:
-            lambda value: (value - 1, value + 1),
-        ast.RelOp.LT:
-            lambda value: (value + 1, value - 2),
-        ast.RelOp.LE:
-            lambda value: (value + 1, value - 2),
-        ast.RelOp.EQ:
-            lambda value: (value + 1, value),
-        ast.RelOp.NE:
-            lambda value: (value, value + 1),
+        ast.RelOp.GT: lambda value: (value - 1, value + 1),
+        ast.RelOp.GE: lambda value: (value - 1, value + 1),
+        ast.RelOp.LT: lambda value: (value + 1, value - 2),
+        ast.RelOp.LE: lambda value: (value + 1, value - 2),
+        ast.RelOp.EQ: lambda value: (value + 1, value),
+        ast.RelOp.NE: lambda value: (value, value + 1),
     }
 
     def __init__(self, operator, value):
         actual_false, actual_true = self.ACTUALS_MAKERS[operator](value)
         super(IntegerComparison, self).__init__(
-            (ast.IntegerType, ),
+            (ast.IntegerType,),
             ast.IntegerType,
             {
                 False: ast.LitteralInteger(actual_false),
                 True: ast.LitteralInteger(actual_true),
-            }
+            },
         )
         self.operator = operator
         self.value = ast.LitteralInteger(value)
 
     def get_operand(self, param):
         return ast.Comparison(
-            self.operator,
-            ast.VariableUsage(param),
-            self.value
+            self.operator, ast.VariableUsage(param), self.value
         )

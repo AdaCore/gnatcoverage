@@ -49,16 +49,15 @@ class PrjConfig:
     """
     Project file, executable name and expected coverage report.
     """
+
     project_file: str
     objdir: str
     expected_cov: ExpectedCov
 
     @classmethod
-    def create(cls,
-               tag: str,
-               langs: List[str],
-               main: str,
-               expected_cov: ExpectedCov):
+    def create(
+        cls, tag: str, langs: List[str], main: str, expected_cov: ExpectedCov
+    ):
         objdir = f"obj-{tag}"
         return cls(
             project_file=gprfor(
@@ -79,15 +78,21 @@ class PrjConfig:
 
 # Create simple projects to host our experiments
 ada_prj = PrjConfig.create(
-    tag="ada", langs=["Ada"], main="foo.adb",
+    tag="ada",
+    langs=["Ada"],
+    main="foo.adb",
     expected_cov={"foo.adb.xcov": {"+": {5}}},
 )
 c_prj = PrjConfig.create(
-    tag="c", langs=["C"], main="foo.c",
+    tag="c",
+    langs=["C"],
+    main="foo.c",
     expected_cov={"foo.c.xcov": {"+": {6, 7}}},
 )
 mixed_prj = PrjConfig.create(
-    tag="mixed", langs=["Ada", "C"], main="foo.adb",
+    tag="mixed",
+    langs=["Ada", "C"],
+    main="foo.adb",
     expected_cov={
         "foo.adb.xcov": {"+": {11}},
         "pkg.ads.xcov": {"+": {5, 6}},
@@ -114,8 +119,14 @@ def xsetup(args, out, register_failure=True, auto_config_args=True):
     )
 
 
-def check_full(label, setup_args, prj_config, runtime_project=rt_prj,
-               dump_channel="auto", auto_config_args=True):
+def check_full(
+    label,
+    setup_args,
+    prj_config,
+    runtime_project=rt_prj,
+    dump_channel="auto",
+    auto_config_args=True,
+):
     """
     Run "gnatcov setup" with the arguments (setup_args), then compute code
     coverage and check the report for the given project (prj_config).
@@ -134,12 +145,13 @@ def check_full(label, setup_args, prj_config, runtime_project=rt_prj,
         trace_mode="src",
         runtime_project=runtime_project,
         dump_channel=dump_channel,
-        extra_instr_args=["-v"]
+        extra_instr_args=["-v"],
     )
     thistest.fail_if(
         "Successfully loaded the setup configuration file"
         not in contents_of("instrument.log"),
-        "Failed to load the setup config file in `gnatcov instrument`")
+        "Failed to load the setup config file in `gnatcov instrument`",
+    )
     check_xcov_reports(f"xcov-{label}", prj_config.expected_cov)
 
 
@@ -169,14 +181,13 @@ if not env.is_cross:
 # The core runtime is implemented in C, so C must be enabled
 thistest.log("== ada-only ==")
 log_file = "setup-ada-only.txt"
-p = xsetup(["--restricted-to-languages=Ada"],
-           log_file,
-           register_failure=False)
-thistest.fail_if(p.status == 0,
-                 "gnatcov setup succeeded when we expected it to fail")
+p = xsetup(["--restricted-to-languages=Ada"], log_file, register_failure=False)
+thistest.fail_if(
+    p.status == 0, "gnatcov setup succeeded when we expected it to fail"
+)
 thistest.fail_if_no_match(
     log_file,
-    '.*The C language must be enabled.*',
+    ".*The C language must be enabled.*",
     contents_of(log_file),
 )
 
@@ -198,7 +209,7 @@ xcov_instrument(
     gprsw=mixed_prj.gprsw,
     covlevel="stmt",
     runtime_project=rt_prj,
-    out="instr-basic-bad-lang.txt"
+    out="instr-basic-bad-lang.txt",
 )
 p = gprbuild(
     mixed_prj.project_file,
@@ -208,8 +219,9 @@ p = gprbuild(
     out=log_file,
     register_failure=False,
 )
-thistest.fail_if(p.status == 0,
-                 "gprbuild succeeded when we expected it to fail")
+thistest.fail_if(
+    p.status == 0, "gprbuild succeeded when we expected it to fail"
+)
 thistest.fail_if_no_match(
     log_file,
     '.*foo.adb:.*"gnatcov_rts.ads" not found.*',
@@ -246,8 +258,12 @@ thistest.fail_if(
 
 # Check C89 backward-compatibility, as we want to support instrumentation
 # with older toolchains.
-check_full("ext_rt", [rt_ext_file, "-gargs", "-cargs:C", "-std=c89"],
-           ada_prj, dump_channel="base64-stdout")
+check_full(
+    "ext_rt",
+    [rt_ext_file, "-gargs", "-cargs:C", "-std=c89"],
+    ada_prj,
+    dump_channel="base64-stdout",
+)
 
 # Check that passing a full path to --runtime-project works
 check_full(

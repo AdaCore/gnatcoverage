@@ -24,13 +24,13 @@ import docutils.nodes as nodes
 # -- General configuration -------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.8'
+needs_sphinx = "1.8"
 # 1.2 for multiple glossary entries
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
-    'sphinx.ext.imgmath',
+    "sphinx.ext.imgmath",
     "sphinx.ext.autodoc",
     "sphinx.ext.coverage",
     "sphinx.ext.doctest",
@@ -44,10 +44,10 @@ extensions = [
 autosectionlabel_prefix_document = True
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
@@ -58,9 +58,9 @@ source_suffix = '.rst'
 master_doc = "index"
 
 # General information about the project.
-project = u"GNATDAS"
-copyright = u"2009-2022, AdaCore"
-docname = u"Manuals"
+project = "GNATDAS"
+copyright = "2009-2022, AdaCore"
+docname = "Manuals"
 
 rst_epilog = """
 .. |gcv| replace:: :command:`gnatcov`
@@ -85,7 +85,7 @@ rst_epilog = """
 .. |rarg| replace:: possibly repeated and accepting :term:`@listfile arguments
                     <@listfile argument>`
 """.format(
-  project
+    project
 )
 
 # The version info for the project you're documenting, acts as replacement for
@@ -95,12 +95,12 @@ rst_epilog = """
 # Tool version & release. Nightly setups are expected to store this
 # in a version.txt file for us. Assume we're in a development tree otherwise.
 
-version_file = 'version.txt'
+version_file = "version.txt"
 if os.path.exists(version_file):
-    with open(version_file, 'r') as f:
+    with open(version_file, "r") as f:
         version = f.read()
 else:
-    version = 'dev-tree'
+    version = "dev-tree"
 
 release = version
 
@@ -116,7 +116,7 @@ release = version
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = ["_build"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -151,8 +151,7 @@ numfig = True
 # a list of builtin themes.
 
 html_theme = "sphinx_rtd_theme"
-html_sidebars = {
-   '**': ['globaltoc.html', 'sourcelink.html', 'searchbox.html']}
+html_sidebars = {"**": ["globaltoc.html", "sourcelink.html", "searchbox.html"]}
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -243,19 +242,24 @@ htmlhelp_basename = "GNATDASdoc"
 # to our latex_preamble.
 
 latex_documents = [
-  (master_doc, master_doc+'.tex', "%s %s" % (project, docname),
-   u'AdaCore', 'manual'),
+    (
+        master_doc,
+        master_doc + ".tex",
+        "%s %s" % (project, docname),
+        "AdaCore",
+        "manual",
+    ),
 ]
 
 # Get rid of the "Release" tag before the version number
 # in the first page subtitle
 
-latex_additional_files = ['latex_preamble.inc']
+latex_additional_files = ["latex_preamble.inc"]
 
 latex_elements = {
-    'releasename': 'Version',
-    'preamble': r'\input{latex_preamble.inc}',
-    }
+    "releasename": "Version",
+    "preamble": r"\input{latex_preamble.inc}",
+}
 
 # The name of an image file (relative to this directory) to place at the top
 # of the title page.
@@ -263,7 +267,7 @@ latex_elements = {
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
-latex_toplevel_sectioning = 'part'
+latex_toplevel_sectioning = "part"
 
 # If true, show page references after internal links.
 # latex_show_pagerefs = False

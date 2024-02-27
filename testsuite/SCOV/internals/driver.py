@@ -28,9 +28,13 @@ from e3.os.fs import cd
 
 from SCOV.tctl import CAT, CovControl
 
-from SCOV.instr import (add_dumper_lch_hook, default_dump_channel,
-                        default_dump_trigger, xcov_convert_base64,
-                        xcov_instrument)
+from SCOV.instr import (
+    add_dumper_lch_hook,
+    default_dump_channel,
+    default_dump_trigger,
+    xcov_convert_base64,
+    xcov_instrument,
+)
 
 from SUITE.context import thistest
 from SUITE.control import language_info, runtime_info
@@ -40,8 +44,13 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
 from SUITE.tutils import gprbuild_cargs_with
 from SUITE.tutils import exename_for
-from SUITE.tutils import (srctrace_pattern_for, srctracename_for,
-                          tracename_for, ckptname_for, run_cov_program)
+from SUITE.tutils import (
+    srctrace_pattern_for,
+    srctracename_for,
+    tracename_for,
+    ckptname_for,
+    run_cov_program,
+)
 
 from .cnotes import r0, r0c, xBlock0, xBlock1, lx0, lx1, lFullCov, lPartCov
 from .cnotes import Xr0, Xr0c
@@ -125,7 +134,6 @@ class WdirControl:
     # for the TestCase implementation to decide.
 
     def __init__(self, wdbase, bdbase, subdirhint):
-
         # WDBASE is the base prefix to use for testcase Working directory.
         # BDBASE is the base prefix to use for testcase Binary directory.
         # Fallback to WDBASE when not provided.
@@ -166,14 +174,14 @@ class WdirControl:
 r_eln_for = {
     CAT.stmt: elNoteKinds,
     CAT.decision: elNoteKinds,
-    CAT.mcdc: elNoteKinds
+    CAT.mcdc: elNoteKinds,
 }
 
 # Relevant line expectations
 r_lxp_for = {
     CAT.stmt: r_eln_for[CAT.stmt],
     CAT.decision: r_eln_for[CAT.decision],
-    CAT.mcdc: r_eln_for[CAT.mcdc]
+    CAT.mcdc: r_eln_for[CAT.mcdc],
 }
 
 # The set of Report expectations we need to care about varies across
@@ -190,10 +198,20 @@ r_lxp_for = {
 # Relevant emitted report notes
 r_ern_for = {
     CAT.stmt: tNoteKinds + xNoteKinds + sNoteKinds + XsNoteKinds,
-    CAT.decision: tNoteKinds + xNoteKinds + sNoteKinds + dNoteKinds +
-    XsNoteKinds + XoNoteKinds,
-    CAT.mcdc: tNoteKinds + xNoteKinds + sNoteKinds + dNoteKinds + cNoteKinds +
-    XsNoteKinds + XoNoteKinds + XcNoteKinds,
+    CAT.decision: tNoteKinds
+    + xNoteKinds
+    + sNoteKinds
+    + dNoteKinds
+    + XsNoteKinds
+    + XoNoteKinds,
+    CAT.mcdc: tNoteKinds
+    + xNoteKinds
+    + sNoteKinds
+    + dNoteKinds
+    + cNoteKinds
+    + XsNoteKinds
+    + XoNoteKinds
+    + XcNoteKinds,
 }
 
 # Relevant report expectations
@@ -239,10 +257,9 @@ class _Xchecker:
         # The emitted note needs to designate a sloc range within the
         # expected sloc range and separation tags, when any is expected,
         # must match.
-        return (
-            en.segment.within(xn.segment)
-            and ((not xn.stag and not en.stag)
-                 or (xn.stag and en.stag and en.stag.match(xn.stag)))
+        return en.segment.within(xn.segment) and (
+            (not xn.stag and not en.stag)
+            or (xn.stag and en.stag and en.stag.match(xn.stag))
         )
 
     def try_sat_over(self, ekind, xn):
@@ -362,8 +379,9 @@ class _Xchecker:
         # notes processing below.
 
         for xkind in self.rxp:
-            self.process_xkind(xkind=xkind,
-                               ekinds=discharge_kdict.get(xkind, [xkind]))
+            self.process_xkind(
+                xkind=xkind, ekinds=discharge_kdict.get(xkind, [xkind])
+            )
 
         # Then process the relevant emitted notes, complaining about those
         # that don't discharge any expectation as required, or that discharge
@@ -424,7 +442,6 @@ class SCOV_helper:
         raise NotImplementedError
 
     def __init__(self, testcase, drivers, xfile, xcovlevel, covctl, wdctl):
-
         # The TESTCASE object that delegates the hard work to us :-)
         self.testcase = testcase
 
@@ -455,14 +472,14 @@ class SCOV_helper:
         # Compute the gnatcov coverage specific extra options that we'll have
         # to pass. We need these early for Xnote expansions.
 
-        self.covoptions = ['--level=' + self.xcovlevel]
+        self.covoptions = ["--level=" + self.xcovlevel]
         if self.covctl:
             self.covoptions += to_list(self.covctl.covoptions)
 
         # Compute the list of test launch options strings that we need for
         # expectation CTL lines.
 
-        ctl_opts = ['--trace-mode=%s' % thistest.options.trace_mode]
+        ctl_opts = ["--trace-mode=%s" % thistest.options.trace_mode]
 
         self.extracargs = to_list(self.testcase.extracargs)
 
@@ -479,12 +496,13 @@ class SCOV_helper:
         self.ernotes = {}
 
         xnotes = XnotesExpander(
-            xfile=xfile, xcov_level=xcovlevel,
+            xfile=xfile,
+            xcov_level=xcovlevel,
             ctl_opts=ctl_opts,
             ctl_cov=self.covoptions,
             ctl_cargs=gprbuild_cargs_with(thiscargs=self.extracargs),
             ctl_tags=thistest.options.tags,
-            ctl_cons=[thistest.options.consolidate]
+            ctl_cons=[thistest.options.consolidate],
         )
         self.xlnotes = xnotes.xlnotes
         self.xrnotes = xnotes.xrnotes
@@ -514,10 +532,9 @@ class SCOV_helper:
         # be for a child unit. Check if we also have a line starting with
         # "separate" to disambiguate.
 
-        return (
-            '-' in os.path.basename(soi)
-            and any(line.lstrip().lower().startswith('separate')
-                    for line in lines_of(self.abspaths[soi]))
+        return "-" in os.path.basename(soi) and any(
+            line.lstrip().lower().startswith("separate")
+            for line in lines_of(self.abspaths[soi])
         )
 
     def units_of_interest(self):
@@ -537,7 +554,7 @@ class SCOV_helper:
             extension = ext(soi)
             if extension == ".adb" or extension == ".ads":
                 if not self.is_subunit(soi):
-                    uoi.add(no_ext(os.path.basename(soi)).replace('-', '.'))
+                    uoi.add(no_ext(os.path.basename(soi)).replace("-", "."))
             else:
                 uoi.add(os.path.basename(soi))
 
@@ -552,12 +569,12 @@ class SCOV_helper:
     def xcov_translation_for(self, source):
         """How a SOURCE reference in expectations translates as the basename
         of an =xcov annotated source file."""
-        return source.replace('/', '-')
+        return source.replace("/", "-")
 
     def report_translation_for(self, source):
         """How a SOURCE reference in expectations translates in slocs
         found in =report outputs."""
-        return os.sep.join(source.split('/'))
+        return os.sep.join(source.split("/"))
 
     def singletest(self):
         """Whether SELF instantiates a single test."""
@@ -583,10 +600,9 @@ class SCOV_helper:
         # interest, either requested from the command line or for specific
         # test purposes:
 
-        self.gprmode = (
-            thistest.options.gprmode
-            or (self.covctl
-                and self.covctl.requires_gpr()))
+        self.gprmode = thistest.options.gprmode or (
+            self.covctl and self.covctl.requires_gpr()
+        )
 
         # Compute our GPR now, which we will need for build of single tests
         # and/or analysis later on if in gprmode.  Turn inlining off for the
@@ -598,16 +614,17 @@ class SCOV_helper:
         # an extra subdir level
         this_depth = thistest.depth + 1 if self.covctl else thistest.depth
 
-        self.gpr_obj_dir = 'obj'
+        self.gpr_obj_dir = "obj"
         self.gpr = gprfor(
             mains=self.drivers,
             prjid="gen",
             objdir=self.gpr_obj_dir,
-            srcdirs=["../"*n + "src" for n in range(1, this_depth)],
+            srcdirs=["../" * n + "src" for n in range(1, this_depth)],
             exedir=self.abdir(attribute=True),
             main_cargs="-fno-inline",
             deps=self.covctl.deps if self.covctl else [],
-            extra=self.covctl.gpr() if self.covctl else "")
+            extra=self.covctl.gpr() if self.covctl else "",
+        )
 
         # For single tests (no consolidation), we first need to build, then
         # to execute to get an execution trace.  All these we already have for
@@ -705,15 +722,16 @@ class SCOV_helper:
         return self.adir_for(self.rbdir_for(main, attribute))
 
     def main(self):
-
         # For a single test, discriminate with driver basename. For a
         # consolidation test, discriminate with the expectation file basename.
         # We need the latter to allow multiple consolidation scenarii for a
         # testcase.
 
-        return (no_ext(self.drivers[0])
-                if self.singletest()
-                else os.path.basename(no_ext(self.xfile)))
+        return (
+            no_ext(self.drivers[0])
+            if self.singletest()
+            else os.path.basename(no_ext(self.xfile))
+        )
 
     def rwdir(self):
         """Relative path to Working Directory for current instance."""
@@ -744,7 +762,7 @@ class SCOV_helper:
         if self.testcase.expect_failures:
             thistest.fail_if(
                 unhandled_exception_in(contents_of(out_file)),
-                "exception raised while running '%s'." % main
+                "exception raised while running '%s'." % main,
             )
 
     def gen_one_xcov_report(self, inputs, format, options=""):
@@ -761,17 +779,20 @@ class SCOV_helper:
         # options which might be absent from the tool qualified interface
         # descriptions.
 
-        covargs = (['--annotate=' + format, inputs]
-                   + self.covoptions + to_list(options))
+        covargs = (
+            ["--annotate=" + format, inputs]
+            + self.covoptions
+            + to_list(options)
+        )
 
         if self.gprmode:
-            covargs.append('--output-dir=.')
+            covargs.append("--output-dir=.")
 
         # Run, latching standard output in a file so we can check contents on
         # return.
 
         ofile = format + ".out"
-        xcov(args=['coverage'] + covargs, out=ofile)
+        xcov(args=["coverage"] + covargs, out=ofile)
 
         # Standard output might typically contain labeling warnings issued
         # by the static analysis phase, or error messages issued when a trace
@@ -782,16 +803,15 @@ class SCOV_helper:
 
         thistest.fail_if(
             os.path.getsize(ofile) > 0,
-            "xcov standard output not empty (%s):\n--\n%s" % (
-                ofile, contents_of(ofile)
-            )
+            "xcov standard output not empty (%s):\n--\n%s"
+            % (ofile, contents_of(ofile)),
         )
 
     def force_xcov_report(self, source):
-        filename = self.xcov_translation_for(source) + '.xcov'
+        filename = self.xcov_translation_for(source) + ".xcov"
 
         if not os.path.exists(filename):
-            with open(filename, 'w') as report:
+            with open(filename, "w") as report:
                 report.write("dummy xcov report")
 
     def gen_xcov_reports(self):
@@ -806,7 +826,7 @@ class SCOV_helper:
         # produce a checkpoint for possible future consolidation if the
         # current execution mode calls for it:
 
-        checkpoints = thistest.options.consolidate == 'checkpoints'
+        checkpoints = thistest.options.consolidate == "checkpoints"
 
         single_driver = no_ext(self.drivers[0]) if self.singletest() else None
 
@@ -826,27 +846,36 @@ class SCOV_helper:
 
         inputs = "%s@%s" % (
             input_opt,
-            list_to_file([input_fn(os.path.join(self.awdir_for(pgm), pgm))
-                          for pgm in self.programs()],
-                         "inputs.list")
+            list_to_file(
+                [
+                    input_fn(os.path.join(self.awdir_for(pgm), pgm))
+                    for pgm in self.programs()
+                ],
+                "inputs.list",
+            ),
         )
 
         # Determine what command line options we'll pass to designate units of
         # interest and maybe produce a coverage checkpoint. We don't need and
         # don't want to pass SCO options when using checkpoints as inputs.
 
-        sco_options = ([] if use_checkpoint_inputs
-                       else self.coverage_sco_options())
+        sco_options = (
+            [] if use_checkpoint_inputs else self.coverage_sco_options()
+        )
 
         save_checkpoint_options = (
             ["--save-checkpoint=%s" % ckptname_for(single_driver)]
-            if single_driver and checkpoints else [])
+            if single_driver and checkpoints
+            else []
+        )
 
         # Now produce the --annotate=report format:
 
         self.gen_one_xcov_report(
-            inputs, format="report",
-            options=sco_options + save_checkpoint_options + ['-o', 'test.rep'])
+            inputs,
+            format="report",
+            options=sco_options + save_checkpoint_options + ["-o", "test.rep"],
+        )
 
         # Then an alternate .xcov output format, unless we are performing a
         # qualification run, for which that format isn't appropriate. No need
@@ -865,13 +894,13 @@ class SCOV_helper:
         for s in self.ernotes:
             thistest.fail_if(
                 self.covctl.unexpected(s),
-                "report note found for %s, not in expected list" % s
+                "report note found for %s, not in expected list" % s,
             )
 
         for s in ls("*.xcov"):
             thistest.fail_if(
                 self.covctl.unexpected(s.rstrip(".xcov")),
-                "%s report found, for source not in expected list" % s
+                "%s report found, for source not in expected list" % s,
             )
 
     def check_expectations(self):
@@ -930,7 +959,6 @@ class SCOV_helper:
             CAT.stmt: 1,
             CAT.decision: 2,
             CAT.mcdc: 3,
-
             # Context levels
             "stmt": 1,
             "stmt+decision": 2,
@@ -957,12 +985,14 @@ class SCOV_helper:
         strictest_cat_for = {
             "stmt": CAT.stmt,
             "stmt+decision": CAT.decision,
-            "stmt+mcdc": CAT.mcdc
+            "stmt+mcdc": CAT.mcdc,
         }
 
-        relevance_cat = (self.testcase.category
-                         if self.testcase.category
-                         else strictest_cat_for[self.xcovlevel])
+        relevance_cat = (
+            self.testcase.category
+            if self.testcase.category
+            else strictest_cat_for[self.xcovlevel]
+        )
 
         # Setup our report and line discharging configurations (kinds of
         # emitted notes that are allowed to discharge other kinds of expected
@@ -970,32 +1000,44 @@ class SCOV_helper:
 
         # =report outputs, stricter_level micro relaxations first:
 
-        r_discharge_kdict = {
-            # let an emitted xBlock1 discharge an xBlock0 expectation, as an
-            # extra exempted violations are most likely irrelevant for the
-            # category
-            xBlock0: [xBlock0, xBlock1]} if stricter_level else {}
+        r_discharge_kdict = (
+            {
+                # let an emitted xBlock1 discharge an xBlock0 expectation, as an
+                # extra exempted violations are most likely irrelevant for the
+                # category
+                xBlock0: [xBlock0, xBlock1]
+            }
+            if stricter_level
+            else {}
+        )
 
         # Then augment with what is allowed to hit "0" or "0c" expectation
         # statements:
 
-        r_discharge_kdict.update({r0:   r_ern_for[relevance_cat],
-                                  r0c:  r_ern_for[relevance_cat],
-                                  Xr0:  r_ern_for[relevance_cat],
-                                  Xr0c: r_ern_for[relevance_cat]})
+        r_discharge_kdict.update(
+            {
+                r0: r_ern_for[relevance_cat],
+                r0c: r_ern_for[relevance_cat],
+                Xr0: r_ern_for[relevance_cat],
+                Xr0c: r_ern_for[relevance_cat],
+            }
+        )
 
         # =xcov outputs, stricter_level micro relaxations only:
 
-        l_discharge_kdict = {
-            # an emitted l! discharge an expected l+, when the l! is most
-            # likely caused by irrelevant violations for the category
-            lFullCov: [lFullCov, lPartCov],
-
-            # an emitted lx1 discharge an lx0 expectation, when the extra
-            # exempted violations are most likely caused by the level extra
-            # strictness, hence irrelevant for the category
-            lx0: [lx0, lx1]
-        } if stricter_level else {}
+        l_discharge_kdict = (
+            {
+                # an emitted l! discharge an expected l+, when the l! is most
+                # likely caused by irrelevant violations for the category
+                lFullCov: [lFullCov, lPartCov],
+                # an emitted lx1 discharge an lx0 expectation, when the extra
+                # exempted violations are most likely caused by the level extra
+                # strictness, hence irrelevant for the category
+                lx0: [lx0, lx1],
+            }
+            if stricter_level
+            else {}
+        )
 
         # Now process source by source, skipping those for which no report
         # is expected when the list happens to be specified.
@@ -1008,18 +1050,20 @@ class SCOV_helper:
         for source in self.sources_of_interest():
             if not self.covctl or self.covctl.expected(source):
                 self.check_expectations_over(
-                    source=source, relevance_cat=relevance_cat,
+                    source=source,
+                    relevance_cat=relevance_cat,
                     r_discharge_kdict=r_discharge_kdict,
-                    l_discharge_kdict=l_discharge_kdict
+                    l_discharge_kdict=l_discharge_kdict,
                 )
 
-    def check_expectations_over(self, source, relevance_cat,
-                                r_discharge_kdict, l_discharge_kdict):
+    def check_expectations_over(
+        self, source, relevance_cat, r_discharge_kdict, l_discharge_kdict
+    ):
         """Process expectations for a particular SOURCE, comparing
         expected coverage marks against what is found in the xcov reports
         for this source."""
 
-        frame("Processing UX for %s" % source, post=0, char='~').display()
+        frame("Processing UX for %s" % source, post=0, char="~").display()
 
         # Source names in expectations might still contain path indications
         # when they reach here, to indicate that the path components are
@@ -1030,11 +1074,11 @@ class SCOV_helper:
 
         strans = self.report_translation_for(source)
         _Xchecker(
-            report='test.rep',
+            report="test.rep",
             xdict=self.xrnotes.get(source),
             rxp=r_rxp_for[relevance_cat],
             edict=self.ernotes.get(strans, KnoteDict(erNoteKinds)),
-            ren=r_ern_for[relevance_cat]
+            ren=r_ern_for[relevance_cat],
         ).run(r_discharge_kdict)
 
         # Line notes checks, meaningless if we're in qualification mode
@@ -1044,24 +1088,26 @@ class SCOV_helper:
 
         strans = self.xcov_translation_for(source)
         _Xchecker(
-            report=strans+'.xcov',
+            report=strans + ".xcov",
             xdict=self.xlnotes.get(source),
             rxp=r_lxp_for[relevance_cat],
             edict=self.elnotes.get(strans, KnoteDict(elNoteKinds)),
-            ren=r_eln_for[relevance_cat]
+            ren=r_eln_for[relevance_cat],
         ).run(l_discharge_kdict)
 
     def log(self):
         frame(
-            "%s/ %s, %s\n%s coverage with %s" % (
+            "%s/ %s, %s\n%s coverage with %s"
+            % (
                 os.path.relpath(os.getcwd(), thistest.homedir),
                 [no_ext(main) for main in self.drivers],
                 self.xfile,
                 self.testcase.category.name
-                if self.testcase.category else "generic",
-                ' '.join(self.covoptions)
+                if self.testcase.category
+                else "generic",
+                " ".join(self.covoptions),
             ),
-            char='*'
+            char="*",
         ).display()
 
     def to_workdir(self, wdir):
@@ -1123,9 +1169,13 @@ class SCOV_helper:
         # Fallback to --scos/--sid with a list of files we compute here:
 
         else:
-            return ["%s=@%s" % (
-                self.mode_scofiles_switch(),
-                list_to_file(self._scofiles_list(), "scos.list"))]
+            return [
+                "%s=@%s"
+                % (
+                    self.mode_scofiles_switch(),
+                    list_to_file(self._scofiles_list(), "scos.list"),
+                )
+            ]
 
     def _locate_scofile(self, source):
         """Return the fullpath of the ali file corresponding to the given
@@ -1143,7 +1193,7 @@ class SCOV_helper:
         # all identical, and they should be for typical situations where the
         # same sources were exercised by multiple drivers:
 
-        lpath = os.path.join('obj', self.mode_scofile_for(source))
+        lpath = os.path.join("obj", self.mode_scofile_for(source))
         for main in self.drivers:
             tloc = os.path.join(self.abdir_for(no_ext(main)), lpath)
             if os.path.exists(tloc):
@@ -1166,10 +1216,13 @@ class SCOV_helper:
         # package.  We make our result a set to prevent duplicates and xcov
         # warnings later on.
 
-        return {scof
-                for scof in (self._locate_scofile(soi)
-                             for soi in self.sources_of_interest())
-                if scof}
+        return {
+            scof
+            for scof in (
+                self._locate_scofile(soi) for soi in self.sources_of_interest()
+            )
+            if scof
+        }
 
     def wdbase_for(self, covlevel):
         """
@@ -1197,7 +1250,7 @@ class SCOV_helper:
         full name of the assertion level is enabled.
         """
         res = "stmt"
-        wdbase = wdname.split('_')[0]
+        wdbase = wdname.split("_")[0]
 
         for lvl in ["decision", "mcdc", "uc_mcdc"]:
             if wdbase[0] == lvl[0]:
@@ -1236,12 +1289,13 @@ class SCOV_helper_bin_traces(SCOV_helper):
 
     def mode_build(self):
         gprbuild(
-            self.gpr, extracargs=self.extracargs,
-            gargs=self.common_build_gargs())
+            self.gpr,
+            extracargs=self.extracargs,
+            gargs=self.common_build_gargs(),
+        )
 
     def mode_execute(self, main):
-
-        out_file = 'xrun_{}.out'.format(main)
+        out_file = "xrun_{}.out".format(main)
 
         # Feed xcov run with full path (absolute dir) of the program so we
         # can directly get to the binary from the trace when reading it from
@@ -1254,9 +1308,12 @@ class SCOV_helper_bin_traces(SCOV_helper):
         # failures (such as harness tests), assuming that they will perform
         # further checks that are bound to fail if the execution doesn't
         # proceed as expected somehow (e.g. not producing a trace).
-        xrun([main_path, "--level=%s" % self.xcovlevel] +
-             self.coverage_sco_options(),
-             out=out_file, register_failure=not self.testcase.expect_failures)
+        xrun(
+            [main_path, "--level=%s" % self.xcovlevel]
+            + self.coverage_sco_options(),
+            out=out_file,
+            register_failure=not self.testcase.expect_failures,
+        )
 
         return out_file
 
@@ -1309,7 +1366,6 @@ class SCOV_helper_src_traces(SCOV_helper):
     #   binary traces.
 
     def mode_build(self):
-
         # We first need to instrument, with proper selection of the units of
         # interest. Expect we are to provide this through a project file as
         # we have no LI file at hand:
@@ -1332,12 +1388,13 @@ class SCOV_helper_src_traces(SCOV_helper):
                 units=self.covctl.gprsw.units,
                 no_subprojects=self.covctl.gprsw.no_subprojects,
                 xvars=self.covctl.gprsw.xvars,
-                subdirs=subdirs)
+                subdirs=subdirs,
+            )
         else:
             subdirs = None
             instrument_gprsw = GPRswitches(root_project=self.gpr)
 
-        out = 'xinstr.out'
+        out = "xinstr.out"
         xcov_instrument(
             covlevel=self.xcovlevel,
             extra_args=to_list(self.covctl.covoptions) if self.covctl else [],
@@ -1346,7 +1403,8 @@ class SCOV_helper_src_traces(SCOV_helper):
             gprsw=instrument_gprsw,
             gpr_obj_dir=self.gpr_obj_dir,
             out=out,
-            tolerate_messages=self.testcase.tolerate_messages)
+            tolerate_messages=self.testcase.tolerate_messages,
+        )
 
         # When exception propagation is not available, a test ending with an
         # unhandled exception goes straight to the last_chance_handler from
@@ -1355,20 +1413,23 @@ class SCOV_helper_src_traces(SCOV_helper):
         # a last chance handler entry hook to dump the buffers at that point
         # instead.
 
-        if (self.dump_trigger == 'main-end'
-            and not runtime_info().has_exception_propagation):
+        if (
+            self.dump_trigger == "main-end"
+            and not runtime_info().has_exception_propagation
+        ):
             # The only tests with multiple drivers are consolidation ones,
             # which compute consolidated coverage reports from data obtained
             # in previously executed tests (trace files or checkpoints). These
             # tests are not built, so we can assume here that there is only one
             # driver to build.
             assert len(self.drivers) == 1
-            if (language_info(self.drivers[0]).name == "Ada"):
+            if language_info(self.drivers[0]).name == "Ada":
                 add_dumper_lch_hook(
                     project=instrument_gprsw.root_project,
                     obj_dir=self.gpr_obj_dir,
                     subdirs=subdirs,
-                    main_unit=no_ext(self.drivers[0]))
+                    main_unit=no_ext(self.drivers[0]),
+                )
 
         # Standard output might contain warnings indicating instrumentation
         # issues. This should not happen, so simply fail as soon as the output
@@ -1376,34 +1437,39 @@ class SCOV_helper_src_traces(SCOV_helper):
         if not self.testcase.tolerate_messages:
             thistest.fail_if(
                 os.path.getsize(out) > 0,
-                'xcov instrument standard output not empty ({}):'
-                '\n--'
-                '\n{}'.format(out, contents_of(out)))
+                "xcov instrument standard output not empty ({}):"
+                "\n--"
+                "\n{}".format(out, contents_of(out)),
+            )
 
         # Now we can build, instructing gprbuild to fetch the instrumented
         # sources in their dedicated subdir:
         gprbuild(
-            self.gpr, extracargs=self.extracargs,
-            gargs=self.common_build_gargs() + ['--src-subdirs=gnatcov-instr'])
+            self.gpr,
+            extracargs=self.extracargs,
+            gargs=self.common_build_gargs() + ["--src-subdirs=gnatcov-instr"],
+        )
 
     def mode_execute(self, main):
         register_failure = not self.testcase.expect_failures
 
         # Run the program itself
-        out_file = 'cmdrun_{}.out'.format(main)
+        out_file = "cmdrun_{}.out".format(main)
         main_path = os.path.join(self.abdir_for(main), exename_for(main))
-        run_cov_program(main_path, out=out_file,
-                        register_failure=register_failure)
+        run_cov_program(
+            main_path, out=out_file, register_failure=register_failure
+        )
 
         # If the dump channel just writes text on stdout, extract traces from
         # it.
-        if self.dump_channel == 'base64-stdout':
+        if self.dump_channel == "base64-stdout":
             # The mode_tracename_for method works only after the trace file has
             # been created: create a trace file that srctracename_for (called
             # in mode_tracename_for) will pick up.
             trace_file = srctrace_pattern_for(main).replace("*", "unique")
-            xcov_convert_base64(out_file, trace_file,
-                                register_failure=register_failure)
+            xcov_convert_base64(
+                out_file, trace_file, register_failure=register_failure
+            )
 
         return out_file
 

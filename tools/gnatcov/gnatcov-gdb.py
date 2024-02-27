@@ -22,9 +22,14 @@ more details.
 # Make the gnatcov_gdb package available
 import os.path
 import sys
-sys.path.append(os.path.join(
-    os.path.dirname(os.path.realpath(os.path.expanduser(__file__))),
-    'scripts'))
+
+sys.path.append(
+    os.path.join(
+        os.path.dirname(os.path.realpath(os.path.expanduser(__file__))),
+        "scripts",
+    )
+)
 
 import gnatcov_gdb
+
 gnatcov_gdb.setup()

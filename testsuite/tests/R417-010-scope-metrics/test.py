@@ -14,15 +14,18 @@ from SUITE.tutils import gprfor, thistest
 Wdir("tmp_")
 
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=gprfor(srcdirs=[os.path.join("..", "src")],
-                                          mains=["main.adb"])),
+    gprsw=GPRswitches(
+        root_project=gprfor(
+            srcdirs=[os.path.join("..", "src")], mains=["main.adb"]
+        )
+    ),
     covlevel="stmt+mcdc",
     mains=["main"],
-    extra_coverage_args=["--annotate=xml"]
+    extra_coverage_args=["--annotate=xml"],
 )
 
 thistest.fail_if_diff(
     os.path.join("..", "main.adb.xml.expected"),
-    os.path.join("obj", "main.adb.xml")
+    os.path.join("obj", "main.adb.xml"),
 )
 thistest.result()

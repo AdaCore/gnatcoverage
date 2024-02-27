@@ -33,21 +33,21 @@ class Language(object):
 
     NAME = None
 
-    SUPPORT_MODULE = 'support'
+    SUPPORT_MODULE = "support"
     # The "types" module is used to define types used by operands.
-    TYPES_MODULE = 'types'
+    TYPES_MODULE = "types"
     # The "run" module contains all "run_*" procedures called by test drivers.
-    RUN_MODULE = 'run'
+    RUN_MODULE = "run"
     # These "run_*" functions call the "compute" function in the "computing"
     # module.
-    COMPUTING_MODULE = 'computing'
-    ENTRY_POINT_NAME = 'compute'
-    ASSERT_PROC_NAME = 'assert'
+    COMPUTING_MODULE = "computing"
+    ENTRY_POINT_NAME = "compute"
+    ASSERT_PROC_NAME = "assert"
 
     # Used to format the name of the test procedures.
     BOOL_TO_CHAR = {
-        False:  'F',
-        True:   'T',
+        False: "F",
+        True: "T",
     }
 
     def __init__(self):
@@ -82,9 +82,7 @@ class Language(object):
         """
         raise NotImplementedError()
 
-    def serialize_specification_types(
-        self, stream, types
-    ):
+    def serialize_specification_types(self, stream, types):
         """
         Output a specification source that contains declarations for the given
         `types`. The name of the module for these specification is
@@ -103,9 +101,7 @@ class Language(object):
         raise NotImplementedError()
 
     def serialize_implementation(
-        self, stream,
-        program, formal_names, formal_types,
-        one_operand_per_line
+        self, stream, program, formal_names, formal_types, one_operand_per_line
     ):
         """
         Output an implementation source that contain the "compute" function,
@@ -120,7 +116,7 @@ class Language(object):
         handling method, passing it the *args and **kwargs arguments.
         """
         arg_type = type(expr).__name__
-        arg_handler = getattr(self, 'handle_{}'.format(arg_type))
+        arg_handler = getattr(self, "handle_{}".format(arg_type))
         return arg_handler(expr, *args, **kwargs)
 
     def format_tree(self, tree, *args, **kwargs):
@@ -181,11 +177,9 @@ class Language(object):
         this instance.
         """
         assert xnode.language == self.NAME, (
-            '{} construct is specific to {} '
-            'but is used with language {}'.format(
-                type(xnode).__name__,
-                xnode.language,
-                self.NAME
+            "{} construct is specific to {} "
+            "but is used with language {}".format(
+                type(xnode).__name__, xnode.language, self.NAME
             )
         )
 
@@ -203,12 +197,11 @@ class Language(object):
             self.handle(tagged_node.node)
 
     def get_run_procedure_name(self, truth_vector):
-        return 'run_{}_{}'.format(
-            ''.join(
-                self.BOOL_TO_CHAR[b]
-                for b in truth_vector[:-1]
+        return "run_{}_{}".format(
+            "".join(
+                self.BOOL_TO_CHAR[b] for b in truth_vector[:-1]
             ),  # Actuals
-            self.BOOL_TO_CHAR[truth_vector[-1]]  # Result
+            self.BOOL_TO_CHAR[truth_vector[-1]],  # Result
         )
 
     #
@@ -244,7 +237,7 @@ class Language(object):
         self.check_language(xcontext)
         for line in xcontext.format:
             try:
-                index = line.index('{decision_expr}')
+                index = line.index("{decision_expr}")
             except ValueError:
                 self.write(line)
             else:
@@ -305,10 +298,12 @@ class Language(object):
 # Formatting helper classes
 #
 
+
 class IndentationGuard(object):
     """
     Increment the indentation level on entry and decrement it when leaving.
     """
+
     def __init__(self, formatter, addend):
         self.formatter = formatter
         self.addend = addend
@@ -355,7 +350,7 @@ class Formatter(object):
         """
         if self.current_column == 0:
             self.current_column = self.indent_stack[-1]
-            self.stream.write(' ' * self.indent_stack[-1])
+            self.stream.write(" " * self.indent_stack[-1])
         self.stream.write(string)
         self.current_column += len(string)
 
@@ -378,7 +373,7 @@ class Formatter(object):
     def newline(self):
         """Flush any tag and insert a new line character."""
         self.flush_tags()
-        self.stream.write('\n')
+        self.stream.write("\n")
         self.current_column = 0
 
     def add_tag(self, tag):
@@ -387,15 +382,15 @@ class Formatter(object):
         if self.line_tag:
             if tag.name != self.line_tag.name:
                 raise ValueError(
-                    'Trying to insert a `{}` tag on a line where there is a '
-                    '`{}` tag'.format(tag.name, self.line_tag.name)
+                    "Trying to insert a `{}` tag on a line where there is a "
+                    "`{}` tag".format(tag.name, self.line_tag.name)
                 )
             if tag.context != self.line_tag.context:
                 raise ValueError(
-                    'Trying to insert a `{}` tag on a line where there is a '
-                    '`{}` tag'.format(tag.context, self.line_tag.context)
+                    "Trying to insert a `{}` tag on a line where there is a "
+                    "`{}` tag".format(tag.context, self.line_tag.context)
                 )
-            tag = tag._replace(operand='all')
+            tag = tag._replace(operand="all")
         self.line_tag = tag
 
     def flush_tags(self):
@@ -406,5 +401,5 @@ class Formatter(object):
             comment = self.language.format_comment(
                 utils.format_tag(self.line_tag)
             )
-            self.stream.write(' {}'.format(comment))
+            self.stream.write(" {}".format(comment))
             self.line_tag = None

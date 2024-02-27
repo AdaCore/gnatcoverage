@@ -25,9 +25,7 @@ xcov_instrument(
     covlevel="stmt+mcdc",
     auto_config_args=False,
     auto_target_args=False,
-    extra_args=[
-        "--target", thistest.env.target.triplet, "--RTS", runtime_dir
-    ],
+    extra_args=["--target", thistest.env.target.triplet, "--RTS", runtime_dir],
 )
 
 thistest.result()

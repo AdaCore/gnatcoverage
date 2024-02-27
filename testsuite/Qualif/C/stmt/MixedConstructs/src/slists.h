@@ -1,8 +1,8 @@
 #ifndef SLISTS_H
-# define SLISTS_H
+#define SLISTS_H
 
-# include "vbufs.h"
-# include "sensors.h"
+#include "sensors.h"
+#include "vbufs.h"
 
 struct sensor_node;
 
@@ -18,10 +18,8 @@ struct sensor_list
   unsigned len;
 };
 
-extern void
-slist_init (struct sensor_list *l);
+extern void slist_init (struct sensor_list *l);
 
-extern void
-slist_prepend (struct sensor *s, struct sensor_list *l);
+extern void slist_prepend (struct sensor *s, struct sensor_list *l);
 
 #endif

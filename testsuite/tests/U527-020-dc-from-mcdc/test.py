@@ -9,7 +9,7 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import xcov, gprfor
 from SUITE.gprutils import GPRswitches
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
 gpr = gprfor(mains=["main.adb"], srcdirs=[".."])
 
@@ -20,21 +20,23 @@ gpr = gprfor(mains=["main.adb"], srcdirs=[".."])
 xcov_args = build_and_run(
     gprsw=GPRswitches(root_project=gpr),
     extra_coverage_args=[],
-    covlevel='stmt+mcdc',
-    mains=['main'],
-    trace_mode='src')
+    covlevel="stmt+mcdc",
+    mains=["main"],
+    trace_mode="src",
+)
 
 # Switch to --level=stmt+decision, add the arguments for the
 # output format/location then check that we can produce a report:
 
 xcov_args = [
-    '--level=stmt+decision' if arg.startswith('--level') else arg
-    for arg in xcov_args]
+    "--level=stmt+decision" if arg.startswith("--level") else arg
+    for arg in xcov_args
+]
 
-xcov_args.extend(['--annotate=xcov', '--output-dir=xcov'])
+xcov_args.extend(["--annotate=xcov", "--output-dir=xcov"])
 
 xcov(xcov_args)
 
-check_xcov_reports('xcov', {'main.adb.xcov': {'+': {2}, '!': {5}, '-': {6}}})
+check_xcov_reports("xcov", {"main.adb.xcov": {"+": {2}, "!": {5}, "-": {6}}})
 
 thistest.result()

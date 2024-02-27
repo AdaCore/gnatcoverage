@@ -12,7 +12,7 @@ slist_init (struct sensor_list *l)
 void
 slist_prepend (struct sensor *s, struct sensor_list *l)
 {
-  struct sensor_node * const node = pool_allocate ();
+  struct sensor_node *const node = pool_allocate ();
   node->s = s;
   node->next = l->head;
   l->head = node;

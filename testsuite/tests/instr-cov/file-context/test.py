@@ -34,17 +34,20 @@ def do_instr(label, args):
     )
     return output_file
 
+
 # Check that we print the source file that is currently instrumented when
 # warnings/errors occur at most once, and never for other files.
 log = do_instr("basic", [])
 thistest.fail_if_not_equal(
     f'"gnatcov instrument" output',
     contents_of(log).strip(),
-    "\n".join([
-        "warning: While instrumenting main.adb...",
-        "warning: Cannot find required source file: missing_a.ads",
-        "warning: Cannot find required source file: missing_b.ads",
-    ]),
+    "\n".join(
+        [
+            "warning: While instrumenting main.adb...",
+            "warning: Cannot find required source file: missing_a.ads",
+            "warning: Cannot find required source file: missing_b.ads",
+        ]
+    ),
 )
 
 # In verbose mode: always print it once.
@@ -59,12 +62,14 @@ actual_lines = [
 ]
 thistest.fail_if_not_equal(
     f'"gnatcov instrument" output',
-    "\n".join([
-        "[GNATCOV.MISC] Instrumenting main.adb",
-        "warning: Cannot find required source file: missing_a.ads",
-        "warning: Cannot find required source file: missing_b.ads",
-        "[GNATCOV.MISC] Instrumenting pkg.ads",
-    ]),
+    "\n".join(
+        [
+            "[GNATCOV.MISC] Instrumenting main.adb",
+            "warning: Cannot find required source file: missing_a.ads",
+            "warning: Cannot find required source file: missing_b.ads",
+            "[GNATCOV.MISC] Instrumenting pkg.ads",
+        ]
+    ),
     "\n".join(actual_lines),
 )
 

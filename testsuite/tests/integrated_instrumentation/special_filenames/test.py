@@ -19,7 +19,7 @@ Wdir("tmp_")
 # case of a filename containing a double quote or a backslash on Windows
 # because of filename restrictions on that platform.
 copy_map = {
-    "bar.c": 'src bar.c' if env.build.os.name == "windows" else 'src\\"bar.c',
+    "bar.c": "src bar.c" if env.build.os.name == "windows" else 'src\\"bar.c',
     "foo.c": "src foo$@.c",
     "test.c": "test.c",
 }
@@ -62,11 +62,10 @@ cmdrun(["gcc", "-o", "test program"] + sources, for_pgm=False)
 cmdrun(["test program"], for_pgm=False)
 
 # Check coverage expectations
-sid_args = [f"--sid={filename}.sid" for filename in canonicalized_filenames.values()]
-xcov(
-    ["coverage", "-cstmt", "-axcov", srctracename_for("test")]
-    + sid_args
-)
+sid_args = [
+    f"--sid={filename}.sid" for filename in canonicalized_filenames.values()
+]
+xcov(["coverage", "-cstmt", "-axcov", srctracename_for("test")] + sid_args)
 check_xcov_reports(".", expected_report)
 
 thistest.result()

@@ -30,16 +30,16 @@ def process(gpr_dir, expected_cov):
 # Check that the header in the extended project is picked by gnatcov instrument
 # when there is no version in the extending project.
 expected_cov = {
-    "test.c.xcov": {"+": {5}},
-    "support.h.xcov": {"+": {3}},
+    "test.c.xcov": {"+": {6}},
+    "support.h.xcov": {"+": {4}},
 }
 process(os.path.join("..", "include_base_foo"), expected_cov)
 
 # If there is a version of the header in the extending project, check that this
 # is the one picked.
 expected_cov = {
-    "test.c.xcov": {"+": {5}},
-    "support.h.xcov": {"+": {5}},
+    "test.c.xcov": {"+": {6}},
+    "support.h.xcov": {"+": {6}},
 }
 process(os.path.join("..", "include_foo"), expected_cov)
 

@@ -15,8 +15,8 @@ main ()
   // while.
   do
     x++
-        // dumb-token
-        ;
+      // dumb-token
+      ;
   while (x < 2);
 
   // Check nested if-else statements. For each un-braced control flow stmt,
@@ -26,10 +26,10 @@ main ()
   if (id (x) != x)
     for (i = 0; i++; i < 10)
       return 0
-          // dumb-token
-          ;
-  else if (foo ())
-    return 0
         // dumb-token
         ;
+  else if (foo ())
+    return 0
+      // dumb-token
+      ;
 }

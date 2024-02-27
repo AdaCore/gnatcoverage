@@ -14,9 +14,24 @@ from SUITE.context import thistest
 from SUITE.control import language_info
 from SUITE.cutils import FatalError, lines_of
 from .cnotes import (
-    Block, KnoteDict, dNoCov, dPartCov, dfNoCov, dtNoCov, eNoCov, ePartCov,
-    efNoCov, etNoCov, lPartCov, oNoCov, oPartCov, ofNoCov, otNoCov, sNoCov,
-    xlNoteKinds, xrNoteKinds
+    Block,
+    KnoteDict,
+    dNoCov,
+    dPartCov,
+    dfNoCov,
+    dtNoCov,
+    eNoCov,
+    ePartCov,
+    efNoCov,
+    etNoCov,
+    lPartCov,
+    oNoCov,
+    oPartCov,
+    ofNoCov,
+    otNoCov,
+    sNoCov,
+    xlNoteKinds,
+    xrNoteKinds,
 )
 from .tfiles import Tfile
 from .xnotep import XnoteP
@@ -343,7 +358,7 @@ class Sref:
         the current point.
         """
 
-        for pdir in ("../"*n + "src/" for n in range(0, thistest.depth)):
+        for pdir in ("../" * n + "src/" for n in range(0, thistest.depth)):
             if os.path.exists(pdir + xpath):
                 return pdir + xpath
 
@@ -358,7 +373,7 @@ class Sref:
         self.xsource = xsource
 
         # XPATH: The relative path expressed in the expectation:
-        self.xpath = xsource[1:] if xsource.startswith('+') else xsource
+        self.xpath = xsource[1:] if xsource.startswith("+") else xsource
 
         # SPATH: The resolved path to an actual source file reachable for
         # the testcase at hand:
@@ -372,7 +387,6 @@ class LineCX:
     """
 
     def __init__(self, lre, lnp, rnps, override):
-
         self.lre = lre
         self.lnp = lnp
         self.rnps = rnps
@@ -386,9 +400,11 @@ class LineCX:
         return [self.lnp.instanciate_over(tline, block, srules)]
 
     def instanciate_rnotes_over(self, tline, block, srules):
-        return [rnp.instanciate_over(tline, block, srules)
-                for rnp in self.rnps
-                if rnp.kind]
+        return [
+            rnp.instanciate_over(tline, block, srules)
+            for rnp in self.rnps
+            if rnp.kind
+        ]
 
 
 class UnitCX:
@@ -426,56 +442,51 @@ class UnitCX:
     # anchors, with the following possible values for each <subst-key>:
 
     subst_tuples_for = {
-
         # o/d: Outcome expectations for line are to produce "decision"
         # expectations, for instance on
         #
         #     if A and then B then  -- # eval :o/d:
-
-        "o/d": {otNoCov: dtNoCov,
-                ofNoCov: dfNoCov,
-                oPartCov: dPartCov,
-                oNoCov: dNoCov},
-
+        "o/d": {
+            otNoCov: dtNoCov,
+            ofNoCov: dfNoCov,
+            oPartCov: dPartCov,
+            oNoCov: dNoCov,
+        },
         # o/e: Outcome expectations for line are to produce "expression"
         # expectations, for instance on
         #
         #    return Value (A and then B); -- # eval :o/e:
-
-        "o/e": {otNoCov: etNoCov,
-                ofNoCov: efNoCov,
-                oPartCov: ePartCov,
-                oNoCov: eNoCov},
-
+        "o/e": {
+            otNoCov: etNoCov,
+            ofNoCov: efNoCov,
+            oPartCov: ePartCov,
+            oNoCov: eNoCov,
+        },
         # o/0: outcome expectations for line are to be ignored, for
         # contexts where the evaluated expression is not actually a
         # decision, for instance on
         #
         #    pragma Precondition (not X); -- # eval :o/0:
-
-        "o/0": {otNoCov: None,
-                ofNoCov: None,
-                oPartCov: None,
-                oNoCov: None,
-                lPartCov: None},
-
+        "o/0": {
+            otNoCov: None,
+            ofNoCov: None,
+            oPartCov: None,
+            oNoCov: None,
+            lPartCov: None,
+        },
         # s/e: Statement uncovered expectations for line are to be
         # matched as expression never evaluated, for contexts where
         # the evaluated expression is not enclosed in a statement,
         # for instance on
         #
         #    pragma Precondition (A and then B); -- # eval :s/e:
-
         "s/e": {sNoCov: eNoCov},
-
         # eval on the line are in expression or decision context
-
         "e": {},
-        "d": {}
-        }
+        "d": {},
+    }
 
     def check_srules_on(self, tline):
-
         # Check for kind substitution rules on this line. Reset
         # at every line for now.
 
@@ -485,7 +496,7 @@ class UnitCX:
             self.current_srules = None
         else:
             self.current_srules = {}
-            for sim in m.group(1).split(','):
+            for sim in m.group(1).split(","):
                 self.current_srules.update(self.subst_tuples_for[sim])
 
     # Toplevel processing
@@ -494,11 +505,11 @@ class UnitCX:
         self.check_srules_on(tline)
         for lx in self.LXset:
             if re.search(lx.lre, tline.text):
-                self.instanciate_notes_for(lx, tline, self.current_block,
-                                           self.current_srules)
+                self.instanciate_notes_for(
+                    lx, tline, self.current_block, self.current_srules
+                )
 
     def __init__(self, sref, LXset):
-
         self.LXset = LXset
 
         # dictionaries of expected line and report notes for our unit
@@ -513,14 +524,13 @@ class UnitCX:
 
         self.sref = sref
 
-        thistest.stop_if(self.current_block,
-                         FatalError("fuzz block still open at EOF"))
+        thistest.stop_if(
+            self.current_block, FatalError("fuzz block still open at EOF")
+        )
 
 
 class UXgroup:
-
     def __init__(self, candlists):
-
         # SRLIST: good list of source ref objects from the set of candidate
         # lists received in CANDLISTS for this group, as specified in the
         # expectation spec. This is a list of lists like
@@ -581,8 +591,10 @@ class UXgroup:
 
         thistest.stop_if(
             len(goodlists) != 1,
-            FatalError("goodlists = %d, != 1 for %s"
-                       % (len(goodlists), candlists)))
+            FatalError(
+                "goodlists = %d, != 1 for %s" % (len(goodlists), candlists)
+            ),
+        )
 
         return goodlists[0]
 
@@ -617,8 +629,9 @@ class UXgroup:
         # Now instanciate a unit coverage expectations object for each
         # source ref in our list:
 
-        self.uxset = [UnitCX(sref=sref, LXset=self.lxset)
-                      for sref in self.srlist]
+        self.uxset = [
+            UnitCX(sref=sref, LXset=self.lxset) for sref in self.srlist
+        ]
 
         return self.uxset
 
@@ -665,9 +678,16 @@ class XnotesExpander:
     #   |
     #   >  g.close () for all parsed groups
 
-    def __init__(self, xfile, xcov_level, ctl_opts, ctl_cov, ctl_cargs,
-                 ctl_tags, ctl_cons):
-
+    def __init__(
+        self,
+        xfile,
+        xcov_level,
+        ctl_opts,
+        ctl_cov,
+        ctl_cargs,
+        ctl_tags,
+        ctl_cons,
+    ):
         # XFILE is the name of the file from which coverage expectations
         # are to be extracted.
 
@@ -688,11 +708,13 @@ class XnotesExpander:
         # CTL_TAGS  - set of discriminants for the current run, and
         # CTL_CONS  - kinds of consolidation artifacts we are requested to use
 
-        self.ctls = {"%opts": ' '.join(ctl_opts),
-                     "%cargs": ' '.join(ctl_cargs),
-                     "%cov": ' '.join(ctl_cov),
-                     "%tags": ' '.join(ctl_tags),
-                     "%cons": ' '.join(ctl_cons)}
+        self.ctls = {
+            "%opts": " ".join(ctl_opts),
+            "%cargs": " ".join(ctl_cargs),
+            "%cov": " ".join(ctl_cov),
+            "%tags": " ".join(ctl_tags),
+            "%cons": " ".join(ctl_cons),
+        }
 
         # And these are the dictionaries we expose. This includes the expected
         # line notes, the expected report notes, and the absolute paths to the
@@ -706,13 +728,14 @@ class XnotesExpander:
             self.__expose(ux)
 
     def __expose(self, ux):
-
         # A '+' prefix on the source reference means we expect
         # sources to be referenced with relative dir indications:
 
-        source = (ux.sref.xpath
-                  if ux.sref.xsource.startswith('+')
-                  else os.path.basename(ux.sref.xpath))
+        source = (
+            ux.sref.xpath
+            if ux.sref.xsource.startswith("+")
+            else os.path.basename(ux.sref.xpath)
+        )
 
         self.abspaths[source] = os.path.abspath(ux.sref.spath)
         self.xrnotes[source] = ux.xrdict
@@ -739,13 +762,13 @@ class XnotesExpander:
             # more flexibility.  Also take care of the trailing new-line
             # character that we get from lines_of.
             line.strip()
-            if line.startswith(lang_info.comment + '#'):
+            if line.startswith(lang_info.comment + "#"):
                 in_scovdata = True
             if in_scovdata and line.startswith(lang_info.comment):
                 # Also take this opportunity to strip the leading comment
                 # string as well as any space immediately following it.
                 # This will simplify the parsing a little bit.
-                contents.append(line[len(lang_info.comment):].lstrip())
+                contents.append(line[len(lang_info.comment) :].lstrip())
         return contents
 
     def __parse_scovdata(self, scovdata):
@@ -811,11 +834,9 @@ class XnotesExpander:
         lastlx = None
 
         for line in scovdata:
-
             ctl_update, ctl_value = self.__try_ctl_update_from(line)
 
             if ctl_update:
-
                 # A CTL line was found, update our processing state
                 # accordingly:
 
@@ -824,15 +845,13 @@ class XnotesExpander:
                 else:
                     grabbing = ctl_value
 
-            elif grabbing and line.startswith('+#'):
-
+            elif grabbing and line.startswith("+#"):
                 # A continuation line, to add rnotes that didn't fit
                 # on the previous ones.
 
                 lastlx.rnps.extend(self.__parse_expected_rnotes(line[3:]))
 
-            elif line.startswith('#'):
-
+            elif line.startswith("#"):
                 # A new group starts. Close the current one first and start
                 # grabbing again unconditionally:
 
@@ -842,8 +861,7 @@ class XnotesExpander:
                 current_uxg = UXgroup(candlists=self.__parse_sources(line))
                 grabbing = True
 
-            elif grabbing and line.startswith(('/', '=')):
-
+            elif grabbing and line.startswith(("/", "=")):
                 # This must be an LX line. Check lre overriding and add to the
                 # set attached to the current group consistency.
 
@@ -853,13 +871,14 @@ class XnotesExpander:
                     lx.lre in current_uxg.lxset and not lx.override,
                     FatalError(
                         "LRE dup without overriding note (%s, %s)"
-                        % (lx.lre, self.xfile)))
+                        % (lx.lre, self.xfile)
+                    ),
+                )
 
                 current_uxg.lxset[lx.lre] = lx
                 lastlx = lx
 
             else:
-
                 # Not grabbing or regular comment. Just ignore.
                 pass
 
@@ -889,9 +908,11 @@ class XnotesExpander:
     #
     # What default notes we expect for what designator text
 
-    builtin_lxs = {"__l-s-": "l- ## s-",
-                   "__l!d!": "l! ## d!",
-                   "__l!dT-": "l! ## dT-"}
+    builtin_lxs = {
+        "__l-s-": "l- ## s-",
+        "__l!d!": "l! ## d!",
+        "__l!dT-": "l! ## dT-",
+    }
 
     def __builtin_lcxs_for(self, uxg):
         """Add builtin default LineCX for UXG."""
@@ -904,8 +925,10 @@ class XnotesExpander:
 
         # Now compute the list of LCX objects for each of those defaults
 
-        return [self.__parse_lcx("/%s/ %s" % (lre, self.builtin_lxs[lre]))
-                for lre in nothere]
+        return [
+            self.__parse_lcx("/%s/ %s" % (lre, self.builtin_lxs[lre]))
+            for lre in nothere
+        ]
 
     # CTL parsing for control of conditional sections
 
@@ -925,7 +948,7 @@ class XnotesExpander:
         # CTL lines are like "%cov: -S routines %cargs: !-gnatn"
         # They are the only lines that may start with '%'.
 
-        if not line.startswith('%'):
+        if not line.startswith("%"):
             return (False, None)
 
         # To keep grabbing LX lines, all the CTL parts must evaluate True.
@@ -988,17 +1011,15 @@ class XnotesExpander:
         # of options that we were given for the key:
 
         this_val = True
-        for oseq in opts.split(','):
-
+        for oseq in opts.split(","):
             oseq = oseq.strip()
-            if oseq.startswith('!'):
+            if oseq.startswith("!"):
                 invert = True
                 oseq = oseq[1:]
             else:
                 invert = False
 
-            optin = re.search(pattern=oseq,
-                              string=self.ctls[key]) is not None
+            optin = re.search(pattern=oseq, string=self.ctls[key]) is not None
 
             this_val &= not optin if invert else optin
 
@@ -1020,7 +1041,7 @@ class XnotesExpander:
         # to mean "this section applies to (x0.adb and y0.adb) or (x1.c an
         # y1.c), whichever set we can reach from here.
 
-        return [alt.split(' ') for alt in image[1:].strip().split('|')]
+        return [alt.split(" ") for alt in image[1:].strip().split("|")]
 
     # Instance name resolution helpers for __resolve_stags_from()
 
@@ -1043,7 +1064,6 @@ class XnotesExpander:
     imark = "i:"
 
     def __resolve_itags_within(self, xnp, idict):
-
         # xnp.stag contains something like i:NAME1[i:NAME2[i:NAME3]] to
         # designate instantiations
 
@@ -1060,20 +1080,25 @@ class XnotesExpander:
             # stash a dummy column number here, required to form a regular
             # Sloc still.
 
-            slocs = ["%s:%d:0" % (os.path.basename(sp), tl.lno)
-                     for sp in idict
-                     for tl in idict[sp]
-                     if name in tl.text]
+            slocs = [
+                "%s:%d:0" % (os.path.basename(sp), tl.lno)
+                for sp in idict
+                for tl in idict[sp]
+                if name in tl.text
+            ]
 
             thistest.stop_if(
                 len(slocs) != 1,
-                FatalError("%d slocs found for stag %s" % (len(slocs), name)))
+                FatalError("%d slocs found for stag %s" % (len(slocs), name)),
+            )
 
             return slocs[0]
 
-        xnp.stag = re.sub(pattern="%s[A-Za-z_0-9]+" % self.imark,
-                          repl=__sloc_for,
-                          string=xnp.stag)
+        xnp.stag = re.sub(
+            pattern="%s[A-Za-z_0-9]+" % self.imark,
+            repl=__sloc_for,
+            string=xnp.stag,
+        )
 
     def __resolve_itags_from(self, all_xnps, uxgroups):
         """
@@ -1082,9 +1107,9 @@ class XnotesExpander:
         all the units in UXGROUPS.
         """
 
-        i_xnps = [xnp
-                  for xnp in all_xnps
-                  if xnp.stag and self.imark in xnp.stag]
+        i_xnps = [
+            xnp for xnp in all_xnps if xnp.stag and self.imark in xnp.stag
+        ]
 
         if len(i_xnps) == 0:
             return
@@ -1094,9 +1119,9 @@ class XnotesExpander:
 
         def __ilines_for(sp):
             tf = Tfile(filename=sp, process=lambda tl: None)
-            return [tl
-                    for tl in tf.contents()
-                    if "# %s" % self.imark in tl.text]
+            return [
+                tl for tl in tf.contents() if "# %s" % self.imark in tl.text
+            ]
 
         spaths = [sref.spath for uxg in uxgroups for sref in uxg.srlist]
         idict = {sp: __ilines_for(sp) for sp in spaths}
@@ -1112,10 +1137,9 @@ class XnotesExpander:
         separation tag strings into Stag objects.
         """
 
-        all_xnps = [xnp
-                    for uxg in uxgroups
-                    for lx in uxg.lxset
-                    for xnp in lx.rnps]
+        all_xnps = [
+            xnp for uxg in uxgroups for lx in uxg.lxset for xnp in lx.rnps
+        ]
 
         self.__resolve_itags_from(all_xnps=all_xnps, uxgroups=uxgroups)
 
@@ -1146,13 +1170,13 @@ class XnotesExpander:
         splitter.whitespace_split = True
         splitter.whitespace += "#,"
         imlist = list(splitter)
-        return [rnote
-                for rnote in (self.__parse_one_expected_rnote(im)
-                              for im in imlist)
-                if rnote]
+        return [
+            rnote
+            for rnote in (self.__parse_one_expected_rnote(im) for im in imlist)
+            if rnote
+        ]
 
     def __parse_one_expected_rnote(self, image):
-
         # We have at hand single note spec, possibly conditioned by the
         # xcov-level. Something like "s-", "d=>dT-", or "mu=>c!:"B".
 
@@ -1170,18 +1194,18 @@ class XnotesExpander:
         # possible instance specialization parts and return a note pattern
         # instance
 
-        if '@(' in ntext:
-            ntext, stag = ntext.split('@(')
-            stag = stag.rstrip(')')
+        if "@(" in ntext:
+            ntext, stag = ntext.split("@(")
+            stag = stag.rstrip(")")
         else:
             stag = None
 
-        if ':' in ntext:
+        if ":" in ntext:
             # We split only once, as we have occurrences of notes as such:
             # s-:"P :=" (the string as parsed by shlex would be 's-:P :='),
             # with a colon inside the quoted string. We don't want to split on
             # that second colon, as it is part of the source code.
-            ntext, stext = ntext.split(':', 1)
+            ntext, stext = ntext.split(":", 1)
         else:
             stext = None
 
@@ -1203,10 +1227,12 @@ class XnotesExpander:
             or
             [('stmt', 'l+'), ('stmt+decision', 'l+')]
         """
-        level_from_char = {"s": ["stmt"],
-                           "d": ["stmt+decision"],
-                           "m": ["stmt+mcdc"],
-                           "u": ["stmt+uc_mcdc"]}
+        level_from_char = {
+            "s": ["stmt"],
+            "d": ["stmt+decision"],
+            "m": ["stmt+mcdc"],
+            "u": ["stmt+uc_mcdc"],
+        }
 
         def make_assert_lvl_combinaison(assert_lvl):
             """
@@ -1214,11 +1240,15 @@ class XnotesExpander:
             coverage level combinaisons defined in level_from_char. Return the
             list of combinaisons.
             """
-            return [level_from_char[c][0] + "+" + assert_lvl
-                    for c in level_from_char]
+            return [
+                level_from_char[c][0] + "+" + assert_lvl
+                for c in level_from_char
+            ]
 
-        assert_level_from_char = {"a": make_assert_lvl_combinaison("atc"),
-                                  "c": make_assert_lvl_combinaison("atcc")}
+        assert_level_from_char = {
+            "a": make_assert_lvl_combinaison("atc"),
+            "c": make_assert_lvl_combinaison("atcc"),
+        }
 
         level_from_char.update(assert_level_from_char)
 
@@ -1230,10 +1260,11 @@ class XnotesExpander:
         elif len(result) > 2:
             # Parse error
             raise FatalError(
-                "Note choice %s contains more than one arrow" % text)
+                "Note choice %s contains more than one arrow" % text
+            )
         else:
-            note = result[1].lstrip(' ')
-            lev_list = result[0].rstrip(' ')
+            note = result[1].lstrip(" ")
+            lev_list = result[0].rstrip(" ")
 
             res = []
             for lchar in lev_list:
@@ -1246,7 +1277,7 @@ class XnotesExpander:
         """Decode text to return the line note for the current
         coverage level."""
 
-        lx_lnote_list = [alt.strip() for alt in text.split(',')]
+        lx_lnote_list = [alt.strip() for alt in text.split(",")]
 
         level_table = dict(
             ln_tuple
@@ -1256,28 +1287,30 @@ class XnotesExpander:
 
         if self.xcov_level in level_table:
             return level_table[self.xcov_level]
-        elif '' in level_table:
-            return level_table['']
+        elif "" in level_table:
+            return level_table[""]
         else:
             raise FatalError(
                 "Missing line expectation choice for level %s in %s"
-                % (self.xcov_level, text))
+                % (self.xcov_level, text)
+            )
 
     def __select_rnote(self, text):
         """Decode TEXT into a report note for the current coverage level."""
 
         # Set of level->note_kind associations in TEXT
 
-        level_table = dict(ln_tuple
-                           for ln_tuple in self.__decode_note_choice(text))
+        level_table = dict(
+            ln_tuple for ln_tuple in self.__decode_note_choice(text)
+        )
 
         # If we have one association for the exact level we're running,
         # use that. Fallback to a default kind if we have one.
 
         if self.xcov_level in level_table:
             return level_table[self.xcov_level]
-        elif '' in level_table:
-            return level_table['']
+        elif "" in level_table:
+            return level_table[""]
 
         return None
 
@@ -1291,22 +1324,26 @@ class XnotesExpander:
 
         m = re.match(
             string=image,
-            pattern=r"\s*(?P<lre>=?/.*?/)\s+(?P<lnote>.*) ## (?P<rnotes>.*)")
+            pattern=r"\s*(?P<lre>=?/.*?/)\s+(?P<lnote>.*) ## (?P<rnotes>.*)",
+        )
 
         if m is None:
-            raise FatalError("Invalid '%s' line expectation spec."
-                             "\nExpected /LRE/ lnotes ## rnotes" % image)
+            raise FatalError(
+                "Invalid '%s' line expectation spec."
+                "\nExpected /LRE/ lnotes ## rnotes" % image
+            )
 
         lx_lre = m.group("lre")
 
-        lre_override = lx_lre[0] == '='
-        if lx_lre[0] != '/':
+        lre_override = lx_lre[0] == "="
+        if lx_lre[0] != "/":
             lx_lre = lx_lre[1:]
 
-        lx_lre = lx_lre.strip('/')
+        lx_lre = lx_lre.strip("/")
 
-        lx_lnote = XnoteP(text=self.__select_lnote(m.group("lnote")),
-                          stext=None)
+        lx_lnote = XnoteP(
+            text=self.__select_lnote(m.group("lnote")), stext=None
+        )
 
         lx_rnotes = self.__parse_expected_rnotes(m.group("rnotes"))
 
@@ -1325,8 +1362,9 @@ class XnotesExpander:
         else:
             thistest.stop_if(
                 len(lx_rnotes) > 1 and "0" in lx_rnotes,
-                FatalError("Contradictory =report expectation in %s" % image)
+                FatalError("Contradictory =report expectation in %s" % image),
             )
 
-        return LineCX(lre=lx_lre, lnp=lx_lnote, rnps=lx_rnotes,
-                      override=lre_override)
+        return LineCX(
+            lre=lx_lre, lnp=lx_lnote, rnps=lx_rnotes, override=lre_override
+        )

@@ -9,12 +9,41 @@ import re
 
 from SUITE.context import thistest
 from .cnotes import (
-    xBlock0, xBlock1, sNoCov, sPartCov, sNotCoverable, dfAlways, dtAlways,
-    dfNoCov, dtNoCov, dNoCov, dPartCov, efNoCov, etNoCov, eNoCov, ePartCov,
-    cPartCov, aNoCov, atNoCov, acPartCov, Enote, KnoteDict, erNoteKinds,
-    sUndetCov, dUndetCov, eUndetCov, xBlock2, XsNoCov, XsPartCov,
-    XsNotCoverable, XsUndetCov, XotNoCov, XofNoCov, XoPartCov, XoNoCov,
-    XcPartCov
+    xBlock0,
+    xBlock1,
+    sNoCov,
+    sPartCov,
+    sNotCoverable,
+    dfAlways,
+    dtAlways,
+    dfNoCov,
+    dtNoCov,
+    dNoCov,
+    dPartCov,
+    efNoCov,
+    etNoCov,
+    eNoCov,
+    ePartCov,
+    cPartCov,
+    aNoCov,
+    atNoCov,
+    acPartCov,
+    Enote,
+    KnoteDict,
+    erNoteKinds,
+    sUndetCov,
+    dUndetCov,
+    eUndetCov,
+    xBlock2,
+    XsNoCov,
+    XsPartCov,
+    XsNotCoverable,
+    XsUndetCov,
+    XotNoCov,
+    XofNoCov,
+    XoPartCov,
+    XoNoCov,
+    XcPartCov,
 )
 from .segments import Sloc, Sloc_from_match
 from .stags import Stag_from
@@ -55,13 +84,14 @@ from .tfiles import Tfile
 # 2 DECISION violations.                  <- mapped to an internal "contents
 #                                         <- block" representation.
 
+
 class Rdiagline:
     """
     Abstract diagnostic line, a-la "p.adb:8:4 statement not executed". This is
     a general Sloc followed by some diagnostic text.
     """
-    def __init__(self, sloc, diag):
 
+    def __init__(self, sloc, diag):
         # SLOC object and DIAGnostic text
 
         self.sloc = sloc
@@ -82,8 +112,9 @@ class Rdiagline:
 def Rdiagline_from(text):
     p = re.match(Rdiagline.re, text)
 
-    return Rdiagline(sloc=Sloc_from_match(p),
-                     diag=p.group("diag")) if p else None
+    return (
+        Rdiagline(sloc=Sloc_from_match(p), diag=p.group("diag")) if p else None
+    )
 
 
 class Rblock:
@@ -93,7 +124,6 @@ class Rblock:
     """
 
     def __init__(self, name, re_start, re_end):
-
         # NAME holds the text with which this block will be referred to in
         # error messages. RE_START/RE_END are regexps which tells whether a
         # line of text matches the expected header line for this block:
@@ -141,10 +171,11 @@ class Rblock:
         thistest.fail_if(
             n_starts != n_ends,
             "(%s report section): %d starts != %d ends"
-            % (self.name, n_starts, n_ends))
+            % (self.name, n_starts, n_ends),
+        )
 
     def value(self, count):
-        return (0 if count == "No" else int(count))
+        return 0 if count == "No" else int(count)
 
 
 # ---------------------------
@@ -155,12 +186,12 @@ class Rblock:
 # numbering at the start of the header title, possibly preceded by decorative
 # characters.
 
+
 def re_block_number(pre, ndigits):
     return pre + r"[0-9]\." * ndigits + " "
 
 
 class Rchapter(Rblock):
-
     # Chapter titles are characterized by a single digit number preceded by
     # two decorative characters, for example:
     #
@@ -168,22 +199,26 @@ class Rchapter(Rblock):
 
     def __init__(self, re_start, re_end):
         Rblock.__init__(
-            self, name=re_start,
+            self,
+            name=re_start,
             re_start=re_block_number(pre=".. ", ndigits=1) + re_start,
-            re_end=re_end)
+            re_end=re_end,
+        )
 
 
 class Rsection(Rblock):
-
     # Section titles are characterized by a single digit number preceded by
     # two decorative characters, for example:
     #
     # 2.1. STATEMENT COVERAGE VIOLATIONS
 
     def __init__(self, re_start, re_end):
-        Rblock.__init__(self, name=re_start,
-                        re_start=re_block_number(pre="", ndigits=2) + re_start,
-                        re_end=re_end)
+        Rblock.__init__(
+            self,
+            name=re_start,
+            re_start=re_block_number(pre="", ndigits=2) + re_start,
+            re_end=re_end,
+        )
 
 
 # --------------------------------
@@ -194,10 +229,9 @@ class Rsection(Rblock):
 # messages), which all contain a list of emitted notes + a counter of the
 # number of such notes at the end. Some are sections, some are chapters.
 
+
 class Nblock(Rblock):
-
     def __init__(self, re_notes):
-
         self.re_notes = re_notes
 
         # Remember the set of notes that we found in this block, so
@@ -218,9 +252,12 @@ class Nblock(Rblock):
         # to sort out the note kind and separation tag from the diagnostic
         # text
 
-        enote = Enote(segment=dline.sloc.section,
-                      source=dline.sloc.filename,
-                      kind=None, stag=None)
+        enote = Enote(
+            segment=dline.sloc.section,
+            source=dline.sloc.filename,
+            kind=None,
+            stag=None,
+        )
 
         # Fetch and remove a possible separation tag from the diganostic
         # text. Removal is useful to facilitate matching of other parts, hence
@@ -231,9 +268,11 @@ class Nblock(Rblock):
             enote.stag = Stag_from(m.group(1), True)
             return ""
 
-        this_diag = re.sub(pattern=r" \(from (.*)\)",
-                           repl=__stag_replacement_for,
-                           string=dline.diag)
+        this_diag = re.sub(
+            pattern=r" \(from (.*)\)",
+            repl=__stag_replacement_for,
+            string=dline.diag,
+        )
 
         # Then determine the note kind from the remaining contents
 
@@ -242,9 +281,11 @@ class Nblock(Rblock):
         return self.check_enote(this_diag, enote)
 
     def report_unexpected_enote(self, rline):
-        thistest.failed("(%s report section) '%s' does not"
-                        " correspond to any expected violation note"
-                        % (self.name, rline.rstrip('\n')))
+        thistest.failed(
+            "(%s report section) '%s' does not"
+            " correspond to any expected violation note"
+            % (self.name, rline.rstrip("\n"))
+        )
 
     def check_enote(self, rline, enote):
         if enote.kind is None:
@@ -264,7 +305,7 @@ class Nblock(Rblock):
         thistest.fail_if(
             count != self.ecount,
             "(%s report section) recognized %d notes != summary (%d)\n"
-            % (self.name, self.ecount, count)
+            % (self.name, self.ecount, count),
         )
 
     def ends_on(self, rline):
@@ -289,14 +330,12 @@ class Nblock(Rblock):
 
 
 class Nsection(Nblock, Rsection):
-
     def __init__(self, re_start, re_end, re_notes):
         Rsection.__init__(self, re_start=re_start, re_end=re_end)
         Nblock.__init__(self, re_notes=re_notes)
 
 
 class Nchapter(Nblock, Rchapter):
-
     def __init__(self, re_start, re_end, re_notes):
         Rchapter.__init__(self, re_start=re_start, re_end=re_end)
         Nblock.__init__(self, re_notes=re_notes)
@@ -307,13 +346,17 @@ class Nchapter(Nblock, Rchapter):
 # Leaf specializations, a set of which will be instantiated for report
 # processing.
 
+
 class VIOsection(Nsection):
     """Coverage Violations section."""
 
     def __init__(self, re_start, re_notes):
-        Nsection.__init__(self, re_start=re_start,
-                          re_end=r"(No|\d+) violation[s]*\.$",
-                          re_notes=re_notes)
+        Nsection.__init__(
+            self,
+            re_start=re_start,
+            re_end=r"(No|\d+) violation[s]*\.$",
+            re_notes=re_notes,
+        )
 
     def re_summary(self):
         return r"(No|\d+).* %s violation[s]*\.$" % self.name.split()[0]
@@ -321,13 +364,16 @@ class VIOsection(Nsection):
 
 class OERsection(Nsection):
     """Other errors section."""
+
     def __init__(self, re_start):
-        Nsection.__init__(self, re_start=re_start,
-                          re_end=r"(No|\d+) message[s]*\.$",
-                          re_notes=None)
+        Nsection.__init__(
+            self,
+            re_start=re_start,
+            re_end=r"(No|\d+) message[s]*\.$",
+            re_notes=None,
+        )
 
     def nkind_for(self, rline):
-
         # Messages in this section are always unexpected and should trigger
         # test failure. Just tell we don't know how to bind them on any sort
         # of expected note kind, and let the generic engine do the rest.
@@ -339,28 +385,31 @@ class XREchapter(Nchapter):
     """Exemptions Regions chapter."""
 
     def __init__(self, re_start, re_notes, exempted_notes):
-
         # The list of notes acceptable for an exempted violation
         self.exempted_notes = exempted_notes
 
         # The number of exempted violations found
         self.ecount_exempted = 0
 
-        re_end = (r"(No|\d+) exempted region[s]*, "
-                  r"(No|\d+) exempted violation[s]*\.$")
+        re_end = (
+            r"(No|\d+) exempted region[s]*, "
+            r"(No|\d+) exempted violation[s]*\.$"
+        )
 
-        Nchapter.__init__(self, re_start=re_start,
-                          re_end=re_end,
-                          re_notes=re_notes)
+        Nchapter.__init__(
+            self, re_start=re_start, re_end=re_end, re_notes=re_notes
+        )
 
     def __check_summary_count(self, sec, sum_count, sec_count):
         thistest.fail_if(
             sum_count != sec_count,
-            "summary count %d != section count %d for %s" % (
-                sum_count, sec_count, sec.name))
+            "summary count %d != section count %d for %s"
+            % (sum_count, sec_count, sec.name),
+        )
         thistest.fail_if(
             len(sec.start_hits) != 1,
-            "summary found for section starts != 1 (%s)" % sec.name)
+            "summary found for section starts != 1 (%s)" % sec.name,
+        )
 
     def check_exempted_summary(self, sec, p):
         # The emitted notes of exempted violations are logged in self.enotes
@@ -370,34 +419,35 @@ class XREchapter(Nchapter):
         # separatly.
         ecount = len(self.enotes) - self.ecount_exempted
 
-        self.__check_summary_count(sec,
-                                   self.value(p.group(1)),
-                                   ecount)
+        self.__check_summary_count(sec, self.value(p.group(1)), ecount)
 
-        self.__check_summary_count(sec,
-                                   self.value(p.group(2)),
-                                   self.ecount_exempted)
+        self.__check_summary_count(
+            sec, self.value(p.group(2)), self.ecount_exempted
+        )
 
     def __validate(self, actual_count, count, element_counted):
         thistest.fail_if(
             actual_count != count,
             "(%s report section) recognized %d notes != summary (%d)"
-            "for (%s)\n"
-            % (self.name, actual_count, count, element_counted)
+            "for (%s)\n" % (self.name, actual_count, count, element_counted),
         )
 
     def ends_on(self, rline):
         p = Rblock.ends_on(self, rline)
         if p:
             # Validate the number of exempted regions
-            self.__validate(len(self.enotes) - self.ecount_exempted,
-                            self.value(p.group(1)),
-                            "exempted regions")
+            self.__validate(
+                len(self.enotes) - self.ecount_exempted,
+                self.value(p.group(1)),
+                "exempted regions",
+            )
 
             # Validate the total number of exempted violations
-            self.__validate(self.ecount_exempted,
-                            self.value(p.group(2)),
-                            "exempted violations")
+            self.__validate(
+                self.ecount_exempted,
+                self.value(p.group(2)),
+                "exempted violations",
+            )
 
         return p
 
@@ -416,10 +466,14 @@ class XREchapter(Nchapter):
 
 class NCIchapter(Nchapter):
     """Non-coverable Items chapter."""
+
     def __init__(self, re_start, re_notes):
-        Nchapter.__init__(self, re_start=re_start,
-                          re_end=r"(No|\d+) exclusion[s]*\.$",
-                          re_notes=re_notes)
+        Nchapter.__init__(
+            self,
+            re_start=re_start,
+            re_end=r"(No|\d+) exclusion[s]*\.$",
+            re_notes=re_notes,
+        )
 
     def re_summary(self):
         return r"(No|\d+) coverage exclusion[s]*\.$"
@@ -427,10 +481,14 @@ class NCIchapter(Nchapter):
 
 class UCIchapter(Nchapter):
     """Undetermined Coverage Items chapter."""
+
     def __init__(self, re_start, re_notes):
-        Nchapter.__init__(self, re_start=re_start,
-                          re_end=r"(\d+) undetermined coverage item[s]*\.$",
-                          re_notes=re_notes)
+        Nchapter.__init__(
+            self,
+            re_start=re_start,
+            re_end=r"(\d+) undetermined coverage item[s]*\.$",
+            re_notes=re_notes,
+        )
 
     def re_summary(self):
         return r"(\d+) undetermined coverage item[s]*\.$"
@@ -438,9 +496,11 @@ class UCIchapter(Nchapter):
 
 class SMRchapter(Rchapter):
     """Analysis Summary chapter."""
+
     def __init__(self, re_start, skeys):
-        Rchapter.__init__(self, re_start=re_start,
-                          re_end=".. END OF REPORT ..$")
+        Rchapter.__init__(
+            self, re_start=re_start, re_end=".. END OF REPORT ..$"
+        )
         self.skeys = skeys
         self.checked = {sec: False for sec in skeys}
 
@@ -451,18 +511,20 @@ class SMRchapter(Rchapter):
             # summary verification has to be done on the number of regions and
             # the number of violations
 
-            if sec.name == 'EXEMPTED REGIONS':
+            if sec.name == "EXEMPTED REGIONS":
                 sec.check_exempted_summary(sec, p)
             else:
                 sum_count = self.value(p.group(1))
                 sec_count = sec.ecount
                 thistest.fail_if(
                     sum_count != sec_count,
-                    "summary count %d != section count %d for %s" % (
-                        sum_count, sec_count, sec.name))
+                    "summary count %d != section count %d for %s"
+                    % (sum_count, sec_count, sec.name),
+                )
                 thistest.fail_if(
                     len(sec.start_hits) != 1,
-                    "summary found for section starts != 1 (%s)" % sec.name)
+                    "summary found for section starts != 1 (%s)" % sec.name,
+                )
             self.checked[sec] = True
 
     def try_parse(self, rline):
@@ -477,7 +539,8 @@ class SMRchapter(Rchapter):
         for sec in self.skeys:
             thistest.fail_if(
                 len(sec.start_hits) > 0 and not self.checked[sec],
-                "summary count check missing for section %s" % sec.name)
+                "summary count check missing for section %s" % sec.name,
+            )
 
 
 # At this point, we have the class hierarchy involved in modeling the
@@ -500,12 +563,14 @@ class SMRchapter(Rchapter):
 # We now add grab bags specializations aimed at catching
 # unexpected blocks:
 
+
 class Ublock(Rblock):
     def check(self):
         thistest.fail_if(
             len(self.start_hits) > 0,
             "Unexpected headers caught by %s:\n%s"
-            % (self.__class__.__name__, ''.join(self.start_hits)))
+            % (self.__class__.__name__, "".join(self.start_hits)),
+        )
 
 
 class Uchapter(Ublock, Rchapter):
@@ -523,6 +588,7 @@ class Usection(Ublock, Rsection):
 # Just claim immediate end. Everything will be ignored until
 # the next section or block starter.
 
+
 class Tchapter(Rchapter):
     def __init__(self, re_start):
         Rchapter.__init__(self, re_start=re_start, re_end=".")
@@ -531,9 +597,9 @@ class Tchapter(Rchapter):
 # Now ready to materialize and wrapup the whole set of blocks needed to
 # process a report:
 
+
 class RblockSet:
     def __init__(self):
-
         # We need a list of all the blocks to drive the report parsing
         # process, and a list of all the note blocks to setup the analysis
         # summary checker:
@@ -545,29 +611,36 @@ class RblockSet:
 
         stmt_notes = {
             "statement not executed": sNoCov,
-            "multiple statements on line": sPartCov}
+            "multiple statements on line": sPartCov,
+        }
 
         self.noteblocks.append(
-            VIOsection(re_start="STMT COVERAGE", re_notes=stmt_notes))
+            VIOsection(re_start="STMT COVERAGE", re_notes=stmt_notes)
+        )
 
         dc_notes = {
             "decision outcome FALSE never": dfNoCov,
             "decision outcome TRUE never": dtNoCov,
             "decision never evaluated": dNoCov,
-            "decision not exercised in both directions": dPartCov}
+            "decision not exercised in both directions": dPartCov,
+        }
         self.noteblocks.append(
-            VIOsection(re_start="DECISION COVERAGE", re_notes=dc_notes))
+            VIOsection(re_start="DECISION COVERAGE", re_notes=dc_notes)
+        )
 
         mcdc_notes = {
             "decision outcome FALSE never": efNoCov,
             "decision outcome TRUE never": etNoCov,
             "decision never evaluated": eNoCov,
             "decision not exercised in both directions": ePartCov,
-            "condition has no independent influence pair": cPartCov}
+            "condition has no independent influence pair": cPartCov,
+        }
         self.noteblocks.append(
-            VIOsection(re_start="UC_MCDC COVERAGE", re_notes=mcdc_notes))
+            VIOsection(re_start="UC_MCDC COVERAGE", re_notes=mcdc_notes)
+        )
         self.noteblocks.append(
-            VIOsection(re_start="MCDC COVERAGE", re_notes=mcdc_notes))
+            VIOsection(re_start="MCDC COVERAGE", re_notes=mcdc_notes)
+        )
 
         # Assertion coverage
 
@@ -576,23 +649,27 @@ class RblockSet:
             "contract expression never evaluated": aNoCov,
         }
         self.noteblocks.append(
-            VIOsection(re_start="ATC COVERAGE", re_notes=atc_notes))
+            VIOsection(re_start="ATC COVERAGE", re_notes=atc_notes)
+        )
 
         atcc_notes = {
             "condition was never evaluated during an evaluation of the "
             "decision to True": acPartCov
         }
         self.noteblocks.append(
-            VIOsection(re_start="ATCC COVERAGE", re_notes=atcc_notes))
+            VIOsection(re_start="ATCC COVERAGE", re_notes=atcc_notes)
+        )
 
         # Non coverable items
 
         nc_notes = {
             "statement has no object code": sNotCoverable,
             "decision is always TRUE": dtAlways,
-            "decision is always FALSE": dfAlways}
+            "decision is always FALSE": dfAlways,
+        }
         self.noteblocks.append(
-            NCIchapter(re_start="NON COVERABLE ITEMS", re_notes=nc_notes))
+            NCIchapter(re_start="NON COVERABLE ITEMS", re_notes=nc_notes)
+        )
 
         # Undetermined coverage items
 
@@ -600,13 +677,14 @@ class RblockSet:
             "statement was not instrumented": sUndetCov,
             "decision was not instrumented"
             " for decision coverage": dUndetCov,
-            "decision was not instrumented"
-            " for MC/DC coverage": eUndetCov
+            "decision was not instrumented" " for MC/DC coverage": eUndetCov,
         }
 
         self.noteblocks.append(
-            UCIchapter(re_start="UNDETERMINED COVERAGE ITEMS",
-                       re_notes=ni_notes))
+            UCIchapter(
+                re_start="UNDETERMINED COVERAGE ITEMS", re_notes=ni_notes
+            )
+        )
 
         # Exempted regions
 
@@ -614,7 +692,7 @@ class RblockSet:
             "0 exempted violation": xBlock0,
             r"[1-9]\d* exempted violation": xBlock1,
             r"\d+ exempted violations?; [1-9]\d+ exempted undetermined "
-            r"coverage items?": xBlock2
+            r"coverage items?": xBlock2,
         }
 
         # Exempted violations
@@ -628,13 +706,16 @@ class RblockSet:
             "decision outcome TRUE never": XotNoCov,
             "decision outcome never evaluated": XoNoCov,
             "decision not exercised in both directions": XoPartCov,
-            "condition has no independent influence pair": XcPartCov
+            "condition has no independent influence pair": XcPartCov,
         }
 
         self.noteblocks.append(
-            XREchapter(re_start="EXEMPTED REGIONS",
-                       re_notes=xr_notes | Xr_notes,
-                       exempted_notes=Xr_notes))
+            XREchapter(
+                re_start="EXEMPTED REGIONS",
+                re_notes=xr_notes | Xr_notes,
+                exempted_notes=Xr_notes,
+            )
+        )
 
         # Other note blocks
 
@@ -647,15 +728,18 @@ class RblockSet:
         # Analysis Summary chapter
 
         self.allblocks.append(
-            SMRchapter(re_start="ANALYSIS SUMMARY",
-                       skeys={s: s.re_summary() for s in self.noteblocks}))
+            SMRchapter(
+                re_start="ANALYSIS SUMMARY",
+                skeys={s: s.re_summary() for s in self.noteblocks},
+            )
+        )
 
         # Transparent chapters
 
+        self.allblocks.append(Tchapter(re_start="ASSESSMENT CONTEXT"))
         self.allblocks.append(
-            Tchapter(re_start="ASSESSMENT CONTEXT"))
-        self.allblocks.append(
-            Tchapter(re_start="(NON-EXEMPTED )?COVERAGE VIOLATIONS"))
+            Tchapter(re_start="(NON-EXEMPTED )?COVERAGE VIOLATIONS")
+        )
 
         # Unexpected chapter/section catchers
 
@@ -677,7 +761,6 @@ class RnotesExpander:
     """Produce list of Enote instances found in a "report" output."""
 
     def to_enotes(self, report):
-
         # We need to ignore everything not in the report sections
         # of interest, so until we know we're in ...
 
@@ -696,7 +779,6 @@ class RnotesExpander:
         self.ernotes[source].register(enote)
 
     def process_tline(self, tline):
-
         rline = tline.text
 
         # Check if we are getting in a section of interest. If so, register
@@ -729,7 +811,6 @@ class RnotesExpander:
         return enote
 
     def __init__(self, report):
-
         # xcov --annotate=report produces a single report featuring a list of
         # indications for slocs in all the units.
 

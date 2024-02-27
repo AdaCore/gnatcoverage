@@ -8,5 +8,7 @@ from SUITE.context import thistest
 # of absolute paths for source files).
 TestCase().run(
     CovControl(covoptions="--source-search=../../src")
-    if thistest.options.trace_mode == 'bin' else None)
+    if thistest.options.trace_mode == "bin"
+    else None
+)
 thistest.result()

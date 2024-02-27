@@ -36,7 +36,9 @@ gprbuild(mylib_gpr)
 gprinstall(mylib_gpr, f"--prefix={install_dir}")
 
 # Build the main project using this and run it to produce a trace file
-main_gpr = gprfor(mains=["main.c"], srcdirs=os.path.join("..", "main"), deps=["mylib"])
+main_gpr = gprfor(
+    mains=["main.c"], srcdirs=os.path.join("..", "main"), deps=["mylib"]
+)
 xcov_args = build_run_and_coverage(
     gprsw=GPRswitches(root_project=main_gpr),
     covlevel="stmt",

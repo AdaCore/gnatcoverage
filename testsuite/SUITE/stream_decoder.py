@@ -6,7 +6,7 @@ def swap_bytes(number, size):
     """Swap bytes in ``number``, assumed to be ``size``-bytes large."""
     result = 0
     for _ in range(size):
-        result = (result << 8) | (number & 0xff)
+        result = (result << 8) | (number & 0xFF)
         number = number >> 8
     return result
 
@@ -17,7 +17,7 @@ class ByteStreamDecoder(object):
     """
 
     BYTES_PER_LINE = 16
-    INDENT = '  '
+    INDENT = "  "
 
     def __init__(self, stream, enabled=False, max_indent=0):
         """
@@ -41,7 +41,7 @@ class ByteStreamDecoder(object):
             return
         if args or kwargs:
             message = message.format(*args, **kwargs)
-        print('{}{}'.format(self._indent_prefix, message))
+        print("{}{}".format(self._indent_prefix, message))
 
     @contextmanager
     def label_context(self, label):
@@ -51,7 +51,7 @@ class ByteStreamDecoder(object):
 
         :param str label: Label to use.
         """
-        self._print('{} ({:#0x}):', label, self.offset)
+        self._print("{} ({:#0x}):", label, self.offset)
         self.label_stack.append(label)
         yield
         self.label_stack.pop()
@@ -73,24 +73,25 @@ class ByteStreamDecoder(object):
             bytes_part_size += max(0, len(self.INDENT) * reserved_indent)
 
             # Number of lines to represent bytes
-            lines_count = (len(bytes) + self.BYTES_PER_LINE
-                           - 1) // self.BYTES_PER_LINE
+            lines_count = (
+                len(bytes) + self.BYTES_PER_LINE - 1
+            ) // self.BYTES_PER_LINE
 
             for line in range(lines_count):
                 start_byte = line * self.BYTES_PER_LINE
                 end_byte = (line + 1) * self.BYTES_PER_LINE
                 bytes_slice = bytes[start_byte:end_byte]
 
-                bytes_part = ' '.join(
-                    '{:02x}'.format(b) for b in bytes_slice
+                bytes_part = " ".join(
+                    "{:02x}".format(b) for b in bytes_slice
                 ).ljust(bytes_part_size)
 
-                ascii_part = ''.join(
-                    chr(ord('.') if b < ord(' ') or b > ord('~') else b)
+                ascii_part = "".join(
+                    chr(ord(".") if b < ord(" ") or b > ord("~") else b)
                     for b in bytes_slice
                 )
 
-                self._print('{} | {}'.format(bytes_part, ascii_part))
+                self._print("{} | {}".format(bytes_part, ascii_part))
         self.offset += len(bytes)
         return bytes
 
@@ -108,13 +109,15 @@ class Struct(object):
         :type fields: list[(str, str)]
         """
         self.label = label
-        self.le_fields = [(name, struct.Struct('<' + fmt))
-                          for name, fmt in fields]
-        self.be_fields = [(name, struct.Struct('>' + fmt))
-                          for name, fmt in fields]
+        self.le_fields = [
+            (name, struct.Struct("<" + fmt)) for name, fmt in fields
+        ]
+        self.be_fields = [
+            (name, struct.Struct(">" + fmt)) for name, fmt in fields
+        ]
 
     def _fields(self, big_endian=False):
-        return (self.be_fields if big_endian else self.le_fields)
+        return self.be_fields if big_endian else self.le_fields
 
     def read(self, fp, big_endian=False):
         """
@@ -148,22 +151,26 @@ class Struct(object):
             field_values = [dict_field_values.pop(name) for name, _ in fields]
             unknown_fields = sorted(dict_field_values)
             if unknown_fields:
-                raise ValueError('Unknown fields: {}'
-                                 .format(' '.join(unknown_fields)))
+                raise ValueError(
+                    "Unknown fields: {}".format(" ".join(unknown_fields))
+                )
 
         if len(field_values) != len(fields):
-            raise ValueError('{} fields expected, got {}'
-                             .format(len(fields), len(field_values)))
+            raise ValueError(
+                "{} fields expected, got {}".format(
+                    len(fields), len(field_values)
+                )
+            )
 
         for value, (_, structure) in zip(field_values, fields):
-            pack_args = value if isinstance(value, tuple) else (value, )
+            pack_args = value if isinstance(value, tuple) else (value,)
             fp.write(structure.pack(*pack_args))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     assert swap_bytes(0, 1) == 0
     assert swap_bytes(0, 2) == 0
     assert swap_bytes(1, 1) == 1
     assert swap_bytes(1, 2) == 0x100
-    assert swap_bytes(0xff, 2) == 0xff00
-    assert swap_bytes(-1, 2) == 0xffff
+    assert swap_bytes(0xFF, 2) == 0xFF00
+    assert swap_bytes(-1, 2) == 0xFFFF

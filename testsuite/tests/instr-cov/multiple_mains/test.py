@@ -16,9 +16,14 @@ tmp = Wdir("tmp_")
 
 build_and_run(
     gprsw=GPRswitches(
-        root_project=gprfor(srcdirs=["../src"],
-                            mains=["test_a.adb", "test_b.adb"])),
-    covlevel="stmt", mains=[], extra_coverage_args=[], trace_mode="src",
+        root_project=gprfor(
+            srcdirs=["../src"], mains=["test_a.adb", "test_b.adb"]
+        )
+    ),
+    covlevel="stmt",
+    mains=[],
+    extra_coverage_args=[],
+    trace_mode="src",
 )
 
 thistest.result()

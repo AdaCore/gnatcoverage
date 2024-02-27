@@ -26,8 +26,7 @@ build_run_and_coverage(
     mains=["test_main"],
     extra_coverage_args=["-axcov", "--output-dir=."],
     trace_mode="src",
-    tolerate_instrument_messages=\
-      "cannot instrument generic expression function",
+    tolerate_instrument_messages="cannot instrument generic expression function",
 )
 
 # We only expect non-instrumented lines
@@ -40,8 +39,7 @@ warning_msg = (
 )
 thistest.fail_if_not_equal(
     "'gnatcov instrument' log",
-    f"!!! pkg.ads:15:4: {warning_msg}\n"
-    f"!!! pkg.ads:18:4: {warning_msg}\n",
+    f"!!! pkg.ads:15:4: {warning_msg}\n" f"!!! pkg.ads:18:4: {warning_msg}\n",
     contents_of("instrument.log"),
 )
 

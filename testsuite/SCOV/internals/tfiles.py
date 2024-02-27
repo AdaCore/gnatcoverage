@@ -11,6 +11,7 @@ Tfile offers a line hook processing facility.
 
 class Tline:
     """Associate a line contents with its position in a text file."""
+
     def __init__(self, lno, text):
         self.lno = lno
         self.text = text

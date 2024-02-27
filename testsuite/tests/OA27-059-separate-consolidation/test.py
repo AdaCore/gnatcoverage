@@ -17,11 +17,11 @@ from SUITE.tutils import xcov
 
 
 # Clean up projects build artifacts
-for obj_dir in ('bin', 'obj1', 'obj2'):
+for obj_dir in ("bin", "obj1", "obj2"):
     if os.path.exists(obj_dir):
         shutil.rmtree(obj_dir)
 
-wd = Wdir('tmp_')
+wd = Wdir("tmp_")
 
 
 class Testcase(object):
@@ -31,27 +31,27 @@ class Testcase(object):
 
     @property
     def project_file(self):
-        return os.path.join('..', '{}.gpr'.format(self.name))
+        return os.path.join("..", "{}.gpr".format(self.name))
 
     @property
     def main(self):
-        return 'main_{}'.format(self.name)
+        return "main_{}".format(self.name)
 
     def obj_dir(self, *args):
-        return os.path.join('..', self._objdir, *args)
+        return os.path.join("..", self._objdir, *args)
 
     def exe_dir(self, *args):
-        return os.path.join('..', 'bin', *args)
+        return os.path.join("..", "bin", *args)
 
 
 def clean_output_directory():
-    if os.path.exists('output'):
-        shutil.rmtree('output')
-    os.mkdir('output')
+    if os.path.exists("output"):
+        shutil.rmtree("output")
+    os.mkdir("output")
 
 
-test1 = Testcase('test1', 'obj1')
-test2 = Testcase('test2', 'obj2')
+test1 = Testcase("test1", "obj1")
+test2 = Testcase("test2", "obj2")
 testcases = [test1, test2]
 
 
@@ -62,15 +62,17 @@ def build_and_run_tests(ignored_source_files=[]):
     trace_files = []
     for testcase in testcases:
         xcov_args = build_and_run(
-            gprsw=GPRswitches(root_project=testcase.project_file,
-                              units=['pkg_under_test']),
-            covlevel='stmt+decision',
+            gprsw=GPRswitches(
+                root_project=testcase.project_file, units=["pkg_under_test"]
+            ),
+            covlevel="stmt+decision",
             mains=[testcase.main],
             ignored_source_files=ignored_source_files,
             gpr_obj_dir=testcase.obj_dir(),
             gpr_exe_dir=testcase.exe_dir(),
-            extra_coverage_args=['--annotate=xcov', '--output-dir=output'],
-            scos_for_run=False)
+            extra_coverage_args=["--annotate=xcov", "--output-dir=output"],
+            scos_for_run=False,
+        )
         trace_files.append(xcov_args.pop())
 
     return xcov_args + trace_files
@@ -80,19 +82,19 @@ def build_and_run_tests(ignored_source_files=[]):
 # consolidation error by default.
 clean_output_directory()
 xcov_args = build_and_run_tests()
-p = xcov(xcov_args, out='cons-1.log', register_failure=False)
+p = xcov(xcov_args, out="cons-1.log", register_failure=False)
 thistest.fail_if(
     p.status == 0,
     '"gnatcov coverage" is supposed to complain about different symbols during'
-    ' consolidation, but it did not.'
+    " consolidation, but it did not.",
 )
 
 # Build and run tests with ignored source files. Check that the new option
 # makes it ignore the problematic symbols, and succeeds to create a report with
 # the expected coverage data.
 clean_output_directory()
-xcov_args = build_and_run_tests(['pkg_under_test-pkg_test.adb'])
-p = checked_xcov(xcov_args, 'cons-2.log')
-check_xcov_reports('output', {'pkg_under_test.adb.xcov': {'+': {7, 8, 10}}})
+xcov_args = build_and_run_tests(["pkg_under_test-pkg_test.adb"])
+p = checked_xcov(xcov_args, "cons-2.log")
+check_xcov_reports("output", {"pkg_under_test.adb.xcov": {"+": {7, 8, 10}}})
 
 thistest.result()

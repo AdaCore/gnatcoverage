@@ -27,8 +27,10 @@ import re
 
 from e3.fs import ls
 
-from SCOV.internals.driver import (SCOV_helper_bin_traces,
-                                   SCOV_helper_src_traces)
+from SCOV.internals.driver import (
+    SCOV_helper_bin_traces,
+    SCOV_helper_src_traces,
+)
 from SCOV.internals.driver import WdirControl
 from SCOV.tctl import CAT
 from SUITE.context import thistest
@@ -37,7 +39,6 @@ from SUITE.qdata import Qdata, QDentry
 
 
 class TestCase:
-
     # Helpers for __init__
 
     def __expand_drivers(self, patterns):
@@ -59,8 +60,9 @@ class TestCase:
 
         # We expect .adb for Ada bodies, .c for C sources and .cpp
         # for C++ sources.
-        return ' '.join(
-            "%s%s" % (pattern, ext) for ext in [".adb", ".c", ".cpp"])
+        return " ".join(
+            "%s%s" % (pattern, ext) for ext in [".adb", ".c", ".cpp"]
+        )
 
     def __expand_shared_controllers(self, drivers, cspecs):
         """Search and expand possible shared drivers and/or consolidation
@@ -75,11 +77,14 @@ class TestCase:
         # possible lists of drivers (each maybe empty). Beware not to include
         # child or sub units, as these dont mirror as such in the set of test
         # drivers.
-        sxx = set(srcmatch.group(1)
-                  for srcmatch in (re.match(r"([a-z_]*).*\.(adb|c)",
-                                            os.path.basename(src))
-                                   for src in ls("src/*"))
-                  if srcmatch)
+        sxx = set(
+            srcmatch.group(1)
+            for srcmatch in (
+                re.match(r"([a-z_]*).*\.(adb|c)", os.path.basename(src))
+                for src in ls("src/*")
+            )
+            if srcmatch
+        )
 
         # If there is no candidate body in src/, arrange to run all the
         # drivers. This is useful for test groups on GPR variations for
@@ -93,10 +98,11 @@ class TestCase:
                 if drivers:
                     self.__expand_drivers(
                         self.__with_extensions(
-                            "%ssrc/test_%s*" % (prefix, body)))
+                            "%ssrc/test_%s*" % (prefix, body)
+                        )
+                    )
                 if cspecs:
-                    self.__expand_cspecs(
-                        "%ssrc/cons_%s*.txt" % (prefix, body))
+                    self.__expand_cspecs("%ssrc/cons_%s*.txt" % (prefix, body))
 
     def __category_from_dir(self):
         """Compute test category from directory location."""
@@ -106,8 +112,9 @@ class TestCase:
             if re.search(r"/%s" % cat.name, test_dir):
                 return cat
 
-        raise FatalError("Unable to infer test category from subdir '%s'"
-                         % test_dir)
+        raise FatalError(
+            "Unable to infer test category from subdir '%s'" % test_dir
+        )
 
     def __drivers_from(self, cspec):
         """
@@ -123,8 +130,14 @@ class TestCase:
         # match this expression
         return [drv for drv in self.all_drivers if re.search(drv_expr, drv)]
 
-    def __init__(self, extradrivers="", extracargs="", category=CAT.auto,
-                 tolerate_messages=None, assert_lvl=None):
+    def __init__(
+        self,
+        extradrivers="",
+        extracargs="",
+        category=CAT.auto,
+        tolerate_messages=None,
+        assert_lvl=None,
+    ):
         # By default, these test cases expect no error from subprocesses (xrun,
         # xcov, etc.)
         self.expect_failures = False
@@ -143,13 +156,16 @@ class TestCase:
         # exercise at all
         self.all_drivers = []
         self.__expand_drivers(
-            self.__with_extensions("src/test_*") + " " + extradrivers)
+            self.__with_extensions("src/test_*") + " " + extradrivers
+        )
 
         if not self.all_drivers:
             self.__expand_shared_controllers(drivers=True, cspecs=False)
 
-        thistest.stop_if(not self.all_drivers,
-                         FatalError("Request to exercise empty test_set"))
+        thistest.stop_if(
+            not self.all_drivers,
+            FatalError("Request to exercise empty test_set"),
+        )
 
         # Seek consolidation specs, then. Similar scheme, local check first,
         # then seek shared entities
@@ -167,9 +183,9 @@ class TestCase:
         # If automatic detection from subdir was requested, do that.
         # Otherwise, use the provided argument, which might be None or a
         # criterion related value.
-        self.category = (self.__category_from_dir()
-                         if category == CAT.auto else
-                         category)
+        self.category = (
+            self.__category_from_dir() if category == CAT.auto else category
+        )
 
         self.assert_lvl = assert_lvl
 
@@ -198,11 +214,10 @@ class TestCase:
         default_xcovlevels_for = {
             # Tests without categories should be ready for anything.
             # Exercise with the strictest possible mode:
-            None:         ["stmt+mcdc"],
-
-            CAT.stmt:     ["stmt"],
+            None: ["stmt+mcdc"],
+            CAT.stmt: ["stmt"],
             CAT.decision: ["stmt+decision"],
-            CAT.mcdc:     ["stmt+mcdc", "stmt+uc_mcdc"],
+            CAT.mcdc: ["stmt+mcdc", "stmt+uc_mcdc"],
         }
 
         # Add a "+" before the name of the assertion coverage level in order
@@ -218,9 +233,13 @@ class TestCase:
         executed.
         """
         self.qdata.register(
-            QDentry(xfile=drvo.xfile,
-                    drivers=drvo.drivers, xrnotes=drvo.xrnotes,
-                    wdir=os.path.normpath(drvo.awdir())))
+            QDentry(
+                xfile=drvo.xfile,
+                drivers=drvo.drivers,
+                xrnotes=drvo.xrnotes,
+                wdir=os.path.normpath(drvo.awdir()),
+            )
+        )
 
     def __run_one_covlevel(self, covlevel, covcontrol, subdirhint):
         """
@@ -230,22 +249,32 @@ class TestCase:
         """
 
         this_scov_helper = (
-            SCOV_helper_bin_traces if thistest.options.trace_mode == 'bin'
-            else SCOV_helper_src_traces if thistest.options.trace_mode == 'src'
-            else None)
+            SCOV_helper_bin_traces
+            if thistest.options.trace_mode == "bin"
+            else SCOV_helper_src_traces
+            if thistest.options.trace_mode == "src"
+            else None
+        )
 
         # Compute the Working directory base for this level, then run the test
         # for each indivdual driver.
         this_wdbase = this_scov_helper.wdbase_for(self, covlevel)
 
-        wdctl = WdirControl(wdbase=this_wdbase, bdbase=self._available_bdbase,
-                            subdirhint=subdirhint)
+        wdctl = WdirControl(
+            wdbase=this_wdbase,
+            bdbase=self._available_bdbase,
+            subdirhint=subdirhint,
+        )
 
         for driver in self.all_drivers:
-            drvo = this_scov_helper(self, drivers=[driver],
-                                    xfile=driver,
-                                    xcovlevel=covlevel, covctl=covcontrol,
-                                    wdctl=wdctl)
+            drvo = this_scov_helper(
+                self,
+                drivers=[driver],
+                xfile=driver,
+                xcovlevel=covlevel,
+                covctl=covcontrol,
+                wdctl=wdctl,
+            )
             self.__register_qde_for(drvo)
             drvo.run()
 
@@ -254,14 +283,21 @@ class TestCase:
             self._available_bdbase = this_wdbase
 
         # Next, run applicable consolidation tests
-        wdctl = WdirControl(wdbase=this_wdbase, bdbase=self._available_bdbase,
-                            subdirhint=subdirhint)
+        wdctl = WdirControl(
+            wdbase=this_wdbase,
+            bdbase=self._available_bdbase,
+            subdirhint=subdirhint,
+        )
 
         for cspec in self.all_cspecs:
-            drvo = this_scov_helper(self, drivers=self.__drivers_from(cspec),
-                                    xfile=cspec,
-                                    xcovlevel=covlevel, covctl=covcontrol,
-                                    wdctl=wdctl)
+            drvo = this_scov_helper(
+                self,
+                drivers=self.__drivers_from(cspec),
+                xfile=cspec,
+                xcovlevel=covlevel,
+                covctl=covcontrol,
+                wdctl=wdctl,
+            )
             self.__register_qde_for(drvo)
             drvo.run()
 
@@ -283,9 +319,11 @@ class TestCase:
             # the binaries together with the other artifacts is convenient.
             self._available_bdbase = None
             for covlevel in self.__xcovlevels():
-                self.__run_one_covlevel(covlevel=covlevel,
-                                        covcontrol=covcontrol,
-                                        subdirhint=subdirhint)
+                self.__run_one_covlevel(
+                    covlevel=covlevel,
+                    covcontrol=covcontrol,
+                    subdirhint=subdirhint,
+                )
         finally:
             # If we are running for qualification purposes, dump data needed
             # for qualification test-results production purposes. try/finally

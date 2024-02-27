@@ -16,6 +16,7 @@ import SCOV.expgen.ast as ast
 
 class OperandPlaceholder(object):
     """Placeholder to be put in expressions to specify a topology."""
+
     pass
 
 
@@ -36,10 +37,7 @@ class Topology(object):
         if isinstance(expression, OperandPlaceholder):
             return 1
         else:
-            return sum(
-                self.get_arity(sub_expr)
-                for sub_expr in expression
-            )
+            return sum(self.get_arity(sub_expr) for sub_expr in expression)
 
     def instanciate(self, operands, formal_names, context):
         """
@@ -59,8 +57,8 @@ class Topology(object):
             # it.
             if isinstance(expression, OperandPlaceholder):
                 result = ast.TaggedNode(
-                    ast.Tag('eval', formal_names[i], context.TAG_CONTEXT),
-                    operands[i]
+                    ast.Tag("eval", formal_names[i], context.TAG_CONTEXT),
+                    operands[i],
                 )
                 return (result, i + 1)
 
@@ -115,7 +113,7 @@ class Topology(object):
                 return (not result, i)
             else:
                 raise ValueError(
-                    'Invalid topology node: {}'.format(expression)
+                    "Invalid topology node: {}".format(expression)
                 )
 
         # The number of operands must naturally match the number of
@@ -130,21 +128,20 @@ class Topology(object):
         return result
 
     def __str__(self):
-
-        placeholders = list(reversed('ABCDEFGHIJ'))
+        placeholders = list(reversed("ABCDEFGHIJ"))
 
         def helper(expr):
             if isinstance(expr, OperandPlaceholder):
                 return placeholders.pop()
             elif isinstance(expr, ast.And):
-                return '({} and {})'.format(
+                return "({} and {})".format(
                     helper(expr.left), helper(expr.right)
                 )
             elif isinstance(expr, ast.Or):
-                return '({} or {})'.format(
+                return "({} or {})".format(
                     helper(expr.left), helper(expr.right)
                 )
             else:
-                return 'not {}'.format(helper(expr.expr))
+                return "not {}".format(helper(expr.expr))
 
         return helper(self.expression)

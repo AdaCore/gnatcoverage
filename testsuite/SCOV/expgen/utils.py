@@ -7,7 +7,7 @@ import SCOV.expgen.ast as ast
 
 def check_tag(tag):
     """Assert whether the given `tag` is valid, or not."""
-    if tag.name == 'eval':
+    if tag.name == "eval":
         assert tag.context in (ast.TagTypes.DECISION, ast.TagTypes.EXPRESSION)
         assert tag.operand is not None
     else:
@@ -17,32 +17,38 @@ def check_tag(tag):
 
 def format_tag(tag):
     """Serialize the given `tag`."""
-    if tag.name == 'eval':
-        return '# {}-{} {}'.format(tag.name, tag.operand, tag.context)
+    if tag.name == "eval":
+        return "# {}-{} {}".format(tag.name, tag.operand, tag.context)
     else:
-        return '# {}'.format(tag.name)
+        return "# {}".format(tag.name)
 
 
 def contains_tag(node):
     """Return if the given `node` tree contains a tagged node."""
-    return (
-        not isinstance(node, (str, bool, int)) and
-        (
-            isinstance(node, ast.TaggedNode) or
-            any(contains_tag(subnode) for subnode in node)
-        )
+    return not isinstance(node, (str, bool, int)) and (
+        isinstance(node, ast.TaggedNode)
+        or any(contains_tag(subnode) for subnode in node)
     )
 
 
 def is_expr(node):
     """Return whether `node` is an expression."""
-    return isinstance(node, (
-        ast.VariableUsage,
-        ast.LitteralInteger, ast.LitteralBoolean, ast.LitteralRecord,
-        ast.Comparison, ast.Call,
-        ast.XLitteral, ast.XOperand,
-        ast.And, ast.Or, ast.Not,
-    ))
+    return isinstance(
+        node,
+        (
+            ast.VariableUsage,
+            ast.LitteralInteger,
+            ast.LitteralBoolean,
+            ast.LitteralRecord,
+            ast.Comparison,
+            ast.Call,
+            ast.XLitteral,
+            ast.XOperand,
+            ast.And,
+            ast.Or,
+            ast.Not,
+        ),
+    )
 
 
 def make_type_set(types):
@@ -58,11 +64,7 @@ def make_type_set(types):
         else:
             return False
 
-    return [
-        type_
-        for type_ in types
-        if add_if_new(type_)
-    ]
+    return [type_ for type_ in types if add_if_new(type_)]
 
 
 def is_topology_equal(topo1, topo2):

@@ -12,6 +12,7 @@ from gnatcov_gdb.printers import register_printers
 
 _setup_done = False
 
+
 def setup():
     global _setup_done
     if not _setup_done:

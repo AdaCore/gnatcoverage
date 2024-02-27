@@ -15,8 +15,8 @@ bool
 orElse (bool a, bool b)
 {
   // GNATCOV_EXEMPT_ON "if stmt"  // # exempt_oe
-  if (a || b)                     // # exempt_oe_v1
-    {                             // # exempt_oe
+  if (a || b) // # exempt_oe_v1
+    {         // # exempt_oe
       // GNATCOV_EXEMPT_OFF       // # exempt_oe
       return true;
     }
@@ -30,6 +30,6 @@ bool
 negation (bool a)
 {
   /* GNATCOV_EXEMPT_ON "single statement, multiline comment"*/ // # exempt_neg
-  return NOT (a);                                              // # exempt_neg_v1
-  /* GNATCOV_EXEMPT_OFF */                                     // # exempt_neg
+  return NOT (a);          // # exempt_neg_v1
+  /* GNATCOV_EXEMPT_OFF */ // # exempt_neg
 }

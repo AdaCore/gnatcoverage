@@ -23,17 +23,14 @@ build_and_run(
     covlevel="stmt",
     extra_coverage_args=[],
     trace_mode="src",
-
     # Only instrument foo.adb as a main
     extra_instr_args=["foo.adb"],
-
     # Build and execute foo.adb and bar.adb
     extra_gprbuild_args=["foo.adb", "bar.adb"],
     mains=["foo", "bar"],
-
     # We expect there not to be a trace file for bar, so don't register not
     # finding it as an error.
-    register_failure=False
+    register_failure=False,
 )
 
 # Check that we only get traces for foo

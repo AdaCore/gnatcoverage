@@ -41,8 +41,9 @@ def xsetup(install_name, args):
         [
             "setup",
             f"--install-name={install_name}",
-            f"--prefix={rt_install_dir}"
-        ] + args,
+            f"--prefix={rt_install_dir}",
+        ]
+        + args,
         force_project_args=True,
     )
 
@@ -72,11 +73,12 @@ for rt_name, dump_args in [
 # * bin-file (the ultimate default for native targets).
 for label, rt_name, dump_args, expected_dump_channel in [
     ("def_def", "rt_def", [], "bin-file"),
-    ("def_base64",
-     "rt_def",
-     ["--dump-channel=base64-stdout"],
-     "base64-stdout"),
-
+    (
+        "def_base64",
+        "rt_def",
+        ["--dump-channel=base64-stdout"],
+        "base64-stdout",
+    ),
     ("b64_def", "rt_b64", [], "base64-stdout"),
     ("b64_binfile", "rt_b64", ["--dump-channel=bin-file"], "bin-file"),
 ]:
@@ -97,10 +99,14 @@ for label, rt_name, dump_args, expected_dump_channel in [
     with open("obj/gnatcov-instr.json") as f:
         params = json.load(f)
     thistest.fail_if_not_equal(
-        "actual dump trigger", "atexit", params["dump-trigger"],
+        "actual dump trigger",
+        "atexit",
+        params["dump-trigger"],
     )
     thistest.fail_if_not_equal(
-        "actual dump channel", expected_dump_channel, params["dump-channel"],
+        "actual dump channel",
+        expected_dump_channel,
+        params["dump-channel"],
     )
 
 thistest.result()

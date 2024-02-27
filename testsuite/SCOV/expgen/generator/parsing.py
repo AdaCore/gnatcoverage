@@ -31,15 +31,16 @@ def parse_topology(topo_dir, driver, line_no, tokens):
 
     def check_eof(i):
         if i >= len(tokens):
-            raise error('unexpected end of line')
+            raise error("unexpected end of line")
 
     def parse_or(i):
         check_eof(i)
         left, i = parse_and(i)
         while i < len(tokens):
-            if tokens[i:i + 2] != ['or', 'else']:
+            if tokens[i : i + 2] != ["or", "else"]:
                 raise error(
-                    'expected "or else" but found {}'.format(tokens[i]))
+                    'expected "or else" but found {}'.format(tokens[i])
+                )
             i += 2
             right, i = parse_and(i)
             left = ast.And(left, right)
@@ -49,9 +50,10 @@ def parse_topology(topo_dir, driver, line_no, tokens):
         check_eof(i)
         left, i = parse_not(i)
         while i < len(tokens):
-            if tokens[i:i + 2] != ['and', 'then']:
+            if tokens[i : i + 2] != ["and", "then"]:
                 raise error(
-                    'expected "and then" but found {}'.format(tokens[i]))
+                    'expected "and then" but found {}'.format(tokens[i])
+                )
             i += 2
             right, i = parse_not(i)
             left = ast.And(left, right)
@@ -59,29 +61,32 @@ def parse_topology(topo_dir, driver, line_no, tokens):
 
     def parse_not(i):
         check_eof(i)
-        if tokens[i] == 'not':
+        if tokens[i] == "not":
             expr, i = parse_not(i + 1)
             return ast.Not(expr), i
-        elif tokens[i] == '_':
+        elif tokens[i] == "_":
             return (topology.OperandPlaceholder(), i + 1)
-        elif tokens[i] == '(':
+        elif tokens[i] == "(":
             result, i = parse_or(i + 1)
             if i >= len(tokens):
                 raise error('expected ")" but found end of line')
-            elif tokens[i] != ')':
+            elif tokens[i] != ")":
                 raise error('expected ")" but found {}'.format(tokens[i]))
             return (result, i + 1)
         else:
             raise error(
                 'expected "not", "(" or a placeholder but found '
-                '{}'.format(tokens[i]))
+                "{}".format(tokens[i])
+            )
 
     # Check that all tokens have been consumed.
     topo, next_token = parse_or(0)
     if next_token < len(tokens):
-        raise error('Too much operands (parsed {})'.format(
-            ' '.join(tokens[:next_token])
-        ))
+        raise error(
+            "Too much operands (parsed {})".format(
+                " ".join(tokens[:next_token])
+            )
+        )
 
     return topo
 
@@ -91,13 +96,14 @@ def parse_truth(topo_dir, driver, line_no, c):
     Parse a truth character ('F' or 'T') and return the corresponding truth
     value, or raise an error.
     """
-    if c == 'F':
+    if c == "F":
         return False
-    elif c == 'T':
+    elif c == "T":
         return True
     else:
-        raise DriverError(topo_dir, driver, line_no,
-                          'Invalid truth character: {}'.format(c))
+        raise DriverError(
+            topo_dir, driver, line_no, "Invalid truth character: {}".format(c)
+        )
 
 
 def parse_driver(topo_dir, driver, truth_vectors):
@@ -107,42 +113,47 @@ def parse_driver(topo_dir, driver, truth_vectors):
     """
     drv_topo = None
 
-    for line_no, line in enumerate(open(driver, 'r'), 1):
-
+    for line_no, line in enumerate(open(driver, "r"), 1):
         # Parse a topology declaration
-        if line.startswith('-- Topology: '):
+        if line.startswith("-- Topology: "):
             if drv_topo is not None:
                 raise DriverError(
-                    topo_dir, driver, line_no,
-                    'There is more than one topology'
+                    topo_dir,
+                    driver,
+                    line_no,
+                    "There is more than one topology",
                 )
-            _, topo_str = line.split(': ', 1)
+            _, topo_str = line.split(": ", 1)
             drv_topo = parse_topology(
                 topo_dir, driver, line_no, topo_str.split()
             )
 
         # Parse a run procedure call, extract a truth vector from it.
-        elif line.startswith('   Run_'):
-
+        elif line.startswith("   Run_"):
             if drv_topo is None:
                 raise DriverError(
-                    topo_dir, driver, line_no,
-                    'A topology is needed before a run procedure is called')
+                    topo_dir,
+                    driver,
+                    line_no,
+                    "A topology is needed before a run procedure is called",
+                )
 
-            chunks = line.split('_', 2)
-            assert chunks[0] == '   Run'
+            chunks = line.split("_", 2)
+            assert chunks[0] == "   Run"
             if len(chunks) != 3:
                 raise DriverError(
-                    topo_dir, driver, line_no,
-                    'Invalid run invokation: {}'.format(line.strip()))
+                    topo_dir,
+                    driver,
+                    line_no,
+                    "Invalid run invokation: {}".format(line.strip()),
+                )
 
             operands_truth = tuple(
-                parse_truth(topo_dir, driver, line_no, c)
-                for c in chunks[1]
+                parse_truth(topo_dir, driver, line_no, c) for c in chunks[1]
             )
             expected_truth = parse_truth(
                 topo_dir, driver, line_no, chunks[2][0]
             )
-            truth_vectors.add(operands_truth + (expected_truth, ))
+            truth_vectors.add(operands_truth + (expected_truth,))
 
     return drv_topo

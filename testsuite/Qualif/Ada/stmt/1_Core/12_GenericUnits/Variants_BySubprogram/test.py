@@ -4,6 +4,5 @@ from SUITE.context import thistest
 
 tc = TestCase()
 tc.run()
-tc.run(covcontrol=CovControl(covoptions='-S instance'),
-       subdirhint='i_')
+tc.run(covcontrol=CovControl(covoptions="-S instance"), subdirhint="i_")
 thistest.result()

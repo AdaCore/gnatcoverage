@@ -13,23 +13,24 @@ from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["main.adb"])),
-    covlevel='stmt',
-    mains=['main'],
-    extra_coverage_args=['-axcov', '--output-dir=xcov'],
-    trace_mode='src')
+    covlevel="stmt",
+    mains=["main"],
+    extra_coverage_args=["-axcov", "--output-dir=xcov"],
+    trace_mode="src",
+)
 
 # Check line endings
 with open(os.path.join("obj", "gen-gnatcov-instr", "main.adb"), "rb") as f:
     content = f.read()
     thistest.fail_if(
-        b'\r\r\n' in content,
+        b"\r\r\n" in content,
         comment="wrong line ending in instrumented source",
     )
 
-check_xcov_reports('xcov', {'main.adb.xcov': {'+': {5}}})
+check_xcov_reports("xcov", {"main.adb.xcov": {"+": {5}}})
 
 thistest.result()

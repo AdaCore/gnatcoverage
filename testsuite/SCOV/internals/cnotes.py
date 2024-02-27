@@ -158,48 +158,115 @@
 # Annotations lower than strictNote won't trigger an unexpected annotation
 # failure if they appear in a place where they are not explicitly expected.
 
-(lNoCode, lFullCov, lx,
- strictNote,
- r0, r0c, lx0, lx1, lx2,
- deviationNote,
- lNoCov, lPartCov, lNotCoverable, lUndetCov,
- sNoCov, sPartCov, sNotCoverable, sUndetCov,
- dtAlways, dfAlways,
- dtNoCov, dfNoCov, dNoCov, dPartCov, dUndetCov,
- etNoCov, efNoCov, eNoCov, ePartCov, eUndetCov,
- otNoCov, ofNoCov, oNoCov, oPartCov,
- cPartCov,
- XsNoCov, XsPartCov, XsNotCoverable, XsUndetCov,
- XotNoCov, XofNoCov, XoPartCov, XoNoCov,
- XcPartCov,
- Xr0, Xr0c,
- aNoCov, atNoCov, acPartCov,
- blockNote,
- xBlock0, xBlock1, xBlock2) = range(53)
+(
+    lNoCode,
+    lFullCov,
+    lx,
+    strictNote,
+    r0,
+    r0c,
+    lx0,
+    lx1,
+    lx2,
+    deviationNote,
+    lNoCov,
+    lPartCov,
+    lNotCoverable,
+    lUndetCov,
+    sNoCov,
+    sPartCov,
+    sNotCoverable,
+    sUndetCov,
+    dtAlways,
+    dfAlways,
+    dtNoCov,
+    dfNoCov,
+    dNoCov,
+    dPartCov,
+    dUndetCov,
+    etNoCov,
+    efNoCov,
+    eNoCov,
+    ePartCov,
+    eUndetCov,
+    otNoCov,
+    ofNoCov,
+    oNoCov,
+    oPartCov,
+    cPartCov,
+    XsNoCov,
+    XsPartCov,
+    XsNotCoverable,
+    XsUndetCov,
+    XotNoCov,
+    XofNoCov,
+    XoPartCov,
+    XoNoCov,
+    XcPartCov,
+    Xr0,
+    Xr0c,
+    aNoCov,
+    atNoCov,
+    acPartCov,
+    blockNote,
+    xBlock0,
+    xBlock1,
+    xBlock2,
+) = range(53)
 
-NK_image = {None: "None",
-            lNoCode: "lNoCode", lNotCoverable: "lNotCoverable",
-            lUndetCov: "lUndetCov",
-            lFullCov: "lFullCov", lNoCov: "lNoCov", lPartCov: "lPartCov",
-            r0: "r0", r0c: "r0c", lx0: "lx0", lx1: "lx1", lx2: "lx2", lx: "lx",
-            sNoCov: "sNoCov", sPartCov: "sPartCov",
-            sNotCoverable: "sNotCoverable", sUndetCov: "sUndetCov",
-            dtAlways: "dtAlways", dfAlways: "dfAlways",
-            dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dNoCov: "dNoCov",
-            dPartCov: "dPartCov", dUndetCov: "dUndetCov",
-            etNoCov: "etNoCov", efNoCov: "efNoCov", eNoCov: "eNoCov",
-            ePartCov: "ePartCov", eUndetCov: " eUndetCov",
-            otNoCov: "otNoCov", ofNoCov: "ofNoCov", oNoCov: "oNoCov",
-            oPartCov: "oPartCov",
-            xBlock0: "xBlock0", xBlock1: "xBlock1", xBlock2: "xBlock2",
-            cPartCov: "cPartCov",
-            XsNoCov: "XsNoCov", XsPartCov: "XsPartCov",
-            XsNotCoverable: "XsNotCoverable", XsUndetCov: "XsUndetCov",
-            XotNoCov: "XotNoCov", XofNoCov: "XofNoCov", XoPartCov: "XoPartCov",
-            XoNoCov: "XoNoCov",
-            XcPartCov: "XcPartCov",
-            Xr0: "Xr0", Xr0c: "Xr0c",
-            aNoCov: "aNoCov", atNoCov: "atNoCov", acPartCov: "acPartCov"}
+NK_image = {
+    None: "None",
+    lNoCode: "lNoCode",
+    lNotCoverable: "lNotCoverable",
+    lUndetCov: "lUndetCov",
+    lFullCov: "lFullCov",
+    lNoCov: "lNoCov",
+    lPartCov: "lPartCov",
+    r0: "r0",
+    r0c: "r0c",
+    lx0: "lx0",
+    lx1: "lx1",
+    lx2: "lx2",
+    lx: "lx",
+    sNoCov: "sNoCov",
+    sPartCov: "sPartCov",
+    sNotCoverable: "sNotCoverable",
+    sUndetCov: "sUndetCov",
+    dtAlways: "dtAlways",
+    dfAlways: "dfAlways",
+    dtNoCov: "dtNoCov",
+    dfNoCov: "dfNoCov",
+    dNoCov: "dNoCov",
+    dPartCov: "dPartCov",
+    dUndetCov: "dUndetCov",
+    etNoCov: "etNoCov",
+    efNoCov: "efNoCov",
+    eNoCov: "eNoCov",
+    ePartCov: "ePartCov",
+    eUndetCov: " eUndetCov",
+    otNoCov: "otNoCov",
+    ofNoCov: "ofNoCov",
+    oNoCov: "oNoCov",
+    oPartCov: "oPartCov",
+    xBlock0: "xBlock0",
+    xBlock1: "xBlock1",
+    xBlock2: "xBlock2",
+    cPartCov: "cPartCov",
+    XsNoCov: "XsNoCov",
+    XsPartCov: "XsPartCov",
+    XsNotCoverable: "XsNotCoverable",
+    XsUndetCov: "XsUndetCov",
+    XotNoCov: "XotNoCov",
+    XofNoCov: "XofNoCov",
+    XoPartCov: "XoPartCov",
+    XoNoCov: "XoNoCov",
+    XcPartCov: "XcPartCov",
+    Xr0: "Xr0",
+    Xr0c: "Xr0c",
+    aNoCov: "aNoCov",
+    atNoCov: "atNoCov",
+    acPartCov: "acPartCov",
+}
 
 
 # ===============================
@@ -209,12 +276,21 @@ NK_image = {None: "None",
 # Line notes (=xcov); the set of possible expectations matches the
 # set of possible emitted indications
 
-elNoteKinds = (lNoCode, lNotCoverable, lUndetCov, lNoCov, lPartCov, lFullCov,
-               lx0, lx1, lx2)
+elNoteKinds = (
+    lNoCode,
+    lNotCoverable,
+    lUndetCov,
+    lNoCov,
+    lPartCov,
+    lFullCov,
+    lx0,
+    lx1,
+    lx2,
+)
 
 xlTransparentKinds = (lx,)
 
-xlNoteKinds = elNoteKinds+xlTransparentKinds
+xlNoteKinds = elNoteKinds + xlTransparentKinds
 
 # Report notes (=report), which feature anti-expectations that
 # explicitely state expection of absence of emitted notes
@@ -223,10 +299,18 @@ xlNoteKinds = elNoteKinds+xlTransparentKinds
 sNoteKinds = (sNoCov, sPartCov, sNotCoverable, sUndetCov)
 
 # DC indications
-dNoteKinds = (dtNoCov, dfNoCov, dPartCov, dNoCov, dtAlways, dfAlways, dUndetCov)
+dNoteKinds = (
+    dtNoCov,
+    dfNoCov,
+    dPartCov,
+    dNoCov,
+    dtAlways,
+    dfAlways,
+    dUndetCov,
+)
 
 # MCDC violations
-cNoteKinds = (etNoCov, efNoCov, ePartCov, eNoCov,  cPartCov, eUndetCov)
+cNoteKinds = (etNoCov, efNoCov, ePartCov, eNoCov, cPartCov, eUndetCov)
 
 # Assertion violations
 aNoteKinds = (aNoCov, atNoCov, acPartCov)
@@ -256,14 +340,17 @@ tNoteKinds = (otNoCov, ofNoCov, oPartCov, oNoCov)
 # kinds in the Emitted Report Notes set because we do want to handle them as
 # if they could be emitted and report them as unmatched.
 
-erNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds+tNoteKinds+XNoteKinds
+erNoteKinds = (
+    sNoteKinds + dNoteKinds + cNoteKinds + xNoteKinds + tNoteKinds + XNoteKinds
+)
 erNoteKinds += aNoteKinds
-xrNoteKinds = erNoteKinds+rAntiKinds+XrAntiKinds
+xrNoteKinds = erNoteKinds + rAntiKinds + XrAntiKinds
 
 
 # ==========================
 # == Note Kind Predicates ==
 # ==========================
+
 
 def deviation_p(nkind):
     """
@@ -360,6 +447,7 @@ def transparent_p(nkind):
 # == Coverage Note Classes ==
 # ===========================
 
+
 class Block:
     """
     Source regions to which expected coverage note instances belong.
@@ -368,6 +456,7 @@ class Block:
     processed. Our purpose is only to associate notes with regions, for which
     an object id is enough + a parent link to represent nesting trees.
     """
+
     def __init__(self, parent):
         self.parent = parent
 
@@ -394,7 +483,7 @@ class Cnote:
         return "%s%s mark at %s" % (
             NK_image[self.kind],
             "(from %s)" % self.stag.text if self.stag else "",
-            self.segment
+            self.segment,
         )
 
 
@@ -437,8 +526,8 @@ class Enote(Cnote):
     def __init__(self, kind, segment, source, stag=None):
         Cnote.__init__(self, kind)
         self.segment = segment  # The line segment it designates
-        self.source = source    # The corresponding source name
-        self.stag = stag        # The separation tag it contains
+        self.source = source  # The corresponding source name
+        self.stag = stag  # The separation tag it contains
 
         self.discharges = None  # The Xnote it discharges
 

@@ -16,11 +16,8 @@ build_run_and_coverage(
     mains=["test"],
     extra_coverage_args=[
         "--annotate=xcov",
-
         # Ignore directly "twice.h"
-
         "--ignore-source-files=twice.h",
-
         # Ignore indirectly "identity.h", as its CU's origin is "identity.c".
         # It is important for test reliability to check this testcase that only
         # "identity.c" includes "identity.h".

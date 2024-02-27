@@ -8,23 +8,21 @@ import intervalmap
 
 
 TRACE_LINE = re.compile(
-    b'^(?P<start>[0-9a-f]+)-(?P<end>[0-9a-f]+) .: [0-9a-f]{2}'
-    b' (?P<special>-|t)(?P<fault>-|t)'
-    b'(?P<fallthrough>-|t)(?P<branch>-|t)'
-    b' block$'
+    b"^(?P<start>[0-9a-f]+)-(?P<end>[0-9a-f]+) .: [0-9a-f]{2}"
+    b" (?P<special>-|t)(?P<fault>-|t)"
+    b"(?P<fallthrough>-|t)(?P<branch>-|t)"
+    b" block$"
 )
 
 
 LeaveFlags = collections.namedtuple(
-    'LeaveFlags',
-    'special fault block fallthrough branch'
+    "LeaveFlags", "special fault block fallthrough branch"
 )
+
 
 def merge_flags(f1, f2):
     """Return the merge of two leave flags."""
-    return LeaveFlags(*(
-        flag1 or flag2 for flag1, flag2 in zip(f1, f2)
-    ))
+    return LeaveFlags(*(flag1 or flag2 for flag1, flag2 in zip(f1, f2)))
 
 
 def get_trace_info(traces):
@@ -33,12 +31,12 @@ def get_trace_info(traces):
     """
     # Let gnatcov parse the traces for us.
     proc = subprocess.Popen(
-        ['gnatcov', 'dump-trace', traces], stdout=subprocess.PIPE
+        ["gnatcov", "dump-trace", traces], stdout=subprocess.PIPE
     )
 
     outs, errs = proc.communicate()
     if proc.returncode != 0:
-        raise RuntimeError('gnatcov dump-trace returned an error')
+        raise RuntimeError("gnatcov dump-trace returned an error")
 
     # Parse its output and collect information.
 
@@ -49,20 +47,20 @@ def get_trace_info(traces):
 
     # First collect all traces ranges, unifying ranges that start at the same
     # address.
-    for line in outs.split(b'\n'):
+    for line in outs.split(b"\n"):
         m = TRACE_LINE.match(line)
         if m:
-            pc_start = int(m.group('start'), 16)
+            pc_start = int(m.group("start"), 16)
             # For gnatcov, the end address is executed, but for our interval
             # map, the end bound is not covered.
-            pc_end = int(m.group('end'), 16) + 1
+            pc_end = int(m.group("end"), 16) + 1
 
             flags = LeaveFlags(
-                m.group('special') == 't',
-                m.group('fault') == 't',
+                m.group("special") == "t",
+                m.group("fault") == "t",
                 True,
-                m.group('fallthrough') == 't',
-                m.group('branch') == 't',
+                m.group("fallthrough") == "t",
+                m.group("branch") == "t",
             )
 
             # If pc_start is already in the range, just take the longest trace.
@@ -92,26 +90,27 @@ def get_trace_info(traces):
         # interval to the result.
         if last_interval:
             if last_interval[1] < pc_start:
-                executed_insns[last_interval[0]:last_interval[1]] = True
+                executed_insns[last_interval[0] : last_interval[1]] = True
                 last_interval = (pc_start, pc_end)
             else:
                 last_interval = (
                     last_interval[0],
-                    max(last_interval[1], pc_end)
+                    max(last_interval[1], pc_end),
                 )
         else:
             last_interval = (pc_start, pc_end)
 
     if last_interval:
-        executed_insns[last_interval[0]:last_interval[1]] = True
+        executed_insns[last_interval[0] : last_interval[1]] = True
 
     return (executed_insns, leave_flags)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
+
     executed_insns, leave_flags = get_trace_info(sys.argv[1])
     for (pc_start, pc_end), _ in executed_insns.items():
-        print('{:x}-{:x}: {}'.format(
-            pc_start, pc_end - 1, leave_flags[pc_end]
-        ))
+        print(
+            "{:x}-{:x}: {}".format(pc_start, pc_end - 1, leave_flags[pc_end])
+        )

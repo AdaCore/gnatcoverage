@@ -20,18 +20,19 @@ from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
-tmp=Wdir("tmp_")
+tmp = Wdir("tmp_")
 
 expected_cov = {
-    "ada" : {
-        "main_ada.adb.xcov": {'+': {4, 6}},
-        "main_c.c.xcov": {'-': {6, 7, 9}}
+    "ada": {
+        "main_ada.adb.xcov": {"+": {4, 6}},
+        "main_c.c.xcov": {"-": {6, 7, 9}},
     },
-    "c" : {
-        "main_c.c.xcov": {'+': {6, 7}, '-': {9}},
-        "main_ada.adb.xcov": {'-': {4, 6}}
-    }
+    "c": {
+        "main_c.c.xcov": {"+": {6, 7}, "-": {9}},
+        "main_ada.adb.xcov": {"-": {4, 6}},
+    },
 }
+
 
 def check_one_trace(cov_args, lang):
     """
@@ -49,8 +50,7 @@ def check_one_trace(cov_args, lang):
     # There is only one dump indication in each main, ensure we found a trace
     # and have no spurious traces in the working directory.
     thistest.fail_if(
-        len (trace) != 1,
-        comment=f"expected a single trace, found {len(trace)}"
+        len(trace) != 1, comment=f"expected a single trace, found {len(trace)}"
     )
 
     print(trace)
@@ -58,9 +58,10 @@ def check_one_trace(cov_args, lang):
     output_dir = f"output_{lang}/"
     xcov(
         cov_args + [f"--output-dir={output_dir}"] + trace,
-        out=f"coverage_{lang}.log"
+        out=f"coverage_{lang}.log",
     )
     check_xcov_reports(output_dir, expected_cov[lang])
+
 
 prj_id = "p"
 

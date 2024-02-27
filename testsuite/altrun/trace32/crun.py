@@ -34,10 +34,12 @@ def to_list(blob):
     and whitespace separated strings. Return empty list otherwise."""
 
     return (
-        blob if isinstance(blob, list)
-        else blob.split() if isinstance(blob, str)
+        blob
+        if isinstance(blob, list)
+        else blob.split()
+        if isinstance(blob, str)
         else []
-        )
+    )
 
 
 # -----------------
@@ -68,9 +70,7 @@ def do(command):
 
 
 class Runner:
-
     def __init__(self):
-
         log("============== CRUN FOR TRACE32 ===================")
         self.parse_command_line()
         self.run_with_trace32()
@@ -88,55 +88,31 @@ class Runner:
 
         # --level and --target are expected to always be there:
 
-        op.add_option(
-            "--level", dest="covlevel", default=None
-            )
-        op.add_option(
-            "--target", dest="target", default=None
-            )
-        op.add_option(
-            "--RTS", dest="RTS", default=None
-            )
-        op.add_option(
-            "--config", dest="config", default=None
-            )
+        op.add_option("--level", dest="covlevel", default=None)
+        op.add_option("--target", dest="target", default=None)
+        op.add_option("--RTS", dest="RTS", default=None)
+        op.add_option("--config", dest="config", default=None)
 
         # For source coverage tests not using project files:
 
-        op.add_option(
-            "--scos", dest="scos", default=None
-            )
+        op.add_option("--scos", dest="scos", default=None)
 
         # For tests using project files
 
+        op.add_option("-P", dest="gpr", default=None)
         op.add_option(
-            "-P", dest="gpr", default=None
-            )
-        op.add_option(
-            "--recursive", dest="recurse", default=False, action='store_true'
-            )
-        op.add_option(
-            "--projects", dest="projects", default=None
-            )
-        op.add_option(
-            "--units", dest="units", default=None
-            )
-        op.add_option(
-            "--subdirs", dest="subdirs", default=None
-            )
-        op.add_option(
-            "-v", "--verbose", dest="verbose", default=None
-            )
+            "--recursive", dest="recurse", default=False, action="store_true"
+        )
+        op.add_option("--projects", dest="projects", default=None)
+        op.add_option("--units", dest="units", default=None)
+        op.add_option("--subdirs", dest="subdirs", default=None)
+        op.add_option("-v", "--verbose", dest="verbose", default=None)
 
-        op.add_option(
-            "--exec-prefix", dest="execprefix", default=None
-            )
+        op.add_option("--exec-prefix", dest="execprefix", default=None)
 
         # Then a few optional items
 
-        op.add_option(
-            "-o", dest="ofile", default=None
-            )
+        op.add_option("-o", dest="ofile", default=None)
 
         (self.options, self.args) = op.parse_args()
 
@@ -227,7 +203,7 @@ class Runner:
             return os.path.basename(self.get_executable_filename()) + ".trace"
 
     def get_t32_trace_filename(self):
-        return self.get_gnatcov_trace_filename() + '.t32_branchflow'
+        return self.get_gnatcov_trace_filename() + ".t32_branchflow"
 
     def run_with_trace32(self):
         print("=============== RUN ON TRACE32 ===================")
@@ -236,7 +212,7 @@ class Runner:
             sys.exit(1)
         log("Executable is: " + str(self.args))
 
-        handled_targets = ['trace32-stm32f7']
+        handled_targets = ["trace32-stm32f7"]
         if self.options.target not in handled_targets:
             print("unknown target %s" % self.options.target)
             return
@@ -244,7 +220,7 @@ class Runner:
         t32api.connect()
         t32api.basic_setup()
 
-        if self.options.target == 'trace32-stm32f7':
+        if self.options.target == "trace32-stm32f7":
             t32api.init_trace_stm32f7()
 
         t32api.load_executable(self.get_executable_filename())

@@ -1,7 +1,7 @@
 #ifndef VBUFS_H
-# define VBUFS_H
+#define VBUFS_H
 
-# define HIST_SIZE 10
+#define HIST_SIZE 10
 
 struct vbuffer
 {
@@ -10,10 +10,8 @@ struct vbuffer
   unsigned len;         /* Number of filled entries.  */
 };
 
-extern void
-vbuffer_init (struct vbuffer *vbuf);
+extern void vbuffer_init (struct vbuffer *vbuf);
 
-extern void
-vbuffer_push (int value, struct vbuffer *vbuf);
+extern void vbuffer_push (int value, struct vbuffer *vbuf);
 
 #endif

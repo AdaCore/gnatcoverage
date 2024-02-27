@@ -13,14 +13,16 @@ from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
-Wdir('tmp_')
+Wdir("tmp_")
 
 build_run_and_coverage(
     gprsw=GPRswitches(
-        gprfor(prjid="p", srcdirs=[".."], mains=["main.c"], langs=["C"])),
+        gprfor(prjid="p", srcdirs=[".."], mains=["main.c"], langs=["C"])
+    ),
     covlevel="stmt",
     mains=["main"],
-    extra_coverage_args=["--annotate=xcov"])
+    extra_coverage_args=["--annotate=xcov"],
+)
 
-check_xcov_reports('obj', {'main.c.xcov': {'+': {6, 7}}})
+check_xcov_reports("obj", {"main.c.xcov": {"+": {6, 7}}})
 thistest.result()

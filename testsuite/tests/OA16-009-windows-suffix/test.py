@@ -6,25 +6,30 @@ from SUITE.tutils import gprbuild, gprfor, xcov, xrun
 
 
 wd = Wdir("tmp_")
-gprbuild(gprfor(srcdirs=[".."], mains=['foo.adb']))
+gprbuild(gprfor(srcdirs=[".."], mains=["foo.adb"]))
 
 # We want to check that "gnatcov run" will find the executable even though the
 # input casing is different and even though it misses the ".exe" suffix.
-os.rename('foo.exe', 'Foo.Exe')
-xrun('foo')
+os.rename("foo.exe", "Foo.Exe")
+xrun("foo")
 
 # Here, we also want to check that the default filename for the trace file is
 # based on the actual filesystem name, not the name "gnatcov run" received in
 # the command line.
-xcov(['coverage',
-      '--level=stmt', '--annotate=xcov',
-      '--scos=obj\\foo.ali',
-      'Foo.Exe.trace'])
+xcov(
+    [
+        "coverage",
+        "--level=stmt",
+        "--annotate=xcov",
+        "--scos=obj\\foo.ali",
+        "Foo.Exe.trace",
+    ]
+)
 
 thistest.fail_if(
-    not os.path.exists('foo.adb.xcov'),
+    not os.path.exists("foo.adb.xcov"),
     '"gnatcov coverage" did not produce a XCOV report for the main source'
-    ' file.'
+    " file.",
 )
 
 thistest.result()

@@ -11,9 +11,11 @@ from SUITE.context import thistest
 # We are trying to consolidate the traces of these test drivers. Each test
 # driver has its own project, since it can use different compilation options
 # for test controllers:
-test_drivers = {'test_1': {'not.c': ['-g',  '-O0']},
-                'test_2': {'not.c': ['-g',  '-O0']},
-                'test_3': {'not.c': ['-g0', '-O0']}}
+test_drivers = {
+    "test_1": {"not.c": ["-g", "-O0"]},
+    "test_2": {"not.c": ["-g", "-O0"]},
+    "test_3": {"not.c": ["-g0", "-O0"]},
+}
 # Here, the "not.c" compile unit has debug info except in one test driver (the
 # last one).
 
@@ -25,9 +27,10 @@ coverage_expectations = {
     # test_1 and test_2 are consolidated, so there must be one f() that is
     # fully covered. One other is partially covered for test_3 that do not
     # consolidate.
-    'f': {'-': 0, '!': 1, '+': 1},
+    "f": {"-": 0, "!": 1, "+": 1},
 }
 
-TestCase(test_drivers, coverage_expectations,
-         extra_sourcedirs=['../../../../src']).run()
+TestCase(
+    test_drivers, coverage_expectations, extra_sourcedirs=["../../../../src"]
+).run()
 thistest.result()

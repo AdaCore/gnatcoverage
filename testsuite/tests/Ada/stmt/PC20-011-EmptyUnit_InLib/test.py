@@ -10,7 +10,7 @@ libdep = os.path.abspath("mylib/mylib.gpr")
 TestCase().run(
     covcontrol=CovControl(
         deps=[libdep],
-        gprsw=GPRswitches(
-            root_project='gen.gpr',
-            units=['ops', 'ops.values'])))
+        gprsw=GPRswitches(root_project="gen.gpr", units=["ops", "ops.values"]),
+    )
+)
 thistest.result()

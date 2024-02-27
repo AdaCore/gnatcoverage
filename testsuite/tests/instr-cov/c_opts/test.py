@@ -20,7 +20,6 @@ c_opts = [
     # Also add these as two "--c-opts" arguments.
     ["-DA", "-D", "B", "-UB"],
     ["-I", other_dir],
-
     # Check the processing of backslashes
     ["-DBACKSLASH=\\"],
     ["-DDOUBLE_BACKSLASH=\\\\"],
@@ -36,8 +35,7 @@ build_run_and_coverage(
     covlevel="stmt",
     mains=["main"],
     extra_instr_args=(
-        ["--c-opts={}".format(",".join(args)) for args in c_opts]
-        + ["-v"]
+        ["--c-opts={}".format(",".join(args)) for args in c_opts] + ["-v"]
     ),
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
     trace_mode="src",
@@ -46,7 +44,7 @@ build_run_and_coverage(
 for excerpt in ["-DBACKSLASH=\\", "-DDOUBLE_BACKSLASH=\\", "-DCOMMA=,"]:
     thistest.fail_if(
         excerpt not in contents_of(log_file),
-        f"{excerpt} macro definition not found in {log_file}"
+        f"{excerpt} macro definition not found in {log_file}",
     )
 
 check_xcov_reports("xcov", {"main.c.xcov": {"+": {7, 14}}})

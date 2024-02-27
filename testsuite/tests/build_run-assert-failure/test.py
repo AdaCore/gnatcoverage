@@ -23,14 +23,15 @@ try:
         mains=["p"],
         covlevel="stmt",
         extra_coverage_args=[],
-        register_failure=True
+        register_failure=True,
     )
 except FatalError:
     pass
 else:
     thistest.stop(
         FatalError(
-            "expected FatalError from build_and_run, got different exception")
+            "expected FatalError from build_and_run, got different exception"
+        )
     )
 
 # If we reach here, the test is PASSED. The failure registration

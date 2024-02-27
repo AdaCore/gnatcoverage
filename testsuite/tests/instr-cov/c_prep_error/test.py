@@ -28,8 +28,7 @@ thistest.fail_if_not_equal("'gnatcov instrument' exit code", 1, p.status)
 log = contents_of(log_file)
 for excerpt in ["foo.hh", "Preprocessing failed: aborting"]:
     thistest.fail_if(
-        excerpt not in log,
-        f"Missing excerpt in {log_file}: {repr(excerpt)}"
+        excerpt not in log, f"Missing excerpt in {log_file}: {repr(excerpt)}"
     )
 
 thistest.result()

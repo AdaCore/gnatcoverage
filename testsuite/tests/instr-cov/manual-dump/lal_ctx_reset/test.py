@@ -21,10 +21,11 @@ from SUITE.gprutils import GPRswitches, gprcov_for
 from SUITE.tutils import gprfor
 
 
-tmp = Wdir ("tmp_")
+tmp = Wdir("tmp_")
 
 # Number of LAL unit queries after which gnatcov reset the LAL context
 GNATCOV_CTX_RESET_LIMIT = 50
+
 
 def gen_project():
     """
@@ -66,10 +67,10 @@ def gen_project():
         objdir="obj",
         extra=gprcov_for(
             units_in=[f"Pkg_{i}" for i in range(GNATCOV_CTX_RESET_LIMIT)]
-        )
+        ),
     )
-    expected_cov={
-        f"pkg_{i}.ads.xcov": {'+': {2}} for i in range(GNATCOV_CTX_RESET_LIMIT)
+    expected_cov = {
+        f"pkg_{i}.ads.xcov": {"+": {2}} for i in range(GNATCOV_CTX_RESET_LIMIT)
     }
     return prj, expected_cov
 
@@ -85,7 +86,7 @@ build_run_and_coverage(
     covlevel="stmt",
     extra_coverage_args=["-axcov"],
     dump_trigger="manual",
-    manual_prj_name=os.path.splitext(prj)[0]
+    manual_prj_name=os.path.splitext(prj)[0],
 )
 
 check_xcov_reports("obj", expected_cov)

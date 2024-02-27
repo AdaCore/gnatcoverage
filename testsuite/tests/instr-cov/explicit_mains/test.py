@@ -46,7 +46,11 @@ def create_gprsw(mains, with_asm=False):
     if with_asm:
         langs.append("Asm")
     mains_gpr = gprfor(
-        mains=mains, prjid="mains", srcdirs="..", langs=langs, deps=["mylib"],
+        mains=mains,
+        prjid="mains",
+        srcdirs="..",
+        langs=langs,
+        deps=["mylib"],
     )
 
     # Create object/library directories to avoid GPR warnings that they are
@@ -110,10 +114,9 @@ wd.to_homedir()
 # in each case.
 
 
-def check_gen_traces(label,
-                     gpr_mains,
-                     xcov_mains,
-                     program_for_expected_traces):
+def check_gen_traces(
+    label, gpr_mains, xcov_mains, program_for_expected_traces
+):
     """
     Run a test variant to check mains with coverage buffer dumps.
 
@@ -131,16 +134,13 @@ def check_gen_traces(label,
     build_and_run(
         gprsw=create_gprsw(gpr_mains),
         covlevel="stmt",
-
         # Build and run all actual mains in all cases (we want to check the
         # instrumentation status for all of them).
         extra_gprbuild_args=["main1.adb", "main2.adb"],
         mains=["main1", "main2"],
-
         extra_instr_args=xcov_mains,
         extra_coverage_args=[],
         trace_mode="src",
-
         # Since instrumentation may insert coverage buffer dumps only for a
         # subset of mains, calls to "gnatcov extract-base64-trace" will fail
         # for mains that do not dump. This is as expected, so ignore these

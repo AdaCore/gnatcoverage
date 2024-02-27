@@ -34,8 +34,9 @@ class HarnessDiagnostic:
 
 
 class HarnessTestCase(TestCase):
-    def __init__(self, expected_diags, extradrivers="", extracargs="",
-                 category=CAT.auto):
+    def __init__(
+        self, expected_diags, extradrivers="", extracargs="", category=CAT.auto
+    ):
         TestCase.__init__(self, extradrivers, extracargs, category)
 
         # By default, these test cases expect failures from subprocesses
@@ -58,7 +59,9 @@ class HarnessTestCase(TestCase):
             for errtext in re.findall(
                 pattern=r"^  \* (?:exception|\(.*\)) .*",
                 string=contents_of(thistest.report.report_file),
-                flags=re.M)]
+                flags=re.M,
+            )
+        ]
 
         for reported in self.reported_diags:
             for expected in self.expected_diags:
@@ -66,12 +69,16 @@ class HarnessTestCase(TestCase):
                     self.__count_match_on(reported, expected)
 
         for expected in self.expected_diags:
-            thistest.fail_if(expected.nmatches != 1,
-                             "expectation check failed - %s" % expected.text)
+            thistest.fail_if(
+                expected.nmatches != 1,
+                "expectation check failed - %s" % expected.text,
+            )
 
         for i in self.reported_diags:
             print(i.__dict__)
 
         for reported in self.reported_diags:
-            thistest.fail_if(reported.nmatches != 1,
-                             "reporting check failed - %s" % reported.text)
+            thistest.fail_if(
+                reported.nmatches != 1,
+                "reporting check failed - %s" % reported.text,
+            )

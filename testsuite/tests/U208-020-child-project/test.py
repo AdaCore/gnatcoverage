@@ -10,22 +10,27 @@ from SUITE.context import thistest
 from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 
-p_gpr = os.path.abspath('p-child.gpr')
-obj_dir = os.path.abspath('obj/p-child')
+p_gpr = os.path.abspath("p-child.gpr")
+obj_dir = os.path.abspath("obj/p-child")
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=p_gpr),
-    covlevel='stmt',
-    mains=['main'],
-    extra_coverage_args=['-axcov', '--output-dir=xcov'],
+    covlevel="stmt",
+    mains=["main"],
+    extra_coverage_args=["-axcov", "--output-dir=xcov"],
     gpr_obj_dir=obj_dir,
     gpr_exe_dir=obj_dir,
-    trace_mode='src')
-check_xcov_reports('xcov',
-                   {'main.adb.xcov': {'+': {5, 6}},
-                    'pkg.adb.xcov': {'+': {5}},
-                    'pkg.ads.xcov': {}})
+    trace_mode="src",
+)
+check_xcov_reports(
+    "xcov",
+    {
+        "main.adb.xcov": {"+": {5, 6}},
+        "pkg.adb.xcov": {"+": {5}},
+        "pkg.ads.xcov": {},
+    },
+)
 
 thistest.result()

@@ -14,21 +14,21 @@ from SUITE.gprutils import GPRswitches
 from SUITE.cutils import Wdir
 from SUITE.tutils import thistest, gprfor, xcov
 
-wd = Wdir('tmp_')
+wd = Wdir("tmp_")
 
 # Run the build and run in a dedicated directory
 
-prj1 = gprfor(mains=[], prjid='prj1', srcdirs=['../prj1'], objdir='obj-prj1')
-prj2 = gprfor(mains=[], prjid='prj2', srcdirs=['../prj2'], objdir='obj-prj2')
-p = gprfor(mains=['test.c'], deps=['prj1', 'prj2'], srcdirs=['..'])
+prj1 = gprfor(mains=[], prjid="prj1", srcdirs=["../prj1"], objdir="obj-prj1")
+prj2 = gprfor(mains=[], prjid="prj2", srcdirs=["../prj2"], objdir="obj-prj2")
+p = gprfor(mains=["test.c"], deps=["prj1", "prj2"], srcdirs=[".."])
 
 xcov_args = build_and_run(
     # TODO: The test fails if we pass an absolute path to root_project, which
     # is unexpected.
     gprsw=GPRswitches(root_project=os.path.basename(p)),
-    covlevel='stmt+mcdc',
-    mains=['test'],
-    extra_coverage_args=['--annotate=xcov', '--output-dir=xcov'],
+    covlevel="stmt+mcdc",
+    mains=["test"],
+    extra_coverage_args=["--annotate=xcov", "--output-dir=xcov"],
 )
 
 # Now onto coverage. Try to ignore pkg.c in prj1, and in prj2 in two different
@@ -59,11 +59,16 @@ def check_report(prj_ignore, prj_of_interest):
     Check that the report is correct when the homonym source file (pkg.c) is
     ignored in prj_ignore and of interest in prj_of_interest.
     """
-    subdir = f'tmp_cov_ignore_{prj_ignore}'
+    subdir = f"tmp_cov_ignore_{prj_ignore}"
     wd = Wdir(subdir)
-    sync_tree(os.path.join('..', 'tmp_'), '.')
-    gprfor(mains=[], prjid=prj_ignore, srcdirs=[f'../{prj_ignore}'],
-           objdir=f'obj-{prj_ignore}', extra=ignore_pkg)
+    sync_tree(os.path.join("..", "tmp_"), ".")
+    gprfor(
+        mains=[],
+        prjid=prj_ignore,
+        srcdirs=[f"../{prj_ignore}"],
+        objdir=f"obj-{prj_ignore}",
+        extra=ignore_pkg,
+    )
     xcov(xcov_args)
 
     # The filtering of units of interest is done at a later stage for binary
@@ -72,19 +77,17 @@ def check_report(prj_ignore, prj_of_interest):
     # suffix computed from gnatcov file table to differentiate homonym source
     # files will be different from source traces.
     xcov_homonoym_filename = (
-        f'{prj_of_interest}-pkg.c.xcov' if thistest.options.trace_mode == 'bin'
-        else 'pkg.c.xcov'
+        f"{prj_of_interest}-pkg.c.xcov"
+        if thistest.options.trace_mode == "bin"
+        else "pkg.c.xcov"
     )
     check_xcov_reports(
-        'xcov',
-        {
-            xcov_homonoym_filename: {'!': {4}},
-            'test.c.xcov': {'+': {7, 8, 9}}
-        },
+        "xcov",
+        {xcov_homonoym_filename: {"!": {4}}, "test.c.xcov": {"+": {7, 8, 9}}},
     )
     wd.to_homedir()
 
 
-check_report('prj1', 'prj2')
-check_report('prj2', 'prj1')
+check_report("prj1", "prj2")
+check_report("prj2", "prj1")
 thistest.result()

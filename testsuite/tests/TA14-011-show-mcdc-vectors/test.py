@@ -9,15 +9,16 @@ from SUITE.tutils import gprfor, xcov
 from SUITE.gprutils import GPRswitches
 
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
 # Generate a project, instrument it if necessary and run it,
-p = gprfor(mains=['main.adb'], srcdirs=['..'])
+p = gprfor(mains=["main.adb"], srcdirs=[".."])
 xcov_args_mcdc = build_and_run(
     gprsw=GPRswitches(root_project=p),
-    covlevel='stmt+mcdc',
-    mains=['main'],
-    extra_coverage_args=[])
+    covlevel="stmt+mcdc",
+    mains=["main"],
+    extra_coverage_args=[],
+)
 
 
 def check_output(output_file, expected_content, regexp=False):
@@ -32,19 +33,20 @@ def check_output(output_file, expected_content, regexp=False):
     :param bool regexp: Whether to match as a regexp (by default, check
         content equality).
     """
-    checker = (thistest.fail_if_no_match
-               if regexp
-               else thistest.fail_if_not_equal)
+    checker = (
+        thistest.fail_if_no_match if regexp else thistest.fail_if_not_equal
+    )
     checker(
         '"gnatcov coverage" output ({})'.format(output_file),
         expected_content,
-
         # Canonicalize to Unix-style line endings to have cross-platform checks
-        contents_of(output_file).replace('\r\n', '\n'))
+        contents_of(output_file).replace("\r\n", "\n"),
+    )
 
 
-def run_and_check(args, output_file, expected_content, regexp=False,
-                  success_expected=True):
+def run_and_check(
+    args, output_file, expected_content, regexp=False, success_expected=True
+):
     """
     Run gnatcov with the given arguments.
 
@@ -61,7 +63,7 @@ def run_and_check(args, output_file, expected_content, regexp=False,
         thistest.fail_if(
             p.status == 0,
             'the call to "gnatcov coverage" was expected to fail, yet it'
-            ' succeeded (see {})'.format(output_file)
+            " succeeded (see {})".format(output_file),
         )
     check_output(output_file, expected_content, regexp)
 
@@ -70,55 +72,65 @@ def run_and_check(args, output_file, expected_content, regexp=False,
 # --show-mcdc-vectors
 
 REPORT_PATTERN_NO_VECTORS = (
-    '(.|\n)*'
-    '\n'
-    r'\n2\.3\. MCDC COVERAGE'
-    '\n-+'
-    '\n'
-    r'\npkg\.adb:6:22: condition has no independent influence pair'
-    ', MC/DC not achieved'
-    r'\npkg\.adb:6:33: condition has no independent influence pair'
-    ', MC/DC not achieved'
-    r'\npkg\.adb:20:21: condition has no independent influence pair'
-    ', MC/DC not achieved'
-    '\n'
-    r'\n3 violations\.')
+    "(.|\n)*"
+    "\n"
+    r"\n2\.3\. MCDC COVERAGE"
+    "\n-+"
+    "\n"
+    r"\npkg\.adb:6:22: condition has no independent influence pair"
+    ", MC/DC not achieved"
+    r"\npkg\.adb:6:33: condition has no independent influence pair"
+    ", MC/DC not achieved"
+    r"\npkg\.adb:20:21: condition has no independent influence pair"
+    ", MC/DC not achieved"
+    "\n"
+    r"\n3 violations\."
+)
 
-run_and_check(xcov_args_mcdc + ['-areport'], 'report-stdout.txt',
-              REPORT_PATTERN_NO_VECTORS, regexp=True)
+run_and_check(
+    xcov_args_mcdc + ["-areport"],
+    "report-stdout.txt",
+    REPORT_PATTERN_NO_VECTORS,
+    regexp=True,
+)
 
 # Check that mcdc vectors are displayed under the corresponding
 # condition violations, and show the conditions indexes in violation messages.
 
 REPORT_PATTERN_MCDC = (
-    '(.|\n)*'
-    '\n'
-    r'\n2\.3\. MCDC COVERAGE'
-    '\n-+'
-    '\n'
+    "(.|\n)*"
+    "\n"
+    r"\n2\.3\. MCDC COVERAGE"
+    "\n-+"
+    "\n"
     r'\npkg\.adb:6:22: condition 1 \("B"\) has no independent influence pair'
-    ', MC/DC not achieved'
+    ", MC/DC not achieved"
     r'\npkg\.adb:6:33: condition 2 \("C"\) has no independent influence pair'
-    ', MC/DC not achieved'
-    r'\npkg.adb:6:11: Decision of the form \(\(\(C0 and then C1\)'
-    r' and then C2\) or else C3\)'
-    '\nEvaluation vectors found:'
-    '\n    F - - F  -> FALSE  In a pair for C0, C3'
-    '\n    T T F T  -> TRUE  In a pair for C3'
-    '\n    T T T -  -> TRUE  In a pair for C0'
-    '\n'
+    ", MC/DC not achieved"
+    r"\npkg.adb:6:11: Decision of the form \(\(\(C0 and then C1\)"
+    r" and then C2\) or else C3\)"
+    "\nEvaluation vectors found:"
+    "\n    F - - F  -> FALSE  In a pair for C0, C3"
+    "\n    T T F T  -> TRUE  In a pair for C3"
+    "\n    T T T -  -> TRUE  In a pair for C0"
+    "\n"
     r'\npkg\.adb:20:21: condition 1 \("B"\) has no independent influence pair'
-    ', MC/DC not achieved'
-    r'\npkg.adb:20:10: Decision of the form \(C0 and then C1\)'
-    '\nEvaluation vectors found:'
-    '\n    F -  -> FALSE  In a pair for C0'
-    '\n    T T  -> TRUE  In a pair for C0'
-    '\n'
-    '\n'
-    r'\n3 violations\.')
+    ", MC/DC not achieved"
+    r"\npkg.adb:20:10: Decision of the form \(C0 and then C1\)"
+    "\nEvaluation vectors found:"
+    "\n    F -  -> FALSE  In a pair for C0"
+    "\n    T T  -> TRUE  In a pair for C0"
+    "\n"
+    "\n"
+    r"\n3 violations\."
+)
 
-run_and_check(xcov_args_mcdc + ['-areport', '--show-mcdc-vectors'],
-              'report-stdout.txt', REPORT_PATTERN_MCDC, regexp=True)
+run_and_check(
+    xcov_args_mcdc + ["-areport", "--show-mcdc-vectors"],
+    "report-stdout.txt",
+    REPORT_PATTERN_MCDC,
+    regexp=True,
+)
 
 
 # Check that evaluation vectors not part of any pair are displayed
@@ -129,35 +141,40 @@ run_and_check(xcov_args_mcdc + ['-areport', '--show-mcdc-vectors'],
 xcov_args_uc_mcdc = xcov_args_mcdc + ["--level=stmt+uc_mcdc"]
 
 REPORT_PATTERN_UC_MCDC = (
-    '(.|\n)*'
-    '\n'
-    r'\n2\.3\. UC_MCDC COVERAGE'
-    '\n-+'
-    '\n'
+    "(.|\n)*"
+    "\n"
+    r"\n2\.3\. UC_MCDC COVERAGE"
+    "\n-+"
+    "\n"
     r'\npkg\.adb:6:22: condition 1 \("B"\) has no independent influence pair'
-    ', MC/DC not achieved'
+    ", MC/DC not achieved"
     r'\npkg\.adb:6:33: condition 2 \("C"\) has no independent influence pair'
-    ', MC/DC not achieved'
+    ", MC/DC not achieved"
     r'\npkg\.adb:6:44: condition 3 \("A"\) has no independent influence pair'
-    ', MC/DC not achieved'
-    r'\npkg.adb:6:11: Decision of the form \(\(\(C0 and then C1\)'
-    r' and then C2\) or else C3\)'
-    '\nEvaluation vectors found:'
-    '\n    F - - F  -> FALSE  In a pair for C0'
-    '\n    T T T -  -> TRUE  In a pair for C0'
-    '\n    T T F T  -> TRUE  Not part of any pair'
-    '\n'
+    ", MC/DC not achieved"
+    r"\npkg.adb:6:11: Decision of the form \(\(\(C0 and then C1\)"
+    r" and then C2\) or else C3\)"
+    "\nEvaluation vectors found:"
+    "\n    F - - F  -> FALSE  In a pair for C0"
+    "\n    T T T -  -> TRUE  In a pair for C0"
+    "\n    T T F T  -> TRUE  Not part of any pair"
+    "\n"
     r'\npkg\.adb:20:21: condition 1 \("B"\) has no independent influence pair'
-    ', MC/DC not achieved'
-    r'\npkg.adb:20:10: Decision of the form \(C0 and then C1\)'
-    '\nEvaluation vectors found:'
-    '\n    F -  -> FALSE  In a pair for C0'
-    '\n    T T  -> TRUE  In a pair for C0'
-    '\n'
-    '\n'
-    r'\n4 violations\.')
+    ", MC/DC not achieved"
+    r"\npkg.adb:20:10: Decision of the form \(C0 and then C1\)"
+    "\nEvaluation vectors found:"
+    "\n    F -  -> FALSE  In a pair for C0"
+    "\n    T T  -> TRUE  In a pair for C0"
+    "\n"
+    "\n"
+    r"\n4 violations\."
+)
 
-run_and_check(xcov_args_uc_mcdc + ['-areport', '--show-mcdc-vectors'],
-              'report-stdout.txt', REPORT_PATTERN_UC_MCDC, regexp=True)
+run_and_check(
+    xcov_args_uc_mcdc + ["-areport", "--show-mcdc-vectors"],
+    "report-stdout.txt",
+    REPORT_PATTERN_UC_MCDC,
+    regexp=True,
+)
 
 thistest.result()
