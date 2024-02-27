@@ -95,13 +95,11 @@ package body Annotations.Index is
       Output_Subdir : constant String :=
         Output_Dir & "/stats" & GNAT.OS_Lib.Directory_Separator;
    begin
-      if Annotations.Multiple_Reports then
-         --  Create a "stats" directory where the
-         --  "<root-prj-name>-<metric>.index" files will be stored.
+      --  Create a "stats" directory where the "<root-prj-name>-<metric>.index"
+      --  files will be stored.
 
-         Clean_Dir (Output_Subdir, "");
-         Set_Output_Dir (Output_Subdir);
-      end if;
+      Clean_Dir (Output_Subdir, "");
+      Set_Output_Dir (Output_Subdir, Subdir => True);
 
       --  Generate the index for lines...
       Generate_Index (Lines => True);

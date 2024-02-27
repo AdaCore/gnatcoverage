@@ -5,8 +5,6 @@ trigger MC/DC obligations.
 (No reason not to also run it with binary traces.)
 """
 
-import os
-
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
@@ -17,9 +15,6 @@ from SUITE.tutils import gprfor
 tmp = Wdir("tmp_")
 
 p = gprfor(prjid="p", srcdirs=[".."], mains=["main.adb"])
-
-# Avoid the "info: creating output path report" message
-os.mkdir("report")
 
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=p),

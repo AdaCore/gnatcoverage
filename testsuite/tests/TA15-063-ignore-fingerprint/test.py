@@ -55,9 +55,6 @@ build_run_and_coverage(
 )
 check_empty("log-cov2.txt")
 
-# Avoid the "info: creating output path report" message
-os.mkdir("report")
-
 # Consolidate both partial reports and produce an XCOV report
 xcov(
     [
@@ -69,6 +66,7 @@ xcov(
         "-cstmt",
         "-axcov",
         "--output-dir=report",
+        "--quiet",
         "-Cc1.ckpt",
         "-Cc2.ckpt",
     ],

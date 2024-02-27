@@ -3,7 +3,6 @@ Check that gnatcov properly reports a missing C/C++ compiler in the
 environment. It used to emit a cryptic error message: invalid path "".
 """
 
-from e3.fs import mkdir
 from e3.os.process import DEVNULL, Run, STDOUT
 
 from SCOV.instr import xcov_instrument
@@ -32,9 +31,6 @@ Run(
     output="gprconfig.out",
     error=STDOUT,
 )
-
-# Avoid noisy "creating output path" messages
-mkdir("obj")
 
 gpr = GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["main.c"]))
 

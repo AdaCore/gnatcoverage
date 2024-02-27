@@ -4,8 +4,6 @@ instrumented units.
 """
 
 import dataclasses
-import os
-import os.path
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
@@ -15,9 +13,6 @@ from SUITE.gprutils import GPRswitches
 
 
 tmp = Wdir("tmp_")
-
-# Avoid "creating output path" info messages
-os.mkdir("obj")
 
 build_run_and_coverage(
     gprsw=GPRswitches(
