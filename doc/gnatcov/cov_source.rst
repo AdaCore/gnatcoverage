@@ -52,7 +52,7 @@ The available options are as follows:
 
 :cmd-option:`-a`, :cmd-option:`--annotate` |marg|:
    Request one or more output report formats. All the criteria support
-   ``xcov[+]``, ``html``, ``cobertura`` and ``report`` formats, with
+   ``cobertura``, ``html,``, ``report``, ``xcov[+]``, ``xml`` formats, with
    interpretations that vary depending on the assessed criteria. See the
    corresponding documentation later in this chapter for more details. This
    option accepts comma separated values and/or can be specified multiple times
@@ -336,6 +336,17 @@ coverage respectively.
 
 See the :ref:`sample annotated source <sample_sc_html_unit>` appendix for a
 sample of html annotated source.
+
+
+XML report, xml (:cmd-option:`=xml`)
+------------------------------------
+
+:cmd-option:`--annotate=xml` produces a coverage report in the XML format, as
+specified per the ``gnatcov-xml-report.xsd`` (XML schema description) that is
+generated alongside.
+
+This report format is on par with the HTML report in terms of features, and it
+is the preferred choice for programmatically accessing the coverage results.
 
 
 Cobertura report (:cmd-option:`=cobertura`)
