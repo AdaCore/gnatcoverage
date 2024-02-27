@@ -239,6 +239,94 @@ application unit:
    end Between;
 
 
+Cobertura report (:cmd-option:`=cobertura`)
+-------------------------------------------
+
+:cmd-option:`--annotate=cobertura` produces a coverage report in the Cobertura
+format, as specified per the cobertura.dtd (document type description) that is
+generated alongside.
+
+This format specification is not maintained by gnatcov, and it does not thus
+provide all of the information that other report formats do, notably MC/DC
+coverage information, violation messages. Decision violations are output using
+the "branch" terminology of Cobertura (one decision being two branches, and
+either 0, 1 or 2 of those branches are covered).
+
+It is mainly provided for integration with external tools, such as continuous
+integration systems, e.g. gitlab, which supports integration of coverage reports
+into merge requests using this format.
+
+File names in this coverage report are absolute. Depending on the use context of
+this coverage report, it can also make sense to strip a given prefix from the
+absolute paths to make them relative to, e.g. a project root. The
+:cmd-option:`--source-root` command line option accepts a string prefix that
+will be removed from absolute path references in the report.
+
+
+Annotated sources, html (:cmd-option:`=html`)
+---------------------------------------------
+
+For source coverage criteria, |gcvcov| :cmd-option:`--annotate=html` produces an
+index-based report under the HTML format (the other command names are aliases
+for backward compatibility).
+
+To navigate the report, open the index.html file using the browser of your
+choice. This index file contains a summary of the assessment context (assessed
+criteria, trace files involved, ...) and of the coverage results for all the
+units, with links to their annotated sources. If the :cmd-option:`-P` was used
+to designate the source units of interest, sources are indexed per-project.
+
+Note that some dynamic filtering / sorting can be applied:
+
+* Filter by kind of coverage obligations: either reporting on lines, or on
+  statement / decision / MCDC (one or several) obligations, depending on the
+  coverage level. See :ref:`synthetic-metrics` for more information.
+
+* Sort indexes by clicking on column headers, allowing for example sorts keyed
+  on unit names or on relative coverage achievement.
+
+See our :ref:`sample html index <sample_sc_html_index>` appendix for an
+example index page, which embeds a self-description of all the items it
+contains.
+
+The user can browse through an annotated version of the sources from the index.
+Each annotated source page contains a summary of the assessment results. This
+summary can be expanded to print subprogram metrics: the user can click on a
+subprogram's metrics to access it in the annotated source immediately. This
+summary is followed by the original source lines, all numbered and marked with a
+coverage annotation as in the :cmd-option:`--annotate=xcov` case. Lines with
+obligations are colorized in green, orange or red for ``+``, ``!`` or ``-``
+coverage respectively.
+
+See the :ref:`sample annotated source <sample_sc_html_unit>` appendix for a
+sample of html annotated source.
+
+
+Violations summary, text (:cmd-option:`=report`)
+------------------------------------------------
+
+For source coverage criteria, |gcvcov| :cmd-option:`--annotate=report` produces
+a summary that lists all the :term:`coverage violations <Coverage Violation>`
+(failure to satisfy some aspect of a coverage criterion) relevant to the set of
+assessed criteria.
+
+The report features explicit start/end of report notifications and at least
+three sections in between: Assessment Context, Coverage Violations, and
+Analysis Summary. Should |gcv| be unable to determine the coverage state of
+some coverage obligations, those will be reported in a dedicated Undetermined
+Coverage Items section, with a description of why the tool was unable to
+determine the coverage state for each obligation. A few variations are
+introduced when :term:`exemption regions <Exemption Region>` are in scope.
+See the :ref:`exemptions` section for more details on their use and effect on
+the output reports.
+
+If :cmd-option:`--dump-units-to -` is also on the command line, a *UNITS OF
+INTEREST* section is produced, which contains the list of units considered
+of-interest for the reported assessment, as well as the list of source files
+individually ignored with the ``Ignored_Source_Files`` project attribute and
+corresponding command-line option.
+
+
 Annotated sources, text (:cmd-option:`=xcov[+]`)
 ------------------------------------------------
 
@@ -299,45 +387,6 @@ improperly satisfied obligation is an uncovered statement on line 7::
    STATEMENT "return V ..." at 7:10 not executed
 
 
-Annotated sources, html (:cmd-option:`=html`)
----------------------------------------------
-
-For source coverage criteria, |gcvcov| :cmd-option:`--annotate=html` produces an
-index-based report under the HTML format (the other command names are aliases
-for backward compatibility).
-
-To navigate the report, open the index.html file using the browser of your
-choice. This index file contains a summary of the assessment context (assessed
-criteria, trace files involved, ...) and of the coverage results for all the
-units, with links to their annotated sources. If the :cmd-option:`-P` was used
-to designate the source units of interest, sources are indexed per-project.
-
-Note that some dynamic filtering / sorting can be applied:
-
-* Filter by kind of coverage obligations: either reporting on lines, or on
-  statement / decision / MCDC (one or several) obligations, depending on the
-  coverage level. See :ref:`synthetic-metrics` for more information.
-
-* Sort indexes by clicking on column headers, allowing for example sorts keyed
-  on unit names or on relative coverage achievement.
-
-See our :ref:`sample html index <sample_sc_html_index>` appendix for an
-example index page, which embeds a self-description of all the items it
-contains.
-
-The user can browse through an annotated version of the sources from the index.
-Each annotated source page contains a summary of the assessment results. This
-summary can be expanded to print subprogram metrics: the user can click on a
-subprogram's metrics to access it in the annotated source immediately. This
-summary is followed by the original source lines, all numbered and marked with a
-coverage annotation as in the :cmd-option:`--annotate=xcov` case. Lines with
-obligations are colorized in green, orange or red for ``+``, ``!`` or ``-``
-coverage respectively.
-
-See the :ref:`sample annotated source <sample_sc_html_unit>` appendix for a
-sample of html annotated source.
-
-
 XML report, xml (:cmd-option:`=xml`)
 ------------------------------------
 
@@ -347,55 +396,6 @@ generated alongside.
 
 This report format is on par with the HTML report in terms of features, and it
 is the preferred choice for programmatically accessing the coverage results.
-
-
-Cobertura report (:cmd-option:`=cobertura`)
--------------------------------------------
-
-:cmd-option:`--annotate=cobertura` produces a coverage report in the Cobertura
-format, as specified per the cobertura.dtd (document type description) that is
-generated alongside.
-
-This format specification is not maintained by gnatcov, and it does not thus
-provide all of the information that other report formats do, notably MC/DC
-coverage information, violation messages. Decision violations are output using
-the "branch" terminology of Cobertura (one decision being two branches, and
-either 0, 1 or 2 of those branches are covered).
-
-It is mainly provided for integration with external tools, such as continuous
-integration systems, e.g. gitlab, which supports integration of coverage reports
-into merge requests using this format.
-
-File names in this coverage report are absolute. Depending on the use context of
-this coverage report, it can also make sense to strip a given prefix from the
-absolute paths to make them relative to, e.g. a project root. The
-:cmd-option:`--source-root` command line option accepts a string prefix that
-will be removed from absolute path references in the report.
-
-
-Violations summary, text (:cmd-option:`=report`)
-------------------------------------------------
-
-For source coverage criteria, |gcvcov| :cmd-option:`--annotate=report` produces
-a summary that lists all the :term:`coverage violations <Coverage Violation>`
-(failure to satisfy some aspect of a coverage criterion) relevant to the set of
-assessed criteria.
-
-The report features explicit start/end of report notifications and at least
-three sections in between: Assessment Context, Coverage Violations, and
-Analysis Summary. Should |gcv| be unable to determine the coverage state of
-some coverage obligations, those will be reported in a dedicated Undetermined
-Coverage Items section, with a description of why the tool was unable to
-determine the coverage state for each obligation. A few variations are
-introduced when :term:`exemption regions <Exemption Region>` are in scope.
-See the :ref:`exemptions` section for more details on their use and effect on
-the output reports.
-
-If :cmd-option:`--dump-units-to -` is also on the command line, a *UNITS OF
-INTEREST* section is produced, which contains the list of units considered
-of-interest for the reported assessment, as well as the list of source files
-individually ignored with the ``Ignored_Source_Files`` project attribute and
-corresponding command-line option.
 
 
 Assessment Context
