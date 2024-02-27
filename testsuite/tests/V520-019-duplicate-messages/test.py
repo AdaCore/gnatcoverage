@@ -24,9 +24,10 @@ build_run_and_coverage(
 )
 
 # Check the expected results
-check_xcov_reports("obj",
-                   {"main.adb.xcov": {},
-                    "pkg.adb.xcov" : {'-': {10}}})
+expected_cov = {"main.adb.xcov": {}, "pkg.adb.xcov" : {'-': {10}}}
+if thistest.options.trace_mode == "src":
+    expected_cov["pkg.ads.xcov"] = {}
+check_xcov_reports("obj", expected_cov, discard_empty=False)
 
 # Check that we do not have any duplicate messages. In this case, we only
 # expect a single statment violation.

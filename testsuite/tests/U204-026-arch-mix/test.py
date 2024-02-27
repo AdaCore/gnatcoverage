@@ -49,8 +49,10 @@ def check_reports(xcov_dir):
         {
             "main_1.adb.xcov": {"+": {5}},
             "main_2.adb.xcov": {"+": {5}},
-            "pkg.adb.xcov": {"+": {12, 14}, "!": {11}}
+            "pkg.adb.xcov": {"+": {12, 14}, "!": {11}},
+            "pkg.ads.xcov": {},
         },
+        discard_empty=False,
     )
 
 

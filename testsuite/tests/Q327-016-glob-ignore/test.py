@@ -27,6 +27,13 @@ build_run_and_coverage(
 
 # Check we have the expected reports
 check_xcov_reports(
-    '.', {'main.adb.xcov': {'+': {6, 7}}, 'pkg_a.adb.xcov': {'+': {6}}}
+    '.',
+    {
+        'main.adb.xcov': {'+': {6, 7}},
+        'pkg_a.adb.xcov': {'+': {6}},
+        'pkg_a.ads.xcov': {},
+        'pkg_b.ads.xcov': {},
+        'pkg_c.ads.xcov': {},
+    },
 )
 thistest.result()

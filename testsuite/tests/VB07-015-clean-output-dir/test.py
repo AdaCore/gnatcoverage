@@ -15,9 +15,10 @@ import os
 
 tmp = Wdir("tmp_")
 
-expected_cov_per_unit = {
-    "main": {"+": {4, 7}},
-    "pkg": {"+": {5}},
+expected_cov = {
+    "main.adb": {"+": {4, 7}},
+    "pkg.adb": {"+": {5}},
+    "pkg.ads": {},
 }
 
 possible_output_dirs = ["obj", os.path.join("obj", "xcov")]
@@ -34,7 +35,7 @@ def check_one(units, output_dir, xcov_args):
         thistest.log(f"inspecting {dir}")
         check_xcov_reports(
             dir,
-            {f"{unit}.adb.xcov": expected_cov_per_unit[unit] for unit in units}
+            {f"{unit}.xcov": expected_cov[unit] for unit in units}
             if dir == output_dir
             else {},
         )
@@ -54,17 +55,17 @@ for dir in possible_output_dirs:
 
 # First, produce a report for all units, with a single report format specified
 thistest.log("=== Step 1: all units in obj ===")
-check_one(["main", "pkg"], "obj", xcov_args + ["-axcov"])
+check_one(["main.adb", "pkg.adb", "pkg.ads"], "obj", xcov_args + ["-axcov"])
 
 # Then only create a report for pkg, still a single report format
 thistest.log("=== Step 2: pkg in obj ===")
-check_one(["pkg"], "obj", xcov_args + ["-axcov", "--units=pkg"])
+check_one(["pkg.adb", "pkg.ads"], "obj", xcov_args + ["-axcov", "--units=pkg"])
 
 # Now create a report for both units, but specifying two output formats
 # (thus creating a subdir).
 thistest.log("=== Step 3: all units in obj/xcov ===")
 check_one(
-    ["main", "pkg"],
+    ["main.adb", "pkg.adb", "pkg.ads"],
     os.path.join("obj", "xcov"),
     xcov_args + ["-axcov,html"]
 )
@@ -72,6 +73,6 @@ check_one(
 # An finally check that the subdir is also cleaned when once again generating
 # report with a single report format.
 thistest.log("=== Step 4: pkg in obj ===")
-check_one(["pkg"], "obj", xcov_args + ["-axcov", "--units=pkg"])
+check_one(["pkg.adb", "pkg.ads"], "obj", xcov_args + ["-axcov", "--units=pkg"])
 
 thistest.result()

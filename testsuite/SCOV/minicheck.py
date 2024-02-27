@@ -412,7 +412,7 @@ def fmt_cov(cov_data):
     return ' '.join(result)
 
 
-def check_xcov_content(filename, expected_cov):
+def check_xcov_content(filename, expected_cov, trace_mode=None):
     """
     Dumbed-down version of coverage matching. Check that the XCOV file
     "filename" matches some expected coverage data.
@@ -483,7 +483,7 @@ def check_xcov_content(filename, expected_cov):
     )
 
 
-def check_xcov_reports(reports_dir, expected_cov):
+def check_xcov_reports(reports_dir, expected_cov, discard_empty=None):
     """
     Check the set of XCOV report files and their content.
 
@@ -493,6 +493,26 @@ def check_xcov_reports(reports_dir, expected_cov):
 
     "expected_cov" is a mapping: filename -> coverage data. See
     "check_xcov_content" for the coverage data format.
+
+    "discard_empty" is used to adjust test expectations for binary traces:
+
+    * When True, source file for which there are no coverage expectation are
+      discarded (binary traces have a technical limitation: gnatcov is unable
+      to generate coverage reports for SCO-less source files: see
+      eng/das/cov/gnatcoverage#245).
+
+    * When False, reports of source files with no coverage expectations are
+      checked.
+
+    * If left to None, "discard_empty" is treated as True when the testsuite
+      runs in binary traces mode, and treated as False when the testsuite runs
+      in source traces mode.
+
+    None is the most useful default. Tests that force the use of source traces
+    regardless of the testsuite trace mode should pass discard_empty=True.
+    Tests that have source files showing up as completely no code with binary
+    traces should pass discard_empty=False and adjust "expected_cov" depending
+    on the testsuite trace mode.
     """
 
     def fmt_sorted_indented_list(items):
@@ -503,6 +523,16 @@ def check_xcov_reports(reports_dir, expected_cov):
     # separators, so use it.
     def canonicalize_file(filename):
         return filename.replace('\\', '/')
+
+    if (
+        discard_empty
+        or (discard_empty is None and thistest.options.trace_mode == "bin")
+    ):
+        expected_cov = {
+            filename: expectations
+            for filename, expectations in expected_cov.items()
+            if any(lines for lines in expectations.values())
+        }
 
     xcov_files = {
         canonicalize_file(filename)

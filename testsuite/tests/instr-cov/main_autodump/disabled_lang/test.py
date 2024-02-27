@@ -50,6 +50,7 @@ check_xcov_reports(
         "pkg.adb.xcov": {"+": {10, 22}, "-": {12, 23}},
         "pkg.ads.xcov": {},
     },
+    discard_empty=False,
 )
 tmp.to_homedir()
 

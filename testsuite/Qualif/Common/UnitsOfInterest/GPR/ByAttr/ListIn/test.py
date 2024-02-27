@@ -17,12 +17,12 @@ TestCase(category=None).run(
 wd.to_subdir("wd_2")
 TestCase(category=None).run(covcontrol=CovControl(
     ulist_in="../" + list_to_file(["ops", "ops.andthen"]),
-    xreports=["ops.ads", "ops.adb", "ops-andthen.adb"]))
+    xreports=["ops.ads", "ops.adb", "ops-andthen.ads", "ops-andthen.adb"]))
 
 # Check on lone child unit only
 wd.to_subdir("wd_3")
 TestCase(category=None).run(
     covcontrol=CovControl(ulist_in="../" + list_to_file(["ops.andthen"]),
-                          xreports=["ops-andthen.adb"]))
+                          xreports=["ops-andthen.ads", "ops-andthen.adb"]))
 
 thistest.result()

@@ -75,5 +75,5 @@ expected = {
 
 # Finally, check we have the expected reports for the --level=stmt
 # consolidation.
-check_xcov_reports('output', expected)
+check_xcov_reports('output', expected, discard_empty=False)
 thistest.result()

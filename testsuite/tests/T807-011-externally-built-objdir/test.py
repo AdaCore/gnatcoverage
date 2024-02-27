@@ -48,10 +48,11 @@ build_run_and_coverage(
     trace_mode='src'
 )
 
-check_xcov_reports('report', {
-    'ops.ads.xcov': {},
-    'ops.adb.xcov': {'+': {4, 5}, '-': {6}},
-})
+check_xcov_reports(
+    'report',
+    {'ops.ads.xcov': {}, 'ops.adb.xcov': {'+': {4, 5}, '-': {6}}},
+    discard_empty=False,
+)
 
 # Re-run the instrumenter on the main, to check that it does not re-create a
 # SID file for the opslib externall built project.

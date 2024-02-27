@@ -21,6 +21,8 @@ build_run_and_coverage(
     trace_mode='src',
 )
 
-check_xcov_reports('xcov', {'main.c.xcov': {'+': {6}}})
+check_xcov_reports(
+    'xcov', {'main.c.xcov': {'+': {6}}, 'pkg.c.xcov': {}}, discard_empty=False
+)
 
 thistest.result()

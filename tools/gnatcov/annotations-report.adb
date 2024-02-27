@@ -488,7 +488,11 @@ package body Annotations.Report is
          end if;
 
          Put_Line (Output.all, ", justification:");
-         Put_Line (Output.all, E.Message.all);
+         if E.Message /= null then
+            Put_Line (Output.all, E.Message.all);
+         else
+            Put_Line (Output.all, "No justification");
+         end if;
 
          New_Line (Output.all);
 

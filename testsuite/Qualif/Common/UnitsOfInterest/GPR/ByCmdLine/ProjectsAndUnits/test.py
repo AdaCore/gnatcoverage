@@ -21,7 +21,8 @@ check(
     units=['intops'],
     recurse=True,
     xreports=['intops.ads', 'intops.adb',
-              'intops-add.adb', 'intops-sub.adb'])
+              'intops-add.ads', 'intops-add.adb',
+              'intops-sub.ads', 'intops-sub.adb'])
 
 # Lone unit, with child units, in closure
 
@@ -46,13 +47,13 @@ check(
     root_project='../boolops/boolops',
     units=['boolops.andthen'],
     recurse=False,
-    xreports=['boolops.ads', 'boolops-andthen.adb'])
+    xreports=['boolops.ads', 'boolops-andthen.ads', 'boolops-andthen.adb'])
 
 check(
     root_project='gen.gpr',
     projects=['boolops'],
     units=['boolops.andthen'],
     recurse=False,
-    xreports=['boolops.ads', 'boolops-andthen.adb'])
+    xreports=['boolops.ads', 'boolops-andthen.ads', 'boolops-andthen.adb'])
 
 thistest.result()

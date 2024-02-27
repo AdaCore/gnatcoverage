@@ -37,6 +37,12 @@ thistest.fail_if(expected != actual,
                  'but got:\n'
                  '{}'.format(indent(expected), indent(actual)))
 
-check_xcov_reports('.', {'main.adb.xcov': {}, 'generic_hello.adb.xcov': {}})
+expected_cov = {
+    'main.adb.xcov': {},
+    'generic_hello.adb.xcov': {},
+}
+if thistest.options.trace_mode == "src":
+    expected_cov["generic_hello.ads.xcov"] = {}
+check_xcov_reports('.', expected_cov, discard_empty=False)
 
 thistest.result()

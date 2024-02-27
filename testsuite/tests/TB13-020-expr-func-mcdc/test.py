@@ -34,6 +34,6 @@ check_xcov_reports("report", {
         "-": {16, 20}},
     "pkg.ads.xcov": {},
     "pkg.adb.xcov": {"+": {9}},
-})
+}, discard_empty=False)
 
 thistest.result()

@@ -45,6 +45,8 @@ checked_xcov(base_args + ['--annotate=xcov', '--checkpoint=c2.ckpt',
 check_xcov_reports(
     '.',
     {'math.adb.xcov': {'+': {7, 12, 13, 14, 18, 19}, '!': {17}},
-     'math.ads.xcov': {}})
+     'math.ads.xcov': {}},
+    discard_empty=False,
+)
 
 thistest.result()

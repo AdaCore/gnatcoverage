@@ -24,6 +24,7 @@ def check_results():
             "main.adb.xcov": {"!": {42, 43, 53, 54}, "+": {81, 82, 87, 88}},
             "type_pkg.ads.xcov": {},
         },
+        discard_empty=False,
     )
 
 

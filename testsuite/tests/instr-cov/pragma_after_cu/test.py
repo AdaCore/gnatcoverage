@@ -22,6 +22,6 @@ check_xcov_reports('xcov', {
     'main.adb.xcov': {'+': {6}},
     'raise_error.adb.xcov': {'+': {3}},
     'raise_error.ads.xcov': {},
-})
+}, discard_empty=False)
 
 thistest.result()

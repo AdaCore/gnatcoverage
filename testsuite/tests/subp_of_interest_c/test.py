@@ -37,6 +37,7 @@ check_xcov_reports(
         "bar.h.xcov": {},
         "pkg.c.xcov": {"+": {4}},
     },
+    discard_empty=False,
 )
 
 thistest.result()

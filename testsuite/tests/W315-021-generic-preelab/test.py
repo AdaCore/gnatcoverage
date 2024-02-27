@@ -21,9 +21,10 @@ check_xcov_reports(
     "obj",
     {
         "test.adb.xcov": {"+": {4, 6}},
-        "pkg.ads.xcov": {"+": {}},
+        "pkg.ads.xcov": {},
         "pkg.adb.xcov": {"+": {4}},
     },
+    discard_empty=False,
 )
 
 thistest.result()

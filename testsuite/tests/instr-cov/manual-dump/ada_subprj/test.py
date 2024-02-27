@@ -52,6 +52,9 @@ build_run_and_coverage(
 
 check_xcov_reports('xcov', {
     'lib1.adb.xcov': {'+': {6, 8}, '-': {10}},
-    'lib2.adb.xcov': {'+': {4, 6}}})
+    'lib1.ads.xcov': {},
+    'lib2.adb.xcov': {'+': {4, 6}},
+    'lib2.ads.xcov': {},
+})
 
 thistest.result()
