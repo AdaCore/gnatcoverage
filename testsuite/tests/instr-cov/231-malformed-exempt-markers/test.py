@@ -47,11 +47,11 @@ thistest.fail_if_not_equal(
         "*** main_1.adb:5:5: warning: No justification given for exempted"
         " region\n"
         "*** main_1.adb:9:5: warning: At most 2 pragma arguments allowed\n"
-        "*** main_1.adb:10:5: warning: Invalid justification argument: string"
-        " literal expected\n"
-        "*** main_1.adb:11:5: warning: Invalid Xcov annotation kind: aaa\n"
-        "*** main_1.adb:12:5: warning: Xcov annotation kind missing\n"
+        "*** main_1.adb:10:5: warning: Invalid Xcov annotation kind: aaa\n"
+        "*** main_1.adb:11:5: warning: Xcov annotation kind missing\n"
         "*** main_2.adb:4:5: warning: Invalid Xcov annotation kind\n"
+        "*** main_2.adb:5:5: warning: Invalid justification argument: string"
+        " literal expected\n"
     ),
     contents_of("instrument.log"),
 )
