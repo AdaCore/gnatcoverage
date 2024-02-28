@@ -12,37 +12,51 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor, xcov
 
 
-wd = Wdir('tmp_')
+wd = Wdir("tmp_")
 
 # First, create a checkpoint using the default tag provider
-ckpt = 'c.ckpt'
+ckpt = "c.ckpt"
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=gprfor(['main.adb'], srcdirs='..')),
-    covlevel='stmt+decision',
-    mains=['main'],
-    extra_coverage_args=['--save-checkpoint', ckpt])
+    gprsw=GPRswitches(root_project=gprfor(["main.adb"], srcdirs="..")),
+    covlevel="stmt+decision",
+    mains=["main"],
+    extra_coverage_args=["--save-checkpoint", ckpt],
+)
 
 # Now try to load it while asking for the non-default tag provider. Don't pass
 # the trace file, as we are interested only in checkpoint processing.
-xcov(['coverage', '-cstmt+decision', '-axcov', '-Sinstance', '-C', ckpt,
-      '--output-dir=.'],
-     out='consolidate.log')
+xcov(
+    [
+        "coverage",
+        "-cstmt+decision",
+        "-axcov",
+        "-Sinstance",
+        "-C",
+        ckpt,
+        "--output-dir=.",
+    ],
+    out="consolidate.log",
+)
 
-expected = ('warning: cannot merge coverage information from {} as it is'
-            ' separated by default'.format(ckpt))
-actual = contents_of('consolidate.log').strip()
-thistest.fail_if(expected != actual,
-                 'Unexpected output for "gnatcov coverage". Expected:\n'
-                 '{}\n'
-                 'but got:\n'
-                 '{}'.format(indent(expected), indent(actual)))
+expected = (
+    "warning: cannot merge coverage information from {} as it is"
+    " separated by default".format(ckpt)
+)
+actual = contents_of("consolidate.log").strip()
+thistest.fail_if(
+    expected != actual,
+    'Unexpected output for "gnatcov coverage". Expected:\n'
+    "{}\n"
+    "but got:\n"
+    "{}".format(indent(expected), indent(actual)),
+)
 
 expected_cov = {
-    'main.adb.xcov': {},
-    'generic_hello.adb.xcov': {},
+    "main.adb.xcov": {},
+    "generic_hello.adb.xcov": {},
 }
 if thistest.options.trace_mode == "src":
     expected_cov["generic_hello.ads.xcov"] = {}
-check_xcov_reports('.', expected_cov, discard_empty=False)
+check_xcov_reports(".", expected_cov, discard_empty=False)
 
 thistest.result()

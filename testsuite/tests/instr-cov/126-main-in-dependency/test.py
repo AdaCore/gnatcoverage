@@ -12,17 +12,25 @@ from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
-main_prj = gprfor(srcdirs=[os.path.join("..", "src-main-dep")],
-                  prjid="main_dep", mains=["main.adb"], objdir="obj-main")
-root_prj = gprfor(srcdirs=[os.path.join("..", "src")], deps=[main_prj],
-                  mains=["main_root.adb"], objdir="obj")
+main_prj = gprfor(
+    srcdirs=[os.path.join("..", "src-main-dep")],
+    prjid="main_dep",
+    mains=["main.adb"],
+    objdir="obj-main",
+)
+root_prj = gprfor(
+    srcdirs=[os.path.join("..", "src")],
+    deps=[main_prj],
+    mains=["main_root.adb"],
+    objdir="obj",
+)
 
 # This also checks that we do not produce multiple traces
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=root_prj),
-    covlevel='stmt',
+    covlevel="stmt",
     mains=["main_root"],
     extra_coverage_args=["-axcov"],
 )

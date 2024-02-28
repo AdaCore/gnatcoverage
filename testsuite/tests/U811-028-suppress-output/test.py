@@ -16,11 +16,11 @@ from SUITE.gprutils import GPRswitches
 tmp = Wdir("tmp_")
 
 p = gprfor(
-  mains=["main.adb"],
-  srcdirs=[".."],
-  extra='package Coverage is'
-        '\n   for Switches ("Coverage") use ("--annotate=report");'
-        '\nend Coverage;\n'
+    mains=["main.adb"],
+    srcdirs=[".."],
+    extra="package Coverage is"
+    '\n   for Switches ("Coverage") use ("--annotate=report");'
+    "\nend Coverage;\n",
 )
 
 xcov_args = build_and_run(
@@ -64,15 +64,17 @@ thistest.fail_if_not_equal(
 # of a coverage report specified in the project file but a checkpoint
 # is still emitted.
 
-xcov(xcov_args + ["--cancel-annotate", "--save-checkpoint=prj_attr.ckpt"],
-     out='suppress-report-project-file.txt')
+xcov(
+    xcov_args + ["--cancel-annotate", "--save-checkpoint=prj_attr.ckpt"],
+    out="suppress-report-project-file.txt",
+)
 thistest.fail_if(
     not empty("suppress-report-project-file.txt"),
-    comment="report output not suppressed (from project file)"
+    comment="report output not suppressed (from project file)",
 )
 thistest.fail_if(
     not exists("prj_attr.ckpt"),
-    comment="Checkpoint file does not exist (project attribute)"
+    comment="Checkpoint file does not exist (project attribute)",
 )
 
 
@@ -91,11 +93,11 @@ xcov(
 
 thistest.fail_if(
     not empty("suppress-report.txt"),
-    comment="report output not suppressed (from command line)"
+    comment="report output not suppressed (from command line)",
 )
 thistest.fail_if(
     not exists("cmd_line_report.ckpt"),
-    comment="Checkpoint file does not exists (--annotate=report)"
+    comment="Checkpoint file does not exists (--annotate=report)",
 )
 
 # Check that specifying --annotate=supress-output with --annotate=xcov on the
@@ -117,7 +119,7 @@ thistest.fail_if(
 )
 thistest.fail_if(
     not exists("cmd_line_xcov.ckpt"),
-    comment="Checkpoint file does not exist (--annotate=xcov)"
+    comment="Checkpoint file does not exist (--annotate=xcov)",
 )
 
 thistest.result()

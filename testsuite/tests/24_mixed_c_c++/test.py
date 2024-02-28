@@ -12,8 +12,7 @@ from SUITE.tutils import thistest, gprfor
 Wdir("tmp_")
 
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."],
-                                          mains=["test.cpp"])),
+    gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["test.cpp"])),
     covlevel="stmt",
     mains=["test"],
     extra_coverage_args=["--annotate=xcov"],

@@ -4,15 +4,15 @@ int
 run_statements (int full, int arg)
 {
   {
-    if (!full)              // # statements-aux-all
+    if (!full) // # statements-aux-all
       {
-        ++arg;              // # statements-not-cond
-        goto compound_out;  // # statements-not-cond
+        ++arg;             // # statements-not-cond
+        goto compound_out; // # statements-not-cond
       }
 
-    --arg;                  // # statements-cond
+    --arg; // # statements-cond
   }
 
 compound_out:
-  return arg;               // # statements-aux-all
+  return arg; // # statements-aux-all
 }

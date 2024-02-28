@@ -12,29 +12,31 @@ from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 
 
-main_gpr = os.path.abspath('main.gpr')
-main_obj_dir = os.path.abspath('obj-main')
+main_gpr = os.path.abspath("main.gpr")
+main_obj_dir = os.path.abspath("obj-main")
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=main_gpr,
-                      projects=['main', 'math', 'vectors']),
-    covlevel='stmt',
-    mains=['main'],
-    extra_coverage_args=['-axcov', '--output-dir=xcov'],
+    gprsw=GPRswitches(
+        root_project=main_gpr, projects=["main", "math", "vectors"]
+    ),
+    covlevel="stmt",
+    mains=["main"],
+    extra_coverage_args=["-axcov", "--output-dir=xcov"],
     gpr_obj_dir=main_obj_dir,
     gpr_exe_dir=main_obj_dir,
-    trace_mode='src')
-check_xcov_reports('xcov', {
-    'main.adb.xcov': {'+': {5, 9, 11, 12, 13}},
-
-    'vectors.ads.xcov':  {'+': {6, 15, 17, 18, 19, 20}},
-    'vectors.adb.xcov':  {'+': {5, 10, 15, 18, 19},
-                          '-': {16, 25, 26, 28}},
-
-    'math.ads.xcov':  {'+': {3, 11, 12, 13}},
-    'math.adb.xcov':  {'+': {5, 10}, '-': {15}},
-})
+    trace_mode="src",
+)
+check_xcov_reports(
+    "xcov",
+    {
+        "main.adb.xcov": {"+": {5, 9, 11, 12, 13}},
+        "vectors.ads.xcov": {"+": {6, 15, 17, 18, 19, 20}},
+        "vectors.adb.xcov": {"+": {5, 10, 15, 18, 19}, "-": {16, 25, 26, 28}},
+        "math.ads.xcov": {"+": {3, 11, 12, 13}},
+        "math.adb.xcov": {"+": {5, 10}, "-": {15}},
+    },
+)
 
 thistest.result()

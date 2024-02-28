@@ -2,28 +2,39 @@ import os.path
 import qm
 import qm.rest.pdfgenerator
 
+
 def get_userconf():
-       # retrieve the author from the environment data artifact
-       env = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env.py')
-       with open(env,"r") as fd:
-           envdata = eval(fd.read())
+    # retrieve the author from the environment data artifact
+    env = os.path.join(os.path.dirname(os.path.dirname(__file__)), "env.py")
+    with open(env, "r") as fd:
+        envdata = eval(fd.read())
 
-       author = "AdaCore for %s" % (envdata['project_full'])
+    author = "AdaCore for %s" % (envdata["project_full"])
 
-       return author
+    return author
+
 
 class GenPDF(qm.rest.pdfgenerator.SphinxGeneratePdf):
     def userconf(self):
         # use method from super just to retrieve the 'extras' field
-        [ author, version, extras ] = qm.rest.pdfgenerator.SphinxGeneratePdf.userconf (self)
+        [
+            author,
+            version,
+            extras,
+        ] = qm.rest.pdfgenerator.SphinxGeneratePdf.userconf(self)
         author = get_userconf()
 
         return [author, version, extras]
 
+
 class GenHTML(qm.rest.pdfgenerator.SphinxGenerateHtml):
     def userconf(self):
         # use method from super just to retrieve the 'extras' field
-        [ author, version, extras ] = qm.rest.pdfgenerator.SphinxGenerateHtml.userconf (self)
+        [
+            author,
+            version,
+            extras,
+        ] = qm.rest.pdfgenerator.SphinxGenerateHtml.userconf(self)
         author = get_userconf()
 
         return [author, version, extras]

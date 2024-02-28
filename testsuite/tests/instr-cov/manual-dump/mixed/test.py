@@ -47,7 +47,7 @@ check_xcov_reports(
     "obj",
     {
         "main_ada.adb.xcov": {"+": {5}},
-        "main_c.c.xcov": {"+": {6}, '-': {8}},
+        "main_c.c.xcov": {"+": {6}, "-": {8}},
     },
 )
 

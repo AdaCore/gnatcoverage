@@ -11,17 +11,17 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=gprfor(mains=['test.c'], srcdirs=['..'])),
-    covlevel='stmt+mcdc',
-    mains=['test'],
-    extra_coverage_args=['-axcov', '--output-dir=xcov'],
-    trace_mode='src',
-    dump_trigger='main-end',
+    gprsw=GPRswitches(root_project=gprfor(mains=["test.c"], srcdirs=[".."])),
+    covlevel="stmt+mcdc",
+    mains=["test"],
+    extra_coverage_args=["-axcov", "--output-dir=xcov"],
+    trace_mode="src",
+    dump_trigger="main-end",
 )
 
-check_xcov_reports('xcov', {'test.c.xcov': {'+': {4}, '!': {5}}})
+check_xcov_reports("xcov", {"test.c.xcov": {"+": {4}, "!": {5}}})
 
 thistest.result()

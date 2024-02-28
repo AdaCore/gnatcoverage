@@ -9,20 +9,25 @@ from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=gprfor(srcdirs='..', mains=['main.adb'])),
-    covlevel='stmt',
-    mains=['main'],
-    extra_coverage_args=['-axcov', '--output-dir=xcov'],
-    trace_mode='src',
-    dump_trigger='main-end',
-    dump_channel='base64-stdout')
-check_xcov_reports('xcov', {
-    'main.adb.xcov': {'+': {5, 7, 8}},
-    'pkg.adb.xcov':  {'+': {5, 6, 8}},
-    'pkg.ads.xcov':  {},
-}, discard_empty=False)
+    gprsw=GPRswitches(root_project=gprfor(srcdirs="..", mains=["main.adb"])),
+    covlevel="stmt",
+    mains=["main"],
+    extra_coverage_args=["-axcov", "--output-dir=xcov"],
+    trace_mode="src",
+    dump_trigger="main-end",
+    dump_channel="base64-stdout",
+)
+check_xcov_reports(
+    "xcov",
+    {
+        "main.adb.xcov": {"+": {5, 7, 8}},
+        "pkg.adb.xcov": {"+": {5, 6, 8}},
+        "pkg.ads.xcov": {},
+    },
+    discard_empty=False,
+)
 
 thistest.result()

@@ -3,20 +3,20 @@
 int
 dogoto (int full, int arg)
 {
-  if (full != -1)   // # body
+  if (full != -1) // # body
     {
-      --arg;        // # body
-      goto test;    // # body
+      --arg;     // # body
+      goto test; // # body
     }
-  ++arg;            // # unreachable
+  ++arg; // # unreachable
 
 test:
-  if (full)         // # body
-  {
-    ++arg;          // # cond
-    goto end;       // # cond
-  }
+  if (full) // # body
+    {
+      ++arg;    // # cond
+      goto end; // # cond
+    }
 
 end:
-  return arg;       // # body
+  return arg; // # body
 }

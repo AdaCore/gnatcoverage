@@ -13,13 +13,14 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
-p = gprfor(srcdirs=['..'], mains=['main.adb'])
+p = gprfor(srcdirs=[".."], mains=["main.adb"])
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=p),
-    covlevel='stmt+mcdc',
-    mains=['main'],
-    extra_coverage_args=['--save-checkpoint=partial.ckpt'])
+    covlevel="stmt+mcdc",
+    mains=["main"],
+    extra_coverage_args=["--save-checkpoint=partial.ckpt"],
+)
 
 thistest.result()

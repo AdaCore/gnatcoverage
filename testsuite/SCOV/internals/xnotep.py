@@ -12,14 +12,60 @@ This depends on the thittest instance.
 import re
 
 from .cnotes import (
-    Xnote, block_p, transparent_p, cPartCov, dNoCov, dPartCov, dfAlways,
-    dfNoCov, dtAlways, dtNoCov, ePartCov, eNoCov, efNoCov, etNoCov, lFullCov,
-    lNoCode, lNoCov, lNotCoverable, lPartCov, lx0, lx1, lx2, lx, oNoCov,
-    oPartCov, ofNoCov, otNoCov, r0, r0c, sNoCov, sNotCoverable, sPartCov,
-    xBlock0, xBlock1, xBlock2, xNoteKinds, lUndetCov, sUndetCov, dUndetCov,
-    eUndetCov, XsNoCov, XsPartCov, XsNotCoverable, XsUndetCov, XotNoCov,
-    XofNoCov, XoPartCov, XoNoCov, XcPartCov, Xr0, Xr0c, aNoCov, atNoCov,
-    acPartCov
+    Xnote,
+    block_p,
+    transparent_p,
+    cPartCov,
+    dNoCov,
+    dPartCov,
+    dfAlways,
+    dfNoCov,
+    dtAlways,
+    dtNoCov,
+    ePartCov,
+    eNoCov,
+    efNoCov,
+    etNoCov,
+    lFullCov,
+    lNoCode,
+    lNoCov,
+    lNotCoverable,
+    lPartCov,
+    lx0,
+    lx1,
+    lx2,
+    lx,
+    oNoCov,
+    oPartCov,
+    ofNoCov,
+    otNoCov,
+    r0,
+    r0c,
+    sNoCov,
+    sNotCoverable,
+    sPartCov,
+    xBlock0,
+    xBlock1,
+    xBlock2,
+    xNoteKinds,
+    lUndetCov,
+    sUndetCov,
+    dUndetCov,
+    eUndetCov,
+    XsNoCov,
+    XsPartCov,
+    XsNotCoverable,
+    XsUndetCov,
+    XotNoCov,
+    XofNoCov,
+    XoPartCov,
+    XoNoCov,
+    XcPartCov,
+    Xr0,
+    Xr0c,
+    aNoCov,
+    atNoCov,
+    acPartCov,
 )
 from .segments import Line, Section, Segment
 from .stags import Stag_from
@@ -45,7 +91,6 @@ class _XnoteP_block:
         self.lastni = None
 
     def instanciate_over(self, tline, block, kind):
-
         # We create a single instance the first time around, then expand the
         # section over subsequence matches.
         if self.lastni:
@@ -55,7 +100,8 @@ class _XnoteP_block:
         else:
             thisni = Xnote(xnp=self.notep, block=block, kind=kind)
             thisni.register_match(
-                Section(l0=tline.lno, c0=0, l1=tline.lno, c1=0))
+                Section(l0=tline.lno, c0=0, l1=tline.lno, c1=0)
+            )
 
         if thisni:
             self.lastni = thisni
@@ -71,7 +117,6 @@ class _XnoteP_line:
         self.notep = notep
 
     def instanciate_over(self, tline, block, kind):
-
         thisni = Xnote(xnp=self.notep, block=block, kind=kind)
         thisni.register_match(Line(tline.lno))
 
@@ -114,9 +159,9 @@ class _XnoteP_segment:
 
         while segend <= linend and pnest >= 0:
             c = tline.text[segend]
-            if c == '(':
+            if c == "(":
                 pnest += 1
-            elif c == ')':
+            elif c == ")":
                 pnest -= 1
             segend += 1
 
@@ -127,7 +172,6 @@ class _XnoteP_segment:
         return segend
 
     def instanciate_over(self, tline, block, kind):
-
         thisni = Xnote(xnp=self.notep, block=block, kind=kind)
 
         # Register matches for Segments corresponding to all the instances of
@@ -138,7 +182,7 @@ class _XnoteP_segment:
         # not.
 
         base = self.stext
-        if self.stext.startswith('(') and self.stext.endswith('*)'):
+        if self.stext.startswith("(") and self.stext.endswith("*)"):
             base = self.stext[0:-2]
             extend = True
         else:
@@ -151,46 +195,87 @@ class _XnoteP_segment:
         for bm in re.finditer(pattern=base, string=tline.text):
             thisni.register_match(
                 Segment(
-                    tline.lno, bm.start() + 1,
+                    tline.lno,
+                    bm.start() + 1,
                     self.__extended_segend_for(bm=bm, tline=tline)
-                    if extend else bm.end()))
+                    if extend
+                    else bm.end(),
+                )
+            )
 
         thistest.stop_if(
             thisni.nmatches == 0,
-            FatalError("couldn't find subtext '%s' in line '%s'"
-                       % (self.stext, tline.text)))
+            FatalError(
+                "couldn't find subtext '%s' in line '%s'"
+                % (self.stext, tline.text)
+            ),
+        )
 
         thistest.stop_if(
             thisni.nmatches > 1,
-            FatalError("multiple matches of subtext '%s' in line '%s'"
-                       % (self.stext, tline.text)))
+            FatalError(
+                "multiple matches of subtext '%s' in line '%s'"
+                % (self.stext, tline.text)
+            ),
+        )
 
         return thisni
 
 
 class XnoteP:
-
-    NK_for = {'l-': lNoCov, 'l!': lPartCov, 'l+': lFullCov,
-              'l.': lNoCode, 'l0': lNotCoverable, 'l?': lUndetCov,
-              'l#': lx0, 'l*': lx1, 'l@': lx2, 'l=': lx,
-              's-': sNoCov, 's!': sPartCov, 's0': sNotCoverable,
-              's?': sUndetCov,
-              'dT*': dtAlways, 'dF*': dfAlways,
-              'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov, 'd-': dNoCov,
-              'd?': dUndetCov,
-              'eT-': etNoCov, 'eF-': efNoCov, 'e!': ePartCov, 'e-': eNoCov,
-              'e?': eUndetCov,
-              'oT-': otNoCov, 'oF-': ofNoCov, 'o!': oPartCov, 'o-': oNoCov,
-              'c!': cPartCov,
-              'a-': aNoCov, 'aT-': atNoCov, 'ac!': acPartCov,
-              'x0': xBlock0, 'x+': xBlock1, 'x?': xBlock2,
-              '0': r0, '0c': r0c,
-              # Exempted notes
-              'Xs-': XsNoCov, 'Xs!': XsPartCov, 'Xs0': XsNotCoverable,
-              'Xs?': XsUndetCov,
-              'XoT-': XotNoCov, 'XoF-': XofNoCov, 'Xo!': XoPartCov,
-              'Xo-': XoNoCov, 'Xc!': XcPartCov,
-              'X0': Xr0, 'X0c': Xr0c}
+    NK_for = {
+        "l-": lNoCov,
+        "l!": lPartCov,
+        "l+": lFullCov,
+        "l.": lNoCode,
+        "l0": lNotCoverable,
+        "l?": lUndetCov,
+        "l#": lx0,
+        "l*": lx1,
+        "l@": lx2,
+        "l=": lx,
+        "s-": sNoCov,
+        "s!": sPartCov,
+        "s0": sNotCoverable,
+        "s?": sUndetCov,
+        "dT*": dtAlways,
+        "dF*": dfAlways,
+        "dT-": dtNoCov,
+        "dF-": dfNoCov,
+        "d!": dPartCov,
+        "d-": dNoCov,
+        "d?": dUndetCov,
+        "eT-": etNoCov,
+        "eF-": efNoCov,
+        "e!": ePartCov,
+        "e-": eNoCov,
+        "e?": eUndetCov,
+        "oT-": otNoCov,
+        "oF-": ofNoCov,
+        "o!": oPartCov,
+        "o-": oNoCov,
+        "c!": cPartCov,
+        "a-": aNoCov,
+        "aT-": atNoCov,
+        "ac!": acPartCov,
+        "x0": xBlock0,
+        "x+": xBlock1,
+        "x?": xBlock2,
+        "0": r0,
+        "0c": r0c,
+        # Exempted notes
+        "Xs-": XsNoCov,
+        "Xs!": XsPartCov,
+        "Xs0": XsNotCoverable,
+        "Xs?": XsUndetCov,
+        "XoT-": XotNoCov,
+        "XoF-": XofNoCov,
+        "Xo!": XoPartCov,
+        "Xo-": XoNoCov,
+        "Xc!": XcPartCov,
+        "X0": Xr0,
+        "X0c": Xr0c,
+    }
 
     # The notes prefixed with 'X' correspond to the type of violations we
     # expect to encounter within an exempted block. In this context we cannot
@@ -199,12 +284,11 @@ class XnoteP:
     # information.
 
     def __init__(self, text, stext=None, stag=None):
-
         # WEAK conveys whether it is ok (not triggering test failure) for
         # expectations produced by this pattern not to be discharged by an
         # emitted note.
 
-        self.weak = text[0] == '~'
+        self.weak = text[0] == "~"
         if self.weak:
             text = text[1:]
 
@@ -232,7 +316,8 @@ class XnoteP:
 
         thistest.stop_if(
             False and self.stext is None and self.kind in xNoteKinds,
-            FatalError("expected justification text required for %s" % text))
+            FatalError("expected justification text required for %s" % text),
+        )
 
         # STAG is the separation tag that we must find on an emitted note to
         # discharge expectations produced from this pattern. Initially, at this
@@ -245,21 +330,24 @@ class XnoteP:
 
         self.factory = (
             _XnoteP_block(notep=self)
-            if block_p(self.kind) else
-            _XnoteP_line(notep=self)
-            if not self.stext else
-            _XnoteP_segment(notep=self, stext=stext))
+            if block_p(self.kind)
+            else _XnoteP_line(notep=self)
+            if not self.stext
+            else _XnoteP_segment(notep=self, stext=stext)
+        )
 
     def instantiate_stag(self):
         self.stag = Stag_from(self.stag, False)
 
     def instanciate_over(self, tline, block, srules):
+        kind = (
+            srules[self.kind] if srules and self.kind in srules else self.kind
+        )
 
-        kind = (srules[self.kind]
-                if srules and self.kind in srules
-                else self.kind)
-
-        return (None
-                if kind is None or transparent_p(kind)
-                else self.factory.instanciate_over(tline=tline, block=block,
-                                                   kind=kind))
+        return (
+            None
+            if kind is None or transparent_p(kind)
+            else self.factory.instanciate_over(
+                tline=tline, block=block, kind=kind
+            )
+        )

@@ -22,7 +22,7 @@ cov_args = build_run_and_coverage(
     ),
     covlevel="stmt",
     mains=["main"],
-    trace_mode='src',
+    trace_mode="src",
     extra_coverage_args=[
         "-axcov",
         "--subprograms",

@@ -28,24 +28,31 @@ def try_one(subdir, extra_covargs, xreports, xwarnings):
     """
 
     wd.to_subdir(subdir)
-    gpr = gprfor(srcdirs="../src", mains="test_t.adb",
-                 extra='\n'.join(
-                     ['for Source_Files use',
-                      '  ("test_t.adb","flip.ads", "flip.adb");']))
+    gpr = gprfor(
+        srcdirs="../src",
+        mains="test_t.adb",
+        extra="\n".join(
+            [
+                "for Source_Files use",
+                '  ("test_t.adb","flip.ads", "flip.adb");',
+            ]
+        ),
+    )
 
     build_run_and_coverage(
         gprsw=GPRswitches(root_project=gpr),
-        covlevel='stmt',
-        mains=['test_t'],
-        extra_coverage_args=['--annotate=xcov'] + extra_covargs)
+        covlevel="stmt",
+        mains=["test_t"],
+        extra_coverage_args=["--annotate=xcov"] + extra_covargs,
+    )
 
-    check_xcov_reports('obj', xreports)
+    check_xcov_reports("obj", xreports)
 
-    wlog = contents_of('coverage.log')
+    wlog = contents_of("coverage.log")
     for xw in xwarnings:
         thistest.fail_if(
-            xw not in wlog,
-            'expected warning "%s" not found in log' % xw)
+            xw not in wlog, 'expected warning "%s" not found in log' % xw
+        )
 
     wd.to_homedir()
 
@@ -54,15 +61,18 @@ try_one(
     subdir="wd_1",
     extra_covargs=[],
     xreports={
-        'flip.adb.xcov': {'+': {3}},
-        'flip.ads.xcov': {},
-        'test_t.adb.xcov': {'+': {4, 6}}},
-    xwarnings=[])
+        "flip.adb.xcov": {"+": {3}},
+        "flip.ads.xcov": {},
+        "test_t.adb.xcov": {"+": {4, 6}},
+    },
+    xwarnings=[],
+)
 
 try_one(
     subdir="wd_2",
-    extra_covargs=['--units=flop'],
+    extra_covargs=["--units=flop"],
     xreports={},
-    xwarnings=['no unit flop (from --units) in the projects of interest'])
+    xwarnings=["no unit flop (from --units) in the projects of interest"],
+)
 
 thistest.result()

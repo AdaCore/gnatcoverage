@@ -19,18 +19,19 @@ def check(label, scos):
     wd = Wdir(subdir=f"tmp_{label}")
 
     build_run_and_coverage(
-        gprsw=GPRswitches(root_project=gprfor(mains=['foo.adb'],
-                                              srcdirs=['..'])),
+        gprsw=GPRswitches(
+            root_project=gprfor(mains=["foo.adb"], srcdirs=[".."])
+        ),
         covlevel="stmt",
         mains=["foo"],
         extra_coverage_args=["--annotate=dhtml", "--output-dir=dhtml-report"],
         scos=scos,
     )
 
-    index = os.path.join("dhtml-report", 'index.html')
+    index = os.path.join("dhtml-report", "index.html")
     thistest.fail_if(
         not os.path.isfile(index) or os.path.getsize(index) == 0,
-        f"missing or empty {index} for {label}"
+        f"missing or empty {index} for {label}",
     )
 
     wd.to_homedir()

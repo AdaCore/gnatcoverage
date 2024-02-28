@@ -27,8 +27,7 @@ xcov_args = build_and_run(
     covlevel="stmt",
     mains=["test_f", "test_t"],
     trace_mode="src",
-    tolerate_instrument_messages=\
-      "gnatcov limitation: cannot instrument an expression function",
+    tolerate_instrument_messages="gnatcov limitation: cannot instrument an expression function",
 )
 
 trace_t = xcov_args.pop()
@@ -41,6 +40,6 @@ xcov(xcov_args + ["--save-checkpoint=test_f.ckpt", trace_f])
 # Try to consolidate the checkpoint
 xcov(xcov_args + ["-Ctest_t.ckpt", "-Ctest_f.ckpt", "-axcov"])
 
-check_xcov_reports("obj", {"pkg.ads.xcov": {"?": {10}, "+": {5,6,7}}})
+check_xcov_reports("obj", {"pkg.ads.xcov": {"?": {10}, "+": {5, 6, 7}}})
 
 thistest.result()

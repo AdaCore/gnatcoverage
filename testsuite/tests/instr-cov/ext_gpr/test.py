@@ -24,18 +24,20 @@ xcov_instrument(gprsw=GPRswitches(root_project="p_ext2.gpr"), covlevel="stmt")
 # ultimate extending project, which should contain all instrumented sources.
 thistest.fail_if_no_match(
     "instrumented directories",
-    "\n".join([
-        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bz[a-f0-9]{8}\.ads",
-        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bz[a-f0-9]{8}\.ads",
-        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bz[a-f0-9]{8}\.ads",
-        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-p_ext2\.ads",
-        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",
-        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",
-        r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",
-        r"obj-p_ext2/p_ext2-gnatcov-instr/pkg\.ads",
-        r"obj-p_ext2/p_ext2-gnatcov-instr/pkg1\.ads",
-        r"obj-p_ext2/p_ext2-gnatcov-instr/pkg2\.ads",
-    ]),
+    "\n".join(
+        [
+            r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bz[a-f0-9]{8}\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bz[a-f0-9]{8}\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bz[a-f0-9]{8}\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-p_ext2\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/pkg\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/pkg1\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/pkg2\.ads",
+        ]
+    ),
     "\n".join(
         f.replace("\\", "/")
         for f in sorted(glob.glob("obj-*/*-gnatcov-instr/*"))

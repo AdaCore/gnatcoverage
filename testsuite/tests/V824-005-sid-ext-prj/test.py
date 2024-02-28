@@ -47,7 +47,7 @@ with open(orig_sid, "w") as f:
 xcov(xcov_args, out="coverage.log")
 check_xcov_reports(
     "output",
-    {"pkg.adb.xcov": {'+': {11}}, "pkg.ads.xcov": {}},
+    {"pkg.adb.xcov": {"+": {11}}, "pkg.ads.xcov": {}},
     discard_empty=False,
 )
 

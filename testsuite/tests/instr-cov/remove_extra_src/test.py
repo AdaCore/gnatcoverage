@@ -27,43 +27,56 @@ from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
 
-Wdir('tmp_')
+Wdir("tmp_")
 
 # Create projects
-mylib_gpr = gprfor(prjid='mylib', mains=[], langs=['Ada'],
-                   srcdirs=['../src-mylib'],
-                   objdir='obj-mylib')
-dummy_gpr = gprfor(prjid='dummy', mains=[], langs=['C'],
-                   srcdirs=['../src-myprog'],
-                   objdir='obj-myprog')
-myprog_gpr = gprfor(prjid='myprog', mains=['prog.adb'],
-                    srcdirs=['../src-myprog'],
-                    objdir='obj-myprog',
-                    deps=['mylib', 'dummy'])
+mylib_gpr = gprfor(
+    prjid="mylib",
+    mains=[],
+    langs=["Ada"],
+    srcdirs=["../src-mylib"],
+    objdir="obj-mylib",
+)
+dummy_gpr = gprfor(
+    prjid="dummy",
+    mains=[],
+    langs=["C"],
+    srcdirs=["../src-myprog"],
+    objdir="obj-myprog",
+)
+myprog_gpr = gprfor(
+    prjid="myprog",
+    mains=["prog.adb"],
+    srcdirs=["../src-myprog"],
+    objdir="obj-myprog",
+    deps=["mylib", "dummy"],
+)
 
 # Instrument mylib.gpr
 xcov_instrument(
     gprsw=GPRswitches(root_project=mylib_gpr),
-    covlevel='stmt',
-    gpr_obj_dir='obj-mylib',
-    out='instr-mylib.log')
+    covlevel="stmt",
+    gpr_obj_dir="obj-mylib",
+    out="instr-mylib.log",
+)
 
 # Create a non-empty directory in the mylib-gnatcov-instr folder, to check that
 # the removal machinery handles it well (ignores it).
-subdir = os.path.join('obj-mylib', 'mylib-gnatcov-instr', 'foo')
+subdir = os.path.join("obj-mylib", "mylib-gnatcov-instr", "foo")
 os.mkdir(subdir)
-with open(os.path.join(subdir, 'foo.txt'), 'w') as f:
+with open(os.path.join(subdir, "foo.txt"), "w") as f:
     pass
 
 # Instrument, build, run and generate a coverage report for myprog.gpr (and not
 # mylib.gpr).
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=myprog_gpr, no_subprojects=True),
-    covlevel='stmt',
-    mains=['prog'],
-    gpr_obj_dir='obj-myprog',
-    extra_coverage_args=['-axcov', '--output-dir=xcov'],
-    trace_mode='src')
-check_xcov_reports('xcov', {'prog.adb.xcov': {'+': {5}, '-': {6}}})
+    covlevel="stmt",
+    mains=["prog"],
+    gpr_obj_dir="obj-myprog",
+    extra_coverage_args=["-axcov", "--output-dir=xcov"],
+    trace_mode="src",
+)
+check_xcov_reports("xcov", {"prog.adb.xcov": {"+": {5}, "-": {6}}})
 
 thistest.result()

@@ -34,7 +34,6 @@ args_parser.add_argument(
 
 
 class Checker:
-
     filename_extensions = {
         "adb",
         "adc",
@@ -88,20 +87,20 @@ class Checker:
         # Build a list of text chunks to print. Put colorama elements in tuples
         # so that we can keep only text chunks if the output is not a TTY.
         chunks = [
-            (Fore.MAGENTA, ),
+            (Fore.MAGENTA,),
             filename,
-            (Fore.CYAN, ),
+            (Fore.CYAN,),
             ":",
         ]
         if lineno is not None:
             chunks += [
-                (Fore.GREEN, ),
+                (Fore.GREEN,),
                 str(lineno),
-                (Fore.CYAN, ),
+                (Fore.CYAN,),
                 ":",
             ]
         chunks += [
-            (Style.RESET_ALL, ),
+            (Style.RESET_ALL,),
             " ",
             message,
         ]

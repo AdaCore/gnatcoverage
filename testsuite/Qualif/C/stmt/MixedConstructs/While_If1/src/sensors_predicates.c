@@ -15,6 +15,5 @@ sensor_pass (struct sensor *s)
 bool
 sensor_inrange (struct sensor *s)
 {
-  return s->lower_bound <= s->value
-      && s->value <= s->upper_bound;
+  return s->lower_bound <= s->value && s->value <= s->upper_bound;
 }

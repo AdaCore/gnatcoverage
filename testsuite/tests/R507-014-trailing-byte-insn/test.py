@@ -2,20 +2,28 @@ import re
 
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of, indent
-from SUITE.tutils import (exepath_to, gprbuild, gprfor, tracename_for, xcov,
-                          xrun)
+from SUITE.tutils import (
+    exepath_to,
+    gprbuild,
+    gprfor,
+    tracename_for,
+    xcov,
+    xrun,
+)
 
 
-wd = Wdir('tmp_')
-main = exepath_to('main')
-main_trace = tracename_for('main')
+wd = Wdir("tmp_")
+main = exepath_to("main")
+main_trace = tracename_for("main")
 
-gpr = gprfor(['main.c'], srcdirs='..', langs=('C', 'Asm'))
+gpr = gprfor(["main.c"], srcdirs="..", langs=("C", "Asm"))
 gprbuild(gpr)
 
 xrun(main)
-xcov(['coverage', '-cbranch', '-aasm', main_trace, '--routines=f'],
-     out='coverage.log')
+xcov(
+    ["coverage", "-cbranch", "-aasm", main_trace, "--routines=f"],
+    out="coverage.log",
+)
 
 pattern = """\
 Coverage level: branch
@@ -43,19 +51,22 @@ f !: [0-9a-f]+-[0-9a-f]+
   0 not executed"""
 
 pattern_lines = pattern.splitlines()
-log_lines = contents_of('coverage.log').splitlines()
+log_lines = contents_of("coverage.log").splitlines()
 
 thistest.fail_if(
     len(pattern_lines) != len(log_lines),
     'The output of "gnatcov coverage" is {} lines long, {} expected'.format(
-        len(log_lines), len(pattern_lines)))
+        len(log_lines), len(pattern_lines)
+    ),
+)
 
 for pat, log in zip(pattern_lines, log_lines):
     thistest.fail_if(
         not re.match(pat, log),
         'Could not match "gnatcov coverage" output:\n'
-        '{}\n'
-        'against the expected pattern:\n'
-        '{}\n'.format(indent(log), indent(pat)))
+        "{}\n"
+        "against the expected pattern:\n"
+        "{}\n".format(indent(log), indent(pat)),
+    )
 
 thistest.result()

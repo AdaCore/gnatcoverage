@@ -18,7 +18,6 @@ build_run_and_coverage(
             srcdirs=[".."],
             mains=["main.adb"],
             langs=["Ada"],
-
             # Depending on the build mode, use a different implementation of
             # the Covdump procedure. This allows the regular build to work (no
             # dependency on GNATcov_RTS nor coverage buffers) and at the same
@@ -46,9 +45,9 @@ build_run_and_coverage(
     extra_gprbuild_args=["-XCOV_BUILD=True"],
     extra_coverage_args=["--annotate=xcov", "-XCOV_BUILD=True"],
     tolerate_instrument_messages="warning: no indication for dump location was"
-                                 " found, this might be caused by a"
-                                 " misspelling in the expected pragma"
-                                 " statement."
+    " found, this might be caused by a"
+    " misspelling in the expected pragma"
+    " statement.",
 )
 check_xcov_reports("obj", {"main.adb.xcov": {"+": {5}}})
 

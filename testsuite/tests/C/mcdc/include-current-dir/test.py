@@ -21,18 +21,18 @@ for src in ("pkg.h", "pkg.c", "test.c"):
     cp(os.path.join("..", src), src)
 
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=gprfor(srcdirs=['.'], mains=['test.c'])),
-    covlevel='stmt+mcdc',
-    mains=['test'],
-    extra_coverage_args=['--annotate=xcov', '--output-dir=xcov'],
+    gprsw=GPRswitches(root_project=gprfor(srcdirs=["."], mains=["test.c"])),
+    covlevel="stmt+mcdc",
+    mains=["test"],
+    extra_coverage_args=["--annotate=xcov", "--output-dir=xcov"],
 )
 
 check_xcov_reports(
-    'xcov',
+    "xcov",
     {
-        'pkg.h.xcov': {'+': {7, 8}, '!': {6}},
-        'pkg.c.xcov': {'!': {4}},
-        'test.c.xcov': {'+': {6, 7, 8}}
+        "pkg.h.xcov": {"+": {7, 8}, "!": {6}},
+        "pkg.c.xcov": {"!": {4}},
+        "test.c.xcov": {"+": {6, 7, 8}},
     },
 )
 

@@ -19,7 +19,7 @@ p = xcov(
         "--runtime-project=no_such_gnatcov_rts",
     ],
     out=integration_log,
-    register_failure=False
+    register_failure=False,
 )
 
 thistest.fail_if(p.status == 0, "gnatcov exit status shouldn't be success")
@@ -31,7 +31,7 @@ thistest.fail_if_no_match(
     regexp=(
         ".*gnatcov.*: Could not load the coverage runtime project"
         " no_such_gnatcov_rts"
-        "\nno_such_gnatcov_rts\\.gpr: error: project file \".*\" not found"
+        '\nno_such_gnatcov_rts\\.gpr: error: project file ".*" not found'
     ),
     actual=contents_of(integration_log).strip(),
 )

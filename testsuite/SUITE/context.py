@@ -18,19 +18,28 @@ from e3.fs import rm
 from e3.main import Main
 from e3.os.fs import cd
 from e3.os.process import Run
-from e3.testsuite.driver.diff import (CanonicalizeLineEndings, LineByLine,
-                                      OutputRefiner, RefiningChain)
+from e3.testsuite.driver.diff import (
+    CanonicalizeLineEndings,
+    LineByLine,
+    OutputRefiner,
+    RefiningChain,
+)
 
 from SUITE import control
 from SUITE.control import GPRCLEAN, BUILDER, env
-from SUITE.cutils import (exit_if, indent, indent_after_first_line, lines_of,
-                          ndirs_in)
+from SUITE.cutils import (
+    exit_if,
+    indent,
+    indent_after_first_line,
+    lines_of,
+    ndirs_in,
+)
 
 
 # This module is loaded as part of a Run operation for a test.py
 # file found and launched by the toplevel driver
 
-logger = logging.getLogger('SUITE.context')
+logger = logging.getLogger("SUITE.context")
 
 # This is where the toplevel invocation was issued for the individual test
 # at hand, which we expect to be where the toplevel testsuite.py is located.
@@ -58,6 +67,7 @@ class _ReportOutput(object):
             the contents of the output attribute should be printed on
             standard output at the next flush.
     """
+
     def __init__(self, report_file):
         """Constructor.
 
@@ -90,7 +100,7 @@ class _ReportOutput(object):
                   which adds this '\n' by default too.
         """
         if end_of_line:
-            text += '\n'
+            text += "\n"
         self.output += text
         self.report_fd.write(text)
 
@@ -100,18 +110,17 @@ class _ReportOutput(object):
         if print_diff is True).  Reset print_diff to False as well.
         """
         if self.print_diff:
-            sys.stdout.write(self.output + ' ')
+            sys.stdout.write(self.output + " ")
         self.output = ""
         self.print_diff = False
         self.report_fd.flush()
 
     def close(self):
-        """Close the file descriptor for our report file.
-        """
+        """Close the file descriptor for our report file."""
         self.report_fd.close()
 
 
-class Test (object):
+class Test(object):
     """Test class:
 
     Offer test command line and status management facilities.
@@ -150,14 +159,14 @@ class Test (object):
         # just fine (join("/foo", "/foo/bar") yields "/foo/bar").
 
         testsuite_py_dir = ROOT_DIR
-        test_py_dir = os.path.dirname(sys.modules['__main__'].__file__)
+        test_py_dir = os.path.dirname(sys.modules["__main__"].__file__)
 
         self.homedir = os.path.join(testsuite_py_dir, test_py_dir)
         self.reldir = os.path.relpath(self.homedir, start=testsuite_py_dir)
 
         # Perform a simple canonicalization of the relative dir to simplify
         # related computations/assumptions in other parts of the testsuite.
-        self.reldir = self.reldir.replace('\\', '/')
+        self.reldir = self.reldir.replace("\\", "/")
 
         # Compute the depth of this test wrt testsuite root.
         self.depth = ndirs_in(os.path.relpath(self.homedir, ROOT_DIR))
@@ -183,31 +192,31 @@ class Test (object):
         # coverage is deprecated, as it would make all tests fail. Testcases
         # that check the presence of this warning can just remove this
         # environment variable.
-        os.environ['GNATCOV_NO_NATIVE_WARNING'] = '1'
+        os.environ["GNATCOV_NO_NATIVE_WARNING"] = "1"
 
     def cleanup(self, project, options):
         """Cleanup possible remnants of previous builds."""
         Run([GPRCLEAN, "-P%s" % project] + options)
-        rm('*.xcov')
-        rm('*.bin')
+        rm("*.xcov")
+        rm("*.bin")
 
     # Test status management
 
     def log(self, text, new_line=True):
-        """Calls self.report.log. """
+        """Calls self.report.log."""
         self.report.log(text, new_line)
 
     def flush(self):
-        """Calls self.report.flush. """
+        """Calls self.report.flush."""
         self.report.flush()
 
     def comment(self, text):
         """Output a TEXT comment."""
-        self.log('  - %s.' % indent_after_first_line(text, '    '))
+        self.log("  - %s." % indent_after_first_line(text, "    "))
 
     def failed(self, comment="assertion failed"):
         """Register a check failure."""
-        self.log('  * %s' % indent_after_first_line(comment, '    '))
+        self.log("  * %s" % indent_after_first_line(comment, "    "))
         self.report.enable_diffs()
         self.n_failed += 1
 
@@ -220,23 +229,25 @@ class Test (object):
         """Register a check failure when EXPECTED and ACTUAL are not equal."""
         self.fail_if(
             expected != actual,
-            'Unexpected {}. Expected:'
-            '\n{}'
-            '\nBut got:'
-            '\n{}'.format(what, indent(str(expected)), indent(str(actual))))
+            "Unexpected {}. Expected:"
+            "\n{}"
+            "\nBut got:"
+            "\n{}".format(what, indent(str(expected)), indent(str(actual))),
+        )
 
     def fail_if_no_match(self, what, regexp, actual):
         """Register a check failure when ACTUAL does not match regexp."""
         if isinstance(regexp, str):
             regexp = re.compile(regexp)
         # Canonicalize to Unix-style line endings to have cross-platform checks
-        actual = actual.replace('\r\n', '\n')
+        actual = actual.replace("\r\n", "\n")
         self.fail_if(
             not regexp.match(actual),
-            'Unexpected {}. Expected:'
-            '\n{}'
-            '\nBut got:'
-            '\n{}'.format(what, indent(regexp.pattern), indent(str(actual))))
+            "Unexpected {}. Expected:"
+            "\n{}"
+            "\nBut got:"
+            "\n{}".format(what, indent(regexp.pattern), indent(str(actual))),
+        )
 
     def stop(self, exc):
         self.failed("Processing failed")
@@ -262,14 +273,13 @@ class Test (object):
             """Remove path lines in outputs."""
 
             def refine(self, output):
-                if os.path.exists(output.strip('\n:')):
+                if os.path.exists(output.strip("\n:")):
                     return ""
                 return output
 
         return [
             # Refiners for the xcov report
             LineByLine(XcovPathRemover()),
-
             # Ignore platform specificities
             CanonicalizeLineEndings(),
         ]
@@ -329,9 +339,7 @@ class Test (object):
 
         # Send the appropriate logging.
         self.failed(
-            "Diff failure: {}\n".format(message)
-            + "\n{}".format(d)
-            + "\n"
+            "Diff failure: {}\n".format(message) + "\n{}".format(d) + "\n"
         )
 
     def fail_if_diff(
@@ -344,8 +352,9 @@ class Test (object):
         """Wrapper around fail_if_diff_internal, taking an actual_file parameter
         instead of an actual string."""
         with open(actual_file, "r") as f:
-            self.fail_if_diff_internal(baseline_file, f.read(),
-                                       failure_message, output_refiners)
+            self.fail_if_diff_internal(
+                baseline_file, f.read(), failure_message, output_refiners
+            )
 
     def result(self):
         """Output the final result which the testsuite driver looks for.
@@ -355,20 +364,23 @@ class Test (object):
         from SUITE.tutils import run_processes
 
         if self.n_failed == 0:
-            self.log('==== PASSED ============================.')
+            self.log("==== PASSED ============================.")
         else:
-            self.log('**** FAILED ****************************.')
+            self.log("**** FAILED ****************************.")
 
         # Log the total execution time as well as the list of processes that
         # were run, with their duration. This is useful to investigate where
         # time is spent exactly when testcases take too long to run.
         duration = time.time() - self.start_time
-        logger.debug('Total ellapsed time: {:.3f}s'.format(duration))
+        logger.debug("Total ellapsed time: {:.3f}s".format(duration))
         if run_processes:
-            logger.debug('Processes run:')
+            logger.debug("Processes run:")
             for p in run_processes:
-                logger.debug('  [{:6.3f}s] {}'.format(
-                    p.duration, ' '.join(p.original_cmd)))
+                logger.debug(
+                    "  [{:6.3f}s] {}".format(
+                        p.duration, " ".join(p.original_cmd)
+                    )
+                )
 
         # Flush the output, in case we forgot to do so earlier.  This has no
         # effect if the flush was already performed.
@@ -386,20 +398,27 @@ class Test (object):
         """Return an options object to represent the command line options"""
         main = Main(platform_args=True)
         parser = main.argument_parser
-        parser.add_argument('--timeout', type=int, default=None)
-        parser.add_argument('--report-file', metavar='FILE',
-                            help='The filename where to store the test report'
-                                 ' [required]')
-        parser.add_argument('--qualif-level', metavar='QUALIF_LEVEL',
-                            help='The target qualification level when we are'
-                                 ' running in qualification mode.')
+        parser.add_argument("--timeout", type=int, default=None)
+        parser.add_argument(
+            "--report-file",
+            metavar="FILE",
+            help="The filename where to store the test report" " [required]",
+        )
+        parser.add_argument(
+            "--qualif-level",
+            metavar="QUALIF_LEVEL",
+            help="The target qualification level when we are"
+            " running in qualification mode.",
+        )
 
-        parser.add_argument('--xcov-level',
-                            help='Force the --level argument passed to xcov'
-                                 'instead of deducing it from the test'
-                                 ' category when that normally happens.')
+        parser.add_argument(
+            "--xcov-level",
+            help="Force the --level argument passed to xcov"
+            "instead of deducing it from the test"
+            " category when that normally happens.",
+        )
 
-        parser.add_argument('--tags', default="")
+        parser.add_argument("--tags", default="")
 
         control.add_shared_options_to(parser, toplevel=False)
 
@@ -409,12 +428,13 @@ class Test (object):
         # self-contradictory, but it's easy to do it that way.
         exit_if(
             main.args.report_file is None,
-            "The report file must be specified with --report-file")
+            "The report file must be specified with --report-file",
+        )
 
         # Get our tags set as a list. Fetch contents from file if needed
         # first:
-        if main.args.tags and main.args.tags.startswith('@'):
-            main.args.tags = ' '.join(lines_of(main.args.tags[1:]))
+        if main.args.tags and main.args.tags.startswith("@"):
+            main.args.tags = " ".join(lines_of(main.args.tags[1:]))
         if main.args.tags:
             main.args.tags = main.args.tags.split()
 
@@ -433,7 +453,7 @@ class Test (object):
         Alternate program to launch in lieu of "gnatcov CMD", if any specified
         with the --gnatcov-CMD= command line option. None otherwise.
         """
-        return getattr(thistest.options, 'gnatcov_%s' % cmd, None)
+        return getattr(thistest.options, "gnatcov_%s" % cmd, None)
 
     def suite_gprpgm_for(self, pgm):
         """
@@ -442,7 +462,7 @@ class Test (object):
         return getattr(thistest.options, pgm, None)
 
     def support_dir(self):
-        return os.path.join(ROOT_DIR, 'support')
+        return os.path.join(ROOT_DIR, "support")
 
     def bits(self):
         """
@@ -458,5 +478,5 @@ thistest = Test()
 # Allow import of a common "test_support" module from test.py when
 # there is a test_support.py available uptree.
 __parent_dir = os.path.dirname(os.getcwd())
-if (os.path.exists(os.path.join(__parent_dir, 'test_support.py'))):
+if os.path.exists(os.path.join(__parent_dir, "test_support.py")):
     sys.path.append(__parent_dir)

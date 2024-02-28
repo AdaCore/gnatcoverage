@@ -19,7 +19,7 @@ build_run_and_coverage(
     covlevel="stmt+mcdc",
     mains=["main"],
     trace_mode="src",
-    tolerate_instrument_messages="Exemption .* intersects"
+    tolerate_instrument_messages="Exemption .* intersects",
 )
 
 check_xcov_reports(
@@ -30,7 +30,8 @@ check_xcov_reports(
 thistest.fail_if_no_match(
     what="Unexpected instrument output",
     regexp=r"(warning: Exemption annotation at main\.c:\d+:\d+ intersects a"
-           r" coverage obligation \(.*\), ignoring it\n)+",
-    actual=contents_of("instrument.log"))
+    r" coverage obligation \(.*\), ignoring it\n)+",
+    actual=contents_of("instrument.log"),
+)
 
 thistest.result()

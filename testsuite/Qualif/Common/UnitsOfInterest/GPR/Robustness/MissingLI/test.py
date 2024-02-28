@@ -22,30 +22,32 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor, xcov
 
 
-tmp = Wdir('wd_')
+tmp = Wdir("wd_")
 
 xcov_args = build_and_run(
-    gprsw=GPRswitches(root_project=gprfor('main.adb', srcdirs='..')),
-    covlevel='stmt',
-    mains=['main'],
-    extra_coverage_args=['-axcov'])
+    gprsw=GPRswitches(root_project=gprfor("main.adb", srcdirs="..")),
+    covlevel="stmt",
+    mains=["main"],
+    extra_coverage_args=["-axcov"],
+)
 
 # Unlike the compiler, "gnatcov instrument" processes source files in projects,
 # even when they are not in the closure of the main. Yet, we want to check that
 # gnatcov complains when the SID file is missing, so manually remove it, here.
-if thistest.options.trace_mode == 'src':
-    rm(os.path.join('obj', 'helper.sid'))
-    what = 'SID'
+if thistest.options.trace_mode == "src":
+    rm(os.path.join("obj", "helper.sid"))
+    what = "SID"
 else:
-    what = 'ALI'
+    what = "ALI"
 
-log_file = 'coverage.log'
+log_file = "coverage.log"
 xcov(xcov_args, out=log_file)
 thistest.fail_if_not_equal(
-    'gnatcov output',
-    'warning: no {} file found for unit helper'.format(what),
-    contents_of(log_file).strip())
+    "gnatcov output",
+    "warning: no {} file found for unit helper".format(what),
+    contents_of(log_file).strip(),
+)
 
-check_xcov_reports('obj', {'main.adb.xcov': {'+': {3}}})
+check_xcov_reports("obj", {"main.adb.xcov": {"+": {3}}})
 
 thistest.result()

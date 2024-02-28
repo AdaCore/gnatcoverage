@@ -16,12 +16,10 @@ from SUITE.context import thistest
 tc = TestCase(category=CAT.mcdc)
 
 tc.run()
-tc.run(covcontrol=CovControl(covoptions="-S instance"),
-       subdirhint="r_")
+tc.run(covcontrol=CovControl(covoptions="-S instance"), subdirhint="r_")
 
 # -S routine is intractable with inlining
-if '-gnatn' not in thistest.suite_cargs_for('Ada'):
-    tc.run(covcontrol=CovControl(covoptions="-S routine"),
-           subdirhint="r_")
+if "-gnatn" not in thistest.suite_cargs_for("Ada"):
+    tc.run(covcontrol=CovControl(covoptions="-S routine"), subdirhint="r_")
 
 thistest.result()

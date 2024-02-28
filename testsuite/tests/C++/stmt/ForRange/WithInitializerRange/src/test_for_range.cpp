@@ -6,7 +6,7 @@ main (void)
   int sum = 0;               // # init
   for (auto i : { 1, 2, 3 }) // # for-range
     {
-      sum += i;              // # for-body
+      sum += i; // # for-body
     }
   return 0;
 }

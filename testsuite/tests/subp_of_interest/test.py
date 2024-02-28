@@ -66,8 +66,8 @@ check_xcov(
     ],
     expected_output=(
         ""
-        if src_traces else
-        "warning: Ignoring --subprograms switches as this is not supported"
+        if src_traces
+        else "warning: Ignoring --subprograms switches as this is not supported"
         " with binary traces."
     ),
 )
@@ -102,7 +102,8 @@ if src_traces:
     thistest.log("== xcov_ignore ==")
     check_xcov(
         "xcov_ignore",
-        cov_args + [
+        cov_args
+        + [
             f"--subprograms={pkg_body}:20",
             "--ignore-source-files=pkg.ads",
         ],

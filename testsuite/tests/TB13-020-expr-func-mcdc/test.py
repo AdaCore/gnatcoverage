@@ -25,15 +25,17 @@ build_run_and_coverage(
     gprsw=GPRswitches(root_project=p),
     covlevel="stmt+mcdc",
     mains=["main"],
-    extra_coverage_args=["-axcov", "--output-dir=report"])
+    extra_coverage_args=["-axcov", "--output-dir=report"],
+)
 
-check_xcov_reports("report", {
-    "main.adb.xcov": {
-        "!": {6, 9, 15, 19},
-        "+": {11, 12},
-        "-": {16, 20}},
-    "pkg.ads.xcov": {},
-    "pkg.adb.xcov": {"+": {9}},
-}, discard_empty=False)
+check_xcov_reports(
+    "report",
+    {
+        "main.adb.xcov": {"!": {6, 9, 15, 19}, "+": {11, 12}, "-": {16, 20}},
+        "pkg.ads.xcov": {},
+        "pkg.adb.xcov": {"+": {9}},
+    },
+    discard_empty=False,
+)
 
 thistest.result()

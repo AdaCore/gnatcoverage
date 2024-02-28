@@ -12,7 +12,8 @@ foo ()
 }
 
 int
-main(){
+main ()
+{
   constexpr bool a = true || false;                    // # single-ce-decl
   constexpr bool b = true || false, c = true || false; // # double-ce-decl
   if constexpr (false)                                 // # if-ce

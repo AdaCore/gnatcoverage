@@ -1,9 +1,9 @@
 #ifndef SENSORS_H
-# define SENSORS_H
+#define SENSORS_H
 
-# include "vbufs.h"
+#include "vbufs.h"
 
-# include <stdbool.h>
+#include <stdbool.h>
 
 struct sensor
 {
@@ -14,11 +14,9 @@ struct sensor
   struct vbuffer history;
 };
 
-extern void
-sensor_init (int lower_bound, int upper_bound, struct sensor *s);
+extern void sensor_init (int lower_bound, int upper_bound, struct sensor *s);
 
 /* Latch current sensor value for S in its history buffer.  */
-extern void
-sensor_sample (struct sensor *s);
+extern void sensor_sample (struct sensor *s);
 
 #endif

@@ -8,7 +8,7 @@ communication between the developers involved.
 
 
 def body_lines(lines):
-    return '\n'.join(lines) + '\n'
+    return "\n".join(lines) + "\n"
 
 
 class Evaluator:
@@ -18,35 +18,42 @@ class Evaluator:
 
 
 class Ada_Evaluator(Evaluator):
-
     def __init__(self, expr, context):
         Evaluator.__init__(self, expr, context)
 
     def package_spec(self):
-        return (body_lines(["package This_Evaluator is"]) +
-                self.expr.predefs() +
-                body_lines(["end;"]))
+        return (
+            body_lines(["package This_Evaluator is"])
+            + self.expr.predefs()
+            + body_lines(["end;"])
+        )
 
     def package_body(self):
-        return (body_lines(["package body This_Evaluator is"]) +
-                self.proc_body() +
-                body_lines(["end;"]))
+        return (
+            body_lines(["package body This_Evaluator is"])
+            + self.proc_body()
+            + body_lines(["end;"])
+        )
 
     def proc_formals(self):
-        return ', '.join("%s : %s" % (op.formal_name, op.formal_type)
-                         for op in expr.op)
+        return ", ".join(
+            "%s : %s" % (op.formal_name, op.formal_type) for op in expr.op
+        )
 
     def proc_body_start(self):
-        return body_lines(["procedure Eval (%s) is" % (self.proc_formals()),
-                           "begin"])
+        return body_lines(
+            ["procedure Eval (%s) is" % (self.proc_formals()), "begin"]
+        )
 
     def proc_body_end(self):
         return body_lines(["end;"])
 
     def proc_body(self):
-        return (self.proc_body_start() +
-                self.context.body_for(expr=self.expr) +
-                self.proc_body_end())
+        return (
+            self.proc_body_start()
+            + self.context.body_for(expr=self.expr)
+            + self.proc_body_end()
+        )
 
 
 class OP:
@@ -81,8 +88,9 @@ class EXPR:
         self.vectors = None
         self.next_arg_index = 0
 
-        self.op = [opclass(formal_name=self.next_arg_name())
-                   for opclass in opclasses]
+        self.op = [
+            opclass(formal_name=self.next_arg_name()) for opclass in opclasses
+        ]
 
         self.opclass_set = set(opclasses)
 
@@ -95,7 +103,7 @@ class EXPR:
         return "EXPR_NOBODY"
 
     def predefs(self):
-        return '\n'.join(opclass.predefs() for opclass in self.opclass_set)
+        return "\n".join(opclass.predefs() for opclass in self.opclass_set)
 
 
 class EXPR_And(EXPR):
@@ -131,12 +139,15 @@ class CTX_AdaReturn(Context):
 
 class CTX_AdaIf(Context):
     def body_for(self, expr):
-        return body_lines([
-            "if %s then       -- # eval-all :d:" % expr.body(),
-            "  return True;   -- # on-true",
-            "else",
-            "  return False;  -- # on-false",
-            "end if;"])
+        return body_lines(
+            [
+                "if %s then       -- # eval-all :d:" % expr.body(),
+                "  return True;   -- # on-true",
+                "else",
+                "  return False;  -- # on-false",
+                "end if;",
+            ]
+        )
 
 
 class Tcgen:
@@ -155,8 +166,7 @@ class Tcgen:
         del op_classnames
 
 
-expr = EXPR_Ada_AndThen(op0_class=OP_Ada_Bool,
-                        op1_class=OP_Ada_Bool)
+expr = EXPR_Ada_AndThen(op0_class=OP_Ada_Bool, op1_class=OP_Ada_Bool)
 
 for ctx in [CTX_AdaIf, CTX_AdaReturn]:
     aev = Ada_Evaluator(expr=expr, context=ctx())

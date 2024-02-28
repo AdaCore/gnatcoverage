@@ -17,13 +17,23 @@ from SUITE.gprutils import GPRswitches
 # The set of source file names with coverage obligations attached to
 # each project, designated by project short name.
 _xreports = {
-    'boolops':  ['boolops.ads', 'boolops.adb',
-                 'boolops-andthen.ads', 'boolops-andthen.adb',
-                 'boolops-orelse.ads', 'boolops-orelse.adb'],
-    'intops':   ['intops.ads', 'intops.adb',
-                 'intops-add.ads', 'intops-add.adb',
-                 'intops-sub.ads', 'intops-sub.adb'],
-    'counters': ['counters.ads', 'counters.adb'],
+    "boolops": [
+        "boolops.ads",
+        "boolops.adb",
+        "boolops-andthen.ads",
+        "boolops-andthen.adb",
+        "boolops-orelse.ads",
+        "boolops-orelse.adb",
+    ],
+    "intops": [
+        "intops.ads",
+        "intops.adb",
+        "intops-add.ads",
+        "intops-add.adb",
+        "intops-sub.ads",
+        "intops-sub.adb",
+    ],
+    "counters": ["counters.ads", "counters.adb"],
 }
 all_projects = list(_xreports)
 
@@ -61,25 +71,25 @@ def check(root_project, recurse, projects=None, units=None, xreports=None):
     # Append the first letter of each project name will pass through
     # --project, if any:
     if projects:
-        label += '-' + ''.join(prj[0] for prj in projects)
+        label += "-" + "".join(prj[0] for prj in projects)
 
     # Append indication on recursion request:
     if recurse:
-        label += '-rt'
+        label += "-rt"
     elif recurse is None:
-        label += '-rn'
+        label += "-rn"
     else:
-        label += '-rf'
+        label += "-rf"
 
     # Arrange to execute each check in its own temporary directory and copying
     # shared projects in that directory prevent mixups across test variants.
-    tmpdir = f'wd_{label}'
+    tmpdir = f"wd_{label}"
     wd = Wdir(tmpdir)
 
     # Copy shared projects in the temporary directory and create their object
     # directory to avoid spurious warnings.
     for p in all_projects:
-        sync_tree(os.path.join(wd.homedir, '..', p), p)
+        sync_tree(os.path.join(wd.homedir, "..", p), p)
         mkdir(os.path.join(p, "obj"))
 
     # If a list of expected reports is provided, convert into list of
@@ -87,8 +97,7 @@ def check(root_project, recurse, projects=None, units=None, xreports=None):
     if xreports is not None:
         ctl_xreports = []
         for xr in xreports:
-            ctl_xreports.extend(
-                _xreports[xr] if xr in _xreports else [xr])
+            ctl_xreports.extend(_xreports[xr] if xr in _xreports else [xr])
     else:
         ctl_xreports = None
 
@@ -98,23 +107,19 @@ def check(root_project, recurse, projects=None, units=None, xreports=None):
 
     TestCase(category=None).run(
         covcontrol=CovControl(
-
             # The programs we build and exercise always depend on the three
             # subprojects (copied above in the parent directory relative to the
             # TestCase temporary directory).
-            deps=[f'../{p}/{p}' for p in all_projects],
-
+            deps=[f"../{p}/{p}" for p in all_projects],
             # What we analyse and check depends on our arguments:
             gprsw=GPRswitches(
                 root_project=root_project,
                 projects=projects,
                 units=units,
                 no_subprojects=no_subprojects,
-                xvars=[('BOARD', gnatemu_board_name(env.target.machine))],
+                xvars=[("BOARD", gnatemu_board_name(env.target.machine))],
             ),
-
             xreports=ctl_xreports,
-
             # The test driver and the likes are never of interest
             units_in=[],
         ),

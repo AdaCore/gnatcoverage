@@ -11,20 +11,20 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
 
-wd = Wdir(subdir='tmp_')
+wd = Wdir(subdir="tmp_")
 
 build_run_and_coverage(
     gprsw=GPRswitches(
         root_project=gprfor(
-            mains=['test_foo.c'],
-            srcdirs=os.path.join('..', 'src'),
-            langs=['C'],
+            mains=["test_foo.c"],
+            srcdirs=os.path.join("..", "src"),
+            langs=["C"],
         ),
-        units=['foo.c'],
+        units=["foo.c"],
     ),
-    covlevel='stmt',
-    mains=['test_foo'],
-    extra_coverage_args=['-axcov'],
+    covlevel="stmt",
+    mains=["test_foo"],
+    extra_coverage_args=["-axcov"],
     tolerate_instrument_messages="unexpected SCO overlapping",
 )
 
@@ -35,23 +35,25 @@ build_run_and_coverage(
 # different warnings. Note that the instrumentation warning is the most
 # precise.
 
-if thistest.options.trace_mode == 'src':
-    output_string = 'gnatcov instrument output'
-    output_file = 'instrument.log'
-    expected_output = ('!!! foo.h:1:1: unexpected SCO overlapping with SCO #1: '
-                       'STATEMENT at foo.h:1:1-13, discarding overlapping SCO\n'
-                       '!!! foo.h:2:1: unexpected SCO overlapping with SCO #2: '
-                       'STATEMENT at foo.h:2:1-21, discarding overlapping SCO')
+if thistest.options.trace_mode == "src":
+    output_string = "gnatcov instrument output"
+    output_file = "instrument.log"
+    expected_output = (
+        "!!! foo.h:1:1: unexpected SCO overlapping with SCO #1: "
+        "STATEMENT at foo.h:1:1-13, discarding overlapping SCO\n"
+        "!!! foo.h:2:1: unexpected SCO overlapping with SCO #2: "
+        "STATEMENT at foo.h:2:1-21, discarding overlapping SCO"
+    )
 else:
-    output_string = 'gnatcov coverage output'
-    output_file = 'coverage.log'
-    expected_output = ('!!! foo.h:2:8: unexpected SCO overlapping with SCO #2: '
-                       'STATEMENT at foo.h:2:8-20, discarding overlapping SCO')
+    output_string = "gnatcov coverage output"
+    output_file = "coverage.log"
+    expected_output = (
+        "!!! foo.h:2:8: unexpected SCO overlapping with SCO #2: "
+        "STATEMENT at foo.h:2:8-20, discarding overlapping SCO"
+    )
 
 thistest.fail_if_no_match(
-    output_string,
-    expected_output,
-    contents_of(output_file)
+    output_string, expected_output, contents_of(output_file)
 )
 
 thistest.result()

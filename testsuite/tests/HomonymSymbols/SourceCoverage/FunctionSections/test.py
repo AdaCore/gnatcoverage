@@ -3,5 +3,5 @@ from SCOV.tctl import CAT
 from SUITE.context import thistest
 
 
-TestCase(extracargs='-ffunction-sections', category=CAT.stmt).run()
+TestCase(extracargs="-ffunction-sections", category=CAT.stmt).run()
 thistest.result()

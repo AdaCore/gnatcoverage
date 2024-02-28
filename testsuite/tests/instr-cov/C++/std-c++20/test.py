@@ -12,8 +12,7 @@ from SUITE.gprutils import GPRswitches
 
 
 def gen_prj():
-    return GPRswitches(root_project=gprfor(srcdirs=[".."],
-                                           mains=["main.cpp"]))
+    return GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["main.cpp"]))
 
 
 tmp = Wdir("tmp_valid-instrumentation")

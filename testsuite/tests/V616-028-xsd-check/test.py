@@ -25,8 +25,7 @@ def check_xml(xsd_file, xml_file):
     except Exception as exc:
         thistest.failed(
             "The XSD does not validate {}: \n {}".format(
-                os.path.abspath(xml_file),
-                exc
+                os.path.abspath(xml_file), exc
             )
         )
 
@@ -42,11 +41,12 @@ def xml_file(output_dir):
 
 def build_run_coverage_and_check(covlevel):
     build_run_and_coverage(
-        gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."],
-                                              mains=["test.adb"])),
+        gprsw=GPRswitches(
+            root_project=gprfor(srcdirs=[".."], mains=["test.adb"])
+        ),
         covlevel=covlevel,
         mains=["test"],
-        extra_coverage_args=["--annotate=xml"]
+        extra_coverage_args=["--annotate=xml"],
     )
     check_xml(xsd_file("obj"), xml_file("obj"))
 

@@ -31,8 +31,10 @@ xcov(
 env.add_search_path(env_var="PATH", path=cwd)
 
 # Then, run the build process unchanged
-compiler_wrapper = os.path.join(cwd, 'gcc')
-cmdrun(["cmake", "..", f"-DCMAKE_C_COMPILER={compiler_wrapper}"], for_pgm=False)
+compiler_wrapper = os.path.join(cwd, "gcc")
+cmdrun(
+    ["cmake", "..", f"-DCMAKE_C_COMPILER={compiler_wrapper}"], for_pgm=False
+)
 cmdrun(["make"], for_pgm=False)
 
 # Run the executable
@@ -54,7 +56,7 @@ check_xcov_reports(
     {
         "main.c.xcov": {"+": {8, 9}},
         "lib.c.xcov": {"+": {6}},
-    }
+    },
 )
 
 thistest.result()

@@ -12,18 +12,18 @@ Wdir("tmp_")
 
 # We build and check the output of a program doing system("ls")
 
-gprbuild(gprfor(mains=['sls.c'], srcdirs='..'))
+gprbuild(gprfor(mains=["sls.c"], srcdirs=".."))
 
 p = xrun(exepath_to("sls"))
 
 thistest.fail_if(
     re.search(pattern="LD_PRELOAD", string=p.out),
-    "spurious occurrence of LD_PRELOAD in the gnatcov run output"
+    "spurious occurrence of LD_PRELOAD in the gnatcov run output",
 )
 
 thistest.fail_if(
     not re.search(pattern="gen.gpr", string=p.out),
-    "missing expected nls.c from the program output"
+    "missing expected nls.c from the program output",
 )
 
 thistest.result()

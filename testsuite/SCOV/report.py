@@ -30,7 +30,6 @@ class Piece:
     """Single pattern of text expected somewhere in a report."""
 
     def __init__(self, pattern, pre, nexpected=1):
-
         # Regexp pattern to match over report lines
         self.pattern = pattern
 
@@ -104,13 +103,18 @@ class Piece:
         0 and thistest.log(
             "--\nChecking {}:\n"
             "pattern = '{}', nexpected = {}, nmatches = {}\n"
-            "pre = {}"
-            .format(self, self.pattern, self.nexpected, nmatches, self.pre))
+            "pre = {}".format(
+                self, self.pattern, self.nexpected, nmatches, self.pre
+            )
+        )
 
         # Punt if we don't have the number of expected matches
         if nmatches != self.nexpected:
-            thistest.failed('On "{}", {} matches != expected {}'
-                            .format(self.pattern, nmatches, self.nexpected))
+            thistest.failed(
+                'On "{}", {} matches != expected {}'.format(
+                    self.pattern, nmatches, self.nexpected
+                )
+            )
             return
 
         # If we expected matches, have some, and have an ordering
@@ -120,12 +124,14 @@ class Piece:
             first_self = self.__first_match()
             if not last_pre:
                 thistest.failed(
-                    'On "%s", absence of  match for predecessor "%s"' % (
-                        self.pattern, self.pre.pattern))
+                    'On "%s", absence of  match for predecessor "%s"'
+                    % (self.pattern, self.pre.pattern)
+                )
             elif last_pre.lno > first_self.lno:
                 thistest.failed(
-                    'first match for "%s" too early wrt predecessor "%s"' % (
-                        self.pattern, self.pre.pattern))
+                    'first match for "%s" too early wrt predecessor "%s"'
+                    % (self.pattern, self.pre.pattern)
+                )
 
 
 # All the possible per-criterion sections, ordered as they should be in the
@@ -137,7 +143,7 @@ crit_for = {
     "stmt": ["STMT"],
     "stmt+decision": ["STMT", "DECISION"],
     "stmt+mcdc": ["STMT", "DECISION", "MCDC"],
-    "stmt+uc_mcdc": ["STMT", "DECISION", "MCDC"]
+    "stmt+uc_mcdc": ["STMT", "DECISION", "MCDC"],
 }
 
 
@@ -154,7 +160,6 @@ class ReportChecker:
         self.rpElements.extend(rpieces)
 
     def __setup_expectations(self, ntraces, xcovlevel, xregions):
-
         self.rpElements = []
 
         # Track the last Piece with nexpected > 0
@@ -187,30 +192,50 @@ class ReportChecker:
         #
         # <blank><checkpoint-related-tag>: gnatcov coverage
 
-        covLevel = Piece(pattern=r"Coverage level: stmt(\+(decision|mcdc))?",
-                         pre=cmdLine2)
+        covLevel = Piece(
+            pattern=r"Coverage level: stmt(\+(decision|mcdc))?", pre=cmdLine2
+        )
 
         trHeader = Piece(pattern="Trace files:", pre=covLevel)
 
-        trFile = Piece(pattern=(r'\.trace'
-                                if thistest.options.trace_mode == 'bin' else
-                                r'\.srctrace'),
-                       pre=trHeader,
-                       nexpected=ntraces)
+        trFile = Piece(
+            pattern=(
+                r"\.trace"
+                if thistest.options.trace_mode == "bin"
+                else r"\.srctrace"
+            ),
+            pre=trHeader,
+            nexpected=ntraces,
+        )
         trPgm = Piece(pattern="program *:", pre=None, nexpected=ntraces)
         trDate = Piece(pattern="date *:", pre=None, nexpected=ntraces)
         trTag = Piece(pattern="tag *:", pre=None, nexpected=ntraces)
 
         self.__register(
-            rpieces=[ctxHeader, runStamp, verNumber,
-                     cmdLine1, cmdLine2,
-                     covLevel, trHeader, trFile, trPgm, trDate, trTag])
+            rpieces=[
+                ctxHeader,
+                runStamp,
+                verNumber,
+                cmdLine1,
+                cmdLine2,
+                covLevel,
+                trHeader,
+                trFile,
+                trPgm,
+                trDate,
+                trTag,
+            ]
+        )
 
         # NON-EXEMPTED VIOLATIONS
 
-        vioHeader = Piece(pattern=(r"\d+. %sCOVERAGE VIOLATIONS"
-                                   % ("NON-EXEMPTED " if xregions else "")),
-                          pre=trTag)
+        vioHeader = Piece(
+            pattern=(
+                r"\d+. %sCOVERAGE VIOLATIONS"
+                % ("NON-EXEMPTED " if xregions else "")
+            ),
+            pre=trTag,
+        )
 
         self.__register(rpieces=[vioHeader])
 
@@ -224,18 +249,20 @@ class ReportChecker:
             # depends on the xcov --level argument
             nexpected = 1 if crit in crit_for[xcovlevel] else 0
 
-            vsHeader = Piece(pattern="%s COVERAGE" % crit,
-                             nexpected=nexpected,
-                             pre=pre if nexpected else None)
+            vsHeader = Piece(
+                pattern="%s COVERAGE" % crit,
+                nexpected=nexpected,
+                pre=pre if nexpected else None,
+            )
             self.__register(rpieces=[vsHeader])
 
             # If we do expect a section, add a pattern for the violation
             # counter and update the current pre chain reference. Unexpected
             # sections should be left out of that chain.
             if nexpected > 0:
-                vsCount = Piece(pattern="([0-9]+|No) violation",
-                                nexpected=-1,
-                                pre=vsHeader)
+                vsCount = Piece(
+                    pattern="([0-9]+|No) violation", nexpected=-1, pre=vsHeader
+                )
                 self.__register(rpieces=[vsCount])
                 pre = vsCount
 
@@ -243,10 +270,12 @@ class ReportChecker:
 
         if xregions:
             xmrHeader = Piece(pattern="EXEMPTED REGIONS", pre=pre)
-            xmrCount = Piece(pattern="([0-9]+|No) exempted region[s]*, "
-                             "([0-9]+|No) exempted violation[s]*",
-                             nexpected=-1,
-                             pre=xmrHeader)
+            xmrCount = Piece(
+                pattern="([0-9]+|No) exempted region[s]*, "
+                "([0-9]+|No) exempted violation[s]*",
+                nexpected=-1,
+                pre=xmrHeader,
+            )
             self.__register(rpieces=[xmrHeader, xmrCount])
             pre = xmrCount
 
@@ -259,17 +288,19 @@ class ReportChecker:
 
         for crit in crit_for[xcovlevel]:
             sumLine = Piece(
-                pattern=("([0-9]+|No) %s%s violation" %
-                         ("non-exempted " if xregions else "", crit)),
-                pre=pre)
+                pattern=(
+                    "([0-9]+|No) %s%s violation"
+                    % ("non-exempted " if xregions else "", crit)
+                ),
+                pre=pre,
+            )
             self.__register(rpieces=[sumLine])
             pre = sumLine
 
         if xregions:
             sumLine = Piece(
-                pattern="([0-9]+|No) exempted region",
-                nexpected=-1,
-                pre=pre)
+                pattern="([0-9]+|No) exempted region", nexpected=-1, pre=pre
+            )
             self.__register(rpieces=[sumLine])
             pre = sumLine
 
@@ -279,9 +310,13 @@ class ReportChecker:
         self.__register(rpieces=[rpEnd])
 
     def __process_one_test(self, qde):
-        frame(text=("report check for xfile = %s\n" % qde.xfile
-                    + "drivers = %s" % str(qde.drivers)),
-              char='~').display()
+        frame(
+            text=(
+                "report check for xfile = %s\n" % qde.xfile
+                + "drivers = %s" % str(qde.drivers)
+            ),
+            char="~",
+        ).display()
 
         # Count the number of expected exemption regions
         xregions = 0
@@ -293,15 +328,17 @@ class ReportChecker:
         # applicable xcov-level
         self.__setup_expectations(
             ntraces=len(qde.drivers),
-            xcovlevel=SCOV_helper.xcovlevel_for(self.tc,
-                                                os.path.basename
-                                                (qde.wdir)),
-            xregions=xregions)
+            xcovlevel=SCOV_helper.xcovlevel_for(
+                self.tc, os.path.basename(qde.wdir)
+            ),
+            xregions=xregions,
+        )
 
         reports = ls(os.path.join(qde.wdir, "test.rep"))
 
-        thistest.fail_if(len(reports) != 1,
-                         "expected 1 report, found %d" % len(reports))
+        thistest.fail_if(
+            len(reports) != 1, "expected 1 report, found %d" % len(reports)
+        )
 
         self.report = Tfile(reports[0], self.__process_line)
         for rpe in self.rpElements:

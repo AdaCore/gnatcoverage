@@ -31,24 +31,25 @@ def gprdep_for(reldir, wd):
     # make sure that each test operating with a given relative dir has its own
     # object dir there and can run in parallel with others.
 
-    locid = os.path.basename(reldir.rstrip('/'))
-    testid = os.path.basename(wd.homedir.rstrip('/'))
+    locid = os.path.basename(reldir.rstrip("/"))
+    testid = os.path.basename(wd.homedir.rstrip("/"))
 
-    prjname = '%s_%s' % (locid, testid)
+    prjname = "%s_%s" % (locid, testid)
     gprdep = os.path.join(wd.homedir, reldir, prjname)
 
-    with open(gprdep + '.gpr', 'w') as gprfile:
+    with open(gprdep + ".gpr", "w") as gprfile:
         gprfile.write(
-            contents_of(os.path.join(wd.homedir, '../template.gpr')) % {
-                'prjname': prjname,
-                'objdir': 'obj_' + testid,
-                'pkg_emulator': gpr_emulator_package(),
+            contents_of(os.path.join(wd.homedir, "../template.gpr"))
+            % {
+                "prjname": prjname,
+                "objdir": "obj_" + testid,
+                "pkg_emulator": gpr_emulator_package(),
             }
         )
     return gprdep
 
 
-Csw = namedtuple('Csw', 'cmd switches')
+Csw = namedtuple("Csw", "cmd switches")
 
 
 def __gprattr(attrname, value, aslist):
@@ -60,12 +61,13 @@ def __gprattr(attrname, value, aslist):
     for value == None. Not for an empty list or string.
     """
     if value is None:
-        return '-- empty %s' % attrname
+        return "-- empty %s" % attrname
 
     elif aslist:
-        return 'for %s use (%s);' % (
+        return "for %s use (%s);" % (
             attrname,
-            ','.join('"%s"' % v for v in value))
+            ",".join('"%s"' % v for v in value),
+        )
     else:
         return 'for %s use "%s";' % (attrname, value)
 
@@ -78,16 +80,19 @@ def __gpr_uattr(value, for_list, to_exclude):
     have a single list-filename argument.
     """
     return __gprattr(
-        attrname='%(prefix)s%(kind)s' % {
-            'prefix': 'Excluded_' if to_exclude else '',
-            'kind': 'Units_List' if for_list else 'Units'
+        attrname="%(prefix)s%(kind)s"
+        % {
+            "prefix": "Excluded_" if to_exclude else "",
+            "kind": "Units_List" if for_list else "Units",
         },
         value=value,
-        aslist=not for_list)
+        aslist=not for_list,
+    )
 
 
-def gprcov_for(units_in=None, ulist_in=None, units_out=None, ulist_out=None,
-               switches=()):
+def gprcov_for(
+    units_in=None, ulist_in=None, units_out=None, ulist_out=None, switches=()
+):
     """
     Compute and return the text of a Coverage GPR package from:
 
@@ -100,28 +105,29 @@ def gprcov_for(units_in=None, ulist_in=None, units_out=None, ulist_out=None,
     the corresponding argument passed here is None. For SWITCHES, we expect a
     command->switches sequence of ("command", [options]) Csw tuples.
     """
-    return '\n'.join([
-
-        'package Coverage is',
-
-        # Units
-        __gpr_uattr(for_list=False, to_exclude=False, value=units_in),
-
-        # Excluded_Units
-        __gpr_uattr(for_list=False, to_exclude=True, value=units_out),
-
-        # Units_List
-        __gpr_uattr(for_list=True, to_exclude=False, value=ulist_in),
-
-        # Excluded_Units_List
-        __gpr_uattr(for_list=True, to_exclude=True, value=ulist_out)
-    ] + [
-        # Switches (CMD)
-        __gprattr(attrname='Switches ("%s")' % csw.cmd,
-                  value=csw.switches,
-                  aslist=True)
-        for csw in switches
-    ] + ["end Coverage;"])
+    return "\n".join(
+        [
+            "package Coverage is",
+            # Units
+            __gpr_uattr(for_list=False, to_exclude=False, value=units_in),
+            # Excluded_Units
+            __gpr_uattr(for_list=False, to_exclude=True, value=units_out),
+            # Units_List
+            __gpr_uattr(for_list=True, to_exclude=False, value=ulist_in),
+            # Excluded_Units_List
+            __gpr_uattr(for_list=True, to_exclude=True, value=ulist_out),
+        ]
+        + [
+            # Switches (CMD)
+            __gprattr(
+                attrname='Switches ("%s")' % csw.cmd,
+                value=csw.switches,
+                aslist=True,
+            )
+            for csw in switches
+        ]
+        + ["end Coverage;"]
+    )
 
 
 class GPRswitches:
@@ -137,16 +143,18 @@ class GPRswitches:
     with the build step that precedes the gnatcov invocations (e.g. --subdirs).
     """
 
-    def __init__(self,
-                 root_project,
-                 projects=None,
-                 units=None,
-                 no_subprojects=False,
-                 externally_built_projects=False,
-                 relocate_build_tree=False,
-                 root_dir=None,
-                 xvars=None,
-                 subdirs=None):
+    def __init__(
+        self,
+        root_project,
+        projects=None,
+        units=None,
+        no_subprojects=False,
+        externally_built_projects=False,
+        relocate_build_tree=False,
+        root_dir=None,
+        xvars=None,
+        subdirs=None,
+    ):
         """
         :param str root_project: Root project to consider (-P argument).
         :param list[str] projects: Optional list of projects for units of
@@ -181,16 +189,16 @@ class GPRswitches:
         switches = []
 
         for v in self.xvars:
-            switches.append('-X{}={}'.format(v[0], v[1]))
+            switches.append("-X{}={}".format(v[0], v[1]))
 
         if self.subdirs:
-            switches.append('--subdirs={}'.format(self.subdirs))
+            switches.append("--subdirs={}".format(self.subdirs))
 
         if self.relocate_build_tree:
-            switches.append('--relocate-build-tree')
+            switches.append("--relocate-build-tree")
 
         if self.root_dir:
-            switches.append('--root-dir={}'.format(self.root_dir))
+            switches.append("--root-dir={}".format(self.root_dir))
 
         return switches
 
@@ -199,18 +207,18 @@ class GPRswitches:
         """
         The switches for gnatcov commands, as a list of strings.
         """
-        switches = ['-P{}'.format(self.root_project)]
+        switches = ["-P{}".format(self.root_project)]
 
         for p in self.projects:
-            switches.append('--projects={}'.format(p))
+            switches.append("--projects={}".format(p))
 
         for u in self.units:
-            switches.append('--units={}'.format(u))
+            switches.append("--units={}".format(u))
 
         if self.no_subprojects:
-            switches.append('--no-subprojects')
+            switches.append("--no-subprojects")
 
         if self.externally_built_projects:
-            switches.append('--externally-built-projects')
+            switches.append("--externally-built-projects")
 
         return switches + self.build_switches

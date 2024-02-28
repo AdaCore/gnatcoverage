@@ -13,46 +13,59 @@ wd = Wdir()
 
 def try_one_gpr(gpr, no_such):
     label = os.path.basename(os.getcwd())
-    dump = 'xcov.out'
+    dump = "xcov.out"
 
     build_run_and_coverage(
         gprsw=GPRswitches(root_project=gpr),
-        covlevel='stmt',
-        mains=['p'],
-        extra_coverage_args=['-axcov'],
+        covlevel="stmt",
+        mains=["p"],
+        extra_coverage_args=["-axcov"],
         out=dump,
         register_failure=False,
     )
     dump = contents_of(dump)
 
     expected_warning = (
-        'no unit {} in project gen (coverage.units attribute)'.format(no_such)
-        if no_such else 'no unit of interest')
+        "no unit {} in project gen (coverage.units attribute)".format(no_such)
+        if no_such
+        else "no unit of interest"
+    )
 
     thistest.fail_if(
         expected_warning not in dump,
-        '[{}] missing warning on absence of specified unit'.format(label))
+        "[{}] missing warning on absence of specified unit".format(label),
+    )
 
 
 # Empty by specifying a single, non-existing unit in only
 wd.to_subdir("wd_1")
 try_one_gpr(
-    gpr=gprfor(srcdirs="../src", mains="p.adb",
-               extra=CovControl(units_in=["no_such_unit"]).gpr()),
-    no_such="no_such_unit")
+    gpr=gprfor(
+        srcdirs="../src",
+        mains="p.adb",
+        extra=CovControl(units_in=["no_such_unit"]).gpr(),
+    ),
+    no_such="no_such_unit",
+)
 
 # Empty by excluding the only candidate unit
 wd.to_subdir("wd_2")
-try_one_gpr(gpr=gprfor(srcdirs="../src", mains="p.adb",
-                       extra=CovControl(units_out=["p"]).gpr()),
-            no_such=None)
+try_one_gpr(
+    gpr=gprfor(
+        srcdirs="../src",
+        mains="p.adb",
+        extra=CovControl(units_out=["p"]).gpr(),
+    ),
+    no_such=None,
+)
 
 # Empty by including the empty set explicitly
 wd.to_subdir("wd_3")
 try_one_gpr(
     gpr=gprfor(
-        srcdirs="../src", mains="p.adb",
-        extra=CovControl(units_in=[]).gpr()),
-    no_such=None)
+        srcdirs="../src", mains="p.adb", extra=CovControl(units_in=[]).gpr()
+    ),
+    no_such=None,
+)
 
 thistest.result()

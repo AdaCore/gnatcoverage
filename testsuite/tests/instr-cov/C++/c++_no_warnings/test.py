@@ -9,17 +9,17 @@ from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
 build_run_and_coverage(
-    gprsw=GPRswitches(root_project=gprfor(srcdirs=['..'], mains=['main.cpp'])),
-    covlevel='stmt',
-    mains=['main'],
-    extra_coverage_args=['-axcov', '--output-dir=xcov'],
-    extra_gprbuild_cargs=['-Werror'],
-    trace_mode='src',
+    gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["main.cpp"])),
+    covlevel="stmt",
+    mains=["main"],
+    extra_coverage_args=["-axcov", "--output-dir=xcov"],
+    extra_gprbuild_cargs=["-Werror"],
+    trace_mode="src",
 )
 
-check_xcov_reports('xcov', {'main.cpp.xcov': {'+': {4}}})
+check_xcov_reports("xcov", {"main.cpp.xcov": {"+": {4}}})
 
 thistest.result()

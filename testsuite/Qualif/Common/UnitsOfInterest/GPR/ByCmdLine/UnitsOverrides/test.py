@@ -11,26 +11,29 @@ from test_support import check
 # Without --units, on closure -> everything
 
 check(
-    root_project='gen.gpr',
+    root_project="gen.gpr",
     recurse=True,
-    xreports=['intops', 'boolops', 'counters'])
+    xreports=["intops", "boolops", "counters"],
+)
 
 # --units=boolops.andthen in closure, andthen and parent
 # spec reports only, despite the attribute in boolops.gpr
 
 check(
-    root_project='gen.gpr',
+    root_project="gen.gpr",
     recurse=True,
-    units=['boolops.andthen'],
-    xreports=['boolops.ads', 'boolops-andthen.ads', 'boolops-andthen.adb'])
+    units=["boolops.andthen"],
+    xreports=["boolops.ads", "boolops-andthen.ads", "boolops-andthen.adb"],
+)
 
 # --units=counters in closure, counters reports only
 # despite the attribute in boolops.gpr
 
 check(
-    root_project='gen.gpr',
+    root_project="gen.gpr",
     recurse=True,
-    units=['counters'],
-    xreports=['counters.ads', 'counters.adb'])
+    units=["counters"],
+    xreports=["counters.ads", "counters.adb"],
+)
 
 thistest.result()

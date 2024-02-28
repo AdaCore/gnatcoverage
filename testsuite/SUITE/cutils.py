@@ -15,6 +15,7 @@ from e3.fs import mkdir
 from e3.os.fs import cd, which
 from e3.os.process import Run
 
+
 def unhandled_exception_in(log):
     """
     Whether the provided execution log contains an indication
@@ -29,15 +30,16 @@ def unhandled_exception_in(log):
             r"|"
             r"raised [A-Z_]+ : [-._a-zA-Z]+:[0-9]+ \w+)"
         ),
-        string=log
+        string=log,
     )
+
 
 def strip_prefix(prefix, string):
     """
     If STRING starts with PREFIX, return STRING without the PREFIX part.
     Return the string unchanged otherwise.
     """
-    return string[len(prefix):] if string.startswith(prefix) else string
+    return string[len(prefix) :] if string.startswith(prefix) else string
 
 
 def no_ext(filename):
@@ -74,45 +76,48 @@ def to_list(blob):
     Turn input BLOB into a list if it isn't already. Handle None and whitespace
     separated strings. Return empty list otherwise.
     """
-    return (list(blob) if isinstance(blob, (list, tuple))
-            else blob.split() if isinstance(blob, str)
-            else [])
+    return (
+        list(blob)
+        if isinstance(blob, (list, tuple))
+        else blob.split()
+        if isinstance(blob, str)
+        else []
+    )
 
 
-def indent(blob, indent='  '):
+def indent(blob, indent="  "):
     """
     Prefix each line in BLOB's with INDENT. BLOB can be either a single string
     or a list of strings. The result is a single string anyway.
     """
     lines = list(blob) if isinstance(blob, list) else blob.splitlines()
-    return '\n'.join('{}{}'.format(indent, line)
-                     for line in lines)
+    return "\n".join("{}{}".format(indent, line) for line in lines)
 
 
-def indent_after_first_line(blob, prefix='  '):
+def indent_after_first_line(blob, prefix="  "):
     """Like "indent", but do not change the first line."""
     lines = list(blob) if isinstance(blob, list) else blob.splitlines()
     if len(lines) < 2:
-        return '\n'.join(lines)
+        return "\n".join(lines)
     else:
-        return '\n'.join(lines[0:1] + indent(lines[1:], prefix).splitlines())
+        return "\n".join(lines[0:1] + indent(lines[1:], prefix).splitlines())
 
 
-def text_to_file(text, filename='tmp.list'):
+def text_to_file(text, filename="tmp.list"):
     """
     Write TEXT to file FILENAME. Overwrite current contents. Return FILENAME.
     """
-    with open(filename, 'w') as fd:
+    with open(filename, "w") as fd:
         fd.write(text)
     return filename
 
 
-def list_to_file(lines, filename='tmp.list'):
+def list_to_file(lines, filename="tmp.list"):
     """
     Write list LINES to file FILENAME, one item per line. Typical use is to
     generate response files. Return FILENAME.
     """
-    return text_to_file('\n'.join(lines) + '\n', filename)
+    return text_to_file("\n".join(lines) + "\n", filename)
 
 
 def list_to_tmp(lines, dir=None):
@@ -127,7 +132,8 @@ def list_to_tmp(lines, dir=None):
     # testcases).
     dir = os.getcwd() if dir is None else os.path.abspath(dir)
     return text_to_file(
-        '\n'.join(lines) + '\n', tempfile.mktemp(dir=dir, suffix='.list'))
+        "\n".join(lines) + "\n", tempfile.mktemp(dir=dir, suffix=".list")
+    )
 
 
 def match(pattern, filename, flags=0):
@@ -135,7 +141,7 @@ def match(pattern, filename, flags=0):
     return re.search(pattern, contents_of(filename), flags) is not None
 
 
-def re_filter(strings, pattern=''):
+def re_filter(strings, pattern=""):
     """Compute the list of entries in STRINGS that match the PATTERN regexp."""
     return [t for t in strings if re.search(pattern, t)]
 
@@ -164,23 +170,24 @@ def version(tool, nlines=1):
     # probe, and if we happen to actually need the tool later on, we'll see
     # test failures anyway.
     if not which(tool):
-        return 'N/A'
+        return "N/A"
 
     # --version often dumps more than the version number on a line. A
     # copyright notice is typically found there as well. Our heuristic
     # here is to strip everything past the first comma.
 
     def version_on_line(text):
-        cprpos = text.find(',')
+        cprpos = text.find(",")
         return text[0:cprpos] if cprpos != -1 else text
 
-    tool_version_output = Run([tool, '--version']).out.split('\n')
-    version_info = '\n'.join(
-        [version_on_line(line) for line in tool_version_output[0:nlines]])
+    tool_version_output = Run([tool, "--version"]).out.split("\n")
+    version_info = "\n".join(
+        [version_on_line(line) for line in tool_version_output[0:nlines]]
+    )
 
-    if tool == 'gcc':
-        gcc_target = Run([tool, '-dumpmachine']).out.strip()
-        version_info += ' [%s]' % gcc_target
+    if tool == "gcc":
+        gcc_target = Run([tool, "-dumpmachine"]).out.strip()
+        version_info += " [%s]" % gcc_target
 
     return version_info
 
@@ -246,9 +253,9 @@ class FatalError(Exception):
 
     def __init__(self, comment, outfile=None, outstr=None):
         if outfile is not None:
-            comment += '. Output was:\n' + contents_of(outfile)
+            comment += ". Output was:\n" + contents_of(outfile)
         elif outstr is not None:
-            comment += '. Output was:\n' + outstr
+            comment += ". Output was:\n" + outstr
         self.comment = comment
 
     def __str__(self):
@@ -261,7 +268,7 @@ def exit_if(t, comment):
     error status code.
     """
     if t:
-        sys.stderr.write(comment + '\n')
+        sys.stderr.write(comment + "\n")
         exit(1)
 
 

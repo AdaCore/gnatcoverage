@@ -3,22 +3,23 @@
 int
 dobreak (int limit, int arg)
 {
-  int loop = 1;         // # body
+  int loop = 1; // # body
 
   do
     {
-      ++arg;            // # while
-      if (arg > limit)  // # while
+      ++arg;           // # while
+      if (arg > limit) // # while
         {
-          --arg;        // # break-soft
-          break;        // # break-soft
+          --arg; // # break-soft
+          break; // # break-soft
         }
-      if (arg > 10)     // # while
+      if (arg > 10) // # while
         {
-          --arg;        // # break-hard
-          break;        // # break-hard
+          --arg; // # break-hard
+          break; // # break-hard
         }
-    } while (++loop);   // # body
+    }
+  while (++loop); // # body
 
-  return arg;           // # body
+  return arg; // # body
 }

@@ -17,7 +17,12 @@ from SUITE.control import env
 from SUITE.cutils import FatalError, Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import (
-    exepath_to, gprfor, thistest, tracename_for, xcov, xrun
+    exepath_to,
+    gprfor,
+    thistest,
+    tracename_for,
+    xcov,
+    xrun,
 )
 
 
@@ -35,20 +40,23 @@ p = Run(
         "make",
         f"CC={env.target.triplet}-gcc",
         f"AR={env.target.triplet}-ar",
-        "CFLAGS={}".format(" ".join([
-            "-fpreserve-control-flow",
-            "-fdump-scos",
-            "-g",
-            "-save-temps",
-
-            # TODO??? This is necessary in order to have the C sources build
-            # with an arm-elf toolchain and a stm32f4 RTS, it is not clear if
-            # we could make this more generic.
-            "-mlittle-endian",
-            "-mfloat-abi=hard",
-            "-mcpu=cortex-m4",
-            "-mfpu=fpv4-sp-d16",
-        ])),
+        "CFLAGS={}".format(
+            " ".join(
+                [
+                    "-fpreserve-control-flow",
+                    "-fdump-scos",
+                    "-g",
+                    "-save-temps",
+                    # TODO??? This is necessary in order to have the C sources build
+                    # with an arm-elf toolchain and a stm32f4 RTS, it is not clear if
+                    # we could make this more generic.
+                    "-mlittle-endian",
+                    "-mfloat-abi=hard",
+                    "-mcpu=cortex-m4",
+                    "-mfpu=fpv4-sp-d16",
+                ]
+            )
+        ),
     ],
     output=PIPE,
     error=STDOUT,
@@ -79,10 +87,13 @@ build_run_and_coverage(
     ],
 )
 
-check_xcov_reports("coverage", {
-    "wibble.c.xcov": {"+": {8, 12}, "!": {6}},
-    "main.adb.xcov": {"+": {7}},
-    "driver.c.xcov": {"+": {13, 24, 25, 27}, "!": {11}, "-": {17}},
-})
+check_xcov_reports(
+    "coverage",
+    {
+        "wibble.c.xcov": {"+": {8, 12}, "!": {6}},
+        "main.adb.xcov": {"+": {7}},
+        "driver.c.xcov": {"+": {13, 24, 25, 27}, "!": {11}, "-": {17}},
+    },
+)
 
 thistest.result()

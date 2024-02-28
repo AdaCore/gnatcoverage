@@ -72,8 +72,10 @@ cov_args = ["coverage", "-cstmt+mcdc", "-axcov"] + src_rebase_args
 
 # The instrumentation part was done in "gen.sh". Restore SIDs and instrumented
 # sources for the two cases to test and do the build+run+coverage.
-for name, gen_dir_name in [("win", "x86_64-windows"),
-                           ("linux", "arm-elf-linux")]:
+for name, gen_dir_name in [
+    ("win", "x86_64-windows"),
+    ("linux", "arm-elf-linux"),
+]:
     thistest.log(f"== 1. {name} ==")
 
     # Generate a dedicated project for this
@@ -117,8 +119,10 @@ mkdir("2-xcov")
 xcov(
     cov_args
     + ["--output-dir=2-xcov"]
-    + [f"--checkpoint={os.path.join('..', 'gen', ckpt)}"
-       for ckpt in ["src-main_1.ckpt", "src-main_2.ckpt"]]
+    + [
+        f"--checkpoint={os.path.join('..', 'gen', ckpt)}"
+        for ckpt in ["src-main_1.ckpt", "src-main_2.ckpt"]
+    ]
 )
 check_reports("2-xcov")
 
@@ -133,14 +137,16 @@ mkdir("3-xcov")
 p = xcov(
     cov_args
     + ["--output-dir=3-xcov"]
-    + [f"--checkpoint={os.path.join('..', 'gen', ckpt)}"
-       for ckpt in ["bin-main_1.ckpt", "bin-main_2.ckpt"]],
+    + [
+        f"--checkpoint={os.path.join('..', 'gen', ckpt)}"
+        for ckpt in ["bin-main_1.ckpt", "bin-main_2.ckpt"]
+    ],
     out="3-coverage-out.txt",
     register_failure=False,
 )
 thistest.fail_if(
     p.status == 0,
-    "'gnatcov coverage' exited with status code 0 while an error was expected"
+    "'gnatcov coverage' exited with status code 0 while an error was expected",
 )
 
 # Since the checkpoint for main_1 was created for 32-bits while the checkpoint

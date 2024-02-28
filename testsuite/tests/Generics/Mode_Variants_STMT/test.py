@@ -7,12 +7,10 @@ tc = TestCase(category=CAT.stmt)
 
 tc.run()
 
-tc.run(covcontrol=CovControl(covoptions="-S instance"),
-       subdirhint="i_")
+tc.run(covcontrol=CovControl(covoptions="-S instance"), subdirhint="i_")
 
 # -S routine is intractable with inlining
-if '-gnatn' not in thistest.suite_cargs_for('Ada'):
-    tc.run(covcontrol=CovControl(covoptions="-S routine"),
-           subdirhint="r_")
+if "-gnatn" not in thistest.suite_cargs_for("Ada"):
+    tc.run(covcontrol=CovControl(covoptions="-S routine"), subdirhint="r_")
 
 thistest.result()

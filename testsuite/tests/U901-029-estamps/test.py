@@ -12,7 +12,7 @@ from SUITE.gprutils import GPRswitches
 import re
 from datetime import date
 
-tmp = Wdir('tmp_')
+tmp = Wdir("tmp_")
 
 gpr = gprfor(mains=["main.adb"], srcdirs=[".."])
 
@@ -20,13 +20,14 @@ gpr = gprfor(mains=["main.adb"], srcdirs=[".."])
 # dates advertised in the report are consistent with what we perceive is the
 # current date.
 
-report = 'report'
+report = "report"
 
 xcov_args = build_run_and_coverage(
     gprsw=GPRswitches(root_project=gpr),
     extra_coverage_args=["--annotate=report", "-o", report],
-    covlevel='stmt',
-    mains=['main'])
+    covlevel="stmt",
+    mains=["main"],
+)
 
 # We expect to find two items mentioning the date:
 #
@@ -49,17 +50,18 @@ report = contents_of(report)
 date_re = r"\d{4}-\d{2}-\d{2}"
 
 for pattern in (
-        r"Date.*execution: (?P<date>%s)" % date_re,
-        r"date *: (?P<date>%s)" % date_re
+    r"Date.*execution: (?P<date>%s)" % date_re,
+    r"date *: (?P<date>%s)" % date_re,
 ):
     m = re.search(pattern=pattern, string=report)
 
     thistest.fail_if(
-        not m,
-        "couldn't find a match for pattern '%s' in report" % pattern)
+        not m, "couldn't find a match for pattern '%s' in report" % pattern
+    )
 
     thistest.fail_if(
-        m.group('date') != today,
-        "date found (%s) doesn't match today (%s)" % (m.group('date'), today))
+        m.group("date") != today,
+        "date found (%s) doesn't match today (%s)" % (m.group("date"), today),
+    )
 
 thistest.result()

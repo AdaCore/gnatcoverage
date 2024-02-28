@@ -24,9 +24,7 @@ import e3.os.process
 
 
 class Runner:
-
     def __init__(self):
-
         self.parse_command_line()
         self.run()
 
@@ -37,31 +35,25 @@ class Runner:
 
         # --level and --target are expected to always be there:
 
-        op.add_option(
-            "--level", dest="covlevel", default=None)
-        op.add_option(
-            "--target", dest="target", default=None)
+        op.add_option("--level", dest="covlevel", default=None)
+        op.add_option("--target", dest="target", default=None)
 
         # For source coverage tests not using project files:
 
-        op.add_option(
-            "--scos", dest="scos", default=None)
+        op.add_option("--scos", dest="scos", default=None)
 
         # For tests using project files
 
+        op.add_option("-P", dest="gpr", default=None)
         op.add_option(
-            "-P", dest="gpr", default=None)
-        op.add_option(
-            "--recursive", dest="recurse", default=False, action='store_true')
-        op.add_option(
-            "--projects", dest="projects", default=None)
-        op.add_option(
-            "--units", dest="units", default=None)
+            "--recursive", dest="recurse", default=False, action="store_true"
+        )
+        op.add_option("--projects", dest="projects", default=None)
+        op.add_option("--units", dest="units", default=None)
 
         # Then a few optional items
 
-        op.add_option(
-            "-o", dest="ofile", default=None)
+        op.add_option("-o", dest="ofile", default=None)
 
         (self.options, self.args) = op.parse_args()
 
@@ -92,7 +84,6 @@ class Runner:
         return args
 
     def run(self):
-
         print("============== GNATCOV RUN ===================")
 
         if not self.args:
@@ -100,7 +91,8 @@ class Runner:
             os.exit(1)
 
         e3.os.process.Run(
-            ['gnatcov', 'run'] + self.run_command_line() + self.args)
+            ["gnatcov", "run"] + self.run_command_line() + self.args
+        )
 
         print("==============================================")
 

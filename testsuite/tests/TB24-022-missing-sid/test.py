@@ -11,22 +11,33 @@ tmp = Wdir("tmp_")
 
 gprfor(prjid="p1", srcdirs=["../src-p1"], mains=None, langs="Ada")
 
-p2 = gprfor(prjid="p2", srcdirs=["../src-p2"], mains=["p2.adb"],
-            deps=["p1"],
-            extra="for Origin_Project use \"p1\";")
+p2 = gprfor(
+    prjid="p2",
+    srcdirs=["../src-p2"],
+    mains=["p2.adb"],
+    deps=["p1"],
+    extra='for Origin_Project use "p1";',
+)
 
 # Build the projects and produce a trace for the main
-build_run_and_coverage(gprsw=GPRswitches(root_project=p2),
-                       covlevel="stmt",
-                       mains=["p2"],
-                       extra_coverage_args=["-a", "xcov",
-                                            "--no-subprojects",
-                                            "--projects=p2",
-                                            "-v"],
-                       trace_mode="src")
+build_run_and_coverage(
+    gprsw=GPRswitches(root_project=p2),
+    covlevel="stmt",
+    mains=["p2"],
+    extra_coverage_args=[
+        "-a",
+        "xcov",
+        "--no-subprojects",
+        "--projects=p2",
+        "-v",
+    ],
+    trace_mode="src",
+)
 
-thistest.fail_if("warning: no SID file found for unit p2"
-                 not in contents_of("coverage.log"),
-                 "No warning for missing SID file (for p2)")
+thistest.fail_if(
+    "warning: no SID file found for unit p2"
+    not in contents_of("coverage.log"),
+    "No warning for missing SID file (for p2)",
+)
 
 thistest.result()

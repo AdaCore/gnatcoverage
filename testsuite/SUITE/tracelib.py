@@ -39,10 +39,8 @@ class Enum(object):
         """
         Assert that `value` is in `cls`'s range.
         """
-        assert cls.in_range(value), 'Invalid {}: {} not in {} .. {}'.format(
-            cls.__name__,
-            value,
-            cls.RANGE[0], cls.RANGE[1]
+        assert cls.in_range(value), "Invalid {}: {} not in {} .. {}".format(
+            cls.__name__, value, cls.RANGE[0], cls.RANGE[1]
         )
 
 
@@ -50,6 +48,7 @@ class TraceKind(Enum):
     """
     Kind of trace file. See Trace_Kind in qemu_traces.ads.
     """
+
     Flat = 0
     History = 1
     Info = 2
@@ -62,6 +61,7 @@ class InfoKind(Enum):
     """
     Kind of trace information record. See Info_Kind_Type in qemu_traces.ads.
     """
+
     InfoEnd = 0
     ExecFileName = 1
     CoverageOptions = 2
@@ -81,6 +81,7 @@ class TraceOp(Enum):
     """
     Trace operation bitmasks. See Trace_Op_* in qemu_traces.ads.
     """
+
     Block = 0x10
     Fault = 0x20
     Br0 = 0x01
@@ -88,9 +89,13 @@ class TraceOp(Enum):
     Special = 0x80
 
     # Helper for the format_flags method, below
-    flag_chars = [(Block,   'B'), (Fault, 'F'),
-                  (Br0,     'b'), (Br1,   'f'),
-                  (Special, 's')]
+    flag_chars = [
+        (Block, "B"),
+        (Fault, "F"),
+        (Br0, "b"),
+        (Br1, "f"),
+        (Special, "s"),
+    ]
 
     @classmethod
     def format_flags(cls, flags):
@@ -104,14 +109,16 @@ class TraceOp(Enum):
         :param int flags: Integer value for the TraceOp to decode. This is the
             integer that is read directly from the trace file.
         """
-        return ''.join(char if flags & v else '-'
-                       for v, char in cls.flag_images)
+        return "".join(
+            char if flags & v else "-" for v, char in cls.flag_images
+        )
 
 
 class TraceSpecial(Enum):
     """
     Special trace operations. See Trace_Special_* in qemu_traces.ads.
     """
+
     Loadaddr = 1
     LoadSharedObject = 2
     UnloadSharedObject = 3
@@ -119,7 +126,7 @@ class TraceSpecial(Enum):
     RANGE = (1, 3)
 
 
-TRACE_MAGIC = b'#QEMU-Traces'
+TRACE_MAGIC = b"#QEMU-Traces"
 """
 Exepected value of the Magic header field. See Qemu_Trace_Magic in
 qemu_traces.ads.
@@ -143,55 +150,49 @@ def create_trace_header(kind, pc_size, big_endian, machine):
         pc_size,
         big_endian,
         machine >> 8,
-        machine & 0xff,
-        0
+        machine & 0xFF,
+        0,
     )
 
 
 TraceHeaderStruct = Struct(
-    'trace file header',
-
+    "trace file header",
     # See Trace_Header in qemu_traces.ads
-    ('magic', '12s'),
-    ('version', 'B'),
-    ('kind', 'B'),
-
-    ('sizeof_target_pc', 'B'),
-    ('big_endian', 'B'),
-
-    ('machine_hi', 'B'),
-    ('machine_lo', 'B'),
-    ('padding', 'H'),
+    ("magic", "12s"),
+    ("version", "B"),
+    ("kind", "B"),
+    ("sizeof_target_pc", "B"),
+    ("big_endian", "B"),
+    ("machine_hi", "B"),
+    ("machine_lo", "B"),
+    ("padding", "H"),
 )
 
 
 TraceInfoHeaderStruct = Struct(
-    'trace info header',
-
+    "trace info header",
     # See Trace_Info_Header in qemu_traces.ads
-    ('kind', 'I'),
-    ('length', 'I'),
+    ("kind", "I"),
+    ("length", "I"),
 )
 
 
 TraceEntry32Struct = Struct(
-    'trace entry 32',
-
+    "trace entry 32",
     # See Trace_Entry32 in qemu_traces.ads
-    ('pc', 'I'),
-    ('size', 'H'),
-    ('op', 'B'),
-    ('padding', 'B'),
+    ("pc", "I"),
+    ("size", "H"),
+    ("op", "B"),
+    ("padding", "B"),
 )
 TraceEntry64Struct = Struct(
-    'trace entry 64',
-
+    "trace entry 64",
     # See Trace_Entry64 in qemu_traces.ads
-    ('pc', 'Q'),
-    ('size', 'H'),
-    ('op', 'B'),
-    ('padding0', 'B'),
-    ('padding1', 'I'),
+    ("pc", "Q"),
+    ("size", "H"),
+    ("op", "B"),
+    ("padding0", "B"),
+    ("padding1", "I"),
 )
 
 
@@ -301,8 +302,8 @@ class TraceFile(object):
             while True:
                 loadaddr = next(entries)
                 if (
-                    loadaddr.is_special and
-                    loadaddr.size == TraceSpecial.Loadaddr
+                    loadaddr.is_special
+                    and loadaddr.size == TraceSpecial.Loadaddr
                 ):
                     offset = loadaddr.pc
                     break
@@ -358,27 +359,27 @@ class TraceInfo(object):
         Read a trace info entry from the `fp` file. Return a TraceInfo
         instance.
         """
-        with fp.label_context('trace info'):
+        with fp.label_context("trace info"):
             hdr = unpack_from_file(fp, TraceInfoHeaderStruct)
             assert hdr
             kind, length = hdr
             InfoKind.check(kind)
 
-            with fp.label_context('data'):
+            with fp.label_context("data"):
                 data = fp.read(length)
                 assert len(data) == length
 
-            with fp.label_context('padding'):
+            with fp.label_context("padding"):
                 padding_size = cls.padding_size(len(data))
                 padding = fp.read(padding_size)
-                assert len(padding) == padding_size, (
-                    'Expected {} padding bytes but got {}'.format(
-                        padding_size, len(padding)
-                    )
+                assert (
+                    len(padding) == padding_size
+                ), "Expected {} padding bytes but got {}".format(
+                    padding_size, len(padding)
                 )
-                assert padding == (b'\x00' * padding_size), (
-                    'Some padding bytes are non-null: {}'.format(repr(padding))
-                )
+                assert padding == (
+                    b"\x00" * padding_size
+                ), "Some padding bytes are non-null: {}".format(repr(padding))
 
         return cls(kind, data)
 
@@ -388,7 +389,7 @@ class TraceInfo(object):
         """
         TraceInfoHeaderStruct.write(fp, (self.kind, len(self.data)))
         fp.write(self.data)
-        fp.write(b'\x00' * self.padding_size(len(self.data)))
+        fp.write(b"\x00" * self.padding_size(len(self.data)))
 
 
 class TraceInfoList(object):
@@ -473,7 +474,7 @@ class TraceEntry(object):
         """
         Read a trace entry from the `fp` file. Return a TraceEntry instance.
         """
-        with fp.label_context('trace entry'):
+        with fp.label_context("trace entry"):
             fields = unpack_from_file(fp, cls.struct(bits))
             if not fields:
                 return None
@@ -516,38 +517,38 @@ def create_exec_infos(filename, code_size=None):
     :rtype: TraceInfoList
     """
     stat = os.stat(filename)
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         f_contents = f.read()
-    crc32 = binascii.crc32(f_contents) & 0xffffffff
-    mtime = datetime.datetime.utcfromtimestamp(
-        int(stat.st_mtime)
-    )
+    crc32 = binascii.crc32(f_contents) & 0xFFFFFFFF
+    mtime = datetime.datetime.utcfromtimestamp(int(stat.st_mtime))
 
     def create_trace_info(kind, data_str):
-        return TraceInfo(kind, data_str.encode('utf-8'))
+        return TraceInfo(kind, data_str.encode("utf-8"))
 
     infos = [
         create_trace_info(InfoKind.ExecFileName, filename),
-        create_trace_info(InfoKind.ExecFileSize, ' ' + str(stat.st_size)),
-        create_trace_info(InfoKind.ExecTimeStamp, mtime.isoformat(' ')),
-        create_trace_info(InfoKind.ExecFileCRC32, ' ' + str(crc32)),
+        create_trace_info(InfoKind.ExecFileSize, " " + str(stat.st_size)),
+        create_trace_info(InfoKind.ExecTimeStamp, mtime.isoformat(" ")),
+        create_trace_info(InfoKind.ExecFileCRC32, " " + str(crc32)),
     ]
     if code_size:
-        infos.append(create_trace_info(InfoKind.ExecCodeSize,
-                                       ' ' + str(code_size)))
+        infos.append(
+            create_trace_info(InfoKind.ExecCodeSize, " " + str(code_size))
+        )
 
     return TraceInfoList({info.kind: info for info in infos})
 
 
-parser = argparse.ArgumentParser('Decode a binary trace file')
-parser.add_argument('--debug', '-d', action='store_true',
-                    help='Enable debug traces')
-parser.add_argument('trace-file', help='Binary trace file to decode')
+parser = argparse.ArgumentParser("Decode a binary trace file")
+parser.add_argument(
+    "--debug", "-d", action="store_true", help="Enable debug traces"
+)
+parser.add_argument("trace-file", help="Binary trace file to decode")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parser.parse_args()
-    with open(getattr(args, 'trace-file'), 'rb') as f:
+    with open(getattr(args, "trace-file"), "rb") as f:
         tf = TraceFile.read(ByteStreamDecoder(f, args.debug, 4))
 
     # TODO: add trace-file dump capabilities

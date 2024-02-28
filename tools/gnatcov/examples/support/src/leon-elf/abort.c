@@ -20,7 +20,8 @@
 /* Our local last chance handlers for Ada rely on "abort", and this is not
    part of the standard RTS on leon.  */
 
-void abort (void)
+void
+abort (void)
 {
-  asm ("mov 0, %g1; ta 0");
+  asm("mov 0, %g1; ta 0");
 }

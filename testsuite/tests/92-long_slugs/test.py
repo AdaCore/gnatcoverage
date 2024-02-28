@@ -70,7 +70,11 @@ check_xcov_reports(
     "obj",
     {
         "main.c.xcov": {"+": {6}},
-        (unit_name.lower() if "windows" in thistest.env.host.platform else unit_name)
+        (
+            unit_name.lower()
+            if "windows" in thistest.env.host.platform
+            else unit_name
+        )
         + ".c.xcov": {"+": {6}},
     },
 )
