@@ -7,18 +7,15 @@ switch was not passed to the gnatcov command line.
 """
 
 import os.path
-import re
-import shutil
 
-from e3.fs import cp, rm
+from e3.fs import cp
 
-from SCOV.instr import xcov_instrument
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.control import env
-from SUITE.cutils import Wdir, contents_of, indent
+from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
-from SUITE.tutils import gprfor, gprbuild, gprinstall, xcov
+from SUITE.tutils import gprfor, gprbuild, gprinstall
 
 tmp = Wdir("tmp_")
 

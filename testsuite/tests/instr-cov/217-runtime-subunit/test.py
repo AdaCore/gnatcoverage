@@ -5,11 +5,11 @@ the Ada runtime completes (it used to crash).
 
 import os.path
 
-from e3.fs import mkdir, sync_tree
+from e3.fs import sync_tree
 
 from SCOV.instr import xcov_instrument
 from SUITE.context import thistest
-from SUITE.cutils import Wdir, contents_of
+from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 
 tmp = Wdir("tmp_")

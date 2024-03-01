@@ -13,20 +13,20 @@ exe = exepath_to("p")
 # both work and produce the same result.
 
 
-def run_check(id, args):
-    rlog = id + ".rlog"
-    trace = id + ".trace"
+def run_check(slug, args):
+    rlog = slug + ".rlog"
+    trace = slug + ".trace"
     xrun(["-o", trace] + args, out=rlog)
     thistest.fail_if(
         not empty(rlog) and not match("/runkernel", rlog),
-        "unexpected output from %s run:\n%s" % (id, contents_of(rlog)),
+        "unexpected output from %s run:\n%s" % (slug, contents_of(rlog)),
     )
 
 
-def cov_check(id):
-    clog = id + ".clog"
-    trace = id + ".trace"
-    rep = id + ".rep"
+def cov_check(slug):
+    clog = slug + ".clog"
+    trace = slug + ".trace"
+    rep = slug + ".rep"
     xcov(
         [
             "coverage",
@@ -47,17 +47,17 @@ def cov_check(id):
 
     thistest.fail_if(
         not empty(clog),
-        "unexpected output from %s coverage :\n%s" % (id, contents_of(clog)),
+        "unexpected output from %s coverage :\n%s" % (slug, contents_of(clog)),
     )
 
 
-id = "base"
-run_check(id, args=[exe])
-cov_check(id)
+slug = "base"
+run_check(slug, args=[exe])
+cov_check(slug)
 
-id = "eargs"
-run_check(id, args=["-eargs", exe])
-cov_check(id)
+slug = "eargs"
+run_check(slug, args=["-eargs", exe])
+cov_check(slug)
 
 # Check that a bare "xcov run" complains about absence of executable
 # on the command line.

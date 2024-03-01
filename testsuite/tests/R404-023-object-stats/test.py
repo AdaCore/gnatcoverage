@@ -30,7 +30,7 @@ baseline = """\
   1 fully covered
   2 partially covered
   1 not executed"""
-result = "\n".join(l.rstrip() for l in lines[-7:])
+result = "\n".join(line.rstrip() for line in lines[-7:])
 
 thistest.fail_if(
     baseline != result,

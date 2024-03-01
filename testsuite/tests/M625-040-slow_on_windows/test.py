@@ -13,7 +13,7 @@ gpr = gprfor(srcdirs=[".."], mains=["p.adb"])
 
 def run(action, repeat, tag):
     start = time.clock()
-    for i in range(repeat):
+    for _ in range(repeat):
         action()
     end = time.clock()
     print("%s: %2.5f" % (tag, end - start))
@@ -27,7 +27,7 @@ def eval_xrun():
     run(action=lambda: xrun(exename_for("p")), repeat=50, tag="xrun")
 
 
-def eval(what):
+def profile(what):
     profiler = cProfile.Profile()
     profiler.run("eval_%s()" % what)
 
@@ -48,7 +48,7 @@ def eval(what):
     ps.print_callees()
 
 
-eval("gprbuild")
-eval("xrun")
+profile("gprbuild")
+profile("xrun")
 
 thistest.result()

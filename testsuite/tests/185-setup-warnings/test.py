@@ -3,9 +3,6 @@ Check that "gnatcov setup" does not emit warnings about missing object/library
 directories when loading the "gnatcov_rts.gpr" project file.
 """
 
-import os
-import os.path
-
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import xcov

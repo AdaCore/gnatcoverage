@@ -5,7 +5,7 @@ coverage" crash.
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.gprutils import GPRswitches
-from SUITE.cutils import contents_of, Wdir
+from SUITE.cutils import Wdir
 from SUITE.tutils import thistest, gprfor
 
 Wdir("tmp_")

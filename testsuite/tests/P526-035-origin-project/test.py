@@ -19,9 +19,9 @@ def xcov_list():
     """
     Return the list of *.xcov files in the "obj" subdirectory.
     """
-    return set(
+    return {
         os.path.basename(f) for f in glob.glob(os.path.join("obj", "*.xcov"))
-    )
+    }
 
 
 def clean_xcov():

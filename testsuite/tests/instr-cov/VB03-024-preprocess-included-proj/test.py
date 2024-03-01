@@ -10,7 +10,7 @@ from SUITE.tutils import gprfor
 from SUITE.gprutils import GPRswitches
 
 
-def create_lib_gpr(name, deps=[]):
+def create_lib_gpr(name, deps=None):
     """
     Create a gpr file for the library.
 
@@ -22,7 +22,7 @@ def create_lib_gpr(name, deps=[]):
         prjid=name,
         srcdirs=f"../src-{name}",
         langs=["C"],
-        deps=deps,
+        deps=deps or [],
         extra=f"""
                       for Library_Name use "{name}";
                       for Library_Dir use "{name}";

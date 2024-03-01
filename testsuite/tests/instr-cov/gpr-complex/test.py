@@ -115,7 +115,6 @@ build_run_cov_and_check(
 # Now the main project defines an alternate spec.
 thistest.log("== Redefining Pkg spec ==")
 expected_xcov = {
-    "pkg.ads.xcov": {},
     "pkg.adb.xcov": {"+": {5}},
     "pkg-bar.adb.xcov": {"+": {3}},
     "pkg.ads.xcov": {"+": {4}},

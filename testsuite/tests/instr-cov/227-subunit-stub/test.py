@@ -67,7 +67,7 @@ for test in [
 
 # Instrument/compile the "vanilla" (stub-free) library to get the "reference"
 # set of SCOs.
-thistest.log(f"== cons ==")
+thistest.log("== cons ==")
 tmp = Wdir("tmp_cons")
 cp("../src/*.gpr", ".")
 lib_gpr = os.path.abspath("lib.gpr")

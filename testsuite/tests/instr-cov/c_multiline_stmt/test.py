@@ -21,8 +21,6 @@ should be instrumented as
 gnatcov used to insert the closing brace before the terminating semicolon.
 """
 
-import os.path
-
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
