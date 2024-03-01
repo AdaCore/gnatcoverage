@@ -148,6 +148,37 @@ test_src_traces:
 
   <<: *artifacts
 
+test_5.04a1_src_traces:
+  interruptible: true
+  services:
+     - image:e3
+     - cpu:16
+     - mem:16
+  stage: test
+  script:
+    - *basic_test_setup
+
+    # GNAT 5.04a1 does not ship "ar" nor "ld". Make the ones from stable-gnat
+    # available as if they were installed system-wide.
+    - anod install stable-gnat
+    - STABLE_GNAT_BSN=$(anod eval --primitive=install stable-gnat build_space_name)
+    - STABLE_GNAT_PREFIX="$ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$STABLE_GNAT_BSN/install"
+    - mkdir build-essentials
+    - export PATH="$PWD/build-essentials:$PATH"
+    - ln -s $STABLE_GNAT_PREFIX/bin/ar build-essentials/
+    - ln -s $STABLE_GNAT_PREFIX/x86_64-pc-linux-gnu/bin/ld build-essentials/
+    # Test using anod
+    - anod test gnatcov --minimal -Q5.04a1,src-traces,instr $ACI_TRACK_QUALIFIER
+    - TEST_BSN=$(anod eval --primitive=test gnatcov -Q5.04a1,src-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
+    - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
+    - e3-testsuite-report
+        --failure-exit-code 1
+        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
+        --xunit-name src-traces
+        $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/results/new/
+
+  <<: *artifacts
+
 test_spark:
   interruptible: true
   services:
