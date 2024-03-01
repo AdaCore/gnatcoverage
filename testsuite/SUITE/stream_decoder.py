@@ -63,7 +63,7 @@ class ByteStreamDecoder(object):
         :param int size: Number of bytes to read.
         :rtype: str
         """
-        bytes = self.stream.read(size)
+        byte_str = self.stream.read(size)
         if self.enabled:
             # Two characters per byte and one space in between. Adjust to
             # account for the maximum indentation.
@@ -72,15 +72,15 @@ class ByteStreamDecoder(object):
             reserved_indent = self.max_indent - len(self.label_stack)
             bytes_part_size += max(0, len(self.INDENT) * reserved_indent)
 
-            # Number of lines to represent bytes
+            # Number of lines to represent byte_str
             lines_count = (
-                len(bytes) + self.BYTES_PER_LINE - 1
+                len(byte_str) + self.BYTES_PER_LINE - 1
             ) // self.BYTES_PER_LINE
 
             for line in range(lines_count):
                 start_byte = line * self.BYTES_PER_LINE
                 end_byte = (line + 1) * self.BYTES_PER_LINE
-                bytes_slice = bytes[start_byte:end_byte]
+                bytes_slice = byte_str[start_byte:end_byte]
 
                 bytes_part = " ".join(
                     "{:02x}".format(b) for b in bytes_slice
@@ -92,8 +92,8 @@ class ByteStreamDecoder(object):
                 )
 
                 self._print("{} | {}".format(bytes_part, ascii_part))
-        self.offset += len(bytes)
-        return bytes
+        self.offset += len(byte_str)
+        return byte_str
 
 
 class Struct(object):

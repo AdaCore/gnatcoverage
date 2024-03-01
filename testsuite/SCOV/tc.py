@@ -77,14 +77,14 @@ class TestCase:
         # possible lists of drivers (each maybe empty). Beware not to include
         # child or sub units, as these dont mirror as such in the set of test
         # drivers.
-        sxx = set(
+        sxx = {
             srcmatch.group(1)
             for srcmatch in (
                 re.match(r"([a-z_]*).*\.(adb|c)", os.path.basename(src))
                 for src in ls("src/*")
             )
             if srcmatch
-        )
+        }
 
         # If there is no candidate body in src/, arrange to run all the
         # drivers. This is useful for test groups on GPR variations for

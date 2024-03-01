@@ -14,7 +14,6 @@ from SUITE.context import thistest
 from SUITE.control import language_info
 from SUITE.cutils import FatalError, lines_of
 from .cnotes import (
-    Block,
     KnoteDict,
     dNoCov,
     dPartCov,
@@ -1153,7 +1152,8 @@ class XnotesExpander:
         # We will use shlex (which is useful for parsing quoted strings).
         # It enables us to split the given string, according a given separator,
         # but still preserves quoted text altogether (i.e. if there is a
-        # separator in some quoted text, it won't be considered as a separator).
+        # separator in some quoted text, it won't be considered as a
+        # separator).
         #
         # The separator can be a "#", or a ",", so we will split on them. We
         # will also remove whitespaces (as when splitting, shlex also skips

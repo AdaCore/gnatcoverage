@@ -26,7 +26,7 @@ from e3.testsuite.driver.diff import (
 )
 
 from SUITE import control
-from SUITE.control import GPRCLEAN, BUILDER, env
+from SUITE.control import GPRCLEAN, env
 from SUITE.cutils import (
     exit_if,
     indent,
@@ -349,8 +349,10 @@ class Test(object):
         failure_message="unexpected output",
         output_refiners=None,
     ):
-        """Wrapper around fail_if_diff_internal, taking an actual_file parameter
-        instead of an actual string."""
+        """
+        Wrapper around fail_if_diff_internal, taking an actual_file parameter
+        instead of an actual string.
+        """
         with open(actual_file, "r") as f:
             self.fail_if_diff_internal(
                 baseline_file, f.read(), failure_message, output_refiners

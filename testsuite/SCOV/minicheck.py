@@ -8,7 +8,6 @@ for specific checkpoints usage testcases).
 """
 
 import collections
-import glob
 import json
 import os.path
 import re
@@ -47,14 +46,14 @@ def build_and_run(
     scos=None,
     gpr_obj_dir=None,
     gpr_exe_dir=None,
-    ignored_source_files=[],
+    ignored_source_files=None,
     separate_coverage=None,
-    extra_args=[],
+    extra_args=None,
     extra_run_args=None,
     extra_instr_args=None,
-    extra_gprbuild_args=[],
-    extra_gprbuild_cargs=[],
-    extra_gprbuild_largs=[],
+    extra_gprbuild_args=None,
+    extra_gprbuild_cargs=None,
+    extra_gprbuild_largs=None,
     absolute_paths=False,
     dump_trigger="auto",
     dump_channel="auto",
@@ -101,21 +100,21 @@ def build_and_run(
     :param None|str gpr_exe_dir: Optional name of the directory where gprbuild
         will create executables to run. If left to None, assume they are
         produced in the current directory.
-    :param list[str] ignored_source_files: List of file patterns to pass using
-        the --ignore-source-files option.
+    :param list[str] | None ignored_source_files: List of file patterns to pass
+        using the --ignore-source-files option.
     :param None|str separate_coverage: If provided, the argument is forwarded
         to gnatcov using the -S option.
-    :param list[str] extra_args: List of arguments to pass to any
+    :param list[str] | None extra_args: List of arguments to pass to any
         execution of gnatcov (gnatcov run|instrument|coverage).
     :param list[str] extra_run_args: List of arguments to pass to all
         executions of "gnatcov run".
     :param list[str] extra_instr_args: List of arguments to pass to all
         executions of "gnatcov instrument".
-    :param list[str] extra_gprbuild_args: List of arguments to pass to
+    :param list[str] | None extra_gprbuild_args: List of arguments to pass to
         gprbuild.
-    :param list[str] extra_gprbuild_cargs: List of arguments to pass to
+    :param list[str] | None extra_gprbuild_cargs: List of arguments to pass to
         gprbuild's -cargs section.
-    :param list[str] extra_gprbuild_largs: List of arguments to pass to
+    :param list[str] | None extra_gprbuild_largs: List of arguments to pass to
         gprbuild's -largs section.
     :param bool absolute_paths: If true, use absolute paths in the result.
     :param None|str dump_trigger: See xcov_instrument.
@@ -171,9 +170,9 @@ def build_and_run(
         # Honor build relevant switches from gprsw here
         gprbuild(
             root_project,
-            gargs=gprsw.build_switches + extra_gprbuild_args,
-            extracargs=extra_gprbuild_cargs,
-            largs=extra_gprbuild_largs,
+            gargs=gprsw.build_switches + (extra_gprbuild_args or []),
+            extracargs=extra_gprbuild_cargs or [],
+            largs=extra_gprbuild_largs or [],
             trace_mode=trace_mode,
             runtime_project=runtime_project,
             auto_config_args=auto_config_args,
@@ -192,6 +191,8 @@ def build_and_run(
     # through GPR switches:
     assert not (scos and trace_mode == "src")
 
+    extra_args = extra_args or []
+
     gpr_exe_dir = gpr_exe_dir or "."
     gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, "obj")
 
@@ -206,6 +207,7 @@ def build_and_run(
 
     # Arguments to pass to "gnatcov coverage" (bin trace mode) or "gnatcov
     # instrument" (src trace mode), in addition to those conveyed by gprsw.
+    ignored_source_files = ignored_source_files or []
     cov_or_instr_args = extra_args + [
         "--ignore-source-files={}".format(pattern)
         for pattern in ignored_source_files
@@ -407,7 +409,7 @@ def build_and_run(
         xcov_args.extend(cov_or_instr_args)
 
     else:
-        assert False, "Unknown trace mode: {}".format(trace_mode)
+        raise AssertionError("Unknown trace mode: {}".format(trace_mode))
 
     # If provided, pass "gnatcov coverage"-specific project arguments, which
     # replace the list of SCOS.

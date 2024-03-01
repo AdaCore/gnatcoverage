@@ -17,7 +17,7 @@ import time
 
 from e3.fs import cp
 from e3.os.fs import touch, unixpath, which
-from e3.os.process import DEVNULL, Run
+from e3.os.process import Run
 
 
 # Expose a few other items as a test util facilities as well
@@ -472,7 +472,7 @@ def gprfor(
             for srcdir in srcdirs_list
             for src in os.listdir(os.path.join(cwd, srcdir))
         ]
-        langs = set(li.name for li in lang_infos if li)
+        langs = {li.name for li in lang_infos if li}
 
     srcdirs = ", ".join('"%s"' % d for d in srcdirs_list)
     languages = ", ".join('"%s"' % lang for lang in langs)
