@@ -59,7 +59,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "GNATDAS"
-copyright = "2009-2022, AdaCore"
+copyright = "2009-2022, AdaCore"  # noqa: A001
 docname = "Manuals"
 
 rst_epilog = """
@@ -287,8 +287,10 @@ latex_domain_indices = True
 
 # Custom :cmd-option: role
 def cmd_option_role(
-    name, rawtext, text, lineno, inliner, options={}, content=[]
+    name, rawtext, text, lineno, inliner, options=None, content=None
 ):
+    options = options or {}
+    content = content or []
     node = nodes.literal(rawtext, text, *content, **options)
     return [node], []
 

@@ -31,6 +31,6 @@ trees = {
 for k in trees:
     gen_tree(tmpl, open(k + ".dot", "w"), trees[k])
     render(k)
-    os.remove (f"{k}.dot")
+    os.remove(f"{k}.dot")
 
 render("prjtree")
