@@ -10,8 +10,8 @@ import intervalmap
 
 SLOC_INFO_LINE = re.compile(
     b"^(?P<pc_start>[0-9a-f]+)-(?P<pc_stop>[0-9a-f]+)"
-    b" line (?P<src_file>[^:]+):(?P<line>\d+)(?:[:](?P<column>\d+))?"
-    b"(?: discriminator (?P<discriminator>\d+))?$"
+    b" line (?P<src_file>[^:]+):(?P<line>\\d+)(?:[:](?P<column>\\d+))?"
+    b"(?: discriminator (?P<discriminator>\\d+))?$"
 )
 Sloc = collections.namedtuple("Sloc", "filename line column discriminator")
 
