@@ -59,23 +59,28 @@ environment variable designating the GNAT installation root.
     gnatcoll-core $ make install
     ```
 
-2.  Build libopcodes, libbfd and libiberty libraries from Binutils, which
-    gnatcov needs to support object code disassembling on all platforms.
+2.  Build static libraries provided by Binutils, which gnatcov needs to support
+    object code disassembling on all platforms.
 
-    Best is to use a Binutils release for this, such as 2.35 which
+    Binutils libraries are statically linked into gnatcov, so binutils can be
+    installed in a temporary directory (`$prefix_binutils` in the commands below)
+    just for gnatcov’s build.
+
+    Best is to use a Binutils release for this, such as 2.42 which
     is known to work.
 
     ```shell
-    binutils-2.35 $ ./configure --enable-targets=all \
+    binutils-2.42 $ ./configure --enable-targets=all \
+                         --prefix=$prefix_binutils \
+                         --enable-install-libiberty \
                          --disable-werror --disable-gdb \
                          --disable-sim --disable-ld --disable-libquadmath \
                          --disable-readline
-    binutils-2.35 $ make
+    binutils-2.42 $ make
+    binutils-2.42 $ make install
+    binutils-2.42 $ export LIBRARY_PATH=$prefix_binutils/lib64:$prefix_binutils/lib:$LIBRARY_PATH
+    binutils-2.42 $ export C_INCLUDE_PATH=$prefix_binutils/include:$C_INCLUDE_PATH
     ```
-
-    These libraries are statically linked, so installation is not required: the
-    gnatcov build process only needs access to the source+build directory (no
-    need to run `make install`).
 
 3.  Build or install Libadalang: please refer to
     [Libadalang's instructions](https://github.com/adacore/libadalang#quick-guide-to-use-libadalang).
@@ -95,6 +100,6 @@ environment variable designating the GNAT installation root.
 
     ```shell
     gnatcoverage/tools/gnatcov $
-       make BINUTILS_SRC_DIR=<path-to-binutils-src> C_SUPPORT=False bin
+       make C_SUPPORT=False bin
        make PREFIX=$prefix install-bin install-examples
     ```

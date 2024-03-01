@@ -31,9 +31,6 @@
 # on possibly case-insensitive filesystems.
 PREFIX=$(PWD)/local
 
-# By default, assume that the binutils dependency was built in the source tree.
-BINUTILS_BUILD_DIR?=$(BINUTILS_SRC_DIR)
-
 # ----------------
 # -- To cleanup --
 # ----------------
@@ -148,8 +145,6 @@ all: bin adapters
 BIN_COMMON_BUILD_ARGS=\
  -Pgnatcov.gpr -p -j$(PROCESSORS) \
  -XBUILD_MODE=$(BUILD_MODE) \
- -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
- -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
  -XC_SUPPORT=$(C_SUPPORT) \
  $(EXTRA_ADAFLAGS) \
  -largs $(LD_FLAGS) \
@@ -165,15 +160,6 @@ INSTR_BIN_BUILD_ARGS=\
   --implicit-with=gnatcov_rts
 
 bin:
-# Unlike BINUTILS_BUILD_DIR for which we have a default fallback,
-# BINUTILS_SRC_DIR must be defined explicitely.
-	@if [ -z "$(BINUTILS_SRC_DIR)" ]; then \
-		echo "Please define the BINUTILS_SRC_DIR and" \
-		     " BINUTILS_BUILD_DIR variables to point to the binutils" \
-		     " source and build directories."; \
-		exit 1; \
-	fi
-
 ifdef INSTRUMENTED
 	# We need to instrument and build at the same time: the driver and
 	# gnatcov32 builds share the same object directory, meaning that

@@ -30,8 +30,6 @@ all: bin
 
 BIN_COMMON_BUILD_ARGS=\
  -Ptrace32.gpr -p -j$(PARALLEL_BUILD) \
- -XBINUTILS_SRC_DIR="$(BINUTILS_SRC_DIR)" \
- -XBINUTILS_BUILD_DIR="$(BINUTILS_BUILD_DIR)" \
  -largs $(LD_FLAGS) \
  -cargs:c++ $(CXXFLAGS) \
  $(EXTRA_ADAFLAGS) \
