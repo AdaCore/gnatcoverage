@@ -1,7 +1,7 @@
 from SCOV.tc import TestCase
 from SCOV.tctl import CovControl
 from SUITE.context import thistest
-from SUITE.cutils import Wdir, list_to_file
+from SUITE.cutils import Wdir
 from SUITE.tutils import gprfor
 from SUITE.gprutils import gprcov_for
 
@@ -14,9 +14,7 @@ def check(subdir, opspkg, xreports):
     ops_gpr = gprfor(mains=[], prjid="ops", srcdirs="../src/ops", extra=opspkg)
 
     TestCase(category=None).run(
-        covcontrol=CovControl(
-            deps=["../ops.gpr"], units_in=[], xreports=xreports
-        )
+        covcontrol=CovControl(deps=[ops_gpr], units_in=[], xreports=xreports)
     )
 
 

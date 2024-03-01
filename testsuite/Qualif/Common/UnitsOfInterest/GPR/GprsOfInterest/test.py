@@ -103,10 +103,10 @@ def check(options, xunits):
     # Map the report files to a set of units by stripping both the leading
     # subdir part and the extension.
 
-    runits = set(
+    runits = {
         os.path.basename(r).split(".")[0]
         for r in e3.fs.ls(os.path.join(odir, "*.xcov"))
-    )
+    }
 
     thistest.fail_if(
         runits != xunits,
