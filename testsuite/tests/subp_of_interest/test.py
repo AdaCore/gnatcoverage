@@ -67,8 +67,8 @@ check_xcov(
     expected_output=(
         ""
         if src_traces
-        else "warning: Ignoring --subprograms switches as this is not supported"
-        " with binary traces."
+        else "warning: Ignoring --subprograms switches as this is not"
+        " supported with binary traces."
     ),
 )
 cov_ckpt_args = cov_args[:-1] + ["--checkpoint", ckpt_filename]

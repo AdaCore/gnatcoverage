@@ -60,10 +60,9 @@ thistest.fail_if_not_equal(
 # project
 
 lib_file = "obj/lib-gnatcov-instr/foo.c"
-thistest.fail_if_no_match
-(
+thistest.fail_if_no_match(
     "missing Dump_Buffers call",
-    r"(\n|.)*gnatcov_rts_manual_dump_buffers_lib \(.*\);(\n|.)*",
+    r"(\n|.)*gnatcov_rts_manual_dump_buffers_lib\(.*\);(\n|.)*",
     contents_of(lib_file),
 )
 

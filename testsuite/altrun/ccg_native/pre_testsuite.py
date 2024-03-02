@@ -169,7 +169,7 @@ prj_str = run(
 )
 try:
     prj_info = json.loads(prj_str)
-except:
+except Exception:
     print("failed parsing project info:")
     print(prj_str)
     exit(1)

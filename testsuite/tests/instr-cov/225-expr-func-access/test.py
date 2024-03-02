@@ -5,8 +5,6 @@ instrumented. We used to introduce declare expressions in this case, which is
 illegal.
 """
 
-import os.path
-
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir

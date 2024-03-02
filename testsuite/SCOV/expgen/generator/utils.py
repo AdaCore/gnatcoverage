@@ -22,7 +22,7 @@ class Environment(object):
         def __enter__(self):
             self.env.push_dir(self.subdir)
 
-        def __exit__(self, type, value, traceback):
+        def __exit__(self, exctype, value, traceback):
             self.env.pop_dir()
 
     def __init__(self):

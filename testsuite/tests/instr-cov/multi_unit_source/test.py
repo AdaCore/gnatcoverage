@@ -40,8 +40,8 @@ thistest.fail_if_no_match(
     "gnatcov instrument output",
     (
         ".*gnatcov.*: instrumentation failed for .*code.ada\n"
-        ".*gnatcov.*: source files containing multiple compilation units are not"
-        " supported"
+        ".*gnatcov.*: source files containing multiple compilation units are"
+        " not supported"
     ),
     contents_of("instrument.log"),
 )

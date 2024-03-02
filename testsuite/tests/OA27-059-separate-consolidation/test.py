@@ -55,7 +55,7 @@ test2 = Testcase("test2", "obj2")
 testcases = [test1, test2]
 
 
-def build_and_run_tests(ignored_source_files=[]):
+def build_and_run_tests(ignored_source_files=None):
     """
     Build the test material: program and traces.
     """

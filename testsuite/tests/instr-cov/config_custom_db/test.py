@@ -3,8 +3,6 @@ Check that gnatcov setup / instrument support custom toolchain definitions that
 are passed through the --db command line option.
 """
 
-import os
-
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.control import env

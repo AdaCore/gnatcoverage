@@ -5,14 +5,10 @@ is emitted. If a change in format is detected between the trace and the current
 gnatcov version, force the user to update the trace.
 """
 
-import os
-import os.path
-
 from SCOV.minicheck import xcov, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor
-from SUITE.gprutils import GPRswitches
 
 tmp = Wdir("tmp_")
 
@@ -58,7 +54,8 @@ if p.status != 0:
     thistest.failed(
         "Update the trace and SIDs in this test to the latest"
         " format to make test pass again.\n"
-        "This is simply a matter of running './update.sh' in the test directory."
+        "This is simply a matter of running './update.sh' in the test"
+        " directory."
     )
 
 # Otherwise, check the coverage report

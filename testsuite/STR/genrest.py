@@ -417,7 +417,7 @@ class RSTfile(object):
         self.fd = None
         self.open(filename)
 
-    def open(self, filename):
+    def open(self, filename):  # noqa: A003
         self.fd = open("source/" + filename, "w")
 
     def write(self, text, pre=0, post=1):
@@ -577,7 +577,7 @@ class ASCIItable(RSTtable):
         # This is useful to align the text of every column, for both
         # content rows and the ReST table separation lines.
 
-        self.width = dict([(col, 0) for col in self.columns])
+        self.width = {col: 0 for col in self.columns}
 
         # Maximize column width over contents entries
 
@@ -794,7 +794,7 @@ class QDreport(object):
         # were run). This is useful e.g. to decide which sets of compilation
         # options should be displayed in the environment description items.
 
-        self.languages = set([cat.lang for cat in lang_categories if cat.qdl])
+        self.languages = {cat.lang for cat in lang_categories if cat.qdl}
 
         self.dump_trigger = None
         self.dump_channel = None
@@ -921,7 +921,7 @@ class QDreport(object):
         return this_tcdata
 
     def compute_tcdata(self):
-        self.tcdata = dict([(qd, self.tcdata_for(qd)) for qd in self.qdl])
+        self.tcdata = {qd: self.tcdata_for(qd) for qd in self.qdl}
 
     # ------------------
     # -- gen_tctables --
@@ -942,12 +942,10 @@ class QDreport(object):
 
         details = column_for[qd.status] != colid.passed
 
-        return dict(
-            [
-                (col, "%s" % self.tcdata[qd][col].img(details))
-                for col in self.tcdata[qd]
-            ]
-        )
+        return {
+            col: "%s" % self.tcdata[qd][col].img(details)
+            for col in self.tcdata[qd]
+        }
 
     def gen_tctables(self, sepfile=None):
         if sepfile:
@@ -1128,9 +1126,7 @@ class QDreport(object):
         # table, with a list entry for each test category (+ total)
 
         return [
-            dict(
-                [(col, "%s" % catsum[col].img()) for col in self.sumcolumns()]
-            )
+            {col: "%s" % catsum[col].img() for col in self.sumcolumns()}
             for catsum in self.sumdata()
         ]
 

@@ -54,8 +54,8 @@ expected_results = {
 
 def do_one_main(main_name):
     """
-    create a project, instrument build and compute coverage reports for the given
-    main, from the expected results dictionnary defined above.
+    create a project, instrument build and compute coverage reports for the
+    given main, from the expected results dictionnary defined above.
     """
     tmp.to_subdir(f"tmp_{main_name}")
     p = gprfor(mains=[f"{main_name}.adb"], srcdirs=[".."])

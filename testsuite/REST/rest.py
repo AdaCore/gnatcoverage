@@ -30,18 +30,20 @@ def strong(content):
     return "**" + content + "**"
 
 
-def list(content, pre=1, post=1):
+def list(content, pre=1, post=1):  # noqa: A001
     return isolate(
-        pre=pre, text="\n".join([" * %s" % l for l in content]), post=post
+        pre=pre,
+        text="\n".join([" * %s" % line for line in content]),
+        post=post,
     )
 
 
-def toctree(l, depth=2):
+def toctree(lines, depth=2):
     return isolate(
         pre=1,
         text="\n".join(
             [".. toctree::", "   :maxdepth: %s\n" % depth]
-            + ["   %s" % item for item in l]
+            + ["   %s" % item for item in lines]
         ),
         post=1,
     )

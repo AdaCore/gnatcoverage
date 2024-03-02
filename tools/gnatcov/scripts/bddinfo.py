@@ -9,8 +9,8 @@ import subprocess
 # assumptions over its format.
 COND_LINE = re.compile(
     b"^---.*@(?P<insn_pc>[0-9a-f]+) .*: notice:"
-    b" cond branch for SCO #(?P<sco_no>\d+):"
-    b" CONDITION at (?P<sloc_range>.*) \(.*\)"
+    b" cond branch for SCO #(?P<sco_no>\\d+):"
+    b" CONDITION at (?P<sloc_range>.*) \\(.*\\)"
     b"$"
 )
 EDGES_LINE = re.compile(

@@ -39,7 +39,7 @@ def do_instr(label, args):
 # warnings/errors occur at most once, and never for other files.
 log = do_instr("basic", [])
 thistest.fail_if_not_equal(
-    f'"gnatcov instrument" output',
+    '"gnatcov instrument" output',
     contents_of(log).strip(),
     "\n".join(
         [
@@ -61,7 +61,7 @@ actual_lines = [
     )
 ]
 thistest.fail_if_not_equal(
-    f'"gnatcov instrument" output',
+    '"gnatcov instrument" output',
     "\n".join(
         [
             "[GNATCOV.MISC] Instrumenting main.adb",

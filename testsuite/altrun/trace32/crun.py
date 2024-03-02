@@ -22,8 +22,8 @@ altrun_dir_path = os.path.dirname(os.path.realpath(__file__))
 # ---------
 # -- log --
 # ---------
-def log(str):
-    print("trace32/crun.py:" + str)
+def log(msg):
+    print("trace32/crun.py:" + msg)
 
 
 # -------------

@@ -280,7 +280,7 @@ class RuntimeInfo(object):
         elif self.runtime_name == "kernel":
             self.has_kernel_runtime = True
         else:
-            assert False, "Unknown runtime: {}".format(runtime_name)
+            raise AssertionError("Unknown runtime: {}".format(runtime_name))
 
     @property
     def gnatcov_rts_project(self):
@@ -370,7 +370,7 @@ def target_info(target=None):
 
 class GnatcovInfo:
     def __init__(self):
-        p = re.search(pattern="GNATcoverage (\d+)", string=version("gnatcov"))
+        p = re.search(pattern=r"GNATcoverage (\d+)", string=version("gnatcov"))
         self._major = int(p.group(1)) if p else None
         self.has_setup = self.major_at_least(23)
 

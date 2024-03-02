@@ -35,7 +35,7 @@ class HeaderGuard(object):
         self.language.write("#define {}_H".format(self.module_name.upper()))
         self.language.newline()
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exctype, value, traceback):
         self.language.write("#endif")
         self.language.newline()
 

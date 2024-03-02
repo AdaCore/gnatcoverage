@@ -24,12 +24,12 @@ The One subprogram in the sources used to trigger two related issues:
 
    When initiating the traversal, Next_SE point to the scope for the whole
    CU, which contains the SCO of interest. The traversal then moves to the next
-   one, which is the scope for Zero. This does not contain SCO, so the traversal
-   stops, and current_SE thus points to the scope for the whole CU. While it is
-   true that this scope contains SCO, it is not the deepest one. The current
-   scope in the traversal is then checked against the set of scopes of interest,
-   which only consist in the scope for One, so this returns False. The coverage
-   information is then wrongfully discarded.
+   one, which is the scope for Zero. This does not contain SCO, so the
+   traversal stops, and current_SE thus points to the scope for the whole CU.
+   While it is true that this scope contains SCO, it is not the deepest one.
+   The current scope in the traversal is then checked against the set of scopes
+   of interest, which only consist in the scope for One, so this returns False.
+   The coverage information is then wrongfully discarded.
 
 This test checks both bugs.
 """

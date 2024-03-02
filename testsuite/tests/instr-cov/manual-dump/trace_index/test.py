@@ -68,7 +68,7 @@ thistest.fail_if(
 
 # Check that the traces do indeed contain an index in their filename
 thistest.fail_if(
-    any([not traces[i].endswith(f"-{i}.srctrace") for i in range(3)]),
+    any(not traces[i].endswith(f"-{i}.srctrace") for i in range(3)),
     comment=f"missing trace index in trace filenames: {traces}",
 )
 

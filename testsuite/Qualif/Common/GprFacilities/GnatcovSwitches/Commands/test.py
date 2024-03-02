@@ -17,14 +17,16 @@ wd = Wdir("wd_")
 # file for a simple program.
 
 
-def gprvariant(id, extra):
-    return gprfor(prjid=id, srcdirs=["../src"], mains=["p.adb"], extra=extra)
+def gprvariant(prjid, extra):
+    return gprfor(
+        prjid=prjid, srcdirs=["../src"], mains=["p.adb"], extra=extra
+    )
 
 
 exe = exepath_to("p")
 
 # Build once
-gprbuild(gprvariant(id="bld", extra=""))
+gprbuild(gprvariant(prjid="bld", extra=""))
 
 # ------------------------------------------------
 # -- Simple helpers for coverage/run variations --
@@ -34,19 +36,19 @@ gprbuild(gprvariant(id="bld", extra=""))
 # --annotate, valid only for gnatcov coverage.
 
 
-def tag_for(id):
-    return "tag-%s" % id
+def tag_for(prjid):
+    return "tag-%s" % prjid
 
 
-def tagopt_for(id):
-    return ["--tag=%s" % tag_for(id)]
+def tagopt_for(prjid):
+    return ["--tag=%s" % tag_for(prjid)]
 
 
-def rep_for(id):
-    return "%s.rep" % id
+def rep_for(prjid):
+    return "%s.rep" % prjid
 
 
-def annopt_for(id):
+def annopt_for(prjid):
     return ["--annotate=report"]
 
 
@@ -54,29 +56,29 @@ def annopt_for(id):
 lev = "stmt+decision"
 
 
-def levopt_for(id):
+def levopt_for(prjid):
     return ["--level=%s" % lev]
 
 
-def try_run(id, gpr):
+def try_run(prjid, gpr):
     """gnatcov run with common set of options & variations via gpr."""
-    log = id + ".rlog"
+    log = prjid + ".rlog"
     xrun(
-        ["-P%s" % gpr, exe, "-o", "%s.trace" % id],
+        ["-P%s" % gpr, exe, "-o", "%s.trace" % prjid],
         out=log,
         register_failure=False,
     )
     return contents_of(log)
 
 
-def try_cov(id, gpr):
+def try_cov(prjid, gpr):
     """
     gnatcov coverage with common set of options & variations via gpr.  Expect
     valid options and check for commonly expected outcome
     """
-    log = id + ".clog"
+    log = prjid + ".clog"
     xcov(
-        ["coverage", "-P%s" % gpr, "%s.trace" % id, "-o", rep_for(id)],
+        ["coverage", "-P%s" % gpr, "%s.trace" % prjid, "-o", rep_for(prjid)],
         out=log,
         register_failure=False,
     )
@@ -88,75 +90,75 @@ def try_cov(id, gpr):
     # * options intended for coverage do get there and not to run
     thistest.fail_if(not empty(log), "unexpected contents in %s" % log)
 
-    rep = contents_of(rep_for(id))
+    rep = contents_of(rep_for(prjid))
     thistest.fail_if(
         "level: %s" % lev not in rep,
-        "missing expected level indication in %s" % rep_for(id),
+        "missing expected level indication in %s" % rep_for(prjid),
     )
 
     thistest.fail_if(
-        not re.search("tag.*: %s" % tag_for(id), rep),
-        "missing expected tag indication in %s" % rep_for(id),
+        not re.search("tag.*: %s" % tag_for(prjid), rep),
+        "missing expected tag indication in %s" % rep_for(prjid),
     )
 
 
-def check_valid_sequence_for(id, gprcov):
+def check_valid_sequence_for(prjid, gprcov):
     """
     Common checking sequence for a specific gpr coverage package
     with valid options for both run and coverage.
     """
-    gpr = gprvariant(id=id, extra=gprcov)
-    try_run(id, gpr)
-    try_cov(id, gpr)
+    gpr = gprvariant(prjid=prjid, extra=gprcov)
+    try_run(prjid, gpr)
+    try_cov(prjid, gpr)
 
 
 # Basic check for starters. No "*".
-id = "basic"
+prjid = "basic"
 check_valid_sequence_for(
-    id=id,
+    prjid=prjid,
     gprcov=gprcov_for(
         switches=[
-            Csw("run", tagopt_for(id)),
-            Csw("coverage", levopt_for(id) + annopt_for(id)),
+            Csw("run", tagopt_for(prjid)),
+            Csw("coverage", levopt_for(prjid) + annopt_for(prjid)),
         ]
     ),
 )
 
 # Check that "*" applies to all. Pass --level there.
-id = "star_valid"
+prjid = "star_valid"
 check_valid_sequence_for(
-    id=id,
+    prjid=prjid,
     gprcov=gprcov_for(
         switches=[
-            Csw("*", levopt_for(id)),
-            Csw("run", tagopt_for(id)),
-            Csw("coverage", annopt_for(id)),
+            Csw("*", levopt_for(prjid)),
+            Csw("run", tagopt_for(prjid)),
+            Csw("coverage", annopt_for(prjid)),
         ]
     ),
 )
 
 # Check that command specific args prevail over "*", with "*" placed
 # before in the gpr file.
-id = "star_postover"
+prjid = "star_postover"
 check_valid_sequence_for(
-    id=id,
+    prjid=prjid,
     gprcov=gprcov_for(
         switches=[
             Csw("*", ["--level=stmt+mcdc"]),
-            Csw("run", tagopt_for(id)),
-            Csw("coverage", levopt_for(id) + annopt_for(id)),
+            Csw("run", tagopt_for(prjid)),
+            Csw("coverage", levopt_for(prjid) + annopt_for(prjid)),
         ]
     ),
 )
 
 # Likewise, with "*" placed after in the gpr file.
-id = "star_preover"
+prjid = "star_preover"
 check_valid_sequence_for(
-    id=id,
+    prjid=prjid,
     gprcov=gprcov_for(
         switches=[
-            Csw("run", tagopt_for(id)),
-            Csw("coverage", levopt_for(id) + annopt_for(id)),
+            Csw("run", tagopt_for(prjid)),
+            Csw("coverage", levopt_for(prjid) + annopt_for(prjid)),
             Csw("*", ["--level=stmt+mcdc"]),
         ]
     ),
@@ -164,13 +166,15 @@ check_valid_sequence_for(
 
 
 # Check that "*" applies to all. Pass invalid for run, check failure.
-id = "star_invalid"
-gpr = gprvariant(id=id, extra=gprcov_for(switches=[Csw("*", annopt_for(id))]))
-rlog = try_run(id, gpr)
+prjid = "star_invalid"
+gpr = gprvariant(
+    prjid=prjid, extra=gprcov_for(switches=[Csw("*", annopt_for(prjid))])
+)
+rlog = try_run(prjid, gpr)
 
 thistest.fail_if(
     '--annotate is not valid with the "run" command.' not in rlog,
-    "missing expected failure indication in run log for %s" % id,
+    "missing expected failure indication in run log for %s" % prjid,
 )
 
 thistest.result()

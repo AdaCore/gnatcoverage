@@ -31,12 +31,12 @@ def check_one(units, output_dir, xcov_args):
     directories that are not output_dir contain no .xcov files.
     """
     xcov(xcov_args)
-    for dir in possible_output_dirs:
-        thistest.log(f"inspecting {dir}")
+    for dirname in possible_output_dirs:
+        thistest.log(f"inspecting {dirname}")
         check_xcov_reports(
-            dir,
+            dirname,
             {f"{unit}.xcov": expected_cov[unit] for unit in units}
-            if dir == output_dir
+            if dirname == output_dir
             else {},
         )
 
@@ -50,8 +50,8 @@ xcov_args = build_and_run(
 )
 
 # Create the possible output dirs
-for dir in possible_output_dirs:
-    mkdir(os.path.join(os.getcwd(), dir))
+for dirname in possible_output_dirs:
+    mkdir(os.path.join(os.getcwd(), dirname))
 
 # First, produce a report for all units, with a single report format specified
 thistest.log("=== Step 1: all units in obj ===")

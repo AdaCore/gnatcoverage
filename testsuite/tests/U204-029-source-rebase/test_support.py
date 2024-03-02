@@ -69,7 +69,8 @@ def consolidate_and_check(
 
     if expect_failure:
         thistest.fail_if_no_match(
-            f"'gnatcov coverage' output ({variant_basename}-{output_dir_name})",
+            "'gnatcov coverage' output"
+            f" ({variant_basename}-{output_dir_name})",
             r"^(warning: can't open .*\n)+$",
             contents_of(log_filename),
         )

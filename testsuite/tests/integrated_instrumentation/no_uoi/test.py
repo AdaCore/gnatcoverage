@@ -13,8 +13,7 @@ from e3.fs import cp
 
 from SUITE.control import env
 from SUITE.cutils import Wdir
-from SCOV.minicheck import check_xcov_reports
-from SUITE.tutils import cmdrun, srctracename_for, thistest, xcov
+from SUITE.tutils import cmdrun, thistest, xcov
 
 
 # To avoid source repository pollution and interference between successive test

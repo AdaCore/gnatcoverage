@@ -1,6 +1,6 @@
 """
-Test correct handling and instrumentation of container aggregates, and decisions
-nested within.
+Test correct handling and instrumentation of container aggregates, and
+decisions nested within.
 """
 
 from SCOV.tc import TestCase

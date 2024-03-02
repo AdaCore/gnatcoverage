@@ -55,8 +55,8 @@ class PackageGuard(object):
         self.language.newline()
         self.indent_guard.__enter__()
 
-    def __exit__(self, type, value, traceback):
-        self.indent_guard.__exit__(type, value, traceback)
+    def __exit__(self, exctype, value, traceback):
+        self.indent_guard.__exit__(exctype, value, traceback)
         self.language.write("end {};".format(conv_name(self.module_name)))
         self.language.newline()
 
