@@ -108,6 +108,7 @@ package GNATcov_RTS.Buffers is
    --  to True in Buffer in various context.
 
    procedure Witness (Buffer_Address : System.Address; Bit : Bit_Id);
+   pragma Inline (Witness);
    --  This variant is used as part of sequence of statements, to witness
    --  that we have reached a specific point in the sequence.
 
@@ -118,6 +119,7 @@ package GNATcov_RTS.Buffers is
 
    function Witness
      (Buffer_Address : System.Address; Bit : Bit_Id) return Witness_Dummy_Type;
+   pragma Inline (Witness);
    --  This variant is used in contexts where statements are not allowed
    --  but declarations are, for example ahead of library level declarations
    --  to witness their elaboration.
@@ -140,11 +142,13 @@ package GNATcov_RTS.Buffers is
    function Witness
      (Buffer_Address : System.Address; Bit : Bit_Id)
       return Non_Volatile_Witness_Dummy_Type;
+   pragma Inline (Witness);
    --  This variant uses a non-volatile return type to be compatible with ghost
    --  code.
 
    function Witness
      (Buffer_Address : System.Address; Bit : Bit_Id) return Boolean;
+   pragma Inline (Witness);
    --  This variant is used in Boolean expression contexts and always returns
    --  True.
 
@@ -164,6 +168,7 @@ package GNATcov_RTS.Buffers is
      (Buffer_Address      : System.Address;
       False_Bit, True_Bit : Bit_Id;
       Value               : Boolean) return Boolean;
+   pragma Inline (Witness);
    --  If Value is False, set the Boolean corresponding to False_Bit to True in
    --  Buffer. Set the one corresponding to True_Bit otherwise.
 
@@ -174,6 +179,7 @@ package GNATcov_RTS.Buffers is
       MCDC_Base               : Bit_Id;
       MCDC_Path_Address       : System.Address;
       Value                   : Boolean) return Boolean;
+   pragma Inline (Witness);
    --  Same as above, and also set the bit determined by MCDC_Base and the
    --  Bit_Id value at MCDC_Path_Address in the buffer at MCDC_Buffer_Address.
    --  Note that MCDC_Path may not be passed by value, because it is not known
@@ -187,6 +193,7 @@ package GNATcov_RTS.Buffers is
       Offset_For_True : Any_Bit_Id;
       First           : Boolean;
       Value           : Boolean) return Boolean;
+   pragma Inline (Witness);
    --  Buffer_Address is the address of an MCDC_State_Type local variable.
    --  If First is True, first reset it to 0.
    --  If Value is True, add Offset_For_True.

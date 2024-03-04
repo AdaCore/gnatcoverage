@@ -365,7 +365,7 @@ package Instrument.Common is
      (Strings.Img (Integer (Bit)));
 
    Runtime_Version_Check : constant String :=
-     "pragma Compile_Time_Error (GNATcov_RTS.Version /= 6, "
+     "pragma Compile_Time_Error (GNATcov_RTS.Version /= 7, "
      & """Incompatible GNATcov_RTS version, please use"
      & " the GNATcov_RTS project provided with your"
      & " GNATcoverage distribution."");";

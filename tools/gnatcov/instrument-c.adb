@@ -3336,34 +3336,10 @@ package body Instrument.C is
             MCDC_Buffer_Symbol (UIC.Instrumented_Unit),
             Array_Size => Buffers_Count);
       end;
-      Put_Extern_Decl
-        ("unsigned",
-         "gnatcov_rts_witness",
-         Func_Args => "unsigned char *buffer_address, unsigned bit_id");
-      Put_Extern_Decl
-        ("unsigned",
-         "gnatcov_rts_witness_decision",
-         Func_Args => "unsigned char *buffer_address,"
-                      & " unsigned false_bit,"
-                      & " unsigned true_bit,"
-                      & " unsigned value");
-      Put_Extern_Decl
-        ("unsigned",
-         "gnatcov_rts_witness_decision_mcdc",
-         Func_Args => "unsigned char *decision_buffer_address,"
-                      & " unsigned false_bit,"
-                      & " unsigned true_bit,"
-                      & " unsigned char *mcdc_buffer_address,"
-                      & " unsigned mcdc_base,"
-                      & " unsigned *mcdc_path_address,"
-                      & " unsigned value");
-      Put_Extern_Decl
-        ("unsigned",
-         "gnatcov_rts_witness_condition",
-         Func_Args => "unsigned *mcdc_path_address,"
-                      & "unsigned offset_for_true,"
-                      & " unsigned first,"
-                      & " unsigned value");
+      CX_Rewriter_Insert_Text_After
+        (UIC.Rewriter,
+         Insert_Extern_Location,
+         ASCII.LF & "#include ""gnatcov_rts_c-witness.h""" & ASCII.LF);
 
       Rewriter.Apply;
 

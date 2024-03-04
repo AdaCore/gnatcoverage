@@ -290,8 +290,8 @@ project Gnatcov is
 
    Object_Dir := "";
    case Part is
-      when "driver" | "lib32" | "gnatcov32" => Object_Dir := "obj32";
-      when "gnatcov64" | "compiler"         => Object_Dir := "obj64";
+      when "driver" | "lib32" | "gnatcov32" | "compiler" => Object_Dir := "obj32";
+      when "gnatcov64"                                   => Object_Dir := "obj64";
 
       --  gnatcov64 uses the real instrumenter.adb while lib64 uses the stub
       --  one, so they cannot use the same object directory.

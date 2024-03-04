@@ -125,49 +125,6 @@ extern "C"
     const struct gnatcov_rts_coverage_buffers_group **groups;
   };
 
-  /***********************/
-  /* Witness subprograms */
-  /***********************/
-
-  /* The following subprograms are called by generated code to record
-     the execution of constructs.  */
-
-  /* Statements */
-
-  /* Set the boolean corresponding to BIT to true in BUFFER in various
-     context.  */
-  extern gnatcov_rts_bool gnatcov_rts_witness (uint8_t *buffer,
-                                               gnatcov_rts_bit_id bit);
-
-  /* Decisions */
-
-  /* If VALUE is false, set the boolean corresponding to FALSE_BIT to true in
-     BUFFER.  Set the one corresponding to TRUE_BIT otherwise.  */
-  extern gnatcov_rts_bool
-  gnatcov_rts_witness_decision (uint8_t *buffer, gnatcov_rts_bit_id false_bit,
-                                gnatcov_rts_bit_id true_bit,
-                                gnatcov_rts_bool value);
-
-  /* Same as above, and also set the bit determined by MCDC_BASE and the
-     gnatcov_rts_bit_id value at MCDC_PATH_ADDRESS in the buffer at
-     MCDC_BUFFER_ADDRESS.  Note that MCDC_PATH may not be passed by value,
-     because it is not known until the side effect of the actual for the VALUE
-     formal have been evaluated.  */
-  extern gnatcov_rts_bool gnatcov_rts_witness_decision_mcdc (
-    uint8_t *decision_buffer, gnatcov_rts_bit_id false_bit,
-    gnatcov_rts_bit_id true_bit, uint8_t *mcdc_buffer,
-    gnatcov_rts_bit_id mcdc_base, gnatcov_rts_bit_id *mcdc_path_address,
-    gnatcov_rts_bool value);
-
-  /* Conditions */
-
-  /* MCDC_PATH_ADDRESS is the address of a local variable storing the
-     mcdc_state. If FIRST is true, first reset it to 0.  If VALUE is true, add
-     OFFSET_FOR_TRUE.  */
-  extern gnatcov_rts_bool gnatcov_rts_witness_condition (
-    gnatcov_rts_bit_id *mcdc_path_address, gnatcov_rts_bit_id offset_for_true,
-    gnatcov_rts_bool first, gnatcov_rts_bool value);
-
   /*********************/
   /* Clear subprograms */
   /*********************/
