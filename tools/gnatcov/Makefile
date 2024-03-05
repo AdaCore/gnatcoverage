@@ -54,7 +54,7 @@ PGMNAME=gnatcov
 PGMPATH=obj32/$(BUILD_MODE)/$(PGMNAME)
 PGM32PATH=obj32/$(BUILD_MODE)/gnatcov32
 PGM64PATH=obj64/$(BUILD_MODE)/gnatcov64
-COMPILERPATH=obj64/$(BUILD_MODE)/compiler_wrappers-gcc
+COMPILERPATH=obj32/$(BUILD_MODE)/compiler_wrappers-gcc
 
 # Directory name in the install tree
 DIRNAME=gnatcoverage
