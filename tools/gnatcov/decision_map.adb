@@ -2081,25 +2081,6 @@ package body Decision_Map is
          end if;
 
          BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
-
-         --  If we are branching into an inlined subprogram, we can't deduce
-         --  anything from it.
-         --
-         --  TODO??? The above is a very conservative guess. If needed in
-         --  practice, we could refine this to handle various manageable cases.
-
-         declare
-            BB_Inline_Info : constant Address_Info_Acc :=
-              Get_Address_Info
-                (Exe.all, Inlined_Subprogram_Addresses, BB.To_PC);
-         begin
-            if BB_Inline_Info /= null
-              and then BB_Inline_Info /= D_Occ.Inlined_Body
-            then
-               return;
-            end if;
-         end;
-
          if BB = No_Basic_Block then
             if After_Call
                or else Next_PC not in Ctx.Subprg.First .. Ctx.Subprg.Last
