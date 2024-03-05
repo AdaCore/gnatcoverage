@@ -34,7 +34,12 @@ package body GNATcov_RTS.Buffers is
       Buffer : Coverage_Buffer_Type (0 .. Bit);
       for Buffer'Address use Buffer_Address;
    begin
+      --  Here and below: deactivate warnings about possible exception
+      --  propagation under light runtimes.
+
+      pragma Warnings (Off);
       Buffer (Bit) := True;
+      pragma Warnings (On);
    end Witness;
 
    function Witness
@@ -88,7 +93,9 @@ package body GNATcov_RTS.Buffers is
       pragma Import (Ada, MCDC_Path_Index);
 
    begin
+      pragma Warnings (Off);
       Witness (MCDC_Buffer_Address, MCDC_Base + MCDC_Path_Index);
+      pragma Warnings (On);
       return Witness (Decision_Buffer_Address, False_Bit, True_Bit, Value);
    end Witness;
 
@@ -107,7 +114,9 @@ package body GNATcov_RTS.Buffers is
       end if;
 
       if Value then
+         pragma Warnings (Off);
          MCDC_Path_Index := MCDC_Path_Index + Offset_For_True;
+         pragma Warnings (On);
       end if;
 
       return Value;
