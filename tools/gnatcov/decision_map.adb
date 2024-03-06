@@ -1153,7 +1153,7 @@ package body Decision_Map is
                for J in Boolean'Range loop
                   declare
                      Candidate_Outcome : constant Tristate :=
-                                           Outcome (CBI.Condition, J);
+                       Outcome (CBI.Condition, J);
                   begin
                      if Candidate_Outcome /= Unknown then
                         Outcome_Seen := True;
@@ -1594,8 +1594,8 @@ package body Decision_Map is
             begin
                if Candidate_Outcome = Unknown
                  or else not Known_Outcome
-                                (not To_Boolean (Candidate_Outcome)).
-                              Contains (CBI.Edges (Edge).Destination)
+                   (not To_Boolean (Candidate_Outcome)).
+                     Contains (CBI.Edges (Edge).Destination)
                then
                   Set_Known_Origin
                     (Cond_Branch_PC,

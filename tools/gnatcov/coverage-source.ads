@@ -83,6 +83,9 @@ package Coverage.Source is
    --  it must be initialized to the CU for which we are computing coverage or
    --  left uninitialized.
 
+   procedure Refine_Source_Coverage;
+   --  Refine source coverage according to dominance information
+
    subtype SCO_State is Line_State range Not_Covered .. Undetermined_Coverage;
    function Get_Line_State
      (SCO   : SCO_Id;
