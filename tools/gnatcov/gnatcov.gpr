@@ -79,15 +79,16 @@ project Gnatcov is
    --  and subprograms.
    --
    --  Note that we build the "gnatcov" driver in 32-bit mode as an
-   --  optimization: unlike "gnatcov64", none of "lib32", "gnatcov32" and
-   --  "driver" need source instrumentation support, so they all use the same
-   --  sources, and can thus share the same object directory.
+   --  optimization: unlike "gnatcov64", none of "lib32", "gnatcov32",
+   --  "compiler" and "driver" need source instrumentation support,
+   --  so they all use the same sources, and can thus share the same
+   --  object directory.
 
    type Bits_Type is ("32", "64");
    Bits : Bits_Type := "32";
    case Part is
-      when "lib64" | "gnatcov64" | "compiler" => Bits := "64";
-      when "driver" | "lib32" | "gnatcov32"   => Bits := "32";
+      when "lib64" | "gnatcov64" => Bits := "64";
+      when "driver" | "lib32" | "gnatcov32" | "compiler"  => Bits := "32";
    end case;
 
    -------------------------------------------
