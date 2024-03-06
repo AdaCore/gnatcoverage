@@ -5,3 +5,5 @@
     "coding standard": "",
     "project_full": "SomeProject",
 }
+
+# flake8: noqa

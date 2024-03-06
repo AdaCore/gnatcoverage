@@ -50,7 +50,7 @@ assignments = {"authors": ["hainque"], "reviewers": ["unassigned"]}
 release = "DRAFT 0.0"
 version = "(version %s)" % release
 
-copyright = "%s, %d" % (owner, date.today().year)
+copyright = "%s, %d" % (owner, date.today().year)  # noqa: A001
 
 extensions = ["sphinx.ext.ifconfig"]
 

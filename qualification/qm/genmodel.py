@@ -13,8 +13,9 @@
 #   traceability matrix production (and maybe the set of TORs
 #   and testcases someday)
 
-import sys, optparse, re
-from e3.os.process import Run
+import optparse
+import re
+import sys
 
 
 def exit_if(p, msg):
@@ -31,22 +32,17 @@ def contents_of(filename):
 def __extra_block_for(dolevel):
     """Allow level specific local subsets of testcases."""
 
-    return "\n".join(
-        (
-            "",
-            '<artifact_reader class="TC_Set">',
-            "  <on_location",
-            '     relative_class="TC_Set"',
-            '     pattern="${relative.attributes.location}/%s/*/tc_set.rst"'
-            % dolevel,
-            '     type="content"',
-            "  />",
-            '  <creates name="$subst(${attributes.location.basename},([0-9]+_)?(.*),\\2)">',
-            '      <assign attribute="location" value="${event.location.container}"/>',
-            "  </creates>",
-            "</artifact_reader>",
-        )
-    )
+    return f"""
+<artifact_reader class="TC_Set">
+  <on_location
+     relative_class="TC_Set"
+     pattern="${{relative.attributes.location}}/{dolevel}/*/tc_set.rst
+     type="content"
+  />
+  <creates name="$subst(${{attributes.location.basename}},([0-9]+_)?(.*),\\2)">
+      <assign attribute="location" value="${{event.location.container}}"/>
+  </creates>
+</artifact_reader>"""
 
 
 RE_LANG = "([a-zA-Z]*)([0-9]*)"
@@ -100,7 +96,7 @@ def __gen_model_for(dolevel, languages):
 
     # We expect one version of Ada to be part of the language set
 
-    ada_lang = [l for l in languages if "Ada" in l][0]
+    ada_lang = [lang for lang in languages if "Ada" in lang][0]
 
     with open("model.xml", "w") as f:
         f.write(
@@ -122,9 +118,6 @@ def __gen_lrm_ref_for(lang):
 
     lang_version = __langversion_for(lang)
 
-    input = open("LRM/lrm_ref.txt", mode="r")
-    output = open("LRM/lrm_ref_%s.txt" % lang_version, mode="w")
-
     # The reference matrix lines with section numbers and corresponding
     # language versions are of the form:
     #
@@ -140,15 +133,14 @@ def __gen_lrm_ref_for(lang):
 
     short_version = lang_version[-2:]
 
-    for line in input.readlines():
-        m = re.match(pattern="([0-9. ]*)#([0-9, ]*?)#", string=line)
-        if m and short_version not in m.group(2):
-            continue
+    with open("LRM/lrm_ref.txt", mode="r") as inf:
+        with open("LRM/lrm_ref_%s.txt" % lang_version, mode="w") as outf:
+            for line in inf:
+                m = re.match(pattern="([0-9. ]*)#([0-9, ]*?)#", string=line)
+                if m and short_version not in m.group(2):
+                    continue
 
-        output.write(line)
-
-    output.close()
-    input.close()
+                outf.write(line)
 
 
 # =======================================================================

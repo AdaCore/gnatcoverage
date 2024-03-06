@@ -24,3 +24,5 @@ rst_prolog += writer.define_role("raw-html(raw)", {"format": "html"})
 doc_id = tor_doc_id
 
 html_sidebars = {"**": ["localtoc.html", "sourcelink.html", "searchbox.html"]}
+
+# flake8: noqa

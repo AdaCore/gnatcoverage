@@ -21,3 +21,6 @@ else:
     print("from: %s" % __file__)
 
 doc_id = plans_doc_id
+
+
+# flake8: noqa

@@ -74,3 +74,5 @@ rst_prolog = (
 # environment variable stating what --dolevel it was passed ('doA', 'doB',
 # or 'doC'). Expose the significant letter to documents:
 rst_prolog += writer.macro("dolevel", os.environ.get("GENBUNDLE_DOLEVEL")[-1])
+
+# flake8: noqa
