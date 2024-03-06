@@ -888,7 +888,9 @@ class SCOV_helper:
         if thistest.options.qualif_level:
             return
 
-        self.gen_one_xcov_report(inputs, report_format="xcov", options=sco_options)
+        self.gen_one_xcov_report(
+            inputs, report_format="xcov", options=sco_options
+        )
 
     def check_unexpected_reports(self):
         """Check that we don't have unexpected reports or notes."""
