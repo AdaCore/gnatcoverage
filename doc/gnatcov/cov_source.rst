@@ -1474,7 +1474,7 @@ absence of other known violations for that same line.
 
 .. _scov-atcc:
 
-Assertion True Condition Coverage analysis (ATCC)
+Assertion True Condition Coverage (ATCC) analysis
 =================================================
 
 Core notions and Reporting (:cmd-option:`--level=...+atcc`)
