@@ -32,6 +32,9 @@ with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 
 package GNATcov_RTS.Traces is
 
+   type Uint8_Array is array (Positive range <>) of Interfaces.Unsigned_8;
+   pragma Pack (Uint8_Array);
+
    --  Execution of an instrumented program sets bits in its coverage buffers.
    --  These bits convey information that GNATcov will later on use to
    --  discharge coverage obligations.
@@ -48,11 +51,13 @@ package GNATcov_RTS.Traces is
    --  trace entries start and end on byte/half word/word/long word boundaries.
 
    type Trace_File_Format_Version is new Unsigned_32;
-   Current_Version : Trace_File_Format_Version := 1;
+   Current_Version : Trace_File_Format_Version := 3;
    --  Expected value of the Trace_File_Header.Format_Version field.
    --
    --  0 -- initial version
    --  1 -- extend trace entry model to account for C files
+   --  2 -- introduce fingerprints for bit maps
+   --  3 -- remove the project name from trace entries
 
    type Any_Alignment is new Unsigned_8;
    subtype Supported_Alignment is Any_Alignment;
@@ -69,9 +74,6 @@ package GNATcov_RTS.Traces is
 
    function Native_Endianity return Supported_Endianity;
    --  Return the native endianity
-
-   type Hash_Type is new Unsigned_32;
-   --  Hash type to perform consistency checks
 
    type Any_Unit_Part is new Unsigned_8;
    Not_Applicable_Part : constant Any_Unit_Part :=
@@ -207,11 +209,6 @@ package GNATcov_RTS.Traces is
       --  Length of the unit name / filename for the unit this trace entry
       --  describes.
 
-      Project_Name_Length : Unsigned_32;
-      --  For file-based languages, length of the project name this file
-      --  belongs to. For unit-based languages, the unit name is unique so this
-      --  piece of information is not needed (thus will be 0).
-
       Statement_Bit_Count : Any_Bit_Count;
       Decision_Bit_Count  : Any_Bit_Count;
       MCDC_Bit_Count      : Any_Bit_Count;
@@ -227,10 +224,16 @@ package GNATcov_RTS.Traces is
       Bit_Buffer_Encoding : Any_Bit_Buffer_Encoding;
       --  Encoding used to represent statement and decision coverage buffers
 
-      Fingerprint : Buffers.SCOs_Hash;
+      Fingerprint : Buffers.Fingerprint_Type;
       --  Hash of SCO info for this unit. Useds a fast way to check that
       --  coverage obligations and coverage data are consistent. Specific hash
       --  values are computed during instrumentation.
+
+      Bit_Maps_Fingerprint : Buffers.Fingerprint_Type;
+      --  Hash of buffer bit mappings for this unit, as gnatcov computes it
+      --  (see SC_Obligations). Used as a fast way to check that gnatcov will
+      --  be able to interpret buffer bits from a source traces using buffer
+      --  bit mappings from SID files.
 
       Padding : Uint8_Array (1 .. 5);
       --  Padding used only to make the size of this trace entry header a

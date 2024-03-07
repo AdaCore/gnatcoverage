@@ -37,11 +37,11 @@ package body GNATcov_RTS.Traces.Output is
    ------------------------------
 
    procedure Generic_Write_Trace_File
-     (Output       : in out Output_Stream;
-      Buffers      : Unit_Coverage_Buffers_Array;
-      Program_Name : String;
-      Exec_Date    : Serialized_Timestamp;
-      User_Data    : String := "")
+     (Output         : in out Output_Stream;
+      Buffers_Groups : Coverage_Buffers_Group_Array;
+      Program_Name   : String;
+      Exec_Date      : Unsigned_64;
+      User_Data      : String := "")
    is
 
       Alignment : constant Unsigned_8 := 8;
@@ -71,7 +71,7 @@ package body GNATcov_RTS.Traces.Output is
       --  Write a trace info entry to Output
 
       procedure Write_Entry
-        (Output : in out Output_Stream; Buffers : Unit_Coverage_Buffers);
+        (Output : in out Output_Stream; Buffers : GNATcov_RTS_Coverage_Buffers);
       --  Write a whole trace entry (header, unit name and buffers) for Buffers
       --  to Output.
 
@@ -104,6 +104,11 @@ package body GNATcov_RTS.Traces.Output is
       procedure Write_U8 is new Write_Unsigned (T => Unsigned_8);
       procedure Write_U16 is new Write_Unsigned (T => Unsigned_16);
       procedure Write_U32 is new Write_Unsigned (T => Unsigned_32);
+      procedure Write_U64 is new Write_Unsigned (T => Unsigned_64);
+
+      Padding_Constant : constant Uint8_Array (1 .. 16) := (others => 0);
+      --  Contant to avoid a local array declaration every time we need to do
+      --  padding, as it uses the secondary stack on the aamp platform.
 
       -------------------
       -- Write_Padding --
@@ -117,7 +122,9 @@ package body GNATcov_RTS.Traces.Output is
       begin
          if Pad_Count /= Alignment then
             declare
-               Bytes : constant Uint8_Array (1 .. Pad_Count) := (others => 0);
+               Bytes : Uint8_Array (1 .. Pad_Count);
+               for Bytes'Address use Padding_Constant'Address;
+               pragma Import (Ada, Bytes);
             begin
                Write_Bytes (Output, Bytes);
             end;
@@ -128,9 +135,14 @@ package body GNATcov_RTS.Traces.Output is
       -- Write_Header --
       ------------------
 
-      procedure Write_Header (Output : in out Output_Stream) is
+      procedure Write_Header (Output : in out Output_Stream)
+      is
+         Trace_File_Magic_Bytes : constant Uint8_Array
+           (1 .. Trace_File_Magic'Length);
+         for Trace_File_Magic_Bytes'Address use Trace_File_Magic'Address;
+         pragma Import (Ada, Trace_File_Magic_Bytes);
       begin
-         Write_Bytes (Output, From_String (Trace_File_Magic));
+         Write_Bytes (Output, Trace_File_Magic_Bytes);
          Write_U32 (Output, Unsigned_32 (Current_Version));
          Write_U8 (Output, Alignment);
 
@@ -150,10 +162,13 @@ package body GNATcov_RTS.Traces.Output is
          Kind   : Supported_Info_Kind;
          Data   : String)
       is
+         Data_Bytes : constant Uint8_Array (1 .. Data'Length);
+         for Data_Bytes'Address use Data'Address;
+         pragma Import (Ada, Data_Bytes);
       begin
          Write_U32 (Output, Unsigned_32 (Kind));
          Write_U32 (Output, Unsigned_32 (Data'Length));
-         Write_Bytes (Output, From_String (Data));
+         Write_Bytes (Output, Data_Bytes);
          Write_Padding (Output, Data'Length);
       end Write_Info;
 
@@ -162,54 +177,40 @@ package body GNATcov_RTS.Traces.Output is
       -----------------
 
       procedure Write_Entry
-        (Output : in out Output_Stream; Buffers : Unit_Coverage_Buffers)
+        (Output : in out Output_Stream; Buffers : GNATcov_RTS_Coverage_Buffers)
       is
-         type Unit_Name_String is new String (1 .. Buffers.Unit_Name_Length);
-         type Unit_Name_String_Acc is access all Unit_Name_String;
+         Unit_Name_Bytes : Uint8_Array
+           (1 .. Integer (Buffers.Unit_Name.Length));
+         for Unit_Name_Bytes'Address use Buffers.Unit_Name.Str;
+         pragma Import (Ada, Unit_Name_Bytes);
 
-         type Project_Name_String is
-           new String (1 .. Buffers.Project_Name_Length);
-         type Project_Name_String_Acc is access all Project_Name_String;
-
-         function To_Unit_Name_String_Acc is
-           new Ada.Unchecked_Conversion (System.Address, Unit_Name_String_Acc);
-
-         function To_Project_Name_String_Acc is
+         subtype Bounded_Uint8_Array is Uint8_Array (1 .. 20);
+         function To_Uint8_Array is
            new Ada.Unchecked_Conversion
-             (System.Address, Project_Name_String_Acc);
-
-         Unit_Name : constant Unit_Name_String_Acc :=
-           To_Unit_Name_String_Acc (Buffers.Unit_Name);
-
-         Project_Name : constant Project_Name_String_Acc :=
-           To_Project_Name_String_Acc (Buffers.Project_Name);
-
+             (Fingerprint_Type, Bounded_Uint8_Array);
       begin
          --  Write trace entry header
 
-         Write_U32 (Output, Unsigned_32 (Buffers.Unit_Name_Length));
-         Write_U32 (Output, Unsigned_32 (Buffers.Project_Name_Length));
+         Write_U32 (Output, Unsigned_32 (Buffers.Unit_Name.Length));
          Write_U32 (Output, Unsigned_32 (Buffers.Statement_Last_Bit + 1));
          Write_U32 (Output, Unsigned_32 (Buffers.Decision_Last_Bit + 1));
          Write_U32 (Output, Unsigned_32 (Buffers.MCDC_Last_Bit + 1));
          Write_U8
            (Output,
-            Unsigned_8 (Any_Language_Kind_Map (Buffers.Language_Kind)));
+            Unsigned_8 (Any_Language_Kind_Map (Buffers.Language)));
          Write_U8
            (Output,
             Unsigned_8
               (GNATcov_RTS.Buffers.Any_Unit_Part'Pos (Buffers.Unit_Part)));
          Write_U8 (Output, Unsigned_8 (LSB_First_Bytes));
-         Write_Bytes (Output, Uint8_Array (Buffers.Fingerprint));
+         Write_Bytes (Output, To_Uint8_Array (Buffers.Fingerprint));
+         Write_Bytes (Output, To_Uint8_Array (Buffers.Bit_Maps_Fingerprint));
          Write_Bytes (Output, (1 .. 5 => 0));
 
-         --  Write unit name and project name
+         --  Write the unit name
 
-         Write_Bytes (Output, From_String (String (Unit_Name.all)));
-         Write_Padding (Output, Unit_Name.all'Length);
-
-         Write_Bytes (Output, From_String (String (Project_Name.all)));
-         Write_Padding (Output, Project_Name.all'Length);
+         Write_Bytes (Output, Unit_Name_Bytes);
+         Write_Padding (Output, Integer (Buffers.Unit_Name.Length));
 
          --  Write coverage buffers
 
@@ -302,11 +303,20 @@ package body GNATcov_RTS.Traces.Output is
    begin
       Write_Header (Output);
       Write_Info (Output, Info_Program_Name, Program_Name);
-      Write_Info (Output, Info_Exec_Date, Exec_Date);
+      Write_Info (Output, Info_Exec_Date, String'(1 .. 8 => 'A'));
       Write_Info (Output, Info_User_Data, User_Data);
       Write_Info (Output, Info_End, "");
-      for I in Buffers'Range loop
-         Write_Entry (Output, Buffers (I).all);
+      for I in Buffers_Groups'Range loop
+         declare
+            Buffers : Coverage_Buffers_Group
+               (1 .. Integer (Buffers_Groups (I).Length));
+            for Buffers'Address use Buffers_Groups (I).Buffers;
+            pragma Import (C, Buffers);
+         begin
+            for J in Buffers'Range loop
+               Write_Entry (Output, Buffers (J).all);
+            end loop;
+         end;
       end loop;
    end Generic_Write_Trace_File;
 

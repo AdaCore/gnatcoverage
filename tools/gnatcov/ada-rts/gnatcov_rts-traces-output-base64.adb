@@ -154,10 +154,10 @@ package body GNATcov_RTS.Traces.Output.Base64 is
    ----------------------
 
    procedure Write_Trace_File
-     (Buffers      : Unit_Coverage_Buffers_Array;
-      Program_Name : String;
-      Exec_Date    : Serialized_Timestamp;
-      User_Data    : String := "")
+     (Buffers_Groups : Coverage_Buffers_Group_Array;
+      Program_Name   : String;
+      Exec_Date      : Unsigned_64;
+      User_Data      : String := "")
    is
       procedure Helper is new Generic_Write_Trace_File (Base64_Buffer);
       Buffer : Base64_Buffer :=
@@ -167,7 +167,7 @@ package body GNATcov_RTS.Traces.Output.Base64 is
    begin
       TIO.New_Line;
       TIO.Put_Line ("== GNATcoverage source trace file ==");
-      Helper (Buffer, Buffers, Program_Name, Exec_Date, User_Data);
+      Helper (Buffer, Buffers_Groups, Program_Name, Exec_Date, User_Data);
       Flush (Buffer);
       if Buffer.Columns /= 0 then
          TIO.New_Line;

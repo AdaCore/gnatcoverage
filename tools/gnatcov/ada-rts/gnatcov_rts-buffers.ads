@@ -30,43 +30,26 @@
 with Interfaces;
 with System;
 
+with GNATcov_RTS.Types;   use GNATcov_RTS.Types;
+with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
+
 package GNATcov_RTS.Buffers is
 
    pragma Pure;
+   pragma Warnings (Off);
+   pragma No_Elaboration_Code;
+   pragma Warnings (On);
 
-   --  All data takes the form of big arrays of booleans: coverage buffers. How
-   --  to interpret these depend on the type of coverage obligation.
-   --
-   --  For statement coverage, each statement is assigned such a boolean, which
-   --  indicates whether it was executed.
-   --
-   --  For decision coverage, each decision is assigned two booleans: one which
-   --  indicates whether the decision reached the False outcome and another for
-   --  the True outcome.
+   --  Any_Bit_Id is declared volatile here, as in order to instrument declare
+   --  expressions we need to declare a constant MC_DC_State (a subtype of
+   --  Any_Bit_Id) object, but prevent the compiler from optimizing out the
+   --  variable.
 
-   type Any_Unit_Part is
-     (Not_Applicable_Part, Unit_Body, Unit_Spec, Unit_Separate);
-   --  Not_Applicable_Part is a default value used for compilation units in
-   --  languages that are not unit-based.
+   type Any_Bit_Id is new int;
+   pragma Volatile (Any_Bit_Id);
 
-   type Any_Language_Kind is (Unit_Based_Language, File_Based_Language);
-
-   ---------------------------------------------
-   -- Mapping of coverage buffer bits to SCOs --
-   ---------------------------------------------
-
-   ---------------------------
-   -- Source trace bit maps --
-   ---------------------------
-
-   --  As instrumentation is inserted, bit positions in coverage buffers are
-   --  allocated, and these allocations are associated to low-level SCO Ids.
-   --  Once low-level SCOs are converted to high-level SCOs, new mappings
-   --  are generated to allow mapping bit positions to high level SCOs when
-   --  processing buffers from a target run.
-
-   type Any_Bit_Id is new Integer;
    No_Bit_Id : constant Any_Bit_Id := -1;
+
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;
    --  Unique identifier for a boolean in a coverage buffer
 
@@ -74,29 +57,33 @@ package GNATcov_RTS.Buffers is
    --  Even though it is tempting to pack this array to save memory, we must
    --  avoid bit packing to allow concurrent writes to coverage buffers.
 
-   type Uint8_Array is array (Positive range <>) of Interfaces.Unsigned_8;
+   Fingerprint_Size : constant := 20;
 
-   function To_String (Arr : Uint8_Array) return String;
+   type GNATcov_RTS_Bool is new unsigned;
 
-   function From_String (Str : String) return Uint8_Array;
+   type Any_Unit_Part is
+     (Not_Applicable_Part, Unit_Body, Unit_Spec, Unit_Separate);
+   pragma Convention (C, Any_Unit_Part);
 
-   type SCOs_Hash is new Uint8_Array (1 ..  20);
-   --  Hash type to perform consistency checks over Source Coverage
-   --  Obligations. 20-byte to hold a SHA-1.
+   type Any_Language_Kind is (Unit_Based_Language, File_Based_Language);
+   pragma Convention (C, Any_Language_Kind);
 
-   type Unit_Coverage_Buffers is record
-      Fingerprint : SCOs_Hash;
+   type Fingerprint_Type is array (1 .. 20) of Unsigned_8;
+   for Fingerprint_Type'Component_Size use 8;
+   for Fingerprint_Type'Size use 20 * 8;
+
+   type GNATcov_RTS_Coverage_Buffers is record
+      Fingerprint : Fingerprint_Type;
       --  Hash of SCO info for this unit, as gnatcov computes it (see
       --  SC_Obligations). Used a fast way to check that coverage obligations
       --  and coverage data are consistent. Specific hash values are computed
       --  during instrumentation.
 
-      Language_Kind : Any_Language_Kind;
+      Language : Any_Language_Kind;
       --  Language kind for this unit
 
-      Unit_Part        : Any_Unit_Part;
-      Unit_Name_Length : Positive;
-      Unit_Name        : System.Address;
+      Unit_Part : Any_Unit_Part;
+      Unit_Name : GNATcov_RTS_String;
       --  Unit kind and name for the instrumented unit. The Unit_Name field
       --  accounts both for unit-based languages (such as Ada) and file-based
       --  languages such as C.
@@ -111,10 +98,11 @@ package GNATcov_RTS.Buffers is
       --  For file-based languages, Unit_Name is the simple filename, e.g.
       --  "foo.c".
 
-      Project_Name_Length : Natural;
-      Project_Name        : System.Address;
-      --  Project name for this compilation unit. This is only initialized for
-      --  file-based languages (otherwise, it is an empty string).
+      Bit_Maps_Fingerprint : Fingerprint_Type;
+       --  Hash of buffer bit mappings for this unit, as gnatcov computes it
+       --  (see SC_Obligations). Used as a fast way to check that gnatcov will
+       --  be able to interpret buffer bits from a source traces using buffer
+       --  bit mappings from SID files.
 
       Statement, Decision, MCDC : System.Address;
       --  Addresses of coverage buffers for statement obligations, decision

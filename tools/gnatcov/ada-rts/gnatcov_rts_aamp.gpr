@@ -1,19 +1,11 @@
---  Project specific to the AAMP target, which does not support libraries, and
---  does not have a C compiler.
+--  Ada Instrumentation runtime for gnatcov, for the AAMP target.
+--
+--  This project is meant to be built and installed before instrumenting
+--  projects with "gnatcov instrument", and then to be used when building
+--  instrumented programs thanks to gprbuild's --implicit-with option.
 
 project GNATcov_RTS_AAMP is
-   for Source_Files use
-     ("gnatcov_rts.ads",
-      "gnatcov_rts-buffers.ads",
-      "gnatcov_rts-buffers.adb",
-      "gnatcov_rts-buffers-lists.ads",
-      "gnatcov_rts-traces.ads",
-      "gnatcov_rts-traces.adb",
-      "gnatcov_rts-traces-output.ads",
-      "gnatcov_rts-traces-output.adb",
-      "gnatcov_rts-traces-output-text_io.ads",
-      "gnatcov_rts-traces-output-base64.ads",
-      "gnatcov_rts-traces-output-base64.adb");
+   for Source_Dirs use (".");
    for Object_Dir use "obj-gnatcov_rts";
    for Languages use ("Ada");
 

@@ -256,8 +256,12 @@ install-examples:
 install-gnatcov_rts:
 	$(RM) -r $(PREFIX)/share/$(DIRNAME)/gnatcov_rts
 	$(MKDIR) $(PREFIX)/share/$(DIRNAME)/gnatcov_rts
+	$(RM) -r $(PREFIX)/share/$(DIRNAME)/gnatcov_ada_rts
+	$(MKDIR) $(PREFIX)/share/$(DIRNAME)/gnatcov_ada_rts
 	$(CP) -r rts/*.gpr rts/*.ads rts/*.adb rts/*.c rts/*.h \
 	   $(PREFIX)/share/$(DIRNAME)/gnatcov_rts
+	$(CP) -r ada-rts/*.gpr ada-rts/*.ads ada-rts/*.adb \
+	   $(PREFIX)/share/$(DIRNAME)/gnatcov_ada_rts
 	# Create library/object directories for gnatcov_rts in the installed tree.
 	# This is necessary for out-of-tree builds of gnatcov_rts to work, as
 	# gnatcov_rts may be read-only after final installation, and gprbuild
@@ -268,6 +272,7 @@ install-gnatcov_rts:
 	    mkdir $(PREFIX)/share/$(DIRNAME)/gnatcov_rts/$$d-$$lt; \
 	  done; \
 	done
+	$(MKDIR) $(PREFIX)/share/$(DIRNAME)/gnatcov_ada_rts/obj-gnatcov_rts
 
 install-lib:
 	$(MKDIR) $(PREFIX)/lib/gnatcoverage

@@ -26,41 +26,12 @@
 
 package body GNATcov_RTS.Buffers is
 
-   -----------------
-   --  To_String  --
-   ----------------
-
-   function To_String (Arr : Uint8_Array) return String is
-      Result : String (Arr'Range);
-   begin
-      for I in Arr'Range loop
-         Result (I) := Character'Val (Arr (I));
-      end loop;
-      return Result;
-   end To_String;
-
-   -------------------
-   --  From_String  --
-   -------------------
-
-   function From_String (Str : String) return Uint8_Array
-   is
-      Result : Uint8_Array (Str'Range);
-   begin
-      for I in Str'Range loop
-         Result (I) := Character'Pos (Str (I));
-      end loop;
-      return Result;
-   end From_String;
-
-   subtype Unbounded_Coverage_Buffer_Type is Coverage_Buffer_Type (Bit_Id);
-
    -------------
    -- Witness --
    -------------
 
    procedure Witness (Buffer_Address : System.Address; Bit : Bit_Id) is
-      Buffer : Unbounded_Coverage_Buffer_Type;
+      Buffer : Coverage_Buffer_Type (0 .. Bit);
       for Buffer'Address use Buffer_Address;
       pragma Import (Ada, Buffer);
    begin

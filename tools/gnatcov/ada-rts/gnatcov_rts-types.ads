@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                     Copyright (C) 2019-2021, AdaCore                     --
+--                     Copyright (C) 2021-2024, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -22,34 +22,29 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Namespace for all support packages required to do instrumentation-based
---  coverage computation in GNATcoverage.
-
+--  Basic types to use in source trace buffers. We try to avoid using types
+--  from Interfaces and Interfaces.C, and in general to minimize the set of
+--  dependencies of GNATcov_RTS on the Ada runtime, so that we can compute code
+--  coverage for these runtime units.
+--
 --  This unit needs to be compilable with Ada 95 compilers
 
 with System;
 
-package GNATcov_RTS is
+package GNATcov_RTS.Types is
 
    pragma Pure;
    pragma Warnings (Off);
    pragma No_Elaboration_Code_All;
    pragma Warnings (On);
 
-   package Std renames Standard;
-   package Sys renames System;
+   type Unsigned_8 is mod 2 ** 8;
+   type Unsigned_64 is mod 2 ** 64;
 
-   Version : constant := 7;
-   --  For compatibility with the GNATcoverage in use, GNATcov_RTS is
-   --  versioned.
-   --
-   --  1 -- initial runtime version
-   --  2 -- extend trace entry model to account for C files
-   --  3 -- add a renaming of the Standard and System packages in GNATcov_RTS
-   --  4 -- add C witness functions / buffer types
-   --  5 -- add a non-volatile version of the Witness_Dummy_Type and
-   --       the associated Witness function.
-   --  6 -- buffer clear mechanism and trace filename indices
-   --  7 -- enable inlining of witness subprograms
+   --  We assume here that Integer (Ada) is a correct mapping for int (C)
 
-end GNATcov_RTS;
+   type int is new Integer;
+   type unsigned is mod 2 ** int'Size;
+   type size_t is mod System.Memory_Size;
+
+end GNATcov_RTS.Types;

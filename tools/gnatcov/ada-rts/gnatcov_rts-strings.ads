@@ -2,7 +2,7 @@
 --                                                                          --
 --                   GNATcoverage Instrumentation Runtime                   --
 --                                                                          --
---                     Copyright (C) 2019-2021, AdaCore                     --
+--                     Copyright (C) 2021-2024, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -22,34 +22,23 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Namespace for all support packages required to do instrumentation-based
---  coverage computation in GNATcoverage.
-
+--  Ada bindings for gnatcov_rts_c-strings.h
+--
 --  This unit needs to be compilable with Ada 95 compilers
 
-with System;
+with GNATcov_RTS.Types; use GNATcov_RTS.Types;
 
-package GNATcov_RTS is
+package GNATcov_RTS.Strings is
 
    pragma Pure;
    pragma Warnings (Off);
    pragma No_Elaboration_Code_All;
    pragma Warnings (On);
 
-   package Std renames Standard;
-   package Sys renames System;
+   type GNATcov_RTS_String is record
+      Str    : System.Address;
+      Length : size_t;
+   end record;
+   pragma Convention (C_Pass_By_Copy, GNATcov_RTS_String);
 
-   Version : constant := 7;
-   --  For compatibility with the GNATcoverage in use, GNATcov_RTS is
-   --  versioned.
-   --
-   --  1 -- initial runtime version
-   --  2 -- extend trace entry model to account for C files
-   --  3 -- add a renaming of the Standard and System packages in GNATcov_RTS
-   --  4 -- add C witness functions / buffer types
-   --  5 -- add a non-volatile version of the Witness_Dummy_Type and
-   --       the associated Witness function.
-   --  6 -- buffer clear mechanism and trace filename indices
-   --  7 -- enable inlining of witness subprograms
-
-end GNATcov_RTS;
+end GNATcov_RTS.Strings;

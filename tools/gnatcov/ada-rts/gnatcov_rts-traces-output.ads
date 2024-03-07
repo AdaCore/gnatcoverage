@@ -43,11 +43,11 @@ package GNATcov_RTS.Traces.Output is
       --  Write Bytes to the given Stream
 
    procedure Generic_Write_Trace_File
-     (Output       : in out Output_Stream;
-      Buffers      : Unit_Coverage_Buffers_Array;
-      Program_Name : String;
-      Exec_Date    : Serialized_Timestamp;
-      User_Data    : String := "");
+     (Output         : in out Output_Stream;
+      Buffers_Groups : Coverage_Buffers_Group_Array;
+      Program_Name   : String;
+      Exec_Date      : Unsigned_64;
+      User_Data      : String := "");
    --  Write a trace file to Output to contain the coverage data in Buffers.
    --
    --  Program_Name, Exec_Date, and User_Data are used to fill the
