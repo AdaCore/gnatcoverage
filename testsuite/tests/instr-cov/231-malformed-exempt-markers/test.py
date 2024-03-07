@@ -11,22 +11,23 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
-Wdir('tmp_')
+Wdir("tmp_")
 
 # Check gnatcov's behaviour upon encountering annotaton pragmas with correctly
 # types arguments.
 
 build_run_and_coverage(
     gprsw=GPRswitches(
-        gprfor(prjid="test",
-               srcdirs=[".."],
-               mains=["main_1.adb"],
-               langs=["Ada"])),
+        gprfor(
+            prjid="test", srcdirs=[".."], mains=["main_1.adb"], langs=["Ada"]
+        )
+    ),
     covlevel="stmt",
     trace_mode="src",
     mains=["main_1"],
     extra_coverage_args=["--annotate=report"],
-    tolerate_instrument_messages=".")
+    tolerate_instrument_messages=".",
+)
 
 # Check that gnatcov does not raise an exception when finding incorrect
 # annotation pragmas. In these cases, it is the compiler that is expected to
@@ -34,12 +35,13 @@ build_run_and_coverage(
 
 xcov_instrument(
     gprsw=GPRswitches(
-        gprfor(prjid="test",
-               srcdirs=[".."],
-               mains=["main_2.adb"],
-               langs=["Ada"])),
+        gprfor(
+            prjid="test", srcdirs=[".."], mains=["main_2.adb"], langs=["Ada"]
+        )
+    ),
     covlevel="stmt",
-    tolerate_messages='.')
+    tolerate_messages=".",
+)
 
 thistest.fail_if_not_equal(
     "gnatcov instrument output",

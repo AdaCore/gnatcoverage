@@ -216,7 +216,15 @@ stylechecks:
 
     - export PATH="/home/gitlab-ci/.local/bin:$PATH"
     - source /it/activate-py311
-    - python -m pip install colorama
+    - python -m pip install colorama pre-commit
 
     - cd $CI_PROJECT_DIR
-    - python $CI_PROJECT_DIR/.check-formatting.py --force-colors
+
+    # TODO (eng/das/cov/gnatcoverage#230): Once we have found a way to install
+    # the clang-format pre-commit hook in the CI, use the standard
+    # ".pre-commit-config.yaml" file.
+    - pre-commit install --config .pre-commit-config-ci.yaml
+    - pre-commit install-hooks --config .pre-commit-config-ci.yaml
+    - pre-commit run --config .pre-commit-config-ci.yaml -a --show-diff-on-failure
+
+    - python .check-formatting.py --force-colors
