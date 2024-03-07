@@ -1109,6 +1109,11 @@ package body Instrument.Ada_Unit is
    --  Return the parent declaration for Decl, or No_Basic_Decl if Decl has no
    --  parent, or if we cannot find it.
 
+   function Decls_Are_Library_Level
+     (Unit : Libadalang.Analysis.Compilation_Unit) return Boolean;
+   --  Return whether declarations that appear directly under the given
+   --  compilation unit are library-level.
+
    function Has_No_Elaboration_Code_All
      (Unit : LAL.Compilation_Unit) return Boolean;
    --  Return whether the No_Elaboration_Code_All aspect/pragma applies to Unit
@@ -2969,6 +2974,49 @@ package body Instrument.Ada_Unit is
             Kind => Warning);
          return No_Basic_Decl;
    end Parent_Decl;
+
+   -----------------------------
+   -- Decls_Are_Library_Level --
+   -----------------------------
+
+   function Decls_Are_Library_Level
+     (Unit : Libadalang.Analysis.Compilation_Unit) return Boolean is
+   begin
+      case Unit.F_Body.Kind is
+         when Ada_Library_Item =>
+
+            --  For library units, only packages (generic, declarations and
+            --  bodies) contain library-level declarations.
+
+            return Unit.F_Body.As_Library_Item.F_Item.Kind in
+                     Ada_Package_Decl
+                   | Ada_Package_Body
+                   | Ada_Generic_Package_Decl;
+
+         when Ada_Subunit =>
+
+            --  We consider that declarations in subunits are library-level if
+            --  the subunit is for a package body (in Ada, the only other valid
+            --  case is a subprogram body) and if the stub for that package
+            --  body is itself at library-level.
+
+            declare
+               Parent : Basic_Decl :=
+                 Unit.F_Body.As_Subunit.F_Body.As_Basic_Decl;
+            begin
+               while not Parent.Is_Null loop
+                  if Parent.Kind in Ada_Base_Subp_Body then
+                     return False;
+                  end if;
+                  Parent := Parent_Decl (Parent);
+               end loop;
+               return True;
+            end;
+
+         when others =>
+            raise Program_Error;
+      end case;
+   end Decls_Are_Library_Level;
 
    ---------------------------------
    -- Has_No_Elaboration_Code_All --
@@ -8347,20 +8395,15 @@ package body Instrument.Ada_Unit is
         (UIC.Root_Unit.P_Decl.P_Fully_Qualified_Name_Array);
 
       begin
-         --  Top-level (relative to the source file) declarations can be
-         --  instrumented even when they belong to preelaborate units: they
-         --  just need not to be library-level declarations.
+         --  Library level declarations can be instrumented only when
+         --  elaboration code is allowed.
 
-         if UIC.Root_Unit.F_Body.Kind = Ada_Library_Item
-            and then UIC.Root_Unit.F_Body.As_Library_Item.F_Item.Kind in
-             Ada_Package_Decl | Ada_Package_Body | Ada_Generic_Package_Decl
-         then
-            Preelab :=
-              UIC.Root_Unit.P_Is_Preelaborable
-              or else UIC.Root_Unit.P_Has_Restriction
-                        (To_Unbounded_Text ("No_Elaboration_Code"))
-              or else Has_No_Elab_Code_All;
-         end if;
+         Preelab :=
+           Decls_Are_Library_Level (UIC.Root_Unit)
+           and then (UIC.Root_Unit.P_Is_Preelaborable
+                     or else UIC.Root_Unit.P_Has_Restriction
+                               (To_Unbounded_Text ("No_Elaboration_Code"))
+                     or else Has_No_Elab_Code_All);
       exception
          when Libadalang.Common.Property_Error =>
             Report
