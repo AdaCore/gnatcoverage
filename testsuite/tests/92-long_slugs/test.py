@@ -5,8 +5,6 @@ represent a single one for the original unit name, thus generating overly long
 unit names.
 """
 
-from e3.fs import mkdir
-
 from SCOV.minicheck import (
     build_run_and_coverage,
     check_xcov_reports,
@@ -19,9 +17,6 @@ from SUITE.tutils import thistest, gprfor
 Wdir("tmp_")
 
 prj_switches = GPRswitches(gprfor(srcdirs=[".."], mains=["main.c"]))
-
-# Suppress "creating output path ..." messages from the log
-mkdir("obj")
 
 # First, check that using the legacy slugs produces paths that exceed the path
 # limit.

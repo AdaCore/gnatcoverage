@@ -16,6 +16,7 @@ xcov_args = build_and_run(
     gprsw=GPRswitches(root_project=gprfor(["foo.adb"], srcdirs=src_dir)),
     covlevel="stmt",
     mains=["foo"],
+    quiet=False,
     extra_coverage_args=["-axcov", "--output-dir={}".format(output_dir)],
 )
 

@@ -316,12 +316,15 @@ package body Outputs is
    --  Set_Output_Dir --
    ---------------------
 
-   procedure Set_Output_Dir (Output_Dir : String) is
+   procedure Set_Output_Dir (Output_Dir : String; Subdir : Boolean := False) is
    begin
       Free (Report_Output_Dir);
 
       if not Is_Directory (Output_Dir) then
-         Put_Line (Standard_Error, "info: creating output path " & Output_Dir);
+         if not Switches.Quiet and then not Subdir then
+            Put_Line
+              (Standard_Error, "info: creating output path " & Output_Dir);
+         end if;
          begin
             Ada.Directories.Create_Path (Output_Dir);
          exception

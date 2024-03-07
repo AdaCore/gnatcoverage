@@ -491,7 +491,7 @@ package body Annotations is
                Clean_Dir (Output_Subdir, Clean_Pattern);
             end if;
             if Multiple_Reports then
-               Set_Output_Dir (Output_Subdir);
+               Set_Output_Dir (Output_Subdir, Subdir => True);
             end if;
          end;
       end if;

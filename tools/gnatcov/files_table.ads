@@ -405,8 +405,8 @@ package Files_Table is
             --  lines, number of lines that are covered).
 
             Ob_Stats : Ob_Stat_Array;
-            --  Obligation counters for each kind of SCO (stmt, decision,
-            --  mcdc). Stores how many statement are covered, how many
+            --  Obligation counters for each kind of SCO (stmt, decision, mcdc,
+            --  atc and atcc). Stores how many statement are covered, how many
             --  decisions are covered etc.
 
             Has_Source_Coverage_Info : Boolean := False;

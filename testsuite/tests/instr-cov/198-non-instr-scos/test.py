@@ -4,9 +4,6 @@ non-instrumented SCO in one source file (pkg.ads) does not trigger a crash in
 the next source file that is instrumented for the same unit (pkg.adb).
 """
 
-import os
-import os.path
-
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
@@ -15,9 +12,6 @@ from SUITE.gprutils import GPRswitches
 
 
 tmp = Wdir("tmp_")
-
-# Avoid "creating output path" info messages
-os.mkdir("obj")
 
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=gprfor(mains=["main.adb"], srcdirs=[".."])),

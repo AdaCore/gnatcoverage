@@ -2,9 +2,6 @@
 Check various error cases related to the use of preprocessing in Ada.
 """
 
-import os
-import os.path
-
 from SCOV.instr import xcov_instrument
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
@@ -13,9 +10,6 @@ from SUITE.gprutils import GPRswitches
 
 
 tmp = Wdir("tmp_")
-
-# Avoid "creating output path" info messages
-os.mkdir("obj")
 
 for basename, expected_msg in [
     (
