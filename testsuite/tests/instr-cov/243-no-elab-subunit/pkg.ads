@@ -1,3 +1,5 @@
+pragma Ada_2012;
+
 --  CONFIG_PRAGMA
 
 package Pkg is

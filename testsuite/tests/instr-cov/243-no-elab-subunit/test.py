@@ -65,8 +65,10 @@ for name, pattern, pragma in [
         "pkg.ads.xcov": {},
         "pkg.adb.xcov": {},
         "pkg-nested.adb.xcov": {"+": {12, 21}},
-        "pkg-proc.adb.xcov": {"-": {12, 13, 14}},
+        "pkg-proc.adb.xcov": {"-": {14, 15, 16}},
         "pkg-proc-nested.adb.xcov": {"-": {4, 12, 21}},
+        "utils.ads.xcov": {},
+        "utils.adb.xcov": {"-": {9}},
     }
     # Deal with coverage report discrepancies between source and binary traces
     if thistest.options.trace_mode == "bin":

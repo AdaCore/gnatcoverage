@@ -1,3 +1,5 @@
+with Utils; use Utils;
+
 separate (Pkg)
 procedure Proc is
 
@@ -10,7 +12,7 @@ procedure Proc is
 
 begin
    Nested.Set (1);
-   if Nested.Get /= 1 then
+   if Identity (Nested.Get) /= 1 then
       raise Program_Error;
    end if;
 end Proc;
