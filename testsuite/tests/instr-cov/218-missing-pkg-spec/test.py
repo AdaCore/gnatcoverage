@@ -3,8 +3,6 @@ Check that "gnatcov instrument" does not crash when instrumenting an invalid
 project setup that lacks the package spec corresponding to a package body.
 """
 
-from e3.fs import mkdir
-
 from SCOV.instr import xcov_instrument
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, lines_of
@@ -12,9 +10,6 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
 tmp = Wdir("tmp_")
-
-# Avoid "creating output path" messages from gnatcov
-mkdir("obj")
 
 filename = "instrument.txt"
 p = xcov_instrument(

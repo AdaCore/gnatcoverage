@@ -30,7 +30,7 @@ check_xcov_reports("obj/xcov", {"main.adb.xcov": {"+": {2, 5}, "-": {6}}})
 thistest.fail_if_no_match(
     what="did not find report in the coverage output",
     regexp=r"(.|\n)*"
-    r"\n\*\* COVERAGE REPORT \*\*"
+    r"\*\* COVERAGE REPORT \*\*"
     r"(.|\n)*"
     r"\n\*\* END OF REPORT \*\*",
     actual=contents_of("coverage.log"),

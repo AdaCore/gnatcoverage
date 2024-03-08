@@ -3,9 +3,6 @@ Check that the instrumentation of Ada sources with preprocessing enabled works
 as expected on an example project.
 """
 
-import os
-import os.path
-
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
@@ -14,9 +11,6 @@ from SUITE.gprutils import GPRswitches
 
 
 tmp = Wdir("tmp_")
-
-# Avoid "creating output path" info messages
-os.mkdir("obj")
 
 # Test the working case. The "log" preprocessing symbol is set to "false" in
 # "prep.txt", so all logging lines are supposed to be disabled and thus not

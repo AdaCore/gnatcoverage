@@ -684,7 +684,8 @@ Some parts of SPARK sources do not necessarily generate executable code when
 compiled, and are mainly used to aid the proof of the program.
 Computing coverage for such source regions isn't meaningful and are thus
 ignored by the instrumenter. This means that those regions will not have any
-coverage obligation attached to them in the coverage reports.
+coverage obligation attached to them in the coverage reports, unless
+explicity requested by enabling the coverage of assertions.
 
 The concerned pieces of code are notably:
 
@@ -694,6 +695,11 @@ The concerned pieces of code are notably:
 Note that since no coverage obligations are emitted for such source
 constructs, they will not appear in the coverage reports even if assertions
 are enabled and the assertion policy enables the compilation of ghost code.
+
+It is however possible to request coverage information for some contracts that
+generate executable code with assertion coverage levels, as described in
+:ref:`scov-atc` and :ref:`scov-atcc`. Note that any ghost code that is not
+part of a contract will never be instrumented.
 
 .. _examples_src_traces:
 

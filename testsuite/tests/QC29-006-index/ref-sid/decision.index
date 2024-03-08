@@ -1,0 +1,27 @@
+decision
+
+Global:
+        -  57%, !  42%, +   0%     out of 7 obligations
+
+
+Other sources:
+        -  57%, !  42%, +   0%     out of 7 obligations
+
+    a.adb:
+        -   -%, !   -%, +   -%     out of 0 obligations
+    a.ads:
+        -   -%, !   -%, +   -%     out of 0 obligations
+    b.ads:
+        -   -%, !   -%, +   -%     out of 0 obligations
+    bar.adb:
+        - 100%, !   0%, +   0%     out of 1 obligations
+    bar.ads:
+        -   -%, !   -%, +   -%     out of 0 obligations
+    foo.adb:
+        - 100%, !   0%, +   0%     out of 3 obligations
+    foo.ads:
+        -   -%, !   -%, +   -%     out of 0 obligations
+    lib.ads:
+        -   -%, !   -%, +   -%     out of 0 obligations
+    main.adb:
+        -   0%, ! 100%, +   0%     out of 3 obligations

@@ -39,6 +39,7 @@ with Annotations.Html;
 with Annotations.Report;
 with Annotations.Xcov;
 with Annotations.Xml;
+with Annotations.Index;
 with Annotations;           use Annotations;
 with Binary_Files;
 with CFG_Dump;
@@ -2352,6 +2353,16 @@ begin
                if Annotation (Annotate_Report) then
                   Annotations.Report.Generate_Report
                     (Context'Unchecked_Access, Output, Dump_Units_In_Report);
+               end if;
+
+               --  For report and xcov reports, also generate coverage stats
+               --  indices.
+
+               if Annotation (Annotate_Report)
+                 or else Annotation (Annotate_Xcov)
+                 or else Annotation (Annotate_Xcov_Plus)
+               then
+                  Annotations.Index.Generate_Indices;
                end if;
 
                if Annotation (Annotate_Unknown) then

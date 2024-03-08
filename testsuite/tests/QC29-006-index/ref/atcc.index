@@ -1,0 +1,39 @@
+atcc
+
+Global:
+        -  81%, !   0%, +  18%     out of 11 obligations
+
+
+bar:
+        - 100%, !   0%, +   0%     out of 1 obligations
+
+    bar.adb:
+        - 100%, !   0%, +   0%     out of 1 obligations
+    bar.ads:
+        -   -%, !   -%, +   -%     out of 0 obligations
+
+foo:
+        - 100%, !   0%, +   0%     out of 6 obligations
+
+    b.ads:
+        -   -%, !   -%, +   -%     out of 0 obligations
+    foo.adb:
+        - 100%, !   0%, +   0%     out of 6 obligations
+    foo.ads:
+        -   -%, !   -%, +   -%     out of 0 obligations
+
+lib:
+        -  50%, !   0%, +  50%     out of 4 obligations
+
+    lib.ads:
+        -  50%, !   0%, +  50%     out of 4 obligations
+
+main:
+        -   -%, !   -%, +   -%     out of 0 obligations
+
+    a.adb:
+        -   -%, !   -%, +   -%     out of 0 obligations
+    a.ads:
+        -   -%, !   -%, +   -%     out of 0 obligations
+    main.adb:
+        -   -%, !   -%, +   -%     out of 0 obligations

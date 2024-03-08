@@ -4,8 +4,6 @@ correctly used.
 """
 
 from dataclasses import dataclass
-import os
-import os.path
 
 from SCOV.instr import xcov_instrument
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
@@ -57,9 +55,6 @@ for t in [
 ]:
     thistest.log(f"== {t.label} ==")
     tmp = Wdir(f"tmp_{t.label}")
-
-    # Avoid "creating output path" info messages
-    os.mkdir("obj")
 
     gprsw = GPRswitches(
         root_project=gprfor(
