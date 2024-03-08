@@ -180,4 +180,4 @@ def treeref_at(dirname):
     directory trees.
     """
     # Assuming git, sha1 for the HEAD reference
-    return output_of("git rev-parse HEAD", dir=dirname).rstrip("\n")
+    return output_of("git rev-parse HEAD", dirname=dirname).rstrip("\n")
