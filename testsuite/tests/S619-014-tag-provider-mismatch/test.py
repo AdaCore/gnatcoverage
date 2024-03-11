@@ -39,8 +39,9 @@ xcov(
 )
 
 expected = (
-    "warning: cannot merge coverage information from {} as it is"
-    " separated by default".format(ckpt)
+    "warning: -S is deprecated. This option will be removed in release 26."
+    "\nwarning: cannot merge coverage information from {} as it is separated"
+    " by default".format(ckpt)
 )
 actual = contents_of("consolidate.log").strip()
 thistest.fail_if(
