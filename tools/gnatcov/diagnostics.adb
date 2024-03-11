@@ -24,6 +24,7 @@ with Command_Line;  use Command_Line;
 with Coverage.Tags; use Coverage.Tags;
 with Files_Table;   use Files_Table;
 with Hex_Images;    use Hex_Images;
+with Outputs;
 with Switches;      use Switches;
 
 package body Diagnostics is
@@ -281,6 +282,9 @@ package body Diagnostics is
       if Diagnostics_Trace.Is_Active
          or else (M.Kind < Violation and then not Suppress_Message (M))
       then
+         if M.Kind in Warning then
+            Outputs.Register_Warning;
+         end if;
          Put_Line (Image (M));
       end if;
    end Output_Message;

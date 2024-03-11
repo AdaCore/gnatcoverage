@@ -433,6 +433,16 @@ package body Setup_RTS is
            Logs.Has_Error
            or else (Has_Ada and then not Prj.Has_Runtime_Project);
       begin
+         if Logs.Has_Element
+           (Information => False,
+            Warning     => True,
+            Error       => False,
+            Lint        => False,
+            Read        => False,
+            Unread      => False)
+         then
+            Register_Warning;
+         end if;
          Logs.Output_Messages (Information => Setup_RTS_Trace.Is_Active);
          if Has_Error then
             Fatal_Error ("Could not load the coverage runtime project file");
