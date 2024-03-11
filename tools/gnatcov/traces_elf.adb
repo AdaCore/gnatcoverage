@@ -5257,12 +5257,11 @@ package body Traces_Elf is
                --  what we have allocated for the symbol already.
 
                if Strict then
-                  Put_Line
-                    (Standard_Error,
-                     "warning: empty symbol " & Sym_Name.all
-                       & " at " & Hex_Image (A_Sym.St_Value)
-                       & " in section "
-                       & Get_Shdr_Name (Efile, A_Sym.St_Shndx));
+                  Outputs.Warn
+                    ("empty symbol " & Sym_Name.all
+                     & " at " & Hex_Image (A_Sym.St_Value)
+                     & " in section "
+                     & Get_Shdr_Name (Efile, A_Sym.St_Shndx));
                end if;
 
                Free (Sym_Name);
@@ -5361,13 +5360,12 @@ package body Traces_Elf is
                pragma Assert (Sym.Last >= Sym.First);
 
                if Strict and then Sym.First + Offset > Addr then
-                  Put_Line
-                    (Standard_Error,
-                     "warning: no symbols for "
-                       & Hex_Image (Addr) & "-"
-                       & Hex_Image (Sym.First + Offset - 1)
-                       & " in section " &  Get_Shdr_Name (Efile, I)
-                       & " [" & Unsigned_16'Image (I) & " ]");
+                  Outputs.Warn
+                    ("no symbols for "
+                     & Hex_Image (Addr) & "-"
+                     & Hex_Image (Sym.First + Offset - 1)
+                     & " in section " &  Get_Shdr_Name (Efile, I)
+                     & " [" & Unsigned_16'Image (I) & " ]");
                end if;
 
                if Sym_Cb /= null then
@@ -5388,9 +5386,8 @@ package body Traces_Elf is
             end loop;
 
             if Strict and then Addr < Last then
-               Put_Line
-                 (Standard_Error,
-                  "warning: no symbols for "
+               Outputs.Warn
+                 ("no symbols for "
                   & Hex_Image (Addr) & "-" & Hex_Image (Last)
                   & " in section " &  Get_Shdr_Name (Efile, I)
                   & " [" & Unsigned_16'Image (I) & " ]");

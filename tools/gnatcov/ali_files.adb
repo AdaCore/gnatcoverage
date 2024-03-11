@@ -579,30 +579,30 @@ package body ALI_Files is
 
       if With_SCOs then
          if No_Object then
-            Put_Line ("warning: no object generated for " & ALI_Filename);
+            Warn ("no object generated for " & ALI_Filename);
 
          else
             if not Preserve_Control_Flow_Seen then
-               Put_Line
-                 ("warning: " & ALI_Filename
+               Warn
+                 (ALI_Filename
                   & ": unit compiled without -fpreserve-control-flow");
             end if;
 
             if not Dump_SCOs_Seen then
-               Put_Line
-                 ("warning: " & ALI_Filename
+               Warn
+                 (ALI_Filename
                   & ": unit compiled without SCO generation (-fdump-scos)");
             end if;
 
             if not Debug_Seen then
-               Put_Line
-                 ("warning: " & ALI_Filename
+               Warn
+                 (ALI_Filename
                   & ": unit compiled without debug information (-g)");
             end if;
 
             if Profile_Arcs_Seen then
-               Put_Line
-                 ("warning: " & ALI_Filename
+               Warn
+                 (ALI_Filename
                   & ": unit compiled with instrumentation (-fprofile-arcs)");
             end if;
          end if;
