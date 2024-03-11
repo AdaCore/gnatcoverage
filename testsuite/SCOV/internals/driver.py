@@ -803,10 +803,18 @@ class SCOV_helper:
         # Note that we do this in qualification mode as well, even though what
         # we're looking at is not stricly part of the qualified interface.
 
+        # Warnings about -S being deprecated are expected: just ignore them
+        output_lines = lines_of(ofile)
+        for i, line in reversed(list(enumerate(output_lines))):
+            if line == (
+                "warning: -S is deprecated. This option will be removed in"
+                " release 26."
+            ):
+                output_lines.pop(i)
+        output = "\n".join(output_lines)
+
         thistest.fail_if(
-            os.path.getsize(ofile) > 0,
-            "xcov standard output not empty (%s):\n--\n%s"
-            % (ofile, contents_of(ofile)),
+            output, f"xcov standard output not empty ({ofile}:\n--\n{output}"
         )
 
     def force_xcov_report(self, source):
