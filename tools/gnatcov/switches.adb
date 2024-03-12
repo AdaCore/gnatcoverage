@@ -625,6 +625,15 @@ package body Switches is
       --  internal state accordingly.
 
       Load_Target_Option (Default_Target => True);
+
+      --  At this point we know what the final value for Warnings_As_Errors
+      --  should be: if we already emitted a warning, make sure the exit code
+      --  is updated accordingly.
+
+      Warnings_As_Errors := Args.Bool_Args (Opt_Warnings_As_Errors);
+      if Warnings_Registered then
+         Register_Warning;
+      end if;
    end Parse_Arguments;
 
    -----------

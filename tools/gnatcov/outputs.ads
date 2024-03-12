@@ -56,7 +56,22 @@ package Outputs is
    --  Same as Fatal_Error, but print the command-line usage before terminating
 
    procedure Normal_Exit with No_Return;
-   --  Cause Xcov to terminate. exit status OK
+   --  Cause Xcov to terminate with the success exit code. Since this shortcuts
+   --  gnatcov's regular error-tracking mechanisms, it is used only in one
+   --  specific case: the handling of early exit to handle --help.
+
+   procedure Register_Warning;
+   --  Keep track of the fact that one warning was emitted.
+   --
+   --  This is used to implement the "exit with failure" behavior of the
+   --  -W|--warnings-as-errors command line flags.
+
+   Warnings_Registered : Boolean := False;
+   --  Whether Register_Warning was called once. Tracking this separately from
+   --  Register_Warning is necessary to implement correct "warnings-as-errors"
+   --  behavior for warnings that are emitted before the
+   --  "-W|--warnings-as-errors" command line switches themselves are
+   --  processed.
 
    ---------------------
    -- Internal errors --
