@@ -654,7 +654,7 @@ specifying it on the gprbuild command line with the ``-gnatec`` switch::
 
   gprbuild -Pproject --src-subdirs=gnatcov-instr --implicit-with=<path-to-runtime> -cargs:Ada -gnatec=instrument-spark.adc
 
-or by way of a ``Global_Configuration_File`` project file attribute,
+or by way of a ``Global_Configuration_Pragmas`` project file attribute,
 possibly controlled by a scenario variable as in:
 
 .. code-block:: ada
@@ -662,9 +662,9 @@ possibly controlled by a scenario variable as in:
   type mode is ("prod", "coverage");
   BUILD_MODE : mode := external ("BUILD_MODE", "prod")
 
-  package Compiler is
+  package Builder is
     case BUILD_MODE is
-      when "coverage" => for Global_Configuration_File use "instrument-spark.adc";
+      when "coverage" => for Global_Configuration_Pragmas use "instrument-spark.adc";
       when "prod"     => null;
     end case;
   end Compiler;
