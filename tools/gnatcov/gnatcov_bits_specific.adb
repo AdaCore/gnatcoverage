@@ -690,6 +690,7 @@ procedure GNATcov_Bits_Specific is
       end if;
 
       if Args.String_Args (Opt_Separate).Present then
+         Warn ("-S is deprecated. This option will be removed in release 26.");
          declare
             Name : constant String := +Args.String_Args (Opt_Separate).Value;
          begin
