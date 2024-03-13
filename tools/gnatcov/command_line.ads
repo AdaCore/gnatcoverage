@@ -92,7 +92,8 @@ package Command_Line is
       Opt_Save_Temps,
       Opt_SPARK_Compat,
       Opt_Full_Slugs,
-      Opt_Relocate_Build_Tree);
+      Opt_Relocate_Build_Tree,
+      Opt_Warnings_As_Errors);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -607,7 +608,15 @@ package Command_Line is
          Help      => "Relocate object, library and exec directories in the"
                       & " current directory.",
          Commands  => (Cmd_All_Setups => False, others => True),
-         Internal  => False));
+         Internal  => False),
+
+      Opt_Warnings_As_Errors => Create
+        (Long_Name  => "--warnings-as-errors",
+         Short_Name => "-W",
+         Help       => "Treat warnings as errors, i.e. exit with a non-zero"
+                       & " status code if a warning is emitted.",
+         Commands   => (others => True),
+         Internal   => True));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create

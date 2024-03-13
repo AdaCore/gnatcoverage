@@ -200,6 +200,18 @@ package body Outputs is
       raise Xcov_Exit_Exc;
    end Normal_Exit;
 
+   ----------------------
+   -- Register_Warning --
+   ----------------------
+
+   procedure Register_Warning is
+   begin
+      Warnings_Registered := True;
+      if Switches.Warnings_As_Errors then
+         Set_Exit_Status (Failure);
+      end if;
+   end Register_Warning;
+
    --------------------
    -- Create_Context --
    --------------------
@@ -353,6 +365,10 @@ package body Outputs is
 
    procedure Warning_Or_Error (Msg : String) is
    begin
+      --  Maybe Msg is an error, maybe it is a warning. In both cases, it is
+      --  fine to plan for a failure exit code in warnings-as-errors mode.
+
+      Register_Warning;
       Put_Line (Standard_Error, Msg);
    end Warning_Or_Error;
 

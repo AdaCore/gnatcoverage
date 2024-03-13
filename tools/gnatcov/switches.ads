@@ -91,6 +91,10 @@ package Switches is
    -- Miscellaneous switches --
    ----------------------------
 
+   Warnings_As_Errors : Boolean := False;
+   --  Whether to treat the warnings that gnatcov emits as errors, i.e. whether
+   --  gnatcov must exit with a non-zero status code if it emits warning.
+
    Quiet : Boolean := False;
    --  Whenther the "--quiet/-q" command line switch is active.
    --
