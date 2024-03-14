@@ -26,6 +26,11 @@ xcov_instrument(
     auto_config_args=False,
     auto_target_args=False,
     extra_args=["--target", thistest.env.target.triplet, "--RTS", runtime_dir],
+    # For practical purposes, this test instruments a fake runtime. Since this
+    # runtime is incomplete, it is not possible to build the coverage runtime
+    # for it: we cannot run "gnatcov setup" and thus we expect a warning about
+    # the runtime mismatch.
+    tolerate_messages="Current runtime is",
 )
 
 thistest.result()
