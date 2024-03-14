@@ -1,1 +1,3 @@
 5.04a1 DEAD Test uses pre/postconditions as apects for ATCC coverage
+7.1.2 DEAD Expression function support weak in 7.1.2
+bin-traces DEAD Expected slight differences in coverage percentages
