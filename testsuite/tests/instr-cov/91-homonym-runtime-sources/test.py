@@ -7,7 +7,7 @@ import os.path
 
 from SCOV.instr import xcov_instrument
 from SUITE.context import thistest
-from SUITE.cutils import Wdir, contents_of
+from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
@@ -27,13 +27,12 @@ xcov_instrument(
         "--RTS",
         os.path.abspath("../runtime"),
     ],
+    # This test instruments a fake runtime. For practical purposes, that
+    # runtime is incomplete: it is not possible to build the coverage runtime
+    # for it, we cannot run "gnatcov setup" and thus we expect a warning about
+    # the runtime mismatch.
+    tolerate_messages="Current runtime is",
     out="instrument.log",
-)
-
-thistest.fail_if_not_equal(
-    "'gnatcov instrument' output",
-    "",
-    contents_of("instrument.log"),
 )
 
 thistest.result()

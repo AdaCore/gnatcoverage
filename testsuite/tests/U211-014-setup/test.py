@@ -210,6 +210,11 @@ xcov_instrument(
     covlevel="stmt",
     runtime_project=rt_prj,
     out="instr-basic-bad-lang.txt",
+    # Since "gnatcov setup" excluded Ada from the coverage runtime languages,
+    # no runtime was used to compile it, and thus it is expected that we get a
+    # discrepancy between "rt_prj" (no runtime) and "mixed_prj" (current
+    # testsuite runtime).
+    tolerate_messages="Current runtime is",
 )
 p = gprbuild(
     mixed_prj.project_file,

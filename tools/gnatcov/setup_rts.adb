@@ -27,6 +27,7 @@ with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.VFS;  use GNATCOLL.VFS;
 with GPR2.Context;
 with GPR2.Containers;
+with GPR2.KB;
 with GPR2.Log;
 with GPR2.Path_Name;
 with GPR2.Project.Attribute;
@@ -111,13 +112,19 @@ package body Setup_RTS is
       Target           : String;
       RTS              : String;
       Config_File      : String;
-      Actual_RTS       : out Unbounded_String;
+      Actual_Target    : out Unbounded_String;
+      Actual_RTS_Dir   : out Unbounded_String;
+      Actual_RTS_Name  : out Unbounded_String;
       Auto_RTS_Profile : out Any_RTS_Profile;
       Lib_Support      : out Library_Support);
    --  Load the project file at Project_File using the Target/RTS/Config_File
    --  parameters, then try to guess the profile of the actual runtime in
    --  effect (Auto_RTS_Profile) and determine the support for libraries for
    --  this configuration (Lib_Support).
+   --
+   --  Set Actual_Target, Actual_RTS_Dir and Actual_RTS_Name to the actual
+   --  target/RTS names for the loaded project: they can be different from
+   --  Target/RTS because of canonicalization and Config_File.
 
    procedure Uninstall (Project_Name, Prefix : String);
    --  Try to uninstall a previous installation of the project called
@@ -139,6 +146,18 @@ package body Setup_RTS is
    --  If Library_Kind is not an empty string, build for that library kind and
    --  install it as a variant.
 
+   procedure Check_Target_RTS_Consistency
+     (GNATcov_RTS_Project : String;
+      Setup_Target        : String;
+      Setup_RTS_Dir       : String;
+      Setup_RTS_Name      : String);
+   --  If no project was loaded, do nothing.
+   --
+   --  Otherwise, check that the target and runtime of the loaded project match
+   --  Setup_Target and Setup_RTS_Dir/Setup_RTS_Name (meant to be the
+   --  target/runtime for the coverage runtime project GNATcov_RTS_Project used
+   --  to run the instrumenter).
+
    function Load
      (Project_File      : String;
       Setup_Config_File : Virtual_File) return Setup_Config;
@@ -154,10 +173,13 @@ package body Setup_RTS is
    procedure Save_Setup_Config
      (Project_Dir  : String;
       Project_Name : String;
+      Target       : String;
+      RTS_Dir      : String;
+      RTS_Name     : String;
       Config       : Setup_Config);
-   --  Write Config as a JSON file in Project_Dir for the Project_Name runtime
-   --  project to install. Use a filename that will match the Install'Artifacts
-   --  attribute in the runtime project file.
+   --  Write Target/RTS_Dir/RTS_Name/Config as a JSON file in Project_Dir for
+   --  the Project_Name runtime project to install. Use a filename that will
+   --  match the Install'Artifacts attribute in the runtime project file.
 
    function Has_Shared_Lib
      (RTS_Dir : String; Shared_Lib_Ext : String) return Boolean;
@@ -395,7 +417,9 @@ package body Setup_RTS is
       Target           : String;
       RTS              : String;
       Config_File      : String;
-      Actual_RTS       : out Unbounded_String;
+      Actual_Target    : out Unbounded_String;
+      Actual_RTS_Dir   : out Unbounded_String;
+      Actual_RTS_Name  : out Unbounded_String;
       Auto_RTS_Profile : out Any_RTS_Profile;
       Lib_Support      : out Library_Support)
    is
@@ -449,17 +473,21 @@ package body Setup_RTS is
          end if;
       end;
 
-      Actual_RTS :=
-        (if Prj.Has_Runtime_Project
-         then +String (Prj.Runtime (Main_Language))
-         else Null_Unbounded_String);
+      --  Compute canoncial target/RTS names using GPR2. Show them in debug
+      --  traces: they can be slightly different from the names users passed.
 
-      --  Show the actual names for the target and the runtime that GPR2 uses.
-      --  They can be slightly different from the names users passed.
+      Actual_Target := +String (Prj.Target (Canonical => True));
+      Setup_RTS_Trace.Trace ("Actual target: " & (+Actual_Target));
 
-      Setup_RTS_Trace.Trace
-        ("Actual target: " & String (Prj.Target (Canonical => True)));
-      Setup_RTS_Trace.Trace ("Actual RTS: " & (+Actual_RTS));
+      if Prj.Has_Runtime_Project then
+         Actual_RTS_Dir := +String (Prj.Runtime_Project.Dir_Name.Value);
+         Actual_RTS_Name := +String (Prj.Runtime (Main_Language));
+         Setup_RTS_Trace.Trace ("Runtime project was loaded");
+         Setup_RTS_Trace.Trace ("Actual RTS directory: " & (+Actual_RTS_Dir));
+         Setup_RTS_Trace.Trace ("Actual RTS name: " & (+Actual_RTS_Name));
+      else
+         Setup_RTS_Trace.Trace ("No runtime project loaded");
+      end if;
 
       --  The best heuristic we have to determine if the actual runtime is
       --  "full" is to look for an Ada source file that is typically found in
@@ -683,7 +711,9 @@ package body Setup_RTS is
    is
       Temp_Dir : Temporary_Directory;
 
-      Actual_RTS         : Unbounded_String;
+      Actual_Target      : Unbounded_String;
+      Actual_RTS_Dir     : Unbounded_String;
+      Actual_RTS_Name    : Unbounded_String;
       Auto_RTS_Profile   : Any_RTS_Profile;
       Actual_RTS_Profile : Resolved_RTS_Profile;
       Lib_Support        : Library_Support;
@@ -703,7 +733,9 @@ package body Setup_RTS is
          Target,
          RTS,
          Config_File,
-         Actual_RTS,
+         Actual_Target,
+         Actual_RTS_Dir,
+         Actual_RTS_Name,
          Auto_RTS_Profile,
          Lib_Support);
 
@@ -738,7 +770,7 @@ package body Setup_RTS is
 
          Dump_Config         : constant Any_Dump_Config :=
            Load_Dump_Config
-             (Default_Dump_Config (Actual_RTS_Profile, +Actual_RTS));
+             (Default_Dump_Config (Actual_RTS_Profile, +Actual_RTS_Name));
       begin
          --  Try to uninstall a previous installation of the instrumentation
          --  runtime in the requested prefix. This is to avoid installation
@@ -755,12 +787,16 @@ package body Setup_RTS is
          --  project.
 
          Save_Setup_Config
-           (Containing_Directory (Actual_Project_File),
-            Install_Name,
-            (Project_File        => <>,
-             RTS_Profile         => Actual_RTS_Profile,
-             RTS_Profile_Present => True,
-             Default_Dump_Config => Dump_Config));
+           (Project_Dir  => Containing_Directory (Actual_Project_File),
+            Project_Name => Install_Name,
+            Target       => +Actual_Target,
+            RTS_Dir      => +Actual_RTS_Dir,
+            RTS_Name     => +Actual_RTS_Name,
+            Config       =>
+              (Project_File        => <>,
+               RTS_Profile         => Actual_RTS_Profile,
+               RTS_Profile_Present => True,
+               Default_Dump_Config => Dump_Config));
 
          --  Check that the RTS profile is compatible with the selected
          --  defaults for the dump config.
@@ -853,6 +889,109 @@ package body Setup_RTS is
          end;
       end;
    end Setup;
+
+   ----------------------------------
+   -- Check_Target_RTS_Consistency --
+   ----------------------------------
+
+   procedure Check_Target_RTS_Consistency
+     (GNATcov_RTS_Project : String;
+      Setup_Target        : String;
+      Setup_RTS_Dir       : String;
+      Setup_RTS_Name      : String)
+   is
+
+      function Canonicalize_Target (Name : String) return String;
+      function Canonicalize_Runtime (Name : String) return String;
+      --  Since the expected target/RTS couple comes from "gnatcov setup"
+      --  (GPR2-based) while the actual one come from the Project package
+      --  (GNATCOLL.Projects), we have to deal with inconsistencies between the
+      --  two.
+      --
+      --  For the target, we can use GPR2's capability to normalize target
+      --  names (GPR2.KB.Normalized_Target).
+      --
+      --  For the runtime, GPR2 and GNATCOLL.Projects are not perfectly
+      --  concordant wrt the formatting of runtime names: GPR2 can return an
+      --  empty string for the default runtime, sometimes the name is a
+      --  directory name, sometimes that directory name has a trailing
+      --  directory separator, ...
+      --
+      --  In addition, unless --config is used, GNATCOLL.Projects is likely to
+      --  return an empty string for the default runtime, so we are not able to
+      --  check runtime consistency in this case. Hopefully inconsistency will
+      --  be unlikely when this happens: assuming the target is the same, it is
+      --  likely that the user never tries to use a non-default runtime.
+      --
+      --  TODO??? (eng/das/cov/gnatcoverage#72) Once the GPR2 transition is
+      --  over, we should not have to worry about discrepancies anymore.
+
+      function Canonicalize_Target (Name : String) return String
+      is (String
+            (GPR2.KB.Create.Normalized_Target (GPR2.Name_Type (Name))));
+
+      --------------------------
+      -- Canonicalize_Runtime --
+      --------------------------
+
+      function Canonicalize_Runtime (Name : String) return String is
+
+         --  Strip trailing directory separators from Name (see the above
+         --  comment).
+
+         Last : Natural := Name'Last;
+      begin
+         for I in reverse Name'Range loop
+            exit when Name (I) not in '/' | '\';
+            Last := I - 1;
+         end loop;
+
+         return Name (Name'First .. Last);
+      end Canonicalize_Runtime;
+
+   --  Start of processing for Check_Target_RTS_Consistency
+
+   begin
+      --  If no project was loaded, there is no current target/RTS, and so
+      --  nothing to check.
+
+      if not Project.Is_Project_Loaded then
+         return;
+      end if;
+
+      declare
+         function Error_Message (What, Expected, Actual : String) return String
+         is ("Current " & What & " is:"
+             & ASCII.LF & "  "
+             & (if Actual = "" then "<none>" else Actual)
+             & ASCII.LF & "which is inconsistent with the " & What
+             & " for " & GNATcov_RTS_Project & ": "
+             & ASCII.LF & "  "
+             & (if Expected = "" then "<none>" else Expected));
+
+         Expected_Target   : constant String :=
+           Canonicalize_Target (Setup_Target);
+         Expected_RTS_Dir  : constant String :=
+           Canonicalize_Runtime (Setup_RTS_Dir);
+         Expected_RTS_Name : constant String :=
+           Canonicalize_Runtime (Setup_RTS_Name);
+
+         Actual_Target : constant String :=
+           Canonicalize_Target (Project.Target);
+         Actual_RTS    : constant String :=
+           Canonicalize_Runtime (Project.Runtime);
+
+      begin
+         if Expected_Target /= Actual_Target then
+            Warn (Error_Message ("target", Expected_Target, Actual_Target));
+         elsif Actual_RTS /= ""
+               and then Expected_RTS_Dir /= Actual_RTS
+               and then Expected_RTS_Name /= Actual_RTS
+         then
+            Warn (Error_Message ("runtime", Expected_RTS_Dir, Actual_RTS));
+         end if;
+      end;
+   end Check_Target_RTS_Consistency;
 
    ----------
    -- Load --
@@ -1037,6 +1176,12 @@ package body Setup_RTS is
          Stop_With_Error ("Object expected at the top-level");
       end if;
 
+      Check_Target_RTS_Consistency
+        (Project_File,
+         +Get ("target"),
+         +Get ("runtime-dir"),
+         +Get ("runtime-name"));
+
       declare
          RTS_Profile : constant String := +Get ("rts-profile");
       begin
@@ -1086,6 +1231,9 @@ package body Setup_RTS is
    procedure Save_Setup_Config
      (Project_Dir  : String;
       Project_Name : String;
+      Target       : String;
+      RTS_Dir      : String;
+      RTS_Name     : String;
       Config       : Setup_Config)
    is
       Config_Filename : constant String :=
@@ -1095,6 +1243,9 @@ package body Setup_RTS is
 
       J : constant JSON_Value := Create_Object;
    begin
+      J.Set_Field ("target", Target);
+      J.Set_Field ("runtime-dir", RTS_Dir);
+      J.Set_Field ("runtime-name", RTS_Name);
       J.Set_Field ("rts-profile", Image (Config.RTS_Profile));
       declare
          Dump_Cfg : Any_Dump_Config renames Config.Default_Dump_Config;
