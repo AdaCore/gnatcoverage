@@ -8715,7 +8715,6 @@ package body Instrument.Ada_Unit is
    begin
       Create_File (Prj, File, To_Filename (Prj, Ada_Language, Buffer_Unit));
       Put_Warnings_And_Style_Checks_Pragmas (File);
-      File.Put_Line ("with Interfaces.C; use Interfaces.C;");
       File.Put_Line ("with System;");
       File.Put_Line ("with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;");
       File.Put_Line
@@ -9201,12 +9200,13 @@ package body Instrument.Ada_Unit is
 
          Put_With (Output_Unit);
          Put_With (Sys_Lists);
-         File.Put_Line ("with Interfaces.C;");
 
          case Dump_Trigger is
             when Ravenscar_Task_Termination  =>
                File.Put_Line ("with Ada.Task_Identification;");
                File.Put_Line ("with Ada.Task_Termination;");
+            when At_Exit =>
+               File.Put_Line ("with Interfaces.C;");
             when others =>
                null;
          end case;
