@@ -1025,14 +1025,14 @@ package body Setup_RTS is
       --  Name of the runtime project file after it has been loaded
       --  (i.e. resolved file name).
    begin
-      --  CCG is a very special target, for which it is not possible to create
-      --  libraries through project files: CCG users cannot run "gnatcov
-      --  setup": there is no setup configuration to load in this case, so
-      --  return a dummy one.
+      --  CCG and AAMP are very special targets, for which it is not possible
+      --  to create libraries through project files: CCG users cannot run
+      --  "gnatcov setup": there is no setup configuration to load in this
+      --  case, so return a dummy one.
 
-      if To_Lower (Target) = "c"
+      if To_Lower (Target) in "c" | "aamp"
          or else (Project.Is_Project_Loaded
-                  and then To_Lower (Project.Target) = "c")
+                  and then To_Lower (Project.Target) in "c" | "aamp")
       then
          return Default_Setup_Config;
       end if;
