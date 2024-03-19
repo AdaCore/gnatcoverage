@@ -7793,6 +7793,16 @@ package body Instrument.Ada_Unit is
      (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean
    is
    begin
+      --  GNATCOLL.Projects does not adequately load the runtime for the aamp
+      --  target, which means that we end up assuming that finalization is not
+      --  restricted. It actually is restricted using the aamp5-small runtime.
+      --  The GNATCOLL.Projects bug was fixed, but also workaround the issue
+      --  to make it work for non-edge gnatcov, and revert this at next bump.
+      --  Ref: eng/shared/anod#300.
+
+      if Project.Target = "aamp" then
+         return True;
+      end if;
       return not Has_Unit (Context, "Ada.Finalization", Unit_Specification)
             or else Has_Matching_Pragma_For_Unit
                       (Context, Unit, Pragma_Restricts_Finalization_Matchers);
@@ -7806,6 +7816,11 @@ package body Instrument.Ada_Unit is
      (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean
    is
    begin
+      --  See above. Revert this at the next bump as well (eng/shared/anod#300)
+
+      if Project.Target = "aamp" then
+         return True;
+      end if;
       return not Has_Unit (Context, "Ada.Task.Termination", Unit_Specification)
         or else not Has_Unit
           (Context, "Ada.Task.Identification", Unit_Specification)
