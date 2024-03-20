@@ -24,23 +24,22 @@
 
 --  This unit needs to be compilable with Ada 95 compilers
 
-with Ada.Text_IO; use Ada.Text_IO;
-with Ada.Unchecked_Conversion;
-
 with Interfaces.C; use Interfaces.C;
 
 with GNATcov_RTS.Strings; use GNATcov_RTS.Strings;
 
 package body GNATcov_RTS.Traces.Output.Files is
 
-   function Write_Trace_File_C
+   procedure Write_Trace_File_C
      (Buffers_Groups : GNATcov_RTS_Coverage_Buffers_Group_Array;
       Filename       : chars_ptr;
       Program_Name   : GNATcov_RTS_String;
       Exec_Date      : Unsigned_64;
-      User_Data      : GNATcov_RTS_String) return int;
+      User_Data      : GNATcov_RTS_String);
    pragma Import
-     (C, Write_Trace_File_C, External_Name => "gnatcov_rts_write_trace_file");
+     (C,
+      Write_Trace_File_C,
+      External_Name => "gnatcov_rts_write_trace_file");
 
    function Default_Trace_Filename_C
      (Env_Var : chars_ptr;
@@ -95,75 +94,23 @@ package body GNATcov_RTS.Traces.Output.Files is
       Filename       : chars_ptr := Default_Trace_Filename;
       Program_Name   : String := "unknown";
       Exec_Date      : Time   := Clock;
-      User_Data      : String := "") is
-   begin
-      if Write_Trace_File_C
-           ((Buffers_Groups'Length, Buffers_Groups'Address),
-            Filename,
-            (Program_Name'Address, Program_Name'Length),
-            Interfaces.Unsigned_64 (Exec_Date),
-            (User_Data'Address, User_Data'Length)) = 1
-      then
-         raise IO_Error;
-      end if;
-   end Write_Trace_File;
-
-   ------------------------------
-   -- Write_Trace_File_Wrapper --
-   ------------------------------
-
-   procedure Write_Trace_File_Wrapper
-     (Buffers_Groups : Coverage_Buffers_Group_Array;
-      Filename       : chars_ptr := Default_Trace_Filename;
-      Program_Name   : String := "unknown";
-      Exec_Date      : Time   := Clock;
       User_Data      : String := "")
    is
+      --  See the note about -gnatw.X in gnatcov_rts.gpr
 
-      function C_Strerror (Errnum : C.int) return C.Strings.chars_ptr;
-      pragma Import (C, C_Strerror, "strerror");
-      --  strerror is already a function, we can bind to its symbol directly
-
-      function C_Errno return C.Int;
-      pragma Import (C, C_Errno, "gnatcov_rts_get_errno");
-      --  Get the errno value through the wrapper declared in
-      --  gnatcov_rts_c-os_interface.h.
-
+      pragma Warnings (Off);
+      Buffers_Groups_C : constant GNATcov_RTS_Coverage_Buffers_Group_Array :=
+        (Buffers_Groups'Length, Buffers_Groups'Address);
+      Program_Name_C   : constant GNATcov_RTS_String :=
+        (Program_Name'Address, Program_Name'Length);
+      Exec_Date_C      : constant Unsigned_64 :=
+        Interfaces.Unsigned_64 (Exec_Date);
+      User_Data_C      : constant GNATcov_RTS_String :=
+        (User_Data'Address, User_Data'Length);
+      pragma Warnings (On);
    begin
-      Write_Trace_File
-        (Buffers_Groups, Filename, Program_Name, Exec_Date, User_Data);
-   exception
-      when IO_Error =>
-         declare
-            function "+" is new Ada.Unchecked_Conversion
-              (chars_ptr, System.Address);
-
-            Error_Msg : constant chars_ptr := C_Strerror (C_Errno);
-
-            --  Since we cannot use the secondary stack, it is not possible to
-            --  call Interfaces.C.Strings.Value to turn chars_ptr values into
-            --  String ones. Workaround this with overlays.
-
-            Error_Msg_Length : constant Natural :=
-              Natural (Strlen (Error_Msg));
-            Filename_Length  : constant Natural := Natural (Strlen (Filename));
-
-            Ada_Error_Msg : String (1 .. Error_Msg_Length);
-            for Ada_Error_Msg'Address use +Error_Msg;
-            pragma Import (Ada, Ada_Error_Msg);
-
-            Ada_Filename : String (1 .. Filename_Length);
-            for Ada_Filename'Address use +Filename;
-            pragma Import (Ada, Ada_Filename);
-         begin
-            Put
-              (Standard_Error,
-               "Error occurred while creating the trace file ");
-            Put (Standard_Error, Ada_Filename);
-            Put (Standard_Error, ": ");
-            Put (Standard_Error, Ada_Error_Msg);
-            New_Line (Standard_Error);
-         end;
-   end Write_Trace_File_Wrapper;
+      Write_Trace_File_C
+        (Buffers_Groups_C, Filename, Program_Name_C, Exec_Date_C, User_Data_C);
+   end Write_Trace_File;
 
 end GNATcov_RTS.Traces.Output.Files;
