@@ -12,6 +12,7 @@ from e3.fs import cp
 from SCOV.instr import xcov_instrument
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
+from SUITE.control import env
 from SUITE.cutils import no_ext, Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprinstall
@@ -40,13 +41,9 @@ gprinstall(
 # Add the newly installed library to gprbuild's project lookup path. Use the
 # ADA_PROJECT_PATH environment variable to be compatible with the 5.04
 # toolchain.
-gpr_install_dir = os.path.join(install_dir, "share", "gpr")
-old_path = os.environ.get("ADA_PROJECT_PATH", "")
-if old_path:
-    new_path = "{}{}{}".format(gpr_install_dir, os.path.pathsep, old_path)
-else:
-    new_path = gpr_install_dir
-os.environ["ADA_PROJECT_PATH"] = new_path
+env.add_search_path(
+    "ADA_PROJECT_PATH", os.path.join(install_dir, "share", "gpr")
+)
 
 
 def build_run_cov_and_check(main_prj, main_prj_obj_dir, expected_xcov):
