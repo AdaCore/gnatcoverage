@@ -7793,6 +7793,16 @@ package body Instrument.Ada_Unit is
      (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean
    is
    begin
+      --  GNATCOLL.Projects does not adequately load the runtime for the aamp
+      --  target, which means that we end up assuming that finalization is not
+      --  restricted. It actually is restricted using the aamp5-small runtime.
+      --  The GNATCOLL.Projects bug was fixed, but also workaround the issue
+      --  to make it work for non-edge gnatcov, and revert this at next bump.
+      --  Ref: eng/shared/anod#300.
+
+      if Project.Target = "aamp" then
+         return True;
+      end if;
       return not Has_Unit (Context, "Ada.Finalization", Unit_Specification)
             or else Has_Matching_Pragma_For_Unit
                       (Context, Unit, Pragma_Restricts_Finalization_Matchers);
@@ -7806,6 +7816,11 @@ package body Instrument.Ada_Unit is
      (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean
    is
    begin
+      --  See above. Revert this at the next bump as well (eng/shared/anod#300)
+
+      if Project.Target = "aamp" then
+         return True;
+      end if;
       return not Has_Unit (Context, "Ada.Task.Termination", Unit_Specification)
         or else not Has_Unit
           (Context, "Ada.Task.Identification", Unit_Specification)
@@ -8715,7 +8730,6 @@ package body Instrument.Ada_Unit is
    begin
       Create_File (Prj, File, To_Filename (Prj, Ada_Language, Buffer_Unit));
       Put_Warnings_And_Style_Checks_Pragmas (File);
-      File.Put_Line ("with Interfaces.C; use Interfaces.C;");
       File.Put_Line ("with System;");
       File.Put_Line ("with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;");
       File.Put_Line
@@ -9201,12 +9215,13 @@ package body Instrument.Ada_Unit is
 
          Put_With (Output_Unit);
          Put_With (Sys_Lists);
-         File.Put_Line ("with Interfaces.C;");
 
          case Dump_Trigger is
             when Ravenscar_Task_Termination  =>
                File.Put_Line ("with Ada.Task_Identification;");
                File.Put_Line ("with Ada.Task_Termination;");
+            when At_Exit =>
+               File.Put_Line ("with Interfaces.C;");
             when others =>
                null;
          end case;

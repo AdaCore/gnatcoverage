@@ -707,8 +707,10 @@ package body Project is
          Gnatls_Version : GNAT.Strings.String_Access;
       begin
          Env.Set_Path_From_Gnatls
-           (Gnatls       => (if Target = null then "" else Target.all & '-')
-                              & "gnatls",
+           (Gnatls       =>
+              (if Target = null then "gnatls"
+               elsif Target.all = "aamp" then "gnaampls"
+               else Target.all & "-gnatls"),
             GNAT_Version => Gnatls_Version,
             Errors       => null);
          if Gnatls_Version /= null then
