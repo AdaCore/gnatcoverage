@@ -6,7 +6,8 @@ import re
 from e3.fs import mkdir
 
 from SUITE.context import thistest
-from SUITE.cutils import contents_of, ext, indent
+from SUITE.control import env
+from SUITE.cutils import contents_of, copy_to_dir, ext, indent
 from SUITE.tutils import RUNTIME_INFO, GNATCOV_INFO, locate_gpr_file, xcov
 
 
@@ -354,3 +355,23 @@ def available_ada_dump_triggers():
         return ["main-end", "ravenscar-task-termination"]
     else:
         return ["main-end"]
+
+
+def maybe_relocate_binaries(object_dir, exe_dir, mains):
+    """
+    Relocate binaries produced in the object_dir to the exe_dir for the AAMP
+    target.
+
+    :param object_dir: object directory of the main project.
+    :param exe_dir: executable directory of the main project.
+    :param mains: main filenames.
+    """
+    # The GNAAMP linker disregards the full name passed to the -o switch but
+    # only picks the simple name. Thus, the executable ends up in the object
+    # directory.
+    #
+    # Copy it to the executable directory so that the rest of the testsuite
+    # can assume executables are always there.
+    if "aamp" in env.target.platform:
+        for main in mains:
+            copy_to_dir(object_dir, exe_dir, main)

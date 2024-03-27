@@ -17,11 +17,13 @@ from e3.fs import rm
 
 from SCOV.instr import (
     default_dump_channel,
+    maybe_relocate_binaries,
     xcov_convert_base64,
     xcov_instrument,
 )
 from SUITE.cutils import contents_of, indent
 from SUITE.tutils import (
+    exename_for,
     exepath_to,
     gprbuild,
     run_cov_program,
@@ -353,6 +355,8 @@ def build_and_run(
         # multiple traces in the current directory.
         for m in mains:
             rm(srctrace_pattern_for(m, is_manual, manual_prj_name))
+            # Callback to run for each instrumented main
+            maybe_relocate_binaries(gpr_obj_dir, gpr_exe_dir, [exename_for(m)])
 
         patterns = set()
         trace_files = []

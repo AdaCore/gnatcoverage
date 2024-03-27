@@ -40,6 +40,7 @@ from SUITE.context import ROOT_DIR, thistest
 from SUITE.cutils import (
     FatalError,
     contents_of,
+    list_to_file,
     text_to_file,
     to_list,
     unhandled_exception_in,
@@ -264,13 +265,9 @@ def gpr_common_args(project, auto_config_args=True):
     """
     gproptions = []
 
-    gproptions.append(
-        # verbose mode for verifiability in qualif mode.
-        # quiet mode for performance (less io) otherwise.
-        "-v"
-        if thistest.options.qualif_level
-        else "-q",
-    )
+    # If running in qualif mode, run with the verbose switch  for verifiability
+    if thistest.options.qualif_level:
+        gproptions.append("-v")
     if auto_config_args:
         gproptions.append(
             "--config={}".format(os.path.join(ROOT_DIR, BUILDER.SUITE_CGPR))
@@ -292,7 +289,8 @@ def gpr_common_args(project, auto_config_args=True):
     ):
         gproptions.append("-XLOADER=RAM")
 
-    return gproptions
+    # Add runtime specific scenario variables
+    return gproptions + RUNTIME_INFO.gpr_scenario_vars
 
 
 def gprbuild(
@@ -731,26 +729,28 @@ def xcov_suite_args(
         or any(arg.startswith("-P") for arg in covargs)
     )
 
+    result = (
+        gpr_common_args(project=None, auto_config_args=auto_config_args)
+        if project_handling_enabled
+        else []
+    )
+
     # If --config is asked and project handling is involved, pass it and stop
     # there. If there is a board, it must be described in the project file
     # (gnatcov's -P argument).
     if auto_config_args and project_handling_enabled:
-        return [
-            "--config={}".format(os.path.join(ROOT_DIR, BUILDER.SUITE_CGPR))
-        ]
+        return result
 
-    # Nothing to do if the caller does not want automatic --target/--RTS
+    # Nothing to add if the caller does not want automatic --target/--RTS
     # arguments.
     if not auto_target_args:
-        return []
+        return result
 
     # Otherwise, handle target and board information.
     #
     # Remember that the testsuite determines the target from the machine that
     # hosts the testsuite and from its own --host/--build/--target arguments...
-
-    result = []
-
+    #
     # If we have a specific target board specified with --board, use that:
     #
     #   --target=p55-elf --board=iSystem-5554
@@ -1017,6 +1017,37 @@ def run_cov_program(
     exec_args = exec_args or []
     inp = None
     use_pycross = False
+    if thistest.options.target:
+        # If we are testing for AAMP, use the facade simulator. It expects a
+        # configuration file (facade.cfg) in the executable dir, and the
+        # executable must be run through an executable.sod file, which sets
+        # up the simulator environment. This .sod file should be in the same
+        # directory as the executable.
+        if "aamp" in control.env.target.platform:
+            args.append("dosfsod.exe")
+            list_to_file(
+                [
+                    "sw tx on",
+                    '$TEXTIO = ""',
+                    "switch batch on",
+                    "fill 0000..ffff 0",
+                    "load " + executable,
+                    "go",
+                    "halt",
+                ],
+                "test.sod",
+            )
+            args.append("@test.sod")
+            cp(os.path.join(ROOT_DIR, "facade.cfg"), "facade.cfg")
+            args.extend(exec_args)
+            out = cmdrun(
+                args,
+                out=out,
+                env=env,
+                register_failure=register_failure,
+                for_pgm=True,
+            )
+            return out
 
     # If we are in a cross configuration, run the program using run-cross2
     if thistest.options.target and thistest.env.target.platform != "c":

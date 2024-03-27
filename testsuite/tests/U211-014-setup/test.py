@@ -218,7 +218,7 @@ xcov_instrument(
 )
 p = gprbuild(
     mixed_prj.project_file,
-    gargs=["--src-subdirs=gnatcov-instr"],
+    gargs=["--src-subdirs=gnatcov-instr", "-q"],
     trace_mode="src",
     runtime_project=rt_prj,
     out=log_file,
