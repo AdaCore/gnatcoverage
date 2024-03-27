@@ -21,15 +21,15 @@ rst_prolog = ".. |str_doc| replace:: *%s*" % doc_standard_name
 
 work_dir = os.path.join(
     os.path.dirname(
-        os.path.dirname(
-            os.path.dirname(
-                os.path.abspath(__file__))))
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
 )
 common_conf_glob = f"{work_dir}/*/qualification/qm/common_conf.py"
 common_conf_candidates = glob.glob(common_conf_glob)
 
-assert len(common_conf_candidates) == 1, \
-    f"{__file__} couldn't locate lone common_conf.py out of {common_conf_glob}"
+assert (
+    len(common_conf_candidates) == 1
+), f"{__file__} couldn't locate lone common_conf.py out of {common_conf_glob}"
 
 common_conf_py = common_conf_candidates[0]
 exec(open(common_conf_py).read())
@@ -104,7 +104,7 @@ html_theme = "classic"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {'body_max_width': None}
+html_theme_options = {"body_max_width": None}
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
@@ -326,9 +326,7 @@ latex_preamble = (
 """
 )
 
-latex_elements = {
-    'preamble' : latex_preamble
-}
+latex_elements = {"preamble": latex_preamble}
 
 # Documents to append as an appendix to all manuals.
 # latex_appendices = []

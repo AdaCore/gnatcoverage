@@ -147,9 +147,9 @@ class QualificationDataRepository(object):
         qda = Qdata(tcid=dirname)
 
         for tcdf in tcdfs:
-            sub_qda = dutils.pload_from (tcdf)
+            sub_qda = dutils.pload_from(tcdf)
             for entry in sub_qda.entries:
-                qda.register (entry)
+                qda.register(entry)
 
         qda.status = std.status
         qda.comment = std.comment
@@ -1164,21 +1164,21 @@ class QDreport(object):
 
             # Simplify /path/to/whatever/testsuite.py:
             if "testsuite.py" in sw:
-                return 'testsuite.py'
+                return "testsuite.py"
 
             # Some switches are entirely meaningless wrt qualification
             # and can be omitted from the STR:
             if any(
                 sw.startswith(candidate)
-                    for candidate in [
-                        "--log-file=",
-                        "--old-output-dir=",
-                        "--output-dir=",
-                        "--failure-exit-code=",
-                        "--gaia-output",
-                        "--dump-environ",
-                        "--generate-text-report",
-                    ]
+                for candidate in [
+                    "--log-file=",
+                    "--old-output-dir=",
+                    "--output-dir=",
+                    "--failure-exit-code=",
+                    "--gaia-output",
+                    "--dump-environ",
+                    "--generate-text-report",
+                ]
             ):
                 return None
 
@@ -1191,7 +1191,6 @@ class QDreport(object):
             result = []
             skip = False
             for sw in switches_string.split():
-
                 # If we are to skip this arg for a switch to drop
                 # encountered just before on the command line, do so:
                 if skip:
@@ -1199,7 +1198,7 @@ class QDreport(object):
                     continue
 
                 # If this is a switch to drop with an arg to follow,
-                # skip this switch and request skipping the arg: 
+                # skip this switch and request skipping the arg:
                 if sw in ["-t"]:
                     skip = True
                     continue

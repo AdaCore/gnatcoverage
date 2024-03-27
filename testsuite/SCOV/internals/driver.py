@@ -1420,7 +1420,8 @@ class SCOV_helper_src_traces(SCOV_helper):
             gpr_obj_dir=self.gpr_obj_dir,
             out=out,
             register_failure=True,
-            tolerate_messages=self.testcase.tolerate_messages)
+            tolerate_messages=self.testcase.tolerate_messages,
+        )
 
         # When exception propagation is not available, a test ending with an
         # unhandled exception goes straight to the last_chance_handler from

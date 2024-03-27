@@ -172,13 +172,15 @@ def qdafs_from(dirname):
     together with their dischargers.
     """
     return [
-        os.path.join(dir, file)
-        for (dir, _, files) in os.walk(dirname)
-        for file in files if file == QUALDATA_FILE
+        os.path.join(d, f)
+        for (d, _, files) in os.walk(dirname)
+        for f in files
+        if f == QUALDATA_FILE
     ]
 
 
 STATUSDATA_FILE = "tcs" + STREXT
+
 
 def stdf_in(dirname):
     """Filename for execution status data to be picked up DIR"""

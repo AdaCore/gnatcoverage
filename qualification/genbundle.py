@@ -445,9 +445,15 @@ class QMAT:
 
     def rsync_from(self, rsync_source):
         run_list(
-            ["rsync", "-ar", rsync_source + '/', self.repodir + '/',
-             '--delete', '--delete-excluded',
-             '--filter', '. dev.rsync',
+            [
+                "rsync",
+                "-ar",
+                rsync_source + "/",
+                self.repodir + "/",
+                "--delete",
+                "--delete-excluded",
+                "--filter",
+                ". dev.rsync",
             ]
         )
 
@@ -456,7 +462,6 @@ class QMAT:
     # ----------------
 
     def git_update(self):
-
         # If we're requested to pull/update only, do so
 
         if self.o.gitpull:
@@ -975,8 +980,8 @@ class QMAT:
             gitbranch = current_gitbranch_at(self.repodir)
 
             kitid = gitbranch.replace("qualkit-", "")
-            kitid = kitid.replace('/', '-')
-            kitid = kitid.replace('.', '_')
+            kitid = kitid.replace("/", "-")
+            kitid = kitid.replace(".", "_")
 
         # If we are re-constructing a kit with some parts just rebuilt, target
         # the specified version (stamp) and arrange to keep the old elements
@@ -1126,12 +1131,12 @@ def commandline():
         default=None,
         help=("The git branch we shall produce the material from."),
     )
-    op.add_option (
+    op.add_option(
         "--kitid",
         dest="kitid",
         default=False,
-        help=("Use the provided argument as the kit identifier.")
-        )
+        help=("Use the provided argument as the kit identifier."),
+    )
 
     op.add_option(
         "--docformat",
