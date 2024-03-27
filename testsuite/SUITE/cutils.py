@@ -11,7 +11,7 @@ import shutil
 import sys
 import tempfile
 
-from e3.fs import mkdir
+from e3.fs import cp, mkdir
 from e3.os.fs import cd, which
 from e3.os.process import Run
 
@@ -309,3 +309,14 @@ def multi_range(*args, minus=None):
 class Identifier:
     def __init__(self, name):
         self.name = name
+
+
+def copy_to_dir(orig_dir, target_dir, filename):
+    """
+    Copy filename from orig_dir to target_dir.
+    """
+    if os.path.abspath(orig_dir) != os.path.abspath(target_dir):
+        cp(
+            os.path.join(orig_dir, filename),
+            os.path.join(target_dir, filename),
+        )

@@ -57,6 +57,7 @@ build_run_and_coverage(
     mains=["main"],
     extra_instr_args=[f"--external-annotations={annotations}"],
     extra_coverage_args=["-axcov"],
+    extra_gprbuild_args=["-q"],
     dump_trigger="manual",
     manual_prj_name="main",
     tolerate_instrument_messages=instr_warning,
