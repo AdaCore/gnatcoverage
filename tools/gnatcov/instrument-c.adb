@@ -3883,6 +3883,10 @@ package body Instrument.C is
          Dump_Procedure : constant String :=
            Dump_Procedure_Symbol
              (Main => Dummy_Main, Manual => True, Prj_Name => +Prj.Prj_Name);
+
+         Extern_Prefix : constant String :=
+           C_Family_Instrumenter_Type'Class (Self).Extern_Prefix;
+
       begin
          --  Preprocess the source, keeping the comment to look for the manual
          --  dump indication later.
@@ -3956,7 +3960,7 @@ package body Instrument.C is
                   --  Put an external decl for the buffers dump function
 
                   String'Write
-                    (S, "extern void " & Dump_Procedure & "(void);");
+                    (S, Extern_Prefix & " void " & Dump_Procedure & "(void);");
                end if;
                String'Write (S, Str (Index .. Matches (0).First));
 
