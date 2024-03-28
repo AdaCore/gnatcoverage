@@ -854,7 +854,9 @@ is
 
    begin
       for Source of Project_Sources loop
-         if To_Language (Source.Language) = Language then
+         if To_Language (Source.Language) = Language
+            and then Source.Unit_Part = GNATCOLL.Projects.Unit_Body
+         then
             declare
                use String_Sets;
 

@@ -3879,6 +3879,9 @@ package body Instrument.C is
          Reset_Procedure : constant String :=
            Reset_Procedure_Symbol (+Prj.Prj_Name);
 
+         Extern_Prefix : constant String :=
+           C_Family_Instrumenter_Type'Class (Self).Extern_Prefix;
+
       begin
          --  Preprocess the source, keeping the comment to look for the manual
          --  dump indication later.
@@ -3956,9 +3959,11 @@ package body Instrument.C is
                   --  functions.
 
                   String'Write
-                    (S, "extern void " & Dump_Procedure & "(char *prefix);");
+                    (S,
+                     Extern_Prefix & "void " & Dump_Procedure
+                     & "(char *prefix);");
                   String'Write
-                    (S, "extern void " & Reset_Procedure & "(void);");
+                    (S, Extern_Prefix & "void " & Reset_Procedure & "(void);");
                end if;
 
                --  If we only have a Dump match, or it is the first of the two
