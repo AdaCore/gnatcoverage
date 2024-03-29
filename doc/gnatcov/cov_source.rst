@@ -1417,8 +1417,8 @@ X2 (condition 2 False) at the same time when X1 < X2.
 
 .. _scov-atc:
 
-Assertion True Coverage (ATC) analysis
-======================================
+Assertion True Coverage (ATC) analysis (experimental)
+=====================================================
 
 Along with the previous coverage levels, |gcv| can provide different strictness
 levels of assertion coverage for source traces for Ada.
@@ -1474,8 +1474,8 @@ absence of other known violations for that same line.
 
 .. _scov-atcc:
 
-Assertion True Condition Coverage (ATCC) analysis
-=================================================
+Assertion True Condition Coverage (ATCC) analysis (experimental)
+================================================================
 
 Core notions and Reporting (:cmd-option:`--level=...+atcc`)
 -----------------------------------------------------------
