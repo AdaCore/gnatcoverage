@@ -705,6 +705,8 @@ package Command_Line is
             & ASCII.LF
             & "For the ""instrument"" command, "
             & "a source coverage level is required."
+            & ASCII.LF
+            & "ATC and ATCC are experimental features."
            ),
          Commands     => (Cmd_Run
                           | Cmd_Coverage
