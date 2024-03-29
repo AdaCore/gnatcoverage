@@ -7798,7 +7798,9 @@ package body Instrument.Ada_Unit is
       --  to make it work for non-edge gnatcov, and revert this at next bump.
       --  Ref: eng/shared/anod#300.
 
-      if Project.Target = "aamp" then
+      if Switches.Target_Family not in null
+        and then Switches.Target_Family.all = "aamp"
+      then
          return True;
       end if;
       return not Has_Unit (Context, "Ada.Finalization", Unit_Specification)
@@ -7816,7 +7818,9 @@ package body Instrument.Ada_Unit is
    begin
       --  See above. Revert this at the next bump as well (eng/shared/anod#300)
 
-      if Project.Target = "aamp" then
+      if Switches.Target_Family not in null
+        and then Switches.Target_Family.all = "aamp"
+      then
          return True;
       end if;
       return not Has_Unit (Context, "Ada.Task.Termination", Unit_Specification)
