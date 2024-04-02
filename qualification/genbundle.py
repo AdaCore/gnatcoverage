@@ -249,9 +249,9 @@ def run_list(cmd, dirname=None, env=None):
     oriwd = os.getcwd()
     print("from : %s" % oriwd)
 
-    if dir:
-        print("hopat : %s" % dir)
-        os.chdir(dir)
+    if dirname:
+        print("hopat : %s" % dirname)
+        os.chdir(dirname)
 
     print("run  : %s" % " ".join(cmd))
 
@@ -266,7 +266,7 @@ def run_list(cmd, dirname=None, env=None):
 
 
 def run(s, dirname=None, env=None):
-    run_list(s.split(), dir, env=env)
+    run_list(s.split(), dirname=dirname, env=env)
 
 
 def announce(s):
