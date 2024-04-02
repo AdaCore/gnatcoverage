@@ -72,6 +72,28 @@ directory of the project (<prj_obj>), or under <prj_obj>/xcov+.
 Then you can visualize the report by clicking on
 :menuselection:`Analyze --> Coverage --> Show coverage report`.
 
+Using GNATtest's coverage integration makefile
+==============================================
+
+When using individual test drivers, it is not possible to use the regular
+GNATcoverage integration. This is true when GNATtest is called with
+:cmd-option:`--separate-drivers` or :cmd-option:`--stub` (as it implies
+:cmd-option:`--separate-drivers`), as described in :ref:`Individual Test
+Drivers<Individual_Test_Drivers>`. In this case, the integration of
+GNATcoverage is done through the use of the generated integration makefile. For
+details on how to use this makefile, see :ref:`Integration with
+GNATcoverage<Gnatcov_Integration>`.
+
+Producing coverage reports through GNATtest's coverage integration makefile
+generates the coverage reports under the test driver's object director by
+default. However, these reports contain coverage information not for the test
+harness project, but for the project being tested with gnattest.
+
+If the harness project is opened in GNAT Studio, the coverage data should be
+loaded using the actionable `Load Data for All Projects` item.
+
+Visualization of the reports is then done as previously described.
+
 GNATtest scenario
 =================
 
