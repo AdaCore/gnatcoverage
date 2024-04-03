@@ -491,10 +491,10 @@ class LRMTableImporter(ArtifactImporter):
 
         output += (
             writer.paragraph(
-                "This particular table is established for **Ada"
-                f" {language_version}**."
+                "This particular table is established for **Ada %s**."
                 "\n\\The requirement identifiers in this table were shortened"
-                f" by removing the *{REQ_NAME_PREFIX}* common prefix.\n\n"
+                " by removing the *%s* common prefix.\n\n"
+                % (language_version, REQ_NAME_PREFIX)
             )
             + writer.only(pdf_table, "latex")
             + writer.only(html_table, "html")
