@@ -8175,6 +8175,7 @@ package body Instrument.Ada_Unit is
      (Self                 : in out Ada_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
       Source               : GNATCOLL.Projects.File_Info;
+      Is_Main              : Boolean;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean)
    is
@@ -8345,6 +8346,23 @@ package body Instrument.Ada_Unit is
          Create_Directory_If_Not_Exists
            (GNATCOLL.VFS."+" (Source.Project.Object_Dir.Base_Dir_Name));
          Create_Directory_If_Not_Exists (+Prj.Output_Dir);
+         Rewriter.Apply;
+      elsif Is_Main then
+
+         --  If this is a main, force a reference to the dump helper unit to
+         --  ensure coverage buffers make it to the compilation closure.
+
+         Start_Rewriting (Rewriter, Self, Prj, Unit);
+         Insert_Last
+            (Handle (Unit.Root.As_Compilation_Unit.F_Prelude),
+            Create_From_Template
+              (Rewriter.Handle,
+               Template  => "with {};",
+               Arguments =>
+                 (1 => To_Nodes
+                         (Rewriter.Handle,
+                          Create_Manual_Helper_Unit_Name (Prj))),
+               Rule => With_Clause_Rule));
          Rewriter.Apply;
       end if;
    end Replace_Manual_Indications;

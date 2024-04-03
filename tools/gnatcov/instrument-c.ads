@@ -62,6 +62,7 @@ package Instrument.C is
      (Self                 : in out C_Family_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
       Source               : GNATCOLL.Projects.File_Info;
+      Is_Main              : Boolean;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean);
    --  Preprocess Source and look through the text content of the preprocessed
@@ -77,6 +78,8 @@ package Instrument.C is
    --  When one is found the text of the file is modified: the line is replaced
    --  by a call to the manual dump/reset procedure and an extern declaration
    --  for the procedure is put at the beginning of the file.
+   --
+   --  Is_Main has no effect for C-like languages.
 
    overriding procedure Emit_Dump_Helper_Unit_Manual
      (Self        : in out C_Family_Instrumenter_Type;
