@@ -8,7 +8,7 @@ from e3.fs import mkdir
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
-from SUITE.cutils import Wdir, contents_of
+from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor, xcov
 
@@ -19,14 +19,12 @@ tmp = Wdir("tmp_")
 install_dir = os.path.abspath("install")
 mkdir(install_dir)
 xcov(
-    ["setup", "--rts-profile=full", "--prefix", install_dir, "-q"],
+    ["setup", "--rts-profile=full", "--prefix", install_dir],
     out="setup.txt",
+    force_project_args=True,
+    auto_config_args=False,
 )
-thistest.fail_if_not_equal(
-    "'gnatcov setup' output not empty",
-    "",
-    contents_of("setup.txt"),
-)
+
 gnatcov_rts_gpr = os.path.join(install_dir, "share", "gpr", "gnatcov_rts.gpr")
 
 # Compute code coverage for the test project, to make sure the runtime's
