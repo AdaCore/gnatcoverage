@@ -39,6 +39,6 @@ build_run_and_coverage(
     dump_channel="bin-file",
     runtime_project=gnatcov_rts_gpr,
 )
-check_xcov_reports("obj", {"main.adb.xcov": {"+": {5}}})
+check_xcov_reports("*.xcov", {"main.adb.xcov": {"+": {5}}}, cwd="obj")
 
 thistest.result()

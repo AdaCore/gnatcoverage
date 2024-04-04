@@ -63,19 +63,15 @@ for name, pattern, pragma in [
     expected = {
         "main.adb.xcov": {"+": {7, 8}, "-": {9, 10}},
         "pkg.ads.xcov": {},
-        "pkg.adb.xcov": {},
         "pkg-nested.adb.xcov": {"+": {12, 21}},
         "pkg-proc.adb.xcov": {"-": {14, 15, 16}},
         "pkg-proc-nested.adb.xcov": {"-": {4, 12, 21}},
         "utils.ads.xcov": {},
         "utils.adb.xcov": {"-": {9}},
     }
-    # Deal with coverage report discrepancies between source and binary traces
-    if thistest.options.trace_mode == "bin":
-        expected.pop("pkg.adb.xcov")
-        if pattern == config_pragma_pattern:
-            expected.pop("pkg.ads.xcov")
-    check_xcov_reports("obj", expected, discard_empty=False)
+    if pattern == config_pragma_pattern:
+        expected.pop("pkg.ads.xcov")
+    check_xcov_reports("*.xcov", expected, cwd="obj")
 
     tmp.to_homedir()
 
