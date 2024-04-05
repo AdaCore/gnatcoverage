@@ -6223,7 +6223,7 @@ package body Instrument.Ada_Unit is
                --  should not be checked. Therefore they should be
                --  instrumented.
 
-                  if T /= 'P' then
+                  if T not in 'P' | 'A' | 'a' then
                      Find_Nested_Decisions (EN);
                   end if;
                   return Over;
