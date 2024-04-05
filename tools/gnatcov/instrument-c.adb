@@ -3957,11 +3957,15 @@ package body Instrument.C is
 
                   --  Put an external decl for the buffers dump and reset
                   --  functions.
+                  --
+                  --  The external decl for the dump procedure takes a const
+                  --  char * to avoid any warnings when using a string literal
+                  --  as the trace prefix.
 
                   String'Write
                     (S,
                      Extern_Prefix & "void " & Dump_Procedure
-                     & "(char *prefix);");
+                     & "(const char *prefix);");
                   String'Write
                     (S, Extern_Prefix & "void " & Reset_Procedure & "(void);");
                end if;
