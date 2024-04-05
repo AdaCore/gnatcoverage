@@ -16,9 +16,9 @@ rm -rf $(find -type d -name 'obj_*')
 rm -rf $(find -type f -name 'tmp*.list')
 
 rm -rf $(find -type f -name '*~')
-rm -rf $(find -type f -name 'test.py.???' | grep -v svn)
-rm -rf $(find -type f -name '*.adb.*' | grep -v svn)
-rm -rf $(find -type f -name '*.dump' | grep -v svn)
+rm -rf $(find -type f -name 'test.py.???')
+rm -rf $(find -type f -name '*.adb.*')
+rm -rf $(find -type f -name '*.dump')
 
 rm -rf $(find -type d -name 'memcheck.log')
 rm -rf $(find -type d -name 'callgrind-*.log')

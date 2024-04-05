@@ -20,12 +20,14 @@ AdaCore ticket system deployed within the whole company since 1998.
 Change control
 --------------
 
-Integrity of configuration items is guaranteed by the Git
-repositories where all configuration items are located. Only authorized
-engineers can modify configuration items and all modifications are
-recorded. In addition, all repositories and mail servers are mirrored with
-machines physically located in Paris (France) and New York. This increases
-confidence in the durability of qualification data (activity 7.2.4.a).
+Integrity of configuration items is guaranteed by Git repositories where all
+configuration items are located. Only authorized engineers can modify
+configuration items and all modifications are recorded. The sources and scripts
+for the AdaCore products are maintained in Git repositories that are completely
+backed up at least every 2 hours. All repositories are stored electronically
+and are backed up to geographically isolated locations in AWS (in EU and US).
+This increases AdaCore's confidence in the durability of qualification data
+(activity 7.2.4.a).
 
 Each change to a configuration item is associated to a unique
 ID, which unambiguously identifies the version of a configuration item over

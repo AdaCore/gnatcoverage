@@ -5,7 +5,7 @@ GNATcoverage - |standard| Qualification Material: |plans_doc_title|
 .. rubric::  Revision History
 
 .. csv-table::
-   :delim: |
+   :delim: &
    :header: "Version #", "Date", "Comment"
 
    |release| & |today| & Initial version

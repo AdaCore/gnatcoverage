@@ -1406,7 +1406,11 @@ class SCOV_helper_src_traces(SCOV_helper):
             subdirs = None
             instrument_gprsw = GPRswitches(root_project=self.gpr)
 
+        # Instrument now, requesting the propagation of instrumentation
+        # issues on the test status. Note that we expect this to include
+        # a check on instrumentation warnings.
         out = "xinstr.out"
+
         xcov_instrument(
             covlevel=self.xcovlevel,
             extra_args=to_list(self.covctl.covoptions) if self.covctl else [],
@@ -1415,6 +1419,7 @@ class SCOV_helper_src_traces(SCOV_helper):
             gprsw=instrument_gprsw,
             gpr_obj_dir=self.gpr_obj_dir,
             out=out,
+            register_failure=True,
             tolerate_messages=self.testcase.tolerate_messages,
         )
 
@@ -1442,17 +1447,6 @@ class SCOV_helper_src_traces(SCOV_helper):
                     subdirs=subdirs,
                     main_unit=no_ext(self.drivers[0]),
                 )
-
-        # Standard output might contain warnings indicating instrumentation
-        # issues. This should not happen, so simply fail as soon as the output
-        # file is not empty.
-        if not self.testcase.tolerate_messages:
-            thistest.fail_if(
-                os.path.getsize(out) > 0,
-                "xcov instrument standard output not empty ({}):"
-                "\n--"
-                "\n{}".format(out, contents_of(out)),
-            )
 
         # Now we can build, instructing gprbuild to fetch the instrumented
         # sources in their dedicated subdir:

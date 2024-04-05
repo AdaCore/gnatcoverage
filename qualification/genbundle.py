@@ -158,7 +158,7 @@
 #             |
 #             | (clone by genbundle.py)
 #             v
-#  $work-dir/ gnatcoverage-git-clone/
+#  $work-dir/ <REPO_IMAGE_SUBDIR>
 #                   qualification/qm/plans/ <- PLANS artifacts
 #                   testsuite/              <- TOR artifacts
 #
@@ -249,9 +249,9 @@ def run_list(cmd, dirname=None, env=None):
     oriwd = os.getcwd()
     print("from : %s" % oriwd)
 
-    if dir:
-        print("hopat : %s" % dir)
-        os.chdir(dir)
+    if dirname:
+        print("hopat : %s" % dirname)
+        os.chdir(dirname)
 
     print("run  : %s" % " ".join(cmd))
 
@@ -266,7 +266,7 @@ def run_list(cmd, dirname=None, env=None):
 
 
 def run(s, dirname=None, env=None):
-    run_list(s.split(), dir, env=env)
+    run_list(s.split(), dirname=dirname, env=env)
 
 
 def announce(s):
@@ -346,8 +346,16 @@ GIT_MASTER = (
     "git@ssh.gitlab.adacore-it.com:eng/das/cov/gnatcoverage-qualification.git"
 )
 
-# The subdir name for this clone, relative to --root
-GIT_CLONE_SUBDIR = "gnatcoverage-git-clone"
+# The name of the subdir in the working directory where we'll fetch TOR
+# artifacts from. This would be an image of a "gnatcoverage" repository, from
+# either
+#
+# - the immediate result of a git clone command, or
+# - an rsync from a cloned repo somewhere (--rsync <path/to/git-clone>),
+# - an rsync from a source package, typically prepared from a branch
+#   for a qualification project (--rsync <path/to/src_pkg>).
+
+REPO_IMAGE_SUBDIR = "gnatcoverage-git-clone"
 
 
 class QMAT:
@@ -361,7 +369,7 @@ class QMAT:
         # Latch repo dir location while we're at it:
 
         self.workdir = os.path.abspath(options.workdir)
-        self.repodir = os.path.join(self.workdir, GIT_CLONE_SUBDIR)
+        self.repodir = os.path.join(self.workdir, REPO_IMAGE_SUBDIR)
 
         # A local place where the testsuite tree may be found,
         # possibly after remote syncing from testsuite_dir if that
@@ -432,27 +440,28 @@ class QMAT:
             f.write(line + "\n")
 
     # ----------------
+    # -- rsync_from --
+    # ----------------
+
+    def rsync_from(self, rsync_source):
+        run_list(
+            [
+                "rsync",
+                "-ar",
+                rsync_source + "/",
+                self.repodir + "/",
+                "--delete",
+                "--delete-excluded",
+                "--filter",
+                ". dev.rsync",
+            ]
+        )
+
+    # ----------------
     # -- git_update --
     # ----------------
 
     def git_update(self):
-        # If we're requested to rsync from an existing repo dir, do so
-
-        if self.o.gitrsync:
-            run_list(
-                [
-                    "rsync",
-                    "-ar",
-                    self.o.gitrsync + "/",
-                    self.repodir + "/",
-                    "--delete",
-                    "--delete-excluded",
-                    "--filter",
-                    ". dev.rsync",
-                ]
-            )
-            return
-
         # If we're requested to pull/update only, do so
 
         if self.o.gitpull:
@@ -476,8 +485,8 @@ class QMAT:
 
         announce("cloning git repository from %s" % gitref)
 
-        remove(GIT_CLONE_SUBDIR)
-        run("git clone %s %s" % (gitref, GIT_CLONE_SUBDIR))
+        remove(REPO_IMAGE_SUBDIR)
+        run("git clone %s %s" % (gitref, REPO_IMAGE_SUBDIR))
 
     # ----------------------
     # -- switch_to_branch --
@@ -665,7 +674,8 @@ class QMAT:
                 else:
                     print("ERRRR !! inexistant target dir for %s" % tr)
 
-            [sync(tr) for tr in find(root=".", pattern="tc.dump")]
+            [sync(tr) for tr in find(root=".", pattern="tcs.dump")]
+
         env_chapter_dir = os.path.join(
             self.repodir, "testsuite", "Qualif", "Environment"
         )
@@ -956,20 +966,22 @@ class QMAT:
         #
         #    gnatcov-qualkit-<kitid>-<YYYYMMDD>
         #
-        # where <YYYYMMDD> is the kit production stamp (now), and <kitid> is
-        # computed from the git branch off which the artifacts are taken. The
-        # git branch name might contain the "qualkit" indication already.
+        # <YYYYMMDD> is the kit production stamp (now),
+        # <kitid> is the kit identifier, typically <cust#>-<project#>.
 
         today = date.today()
-        gitbranch = current_gitbranch_at(self.repodir)
 
-        kitprefix = (
-            "gnatcov-qualkit" if "qualkit" not in gitbranch else "gnatcov"
-        )
+        # If the kitid is not provided, assume the artifacts repo image holds
+        # a git clone and compute the id from the current branch there:
 
-        kitid = gitbranch
-        kitid = kitid.replace("/", "-")
-        kitid = kitid.replace(".", "_")
+        if self.o.kitid:
+            kitid = self.o.kitid
+        else:
+            gitbranch = current_gitbranch_at(self.repodir)
+
+            kitid = gitbranch.replace("qualkit-", "")
+            kitid = kitid.replace("/", "-")
+            kitid = kitid.replace(".", "_")
 
         # If we are re-constructing a kit with some parts just rebuilt, target
         # the specified version (stamp) and arrange to keep the old elements
@@ -980,7 +992,7 @@ class QMAT:
             if self.o.rekit
             else "%4d%02d%02d" % (today.year, today.month, today.day)
         )
-        kitname = "%s-%s-%s" % (kitprefix, kitid, kitstamp)
+        kitname = "gnatcov-qualkit-%s-%s" % (kitid, kitstamp)
         kitdir = "%s-%s" % (kitname, self.this_docformat)
 
         mkdir(kitdir)
@@ -1108,16 +1120,22 @@ def commandline():
         help=("Reuse current git clone setup in work-dir, as-is. "),
     )
     op.add_option(
-        "--git-rsync",
-        dest="gitrsync",
+        "--rsync-from",
+        dest="rsync_from",
         default=False,
-        help=("Rsync an existing git repo into our git clone dir."),
+        help=("Rsync an existing repo image into our local image dir."),
     )
     op.add_option(
         "--branch",
         dest="branchname",
         default=None,
         help=("The git branch we shall produce the material from."),
+    )
+    op.add_option(
+        "--kitid",
+        dest="kitid",
+        default=False,
+        help=("Use the provided argument as the kit identifier."),
     )
 
     op.add_option(
@@ -1247,13 +1265,6 @@ def check_valid(options, args):
         ("Please specify the desired output format (--docformat)."),
     )
 
-    # Likewise for the git branch name:
-
-    exit_if(
-        not options.branchname,
-        ("Please specify the git branch name (--branch)."),
-    )
-
     # Convey whether we are requested to produce a kit:
 
     options.kitp = options.rekit or not options.parts
@@ -1330,8 +1341,14 @@ if __name__ == "__main__":
     qmat = QMAT(options=options)
 
     qmat.setup_workdir()
-    qmat.git_update()
-    qmat.switch_to_branch()
+
+    if options.rsync_from:
+        qmat.rsync_from(options.rsync_from)
+    else:
+        qmat.git_update()
+
+    if options.branchname:
+        qmat.switch_to_branch()
 
     # Produce each part we are requested to produce, with a tailored
     # QM model:

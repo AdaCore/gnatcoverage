@@ -41,11 +41,10 @@ users = {
 roles = OrderedDict(
     [
         ("authors", {"description": "the authors of the document"}),
-        ("reviewers", {"description": "the reviewers of the document"}),
     ]
 )
 
-assignments = {"authors": ["hainque"], "reviewers": ["unassigned"]}
+assignments = {"authors": ["hainque"]}
 
 release = "DRAFT 0.0"
 version = "(version %s)" % release
@@ -54,6 +53,14 @@ copyright = "%s, %d" % (owner, date.today().year)  # noqa: A001
 
 extensions = ["sphinx.ext.ifconfig"]
 
+# Parameters - which could be templated and instantiated
+# from parameters known at higher levels of the kit production
+# process:
+
 tor_doc_id = "PE.<TOR-DOC-TN>"
 str_doc_id = "PE.<STR-DOC-TN>"
 plans_doc_id = "PE.<PLANS-DOC-TN>"
+
+gnatpro_version = "GNATPRO.X"
+gprbuild_version = "GPRBUILD.Y"
+gnatcov_version = "GNATCOV.Z"

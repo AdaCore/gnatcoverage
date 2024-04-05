@@ -36,7 +36,7 @@ def __extra_block_for(dolevel):
 <artifact_reader class="TC_Set">
   <on_location
      relative_class="TC_Set"
-     pattern="${{relative.attributes.location}}/{dolevel}/*/tc_set.rst
+     pattern="${{relative.attributes.location}}/{dolevel}/*/tc_set.rst"
      type="content"
   />
   <creates name="$subst(${{attributes.location.basename}},([0-9]+_)?(.*),\\2)">
