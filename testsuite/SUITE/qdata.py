@@ -164,6 +164,21 @@ def qdaf_in(dirname):
     return os.path.join(dirname, QUALDATA_FILE)
 
 
+def qdafs_from(dirname):
+    """
+    List of filenames for qualification data to be pickled, from the directory
+    tree rooted at dirname. Each returned filename hosts instances of objects
+    representing test executions, each holding dictionaries of expected notes
+    together with their dischargers.
+    """
+    return [
+        os.path.join(d, f)
+        for (d, _, files) in os.walk(dirname)
+        for f in files
+        if f == QUALDATA_FILE
+    ]
+
+
 STATUSDATA_FILE = "tcs" + STREXT
 
 
@@ -174,10 +189,10 @@ def stdf_in(dirname):
 
 def treeref_at(dirname):
     """
-    A string representative of where the DIRNAME directory originates from
-    (e.g. svn rev or git commit), to be used for consistency checks when
-    multiple operations are done separately but should work over synchronized
-    directory trees.
+    A string representative of the git commit where the DIRNAME
+    directory originates from, to be used for consistency checks
+    when  multiple operations are done separately but should work
+    over synchronized directory trees.
     """
     # Assuming git, sha1 for the HEAD reference
     return output_of("git rev-parse HEAD", dirname=dirname).rstrip("\n")

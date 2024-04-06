@@ -28,7 +28,7 @@ sys.path.append(LOCAL_TESTSUITE_DIR)
 
 TEST_LOG = "test.py.log"
 
-from SUITE.qdata import qdaf_in, stdf_in
+from SUITE.qdata import qdafs_from, stdf_in
 from SUITE.qdata import STATUSDATA_FILE, QLANGUAGES, QROOTDIR
 from SUITE.qdata import CTXDATA_FILE, Qdata
 from SUITE.control import BUILDER
@@ -133,26 +133,23 @@ class QualificationDataRepository(object):
         print("loading from %s" % dirname)
 
         # Some tests in the Common chapter have status data and multiple
-        # individual test data files in subdirectories. Their purpose is to
-        # verify the proper behavior of a general functionality such as the
-        # ability to use project files, not to verify that the tool assesses
-        # such or such criteria properly. Even if they use an internal
-        # facility that does this as well, the individual datapoints
-        # are irrelevant and shouldn't be loaded. The general test result
-        # remains of interest of course.
+        # individual test data files in subdirectories. To properly load
+        # these multiple test data files, load them one at a time and merge
+        # the entries in the Qdata object of the whole testcase.
 
         # Fetch the status data first, then complete it with test data
-        # at the same place if any.
+        # located in the directory tree rooted at dirname, if any.
 
         std = dutils.pload_from(stdf_in(dirname))
 
-        tcdf = qdaf_in(dirname)
+        tcdfs = qdafs_from(dirname)
 
-        qda = (
-            dutils.pload_from(tcdf)
-            if os.path.exists(tcdf)
-            else Qdata(tcid=dirname)
-        )
+        qda = Qdata(tcid=dirname)
+
+        for tcdf in tcdfs:
+            sub_qda = dutils.pload_from(tcdf)
+            for entry in sub_qda.entries:
+                qda.register(entry)
 
         qda.status = std.status
         qda.comment = std.comment
@@ -1157,24 +1154,59 @@ class QDreport(object):
 
     def gen_suite_options(self):
         def literal(text):
-            return ":literal:`" + text.strip() + "`"
+            text = text.strip()
+            return ":literal:`" + text + "`" if text else "<none>"
+
+        def simplify(sw):
+            """Given a piece of the testuite.py command line used to execute
+            the qualification test run, return what should be inserted for
+            it in the list displayed in the STR document, if anything."""
+
+            # Simplify /path/to/whatever/testsuite.py:
+            if "testsuite.py" in sw:
+                return "testsuite.py"
+
+            # Some switches are entirely meaningless wrt qualification
+            # and can be omitted from the STR:
+            if any(
+                sw.startswith(candidate)
+                for candidate in [
+                    "--log-file=",
+                    "--old-output-dir=",
+                    "--output-dir=",
+                    "--failure-exit-code=",
+                    "--gaia-output",
+                    "--dump-environ",
+                    "--generate-text-report",
+                ]
+            ):
+                return None
+
+            return sw
 
         def str_relevant_switches_from(switches_string):
             """The list of individual pieces in `switches_string`
-            which are of relevance to this STR document.  These are
-            all the switches except --log-file and --old-res + their
-            argument, of interest to gaia only."""
+            which are of relevance to this STR document."""
 
             result = []
             skip = False
             for sw in switches_string.split():
+                # If we are to skip this arg for a switch to drop
+                # encountered just before on the command line, do so:
                 if skip:
                     skip = False
                     continue
-                elif sw in ("--log-file", "--old-res"):
+
+                # If this is a switch to drop with an arg to follow,
+                # skip this switch and request skipping the arg:
+                if sw in ["-t"]:
                     skip = True
                     continue
-                else:
+
+                # Now see if this switch can be simplified, possibly
+                # even entirely removed:
+                sw = simplify(sw)
+                if sw:
                     result.append(sw)
 
             return result

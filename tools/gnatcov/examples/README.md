@@ -15,9 +15,8 @@ examples can only run on specific targets), you may select the following target
 to use by setting the `TARGET` and `RTS` variables explicitly:
 
 ```shell
-make TARGET=powerpc-elf RTS=zfp-mpc8641   runs on bare PowerPC
-make TARGET=powerpc-eabispe RTS=zfp-p2020 runs on bare PowerPC/e500v2
-make TARGET=leon-elf RTS=zfp-leon         runs on bare LEON2
+make TARGET=powerpc-elf RTS=light-mpc8641   runs on bare PowerPC
+make TARGET=leon3-elf RTS=light-leon3     runs on bare LEON2
 ```
 
 as well as:
@@ -26,5 +25,4 @@ as well as:
 make
 ```
 
-for native `x86-linux/windows` or `x86_64-linux/windows` runs relying on a
-specially instrumented version of Valgrind or DynamoRIO.
+for native `x86-linux/windows` or `x86_64-linux/windows` runs.

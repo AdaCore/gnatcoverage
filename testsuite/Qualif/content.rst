@@ -18,10 +18,10 @@ GNATcoverage - |standard| Qualification Material: |tor_doc_title|
 
 .. rubric:: Revision History
 .. csv-table::
-   :delim: |
+   :delim: &
    :header: "Version #", "Date", "Comment"
 
-   DRAFT 0.0 | <date> | Draft for interim delivery, pre internal QA
+   |release| & |today| & Latest revision
 
 .. only:: html
 

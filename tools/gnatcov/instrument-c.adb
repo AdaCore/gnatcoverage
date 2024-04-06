@@ -3957,11 +3957,15 @@ package body Instrument.C is
 
                   --  Put an external decl for the buffers dump and reset
                   --  functions.
+                  --
+                  --  The external decl for the dump procedure takes a const
+                  --  char * to avoid any warnings when using a string literal
+                  --  as the trace prefix.
 
                   String'Write
                     (S,
                      Extern_Prefix & "void " & Dump_Procedure
-                     & "(char *prefix);");
+                     & "(const char *prefix);");
                   String'Write
                     (S, Extern_Prefix & "void " & Reset_Procedure & "(void);");
                end if;
@@ -4282,13 +4286,17 @@ package body Instrument.C is
      (Self : C_Family_Instrumenter_Type;
       Prj  : Prj_Desc) return Compilation_Unit
    is
+      Lang     : Src_Supported_Language renames
+        C_Family_Instrumenter_Type'Class (Self).Language;
       Filename : constant String :=
         New_File
           (Prj,
            To_Symbol_Name (Sys_Prefix)
            & "_d_b_" & (+Prj.Prj_Name)
-           & (+Prj.Body_Suffix
-             (C_Family_Instrumenter_Type'Class (Self).Language)));
+           & (if Lang = CPP_Language then "_cpp" else "_c")
+           & (+Prj.Body_Suffix (Lang)));
+      --  The _cpp or _c suffix is required so that in case both C and C++
+      --  helper units are generated, they don't have homonym object filenames.
    begin
       return Compilation_Unit'
         (Language  => File_Based_Language,
