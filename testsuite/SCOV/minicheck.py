@@ -8,6 +8,7 @@ for specific checkpoints usage testcases).
 """
 
 import collections
+import glob
 import json
 import os.path
 import re
@@ -25,7 +26,6 @@ from SUITE.tutils import (
     gprbuild,
     run_cov_program,
     srctrace_pattern_for,
-    srctracename_for,
     thistest,
     tracename_for,
     xcov,
@@ -343,17 +343,19 @@ def build_and_run(
 
         known_channel = dump_channel or actual_dump_channel
 
-        trace_files = []
+        # Remove potential existing source trace files: the name is
+        # non-deterministic by default, so we want to avoid getting
+        # multiple traces in the current directory.
         for m in mains:
-            # Remove potential existing source trace files: the name is
-            # non-deterministic by default, so we want to avoid getting
-            # multiple traces in the current directory.
             rm(
                 srctrace_pattern_for(
                     m, dump_trigger == "manual", manual_prj_name
                 )
             )
 
+        patterns = set()
+        trace_files = []
+        for m in mains:
             out_file = out_file_.format(m)
             run_cov_program(
                 exepath(m),
@@ -377,17 +379,14 @@ def build_and_run(
             # simply assume that if we fail to get a trace when our context
             # expects one, there will be some kind of test failure afterwards.
 
-            trace_file = None
-
             if known_channel in [None, "bin-file"]:
-                trace_file = srctracename_for(
-                    m,
-                    register_failure=False,
-                    manual=dump_trigger == "manual",
-                    manual_prj_name=manual_prj_name,
+                patterns.add(
+                    srctrace_pattern_for(
+                        m, dump_trigger == "manual", manual_prj_name
+                    )
                 )
 
-            if not trace_file and (
+            elif (
                 known_channel == "base64-stdout"
                 or "source trace file ==" in contents_of(out_file)
             ):
@@ -395,6 +394,7 @@ def build_and_run(
                 src_pattern = srctrace_pattern_for(
                     m, dump_trigger == "manual", manual_prj_name
                 )
+                patterns.add(src_pattern)
                 trace_file = src_pattern.replace("*", "unique")
 
                 # Here we're really supposed to have a trace in the output
@@ -403,8 +403,10 @@ def build_and_run(
                     out_file, trace_file, register_failure=register_failure
                 )
 
-            if trace_file:
-                trace_files.append(abspath(trace_file))
+        # Expand the list of patterns
+        if patterns:
+            for pattern in patterns:
+                trace_files.extend(glob.glob(pattern))
 
         xcov_args.extend(cov_or_instr_args)
 
@@ -418,7 +420,7 @@ def build_and_run(
     elif scos:
         xcov_args.extend(scos)
 
-    return xcov_args + extra_coverage_args + trace_files
+    return xcov_args + extra_coverage_args + list(trace_files)
 
 
 def build_run_and_coverage(

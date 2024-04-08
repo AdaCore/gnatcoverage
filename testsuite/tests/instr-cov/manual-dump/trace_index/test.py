@@ -51,11 +51,8 @@ cov_args = build_and_run(
     extra_coverage_args=["-axcov"],
 )
 
-# We are expecting three traces, if at this point cov_args has a length of
-# less than 4, there's definitively something wrong.
-thistest.fail_if(
-    len(cov_args) < 4, comment=f"expected at least three traces: {cov_args}"
-)
+# Remove the traces from the coverage arguments
+cov_args = cov_args[:-3]
 
 traces = glob.glob(
     srctrace_pattern_for("main", manual=True, manual_prj_name="p")
