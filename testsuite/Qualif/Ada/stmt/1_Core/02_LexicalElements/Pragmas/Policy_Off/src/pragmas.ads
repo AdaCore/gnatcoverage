@@ -7,4 +7,10 @@ package Pragmas is
    --  exercise situations where such pragmas are deactivated
    --  by a Check_Policy.
    Debug_Events : Integer := 0;
+
+   procedure Log_Debug;
+   --  Register a Debug_Event. Exposed to prevent removal of the
+   --  entire subprogram by optimization when it happens to be
+   --  never called, which would make it "no code" for binary traces.
+
 end;
