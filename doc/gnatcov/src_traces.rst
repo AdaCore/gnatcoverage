@@ -297,10 +297,16 @@ to emit this data by inserting:
 - a ``/* GNATCOV_DUMP_BUFFERS */`` comment on its own line in C and C++ code
 
 where necessary in your code. During instrumentation, |gcv| will replace them
-with a call to the procedure responsible for dumping the coverage buffers,
-at which point the source traces will be created during the execution of the
+with a call to the procedure responsible for dumping the coverage buffers, at
+which point the source traces will be created during the execution of the
 program. Therefore, the pragma or comment should be placed at a location at
-which such a function call would be appropriate.
+which such a function call would be appropriate. By default, gnatcov will look
+into all the files of the project. Alternatively, the user can specify the list
+of files containing manual indications using
+``--dump-trigger=manual,@FILES.list`` or ``--dump-trigger=manual,FILE1,FILE2``
+where the files are specified as full / relative names. Note that for C / C++
+files, the user shall specify the files where the ``/* GNATCOV_DUMP_BUFFERS */``
+indication is ultimately expanded by the preprocessor.
 
 A dump procedure is only able to dump the buffers of the project tree which
 root is the project it is called from. A dump procedure call done in a
