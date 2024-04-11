@@ -1,8 +1,7 @@
 """
 Check that any deviation from the expected annotation pragmas is reported to
 the user as a warning. Also check that a warning is emitted if an unrecognized
-Xcov annotation was found, and that when an argument of the wrong type is
-given it is gprbuild and gnatcov that raises an exception.
+Xcov annotation was found, or if an argument of the wrong type is given.
 """
 
 from SCOV.minicheck import build_run_and_coverage, xcov_instrument
@@ -13,8 +12,8 @@ from SUITE.tutils import gprfor
 
 Wdir("tmp_")
 
-# Check gnatcov's behaviour upon encountering annotaton pragmas with correctly
-# types arguments.
+# Check gnatcov's behaviour upon encountering annotation pragmas with correctly
+# typed arguments.
 
 build_run_and_coverage(
     gprsw=GPRswitches(
@@ -52,8 +51,8 @@ thistest.fail_if_not_equal(
         "*** main_1.adb:10:5: warning: Invalid Xcov annotation kind: aaa\n"
         "*** main_1.adb:11:5: warning: Xcov annotation kind missing\n"
         "*** main_2.adb:4:5: warning: Invalid Xcov annotation kind\n"
-        "*** main_2.adb:5:5: warning: Invalid justification argument: string"
-        " literal expected\n"
+        "*** main_2.adb:6:5: warning: Invalid justification argument:"
+        " static string expression expected\n"
     ),
     contents_of("instrument.log"),
 )
