@@ -509,21 +509,25 @@ def gprfor(
     #    for Switches("test_blob.adb") use
     #      Compiler'Default_Switches("Ada") & ("-fno-inline")
 
-    compswitches = (
-        "\n".join(
-            [
-                'for Switches("%s") use \n'
-                '  Compiler\'Default_Switches ("%s") & (%s);'
-                % (
-                    main,
-                    language_info(main).name,
-                    ",".join(['"%s"' % carg for carg in to_list(main_cargs)]),
-                )
-                for main in mains
-            ]
+    compswitches = ""
+    if main_cargs:
+        compswitches = (
+            "\n".join(
+                [
+                    'for Switches("%s") use \n'
+                    '  Compiler\'Default_Switches ("%s") & (%s);'
+                    % (
+                        main,
+                        language_info(main).name,
+                        ",".join(
+                            ['"%s"' % carg for carg in to_list(main_cargs)]
+                        ),
+                    )
+                    for main in mains
+                ]
+            )
+            + "\n"
         )
-        + "\n"
-    )
 
     # Now instanciate, dump the contents into the target gpr file and return
     gprtext = template % {
