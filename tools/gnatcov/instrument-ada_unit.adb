@@ -3886,18 +3886,13 @@ package body Instrument.Ada_Unit is
                --  * (Xcov, Dump_Buffers, Prefix)
 
                case Nb_Children is
-                  when 2 =>
-                     null;
+                  when 2 | 3 =>
 
-                  when 3 =>
-                     if Prag_Arg_Expr (Prag_Args, 3).Kind not in
-                       Ada_String_Literal | Libadalang.Common.Ada_Identifier
-                     then
-                        Report
-                          (N,
-                           "Invalid prefix argument: string literal expected",
-                           Warning);
-                     end if;
+                     --  TODO??? check that the Prefix expression is a string
+                     --  type when eng/libadalang/libadalang#1360 is dealt
+                     --  with.
+
+                     null;
 
                   when others =>
                      Report (N, "At most 3 pragma arguments allowed", Warning);
