@@ -443,7 +443,13 @@ def build_run_and_coverage(
         auto_config_args=auto_config_args,
         **kwargs,
     )
-    xcov(xcov_args, out=out, err=err, register_failure=register_failure)
+    xcov(
+        xcov_args,
+        auto_config_args=auto_config_args,
+        out=out,
+        err=err,
+        register_failure=register_failure,
+    )
 
 
 def checked_xcov(args, out_file):
