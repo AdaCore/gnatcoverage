@@ -202,6 +202,7 @@ package Qemu_Traces is
       Sec   : Unsigned_8;   --  0 .. 59
       Pad   : Unsigned_8;   --  0
    end record;
+   pragma Universal_Aliasing (Trace_Info_Date);
 
    ---------------------------------------------------
    -- Execution Trace Section (.Kind = Raw|History) --

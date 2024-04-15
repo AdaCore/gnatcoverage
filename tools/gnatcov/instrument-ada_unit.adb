@@ -1053,7 +1053,7 @@ package body Instrument.Ada_Unit is
    --  Return whether the given unit exists
 
    Pragma_Restricts_Finalization_Matchers : constant Pragma_Matcher_Array :=
-     ((As_Symbol (Restrictions), null, As_Symbol (No_Finalization)),
+     ((As_Symbol (Restrictions), No_Symbol, As_Symbol (No_Finalization)),
       (As_Symbol (Restrictions),
        As_Symbol (No_Dependence),
        As_Symbol ("ada.finalization")));
@@ -1066,8 +1066,8 @@ package body Instrument.Ada_Unit is
    --  or the whole project.
 
    Pragma_Prevents_Task_Termination_Matchers : constant Pragma_Matcher_Array :=
-     ((As_Symbol (Restrictions), null, As_Symbol (No_Finalization)),
-      (As_Symbol (Restrictions), null, As_Symbol (No_Tasking)),
+     ((As_Symbol (Restrictions), No_Symbol, As_Symbol (No_Finalization)),
+      (As_Symbol (Restrictions), No_Symbol, As_Symbol (No_Tasking)),
       (As_Symbol (Restrictions),
        As_Symbol (No_Dependence),
        As_Symbol ("ada.task_termination")),
@@ -1085,13 +1085,13 @@ package body Instrument.Ada_Unit is
    --  project or in Unit.
 
    Pragma_Restricts_Entry_Guards_Matchers : constant Pragma_Matcher_Array :=
-     ((As_Symbol (Restrictions), null, As_Symbol (Pure_Barriers)),
-      (As_Symbol (Restrictions), null, As_Symbol (Simple_Barriers)),
-      (As_Symbol (Profile), null, As_Symbol (GNAT_Extended_Ravenscar)),
-      (As_Symbol (Profile), null, As_Symbol (GNAT_Ravenscar_EDF)),
-      (As_Symbol (Profile), null, As_Symbol (Jorvik)),
-      (As_Symbol (Profile), null, As_Symbol (Ravenscar)),
-      (As_Symbol (Profile), null, As_Symbol (Restricted)));
+     ((As_Symbol (Restrictions), No_Symbol, As_Symbol (Pure_Barriers)),
+      (As_Symbol (Restrictions), No_Symbol, As_Symbol (Simple_Barriers)),
+      (As_Symbol (Profile), No_Symbol, As_Symbol (GNAT_Extended_Ravenscar)),
+      (As_Symbol (Profile), No_Symbol, As_Symbol (GNAT_Ravenscar_EDF)),
+      (As_Symbol (Profile), No_Symbol, As_Symbol (Jorvik)),
+      (As_Symbol (Profile), No_Symbol, As_Symbol (Ravenscar)),
+      (As_Symbol (Profile), No_Symbol, As_Symbol (Restricted)));
    --  Matchers for Restrictions pragmas that restrict entry guards so that we
    --  cannot instrument them as decisions (Pure_Barriers and Simple_Barriers,
    --  plus various Ada runtime profiles).
@@ -3748,7 +3748,7 @@ package body Instrument.Ada_Unit is
            (if Prag_Arg_Expr (Prag_Args, I).Kind =
               Libadalang.Common.Ada_Identifier
             then As_Symbol (Prag_Arg_Expr (Prag_Args, I).As_Identifier)
-            else null);
+            else No_Symbol);
          --  Attempt to get the pragma's Ith argument as an identifier. If
          --  it is not an identifier, return null. Else, return the identifier
          --  as a symbol.
@@ -3781,9 +3781,7 @@ package body Instrument.Ada_Unit is
                Report
                  (N,
                   "Invalid Xcov annotation kind"
-                  & (if Kind /= null
-                     then ": " & Image (Kind)
-                     else ""),
+                  & (if Kind /= No_Symbol then ": " & Image (Kind) else ""),
                   Warning);
                return;
          end;
@@ -6613,7 +6611,7 @@ package body Instrument.Ada_Unit is
       function As_Symbol (E : Expr) return Symbol_Type is
       begin
          if E.Is_Null then
-            return null;
+            return No_Symbol;
          end if;
 
          case Ada_Expr (E.Kind) is
@@ -6626,8 +6624,8 @@ package body Instrument.Ada_Unit is
                   Prefix : constant Symbol_Type :=
                     As_Symbol (DN.F_Prefix.As_Expr);
                begin
-                  return (if Prefix = null
-                          then null
+                  return (if Prefix = No_Symbol
+                          then No_Symbol
                           else Find
                                  (Symbols,
                                   Image (Prefix)
@@ -6636,7 +6634,7 @@ package body Instrument.Ada_Unit is
                end;
 
             when others =>
-               return null;
+               return No_Symbol;
          end case;
       end As_Symbol;
 
@@ -6655,7 +6653,7 @@ package body Instrument.Ada_Unit is
                   A : constant Pragma_Argument_Assoc :=
                     Assoc.As_Pragma_Argument_Assoc;
                begin
-                  if Matcher.Assoc_Name = null then
+                  if Matcher.Assoc_Name = No_Symbol then
 
                      --  We expect an "Expr_Name" expression
 
