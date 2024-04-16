@@ -96,6 +96,7 @@ package Instrument.Ada_Unit is
      (Self                 : in out Ada_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
       Source               : GNATCOLL.Projects.File_Info;
+      Is_Main              : Boolean;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean);
    --  Once the instrumentation has finished, if the dump trigger is "manual"
@@ -115,6 +116,10 @@ package Instrument.Ada_Unit is
    --
    --  If found, this pragma will be replaced by a call to the buffer reset
    --  procedure defined in the dump helper unit.
+   --
+   --  If Is_Main is True and no pragmas were found, still add a reference to
+   --  the helper unit to ensure the coverage buffers are included in the
+   --  main's compilation closure.
 
    overriding procedure Emit_Buffers_List_Unit
      (Self        : Ada_Instrumenter_Type;

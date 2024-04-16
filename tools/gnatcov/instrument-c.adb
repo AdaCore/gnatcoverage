@@ -3852,9 +3852,16 @@ package body Instrument.C is
      (Self                 : in out C_Family_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
       Source               : GNATCOLL.Projects.File_Info;
+      Is_Main              : Boolean;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean)
    is
+      pragma Unreferenced (Is_Main);
+      --  when C-like languages are present, gprbuild doesn't compile only
+      --  what's in the closure of the main, but rather all sources and lets
+      --  the linker only pick the object files that are relevant. As such we
+      --  don't need to add references to the helper unit in main source files.
+
       Orig_Filename : constant String := +Source.File.Full_Name;
    begin
       Check_Compiler_Driver (Prj, Self);
