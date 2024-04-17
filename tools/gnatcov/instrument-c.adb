@@ -3047,7 +3047,7 @@ package body Instrument.C is
          Start_Matcher : constant Pattern_Matcher :=
            Compile ("GNATCOV_EXEMPT_ON ""(.*)""");
          End_Matcher   : constant Pattern_Matcher :=
-           Compile ("GNATCOV_EXEMPT_OF");
+           Compile ("GNATCOV_EXEMPT_OFF");
          Match_Res     : Match_Array (0 .. 1);
 
          procedure Search_Exempt_In_Token (Token : Token_T);
