@@ -6,10 +6,10 @@ with Derived_1;       use Derived_1;
 with Derived_2;       use Derived_2;
 with Subprogram_Pack; use Subprogram_Pack;
 with Support;         use Support;
-procedure Test_Derived_Subprograms_No is
+procedure Test_No is
 begin
    Assert (True);
-end Test_Derived_Subprograms_No;
+end Test_No;
 
 --# subprogram_pack.adb
 -- /fun1/       l- ## s-

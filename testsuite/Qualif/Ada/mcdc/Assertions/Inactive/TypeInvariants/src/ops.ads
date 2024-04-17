@@ -1,5 +1,5 @@
 pragma Ada_2012;
-pragma Assertion_Policy (Invariant => Disable);
+pragma Assertion_Policy (Disable);
 
 package Ops is
 

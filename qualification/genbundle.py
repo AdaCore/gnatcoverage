@@ -906,10 +906,11 @@ class QMAT:
         raccess = raccess_in(self.o.testsuite_dir)
         rdir = rdir_in(self.o.testsuite_dir)
 
-        mkstr_cmd = "(cd %(dir)s/STR && ./mkrest.sh %(level)s)" % {
+        mkstr_cmd = "(cd %(dir)s/STR && sh ./mkrest.sh %(level)s)" % {
             "dir": self.o.testsuite_dir if not rdir else rdir,
             "level": self.o.dolevel,
         }
+
         prefix = ["sh", "-c"] if not raccess else ["ssh", raccess]
         run_list(prefix + [mkstr_cmd])
 

@@ -6,10 +6,10 @@
 with Pack;
 with Stacks_G, Update_G;
 with Support;         use Support;
-procedure Test_Instantiations_No is
+procedure Test_No is
 begin
    Assert (True);
-end Test_Instantiations_No;
+end Test_No;
 
 --# pack.adb
 --

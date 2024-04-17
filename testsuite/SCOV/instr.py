@@ -153,7 +153,7 @@ def xcov_instrument(
     # issued when instrumenting before building. Tests do a best
     # effort attempt at creating objects dirs beforehand but doing
     # that is cumbersome for some of the more convoluted tests.
-    if GNATCOV_INFO.major_at_most(22):
+    if not GNATCOV_INFO.major_at_least(24):
         re_tolerate_messages = "|".join(
             "(?:{})".format(mre)
             for mre in ["object directory.*not found", re_tolerate_messages]

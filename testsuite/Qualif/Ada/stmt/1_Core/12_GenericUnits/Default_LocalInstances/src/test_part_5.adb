@@ -8,7 +8,7 @@
 with Pack;
 with Local_Instantiations;
 with Support;         use Support;
-procedure Test_Instantiations_Part_5 is
+procedure Test_Part_5 is
    Int1  : Integer := 1;
    Int2  : Integer := 2;
    Bool1 : Boolean := True;
@@ -24,7 +24,7 @@ begin
    Assert (Int2 = 1);
    Assert (not Bool1);
    Assert (Bool2);
-end Test_Instantiations_Part_5;
+end Test_Part_5;
 
 --# pack.adb
 -- /new_value_g/   l- ## s-

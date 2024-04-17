@@ -7,7 +7,7 @@ with Pack_Instance_Lib_Level;
 with Stacks;
 with Update;
 with Support;         use Support;
-procedure Test_Instantiations_Part_1 is
+procedure Test_Part_1 is
    S : Stacks.Stack := Stacks.Default_Stack;
 begin
    Assert (Pack_Instance_Lib_Level.Var = 0.0);
@@ -15,7 +15,7 @@ begin
    Assert (New_Value (0) = 1);
 
    Assert (Stacks.N_Values (S) = 1);
-end Test_Instantiations_Part_1;
+end Test_Part_1;
 
 --# pack.adb
 -- /new_value_g/   l+ ## 0

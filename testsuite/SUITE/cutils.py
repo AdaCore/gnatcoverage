@@ -181,7 +181,9 @@ def version(tool, nlines=1):
         cprpos = text.find(",")
         return text[0:cprpos] if cprpos != -1 else text
 
-    tool_version_output = Run([tool, "--version"]).out.split("\n")
+    tool_version_output = [
+        line.strip() for line in Run([tool, "--version"]).out.split("\n")
+    ]
     version_info = "\n".join(
         [version_on_line(line) for line in tool_version_output[0:nlines]]
     )

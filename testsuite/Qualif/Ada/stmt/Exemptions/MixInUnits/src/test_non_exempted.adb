@@ -9,7 +9,7 @@
 with Exemptions;
 with Support;    use Support;
 
-procedure Test_Exemptions_Non_Exempted_Code_Call is
+procedure Test_Non_Exempted is
    I, J, K : Integer := 1;
 begin
    Assert (Exemptions.X = 3);
@@ -22,7 +22,7 @@ begin
    Assert (Exemptions.Another_Factorial (3) = 6);
    --  No exempted code in this function
 
-end Test_Exemptions_Non_Exempted_Code_Call;
+end Test_Non_Exempted;
 
 --# exemptions.ads
 -- /decl/              l+ ## 0

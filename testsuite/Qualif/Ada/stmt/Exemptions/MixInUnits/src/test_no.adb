@@ -6,12 +6,12 @@
 with Exemptions;
 with Support;    use Support;
 
-procedure Test_Exemptions_No_Call is
+procedure Test_No is
 begin
    Assert (Exemptions.X = 3);
    Assert (Exemptions.Y = 1);
    Assert (Exemptions.Z = 2);
-end Test_Exemptions_No_Call;
+end Test_No;
 
 --# exemptions.ads
 -- /decl/              l+ ## 0

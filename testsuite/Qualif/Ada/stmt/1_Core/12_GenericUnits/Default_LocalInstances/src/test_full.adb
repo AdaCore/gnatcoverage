@@ -5,7 +5,7 @@
 with Pack;
 with Local_Instantiations;
 with Support;         use Support;
-procedure Test_Instantiations_Full is
+procedure Test_Full is
    Int1 : Integer := 1;
    Int2 : Integer := 2;
 
@@ -25,7 +25,7 @@ begin
    Local_Instantiations.Update (Int1);
    Assert (Int1 = 2);
 
-end Test_Instantiations_Full;
+end Test_Full;
 
 --# pack.adb
 -- /new_value_g/   l+ ## 0
