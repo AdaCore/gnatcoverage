@@ -254,7 +254,8 @@ is
      (Language             : Src_Supported_Language;
       Project_Sources      : in out File_Info_Sets.Set;
       Instrumenter         : in out Language_Instrumenter'Class;
-      Manual_Dump_Inserted : in out Boolean);
+      Manual_Dump_Inserted : in out Boolean;
+      Mains                : Main_To_Instrument_Vectors.Vector);
    --  For all sources in Project_Sources of language Language, call
    --  Replace_Manual_Indications. If a dump procedure call was inserted
    --  and id there is not one already, also emit a dump helper unit for the
@@ -845,7 +846,8 @@ is
      (Language             : Src_Supported_Language;
       Project_Sources      : in out File_Info_Sets.Set;
       Instrumenter         : in out Language_Instrumenter'Class;
-      Manual_Dump_Inserted : in out Boolean)
+      Manual_Dump_Inserted : in out Boolean;
+      Mains                : Main_To_Instrument_Vectors.Vector)
    is
       function Dump_Helper_Output_Dir_Exists
         (Source : File_Info; Prj : Prj_Desc)
@@ -882,10 +884,20 @@ is
                  Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name;
                Had_Dump_Indication  : Boolean := False;
                Had_Reset_Indication : Boolean := False;
+
+               Is_Main : constant Boolean :=
+                 (for some Main of Mains =>
+                    (GNATCOLL.VFS."+" (Main.File.Full_Name)) = Source_Name);
+               --  Whether Source is a main which would have been instrumented
+               --  with another dump trigger. The lookup should be reasonable
+               --  in cost given that there shouldn't be that many mains in the
+               --  top level main project.
+
             begin
                Instrumenter.Replace_Manual_Indications
                  (Prj_Info.Desc,
                   Source,
+                  Is_Main,
                   Had_Dump_Indication,
                   Had_Reset_Indication);
 
@@ -1246,7 +1258,8 @@ begin
            (Lang,
             Project_Sources,
             Instrumenters (Lang).all,
-            Manual_Dump_Inserted);
+            Manual_Dump_Inserted,
+            Mains_To_Instrument (Lang));
       end loop;
    end if;
 
@@ -1552,7 +1565,8 @@ begin
         (Ada_Language,
          Project_Sources,
          Ada_Instrumenter,
-         Manual_Dump_Inserted);
+         Manual_Dump_Inserted,
+         Mains_To_Instrument (Ada_Language));
 
       --  At this point, all source files for all languages have been looked
       --  through to insert a call to the manual dump procedure. If no call
