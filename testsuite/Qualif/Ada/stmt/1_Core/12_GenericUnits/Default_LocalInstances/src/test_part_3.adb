@@ -1,20 +1,18 @@
 --  Test driver for local generic instantiations. It "with's" all the
---  functional code, and it calls only the local instantiation of the procedure
---  Update_G. The code from all the other generics shall be reported as
+--  functional code, and it calls only the local instantiation of the function
+--  Pack.New_Value_G. The code from all the other generics shall be reported as
 --  uncovered.
 
 with Pack;
 with Local_Instantiations;
 with Support;         use Support;
-procedure Test_Instantiations_Part_2 is
-   Int : Integer := 0;
+procedure Test_Part_3 is
 begin
-   Local_Instantiations.Update (Int);
-   Assert (Int = 1);
-end Test_Instantiations_Part_2;
+   Assert (Local_Instantiations.New_Value (0) = 1);
+end Test_Part_3;
 
 --# pack.adb
--- /new_value_g/   l- ## s-
+-- /new_value_g/   l+ ## 0
 -- /swap/          l- ## s-
 -- /proc/          l- ## s-
 -- /decl/         ~l- ## ~s-
@@ -30,4 +28,4 @@ end Test_Instantiations_Part_2;
 -- /elab/          l+ ## 0
 
 --# update_g.adb
--- /stmt/          l+ ## 0
+-- /stmt/          l- ## s-

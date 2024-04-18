@@ -6,7 +6,7 @@
 with Pack;
 with Local_Instantiations;
 with Support;         use Support;
-procedure Test_Instantiations_Part_1 is
+procedure Test_Part_1 is
    use Local_Instantiations.Stacks;
    S   : Stack;
    Int : Integer := 0;
@@ -14,7 +14,7 @@ begin
    Push (13, S);
    Pop (Int, S);
    Assert (Int = 13);
-end Test_Instantiations_Part_1;
+end Test_Part_1;
 
 --# pack.adb
 -- /new_value_g/   ~l- ## ~s-

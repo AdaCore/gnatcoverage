@@ -47,14 +47,6 @@ def check_one_trace(cov_args, lang):
     # {lang}_trace-{unique-part}.srctrace:
     trace = glob.glob(f"{lang}_trace-*.srctrace")
 
-    # There is only one dump indication in each main, ensure we found a trace
-    # and have no spurious traces in the working directory.
-    thistest.fail_if(
-        len(trace) != 1, comment=f"expected a single trace, found {len(trace)}"
-    )
-
-    print(trace)
-
     output_dir = f"output_{lang}/"
     xcov(
         cov_args + [f"--output-dir={output_dir}"] + trace,

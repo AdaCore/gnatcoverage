@@ -1,21 +1,24 @@
 --  Test driver for local generic instantiations. It "with's" all the
---  functional code, and it calls only function
---  Local_Instantiations.Fun_With_Instantiations that instantiates generic
---  procedure Update_G and calls instantiation. The code from all the other
+--  functional code, and it calls only routine Swap from the local
+--  instantiation of the package Pack.Pack_G. The code from all the other
 --  generics shall be reported as uncovered.
 
 with Pack;
 with Local_Instantiations;
 with Support;         use Support;
-procedure Test_Instantiations_Part_6 is
-   Bool2 : Boolean := False;
+procedure Test_Part_4 is
+   use Local_Instantiations.Pack_Instance;
+   Char : Character := 'B';
 begin
-   Assert (Local_Instantiations.Fun_With_Instantiations (0) = 1);
-end Test_Instantiations_Part_6;
+   Assert (Var = 'A');
+   Swap (Var, Char);
+   Assert (Var = 'B');
+   Assert (Char = 'A');
+end Test_Part_4;
 
 --# pack.adb
 -- /new_value_g/   l- ## s-
--- /swap/          l- ## s-
+-- /swap/          l+ ## 0
 -- /proc/          l- ## s-
 -- /decl/         ~l- ## ~s-
 
@@ -30,4 +33,4 @@ end Test_Instantiations_Part_6;
 -- /elab/          l+ ## 0
 
 --# update_g.adb
--- /stmt/          l+ ## 0
+-- /stmt/          l- ## s-

@@ -7,7 +7,7 @@ with Derived_1;       use Derived_1;
 with Derived_2;       use Derived_2;
 with Subprogram_Pack; use Subprogram_Pack;
 with Support;         use Support;
-procedure Test_Derived_Subprograms_Full is
+procedure Test_Full is
    Var_T           : T           := (I => 1);
    Var_Derived_T_1 : Derived_T_1 := (I => 2);
    Var_Derived_T_2 : Derived_T_2 := (I => 3);
@@ -44,7 +44,7 @@ begin
 
    Proc2 (Var_Derived_T_1);
    Assert (Var_Derived_T_1.I = 4);
-end Test_Derived_Subprograms_Full;
+end Test_Full;
 
 --# subprogram_pack.adb
 -- /fun1/       l+ ## 0

@@ -1,4 +1,4 @@
---  Test driver for library-level generic instantiations. It exsecutes all the
+--  Test driver for library-level generic instantiations. It executes all the
 --  functional code corresponding to library-level instantiations, so
 --  everything is expected to be reported as covered except the code of
 --  Pack.Proc.
@@ -8,7 +8,7 @@ with Pack_Instance_Lib_Level;
 with Stacks;
 with Update;
 with Support;         use Support;
-procedure Test_Instantiations_Full is
+procedure Test_Full is
    S : Stacks.Stack := Stacks.Default_Stack;
 
    I : Integer := 1;
@@ -31,7 +31,7 @@ begin
    Update (J);
    Assert (J = 1);
 
-end Test_Instantiations_Full;
+end Test_Full;
 
 --# pack.adb
 -- /new_value_g/   l+ ## 0
