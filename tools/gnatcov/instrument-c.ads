@@ -62,7 +62,6 @@ package Instrument.C is
      (Self                 : in out C_Family_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
       Source               : GNATCOLL.Projects.File_Info;
-      Is_Main              : Boolean;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean);
    --  Preprocess Source and look through the text content of the preprocessed

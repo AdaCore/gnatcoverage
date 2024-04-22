@@ -40,7 +40,6 @@ with Libadalang.Sources;       use Libadalang.Sources;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.Utils;
-with GNATCOLL.VFS;
 
 with ALI_Files;        use ALI_Files;
 with Coverage_Options; use Coverage_Options;
@@ -8215,7 +8214,6 @@ package body Instrument.Ada_Unit is
      (Self                 : in out Ada_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
       Source               : GNATCOLL.Projects.File_Info;
-      Is_Main              : Boolean;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean)
    is
@@ -8241,6 +8239,10 @@ package body Instrument.Ada_Unit is
          return Visit_Status;
       --  If N is the expected pragma statement, replace it with the actual
       --  call.
+
+      -----------------------------
+      -- Find_And_Replace_Pragma --
+      -----------------------------
 
       function Find_And_Replace_Pragma (N : Ada_Node'Class) return Visit_Status
       is
@@ -8358,6 +8360,7 @@ package body Instrument.Ada_Unit is
          end if;
          return Into;
       end Find_And_Replace_Pragma;
+
    begin
       --  If no pragma is found in this file then Start_Rewriting will not be
       --  called. In this case, Rewriter.Handle will not be properly
@@ -8373,25 +8376,51 @@ package body Instrument.Ada_Unit is
       if Has_Dump_Indication or else Has_Reset_Indication then
          Ada.Directories.Create_Path (+Prj.Output_Dir);
          Rewriter.Apply;
-      elsif Is_Main then
-
-         --  If this is a main, force a reference to the dump helper unit to
-         --  ensure coverage buffers make it to the compilation closure.
-
-         Start_Rewriting (Rewriter, Self, Prj, Unit);
-         Insert_Last
-            (Handle (Unit.Root.As_Compilation_Unit.F_Prelude),
-            Create_From_Template
-              (Rewriter.Handle,
-               Template  => "with {};",
-               Arguments =>
-                 (1 => To_Nodes
-                         (Rewriter.Handle,
-                          Create_Manual_Helper_Unit_Name (Prj))),
-               Rule => With_Clause_Rule));
-         Rewriter.Apply;
       end if;
    end Replace_Manual_Indications;
+
+   ------------------------------
+   -- Insert_With_Dump_Helper --
+   ------------------------------
+
+   procedure Insert_With_Dump_Helper
+     (Self   : in out Ada_Instrumenter_Type;
+      Source : GNATCOLL.VFS.Virtual_File;
+      Prj    : in out Prj_Desc)
+   is
+      Instrumented_Filename : constant String :=
+        +(Prj.Output_Dir & "/" & GNATCOLL.VFS."+" (Source.Base_Name));
+      Source_Filename       : constant String :=
+        GNATCOLL.VFS."+" (Source.Full_Name);
+      Instrumented_Exists   : constant Boolean :=
+        Ada.Directories.Exists (Instrumented_Filename);
+      File_To_Search        : constant String := (if Instrumented_Exists
+                                                  then Instrumented_Filename
+                                                  else Source_Filename);
+      Unit                  : constant Libadalang.Analysis.Analysis_Unit :=
+        Self.Context.Get_From_File (File_To_Search, Reparse => True);
+
+      Rewriter              : Ada_Source_Rewriter;
+
+      Dummy_Ctx : constant Context_Handle :=
+        Create_Context ("Inserting with dump helper in " & Source_Filename);
+
+   begin
+      Ada.Directories.Create_Path (+Prj.Output_Dir);
+
+      Start_Rewriting (Rewriter, Self, Prj, Unit);
+      Insert_Last
+        (Handle (Unit.Root.As_Compilation_Unit.F_Prelude),
+         Create_From_Template
+           (Rewriter.Handle,
+            Template  => "with {};",
+            Arguments =>
+              (1 => To_Nodes
+                   (Rewriter.Handle,
+                    Create_Manual_Helper_Unit_Name (Prj))),
+            Rule => With_Clause_Rule));
+      Rewriter.Apply;
+   end Insert_With_Dump_Helper;
 
    ----------------------------
    -- Instrument_Source_File --
