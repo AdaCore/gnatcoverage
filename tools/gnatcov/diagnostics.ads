@@ -60,13 +60,14 @@ package Diagnostics is
    subtype Coverage_Kind is Report_Kind range Info .. Exclusion;
 
    type Message is record
-      Kind : Report_Kind;
-      Exe  : Exe_File_Acc;
-      PC   : Pc_Type;
-      Sloc : Source_Location;
-      SCO  : SCO_Id;
-      Tag  : SC_Tag;
-      Msg  : Unbounded_String;
+      Kind           : Report_Kind;
+      Exe            : Exe_File_Acc;
+      PC             : Pc_Type;
+      Sloc           : Source_Location;
+      Violation_Sloc : Source_Location;
+      SCO            : SCO_Id;
+      Tag            : SC_Tag;
+      Msg            : Unbounded_String;
    end record;
 
    package Message_Vectors is new Ada.Containers.Vectors
@@ -110,13 +111,14 @@ package Diagnostics is
    --  has message kind Exclusion.
 
    procedure Report
-     (Msg  : String;
-      Exe  : Exe_File_Acc    := null;
-      PC   : Pc_Type         := No_PC;
-      Sloc : Source_Location := No_Location;
-      SCO  : SCO_Id          := No_SCO_Id;
-      Tag  : SC_Tag          := No_SC_Tag;
-      Kind : Report_Kind     := Error);
+     (Msg            : String;
+      Exe            : Exe_File_Acc    := null;
+      PC             : Pc_Type         := No_PC;
+      Sloc           : Source_Location := No_Location;
+      Violation_Sloc : Source_Location := No_Location;
+      SCO            : SCO_Id          := No_SCO_Id;
+      Tag            : SC_Tag          := No_SC_Tag;
+      Kind           : Report_Kind     := Error);
    --  Output diagnostic message during coverage analysis. Messages with Notice
    --  kind are omitted unless global flag Verbose is set. A prefix is
    --  prepended depending on message kind:
