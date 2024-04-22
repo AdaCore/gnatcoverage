@@ -8242,9 +8242,6 @@ package body Instrument.Ada_Unit is
       --  If N is the expected pragma statement, replace it with the actual
       --  call.
 
-      procedure Create_Directory_If_Not_Exists (Name : String);
-      --  Create the directory of name Name if it does not exist yet
-
       function Find_And_Replace_Pragma (N : Ada_Node'Class) return Visit_Status
       is
          function Is_Expected_Argument
@@ -8361,15 +8358,6 @@ package body Instrument.Ada_Unit is
          end if;
          return Into;
       end Find_And_Replace_Pragma;
-
-      procedure Create_Directory_If_Not_Exists (Name : String)
-      is
-      begin
-         if not Ada.Directories.Exists (Name) then
-            Ada.Directories.Create_Directory (Name);
-         end if;
-      end Create_Directory_If_Not_Exists;
-
    begin
       --  If no pragma is found in this file then Start_Rewriting will not be
       --  called. In this case, Rewriter.Handle will not be properly
@@ -8383,9 +8371,7 @@ package body Instrument.Ada_Unit is
       Unit.Root.Traverse (Find_And_Replace_Pragma'Access);
 
       if Has_Dump_Indication or else Has_Reset_Indication then
-         Create_Directory_If_Not_Exists
-           (GNATCOLL.VFS."+" (Source.Project.Object_Dir.Base_Dir_Name));
-         Create_Directory_If_Not_Exists (+Prj.Output_Dir);
+         Ada.Directories.Create_Path (+Prj.Output_Dir);
          Rewriter.Apply;
       elsif Is_Main then
 
