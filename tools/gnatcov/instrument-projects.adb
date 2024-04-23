@@ -849,14 +849,6 @@ is
       Manual_Dump_Inserted : in out Boolean;
       Mains                : Main_To_Instrument_Vectors.Vector)
    is
-      function Dump_Helper_Output_Dir_Exists
-        (Source : File_Info; Prj : Prj_Desc)
-         return Boolean
-      is (Ada.Directories.Exists
-          (GNATCOLL.VFS."+" (Source.Project.Object_Dir.Base_Dir_Name))
-            and then Ada.Directories.Exists (+Prj.Output_Dir));
-      --  True if the project's object directory and the instrumented sources
-      --  directory exist, False otherwise.
 
       package Non_Root_Src_Calls_Sets is new
         Ada.Containers.Indefinite_Ordered_Sets (Element_Type => String);
@@ -922,7 +914,7 @@ is
                --  procedure for this project.
 
                if not Emitted_Manual_Helpers.Contains (Helper_Unit_Name)
-                 and then Dump_Helper_Output_Dir_Exists (Source, Prj)
+                 and then Ada.Directories.Exists (+Prj.Output_Dir)
                then
                   Instrumenter.Emit_Dump_Helper_Unit_Manual (Dump_Config, Prj);
 
