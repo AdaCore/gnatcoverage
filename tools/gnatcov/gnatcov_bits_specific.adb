@@ -2206,6 +2206,15 @@ begin
                Process_Trace (+RT.Filename, +RT.Executable);
             end loop;
 
+            --  Use dominant information to refine decision coverage
+            --  information wrt. outcomes taken. This is a binary information
+            --  specificity as we always know which outcomes were taken in the
+            --  context of source traces.
+
+            if Currently_Accepted_Trace_Kind = Binary_Trace_File then
+               Refine_Source_Coverage;
+            end if;
+
             --  Warn when using --scos with source traces or --sid with bin
             --  traces.
 

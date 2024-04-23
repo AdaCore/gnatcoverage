@@ -114,8 +114,8 @@ package body Coverage.Source is
 
          when Decision =>
             Outcome_Taken, Known_Outcome_Taken : Outcome_Taken_Type :=
-                                                   No_Outcome_Taken;
-            --  Each of these components is set True when the corresponding
+              No_Outcome_Taken;
+            --  Each of these components is set to True when the corresponding
             --  outcome has been exercised. Outcome_Taken is set depending
             --  on conditional branch instructions, and might be reversed
             --  (if the decision has degraded origin). Known_Outcome_Taken
@@ -718,6 +718,8 @@ package body Coverage.Source is
 
       Multiple_Statements_Reported : Boolean := False;
       --  Set True when a diagnosis has been emitted for multiple statements
+
+   --  Start of processing for Compute_Line_State
 
    begin
       if Line_Info.Coverage_Processed then
@@ -1863,7 +1865,7 @@ package body Coverage.Source is
 
          declare
             SL         : constant Tagged_Slocs :=
-                           Tag_Provider.Get_Slocs_And_Tags (PC);
+              Tag_Provider.Get_Slocs_And_Tags (PC);
             SCOs       : access SCO_Id_Array;
             Single_SCO : aliased SCO_Id_Array := (0 => No_SCO_Id);
 
@@ -1933,6 +1935,92 @@ package body Coverage.Source is
          exit Trace_Insns when PC = 0;
       end loop Trace_Insns;
    end Compute_Source_Coverage;
+
+   ----------------------------
+   -- Refine_Source_Coverage --
+   ----------------------------
+
+   procedure Refine_Source_Coverage
+   is
+      --  Refine the outcome taken information. See the documentation of
+      --  Process_SCO below.
+
+      procedure Process_SCO (SCO : SCO_Id);
+      --  Infer that an outcome has been taken for the following specific case:
+      --    * The given SCO is a statement SCO#1 dominated by a decision SCO#2
+      --      valuation V.
+      --    * The decision SCO#2 has an Outcome_Taken (*) set.
+      --
+      --  This configuration allows us to conclude that the "not V" outcome of
+      --  SCO#2 is covered: set Known_Outcome_Taken accordingly.
+      --
+      --  TODO??? If separate instance coverage is maintained eventually
+      --  (#258), deal with SCI tags.
+
+      -----------------
+      -- Process_SCO --
+      -----------------
+
+      procedure Process_SCO (SCO : SCO_Id)
+      is
+         SCI     : Source_Coverage_Info_Access;
+         Dom_SCO : SCO_Id;
+         Dom_Val : Boolean;
+      begin
+         --  If this is not a statement SCO, it does not have dominant
+         --  information: skip it.
+
+         if Kind (SCO) /= Statement then
+            return;
+         end if;
+
+         --  Also skip it if it has no associated SCI, or if this is not a
+         --  coverable SCO.
+
+         SCI := Get_SCI (SCO, No_SC_Tag);
+         if SCI = null
+            or else not SCI.Basic_Block_Has_Code
+            or else SCI.Executed
+         then
+            return;
+         end if;
+
+         Dominant (SCO, Dom_SCO, Dom_Val);
+         if Dom_SCO = No_SCO_Id or else Kind (Dom_SCO) /= Decision then
+            return;
+         end if;
+
+         --  We deliberately ignore handling of separate instances coverage
+         --  (with a Tag that is not No_SCO_Tag), to avoid complexifying the
+         --  implementation.
+
+         SCI := Get_SCI (Dom_SCO, No_SC_Tag);
+         if SCI /= null then
+            if SCI.Outcome_Taken (True) or else SCI.Outcome_Taken (False) then
+               declare
+                  procedure Set_Known_Outcome_Taken
+                    (SCI : in out Source_Coverage_Info);
+
+                  -----------------------------
+                  -- Set_Known_Outcome_Taken --
+                  -----------------------------
+
+                  procedure Set_Known_Outcome_Taken
+                    (SCI : in out Source_Coverage_Info) is
+                  begin
+                     SCI.Known_Outcome_Taken (not Dom_Val) := True;
+                  end Set_Known_Outcome_Taken;
+
+               begin
+                  Update_SCI
+                    (Dom_SCO, No_SC_Tag, Set_Known_Outcome_Taken'Access);
+               end;
+            end if;
+         end if;
+      end Process_SCO;
+   begin
+      SC_Obligations.Iterate (Process_SCO'Access);
+   end Refine_Source_Coverage;
 
    procedure Compute_Source_Coverage
      (Filename             : String;
