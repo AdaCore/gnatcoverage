@@ -2409,14 +2409,15 @@ package body Instrument.C is
         UIC.MCDC_State_Declaration_Node;
       Save_Disable_Instrumentation      : constant Boolean :=
         UIC.Disable_Instrumentation;
+      Cursor_Kind                       : Cursor_Kind_T;
    begin
       for N of L loop
 
          --  Only traverse the function declarations that belong to a unit of
          --  interest.
          if Is_Source_Of_Interest (UIC, N) then
-
-            case Kind (N) is
+            Cursor_Kind := Kind (N);
+            case Cursor_Kind is
 
                --  Traverse the statements of function bodies
 
@@ -2439,7 +2440,9 @@ package body Instrument.C is
                      --  of the function body.
 
                   begin
-                     UIC.Pass.Enter_Scope (UIC, N);
+                     if Cursor_Kind /= Cursor_Lambda_Expr then
+                        UIC.Pass.Enter_Scope (UIC, N);
+                     end if;
 
                      --  Do not instrument constexpr function as it would
                      --  violate the constexpr restrictions.
@@ -2459,7 +2462,9 @@ package body Instrument.C is
                         UIC.Pass.Insert_Text_Before_Token
                           (UIC, End_Sloc (Fun_Body), +TB);
                      end if;
-                     UIC.Pass.Exit_Scope (UIC);
+                     if Cursor_Kind /= Cursor_Lambda_Expr then
+                        UIC.Pass.Exit_Scope (UIC);
+                     end if;
                      UIC.Disable_Instrumentation :=
                        Save_Disable_Instrumentation;
                   end;
