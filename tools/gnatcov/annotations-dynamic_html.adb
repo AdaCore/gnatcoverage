@@ -23,6 +23,7 @@ with Ada.Text_IO;
 with Ada.Text_IO.Unbounded_IO;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
+with GNATCOLL.VFS;  use GNATCOLL.VFS;
 
 with GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
@@ -34,6 +35,7 @@ with Interfaces;
 with Outputs;
 with Project;
 with Support_Files;    use Support_Files;
+with Switches;         use Switches;
 with Traces_Disa;
 with Traces_Files;     use Traces_Files;
 
@@ -425,6 +427,44 @@ package body Annotations.Dynamic_Html is
       Source.Set_Field ("coverageLevel", Coverage_Option_Value);
       Source.Set_Field ("liStats", Line_Stats);
       Source.Set_Field ("enAllStats", To_JSON (Info.Ob_Stats));
+
+      --  Set the language for this source file
+
+      if Is_Project_Loaded then
+
+         --  If the project was loaded, get the language information from it
+
+         declare
+            Lang : constant String :=
+              Project.Project.Info (Create (+Info.Full_Name.all)).Language;
+         begin
+            case To_Language_Or_All (Lang) is
+               when Ada_Language =>
+                  Source.Set_Field ("language", "ada");
+               when C_Language =>
+                  Source.Set_Field ("language", "c");
+               when CPP_Language =>
+                  Source.Set_Field ("language", "cpp");
+               when All_Languages =>
+                  null;
+            end case;
+         end;
+      else
+         --  If no project was loaded, infer the language from the
+         --  source extension.
+
+         declare
+            Ext : constant String := Extension (Info.Simple_Name.all);
+         begin
+            if Ext in "adb" | "ads" | "ada.1" | "ada.2" then
+               Source.Set_Field ("language", "ada");
+            elsif Ext in "c" | "h" then
+               Source.Set_Field ("language", "c");
+            elsif Ext in "cpp" | "cc" | "hpp" then
+               Source.Set_Field ("language", "cpp");
+            end if;
+         end;
+      end if;
 
       declare
          P_Name : constant String :=
