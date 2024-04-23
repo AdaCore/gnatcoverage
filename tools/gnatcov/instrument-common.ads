@@ -497,7 +497,6 @@ package Instrument.Common is
      (Self                  : in out Language_Instrumenter;
       Prj                   : in out Prj_Desc;
       Source                : GNATCOLL.Projects.File_Info;
-      Is_Main               : Boolean;
       Has_Dump_Indication   : out Boolean;
       Has_Reset_Indication  : out Boolean) is null;
    --  Look for the pragmas (for Ada) or comments (for C family languages)
@@ -505,10 +504,6 @@ package Instrument.Common is
    --  reset in Source.
    --  When found, replace it with a call to the buffers dump/reset procedure
    --  defined in the dump helper unit.
-   --
-   --  Is_Main indicates whether Source would have been instrumented as a main
-   --  with another dump trigger, each instrumenter may process this
-   --  information differently.
    --
    --  Has_Dump_Indication indicates whether a manual dump indication was
    --  found - and replaced with a call to dump buffers - in the given source.

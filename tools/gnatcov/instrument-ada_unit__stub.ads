@@ -18,6 +18,8 @@
 
 --  Stub of Instrument.Ada_Unit: see the note about Stubs in gnatcov.gpr
 
+with GNATCOLL.VFS;
+
 with Instrument.Common; use Instrument.Common;
 
 package Instrument.Ada_Unit is
@@ -41,5 +43,10 @@ package Instrument.Ada_Unit is
       Preprocessor_Data_Filename : String)
       return Ada_Instrumenter_Type
    is (Ada_Instrumenter_Type'(others => <>));
+
+   procedure Insert_With_Dump_Helper
+     (Self   : in out Ada_Instrumenter_Type;
+      Source : GNATCOLL.VFS.Virtual_File;
+      Prj    : in out Prj_Desc) is null;
 
 end Instrument.Ada_Unit;

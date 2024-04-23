@@ -29,6 +29,8 @@ with Libadalang.Analysis;       use Libadalang.Analysis;
 with Libadalang.Config_Pragmas; use Libadalang.Config_Pragmas;
 with Libadalang.Rewriting;      use Libadalang.Rewriting;
 
+with GNATCOLL.VFS;
+
 with Files_Handling;    use Files_Handling;
 with Files_Table;       use Files_Table;
 with Instrument.Ada_Unit_Provider;
@@ -96,7 +98,6 @@ package Instrument.Ada_Unit is
      (Self                 : in out Ada_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
       Source               : GNATCOLL.Projects.File_Info;
-      Is_Main              : Boolean;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean);
    --  Once the instrumentation has finished, if the dump trigger is "manual"
@@ -120,6 +121,13 @@ package Instrument.Ada_Unit is
    --  If Is_Main is True and no pragmas were found, still add a reference to
    --  the helper unit to ensure the coverage buffers are included in the
    --  main's compilation closure.
+
+   procedure Insert_With_Dump_Helper
+     (Self   : in out Ada_Instrumenter_Type;
+      Source : GNATCOLL.VFS.Virtual_File;
+      Prj    : in out Prj_Desc);
+   --  Add a reference to the helper unit to ensure the coverage buffers are
+   --  included in the main's compilation closure.
 
    overriding procedure Emit_Buffers_List_Unit
      (Self        : Ada_Instrumenter_Type;
