@@ -254,8 +254,7 @@ is
      (Language             : Src_Supported_Language;
       Project_Sources      : in out File_Info_Sets.Set;
       Instrumenter         : in out Language_Instrumenter'Class;
-      Manual_Dump_Inserted : in out Boolean;
-      Mains                : Main_To_Instrument_Vectors.Vector);
+      Manual_Dump_Inserted : in out Boolean);
    --  For all sources in Project_Sources of language Language, call
    --  Replace_Manual_Indications. If a dump procedure call was inserted
    --  and id there is not one already, also emit a dump helper unit for the
@@ -846,17 +845,8 @@ is
      (Language             : Src_Supported_Language;
       Project_Sources      : in out File_Info_Sets.Set;
       Instrumenter         : in out Language_Instrumenter'Class;
-      Manual_Dump_Inserted : in out Boolean;
-      Mains                : Main_To_Instrument_Vectors.Vector)
+      Manual_Dump_Inserted : in out Boolean)
    is
-      function Dump_Helper_Output_Dir_Exists
-        (Source : File_Info; Prj : Prj_Desc)
-         return Boolean
-      is (Ada.Directories.Exists
-          (GNATCOLL.VFS."+" (Source.Project.Object_Dir.Base_Dir_Name))
-            and then Ada.Directories.Exists (+Prj.Output_Dir));
-      --  True if the project's object directory and the instrumented sources
-      --  directory exist, False otherwise.
 
       package Non_Root_Src_Calls_Sets is new
         Ada.Containers.Indefinite_Ordered_Sets (Element_Type => String);
@@ -885,19 +875,10 @@ is
                Had_Dump_Indication  : Boolean := False;
                Had_Reset_Indication : Boolean := False;
 
-               Is_Main : constant Boolean :=
-                 (for some Main of Mains =>
-                    (GNATCOLL.VFS."+" (Main.File.Full_Name)) = Source_Name);
-               --  Whether Source is a main which would have been instrumented
-               --  with another dump trigger. The lookup should be reasonable
-               --  in cost given that there shouldn't be that many mains in the
-               --  top level main project.
-
             begin
                Instrumenter.Replace_Manual_Indications
                  (Prj_Info.Desc,
                   Source,
-                  Is_Main,
                   Had_Dump_Indication,
                   Had_Reset_Indication);
 
@@ -922,7 +903,7 @@ is
                --  procedure for this project.
 
                if not Emitted_Manual_Helpers.Contains (Helper_Unit_Name)
-                 and then Dump_Helper_Output_Dir_Exists (Source, Prj)
+                 and then Ada.Directories.Exists (+Prj.Output_Dir)
                then
                   Instrumenter.Emit_Dump_Helper_Unit_Manual (Dump_Config, Prj);
 
@@ -1258,8 +1239,7 @@ begin
            (Lang,
             Project_Sources,
             Instrumenters (Lang).all,
-            Manual_Dump_Inserted,
-            Mains_To_Instrument (Lang));
+            Manual_Dump_Inserted);
       end loop;
    end if;
 
@@ -1565,13 +1545,20 @@ begin
         (Ada_Language,
          Project_Sources,
          Ada_Instrumenter,
-         Manual_Dump_Inserted,
-         Mains_To_Instrument (Ada_Language));
+         Manual_Dump_Inserted);
+
+      for Main of Mains_To_Instrument (Ada_Language) loop
+         Insert_With_Dump_Helper
+           (Ada_Instrumenter,
+            Source => Main.File,
+            Prj    => Main.Prj_Info.Desc);
+      end loop;
 
       --  At this point, all source files for all languages have been looked
       --  through to insert a call to the manual dump procedure. If no call
       --  has been inserted (i.e. no manual dump location indication was
       --  found), warn the user.
+
       if not Manual_Dump_Inserted then
          Outputs.Warn
            ("no indication for dump location was found, this might be"
