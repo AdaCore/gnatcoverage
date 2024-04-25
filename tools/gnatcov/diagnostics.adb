@@ -206,13 +206,13 @@ package body Diagnostics is
       Kind : Report_Kind     := Error)
    is
       M : constant Message :=
-            (Kind => Kind,
-             Exe  => Exe,
-             PC   => PC,
-             Sloc => Sloc,
-             SCO  => SCO,
-             Tag  => Tag,
-             Msg  => +Msg);
+        (Kind => Kind,
+         Exe  => Exe,
+         PC   => PC,
+         Sloc => Sloc,
+         SCO  => SCO,
+         Tag  => Tag,
+         Msg  => +Msg);
    begin
       Output_Message (M);
       Store_Message (M);
