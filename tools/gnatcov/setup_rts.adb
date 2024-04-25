@@ -36,13 +36,14 @@ with GPR2.Project.Configuration;
 with GPR2.Project.Registry.Attribute;
 with GPR2.Project.Tree;
 
-with JSON;         use JSON;
-with Outputs;      use Outputs;
-with Paths;        use Paths;
+with Files_Handling; use Files_Handling;
+with JSON;           use JSON;
+with Outputs;        use Outputs;
+with Paths;          use Paths;
 with Project;
-with Subprocesses; use Subprocesses;
+with Subprocesses;   use Subprocesses;
 with Support_Files;
-with Temp_Dirs;    use Temp_Dirs;
+with Temp_Dirs;      use Temp_Dirs;
 with Text_Files;
 
 package body Setup_RTS is
@@ -313,10 +314,12 @@ package body Setup_RTS is
             --  runtimes).
 
             return
-              (Channel => Base64_Standard_Output,
-               Trigger => (if GNAT.Regexp.Match (RTS, Ravenscar_RTS_Regexp)
-                           then Ravenscar_Task_Termination
-                           else Main_End));
+              (Channel                => Base64_Standard_Output,
+               Trigger                =>
+                 (if GNAT.Regexp.Match (RTS, Ravenscar_RTS_Regexp)
+                  then Ravenscar_Task_Termination
+                  else Main_End),
+              Manual_Indication_Files => File_Sets.Empty_Set);
 
       end case;
    end Default_Dump_Config;
@@ -1209,16 +1212,18 @@ package body Setup_RTS is
       case Channel is
          when Binary_File =>
             Result.Default_Dump_Config :=
-              (Channel          => Binary_File,
-               Trigger          => Trigger,
-               Filename_Simple  => Get ("dump-filename-simple"),
-               Filename_Env_Var => Get ("dump-filename-env-var"),
-               Filename_Prefix  => Get ("dump-filename-prefix"));
+              (Channel                 => Binary_File,
+               Trigger                 => Trigger,
+               Filename_Simple         => Get ("dump-filename-simple"),
+               Filename_Env_Var        => Get ("dump-filename-env-var"),
+               Filename_Prefix         => Get ("dump-filename-prefix"),
+               Manual_Indication_Files => File_Sets.Empty_Set);
 
          when Base64_Standard_Output =>
             Result.Default_Dump_Config :=
-              (Channel => Base64_Standard_Output,
-               Trigger => Trigger);
+              (Channel                 => Base64_Standard_Output,
+               Trigger                 => Trigger,
+               Manual_Indication_Files => File_Sets.Empty_Set);
       end case;
 
       return Result;

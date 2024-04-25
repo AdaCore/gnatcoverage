@@ -14,7 +14,7 @@ Wdir("tmp_")
 build_run_and_coverage(
     gprsw=GPRswitches(
         gprfor(
-            prjid="p",
+            prjid="main",
             srcdirs=[".."],
             mains=["main.adb"],
             langs=["Ada"],
@@ -41,13 +41,14 @@ build_run_and_coverage(
     ),
     covlevel="stmt",
     mains=["main"],
-    extra_instr_args=["--dump-trigger=manual"],
     extra_gprbuild_args=["-XCOV_BUILD=True"],
     extra_coverage_args=["--annotate=xcov", "-XCOV_BUILD=True"],
     tolerate_instrument_messages="warning: no indication for dump location was"
     " found, this might be caused by a"
     " misspelling in the expected pragma"
     " statement.",
+    dump_trigger="manual",
+    manual_prj_name="main",
 )
 check_xcov_reports("obj", {"main.adb.xcov": {"+": {5}}})
 

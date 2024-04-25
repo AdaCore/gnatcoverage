@@ -254,12 +254,16 @@ is
      (Language             : Src_Supported_Language;
       Project_Sources      : in out File_Info_Sets.Set;
       Instrumenter         : in out Language_Instrumenter'Class;
-      Manual_Dump_Inserted : in out Boolean);
+      Manual_Dump_Inserted : in out Boolean;
+      Manual_Indication_Files : File_Sets.Set);
    --  For all sources in Project_Sources of language Language, call
    --  Replace_Manual_Indications. If a dump procedure call was inserted
    --  and id there is not one already, also emit a dump helper unit for the
    --  project the source belongs to. Set Manual_Dump_Inserted to True if at
    --  least one manual dump indication was found.
+   --
+   --  Only process the files that are in Manual_Indication_Files if it is not
+   --  empty.
 
    procedure Add_Instrumented_Unit
      (Project : GPR.Project_Type; Source_File : GPR.File_Info);
@@ -845,7 +849,8 @@ is
      (Language             : Src_Supported_Language;
       Project_Sources      : in out File_Info_Sets.Set;
       Instrumenter         : in out Language_Instrumenter'Class;
-      Manual_Dump_Inserted : in out Boolean)
+      Manual_Dump_Inserted : in out Boolean;
+      Manual_Indication_Files : File_Sets.Set)
    is
 
       package Non_Root_Src_Calls_Sets is new
@@ -855,122 +860,136 @@ is
       --  Set of names of source files containing a dump buffers indication
       --  that belong to a non-root project.
 
+      Processed_Files : File_Info_Sets.Set;
+      --  List of files processed for the manual indications replacement. This
+      --  is a subset of Project_Sources, discarding header files and only
+      --  processing the files specified by the user requested (through
+      --  --dump-trigger=manual[,FILES]).
+
    begin
+      --  Filter the set of processed files
+
       for Source of Project_Sources loop
          if To_Language (Source.Language) = Language
-            and then Source.Unit_Part = GNATCOLL.Projects.Unit_Body
+           and then Source.Unit_Part = GNATCOLL.Projects.Unit_Body
+           and then (Manual_Indication_Files.Is_Empty
+                     or else Manual_Indication_Files.Contains (Source.File))
          then
-            declare
-               use String_Sets;
+            Processed_Files.Include (Source);
+         end if;
+      end loop;
 
-               Prj_Info             : constant Project_Info_Access :=
-                 Get_Or_Create_Project_Info (IC, Source.Project);
-               Prj                  : Prj_Desc renames Prj_Info.Desc;
-               Is_Root_Prj          : constant Boolean :=
-                 Prj.Prj_Name = Root_Project_Info.Project.Name;
-               Source_Name          : constant String :=
-                 GNATCOLL.VFS."+" (Source.File.Full_Name);
-               Helper_Unit_Name     : constant Unbounded_String :=
-                 Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name;
-               Had_Dump_Indication  : Boolean := False;
-               Had_Reset_Indication : Boolean := False;
+      --  Onto the manual indication replacement
 
-            begin
-               Instrumenter.Replace_Manual_Indications
-                 (Prj_Info.Desc,
-                  Source,
-                  Had_Dump_Indication,
-                  Had_Reset_Indication);
+      for Source of Processed_Files loop
+         declare
+            use String_Sets;
 
-               if (Had_Dump_Indication or else Had_Reset_Indication)
-                 and then not Is_Root_Prj
-               then
+            Prj_Info             : constant Project_Info_Access :=
+              Get_Or_Create_Project_Info (IC, Source.Project);
+            Prj                  : Prj_Desc renames Prj_Info.Desc;
+            Is_Root_Prj          : constant Boolean :=
+              Prj.Prj_Name = Root_Project_Info.Project.Name;
+            Source_Name          : constant String :=
+              GNATCOLL.VFS."+" (Source.File.Full_Name);
+            Helper_Unit_Name     : constant Unbounded_String :=
+              Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name;
+            Had_Dump_Indication  : Boolean := False;
+            Had_Reset_Indication : Boolean := False;
+         begin
+            Instrumenter.Replace_Manual_Indications
+              (Prj_Info.Desc,
+               Source,
+               Had_Dump_Indication,
+               Had_Reset_Indication);
 
-                  --  A call to the dump/reset buffers procedure is only able
-                  --  to dump/reset the buffers of the project it is in and its
-                  --  subprojects, meaning coverage data for all projects
-                  --  higher in the project tree will be missing or not reset.
-                  --  Record what file this call was in to warn the user later.
+            if (Had_Dump_Indication or else Had_Reset_Indication)
+              and then not Is_Root_Prj
+            then
+               --  A call to the dump/reset buffers procedure is only able
+               --  to dump/reset the buffers of the project it is in and its
+               --  subprojects, meaning coverage data for all projects
+               --  higher in the project tree will be missing or not reset.
+               --  Record what file this call was in to warn the user later.
 
-                  Non_Root_Src_Calls.Include (Source_Name);
-               end if;
+               Non_Root_Src_Calls.Include (Source_Name);
+            end if;
 
-               --  Check if we haven't already generated a helper unit for this
-               --  project and instrumenter. At this point, if the project's
-               --  object directory and the instrumented sources directory do
-               --  not exist there is no need to emit the dump helper unit.
-               --  There are no units of interest or call to a manual dump
-               --  procedure for this project.
+            --  Check if we haven't already generated a helper unit for this
+            --  project and instrumenter. At this point, if the project's
+            --  object directory and the instrumented sources directory do
+            --  not exist there is no need to emit the dump helper unit.
+            --  There are no units of interest or call to a manual dump
+            --  procedure for this project.
 
-               if not Emitted_Manual_Helpers.Contains (Helper_Unit_Name)
-                 and then Ada.Directories.Exists (+Prj.Output_Dir)
-               then
-                  Instrumenter.Emit_Dump_Helper_Unit_Manual (Dump_Config, Prj);
+            if not Emitted_Manual_Helpers.Contains (Helper_Unit_Name)
+              and then Ada.Directories.Exists (+Prj.Output_Dir)
+            then
+               Instrumenter.Emit_Dump_Helper_Unit_Manual (Dump_Config, Prj);
 
-                  declare
-                     use Files_Table;
-                     Instr_Units  : Unit_Sets.Set;
-                     Source_Files : GNATCOLL.VFS.File_Array_Access :=
-                       Source.Project.Source_Files
-                         (Recursive                => True,
-                          Include_Externally_Built =>
-                            Externally_Built_Projects_Processing_Enabled);
-                  begin
-                     for S of Source_Files.all loop
+               declare
+                  use Files_Table;
+                  Instr_Units  : Unit_Sets.Set;
+                  Source_Files : GNATCOLL.VFS.File_Array_Access :=
+                    Source.Project.Source_Files
+                      (Recursive                => True,
+                       Include_Externally_Built =>
+                         Externally_Built_Projects_Processing_Enabled);
+               begin
+                  for S of Source_Files.all loop
 
-                        --  First, check if S is even a source of a language we
-                        --  recognize. If not, it can't have been instrumented
-                        --  so skip it.
+                     --  First, check if S is even a source of a language we
+                     --  recognize. If not, it can't have been instrumented
+                     --  so skip it.
 
-                        if To_Language_Or_All
-                          (Project.Project.Info (S).Language) = All_Languages
-                        then
-                           goto Skip_File;
-                        end if;
-
-                        declare
-                           use Unit_Maps;
-                           Unit_C : constant Unit_Maps.Cursor :=
-                             Instrumented_Sources.Find
-                               (+To_Compilation_Unit
-                                  (Project.Project.Info (S)).Unit_Name);
-                        begin
-                           if Unit_C /= Unit_Maps.No_Element then
-                              declare
-                                 Unit       : constant Library_Unit_Info :=
-                                   Element (Unit_C);
-                                 Instr_Unit : constant Compilation_Unit :=
-                                   Compilation_Unit'
-                                     (Unit.Language_Kind,
-                                      Unit.Unit_Name);
-                              begin
-                                 if not Instr_Units.Contains (Instr_Unit) then
-                                    Instr_Units.Insert (Instr_Unit);
-                                 end if;
-                              end;
-                           end if;
-                        end;
-                        <<Skip_File>>
-                     end loop;
-
-                     --  The creation of the root project's buffers list unit
-                     --  is already taken care of by the regular
-                     --  instrumentation process, so skip it.
-
-                     if not Is_Root_Prj then
-                        Instrumenter.Emit_Buffers_List_Unit (Instr_Units, Prj);
+                     if To_Language_Or_All
+                       (Project.Project.Info (S).Language) = All_Languages
+                     then
+                        goto Skip_File;
                      end if;
 
-                     GNATCOLL.VFS.Unchecked_Free (Source_Files);
-                  end;
+                     declare
+                        use Unit_Maps;
+                        Unit_C : constant Unit_Maps.Cursor :=
+                          Instrumented_Sources.Find
+                            (+To_Compilation_Unit
+                               (Project.Project.Info (S)).Unit_Name);
+                     begin
+                        if Unit_C /= Unit_Maps.No_Element then
+                           declare
+                              Unit       : constant Library_Unit_Info :=
+                                Element (Unit_C);
+                              Instr_Unit : constant Compilation_Unit :=
+                                Compilation_Unit'
+                                  (Unit.Language_Kind,
+                                   Unit.Unit_Name);
+                           begin
+                              if not Instr_Units.Contains (Instr_Unit) then
+                                 Instr_Units.Insert (Instr_Unit);
+                              end if;
+                           end;
+                        end if;
+                     end;
+                     <<Skip_File>>
+                  end loop;
 
-                  Emitted_Manual_Helpers.Insert (Helper_Unit_Name);
-               end if;
+                  --  The creation of the root project's buffers list unit
+                  --  is already taken care of by the regular
+                  --  instrumentation process, so skip it.
 
-               Manual_Dump_Inserted :=
-                 Manual_Dump_Inserted or else Had_Dump_Indication;
-            end;
-         end if;
+                  if not Is_Root_Prj then
+                     Instrumenter.Emit_Buffers_List_Unit (Instr_Units, Prj);
+                  end if;
+
+                  GNATCOLL.VFS.Unchecked_Free (Source_Files);
+               end;
+
+               Emitted_Manual_Helpers.Insert (Helper_Unit_Name);
+            end if;
+
+            Manual_Dump_Inserted :=
+              Manual_Dump_Inserted or else Had_Dump_Indication;
+         end;
       end loop;
 
       if not Non_Root_Src_Calls.Is_Empty then
@@ -1239,7 +1258,8 @@ begin
            (Lang,
             Project_Sources,
             Instrumenters (Lang).all,
-            Manual_Dump_Inserted);
+            Manual_Dump_Inserted,
+            Dump_Config.Manual_Indication_Files);
       end loop;
    end if;
 
@@ -1545,7 +1565,8 @@ begin
         (Ada_Language,
          Project_Sources,
          Ada_Instrumenter,
-         Manual_Dump_Inserted);
+         Manual_Dump_Inserted,
+        Dump_Config.Manual_Indication_Files);
 
       for Main of Mains_To_Instrument (Ada_Language) loop
          Insert_With_Dump_Helper

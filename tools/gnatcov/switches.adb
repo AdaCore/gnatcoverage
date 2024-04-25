@@ -18,13 +18,15 @@
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;
+with Ada.Containers;          use Ada.Containers;
+with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Text_IO;             use Ada.Text_IO;
 
 with Inputs;
-with Outputs; use Outputs;
-with Project; use Project;
+with Outputs;        use Outputs;
+with Project;        use Project;
 
 package body Switches is
 
@@ -165,10 +167,14 @@ package body Switches is
    function Load_Dump_Config
      (Default_Dump_Config : Any_Dump_Config) return Any_Dump_Config
    is
+      use String_Vectors;
       Dump_Channel_Opt : String_Option renames
         Args.String_Args (Opt_Dump_Channel);
-      Dump_Trigger_Opt : String_Option renames
-        Args.String_Args (Opt_Dump_Trigger);
+      Dump_Trigger_Opt : Vector;
+
+      Manual_Indication_Files : File_Sets.Set;
+      --  Files containing manual indications (optional) when using the manual
+      --  dump trigger.
 
       Dump_Filename_Env_Var_Opt : String_Option renames
         Args.String_Args (Opt_Dump_Filename_Env_Var);
@@ -194,10 +200,50 @@ package body Switches is
          end;
       end if;
 
+      --  Two cases for the dump-trigger:
+
+      --    * It is a single string, in which case we expect the dump-trigger
+      --      to be atexit|main-end|manual.
+      --
+      --    * It is a string list, in which case we expect the first argument
+      --      to be manual, and the rest a list of files to process for the
+      --      manual indications replacement.
+
+      Copy_Arg_List (Opt_Dump_Trigger, Dump_Trigger_Opt);
       Dump_Trigger := Default_Dump_Config.Trigger;
-      if Dump_Trigger_Opt.Present then
+      if not Dump_Trigger_Opt.Is_Empty then
          begin
-            Dump_Trigger := Value (+Dump_Trigger_Opt.Value);
+            --  Process the dump trigger value
+
+            Dump_Trigger := Value (+Dump_Trigger_Opt.First_Element);
+
+            --  Now check whether there are additional arguments
+
+            if Dump_Trigger_Opt.Length > 1 then
+               if Dump_Trigger /= Manual then
+                  Fatal_Error
+                    ("--dump-trigger=atexit|main-end accepts a single"
+                     & " argument");
+               end if;
+
+               declare
+                  Cur : Cursor := Next (Dump_Trigger_Opt.First);
+               begin
+                  while Has_Element (Cur) loop
+                     declare
+                        Filename : constant String := +Element (Cur);
+                     begin
+                        if not Ada.Directories.Exists (Filename) then
+                           Fatal_Error
+                             ("File " & Filename & " does not exist");
+                        end if;
+                        Manual_Indication_Files.Include
+                          (Create_Normalized (Filename));
+                        Cur := Next (Cur);
+                     end;
+                  end loop;
+               end;
+            end if;
          exception
             when Exc : Constraint_Error =>
                Fatal_Error (Ada.Exceptions.Exception_Message (Exc));
@@ -238,15 +284,17 @@ package body Switches is
          case Dump_Channel is
             when Binary_File =>
                Dump_Config :=
-                 (Channel          => Binary_File,
-                  Trigger          => Dump_Trigger,
-                  Filename_Simple  => Dump_Filename_Simple,
-                  Filename_Env_Var => Dump_Filename_Env_Var,
-                  Filename_Prefix  => Dump_Filename_Prefix);
+                 (Channel                 => Binary_File,
+                  Trigger                 => Dump_Trigger,
+                  Manual_Indication_Files => Manual_Indication_Files,
+                  Filename_Simple         => Dump_Filename_Simple,
+                  Filename_Env_Var        => Dump_Filename_Env_Var,
+                  Filename_Prefix         => Dump_Filename_Prefix);
             when Base64_Standard_Output =>
                Dump_Config :=
-                 (Channel => Base64_Standard_Output,
-                  Trigger => Dump_Trigger);
+                 (Channel                 => Base64_Standard_Output,
+                  Trigger                 => Dump_Trigger,
+                  Manual_Indication_Files => Manual_Indication_Files);
          end case;
       end return;
    end Load_Dump_Config;

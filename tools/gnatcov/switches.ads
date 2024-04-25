@@ -271,6 +271,10 @@ package Switches is
    is record
       Trigger : Any_Dump_Trigger := Manual;
 
+      Manual_Indication_Files : File_Sets.Set;
+      --  Files containing manual indications as specified per the user
+      --  (optional).
+
       case Channel is
          when Binary_File =>
             Filename_Simple : Boolean := False;
