@@ -1,0 +1,51 @@
+(.|\n)*
+21% of 19 lines covered
+67% statement coverage \(6 out of 9\)
+50% decision coverage \(1 out of 2\)
+20% MC\/DC coverage \(1 out of 5\)
+
+Coverage level: stmt\+mcdc
+   1 \.: procedure Main
+   2 \.: is
+   3 \+:     T : Boolean := True;
+   4 \+:     F : Boolean := False;
+   5 \.: 
+   6 \.:     function Concat \(S1, S2, S3: String\) return String is
+   7 \.:     begin
+   8 -:         return S1 & S2 & S3;
+statement "return S1\.\.\." at 8:9 not executed
+   9 \.:     end Concat;
+  10 \.: 
+  11 \.:     procedure Test \(B : Boolean\) is
+  12 \.:     begin
+  13 !:         if B
+  14 !:             and then
+  15 !:                 \(T
+  16 !:                 or else F\)
+condition "T" at 15:18 has no independent influence pair, MC/DC not achieved
+condition "F" at 16:25 has no independent influence pair, MC/DC not achieved
+  17 \.:         then
+  18 !:             if F
+  19 !:                 or else
+  20 !:                 F
+decision "F\.\.\." at 18:16 outcome TRUE never exercised
+  21 \.:             then
+  22 \.:                 declare
+  23 -:                     Dummy : String := Concat
+  24 -:                     \(
+  25 -:                     "B",
+  26 -:                     "C",
+  27 -:                     "D"
+  28 -:                     \);
+statement "Dummy : S\.\.\." at 23:21 not executed
+  29 \.:                 begin
+  30 -:                     null;
+statement "null;" at 30:21 not executed
+  31 \.:                 end;
+  32 \.:             end if;
+  33 \.:         end if;
+  34 \.:     end Test;
+  35 \.: begin
+  36 \+:     Test \(T\);
+  37 \+:     Test \(F\);
+  38 \.: end Main;
