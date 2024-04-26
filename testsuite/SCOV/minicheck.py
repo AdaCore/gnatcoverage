@@ -259,6 +259,9 @@ def build_and_run(
         xcov_args.extend(cov_or_instr_args)
 
     elif trace_mode == "src":
+        # Deal with --dump-trigger=manual,<file>
+        is_manual = dump_trigger.split(",")[0] == "manual"
+
         if dump_channel == "auto":
             dump_channel = default_dump_channel()
 
@@ -347,11 +350,7 @@ def build_and_run(
         # non-deterministic by default, so we want to avoid getting
         # multiple traces in the current directory.
         for m in mains:
-            rm(
-                srctrace_pattern_for(
-                    m, dump_trigger == "manual", manual_prj_name
-                )
-            )
+            rm(srctrace_pattern_for(m, is_manual, manual_prj_name))
 
         patterns = set()
         trace_files = []
@@ -381,9 +380,7 @@ def build_and_run(
 
             if known_channel in [None, "bin-file"]:
                 patterns.add(
-                    srctrace_pattern_for(
-                        m, dump_trigger == "manual", manual_prj_name
-                    )
+                    srctrace_pattern_for(m, is_manual, manual_prj_name)
                 )
 
             elif (
@@ -392,7 +389,7 @@ def build_and_run(
             ):
                 # Pick a trace name that is compatible with srctracename_for
                 src_pattern = srctrace_pattern_for(
-                    m, dump_trigger == "manual", manual_prj_name
+                    m, is_manual, manual_prj_name
                 )
                 patterns.add(src_pattern)
                 trace_file = src_pattern.replace("*", "unique")
