@@ -75,7 +75,7 @@ build_run_and_coverage(
 check_xcov_reports("xcov", expected_xcov)
 
 # Check error cases
-thistest.log("===== Check error cases =====")
+thistest.log("====== Check error cases ======")
 tmp.to_homedir()
 tmp = Wdir("tmp_err")
 GPRswitches_wrapper()
@@ -96,7 +96,7 @@ xcov(
 )
 thistest.fail_if_no_match(
     "missing error in gnatcov instrument output",
-    r".*/gnatcov(\.exe)?: File unknown does not exist",
+    r".*gnatcov(\.exe)?: File unknown does not exist",
     contents_of(instr_out),
 )
 
@@ -116,7 +116,7 @@ xcov(
 )
 thistest.fail_if_no_match(
     "missing error in gnatcov instrument output",
-    r".*/gnatcov(\.exe)?: --dump-trigger=atexit|main-end accepts a single"
+    r".*gnatcov(\.exe)?: --dump-trigger=atexit|main-end accepts a single"
     " argument",
     contents_of(instr_out),
 )
