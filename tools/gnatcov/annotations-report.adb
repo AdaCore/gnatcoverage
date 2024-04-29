@@ -579,7 +579,11 @@ package body Annotations.Report is
                end if;
 
             else
-               Put (Output.all, Image (M.Sloc, Unique_Name => True));
+               Put (Output.all, Image
+                    ((if SC_Obligations.Kind (M.SCO) = Condition
+                       then First_Sloc (Enclosing_Decision (M.SCO))
+                       else First_Sloc (M.SCO)),
+                       Unique_Name => True));
                Put (Output.all, ": ");
             end if;
 

@@ -108,7 +108,7 @@ package body Diagnostics is
             --  Diagnostics can be emitted before the file table is complete,
             --  so we cannot rely on unique filenames, here.
 
-            return " " & Image (M.Sloc, Unique_Name => False) & ":";
+            return " " & Image (M.Violation_Sloc, Unique_Name => False) & ":";
          else
             return "";
          end if;
@@ -197,22 +197,26 @@ package body Diagnostics is
    end Report;
 
    procedure Report
-     (Msg  : String;
-      Exe  : Exe_File_Acc    := null;
-      PC   : Pc_Type         := No_PC;
-      Sloc : Source_Location := No_Location;
-      SCO  : SCO_Id          := No_SCO_Id;
-      Tag  : SC_Tag          := No_SC_Tag;
-      Kind : Report_Kind     := Error)
+     (Msg            : String;
+      Exe            : Exe_File_Acc    := null;
+      PC             : Pc_Type         := No_PC;
+      Sloc           : Source_Location := No_Location;
+      Violation_Sloc : Source_Location := No_Location;
+      SCO            : SCO_Id          := No_SCO_Id;
+      Tag            : SC_Tag          := No_SC_Tag;
+      Kind           : Report_Kind     := Error)
    is
       M : constant Message :=
-        (Kind => Kind,
-         Exe  => Exe,
-         PC   => PC,
-         Sloc => Sloc,
-         SCO  => SCO,
-         Tag  => Tag,
-         Msg  => +Msg);
+        (Kind           => Kind,
+         Exe            => Exe,
+         PC             => PC,
+         Sloc           => Sloc,
+         Violation_Sloc => (if Sloc /= No_Location
+                            then Sloc
+                            else Violation_Sloc),
+         SCO            => SCO,
+         Tag            => Tag,
+         Msg            => +Msg);
    begin
       Output_Message (M);
       Store_Message (M);
@@ -228,18 +232,29 @@ package body Diagnostics is
       Msg  : String;
       Kind : Coverage_Kind)
    is
-      Sloc : Source_Location;
+      Sloc     : Source_Location;
+      --  Sloc of the message
+
+      Violation_Sloc : Source_Location;
+      --  Sloc of the violation the message expresses
    begin
       --  For an MC/DC violation, the message is attached to the decision for
       --  the benefit of HTML output.
 
       if SC_Obligations.Kind (SCO) = Condition then
-         Sloc := First_Sloc (Enclosing_Decision (SCO));
+         Sloc           := Last_Sloc (Enclosing_Decision (SCO));
+         Violation_Sloc := First_Sloc (Enclosing_Decision (SCO));
       else
-         Sloc := First_Sloc (SCO);
+         Sloc           := Last_Sloc (SCO);
+         Violation_Sloc := First_Sloc (SCO);
       end if;
 
-      Report (Msg, Sloc => Sloc, SCO => SCO, Tag => Tag, Kind => Kind);
+      Report (Msg,
+              Sloc           => Sloc,
+              Violation_Sloc => Violation_Sloc,
+              SCO            => SCO,
+              Tag            => Tag,
+              Kind           => Kind);
    end Report_Coverage;
 
    ----------------------
