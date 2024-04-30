@@ -3715,6 +3715,44 @@ package body Instrument.Ada_Unit is
          --  it is not an identifier, return null. Else, return the identifier
          --  as a symbol.
 
+         procedure Safe_String_Eval
+           (E       : Expr;
+            Result  : out Unbounded_Text_Type;
+            Success : out Boolean);
+         --  Evaluate the given Expr E and set Result to the evaluated string
+         --  and Success to True if it could be evaluated, otherwise set
+         --  Success to False.
+
+         ----------------------
+         -- Safe_String_Eval --
+         ----------------------
+
+         procedure Safe_String_Eval
+           (E       : Expr;
+            Result  : out Unbounded_Text_Type;
+            Success : out Boolean)
+         is
+            use Libadalang.Expr_Eval;
+         begin
+            --  TODO??? Check for P_Is_Static_Expr prior to evaluating
+            --  when eng/libadalang/libadalang#1359 is implemented instead of
+            --  using exception handling.
+
+            declare
+               String_Expr_Eval : constant Eval_Result :=  Expr_Eval (E);
+            begin
+               if String_Expr_Eval.Kind /= String_Lit then
+                  Success := False;
+                  return;
+               end if;
+               Result := As_String (String_Expr_Eval);
+               Success := True;
+            end;
+         exception
+            when Property_Error =>
+               Success := False;
+         end Safe_String_Eval;
+
          Nb_Children : constant Natural := Prag_Args.Children_Count;
          Kind        : Symbol_Type;
          Result      : ALI_Annotation;
@@ -3768,20 +3806,27 @@ package body Instrument.Ada_Unit is
                     (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
 
                when 3 =>
-                  if Prag_Arg_Expr (Prag_Args, 3).Kind /= Ada_String_Literal
-                  then
-                     Report
-                       (N,
-                        "Invalid justification argument: string literal"
-                        & " expected",
-                        Warning);
-                     return;
-                  end if;
-                  Result.Message := new String'
-                    (To_String (Prag_Arg_Expr (Prag_Args, 3).Text));
+                  declare
+                     String_Value : Unbounded_Text_Type;
+                     Success      : Boolean;
+                  begin
+                     Safe_String_Eval
+                       (Prag_Arg_Expr (Prag_Args, 3), String_Value, Success);
+                     if not Success then
+                        Report
+                          (N,
+                           "Invalid justification argument: static string"
+                           & " expression expected",
+                           Warning);
+                        return;
+                     end if;
+                     Result.Message := new String'
+                       (To_UTF8 (To_Text (String_Value)));
 
-                  UIC.Annotations.Append
-                    (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+                     UIC.Annotations.Append
+                       (Annotation_Couple'
+                          ((UIC.SFI, +Sloc (N)), Result));
+                  end;
 
                when others =>
                   Report (N, "At most 3 pragma arguments allowed", Warning);
@@ -3805,18 +3850,13 @@ package body Instrument.Ada_Unit is
                --  * (Xcov, Dump_Buffers, Prefix)
 
                case Nb_Children is
-                  when 2 =>
-                     null;
+                  when 2 | 3 =>
 
-                  when 3 =>
-                     if Prag_Arg_Expr (Prag_Args, 3).Kind not in
-                       Ada_String_Literal | Libadalang.Common.Ada_Identifier
-                     then
-                        Report
-                          (N,
-                           "Invalid prefix argument: string literal expected",
-                           Warning);
-                     end if;
+                     --  TODO??? check that the Prefix expression is a string
+                     --  type when eng/libadalang/libadalang#1360 is dealt
+                     --  with.
+
+                     null;
 
                   when others =>
                      Report (N, "At most 3 pragma arguments allowed", Warning);
