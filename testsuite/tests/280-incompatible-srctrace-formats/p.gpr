@@ -1,0 +1,3 @@
+project P is
+  for object_dir use "obj";
+end p;
