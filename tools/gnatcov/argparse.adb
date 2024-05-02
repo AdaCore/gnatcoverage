@@ -804,24 +804,7 @@ package body Argparse is
 
             --  Split values for comma-separated string list options
 
-            declare
-               Last            : constant Natural := Length (Str);
-               Arg_Start_Index : Natural := 1;
-            begin
-               --  Add a value for all slices before commas
-
-               for I in 1 .. Last loop
-                  if Element (Str, I) = ',' then
-                     Str_Vec.Append
-                       (Unbounded_Slice (Str, Arg_Start_Index, I - 1));
-                     Arg_Start_Index := I + 1;
-                  end if;
-               end loop;
-
-               --  Do not forget to add the slice after the comma
-
-               Str_Vec.Append (Unbounded_Slice (Str, Arg_Start_Index, Last));
-            end;
+            Append_From_String (Str_Vec, Str);
             return False;
 
          else

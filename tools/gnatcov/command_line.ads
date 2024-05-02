@@ -118,6 +118,7 @@ package Command_Line is
       Opt_Trace_Source,
       Opt_Save_Checkpoint,
       Opt_Report_Title,
+      Opt_Dump_Trigger,
       Opt_Dump_Channel,
       Opt_Dump_Filename_Env_Var,
       Opt_Dump_Filename_Prefix,
@@ -170,8 +171,7 @@ package Command_Line is
       Opt_CPP_Opts,
       Opt_Files,
       Opt_Runtime_Dir,
-      Opt_Compiler_Wrappers,
-      Opt_Dump_Trigger);
+      Opt_Compiler_Wrappers);
    --  Set of string list options we support. More complete descriptions below.
 
    subtype Cmd_Instrument is Command_Type
@@ -825,6 +825,47 @@ package Command_Line is
          At_Most_Once => False,
          Internal     => False),
 
+      --  --dump-trigger is a special case: It used to only accept a single
+      --  value, but it now should also accept a comma separated list of
+      --  filenames for the manual case. In order not to break compatibility
+      --  with the previous behavior (last --dump-trigger switch present was
+      --  the one used), we'll need to split the option string manually.
+
+      Opt_Dump_Trigger => Create
+        (Long_Name    => "--dump-trigger",
+         Help         => "Select a trigger to dump coverage buffers in the"
+                         & " instrumented program."
+                         & ASCII.LF & ASCII.LF
+                         & """manual"" (the default) does nothing specific,"
+                         & " leaving the responsibility to schedule the dump"
+                         & " when appropriate, as specified in the"
+                         & " documentation. A list of files containing the"
+                         & " manual indications can be optionally specified."
+                         & " If not, gnatcov processes every file of the"
+                         & " project."
+                         & ASCII.LF & ASCII.LF
+                         & """atexit"" uses the libc's atexit() routine to"
+                         & " schedule the dump."
+                         & ASCII.LF & ASCII.LF
+                         & """main-end"" instructs to append a call to the"
+                         & " dump routine at the end of the main subprogram."
+                         & ASCII.LF & ASCII.LF
+                         & """ravenscar-task-termination"" uses the Ravenscar"
+                         & "-specific Ada.Task_Termination to schedule the"
+                         & " dump on task termination."
+                         & ASCII.LF & ASCII.LF
+                         & "Except for ""manual"", these methods inject code"
+                         & " in all mains in the project closure to dump"
+                         & " coverage buffers for all units of interest in the"
+                         & " main closure. The --dump-channel option"
+                         & " determines the dump procedure."
+                         & ASCII.LF & ASCII.LF & "Only the last occurrence of"
+                         & " the switch is taken into account.",
+         Commands     => (Cmd_Setup | Cmd_Instrument => True, others => False),
+         At_Most_Once => False,
+         Pattern      => "manual[,FILES]|atexit|main-end",
+         Internal     => False),
+
       Opt_Dump_Channel => Create
         (Long_Name    => "--dump-channel",
          Help         => "Select a channel to dump coverage buffers in the"
@@ -1402,40 +1443,7 @@ package Command_Line is
            "List of compiler drivers for which we should generate wrappers."
            & " Supported compilers are: gcc, g++.",
          Commands  => (others => True),
-         Internal  => True),
-
-      Opt_Dump_Trigger => Create
-        (Long_Name    => "--dump-trigger",
-         Help         => "Select a trigger to dump coverage buffers in the"
-                         & " instrumented program."
-                         & ASCII.LF & ASCII.LF
-                         & """manual"" (the default) does nothing specific,"
-                         & " leaving the responsibility to schedule the dump"
-                         & " when appropriate, as specified in the"
-                         & " documentation. A list of files containing the"
-                         & " manual indications can be optionally specified."
-                         & " If not, gnatcov processes every file of the"
-                         & " project."
-                         & ASCII.LF & ASCII.LF
-                         & """atexit"" uses the libc's atexit() routine to"
-                         & " schedule the dump."
-                         & ASCII.LF & ASCII.LF
-                         & """main-end"" instructs to append a call to the"
-                         & " dump routine at the end of the main subprogram."
-                         & ASCII.LF & ASCII.LF
-                         & """ravenscar-task-termination"" uses the Ravenscar"
-                         & "-specific Ada.Task_Termination to schedule the"
-                         & " dump on task termination."
-                         & ASCII.LF & ASCII.LF
-                         & "Except for ""manual"", these methods inject code"
-                         & " in all mains in the project closure to dump"
-                         & " coverage buffers for all units of interest in the"
-                         & " main closure. The --dump-channel option"
-                         & " determines the dump procedure.",
-         Commands     => (Cmd_Setup | Cmd_Instrument => True, others => False),
-         Pattern      => "manual[,FILES]|atexit|main-end",
-         Internal     => False,
-         Accepts_Comma_Separator => True)
+         Internal  => True)
      );
 
    procedure Bool_Callback

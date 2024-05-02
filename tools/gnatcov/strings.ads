@@ -151,6 +151,11 @@ package Strings is
 
    --  TODO??? Handle Unicode source texts
 
+   procedure Append_From_String
+     (Vec : in out String_Vectors.Vector; From : Unbounded_String);
+   --  Process From as if it was a comma separated list, and append each
+   --  element to Vec.
+
 private
    pragma Inline (Hash);
    pragma Inline (Equal);
