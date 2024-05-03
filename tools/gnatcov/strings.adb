@@ -315,4 +315,28 @@ package body Strings is
 
    end Match_Pattern_List;
 
+   ------------------------
+   -- Append_From_String --
+   ------------------------
+
+   procedure Append_From_String
+     (Vec : in out String_Vectors.Vector; From : Unbounded_String)
+   is
+      Last            : constant Natural := Length (From);
+      Arg_Start_Index : Natural := 1;
+   begin
+      --  Add a value for all slices before commas
+
+      for I in 1 .. Last loop
+         if Element (From, I) = ',' then
+            Vec.Append (Unbounded_Slice (From, Arg_Start_Index, I - 1));
+            Arg_Start_Index := I + 1;
+         end if;
+      end loop;
+
+      --  Do not forget to add the slice after the comma
+
+      Vec.Append (Unbounded_Slice (From, Arg_Start_Index, Last));
+   end Append_From_String;
+
 end Strings;
