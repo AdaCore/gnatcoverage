@@ -21,7 +21,7 @@
 #include "gnatcov_rts_c-traces.h"
 #include <stdint.h>
 
-const unsigned alignment = sizeof (void *);
+static const unsigned alignment = sizeof (void *);
 
 struct info_entry
 {
@@ -141,7 +141,7 @@ write_entry (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 }
 
 /* Write a uint64_t timestamp (by splitting it in uint8_t chunks).  */
-void
+static void
 write_date (gnatcov_rts_write_bytes_callback write_bytes, void *output,
 	    uint64_t timestamp)
 {
