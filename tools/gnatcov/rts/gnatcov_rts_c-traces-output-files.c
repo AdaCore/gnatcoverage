@@ -50,7 +50,7 @@ hex_str (uint64_t value)
 }
 
 /* Return the concatenation of the given strings */
-char *
+static char *
 concat (const char *s1, ...)
 {
   va_list args;
