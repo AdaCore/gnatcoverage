@@ -260,7 +260,9 @@ def build_and_run(
 
     elif trace_mode == "src":
         # Deal with --dump-trigger=manual,<file>
-        is_manual = dump_trigger.split(",")[0] == "manual"
+        is_manual = (
+            dump_trigger.split(",")[0] == "manual" if dump_trigger else False
+        )
 
         if dump_channel == "auto":
             dump_channel = default_dump_channel()

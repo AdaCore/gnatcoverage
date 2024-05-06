@@ -209,10 +209,26 @@ package body Switches is
       --      to be manual, and the rest a list of files to process for the
       --      manual indications replacement.
 
-      Copy_Arg_List (Opt_Dump_Trigger, Dump_Trigger_Opt);
       Dump_Trigger := Default_Dump_Config.Trigger;
-      if not Dump_Trigger_Opt.Is_Empty then
+      if Args.String_Args (Opt_Dump_Trigger).Present then
          begin
+            --  Post-process the switch value manually, see comment for the
+            --  Opt_Dump_Trigger option in command_lines.ads.
+
+            declare
+               Non_Expanded_Args : Vector;
+            begin
+               --  Split the argument in a string list
+
+               Append_From_String
+                 (Non_Expanded_Args,
+                  Args.String_Args (Opt_Dump_Trigger).Value);
+
+               --  Expand possible response files
+
+               Copy_Arg_List (Non_Expanded_Args, Dump_Trigger_Opt);
+            end;
+
             --  Process the dump trigger value
 
             Dump_Trigger := Value (+Dump_Trigger_Opt.First_Element);
