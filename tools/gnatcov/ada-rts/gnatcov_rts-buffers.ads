@@ -71,6 +71,7 @@ package GNATcov_RTS.Buffers is
    type Fingerprint_Type is array (1 .. 20) of Unsigned_8;
    for Fingerprint_Type'Component_Size use 8;
    for Fingerprint_Type'Size use 20 * 8;
+   pragma Universal_Aliasing (Fingerprint_Type);
 
    type GNATcov_RTS_Coverage_Buffers is record
       Fingerprint : Fingerprint_Type;
