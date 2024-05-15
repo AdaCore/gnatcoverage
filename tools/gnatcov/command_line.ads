@@ -183,6 +183,7 @@ package Command_Line is
       Opt_Source_Search,
       Opt_Trace,
       Opt_Checkpoint,
+      Opt_LLVM_JSON_Checkpoint,
       Opt_Ignore_Source_Files,
       Opt_Shared_Object,
       Opt_Restricted_To_Languages,
@@ -1552,6 +1553,13 @@ package Command_Line is
          Help        => "Specify checkpointed coverage information to load.",
          Commands    => (Cmd_Coverage => True, others => False),
          Internal    => False),
+      Opt_LLVM_JSON_Checkpoint => Create
+        (Long_Name             => "--llvm-json-checkpoint",
+         Pattern               => "[CHECKPOINT|@LISTFILE]",
+         Help                  => "Specify a list of json files containing"
+                                  & "LLVM coverage information to load.",
+         Commands              => (Cmd_Coverage => True, others => False),
+         Internal              => False),
       Opt_Ignore_Source_Files => Create
         (Long_Name => "--ignore-source-files",
          Pattern   => "[FILE|@LISTFILE]",
