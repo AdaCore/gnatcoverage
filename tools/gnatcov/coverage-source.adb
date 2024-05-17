@@ -16,8 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Vectors;
-with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Streams; use Ada.Streams;
@@ -33,7 +31,6 @@ with Coverage.Tags;     use Coverage.Tags;
 with Decision_Map;      use Decision_Map;
 with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
-with MC_DC;             use MC_DC;
 with Outputs;           use Outputs;
 with Project;           use Project;
 with Slocs;             use Slocs;
@@ -60,12 +57,6 @@ package body Coverage.Source is
    --  For each source coverage obligation, we maintain a corresponding source
    --  coverage information record, which denotes the coverage state of the
    --  SCO. Default initialization denotes a completely uncovered state.
-
-   package Evaluation_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Evaluation);
-
-   package Evaluation_Sets is new Ada.Containers.Ordered_Sets (Evaluation);
 
    procedure Read is new Read_Set
      (Element_Type => Evaluation,
