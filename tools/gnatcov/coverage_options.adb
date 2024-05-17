@@ -130,7 +130,8 @@ package body Coverage_Options is
         & "+"  & Level_Str (MCDC)     & "|"
         & "+"  & Level_Str (UC_MCDC)  & ")?"
         & "(+" & Level_Str (ATC)      & "|"
-        & "+"  & Level_Str (ATCC)     & ")?";
+        & "+"  & Level_Str (ATCC)     & ")?"
+        & "(+" & Level_Str (Fun_Call) & ")?";
    end Source_Level_Options;
 
    -------------------------------------
@@ -139,8 +140,24 @@ package body Coverage_Options is
 
    procedure Add_Source_Coverage_Level_Combinaisons is
       procedure Add_Assert_Coverage_Levels (Combinaison : Levels_Type);
-      --  Register the coverage level Combinaison combined plus each level
+      --  Register the coverage level Combinaison combined with each level
       --  of assertion coverage.
+
+      procedure Add_Fun_Call_Coverage_Level (Combinaison : Levels_Type);
+      --  Register the coverage level Combinaison combined with function and
+      --  call coverage.
+
+      ---------------------------------
+      -- Add_Fun_Call_Coverage_Level --
+      ---------------------------------
+
+      procedure Add_Fun_Call_Coverage_Level (Combinaison : Levels_Type)
+      is
+         Comb : Levels_Type := Combinaison;
+      begin
+         Comb (Fun_Call) := True;
+         Add_Source_Level_Option (Comb);
+      end Add_Fun_Call_Coverage_Level;
 
       --------------------------------
       -- Add_Assert_Coverage_Levels --
@@ -158,6 +175,9 @@ package body Coverage_Options is
 
             Add_Source_Level_Option (Comb);
 
+            --  Add CallFunc to the current combinaison
+            Add_Fun_Call_Coverage_Level (Comb);
+
             --  Deactivate Lvl to add the next assertion level to the
             --  combinaison Comb
             Comb (Lvl) := False;
@@ -171,9 +191,11 @@ package body Coverage_Options is
       Combinaison : Levels_Type := (Stmt => True, others => False);
    begin
 
-      --  Add "stmt" only and combine it with all possible assertion levels
+      --  Add "stmt" only. Combine it alone with "callfunc", and then with all
+      --  possible assertion levels.
 
       Add_Source_Level_Option (Combinaison);
+      Add_Fun_Call_Coverage_Level (Combinaison);
       Add_Assert_Coverage_Levels (Combinaison);
 
       --  Do the same for all other regular source coverage options
@@ -184,6 +206,7 @@ package body Coverage_Options is
          Combinaison (Lvl) := True;
 
          Add_Source_Level_Option (Combinaison);
+         Add_Fun_Call_Coverage_Level (Combinaison);
          Add_Assert_Coverage_Levels (Combinaison);
 
          --  Deactivate Lvl to combine the next level with "stmt"
