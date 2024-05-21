@@ -23,6 +23,7 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with GNATCOLL.JSON;   use GNATCOLL.JSON;
 with GNATCOLL.Traces; use GNATCOLL.Traces;
 
+with Files_Table;
 with JSON;
 with MC_DC;
 with Outputs; use Outputs;
@@ -154,6 +155,8 @@ package body LLVM_JSON_Checkpoints is
       if LLVM_Trace.Is_Active then
          Print_Report (Ckpt);
       end if;
+
+      Files_Table.LLVM_JSON_Load (Ckpt'Access);
    end JSON_Load;
 
    --------------------------
