@@ -27,7 +27,6 @@ with Interfaces;
 with ALI_Files;        use ALI_Files;
 with Calendar_Utils;
 with Coverage;
-with Coverage_Options; use Coverage_Options;
 with Coverage.Object;
 with Coverage.Source;  use Coverage.Source;
 with Coverage.Tags;
@@ -863,6 +862,9 @@ package body Annotations is
       elsif Option = "cobertura" then
          return Annotate_Cobertura;
 
+      elsif Option = "sarif" then
+         return Annotate_Sarif;
+
       else
          return Annotate_Unknown;
       end if;
@@ -1083,5 +1085,85 @@ package body Annotations is
               then "contract expression"
               else To_Lower (SCO_Kind'Image (K)));
    end SCO_Kind_Image;
+
+   ------------------------
+   -- Section_Of_Message --
+   ------------------------
+
+   function Section_Of_Message (M : Message) return Report_Section is
+   begin
+      if M.SCO /= No_SCO_Id and then M.Kind in Coverage_Kind then
+         case M.Kind is
+         when Exclusion =>
+            return Coverage_Exclusions;
+         when Undetermined_Cov =>
+            return Undet_Coverage;
+         when others =>
+            pragma Assert (M.Kind = Violation or else M.Kind = Info);
+
+            declare
+               S : constant Report_Section := Section_Of_SCO (M.SCO);
+            begin
+               if S = Other_Errors then
+                  --  A violation message is expected to always be relevant to
+                  --  some report section.
+
+                  raise Program_Error with "unexpected SCO kind in violation";
+               end if;
+               return S;
+            end;
+         end case;
+
+      else
+         pragma Assert (M.Kind not in Coverage_Kind);
+
+         return Other_Errors;
+      end if;
+   end Section_Of_Message;
+
+   --------------------
+   -- Section_Of_SCO --
+   --------------------
+
+   function Section_Of_SCO (SCO : SCO_Id) return Report_Section is
+      MCDC_Section : Report_Section;
+   begin
+      --  Need to initialize MCDC_Section specially because it is erroneous
+      --  to evaluate MCDC_Level if MCDC coverage is not enabled.
+
+      if Coverage.MCDC_Coverage_Enabled then
+         MCDC_Section := Coverage_Level'Pos (Coverage.MCDC_Level);
+      else
+         MCDC_Section := Other_Errors;
+      end if;
+
+      case Kind (SCO) is
+         when Statement =>
+            return Coverage_Level'Pos (Stmt);
+
+         when Decision =>
+            if Is_Expression (SCO)
+              and then not Decision_Requires_Assertion_Coverage (SCO)
+            then
+               return MCDC_Section;
+            elsif Decision_Requires_Assertion_Coverage (SCO) then
+               return Coverage_Level'Pos (ATC);
+            else
+               return Coverage_Level'Pos (Decision);
+            end if;
+
+         when Condition =>
+            if Coverage.Enabled (ATCC)
+              and then Decision_Requires_Assertion_Coverage (SCO)
+            then
+               return Coverage_Level'Pos (ATCC);
+            else
+               return MCDC_Section;
+            end if;
+
+         when others =>
+            return Other_Errors;
+      end case;
+   end Section_Of_SCO;
 
 end Annotations;

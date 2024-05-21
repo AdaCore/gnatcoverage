@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2024, AdaCore                     --
+--                     Copyright (C) 2024, AdaCore                          --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,20 +16,16 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Coverage;
+package Annotations.Sarif is
 
-package Annotations.Report is
+   procedure Generate_Report (Context : Coverage.Context_Access);
+   --  Generate a report in the SARIF report format. This report format
+   --  is designed to be used in visualiztion tools and IDEs, e.g.
+   --  VisualStudio. The specification for this format is found here:
+   --  https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
+   --
+   --  This format is able to represent all gnatcov source coverage metrics and
+   --  the corresponding violations. Violations are reported as errors,
+   --  undertermined coverage as warnings and exempted violations as notes.
 
-   procedure Generate_Report
-     (Context           : Coverage.Context_Access;
-      Final_Report_Name : String_Access;
-      Dump_Units        : Boolean);
-   --  Generate the final report, source-wise. If Final_Report_Name is
-   --  null, dump it on stdout. If Dump_Units, add a section to describe the
-   --  list of units of interest considered.
-
-   subtype Coverage_Violations is Report_Section
-     range Coverage_Level'Pos (Coverage_Level'First)
-        .. Coverage_Level'Pos (Coverage_Level'Last);
-
-end Annotations.Report;
+end Annotations.Sarif;

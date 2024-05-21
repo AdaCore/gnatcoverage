@@ -23,7 +23,6 @@ with Ada.Text_IO;             use Ada.Text_IO;
 
 with ALI_Files;
 with Calendar_Utils;   use Calendar_Utils;
-with Coverage_Options; use Coverage_Options;
 with Coverage;         use Coverage;
 with Coverage.Source;  use Coverage.Source;
 with Coverage.Tags;    use Coverage.Tags;
@@ -55,25 +54,6 @@ package body Annotations.Report is
    --  Close the handle to the final report
 
    --  Pretty printer type for the final report
-
-   type Report_Section is
-     range Coverage_Level'Pos (Coverage_Level'First)
-        .. Coverage_Level'Pos (Coverage_Level'Last) + 3;
-   --  There is one report section for each coverage level, plus the following
-   --  three special sections:
-   subtype Coverage_Violations is Report_Section
-     range Coverage_Level'Pos (Coverage_Level'First)
-        .. Coverage_Level'Pos (Coverage_Level'Last);
-
-   Coverage_Exclusions   : constant Report_Section := Report_Section'Last - 2;
-   Undetermined_Coverage : constant Report_Section := Report_Section'Last - 1;
-   Other_Errors          : constant Report_Section := Report_Section'Last;
-
-   function Section_Of_SCO (SCO : SCO_Id) return Report_Section;
-   function Section_Of_Message (M : Message) return Report_Section;
-   --  Indicate the coverage criterion a given SCO/message pertains to (by its
-   --  'Pos), or Other_Errors if SCO has no related section/M is not a
-   --  violation message.
 
    function Underline (S : String; C : Character := '-') return String;
    --  Return, as a string with line-feeds, S underlined with a sequence
@@ -638,7 +618,7 @@ package body Annotations.Report is
                         "other message",
                       when Coverage_Exclusions  =>
                         "coverage exclusion",
-                      when Undetermined_Coverage =>
+                      when Undet_Coverage =>
                         "undetermined coverage item")) & "."));
 
          --  Count of total (coverable) and covered SCOs is displayed only
@@ -699,11 +679,11 @@ package body Annotations.Report is
       --  No need to have the section header and so on if there are no
       --  non-instrumented constructs.
 
-      if not Pp.Nonexempted_Messages (Undetermined_Coverage).Is_Empty then
+      if not Pp.Nonexempted_Messages (Undet_Coverage).Is_Empty then
          Pp.Chapter ("UNDETERMINED COVERAGE ITEMS");
          New_Line (Output.all);
          Messages_For_Section
-           (Undetermined_Coverage,
+           (Undet_Coverage,
             Title => "",
             Item  => "undetermined coverage items");
       end if;
@@ -933,86 +913,6 @@ package body Annotations.Report is
                            & Title));
       New_Line (Output.all);
    end Section;
-
-   ------------------------
-   -- Section_Of_Message --
-   ------------------------
-
-   function Section_Of_Message (M : Message) return Report_Section is
-   begin
-      if M.SCO /= No_SCO_Id and then M.Kind in Coverage_Kind then
-         case M.Kind is
-         when Exclusion =>
-            return Coverage_Exclusions;
-         when Undetermined_Cov =>
-            return Undetermined_Coverage;
-         when others =>
-            pragma Assert (M.Kind = Violation or else M.Kind = Info);
-
-            declare
-               S : constant Report_Section := Section_Of_SCO (M.SCO);
-            begin
-               if S = Other_Errors then
-                  --  A violation message is expected to always be relevant to
-                  --  some report section.
-
-                  raise Program_Error with "unexpected SCO kind in violation";
-               end if;
-               return S;
-            end;
-         end case;
-
-      else
-         pragma Assert (M.Kind not in Coverage_Kind);
-
-         return Other_Errors;
-      end if;
-   end Section_Of_Message;
-
-   --------------------
-   -- Section_Of_SCO --
-   --------------------
-
-   function Section_Of_SCO (SCO : SCO_Id) return Report_Section is
-      MCDC_Section : Report_Section;
-   begin
-      --  Need to initialize MCDC_Section specially because it is erroneous
-      --  to evaluate MCDC_Level if MCDC coverage is not enabled.
-
-      if MCDC_Coverage_Enabled then
-         MCDC_Section := Coverage_Level'Pos (MCDC_Level);
-      else
-         MCDC_Section := Other_Errors;
-      end if;
-
-      case Kind (SCO) is
-         when Statement =>
-            return Coverage_Level'Pos (Stmt);
-
-         when Decision =>
-            if Is_Expression (SCO)
-              and then not Decision_Requires_Assertion_Coverage (SCO)
-            then
-               return MCDC_Section;
-            elsif Decision_Requires_Assertion_Coverage (SCO) then
-               return Coverage_Level'Pos (ATC);
-            else
-               return Coverage_Level'Pos (Decision);
-            end if;
-
-         when Condition =>
-            if Enabled (ATCC)
-              and then Decision_Requires_Assertion_Coverage (SCO)
-            then
-               return Coverage_Level'Pos (ATCC);
-            else
-               return MCDC_Section;
-            end if;
-
-         when others =>
-            return Other_Errors;
-      end case;
-   end Section_Of_SCO;
 
    -----------------
    --  Underline  --
