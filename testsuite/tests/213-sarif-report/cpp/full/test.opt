@@ -1,0 +1,3 @@
+bin-traces DEAD SARIF reports are only generated for source traces
+!C++ DEAD Test uses expression function and Ada_2012
+7.1.2 DEAD Test uses Ada_2012 features
