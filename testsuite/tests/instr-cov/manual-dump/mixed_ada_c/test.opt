@@ -1,0 +1,3 @@
+RTS_ZFP DEAD test uses stdio
+!C++ DEAD test requires C++ compiler
+!native XFAIL Build failure with mixed language mains. See #212
