@@ -1404,6 +1404,113 @@ condition expressions are such that running vector 4 is not possible,
 however, since we can't have V both < X1 (condition 1 False) and V >
 X2 (condition 2 False) at the same time when X1 < X2.
 
+.. _scov-atc:
+
+Assertion True Coverage (ATC) analysis (experimental)
+=====================================================
+
+Along with the previous coverage levels, |gcv| can provide different strictness
+levels of assertion coverage for source traces for Ada.
+
+Assertion coverage warrants defining separate criteria to perform coverage
+analysis since contrary to all other regular decisions, those contained in
+assertions are expected to never be evaluated to False. Assertion decisions and
+conditions are defined the same way as for Decision and MCDC but, the coverage
+is computed differently.
+
+If such coverage analysis is needed, it should always be activated along one of
+the previously described coverage levels, as an "addition". In the following
+sections on assertion coverage, their associated command line options will be
+written as `--level=...+<assertion coverage level>` where `...` is one of
+`stmt`, `stmt+decision`, `stmt+mcdc` and `stmt+uc_mcdc`.
+
+Using assertion coverage levels allows to compute the coverage of the pragma
+statements `Assert`, `Assert_And_Cut`, `Assume`, `Check`, `Loop_Invariant`, and
+the aspects `Type_Invariant`, `Precondition` and `Postcondition`.
+
+Core notions and Reporting (:cmd-option:`--level=...+atc`)
+----------------------------------------------------------
+
+|gcv| performs Assertion True Coverage assessments with the
+:cmd-option:`--level=...+atc` command line option. The assessment determines
+the status of assertion true coverage obligations out of the tests execution,
+considering that:
+
+* An assertion is :dfn:`covered`, and the obligation :dfn:`discharged`,
+  as soon as the assertion's decision has been evaluated once to True.
+
+* An assertion is :dfn:`uncovered` otherwise.
+
+In synthetic :cmd-option:`=report` outputs, uncovered source assertions are
+listed as ATC Coverage violations in the report section dedicated to these.
+
+In annotated source outputs, the coverage annotations convey the following
+indications:
+
+.. tabularcolumns:: cl
+.. csv-table::
+   :delim: |
+   :widths: 10, 80
+   :header: Annotation, Meaning
+
+   ``-`` | At least one assertion on the line, none covered
+   ``!`` | More than one assertion on the line, some covered
+   ``?`` | At least one assertion on this line, some with undetermined coverage state (*)
+   ``+`` | At least one assertion on the line, all covered
+
+(*) The Undetermined Coverage state (``?``) is only shown on the line in the
+absence of other known violations for that same line.
+
+.. _scov-atcc:
+
+Assertion True Condition Coverage (ATCC) analysis (experimental)
+================================================================
+
+Core notions and Reporting (:cmd-option:`--level=...+atcc`)
+-----------------------------------------------------------
+
+The coverage status of an "ATCC" obligation is determined as follows:
+
+* An assertion is said :dfn:`fully covered`, or just :dfn:`covered`, and the
+  obligation discharged, as soon as all conditions have been evaluated to True
+  or False at least once accross all evaluations to True of the whole decision.
+
+* An assertion is said :dfn:`uncovered` when the decision was never
+  evaluated to True, either because the enclosing assertion statement was not
+  executed at all or when all the attempted evaluations were interrupted e.g.
+  because of exceptions.
+
+* An assertion is said :dfn:`partially covered` when at least one of the
+  conditions of the assertion's decision was never evaluated to either True or
+  False in the context of an evaluation to True of the whole decision. In this
+  case, the obligation is partially discharged.
+
+The :cmd-option:`=report` synthetic output lists the ATC and ATCC coverage
+violations in the ``ATC`` and ``ATCC`` coverage report section respectively.
+For the :cmd-option:`=xcov` and :cmd-option:`=html` annotated-source oriented
+formats, the single annotation produced on each source line combines the
+statement and ATC coverage indications. The following table summarizes the
+meaning of the possible annotations:
+
+.. tabularcolumns:: cl
+.. csv-table::
+  :delim: |
+  :widths: 10, 80
+  :header: Annotation, Meaning
+
+   ``-`` | At least one statement on the line, none executed.
+   ``!`` | Unless multiple statements are involved, assertion partially covered on the line.
+   ``?`` | At least one statement or assertion on the line with undetermined coverage state. (*)
+   ``+`` | All the statements and assertions on the line are covered.
+
+(*) The Undetermined Coverage state (``?``) is only shown on the line in the
+absence of other known violations for that same line.
+
+When a trailing `+` is added to the format passed to :cmd-option:`--annotate`
+(:cmd-option:`=xcov+`), a precise description of the actual violations is
+available for each line in addition to the annotation. The :cmd-option:`=html`
+provides it by default.
+
 .. _synthetic-metrics:
 
 Synthetic metrics
