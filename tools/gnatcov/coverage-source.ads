@@ -20,6 +20,7 @@ with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Text_IO; use Ada.Text_IO;
 
+limited with LLVM_JSON_Checkpoints;
 with Checkpoints;             use Checkpoints;
 with Files_Table;             use Files_Table;
 with Instrument;              use Instrument;
@@ -173,5 +174,9 @@ package Coverage.Source is
 
    procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State);
    --  Load checkpointed coverage state from S and merge into current state
+
+   procedure LLVM_JSON_Load
+     (Ckpt : access constant LLVM_JSON_Checkpoints.LLVM_Coverage_Ckpt);
+   --  Register statement counters and MC/DC evaluations from Report.
 
 end Coverage.Source;

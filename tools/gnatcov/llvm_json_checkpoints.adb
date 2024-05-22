@@ -158,6 +158,7 @@ package body LLVM_JSON_Checkpoints is
 
       Files_Table.LLVM_JSON_Load (Ckpt'Access);
       SC_Obligations.LLVM_JSON_Load (Ckpt'Access);
+      Coverage.Source.LLVM_JSON_Load (Ckpt'Access);
    end JSON_Load;
 
    --------------------------
