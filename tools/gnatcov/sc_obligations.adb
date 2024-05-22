@@ -32,16 +32,17 @@ with Namet;       use Namet;
 with SCOs;
 with Snames;
 
-with Checkpoints;   use Checkpoints;
+with Checkpoints;           use Checkpoints;
 with Coverage.Source;
-with Coverage.Tags; use Coverage, Coverage.Tags;
-with Diagnostics;   use Diagnostics;
-with Files_Table;   use Files_Table;
-with Inputs;        use Inputs;
-with Outputs;       use Outputs;
+with Coverage.Tags;         use Coverage, Coverage.Tags;
+with Diagnostics;           use Diagnostics;
+with Files_Table;           use Files_Table;
+with Inputs;                use Inputs;
+with LLVM_JSON_Checkpoints; use LLVM_JSON_Checkpoints;
+with Outputs;               use Outputs;
 with SC_Obligations.BDD;
-with Switches;      use Switches;
-with Traces_Elf;    use Traces_Elf;
+with Switches;              use Switches;
+with Traces_Elf;            use Traces_Elf;
 with Traces_Files;
 
 package body SC_Obligations is
@@ -454,7 +455,7 @@ package body SC_Obligations is
             --  Index of this condition in the decision
 
          when Decision =>
-            Expression : SCO_Id;
+            Expression : SCO_Id := No_SCO_Id;
             --  Top expression node for this decision
 
             D_Kind : Decision_Kind;
@@ -2506,6 +2507,141 @@ package body SC_Obligations is
 
    end Checkpoint_Load;
 
+   --------------------
+   -- LLVM_JSON_Load --
+   --------------------
+
+   procedure LLVM_JSON_Load
+     (Ckpt : access LLVM_Coverage_Ckpt)
+   is
+   begin
+      LLVM_Trace.Trace ("SC_Obligations.LLVM_JSON_Load");
+
+      for File_Report_Cur in Ckpt.File_Reports.Iterate loop
+         declare
+            use LLVM_Coverage_File_Ckpt_Vector;
+            File_Report   : LLVM_Coverage_File_Ckpt renames
+               Ckpt.File_Reports.Reference (File_Report_Cur);
+
+            Created_Units : Created_Unit_Maps.Map;
+
+            SFI       : constant Source_File_Index :=
+               Get_Index_From_Full_Name
+                 (+File_Report.Filename, Source_File);
+            CUID      : constant CU_Id             :=
+               Allocate_CU
+                 (Provider      => Compiler,
+                  Origin        => No_Source_File,
+                  Main_Source   => SFI,
+                  Fingerprint   => No_Fingerprint,
+                  Created_Units => Created_Units);
+            First_SCO : constant Valid_SCO_Id      :=
+               SCO_Vector.Last_Index + 1;
+
+            Last_SCO  : Valid_SCO_Id;
+         begin
+
+            --  If a compilation unit was already registered for this file,
+            --  skip it. It is expected that only 1 JSON file is given to
+            --  gnatcov. Aggregating source files should be done beforehand,
+            --  at the LLVM level.
+
+            if CUID = No_CU_Id then
+               Warn ("[LLVM-JSON] A compilation unit already exists for "
+                     & (+File_Report.Filename) & ".");
+               return;
+            end if;
+
+            --  Register the SCOs
+
+            for Fct_Cur in File_Report.Functions.Iterate loop
+               declare
+                  use LLVM_Coverage_Function_Ckpt_Vector;
+                  Fct : LLVM_Coverage_Function_Ckpt renames
+                     File_Report.Functions.Reference (Fct_Cur);
+               begin
+                  for Region_Cur in Fct.Regions.Iterate loop
+                     declare
+                        use LLVM_Region_Vector;
+                        Region : LLVM_Region renames
+                           Fct.Regions.Reference (Region_Cur);
+
+                        Location : constant Source_Location_Range :=
+                          (Source_File => SFI, L => Region.Span);
+
+                        SCOD                : SCO_Descriptor;
+                        MCDC_Num_Conditions : Any_Condition_Index;
+                        SCO                 : SCO_Id;
+                     begin
+                        case Region.Kind is
+                           when Decision =>
+                              MCDC_Num_Conditions :=
+                                 Any_Condition_Index
+                                   (Region.Num_Conditions - 1);
+                              SCOD :=
+                                (Kind            => Decision,
+                                 Origin          => CUID,
+                                 Sloc_Range      => Location,
+                                 D_Kind          => If_Statement,
+                                 Last_Cond_Index => MCDC_Num_Conditions,
+                                 others          => <>);
+                           when Condition =>
+                              pragma Assert
+                                (Fct.Regions (Region.Parent_Id).SCO
+                                    /= No_SCO_Id);
+                              SCOD :=
+                                (Kind       => Condition,
+                                 Origin     => CUID,
+                                 Sloc_Range => Location,
+                                 Value      => Unknown,
+                                 BDD_Node   => No_BDD_Node_Id,
+                                 Parent     =>
+                                    Fct.Regions (Region.Parent_Id).SCO,
+                                 Index      => Region.Index,
+                                 others     => <>);
+                           when Statement =>
+                              SCOD :=
+                                (Kind       => Statement,
+                                 Origin     => CUID,
+                                 Sloc_Range => Location,
+                                 S_Kind     => Other_Statement,
+                                 others     => <>);
+                        end case;
+                        SCO_Vector.Append (SCOD);
+                        SCO := SCO_Vector.Last_Index;
+
+                        --  Keep a reference to the just added SCO id.
+                        --  Useful for condition -> decision referencing.
+
+                        Region.SCO := SCO;
+
+                        if SCOD.Kind /= Condition then
+                           Add_SCO_To_Lines (SCO, SCOD);
+                        end if;
+                     end;
+                  end loop;
+               end;
+            end loop;
+
+            if SCO_Vector.Last_Index = No_SCO_Id then
+               return;  --  The SCO vector is completely empty.
+            end if;
+
+            --  Check that Last_SCO >= First_SCO.
+            --  otherwise there were no regions in the report.
+
+            Last_SCO := SCO_Vector.Last_Index;
+
+            if Last_SCO < First_SCO then
+               Warn ("[LLVM-JSON] No regions to process");
+            else
+               CU_Vector (CUID).First_SCO := First_SCO;
+               CU_Vector (CUID).Last_SCO := Last_SCO;
+            end if;
+         end;
+      end loop;
+   end LLVM_JSON_Load;
+
    ----------------------
    -- Checkpoint_Clear --
    ----------------------
@@ -2796,6 +2932,9 @@ package body SC_Obligations is
 
    function Expression_Image (Op_SCO : SCO_Id) return Unbounded_String is
    begin
+      if Op_SCO = No_SCO_Id then
+         return (+"<Expression Unavailable>");
+      end if;
       case Kind (Op_SCO) is
          when Condition =>
             return +('C' & Img (Integer (Index (Op_SCO))));
