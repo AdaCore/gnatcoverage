@@ -75,10 +75,9 @@ package Instrument.C is
    --  procedure is put at the beginning of the file.
 
    overriding procedure Emit_Dump_Helper_Unit_Manual
-     (Self          : in out C_Family_Instrumenter_Type;
-      Helper_Unit   : out US.Unbounded_String;
-      Dump_Config   : Any_Dump_Config;
-      Prj           : Prj_Desc);
+     (Self        : in out C_Family_Instrumenter_Type;
+      Dump_Config : Any_Dump_Config;
+      Prj         : Prj_Desc);
    --  Emit the dump helper unit
 
    overriding procedure Emit_Buffers_List_Unit

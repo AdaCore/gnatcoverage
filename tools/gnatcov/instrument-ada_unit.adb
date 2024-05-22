@@ -8898,6 +8898,20 @@ package body Instrument.Ada_Unit is
       end if;
    end Emit_Pure_Buffer_Unit;
 
+   -----------------------------
+   -- Dump_Manual_Helper_Unit --
+   -----------------------------
+
+   overriding function Dump_Manual_Helper_Unit
+     (Self : Ada_Instrumenter_Type;
+      Prj  : Prj_Desc) return Files_Table.Compilation_Unit
+   is
+      pragma Unreferenced (Self);
+   begin
+      return (Language  => Unit_Based_Language,
+              Unit_Name => +To_Ada (Create_Manual_Helper_Unit_Name (Prj)));
+   end Dump_Manual_Helper_Unit;
+
    ------------------------------------
    -- Create_Manual_Helper_Unit_Name --
    ------------------------------------
@@ -9252,28 +9266,25 @@ package body Instrument.Ada_Unit is
    ----------------------------------
 
    procedure Emit_Dump_Helper_Unit_Manual
-     (Self          : in out Ada_Instrumenter_Type;
-      Helper_Unit   : out Unbounded_String;
-      Dump_Config   : Any_Dump_Config;
-      Prj           : Prj_Desc)
+     (Self        : in out Ada_Instrumenter_Type;
+      Dump_Config : Any_Dump_Config;
+      Prj         : Prj_Desc)
    is
       Main : Compilation_Unit_Part;
       --  Since the dump trigger is "manual" and there is no main to be given,
       --  the Main argument in the following call to Emit_Dump_Helper_Unit will
       --  not be used.
 
-      Ada_Helper_Unit : Ada_Qualified_Name;
+      Dummy_Ada_Helper_Unit : Ada_Qualified_Name;
    begin
       Emit_Dump_Helper_Unit
         (Dump_Config           => Dump_Config,
          Instrumenter          => Self,
          Prj                   => Prj,
          Main                  => Main,
-         Helper_Unit           => Ada_Helper_Unit,
+         Helper_Unit           => Dummy_Ada_Helper_Unit,
          Override_Dump_Trigger => Manual,
          Has_Controlled        => False);
-
-      Helper_Unit := To_Unbounded_String (To_Ada (Ada_Helper_Unit));
    end Emit_Dump_Helper_Unit_Manual;
 
    ----------------------------
