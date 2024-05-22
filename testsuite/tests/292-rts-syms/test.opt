@@ -1,0 +1,4 @@
+!native DEAD Test need full gnatcov RTS
+5.04a1 DEAD This compiler does not ship nm
+7.1.2 DEAD The nm version in 7.1.2 does not support the required options
+!x86_64 DEAD Additional symbols unrelated to gnatcov_rts exported under x86
