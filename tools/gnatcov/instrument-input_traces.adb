@@ -370,7 +370,14 @@ package body Instrument.Input_Traces is
          --  Go on checking fields...
 
          if Raw_Header.Format_Version /= Current_Version then
-            Create_Error (Result, "unsupported format version");
+            Create_Error (
+              Result,
+              "Trace format v" &
+                 Strings.Img (Integer (Raw_Header.Format_Version)) &
+              " is not supported by this version of gnatcov. " &
+              "Handling v"
+                 & Strings.Img (Integer (Current_Version)) &
+              " only.");
             return;
 
          elsif Raw_Header.Alignment not in 1 | 2 | 4 | 8 then
