@@ -349,11 +349,22 @@ is
             --  fill the compilation unit specific switches that will override
             --  the project defaults, if there are any (see
             --  Add_Instrumented_Unit).
+            --
+            --  Language specific switches can be specified through the
+            --  Compiler.Switches or the Compiler.Default_Switches attribute,
+            --  the former being prioritized over the latter.
 
             Switches :=
               Prj.Attribute_Value
-                (Attribute => GPR.Compiler_Default_Switches_Attribute,
+                (Attribute => GPR.Build ("compiler", "switches"),
                  Index     => Image (Lang));
+
+            if Switches = null then
+               Switches :=
+                 Prj.Attribute_Value
+                   (Attribute => GPR.Compiler_Default_Switches_Attribute,
+                    Index     => Image (Lang));
+            end if;
 
             --  If we manage to find appropriate switches, convert them to a
             --  string vector import the switches.
