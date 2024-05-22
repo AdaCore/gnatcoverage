@@ -254,7 +254,7 @@ project Gnatcov is
          "-l:libbfd.a",
          "-l:libiberty.a",
          "-l:libsframe.a",
-         "-lz",
+         "-l:libz.a",
          "-static-libstdc++",
          "-static-libgcc");
    end Linker;
