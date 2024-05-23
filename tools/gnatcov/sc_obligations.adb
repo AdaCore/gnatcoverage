@@ -154,7 +154,7 @@ package body SC_Obligations is
       --  Hash of ALI_Annotations, for consistency checks with source traces
 
       case Provider is
-         when Compiler =>
+         when Compiler | LLVM =>
             null;
 
          when Instrumenter =>
@@ -1214,7 +1214,7 @@ package body SC_Obligations is
       Value.Annotations_Fingerprint := CLS.Read_Fingerprint;
 
       case Value.Provider is
-         when Compiler =>
+         when Compiler | LLVM =>
             null;
          when Instrumenter =>
 
@@ -2132,7 +2132,8 @@ package body SC_Obligations is
             function Provider_Image (Provider : SCO_Provider) return String is
               (case Provider is
                when Compiler     => "ALI file",
-               when Instrumenter => "instrumentation");
+               when Instrumenter => "instrumentation",
+               when LLVM         => "LLVM dump");
             --  Helper to designate SCO providers in an error message
 
             function CU_Image return String is
@@ -2249,7 +2250,7 @@ package body SC_Obligations is
       CSS.Write      (Value.Annotations_Fingerprint);
 
       case Value.Provider is
-         when Compiler =>
+         when Compiler | LLVM =>
             null;
 
          when Instrumenter =>
@@ -2530,7 +2531,7 @@ package body SC_Obligations is
                  (+File_Report.Filename, Source_File);
             CUID      : constant CU_Id             :=
                Allocate_CU
-                 (Provider      => Compiler,
+                 (Provider      => LLVM,
                   Origin        => No_Source_File,
                   Main_Source   => SFI,
                   Fingerprint   => No_Fingerprint,
@@ -4286,7 +4287,7 @@ package body SC_Obligations is
 
             Origin_Action : constant String :=
               (case CU.Provider is
-               when Compiler => "loading",
+               when Compiler | LLVM => "loading",
                when Instrumenter => "instrumenting");
          begin
             Warn ("ignoring duplicate SCOs for "

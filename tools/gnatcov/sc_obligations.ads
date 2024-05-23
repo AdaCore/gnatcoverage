@@ -113,7 +113,7 @@ package SC_Obligations is
    --      unit maps to a source file, regardless of the language for this
    --      source file, and there is at most one unit for a given source file.
 
-   type SCO_Provider is (Compiler, Instrumenter);
+   type SCO_Provider is (Compiler, Instrumenter, LLVM);
 
    type CU_Id is new Natural;
    No_CU_Id : constant CU_Id := 0;
