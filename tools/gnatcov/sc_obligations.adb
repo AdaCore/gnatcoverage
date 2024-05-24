@@ -2779,14 +2779,72 @@ package body SC_Obligations is
    is
       use BDD;
 
-      SCOD  : SCO_Descriptor renames
-         Vectors.SCO_Vector.Constant_Reference (SCO);
+      SCOD  : SCO_Descriptor renames SCO_Vector.Reference (SCO);
+
       First : constant BDD_Node_Id := SCOD.Decision_BDD.First_Node;
       Last  : constant BDD_Node_Id := SCOD.Decision_BDD.Last_Node;
+      CU    : constant CU_Id       := Comp_Unit (SCO);
 
       Current_Condition_Index : Any_Condition_Index := No_Condition_Index;
 
    begin
+      --  Do not check the BDD if the SCO was provided by LLVM.
+
+      if Provider (CU) = LLVM then
+
+         --  TODO??? Make this search more efficient.
+         --  (For now it just browse all SCOs of the CU).
+         --  Ideas :
+         --    - Ensure both invariants always hold. That way, we can get rid
+         --      of the double while loop.
+         --    - Find a way to reference the SCO_ID of the first condition in
+         --      the SCOD of the decision, so we just have to add the SCO_ID
+         --      with the index.
+
+         declare
+            C_SCO : SCO_Id := SCO + 1;
+            --  Condition SCOs are always after their Decision, and all the
+            --  condition SCOs of a decision should appear consecutively.
+            --
+            --  The second invariant may not hold in the case of
+            --  nested decisions.
+
+            Index_Mut : Condition_Index := Index;
+         begin
+            --  Search for the first Condition of the Decision.
+
+            while C_SCO <= Last_SCO (CU)
+                  and then
+                    (Kind (C_SCO) /= Condition
+                     or else Parent (C_SCO) /= SCO) loop
+               C_SCO := C_SCO + 1;
+            end loop;
+
+            --  Search for the Index-th Condition.
+            --  We need a loop because the invariant may not hold with
+            --  nested decisions.
+
+            while Index_Mut > 0 loop
+               Index_Mut := Index_Mut - 1;
+               loop
+                  C_SCO := C_SCO + 1;
+                  exit when C_SCO > Last_SCO (CU);
+                  exit when Kind (C_SCO) = Condition
+                            and then Parent (C_SCO) = SCO;
+               end loop;
+            end loop;
+
+            if C_SCO > Last_SCO (CU) then
+               Fatal_Error ("Malformed SCO Vector, a condition SCO"
+                            & " is missing");
+            end if;
+
+            pragma Assert (Kind (C_SCO) = Condition);
+            pragma Assert (Parent (C_SCO) = SCO);
+            return C_SCO;
+         end;
+      end if;
+
       --  Find J'th (0-based) condition in decision by scanning the BDD vector
 
       for J in First .. Last loop
@@ -3525,6 +3583,13 @@ package body SC_Obligations is
       if Traces_Files.Currently_Accepted_Trace_Kind in
         Traces_Files.Source_Trace_File .. Traces_Files.All_Trace_Files
       then
+         return True;
+      end if;
+
+      --  Assume that LLVM SCO decisions always have influence.
+      --  Also, for LLVM SCOs, the BDD is not populated, so we can't browse it.
+
+      if Provider (Comp_Unit (SCO)) = LLVM then
          return True;
       end if;
 
