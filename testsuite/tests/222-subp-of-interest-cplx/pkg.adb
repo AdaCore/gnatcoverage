@@ -9,8 +9,8 @@ package body Pkg is
 
    function One return Integer is
    begin
-     return (if String'("this is a very long decision"
-                    & "that spans multiple lines")'Length = 1
+     return (if String'(String_Identity ("this is a very long decision")
+                & String_Identity ("that spans multiple lines"))'Length = 1
       then 2
       else 1);
    end One;
@@ -19,5 +19,10 @@ package body Pkg is
    begin
       return 2;
    end Two;
+
+   function String_Identity (S : String) return String is
+   begin
+      return S;
+   end String_Identity;
 
 end Pkg;
