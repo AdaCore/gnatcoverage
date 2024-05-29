@@ -504,6 +504,7 @@ package body LLVM_JSON_Checkpoints is
       Span    : Local_Source_Location_Range;
       Id      : out LLVM_Region_Id) return Boolean
    is
+      Current_Best : LLVM_Region_Id := No_LLVM_Region_Id;
    begin
       for Index in Regions.First_Index .. Regions.Last_Index loop
          declare
@@ -512,13 +513,31 @@ package body LLVM_JSON_Checkpoints is
          begin
             if Region.Kind = Decision and then Contained_In (Span, Region.Span)
             then
-               Id := Region.Id;
-               return True;
+               if Current_Best /= No_LLVM_Region_Id then
+
+                  --  A matching decision region was already found.
+
+                  if Contained_In (Region.Span, Regions (Current_Best).Span)
+                  then
+                     --  The new region is smaller.
+
+                     Current_Best := Region.Id;
+                  end if;
+               else
+                  --  It is the first matching region.
+
+                  Current_Best := Region.Id;
+               end if;
             end if;
          end;
       end loop;
 
-      return False;
+      Id := Current_Best;
+      if Current_Best = No_LLVM_Region_Id then
+         return False;
+      else
+         return True;
+      end if;
    end Find_Parent_Decision;
 
    -----------------------
