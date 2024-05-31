@@ -25,7 +25,7 @@ xrun("main.elf")
 
 formats = [
     ("xml", "{slug}.xml", r'<instruction_set coverage="\+">'),
-    ("html", "{slug}.hunk.js", r'"coverage":"\+","assembly"'),
+    ("html", "{slug}.hunk.js", r'"coverage":"\+",.*"assembly"'),
     ("xcov+", "{slug}.xcov", r" *[0-9]+ \+:"),
 ]
 
