@@ -1399,7 +1399,8 @@ package Command_Line is
          Pattern                 => "[FORM|LIST]",
          Help                    =>
            "Generate a FORM report. FORM is one of:"
-           & ASCII.LF & "  asm, cobertura, html, report, xcov, xcov+, xml."
+           & ASCII.LF
+           & "  asm, cobertura, html, report, sarif, xcov, xcov+, xml."
            & ASCII.LF & "Multiple reports can be produced in a single"
            & " execution by passing a comma separated list of FORMs to this"
            & " option, or by specifying this option multiple times on the"

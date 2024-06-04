@@ -1,0 +1,2 @@
+bin-traces DEAD SARIF reports are only generated for source traces
+!C++ DEAD Test needs C++ compiler

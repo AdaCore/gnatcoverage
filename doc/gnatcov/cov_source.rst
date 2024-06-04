@@ -302,6 +302,24 @@ See the :ref:`sample annotated source <sample_sc_html_unit>` appendix for a
 sample of html annotated source.
 
 
+SARIF report (:cmd-option:`=sarif`)
+-----------------------------------
+
+For source coverage criteria, |gcvcov| :cmd-option:`--annotate=sarif` produces
+a JSON-based report under the Static Analysis Results Interchange Format
+(SARIF).
+
+The generation of SARIF reports is mainly provided to allow viewing gnatcov
+coverage reports with external IDEs that supports viewing them (for example,
+Visual Studio Code with Microsoft's SARIF Viewer extension). To navigate this
+report, open the ``coverage.sarif`` file using an integrated development
+environment which supports viewing SARIF results.
+
+The reports contain information on the violations observed by gnatcov as
+"Results" and the enabled coverage levels as "Rules". Each violation is
+registered as "error". Exempted violations are reported as "note" and
+undetermined coverage results as "warning".
+
 Violations summary, text (:cmd-option:`=report`)
 ------------------------------------------------
 

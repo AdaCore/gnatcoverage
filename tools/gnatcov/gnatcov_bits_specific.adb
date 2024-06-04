@@ -34,6 +34,7 @@ with Snames;
 
 with ALI_Files;
 with Annotations.Cobertura;
+with Annotations.Sarif;
 with Annotations.Dynamic_Html;
 with Annotations.Html;
 with Annotations.Report;
@@ -1670,14 +1671,20 @@ begin
          --  object coverage.
 
          if Object_Coverage_Enabled then
-            if Annotation (Annotate_Report) then
+            if Annotation (Annotate_Report)
+              or else Annotation (Annotate_Sarif)
+            then
                Fatal_Error
-                 ("""report"" output format (from --annotate) is"
-                    & " only for source coverage criteria"
-                    & ASCII.LF
-                    & "  (--level=" & Source_Level_Options
-                    & ", not --level="
-                    & Coverage_Option_Value (Current_Levels) & ")");
+                 (""""
+                  & (if Annotation (Annotate_Report)
+                    then "report"
+                    else "SARIF")
+                  & """ output format (from --annotate) is"
+                  & " only for source coverage criteria"
+                  & ASCII.LF
+                  & "  (--level=" & Source_Level_Options
+                  & ", not --level="
+                  & Coverage_Option_Value (Current_Levels) & ")");
 
             elsif not Checkpoints_Inputs.Is_Empty
               or else Save_Checkpoint /= null
@@ -2357,6 +2364,11 @@ begin
 
                if Annotation (Annotate_Cobertura) then
                   Annotations.Cobertura.Generate_Report
+                    (Context'Unchecked_Access);
+               end if;
+
+               if Annotation (Annotate_Sarif) then
+                  Annotations.Sarif.Generate_Report
                     (Context'Unchecked_Access);
                end if;
 

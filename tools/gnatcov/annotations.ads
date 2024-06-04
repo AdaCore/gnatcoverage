@@ -22,6 +22,7 @@ with GNAT.Strings; use GNAT.Strings;
 
 with Binary_Files;          use Binary_Files;
 with Coverage;
+with Coverage_Options;      use Coverage_Options;
 with Diagnostics;           use Diagnostics;
 with Disa_Symbolize;        use Disa_Symbolize;
 with Elf_Disassemblers;     use Elf_Disassemblers;
@@ -50,6 +51,7 @@ package Annotations is
       Annotate_Cobertura,
       Annotate_Xml,
       Annotate_Report,
+      Annotate_Sarif,
       Annotate_Unknown);
 
    function To_Annotation_Format (Option : String) return Annotation_Format;
@@ -72,6 +74,22 @@ package Annotations is
    Multiple_Reports : Boolean := False;
    --  True if more than one report annotation format which requires writing
    --  the report to the output directory is requested.
+
+   type Report_Section is
+   range Coverage_Level'Pos (Coverage_Level'First)
+     .. Coverage_Level'Pos (Coverage_Level'Last) + 3;
+   --  For report and SARIF formats. There is one report section for each
+   --  coverage level, plus the following three special sections:
+
+   Coverage_Exclusions   : constant Report_Section := Report_Section'Last - 2;
+   Undet_Coverage        : constant Report_Section := Report_Section'Last - 1;
+   Other_Errors          : constant Report_Section := Report_Section'Last;
+
+   function Section_Of_Message (M : Message) return Report_Section;
+   --  Indicate the coverage criterion a given SCO/message pertains to (by its
+   --  'Pos), or Other_Errors if SCO has no related section/M is not a
+   --  violation message.
+   function Section_Of_SCO (SCO : SCO_Id) return Report_Section;
 
 private
 

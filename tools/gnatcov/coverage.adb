@@ -227,6 +227,29 @@ package body Coverage is
       return Res;
    end Source_Levels_Enabled;
 
+   -----------------------------
+   -- Coverage_Levels_Enabled --
+   -----------------------------
+
+   function Coverage_Levels_Enabled return Levels_Sets.Set is
+   begin
+      if Source_Coverage_Enabled then
+         return Source_Levels_Enabled;
+      else
+         declare
+            Res : Levels_Sets.Set;
+         begin
+            if Enabled (Insn) then
+               Res.Include (Insn);
+            end if;
+            if Enabled (Branch) then
+               Res.Include (Branch);
+            end if;
+            return Res;
+         end;
+      end if;
+   end Coverage_Levels_Enabled;
+
    ---------------------
    -- Is_Load_Allowed --
    ---------------------
