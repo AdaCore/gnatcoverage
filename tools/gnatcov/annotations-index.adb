@@ -23,7 +23,6 @@ with Ada.Text_IO;      use Ada.Text_IO;
 with GNAT.OS_Lib;
 
 with Coverage;         use Coverage;
-with Coverage_Options; use Coverage_Options;
 with Project;
 with Outputs;          use Outputs;
 

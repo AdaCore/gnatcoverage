@@ -28,4 +28,8 @@ package Annotations.Report is
    --  null, dump it on stdout. If Dump_Units, add a section to describe the
    --  list of units of interest considered.
 
+   subtype Coverage_Violations is Report_Section
+     range Coverage_Level'Pos (Coverage_Level'First)
+        .. Coverage_Level'Pos (Coverage_Level'Last);
+
 end Annotations.Report;

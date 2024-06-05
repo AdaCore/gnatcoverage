@@ -32,7 +32,6 @@ with Interfaces.C; use Interfaces.C;
 with Annotations.Xml;  use Annotations.Xml;
 with Command_Line;     use Command_Line;
 with Coverage;         use Coverage;
-with Coverage_Options; use Coverage_Options;
 with Coverage.Source;  use Coverage.Source;
 with Outputs;          use Outputs;
 with Paths;

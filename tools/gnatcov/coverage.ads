@@ -98,6 +98,10 @@ package Coverage is
    --  as it will return the coverage levels implicitely enabled (such as
    --  decision when passing stmt+mcdc).
 
+   function Coverage_Levels_Enabled return Levels_Sets.Set;
+   --  Return the set of coverage levels enabled. Similar as the above but
+   --  including object coverage levels.
+
    function Is_Load_Allowed
      (Filename : String; Checkpoint_Levels : Levels_Type) return String;
    --  If loading a checkpoint state (from Filename) with the given coverage

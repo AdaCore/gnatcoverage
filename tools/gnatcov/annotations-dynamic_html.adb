@@ -29,7 +29,6 @@ with GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
 
 with Annotations.Html;
-with Coverage_Options; use Coverage_Options;
 with Hex_Images;
 with Interfaces;
 with Outputs;
