@@ -19,6 +19,7 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Environment_Variables;
+with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.OS_Lib;
 with GNAT.Regexp;
@@ -891,6 +892,44 @@ package body Setup_RTS is
             end case;
          end;
       end;
+
+      if not Quiet then
+         New_Line;
+         Put_Line ("The coverage runtime has been successfully installed.");
+         if Prefix = "" then
+            Put_Line
+              ("It was installed in the toolchain's prefix: the environment"
+               & " is ready to use it.");
+         else
+            declare
+               Dir_Sep    : Character renames
+                 GNAT.OS_Lib.Directory_Separator;
+               On_Windows : constant Boolean := Dir_Sep = '\';
+
+               Norm_Prefix    : constant String :=
+                 GNAT.OS_Lib.Normalize_Pathname
+                   (Prefix, Resolve_Links => False);
+               GPR_Dir        : constant String :=
+                 Norm_Prefix & Dir_Sep & "share" & Dir_Sep & "gpr";
+               Shared_Lib_Dir : constant String :=
+                 Norm_Prefix & Dir_Sep & (if On_Windows then "bin" else "lib");
+               Shared_Lib_Var : constant String :=
+                 (if On_Windows then "PATH" else "LD_LIBRARY_PATH");
+            begin
+               Put_Line ("It was installed in: " & Prefix);
+               Put_Line ("In order to use it, remember to add:");
+               New_Line;
+               Put_Line ("  " & GPR_Dir);
+               New_Line;
+               Put_Line ("to the GPR_PROJECT_PATH environment variable, and");
+               New_Line;
+               Put_Line ("  " & Shared_Lib_Dir);
+               New_Line;
+               Put_Line ("to the " & Shared_Lib_Var
+                         & " environment variable.");
+            end;
+         end if;
+      end if;
    end Setup;
 
    ----------------------------------
