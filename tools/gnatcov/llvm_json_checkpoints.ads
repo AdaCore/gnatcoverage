@@ -84,7 +84,8 @@ package LLVM_JSON_Checkpoints is
       Element_Type => LLVM_Coverage_File_Ckpt);
 
    type LLVM_Coverage_Ckpt is record
-      File_Reports : LLVM_Coverage_File_Ckpt_Vector.Vector;
+      JSON_Filename : Unbounded_String;
+      File_Reports  : LLVM_Coverage_File_Ckpt_Vector.Vector;
    end record;
 
    procedure JSON_Load (JSON_Filename : String);

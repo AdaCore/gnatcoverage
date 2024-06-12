@@ -2529,10 +2529,13 @@ package body SC_Obligations is
             SFI       : constant Source_File_Index :=
                Get_Index_From_Full_Name
                  (+File_Report.Filename, Source_File);
+            JSON_FI   : constant Source_File_Index :=
+               Get_Index_From_Full_Name
+                 (+Ckpt.JSON_Filename, Library_File);
             CUID      : constant CU_Id             :=
                Allocate_CU
                  (Provider      => LLVM,
-                  Origin        => No_Source_File,
+                  Origin        => JSON_FI,
                   Main_Source   => SFI,
                   Fingerprint   => No_Fingerprint,
                   Created_Units => Created_Units);

@@ -100,7 +100,7 @@ package body LLVM_JSON_Checkpoints is
    --  Helper function for the Post-Condition of Build_Ckpt_From_JSON.
 
    function Build_Ckpt_From_JSON
-     (JSON_Root : JSON_Value) return LLVM_Coverage_Ckpt;
+     (JSON_Filename : String) return LLVM_Coverage_Ckpt;
 
    procedure Print_Report (Ckpt : LLVM_Coverage_Ckpt);
    --  Print the Report on STDOUT.
@@ -149,7 +149,7 @@ package body LLVM_JSON_Checkpoints is
 
    procedure JSON_Load (JSON_Filename : String) is
       Ckpt : aliased LLVM_Coverage_Ckpt :=
-         Build_Ckpt_From_JSON (JSON.Read_File (JSON_Filename));
+         Build_Ckpt_From_JSON (JSON_Filename);
    begin
       LLVM_Trace.Trace ("Report generated");
       if LLVM_Trace.Is_Active then
@@ -166,11 +166,13 @@ package body LLVM_JSON_Checkpoints is
    --------------------------
 
    function Build_Ckpt_From_JSON
-     (JSON_Root : JSON_Value) return LLVM_Coverage_Ckpt
+     (JSON_Filename : String) return LLVM_Coverage_Ckpt
    is
-      JSON_Files : constant JSON_Array := JSON.Child_Array (JSON_Root, "data");
+      JSON_Files : constant JSON_Array :=
+         JSON.Child_Array (JSON.Read_File (JSON_Filename), "data");
 
-      Report : LLVM_Coverage_Ckpt;
+      Report : LLVM_Coverage_Ckpt :=
+        (JSON_Filename => +JSON_Filename, others => <>);
    begin
       for JSON_File of JSON_Files loop
          declare
