@@ -113,7 +113,8 @@ package Instrument.Common is
    function Dump_Procedure_Symbol
      (Main     : Compilation_Unit_Part;
       Manual   : Boolean := False;
-      Prj_Name : String := "") return String
+      Prj_Name : Ada_Qualified_Name := Ada_Identifier_Vectors.Empty_Vector)
+      return String
    is
      ("gnatcov_rts_"
       & (if Manual
@@ -122,13 +123,14 @@ package Instrument.Common is
       & "_"
       & To_Lower (To_String (Dump_Procedure_Name))
       & (if Manual
-        then "_" & Prj_Name
+        then "_" & To_Symbol_Name (Prj_Name)
         else ""));
    --  Return the name of the exported symbol for the Dump_Buffers function
 
-   function Reset_Procedure_Symbol (Prj_Name : String) return String is
+   function Reset_Procedure_Symbol
+     (Prj_Name : Ada_Qualified_Name) return String is
      ("gnatcov_rts_" & To_Lower (To_String (Reset_Procedure_Name))
-      & "_" & Prj_Name);
+      & "_" & To_Symbol_Name (Prj_Name));
    --  Return the name of the exported symbol for the Reset_Buffers procedure
 
    function Is_Manual_Indication_Procedure_Symbol
@@ -155,8 +157,9 @@ package Instrument.Common is
    --  Name of the symbol that references the
    --  gnatcov_rts_coverage_buffers_group struct for this file.
 
-   function Unit_Buffers_Array_Name (Prj_Name : String) return String is
-      ("gnatcov_rts_buffers_array_" & Prj_Name);
+   function Unit_Buffers_Array_Name
+     (Prj_Name : Ada_Qualified_Name) return String is
+     ("gnatcov_rts_buffers_array_" & To_Symbol_Name (Prj_Name));
    --  Name of the symbol that designates the
    --  gnatcov_rts_coverage_buffers_array struct, which contains an array of
    --  coverage buffers for all instrumented units in this project.

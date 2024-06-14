@@ -164,8 +164,7 @@ package Instrument is
    function Canonicalize (Name : Ada_Qualified_Name) return Ada_Qualified_Name;
    --  Fold casing of Ada identifiers
 
-   function To_Symbol_Name (Name : Ada_Qualified_Name) return String
-      with Pre => not Name.Is_Empty;
+   function To_Symbol_Name (Name : Ada_Qualified_Name) return String;
    --  Lower case each name of the qualified name, and joined them with an
    --  underscore, to have a C-like syntax.
    --
@@ -262,7 +261,7 @@ package Instrument is
    type C_Lang_Array_Vec is array (C_Family_Language) of String_Vectors.Vector;
 
    type Prj_Desc is record
-      Prj_Name : Unbounded_String;
+      Prj_Name : Ada_Qualified_Name;
       --  Name for the project
 
       Output_Dir : Unbounded_String;
