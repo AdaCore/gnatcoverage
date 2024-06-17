@@ -885,8 +885,13 @@ is
          declare
             use String_Sets;
 
+            --  The sources we are processing should be viewed from the most
+            --  extending project we are processing, to ensure it dumps the
+            --  buffers of all the sources in the extending projects as well.
+
             Prj_Info             : constant Project_Info_Access :=
-              Get_Or_Create_Project_Info (IC, Source.Project);
+              Get_Or_Create_Project_Info
+                (IC, Source.Project.Extending_Project (Recurse => True));
             Prj                  : Prj_Desc renames Prj_Info.Desc;
             Is_Root_Prj          : constant Boolean :=
               To_Ada (Prj.Prj_Name) = Root_Project_Info.Project.Name;
