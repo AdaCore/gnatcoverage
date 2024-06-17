@@ -441,6 +441,9 @@ def gprfor(
 
     If CWD is None, generate the project file in the current directory.
     Generate it in the CWD directory otherwise.
+
+    If PRJID contains any '.', they are replaced by '-' in the project
+    filename.
     """
 
     cwd = cwd or os.getcwd()
@@ -547,7 +550,8 @@ def gprfor(
     }
 
     return text_to_file(
-        text=gprtext, filename=os.path.join(cwd, prjid + ".gpr")
+        text=gprtext,
+        filename=os.path.join(cwd, prjid.replace(".", "-") + ".gpr"),
     )
 
 
