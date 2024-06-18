@@ -3712,9 +3712,9 @@ package body Instrument.C is
          Filename        : constant String := +Helper_Unit;
          Dump_Procedure  : constant String :=
            Dump_Procedure_Symbol
-             (Main, Dump_Config.Trigger = Manual, Prj_Name => +Prj.Prj_Name);
+             (Main, Dump_Config.Trigger = Manual, Prj.Prj_Name);
          Reset_Procedure : constant String :=
-           Reset_Procedure_Symbol (+Prj.Prj_Name);
+           Reset_Procedure_Symbol (Prj.Prj_Name);
       begin
          --  Emit the package body
 
@@ -3740,7 +3740,7 @@ package body Instrument.C is
            (File,
             Instrumenter,
             "const struct gnatcov_rts_coverage_buffers_group_array",
-            Unit_Buffers_Array_Name (+Prj.Prj_Name));
+            Unit_Buffers_Array_Name (Prj.Prj_Name));
 
          --  Emit the procedure to write the trace file
 
@@ -3755,7 +3755,7 @@ package body Instrument.C is
          File.Put_Line (Indent1 & Output_Proc & " (");
          File.Put_Line
            (Indent2 & "&"
-            & Unit_Buffers_Array_Name (+Prj.Prj_Name) & ",");
+            & Unit_Buffers_Array_Name (Prj.Prj_Name) & ",");
          case Dump_Config.Channel is
          when Binary_File =>
             declare
@@ -3782,7 +3782,7 @@ package body Instrument.C is
                               & "STR ("
                               & C_String_Literal
                                   (if Dump_Config.Trigger = Manual
-                                   then +Prj.Prj_Name
+                                   then To_Ada (Prj.Prj_Name)
                                    else +Main.Filename)
                               & "),");
                File.Put_Line (Indent2 & "gnatcov_rts_time_to_uint64()" & ",");
@@ -3799,7 +3799,7 @@ package body Instrument.C is
             File.Put_Line (Indent2 & "STR ("
                            & C_String_Literal
                                (if Dump_Config.Trigger = Manual
-                                then +Prj.Prj_Name
+                                then To_Ada (Prj.Prj_Name)
                                 else +Main.Filename)
                            & "),");
             File.Put_Line (Indent2 & "0,");
@@ -3817,7 +3817,7 @@ package body Instrument.C is
          File.Put_Line ("void " & Reset_Procedure & "(void) {");
          File.Put_Line (Indent1 & "gnatcov_rts_reset_group_array (");
          File.Put_Line
-           (Indent2 & "&" & Unit_Buffers_Array_Name (+Prj.Prj_Name) & ");");
+           (Indent2 & "&" & Unit_Buffers_Array_Name (Prj.Prj_Name) & ");");
          File.Put_Line ("}");
 
          File.Close;
@@ -3880,9 +3880,9 @@ package body Instrument.C is
          Matches_Reset   : Match_Array (0 .. 0);
          Dump_Procedure  : constant String :=
            Dump_Procedure_Symbol
-             (Main => Dummy_Main, Manual => True, Prj_Name => +Prj.Prj_Name);
+             (Main => Dummy_Main, Manual => True, Prj_Name => Prj.Prj_Name);
          Reset_Procedure : constant String :=
-           Reset_Procedure_Symbol (+Prj.Prj_Name);
+           Reset_Procedure_Symbol (Prj.Prj_Name);
 
          Extern_Prefix : constant String :=
            C_Family_Instrumenter_Type'Class (Self).Extern_Prefix;
@@ -4007,7 +4007,9 @@ package body Instrument.C is
 
                   else
                      String'Write
-                       (S, Dump_Procedure & "(""" & (+Prj.Prj_Name) & """);");
+                       (S,
+                        Dump_Procedure & "(""" & (To_Ada (Prj.Prj_Name))
+                        & """);");
                   end if;
                   Index := Matches_Dump (0).Last + 1;
 
@@ -4297,7 +4299,7 @@ package body Instrument.C is
         New_File
           (Prj,
            To_Symbol_Name (Sys_Prefix)
-           & "_d_b_" & (+Prj.Prj_Name)
+           & "_d_b_" & To_Symbol_Name (Prj.Prj_Name)
            & (if Lang = CPP_Language then "_cpp" else "_c")
            & (+Prj.Body_Suffix (Lang)));
       --  The _cpp or _c suffix is required so that in case both C and C++
@@ -4530,7 +4532,7 @@ package body Instrument.C is
          Unit_Name =>
            +New_File
              (Prj,
-              "gcvrtc-" & (+Prj.Prj_Name)
+              "gcvrtc-" & To_Symbol_Name (Prj.Prj_Name)
               & (+Prj.Body_Suffix
                 (C_Family_Instrumenter_Type'Class (Self).Language))));
 
@@ -4538,7 +4540,7 @@ package body Instrument.C is
 
       Buffer_Array_Decl  : constant String :=
         "const struct gnatcov_rts_coverage_buffers_group_array "
-        & Unit_Buffers_Array_Name (+Prj.Prj_Name);
+        & Unit_Buffers_Array_Name (Prj.Prj_Name);
       Buffer_Unit_Length : constant String :=
         Count_Type'Image (Buffer_Symbols.Length);
    begin

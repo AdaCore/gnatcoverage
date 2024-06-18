@@ -302,7 +302,7 @@ is
          end if;
       end loop;
 
-      Result.Prj_Name := +Prj.Name;
+      Result.Prj_Name := To_Qualified_Name (Prj.Name);
       Result.Dot_Replacement := +Dot_Replacement;
 
       --  Register the source directories of the project tree
@@ -885,11 +885,16 @@ is
          declare
             use String_Sets;
 
+            --  The sources we are processing should be viewed from the most
+            --  extending project we are processing, to ensure it dumps the
+            --  buffers of all the sources in the extending projects as well.
+
             Prj_Info             : constant Project_Info_Access :=
-              Get_Or_Create_Project_Info (IC, Source.Project);
+              Get_Or_Create_Project_Info
+                (IC, Source.Project.Extending_Project (Recurse => True));
             Prj                  : Prj_Desc renames Prj_Info.Desc;
             Is_Root_Prj          : constant Boolean :=
-              Prj.Prj_Name = Root_Project_Info.Project.Name;
+              To_Ada (Prj.Prj_Name) = Root_Project_Info.Project.Name;
             Source_Name          : constant String :=
               GNATCOLL.VFS."+" (Source.File.Full_Name);
             Helper_Unit_Name     : constant Unbounded_String :=

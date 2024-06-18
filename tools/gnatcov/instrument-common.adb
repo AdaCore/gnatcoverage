@@ -87,7 +87,7 @@ package body Instrument.Common is
       Compile (Dump_Procedure_Symbol
         ((File_Based_Language, Null_Unbounded_String), Manual => True));
    Reset_Pattern : constant Pattern_Matcher :=
-     Compile (Reset_Procedure_Symbol (""));
+     Compile (Reset_Procedure_Symbol (Ada_Identifier_Vectors.Empty_Vector));
    --  Precomputed patterns to be used as helpers for
    --  Is_Manual_Indication_Procedure_Symbol.
 

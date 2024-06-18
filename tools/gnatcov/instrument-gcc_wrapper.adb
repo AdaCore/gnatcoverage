@@ -658,7 +658,7 @@ begin
    --  Generate an artificial project description to pass compiler switches and
    --  default spec / body suffixes.
 
-   Prj.Prj_Name := +"main";
+   Prj.Prj_Name := To_Qualified_Name ("main");
    Prj.Output_Dir := +Instr_Dir.Directory_Name;
    Prj.Spec_Suffix :=
      (C_Language => +".h", CPP_Language => +".hh", others => <>);

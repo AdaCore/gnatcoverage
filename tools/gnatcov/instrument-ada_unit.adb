@@ -1435,7 +1435,7 @@ package body Instrument.Ada_Unit is
    --------------------------
 
    function Buffers_List_Unit
-     (Project_Name : String) return Ada_Qualified_Name;
+     (Project_Name : Ada_Qualified_Name) return Ada_Qualified_Name;
    --  Returns the name of the unit containing the array of coverage buffers.
    --  It is named after the given project main name (e.g. if the
    --  project p.gpr, its name is <Sys_Prefix>.<Slug for P>).
@@ -8294,7 +8294,8 @@ package body Instrument.Ada_Unit is
                                (RH,
                                 Kind => Ada_String_Literal,
                                 Text => To_Text
-                                          ("""" & (+Prj.Prj_Name) & """")));
+                                          ("""" & (To_Ada (Prj.Prj_Name))
+                                           & """")));
                      Reset_Call  : constant Node_Rewriting_Handle :=
                        To_Nodes
                          (RH,
@@ -8743,11 +8744,10 @@ package body Instrument.Ada_Unit is
    -----------------------
 
    function Buffers_List_Unit
-     (Project_Name : String) return Ada_Qualified_Name
+     (Project_Name : Ada_Qualified_Name) return Ada_Qualified_Name
    is
       Project_Name_Slug : constant String :=
-        Qualified_Name_Slug
-          (To_Qualified_Name (Project_Name), Use_Hash => False);
+        Qualified_Name_Slug (Project_Name, Use_Hash => False);
    begin
       return Ada_Identifier_Vectors."&"
         (Sys_Prefix, Instrument.Ada_Identifier (+Project_Name_Slug));
@@ -9121,7 +9121,9 @@ package body Instrument.Ada_Unit is
    begin
       Helper_Unit := Sys_Prefix;
       Helper_Unit.Append
-        (To_Unbounded_String ("D" & "B_manual_" & (+Prj.Prj_Name)));
+        (To_Unbounded_String
+          ("D" & "B_manual_"
+           & Qualified_Name_Slug (Prj.Prj_Name, Use_Hash => False)));
       return Helper_Unit;
    end Create_Manual_Helper_Unit_Name;
 
@@ -9195,7 +9197,8 @@ package body Instrument.Ada_Unit is
          Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
          Dump_Procedure   : constant String := To_String (Dump_Procedure_Name);
          Output_Unit_Str  : constant String := To_Ada (Output_Unit);
-         Project_Name_Str : constant String := """" & (+Prj.Prj_Name) & """";
+         Project_Name_Str : constant String :=
+           """" & To_Ada (Prj.Prj_Name) & """";
          Reset_Procedure  : constant String :=
            To_String (Reset_Procedure_Name);
          Sys_Lists        : Ada_Qualified_Name := Sys_Buffers;
@@ -9309,7 +9312,7 @@ package body Instrument.Ada_Unit is
          end case;
 
          File.Put_Line
-           ("with " & To_Ada (Buffers_List_Unit (+Prj.Prj_Name)) & ";");
+           ("with " & To_Ada (Buffers_List_Unit (Prj.Prj_Name)) & ";");
 
          File.Put_Line ("package body " & Helper_Unit_Name & " is");
          File.New_Line;
@@ -9360,7 +9363,7 @@ package body Instrument.Ada_Unit is
          File.Put_Line
            (Indent2
             & "(Buffers_Groups => "
-            & To_Ada (Buffers_List_Unit (+Prj.Prj_Name))
+            & To_Ada (Buffers_List_Unit (Prj.Prj_Name))
             & ".List,");
          case Dump_Config.Channel is
             when Binary_File =>
@@ -9477,7 +9480,7 @@ package body Instrument.Ada_Unit is
                File.Put_Line ("      " & To_Ada (Sys_Lists)
                               & ".Reset_Group_Array_Buffers");
                File.Put_Line ("        ("
-                              & To_Ada (Buffers_List_Unit (+Prj.Prj_Name))
+                              & To_Ada (Buffers_List_Unit (Prj.Prj_Name))
                               & ".C_List);");
                File.Put_Line ("end " & Reset_Procedure & ";");
                File.New_Line;
@@ -9525,7 +9528,7 @@ package body Instrument.Ada_Unit is
    is
       Buffers_CU_Name : constant Compilation_Unit_Part :=
         CU_Name_For_Unit
-          (Buffers_List_Unit (+Prj.Prj_Name), GNATCOLL.Projects.Unit_Spec);
+          (Buffers_List_Unit (Prj.Prj_Name), GNATCOLL.Projects.Unit_Spec);
       File            : Text_Files.File_Type;
    begin
       --  Emit the unit to contain the list of buffers
@@ -9613,7 +9616,7 @@ package body Instrument.Ada_Unit is
 
          File.Put_Line
            ("   pragma Export (C, C_List, """
-            & Unit_Buffers_Array_Name (+Prj.Prj_Name) & """);");
+            & Unit_Buffers_Array_Name (Prj.Prj_Name) & """);");
 
          File.New_Line;
          File.Put_Line ("end " & Unit_Name & ";");

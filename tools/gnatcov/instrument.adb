@@ -486,6 +486,7 @@ package body Instrument is
       use Command_Line.Parser;
       Language : constant Some_Language :=
         To_Language (+Args.String_Args (Opt_Lang).Value);
+      Prj_Name : Unbounded_String;
       Result   : Prj_Desc;
 
       procedure Fill_If_Present
@@ -517,8 +518,10 @@ package body Instrument is
       Fill_If_Present (Opt_Output_Directory, Result.Output_Dir);
       Fill_If_Present (Opt_Spec_Suffix, Result.Spec_Suffix (Language));
       Fill_If_Present (Opt_Body_Suffix, Result.Body_Suffix (Language));
-      Fill_If_Present (Opt_Project_Name, Result.Prj_Name);
+      Fill_If_Present (Opt_Project_Name, Prj_Name);
       Fill_If_Present (Opt_Dot_Replacement, Result.Dot_Replacement);
+
+      Result.Prj_Name := To_Qualified_Name (+Prj_Name);
 
       --  Compiler options are loaded through the --c/c++-opts switch
 
