@@ -516,6 +516,19 @@ is
          Result.Target := Create_Normalized ("a.out");
       end if;
 
+      --  We are only interested in link commands yielding an executable,
+      --  ignore all others. Use the output name as an heuristic.
+
+      declare
+         Target : constant String := +Result.Target.Base_Name;
+      begin
+         if Ends_With (+Target, ".so")
+           or else Ends_With (+Target, ".o")
+         then
+            return No_Link_Command;
+         end if;
+      end;
+
       return Result;
    end Parse_Link_Command;
 
