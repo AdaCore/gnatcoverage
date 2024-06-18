@@ -1,0 +1,846 @@
+{
+  "data": [
+    {
+      "filename": "/home/peron/playground/RUST_TESTS/mcdc_nested/src/mcdc_nested.rs",
+      "functions": [
+        {
+          "branch_regions": [
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                20,
+                8,
+                20,
+                9
+              ],
+              "true_count": 3
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                20,
+                13,
+                20,
+                46
+              ],
+              "true_count": 2
+            },
+            {
+              "false_count": 2,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                20,
+                16,
+                20,
+                17
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                20,
+                21,
+                20,
+                22
+              ],
+              "true_count": 1
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                19,
+                1,
+                20,
+                9
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                20,
+                16,
+                20,
+                17
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                20,
+                21,
+                20,
+                22
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                20,
+                25,
+                20,
+                29
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                20,
+                39,
+                20,
+                44
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                20,
+                47,
+                22,
+                6
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                22,
+                12,
+                24,
+                6
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                25,
+                1,
+                25,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_nested::foo_uncovered_root",
+          "mcdc_records": [
+            {
+              "num_conditions": 2,
+              "span": [
+                20,
+                8,
+                20,
+                46
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    1,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "num_conditions": 2,
+              "span": [
+                20,
+                16,
+                20,
+                22
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    -1
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "_RNvCsaVIxtEfs9wh_11mcdc_nested18foo_uncovered_root"
+        },
+        {
+          "branch_regions": [
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                12,
+                8,
+                12,
+                9
+              ],
+              "true_count": 2
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                12,
+                13,
+                12,
+                46
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                12,
+                16,
+                12,
+                17
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                12,
+                21,
+                12,
+                22
+              ],
+              "true_count": 0
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                11,
+                1,
+                12,
+                9
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                12,
+                16,
+                12,
+                17
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                12,
+                21,
+                12,
+                22
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                12,
+                25,
+                12,
+                29
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                12,
+                39,
+                12,
+                44
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                12,
+                47,
+                14,
+                6
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                14,
+                12,
+                16,
+                6
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                17,
+                1,
+                17,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_nested::foo_uncovered_nested",
+          "mcdc_records": [
+            {
+              "num_conditions": 2,
+              "span": [
+                12,
+                8,
+                12,
+                46
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    -1
+                  ]
+                },
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    1,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "num_conditions": 2,
+              "span": [
+                12,
+                16,
+                12,
+                22
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    -1
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "_RNvCsaVIxtEfs9wh_11mcdc_nested20foo_uncovered_nested"
+        },
+        {
+          "branch_regions": [
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                4,
+                8,
+                4,
+                9
+              ],
+              "true_count": 3
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                4,
+                13,
+                4,
+                46
+              ],
+              "true_count": 2
+            },
+            {
+              "false_count": 2,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                4,
+                16,
+                4,
+                17
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                4,
+                21,
+                4,
+                22
+              ],
+              "true_count": 1
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                3,
+                1,
+                4,
+                9
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                4,
+                16,
+                4,
+                17
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                4,
+                21,
+                4,
+                22
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                4,
+                25,
+                4,
+                29
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                4,
+                39,
+                4,
+                44
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                4,
+                47,
+                6,
+                6
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                6,
+                12,
+                8,
+                6
+              ]
+            },
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                9,
+                1,
+                9,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_nested::foo",
+          "mcdc_records": [
+            {
+              "num_conditions": 2,
+              "span": [
+                4,
+                8,
+                4,
+                46
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    -1
+                  ]
+                },
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    1,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "num_conditions": 2,
+              "span": [
+                4,
+                16,
+                4,
+                22
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    -1
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "_RNvCsaVIxtEfs9wh_11mcdc_nested3foo"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                51,
+                1,
+                75,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_nested::main",
+          "mcdc_records": [],
+          "name": "_RNvCsaVIxtEfs9wh_11mcdc_nested4main"
+        },
+        {
+          "branch_regions": [
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                28,
+                8,
+                28,
+                9
+              ],
+              "true_count": 4
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                29,
+                9,
+                32,
+                32
+              ],
+              "true_count": 4
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                29,
+                12,
+                29,
+                13
+              ],
+              "true_count": 4
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                30,
+                13,
+                31,
+                36
+              ],
+              "true_count": 0
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                30,
+                16,
+                30,
+                17
+              ],
+              "true_count": 0
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                30,
+                21,
+                30,
+                22
+              ],
+              "true_count": 0
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 5,
+              "kind": "CodeRegion",
+              "span": [
+                27,
+                1,
+                28,
+                9
+              ]
+            },
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                29,
+                12,
+                29,
+                13
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                30,
+                16,
+                30,
+                17
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                30,
+                21,
+                30,
+                22
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                31,
+                15,
+                31,
+                19
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                31,
+                29,
+                31,
+                34
+              ]
+            },
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                32,
+                11,
+                32,
+                15
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                32,
+                25,
+                32,
+                30
+              ]
+            },
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                33,
+                5,
+                35,
+                6
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                35,
+                12,
+                37,
+                6
+              ]
+            },
+            {
+              "count": 5,
+              "kind": "CodeRegion",
+              "span": [
+                38,
+                1,
+                38,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_nested::nested_3",
+          "mcdc_records": [
+            {
+              "num_conditions": 2,
+              "span": [
+                28,
+                8,
+                32,
+                32
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    -1
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "num_conditions": 2,
+              "span": [
+                29,
+                12,
+                31,
+                36
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    -1
+                  ]
+                }
+              ]
+            },
+            {
+              "num_conditions": 2,
+              "span": [
+                30,
+                16,
+                30,
+                22
+              ],
+              "test_vectors": []
+            }
+          ],
+          "name": "_RNvCsaVIxtEfs9wh_11mcdc_nested8nested_3"
+        }
+      ]
+    }
+  ]
+}

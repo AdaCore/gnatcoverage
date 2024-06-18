@@ -1,0 +1,822 @@
+{
+  "data": [
+    {
+      "filename": "/home/peron/playground/RUST_TESTS/mcdc_non_control_flow/src/mcdc_assign.rs",
+      "functions": [
+        {
+          "branch_regions": [
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                4,
+                13,
+                4,
+                14
+              ],
+              "true_count": 2
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                4,
+                18,
+                4,
+                19
+              ],
+              "true_count": 1
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                3,
+                1,
+                3,
+                33
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                4,
+                9,
+                4,
+                10
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                4,
+                13,
+                4,
+                14
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                4,
+                18,
+                4,
+                19
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                5,
+                5,
+                6,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_assign::assign_and",
+          "mcdc_records": [
+            {
+              "num_conditions": 2,
+              "span": [
+                4,
+                13,
+                4,
+                19
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    -1
+                  ]
+                },
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    1,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    1
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "_RNvCsec1j5E2arBH_11mcdc_assign10assign_and"
+        },
+        {
+          "branch_regions": [
+            {
+              "false_count": 2,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                19,
+                13,
+                19,
+                14
+              ],
+              "true_count": 2
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                19,
+                18,
+                19,
+                19
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                19,
+                23,
+                19,
+                24
+              ],
+              "true_count": 2
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                18,
+                1,
+                18,
+                44
+              ]
+            },
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                19,
+                9,
+                19,
+                10
+              ]
+            },
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                19,
+                13,
+                19,
+                14
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                19,
+                18,
+                19,
+                19
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                19,
+                23,
+                19,
+                24
+              ]
+            },
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                20,
+                5,
+                21,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_assign::assign_3_bis",
+          "mcdc_records": [
+            {
+              "num_conditions": 3,
+              "span": [
+                19,
+                13,
+                19,
+                24
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    1,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    0,
+                    -1,
+                    1
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    1,
+                    -1
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "_RNvCsec1j5E2arBH_11mcdc_assign12assign_3_bis"
+        },
+        {
+          "branch_regions": [
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                24,
+                13,
+                24,
+                14
+              ],
+              "true_count": 2
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                24,
+                19,
+                24,
+                20
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                24,
+                25,
+                24,
+                26
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                24,
+                31,
+                24,
+                32
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                24,
+                36,
+                24,
+                39
+              ],
+              "true_count": 1
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                23,
+                1,
+                23,
+                65
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                9,
+                24,
+                10
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                13,
+                24,
+                14
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                19,
+                24,
+                20
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                25,
+                24,
+                26
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                31,
+                24,
+                32
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                36,
+                24,
+                39
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                25,
+                5,
+                26,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_assign::right_comb_tree",
+          "mcdc_records": [
+            {
+              "num_conditions": 5,
+              "span": [
+                24,
+                13,
+                24,
+                42
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    -1,
+                    -1,
+                    -1,
+                    -1
+                  ]
+                },
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    1,
+                    0,
+                    -1,
+                    -1,
+                    -1
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "_RNvCsec1j5E2arBH_11mcdc_assign15right_comb_tree"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                28,
+                1,
+                30,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_assign::foo",
+          "mcdc_records": [],
+          "name": "_RNvCsec1j5E2arBH_11mcdc_assign3foo"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                36,
+                1,
+                62,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_assign::main",
+          "mcdc_records": [],
+          "name": "_RNvCsec1j5E2arBH_11mcdc_assign4main"
+        },
+        {
+          "branch_regions": [
+            {
+              "false_count": 2,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                14,
+                13,
+                14,
+                14
+              ],
+              "true_count": 2
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                14,
+                18,
+                14,
+                19
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                14,
+                23,
+                14,
+                24
+              ],
+              "true_count": 1
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                13,
+                1,
+                13,
+                40
+              ]
+            },
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                14,
+                9,
+                14,
+                10
+              ]
+            },
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                14,
+                13,
+                14,
+                14
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                14,
+                18,
+                14,
+                19
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                14,
+                23,
+                14,
+                24
+              ]
+            },
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                15,
+                5,
+                16,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_assign::assign_3",
+          "mcdc_records": [
+            {
+              "num_conditions": 3,
+              "span": [
+                14,
+                13,
+                14,
+                24
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    0,
+                    -1
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    0,
+                    1,
+                    1
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    -1,
+                    -1
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "_RNvCsec1j5E2arBH_11mcdc_assign8assign_3"
+        },
+        {
+          "branch_regions": [
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                9,
+                13,
+                9,
+                14
+              ],
+              "true_count": 2
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                9,
+                18,
+                9,
+                19
+              ],
+              "true_count": 0
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                8,
+                1,
+                8,
+                32
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                9,
+                9,
+                9,
+                10
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                9,
+                13,
+                9,
+                14
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                9,
+                18,
+                9,
+                19
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                10,
+                5,
+                11,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_assign::assign_or",
+          "mcdc_records": [
+            {
+              "num_conditions": 2,
+              "span": [
+                9,
+                13,
+                9,
+                19
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    -1
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "_RNvCsec1j5E2arBH_11mcdc_assign9assign_or"
+        },
+        {
+          "branch_regions": [
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                33,
+                9,
+                33,
+                10
+              ],
+              "true_count": 2
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                33,
+                14,
+                33,
+                15
+              ],
+              "true_count": 1
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                32,
+                1,
+                33,
+                10
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                33,
+                14,
+                33,
+                15
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                34,
+                1,
+                34,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_assign::func_call",
+          "mcdc_records": [
+            {
+              "num_conditions": 2,
+              "span": [
+                33,
+                9,
+                33,
+                15
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    -1
+                  ]
+                },
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    1,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    1
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "_RNvCsec1j5E2arBH_11mcdc_assign9func_call"
+        }
+      ]
+    }
+  ]
+}

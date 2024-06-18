@@ -1,0 +1,733 @@
+{
+  "data": [
+    {
+      "filename": "/home/peron/playground/RUST_TESTS/basic/src/mcdc_basic.rs",
+      "functions": [
+        {
+          "branch_regions": [
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                48,
+                8,
+                48,
+                9
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                48,
+                13,
+                48,
+                14
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                48,
+                18,
+                48,
+                19
+              ],
+              "true_count": 0
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                48,
+                23,
+                48,
+                24
+              ],
+              "true_count": 0
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                48,
+                28,
+                48,
+                29
+              ],
+              "true_count": 0
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                48,
+                33,
+                48,
+                34
+              ],
+              "true_count": 0
+            },
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                48,
+                38,
+                48,
+                39
+              ],
+              "true_count": 0
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                44,
+                1,
+                48,
+                9
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                48,
+                13,
+                48,
+                14
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                48,
+                18,
+                48,
+                19
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                48,
+                23,
+                48,
+                24
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                48,
+                28,
+                48,
+                29
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                48,
+                33,
+                48,
+                34
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                48,
+                38,
+                48,
+                39
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                48,
+                40,
+                50,
+                6
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                50,
+                5,
+                50,
+                6
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                51,
+                1,
+                51,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_basic::condition_too_long",
+          "mcdc_records": [
+            {
+              "num_conditions": 7,
+              "span": [
+                48,
+                8,
+                48,
+                39
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    1,
+                    -1,
+                    -1,
+                    -1,
+                    -1,
+                    -1
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "_RNvCsdqkxZy5KxpN_10mcdc_basic18condition_too_long"
+        },
+        {
+          "branch_regions": [
+            {
+              "false_count": 0,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                36,
+                9,
+                36,
+                10
+              ],
+              "true_count": 2
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                36,
+                14,
+                36,
+                15
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                36,
+                19,
+                36,
+                20
+              ],
+              "true_count": 0
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                34,
+                1,
+                36,
+                10
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                36,
+                14,
+                36,
+                15
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                36,
+                19,
+                36,
+                20
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                37,
+                5,
+                39,
+                6
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                39,
+                12,
+                41,
+                6
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                42,
+                1,
+                42,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_basic::simple_not_covered",
+          "mcdc_records": [
+            {
+              "num_conditions": 3,
+              "span": [
+                36,
+                9,
+                36,
+                20
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    1,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    1,
+                    -1
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "_RNvCsdqkxZy5KxpN_10mcdc_basic18simple_not_covered"
+        },
+        {
+          "branch_regions": [
+            {
+              "false_count": 2,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                16,
+                9,
+                16,
+                10
+              ],
+              "true_count": 5
+            },
+            {
+              "false_count": 3,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                16,
+                15,
+                16,
+                16
+              ],
+              "true_count": 2
+            },
+            {
+              "false_count": 2,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                16,
+                20,
+                16,
+                21
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 2,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                24,
+                10,
+                24,
+                11
+              ],
+              "true_count": 5
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                24,
+                15,
+                24,
+                16
+              ],
+              "true_count": 1
+            },
+            {
+              "false_count": 2,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                24,
+                22,
+                24,
+                23
+              ],
+              "true_count": 4
+            },
+            {
+              "false_count": 1,
+              "kind": "MCDCBranchRegion",
+              "span": [
+                24,
+                27,
+                24,
+                28
+              ],
+              "true_count": 1
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 7,
+              "kind": "CodeRegion",
+              "span": [
+                11,
+                1,
+                16,
+                10
+              ]
+            },
+            {
+              "count": 5,
+              "kind": "CodeRegion",
+              "span": [
+                16,
+                15,
+                16,
+                16
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                16,
+                20,
+                16,
+                21
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                17,
+                5,
+                19,
+                6
+              ]
+            },
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                19,
+                12,
+                21,
+                6
+              ]
+            },
+            {
+              "count": 7,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                10,
+                24,
+                11
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                15,
+                24,
+                16
+              ]
+            },
+            {
+              "count": 6,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                22,
+                24,
+                23
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                27,
+                24,
+                28
+              ]
+            },
+            {
+              "count": 5,
+              "kind": "CodeRegion",
+              "span": [
+                25,
+                5,
+                27,
+                6
+              ]
+            },
+            {
+              "count": 2,
+              "kind": "CodeRegion",
+              "span": [
+                27,
+                12,
+                29,
+                6
+              ]
+            },
+            {
+              "count": 7,
+              "kind": "CodeRegion",
+              "span": [
+                31,
+                5,
+                32,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_basic::several_decisions_in_one_fct",
+          "mcdc_records": [
+            {
+              "num_conditions": 3,
+              "span": [
+                16,
+                9,
+                16,
+                22
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    -1,
+                    -1
+                  ]
+                },
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    1,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    1,
+                    -1
+                  ]
+                }
+              ]
+            },
+            {
+              "num_conditions": 4,
+              "span": [
+                24,
+                9,
+                24,
+                29
+              ],
+              "test_vectors": [
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    0,
+                    0,
+                    -1,
+                    -1
+                  ]
+                },
+                {
+                  "decision_outcome": 0,
+                  "vector": [
+                    1,
+                    -1,
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    0,
+                    1,
+                    1,
+                    -1
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    -1,
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "decision_outcome": 1,
+                  "vector": [
+                    1,
+                    -1,
+                    1,
+                    -1
+                  ]
+                }
+              ]
+            }
+          ],
+          "name": "_RNvCsdqkxZy5KxpN_10mcdc_basic28several_decisions_in_one_fct"
+        },
+        {
+          "branch_regions": [
+            {
+              "false_count": 3,
+              "kind": "BranchRegion",
+              "span": [
+                4,
+                8,
+                4,
+                13
+              ],
+              "true_count": 4
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 7,
+              "kind": "CodeRegion",
+              "span": [
+                3,
+                1,
+                4,
+                13
+              ]
+            },
+            {
+              "count": 4,
+              "kind": "CodeRegion",
+              "span": [
+                4,
+                14,
+                6,
+                6
+              ]
+            },
+            {
+              "count": 3,
+              "kind": "CodeRegion",
+              "span": [
+                6,
+                12,
+                8,
+                6
+              ]
+            },
+            {
+              "count": 7,
+              "kind": "CodeRegion",
+              "span": [
+                9,
+                1,
+                9,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_basic::bar",
+          "mcdc_records": [],
+          "name": "_RNvCsdqkxZy5KxpN_10mcdc_basic3bar"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                53,
+                1,
+                66,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "mcdc_basic::main",
+          "mcdc_records": [],
+          "name": "_RNvCsdqkxZy5KxpN_10mcdc_basic4main"
+        }
+      ]
+    }
+  ]
+}
