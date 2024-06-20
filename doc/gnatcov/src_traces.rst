@@ -575,6 +575,14 @@ coverage violations on all statement obligations associated with expression
 functions. Explicitly disabling optimization (with ``-O0`` for instance) will
 resolve this issue.
 
+C/C++ limitations
+^^^^^^^^^^^^^^^^^
+
+The instrumentation process yields preprocessed versions of the sources. Thus,
+it is required to remove any :cmd-option:`-include` switch that is passed to
+the compiler invocation, by having a dedicated scenario variable for a coverage
+build for instance.
+
 .. _instr-build:
 
 Building instrumented components

@@ -478,6 +478,10 @@ package body Instrument.Common is
             Add_Macro_Switches (Options.Builtin_Macros);
          end if;
          Add_Macro_Switches (Options.PP_Macros);
+         for Included of Options.Include_Files loop
+            Args.Append (+"-include");
+            Args.Append (Included);
+         end loop;
       end if;
 
       --  Add other compiler switches as they may also influence both the
@@ -661,6 +665,13 @@ package body Instrument.Common is
               or else Has_Prefix (A, "-W")
             then
                Self.Compiler_Switches.Append (+A);
+
+            elsif Has_Prefix (A, "--include=") then
+               Self.Include_Files.Append (+A (11 .. A'Last));
+
+            elsif A in "-include" | "--include" then
+               Self.Include_Files.Append (Args (I + 1));
+               I := I + 1;
             end if;
             I := I + 1;
          end;
