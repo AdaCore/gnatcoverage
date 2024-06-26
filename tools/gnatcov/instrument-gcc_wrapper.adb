@@ -20,6 +20,7 @@ with Ada.Containers;  use Ada.Containers;
 with Ada.Containers.Vectors;
 with Ada.Directories; use Ada.Directories;
 with Ada.Strings;     use Ada.Strings;
+with Ada.Strings.Fixed;
 with Ada.Text_IO;     use Ada.Text_IO;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
@@ -516,6 +517,19 @@ is
          Result.Target := Create_Normalized ("a.out");
       end if;
 
+      --  We are only interested in link commands yielding an executable,
+      --  ignore all others. Use the output name as a heuristic.
+
+      declare
+         Target : constant String := +Result.Target.Base_Name;
+      begin
+         if Ends_With (+Target, ".so")
+           or else Ends_With (+Target, ".o")
+         then
+            return No_Link_Command;
+         end if;
+      end;
+
       return Result;
    end Parse_Link_Command;
 
@@ -921,8 +935,8 @@ begin
       --  list compilation unit generated below overwrites the dummy one.
 
       if Comp_DB.Link_Command /= No_Link_Command
-         and then Ada.Directories.Exists
-           (+Comp_DB.Link_Command.Target.Full_Name)
+        and then Ada.Directories.Exists
+          (+Comp_DB.Link_Command.Target.Full_Name)
       then
          declare
             Instrumenter : constant Language_Instrumenter'Class :=
@@ -932,17 +946,98 @@ begin
             --  compilable by a C / C++ compiler, which are the languages
             --  supported by the integrated instrumentation scheme.
 
+            Buffer_Symbols : String_Sets.Set;
+
+            procedure Add_Coverage_Buffer_Symbols (Symbol_File : Virtual_File);
+            --  Add the coverage buffers symbols referenced in the Symbol_File
+            --  to Buffer_Symbols.
+
+            ---------------------------------
+            -- Add_Coverage_Buffer_Symbols --
+            ---------------------------------
+
+            procedure Add_Coverage_Buffer_Symbols (Symbol_File : Virtual_File)
+            is
+            begin
+               Buffer_Symbols.Union
+                 (Coverage_Buffer_Symbols
+                    (Symbol_File     => Symbol_File,
+                     Tmp_Dir         => +Prj.Output_Dir,
+                     Compiler_Driver => Compiler_Exec,
+                     Config          => Instr_Config));
+            end Add_Coverage_Buffer_Symbols;
+
          begin
+            --  Grab the buffer symbols in the link closure
+
+            Add_Coverage_Buffer_Symbols (Comp_DB.Link_Command.Target);
+
+            --  Get the buffer symbols in the dynamic libraries the executable
+            --  depends on.
+
+            declare
+               Args         : String_Vectors.Vector;
+               Ldd_Filename : constant String :=
+                 (+Prj.Output_Dir)
+                 / ("ldd_"
+                    & Filename_Slug (+Comp_DB.Link_Command.Target.Full_Name));
+               Ldd_File     : File_Type;
+            begin
+               Args.Append (+(+Comp_DB.Link_Command.Target.Full_Name));
+               Run_Command
+                 (Command             => +"ldd",
+                  Arguments           => Args,
+                  Origin_Command_Name => "compiler wrapper",
+                  Output_File         => Ldd_Filename);
+
+               Open (Ldd_File, In_File, Ldd_Filename);
+               while not End_Of_File (Ldd_File) loop
+                  declare
+                     use Ada.Strings.Fixed;
+                     Line         : constant String := Get_Line (Ldd_File);
+                     Arrow_Index  : constant Natural := Index (Line, "=>");
+                     Filename_End : constant Natural :=
+                       Index (Line, " ", Line'Last, Going => Backward) - 1;
+                  begin
+                     --  The format of the output of ldd is:
+                     --  <lib_basename> (=> <lib_fullname> (<load address>))?
+                     --
+                     --  We only analyze libraries when the fullname is
+                     --  specified as it is a kernel library otherwise.
+
+                     if Arrow_Index /= 0 then
+                        declare
+                           Lib_Filename : constant String :=
+                             Line (Arrow_Index + 3 .. Filename_End);
+                        begin
+                           --  If the library is not on the LD_LIBRARY_PATH,
+                           --  it will be displayed as:
+                           --
+                           --  <lib_basename> => not found
+
+                           if Line (Arrow_Index + 3 .. Line'Last) = "not found"
+                           then
+                              Outputs.Warn
+                                ("Could not find library "
+                                 & Line (Line'First + 1 .. Arrow_Index - 2)
+                                 & ". Add its directory to the"
+                                 & " LD_LIBRARY_PATH if this is an"
+                                 & " instrumented library.");
+                           else
+                              Add_Coverage_Buffer_Symbols
+                                (Create (+Lib_Filename));
+                           end if;
+                        end;
+                     end if;
+                  end;
+               end loop;
+               Close (Ldd_File);
+            end;
+
             --  Generate the buffers list unit
 
             Buffers_List_Unit :=
-              Instrumenter.Emit_Buffers_List_Unit
-                (Coverage_Buffer_Symbols
-                   (Symbol_File     => Comp_DB.Link_Command.Target,
-                    Tmp_Dir         => +Prj.Output_Dir,
-                    Compiler_Driver => Compiler_Exec,
-                    Config          => Instr_Config),
-                 Prj);
+              Instrumenter.Emit_Buffers_List_Unit (Buffer_Symbols, Prj);
 
             --  Then, re-run the link with the correct buffers list unit
 
