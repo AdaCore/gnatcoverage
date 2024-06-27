@@ -641,3 +641,11 @@ def add_shared_options_to(parser, toplevel):
         help='Default dump channel to be passed to "gnatcov instrument,"'
         " unless the test specifically overrides it.",
     )
+
+    # --block
+    parser.add_argument(
+        "--block",
+        action="store_true",
+        help='Pass --block-instrument to "gnatcov instrument",'
+        " to enable block instrumentation.",
+    )

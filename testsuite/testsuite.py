@@ -579,6 +579,9 @@ class TestPyRunner:
                 f"--default-dump-channel={mopt.default_dump_channel}"
             )
 
+        if mopt.block:
+            testcase_cmd.append("--block")
+
         # --gnatcov_<cmd> family
 
         for pgm, cmd in control.ALTRUN_GNATCOV_PAIRS:
@@ -1371,6 +1374,9 @@ class TestSuite(e3.testsuite.Testsuite):
 
         if self.main.args.all_warnings:
             result.append("all-warnings")
+
+        if self.main.args.block:
+            result.append("block")
 
         return result
 

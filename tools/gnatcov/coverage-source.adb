@@ -2154,6 +2154,29 @@ package body Coverage.Source is
          end if;
       end loop;
 
+      --  If there are blocks, discharge all of the blocks statement SCOs
+      --  when one of them (which actually is the last) is covered.
+
+      declare
+         Stmt_Blocks : SCO_Id_Vector_Vector renames Blocks (CU);
+         Block_Index : Positive;
+      begin
+         if not Stmt_Blocks.Is_Empty then
+            Block_Index := Stmt_Blocks.First_Index;
+            for J in Stmt_Buffer'Range loop
+               if Stmt_Buffer (J) then
+                  for SCO of Stmt_Blocks.Element (Block_Index) loop
+                     Update_SCI_Wrapper
+                       (SCO     => SCO,
+                        Tag     => No_SC_Tag,
+                        Process => Set_Executed'Access);
+                  end loop;
+               end if;
+               Block_Index := Block_Index + 1;
+            end loop;
+         end if;
+      end;
+
       ST := Scope_Traversal (CU);
       for J in Decision_Buffer'Range loop
          if Decision_Buffer (J) then
@@ -2459,6 +2482,40 @@ package body Coverage.Source is
                      Tag     => No_SC_Tag,
                      Process => Process_SCI'Access);
       end loop;
+
+      --  If statements were instrumented as blocks, also process the non-
+      --  instrumented statement SCOs in blocks.
+
+      declare
+         Stmt_Blocks : SCO_Id_Vector_Vector renames Blocks (CU);
+         Block_Index : Positive;
+      begin
+         if not Stmt_Blocks.Is_Empty then
+            Block_Index := Stmt_Blocks.First_Index;
+
+            for Bit in Stmt_Bit_Map'Range loop
+
+               --  Assert that the SCO corresponding to the current bit
+               --  corresponds to the last statement SCO of the current block.
+
+               if Stmt_Blocks.Element (Block_Index).Last_Element
+                 /= Stmt_Bit_Map (Bit)
+               then
+                  Outputs.Fatal_Error
+                    ("Contents of statement blocks is inconsistent with source"
+                     & " coverage obligations");
+               end if;
+
+               for SCO of Stmt_Blocks.Element (Block_Index) loop
+                  Update_SCI
+                    (SCO     => SCO,
+                     Tag     => No_SC_Tag,
+                     Process => Process_SCI'Access);
+               end loop;
+               Block_Index := Block_Index + 1;
+            end loop;
+         end if;
+      end;
    end Initialize_SCI_For_Instrumented_CU;
 
    --------------------------

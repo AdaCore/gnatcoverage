@@ -950,7 +950,7 @@ class SCOV_helper:
         # When we're running for a level stricter than the test category
         # (e.g. running a stmt test with --level=stmt+decision), we
         #
-        # * Just ignore some emitted notes, simply irrelevant for the catgory
+        # * Just ignore some emitted notes, simply irrelevant for the category
         #   (e.g. dT-, which doesn't change the statement coverage status of
         #   the outer statement). This is conveyed by the rp_?notes_for sets.
         #
@@ -963,7 +963,7 @@ class SCOV_helper:
         #   when that happens.
 
         # Symbolic strength of each category and context level, to let us
-        # determine when we're running some test of a given catgeory with a
+        # determine when we're running some test of a given category with a
         # stricter --level
 
         strength = {

@@ -1,5 +1,4 @@
 pragma Style_Checks (Off); pragma Warnings (Off);
-with Interfaces.C; use Interfaces.C;
 with System;
 with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
@@ -27,7 +26,7 @@ package Buffers_1 is
       Language  => Unit_Based_Language,
       Unit_Part => Unit_Body,
       Unit_Name => (Unit_Name'Address, Unit_Name'Length),
-      Bit_Maps_Fingerprint => (242, 233, 177, 172, 181, 126, 10, 107, 129, 130, 58, 85, 69, 52, 28, 242, 228, 191, 81, 252),
+      Bit_Maps_Fingerprint => (14, 208, 170, 79, 214, 204, 239, 198, 105, 130, 182, 250, 66, 192, 111, 106, 70, 106, 188, 135),
       Statement => Statement_Buffer'Address,
       Decision  => Decision_Buffer'Address,
       MCDC      => MCDC_Buffer'Address,

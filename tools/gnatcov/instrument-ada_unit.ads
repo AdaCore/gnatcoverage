@@ -29,6 +29,7 @@ with Libadalang.Analysis;       use Libadalang.Analysis;
 with Libadalang.Config_Pragmas; use Libadalang.Config_Pragmas;
 with Libadalang.Rewriting;      use Libadalang.Rewriting;
 
+with GNATCOLL.Refcount; use GNATCOLL.Refcount;
 with GNATCOLL.VFS;
 
 with Files_Handling;    use Files_Handling;
@@ -237,6 +238,10 @@ private
       end case;
    end record;
 
+   package Insertion_Info_SP is new Shared_Pointers
+     (Element_Type => Insertion_Info);
+   subtype Insertion_Info_Ref is Insertion_Info_SP.Ref;
+
    type Source_Decision is record
       LL_SCO : Nat;
       --  Low-level SCO id of decision
@@ -320,6 +325,64 @@ private
    package Generic_Subp_Vectors is
      new Ada.Containers.Vectors (Natural, Generic_Subp);
 
+   type Instrument_Location_Type is
+     (Before, After, Before_Parent, Inside_Expr);
+   --  Where to insert the witness call for a statement:
+
+   --  Before: common case, insert immediately before the statement in
+   --  the same sequence, so that the statement is recorded as having
+   --  been executed (at least partially), even if it raises an exception.
+   --
+   --  After: special cases where this is not legal (e.g. for the first
+   --  statement of an alternative in a SELECT statement [except for a DELAY
+   --  alternative, see below], which has special semantics). In these rare
+   --  cases, the location indication is set to After to indicate that the
+   --  witness must be inserted after the statement, not before.
+   --
+   --  Before_Parent: special case of a DELAY or entry call alternative: the
+   --  evaluation of the delay duration, entry name, or entry call actuals
+   --  occurs inconditionally as soon as the enclosing SELECT statement is
+   --  executed, so we insert the witness immediately before the SELECT.
+   --
+   --  Inside_Expr: special cases where we cannot insert a witness call as a
+   --  statement, or as a declaration (before or after). Such occurrences are
+   --  elsif statements. In this case, we will insert the witness call inside
+   --  the underlying boolean expression.
+
+   type Stmt_Instr_Info_Type is record
+      Insertion_N : Node_Rewriting_Handle;
+      --  Node for the insertion of the witness call
+
+      Instrument_Location : Instrument_Location_Type;
+      --  Instrument location controlling the insertion of the witness call.
+      --  Refer to the type definition of Instrument_Location_Type for more
+      --  information.
+
+      Insert_Info_Ref : Insertion_Info_Ref;
+      --  Insertion information controlling the insertion of the witness call.
+      --  The insertion of the witness call also fills this record when e.g.
+      --  instrumenting an expression function. Refer to the type definition
+      --  of Insertion_Info for more information.
+
+      In_Decl_Expr : Boolean;
+      --  True when this is a declaration in a declare expression
+   end record;
+   --  Information relative to the instrumentation of a statement
+
+   type Block_Information is record
+      Block : SCO_Id_Vectors.Vector;
+      --  Statement SCOs for the block
+
+      Last_Stmt_Instr_Info : Stmt_Instr_Info_Type;
+      --  Instrumentation information for the last encountered statement of the
+      --  block.
+
+   end record;
+   --  Information relative to a block of statements
+
+   package Block_Stacks is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Block_Information);
+
    type Ada_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
       record
          Language_Version_Pragma : Unbounded_Wide_Wide_String;
@@ -364,7 +427,7 @@ private
          MCDC_State_Inserter : Any_MCDC_State_Inserter;
          --  Service supporting insertion of temporary MC/DC state variables
 
-         Current_Insertion_Info : Insertion_Info_Access;
+         Current_Insertion_Info : Insertion_Info_Ref;
          --  Insertion_Info for the list being traversed
 
          Degenerate_Subprogram_Generics : Generic_Subp_Vectors.Vector;
@@ -404,6 +467,11 @@ private
          --  Used to only insert constant object declarations in the declare
          --  expression, as non-constant objects are not allowed per
          --  RM 4.5.9 (5/5).
+
+         Block_Stack : Block_Stacks.Vector;
+         --  Currently processed blocks (blocks can nest in the source,
+         --  when e.g. we have a nested subprogram declaration).
+
       end record;
 
    function Insert_MCDC_State
