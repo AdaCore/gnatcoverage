@@ -41,6 +41,10 @@ procedure Compiler_Wrappers.Gcc is
    Gnatcov_Exec : constant String :=
      "gnatcov" & GNAT.OS_Lib.Get_Executable_Suffix.all;
    Args         : String_Vectors.Vector;
+
+   --  Load the configuration to enable verbose output if required
+
+   Dummy : Instrumentation_Config := Load_Config (Config_Filename);
 begin
    Args.Append (+"gcc-wrapper");
    Args.Append (+Config_Filename);

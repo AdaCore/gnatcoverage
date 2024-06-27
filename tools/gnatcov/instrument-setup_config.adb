@@ -382,7 +382,7 @@ package body Instrument.Setup_Config is
    begin
       if not Parsed_JSON.Success then
          Outputs.Fatal_Error
-           ("Parsing errror while reading the instrumentation configuration"
+           ("Parsing error while reading the instrumentation configuration"
             & " file.");
       end if;
       Config_JSON := Parsed_JSON.Value;
