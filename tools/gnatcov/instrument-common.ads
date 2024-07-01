@@ -568,6 +568,9 @@ package Instrument.Common is
       PP_Search_Path : String_Vectors.Vector;
       --  List of directories to search when looking for an included file
 
+      Include_Files : String_Vectors.Vector;
+      --  Header files passed through a -include switch
+
       Builtin_Macros : Macro_Set;
       --  Set of predefined macros for the project compiler driver
 
@@ -577,7 +580,7 @@ package Instrument.Common is
       Compiler_Switches : String_Vectors.Vector;
       --  List of compiler switches that can influence the file preprocessing.
       --  The list should be amended alongside our discoveries. It is
-      --  currently: -std, -fno-exceptions, -fno-rtti, -W* switches.
+      --  currently: -std, -fno-exceptions, -fno-rtti, and -W* -include.
 
       Raw_Switches : String_Vectors.Vector;
       --  List of switches passed to the compiler driver without filtering
