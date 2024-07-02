@@ -19,6 +19,7 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Environment_Variables;
+with Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.OS_Lib;
@@ -27,9 +28,9 @@ with GNAT.Regexp;
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.VFS;  use GNATCOLL.VFS;
 with GPR2.Context;
-with GPR2.Containers;
 with GPR2.KB;
 with GPR2.Log;
+with GPR2.Options;
 with GPR2.Path_Name;
 with GPR2.Project.Attribute;
 with GPR2.Project.Attribute_Index;
@@ -49,8 +50,6 @@ with Text_Files;
 
 package body Setup_RTS is
 
-   use type GPR2.Filename_Optional;
-
    type Library_Support is (None, Static_Only, Full);
    --  Support for libraries in the given target/runtime configuration, as
    --  defined in GPR configuration files (see the Library_Support GPR
@@ -66,18 +65,16 @@ package body Setup_RTS is
    Ravenscar_RTS_Regexp : constant GNAT.Regexp.Regexp :=
      GNAT.Regexp.Compile (".*(ravenscar|light-tasking|embedded).*");
 
-   procedure Load_Project
+   function Load_Project
      (Project      : in out GPR2.Project.Tree.Object;
       Project_File : String;
       Target       : String;
       RTS          : String;
       Config_File  : String;
-      Context      : GPR2.Context.Object := GPR2.Context.Empty);
+      Context      : GPR2.Context.Object := GPR2.Context.Empty) return Boolean;
    --  Load Project_File for the given Target/RTS/Config_File/Context.
    --
-   --  This does not raise an exception in case of project loading failure:
-   --  callers are supposed to check Project.Log_Messages to handle possible
-   --  errors.
+   --  Returns true upon success. Note that logs are automatically displayed.
 
    function Setup_Project
      (Temp_Dir     : Temporary_Directory;
@@ -192,18 +189,17 @@ package body Setup_RTS is
    -- Load_Project --
    ------------------
 
-   procedure Load_Project
+   function Load_Project
      (Project      : in out GPR2.Project.Tree.Object;
       Project_File : String;
       Target       : String;
       RTS          : String;
       Config_File  : String;
-      Context      : GPR2.Context.Object := GPR2.Context.Empty)
+      Context      : GPR2.Context.Object := GPR2.Context.Empty) return Boolean
    is
-      PF : constant GPR2.Path_Name.Object :=
-        GPR2.Path_Name.Create_File
-           (GPR2.Filename_Type (Project_File), GPR2.Path_Name.No_Resolution);
+      Opts : GPR2.Options.Object;
    begin
+
       --  According to the documentation, an error message is recorded in
       --  Project when Load and Load_Autoconf raise GPR2.Project_Error
       --  exceptions, so we can just ignore this exception and let callers deal
@@ -212,51 +208,30 @@ package body Setup_RTS is
       --  If a configuration project file is provided, just load it to create
       --  the configuration.
 
+      Opts.Add_Switch (GPR2.Options.P, Project_File);
+
       if Config_File /= "" then
-         declare
-            F      : constant GPR2.Path_Name.Object :=
-              GPR2.Path_Name.Create_File (GPR2.Filename_Type (Config_File));
-            Config : constant GPR2.Project.Configuration.Object :=
-              GPR2.Project.Configuration.Load (F);
-         begin
-            Project.Load
-              (Filename         => PF,
-               Context          => Context,
-               Absent_Dir_Error => GPR2.Project.Tree.No_Error,
-               Config           => Config);
-         exception
-            when GPR2.Project_Error =>
-               null;
-         end;
-
-      --  Otherwise, use the "auto configuration" mode that will use the
-      --  optional target and RTS information. Always require C (needed for the
-      --  core coverage runtime) and require the Ada language only if enabled.
-
-      else
-         declare
-            RTS_Map       : GPR2.Containers.Lang_Value_Map;
-            Actual_Target : constant GPR2.Optional_Name_Type :=
-              GPR2.Optional_Name_Type (Target);
-         begin
-            RTS_Map.Include (GPR2.C_Language, RTS);
-            if Src_Enabled_Languages (Ada_Language) then
-               RTS_Map.Include (GPR2.Ada_Language, RTS);
-            end if;
-
-            begin
-               Project.Load_Autoconf
-                 (Filename          => PF,
-                  Context           => Context,
-                  Absent_Dir_Error  => GPR2.Project.Tree.No_Error,
-                  Target            => Actual_Target,
-                  Language_Runtimes => RTS_Map);
-            exception
-               when GPR2.Project_Error =>
-                  null;
-            end;
-         end;
+         Opts.Add_Switch (GPR2.Options.Config, Config_File);
       end if;
+
+      for C in Context.Iterate loop
+         Opts.Add_Switch (GPR2.Options.X,
+                          String (GPR2.Context.Key_Value.Key (C)) & '=' &
+                            String (GPR2.Context.Key_Value.Element (C)));
+      end loop;
+
+      if RTS /= "" then
+         Opts.Add_Switch (GPR2.Options.RTS, RTS, "Ada");
+      end if;
+
+      if Target /= "" and then Config_File = "" then
+         Opts.Add_Switch (GPR2.Options.Target, Target);
+      end if;
+
+      return Project.Load
+        (Opts,
+         With_Runtime     => True,
+         Absent_Dir_Error => GPR2.No_Error);
    end Load_Project;
 
    -----------
@@ -433,8 +408,9 @@ package body Setup_RTS is
          then GPR2.Ada_Language
          else GPR2.C_Language);
 
-      Ctx : GPR2.Context.Object;
-      Prj : GPR2.Project.Tree.Object;
+      Ctx       : GPR2.Context.Object;
+      Prj       : GPR2.Project.Tree.Object;
+      Has_Error : Boolean;
    begin
       --  Compute scenario variables that determine the set of languages, as we
       --  may not be able to load the full Ada+C project if there is no Ada
@@ -446,7 +422,8 @@ package body Setup_RTS is
 
       --  Now load the project
 
-      Load_Project (Prj, Project_File, Target, RTS, Config_File, Ctx);
+      Has_Error :=
+        not Load_Project (Prj, Project_File, Target, RTS, Config_File, Ctx);
 
       --  Print all messages in verbose mode, and all but the Information ones
       --  otherwise. Abort on error, or if we failed to get a runtime project
@@ -455,11 +432,11 @@ package body Setup_RTS is
       --  C-only projects do not require a runtime, so do not complain if there
       --  is no runtime project in this case.
 
+      Has_Error := Has_Error
+        or else (Has_Ada and then not Prj.Has_Runtime_Project);
+
       declare
-         Logs      : constant access GPR2.Log.Object := Prj.Log_Messages;
-         Has_Error : constant Boolean :=
-           Logs.Has_Error
-           or else (Has_Ada and then not Prj.Has_Runtime_Project);
+         Logs : constant access GPR2.Log.Object := Prj.Log_Messages;
       begin
          if Logs.Has_Element
            (Information => False,
@@ -504,26 +481,30 @@ package body Setup_RTS is
 
       Auto_RTS_Profile := Embedded;
       if Has_Ada then
-         for F of Prj.Runtime_Project.Sources loop
-            if F.Path_Name.Simple_Name = "g-os_lib.ads" then
-               Auto_RTS_Profile := Full;
-               exit;
-            end if;
-         end loop;
+         Prj.Update_Sources (GPR2.Sources_Only);
+
+         if Prj.Runtime_Project.Has_Source ("g-os_lib.ads") then
+            Auto_RTS_Profile := Full;
+         end if;
       else
          declare
-            use GPR2;
-            Tool_Name : constant Name_Type := "gcc";
+            Driver : constant GPR2.Project.Attribute.Object :=
+                       Prj.Root_Project.Attribute
+                         (GPR2.Project.Registry.Attribute.Compiler.Driver,
+                          GPR2.Project.Attribute_Index.Create
+                            (GPR2.C_Language));
          begin
-            --  Add_Tool_Prefix's documentation states that the tool name is
-            --  returned unchanged for native compilation, so use this as a
-            --  proxy to determine if we are setting up the gnatcov RTS for
-            --  a cross target or not.
+            --  If C's compiler driver is defined, and contains a dash, we
+            --  can only suppose it's a cross compiler with an executable of
+            --  the form <target_name>-<compiler>.
 
-            Auto_RTS_Profile :=
-              (if Tool_Name = Prj.Add_Tool_Prefix (Tool_Name)
-               then Full
-               else Embedded);
+            if Driver.Is_Defined
+              and then Ada.Strings.Fixed.Index (Driver.Value.Text, "-") > 0
+            then
+               Auto_RTS_Profile := Embedded;
+            else
+               Auto_RTS_Profile := Full;
+            end if;
          end;
       end if;
 
@@ -1083,8 +1064,7 @@ package body Setup_RTS is
       --  been installed: do not print any error message, and if the project
       --  fails to load, just return the default setup config.
 
-      Load_Project (Prj, Prj_Filename, Target, RTS, Config_File);
-      if Prj.Log_Messages.Has_Error
+      if not Load_Project (Prj, Prj_Filename, Target, RTS, Config_File)
          or else (Src_Enabled_Languages (Ada_Language)
                   and then not Prj.Has_Runtime_Project)
       then
@@ -1098,7 +1078,7 @@ package body Setup_RTS is
       --  The project file is in $PREFIX/share/gpr, so get $PREFIX first and
       --  then look for the config file under it.
 
-      Project_File := Create (+Prj.Root_Project.Path_Name.Value);
+      Project_File := Create (+Prj.Root_Project.Path_Name.String_Value);
       Setup_RTS_Trace.Trace
         ("Loaded the coverage runtime project at: "
          & (+Project_File.Full_Name));
