@@ -829,7 +829,7 @@ def cmdrun(
 
     p = run_and_log(cmd, timeout=thistest.options.timeout, **kwargs)
 
-    # Check for FataError conditions. Minimize the situations where we look
+    # Check for FatalError conditions. Minimize the situations where we look
     # into the program's output as this is a central spot.
 
     if register_failure and p.status != 0:
