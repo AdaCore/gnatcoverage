@@ -35,7 +35,7 @@ build_run_and_coverage(
 check_xcov_reports(
     "xcov",
     {
-        "main.c.xcov": {"+": {4, 5, 6}},
+        "main.c.xcov": {"+": {4, 5, 6, 13}},
         "pkg1.h.xcov": {"+": {6}},
         "pkg2.h.xcov": {"+": {6}},
         "pkg3.h.xcov": {"+": {6}},
