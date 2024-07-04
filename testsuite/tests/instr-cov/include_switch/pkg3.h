@@ -1,7 +1,7 @@
-#include <stdio.h>
+extern void print_msg (const char *msg);
 
 void
-hello_from_pkg3 ()
+hello_from_pkg3 (void)
 {
-  printf ("Hello from pkg3\n");
+  print_msg ("Hello from pkg3\n");
 }
