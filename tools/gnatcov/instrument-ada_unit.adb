@@ -1127,13 +1127,13 @@ package body Instrument.Ada_Unit is
 
    procedure Enter_Scope
      (UIC  : in out Ada_Unit_Inst_Context;
-      Sloc : Source_Location;
+      N    : Ada_Node'Class;
       Decl : Basic_Decl);
    --  Enter a scope. This must be completed with a call to the function
-   --  Exit_Scope, defined below. Scope_Name is the name of the scope, which
-   --  is defined at location Sloc. Assume that the scope first SCO is the next
-   --  generated SCO (SCOs.SCO_Table.Last + 1). Update UIC.Current_Scope_Entity
-   --  to the created entity.
+   --  Exit_Scope, defined below. Assume that the scope first SCO is the next
+   --  generated SCO (SCOs.SCO_Table.Last + 1), and also assume that decl
+   --  refers to the the specification of N, to uniquely identify the scope.
+   --  Update UIC.Current_Scope_Entity to the created entity.
 
    procedure Exit_Scope (UIC : in out Ada_Unit_Inst_Context);
    --  Exit the current scope, updating UIC.Current_Scope_Entity to
@@ -4414,7 +4414,7 @@ package body Instrument.Ada_Unit is
 
          Enter_Scope
            (UIC  => UIC,
-            Sloc => Sloc (N),
+            N    => N,
             Decl => (if Prev_Part.Is_Null then N else Prev_Part));
          Start_Statement_Block (UIC);
 
@@ -5089,7 +5089,7 @@ package body Instrument.Ada_Unit is
             =>
                Enter_Scope
                  (UIC  => UIC,
-                  Sloc => Sloc (N),
+                  N    => N,
                   Decl => N.As_Basic_Decl);
                Instrument_Statement
                  (UIC, N,
@@ -5433,7 +5433,7 @@ package body Instrument.Ada_Unit is
       UIC.Ghost_Code := Safe_Is_Ghost (N);
       Enter_Scope
         (UIC  => UIC,
-         Sloc => Sloc (N),
+         N    => N,
          Decl => Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
@@ -5465,7 +5465,7 @@ package body Instrument.Ada_Unit is
       UIC.Ghost_Code := Safe_Is_Ghost (N);
       Enter_Scope
         (UIC  => UIC,
-         Sloc => Sloc (N),
+         N    => N,
          Decl => N.As_Basic_Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
@@ -5617,7 +5617,7 @@ package body Instrument.Ada_Unit is
       begin
          Enter_Scope
            (UIC  => UIC,
-            Sloc => Sloc (N),
+            N    => N,
             Decl => Decl);
       end;
 
@@ -6890,9 +6890,14 @@ package body Instrument.Ada_Unit is
 
    procedure Enter_Scope
      (UIC  : in out Ada_Unit_Inst_Context;
-      Sloc : Source_Location;
+      N    : Ada_Node'Class;
       Decl : Basic_Decl)
    is
+      function Local_Sloc
+        (Sloc : Source_Location) return Slocs.Local_Source_Location
+      is ((Line   => Natural (Sloc.Line),
+           Column => Natural (Sloc.Column)));
+
       Decl_SFI      : constant Source_File_Index :=
         Get_Index_From_Generic_Name
           (Decl.Unit.Get_Filename,
@@ -6901,11 +6906,11 @@ package body Instrument.Ada_Unit is
       New_Scope_Ent : constant Scope_Entity :=
         (From       => SCO_Id (SCOs.SCO_Table.Last + 1),
          To         => No_SCO_Id,
+         Start_Sloc => Local_Sloc (Start_Sloc (N.Sloc_Range)),
+         End_Sloc   => Local_Sloc (End_Sloc (N.Sloc_Range)),
          Name       =>
            +Langkit_Support.Text.To_UTF8 (Decl.P_Defining_Name.F_Name.Text),
-         Sloc       =>
-           (Line   => Natural (Sloc.Line),
-            Column => Natural (Sloc.Column)),
+         Sloc       => Local_Sloc (Sloc (N)),
          Identifier =>
            (Decl_SFI  => Decl_SFI,
             Decl_Line => Natural (Decl.Sloc_Range.Start_Line)));

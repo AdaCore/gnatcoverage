@@ -39,7 +39,7 @@ with Traces_Source;  use Traces_Source;
 
 package Checkpoints is
 
-   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 15;
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 16;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
@@ -59,6 +59,7 @@ package Checkpoints is
    --  13 -- Extend Files_Table.File_Info to distinguish homonym source files
    --  14 -- Extend CU_Info to implement block coverage
    --  15 -- Increase size of Pragma_Id after addition of 255th pragma
+   --  16 -- Extend Scope_Entity to include the Start/End_Sloc of the scope
    --
    --  Note that we always use the last version when creating a checkpoint.
    --

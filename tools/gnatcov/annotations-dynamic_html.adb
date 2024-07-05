@@ -562,7 +562,9 @@ package body Annotations.Dynamic_Html is
    is
       use Scope_Entities_Trees;
 
-      function To_JSON (Cur : Cursor) return JSON_Value;
+      function To_JSON
+        (Cur     : Cursor;
+         Is_Root : Boolean := False) return JSON_Value;
       --  Convert a scope entity to a JSON scoped metric: compute line and
       --  obligation statistics for the given scope and recursively for
       --  child scopes. Store the result as a JSON object, with the name and
@@ -572,7 +574,9 @@ package body Annotations.Dynamic_Html is
       -- To_JSON --
       -------------
 
-      function To_JSON (Cur : Cursor) return JSON_Value
+      function To_JSON
+        (Cur     : Cursor;
+         Is_Root : Boolean := False) return JSON_Value
       is
          Scope_Ent : constant Scope_Entity := Element (Cur);
          Child     : Cursor := First_Child (Cur);
@@ -581,11 +585,16 @@ package body Annotations.Dynamic_Html is
          Children_Scope_Metrics_JSON : JSON_Array;
          --  Representation of the scope metrics for the html format
 
+         File_Info  : constant File_Info_Access := Get_File (File);
          Line_Stats : constant Li_Stat_Array :=
            Line_Metrics
-             (Get_File (File),
-              First_Sloc (Scope_Ent.From).L.Line,
-              Last_Sloc (Scope_Ent.To).L.Line);
+             (File_Info,
+              Scope_Ent.Start_Sloc.Line,
+              (if Is_Root then Last_Line (File_Info)
+               else Scope_Ent.End_Sloc.Line));
+         --  Adjust Scope_Ent.End_Sloc for the root node as it is
+         --  No_Local_Location by default.
+
          Ob_Stats   : constant Ob_Stat_Array :=
            Obligation_Metrics (Scope_Ent.From, Scope_Ent.To);
       begin
@@ -604,7 +613,7 @@ package body Annotations.Dynamic_Html is
 
    begin
       for Cur in Scope_Entities.Iterate_Children (Scope_Entities.Root) loop
-         Pp.Scope_Metrics := To_JSON (Cur);
+         Pp.Scope_Metrics := To_JSON (Cur, Is_Root => True);
       end loop;
    end Pretty_Print_Scope_Entities;
 

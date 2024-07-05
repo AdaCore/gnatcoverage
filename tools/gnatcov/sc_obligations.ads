@@ -200,6 +200,11 @@ package SC_Obligations is
       --  instrumentation, From and To designate low level SCOs that are then
       --  converted to high level SCOs after processing the low level SCOs.
 
+      Start_Sloc, End_Sloc : Local_Source_Location;
+      --  Start/End_Sloc for this scope. This is more precise than the SCO
+      --  range as the SCO range may skip over lines with disabled coverage,
+      --  which we want to report on.
+
       Name : Unbounded_String;
       Sloc : Local_Source_Location;
       --  Name (as it appears in the source) and sloc of this scope definition
@@ -284,6 +289,8 @@ package SC_Obligations is
    No_Scope_Entity : constant Scope_Entity :=
      (From       => No_SCO_Id,
       To         => No_SCO_Id,
+      Start_Sloc => No_Local_Location,
+      End_Sloc   => No_Local_Location,
       Name       => +"",
       Sloc       => No_Local_Location,
       Identifier => No_Scope_Entity_Identifier);

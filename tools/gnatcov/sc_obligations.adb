@@ -1062,6 +1062,9 @@ package body SC_Obligations is
       Value.From := CLS.Read_SCO;
       Value.To := CLS.Read_SCO;
 
+      Value.Start_Sloc := CLS.Read_Local_Source_Location;
+      Value.End_Sloc := CLS.Read_Local_Source_Location;
+
       Value.Name := CLS.Read_Unbounded_String;
       Value.Sloc := CLS.Read_Local_Source_Location;
 
@@ -1840,6 +1843,9 @@ package body SC_Obligations is
    begin
       CSS.Write_SCO (Value.From);
       CSS.Write_SCO (Value.To);
+
+      CSS.Write (Value.Start_Sloc);
+      CSS.Write (Value.End_Sloc);
 
       CSS.Write (Value.Name);
       CSS.Write (Value.Sloc);

@@ -601,8 +601,10 @@ package body Instrument.C is
                New_Scope_Ent : constant Scope_Entity :=
                  (From       => SCO_Id (SCOs.SCO_Table.Last + 1),
                   To         => No_SCO_Id,
+                  Start_Sloc => (Line => 1, Column => 0),
+                  End_Sloc   => No_Local_Location,
                   Name       => +Get_Simple_Name (SFI),
-                  Sloc       => (Line => 0, Column => 0),
+                  Sloc       => (Line => 1, Column => 0),
                   Identifier => (Decl_SFI => SFI, Decl_Line => 0));
 
                Scope_Entity_Position : Scope_Entities_Trees.Cursor;
@@ -643,6 +645,8 @@ package body Instrument.C is
          New_Scope_Ent : constant Scope_Entity :=
            (From       => SCO_Id (SCOs.SCO_Table.Last + 1),
             To         => No_SCO_Id,
+            Start_Sloc => Sloc.L,
+            End_Sloc   => End_Sloc (N).L,
             Name       => +Get_Decl_Name_Str (N),
             Sloc       => Sloc.L,
             Identifier => (Decl_SFI => File, Decl_Line => Sloc.L.Line));
