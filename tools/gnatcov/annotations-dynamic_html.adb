@@ -629,7 +629,6 @@ package body Annotations.Dynamic_Html is
    is
       Coverage_State : constant String :=
                          (1 => State_Char (Aggregated_State (Info.all)));
-      Exempted       : constant Boolean := Info.Exemption /= Slocs.No_Location;
 
       Mapping  : constant JSON_Value := Create_Object;
       Line_Obj : constant JSON_Value := Create_Object;
@@ -640,7 +639,6 @@ package body Annotations.Dynamic_Html is
       Clear (Pp.Current_Conditions);
 
       Line_Obj.Set_Field ("lineNumber", Img (Line_Num));
-      Line_Obj.Set_Field ("exempted", Exempted'Img);
       Line_Obj.Set_Field ("src", Line);
 
       Mapping.Set_Field ("coverage", Coverage_State);
