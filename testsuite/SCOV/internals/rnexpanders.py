@@ -44,6 +44,7 @@ from .cnotes import (
     XoPartCov,
     XoNoCov,
     XcPartCov,
+    dBlock,
 )
 from .segments import Sloc, Sloc_from_match
 from .stags import Stag_from
@@ -341,7 +342,7 @@ class Nchapter(Nblock, Rchapter):
         Nblock.__init__(self, re_notes=re_notes)
 
 
-# VIOsection, OERsection, XREchapter, NCIchapter, SMRchapter
+# VIOsection, OERsection, XREchapter, NCIchapter, SMRchapter, DCRChapter
 #
 # Leaf specializations, a set of which will be instantiated for report
 # processing.
@@ -462,6 +463,21 @@ class XREchapter(Nchapter):
             self.ecount_exempted += 1
 
         return enote
+
+
+class DCRchapter(Nsection):
+    """Disabled Coverage Regions section."""
+
+    def __init__(self, re_start):
+        Nchapter.__init__(
+            self,
+            re_start=re_start,
+            re_end=r"(\d+) region[s]* with disabled coverage\.$",
+            re_notes={".*": dBlock},
+        )
+
+    def re_summary(self):
+        return r"(\d+) region[s]* with disabled coverage\.$"
 
 
 class NCIchapter(Nchapter):
@@ -720,6 +736,12 @@ class RblockSet:
         # Other note blocks
 
         self.noteblocks.append(OERsection(re_start="OTHER ERRORS"))
+
+        self.noteblocks.append(
+            DCRchapter(
+                re_start="COVERAGE DISABLED REGIONS",
+            )
+        )
 
         # We're done with the note blocks at this point
 

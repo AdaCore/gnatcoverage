@@ -938,6 +938,7 @@ package body Annotations.Xml is
                           Stats (Exempted_With_Violation));
       Print_Metric_Ratio ("exempted_undetermined_coverage",
                           Stats (Exempted_With_Undetermined_Cov));
+      Print_Metric_Ratio ("disabled_coverage", Stats (Disabled_Coverage));
 
    end Print_Coverage_Stats;
 

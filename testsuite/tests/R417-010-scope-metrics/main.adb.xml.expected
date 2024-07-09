@@ -9,6 +9,7 @@
   <metric kind="exempted_no_violation" count="0" ratio="0"/>
   <metric kind="exempted" count="0" ratio="0"/>
   <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+  <metric kind="disabled_coverage" count="0" ratio="0"/>
   <obligation_stats kind="Stmt">
    <metric kind="total_obligations_of_relevance" count="22"/>
    <metric kind="fully_covered" count="20" ratio="91"/>
@@ -18,6 +19,7 @@
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="0" ratio="0"/>
    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
   </obligation_stats>
 
   <obligation_stats kind="Decision">
@@ -29,6 +31,7 @@
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="0" ratio="0"/>
    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
   </obligation_stats>
 
   <obligation_stats kind="MCDC">
@@ -40,6 +43,7 @@
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="0" ratio="0"/>
    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
   </obligation_stats>
 
   <scope_metric scope_name="&quot;+&quot;" scope_line="8">
@@ -51,6 +55,7 @@
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="0" ratio="0"/>
    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
    <obligation_stats kind="Stmt">
     <metric kind="total_obligations_of_relevance" count="1"/>
     <metric kind="fully_covered" count="1" ratio="100"/>
@@ -60,6 +65,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
    </obligation_stats>
 
    <obligation_stats kind="Decision">
@@ -71,6 +77,7 @@
     <metric kind="exempted_no_violation" count="0"/>
     <metric kind="exempted" count="0"/>
     <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
    <obligation_stats kind="MCDC">
@@ -82,6 +89,7 @@
     <metric kind="exempted_no_violation" count="0"/>
     <metric kind="exempted" count="0"/>
     <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
   </scope_metric>
@@ -95,6 +103,7 @@
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="0" ratio="0"/>
    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
    <obligation_stats kind="Stmt">
     <metric kind="total_obligations_of_relevance" count="2"/>
     <metric kind="fully_covered" count="1" ratio="50"/>
@@ -104,6 +113,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
    </obligation_stats>
 
    <obligation_stats kind="Decision">
@@ -115,6 +125,7 @@
     <metric kind="exempted_no_violation" count="0"/>
     <metric kind="exempted" count="0"/>
     <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
    <obligation_stats kind="MCDC">
@@ -126,6 +137,7 @@
     <metric kind="exempted_no_violation" count="0"/>
     <metric kind="exempted" count="0"/>
     <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
    <scope_metric scope_name="Id" scope_line="17">
@@ -137,6 +149,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
     <obligation_stats kind="Stmt">
      <metric kind="total_obligations_of_relevance" count="1"/>
      <metric kind="fully_covered" count="0" ratio="0"/>
@@ -146,6 +159,7 @@
      <metric kind="exempted_no_violation" count="0" ratio="0"/>
      <metric kind="exempted" count="0" ratio="0"/>
      <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
     </obligation_stats>
 
     <obligation_stats kind="Decision">
@@ -157,6 +171,7 @@
      <metric kind="exempted_no_violation" count="0"/>
      <metric kind="exempted" count="0"/>
      <metric kind="exempted_undetermined_coverage" count="0"/>
+     <metric kind="disabled_coverage" count="0"/>
     </obligation_stats>
 
     <obligation_stats kind="MCDC">
@@ -168,6 +183,7 @@
      <metric kind="exempted_no_violation" count="0"/>
      <metric kind="exempted" count="0"/>
      <metric kind="exempted_undetermined_coverage" count="0"/>
+     <metric kind="disabled_coverage" count="0"/>
     </obligation_stats>
 
    </scope_metric>
@@ -183,6 +199,7 @@
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="0" ratio="0"/>
    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
    <obligation_stats kind="Stmt">
     <metric kind="total_obligations_of_relevance" count="1"/>
     <metric kind="fully_covered" count="0" ratio="0"/>
@@ -192,6 +209,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
    </obligation_stats>
 
    <obligation_stats kind="Decision">
@@ -203,6 +221,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
    </obligation_stats>
 
    <obligation_stats kind="MCDC">
@@ -214,6 +233,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
    </obligation_stats>
 
    <scope_metric scope_name="And_Then" scope_line="21">
@@ -225,6 +245,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
     <obligation_stats kind="Stmt">
      <metric kind="total_obligations_of_relevance" count="1"/>
      <metric kind="fully_covered" count="0" ratio="0"/>
@@ -234,6 +255,7 @@
      <metric kind="exempted_no_violation" count="0" ratio="0"/>
      <metric kind="exempted" count="0" ratio="0"/>
      <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
     </obligation_stats>
 
     <obligation_stats kind="Decision">
@@ -245,6 +267,7 @@
      <metric kind="exempted_no_violation" count="0" ratio="0"/>
      <metric kind="exempted" count="0" ratio="0"/>
      <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
     </obligation_stats>
 
     <obligation_stats kind="MCDC">
@@ -256,6 +279,7 @@
      <metric kind="exempted_no_violation" count="0" ratio="0"/>
      <metric kind="exempted" count="0" ratio="0"/>
      <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
     </obligation_stats>
 
    </scope_metric>
@@ -271,6 +295,7 @@
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="0" ratio="0"/>
    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
    <obligation_stats kind="Stmt">
     <metric kind="total_obligations_of_relevance" count="2"/>
     <metric kind="fully_covered" count="2" ratio="100"/>
@@ -280,6 +305,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
    </obligation_stats>
 
    <obligation_stats kind="Decision">
@@ -291,6 +317,7 @@
     <metric kind="exempted_no_violation" count="0"/>
     <metric kind="exempted" count="0"/>
     <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
    <obligation_stats kind="MCDC">
@@ -302,19 +329,21 @@
     <metric kind="exempted_no_violation" count="0"/>
     <metric kind="exempted" count="0"/>
     <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
   </scope_metric>
 
   <scope_metric scope_name="Get" scope_line="42">
-   <metric kind="total_lines_of_relevance" count="2"/>
-   <metric kind="fully_covered" count="2" ratio="100"/>
+   <metric kind="total_lines_of_relevance" count="3"/>
+   <metric kind="fully_covered" count="3" ratio="100"/>
    <metric kind="partially_covered" count="0" ratio="0"/>
    <metric kind="not_covered" count="0" ratio="0"/>
    <metric kind="undetermined_coverage" count="0" ratio="0"/>
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="0" ratio="0"/>
    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
    <obligation_stats kind="Stmt">
     <metric kind="total_obligations_of_relevance" count="2"/>
     <metric kind="fully_covered" count="2" ratio="100"/>
@@ -324,6 +353,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
    </obligation_stats>
 
    <obligation_stats kind="Decision">
@@ -335,6 +365,7 @@
     <metric kind="exempted_no_violation" count="0"/>
     <metric kind="exempted" count="0"/>
     <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
    <obligation_stats kind="MCDC">
@@ -346,6 +377,7 @@
     <metric kind="exempted_no_violation" count="0"/>
     <metric kind="exempted" count="0"/>
     <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
   </scope_metric>
@@ -359,6 +391,7 @@
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="0" ratio="0"/>
    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
    <obligation_stats kind="Stmt">
     <metric kind="total_obligations_of_relevance" count="5"/>
     <metric kind="fully_covered" count="5" ratio="100"/>
@@ -368,6 +401,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
    </obligation_stats>
 
    <obligation_stats kind="Decision">
@@ -379,6 +413,7 @@
     <metric kind="exempted_no_violation" count="0"/>
     <metric kind="exempted" count="0"/>
     <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
    <obligation_stats kind="MCDC">
@@ -390,6 +425,7 @@
     <metric kind="exempted_no_violation" count="0"/>
     <metric kind="exempted" count="0"/>
     <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
    </obligation_stats>
 
   </scope_metric>
@@ -398,56 +434,56 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="1" exempted="FALSE" src="pragma Ada_2012;"/>
+   <line num="1" src="pragma Ada_2012;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="2" exempted="FALSE" src=""/>
+   <line num="2" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="3" exempted="FALSE" src="with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;"/>
+   <line num="3" src="with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="4" exempted="FALSE" src="with Ada.Text_IO;           use Ada.Text_IO;"/>
+   <line num="4" src="with Ada.Text_IO;           use Ada.Text_IO;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="5" exempted="FALSE" src=""/>
+   <line num="5" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="6" exempted="FALSE" src="procedure Main is"/>
+   <line num="6" src="procedure Main is"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="7" exempted="FALSE" src=""/>
+   <line num="7" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="+">
   <src>
-   <line num="8" exempted="FALSE" src="   function &quot;+&quot; (Item : String) return Unbounded_String"/>
+   <line num="8" src="   function &quot;+&quot; (Item : String) return Unbounded_String"/>
   </src>
 
   <statement id="1" text="function ..." coverage="+">
@@ -462,35 +498,35 @@
 
  <src_mapping coverage="+">
   <src>
-   <line num="9" exempted="FALSE" src="                 renames To_Unbounded_String;"/>
+   <line num="9" src="                 renames To_Unbounded_String;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="10" exempted="FALSE" src=""/>
+   <line num="10" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="11" exempted="FALSE" src="   package A is"/>
+   <line num="11" src="   package A is"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="12" exempted="FALSE" src=""/>
+   <line num="12" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="+">
   <src>
-   <line num="13" exempted="FALSE" src="      Size_Chunk : constant := 2_048;"/>
+   <line num="13" src="      Size_Chunk : constant := 2_048;"/>
   </src>
 
   <statement id="2" text="Size_Chun..." coverage="+">
@@ -504,28 +540,28 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="14" exempted="FALSE" src=""/>
+   <line num="14" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="15" exempted="FALSE" src="      function And_Then (A, B : Boolean) return Boolean;"/>
+   <line num="15" src="      function And_Then (A, B : Boolean) return Boolean;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="16" exempted="FALSE" src=""/>
+   <line num="16" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="-">
   <src>
-   <line num="17" exempted="FALSE" src="      function Id (A : Boolean) return Boolean is (A);"/>
+   <line num="17" src="      function Id (A : Boolean) return Boolean is (A);"/>
   </src>
 
   <statement id="3" text="(A)" coverage="-">
@@ -540,42 +576,42 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="18" exempted="FALSE" src="   end A;"/>
+   <line num="18" src="   end A;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="19" exempted="FALSE" src=""/>
+   <line num="19" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="20" exempted="FALSE" src="   package body A is"/>
+   <line num="20" src="   package body A is"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="21" exempted="FALSE" src="      function And_Then (A, B : Boolean) return Boolean is"/>
+   <line num="21" src="      function And_Then (A, B : Boolean) return Boolean is"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="22" exempted="FALSE" src="      begin"/>
+   <line num="22" src="      begin"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="-">
   <src>
-   <line num="23" exempted="FALSE" src="         return A and then B;"/>
+   <line num="23" src="         return A and then B;"/>
   </src>
 
   <statement id="4" text="return A ..." coverage="-">
@@ -611,28 +647,28 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="24" exempted="FALSE" src="      end And_Then;"/>
+   <line num="24" src="      end And_Then;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="25" exempted="FALSE" src="   end A;"/>
+   <line num="25" src="   end A;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="26" exempted="FALSE" src=""/>
+   <line num="26" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="+">
   <src>
-   <line num="27" exempted="FALSE" src="   protected Obj is"/>
+   <line num="27" src="   protected Obj is"/>
   </src>
 
   <statement id="9" text="protected..." coverage="+">
@@ -646,28 +682,28 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="28" exempted="FALSE" src="      procedure Set (V : Integer);"/>
+   <line num="28" src="      procedure Set (V : Integer);"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="29" exempted="FALSE" src="      entry Get (V : out Integer);"/>
+   <line num="29" src="      entry Get (V : out Integer);"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="30" exempted="FALSE" src="   private"/>
+   <line num="30" src="   private"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="+">
   <src>
-   <line num="31" exempted="FALSE" src="      Local  : Integer;"/>
+   <line num="31" src="      Local  : Integer;"/>
   </src>
 
   <statement id="10" text="Local  : ..." coverage="+">
@@ -681,7 +717,7 @@
 
  <src_mapping coverage="+">
   <src>
-   <line num="32" exempted="FALSE" src="      Is_Set : Boolean := False;"/>
+   <line num="32" src="      Is_Set : Boolean := False;"/>
   </src>
 
   <statement id="11" text="Is_Set : ..." coverage="+">
@@ -695,42 +731,42 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="33" exempted="FALSE" src="   end Obj;"/>
+   <line num="33" src="   end Obj;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="34" exempted="FALSE" src=""/>
+   <line num="34" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="35" exempted="FALSE" src="   protected body Obj is"/>
+   <line num="35" src="   protected body Obj is"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="36" exempted="FALSE" src="      procedure Set (V : Integer) is"/>
+   <line num="36" src="      procedure Set (V : Integer) is"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="37" exempted="FALSE" src="      begin"/>
+   <line num="37" src="      begin"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="+">
   <src>
-   <line num="38" exempted="FALSE" src="         Local := V;"/>
+   <line num="38" src="         Local := V;"/>
   </src>
 
   <statement id="12" text="Local := ..." coverage="+">
@@ -744,7 +780,7 @@
 
  <src_mapping coverage="+">
   <src>
-   <line num="39" exempted="FALSE" src="         Is_Set := True;"/>
+   <line num="39" src="         Is_Set := True;"/>
   </src>
 
   <statement id="13" text="Is_Set :=..." coverage="+">
@@ -758,28 +794,28 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="40" exempted="FALSE" src="      end Set;"/>
+   <line num="40" src="      end Set;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="41" exempted="FALSE" src=""/>
+   <line num="41" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="42" exempted="FALSE" src="      entry Get (V : out Integer)"/>
+   <line num="42" src="      entry Get (V : out Integer)"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="+">
   <src>
-   <line num="43" exempted="FALSE" src="        when Is_Set is"/>
+   <line num="43" src="        when Is_Set is"/>
   </src>
 
   <decision id="14" text="Is_Set" coverage="+">
@@ -800,56 +836,56 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="44" exempted="FALSE" src="         --  Entry is blocked until the"/>
+   <line num="44" src="         --  Entry is blocked until the"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="45" exempted="FALSE" src="         --  condition is true. The barrier"/>
+   <line num="45" src="         --  condition is true. The barrier"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="46" exempted="FALSE" src="         --  is evaluated at call of entries"/>
+   <line num="46" src="         --  is evaluated at call of entries"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="47" exempted="FALSE" src="         --  and at exits of procedures and"/>
+   <line num="47" src="         --  and at exits of procedures and"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="48" exempted="FALSE" src="         --  entries. The calling task sleeps"/>
+   <line num="48" src="         --  entries. The calling task sleeps"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="49" exempted="FALSE" src="         --  until the barrier is released."/>
+   <line num="49" src="         --  until the barrier is released."/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="50" exempted="FALSE" src="      begin"/>
+   <line num="50" src="      begin"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="+">
   <src>
-   <line num="51" exempted="FALSE" src="         V := Local;"/>
+   <line num="51" src="         V := Local;"/>
   </src>
 
   <statement id="16" text="V := Loca..." coverage="+">
@@ -863,7 +899,7 @@
 
  <src_mapping coverage="+">
   <src>
-   <line num="52" exempted="FALSE" src="         Is_Set := False;"/>
+   <line num="52" src="         Is_Set := False;"/>
   </src>
 
   <statement id="17" text="Is_Set :=..." coverage="+">
@@ -877,28 +913,28 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="53" exempted="FALSE" src="      end Get;"/>
+   <line num="53" src="      end Get;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="54" exempted="FALSE" src="   end Obj;"/>
+   <line num="54" src="   end Obj;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="55" exempted="FALSE" src=""/>
+   <line num="55" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="+">
   <src>
-   <line num="56" exempted="FALSE" src="   N : Integer := 0;"/>
+   <line num="56" src="   N : Integer := 0;"/>
   </src>
 
   <statement id="18" text="N : Integ..." coverage="+">
@@ -912,14 +948,14 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="57" exempted="FALSE" src=""/>
+   <line num="57" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="+">
   <src>
-   <line num="58" exempted="FALSE" src="   task T;"/>
+   <line num="58" src="   task T;"/>
   </src>
 
   <statement id="19" text="task" coverage="+">
@@ -933,28 +969,28 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="59" exempted="FALSE" src=""/>
+   <line num="59" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="60" exempted="FALSE" src="   task body T is"/>
+   <line num="60" src="   task body T is"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="61" exempted="FALSE" src="   begin"/>
+   <line num="61" src="   begin"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="+">
   <src>
-   <line num="62" exempted="FALSE" src="      Put_Line (&quot;Task T will delay for 4 seconds...&quot;);"/>
+   <line num="62" src="      Put_Line (&quot;Task T will delay for 4 seconds...&quot;);"/>
   </src>
 
   <statement id="20" text="Put_Line ..." coverage="+">
@@ -968,7 +1004,7 @@
 
  <src_mapping coverage="+">
   <src>
-   <line num="63" exempted="FALSE" src="      delay 4.0;"/>
+   <line num="63" src="      delay 4.0;"/>
   </src>
 
   <statement id="21" text="delay 4.0..." coverage="+">
@@ -982,7 +1018,7 @@
 
  <src_mapping coverage="+">
   <src>
-   <line num="64" exempted="FALSE" src="      Put_Line (&quot;Task T will set Obj...&quot;);"/>
+   <line num="64" src="      Put_Line (&quot;Task T will set Obj...&quot;);"/>
   </src>
 
   <statement id="22" text="Put_Line ..." coverage="+">
@@ -996,7 +1032,7 @@
 
  <src_mapping coverage="+">
   <src>
-   <line num="65" exempted="FALSE" src="      Obj.Set (5);"/>
+   <line num="65" src="      Obj.Set (5);"/>
   </src>
 
   <statement id="23" text="Obj.Set (..." coverage="+">
@@ -1010,7 +1046,7 @@
 
  <src_mapping coverage="+">
   <src>
-   <line num="66" exempted="FALSE" src="      Put_Line (&quot;Task T has just set Obj...&quot;);"/>
+   <line num="66" src="      Put_Line (&quot;Task T has just set Obj...&quot;);"/>
   </src>
 
   <statement id="24" text="Put_Line ..." coverage="+">
@@ -1024,21 +1060,21 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="67" exempted="FALSE" src="   end T;"/>
+   <line num="67" src="   end T;"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="68" exempted="FALSE" src="begin"/>
+   <line num="68" src="begin"/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage="+">
   <src>
-   <line num="69" exempted="FALSE" src="   Put_Line (&quot;Main application will get Obj...&quot;);"/>
+   <line num="69" src="   Put_Line (&quot;Main application will get Obj...&quot;);"/>
   </src>
 
   <statement id="25" text="Put_Line ..." coverage="+">
@@ -1052,7 +1088,7 @@
 
  <src_mapping coverage="+">
   <src>
-   <line num="70" exempted="FALSE" src="   Obj.Get (N);"/>
+   <line num="70" src="   Obj.Get (N);"/>
   </src>
 
   <statement id="26" text="Obj.Get (..." coverage="+">
@@ -1066,7 +1102,7 @@
 
  <src_mapping coverage="+">
   <src>
-   <line num="71" exempted="FALSE" src="   Put_Line (&quot;Main application has just retrieved Obj...&quot;);"/>
+   <line num="71" src="   Put_Line (&quot;Main application has just retrieved Obj...&quot;);"/>
   </src>
 
   <statement id="27" text="Put_Line ..." coverage="+">
@@ -1080,7 +1116,7 @@
 
  <src_mapping coverage="+">
   <src>
-   <line num="72" exempted="FALSE" src="   Put_Line (&quot;Number is: &quot; &amp; Integer&apos;Image (N));"/>
+   <line num="72" src="   Put_Line (&quot;Number is: &quot; &amp; Integer&apos;Image (N));"/>
   </src>
 
   <statement id="28" text="Put_Line ..." coverage="+">
@@ -1094,14 +1130,14 @@
 
  <src_mapping coverage=".">
   <src>
-   <line num="73" exempted="FALSE" src=""/>
+   <line num="73" src=""/>
   </src>
 
  </src_mapping>
 
  <src_mapping coverage=".">
   <src>
-   <line num="74" exempted="FALSE" src="end Main;"/>
+   <line num="74" src="end Main;"/>
   </src>
 
  </src_mapping>

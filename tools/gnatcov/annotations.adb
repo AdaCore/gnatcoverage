@@ -88,6 +88,10 @@ package body Annotations is
          end if;
       end if;
 
+      if Info.Disabled_Cov /= Slocs.No_Location then
+         return Disabled_Coverage;
+      end if;
+
       --  Non-exempted case
 
       for J in Info.State'Range loop
@@ -428,7 +432,8 @@ package body Annotations is
             return;
          end if;
 
-         Populate_Exemptions (File_Index);
+         Populate_Annotations (File_Index, Exemption);
+         Populate_Annotations (File_Index, Disable_Coverage);
          ST := Scope_Traversal (Comp_Unit (File_Index));
          Iterate_On_Lines (FI, Compute_Line_State'Access);
 
@@ -934,7 +939,9 @@ package body Annotations is
             --  Update counts. Note that No_Code lines are always counted as
             --  No_Code even if they are part of an exempted region.
 
-            if LI.State = Line_States'(others => No_Code) then
+            if S = Disabled_Coverage then
+               Result (S) := Result (S) + 1;
+            elsif LI.State = Line_States'(others => No_Code) then
                Result (No_Code) := Result (No_Code) + 1;
             else
                Result (S) := Result (S) + 1;

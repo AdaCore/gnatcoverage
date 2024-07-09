@@ -347,6 +347,9 @@ package Instrument.C is
    --  root of each tree is the scope corresponding to the file itself in which
    --  all its scopes are stored.
 
+   package Sloc_Range_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Source_Location_Range);
+
    type C_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
       record
          TU       : Translation_Unit_T;
@@ -404,6 +407,11 @@ package Instrument.C is
          Block_Stack : Block_Vectors.Vector;
          --  Currently processed blocks (blocks can nest in the source,
          --  when e.g. we have a lambda expression).
+
+         Disable_Cov_Regions : Sloc_Range_Vectors.Vector;
+         --  List of regions where coverage is disabled, as delimited
+         --  by GNATCOV_COV_OFF/ON markers.
+
       end record;
 
    type C_Source_Rewriter is tagged limited private;

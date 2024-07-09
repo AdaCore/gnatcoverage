@@ -1131,7 +1131,7 @@ package body Instrument.Ada_Unit is
       Decl : Basic_Decl);
    --  Enter a scope. This must be completed with a call to the function
    --  Exit_Scope, defined below. Assume that the scope first SCO is the next
-   --  generated SCO (SCOs.SCO_Table.Last + 1), and also assume that decl
+   --  generated SCO (SCOs.SCO_Table.Last + 1), and also assume that Decl
    --  refers to the the specification of N, to uniquely identify the scope.
    --  Update UIC.Current_Scope_Entity to the created entity.
 
@@ -3326,6 +3326,9 @@ package body Instrument.Ada_Unit is
             else Insertion_N);
 
       begin
+         if UIC.Disable_Coverage then
+            return;
+         end if;
          case Kind (N) is
             when Ada_Accept_Stmt | Ada_Accept_Stmt_With_Stmts =>
 
@@ -3649,16 +3652,27 @@ package body Instrument.Ada_Unit is
          --  arguments expected for that kind.
 
          case Result.Kind is
-            when Exempt_On =>
+            when Exempt_On | Cov_Off =>
 
                --  Expected formats:
-               --  * (Xcov, Exempt_On)
-               --  * (Xcov, Exempt_On, "Justification")
+               --  * (Xcov, <Annotation_Kind>)
+               --  * (Xcov, <Annotation_Kind>, "Justification")
 
+               if Result.Kind = Cov_Off then
+                  UIC.Disable_Coverage := True;
+               end if;
                case Nb_Children is
                when 2 =>
-                  Report
-                    (N, "No justification given for exempted region", Warning);
+                  if Result.Kind = Exempt_On then
+                     Report
+                       (N, "No justification given for exempted region",
+                        Warning);
+                  elsif Result.Kind = Cov_Off then
+                     Report
+                       (N,
+                        "No justification given for disabled coverage region",
+                        Warning);
+                  end if;
                   UIC.Annotations.Append
                     (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
 
@@ -3696,9 +3710,18 @@ package body Instrument.Ada_Unit is
                     (N, "At most 2 pragma arguments allowed", Warning);
                   return;
                end if;
-
                UIC.Annotations.Append
-                    (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+                 (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+
+            when Cov_On =>
+               if Nb_Children > 2 then
+                  Report
+                    (N, "At most 2 pragma arguments allowed", Warning);
+                  return;
+               end if;
+               UIC.Disable_Coverage := False;
+               UIC.Annotations.Append
+                 (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
 
             when Dump_Buffers =>
 
@@ -4229,7 +4252,7 @@ package body Instrument.Ada_Unit is
          --  There is nothing else to do if we gave up instrumenting this
          --  subprogram.
 
-         if UIC.Disable_Instrumentation then
+         if UIC.Disable_Instrumentation or else UIC.Disable_Coverage then
             UIC.Disable_Instrumentation := Save_Disable_Instrumentation;
             return;
          end if;
@@ -6298,7 +6321,7 @@ package body Instrument.Ada_Unit is
          --  Start of processing for Process_Decisions
 
       begin
-         if N.Is_Null then
+         if N.Is_Null or else UIC.Disable_Coverage then
             return;
          end if;
          Hash_Entries.Init;

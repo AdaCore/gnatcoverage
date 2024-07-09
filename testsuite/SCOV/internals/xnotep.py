@@ -52,6 +52,7 @@ from .cnotes import (
     sUndetCov,
     dUndetCov,
     eUndetCov,
+    lDisCov,
     XsNoCov,
     XsPartCov,
     XsNotCoverable,
@@ -66,6 +67,7 @@ from .cnotes import (
     aNoCov,
     atNoCov,
     acPartCov,
+    dBlock,
 )
 from .segments import Line, Section, Segment
 from .stags import Stag_from
@@ -230,6 +232,7 @@ class XnoteP:
         "l.": lNoCode,
         "l0": lNotCoverable,
         "l?": lUndetCov,
+        "lD": lDisCov,
         "l#": lx0,
         "l*": lx1,
         "l@": lx2,
@@ -263,6 +266,7 @@ class XnoteP:
         "x?": xBlock2,
         "0": r0,
         "0c": r0c,
+        "dB": dBlock,
         # Exempted notes
         "Xs-": XsNoCov,
         "Xs!": XsPartCov,

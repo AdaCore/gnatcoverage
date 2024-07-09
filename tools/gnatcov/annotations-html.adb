@@ -680,6 +680,8 @@ package body Annotations.Html is
             Wrh (Pp, "exempted, undetermined coverage item present");
          when Exempted_No_Violation =>
             Wrh (Pp, "exempted, no violation");
+         when Disabled_Coverage =>
+            Wrh (Pp, "coverage disabled");
       end case;
 
       if Pp.Show_Line_Details then

@@ -37,7 +37,7 @@ package ALI_Files is
    pragma Suppress (Tampering_Check);
 
    type ALI_Annotation_Kind is
-     (Exempt_On, Exempt_Off, Dump_Buffers, Reset_Buffers);
+     (Exempt_On, Exempt_Off, Dump_Buffers, Reset_Buffers, Cov_On, Cov_Off);
 
    type ALI_Annotation is record
       CU : CU_Id;

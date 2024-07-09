@@ -14,6 +14,7 @@
    <metric kind="exempted_no_violation" count="0" ratio="0"/>
    <metric kind="exempted" count="3" ratio="33"/>
    <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+   <metric kind="disabled_coverage" count="0" ratio="0"/>
    <obligation_stats kind="Stmt">
     <metric kind="total_obligations_of_relevance" count="9"/>
     <metric kind="fully_covered" count="5" ratio="56"/>
@@ -23,6 +24,7 @@
     <metric kind="exempted_no_violation" count="2" ratio="22"/>
     <metric kind="exempted" count="1" ratio="11"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
    </obligation_stats>
 
    <obligation_stats kind="Decision">
@@ -34,6 +36,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="1" ratio="50"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
    </obligation_stats>
 
    <file name="data.ads">
@@ -45,6 +48,7 @@
     <metric kind="exempted_no_violation" count="0"/>
     <metric kind="exempted" count="0"/>
     <metric kind="exempted_undetermined_coverage" count="0"/>
+    <metric kind="disabled_coverage" count="0"/>
     <obligation_stats kind="Stmt">
      <metric kind="total_obligations_of_relevance" count="0"/>
      <metric kind="fully_covered" count="0"/>
@@ -54,6 +58,7 @@
      <metric kind="exempted_no_violation" count="0"/>
      <metric kind="exempted" count="0"/>
      <metric kind="exempted_undetermined_coverage" count="0"/>
+     <metric kind="disabled_coverage" count="0"/>
     </obligation_stats>
 
     <obligation_stats kind="Decision">
@@ -65,6 +70,7 @@
      <metric kind="exempted_no_violation" count="0"/>
      <metric kind="exempted" count="0"/>
      <metric kind="exempted_undetermined_coverage" count="0"/>
+     <metric kind="disabled_coverage" count="0"/>
     </obligation_stats>
 
    </file>
@@ -78,6 +84,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="0" ratio="0"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
     <obligation_stats kind="Stmt">
      <metric kind="total_obligations_of_relevance" count="3"/>
      <metric kind="fully_covered" count="3" ratio="100"/>
@@ -87,6 +94,7 @@
      <metric kind="exempted_no_violation" count="0" ratio="0"/>
      <metric kind="exempted" count="0" ratio="0"/>
      <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
     </obligation_stats>
 
     <obligation_stats kind="Decision">
@@ -98,6 +106,7 @@
      <metric kind="exempted_no_violation" count="0"/>
      <metric kind="exempted" count="0"/>
      <metric kind="exempted_undetermined_coverage" count="0"/>
+     <metric kind="disabled_coverage" count="0"/>
     </obligation_stats>
 
    </file>
@@ -111,6 +120,7 @@
     <metric kind="exempted_no_violation" count="0" ratio="0"/>
     <metric kind="exempted" count="3" ratio="50"/>
     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+    <metric kind="disabled_coverage" count="0" ratio="0"/>
     <obligation_stats kind="Stmt">
      <metric kind="total_obligations_of_relevance" count="6"/>
      <metric kind="fully_covered" count="2" ratio="33"/>
@@ -120,6 +130,7 @@
      <metric kind="exempted_no_violation" count="2" ratio="33"/>
      <metric kind="exempted" count="1" ratio="17"/>
      <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
     </obligation_stats>
 
     <obligation_stats kind="Decision">
@@ -131,6 +142,7 @@
      <metric kind="exempted_no_violation" count="0" ratio="0"/>
      <metric kind="exempted" count="1" ratio="50"/>
      <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
     </obligation_stats>
 
    </file>

@@ -68,7 +68,7 @@
   <xs:complexType name="coverage_summary_type">
     <xs:sequence>
       <xs:element name="metric" type="metric_type"
-                  minOccurs="8" maxOccurs="8"/>
+                  minOccurs="9" maxOccurs="9"/>
       <xs:element name="obligation_stats" type="obligation_stats_type"
                   minOccurs="0" maxOccurs="3"/>
       <xs:element name="file" type="file_type"
@@ -90,6 +90,7 @@
       <xs:enumeration value="partially_covered"/>
       <xs:enumeration value="not_covered"/>
       <xs:enumeration value="undetermined_coverage"/>
+      <xs:enumeration value="disabled_coverage"/>
       <xs:enumeration value="exempted_no_violation"/>
       <xs:enumeration value="exempted_undetermined_coverage"/>
       <xs:enumeration value="exempted"/>
@@ -99,7 +100,7 @@
   <xs:complexType name="obligation_stats_type">
     <xs:sequence>
       <xs:element name="metric" type="metric_type"
-                  minOccurs="8" maxOccurs="8"/>
+                  minOccurs="9" maxOccurs="9"/>
     </xs:sequence>
     <xs:attribute name="kind" type="xs:string"/>
   </xs:complexType>
@@ -107,7 +108,7 @@
   <xs:complexType name="file_type">
     <xs:sequence>
       <xs:element name="metric" type="metric_type"
-                  minOccurs="8" maxOccurs="8"/>
+                  minOccurs="9" maxOccurs="9"/>
       <xs:element name="obligation_stats" type="obligation_stats_type"
                   minOccurs="0" maxOccurs="3"/>
     </xs:sequence>
@@ -150,7 +151,7 @@
   <xs:complexType name="scope_metric_type">
     <xs:sequence>
       <xs:element name="metric" type="metric_type"
-                  minOccurs="8" maxOccurs="8"/>
+                  minOccurs="9" maxOccurs="9"/>
       <xs:element name="obligation_stats" type="obligation_stats_type"
                   minOccurs="0" maxOccurs="3"/>
       <xs:element name="scope_metric" type="scope_metric_type"

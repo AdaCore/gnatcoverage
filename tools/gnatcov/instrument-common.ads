@@ -352,6 +352,9 @@ package Instrument.Common is
       --  Set to True to deactivate instrumentation and prevent any code
       --  rewriting.
 
+      Disable_Coverage : Boolean := False;
+      --  Set to True to deactivate instrumentation and SCO emissions
+
       Non_Instr_LL_SCOs : SCO_Sets.Set;
       --  Set of low level SCO ids that were not instrumented
 

@@ -295,6 +295,10 @@ package Files_Table is
       --  If this line is covered by an exemption, this is set to the sloc of
       --  the Exempt_On annotation.
 
+      Disabled_Cov : Source_Location := Slocs.No_Location;
+      --  If this line is covered by a coverage disabling annotation, this is
+      --  set to the sloc of the Cov_Off annotation.
+
       Is_Multistatement : Tristate := Unknown;
       --  Whether there are more than one statement SCO on this line, or
       --  Unknown if not computed yet.
@@ -508,9 +512,13 @@ package Files_Table is
 
    --  Get line info (or text) at File:Index (or at Sloc)
 
-   procedure Populate_Exemptions (FI : Source_File_Index);
-   --  Fill the Exemption field in the Line_Info records of FI based on the
-   --  information in Annotation_Map.
+   type ALI_Region_Annotation_Kind is (Exemption, Disable_Coverage);
+
+   procedure Populate_Annotations
+     (FI   : Source_File_Index;
+      Kind : ALI_Region_Annotation_Kind);
+   --  Fill the Exemption/Disabled_Cov field according to Kind in the Line_Info
+   --  records of FI based on the information in Annotation_Map.
 
    function Writeable_Sloc_To_SCO_Map
      (Index : Source_File_Index;

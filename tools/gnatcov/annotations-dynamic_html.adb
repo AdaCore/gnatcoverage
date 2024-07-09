@@ -412,6 +412,8 @@ package body Annotations.Dynamic_Html is
       Line_Stats.Set_Field
         ("undeterminedCoverage", Info.Li_Stats (Undetermined_Coverage));
       Line_Stats.Set_Field
+        ("disabledCoverage", Info.Li_Stats (Disabled_Coverage));
+      Line_Stats.Set_Field
         ("exemptedNoViolation", Info.Li_Stats (Exempted_No_Violation));
       Line_Stats.Set_Field
         ("exemptedWithViolation", Info.Li_Stats (Exempted_With_Violation));
@@ -567,8 +569,9 @@ package body Annotations.Dynamic_Html is
          Is_Root : Boolean := False) return JSON_Value;
       --  Convert a scope entity to a JSON scoped metric: compute line and
       --  obligation statistics for the given scope and recursively for
-      --  child scopes. Store the result as a JSON object, with the name and
-      --  the line of the scope.
+      --  child scopes. Is_Root indicates whether the given Cur is the root
+      --  scope. Store the result as a JSON object, with the name and the line
+      --  of the scope.
 
       -------------
       -- To_JSON --
@@ -998,6 +1001,7 @@ package body Annotations.Dynamic_Html is
       Set_If_Not_Null ("notCovered", Stats (Not_Covered));
       Set_If_Not_Null ("notCoverable", Stats (Not_Coverable));
       Set_If_Not_Null ("undeterminedCoverage", Stats (Undetermined_Coverage));
+      Set_If_Not_Null ("disabledCoverage", Stats (Disabled_Coverage));
       Set_If_Not_Null ("exemptedNoViolation", Stats (Exempted_No_Violation));
       Set_If_Not_Null
         ("exemptedWithViolation", Stats (Exempted_With_Violation));

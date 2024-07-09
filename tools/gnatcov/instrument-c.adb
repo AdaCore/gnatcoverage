@@ -99,12 +99,11 @@ package body Instrument.C is
    --  temporary file.
 
    procedure Preprocess_Source
-     (Filename      : String;
-      Instrumenter  : C_Family_Instrumenter_Type'Class;
-      Prj           : Prj_Desc;
-      PP_Filename   : out Unbounded_String;
-      Options       : in out Analysis_Options;
-      Keep_Comments : Boolean := False);
+     (Filename     : String;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      Prj          : Prj_Desc;
+      PP_Filename  : out Unbounded_String;
+      Options      : in out Analysis_Options);
    --  Preprocess the source at Filename and extend Options using the Prj and
    --  the preprocessor output to retrieve standard search paths.
    --
@@ -353,6 +352,33 @@ package body Instrument.C is
    --  <{><witness_i();> int i = 0; <witness_j();> for (auto j : {1, 2}) {}<}>
    --
    --  and now we have valid, and correctly instrumented code.
+
+   ----------------------------------------
+   -- Processing of coverage annotations --
+   ----------------------------------------
+
+   type Start_Or_End is (Start_Annotation, End_Annotation);
+
+   procedure Search_Annotation_Couple
+     (UIC                        : in out C_Unit_Inst_Context;
+      Start_Matcher, End_Matcher : String;
+      Process                    :
+         access procedure (Kind  : Start_Or_End;
+                           Line  : String;
+                           Match : Match_Array;
+                           Sloc  : Source_Location_T));
+   --  Search for the annotation couple in the source. Call Process for every
+   --  found annotation.
+
+   procedure Populate_Annotations (UIC : in out C_Unit_Inst_Context);
+   --  Look for exemption / disabling coverage markers in the source code and
+   --  fill UIC.Annotations (and also UIC.Disable_Cov_Regions for disabling
+   --  coverage markers) accordingly.
+
+   function Is_Disabled_Region
+     (UIC : C_Unit_Inst_Context'Class; Sloc : Source_Location) return Boolean;
+   --  Whether coverage is disabled (by GNATCOV_COV_OFF/ON comment markers)
+   --  for the given Sloc.
 
    ----------------------------
    -- Source level rewriting --
@@ -978,6 +1004,10 @@ package body Instrument.C is
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
    begin
+      if UIC.Disable_Coverage then
+         return;
+      end if;
+
       --  Insert a new entry to the UIC.Instrumented_Entities maps: even if
       --  this SOI does not possess instrumented SCOs (it can be the case if
       --  all of the code constructs are not instrumentable), we want an empty
@@ -1940,6 +1970,10 @@ package body Instrument.C is
       end Process_Decisions;
 
    begin
+      if UIC.Disable_Coverage then
+         return;
+      end if;
+
       Process_Decisions (UIC, N, T);
       Visit (N, Process_Lambda_Expr'Access);
    end Process_Expression;
@@ -2097,10 +2131,14 @@ package body Instrument.C is
 
          Save_Disable_Instrumentation : constant Boolean :=
            UIC.Disable_Instrumentation;
+         Save_Disable_Coverage        : constant Boolean :=
+           UIC.Disable_Coverage;
       begin
          if Curlify (N) then
             Append (Trailing_Braces, '}');
          end if;
+
+         UIC.Disable_Coverage := Is_Disabled_Region (UIC, Start_Sloc (N));
 
          --  If this statement does not belong to a source of interest, skip
          --  it altogether.
@@ -2361,6 +2399,7 @@ package body Instrument.C is
                end if;
          end case;
 
+         UIC.Disable_Coverage := Save_Disable_Coverage;
          Append (Trailing_Braces, TB);
       end Traverse_One;
 
@@ -2390,7 +2429,7 @@ package body Instrument.C is
          --  statement source location range.
 
       begin
-         if Is_Null (N) then
+         if Is_Null (N) or else UIC.Disable_Coverage then
             return;
          end if;
 
@@ -2710,12 +2749,11 @@ package body Instrument.C is
    -----------------------
 
    procedure Preprocess_Source
-     (Filename      : String;
-      Instrumenter  : C_Family_Instrumenter_Type'Class;
-      Prj           : Prj_Desc;
-      PP_Filename   : out Unbounded_String;
-      Options       : in out Analysis_Options;
-      Keep_Comments : Boolean := False)
+     (Filename     : String;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      Prj          : Prj_Desc;
+      PP_Filename  : out Unbounded_String;
+      Options      : in out Analysis_Options)
    is
       Cmd : Command_Type;
       --  The command to preprocess the file
@@ -2752,13 +2790,14 @@ package body Instrument.C is
         (Command => Prj.Compiler_Driver (Instrumenter.Language),
          others  => <>);
 
-      if Keep_Comments then
-         Append_Arg (Cmd, "-C");
-      end if;
-
       --  Add the preprocessing flag
 
       Append_Arg (Cmd, "-E");
+
+      --  Keep the code comments as they may contain exemption / coverage
+      --  disabling markers.
+
+      Append_Arg (Cmd, "-C");
 
       --  Add all of the compiler / compiler driver options to the
       --  preprocessing command line.
@@ -3007,6 +3046,193 @@ package body Instrument.C is
       end if;
    end Finalize;
 
+   ------------------------------
+   -- Search_Annotation_Couple --
+   ------------------------------
+
+   procedure Search_Annotation_Couple
+     (UIC                        : in out C_Unit_Inst_Context;
+      Start_Matcher, End_Matcher : String;
+      Process                    :
+         access procedure (Kind  : Start_Or_End;
+                           Line  : String;
+                           Match : Match_Array;
+                           Sloc  : Source_Location_T))
+   is
+      Start_Matcher_Pattern : constant Pattern_Matcher :=
+        Compile (Start_Matcher);
+      End_Matcher_Pattern   : constant Pattern_Matcher :=
+        Compile (End_Matcher);
+
+      Match_Res : Match_Array (0 .. 1);
+      --  The maximal number of parenthesized groups is one (for the "exempt
+      --  on" marker).
+
+      procedure Search_Matcher_In_Token (Token : Token_T);
+
+      ----------------------------
+      -- Search_Matcher_In_Token --
+      ----------------------------
+
+      procedure Search_Matcher_In_Token (Token : Token_T)
+      is
+         Token_Str : constant String := Get_Token_Spelling (UIC.TU, Token);
+         pragma Unreferenced (Token_Str);
+      begin
+         if Get_Token_Kind (Token) = Token_Comment then
+            declare
+               Comment : constant String := Get_Token_Spelling (UIC.TU, Token);
+            begin
+               Match (Start_Matcher_Pattern, Comment, Match_Res);
+               if Match_Res (0) /= No_Match then
+                  Process.all
+                    (Kind  => Start_Annotation,
+                     Line  => Comment,
+                     Match => Match_Res,
+                     Sloc  => Get_Token_Location (UIC.TU, Token));
+               end if;
+               Match (End_Matcher_Pattern, Comment, Match_Res);
+               if Match_Res (0) /= No_Match then
+                  Process.all
+                    (Kind  => End_Annotation,
+                     Line  => Comment,
+                     Match => Match_Res,
+                     Sloc  => Get_Token_Location (UIC.TU, Token));
+               end if;
+            end;
+         end if;
+      end Search_Matcher_In_Token;
+   begin
+      Iterate_Tokens
+        (UIC.TU,
+         Get_Translation_Unit_Cursor (UIC.TU),
+         Search_Matcher_In_Token'Access);
+   end Search_Annotation_Couple;
+
+   --------------------------
+   -- Populate_Annotations --
+   --------------------------
+
+   procedure Populate_Annotations (UIC : in out C_Unit_Inst_Context)
+   is
+      procedure Process_Exemption
+        (Kind       : Start_Or_End;
+         Line       : String;
+         Match      : Match_Array;
+         Source_Loc : Source_Location_T);
+      --  Process an exemption marker (GNATCOV_EXEMPT_ON/OFF)
+
+      Last_Cov_Off : Source_Location_T;
+      --  Location of the last found GNATCOV_COV_OFF marker
+
+      procedure Process_Disable_Cov
+        (Kind       : Start_Or_End;
+         Line       : String;
+         Match      : Match_Array;
+         Source_Loc : Source_Location_T);
+      --  Process a marker disabling coverage (GNATCOV_COV_ON/OFF)
+
+      -----------------------
+      -- Process_Exemption --
+      -----------------------
+
+      procedure Process_Exemption
+        (Kind       : Start_Or_End;
+         Line       : String;
+         Match      : Match_Array;
+         Source_Loc : Source_Location_T)
+      is
+         Ann : ALI_Annotation;
+      begin
+         if Kind = Start_Annotation then
+            Ann.Kind := Exempt_On;
+
+            --  Check if there is a justification message
+
+            if Match (1).First /= 0 then
+               Ann.Message :=
+                 new String'(Line (Match (1).First .. Match (1).Last));
+            end if;
+         else
+            Ann.Kind := Exempt_Off;
+         end if;
+         UIC.Annotations.Append
+           (Annotation_Couple'(Sloc (Source_Loc), Ann));
+      end Process_Exemption;
+
+      -------------------------
+      -- Process_Disable_Cov --
+      -------------------------
+
+      procedure Process_Disable_Cov
+        (Kind       : Start_Or_End;
+         Line       : String;
+         Match      : Match_Array;
+         Source_Loc : Source_Location_T)
+      is
+         Ann : ALI_Annotation;
+      begin
+         if Kind = Start_Annotation then
+            Last_Cov_Off := Source_Loc;
+            Ann.Kind := Cov_Off;
+
+            --  Check if there is a justification message
+
+            if Match (1).First /= 0 then
+               Ann.Message :=
+                 new String'(Line (Match (1).First .. Match (1).Last));
+            end if;
+         else
+            --  Add an entry into UIC.Disable_Cov_Regions
+
+            declare
+               First_Sloc : constant Source_Location :=
+                 Sloc (Last_Cov_Off);
+               Last_Sloc  : constant Source_Location :=
+                 Sloc (Source_Loc);
+            begin
+               UIC.Disable_Cov_Regions.Append
+                 (Source_Location_Range'
+                    (Source_File => First_Sloc.Source_File,
+                     L           =>
+                       (First_Sloc => First_Sloc.L,
+                        Last_Sloc  => Last_Sloc.L)));
+               Last_Cov_Off := Get_Null_Location;
+               Ann.Kind := Cov_On;
+            end;
+         end if;
+         UIC.Annotations.Append
+           (Annotation_Couple'(Sloc (Source_Loc), Ann));
+      end Process_Disable_Cov;
+   begin
+      Search_Annotation_Couple
+        (UIC           => UIC,
+         Start_Matcher => "GNATCOV_EXEMPT_ON(:? ""(.*)"")?",
+         End_Matcher   => "GNATCOV_EXEMPT_OFF",
+         Process       => Process_Exemption'Access);
+      Search_Annotation_Couple
+        (UIC           => UIC,
+         Start_Matcher => "GNATCOV_COV_OFF(:? ""(.*)"")?",
+         End_Matcher   => "GNATCOV_COV_ON",
+         Process       => Process_Disable_Cov'Access);
+   end Populate_Annotations;
+
+   ------------------------
+   -- Is_Disabled_Region --
+   ------------------------
+
+   function Is_Disabled_Region
+     (UIC : C_Unit_Inst_Context'Class; Sloc : Source_Location) return Boolean
+   is
+   begin
+      for Disabled_Region of UIC.Disable_Cov_Regions loop
+         if In_Range (Sloc, Disabled_Region) then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Is_Disabled_Region;
+
    --------------------
    -- Record_PP_Info --
    --------------------
@@ -3016,10 +3242,15 @@ package body Instrument.C is
       UIC           : in out C_Unit_Inst_Context;
       Instrumenter  : C_Family_Instrumenter_Type'Class)
    is
-      Args : String_Vectors.Vector;
+      UIC_Copy : C_Unit_Inst_Context := UIC;
+      --  We need to use a copy of the original instrumentation context to
+      --  avoid overwriting UIC.CIdx which already contains the preprocessed
+      --  version of the file at this stage.
+
+      Args     : String_Vectors.Vector;
    begin
-      UIC.Pass := Record_PP_Info_Pass'Access;
-      UIC.CIdx :=
+      UIC_Copy.Pass := Record_PP_Info_Pass'Access;
+      UIC_Copy.CIdx :=
         Create_Index
           (Exclude_Declarations_From_PCH => 0, Display_Diagnostics => 0);
 
@@ -3052,9 +3283,9 @@ package body Instrument.C is
       declare
          C_Args : chars_ptr_array := To_Chars_Ptr_Array (Args);
       begin
-         UIC.TU :=
+         UIC_Copy.TU :=
            Parse_Translation_Unit
-             (C_Idx                 => UIC.CIdx,
+             (C_Idx                 => UIC_Copy.CIdx,
               Source_Filename       => Orig_Filename,
               Command_Line_Args     => C_Args'Address,
               Num_Command_Line_Args => C_Args'Length,
@@ -3064,8 +3295,12 @@ package body Instrument.C is
          Free (C_Args);
       end;
       Traverse_Declarations
-        (UIC => UIC,
-         L   => Get_Children (Get_Translation_Unit_Cursor (UIC.TU)));
+        (UIC => UIC_Copy,
+         L   => Get_Children (Get_Translation_Unit_Cursor (UIC_Copy.TU)));
+
+      --  Save into UIC the preprocessing information
+
+      UIC.LL_PP_Info_Map := UIC_Copy.LL_PP_Info_Map;
 
    end Record_PP_Info;
 
@@ -3161,62 +3396,25 @@ package body Instrument.C is
 
       Preprocess_Source (Orig_Filename, Self, Prj, PP_Filename, UIC.Options);
 
-      --  Start by recording preprocessing information
+      --  Parse the preprocessed version of the file
+
+      Start_Rewriting
+        (Self         => Rewriter,
+         Filename     => +PP_Filename,
+         Instrumenter => Self,
+         Prj          => Prj);
+      UIC.TU := Rewriter.TU;
+      UIC.Rewriter := Rewriter.Rewriter;
+
+      --  Start by recording exemption / coverage disabling markers. Use the
+      --  translation unit resulting from the preprocessed version of the file
+      --  as we want to take into account indications in headers.
+
+      Populate_Annotations (UIC);
+
+      --  Record preprocessing information
 
       Record_PP_Info (Orig_Filename, UIC, Self);
-
-      --  Then record exemption annotations in the comments. Reuse the TU from
-      --  the preprocessing information recording pass as we want the
-      --  annotations to refer to unpreprocessed locations.
-
-      Search_Exemptions :
-      declare
-         Start_Matcher : constant Pattern_Matcher :=
-           Compile ("GNATCOV_EXEMPT_ON ""(.*)""");
-         End_Matcher   : constant Pattern_Matcher :=
-           Compile ("GNATCOV_EXEMPT_OFF");
-         Match_Res     : Match_Array (0 .. 1);
-
-         procedure Search_Exempt_In_Token (Token : Token_T);
-
-         ----------------------------
-         -- Search_Exempt_In_Token --
-         ----------------------------
-
-         procedure Search_Exempt_In_Token (Token : Token_T) is
-         begin
-            if Get_Token_Kind (Token) = Token_Comment then
-               declare
-                  Comment : constant String :=
-                    Get_Token_Spelling (UIC.TU, Token);
-                  Ann     : ALI_Annotation;
-               begin
-                  Match (Start_Matcher, Comment, Match_Res);
-                  if Match_Res (1) /= No_Match then
-                     Ann.Kind := Exempt_On;
-                     Ann.Message :=
-                       new String'
-                         (Comment (Match_Res (1).First .. Match_Res (1).Last));
-                     UIC.Annotations.Append
-                       ((Sloc (Get_Token_Location (UIC.TU, Token)), Ann));
-                  end if;
-                  Match (End_Matcher, Comment, Match_Res);
-                  if Match_Res (0) /= No_Match then
-                     Ann.Kind := Exempt_Off;
-                     UIC.Annotations.Append
-                       ((Sloc
-                           (Get_Range_End (Get_Token_Extent (UIC.TU, Token))),
-                         Ann));
-                  end if;
-               end;
-            end if;
-         end Search_Exempt_In_Token;
-      begin
-         Iterate_Tokens
-           (UIC.TU,
-            Get_Translation_Unit_Cursor (UIC.TU),
-            Search_Exempt_In_Token'Access);
-      end Search_Exemptions;
 
       --  Save the last SCO of the first pass (for a consistency check with
       --  the second pass later), and reset the SCO tables for the
@@ -3229,13 +3427,6 @@ package body Instrument.C is
 
       UIC.Pass := Instrument_Pass'Access;
 
-      Start_Rewriting
-        (Self         => Rewriter,
-         Filename     => +PP_Filename,
-         Instrumenter => Self,
-         Prj          => Prj);
-      UIC.TU := Rewriter.TU;
-      UIC.Rewriter := Rewriter.Rewriter;
       Insert_Extern_Location :=
         Start_Sloc (Get_Translation_Unit_Cursor (UIC.TU));
 
@@ -4025,11 +4216,7 @@ package body Instrument.C is
            C_Family_Instrumenter_Type'Class (Self).Extern_Prefix;
 
       begin
-         --  Preprocess the source, keeping the comment to look for the manual
-         --  dump indication later.
-
-         Preprocess_Source
-           (Orig_Filename, Self, Prj, PP_Filename, Options, True);
+         Preprocess_Source (Orig_Filename, Self, Prj, PP_Filename, Options);
          declare
             use Files_Handling.File_To_String_Vectors_Maps;
             Cur      : Cursor;
