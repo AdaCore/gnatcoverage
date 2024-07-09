@@ -2059,91 +2059,84 @@ package body SC_Obligations is
                                 CP_Vectors.BDD_Vector.First_Index,
                                 CP_Vectors.BDD_Vector.Last_Index);
 
-      declare
-         Last_Existing_CU_Id : constant CU_Id := CU_Vector.Last_Index;
+      --  Remap and merge into current tables
 
-      begin
-         --  Remap and merge into current tables
+      for Cur in CP_Vectors.CU_Vector.Iterate loop
+         declare
+            use CU_Info_Vectors;
 
-         for Cur in CP_Vectors.CU_Vector.Iterate loop
-            declare
-               use CU_Info_Vectors;
+            CP_CU_Id  : constant CU_Id := To_Index (Cur);
+            CP_CU     : CU_Info := Element (Cur);
+            New_CU_Id : CU_Id := No_CU_Id;
 
-               CP_CU_Id  : constant CU_Id := To_Index (Cur);
-               CP_CU     : CU_Info := Element (Cur);
-               New_CU_Id : CU_Id := No_CU_Id;
+            --  If the CU Origin or its Main_Source files are ignored, we
+            --  cannot load this CU.
 
-               --  If the CU Origin or its Main_Source files are ignored, we
-               --  cannot load this CU.
+            Origin_Ignored      : constant Boolean :=
+              SFI_Ignored (Relocs, CP_CU.Origin);
+            Main_Source_Ignored : constant Boolean :=
+              SFI_Ignored (Relocs, CP_CU.Main_Source);
+         begin
+            if Origin_Ignored or else Main_Source_Ignored then
+               SCOs_Trace.Trace
+                 ("Ignoring CU from SID file: Id" & CP_CU_Id'Img);
 
-               Origin_Ignored      : constant Boolean :=
-                 SFI_Ignored (Relocs, CP_CU.Origin);
-               Main_Source_Ignored : constant Boolean :=
-                 SFI_Ignored (Relocs, CP_CU.Main_Source);
-            begin
-               if Origin_Ignored or else Main_Source_Ignored then
-                  SCOs_Trace.Trace
-                    ("Ignoring CU from SID file: Id" & CP_CU_Id'Img);
+               --  If we cannot load this CU *not* because its main source is
+               --  ignored, but rather because the origin is ignored, warn the
+               --  user: they probably did not want to ignore this CU, but we
+               --  have to in order not to break our data structure invariants:
+               --  Origin cannot be null.
 
-                  --  If we cannot load this CU *not* because its main source
-                  --  is ignored, but rather because the origin is ignored,
-                  --  warn the user: they probably did not want to ignore this
-                  --  CU, but we have to in order not to break our data
-                  --  structure invariants: Origin cannot be null.
-
-                  if not Main_Source_Ignored then
-                     Warn
-                       ("gnatcov limitation: ignoring unit "
-                        & Get_Simple_Name
-                            (Remap_SFI (Relocs, CP_CU.Main_Source))
-                        & " from " & (+CLS.Filename)
-                        & " because "
-                        & (+Get_Simple_Name (Relocs, CP_CU.Origin))
-                        & " is ignored");
-                  end if;
-
-                  Ignore_CU_Id (Relocs, CP_CU_Id);
-
-               else
-                  Checkpoint_Load_Unit
-                    (CLS,
-                     CP_Vectors,
-                     CP_CU,
-                     CP_CU_Id  => CP_CU_Id,
-                     New_CU_Id => New_CU_Id);
-                  Set_CU_Id_Map (Relocs, CP_CU_Id, New_CU_Id);
+               if not Main_Source_Ignored then
+                  Warn
+                    ("gnatcov limitation: ignoring unit "
+                     & Get_Simple_Name
+                       (Remap_SFI (Relocs, CP_CU.Main_Source))
+                     & " from " & (+CLS.Filename)
+                     & " because "
+                     & (+Get_Simple_Name (Relocs, CP_CU.Origin))
+                     & " is ignored");
                end if;
-            end;
-         end loop;
 
-         --  Remap annotations
+               Ignore_CU_Id (Relocs, CP_CU_Id);
 
-         for Cur in CP_Vectors.ALI_Annotations.Iterate loop
-            declare
-               use ALI_Annotation_Maps;
-               Annotation_Sloc : Source_Location := Key (Cur);
-               Annotation      : ALI_Annotation  := Element (Cur);
+            else
+               Checkpoint_Load_Unit
+                 (CLS,
+                  CP_Vectors,
+                  CP_CU,
+                  CP_CU_Id  => CP_CU_Id,
+                  New_CU_Id => New_CU_Id);
+               Set_CU_Id_Map (Relocs, CP_CU_Id, New_CU_Id);
+            end if;
+         end;
+      end loop;
 
-            begin
-               if not CU_Id_Ignored (Relocs, Annotation.CU) then
-                  --  If this annotation comes from a compilation unit whose
-                  --  data is being imported from this checkpoint (i.e. whose
-                  --  CU id is higher than the last existing one upon entry),
-                  --  add it now (else it is assumed to be already present in
-                  --  the ALI_Annotation map).
+      --  Remap annotations
 
-                  pragma Assert
-                    (Remap_CU_Id (Relocs, Annotation.CU) /= No_CU_Id);
-                  Annotation.CU := Remap_CU_Id (Relocs, Annotation.CU);
-                  if Annotation.CU > Last_Existing_CU_Id then
-                     Remap_SFI (Relocs, Annotation_Sloc.Source_File);
-                     ALI_Annotations.Insert (Annotation_Sloc, Annotation);
-                  end if;
-               end if;
-            end;
-         end loop;
+      for Cur in CP_Vectors.ALI_Annotations.Iterate loop
+         declare
+            use ALI_Annotation_Maps;
+            Annotation_Sloc : Source_Location := Key (Cur);
+            Annotation      : ALI_Annotation  := Element (Cur);
 
-      end;
+         begin
+            if not CU_Id_Ignored (Relocs, Annotation.CU) then
+
+               --  Even if the CU was already loaded, the set of annotations
+               --  can be different from one checkpoint to another (e.g. the
+               --  coverage disabled regions can vary), so add them in all
+               --  cases.
+
+               pragma Assert
+                 (Remap_CU_Id (Relocs, Annotation.CU) /= No_CU_Id);
+               Annotation.CU := Remap_CU_Id (Relocs, Annotation.CU);
+               Remap_SFI (Relocs, Annotation_Sloc.Source_File);
+               ALI_Annotations.Include (Annotation_Sloc, Annotation);
+            end if;
+         end;
+      end loop;
+
    end Checkpoint_Load;
 
    ----------------------
@@ -3372,6 +3365,7 @@ package body SC_Obligations is
          --  An ALI file is involved: we are in binary traces mode, and so
          --  there is no need to compute the number of BDD execution paths for
          --  decisions.
+
          Count_Paths   => False);
 
       --  For the units we successfully loaded, copy annotations from the ALI
