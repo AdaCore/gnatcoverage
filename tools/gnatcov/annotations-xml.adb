@@ -630,14 +630,12 @@ package body Annotations.Xml is
       Line     : String)
    is
       Coverage_State : constant String :=
-                         (1 => State_Char (Aggregated_State (Info.all)));
-      Exempted : constant Boolean := Info.Exemption /= Slocs.No_Location;
+        (1 => State_Char (Aggregated_State (Info.all)));
    begin
       Pp.ST ("src_mapping", A ("coverage", Coverage_State));
       Pp.ST ("src");
       Pp.T ("line",
             A ("num", Img (Line_Num))
-            & A ("exempted", Exempted'Img)
             & A ("src", Line));
       Pp.ET ("src");
    end Pretty_Print_Start_Line;

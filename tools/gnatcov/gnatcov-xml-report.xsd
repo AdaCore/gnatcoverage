@@ -219,7 +219,6 @@
     <xs:attribute name="src" type="xs:string"/>
     <xs:attribute name="column_begin" type="xs:integer"/>
     <xs:attribute name="column_end" type="xs:integer"/>
-    <xs:attribute name="exempted" type="upper_boolean"/>
   </xs:complexType>
 
   <xs:complexType name="instruction_set_type">
