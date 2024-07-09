@@ -124,8 +124,8 @@ package body Instrument.Checkpoints is
                   elsif CP_PP_Cmds.Reference (CP_Cur)
                         /= PP_Cmds.Reference (Cur)
                   then
-                     Warn ("inconsistent information for instrumented file "
-                           & Get_Full_Name (SFI));
+                     Warn ("inconsistent preprocessing information for"
+                           & " instrumented file " & Get_Full_Name (SFI));
                   end if;
                end;
             end if;

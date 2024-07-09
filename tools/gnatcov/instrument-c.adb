@@ -2576,6 +2576,7 @@ package body Instrument.C is
 
          --  Only traverse the function declarations that belong to a unit of
          --  interest.
+
          if Is_Source_Of_Interest (UIC, N) then
             Cursor_Kind := Kind (N);
             case Cursor_Kind is

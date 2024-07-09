@@ -260,7 +260,7 @@ class Nblock(Rblock):
             stag=None,
         )
 
-        # Fetch and remove a possible separation tag from the diganostic
+        # Fetch and remove a possible separation tag from the diagnostic
         # text. Removal is useful to facilitate matching of other parts, hence
         # attempted first.
 
@@ -417,7 +417,7 @@ class XREchapter(Nchapter):
         # to be checked for discharging expected notes later on. However
         # we still need to check the number of notes belonging to the exempted
         # region itself and the number of notes for exempted violations
-        # separatly.
+        # separately.
         ecount = len(self.enotes) - self.ecount_exempted
 
         self.__check_summary_count(sec, self.value(p.group(1)), ecount)

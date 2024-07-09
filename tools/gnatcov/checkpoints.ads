@@ -19,10 +19,10 @@
 --  This unit controls the generation and processing of coverage state
 --  checkpoint files for incremental coverage.
 
-with Ada.Containers;        use Ada.Containers;
+with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Multiway_Trees;
 with Ada.Containers.Vectors;
-with Ada.Streams;           use Ada.Streams;
+with Ada.Streams;    use Ada.Streams;
 with Interfaces;
 
 with GNAT.Regexp;
@@ -233,8 +233,8 @@ package Checkpoints is
    --  the current run.
 
    procedure Remap_SFI
-     (Relocs             : Checkpoint_Relocations;
-      CP_SFI             : in out Source_File_Index) with
+     (Relocs : Checkpoint_Relocations;
+      CP_SFI : in out Source_File_Index) with
      Pre => not SFI_Ignored (Relocs, CP_SFI);
    --  Remap one source file index.
    --

@@ -81,7 +81,7 @@ from SUITE.cutils import FatalError
 
 class _XnoteP_block:
     """
-    Block notes are relevant for a general section. Eventhough the block is
+    Block notes are relevant for a general section. Even though the block is
     matched line by line, we need to materialize a single note for the whole
     block.
     """

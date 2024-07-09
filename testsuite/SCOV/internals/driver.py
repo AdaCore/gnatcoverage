@@ -270,7 +270,7 @@ class _Xchecker:
         # Note that we only check for section inclusions here, so don't
         # validate the correctness of exemption justifications at this stage.
 
-        # Ensuring that an emitted note is not used to satify multiple
+        # Ensuring that an emitted note is not used to satisfy multiple
         # expectations is stricter so the most correct in principle.
 
         for en in self.edict[ekind]:
