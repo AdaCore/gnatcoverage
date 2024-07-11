@@ -8,12 +8,8 @@ gnatcov version, force the user to update the trace.
 from SCOV.minicheck import xcov, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
-from SUITE.tutils import gprfor
 
 tmp = Wdir("tmp_")
-
-# Generate a project, it will be helpful for test updates
-prj = gprfor(mains=["main.adb"], srcdirs=[".."])
 
 # Create a coverage report from the trace under version control.
 # Its format is either the same as the one expected by the current gnatcov, in
@@ -63,7 +59,7 @@ else:
     check_xcov_reports(
         ".",
         {
-            "main.adb.xcov": {"+": {15, 16}, "!": {12}},
+            "main.adb.xcov": {"+": {21, 22}, "!": {11, 18}, "-": {12}},
             "foo.c.xcov": {"!": {6}},
         },
     )
