@@ -28,7 +28,7 @@
 
 /* Set the boolean corresponding to BIT to true in BUFFER in various
    context.  */
-static inline unsigned
+static inline int
 gnatcov_rts_witness (unsigned char *buffer, unsigned bit_id)
 {
   buffer[bit_id] = 1;
@@ -39,9 +39,9 @@ gnatcov_rts_witness (unsigned char *buffer, unsigned bit_id)
 
 /* If VALUE is false, set the boolean corresponding to FALSE_BIT to true in
    BUFFER.  Set the one corresponding to TRUE_BIT otherwise.  */
-static inline unsigned
+static inline int
 gnatcov_rts_witness_decision (unsigned char *buffer, unsigned false_bit,
-                              unsigned true_bit, unsigned value)
+                              unsigned true_bit, int value)
 {
   gnatcov_rts_witness (buffer, value ? true_bit : false_bit);
   return value;
@@ -52,12 +52,12 @@ gnatcov_rts_witness_decision (unsigned char *buffer, unsigned false_bit,
    MCDC_BUFFER_ADDRESS.  Note that MCDC_PATH may not be passed by value,
    because it is not known until the side effect of the actual for the VALUE
    formal have been evaluated.  */
-static inline unsigned
+static inline int
 gnatcov_rts_witness_decision_mcdc (unsigned char *decision_buffer,
                                    unsigned false_bit, unsigned true_bit,
                                    unsigned char *mcdc_buffer,
                                    unsigned mcdc_base,
-                                   unsigned *mcdc_path_address, unsigned value)
+                                   unsigned *mcdc_path_address, int value)
 {
   unsigned mcdc_path_index = *mcdc_path_address;
   gnatcov_rts_witness (mcdc_buffer, mcdc_base + mcdc_path_index);
@@ -70,10 +70,10 @@ gnatcov_rts_witness_decision_mcdc (unsigned char *decision_buffer,
 /* MCDC_PATH_ADDRESS is the address of a local variable storing the
    mcdc_state. If FIRST is true, first reset it to 0.  If VALUE is true, add
    OFFSET_FOR_TRUE.  */
-static inline unsigned
+static inline int
 gnatcov_rts_witness_condition (unsigned *mcdc_path_address,
                                unsigned offset_for_true, unsigned first,
-                               unsigned value)
+                               int value)
 {
   unsigned *mcdc_path_index = mcdc_path_address;
   if (first)
