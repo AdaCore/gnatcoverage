@@ -30,6 +30,7 @@ main ()
   y = -1;
   z = 3;
   do_test (&x, &y, &z);
+  return 0;
 }
 
 //# foo.c
