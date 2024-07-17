@@ -245,6 +245,14 @@ package Checkpoints is
    --  A stream associated with global state shared across phases of a
    --  checkpoint load or save.
 
+   procedure Remap_ALI_Annotations
+     (Relocs             : Checkpoint_Relocations;
+      CP_ALI_Annotations : in out ALI_Annotation_Maps.Map);
+   --  Remap one source file index.
+
+   --  A stream associated with global state shared across phases of a
+   --  checkpoint load or save.
+
    type Stateful_Stream (Stream : access Root_Stream_Type'Class) is abstract
      new Root_Stream_Type with
       record

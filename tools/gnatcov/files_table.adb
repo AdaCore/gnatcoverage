@@ -29,7 +29,6 @@ with Osint;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with ALI_Files;     use ALI_Files;
 with Checkpoints;   use Checkpoints;
 with Coverage;      use Coverage;
 with Outputs;
@@ -1724,8 +1723,10 @@ package body Files_Table is
       --  expanded later if we find that there are exemption annotations past
       --  this line.
 
+      Annotations        : constant ALI_Annotation_Maps.Map :=
+        Get_Annotations (FI);
       Annotation_Cur     : Cursor :=
-        ALI_Annotations.Ceiling ((FI, (Current_Line_Num, 0)));
+        Annotations.Ceiling ((FI, (Current_Line_Num, 0)));
       Next_Annot_Cur     : Cursor;
       Current_Annot_Sloc : Source_Location;
       Current_Annotation : ALI_Annotation;

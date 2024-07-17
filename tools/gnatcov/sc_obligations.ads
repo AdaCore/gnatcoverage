@@ -28,6 +28,7 @@ with Ada.Containers.Multiway_Trees;
 
 with GNAT.Regexp;
 with GNAT.SHA1;
+with GNAT.Strings; use GNAT.Strings;
 
 with Namet;
 with Types; use Types;
@@ -136,6 +137,9 @@ package SC_Obligations is
    function Bit_Maps_Fingerprint (CU : CU_Id) return Fingerprint_Type;
    --  Hash of buffer bit mappings in CU
 
+   function Annotations_Fingerprint (CU : CU_Id) return Fingerprint_Type;
+   --  Hash of annotations in CU
+
    function Comp_Unit (Src_File : Source_File_Index) return CU_Id;
    --  Return the identifier for the compilation unit containing the given
    --  source, or No_CU_Id if no such LI file has been loaded.
@@ -148,6 +152,86 @@ package SC_Obligations is
    procedure Report_Units_Without_Code;
    --  Emit an error message for any unit of interest for which no object code
    --  has been seen.
+
+   ---------------
+   -- ALI files --
+   ---------------
+
+   type ALI_Annotation_Kind is
+     (Exempt_On, Exempt_Off, Dump_Buffers, Reset_Buffers, Cov_On, Cov_Off);
+
+   type ALI_Annotation is record
+      Kind : ALI_Annotation_Kind;
+      --  On or Off, Dump or Reset coverage buffers
+
+      Message : String_Access;
+      --  When Kind = Exempt_On, justification message for the exemption.
+      --  This is null if no justification is given (i.e. this is never an
+      --  access to an empty string).
+
+      Violation_Count : Natural := 0;
+      --  When Kind = Exempt_On, this counts the violation "hits" on this
+      --  exemption:
+      --
+      --  * exempted violation messages if generating a report,
+      --
+      --  * exempted non/partially covered lines otherwise.
+
+      Undetermined_Cov_Count : Natural := 0;
+      --  When Kind = Exempt_On, this counts the number of "hits" for
+      --  undetermined coverage items: currently exempted non-instrumented
+      --  messages when generating a report, or lines marked as
+      --  non instrumented otherwise.
+      --
+      --  This is relevant only for source trace based coverage analysis.
+   end record;
+
+   package ALI_Annotation_Maps is
+     new Ada.Containers.Ordered_Maps
+       (Key_Type     => Source_Location,
+        Element_Type => ALI_Annotation);
+
+   procedure Set_Annotations (Annotations : ALI_Annotation_Maps.Map);
+   --  Set annotations. Add them to the right CU_Info according to their
+   --  source location.
+
+   function Get_Annotations (CU : CU_Id) return ALI_Annotation_Maps.Map;
+   function Get_Annotations
+     (SFI : Source_File_Index) return ALI_Annotation_Maps.Map;
+   --  Return the set of annotations for the given compilation unit / source
+   --  file index.
+
+   function Get_All_Annotations return ALI_Annotation_Maps.Map;
+   --  Return all annotations
+
+   procedure Inc_Violation_Exemption_Count (Sloc : Source_Location);
+   --  Increment the exempted line/message violation counter for exemption at
+   --  Sloc.
+
+   procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location);
+   --  Increment the exempted line/message undetermined coverage items counter
+   --  for exemption at Sloc.
+
+   procedure Load_ALI (ALI_Filename : String);
+   --  Load ALI information for Filename, without SCOs
+
+   function Load_ALI
+     (ALI_Filename         : String;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp;
+      Units                : out SFI_Vector;
+      Deps                 : out SFI_Vector;
+      ALI_Annotations      : in out ALI_Annotation_Maps.Map;
+      With_SCOs            : Boolean) return Types.Source_File_Index;
+   --  Load coverage related information (coverage exemptions and, if With_SCOs
+   --  is True, source coverage obligations) from ALI_Filename. Returns the
+   --  source file index for the ALI file. Subsequent calls for the same ALI
+   --  file will return No_Source_File immediately, without reloading the file.
+   --  Units are the units contained in this compilation.
+   --
+   --  Ignore all source obligations according to Ignored_Source_Files (see
+   --  SC_Obligations.Load_SCOs' documentation).
+   --
+   --  Deps are the dependencies of the compilation.
 
    ---------------
    -- Instances --

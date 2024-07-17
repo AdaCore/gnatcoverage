@@ -99,6 +99,11 @@ extern "C"
        from SID files.  */
     uint8_t bit_maps_fingerprint[FINGERPRINT_SIZE];
 
+    /* Hash of annotations for this unit, as gnatcov computes it (see
+       SC_Obligations). Used as a fast way to check that source traces and
+       coverage data are consistent.  */
+    uint8_t annotations_fingerprint[FINGERPRINT_SIZE];
+
     /* Pointers to coverage buffers for statement obligations, decision
        obligations and MC/DC obligations.  The size of each array is in the
        corresponding *_last_bit field.  */

@@ -35,7 +35,6 @@ with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 
-with ALI_Files;           use ALI_Files;
 with Coverage;            use Coverage;
 with Coverage_Options;
 with Hex_Images;          use Hex_Images;
@@ -56,8 +55,8 @@ package body Instrument.C is
    procedure Free (Self : in out chars_ptr_array);
    --  Free all strings in Self
 
-   procedure Filter_Annotations;
-   --  Remove any exemption annotations from the map that intersects a
+   procedure Filter_Annotations (UIC : in out C_Unit_Inst_Context'Class);
+   --  Remove any exemption annotations from UIC.Annotations that intersects a
    --  statement SCO. This is not part of Import_Annotations as this is only
    --  required for C annotations, where the exemption markers can be
    --  arbitrarily placed. This would also not work for Ada exemptions as there
@@ -546,14 +545,13 @@ package body Instrument.C is
    -- Filter_Annotations --
    ------------------------
 
-   procedure Filter_Annotations is
-      use ALI_Annotation_Maps;
-      Cur     : Cursor := ALI_Annotations.First;
-      Del_Cur : Cursor;
+   procedure Filter_Annotations (UIC : in out C_Unit_Inst_Context'Class) is
+      use Annotation_Vectors;
+      Filtered_Annotations : Vector;
    begin
-      while Has_Element (Cur) loop
+      for Ann of UIC.Annotations loop
          declare
-            Sloc    : constant Source_Location := Key (Cur);
+            Sloc    : constant Source_Location := Ann.Sloc;
             LI      : constant Line_Info_Access := Get_Line (Sloc);
             Deleted : Boolean := False;
          begin
@@ -565,9 +563,6 @@ package body Instrument.C is
             then
                for SCO of LI.SCOs.all loop
                   if Slocs.In_Range (Sloc, Sloc_Range (SCO)) then
-                     Del_Cur := Cur;
-                     Next (Cur);
-                     ALI_Annotations.Delete (Del_Cur);
                      Warn ("Exemption annotation at " & Slocs.Image (Sloc)
                            & " intersects a coverage obligation ("
                            & Image (SCO, True) & "), ignoring it");
@@ -577,10 +572,11 @@ package body Instrument.C is
                end loop;
             end if;
             if not Deleted then
-               Next (Cur);
+               Filtered_Annotations.Append (Ann);
             end if;
          end;
       end loop;
+      UIC.Annotations := Filtered_Annotations;
    end Filter_Annotations;
 
    -----------------
@@ -3497,8 +3493,8 @@ package body Instrument.C is
 
          --  Import annotations in our internal tables
 
-         UIC.Import_Annotations (UIC.CUs);
-         Filter_Annotations;
+         Filter_Annotations (UIC);
+         Import_Annotations (UIC, UIC.CUs);
          Import_Non_Instrumented_LL_SCOs (UIC, SCO_Map);
 
          for Cur in UIC.Instrumented_Entities.Iterate loop
@@ -3926,6 +3922,12 @@ package body Instrument.C is
 
                & "  .bit_maps_fingerprint = "
                & Format_Fingerprint (SC_Obligations.Bit_Maps_Fingerprint (CU))
+               & ","
+               & ASCII.LF
+
+               & "  .annotations_fingerprint = "
+               & Format_Fingerprint
+                 (SC_Obligations.Annotations_Fingerprint (CU))
                & ","
                & ASCII.LF
 

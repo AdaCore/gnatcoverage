@@ -205,7 +205,9 @@ package body GNATcov_RTS.Traces.Output is
          Write_U8 (Output, Unsigned_8 (LSB_First_Bytes));
          Write_Bytes (Output, To_Uint8_Array (Buffers.Fingerprint));
          Write_Bytes (Output, To_Uint8_Array (Buffers.Bit_Maps_Fingerprint));
-         Write_Bytes (Output, (1 .. 5 => 0));
+         Write_Bytes
+           (Output, To_Uint8_Array (Buffers.Annotations_Fingerprint));
+         Write_Bytes (Output, (1 .. 1 => 0));
 
          --  Write the unit name
 

@@ -516,7 +516,7 @@ package body Instrument.Input_Traces is
             Create_Error (Result, "invalid bit buffer encoding");
             return False;
 
-         elsif Raw_Header.Padding /= (1 .. 5 => ASCII.NUL) then
+         elsif Raw_Header.Padding /= (1 .. 1 => ASCII.NUL) then
             Create_Error (Result, "invalid entry header padding");
             return False;
          end if;
@@ -679,10 +679,15 @@ package body Instrument.Input_Traces is
             function Convert is new Ada.Unchecked_Conversion
               (Traces_Source.Fingerprint_Type,
                SC_Obligations.Fingerprint_Type);
+
             Fingerprint          : constant SC_Obligations.Fingerprint_Type :=
                Convert (Entry_Header.Fingerprint);
             Bit_Maps_Fingerprint : constant SC_Obligations.Fingerprint_Type :=
-               Convert (Entry_Header.Bit_Maps_Fingerprint);
+              Convert (Entry_Header.Bit_Maps_Fingerprint);
+
+            Annotations_Fingerprint : constant
+              SC_Obligations.Fingerprint_Type :=
+                Convert (Entry_Header.Annotations_Fingerprint);
 
             Statement_Buffer_Size : constant Natural :=
                Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
@@ -758,6 +763,7 @@ package body Instrument.Input_Traces is
                Fingerprint,
                CU_Name,
                Bit_Maps_Fingerprint,
+               Annotations_Fingerprint,
                Statement_Buffer
                  (0 .. Last_Bit (Entry_Header.Statement_Bit_Count)),
                Decision_Buffer
@@ -784,13 +790,14 @@ package body Instrument.Input_Traces is
         (Kind : Traces_Source.Supported_Info_Kind;
          Data : String);
       procedure On_Trace_Entry
-        (Filename             : String;
-         Fingerprint          : SC_Obligations.Fingerprint_Type;
-         CU_Name              : Compilation_Unit_Part;
-         Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
-         Stmt_Buffer          : Coverage_Buffer;
-         Decision_Buffer      : Coverage_Buffer;
-         MCDC_Buffer          : Coverage_Buffer);
+        (Filename                : String;
+         Fingerprint             : SC_Obligations.Fingerprint_Type;
+         CU_Name                 : Compilation_Unit_Part;
+         Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
+         Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
+         Stmt_Buffer             : Coverage_Buffer;
+         Decision_Buffer         : Coverage_Buffer;
+         MCDC_Buffer             : Coverage_Buffer);
       --  Callbacks for Read_Source_Trace_File
 
       Last_Is_Info : Boolean := False;
@@ -824,13 +831,14 @@ package body Instrument.Input_Traces is
       --------------------
 
       procedure On_Trace_Entry
-        (Filename             : String;
-         Fingerprint          : SC_Obligations.Fingerprint_Type;
-         CU_Name              : Compilation_Unit_Part;
-         Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
-         Stmt_Buffer          : Coverage_Buffer;
-         Decision_Buffer      : Coverage_Buffer;
-         MCDC_Buffer          : Coverage_Buffer)
+        (Filename                : String;
+         Fingerprint             : SC_Obligations.Fingerprint_Type;
+         CU_Name                 : Compilation_Unit_Part;
+         Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
+         Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
+         Stmt_Buffer             : Coverage_Buffer;
+         Decision_Buffer         : Coverage_Buffer;
+         MCDC_Buffer             : Coverage_Buffer)
       is
          pragma Unreferenced (Filename);
          use Ada.Text_IO;
@@ -855,6 +863,11 @@ package body Instrument.Input_Traces is
 
          Put (", bit maps hash=");
          for B of Bit_Maps_Fingerprint loop
+            Put (Hex_Images.Hex_Image (Interfaces.Unsigned_8 (B)));
+         end loop;
+
+         Put (", annotations hash=");
+         for B of Annotations_Fingerprint loop
             Put (Hex_Images.Hex_Image (Interfaces.Unsigned_8 (B)));
          end loop;
 

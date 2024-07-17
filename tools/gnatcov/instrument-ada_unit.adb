@@ -41,7 +41,6 @@ with Libadalang.Sources;       use Libadalang.Sources;
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.Utils;
 
-with ALI_Files;        use ALI_Files;
 with Coverage_Options; use Coverage_Options;
 with Coverage;         use Coverage;
 with Diagnostics;      use Diagnostics;
@@ -9188,6 +9187,11 @@ package body Instrument.Ada_Unit is
             File.Put_Line ("      Bit_Maps_Fingerprint => "
                            & Format_Fingerprint
                              (SC_Obligations.Bit_Maps_Fingerprint (CU))
+                           & ",");
+
+            File.Put_Line ("      Annotations_Fingerprint => "
+                           & Format_Fingerprint
+                             (SC_Obligations.Annotations_Fingerprint (CU))
                            & ",");
 
             File.Put_Line ("      Statement => Statement_Buffer'Address,");

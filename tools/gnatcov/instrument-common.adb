@@ -257,14 +257,15 @@ package body Instrument.Common is
    ------------------------
 
    procedure Import_Annotations
-     (UIC : in out Unit_Inst_Context; Created_Units : Created_Unit_Maps.Map) is
+     (UIC : in out Unit_Inst_Context; Created_Units : Created_Unit_Maps.Map)
+   is
+      ALI_Annotations : ALI_Annotation_Maps.Map;
    begin
       for Couple of UIC.Annotations loop
-         Couple.Annotation.CU :=
-           Created_Units.Element (Couple.Sloc.Source_File);
          ALI_Annotations.Insert
            (Key => Couple.Sloc, New_Item => Couple.Annotation);
       end loop;
+      Set_Annotations (ALI_Annotations);
    end Import_Annotations;
 
    -------------------------------------

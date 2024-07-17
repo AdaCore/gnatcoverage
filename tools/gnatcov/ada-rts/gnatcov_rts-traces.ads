@@ -51,13 +51,14 @@ package GNATcov_RTS.Traces is
    --  trace entries start and end on byte/half word/word/long word boundaries.
 
    type Trace_File_Format_Version is new Unsigned_32;
-   Current_Version : Trace_File_Format_Version := 3;
+   Current_Version : Trace_File_Format_Version := 4;
    --  Expected value of the Trace_File_Header.Format_Version field.
    --
    --  0 -- initial version
    --  1 -- extend trace entry model to account for C files
    --  2 -- introduce fingerprints for bit maps
    --  3 -- remove the project name from trace entries
+   --  4 -- introduce fingerprints for annotations
 
    type Any_Alignment is new Unsigned_8;
    subtype Supported_Alignment is Any_Alignment;
@@ -235,7 +236,12 @@ package GNATcov_RTS.Traces is
       --  be able to interpret buffer bits from a source traces using buffer
       --  bit mappings from SID files.
 
-      Padding : Uint8_Array (1 .. 5);
+      Annotations_Fingerprint   : Fingerprint_Type;
+      --  Hash of annotations for this unit, as gnatcov computes it (see
+      --  SC_Obligations). Used as a fast way to check that source traces and
+      --  coverage data are consistent.
+
+      Padding : Uint8_Array (1 .. 1);
       --  Padding used only to make the size of this trace entry header a
       --  multiple of 8 bytes. Must be zero.
    end record;

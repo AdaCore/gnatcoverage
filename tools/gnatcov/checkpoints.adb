@@ -422,6 +422,30 @@ package body Checkpoints is
       return CP_SCO_Id;
    end Remap_SCO_Id;
 
+   ---------------------------
+   -- Remap_ALI_Annotations --
+   ---------------------------
+
+   procedure Remap_ALI_Annotations
+     (Relocs             : Checkpoint_Relocations;
+      CP_ALI_Annotations : in out ALI_Annotation_Maps.Map)
+   is
+      use ALI_Annotation_Maps;
+      Result : Map;
+   begin
+      for Cur in CP_ALI_Annotations.Iterate loop
+         declare
+            Sloc : Source_Location := Key (Cur);
+         begin
+            Remap_SFI (Relocs, Sloc.Source_File);
+            if Sloc.Source_File /= No_Source_File then
+               Result.Include (Sloc, Element (Cur));
+            end if;
+         end;
+      end loop;
+      CP_ALI_Annotations := Result;
+   end Remap_ALI_Annotations;
+
    procedure Checkpoint_Load
      (Filename             : String;
       Purpose              : Checkpoint_Purpose;

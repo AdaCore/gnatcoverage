@@ -253,10 +253,6 @@ private
    --  about the original processing context. Empty string for traces processed
    --  in the current Gnatcov execution.
 
-   function Get_Exemption (Sloc : Source_Location) return Source_Location;
-   --  If the given Sloc is covered by an exemption, return the source location
-   --  of the corresponding exemption annotation, else return No_Location.
-
    function Get_Exemption_Message
      (Sloc : Source_Location) return String_Access;
    --  For a Sloc denoting an Exempt_On annotation, return the descriptive
@@ -270,14 +266,6 @@ private
      (Sloc : Source_Location) return Natural;
    --  Return the exempted line/message undetermined coverage items counter for
    --  exemption at Sloc.
-
-   procedure Inc_Violation_Exemption_Count (Sloc : Source_Location);
-   --  Increment the exempted line/message violation counter for exemption at
-   --  Sloc.
-
-   procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location);
-   --  Increment the exempted line/message undetermined coverage items counter
-   --  for exemption at Sloc.
 
    procedure Output_Multiline_Msg
      (Output : Ada.Text_IO.File_Type;

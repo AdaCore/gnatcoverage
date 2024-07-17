@@ -21,7 +21,6 @@ with Ada.Containers.Vectors;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Text_IO;             use Ada.Text_IO;
 
-with ALI_Files;
 with Calendar_Utils;   use Calendar_Utils;
 with Coverage;         use Coverage;
 with Coverage.Source;  use Coverage.Source;
@@ -280,7 +279,10 @@ package body Annotations.Report is
    ----------------------
 
    procedure Pretty_Print_End (Pp : in out Report_Pretty_Printer) is
-      use ALI_Files, ALI_Files.ALI_Annotation_Maps;
+      use SC_Obligations.ALI_Annotation_Maps;
+
+      ALI_Annotations : constant ALI_Annotation_Maps.Map :=
+        Get_All_Annotations;
 
       Output : constant File_Access := Get_Output;
 
