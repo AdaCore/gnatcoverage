@@ -3982,11 +3982,11 @@ package body Instrument.C is
                     (S, Extern_Prefix & "void " & Reset_Procedure & "(void);");
                end if;
 
-               --  Forward whatever comes since the last match (or the
+               --  Forward whatever comes between the last match (or the
                --  beginning of the file, if this is the first match) and this
                --  match.
 
-               String'Write (S, Str (Index .. Matches (0).First));
+               String'Write (S, Str (Index .. Matches (0).First - 1));
 
                --  Now insert the substitution for the command we found
 
