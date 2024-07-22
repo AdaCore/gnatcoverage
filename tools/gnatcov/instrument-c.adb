@@ -3948,7 +3948,9 @@ package body Instrument.C is
             Match (Dump_Pat, Str (Index .. Str'Last), Matches_Dump);
             Match (Reset_Pat, Str (Index .. Str'Last), Matches_Reset);
             while Index in Str'Range loop
+
                --  No matches, nothing left to do
+
                exit when Matches_Dump (0) = No_Match
                         and then Matches_Reset (0) = No_Match;
 
@@ -4016,8 +4018,8 @@ package body Instrument.C is
                   --  Search for the next dump indication
 
                   Match (Dump_Pat, Str (Index .. Str'Last), Matches_Dump);
-               else
 
+               else
                   --  Otherwise we only have a Reset match, or the reset
                   --  indication comes before the next Dump indication.
 
