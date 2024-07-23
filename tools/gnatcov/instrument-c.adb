@@ -68,6 +68,23 @@ package body Instrument.C is
    is (SCOs.SCO_Unit_Table.Table (SCOs.SCO_Unit_Table.Last).File_Index);
    --  Return the source file for the last low-level SCO that was created
 
+   Buffer_Command_Pattern : constant Pattern_Matcher :=
+     Compile
+       ("^[\t ]*\/\* (?:"
+        & "(GNATCOV_DUMP_BUFFERS (?:\((.+)\))?)"
+        & "|(GNATCOV_RESET_BUFFERS)"
+        & ") ?\*\/[ \t]*",
+        Flags => Multiple_Lines);
+   --  Regexp to match a buffer control command in a C/C++ comment.
+   --
+   --  Group 1: whole "dump" command
+   --    Group 2: prefix for the source file to create
+   --  Group 3: whole "reset" command
+
+   Buffer_Dump_Group        : constant := 1;
+   Buffer_Dump_Prefix_Group : constant := 2;
+   Buffer_Reset_Group       : constant := 3;
+
    ------------------------------
    --  Preprocessing utilities --
    ------------------------------
@@ -3868,16 +3885,7 @@ package body Instrument.C is
          Options         : Analysis_Options;
          PP_Filename     : Unbounded_String;
          Dummy_Main      : Compilation_Unit_Part;
-         Dump_Pat        : constant Pattern_Matcher :=
-           Compile
-             ("^[\t ]*\/\* GNATCOV_DUMP_BUFFERS (\((.+)\))? ?\*\/[ \t]*",
-              Flags => Multiple_Lines);
-         Reset_Pat       : constant Pattern_Matcher :=
-           Compile
-             ("^[\t ]*\/\* GNATCOV_RESET_BUFFERS \*\/[ \t]*",
-              Flags => Multiple_Lines);
-         Matches_Dump    : Match_Array (0 .. 2);
-         Matches_Reset   : Match_Array (0 .. 0);
+         Matches         : Match_Array (0 .. 4);
          Dump_Procedure  : constant String :=
            Dump_Procedure_Symbol
              (Main => Dummy_Main, Manual => True, Prj_Name => Prj.Prj_Name);
@@ -3945,12 +3953,11 @@ package body Instrument.C is
          begin
             Has_Dump_Indication := False;
             Has_Reset_Indication := False;
-            Match (Dump_Pat, Str (Index .. Str'Last), Matches_Dump);
-            Match (Reset_Pat, Str (Index .. Str'Last), Matches_Reset);
-            while Index in Str'Range loop
-               --  No matches, nothing left to do
-               exit when Matches_Dump (0) = No_Match
-                        and then Matches_Reset (0) = No_Match;
+
+            --  Iterate on all matches for the command pattern found in Str
+
+            Match (Buffer_Command_Pattern, Str (Index .. Str'Last), Matches);
+            while Index in Str'Range and then Matches (0) /= No_Match loop
 
                --  Open the output file if this is the first match we find,
                --  then forward the source code that appear before the match
@@ -3975,67 +3982,53 @@ package body Instrument.C is
                     (S, Extern_Prefix & "void " & Reset_Procedure & "(void);");
                end if;
 
-               --  If we only have a Dump match, or it is the first of the two
-               --  to match, insert a dump buffer procedure call in place of
-               --  the match.
+               --  Forward whatever comes between the last match (or the
+               --  beginning of the file, if this is the first match) and this
+               --  match.
 
-               if Matches_Reset (0) = No_Match
-                 or else Matches_Reset (0).First > Matches_Dump (0).First
-               then
+               String'Write (S, Str (Index .. Matches (0).First - 1));
 
+               --  Now insert the substitution for the command we found
+
+               if Matches (Buffer_Dump_Group) /= No_Match then
                   if Switches.Misc_Trace.Is_Active then
                      Switches.Misc_Trace.Trace
                        ("Found buffer dump indication in file "
                         & (+Source.File.Base_Name));
                   end if;
 
-                  Has_Dump_Indication := True;
-                  String'Write (S, Str (Index .. Matches_Dump (0).First));
-
                   --  If we had a prefix specified in the comment, include it
-                  --  in the dump procedure call.
+                  --  in the dump procedure call. Use the project name as the
+                  --  prefix otherwise.
 
-                  if Matches_Dump (1) /= No_Match then
-                     String'Write
-                       (S, Dump_Procedure & "("
-                           & Str
-                               (Matches_Dump (2).First
-                                .. Matches_Dump (2).Last)
-                           & ");");
+                  declare
+                     Prefix : constant String :=
+                       (if Matches (Buffer_Dump_Prefix_Group) = No_Match
+                        then """" & To_Ada (Prj.Prj_Name) & """"
+                        else Str (Matches (Buffer_Dump_Prefix_Group).First
+                                  .. Matches (Buffer_Dump_Prefix_Group).Last));
+                  begin
+                     String'Write (S, Dump_Procedure & "(" & Prefix & ");");
+                  end;
+                  Has_Dump_Indication := True;
 
-                  --  Otherwise use the project name as prefix
-
-                  else
-                     String'Write
-                       (S,
-                        Dump_Procedure & "(""" & (To_Ada (Prj.Prj_Name))
-                        & """);");
-                  end if;
-                  Index := Matches_Dump (0).Last + 1;
-
-                  --  Search for the next dump indication
-
-                  Match (Dump_Pat, Str (Index .. Str'Last), Matches_Dump);
                else
-
-                  --  Otherwise we only have a Reset match, or the reset
-                  --  indication comes before the next Dump indication.
-
+                  pragma Assert (Matches (Buffer_Reset_Group) /= No_Match);
                   if Switches.Misc_Trace.Is_Active then
                      Switches.Misc_Trace.Trace
                        ("Found buffer reset indication in file "
                         & (+Source.File.Base_Name));
                   end if;
 
-                  Has_Reset_Indication := True;
-                  String'Write (S, Str (Index .. Matches_Reset (0).First));
                   String'Write (S, Reset_Procedure & "();");
-                  Index := Matches_Reset (0).Last + 1;
-
-                  --  Search for the next reset indication
-
-                  Match (Reset_Pat, Str (Index .. Str'Last), Matches_Reset);
+                  Has_Reset_Indication := True;
                end if;
+
+               --  Search for the next dump indication
+
+               Index := Matches (0).Last + 1;
+               Match
+                 (Buffer_Command_Pattern, Str (Index .. Str'Last), Matches);
             end loop;
 
             --  If we had a manual indication, and thus wrote a modified source
