@@ -712,12 +712,27 @@ package SC_Obligations is
       MCDC_Bits      : MCDC_Bit_Map_Access;
    end record;
 
+   package SCO_Id_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => SCO_Id);
+
+   package SCO_Id_Vector_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => SCO_Id_Vectors.Vector,
+      "="          => SCO_Id_Vectors."=");
+   subtype SCO_Id_Vector_Vector is SCO_Id_Vector_Vectors.Vector;
+
    function Bit_Maps (CU : CU_Id) return CU_Bit_Maps;
    --  For a unit whose coverage is assessed through source code
    --  instrumentation, return bit maps.
 
+   function Blocks (CU : CU_Id) return SCO_Id_Vector_Vector;
+   --  For a unit whose coverage is assessed through source code
+   --  instrumentation, return blocks information.
+
    procedure Set_Bit_Maps (CU : CU_Id; Bit_Maps : CU_Bit_Maps);
    --  Set the tables mapping source trace bit indices to SCO discharge info
+
+   procedure Set_Blocks (CU : CU_Id; Blocks : SCO_Id_Vector_Vector);
 
   --  With languages featuring macros such as C, coverage obligations are
   --  established from expanded code but the user level sources against which

@@ -167,6 +167,9 @@ package Switches is
    Subps_Of_Interest : SC_Obligations.Scope_Id_Set;
    --  List of subprograms of interest requested by users on the command line
 
+   Instrument_Block : Boolean := False;
+   --  When True, instrument statement blocks instead of statements
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 

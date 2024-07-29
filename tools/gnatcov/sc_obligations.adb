@@ -126,6 +126,11 @@ package body SC_Obligations is
       Scope_Entities : Scope_Entities_Tree := Scope_Entities_Trees.Empty_Tree;
       --  Scope tree, used to output e.g. subprogram metrics
 
+      Blocks : SCO_Id_Vector_Vector;
+      --  List of blocks. A block is a list of statement SCOs. Note that this
+      --  is specific to source instrumentation, but a container cannot be
+      --  a discriminant-dependent component.
+
       case Provider is
          when Compiler =>
             null;
@@ -617,6 +622,19 @@ package body SC_Obligations is
       Vectors      => SCO_Vectors,
       Read_Element => Read);
 
+   procedure Read is new Read_Vector
+     (Index_Type   => Positive,
+      Element_Type => SCO_Id,
+      Vectors      => SCO_Id_Vectors,
+      Read_Element => Read);
+
+   procedure Read is new Read_Vector
+     (Index_Type   => Positive,
+      Element_Type => SCO_Id_Vectors.Vector,
+      "="          => SCO_Id_Vectors."=",
+      Vectors      => SCO_Id_Vector_Vectors,
+      Read_Element => Read);
+
    procedure Checkpoint_Load_Merge_Unit
      (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
@@ -728,6 +746,19 @@ package body SC_Obligations is
       Element_Type  => SCO_Descriptor,
       "="           => "=",
       Vectors       => SCO_Vectors,
+      Write_Element => Write);
+
+   procedure Write is new Write_Vector
+     (Index_Type    => Positive,
+      Element_Type  => SCO_Id,
+      Vectors       => SCO_Id_Vectors,
+      Write_Element => Write_SCO);
+
+   procedure Write is new Write_Vector
+     (Index_Type    => Positive,
+      Element_Type  => SCO_Id_Vectors.Vector,
+      "="           => SCO_Id_Vectors."=",
+      Vectors       => SCO_Id_Vector_Vectors,
       Write_Element => Write);
 
    ------------------
@@ -951,6 +982,15 @@ package body SC_Obligations is
       return CU_Vector.Reference (CU).Element.Bit_Maps;
    end Bit_Maps;
 
+   ------------
+   -- Blocks --
+   ------------
+
+   function Blocks (CU : CU_Id) return SCO_Id_Vector_Vector is
+   begin
+      return CU_Vector.Reference (CU).Element.Blocks;
+   end Blocks;
+
    -----------------
    -- Has_PP_Info --
    -----------------
@@ -1093,6 +1133,10 @@ package body SC_Obligations is
                   end loop;
                end;
                Value.Bit_Maps_Fingerprint := CLS.Read_Fingerprint;
+
+               --  Read block information
+
+               Read (CLS, Value.Blocks);
             end if;
       end case;
 
@@ -1532,6 +1576,19 @@ package body SC_Obligations is
             end loop;
          end if;
 
+         --  Remap blocks information
+
+         for Block_Cur in CP_CU.Blocks.Iterate loop
+            declare
+               Block_Ref : constant SCO_Id_Vector_Vectors.Reference_Type :=
+                 CP_CU.Blocks.Reference (Block_Cur);
+            begin
+               for SCO_Cur in Block_Ref.Iterate loop
+                  Remap_SCO_Id (Block_Ref.Reference (SCO_Cur));
+               end loop;
+            end;
+         end loop;
+
          --  Remap macro information
 
          declare
@@ -1832,6 +1889,10 @@ package body SC_Obligations is
                end loop;
 
                CSS.Write (Value.Bit_Maps_Fingerprint);
+
+               --  Write the blocks information
+
+               Write (CSS, Value.Blocks);
             end if;
       end case;
 
@@ -4708,6 +4769,16 @@ package body SC_Obligations is
       Info.Bit_Maps_Fingerprint := Fingerprint_Type
         (GNAT.SHA1.Binary_Message_Digest'(GNAT.SHA1.Digest (Ctx)));
    end Set_Bit_Maps;
+
+   ----------------
+   -- Set_Blocks --
+   ----------------
+
+   procedure Set_Blocks (CU : CU_Id; Blocks : SCO_Id_Vector_Vector) is
+      Info : CU_Info renames CU_Vector.Reference (CU);
+   begin
+      Info.Blocks := Blocks;
+   end Set_Blocks;
 
    ------------------------
    -- Get_Scope_Entities --

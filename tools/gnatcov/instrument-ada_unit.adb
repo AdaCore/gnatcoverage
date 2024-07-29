@@ -552,15 +552,19 @@ package body Instrument.Ada_Unit is
    type Statement_Witness_Flavor is
      (Procedure_Call, Function_Call, Declaration);
    function Make_Statement_Witness
-     (UIC        : Ada_Unit_Inst_Context;
-      Bit        : Bit_Id;
-      Flavor     : Statement_Witness_Flavor;
-      In_Generic : Boolean) return Node_Rewriting_Handle;
+     (UIC          : Ada_Unit_Inst_Context;
+      Bit          : Bit_Id;
+      Flavor       : Statement_Witness_Flavor;
+      In_Generic   : Boolean;
+      In_Decl_Expr : Boolean) return Node_Rewriting_Handle;
    --  Create a procedure call statement or object declaration to witness
    --  execution of the low level SCO with the given bit id.
    --
-   --  In_Generic is used to indicate whether the statment witness is destined
+   --  In_Generic indicates whether the statement witness is destined
    --  to be inserted in a generic package or subprogram.
+   --
+   --  In_Decl_Expr indicates whether the statement witness is inserted as
+   --  a declaration in a declare expression.
 
    procedure Ensure_With (UIC : in out Ada_Unit_Inst_Context'Class;
                           Unit : Text_Type);
@@ -1136,6 +1140,21 @@ package body Instrument.Ada_Unit is
    --  UIC.Current_Scope_Entity.Parent, if any. Assume that the last generated
    --  SCO (SCOs.SCO_Table.Last) is the last SCO for the current scope.
 
+   procedure Start_Statement_Block (UIC : in out Ada_Unit_Inst_Context);
+   --  Start a new statement block on top of the currently active block
+
+   procedure End_Statement_Block (UIC : in out Ada_Unit_Inst_Context);
+   --  End the currently active statement block
+
+   procedure Insert_Stmt_Witness
+     (UIC             : in out Ada_Unit_Inst_Context;
+      Stmt_Instr_Info : Stmt_Instr_Info_Type;
+      Bit             : Any_Bit_Id);
+   --  Insert a statement witness call for the given Bit.
+   --
+   --  Stmt_Instr_Info controls the insertion of the witness call. Refer to the
+   --  definition of Stmt_Instr_Info_Type for more information.
+
    ----------------------------
    --  Context miscellaneous --
    ----------------------------
@@ -1666,10 +1685,11 @@ package body Instrument.Ada_Unit is
    ----------------------------
 
    function Make_Statement_Witness
-     (UIC        : Ada_Unit_Inst_Context;
-      Bit        : Bit_Id;
-      Flavor     : Statement_Witness_Flavor;
-      In_Generic : Boolean) return Node_Rewriting_Handle
+     (UIC          : Ada_Unit_Inst_Context;
+      Bit          : Bit_Id;
+      Flavor       : Statement_Witness_Flavor;
+      In_Generic   : Boolean;
+      In_Decl_Expr : Boolean) return Node_Rewriting_Handle
    is
       Bit_Img : constant String  := Img (Bit);
       E       : Instrumentation_Entities renames UIC.Entities;
@@ -1685,7 +1705,7 @@ package body Instrument.Ada_Unit is
 
       function Decl_Img return String is
         ("Discard_" & UIC.Instrumented_Unit.Part'Img & Bit_Img
-         & " :" & (if UIC.In_Decl_Expr then " constant" else "") & " {}."
+         & " :" & (if In_Decl_Expr then " constant" else "") & " {}."
          & (if In_Generic and then Switches.SPARK_Compat
             then "Non_Volatile_"
             else "")
@@ -1866,7 +1886,7 @@ package body Instrument.Ada_Unit is
       Gen_Names_Prefix : Wide_Wide_String) return Degenerate_Subp_Common_Nodes
    is
       RC          : Rewriting_Handle renames UIC.Rewriting_Context;
-      Insert_Info : Insertion_Info renames UIC.Current_Insertion_Info.all;
+      Insert_Info : Insertion_Info renames UIC.Current_Insertion_Info.Get;
    begin
       return Result : Degenerate_Subp_Common_Nodes do
          Result.N := N;
@@ -3082,8 +3102,8 @@ package body Instrument.Ada_Unit is
       Preelab                    : Boolean       := False;
       P                          : Ada_Node      := No_Ada_Node;
       Is_Select_Stmt_Alternative : Boolean       := False;
-      Priv_Part                  : Private_Part  := No_Private_Part)
-     with Post => UIC.Current_Insertion_Info = UIC'Old.Current_Insertion_Info;
+      Priv_Part                  : Private_Part  := No_Private_Part;
+      Is_Block                   : Boolean       := True);
    --  Process L, a list of statements or declarations. If P is present, it is
    --  processed as though it had been prepended to L.
    --
@@ -3098,8 +3118,8 @@ package body Instrument.Ada_Unit is
    --  If L is the list of declarations for a public part, Priv_Part is the
    --  corresponding private part (if any).
    --
-   --  The postcondition ensures that the Current_Insertion_Info has been
-   --  correctly reset to its value upon entry.
+   --  Is_Block indicates whether the statement list should be considered as
+   --  a statement block or not.
 
    --  The following Traverse_* routines perform appropriate calls to
    --  Traverse_Declarations_Or_Statements to traverse specific node kinds.
@@ -3190,46 +3210,22 @@ package body Instrument.Ada_Unit is
    -- Traverse_Declarations_Or_Statements --
    -----------------------------------------
 
-   type Instrument_Location_Type is
-     (Before, After, Before_Parent, Inside_Expr);
-   --  Where to insert the witness call for a statement:
-
-   --  Before: common case, insert immediately before the statement in
-   --  the same sequence, so that the statement is recorded as having
-   --  been executed (at least partially), even if it raises an exception.
-   --
-   --  After: special cases where this is not legal (e.g. for the first
-   --  statement of an alternative in a SELECT statement [except for a DELAY
-   --  alternative, see below], which has special semantics). In these rare
-   --  cases, the location indication is set to After to indicate that the
-   --  witness must be inserted after the statement, not before.
-   --
-   --  Before_Parent: special case of a DELAY or entry call alternative: the
-   --  evaluation of the delay duration, entry name, or entry call actuals
-   --  occurs inconditionally as soon as the enclosing SELECT statement is
-   --  executed, so we insert the witness immediately before the SELECT.
-   --
-   --  Inside_Expr: special cases where we cannot insert a witness call as a
-   --  statement, or as a declaration (before or after). Such occurrences are
-   --  elsif statements. In this case, we will insert the witness call inside
-   --  the underlying boolean expression.
-
    procedure Traverse_Declarations_Or_Statements
      (UIC                        : in out Ada_Unit_Inst_Context;
       L                          : Ada_List'Class;
       Preelab                    : Boolean       := False;
       P                          : Ada_Node      := No_Ada_Node;
       Is_Select_Stmt_Alternative : Boolean       := False;
-      Priv_Part                  : Private_Part  := No_Private_Part)
+      Priv_Part                  : Private_Part  := No_Private_Part;
+      Is_Block                   : Boolean       := True)
    is
-      Current_Insertion_Info : aliased Insertion_Info := (Method => None);
-
       procedure Instrument_Statement
         (UIC         : in out Ada_Unit_Inst_Context;
          N           : Ada_Node'Class;
          Typ         : Character;
          Insertion_N : Node_Rewriting_Handle := No_Node_Rewriting_Handle);
-      --  Instrument the statement N.
+      --  Instrument the statement N, or register it into the current block
+      --  if block instrumentation is active.
       --
       --  Typ is the letter that identifies the type of statement/declaration
       --  that is being instrumented.
@@ -3454,14 +3450,14 @@ package body Instrument.Ada_Unit is
            --  ... there is no enclosing list to which a witness call
            --  can be attached.
 
-           UIC.Current_Insertion_Info.Method /= None
+           UIC.Current_Insertion_Info.Get.Method /= None
 
          --  ... this is a top-level declaration in a Preelaborate
          --  package.
 
-           and then (UIC.Current_Insertion_Info.Method
+           and then (UIC.Current_Insertion_Info.Get.Method
                      not in Statement | Declaration
-                     or else not UIC.Current_Insertion_Info.Preelab)
+                     or else not UIC.Current_Insertion_Info.Get.Preelab)
 
            --  ... this is a pragma that we know for certain will not
            --  generate code (such as Annotate or elaboration control
@@ -3481,9 +3477,6 @@ package body Instrument.Ada_Unit is
             declare
                Bit : Any_Bit_Id;
 
-               Insert_Info : constant Insertion_Info_Access :=
-                 UIC.Current_Insertion_Info;
-
                LL_SCO_Id : constant Nat := SCOs.SCO_Table.Last;
             begin
                --  Create an artificial internal error, if requested
@@ -3501,217 +3494,38 @@ package body Instrument.Ada_Unit is
                   return;
                end if;
 
-               --  Allocate a bit in the statement coverage buffer
+               --  If block instrumentation is enabled, insert a single witness
+               --  call at the end of the block. This is handled by
+               --  End_Statement_Block.
+
+               if Switches.Instrument_Block then
+                  declare
+                     Current_Block : Block_Stacks.Reference_Type renames
+                       UIC.Block_Stack.Reference (UIC.Block_Stack.Last_Index);
+                  begin
+                     Current_Block.Block.Append (SCO_Id (LL_SCO_Id));
+                     Current_Block.Last_Stmt_Instr_Info.Insertion_N :=
+                       Actual_Insertion_N;
+                     Current_Block.Last_Stmt_Instr_Info.Instrument_Location :=
+                       Instrument_Location;
+                     Current_Block.Last_Stmt_Instr_Info.Insert_Info_Ref :=
+                       UIC.Current_Insertion_Info;
+                     Current_Block.Last_Stmt_Instr_Info.In_Decl_Expr :=
+                       UIC.In_Decl_Expr;
+                     return;
+                  end;
+               end if;
 
                Bit := Allocate_Statement_Bit (UIC.Unit_Bits, LL_SCO_Id);
 
-               case Insert_Info.Method is
-
-               when Statement | Declaration =>
-
-                  if Instrument_Location = Inside_Expr then
-                     declare
-                        Old_Cond : Node_Rewriting_Handle := Actual_Insertion_N;
-                        New_Cond : constant Node_Rewriting_Handle :=
-                          Create_Regular_Node
-                            (RC,
-                             Ada_Bin_Op,
-                             Children =>
-                               (1 => Make_Statement_Witness
-                                  (UIC,
-                                   Bit        => Bit,
-                                   Flavor     => Function_Call,
-                                   In_Generic => UIC.In_Generic),
-
-                                2 => Make (UIC, Ada_Op_Or_Else),
-
-                                --  Placeholder for relocation of old condition
-                                --  after it is detached from the tree.
-
-                                3 => No_Node_Rewriting_Handle));
-
-                     begin
-                        --  Detach old condition from tree and replace it with
-                        --  OR ELSE node.
-
-                        Replace (Old_Cond, New_Cond);
-
-                        --  Now reattach old condition in new OR ELSE node. If
-                        --  it is AND, OR, XOR, AND THEN binary operation or an
-                        --  IF expression, or a quantified expression (FOR ALL,
-                        --  FOR SOME), we need to wrap it in parens to generate
-                        --  valid code.
-
-                        --  Now reattach old condition in the new OR ELSE node.
-                        --  We will wrap it in parens to preserve the semantics
-                        --  of the condition.
-                        --
-                        --  The two operands of the OR ELSE may not have the
-                        --  same type (Standard.Boolean for the Witness return
-                        --  type). We could convert the result of the witness
-                        --  call to the actual type of the expression, but this
-                        --  requires "withing" the package in which the derived
-                        --  boolean type is defined in case it is not visible.
-                        --  Instead, as this is a top-level boolean expression,
-                        --  we can simply convert the original expression to
-                        --  Standard.Boolean.
-
-                        Old_Cond := Create_Call_Expr
-                          (RC,
-                           F_Name   => Create_Identifier
-                             (RC, To_Text ("GNATcov_RTS.Std.Boolean")),
-                           F_Suffix => Create_Regular_Node
-                             (RC,
-                              Ada_Assoc_List,
-                              (1 => Create_Param_Assoc
-                                   (RC,
-                                    F_Designator => No_Node_Rewriting_Handle,
-                                    F_R_Expr     => Old_Cond))));
-
-                        Set_Child
-                          (New_Cond, Member_Refs.Bin_Op_F_Right, Old_Cond);
-                     end;
-
-                  else
-                     declare
-                        Ref_Node       : Node_Rewriting_Handle;
-                        Insert_Sibling : Boolean;
-                        Is_Before      : Boolean;
-                        Witness_Call   : Node_Rewriting_Handle;
-                     begin
-                        --  In the case of an accept_statement containing a
-                        --  sequence of statements, if Instrument_Location
-                        --  is After, we want to call the witness after the
-                        --  entry has been accepted, but before the enclosed
-                        --  statements are executed, so insert the witness
-                        --  call in the inner statement list at first position.
-
-                        if Kind (Actual_Insertion_N)
-                              = Ada_Accept_Stmt_With_Stmts
-                           and then Instrument_Location = After
-                        then
-                           Ref_Node := Child
-                             (Actual_Insertion_N,
-                              (Member_Refs.Accept_Stmt_With_Stmts_F_Stmts,
-                               Member_Refs.Handled_Stmts_F_Stmts));
-                           Insert_Sibling := False;
-
-                        else
-                           Ref_Node := Actual_Insertion_N;
-                           Insert_Sibling := True;
-
-                           --  Set Is_Before according to the requested
-                           --  insertion mode.
-                           --
-                           --  Also update Ref_Node so that it is the
-                           --  "reference" node to use for insertion, i.e. the
-                           --  sibling in the target insertion list (Ref_List,
-                           --  below).
-                           --
-                           --  Note that the witness is inserted at the current
-                           --  location of the statement, so that it will occur
-                           --  immediately *before* it in the instrumented
-                           --  sources. This is necessary because we want to
-                           --  mark a statement as executed anytime it has
-                           --  commenced execution (including in cases it
-                           --  raises an exception or otherwise transfers
-                           --  control). However in some special cases we have
-                           --  to insert after the statement, see the comment
-                           --  for Instrument_Location_Type.
-
-                           declare
-                              Ref_List : Node_Rewriting_Handle;
-                           begin
-                              case Instrument_Location is
-                                 when Before =>
-                                    Is_Before := True;
-                                    Ref_List := Insert_Info.RH_List;
-
-                                 when Before_Parent =>
-                                    Is_Before := True;
-                                    Ref_List := Insert_Info.Parent.RH_List;
-
-                                 when After =>
-                                    Is_Before := False;
-                                    Ref_List := Insert_Info.RH_List;
-
-                                 --  The cases where we need to instrument
-                                 --  inside an expression are handled before,
-                                 --  as they do not trigger the insertion of a
-                                 --  new statement in a statement list.
-
-                                 when Inside_Expr =>
-                                    raise Program_Error;
-                              end case;
-
-                              while Parent (Ref_Node) /= Ref_List loop
-                                 Ref_Node := Parent (Ref_Node);
-                              end loop;
-                           end;
-                        end if;
-
-                        --  Insert witness statement or declaration
-
-                        Witness_Call :=
-                          Make_Statement_Witness
-                            (UIC,
-                             Bit        => Bit,
-                             Flavor     =>
-                               (case Insert_Info.Method is
-                                   when Statement => Procedure_Call,
-                                   when Declaration => Declaration,
-                                   when Expression_Function | None =>
-                                      raise Program_Error),
-                             In_Generic => UIC.In_Generic);
-
-                        if Insert_Sibling then
-                           if Is_Before then
-                              Insert_Before (Ref_Node, Witness_Call);
-                           else
-                              Insert_After (Ref_Node, Witness_Call);
-                           end if;
-                        else
-                           Insert_First (Ref_Node, Witness_Call);
-                        end if;
-                     end;
-                  end if;
-
-               when Expression_Function =>
-
-                  --  Create both the witness call and a formal parameter to
-                  --  accept it as an actual.
-
-                  declare
-                     RC : constant Rewriting_Handle := UIC.Rewriting_Context;
-
-                     Formal_Name   : constant Node_Rewriting_Handle :=
-                       Make_Identifier (UIC, "Dummy_Witness_Result");
-                     Formal_Def_Id : constant Node_Rewriting_Handle :=
-                       Create_Regular_Node
-                         (RC,
-                          Ada_Defining_Name_List,
-                          Children => (1 => Create_Defining_Name
-                                       (RC, Formal_Name)));
-                  begin
-                     Insert_Info.Witness_Actual := Make_Statement_Witness
-                       (UIC,
-                        Bit        => Bit,
-                        Flavor     => Function_Call,
-                        In_Generic => UIC.In_Generic);
-
-                     Insert_Info.Witness_Formal := Create_Param_Spec
-                       (RC,
-                        F_Ids          => Formal_Def_Id,
-                        F_Has_Aliased  => No_Node_Rewriting_Handle,
-                        F_Mode         => No_Node_Rewriting_Handle,
-                        F_Type_Expr    => Make_Std_Ref (UIC, "Boolean"),
-                        F_Default_Expr => No_Node_Rewriting_Handle,
-                        F_Aspects      => No_Node_Rewriting_Handle);
-                  end;
-
-               when None =>
-                  raise Program_Error;
-               end case;
+               Insert_Stmt_Witness
+                 (UIC             => UIC,
+                  Stmt_Instr_Info => Stmt_Instr_Info_Type'
+                    (Insertion_N         => Actual_Insertion_N,
+                     Instrument_Location => Instrument_Location,
+                     Insert_Info_Ref     => UIC.Current_Insertion_Info,
+                     In_Decl_Expr        => UIC.In_Decl_Expr),
+                  Bit             => Bit);
             end;
          end if;
       end Instrument_Statement;
@@ -3823,6 +3637,14 @@ package body Instrument.Ada_Unit is
                return;
          end;
 
+         --  End the statement block if this is a Dump/Reset_Buffers
+         --  annotation.
+
+         if Result.Kind in Dump_Buffers | Reset_Buffers then
+            End_Statement_Block (UIC);
+            Start_Statement_Block (UIC);
+         end if;
+
          --  Now that the annotation kind is known, validate the remaining
          --  arguments expected for that kind.
 
@@ -3923,7 +3745,7 @@ package body Instrument.Ada_Unit is
          --  description of the of transformation we implement in this
          --  procedure.
 
-         Saved_Insertion_Info : constant Insertion_Info_Access :=
+         Saved_Insertion_Info : constant Insertion_Info_Ref :=
            UIC.Current_Insertion_Info;
          --  Insertion info inherited from the caller, which "points" to the
          --  degenerate subprogram N. We "save" it because this procedure
@@ -3986,12 +3808,12 @@ package body Instrument.Ada_Unit is
             Local_Inserter : aliased Default_MCDC_State_Inserter;
 
          begin
-
             II.RH_List := Stmt_list_RH;
             II.Preelab := False;
-            II.Parent := Saved_Insertion_Info;
+            II.Parent :=
+              Insertion_Info_Access (Saved_Insertion_Info.Unchecked_Get);
 
-            UIC.Current_Insertion_Info := II'Unchecked_Access;
+            Insertion_Info_SP.Set (UIC.Current_Insertion_Info, II);
             Local_Inserter.Local_Decls := Decl_List;
             UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
@@ -4142,7 +3964,7 @@ package body Instrument.Ada_Unit is
                --  Dummy declaration to provide a node before which the
                --  statement witness will be inserted.
 
-               Local_Insertion_Info : aliased Insertion_Info :=
+               Local_Insertion_Info : constant Insertion_Info :=
                  (Method      => Declaration,
                   RH_List     => Decl_List,
                   Preelab     => False,
@@ -4174,8 +3996,7 @@ package body Instrument.Ada_Unit is
                   Member_Refs.Expr_Function_F_Expr,
                   Create_Paren_Expr (UIC.Rewriting_Context, Decl_Expr));
 
-               UIC.Current_Insertion_Info :=
-                 Local_Insertion_Info'Unchecked_Access;
+               UIC.Current_Insertion_Info.Set (Local_Insertion_Info);
                UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
                --  Flag that we are in a declare expression, in order to force
@@ -4190,6 +4011,14 @@ package body Instrument.Ada_Unit is
                --  using the Insertion_N param.
 
                Instrument_Statement (UIC, Expr_Func.F_Expr, 'X', Dummy_Decl);
+
+               --  Preemptively end the statement block. We need to end it in
+               --  the non Ada 2022 case (see the call to End_Statement_Block
+               --  below), so for consistency, we must end it here as well.
+
+               End_Statement_Block (UIC);
+               Start_Statement_Block (UIC);
+
                Process_Expression (UIC, Expr_Func.F_Expr, 'X');
 
                --  Restore context
@@ -4353,7 +4182,9 @@ package body Instrument.Ada_Unit is
          -- 2. Statement instrumentation --
          ----------------------------------
 
-         UIC.Current_Insertion_Info := New_Insertion_Info'Unchecked_Access;
+         Insertion_Info_SP.Set
+           (UIC.Current_Insertion_Info, New_Insertion_Info);
+
          UIC.MCDC_State_Inserter := EF_Inserter'Unchecked_Access;
 
          --  Output statement SCO for degenerate subprogram body (null
@@ -4368,8 +4199,8 @@ package body Instrument.Ada_Unit is
             end;
          else
             --  Even though there is a "null" keyword in the null procedure,
-            --  is no dedicated node for it in the Libadalang parse tree: use
-            --  the whole null procedure declaration to provide a sloc.
+            --  there is no dedicated node for it in the Libadalang parse tree:
+            --  use the whole null procedure declaration to provide a sloc.
 
             Instrument_Statement
               (UIC         => UIC,
@@ -4377,6 +4208,18 @@ package body Instrument.Ada_Unit is
                Typ         => 'X',
                Insertion_N => NP_Nodes.Null_Stmt);
          end if;
+
+         --  Preemptively end the block to force the instrumentation of the
+         --  expression function: we need the insertion info that is filled by
+         --  Insert_Stmt_Witness (transitively called by End_Statement_Block).
+
+         End_Statement_Block (UIC);
+         Start_Statement_Block (UIC);
+
+         --  The insertion info has been completed by calls to
+         --  Insert_Stmt_Witness.
+
+         New_Insertion_Info := UIC.Current_Insertion_Info.Get;
 
          --  Restore saved insertion context
 
@@ -4573,6 +4416,7 @@ package body Instrument.Ada_Unit is
            (UIC  => UIC,
             Sloc => Sloc (N),
             Decl => (if Prev_Part.Is_Null then N else Prev_Part));
+         Start_Statement_Block (UIC);
 
          --  Nothing else to do except for the case of degenerate subprograms
          --  (null procedures and expression functions).
@@ -4589,6 +4433,7 @@ package body Instrument.Ada_Unit is
             Traverse_Degenerate_Subprogram (N, N_Spec);
          end if;
          Exit_Scope (UIC);
+         End_Statement_Block (UIC);
       end Traverse_Subp_Decl_Or_Stub;
 
       ------------------
@@ -4673,6 +4518,7 @@ package body Instrument.Ada_Unit is
                         if CU_Decl.Kind = Ada_Generic_Package_Decl then
                            UIC.In_Generic := True;
                         end if;
+
                         Traverse_Declarations_Or_Statements
                           (UIC,
                            P       => CU_Decl.As_Ada_Node,
@@ -4802,13 +4648,19 @@ package body Instrument.Ada_Unit is
 
             when Ada_Exit_Stmt =>
                Instrument_Statement (UIC, N, 'E');
+               End_Statement_Block (UIC);
+               Start_Statement_Block (UIC);
                Process_Expression (UIC, As_Exit_Stmt (N).F_Cond_Expr, 'E');
 
             when Ada_Decl_Block | Ada_Begin_Block =>
 
                if N.Kind = Ada_Decl_Block then
+
+                  --  A declaration block does not start a new block
+
                   Traverse_Declarations_Or_Statements
-                    (UIC, L => As_Decl_Block (N).F_Decls.F_Decls);
+                    (UIC, L => As_Decl_Block (N).F_Decls.F_Decls,
+                     Is_Block => False);
                end if;
 
                Traverse_Handled_Statement_Sequence
@@ -4820,6 +4672,7 @@ package body Instrument.Ada_Unit is
 
             when Ada_If_Stmt =>
                Instrument_Statement (UIC, N, 'I');
+               End_Statement_Block (UIC);
 
                declare
                   If_N : constant If_Stmt := N.As_If_Stmt;
@@ -4840,10 +4693,12 @@ package body Instrument.Ada_Unit is
                         Elif : constant Elsif_Stmt_Part :=
                           Alt.Child (J).As_Elsif_Stmt_Part;
                      begin
+                        Start_Statement_Block (UIC);
                         Instrument_Statement
                           (UIC,
                            Ada_Node (Elif), 'I',
                            Insertion_N => Handle (Elif.F_Cond_Expr));
+                        End_Statement_Block (UIC);
                         Process_Expression (UIC, Elif.F_Cond_Expr, 'I');
 
                         --  Traverse the statements in the ELSIF
@@ -4860,8 +4715,14 @@ package body Instrument.Ada_Unit is
                      L => If_N.F_Else_Stmts.As_Ada_Node_List);
                end;
 
+               --  Start a new statement block for statements after the if
+
+               Start_Statement_Block (UIC);
+
             when Ada_Case_Stmt =>
                Instrument_Statement (UIC, N, 'C');
+               End_Statement_Block (UIC);
+
                declare
                   Case_N : constant Case_Stmt := N.As_Case_Stmt;
                   Alt_L  : constant Case_Stmt_Alternative_List :=
@@ -4883,18 +4744,29 @@ package body Instrument.Ada_Unit is
                   end loop;
                end;
 
+               --  Start a new statement sequence for statements after the case
+
+               Start_Statement_Block (UIC);
+
             --  ACCEPT statement
 
             when Ada_Accept_Stmt | Ada_Accept_Stmt_With_Stmts =>
                Instrument_Statement (UIC, N, 'A');
+               End_Statement_Block (UIC);
 
                if N.Kind = Ada_Accept_Stmt_With_Stmts then
                   --  Process sequence of statements
 
+                  Start_Statement_Block (UIC);
                   Traverse_Handled_Statement_Sequence
                     (UIC,
                      N => N.As_Accept_Stmt_With_Stmts.F_Stmts);
+                  End_Statement_Block (UIC);
                end if;
+
+               --  Open a new statement sequence for statements after the if
+
+               Start_Statement_Block (UIC);
 
             --  SELECT statement
             --  (all 4 non-terminals: selective_accept, timed_entry_call,
@@ -4902,6 +4774,7 @@ package body Instrument.Ada_Unit is
 
             when Ada_Select_Stmt =>
                Instrument_Statement (UIC, N, 'S');
+               End_Statement_Block (UIC);
 
                declare
                   Sel_N : constant Select_Stmt := As_Select_Stmt (N);
@@ -4938,6 +4811,9 @@ package body Instrument.Ada_Unit is
                     (UIC,
                      L => Sel_N.F_Abort_Stmts.As_Ada_Node_List);
                end;
+               --  Open a new statement block for statements after the select
+
+               Start_Statement_Block (UIC);
 
             --  There is no SCO for a TERMINATE alternative in instrumentation
             --  mode, because there is no place to attach a witness. It would
@@ -4952,12 +4828,19 @@ package body Instrument.Ada_Unit is
                | Ada_Requeue_Stmt
             =>
                Instrument_Statement (UIC, N, ' ');
+               End_Statement_Block (UIC);
+
+               --  Open a new statement block for statements afterwards
+
+               Start_Statement_Block (UIC);
 
             --  Simple return statement. which is an exit point, but we
             --  have to process the return expression for decisions.
 
             when Ada_Return_Stmt =>
                Instrument_Statement (UIC, N, ' ');
+               End_Statement_Block (UIC);
+               Start_Statement_Block (UIC);
                Process_Expression
                  (UIC, N.As_Return_Stmt.F_Return_Expr, 'X');
 
@@ -4971,8 +4854,10 @@ package body Instrument.Ada_Unit is
                begin
                   Process_Expression (UIC, ER_N.F_Decl, 'X');
 
+                  Start_Statement_Block (UIC);
                   Traverse_Handled_Statement_Sequence
                     (UIC, N => ER_N.F_Stmts);
+                  End_Statement_Block (UIC);
                end;
 
             when Ada_Base_Loop_Stmt =>
@@ -5023,6 +4908,8 @@ package body Instrument.Ada_Unit is
                      end if;
                   end if;
 
+                  End_Statement_Block (UIC);
+                  Start_Statement_Block (UIC);
                   Traverse_Declarations_Or_Statements
                     (UIC,
                      L => Loop_S.F_Stmts.As_Ada_Node_List);
@@ -5209,6 +5096,10 @@ package body Instrument.Ada_Unit is
                   (if N.Kind in Ada_Generic_Instantiation then 'i' else 'r'));
                Exit_Scope (UIC);
 
+            when Ada_Label =>
+               End_Statement_Block (UIC);
+               Start_Statement_Block (UIC);
+
             when others =>
 
                --  Determine required type character code, or ASCII.NUL if
@@ -5256,7 +5147,6 @@ package body Instrument.Ada_Unit is
                         | Ada_Task_Body_Stub
                         | Ada_Use_Package_Clause
                         | Ada_Use_Type_Clause
-                        | Ada_Label
                      =>
                         Typ := ASCII.NUL;
 
@@ -5271,6 +5161,13 @@ package body Instrument.Ada_Unit is
                   if Typ /= ASCII.NUL then
                      Instrument_Statement (UIC, N, Typ);
                   end if;
+
+                  if Is_Select_Stmt_Alternative
+                    and then N.Kind in Ada_Delay_Stmt | Ada_Call_Expr
+                  then
+                     End_Statement_Block (UIC);
+                     Start_Statement_Block (UIC);
+                  end if;
                end;
 
                --  Process any embedded decisions
@@ -5279,7 +5176,7 @@ package body Instrument.Ada_Unit is
          end case;
       end Traverse_One;
 
-      Saved_Insertion_Info : constant Insertion_Info_Access :=
+      Saved_Insertion_Info : constant Insertion_Info_Ref :=
          UIC.Current_Insertion_Info;
 
       Items_Count : constant Natural :=
@@ -5288,9 +5185,14 @@ package body Instrument.Ada_Unit is
    --  Start of processing for Traverse_Declarations_Or_Statements
 
    begin
+      if Is_Block then
+         Start_Statement_Block (UIC);
+      end if;
+
       --  Push new insertion info
 
-      UIC.Current_Insertion_Info := Current_Insertion_Info'Unchecked_Access;
+      Insertion_Info_SP.Set
+        (UIC.Current_Insertion_Info, Insertion_Info'(Method => None));
 
       --  Process single prefixed node
 
@@ -5310,7 +5212,8 @@ package body Instrument.Ada_Unit is
          begin
             II.RH_List := Handle (L);
             II.Preelab := Preelab;
-            II.Parent := Saved_Insertion_Info;
+            II.Parent :=
+              Insertion_Info_Access (Saved_Insertion_Info.Unchecked_Get);
 
             if Method = Declaration then
                II.RH_Private_List :=
@@ -5319,7 +5222,7 @@ package body Instrument.Ada_Unit is
                   else Handle (Priv_Part.F_Decls));
             end if;
 
-            Current_Insertion_Info := II;
+            Insertion_Info_SP.Set (UIC.Current_Insertion_Info, II);
          end;
       end if;
 
@@ -5346,6 +5249,10 @@ package body Instrument.Ada_Unit is
       --  Pop insertion info
 
       UIC.Current_Insertion_Info := Saved_Insertion_Info;
+
+      if Is_Block then
+         End_Statement_Block (UIC);
+      end if;
    end Traverse_Declarations_Or_Statements;
 
    -----------------------------
@@ -5480,7 +5387,7 @@ package body Instrument.Ada_Unit is
       end if;
 
       Traverse_Declarations_Or_Statements
-        (UIC, L => N.F_Stmts.As_Ada_Node_List);
+        (UIC, L => N.F_Stmts.As_Ada_Node_List, Is_Block => False);
 
       for J in 1 .. N.F_Exceptions.Children_Count loop
          declare
@@ -5489,9 +5396,11 @@ package body Instrument.Ada_Unit is
             --  Note: the exceptions list can also contain pragmas
 
             if Handler.Kind = Ada_Exception_Handler then
+               Start_Statement_Block (UIC);
                Traverse_Declarations_Or_Statements
                  (UIC,
                   L => Handler.As_Exception_Handler.F_Stmts.As_Ada_Node_List);
+               End_Statement_Block (UIC);
             end if;
          end;
       end loop;
@@ -5528,9 +5437,11 @@ package body Instrument.Ada_Unit is
          Decl => Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
+      Start_Statement_Block (UIC);
       Traverse_Declarations_Or_Statements
-        (UIC, N.F_Decls.F_Decls, Preelab);
+        (UIC, N.F_Decls.F_Decls, Preelab, Is_Block => False);
       Traverse_Handled_Statement_Sequence (UIC, N => N.F_Stmts);
+      End_Statement_Block (UIC);
 
       UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
       Exit_Scope (UIC);
@@ -5558,16 +5469,19 @@ package body Instrument.Ada_Unit is
          Decl => N.As_Basic_Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
+      Start_Statement_Block (UIC);
       Traverse_Declarations_Or_Statements
         (UIC, N.F_Public_Part.F_Decls, Preelab,
-         Priv_Part => N.F_Private_Part);
+         Priv_Part => N.F_Private_Part, Is_Block => False);
 
       if not N.F_Private_Part.Is_Null then
          Traverse_Declarations_Or_Statements
            (UIC,
-            L       => N.F_Private_Part.F_Decls,
-            Preelab => Preelab);
+            L        => N.F_Private_Part.F_Decls,
+            Preelab  => Preelab,
+            Is_Block => False);
       end if;
+      End_Statement_Block (UIC);
       UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
       Exit_Scope (UIC);
       UIC.Ghost_Code := False;
@@ -5634,15 +5548,18 @@ package body Instrument.Ada_Unit is
       --  Vis_Decl and Priv_Decl may be Empty at least for empty task type
       --  declarations. Querying F_Decls is invalid in this case.
 
+      Start_Statement_Block (UIC);
       if not Vis_Decl.Is_Null then
          Traverse_Declarations_Or_Statements
-           (UIC, L => Vis_Decl.F_Decls, Priv_Part => Priv_Decl);
+           (UIC, L => Vis_Decl.F_Decls, Priv_Part => Priv_Decl,
+            Is_Block => False);
       end if;
 
       if not Priv_Decl.Is_Null then
          Traverse_Declarations_Or_Statements
-           (UIC, L => Priv_Decl.F_Decls);
+           (UIC, L => Priv_Decl.F_Decls, Is_Block => False);
       end if;
+      End_Statement_Block (UIC);
    end Traverse_Sync_Definition;
 
    --------------------------------------
@@ -5728,9 +5645,11 @@ package body Instrument.Ada_Unit is
 
       Local_Inserter.Local_Decls := Handle (Decls.F_Decls);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
-      Traverse_Declarations_Or_Statements (UIC, L => Decls.F_Decls);
-
+      Start_Statement_Block (UIC);
+      Traverse_Declarations_Or_Statements
+        (UIC, L => Decls.F_Decls, Is_Block => False);
       Traverse_Handled_Statement_Sequence (UIC, N => HSS);
+      End_Statement_Block (UIC);
 
       Exit_Scope (UIC);
 
@@ -5753,6 +5672,10 @@ package body Instrument.Ada_Unit is
       --  instrument each declaration as a statement and process the nested
       --  expressions.
 
+      function Process_Raise_Expr (N : Ada_Node'Class) return Visit_Status;
+      --  Helper to Libadalang's Traverse. Only operates on Raise_Exprs,
+      --  ending the current statement block if a raise expression is found.
+
       procedure Process_Decisions
         (UIC : in out Ada_Unit_Inst_Context;
          N   : Ada_Node'Class;
@@ -5764,7 +5687,7 @@ package body Instrument.Ada_Unit is
 
       function Process_Decl_Expr (N : Ada_Node'Class) return Visit_Status is
       begin
-         if N.Kind in Ada_Decl_Expr then
+         if N.Kind = Ada_Decl_Expr then
             declare
                Saved_Inserter     : constant Any_MCDC_State_Inserter :=
                  UIC.MCDC_State_Inserter;
@@ -5790,6 +5713,20 @@ package body Instrument.Ada_Unit is
             return Into;
          end if;
       end Process_Decl_Expr;
+
+      ------------------------
+      -- Process_Raise_Expr --
+      ------------------------
+
+      function Process_Raise_Expr (N : Ada_Node'Class) return Visit_Status is
+      begin
+         if N.Kind = Ada_Raise_Expr then
+            End_Statement_Block (UIC);
+            Start_Statement_Block (UIC);
+            return Over;
+         end if;
+         return Into;
+      end Process_Raise_Expr;
 
       -----------------------
       -- Process_Decisions --
@@ -6375,6 +6312,7 @@ package body Instrument.Ada_Unit is
       end if;
       Process_Decisions (UIC, N, T);
       N.Traverse (Process_Decl_Expr'Access);
+      N.Traverse (Process_Raise_Expr'Access);
    end Process_Expression;
 
    -------------------------
@@ -7010,6 +6948,291 @@ package body Instrument.Ada_Unit is
 
       UIC.Current_Scope_Entity := Parent_Scope;
    end Exit_Scope;
+
+   ---------------------------
+   -- Start_Statement_Block --
+   ---------------------------
+
+   procedure Start_Statement_Block (UIC : in out Ada_Unit_Inst_Context) is
+   begin
+      if not Switches.Instrument_Block then
+         return;
+      end if;
+      UIC.Block_Stack.Append
+        (Block_Information'
+           (Block  => SCO_Id_Vectors.Empty_Vector,
+            others => <>));
+   end Start_Statement_Block;
+
+   -------------------------
+   -- End_Statement_Block --
+   -------------------------
+
+   procedure End_Statement_Block (UIC : in out Ada_Unit_Inst_Context)
+   is
+      Bit : Any_Bit_Id;
+   begin
+      if not Switches.Instrument_Block then
+         return;
+      end if;
+
+      declare
+         Current_Block : constant Block_Information :=
+           UIC.Block_Stack.Last_Element;
+      begin
+         --  Delete the block if it is empty
+
+         if Current_Block.Block.Is_Empty then
+            UIC.Block_Stack.Delete_Last;
+            return;
+         end if;
+
+         --  Allocate a single statement bit for the last statement (arbitrary)
+         --  of the block.
+
+         Bit :=
+           Allocate_Statement_Bit
+             (UIC.Unit_Bits, Nat (Current_Block.Block.Last_Element));
+         Insert_Stmt_Witness
+           (UIC             => UIC,
+            Stmt_Instr_Info => Current_Block.Last_Stmt_Instr_Info,
+            Bit             => Bit);
+         UIC.Blocks.Append (Current_Block.Block);
+      end;
+      UIC.Block_Stack.Delete_Last;
+   end End_Statement_Block;
+
+   -------------------------
+   -- Insert_Stmt_Witness --
+   -------------------------
+
+   procedure Insert_Stmt_Witness
+     (UIC             : in out Ada_Unit_Inst_Context;
+      Stmt_Instr_Info : Stmt_Instr_Info_Type;
+      Bit             : Any_Bit_Id)
+   is
+      RC                  : Rewriting_Handle renames UIC.Rewriting_Context;
+      Insertion_N         : Node_Rewriting_Handle renames
+        Stmt_Instr_Info.Insertion_N;
+      Instrument_Location : Instrument_Location_Type renames
+        Stmt_Instr_Info.Instrument_Location;
+      Insert_Info         : Insertion_Info renames
+        Stmt_Instr_Info.Insert_Info_Ref.Get;
+   begin
+      --  Create an artificial internal error, if requested
+
+      Raise_Stub_Internal_Error_For (Ada_Instrument_Insert_Stmt_Witness);
+
+      case Insert_Info.Method is
+
+         when Statement | Declaration =>
+
+            if Instrument_Location = Inside_Expr then
+               declare
+                  Old_Cond : Node_Rewriting_Handle := Insertion_N;
+                  New_Cond : constant Node_Rewriting_Handle :=
+                    Create_Regular_Node
+                      (RC,
+                       Ada_Bin_Op,
+                       Children =>
+                         (1 => Make_Statement_Witness
+                            (UIC,
+                             Bit          => Bit,
+                             Flavor       => Function_Call,
+                             In_Generic   => UIC.In_Generic,
+                             In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr),
+
+                          2 => Make (UIC, Ada_Op_Or_Else),
+
+                          --  Placeholder for relocation of old condition
+                          --  after it is detached from the tree.
+
+                          3 => No_Node_Rewriting_Handle));
+
+               begin
+                  --  Detach old condition from tree and replace it with
+                  --  OR ELSE node.
+
+                  Replace (Old_Cond, New_Cond);
+
+                  --  Now reattach old condition in new OR ELSE node. If
+                  --  it is AND, OR, XOR, AND THEN binary operation or an
+                  --  IF expression, or a quantified expression (FOR ALL,
+                  --  FOR SOME), we need to wrap it in parens to generate
+                  --  valid code.
+
+                  --  Now reattach old condition in the new OR ELSE node.
+                  --  We will wrap it in parens to preserve the semantics
+                  --  of the condition.
+                  --
+                  --  The two operands of the OR ELSE may not have the
+                  --  same type (Standard.Boolean for the Witness return
+                  --  type). We could convert the result of the witness
+                  --  call to the actual type of the expression, but this
+                  --  requires "withing" the package in which the derived
+                  --  boolean type is defined in case it is not visible.
+                  --  Instead, as this is a top-level boolean expression,
+                  --  we can simply convert the original expression to
+                  --  Standard.Boolean.
+
+                  Old_Cond := Create_Call_Expr
+                    (RC,
+                     F_Name   => Create_Identifier
+                       (RC, To_Text ("GNATcov_RTS.Std.Boolean")),
+                     F_Suffix => Create_Regular_Node
+                       (RC,
+                        Ada_Assoc_List,
+                        (1 => Create_Param_Assoc
+                             (RC,
+                              F_Designator => No_Node_Rewriting_Handle,
+                              F_R_Expr     => Old_Cond))));
+
+                  Set_Child
+                    (New_Cond, Member_Refs.Bin_Op_F_Right, Old_Cond);
+               end;
+
+            else
+               declare
+                  Ref_Node       : Node_Rewriting_Handle;
+                  Insert_Sibling : Boolean;
+                  Is_Before      : Boolean;
+                  Witness_Call   : Node_Rewriting_Handle;
+               begin
+                  --  In the case of an accept_statement containing a
+                  --  sequence of statements, if Instrument_Location
+                  --  is After, we want to call the witness after the
+                  --  entry has been accepted, but before the enclosed
+                  --  statements are executed, so insert the witness
+                  --  call in the inner statement list at first position.
+
+                  if Kind (Insertion_N) = Ada_Accept_Stmt_With_Stmts
+                    and then Instrument_Location = After
+                  then
+                     Ref_Node := Child
+                       (Insertion_N,
+                        (Member_Refs.Accept_Stmt_With_Stmts_F_Stmts,
+                         Member_Refs.Handled_Stmts_F_Stmts));
+                     Insert_Sibling := False;
+
+                  else
+                     Ref_Node := Insertion_N;
+                     Insert_Sibling := True;
+
+                     --  Set Is_Before according to the requested
+                     --  insertion mode.
+                     --
+                     --  Also update Ref_Node so that it is the
+                     --  "reference" node to use for insertion, i.e. the
+                     --  sibling in the target insertion list (Ref_List,
+                     --  below).
+                     --
+                     --  Note that the witness is inserted at the current
+                     --  location of the statement, so that it will occur
+                     --  immediately *before* it in the instrumented
+                     --  sources. This is necessary because we want to
+                     --  mark a statement as executed anytime it has
+                     --  commenced execution (including in cases it
+                     --  raises an exception or otherwise transfers
+                     --  control). However in some special cases we have
+                     --  to insert after the statement, see the comment
+                     --  for Instrument_Location_Type.
+
+                     declare
+                        Ref_List : Node_Rewriting_Handle;
+                     begin
+                        case Instrument_Location is
+                           when Before =>
+                              Is_Before := True;
+                              Ref_List := Insert_Info.RH_List;
+
+                           when Before_Parent =>
+                              Is_Before := True;
+                              Ref_List := Insert_Info.Parent.RH_List;
+
+                           when After =>
+                              Is_Before := False;
+                              Ref_List := Insert_Info.RH_List;
+
+                              --  The cases where we need to instrument
+                              --  inside an expression are handled before,
+                              --  as they do not trigger the insertion of a
+                              --  new statement in a statement list.
+
+                           when Inside_Expr =>
+                              raise Program_Error;
+                        end case;
+
+                        while Parent (Ref_Node) /= Ref_List loop
+                           Ref_Node := Parent (Ref_Node);
+                        end loop;
+                     end;
+                  end if;
+
+                  --  Insert witness statement or declaration
+
+                  Witness_Call :=
+                    Make_Statement_Witness
+                      (UIC,
+                       Bit          => Bit,
+                       Flavor       =>
+                         (case Insert_Info.Method is
+                             when Statement => Procedure_Call,
+                             when Declaration => Declaration,
+                             when Expression_Function | None =>
+                                raise Program_Error),
+                       In_Generic   => UIC.In_Generic,
+                       In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr);
+
+                  if Insert_Sibling then
+                     if Is_Before then
+                        Insert_Before (Ref_Node, Witness_Call);
+                     else
+                        Insert_After (Ref_Node, Witness_Call);
+                     end if;
+                  else
+                     Insert_First (Ref_Node, Witness_Call);
+                  end if;
+               end;
+            end if;
+
+         when Expression_Function =>
+
+            --  Create both the witness call and a formal parameter to
+            --  accept it as an actual.
+
+            declare
+               RC : constant Rewriting_Handle := UIC.Rewriting_Context;
+
+               Formal_Name   : constant Node_Rewriting_Handle :=
+                 Make_Identifier (UIC, "Dummy_Witness_Result");
+               Formal_Def_Id : constant Node_Rewriting_Handle :=
+                 Create_Regular_Node
+                   (RC,
+                    Ada_Defining_Name_List,
+                    Children =>
+                      (1 => Create_Defining_Name (RC, Formal_Name)));
+            begin
+               Insert_Info.Witness_Actual := Make_Statement_Witness
+                 (UIC,
+                  Bit          => Bit,
+                  Flavor       => Function_Call,
+                  In_Generic   => UIC.In_Generic,
+                  In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr);
+
+               Insert_Info.Witness_Formal := Create_Param_Spec
+                 (RC,
+                  F_Ids          => Formal_Def_Id,
+                  F_Has_Aliased  => No_Node_Rewriting_Handle,
+                  F_Mode         => No_Node_Rewriting_Handle,
+                  F_Type_Expr    => Make_Std_Ref (UIC, "Boolean"),
+                  F_Default_Expr => No_Node_Rewriting_Handle,
+                  F_Aspects      => No_Node_Rewriting_Handle);
+            end;
+
+         when None =>
+            raise Program_Error;
+      end case;
+   end Insert_Stmt_Witness;
 
    ---------------------
    -- Start_Rewriting --
@@ -8518,6 +8741,8 @@ package body Instrument.Ada_Unit is
       UIC.Unit_Bits.Last_Path_Bit := No_Bit_Id;
       UIC.Unit_Bits.Decision_Bits := LL_Decision_SCO_Bit_Allocs.Empty;
       UIC.Unit_Bits.Statement_Bits := LL_Statement_SCO_Bit_Allocs.Empty;
+      UIC.Block_Stack := Block_Stacks.Empty_Vector;
+      UIC.Blocks := SCO_Id_Vector_Vectors.Empty_Vector;
 
       --  Instrumentation of another source file in the same unit may have
       --  produced non-instrumented low-level SCOs in UIC.Non_Instr_LL_SCOs,
@@ -8575,10 +8800,16 @@ package body Instrument.Ada_Unit is
       Append_Unit (UIC.SFI);
 
       Traverse_Declarations_Or_Statements
-        (UIC     => UIC,
-         L       => No_Ada_List,
-         Preelab => Preelab,
-         P       => Rewriter.Rewritten_Unit.Root);
+        (UIC      => UIC,
+         L        => No_Ada_List,
+         Preelab  => Preelab,
+         P        => Rewriter.Rewritten_Unit.Root,
+         Is_Block => False);
+
+      --  Check that there are no open statement blocks at the end of the
+      --  instrumentation processs.
+
+      pragma Assert (UIC.Block_Stack.Is_Empty);
 
       --  Convert low level SCOs from the instrumenter to high level SCOs.
       --  This creates BDDs for every decision.
@@ -8719,6 +8950,11 @@ package body Instrument.Ada_Unit is
 
          Remap_Scope_Entities (UIC.Scope_Entities, SCO_Map);
          Set_Scope_Entities (UIC.CU, UIC.Scope_Entities);
+
+         --  Remap low level SCOs in blocks to high level SCOs
+
+         Remap_Blocks (UIC.Blocks, SCO_Map);
+         Set_Blocks (UIC.CU, UIC.Blocks);
       end;
 
       --  Emit the instrumented source file

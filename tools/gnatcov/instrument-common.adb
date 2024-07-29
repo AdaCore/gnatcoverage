@@ -367,6 +367,29 @@ package body Instrument.Common is
       end loop;
    end Remap_Scope_Entities;
 
+   ------------------
+   -- Remap_Blocks --
+   ------------------
+
+   procedure Remap_Blocks
+     (Blocks  : in out SCO_Id_Vector_Vector;
+      SCO_Map : LL_HL_SCO_Map)
+   is
+      Result : SCO_Id_Vector_Vector;
+   begin
+      for Block of Blocks loop
+         declare
+            Result_Block : SCO_Id_Vectors.Vector;
+         begin
+            for LL_SCO of Block loop
+               Result_Block.Append (SCO_Map (Nat (LL_SCO)));
+            end loop;
+            Result.Append (Result_Block);
+         end;
+      end loop;
+      Blocks := Result;
+   end Remap_Blocks;
+
    --------------
    -- New_File --
    --------------

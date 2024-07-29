@@ -224,12 +224,9 @@ package Files_Table is
       --  Exec from where the address range has been extracted
    end record;
 
-   package SCO_Id_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Natural, Element_Type => SCO_Id);
-
    type Line_State_Cell is (Cell_1, Cell_2, Cell_3);
    Coverage_Level_To_Cell : constant
-      array (Coverage_Level) of Line_State_Cell :=
+     array (Coverage_Level) of Line_State_Cell :=
      (Insn      => Cell_1,
       Branch    => Cell_2,
       Stmt      => Cell_1,
