@@ -93,6 +93,7 @@ build_run_and_coverage(
         "-axcov",
         f"--external-annotations={annotation_file}",
     ],
+    tolerate_coverage_messages="Stale annotation for main.*",
     out=coverage_log,
 )
 

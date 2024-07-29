@@ -22,6 +22,7 @@ build_run_and_coverage(
     mains=["main"],
     tolerate_instrument_messages=".",
     extra_coverage_args=["--annotate=xcov"],
+    tolerate_coverage_messages="no ALI file found for unit pkg.child",
 )
 
 if thistest.options.trace_mode == "src":

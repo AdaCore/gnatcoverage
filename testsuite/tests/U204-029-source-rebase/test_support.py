@@ -65,6 +65,7 @@ def consolidate_and_check(
         + [f"-C{checkpoint}" for checkpoint in checkpoints]
         + rebase_opts,
         out=log_filename,
+        tolerate_messages=".",
     )
 
     if expect_failure:

@@ -51,6 +51,7 @@ build_run_and_coverage(
     mains=["main"],
     extra_instr_args=["--units", "main", "--units", "pkg"],
     extra_coverage_args=["-axcov", "--output-dir", output_pkg],
+    tolerate_coverage_messages="no SID file found for unit pkh",
 )
 expected_cov.pop("pkh.adb.xcov")
 expected_cov.pop("pkh.ads.xcov")

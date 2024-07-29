@@ -36,6 +36,7 @@ xcov(
         "--output-dir=.",
     ],
     out="consolidate.log",
+    tolerate_messages=".",
 )
 
 expected = (

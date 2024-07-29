@@ -22,6 +22,7 @@ build_run_and_coverage(
     covlevel="stmt",
     mains=["main"],
     extra_coverage_args=["--annotate=xcov"],
+    tolerate_coverage_messages="no ALI file found for unit pkg.bar",
 )
 
 thistest.fail_if(

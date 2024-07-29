@@ -81,6 +81,10 @@ xcov(
         srctrace,
     ],
     out=out_file,
+    tolerate_messages=(
+        r"traces for body of main \(from .*\) are"
+        r" inconsistent with the corresponding Source Instrumentation Data"
+    ),
 )
 
 # Check that gnatcov warns about inconsistent fingerprints

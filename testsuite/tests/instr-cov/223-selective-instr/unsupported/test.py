@@ -58,6 +58,7 @@ xcov(
     ["coverage"]
     + gprsw.cov_switches
     + ["-axcov", "--output-dir=xcov", "--level=stmt", trace_a, trace_b],
+    tolerate_messages="traces for .* are inconsistent",
     out="cov.out",
 )
 

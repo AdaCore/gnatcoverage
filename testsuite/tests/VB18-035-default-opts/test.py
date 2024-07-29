@@ -41,7 +41,11 @@ if thistest.options.trace_mode == "src":
 # 2. Check the output of the coverage command while specifying an annotation
 # format, and check that the coverage report corresponds to a stmt level.
 cov_log = "coverage_no_level.log"
-xcov(cov_args + ["-axcov"], out=cov_log)
+xcov(
+    cov_args + ["-axcov"],
+    out=cov_log,
+    tolerate_messages="Coverage level not specified",
+)
 
 check_log("coverage", cov_log)
 check_xcov_reports("obj", {"main.adb.xcov": {"+": {2, 5, 6}, "-": {8}}})

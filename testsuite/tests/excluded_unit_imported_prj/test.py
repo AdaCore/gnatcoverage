@@ -27,6 +27,7 @@ build_run_and_coverage(
     mains=["test"],
     extra_coverage_args=["--annotate=xcov"],
     tolerate_instrument_messages="no unit .* in project",
+    tolerate_coverage_messages="no unit .* in project",
 )
 warning_file = (
     "coverage.log"

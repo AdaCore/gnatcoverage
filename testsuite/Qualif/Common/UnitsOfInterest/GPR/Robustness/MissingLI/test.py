@@ -41,7 +41,7 @@ else:
     what = "ALI"
 
 log_file = "coverage.log"
-xcov(xcov_args, out=log_file)
+xcov(xcov_args, out=log_file, tolerate_messages=".")
 thistest.fail_if_not_equal(
     "gnatcov output",
     "warning: no {} file found for unit helper".format(what),

@@ -23,6 +23,7 @@ build_run_and_coverage(
         # "identity.c" includes "identity.h".
         "--ignore-source-files=identity.c",
     ],
+    tolerate_coverage_messages=".",
 )
 
 expected_coverage = {

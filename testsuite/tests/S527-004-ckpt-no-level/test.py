@@ -28,6 +28,7 @@ log_file = "gnatcov.out"
 p = xcov(
     ["coverage", "--annotate=xcov", "--checkpoint=my_checkpoint.ckpt"],
     out=log_file,
+    tolerate_messages="Coverage level not specified on the command line.*",
 )
 
 

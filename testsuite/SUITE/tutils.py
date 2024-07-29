@@ -34,12 +34,12 @@ from SUITE.control import (
 )
 from SUITE.context import ROOT_DIR, thistest
 
-
 # Then mind our own business
 
 from SUITE.cutils import (
     FatalError,
     contents_of,
+    indent,
     list_to_file,
     text_to_file,
     to_list,
@@ -874,20 +874,27 @@ def xcov(
     auto_config_args=True,
     auto_target_args=True,
     force_project_args=False,
-    auto_languages=True,
+    tolerate_messages=None,
 ):
     """
-    Run xcov with arguments ARGS, timeout control, valgrind control if
-    available and enabled, output directed to OUT and failure registration if
-    register_failure is True. Return the process status descriptor. ARGS may be
-    a list or a whitespace separated strings.
+    Run "gnatcov".
 
-    If AUTO_LANGUAGES is True, the gnatcov sub-command is "instrument" and the
-    testsuite is not in qualification mode, automatically pass the
-    --restricted-to-languages argument to enable all the languages to test.
+    :param list[str] args: arguments to pass to gnatcov.
+    :param None|str out: if not None, redirect gnatcov output to out.
+    :param None|str err: if not None, redirect gnatcov error output to err.
+    :param None|str inp: if not None, redirect gnatcov input to inp.
+    :param None|dict[str, str] env: If not none, environment variables for the
+        program to run.
+    :param bool register_failure: If True, register execution failure.
+    :param bool auto_config_args: see xcov_suite_args.
+    :param bool auto_target_args: see xcov_suite_args.
+    :param bool force_project_args: see xcov_suite_args.
+    :param None|str tolerate_messages: If not None, a re pattern of warning
+        or error messsages tolerated in the tool output. Messages not matching
+        this pattern will cause a test failure when register_failure is True.
 
-    See xcov_suite_args for the meaning of AUTO_*_ARGS and FORCE_PROJECT_ARGS
-    arguments.
+    :rtype: Run
+    :return: Process status descriptor for the gnatcov invocation.
     """
 
     # Defensive code: running "gnatcov setup" with no prefix will install
@@ -940,6 +947,43 @@ def xcov(
         register_failure=register_failure,
         for_pgm=(covcmd == "run"),
     )
+
+    # When no message is to be tolerated, fallback to an actual regexp
+    # that will never match:
+    re_tolerate_messages = tolerate_messages or "__NEVER_IN_A_WARNING___"
+
+    # Do not check warnings when running the testsuite in binary traces mode,
+    # as it would require modifying / adapting too many tests.
+    if register_failure and thistest.options.trace_mode == "src":
+        output = contents_of(out) if out else p.out
+
+        # Check for unexpected messages. Beware that the "warning:"
+        # indication at least is not necessarily at the beginning of
+        # a line, as in
+        #
+        #    app.gpr:4:23: warning: object directory "obj" not found
+
+        messages = re.findall(
+            pattern=r"(?:!!!|\*\*\*|warning:).*$",
+            string=output,
+            flags=re.MULTILINE,
+        )
+
+        unexpected_messages = [
+            w
+            for w in messages
+            if not re.search(pattern=re_tolerate_messages, string=w)
+        ]
+        thistest.fail_if(
+            unexpected_messages,
+            f"Unexpected messages in the output of 'gnatcov {covcmd}':"
+            f"\n{indent(output)}"
+            + (
+                f"\n(allowed: {tolerate_messages})"
+                if tolerate_messages
+                else ""
+            ),
+        )
 
     if thistest.options.enable_valgrind == "memcheck":
         memcheck_log = contents_of(MEMCHECK_LOG)
@@ -1008,6 +1052,7 @@ def xrun(
         register_failure=register_failure,
         auto_config_args=auto_config_args,
         auto_target_args=auto_target_args,
+        tolerate_messages=".",
     )
 
 
@@ -1271,6 +1316,7 @@ def xcov_annotate(
     register_failure=True,
     auto_config_args=True,
     auto_target_args=True,
+    tolerate_messages=None,
 ):
     """
     Invoke "gnatcov annotate" with the correct arguments to generate
@@ -1288,6 +1334,7 @@ def xcov_annotate(
         will be added. Defaults to None.
     :param list[str] | None  extra_args: extra arguments passed on the command
         line. Defaults to None.
+    :param str | None tolerate_messages: see documentation of xcov.
     """
     args = ["add-annotation"]
     args.extend(annotation.cmd_line_args())
@@ -1306,10 +1353,11 @@ def xcov_annotate(
         register_failure=register_failure,
         auto_config_args=auto_config_args,
         auto_target_args=auto_target_args,
+        tolerate_messages=tolerate_messages,
     )
 
 
-def generate_annotations(annotations, subdir=""):
+def generate_annotations(annotations, subdir="", tolerate_messages=None):
     """
     Setup a temporary working directory in which an annotation file
     will be generated from annotations, using gnatcov add-annotation
@@ -1334,6 +1382,9 @@ def generate_annotations(annotations, subdir=""):
     # Generate the annotations
     for annotation in annotations:
         xcov_annotate(
-            annotation, annot_in_files=[annot_file], annot_out_file=annot_file
+            annotation,
+            annot_in_files=[annot_file],
+            annot_out_file=annot_file,
+            tolerate_messages=tolerate_messages,
         )
     return annot_file

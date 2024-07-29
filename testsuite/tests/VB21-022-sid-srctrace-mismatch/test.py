@@ -34,7 +34,7 @@ xcov_instrument(gprsw=gprsw, covlevel="stmt")
 # info (i.e. code not covered).
 level_arg = xcov_args.index("--level=stmt+mcdc")
 xcov_args[level_arg] = "--level=stmt"
-xcov(xcov_args, out="coverage.log")
+xcov(xcov_args, out="coverage.log", tolerate_messages=".")
 thistest.fail_if_no_match(
     "'gnatcov coverage' output",
     r"warning: traces for body of main \(from main.*\.srctrace\) are"

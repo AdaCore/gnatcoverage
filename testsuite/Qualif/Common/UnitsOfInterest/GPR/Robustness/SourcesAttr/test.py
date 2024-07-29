@@ -44,6 +44,7 @@ def try_one(subdir, extra_covargs, xreports, xwarnings):
         covlevel="stmt",
         mains=["test_t"],
         extra_coverage_args=["--annotate=xcov"] + extra_covargs,
+        tolerate_coverage_messages=".",
     )
 
     check_xcov_reports("obj", xreports)
