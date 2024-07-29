@@ -2323,7 +2323,10 @@ begin
             end if;
          end if;
 
-         if Source_Coverage_Enabled and then SCOs_Trace.Is_Active then
+         if Source_Coverage_Enabled
+           and then SCOs_Trace.Is_Active
+           and then Currently_Accepted_Trace_Kind = Binary_Trace_File
+         then
             SC_Obligations.Report_Units_Without_Code;
          end if;
 
