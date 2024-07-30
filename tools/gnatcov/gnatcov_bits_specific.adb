@@ -77,6 +77,7 @@ with Qemu_Traces;
 with Rundrv;                use Rundrv;
 with SC_Obligations;        use SC_Obligations;
 with Setup_RTS;             use Setup_RTS;
+with SS_Annotations;        use SS_Annotations;
 with Strings;               use Strings;
 with Switches;              use Switches;
 with Temp_Dirs;             use Temp_Dirs;
@@ -827,6 +828,10 @@ procedure GNATcov_Bits_Specific is
             end if;
          end;
       end if;
+
+      for Arg of Args.String_List_Args (Opt_Ext_Annotations) loop
+         Load_Ext_Annotations (Arg);
+      end loop;
 
       --  ... then, handle remaning arguments, which have subcommand-specific
       --  meanings.

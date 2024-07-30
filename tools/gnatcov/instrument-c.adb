@@ -41,6 +41,7 @@ with Hex_Images;          use Hex_Images;
 with Outputs;             use Outputs;
 with Paths;               use Paths;
 with SCOs;
+with SS_Annotations;      use SS_Annotations;
 with System;              use System;
 with Table;
 with Text_Files;          use Text_Files;
@@ -3491,10 +3492,13 @@ package body Instrument.C is
             end;
          end loop;
 
-         --  Import annotations in our internal tables
+         --  Import Annots in our internal tables
 
          Filter_Annotations (UIC);
-         Import_Annotations (UIC, UIC.CUs);
+         UIC.Import_Annotations (UIC.CUs);
+         for Cur in UIC.CUs.Iterate loop
+            Import_External_Exemptions (Created_Unit_Maps.Key (Cur));
+         end loop;
          Import_Non_Instrumented_LL_SCOs (UIC, SCO_Map);
 
          for Cur in UIC.Instrumented_Entities.Iterate loop
