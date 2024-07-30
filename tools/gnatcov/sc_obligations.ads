@@ -153,15 +153,31 @@ package SC_Obligations is
    --  Emit an error message for any unit of interest for which no object code
    --  has been seen.
 
-   ---------------
-   -- ALI files --
-   ---------------
+   -------------------------------
+   -- ALI files and annotations --
+   -------------------------------
 
-   type ALI_Annotation_Kind is
-     (Exempt_On, Exempt_Off, Dump_Buffers, Reset_Buffers, Cov_On, Cov_Off);
+   type Any_Annotation_Kind is
+     (Unknown,
+      Exempt_Region,
+      Exempt_On,
+      Exempt_Off,
+      Dump_Buffers,
+      Reset_Buffers,
+      Cov_On,
+      Cov_Off);
+
+   subtype Src_Annotation_Kind is Any_Annotation_Kind range
+     Exempt_On .. Cov_Off;
+   --  All annotation kind that can be found in pragma Annotate / comments
+   --  supported by gnatcov.
+
+   subtype ALI_Annotation_Kind is Any_Annotation_Kind range
+     Exempt_On .. Exempt_Off;
+   --  Annotation kinds that can be found in ALI files
 
    type ALI_Annotation is record
-      Kind : ALI_Annotation_Kind;
+      Kind : Src_Annotation_Kind;
       --  On or Off, Dump or Reset coverage buffers
 
       Message : String_Access;
@@ -200,6 +216,11 @@ package SC_Obligations is
      (SFI : Source_File_Index) return ALI_Annotation_Maps.Map;
    --  Return the set of annotations for the given compilation unit / source
    --  file index.
+
+   function Get_Annotation
+     (Sloc : Source_Location) return ALI_Annotation_Maps.Cursor;
+   --  Accessor for the ALI_Annotation_Map, to avoid copying the entire map
+   --  when only a single annotation is needed.
 
    function Get_All_Annotations return ALI_Annotation_Maps.Map;
    --  Return all annotations

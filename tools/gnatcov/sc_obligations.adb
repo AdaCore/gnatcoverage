@@ -5353,6 +5353,21 @@ package body SC_Obligations is
       return Get_Annotations (Comp_Unit (SFI));
    end Get_Annotations;
 
+   --------------------
+   -- Get_Annotation --
+   --------------------
+
+   function Get_Annotation
+     (Sloc : Source_Location) return ALI_Annotation_Maps.Cursor
+   is
+      CU : constant CU_Id := Comp_Unit (Sloc.Source_File);
+   begin
+      if CU = No_CU_Id then
+         return ALI_Annotation_Maps.No_Element;
+      end if;
+      return CU_Vector.Constant_Reference (CU).ALI_Annotations.Find (Sloc);
+   end Get_Annotation;
+
    -------------------------
    -- Get_All_Annotations --
    -------------------------

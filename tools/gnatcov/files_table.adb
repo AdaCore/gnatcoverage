@@ -1731,7 +1731,7 @@ package body Files_Table is
       Current_Annot_Sloc : Source_Location;
       Current_Annotation : ALI_Annotation;
 
-      Start_Annotation : constant ALI_Annotation_Kind :=
+      Start_Annotation : constant Src_Annotation_Kind :=
         (case Kind is
             when Exemption        => Exempt_On,
             when Disable_Coverage => Cov_Off);

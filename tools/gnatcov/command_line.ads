@@ -176,7 +176,8 @@ package Command_Line is
       Opt_CPP_Opts,
       Opt_Files,
       Opt_Runtime_Dir,
-      Opt_Compiler_Wrappers);
+      Opt_Compiler_Wrappers,
+      Opt_Ext_Annotations);
    --  Set of string list options we support. More complete descriptions below.
 
    subtype Cmd_Instrument is Command_Type
@@ -1484,7 +1485,15 @@ package Command_Line is
            "List of compiler drivers for which we should generate wrappers."
            & " Supported compilers are: gcc, g++.",
          Commands  => (Cmd_Print_GPR_Registry => False, others => True),
-         Internal  => True)
+         Internal  => True),
+
+      Opt_Ext_Annotations => Create
+        (Long_Name  => "--external-annotations",
+         Help       => "Specify external annotation files",
+         Commands   =>
+           (Cmd_Instrument | Cmd_Coverage => True, others => False),
+         Pattern    => "FILENAME|@LISTFILE",
+         Internal   => True)
      );
 
    procedure Bool_Callback

@@ -31,6 +31,7 @@ with Coverage.Source;  use Coverage.Source;
 with Coverage.Tags;
 with Instrument;
 with Outputs;          use Outputs;
+with SS_Annotations;   use SS_Annotations;
 with Subprocesses;
 with Switches;         use Switches;
 with Traces_Disa;
@@ -437,6 +438,8 @@ package body Annotations is
             return;
          end if;
 
+         Import_External_Exemptions (File_Index);
+
          Populate_Annotations (File_Index, Exemption);
          Populate_Annotations (File_Index, Disable_Coverage);
          ST := Scope_Traversal (Comp_Unit (File_Index));
@@ -531,9 +534,16 @@ package body Annotations is
    -----------------------------------
 
    function Get_Exemption_Violation_Count
-     (Sloc : Source_Location) return Natural is
+     (Sloc : Source_Location) return Natural
+   is
+      use ALI_Annotation_Maps;
+      Cur : constant Cursor := Get_Annotation (Sloc);
    begin
-      return Get_Annotations (Sloc.Source_File).Element (Sloc).Violation_Count;
+      if Has_Element (Cur) then
+         return Element (Cur).Violation_Count;
+      else
+         return 0;
+      end if;
    end Get_Exemption_Violation_Count;
 
    -----------------------------------
@@ -541,10 +551,16 @@ package body Annotations is
    -----------------------------------
 
    function Get_Exemption_Undet_Cov_Count
-     (Sloc : Source_Location) return Natural is
+     (Sloc : Source_Location) return Natural
+   is
+      use ALI_Annotation_Maps;
+      Cur : constant Cursor := Get_Annotation (Sloc);
    begin
-      return Get_Annotations (Sloc.Source_File)
-        .Element (Sloc).Undetermined_Cov_Count;
+      if Has_Element (Cur) then
+         return Element (Cur).Undetermined_Cov_Count;
+      else
+         return 0;
+      end if;
    end Get_Exemption_Undet_Cov_Count;
 
    ---------------------------
@@ -552,9 +568,16 @@ package body Annotations is
    ---------------------------
 
    function Get_Exemption_Message
-     (Sloc : Source_Location) return String_Access is
+     (Sloc : Source_Location) return String_Access
+   is
+      use ALI_Annotation_Maps;
+      Cur : constant Cursor := Get_Annotation (Sloc);
    begin
-      return Get_Annotations (Sloc.Source_File).Element (Sloc).Message;
+      if Has_Element (Cur) then
+         return Element (Cur).Message;
+      else
+         return null;
+      end if;
    end Get_Exemption_Message;
 
    ------------------------

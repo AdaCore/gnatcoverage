@@ -53,6 +53,7 @@ with Project;
 with SCOs;
 with Slocs;
 with Snames;           use Snames;
+with SS_Annotations;   use SS_Annotations;
 with Table;
 with Text_Files;       use Text_Files;
 
@@ -3860,7 +3861,7 @@ package body Instrument.Ada_Unit is
 
          Kind := Get_Arg (Prag_Args, 2);
          begin
-            Result.Kind := ALI_Annotation_Kind'Value (Image (Kind));
+            Result.Kind := Src_Annotation_Kind'Value (Image (Kind));
          exception
             when Constraint_Error =>
                Report
@@ -9646,6 +9647,12 @@ package body Instrument.Ada_Unit is
          --  Import annotations in our internal tables
 
          UIC.Import_Annotations (Created_Units);
+
+         --  Import external exemption annotations
+
+         for Cur in Created_Units.Iterate loop
+            Import_External_Exemptions (Created_Unit_Maps.Key (Cur));
+         end loop;
 
          --  Import non-instrumented SCOs in the internal tables
 

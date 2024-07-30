@@ -663,4 +663,41 @@ package Instrument.Common is
    --  Extract analysis options from the Args command line arguments and update
    --  Self accordingly.
 
+   subtype Instr_Annotation_Kind is Any_Annotation_Kind range
+     Dump_Buffers .. Any_Annotation_Kind'Last;
+   --  Annotation kinds that are relevant for the instrumentation step
+
+   type Instr_Annotation (Kind : Instr_Annotation_Kind := Dump_Buffers) is
+   record
+
+      Insert_After : Boolean := False;
+      --  For instrumenters where this is applicable, consider that the
+      --  annotation should apply after the designated entity rather than
+      --  before.
+
+      --  Explicitly list all annotation kinds to get a compilation warning
+      --  when adding new annotation kind in ALI_Files but not here.
+
+      case Kind is
+         when Dump_Buffers =>
+            Trace_Prefix : Unbounded_String;
+            --  Optional trace prefix for the buffer dump, left empty if not
+            --  specified.
+
+         when Cov_Off =>
+            Justification : Unbounded_String;
+            --  Justification for why the region is disabled for coverage
+
+         when Reset_Buffers | Cov_On =>
+            null;
+      end case;
+   end record;
+   --  Represents one annotation, with all the relevant information needed by
+   --  the instrumenters.
+
+   package Instr_Annotation_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Local_Source_Location,
+      Element_Type => Instr_Annotation);
+   subtype Instr_Annotation_Map is Instr_Annotation_Maps.Map;
+
 end Instrument.Common;

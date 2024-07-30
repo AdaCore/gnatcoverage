@@ -1,0 +1,81 @@
+# Basic exemptions for pkg.adb
+
+[on]
+file="pkg.adb"
+kind="absolute"
+[on.matcher]
+start_line=6
+start_col=7
+# End line annotations does not matter for exempt_on
+end_line=6
+end_col=7
+[[on.annotations]]
+purpose="xcov.exempt.on"
+justification="defensive code, not to be triggered (on)"
+
+
+[off]
+file="pkg.adb"
+kind="absolute"
+[off.matcher]
+start_line=8
+start_col=14
+# End line annotations does not matter for exempt_off
+end_line=8
+end_col=14
+[[off.annotations]]
+purpose="xcov.exempt.off"
+
+
+[region]
+file="pkg.adb"
+kind="absolute"
+[region.matcher]
+start_line=10
+start_col=7
+end_line=12
+end_col=14
+[[region.annotations]]
+purpose="xcov.exempt.region"
+justification="defensive code, not to be triggered (region)"
+
+# Basic exemption for foo.h
+
+[region_c]
+file="foo.h"
+kind="absolute"
+[region_c.matcher]
+start_line=4
+start_col=3
+end_line=5
+end_col=14
+[[region_c.annotations]]
+purpose="xcov.exempt.region"
+justification="defensive code, not to be triggered (region)"
+
+# Basic exemption for foo.c
+
+[on_c]
+file="foo.c"
+kind="absolute"
+[on_c.matcher]
+start_line=6
+start_col=3
+# End line annotations does not matter for exempt_on
+end_line=6
+end_col=3
+[[on_c.annotations]]
+purpose="xcov.exempt.on"
+justification="garbage code, not to be triggered (on)"
+
+[off_c]
+file="foo.c"
+kind="absolute"
+[off_c.matcher]
+start_line=7
+start_col=15
+# End line annotations does not matter for exempt_off
+end_line=7
+end_col=15
+[[off_c.annotations]]
+purpose="xcov.exempt.off"
