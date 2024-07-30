@@ -326,6 +326,9 @@ package Instrument.Common is
    package Annotation_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Annotation_Couple);
 
+   package Nat_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Nat);
+
    type Unit_Inst_Context is tagged record
       Instrumented_Unit : Compilation_Unit_Part;
       --  Name of the compilation unit being instrumented
@@ -351,6 +354,10 @@ package Instrument.Common is
 
       Non_Instr_LL_SCOs : SCO_Sets.Set;
       --  Set of low level SCO ids that were not instrumented
+
+      Blocks : SCO_Id_Vector_Vector;
+      --  This is used when the block coverage level is enabled: list of blocks
+
    end record;
 
    procedure Import_Annotations
@@ -397,6 +404,12 @@ package Instrument.Common is
      (Scope_Entities : in out Scope_Entities_Tree;
       SCO_Map        : LL_HL_SCO_Map);
    --  Convert low level SCOs in Scope_Entity to high-level SCOs using the
+   --  mapping in SCO_Map.
+
+   procedure Remap_Blocks
+     (Blocks  : in out SCO_Id_Vector_Vector;
+      SCO_Map : LL_HL_SCO_Map);
+   --  Convert low level SCOs in Blocks to high-level SCOs using the
    --  mapping in SCO_Map.
 
    package CU_Name_Vectors is new Ada.Containers.Vectors

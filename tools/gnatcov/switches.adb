@@ -698,6 +698,7 @@ package body Switches is
       if Warnings_Registered then
          Register_Warning;
       end if;
+      Instrument_Block := Args.Bool_Args (Opt_Instrument_Block);
    end Parse_Arguments;
 
    -----------

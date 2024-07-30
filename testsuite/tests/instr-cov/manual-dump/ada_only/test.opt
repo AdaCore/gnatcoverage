@@ -1,2 +1,1 @@
-!native XFAIL Build failure with mixed language mains. See #212
 block DEAD Manual dump wrapped in procedure call (unsupported when using block coverage)

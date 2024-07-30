@@ -1,2 +1,3 @@
 RTS_ZFP DEAD no support for exception propagation in ZFP runtimes
 RTS_LIGHT_TASKING DEAD no support for exception propagation in light-tasking runtimes
+block DEAD Tests with exceptions breaking the control flow

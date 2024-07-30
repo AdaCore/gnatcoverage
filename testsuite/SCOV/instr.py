@@ -133,6 +133,9 @@ def xcov_instrument(
     if thistest.options.pretty_print:
         args.append("--pretty-print")
 
+    if thistest.options.block:
+        args.append("--instrument-block")
+
     out = out or "instrument.log"
     result = xcov(
         args,

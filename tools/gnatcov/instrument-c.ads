@@ -224,6 +224,11 @@ package Instrument.C is
    package Source_Condition_Vectors is
      new Ada.Containers.Vectors (Natural, C_Source_Condition);
 
+   package Block_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Source_Statement_Vectors.Vector,
+      "="          => Source_Statement_Vectors."=");
+
    type C_Instrumented_Entities is record
       Buffers_Index : Natural := 0;
       --  1-based index of the set of coverage buffers for this source file. We
@@ -231,7 +236,7 @@ package Instrument.C is
       --  known, we allocate coverage buffers (UIC.Allocated_Bits) and
       --  initialize Buffers_Index at the same time.
 
-      Statements : Source_Statement_Vectors.Vector;
+      Blocks     : Block_Vectors.Vector;
       Decisions  : Source_Decision_Vectors.Vector;
       Conditions : Source_Condition_Vectors.Vector;
       --  Statements, decisions and conditions (for MC/DC) to be instrumented
@@ -396,6 +401,9 @@ package Instrument.C is
          --  to store these, see the documentation of the Fix_CXX_For_Ranges
          --  subprogram.
 
+         Block_Stack : Block_Vectors.Vector;
+         --  Currently processed blocks (blocks can nest in the source,
+         --  when e.g. we have a lambda expression).
       end record;
 
    type C_Source_Rewriter is tagged limited private;
@@ -500,6 +508,14 @@ private
       UIC  : in out C_Unit_Inst_Context'Class;
       N    : Cursor_T) is null;
    --  See the documentation of Fix_CXX_For_Ranges
+
+   procedure Start_Statement_Block
+     (Pass : Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class) is null;
+
+   procedure End_Statement_Block
+     (Pass : Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class) is null;
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
    with record

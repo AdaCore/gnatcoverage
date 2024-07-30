@@ -93,7 +93,8 @@ package Command_Line is
       Opt_SPARK_Compat,
       Opt_Full_Slugs,
       Opt_Relocate_Build_Tree,
-      Opt_Warnings_As_Errors);
+      Opt_Warnings_As_Errors,
+      Opt_Instrument_Block);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -616,7 +617,15 @@ package Command_Line is
          Help       => "Treat warnings as errors, i.e. exit with a non-zero"
                        & " status code if a warning is emitted.",
          Commands   => (others => True),
-         Internal   => True));
+         Internal   => True),
+
+      Opt_Instrument_Block => Create
+        (Long_Name => "--instrument-block",
+         Help      => "Instrument the statements as blocks, i.e. insert a"
+                      & " single instrumentation counter incrementation for a"
+                      & " statement block.",
+         Commands  => (Cmd_Instrument => True, others => False),
+         Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
      (Opt_Project => Create

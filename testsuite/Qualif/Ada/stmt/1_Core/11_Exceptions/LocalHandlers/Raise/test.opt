@@ -1,0 +1,4 @@
+block DEAD Test with exceptions breaking the control flow
+RTS_EMBEDDED
+RTS_FULL
+ALL DEAD

@@ -238,6 +238,14 @@ package body Instrument.C is
       UIC  : in out C_Unit_Inst_Context'Class;
       N    : Cursor_T);
 
+   overriding procedure Start_Statement_Block
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class);
+
+   overriding procedure End_Statement_Block
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class);
+
    Record_PP_Info_Pass : aliased Record_PP_Info_Pass_Kind;
    Instrument_Pass     : aliased Instrument_Pass_Kind;
 
@@ -977,6 +985,20 @@ package body Instrument.C is
          UIC.Instrumented_Entities.Insert (From.Source_File, (others => <>));
       end if;
 
+      --  End the statement block if we entered a new file: we do not want
+      --  blocks with statements in different files.
+
+      declare
+         use type SCOs.SCO_Unit_Index;
+      begin
+         if SCOs.SCO_Unit_Table.Last /= 0
+           and then Last_File /= From.Source_File
+         then
+            UIC.Pass.End_Statement_Block (UIC);
+            UIC.Pass.Start_Statement_Block (UIC);
+         end if;
+      end;
+
       Append_SCO
         (C1, C2, From.L, To.L, From.Source_File, Last, Pragma_Aspect_Name);
 
@@ -1108,6 +1130,40 @@ package body Instrument.C is
       UIC.Instrumented_CXX_For_Ranges.Append (N);
    end Register_CXX_For_Range;
 
+   ---------------------------
+   -- Start_Statement_Block --
+   ---------------------------
+
+   procedure Start_Statement_Block
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class) is
+   begin
+      UIC.Block_Stack.Append (Source_Statement_Vectors.Empty_Vector);
+   end Start_Statement_Block;
+
+   -------------------------
+   -- End_Statement_Block --
+   -------------------------
+
+   procedure End_Statement_Block
+     (Pass : Instrument_Pass_Kind;
+      UIC  : in out C_Unit_Inst_Context'Class)
+   is
+      Current_Block : constant Source_Statement_Vectors.Vector :=
+        UIC.Block_Stack.Last_Element;
+   begin
+      --  Delete the block if it is empty
+
+      if Current_Block.Is_Empty then
+         UIC.Block_Stack.Delete_Last;
+         return;
+      end if;
+
+      UIC.Find_Instrumented_Entities (Last_File).Blocks.Append
+        (Current_Block);
+      UIC.Block_Stack.Delete_Last;
+   end End_Statement_Block;
+
    --------------------------
    -- Instrument_Statement --
    --------------------------
@@ -1122,7 +1178,7 @@ package body Instrument.C is
       if UIC.Disable_Instrumentation then
          UIC.Non_Instr_LL_SCOs.Include (SCO_Id (LL_SCO));
       else
-         UIC.Find_Instrumented_Entities (Last_File).Statements.Append
+         UIC.Block_Stack.Reference (UIC.Block_Stack.Last).Append
            (C_Source_Statement'
               (LL_SCO       => LL_SCO,
                Instr_Scheme => Instr_Scheme,
@@ -1428,7 +1484,8 @@ package body Instrument.C is
    procedure Traverse_Statements
      (UIC             : in out C_Unit_Inst_Context;
       L               : Cursor_Vectors.Vector;
-      Trailing_Braces : out Unbounded_String);
+      Trailing_Braces : out Unbounded_String;
+      Is_Block        : Boolean := True);
    --  Process L, a list of statements or declarations. Set Trailing_Braces
    --  to the list of braces that should be inserted after this statements'
    --  list.
@@ -1506,9 +1563,11 @@ package body Instrument.C is
         (Cursor : Cursor_T) return Child_Visit_Result_T is
       begin
          if Kind (Cursor) = Cursor_Lambda_Expr then
+            UIC.Pass.Start_Statement_Block (UIC);
             Traverse_Declarations
               (UIC => UIC,
                L   => Cursor_Vectors.To_Vector (Cursor, 1));
+            UIC.Pass.End_Statement_Block (UIC);
             return Child_Visit_Continue;
          end if;
          return Child_Visit_Recurse;
@@ -1972,7 +2031,8 @@ package body Instrument.C is
    procedure Traverse_Statements
      (UIC             : in out C_Unit_Inst_Context;
       L               : Cursor_Vectors.Vector;
-      Trailing_Braces : out Unbounded_String)
+      Trailing_Braces : out Unbounded_String;
+      Is_Block        : Boolean := True)
    is
       procedure Traverse_One
         (N : Cursor_T; Trailing_Braces : out Unbounded_String);
@@ -2048,10 +2108,13 @@ package body Instrument.C is
          case Kind (N) is
 
             when Cursor_Compound_Stmt =>
-               Traverse_Statements (UIC, Get_Children (N), TB);
+               Traverse_Statements
+                 (UIC, Get_Children (N), TB, Is_Block => False);
 
             when Cursor_If_Stmt =>
                Instrument_Statement (N, 'I');
+               UIC.Pass.End_Statement_Block (UIC);
+               UIC.Pass.Start_Statement_Block (UIC);
 
                declare
                   Then_Part : constant Cursor_T := Get_Then (N);
@@ -2083,6 +2146,8 @@ package body Instrument.C is
 
             when Cursor_Switch_Stmt =>
                Instrument_Statement (N, 'C');
+               UIC.Pass.End_Statement_Block (UIC);
+               UIC.Pass.Start_Statement_Block (UIC);
                declare
                   Switch_Cond : constant Cursor_T := Get_Cond (N);
                   Alt         : constant Cursor_T := Get_Body (N);
@@ -2119,7 +2184,8 @@ package body Instrument.C is
                                       then Cond
                                       else Get_Var_Init_Expr (Cond_Var)),
                      Instr_Scheme => Instr_Expr);
-
+                  UIC.Pass.End_Statement_Block (UIC);
+                  UIC.Pass.Start_Statement_Block (UIC);
                   Process_Expression (UIC, Cond, 'W');
                   Traverse_Statements (UIC, To_Vector (While_Body), TB);
                end;
@@ -2130,7 +2196,8 @@ package body Instrument.C is
                   Do_While : constant Cursor_T := Get_Cond (N);
 
                begin
-                  Traverse_Statements (UIC, To_Vector (Do_Body), TB);
+                  Traverse_Statements
+                    (UIC, To_Vector (Do_Body), TB, Is_Block => False);
 
                   --  Insert the trailing braces resulting from the body
                   --  traversal before the while.
@@ -2142,8 +2209,9 @@ package body Instrument.C is
 
                   Instrument_Statement
                     (Do_While, 'W', Instr_Scheme => Instr_Expr);
+                  UIC.Pass.End_Statement_Block (UIC);
+                  UIC.Pass.Start_Statement_Block (UIC);
                   Process_Expression (UIC, Do_While, 'W');
-
                end;
 
             when Cursor_For_Stmt =>
@@ -2155,8 +2223,12 @@ package body Instrument.C is
                begin
                   Instrument_Statement
                     (For_Init, ' ', Insertion_N => N);
+                  UIC.Pass.End_Statement_Block (UIC);
+                  UIC.Pass.Start_Statement_Block (UIC);
                   Instrument_Statement
                     (For_Cond, 'F', Instr_Scheme => Instr_Expr);
+                  UIC.Pass.End_Statement_Block (UIC);
+                  UIC.Pass.Start_Statement_Block (UIC);
 
                   --  The guard expression for the FOR loop is a decision. The
                   --  closest match for this kind of decision is a while loop.
@@ -2167,6 +2239,8 @@ package body Instrument.C is
 
                   Instrument_Statement
                     (For_Inc, ' ', Instr_Scheme => Instr_Expr);
+                  UIC.Pass.End_Statement_Block (UIC);
+                  UIC.Pass.Start_Statement_Block (UIC);
                end;
 
             when Cursor_CXX_For_Range_Stmt =>
@@ -2186,6 +2260,8 @@ package body Instrument.C is
 
                      Instrument_Statement
                        (For_Init_Stmt, ' ', Insertion_N  => For_Init_Stmt);
+                     UIC.Pass.End_Statement_Block (UIC);
+                     UIC.Pass.Start_Statement_Block (UIC);
                      Process_Expression (UIC, For_Init_Stmt, 'X');
 
                      --  Preemptively end the introduced outer scope as it is
@@ -2201,21 +2277,36 @@ package body Instrument.C is
                     (For_Range_Decl, ' ',
                      Insertion_N  => N,
                      Instr_Scheme => Instr_Stmt);
+                  UIC.Pass.End_Statement_Block (UIC);
+                  UIC.Pass.Start_Statement_Block (UIC);
                   Process_Expression (UIC, For_Range_Decl, 'X');
 
                   --  Generate obligations for body statements
 
                   Traverse_Statements (UIC, To_Vector (For_Body), TB);
+                  UIC.Pass.End_Statement_Block (UIC);
+                  UIC.Pass.Start_Statement_Block (UIC);
                end;
 
             when Cursor_Goto_Stmt | Cursor_Indirect_Goto_Stmt =>
                Instrument_Statement (N, ' ');
+               UIC.Pass.End_Statement_Block (UIC);
+               UIC.Pass.Start_Statement_Block (UIC);
 
             when Cursor_Label_Stmt =>
-               Traverse_Statements (UIC, Get_Children (N), TB);
+               UIC.Pass.End_Statement_Block (UIC);
+               UIC.Pass.Start_Statement_Block (UIC);
+               Traverse_Statements
+                 (UIC, Get_Children (N), TB, Is_Block => False);
+
+            when Cursor_Break_Stmt =>
+               Instrument_Statement (N, ' ');
+               UIC.Pass.End_Statement_Block (UIC);
+               UIC.Pass.Start_Statement_Block (UIC);
 
             when Cursor_Stmt_Expr =>
-               Traverse_Statements (UIC, Get_Children (N), TB);
+               Traverse_Statements
+                 (UIC, Get_Children (N), TB, Is_Block => False);
 
             --  Null statement, we won't monitor their execution
 
@@ -2227,12 +2318,16 @@ package body Instrument.C is
 
             when Cursor_Call_Expr =>
                   --  Check the name of the callee. If the callee is the manual
-                  --  dump buffers procedure, do nothing. It should not be
-                  --  considered for coverage analysis.
+                  --  dump buffers procedure, end the statement block and
+                  --  do not instrument the call expression as it should not
+                  --  be considered for coverage analysis.
 
-               if not Is_Manual_Indication_Procedure_Symbol
-                        (Get_Callee_Name_Str (N))
+               if Is_Manual_Indication_Procedure_Symbol
+                 (Get_Callee_Name_Str (N))
                then
+                  UIC.Pass.End_Statement_Block (UIC);
+                  UIC.Pass.Start_Statement_Block (UIC);
+               else
                   Instrument_Statement (N, ' ');
                   if Has_Decision (N) then
                      Process_Expression (UIC, N, 'X');
@@ -2403,6 +2498,9 @@ package body Instrument.C is
    --  Start of processing for Traverse_Statements
 
    begin
+      if Is_Block then
+         UIC.Pass.Start_Statement_Block (UIC);
+      end if;
       for N of L loop
          if Trailing_Braces /= "" then
             UIC.Pass.Insert_Text_Before
@@ -2411,6 +2509,9 @@ package body Instrument.C is
          end if;
          Traverse_One (N, Trailing_Braces);
       end loop;
+      if Is_Block then
+         UIC.Pass.End_Statement_Block (UIC);
+      end if;
    end Traverse_Statements;
 
    ---------------------------
@@ -3138,6 +3239,11 @@ package body Instrument.C is
         (UIC => UIC,
          L   => Get_Children (Get_Translation_Unit_Cursor (UIC.TU)));
 
+      --  Check that there are no open statement blocks at the end of the
+      --  instrumentation processs.
+
+      pragma Assert (UIC.Block_Stack.Is_Empty);
+
       --  Check whether there is a mismatch between Last_SCO and
       --  SCOs.SCO_Table.Last. If there is, warn the user and discard the
       --  preprocessed info: the SCO mapping will be wrong.
@@ -3209,12 +3315,29 @@ package body Instrument.C is
                Unit_Bits : Allocated_Bits renames
                  UIC.Allocated_Bits.Reference (Ent.Buffers_Index);
                Bit_Maps  : CU_Bit_Maps;
+
+               Blocks : SCO_Id_Vector_Vector;
             begin
                --  Allocate bits in coverage buffers and insert the
                --  corresponding witness calls.
 
-               for SS of Ent.Statements loop
-                  Insert_Statement_Witness (UIC, Ent.Buffers_Index, SS);
+               for Block of Ent.Blocks loop
+                  if Switches.Instrument_Block then
+                     declare
+                        Block_SCOs : SCO_Id_Vectors.Vector;
+                     begin
+                        Insert_Statement_Witness
+                          (UIC, Ent.Buffers_Index, Block.Last_Element);
+                        for SS of Block loop
+                           Block_SCOs.Append (SCO_Map (SS.LL_SCO));
+                        end loop;
+                        Blocks.Append (Block_SCOs);
+                     end;
+                  else
+                     for SS of Block loop
+                        Insert_Statement_Witness (UIC, Ent.Buffers_Index, SS);
+                     end loop;
+                  end if;
                end loop;
 
                if Coverage.Enabled (Coverage_Options.Decision)
@@ -3301,6 +3424,8 @@ package body Instrument.C is
                --  Associate these bit maps to the corresponding CU
 
                Set_Bit_Maps (UIC.CUs.Element (SFI), Bit_Maps);
+
+               Set_Blocks (UIC.CUs.Element (SFI), Blocks);
             end;
          end loop;
 
