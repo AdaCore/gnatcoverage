@@ -25,7 +25,9 @@ class CovControl:
       (gprsw).
 
     * Influence the non-GPR related command line options to gnatcov coverage
-      (covoptions).
+      (covoptions), and gnatcov instrument (instroptions).
+      If instroption is equal to "same" (the default), then it is set to the
+      value of covoption, to avoid the need to duplicate options.
     """
 
     def __init__(
@@ -38,6 +40,7 @@ class CovControl:
         xreports=None,
         gprsw=None,
         covoptions="",
+        instroptions="same",
     ):
         # To control "with" dependencies (set of projects that will be withed
         # by the one we will be generating for the testcase):
@@ -49,6 +52,12 @@ class CovControl:
 
         # Extra options to gnatcov coverage only, typically for "-S" variants.
         self.covoptions = covoptions
+
+        # Extra options to gnatcov instrument only, potentially to be copied
+        # from covoptions
+        self.instroptions = (
+            covoptions if instroptions == "same" else instroptions
+        )
 
         # To control Units related attributes in the GPR Coverage package.
         #
