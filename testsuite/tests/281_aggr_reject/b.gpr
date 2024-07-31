@@ -1,0 +1,5 @@
+project B is
+   for Object_Dir use "obj_b";
+   for Source_Dirs use ("../src_b");
+   for Main use ("main.adb");
+end B;

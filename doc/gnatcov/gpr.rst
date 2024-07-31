@@ -30,6 +30,11 @@ coverage perspectives. In the root project, a ``Coverage`` package may be used
 to specify the arguments for |gcv| commands and the target/runtime profile may
 be set using toplevel attributes.
 
+Please note that **non-library aggregate project files are currently not
+supported** and will be rejected by |gcv|. The aggregated projects will have
+to be processed individually and coverage reports consolidated
+:ref:`through checkpoints<checkpoints>`, when this makes sense.
+
 .. _switches_attr:
 
 Specifying |gcv| command Switches
