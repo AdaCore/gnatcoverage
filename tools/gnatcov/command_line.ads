@@ -1586,7 +1586,8 @@ package Command_Line is
            & " C and C++. Note that main units of other languages may still be"
            & " instrumented to dump the coverage state to trace files.",
          Commands                => (Cmd_Setup
-                                     | Cmd_Instrument_Project => True,
+                                     | Cmd_Instrument_Project
+                                     | Cmd_Coverage => True,
                                      others                   => False),
          Internal                => False,
          Accepts_Comma_Separator => True),
