@@ -53,6 +53,12 @@ Finer grain control is possible with additional switches and attributes,
 letting users first specify the set of :dfn:`projects of interest` where the
 units of interest reside, then may filter the *units* of interest therein.
 
+Please note that **non-library aggregate project files are currently not
+supported** and will be rejected by |gcv|. The aggregated projects will have
+to be processed individually and coverage reports consolidated
+:ref:`through checkpoints<checkpoints>`, when this makes sense.
+
+
 Conveying *projects* of interest
 ********************************
 

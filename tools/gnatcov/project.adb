@@ -1321,6 +1321,15 @@ package body Project is
          Env.Set_Object_Subdir (+(+Obj_Subdir));
       end if;
 
+      --  We do not support non-library aggregate projects, no need to go
+      --  further.
+
+      if Prj_Tree.Root_Project.Is_Aggregate_Project and then
+        not Prj_Tree.Root_Project.Is_Aggregate_Library
+      then
+         Fatal_Error ("non-library aggregate projects are not supported");
+      end if;
+
       --  If we were asked only to load the project file, stop there (i.e.
       --  before computing the list of projects/units of interest).
 
