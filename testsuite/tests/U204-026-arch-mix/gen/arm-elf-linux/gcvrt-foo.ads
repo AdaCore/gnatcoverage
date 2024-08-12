@@ -20,6 +20,6 @@ package GCVRT.Foo is
       3 => gnatcov_rts_buffers_z3791e32c_buffers'Access);
    C_List : constant GNATcov_RTS.Buffers.Lists.GNATcov_RTS_Coverage_Buffers_Group_Array :=
       ( 3, List'Address);
-   pragma Export (C, C_List, "gnatcov_rts_buffers_array_Foo");
+   pragma Export (C, C_List, "gnatcov_rts_buffers_array_foo");
 
 end GCVRT.Foo;

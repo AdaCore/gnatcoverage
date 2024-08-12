@@ -1175,7 +1175,7 @@ package body SC_Obligations is
          SCOD.Dominant_Value := CLS.Read_Tristate;
          SCOD.Dominant_Sloc  := CLS.Read_Source_Location;
          SCOD.Handler_Range  := CLS.Read_Source_Location_Range;
-         SCOD.Pragma_Name    := Pragma_Id'Val (CLS.Read_U8);
+         SCOD.Pragma_Name    := Pragma_Id'Val (CLS.Read_U16);
 
          --  See the TODO in the declaration of Checkpoint_Version
 
@@ -1929,7 +1929,7 @@ package body SC_Obligations is
          CSS.Write     (Value.Dominant_Value);
          CSS.Write     (Value.Dominant_Sloc);
          CSS.Write     (Value.Handler_Range);
-         CSS.Write_U8  (Pragma_Id'Pos (Value.Pragma_Name));
+         CSS.Write_U16 (Pragma_Id'Pos (Value.Pragma_Name));
 
       when Condition =>
          CSS.Write           (Value.Value);
