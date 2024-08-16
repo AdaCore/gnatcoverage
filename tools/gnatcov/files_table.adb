@@ -29,7 +29,6 @@ with Osint;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
-with ALI_Files;     use ALI_Files;
 with Checkpoints;   use Checkpoints;
 with Coverage;      use Coverage;
 with Outputs;
@@ -1706,11 +1705,14 @@ package body Files_Table is
       end if;
    end Sloc_To_SCO_Map;
 
-   -------------------------
-   -- Populate_Exemptions --
-   -------------------------
+   --------------------------
+   -- Populate_Annotations --
+   --------------------------
 
-   procedure Populate_Exemptions (FI : Source_File_Index) is
+   procedure Populate_Annotations
+     (FI   : Source_File_Index;
+      Kind : ALI_Region_Annotation_Kind)
+   is
       use ALI_Annotation_Maps;
       Info : File_Info renames Files_Table (FI).all;
 
@@ -1721,11 +1723,18 @@ package body Files_Table is
       --  expanded later if we find that there are exemption annotations past
       --  this line.
 
+      Annotations        : constant ALI_Annotation_Maps.Map :=
+        Get_Annotations (FI);
       Annotation_Cur     : Cursor :=
-        ALI_Annotations.Ceiling ((FI, (Current_Line_Num, 0)));
+        Annotations.Ceiling ((FI, (Current_Line_Num, 0)));
       Next_Annot_Cur     : Cursor;
       Current_Annot_Sloc : Source_Location;
       Current_Annotation : ALI_Annotation;
+
+      Start_Annotation : constant ALI_Annotation_Kind :=
+        (case Kind is
+            when Exemption        => Exempt_On,
+            when Disable_Coverage => Cov_Off);
 
       function Annotation_In_File (Cur : Cursor) return Boolean is
         (Has_Element (Cur) and then Key (Cur).Source_File = FI);
@@ -1752,47 +1761,53 @@ package body Files_Table is
          return;
       end if;
 
-      --  Iterate on all the lines and mark those in an active exemption
+      --  Iterate on all the lines and mark those in an active annotated
       --  region.
       --
       --  The complexity in the loop bellow stems from two factors to keep in
       --  mind when reading the code:
-      --  - Exemption annotations do not always have a corresponding SCO,
-      --    this is currently always true for Ada sources, but always false
+      --  - Annotations do not always have a corresponding SCO, this is
+      --    currently always true for Ada sources, but always false
       --    for C sources.
-      --  - We cannot expect an Exempt_On annotation to be followed by an
-      --    Exempt_Off annotation: there could be multiple annotations of the
-      --    same kind back to back, or we could very well have a lone annoation
-      --    in a file.
+      --  - We cannot expect a annotation to be followed by an end annotation:
+      --    there could be multiple annotations of the same kind back to back,
+      --    or we could very well have a lone annotation in a file.
 
       loop
-         --  If we are in an active exemption region but have reached the end
-         --  of the registered lines, allocate lines until the next exemption
-         --  annotation of this file. If there is no next annotation in the
-         --  file, simply exit the loop.
+         --  If we are in an active annotated region but have reached the end
+         --  of the registered lines, allocate lines until the next annotation
+         --  of this file. If there is no next annotation in the file, simply
+         --  exit the loop.
          --
-         --  This implies that if the last annotation of a file is Exempt_On,
-         --  all the lines starting at the annotation until the last line with
-         --  a SCO will be marked as exempted. We can't go up to the actual end
-         --  of the file because we don't have the actual number of lines of
-         --  the file. In practice this is ok because the lines that we won't
-         --  process are lines without SCOs in them.
+         --  This implies that if the last annotation of a file is a start
+         --  annotation, all the lines starting at the annotation until the
+         --  last line with a SCO will be annotated. We can't go up to the
+         --  actual end of the file because we don't have the actual number of
+         --  lines of the file. In practice this is ok because the lines that
+         --  we won't process are lines without SCOs in them.
 
          if Current_Line_Num > Last_Line_Num then
             exit when not
-              (Current_Annotation.Kind = Exempt_On
+              (Current_Annotation.Kind = Start_Annotation
                and then Annotation_In_File (Next_Annot_Cur));
             Last_Line_Num := Key (Next_Annot_Cur).L.Line;
             Expand_Line_Table (FI, Last_Line_Num);
          end if;
 
-         --  Annotate lines when we are in an active exemption region,
+         --  Annotate lines when we are in an active annotated region,
          --  otherwise skip lines until the next annotation if it exists, or
          --  exit the loop if there is no more annotations.
 
-         if Current_Annotation.Kind = Exempt_On then
-            Info.Lines.Element
-              (Current_Line_Num).all.Exemption := Current_Annot_Sloc;
+         if Current_Annotation.Kind = Start_Annotation then
+            case Kind is
+               when Exemption =>
+                  Info.Lines.Element
+                    (Current_Line_Num).all.Exemption := Current_Annot_Sloc;
+
+               when Disable_Coverage =>
+                  Info.Lines.Element
+                    (Current_Line_Num).all.Disabled_Cov := Current_Annot_Sloc;
+            end case;
          else
             exit when not Annotation_In_File (Next_Annot_Cur);
             Current_Line_Num := Key (Next_Annot_Cur).L.Line;
@@ -1802,7 +1817,7 @@ package body Files_Table is
            and then Current_Line_Num = Key (Next_Annot_Cur).L.Line
          then
             --  We do not bump the line number here so that lines corresponding
-            --  to an exempt_on or exempt_off are processed twice, one for each
+            --  to the start / end annotation are processed twice, one for each
             --  kind of annotation, and thus end up in the annotated region.
 
             Annotation_Cur := Next_Annot_Cur;
@@ -1814,7 +1829,7 @@ package body Files_Table is
             Current_Line_Num := Current_Line_Num + 1;
          end if;
       end loop;
-   end Populate_Exemptions;
+   end Populate_Annotations;
 
    ----------------
    -- To_Display --

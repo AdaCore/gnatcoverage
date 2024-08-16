@@ -41,7 +41,6 @@ with Libadalang.Sources;       use Libadalang.Sources;
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.Utils;
 
-with ALI_Files;        use ALI_Files;
 with Coverage_Options; use Coverage_Options;
 with Coverage;         use Coverage;
 with Diagnostics;      use Diagnostics;
@@ -1127,13 +1126,13 @@ package body Instrument.Ada_Unit is
 
    procedure Enter_Scope
      (UIC  : in out Ada_Unit_Inst_Context;
-      Sloc : Source_Location;
+      N    : Ada_Node'Class;
       Decl : Basic_Decl);
    --  Enter a scope. This must be completed with a call to the function
-   --  Exit_Scope, defined below. Scope_Name is the name of the scope, which
-   --  is defined at location Sloc. Assume that the scope first SCO is the next
-   --  generated SCO (SCOs.SCO_Table.Last + 1). Update UIC.Current_Scope_Entity
-   --  to the created entity.
+   --  Exit_Scope, defined below. Assume that the scope first SCO is the next
+   --  generated SCO (SCOs.SCO_Table.Last + 1), and also assume that Decl
+   --  refers to the the specification of N, to uniquely identify the scope.
+   --  Update UIC.Current_Scope_Entity to the created entity.
 
    procedure Exit_Scope (UIC : in out Ada_Unit_Inst_Context);
    --  Exit the current scope, updating UIC.Current_Scope_Entity to
@@ -3326,6 +3325,9 @@ package body Instrument.Ada_Unit is
             else Insertion_N);
 
       begin
+         if UIC.Disable_Coverage then
+            return;
+         end if;
          case Kind (N) is
             when Ada_Accept_Stmt | Ada_Accept_Stmt_With_Stmts =>
 
@@ -3649,16 +3651,27 @@ package body Instrument.Ada_Unit is
          --  arguments expected for that kind.
 
          case Result.Kind is
-            when Exempt_On =>
+            when Exempt_On | Cov_Off =>
 
                --  Expected formats:
-               --  * (Xcov, Exempt_On)
-               --  * (Xcov, Exempt_On, "Justification")
+               --  * (Xcov, <Annotation_Kind>)
+               --  * (Xcov, <Annotation_Kind>, "Justification")
 
+               if Result.Kind = Cov_Off then
+                  UIC.Disable_Coverage := True;
+               end if;
                case Nb_Children is
                when 2 =>
-                  Report
-                    (N, "No justification given for exempted region", Warning);
+                  if Result.Kind = Exempt_On then
+                     Report
+                       (N, "No justification given for exempted region",
+                        Warning);
+                  elsif Result.Kind = Cov_Off then
+                     Report
+                       (N,
+                        "No justification given for disabled coverage region",
+                        Warning);
+                  end if;
                   UIC.Annotations.Append
                     (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
 
@@ -3696,9 +3709,18 @@ package body Instrument.Ada_Unit is
                     (N, "At most 2 pragma arguments allowed", Warning);
                   return;
                end if;
-
                UIC.Annotations.Append
-                    (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+                 (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+
+            when Cov_On =>
+               if Nb_Children > 2 then
+                  Report
+                    (N, "At most 2 pragma arguments allowed", Warning);
+                  return;
+               end if;
+               UIC.Disable_Coverage := False;
+               UIC.Annotations.Append
+                 (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
 
             when Dump_Buffers =>
 
@@ -4229,7 +4251,7 @@ package body Instrument.Ada_Unit is
          --  There is nothing else to do if we gave up instrumenting this
          --  subprogram.
 
-         if UIC.Disable_Instrumentation then
+         if UIC.Disable_Instrumentation or else UIC.Disable_Coverage then
             UIC.Disable_Instrumentation := Save_Disable_Instrumentation;
             return;
          end if;
@@ -4414,7 +4436,7 @@ package body Instrument.Ada_Unit is
 
          Enter_Scope
            (UIC  => UIC,
-            Sloc => Sloc (N),
+            N    => N,
             Decl => (if Prev_Part.Is_Null then N else Prev_Part));
          Start_Statement_Block (UIC);
 
@@ -5089,7 +5111,7 @@ package body Instrument.Ada_Unit is
             =>
                Enter_Scope
                  (UIC  => UIC,
-                  Sloc => Sloc (N),
+                  N    => N,
                   Decl => N.As_Basic_Decl);
                Instrument_Statement
                  (UIC, N,
@@ -5433,7 +5455,7 @@ package body Instrument.Ada_Unit is
       UIC.Ghost_Code := Safe_Is_Ghost (N);
       Enter_Scope
         (UIC  => UIC,
-         Sloc => Sloc (N),
+         N    => N,
          Decl => Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
@@ -5465,7 +5487,7 @@ package body Instrument.Ada_Unit is
       UIC.Ghost_Code := Safe_Is_Ghost (N);
       Enter_Scope
         (UIC  => UIC,
-         Sloc => Sloc (N),
+         N    => N,
          Decl => N.As_Basic_Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
@@ -5617,7 +5639,7 @@ package body Instrument.Ada_Unit is
       begin
          Enter_Scope
            (UIC  => UIC,
-            Sloc => Sloc (N),
+            N    => N,
             Decl => Decl);
       end;
 
@@ -6298,7 +6320,7 @@ package body Instrument.Ada_Unit is
          --  Start of processing for Process_Decisions
 
       begin
-         if N.Is_Null then
+         if N.Is_Null or else UIC.Disable_Coverage then
             return;
          end if;
          Hash_Entries.Init;
@@ -6890,9 +6912,14 @@ package body Instrument.Ada_Unit is
 
    procedure Enter_Scope
      (UIC  : in out Ada_Unit_Inst_Context;
-      Sloc : Source_Location;
+      N    : Ada_Node'Class;
       Decl : Basic_Decl)
    is
+      function Local_Sloc
+        (Sloc : Source_Location) return Slocs.Local_Source_Location
+      is ((Line   => Natural (Sloc.Line),
+           Column => Natural (Sloc.Column)));
+
       Decl_SFI      : constant Source_File_Index :=
         Get_Index_From_Generic_Name
           (Decl.Unit.Get_Filename,
@@ -6901,11 +6928,11 @@ package body Instrument.Ada_Unit is
       New_Scope_Ent : constant Scope_Entity :=
         (From       => SCO_Id (SCOs.SCO_Table.Last + 1),
          To         => No_SCO_Id,
+         Start_Sloc => Local_Sloc (Start_Sloc (N.Sloc_Range)),
+         End_Sloc   => Local_Sloc (End_Sloc (N.Sloc_Range)),
          Name       =>
            +Langkit_Support.Text.To_UTF8 (Decl.P_Defining_Name.F_Name.Text),
-         Sloc       =>
-           (Line   => Natural (Sloc.Line),
-            Column => Natural (Sloc.Column)),
+         Sloc       => Local_Sloc (Sloc (N)),
          Identifier =>
            (Decl_SFI  => Decl_SFI,
             Decl_Line => Natural (Decl.Sloc_Range.Start_Line)));
@@ -9160,6 +9187,11 @@ package body Instrument.Ada_Unit is
             File.Put_Line ("      Bit_Maps_Fingerprint => "
                            & Format_Fingerprint
                              (SC_Obligations.Bit_Maps_Fingerprint (CU))
+                           & ",");
+
+            File.Put_Line ("      Annotations_Fingerprint => "
+                           & Format_Fingerprint
+                             (SC_Obligations.Annotations_Fingerprint (CU))
                            & ",");
 
             File.Put_Line ("      Statement => Statement_Buffer'Address,");

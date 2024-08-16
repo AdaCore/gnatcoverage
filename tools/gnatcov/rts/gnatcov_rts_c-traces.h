@@ -32,8 +32,9 @@ extern "C"
    0 -- initial version
    1 -- extend trace entry model to account for C files
    2 -- introduce fingerprints for bit maps
-   3 -- remove the project name from trace entries  */
-#define GNATCOV_RTS_CURRENT_VERSION 3
+   3 -- remove the project name from trace entries
+   3 -- introduce fingerprints for annotations  */
+#define GNATCOV_RTS_CURRENT_VERSION 4
 
 /* LSB_First_Bytes: bit buffers are encoded as sequences of bytes.
 
@@ -142,9 +143,14 @@ extern "C"
        from SID files.  */
     uint8_t bit_maps_fingerprint[20];
 
+    /* Hash of annotations for this unit, as gnatcov computes it (see
+       SC_Obligations). Used as a fast way to check that source traces and
+       coverage data are consistent.  */
+    uint8_t annotations_fingerprint[20];
+
     /* Padding used only to make the size of this trace entry header a multiple
        of 8 bytes. Must be zero.  */
-    uint8_t padding[5];
+    uint8_t padding[1];
   };
 
 #ifdef __cplusplus

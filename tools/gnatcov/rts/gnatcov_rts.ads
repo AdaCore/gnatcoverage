@@ -42,7 +42,7 @@ package GNATcov_RTS is
    pragma Warnings (Off, Std);
    pragma Warnings (Off, Sys);
 
-   Version : constant := 7;
+   Version : constant := 8;
    --  For compatibility with the GNATcoverage in use, GNATcov_RTS is
    --  versioned.
    --
@@ -54,5 +54,6 @@ package GNATcov_RTS is
    --       the associated Witness function.
    --  6 -- buffer clear mechanism and trace filename indices
    --  7 -- enable inlining of witness subprograms
+   --  8 -- introduce fingerprints for annotations
 
 end GNATcov_RTS;

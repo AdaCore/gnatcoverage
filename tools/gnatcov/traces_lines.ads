@@ -43,6 +43,9 @@ package Traces_Lines is
       --  Code present but coverage assessment impossible (for instance code
       --  not instrumented).
 
+      Disabled_Coverage,
+      --  Coverage analysis was disabled for this line
+
       Exempted_With_Violation,
       --  Exempted line in an exemption block that has a violation
 
@@ -59,7 +62,7 @@ package Traces_Lines is
      );
 
    subtype Line_State is Any_Line_State
-     range Not_Covered .. Undetermined_Coverage;
+     range Not_Covered .. Disabled_Coverage;
    --  Non-exempted line state
 
    type State_Char_Array is array (Any_Line_State) of Character;
@@ -74,6 +77,7 @@ private
      (No_Code                        => '.',
       Not_Coverable                  => '0',
       Undetermined_Coverage          => '?',
+      Disabled_Coverage              => 'D',
       Not_Covered                    => '-',
       Partially_Covered              => '!',
       Covered                        => '+',

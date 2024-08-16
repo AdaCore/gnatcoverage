@@ -27,6 +27,7 @@ package Buffers_1 is
       Unit_Part => Unit_Body,
       Unit_Name => (Unit_Name'Address, Unit_Name'Length),
       Bit_Maps_Fingerprint => (14, 208, 170, 79, 214, 204, 239, 198, 105, 130, 182, 250, 66, 192, 111, 106, 70, 106, 188, 135),
+      Annotations_Fingerprint => (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
       Statement => Statement_Buffer'Address,
       Decision  => Decision_Buffer'Address,
       MCDC      => MCDC_Buffer'Address,

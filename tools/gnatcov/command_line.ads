@@ -575,9 +575,9 @@ package Command_Line is
       Opt_Cancel_Annotate => Create
         (Long_Name => "--cancel-annotate",
          Help      => "Prevent gnatcov from generating a coverage report if"
-                      & "one was requested by --annotate. This option requires"
-                      & " --save-checkpoint to also be specified on the"
-                      & "command line.",
+                      & " one was requested by --annotate. This option"
+                      & " requires --save-checkpoint to also be specified on"
+                      & " the command line.",
          Commands  => (Cmd_Coverage => True, others => False),
          Internal  => True),
 

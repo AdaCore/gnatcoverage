@@ -32,13 +32,14 @@ package Instrument.Input_Traces is
         (Kind : Traces_Source.Supported_Info_Kind;
          Data : String) is <>;
       with procedure On_Trace_Entry
-        (Filename             : String;
-         Fingerprint          : SC_Obligations.Fingerprint_Type;
-         CU_Name              : Compilation_Unit_Part;
-         Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
-         Stmt_Buffer          : Coverage_Buffer;
-         Decision_Buffer      : Coverage_Buffer;
-         MCDC_Buffer          : Coverage_Buffer) is <>;
+        (Filename                : String;
+         Fingerprint             : SC_Obligations.Fingerprint_Type;
+         CU_Name                 : Compilation_Unit_Part;
+         Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
+         Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
+         Stmt_Buffer             : Coverage_Buffer;
+         Decision_Buffer         : Coverage_Buffer;
+         MCDC_Buffer             : Coverage_Buffer) is <>;
    procedure Generic_Read_Source_Trace_File
      (Filename : String;
       Result   : out Traces_Files.Read_Result);

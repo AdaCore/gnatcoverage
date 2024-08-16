@@ -40,7 +40,8 @@ trace_entry_header_struct = Struct(
     ("bit_buffer_encoding", "B"),
     ("fingerprint", "20B"),
     ("bit_maps_fingerprint", "20B"),
-    ("padding", "5B"),
+    ("annotations_fingerprint", "20B"),
+    ("padding", "B"),
 )
 
 
@@ -94,7 +95,7 @@ class SrcTraceFile(object):
 
     MAGIC = b"GNATcov source trace file" + b"\x00" * 7
 
-    FORMAT_VERSION = 3
+    FORMAT_VERSION = 4
 
     ENDIANITY_NAMES = {
         0: "little-endian",
@@ -200,12 +201,18 @@ class SrcTraceFile(object):
         print("")
         for e in self.entries:
             print(
-                "  Unit {} ({}, SCOS hash={}, bit maps hash={})".format(
+                (
+                    "  Unit {} ({}, SCOS hash={}, bit maps hash={}, "
+                    " annotations hash={})"
+                ).format(
                     e.unit_name,
                     e.unit_part,
                     "".join("{:02x}".format(b) for b in e.fingerprint),
                     "".join(
                         "{:02x}".format(b) for b in e.bit_maps_fingerprint
+                    ),
+                    "".join(
+                        "{:02x}".format(b) for b in e.annotations_fingerprint
                     ),
                 )
             )
@@ -295,6 +302,7 @@ class TraceEntry(object):
         unit_name,
         fingerprint,
         bit_maps_fingerprint,
+        annotations_fingerprint,
         stmt_buffer,
         dc_buffer,
         mcdc_buffer,
@@ -304,6 +312,7 @@ class TraceEntry(object):
         self.unit_name = unit_name
         self.fingerprint = fingerprint
         self.bit_maps_fingerprint = bit_maps_fingerprint
+        self.annotations_fingerprint = annotations_fingerprint
         self.stmt_buffer = stmt_buffer
         self.dc_buffer = dc_buffer
         self.mcdc_buffer = mcdc_buffer
@@ -322,7 +331,7 @@ class TraceEntry(object):
 
             language = cls.LANGUAGE_NAMES[header["language"]]
 
-            if header["padding"] != (0, 0, 0, 0, 0):
+            if header["padding"] != 0:
                 raise ValueError(
                     "Invalid padding: {}".format(header["padding"])
                 )
@@ -361,6 +370,7 @@ class TraceEntry(object):
             unit_name,
             header["fingerprint"],
             header["bit_maps_fingerprint"],
+            header["annotations_fingerprint"],
             stmt_buffer,
             dc_buffer,
             mcdc_buffer,
@@ -382,7 +392,8 @@ class TraceEntry(object):
                 ],
                 "fingerprint": self.fingerprint,
                 "bit_maps_fingerprint": self.bit_maps_fingerprint,
-                "padding": (0, 0, 0, 0, 0),
+                "annotations_fingerprint": self.annotations_fingerprint,
+                "padding": 0,
             },
             big_endian=big_endian,
         )

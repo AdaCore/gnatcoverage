@@ -2023,13 +2023,14 @@ package body Coverage.Source is
    end Refine_Source_Coverage;
 
    procedure Compute_Source_Coverage
-     (Filename             : String;
-      Fingerprint          : SC_Obligations.Fingerprint_Type;
-      CU_Name              : Compilation_Unit_Part;
-      Bit_Maps_Fingerprint : SC_Obligations.Fingerprint_Type;
-      Stmt_Buffer          : Coverage_Buffer;
-      Decision_Buffer      : Coverage_Buffer;
-      MCDC_Buffer          : Coverage_Buffer)
+     (Filename                : String;
+      Fingerprint             : SC_Obligations.Fingerprint_Type;
+      CU_Name                 : Compilation_Unit_Part;
+      Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
+      Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
+      Stmt_Buffer             : Coverage_Buffer;
+      Decision_Buffer         : Coverage_Buffer;
+      MCDC_Buffer             : Coverage_Buffer)
    is
       CU : CU_Id;
       BM : CU_Bit_Maps;
@@ -2128,6 +2129,9 @@ package body Coverage.Source is
       if Fingerprint /= SC_Obligations.Fingerprint (CU)
            or else
          Bit_Maps_Fingerprint /= SC_Obligations.Bit_Maps_Fingerprint (CU)
+        or else
+          Annotations_Fingerprint /=
+            SC_Obligations.Annotations_Fingerprint (CU)
       then
          Warn ("traces for " & Unit_Image  & " (from " & Filename & ") are"
                & " inconsistent with the corresponding Source Instrumentation"

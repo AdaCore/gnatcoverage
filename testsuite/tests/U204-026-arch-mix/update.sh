@@ -23,4 +23,4 @@ cp -rf /tmp/U204-026-arch-mix/* .
 /tmp/iod-dev/create-base.py --base-image x86_64-windows-2019
 git_branch=$(git rev-parse --abbrev-ref HEAD)
 sshpass ssh iod 'bash -s' < update_arch_mix_windows.sh $git_branch
-rsync -av iod:/Users/itmgr/gnatcoverage/testsuite/tests/U204-026-arch-mix/gen/x86_64-windows/* gen/x86_64-windows/
+rsync -av iod:/cygdrive/c/tmp/U204-026-arch-mix/gen/* gen/

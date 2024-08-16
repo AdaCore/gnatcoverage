@@ -872,7 +872,7 @@ def xcov(
     Run xcov with arguments ARGS, timeout control, valgrind control if
     available and enabled, output directed to OUT and failure registration if
     register_failure is True. Return the process status descriptor. ARGS may be
-    a list or a whitespace separated string.
+    a list or a whitespace separated strings.
 
     If AUTO_LANGUAGES is True, the gnatcov sub-command is "instrument" and the
     testsuite is not in qualification mode, automatically pass the

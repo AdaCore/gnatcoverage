@@ -566,27 +566,31 @@ package body Annotations.Xml is
    is
       use Scope_Entities_Trees;
 
-      procedure Pp_Scope_Entity (Cur : Cursor);
+      procedure Pp_Scope_Entity (Cur : Cursor; Is_Root : Boolean := False);
 
       ---------------------
       -- Pp_Scope_Entity --
       ---------------------
 
-      procedure Pp_Scope_Entity (Cur : Cursor)
+      procedure Pp_Scope_Entity (Cur : Cursor; Is_Root : Boolean := False)
       is
          Scope_Ent : constant Scope_Entity := Element (Cur);
          Child     : Cursor := First_Child (Cur);
+
+         File_Info  : constant File_Info_Access := Get_File (File);
+         Line_Stats : constant Li_Stat_Array :=
+           Line_Metrics
+             (File_Info,
+              Scope_Ent.Start_Sloc.Line,
+              (if Is_Root then Last_Line (File_Info)
+               else Scope_Ent.End_Sloc.Line));
+         --  Adjust Scope_Ent.End_Sloc for the root node as it is
+         --  No_Local_Location by default.
       begin
          Pp.ST ("scope_metric",
                 A ("scope_name", Scope_Ent.Name)
                 & A ("scope_line", Img (Scope_Ent.Sloc.Line)));
-         Print_Coverage_Li_Stats
-           (Pp,
-            Line_Metrics
-              (Get_File (File),
-               First_Sloc (Scope_Ent.From).L.Line,
-               Last_Sloc (Scope_Ent.To).L.Line),
-            Dest_Compilation_Unit);
+         Print_Coverage_Li_Stats (Pp, Line_Stats, Dest_Compilation_Unit);
          Print_Coverage_Ob_Stats
            (Pp,
             Obligation_Metrics (Scope_Ent.From, Scope_Ent.To),
@@ -600,7 +604,7 @@ package body Annotations.Xml is
 
    begin
       for Cur in Scope_Entities.Iterate_Children (Scope_Entities.Root) loop
-         Pp_Scope_Entity (Cur);
+         Pp_Scope_Entity (Cur, Is_Root => True);
       end loop;
    end Pretty_Print_Scope_Entities;
 
@@ -626,14 +630,12 @@ package body Annotations.Xml is
       Line     : String)
    is
       Coverage_State : constant String :=
-                         (1 => State_Char (Aggregated_State (Info.all)));
-      Exempted : constant Boolean := Info.Exemption /= Slocs.No_Location;
+        (1 => State_Char (Aggregated_State (Info.all)));
    begin
       Pp.ST ("src_mapping", A ("coverage", Coverage_State));
       Pp.ST ("src");
       Pp.T ("line",
             A ("num", Img (Line_Num))
-            & A ("exempted", Exempted'Img)
             & A ("src", Line));
       Pp.ET ("src");
    end Pretty_Print_Start_Line;
@@ -934,6 +936,7 @@ package body Annotations.Xml is
                           Stats (Exempted_With_Violation));
       Print_Metric_Ratio ("exempted_undetermined_coverage",
                           Stats (Exempted_With_Undetermined_Cov));
+      Print_Metric_Ratio ("disabled_coverage", Stats (Disabled_Coverage));
 
    end Print_Coverage_Stats;
 

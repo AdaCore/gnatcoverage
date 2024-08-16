@@ -61,7 +61,7 @@ package body Traces_Lines is
                when Not_Covered =>
                   return Line_State'Min (L, Partially_Covered);
 
-               when Partially_Covered =>
+               when Partially_Covered | Disabled_Coverage =>
                   return R;
 
                when Covered =>

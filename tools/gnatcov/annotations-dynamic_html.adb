@@ -412,6 +412,8 @@ package body Annotations.Dynamic_Html is
       Line_Stats.Set_Field
         ("undeterminedCoverage", Info.Li_Stats (Undetermined_Coverage));
       Line_Stats.Set_Field
+        ("disabledCoverage", Info.Li_Stats (Disabled_Coverage));
+      Line_Stats.Set_Field
         ("exemptedNoViolation", Info.Li_Stats (Exempted_No_Violation));
       Line_Stats.Set_Field
         ("exemptedWithViolation", Info.Li_Stats (Exempted_With_Violation));
@@ -562,17 +564,22 @@ package body Annotations.Dynamic_Html is
    is
       use Scope_Entities_Trees;
 
-      function To_JSON (Cur : Cursor) return JSON_Value;
+      function To_JSON
+        (Cur     : Cursor;
+         Is_Root : Boolean := False) return JSON_Value;
       --  Convert a scope entity to a JSON scoped metric: compute line and
       --  obligation statistics for the given scope and recursively for
-      --  child scopes. Store the result as a JSON object, with the name and
-      --  the line of the scope.
+      --  child scopes. Is_Root indicates whether the given Cur is the root
+      --  scope. Store the result as a JSON object, with the name and the line
+      --  of the scope.
 
       -------------
       -- To_JSON --
       -------------
 
-      function To_JSON (Cur : Cursor) return JSON_Value
+      function To_JSON
+        (Cur     : Cursor;
+         Is_Root : Boolean := False) return JSON_Value
       is
          Scope_Ent : constant Scope_Entity := Element (Cur);
          Child     : Cursor := First_Child (Cur);
@@ -581,11 +588,16 @@ package body Annotations.Dynamic_Html is
          Children_Scope_Metrics_JSON : JSON_Array;
          --  Representation of the scope metrics for the html format
 
+         File_Info  : constant File_Info_Access := Get_File (File);
          Line_Stats : constant Li_Stat_Array :=
            Line_Metrics
-             (Get_File (File),
-              First_Sloc (Scope_Ent.From).L.Line,
-              Last_Sloc (Scope_Ent.To).L.Line);
+             (File_Info,
+              Scope_Ent.Start_Sloc.Line,
+              (if Is_Root then Last_Line (File_Info)
+               else Scope_Ent.End_Sloc.Line));
+         --  Adjust Scope_Ent.End_Sloc for the root node as it is
+         --  No_Local_Location by default.
+
          Ob_Stats   : constant Ob_Stat_Array :=
            Obligation_Metrics (Scope_Ent.From, Scope_Ent.To);
       begin
@@ -604,7 +616,7 @@ package body Annotations.Dynamic_Html is
 
    begin
       for Cur in Scope_Entities.Iterate_Children (Scope_Entities.Root) loop
-         Pp.Scope_Metrics := To_JSON (Cur);
+         Pp.Scope_Metrics := To_JSON (Cur, Is_Root => True);
       end loop;
    end Pretty_Print_Scope_Entities;
 
@@ -620,7 +632,6 @@ package body Annotations.Dynamic_Html is
    is
       Coverage_State : constant String :=
                          (1 => State_Char (Aggregated_State (Info.all)));
-      Exempted       : constant Boolean := Info.Exemption /= Slocs.No_Location;
 
       Mapping  : constant JSON_Value := Create_Object;
       Line_Obj : constant JSON_Value := Create_Object;
@@ -631,7 +642,6 @@ package body Annotations.Dynamic_Html is
       Clear (Pp.Current_Conditions);
 
       Line_Obj.Set_Field ("lineNumber", Img (Line_Num));
-      Line_Obj.Set_Field ("exempted", Exempted'Img);
       Line_Obj.Set_Field ("src", Line);
 
       Mapping.Set_Field ("coverage", Coverage_State);
@@ -991,6 +1001,7 @@ package body Annotations.Dynamic_Html is
       Set_If_Not_Null ("notCovered", Stats (Not_Covered));
       Set_If_Not_Null ("notCoverable", Stats (Not_Coverable));
       Set_If_Not_Null ("undeterminedCoverage", Stats (Undetermined_Coverage));
+      Set_If_Not_Null ("disabledCoverage", Stats (Disabled_Coverage));
       Set_If_Not_Null ("exemptedNoViolation", Stats (Exempted_No_Violation));
       Set_If_Not_Null
         ("exemptedWithViolation", Stats (Exempted_With_Violation));

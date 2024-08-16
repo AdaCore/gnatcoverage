@@ -58,7 +58,6 @@ with GNAT.Regpat; use GNAT.Regpat;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 
-with ALI_Files;      use ALI_Files;
 with Files_Handling; use Files_Handling;
 with Files_Table;    use Files_Table;
 with Namet;          use Namet;
@@ -319,7 +318,7 @@ package Instrument.Common is
    --  * collect couples of sloc/annotations during the tree traversal;
    --  * once the CU_Id for the instrumented file is known, fill in the
    --    Annotation.CU component and add the sloc/annotation couple to
-   --    ALI_Files.ALI_Annotation map.
+   --    the ALI_Annotation map of the right SC_Obligations.CU_Vector entry.
    --
    --  This record type is just a helper to hold data between these two steps.
 
@@ -345,12 +344,14 @@ package Instrument.Common is
 
       Annotations : Annotation_Vectors.Vector;
       --  Annotations created during the instrumentation process, to insert in
-      --  ALI_Files.ALI_Annotations afterwards, when the compilation unit
-      --  (SC_Obligations.CU_Info) for this annotation is ready.
+      --  CU_Info.ALI_Annotations afterwards.
 
       Disable_Instrumentation : Boolean := False;
       --  Set to True to deactivate instrumentation and prevent any code
       --  rewriting.
+
+      Disable_Coverage : Boolean := False;
+      --  Set to True to deactivate instrumentation and SCO emissions
 
       Non_Instr_LL_SCOs : SCO_Sets.Set;
       --  Set of low level SCO ids that were not instrumented
@@ -375,7 +376,7 @@ package Instrument.Common is
      (Strings.Img (Integer (Bit)));
 
    Runtime_Version_Check : constant String :=
-     "pragma Compile_Time_Error (GNATcov_RTS.Version /= 7, "
+     "pragma Compile_Time_Error (GNATcov_RTS.Version /= 8, "
      & """Incompatible GNATcov_RTS version, please use"
      & " the GNATcov_RTS project provided with your"
      & " GNATcoverage distribution."");";
