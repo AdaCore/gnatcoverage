@@ -18,5 +18,8 @@ In addition, also install the sshpass utility, available through apt:
 apt install -y sshpass
 ```
 
+In order for the update to work on windows, push the contents of your branch to
+the eng/das/cov/gnatcoverage origin remote.
+
 Then, to update instrumentation and trace artifacts for all hosts / targets,
 run the `update.sh` script.
