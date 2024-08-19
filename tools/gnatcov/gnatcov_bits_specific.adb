@@ -32,7 +32,6 @@ with System.Multiprocessors;
 
 with Snames;
 
-with ALI_Files;
 with Annotations.Cobertura;
 with Annotations.Sarif;
 with Annotations.Dynamic_Html;
@@ -322,7 +321,7 @@ procedure GNATcov_Bits_Specific is
          --  get exemptions as they apply to instruction/branch coverage.
 
          for Filename of ALIs_Inputs loop
-            ALI_Files.Load_ALI (+Filename);
+            Load_ALI (+Filename);
          end loop;
       end if;
 

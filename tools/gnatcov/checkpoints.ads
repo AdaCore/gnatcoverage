@@ -19,10 +19,10 @@
 --  This unit controls the generation and processing of coverage state
 --  checkpoint files for incremental coverage.
 
-with Ada.Containers;        use Ada.Containers;
+with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Multiway_Trees;
 with Ada.Containers.Vectors;
-with Ada.Streams;           use Ada.Streams;
+with Ada.Streams;    use Ada.Streams;
 with Interfaces;
 
 with GNAT.Regexp;
@@ -39,7 +39,7 @@ with Traces_Source;  use Traces_Source;
 
 package Checkpoints is
 
-   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 15;
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 16;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
@@ -59,6 +59,7 @@ package Checkpoints is
    --  13 -- Extend Files_Table.File_Info to distinguish homonym source files
    --  14 -- Extend CU_Info to implement block coverage
    --  15 -- Increase size of Pragma_Id after addition of 255th pragma
+   --  16 -- Extend Scope_Entity to include the Start/End_Sloc of the scope
    --
    --  Note that we always use the last version when creating a checkpoint.
    --
@@ -232,14 +233,22 @@ package Checkpoints is
    --  the current run.
 
    procedure Remap_SFI
-     (Relocs             : Checkpoint_Relocations;
-      CP_SFI             : in out Source_File_Index) with
+     (Relocs : Checkpoint_Relocations;
+      CP_SFI : in out Source_File_Index) with
      Pre => not SFI_Ignored (Relocs, CP_SFI);
    --  Remap one source file index.
    --
    --  If CP_SFI is No_Source_File then it's returned unchanged. If it is
    --  any other value, then it is remapped to the corresponding value in
    --  the current run.
+
+   --  A stream associated with global state shared across phases of a
+   --  checkpoint load or save.
+
+   procedure Remap_ALI_Annotations
+     (Relocs             : Checkpoint_Relocations;
+      CP_ALI_Annotations : in out ALI_Annotation_Maps.Map);
+   --  Remap one source file index.
 
    --  A stream associated with global state shared across phases of a
    --  checkpoint load or save.

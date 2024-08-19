@@ -21,7 +21,6 @@ with Ada.Containers.Vectors;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Text_IO;             use Ada.Text_IO;
 
-with ALI_Files;
 with Calendar_Utils;   use Calendar_Utils;
 with Coverage;         use Coverage;
 with Coverage.Source;  use Coverage.Source;
@@ -102,6 +101,9 @@ package body Annotations.Report is
 
       Exemption : Slocs.Source_Location := Slocs.No_Location;
       --  Exemption sloc applying to current line, if any
+
+      Disabled_Cov : Slocs.Source_Location := Slocs.No_Location;
+      --  Disabled coverage sloc applying to current line, if any
 
       Nonexempted_Messages : Messages_Array;
       --  All output messages, classified by section according to relevant
@@ -277,15 +279,23 @@ package body Annotations.Report is
    ----------------------
 
    procedure Pretty_Print_End (Pp : in out Report_Pretty_Printer) is
-      use ALI_Files, ALI_Files.ALI_Annotation_Maps;
+      use SC_Obligations.ALI_Annotation_Maps;
+
+      ALI_Annotations : constant ALI_Annotation_Maps.Map :=
+        Get_All_Annotations;
 
       Output : constant File_Access := Get_Output;
 
       Total_Exempted_Regions : Natural;
       Total_Exempted_Violations : Natural := 0;
 
+      Total_Disabled_Cov_Regions : Natural;
+
       function Has_Exempted_Region return Boolean;
       --  True iff there's at least one exempted region
+
+      function Has_Disabled_Cov_Region return Boolean;
+      --  True iff there's at least one region with disabled coverage
 
       procedure Messages_For_Section
         (MC    : Report_Section;
@@ -302,6 +312,9 @@ package body Annotations.Report is
 
       procedure Output_Exemption (C : Cursor);
       --  Show summary information for exemption denoted by C
+
+      procedure Output_Disable_Cov (C : Cursor);
+      --  Show summary information for disabled coverage regions
 
       procedure Count_SCO (SCO : SCO_Id);
       --  Account for SCO in the coverage tally
@@ -356,6 +369,22 @@ package body Annotations.Report is
          end loop;
          return False;
       end Has_Exempted_Region;
+
+      ----------------------------
+      -- Has_Disable_Cov_Region --
+      ----------------------------
+
+      function Has_Disabled_Cov_Region return Boolean is
+         C : Cursor := ALI_Annotations.First;
+      begin
+         while Has_Element (C) loop
+            if Element (C).Kind = Cov_Off then
+               return True;
+            end if;
+            Next (C);
+         end loop;
+         return False;
+      end Has_Disabled_Cov_Region;
 
       Non_Exempted_Str : constant String := "non-exempted ";
       Non_Exempted     : String renames Non_Exempted_Str
@@ -503,6 +532,51 @@ package body Annotations.Report is
 
          Total_Exempted_Regions := Total_Exempted_Regions + 1;
       end Output_Exemption;
+
+      ------------------------
+      -- Output_Disable_Cov --
+      ------------------------
+
+      procedure Output_Disable_Cov (C : Cursor) is
+         E        : constant ALI_Annotation := Element (C);
+         Next_C   : constant Cursor := Next (C);
+         Sloc     : constant Source_Location := Key (C);
+         End_Sloc : Source_Location := Slocs.No_Location;
+      begin
+         if E.Kind /= Cov_Off then
+            return;
+         end if;
+
+         --  Determine end sloc of disabled coverage region
+
+         if Next_C /= No_Element then
+            declare
+               Next_Sloc : constant Source_Location := Key (Next_C);
+               Next_E    : constant ALI_Annotation  := Element (Next_C);
+            begin
+               if Next_E.Kind = Cov_On
+                 and then Sloc.Source_File = Next_Sloc.Source_File
+               then
+                  End_Sloc := Next_Sloc;
+               end if;
+            end;
+         end if;
+
+         --  Output summary for this region
+
+         New_Line (Output.all);
+         Put (Output.all, Image (To_Range (Sloc, End_Sloc)));
+         if End_Sloc = Slocs.No_Location then
+            Put (Output.all, "-<eof>");
+         end if;
+         Put_Line (Output.all, ", justification:");
+         if E.Message /= null then
+            Put_Line (Output.all, E.Message.all);
+         else
+            Put_Line (Output.all, "No justification");
+         end if;
+         Total_Disabled_Cov_Regions := Total_Disabled_Cov_Regions + 1;
+      end Output_Disable_Cov;
 
       --------------------------
       -- Messages_For_Section --
@@ -702,6 +776,18 @@ package body Annotations.Report is
             & ".");
       end if;
 
+      if Has_Disabled_Cov_Region then
+         Pp.Chapter ("COVERAGE DISABLED REGIONS");
+         Total_Disabled_Cov_Regions := 0;
+         ALI_Annotations.Iterate (Output_Disable_Cov'Access);
+
+         New_Line (Output.all);
+         Put_Line
+           (Output.all,
+            Pluralize (Total_Disabled_Cov_Regions, "region")
+            & " with disabled coverage.");
+      end if;
+
       Pp.Chapter ("ANALYSIS SUMMARY");
 
       New_Line (Output.all);
@@ -717,6 +803,14 @@ package body Annotations.Report is
             & ", "
             & Pluralize (Total_Exempted_Violations, "exempted violation")
             & ".");
+      end if;
+
+      if Has_Disabled_Cov_Region then
+         New_Line (Output.all);
+         Put_Line
+           (Output.all,
+            Pluralize (Total_Disabled_Cov_Regions, "region")
+            & " with disabled coverage.");
       end if;
 
       if Pp.Dump_Units then
@@ -751,6 +845,7 @@ package body Annotations.Report is
       pragma Unreferenced (Line_Num, Line);
    begin
       Pp.Exemption := Info.Exemption;
+      Pp.Disabled_Cov := Info.Disabled_Cov;
    end Pretty_Print_Start_Line;
 
    --------------------------

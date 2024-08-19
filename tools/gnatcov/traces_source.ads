@@ -48,13 +48,14 @@ package Traces_Source is
    --  trace entries start and end on byte/half word/word/long word boundaries.
 
    type Trace_File_Format_Version is new Unsigned_32;
-   Current_Version : Trace_File_Format_Version := 3;
+   Current_Version : Trace_File_Format_Version := 4;
    --  Expected value of the Trace_File_Header.Format_Version field.
    --
    --  0 -- initial version
    --  1 -- extend trace entry model to account for C files
    --  2 -- introduce fingerprints for bit maps
    --  3 -- remove the project name from trace entries
+   --  4 -- introduce fingerprint for annotations
 
    type Any_Alignment is new Unsigned_8;
    subtype Supported_Alignment is Any_Alignment;
@@ -247,24 +248,30 @@ package Traces_Source is
       --  be able to interpret buffer bits from a source traces using buffer
       --  bit mappings from SID files.
 
-      Padding : String (1 .. 5);
+      Annotations_Fingerprint : Fingerprint_Type;
+      --  Hash of annotations for this unit, as gnatcov computes it (see
+      --  SC_Obligations). Used as a fast way to check that source traces and
+      --  coverage data are consistent.
+
+      Padding : String (1 .. 1);
       --  Padding used only to make the size of this trace entry header a
       --  multiple of 8 bytes. Must be zero.
    end record;
 
    for Trace_Entry_Header use record
-      Unit_Name_Length     at  0 range 0 .. 31;
-      Statement_Bit_Count  at  4 range 0 .. 31;
-      Decision_Bit_Count   at  8 range 0 .. 31;
-      MCDC_Bit_Count       at 12 range 0 .. 31;
-      Language_Kind        at 16 range 0 .. 7;
-      Unit_Part            at 17 range 0 .. 7;
-      Bit_Buffer_Encoding  at 18 range 0 .. 7;
-      Fingerprint          at 19 range 0 .. 20 * 8 - 1;
-      Bit_Maps_Fingerprint at 39 range 0 .. 20 * 8 - 1;
-      Padding              at 59 range 0 .. 5 * 8 - 1;
+      Unit_Name_Length        at  0 range 0 .. 31;
+      Statement_Bit_Count     at  4 range 0 .. 31;
+      Decision_Bit_Count      at  8 range 0 .. 31;
+      MCDC_Bit_Count          at 12 range 0 .. 31;
+      Language_Kind           at 16 range 0 .. 7;
+      Unit_Part               at 17 range 0 .. 7;
+      Bit_Buffer_Encoding     at 18 range 0 .. 7;
+      Fingerprint             at 19 range 0 .. 20 * 8 - 1;
+      Bit_Maps_Fingerprint    at 39 range 0 .. 20 * 8 - 1;
+      Annotations_Fingerprint at 59 range 0 .. 20 * 8 - 1;
+      Padding                 at 79 range 0 .. 1 * 8 - 1;
    end record;
 
-   for Trace_Entry_Header'Size use 64 * 8;
+   for Trace_Entry_Header'Size use 80 * 8;
 
 end Traces_Source;

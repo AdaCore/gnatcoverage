@@ -270,7 +270,7 @@ class _Xchecker:
         # Note that we only check for section inclusions here, so don't
         # validate the correctness of exemption justifications at this stage.
 
-        # Ensuring that an emitted note is not used to satify multiple
+        # Ensuring that an emitted note is not used to satisfy multiple
         # expectations is stricter so the most correct in principle.
 
         for en in self.edict[ekind]:
@@ -840,28 +840,30 @@ class SCOV_helper:
 
         single_driver = no_ext(self.drivers[0]) if self.singletest() else None
 
-        use_checkpoint_inputs = checkpoints and not single_driver
-
         # We request traces as input with "@inputs.list", where the file
         # contains the list of traces to use, derived from the set of drivers.
         # We request checkpoints as inputs with "--checkpoint=@inputs.list",
         # where the file contains the list of checkpoints to use, derived
         # from the set of drivers as well:
 
-        input_opt, input_fn = (
-            ("--checkpoint=", ckptname_for)
-            if use_checkpoint_inputs
-            else ("", self.mode_tracename_for)
-        )
-
-        inputs = "%s@%s" % (
-            input_opt,
+        trace_inputs = "@%s" % (
             list_to_file(
                 [
-                    input_fn(os.path.join(self.awdir_for(pgm), pgm))
+                    self.mode_tracename_for(
+                        os.path.join(self.awdir_for(pgm), pgm)
+                    )
                     for pgm in self.programs()
                 ],
                 "inputs.list",
+            ),
+        )
+        ckpt_inputs = "--checkpoint=@%s" % (
+            list_to_file(
+                [
+                    ckptname_for(os.path.join(self.awdir_for(pgm), pgm))
+                    for pgm in self.programs()
+                ],
+                "ckpts.list",
             ),
         )
 
@@ -869,22 +871,31 @@ class SCOV_helper:
         # interest and maybe produce a coverage checkpoint. We don't need and
         # don't want to pass SCO options when using checkpoints as inputs.
 
-        sco_options = (
-            [] if use_checkpoint_inputs else self.coverage_sco_options()
-        )
+        sco_options = [] if checkpoints else self.coverage_sco_options()
 
-        save_checkpoint_options = (
-            ["--save-checkpoint=%s" % ckptname_for(single_driver)]
-            if single_driver and checkpoints
-            else []
-        )
+        # Produce the checkpoint if required
+        if checkpoints and single_driver:
+            save_checkpoint_options = (
+                ["--save-checkpoint=%s" % ckptname_for(single_driver)]
+                if single_driver and checkpoints
+                else []
+            )
+            self.gen_one_xcov_report(
+                trace_inputs,
+                report_format="report",
+                options=self.coverage_sco_options()
+                + save_checkpoint_options
+                + ["--cancel-annotate"],
+            )
+
+        inputs = ckpt_inputs if checkpoints else trace_inputs
 
         # Now produce the --annotate=report format:
 
         self.gen_one_xcov_report(
             inputs,
             report_format="report",
-            options=sco_options + save_checkpoint_options + ["-o", "test.rep"],
+            options=sco_options + ["-o", "test.rep"],
         )
 
         # Then an alternate .xcov output format, unless we are performing a

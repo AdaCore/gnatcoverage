@@ -39,7 +39,7 @@ package GNATcov_RTS is
    package Std renames Standard;
    package Sys renames System;
 
-   Version : constant := 7;
+   Version : constant := 8;
    --  For compatibility with the GNATcoverage in use, GNATcov_RTS is
    --  versioned.
    --
@@ -51,5 +51,6 @@ package GNATcov_RTS is
    --       the associated Witness function.
    --  6 -- buffer clear mechanism and trace filename indices
    --  7 -- enable inlining of witness subprograms
+   --  8 -- introduce fingerprint for annotations
 
 end GNATcov_RTS;

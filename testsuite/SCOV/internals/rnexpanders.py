@@ -44,6 +44,7 @@ from .cnotes import (
     XoPartCov,
     XoNoCov,
     XcPartCov,
+    dBlock,
 )
 from .segments import Sloc, Sloc_from_match
 from .stags import Stag_from
@@ -259,7 +260,7 @@ class Nblock(Rblock):
             stag=None,
         )
 
-        # Fetch and remove a possible separation tag from the diganostic
+        # Fetch and remove a possible separation tag from the diagnostic
         # text. Removal is useful to facilitate matching of other parts, hence
         # attempted first.
 
@@ -341,7 +342,7 @@ class Nchapter(Nblock, Rchapter):
         Nblock.__init__(self, re_notes=re_notes)
 
 
-# VIOsection, OERsection, XREchapter, NCIchapter, SMRchapter
+# VIOsection, OERsection, XREchapter, NCIchapter, SMRchapter, DCRChapter
 #
 # Leaf specializations, a set of which will be instantiated for report
 # processing.
@@ -416,7 +417,7 @@ class XREchapter(Nchapter):
         # to be checked for discharging expected notes later on. However
         # we still need to check the number of notes belonging to the exempted
         # region itself and the number of notes for exempted violations
-        # separatly.
+        # separately.
         ecount = len(self.enotes) - self.ecount_exempted
 
         self.__check_summary_count(sec, self.value(p.group(1)), ecount)
@@ -462,6 +463,21 @@ class XREchapter(Nchapter):
             self.ecount_exempted += 1
 
         return enote
+
+
+class DCRchapter(Nsection):
+    """Disabled Coverage Regions section."""
+
+    def __init__(self, re_start):
+        Nchapter.__init__(
+            self,
+            re_start=re_start,
+            re_end=r"(\d+) region[s]* with disabled coverage\.$",
+            re_notes={".*": dBlock},
+        )
+
+    def re_summary(self):
+        return r"(\d+) region[s]* with disabled coverage\.$"
 
 
 class NCIchapter(Nchapter):
@@ -720,6 +736,12 @@ class RblockSet:
         # Other note blocks
 
         self.noteblocks.append(OERsection(re_start="OTHER ERRORS"))
+
+        self.noteblocks.append(
+            DCRchapter(
+                re_start="COVERAGE DISABLED REGIONS",
+            )
+        )
 
         # We're done with the note blocks at this point
 

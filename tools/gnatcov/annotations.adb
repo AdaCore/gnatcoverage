@@ -24,7 +24,6 @@ with GNAT.OS_Lib;
 
 with Interfaces;
 
-with ALI_Files;        use ALI_Files;
 with Calendar_Utils;
 with Coverage;
 with Coverage.Object;
@@ -86,6 +85,10 @@ package body Annotations is
          else
             return Exempted_With_Violation;
          end if;
+      end if;
+
+      if Info.Disabled_Cov /= Slocs.No_Location then
+         return Disabled_Coverage;
       end if;
 
       --  Non-exempted case
@@ -428,7 +431,8 @@ package body Annotations is
             return;
          end if;
 
-         Populate_Exemptions (File_Index);
+         Populate_Annotations (File_Index, Exemption);
+         Populate_Annotations (File_Index, Disable_Coverage);
          ST := Scope_Traversal (Comp_Unit (File_Index));
          Iterate_On_Lines (FI, Compute_Line_State'Access);
 
@@ -516,40 +520,14 @@ package body Annotations is
 
    end Generate_Report;
 
-   -------------------
-   -- Get_Exemption --
-   -------------------
-
-   function Get_Exemption (Sloc : Source_Location) return Source_Location is
-      use ALI_Annotation_Maps;
-
-      Cur : constant Cursor := ALI_Annotations.Floor (Sloc);
-   begin
-      if not Ignore_Exemptions_Trace.Is_Active
-        and then Cur /= No_Element
-        and then Key (Cur).Source_File = Sloc.Source_File
-      then
-         declare
-            A : constant ALI_Annotation := Element (Cur);
-         begin
-            if A.Kind = Exempt_On then
-               return Key (Cur);
-            end if;
-         end;
-      end if;
-
-      return Slocs.No_Location;
-   end Get_Exemption;
-
    -----------------------------------
    -- Get_Exemption_Violation_Count --
    -----------------------------------
 
    function Get_Exemption_Violation_Count
-     (Sloc : Source_Location) return Natural
-   is
+     (Sloc : Source_Location) return Natural is
    begin
-      return ALI_Annotations.Element (Sloc).Violation_Count;
+      return Get_Annotations (Sloc.Source_File).Element (Sloc).Violation_Count;
    end Get_Exemption_Violation_Count;
 
    -----------------------------------
@@ -557,10 +535,10 @@ package body Annotations is
    -----------------------------------
 
    function Get_Exemption_Undet_Cov_Count
-     (Sloc : Source_Location) return Natural
-   is
+     (Sloc : Source_Location) return Natural is
    begin
-      return ALI_Annotations.Element (Sloc).Undetermined_Cov_Count;
+      return Get_Annotations (Sloc.Source_File)
+        .Element (Sloc).Undetermined_Cov_Count;
    end Get_Exemption_Undet_Cov_Count;
 
    ---------------------------
@@ -568,37 +546,10 @@ package body Annotations is
    ---------------------------
 
    function Get_Exemption_Message
-     (Sloc : Source_Location) return String_Access
-   is
+     (Sloc : Source_Location) return String_Access is
    begin
-      return ALI_Annotations.Element (Sloc).Message;
+      return Get_Annotations (Sloc.Source_File).Element (Sloc).Message;
    end Get_Exemption_Message;
-
-   -----------------------------------
-   -- Inc_Violation_Exemption_Count --
-   -----------------------------------
-
-   procedure Inc_Violation_Exemption_Count (Sloc : Source_Location) is
-      use ALI_Annotation_Maps;
-
-      Cur : constant Cursor := ALI_Annotations.Find (Sloc);
-      E   : ALI_Annotation renames ALI_Annotations.Reference (Cur);
-   begin
-      E.Violation_Count := E.Violation_Count + 1;
-   end Inc_Violation_Exemption_Count;
-
-   -----------------------------------
-   -- Inc_Undet_Cov_Exemption_Count --
-   -----------------------------------
-
-   procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location) is
-      use ALI_Annotation_Maps;
-
-      Cur : constant Cursor := ALI_Annotations.Find (Sloc);
-      E   : ALI_Annotation renames ALI_Annotations.Reference (Cur);
-   begin
-      E.Undetermined_Cov_Count := E.Undetermined_Cov_Count + 1;
-   end Inc_Undet_Cov_Exemption_Count;
 
    ------------------------
    -- Message_Annotation --
@@ -934,7 +885,9 @@ package body Annotations is
             --  Update counts. Note that No_Code lines are always counted as
             --  No_Code even if they are part of an exempted region.
 
-            if LI.State = Line_States'(others => No_Code) then
+            if S = Disabled_Coverage then
+               Result (S) := Result (S) + 1;
+            elsif LI.State = Line_States'(others => No_Code) then
                Result (No_Code) := Result (No_Code) + 1;
             else
                Result (S) := Result (S) + 1;

@@ -251,8 +251,17 @@ package body Coverage.Object is
             --  when not using source traces.
 
             raise Program_Error with
-            "Undetermined_Coverage line state reserved for source"
-            & " coverage";
+              "Undetermined_Coverage line state reserved for source"
+              & " coverage";
+
+         when Disabled_Coverage =>
+
+            --  Line can't be marked as disabled coverage line state when not
+            --  using source traces.
+
+            raise Program_Error with
+              "Disabled_Coverage line state reserved for source"
+              & " coverage";
 
       end case;
    end Update_Line_State;

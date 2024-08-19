@@ -1,7 +1,5 @@
 # Update windows artifacts for U204-026-arch-mix
 
-set -e
-
 if [ $# -eq 0 ]; then
   echo "No arguments provided. Please provide the name of the gnatcov branch"
   exit 1
@@ -14,7 +12,8 @@ anod init wave
 
 # Checkout the right gnatcov branch
 cd /Users/itmgr/gnatcoverage
-git checkout $1
+git fetch origin
+git checkout origin/$1
 
 # Build gnatcov
 cd /Users/itmgr/wave
@@ -28,6 +27,7 @@ rm -rf /Users/itmgr/gnatcoverage/testsuite/tests/U204-026-arch-mix/gen/x86_64-wi
 cp -r /Users/itmgr/gnatcoverage/testsuite/tests/U204-026-arch-mix /cygdrive/c/tmp
 cd /cygdrive/c/tmp/U204-026-arch-mix
 chmod +x gen.sh
+gnatcov setup
 ./gen.sh windows
 
 # Copy back the generated sources

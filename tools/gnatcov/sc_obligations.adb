@@ -26,17 +26,20 @@ with Ada.Unchecked_Deallocation;
 
 with Interfaces;
 
-with Aspects; use Aspects;
-with Namet;   use Namet;
+with Aspects;     use Aspects;
+with Get_SCOs;
+with GNAT.Regpat; use GNAT.Regpat;
+with Namet;       use Namet;
+with SC_Obligations;
 with SCOs;
 with Snames;
 
-with ALI_Files;     use ALI_Files;
 with Checkpoints;   use Checkpoints;
 with Coverage.Source;
 with Coverage.Tags; use Coverage, Coverage.Tags;
 with Diagnostics;   use Diagnostics;
 with Files_Table;   use Files_Table;
+with Inputs;        use Inputs;
 with Outputs;       use Outputs;
 with SC_Obligations.BDD;
 with Switches;      use Switches;
@@ -130,6 +133,12 @@ package body SC_Obligations is
       --  List of blocks. A block is a list of statement SCOs. Note that this
       --  is specific to source instrumentation, but a container cannot be
       --  a discriminant-dependent component.
+
+      ALI_Annotations : ALI_Annotation_Maps.Map;
+      --  List of annotations for the unit
+
+      Annotations_Fingerprint : Fingerprint_Type := No_Fingerprint;
+      --  Hash of ALI_Annotations, for consistency checks with source traces
 
       case Provider is
          when Compiler =>
@@ -535,11 +544,10 @@ package body SC_Obligations is
    --  contain data loaded from a checkpoint.
 
    type Source_Coverage_Vectors is record
-      CU_Vector       : CU_Info_Vectors.Vector;
-      ALI_Annotations : ALI_Annotation_Maps.Map;
-      Inst_Vector     : Inst_Info_Vectors.Vector;
-      BDD_Vector      : BDD.BDD_Vectors.Vector;
-      SCO_Vector      : SCO_Vectors.Vector;
+      CU_Vector   : CU_Info_Vectors.Vector;
+      Inst_Vector : Inst_Info_Vectors.Vector;
+      BDD_Vector  : BDD.BDD_Vectors.Vector;
+      SCO_Vector  : SCO_Vectors.Vector;
    end record;
 
    -----------------------------------------
@@ -634,6 +642,20 @@ package body SC_Obligations is
       "="          => SCO_Id_Vectors."=",
       Vectors      => SCO_Id_Vector_Vectors,
       Read_Element => Read);
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out ALI_Annotation);
+   --  Read a ALI_Annotation from CLS
+
+   procedure Read is new Checkpoints.Read_Map
+     (Key_Type     => Source_Location,
+      Element_Type => ALI_Annotation,
+      Map_Type     => ALI_Annotation_Maps.Map,
+      Clear        => ALI_Annotation_Maps.Clear,
+      Insert       => ALI_Annotation_Maps.Insert,
+      Read_Key     => Read,
+      Read_Element => Read);
+   --  Read a ALI_Annotation_Maps.Map from CLS
 
    procedure Checkpoint_Load_Merge_Unit
      (CLS        : in out Checkpoint_Load_State;
@@ -760,6 +782,22 @@ package body SC_Obligations is
       "="           => SCO_Id_Vectors."=",
       Vectors       => SCO_Id_Vector_Vectors,
       Write_Element => Write);
+
+   procedure Write
+     (CSS : in out Checkpoint_Save_State; Value : ALI_Annotation);
+   --  Write a ALI_Annotation to CSS
+
+   procedure Write is new Checkpoints.Write_Map
+     (Key_Type      => Source_Location,
+      Element_Type  => ALI_Annotation,
+      Map_Type      => ALI_Annotation_Maps.Map,
+      Cursor_Type   => ALI_Annotation_Maps.Cursor,
+      Length        => ALI_Annotation_Maps.Length,
+      Iterate       => ALI_Annotation_Maps.Iterate,
+      Query_Element => ALI_Annotation_Maps.Query_Element,
+      Write_Key     => Write,
+      Write_Element => Write);
+   --  Write a ALI_Annotation_Maps.Map to CSS
 
    ------------------
    -- Local tables --
@@ -1062,6 +1100,9 @@ package body SC_Obligations is
       Value.From := CLS.Read_SCO;
       Value.To := CLS.Read_SCO;
 
+      Value.Start_Sloc := CLS.Read_Local_Source_Location;
+      Value.End_Sloc := CLS.Read_Local_Source_Location;
+
       Value.Name := CLS.Read_Unbounded_String;
       Value.Sloc := CLS.Read_Local_Source_Location;
 
@@ -1087,6 +1128,9 @@ package body SC_Obligations is
       Value.Has_Code := CLS.Read_Boolean;
       Value.Fingerprint := CLS.Read_Fingerprint;
       Read (CLS, Value.PP_Info_Map);
+      Read (CLS, Value.Scope_Entities);
+      Read (CLS, Value.ALI_Annotations);
+      Value.Annotations_Fingerprint := CLS.Read_Fingerprint;
 
       case Value.Provider is
          when Compiler =>
@@ -1139,8 +1183,6 @@ package body SC_Obligations is
                Read (CLS, Value.Blocks);
             end if;
       end case;
-
-      Read (CLS, Value.Scope_Entities);
    end Read;
 
    procedure Read (CLS : in out Checkpoint_Load_State; Element : out Inst_Info)
@@ -1221,6 +1263,23 @@ package body SC_Obligations is
       Element := SCOD;
    end Read;
 
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out ALI_Annotation) is
+   begin
+      Value.Kind := ALI_Annotation_Kind'Val (CLS.Read_U8);
+
+      declare
+         Msg : constant String := CLS.Read_String;
+      begin
+         if Msg'Length > 0 then
+            Value.Message := new String'(Msg);
+         end if;
+      end;
+
+      Value.Violation_Count := 0;
+      Value.Undetermined_Cov_Count := 0;
+   end Read;
+
    --------------------------------
    -- Checkpoint_Load_Merge_Unit --
    --------------------------------
@@ -1240,6 +1299,8 @@ package body SC_Obligations is
       --  * Populate the tables mapping the SCO and instance IDs for this unit
       --    in the checkpoint to their counterparts in the current context, and
       --    merge non-instrumented SCO information if available.
+      --
+      --  * Merge the annotations
       --
       --  * Merge the information about non instrumented SCOs. We consider that
       --    a SCO was instrumented iff at least one merged unit has it
@@ -1302,6 +1363,20 @@ package body SC_Obligations is
       --  Has_Code indication
 
       Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
+
+      --  Remap ALI annotations and then merge them
+
+      declare
+         Remapped_Annotations : ALI_Annotation_Maps.Map :=
+           CP_CU.ALI_Annotations;
+      begin
+         Remap_ALI_Annotations (Relocs, Remapped_Annotations);
+         for Cur in Remapped_Annotations.Iterate loop
+            Real_CU.ALI_Annotations.Include
+              (ALI_Annotation_Maps.Key (Cur),
+               ALI_Annotation_Maps.Element (Cur));
+         end loop;
+      end;
    end Checkpoint_Load_Merge_Unit;
 
    ------------------------------
@@ -1644,6 +1719,10 @@ package body SC_Obligations is
          pragma Assert (SCOs_Nested_And_Ordered (CP_CU.Scope_Entities));
       end if;
 
+      --  Remap ALI annotations
+
+      Remap_ALI_Annotations (Relocs, CP_CU.ALI_Annotations);
+
       --  Preallocate line table entries for last file
 
       Prealloc_Lines (Cur_Source_File, Last_Line);
@@ -1841,6 +1920,9 @@ package body SC_Obligations is
       CSS.Write_SCO (Value.From);
       CSS.Write_SCO (Value.To);
 
+      CSS.Write (Value.Start_Sloc);
+      CSS.Write (Value.End_Sloc);
+
       CSS.Write (Value.Name);
       CSS.Write (Value.Sloc);
 
@@ -1861,6 +1943,9 @@ package body SC_Obligations is
       CSS.Write      (Value.Has_Code);
       CSS.Write      (Value.Fingerprint);
       Write     (CSS, Value.PP_Info_Map);
+      Write     (CSS, Value.Scope_Entities);
+      Write     (CSS, Value.ALI_Annotations);
+      CSS.Write      (Value.Annotations_Fingerprint);
 
       case Value.Provider is
          when Compiler =>
@@ -1896,7 +1981,6 @@ package body SC_Obligations is
             end if;
       end case;
 
-      Write (CSS, Value.Scope_Entities);
    end Write;
 
    procedure Write
@@ -1956,6 +2040,14 @@ package body SC_Obligations is
       end case;
    end Write;
 
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : ALI_Annotation)
+   is
+   begin
+      CSS.Write_U8 (ALI_Annotation_Kind'Pos (Value.Kind));
+      CSS.Write_Unbounded
+        (if Value.Message = null then "" else Value.Message.all);
+   end Write;
+
    ----------
    -- Free --
    ----------
@@ -1989,7 +2081,6 @@ package body SC_Obligations is
       --  This part must be kept consistent with Checkpoint_Save
 
       Read (CLS, CP_Vectors.CU_Vector);
-      Read (CLS, CP_Vectors.ALI_Annotations);
       Read (CLS, CP_Vectors.Inst_Vector);
       SC_Obligations.BDD.Read (CLS, CP_Vectors.BDD_Vector);
       Read (CLS, CP_Vectors.SCO_Vector);
@@ -2053,91 +2144,59 @@ package body SC_Obligations is
                                 CP_Vectors.BDD_Vector.First_Index,
                                 CP_Vectors.BDD_Vector.Last_Index);
 
-      declare
-         Last_Existing_CU_Id : constant CU_Id := CU_Vector.Last_Index;
+      --  Remap and merge into current tables
 
-      begin
-         --  Remap and merge into current tables
+      for Cur in CP_Vectors.CU_Vector.Iterate loop
+         declare
+            use CU_Info_Vectors;
 
-         for Cur in CP_Vectors.CU_Vector.Iterate loop
-            declare
-               use CU_Info_Vectors;
+            CP_CU_Id  : constant CU_Id := To_Index (Cur);
+            CP_CU     : CU_Info := Element (Cur);
+            New_CU_Id : CU_Id := No_CU_Id;
 
-               CP_CU_Id  : constant CU_Id := To_Index (Cur);
-               CP_CU     : CU_Info := Element (Cur);
-               New_CU_Id : CU_Id := No_CU_Id;
+            --  If the CU Origin or its Main_Source files are ignored, we
+            --  cannot load this CU.
 
-               --  If the CU Origin or its Main_Source files are ignored, we
-               --  cannot load this CU.
+            Origin_Ignored      : constant Boolean :=
+              SFI_Ignored (Relocs, CP_CU.Origin);
+            Main_Source_Ignored : constant Boolean :=
+              SFI_Ignored (Relocs, CP_CU.Main_Source);
+         begin
+            if Origin_Ignored or else Main_Source_Ignored then
+               SCOs_Trace.Trace
+                 ("Ignoring CU from SID file: Id" & CP_CU_Id'Img);
 
-               Origin_Ignored      : constant Boolean :=
-                 SFI_Ignored (Relocs, CP_CU.Origin);
-               Main_Source_Ignored : constant Boolean :=
-                 SFI_Ignored (Relocs, CP_CU.Main_Source);
-            begin
-               if Origin_Ignored or else Main_Source_Ignored then
-                  SCOs_Trace.Trace
-                    ("Ignoring CU from SID file: Id" & CP_CU_Id'Img);
+               --  If we cannot load this CU *not* because its main source is
+               --  ignored, but rather because the origin is ignored, warn the
+               --  user: they probably did not want to ignore this CU, but we
+               --  have to in order not to break our data structure invariants:
+               --  Origin cannot be null.
 
-                  --  If we cannot load this CU *not* because its main source
-                  --  is ignored, but rather because the origin is ignored,
-                  --  warn the user: they probably did not want to ignore this
-                  --  CU, but we have to in order not to break our data
-                  --  structure invariants: Origin cannot be null.
-
-                  if not Main_Source_Ignored then
-                     Warn
-                       ("gnatcov limitation: ignoring unit "
-                        & Get_Simple_Name
-                            (Remap_SFI (Relocs, CP_CU.Main_Source))
-                        & " from " & (+CLS.Filename)
-                        & " because "
-                        & (+Get_Simple_Name (Relocs, CP_CU.Origin))
-                        & " is ignored");
-                  end if;
-
-                  Ignore_CU_Id (Relocs, CP_CU_Id);
-
-               else
-                  Checkpoint_Load_Unit
-                    (CLS,
-                     CP_Vectors,
-                     CP_CU,
-                     CP_CU_Id  => CP_CU_Id,
-                     New_CU_Id => New_CU_Id);
-                  Set_CU_Id_Map (Relocs, CP_CU_Id, New_CU_Id);
+               if not Main_Source_Ignored then
+                  Warn
+                    ("gnatcov limitation: ignoring unit "
+                     & Get_Simple_Name
+                       (Remap_SFI (Relocs, CP_CU.Main_Source))
+                     & " from " & (+CLS.Filename)
+                     & " because "
+                     & (+Get_Simple_Name (Relocs, CP_CU.Origin))
+                     & " is ignored");
                end if;
-            end;
-         end loop;
 
-         --  Remap annotations
+               Ignore_CU_Id (Relocs, CP_CU_Id);
 
-         for Cur in CP_Vectors.ALI_Annotations.Iterate loop
-            declare
-               use ALI_Annotation_Maps;
-               Annotation_Sloc : Source_Location := Key (Cur);
-               Annotation      : ALI_Annotation  := Element (Cur);
+            else
+               Checkpoint_Load_Unit
+                 (CLS,
+                  CP_Vectors,
+                  CP_CU,
+                  CP_CU_Id  => CP_CU_Id,
+                  New_CU_Id => New_CU_Id);
+               Set_CU_Id_Map (Relocs, CP_CU_Id, New_CU_Id);
+            end if;
+         end;
+      end loop;
 
-            begin
-               if not CU_Id_Ignored (Relocs, Annotation.CU) then
-                  --  If this annotation comes from a compilation unit whose
-                  --  data is being imported from this checkpoint (i.e. whose
-                  --  CU id is higher than the last existing one upon entry),
-                  --  add it now (else it is assumed to be already present in
-                  --  the ALI_Annotation map).
-
-                  pragma Assert
-                    (Remap_CU_Id (Relocs, Annotation.CU) /= No_CU_Id);
-                  Annotation.CU := Remap_CU_Id (Relocs, Annotation.CU);
-                  if Annotation.CU > Last_Existing_CU_Id then
-                     Remap_SFI (Relocs, Annotation_Sloc.Source_File);
-                     ALI_Annotations.Insert (Annotation_Sloc, Annotation);
-                  end if;
-               end if;
-            end;
-         end loop;
-
-      end;
    end Checkpoint_Load;
 
    ----------------------
@@ -2152,7 +2211,6 @@ package body SC_Obligations is
       CU_Map.Clear;
       Origin_To_CUs_Map.Clear;
       CU_Vector.Clear;
-      ALI_Annotations.Clear;
       Inst_Vector.Clear;
       BDD_Vector.Clear;
       SCO_Vector.Clear;
@@ -2165,7 +2223,6 @@ package body SC_Obligations is
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
    begin
       Write (CSS.all, CU_Vector);
-      Write (CSS.all, ALI_Annotations);
       Write (CSS.all, Inst_Vector);
       BDD.Write (CSS.all, BDD_Vector);
       Write (CSS.all, SCO_Vector);
@@ -3287,6 +3344,15 @@ package body SC_Obligations is
       return CU_Vector.Reference (CU).Bit_Maps_Fingerprint;
    end Bit_Maps_Fingerprint;
 
+   -----------------------------
+   -- Annotations_Fingerprint --
+   -----------------------------
+
+   function Annotations_Fingerprint (CU : CU_Id) return Fingerprint_Type is
+   begin
+      return CU_Vector.Reference (CU).Annotations_Fingerprint;
+   end Annotations_Fingerprint;
+
    ---------------
    -- Load_SCOs --
    ---------------
@@ -3366,28 +3432,13 @@ package body SC_Obligations is
          --  An ALI file is involved: we are in binary traces mode, and so
          --  there is no need to compute the number of BDD execution paths for
          --  decisions.
+
          Count_Paths   => False);
 
       --  For the units we successfully loaded, copy annotations from the ALI
       --  file to our internal table, filling in the compilation unit.
 
-      for Cur in Temp_ALI_Annotations.Iterate loop
-         declare
-            A : ALI_Annotation := ALI_Annotation_Maps.Element (Cur);
-
-            --  This annotation comes from a specific source file. Check if
-            --  there is a CU that we just created for that source file.
-
-            S      : constant Source_Location := ALI_Annotation_Maps.Key (Cur);
-            CU_Cur : constant Created_Unit_Maps.Cursor :=
-               Created_Units.Find (S.Source_File);
-         begin
-            if Created_Unit_Maps.Has_Element (CU_Cur) then
-               A.CU := Created_Unit_Maps.Element (CU_Cur);
-               ALI_Annotations.Insert (S, A);
-            end if;
-         end;
-      end loop;
+      Set_Annotations (Temp_ALI_Annotations);
 
       --  Initialize the relevant ".LI" and ".Main_Source" fields in the files
       --  table.
@@ -4780,6 +4831,60 @@ package body SC_Obligations is
       Info.Blocks := Blocks;
    end Set_Blocks;
 
+   ---------------------
+   -- Set_Annotations --
+   ---------------------
+
+   procedure Set_Annotations (Annotations : ALI_Annotation_Maps.Map)
+   is
+      use GNAT.SHA1;
+
+      Current_SFI : Source_File_Index := No_Source_File;
+      Current_CU  : CU_Id := No_CU_Id;
+      Current_Ctx : GNAT.SHA1.Context := Initial_Context;
+      --  Current file being processed
+
+   begin
+      --  As a reminder, Source_Location sort on the file index first, so we
+      --  are guaranteed to have annotations grouped by source files.
+
+      for Cur in Annotations.Iterate loop
+         declare
+            use ALI_Annotation_Maps;
+            Sloc : constant Source_Location := Key (Cur);
+            Ann  : constant ALI_Annotation := Element (Cur);
+         begin
+            --  If we are entering a new file, reset the hashing context and
+            --  dump the annotations fingerprint that was processed.
+
+            if Sloc.Source_File /= Current_SFI then
+               if Current_CU /= No_CU_Id then
+                  CU_Vector.Reference (Current_CU).Annotations_Fingerprint :=
+                    Fingerprint_Type
+                      (GNAT.SHA1.Binary_Message_Digest'
+                         (GNAT.SHA1.Digest (Current_Ctx)));
+               end if;
+               Current_Ctx := Initial_Context;
+               Current_SFI := Sloc.Source_File;
+               Current_CU := Comp_Unit (Current_SFI);
+            end if;
+            Update (Current_Ctx, Image (Sloc));
+            Update (Current_Ctx, ALI_Annotation_Kind'Image (Ann.Kind));
+            if Ann.Message /= null then
+               Update (Current_Ctx, Ann.Message.all);
+            end if;
+            CU_Vector.Reference (Current_CU).ALI_Annotations.Include
+              (Sloc, Ann);
+         end;
+      end loop;
+      if Current_CU /= No_CU_Id then
+         CU_Vector.Reference (Current_CU).Annotations_Fingerprint :=
+           Fingerprint_Type
+             (GNAT.SHA1.Binary_Message_Digest'
+                (GNAT.SHA1.Digest (Current_Ctx)));
+      end if;
+   end Set_Annotations;
+
    ------------------------
    -- Get_Scope_Entities --
    ------------------------
@@ -4959,6 +5064,677 @@ package body SC_Obligations is
          CU_Vector.Reference (CU).Has_Code := True;
       end loop;
    end Set_Unit_Has_Code;
+
+   ---------------
+   -- ALI files --
+   ---------------
+
+   -----------------------------------------------
+   -- Regular expressions for ALI files parsing --
+   -----------------------------------------------
+
+   D_Regexp  : constant String := "(([^""\t ]+)|(""([^""]|"""")+""))[\t ]";
+   D_Matcher : constant Pattern_Matcher := Compile (D_Regexp);
+
+   N_Regexp  : constant String :=
+     "A([0-9]*):([0-9]*)(:[^ ]*)? xcov ([^ ]*)( ""(.*)"")?";
+   N_Matcher : constant Pattern_Matcher := Compile (N_Regexp);
+
+   U_Regexp  : constant String := "^[^\t ]*[\t ]+([^\t ]*)";
+   U_Matcher : constant Pattern_Matcher := Compile (U_Regexp);
+
+   V_Regexp  : constant String := "^V ""(.*)""$";
+   V_Matcher : constant Pattern_Matcher := Compile (V_Regexp);
+
+   function Unquote (Filename : String) return String;
+   --  If needed, unquote a filename, such as the ones that can be found on D
+   --  lines.
+
+   procedure Mark_Ignored_Units
+     (Ignored_Source_Files : access GNAT.Regexp.Regexp;
+      Deps                 : SFI_Vector);
+   --  Mark SCOs.SCO_Unit_Table entries to be ignored by setting their Dep_Num
+   --  to Missing_Dep_Num.
+
+   -------------
+   -- Unquote --
+   -------------
+
+   function Unquote (Filename : String) return String is
+      Result   : Unbounded_String;
+      In_Quote : Boolean := False;
+      --  True when we just met a double quote inside a quoted filename. False
+      --  otherwise.
+
+   begin
+      if Filename (Filename'First) /= '"' then
+         return Filename;
+      else
+         --  To unquote, just copy the string removing consecutive double
+         --  quotes.
+
+         for C of Filename (Filename'First + 1 .. Filename'Last - 1) loop
+            if C = '"' then
+               if not In_Quote then
+                  Append (Result, C);
+               end if;
+               In_Quote := not In_Quote;
+            else
+               Append (Result, C);
+            end if;
+         end loop;
+         return +Result;
+      end if;
+   end Unquote;
+
+   ------------------------
+   -- Mark_Ignored_Units --
+   ------------------------
+
+   procedure Mark_Ignored_Units
+     (Ignored_Source_Files : access GNAT.Regexp.Regexp;
+      Deps                 : SFI_Vector)
+   is
+      use SCOs;
+      Deps_Present : constant Boolean := not Deps.Is_Empty;
+   begin
+      if Ignored_Source_Files = null then
+         return;
+      end if;
+
+      for J in SCO_Unit_Table.First + 1 .. SCO_Unit_Table.Last loop
+         declare
+            U : SCO_Unit_Table_Entry renames SCO_Unit_Table.Table (J);
+
+            SFI : constant Source_File_Index :=
+              (if Deps_Present
+               then Deps.Element (U.Dep_Num)
+               else Get_Index_From_Generic_Name
+                      (U.File_Name.all, Source_File));
+            --  Source file corresponding to this unit. Use the name from the
+            --  SCO "C" line if there are no list of dependencies ("D" lines,
+            --  missing for old GLI files for C).
+
+            Match_Name : constant String := Get_Simple_Name (SFI);
+            --  Name to use for matching against the pattern of ignored files
+         begin
+            --  In case we got SFI from the Deps vector, make sure it is
+            --  considered as a source file.
+
+            Consolidate_File_Kind (SFI, Source_File);
+
+            --  Do the ignored file matching itself
+
+            if GNAT.Regexp.Match (Match_Name, Ignored_Source_Files.all) then
+               Consolidate_Ignore_Status (SFI, Always);
+               U.Dep_Num := Missing_Dep_Num;
+            else
+               Consolidate_Ignore_Status (SFI, Never);
+            end if;
+         end;
+      end loop;
+   end Mark_Ignored_Units;
+
+   ---------------------
+   -- Get_Annotations --
+   ---------------------
+
+   function Get_Annotations (CU : CU_Id) return ALI_Annotation_Maps.Map is
+   begin
+      if CU = No_CU_Id then
+         return ALI_Annotation_Maps.Empty_Map;
+      end if;
+      return CU_Vector.Element (CU).ALI_Annotations;
+   end Get_Annotations;
+
+   function Get_Annotations
+     (SFI : Source_File_Index) return ALI_Annotation_Maps.Map is
+   begin
+      return Get_Annotations (Comp_Unit (SFI));
+   end Get_Annotations;
+
+   -------------------------
+   -- Get_All_Annotations --
+   -------------------------
+
+   function Get_All_Annotations return ALI_Annotation_Maps.Map
+   is
+      use ALI_Annotation_Maps;
+      Result : Map;
+   begin
+      for CU of CU_Vector loop
+         for Cur in CU.ALI_Annotations.Iterate loop
+            Result.Insert (Key (Cur), Element (Cur));
+         end loop;
+      end loop;
+      return Result;
+   end Get_All_Annotations;
+
+   -----------------------------------
+   -- Inc_Violation_Exemption_Count --
+   -----------------------------------
+
+   procedure Inc_Violation_Exemption_Count (Sloc : Source_Location) is
+      E   : ALI_Annotation renames
+        CU_Vector.Reference (Comp_Unit (Sloc.Source_File))
+        .ALI_Annotations.Reference (Sloc);
+   begin
+      E.Violation_Count := E.Violation_Count + 1;
+   end Inc_Violation_Exemption_Count;
+
+   -----------------------------------
+   -- Inc_Undet_Cov_Exemption_Count --
+   -----------------------------------
+
+   procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location) is
+      E   : ALI_Annotation renames
+        CU_Vector.Reference (Comp_Unit (Sloc.Source_File))
+        .ALI_Annotations.Reference (Sloc);
+   begin
+      E.Undetermined_Cov_Count := E.Undetermined_Cov_Count + 1;
+   end Inc_Undet_Cov_Exemption_Count;
+
+   --------------
+   -- Load_ALI --
+   --------------
+
+   procedure Load_ALI (ALI_Filename : String) is
+      Discard_ALI                 : Source_File_Index;
+      Discard_Units, Discard_Deps : SFI_Vector;
+      Discard_Created_Units       : Created_Unit_Maps.Map;
+
+      ALI_Annotations : ALI_Annotation_Maps.Map;
+      ALI_Index       : constant Source_File_Index :=
+        Get_Index_From_Full_Name (ALI_Filename, Library_File, Insert => False);
+   begin
+      Discard_ALI :=
+        Load_ALI
+          (ALI_Filename         => ALI_Filename,
+           Ignored_Source_Files => null,
+           Units                => Discard_Units,
+           Deps                 => Discard_Deps,
+           ALI_Annotations      => ALI_Annotations,
+           With_SCOs            => False);
+
+      --  Add the annotations to the internal CU_Vector vector
+
+      for Cur in ALI_Annotations.Iterate loop
+         declare
+            Sloc         : constant Source_Location :=
+              ALI_Annotation_Maps.Key (Cur);
+            Ignore_CU_Id : CU_Id;
+         begin
+            if not CU_Map.Contains (Sloc.Source_File) then
+               Ignore_CU_Id :=
+                 Allocate_CU
+                   (Provider      => Compiler,
+                    Origin        => ALI_Index,
+                    Main_Source   => Sloc.Source_File,
+                    Fingerprint   => Fingerprint_Type'(others => 0),
+                    Created_Units => Discard_Created_Units);
+            end if;
+            CU_Vector.Reference (CU_Map.Element (Sloc.Source_File))
+              .ALI_Annotations
+              .Include (Sloc, ALI_Annotation_Maps.Element (Cur));
+         end;
+      end loop;
+   end Load_ALI;
+
+   --------------
+   -- Load_ALI --
+   --------------
+
+   function Load_ALI
+     (ALI_Filename         : String;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp;
+      Units                : out SFI_Vector;
+      Deps                 : out SFI_Vector;
+      ALI_Annotations      : in out ALI_Annotation_Maps.Map;
+      With_SCOs            : Boolean) return Source_File_Index
+   is
+      ALI_File  : File_Type;
+      ALI_Index : Source_File_Index;
+
+      Line  : String_Access;
+      Index : Natural;
+
+      Matches : Match_Array (0 .. 10);
+      --  For regex matching
+
+      function Match (Index : Integer) return String;
+      --  Return Index'th match in Line
+
+      function Get_Stripped_Line (F : File_Type) return String;
+      --  Like Get_Line but strip trailing CR, to allow for processing Windows
+      --  LI files on a UNIX host.
+
+      function Getc return Character;
+      --  Consume and return next character from Line.
+      --  Load next line if at end of line. Return ^Z if at end of file.
+
+      function Nextc return Character;
+      --  Peek at next character in Line. Return ^Z if at end of file.
+
+      procedure Skipc;
+      --  Skip one character in Line
+
+      function Check_Message (M1, M2 : String_Access) return Boolean;
+      --  Return True if either M1 or M2 is null or designates an empty string,
+      --  else return True if M1 and M2 designate identical strings.
+
+      -------------------
+      -- Check_Message --
+      -------------------
+
+      function Check_Message (M1, M2 : String_Access) return Boolean is
+      begin
+         return False
+           or else M1 = null or else M1.all = ""
+           or else M2 = null or else M2.all = ""
+           or else M1.all = M2.all;
+      end Check_Message;
+
+      ----------
+      -- Getc --
+      ----------
+
+      function Getc return Character is
+         Next_Char : constant Character := Nextc;
+      begin
+         Index := Index + 1;
+         if Index > Line'Last + 1 then
+
+            --  Note: normally we should just read the next line from ALI_File
+            --  and reset Index. However some older versions of the compiler
+            --  generated duplicated SCOs in some cases, so if we get two
+            --  successive identical lines, we ignore them and keep reading.
+
+            while not End_Of_File (ALI_File) loop
+               declare
+                  Next_Line : constant String := Get_Stripped_Line (ALI_File);
+               begin
+                  if Next_Line = Line.all then
+                     Report
+                        ("ignoring duplicate line in ALI file "
+                         & ALI_Filename, Kind => Warning);
+
+                  else
+                     Free (Line);
+                     Line := new String'(Next_Line);
+                     Index := 1;
+
+                     exit;
+                  end if;
+               end;
+            end loop;
+         end if;
+         return Next_Char;
+      end Getc;
+
+      -----------------------
+      -- Get_Stripped_Line --
+      -----------------------
+
+      function Get_Stripped_Line (F : File_Type) return String is
+         Line : constant String := Get_Line (F);
+         Last : Integer := Line'Last;
+      begin
+         if Last in Line'Range and then Line (Last) = ASCII.CR then
+            Last := Last - 1;
+         end if;
+         return Line (Line'First .. Last);
+      end Get_Stripped_Line;
+
+      -----------
+      -- Match --
+      -----------
+
+      function Match (Index : Integer) return String is
+      begin
+         if Matches (Index) = No_Match then
+            return "";
+         else
+            return Line (Matches (Index).First .. Matches (Index).Last);
+         end if;
+      end Match;
+
+      -----------
+      -- Nextc --
+      -----------
+
+      function Nextc return Character is
+      begin
+         if Index = Line'Last + 1 then
+            return ASCII.LF;
+
+         elsif Index in Line'Range then
+            return Line (Index);
+
+         else
+            return Character'Val (16#1a#);
+         end if;
+      end Nextc;
+
+      -----------
+      -- Skipc --
+      -----------
+
+      procedure Skipc is
+         C : Character;
+         pragma Unreferenced (C);
+      begin
+         C := Getc;
+      end Skipc;
+
+      procedure Get_SCOs_From_ALI is new Get_SCOs;
+
+      --  Local variables
+
+      No_Object                  : Boolean := False;
+      --  Set True if the P line contains the NO flag
+
+      Preserve_Control_Flow_Seen : Boolean := False;
+      --  Set True if unit has been compiled with -fpreserve-control-flow
+
+      Dump_SCOs_Seen             : Boolean := False;
+      --  Set True if unit has been compiled with -fdump-scos (or -gnateS)
+
+      Debug_Seen                 : Boolean := False;
+      --  Set True if unit has been compiled with -g
+
+      Profile_Arcs_Seen          : Boolean := False;
+      --  Set True if unit has been compiled with -fprofile-arcs
+
+      Expected_Annotation_Kind : ALI_Annotation_Kind;
+      Expected_Annotation_Msg  : String_Access;
+      --  Variables for checking of annotation validity: annotations must
+      --  come in (Exempt_On, Exempt_Off) pairs, nesting forbidden, and
+      --  the Exempt_Off message must be either empty or identical to the
+      --  Exempt_On one.
+
+   --  Start of processing for Load_ALI
+
+   begin
+      pragma Assert (Deps.Last_Index = 0);
+
+      --  First check whether this ALI has been already loaded. We identify
+      --  this by the fact that it already has an assigned Source_File_Index.
+
+      ALI_Index := Get_Index_From_Full_Name
+        (ALI_Filename, Library_File, Insert => False);
+      if ALI_Index /= No_Source_File then
+         Report
+           ("ignoring duplicate ALI file " & ALI_Filename, Kind => Warning);
+         return No_Source_File;
+      end if;
+
+      ALI_Index := Get_Index_From_Full_Name
+        (ALI_Filename, Library_File, Insert => True);
+      Log_File_Open (ALI_Filename);
+      Open (ALI_File, In_File, ALI_Filename);
+
+      --  Check that the first line is a valid ALI V line.
+
+      declare
+         V_Line    : constant String := Get_Stripped_Line (ALI_File);
+         Error_Msg : Unbounded_String;
+      begin
+         Match (V_Matcher, V_Line, Matches);
+         if Matches (0) = No_Match then
+            Error_Msg :=
+              +("malformed ALI file """ & ALI_Filename & """");
+
+            if V_Line'Length > 3
+                 and then
+               To_Lower (V_Line (V_Line'Last - 3 .. V_Line'Last)) = ".ali"
+            then
+               Append
+                 (Error_Msg,
+                  ASCII.LF
+                  & "to load ALIs from list use ""--scos=@"
+                  & ALI_Filename & """");
+            end if;
+            Fatal_Error (+Error_Msg);
+         end if;
+      end;
+
+      --  Here once the ALI file has been succesfully opened
+
+      SCOs_Trace.Trace ("Loading SCOs from " & ALI_Filename);
+
+      Expected_Annotation_Kind := Exempt_On;
+      Expected_Annotation_Msg  := null;
+
+      Scan_ALI : while not End_Of_File (ALI_File) loop
+         loop
+            Free (Line);
+            Line := new String'(Get_Stripped_Line (ALI_File));
+            exit when Line'Length > 0;
+         end loop;
+
+         case Line (1) is
+            when 'A' =>
+               if Line.all = "A -fpreserve-control-flow" then
+                  Preserve_Control_Flow_Seen := True;
+
+               elsif Line.all = "A -fdump-scos"
+                       or else
+                     Line.all = "A -gnateS"
+               then
+                  Dump_SCOs_Seen := True;
+
+               elsif Line.all = "A -g" then
+                  Debug_Seen := True;
+
+               elsif Line.all = "A -fprofile-arcs" then
+                  Profile_Arcs_Seen := True;
+               end if;
+
+            when 'P' =>
+               declare
+                  P_Start : Integer;
+               begin
+                  P_Start := 2;
+                  loop
+                     while P_Start <= Line'Last
+                       and then Line (P_Start) = ' '
+                     loop
+                        P_Start := P_Start + 1;
+                     end loop;
+                     exit when P_Start > Line'Last - 1;
+
+                     declare
+                        Param : constant String (1 .. 2) :=
+                                  Line (P_Start .. P_Start + 1);
+                     begin
+                        if Param = "NO" then
+                           No_Object := True;
+                        end if;
+                     end;
+
+                     P_Start := P_Start + 2;
+                  end loop;
+               end;
+
+            when 'U' =>
+               Match (U_Matcher, Line (3 .. Line'Last), Matches);
+               if Matches (0) /= No_Match then
+                  Units.Append (Get_Index_From_Generic_Name (Match (1),
+                                                             Source_File));
+               end if;
+
+            when 'D' =>
+               Match (D_Matcher, Line (3 .. Line'Last), Matches);
+               if Matches (0) /= No_Match then
+
+                  --  Dependency files are source files. However, in order to
+                  --  avoid unnecessary conflicts at consolidation time, we
+                  --  don't want to consider them for coverage analysis unless
+                  --  they are in the units of interest. So consider them as
+                  --  stubs at this stage.
+
+                  Deps.Append (Get_Index_From_Generic_Name
+                    (Unquote (Match (1)), Stub_File));
+               end if;
+
+            when 'N' =>
+               declare
+                  Annotation : ALI_Annotation;
+                  Valid      : Boolean;
+                  Sloc       : Source_Location;
+               begin
+                  Match (N_Matcher, Line (3 .. Line'Last), Matches);
+                  if Matches (0) /= No_Match then
+                     declare
+                        Note_SFN : constant String := Match (3);
+                        Note_SFI : Source_File_Index := Units.Last_Element;
+
+                     begin
+                        if Note_SFN'Length > 0 then
+
+                           --  Case of a separate: the source file is not the
+                           --  current compilation unit but some other one
+                           --  identified explicitly.
+
+                           Note_SFI := Get_Index_From_Generic_Name
+                                         (Note_SFN (Note_SFN'First + 1
+                                                 .. Note_SFN'Last),
+                                          Source_File);
+                        end if;
+
+                        Sloc :=
+                          (Source_File => Note_SFI,
+                           L           => (Line   =>
+                                             Integer'Value (Match (1)),
+                                           Column =>
+                                             Integer'Value (Match (2))));
+                     end;
+
+                     Valid := True;
+
+                     declare
+                        Msg : constant String := Match (6);
+                     begin
+                        Annotation :=
+                          (Kind    => ALI_Annotation_Kind'Value (Match (4)),
+                           Message => (if Msg'Length > 0
+                                       then new String'(Msg)
+                                       else null),
+                           others  => <>);
+                     exception
+                        when Constraint_Error =>
+                           Report (Sloc, "bad annotation " & Match (4));
+                           Valid := False;
+                     end;
+
+                     if Valid then
+                        if Annotation.Kind /= Expected_Annotation_Kind then
+                           Report (Sloc, "unexpected "
+                                   & Annotation.Kind'Img & " "
+                                   & Annotation.Message.all
+                                   & " (expected "
+                                   & Expected_Annotation_Kind'Img
+                                   & ")");
+                        elsif not Check_Message
+                                (Annotation.Message, Expected_Annotation_Msg)
+                        then
+                           Report (Sloc, "unexpected EXEMPT_OFF "
+                                   & Annotation.Message.all
+                                   & " (expected "
+                                   & Expected_Annotation_Msg.all
+                                   & ")");
+                        end if;
+
+                        if Annotation.Kind = Exempt_On then
+                           if Annotation.Message = null then
+                              Report (Sloc, "empty message for EXEMPT_ON");
+                           end if;
+
+                           Expected_Annotation_Kind := Exempt_Off;
+                           Expected_Annotation_Msg  := Annotation.Message;
+
+                        else
+                           Expected_Annotation_Kind := Exempt_On;
+                           Expected_Annotation_Msg  := null;
+                        end if;
+
+                        ALI_Annotations.Insert
+                          (Key => Sloc, New_Item => Annotation);
+                     end if;
+                  end if;
+               end;
+
+            when 'C' =>
+               exit Scan_ALI;
+
+            when others =>
+               null;
+         end case;
+      end loop Scan_ALI;
+
+      if Expected_Annotation_Kind = Exempt_Off then
+         declare
+            use ALI_Annotation_Maps;
+            Last_Ann_Cursor : constant Cursor := ALI_Annotations.Last;
+            Last_Ann_Sloc   : constant Source_Location :=
+                                Key (Last_Ann_Cursor);
+            Last_Ann        : constant ALI_Annotation :=
+                                Element (Last_Ann_Cursor);
+         begin
+            Report (Last_Ann_Sloc,
+              "missing Exempt_Off " & Last_Ann.Message.all);
+         end;
+      end if;
+
+      if With_SCOs then
+         if No_Object then
+            Warn ("no object generated for " & ALI_Filename);
+
+         else
+            if not Preserve_Control_Flow_Seen then
+               Warn
+                 (ALI_Filename
+                  & ": unit compiled without -fpreserve-control-flow");
+            end if;
+
+            if not Dump_SCOs_Seen then
+               Warn
+                 (ALI_Filename
+                  & ": unit compiled without SCO generation (-fdump-scos)");
+            end if;
+
+            if not Debug_Seen then
+               Warn
+                 (ALI_Filename
+                  & ": unit compiled without debug information (-g)");
+            end if;
+
+            if Profile_Arcs_Seen then
+               Warn
+                 (ALI_Filename
+                  & ": unit compiled with instrumentation (-fprofile-arcs)");
+            end if;
+         end if;
+
+         if not End_Of_File (ALI_File)
+           and then Dump_SCOs_Seen
+           and then not No_Object
+         then
+            Index := 1;
+            Get_SCOs_From_ALI;
+            Mark_Ignored_Units (Ignored_Source_Files, Deps);
+
+         else
+            --  In this case, we will not parse SCOs: reset parsing tables so
+            --  that further processing don't start using stale SCO entries.
+
+            SCOs.Initialize;
+         end if;
+      end if;
+
+      Close (ALI_File);
+      return ALI_Index;
+   end Load_ALI;
 
    ----------------
    -- Sloc_Range --

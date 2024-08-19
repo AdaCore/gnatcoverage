@@ -511,7 +511,7 @@ def check_xcov_content(filename, expected_cov, trace_mode=None):
         }
 
     # Check that expected coverage data contain only supported line annotations
-    invalid_line_annotations = set(expected_cov) - {"+", "!", "-", "?"}
+    invalid_line_annotations = set(expected_cov) - {"+", "!", "-", "?", "D"}
     assert not invalid_line_annotations, "Invalid line annotations: {}".format(
         " ".join(sorted(invalid_line_annotations))
     )

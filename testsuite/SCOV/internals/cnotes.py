@@ -93,6 +93,7 @@
 # lNoCode       : no code for line (=xcov)
 # lNotCoverable : no code but statement on line, hence not coverable (=xcov)
 # lUndetCov     : scos present but could not determine coverage state (=xcov)
+# lDisCov       : coverage analysis disabled for the line (=xcov)
 # lFullCov      : full coverage for line (=xcov)
 # r0            : expect empty set of violations (=report)
 # r0c           : like r0, on a statement continuation line (=report)
@@ -135,6 +136,8 @@
 # xBlock1  : exempted block, >0 deviations (=report)
 # xBlock2  : exempted block, >0 undetermined coverage items (=report)
 
+# dBlock   : disabled block
+
 # Transient kinds: these may be used in expectations and should always be
 # subject to substitution rules mapping them to other kinds. No emitted note
 # will ever match them. These are useful for shared drivers when the actual
@@ -173,6 +176,7 @@
     lPartCov,
     lNotCoverable,
     lUndetCov,
+    lDisCov,
     sNoCov,
     sPartCov,
     sNotCoverable,
@@ -212,13 +216,15 @@
     xBlock0,
     xBlock1,
     xBlock2,
-) = range(53)
+    dBlock,
+) = range(55)
 
 NK_image = {
     None: "None",
     lNoCode: "lNoCode",
     lNotCoverable: "lNotCoverable",
     lUndetCov: "lUndetCov",
+    lDisCov: "lDisCov",
     lFullCov: "lFullCov",
     lNoCov: "lNoCov",
     lPartCov: "lPartCov",
@@ -266,6 +272,7 @@ NK_image = {
     aNoCov: "aNoCov",
     atNoCov: "atNoCov",
     acPartCov: "acPartCov",
+    dBlock: "dBlock",
 }
 
 
@@ -280,6 +287,7 @@ elNoteKinds = (
     lNoCode,
     lNotCoverable,
     lUndetCov,
+    lDisCov,
     lNoCov,
     lPartCov,
     lFullCov,
@@ -330,6 +338,9 @@ XrAntiKinds = (Xr0, Xr0c)
 
 XNoteKinds = XsNoteKinds + XoNoteKinds + XcNoteKinds
 
+# Disabled coverage regions
+disabledNoteKinds = (dBlock,)
+
 # Anti-expectations
 rAntiKinds = (r0, r0c)
 
@@ -341,7 +352,13 @@ tNoteKinds = (otNoCov, ofNoCov, oPartCov, oNoCov)
 # if they could be emitted and report them as unmatched.
 
 erNoteKinds = (
-    sNoteKinds + dNoteKinds + cNoteKinds + xNoteKinds + tNoteKinds + XNoteKinds
+    sNoteKinds
+    + dNoteKinds
+    + cNoteKinds
+    + xNoteKinds
+    + tNoteKinds
+    + XNoteKinds
+    + disabledNoteKinds
 )
 erNoteKinds += aNoteKinds
 xrNoteKinds = erNoteKinds + rAntiKinds + XrAntiKinds

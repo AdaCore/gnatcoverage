@@ -31,7 +31,7 @@ package body Annotations.Sarif is
 
    type Result_Info is record
       Is_Violation : Boolean;
-      --  True if is a violation, False if undetermined coverage
+      --  True if is a violation, False if undetermined/disabled coverage
 
       Is_Exempted : Boolean;
       --  True is the violation is in an exempted region
