@@ -3016,8 +3016,13 @@ package body Instrument.Ada_Unit is
       if Common_Nodes.Ctrl_Type.Is_Null then
          return False;
       end if;
-      return Common_Nodes.N_Spec.F_Subp_Returns.P_Designated_Type_Decl
-             = Common_Nodes.Ctrl_Type;
+
+      --  Always compare the full views, to avoid an equality mismatch when
+      --  e.g. comparing the full view against an incomplete view.
+
+      return
+        Common_Nodes.N_Spec.F_Subp_Returns.P_Designated_Type_Decl.P_Full_View
+          = Common_Nodes.Ctrl_Type.P_Full_View;
    exception
       when Exc : Property_Error =>
       Report (UIC,
