@@ -12,6 +12,7 @@ GNATcoverage User's Guide
    cov_source
    consolidation
    exemptions
+   disable_cov
    gpr
    gps
    glossary
