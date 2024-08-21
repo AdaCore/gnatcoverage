@@ -132,6 +132,11 @@
 # acPartCov : assertion condition was never evaluated during an evaluation of
 #             the decision to True (=report)
 
+# fNoCov    : subprogram never entered (=report)
+# cNoCov    : call statement or expression never evaluated (=report)
+# fUndetCov : subprogram with undetermined coverage state (=report)
+# cUndetCov : call with undetermined coverage state (=report)
+
 # xBlock0  : exempted block, 0 deviations (=report)
 # xBlock1  : exempted block, >0 deviations (=report)
 # xBlock2  : exempted block, >0 undetermined coverage items (=report)
@@ -213,12 +218,16 @@
     aNoCov,
     atNoCov,
     acPartCov,
+    fNoCov,
+    cNoCov,
+    fUndetCov,
+    cUndetCov,
     blockNote,
     xBlock0,
     xBlock1,
     xBlock2,
     dBlock,
-) = range(56)
+) = range(60)
 
 NK_image = {
     None: "None",
@@ -274,6 +283,10 @@ NK_image = {
     aNoCov: "aNoCov",
     atNoCov: "atNoCov",
     acPartCov: "acPartCov",
+    fNoCov: "fNoCov",
+    cNoCov: "cNoCov",
+    fUndetCov: "fUndetCov",
+    cUndetCov: "cUndetCov",
     dBlock: "dBlock",
 }
 
@@ -326,6 +339,9 @@ cNoteKinds = (etNoCov, efNoCov, ePartCov, eNoCov, cPartCov, eUndetCov)
 # Assertion violations
 aNoteKinds = (aNoCov, atNoCov, acPartCov)
 
+# Function and call coverage violations
+fNoteKinds = (fNoCov, cNoCov, fUndetCov, cUndetCov)
+
 # Exemption regions
 xNoteKinds = (xBlock0, xBlock1, xBlock2)
 
@@ -363,7 +379,7 @@ erNoteKinds = (
     + XNoteKinds
     + disabledNoteKinds
 )
-erNoteKinds += aNoteKinds
+erNoteKinds += aNoteKinds + fNoteKinds
 xrNoteKinds = erNoteKinds + rAntiKinds + XrAntiKinds
 
 

@@ -68,6 +68,10 @@ from .cnotes import (
     aNoCov,
     atNoCov,
     acPartCov,
+    fNoCov,
+    cNoCov,
+    fUndetCov,
+    cUndetCov,
     dBlock,
 )
 from .segments import Line, Section, Segment
@@ -263,6 +267,10 @@ class XnoteP:
         "a-": aNoCov,
         "aT-": atNoCov,
         "ac!": acPartCov,
+        "f-": fNoCov,
+        "c-": cNoCov,
+        "f?": fUndetCov,
+        "c?": cUndetCov,
         "x0": xBlock0,
         "x+": xBlock1,
         "x?": xBlock2,

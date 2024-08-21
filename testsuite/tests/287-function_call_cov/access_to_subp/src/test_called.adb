@@ -1,0 +1,16 @@
+with Access_To_Subp;
+
+--  Check function and call coverage for an acces to a subprogram.
+--  Here, all calls and functions are executed.
+
+procedure Test_Not_Called is
+begin
+    Access_To_Subp;
+end;
+
+--# access_to_subp.adb
+-- /decl/   l+ ## 0
+-- /dstmt/  l+ ## 0
+-- /stmt/   l+ ## 0
+-- /fun/    l+ ## 0
+-- /call/   l+ ## 0
