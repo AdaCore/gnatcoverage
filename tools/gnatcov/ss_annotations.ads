@@ -65,12 +65,25 @@ package SS_Annotations is
      (FI : Source_File_Index);
    --  Search for external exemptions in FI, from the annotations loaded in
    --  Ext_Annotation_DB.
-   --
-   --  The newly added annotations will include CU in the corresponding CU
-   --  field.
 
    function Get_Buffer_Annotations
      (Filename : String) return Instrument.Common.Instr_Annotation_Map;
    --  Get the buffer annotations relevant to instrumentation for Filename.
+
+   function Get_Disabled_Cov_Annotations
+     (Filename : String) return Instrument.Common.Instr_Annotation_Map;
+   --  Return the map of annotations that disable coverage regions for
+   --  Filename.
+   --
+   --  The resulting map already filters out annotations that do not come in
+   --  pairs: any Cov_Off annotation immediately following a Cov_Off annotation
+   --  will be discarded, and likewise for Cov_On annotations.
+   --
+   --  The map is also guaranteed to start with a Cov_Off annotation, and end
+   --  on a Cov_On annotation, so that regions can always be determined from
+   --  two subsequent annotations.
+   --
+   --  Finally, the resulting annotations are guaranteed not to conflict with
+   --  any pre-existing annotations for Filename.
 
 end SS_Annotations;

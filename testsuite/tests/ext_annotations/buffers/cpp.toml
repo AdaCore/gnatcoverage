@@ -1,0 +1,26 @@
+# These two entries will reset the buffers before the first statement in
+# do_cpp_dump then dump them before the end of the function.
+
+[dump_buffs]
+kind="absolute"
+file="cpp_unit.cpp"
+[dump_buffs.matcher]
+start_line=6
+start_col=16
+end_line=6
+end_col=16
+[[dump_buffs.annotations]]
+purpose="xcov.buffers.dump"
+# Use the same trace prefix as the project name to simply test code
+trace_prefix='"prj_cpp"'
+
+[dump_reset]
+kind="absolute"
+file="cpp_unit.cpp"
+[dump_reset.matcher]
+start_line=6
+start_col=5
+end_line=6
+end_col=5
+[[dump_reset.annotations]]
+purpose="xcov.buffers.reset"

@@ -30,6 +30,7 @@ with GNAT.OS_Lib; use GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
 
 with GNATCOLL.Mmap;
+with GNATCOLL.Utils;
 
 with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
@@ -85,6 +86,40 @@ package body Instrument.C is
    Buffer_Dump_Prefix_Group : constant := 2;
    Buffer_Reset_Group       : constant := 3;
 
+   package Sloc_To_Index_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Local_Source_Location,
+      Element_Type => Natural);
+
+   procedure Remap_Locations
+     (Str      : String;
+      Filename : String;
+      Slocs    : in out Sloc_To_Index_Maps.Map);
+   --  Modify Slocs in place to update the mapped indices to reflect the
+   --  position of the corresponding key source location in Str.
+   --
+   --  This procedure interprets GNU style line directives, making it usable on
+   --  a preprocessed file.
+   --
+   --  This is mainly used at the moment to correctly insert buffer annotations
+   --  at the right position in a preprocessed file:
+   --
+   --  Assuming we have an annotation to dump buffers at location LINE:COL.
+   --
+   --  The Replace_Manual_Indication procedure only works on raw file indices,
+   --  it has no concept of lines or columns. We thus need to translate the
+   --  LINE:COL location to an actual character offset after the start of the
+   --  file.
+   --
+   --  We cannot do this on the original file however, as the
+   --  Replace_Manual_Indication procedure rewrites a C file that has already
+   --  been preprocessed.
+   --
+   --  We thus need this procedure to find the offset in Str (the preprocessed
+   --  file content) that corresponds to line LINE in Filename (the original
+   --  file) leveraging line directives to do so, then add the column of the
+   --  location to that offset to obtain the actual offset in Str
+   --  that corresponds to LINE:COL in Filename.
+
    ------------------------------
    --  Preprocessing utilities --
    ------------------------------
@@ -110,6 +145,14 @@ package body Instrument.C is
    --  This uses the compiler in the Compiler_Driver project attribute to
    --  preprocess the file, assuming that it accepts the -E flag, to preprocess
    --  a file.
+
+   procedure Preprocess_And_Record_Include_Paths
+     (Source        : GNATCOLL.Projects.File_Info;
+      Instrumenter  : C_Family_Instrumenter_Type'Class;
+      Prj           : in out Prj_Desc;
+      PP_Filename   : out Unbounded_String);
+   --  Same procedure as above, but automatically record the search paths
+   --  associated to Source in the project description.
 
    function Common_Parse_TU_Args
      (Lang : Some_Language) return String_Vectors.Vector;
@@ -375,11 +418,6 @@ package body Instrument.C is
    --  fill UIC.Annotations (and also UIC.Disable_Cov_Regions for disabling
    --  coverage markers) accordingly.
 
-   function Is_Disabled_Region
-     (UIC : C_Unit_Inst_Context'Class; Sloc : Source_Location) return Boolean;
-   --  Whether coverage is disabled (by GNATCOV_COV_OFF/ON comment markers)
-   --  for the given Sloc.
-
    ----------------------------
    -- Source level rewriting --
    ----------------------------
@@ -418,6 +456,12 @@ package body Instrument.C is
      (Prj          : Prj_Desc;
       Instrumenter : C_Family_Instrumenter_Type'Class);
    --  Check that a compiler driver exists for Instrumenter's language
+
+   function Check_Compiler_Driver
+     (Prj          : Prj_Desc;
+      Instrumenter : C_Family_Instrumenter_Type'Class) return Boolean;
+   --  Same as above but in function form to allow calling in a declarative
+   --  region. Always returns False.
 
    procedure Apply (Self : in out C_Source_Rewriter);
    --  Overwrite the file with the rewritter modifications
@@ -2135,14 +2179,14 @@ package body Instrument.C is
             Append (Trailing_Braces, '}');
          end if;
 
+         if Is_Null (N) or not Is_Source_Of_Interest (UIC, N) then
+            return;
+         end if;
+
          UIC.Disable_Coverage := Is_Disabled_Region (UIC, Start_Sloc (N));
 
          --  If this statement does not belong to a source of interest, skip
          --  it altogether.
-
-         if Is_Null (N) or not Is_Source_Of_Interest (UIC, N) then
-            return;
-         end if;
 
          case Kind (N) is
 
@@ -2905,6 +2949,42 @@ package body Instrument.C is
       Ada.Directories.Delete_File (Preprocessed_Filename);
    end Preprocess_Source;
 
+   -----------------------------------------
+   -- Preprocess_And_Record_Include_Paths --
+   -----------------------------------------
+
+   procedure Preprocess_And_Record_Include_Paths
+     (Source        : GNATCOLL.Projects.File_Info;
+      Instrumenter  : C_Family_Instrumenter_Type'Class;
+      Prj           : in out Prj_Desc;
+      PP_Filename   : out Unbounded_String)
+   is
+      Options  : Analysis_Options;
+      Filename : constant String := +Source.File.Full_Name;
+   begin
+      Preprocess_Source
+         (Filename, Instrumenter, Prj, PP_Filename, Options);
+      declare
+         use Files_Handling.File_To_String_Vectors_Maps;
+         Cur      : Cursor;
+         Inserted : Boolean;
+      begin
+         --  Save the search paths that were used to preprocess the file, as
+         --  they must be passed on to clang parsing invocations (especially
+         --  when we are parsing the original file to record preprocessing
+         --  information).
+
+         for Path of Options.PP_Search_Path loop
+            Prj.Compiler_Options_Unit.Insert
+              (Key       => Source.File,
+               New_Item  => String_Vectors.Empty_Vector,
+               Position  => Cur,
+               Inserted  => Inserted);
+            Prj.Compiler_Options_Unit.Reference (Cur).Append ("-I" & Path);
+         end loop;
+      end;
+   end Preprocess_And_Record_Include_Paths;
+
    --------------------------
    -- Common_Parse_TU_Args --
    --------------------------
@@ -3215,22 +3295,6 @@ package body Instrument.C is
          Process       => Process_Disable_Cov'Access);
    end Populate_Annotations;
 
-   ------------------------
-   -- Is_Disabled_Region --
-   ------------------------
-
-   function Is_Disabled_Region
-     (UIC : C_Unit_Inst_Context'Class; Sloc : Source_Location) return Boolean
-   is
-   begin
-      for Disabled_Region of UIC.Disable_Cov_Regions loop
-         if In_Range (Sloc, Disabled_Region) then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Is_Disabled_Region;
-
    --------------------
    -- Record_PP_Info --
    --------------------
@@ -3299,6 +3363,13 @@ package body Instrument.C is
       --  Save into UIC the preprocessing information
 
       UIC.LL_PP_Info_Map := UIC_Copy.LL_PP_Info_Map;
+
+      --  Also copy back the annotation map and disabled region vector as well
+      --  as the info on sources of interest, to avoid double processing.
+
+      UIC.Annotations.Move (UIC_Copy.Annotations);
+      UIC.Disable_Cov_Regions.Move (UIC_Copy.Disable_Cov_Regions);
+      UIC.Sources_Of_Interest_Info.Move (UIC_Copy.Sources_Of_Interest_Info);
 
    end Record_PP_Info;
 
@@ -3492,7 +3563,7 @@ package body Instrument.C is
             end;
          end loop;
 
-         --  Import Annots in our internal tables
+         --  Import annotations in our internal tables
 
          Filter_Annotations (UIC);
          UIC.Import_Annotations (UIC.CUs);
@@ -4204,121 +4275,152 @@ package body Instrument.C is
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean)
    is
-      Orig_Filename : constant String := +Source.File.Full_Name;
+      Ignore_Check    : constant Boolean := Check_Compiler_Driver (Prj, Self);
+      PP_Filename     : Unbounded_String;
+      Dummy_Main      : Compilation_Unit_Part;
+      Matches         : Match_Array (0 .. 4);
+      Dump_Procedure  : constant String :=
+        Dump_Procedure_Symbol
+          (Main => Dummy_Main, Manual => True, Prj_Name => Prj.Prj_Name);
+      Reset_Procedure : constant String :=
+        Reset_Procedure_Symbol (Prj.Prj_Name);
+      Extern_Prefix : constant String :=
+        C_Family_Instrumenter_Type'Class (Self).Extern_Prefix;
+
+      Annots : constant Instr_Annotation_Map :=
+        Get_Buffer_Annotations (+Source.File.Full_Name);
+
+      Annot_Mapping : Sloc_To_Index_Maps.Map;
+      --  Mapping from source locations of the annotations in the
+      --  non-preprocessed file to the index in the preprocessed file buffer.
+
    begin
-      Check_Compiler_Driver (Prj, Self);
+      --  Preprocess the source, keeping the comment to look for the manual
+      --  dump indication later.
+
+      Preprocess_And_Record_Include_Paths (Source, Self, Prj, PP_Filename);
+
+      --  Look for the manual dump indication in the preprocessed file. Use
+      --  the GNATCOLL.Mmap API to map the file contents in memory, as we
+      --  may need to rewrite it to the source file, with the manual dump
+      --  indication replaced by an actual call to the dump buffers
+      --  function.
 
       declare
-         Options         : Analysis_Options;
-         PP_Filename     : Unbounded_String;
-         Dummy_Main      : Compilation_Unit_Part;
-         Matches         : Match_Array (0 .. 4);
-         Dump_Procedure  : constant String :=
-           Dump_Procedure_Symbol
-             (Main => Dummy_Main, Manual => True, Prj_Name => Prj.Prj_Name);
-         Reset_Procedure : constant String :=
-           Reset_Procedure_Symbol (Prj.Prj_Name);
+         use Ada.Streams.Stream_IO;
+         use GNATCOLL.Mmap;
+         use Sloc_To_Index_Maps;
+         File         : Mapped_File := Open_Read (To_String (PP_Filename));
+         Region       : Mapped_Region := Read (File);
+         Raw_Str      : constant Str_Access := Data (Region);
+         Raw_Str_Last : constant Natural := Last (Region);
+         Str          : String renames Raw_Str (1 .. Raw_Str_Last);
+         Tmp_Filename : constant String := +PP_Filename & ".tmp";
 
-         Extern_Prefix : constant String :=
-           C_Family_Instrumenter_Type'Class (Self).Extern_Prefix;
+         Output_File : Ada.Streams.Stream_IO.File_Type;
+         S           : Ada.Streams.Stream_IO.Stream_Access;
+         --  Temporary file containing the new version of the original file,
+         --  with inserted calls to dump buffers. The original file is then
+         --  overwritten by this temporary file. This file is opened as a
+         --  binary file, as we are going to write contents retrieved
+         --  through mmap (thus binary Str) to it.
+
+         Index : Positive := 1;
+         --  Starting index, or last index of the previous annotation in the
+         --  original file.
+
+         Next_Ext_Annot : aliased Natural;
+         Next_Src_Annot : aliased Natural;
+         --  Next index for each of the annotations. Should be set to
+         --  Natural'Last if there are no more valid annotations.
+
+         type Idx_Acc is access all Natural;
+
+         Next_Annotation : Idx_Acc;
+         --  Pointer to the next annotation (in source or external) to be
+         --  processed.
+
+         Ext_Annot_Cur : Cursor;
 
       begin
-         Preprocess_Source (Orig_Filename, Self, Prj, PP_Filename, Options);
-         declare
-            use Files_Handling.File_To_String_Vectors_Maps;
-            Cur      : Cursor;
-            Inserted : Boolean;
-         begin
-            --  We need to save the search paths that were used to preprocess
-            --  the file, as they must be passed on to clang parsing
-            --  invocations (especially when we are parsing the original file
-            --  to record preprocessing information).
+         --  Create the sloc to index mapping for external annotations
 
-            for Path of Options.PP_Search_Path loop
-               Prj.Compiler_Options_Unit.Insert
-                 (Key       => Source.File,
-                  New_Item  => String_Vectors.Empty_Vector,
-                  Position  => Cur,
-                  Inserted  => Inserted);
-               Prj.Compiler_Options_Unit.Reference (Cur).Append ("-I" & Path);
-            end loop;
-         end;
+         for Annot_Cur in Annots.Iterate loop
+            Annot_Mapping.Insert (Instr_Annotation_Maps.Key (Annot_Cur), 0);
+         end loop;
+         Remap_Locations (Str, +Source.File.Full_Name, Annot_Mapping);
+         Ext_Annot_Cur := Annot_Mapping.First;
 
-         --  Look for the manual dump indication in the preprocessed file. Use
-         --  the GNATCOLL.Mmap API to map the file contents in memory, as we
-         --  may need to rewrite it to the source file, with the manual dump
-         --  indication replaced by an actual call to the dump buffers
-         --  function.
+         Has_Dump_Indication := False;
+         Has_Reset_Indication := False;
 
-         declare
-            use Ada.Streams.Stream_IO;
-            use GNATCOLL.Mmap;
-            File         : Mapped_File := Open_Read (To_String (PP_Filename));
-            Region       : Mapped_Region := Read (File);
-            Raw_Str      : constant Str_Access := Data (Region);
-            Raw_Str_Last : constant Natural := Last (Region);
-            Str          : String renames Raw_Str (1 .. Raw_Str_Last);
+         Match (Buffer_Command_Pattern, Str (Index .. Str'Last), Matches);
 
-            Tmp_Filename : constant String := +PP_Filename & ".tmp";
+         --  Initialize the indices
 
-            Output_File : Ada.Streams.Stream_IO.File_Type;
-            S           : Ada.Streams.Stream_IO.Stream_Access;
-            --  Temporary file containing the new version of the original file,
-            --  with inserted calls to dump buffers. The original file is then
-            --  overwritten by this temporary file. This file is opened as a
-            --  binary file, as we are going to write contents retrieved
-            --  through mmap (thus binary content) to it.
+         Next_Ext_Annot :=
+           (if not Has_Element (Ext_Annot_Cur)
+              or else Element (Ext_Annot_Cur) = 0
+            then Natural'Last
+            else Element (Ext_Annot_Cur));
+         Next_Src_Annot :=
+           (if Matches (0) = No_Match
+            then Natural'Last
+            else Matches (0).First);
 
-            Index : Positive := 1;
-            --  Starting index, or last index of the previous match in the
-            --  original file.
+         --  Iterate over all the annotations, forwarding the original text in
+         --  between.
 
-         begin
-            Has_Dump_Indication := False;
-            Has_Reset_Indication := False;
+         while Index in Str'Range loop
 
-            --  Iterate on all matches for the command pattern found in Str
+            --  Find the index of the next annotation to be processed
 
-            Match (Buffer_Command_Pattern, Str (Index .. Str'Last), Matches);
-            while Index in Str'Range and then Matches (0) /= No_Match loop
+            Next_Annotation :=
+              (if Next_Src_Annot <= Next_Ext_Annot
+               then Next_Src_Annot'Access
+               else Next_Ext_Annot'Access);
 
-               --  Open the output file if this is the first match we find,
-               --  then forward the source code that appear before the match
-               --  unchanged.
+            --  No matches, and no more or invalid ext annotations,
+            --  nothing left to do.
 
-               if not (Has_Dump_Indication or else Has_Reset_Indication) then
-                  Create (Output_File, Out_File, Tmp_Filename);
-                  S := Stream (Output_File);
+            exit when Next_Annotation.all = Natural'Last;
 
-                  --  Put an external decl for the buffers dump and reset
-                  --  functions.
-                  --
-                  --  The external decl for the dump procedure takes a const
-                  --  char * to avoid any warnings when using a string literal
-                  --  as the trace prefix.
+            --  Open the output file if this is the first match we find,
+            --  then forward the source code that appear before the match
+            --  unchanged.
 
-                  String'Write
-                    (S,
-                     Extern_Prefix & "void " & Dump_Procedure
-                     & "(const char *prefix);");
-                  String'Write
-                    (S, Extern_Prefix & "void " & Reset_Procedure & "(void);");
-               end if;
+            if not (Has_Dump_Indication or else Has_Reset_Indication) then
+               Create (Output_File, Out_File, Tmp_Filename);
+               S := Stream (Output_File);
 
-               --  Forward whatever comes between the last match (or the
-               --  beginning of the file, if this is the first match) and this
-               --  match.
+               --  Put an external decl for the buffers dump and reset
+               --  functions.
+               --
+               --  The external decl for the dump procedure takes a const
+               --  char * to avoid any warnings when using a string literal
+               --  as the trace prefix.
 
-               String'Write (S, Str (Index .. Matches (0).First - 1));
+               String'Write
+                 (S,
+                  Extern_Prefix & "void " & Dump_Procedure
+                  & "(const char *prefix);");
+               String'Write
+                 (S, Extern_Prefix & "void " & Reset_Procedure & "(void);");
+            end if;
 
-               --  Now insert the substitution for the command we found
+            --  Forward the content between the previous annotation and the
+            --  next one
+
+            String'Write (S, Str (Index .. Next_Annotation.all - 1));
+
+            --  Process whatever annotation source comes first
+
+            if Next_Annotation = Next_Src_Annot'Access then
 
                if Matches (Buffer_Dump_Group) /= No_Match then
-                  if Switches.Misc_Trace.Is_Active then
-                     Switches.Misc_Trace.Trace
-                       ("Found buffer dump indication in file "
-                        & (+Source.File.Base_Name));
-                  end if;
+                  Switches.Misc_Trace.Trace
+                    ("Found buffer dump indication in file "
+                     & (+Source.File.Base_Name));
 
                   --  If we had a prefix specified in the comment, include it
                   --  in the dump procedure call. Use the project name as the
@@ -4337,59 +4439,284 @@ package body Instrument.C is
 
                else
                   pragma Assert (Matches (Buffer_Reset_Group) /= No_Match);
-                  if Switches.Misc_Trace.Is_Active then
-                     Switches.Misc_Trace.Trace
-                       ("Found buffer reset indication in file "
-                        & (+Source.File.Base_Name));
-                  end if;
+                  Switches.Misc_Trace.Trace
+                    ("Found buffer reset indication in file "
+                      & (+Source.File.Base_Name));
 
                   String'Write (S, Reset_Procedure & "();");
                   Has_Reset_Indication := True;
                end if;
 
-               --  Search for the next dump indication
+               --  Move the index forward, and search for the next match
 
                Index := Matches (0).Last + 1;
                Match
                  (Buffer_Command_Pattern, Str (Index .. Str'Last), Matches);
-            end loop;
+               Next_Src_Annot :=
+                 (if Matches (0) /= No_Match
+                  then Matches (0).First
+                  else Natural'Last);
 
-            --  If we had a manual indication, and thus wrote a modified source
-            --  file, overwrite the original source file with it.
-
-            if Has_Dump_Indication or else Has_Reset_Indication then
-               declare
-                  PP_File  : constant Virtual_File := Create (+(+PP_Filename));
-                  Tmp_File : constant Virtual_File := Create (+Tmp_Filename);
-                  Success  : Boolean;
-               begin
-                  --  Flush the rest of the file contents
-
-                  String'Write (S, Str (Index .. Str'Last));
-                  Close (Output_File);
-
-                  Free (Region);
-                  Close (File);
-
-                  --  Overwrite the original file with its newer version
-
-                  PP_File.Delete (Success);
-                  Tmp_File.Rename
-                    (Full_Name => PP_File,
-                     Success   => Success);
-                  if not Success then
-                     Outputs.Fatal_Error
-                       ("Failed to replace manual dump indication for Source "
-                        & (+Source.File.Full_Name));
-                  end if;
-               end;
             else
+               declare
+                  Annot : constant Instr_Annotation_Maps
+                                   .Constant_Reference_Type :=
+                    Annots.Constant_Reference (Key (Ext_Annot_Cur));
+               begin
+                  case Annot.Kind is
+                     when Dump_Buffers =>
+                        Has_Dump_Indication := True;
+                        String'Write
+                          (S,
+                           Dump_Procedure & "("
+                            & (if Length (Annot.Trace_Prefix) /= 0
+                               then +Annot.Trace_Prefix
+                               else """" & To_Ada (Prj.Prj_Name) & """")
+                           & ");");
+                     when Reset_Buffers =>
+                        Has_Reset_Indication := True;
+                        String'Write (S, Reset_Procedure & "();");
+
+                     when Cov_On | Cov_Off =>
+                        raise Program_Error with "Not reachable";
+                  end case;
+                  Next (Ext_Annot_Cur);
+                  Index := Next_Annotation.all;
+                  Next_Ext_Annot :=
+                    (if Has_Element (Ext_Annot_Cur)
+                       and then Element (Ext_Annot_Cur) /= 0
+                     then Element (Ext_Annot_Cur)
+                     else Natural'Last);
+               end;
+            end if;
+         end loop;
+
+         --  If we have some external annotations we were not able to re-locate
+         --  in the preprocessed file, warn about it.
+
+         if Has_Element (Ext_Annot_Cur) then
+            Warning_Or_Error
+              ("Some external annotations could not be re-mapped in the"
+               & " preprocessed version of " & Source.File.Display_Full_Name
+               & ", They have been ignored. Use -v for more details.");
+            while Has_Element (Ext_Annot_Cur) loop
+               declare
+                  Annot : constant Instr_Annotation :=
+                    Annots.Element (Key (Ext_Annot_Cur));
+               begin
+                  Switches.Misc_Trace.Trace
+                    ("Could not remap " & Annot.Kind'Image & " at "
+                     & Slocs.Image (Key (Ext_Annot_Cur)));
+               end;
+            end loop;
+         end if;
+
+         --  If we had a manual indication, and thus wrote a modified source
+         --  file, overwrite the original source file with it.
+
+         if Has_Dump_Indication or else Has_Reset_Indication then
+            declare
+               PP_File  : constant Virtual_File := Create (+(+PP_Filename));
+               Tmp_File : constant Virtual_File := Create (+Tmp_Filename);
+               Success  : Boolean;
+            begin
+               --  Flush the rest of the file contents
+
+               String'Write (S, Str (Index .. Str'Last));
+               Close (Output_File);
+
                Free (Region);
                Close (File);
-            end if;
-         end;
+
+               --  Overwrite the original file with its newer version
+
+               PP_File.Delete (Success);
+               Tmp_File.Rename
+                 (Full_Name => PP_File,
+                  Success   => Success);
+               if not Success then
+                  Outputs.Fatal_Error
+                    ("Failed to replace manual dump indication for Source "
+                     & (+Source.File.Full_Name));
+               end if;
+            end;
+         else
+            Free (Region);
+            Close (File);
+         end if;
       end;
    end Replace_Manual_Indications;
+
+   Line_Directive_Regexp : constant Pattern_Matcher :=
+     Compile ("# (\d+) ""(\S+)""(?: \d)?");
+   --  Pattern matching GNU style line directives, used in Remap_Locations.
+
+   ---------------------
+   -- Remap_Locations --
+   ---------------------
+
+   procedure Remap_Locations
+     (Str      : String;
+      Filename : String;
+      Slocs    : in out Sloc_To_Index_Maps.Map)
+   is
+      use GNATCOLL.Utils;
+      use Sloc_To_Index_Maps;
+      Current_Line : Natural := 1;
+      --  Current line in the file
+
+      Current_Line_Index : Positive := Str'First;
+      --  Corresponding index of the first character of the line Current_Line
+
+      Next_Line : Natural := 1;
+      --  Next line in the file. Not all lines from the non-preprocessed file
+      --  may be present, as the preprocessor may remove empty lines.
+
+      Next_Line_Index : Positive := Str'First;
+      --  Index of the first character of the line Next_Line.
+
+      Col_Var : Natural;
+      --  Variable used to get the proper column from the line start index.
+
+      Next_Sloc : Cursor := Slocs.First;
+
+      procedure Get_Next_Line;
+      --  Update Next_Line and Next_Line index to point to the next line of
+      --  Filename in Str, based on the current position in Current_Line
+      --  and Current_Line_Index.
+
+      -------------------
+      -- Get_Next_Line --
+      -------------------
+
+      procedure Get_Next_Line is
+         In_File : Boolean := True;
+         --  Whether the current line belongs to Filename. Assume this is True
+         --  when entering this procedure.
+
+         In_Directive : Boolean := False;
+         --  Whether the current line is a line directive. If so, we need to
+         --  check the next line.
+
+         Line_Matches : Match_Array (0 .. 2);
+      begin
+         Next_Line_Index := Current_Line_Index;
+         Next_Line := Current_Line;
+         loop
+            Next_Line_Index :=
+              GNATCOLL.Utils.Next_Line (Str, Next_Line_Index);
+
+            --  Check if we are on a line directive. If so, parse it.
+
+            if Str (Next_Line_Index) = '#'
+              and then Next_Line_Index < Str'Last
+              and then Str (Next_Line_Index + 1) = ' '
+            then
+               Match
+                 (Self       => Line_Directive_Regexp,
+                  Data       => Str,
+                  Matches    => Line_Matches,
+                  Data_First => Next_Line_Index,
+                  Data_Last  => Line_End (Str, Next_Line_Index));
+            else
+               Line_Matches := (others => No_Match);
+            end if;
+
+            if Line_Matches (0) /= No_Match then
+               In_Directive := True;
+
+               declare
+                  Directive_Filename : String renames
+                    Str (Line_Matches (2).First .. Line_Matches (2).Last);
+                  Directive_Line : constant Natural :=
+                    Natural'Value
+                      (Str (Line_Matches (1).First .. Line_Matches (1).Last));
+               begin
+                  --  Ignore line directives which state a '0' line, as they
+                  --  don't provide any meaningful insight.
+
+                  if Directive_Filename = Filename
+                    and then Directive_Line /= 0
+                  then
+                     Next_Line := Directive_Line;
+                     In_File := True;
+                  else
+                     In_File := False;
+                  end if;
+               end;
+
+            --  Otherwise, we only need to bump the line number if in the right
+            --  file and if the previous line was not a directive.
+
+            else
+               if In_File and then not In_Directive then
+                  Next_Line := Next_Line + 1;
+               end if;
+               In_Directive := False;
+            end if;
+
+            --  Exit when we found the first line that is not a line
+            --  directive and that belongs to Filename, or we've reach the end
+            --  of the file.
+
+            exit when (not In_Directive and then In_File)
+                     or else Next_Line_Index = Str'Last;
+         end loop;
+         --  If the line index is Str'Last and Next_Line hasn't been modified,
+         --  this means there are no more lines. Signal this by setting
+         --  Next_Line to 0.
+
+         if Next_Line_Index = Str'Last and then Next_Line = Current_Line then
+            Next_Line := 0;
+         end if;
+      end Get_Next_Line;
+
+   begin
+      if not Has_Element (Next_Sloc) then
+         return;
+      end if;
+
+      loop
+         --  If the next line in the file is the same as the one of Next_Sloc,
+         --  Compute the index of the corresponding column.
+
+         if Key (Next_Sloc).Line = Next_Line then
+            Col_Var := Next_Line_Index;
+            Skip_To_Column (Str, Key (Next_Sloc).Column, Col_Var);
+            Slocs.Replace_Element (Next_Sloc, Col_Var);
+            Next (Next_Sloc);
+
+         --  If the next line in the file is past the next source location
+         --  (e.g. the source location designates a whitespace-only line that
+         --  got removed by the preprocessor), associate the sloc to the end of
+         --  the last line we have for this file.
+         --
+         --  This could result in annotations being tied to an earlier location
+         --  than actually specified, but with no differences in the
+         --  obligations included in the range.
+         --
+         --  This has not yet been seen in practice.
+
+         elsif Next_Line > Key (Next_Sloc).Line then
+            Col_Var := Current_Line_Index;
+            Slocs.Replace_Element (Next_Sloc, Line_End (Str, Col_Var));
+            Next (Next_Sloc);
+
+         else
+            --  Otherwise just move to the next line
+            Current_Line := Next_Line;
+            Current_Line_Index := Next_Line_Index;
+            Get_Next_Line;
+         end if;
+         exit when not Has_Element (Next_Sloc) or else Next_Line = 0;
+      end loop;
+      --  If there still are Slocs we have not remapped when reaching the end
+      --  of the file, associate them with index 0.
+
+      while Has_Element (Next_Sloc) loop
+         Slocs.Replace_Element (Next_Sloc, 0);
+      end loop;
+   end Remap_Locations;
 
    -------------------------------
    -- Auto_Dump_Buffers_In_Main --
@@ -4677,9 +5004,9 @@ package body Instrument.C is
    -- Check_Compiler_Driver --
    ---------------------------
 
-   procedure Check_Compiler_Driver
+   function Check_Compiler_Driver
      (Prj          : Prj_Desc;
-      Instrumenter : C_Family_Instrumenter_Type'Class)
+      Instrumenter : C_Family_Instrumenter_Type'Class) return Boolean
    is
       Compiler_Driver : constant Unbounded_String :=
         Prj.Compiler_Driver (Instrumenter.Language);
@@ -4688,6 +5015,21 @@ package body Instrument.C is
          Outputs.Fatal_Error
            ("could not find a compiler for " & Image (Instrumenter.Language));
       end if;
+      return True;
+   end Check_Compiler_Driver;
+
+   ---------------------------
+   -- Check_Compiler_Driver --
+   ---------------------------
+
+   procedure Check_Compiler_Driver
+     (Prj          : Prj_Desc;
+      Instrumenter : C_Family_Instrumenter_Type'Class)
+   is
+      Ignore_Bool_Res : constant Boolean :=
+        Check_Compiler_Driver (Prj, Instrumenter);
+   begin
+      null;
    end Check_Compiler_Driver;
 
    ----------------
@@ -5062,6 +5404,16 @@ package body Instrument.C is
                   SFI          => SFI,
                   CU_Name      => CU_Name_For_File (Full_Name (File)));
             end;
+
+            --  Import the external disabled regions for this source
+
+            declare
+               Annots : constant Instr_Annotation_Map :=
+                 Get_Disabled_Cov_Annotations (+File.Full_Name);
+            begin
+               UIC.Populate_Ext_Disabled_Cov (Annots, SOI.SFI);
+            end;
+
          else
             SOI := (Of_Interest => False);
          end if;

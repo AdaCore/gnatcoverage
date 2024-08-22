@@ -25,9 +25,10 @@ with TOML;
 with Stable_Sloc;            use Stable_Sloc;
 with Stable_Sloc.TOML_Utils; use Stable_Sloc.TOML_Utils;
 
-with Files_Table;    use Files_Table;
-with Instrument;     use Instrument;
-with Outputs;        use Outputs;
+with Files_Table;       use Files_Table;
+with Instrument;        use Instrument;
+with Instrument.Common; use Instrument.Common;
+with Outputs;           use Outputs;
 
 package body SS_Annotations is
    use type Unbounded_String;
@@ -80,6 +81,39 @@ package body SS_Annotations is
    function "+"
      (Sloc : TOML.Source_Location) return Slocs.Local_Source_Location is
      (Line => Sloc.Line, Column => Sloc.Column) with Unreferenced;
+
+   generic
+      type Expected_Annot_Kind is (<>);
+      with function Kind
+        (Match_Res : Match_Result) return Expected_Annot_Kind'Base;
+      with function Convert
+        (Kind      : Expected_Annot_Kind;
+         Match_Res : Match_Result;
+         Success   : out Boolean)
+         return Instrument.Common.Instr_Annotation;
+      Purpose_Prefix : String;
+   function Generic_Get_Annotations
+     (Filename : String) return Instrument.Common.Instr_Annotation_Map;
+   --  Match the annotations on File for the entries for which the purpose
+   --  starts with Purpose_Prefix. Warn and discard the match results that
+   --  either failed, or for which the purpose does not lie in
+   --  Expected_Annot_Kind after conversion through Kind.
+   --  Otherwise, each valid annotation is converted and associated to its
+   --  starting location in the returned map.
+
+   subtype Buffer_Annotation_Kind is
+     Src_Annotation_Kind range Dump_Buffers .. Reset_Buffers;
+
+   function Convert_Buffer_Annotation
+     (Kind      : Buffer_Annotation_Kind;
+      Match_Res : Match_Result;
+      Success   : out Boolean)
+      return Instrument.Common.Instr_Annotation;
+   --  Convert Match_Res to a buffer annotation, assuming the annotation in
+   --  Match Res is of kind Kind.
+   --
+   --  Print a warning and set Success to False if there are errors
+   --  interpreting the TOML annotation.
 
    ---------------------
    -- Annotation_Kind --
@@ -307,18 +341,17 @@ package body SS_Annotations is
       Set_Annotations (New_Annotations);
    end Import_External_Exemptions;
 
-   ----------------------------
-   -- Get_Buffer_Annotations --
-   ----------------------------
+   -----------------------------
+   -- Generic_Get_Annotations --
+   -----------------------------
 
-   function Get_Buffer_Annotations
+   function Generic_Get_Annotations
      (Filename : String) return Instrument.Common.Instr_Annotation_Map
    is
-      use Instrument.Common;
-      VF      : constant Virtual_File := Create (+Filename);
-      Matches : Match_Result_Vec;
-      Kind    : Any_Annotation_Kind;
-      Result  : Instr_Annotation_Map;
+      VF            : constant Virtual_File := Create (+Filename);
+      Matches       : Match_Result_Vec;
+      Annot_Kind    : Expected_Annot_Kind'Base;
+      Result        : Instr_Annotation_Map;
    begin
       --  Exit early if there are no external annotations
 
@@ -329,7 +362,7 @@ package body SS_Annotations is
       Matches := Match_Entries
         ((1 => VF),
          Ext_Annotation_DB,
-         Purpose_Prefix => To_Ada (Buffers_Namespace));
+         Purpose_Prefix);
 
       --  Process each annotation result
 
@@ -339,8 +372,8 @@ package body SS_Annotations is
             goto Continue;
          end if;
 
-         Kind := Annotation_Kind (Match);
-         if Kind not in Dump_Buffers | Reset_Buffers then
+         Annot_Kind := Kind (Match);
+         if Annot_Kind not in Expected_Annot_Kind then
             Warn
                ("Unexpected or unknown annotation kind for annotation """
                & (+Match.Identifier) & """: "
@@ -348,63 +381,247 @@ package body SS_Annotations is
             goto Continue;
          end if;
          declare
-            Start_Loc : constant Slocs.Local_Source_Location :=
+            use TOML;
+            Sloc    : constant Slocs.Local_Source_Location :=
               +Match.Location.Start_Sloc;
-            --  We only use the start location to represent buffer dump / reset
-            --  annotations, as a range is ill-defined for those.
-
-            New_Annotation : Instr_Annotation (Kind);
-            Cur            : Instr_Annotation_Maps.Cursor;
-            Inserted       : Boolean;
+            Success : Boolean;
+            Cur     : Instr_Annotation_Maps.Cursor;
+            Annot   : Instr_Annotation :=
+              Convert (Annot_Kind, Match, Success);
          begin
-            --  Explicitly inspect each annotation kind to get a warning if a
-            --  new annotation kind is added in Instrument.Common but not here.
+            if not Success then
+               goto Continue;
+            end if;
 
-            case New_Annotation.Kind is
-               when Dump_Buffers =>
-                  New_Annotation.Trace_Prefix :=
-                    Get_Or_Null (Match.Annotation, "trace_prefix");
-
-               when Reset_Buffers =>
-                  null;
-
-               when Cov_On | Cov_Off =>
-                  raise Program_Error with "unreachable";
-            end case;
-            New_Annotation.Insert_After := False;
-            declare
-               use TOML;
-            begin
-               if Match.Annotation.Has ("insert_after") then
-                  if Match.Annotation.Get ("insert_after").Kind /= TOML_Boolean
-                  then
-                     Warn
-                       ("Invalid type for ""insert_after"" field in annotation"
-                        & """" & (+Match.Identifier) & """, should be"
-                        & " TOML_BOOLEAN.");
-                  else
-                     New_Annotation.Insert_After :=
-                       Match.Annotation.Get ("insert_after").As_Boolean;
-                  end if;
+            Annot.Insert_After := False;
+            if Match.Annotation.Has ("insert_after") then
+               if Match.Annotation.Get ("insert_after").Kind /= TOML_Boolean
+               then
+                  Warn
+                    ("Invalid type for ""insert_after"" field in annotation"
+                     & """" & (+Match.Identifier) & """, should be"
+                     & " TOML_BOOLEAN.");
+                  Success := False;
+               else
+                  Annot.Insert_After :=
+                    Match.Annotation.Get ("insert_after").As_Boolean;
                end if;
-            end;
-            Result.Insert (Start_Loc, New_Annotation, Cur, Inserted);
+            end if;
+
+            Result.Insert (Sloc, Annot, Cur, Success);
 
             --  Tolerate duplicate annotations if they are the same
 
-            if not Inserted and then Result.Reference (Cur) /= New_Annotation
+            if not Success and then Result.Reference (Cur) /= Annot
             then
                Warn
                  (Ada.Directories.Simple_Name (Filename) & ":"
-                  & Slocs.Image (Start_Loc)
+                  & Slocs.Image (Sloc)
                   & ": Conflicting annotations for this line, ignoring the"
                   & " external annotation """ & (+Match.Identifier) & """");
             end if;
+
+            Ext_Annotation_Trace.Trace
+              ("Found instrumentation annotation for "
+               & Slocs.Image (Sloc) & ": " & Annot.Kind'Image);
+
          end;
          <<Continue>>
       end loop;
-
       return Result;
-   end Get_Buffer_Annotations;
+   end Generic_Get_Annotations;
+
+   -------------------------------
+   -- Convert_Buffer_Annotation --
+   -------------------------------
+
+   function Convert_Buffer_Annotation
+     (Kind      : Buffer_Annotation_Kind;
+      Match_Res : Match_Result;
+      Success   : out Boolean)
+      return Instrument.Common.Instr_Annotation
+   is
+      use TOML;
+      New_Annotation : Instr_Annotation (Kind);
+   begin
+      Success := True;
+      case New_Annotation.Kind is
+         when Dump_Buffers =>
+            New_Annotation.Trace_Prefix :=
+              Get_Or_Null (Match_Res.Annotation, "trace_prefix");
+
+         when Reset_Buffers =>
+            null;
+
+         when others =>
+            raise Program_Error with "Unreachable";
+      end case;
+
+      return New_Annotation;
+   end Convert_Buffer_Annotation;
+
+   ----------------------------
+   -- Get_Buffer_Annotations --
+   ----------------------------
+
+   function Get_Buffer_Annotations_Internal is new Generic_Get_Annotations
+     (Expected_Annot_Kind => Buffer_Annotation_Kind,
+      Kind                => Annotation_Kind,
+      Convert             => Convert_Buffer_Annotation,
+      Purpose_Prefix      => To_Ada (Buffers_Namespace));
+
+   function Get_Buffer_Annotations
+     (Filename : String) return Instr_Annotation_Map is
+     (Get_Buffer_Annotations_Internal (Filename));
+
+   ----------------------------------
+   -- Get_Disabled_Cov_Annotations --
+   ----------------------------------
+
+   function Get_Disabled_Cov_Annotations
+     (Filename : String) return Instr_Annotation_Map
+   is
+      use Instr_Annotation_Maps;
+      SFI             : constant Source_File_Index :=
+        Get_Index_From_Full_Name (Filename, Source_File);
+
+      subtype Cov_Annotation_Kind is
+        Src_Annotation_Kind range Cov_On .. Cov_Off;
+
+      function Convert_Cov_Annotation
+        (Kind      : Cov_Annotation_Kind;
+         Match_Res : Match_Result;
+         Success   : out Boolean)
+         return Instrument.Common.Instr_Annotation;
+      --  Convert Match_Res to a Cov_On/Cov_Off annotation, assuming the
+      --  annotation in Match Res is of kind Kind.
+      --
+      --  Print a warning and set Success to False if there are errors
+      --  interpreting the TOML annotation.
+
+      function Get_Disabled_Cov_Intl is new Generic_Get_Annotations
+        (Expected_Annot_Kind => Cov_Annotation_Kind,
+         Kind                => Annotation_Kind,
+         Convert             => Convert_Cov_Annotation,
+         Purpose_Prefix      => To_Ada (Coverage_Namespace));
+
+      ----------------------------
+      -- Convert_Cov_Annotation --
+      ----------------------------
+
+      function Convert_Cov_Annotation
+        (Kind      : Cov_Annotation_Kind;
+         Match_Res : Match_Result;
+         Success   : out Boolean)
+         return Instrument.Common.Instr_Annotation
+      is
+         use TOML;
+         New_Annotation : Instr_Annotation (Kind);
+      begin
+         Success := True;
+         case New_Annotation.Kind is
+            when Cov_Off =>
+               New_Annotation.Justification :=
+                 Get_Or_Null (Match_Res.Annotation, "justification");
+               if New_Annotation.Justification = Null_Unbounded_String then
+                  Warn
+                    (Slocs.Image (To_Sloc (Match_Res.Location.Start_Sloc, SFI))
+                     & ": Missing or empty justification for external"
+                     & " disabled coverage region annotation """
+                     & (+Match_Res.Identifier) & """");
+               end if;
+
+            when Cov_On => null;
+
+            when others =>
+               raise Program_Error with "Unreachable";
+
+         end case;
+
+         --  Filter the annotation if it conflicts with a pre-existing one
+         --  which is not identical.
+
+         if Success then
+            declare
+               use ALI_Annotation_Maps;
+               Cur : constant ALI_Annotation_Maps.Cursor := Get_Annotation
+                 ((Source_File => SFI, L => +Match_Res.Location.Start_Sloc));
+            begin
+               if Has_Element (Cur) then
+                  if Element (Cur).Kind /= Kind then
+                     Success := False;
+                  elsif Kind = Cov_Off then
+                     Success :=
+                       (if Element (Cur).Message in null
+                        then US.Length (New_Annotation.Justification) = 0
+                        else Element (Cur).Message.all
+                            = (+New_Annotation.Justification));
+                  end if;
+
+                  if not Success then
+                     Warn
+                       (Ada.Directories.Simple_Name (Filename) & ":"
+                        & Image (Match_Res.Location.Start_Sloc)
+                        & ": Conflicting annotations for this line, ignoring"
+                        & " the external annotation """
+                        & (+Match_Res.Identifier) & """");
+                  end if;
+
+               end if;
+            end;
+         end if;
+
+         return New_Annotation;
+      end Convert_Cov_Annotation;
+
+      Res : Instr_Annotation_Map := Get_Disabled_Cov_Intl (Filename);
+      Cur : Instr_Annotation_Maps.Cursor := Res.First;
+      Aux : Instr_Annotation_Maps.Cursor;
+
+      Expected_Kind, Next_Expected_Kind, Tmp : Src_Annotation_Kind;
+
+   --  Start of processing for Get_Disabled_Cov_Annotations
+
+   begin
+      --  Filter out any annotations that do not come in pairs, and ensure
+      --  the map starts with an Cov_Off annotation.
+
+      if Has_Element (Cur) and then Element (Cur).Kind = Cov_On then
+         Warn
+           (Ada.Directories.Simple_Name (Filename) & ": "
+            & Slocs.Image (Key (Cur))
+            & ": external Cov_On annotation with no previous Cov_Off"
+            & " annotation, ignoring it.");
+         Aux := Cur;
+         Next (Cur);
+         Res.Delete (Aux);
+      end if;
+
+      Expected_Kind := Cov_Off;
+      Next_Expected_Kind := Cov_On;
+
+      while Has_Element (Cur) loop
+         pragma Assert (Element (Cur).Kind = Expected_Kind);
+         Aux := Next (Cur);
+         if (if Has_Element (Aux)
+             then Element (Aux).Kind /= Next_Expected_Kind
+             else Element (Cur).Kind = Cov_Off)
+         then
+            Warn
+              (Ada.Directories.Simple_Name (Filename) & ": "
+               & Slocs.Image (Key (Cur)) & ": external "
+               & Expected_Kind'Image & " annotation with no subsequent "
+               & Next_Expected_Kind'Image & " annotation, ignoring it.");
+            Res.Delete (Cur);
+         else
+            Tmp := Expected_Kind;
+            Expected_Kind := Next_Expected_Kind;
+            Next_Expected_Kind := Tmp;
+         end if;
+         Cur := Aux;
+      end loop;
+
+      return Res;
+   end Get_Disabled_Cov_Annotations;
 
 end SS_Annotations;

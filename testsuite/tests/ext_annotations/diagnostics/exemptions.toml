@@ -1,0 +1,47 @@
+# All these annotations should load fine, but generate a warning
+
+[unknown_kind_exempt]
+kind="absolute"
+file="main.adb"
+[unknown_kind_exempt.matcher]
+start_line=3
+start_col=4
+end_line=3
+end_col=4
+[[unknown_kind_exempt.annotations]]
+purpose="xcov.exempt.foo_bar"
+
+[missing_justif]
+kind="absolute"
+file="main.adb"
+[missing_justif.matcher]
+start_line=3
+start_col=4
+end_line=3
+end_col=4
+[[missing_justif.annotations]]
+purpose="xcov.exempt.on"
+
+[duplicate_3]
+kind="absolute"
+file="main.adb"
+[duplicate_3.matcher]
+start_line=3
+start_col=4
+end_line=3
+end_col=4
+[[duplicate_3.annotations]]
+purpose="xcov.exempt.on"
+justification="this entry is duplicated (same sloc)"
+
+[duplicate_4]
+kind="absolute"
+file="main.adb"
+[duplicate_4.matcher]
+start_line=3
+start_col=4
+end_line=3
+end_col=4
+[[duplicate_4.annotations]]
+purpose="xcov.exempt.off"
+justification="this entry is duplicated (same sloc)"
