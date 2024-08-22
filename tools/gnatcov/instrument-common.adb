@@ -704,6 +704,80 @@ package body Instrument.Common is
       end loop;
    end Import_From_Args;
 
+   ------------------------
+   -- Is_Disabled_Region --
+   ------------------------
+
+   function Is_Disabled_Region
+     (UIC : Unit_Inst_Context; Sloc : Source_Location) return Boolean
+   is
+   begin
+      for Disabled_Region of UIC.Disable_Cov_Regions loop
+         if In_Range (Sloc, Disabled_Region) then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Is_Disabled_Region;
+
+   -------------------------------
+   -- Populate_Ext_Disabled_Cov --
+   -------------------------------
+
+   procedure Populate_Ext_Disabled_Cov
+     (UIC    : in out Unit_Inst_Context;
+      Annots : Instr_Annotation_Map;
+      SFI    : Source_File_Index)
+   is
+      use Instr_Annotation_Maps;
+      Cur : Instr_Annotation_Maps.Cursor := Annots.First;
+   begin
+      while Has_Element (Cur) loop
+
+         declare
+            Off_Annot : constant Instr_Annotation := Element (Cur);
+            Off_Sloc  : constant Local_Source_Location := Key (Cur);
+            On_Annot  : Instr_Annotation;
+         begin
+
+            --  First comes the Cov_Off annotation
+
+            pragma Assert (Off_Annot.Kind = Cov_Off);
+
+            UIC.Annotations.Append
+              (Annotation_Couple'
+                 ((Source_File => SFI, L => Off_Sloc),
+                  (Kind          => Cov_Off,
+                   Message       =>
+                     (if Length (Off_Annot.Justification) /= 0
+                      then new String'(+Off_Annot.Justification)
+                      else null),
+                   others        => <>)));
+
+            --  Then the Cov_On annotation
+
+            Next (Cur);
+            pragma Assert (Has_Element (Cur));
+            On_Annot := Element (Cur);
+            pragma Assert (On_Annot.Kind = Cov_On);
+
+            UIC.Annotations.Append
+              (Annotation_Couple'
+                 ((Source_File => SFI, L => Key (Cur)),
+                  (Kind => Cov_On, others => <>)));
+
+            --  And the region annotation
+
+            UIC.Disable_Cov_Regions.Append
+              (Source_Location_Range'
+                 (SFI,
+                  (First_Sloc => Off_Sloc,
+                   Last_Sloc  => Key (Cur))));
+         end;
+         Next (Cur);
+      end loop;
+   end Populate_Ext_Disabled_Cov;
+
 begin
    Sys_Prefix.Append (To_Unbounded_String ("GCVRT"));
 
