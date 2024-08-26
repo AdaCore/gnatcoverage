@@ -195,7 +195,9 @@ package body Annotations.Sarif is
          Short_Descr =>
            (+"The subprogram was entered at least once or the call"
             & " was executed at least once"),
-         Help_Uri    => +"FIXME",
+         Help_Uri    => +Doc_Link
+         & "gnatcov/cov_source.html#function-and-call-coverage-fun-call-"
+         & "analysis-experimental",
          Config      => +"error"),
       Undet_Rule     =>
         (Id          => +"UNDET",
