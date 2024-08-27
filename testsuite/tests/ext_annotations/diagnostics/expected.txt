@@ -1,11 +1,11 @@
 warning: ../load_fail.toml:15:1: Error while parsing entry "missing_field": Missing "annotations" field
 warning: ../load_fail.toml:18:1: Error while parsing entry "missing_justif": Missing "kind" field
+warning: Entry "unknown_kind_exempt" has an unknown annotation kind, it will be ignored.
+warning: Entry "unknown_kind_cov" has an unknown annotation kind, it will be ignored.
+warning: Entry "unknown_kind_buffers" has an unknown annotation kind, it will be ignored.
+warning: Missing or empty justification for external exemption annotation "missing_justif", it will be ignored.
 warning: main.adb:3:4: Conflicting annotations for this line, ignoring the external annotation "duplicate_2"
-warning: Unexpected or unknown annotation kind for annotation "unknown_kind_buffers": xcov.buffers.foo_bar
 warning: main.adb:3:4: Conflicting annotations for this line, ignoring the external annotation "duplicate_cov_2"
-warning: Unexpected or unknown annotation kind for annotation "unknown_kind_cov": xcov.cov.foo_bar
 warning: main.adb: 2:4: external Cov_On annotation with no previous Cov_Off annotation, ignoring it.
 warning: main.adb: 3:4: external COV_OFF annotation with no subsequent COV_ON annotation, ignoring it.
 warning: main.adb:3:4: Conflicting annotations for this line, ignoring the external annotation "duplicate_4"
-warning: Unexpected or unknown annotation kind for annotation "unknown_kind_exempt": xcov.exempt.foo_bar
-warning: main.adb:3:4: Missing or empty justification for external exemption annotation "missing_justif"

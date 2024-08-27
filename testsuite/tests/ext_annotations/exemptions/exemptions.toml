@@ -46,9 +46,9 @@ file="foo.h"
 kind="absolute"
 [region_c.matcher]
 start_line=4
-start_col=3
+start_col=1
 end_line=5
-end_col=14
+end_col=16
 [[region_c.annotations]]
 purpose="xcov.exempt.region"
 justification="defensive code, not to be triggered (region)"
@@ -60,10 +60,10 @@ file="foo.c"
 kind="absolute"
 [on_c.matcher]
 start_line=6
-start_col=3
+start_col=1
 # End line annotations does not matter for exempt_on
 end_line=6
-end_col=3
+end_col=1
 [[on_c.annotations]]
 purpose="xcov.exempt.on"
 justification="garbage code, not to be triggered (on)"
@@ -73,9 +73,9 @@ file="foo.c"
 kind="absolute"
 [off_c.matcher]
 start_line=7
-start_col=15
+start_col=17
 # End line annotations does not matter for exempt_off
 end_line=7
-end_col=15
+end_col=17
 [[off_c.annotations]]
 purpose="xcov.exempt.off"

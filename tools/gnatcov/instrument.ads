@@ -72,8 +72,7 @@ package Instrument is
    function "&" (Left, Right : Ada_Qualified_Name) return Ada_Qualified_Name
       renames Ada_Identifier_Vectors."&";
 
-   function To_Ada (Name : Ada_Qualified_Name) return String
-     with Pre => not Name.Is_Empty;
+   function To_Ada (Name : Ada_Qualified_Name) return String;
    --  Turn the given qualified name into Ada syntax
 
    procedure Read is new Read_Vector

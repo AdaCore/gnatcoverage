@@ -20,6 +20,7 @@
 
 with Stable_Sloc;
 
+with Command_Line;
 with Instrument.Common;
 with Logging;
 with Slocs;
@@ -42,6 +43,10 @@ package SS_Annotations is
      (Line   => S.Line,
       Column => S.Column);
 
+   function "+" (S : Slocs.Local_Source_Location) return Stable_Sloc.Sloc is
+     (Line   => S.Line,
+      Column => S.Column);
+
    function "+"
      (S : Stable_Sloc.Sloc_Span) return Slocs.Local_Source_Location_Range is
      (First_Sloc => +S.Start_Sloc,
@@ -61,10 +66,16 @@ package SS_Annotations is
    --  Load the annotations in Annotation_File into our internal annotation
    --  database.
 
+   procedure Validate_Annotations;
+   --  Iterate over the loaded entries, and validate the TOML annotations.
+   --  Warn about the invalid annotations.
+
    procedure Import_External_Exemptions
-     (FI : Source_File_Index);
+     (FI : Source_File_Index; Filter : Boolean := False);
    --  Search for external exemptions in FI, from the annotations loaded in
    --  Ext_Annotation_DB.
+   --
+   --  If Filter is True, reject annotations that lie within a statement SCO.
 
    function Get_Buffer_Annotations
      (Filename : String) return Instrument.Common.Instr_Annotation_Map;
@@ -85,5 +96,14 @@ package SS_Annotations is
    --
    --  Finally, the resulting annotations are guaranteed not to conflict with
    --  any pre-existing annotations for Filename.
+
+   procedure Add_Annotation (Args : Command_Line.Parser.Parsed_Arguments);
+   --  Generate the annotation corresponding to the given Args
+
+   procedure Delete_Annotation (Args : Command_Line.Parser.Parsed_Arguments);
+   --  Delete the annotations corresponding to the given Args
+
+   procedure Show_Annotations (Args : Command_Line.Parser.Parsed_Arguments);
+   --  List the entries and corresponding matches from the options in Args
 
 end SS_Annotations;
