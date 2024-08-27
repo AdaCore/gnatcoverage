@@ -38,6 +38,9 @@ package Slocs is
    function "<=" (L, R : Local_Source_Location) return Boolean;
 
    function Image (Sloc : Local_Source_Location) return String;
+   function Value (Str : String) return Local_Source_Location;
+   --  Attempt to interpret Str as a LINE:COL local source location string.
+   --  Raise Constraint_Error if not possible.
 
    No_Local_Location : constant Local_Source_Location := (0, 0);
 

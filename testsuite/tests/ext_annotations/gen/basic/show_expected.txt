@@ -1,0 +1,4 @@
+
+main.adb:
+- 13:4 - 13:4; id: exempt_on_1; kind: Exempt_On; Justification: unexpected C failure
+- 15:11 - 15:11; id: exempt_off_1; kind: Exempt_Off

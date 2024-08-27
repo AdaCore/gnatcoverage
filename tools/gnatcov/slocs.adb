@@ -18,6 +18,8 @@
 
 --  Source locations
 
+with Ada.Strings.Fixed;
+
 with Files_Table; use Files_Table;
 with Strings;     use Strings;
 
@@ -171,6 +173,44 @@ package body Slocs is
            & "-" & Abridged_Image (Sloc => Last_Sloc, Ref => First_Sloc);
       end if;
    end Image;
+
+   -----------
+   -- Value --
+   -----------
+
+   function Value (Str : String) return Local_Source_Location is
+      use Ada.Strings.Fixed;
+      Trimmed   : constant String := Trim (Str, Ada.Strings.Both);
+      Col_Index : constant Natural := Index (Trimmed, ":");
+      Res       : Local_Source_Location;
+   begin
+      if Col_Index = 0 then
+         raise Constraint_Error with
+           "Missing ':' character in source location string";
+      end if;
+      --  Parse the line number
+
+      begin
+         Res.Line := Positive'Value (Trimmed (Trimmed'First .. Col_Index - 1));
+      exception
+         when Constraint_Error =>
+            raise Constraint_Error with
+              "Expected a positive integer for LINE, but got """
+              & Trimmed (Trimmed'First .. Col_Index - 1) & """";
+      end;
+      --  Parse the column number
+
+      begin
+         Res.Column :=
+           Positive'Value (Trimmed (Col_Index + 1 .. Trimmed'Last));
+      exception
+         when Constraint_Error =>
+            raise Constraint_Error with
+              "Expected a positive integer for COL, but got """
+              & Trimmed (Col_Index + 1 .. Trimmed'Last) & """";
+      end;
+      return Res;
+   end Value;
 
    --------------
    -- In_Range --

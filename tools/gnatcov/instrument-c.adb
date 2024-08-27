@@ -596,27 +596,14 @@ package body Instrument.C is
    begin
       for Ann of UIC.Annotations loop
          declare
-            Sloc    : constant Source_Location := Ann.Sloc;
-            LI      : constant Line_Info_Access := Get_Line (Sloc);
-            Deleted : Boolean := False;
+            Sloc : Source_Location renames Ann.Sloc;
+            SCO  : constant SCO_Id := Sloc_Intersects_SCO (Sloc);
          begin
-            --  Check that no SCOs on the line of the annotation intersect
-            --  the annotation Sloc. If one does, discard the annotation and
-            --  warn the user as this is not a supported use case.
-
-            if LI /= null and then LI.SCOs /= null
-            then
-               for SCO of LI.SCOs.all loop
-                  if Slocs.In_Range (Sloc, Sloc_Range (SCO)) then
-                     Warn ("Exemption annotation at " & Slocs.Image (Sloc)
-                           & " intersects a coverage obligation ("
-                           & Image (SCO, True) & "), ignoring it");
-                     Deleted := True;
-                     exit;
-                  end if;
-               end loop;
-            end if;
-            if not Deleted then
+            if SCO /= No_SCO_Id then
+               Warn ("Exemption annotation at " & Slocs.Image (Sloc)
+                     & " intersects a coverage obligation ("
+                     & Image (SCO, True) & "), ignoring it");
+            else
                Filtered_Annotations.Append (Ann);
             end if;
          end;
@@ -3568,7 +3555,8 @@ package body Instrument.C is
          Filter_Annotations (UIC);
          UIC.Import_Annotations (UIC.CUs);
          for Cur in UIC.CUs.Iterate loop
-            Import_External_Exemptions (Created_Unit_Maps.Key (Cur));
+            Import_External_Exemptions
+              (Created_Unit_Maps.Key (Cur), Filter => True);
          end loop;
          Import_Non_Instrumented_LL_SCOs (UIC, SCO_Map);
 
