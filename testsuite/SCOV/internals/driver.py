@@ -1424,7 +1424,9 @@ class SCOV_helper_src_traces(SCOV_helper):
 
         xcov_instrument(
             covlevel=self.xcovlevel,
-            extra_args=to_list(self.covctl.covoptions) if self.covctl else [],
+            extra_args=(
+                to_list(self.covctl.instroptions) if self.covctl else []
+            ),
             dump_channel=self.dump_channel,
             dump_trigger=self.dump_trigger,
             gprsw=instrument_gprsw,

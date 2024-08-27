@@ -325,6 +325,9 @@ package Instrument.Common is
    package Annotation_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Annotation_Couple);
 
+   package Sloc_Range_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Source_Location_Range);
+
    package Nat_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Nat);
 
@@ -351,13 +354,18 @@ package Instrument.Common is
       --  rewriting.
 
       Disable_Coverage : Boolean := False;
-      --  Set to True to deactivate instrumentation and SCO emissions
+      --  Set to True to deactivate instrumentation and SCO emissions,
+      --  regardless of the contents of Disable_Cov_Region.
 
       Non_Instr_LL_SCOs : SCO_Sets.Set;
       --  Set of low level SCO ids that were not instrumented
 
       Blocks : SCO_Id_Vector_Vector;
       --  This is used when the block coverage level is enabled: list of blocks
+
+      Disable_Cov_Regions : Sloc_Range_Vectors.Vector;
+      --  List of regions where coverage is disabled, as delimited by
+      --  GNATCOV_COV_OFF/ON markers or external annotations.
 
    end record;
 
@@ -371,6 +379,11 @@ package Instrument.Common is
      (UIC : Unit_Inst_Context; SCO_Map : LL_HL_SCO_Map);
    --  Import the low level SCO in UIC marked as non-instrumented in the high
    --  level non-instrumented SCO_Id sets.
+
+   function Is_Disabled_Region
+     (UIC : Unit_Inst_Context; Sloc : Source_Location) return Boolean;
+   --  Return True if Sloc lies within one of the disabled regions in
+   --  UIC.Disable_Cov_Region.
 
    function Img (Bit : Any_Bit_Id) return String is
      (Strings.Img (Integer (Bit)));
@@ -662,5 +675,49 @@ package Instrument.Common is
      (Self : in out Analysis_Options; Args : String_Vectors.Vector);
    --  Extract analysis options from the Args command line arguments and update
    --  Self accordingly.
+
+   subtype Instr_Annotation_Kind is Any_Annotation_Kind range
+     Dump_Buffers .. Any_Annotation_Kind'Last;
+   --  Annotation kinds that are relevant for the instrumentation step
+
+   type Instr_Annotation (Kind : Instr_Annotation_Kind := Dump_Buffers) is
+   record
+
+      Insert_After : Boolean := False;
+      --  For instrumenters where this is applicable, consider that the
+      --  annotation should apply after the designated entity rather than
+      --  before.
+
+      --  Explicitly list all annotation kinds to get a compilation warning
+      --  when adding new annotation kind in ALI_Files but not here.
+
+      case Kind is
+         when Dump_Buffers =>
+            Trace_Prefix : Unbounded_String;
+            --  Optional trace prefix for the buffer dump, left empty if not
+            --  specified.
+
+         when Cov_Off =>
+            Justification : Unbounded_String;
+            --  Justification for why the region is disabled for coverage
+
+         when Reset_Buffers | Cov_On =>
+            null;
+      end case;
+   end record;
+   --  Represents one annotation, with all the relevant information needed by
+   --  the instrumenters.
+
+   package Instr_Annotation_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Local_Source_Location,
+      Element_Type => Instr_Annotation);
+   subtype Instr_Annotation_Map is Instr_Annotation_Maps.Map;
+
+   procedure Populate_Ext_Disabled_Cov
+     (UIC    : in out Unit_Inst_Context;
+      Annots : Instr_Annotation_Map;
+      SFI    : Source_File_Index);
+   --  Populate the Annotations and Disabled_Cov_Regions of UIC with the
+   --  annotations in Annots. The resulting annotations are tied to SFI.
 
 end Instrument.Common;

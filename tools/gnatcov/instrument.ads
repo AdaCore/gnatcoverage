@@ -171,6 +171,14 @@ package Instrument is
    --  Example: passing the qualified name Foo.Bar will return the string
    --  "foo_bar".
 
+   function Has_Prefix (Name, Prefix : Ada_Qualified_Name) return Boolean is
+     (Prefix.Last_Index <= Name.Last_Index
+      and then
+        (for all I in 1 .. Prefix.Last_Index
+         => Prefix.Constant_Reference (I) = Name.Constant_Reference (I)));
+   --  Returns whether Name starts with the same identifiers as Prefix, case
+   --  sensitive.
+
    function CU_Name_For_Unit
      (Unit : Ada_Qualified_Name;
       Part : Unit_Parts) return Compilation_Unit_Part;

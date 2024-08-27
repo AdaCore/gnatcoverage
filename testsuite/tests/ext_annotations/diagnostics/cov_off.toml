@@ -1,0 +1,53 @@
+# All these entries should either fail to load or produce a warning
+
+# Fail due to unknown annotation kind
+[unknown_kind_cov]
+kind="absolute"
+file="main.adb"
+[unknown_kind_cov.matcher]
+start_line=3
+start_col=4
+end_line=3
+end_col=4
+[[unknown_kind_cov.annotations]]
+purpose="xcov.cov.foo_bar"
+
+# Rejected because a cov_on annotation cannot appear first
+[cov_on_first]
+kind="absolute"
+file="main.adb"
+[cov_on_first.matcher]
+start_line=2
+start_col=4
+end_line=3
+end_col=4
+[[cov_on_first.annotations]]
+purpose="xcov.cov.on"
+
+# Ultimately rejected as the next annotation will be ignored,
+# and a cov_off annotation cannot be the last one of a file
+[duplicate_cov_1]
+kind="absolute"
+file="main.adb"
+[duplicate_cov_1.matcher]
+start_line=3
+start_col=4
+end_line=3
+end_col=4
+[[duplicate_cov_1.annotations]]
+purpose="xcov.cov.off"
+justification="this entry is duplicated (same sloc)"
+
+# Rejected as this annotates the same location
+[duplicate_cov_2]
+kind="absolute"
+file="main.adb"
+[duplicate_cov_2.matcher]
+start_line=3
+start_col=4
+end_line=3
+end_col=4
+[[duplicate_cov_2.annotations]]
+purpose="xcov.cov.on"
+
+
