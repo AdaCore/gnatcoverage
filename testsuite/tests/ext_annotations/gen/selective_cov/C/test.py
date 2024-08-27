@@ -16,6 +16,18 @@ from SUITE.context import thistest
 from SCOV.tctl import CAT, CovControl
 from SCOV.tc import TestCase
 
+from SUITE.tutils import Cov_Off, Cov_On, generate_annotations
+
+# Annotations to be used, use a mix of Exempt_Region an Exempt_On/Off
+annotations = generate_annotations(
+    [
+        Cov_Off("src/pkg.h", "5:3", None),
+        Cov_On("src/pkg.h", "7:3", None),
+        Cov_Off("src/pkg.h", "11:3", None),
+        Cov_On("src/pkg.h", "13:3", None),
+    ]
+)
+
 thistest.options.consolidate = "checkpoints"
 TestCase(
     category=CAT.mcdc,
@@ -23,6 +35,6 @@ TestCase(
         r".* Missing or empty justification for external disabled coverage"
         r' region annotation ".*"'
     ),
-).run(CovControl(instroptions="--external-annotations=../annotations.toml"))
+).run(CovControl(instroptions=f"--external-annotations={annotations}"))
 
 thistest.result()

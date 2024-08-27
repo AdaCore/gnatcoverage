@@ -1,0 +1,2 @@
+block DEAD Manual dump wrapped in procedure call (unsupported when using block coverage)
+5.04a1 DEAD Uses pragma unknown to compiler
