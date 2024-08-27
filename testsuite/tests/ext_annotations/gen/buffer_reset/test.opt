@@ -1,0 +1,3 @@
+bin-traces DEAD Test specific to src trace feature
+!native DEAD Test requires bin-file dump channel
+5.04a1 DEAD Uses pragmas unknown to the compiler
