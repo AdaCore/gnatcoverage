@@ -158,10 +158,10 @@ test_5.04a1_src_traces:
   script:
     - *basic_test_setup
 
-    # GNAT 5.04a1 does not ship "ar" nor "ld". Make the ones from stable-gnat
+    # GNAT 5.04a1 does not ship "ar" nor "ld". Make the ones from gnat/stable
     # available as if they were installed system-wide.
-    - anod install stable-gnat
-    - STABLE_GNAT_BSN=$(anod eval --primitive=install stable-gnat build_space_name)
+    - anod install gnat -Qstable
+    - STABLE_GNAT_BSN=$(anod eval --primitive=install gnat -Qstable build_space_name)
     - STABLE_GNAT_PREFIX="$ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$STABLE_GNAT_BSN/install"
     - mkdir build-essentials
     - export PATH="$PWD/build-essentials:$PATH"
@@ -217,8 +217,8 @@ stylechecks:
         url."${GITLAB_REMOTE}".insteadOf "ssh://git@ssh.gitlab.adacore-it.com/"
 
     # Install the clang-format executable and make it available
-    - anod install stable-libclang
-    - eval `anod printenv stable-libclang`
+    - anod install libclang -Qstable
+    - eval `anod printenv libclang -Qstable`
 
     # Create a virtual env to install our deps
     - python -mvenv /tmp/venv
