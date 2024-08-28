@@ -339,4 +339,43 @@ package body Strings is
       Vec.Append (Unbounded_Slice (From, Arg_Start_Index, Last));
    end Append_From_String;
 
+   -------------------------------
+   -- Interpret_Escape_Sequence --
+   -------------------------------
+
+   function Interpret_Escape_Sequence (Str : String) return String is
+      use US;
+      Res   : Unbounded_String;
+      Index : Positive := Str'First;
+      C     : Character;
+   begin
+      while Index <= Str'Last loop
+         if Str (Index) = '\' then
+            if Index = Str'Last then
+               raise Constraint_Error with "stray trailing backslash";
+            end if;
+            C := (case Str (Index + 1) is
+               when 'a' => ASCII.BEL,
+               when 'b' => ASCII.BS,
+               when 'e' => ASCII.ESC,
+               when 'f' => ASCII.FF,
+               when 'n' => ASCII.LF,
+               when 'r' => ASCII.CR,
+               when 't' => ASCII.HT,
+               when 'v' => ASCII.VT,
+               when ''' | '"' | '?' | '\' => Str (Index + 1),
+               when others =>
+                 raise Constraint_Error with
+                   "invalid or unknown escape sequence: "
+                   & Str (Index .. Index + 1));
+            Index := Index + 2;
+         else
+            C := Str (Index);
+            Index := Index + 1;
+         end if;
+         Append (Res, C);
+      end loop;
+      return +Res;
+   end Interpret_Escape_Sequence;
+
 end Strings;

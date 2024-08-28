@@ -4508,6 +4508,7 @@ package body Instrument.C is
                     ("Could not remap " & Annot.Kind'Image & " at "
                      & Slocs.Image (Key (Ext_Annot_Cur)));
                end;
+               Next (Ext_Annot_Cur);
             end loop;
          end if;
 
@@ -4626,9 +4627,10 @@ package body Instrument.C is
                In_Directive := True;
 
                declare
-                  Directive_Filename : String renames
-                    Str (Line_Matches (2).First .. Line_Matches (2).Last);
-                  Directive_Line : constant Natural :=
+                  Directive_Filename : constant String :=
+                    Interpret_Escape_Sequence
+                      (Str (Line_Matches (2).First .. Line_Matches (2).Last));
+                  Directive_Line     : constant Natural :=
                     Natural'Value
                       (Str (Line_Matches (1).First .. Line_Matches (1).Last));
                begin
@@ -4715,6 +4717,7 @@ package body Instrument.C is
 
       while Has_Element (Next_Sloc) loop
          Slocs.Replace_Element (Next_Sloc, 0);
+         Next (Next_Sloc);
       end loop;
    end Remap_Locations;
 
