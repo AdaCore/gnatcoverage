@@ -28,18 +28,11 @@ package body Traces_Lines is
          when No_Code =>
             return R;
 
-         when Not_Coverable =>
-            if R = No_Code then
-               return L;
-            else
-               return R;
-            end if;
+         --  We don't want non instrumented code / Not_Coverable code to mask
+         --  any confirmed violations, but we still want them to show up if
+         --  gnatcov does not detect any violation.
 
-         --  We don't want non instrumented code to mask any confirmed
-         --  violations, but we still want them to show up if gnatcov does not
-         --  detect any violation.
-
-         when Undetermined_Coverage =>
+         when Not_Coverable | Undetermined_Coverage =>
             if R in No_Code | Covered then
                return L;
             else
@@ -48,10 +41,10 @@ package body Traces_Lines is
 
          when others =>
             case R is
-               when No_Code | Not_Coverable =>
+               when No_Code =>
                   return L;
 
-               when Undetermined_Coverage =>
+               when Undetermined_Coverage | Not_Coverable =>
                   if L = Covered then
                      return R;
                   else
