@@ -219,7 +219,7 @@ package body SS_Annotations is
 
       --  Match the entries on FI
 
-      File := Create (+Get_Full_Name (FI));
+      File := Create (+Get_Full_Name (FI, Or_Simple => True));
       Matches := Match_Entries
         ((1 => File),
          Ext_Annotation_DB,
