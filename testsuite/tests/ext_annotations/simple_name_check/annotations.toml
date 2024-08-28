@@ -1,0 +1,11 @@
+[region]
+file="reset.adb"
+kind="absolute"
+[region.matcher]
+start_line=3
+start_col=4
+end_line=3
+end_col=11
+[[region.annotations]]
+purpose="xcov.exempt.region"
+justification="dummy exemption"

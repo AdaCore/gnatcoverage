@@ -30,9 +30,14 @@ end Test_Exempt;
 
 --# foo.h
 --
---%opts: --trace-mode=src
---
 -- /exempt_h/   l* ## x+
 -- /exempt_h_d/ l= ## XoT-
 -- /exempt_h_s/ l= ## Xs-
+-- /ok/         l+ ## 0
+
+--# foo.c
+--
+-- /exempt_c/   l* ## x+
+-- /exempt_c_d/ l= ## XoT-
+-- /exempt_c_s/ l= ## Xs-
 -- /ok/         l+ ## 0
