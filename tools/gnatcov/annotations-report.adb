@@ -606,39 +606,46 @@ package body Annotations.Report is
             M            : Message renames Message_Vectors.Element (C);
             Msg          : constant String := +M.Msg;
             First        : Natural := Msg'First;
-            Show_Vectors : constant Boolean :=
-              (Switches.Show_MCDC_Vectors
-               and then not Is_Assertion_To_Cover (M.SCO))
-              or else Switches.Show_Condition_Vectors;
          begin
-            --  For info messages (such as the messages displayed with
-            --  --show-mcdc-vectors and --show-condition vectors), do not
-            --  display the SCO, as it is only used to attach the message to
-            --  the right report location.
-
             if M.Kind /= Info and then M.SCO /= No_SCO_Id then
-               Put
-                 (Output.all, Image (First_Sloc (M.SCO), Unique_Name => True));
-               Put (Output.all, ": ");
-               if Msg (First) = '^' then
-                  First := First + 1;
-               else
+               declare
+                  Show_Vectors : constant Boolean :=
+                    (Switches.Show_MCDC_Vectors
+                     and then not Is_Assertion_To_Cover (M.SCO))
+                    or else Switches.Show_Condition_Vectors;
+               begin
                   Put
                     (Output.all,
-                     SCO_Kind_Image (M.SCO)
-                     & (if Show_Vectors and then Kind (M.SCO) = Condition
-                       then Index (M.SCO)'Image
-                       & " (" & SCO_Image (M.SCO) & ") "
-                       else " "));
-               end if;
+                     Image (First_Sloc (M.SCO), Unique_Name => True));
+                  Put (Output.all, ": ");
+                  if Msg (First) = '^' then
+                     First := First + 1;
+                  else
+                     Put
+                       (Output.all,
+                        SCO_Kind_Image (M.SCO)
+                        & (if Show_Vectors and then Kind (M.SCO) = Condition
+                           then Index (M.SCO)'Image
+                                & " (" & SCO_Image (M.SCO) & ") "
+                           else " "));
+                  end if;
+               end;
 
-            else
+            elsif M.SCO /= No_SCO_Id then
+
+               --  For info messages (such as the messages displayed with
+               --  --show-mcdc-vectors and --show-condition vectors), do not
+               --  display the SCO, as it is only used to attach the message to
+               --  the right report location.
+
                Put (Output.all, Image
                     ((if SC_Obligations.Kind (M.SCO) = Condition
                        then First_Sloc (Enclosing_Decision (M.SCO))
                        else First_Sloc (M.SCO)),
                        Unique_Name => True));
                Put (Output.all, ": ");
+            else
+               Put (Output.all, Image (M.Sloc) & ": ");
             end if;
 
             Output_Multiline_Msg
@@ -651,7 +658,9 @@ package body Annotations.Report is
             end if;
 
             New_Line (Output.all);
-            Output_Annotations (Output.all, SCO_Annotations (M.SCO));
+            if M.SCO /= No_SCO_Id then
+               Output_Annotations (Output.all, SCO_Annotations (M.SCO));
+            end if;
          end Output_Message;
 
       --  Start of processing for Messages_For_Section
@@ -975,7 +984,9 @@ package body Annotations.Report is
    is
       Info : constant File_Info_Access := Get_File (File);
    begin
-      if Info.Li_Stats (Covered) /= Get_Total (Info.Li_Stats) then
+      if Info.Li_Stats (Covered) /= Get_Total (Info.Li_Stats)
+        or else (Pp.Show_Details and then Info.Li_Stats (Not_Coverable) /= 0)
+      then
 
          --  Some uncovered or partially covered lines are present
 

@@ -659,6 +659,15 @@ package SC_Obligations is
    --  For a statement within an exception handler, return the sloc range of
    --  the (innermost) handler.
 
+   function Decision_Has_Influence (SCO : SCO_Id) return Boolean with
+    Pre => Kind (SCO) = Decision;
+   --  Wether the decision designated by SCO has at least one known branch in
+   --  the executable, or dominates at least one statement. If not, the
+   --  decision has no impact on the control flow of the program.
+   --
+   --  This always returns True is the accepted trace kind includes source
+   --  traces.
+
    --  Condition SCOs
 
    function Index (SCO : SCO_Id) return Condition_Index;

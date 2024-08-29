@@ -1061,6 +1061,26 @@ package body Coverage.Source is
                                  SCI.Tag,
                                  "was not instrumented for decision coverage",
                                  Kind => Undetermined_Cov);
+
+                           --  If the decision has not conditional branches at
+                           --  all, mark it as uncoverable and report it. We
+                           --  should already have leveraged back-propagation,
+                           --  at this point, so a decision with no outcomes
+                           --  taken is either never evaluated, or has no
+                           --  branches to track the evaluation.
+
+                           elsif not Decision_Has_Influence (SCO) then
+                              if Report_If_Excluded (SCO) then
+                                 SCO_State := Not_Coverable;
+                                 Report_Exclusion
+                                   (SCO, SCI.Tag, Msg => "has no object code");
+                              else
+                                 --  Mark the SCO as no code if not reporting
+                                 --  it, to avoid having a violation in the
+                                 --  reports.
+
+                                 SCO_State := No_Code;
+                              end if;
                            else
                               Report_Violation
                                 (SCO, SCI.Tag, "never evaluated");

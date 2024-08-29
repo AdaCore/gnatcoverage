@@ -16,6 +16,7 @@ from .cnotes import (
     sNotCoverable,
     dfAlways,
     dtAlways,
+    dNotCoverable,
     dfNoCov,
     dtNoCov,
     dNoCov,
@@ -682,6 +683,7 @@ class RblockSet:
             "statement has no object code": sNotCoverable,
             "decision is always TRUE": dtAlways,
             "decision is always FALSE": dfAlways,
+            "decision has no object code": dNotCoverable,
         }
         self.noteblocks.append(
             NCIchapter(re_start="NON COVERABLE ITEMS", re_notes=nc_notes)

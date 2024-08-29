@@ -183,6 +183,7 @@
     sUndetCov,
     dtAlways,
     dfAlways,
+    dNotCoverable,
     dtNoCov,
     dfNoCov,
     dNoCov,
@@ -217,7 +218,7 @@
     xBlock1,
     xBlock2,
     dBlock,
-) = range(55)
+) = range(56)
 
 NK_image = {
     None: "None",
@@ -240,6 +241,7 @@ NK_image = {
     sUndetCov: "sUndetCov",
     dtAlways: "dtAlways",
     dfAlways: "dfAlways",
+    dNotCoverable: "dNotCoverable",
     dtNoCov: "dtNoCov",
     dfNoCov: "dfNoCov",
     dNoCov: "dNoCov",
@@ -314,6 +316,7 @@ dNoteKinds = (
     dNoCov,
     dtAlways,
     dfAlways,
+    dNotCoverable,
     dUndetCov,
 )
 

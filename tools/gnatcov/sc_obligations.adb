@@ -44,6 +44,7 @@ with Outputs;       use Outputs;
 with SC_Obligations.BDD;
 with Switches;      use Switches;
 with Traces_Elf;    use Traces_Elf;
+with Traces_Files;
 
 package body SC_Obligations is
 
@@ -2994,6 +2995,58 @@ package body SC_Obligations is
       pragma Assert (SCOD.Kind = Condition);
       return SCOD.Index;
    end Index;
+
+   ----------------------------
+   -- Decision_Has_Influence --
+   ----------------------------
+
+   function Decision_Has_Influence (SCO : SCO_Id) return Boolean is
+      use BDD;
+      SCOD  : SCO_Descriptor renames SCO_Vector.Constant_Reference (SCO);
+      First : constant BDD_Node_Id := SCOD.Decision_BDD.First_Node;
+      Last  : constant BDD_Node_Id := SCOD.Decision_BDD.Last_Node;
+
+   begin
+      if Traces_Files.Currently_Accepted_Trace_Kind in
+        Traces_Files.Source_Trace_File .. Traces_Files.All_Trace_Files
+      then
+         return True;
+      end if;
+
+      --  Iterate over all BDD nodes to more efficiently iterate over the
+      --  condition SCOs, and record whether we have found a branch for it.
+
+      for J in First .. Last loop
+         declare
+            BDDN : BDD_Node renames BDD_Vector.Constant_Reference (J);
+         begin
+            if BDDN.Kind = Condition and then
+              not SCO_Vector.Constant_Reference (BDDN.C_SCO).PC_Set.Is_Empty
+            then
+               return True;
+            end if;
+         end;
+      end loop;
+
+      --  Here if the decision has no conditional branches associated, check
+      --  whether it dominates some statement.
+
+      for S_SCO_Cur in SCO_Vector.Iterate loop
+         declare
+            S_SCOD : SCO_Descriptor renames
+              SCO_Vector.Constant_Reference (S_SCO_Cur);
+         begin
+            if S_SCOD.Kind = Statement and then S_SCOD.Dominant = SCO then
+               return True;
+            end if;
+         end;
+      end loop;
+
+      --  If not, this decision has no impact over the control flow of the
+      --  program.
+
+      return False;
+   end Decision_Has_Influence;
 
    -----------------
    -- Register_CU --
