@@ -26,7 +26,7 @@ build_run_and_coverage(
 check_xcov_reports(
     "report",
     {
-        "main.adb.xcov": {"!": {6, 9, 15, 19}, "+": {11, 12}, "-": {16, 20}},
+        "main.adb.xcov": {"!": {6, 10, 16, 20}, "+": {12, 13}, "-": {17, 21}},
         "pkg.ads.xcov": {},
         "pkg.adb.xcov": {"+": {9}},
     },
