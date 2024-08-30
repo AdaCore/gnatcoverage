@@ -1,1 +1,2 @@
 5.04a1 DEAD Test requires Ada 2012 support
+7.1.2 DEAD optimization on this compiler is too aggressive on Ada 2012

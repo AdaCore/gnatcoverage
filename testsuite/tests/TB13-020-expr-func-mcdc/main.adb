@@ -3,7 +3,8 @@ pragma Ada_2012;
 with Pkg;
 
 procedure Main is
-   Dummy : constant Integer := (if Pkg.Flag then 1 else 2);
+   Dummy : Integer := (if Pkg.Flag then 1 else 2);
+   pragma Volatile (Dummy);
 
    function Is_Null (Self : Pkg.Point) return Boolean is
      (Pkg.Is_Null (Self.X) and then Pkg.Is_Null (Self.Y));

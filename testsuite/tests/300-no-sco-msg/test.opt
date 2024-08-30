@@ -1,2 +1,4 @@
 !bin-traces DEAD requires bin traces to produce the proper message
+CARGS_O1 DEAD optimization deletes branch leading to required message
+CARGS_gnatp DEAD runtime checks required to produce branch leading to message
 5.04a1 DEAD Test requires Ada 2012
