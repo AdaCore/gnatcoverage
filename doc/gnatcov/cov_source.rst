@@ -1540,6 +1540,47 @@ When a trailing `+` is added to the format passed to :cmd-option:`--annotate`
 available for each line in addition to the annotation. The :cmd-option:`=html`
 provides it by default.
 
+.. _scov-fun_call:
+
+Function and Call Coverage (FUN_CALL) analysis (experimental)
+=============================================================
+
+|gcv| can also provide an analysis of the coverage of subprograms and calls for
+Ada source traces.
+
+If such coverage analysis is needed, it should always be activated along one of
+the non-assertion coverage levels previously described. In this section on
+function and call coverage, the associated command line option will be written
+as `--level=...+fun_call` where `...` is one of `stmt`, `stmt+decision`,
+`stmt+mcdc` and `stmt+uc_mcdc`. Assertion coverage can also be activated at the
+same time.
+
+Core notions and Reporting (:cmd-option:`--level=...+fun_call`)
+----------------------------------------------------------
+
+|gcv| performs Function and Call Coverage assessments with the
+:cmd-option:`--level=...+fun_call` command line option. The assessment
+determines the status of subprograms and call coverage obligations out of the
+tests execution, considering that:
+
+* A subprogram is :dfn:`covered`, and the obligation :dfn:`discharged`,
+  as soon as the execution as entered it at least once.
+
+* A subprogram is :dfn:`uncovered` otherwise.
+
+* A call is :dfn:`covered`, and the obligation :dfn:`discharged`, if it has
+  been executed at least once.
+
+* A call is :dfn:`uncovered` otherwise.
+
+In synthetic :cmd-option:`=report` outputs, uncovered source subprograms and
+calls are listed as FUN_CALL Coverage violations in the dedicated report
+section.
+
+It is important to note that for an :dfn:`uncovered` statement which happens
+to be a call statement, only a statement violation will be emitted in
+coverage reports.
+
 .. _synthetic-metrics:
 
 Synthetic metrics

@@ -1406,6 +1406,7 @@ begin
       Instrument_Main_Args : String_Vectors.Vector;
 
       Main_Filename : Unbounded_String;
+
       --  Fullname for the main. It can either be an instrumented version of
       --  the main (if it also was instrumented as a source), or the original
       --  version.

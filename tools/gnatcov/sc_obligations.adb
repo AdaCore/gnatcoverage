@@ -70,9 +70,9 @@ package body SC_Obligations is
    --  Return whether SCO is covered by SE's SCO range
 
    function Covers_SCO
-     (ST : Scope_Traversal_Type; SCO : SCO_Id) return Boolean
-   is (Covers_SCO (Scope_Entities_Trees.Element (ST.Cur), SCO));
-   --  Return whether SCO is covered by that element's SCO range
+     (ST : Scope_Traversal_Type; SCO : SCO_Id) return Boolean;
+   --  Return whether SCO is covered by that element's SCO range. Id the SCO is
+   --  a function SCO, then the scope can be the root of the tree.
 
    ---------------
    -- Instances --
@@ -473,14 +473,20 @@ package body SC_Obligations is
 
             Op_Kind : Operator_Kind;
             --  Kind of operation this node represents
+
+         when Fun_Call_SCO_Kind =>
+            Is_Expr : Boolean := False;
+            --  Set to true if it is a call and an expression
+
+            Fun_Call_Instrumented : Boolean := True;
+            --  Whether this function or call SCO was instrumented
          end case;
       end case;
    end record;
 
    Removed_SCO_Descriptor : constant SCO_Descriptor := (Kind => Removed);
 
-   package SCO_Vectors is
-     new Ada.Containers.Vectors
+   package SCO_Vectors is new Ada.Containers.Vectors
        (Index_Type   => Valid_SCO_Id,
         Element_Type => SCO_Descriptor);
 
@@ -906,9 +912,16 @@ package body SC_Obligations is
          ST.Cur := Parent (ST.Cur);
 
          --  If we reach the root of the tree, this means this SCO is not in
-         --  any scope, which is clearly a bug.
+         --  any scope, which is clearly a bug. Unless this is a function SCO
+         --  which can be at the root of the tree.
 
-         pragma Assert (not Is_Root (ST.Cur));
+         declare
+            SCOD : SCO_Descriptor renames SCO_Vector (SCO);
+         begin
+            if SCOD.Kind /= Fun then
+               pragma Assert (not Is_Root (ST.Cur));
+            end if;
+         end;
       end loop;
 
       --  Descend into the tree until we are on a leaf, or no child of the
@@ -1259,6 +1272,10 @@ package body SC_Obligations is
             SCOD.Operands (Right) := CLS.Read_SCO;
          end;
          SCOD.Op_Kind := Operator_Kind'Val (CLS.Read_U8);
+
+      when Fun_Call_SCO_Kind =>
+         SCOD.Is_Expr := CLS.Read_Boolean;
+         SCOD.Fun_Call_Instrumented := CLS.Read_Boolean;
       end case;
 
       Element := SCOD;
@@ -1337,6 +1354,11 @@ package body SC_Obligations is
                   end if;
                   if Old_SCOD.Decision_Instrumented_For_MCDC then
                      SCOD.Decision_Instrumented_For_MCDC := True;
+                  end if;
+
+               when Fun_Call_SCO_Kind  =>
+                  if Old_SCOD.Fun_Call_Instrumented then
+                     SCOD.Fun_Call_Instrumented := True;
                   end if;
 
                when others =>
@@ -1613,6 +1635,9 @@ package body SC_Obligations is
 
                   New_SCOD.PC_Set.Clear;
 
+               when Fun_Call_SCO_Kind =>
+                  null;
+
             end case;
 
             --  Append new SCOD and record mapping
@@ -1734,7 +1759,7 @@ package body SC_Obligations is
          declare
             SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
          begin
-            if SCOD.Kind in Statement | Decision then
+            if SCOD.Kind in Statement | Decision | Fun_Call_SCO_Kind then
                Add_SCO_To_Lines (SCO, SCOD);
             end if;
          end;
@@ -2038,6 +2063,10 @@ package body SC_Obligations is
          CSS.Write_SCO (Value.Operands (Left));
          CSS.Write_SCO (Value.Operands (Right));
          CSS.Write_U8 (Operator_Kind'Pos (Value.Op_Kind));
+
+      when Fun_Call_SCO_Kind  =>
+         CSS.Write (Value.Is_Expr);
+         CSS.Write (Value.Fun_Call_Instrumented);
       end case;
    end Write;
 
@@ -2552,7 +2581,16 @@ package body SC_Obligations is
       L : Local_Source_Location_Range renames Left.Sloc_Range.L;
       R : Local_Source_Location_Range renames Right.Sloc_Range.L;
    begin
-      return L.First_Sloc < R.First_Sloc and then R.Last_Sloc < L.Last_Sloc;
+      --  For call coverage, we allow Left and Right to share their First_Sloc
+      --  as for a call statement the statement SCO will be on the whole
+      --  statement, and the call SCO will start at the beginning of the
+      --  statement and end before the semi-colon marking its end.
+      --  For any other SCOs, neither the first nor the last location have a
+      --  reason to be shared.
+      return
+        (if Left.Kind = Call and then Right.Kind = Call
+         then L.First_Sloc <= R.First_Sloc and then R.Last_Sloc < L.Last_Sloc
+         else L.First_Sloc < R.First_Sloc and then R.Last_Sloc < L.Last_Sloc);
    end Nested;
 
    ---------------------
@@ -2863,6 +2901,16 @@ package body SC_Obligations is
       SCOD.Decision_Instrumented_For_MCDC := False;
    end Set_Decision_SCO_Non_Instr_For_MCDC;
 
+   ----------------------------
+   -- Set_Call_SCO_Non_Instr --
+   ----------------------------
+
+   procedure Set_Fun_Call_SCO_Non_Instr (SCO : SCO_Id) is
+      SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
+   begin
+      SCOD.Fun_Call_Instrumented := False;
+   end Set_Fun_Call_SCO_Non_Instr;
+
    ---------------------------
    -- Stmt_SCO_Instrumented --
    ---------------------------
@@ -2884,6 +2932,13 @@ package body SC_Obligations is
    function Decision_SCO_Instrumented_For_MCDC
      (SCO : SCO_Id) return Boolean
    is (SCO_Vector (SCO).Decision_Instrumented_For_MCDC);
+
+   -------------------------------
+   -- Fun_Call_SCO_Instrumented --
+   -------------------------------
+
+   function Fun_Call_SCO_Instrumented (SCO : SCO_Id) return Boolean is
+      (SCO_Vector (SCO).Fun_Call_Instrumented);
 
    -----------
    -- Image --
@@ -3273,6 +3328,17 @@ package body SC_Obligations is
 
       return False;
    end Is_Quantified_Expression;
+
+   ------------------
+   -- Is_Call_Stmt --
+   ------------------
+
+   function Is_Call_Stmt (SCO : SCO_Id) return Boolean
+   is
+      SCOD : constant SCO_Descriptor := SCO_Vector.Reference (SCO);
+   begin
+      return Kind (SCO) = Call and then not SCOD.Is_Expr;
+   end Is_Call_Stmt;
 
    ----------------------------------
    -- Is_Pragma_Pre_Post_Condition --
@@ -3981,22 +4047,43 @@ package body SC_Obligations is
                end case;
             end if;
 
-         when 'S' | 's' =>
+         when 'S' | 's' | 'C' | 'c' =>
             pragma Assert (State.Current_Decision = No_SCO_Id);
 
-            New_SCO := Add_SCO
-              (SCO_Descriptor'
-                 (Kind           => Statement,
-                  Origin         => CU,
-                  Sloc_Range     => SCO_Range,
-                  S_Kind         => To_Statement_Kind (SCOE.C2),
-                  Dominant       => State.Dom_SCO,
-                  Dominant_Sloc  => State.Dom_Sloc,
-                  Dominant_Value => State.Dom_Val,
-                  Handler_Range  => State.Current_Handler_Range,
-                  Pragma_Name    => Case_Insensitive_Get_Pragma_Id
-                    (SCOE.Pragma_Aspect_Name),
-                  others         => <>));
+            if SCOE.C1 = 'c' then
+
+               if SCOE.C2 = 'F' then
+                  New_SCO := Add_SCO
+                    (SCO_Descriptor'
+                       (Kind           => Fun,
+                        Origin         => CU,
+                        Sloc_Range     => SCO_Range,
+                        Is_Expr        => False,
+                        others         => <>));
+               else
+                  New_SCO := Add_SCO
+                    (SCO_Descriptor'
+                       (Kind           => Call,
+                        Origin         => CU,
+                        Sloc_Range     => SCO_Range,
+                        Is_Expr        => SCOE.C2 = 'E',
+                        others         => <>));
+               end if;
+            else
+               New_SCO := Add_SCO
+                 (SCO_Descriptor'
+                    (Kind           => Statement,
+                     Origin         => CU,
+                     Sloc_Range     => SCO_Range,
+                     S_Kind         => To_Statement_Kind (SCOE.C2),
+                     Dominant       => State.Dom_SCO,
+                     Dominant_Sloc  => State.Dom_Sloc,
+                     Dominant_Value => State.Dom_Val,
+                     Handler_Range  => State.Current_Handler_Range,
+                     Pragma_Name    => Case_Insensitive_Get_Pragma_Id
+                       (SCOE.Pragma_Aspect_Name),
+                     others         => <>));
+            end if;
 
             State.Current_Handler_Range := No_Range;
             State.Dom_Val  := Unknown;
@@ -4259,7 +4346,12 @@ package body SC_Obligations is
                         (L.D_Kind = R.D_Kind
                          and then L.Control_Location = R.Control_Location),
                      when Operator =>
-                        L.Op_Kind = R.Op_Kind);
+                       L.Op_Kind = R.Op_Kind,
+                     when Fun =>
+                       True,
+                     when Call =>
+                       L.Is_Expr = R.Is_Expr
+                 );
             end Equivalent;
 
             ------------------------
@@ -4339,6 +4431,10 @@ package body SC_Obligations is
                      --  operator.
 
                      null;
+
+                  when Fun_Call_SCO_Kind =>
+                     SCOD.Parent := Enclosing_SCO;
+                     Add_SCO_To_Lines (SCO, SCOD);
 
                end case;
 
@@ -5050,6 +5146,17 @@ package body SC_Obligations is
          end if;
          return False;
    end SCOs_Nested_And_Ordered;
+
+   ----------------
+   -- Covers_SCO --
+   ----------------
+
+   function Covers_SCO
+     (ST : Scope_Traversal_Type; SCO : SCO_Id) return Boolean
+   is
+     ((SCO_Vector (SCO).Kind = Fun
+      and then Scope_Entities_Trees.Is_Root (ST.Cur))
+      or else Covers_SCO (Scope_Entities_Trees.Element (ST.Cur), SCO));
 
    ------------------------
    -- Set_Scope_Entities --
@@ -5976,6 +6083,8 @@ package body SC_Obligations is
          when 'r'    => return Renaming_Declaration;
          when 'i'    => return Generic_Instantiation;
          when 'd'    => return Other_Declaration;
+         when 'c'    => return Call_Stmt;
+         when 'e'    => return Call_Expr;
          when 'A'    => return Accept_Statement;
          when 'C'    => return Case_Statement;
          when 'E'    => return Exit_Statement;

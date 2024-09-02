@@ -89,7 +89,7 @@ package body Coverage.Source is
 
    type Line_States is array (Coverage_Level) of Line_State;
 
-   type Source_Coverage_Info (Kind  : SCO_Kind := Statement) is record
+   type Source_Coverage_Info (Kind : SCO_Kind := Statement) is record
       Tag : SC_Tag := No_SC_Tag;
       --  Tag identifying one among multiple coverage analyses being performed
       --  for a given SCO.
@@ -126,6 +126,10 @@ package body Coverage.Source is
             Evaluations : Evaluation_Sets.Set;
             --  Set of all distinct evaluations of this decision (computed for
             --  MC/DC only).
+
+         when Fun_Call_SCO_Kind =>
+            Fun_Call_Executed : Boolean := False;
+            --  Set to True id this call or function was executed at least once
 
          when others =>
             null;
@@ -1122,6 +1126,59 @@ package body Coverage.Source is
                           (SCO, SCO_State, Line_Info, SCI, MCDC_Level);
                      end if;
                   end if;
+
+               --  For fun_call coverage, only compute the SCO state on the
+               --  first line, and re-use the SCI cache to set the line state
+               --  on subprograms or calls spanning multiple lines.
+
+               elsif Kind (SCO) in Fun_Call_SCO_Kind
+                 and then Enabled (Fun_Call)
+                 and then First_Sloc (SCO).L.Line = Line_Num
+               then
+                  if not Fun_Call_SCO_Instrumented (SCO) then
+                     SCO_State := Undetermined_Coverage;
+                     Report_Coverage
+                       (SCO,
+                        SCI.Tag,
+                        "was not instrumented",
+                        Kind => Undetermined_Cov);
+
+                  --  For call statements, we only need to rely on the state
+                  --  of the enclosing statement.
+
+                  elsif Is_Call_Stmt (SCO) then
+                     declare
+                        S_SCO : constant SCO_Id := Enclosing_Statement (SCO);
+                        S_SCI : constant Source_Coverage_Info_Access :=
+                          (if S_SCO = No_SCO_Id
+                           then null
+                           else Get_SCI (S_SCO, SCI.Tag));
+                     begin
+                        SCO_State :=
+                          (if S_SCI /= null and then S_SCI.Executed
+                           then Covered
+                           else Not_Covered);
+                     end;
+                  else
+                     SCO_State :=
+                       (if SCI.Fun_Call_Executed
+                        then Covered
+                        else Not_Covered);
+                  end if;
+
+                  if SCO_State = Not_Covered then
+                     Report_Violation (SCO, SCI.Tag, "not executed");
+                  end if;
+
+                  Update_Line_State
+                    (Line_Info, SCO, SCI.Tag, Fun_Call, SCO_State);
+
+               elsif Kind (SCO) in Fun_Call_SCO_Kind
+                 and then Enabled (Fun_Call)
+               then
+                  SCO_State := SCI.State (Fun_Call);
+                  Update_Line_State
+                    (Line_Info, SCO, SCI.Tag, Fun_Call, SCO_State);
                end if;
             end loop;
          end SCOs_Of_Line;
@@ -2081,7 +2138,12 @@ package body Coverage.Source is
 
       procedure Set_Executed (SCI : in out Source_Coverage_Info) is
       begin
-         SCI.Executed := True;
+         if SCI.Kind = Statement then
+            SCI.Executed := True;
+         elsif SCI.Kind in Fun_Call_SCO_Kind then
+            SCI.Fun_Call_Executed := True;
+         end if;
+
       end Set_Executed;
 
       ----------------
@@ -2488,7 +2550,9 @@ package body Coverage.Source is
 
       procedure Process_SCI (SCI : in out Source_Coverage_Info) is
       begin
-         SCI.Basic_Block_Has_Code := True;
+         if SCI.Kind = Statement then
+            SCI.Basic_Block_Has_Code := True;
+         end if;
       end Process_SCI;
 
       Stmt_Bit_Map : Statement_Bit_Map renames
@@ -2625,7 +2689,7 @@ package body Coverage.Source is
       CP_SCI.Tag := SC_Tag (CLS.Read_I32);
 
       declare
-         States : array (1 .. 8) of Line_State;
+         States : array (1 .. 9) of Line_State;
       begin
          for I in States'Range loop
             States (I) := CLS.Read_Line_State;
@@ -2638,6 +2702,7 @@ package body Coverage.Source is
          CP_SCI.State (UC_MCDC)  := States (6);
          CP_SCI.State (ATC)      := States (7);
          CP_SCI.State (ATCC)     := States (8);
+         CP_SCI.State (Fun_Call) := States (9);
       end;
 
       case CP_SCI.Kind is
@@ -2654,6 +2719,8 @@ package body Coverage.Source is
             CP_SCI.Known_Outcome_Taken (True) := CLS.Read_Boolean;
 
             Read (CLS, CP_SCI.Evaluations);
+         when Fun_Call_SCO_Kind  =>
+            CP_SCI.Fun_Call_Executed := CLS.Read_Boolean;
 
          when others =>
             null;
@@ -2694,6 +2761,9 @@ package body Coverage.Source is
             CSS.Write (Value.Known_Outcome_Taken (True));
 
             Write (CSS, Value.Evaluations);
+
+         when Fun_Call_SCO_Kind =>
+            CSS.Write (Value.Fun_Call_Executed);
 
          when others =>
             null;

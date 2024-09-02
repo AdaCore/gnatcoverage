@@ -137,6 +137,7 @@ class TestCase:
         category=CAT.auto,
         tolerate_messages=None,
         assert_lvl=None,
+        fun_call_lvl=False,
     ):
         # By default, these test cases expect no error from subprocesses (xrun,
         # xcov, etc.)
@@ -188,6 +189,7 @@ class TestCase:
         )
 
         self.assert_lvl = assert_lvl
+        self.fun_call_lvl = fun_call_lvl
 
         # - extra compilation arguments, added to what --cargs was provided to
         #   the testsuite command line:
@@ -225,7 +227,12 @@ class TestCase:
         # passed to gnatcov.
         alvl = ("+" + self.assert_lvl) if self.assert_lvl else ""
 
-        return [d + alvl for d in default_xcovlevels_for[self.category]]
+        # Append "+fun_call" to activate function and call coverage if needed
+        fclvl = "+fun_call" if self.fun_call_lvl else ""
+
+        return [
+            d + alvl + fclvl for d in default_xcovlevels_for[self.category]
+        ]
 
     def __register_qde_for(self, drvo):
         """

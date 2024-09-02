@@ -1234,23 +1234,26 @@ class XnotesExpander:
             "u": ["stmt+uc_mcdc"],
         }
 
-        def make_assert_lvl_combinaison(assert_lvl):
+        def make_new_lvl_combinaison(lvl):
             """
-            Add the assertion coverage level assert_lvl to other regular
-            coverage level combinaisons defined in level_from_char. Return the
-            list of combinaisons.
+            Add the coverage level lvl to other regular coverage level
+            combinaisons defined in level_from_char. Return the list of
+            combinaisons.
             """
-            return [
-                level_from_char[c][0] + "+" + assert_lvl
-                for c in level_from_char
-            ]
+            return [level_from_char[c][0] + "+" + lvl for c in level_from_char]
 
         assert_level_from_char = {
-            "a": make_assert_lvl_combinaison("atc"),
-            "c": make_assert_lvl_combinaison("atcc"),
+            "a": make_new_lvl_combinaison("atc"),
+            "c": make_new_lvl_combinaison("atcc"),
         }
 
         level_from_char.update(assert_level_from_char)
+
+        fun_call_level_from_char = {
+            "f": make_new_lvl_combinaison("fun_call"),
+        }
+
+        level_from_char.update(fun_call_level_from_char)
 
         result = text.split("=>")
 

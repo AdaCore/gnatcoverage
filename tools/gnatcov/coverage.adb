@@ -223,6 +223,9 @@ package body Coverage is
                Res.Include (ATCC);
             end if;
          end if;
+         if Enabled (Fun_Call) then
+            Res.Include (Fun_Call);
+         end if;
       end if;
       return Res;
    end Source_Levels_Enabled;
