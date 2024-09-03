@@ -12,6 +12,9 @@ end;
 --# access_to_subp.adb
 -- /decl/   l- ## s-
 -- /dstmt/  l- ## 0
--- /stmt/   l- ## s=><-, f=>s-,f-
 -- /fun/    l- ## f-
 -- /call/   l- ## s=>s-, f=>s-,c-
+
+--# pkg.ads
+-- /decl/   l+ ## 0
+-- /stmt/   l- ## s=><-, f=>s-,f-
