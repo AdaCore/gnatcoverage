@@ -2250,6 +2250,16 @@ package body Coverage.Source is
          if not Stmt_Blocks.Is_Empty then
             Block_Index := Stmt_Blocks.First_Index;
             for J in Stmt_Buffer'Range loop
+
+               --  Skip buffer bits corresponding to fun_call SCOs
+               --
+               --  TODO??? Investigate if having a separate buffer for calls
+               --  makes more sense, and/or yields a cleaner implementation.
+
+               if Kind (BM.Statement_Bits (J)) not in Statement then
+                  goto Continue;
+               end if;
+
                if Stmt_Buffer (J) then
                   for SCO of Stmt_Blocks.Element (Block_Index) loop
                      Update_SCI_Wrapper
@@ -2259,6 +2269,7 @@ package body Coverage.Source is
                   end loop;
                end if;
                Block_Index := Block_Index + 1;
+            <<Continue>>
             end loop;
          end if;
       end;
@@ -2583,6 +2594,12 @@ package body Coverage.Source is
 
             for Bit in Stmt_Bit_Map'Range loop
 
+               --  Skip bits corresponding to fun_call obligations
+
+               if Kind (Stmt_Bit_Map (Bit)) in Fun_Call_SCO_Kind then
+                  goto Continue;
+               end if;
+
                --  Assert that the SCO corresponding to the current bit
                --  corresponds to the last statement SCO of the current block.
 
@@ -2601,6 +2618,7 @@ package body Coverage.Source is
                      Process => Process_SCI'Access);
                end loop;
                Block_Index := Block_Index + 1;
+               <<Continue>>
             end loop;
          end if;
       end;
