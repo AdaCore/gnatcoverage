@@ -348,6 +348,12 @@ package body Annotations is
                when Operator =>
                   null;
 
+               when Fun_Call_SCO_Kind =>
+                  if Coverage.Enabled (Fun_Call) then
+                     SCO_State := Get_Line_State (SCO, Fun_Call);
+                     Pretty_Print_Statement (Pp, SCO, SCO_State);
+                  end if;
+
             end case;
          end if;
       end loop;
@@ -1054,12 +1060,21 @@ package body Annotations is
 
    function SCO_Kind_Image (SCO : SCO_Id) return String is
       K : constant SCO_Kind := Kind (SCO);
+
+      Image : Unbounded_String := +"";
    begin
-      return (if Kind (SCO) in Decision
-              and then Decision_Type (SCO) in Pragma_Decision | Aspect
-              and then Coverage.Assertion_Coverage_Enabled
-              then "contract expression"
-              else To_Lower (SCO_Kind'Image (K)));
+      if Kind (SCO) in Decision
+        and then Decision_Type (SCO) in Pragma_Decision | Aspect
+        and then Coverage.Assertion_Coverage_Enabled
+      then
+         Image := +"contract expression";
+      elsif Kind (SCO) = Fun then
+         Image := +"function";
+      else
+         Image := +To_Lower (SCO_Kind'Image (K));
+      end if;
+
+      return +Image;
    end SCO_Kind_Image;
 
    ------------------------
@@ -1136,6 +1151,9 @@ package body Annotations is
             else
                return MCDC_Section;
             end if;
+
+         when Fun_Call_SCO_Kind =>
+            return Coverage_Level'Pos (Fun_Call);
 
          when others =>
             return Other_Errors;

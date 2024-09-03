@@ -27,7 +27,7 @@ package Coverage_Options is
    use all type Unbounded_String;
 
    type Coverage_Level is
-     (Insn, Branch, Stmt, Decision, MCDC, UC_MCDC, ATC, ATCC);
+     (Insn, Branch, Stmt, Decision, MCDC, UC_MCDC, ATC, ATCC, Fun_Call);
    --  Coverage objectives supported by xcov. The following values are
    --  supported:
 
@@ -39,6 +39,7 @@ package Coverage_Options is
    --  * source coverage at unique cause MC/DC level (UC_MCDC);
    --  * source coverage at ATC level                (ATC);
    --  * source coverage at ATCC level               (ATCC).
+   --  * source coverage at Call level               (Fun_Call)
 
    --  The terms "instruction", "branch", "statement", "decision" and "MCDC"
    --  should be understood here as they are defined in the DO-178B standard;
@@ -52,9 +53,18 @@ package Coverage_Options is
    --  * "ATCC" : all the conditions of the decision have been evaluated at
    --             least once as part of an evaluation to True of the whole
    --             decision.
+   --
+   --  The "Fun_Call" coverage criteria mesures the coverage of calls and that
+   --  of functions. They must be understood as:
+   --
+   --  * Function coverage : a function (for Ada, understand "subprogram") is
+   --                        covered if it was entered at least once;
+   --
+   --  * Call coverage     : a call is covered if it was executed as least
+   --                        once.
 
    subtype Object_Coverage_Level    is Coverage_Level range Insn .. Branch;
-   subtype Source_Coverage_Level    is Coverage_Level range Stmt .. ATCC;
+   subtype Source_Coverage_Level    is Coverage_Level range Stmt .. Fun_Call;
    subtype MCDC_Coverage_Level      is Coverage_Level range MCDC .. UC_MCDC;
    subtype Contract_Condition_Level is Coverage_Level range ATCC .. ATCC;
 

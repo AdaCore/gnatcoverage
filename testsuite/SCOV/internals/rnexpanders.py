@@ -29,6 +29,10 @@ from .cnotes import (
     aNoCov,
     atNoCov,
     acPartCov,
+    fNoCov,
+    cNoCov,
+    fUndetCov,
+    cUndetCov,
     Enote,
     KnoteDict,
     erNoteKinds,
@@ -677,6 +681,14 @@ class RblockSet:
             VIOsection(re_start="ATCC COVERAGE", re_notes=atcc_notes)
         )
 
+        fun_call_notes = {
+            "function not executed": fNoCov,
+            "call not executed": cNoCov,
+        }
+        self.noteblocks.append(
+            VIOsection(re_start="FUN_CALL COVERAGE", re_notes=fun_call_notes)
+        )
+
         # Non coverable items
 
         nc_notes = {
@@ -695,7 +707,9 @@ class RblockSet:
             "statement was not instrumented": sUndetCov,
             "decision was not instrumented"
             " for decision coverage": dUndetCov,
-            "decision was not instrumented" " for MC/DC coverage": eUndetCov,
+            "decision was not instrumented for MC/DC coverage": eUndetCov,
+            "function was not instrumented": fUndetCov,
+            "call was not instrumented": cUndetCov,
         }
 
         self.noteblocks.append(

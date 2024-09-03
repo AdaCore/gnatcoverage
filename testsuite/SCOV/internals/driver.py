@@ -38,7 +38,7 @@ from SCOV.instr import (
 
 from SUITE.context import thistest
 from SUITE.control import language_info, runtime_info
-from SUITE.cutils import ext, to_list, list_to_file, no_ext
+from SUITE.cutils import ext, to_list, list_to_file, no_ext, FatalError
 from SUITE.cutils import contents_of, lines_of, unhandled_exception_in
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
@@ -55,7 +55,14 @@ from SUITE.tutils import (
 from .cnotes import r0, r0c, xBlock0, xBlock1, lx0, lx1, lFullCov, lPartCov
 from .cnotes import Xr0, Xr0c
 from .cnotes import KnoteDict, elNoteKinds, erNoteKinds, rAntiKinds
-from .cnotes import xNoteKinds, sNoteKinds, dNoteKinds, cNoteKinds, tNoteKinds
+from .cnotes import (
+    xNoteKinds,
+    sNoteKinds,
+    dNoteKinds,
+    cNoteKinds,
+    tNoteKinds,
+    fNoteKinds,
+)
 from .cnotes import XsNoteKinds, XoNoteKinds, XcNoteKinds
 from .cnotes import strict_p, deviation_p, anti_p, positive_p
 
@@ -257,10 +264,15 @@ class _Xchecker:
         # The emitted note needs to designate a sloc range within the
         # expected sloc range and separation tags, when any is expected,
         # must match.
-        return en.segment.within(xn.segment) and (
-            (not xn.stag and not en.stag)
-            or (xn.stag and en.stag and en.stag.match(xn.stag))
-        )
+        a = en.segment.within(xn.segment)
+        b = not xn.stag and not en.stag
+        c = xn.stag and en.stag
+        d = c and en.stag.match(xn.stag)
+        return a and (b or d)
+        # return en.segment.within(xn.segment) and (
+        #    (not xn.stag and not en.stag)
+        #    or (xn.stag and en.stag and en.stag.match(xn.stag))
+        # )
 
     def try_sat_over(self, ekind, xn):
         # See if expected note XN is satisfied by one of the emitted notes of
@@ -994,6 +1006,17 @@ class SCOV_helper:
             "stmt+mcdc+atcc": 3,
             "stmt+uc_mcdc+atc": 3,
             "stmt+uc_mcdc+atcc": 3,
+            "stmt+fun_call": 1,
+            "stmt+decision+fun_call": 2,
+            "stmt+mcdc+fun_call": 3,
+            "stmt+uc_mcdc+fun_call": 3,
+            "stmt+atc+fun_call": 1,
+            "stmt+decision+atc+fun_call": 2,
+            "stmt+decision+atcc+fun_call": 2,
+            "stmt+mcdc+atc+fun_call": 3,
+            "stmt+mcdc+atcc+fun_call": 3,
+            "stmt+uc_mcdc+atc+fun_call": 3,
+            "stmt+uc_mcdc+atcc+fun_call": 3,
         }
 
         stricter_level = (
@@ -1005,16 +1028,20 @@ class SCOV_helper:
         # kinds from the strictest category possibly corresponding to the
         # xcov-level.
 
-        strictest_cat_for = {
-            "stmt": CAT.stmt,
-            "stmt+decision": CAT.decision,
-            "stmt+mcdc": CAT.mcdc,
-        }
+        def strictest_cat_for(level: str):
+            if level.startswith("stmt+mcdc"):
+                return CAT.mcdc
+            elif level.startswith("stmt+decision"):
+                return CAT.decision
+            elif level.startswith("stmt"):
+                return CAT.stmt
+            else:
+                thistest.stop(FatalError("unknwon coverage level: " + level))
 
         relevance_cat = (
             self.testcase.category
             if self.testcase.category
-            else strictest_cat_for[self.xcovlevel]
+            else strictest_cat_for(self.xcovlevel)
         )
 
         # Setup our report and line discharging configurations (kinds of
@@ -1095,13 +1122,25 @@ class SCOV_helper:
 
         # Report notes checks
 
+        # Augment the set of recognized deviations based on the additional
+        # level(s) that are enabled.
+        #
+        # TODO: Also augment the expected notes for assertion coverage, the
+        # testsuite currently does not work for those levels?
+
+        tc_r_rxp_for = r_rxp_for[relevance_cat]
+        tc_r_ern_for = r_ern_for[relevance_cat]
+
+        if self.testcase.fun_call_lvl:
+            tc_r_rxp_for += fNoteKinds
+            tc_r_ern_for += fNoteKinds
         strans = self.report_translation_for(source)
         _Xchecker(
             report="test.rep",
             xdict=self.xrnotes.get(source),
-            rxp=r_rxp_for[relevance_cat],
+            rxp=tc_r_rxp_for,
             edict=self.ernotes.get(strans, KnoteDict(erNoteKinds)),
-            ren=r_ern_for[relevance_cat],
+            ren=tc_r_ern_for,
         ).run(r_discharge_kdict)
 
         # Line notes checks, meaningless if we're in qualification mode
@@ -1254,7 +1293,8 @@ class SCOV_helper:
 
         Uses the first letter of the highest level ('s' for "stmt" or 'u' for
         "stmt+uc_mcdc") and the full name of the assertion level if assertion
-        coverage is enabled.
+        coverage is enabled. If function and call coverage is needed, append
+        "fc".
         """
         levels = covlevel.split("+")
 
@@ -1262,7 +1302,8 @@ class SCOV_helper:
             return "s_"
 
         wdbase = levels[1][0]
-        wdbase += levels[-1] if self.assert_lvl else ""
+        wdbase += levels[-2] if self.assert_lvl else ""
+        wdbase += "fc" if self.fun_call_lvl else ""
 
         return wdbase + "_"
 

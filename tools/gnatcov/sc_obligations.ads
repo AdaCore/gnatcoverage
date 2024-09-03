@@ -266,7 +266,7 @@ package SC_Obligations is
    -- Source Coverage Obligations --
    ---------------------------------
 
-   --  One one side, gnatutil's scos.ads defines data structures for low level
+   --  On one side, gnatutil's scos.ads defines data structures for low level
    --  SCO tables: this is SCO_Unit_Table and SCO_Table from the SCOs unit,
    --  i.e. tables to hold the parsing of SCOs from LI files or SCOs that the
    --  source instrumenter creates;
@@ -400,12 +400,15 @@ package SC_Obligations is
       Sloc       => No_Local_Location,
       Identifier => No_Scope_Entity_Identifier);
 
-   type Any_SCO_Kind is (Removed, Statement, Decision, Condition, Operator);
-   subtype SCO_Kind is Any_SCO_Kind range Statement .. Operator;
+   type Any_SCO_Kind is
+     (Removed, Statement, Decision, Condition, Operator, Fun, Call);
+   subtype SCO_Kind is Any_SCO_Kind range Statement .. Call;
    --  Removed is used for SCOs coming from C code in static inline functions
    --  present in headers. These SCOs can appear duplicated in multiple
    --  compilation units and we replace all but one of the duplicated entries
    --  with a Removed one.
+   subtype Fun_Call_SCO_Kind is Any_SCO_Kind range Fun .. Call;
+   --  The three types of SCO that are needed for function and call coverage
 
    procedure Add_Address (SCO : SCO_Id; Address : Pc_Type);
    --  Record Address in SCO's address list
@@ -589,6 +592,8 @@ package SC_Obligations is
       Select_Statement,
       While_Loop_Statement,
       Degenerate_Subprogram_Statement,
+      Call_Stmt,
+      Call_Expr,
       Other_Statement);
 
    subtype Statement_Kind is Any_Statement_Kind
@@ -639,6 +644,10 @@ package SC_Obligations is
      Pre => Kind (SCO) = Decision;
    --  Mark this decision SCO as non-instrumented for MCDC coverage
 
+   procedure Set_Fun_Call_SCO_Non_Instr (SCO : SCO_Id) with
+     Pre => Kind (SCO) in Fun_Call_SCO_Kind;
+   --  FIXME
+
    function Stmt_SCO_Instrumented (SCO : SCO_Id) return Boolean with
      Pre => Kind (SCO) = Statement;
    --  Whether this statment SCO was instrumented
@@ -651,6 +660,10 @@ package SC_Obligations is
      (SCO : SCO_Id) return Boolean with
      Pre => Kind (SCO) = Decision;
    --  Whether this decision SCO was instrumented for MCDC coverage
+
+   function Fun_Call_SCO_Instrumented (SCO : SCO_Id) return Boolean with
+     Pre => Kind (SCO) in Fun_Call_SCO_Kind;
+   --  Whether this function or call SCO was instrumented
 
    function Is_Pragma_Pre_Post_Condition (SCO : SCO_Id) return Boolean;
    --  True if SCO is for a pragma Pre/Postcondition
@@ -747,6 +760,9 @@ package SC_Obligations is
 
    function Is_Quantified_Expression (SCO : SCO_Id) return Boolean;
    --  True if SCO is a condition that is a quantified expression
+
+   function Is_Call_Stmt (SCO : SCO_Id) return Boolean;
+   --  True is SCO is a call statement
 
    function Path_Count (SCO : SCO_Id) return Natural;
    --  Return count of paths through decision's BDD from root condition to

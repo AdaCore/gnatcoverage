@@ -283,7 +283,9 @@ package body Instrument.Common is
                when Statement => Set_Stmt_SCO_Non_Instr (Remapped_SCO);
                when Decision  => Set_Decision_SCO_Non_Instr (Remapped_SCO);
                when Condition => Set_Decision_SCO_Non_Instr_For_MCDC
-                                   (Enclosing_Decision (Remapped_SCO));
+                    (Enclosing_Decision (Remapped_SCO));
+               when Fun_Call_SCO_Kind =>
+                  Set_Fun_Call_SCO_Non_Instr (Remapped_SCO);
                when others =>
                   null;
             end case;
@@ -334,7 +336,7 @@ package body Instrument.Common is
 
       SCOs.SCO_Table.Append
         ((From               =>
-            (Logical_Line_Number (From.Line), Column_Number (From.Column)),
+              (Logical_Line_Number (From.Line), Column_Number (From.Column)),
           To                 =>
             (Logical_Line_Number (To.Line), Column_Number (To.Column)),
           C1                 => C1,

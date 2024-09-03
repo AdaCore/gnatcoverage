@@ -171,7 +171,7 @@ package body Annotations.Sarif is
            & " condition changes and the decision value toggles."),
          Help_Uri    => +(Doc_Link & "gnatcov/cov_source.html#mcdc-variants"),
          Config      => +"error"),
-      Source_Coverage_Level'Pos (ATC)    =>
+      Source_Coverage_Level'Pos (ATC)      =>
         (Id          => +ATC'Image,
          Name        => +"Assertion True Coverage",
          Short_Descr =>
@@ -188,6 +188,16 @@ package body Annotations.Sarif is
          Help_Uri    => +(Doc_Link
            & "gnatcov/cov_source.html#assertion-true-condition-coverage-"
            & "analysis-atcc"),
+         Config      => +"error"),
+      Source_Coverage_Level'Pos (Fun_Call) =>
+        (Id          => +Fun_Call'Image,
+         Name        => +"Function and Call coverage",
+         Short_Descr =>
+           (+"The subprogram was entered at least once or the call"
+            & " was executed at least once"),
+         Help_Uri    => +Doc_Link
+         & "gnatcov/cov_source.html#function-and-call-coverage-fun-call-"
+         & "analysis-experimental",
          Config      => +"error"),
       Undet_Rule     =>
         (Id          => +"UNDET",

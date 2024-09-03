@@ -265,7 +265,7 @@ package body Instrument.Ada_Unit is
 
    function As_Symbol (Id : Identifier) return Symbol_Type;
    function As_Name (Id : Identifier) return Name_Id;
-   --  Canonicalize Id and return a corresponding Name_Id/Symbol_Type
+   --  Canonicalize Node and return a corresponding Name_Id/Symbol_Type
 
    function As_Symbol (Id : Text_Type) return Symbol_Type is
      (Find (Symbols, Id));
@@ -387,7 +387,7 @@ package body Instrument.Ada_Unit is
 
    function Is_Ghost
      (UIC : Ada_Unit_Inst_Context;
-      EF  : Expr_Function) return Boolean;
+      D   : Basic_Decl) return Boolean;
    --  Return whether the given expression function is ghost (EF or its
    --  canonical declaration has a Ghost aspect).
 
@@ -575,13 +575,19 @@ package body Instrument.Ada_Unit is
       In_Generic   : Boolean;
       In_Decl_Expr : Boolean) return Node_Rewriting_Handle;
    --  Create a procedure call statement or object declaration to witness
-   --  execution of the low level SCO with the given bit id.
+   --  execution of the low level SCO with the given bit Node.
    --
    --  In_Generic indicates whether the statement witness is destined
    --  to be inserted in a generic package or subprogram.
    --
    --  In_Decl_Expr indicates whether the statement witness is inserted as
    --  a declaration in a declare expression.
+
+   procedure Fill_Expression_Insertion_Info
+     (UIC         : in out Ada_Unit_Inst_Context;
+      Bit         : Any_Bit_Id;
+      Insert_Info : out Insertion_Info);
+   --  Fill Insertion_Info with new witness formal and actual
 
    procedure Ensure_With (UIC : in out Ada_Unit_Inst_Context'Class;
                           Unit : Text_Type);
@@ -742,10 +748,10 @@ package body Instrument.Ada_Unit is
    --
    --     ------------- Public Part -------------
    --
-   --     --  See Create_Augmented_Expr_Function.Augmented_Expr_Function
+   --     --  See Create_Augmented_Function.Augmented_Function
    --     --
    --     --  Sometimes, we don't emit this declaration,
-   --     --  see Augmented_Expr_Function_Needs_Decl
+   --     --  see Augmented_Function_Needs_Decl
    --     function Foo_With_State_[Subprogram_Index]
    --       (Arg1                 : Arg1_Type;
    --        Arg2                 : Arg2_Type;
@@ -760,7 +766,7 @@ package body Instrument.Ada_Unit is
    --
    --     ------------ Private part -------------
    --
-   --     --  See Create_Augmented_Expr_Function.Augmented_Expr_Function
+   --     --  See Create_Augmented_Function.Augmented_Function
    --     function Foo_With_State_[Subprogram_Index]
    --       (Arg1                 : Arg1_Type;
    --        Arg2                 : Arg2_Type;
@@ -769,7 +775,7 @@ package body Instrument.Ada_Unit is
    --        return Boolean
    --     is ([origin expression plus Witness calls using MCDC_State_2]);;
    --
-   --     --  See Create_Augmented_Expr_Function.New_Expr_Function
+   --     --  See Create_Augmented_Function.New_Function
    --     function Foo (Arg1 : Arg1_Type; Arg2 : Arg2_Type) return Boolean
    --     is (Foo_With_State_[Subprogram_Index]
    --           (Arg1,
@@ -788,7 +794,7 @@ package body Instrument.Ada_Unit is
    --  we geenrate the following declarations in the instrumented unit,
    --  replacing the original declaration:
    --
-   --  --  See Create_Augmented_Expr_Function.Augmented_Expr_Function
+   --  --  See Create_Augmented_Function.Augmented_Function
    --  package Expr_Func_Pkg_[Subprogram_Index] is
    --    function Foo_With_State_[Subprogram_Index]
    --      (Arg : Arg_Type;
@@ -796,7 +802,7 @@ package body Instrument.Ada_Unit is
    --       return Ret_Type is (<some expression>);
    --  end Expr_Func_Pkg_[Subprogram_Index];
    --
-   --  --  See Create_Augmented_Expr_Function.New_Expr_Function
+   --  --  See Create_Augmented_Function.New_Function
    --  function Foo (Arg : Arg_Type] return Ret_Type is
    --    (Expr_Func_Pkg_[Subprogram_Index].Foo_With_State_[Subprogram_Index]
    --       (Arg, <witness call for stmt of the expr func>));
@@ -960,10 +966,16 @@ package body Instrument.Ada_Unit is
       NP_Nodes      : Null_Proc_Nodes;
       Subp_Body     : out Node_Rewriting_Handle;
       Instance      : out Node_Rewriting_Handle;
-      Renaming_Decl : out Node_Rewriting_Handle);
+      Renaming_Decl : out Node_Rewriting_Handle;
+      Fun_Witness   : Node_Rewriting_Handle);
    --  Create the body for the generic subprogram (Subp_Body), its
    --  instantiation declaration (Instance) and the renaming for this instance
    --  (Renaming_Decl).
+   --  Fun_Witness is only used for function coverage. It is set the
+   --  No_Node_Rewriting_Handle if function coverage is not needed, and to a
+   --  valid witness call if it is. If set, it is inserted at the beginning of
+   --  the generic subprogram and responsible for discharging the function SCO
+   --  associated to the null procedure.
 
    function Clone_Params
      (UIC    : Ada_Unit_Inst_Context;
@@ -989,29 +1001,70 @@ package body Instrument.Ada_Unit is
       UIC      : in out Ada_Unit_Inst_Context'Class;
       Name     : String) return String;
 
-   procedure Create_Augmented_Expr_Function
+   function Create_Function_Witness_Var
+     (UIC         : Ada_Unit_Inst_Context;
+      Fun_Witness : Node_Rewriting_Handle)
+      return Node_Rewriting_Handle
+   is (Create_From_Template
+       (UIC.Rewriting_Context,
+          Template => "Dummy_Witness_Var : constant Boolean := {};",
+          Arguments => (1 => Fun_Witness),
+          Rule => Basic_Decls_Rule))
+     with Pre => Fun_Witness /= No_Node_Rewriting_Handle;
+   --  Create a dummy variable and set it to the properly set function witness
+   --  call. The function witness must be a function call.
+
+   procedure Instrument_For_Function_Coverage
+     (UIC            : in out Ada_Unit_Inst_Context;
+      Spec           : Subp_Spec;
+      Witness_Flavor : Statement_Witness_Flavor;
+      Fun_Witness    : out Node_Rewriting_Handle)
+     with Pre => Enabled (Fun_Call);
+   --  Add a function coverage SCO to Spec and set Fun_Witness to a valid
+   --  witness call of flavor Flavor.
+
+   procedure Create_Augmented_Function
      (UIC                          : Ada_Unit_Inst_Context;
       Common_Nodes                 : Degenerate_Subp_Common_Nodes;
       Formal_Params                : Node_Rewriting_Handle;
       Call_Params                  : Node_Rewriting_Handle;
-      Augmented_Expr_Function      : out Node_Rewriting_Handle;
-      Augmented_Expr_Function_Decl : out Node_Rewriting_Handle;
-      New_Expr_Function            : out Node_Rewriting_Handle);
-   --  Create the augmented expression function from the original one
-   --  (Augmented_Expr_Function) and create the expression function
-   --  (New_Expr_Function) that will serve as a replacement to the original
-   --  one. Also create a declaration for the augmented expression function,
-   --  if needed. It should be inserted right before the previous declaration
-   --  of the original expression function (which is guaranteed to exist).
+      Augmented_Function           : out Node_Rewriting_Handle;
+      Augmented_Function_Decl      : out Node_Rewriting_Handle;
+      New_Function                 : out Node_Rewriting_Handle;
+      Fun_Witness                  : Node_Rewriting_Handle :=
+        No_Node_Rewriting_Handle);
+   --  Create the augmented function from the original one (Augmented_Function)
+   --  and create the new function (New_Function) that will serve as a
+   --  replacement to the original one. Also create a declaration for the
+   --  augmented function, if needed. It should be inserted right before the
+   --  previous declaration of the original function (which is guaranteed to
+   --  exist).
    --
-   --  If the original expresison function is a primitive of its return type,
-   --  then Agmented_Expr_Function will not be a handle to the expression
-   --  function, but rather to the nested package containing the augmented
-   --  expression function. In such case, Used_Nested_Package will be true.
+   --  If the original function is a primitive of its return type, then
+   --  Agmented_Function will not be a handle to the function, but rather to
+   --  the nested package containing the augmented function.
    --
-   --  If keep_Aspects is set to True, the aspects of the original expression
-   --  function will be propagated to the augmented expression function,
-   --  otherwise the augmented expression function will have no aspects.
+   --  * Common_Nodes:
+   --      Contains the original nodes from which the new functions will
+   --      be made.
+   --  * Formal_Params:
+   --      The list of formals that Augmented_Function will accept
+   --  * Call_Params:
+   --      The list of parameters that will be passed to the call to
+   --      Augmented_Function made in New_Function.
+   --  * Augmented_Function:
+   --      The newly created subprogram whose body contains all the statements
+   --      from the original function.
+   --  * Augmented_Function_Decl:
+   --      The declaration of Augmented_Function if needed.
+   --  * New_Function:
+   --      The new intermediate function that replaces the original one.
+   --      Responsible for calling Augmented_Function.
+   --  * Fun_Witness:
+   --      Only used for function coverage. It contains the valid witness call
+   --      to be inserted as needed in New_Function to discharge the function
+   --      SCO, or is set to No_Node_Rewriting_Handle if function coverage is
+   --      not needed.
 
    function Augmented_Expr_Function_Needs_Decl
      (N : Expr_Function) return Boolean;
@@ -1908,7 +1961,9 @@ package body Instrument.Ada_Unit is
       return Result : Degenerate_Subp_Common_Nodes do
          Result.N := N;
          Result.N_Spec := N_Spec;
-         Result.N_Overriding := N.As_Base_Subp_Body.F_Overriding;
+         Result.N_Overriding := (if Kind (N) = Ada_Subp_Decl
+                                 then N.As_Subp_Decl.F_Overriding
+                                 else N.As_Base_Subp_Body.F_Overriding);
          Result.N_Name := N_Spec.F_Subp_Name.F_Name;
          Result.N_Params :=
            (if N_Spec.F_Subp_Params.Is_Null
@@ -2330,12 +2385,19 @@ package body Instrument.Ada_Unit is
       NP_Nodes      : Null_Proc_Nodes;
       Subp_Body     : out Node_Rewriting_Handle;
       Instance      : out Node_Rewriting_Handle;
-      Renaming_Decl : out Node_Rewriting_Handle)
+      Renaming_Decl : out Node_Rewriting_Handle;
+      Fun_Witness   : Node_Rewriting_Handle)
    is
       RC : Rewriting_Handle renames UIC.Rewriting_Context;
       E  : Instrumentation_Entities renames UIC.Entities;
    begin
       --  Create the generic subprogram body
+
+      if Fun_Witness /= No_Node_Rewriting_Handle then
+         --  If the Fun_Witness is a valid witness call, insert it at the
+         --  beginning of the generic subprogram.
+         Insert_First (NP_Nodes.Stmt_List, Fun_Witness);
+      end if;
 
       Subp_Body := Create_Subp_Body
         (RC,
@@ -2482,37 +2544,96 @@ package body Instrument.Ada_Unit is
       return Name & ".State'Address";
    end Insert_MCDC_State;
 
-   ------------------------------------
-   -- Create_Augmented_Expr_Function --
-   ------------------------------------
+   --------------------------------------
+   -- Instrument_For_Function_Coverage --
+   --------------------------------------
 
-   procedure Create_Augmented_Expr_Function
+   procedure Instrument_For_Function_Coverage
+     (UIC            : in out Ada_Unit_Inst_Context;
+      Spec           : Subp_Spec;
+      Witness_Flavor : Statement_Witness_Flavor;
+      Fun_Witness    : out Node_Rewriting_Handle)
+   is
+      Loc_Range : constant Source_Location_Range := Sloc_Range (Spec);
+   begin
+      --  Add a function coverage SCO to the specification Spec
+
+      Append_SCO
+        (C1                 => 'c',
+         C2                 => 'F',
+         From               => +Start_Sloc (Loc_Range),
+         To                 => +Inclusive_End_Sloc (Loc_Range),
+         SFI                => UIC.SFI,
+         Last               => True,
+         Pragma_Aspect_Name => Namet.No_Name);
+
+      --  Exit early if the context disallows instrumentation
+
+      if UIC.Disable_Instrumentation then
+         UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
+         Fun_Witness := No_Node_Rewriting_Handle;
+         return;
+      end if;
+
+      --  Set Fun_Witness to a statement witness of flavor Witness_Flavor and
+      --  responsible for discharging the function SCO we just created.
+
+      Fun_Witness :=
+        Make_Statement_Witness
+          (UIC,
+           Bit          =>
+             Allocate_Statement_Bit (UIC.Unit_Bits, SCOs.SCO_Table.Last),
+           Flavor       => Witness_Flavor,
+           In_Generic   => UIC.In_Generic,
+           In_Decl_Expr => UIC.In_Decl_Expr);
+   end Instrument_For_Function_Coverage;
+
+   -------------------------------
+   -- Create_Augmented_Function --
+   -------------------------------
+
+   procedure Create_Augmented_Function
      (UIC                          : Ada_Unit_Inst_Context;
       Common_Nodes                 : Degenerate_Subp_Common_Nodes;
       Formal_Params                : Node_Rewriting_Handle;
       Call_Params                  : Node_Rewriting_Handle;
-      Augmented_Expr_Function      : out Node_Rewriting_Handle;
-      Augmented_Expr_Function_Decl : out Node_Rewriting_Handle;
-      New_Expr_Function            : out Node_Rewriting_Handle)
+      Augmented_Function           : out Node_Rewriting_Handle;
+      Augmented_Function_Decl      : out Node_Rewriting_Handle;
+      New_Function                 : out Node_Rewriting_Handle;
+      Fun_Witness                  : Node_Rewriting_Handle :=
+        No_Node_Rewriting_Handle)
    is
       RC : Rewriting_Handle renames UIC.Rewriting_Context;
 
-      --  Compute the name of the augmented expression function
+      --  Compute the name of the augmented function
 
       Orig_Name_Text : constant Wide_Wide_String :=
         Text (Common_Nodes.N_Name);
       Is_Op_Symbol : constant Boolean :=
         Orig_Name_Text (Orig_Name_Text'First) = '"';
 
-      Augmented_Expr_Func_Name : constant Wide_Wide_String :=
+      Fun_Cov : constant Boolean := Enabled (Fun_Call);
+      --  True if function coverage is needed
+
+      Augmented_Func_Name : constant Wide_Wide_String :=
         (if Is_Op_Symbol
          then Op_Symbol_To_Name (Common_Nodes.N_Name) & "_Op"
          else Orig_Name_Text)
-        & "_With_State_"
-        & To_Wide_Wide_String (Img (UIC.Degenerate_Subprogram_Index));
+        & (if not Fun_Cov
+           then "_With_State_"
+           else "_")
+        & To_Wide_Wide_String (Img (UIC.Degenerate_Subprogram_Index))
+        & (if Fun_Cov
+           then "_GNATCOV_Aux"
+           else "");
 
-      Need_WP : constant Boolean :=
-        Augmented_EF_Needs_Wrapper_Package (Common_Nodes);
+      Is_Subp_Body : constant Boolean :=
+        Fun_Cov and then Common_Nodes.N.Kind = Ada_Subp_Body;
+      --  We only need to consider subprogram bodies when function coverage is
+      --  needed.
+
+      Need_WP : constant Boolean := not Is_Subp_Body
+        and then Augmented_EF_Needs_Wrapper_Package (Common_Nodes);
 
       --  Create the expression for New_Expr_Function that will call that
       --  augmented expression function.
@@ -2524,35 +2645,75 @@ package body Instrument.Ada_Unit is
             F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
             F_Suffix => Create_Identifier
               (RC,
-               Text => Augmented_Expr_Func_Name))
+               Text => Augmented_Func_Name))
          else Create_Identifier
-           (RC, Text => Augmented_Expr_Func_Name));
+           (RC, Text => Augmented_Func_Name));
 
-      Call_Expr : constant Node_Rewriting_Handle := Create_Call_Expr
-        (RC,
-         F_Name   => Callee,
-         F_Suffix => Call_Params);
+      Call_Expr : constant Node_Rewriting_Handle :=
+        (if Call_Params = No_Node_Rewriting_Handle
+         then Callee
+         else Create_Call_Expr
+           (RC,
+            F_Name   => Callee,
+            F_Suffix => Call_Params));
 
       --  No need for a declaration if we are using a nested package
 
-      Needs_Decl : constant Boolean := not Need_WP
-        and then Augmented_Expr_Function_Needs_Decl
+      Needs_Decl : constant Boolean :=
+        Common_Nodes.N.Kind = Ada_Expr_Function
+        and then not Need_WP
+         and then Augmented_Expr_Function_Needs_Decl
           (Common_Nodes.N.As_Expr_Function);
 
       Orig_Aspects : constant Aspect_Spec := Common_Nodes.N.F_Aspects;
    begin
+      --  Create the new augmented function
 
-      New_Expr_Function :=
-        Create_Expr_Function
-          (RC,
-           F_Overriding => Clone (Common_Nodes.N_Overriding),
-           F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
-           F_Expr       => Create_Paren_Expr (RC, Call_Expr),
-           F_Aspects    => No_Node_Rewriting_Handle);
+      if Is_Subp_Body then
 
-      --  The original expression function becomes the augmented one:
+         --  For a regular subrogram needing function coverage, two statements
+         --  will be inserted in the body of the new function. First the
+         --  witness call linked to the function SCO, next the return or call
+         --  statement calling the new augmented function.
 
-      Augmented_Expr_Function := Handle (Common_Nodes.N);
+         declare
+            Stmts : constant Node_Rewriting_Handle :=
+              Create_Regular_Node
+                (Handle   => UIC.Rewriting_Context,
+                 Kind     => Ada_Stmt_List,
+                 Children =>
+                   (1 => Fun_Witness,
+                    2 =>
+                      (if Common_Nodes.N.Kind = Ada_Subp_Body
+                       and then
+                       Common_Nodes.N.As_Subp_Body.F_Subp_Spec.F_Subp_Kind =
+                         Ada_Subp_Kind_Function
+                       then Create_Return_Stmt (RC, Call_Expr)
+                       else Create_Call_Stmt (RC, Call_Expr))));
+         begin
+            New_Function :=
+              Create_Subp_Body
+                (RC,
+                 F_Overriding => Clone (Common_Nodes.N_Overriding),
+                 F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
+                 F_Aspects    => No_Node_Rewriting_Handle,
+                 F_Decls      => No_Node_Rewriting_Handle,
+                 F_Stmts      => Stmts,
+                 F_End_Name   => Make_Identifier (UIC, Orig_Name_Text));
+         end;
+      else
+         New_Function :=
+           Create_Expr_Function
+             (RC,
+              F_Overriding => Clone (Common_Nodes.N_Overriding),
+              F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
+              F_Expr       => Create_Paren_Expr (RC, Call_Expr),
+              F_Aspects    => No_Node_Rewriting_Handle);
+      end if;
+
+      --  The original function becomes the augmented one:
+
+      Augmented_Function := Handle (Common_Nodes.N);
 
       --  overriding keyword is purely optional, so there is no drawback in
       --  removing it.
@@ -2565,15 +2726,27 @@ package body Instrument.Ada_Unit is
 
       Replace
         (Handle (Common_Nodes.N_Name),
-         Make_Identifier (UIC, Augmented_Expr_Func_Name));
+         Make_Identifier (UIC, Augmented_Func_Name));
+
+      if Is_Subp_Body
+        and then not Common_Nodes.N.As_Subp_Body.F_End_Name.Is_Null
+      then
+         --  For regular subprogram bodies, also change the end name
+
+         Replace
+           (Handle (Common_Nodes.N.As_Subp_Body.F_End_Name),
+            Make_Identifier (UIC, Augmented_Func_Name));
+      end if;
 
       --  Use the "augmented formal params" (i.e. original formals plus the
       --  witness one and the MC/DC state holders).
 
-      Set_Child
-        (Handle (Common_Nodes.N_Spec),
-         Member_Refs.Subp_Spec_F_Subp_Params,
-         Create_Params (RC, Formal_Params));
+      if Formal_Params /= No_Node_Rewriting_Handle then
+         Set_Child
+           (Handle (Common_Nodes.N_Spec),
+            Member_Refs.Subp_Spec_F_Subp_Params,
+            Create_Params (RC, Formal_Params));
+      end if;
 
       --  If we also need a declaration for the augmented expression
       --  function, create it. Otherwise, set it to No_Node_Rewriting_Handle.
@@ -2586,7 +2759,7 @@ package body Instrument.Ada_Unit is
             --  use-clauses in between the declaration and the completion.
             --
             --  Note that Needs_Decl can be true True only when
-            --  Augmented_Expr_Function_Needs_Decl returns True, and that can
+            --  Augmented_Function_Needs_Decl returns True, and that can
             --  happen only when it managed to get the previous part of
             --  Common_Node.N, so the call to P_Previous_Part_For_Decl below is
             --  guaranteed to return a non-null node.
@@ -2600,28 +2773,36 @@ package body Instrument.Ada_Unit is
 
             --  Clone the spec of the original declaration
 
-            New_Spec : constant Node_Rewriting_Handle := Clone (Previous_Spec);
-
+            New_Spec : constant Node_Rewriting_Handle :=
+              (if Fun_Cov
+               then Handle (Previous_Spec)
+               else Clone (Previous_Spec));
          begin
 
             --  Replace the original EF name by the augmented EF name
-
-            Set_Child (New_Spec,
-                       Member_Refs.Subp_Spec_F_Subp_Name,
-                       Make_Identifier (UIC, Augmented_Expr_Func_Name));
+            if not Fun_Cov then
+               Set_Child (New_Spec,
+                          Member_Refs.Subp_Spec_F_Subp_Name,
+                          Make_Identifier (UIC, Augmented_Func_Name));
+            end if;
 
             --  Add the augmented params to this spec as well
 
-            Set_Child
-              (New_Spec,
-               Member_Refs.Subp_Spec_F_Subp_Params,
-               Create_Params (RC, Clone (Formal_Params)));
+            if Formal_Params /= No_Node_Rewriting_Handle then
+               Set_Child
+                 (New_Spec,
+                  Member_Refs.Subp_Spec_F_Subp_Params,
+                  Create_Params (RC, Clone (Formal_Params)));
+            end if;
 
-            Augmented_Expr_Function_Decl := Create_Subp_Decl
-              (Handle       => UIC.Rewriting_Context,
-               F_Overriding => No_Node_Rewriting_Handle,
-               F_Subp_Spec  => New_Spec,
-               F_Aspects    => No_Node_Rewriting_Handle);
+            Augmented_Function_Decl :=
+              (if not Fun_Cov
+               then Create_Subp_Decl
+                 (Handle       => UIC.Rewriting_Context,
+                  F_Overriding => No_Node_Rewriting_Handle,
+                  F_Subp_Spec  => New_Spec,
+                  F_Aspects    => No_Node_Rewriting_Handle)
+               else No_Node_Rewriting_Handle);
 
          exception
             when Exc : Property_Error =>
@@ -2632,7 +2813,7 @@ package body Instrument.Ada_Unit is
                        Kind => Low_Warning);
          end;
       else
-         Augmented_Expr_Function_Decl := No_Node_Rewriting_Handle;
+         Augmented_Function_Decl := No_Node_Rewriting_Handle;
 
          if not Orig_Aspects.Is_Null then
             declare
@@ -2650,7 +2831,7 @@ package body Instrument.Ada_Unit is
                   then
                      Replace
                        (Handle (N.As_Attribute_Ref.F_Prefix),
-                        Make_Identifier (UIC, Augmented_Expr_Func_Name));
+                        Make_Identifier (UIC, Augmented_Func_Name));
                   end if;
                   return Into;
                end Replace_Attr_Subp_Name;
@@ -2679,7 +2860,7 @@ package body Instrument.Ada_Unit is
          --  Attach the aspect specifications of the original expression
          --  function to the augmented one.
 
-         Set_Child (Augmented_Expr_Function,
+         Set_Child (Augmented_Function,
                     Member_Refs.Basic_Decl_F_Aspects,
                     Detach (Orig_Aspects));
       end if;
@@ -2687,7 +2868,12 @@ package body Instrument.Ada_Unit is
       --  If the original expression function is ghost, so must be the
       --  augmented one.
 
-      if Is_Ghost (UIC, Common_Nodes.N.As_Expr_Function) then
+      if Is_Ghost
+        (UIC,
+         (if Common_Nodes.N.Kind = Ada_Expr_Function
+          then Common_Nodes.N.As_Expr_Function.As_Basic_Decl
+          else Common_Nodes.N.As_Basic_Decl))
+      then
          declare
             Ghost_Aspect : constant Node_Rewriting_Handle :=
               Create_Aspect_Assoc
@@ -2702,7 +2888,7 @@ package body Instrument.Ada_Unit is
          begin
             if Needs_Decl then
                Set_Child
-                 (Augmented_Expr_Function_Decl,
+                 (Augmented_Function_Decl,
                   Member_Refs.Basic_Decl_F_Aspects,
                   Aspects);
             else
@@ -2720,12 +2906,12 @@ package body Instrument.Ada_Unit is
          --  return its handle instead of the one of the expression function.
 
          Insert_Last
-           (Common_Nodes.Wrapper_Pkg_Decls, Augmented_Expr_Function);
+           (Common_Nodes.Wrapper_Pkg_Decls, Augmented_Function);
 
-         Augmented_Expr_Function := Common_Nodes.Wrapper_Pkg;
+         Augmented_Function := Common_Nodes.Wrapper_Pkg;
       end if;
 
-   end Create_Augmented_Expr_Function;
+   end Create_Augmented_Function;
 
    ----------------------------------------
    -- Augmented_Expr_Function_Needs_Decl --
@@ -3198,6 +3384,20 @@ package body Instrument.Ada_Unit is
    --
    --  This also processes any nested declare expressions.
 
+   function Is_Call_Leaf (Node : Ada_Node'Class) return Boolean;
+   --  Return True if Node is the leaf of a call expression, that is there are
+   --  no nodes in the children of Node identifying the same call.
+   --
+   --  This is used to avoid processing the same call multiple times when
+   --  traversing the AST. E.g. when processing a dotted name A.B.C (..), both
+   --  A.B.C (..) and C (..) designate the same call. As such, we should only
+   --  process it once; we choose to do this on the inner-most node.
+
+   function Full_Call (Node : Ada_Node'Class) return Ada_Node;
+   --  From an node that is a call, get its parent if it is a
+   --  Dotted_Name. Return the dotted name if this is a call with no arguments,
+   --  or the Call_Expr parent if it is a call with arguments.
+
    --------------------------
    -- Internal Subprograms --
    --------------------------
@@ -3564,7 +3764,7 @@ package body Instrument.Ada_Unit is
          Process_Expression
            (UIC,
             P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)),
-            'A');
+           'A');
       end Process_Contract;
 
       ------------------------
@@ -3581,7 +3781,7 @@ package body Instrument.Ada_Unit is
             return Symbol_Type
          is
            (if Prag_Arg_Expr (Prag_Args, I).Kind =
-              Libadalang.Common.Ada_Identifier
+                Libadalang.Common.Ada_Identifier
             then As_Symbol (Prag_Arg_Expr (Prag_Args, I).As_Identifier)
             else No_Symbol);
          --  Attempt to get the pragma's Ith argument as an identifier. If
@@ -3797,7 +3997,13 @@ package body Instrument.Ada_Unit is
            UIC.MCDC_State_Inserter;
          --  Likewise for MC/DC state inserter
 
-         procedure To_Regular_Subprogram (N : Base_Subp_Body);
+         Fun_Cov : constant Boolean := Enabled (Fun_Call);
+         --  True if function coverage is enabled. If True, the function will
+         --  be instrumented for function coverage.
+
+         procedure To_Regular_Subprogram
+           (N           : Base_Subp_Body;
+            Fun_Witness : Node_Rewriting_Handle := No_Node_Rewriting_Handle);
          --  Turns N into an instrumented regular function, by creating a
          --  function with the same subp_spec as the original expression
          --  function or null procedure, and a single return statement with the
@@ -3807,12 +4013,20 @@ package body Instrument.Ada_Unit is
          --  The SCO associated with the new single statement has the
          --  sloc of the whole original subprogram.
 
+         procedure Create_Witness_Formal
+           (Formal      : out Node_Rewriting_Handle;
+            Formal_Name : Wide_Wide_String);
+         --  Fill Formal with a new Node_Rewriting_Handle being a formal to
+         --  receive a witness call.
+
          ---------------------------
          -- To_Regular_Subprogram --
          ---------------------------
 
-         procedure To_Regular_Subprogram (N : Base_Subp_Body) is
-
+         procedure To_Regular_Subprogram
+           (N           : Base_Subp_Body;
+            Fun_Witness : Node_Rewriting_Handle := No_Node_Rewriting_Handle)
+           is
             Single_Stmt_RH : constant Node_Rewriting_Handle :=
               (if N.Kind = Ada_Expr_Function
               then Create_Return_Stmt
@@ -3874,27 +4088,69 @@ package body Instrument.Ada_Unit is
                Process_Expression (UIC, N.As_Expr_Function.F_Expr, 'X');
             end if;
 
+            if Fun_Witness /= No_Node_Rewriting_Handle then
+               Insert_First
+                 (Decl_List,
+                  Create_From_Template
+                    (UIC.Rewriting_Context,
+                     Template => "Dummy_Witness_Var : Boolean := {};",
+                     Arguments => (1 => Fun_Witness),
+                     Rule => Basic_Decls_Rule));
+            end if;
+
             --  Insert the new regular function in place of the old subprogram
 
-            Replace (Handle (N),
-                     Create_Subp_Body
-                      (Handle       => UIC.Rewriting_Context,
-                       F_Overriding => Detach (N.F_Overriding),
-                       F_Subp_Spec  => Detach (N.F_Subp_Spec),
-                       F_Aspects    => Detach (N.F_Aspects),
-                       F_Decls      => Proc_Decls,
-                       F_Stmts      => Stmts_RH,
-                       F_End_Name   => Proc_Name));
+            Replace
+              (Handle (N),
+               Create_Subp_Body
+                 (Handle       => UIC.Rewriting_Context,
+                  F_Overriding => Detach (N.F_Overriding),
+                  F_Subp_Spec  => Detach (N.F_Subp_Spec),
+                  F_Aspects    => Detach (N.F_Aspects),
+                  F_Decls      => Proc_Decls,
+                  F_Stmts      => Stmts_RH,
+                  F_End_Name   => Proc_Name));
 
             UIC.Current_Insertion_Info := Saved_Insertion_Info;
             UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
          end To_Regular_Subprogram;
 
+         --------------------------
+         -- Crete_Witness_Formal --
+         --------------------------
+
+         procedure Create_Witness_Formal
+           (Formal      : out Node_Rewriting_Handle;
+            Formal_Name : Wide_Wide_String)
+         is
+            Formal_Id     : constant Node_Rewriting_Handle :=
+              Make_Identifier (UIC, Formal_Name);
+            Formal_Def_Id : constant Node_Rewriting_Handle :=
+              Create_Regular_Node
+                (UIC.Rewriting_Context,
+                 Ada_Defining_Name_List,
+                 Children =>
+                   (1 => Create_Defining_Name
+                      (UIC.Rewriting_Context, Formal_Id)));
+         begin
+            Formal := Create_Param_Spec
+              (UIC.Rewriting_Context,
+               F_Ids          => Formal_Def_Id,
+               F_Has_Aliased  => No_Node_Rewriting_Handle,
+               F_Mode         => No_Node_Rewriting_Handle,
+               F_Type_Expr    => Make_Std_Ref (UIC, "Boolean"),
+               F_Default_Expr => No_Node_Rewriting_Handle,
+               F_Aspects      => No_Node_Rewriting_Handle);
+         end Create_Witness_Formal;
+
          Is_Expr_Function : constant Boolean := N.Kind = Ada_Expr_Function;
+         Is_Subp_Body     : constant Boolean := N.Kind = Ada_Subp_Body;
 
          Gen_Names_Prefix : constant Wide_Wide_String :=
            To_Wide_Wide_String
-             ((if Is_Expr_Function then "Func_Expr" else "Null_Proc")
+             ((if Is_Expr_Function
+              then "Func_Expr"
+              else (if Fun_Cov then "Aux" else "Null_Proc"))
               & "_"
               & Img (UIC.Degenerate_Subprogram_Index)
               & Part_Tags (UIC.Instrumented_Unit.Part)
@@ -3903,6 +4159,7 @@ package body Instrument.Ada_Unit is
 
          Call_Params : constant Node_Rewriting_Handle :=
            (if Is_Expr_Function
+            or else (Fun_Cov and then not N_Spec.F_Subp_Params.Is_Null)
             then Make (UIC, Ada_Assoc_List)
             else No_Node_Rewriting_Handle);
          --  List of formal/actual associations for the call to the augmented
@@ -3910,10 +4167,14 @@ package body Instrument.Ada_Unit is
 
          Formal_Params : constant Node_Rewriting_Handle :=
            (if Is_Expr_Function
+            or else (Fun_Cov and then not N_Spec.F_Subp_Params.Is_Null)
             then Clone_Params (UIC, N_Spec)
             else No_Node_Rewriting_Handle);
          --  List of formal parameters for the augmented function. Unused if we
          --  are not processing an expression function.
+
+         Fun_Witness : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+         --  Function witness to be inserted if function coverage is needed
 
          ------------------------------------
          -- Collection of various nodes... --
@@ -3934,6 +4195,8 @@ package body Instrument.Ada_Unit is
          New_Insertion_Info : aliased Insertion_Info;
          --  Witness insertion info for statements (for both null procedures
          --  and expression functions).
+         New_Fun_Insertion_Info : aliased Insertion_Info;
+         --  Witness insertion info for function SCO
 
          Save_Disable_Instrumentation : constant Boolean :=
            UIC.Disable_Instrumentation;
@@ -4080,7 +4343,7 @@ package body Instrument.Ada_Unit is
                        & "cannot instrument generic expression functions."
                        & " Consider turning it into a regular function body.");
 
-            else
+            elsif not Is_Subp_Body then
                --  As Traverse_Degenerate_Subprogram deals only with expression
                --  functions and null procedures, we are in the case of a
                --  generic null procedure here.
@@ -4158,13 +4421,39 @@ package body Instrument.Ada_Unit is
          --  instrumentation issues.
 
          if not N.P_Semantic_Parent.Is_Null
-            and then N.P_Semantic_Parent.Kind = Ada_Protected_Body
+           and then N.P_Semantic_Parent.Kind = Ada_Protected_Body
          then
-            To_Regular_Subprogram (N.As_Base_Subp_Body);
+            declare
+               Fun_Witness : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
+            begin
+               if Fun_Cov then
+                  Instrument_For_Function_Coverage
+                    (UIC,
+                     N.As_Basic_Decl.P_Subp_Spec_Or_Null.As_Subp_Spec,
+                     Function_Call,
+                     Fun_Witness);
+               end if;
+
+               if not Is_Subp_Body then
+                  --  Turn the expression function or null procedure into
+                  --  a regular subprogram. If function coverage is needed,
+                  --  declare a variable in this new subprogram which will
+                  --  be set to a witness call linked to the function SCO.
+
+                  To_Regular_Subprogram (N.As_Base_Subp_Body, Fun_Witness);
+               else
+                  if Fun_Witness /= No_Node_Rewriting_Handle then
+                     Insert_First
+                       (Handle (N.As_Subp_Body.F_Decls.F_Decls),
+                        Create_Function_Witness_Var (UIC, Fun_Witness));
+                  end if;
+               end if;
+            end;
+
             return;
          end if;
 
-         if Is_Expr_Function then
+         if Is_Expr_Function or else Is_Subp_Body then
 
             --  The statement instrumentation below will take care of assigning
             --  .Witness_* components to their definitive values.
@@ -4173,6 +4462,13 @@ package body Instrument.Ada_Unit is
               (Method         => Expression_Function,
                Witness_Actual => No_Node_Rewriting_Handle,
                Witness_Formal => No_Node_Rewriting_Handle);
+
+            if Is_Expr_Function and then Fun_Cov then
+               New_Fun_Insertion_Info :=
+                 (Method         => Expression_Function,
+                  Witness_Actual => No_Node_Rewriting_Handle,
+                  Witness_Formal => No_Node_Rewriting_Handle);
+            end if;
 
             if not UIC.Disable_Instrumentation then
 
@@ -4239,7 +4535,7 @@ package body Instrument.Ada_Unit is
                Instrument_Statement (UIC, N_Expr, 'X');
                Process_Expression (UIC, N_Expr, 'X');
             end;
-         else
+         elsif N.Kind /= Ada_Subp_Body then
             --  Even though there is a "null" keyword in the null procedure,
             --  there is no dedicated node for it in the Libadalang parse tree:
             --  use the whole null procedure declaration to provide a sloc.
@@ -4263,6 +4559,34 @@ package body Instrument.Ada_Unit is
 
          New_Insertion_Info := UIC.Current_Insertion_Info.Get;
 
+         if Fun_Cov then
+
+            if Is_Expr_Function then
+               --  For function coverage for expression functions, we need a
+               --  second formal parameter meant to receive the function
+               --  coverage witness call.
+
+               Create_Witness_Formal
+                 (New_Fun_Insertion_Info.Witness_Formal,
+                  "Dummy_Witness_Formal_Fun");
+            end if;
+
+            --  If function coverage is needed, append a function coverage SCO
+            --  and prepare the witness statement to be inserted in the new
+            --  subprogram body later.
+
+            declare
+               Witness_Flavor : constant Statement_Witness_Flavor :=
+                 (if Is_Expr_Function
+                  then Function_Call
+                  else Procedure_Call);
+
+            begin
+               Instrument_For_Function_Coverage
+                 (UIC, Common_Nodes.N_Spec, Witness_Flavor, Fun_Witness);
+            end;
+         end if;
+
          --  Restore saved insertion context
 
          UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
@@ -4281,10 +4605,29 @@ package body Instrument.Ada_Unit is
 
          if Is_Expr_Function then
 
-            --  Pass the witness call to the augmented expression function
+            --  Pass the witness call to the augmented/auxiliary expression
+            --  function.
 
-            Insert_Last (Call_Params, New_Insertion_Info.Witness_Actual);
-            Insert_Last (Formal_Params, New_Insertion_Info.Witness_Formal);
+            if Call_Params /= No_Node_Rewriting_Handle then
+               Insert_Last (Call_Params, New_Insertion_Info.Witness_Actual);
+
+               --  If function coverage is needed, pass a second witness call
+               --  as argument. This one is responsible for discharging the
+               --  function SCO.
+
+               if Fun_Cov then
+                  Insert_Last (Call_Params, Fun_Witness);
+               end if;
+            end if;
+
+            if Formal_Params /= No_Node_Rewriting_Handle then
+               Insert_Last (Formal_Params, New_Insertion_Info.Witness_Formal);
+
+               if Fun_Cov then
+                  Insert_Last
+                    (Formal_Params, New_Fun_Insertion_Info.Witness_Formal);
+               end if;
+            end if;
          end if;
 
          ----------------------------
@@ -4310,13 +4653,14 @@ package body Instrument.Ada_Unit is
          --  recursive ones), as the generated code requires the declaration to
          --  be legal Ada.
 
-         if N.As_Base_Subp_Body.P_Previous_Part.Is_Null
-            and then (not Is_Expr_Function
-                      or else Is_Self_Referencing (UIC, N.As_Expr_Function))
+         if Kind (N) in Ada_Base_Subp_Body
+           and then N.As_Base_Subp_Body.P_Previous_Part.Is_Null
+           and then (not Is_Expr_Function
+                     or else Is_Self_Referencing (UIC, N.As_Expr_Function))
          then
+
             Insert_Before
-              (Stub,
-               Create_Subp_Decl
+              (Stub, Create_Subp_Decl
                  (RC,
                   F_Overriding => Detach (Common_Nodes.N_Overriding),
                   F_Subp_Spec  => Clone (N_Spec),
@@ -4327,37 +4671,38 @@ package body Instrument.Ada_Unit is
             --  added to the augmented function later on.
          end if;
 
-         if Is_Expr_Function then
+         if Is_Expr_Function or else Is_Subp_Body then
             declare
-               Augmented_Expr_Function       : Node_Rewriting_Handle;
-               Augmented_Expr_Function_Decl  : Node_Rewriting_Handle;
-               New_Expr_Function             : Node_Rewriting_Handle;
+               Augmented_Function       : Node_Rewriting_Handle;
+               Augmented_Function_Decl  : Node_Rewriting_Handle;
+               New_Function             : Node_Rewriting_Handle;
 
             begin
                --  Create the augmented expression function and amend the
                --  original one.
 
-               Create_Augmented_Expr_Function
+               Create_Augmented_Function
                  (UIC,
                   Common_Nodes,
                   Formal_Params,
                   Call_Params,
-                  Augmented_Expr_Function,
-                  Augmented_Expr_Function_Decl,
-                  New_Expr_Function);
+                  Augmented_Function,
+                  Augmented_Function_Decl,
+                  New_Function,
+                  Fun_Witness);
 
                --  First comes the augmented expression function, then the new
                --  expression function.
 
-               Insert_Before (Stub, Augmented_Expr_Function);
-               Insert_Before (Stub, New_Expr_Function);
+               Insert_Before (Stub, Augmented_Function);
+               Insert_Before (Stub, New_Function);
 
                --  If we need to insert a declaration for the new expression
                --  function, find the correct spot to add it, and keep track
                --  of this insertion if it happens in the same list as the
                --  one currently being instrumented.
 
-               if Augmented_Expr_Function_Decl /= No_Node_Rewriting_Handle then
+               if Augmented_Function_Decl /= No_Node_Rewriting_Handle then
                   declare
                      Previous_Decl : constant Basic_Decl :=
                        N.P_Previous_Part_For_Decl;
@@ -4368,11 +4713,10 @@ package body Instrument.Ada_Unit is
                      --  Augmented_Expr_Function_Needs_Decl.
                   begin
                      Insert_Before
-                       (Handle (Previous_Decl), Augmented_Expr_Function_Decl);
+                       (Handle (Previous_Decl), Augmented_Function_Decl);
                   end;
                end if;
             end;
-
          else
             --  For null procedures...
 
@@ -4390,7 +4734,10 @@ package body Instrument.Ada_Unit is
                   NP_Nodes,
                   Subp_Body,
                   Instance,
-                  Renaming_Decl);
+                  Renaming_Decl,
+                  (if Fun_Cov
+                   then Fun_Witness
+                   else No_Node_Rewriting_Handle));
 
                --  Insert the renaming in the wrapper package
 
@@ -4455,7 +4802,9 @@ package body Instrument.Ada_Unit is
       begin
          --  Process decisions nested in formal parameters
 
-         Process_Expression (UIC, N_Spec.F_Subp_Params, 'X');
+         if not N_Spec.Is_Null then
+            Process_Expression (UIC, N_Spec.F_Subp_Params, 'X');
+         end if;
 
          Enter_Scope
            (UIC  => UIC,
@@ -4469,14 +4818,18 @@ package body Instrument.Ada_Unit is
          if N.Kind in Ada_Null_Subp_Decl then
             Traverse_Degenerate_Subprogram (N, N_Spec);
 
-         elsif N.Kind in Ada_Subp_Decl  then
+         elsif N.Kind in Ada_Subp_Decl then
             Process_Contracts (N.As_Subp_Decl);
 
          elsif N.Kind in Ada_Expr_Function then
             Process_Contracts (N.As_Expr_Function);
 
             Traverse_Degenerate_Subprogram (N, N_Spec);
+
+         elsif N.Kind in Ada_Subp_Body and then Enabled (Fun_Call) then
+            Traverse_Degenerate_Subprogram (N, N_Spec);
          end if;
+
          Exit_Scope (UIC);
          End_Statement_Block (UIC);
       end Traverse_Subp_Decl_Or_Stub;
@@ -4655,11 +5008,39 @@ package body Instrument.Ada_Unit is
 
             when Ada_Subp_Body
                | Ada_Task_Body
-            =>
-               if Is_Generic (UIC, N.As_Basic_Decl) then
-                  UIC.In_Generic := True;
-               end if;
-               Traverse_Subprogram_Or_Task_Body (UIC, N);
+               =>
+               declare
+                  Is_Generic_Subp : constant Boolean :=
+                    Is_Generic (UIC, N.As_Basic_Decl);
+
+                  Fun_Witness : Node_Rewriting_Handle :=
+                    No_Node_Rewriting_Handle;
+               begin
+                  UIC.In_Generic := Is_Generic_Subp;
+
+                  Traverse_Subprogram_Or_Task_Body (UIC, N);
+
+                  if Enabled (Fun_Call) then
+                     if Is_Generic_Subp
+                       or else
+                         (UIC.Current_Insertion_Info.Get.Method = None
+                          and then N.Kind /= Ada_Null_Subp_Decl)
+                     then
+                        Instrument_For_Function_Coverage
+                          (UIC,
+                           N.As_Subp_Body.F_Subp_Spec,
+                           Function_Call,
+                           Fun_Witness);
+
+                        Insert_First
+                          (Handle (N.As_Subp_Body.F_Decls.F_Decls),
+                           Create_Function_Witness_Var (UIC, Fun_Witness));
+                     else
+                        Traverse_Subp_Decl_Or_Stub (N.As_Basic_Decl);
+                     end if;
+                  end if;
+               end;
+
                UIC.In_Generic := Saved_In_Generic;
 
             --  Entry body
@@ -4744,6 +5125,7 @@ package body Instrument.Ada_Unit is
                            Ada_Node (Elif), 'I',
                            Insertion_N => Handle (Elif.F_Cond_Expr));
                         End_Statement_Block (UIC);
+
                         Process_Expression (UIC, Elif.F_Cond_Expr, 'I');
 
                         --  Traverse the statements in the ELSIF
@@ -5145,8 +5527,25 @@ package body Instrument.Ada_Unit is
                End_Statement_Block (UIC);
                Start_Statement_Block (UIC);
 
-            when others =>
+            when Ada_Call_Stmt =>
+               Instrument_Statement (UIC, N, ' ');
 
+               if Enabled (Fun_Call) then
+                  Append_SCO
+                    (C1                 => 'c',
+                     C2                 => 'S',
+                     From               =>
+                       +Start_Sloc (N.As_Call_Stmt.F_Call.Sloc_Range),
+                     To                 =>
+                       +Inclusive_End_Sloc (N.As_Call_Stmt.F_Call.Sloc_Range),
+                     SFI                => UIC.SFI,
+                     Last               => True,
+                     Pragma_Aspect_Name => Namet.No_Name);
+               end if;
+
+               Process_Expression (UIC, N, 'X');
+
+            when others =>
                --  Determine required type character code, or ASCII.NUL if
                --  no SCO should be generated for this node.
 
@@ -5227,7 +5626,7 @@ package body Instrument.Ada_Unit is
       Items_Count : constant Natural :=
         (if L.Is_Null then 0 else L.Children_Count);
 
-   --  Start of processing for Traverse_Declarations_Or_Statements
+      --  Start of processing for Traverse_Declarations_Or_Statements
 
    begin
       if Is_Block then
@@ -5712,6 +6111,25 @@ package body Instrument.Ada_Unit is
       N   : Ada_Node'Class;
       T   : Character)
    is
+      procedure Process_Call_Expression (N : Ada_Node'Class);
+      --  Traverse the expression N to instrument calls for call coverage.
+      --
+      --  To instument a call expression, the original call expresison is
+      --  replaced by an if-expression. The call:
+      --
+      --  Foo (X)
+      --
+      --  Becomes:
+      --
+      --  (if <witness call>
+      --   then Foo (X)
+      --   else Foo (X))
+      --
+      --  Note that only the parameters of the original call will be
+      --  instrumented. Since the witness call should always return False,
+      --  the original call is that in the "else" branch. The one in the
+      --  "then" branch should never be executed.
+
       function Process_Decl_Expr (N : Ada_Node'Class) return Visit_Status;
       --  Helper to Libadalang's Traverse. Only operates on Decl_Exprs,
       --  instrument each declaration as a statement and process the nested
@@ -5725,6 +6143,198 @@ package body Instrument.Ada_Unit is
         (UIC : in out Ada_Unit_Inst_Context;
          N   : Ada_Node'Class;
          T   : Character);
+
+      -----------------------------
+      -- Process_Call_Expression --
+      -----------------------------
+
+      procedure Process_Call_Expression (N : Ada_Node'Class)
+      is
+         function Aux_Process_Call_Expression
+           (Node : Ada_Node'Class)
+            return Visit_Status;
+         --  Auxiliary function, responsible for the actual instrumentation. It
+         --  is called on all children of N. if Node is a call expression it is
+         --  instrumented. Otherwise, Into is returned to ensure all children
+         --  are visited. This is needed in order to find nested calls in
+         --  expressions.
+
+         ---------------------------------
+         -- Aux_Process_Call_Expression --
+         ---------------------------------
+
+         function Aux_Process_Call_Expression
+           (Node : Ada_Node'Class)
+            return Visit_Status
+         is
+            Full_Call_Node : Ada_Node;
+         begin
+            if Is_Call_Leaf (Node) then
+               Full_Call_Node := Full_Call (Node);
+
+               --  Skip calls that are direct children of call statements
+
+               if Full_Call_Node.Parent.Kind in Ada_Call_Stmt then
+                  return Into;
+               end if;
+
+               --  Generate a SCO for this call
+
+               declare
+                  Orig_Handle  : constant Node_Rewriting_Handle :=
+                    Handle (Full_Call_Node);
+                  Dummy_Handle : constant Node_Rewriting_Handle :=
+                    Create_Node (UIC.Rewriting_Context, Full_Call_Node.Kind);
+                  Then_Node : constant Node_Rewriting_Handle :=
+                    Clone (Full_Call_Node);
+
+                  Return_Type : Base_Type_Decl := No_Base_Type_Decl;
+
+                  Needs_Qualified_Expr : constant Boolean :=
+                     Full_Call_Node.Parent.Kind = Ada_Dotted_Name;
+                  --  We only need to turn the if-expression into a qualified
+                  --  when the parent of the call and its parent are both
+                  --  dotted named. For example, with A and B packages, F a
+                  --  function returning a record and X a field of this record:
+                  --
+                  --  A.B.F.X
+                  --
+                  --  Here the instrumentation of F needs to be a name, so we
+                  --  need the fully qualifed if-expression. But for:
+                  --
+                  --  A.B.F
+                  --
+                  --  The if-expression alone suffices.
+
+                  Do_Not_Instrument : Boolean := False;
+                  --  Whether we can instrument this call. Depends on whether
+                  --  we need to use a qualified expression to insturment, and
+                  --  if the return type of the call is visible from the call
+                  --  site or not.
+
+                  Location : constant Source_Location_Range :=
+                    Full_Call_Node.Sloc_Range;
+               begin
+                  Append_SCO
+                    (C1                 => 'c',
+                     C2                 => 'E',
+                     From               => +Start_Sloc (Location),
+                     To                 => +Inclusive_End_Sloc (Location),
+                     SFI                => UIC.SFI,
+                     Last               => True,
+                     Pragma_Aspect_Name => Namet.No_Name);
+
+                  --  Pre-compute the return type of the expression if we
+                  --  need to generate a qualified expression.
+                  --
+                  --  If we cannot determine it, do not insturment the call.
+
+                  begin
+                     if Needs_Qualified_Expr then
+                        Return_Type :=
+                          Full_Call_Node.As_Expr.P_Expression_Type;
+                     end if;
+                  exception
+                     when Property_Error =>
+                        Report
+                          (Full_Call_Node,
+                           "Failed to retrieve the expression type of the"
+                           & " call",
+                           Kind => Warning);
+                        Do_Not_Instrument := True;
+                  end;
+
+                  --  TODO: LIMITATION
+                  --  Currently, gnatcov is unable to determine if the full
+                  --  name of a type is visible and can be explicitely used in
+                  --  a unit. For this reason, we cannot currently turn
+                  --  the if-expressions into fully qualified names. This is
+                  --  need for call the are in the middle of a dotted name.
+                  --  For now, do not instrument calls that wouls require such
+                  --  an instrumentation.
+
+                  Do_Not_Instrument := Needs_Qualified_Expr;
+
+                  if not Do_Not_Instrument then
+                     Fill_Expression_Insertion_Info
+                       (UIC,
+                        Allocate_Statement_Bit
+                          (UIC.Unit_Bits,
+                           SCOs.SCO_Table.Last),
+                        UIC.Current_Insertion_Info.Get);
+
+                     Replace (Orig_Handle, Dummy_Handle);
+
+                     declare
+                        If_Expression : constant Node_Rewriting_Handle :=
+                          Create_Paren_Expr
+                            (UIC.Rewriting_Context,
+                             Create_If_Expr
+                               (UIC.Rewriting_Context,
+                                UIC.Current_Insertion_Info.Get.Witness_Actual,
+                                Then_Node,
+                                No_Node_Rewriting_Handle,
+                                Orig_Handle
+                               ));
+
+                        Qualified_Expr : constant Node_Rewriting_Handle :=
+                          (if Needs_Qualified_Expr
+                           then
+                              Create_Qual_Expr
+                             (UIC.Rewriting_Context,
+                              F_Prefix => To_Nodes
+                                (UIC.Rewriting_Context,
+                                 To_Qualified_Name
+                                   (Return_Type.As_Basic_Decl
+                                    .P_Fully_Qualified_Name_Array)),
+                              F_Suffix =>
+                                Create_Paren_Expr (UIC.Rewriting_Context,
+                                If_Expression))
+                           else No_Node_Rewriting_Handle);
+                     begin
+                        if Needs_Qualified_Expr then
+                           Replace (Dummy_Handle, Qualified_Expr);
+                        else
+                           Replace (Dummy_Handle, If_Expression);
+                        end if;
+                     end;
+                  else
+                     Report
+                       (UIC,
+                        Full_Call_Node,
+                        "gnatcov limitation: cannot instrument calls within"
+                        & " dotted names",
+                        Warning);
+                     UIC.Non_Instr_LL_SCOs.Include
+                       (SCO_Id (SCOs.SCO_Table.Last));
+                  end if;
+               end;
+            end if;
+
+            return Into;
+
+         end Aux_Process_Call_Expression;
+
+         Saved_Insertion_Info : constant Insertion_Info :=
+           UIC.Current_Insertion_Info.Get;
+
+         Local_Insertion_Info : constant Insertion_Info (Expression_Function)
+           :=
+              (Method         => Expression_Function,
+               Witness_Actual => No_Node_Rewriting_Handle,
+               Witness_Formal => No_Node_Rewriting_Handle);
+      begin
+         if N.Is_Null then
+            return;
+         end if;
+
+         UIC.Current_Insertion_Info.Set (Local_Insertion_Info);
+
+         N.Traverse (Aux_Process_Call_Expression'Access);
+
+         Insertion_Info_SP.Set
+           (UIC.Current_Insertion_Info, Saved_Insertion_Info);
+      end Process_Call_Expression;
 
       -----------------------
       -- Process_Decl_Expr --
@@ -5824,7 +6434,7 @@ package body Instrument.Ada_Unit is
          --  to worry about overwriting them.
 
          Current_Decision : Nat;
-         --  Low level SCO id of current decision
+         --  Low level SCO Id of current decision
 
          X_Not_Decision : Boolean;
          --  This flag keeps track of whether a decision sequence in the
@@ -6359,9 +6969,137 @@ package body Instrument.Ada_Unit is
          return;
       end if;
       Process_Decisions (UIC, N, T);
+
+      --  Then, look for all call expressions to instrument them. However,
+      --  avoid instrumenting calls that are in subprogram specifications.
+      --  If this subprogram has a previous declaration and calls for default
+      --  parameter values, the buffer indices passed to the two witness calls
+      --  inserted in the declaration and the body specifications will be
+      --  different, and the declaration and body will not be conformant
+      --  with each other anymore.
+
+      if Enabled (Fun_Call)
+        and then N.Parent.Kind /= Ada_Subp_Spec
+      then
+         if N.Kind = Ada_Call_Stmt then
+            for Child of N.Children loop
+               if Child.Kind = Ada_Call_Expr then
+                  Process_Call_Expression
+                    (Child.As_Call_Expr.F_Suffix);
+               end if;
+            end loop;
+         else
+            Process_Call_Expression (N);
+         end if;
+      end if;
+
       N.Traverse (Process_Decl_Expr'Access);
       N.Traverse (Process_Raise_Expr'Access);
    end Process_Expression;
+
+   ------------------
+   -- Is_Call_Leaf --
+   ------------------
+
+   function Is_Call_Leaf (Node : Ada_Node'Class) return Boolean is
+   begin
+      case Node.Kind is
+         when LALCO.Ada_Name =>
+
+            --  The suffix of a Dotted name will designate the same call
+
+            if Node.Kind in Ada_Dotted_Name then
+               return False;
+            end if;
+
+            --  The prefix of a call expr (that is actually a call) will
+            --  designate the same call.
+
+            if Node.Kind in Ada_Call_Expr
+              and then Node.As_Call_Expr.P_Kind = Call
+            then
+               return False;
+            end if;
+
+            return
+              (Node.As_Name.P_Is_Call
+               or else (Node.Parent.Kind = Ada_Call_Expr
+                        and then Node.Parent.As_Call_Expr.P_Kind = Call));
+
+         --  TODO??? Only process operators if they are **not** predefined
+         --  operators?
+
+         when Ada_Un_Op | Ada_Bin_Op | Ada_Concat_Op =>
+            return False;
+
+         when others =>
+            return False;
+      end case;
+   end Is_Call_Leaf;
+
+   ---------------
+   -- Full_Call --
+   ---------------
+
+   function Full_Call (Node : Ada_Node'Class) return Ada_Node
+   is
+      Call : Ada_Node;
+   begin
+      --  Ensure Node is the inner-most node identifying a call.
+
+      pragma Assert (Is_Call_Leaf (Node));
+
+      Call := Node.As_Ada_Node;
+
+      if Call.Parent.Kind = Ada_Dotted_Name then
+         Call := Call.Parent;
+      end if;
+
+      if Call.Parent.Kind = Ada_Call_Expr then
+         Call := Call.Parent;
+      end if;
+
+      return Call;
+   end Full_Call;
+
+   ------------------------------------
+   -- Fill_Expression_Insertion_Info --
+   ------------------------------------
+
+   procedure Fill_Expression_Insertion_Info
+     (UIC         : in out Ada_Unit_Inst_Context;
+      Bit         : Any_Bit_Id;
+      Insert_Info : out Insertion_Info)
+   is
+      Formal_Name   : constant Node_Rewriting_Handle :=
+        Make_Identifier (UIC, "Dummy_Witness_Result");
+      Formal_Def_Id : constant Node_Rewriting_Handle :=
+        Create_Regular_Node
+          (UIC.Rewriting_Context,
+           Ada_Defining_Name_List,
+           Children =>
+             (1 => Create_Defining_Name (UIC.Rewriting_Context, Formal_Name)));
+   begin
+      --  Create both the witness call and a formal parameter to
+      --  accept it as an actual.
+
+      Insert_Info.Witness_Actual := Make_Statement_Witness
+        (UIC,
+         Bit        => Bit,
+         Flavor     => Function_Call,
+         In_Generic => UIC.In_Generic,
+         In_Decl_Expr => UIC.In_Decl_Expr);
+
+      Insert_Info.Witness_Formal := Create_Param_Spec
+        (UIC.Rewriting_Context,
+         F_Ids          => Formal_Def_Id,
+         F_Has_Aliased  => No_Node_Rewriting_Handle,
+         F_Mode         => No_Node_Rewriting_Handle,
+         F_Type_Expr    => Make_Std_Ref (UIC, "Boolean"),
+         F_Default_Expr => No_Node_Rewriting_Handle,
+         F_Aspects      => No_Node_Rewriting_Handle);
+
+   end Fill_Expression_Insertion_Info;
 
    -------------------------
    -- Is_Logical_Operator --
@@ -6857,9 +7595,9 @@ package body Instrument.Ada_Unit is
 
    function Is_Ghost
      (UIC : Ada_Unit_Inst_Context;
-      EF  : Expr_Function) return Boolean
+      D   : Basic_Decl) return Boolean
    is
-      Decl : Basic_Decl := EF.As_Basic_Decl;
+      Decl : Basic_Decl := D;
    begin
       --  We are looking for a Ghost aspect for the given expression function.
       --  If this expression function has a declaration, the aspect must be
@@ -6870,7 +7608,7 @@ package body Instrument.Ada_Unit is
       exception
          when Exc : Property_Error =>
             Report
-              (UIC, EF,
+              (UIC, Decl,
                "Failed to look for a previous declaration of this expression"
                & " function" & Ada.Exceptions.Exception_Information (Exc),
                Warning);
