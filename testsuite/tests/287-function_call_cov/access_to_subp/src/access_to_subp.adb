@@ -1,14 +1,9 @@
 pragma Ada_2012;
 
+with Pkg; use Pkg;
+
 procedure Access_To_Subp                                        -- # fun
 is
-   type Point is record                                        -- # decl
-      X, Y : Float;                                            -- # dstmt
-   end record;                                                 -- # dstmt
-
-   function Set (X, Y : Float) return Point is (X, Y);         -- # stmt
-
-   function Reset (X, Y : Float) return Point is (0.0, 0.0);   -- # stmt
 
    type Pt_Acc is access function (X, Y : Float) return Point; -- # decl
 

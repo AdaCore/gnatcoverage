@@ -232,3 +232,64 @@ stylechecks:
     - pre-commit run -a --show-diff-on-failure
 
     - python .check-formatting.py --force-colors
+
+#################
+# Optional jobs #
+#################
+
+# Optional job for block instrumentation.
+#
+# To be run when Ada or C instrumentation is modified to ensure the new
+# changes are also compatible with block instrumentation.
+test_block_instr:
+  interruptible: true
+  services:
+     - image:e3
+     - cpu:16
+     - mem:16
+  stage: test
+  when: manual
+  script:
+    - *basic_test_setup
+
+    # Test using anod
+    - anod test gnatcov --minimal -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER
+    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER build_space_name)
+    - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
+    - e3-testsuite-report
+        --failure-exit-code 1
+        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
+        --xunit-name src-traces
+        $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/results/new/
+
+  <<: *artifacts
+
+# Optional job for light runtime testing on source traces. Dump trigger
+# strategies differ on that runtime, and not all tests are compatible with
+# this runtime depending on the needed features (e.g. --dump-channel=bin-file)
+# or the test sources make use of Ada features not available on this runtime.
+#
+# Only needs to be run when large batches of src-trace specific tests are added,
+# or if instrumentation code related to buffer dump is modified.
+test_src_light:
+  interruptible: true
+  services:
+     - image:e3
+     - cpu:16
+     - mem:16
+  stage: test
+  when: manual
+  script:
+    - *basic_test_setup
+
+    # Test using anod
+    - anod test gnatcov --minimal -Qsrc-traces,instr,RTS=light-stm32f4 --target=arm-elf,,qemu-stm32 $ACI_TRACK_QUALIFIER
+    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,RTS=light-stm32f4 --target=arm-elf,,qemu-stm32 $ACI_TRACK_QUALIFIER build_space_name)
+    - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
+    - e3-testsuite-report
+        --failure-exit-code 1
+        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
+        --xunit-name src-traces
+        $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/results/new/
+
+  <<: *artifacts
