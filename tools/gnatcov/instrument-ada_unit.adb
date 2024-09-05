@@ -585,9 +585,8 @@ package body Instrument.Ada_Unit is
 
    procedure Fill_Expression_Insertion_Info
      (UIC         : in out Ada_Unit_Inst_Context;
-      Bit         : Any_Bit_Id;
-      Insert_Info : out Insertion_Info);
-   --  Fill Insertion_Info with new witness formal and actual
+      Bit         : Any_Bit_Id);
+   --  Fill UIC.Current_Insertion_Info with new witness formal and actual
 
    procedure Ensure_With (UIC : in out Ada_Unit_Inst_Context'Class;
                           Unit : Text_Type);
@@ -4192,11 +4191,13 @@ package body Instrument.Ada_Unit is
          -- Local contexts for statement and MC/DC instrumentation --
          ------------------------------------------------------------
 
-         New_Insertion_Info : aliased Insertion_Info;
+         New_Insertion_Info : Insertion_Info_Ref;
          --  Witness insertion info for statements (for both null procedures
          --  and expression functions).
          New_Fun_Insertion_Info : aliased Insertion_Info;
-         --  Witness insertion info for function SCO
+         --  Witness insertion info for function SCO. This is never used
+         --  outside of this subprogram (in particular, not stored in UIC), so
+         --  we don't need to create a ref.
 
          Save_Disable_Instrumentation : constant Boolean :=
            UIC.Disable_Instrumentation;
@@ -4458,10 +4459,11 @@ package body Instrument.Ada_Unit is
             --  The statement instrumentation below will take care of assigning
             --  .Witness_* components to their definitive values.
 
-            New_Insertion_Info :=
-              (Method         => Expression_Function,
-               Witness_Actual => No_Node_Rewriting_Handle,
-               Witness_Formal => No_Node_Rewriting_Handle);
+            New_Insertion_Info.Set
+              (Insertion_Info'
+                (Method         => Expression_Function,
+                 Witness_Actual => No_Node_Rewriting_Handle,
+                 Witness_Formal => No_Node_Rewriting_Handle));
 
             if Is_Expr_Function and then Fun_Cov then
                New_Fun_Insertion_Info :=
@@ -4502,26 +4504,25 @@ package body Instrument.Ada_Unit is
             --  Allow witness insertion for the "null" statement in the generic
             --  procedure (NP_Nodes.Null_Stmt).
 
-            New_Insertion_Info :=
-              (Method  => Statement,
-               RH_List => NP_Nodes.Stmt_List,
+            New_Insertion_Info.Set
+              (Insertion_Info'
+                 (Method  => Statement,
+                  RH_List => NP_Nodes.Stmt_List,
 
-               --  Even if the current package has elaboration restrictions,
-               --  this Insertion_Info is used to insert a witness call in the
-               --  procedure in the generic body: the elaboration restriction
-               --  does not apply there.
+                 --  Even if the current package has elaboration restrictions,
+                 --  this Insertion_Info is used to insert a witness call in
+                 --  the procedure in the generic body: the elaboration
+                 --  restriction does not apply there.
 
-               Preelab => False,
-
-               Parent  => null);
+                 Preelab => False,
+                 Parent  => null));
          end if;
 
          ----------------------------------
          -- 2. Statement instrumentation --
          ----------------------------------
 
-         Insertion_Info_SP.Set
-           (UIC.Current_Insertion_Info, New_Insertion_Info);
+         UIC.Current_Insertion_Info := New_Insertion_Info;
 
          UIC.MCDC_State_Inserter := EF_Inserter'Unchecked_Access;
 
@@ -4557,7 +4558,7 @@ package body Instrument.Ada_Unit is
          --  The insertion info has been completed by calls to
          --  Insert_Stmt_Witness.
 
-         New_Insertion_Info := UIC.Current_Insertion_Info.Get;
+         New_Insertion_Info := UIC.Current_Insertion_Info;
 
          if Fun_Cov then
 
@@ -4609,7 +4610,8 @@ package body Instrument.Ada_Unit is
             --  function.
 
             if Call_Params /= No_Node_Rewriting_Handle then
-               Insert_Last (Call_Params, New_Insertion_Info.Witness_Actual);
+               Insert_Last
+                 (Call_Params, New_Insertion_Info.Get.Witness_Actual);
 
                --  If function coverage is needed, pass a second witness call
                --  as argument. This one is responsible for discharging the
@@ -4621,7 +4623,8 @@ package body Instrument.Ada_Unit is
             end if;
 
             if Formal_Params /= No_Node_Rewriting_Handle then
-               Insert_Last (Formal_Params, New_Insertion_Info.Witness_Formal);
+               Insert_Last
+                 (Formal_Params, New_Insertion_Info.Get.Witness_Formal);
 
                if Fun_Cov then
                   Insert_Last
@@ -6260,8 +6263,7 @@ package body Instrument.Ada_Unit is
                        (UIC,
                         Allocate_Statement_Bit
                           (UIC.Unit_Bits,
-                           SCOs.SCO_Table.Last),
-                        UIC.Current_Insertion_Info.Get);
+                           SCOs.SCO_Table.Last));
 
                      Replace (Orig_Handle, Dummy_Handle);
 
@@ -6315,8 +6317,8 @@ package body Instrument.Ada_Unit is
 
          end Aux_Process_Call_Expression;
 
-         Saved_Insertion_Info : constant Insertion_Info :=
-           UIC.Current_Insertion_Info.Get;
+         Saved_Insertion_Info : constant Insertion_Info_Ref :=
+           UIC.Current_Insertion_Info;
 
          Local_Insertion_Info : constant Insertion_Info (Expression_Function)
            :=
@@ -6332,8 +6334,7 @@ package body Instrument.Ada_Unit is
 
          N.Traverse (Aux_Process_Call_Expression'Access);
 
-         Insertion_Info_SP.Set
-           (UIC.Current_Insertion_Info, Saved_Insertion_Info);
+         UIC.Current_Insertion_Info := Saved_Insertion_Info;
       end Process_Call_Expression;
 
       -----------------------
@@ -7068,8 +7069,7 @@ package body Instrument.Ada_Unit is
 
    procedure Fill_Expression_Insertion_Info
      (UIC         : in out Ada_Unit_Inst_Context;
-      Bit         : Any_Bit_Id;
-      Insert_Info : out Insertion_Info)
+      Bit         : Any_Bit_Id)
    is
       Formal_Name   : constant Node_Rewriting_Handle :=
         Make_Identifier (UIC, "Dummy_Witness_Result");
@@ -7083,21 +7083,22 @@ package body Instrument.Ada_Unit is
       --  Create both the witness call and a formal parameter to
       --  accept it as an actual.
 
-      Insert_Info.Witness_Actual := Make_Statement_Witness
+      UIC.Current_Insertion_Info.Get.Witness_Actual := Make_Statement_Witness
         (UIC,
          Bit        => Bit,
          Flavor     => Function_Call,
          In_Generic => UIC.In_Generic,
          In_Decl_Expr => UIC.In_Decl_Expr);
 
-      Insert_Info.Witness_Formal := Create_Param_Spec
-        (UIC.Rewriting_Context,
-         F_Ids          => Formal_Def_Id,
-         F_Has_Aliased  => No_Node_Rewriting_Handle,
-         F_Mode         => No_Node_Rewriting_Handle,
-         F_Type_Expr    => Make_Std_Ref (UIC, "Boolean"),
-         F_Default_Expr => No_Node_Rewriting_Handle,
-         F_Aspects      => No_Node_Rewriting_Handle);
+      UIC.Current_Insertion_Info.Get.Witness_Formal :=
+        Create_Param_Spec
+          (UIC.Rewriting_Context,
+           F_Ids          => Formal_Def_Id,
+           F_Has_Aliased  => No_Node_Rewriting_Handle,
+           F_Mode         => No_Node_Rewriting_Handle,
+           F_Type_Expr    => Make_Std_Ref (UIC, "Boolean"),
+           F_Default_Expr => No_Node_Rewriting_Handle,
+           F_Aspects      => No_Node_Rewriting_Handle);
 
    end Fill_Expression_Insertion_Info;
 
@@ -7807,14 +7808,14 @@ package body Instrument.Ada_Unit is
         Stmt_Instr_Info.Insertion_N;
       Instrument_Location : Instrument_Location_Type renames
         Stmt_Instr_Info.Instrument_Location;
-      Insert_Info         : Insertion_Info renames
-        Stmt_Instr_Info.Insert_Info_Ref.Get;
+      Insert_Info         : Insertion_Info_Ref renames
+        Stmt_Instr_Info.Insert_Info_Ref;
    begin
       --  Create an artificial internal error, if requested
 
       Raise_Stub_Internal_Error_For (Ada_Instrument_Insert_Stmt_Witness);
 
-      case Insert_Info.Method is
+      case Insert_Info.Get.Method is
 
          when Statement | Declaration =>
 
@@ -7934,15 +7935,15 @@ package body Instrument.Ada_Unit is
                         case Instrument_Location is
                            when Before =>
                               Is_Before := True;
-                              Ref_List := Insert_Info.RH_List;
+                              Ref_List := Insert_Info.Get.RH_List;
 
                            when Before_Parent =>
                               Is_Before := True;
-                              Ref_List := Insert_Info.Parent.RH_List;
+                              Ref_List := Insert_Info.Get.Parent.RH_List;
 
                            when After =>
                               Is_Before := False;
-                              Ref_List := Insert_Info.RH_List;
+                              Ref_List := Insert_Info.Get.RH_List;
 
                               --  The cases where we need to instrument
                               --  inside an expression are handled before,
@@ -7966,7 +7967,7 @@ package body Instrument.Ada_Unit is
                       (UIC,
                        Bit          => Bit,
                        Flavor       =>
-                         (case Insert_Info.Method is
+                         (case Insert_Info.Get.Method is
                              when Statement => Procedure_Call,
                              when Declaration => Declaration,
                              when Expression_Function | None =>
@@ -8003,14 +8004,14 @@ package body Instrument.Ada_Unit is
                     Children =>
                       (1 => Create_Defining_Name (RC, Formal_Name)));
             begin
-               Insert_Info.Witness_Actual := Make_Statement_Witness
+               Insert_Info.Get.Witness_Actual := Make_Statement_Witness
                  (UIC,
                   Bit          => Bit,
                   Flavor       => Function_Call,
                   In_Generic   => UIC.In_Generic,
                   In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr);
 
-               Insert_Info.Witness_Formal := Create_Param_Spec
+               Insert_Info.Get.Witness_Formal := Create_Param_Spec
                  (RC,
                   F_Ids          => Formal_Def_Id,
                   F_Has_Aliased  => No_Node_Rewriting_Handle,
