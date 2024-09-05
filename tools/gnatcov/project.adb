@@ -28,6 +28,10 @@ with GNAT.Regexp;
 with GNATCOLL.Traces;
 with GNATCOLL.Projects.Aux;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
+with GPR2.Project.Registry.Attribute;
+with GPR2.Project.Registry.Attribute.Description;
+with GPR2.Project.Registry.Pack;
+with GPR2.Project.Registry.Pack.Description;
 
 with Inputs;     use Inputs;
 with Instrument; use Instrument;
@@ -47,6 +51,8 @@ package body Project is
    Coverage_Package      : aliased String := "coverage";
    Coverage_Package_List : aliased String_List :=
                              (1 => Coverage_Package'Access);
+   GPR2_Coverage_Package : constant GPR2.Package_Id :=
+     GPR2."+" (GPR2.Name_Type (Coverage_Package));
 
    type Attribute is
      (Units,
@@ -70,6 +76,7 @@ package body Project is
    function "+" (A : Attribute) return String;
    function "+" (A : String_Attribute) return Attribute_Pkg_String;
    function "+" (A : List_Attribute) return Attribute_Pkg_List;
+   function "+" (A : Attribute) return GPR2.Q_Attribute_Id;
    --  Build identifiers for attributes in package Coverage
 
    procedure Iterate_Source_Files
@@ -303,6 +310,11 @@ package body Project is
    function "+" (A : List_Attribute) return Attribute_Pkg_List is
    begin
       return Build (Coverage_Package, A'Img);
+   end "+";
+
+   function "+" (A : Attribute) return GPR2.Q_Attribute_Id is
+   begin
+      return (GPR2_Coverage_Package, GPR2."+" (GPR2.Name_Type (A'Image)));
    end "+";
 
    --------------
@@ -1716,4 +1728,129 @@ package body Project is
       end case;
    end Source_Suffix;
 
+   --  Register the Coverage package and its attributes to GPR2
+
+   package GPR2_RP renames GPR2.Project.Registry.Pack;
+   package GPR2_RA renames GPR2.Project.Registry.Attribute;
+begin
+   GPR2_RP.Add (GPR2_Coverage_Package, GPR2_RP.Everywhere);
+   GPR2_RP.Description.Set_Package_Description
+     (GPR2_Coverage_Package,
+      "Specifies options used when calling the 'gnatcov' program.");
+
+   GPR2_RA.Add
+     (Name                 => +Units,
+      Index_Type           => GPR2_RA.No_Index,
+      Value                => GPR2_RA.List,
+      Value_Case_Sensitive => True,
+      Is_Allowed_In        => GPR2_RA.Everywhere);
+   GPR2_RA.Description.Set_Attribute_Description
+     (+Units,
+      "Names of units of interest to include in source coverage analysis.");
+
+   GPR2_RA.Add
+     (Name                 => +Excluded_Units,
+      Index_Type           => GPR2_RA.No_Index,
+      Value                => GPR2_RA.List,
+      Value_Case_Sensitive => True,
+      Is_Allowed_In        => GPR2_RA.Everywhere);
+   GPR2_RA.Description.Set_Attribute_Description
+     (+Excluded_Units,
+      "Names of units of interest to exclude from source coverage analysis.");
+
+   GPR2_RA.Add
+     (Name                 => +Routines,
+      Index_Type           => GPR2_RA.No_Index,
+      Value                => GPR2_RA.List,
+      Value_Case_Sensitive => True,
+      Is_Allowed_In        => GPR2_RA.Everywhere);
+   GPR2_RA.Description.Set_Attribute_Description
+     (+Routines,
+      "Symbol names for the routines to include in object coverage.");
+
+   GPR2_RA.Add
+     (Name                 => +Excluded_Routines,
+      Index_Type           => GPR2_RA.No_Index,
+      Value                => GPR2_RA.List,
+      Value_Case_Sensitive => True,
+      Is_Allowed_In        => GPR2_RA.Everywhere);
+   GPR2_RA.Description.Set_Attribute_Description
+     (+Excluded_Routines,
+      "Symbol names for the routines to exclude from object coverage.");
+
+   GPR2_RA.Add
+     (Name                 => +Ignored_Source_Files,
+      Index_Type           => GPR2_RA.No_Index,
+      Value                => GPR2_RA.List,
+      Value_Case_Sensitive => True,
+      Is_Allowed_In        => GPR2_RA.Everywhere);
+   GPR2_RA.Description.Set_Attribute_Description
+     (+Ignored_Source_Files,
+      "Source file names to exclude from source coverage analysis.");
+
+   GPR2_RA.Add
+     (Name                 => +Switches,
+      Index_Type           => GPR2_RA.String_Index,
+      Value                => GPR2_RA.List,
+      Value_Case_Sensitive => True,
+      Is_Allowed_In        => GPR2_RA.Everywhere);
+   GPR2_RA.Description.Set_Attribute_Description
+     (+Switches,
+      "Command line switches to automatically include when running 'gnatcov',"
+      & " indexed by gnatcov sub-command (""instrument"", ""coverage"", ...)");
+
+   GPR2_RA.Add
+     (Name                 => +Units_List,
+      Index_Type           => GPR2_RA.No_Index,
+      Value                => GPR2_RA.Single,
+      Value_Case_Sensitive => True,
+      Is_Allowed_In        => GPR2_RA.Everywhere);
+   GPR2_RA.Description.Set_Attribute_Description
+     (+Units_List,
+      "Text file that contains names of units of interest to include in source"
+      & " coverage analysis.");
+
+   GPR2_RA.Add
+     (Name                 => +Excluded_Units_List,
+      Index_Type           => GPR2_RA.No_Index,
+      Value                => GPR2_RA.Single,
+      Value_Case_Sensitive => True,
+      Is_Allowed_In        => GPR2_RA.Everywhere);
+   GPR2_RA.Description.Set_Attribute_Description
+     (+Excluded_Units_List,
+      "Text file that contains names of units of interest to exclude from"
+      & " source coverage analysis.");
+
+   GPR2_RA.Add
+     (Name                 => +Routines_List,
+      Index_Type           => GPR2_RA.No_Index,
+      Value                => GPR2_RA.Single,
+      Value_Case_Sensitive => True,
+      Is_Allowed_In        => GPR2_RA.Everywhere);
+   GPR2_RA.Description.Set_Attribute_Description
+     (+Routines_List,
+      "Text file that contains symbol names for the routines to include in"
+      & " object coverage.");
+
+   GPR2_RA.Add
+     (Name                 => +Excluded_Routines_List,
+      Index_Type           => GPR2_RA.No_Index,
+      Value                => GPR2_RA.Single,
+      Value_Case_Sensitive => True,
+      Is_Allowed_In        => GPR2_RA.Everywhere);
+   GPR2_RA.Description.Set_Attribute_Description
+     (+Excluded_Routines_List,
+      "Text file that contains symbol names for the routines to exclude from"
+      & " object coverage.");
+
+   GPR2_RA.Add
+     (Name                 => +Ignored_Source_Files_List,
+      Index_Type           => GPR2_RA.No_Index,
+      Value                => GPR2_RA.Single,
+      Value_Case_Sensitive => True,
+      Is_Allowed_In        => GPR2_RA.Everywhere);
+   GPR2_RA.Description.Set_Attribute_Description
+     (+Ignored_Source_Files_List,
+      "Text file that contains source file names to exclude from source"
+      & " coverage analysis.");
 end Project;
