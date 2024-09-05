@@ -81,6 +81,13 @@ package body Instrument.Ada_Unit is
        when LALCO.Unit_Body          => GNATCOLL.Projects.Unit_Body,
        when LALCO.Unit_Specification => GNATCOLL.Projects.Unit_Spec);
 
+   function Referenced_Attribute (N : Ada_Node'Class) return Text_Type
+   is (if N.Kind = Ada_Attribute_Ref
+       then Canonicalize (N.As_Attribute_Ref.F_Attribute.Text).Symbol
+       else "");
+   --  If ``N`` is an attribute reference, return the canonicalized name for
+   --  that attribute. Return the empty string otherwise.
+
    -------------------------------
    -- Create_Context_Instrument --
    -------------------------------
@@ -2127,33 +2134,60 @@ package body Instrument.Ada_Unit is
          --     not null access function
          --       (Line : in out [formalX])
          --        return [formalY];
+         --
+         --   As a workaround for a GNAT bug (see eng/toolchain/gnat#1048), we
+         --   also need to turn X'Class into [formalX]'Class.
 
-         if TE.Kind = Ada_Anonymous_Type then
-            declare
-               TD : constant Type_Def :=
-                 TE.As_Anonymous_Type.F_Type_Decl.F_Type_Def;
-            begin
-               --  There are two kinds of anonymous types: "simple" access
-               --  types, and access to subprogram types.
+         case TE.Kind is
+            when Ada_Anonymous_Type =>
+               declare
+                  TD : constant Type_Def :=
+                    TE.As_Anonymous_Type.F_Type_Decl.F_Type_Def;
+               begin
+                  --  There are two kinds of anonymous types: "simple" access
+                  --  types, and access to subprogram types.
 
-               case TD.Kind is
-               when Ada_Type_Access_Def =>
-                  return Gen_Type_Expr_For_Simple_Access_Type
-                    (TD.As_Type_Access_Def);
+                  case TD.Kind is
+                  when Ada_Type_Access_Def =>
+                     return Gen_Type_Expr_For_Simple_Access_Type
+                       (TD.As_Type_Access_Def);
 
-               when Ada_Access_To_Subp_Def =>
-                  return Gen_Type_Expr_For_Access_To_Subp
-                    (TD.As_Access_To_Subp_Def);
+                  when Ada_Access_To_Subp_Def =>
+                     return Gen_Type_Expr_For_Access_To_Subp
+                       (TD.As_Access_To_Subp_Def);
 
-               when others =>
-                  raise Program_Error with
-                    "unexpected anonymous type definition: " & TD.Kind'Image;
-               end case;
-            end;
+                  when others =>
+                     raise Program_Error with
+                       "unexpected anonymous type definition: "
+                       & TD.Kind'Image;
+                  end case;
+               end;
 
-         else
-            return Make_Formal_Type (TE);
-         end if;
+            when Ada_Subtype_Indication =>
+               declare
+                  SI : constant Subtype_Indication := TE.As_Subtype_Indication;
+               begin
+                  if Referenced_Attribute (SI.F_Name) = "class" then
+                     declare
+                        Result      : constant Node_Rewriting_Handle :=
+                          Clone (Handle (SI));
+                        Attr_Prefix : constant Node_Rewriting_Handle :=
+                          Child
+                            (Result,
+                             (Member_Refs.Subtype_Indication_F_Name,
+                              Member_Refs.Attribute_Ref_F_Prefix));
+                     begin
+                        Replace (Attr_Prefix, Make_Formal_Type (SI));
+                        return Result;
+                     end;
+                  end if;
+               end;
+
+            when others =>
+               null;
+         end case;
+
+         return Make_Formal_Type (TE);
       end Gen_Type_Expr;
 
       ------------------------------------------
@@ -3077,9 +3111,8 @@ package body Instrument.Ada_Unit is
 
       function Process_Node (N : Ada_Node'Class) return Visit_Status is
       begin
-         if N.Kind = Ada_Attribute_Ref
-            and then Canonicalize (N.As_Attribute_Ref.F_Attribute.Text).Symbol
-                     in "access" | "unchecked_access" | "unrestricted_access"
+         if Referenced_Attribute (N)
+            in "access" | "unchecked_access" | "unrestricted_access"
          then
             return Stop;
          end if;
