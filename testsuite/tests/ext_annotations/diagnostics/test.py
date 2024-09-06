@@ -4,6 +4,8 @@ annotations, for unknown annotations kinds or ill-formed annotation
 payloads.
 """
 
+from e3.testsuite.driver.diff import Substitute
+
 from SCOV.instr import xcov_instrument
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
@@ -31,11 +33,13 @@ xcov_instrument(
     out=log,
 )
 
+refiners = thistest.report_output_refiners() + [Substitute("\\", "/")]
 
 thistest.fail_if_diff(
     "../expected.txt",
     log,
     "Unexpected messages for 'gnatcov instrument' output",
+    refiners,
 )
 
 thistest.result()

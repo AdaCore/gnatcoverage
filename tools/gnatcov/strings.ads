@@ -156,6 +156,13 @@ package Strings is
    --  Process From as if it was a comma separated list, and append each
    --  element to Vec.
 
+   function Interpret_Escape_Sequence (Str : String) return String;
+   --  Return Str but with every occurrence of an escape sequence
+   --  replaced by the corresponding character. Only single character sequences
+   --  are supported (no octal nor hexadecimal escape sequences).
+   --
+   --  Raise Constraint_Error on invalid or unsupported escape sequences.
+
 private
    pragma Inline (Hash);
    pragma Inline (Equal);
