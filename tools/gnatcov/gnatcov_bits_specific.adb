@@ -30,6 +30,8 @@ with GNAT.Strings; use GNAT.Strings;
 
 with System.Multiprocessors;
 
+with GPR2.Project.Registry.Exchange;
+
 with Snames;
 
 with Annotations.Cobertura;
@@ -1240,6 +1242,25 @@ begin
 
       when Cmd_List_Logs =>
          Logging.Print_List;
+
+      when Cmd_Print_GPR_Registry =>
+         declare
+            use GPR2.Project.Registry.Exchange;
+            Format_Arg : constant String :=
+              Value (Args, Opt_GPR_Registry_Format, "json");
+            Format     : Export_Format;
+         begin
+            if Format_Arg = "text" then
+               Format := K_TEXT;
+            elsif Format_Arg = "json" then
+               Format := K_JSON;
+            elsif Format_Arg = "json-compact" then
+               Format := K_JSON_COMPACT;
+            else
+               Fatal_Error ("Bad GPR registry format: " & Format_Arg);
+            end if;
+            Export (Format => Format, Output => Put'Access);
+         end;
 
       when Cmd_Disp_Routines =>
          declare
