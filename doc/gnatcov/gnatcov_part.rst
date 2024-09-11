@@ -13,6 +13,7 @@ GNATcoverage User's Guide
    consolidation
    exemptions
    disable_cov
+   external_annotations
    gpr
    gps
    glossary

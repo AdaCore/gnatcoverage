@@ -287,6 +287,8 @@ For more restricted environments where, say, there is limited file IO available
 to the program, a ``--dump-channel=base64-stdout`` kind of output is needed in
 association with the restricted coverage runtime.
 
+.. _manual_dump:
+
 If none of the available automatic triggering option work out well, full
 control is offered by the ``--dump-trigger=manual`` policy where the
 instrumenter doesn't actually add any code to main units for emitting the
@@ -377,6 +379,7 @@ distinguish between each trace:
     /* GNATCOV_DUMP_BUFFERS (Undefined) */
   }
 
+.. _buff_reset:
 
 Resetting coverage information during the execution
 ---------------------------------------------------
@@ -413,6 +416,9 @@ buffer clear procedure call against concurrent writes in the coverage buffers
 section of the instrumented code runs concurrently to the buffer clear
 procedure, otherwise the correctness of the corresponding coverage report
 cannot be guaranteed.**
+
+Both buffer dump indications and buffer reset indications can be specified in
+external annotation files, see :ref:`ext_annot` for more information.
 
 .. _instr-tracename:
 
