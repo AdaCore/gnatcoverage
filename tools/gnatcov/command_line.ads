@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with GPR2.Options;
+
 with Argparse;
 with Coverage_Options; use Coverage_Options;
 
@@ -29,6 +31,7 @@ package Command_Line is
       Cmd_Version,
 
       Cmd_List_Logs,
+      Cmd_Print_GPR_Registry,
 
       Cmd_Run,
       Cmd_Convert,
@@ -143,7 +146,8 @@ package Command_Line is
       Opt_Ada_Preprocessor_Data,
       Opt_Project_Name,
       Opt_Source_Root,
-      Opt_Db);
+      Opt_Db,
+      Opt_GPR_Registry_Format);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -206,11 +210,16 @@ package Command_Line is
          Description => "Display the version.",
          Internal    => False),
 
-      Cmd_List_Logs    => Create
+      Cmd_List_Logs          => Create
         (Name          => "list-logs",
          Pattern       => "",
          Description   =>
            "Dump the list of GNATcov available logs (GNATCOLL traces).",
+         Internal      => True),
+      Cmd_Print_GPR_Registry => Create
+        (Name          => GPR2.Options.Print_GPR_Registry_Option,
+         Pattern       => "",
+         Description   => "Print the GPR registry.",
          Internal      => True),
 
       Cmd_Run => Create
@@ -609,7 +618,8 @@ package Command_Line is
         (Long_Name => "--relocate-build-tree",
          Help      => "Relocate object, library and exec directories in the"
                       & " current directory.",
-         Commands  => (Cmd_All_Setups => False, others => True),
+         Commands  => (Cmd_All_Setups | Cmd_Print_GPR_Registry => False,
+                       others                                  => True),
          Internal  => False),
 
       Opt_Warnings_As_Errors => Create
@@ -634,7 +644,8 @@ package Command_Line is
          Pattern      => "[GPR]",
          Help         => "Use GPR as root project to locate SCOs, select"
                          & " units to analyze and find default options.",
-         Commands     => (Cmd_Setup
+         Commands     => (Cmd_Print_GPR_Registry
+                          | Cmd_Setup
                           | Cmd_Setup_Integration
                           | Cmd_Instrument_Source
                           | Cmd_Instrument_Main => False,
@@ -648,7 +659,9 @@ package Command_Line is
                          & " designates the topmost directory of the tree of"
                          & " projects. By default the root project's directory"
                          & " is used.",
-         Commands     => (Cmd_All_Setups => False, others => True),
+         Commands     => (Cmd_Print_GPR_Registry
+                          | Cmd_All_Setups => False,
+                          others => True),
          At_Most_Once => True,
          Internal     => False),
       Opt_Subdirs => Create
@@ -657,7 +670,9 @@ package Command_Line is
          Help         => "When using project files, look for ALI/SID files in"
                          & " the provided SUBDIR of the projects' build"
                          & " directory.",
-         Commands     => (Cmd_All_Setups => False, others => True),
+         Commands     => (Cmd_Print_GPR_Registry
+                          | Cmd_All_Setups => False,
+                          others => True),
          At_Most_Once => False,
          Internal     => False),
       Opt_Target => Create
@@ -674,7 +689,9 @@ package Command_Line is
                          & " ""Target""/""Runtime"" attributes. It is also"
                          & " needed for ""run"" commands without a project"
                          & " file.",
-         Commands     => (Cmd_Setup_Integration => False, others => True),
+         Commands     => (Cmd_Print_GPR_Registry
+                          | Cmd_Setup_Integration => False,
+                          others => True),
          At_Most_Once => True,
          Internal     => False),
       Opt_Runtime => Create
@@ -684,7 +701,9 @@ package Command_Line is
                          & " to build the analyzed programs. If project files"
                          & " don't already set the runtime, this is required"
                          & " for correct project files processing.",
-         Commands     => (Cmd_Setup_Integration => False, others => True),
+         Commands     => (Cmd_Print_GPR_Registry
+                          | Cmd_Setup_Integration => False,
+                          others => True),
          At_Most_Once => True,
          Internal     => False),
       Opt_Config => Create
@@ -693,6 +712,7 @@ package Command_Line is
          Help         => "Specify a configuration project file name. If"
                          & " passed, this file must exist and neither --target"
                          & " nor --RTS must be present.",
+         Commands     => (Cmd_Print_GPR_Registry => False, others => True),
          At_Most_Once => True,
          Internal     => False),
       Opt_Output => Create
@@ -1172,12 +1192,20 @@ package Command_Line is
          Pattern      => "DIR",
          Help         =>
            "Parse DIR as an additional GPR knowledge base directory.",
-         Commands     => (Cmd_Setup_Integration
+         Commands     => (Cmd_Print_GPR_Registry
+                          | Cmd_Setup_Integration
                           | Cmd_Instrument_Source
                           | Cmd_Instrument_Main => False, others => True),
          At_Most_Once => True,
-         Internal     => False)
-     );
+         Internal     => False),
+
+      Opt_GPR_Registry_Format => Create
+        (Long_Name    => "--gpr-registry-format",
+         Pattern      => "FORMAT",
+         Help         => "Format for the printed GPR registry.",
+         Commands     => (Cmd_Print_GPR_Registry => True, others => False),
+         At_Most_Once => False,
+         Internal     => True));
 
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Log => Create
@@ -1192,7 +1220,8 @@ package Command_Line is
          Pattern    => "[GPR|@LISTFILE]",
          Help       => "Focus on specific projects within the transitive"
                        & " closure reachable from the root designated by -P.",
-         Commands   => (Cmd_Setup
+         Commands   => (Cmd_Print_GPR_Registry
+                        | Cmd_Setup
                         | Cmd_Setup_Integration
                         | Cmd_Instrument_Source
                         | Cmd_Instrument_Main => False,
@@ -1212,7 +1241,9 @@ package Command_Line is
         (Short_Name => "-X",
          Pattern    => "[NAME]=[VALUE]",
          Help       => "Define a scenario variable for project files.",
-         Commands   => (Cmd_All_Setups => False, others => True),
+         Commands   => (Cmd_Print_GPR_Registry
+                        | Cmd_All_Setups => False,
+                        others => True),
          Internal   => False),
       Opt_Cargs => Create
         (Long_Name  => "--cargs",
@@ -1453,7 +1484,7 @@ package Command_Line is
          Help      =>
            "List of compiler drivers for which we should generate wrappers."
            & " Supported compilers are: gcc, g++.",
-         Commands  => (others => True),
+         Commands  => (Cmd_Print_GPR_Registry => False, others => True),
          Internal  => True),
       Opt_Ext_Annotations => Create
         (Long_Name  => "--external-annotations",
