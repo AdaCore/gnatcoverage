@@ -83,6 +83,9 @@ to exempt a decision only partially:
 
 Such markers are ignored by |gcvins|, after emitting a warning.
 
+It is also possible to define exemption regions trough external annotation
+files, see :ref:`ext_annot` for more information.
+
 Reporting about coverage exemptions
 ===================================
 
