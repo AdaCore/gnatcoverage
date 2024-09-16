@@ -72,6 +72,9 @@ rst_epilog = """
 .. |gcvcnv| replace:: :command:`gnatcov` :command:`convert`
 .. |gcvdsp| replace:: :command:`gnatcov` :command:`disp-routines`
 .. |gcvmap| replace:: :command:`gnatcov` :command:`map-routines`
+.. |gcvaddan| replace:: :command:`gnatcov` :command:`add-annotation`
+.. |gcvdelan| replace:: :command:`gnatcov` :command:`delete-annotation`
+.. |gcvshoan| replace:: :command:`gnatcov` :command:`show-annotations`
 
 .. |gdas|  replace:: {}
 .. |gcp|   replace:: GNATcoverage

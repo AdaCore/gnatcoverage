@@ -71,4 +71,8 @@ package Paths is
    --  Unix systems: Ada.Directories.Simple_Name misbehaves in the presence of
    --  backslashes. Provide our own implementation as a workaround.
 
+   function Has_Relative_Component (Path : String) return Boolean;
+   --  Returns whether Path contains relative components, i.e. './' or '../',
+   --  adjusted for the platform directory separator.
+
 end Paths;

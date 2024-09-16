@@ -335,4 +335,20 @@ package body Paths is
       return Path;
    end Workaround_Simple_Name;
 
+   ----------------------------
+   -- Has_Relative_Component --
+   ----------------------------
+
+   function Has_Relative_Component (Path : String) return Boolean is
+   begin
+      for I in Path'First .. Path'Last - 1 loop
+         if Path (I) = '.'
+           and then Path (I + 1) in '.' | GNAT.OS_Lib.Directory_Separator
+         then
+            return False;
+         end if;
+      end loop;
+      return True;
+   end Has_Relative_Component;
+
 end Paths;

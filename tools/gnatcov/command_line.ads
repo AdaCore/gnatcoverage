@@ -67,7 +67,11 @@ package Command_Line is
       Cmd_Instrument_Source,
       Cmd_Instrument_Main,
       Cmd_Setup_Integration,
-      Cmd_Gcc_Wrapper);
+      Cmd_Gcc_Wrapper,
+
+      Cmd_Add_Annotation,
+      Cmd_Delete_Annotation,
+      Cmd_Show_Annotations);
    --  Set of commands we support. More complete descriptions below.
 
    type Bool_Options is
@@ -97,7 +101,9 @@ package Command_Line is
       Opt_Full_Slugs,
       Opt_Relocate_Build_Tree,
       Opt_Warnings_As_Errors,
-      Opt_Instrument_Block);
+      Opt_Instrument_Block,
+      Opt_Force,
+      Opt_Annotate_After);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -147,7 +153,14 @@ package Command_Line is
       Opt_Project_Name,
       Opt_Source_Root,
       Opt_Db,
-      Opt_GPR_Registry_Format);
+      Opt_GPR_Registry_Format,
+      Opt_Annotation_Kind,
+      Opt_Annotation_Id,
+      Opt_Location,
+      Opt_Start_Location,
+      Opt_End_Location,
+      Opt_Justification,
+      Opt_SS_Backend);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -189,6 +202,9 @@ package Command_Line is
    subtype Cmd_All_Setups is Command_Type
    with Static_Predicate =>
      Cmd_All_Setups in Cmd_Setup | Cmd_Setup_Integration;
+
+   subtype Cmd_All_Annotate is Command_Type
+     range Cmd_Add_Annotation .. Cmd_Show_Annotations;
 
    package Parser is new Argparse
      (Command_Type, Bool_Options, String_Options, String_List_Options);
@@ -428,7 +444,41 @@ package Command_Line is
          Description =>
            "Implementation of the GCC wrapper for integrated instrumentation.",
          Pattern     => "[JSON-CONFIG-FILE]",
-         Internal    => True));
+         Internal    => True),
+      Cmd_Add_Annotation => Create
+        (Name        => "add-annotation",
+         Description =>
+           "Add an annotation tied to the specified source locations, to"
+           & " influence the instrumentation of source files or the coverage"
+           & " analysis. All annotations passed through --external-annotations"
+           & " are consolidated and written to OUTPUT_FILENAME."
+           & ASCII.LF & ASCII.LF
+           & "The relevant switches depend on the annotation KIND:"
+           & Annot_Kind_Relevant_Switches,
+         Pattern     =>
+           "--kind=KIND [--external-annotations=FILENAME] --output="
+           & "OUTPUT_FILENAME [OPTIONS] FILENAME",
+         Internal    => False),
+      Cmd_Delete_Annotation => Create
+        (Name        => "delete-annotation",
+         Description =>
+           "Delete the annotation with identifier IDENTIFIER from those stored"
+           & " in EXT_FILENAMEs, and write back the remaining annotations to"
+           & " OUTPUT_FILENAME.",
+         Pattern     =>
+           "--annotation-id=IDENTIFIER --external-annotations=EXT_FILENAME"
+           & "--output=OUTPUT_FILENAME",
+         Internal    => False),
+      Cmd_Show_Annotations => Create
+        (Name        => "show-annotations",
+         Description =>
+           "Show the annotations stored in EXT_FILENAME that apply to FILES,"
+           & " if present or to the project sources. Optionally filter the"
+           & " kind of annotations to show with --kind.",
+         Pattern     =>
+           "--external-annotations=EXT_FILENAME [--kind=KIND] [OPTIONS]"
+           & " [FILENAME]",
+         Internal    => False));
 
    Bool_Infos : constant Bool_Option_Info_Array :=
      (Opt_Verbose => Create
@@ -636,6 +686,24 @@ package Command_Line is
                       & " single instrumentation counter incrementation for a"
                       & " statement block.",
          Commands  => (Cmd_Instrument => True, others => False),
+         Internal  => False),
+      Opt_Force => Create
+        (Long_Name  => "--force",
+         Short_Name => "-f",
+         Help       =>
+           "Overwrite preexisting annotations with the same kind matching the"
+           & " same location, or any preexisting annotation with the same"
+           & " identifier as the one specified on the command line.",
+         Commands   => (Cmd_Add_Annotation | Cmd_Delete_Annotation => True,
+                        others => False),
+         Internal   => False),
+      Opt_Annotate_After => Create
+        (Long_Name => "--annotate-after",
+         Help      =>
+           "Add the annotation after the statement designated by the"
+           & " --location switch, as opposed to the default behavior which"
+           & " inserts the annotation before the designated statement.",
+         Commands  => (Cmd_Add_Annotation => True, others => False),
          Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
@@ -719,12 +787,16 @@ package Command_Line is
         (Long_Name    => "--output",
          Short_Name   => "-o",
          Pattern      => "[FILE]",
-         Help         => "Put the report/asm output/trace file into FILE.",
+         Help         =>
+           "Put the report/asm output/trace file/external annotations into"
+           & " FILE.",
          Commands     => (Cmd_Run
                           | Cmd_Coverage
                           | Cmd_Convert
-                          | Cmd_Dump_CFG => True,
-                          others         => False),
+                          | Cmd_Dump_CFG
+                          | Cmd_Add_Annotation
+                          | Cmd_Delete_Annotation => True,
+                          others                  => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Output_Directory => Create
@@ -941,7 +1013,8 @@ package Command_Line is
          Commands     => (Cmd_Setup
                           | Cmd_Instrument_Project
                           | Cmd_Setup_Integration
-                          | Cmd_Instrument_Main => True,
+                          | Cmd_Instrument_Main
+                          | Cmd_Add_Annotation  => True,
                           others                => False),
          At_Most_Once => False,
          Internal     => False),
@@ -1181,9 +1254,11 @@ package Command_Line is
         (Long_Name    => "--source-root",
          Pattern      => "PATH",
          Help         =>
-           "Option specific to the Cobertura coverage report: remove the"
-           & " specified prefix from the filenames in the report.",
-         Commands     => (Cmd_Coverage => True, others => False),
+           "Remove the specified prefix from the filenames in the Cobertura"
+           & " report (coverage command), or from the generated annotation"
+           & " files (add-annotation command).",
+         Commands     =>
+           (Cmd_Coverage | Cmd_Add_Annotation => True, others => False),
          At_Most_Once => True,
          Internal     => False),
 
@@ -1204,6 +1279,74 @@ package Command_Line is
          Pattern      => "FORMAT",
          Help         => "Format for the printed GPR registry.",
          Commands     => (Cmd_Print_GPR_Registry => True, others => False),
+         At_Most_Once => False,
+         Internal     => True),
+
+      Opt_Annotation_Kind => Create
+        (Long_Name    => "--kind",
+         Pattern      => "KIND",
+         Help         =>
+           "Kind of annotation, must be one of: " & Annotation_Kind_Options,
+         Commands     => (Cmd_Add_Annotation
+                          | Cmd_Delete_Annotation
+                          | Cmd_Show_Annotations  => True,
+                          others                  => False),
+         At_Most_Once => False,
+         Internal     => False),
+      Opt_Annotation_Id => Create
+        (Long_Name    => "--annotation-id",
+         Pattern      => "IDENTIFIER",
+         Help         =>
+           "Unique identifier for the annotation. Automatically generated if"
+           & " not specified",
+         Commands     => (Cmd_Add_Annotation | Cmd_Delete_Annotation => True,
+                          others                                     => False),
+         At_Most_Once => False,
+         Internal     => False),
+      Opt_Location => Create
+        (Short_Name   => "-l",
+         Long_Name    => "--location",
+         Pattern      => "LINE:COL",
+         Help         =>
+           "Location at which the annotation applies. LINE and COL should be"
+           & " positive integers.",
+         Commands     => (Cmd_Add_Annotation => True, others => False),
+         At_Most_Once => False,
+         Internal     => False),
+      Opt_Start_Location => Create
+        (Long_Name    => "--start-location",
+         Pattern      => "LINE:COL",
+         Help         =>
+           "Location of the beginning of the range to which the annotation"
+           & " applies. LINE and COL should be positive integers.",
+         Commands     => (Cmd_Add_Annotation => True, others => False),
+         At_Most_Once => False,
+         Internal     => False),
+      Opt_End_Location => Create
+        (Long_Name    => "--end-location",
+         Pattern      => "LINE:COL",
+         Help         =>
+           "Location of the end of the range to which the annotation applies."
+           & " LINE and COL should be positive integers.",
+         Commands     => (Cmd_Add_Annotation => True, others => False),
+         At_Most_Once => False,
+         Internal     => False),
+      Opt_Justification => Create
+        (Long_Name    => "--justification",
+         Pattern      => "TEXT",
+         Help         =>
+           "Justification for the exemption annotations. Required for the"
+           & " ""exempt.on"" and ""exempt.region"" annotation kinds.",
+         Commands     => (Cmd_Add_Annotation => True, others => False),
+         At_Most_Once => False,
+         Internal     => False),
+      Opt_SS_Backend => Create
+        (Long_Name    => "--ss_backend",
+         Pattern      => "NAME",
+         Help         =>
+           "Specify the Stable_Sloc backend to be used when creating the"
+           & " annotation entry",
+         Commands     => (Cmd_Add_Annotation => True, others => False),
          At_Most_Once => False,
          Internal     => True));
 
@@ -1488,12 +1631,19 @@ package Command_Line is
          Internal  => True),
       Opt_Ext_Annotations => Create
         (Long_Name  => "--external-annotations",
-         Help       => "Specify external annotation files",
+         Help       =>
+           "Specify external annotation files. For annotation commands that"
+           & " modify the set of external annotations (add-annotation,"
+           & " delete-annotation), all the annotations from all files"
+           & " (after addition / deletion) are written back to the file passed"
+           & " to --output, effectively combining the input annotation files.",
          Commands   =>
-           (Cmd_Instrument | Cmd_Coverage => True, others => False),
+           (Cmd_Instrument
+            | Cmd_Coverage
+            | Cmd_All_Annotate => True,
+            others             => False),
          Pattern    => "FILENAME|@LISTFILE",
-         Internal   => True)
-     );
+         Internal   => False));
 
    procedure Bool_Callback
      (Result : in out Parsed_Arguments;

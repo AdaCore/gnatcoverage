@@ -67,6 +67,9 @@ region:
    // GNATCOV_COV_ON
   }
 
+It is also possible to define disabled coverage regions from external annotation
+files, see :ref:`ext_annot` for more information.
+
 Consolidating traces with varying disabled coverage regions
 ===========================================================
 

@@ -515,6 +515,7 @@ procedure GNATcov_Bits_Specific is
       Save_Temps               := Args.Bool_Args (Opt_Save_Temps);
       SPARK_Compat             := Args.Bool_Args (Opt_SPARK_Compat);
       Use_Full_Slugs           := Args.Bool_Args (Opt_Full_Slugs);
+      Force                    := Args.Bool_Args (Opt_Force);
 
       if Args.Bool_Args (Opt_Recursive) then
          Warn ("--recursive is deprecated. Recursive is now the default"
@@ -831,9 +832,14 @@ procedure GNATcov_Bits_Specific is
          end;
       end if;
 
+      --  Import all external annotation files (this does not yet match the
+      --  entries on actual source files) and validate that the annotations
+      --  relevant to gnatcov are well formed.
+
       for Arg of Args.String_List_Args (Opt_Ext_Annotations) loop
          Load_Ext_Annotations (Arg);
       end loop;
+      Validate_Annotations;
 
       --  ... then, handle remaning arguments, which have subcommand-specific
       --  meanings.
@@ -2529,6 +2535,14 @@ begin
            (Input_File  => +Args.Remaining_Args (0),
             Output_File => +Args.Remaining_Args (1));
 
+      when Cmd_Add_Annotation =>
+         SS_Annotations.Add_Annotation (Args);
+
+      when Cmd_Delete_Annotation =>
+         SS_Annotations.Delete_Annotation (Args);
+
+      when Cmd_Show_Annotations =>
+         SS_Annotations.Show_Annotations (Args);
    end case;
 
    if Misc_Trace.Is_Active then

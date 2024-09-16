@@ -17,18 +17,31 @@
 ------------------------------------------------------------------------------
 
 with Ada.Directories;
+with Ada.Exceptions;
+with Ada.Strings;
+with Ada.Strings.Hash;
+with Ada.Text_IO;
 
-with GNATCOLL.VFS; use GNATCOLL.VFS;
+with Interfaces; use Interfaces;
+
+with GNATCOLL.Projects;
+with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
 with TOML;
 
 with Stable_Sloc;            use Stable_Sloc;
 with Stable_Sloc.TOML_Utils; use Stable_Sloc.TOML_Utils;
 
+with Coverage_Options;  use Coverage_Options;
+with Command_Line;      use Command_Line;
 with Files_Table;       use Files_Table;
+with Hex_Images;        use Hex_Images;
 with Instrument;        use Instrument;
 with Instrument.Common; use Instrument.Common;
 with Outputs;           use Outputs;
+with Paths;             use Paths;
+with Project;           use Project;
+with Switches;          use Switches;
 
 package body SS_Annotations is
    use type Unbounded_String;
@@ -66,17 +79,37 @@ package body SS_Annotations is
    Cov_On_Purpose : constant Ada_Qualified_Name :=
      Coverage_Namespace & To_Qualified_Name ("on");
 
+   Valid_Annotation_DB : Stable_Sloc.Entry_DB;
+   --  Copy of the Ext_Annotation_DB, but filtering out the entries with
+   --  invalid annotations. This DB should be used when matching to avoid
+   --  searching for annotations which we won't be able to import anyways.
+   --
+   --  We still need to keep the Ext_Annotation_DB at hand in case we are
+   --  writing back the annotations to file, in order not to delete the user's
+   --  data.
+
    function Annotation_Kind
-     (Match : Match_Result) return Any_Annotation_Kind;
+     (Annot : TOML.TOML_Value) return Any_Annotation_Kind;
    --  Convert the purpose string in Match.Annotation into one of the
    --  recognized annotation kinds, based on the purpose strings defined above.
    --
    --  Return Unknown if there is no "purpose" field in the annotation, or if
    --  it is empty or unknown.
 
+   function Annotation_Kind
+     (Str : String) return Any_Annotation_Kind;
+   --  Try to interpret Str as an annotation kind, return Unknown if Str does
+   --  not match with any valid annotation kind.
+
+   function Purpose
+     (Kind : Any_Annotation_Kind) return Ada_Qualified_Name;
+   --  Return the qualified name to be used as purpose for the given annotation
+   --  kind.
+
    procedure Report_Failed (Match : Match_Result) with
      Pre => not Match.Success;
-   --  Report the diagnostics for Match
+   --  Report the diagnostics for Match. Consider all failed matches as stale
+   --  annotations that need to be re-generated.
 
    function "+"
      (Sloc : TOML.Source_Location) return Slocs.Local_Source_Location is
@@ -85,7 +118,7 @@ package body SS_Annotations is
    generic
       type Expected_Annot_Kind is (<>);
       with function Kind
-        (Match_Res : Match_Result) return Expected_Annot_Kind'Base;
+        (Match_Res : TOML.TOML_Value) return Expected_Annot_Kind'Base;
       with function Convert
         (Kind      : Expected_Annot_Kind;
          Match_Res : Match_Result;
@@ -115,16 +148,32 @@ package body SS_Annotations is
    --  Print a warning and set Success to False if there are errors
    --  interpreting the TOML annotation.
 
+   function Get_Or_Error
+     (Str : String; Sw : String) return Slocs.Local_Source_Location;
+   --  Parse a local source location from Str, or exit with a fatal error if
+   --  parsing fails. Sw represents the switch name for which Str represents
+   --  the value.
+   --
+   --  An empty Str value is interpreted as a missing switch value.
+
+   function Guess_Lang (File : Virtual_File) return Any_Language;
+   --  Try to guess the language of file based on its extension.
+
+   procedure Validate_Annotation
+     (Identifier : Unbounded_String; Entr : Entry_View);
+   --  Helper for the above procedure, validate a single entry, if it is ok
+   --  then copy it in Valid_Annotation_DB, otherwise emit a warning.
+
    ---------------------
    -- Annotation_Kind --
    ---------------------
 
    function Annotation_Kind
-     (Match : Match_Result) return Any_Annotation_Kind
+     (Annot : TOML.TOML_Value) return Any_Annotation_Kind
    is
       Purpose : constant Ada_Qualified_Name :=
         To_Qualified_Name
-          (+Get_Or_Null (Match.Annotation, "purpose"));
+          (+Get_Or_Null (Annot, "purpose"));
 
    begin
       if Purpose.Is_Empty
@@ -172,6 +221,44 @@ package body SS_Annotations is
       return Unknown;
    end Annotation_Kind;
 
+   function Annotation_Kind
+     (Str : String) return Any_Annotation_Kind
+   is
+   begin
+      return Any_Annotation_Kind'Value (Str);
+   exception
+      when Constraint_Error =>
+         return Unknown;
+   end Annotation_Kind;
+
+   -------------
+   -- Purpose --
+   -------------
+
+   function Purpose
+     (Kind : Any_Annotation_Kind) return Ada_Qualified_Name
+   is
+   begin
+      case Kind is
+         when Exempt_Region =>
+            return Exempt_Region_Purpose;
+         when Exempt_On =>
+            return Exempt_On_Purpose;
+         when Exempt_Off =>
+            return Exempt_Off_Purpose;
+         when Dump_Buffers =>
+            return Buffers_Dump_Purpose;
+         when Reset_Buffers =>
+            return Buffers_Reset_Purpose;
+         when Cov_Off =>
+            return Cov_Off_Purpose;
+         when Cov_On =>
+            return Cov_On_Purpose;
+         when Unknown =>
+            return Ada_Identifier_Vectors.Empty_Vector;
+      end case;
+   end Purpose;
+
    -------------------
    -- Report_Failed --
    -------------------
@@ -179,9 +266,29 @@ package body SS_Annotations is
    procedure Report_Failed (Match : Match_Result) is
    begin
       Warn
-        (Match.File.Display_Full_Name & ": " & (+Match.Identifier) & ": "
-         & (+Match.Diagnostic));
+        ("Stale annotation for " & Match.File.Display_Base_Name & ". id:"
+         & (+Match.Identifier) & "; reason: " & (+Match.Diagnostic));
    end Report_Failed;
+
+   ------------------
+   -- Get_Or_Error --
+   ------------------
+
+   function Get_Or_Error
+     (Str : String; Sw : String) return Slocs.Local_Source_Location
+   is
+   begin
+      if Str'Length = 0 then
+         Fatal_Error ("Missing " & Sw & " on the command line");
+      end if;
+
+      return Slocs.Value (Str);
+   exception
+      when Exc : Constraint_Error =>
+         Fatal_Error
+           ("Wrong value for " & Sw & ": "
+            & Ada.Exceptions.Exception_Message (Exc));
+   end Get_Or_Error;
 
    --------------------------
    -- Load_Ext_Annotations --
@@ -203,7 +310,8 @@ package body SS_Annotations is
    -- Import_External_Exemptions --
    --------------------------------
 
-   procedure Import_External_Exemptions (FI : Source_File_Index)
+   procedure Import_External_Exemptions
+     (FI : Source_File_Index; Filter : Boolean := False)
    is
       File                 : Virtual_File;
       Matches              : Match_Result_Vec;
@@ -211,9 +319,10 @@ package body SS_Annotations is
       Kind                 : Any_Annotation_Kind;
       New_Annotations      : ALI_Annotation_Maps.Map;
    begin
-      --  Exit early if there are no external annotations
+      --  Exit early if there are no external annotations.
+      --  Validate them if needed.
 
-      if Is_Empty (Ext_Annotation_DB) then
+      if Is_Empty (Valid_Annotation_DB) then
          return;
       end if;
 
@@ -222,25 +331,15 @@ package body SS_Annotations is
       File := Create (+Get_Full_Name (FI, Or_Simple => True));
       Matches := Match_Entries
         ((1 => File),
-         Ext_Annotation_DB,
+         Valid_Annotation_DB,
          Purpose_Prefix => To_Ada (Exemption_Namespace));
 
       --  Process each match result
 
       for Match of Matches loop
-         Kind := Annotation_Kind (Match);
+         Kind := Annotation_Kind (Match.Annotation);
 
-         --  Filter unknown annotations first
-
-         if Kind not in Exempt_Region .. Exempt_Off then
-            Warn
-               ("Unexpected or unknown annotation kind for annotation """
-               & (+Match.Identifier) & """: "
-               & (+Get_Or_Null (Match.Annotation, "purpose")));
-
-         --  Then failed matches
-
-         elsif not Match.Success then
+         if not Match.Success then
             Report_Failed (Match);
          else
             --  Exempt_Region will insert an Exempt_On / Exempt_Off couple of
@@ -292,7 +391,23 @@ package body SS_Annotations is
                               & (+Match.Identifier) & """");
                         end if;
                      else
-                        New_Annotations.Insert (Sloc, Annot);
+                        if Filter then
+                           declare
+                              SCO : constant SCO_Id :=
+                                Sloc_Intersects_SCO (Sloc);
+                           begin
+                              if SCO /= No_SCO_Id then
+                                 Warn ("Exemption annotation at "
+                                       & Slocs.Image (Sloc)
+                                       & " intersects a coverage obligation ("
+                                       & Image (SCO, True) & "), ignoring it");
+                              else
+                                 New_Annotations.Insert (Sloc, Annot);
+                              end if;
+                           end;
+                        else
+                           New_Annotations.Insert (Sloc, Annot);
+                        end if;
                      end if;
                   end;
                end if;
@@ -355,13 +470,13 @@ package body SS_Annotations is
    begin
       --  Exit early if there are no external annotations
 
-      if Is_Empty (Ext_Annotation_DB) then
+      if Is_Empty (Valid_Annotation_DB) then
          return Instr_Annotation_Maps.Empty_Map;
       end if;
 
       Matches := Match_Entries
         ((1 => VF),
-         Ext_Annotation_DB,
+         Valid_Annotation_DB,
          Purpose_Prefix);
 
       --  Process each annotation result
@@ -372,7 +487,7 @@ package body SS_Annotations is
             goto Continue;
          end if;
 
-         Annot_Kind := Kind (Match);
+         Annot_Kind := Kind (Match.Annotation);
          if Annot_Kind not in Expected_Annot_Kind then
             Warn
                ("Unexpected or unknown annotation kind for annotation """
@@ -623,5 +738,606 @@ package body SS_Annotations is
 
       return Res;
    end Get_Disabled_Cov_Annotations;
+
+   --------------------
+   -- Add_Annotation --
+   --------------------
+
+   procedure Add_Annotation (Args : Command_Line.Parser.Parsed_Arguments) is
+      use TOML;
+
+      Annot_Kind    : Any_Annotation_Kind;
+      Start_Sloc    : Slocs.Local_Source_Location;
+      End_Sloc      : Slocs.Local_Source_Location;
+      Target_File   : Virtual_File;
+      Output_File   : Virtual_File;
+      Language      : Any_Language := All_Languages;
+      Justification : Unbounded_String;
+
+      function "+" (Opt : Command_Line.String_Options) return Unbounded_String
+        is (Parser.Value_Or_Null (Args.String_Args (Opt)));
+
+      New_Annot_DB    : Entry_DB;
+      Entry_Purpose   : Ada_Qualified_Name;
+      Entry_Id        : Unbounded_String := +Opt_Annotation_Id;
+      Annotation      : constant TOML_Value := Create_Table;
+      SS_Backend      : Unbounded_String := +Opt_SS_Backend;
+      File_Prefix     : Unbounded_String := +Opt_Source_Root;
+      Info            : GNATCOLL.Projects.File_Info;
+
+   begin
+      --  First, determine the kind of annotation we'll be generating
+
+      Annot_Kind := Annotation_Kind (US.To_String (+Opt_Annotation_Kind));
+
+      --  We always need a valid filename to generate an annotation. More than
+      --  one is ambiguous however, so only consider the last one as an input.
+
+      if Annot_Kind = Unknown then
+         Fatal_Error
+           ("Invalid annotation kind (--kind): " & (+(+Opt_Annotation_Kind))
+            & ASCII.LF & "Must be one of "
+            & Coverage_Options.Annotation_Kind_Options);
+      end if;
+
+      if Args.Remaining_Args.Is_Empty then
+         Fatal_Error
+           ("Missing FILE to which the annotation should apply on the command"
+            & " line");
+      end if;
+
+      Target_File := Create (+(+Args.Remaining_Args.Last_Element));
+
+      if Is_Project_Loaded then
+         Info := Project.Project.Info (Target_File);
+      end if;
+
+      if not Target_File.Is_Regular_File then
+         Fatal_Error (Target_File.Display_Full_Name & ": no such file");
+      end if;
+
+      --  Require the -o/--output switch to be present
+
+      if not Args.String_Args (Opt_Output).Present then
+         Fatal_Error ("Missing --output switch");
+      else
+         Output_File := Create (+US.To_String ((+Opt_Output)));
+      end if;
+
+      --  Validate the arguments depending on the requested annotation kind
+
+      case Annot_Kind is
+         when Exempt_Region =>
+            Start_Sloc :=
+              Get_Or_Error (+(+Opt_Start_Location), "--start-location");
+            End_Sloc := Get_Or_Error (+(+Opt_End_Location), "--end-location");
+
+            if not Args.String_Args (Opt_Justification).Present then
+               Warn
+                 ("--justification missing for an --kind="
+                  & Kind_Image (Annot_Kind) & " annotation");
+            end if;
+            Justification :=
+              Parser.Value_Or_Null (Args.String_Args (Opt_Justification));
+
+         when Exempt_On | Cov_Off =>
+
+            --  Accept either the --location or --start-location switches
+
+            if Args.String_Args (Opt_Location).Present then
+               Start_Sloc := Get_Or_Error (+(+Opt_Location), "--location");
+            else
+               Start_Sloc :=
+                 Get_Or_Error (+(+Opt_Start_Location), "--start-location");
+            end if;
+
+            if not Args.String_Args (Opt_Justification).Present then
+               Warn
+                 ("--justification missing for a --kind="
+                  & Kind_Image (Annot_Kind) & " annotation");
+            end if;
+            Justification :=
+              Parser.Value_Or_Null (Args.String_Args (Opt_Justification));
+            End_Sloc := Start_Sloc;
+
+         when Exempt_Off .. Cov_On =>
+
+            --  Accept either the --location or --start-location switches
+
+            if Args.String_Args (Opt_Location).Present then
+               Start_Sloc := Get_Or_Error (+(+Opt_Location), "--location");
+            else
+               Start_Sloc :=
+                 Get_Or_Error (+(+Opt_Start_Location), "--start-location");
+            end if;
+            End_Sloc := Start_Sloc;
+
+         when Unknown =>
+            raise Program_Error with "Unreachable";
+      end case;
+
+      --  Generate the annotation in isolation and report if there are any
+      --  issues.
+      --
+      --  First, generate an entry identifier if not specified, from the
+      --  annotation kind and original source location range.
+
+      if US.Length (Entry_Id) = 0 then
+         Entry_Id := +Kind_Image (Annot_Kind);
+         Entry_Id := Entry_Id & "-" & Hex_Image
+            (Unsigned_32 (Ada.Strings.Hash (Target_File.Display_Full_Name
+                                 & Slocs.Image (Start_Sloc)
+                                 & Slocs.Image (End_Sloc))));
+      end if;
+
+      Entry_Purpose := Purpose (Annot_Kind);
+      Annotation.Set ("purpose", Create_String (To_Ada (Entry_Purpose)));
+
+      --  Add annotation kind specific fields
+
+      case Annot_Kind is
+         when Exempt_On | Exempt_Region | Cov_Off =>
+            Annotation.Set ("justification", Create_String (Justification));
+
+         when Dump_Buffers | Reset_Buffers =>
+            Annotation.Set
+              ("insert_after",
+               Create_Boolean (Args.Bool_Args (Opt_Annotate_After)));
+
+            if Annot_Kind = Dump_Buffers
+              and then Args.String_Args (Opt_Dump_Filename_Prefix).Present
+            then
+               Annotation.Set
+                 ("trace_prefix",
+                  Create_String
+                    (Args.String_Args (Opt_Dump_Filename_Prefix).Value));
+            end if;
+
+         when Exempt_Off | Cov_On => null;
+
+         when Unknown =>
+            raise Program_Error with "Unreachable";
+      end case;
+
+      --  Determine the backend to be used depending on the language, if not
+      --  specified on the command line.
+
+      if US.Length (SS_Backend) = 0 then
+
+         --  If we have a project loaded, use it to determine the file language
+
+         if Is_Project_Loaded then
+            Language := To_Language_Or_All (Info.Language);
+         end if;
+
+         --  If this failed or we have no project at hand, revert to simple
+         --  heuristics.
+
+         if Language = All_Languages then
+            Language := Guess_Lang (Target_File);
+         end if;
+
+         case Language is
+            when Ada_Language => SS_Backend := +"lal_context";
+
+            --  Stable_Sloc is missing a stable backend for C/C++, so default
+            --  to an absolute entry.
+
+            when All_Languages | C_Language | CPP_Language =>
+               SS_Backend := +"absolute";
+         end case;
+      end if;
+
+      --  Compute a File prefix if there isn't one already specified, and we
+      --  have a project at hand.
+
+      if US.Length (File_Prefix) = 0 and then Is_Project_Loaded then
+         case To_Language_Or_All (Info.Language) is
+            when Ada_Language =>
+
+               --  Ada source files are guaranteed to be unique in a project,
+               --  so use the directory name as file prefix to end-up with only
+               --  the base name.
+
+               File_Prefix := US.To_Unbounded_String (+Target_File.Dir_Name);
+
+            when others =>
+               --  For other sources, check if the source is unique in the
+               --  tree, if so, do the same thing.
+
+               declare
+                  Ambiguous     : Boolean;
+                  File_From_Prj : Virtual_File;
+                  Rel_Path      : constant String :=
+                    +Create
+                       (Relative_Path
+                          (Target_File, Info.Project.Project_Path.Dir))
+                     .Dir_Name;
+               begin
+                  Project.Project.Create
+                    (Name      => Target_File.Base_Name,
+                     Project   => GNATCOLL.Projects.No_Project,
+                     Ambiguous => Ambiguous,
+                     File      => File_From_Prj);
+
+                  --  If the basename is ambiguous, use the relative path from
+                  --  the project to the file, if it has no relative path
+                  --  components (./ or ..).
+
+                  if Ambiguous then
+                     if Has_Relative_Component (Rel_Path) then
+                        Warn
+                          ("Could not generate adequate file prefix from"
+                           & " project, use --source-root if necessary.");
+                     else
+                        File_Prefix := US.To_Unbounded_String (Rel_Path);
+                     end if;
+                  else
+                     File_Prefix :=
+                       US.To_Unbounded_String (+Target_File.Dir_Name);
+                  end if;
+               end;
+         end case;
+      end if;
+
+      declare
+         Diags : constant Load_Diagnostic_Arr :=
+           Add_Or_Update_Entry
+             (DB          => New_Annot_DB,
+              Identifier  => Entry_Id,
+              Annotation  => Annotation,
+              Kind        => SS_Backend,
+              File        => Target_File,
+              Span        => (+Start_Sloc, +End_Sloc),
+              File_Prefix => File_Prefix);
+      begin
+         if Diags'Length /= 0 then
+            Outputs.Error ("Error while generating annotation:");
+            for Diag of Diags loop
+               Outputs.Error (Format_Diagnostic (Diag));
+            end loop;
+            raise Xcov_Exit_Exc;
+         end if;
+      end;
+
+      --  Check if there already is an entry with the same identifier in the
+      --  loaded entries. If so, either error out if we cannot overwrite it.
+
+      declare
+         Entr : constant Entry_View :=
+           Query_Entry (Ext_Annotation_DB, Entry_Id);
+      begin
+         if Entr /= No_Entry_View and then not Args.Bool_Args (Opt_Force) then
+            Outputs.Fatal_Error
+              ("Annotation with identifier " & (+Entry_Id)
+               & "already exists. Use -f to overwrite it");
+         end if;
+      end;
+
+      --  Now check whether there is an entry matching the same region, for the
+      --  same purpose. If so, warn about it so the user doesn't get a surprise
+      --  at coverage time.
+
+      declare
+         Matches : constant Match_Result_Vec :=
+           Match_Entries
+             ((1 => Target_File), Valid_Annotation_DB, To_Ada (Entry_Purpose));
+      begin
+         for Match of Matches loop
+            if Match.Success
+              and then Match.Location = (+Start_Sloc, +End_Sloc)
+            then
+               Outputs.Warn
+                 ("Pre-existing annotation with identifier "
+                  & (+Match.Identifier) & "matches the same region.");
+            end if;
+         end loop;
+      end;
+
+      --  Finally, import the new entry and write everything to disk
+
+      Replace_Entry (Ext_Annotation_DB, New_Annot_DB, Entry_Id, Entry_Id);
+      Write_Entries (Ext_Annotation_DB, Output_File);
+   end Add_Annotation;
+
+   procedure Delete_Annotation (Args : Command_Line.Parser.Parsed_Arguments) is
+      Output_File : Virtual_File;
+      Identifier  : Unbounded_String;
+   begin
+      --  Require an external annotation file. They have already been loaded
+      --  if present, but we still need to check.
+
+      if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty then
+         Fatal_Error ("missing --external-annotations switch");
+      end if;
+
+      --  Require a file in which to store the amended entries
+
+      if not Args.String_Args (Opt_Output).Present then
+         Fatal_Error ("missing --output switch");
+      else
+         Output_File :=
+           Create (+US.To_String (Args.String_Args (Opt_Output).Value));
+      end if;
+
+      --  Require an entry identifier
+
+      if not Args.String_Args (Opt_Annotation_Id).Present then
+         Fatal_Error ("Missing --annotation-id switch");
+      else
+         Identifier := Args.String_Args (Opt_Annotation_Id).Value;
+      end if;
+
+      --  Check wether there actually is an entry associated with Identifier
+
+      if not Switches.Force then
+         declare
+            Entr : constant Entry_View :=
+              Query_Entry (Ext_Annotation_DB, Identifier);
+         begin
+            if Entr = No_Entry_View then
+               Fatal_Error
+                 ("No annotation associated with identifier """
+                  & (+Identifier) & """");
+            end if;
+         end;
+      end if;
+
+      --  Delete the entry and write the remaining entries back to file
+
+      Delete_Entry (Ext_Annotation_DB, Identifier);
+      Write_Entries (Ext_Annotation_DB, Output_File);
+   end Delete_Annotation;
+
+   procedure Show_Annotations (Args : Command_Line.Parser.Parsed_Arguments) is
+      Purpose_Filter : Unbounded_String;
+      Match_Results  : Match_Result_Vec;
+   begin
+      --  Require an external annotation file. They have already been loaded
+      --  if present, but we still need to check.
+
+      if Args.String_List_Args (Opt_Ext_Annotations).Is_Empty then
+         Fatal_Error ("missing --external-annotations switch");
+      end if;
+
+      --  Require either a project or some files on the command line
+
+      if not Project.Is_Project_Loaded and then Args.Remaining_Args.Is_Empty
+      then
+         Fatal_Error ("Missing -P switch or positional FILES");
+      end if;
+
+      --  Check the annotation purpose if specified
+
+      if Args.String_Args (Opt_Annotation_Kind).Present then
+         declare
+            Annot_Kind_Str : constant String :=
+              +Args.String_Args (Opt_Annotation_Kind).Value;
+            Annot_Kind     : constant Any_Annotation_Kind :=
+              Annotation_Kind (Annot_Kind_Str);
+         begin
+            if Annot_Kind in Unknown then
+               Fatal_Error
+                 ("Unknown annotation kind (--kind): """ & Annot_Kind_Str
+                  & """, must be one of "
+                  & Coverage_Options.Annotation_Kind_Options);
+            else
+               Purpose_Filter := +To_Ada (Purpose (Annot_Kind));
+            end if;
+         end;
+      else
+         Purpose_Filter := +To_Ada (Xcov_Namespace);
+      end if;
+
+      --  Build the file list. Use all the project source files if no files
+      --  have been explicitly requested on the command line
+
+      if Args.Remaining_Args.Is_Empty then
+         declare
+            Files : File_Array_Access :=
+              Project.Project.Root_Project.Source_Files
+                (Recursive                => True,
+                 Include_Externally_Built =>
+                   Project.Externally_Built_Projects_Processing_Enabled);
+         begin
+            Match_Results := Match_Entries
+              (Files.all, Ext_Annotation_DB, +Purpose_Filter);
+            GNATCOLL.VFS.Unchecked_Free (Files);
+         end;
+      else
+         declare
+            Files : File_Array (1 .. Positive (Args.Remaining_Args.Length));
+         begin
+            for I in 1 .. Files'Last loop
+               Files (I) :=
+                 Create (+(US.To_String (Args.Remaining_Args.Element (I))));
+            end loop;
+            Match_Results :=
+              Match_Entries (Files, Valid_Annotation_DB, +Purpose_Filter);
+         end;
+      end if;
+
+      --  Post-process the match results and display the annotations
+
+      Sort (Match_Results);
+      declare
+         Current_File : Virtual_File;
+      begin
+         for Match of Match_Results loop
+            if Match.File /= Current_File then
+               Current_File := Match.File;
+               if Current_File /= No_File then
+                  Ada.Text_IO.New_Line;
+               end if;
+               Ada.Text_IO.Put_Line (Current_File.Display_Base_Name & ":");
+            end if;
+            declare
+               Annot_Kind : constant Any_Annotation_Kind :=
+                 Annotation_Kind (Match.Annotation);
+            begin
+               if Match.Success then
+                  Ada.Text_IO.Put ("- " & Image (Match.Location) & "; ");
+               else
+                  Ada.Text_IO.Put ("- STALE ANNOTATION; ");
+               end if;
+
+               Ada.Text_IO.Put
+                 ("id: " & (+Match.Identifier) & "; kind: "
+                  & Kind_Image (Annot_Kind));
+
+               case Annot_Kind is
+                  when Exempt_On | Exempt_Region | Cov_Off =>
+                     Ada.Text_IO.Put
+                       ("; Justification: "
+                        & (+Get_Or_Null (Match.Annotation, "justification")));
+
+                  when Dump_Buffers | Reset_Buffers =>
+                     Ada.Text_IO.Put
+                       ("; annotate after statement: "
+                        & Boolean'Image
+                          (Get_Or_Default
+                             (Match.Annotation, "insert_after", False)));
+                     if Annot_Kind = Dump_Buffers
+                       and then Match.Annotation.Has ("trace_prefix")
+                     then
+                        Ada.Text_IO.Put
+                          ("; trace filename prefix: "
+                           & (+Get_Or_Null
+                                 (Match.Annotation, "trace_prefix")));
+                     end if;
+
+                  when Unknown | Exempt_Off | Cov_On =>
+                     null;
+               end case;
+               if not Match.Success then
+                  Ada.Text_IO.Put ("; diagnostic: " & (+Match.Diagnostic));
+               end if;
+            end;
+            Ada.Text_IO.New_Line;
+         end loop;
+      end;
+
+   end Show_Annotations;
+
+   ----------------
+   -- Guess_Lang --
+   ----------------
+
+   function Guess_Lang (File : Virtual_File) return Any_Language is
+      Ext : constant String := +File.File_Extension;
+   begin
+      if Ext = ".h" or else Ext = ".c" then
+         return C_Language;
+      elsif Ext = ".hh"
+           or else Ext = ".cc"
+           or else Ext = ".hpp"
+           or else Ext = ".cpp"
+      then
+         return CPP_Language;
+      elsif Ext = ".adb"
+           or else Ext = ".ads"
+           or else File.Has_Suffix (".1.ada")
+           or else File.Has_Suffix (".2.ada")
+      then
+         return Ada_Language;
+      else
+         return All_Languages;
+      end if;
+   end Guess_Lang;
+
+   --------------------------
+   -- Validate_Annotations --
+   --------------------------
+
+   procedure Validate_Annotations is
+   begin
+      Clear_DB (Valid_Annotation_DB);
+      Iterate_Entries (Ext_Annotation_DB, Validate_Annotation'Access);
+   end Validate_Annotations;
+
+   procedure Validate_Annotation
+     (Identifier : Unbounded_String; Entr : Entry_View)
+   is
+      All_Ok : Boolean := True;
+      --  Wether all relevant annotations are valid. We reject the entry as
+      --  soon as one of the annotations is invalid.
+
+      Some_Relevant : Boolean := False;
+      --  Wether some of the annotations are relevant to gnatcov (purpose
+      --  starts with xcov.)
+
+   begin
+      if Entr.Annotations.Length = 0 then
+         Warn
+           ("Entry """ & (+Identifier)
+            & """ has no annotations, it will be ignored.");
+         return;
+      end if;
+      --  Check each annotation associated with the entry
+
+      for I in 1 .. Entr.Annotations.Length loop
+         declare
+            use TOML;
+            Annot      : constant TOML_Value := Entr.Annotations.Item (I);
+            Annot_Kind : constant Any_Annotation_Kind :=
+              Annotation_Kind (Annot);
+         begin
+            case Annot_Kind is
+               when Unknown =>
+
+                  --  Only warn about unknown annotations that start with
+                  --  "xcov."
+
+                  if Has_Prefix (+Get_Or_Null (Annot, "purpose"), "xcov.") then
+                     Warn
+                       ("Entry """ & (+Identifier)
+                        & """ has an unknown annotation kind, it will be"
+                        & " ignored.");
+                     All_Ok := False;
+                  end if;
+
+               when Exempt_On | Exempt_Region =>
+                  Some_Relevant := True;
+                  if Get_Or_Null (Annot, "justification")
+                    = Null_Unbounded_String
+                  then
+                     Warn
+                       ("Missing or empty justification for external"
+                        & " exemption annotation """ & (+Identifier)
+                        & """, it will be ignored.");
+                     All_Ok := False;
+                  end if;
+
+               when Dump_Buffers | Reset_Buffers =>
+                  Some_Relevant := True;
+                  if Annot.Has ("insert_after")
+                    and then Annot.Get ("insert_after").Kind /= TOML_Boolean
+                  then
+                     Warn
+                       ("Wrong type for ""insert_after"" flag in entry """
+                        & (+Identifier) & """, it will be ignored.");
+                     All_Ok := False;
+                  end if;
+                  if Annot_Kind in Dump_Buffers
+                    and then Annot.Has ("trace_prefix")
+                    and then Annot.Get ("trace_prefix").Kind /= TOML_String
+                  then
+                     Warn
+                       ("Wrong type for ""trace_prefix"" in entry """
+                        & (+Identifier) & """, it will be ignored.");
+                     All_Ok := False;
+                  end if;
+
+               when Exempt_Off | Cov_Off | Cov_On =>
+                  Some_Relevant := True;
+
+            end case;
+         end;
+      end loop;
+      if All_Ok and then Some_Relevant then
+         Replace_Entry
+           (Valid_Annotation_DB, Ext_Annotation_DB, Identifier, Identifier);
+      end if;
+   end Validate_Annotation;
 
 end SS_Annotations;

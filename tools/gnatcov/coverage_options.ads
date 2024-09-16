@@ -20,6 +20,7 @@ with Ada.Containers.Ordered_Maps;
 
 with GNAT.Strings;
 
+limited with SC_Obligations;
 with Strings; use Strings;
 
 package Coverage_Options is
@@ -89,5 +90,22 @@ package Coverage_Options is
    function Object_Level_Options (Separator : String) return String;
    --  Return a string expression describing valid --level alternatives
    --  for object coverage, separated by Separator.
+
+   function Annotation_Kind_Options return String;
+   --  Return the list of accepted values for the --kind switch for the gnatcov
+   --  annotate command.
+
+   function Annot_Kind_Relevant_Switches return String;
+   --  Return the switches relevant for each kind, in the form
+   --
+   --  <Annotation_Kind>: Required_Switches .. [Optional_Switches]
+   --
+   --  One annotation kind on its own line.
+
+   function Kind_Image
+     (Kind : SC_Obligations.Any_Annotation_Kind) return String;
+   --  Return the corresponding enumeration literal string, in usual Ada case.
+   --
+   --  Located here due to elaboration constraints.
 
 end Coverage_Options;
