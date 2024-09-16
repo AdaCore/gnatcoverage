@@ -1391,6 +1391,12 @@ begin
          end;
 
       when Cmd_Setup_Integration =>
+
+         --  The integrated instrumentation scheme does not support Ada, so
+         --  disable it.
+
+         Src_Enabled_Languages (Ada_Language) := False;
+
          declare
             --  Try to load the setup config from metadata installed with
             --  instrumentation runtime, and from there, decode the --dump-*
