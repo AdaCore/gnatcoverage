@@ -35,7 +35,11 @@ xcov(
 )
 env.add_search_path("GPR_PROJECT_PATH", "install/share/gpr")
 
-# Then, setup the instrumentation process
+# Then, setup the instrumentation process. Do not pass --config, as that this
+# was necessary to reproduce the original bug. Do not pass --target neither, as
+# "gnatcov setup-integration" does not support it: let GPR code pick up the
+# right native compiler from the environment and thus correctly guess the
+# target.
 xcov(
     [
         "setup-integration",
@@ -46,6 +50,7 @@ xcov(
         "--runtime-project=gnatcov_rts_c",
     ],
     auto_config_args=False,
+    auto_target_args=False,
 )
 
 # Shadow the compiler driver with the generated wrapper
