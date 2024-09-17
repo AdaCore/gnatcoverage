@@ -1,6 +1,6 @@
 """
 Regression test for integrated instrumentation approach, using an
-instrumentation runtime build and installed with `gnatcov setup
+instrumentation runtime built and installed with `gnatcov setup
 --restricted-to-languages=c` prior. The setup-integration command used to crash
 with a `Could not load the coverage runtime project gnatcov_rts` message.
 """
