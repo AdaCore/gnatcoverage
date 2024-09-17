@@ -1556,7 +1556,7 @@ as `--level=...+fun_call` where `...` is one of `stmt`, `stmt+decision`,
 same time.
 
 Core notions and Reporting (:cmd-option:`--level=...+fun_call`)
-----------------------------------------------------------
+---------------------------------------------------------------
 
 |gcv| performs Function and Call Coverage assessments with the
 :cmd-option:`--level=...+fun_call` command line option. The assessment
