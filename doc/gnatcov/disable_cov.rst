@@ -14,8 +14,8 @@ that may or may not expand according to the build configuration at use.
 
 This mechanism only works when using source traces.
 
-Defining :term:`Disabled Coverage Regions <Disabled Coverage Region>`
-=====================================================================
+Defining Disabled Coverage Regions
+==================================
 
 :dfn:`Disabled Coverage Regions` are lexical sections of sources in which
 coverage analysis is fully disabled.

@@ -17,3 +17,4 @@ GNATcoverage User's Guide
    gpr
    gps
    glossary
+   appendix
