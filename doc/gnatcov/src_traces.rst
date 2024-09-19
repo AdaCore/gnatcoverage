@@ -583,6 +583,18 @@ it is required to remove any :cmd-option:`-include` switch that is passed to
 the compiler invocation, by having a dedicated scenario variable for a coverage
 build for instance.
 
+Function and call coverage limitations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Function and call coverage is only available for Ada. Currently, gnatcov is
+unable to provided coverage information for:
+
+* Call expressions part of the prefix of a dotted name
+
+* Calls to user-defined operators
+
+The coverage state of these cases will be reported as undetermined.
+
 .. _instr-build:
 
 Building instrumented components
