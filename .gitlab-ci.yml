@@ -95,11 +95,11 @@ build_community:
 .common_artifacts_bits: &artifacts
   artifacts:
     paths:
-      - xunit_output.xml
+      - xunit-*.xml
       - coverage/cobertura.xml
 
     reports:
-      junit: xunit_output.xml
+      junit: xunit-*.xml
       coverage_report:
         coverage_format: cobertura
         path: coverage/cobertura.xml
@@ -118,11 +118,7 @@ test_bin_traces:
     - anod test gnatcov --minimal --target=leon3-elf,,qemu -QRTS=embedded-leon3,-O0,instr $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov --target=leon3-elf,,qemu -QRTS=embedded-leon3,-O0,instr $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/leon3-elf-linux64/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - e3-testsuite-report
-        --failure-exit-code 1
-        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
-        --xunit-name bin-traces
-        $ANOD_DEFAULT_SANDBOX_DIR/leon3-elf-linux64/$TEST_BSN/results/new/
+    - testsuite_reports
 
   <<: *artifacts
 
@@ -140,11 +136,7 @@ test_src_traces:
     - anod test gnatcov --minimal -Qsrc-traces,instr $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - e3-testsuite-report
-        --failure-exit-code 1
-        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
-        --xunit-name src-traces
-        $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/results/new/
+    - testsuite_reports
 
   <<: *artifacts
 
@@ -171,11 +163,7 @@ test_5.04a1_src_traces:
     - anod test gnatcov --minimal -Q5.04a1,src-traces,instr $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Q5.04a1,src-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - e3-testsuite-report
-        --failure-exit-code 1
-        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
-        --xunit-name src-traces
-        $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/results/new/
+    - testsuite_reports
 
   <<: *artifacts
 
@@ -193,11 +181,7 @@ test_spark:
     - anod test gnatcov --minimal -Qspark-tests,src-traces,instr $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Qspark-tests,src-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - e3-testsuite-report
-        --failure-exit-code 1
-        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
-        --xunit-name spark
-        $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/results/new/
+    - testsuite_reports
 
   <<: *artifacts
 
