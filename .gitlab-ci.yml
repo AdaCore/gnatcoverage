@@ -240,11 +240,7 @@ test_block_instr:
     - anod test gnatcov --minimal -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - e3-testsuite-report
-        --failure-exit-code 1
-        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
-        --xunit-name src-traces
-        $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/results/new/
+    - testsuite_reports
 
   <<: *artifacts
 
@@ -270,10 +266,6 @@ test_src_light:
     - anod test gnatcov --minimal -Qsrc-traces,instr,RTS=light-stm32f4 --target=arm-elf,,qemu-stm32 $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,RTS=light-stm32f4 --target=arm-elf,,qemu-stm32 $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - e3-testsuite-report
-        --failure-exit-code 1
-        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
-        --xunit-name src-traces
-        $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/results/new/
+    - testsuite_reports
 
   <<: *artifacts
