@@ -1,4 +1,3 @@
-
 # This file contains the common definitions used by all other Makefiles.
 
 # ==========================================================
@@ -46,6 +45,13 @@ SUPPORT_SRC_DIR = $(SUPPORT_DIR)/src
 SUPPORT_TARGET_SRC_DIR = $(SUPPORT_DIR)/src/$(TARGET)
 
 # =======================================================
+# Temporary directories
+# =======================================================
+
+# Installation prefix for the coverage runtime (gnatcov_rts.gpr)
+RTS_DIR=rts-install
+
+# =======================================================
 # CROSS toolchain prefix and target related arguments to
 # gprbuild:
 # =======================================================
@@ -55,14 +61,28 @@ SUPPORT_TARGET_SRC_DIR = $(SUPPORT_DIR)/src/$(TARGET)
 # from the BSP including in the Ada library.
 
 ifneq ($(RTS),)
-  GPRBUILD_TARGETARGS += --RTS=$(RTS)
+  GPR_ARGS += --RTS=$(RTS)
 endif
 ifneq ($(TARGET),)
-  GPRBUILD_TARGETARGS += --target=$(TARGET) -XTARGET=$(TARGET)
+  GPR_ARGS += --target=$(TARGET)
+  GPRBUILD_TARGETARGS += -XTARGET=$(TARGET)
 endif
 ifneq ($(BOARD),)
   GPRBUILD_TARGETARGS += -XBOARD=$(BOARD)
 endif
+GPRBUILD_TARGETARGS += $(GPR_ARGS)
+XCOV_TARGETARGS = $(GPRBUILD_TARGETARGS)
+
+# =======================================================
+# Environment variable updates
+# =======================================================
+
+# Examples need to update the GPR_PROJECT_PATH environment variable to make
+# both the support projects and the coverage runtime available to gprbuild and
+# gnatcov.
+ENV_UPDATE= \
+  export GPR_PROJECT_PATH=../support:$$GPR_PROJECT_PATH; \
+  export GPR_PROJECT_PATH=$(RTS_DIR)/share/gpr:$$GPR_PROJECT_PATH;
 
 # =========
 # Commands:
@@ -74,7 +94,11 @@ XCOV=gnatcov
 # This name remains a proper abstraction of a an actual name that we
 # don't really care about. 
 
-BUILDER=gprbuild -aP ../support $(GPRBUILD_TARGETARGS)
+GNATEMU=$(TARGET)-gnatemu
+# Name of the GNATemulator executable, used to run programs in non-native
+# configurations.
+
+BUILDER=gprbuild $(GPRBUILD_TARGETARGS)
 # The common way to invoke gprbuild, providing direct access to the
 # support subdir so example projects can just do 'with "common.gpr";'
 # and 'extends "base"'.
@@ -82,4 +106,3 @@ BUILDER=gprbuild -aP ../support $(GPRBUILD_TARGETARGS)
 MKDIR=mkdir -p
 RM=rm
 CP=cp
-

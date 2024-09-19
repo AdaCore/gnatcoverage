@@ -21,9 +21,10 @@
 
 # The basic idea is, first for each test driver, to:
 #
-#  1/ Build the program binary executable from the sources
-#  2/ Run it through "gnatcov run" to get an execution trace
-#  3/ Use "gnatcov coverage" to produce a report out of the trace
+#  1/ Instrument the source code
+#  2/ Build the program binary executable from the instrumented sources
+#  3/ Run it (possibly through GNATemulator) to get an execution trace
+#  4/ Use "gnatcov coverage" to produce a report out of the trace
 #
 # Then, optionally, as determined by the CONSOLIDATE variable value
 # for the example as a whole:
@@ -47,84 +48,35 @@ XCOVLEVEL?=stmt+decision
 
 include ../support/Makefile.common
 
-# ----------------------------------------------------------------------------
-# Object vs source coverage action variants for common rules
-# ----------------------------------------------------------------------------
-
-# We're only interested in results for our applicative units, not for test
-# drivers or for the test-harness code in the Aunit case. We expect the list
-# of units of interest to remain the same across all the tests participating
-# in a given example.
-
-ALIS_LIST=alis.list
-ROUTINES_LIST=routines.list
-
 # Beware that these actions may be involved in different rules, so some
 # automatic variables like $< don't expand the same across actions.
 
-OBJECT_LEVELS=branch insn
 SOURCE_LEVELS=stmt stmt+decision stmt+mcdc
 
 BINDIR = obj/$(TARGET)
 BASEDIR = $(notdir $(CURDIR))
 
-ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
-
-  # Object coverage: use --routines to filter. Compile with -g to
-  # allow annotated-source report formats.
-
-  INTERNALBUILDFLAGS = -g
-  XCOVFILTER_LIST=$(ROUTINES_LIST)
-  XCOVFILTER=--routines=@$(XCOVFILTER_LIST)
-  XCOVRUN=$(XCOV) run \
-    $(XCOVTARGET) --level=$(XCOVLEVEL) $(BINDIR)/$* -o $*.trace
-
-else
-ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
-
-  # Source coverage: force -g -fdump-scos -fpreserve-control-flow, use --scos
-  # to filter and pass the filter to xcov run so that it has visibility on
-  # decision locations
-
-  INTERNALBUILDFLAGS = -cargs -g -fdump-scos -fpreserve-control-flow
-  XCOVFILTER_LIST=$(ALIS_LIST)
-  XCOVFILTER=--scos=@$(XCOVFILTER_LIST)
-  XCOVRUN=$(XCOV) run \
-    $(XCOVTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $(BINDIR)/$* -o $*.trace
-endif
-endif
+# Source coverage: pass --src-subdirs and --implicit-with.
+INTERNALBUILDFLAGS = --src-subdirs=gnatcov-instr --implicit-with=gnatcov_rts
 
 # Argument we will pass to the builder eventually
-BUILDERFLAGS=$(INTERNALBUILDFLAGS) $(BUILDFLAGS)
+BUILDERFLAGS=$(INTERNALBUILDFLAGS) $(BUILDFLAGS) $(EXTRA_CARGS)
 
 ALL_TESTS=$(TESTS) $(AUNIT_TESTS)
 
 .PRECIOUS: %.trace
 
-all: build $(XCOVFILTER_LIST) trace analyze consolidate-$(CONSOLIDATE)
+all: build trace analyze consolidate-$(CONSOLIDATE)
 
 announce-%: force
 	@echo "--------------" $* "--------------"
-
-# -------------------------------------------------------------------------
-# routines or alis list construction targets
-# -------------------------------------------------------------------------
-
-# This is part of the early "all" prerequisites, built once for all the
-# tests attached to a given example.
-
-$(ALIS_LIST): announce-alis-list force
-	ls $(wildcard $(BINDIR)/*.ali) | grep -v test_ > $@
-
-$(ROUTINES_LIST): announce-routines-list force
-	$(XCOV) disp-routines $(wildcard $(BINDIR)/*.o) | grep -v test_ > $@
 
 # -------------------------------------------------------------------------
 # consolidation targets
 # -------------------------------------------------------------------------
 
 ALL_CHECKPOINTS=$(ALL_TESTS:%=%.ckpt)
-ALL_TRACES=$(ALL_TESTS:%=%.trace)
+ALL_TRACES=$(ALL_TESTS:%=%.srctrace)
 
 consolidate-:
 
@@ -136,19 +88,22 @@ ckpt.list: force
 	for ckpt in $(ALL_CHECKPOINTS); do echo $$ckpt >> $@; done
 
 out-all-checkpoints/index.html: out-all-checkpoints $(ALL_CHECKPOINTS) ckpt.list
-	$(XCOV) coverage --level=$(XCOVLEVEL) \
+	$(XCOV) coverage $(XCOV_TARGETARGS) --level=$(XCOVLEVEL) \
 	 --checkpoint=@ckpt.list \
-	 --annotate=html --output-dir=$(dir $@)
+	 --annotate=html \
+	 --output-dir=$(dir $@)
 
-%.ckpt: %.trace
-	$(XCOV) coverage $(XCOVFILTER) --level=$(XCOVLEVEL) \
-	 --save-checkpoint=$@ $*.trace
+%.ckpt: %.srctrace
+	$(ENV_UPDATE) $(XCOV) coverage $(XCOV_TARGETARGS) -P$(BASEDIR).gpr \
+	 --level=$(XCOVLEVEL) \
+	 --save-checkpoint=$@ $*.srctrace
 
 consolidate-traces: announce-consolidate-traces
 consolidate-traces: out-all-traces/index.html
 
 out-all-traces/index.html: out-all-traces $(ALL_TRACES)
-	$(XCOV) coverage $(XCOVFILTER) --level=$(XCOVLEVEL) \
+	$(ENV_UPDATE) $(XCOV) coverage $(XCOV_TARGETARGS) -P$(BASEDIR).gpr \
+	 --level=$(XCOVLEVEL) \
 	 --annotate=html $(ALL_TRACES) \
 	 --output-dir $(dir $@)
 
@@ -166,17 +121,25 @@ out-%: force
 	$(RM) -rf $@
 	$(MKDIR) $@
 
-out-%/index.html: out-% %.trace
-	$(XCOV) coverage $(XCOVFILTER) \
-	 --level=$(XCOVLEVEL) --annotate=html $*.trace --output-dir $(dir $@)
+out-%/index.html: out-% %.srctrace
+	$(ENV_UPDATE) $(XCOV) coverage $(XCOV_TARGETARGS) -P$(BASEDIR).gpr \
+	 --level=$(XCOVLEVEL) \
+	 --annotate=html \
+	 --output-dir $(dir $@) \
+	 $*.srctrace
 
-out-%/index.xml: out-% %.trace
-	$(XCOV) coverage $(XCOVFILTER) \
-	 --level=$(XCOVLEVEL) --annotate=xml $*.trace --output-dir $(dir $@)
+out-%/index.xml: out-% %.srctrace
+	$(ENV_UPDATE) $(XCOV) coverage $(XCOV_TARGETARGS) -P$(BASEDIR).gpr \
+	 --level=$(XCOVLEVEL) \
+	 --annotate=xml $*.srctrace \
+	 --output-dir $(dir $@)
 
-out-%/report.txt: out-% %.trace
-	$(XCOV) coverage $(XCOVFILTER) \
-	 --level=$(XCOVLEVEL) --annotate=report $*.trace -o $@
+out-%/report.txt: out-% %.srctrace
+	$(ENV_UPDATE) $(XCOV) coverage $(XCOV_TARGETARGS) -P$(BASEDIR).gpr \
+	 --level=$(XCOVLEVEL) \
+	--annotate=report \
+	-o $@ \
+	$*.srctrace
 
 # -----------------------------------------------------------------------
 # trace: produce execution trace from executable program execution
@@ -184,10 +147,15 @@ out-%/report.txt: out-% %.trace
 # -----------------------------------------------------------------------
 
 trace: announce-trace
-trace: $(ALL_TESTS:%=%.trace)
+trace: $(ALL_TESTS:%=%.srctrace)
 
-%.trace: % force
-	$(XCOVRUN)
+%.srctrace: % force
+ifneq ($(XCOVTARGET),)
+	$(GNATEMU) $(BINDIR)/$* > $*.b64trace
+	$(XCOV) extract-base64-trace $*.b64trace $*.srctrace
+else
+	GNATCOV_TRACE_FILE=$*.srctrace $(BINDIR)/$*
+endif
 
 # -----------------------------------------------------------------------
 # build: produce executable program from sources + target bsp
@@ -197,14 +165,27 @@ build: $(ALL_TESTS)
 
 $(ALL_TESTS): announce-build-tests
 
-$(TESTS): libsupport force
-	$(BUILDER) -q -f -p $@.adb -P$(BASEDIR).gpr $(BUILDERFLAGS)
+$(TESTS): libsupport gnatcov_rts force
+	$(ENV_UPDATE) $(XCOV) instrument -q -P$(BASEDIR).gpr $(XCOV_TARGETARGS) \
+	 --level=$(XCOVLEVEL) $@.adb
+	$(ENV_UPDATE) $(BUILDER) -q -f -p $@.adb -P$(BASEDIR).gpr $(BUILDERFLAGS)
 
-$(AUNIT_TESTS): libsupport force
-	$(BUILDER) -q -f -p $@.adb -Pharness.gpr \
-	 -XUNITTEST=yes -XPLATFORM=$(TARGET) $(BUILDERFLAGS)
+$(AUNIT_TESTS): libsupport gnatcov_rts force
+	$(ENV_UPDATE) $(XCOV) instrument -q $(XCOV_TARGETARGS) -Pharness.gpr \
+	 --level=$(XCOVLEVEL) \
+	 -XUNITTEST=yes \
+	 -XPLATFORM=$(TARGET)
+	$(ENV_UPDATE) $(BUILDER) -q -f -p $@.adb -Pharness.gpr \
+	 -XUNITTEST=yes \
+	 -XPLATFORM=$(TARGET) \
+	 $(BUILDERFLAGS)
 
-MKSUPPORT=$(MAKE) -C $(SUPPORT_DIR) -f Makefile.libsupport
+MKSUPPORT=$(MAKE) -C $(SUPPORT_DIR) -f Makefile.libsupport \
+ TARGET=$(TARGET) RTS=$(RTS) BOARD=$(BOARD)
+
+gnatcov_rts: announce-gnatcov-setup force
+	rm -rf $(RTS_DIR)
+	$(XCOV) setup -q --prefix=$(RTS_DIR) $(GPR_ARGS)
 
 libsupport: announce-build-libsupport
 	$(MKSUPPORT) all
@@ -215,9 +196,9 @@ libsupport: announce-build-libsupport
 
 clean:
 	$(MKSUPPORT) clean
-	$(RM) -rf obj lib out-*
-	$(RM) -f *.bin *.dmap *.cgpr *.trace.* *.trace *~ \
+	$(RM) -rf obj lib out-* $(RTS_DIR)
+	$(RM) -f *.bin *.dmap *.cgpr *.srctrace *.b64trace *~ \
                  *.xcov *.html *.css *.xml $(TESTS) \
-                 *.list
+                 *.list *.ckpt
 
 .PHONY: force clean
