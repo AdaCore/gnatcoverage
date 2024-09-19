@@ -75,7 +75,7 @@ build_community:
   script:
     - *basic_setup
     # Build using anod
-    - anod build --minimal gnatcov -Qno-c $ACI_TRACK_QUALIFIER $ACI_TRACK_QUALIFIER
+    - anod build --minimal gnatcov -Qno-c $ACI_TRACK_QUALIFIER
 
 .common_test_bits: &basic_test_setup
     # Setup the sandbox
