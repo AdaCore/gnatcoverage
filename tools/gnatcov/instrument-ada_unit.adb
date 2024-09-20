@@ -6280,7 +6280,9 @@ package body Instrument.Ada_Unit is
                         Do_Not_Instrument := True;
                   end;
 
-                  --  TODO: LIMITATION
+                  --  TODO: LIMITATIONS
+                  --
+                  --  NON-IMPORTED TYPES
                   --  Currently, gnatcov is unable to determine if the full
                   --  name of a type is visible and can be explicitely used in
                   --  a unit. For this reason, we cannot currently turn
@@ -6288,8 +6290,14 @@ package body Instrument.Ada_Unit is
                   --  need for call the are in the middle of a dotted name.
                   --  For now, do not instrument calls that wouls require such
                   --  an instrumentation.
+                  --
+                  --  USER-DEFINED OPERATORS
+                  --  gnatcov does not handle calls to user-defined operators
+                  --  as the current instrumentation is not suited to it.
 
-                  Do_Not_Instrument := Needs_Qualified_Expr;
+                  Do_Not_Instrument :=
+                    Needs_Qualified_Expr
+                    or else Node.Kind in Ada_Op;
 
                   if not Do_Not_Instrument then
                      Fill_Expression_Insertion_Info
@@ -6326,6 +6334,8 @@ package body Instrument.Ada_Unit is
                                 Create_Paren_Expr (UIC.Rewriting_Context,
                                 If_Expression))
                            else No_Node_Rewriting_Handle);
+                        Dummy : constant Wide_Wide_String :=
+                          Unparse (If_Expression);
                      begin
                         if Needs_Qualified_Expr then
                            Replace (Dummy_Handle, Qualified_Expr);
@@ -6337,8 +6347,10 @@ package body Instrument.Ada_Unit is
                      Report
                        (UIC,
                         Full_Call_Node,
-                        "gnatcov limitation: cannot instrument calls within"
-                        & " dotted names",
+                        "gnatcov limitation: cannot instrument calls "
+                        & (if Needs_Qualified_Expr
+                          then "within dotted names"
+                          else "to user-defined operators"),
                         Warning);
                      UIC.Non_Instr_LL_SCOs.Include
                        (SCO_Id (SCOs.SCO_Table.Last));

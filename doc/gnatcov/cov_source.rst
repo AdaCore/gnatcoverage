@@ -1581,6 +1581,9 @@ It is important to note that for an :dfn:`uncovered` statement which happens
 to be a call statement, only a statement violation will be emitted in
 coverage reports.
 
+The limitations of this coverage level are detailed in the
+:ref:`instr-limitations` section.
+
 .. _synthetic-metrics:
 
 Synthetic metrics

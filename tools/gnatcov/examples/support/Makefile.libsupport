@@ -2,14 +2,6 @@
 
 include Makefile.common
 
-# Tailored compilation options for libsupport. Allow source
-# coverage analysis with binary traces by default, cross only
-# at this stage.
-
-ifneq ($(TARGET),)
-LIBSUPPORT_CFLAGS:=-fdump-scos -fpreserve-control-flow -g $(LIBSUPPORT_CFLAGS)
-endif
-
 all: $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR) LIBSUPPORT LCH
 
 # ----------------------------------------------------------------------------
@@ -40,15 +32,15 @@ $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR):
 	mkdir -p $@
 
 LIBSUPPORT: conf.gpr force
-	$(BUILDER) -XLIBSUPPORT_BUILD=yes -p -Plibsupport.gpr -f \
-                   -cargs $(LIBSUPPORT_CFLAGS)
-	$(BUILDER) -XLIBSUPPORT_BUILD=yes -p -Plibsupport.gpr -f \
-                   -XUNITTEST=yes \
-                   -cargs $(LIBSUPPORT_CFLAGS)
+	$(BUILDER) $(GPRBUILD_TARGETARGS) -XLIBSUPPORT_BUILD=yes \
+	           -p -Plibsupport.gpr -f
+	$(BUILDER) $(GPRBUILD_TARGETARGS) -XLIBSUPPORT_BUILD=yes \
+	           -p -Plibsupport.gpr -f \
+                   -XUNITTEST=yes
 
 LCH: conf.gpr force
-	$(BUILDER) -XLIBSUPPORT_BUILD=yes -p -Plch.gpr -f \
-                   -cargs $(LIBSUPPORT_CFLAGS)
+	$(BUILDER) $(GPRBUILD_TARGETARGS) -XLIBSUPPORT_BUILD=yes \
+	           -p -Plch.gpr -f
 
 clean:
 	$(RM) -rf lib obj

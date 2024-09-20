@@ -1,6 +1,6 @@
 with "conf";
 with "aunit";
-with "explore";
+with "aunit_variant";
 
 project Harness is
 
