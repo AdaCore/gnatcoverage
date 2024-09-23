@@ -234,9 +234,9 @@ units, if any are designated by the root project:
 
 :cmd-option:`--dump-trigger`
    selects the execution point at which the output of coverage data should be
-   injected in main units. This is ``manual`` by default, leaving to users the
-   responsibility to emit the coverage data as they see fit. Other possible
-   choices are ``atexit``, ``main-end`` and ``ravenscar-task-termination``.
+   injected in main units. The default is inferred from the installed
+   instrumentation runtime. The possible choices are ``manual``, ``atexit``,
+   ``main-end`` and ``ravenscar-task-termination``.
 
 :cmd-option:`--dump-channel`
    selects the mechanism used to output coverage data at the selected

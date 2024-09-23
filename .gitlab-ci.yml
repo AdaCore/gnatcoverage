@@ -22,15 +22,25 @@ stages:
 build:
   interruptible: true
   services:
-     - image:e3
+     - image:pe-base
      - cpu:16
      - mem:16
   stage: build
   script:
     - require_issue
     - *basic_setup
-    # Build using anod
+
+    # 1. Install / build the dependencies of gnatcov using the smart rebuilder
+    #    to allow testing of breaking changes. Do not use the -Qinstr qualifier
+    #    as this would trigger a rebuild of the vanilla gnatcov.
+    - anod build --smart-rebuild --deps-only gnatcov $ACI_TRACK_QUALIFIER
+
+    # 2. Install vanilla gnatcov from cathod
     - anod install gnatcov $ACI_TRACK_QUALIFIER --latest
+
+    # 3. Build using anod, but minimally as all dependencies are supposed to be
+    #    already built/installed via 1, but we don't want to re-build the
+    #    gnatcov installed via 2 with --smart-rebuild.
     - anod build --minimal gnatcov -Qinstr $ACI_TRACK_QUALIFIER
 
     # Package all components created so far
@@ -47,7 +57,7 @@ build:
 build_docs:
   stage: build
   services:
-     - image:e3
+     - image:pe-base
   needs: []
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || ($CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH)
@@ -68,14 +78,15 @@ build_docs:
 build_community:
   interruptible: true
   services:
-     - image:e3
+     - image:pe-base
      - cpu:8
      - mem:16
   stage: test
   script:
     - *basic_setup
-    # Build using anod
-    - anod build --minimal gnatcov -Qno-c $ACI_TRACK_QUALIFIER $ACI_TRACK_QUALIFIER
+    # Build using anod, we can use the smart rebuilder here as gnatcov does not
+    # depend on itself in this case.
+    - anod build --smart-rebuild gnatcov -Qno-c $ACI_TRACK_QUALIFIER
 
 .common_test_bits: &basic_test_setup
     # Setup the sandbox
@@ -107,7 +118,7 @@ build_community:
 test_bin_traces:
   interruptible: true
   services:
-     - image:e3
+     - image:pe-base
      - cpu:16
      - mem:16
   stage: test
@@ -125,7 +136,7 @@ test_bin_traces:
 test_src_traces:
   interruptible: true
   services:
-     - image:e3
+     - image:pe-base
      - cpu:16
      - mem:16
   stage: test
@@ -143,7 +154,7 @@ test_src_traces:
 test_5.04a1_src_traces:
   interruptible: true
   services:
-     - image:e3
+     - image:pe-base
      - cpu:16
      - mem:16
   stage: test
@@ -170,7 +181,7 @@ test_5.04a1_src_traces:
 test_spark:
   interruptible: true
   services:
-     - image:e3
+     - image:pe-base
      - cpu:16
      - mem:16
   stage: test
@@ -189,7 +200,7 @@ stylechecks:
   interruptible: true
   stage: test
   services:
-    - image:e3
+    - image:pe-base
     - run_as_root:false
   needs: []
   script:
@@ -228,7 +239,7 @@ stylechecks:
 test_block_instr:
   interruptible: true
   services:
-     - image:e3
+     - image:pe-base
      - cpu:16
      - mem:16
   stage: test
@@ -240,11 +251,7 @@ test_block_instr:
     - anod test gnatcov --minimal -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - e3-testsuite-report
-        --failure-exit-code 1
-        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
-        --xunit-name src-traces
-        $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/results/new/
+    - testsuite_reports
 
   <<: *artifacts
 
@@ -258,7 +265,7 @@ test_block_instr:
 test_src_light:
   interruptible: true
   services:
-     - image:e3
+     - image:pe-base
      - cpu:16
      - mem:16
   stage: test
@@ -270,10 +277,6 @@ test_src_light:
     - anod test gnatcov --minimal -Qsrc-traces,instr,RTS=light-stm32f4 --target=arm-elf,,qemu-stm32 $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,RTS=light-stm32f4 --target=arm-elf,,qemu-stm32 $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - e3-testsuite-report
-        --failure-exit-code 1
-        --xunit-output $CI_PROJECT_DIR/xunit_output.xml
-        --xunit-name src-traces
-        $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/results/new/
+    - testsuite_reports
 
   <<: *artifacts
