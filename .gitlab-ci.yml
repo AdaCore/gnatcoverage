@@ -66,7 +66,7 @@ build_docs:
       when: always
   script:
     - *basic_setup
-    - anod build gnatdas-doc --latest
+    - anod build gnatdas-doc --qualifier warn-errors --latest
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/gnatdas-doc/install/share/doc/gnatdas/ $CI_PROJECT_DIR
   artifacts:
     when:
