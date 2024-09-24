@@ -74,6 +74,10 @@ package body Annotations.Sarif is
    end record;
    --  Pretty printer for the SARIF annotation format
 
+   overriding function Format
+     (Pp : Sarif_Pretty_Printer) return Annotation_Format_Family
+   is (Annotate_Sarif);
+
    -------------------------------------------------
    -- Sarif_Pretty_Printer's primitive operations --
    --    (inherited from Pretty_Printer)          --

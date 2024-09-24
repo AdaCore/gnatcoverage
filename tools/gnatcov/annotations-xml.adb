@@ -68,6 +68,10 @@ package body Annotations.Xml is
       --  for the forthcoming lines
    end record;
 
+   overriding function Format
+     (Pp : Xml_Pretty_Printer) return Annotation_Format_Family
+   is (Annotate_Xml);
+
    --------------------
    -- XML generation --
    --------------------

@@ -422,7 +422,7 @@ package body Annotations is
             --  specifically in Annotation.Report.
 
             if LI.Exemption /= Slocs.No_Location
-              and then not Annotation (Annotate_Report)
+              and then Pp.Format /= Annotate_Report
             then
                if S in Not_Covered .. Partially_Covered then
                   Inc_Violation_Exemption_Count (LI.Exemption);
