@@ -35,6 +35,10 @@ package body Annotations.Xcov is
       --  e.g. hello.adb.xcov for hello.adb.
    end record;
 
+   overriding function Format
+     (Pp : Xcov_Pretty_Printer) return Annotation_Format_Family
+   is (Annotate_Xcov);
+
    ------------------------------------------------
    -- Xcov_Pretty_Printer's primitive operations --
    --    (inherited from Pretty_Printer)         --

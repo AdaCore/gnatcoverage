@@ -66,6 +66,10 @@ package body Annotations.Cobertura is
    end record;
    --  Pretty printer type for the Cobertura annotation format
 
+   overriding function Format
+     (Pp : Cobertura_Pretty_Printer) return Annotation_Format_Family
+   is (Annotate_Cobertura);
+
    type Rate_Type is digits 3;
 
    function Img (R : Rate_Type) return String;
