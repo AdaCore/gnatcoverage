@@ -1240,7 +1240,11 @@ class XnotesExpander:
             combinaisons defined in level_from_char. Return the list of
             combinaisons.
             """
-            return [level_from_char[c][0] + "+" + lvl for c in level_from_char]
+            res = []
+            for char in level_from_char:
+                for comb in level_from_char[char]:
+                    res.append(comb + "+" + lvl)
+            return res
 
         assert_level_from_char = {
             "a": make_new_lvl_combinaison("atc"),

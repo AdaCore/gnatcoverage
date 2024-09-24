@@ -1,7 +1,7 @@
 pragma Assertion_Policy (Check);
 pragma Ada_2012;
 
-package body Assertions is
+package body Functions is
 
    ---------
    -- Foo --
@@ -56,4 +56,4 @@ package body Assertions is
       return B;                                                -- # same_ret
    end Same;
 
-end Assertions;
+end Functions;

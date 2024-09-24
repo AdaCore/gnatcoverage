@@ -1,17 +1,27 @@
-with Assertions_1;
+with Ada.Assertions;
+with Silent_Last_Chance;
 
-procedure Test_Assertions_1 is
+With Failed_Pre;
+
+--  Check the coverage states when calling Foo with a parameter not satisfying
+--  the its precondition.
+
+procedure Test_Failed_Pre is
 begin
-   Assertions_1;
-end Test_Assertions_1;
+   begin
+      Failed_Pre;
+   exception
+      when Ada.Assertions.Assertion_Error => null;
+   end;
+end Test_Failed_Pre;
 
---# assertions.ads
--- /foo_pre/         l- ## a-
+--# functions.ads
+-- /foo_pre/         l- ## aT-
 -- /foo_post/        l- ## a-
 -- /bar_expr/        l- ## s-
 -- /bar_pre/         l- ## a-
--- /baz_expr/        l+ ## 0
---# assertions.adb
+-- /baz_expr/        l- ## s-
+--# functions.adb
 -- /foo_hi_decl/     l- ## s-
 -- /foo_loop_1/      l- ## s-
 -- /foo_inv_1/       l- ## s-
@@ -25,7 +35,5 @@ end Test_Assertions_1;
 -- /nested_2/        l- ## s-
 -- /nested_3/        l- ## s-
 -- /same_ret/        l- ## s-
--- # assertions_1.adb
--- /assert_3/        a=>l+, c=>l! ## a=>0, c=>aT-
--- /null/            l+ ## 0
--- /catch_1/         l- ## s-
+--# failed_pre.adb
+-- /foo_call/        l+ ## c!
