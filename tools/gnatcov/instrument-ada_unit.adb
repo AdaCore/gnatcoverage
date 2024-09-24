@@ -53,6 +53,7 @@ with Project;
 with SCOs;
 with Slocs;
 with Snames;           use Snames;
+with SS_Annotations;   use SS_Annotations;
 with Table;
 with Text_Files;       use Text_Files;
 
@@ -110,13 +111,30 @@ package body Instrument.Ada_Unit is
       return Ada_Qualified_Name;
    --  Convert a Libadalang fully qualified name into our format
 
-   procedure Find_Ada_Units
+   function Find_Ada_Units
      (Instrumenter : in out Ada_Instrumenter_Type;
-      Filename     : String;
-      Process_Unit : access procedure (Filename : String));
+      Filename     : String) return String_Vectors.Vector;
    --  Consider that Filename is a source file to instrument (i.e. a unit of
-   --  interest) and call Process_Unit for all compilation units that must be
+   --  interest) and return the list of all compilation units that must be
    --  instrumented with it (i.e. related subunits, if present).
+   --
+   --  The result includes Filename in first position.
+
+   procedure Insert_External_Annotations
+     (RH          : in out Rewriting_Handle;
+      Unit        : Analysis_Unit;
+      Annotations : Instr_Annotation_Map)
+   with Pre => RH /= No_Rewriting_Handle;
+   --  Insert the annotations in Annotations into Unit.
+   --
+   --  For each annotation, the procedure searches the inner-most statement
+   --  list containing its corresponding source location, and inserts the
+   --  corresponding pragma right before the statement starting after the
+   --  designated source location.
+   --
+   --  This expects an active rewriting context, but will apply the rewriting
+   --  in the LAL tree, so the rewriting session will need to be re-started
+   --  by the caller if needed.
 
    -----------------------
    -- To_Qualified_Name --
@@ -3557,7 +3575,9 @@ package body Instrument.Ada_Unit is
             else Insertion_N);
 
       begin
-         if UIC.Disable_Coverage then
+         if UIC.Disable_Coverage
+           or else UIC.Is_Disabled_Region ((UIC.SFI, +From))
+         then
             return;
          end if;
          case Kind (N) is
@@ -3860,7 +3880,7 @@ package body Instrument.Ada_Unit is
 
          Kind := Get_Arg (Prag_Args, 2);
          begin
-            Result.Kind := ALI_Annotation_Kind'Value (Image (Kind));
+            Result.Kind := Src_Annotation_Kind'Value (Image (Kind));
          exception
             when Constraint_Error =>
                Report
@@ -4609,7 +4629,10 @@ package body Instrument.Ada_Unit is
          --  There is nothing else to do if we gave up instrumenting this
          --  subprogram.
 
-         if UIC.Disable_Instrumentation or else UIC.Disable_Coverage then
+         if UIC.Disable_Instrumentation
+           or else UIC.Disable_Coverage
+           or else UIC.Is_Disabled_Region ((UIC.SFI, +Sloc (N)))
+         then
             UIC.Disable_Instrumentation := Save_Disable_Instrumentation;
             return;
          end if;
@@ -6976,7 +6999,10 @@ package body Instrument.Ada_Unit is
          --  Start of processing for Process_Decisions
 
       begin
-         if N.Is_Null or else UIC.Disable_Coverage then
+         if N.Is_Null
+           or else UIC.Disable_Coverage
+           or else UIC.Is_Disabled_Region ((UIC.SFI, +Sloc (N)))
+         then
             return;
          end if;
          Hash_Entries.Init;
@@ -9262,8 +9288,8 @@ package body Instrument.Ada_Unit is
                                                   else Source_Filename);
       Unit                  : constant Libadalang.Analysis.Analysis_Unit :=
         Self.Context.Get_From_File (File_To_Search);
-
       Rewriter              : Ada_Source_Rewriter;
+      External_Annotations  : Instr_Annotation_Map;
 
       Dummy_Ctx : constant Context_Handle :=
         Create_Context ("Searching manual indications in " & Source_Filename);
@@ -9406,6 +9432,19 @@ package body Instrument.Ada_Unit is
       Has_Reset_Indication := False;
       Rewriter.Handle := No_Rewriting_Handle;
 
+      --  Import external annotations if this file was not already processed by
+      --  the regular instrumentation process.
+
+      if not Instrumented_Exists then
+         External_Annotations :=
+           SS_Annotations.Get_Buffer_Annotations (Source_Filename);
+         if not External_Annotations.Is_Empty then
+            Start_Rewriting (Rewriter, Self, Prj, Unit);
+            Insert_External_Annotations
+              (Rewriter.Handle, Unit, External_Annotations);
+         end if;
+      end if;
+
       Unit.Root.Traverse (Find_And_Replace_Pragma'Access);
 
       if Has_Dump_Indication or else Has_Reset_Indication then
@@ -9413,6 +9452,149 @@ package body Instrument.Ada_Unit is
          Rewriter.Apply;
       end if;
    end Replace_Manual_Indications;
+
+   ---------------------------------
+   -- Insert_External_Annotations --
+   ---------------------------------
+
+   procedure Insert_External_Annotations
+     (RH          : in out Rewriting_Handle;
+      Unit        : Analysis_Unit;
+      Annotations : Instr_Annotation_Map)
+   is
+      procedure Insert_One (Cur : Instr_Annotation_Maps.Cursor);
+      --  Insert a single annotation into the rewritten unit.
+
+      ----------------
+      -- Insert_One --
+      ----------------
+
+      procedure Insert_One (Cur : Instr_Annotation_Maps.Cursor)
+      is
+         Loc      : constant Slocs.Local_Source_Location :=
+           Instr_Annotation_Maps.Key (Cur);
+         LAL_Loc  : constant Source_Location :=
+           (Line   => Langkit_Support.Slocs.Line_Number (Loc.Line),
+            Column => Langkit_Support.Slocs.Column_Number (Loc.Column));
+         Annot    : constant Instr_Annotation :=
+           Instr_Annotation_Maps.Element (Cur);
+         Cur_Node : Ada_Node := Unit.Root.Lookup (LAL_Loc);
+
+         Insert_Child : Node_Rewriting_Handle;
+         --  Handle of the node before/after which we will insert the pragma
+
+      begin
+         --  Exit early if the annotation location does not lie within the AST
+
+         if Cur_Node = No_Ada_Node then
+            Warning_Or_Error
+              ("Could not find node for source location " & Slocs.Image (Loc)
+               & " in file " & Unit.Get_Filename & ", external "
+               & Annot.Kind'Image & "annotation ignored.");
+            return;
+         end if;
+         while Cur_Node /= No_Ada_Node
+              and then Cur_Node.Kind not in Ada_Stmt_List | Ada_Decl_List
+         loop
+            Cur_Node := Cur_Node.Parent;
+         end loop;
+
+         --  Warn if we haven't found a statement list in which to insert the
+         --  annotation.
+
+         if Cur_Node = No_Ada_Node then
+            Warning_Or_Error
+              ("Could not find statement or declaration list enclosing "
+               & Slocs.Image (Loc) & " in file " & Unit.Get_Filename
+               & ", external " & Annot.Kind'Image & " annotation ignored.");
+            return;
+         end if;
+
+         --  Find the Decl or statment index which closest matches the
+         --  annotation location.
+
+         declare
+            Child : Ada_Node := Cur_Node.First_Child;
+         begin
+            while Child /= No_Ada_Node and then
+                 Compare (Child, LAL_Loc) = After
+            loop
+               Child := Child.Next_Sibling;
+            end loop;
+
+            --  We cannot have an empty list, otherwise there would be no
+            --  source location range associated to it.
+
+            if Child = No_Ada_Node then
+               Insert_Child := Last_Child (Handle (Cur_Node));
+            else
+               Insert_Child := Handle (Child);
+            end if;
+         end;
+
+         declare
+            Prag_Stmt : Node_Rewriting_Handle;
+         begin
+            --  Create the proper pragma based on the annotation
+
+            case Annot.Kind is
+               when Dump_Buffers =>
+                  Prag_Stmt := Create_From_Template
+                    (RH,
+                     "pragma Annotate (Xcov, Dump_Buffers"
+                     & (if Length (Annot.Trace_Prefix) /= 0
+                        then To_Text (", " & (+Annot.Trace_Prefix))
+                        else "") & ");",
+                     (1 .. 0 => No_Node_Rewriting_Handle),
+                     Pragma_Rule);
+
+               when Reset_Buffers =>
+                  Prag_Stmt := Create_From_Template
+                    (RH,
+                     "pragma Annotate (Xcov, Reset_Buffers);",
+                     (1 .. 0 => No_Node_Rewriting_Handle),
+                     Pragma_Rule);
+
+               when Cov_Off | Cov_On => raise Program_Error with "Unreachable";
+            end case;
+            --  Insert the proper annotation pragma in the statement list, in
+            --  the right location.
+
+            if Annot.Insert_After then
+               Insert_After
+                 (Insert_Child,
+                  New_Sibling => Prag_Stmt);
+            else
+               Insert_Before
+                 (Insert_Child,
+                  New_Sibling => Prag_Stmt);
+            end if;
+         end;
+      end Insert_One;
+
+   --  Start of processing for Insert_External_Annotations
+
+   begin
+      Annotations.Iterate (Insert_One'Access);
+
+      --  Apply the rewriting **in the LAL tree** to not mess with rewriting
+      --  indices in the instrumentation process, and to make the pragmas
+      --  visible in the analysis tree.
+
+      declare
+         Apply_Res : constant Apply_Result := Libadalang.Rewriting.Apply (RH);
+      begin
+         if not Apply_Res.Success then
+            Warning_Or_Error
+              ("Failed to import external buffer annotations for "
+               & Unit.Get_Filename & ", they will be ignored.");
+            for D of Apply_Res.Diagnostics loop
+               Warning_Or_Error (Unit.Format_GNU_Diagnostic (D));
+            end loop;
+            Abort_Rewriting (RH);
+         end if;
+      end;
+   end Insert_External_Annotations;
 
    ------------------------------
    -- Insert_With_Dump_Helper --
@@ -9492,6 +9674,21 @@ package body Instrument.Ada_Unit is
       Start_Rewriting (Rewriter, Instrumenter, Prj, Filename);
 
       Root_Analysis_Unit := Rewriter.Rewritten_Unit;
+
+      --  Insert pragmas for the external annotations before doing anything.
+      --  This will close the rewriting session so we'll need to re start it
+      --  again if there were any annotations.
+
+      declare
+         Buffer_Annots       : constant  Instr_Annotation_Map :=
+           Get_Buffer_Annotations (Filename);
+      begin
+         if not Buffer_Annots.Is_Empty then
+            Insert_External_Annotations
+              (Rewriter.Handle, Root_Analysis_Unit, Buffer_Annots);
+            Rewriter.Handle := Start_Rewriting (Instrumenter.Context);
+         end if;
+      end;
 
       UIC.Root_Unit := Root_Analysis_Unit.Root.As_Compilation_Unit;
       UIC.Current_Scope_Entity := UIC.Scope_Entities.Root;
@@ -9610,6 +9807,13 @@ package body Instrument.Ada_Unit is
 
       Append_Unit (UIC.SFI);
 
+      declare
+         Annots : constant Instr_Annotation_Map :=
+           Get_Disabled_Cov_Annotations (Filename);
+      begin
+         UIC.Populate_Ext_Disabled_Cov (Annots, UIC.SFI);
+      end;
+
       Traverse_Declarations_Or_Statements
         (UIC      => UIC,
          L        => No_Ada_List,
@@ -9646,6 +9850,12 @@ package body Instrument.Ada_Unit is
          --  Import annotations in our internal tables
 
          UIC.Import_Annotations (Created_Units);
+
+         --  Import external exemption annotations
+
+         for Cur in Created_Units.Iterate loop
+            Import_External_Exemptions (Created_Unit_Maps.Key (Cur));
+         end loop;
 
          --  Import non-instrumented SCOs in the internal tables
 
@@ -10901,11 +11111,14 @@ package body Instrument.Ada_Unit is
 
       for Part in Analysis_Unit_Kind loop
          if Self.Provider.Has_Unit (Unit_Name, +Part) then
-            Find_Ada_Units
-              (Self,
-               Self.Provider.Get_Unit_Filename
-                 (Langkit_Support.Text.From_UTF8 (Unit_Name), Part),
-               Instrument_Source_File_Wrapper'Access);
+            for Filename of Find_Ada_Units
+                              (Self,
+                               Self.Provider.Get_Unit_Filename
+                                 (Langkit_Support.Text.From_UTF8 (Unit_Name),
+                                  Part))
+            loop
+               Instrument_Source_File_Wrapper (+Filename);
+            end loop;
          end if;
       end loop;
 
@@ -10931,13 +11144,14 @@ package body Instrument.Ada_Unit is
    -- Find_Ada_Units --
    --------------------
 
-   procedure Find_Ada_Units
+   function Find_Ada_Units
      (Instrumenter : in out Ada_Instrumenter_Type;
-      Filename     : String;
-      Process_Unit : access procedure (Filename : String))
+      Filename     : String) return String_Vectors.Vector
    is
 
       function Process_Node (N : LAL.Ada_Node'Class) return Visit_Status;
+
+      Dependent_Comp_Units : String_Vectors.Vector;
 
       ------------------
       -- Process_Node --
@@ -10955,11 +11169,11 @@ package body Instrument.Ada_Unit is
                   if Subunit_FQN'Length = 0 then
                      raise Property_Error;
                   else
-                     Find_Ada_Units
-                       (Instrumenter,
-                        Instrumenter.Context.Unit_Provider.Get
-                        .Get_Unit_Filename (Subunit_FQN, LALCO.Unit_Body),
-                       Process_Unit);
+                     Dependent_Comp_Units.Append
+                       (Find_Ada_Units
+                         (Instrumenter,
+                          Instrumenter.Context.Unit_Provider.Get
+                          .Get_Unit_Filename (Subunit_FQN, LALCO.Unit_Body)));
                   end if;
                end;
             exception
@@ -10993,7 +11207,7 @@ package body Instrument.Ada_Unit is
       --  g-os_lib.adb), so just ignore them.
 
       if Unit.Root.Kind = Ada_Pragma_Node_List then
-         return;
+         return String_Vectors.Empty_Vector;
 
       --  Abort if a source file does not contain exactly one compilation
       --  unit.
@@ -11009,8 +11223,10 @@ package body Instrument.Ada_Unit is
       declare
          CU : constant LAL.Compilation_Unit := Unit.Root.As_Compilation_Unit;
       begin
-         Process_Unit (Filename);
+         Dependent_Comp_Units :=
+           String_Vectors.To_Vector (+Filename, Length => 1);
          CU.Traverse (Process_Node'Access);
+         return Dependent_Comp_Units;
       end;
    end Find_Ada_Units;
 

@@ -1,4 +1,4 @@
-with "gnat_util", "gnatcoll", "gpr2", "libadalang", "libclang";
+with "gnat_util", "gnatcoll", "gpr2", "libadalang", "libclang", "stable_sloc";
 
 project Gnatcov is
 
@@ -150,7 +150,7 @@ project Gnatcov is
       --  only in stubs.
 
       case Part is
-         when "lib32" | "lib64" | "driver" | "gnatcov32" =>
+         when "lib32" | "lib64" | "driver" | "gnatcov32" | "compiler" =>
             Gnatcoverage_Excluded_Units := Gnatcoverage_Excluded_Units
               & ("instrument*");
          when "gnatcov64" =>

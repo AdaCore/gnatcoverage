@@ -497,8 +497,13 @@ def check_xcov_content(filename, expected_cov, trace_mode=None):
     >>> {'+': {5, 7}, '!': {6}}
 
     This is interpreted as: lines 5 and 7 must be fully covered (+), line 6
-    must be partially covered (!) and all other lines must be no-code (.),
-    fully covered (+) or undetermined coverage (?).
+    must be partially covered (!) and all other lines must be no-code (.) or
+    fully covered (+).
+
+    The recognized coverage annotation are partially covered (!),
+    not covered (-), undetermined coverage (?), disabled coverage (D),
+    exempted with no violations (#) or exempted with at least one
+    violation (*).
 
     """
 
@@ -511,7 +516,15 @@ def check_xcov_content(filename, expected_cov, trace_mode=None):
         }
 
     # Check that expected coverage data contain only supported line annotations
-    invalid_line_annotations = set(expected_cov) - {"+", "!", "-", "?", "D"}
+    invalid_line_annotations = set(expected_cov) - {
+        "+",
+        "!",
+        "-",
+        "?",
+        "D",
+        "#",
+        "*",
+    }
     assert not invalid_line_annotations, "Invalid line annotations: {}".format(
         " ".join(sorted(invalid_line_annotations))
     )

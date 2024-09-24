@@ -1,0 +1,36 @@
+# All these annotations should load fine, but generate a warning
+
+[unknown_kind_buffers]
+kind="absolute"
+file="main.adb"
+[unknown_kind_buffers.matcher]
+start_line=3
+start_col=4
+end_line=3
+end_col=4
+[[unknown_kind_buffers.annotations]]
+purpose="xcov.buffers.foo_bar"
+
+[duplicate_1]
+kind="absolute"
+file="main.adb"
+[duplicate_1.matcher]
+start_line=3
+start_col=4
+end_line=3
+end_col=4
+[[duplicate_1.annotations]]
+purpose="xcov.buffers.dump"
+justification="this entry is duplicated (same sloc)"
+
+[duplicate_2]
+kind="absolute"
+file="main.adb"
+[duplicate_2.matcher]
+start_line=3
+start_col=4
+end_line=3
+end_col=4
+[[duplicate_2.annotations]]
+purpose="xcov.buffers.reset"
+justification="this entry is duplicated (same sloc)"

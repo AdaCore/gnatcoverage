@@ -18,6 +18,8 @@
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 
+with SC_Obligations;
+
 package body Coverage_Options is
 
    function Level_Options
@@ -214,6 +216,67 @@ package body Coverage_Options is
 
       end loop;
    end Add_Source_Coverage_Level_Combinaisons;
+
+   function Annotation_Kind_Options return String is
+      use SC_Obligations;
+      Res : Unbounded_String := +Kind_Image (Exempt_Region);
+   begin
+      for Kind in Exempt_On .. Any_Annotation_Kind'Last loop
+         Res := Res & ", " & Kind_Image (Kind);
+      end loop;
+      return +Res;
+   end Annotation_Kind_Options;
+
+   ----------------------------------
+   -- Annot_Kind_Relevant_Switches --
+   ----------------------------------
+
+   function Annot_Kind_Relevant_Switches return String is
+      use SC_Obligations;
+      Res : Unbounded_String;
+   begin
+      for Kind in Exempt_Region .. Any_Annotation_Kind'Last loop
+         Res := Res &
+           (+(ASCII.LF & ASCII.LF & "   " & Kind_Image (Kind) & ": "));
+         case Kind is
+            when Exempt_On =>
+               Res := Res & "--location=LINE:COL --justification=MESSAGE";
+            when Exempt_Off =>
+               Res := Res & "--location=LINE:COL";
+            when Exempt_Region =>
+               Res := Res
+                 & "--start-location=LINE:COL --end-location=LINE:COL"
+                 & " --justification=MESSAGE";
+            when Dump_Buffers =>
+               Res := Res
+                 & "--location=LINE:COL [--annotate-after]"
+                 & " [--dump-filename-prefix=TEXT]";
+            when Reset_Buffers =>
+               Res := Res & "--location=LINE:COL [--annotate-after]";
+            when Cov_On =>
+               Res := Res & "--location=LINE:COL";
+            when Cov_Off =>
+               Res := Res & "--location=LINE:COL [--justification=MESSAGE]";
+         end case;
+      end loop;
+      return US.To_String (Res);
+   end Annot_Kind_Relevant_Switches;
+
+   ----------------
+   -- Kind_Image --
+   ----------------
+
+   function Kind_Image
+     (Kind : SC_Obligations.Any_Annotation_Kind) return String is
+     (case Kind is
+         when SC_Obligations.Unknown       => "Unknown",
+         when SC_Obligations.Exempt_Region => "Exempt_Region",
+         when SC_Obligations.Exempt_On     => "Exempt_On",
+         when SC_Obligations.Exempt_Off    => "Exempt_Off",
+         when SC_Obligations.Dump_Buffers  => "Dump_Buffers",
+         when SC_Obligations.Reset_Buffers => "Reset_Buffers",
+         when SC_Obligations.Cov_Off       => "Cov_Off",
+         when SC_Obligations.Cov_On        => "Cov_On");
 
 begin
    --  Register command line options for valid combinations of coverage levels

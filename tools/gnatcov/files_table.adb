@@ -1674,6 +1674,23 @@ package body Files_Table is
       end return;
    end Name_For_Rebase;
 
+   -------------------------
+   -- Sloc_Intersects_SCO --
+   -------------------------
+
+   function Sloc_Intersects_SCO (Sloc : Source_Location) return SCO_Id is
+      LI : constant Line_Info_Access := Get_Line (Sloc);
+   begin
+      if LI /= null and then LI.SCOs /= null then
+         for SCO of LI.SCOs.all loop
+            if Slocs.In_Range (Sloc, Sloc_Range (SCO)) then
+               return SCO;
+            end if;
+         end loop;
+      end if;
+      return No_SCO_Id;
+   end Sloc_Intersects_SCO;
+
    -------------------------------
    -- Writeable_Sloc_To_SCO_Map --
    -------------------------------
@@ -1731,7 +1748,7 @@ package body Files_Table is
       Current_Annot_Sloc : Source_Location;
       Current_Annotation : ALI_Annotation;
 
-      Start_Annotation : constant ALI_Annotation_Kind :=
+      Start_Annotation : constant Src_Annotation_Kind :=
         (case Kind is
             when Exemption        => Exempt_On,
             when Disable_Coverage => Cov_Off);

@@ -1,0 +1,27 @@
+# These two entries will reset the buffers before the first statement in
+# do_dump then dump them before the end of the procedure.
+
+[dump_buffs]
+kind="absolute"
+file="pkg.adb"
+[dump_buffs.matcher]
+start_line=5
+start_col=11
+end_line=5
+end_col=11
+[[dump_buffs.annotations]]
+purpose="xcov.buffers.dump"
+# Use the same trace prefix as the project name to simply test code
+trace_prefix='"prj_ada_unit"'
+insert_after=true
+
+[dump_reset]
+kind="absolute"
+file="pkg.adb"
+[dump_reset.matcher]
+start_line=5
+start_col=7
+end_line=5
+end_col=7
+[[dump_reset.annotations]]
+purpose="xcov.buffers.reset"

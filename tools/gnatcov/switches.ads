@@ -170,6 +170,11 @@ package Switches is
    Instrument_Block : Boolean := False;
    --  When True, instrument statement blocks instead of statements
 
+   Force : Boolean := False;
+   --  When True, overwrite annotations of the same kind and same location, or
+   --  of the same identifier if specified on the command line. Only relevant
+   --  for the annotate command.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 

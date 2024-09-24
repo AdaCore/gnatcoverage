@@ -1,0 +1,22 @@
+# A couple of entries that should fail to load, to ensure we properly
+# report them.
+
+[unknown_kind]
+kind="no such kind"
+file="main.adb"
+[unknown_kind.matcher]
+start_line=1
+start_col=1
+end_line=1
+end_col=1
+[[unknown_kind.annotations]]
+purpose="xcov.exempt.on"
+
+[missing_field]
+kind="absolute"
+file="main.adb"
+[missing_justif.matcher]
+start_line=1
+start_col=1
+[[missing_justif.annotations]]
+purpose="xcov.exempt.on"

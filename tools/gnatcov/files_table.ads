@@ -513,6 +513,13 @@ package Files_Table is
 
    --  Get line info (or text) at File:Index (or at Sloc)
 
+   function Sloc_Intersects_SCO (Sloc : Source_Location) return SCO_Id;
+   --  Returns a SCO_Id in which Sloc lies. If Sloc is not within any SCO,
+   --  return No_SCO_Id.
+   --
+   --  In case multiple SCOs contain Sloc, the result is the Id of the first
+   --  SCO registered in the line info corresponding to Sloc.
+
    type ALI_Region_Annotation_Kind is (Exemption, Disable_Coverage);
 
    procedure Populate_Annotations
