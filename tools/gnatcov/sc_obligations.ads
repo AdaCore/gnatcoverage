@@ -233,6 +233,11 @@ package SC_Obligations is
    --  Increment the exempted line/message undetermined coverage items counter
    --  for exemption at Sloc.
 
+   procedure Reset_Exemption_Counters;
+   --  Reset all exemption-related counters in all known compilation units.
+   --  Since these counters are computed during report generation, we need to
+   --  reset the counters between each generated report.
+
    procedure Load_ALI (ALI_Filename : String);
    --  Load ALI information for Filename, without SCOs
 
