@@ -1,7 +1,7 @@
 pragma Ada_2012;
 pragma Assertion_Policy (Check);
 
-package Assertions is
+package Functions is
 
    function Foo (I : Integer) return Integer
      with Pre  => (I >= 0 and then False) or else I >= 0,      -- # foo_pre
@@ -14,4 +14,4 @@ package Assertions is
 
    function Same (A, B : Boolean) return Boolean;
 
-end Assertions;
+end Functions;

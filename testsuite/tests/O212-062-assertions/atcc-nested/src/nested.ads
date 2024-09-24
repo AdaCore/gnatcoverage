@@ -7,14 +7,14 @@ package Nested is
     F : Boolean := False;                                       -- # success
 
     function One return Integer
-      with Pre => (T and then T) or else F,                     -- # fail
-           Post => One'Result = 1 and then                      -- # fail
-           (T and then                                          -- # fail
-               (T or else                                       -- # fail
-                   (F or else T)));                             -- # fail
+      with Pre => (T and then T) or else F,                     -- # fail_ac
+           Post => One'Result = 1 and then                      -- # fail_part
+           (T and then                                          -- # fail_part
+               (T or else                                       -- # fail_part
+                   (F or else T)));                             -- # fail_2_ac
 
     function Two return Integer
-      with Pre => (T and then (if T then T else T)) or else F,  -- # fail
+      with Pre => (T and then (if T then T else T)) or else F,  -- # fail_ac
            Post => (if Two'Result = 2 and then                  -- # success
              (T and then                                        -- # success
                 (F or else (T or else F)))                      -- # success

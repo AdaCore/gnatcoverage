@@ -1,17 +1,20 @@
-with Catch_Assertions_2;
+with Fail_But_Ok_Cond;
 
-procedure Test_Assertions_2 is
+--  Test the coverage state when all conditions of a failing assertion are
+--  executed.
+
+procedure Test_Fail_But_Ok_Cond is
 begin
-   Catch_Assertions_2;
-end Test_Assertions_2;
+   Fail_But_Ok_Cond;
+end Test_Fail_But_Ok_Cond;
 
---# assertions.ads
+--# functions.ads
 -- /foo_pre/         l- ## a-
 -- /foo_post/        l- ## a-
 -- /bar_expr/        l- ## s-
--- /bar_pre/         l- ## aT-
--- /baz_expr/        l- ## s-
---# assertions.adb
+-- /bar_pre/         l- ## a-
+-- /baz_expr/        l+ ## 0
+--# functions.adb
 -- /foo_hi_decl/     l- ## s-
 -- /foo_loop_1/      l- ## s-
 -- /foo_inv_1/       l- ## s-
@@ -25,5 +28,6 @@ end Test_Assertions_2;
 -- /nested_2/        l- ## s-
 -- /nested_3/        l- ## s-
 -- /same_ret/        l- ## s-
---# assertions_2.adb
--- /foo_2/           l+ ## c!
+-- # fail_but_ok_cond.adb
+-- /assertion/       l! ## aT-
+-- /catch/           l+ ## 0
