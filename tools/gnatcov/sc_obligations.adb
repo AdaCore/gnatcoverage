@@ -5388,7 +5388,7 @@ package body SC_Obligations is
    -----------------------------------
 
    procedure Inc_Violation_Exemption_Count (Sloc : Source_Location) is
-      E   : ALI_Annotation renames
+      E : ALI_Annotation renames
         CU_Vector.Reference (Comp_Unit (Sloc.Source_File))
         .ALI_Annotations.Reference (Sloc);
    begin
@@ -5400,7 +5400,7 @@ package body SC_Obligations is
    -----------------------------------
 
    procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location) is
-      E   : ALI_Annotation renames
+      E : ALI_Annotation renames
         CU_Vector.Reference (Comp_Unit (Sloc.Source_File))
         .ALI_Annotations.Reference (Sloc);
    begin
