@@ -19,7 +19,6 @@
 --  Source Coverage Obligations
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Exceptions;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
@@ -5140,8 +5139,7 @@ package body SC_Obligations is
             Scope_Entities_Trace.Trace
               ("The following tree of scopes breaks the nesting/ordering"
                & " invariant:");
-            Scope_Entities_Trace.Trace
-              (Ada.Exceptions.Exception_Message (Exc));
+            Scope_Entities_Trace.Trace (Switches.Exception_Info (Exc));
             Dump (Tree, "| ");
          end if;
          return False;
