@@ -1629,6 +1629,7 @@ package Command_Line is
            & " Supported compilers are: gcc, g++.",
          Commands  => (Cmd_Print_GPR_Registry => False, others => True),
          Internal  => True),
+
       Opt_Ext_Annotations => Create
         (Long_Name  => "--external-annotations",
          Help       =>
