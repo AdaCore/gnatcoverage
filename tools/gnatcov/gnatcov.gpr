@@ -202,10 +202,10 @@ project Gnatcov is
    package Compiler is
 
       Ada_Common_Switches :=
-        ("-gnat12", "-gnatwa", "-gnatyg");
+        ("-gnat12", "-gnatwa", "-gnatyg", "-g");
 
       C_Common_Switches :=
-        ("-DTARGET_BITS=" & Bits, "-Wall", "-Wextra", "-std=c99");
+        ("-DTARGET_BITS=" & Bits, "-Wall", "-Wextra", "-std=c99", "-g");
 
       Mode_Switches := ();
       Ada_Mode_Switches := ();
@@ -214,7 +214,7 @@ project Gnatcov is
 
       case Build_Mode is
          when "dev" =>
-            Mode_Switches := ("-O0", "-g");
+            Mode_Switches := ("-O0");
             Ada_Mode_Switches := ("-gnata", "-gnatwe");
             C_Mode_Switches := ("-Werror");
             CPP_Mode_Switches := ("-Werror");
@@ -226,7 +226,7 @@ project Gnatcov is
 
          when "boot" =>
             Mode_Switches :=
-              ("-O1", "-fdump-scos", "-fpreserve-control-flow", "-g");
+              ("-O1", "-fdump-scos", "-fpreserve-control-flow");
             C_Mode_Switches := ("-DNDEBUG");
             CPP_Mode_Switches := ("-DNDEBUG");
       end case;
