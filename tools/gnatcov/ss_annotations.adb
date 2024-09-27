@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Directories;
-with Ada.Exceptions;
 with Ada.Strings;
 with Ada.Strings.Hash;
 with Ada.Text_IO;
@@ -286,8 +285,7 @@ package body SS_Annotations is
    exception
       when Exc : Constraint_Error =>
          Fatal_Error
-           ("Wrong value for " & Sw & ": "
-            & Ada.Exceptions.Exception_Message (Exc));
+           ("Wrong value for " & Sw & ": " & Switches.Exception_Info (Exc));
    end Get_Or_Error;
 
    --------------------------

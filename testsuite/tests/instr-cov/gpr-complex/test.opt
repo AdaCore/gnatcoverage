@@ -1,1 +1,2 @@
 !native DEAD hardcoded project files without board information
+all-warnings XFAIL Warnings pending resolution of eng/das/cov/gnatcoverage#66
