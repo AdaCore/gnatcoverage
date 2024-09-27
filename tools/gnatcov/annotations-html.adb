@@ -64,6 +64,10 @@ package body Annotations.Html is
       --  Prefix to use for titles in generated HTML documents
    end record;
 
+   overriding function Format
+     (Pp : Html_Pretty_Printer) return Annotation_Format_Family
+   is (Annotate_Html);
+
    ------------------------------------------------
    -- Html_Pretty_Printer's primitive operations --
    --    (inherited from Pretty_Printer)         --

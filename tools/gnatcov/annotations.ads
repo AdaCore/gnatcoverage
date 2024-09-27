@@ -53,6 +53,17 @@ package Annotations is
       Annotate_Report,
       Annotate_Sarif,
       Annotate_Unknown);
+   subtype Annotation_Format_Family is Annotation_Format
+   with Static_Predicate =>
+     Annotation_Format_Family in
+       Annotate_Asm
+       | Annotate_Xcov
+       | Annotate_Static_Html
+       | Annotate_Html
+       | Annotate_Cobertura
+       | Annotate_Xml
+       | Annotate_Report
+       | Annotate_Sarif;
 
    function To_Annotation_Format (Option : String) return Annotation_Format;
    --  Convert annotation format option to Annotation_Format value
@@ -125,6 +136,10 @@ private
       Show_Details : Boolean;
       Context      : Coverage.Context_Access;
    end record;
+
+   function Format (Pp : Pretty_Printer) return Annotation_Format_Family
+   is abstract;
+   --  Return the family of annotation formats that Pp generates
 
    procedure Pretty_Print_Start
      (Pp : in out Pretty_Printer) is null;

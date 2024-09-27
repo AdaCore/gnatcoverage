@@ -119,6 +119,10 @@ package body Annotations.Report is
       --  Whether to add a section for the list of names for units of interest
    end record;
 
+   overriding function Format
+     (Pp : Report_Pretty_Printer) return Annotation_Format_Family
+   is (Annotate_Report);
+
    procedure Chapter
      (Pp    : in out Report_Pretty_Printer'Class;
       Title : String);
