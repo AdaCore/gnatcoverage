@@ -222,8 +222,11 @@ Building the instrumented program then goes like::
 This is the same command as for the regular build, with a couple
 of additional switches to:
 
-  * Instruct the builder to search for the instrumented versions of the
-    sources (``--src-subdirs``),
+  * Instruct the builder to search for the instrumented versions of the sources
+    (``--src-subdirs``). Note that, due to the way ``--src-subdirs`` works in
+    ``gprbuild``, even though |gcvins| creates directories with names derived
+    from ``*-gnatcov-instr``, the argument to pass to GPRbuild must always be
+    exactly ``--src-subdirs=gnatcov-instr``.
 
   * Provide visibility to the builder over the coverage runtime
     referenced by the instrumented sources (``--implicit-with``).
