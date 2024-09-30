@@ -130,6 +130,10 @@ package body Annotations.Dynamic_Html is
 
    end record;
 
+   overriding function Format
+     (Pp : Dynamic_Html) return Annotation_Format_Family
+   is (Annotate_Html);
+
    -----------------------------------------
    -- Dynamic_Html's primitive operations --
    --   (inherited from Pretty_Printer)   --

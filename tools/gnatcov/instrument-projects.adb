@@ -251,10 +251,10 @@ is
    --  externally built, add Source_File to Project_Sources.
 
    procedure Insert_Manual_Dump_Trigger
-     (Language             : Src_Supported_Language;
-      Project_Sources      : in out File_Info_Sets.Set;
-      Instrumenter         : in out Language_Instrumenter'Class;
-      Manual_Dump_Inserted : in out Boolean;
+     (Language                : Src_Supported_Language;
+      Project_Sources         : in out File_Info_Sets.Set;
+      Instrumenter            : in out Language_Instrumenter'Class;
+      Manual_Dump_Inserted    : in out Boolean;
       Manual_Indication_Files : File_Sets.Set);
    --  For all sources in Project_Sources of language Language, call
    --  Replace_Manual_Indications. If a dump procedure call was inserted
@@ -846,10 +846,10 @@ is
    --------------------------------
 
    procedure Insert_Manual_Dump_Trigger
-     (Language             : Src_Supported_Language;
-      Project_Sources      : in out File_Info_Sets.Set;
-      Instrumenter         : in out Language_Instrumenter'Class;
-      Manual_Dump_Inserted : in out Boolean;
+     (Language                : Src_Supported_Language;
+      Project_Sources         : in out File_Info_Sets.Set;
+      Instrumenter            : in out Language_Instrumenter'Class;
+      Manual_Dump_Inserted    : in out Boolean;
       Manual_Indication_Files : File_Sets.Set)
    is
 

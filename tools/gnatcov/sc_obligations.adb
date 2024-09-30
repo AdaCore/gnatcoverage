@@ -19,7 +19,6 @@
 --  Source Coverage Obligations
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Ada.Exceptions;
 with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
@@ -5140,8 +5139,7 @@ package body SC_Obligations is
             Scope_Entities_Trace.Trace
               ("The following tree of scopes breaks the nesting/ordering"
                & " invariant:");
-            Scope_Entities_Trace.Trace
-              (Ada.Exceptions.Exception_Message (Exc));
+            Scope_Entities_Trace.Trace (Switches.Exception_Info (Exc));
             Dump (Tree, "| ");
          end if;
          return False;
@@ -5390,7 +5388,7 @@ package body SC_Obligations is
    -----------------------------------
 
    procedure Inc_Violation_Exemption_Count (Sloc : Source_Location) is
-      E   : ALI_Annotation renames
+      E : ALI_Annotation renames
         CU_Vector.Reference (Comp_Unit (Sloc.Source_File))
         .ALI_Annotations.Reference (Sloc);
    begin
@@ -5402,12 +5400,31 @@ package body SC_Obligations is
    -----------------------------------
 
    procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location) is
-      E   : ALI_Annotation renames
+      E : ALI_Annotation renames
         CU_Vector.Reference (Comp_Unit (Sloc.Source_File))
         .ALI_Annotations.Reference (Sloc);
    begin
       E.Undetermined_Cov_Count := E.Undetermined_Cov_Count + 1;
    end Inc_Undet_Cov_Exemption_Count;
+
+   ------------------------------
+   -- Reset_Exemption_Counters --
+   ------------------------------
+
+   procedure Reset_Exemption_Counters is
+      use ALI_Annotation_Maps;
+   begin
+      for CU of CU_Vector loop
+         for Cur in CU.ALI_Annotations.Iterate loop
+            declare
+               A : ALI_Annotation renames CU.ALI_Annotations.Reference (Cur);
+            begin
+               A.Violation_Count := 0;
+               A.Undetermined_Cov_Count := 0;
+            end;
+         end loop;
+      end loop;
+   end Reset_Exemption_Counters;
 
    --------------
    -- Load_ALI --

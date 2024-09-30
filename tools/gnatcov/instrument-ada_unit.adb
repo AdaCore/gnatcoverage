@@ -20,7 +20,6 @@ with Ada.Characters.Conversions; use Ada.Characters.Conversions;
 with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Containers;             use Ada.Containers;
-with Ada.Exceptions;
 with Ada.Finalization;
 with Ada.Strings.Wide_Wide_Fixed;
 pragma Warnings (Off, "* is an internal GNAT unit");
@@ -2842,7 +2841,7 @@ package body Instrument.Ada_Unit is
                Report (Node => Common_Nodes.N,
                        Msg  => "Could not find previous declaration for the"
                                 & " expression function: "
-                                & Ada.Exceptions.Exception_Information (Exc),
+                                & Switches.Exception_Info (Exc),
                        Kind => Low_Warning);
          end;
       else
@@ -2970,7 +2969,7 @@ package body Instrument.Ada_Unit is
             Report (Node => N,
                     Msg  => "Could not determine if expression function is a"
                     & " primitive: "
-                    & Ada.Exceptions.Exception_Information (Exc),
+                    & Switches.Exception_Info (Exc),
                     Kind => Warning);
             return False;
       end;
@@ -3004,7 +3003,7 @@ package body Instrument.Ada_Unit is
                     Msg  => "Could not determine the semantic parent of the"
                     & " expression function or the semantic parent of its"
                     & " previous declaration: "
-                    & Ada.Exceptions.Exception_Information (Exc),
+                    & Switches.Exception_Info (Exc),
                     Kind => Warning);
             return False;
       end;
@@ -3031,7 +3030,7 @@ package body Instrument.Ada_Unit is
          Report (Node => Common_Nodes.N,
                  Msg  => "Could not determine the return type of the"
                  & " expression function: "
-                 & Ada.Exceptions.Exception_Information (Exc),
+                 & Switches.Exception_Info (Exc),
                  Kind => Warning);
          return False;
    end Augmented_EF_Needs_Wrapper_Package;
@@ -3073,7 +3072,7 @@ package body Instrument.Ada_Unit is
               (UIC,
                EF,
                "failed to determine referenced declaration: "
-               & Ada.Exceptions.Exception_Information (Exc),
+               & Switches.Exception_Info (Exc),
                Warning);
             return Into;
       end Process_Node;
@@ -3106,9 +3105,7 @@ package body Instrument.Ada_Unit is
       Report (UIC,
               Common_Nodes.N,
               "failed to determine return type of expression function: "
-              & (if Switches.Misc_Trace.Is_Active
-                 then Ada.Exceptions.Exception_Message (Exc)
-                 else Ada.Exceptions.Exception_Information (Exc)),
+              & Switches.Exception_Info (Exc),
               Low_Warning);
       return False;
    end Return_Type_Is_Controlling;
@@ -3197,7 +3194,7 @@ package body Instrument.Ada_Unit is
          Report
            (Node => Ret_Node,
             Msg  => "Unable to determine to which body this return statment"
-                    & "applies: " & Ada.Exceptions.Exception_Information (Exc),
+                    & "applies: " & Switches.Exception_Info (Exc),
             Kind => Low_Warning);
 
          --  Inserting an extranous Dump_Buffer call isn't really a problem
@@ -3224,7 +3221,7 @@ package body Instrument.Ada_Unit is
          Report
            (Node => Decl,
             Msg  => "Could not find the parent package: "
-                    & Ada.Exceptions.Exception_Information (Exc),
+                    & Switches.Exception_Info (Exc),
             Kind => Warning);
          return No_Basic_Decl;
    end Parent_Decl;
@@ -7365,7 +7362,7 @@ package body Instrument.Ada_Unit is
       when E : Property_Error =>
          Report (Node => N,
                  Msg  => "Could not determine if decl is ghost: "
-                         & Ada.Exceptions.Exception_Information (E),
+                         & Switches.Exception_Info (E),
                  Kind => Low_Warning);
          return False;
 
@@ -7378,7 +7375,7 @@ package body Instrument.Ada_Unit is
       when E : Property_Error =>
          Report (Node => N,
                  Msg  => "Could not determine if stmt is ghost: "
-                         & Ada.Exceptions.Exception_Information (E),
+                         & Switches.Exception_Info (E),
                  Kind => Low_Warning);
          return False;
 
@@ -7397,7 +7394,7 @@ package body Instrument.Ada_Unit is
       when E : Property_Error =>
          Report (Node => N,
                  Msg  => "Could not resolve the previous declaration: "
-                         & Ada.Exceptions.Exception_Information (E),
+                         & Switches.Exception_Info (E),
                  Kind => Warning);
          return No_Basic_Decl;
    end Safe_Previous_Part_For_Decl;
@@ -7589,7 +7586,7 @@ package body Instrument.Ada_Unit is
             Report
               (UIC, E,
                "failed to determine expression type: "
-               & Ada.Exceptions.Exception_Information (Exc),
+               & Switches.Exception_Info (Exc),
                Warning);
       end;
 
@@ -7612,7 +7609,7 @@ package body Instrument.Ada_Unit is
          Report
            (E,
             "failed to determine whether this is a static expression: "
-            & Ada.Exceptions.Exception_Information (Exc),
+            & Switches.Exception_Info (Exc),
             Low_Warning);
          return False;
    end Is_Static_Expr;
@@ -7630,7 +7627,7 @@ package body Instrument.Ada_Unit is
          Report
            (E,
             "failed to evaluate the expression: "
-            & Ada.Exceptions.Exception_Information (Exc),
+            & Switches.Exception_Info (Exc),
             Low_Warning);
          return "";
    end Bool_Expr_Eval;
@@ -7656,7 +7653,7 @@ package body Instrument.Ada_Unit is
             Report
               (UIC, Decl,
                "Failed to look for a previous declaration of this expression"
-               & " function" & Ada.Exceptions.Exception_Information (Exc),
+               & " function" & Switches.Exception_Info (Exc),
                Warning);
       end;
 
@@ -7667,7 +7664,7 @@ package body Instrument.Ada_Unit is
             Report
               (UIC, Decl,
                "Failed to look for a Ghost aspect for this declaration"
-               & Ada.Exceptions.Exception_Information (Exc),
+               & Switches.Exception_Info (Exc),
                Warning);
             return False;
       end;
@@ -7693,7 +7690,7 @@ package body Instrument.Ada_Unit is
             Report
               (UIC, Decl,
                "Failed to look for a canonical part of this declaration"
-               & Ada.Exceptions.Exception_Information (Exc),
+               & Switches.Exception_Info (Exc),
                Warning);
       end;
 
@@ -9772,7 +9769,7 @@ package body Instrument.Ada_Unit is
               (UIC,
                UIC.Root_Unit,
                "Could not determine pragmas of the compilation unit: "
-               & Ada.Exceptions.Exception_Information (Exc),
+               & Switches.Exception_Info (Exc),
                Kind => Low_Warning);
             Has_Pragma_SCAO := False;
       end;

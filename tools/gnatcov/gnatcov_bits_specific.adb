@@ -18,7 +18,6 @@
 
 with Ada.Containers;  use Ada.Containers;
 with Ada.Directories; use Ada.Directories;
-with Ada.Exceptions;
 with Ada.IO_Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Maps;
@@ -1894,7 +1893,7 @@ begin
                when E : Binary_Files.Error =>
                   Fatal_Error ("Cannot open ELF file " & Exe_Name
                                & " for trace file " & Trace_File_Name & ": "
-                               & Ada.Exceptions.Exception_Message (E));
+                               & Switches.Exception_Info (E));
             end Open_Exec_For_Trace;
 
             ------------------
@@ -2563,7 +2562,7 @@ exception
 
    when Error : Binary_Files.Error
       | Ada.IO_Exceptions.Name_Error =>
-      Outputs.Error (Ada.Exceptions.Exception_Message (Error));
+      Outputs.Error (Switches.Exception_Info (Error));
       Project.Finalize;
 
    --  Each chunk of code with "raise" statements for Xcov_Exit_Exc exceptions
