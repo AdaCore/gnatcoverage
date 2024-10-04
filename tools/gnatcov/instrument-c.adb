@@ -19,6 +19,7 @@
 with Ada.Characters.Handling;
 with Ada.Containers;  use Ada.Containers;
 with Ada.Directories; use Ada.Directories;
+with Ada.IO_Exceptions;
 with Ada.Streams.Stream_IO;
 with Ada.Text_IO;     use Ada.Text_IO;
 
@@ -4906,17 +4907,24 @@ package body Instrument.C is
       CU   : Compilation_Unit;
       Prj  : Prj_Desc) return Compilation_Unit
    is
-      Filename : constant String :=
-        New_File
-          (Prj,
-           To_Symbol_Name (Sys_Prefix) & "_b_"
-           & Filename_Slug (+CU.Unit_Name)
-           & (+Prj.Body_Suffix
-             (C_Family_Instrumenter_Type'Class (Self).Language)));
+      Name : constant String :=
+        To_Symbol_Name (Sys_Prefix) & "_b_"
+        & Filename_Slug (+CU.Unit_Name)
+        & (+Prj.Body_Suffix
+          (C_Family_Instrumenter_Type'Class (Self).Language));
    begin
-      return Compilation_Unit'
-        (Language  => File_Based_Language,
-         Unit_Name => +Filename);
+      declare
+         Filename : constant String := New_File (Prj, Name);
+      begin
+         return Compilation_Unit'
+           (Language  => File_Based_Language,
+            Unit_Name => +Filename);
+      end;
+   exception
+      when Exc : Ada.IO_Exceptions.Name_Error =>
+         Fatal_Error
+           ("Could not create the buffer unit for " & Image (CU) & ": "
+            & Switches.Exception_Info (Exc, Discard_Name => True));
    end Buffer_Unit;
 
    -----------------------------
