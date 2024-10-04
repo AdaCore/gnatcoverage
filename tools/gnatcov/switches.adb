@@ -663,7 +663,8 @@ package body Switches is
    --------------------
 
    function Exception_Info
-     (Exc : Ada.Exceptions.Exception_Occurrence) return String is
+     (Exc          : Ada.Exceptions.Exception_Occurrence;
+      Discard_Name : Boolean := False) return String is
    begin
       if Misc_Trace.Is_Active then
          return Ada.Exceptions.Exception_Information (Exc);
@@ -673,9 +674,13 @@ package body Switches is
          Name : constant String := Ada.Exceptions.Exception_Name (Exc);
          Msg  : constant String := Ada.Exceptions.Exception_Message (Exc);
       begin
-         return (if Msg = ""
-                 then Name
-                 else Name & ": " & Msg);
+         if Msg = "" then
+            return Name;
+         elsif Discard_Name then
+            return Msg;
+         else
+            return Name & ": " & Msg;
+         end if;
       end;
    end Exception_Info;
 
