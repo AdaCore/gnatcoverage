@@ -37,7 +37,11 @@ thistest.fail_if(p.status == 0)
 thistest.fail_if_no_match(
     what="Missing or unexpected error message",
     regexp=(
-        r'.*/gnatcov\.exe: invalid path name "gcvrt_b_z.*'
+        (
+            r".*/gnatcov\.exe: Could not create the buffer unit for "
+            ".*overly_long_capitalized_c_unit_that_should_not_triple_in_size"
+            '_to_avoid_path_name_limit.c: invalid path name "gcvrt_b_z.*'
+        )
         if "windows" in thistest.env.host.platform
         else r".*/gnatcov: cannot open .*/tests"
         r"/92-long_slugs/tmp_/obj/gen-gnatcov-instr/gcvrt_b_z.*\.c"
