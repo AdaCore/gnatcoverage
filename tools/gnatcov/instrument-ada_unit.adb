@@ -1196,6 +1196,24 @@ package body Instrument.Ada_Unit is
      (Unit : LAL.Compilation_Unit) return Boolean;
    --  Return whether the No_Elaboration_Code_All aspect/pragma applies to Unit
 
+   function Prag_Arg_Expr (Args : Base_Assoc_List; I : Positive) return Expr is
+     (Args.Child (I).As_Pragma_Argument_Assoc.F_Expr);
+   --  Return the expression for the Index'th argument of a pragma's
+   --  arguments.
+
+   procedure Process_Annotation
+     (UIC       : in out Ada_Unit_Inst_Context;
+      N         : Ada_Node;
+      Prag_Args : Base_Assoc_List)
+     with Pre =>
+       N.Kind = Ada_Pragma_Node
+       and then Pragma_Name (N.As_Pragma_Node) = Name_Annotate;
+   --  Handle an Annotate pragma.
+   --
+   --  If this is not an Xcov annotation, do nothing. Otherwise, decode it and
+   --  add it to our internal tables. If the pragma is not correctly formatted
+   --  (decoding failure) just emit a warning.
+
    --------------------------------
    -- Instrumentation extensions --
    --------------------------------
@@ -3324,6 +3342,209 @@ package body Instrument.Ada_Unit is
       return False;
    end Has_No_Elaboration_Code_All;
 
+   ------------------------
+   -- Process_Annotation --
+   ------------------------
+
+   procedure Process_Annotation
+     (UIC       : in out Ada_Unit_Inst_Context;
+      N         : Ada_Node;
+      Prag_Args : Base_Assoc_List)
+   is
+      function Get_Arg
+        (Prag_Args : Base_Assoc_List;
+         I         : Natural)
+         return Symbol_Type
+      is
+        (if Prag_Arg_Expr (Prag_Args, I).Kind =
+             Libadalang.Common.Ada_Identifier
+         then As_Symbol (Prag_Arg_Expr (Prag_Args, I).As_Identifier)
+         else No_Symbol);
+      --  Attempt to get the pragma's Ith argument as an identifier. If
+      --  it is not an identifier, return null. Else, return the identifier
+      --  as a symbol.
+
+      procedure Safe_String_Eval
+        (E       : Expr;
+         Result  : out Unbounded_Text_Type;
+         Success : out Boolean);
+      --  Evaluate the given Expr E and set Result to the evaluated string
+      --  and Success to True if it could be evaluated, otherwise set
+      --  Success to False.
+
+      ----------------------
+      -- Safe_String_Eval --
+      ----------------------
+
+      procedure Safe_String_Eval
+        (E       : Expr;
+         Result  : out Unbounded_Text_Type;
+         Success : out Boolean)
+      is
+         use Libadalang.Expr_Eval;
+      begin
+         --  TODO??? Check for P_Is_Static_Expr prior to evaluating
+         --  when eng/libadalang/libadalang#1359 is implemented instead of
+         --  using exception handling.
+
+         declare
+            String_Expr_Eval : constant Eval_Result :=  Expr_Eval (E);
+         begin
+            if String_Expr_Eval.Kind /= String_Lit then
+               Success := False;
+               return;
+            end if;
+            Result := As_String (String_Expr_Eval);
+            Success := True;
+         end;
+      exception
+         when Property_Error =>
+            Success := False;
+      end Safe_String_Eval;
+
+      Nb_Children : constant Natural := Prag_Args.Children_Count;
+      Kind        : Symbol_Type;
+      Result      : ALI_Annotation;
+
+   --  Start of processing for Process_Annotation
+
+   begin
+      --  Ignore all but Xcov annotations
+
+      if Get_Arg (Prag_Args, 1) /= As_Symbol (Xcov) then
+         return;
+      end if;
+
+      --  Decode the annotation kind
+
+      if Nb_Children = 1 then
+         Report (N, "Xcov annotation kind missing", Warning);
+         return;
+      end if;
+
+      Kind := Get_Arg (Prag_Args, 2);
+      begin
+         Result.Kind := Src_Annotation_Kind'Value (Image (Kind));
+      exception
+         when Constraint_Error =>
+            Report
+              (N,
+               "Invalid Xcov annotation kind"
+               & (if Kind /= No_Symbol then ": " & Image (Kind) else ""),
+               Warning);
+            return;
+      end;
+
+      --  End the statement block if this is a Dump/Reset_Buffers
+      --  annotation.
+
+      if Result.Kind in Dump_Buffers | Reset_Buffers then
+         End_Statement_Block (UIC);
+         Start_Statement_Block (UIC);
+      end if;
+
+      --  Now that the annotation kind is known, validate the remaining
+      --  arguments expected for that kind.
+
+      case Result.Kind is
+         when Exempt_On | Cov_Off =>
+
+            --  Expected formats:
+            --  * (Xcov, <Annotation_Kind>)
+            --  * (Xcov, <Annotation_Kind>, "Justification")
+
+            if Result.Kind = Cov_Off then
+               UIC.Disable_Coverage := True;
+            end if;
+            case Nb_Children is
+            when 2 =>
+               if Result.Kind = Exempt_On then
+                  Report
+                    (N, "No justification given for exempted region",
+                     Warning);
+               elsif Result.Kind = Cov_Off then
+                  Report
+                    (N,
+                     "No justification given for disabled coverage region",
+                     Warning);
+               end if;
+               UIC.Annotations.Append
+                 (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+
+            when 3 =>
+               declare
+                  String_Value : Unbounded_Text_Type;
+                  Success      : Boolean;
+               begin
+                  Safe_String_Eval
+                    (Prag_Arg_Expr (Prag_Args, 3), String_Value, Success);
+                  if not Success then
+                     Report
+                       (N,
+                        "Invalid justification argument: static string"
+                        & " expression expected",
+                        Warning);
+                     return;
+                  end if;
+                  Result.Message := new String'
+                    (To_UTF8 (To_Text (String_Value)));
+
+                  UIC.Annotations.Append
+                    (Annotation_Couple'
+                       ((UIC.SFI, +Sloc (N)), Result));
+               end;
+
+            when others =>
+               Report (N, "At most 3 pragma arguments allowed", Warning);
+               return;
+            end case;
+
+         when Exempt_Off =>
+            if Nb_Children > 2 then
+               Report
+                 (N, "At most 2 pragma arguments allowed", Warning);
+               return;
+            end if;
+            UIC.Annotations.Append
+              (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+
+         when Cov_On =>
+            if Nb_Children > 2 then
+               Report
+                 (N, "At most 2 pragma arguments allowed", Warning);
+               return;
+            end if;
+            UIC.Disable_Coverage := False;
+            UIC.Annotations.Append
+              (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+
+         when Dump_Buffers =>
+
+            --  Expected formats:
+            --  * (Xcov, Dump_Buffers)
+            --  * (Xcov, Dump_Buffers, Prefix)
+
+            case Nb_Children is
+               when 2 | 3 =>
+
+                  --  TODO??? check that the Prefix expression is a string
+                  --  type when eng/libadalang/libadalang#1360 is dealt
+                  --  with.
+               null;
+
+               when others =>
+                  Report (N, "At most 3 pragma arguments allowed", Warning);
+                  return;
+            end case;
+
+         when Reset_Buffers =>
+            if Nb_Children /= 2 then
+               Report (N, "At most 2 pragma arguments allowed", Warning);
+               return;
+            end if;
+      end case;
+   end Process_Annotation;
+
    -----------------------------------------
    -- Traverse_Declarations_Or_Statements --
    -----------------------------------------
@@ -3491,24 +3712,6 @@ package body Instrument.Ada_Unit is
          Name : Text_Type)
         with Pre => Assertion_Coverage_Enabled;
       --  Register decision of contrat of name Name of declaration node D
-
-      function Prag_Arg_Expr (Args : Base_Assoc_List; I : Positive) return Expr
-      is
-        (Args.Child (I).As_Pragma_Argument_Assoc.F_Expr);
-      --  Return the expression for the Index'th argument of a pragma's
-      --  arguments.
-
-      procedure Process_Annotation
-        (N         : Ada_Node;
-         Prag_Args : Base_Assoc_List)
-        with Pre =>
-          N.Kind = Ada_Pragma_Node
-          and then Pragma_Name (N.As_Pragma_Node) = Name_Annotate;
-      --  Handle an Annotate pragma.
-      --
-      --  If this is not an Xcov annotation, do nothing. Otherwise, decode it
-      --  and add it to our internal tables. If the pragma is not correctly
-      --  formatted (decoding failure), just emit a warning.
 
       procedure Traverse_One (N : Ada_Node);
       --  Traverse one declaration or statement
@@ -3795,209 +3998,6 @@ package body Instrument.Ada_Unit is
             P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)),
            'A');
       end Process_Contract;
-
-      ------------------------
-      -- Process_Annotation --
-      ------------------------
-
-      procedure Process_Annotation
-        (N         : Ada_Node;
-         Prag_Args : Base_Assoc_List)
-      is
-         function Get_Arg
-           (Prag_Args : Base_Assoc_List;
-            I         : Natural)
-            return Symbol_Type
-         is
-           (if Prag_Arg_Expr (Prag_Args, I).Kind =
-                Libadalang.Common.Ada_Identifier
-            then As_Symbol (Prag_Arg_Expr (Prag_Args, I).As_Identifier)
-            else No_Symbol);
-         --  Attempt to get the pragma's Ith argument as an identifier. If
-         --  it is not an identifier, return null. Else, return the identifier
-         --  as a symbol.
-
-         procedure Safe_String_Eval
-           (E       : Expr;
-            Result  : out Unbounded_Text_Type;
-            Success : out Boolean);
-         --  Evaluate the given Expr E and set Result to the evaluated string
-         --  and Success to True if it could be evaluated, otherwise set
-         --  Success to False.
-
-         ----------------------
-         -- Safe_String_Eval --
-         ----------------------
-
-         procedure Safe_String_Eval
-           (E       : Expr;
-            Result  : out Unbounded_Text_Type;
-            Success : out Boolean)
-         is
-            use Libadalang.Expr_Eval;
-         begin
-            --  TODO??? Check for P_Is_Static_Expr prior to evaluating
-            --  when eng/libadalang/libadalang#1359 is implemented instead of
-            --  using exception handling.
-
-            declare
-               String_Expr_Eval : constant Eval_Result :=  Expr_Eval (E);
-            begin
-               if String_Expr_Eval.Kind /= String_Lit then
-                  Success := False;
-                  return;
-               end if;
-               Result := As_String (String_Expr_Eval);
-               Success := True;
-            end;
-         exception
-            when Property_Error =>
-               Success := False;
-         end Safe_String_Eval;
-
-         Nb_Children : constant Natural := Prag_Args.Children_Count;
-         Kind        : Symbol_Type;
-         Result      : ALI_Annotation;
-
-      --  Start of processing for Process_Annotation
-
-      begin
-         --  Ignore all but Xcov annotations
-
-         if Get_Arg (Prag_Args, 1) /= As_Symbol (Xcov) then
-            return;
-         end if;
-
-         --  Decode the annotation kind
-
-         if Nb_Children = 1 then
-            Report (N, "Xcov annotation kind missing", Warning);
-            return;
-         end if;
-
-         Kind := Get_Arg (Prag_Args, 2);
-         begin
-            Result.Kind := Src_Annotation_Kind'Value (Image (Kind));
-         exception
-            when Constraint_Error =>
-               Report
-                 (N,
-                  "Invalid Xcov annotation kind"
-                  & (if Kind /= No_Symbol then ": " & Image (Kind) else ""),
-                  Warning);
-               return;
-         end;
-
-         --  End the statement block if this is a Dump/Reset_Buffers
-         --  annotation.
-
-         if Result.Kind in Dump_Buffers | Reset_Buffers then
-            End_Statement_Block (UIC);
-            Start_Statement_Block (UIC);
-         end if;
-
-         --  Now that the annotation kind is known, validate the remaining
-         --  arguments expected for that kind.
-
-         case Result.Kind is
-            when Exempt_On | Cov_Off =>
-
-               --  Expected formats:
-               --  * (Xcov, <Annotation_Kind>)
-               --  * (Xcov, <Annotation_Kind>, "Justification")
-
-               if Result.Kind = Cov_Off then
-                  UIC.Disable_Coverage := True;
-               end if;
-               case Nb_Children is
-               when 2 =>
-                  if Result.Kind = Exempt_On then
-                     Report
-                       (N, "No justification given for exempted region",
-                        Warning);
-                  elsif Result.Kind = Cov_Off then
-                     Report
-                       (N,
-                        "No justification given for disabled coverage region",
-                        Warning);
-                  end if;
-                  UIC.Annotations.Append
-                    (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
-
-               when 3 =>
-                  declare
-                     String_Value : Unbounded_Text_Type;
-                     Success      : Boolean;
-                  begin
-                     Safe_String_Eval
-                       (Prag_Arg_Expr (Prag_Args, 3), String_Value, Success);
-                     if not Success then
-                        Report
-                          (N,
-                           "Invalid justification argument: static string"
-                           & " expression expected",
-                           Warning);
-                        return;
-                     end if;
-                     Result.Message := new String'
-                       (To_UTF8 (To_Text (String_Value)));
-
-                     UIC.Annotations.Append
-                       (Annotation_Couple'
-                          ((UIC.SFI, +Sloc (N)), Result));
-                  end;
-
-               when others =>
-                  Report (N, "At most 3 pragma arguments allowed", Warning);
-                  return;
-               end case;
-
-            when Exempt_Off =>
-               if Nb_Children > 2 then
-                  Report
-                    (N, "At most 2 pragma arguments allowed", Warning);
-                  return;
-               end if;
-               UIC.Annotations.Append
-                 (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
-
-            when Cov_On =>
-               if Nb_Children > 2 then
-                  Report
-                    (N, "At most 2 pragma arguments allowed", Warning);
-                  return;
-               end if;
-               UIC.Disable_Coverage := False;
-               UIC.Annotations.Append
-                 (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
-
-            when Dump_Buffers =>
-
-               --  Expected formats:
-               --  * (Xcov, Dump_Buffers)
-               --  * (Xcov, Dump_Buffers, Prefix)
-
-               case Nb_Children is
-                  when 2 | 3 =>
-
-                     --  TODO??? check that the Prefix expression is a string
-                     --  type when eng/libadalang/libadalang#1360 is dealt
-                     --  with.
-
-                     null;
-
-                  when others =>
-                     Report (N, "At most 3 pragma arguments allowed", Warning);
-                     return;
-               end case;
-
-            when Reset_Buffers =>
-               if Nb_Children /= 2 then
-                  Report (N, "At most 2 pragma arguments allowed", Warning);
-                  return;
-               end if;
-         end case;
-      end Process_Annotation;
 
       ------------------------------------
       -- Traverse_Degenerate_Subprogram --
@@ -5480,7 +5480,7 @@ package body Instrument.Ada_Unit is
                         --  If this is a coverage exemption, record it. Raise
                         --  a warning if the annotation could not be processed.
 
-                        Process_Annotation (N, Prag_Args);
+                        Process_Annotation (UIC, N, Prag_Args);
                         Instrument_Statement (UIC, N, 'P');
 
                      --  Even though Compile_Time_* pragmas do contain
@@ -5811,6 +5811,12 @@ package body Instrument.Ada_Unit is
                                     Kind => Warning);
                               end if;
                            end;
+                        elsif
+                          Instrument.Ada_Unit.Pragma_Name (N.As_Pragma_Node)
+                          = Name_Annotate
+                        then
+                           Process_Annotation
+                             (UIC, N, N.As_Pragma_Node.F_Args);
                         end if;
                      end;
                   end if;
