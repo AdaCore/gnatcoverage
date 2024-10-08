@@ -3435,12 +3435,17 @@ package body Instrument.Ada_Unit is
             return;
       end;
 
-      --  End the statement block if this is a Dump/Reset_Buffers
-      --  annotation.
+      --  Check whether the buffer annotations are in a statement sequence.
+      --  If not, silently ignore it, it will be reported by the pass dedicated
+      --  to them. Otherwise, end the statement block.
 
       if Result.Kind in Dump_Buffers | Reset_Buffers then
-         End_Statement_Block (UIC);
-         Start_Statement_Block (UIC);
+         if N.Parent.Kind in Ada_Stmt_List then
+            End_Statement_Block (UIC);
+            Start_Statement_Block (UIC);
+         else
+            return;
+         end if;
       end if;
 
       --  Now that the annotation kind is known, validate the remaining
@@ -9343,6 +9348,19 @@ package body Instrument.Ada_Unit is
                    (Is_Expected_Argument (Prag_Args, 2, Dump_Buffers)
                     or else Is_Expected_Argument (Prag_Args, 2, Reset_Buffers))
                then
+                  --  First, check that we are in a statement list, no point in
+                  --  generating invalid code.
+
+                  if Prag_N.Parent.Kind not in Ada_Stmt_List then
+                     Report
+                       (Prag_N,
+                        "Incorrect placement for a buffer dump/reset"
+                        & " annotation, the pragma should be placed in a"
+                        & " statement sequence.",
+                        Warning);
+                     return Over;
+                  end if;
+
                   --  The pragma statement to be replaced by the actual call
                   --  to Dump_Buffers / Reset_Buffers has been found.
 
