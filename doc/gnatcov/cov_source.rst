@@ -7,7 +7,7 @@ Source coverage analysis with |gcvcov|
 .. _scov-principles:
 
 Source coverage analysis computes metrics focused on source programming
-language entities such as high level *statements* or *decisions* (DO178
+language entities such as high level *statements* or *decisions* (|do|
 parlance for boolean expressions), which translate as :term:`Source Coverage
 Obligations <Source Coverage Obligation>`, or SCOs, in |gcp| terms.
 
@@ -1052,7 +1052,7 @@ Then for all the decisions in the sources of interest:
 
 * Testing shall exercise both the True and False outcomes of the expression as
   a whole and demonstrate the :dfn:`independant influence` of :dfn:`conditions`
-  in DO-178 parlance, where ...
+  in |do| parlance, where ...
 
 * Separate conditions in a decision are identified as the operands of
   *short-circuit* operators.
@@ -1246,7 +1246,7 @@ Compared to Decision Coverage, achieving MCDC requires tests that demonstrate
 the independent influence of conditions in decisions. Several variants of the
 criterion exist.
 
-:dfn:`Unique Cause MCDC` is the original criterion described in the DO178B
+:dfn:`Unique Cause MCDC` is the original criterion described in the |do|
 reference guidelines, where independent influence of a specific condition must
 be demonstrated by a pair of tests where only that condition changes and the
 decision value toggles.

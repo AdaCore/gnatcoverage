@@ -29,7 +29,7 @@ traces` the coverage traces produced by programs instrumented this
 way.
 
 The set of metrics that the tool can assess from source traces
-corresponds to the set defined by the DO-178B certification standard
+corresponds to the set defined by the |do| certification standard
 for civil avionics, that is:
 
 - :dfn:`Statement Coverage`, where the tools assesses the coverage
@@ -37,12 +37,12 @@ for civil avionics, that is:
   assignment or a subprogram call;
 
 - :dfn:`Decision Coverage`, which, in addition to statement coverage,
-  evaluates whether Boolean expressions (*decisions* in DO178B
+  evaluates whether Boolean expressions (*decisions* in |do|
   parlance) have been exercised both True and False, then
 
 - :dfn:`Modified Condition/Decision Coverage`, commonly known as
   *MCDC*, which requires testing particular variations of individual
-  Boolean operands (*conditions* in DO178B parlance) within decisions.
+  Boolean operands (*conditions* in |do| parlance) within decisions.
 
 All these metrics are defined with respect to source level entities
 (statements, decisions, conditions), and we commonly refer to such

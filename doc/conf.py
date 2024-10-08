@@ -63,6 +63,7 @@ copyright = "2009-2022, AdaCore"  # noqa: A001
 docname = "Manuals"
 
 rst_epilog = """
+.. |do| replace:: **DO-178C**
 .. |gcv| replace:: :command:`gnatcov`
 .. |gcvrun| replace:: :command:`gnatcov` :command:`run`
 .. |gcvcov| replace:: :command:`gnatcov` :command:`coverage`
