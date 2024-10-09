@@ -12,6 +12,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+from datetime import datetime
 import os
 
 import docutils.nodes as nodes
@@ -59,7 +60,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "GNATDAS"
-copyright = "2009-2022, AdaCore"  # noqa: A001
+copyright = f"2009-{datetime.now().year}, AdaCore"  # noqa: A001
 docname = "Manuals"
 
 rst_epilog = """
