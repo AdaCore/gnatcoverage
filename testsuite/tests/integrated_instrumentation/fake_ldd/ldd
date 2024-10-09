@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+
+import subprocess
+import sys
+
+with open("ldd.out", "w") as out:
+    process = subprocess.run(["/usr/bin/ldd", sys.argv[1]], stdout=out)
+    out.write("\tdummy.so => (<random_address>)")
+
+with open("ldd.out", "r") as out:
+    print(out.read())
