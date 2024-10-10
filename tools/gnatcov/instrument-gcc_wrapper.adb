@@ -1078,7 +1078,9 @@ begin
                            --
                            --  <lib_basename> => (<load_address>)
 
-                           elsif Exists (Lib_Filename) then
+                           elsif GNATCOLL.VFS.Is_Regular_File
+                             (GNATCOLL.VFS.Create (+Lib_Filename))
+                           then
                               Add_Coverage_Buffer_Symbols
                                 (Create (+Lib_Filename));
                            end if;
