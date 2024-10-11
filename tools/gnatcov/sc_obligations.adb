@@ -5930,6 +5930,10 @@ package body SC_Obligations is
       end if;
 
       Close (ALI_File);
+
+      if Line /= null then
+         Free (Line);
+      end if;
       return ALI_Index;
    end Load_ALI;
 
