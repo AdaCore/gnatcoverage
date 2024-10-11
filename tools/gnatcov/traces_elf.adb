@@ -1729,7 +1729,7 @@ package body Traces_Elf is
             Read_Byte (Base, Off, Ptr_Sz);
 
          else
-            Put_Line ("!! DWARF version not supported: " & Version'Img);
+            Outputs.Fatal_Error ("Unsupported DWARF version:" & Version'Img);
          end if;
 
          Exec.Addr_Size := Natural (Ptr_Sz);
