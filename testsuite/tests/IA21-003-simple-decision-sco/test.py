@@ -25,7 +25,8 @@ xcov(
         "--level=stmt",
         "--annotate=report",
         "--scos=obj/pack.ali",
-        "--report=out",
+        "-o",
+        "out",
         tracename_for("p"),
     ]
 )
