@@ -271,6 +271,27 @@ project Gnatcov is
       for VCS_Repository_Root use "../..";
    end IDE;
 
+   package Analyzer is
+      for Switches ("analyze") use
+        ("-j0",
+         "--incrementality-method=minimal",
+         "--no-subprojects",
+         "--no-inspector",
+         "--no-gnat");
+
+      Filter := ("--show", "age=added+removed");
+      for Switches ("report text") use Filter;
+      for Switches ("report exit-code") use Filter;
+      for Switches ("report code-climate") use Filter & ("--long-desc");
+
+      for Review_File use "analyzer/gnatcov.sar";
+
+      for Output_Dir use "analyzer";
+      --  Relocate outputs outside of object directory because that one is
+      --  cached in CIs and we do not want to store baselines in the cache.
+
+   end Analyzer;
+
    -------------------------------------------
    -- Configuration of sources/object files --
    -------------------------------------------
