@@ -1,0 +1,2501 @@
+{
+  "info": {
+    "sam_version": 1,
+    "host": "Unix",
+    "sar_checksum": [ "db3236eab36625b745cfd5f42eb879d4" ],
+    "gnatsas_version": "GNATSAS 26.0w (20241010)",
+    "date": "2024-10-22 16:32:37",
+    "root_project_name": "gnatcov",
+    "tools": [
+      {
+        "tool": "Gnat",
+        "command_line": "codepeer-gprbuild -Pgnatcov.gpr -XPART=gnatcov64 -XBUILD_MODE=dev -ws -j2 -k -s --unchecked-shared-lib-imports -m --db /home/eyraud/sbx/wave/x86_64-linux/gnatsas-edge/install/share/gnatsas/config --target=gnatsas --complete-output --no-object-check --restricted-to-languages=Ada --subdirs=gnatsas/gnatcov.gnat/obj -c -u -gnatc -gnatd.M -gnatef -gnatw.d -gnatj10000 -gnatw.ab.bxwq.r.ir.m.pvm -gnatwn -cargs -fdiagnostics-format=json"
+      },
+      {
+        "tool": "Infer",
+        "command_line": "infer --reactive --incremental-analysis --quiet --scheduler=components --no-default-checkers --value --pulse --force-delete-results-dir --results-dir=/home/eyraud/gnatcoverage/tools/gnatcov/obj64/dev/gnatsas/gnatcov.infer/infer.out --report-force-relative-path --project-root=/home/eyraud/gnatcoverage/tools/gnatcov/ --backtrack-level=1000 --jobs=2 --changed-files-index=/home/eyraud/gnatcoverage/tools/gnatcov/obj64/dev/gnatsas/infer_changed_files_index --report-changed-files-only --progress-bar-style plain -- gprbuild -P /home/eyraud/gnatcoverage/tools/gnatcov/gnatcov.gpr -XPART=gnatcov64 -XBUILD_MODE=dev --target gnatsas --files-from /home/eyraud/gnatcoverage/tools/gnatcov/obj64/dev/gnatsas/gnatcov.gnatsas/capture_sources.txt"
+      },
+      {
+        "tool": "Gnatcheck",
+        "command_line": "gnatcheck -m0 -q -j2 -l -o /home/eyraud/gnatcoverage/tools/gnatcov/obj64/dev/gnatsas/gnatcov.gnatcheck/gnatcheck.out -ox /home/eyraud/gnatcoverage/tools/gnatcov/obj64/dev/gnatsas/gnatcov.gnatcheck/gnatcheck.xml --subdirs=gnatsas/gnatcov.gnatcheck -Pgnatcov.gpr --no-subprojects -XPART=gnatcov64 -XBUILD_MODE=dev -rules +Rduplicate_branches +Rsame_logic +Rsame_operands +Rsame_tests +Rsuspicious_equalities"
+      }
+    ],
+    "baseline": {
+      "file": "gnatcov._no_sub.baseline.sam",
+      "date": "2024-10-15 14:56:39",
+      "command_line": "gnatsas analyze -P gnatcov.gpr -XBUILD_MODE=dev -XPART=gnatcov64",
+      "project_switches": "-j0 --incrementality-method=minimal --no-subprojects --no-inspector",
+      "checksum": "68a94303edb91a387b0c82d7bed2c11d"
+    },
+    "command_line": "gnatsas analyze -P gnatcov.gpr -XBUILD_MODE=dev -XPART=gnatcov64",
+    "project_switches": "-j2 --incrementality-method=minimal --no-subprojects --no-inspector",
+    "review_statuses": {
+      "Uncategorized": "Uncategorized",
+      "Pending": "Pending",
+      "Not A Bug": "Not_a_bug",
+      "Intentional": "Not_a_bug",
+      "False Positive": "Not_a_bug",
+      "Bug": "Bug"
+    }
+  },
+  "prjs": {
+    "gnatcov.gpr": [
+      {
+        "file_info": {
+          "basename": "annotations-cobertura.adb",
+          "path": "annotations-cobertura.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-cobertura.ads",
+          "path": "annotations-cobertura.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-dynamic_html.adb",
+          "path": "annotations-dynamic_html.adb"
+        },
+        "subps": {
+          "annotations.dynamic_html.set_sco_fields": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Memory_leak" ],
+                "key": "8c1b8f3b9d7ab0555d88e7537d6e38be",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `annotations.sco_image` on line 930 is not freed after the last access at line 937, column 23",
+                "sloc": { "line": 937, "column": 23 },
+                "rank": "Medium",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "annotations-dynamic_html.adb",
+                    "loc": { "line": 930, "column": 30 },
+                    "text": "allocation part of the trace starts here"
+                  },
+                  {
+                    "level": 1,
+                    "file": "annotations-dynamic_html.adb",
+                    "loc": { "line": 930, "column": 30 },
+                    "text": "when calling `annotations.sco_image` here"
+                  },
+                  {
+                    "level": 2,
+                    "file": "annotations.adb",
+                    "loc": { "line": 808, "column": 21 },
+                    "text": "when calling `annotations.sco_text` here"
+                  },
+                  {
+                    "level": 3,
+                    "file": "annotations.adb",
+                    "loc": { "line": 729, "column": 16 },
+                    "text": "when calling `files_table.get_line` here"
+                  },
+                  {
+                    "level": 4,
+                    "file": "files_table.adb",
+                    "loc": { "line": 966, "column": 14 },
+                    "text": "when calling `files_table.get_line` here"
+                  },
+                  {
+                    "level": 5,
+                    "file": "files_table.adb",
+                    "loc": { "line": 979, "column": 7 },
+                    "text": "when calling `files_table.fill_line_cache` here"
+                  },
+                  {
+                    "level": 6,
+                    "file": "files_table.adb",
+                    "loc": { "line": 654, "column": 7 },
+                    "text": "when calling `files_table.open` here"
+                  },
+                  {
+                    "level": 7,
+                    "file": "files_table.adb",
+                    "loc": { "line": 1566, "column": 15 },
+                    "text": "when calling `paths.build_filename` here"
+                  },
+                  {
+                    "level": 8,
+                    "file": "paths.adb",
+                    "loc": { "line": 62, "column": 14 },
+                    "text": "allocated by `new` here"
+                  },
+                  {
+                    "level": 0,
+                    "file": "annotations-dynamic_html.adb",
+                    "loc": { "line": 937, "column": 23 },
+                    "text": "memory becomes unreachable here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "annotations-dynamic_html.ads",
+          "path": "annotations-dynamic_html.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-html.adb",
+          "path": "annotations-html.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-html.ads",
+          "path": "annotations-html.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-index.adb",
+          "path": "annotations-index.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-index.ads",
+          "path": "annotations-index.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-report.adb",
+          "path": "annotations-report.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-report.ads",
+          "path": "annotations-report.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-sarif.adb",
+          "path": "annotations-sarif.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-sarif.ads",
+          "path": "annotations-sarif.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-xcov.adb",
+          "path": "annotations-xcov.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-xcov.ads",
+          "path": "annotations-xcov.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations-xml.adb",
+          "path": "annotations-xml.adb"
+        },
+        "subps": {
+          "annotations.xml.pretty_print_condition": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Memory_leak" ],
+                "key": "ea6cd8676ded724f682f2698efcd1bcb",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `annotations.sco_text` on line 327 is not freed after the last access at line 334, column 31",
+                "sloc": { "line": 334, "column": 31 },
+                "rank": "Medium",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "annotations-xml.adb",
+                    "loc": { "line": 327, "column": 27 },
+                    "text": "allocation part of the trace starts here"
+                  },
+                  {
+                    "level": 1,
+                    "file": "annotations-xml.adb",
+                    "loc": { "line": 327, "column": 27 },
+                    "text": "when calling `annotations.sco_text` here"
+                  },
+                  {
+                    "level": 2,
+                    "file": "annotations.adb",
+                    "loc": { "line": 729, "column": 16 },
+                    "text": "when calling `files_table.get_line` here"
+                  },
+                  {
+                    "level": 3,
+                    "file": "files_table.adb",
+                    "loc": { "line": 966, "column": 14 },
+                    "text": "when calling `files_table.get_line` here"
+                  },
+                  {
+                    "level": 4,
+                    "file": "files_table.adb",
+                    "loc": { "line": 979, "column": 7 },
+                    "text": "when calling `files_table.fill_line_cache` here"
+                  },
+                  {
+                    "level": 5,
+                    "file": "files_table.adb",
+                    "loc": { "line": 654, "column": 7 },
+                    "text": "when calling `files_table.open` here"
+                  },
+                  {
+                    "level": 6,
+                    "file": "files_table.adb",
+                    "loc": { "line": 1566, "column": 15 },
+                    "text": "when calling `paths.build_filename` here"
+                  },
+                  {
+                    "level": 7,
+                    "file": "paths.adb",
+                    "loc": { "line": 62, "column": 14 },
+                    "text": "allocated by `new` here"
+                  },
+                  {
+                    "level": 0,
+                    "file": "annotations-xml.adb",
+                    "loc": { "line": 334, "column": 31 },
+                    "text": "memory becomes unreachable here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            }
+          ],
+          "annotations.xml.pretty_print_start_decision": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Memory_leak" ],
+                "key": "ea6cd8676ded724f682f2698efcd1bcb",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `annotations.sco_text` on line 521 is not freed after the last access at line 527, column 36",
+                "sloc": { "line": 527, "column": 36 },
+                "rank": "Medium",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "annotations-xml.adb",
+                    "loc": { "line": 521, "column": 27 },
+                    "text": "allocation part of the trace starts here"
+                  },
+                  {
+                    "level": 1,
+                    "file": "annotations-xml.adb",
+                    "loc": { "line": 521, "column": 27 },
+                    "text": "when calling `annotations.sco_text` here"
+                  },
+                  {
+                    "level": 2,
+                    "file": "annotations.adb",
+                    "loc": { "line": 729, "column": 16 },
+                    "text": "when calling `files_table.get_line` here"
+                  },
+                  {
+                    "level": 3,
+                    "file": "files_table.adb",
+                    "loc": { "line": 966, "column": 14 },
+                    "text": "when calling `files_table.get_line` here"
+                  },
+                  {
+                    "level": 4,
+                    "file": "files_table.adb",
+                    "loc": { "line": 979, "column": 7 },
+                    "text": "when calling `files_table.fill_line_cache` here"
+                  },
+                  {
+                    "level": 5,
+                    "file": "files_table.adb",
+                    "loc": { "line": 654, "column": 7 },
+                    "text": "when calling `files_table.open` here"
+                  },
+                  {
+                    "level": 6,
+                    "file": "files_table.adb",
+                    "loc": { "line": 1566, "column": 15 },
+                    "text": "when calling `paths.build_filename` here"
+                  },
+                  {
+                    "level": 7,
+                    "file": "paths.adb",
+                    "loc": { "line": 62, "column": 14 },
+                    "text": "allocated by `new` here"
+                  },
+                  {
+                    "level": 0,
+                    "file": "annotations-xml.adb",
+                    "loc": { "line": 527, "column": 36 },
+                    "text": "memory becomes unreachable here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            }
+          ],
+          "annotations.xml.pretty_print_statement": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Memory_leak" ],
+                "key": "ea6cd8676ded724f682f2698efcd1bcb",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `annotations.sco_text` on line 680 is not freed after the last access at line 687, column 31",
+                "sloc": { "line": 687, "column": 31 },
+                "rank": "Medium",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "annotations-xml.adb",
+                    "loc": { "line": 680, "column": 27 },
+                    "text": "allocation part of the trace starts here"
+                  },
+                  {
+                    "level": 1,
+                    "file": "annotations-xml.adb",
+                    "loc": { "line": 680, "column": 27 },
+                    "text": "when calling `annotations.sco_text` here"
+                  },
+                  {
+                    "level": 2,
+                    "file": "annotations.adb",
+                    "loc": { "line": 729, "column": 16 },
+                    "text": "when calling `files_table.get_line` here"
+                  },
+                  {
+                    "level": 3,
+                    "file": "files_table.adb",
+                    "loc": { "line": 966, "column": 14 },
+                    "text": "when calling `files_table.get_line` here"
+                  },
+                  {
+                    "level": 4,
+                    "file": "files_table.adb",
+                    "loc": { "line": 979, "column": 7 },
+                    "text": "when calling `files_table.fill_line_cache` here"
+                  },
+                  {
+                    "level": 5,
+                    "file": "files_table.adb",
+                    "loc": { "line": 654, "column": 7 },
+                    "text": "when calling `files_table.open` here"
+                  },
+                  {
+                    "level": 6,
+                    "file": "files_table.adb",
+                    "loc": { "line": 1566, "column": 15 },
+                    "text": "when calling `paths.build_filename` here"
+                  },
+                  {
+                    "level": 7,
+                    "file": "paths.adb",
+                    "loc": { "line": 62, "column": 14 },
+                    "text": "allocated by `new` here"
+                  },
+                  {
+                    "level": 0,
+                    "file": "annotations-xml.adb",
+                    "loc": { "line": 687, "column": 31 },
+                    "text": "memory becomes unreachable here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "annotations-xml.ads",
+          "path": "annotations-xml.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "annotations.adb",
+          "path": "annotations.adb"
+        },
+        "subps": {
+          "annotations.disp_scos": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "bfc277166e3f1cab1c98959e46a65727",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "SCO_State might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 326, "column": 22 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Removed"
+              }
+            }
+          ],
+          "annotations.sco_text": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Memory_leak" ],
+                "key": "8a8bd52eff4074034eb037a2eaee1d92",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.end_lex_element` on line 652 is not freed after the last access at line 751, column 17",
+                "sloc": { "line": 751, "column": 17 },
+                "rank": "Medium",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "annotations.adb",
+                    "loc": { "line": 652, "column": 39 },
+                    "text": "allocation part of the trace starts here"
+                  },
+                  {
+                    "level": 1,
+                    "file": "annotations.adb",
+                    "loc": { "line": 652, "column": 39 },
+                    "text": "when calling `files_table.end_lex_element` here"
+                  },
+                  {
+                    "level": 2,
+                    "file": "files_table.adb",
+                    "loc": { "line": 433, "column": 35 },
+                    "text": "when calling `files_table.get_line` here"
+                  },
+                  {
+                    "level": 3,
+                    "file": "files_table.adb",
+                    "loc": { "line": 966, "column": 14 },
+                    "text": "when calling `files_table.get_line` here"
+                  },
+                  {
+                    "level": 4,
+                    "file": "files_table.adb",
+                    "loc": { "line": 979, "column": 7 },
+                    "text": "when calling `files_table.fill_line_cache` here"
+                  },
+                  {
+                    "level": 5,
+                    "file": "files_table.adb",
+                    "loc": { "line": 654, "column": 7 },
+                    "text": "when calling `files_table.open` here"
+                  },
+                  {
+                    "level": 6,
+                    "file": "files_table.adb",
+                    "loc": { "line": 1566, "column": 15 },
+                    "text": "when calling `paths.build_filename` here"
+                  },
+                  {
+                    "level": 7,
+                    "file": "paths.adb",
+                    "loc": { "line": 62, "column": 14 },
+                    "text": "allocated by `new` here"
+                  },
+                  {
+                    "level": 0,
+                    "file": "annotations.adb",
+                    "loc": { "line": 751, "column": 17 },
+                    "text": "memory becomes unreachable here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "annotations.ads",
+          "path": "annotations.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "arch__64.ads", "path": "arch__64.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "argparse.adb", "path": "argparse.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "argparse.ads", "path": "argparse.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "binary_files.adb",
+          "path": "binary_files.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "binary_files.ads",
+          "path": "binary_files.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "calendar_utils.adb",
+          "path": "calendar_utils.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "calendar_utils.ads",
+          "path": "calendar_utils.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "cfg_dump.adb", "path": "cfg_dump.adb" },
+        "subps": {
+          "cfg_dump.collect_instructions": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "4a52176fed41bc065b8a99344885cb4e",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Insn.Selected might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 528, "column": 26 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "4a52176fed41bc065b8a99344885cb4e",
+                "key_seq": 2
+              },
+              "data": {
+                "msg": "Insn.Selected might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 536, "column": 25 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "4a52176fed41bc065b8a99344885cb4e",
+                "key_seq": 3
+              },
+              "data": {
+                "msg": "Insn.Selected might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 544, "column": 19 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "4a52176fed41bc065b8a99344885cb4e",
+                "key_seq": 4
+              },
+              "data": {
+                "msg": "Insn.Selected might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 642, "column": 56 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "4a52176fed41bc065b8a99344885cb4e",
+                "key_seq": 5
+              },
+              "data": {
+                "msg": "Insn.Selected might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 666, "column": 28 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "86f20cfc6181c4829e56de57edad9d59",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Last_Insn.Selected might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 528, "column": 49 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "86f20cfc6181c4829e56de57edad9d59",
+                "key_seq": 2
+              },
+              "data": {
+                "msg": "Last_Insn.Selected might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 536, "column": 52 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "e3cfb48b116277ba65fdd7a8bee8c0f6",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Old_PC might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 717, "column": 20 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Removed"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Memory_leak" ],
+                "key": "08c65a49805954c02d01890fdb7e9c5d",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Memory dynamically allocated by `new` on line 443 is not freed after the last access at line 717, column 20",
+                "sloc": { "line": 717, "column": 20 },
+                "rank": "Medium",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "cfg_dump.adb",
+                    "loc": { "line": 443, "column": 21 },
+                    "text": "allocation part of the trace starts here"
+                  },
+                  {
+                    "level": 1,
+                    "file": "cfg_dump.adb",
+                    "loc": { "line": 443, "column": 21 },
+                    "text": "allocated by `new` here"
+                  },
+                  {
+                    "level": 0,
+                    "file": "cfg_dump.adb",
+                    "loc": { "line": 717, "column": 20 },
+                    "text": "memory becomes unreachable here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            }
+          ],
+          "cfg_dump.collect_instructions(cfg_dump.context_access, traces_elf.address_info_acc)": []
+        }
+      },
+      {
+        "file_info": { "basename": "cfg_dump.ads", "path": "cfg_dump.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "check_scos.adb",
+          "path": "check_scos.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "check_scos.ads",
+          "path": "check_scos.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "checkpoints.adb",
+          "path": "checkpoints.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "checkpoints.ads",
+          "path": "checkpoints.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "clang-extensions.adb",
+          "path": "clang-extensions.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "clang-extensions.ads",
+          "path": "clang-extensions.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "coff.ads", "path": "coff.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "command_line.adb",
+          "path": "command_line.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "command_line.ads",
+          "path": "command_line.ads"
+        },
+        "subps": {
+          "command_line": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Gnat", "Default_gnat_warnings" ],
+                "key": "32f47d5e89e388b8a6f8fcc6dbeb5e9a",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "in instantiation at argparse.ads:200, component of \"Bool_Option_Info_Array\" padded by 8 bits",
+                "sloc": { "line": 208, "column": 4 },
+                "rank": "Medium",
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": { "basename": "commands.adb", "path": "commands.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "commands.ads", "path": "commands.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "compiler_wrappers-gcc.adb",
+          "path": "compiler_wrappers-gcc.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "compiler_wrappers.ads",
+          "path": "compiler_wrappers.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "convert.adb", "path": "convert.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "convert.ads", "path": "convert.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "coverage-object.adb",
+          "path": "coverage-object.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "coverage-object.ads",
+          "path": "coverage-object.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "coverage-source.adb",
+          "path": "coverage-source.adb"
+        },
+        "subps": {
+          "coverage.source.compute_atcc_state": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "fbd69b2f7f0cd8aa93f7b5a68c529d73",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Last_Cond_Not_Evaluated might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 1474, "column": 24 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            }
+          ],
+          "coverage.source.compute_mcdc_state": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "18eb84a06439c4349d5e2227f9e6b1f9",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Last_Cond_No_Pair might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 1350, "column": 24 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "coverage-source.ads",
+          "path": "coverage-source.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "coverage-tags.adb",
+          "path": "coverage-tags.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "coverage-tags.ads",
+          "path": "coverage-tags.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "coverage.adb", "path": "coverage.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "coverage.ads", "path": "coverage.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "coverage_options.adb",
+          "path": "coverage_options.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "coverage_options.ads",
+          "path": "coverage_options.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "decision_map.adb",
+          "path": "decision_map.adb"
+        },
+        "subps": {
+          "decision_map.analyze_routine": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "90d4f86d18540ad03e69f32cf8b264e9",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Insn_Len might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 2794, "column": 22 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "decision_map.ads",
+          "path": "decision_map.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "diagnostics.adb",
+          "path": "diagnostics.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "diagnostics.ads",
+          "path": "diagnostics.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "dis_opcodes.ads",
+          "path": "libopcodes_bind/dis_opcodes.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disa_aarch64.adb",
+          "path": "disa_aarch64.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disa_aarch64.ads",
+          "path": "disa_aarch64.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "disa_arm.adb", "path": "disa_arm.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "disa_arm.ads", "path": "disa_arm.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disa_common.adb",
+          "path": "disa_common.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disa_common.ads",
+          "path": "disa_common.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "disa_lmp.adb", "path": "disa_lmp.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "disa_lmp.ads", "path": "disa_lmp.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "disa_ppc.adb", "path": "disa_ppc.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "disa_ppc.ads", "path": "disa_ppc.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disa_sparc.adb",
+          "path": "disa_sparc.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disa_sparc.ads",
+          "path": "disa_sparc.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disa_symbolize.adb",
+          "path": "disa_symbolize.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disa_symbolize.ads",
+          "path": "disa_symbolize.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disa_thumb.adb",
+          "path": "disa_thumb.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disa_thumb.ads",
+          "path": "disa_thumb.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "disa_x86.adb", "path": "disa_x86.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "disa_x86.ads", "path": "disa_x86.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disassemble_insn_properties.adb",
+          "path": "disassemble_insn_properties.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disassemble_insn_properties.ads",
+          "path": "disassemble_insn_properties.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disassemblers.adb",
+          "path": "disassemblers.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "disassemblers.ads",
+          "path": "disassemblers.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "display.adb", "path": "display.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "display.ads", "path": "display.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "dwarf.ads", "path": "dwarf.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "dwarf_handling.adb",
+          "path": "dwarf_handling.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "dwarf_handling.ads",
+          "path": "dwarf_handling.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "elf32.adb", "path": "elf32.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "elf32.ads", "path": "elf32.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "elf64.adb", "path": "elf64.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "elf64.ads", "path": "elf64.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "elf_common.adb",
+          "path": "elf_common.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "elf_common.ads",
+          "path": "elf_common.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "elf_disassemblers.adb",
+          "path": "elf_disassemblers.adb"
+        },
+        "subps": {
+          "elf_disassemblers.go_to_next_insn": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "87dc423edec3358707a253916c1fcbb9",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "out parameter Insn_Set might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 225, "column": 7 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Removed"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "elf_disassemblers.ads",
+          "path": "elf_disassemblers.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "elf_files.adb", "path": "elf_files.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "elf_files.ads", "path": "elf_files.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "execs_dbase.adb",
+          "path": "execs_dbase.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "execs_dbase.ads",
+          "path": "execs_dbase.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "factory_registry.adb",
+          "path": "factory_registry.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "factory_registry.ads",
+          "path": "factory_registry.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "files_handling.adb",
+          "path": "files_handling.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "files_handling.ads",
+          "path": "files_handling.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "files_table.adb",
+          "path": "files_table.adb"
+        },
+        "subps": {
+          "files_table.checkpoint_clear": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Access_check" ],
+                "key": "a5ab61ae4c450e2549d54916852c2df2",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "`FI.all` could be null (null value originating from line 1969) and is dereferenced",
+                "cwe": [ [ 476 ] ],
+                "sloc": { "line": 1960, "column": 10 },
+                "rank": "High",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 1,
+                    "file": "files_table.adb",
+                    "loc": { "line": 1969, "column": 10 },
+                    "text": "is assigned to the null pointer"
+                  },
+                  {
+                    "level": 1,
+                    "file": "files_table.adb",
+                    "loc": { "line": 1960, "column": 10 },
+                    "text": "invalid access occurs here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "files_table.ads",
+          "path": "files_table.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "gnatcov.adb", "path": "gnatcov.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "gnatcov_bits_specific.adb",
+          "path": "gnatcov_bits_specific.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "hex_images.adb",
+          "path": "hex_images.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "hex_images.ads",
+          "path": "hex_images.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "highlighting.adb",
+          "path": "highlighting.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "highlighting.ads",
+          "path": "highlighting.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "inputs.adb", "path": "inputs.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "inputs.ads", "path": "inputs.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-ada_preprocessing.adb",
+          "path": "instrument-ada_preprocessing.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-ada_preprocessing.ads",
+          "path": "instrument-ada_preprocessing.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-ada_unit.adb",
+          "path": "instrument-ada_unit.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-ada_unit.ads",
+          "path": "instrument-ada_unit.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-ada_unit_provider.adb",
+          "path": "instrument-ada_unit_provider.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-ada_unit_provider.ads",
+          "path": "instrument-ada_unit_provider.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-c.adb",
+          "path": "instrument-c.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-c.ads",
+          "path": "instrument-c.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-c_utils.adb",
+          "path": "instrument-c_utils.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-c_utils.ads",
+          "path": "instrument-c_utils.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-checkpoints.adb",
+          "path": "instrument-checkpoints.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-checkpoints.ads",
+          "path": "instrument-checkpoints.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-clean_objdirs.adb",
+          "path": "instrument-clean_objdirs.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-clean_objdirs.ads",
+          "path": "instrument-clean_objdirs.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-common.adb",
+          "path": "instrument-common.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-common.ads",
+          "path": "instrument-common.ads"
+        },
+        "subps": {
+          "instrument.common.replace_manual_indications": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "59287a3a858ba0f412ab294538006a2c",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "out parameter `Has_Reset_Indication` is not initialized at the end of the subprogram",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 531, "column": 52 },
+                "rank": "High",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "instrument-common.ads",
+                    "loc": { "line": 526, "column": 4 },
+                    "text": "parameter `Has_Reset_Indication` of instrument.common.replace_manual_indications"
+                  },
+                  {
+                    "level": 0,
+                    "file": "instrument-common.ads",
+                    "loc": { "line": 531, "column": 52 },
+                    "text": "end of the subprogram is here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "f6825e9f92414db4f641a38556d8ee02",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "out parameter Has_Reset_Indication might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 531, "column": 52 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "duplicate_of": [
+                  "instrument.common.replace_manual_indications",
+                  {
+                    "tool_kind": [ "Infer", "Validity_check" ],
+                    "key": "59287a3a858ba0f412ab294538006a2c",
+                    "key_seq": 1
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "instrument-config.adb",
+          "path": "instrument-config.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-gcc_wrapper.adb",
+          "path": "instrument-gcc_wrapper.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-input_traces.adb",
+          "path": "instrument-input_traces.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-input_traces.ads",
+          "path": "instrument-input_traces.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-main.adb",
+          "path": "instrument-main.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-projects.adb",
+          "path": "instrument-projects.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-setup_config.adb",
+          "path": "instrument-setup_config.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-setup_config.ads",
+          "path": "instrument-setup_config.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument-source.adb",
+          "path": "instrument-source.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument.adb",
+          "path": "instrument.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "instrument.ads",
+          "path": "instrument.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "json.adb", "path": "json.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "json.ads", "path": "json.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "logging.adb", "path": "logging.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "logging.ads", "path": "logging.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "mc_dc.adb", "path": "mc_dc.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "mc_dc.ads", "path": "mc_dc.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "object_locations.adb",
+          "path": "object_locations.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "object_locations.ads",
+          "path": "object_locations.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "outputs.adb", "path": "outputs.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "outputs.ads", "path": "outputs.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "paths.adb", "path": "paths.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "paths.ads", "path": "paths.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "pecoff_files.adb",
+          "path": "pecoff_files.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "pecoff_files.ads",
+          "path": "pecoff_files.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "perf_counters.adb",
+          "path": "perf_counters.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "perf_counters.ads",
+          "path": "perf_counters.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "ppc_descs.adb", "path": "ppc_descs.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "ppc_descs.ads", "path": "ppc_descs.ads" },
+        "subps": {
+          "ppc_descs": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Gnatcheck", "Same_operands" ],
+                "key": "772dd957dd1b5c22c9cc7789b160385a",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "same operands",
+                "sloc": { "line": 101, "column": 30 },
+                "rank": "Medium",
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Gnatcheck", "Same_operands" ],
+                "key": "772dd957dd1b5c22c9cc7789b160385a",
+                "key_seq": 2
+              },
+              "data": {
+                "msg": "same operands",
+                "sloc": { "line": 103, "column": 30 },
+                "rank": "Medium",
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": { "basename": "project.adb", "path": "project.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "project.ads", "path": "project.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "qemu_traces.ads",
+          "path": "qemu_traces.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "qemu_traces_entries__64.ads",
+          "path": "qemu_traces_entries__64.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "rundrv-config.adb",
+          "path": "rundrv-config.adb"
+        },
+        "subps": {
+          "rundrv.config.get_builtin_driver": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "07450640bbbf2f6ae0bf9b8d2ec66542",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "out parameter Native might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 111, "column": 27 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "duplicate_of": [
+                  "rundrv.config.get_builtin_driver",
+                  {
+                    "tool_kind": [ "Infer", "Validity_check" ],
+                    "key": "6740c98cb45886e3523cc77031a636aa",
+                    "key_seq": 1
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "6740c98cb45886e3523cc77031a636aa",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "out parameter `Native` is not initialized at the end of the subprogram",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 111, "column": 27 },
+                "rank": "High",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "rundrv-config.adb",
+                    "loc": { "line": 84, "column": 4 },
+                    "text": "parameter `Native` of rundrv.config.get_builtin_driver"
+                  },
+                  {
+                    "level": 0,
+                    "file": "rundrv-config.adb",
+                    "loc": { "line": 111, "column": 27 },
+                    "text": "end of the subprogram is here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "rundrv-config.ads",
+          "path": "rundrv-config.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "rundrv-handlers.adb",
+          "path": "rundrv-handlers.adb"
+        },
+        "subps": {
+          "rundrv.handlers.get_gnatemu_driver": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "07450640bbbf2f6ae0bf9b8d2ec66542",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "out parameter Native might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 229, "column": 10 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "duplicate_of": [
+                  "rundrv.handlers.get_gnatemu_driver",
+                  {
+                    "tool_kind": [ "Infer", "Validity_check" ],
+                    "key": "6740c98cb45886e3523cc77031a636aa",
+                    "key_seq": 1
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "6740c98cb45886e3523cc77031a636aa",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "out parameter `Native` is not initialized at the end of the subprogram",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 229, "column": 10 },
+                "rank": "High",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "rundrv-handlers.adb",
+                    "loc": { "line": 218, "column": 4 },
+                    "text": "parameter `Native` of rundrv.handlers.get_gnatemu_driver"
+                  },
+                  {
+                    "level": 0,
+                    "file": "rundrv-handlers.adb",
+                    "loc": { "line": 229, "column": 10 },
+                    "text": "end of the subprogram is here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "rundrv-handlers.ads",
+          "path": "rundrv-handlers.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "rundrv.adb", "path": "rundrv.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "rundrv.ads", "path": "rundrv.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "sc_obligations-bdd.adb",
+          "path": "sc_obligations-bdd.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "sc_obligations-bdd.ads",
+          "path": "sc_obligations-bdd.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "sc_obligations.adb",
+          "path": "sc_obligations.adb"
+        },
+        "subps": {
+          "sc_obligations.get_origin": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "52cde9cc70750fefd8280ae1fa662e63",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "out parameter Prev_Value might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 2676, "column": 19 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "duplicate_of": [
+                  "sc_obligations.get_origin",
+                  {
+                    "tool_kind": [ "Infer", "Validity_check" ],
+                    "key": "52f2e1bd10d09e4e51f8afdfc4ded607",
+                    "key_seq": 1
+                  }
+                ],
+                "age": "Removed"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "52f2e1bd10d09e4e51f8afdfc4ded607",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "out parameter `Prev_Value` is not initialized at the end of the subprogram",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 2676, "column": 19 },
+                "rank": "High",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "sc_obligations.adb",
+                    "loc": { "line": 2660, "column": 4 },
+                    "text": "parameter `Prev_Value` of sc_obligations.get_origin"
+                  },
+                  {
+                    "level": 0,
+                    "file": "sc_obligations.adb",
+                    "loc": { "line": 2676, "column": 19 },
+                    "text": "end of the subprogram is here"
+                  }
+                ],
+                "age": "Removed"
+              }
+            }
+          ],
+          "sc_obligations.next_bdd_node((sc_obligations.sco_id, standard.boolean) -> sc_obligations.bdd_node_id)": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Gnat", "Unused_entity" ],
+                "key": "6418215abbab1632bf5ce16178874fcd",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "use clause for package \"BDD\" has no effect",
+                "sloc": { "line": 4585, "column": 7 },
+                "rank": "Low",
+                "age": "Unchanged"
+              }
+            }
+          ],
+          "sc_obligations.offset_for_true((sc_obligations.sco_id) -> standard.natural)": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Gnat", "Unused_entity" ],
+                "key": "6418215abbab1632bf5ce16178874fcd",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "use clause for package \"BDD\" has no effect",
+                "sloc": { "line": 4612, "column": 7 },
+                "rank": "Low",
+                "age": "Unchanged"
+              }
+            }
+          ],
+          "sc_obligations.sloc_to_sco": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Memory_leak" ],
+                "key": "d735d81c314d0204dd60007ccce00fd4",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.sloc_to_sco_map` on line 5994 is not freed after the last access at line 6076, column 20",
+                "sloc": { "line": 6076, "column": 20 },
+                "rank": "Medium",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "sc_obligations.adb",
+                    "loc": { "line": 5994, "column": 14 },
+                    "text": "allocation part of the trace starts here"
+                  },
+                  {
+                    "level": 1,
+                    "file": "sc_obligations.adb",
+                    "loc": { "line": 5994, "column": 14 },
+                    "text": "when calling `files_table.sloc_to_sco_map` here"
+                  },
+                  {
+                    "level": 2,
+                    "file": "files_table.adb",
+                    "loc": { "line": 1719, "column": 17 },
+                    "text": "when calling `files_table.writeable_sloc_to_sco_map` here"
+                  },
+                  {
+                    "level": 3,
+                    "file": "files_table.adb",
+                    "loc": { "line": 1705, "column": 33 },
+                    "text": "allocated by `new` here"
+                  },
+                  {
+                    "level": 0,
+                    "file": "sc_obligations.adb",
+                    "loc": { "line": 6076, "column": 20 },
+                    "text": "memory becomes unreachable here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Memory_leak" ],
+                "key": "d735d81c314d0204dd60007ccce00fd4",
+                "key_seq": 2
+              },
+              "data": {
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `files_table.sloc_to_sco_map` on line 6004 is not freed after the last access at line 6076, column 20",
+                "sloc": { "line": 6076, "column": 20 },
+                "rank": "Medium",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "sc_obligations.adb",
+                    "loc": { "line": 6004, "column": 14 },
+                    "text": "allocation part of the trace starts here"
+                  },
+                  {
+                    "level": 1,
+                    "file": "sc_obligations.adb",
+                    "loc": { "line": 6004, "column": 14 },
+                    "text": "when calling `files_table.sloc_to_sco_map` here"
+                  },
+                  {
+                    "level": 2,
+                    "file": "files_table.adb",
+                    "loc": { "line": 1719, "column": 17 },
+                    "text": "when calling `files_table.writeable_sloc_to_sco_map` here"
+                  },
+                  {
+                    "level": 3,
+                    "file": "files_table.adb",
+                    "loc": { "line": 1705, "column": 33 },
+                    "text": "allocated by `new` here"
+                  },
+                  {
+                    "level": 0,
+                    "file": "sc_obligations.adb",
+                    "loc": { "line": 6076, "column": 20 },
+                    "text": "memory becomes unreachable here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "sc_obligations.ads",
+          "path": "sc_obligations.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "setup_rts.adb", "path": "setup_rts.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "setup_rts.ads", "path": "setup_rts.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "slocs.adb", "path": "slocs.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "slocs.ads", "path": "slocs.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "sparc_descs.ads",
+          "path": "sparc_descs.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "ss_annotations.adb",
+          "path": "ss_annotations.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "ss_annotations.ads",
+          "path": "ss_annotations.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "strings.adb", "path": "strings.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "strings.ads", "path": "strings.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "subprocesses.adb",
+          "path": "subprocesses.adb"
+        },
+        "subps": {
+          "subprocesses.wait_and_finalize": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "c174c2d3c4d06c9d38c3c19bc5f73688",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Id might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 382, "column": 38 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "subprocesses.ads",
+          "path": "subprocesses.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "support_files.ads",
+          "path": "support_files.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "swaps.adb", "path": "swaps.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "swaps.ads", "path": "swaps.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "switches.adb", "path": "switches.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "switches.ads", "path": "switches.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "symbols.adb", "path": "symbols.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "symbols.ads", "path": "symbols.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "temp_dirs.adb", "path": "temp_dirs.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "temp_dirs.ads", "path": "temp_dirs.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "text_files.adb",
+          "path": "text_files.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "text_files.ads",
+          "path": "text_files.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "traces.adb", "path": "traces.adb" },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "traces.ads", "path": "traces.ads" },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_dbase.adb",
+          "path": "traces_dbase.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_dbase.ads",
+          "path": "traces_dbase.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_disa.adb",
+          "path": "traces_disa.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_disa.ads",
+          "path": "traces_disa.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_dump.adb",
+          "path": "traces_dump.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_dump.ads",
+          "path": "traces_dump.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_elf.adb",
+          "path": "traces_elf.adb"
+        },
+        "subps": {
+          "traces_elf.read_debug_lines.close_source_line": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "e8031aaabc82b6a3ac7d1dbb070dc6bb",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Insn_1_Last_PC might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 2401, "column": 35 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            },
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "e8031aaabc82b6a3ac7d1dbb070dc6bb",
+                "key_seq": 2
+              },
+              "data": {
+                "msg": "Insn_1_Last_PC might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 2408, "column": 45 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            }
+          ],
+          "traces_elf.set_insn_state": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Validity_check" ],
+                "key": "74bcf79a584b32bc3a3b1e2b4235a049",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Last_Insn_1_Len might be uninitialized",
+                "cwe": [ [ 457 ] ],
+                "sloc": { "line": 3817, "column": 34 },
+                "rank": "Medium",
+                "analysis": "Mobsfer",
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "traces_elf.ads",
+          "path": "traces_elf.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_files.adb",
+          "path": "traces_files.adb"
+        },
+        "subps": {
+          "traces_files.read_so_info": [
+            {
+              "msg_id": {
+                "tool_kind": [ "Infer", "Memory_leak" ],
+                "key": "251d35eeb8dc5fb3d9304dd9e82f5c1f",
+                "key_seq": 1
+              },
+              "data": {
+                "msg": "Memory dynamically allocated by `new`, indirectly via call to `traces_files.read_so_info.read_info_entries` on line 649 is not freed after the last access at line 650, column 10",
+                "sloc": { "line": 650, "column": 10 },
+                "rank": "Medium",
+                "analysis": "Pulse",
+                "backtrace": [
+                  {
+                    "level": 0,
+                    "file": "traces_files.adb",
+                    "loc": { "line": 649, "column": 7 },
+                    "text": "allocation part of the trace starts here"
+                  },
+                  {
+                    "level": 1,
+                    "file": "traces_files.adb",
+                    "loc": { "line": 649, "column": 7 },
+                    "text": "when calling `traces_files.read_so_info.read_info_entries` here"
+                  },
+                  {
+                    "level": 2,
+                    "file": "traces_files.adb",
+                    "loc": { "line": 847, "column": 13 },
+                    "text": "when calling `traces_files.read_so_info.process_info_entry` here"
+                  },
+                  {
+                    "level": 3,
+                    "file": "traces_files.adb",
+                    "loc": { "line": 635, "column": 43 },
+                    "text": "allocated by `new` here"
+                  },
+                  {
+                    "level": 0,
+                    "file": "traces_files.adb",
+                    "loc": { "line": 650, "column": 10 },
+                    "text": "memory becomes unreachable here"
+                  }
+                ],
+                "age": "Unchanged"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "file_info": {
+          "basename": "traces_files.ads",
+          "path": "traces_files.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_files_registry.adb",
+          "path": "traces_files_registry.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_files_registry.ads",
+          "path": "traces_files_registry.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_lines.adb",
+          "path": "traces_lines.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_lines.ads",
+          "path": "traces_lines.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_names.adb",
+          "path": "traces_names.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_names.ads",
+          "path": "traces_names.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_source.adb",
+          "path": "traces_source.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_source.ads",
+          "path": "traces_source.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_stats.adb",
+          "path": "traces_stats.adb"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": {
+          "basename": "traces_stats.ads",
+          "path": "traces_stats.ads"
+        },
+        "subps": {}
+      },
+      {
+        "file_info": { "basename": "version.ads", "path": "version.ads" },
+        "subps": {}
+      }
+    ]
+  }
+}
