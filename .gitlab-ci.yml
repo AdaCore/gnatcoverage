@@ -9,6 +9,14 @@ variables:
    GITLAB_REMOTE: "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/"
    PIP_INDEX_URL: "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.adacore-it.com/api/v4/projects/202/packages/pypi/simple"
 
+include:
+  #TODO: workaround to allow dynamically setting the interruptible policy until https://gitlab.com/gitlab-org/gitlab/-/issues/194023 is implemented
+  - local: utils/ci/interruptible.yml
+    rules:
+      - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  - project: eng/codepeer/ci-registry
+    file: /gnatsas-on-gnatcov.yml
+
 .basic_setup: &basic_setup
   - unset GITLAB_TOKEN
   - generic_anod_ci --add-dep eng/das/cov/gnatcoverage-extra
@@ -18,6 +26,7 @@ variables:
 stages:
   - build
   - test
+  - check
 
 build:
   interruptible: true
