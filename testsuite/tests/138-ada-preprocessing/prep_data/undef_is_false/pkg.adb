@@ -4,13 +4,13 @@ package body Pkg is
 
    procedure Run is
    begin
-#if $X then
+#if X then
          Invalid Statement
 #else
          Put_Line ("Hello, world!");
 #end if;
 
-#if not $X then
+#if not X then
          Put_Line ("Hello, world!");
 #else
          Invalid Statement

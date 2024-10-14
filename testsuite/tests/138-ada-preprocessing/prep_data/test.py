@@ -48,7 +48,7 @@ for t in [
         ".*gnatcov.*: instrumentation failed for .*pkg\\.adb"
         "\n.*gnatcov.*: please make sure the original project can be"
         " compiled"
-        '\n.*gnatcov.*: pkg\\.adb:7:5: unknown symbol "\\$X"',
+        '\n.*gnatcov.*: pkg\\.adb:7:5: unknown symbol "X"',
     ),
     ReportTestcase("default_config", {"+": {7}}),
     ReportTestcase("file_config", {"+": {7}}),
