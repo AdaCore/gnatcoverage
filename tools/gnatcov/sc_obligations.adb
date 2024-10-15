@@ -29,7 +29,6 @@ with Aspects;     use Aspects;
 with Get_SCOs;
 with GNAT.Regpat; use GNAT.Regpat;
 with Namet;       use Namet;
-with SC_Obligations;
 with SCOs;
 with Snames;
 
