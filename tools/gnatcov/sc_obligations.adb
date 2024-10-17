@@ -917,7 +917,10 @@ package body SC_Obligations is
             SCOD : SCO_Descriptor renames SCO_Vector (SCO);
          begin
             if SCOD.Kind /= Fun then
-               pragma Assert (not Is_Root (ST.Cur));
+               if Is_Root (ST.Cur) then
+                  raise Program_Error
+                    with "No scope found for " &  Image (SCO);
+               end if;
             end if;
          end;
       end loop;
@@ -1740,7 +1743,10 @@ package body SC_Obligations is
 
             Available_Subps_Of_Interest.Include (Scope_Ent.Identifier);
          end loop;
-         pragma Assert (SCOs_Nested_And_Ordered (CP_CU.Scope_Entities));
+         if not SCOs_Nested_And_Ordered (CP_CU.Scope_Entities) then
+            raise Program_Error
+              with "Error when loading scopes from checkpoints";
+         end if;
       end if;
 
       --  Remap ALI annotations
