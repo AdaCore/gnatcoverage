@@ -783,6 +783,20 @@ package body Instrument.Common is
       end loop;
    end Populate_Ext_Disabled_Cov;
 
+   --------------------------------
+   -- Replace_Manual_Indications --
+   --------------------------------
+
+   procedure Replace_Manual_Indications
+     (Self                  : in out Language_Instrumenter;
+      Prj                   : in out Prj_Desc;
+      Source                : GNATCOLL.Projects.File_Info;
+      Has_Dump_Indication   : out Boolean;
+      Has_Reset_Indication  : out Boolean) is
+   begin
+      raise Program_Error;
+   end Replace_Manual_Indications;
+
 begin
    Sys_Prefix.Append (To_Unbounded_String ("GCVRT"));
 
