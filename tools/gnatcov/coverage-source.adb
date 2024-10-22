@@ -2276,7 +2276,6 @@ package body Coverage.Source is
          end if;
       end;
 
-      ST := Scope_Traversal (CU);
       for J in Decision_Buffer'Range loop
          if Decision_Buffer (J) then
             declare
@@ -2307,7 +2306,6 @@ package body Coverage.Source is
          end if;
       end loop;
 
-      ST := Scope_Traversal (CU);
       for J in MCDC_Buffer'Range loop
          if MCDC_Buffer (J) then
             declare
