@@ -5102,8 +5102,11 @@ package body Instrument.Ada_Unit is
             --  Protected body
 
             when Ada_Protected_Body =>
+               Enter_Scope
+                 (UIC, N, Safe_Previous_Part_For_Decl (As_Protected_Body (N)));
                Traverse_Declarations_Or_Statements
                  (UIC, L => As_Protected_Body (N).F_Decls.F_Decls);
+               Exit_Scope (UIC);
 
             when Ada_Exit_Stmt =>
                Instrument_Statement (UIC, N, 'E');
