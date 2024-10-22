@@ -710,13 +710,23 @@ package SC_Obligations is
    function Offset_For_True (SCO : SCO_Id) return Natural;
    --  Offset to be added to BDD path index when this condition is True
 
-   procedure Get_Origin
-     (SCO        : SCO_Id;
-      Prev_SCO   : out SCO_Id;
-      Prev_Value : out Boolean);
+   type Maybe_SCO_Value (Present : Boolean := False) is record
+      case Present is
+         when False =>
+            null;
+         when True =>
+            SCO   : SCO_Id;
+            Value : Boolean;
+      end case;
+   end record;
+
+   function Get_Origin (SCO : SCO_Id) return Maybe_SCO_Value;
    --  For a condition SCO that is part of a decision with no multipath,
-   --  condition, return the previous tested condition and the value of
-   --  that condition causing the condition denoted by SCO to be evaluated.
+   --  condition, return the previous tested condition (Result.SCO) and the
+   --  value of that condition (Result.Value) causing the condition denoted by
+   --  SCO to be evaluated. In other cases (the condition can be reached
+   --  through multiple paths, or it is the root node), return
+   --  Maybe_SCO_Value'(Present => False).
 
    --  Operator SCOs
 
