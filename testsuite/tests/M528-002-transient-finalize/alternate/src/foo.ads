@@ -1,4 +1,3 @@
-
 package Foo is
    procedure Try (V : Integer);
 
