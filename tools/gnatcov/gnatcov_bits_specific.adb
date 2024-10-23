@@ -2494,7 +2494,7 @@ begin
                --  Now that we are done with the decision map file, make sure
                --  we remove it to avoid polluting users' filesystems.
 
-               if Histmap /= null then
+               if not Save_Temps and then Histmap /= null then
                   OS.Delete_File (Histmap.all, Success);
                   if not Success then
                      Warn
