@@ -20,8 +20,9 @@ package body Foo is
    end Finalize;
 
    function Make (V : Integer) return Witness is
+      Result : constant Witness := (Controlled with V); -- # make
    begin
-      return (Controlled with V); -- # make
+      return Result; -- # make
    end Make;
 
    function Val (X : Witness) return Integer is
