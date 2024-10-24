@@ -20,8 +20,9 @@ package body Foo is
    end Finalize;
 
    function Make (V : Integer) return Witness is
+      Result : constant Witness := (Controlled with V); -- # make
    begin
-      return (Controlled with V); -- # make
+      return Result; -- # make
    end Make;
 
    function Val (X : Witness) return Integer is
@@ -31,7 +32,7 @@ package body Foo is
 
    procedure Try (V : Integer) is
    begin
-      if Val(Make(1)) = V or else Val(Make(2)) = V then -- # eval
+      if Val (Make (1)) = V or else Val (Make (2)) = V then -- # eval
          N_Then := N_Then + 1; -- # then
       else
          N_Else := N_Else + 1; -- # else
