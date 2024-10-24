@@ -359,11 +359,10 @@ package body Subprocesses is
    begin
       while Terminated_Process = Invalid_Handle loop
 
-         --  Wait until one process terminates. TODO??? W222-016: replace the
-         --  magic constant with Duration'Last once GNATCOLL.OS.Processes is
-         --  fixed.
+         --  Wait until one process terminates
 
-         Terminated_Process := Wait_For_Processes (Self.Handles, 1000.0);
+         Terminated_Process :=
+           Wait_For_Processes (Self.Handles, Duration'Last);
       end loop;
 
       Self.Nb_Running_Processes := Self.Nb_Running_Processes - 1;
