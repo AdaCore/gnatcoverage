@@ -207,6 +207,7 @@ package body Rundrv.Handlers is
    begin
       Native := False;
       Cmd := (Command => +"visium-elf-run", others  => <>);
+      Append_Arg (Cmd, "-a");
       Append_Arg (Cmd, "--trace=" & Context.Trace_File.all);
       Append_Arg (Cmd, Context.Exe_File.all);
    end Visium_ELF;
