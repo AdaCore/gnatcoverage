@@ -625,13 +625,14 @@ is
    begin
       while Has_Element (Cur) loop
          declare
-            Arg : constant Unbounded_String := Element (Cur);
+            Arg     : constant Unbounded_String := Element (Cur);
+            Arg_Str : constant String := +Arg;
          begin
-            if Starts_With (Arg, "--include=") then
-               null;
-            elsif Starts_With (Arg, "-include")
-              or else Starts_With (Arg, "--include")
+            if Starts_With (Arg, "--include=")
+              or else Starts_With (Arg, "-include")
             then
+               null;
+            elsif Arg_Str in "-include" | "--include" then
                Cur := Next (Cur);
             else
                Result.Append (Element (Cur));

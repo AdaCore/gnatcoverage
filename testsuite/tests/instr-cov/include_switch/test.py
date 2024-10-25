@@ -17,6 +17,7 @@ c_opts = [
     ["--include=../pkg1.h"],
     ["--include", "../pkg2.h"],
     ["-include", "../pkg3.h"],
+    ["-include../pkg4.h"],
 ]
 
 build_run_and_coverage(
@@ -35,10 +36,11 @@ build_run_and_coverage(
 check_xcov_reports(
     "xcov",
     {
-        "main.c.xcov": {"+": {4, 5, 6, 13}},
+        "main.c.xcov": {"+": {4, 5, 6, 7, 8, 14}},
         "pkg1.h.xcov": {"+": {6}},
         "pkg2.h.xcov": {"+": {6}},
         "pkg3.h.xcov": {"+": {6}},
+        "pkg4.h.xcov": {"+": {6}},
     },
 )
 
