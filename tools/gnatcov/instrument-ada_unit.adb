@@ -7633,7 +7633,6 @@ package body Instrument.Ada_Unit is
    --------------------
 
    function Bool_Expr_Eval (E : Expr) return String is
-      use Libadalang.Expr_Eval;
    begin
       return To_String (Libadalang.Expr_Eval.Expr_Eval (E).Enum_Result.Text);
    exception

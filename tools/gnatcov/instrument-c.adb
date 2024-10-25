@@ -2565,8 +2565,6 @@ package body Instrument.C is
          end case;
       end Curlify;
 
-      use Cursor_Vectors;
-
    --  Start of processing for Traverse_Statements
 
    begin

@@ -321,6 +321,9 @@ package body Annotations is
 
                      elsif Coverage.Enabled (Decision) then
                         SCO_State := Get_Line_State (SCO, Decision);
+
+                     else
+                        raise Program_Error;
                      end if;
 
                      Pretty_Print_Start_Decision (Pp, SCO, SCO_State);

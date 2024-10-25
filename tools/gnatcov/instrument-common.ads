@@ -528,7 +528,7 @@ package Instrument.Common is
       Prj                   : in out Prj_Desc;
       Source                : GNATCOLL.Projects.File_Info;
       Has_Dump_Indication   : out Boolean;
-      Has_Reset_Indication  : out Boolean) is null;
+      Has_Reset_Indication  : out Boolean);
    --  Look for the pragmas (for Ada) or comments (for C family languages)
    --  indicating where the user wishes to the buffers to be dumped and/or
    --  reset in Source.
@@ -540,6 +540,10 @@ package Instrument.Common is
    --
    --  Likewise, Has_Reset_Indication indicates whether a manual buffer reset
    --  indication was found and processed.
+   --
+   --  We expect this primitive to be overridden by actual instrumenters, but
+   --  not stub instrumenters (e.g. the one declared in instrument-c__stub) in
+   --  which case it will raise a Program_Error.
 
    function New_File
      (Prj : Prj_Desc; Name : String) return String;

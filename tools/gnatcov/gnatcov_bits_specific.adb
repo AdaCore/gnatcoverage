@@ -522,7 +522,6 @@ procedure GNATcov_Bits_Specific is
       end if;
 
       Copy_Arg (Opt_Output, Output);
-      Copy_Arg (Opt_Final_Report, Output);
       Copy_Arg (Opt_Tag, Tag);
       Copy_Arg (Opt_Kernel, Kernel);
       Copy_Arg (Opt_HW_Trigger_Traces, Convert.HW_Trigger_Arg);

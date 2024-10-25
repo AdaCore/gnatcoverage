@@ -1136,7 +1136,7 @@ package body Decision_Map is
             --  Check that there is a possible outcome from this condition
 
             declare
-               Outcome_Seen   : Boolean;
+               Outcome_Seen : Boolean := False;
                --  Set True when there is a value of the condition that
                --  determines an outcome of the decision.
 

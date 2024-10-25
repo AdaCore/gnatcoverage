@@ -120,7 +120,6 @@ package Command_Line is
       Opt_Coverage_Level,
       Opt_Text_Start,
       Opt_Exec_Prefix,
-      Opt_Final_Report,
       Opt_HW_Trigger_Traces,
       Opt_Input,
       Opt_Separate,
@@ -863,14 +862,6 @@ package Command_Line is
          Pattern      => "[PREFIX]",
          Help         => "In cases where we cannot find executable files, look"
                          & " for them in the PREFIX directory.",
-         At_Most_Once => False,
-         Internal     => True),
-      Opt_Final_Report => Create
-        (Long_Name    => "--report",
-         Pattern      => "[FILE]",
-         Help         => "??? This option is redundant with --option and is"
-                         & " not documented in the User Manual.",
-         Commands     => (Cmd_Coverage => True, others => False),
          At_Most_Once => False,
          Internal     => True),
       Opt_HW_Trigger_Traces => Create

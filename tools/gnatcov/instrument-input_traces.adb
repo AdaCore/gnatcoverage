@@ -777,6 +777,7 @@ package body Instrument.Input_Traces is
       Free (Statement_Buffer);
       Free (Decision_Buffer);
       Free (MCDC_Buffer);
+      Free (Stream.Buffer);
       Close (Stream.File);
    end Generic_Read_Source_Trace_File;
 
