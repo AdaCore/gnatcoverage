@@ -1328,8 +1328,22 @@ begin
                RTS_Profile := Full;
             elsif RTS_Profile_Str = "embedded" then
                RTS_Profile := Embedded;
+            elsif RTS_Profile_Str = "minimal" then
+               RTS_Profile := Minimal;
             else
                Fatal_Error ("Invalid RTS profile: " & RTS_Profile_Str);
+            end if;
+
+            --  Force minimal profile if the user requested compatibility with
+            --  --no-stdlib.
+
+            if Args.Bool_Args (Opt_No_Stdlib) then
+               if RTS_Profile not in Minimal | Auto then
+                  Fatal_Error
+                    ("RTS profile """ & RTS_Profile_Str & """ not compatible"
+                     & " with --no-stdlib");
+               end if;
+               RTS_Profile := Minimal;
             end if;
 
             Setup

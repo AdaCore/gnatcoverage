@@ -27,10 +27,10 @@ package Setup_RTS is
    Setup_RTS_Trace : constant Logging.GNATCOLL_Trace :=
      Logging.Create_Trace ("SETUP_RTS");
 
-   type Any_RTS_Profile is (Auto, Full, Embedded);
+   type Any_RTS_Profile is (Auto, Full, Embedded, Minimal);
    --  See documentation for the --rts-profile option
 
-   subtype Resolved_RTS_Profile is Any_RTS_Profile range Full .. Embedded;
+   subtype Resolved_RTS_Profile is Any_RTS_Profile range Full .. Minimal;
 
    --  Serialization/deserialization functions for Any_RTS_Profile. The
    --  deserialization one raises Constraint_Error exceptions for invalid input

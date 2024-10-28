@@ -1,0 +1,36 @@
+project Prj is
+
+   for Languages use ("Ada", "C");
+   for Main use ("main.c");
+   for Source_Dirs use ("src");
+   for Object_Dir use "obj";
+   for Exec_Dir use ".";
+
+   for Runtime ("Ada") use "light";
+
+   --  We can't build an executable with -nostdlib as a top level
+   --  builder switch, as this also prevents the c standard library from being
+   --  linked, and does not use the regular start files. Instead, pass the
+   --  switch on the binder and liker for Ada sources only, to ensure only the
+   --  Ada runtime is left out of the link.
+
+   type Yes_No is ("yes", "no");
+   Use_Nostdlib : Yes_No := external ("USE_NOSTDLIB", "yes");
+
+   Stdlib_Switches := ();
+
+   case Use_Nostdlib is
+      when "yes" =>
+         Stdlib_Switches := ("-nostdlib");
+      when "no" => null;
+   end case;
+
+   package Binder is
+      for Default_Switches ("Ada") use Stdlib_Switches;
+   end Binder;
+
+   package Linker is
+      for Default_Switches ("Ada") use Stdlib_Switches;
+   end Linker;
+
+end Prj;

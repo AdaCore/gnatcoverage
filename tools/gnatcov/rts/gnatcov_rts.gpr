@@ -18,7 +18,7 @@ library project GNATcov_RTS is
    --  of the extending project.
 
    type Boolean is ("false", "true");
-   type RTS_Profile_Type is ("full", "embedded");
+   type RTS_Profile_Type is ("full", "embedded", "minimal");
 
    --------------------------------
    -- Configuration declarations --
@@ -47,11 +47,34 @@ library project GNATcov_RTS is
    -- Configuration logic --
    -------------------------
 
+
+   -- Unit Exclusion table
+   --   "X" mean the file must go in the Excluded_Source_Files attribute;
+   --   "I" means the file is implicitly excluded by the language choice;
+   --
+   --  Some values for For_CCG are not present in the table, because they
+   --  correspond to invalid configurations.
+   --
+   -- /=========================================================\
+   -- |RTS_Profile      |   full    |  embedded   |   minimal   |
+   -- |-----------------|-----------|-------|-----|-------------|
+   -- |With_Ada         | yes | no  |  yes  | no  |  yes  | no  |
+   -- |-----------------|-----|-----|-------|-----|-------|-----|
+   -- |For_CCG          | no  | no  | Y | N | no  | Y | N | no  |
+   -- |=================|=====|=====|===|===|=====|===|===|=====|
+   -- |base_io.c        |  X  |     | I | X |     | I | X |  X  |
+   -- |-----------------|-----|-----|---|---|-----|---|---|-----|
+   -- |base_io_custom.c |  X  |  X  | I | X |  X  | I |   |     |
+   -- |-----------------|-----|-----|---|---|-----|---|---|-----|
+   -- |base_io.ad(b|s)  |     |  I  |   |   |  I  | X | X |  I  |
+   -- |-----------------|-----|-----|---|---|-----|---|---|-----|
+   -- | File IO units   |     |     | X | X |  X  | X | X |  X  |
+   -- \=========================================================/
+
    Languages := ();
    Excluded_Source_Files := ();
 
-   --  Compute the set of languages for this project. When Ada is enabled,
-   --  exclude the C implementation for stdout output primitives.
+   --  Compute the set of languages for this project
 
    case With_Ada is
       when "false" =>
@@ -61,32 +84,46 @@ library project GNATcov_RTS is
          case For_CCG is
             when "true"  => null;
             when "false" =>
-               Excluded_Source_Files :=
-                  Excluded_Source_Files & ("gnatcov_rts_c-base_io.c");
                Languages := Languages & ("C");
          end case;
    end case;
 
-   --  If the runtime does not have support to create files, exclude units that
-   --  depend on that feature.
+   --  Exclude the remaining files based on the profile and CCG support
+   --
+   --  First, exclude File IO units if the profile is not full.
 
    case RTS_Profile is
-      when "embedded" =>
+      when "embedded" | "minimal" =>
          Excluded_Source_Files :=
            Excluded_Source_Files
            & ("gnatcov_rts-traces-output-files.adb",
-              "gnatcov_rts-traces-output-files.ads");
-         case For_CCG is
-            when "true"  => null;
-            when "false" =>
-               Excluded_Source_Files :=
-                 Excluded_Source_Files
-                 & ("gnatcov_rts_c-os_interface.c",
-                    "gnatcov_rts_c-os_interface.h",
-                    "gnatcov_rts_c-traces-output-files.c",
-                    "gnatcov_rts_c-traces-output-files.h");
+              "gnatcov_rts-traces-output-files.ads",
+              "gnatcov_rts_c-os_interface.c",
+              "gnatcov_rts_c-os_interface.h",
+              "gnatcov_rts_c-traces-output-files.c",
+              "gnatcov_rts_c-traces-output-files.h");
+      when others => null;
+   end case;
+
+   --  Exclude the Ada Stdout IO unit if the profile is minimal, or select the
+   --  proper implementation based on the active language otherwise.
+
+   case RTS_Profile is
+      when "minimal" =>
+         Excluded_Source_Files :=
+           Excluded_Source_Files
+           & ("gnatcov_rts-base_io.ads",
+              "gnatcov_rts-base_io.adb",
+              "gnatcov_rts_c-base_io.c");
+      when "embedded" | "full" =>
+         Excluded_Source_Files :=
+           Excluded_Source_Files & ("gnatcov_rts_c-base_io_custom.c");
+         case With_Ada is
+            when "true" =>
+              Excluded_Source_Files :=
+                Excluded_Source_Files & ("gnatcov_rts_c-base_io.c");
+            when others => null;
          end case;
-      when "full" => null;
    end case;
 
    ------------
@@ -111,14 +148,14 @@ library project GNATcov_RTS is
    package Compiler is
       C_Extra_Switches := ();
       case RTS_Profile is
-         when "embedded" =>
+         when "embedded" | "minimal" =>
 
-           --  The rts for the embedded profile needs to remain compilable
-           --  in "freestanding" environments, where we might not have a libc
-           --  at hand.
+           --  The rts for the embedded and minimal profiles needs to remain
+           --  compilable in "freestanding" environments, where we might not
+           --  have a libc at hand.
 
             C_Extra_Switches := ("-ffreestanding");
-         when "full" =>
+         when "full"  =>
             null;
       end case;
 

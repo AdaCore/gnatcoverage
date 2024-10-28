@@ -103,7 +103,8 @@ package Command_Line is
       Opt_Warnings_As_Errors,
       Opt_Instrument_Block,
       Opt_Force,
-      Opt_Annotate_After);
+      Opt_Annotate_After,
+      Opt_No_Stdlib);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -703,6 +704,16 @@ package Command_Line is
            & " --location switch, as opposed to the default behavior which"
            & " inserts the annotation before the designated statement.",
          Commands  => (Cmd_Add_Annotation => True, others => False),
+         Internal  => False),
+      Opt_No_Stdlib => Create
+        (Long_Name => "--no-stdlib",
+         Help      =>
+           "Setup the coverage runtime in a way that is compatible with the"
+           & " -nostdlib builder switch. This requires that the output"
+           & " function for the coverage runtime must be provided by the user,"
+           & " see section ""Coverage runtime setup for configurations with no"
+           & " Ada runtime"" of the User's Guide for more details.",
+         Commands  => (Cmd_Setup => True, others => False),
          Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
