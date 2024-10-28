@@ -4,6 +4,7 @@ main (void)
   hello_from_pkg1 ();
   hello_from_pkg2 ();
   hello_from_pkg3 ();
+  hello_from_pkg4 ();
   return 0;
 }
 

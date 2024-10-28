@@ -393,6 +393,12 @@ is
          Result.Language := CPP_Language;
       elsif Ends_With (Command.First_Element, "cc1") then
          Result.Language := C_Language;
+      else
+         --  Unreachable code. Parse_Compilation_Command is always called with
+         --  Command's first argument being cc1plus or cc1 (see the if guard
+         --  around the single calling reference).
+
+         raise Program_Error;
       end if;
 
       --  Skip the first argument as it is the compiler executable, and not
@@ -625,13 +631,14 @@ is
    begin
       while Has_Element (Cur) loop
          declare
-            Arg : constant Unbounded_String := Element (Cur);
+            Arg     : constant Unbounded_String := Element (Cur);
+            Arg_Str : constant String := +Arg;
          begin
-            if Starts_With (Arg, "--include=") then
-               null;
-            elsif Starts_With (Arg, "-include")
-              or else Starts_With (Arg, "--include")
+            if Starts_With (Arg, "--include=")
+              or else Starts_With (Arg, "-include")
             then
+               null;
+            elsif Arg_Str in "-include" | "--include" then
                Cur := Next (Cur);
             else
                Result.Append (Element (Cur));

@@ -2663,10 +2663,7 @@ package body SC_Obligations is
    -- Get_Origin --
    ----------------
 
-   procedure Get_Origin
-     (SCO        : SCO_Id;
-      Prev_SCO   : out SCO_Id;
-      Prev_Value : out Boolean)
+   function Get_Origin (SCO : SCO_Id) return Maybe_SCO_Value
    is
       use BDD;
 
@@ -2674,10 +2671,12 @@ package body SC_Obligations is
       BDDN : BDD_Node renames BDD_Vector (SCOD.BDD_Node);
    begin
       if BDDN.Parent = No_BDD_Node_Id then
-         Prev_SCO := No_SCO_Id;
+         return Maybe_SCO_Value'(Present => False);
       else
-         Prev_SCO   := BDD_Vector.Constant_Reference (BDDN.Parent).C_SCO;
-         Prev_Value := BDDN.Parent_Value;
+         return Maybe_SCO_Value'
+           (Present => True,
+            SCO     => BDD_Vector.Constant_Reference (BDDN.Parent).C_SCO,
+            Value   => BDDN.Parent_Value);
       end if;
    end Get_Origin;
 
@@ -5930,6 +5929,10 @@ package body SC_Obligations is
       end if;
 
       Close (ALI_File);
+
+      if Line /= null then
+         Free (Line);
+      end if;
       return ALI_Index;
    end Load_ALI;
 

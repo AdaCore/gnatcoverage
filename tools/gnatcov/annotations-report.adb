@@ -290,10 +290,10 @@ package body Annotations.Report is
 
       Output : constant File_Access := Get_Output;
 
-      Total_Exempted_Regions : Natural;
+      Total_Exempted_Regions : Natural := 0;
       Total_Exempted_Violations : Natural := 0;
 
-      Total_Disabled_Cov_Regions : Natural;
+      Total_Disabled_Cov_Regions : Natural := 0;
 
       function Has_Exempted_Region return Boolean;
       --  True iff there's at least one exempted region

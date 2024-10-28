@@ -360,6 +360,28 @@ gnat_util.gpr:
 	@echo "  for source_dirs use (\"$(GU_SUBDIR)\");" >> $@
 	@echo "end gnat_util;" >> $@
 
+# GNATsas
+
+# This is equivalent to the default run performed during CI
+GNATSAS_ARGS=-XBUILD_MODE=$(BUILD_MODE) -XPART=gnatcov64
+GNATSAS_OBJ_DIR=obj64/$(BUILD_MODE)
+gnatsas:
+	rm -f $(OBJ_DIR)/results
+	gnatsas analyze -P gnatcov.gpr $(GNATSAS_ARGS)
+	gnatsas report text -P gnatcov.gpr $(GNATSAS_ARGS)
+	if gnatsas report exit-code -P gnatcov.gpr $(GNATSAS_ARGS); then \
+		echo "gnatsas:PASSED" >> $(GNATSAS_OBJ_DIR)/results ; \
+	else \
+		echo "gnatsas:FAILED:unexpected messages" >> $(GNATSAS_OBJ_DIR)/results ; \
+		gnatsas report -P gnatcov.gpr -o $(GNATSAS_OBJ_DIR)/gnatsas.out \
+      $(GNATSAS_ARGS) ; \
+	fi
+	gnatsas report code-climate -P gnatcov.gpr \
+    -o $(GNATSAS_OBJ_DIR)/gnatsas/gnatsas.json $(GNATSAS_ARGS) ;
+
+bump_baseline:
+	gnatsas baseline --bump-baseline -P gnatcov.gpr $(GNATSAS_ARGS)
+
 .PHONY: force
 
 force:

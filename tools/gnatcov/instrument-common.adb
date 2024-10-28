@@ -692,13 +692,18 @@ package body Instrument.Common is
             then
                Self.Compiler_Switches.Append (+A);
 
-            elsif Has_Prefix (A, "--include=") then
-               Self.Include_Files.Append (+A (11 .. A'Last));
-
             elsif A in "-include" | "--include" then
                Self.Include_Files.Append (Args (I + 1));
                I := I + 1;
+
+            elsif Has_Prefix (A, "--include=") then
+               Self.Include_Files.Append (+A (11 .. A'Last));
+
+            elsif Has_Prefix (A, "-include") then
+               Self.Include_Files.Append (+A (9 .. A'Last));
+
             end if;
+
             I := I + 1;
          end;
       end loop;
@@ -777,6 +782,20 @@ package body Instrument.Common is
          Next (Cur);
       end loop;
    end Populate_Ext_Disabled_Cov;
+
+   --------------------------------
+   -- Replace_Manual_Indications --
+   --------------------------------
+
+   procedure Replace_Manual_Indications
+     (Self                  : in out Language_Instrumenter;
+      Prj                   : in out Prj_Desc;
+      Source                : GNATCOLL.Projects.File_Info;
+      Has_Dump_Indication   : out Boolean;
+      Has_Reset_Indication  : out Boolean) is
+   begin
+      raise Program_Error;
+   end Replace_Manual_Indications;
 
 begin
    Sys_Prefix.Append (To_Unbounded_String ("GCVRT"));

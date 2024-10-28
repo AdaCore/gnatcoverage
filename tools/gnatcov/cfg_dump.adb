@@ -346,7 +346,7 @@ package body CFG_Dump is
       --  Address of the first byte of the instruction we are about to
       --  disassemble.
 
-      Old_PC  : Pc_Type;
+      Old_PC  : Pc_Type := Code.First;
       --  Likewise for the previous instruction
 
       Sym_Cur : Address_Info_Sets.Cursor :=

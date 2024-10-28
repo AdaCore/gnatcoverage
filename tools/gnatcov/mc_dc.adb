@@ -96,21 +96,19 @@ package body MC_DC is
 
       Values : Vector;
 
-      C_SCO        : SCO_Id;
-      Prev_C_SCO   : SCO_Id;
-      Prev_C_Value : Boolean;
+      C_SCO : SCO_Id;
+      Prev  : Maybe_SCO_Value;
 
    begin
       Values := To_Vector (Unknown, Length => Count_Type (Index (Condition)));
 
       C_SCO := Condition;
       loop
-         Get_Origin (C_SCO, Prev_C_SCO, Prev_C_Value);
-         exit when Prev_C_SCO = No_SCO_Id;
+         Prev := Get_Origin (C_SCO);
+         exit when Prev.Present = False;
 
-         Values.Replace_Element
-           (Index (Prev_C_SCO), To_Tristate (Prev_C_Value));
-         C_SCO := Prev_C_SCO;
+         Values.Replace_Element (Index (Prev.SCO), To_Tristate (Prev.Value));
+         C_SCO := Prev.SCO;
       end loop;
       return Values;
    end Infer_Values;

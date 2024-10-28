@@ -211,6 +211,7 @@ package body Elf_Disassemblers is
          and then I_Range.Insn_Set = Data);
 
    begin
+      Insn_Set := Data;
       Cache.Cur := Next (Cache.Cur);
       if Cache.Cur /= No_Element then
          declare
