@@ -1,0 +1,4 @@
+bin-traces DEAD Test only concerns gnatcov setup & src traces
+!native DEAD test bypasses target configuration and assumes native setup
+7.1.2 DEAD no light nor zfp runtime support for this compiler version
+5.04a1 DEAD no light nor ZFP runtime support for this compiler version

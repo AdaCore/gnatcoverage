@@ -194,6 +194,46 @@ the options passed to the latter take precedence. For instance:
 Note that the defaults that |gcvstp| uses for each target platform may change
 between versions of |gcp|.
 
+Coverage runtime setup for configurations with no Ada runtime
+-------------------------------------------------------------
+
+If the application is not linked against the Ada runtime library (but contains
+Ada code), the coverage runtime needs to be setup accordingly, so as not to
+rely on any features from the Ada runtime.
+
+This can be achieved with the :cmd-option:`--no-stdlib` |gcvstp| command line
+switch. The resulting coverage runtime only supports a ``manual`` or
+``main-end`` dump trigger, and will use a special implementation of the
+``base64-stdout`` dump channel, relying on a user-provided function to output
+the coverage data.
+
+The output function expected by the coverage runtime should have the same
+signature as the stdlib's ``putchar`` function:
+
+.. code-block:: C
+
+  extern int gnatcov_rts_putchar(int __c);
+
+Note that the coverage runtime will ignore the return value.
+
+In all cases the coverage runtime still requires an implementation of
+``memset`` and ``memcpy`` to be provided, either from the C standard library,
+or provided by the user.
+
+.. note::
+  This method of providing a function name upon which the coverage library
+  depends, without adding this information in the project file means that
+  gprbuild will produce a link command with the assumption that the coverage
+  runtime does not depend on the instrumented project. This may result in
+  the executable link failing due to an undefined reference to the output
+  function symbol name, if the object file is not already pulled in the
+  executable in a non-instrumented build.
+
+  To work around this, either ensure the output function is defined in a
+  compilation unit that is part of the executable in a non-coverage build,
+  or use an extending project to add your own sources to provide the
+  ``gnatcov_rts_putchar`` symbol, as detailed in the
+  :ref:`section dedicated to coverage runtime customization<basic_rts_custom>`.
 
 Instrumenting programs
 ======================
@@ -1087,6 +1127,8 @@ trace in addition to performing the original functional operations.
 Coverage runtime customization
 ==============================
 
+.. _basic_rts_custom:
+
 Basics
 ------
 
@@ -1100,7 +1142,7 @@ First, build and install the default coverage runtime (``gnatcov_rts``):
 
 .. code-block:: sh
 
-   # Add --target and --RTS if needed according to the toolchain to use
+   # Add --target / --RTS / --no-stdlib if needed according to the toolchain to use
    gnatcov setup
 
 Then create the project extension. The integration with the |gcvstp| workflow

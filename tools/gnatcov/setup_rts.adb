@@ -249,7 +249,8 @@ package body Setup_RTS is
       return (case Profile is
               when Auto     => "auto",
               when Full     => "full",
-              when Embedded => "embedded");
+              when Embedded => "embedded",
+              when Minimal  => "minimal");
    end Image;
 
    -----------
@@ -264,6 +265,8 @@ package body Setup_RTS is
          return Full;
       elsif Profile = "embedded" then
          return Embedded;
+      elsif Profile = "minimal" then
+         return Minimal;
       else
          return
            (raise Constraint_Error
@@ -302,6 +305,18 @@ package body Setup_RTS is
                   then Ravenscar_Task_Termination
                   else Main_End),
               Manual_Indication_Files => File_Sets.Empty_Set);
+
+         when Minimal =>
+
+            --  The minimal configuration cannot rely on any Ada runtime
+            --  feature, in particular tasking constructs, so only main-end
+            --  and base64-stdout (with user provided putchar function) is
+            --  supported.
+
+            return
+              (Channel                 => Base64_Standard_Output,
+               Trigger                 => Main_End,
+               Manual_Indication_Files => File_Sets.Empty_Set);
 
       end case;
    end Default_Dump_Config;
@@ -1344,6 +1359,13 @@ package body Setup_RTS is
 
          when Embedded =>
             Warn (Dump_Config.Trigger = At_Exit, "--dump-trigger=atexit");
+            Warn (Dump_Config.Channel = Binary_File,
+                  "--dump-channel=bin-file");
+
+         when Minimal =>
+            Warn (Dump_Config.Trigger = At_Exit, "--dump-trigger=atexit");
+            Warn (Dump_Config.Trigger = Ravenscar_Task_Termination,
+                  "--dump-trigger=ravenscar-task-termination");
             Warn (Dump_Config.Channel = Binary_File,
                   "--dump-channel=bin-file");
       end case;
