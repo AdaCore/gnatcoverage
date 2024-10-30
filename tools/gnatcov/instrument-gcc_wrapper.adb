@@ -642,12 +642,12 @@ is
             Arg     : constant Unbounded_String := Element (Cur);
             Arg_Str : constant String := +Arg;
          begin
-            if Starts_With (Arg, "--include=")
+            if Arg_Str in "-include" | "--include" then
+               Cur := Next (Cur);
+            elsif Starts_With (Arg, "--include=")
               or else Starts_With (Arg, "-include")
             then
                null;
-            elsif Arg_Str in "-include" | "--include" then
-               Cur := Next (Cur);
             else
                Result.Append (Element (Cur));
             end if;
