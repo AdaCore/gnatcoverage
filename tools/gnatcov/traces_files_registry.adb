@@ -209,21 +209,17 @@ package body Traces_Files_Registry is
 
                   Year, Month, Day, Hour, Minute, Second : int;
 
-                  --  The "long" value we need to craft has to fit both a
-                  --  "long" number of seconds and a "long long" number of
-                  --  nanoseconds, which the runtime library will compute
-                  --  internally. Then "long" and "long long" are not
-                  --  necessarily the same length, in particular on Windows
-                  --  where "long" is 32bit even in the 64bit ABI.
+                  --  Convert the timestamp we got (Unsigned_64) to the
+                  --  corresponding Unix API type (long long). In case we get
+                  --  buggy (too large) values, silently cap them.
 
-                  Nano : constant := 1 * 10**9;
-                  Max_Timestamp : constant Unsigned_64 :=
-                    Unsigned_64'Min (Unsigned_64 (long'Last),
-                                     Unsigned_64 (long_long'Last / Nano));
+                  Max_Timestamp  : constant Unsigned_64 :=
+                    Unsigned_64 (long_long'Last);
+                  Unix_Timestamp : constant long_long :=
+                    long_long (Unsigned_64'Min (Timestamp, Max_Timestamp));
                begin
                   To_Struct_Tm
-                    (To_Ada_Time
-                       (long (Unsigned_64'Min (Timestamp, Max_Timestamp))),
+                    (To_Ada_Time_64 (Unix_Timestamp),
                      Year, Month, Day,
                      Hour, Minute, Second);
                   Info_Date.Year  := Unsigned_16 (1900 + Year);
