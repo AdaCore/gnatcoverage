@@ -1,6 +1,7 @@
 #include "process.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 void
 process (const char *argv[])
