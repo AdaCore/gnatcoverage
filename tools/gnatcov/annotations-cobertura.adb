@@ -351,7 +351,7 @@ package body Annotations.Cobertura is
       Success   : Boolean;
       Timestamp : constant String :=
         Ada.Strings.Fixed.Trim
-          (long'Image (To_Unix_Time (Pp.Context.Timestamp)),
+          (long_long'Image (To_Unix_Time_64 (Pp.Context.Timestamp)),
            Ada.Strings.Left);
    begin
       --  Copy the DTD Schema to the output directory
