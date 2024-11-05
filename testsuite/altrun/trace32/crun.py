@@ -36,9 +36,7 @@ def to_list(blob):
     return (
         blob
         if isinstance(blob, list)
-        else blob.split()
-        if isinstance(blob, str)
-        else []
+        else blob.split() if isinstance(blob, str) else []
     )
 
 

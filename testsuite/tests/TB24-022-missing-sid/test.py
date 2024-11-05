@@ -1,6 +1,7 @@
 """
 Check that gnatcov correctly detects missing SID.
 """
+
 from SCOV.minicheck import build_run_and_coverage
 from SUITE.context import thistest
 from SUITE.cutils import contents_of, Wdir

@@ -69,7 +69,7 @@ def make_type_set(types):
 
 def is_topology_equal(topo1, topo2):
     """Return whether two topologies are equal."""
-    if type(topo1) != type(topo2):
+    if type(topo1) is not type(topo2):
         return False
     elif isinstance(topo1, (ast.And, ast.Not, ast.Or)):
         return all(

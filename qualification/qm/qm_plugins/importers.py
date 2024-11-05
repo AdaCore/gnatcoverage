@@ -213,13 +213,15 @@ def kind_of(artifact):
     return (
         "Requirement Group"
         if is_reqset(artifact)
-        else "Requirement"
-        if is_req(artifact)
-        else "Testcase Group"
-        if is_tcset(artifact)
-        else "Testcase"
-        if is_tc(artifact)
-        else "Chapter"
+        else (
+            "Requirement"
+            if is_req(artifact)
+            else (
+                "Testcase Group"
+                if is_tcset(artifact)
+                else "Testcase" if is_tc(artifact) else "Chapter"
+            )
+        )
     )
 
 

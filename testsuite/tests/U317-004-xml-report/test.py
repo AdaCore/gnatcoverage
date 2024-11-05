@@ -2,6 +2,7 @@
 Check that the right column numbers are output for a statement coverage
 obligation in the XML report.
 """
+
 from SCOV.minicheck import build_run_and_coverage
 from SUITE.context import thistest
 from SUITE.cutils import contents_of, Wdir
