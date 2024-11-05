@@ -99,9 +99,11 @@ for case in (
     thistest.fail_if(
         xcov_warned != case.expect_warning,
         "{} ({})".format(
-            "Warnings expected, got no one"
-            if case.expect_warning
-            else "Expected no warnings, but got one",
+            (
+                "Warnings expected, got no one"
+                if case.expect_warning
+                else "Expected no warnings, but got one"
+            ),
             case.label,
         ),
     )

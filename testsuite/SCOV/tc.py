@@ -258,9 +258,11 @@ class TestCase:
         this_scov_helper = (
             SCOV_helper_bin_traces
             if thistest.options.trace_mode == "bin"
-            else SCOV_helper_src_traces
-            if thistest.options.trace_mode == "src"
-            else None
+            else (
+                SCOV_helper_src_traces
+                if thistest.options.trace_mode == "src"
+                else None
+            )
         )
 
         # Compute the Working directory base for this level, then run the test

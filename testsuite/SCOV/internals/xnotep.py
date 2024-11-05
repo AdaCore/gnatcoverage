@@ -204,9 +204,11 @@ class _XnoteP_segment:
                 Segment(
                     tline.lno,
                     bm.start() + 1,
-                    self.__extended_segend_for(bm=bm, tline=tline)
-                    if extend
-                    else bm.end(),
+                    (
+                        self.__extended_segend_for(bm=bm, tline=tline)
+                        if extend
+                        else bm.end()
+                    ),
                 )
             )
 
@@ -345,9 +347,11 @@ class XnoteP:
         self.factory = (
             _XnoteP_block(notep=self)
             if block_p(self.kind)
-            else _XnoteP_line(notep=self)
-            if not self.stext
-            else _XnoteP_segment(notep=self, stext=stext)
+            else (
+                _XnoteP_line(notep=self)
+                if not self.stext
+                else _XnoteP_segment(notep=self, stext=stext)
+            )
         )
 
     def instantiate_stag(self):

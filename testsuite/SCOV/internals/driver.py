@@ -1164,9 +1164,11 @@ class SCOV_helper:
                 os.path.relpath(os.getcwd(), thistest.homedir),
                 [no_ext(main) for main in self.drivers],
                 self.xfile,
-                self.testcase.category.name
-                if self.testcase.category
-                else "generic",
+                (
+                    self.testcase.category.name
+                    if self.testcase.category
+                    else "generic"
+                ),
                 " ".join(self.covoptions),
             ),
             char="*",

@@ -267,9 +267,7 @@ def gpr_common_args(project, auto_config_args=True):
     gproptions.append(
         # verbose mode for verifiability in qualif mode.
         # quiet mode for performance (less io) otherwise.
-        "-v"
-        if thistest.options.qualif_level
-        else "-q",
+        "-v" if thistest.options.qualif_level else "-q",
     )
     if auto_config_args:
         gproptions.append(

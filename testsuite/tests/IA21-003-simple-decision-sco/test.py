@@ -1,6 +1,7 @@
 """
 Check that gnatcov correctly loads and interprets a simple decision SCO.
 """
+
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, match
 from SUITE.tutils import (
