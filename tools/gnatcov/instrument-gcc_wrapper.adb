@@ -205,6 +205,14 @@ is
    --  times (e.g. at instrumentation time, and at compile time). A noteworthy
    --  example is the -include switch.
 
+   procedure Emit_Buffers_List_Object
+     (Context             : Parsing_Context;
+      Instr_Config        : Instrumentation_Config;
+      Prj                 : Prj_Desc;
+      Buffers_List_Object : Virtual_File;
+      Buffer_Symbols      : String_Sets.Set);
+   --  Emit the object file containing the given list of Buffer_Symbols
+
    ----------------
    -- Split_Args --
    ----------------
@@ -634,12 +642,12 @@ is
             Arg     : constant Unbounded_String := Element (Cur);
             Arg_Str : constant String := +Arg;
          begin
-            if Starts_With (Arg, "--include=")
+            if Arg_Str in "-include" | "--include" then
+               Cur := Next (Cur);
+            elsif Starts_With (Arg, "--include=")
               or else Starts_With (Arg, "-include")
             then
                null;
-            elsif Arg_Str in "-include" | "--include" then
-               Cur := Next (Cur);
             else
                Result.Append (Element (Cur));
             end if;
@@ -648,6 +656,43 @@ is
       end loop;
       return Result;
    end Remove_Pp_Switches;
+
+   ------------------------------
+   -- Emit_Buffers_List_Object --
+   ------------------------------
+
+   procedure Emit_Buffers_List_Object
+     (Context             : Parsing_Context;
+      Instr_Config        : Instrumentation_Config;
+      Prj                 : Prj_Desc;
+      Buffers_List_Object : Virtual_File;
+      Buffer_Symbols      : String_Sets.Set)
+   is
+      Instrumenter : constant Language_Instrumenter'Class :=
+        Create_C_Instrumenter
+          (Instr_Config.Tag, Integrated_Instrumentation);
+      --  Emit the buffers list unit as a C compilation unit as it is
+      --  compilable by a C / C++ compiler, which are the languages
+      --  supported by the integrated instrumentation scheme.
+
+      Buffers_List_Unit : constant Virtual_File :=
+        Create
+          (GNATCOLL.VFS."+"
+             (+Instrumenter.Emit_Buffers_List_Unit
+                (Buffer_Symbols, Prj).Unit_Name));
+
+      Args_Compilation : String_Vectors.Vector;
+   begin
+      Args_Compilation.Append (+"-c");
+      Args_Compilation.Append
+        ("-I" & Instr_Config.GNATcov_RTS_Include_Dir);
+      Args_Compilation.Append
+        (+(GNATCOLL.VFS."+" (Full_Name (Buffers_List_Unit))));
+      Args_Compilation.Append (+"-o");
+      Args_Compilation.Append
+        (+(GNATCOLL.VFS."+" (Full_Name (Buffers_List_Object))));
+      Run_Original_Compiler (Context, Args_Compilation);
+   end Emit_Buffers_List_Object;
 
    Compiler_Wrapper_Dir : constant String :=
      Containing_Directory (Config_File);
@@ -666,9 +711,9 @@ is
    --  Artificial project description to pass to the various instrumentation
    --  workflows.
 
-   Buffers_List_Unit : Compilation_Unit;
-   --  Name of the unit holding the buffer list definitions, if this compiler
-   --  driver invocation expands to a link command.
+   Buffers_List_Object : Virtual_File := No_File;
+   --  Name of the object file holding the buffer list definitions, if this
+   --  compiler driver invocation expands to a link command.
 
    Context : Parsing_Context;
 
@@ -812,18 +857,15 @@ begin
    --  link.
 
    if Has_Link_Command then
-      declare
-         Instrumenter : constant Language_Instrumenter'Class :=
-           Create_C_Instrumenter
-             (Instr_Config.Tag, Integrated_Instrumentation);
-         --  Emit the buffers list unit as a C compilation unit as it is
-         --  compilable by a C / C++ compiler, which are the languages
-         --  supported by the integrated instrumentation scheme.
-
-      begin
-         Buffers_List_Unit :=
-           Instrumenter.Emit_Buffers_List_Unit (String_Sets.Empty_Set, Prj);
-      end;
+      Buffers_List_Object :=
+        Create
+          (GNATCOLL.VFS."+" (New_File (Prj, +"gcvrtc-main" & ".o")));
+      Emit_Buffers_List_Object
+        (Context,
+         Instr_Config,
+         Prj,
+         Buffers_List_Object,
+         String_Sets.Empty_Set);
    end if;
 
    --  Now that we have all of the instrumentation artifacts, launch the
@@ -852,8 +894,9 @@ begin
       --  Start with adding the buffer list unit (if it was emitted) to the
       --  compilation closure.
 
-      if Length (Buffers_List_Unit.Unit_Name) /= 0 then
-         New_Args.Prepend (Buffers_List_Unit.Unit_Name);
+      if GNATCOLL.VFS.Is_Regular_File (Buffers_List_Object) then
+         New_Args.Prepend
+           (+(GNATCOLL.VFS."+" (Full_Name (Buffers_List_Object))));
       end if;
 
       --  Then, substitute files of interest with their instrumented version,
@@ -995,13 +1038,6 @@ begin
            (+Comp_DB.Link_Command.Target.Full_Name)
       then
          declare
-            Instrumenter : constant Language_Instrumenter'Class :=
-              Create_C_Instrumenter
-                (Instr_Config.Tag, Integrated_Instrumentation);
-            --  Emit the buffers list unit as a C compilation unit as it is
-            --  compilable by a C / C++ compiler, which are the languages
-            --  supported by the integrated instrumentation scheme.
-
             Buffer_Symbols : String_Sets.Set;
 
             procedure Add_Coverage_Buffer_Symbols (Symbol_File : Virtual_File);
@@ -1098,10 +1134,14 @@ begin
                Close (Ldd_File);
             end;
 
-            --  Generate the buffers list unit
+            --  Generate the actual buffers unit list
 
-            Buffers_List_Unit :=
-              Instrumenter.Emit_Buffers_List_Unit (Buffer_Symbols, Prj);
+            Emit_Buffers_List_Object
+              (Context,
+               Instr_Config,
+               Prj,
+               Buffers_List_Object,
+               Buffer_Symbols);
 
             --  Then, re-run the link with the correct buffers list unit
 
