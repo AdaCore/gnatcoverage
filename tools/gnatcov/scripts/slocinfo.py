@@ -25,9 +25,11 @@ def format_sloc(sloc, basename=False):
         filename,
         sloc.line,
         "" if sloc.column is None else ":{}".format(sloc.column),
-        ""
-        if sloc.discriminator is None
-        else " discriminator {}".format(sloc.discriminator),
+        (
+            ""
+            if sloc.discriminator is None
+            else " discriminator {}".format(sloc.discriminator)
+        ),
     )
 
 

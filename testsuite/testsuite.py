@@ -1394,9 +1394,7 @@ class TestSuite(e3.testsuite.Testsuite):
         boardname = (
             self.main.args.board
             if self.main.args.board
-            else self.env.target.machine
-            if self.env.target.machine
-            else None
+            else self.env.target.machine if self.env.target.machine else None
         )
 
         return ["board", boardname] if boardname else []

@@ -48,9 +48,11 @@ def instantiate_gpr(target):
         content = gpr_content.replace("%TARGET%", target)
         content = content.replace(
             "%RUNTIME%",
-            'for Runtime ("Ada") use "{}";'.format(thistest.options.RTS)
-            if thistest.options.RTS
-            else "",
+            (
+                'for Runtime ("Ada") use "{}";'.format(thistest.options.RTS)
+                if thistest.options.RTS
+                else ""
+            ),
         )
         f.write(content)
 

@@ -574,7 +574,7 @@ class ASCIItable(RSTtable):
         # This is useful to align the text of every column, for both
         # content rows and the ReST table separation lines.
 
-        self.width = {col: 0 for col in self.columns}
+        self.width = dict.fromkeys(self.columns, 0)
 
         # Maximize column width over contents entries
 
@@ -1320,9 +1320,11 @@ class QDreport(object):
             {
                 itemno: "s2",
                 item: "runtime profile",
-                value: literal(("--RTS=%s" % rts))
-                if rts
-                else rest.emph("no --RTS switch"),
+                value: (
+                    literal(("--RTS=%s" % rts))
+                    if rts
+                    else rest.emph("no --RTS switch")
+                ),
             }
         )
 

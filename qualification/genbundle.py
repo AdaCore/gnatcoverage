@@ -720,9 +720,11 @@ class QMAT:
         (first, next_item) = (
             (suite_treeref, local_treeref)
             if merge_base == suite_treeref
-            else (local_treeref, suite_treeref)
-            if merge_base == local_treeref
-            else (None, None)
+            else (
+                (local_treeref, suite_treeref)
+                if merge_base == local_treeref
+                else (None, None)
+            )
         )
 
         if first is None:

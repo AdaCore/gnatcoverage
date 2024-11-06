@@ -2,6 +2,7 @@
 Check the validity of the SARIF report generated for a C project in which no
 coverage violations were found.
 """
+
 from SCOV.minicheck import build_run_and_coverage
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of

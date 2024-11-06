@@ -1,6 +1,7 @@
 """
 Basic test on the --source-search option
 """
+
 import os
 
 from SCOV.minicheck import build_and_run

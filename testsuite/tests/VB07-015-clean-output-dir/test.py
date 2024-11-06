@@ -35,9 +35,11 @@ def check_one(units, output_dir, xcov_args):
         thistest.log(f"inspecting {dirname}")
         check_xcov_reports(
             dirname,
-            {f"{unit}.xcov": expected_cov[unit] for unit in units}
-            if dirname == output_dir
-            else {},
+            (
+                {f"{unit}.xcov": expected_cov[unit] for unit in units}
+                if dirname == output_dir
+                else {}
+            ),
         )
 
 

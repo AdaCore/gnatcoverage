@@ -321,9 +321,11 @@ def add_dumper_lch_hook(project, obj_dir, subdirs, main_unit):
     # build the new source
     new_source = "".join(
         [
-            ""
-            if before_body_token is None
-            else lal.Token.text_range(unit.first_token, before_body_token),
+            (
+                ""
+                if before_body_token is None
+                else lal.Token.text_range(unit.first_token, before_body_token)
+            ),
             "with {};".format(handler_unit),
             lal.Token.text_range(after_body_token, unit.last_token),
         ]
