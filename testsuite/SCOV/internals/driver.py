@@ -60,6 +60,7 @@ from .cnotes import (
     sNoteKinds,
     dNoteKinds,
     cNoteKinds,
+    gNoteKinds,
     tNoteKinds,
     fNoteKinds,
 )
@@ -989,40 +990,35 @@ class SCOV_helper:
         # determine when we're running some test of a given category with a
         # stricter --level
 
-        strength = {
-            # Categories
-            CAT.stmt: 1,
-            CAT.decision: 2,
-            CAT.mcdc: 3,
-            # Context levels
-            "stmt": 1,
-            "stmt+decision": 2,
-            "stmt+mcdc": 3,
-            "stmt+uc_mcdc": 3,
-            "stmt+atc": 1,
-            "stmt+decision+atc": 2,
-            "stmt+decision+atcc": 2,
-            "stmt+mcdc+atc": 3,
-            "stmt+mcdc+atcc": 3,
-            "stmt+uc_mcdc+atc": 3,
-            "stmt+uc_mcdc+atcc": 3,
-            "stmt+fun_call": 1,
-            "stmt+decision+fun_call": 2,
-            "stmt+mcdc+fun_call": 3,
-            "stmt+uc_mcdc+fun_call": 3,
-            "stmt+atc+fun_call": 1,
-            "stmt+decision+atc+fun_call": 2,
-            "stmt+decision+atcc+fun_call": 2,
-            "stmt+mcdc+atc+fun_call": 3,
-            "stmt+mcdc+atcc+fun_call": 3,
-            "stmt+uc_mcdc+atc+fun_call": 3,
-            "stmt+uc_mcdc+atcc+fun_call": 3,
-        }
+        def level_strength(lvl):
+            """
+            The strengh of a level is determined by its base level:
+            3 for mcdc
+            2 for decision
+            1 for stmt
+            """
+            if lvl == CAT.mcdc or (
+                isinstance(lvl, str)
+                and (
+                    lvl.startswith("stmt+mcdc")
+                    or lvl.startswith("stmt+uc_mcdc")
+                )
+            ):
+                return 3
+            elif lvl == CAT.decision or (
+                isinstance(lvl, str) and lvl.startswith("stmt+decision")
+            ):
+                return 2
+            elif lvl == CAT.stmt or (
+                isinstance(lvl, str) and lvl.startswith("stmt")
+            ):
+                return 1
+            else:
+                thistest.stop(FatalError("unknwon coverage level: " + lvl))
 
-        stricter_level = (
-            self.testcase.category
-            and strength[self.xcovlevel] > strength[self.testcase.category]
-        )
+        stricter_level = self.testcase.category and level_strength(
+            self.xcovlevel
+        ) > level_strength(self.testcase.category)
 
         # For tests without a category, we will pick the relevant note
         # kinds from the strictest category possibly corresponding to the
@@ -1134,6 +1130,11 @@ class SCOV_helper:
         if self.testcase.fun_call_lvl:
             tc_r_rxp_for += fNoteKinds
             tc_r_ern_for += fNoteKinds
+
+        if self.testcase.gexpr_lvl:
+            tc_r_rxp_for += gNoteKinds
+            tc_r_ern_for += gNoteKinds
+
         strans = self.report_translation_for(source)
         _Xchecker(
             report="test.rep",

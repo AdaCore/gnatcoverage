@@ -273,6 +273,39 @@ def exit_if(t, comment):
         exit(1)
 
 
+def multi_range(*args, minus=None):
+    """
+    Utility function for easily creating sets of numbers from inclusive ranges
+    or simple numbers.
+    This function takes any number of arguments, which must either be
+    integers or integer 2-tuple.
+    The returned value is a set that contains all single numbers and all the
+    *INCLUSIVE* ranges
+
+    The named parameter `minus` is a list that follows the same principle, but
+    its result is removed from the result of the function.
+
+    Example: `multi_range((1,3), 6, (10, 13)) == {1, 2, 3, 6, 10, 11, 12, 13}`
+    """
+    result = set()
+    for arg in args:
+        if type(arg) is int:
+            result |= {arg}
+        else:
+            (start, end) = arg
+            result |= set(range(start, end + 1))
+
+    minus = minus or []
+    for arg in minus:
+        if type(arg) is int:
+            result ^= {arg}
+        else:
+            (start, end) = arg
+            result ^= set(range(start, end + 1))
+
+    return result
+
+
 class Identifier:
     def __init__(self, name):
         self.name = name

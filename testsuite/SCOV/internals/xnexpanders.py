@@ -1255,6 +1255,10 @@ class XnotesExpander:
 
         level_from_char.update(fun_call_level_from_char)
 
+        gexpr_level_from_char = {"g": make_new_lvl_combinaison("gexpr")}
+
+        level_from_char.update(gexpr_level_from_char)
+
         result = text.split("=>")
 
         if len(result) == 1:
