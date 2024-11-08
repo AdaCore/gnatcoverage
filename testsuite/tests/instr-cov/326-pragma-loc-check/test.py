@@ -17,7 +17,7 @@ warning_regexp = (
 )
 
 TestCase(category=CAT.stmt, tolerate_messages=warning_regexp).run(
-    CovControl(instroptions="--dump-trigger=manual")
+    CovControl(dump_trigger="manual")
 )
 
 # Actually check that we got the expected messages
