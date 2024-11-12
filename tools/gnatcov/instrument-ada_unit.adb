@@ -5111,9 +5111,11 @@ package body Instrument.Ada_Unit is
 
                   --  Finally traverse the ELSE statements if present
 
-                  Traverse_Declarations_Or_Statements
-                    (UIC,
-                     L => If_N.F_Else_Stmts.As_Ada_Node_List);
+                  if not If_N.F_Else_Part.Is_Null then
+                     Traverse_Declarations_Or_Statements
+                       (UIC,
+                        L => If_N.F_Else_Part.F_Stmts.As_Ada_Node_List);
+                  end if;
                end;
 
                --  Start a new statement block for statements after the if
@@ -5205,12 +5207,16 @@ package body Instrument.Ada_Unit is
                   --  Note: the sequences of statements for ELSE and ABORT
                   --  do not require the special processing for alternatives.
 
-                  Traverse_Declarations_Or_Statements
-                    (UIC,
-                     L => Sel_N.F_Else_Stmts.As_Ada_Node_List);
-                  Traverse_Declarations_Or_Statements
-                    (UIC,
-                     L => Sel_N.F_Abort_Stmts.As_Ada_Node_List);
+                  if not Sel_N.F_Else_Part.Is_Null then
+                     Traverse_Declarations_Or_Statements
+                       (UIC,
+                        L => Sel_N.F_Else_Part.F_Stmts.As_Ada_Node_List);
+                  end if;
+                  if not Sel_N.F_Then_Abort_Part.Is_Null then
+                     Traverse_Declarations_Or_Statements
+                       (UIC,
+                        L => Sel_N.F_Then_Abort_Part.F_Stmts.As_Ada_Node_List);
+                  end if;
                end;
                --  Open a new statement block for statements after the select
 
