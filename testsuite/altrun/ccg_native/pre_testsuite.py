@@ -79,10 +79,10 @@ def prepare_rts():
     rm(os.path.join(custom_rts_dir, "obj-*"), recursive=True)
     rm(os.path.join(custom_rts_dir, "lib-*"), recursive=True)
 
-    # Remove gnatcov_rts_c-base_io.c as it would interfere with the symbols
+    # Remove gnatcov_rts_c-base_io*.c as it would interfere with the symbols
     # defined in gnatcov_rts-base_io.adb, and the C files that should not
     # be compiled when the RTS profile is "embedded".
-    rm(os.path.join(custom_rts_dir, "gnatcov_rts_c-base_io.c"))
+    rm(os.path.join(custom_rts_dir, "gnatcov_rts_c-base_io*.c"))
     rm(os.path.join(custom_rts_dir, "gnatcov_rts_c-os_interface*"))
     rm(os.path.join(custom_rts_dir, "gnatcov_rts_c-traces-output-files*"))
 

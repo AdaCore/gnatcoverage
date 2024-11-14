@@ -50,7 +50,6 @@ library project GNATcov_RTS is
 
    -- Unit Exclusion table
    --   "X" mean the file must go in the Excluded_Source_Files attribute;
-   --   "I" means the file is implicitly excluded by the language choice;
    --
    --  Some values for For_CCG are not present in the table, because they
    --  correspond to invalid configurations.
@@ -62,17 +61,19 @@ library project GNATcov_RTS is
    -- |-----------------|-----|-----|-------|-----|-------|-----|
    -- |For_CCG          | no  | no  | Y | N | no  | Y | N | no  |
    -- |=================|=====|=====|===|===|=====|===|===|=====|
-   -- |base_io.c        |  X  |     | I | X |     | I | X |  X  |
+   -- |base_io.c        |  X  |     | X | X |     | X | X |  X  |
    -- |-----------------|-----|-----|---|---|-----|---|---|-----|
-   -- |base_io_custom.c |  X  |  X  | I | X |  X  | I |   |     |
+   -- |base_io_custom.c |  X  |  X  | X | X |  X  | X |   |     |
    -- |-----------------|-----|-----|---|---|-----|---|---|-----|
-   -- |base_io.ad(b|s)  |     |  I  |   |   |  I  | X | X |  I  |
+   -- |base_io.ad(b|s)  |     |  X  |   |   |  X  | X | X |  X  |
    -- |-----------------|-----|-----|---|---|-----|---|---|-----|
    -- | File IO units   |     |     | X | X |  X  | X | X |  X  |
    -- \=========================================================/
 
    Languages := ();
-   Excluded_Source_Files := ();
+   Excluded_Ada_Source_Files := ();
+   Excluded_C_Source_Files := ();
+   All_Excluded_Source_Files := ();
 
    --  Compute the set of languages for this project
 
@@ -94,11 +95,13 @@ library project GNATcov_RTS is
 
    case RTS_Profile is
       when "embedded" | "minimal" =>
-         Excluded_Source_Files :=
-           Excluded_Source_Files
+         Excluded_Ada_Source_Files :=
+           Excluded_Ada_Source_Files
            & ("gnatcov_rts-traces-output-files.adb",
-              "gnatcov_rts-traces-output-files.ads",
-              "gnatcov_rts_c-os_interface.c",
+              "gnatcov_rts-traces-output-files.ads");
+         Excluded_C_Source_Files :=
+           Excluded_C_Source_Files
+           & ("gnatcov_rts_c-os_interface.c",
               "gnatcov_rts_c-os_interface.h",
               "gnatcov_rts_c-traces-output-files.c",
               "gnatcov_rts_c-traces-output-files.h");
@@ -110,20 +113,43 @@ library project GNATcov_RTS is
 
    case RTS_Profile is
       when "minimal" =>
-         Excluded_Source_Files :=
-           Excluded_Source_Files
+         Excluded_Ada_Source_Files :=
+           Excluded_Ada_Source_Files
            & ("gnatcov_rts-base_io.ads",
-              "gnatcov_rts-base_io.adb",
-              "gnatcov_rts_c-base_io.c");
+              "gnatcov_rts-base_io.adb");
+         Excluded_C_Source_Files :=
+           Excluded_C_Source_Files & ("gnatcov_rts_c-base_io.c");
       when "embedded" | "full" =>
-         Excluded_Source_Files :=
-           Excluded_Source_Files & ("gnatcov_rts_c-base_io_custom.c");
+         Excluded_C_Source_Files :=
+           Excluded_C_Source_Files & ("gnatcov_rts_c-base_io_custom.c");
          case With_Ada is
             when "true" =>
-              Excluded_Source_Files :=
-                Excluded_Source_Files & ("gnatcov_rts_c-base_io.c");
+              Excluded_C_Source_Files :=
+                Excluded_C_Source_Files & ("gnatcov_rts_c-base_io.c");
             when others => null;
          end case;
+   end case;
+
+   --  Set the Excluded_Source_Files attribute based on the language.
+   --
+   --  While it is possible to have a filename in the attribute corresponding
+   --  to a language not present in the current configuration, this limits how
+   --  the runtime can be setup manually (e.g. for use with CCG), as it is not
+   --  possible to delete the excluded files as the gpr tools will error out if
+   --  it is not found, despite not being part of the project due to the active
+   --  languages.
+
+   case With_Ada is
+      when "true" =>
+         All_Excluded_Source_Files := Excluded_Ada_Source_Files;
+      when "false" => null;
+   end case;
+
+   case For_CCG is
+      when "false" =>
+        All_Excluded_Source_Files :=
+          All_Excluded_Source_Files & Excluded_C_Source_Files;
+      when "true" => null;
    end case;
 
    ------------
@@ -143,7 +169,7 @@ library project GNATcov_RTS is
    for Object_Dir use "obj-gnatcov_rts." & Library_Type;
 
    for Source_Dirs use (".");
-   for Excluded_Source_Files use Excluded_Source_Files;
+   for Excluded_Source_Files use All_Excluded_Source_Files;
 
    package Compiler is
       C_Extra_Switches := ();

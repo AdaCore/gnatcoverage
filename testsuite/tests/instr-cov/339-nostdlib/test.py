@@ -64,7 +64,7 @@ error_case(
 
 error_case(
     tc_id="suspicious_dump_trigger",
-    args=["--no-stdlib", "--dump-trigger=atexit"],
+    args=["--no-stdlib", "--dump-trigger=atexit", "--RTS=light"],
     expected_out="warning: --dump-trigger=atexit may not be compatible with"
     " the selected runtime",
     expect_failure=False,
@@ -72,7 +72,7 @@ error_case(
 
 error_case(
     tc_id="suspicious_dump_channel",
-    args=["--no-stdlib", "--dump-channel=bin-file"],
+    args=["--no-stdlib", "--dump-channel=bin-file", "--RTS=light"],
     expected_out="warning: --dump-channel=bin-file may not be compatible with"
     " the selected runtime",
     expect_failure=False,
