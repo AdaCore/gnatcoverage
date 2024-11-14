@@ -287,6 +287,7 @@ package body Annotations.Xml is
    procedure Generate_Report (Context : Coverage.Context_Access) is
       Pp : Xml_Pretty_Printer :=
         (Need_Sources => True,
+         Use_UTF8     => True,
          Context      => Context,
          others       => <>);
    begin
@@ -324,7 +325,7 @@ package body Annotations.Xml is
    begin
       Pp.ST ("condition",
              A ("id", Img (Integer (SCO)))
-             & A ("text", SCO_Text (SCO))
+             & A ("text", Pp.SCO_Text (SCO))
              & A ("coverage", State_Char (State)));
       for Annotation of SCO_Annotations (SCO) loop
          Pp.T ("annotation", A ("text", Annotation));
@@ -518,7 +519,7 @@ package body Annotations.Xml is
    begin
       Pp.ST ("decision",
              A ("id", Img (Integer (SCO)))
-             & A ("text", SCO_Text (SCO))
+             & A ("text", Pp.SCO_Text (SCO))
              & A ("coverage", State_Char (State)));
       for Annotation of SCO_Annotations (SCO) loop
          Pp.T ("annotation", A ("text", Annotation));
@@ -677,7 +678,7 @@ package body Annotations.Xml is
    begin
       Pp.ST ("statement",
              A ("id", Img (Integer (SCO)))
-             & A ("text", SCO_Text (SCO))
+             & A ("text", Pp.SCO_Text (SCO))
              & A ("coverage", State_Char (State)));
       for Annotation of SCO_Annotations (SCO) loop
          Pp.T ("annotation", A ("text", Annotation));
@@ -741,7 +742,8 @@ package body Annotations.Xml is
 
          declare
             Attributes : Unbounded_String := +A ("num", Img (Line_Num));
-            Line       : constant String := Get_Line (Current_Line_Sloc);
+            Line       : constant String :=
+              Get_Line (Current_Line_Sloc, UTF8 => True);
             Src_Start  : Natural := Line'First;
             Src_End    : Natural := Line'Last;
          begin
