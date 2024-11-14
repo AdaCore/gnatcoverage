@@ -104,10 +104,16 @@ package Annotations is
 
 private
 
-   function SCO_Text (SCO : SCO_Id; Length : Natural := 8) return String;
-   --  Extract the text of SCO from source file, truncating it to the
-   --  first source line and the first Length characters. If it has been
-   --  truncated, the returned value will end with "...".
+   function SCO_Text
+     (SCO    : SCO_Id;
+      Length : Natural := 9;
+      UTF8   : Boolean := False) return String;
+   --  Extract the text of SCO from source file, truncating it to the first
+   --  source line and the first Length characters. If it has been truncated,
+   --  the returned value will end with "...".
+   --
+   --  If UTF8, the source file text is decoded (see Files_Table.Get_Line) and
+   --  the result is valid UTF-8.
 
    function SCO_Annotations (SCO : SCO_Id) return String_Vectors.Vector;
    --  Return annotations for the SCO. For instance, this will return a list
@@ -119,7 +125,7 @@ private
       Annotations : String_Vectors.Vector);
    --  Print annotations
 
-   function SCO_Image (SCO : SCO_Id; Length : Natural := 8) return String;
+   function SCO_Image (SCO : SCO_Id; Length : Natural := 9) return String;
    --  Return a string representation of the annotated SCO
 
    function Message_Annotation (M : Message) return String;
@@ -134,12 +140,20 @@ private
    type Pretty_Printer is abstract tagged limited record
       Need_Sources : Boolean;
       Show_Details : Boolean;
-      Context      : Coverage.Context_Access;
+
+      Use_UTF8 : Boolean;
+      --  Whether source excerpts need to be converted to UTF-8 for this format
+
+      Context : Coverage.Context_Access;
    end record;
 
    function Format (Pp : Pretty_Printer) return Annotation_Format_Family
    is abstract;
    --  Return the family of annotation formats that Pp generates
+
+   function SCO_Text
+     (Pp : Pretty_Printer; SCO : SCO_Id; Length : Natural := 9) return String
+   is (SCO_Text (SCO, Length, UTF8 => Pp.Use_UTF8));
 
    procedure Pretty_Print_Start
      (Pp : in out Pretty_Printer) is null;

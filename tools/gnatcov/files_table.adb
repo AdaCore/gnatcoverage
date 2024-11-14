@@ -27,7 +27,9 @@ with GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
 with Osint;
 
-with GNATCOLL.VFS; use GNATCOLL.VFS;
+with GNATCOLL.Iconv; use GNATCOLL.Iconv;
+with GNATCOLL.Utils; use GNATCOLL.Utils;
+with GNATCOLL.VFS;   use GNATCOLL.VFS;
 
 with Checkpoints;   use Checkpoints;
 with Coverage;      use Coverage;
@@ -212,6 +214,34 @@ package body Files_Table is
 
    function Create_Line_Info return Line_Info_Access;
    --  Return a new Line_Info record
+
+   --------------
+   -- Encoding --
+   --------------
+
+   Iconv_Initialized : Boolean := False;
+   --  Whether Set_Encoding was called, and thus whether Iconv_Handle is
+   --  initialized.
+
+   Iconv_Encoding : Unbounded_String;
+   --  Last encoding passed to Set_Encoding
+
+   Iconv_Handle : Iconv_T;
+   --  GNATCOLL.Iconv handle to perform transcoding
+
+   Iconv_Buffer : String_Access;
+   --  Result buffer for decoded strings
+
+   procedure Transcode_To_UTF8
+     (S        : String;
+      Last     : out Natural;
+      On_Error : access procedure);
+   --  Transcode S to UTF-8 in Iconv_Buffer (Iconv_Buffer'First .. Last), which
+   --  is (re)allocated as needed. If a transcoding error occurs, it is skipped
+   --  and On_Error is called.
+   --
+   --  Note that this is intended to be used for fairly small strings only, and
+   --  we use it to decode source files only one line at a time.
 
    ---------------------
    -- Append_To_Array --
@@ -925,6 +955,149 @@ package body Files_Table is
       return Result;
    end Get_Index_From_Generic_Name;
 
+   ------------------
+   -- Set_Encoding --
+   ------------------
+
+   procedure Set_Encoding (Encoding : String) is
+   begin
+      if Iconv_Initialized then
+         Iconv_Close (Iconv_Handle);
+         Iconv_Initialized := False;
+      end if;
+      Iconv_Handle := Iconv_Open (UTF8, Encoding);
+      Iconv_Encoding := +Encoding;
+      Iconv_Initialized := True;
+   exception
+      when Unsupported_Conversion =>
+         Outputs.Fatal_Error
+           ("unsupported encoding for sources: '" & Encoding & "'");
+   end Set_Encoding;
+
+   -----------------------
+   -- Transcode_To_UTF8 --
+   -----------------------
+
+   procedure Transcode_To_UTF8
+     (S        : String;
+      Last     : out Natural;
+      On_Error : access procedure) is
+   begin
+      --  Make sure the decoder to UTF-8 is initialized and that we have a
+      --  buffer big enough to hold all possible decoded content: worse case,
+      --  each decoded byte in Line yields 4 bytes (biggest UTF-8
+      --  representation for a codepoint).
+
+      if not Iconv_Initialized then
+         Set_Encoding (ISO_8859_1);
+      end if;
+
+      if Iconv_Buffer = null
+         or else Iconv_Buffer.all'Length < 4 * S'Length
+      then
+         Free (Iconv_Buffer);
+         Iconv_Buffer := new String (1 .. 4 * S'Length);
+      end if;
+
+      declare
+         Inbuf        : String renames S;
+         Input_Index  : Positive := Inbuf'First;
+         Outbuf       : String renames Iconv_Buffer.all;
+         Output_Index : Positive := Outbuf'First;
+         Result       : Iconv_Result;
+      begin
+         while Input_Index <= Inbuf'Last loop
+            Iconv
+              (Iconv_Handle,
+               Inbuf,
+               Input_Index,
+               Outbuf,
+               Output_Index,
+               Result);
+            case Result is
+               when Success =>
+                  null;
+
+               when Invalid_Multibyte_Sequence
+                  | Incomplete_Multibyte_Sequence
+               =>
+                  --  We could not decode the sequence that starts at
+                  --  Inbuf (Input_Index): append the U+FFFD REPLACEMENT
+                  --  CHARACTER codepoint (EF BF BD in UTF-8) to the output
+                  --  buffer and skip that input byte.
+
+                  Outbuf (Output_Index .. Output_Index + 2) :=
+                    (Character'Val (16#ef#),
+                     Character'Val (16#bf#),
+                     Character'Val (16#bd#));
+                  Output_Index := Output_Index + 3;
+                  Input_Index := Input_Index + 1;
+                  Reset (Iconv_Handle);
+
+                  if On_Error /= null then
+                     On_Error.all;
+                  end if;
+
+               when Full_Buffer =>
+
+                  --  We allocate the buffer precisely so that this never
+                  --  happens: this should be dead code.
+
+                  raise Program_Error;
+            end case;
+         end loop;
+         Last := Output_Index - 1;
+      end;
+   end Transcode_To_UTF8;
+
+   -------------
+   -- To_UTF8 --
+   -------------
+
+   function To_UTF8 (S : String) return String is
+      Last : Natural;
+   begin
+      Transcode_To_UTF8 (S, Last, On_Error => null);
+      return Iconv_Buffer.all (Iconv_Buffer'First .. Last);
+   end To_UTF8;
+
+   -----------------------
+   -- Move_Forward_UTF8 --
+   -----------------------
+
+   procedure Move_Forward_UTF8
+     (S : String; Index : in out Natural; Count : Natural) is
+   begin
+      for I in 1 .. Count loop
+         if Index not in S'Range then
+            return;
+         end if;
+         Index := Forward_UTF8_Char (S, Index);
+      end loop;
+   end Move_Forward_UTF8;
+
+   ---------------------
+   -- Slice_Last_UTF8 --
+   ---------------------
+
+   function Slice_Last_UTF8
+     (S : String; Length : Natural) return Natural
+   is
+      Result : Natural := S'First;
+   begin
+      if Length = 0 then
+         return 0;
+      else
+         Move_Forward_UTF8 (S, Result, Length);
+
+         --  At this point, Result points to the first byte of the codepoint
+         --  past the end of the slice: we want to designate the last byte of
+         --  the previous codepoint.
+
+         return Result - 1;
+      end if;
+   end Slice_Last_UTF8;
+
    --------------
    -- Get_Line --
    --------------
@@ -957,18 +1130,20 @@ package body Files_Table is
       end if;
    end Get_Line;
 
-   function Get_Line (Sloc : Source_Location) return String is
+   function Get_Line
+     (Sloc : Source_Location; UTF8  : Boolean := False) return String is
    begin
       if Sloc = Slocs.No_Location then
          return "";
       end if;
 
-      return Get_Line (Get_File (Sloc.Source_File), Sloc.L.Line);
+      return Get_Line (Get_File (Sloc.Source_File), Sloc.L.Line, UTF8);
    end Get_Line;
 
    function Get_Line
      (File  : File_Info_Access;
-      Index : Positive) return String
+      Index : Positive;
+      UTF8  : Boolean := False) return String
    is
       Line : String_Access;
    begin
@@ -978,18 +1153,46 @@ package body Files_Table is
 
       Fill_Line_Cache (File);
 
-      if Index in File.Lines.First_Index .. File.Lines.Last_Index then
-         Line := File.Lines.Element (Index).Line_Cache;
-
-         if Line /= null then
-            return Line.all;
-         else
-            return "";
-         end if;
-
-      else
+      if Index not in File.Lines.First_Index .. File.Lines.Last_Index then
          return "";
       end if;
+
+      Line := File.Lines.Element (Index).Line_Cache;
+      if Line = null or else Line.all = "" then
+         return "";
+      end if;
+
+      --  If were asked bytes, return now
+
+      if not UTF8 then
+         return Line.all;
+      end if;
+
+      --  Otherwise, transcode to UTF8 as requested
+
+      declare
+         procedure On_Error;
+         --  Warn at most once per source file that there is a decoding error
+
+         Last : Natural;
+
+         --------------
+         -- On_Error --
+         --------------
+
+         procedure On_Error is
+         begin
+            if not File.Has_Decoding_Error then
+               Outputs.Warn
+                 (File.Unique_Name.all & ":" & Img (Index)
+                  & ": cannot decode as " & (+Iconv_Encoding));
+               File.Has_Decoding_Error := True;
+            end if;
+         end On_Error;
+      begin
+         Transcode_To_UTF8 (Line.all, Last, On_Error'Access);
+         return Iconv_Buffer.all (Iconv_Buffer.all'First .. Last);
+      end;
    end Get_Line;
 
    ---------------------

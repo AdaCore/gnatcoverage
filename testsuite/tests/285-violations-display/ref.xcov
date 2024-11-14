@@ -28,7 +28,7 @@ condition "F" at 16:25 has no independent influence pair, MC/DC not achieved
   18 !:             if F
   19 !:                 or else
   20 !:                 F
-decision "F\.\.\." at 18:16 outcome TRUE never exercised
+decision "F" at 18:16 outcome TRUE never exercised
   21 \.:             then
   22 \.:                 declare
   23 -:                     Dummy : String := Concat

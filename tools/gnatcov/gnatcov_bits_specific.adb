@@ -895,6 +895,13 @@ procedure GNATcov_Bits_Specific is
                   " when --cancel-annotate is also specified");
             end if;
 
+            --  If a source encoding is specified, use it to decode source
+            --  files.
+
+            if Args.String_Args (Opt_Source_Encoding).Present then
+               Set_Encoding (+Args.String_Args (Opt_Source_Encoding).Value);
+            end if;
+
             --  Remaining arguments are supposed to be copied to Opt_Trace,
             --  which is already handled, so there's nothing left to do with
             --  them.

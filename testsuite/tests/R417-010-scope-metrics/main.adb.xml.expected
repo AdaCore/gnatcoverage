@@ -612,9 +612,9 @@
    <line num="17" src="      function Id (A : Boolean) return Boolean is (A);"/>
   </src>
 
-  <statement id="3" text="(A)" coverage="-">
+  <statement id="3" text="A" coverage="-">
    <src>
-    <line num="17" column_begin="51" column_end="53" src="                                                  (A)"/>
+    <line num="17" column_begin="52" column_end="52" src="                                                   A"/>
    </src>
 
   </statement>
@@ -719,7 +719,7 @@
    <line num="27" src="   protected Obj is"/>
   </src>
 
-  <statement id="9" text="protected..." coverage="+">
+  <statement id="9" text="protected" coverage="+">
    <src>
     <line num="27" column_begin="4" column_end="12" src="   protected"/>
    </src>
