@@ -3,8 +3,9 @@ Check the validity of the SARIF report generated for a C project in which no
 coverage violations were found.
 """
 from SCOV.minicheck import build_run_and_coverage
+from SCOV.sarif import check_sarif_report
 from SUITE.context import thistest
-from SUITE.cutils import Wdir, contents_of
+from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
@@ -20,10 +21,6 @@ build_run_and_coverage(
     extra_coverage_args=["--annotate=sarif"],
 )
 
-thistest.fail_if_no_match(
-    "SARIF report",
-    contents_of("../ref.sarif"),
-    contents_of("obj/coverage.sarif"),
-)
+check_sarif_report("../ref.sarif", "obj/coverage.sarif")
 
 thistest.result()
