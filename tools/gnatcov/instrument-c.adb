@@ -3754,8 +3754,8 @@ package body Instrument.C is
       Emit_Buffer_Unit
         (UIC,
          Compilation_Unit'
-           (Language     => File_Based_Language,
-            Unit_Name    => UIC.Fullname),
+           (Language  => File_Based_Language,
+            Unit_Name => UIC.Fullname),
          Self,
          Prj);
 
