@@ -422,7 +422,7 @@ package body Annotations is
             --  specifically in Annotation.Report.
 
             if LI.Exemption /= Slocs.No_Location
-              and then not Annotation (Annotate_Report)
+              and then Pp.Format /= Annotate_Report
             then
                if S in Not_Covered .. Partially_Covered then
                   Inc_Violation_Exemption_Count (LI.Exemption);
@@ -486,6 +486,11 @@ package body Annotations is
    --  Start of processing for Generate_Report
 
    begin
+      --  Report generation increments counters for exemptions. Reset them
+      --  before generating a report so that we do not start with counter
+      --  values from a previously generated report.
+
+      Reset_Exemption_Counters;
 
       if Clean_Pattern /= No_Cleaning then
          Clean_Dir (Get_Output_Dir, Clean_Pattern);
