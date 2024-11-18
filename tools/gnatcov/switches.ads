@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Exceptions;
 
 with GNAT.Strings; use GNAT.Strings;
 
@@ -33,6 +34,17 @@ package Switches is
      Logging.Create_Trace ("MISC");
    --  Trace to log all messages for which creating a dedicated trace was not
    --  worth it.
+
+   function Exception_Info
+     (Exc          : Ada.Exceptions.Exception_Occurrence;
+      Discard_Name : Boolean := False) return String;
+   --  Helper to display the right amount of exception information depending on
+   --  enabled traces.
+   --
+   --  If Discard_Name is True, Exc has an exception message and traces are not
+   --  enabled, do not include the exception name in the error message. Passing
+   --  True for this is appropriate when formatting a user-level error message
+   --  (exception names make the error message look like a crash).
 
    procedure Parse_Arguments (From_Driver : Boolean);
    --  Load arguments from command-line and from the project file (if any) into

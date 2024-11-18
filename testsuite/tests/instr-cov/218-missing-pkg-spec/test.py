@@ -31,7 +31,14 @@ expected_warnings = {
 actual_warnings = set()
 others = []
 for line in lines_of(filename):
-    if line.startswith("warning: ") or line.startswith("*** warning:"):
+    if (
+        line.startswith("warning: ")
+        or line.startswith("*** warning:")
+        or line.startswith(
+            "*** main.adb:5:4: low_warning: Could not determine if stmt is"
+            " ghost"
+        )
+    ):
         actual_warnings.add(line)
     else:
         others.append(line)
