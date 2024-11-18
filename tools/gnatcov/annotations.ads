@@ -206,7 +206,19 @@ private
      (Pp    : in out Pretty_Printer;
       SCO   : SCO_Id;
       State : Line_State) is null;
-   --  Let Pp print the statement whose id is SCO
+   --  Let Pp print the statement SCO whose id is SCO
+
+   procedure Pretty_Print_Fun
+     (Pp    : in out Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State);
+   --  Let Pp print the function SCO whose id is SCO
+
+   procedure Pretty_Print_Call
+     (Pp    : in out Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State);
+   --  Let Pp print the call SCO whose id is SCO
 
    procedure Pretty_Print_Start_Decision
      (Pp    : in out Pretty_Printer;

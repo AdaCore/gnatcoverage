@@ -64,6 +64,30 @@ package body Annotations is
    --  and let Pp display them
 
    ----------------------
+   -- Pretty_Print_Fun --
+   ----------------------
+
+   procedure Pretty_Print_Fun
+     (Pp    : in out Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State) is
+   begin
+      Pp.Pretty_Print_Statement (SCO, State);
+   end Pretty_Print_Fun;
+
+   -----------------------
+   -- Pretty_Print_Call --
+   -----------------------
+
+   procedure Pretty_Print_Call
+     (Pp    : in out Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State) is
+   begin
+      Pp.Pretty_Print_Statement (SCO, State);
+   end Pretty_Print_Call;
+
+   ----------------------
    -- Aggregated_State --
    ----------------------
 
@@ -348,10 +372,16 @@ package body Annotations is
                when Operator =>
                   null;
 
-               when Fun_Call_SCO_Kind =>
+               when Fun =>
                   if Coverage.Enabled (Fun_Call) then
                      SCO_State := Get_Line_State (SCO, Fun_Call);
-                     Pretty_Print_Statement (Pp, SCO, SCO_State);
+                     Pretty_Print_Fun (Pp, SCO, SCO_State);
+                  end if;
+
+               when Call =>
+                  if Coverage.Enabled (Fun_Call) then
+                     SCO_State := Get_Line_State (SCO, Fun_Call);
+                     Pretty_Print_Call (Pp, SCO, SCO_State);
                   end if;
 
             end case;
@@ -988,6 +1018,9 @@ package body Annotations is
          case Kind (SCO) is
             when Statement =>
                Update_Level_Stats (SCO, Get_Line_State (SCO, Stmt), Stmt);
+            when Fun_Call_SCO_Kind =>
+               Update_Level_Stats
+                 (SCO, Get_Line_State (SCO, Fun_Call), Fun_Call);
             when Decision =>
                if Coverage.Assertion_Coverage_Enabled
                  and then Is_Assertion (SCO)
