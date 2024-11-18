@@ -28,6 +28,9 @@ class CovControl:
       (covoptions), and gnatcov instrument (instroptions).
       If instroption is equal to "same" (the default), then it is set to the
       value of covoption, to avoid the need to duplicate options.
+
+    * Influence some instrumentation specific aspects of the test, like forcing
+      a specific dump trigger (dump_trigger)
     """
 
     def __init__(
@@ -41,6 +44,7 @@ class CovControl:
         gprsw=None,
         covoptions="",
         instroptions="same",
+        dump_trigger=None,
     ):
         # To control "with" dependencies (set of projects that will be withed
         # by the one we will be generating for the testcase):
@@ -80,6 +84,11 @@ class CovControl:
         # mean "we expect no report at all", so anything that comes out is
         # unexpected.
         self.xreports = xreports
+
+        # Dump trigger to be used in source trace mode. If left to None, the
+        # testsuite will determine automatically the best candidate based on
+        # the target and runtime.
+        self.dump_trigger = dump_trigger
 
     def unexpected(self, source):
         return self.xreports is not None and source not in self.xreports
