@@ -1431,6 +1431,20 @@ class SCOV_helper_src_traces(SCOV_helper):
     #   in SID files for source traces and in executables (as debug info) for
     #   binary traces.
 
+    def __init__(self, testcase, drivers, xfile, xcovlevel, covctl, wdctl):
+        super().__init__(
+            testcase,
+            drivers,
+            xfile,
+            xcovlevel,
+            covctl,
+            wdctl,
+        )
+
+        # Check wether we need to set the testsuite in manual dump trigger
+        # mode from the instrumentation options
+        self.use_manual_dump = self.dump_trigger == "manual"
+
     def mode_build(self):
         # We first need to instrument, with proper selection of the units of
         # interest. Expect we are to provide this through a project file as
@@ -1528,7 +1542,9 @@ class SCOV_helper_src_traces(SCOV_helper):
             # The mode_tracename_for method works only after the trace file has
             # been created: create a trace file that srctracename_for (called
             # in mode_tracename_for) will pick up.
-            trace_file = srctrace_pattern_for(main).replace("*", "unique")
+            trace_file = srctrace_pattern_for(
+                main, manual=self.use_manual_dump, manual_prj_name="gen"
+            ).replace("*", "unique")
             xcov_convert_base64(
                 out_file, trace_file, register_failure=register_failure
             )
@@ -1542,7 +1558,9 @@ class SCOV_helper_src_traces(SCOV_helper):
         return "--sid"
 
     def mode_tracename_for(self, pgm):
-        return srctracename_for(pgm)
+        return srctracename_for(
+            pgm, manual=self.use_manual_dump, manual_prj_name="gen"
+        )
 
     @property
     def dump_channel(self):
@@ -1552,4 +1570,7 @@ class SCOV_helper_src_traces(SCOV_helper):
     @property
     def dump_trigger(self):
         """Return the dump trigger to use when instrumenting programs."""
-        return default_dump_trigger(self.drivers)
+        if self.covctl and self.covctl.dump_trigger:
+            return self.covctl.dump_trigger
+        else:
+            return default_dump_trigger(self.drivers)
