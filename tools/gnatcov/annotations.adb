@@ -147,7 +147,8 @@ package body Annotations is
       procedure Process_One_Line (Index : Positive) is
          LI : constant Line_Info_Access := Get_Line (FI, Index);
       begin
-         Pretty_Print_Start_Line (Pp, Index, LI, Get_Line (FI, Index));
+         Pretty_Print_Start_Line
+           (Pp, Index, LI, Get_Line (FI, Index, UTF8 => Pp.Use_UTF8));
 
          if Pp.Show_Details then
             Disp_Instruction_Sets (Pp, LI.all);
@@ -676,14 +677,13 @@ package body Annotations is
    -- SCO_Text --
    --------------
 
-   function SCO_Text (SCO : SCO_Id; Length : Natural := 8) return String is
-
+   function SCO_Text
+     (SCO    : SCO_Id;
+      Length : Natural := 9;
+      UTF8   : Boolean := False) return String
+   is
       Sloc_Start : Source_Location := First_Sloc (SCO);
       Sloc_End   : Source_Location := End_Lex_Element (Last_Sloc (SCO));
-      Sloc_Bound : Source_Location;
-      Line       : Unbounded_String;
-      Col_Start  : Natural;
-      Col_End    : Natural;
 
       Desc : Unbounded_String;
       --  SCO description: shortened view of the SCO tokens, with a macro
@@ -756,28 +756,77 @@ package body Annotations is
          end;
       end if;
 
-      Line := +Get_Line (Sloc_Start);
+      --  As an approximation (given the diversity of provenance for sloc
+      --  ranges, we cannot be sure), consider that 1 codepoint equals one
+      --  column.
 
-      if US.Length (Line) < Sloc_Start.L.Column then
-         return "";
-      end if;
+      declare
+         Line        : constant String := Get_Line (Sloc_Start, UTF8);
+         Line_Length : Natural := 0;
+         Index       : Natural := Line'First;
 
-      Col_Start := Sloc_Start.L.Column;
+         Sloc_Bound  : Source_Location;
+         Slice_Start : Natural;
+         Slice_End   : Natural;
+         Slice_Bound : Natural;
+      begin
+         if UTF8 then
+            while Index in Line'Range loop
+               Move_Forward_UTF8 (Line, Index, 1);
+               Line_Length := Line_Length + 1;
+            end loop;
+         else
+            Line_Length := Line'Length;
+         end if;
 
-      Sloc_Bound := Sloc_Start;
-      Sloc_Bound.L.Column := Sloc_Start.L.Column + Length;
+         if Line_Length < Sloc_Start.L.Column then
+            return "";
+         end if;
 
-      --  We will print out a shortened view (8 characters by default) of the
-      --  SCO tokens.
+         --  Compute the index of the first byte in Line to include
+         --  (Slice_Start).
 
-      if Sloc_Bound <= Sloc_End then
-         Col_End := Natural'Min (US.Length (Line), Sloc_Bound.L.Column);
-         Append (Desc, +Unbounded_Slice (Line, Col_Start, Col_End) & "...");
-      else
-         Col_End := Natural'Min (US.Length (Line), Sloc_End.L.Column);
-         Append (Desc, Unbounded_Slice (Line, Col_Start, Col_End));
-      end if;
-      return +Desc;
+         if UTF8 then
+            Slice_Start := Line'First;
+            Move_Forward_UTF8 (Line, Slice_Start, Sloc_Start.L.Column - 1);
+         else
+            Slice_Start := Sloc_Start.L.Column;
+         end if;
+
+         --  Compute the index of the last byte in Line that would cover the
+         --  SCO (Slice_End). If the end of the SCO belongs to a new line, cut
+         --  at the end of the first line instead (we do not want to return a
+         --  multiline string).
+
+         Slice_End :=
+           (if Sloc_End.L.Line > Sloc_Start.L.Line
+            then Line'Last
+
+            elsif UTF8
+            then Slice_Last_UTF8 (Line, Sloc_End.L.Column)
+
+            else Natural'Min (Line'Last, Sloc_End.L.Column));
+
+         --  Compute the index of the last byte in Line to include
+         --  (Slice_Bound). It's not the same as Slice_End to cap the slice to
+         --  Length codepoints.
+
+         Sloc_Bound := Sloc_Start;
+         Sloc_Bound.L.Column := Sloc_Start.L.Column + Length - 1;
+         Slice_Bound :=
+           (if UTF8
+            then Slice_Last_UTF8 (Line, Sloc_Bound.L.Column)
+            else Sloc_Bound.L.Column);
+
+         --  If the result is shortened, add an ellipsis
+
+         if Slice_Bound < Slice_End then
+            Append (Desc, Line (Slice_Start .. Slice_Bound) & "...");
+         else
+            Append (Desc, Line (Slice_Start .. Slice_End));
+         end if;
+         return +Desc;
+      end;
    end SCO_Text;
 
    ---------------------
@@ -832,7 +881,7 @@ package body Annotations is
    -- SCO_Image --
    ---------------
 
-   function SCO_Image (SCO : SCO_Id; Length : Natural := 8) return String
+   function SCO_Image (SCO : SCO_Id; Length : Natural := 9) return String
    is
    begin
       return """" & SCO_Text (SCO, Length) & """";

@@ -52,6 +52,13 @@ class Checker:
     List of file extensions that look like source files.
     """
 
+    ignore_list = [
+        "testsuite/tests/354-source-encoding/latin1.ads",
+    ]
+    """
+    List of files to intentionally ignore for style checking purposes.
+    """
+
     def __init__(self, autofix: bool = False, force_colors: bool = False):
         self.issue_found = False
         """
@@ -165,6 +172,8 @@ class Checker:
             force_colors=args.force_colors,
         )
 
+        ignore_set = {os.path.realpath(f) for f in checker.ignore_list}
+
         # Process the list of files to check if present, otherwise look for all
         # source files in the current directory.
         if args.files:
@@ -173,8 +182,12 @@ class Checker:
         else:
             for path, _, filenames in os.walk("."):
                 for f in filenames:
-                    if f.rsplit(".", 1)[-1] in cls.filename_extensions:
-                        checker.process_file(os.path.join(path, f))
+                    realpath = os.path.realpath(os.path.join(path, f))
+                    if (
+                        realpath not in ignore_set
+                        and f.rsplit(".", 1)[-1] in cls.filename_extensions
+                    ):
+                        checker.process_file(realpath)
 
         return 1 if checker.issue_found else 0
 

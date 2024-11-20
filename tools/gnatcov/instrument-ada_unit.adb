@@ -4499,8 +4499,16 @@ package body Instrument.Ada_Unit is
 
          if Is_Expr_Function then
             declare
-               N_Expr : constant Expr := N.As_Expr_Function.F_Expr;
+               N_Expr : Expr := N.As_Expr_Function.F_Expr;
             begin
+               --  Strip the wrapping paren expr so that we consider only the
+               --  nested expression as a statement: this mirrors what we do
+               --  for binary traces and yields better coverage reports anyway.
+
+               if N_Expr.Kind = Ada_Paren_Expr then
+                  N_Expr := N_Expr.As_Paren_Expr.F_Expr;
+               end if;
+
                Instrument_Statement (UIC, N_Expr, 'X');
                Process_Expression (UIC, N_Expr, 'X');
             end;

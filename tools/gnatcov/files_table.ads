@@ -399,6 +399,10 @@ package Files_Table is
             Lines : Source_Lines;
             --  Source file to display in the reports
 
+            Has_Decoding_Error : Boolean := False;
+            --  Whether we got at least one error when decoding a source line
+            --  to UTF-8.
+
             Sloc_To_SCO_Maps : Sloc_To_SCO_Map_Array_Acc;
             --  Sloc -> SCO_Id indices for this file
 
@@ -501,12 +505,36 @@ package Files_Table is
          Sloc = Slocs.No_Location
          or else Get_File (Sloc.Source_File).Kind in Stub_File | Source_File;
 
+   procedure Set_Encoding (Encoding : String);
+   --  Set the encoding used to interpret source code (this is a global
+   --  setting). This raises a fatal error if Encoding is not supported. If not
+   --  called, assume latin-1 (the default for Ada, has the advantage of being
+   --  able to decode any binary content).
+
+   function To_UTF8 (S : String) return String;
+   --  Transcode the given string according to the last call to Set_Encoding to
+   --  UTF-8. Bytes that could not be decoded are turned into replacement
+   --  codepoints.
+
+   procedure Move_Forward_UTF8
+     (S : String; Index : in out Natural; Count : Natural);
+   --  Assuming that S is a valid UTF-8 string and that Index refers to the
+   --  first byte of a codepoint in S, increment Index so that it moves forward
+   --  by Count codepoints. If Index is out of S's range, do nothing.
+
+   function Slice_Last_UTF8
+     (S : String; Length : Natural) return Natural;
+   --  Return the index I that would make S (S'First .. I) a slice that
+   --  contains Length codepoints.
+
    function Get_Line
      (File  : File_Info_Access;
-      Index : Positive) return String
+      Index : Positive;
+      UTF8  : Boolean := False) return String
       with Pre => File.Kind = Source_File;
 
-   function Get_Line (Sloc : Source_Location) return String
+   function Get_Line
+     (Sloc : Source_Location; UTF8  : Boolean := False) return String
       with Pre =>
          Sloc = Slocs.No_Location
          or else Get_File (Sloc.Source_File).Kind = Source_File;
