@@ -376,7 +376,10 @@ gnatsas:
 		gnatsas report -P gnatcov.gpr -o $(GNATSAS_OBJ_DIR)/gnatsas.out \
       $(GNATSAS_ARGS) ; \
 	fi
-	gnatsas report code-climate -P gnatcov.gpr \
+	# GNAT SAS report root should be the repository root so file URIs are
+	# correctly resolved in GitLab. This is executed from tools/gnatcov in the
+	# CI.
+	gnatsas report code-climate -P gnatcov.gpr --root ../.. \
     -o $(GNATSAS_OBJ_DIR)/gnatsas/gnatsas.json $(GNATSAS_ARGS) ;
 
 bump_baseline:
