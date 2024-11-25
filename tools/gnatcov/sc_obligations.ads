@@ -406,8 +406,9 @@ package SC_Obligations is
       Identifier => No_Scope_Entity_Identifier);
 
    type Any_SCO_Kind is
-     (Removed, Statement, Decision, Condition, Operator, Fun, Call);
-   subtype SCO_Kind is Any_SCO_Kind range Statement .. Call;
+     (Removed, Statement, Decision, Condition, Operator, Fun, Call,
+      Guarded_Expr);
+   subtype SCO_Kind is Any_SCO_Kind range Statement .. Guarded_Expr;
    --  Removed is used for SCOs coming from C code in static inline functions
    --  present in headers. These SCOs can appear duplicated in multiple
    --  compilation units and we replace all but one of the duplicated entries
@@ -651,7 +652,11 @@ package SC_Obligations is
 
    procedure Set_Fun_Call_SCO_Non_Instr (SCO : SCO_Id) with
      Pre => Kind (SCO) in Fun_Call_SCO_Kind;
-   --  FIXME
+   --  Mark SCO as non instrumented for the Fun_Call coverage level
+
+   procedure Set_GExpr_SCO_Non_Instr (SCO : SCO_Id) with
+     Pre => Kind (SCO) = Guarded_Expr;
+   --  Mark SCO as non instrumented for the GExpr coverage level
 
    function Stmt_SCO_Instrumented (SCO : SCO_Id) return Boolean with
      Pre => Kind (SCO) = Statement;
@@ -669,6 +674,10 @@ package SC_Obligations is
    function Fun_Call_SCO_Instrumented (SCO : SCO_Id) return Boolean with
      Pre => Kind (SCO) in Fun_Call_SCO_Kind;
    --  Whether this function or call SCO was instrumented
+
+   function GExpr_SCO_Instrumented (SCO : SCO_Id) return Boolean with
+     Pre => Kind (SCO) = Guarded_Expr;
+   --  Whether this Guarded Expression SCO was instrumented
 
    function Is_Pragma_Pre_Post_Condition (SCO : SCO_Id) return Boolean;
    --  True if SCO is for a pragma Pre/Postcondition

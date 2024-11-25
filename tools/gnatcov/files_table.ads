@@ -224,7 +224,7 @@ package Files_Table is
       --  Exec from where the address range has been extracted
    end record;
 
-   type Line_State_Cell is (Cell_1, Cell_2, Cell_3, Cell_4);
+   type Line_State_Cell is (Cell_1, Cell_2, Cell_3, Cell_4, Cell_5);
 
    Coverage_Level_To_Cell : constant
      array (Coverage_Level) of Line_State_Cell :=
@@ -236,13 +236,14 @@ package Files_Table is
       UC_MCDC   => Cell_2,
       ATC       => Cell_3,
       ATCC      => Cell_3,
-      Fun_Call  => Cell_4);
+      Fun_Call  => Cell_4,
+      GExpr     => Cell_5);
    --  For one specific execution of GNATcov, we know that
    --  each line needs at most only four states (insn, branch,
-   --  stmt(+decision|+mcdc|+uc_mcdc)?(+atc|+atcc)?(funcall)?). Thus, there is
-   --  no need to store the state for all coverage levels at the same time.
-   --  This table is thus used to convert the coverage level to the appropriate
-   --  state "storage cell".
+   --  stmt(+decision|+mcdc|+uc_mcdc)?(+atc|+atcc)?(funcall)?(+gexpr)?).
+   --  Thus, there is no need to store the state for all coverage levels at the
+   --  same time. This table is thus used to convert the coverage level to the
+   --  appropriate state "storage cell".
 
    type Line_States is array (Line_State_Cell) of Line_State;
 

@@ -503,7 +503,7 @@ package body Checkpoints is
             Supported_Levels (MCDC_Coverage_Level'Range) := (others => True);
             Supported_Levels (Decision) := True;
          end if;
-         for Level in Insn .. Fun_Call loop
+         for Level in Insn .. GExpr loop
             CSS.Write (Supported_Levels (Level));
          end loop;
 
@@ -641,7 +641,7 @@ package body Checkpoints is
          --  reading code.
 
          declare
-            CP_Levels : U8_Array (1 .. 9);
+            CP_Levels : U8_Array (1 .. 10);
             Levels    : Levels_Type;
          begin
             CLS.Read (CP_Levels);
@@ -654,7 +654,8 @@ package body Checkpoints is
                UC_MCDC  => Boolean'Val (CP_Levels (6)),
                ATC      => Boolean'Val (CP_Levels (7)),
                ATCC     => Boolean'Val (CP_Levels (8)),
-               Fun_Call => Boolean'Val (CP_Levels (9)));
+               Fun_Call => Boolean'Val (CP_Levels (9)),
+               GExpr    => Boolean'Val (CP_Levels (10)));
             declare
                Error_Msg : constant String :=
                  Coverage.Is_Load_Allowed (Filename, Levels);
