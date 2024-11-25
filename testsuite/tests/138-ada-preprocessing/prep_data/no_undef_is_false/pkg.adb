@@ -4,7 +4,7 @@ package body Pkg is
 
    procedure Run is
    begin
-#if $X then
+#if X then
          Put_Line ("X");
 #else
          Put_Line ("not X");

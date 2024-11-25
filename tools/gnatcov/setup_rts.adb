@@ -37,8 +37,10 @@ with GPR2.Project.Attribute_Index;
 with GPR2.Project.Configuration;
 with GPR2.Project.Registry.Attribute;
 with GPR2.Project.Tree;
+with GPR2.Reporter.Console;
 
 with Files_Handling; use Files_Handling;
+with GPR2.Reporter;
 with JSON;           use JSON;
 with Outputs;        use Outputs;
 with Paths;          use Paths;
@@ -230,6 +232,10 @@ package body Setup_RTS is
 
       return Project.Load
         (Opts,
+         Reporter         => GPR2.Reporter.Console.Create
+                               ((if Setup_RTS_Trace.Is_Active
+                                 then GPR2.Reporter.Regular
+                                 else GPR2.Reporter.No_Warnings)),
          With_Runtime     => True,
          Absent_Dir_Error => GPR2.No_Error);
    end Load_Project;
@@ -454,16 +460,16 @@ package body Setup_RTS is
          Logs : constant access GPR2.Log.Object := Prj.Log_Messages;
       begin
          if Logs.Has_Element
-           (Information => False,
-            Warning     => True,
-            Error       => False,
-            Lint        => False,
-            Read        => False,
-            Unread      => False)
+           (Hint     => False,
+            Warning  => True,
+            Error    => False,
+            End_User => False,
+            Lint     => False,
+            Read     => True,
+            Unread   => True)
          then
             Register_Warning;
          end if;
-         Logs.Output_Messages (Information => Setup_RTS_Trace.Is_Active);
          if Has_Error then
             Fatal_Error ("Could not load the coverage runtime project file");
          end if;
@@ -1088,8 +1094,6 @@ package body Setup_RTS is
       then
          Error
            ("Could not load the coverage runtime project " & Runtime_Project);
-         Prj.Log_Messages.Output_Messages
-           (Information => Setup_RTS_Trace.Is_Active);
          raise Xcov_Exit_Exc;
       end if;
 
