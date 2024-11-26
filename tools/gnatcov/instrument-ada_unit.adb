@@ -9675,6 +9675,14 @@ package body Instrument.Ada_Unit is
       --  we can insert witness calls (which are not preelaborable).
 
       CU_Name.Part := +UIC.Root_Unit.P_Unit_Kind;
+
+      --  P_Unit_Kind does not detect separates, so manually inspect the
+      --  compilation unit's contents.
+
+      if UIC.Root_Unit.F_Body.Kind = Ada_Subunit then
+         CU_Name.Part := GNATCOLL.Projects.Unit_Separate;
+      end if;
+
       CU_Name.Unit := To_Qualified_Name
         (UIC.Root_Unit.P_Decl.P_Fully_Qualified_Name_Array);
 
