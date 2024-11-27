@@ -692,13 +692,18 @@ package body Instrument.Common is
             then
                Self.Compiler_Switches.Append (+A);
 
-            elsif Has_Prefix (A, "--include=") then
-               Self.Include_Files.Append (+A (11 .. A'Last));
-
             elsif A in "-include" | "--include" then
                Self.Include_Files.Append (Args (I + 1));
                I := I + 1;
+
+            elsif Has_Prefix (A, "--include=") then
+               Self.Include_Files.Append (+A (11 .. A'Last));
+
+            elsif Has_Prefix (A, "-include") then
+               Self.Include_Files.Append (+A (9 .. A'Last));
+
             end if;
+
             I := I + 1;
          end;
       end loop;

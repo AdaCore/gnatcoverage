@@ -43,6 +43,7 @@ env.add_search_path(env_var="PATH", path=cwd)
 cmdrun(["gcc", "-include", "glob.h", "test.c", "-o", "test"], for_pgm=False)
 cmdrun(["gcc", "--include", "glob.h", "test.c", "-o", "test"], for_pgm=False)
 cmdrun(["gcc", "--include=glob.h", "test.c", "-o", "test"], for_pgm=False)
+cmdrun(["gcc", "-include./glob.h", "test.c", "-o", "test"], for_pgm=False)
 
 # Run the executable
 cmdrun(["test"], for_pgm=False)
