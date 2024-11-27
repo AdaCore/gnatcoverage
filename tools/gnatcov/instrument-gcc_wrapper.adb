@@ -1072,7 +1072,15 @@ begin
                                  & ". Add its directory to the"
                                  & " LD_LIBRARY_PATH if this is an"
                                  & " instrumented library.");
-                           else
+
+                           --  Check if this is an actual path, to safeguard
+                           --  against cases displayed as:
+                           --
+                           --  <lib_basename> => (<load_address>)
+
+                           elsif GNATCOLL.VFS.Is_Regular_File
+                             (GNATCOLL.VFS.Create (+Lib_Filename))
+                           then
                               Add_Coverage_Buffer_Symbols
                                 (Create (+Lib_Filename));
                            end if;
