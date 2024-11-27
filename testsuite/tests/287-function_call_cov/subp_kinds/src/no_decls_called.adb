@@ -101,7 +101,7 @@ begin
        --  statement violations.
        Proc;                                                    -- # v_stmt
        Proc_Param (Dummy);                                      -- # v_stmt
-       Proc_Param (Dummy, False);                               -- # v_cstmt
+       Proc_Param (Dummy, False);                               -- # v_stmt
        Over (5);                                                -- # v_stmt
        Over (1, 2);                                             -- # v_stmt
     end if;
