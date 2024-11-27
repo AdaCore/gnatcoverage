@@ -1,5 +1,7 @@
 # Update windows artifacts for U204-026-arch-mix
 
+set ex
+
 if [ $# -eq 0 ]; then
   echo "No arguments provided. Please provide the name of the gnatcov branch"
   exit 1
@@ -20,7 +22,7 @@ cd /Users/itmgr/wave
 anod vcs --add-repo gnatcoverage /Users/itmgr/gnatcoverage
 anod build gnatcov --interactive never
 eval $(anod printenv gnatcov)
-eval $(anod printenv stable-gnatall)
+eval $(anod printenv gnatall -Qstable)
 
 # Then, retrieve the sources of the arch-mix test
 rm -rf /Users/itmgr/gnatcoverage/testsuite/tests/U204-026-arch-mix/gen/x86_64-windows
