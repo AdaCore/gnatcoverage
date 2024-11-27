@@ -290,6 +290,7 @@ class Test(object):
         actual,
         failure_message="unexpected output",
         output_refiners=None,
+        ignore_white_chars=True,
     ):
         """Compute the diff between expected and actual outputs.
 
@@ -305,6 +306,7 @@ class Test(object):
             and the actual output. Refer to the doc in
             ``e3.testsuite.driver.diff``. If None, use
             ``self.report_output_refiners()``.
+        :param ignore_white_chars: See ``e3.diff``.
         """
 
         if output_refiners is None:
@@ -324,7 +326,11 @@ class Test(object):
         # Compute the diff. If it is empty, return no failure. Otherwise,
         # include the diff in the test log and return the given failure
         # message.
-        d = diff(expected_lines, actual_lines)
+        d = diff(
+            expected_lines,
+            actual_lines,
+            ignore_white_chars=ignore_white_chars,
+        )
         if not d:
             return []
 
@@ -348,6 +354,7 @@ class Test(object):
         actual_file,
         failure_message="unexpected output",
         output_refiners=None,
+        ignore_white_chars=True,
     ):
         """
         Wrapper around fail_if_diff_internal, taking an actual_file parameter
@@ -355,7 +362,11 @@ class Test(object):
         """
         with open(actual_file, "r") as f:
             self.fail_if_diff_internal(
-                baseline_file, f.read(), failure_message, output_refiners
+                baseline_file,
+                f.read(),
+                failure_message,
+                output_refiners,
+                ignore_white_chars,
             )
 
     def result(self):

@@ -160,7 +160,8 @@ package Command_Line is
       Opt_Start_Location,
       Opt_End_Location,
       Opt_Justification,
-      Opt_SS_Backend);
+      Opt_SS_Backend,
+      Opt_Source_Encoding);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -1348,7 +1349,16 @@ package Command_Line is
            & " annotation entry",
          Commands     => (Cmd_Add_Annotation => True, others => False),
          At_Most_Once => False,
-         Internal     => True));
+         Internal     => True),
+      Opt_Source_Encoding => Create
+        (Long_Name    => "--source-encoding",
+         Pattern      => "ENCODING",
+         Help         =>
+           "Specify the encoding to use to read source files in order to"
+           & " produce XML coverage reports.",
+         Commands     => (Cmd_Coverage => True, others => False),
+         At_Most_Once => False,
+         Internal     => False));
 
    String_List_Infos : constant String_List_Option_Info_Array :=
      (Opt_Log => Create
