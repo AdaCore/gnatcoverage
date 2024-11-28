@@ -6107,8 +6107,8 @@ package body Instrument.Ada_Unit is
       --       and set the parent's child to this decl_expr.
 
       function Process_Case_Expr (N : Ada_Node'Class) return Visit_Status;
-      --  Helper to Libadalang's Traverse. Only operates on Case_Exprs,
-      --  instrument each alternative to individually track their evaluation.
+      --  Helper to Libadalang's Traverse.
+      --  Only operates on Case_Exprs, call Instrument_GExpr on every case
 
       procedure Process_Decisions
         (UIC : in out Ada_Unit_Inst_Context;
@@ -6951,6 +6951,13 @@ package body Instrument.Ada_Unit is
                begin
                   Process_Decisions (UIC, IEN.F_Cond_Expr, 'I');
                   Process_Decisions (UIC, IEN.F_Then_Expr, 'X');
+                  if Enabled (GExpr) then
+                     Instrument_GExpr
+                       (IEN.F_Then_Expr,
+                        IEN.F_Then_Expr.Sloc_Range,
+                        Handle (IEN),
+                        Member_Refs.If_Expr_F_Then_Expr);
+                  end if;
 
                   for J in 1 .. Alt.Children_Count loop
                      declare
@@ -6959,10 +6966,24 @@ package body Instrument.Ada_Unit is
                      begin
                         Process_Decisions (UIC, EIN.F_Cond_Expr, 'I');
                         Process_Decisions (UIC, EIN.F_Then_Expr, 'X');
+                        if Enabled (GExpr) then
+                           Instrument_GExpr
+                             (EIN.F_Then_Expr,
+                              EIN.F_Then_Expr.Sloc_Range,
+                              Handle (EIN),
+                              Member_Refs.Elsif_Expr_Part_F_Then_Expr);
+                        end if;
                      end;
                   end loop;
 
                   Process_Decisions (UIC, IEN.F_Else_Expr, 'X');
+                  if Enabled (GExpr) then
+                     Instrument_GExpr
+                       (IEN.F_Else_Expr,
+                        IEN.F_Else_Expr.Sloc_Range,
+                        Handle (IEN),
+                        Member_Refs.If_Expr_F_Else_Expr);
+                  end if;
                   return Over;
                end;
 
