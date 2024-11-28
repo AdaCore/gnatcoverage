@@ -1035,7 +1035,8 @@ package body Instrument.Ada_Unit is
       Call_Params                  : Node_Rewriting_Handle;
       Augmented_Function           : out Node_Rewriting_Handle;
       Augmented_Function_Decl      : out Node_Rewriting_Handle;
-      New_Function                 : out Node_Rewriting_Handle);
+      New_Function                 : out Node_Rewriting_Handle;
+      Needs_Aspects                : Boolean := False);
    --  Create the augmented function from the original one (Augmented_Function)
    --  and create the new function (New_Function) that will serve as a
    --  replacement to the original one. Also create a declaration for the
@@ -2642,7 +2643,8 @@ package body Instrument.Ada_Unit is
       Call_Params                  : Node_Rewriting_Handle;
       Augmented_Function           : out Node_Rewriting_Handle;
       Augmented_Function_Decl      : out Node_Rewriting_Handle;
-      New_Function                 : out Node_Rewriting_Handle)
+      New_Function                 : out Node_Rewriting_Handle;
+      Needs_Aspects                : Boolean := False)
    is
       RC : Rewriting_Handle renames UIC.Rewriting_Context;
 
@@ -2703,7 +2705,9 @@ package body Instrument.Ada_Unit is
 
       Orig_Aspects : constant Aspect_Spec := Common_Nodes.N.F_Aspects;
    begin
-      --  Create the new augmented function
+      --  Create the new augmented function. Attach the original aspects to
+      --  it if necessary, i.e. if they were not already attached to a previous
+      --  decalration of New_Function.
 
       New_Function :=
         Create_Expr_Function
@@ -2711,7 +2715,10 @@ package body Instrument.Ada_Unit is
            F_Overriding => Clone (Common_Nodes.N_Overriding),
            F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
            F_Expr       => Create_Paren_Expr (RC, Call_Expr),
-           F_Aspects    => No_Node_Rewriting_Handle);
+           F_Aspects    =>
+             (if Orig_Aspects /= No_Ada_Node and then Needs_Aspects
+              then Detach (Orig_Aspects)
+              else No_Node_Rewriting_Handle));
 
       --  The original function becomes the augmented one:
 
@@ -2806,55 +2813,6 @@ package body Instrument.Ada_Unit is
          end;
       else
          Augmented_Function_Decl := No_Node_Rewriting_Handle;
-
-         if not Orig_Aspects.Is_Null then
-            declare
-               function Replace_Attr_Subp_Name
-                 (N : Ada_Node'Class) return Visit_Status;
-               --  Replace all uses of the name of the original expression
-               --  function in an attribute reference in N with the name of the
-               --  new augmented expr function.
-
-               function Replace_Attr_Subp_Name
-                 (N : Ada_Node'Class) return Visit_Status is
-               begin
-                  if N.Kind = Ada_Attribute_Ref
-                    and then N.As_Attribute_Ref.F_Prefix.Text = Orig_Name_Text
-                  then
-                     Replace
-                       (Handle (N.As_Attribute_Ref.F_Prefix),
-                        Make_Identifier (UIC, Augmented_Func_Name));
-                  end if;
-                  return Into;
-               end Replace_Attr_Subp_Name;
-
-               Assocs  : constant Aspect_Assoc_List :=
-                 Orig_Aspects.F_Aspect_Assocs;
-               Idx     : Positive := 1;
-               Has_Elt : Boolean := Assocs.Aspect_Assoc_List_Has_Element (Idx);
-            begin
-               while Has_Elt loop
-                  declare
-                     Aspect_Expr : constant Expr :=
-                       Assocs.Aspect_Assoc_List_Element (Idx).F_Expr;
-                  begin
-                     if Aspect_Expr /= No_Expr then
-                        Traverse (Aspect_Expr, Replace_Attr_Subp_Name'Access);
-                     end if;
-
-                     Idx := Idx + 1;
-                     Has_Elt := Assocs.Aspect_Assoc_List_Has_Element (Idx);
-                  end;
-               end loop;
-            end;
-         end if;
-
-         --  Attach the aspect specifications of the original expression
-         --  function to the augmented one.
-
-         Set_Child (Augmented_Function,
-                    Member_Refs.Basic_Decl_F_Aspects,
-                    Detach (Orig_Aspects));
       end if;
 
       --  If the original expression function is ghost, so must be the
@@ -2912,7 +2870,7 @@ package body Instrument.Ada_Unit is
    function Augmented_Expr_Function_Needs_Decl
      (N : Expr_Function) return Boolean
    is
-      Previous_Decl   : Basic_Decl;
+      Previous_Decl : Basic_Decl;
       --  Will hold the previous declaration of the expression function,
       --  if any.
 
@@ -4121,6 +4079,12 @@ package body Instrument.Ada_Unit is
 
          Is_Expr_Function : constant Boolean := N.Kind = Ada_Expr_Function;
 
+         Needs_Aspects : Boolean := True;
+         --  If the new expression function required the creation of a previous
+         --  declaration, then the aspects of the original one have already
+         --  been attached to it and there is no need to attach them to the
+         --  body in the call to Create_Augmented_Function.
+
          Gen_Names_Prefix : constant Wide_Wide_String :=
            To_Wide_Wide_String
              ((if Is_Expr_Function
@@ -4648,6 +4612,8 @@ package body Instrument.Ada_Unit is
             --  For expression functions, the aspects of the subprogram were
             --  moved to the newly created declaration, so they should not be
             --  added to the augmented function later on.
+
+            Needs_Aspects := False;
          end if;
 
          if Is_Expr_Function then
@@ -4666,7 +4632,8 @@ package body Instrument.Ada_Unit is
                   Call_Params,
                   Augmented_Function,
                   Augmented_Function_Decl,
-                  New_Function);
+                  New_Function,
+                  Needs_Aspects);
 
                --  First comes the augmented expression function, then the new
                --  expression function.
