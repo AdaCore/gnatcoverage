@@ -9,5 +9,5 @@ end Test_False_Full;
 
 --# pkg.adb
 -- /case_true/    l! ## g-
--- /if_true/      l! ## g-,g-,d-
+-- /if_true/      l! ## g-,g-
 -- 2 gexpr violations (both branches of the unexecuted if)

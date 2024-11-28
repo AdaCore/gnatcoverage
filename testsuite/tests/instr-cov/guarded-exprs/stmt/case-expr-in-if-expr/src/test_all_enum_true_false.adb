@@ -1,16 +1,14 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Life;        use Life;
 
-procedure Test_If_False_Case_Full is
+procedure Test_All_Enum_True_False is
 begin
-   Put_Line (Scream (Dog, False));
+   Put_Line (Scream (Dog, True));
    Put_Line (Scream (Cat, False));
    Put_Line (Scream (Cow, False));
-end Test_If_False_Case_Full;
+end Test_All_Enum_True_False;
 
 --# life.adb
--- /if_cond/ l! ## dF-
--- /dog/     l+ ## 0
+-- /dog/     l! ## g-
 -- /cat/     l+ ## 0
 -- /cow/     l+ ## 0
--- /else/    l! ## g-

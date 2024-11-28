@@ -9,7 +9,7 @@ begin
 end Test_If_False_Case_Full;
 
 --# life.adb
--- /if_cond/ l! ## dF-
+-- /if_cond/ l+ ## 0
 -- /dog/     l+ ## 0
 -- /cat/     l+ ## 0
 -- /cow/     l+ ## 0

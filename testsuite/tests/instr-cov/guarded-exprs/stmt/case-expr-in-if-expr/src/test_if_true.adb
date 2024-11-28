@@ -7,7 +7,7 @@ begin
 end Test_If_True;
 
 --# life.adb
--- /if_cond/ l! ## dT-
+-- /if_cond/ l+ ## 0
 -- /case/    l! ## g-
 -- /dog/     l! ## g-
 -- /cat/     l! ## g-

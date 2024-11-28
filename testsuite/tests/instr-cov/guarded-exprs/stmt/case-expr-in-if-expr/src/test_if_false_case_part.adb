@@ -7,7 +7,7 @@ begin
 end Test_If_False_Case_Part ;
 
 --# life.adb
--- /if_cond/ l! ## dF-
+-- /if_cond/ l+ ## 0
 -- /dog/     l! ## g-
 -- /cat/     l! ## g-
 -- /else/    l! ## g-

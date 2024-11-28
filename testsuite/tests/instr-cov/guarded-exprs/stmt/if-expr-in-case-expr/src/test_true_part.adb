@@ -9,5 +9,5 @@ end Test_True_Part;
 --# pkg.adb
 -- /return/       l+ ## 0
 -- /case_true/    l+ ## 0
--- /if_true/      l! ## dF-,g-
+-- /if_true/      l! ## g-
 -- /case_false/   l! ## g-
