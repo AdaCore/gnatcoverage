@@ -1234,7 +1234,7 @@ package body Instrument.Ada_Unit is
    --  Context miscellaneous --
    ----------------------------
 
-      Max_Get_From_File_Count : constant := 50;
+   Max_Get_From_File_Count : constant := 50;
    --  In addition to nodes and text buffers for each loaded unit, Libadalang
    --  maintains caches in Analysis_Context objects so that semantic queries
    --  are fast. This means that if we keep the same context to process a lot
