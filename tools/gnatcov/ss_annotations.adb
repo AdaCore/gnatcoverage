@@ -154,6 +154,9 @@ package body SS_Annotations is
    --  the value.
    --
    --  An empty Str value is interpreted as a missing switch value.
+   --
+   --  This function will reject source locations with a 0 for the line or the
+   --  column.
 
    function Guess_Lang (File : Virtual_File) return Any_Language;
    --  Try to guess the language of file based on its extension.
@@ -276,12 +279,20 @@ package body SS_Annotations is
    function Get_Or_Error
      (Str : String; Sw : String) return Slocs.Local_Source_Location
    is
+      Res : Slocs.Local_Source_Location;
    begin
       if Str'Length = 0 then
          Fatal_Error ("Missing " & Sw & " on the command line");
       end if;
-
-      return Slocs.Value (Str);
+      Res := Slocs.Value (Str);
+      if Res.Line = 0 then
+         Fatal_Error ("Line number in argument to " & Sw & " should not be 0");
+      end if;
+      if Res.Column = 0 then
+         Fatal_Error
+           ("Column number in argument to " & Sw & " should not be 0");
+      end if;
+      return Res;
    exception
       when Exc : Constraint_Error =>
          Fatal_Error
