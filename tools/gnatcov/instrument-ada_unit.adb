@@ -6991,6 +6991,14 @@ package body Instrument.Ada_Unit is
                Process_Decisions
                  (UIC, N.As_Quantified_Expr.F_Loop_Spec, 'X');
                Process_Decisions (UIC, N.As_Quantified_Expr.F_Expr, 'W');
+
+               if Enabled (GExpr) then
+                  Instrument_GExpr
+                    (N.As_Quantified_Expr.F_Expr,
+                     N.As_Quantified_Expr.F_Expr.Sloc_Range,
+                     Handle (N),
+                     Member_Refs.Quantified_Expr_F_Expr);
+               end if;
                return Over;
 
             when Ada_For_Loop_Spec =>
