@@ -1186,7 +1186,14 @@ package body Coverage.Source is
                elsif Kind (SCO) = Guarded_Expr
                   and then Enabled (GExpr)
                then
-                  if SCI.GExpr_Executed then
+                  if not GExpr_SCO_Instrumented (SCO) then
+                     SCO_State := Undetermined_Coverage;
+                     Report_Coverage
+                       (SCO,
+                        SCI.Tag,
+                        "was not instrumented",
+                        Kind => Undetermined_Cov);
+                  elsif SCI.GExpr_Executed then
                      SCO_State := Covered;
                   else
                      SCO_State := Not_Covered;
