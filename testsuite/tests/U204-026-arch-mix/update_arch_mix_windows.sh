@@ -1,6 +1,6 @@
 # Update windows artifacts for U204-026-arch-mix
 
-set ex
+set -ex
 
 if [ $# -eq 0 ]; then
   echo "No arguments provided. Please provide the name of the gnatcov branch"
@@ -33,5 +33,4 @@ gnatcov setup
 ./gen.sh windows
 
 # Copy back the generated sources
-rm -rf 
-cp -rf /cygdrive/c/tmp/U204-026-arch-mix/ /Users/itmgr/gnatcoverage/testsuite/tests/
+cp -r /cygdrive/c/tmp/U204-026-arch-mix/gen/* /Users/itmgr/gnatcoverage/testsuite/tests/U204-026-arch-mix/gen/
