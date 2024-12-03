@@ -388,6 +388,11 @@ package body Annotations is
                      Pretty_Print_Call (Pp, SCO, SCO_State);
                   end if;
 
+               when Guarded_Expr =>
+                  if Coverage.Enabled (GExpr) then
+                     SCO_State := Get_Line_State (SCO, GExpr);
+                     Pretty_Print_Statement (Pp, SCO, SCO_State);
+                  end if;
             end case;
          end if;
       end loop;
@@ -1244,6 +1249,9 @@ package body Annotations is
 
          when Fun_Call_SCO_Kind =>
             return Coverage_Level'Pos (Fun_Call);
+
+         when Guarded_Expr =>
+            return Coverage_Level'Pos (GExpr);
 
          when others =>
             return Other_Errors;

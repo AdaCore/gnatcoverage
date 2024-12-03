@@ -133,7 +133,8 @@ package body Coverage_Options is
         & "+"  & Level_Str (UC_MCDC)  & ")?"
         & "(+" & Level_Str (ATC)      & "|"
         & "+"  & Level_Str (ATCC)     & ")?"
-        & "(+" & Level_Str (Fun_Call) & ")?";
+        & "(+" & Level_Str (Fun_Call) & ")?"
+        & "(+" & Level_Str (GExpr)    & ")?";
    end Source_Level_Options;
 
    -------------------------------------
@@ -148,6 +149,10 @@ package body Coverage_Options is
       procedure Add_Fun_Call_Coverage_Level (Combinaison : Levels_Type);
       --  Register the coverage level Combinaison combined with function and
       --  call coverage.
+
+      procedure Add_GExpr_Coverage_Level (Combinaison : Levels_Type);
+      --  Register the coverage level Combinaison combined with guarded
+      --  expression coverage.
 
       ---------------------------------
       -- Add_Fun_Call_Coverage_Level --
@@ -187,6 +192,21 @@ package body Coverage_Options is
          end loop;
       end Add_Assert_Coverage_Levels;
 
+      ------------------------------
+      -- Add_GExpr_Coverage_Level --
+      ------------------------------
+
+      procedure Add_GExpr_Coverage_Level (Combinaison : Levels_Type) is
+         Comb : Levels_Type := Combinaison;
+      begin
+         --  Activate GExpr to combine it with the levels in Comb
+         Comb (GExpr) := True;
+
+         Add_Source_Level_Option (Comb);
+         Add_Fun_Call_Coverage_Level (Comb);
+         Add_Assert_Coverage_Levels (Comb);
+      end Add_GExpr_Coverage_Level;
+
       Decision_Levels : constant array (1 .. 3) of Coverage_Level :=
         (Decision, MCDC, UC_MCDC);
 
@@ -199,6 +219,7 @@ package body Coverage_Options is
       Add_Source_Level_Option (Combinaison);
       Add_Fun_Call_Coverage_Level (Combinaison);
       Add_Assert_Coverage_Levels (Combinaison);
+      Add_GExpr_Coverage_Level (Combinaison);
 
       --  Do the same for all other regular source coverage options
 
@@ -210,6 +231,7 @@ package body Coverage_Options is
          Add_Source_Level_Option (Combinaison);
          Add_Fun_Call_Coverage_Level (Combinaison);
          Add_Assert_Coverage_Levels (Combinaison);
+         Add_GExpr_Coverage_Level (Combinaison);
 
          --  Deactivate Lvl to combine the next level with "stmt"
          Combinaison (Lvl) := False;

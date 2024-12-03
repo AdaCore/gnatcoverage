@@ -203,6 +203,15 @@ package body Annotations.Sarif is
          & "gnatcov/cov_source.html#function-and-call-coverage-fun-call-"
          & "analysis-experimental",
          Config      => +"error"),
+      Source_Coverage_Level'Pos (GExpr) =>
+        (Id          => +GExpr'Image,
+         Name        => +"Guarded Expression coverage",
+         Short_Descr =>
+           (+"The expression belongs to a conditional expression structure"
+            & " and was executed at least once"),
+         Help_Uri    => +Doc_Link
+         & "gnatcov/cov_source.html#foobar",    --  FIXME(dprn): valid URL
+         Config      => +"error"),
       Undet_Rule     =>
         (Id          => +"UNDET",
          Name        => +"Undetermined Coverage",

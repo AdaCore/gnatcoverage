@@ -478,6 +478,9 @@ package body SC_Obligations is
 
             Fun_Call_Instrumented : Boolean := True;
             --  Whether this function or call SCO was instrumented
+
+         when Guarded_Expr =>
+            GExpr_Instrumented : Boolean := True;
          end case;
       end case;
    end record;
@@ -1277,6 +1280,9 @@ package body SC_Obligations is
       when Fun_Call_SCO_Kind =>
          SCOD.Is_Expr := CLS.Read_Boolean;
          SCOD.Fun_Call_Instrumented := CLS.Read_Boolean;
+
+      when Guarded_Expr =>
+         SCOD.GExpr_Instrumented := CLS.Read_Boolean;
       end case;
 
       Element := SCOD;
@@ -1360,6 +1366,11 @@ package body SC_Obligations is
                when Fun_Call_SCO_Kind  =>
                   if Old_SCOD.Fun_Call_Instrumented then
                      SCOD.Fun_Call_Instrumented := True;
+                  end if;
+
+               when Guarded_Expr =>
+                  if Old_SCOD.GExpr_Instrumented then
+                     SCOD.GExpr_Instrumented := True;
                   end if;
 
                when others =>
@@ -1636,7 +1647,7 @@ package body SC_Obligations is
 
                   New_SCOD.PC_Set.Clear;
 
-               when Fun_Call_SCO_Kind =>
+               when Fun_Call_SCO_Kind | Guarded_Expr =>
                   null;
 
             end case;
@@ -1763,7 +1774,9 @@ package body SC_Obligations is
          declare
             SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
          begin
-            if SCOD.Kind in Statement | Decision | Fun_Call_SCO_Kind then
+            if SCOD.Kind in
+               Statement | Decision | Fun_Call_SCO_Kind | Guarded_Expr
+            then
                Add_SCO_To_Lines (SCO, SCOD);
             end if;
          end;
@@ -2071,6 +2084,9 @@ package body SC_Obligations is
       when Fun_Call_SCO_Kind  =>
          CSS.Write (Value.Is_Expr);
          CSS.Write (Value.Fun_Call_Instrumented);
+
+      when Guarded_Expr  =>
+         CSS.Write (Value.GExpr_Instrumented);
       end case;
    end Write;
 
@@ -2914,6 +2930,16 @@ package body SC_Obligations is
       SCOD.Fun_Call_Instrumented := False;
    end Set_Fun_Call_SCO_Non_Instr;
 
+   -----------------------------
+   -- Set_GExpr_SCO_Non_Instr --
+   -----------------------------
+
+   procedure Set_GExpr_SCO_Non_Instr (SCO : SCO_Id) is
+      SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
+   begin
+      SCOD.GExpr_Instrumented := False;
+   end Set_GExpr_SCO_Non_Instr;
+
    ---------------------------
    -- Stmt_SCO_Instrumented --
    ---------------------------
@@ -2942,6 +2968,13 @@ package body SC_Obligations is
 
    function Fun_Call_SCO_Instrumented (SCO : SCO_Id) return Boolean is
       (SCO_Vector (SCO).Fun_Call_Instrumented);
+
+   ----------------------------
+   -- GExpr_SCO_Instrumented --
+   ----------------------------
+
+   function GExpr_SCO_Instrumented (SCO : SCO_Id) return Boolean is
+      (SCO_Vector (SCO).GExpr_Instrumented);
 
    -----------
    -- Image --
@@ -4050,7 +4083,7 @@ package body SC_Obligations is
                end case;
             end if;
 
-         when 'S' | 's' | 'C' | 'c' =>
+         when 'S' | 's' | 'C' | 'c' | 'g' =>
             pragma Assert (State.Current_Decision = No_SCO_Id);
 
             if SCOE.C1 = 'c' then
@@ -4072,6 +4105,13 @@ package body SC_Obligations is
                         Is_Expr        => SCOE.C2 = 'E',
                         others         => <>));
                end if;
+            elsif SCOE.C1 = 'g' then   -- Guarded expression
+               New_SCO := Add_SCO
+                 (SCO_Descriptor'
+                    (Kind       => Guarded_Expr,
+                     Origin     => CU,
+                     Sloc_Range => SCO_Range,
+                     others     => <>));
             else
                New_SCO := Add_SCO
                  (SCO_Descriptor'
@@ -4353,7 +4393,9 @@ package body SC_Obligations is
                      when Fun =>
                        True,
                      when Call =>
-                       L.Is_Expr = R.Is_Expr
+                       L.Is_Expr = R.Is_Expr,
+                     when Guarded_Expr =>
+                        True
                  );
             end Equivalent;
 
@@ -4436,6 +4478,10 @@ package body SC_Obligations is
                      null;
 
                   when Fun_Call_SCO_Kind =>
+                     SCOD.Parent := Enclosing_SCO;
+                     Add_SCO_To_Lines (SCO, SCOD);
+
+                  when Guarded_Expr =>
                      SCOD.Parent := Enclosing_SCO;
                      Add_SCO_To_Lines (SCO, SCOD);
 

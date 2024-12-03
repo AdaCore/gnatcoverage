@@ -226,6 +226,9 @@ package body Coverage is
          if Enabled (Fun_Call) then
             Res.Include (Fun_Call);
          end if;
+         if Enabled (GExpr) then
+            Res.Include (GExpr);
+         end if;
       end if;
       return Res;
    end Source_Levels_Enabled;

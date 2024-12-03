@@ -138,6 +138,7 @@ class TestCase:
         tolerate_messages=None,
         assert_lvl=None,
         fun_call_lvl=False,
+        gexpr_lvl=False,
     ):
         # By default, these test cases expect no error from subprocesses (xrun,
         # xcov, etc.)
@@ -190,6 +191,7 @@ class TestCase:
 
         self.assert_lvl = assert_lvl
         self.fun_call_lvl = fun_call_lvl
+        self.gexpr_lvl = gexpr_lvl
 
         # - extra compilation arguments, added to what --cargs was provided to
         #   the testsuite command line:
@@ -230,8 +232,12 @@ class TestCase:
         # Append "+fun_call" to activate function and call coverage if needed
         fclvl = "+fun_call" if self.fun_call_lvl else ""
 
+        # Append "+gexpr" to activate guarded expression coverage if needed
+        glvl = "+gexpr" if self.gexpr_lvl else ""
+
         return [
-            d + alvl + fclvl for d in default_xcovlevels_for[self.category]
+            d + alvl + fclvl + glvl
+            for d in default_xcovlevels_for[self.category]
         ]
 
     def __register_qde_for(self, drvo):

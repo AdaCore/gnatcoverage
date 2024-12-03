@@ -286,6 +286,7 @@ package body Instrument.Common is
                     (Enclosing_Decision (Remapped_SCO));
                when Fun_Call_SCO_Kind =>
                   Set_Fun_Call_SCO_Non_Instr (Remapped_SCO);
+               when Guarded_Expr => Set_GExpr_SCO_Non_Instr (Remapped_SCO);
                when others =>
                   null;
             end case;
