@@ -149,6 +149,9 @@ package body SC_Obligations is
 
             Bit_Maps_Fingerprint : Fingerprint_Type;
             --  Hash of Bit_Maps, for consistency checks with source traces
+
+            True_Static_SCOs  : SCO_Sets.Set;
+            False_Static_SCOs : SCO_Sets.Set;
       end case;
 
    end record;
@@ -344,7 +347,8 @@ package body SC_Obligations is
       Ignored_Slocs : in out Ignored_Slocs_Sets.Set;
       SCO_Map       : access LL_HL_SCO_Map := null;
       Count_Paths   : Boolean;
-      Provider      : SCO_Provider);
+      Provider      : SCO_Provider;
+      Attached_Ctx  : Instr_Attached_Ctx := No_Attached_Ctx);
    --  Load the low level SCO at SCO_Index into our Internal table, to be part
    --  of the CU compilation unit.
    --
@@ -3916,7 +3920,8 @@ package body SC_Obligations is
       Ignored_Slocs : in out Ignored_Slocs_Sets.Set;
       SCO_Map       : access LL_HL_SCO_Map := null;
       Count_Paths   : Boolean;
-      Provider      : SCO_Provider)
+      Provider      : SCO_Provider;
+      Attached_Ctx  : Instr_Attached_Ctx := No_Attached_Ctx)
    is
       Unit : CU_Info renames CU_Vector.Reference (CU);
       SCOE : SCOs.SCO_Table_Entry renames SCOs.SCO_Table.Table (SCO_Index);
@@ -3986,11 +3991,22 @@ package body SC_Obligations is
       --------------------------
 
       function Make_Condition_Value return Tristate is
+         use SCO_Sets;
       begin
          case SCOE.C2 is
+
+            --  ??? Do we have to keep this ?
+
             when 'f' => return False;
             when 't' => return True;
-            when 'c' => return Unknown;
+            when 'c' => return
+              (if Attached_Ctx.True_Static_SCOs.Contains
+                 (SCO_Id (SCO_Index))
+               then True
+               elsif Attached_Ctx.False_Static_SCOs.Contains
+                 (SCO_Id (SCO_Index))
+               then False
+               else Unknown);
 
             when others => raise Program_Error with
                  "invalid SCO condition value code: " & SCOE.C2;
@@ -4233,7 +4249,8 @@ package body SC_Obligations is
       Deps          : SFI_Vector := SFI_Vectors.Empty_Vector;
       Created_Units : out Created_Unit_Maps.Map;
       SCO_Map       : access LL_HL_SCO_Map := null;
-      Count_Paths   : Boolean)
+      Count_Paths   : Boolean;
+      Attached_Ctx  : Instr_Attached_Ctx := No_Attached_Ctx)
    is
       use SCOs;
 
@@ -4289,7 +4306,8 @@ package body SC_Obligations is
                      Ignored_Slocs_Set,
                      SCO_Map,
                      Count_Paths,
-                     Provider);
+                     Provider,
+                     Attached_Ctx);
                end loop;
             end loop;
 

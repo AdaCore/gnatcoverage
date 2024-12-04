@@ -288,6 +288,9 @@ package SC_Obligations is
    No_SCO_Id : constant SCO_Id := 0;
    subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
 
+   package SCO_Sets is
+     new Ada.Containers.Ordered_Sets (Element_Type => SCO_Id);
+
    type Scope_Entity_Identifier is record
       Decl_SFI  : Source_File_Index;
       Decl_Line : Natural;
@@ -456,13 +459,21 @@ package SC_Obligations is
    --  contain associations for "foo.ads", "foo.adb" and "foo-subunit.adb", but
    --  not for "bar.adb".
 
+   type Instr_Attached_Ctx is record
+      True_Static_SCOs  : SCO_Sets.Set;
+      False_Static_SCOs : SCO_Sets.Set;
+   end record;
+   No_Attached_Ctx : constant Instr_Attached_Ctx :=
+     (True_Static_SCOs => SCO_Sets.Empty, False_Static_SCOs => SCO_Sets.Empty);
+
    procedure Process_Low_Level_SCOs
      (Provider      : SCO_Provider;
       Origin        : Source_File_Index;
       Deps          : SFI_Vector := SFI_Vectors.Empty_Vector;
       Created_Units : out Created_Unit_Maps.Map;
       SCO_Map       : access LL_HL_SCO_Map := null;
-      Count_Paths   : Boolean);
+      Count_Paths   : Boolean;
+      Attached_Ctx  : Instr_Attached_Ctx := No_Attached_Ctx);
    --  Populate high level SCO tables (SC_Vectors, CU_Vector, ... in
    --  SC_Obligations' body) from low level ones (global tables from the SCOs
    --  unit).
@@ -634,9 +645,6 @@ package SC_Obligations is
    --  generate any executable code, which may be treated as a documentation
    --  item in the source. The input SCO argument is expected to designate a
    --  statement SCO.
-
-   package SCO_Sets is
-     new Ada.Containers.Ordered_Sets (Element_Type => SCO_Id);
 
    procedure Set_Stmt_SCO_Non_Instr (SCO : SCO_Id) with
      Pre => Kind (SCO) = Statement;
