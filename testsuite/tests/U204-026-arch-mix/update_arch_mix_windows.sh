@@ -9,7 +9,7 @@ fi
 
 # Create a sandbox
 cd /Users/itmgr
-git clone git@ssh.gitlab.adacore-it.com:eng/cov/gnatcoverage
+git clone git-adacore:eng/cov/gnatcoverage
 anod init wave
 
 # Checkout the right gnatcov branch

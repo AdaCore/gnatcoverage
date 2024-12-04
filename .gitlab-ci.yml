@@ -7,7 +7,6 @@ variables:
    PACKAGE_BASE_NAME: gnatcoverage.tar.gz
    PACKAGE_ABSOLUTE_NAME: $CI_PROJECT_DIR/$PACKAGE_BASE_NAME
    GITLAB_REMOTE: "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/"
-   PIP_INDEX_URL: "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.adacore-it.com/api/v4/projects/202/packages/pypi/simple"
 
 include:
   #TODO: workaround to allow dynamically setting the interruptible policy until https://gitlab.com/gitlab-org/gitlab/-/issues/194023 is implemented
