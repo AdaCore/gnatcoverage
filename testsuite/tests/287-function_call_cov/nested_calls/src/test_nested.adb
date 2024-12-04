@@ -15,4 +15,4 @@ end Test_Nested;
 -- /call/   l+ ## 0
 -- /if/     l! ## dT-
 -- /v_stmt/ l- ## s-
--- /v_call/ l- ## s=>s-, f=>s-,c-
+-- /v_call/ l- ## s=>s-, f=>c-

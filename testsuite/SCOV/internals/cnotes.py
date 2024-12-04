@@ -344,7 +344,9 @@ dNoteKinds = (
 cNoteKinds = (etNoCov, efNoCov, ePartCov, eNoCov, cPartCov, eUndetCov)
 
 # Assertion violations
-aNoteKinds = (aNoCov, atNoCov, acPartCov)
+atcNoteKinds = (aNoCov, atNoCov)
+atccNoteKinds = acPartCov
+aNoteKinds = (aNoCov, atNoCov, atccNoteKinds)
 
 # Function and call coverage violations
 fNoteKinds = (fNoCov, cNoCov, fUndetCov, cUndetCov)
