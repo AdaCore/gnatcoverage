@@ -567,7 +567,31 @@ package body Coverage.Source is
             Removed : constant Boolean := SCO_Ignored (Relocs, CP_SCO);
             SCO     : constant SCO_Id :=
               (if Removed then No_SCO_Id else Remap_SCO_Id (Relocs, CP_SCO));
+
+            procedure Insert_Extra_Decision_SCI (B : Boolean);
+
+            procedure Insert_Extra_Decision_SCI (B : Boolean) is
+               Inserted_SCI :
+                  constant Source_Coverage_Info :=
+                       (Kind => Decision,
+                        Known_Outcome_Taken =>
+                          (True => B, False => not B),
+                        others => <>);
+            begin
+                  Merge_Checkpoint_SCI
+                    (SCO,
+                     Tag_Provider.Map_Tag (Relocs, Inserted_SCI.Tag),
+                     Inserted_SCI,
+                     Relocs);
+            end Insert_Extra_Decision_SCI;
          begin
+            if CLS.True_Static_SCOs.Contains (CP_SCO) then
+               Insert_Extra_Decision_SCI (True);
+            end if;
+            if CLS.False_Static_SCOs.Contains (CP_SCO) then
+               Insert_Extra_Decision_SCI (False);
+            end if;
+
             if not Removed then
                for CP_SCI of Element (SCO_Cur) loop
                   if CP_SCI /= null then

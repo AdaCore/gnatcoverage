@@ -1348,10 +1348,10 @@ package body SC_Obligations is
                          - CP_CU.First_SCO);
 
          declare
-            Old_SCOD : SCO_Descriptor renames
+            Old_SCOD   : SCO_Descriptor renames
               CP_Vectors.SCO_Vector (Old_SCO_Id);
-            SCOD     : SCO_Descriptor renames
-              SCO_Vector (Remap_SCO_Id (Relocs, Old_SCO_Id));
+            New_SCO_Id : constant SCO_Id := Remap_SCO_Id (Relocs, Old_SCO_Id);
+            SCOD       : SCO_Descriptor renames SCO_Vector (New_SCO_Id);
          begin
             case SCOD.Kind is
                when Statement =>
@@ -1365,6 +1365,41 @@ package body SC_Obligations is
                   end if;
                   if Old_SCOD.Decision_Instrumented_For_MCDC then
                      SCOD.Decision_Instrumented_For_MCDC := True;
+                  end if;
+
+                  if Old_SCOD.Decision_BDD.Reachable_Outcomes (True) then
+                     SCOD.Decision_BDD.Reachable_Outcomes (True) := True;
+                  end if;
+                  if Old_SCOD.Decision_BDD.Reachable_Outcomes (False) then
+                     SCOD.Decision_BDD.Reachable_Outcomes (False) := True;
+                  end if;
+
+               when Condition =>
+                  if Old_SCOD.Value /= SCOD.Value then
+
+                     --  If the old value does not match the new one, it means
+                     --  that we are consolidating 2 checkpoints where the
+                     --  condition was static in one of them, and non-static
+                     --  in the other.
+                     --  In consequences, we ensure the SCO is flagged as
+                     --  Unknown because some of it was evaluated at run time.
+                     --  Also, we need tp keep a track of the static evaluation
+                     --  to make sure it's accounted for in the runtime
+                     --  coverage computation.
+
+                     Misc_Trace.Trace ("Consolidation will merge condition"
+                                       & " SCOs that are both static and"
+                                       & " non-static at "
+                                       & Image (SCOD.Sloc_Range));
+
+                     if Old_SCOD.Value = False or else SCOD.Value = False then
+                        CLS.False_Static_SCOs.Include (Parent (New_SCO_Id));
+                     end if;
+                     if Old_SCOD.Value = True or else SCOD.Value = True then
+                        CLS.True_Static_SCOs.Include (Parent (New_SCO_Id));
+                     end if;
+
+                     SCOD.Value := Unknown;
                   end if;
 
                when Fun_Call_SCO_Kind  =>
@@ -3994,9 +4029,6 @@ package body SC_Obligations is
          use SCO_Sets;
       begin
          case SCOE.C2 is
-
-            --  ??? Do we have to keep this ?
-
             when 'f' => return False;
             when 't' => return True;
             when 'c' => return

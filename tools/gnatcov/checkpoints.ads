@@ -291,6 +291,9 @@ package Checkpoints is
       --  Format version for the checkpoint being read
 
       Relocations : Checkpoint_Relocations;
+
+      True_Static_SCOs  : SCO_Sets.Set;
+      False_Static_SCOs : SCO_Sets.Set;
    end record;
 
    use type Interfaces.Unsigned_32;
