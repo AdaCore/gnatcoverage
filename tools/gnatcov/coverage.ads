@@ -43,7 +43,8 @@ package Coverage is
       when UC_MCDC  => "UC_MCDC",
       when ATC      => "ATC",
       when ATCC     => "ATCC",
-      when Fun_Call => "Function and call");
+      when Fun_Call => "Function and call",
+      when GExpr    => "Guarded expression");
    --  Case sensitive version of Coverage_Level'Image
 
    procedure Set_Coverage_Levels (Opt : String);

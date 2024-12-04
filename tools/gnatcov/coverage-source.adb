@@ -129,7 +129,11 @@ package body Coverage.Source is
 
          when Fun_Call_SCO_Kind =>
             Fun_Call_Executed : Boolean := False;
-            --  Set to True id this call or function was executed at least once
+            --  Set to True if this call or function was executed at least once
+
+         when Guarded_Expr =>
+            GExpr_Executed : Boolean := False;
+            --  Set to True if this was executed at least once
 
          when others =>
             null;
@@ -1179,6 +1183,31 @@ package body Coverage.Source is
                   SCO_State := SCI.State (Fun_Call);
                   Update_Line_State
                     (Line_Info, SCO, SCI.Tag, Fun_Call, SCO_State);
+               elsif Kind (SCO) = Guarded_Expr
+                  and then Enabled (GExpr)
+               then
+                  if not GExpr_SCO_Instrumented (SCO) then
+                     SCO_State := Undetermined_Coverage;
+                     Report_Coverage
+                       (SCO,
+                        SCI.Tag,
+                        "was not instrumented",
+                        Kind => Undetermined_Cov);
+                  elsif SCI.GExpr_Executed then
+                     SCO_State := Covered;
+                  else
+                     SCO_State := Not_Covered;
+
+                     --  Report a violation on the first line of the SCO to
+                     --  avoid duplicating violations in the report.
+
+                     if Line_Num = First_Sloc (SCO).L.Line then
+                        Report_Violation (SCO, SCI.Tag, "not executed");
+                     end if;
+                  end if;
+
+                  Update_Line_State
+                    (Line_Info, SCO, SCI.Tag, GExpr, SCO_State);
                end if;
             end loop;
          end SCOs_Of_Line;
@@ -2142,6 +2171,8 @@ package body Coverage.Source is
             SCI.Executed := True;
          elsif SCI.Kind in Fun_Call_SCO_Kind then
             SCI.Fun_Call_Executed := True;
+         elsif SCI.Kind = Guarded_Expr then
+            SCI.GExpr_Executed := True;
          end if;
 
       end Set_Executed;
@@ -2596,7 +2627,7 @@ package body Coverage.Source is
 
                --  Skip bits corresponding to fun_call obligations
 
-               if Kind (Stmt_Bit_Map (Bit)) in Fun_Call_SCO_Kind then
+               if Kind (Stmt_Bit_Map (Bit)) /= Statement then
                   goto Continue;
                end if;
 
@@ -2707,7 +2738,7 @@ package body Coverage.Source is
       CP_SCI.Tag := SC_Tag (CLS.Read_I32);
 
       declare
-         States : array (1 .. 9) of Line_State;
+         States : array (1 .. 10) of Line_State;
       begin
          for I in States'Range loop
             States (I) := CLS.Read_Line_State;
@@ -2721,6 +2752,7 @@ package body Coverage.Source is
          CP_SCI.State (ATC)      := States (7);
          CP_SCI.State (ATCC)     := States (8);
          CP_SCI.State (Fun_Call) := States (9);
+         CP_SCI.State (GExpr)    := States (10);
       end;
 
       case CP_SCI.Kind is
@@ -2739,6 +2771,9 @@ package body Coverage.Source is
             Read (CLS, CP_SCI.Evaluations);
          when Fun_Call_SCO_Kind  =>
             CP_SCI.Fun_Call_Executed := CLS.Read_Boolean;
+
+         when Guarded_Expr  =>
+            CP_SCI.GExpr_Executed := CLS.Read_Boolean;
 
          when others =>
             null;
@@ -2782,6 +2817,9 @@ package body Coverage.Source is
 
          when Fun_Call_SCO_Kind =>
             CSS.Write (Value.Fun_Call_Executed);
+
+         when Guarded_Expr =>
+            CSS.Write (Value.GExpr_Executed);
 
          when others =>
             null;

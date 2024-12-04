@@ -137,6 +137,9 @@
 # fUndetCov : subprogram with undetermined coverage state (=report)
 # cUndetCov : call with undetermined coverage state (=report)
 
+# gNoCov    : guarded expression never evaluated (=report)
+# gUndetCov : guarded expression with undetermined coverage state (=state)
+
 # xBlock0  : exempted block, 0 deviations (=report)
 # xBlock1  : exempted block, >0 deviations (=report)
 # xBlock2  : exempted block, >0 undetermined coverage items (=report)
@@ -222,12 +225,14 @@
     cNoCov,
     fUndetCov,
     cUndetCov,
+    gNoCov,
+    gUndetCov,
     blockNote,
     xBlock0,
     xBlock1,
     xBlock2,
     dBlock,
-) = range(60)
+) = range(62)
 
 NK_image = {
     None: "None",
@@ -287,6 +292,8 @@ NK_image = {
     cNoCov: "cNoCov",
     fUndetCov: "fUndetCov",
     cUndetCov: "cUndetCov",
+    gNoCov: "gNoCov",
+    gUndetCov: "gUndetCov",
     dBlock: "dBlock",
 }
 
@@ -342,6 +349,9 @@ aNoteKinds = (aNoCov, atNoCov, acPartCov)
 # Function and call coverage violations
 fNoteKinds = (fNoCov, cNoCov, fUndetCov, cUndetCov)
 
+# Guarded expression coverage violations
+gNoteKinds = (gNoCov, gUndetCov)
+
 # Exemption regions
 xNoteKinds = (xBlock0, xBlock1, xBlock2)
 
@@ -379,7 +389,7 @@ erNoteKinds = (
     + XNoteKinds
     + disabledNoteKinds
 )
-erNoteKinds += aNoteKinds + fNoteKinds
+erNoteKinds += aNoteKinds + fNoteKinds + gNoteKinds
 xrNoteKinds = erNoteKinds + rAntiKinds + XrAntiKinds
 
 

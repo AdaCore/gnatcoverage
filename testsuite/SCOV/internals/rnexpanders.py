@@ -33,6 +33,8 @@ from .cnotes import (
     cNoCov,
     fUndetCov,
     cUndetCov,
+    gNoCov,
+    gUndetCov,
     Enote,
     KnoteDict,
     erNoteKinds,
@@ -689,6 +691,13 @@ class RblockSet:
             VIOsection(re_start="FUN_CALL COVERAGE", re_notes=fun_call_notes)
         )
 
+        gexpr_notes = {
+            "guarded_expr not executed": gNoCov,
+        }
+        self.noteblocks.append(
+            VIOsection(re_start="GEXPR COVERAGE", re_notes=gexpr_notes)
+        )
+
         # Non coverable items
 
         nc_notes = {
@@ -710,6 +719,7 @@ class RblockSet:
             "decision was not instrumented for MC/DC coverage": eUndetCov,
             "function was not instrumented": fUndetCov,
             "call was not instrumented": cUndetCov,
+            "guarded_expr was not instrumented": gUndetCov,
         }
 
         self.noteblocks.append(

@@ -28,19 +28,21 @@ package Coverage_Options is
    use all type Unbounded_String;
 
    type Coverage_Level is
-     (Insn, Branch, Stmt, Decision, MCDC, UC_MCDC, ATC, ATCC, Fun_Call);
+     (Insn, Branch, Stmt, Decision, MCDC, UC_MCDC, ATC, ATCC, Fun_Call,
+      GExpr);
    --  Coverage objectives supported by xcov. The following values are
    --  supported:
 
-   --  * object coverage at instruction level        (Insn);
-   --  * object coverage at branch level             (Branch);
-   --  * source coverage at statement level          (Stmt);
-   --  * source coverage at decision level           (Decision);
-   --  * source coverage at masking MC/DC level      (MCDC);
-   --  * source coverage at unique cause MC/DC level (UC_MCDC);
-   --  * source coverage at ATC level                (ATC);
-   --  * source coverage at ATCC level               (ATCC).
-   --  * source coverage at Call level               (Fun_Call)
+   --  * object coverage at instruction level         (Insn);
+   --  * object coverage at branch level              (Branch);
+   --  * source coverage at statement level           (Stmt);
+   --  * source coverage at decision level            (Decision);
+   --  * source coverage at masking MC/DC level       (MCDC);
+   --  * source coverage at unique cause MC/DC level  (UC_MCDC);
+   --  * source coverage at ATC level                 (ATC);
+   --  * source coverage at ATCC level                (ATCC);
+   --  * source coverage at Call level                (Fun_Call);
+   --  * source coverage at Guarded Expressions level (GExpr).
 
    --  The terms "instruction", "branch", "statement", "decision" and "MCDC"
    --  should be understood here as they are defined in the DO-178B standard;
@@ -63,9 +65,16 @@ package Coverage_Options is
    --
    --  * Call coverage     : a call is covered if it was executed as least
    --                        once.
+   --
+   --  The "GExpr" coverage criteria (short for Guarded Expressions) serves the
+   --  purpose of tracking the exhaustive execution of all branches of
+   --  conditional expressions (case-expr and if-expr) and to ensure the
+   --  execution the dependent expression of quantified expressions
+   --  (for some and for all), which may not run if executed against an empty
+   --  array.
 
    subtype Object_Coverage_Level    is Coverage_Level range Insn .. Branch;
-   subtype Source_Coverage_Level    is Coverage_Level range Stmt .. Fun_Call;
+   subtype Source_Coverage_Level    is Coverage_Level range Stmt .. GExpr;
    subtype MCDC_Coverage_Level      is Coverage_Level range MCDC .. UC_MCDC;
    subtype Contract_Condition_Level is Coverage_Level range ATCC .. ATCC;
 

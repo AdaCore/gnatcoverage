@@ -30,6 +30,8 @@ with Ada.Streams.Stream_IO;
 with Langkit_Support;
 with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
 with Langkit_Support.Symbols;  use Langkit_Support.Symbols;
+with Langkit_Support.Generic_API.Introspection;
+use Langkit_Support.Generic_API.Introspection;
 with Libadalang.Common;        use Libadalang.Common;
 with Libadalang.Expr_Eval;
 with Libadalang.Generic_API;
@@ -61,6 +63,11 @@ package body Instrument.Ada_Unit is
    package GPR renames GNATCOLL.Projects;
    package LAL renames Libadalang.Analysis;
    package LALCO renames Libadalang.Common;
+
+   subtype Decl_Expr_Supported_Versions is Any_Language_Version range
+      Ada_2022 .. Any_Language_Version'Last;
+   --  Set of versions of the Ada language that support declare
+   --  expressions.
 
    function Create_Context_Instrument
      (N : Libadalang.Analysis.Ada_Node'Class) return Context_Handle;
@@ -4149,11 +4156,6 @@ package body Instrument.Ada_Unit is
          --   MC/DC state inserter for this expression function (unused if
          --   instrumenting a null procedure).
 
-         subtype Decl_Expr_Supported_Versions is Any_Language_Version range
-           Ada_2022 .. Any_Language_Version'Last;
-         --  Set of versions of the Ada language that support declare
-         --  expressions.
-
       --  Start of processing for Traverse_Degenerate_Subprogram
 
       begin
@@ -6092,6 +6094,22 @@ package body Instrument.Ada_Unit is
       --  Helper to Libadalang's Traverse. Only operates on Raise_Exprs,
       --  ending the current statement block if a raise expression is found.
 
+      procedure Instrument_GExpr
+      (E                 : Expr;
+       SR                : Source_Location_Range;
+       Parent_Handle     : Node_Rewriting_Handle;
+       Parent_Member_Ref : Struct_Member_Ref);
+      --  Instrument a guarded expression.
+      --  > Register a new SCO
+      --  > If the detected langage version is < Ada2022
+      --       then it will not instrument the expression.
+      --  > Otherwise, nest the expression inside a decl_expr
+      --       and set the parent's child to this decl_expr.
+
+      function Process_Case_Expr (N : Ada_Node'Class) return Visit_Status;
+      --  Helper to Libadalang's Traverse.
+      --  Only operates on Case_Exprs, call Instrument_GExpr on every case
+
       procedure Process_Decisions
         (UIC : in out Ada_Unit_Inst_Context;
          N   : Ada_Node'Class;
@@ -6331,6 +6349,99 @@ package body Instrument.Ada_Unit is
             return Into;
          end if;
       end Process_Decl_Expr;
+
+      ----------------------
+      -- Instrument_Gexpr --
+      ----------------------
+
+      procedure Instrument_GExpr
+      (E                 : Expr;
+       SR                : Source_Location_Range;
+       Parent_Handle     : Node_Rewriting_Handle;
+       Parent_Member_Ref : Struct_Member_Ref)
+      is
+      begin
+         Append_SCO
+            (C1   => 'g',
+             C2   => 'c',
+             From => +Start_Sloc (SR),
+             To   => +Inclusive_End_Sloc (SR),
+             SFI  => UIC.SFI,
+             Last => False);
+
+         if UIC.Language_Version in Decl_Expr_Supported_Versions then
+            declare
+               Bit                 : constant Bit_Id :=
+                  Allocate_Statement_Bit (UIC.Unit_Bits, SCOs.SCO_Table.Last);
+               Witness_Decl_Handle : constant Node_Rewriting_Handle :=
+                  Make_Statement_Witness
+                    (UIC          => UIC,
+                     Bit          => Bit,
+                     Flavor       => Declaration,
+                     In_Generic   => UIC.In_Generic,
+                     In_Decl_Expr => True);
+               Decl_Expr_Handle    : constant Node_Rewriting_Handle :=
+                  Create_Paren_Expr
+                    (Handle => UIC.Rewriting_Context,
+                     F_Expr => Create_Decl_Expr
+                          (Handle =>  UIC.Rewriting_Context,
+                           F_Decls => Witness_Decl_Handle,
+                           F_Expr  => Detach (E)));
+            begin
+               Set_Child
+                 (Parent_Handle,
+                  Parent_Member_Ref,
+                  Decl_Expr_Handle);
+            end;
+         else
+
+            --  If the language version does not allow declare expressions,
+            --  do not instrument the expression.
+
+            Report
+              (UIC  => UIC,
+               Node => E,
+               Msg  => "Guarded Expression coverage is not available"
+                        & " before Ada2022",
+               Kind => Diagnostics.Warning);
+            UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
+         end if;
+      end Instrument_GExpr;
+
+      -----------------------
+      -- Process_Case_Expr --
+      -----------------------
+
+      function Process_Case_Expr (N : Ada_Node'Class) return Visit_Status is
+      begin
+         if N.Kind = Ada_Case_Expr then
+            declare
+               Case_Node    : constant Case_Expr := N.As_Case_Expr;
+               Alternatives : constant Case_Expr_Alternative_List :=
+                  Case_Node.F_Cases;
+            begin
+               for Alt of Alternatives loop
+
+                  --  Perform witness insertion
+
+                  Instrument_GExpr
+                    (Alt.As_Case_Expr_Alternative.F_Expr,
+                     Alt.Sloc_Range,
+                     Handle (Alt),
+                     Member_Refs.Case_Expr_Alternative_F_Expr);
+                  Process_Expression
+                    (UIC,
+                     Alt.As_Case_Expr_Alternative.F_Expr,
+                     T);
+               end loop;
+               return Over; -- Do not use `Traverse` to recurse into case-exprs
+            end;
+         elsif N.Kind = Ada_Decl_Expr then
+            return Over;
+         else
+            return Into;
+         end if;
+      end Process_Case_Expr;
 
       ------------------------
       -- Process_Raise_Expr --
@@ -6825,13 +6936,10 @@ package body Instrument.Ada_Unit is
             --  Here for cases that are known to not be logical operators
 
             case N.Kind is
-               --  CASE expression
-
-               --  Really hard to believe this is correct given the special
-               --  handling for if expressions below ???
+               --  CASE expression: processed in Process_Case_Expr
 
             when Ada_Case_Expr =>
-               return Into; -- ???
+               return (if Enabled (GExpr) then Over else Into);
 
                --  IF expression: processed like an if statement
 
@@ -6843,6 +6951,13 @@ package body Instrument.Ada_Unit is
                begin
                   Process_Decisions (UIC, IEN.F_Cond_Expr, 'I');
                   Process_Decisions (UIC, IEN.F_Then_Expr, 'X');
+                  if Enabled (GExpr) then
+                     Instrument_GExpr
+                       (IEN.F_Then_Expr,
+                        IEN.F_Then_Expr.Sloc_Range,
+                        Handle (IEN),
+                        Member_Refs.If_Expr_F_Then_Expr);
+                  end if;
 
                   for J in 1 .. Alt.Children_Count loop
                      declare
@@ -6851,10 +6966,24 @@ package body Instrument.Ada_Unit is
                      begin
                         Process_Decisions (UIC, EIN.F_Cond_Expr, 'I');
                         Process_Decisions (UIC, EIN.F_Then_Expr, 'X');
+                        if Enabled (GExpr) then
+                           Instrument_GExpr
+                             (EIN.F_Then_Expr,
+                              EIN.F_Then_Expr.Sloc_Range,
+                              Handle (EIN),
+                              Member_Refs.Elsif_Expr_Part_F_Then_Expr);
+                        end if;
                      end;
                   end loop;
 
                   Process_Decisions (UIC, IEN.F_Else_Expr, 'X');
+                  if Enabled (GExpr) then
+                     Instrument_GExpr
+                       (IEN.F_Else_Expr,
+                        IEN.F_Else_Expr.Sloc_Range,
+                        Handle (IEN),
+                        Member_Refs.If_Expr_F_Else_Expr);
+                  end if;
                   return Over;
                end;
 
@@ -6862,6 +6991,14 @@ package body Instrument.Ada_Unit is
                Process_Decisions
                  (UIC, N.As_Quantified_Expr.F_Loop_Spec, 'X');
                Process_Decisions (UIC, N.As_Quantified_Expr.F_Expr, 'W');
+
+               if Enabled (GExpr) then
+                  Instrument_GExpr
+                    (N.As_Quantified_Expr.F_Expr,
+                     N.As_Quantified_Expr.F_Expr.Sloc_Range,
+                     Handle (N),
+                     Member_Refs.Quantified_Expr_F_Expr);
+               end if;
                return Over;
 
             when Ada_For_Loop_Spec =>
@@ -6927,6 +7064,8 @@ package body Instrument.Ada_Unit is
          Hash_Entries.Free;
       end Process_Decisions;
 
+      --  Start of processing for Process_Expressions
+
    begin
       if N.Is_Null then
          return;
@@ -6958,6 +7097,9 @@ package body Instrument.Ada_Unit is
 
       N.Traverse (Process_Decl_Expr'Access);
       N.Traverse (Process_Raise_Expr'Access);
+      if Enabled (GExpr) then
+         N.Traverse (Process_Case_Expr'Access);
+      end if;
    end Process_Expression;
 
    ------------------
