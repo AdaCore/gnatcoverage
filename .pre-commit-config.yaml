@@ -1,5 +1,5 @@
 repos:
-  - repo: git@ssh.gitlab.adacore-it.com:eng/shared/mirrors/pre-commit-clang-format
+  - repo: https://github.com/doublify/pre-commit-clang-format
     rev: 62302476d0da01515660132d76902359bed0f782
     hooks:
       - id: clang-format
@@ -18,7 +18,7 @@ repos:
               Maximum: -1
             }
         }"]
-  - repo: git@ssh.gitlab.adacore-it.com:it/flake8.git
+  - repo: https://github.com/pycqa/flake8
     rev: 7.1.1
     hooks:
     - id: flake8
@@ -28,7 +28,7 @@ repos:
         - flake8-comprehensions
         - pygments
       args: ["--config=.flake8"]
-  - repo: git@ssh.gitlab.adacore-it.com:it/black.git
+  - repo: https://github.com/psf/black
     rev: 24.10.0
     hooks:
     - id: black
