@@ -19,7 +19,7 @@ cd $cwd
 cp -rf /tmp/U204-026-arch-mix/* .
 
 # Then update the windows artifacts
-[ ! -d '/tmp/iod-dev' ] && git clone git@ssh.gitlab.adacore-it.com:eng/shared/iod-dev /tmp/iod-dev
+[ ! -d '/tmp/iod-dev' ] && git clone git-adacore:eng/shared/iod-dev /tmp/iod-dev
 /tmp/iod-dev/create-base.py --base-image x86_64-windows-2019
 git_branch=$(git rev-parse --abbrev-ref HEAD)
 sshpass ssh iod 'bash -s' < update_arch_mix_windows.sh $git_branch
