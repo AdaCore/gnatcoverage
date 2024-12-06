@@ -1,4 +1,4 @@
-with Aspect;
+with Foo;
 
 --  Check that when instrumenting an expression function with aspects, these
 --  aspects are also correctly attached to both the new intermediary function
@@ -6,10 +6,10 @@ with Aspect;
 
 procedure Test_Aspect is
 begin
-   Aspect;
+   Foo;
 end Test_Aspect;
 
---# aspect.adb
+--# aspect.ads
 -- /expr/  l- ## s-
--- /type/  l+ ## 0
--- /dummy/ l+ ## 0
+--# foo.adb
+-- /d/ l+ ## 0
