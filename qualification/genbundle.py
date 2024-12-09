@@ -342,9 +342,7 @@ def current_gitbranch_at(dirname):
 sphinx_target_for = {"html": "html", "pdf": "latexpdf"}
 
 # The master GIT repo where our source artifacts reside
-GIT_MASTER = (
-    "git@ssh.gitlab.adacore-it.com:eng/das/cov/gnatcoverage-qualification.git"
-)
+GIT_MASTER = os.environ.get("GIT_MASTER")
 
 # The name of the subdir in the working directory where we'll fetch TOR
 # artifacts from. This would be an image of a "gnatcoverage" repository, from
@@ -482,6 +480,11 @@ class QMAT:
         os.chdir(self.workdir)
 
         gitref = self.o.gitsource if self.o.gitsource else GIT_MASTER
+        exit_if(
+            not gitref,
+            "set the repository source either through the --git-source option"
+            " or through the GIT_MASTER environment variable",
+        )
 
         announce("cloning git repository from %s" % gitref)
 

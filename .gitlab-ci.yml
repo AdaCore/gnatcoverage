@@ -6,19 +6,19 @@ workflow:
 variables:
    PACKAGE_BASE_NAME: gnatcoverage.tar.gz
    PACKAGE_ABSOLUTE_NAME: $CI_PROJECT_DIR/$PACKAGE_BASE_NAME
-   GITLAB_REMOTE: "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/"
-   PIP_INDEX_URL: "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.adacore-it.com/api/v4/projects/202/packages/pypi/simple"
 
 include:
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/pre-commit@~latest
+    inputs:
+      stage: test
   #TODO: workaround to allow dynamically setting the interruptible policy until https://gitlab.com/gitlab-org/gitlab/-/issues/194023 is implemented
   - local: utils/ci/interruptible.yml
     rules:
-      - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH      
   - project: eng/codepeer/ci-registry
     file: /gnatsas-on-gnatcov.yml
 
 .basic_setup: &basic_setup
-  - unset GITLAB_TOKEN
   - generic_anod_ci --add-dep eng/das/cov/gnatcoverage-extra
   - cat /tmp/ci_env.sh
   - . /tmp/ci_env.sh
@@ -206,20 +206,10 @@ test_spark:
 
   <<: *artifacts
 
-stylechecks:
-  interruptible: true
-  stage: test
-  services:
-    - image:pe-base
-    - run_as_root:false
-  needs: []
-  script:
-    - *basic_setup
 
-    - git config --global --add
-        url."${GITLAB_REMOTE}".insteadOf "git@ssh.gitlab.adacore-it.com:"
-    - git config --global --add
-        url."${GITLAB_REMOTE}".insteadOf "ssh://git@ssh.gitlab.adacore-it.com/"
+pre-commit:
+  before_script:
+    - *basic_setup
 
     # Install the clang-format executable and make it available
     - anod install libclang -Qstable
@@ -230,13 +220,8 @@ stylechecks:
     - . /tmp/venv/bin/activate
     - python -m pip install colorama pre-commit
 
-    - cd $CI_PROJECT_DIR
-
-    - pre-commit install
-    - pre-commit install-hooks
-    - pre-commit run -a --show-diff-on-failure
-
     - python .check-formatting.py --force-colors
+
 
 #################
 # Optional jobs #
