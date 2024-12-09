@@ -41,6 +41,10 @@ package Instrument is
    --  Trace to show details about how object directories in GPR projects are
    --  cleaned.
 
+   Sources_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("INSTRUMENT_SOURCES");
+   --  Trace to show details about written instrumented sources
+
    package GPR renames GNATCOLL.Projects;
 
    use type Ada.Containers.Count_Type;

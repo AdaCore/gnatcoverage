@@ -56,7 +56,7 @@ actual_lines = [
     line
     for line in lines_of(log)
     if (
-        line.startswith("[GNATCOV.MISC] Instrumenting ")
+        line.startswith("[GNATCOV.INSTRUMENT_SOURCES] Instrumenting ")
         or line.startswith("warning: ")
     )
 ]
@@ -64,10 +64,10 @@ thistest.fail_if_not_equal(
     '"gnatcov instrument" output',
     "\n".join(
         [
-            "[GNATCOV.MISC] Instrumenting main.adb",
+            "[GNATCOV.INSTRUMENT_SOURCES] Instrumenting main.adb",
             "warning: Cannot find required source file: missing_a.ads",
             "warning: Cannot find required source file: missing_b.ads",
-            "[GNATCOV.MISC] Instrumenting pkg.ads",
+            "[GNATCOV.INSTRUMENT_SOURCES] Instrumenting pkg.ads",
         ]
     ),
     "\n".join(actual_lines),
