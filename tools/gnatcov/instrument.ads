@@ -27,6 +27,7 @@ with Types; use Types;
 
 with Checkpoints;    use Checkpoints;
 with Files_Handling;
+with Logging;
 with SC_Obligations; use SC_Obligations;
 with Strings;        use Strings;
 with Subprocesses;   use Subprocesses;
@@ -34,6 +35,11 @@ with Switches;       use Switches;
 with Traces_Source;  use Traces_Source;
 
 package Instrument is
+
+   Clean_Objdirs_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("INSTRUMENT_CLEAN_OBJDIRS");
+   --  Trace to show details about how object directories in GPR projects are
+   --  cleaned.
 
    package GPR renames GNATCOLL.Projects;
 

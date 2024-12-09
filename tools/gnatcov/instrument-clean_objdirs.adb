@@ -19,6 +19,7 @@
 with Ada.Directories; use Ada.Directories;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
+with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
 with Instrument.Common; use Instrument.Common;
 with Outputs;           use Outputs;
@@ -39,15 +40,32 @@ procedure Instrument.Clean_Objdirs is
    ------------------
 
    procedure Clean_Subdir (Project : Project_Type) is
-      Output_Dir : constant String := Project_Output_Dir (Project);
+      Output_Dir     : constant String := Project_Output_Dir (Project);
+      Has_Output_Dir : Boolean := True;
    begin
+      Clean_Objdirs_Trace.Increase_Indent ("Processing " & Project.Name);
+      Clean_Objdirs_Trace.Trace
+        ("GPR file: " & (+Project.Project_Path.Full_Name));
+
       --  Some projects don't have an object directory: ignore them as there is
       --  nothing to do.
 
-      if Output_Dir'Length = 0
-         or else not Exists (Output_Dir)
-         or else Kind (Output_Dir) /= Directory
-      then
+      if Output_Dir'Length = 0 then
+         Has_Output_Dir := False;
+         Clean_Objdirs_Trace.Trace ("no object directory");
+      else
+         Clean_Objdirs_Trace.Trace ("output directory: " & Output_Dir);
+         if not Exists (Output_Dir) then
+            Has_Output_Dir := False;
+            Clean_Objdirs_Trace.Trace ("it does not exist");
+         elsif Kind (Output_Dir) /= Directory then
+            Has_Output_Dir := False;
+            Clean_Objdirs_Trace.Trace ("it is not a directory");
+         end if;
+      end if;
+
+      if not Has_Output_Dir then
+         Clean_Objdirs_Trace.Decrease_Indent;
          return;
       end if;
 
@@ -70,6 +88,8 @@ procedure Instrument.Clean_Objdirs is
       --  clear lead on how to address such problems.
 
       if Project.Externally_Built then
+         Clean_Objdirs_Trace.Trace ("it is an externally built project");
+
          if not Externally_Built_Projects_Processing_Enabled
             and then Has_Regular_Files (Output_Dir)
          then
@@ -86,10 +106,12 @@ procedure Instrument.Clean_Objdirs is
          --  We should never try to modify externally built projects, so do not
          --  remove their instrumented source directory.
 
+         Clean_Objdirs_Trace.Decrease_Indent;
          return;
       end if;
 
       Delete_Tree (Directory => Output_Dir);
+      Clean_Objdirs_Trace.Decrease_Indent;
    end Clean_Subdir;
 
    -----------------------
