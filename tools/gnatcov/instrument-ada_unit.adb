@@ -11144,9 +11144,7 @@ package body Instrument.Ada_Unit is
            Missing_Src_Reporter_Access (Self.Event_Handler.Unchecked_Get).all;
          --  Handle to the event handler we use to report missing source files;
 
-         Basename  : constant String :=
-           Ada.Directories.Simple_Name (Filename);
-
+         Basename : constant String := Ada.Directories.Simple_Name (Filename);
       begin
          --  Instrument the file only if it is a file of interest
 
