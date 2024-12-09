@@ -4271,7 +4271,7 @@ package body Instrument.C is
           (Main => Dummy_Main, Manual => True, Prj_Name => Prj.Prj_Name);
       Reset_Procedure : constant String :=
         Reset_Procedure_Symbol (Prj.Prj_Name);
-      Extern_Prefix : constant String :=
+      Extern_Prefix   : constant String :=
         C_Family_Instrumenter_Type'Class (Self).Extern_Prefix;
 
       Annots : constant Instr_Annotation_Map :=
@@ -5183,7 +5183,7 @@ package body Instrument.C is
       Prj            : Prj_Desc) return Compilation_Unit
    is
       CU_Name : constant Compilation_Unit :=
-        (Language => File_Based_Language,
+        (Language  => File_Based_Language,
          Unit_Name =>
            +New_File
              (Prj,
