@@ -1,7 +1,11 @@
 """
-Check that gnatcov correctly processes expression functions that are primitives
-of tagged types for MC/DC, e.g. it warns about them, and they are reported as
-uninstrumented in the coverage report.
+Regression test: check that gnatcov does not instrument expression function
+that are a primitive of a tagged type T when the controlling parameter is the
+return type, and when the expression function is a completion.
+
+gnatcov used to instrument such expression function, which resulted in
+introducing a new primitive (the wrapper generated for MC/DC instrumentation),
+which was not defined for derived types.
 """
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
@@ -27,12 +31,8 @@ build_run_and_coverage(
 check_xcov_reports(
     "xcov",
     {
-        "main.adb.xcov": {"+": {6}},
-        "pak.ads.xcov": {
-            "+": {4, 5, 6, 13, 14, 15},
-            "-": {8, 10},
-            "?": {11, 16},
-        },
+        "main.adb.xcov": {"+": {5, 7}},
+        "pak.ads.xcov": {"+": {5, 10, 11, 12, 15, 16, 17}, "?": {13, 18}},
     },
 )
 
