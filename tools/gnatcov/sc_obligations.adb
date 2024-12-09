@@ -1348,6 +1348,8 @@ package body SC_Obligations is
                          - CP_CU.First_SCO);
 
          declare
+            use SC_Obligations.BDD;
+
             Old_SCOD   : SCO_Descriptor renames
               CP_Vectors.SCO_Vector (Old_SCO_Id);
             New_SCO_Id : constant SCO_Id := Remap_SCO_Id (Relocs, Old_SCO_Id);
@@ -1367,39 +1369,48 @@ package body SC_Obligations is
                      SCOD.Decision_Instrumented_For_MCDC := True;
                   end if;
 
-                  if Old_SCOD.Decision_BDD.Reachable_Outcomes (True) then
-                     SCOD.Decision_BDD.Reachable_Outcomes (True) := True;
-                  end if;
-                  if Old_SCOD.Decision_BDD.Reachable_Outcomes (False) then
-                     SCOD.Decision_BDD.Reachable_Outcomes (False) := True;
-                  end if;
+                  --  If the reachable outcomes of a decision differ, we know
+                  --  these have different staticness. it can be
+                  --  - merging static with non-static decisions
+                  --  - merging true-static with false-static decisions
 
-               when Condition =>
-                  if Old_SCOD.Value /= SCOD.Value then
-
-                     --  If the old value does not match the new one, it means
-                     --  that we are consolidating 2 checkpoints where the
-                     --  condition was static in one of them, and non-static
-                     --  in the other.
-                     --  In consequences, we ensure the SCO is flagged as
-                     --  Unknown because some of it was evaluated at run time.
-                     --  Also, we need tp keep a track of the static evaluation
-                     --  to make sure it's accounted for in the runtime
-                     --  coverage computation.
-
-                     Misc_Trace.Trace ("Consolidation will merge condition"
-                                       & " SCOs that are both static and"
-                                       & " non-static at "
+                  if Old_SCOD.Decision_BDD.Reachable_Outcomes /=
+                     SCOD.Decision_BDD.Reachable_Outcomes
+                  then
+                     Misc_Trace.Trace ("Consolidation encountered a decision"
+                                       & " whose staticness differs in"
+                                       & " checkpoints at"
                                        & Image (SCOD.Sloc_Range));
+                     declare
+                        Old_Reachable : Reachability renames
+                           Old_SCOD.Decision_BDD.Reachable_Outcomes;
+                        Reachable     : Reachability renames
+                           SCOD.Decision_BDD.Reachable_Outcomes;
 
-                     if Old_SCOD.Value = False or else SCOD.Value = False then
-                        CLS.False_Static_SCOs.Include (Parent (New_SCO_Id));
-                     end if;
-                     if Old_SCOD.Value = True or else SCOD.Value = True then
-                        CLS.True_Static_SCOs.Include (Parent (New_SCO_Id));
-                     end if;
+                        Old_Outcome : constant Tristate :=
+                          (if Old_Reachable (False) /= Old_Reachable (True)
+                              then To_Tristate (Old_Reachable (True))
+                              else Unknown);
+                        Outcome : constant Tristate :=
+                          (if Reachable (False) /= Reachable (True)
+                              then To_Tristate (Reachable (True))
+                              else Unknown);
+                     begin
+                        if Old_Outcome = True or else Outcome = True then
+                           CLS.True_Static_SCOs.Include (New_SCO_Id);
+                        end if;
 
-                     SCOD.Value := Unknown;
+                        if Old_Outcome = False or else Outcome = False then
+                           CLS.False_Static_SCOs.Include (New_SCO_Id);
+                        end if;
+
+                        Reachable (True) := Reachable (True) or else
+                           Old_Reachable (True);
+
+                        Reachable (False) := Reachable (False) or else
+                           Old_Reachable (False);
+
+                     end;
                   end if;
 
                when Fun_Call_SCO_Kind  =>
