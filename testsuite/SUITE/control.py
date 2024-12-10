@@ -257,7 +257,13 @@ class RuntimeInfo(object):
         self.has_exception_propagation = True
         self.discrs = []
 
-        if not self.runtime_name:
+        # Set specific scenario variables to always pass to any project loading
+        # command (gnatcov <command> -P or gprbuild / gprinstall)
+        self.gpr_scenario_vars = []
+
+        if "aamp" in self.runtime_name:
+            self.gpr_scenario_vars = ["-XLIBRARY_SUPPORT=no"]
+        elif not self.runtime_name:
             self.has_full_runtime = True
             self.discrs = ["RTS_FULL"]
         elif "embedded" in self.runtime_name:
@@ -349,6 +355,8 @@ TARGETINFO = {
     ),
     # x86_64-windows targets
     "x86_64.*mingw": TargetInfo(exeext=".exe", partiallinks=False),
+    # AAMP target
+    "aamp": TargetInfo(exeext=".axe", partiallinks=False),
     # default
     ".": TargetInfo(exeext="", partiallinks=False),
 }
