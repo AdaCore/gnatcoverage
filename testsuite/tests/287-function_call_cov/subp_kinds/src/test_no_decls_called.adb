@@ -17,6 +17,5 @@ end Test_No_Decls_Called;
 -- /if_cond/    l! ## dT-
 -- /v_dummy/    l- ## s-
 -- /v_stmt/     l- ## s-,c-
--- /v_cstmt/    l- ## s-,c-,c-
 -- /v_call/     l- ## c-
 -- /v_scall/    l- ## s=>s-, f=>s-,c-

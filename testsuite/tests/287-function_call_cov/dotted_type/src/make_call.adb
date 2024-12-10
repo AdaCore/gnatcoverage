@@ -45,7 +45,7 @@ begin
        /= 0                                             -- # deci
        and then                                         -- # deci
        Pkg5.F.B)                                        -- # p_pkg5
-       and then False                                   -- # p_call
+       and then False                                   -- # false
    then
       null;                                             -- # null
    end if;

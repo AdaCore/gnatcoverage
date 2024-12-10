@@ -21,8 +21,8 @@ end Test_Dotted_Type;
 -- /d_nf1/    l! ## 0
 -- /deci/     l! ## 0
 -- /v_dec/    l- ## 0
--- /p_call/   l! ## c-
 -- /p_pkg5/   l! ## c?
+-- /false/    l+ ## 0
 -- /null/     l- ## s-
 --# pkg4.ads
 -- /decl/     l+ ## 0
