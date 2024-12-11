@@ -10,10 +10,15 @@ private
    type T is tagged record
       X : Integer;
    end record;
-   function Make (Cond : Boolean) return T is (T'(X => (if Cond then 1 else 2)));
+
+   function Make (Cond : Boolean) return T
+   is (T'(X => (if Cond then 1 else 2)));
 
    type TT is new T with record
       Y : Integer;
    end record;
-   overriding function Make (Cond : Boolean) return TT is (TT'(X => 3, Y => 4));
+
+   overriding function Make (Cond : Boolean) return TT
+   is (TT'(X => 3, Y => 4));
+
 end Pak;
