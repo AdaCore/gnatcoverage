@@ -6145,7 +6145,9 @@ package body Instrument.Ada_Unit is
          is
             Full_Call_Node : Ada_Node;
          begin
-            if Is_Call_Leaf (Node) then
+            if Is_Call_Leaf (Node)
+              and then not Is_Static_Expr (Node.As_Expr)
+            then
                Full_Call_Node := Full_Call (Node);
 
                --  Skip calls that are direct children of call statements
@@ -6167,7 +6169,8 @@ package body Instrument.Ada_Unit is
                   Return_Type : Base_Type_Decl := No_Base_Type_Decl;
 
                   Needs_Qualified_Expr : constant Boolean :=
-                     Full_Call_Node.Parent.Kind = Ada_Dotted_Name;
+                    Full_Call_Node.Parent.Kind in
+                      Ada_Dotted_Name | Ada_Explicit_Deref;
                   --  We only need to turn the if-expression into a qualified
                   --  when the parent of the call and its parent are both
                   --  dotted named. For example, with A and B packages, F a

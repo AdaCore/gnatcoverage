@@ -53,7 +53,7 @@ begin
        --  statement violations.
        Proc;                                                          -- # v_cstmt
        Proc_Param (Dummy);                                            -- # v_cstmt
-       Proc_Param (Dummy, False);                                     -- # v_false
+       Proc_Param (Dummy, False);                                     -- # v_cstmt
        Over (5);                                                      -- # v_cstmt
        Over (1, 2);                                                   -- # v_cstmt
     end if;

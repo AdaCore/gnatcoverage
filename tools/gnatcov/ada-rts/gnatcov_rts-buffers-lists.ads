@@ -59,4 +59,9 @@ package GNATcov_RTS.Buffers.Lists is
    end record;
    pragma Convention (C, GNATcov_RTS_Coverage_Buffers_Group_Array);
 
+   procedure Reset_Group_Array_Buffers
+     (Arr : GNATcov_RTS_Coverage_Buffers_Group_Array);
+   --  Set the components of all the buffers in each group to zero, effectively
+   --  resetting the coverage state of all obligations to "not covered".
+
 end GNATcov_RTS.Buffers.Lists;

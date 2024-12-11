@@ -11,6 +11,6 @@ end Test_Contracts_Not_Called;
 -- /pre/    l- ## a-
 --# contracts.adb
 -- /foo/    l- ## f-
--- /t/      l- ## s-,f-,c-
+-- /t/      l- ## s-,f-
 -- /assert/ l- ## s-,c-,c-
 -- /null/   l- ## s-

@@ -1,19 +1,17 @@
---  Ada Instrumentation runtime for gnatcov, for the AAMP target.
+--  Ada Instrumentation runtime for gnatcov. It is an Ada-only version of
+--  the instrumentation runtime, and is equivalent to the gnatcov_rts.gpr
+--  under <install-prefix>/share/gnatcoverage/gnatcov_rts.
 --
 --  This project is meant to be built and installed before instrumenting
 --  projects with "gnatcov instrument", and then to be used when building
 --  instrumented programs thanks to gprbuild's --implicit-with option.
 
-project GNATcov_RTS_AAMP is
+project GNATcov_RTS is
    for Source_Dirs use (".");
    for Object_Dir use "obj-gnatcov_rts";
    for Languages use ("Ada");
 
    package Compiler is
-
-      --  Use the universal addressing switch, which is recommended when
-      --  compiling for the AAMP target (and is only available on this target).
-
-      for Default_Switches ("Ada") use ("-univ");
+      for Default_Switches ("Ada") use ("-O2");
    end Compiler;
-end GNATcov_RTS_AAMP;
+end GNATcov_RTS;
