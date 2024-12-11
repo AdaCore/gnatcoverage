@@ -562,6 +562,35 @@ package body SC_Obligations is
       SCO_Vector  : SCO_Vectors.Vector;
    end record;
 
+   function Condition
+     (Vectors : Source_Coverage_Vectors;
+      SCO     : SCO_Id;
+      Index   : Condition_Index) return SCO_Id;
+   --  Internal definition of the function free from global variables
+
+   function Enclosing
+     (Vectors : Source_Coverage_Vectors;
+      What : SCO_Kind;
+      SCO : SCO_Id) return SCO_Id;
+   --  Internal definition of the function free from global variables
+
+   function Next_BDD_Node
+     (Vectors : Source_Coverage_Vectors;
+      SCO   : SCO_Id;
+      Value : Boolean) return BDD_Node_Id;
+   --  Internal definition of the function free from global variables
+
+   function Outcome
+     (Vectors : Source_Coverage_Vectors;
+      SCO : SCO_Id;
+      Value : Boolean) return Tristate;
+   --  Internal definition of the function free from global variables
+
+   function Value
+     (Vectors : Source_Coverage_Vectors;
+      SCO     : SCO_Id) return Tristate;
+   --  Internal definition of the function free from global variables
+
    -----------------------------------------
    -- Helper routines for Checkpoint_Load --
    -----------------------------------------
@@ -2414,10 +2443,15 @@ package body SC_Obligations is
    -- Condition --
    ---------------
 
-   function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id is
+   function Condition
+     (Vectors : Source_Coverage_Vectors;
+      SCO     : SCO_Id;
+      Index   : Condition_Index) return SCO_Id
+   is
       use BDD;
 
-      SCOD  : SCO_Descriptor renames SCO_Vector.Reference (SCO);
+      SCOD  : SCO_Descriptor renames
+         Vectors.SCO_Vector.Constant_Reference (SCO);
       First : constant BDD_Node_Id := SCOD.Decision_BDD.First_Node;
       Last  : constant BDD_Node_Id := SCOD.Decision_BDD.Last_Node;
 
@@ -2428,14 +2462,15 @@ package body SC_Obligations is
 
       for J in First .. Last loop
          declare
-            BDDN : BDD_Node renames BDD_Vector.Constant_Reference (J);
+            BDDN : BDD_Node renames Vectors.BDD_Vector.Constant_Reference (J);
          begin
             if BDDN.Kind = Condition then
                Current_Condition_Index := Current_Condition_Index + 1;
                if Current_Condition_Index = Index then
                   return C_SCO : constant SCO_Id := BDDN.C_SCO
                   do
-                     pragma Assert (Enclosing_Decision (C_SCO) = SCO);
+                     pragma Assert
+                       (Enclosing (Vectors, Decision, C_SCO) = SCO);
                      pragma Assert (SC_Obligations.Index (C_SCO) = Index);
                      null;
                   end return;
@@ -2445,6 +2480,9 @@ package body SC_Obligations is
       end loop;
       raise Constraint_Error with "condition index out of range";
    end Condition;
+
+   function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id is
+     (Condition (SC_Vectors, SCO, Index));
 
    ----------------------
    -- Condition_Values --
@@ -2626,12 +2664,16 @@ package body SC_Obligations is
    -- Enclosing --
    ---------------
 
-   function Enclosing (What : SCO_Kind; SCO : SCO_Id) return SCO_Id is
+   function Enclosing
+     (Vectors : Source_Coverage_Vectors;
+      What : SCO_Kind;
+      SCO : SCO_Id) return SCO_Id is
    begin
       return Result : SCO_Id := SCO do
          while Result /= No_SCO_Id loop
             declare
-               SCOD : SCO_Descriptor renames SCO_Vector.Reference (Result);
+               SCOD : SCO_Descriptor renames
+                  Vectors.SCO_Vector.Constant_Reference (Result);
             begin
                if SCOD.Kind = What then
                   return;
@@ -2641,6 +2683,9 @@ package body SC_Obligations is
          end loop;
       end return;
    end Enclosing;
+
+   function Enclosing (What : SCO_Kind; SCO : SCO_Id) return SCO_Id
+      is (Enclosing (SC_Vectors, What, SCO));
 
    ------------
    -- Nested --
@@ -4690,14 +4735,21 @@ package body SC_Obligations is
    -------------------
 
    function Next_BDD_Node
-     (SCO   : SCO_Id;
+     (Vectors : Source_Coverage_Vectors;
+      SCO   : SCO_Id;
       Value : Boolean) return BDD_Node_Id
    is
       use BDD;
-      BDD_Node : constant BDD_Node_Id := SCO_Vector.Reference (SCO).BDD_Node;
+      BDD_Node : constant BDD_Node_Id :=
+         Vectors.SCO_Vector.Constant_Reference (SCO).BDD_Node;
    begin
-      return BDD_Vector.Reference (BDD_Node).Dests (Value);
+      return Vectors.BDD_Vector.Constant_Reference (BDD_Node).Dests (Value);
    end Next_BDD_Node;
+
+   function Next_BDD_Node
+     (SCO   : SCO_Id;
+      Value : Boolean) return BDD_Node_Id
+   is (Next_BDD_Node (SC_Vectors, SCO, Value));
 
    --------------------
    -- Next_Condition --
@@ -4749,7 +4801,11 @@ package body SC_Obligations is
    -- Outcome --
    -------------
 
-   function Outcome (SCO : SCO_Id; Value : Boolean) return Tristate is
+   function Outcome
+     (Vectors : Source_Coverage_Vectors;
+      SCO : SCO_Id;
+      Value : Boolean) return Tristate
+   is
       use BDD;
       Cond_SCO   : SCO_Id := SCO;
       Cond_Value : Boolean := Value;
@@ -4757,8 +4813,8 @@ package body SC_Obligations is
       loop
          declare
             BDDN : constant BDD_Node :=
-              BDD_Vector.Constant_Reference
-                (Next_BDD_Node (Cond_SCO, Cond_Value));
+               Vectors.BDD_Vector.Constant_Reference
+                 (Next_BDD_Node (Vectors, Cond_SCO, Cond_Value));
          begin
             case BDDN.Kind is
                when Outcome =>
@@ -4767,7 +4823,7 @@ package body SC_Obligations is
                when Condition =>
                   declare
                      Next_Value : constant Tristate :=
-                       SC_Obligations.Value (BDDN.C_SCO);
+                       SC_Obligations.Value (Vectors, BDDN.C_SCO);
                   begin
                      if Next_Value = Unknown then
                         return Unknown;
@@ -4783,16 +4839,26 @@ package body SC_Obligations is
       end loop;
    end Outcome;
 
+   function Outcome (SCO : SCO_Id; Value : Boolean) return Tristate
+      is (Outcome (SC_Vectors, SCO, Value));
+
    -----------
    -- Value --
    -----------
 
-   function Value (SCO : SCO_Id) return Tristate is
-      SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
+   function Value
+     (Vectors : Source_Coverage_Vectors;
+      SCO     : SCO_Id) return Tristate
+   is
+      SCOD : SCO_Descriptor renames
+         Vectors.SCO_Vector.Constant_Reference (SCO);
       pragma Assert (SCOD.Kind = Condition);
    begin
       return SCOD.Value;
    end Value;
+
+   function Value (SCO : SCO_Id) return Tristate
+      is (Value (SC_Vectors, SCO));
 
    ------------
    -- Parent --
