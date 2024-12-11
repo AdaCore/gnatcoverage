@@ -6,6 +6,9 @@ package Pak is
 
    function Make (Cond : Boolean) return T;
 
+   function Exercise_BT (Cond : Boolean) return Integer;
+   function Exercise_BTT (Cond : Boolean) return Integer;
+
 private
    type T is tagged record
       X : Integer;
