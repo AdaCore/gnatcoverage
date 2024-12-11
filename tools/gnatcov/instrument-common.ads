@@ -446,6 +446,9 @@ package Instrument.Common is
      (Self : Language_Instrumenter) return Src_Supported_Language is abstract;
    --  Return the language that this instrumenter is designed to process
 
+   function Language_Name (Self : Language_Instrumenter'Class) return String
+   is (Image (Self.Language));
+
    procedure Instrument_Unit
      (Self              : in out Language_Instrumenter;
       Unit_Name         : String;

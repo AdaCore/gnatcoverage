@@ -64,6 +64,14 @@ package body Instrument.Ada_Unit is
    package LAL renames Libadalang.Analysis;
    package LALCO renames Libadalang.Common;
 
+   procedure Trace_Buffer_Unit
+     (Buffer_Unit : String;
+      Filename    : String;
+      Prj         : Prj_Desc;
+      CU_Names    : CU_Name_Vectors.Vector;
+      Is_Pure     : Boolean);
+   --  Helper to display details about a buffer unit to be emitted
+
    subtype Decl_Expr_Supported_Versions is Any_Language_Version range
       Ada_2022 .. Any_Language_Version'Last;
    --  Set of versions of the Ada language that support declare
@@ -141,6 +149,35 @@ package body Instrument.Ada_Unit is
    --  This expects an active rewriting context, but will apply the rewriting
    --  in the LAL tree, so the rewriting session will need to be re-started
    --  by the caller if needed.
+
+   -----------------------
+   -- Trace_Buffer_Unit --
+   -----------------------
+
+   procedure Trace_Buffer_Unit
+     (Buffer_Unit : String;
+      Filename    : String;
+      Prj         : Prj_Desc;
+      CU_Names    : CU_Name_Vectors.Vector;
+      Is_Pure     : Boolean) is
+   begin
+      if not Sources_Trace.Is_Active then
+         return;
+      end if;
+
+      Sources_Trace.Increase_Indent
+        ("Writing"
+         & (if Is_Pure then " pure" else "")
+         & " Ada buffer unit "
+         & Buffer_Unit);
+      Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
+      Sources_Trace.Trace ("Filename: " & Filename);
+      Sources_Trace.Trace ("For units:");
+      for CU of CU_Names loop
+         Sources_Trace.Trace ("* " & Image (CU));
+      end loop;
+      Sources_Trace.Decrease_Indent;
+   end Trace_Buffer_Unit;
 
    -----------------------
    -- To_Qualified_Name --
@@ -10144,10 +10181,14 @@ package body Instrument.Ada_Unit is
       Pkg_Name : constant String := To_Ada (Buffer_Unit.Unit);
       --  Package name for the buffer unit
 
+      Filename : constant String :=
+        To_Filename (Prj, Ada_Language, Buffer_Unit);
+
       File              : Text_Files.File_Type;
       Last_Buffer_Index : constant Natural := Natural (Unit_Bits.Length);
    begin
-      Create_File (Prj, File, To_Filename (Prj, Ada_Language, Buffer_Unit));
+      Trace_Buffer_Unit (Pkg_Name, Filename, Prj, CU_Names, Is_Pure => False);
+      Create_File (Prj, File, Filename);
       Put_Warnings_And_Style_Checks_Pragmas (File);
       File.Put_Line ("with System;");
       File.Put_Line ("with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;");
@@ -10354,6 +10395,7 @@ package body Instrument.Ada_Unit is
    --  Start of processing for Emit_Pure_Buffer_Unit
 
    begin
+      Trace_Buffer_Unit (Pkg_Name, Filename, Prj, CU_Names, Is_Pure => True);
       File.Create (Filename);
 
       Put_Warnings_And_Style_Checks_Pragmas (File);
@@ -10543,6 +10585,17 @@ package body Instrument.Ada_Unit is
       end;
 
       declare
+         Spec_Filename : constant String :=
+           To_Filename
+             (Prj,
+              Ada_Language,
+              CU_Name_For_Unit (Helper_Unit, GNATCOLL.Projects.Unit_Spec));
+         Body_Filename : constant String :=
+           To_Filename
+             (Prj,
+              Ada_Language,
+              CU_Name_For_Unit (Helper_Unit, GNATCOLL.Projects.Unit_Body));
+
          Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
          Dump_Procedure   : constant String := To_String (Dump_Procedure_Name);
          Output_Unit_Str  : constant String := To_Ada (Output_Unit);
@@ -10561,20 +10614,24 @@ package body Instrument.Ada_Unit is
       begin
          Sys_Lists.Append (To_Unbounded_String ("Lists"));
 
+         if Sources_Trace.Is_Active then
+            Sources_Trace.Increase_Indent
+              ("Writing " & Instrumenter.Language_Name & " dump helper unit "
+               & Helper_Unit_Name);
+            Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
+            Sources_Trace.Trace ("Spec filename: " & Spec_Filename);
+            Sources_Trace.Trace ("Body filename: " & Body_Filename);
+            Sources_Trace.Trace ("For main: " & Image (Main));
+            Sources_Trace.Decrease_Indent;
+         end if;
+
          --  Emit the package spec. This includes one Dump_Buffers procedure,
          --  which dumps all coverage buffers in Main's closure to the source
          --  trace file, and in the case of manual dump trigger, a
          --  Reset_Buffers procedure which will resets all coverage buffers in
          --  the project tree rooted at the project to which Main belongs.
 
-         Create_File
-           (Prj,
-            File,
-            Name =>
-              To_Filename
-                (Prj,
-                 Ada_Language,
-                 CU_Name_For_Unit (Helper_Unit, GNATCOLL.Projects.Unit_Spec)));
+         Create_File (Prj, File, Spec_Filename);
 
          Put_Warnings_And_Style_Checks_Pragmas (File);
          Put_With (Sys_Buffers);
@@ -10629,14 +10686,7 @@ package body Instrument.Ada_Unit is
 
          --  Emit the package body
 
-         Create_File
-           (Prj,
-            File,
-            Name =>
-              To_Filename
-                (Prj,
-                 Ada_Language,
-                 CU_Name_For_Unit (Helper_Unit, GNATCOLL.Projects.Unit_Body)));
+         Create_File (Prj, File, Body_Filename);
 
          Put_Warnings_And_Style_Checks_Pragmas (File);
 
@@ -10878,98 +10928,104 @@ package body Instrument.Ada_Unit is
       Buffers_CU_Name : constant Compilation_Unit_Part :=
         CU_Name_For_Unit
           (Buffers_List_Unit (Prj.Prj_Name), GNATCOLL.Projects.Unit_Spec);
+      Unit_Name       : constant String := To_Ada (Buffers_CU_Name.Unit);
+      Filename        : constant String :=
+        To_Filename (Prj, Ada_Language, Buffers_CU_Name);
       File            : Text_Files.File_Type;
    begin
+      if Sources_Trace.Is_Active then
+         Sources_Trace.Increase_Indent
+           ("Writing " & Self.Language_Name & " buffer list unit "
+            & Unit_Name);
+         Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
+         Sources_Trace.Trace ("Filename: " & Filename);
+         Sources_Trace.Decrease_Indent;
+      end if;
+
       --  Emit the unit to contain the list of buffers
 
-      declare
-         Unit_Name : constant String := To_Ada (Buffers_CU_Name.Unit);
-      begin
-         Create_File
-           (Prj, File, To_Filename (Prj, Ada_Language, Buffers_CU_Name));
-         Put_Warnings_And_Style_Checks_Pragmas (File);
-         File.Put_Line
-           ("with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;");
+      Create_File (Prj, File, Filename);
+      Put_Warnings_And_Style_Checks_Pragmas (File);
+      File.Put_Line
+        ("with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;");
 
-         for Instr_Unit of Instr_Units loop
+      for Instr_Unit of Instr_Units loop
 
-            --  Even though Ada buffer units are not explicitly referenced in
-            --  the generated code (we import all the coverage buffers from
-            --  their C symbol, as we want common processing for all
-            --  languages), we still need to "with" them. Otherwise, gprbuild
-            --  would not include them in the link as they would not be in the
-            --  dependency closure.
+         --  Even though Ada buffer units are not explicitly referenced in the
+         --  generated code (we import all the coverage buffers from their C
+         --  symbol, as we want common processing for all languages), we still
+         --  need to "with" them. Otherwise, gprbuild would not include them in
+         --  the link as they would not be in the dependency closure.
 
-            if Instr_Unit.Language = Unit_Based_Language then
-               File.Put_Line
-                 ("with "
-                  & To_Ada
-                    (Buffer_Unit (To_Qualified_Name (+Instr_Unit.Unit_Name)))
-                  & ";");
-            end if;
-         end loop;
-         File.New_Line;
-         File.Put_Line ("package " & Unit_Name & " is");
-         File.New_Line;
-         File.Put_Line ("   pragma Preelaborate;");
-         File.New_Line;
-
-         --  Import all the coverage buffers
-
-         for Instr_Unit of Instr_Units loop
-            declare
-               Buffer_Name : constant String := Unit_Buffers_Name (Instr_Unit);
-            begin
-               File.Put_Line
-                 ("   " & Buffer_Name
-                  & " : aliased constant GNATcov_RTS_Coverage_Buffers_Group;");
-               File.Put_Line ("   pragma Import (C, " & Buffer_Name & ","""
-                              & Buffer_Name & """);");
-            end;
-         end loop;
-
-         if Instr_Units.Is_Empty then
+         if Instr_Unit.Language = Unit_Based_Language then
             File.Put_Line
-              ("   Dummy : aliased GNATcov_RTS_Coverage_Buffers_Group;");
+              ("with "
+               & To_Ada
+                 (Buffer_Unit (To_Qualified_Name (+Instr_Unit.Unit_Name)))
+               & ";");
          end if;
+      end loop;
+      File.New_Line;
+      File.Put_Line ("package " & Unit_Name & " is");
+      File.New_Line;
+      File.Put_Line ("   pragma Preelaborate;");
+      File.New_Line;
 
-         --  Create the list of coverage buffers
+      --  Import all the coverage buffers
 
-         File.Put_Line ("   List : constant GNATcov_RTS.Buffers.Lists"
-                        & ".Coverage_Buffers_Group_Array := (");
+      for Instr_Unit of Instr_Units loop
          declare
-            Index : Positive := 1;
-            Last  : constant Natural := Natural (Instr_Units.Length);
+            Buffer_Name : constant String := Unit_Buffers_Name (Instr_Unit);
          begin
-            for Instr_Unit of Instr_Units loop
-               File.Put
-                 ("      " & Img (Index) & " => "
-                  & Unit_Buffers_Name (Instr_Unit) & "'Access");
-               if Index = Last then
-                  File.Put_Line (");");
-               else
-                  File.Put_Line (",");
-               end if;
-               Index := Index + 1;
-            end loop;
+            File.Put_Line
+              ("   " & Buffer_Name
+               & " : aliased constant GNATcov_RTS_Coverage_Buffers_Group;");
+            File.Put_Line ("   pragma Import (C, " & Buffer_Name & ","""
+                           & Buffer_Name & """);");
          end;
+      end loop;
 
-         if Instr_Units.Is_Empty then
-            File.Put ("      1 => Dummy'Access);");
-         end if;
-
-         File.Put_Line ("   C_List : constant GNATcov_RTS.Buffers.Lists"
-                        & ".GNATcov_RTS_Coverage_Buffers_Group_Array :=");
-         File.Put_Line ("      (" & Instr_Units.Length'Image
-                        & ", List'Address);");
-
+      if Instr_Units.Is_Empty then
          File.Put_Line
-           ("   pragma Export (C, C_List, """
-            & Unit_Buffers_Array_Name (Prj.Prj_Name) & """);");
+           ("   Dummy : aliased GNATcov_RTS_Coverage_Buffers_Group;");
+      end if;
 
-         File.New_Line;
-         File.Put_Line ("end " & Unit_Name & ";");
+      --  Create the list of coverage buffers
+
+      File.Put_Line ("   List : constant GNATcov_RTS.Buffers.Lists"
+                     & ".Coverage_Buffers_Group_Array := (");
+      declare
+         Index : Positive := 1;
+         Last  : constant Natural := Natural (Instr_Units.Length);
+      begin
+         for Instr_Unit of Instr_Units loop
+            File.Put
+              ("      " & Img (Index) & " => "
+               & Unit_Buffers_Name (Instr_Unit) & "'Access");
+            if Index = Last then
+               File.Put_Line (");");
+            else
+               File.Put_Line (",");
+            end if;
+            Index := Index + 1;
+         end loop;
       end;
+
+      if Instr_Units.Is_Empty then
+         File.Put ("      1 => Dummy'Access);");
+      end if;
+
+      File.Put_Line ("   C_List : constant GNATcov_RTS.Buffers.Lists"
+                     & ".GNATcov_RTS_Coverage_Buffers_Group_Array :=");
+      File.Put_Line ("      (" & Instr_Units.Length'Image
+                     & ", List'Address);");
+
+      File.Put_Line
+        ("   pragma Export (C, C_List, """
+         & Unit_Buffers_Array_Name (Prj.Prj_Name) & """);");
+
+      File.New_Line;
+      File.Put_Line ("end " & Unit_Name & ";");
    end Emit_Buffers_List_Unit;
 
    ---------------------------------
@@ -11144,21 +11200,19 @@ package body Instrument.Ada_Unit is
            Missing_Src_Reporter_Access (Self.Event_Handler.Unchecked_Get).all;
          --  Handle to the event handler we use to report missing source files;
 
-         Basename  : constant String :=
-           Ada.Directories.Simple_Name (Filename);
-
+         Basename : constant String := Ada.Directories.Simple_Name (Filename);
       begin
          --  Instrument the file only if it is a file of interest
 
          if Files_Of_Interest.Contains (Create_Normalized (Filename)) then
 
-            --  In verbose mode, always print a notice for the source file
-            --  that we are about to instrument. In non-verbose mode, just get
-            --  prepared to print it in case we emit a "source file missing"
-            --  warning through Libadalang's event handler.
+            --  In the corresponding trace is active, always print a notice for
+            --  the source file that we are about to instrument. In non-verbose
+            --  mode, just get prepared to print it in case we emit a "source
+            --  file missing" warning through Libadalang's event handler.
 
-            if Switches.Misc_Trace.Is_Active then
-               Switches.Misc_Trace.Trace ("Instrumenting " & Basename);
+            if Sources_Trace.Is_Active then
+               Sources_Trace.Trace ("Instrumenting " & Basename);
             else
                Event_Handler.Instrumented_File := +Basename;
             end if;

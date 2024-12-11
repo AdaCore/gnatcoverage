@@ -1,0 +1,6 @@
+project Harness is
+
+   for Source_Dirs use ("src-harness");
+   for Object_Dir use "obj/harness";
+   for Externally_Built use external ("HARNESS_BUILT", "true");
+end Harness;
