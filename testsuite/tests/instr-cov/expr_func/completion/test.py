@@ -6,6 +6,9 @@ return type, and when the expression function is a completion.
 gnatcov used to instrument such expression function, which resulted in
 introducing a new primitive (the wrapper generated for MC/DC instrumentation),
 which was not defined for derived types.
+
+This also checks that such expression functions *are* instrumented when they
+are not in a package spec: primitives can be declared only in package specs.
 """
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
@@ -32,7 +35,8 @@ check_xcov_reports(
     "xcov",
     {
         "main.adb.xcov": {"+": {5, 7}},
-        "pak.ads.xcov": {"+": {5, 10, 11, 12, 17, 18, 19}, "?": {15, 22}},
+        "pak.ads.xcov": {"+": {5, 13, 14, 15, 20, 21, 22}, "?": {18, 25}},
+        "pak.adb.xcov": {"+": {5, 6, 7, 12, 13, 14}, "-": {10, 17, 20, 23}},
     },
 )
 

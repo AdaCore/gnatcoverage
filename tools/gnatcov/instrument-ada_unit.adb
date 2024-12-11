@@ -412,6 +412,10 @@ package body Instrument.Ada_Unit is
    function Unwrap (N : Expr) return Expr;
    --  Strip Paren_Expr from N
 
+   function In_Package_Spec (N : Ada_Node'Class) return Boolean;
+   --  Return whether N is a direct child of a package specification's
+   --  declarative part (the public or the private one).
+
    function Inclusive_End_Sloc
      (SL : Source_Location_Range) return Source_Location;
    --  End slocs from Libadalang nodes are exclusive: the correspond to the
@@ -4302,7 +4306,13 @@ package body Instrument.Ada_Unit is
          end if;
 
          if Is_Expr_Function then
-            if Return_Type_Is_Controlling (UIC, Common_Nodes) then
+
+            --  If N does not appear in a package spec, creating the augmented
+            --  expression function for it will not create a new primitive.
+
+            if Return_Type_Is_Controlling (UIC, Common_Nodes)
+               and then In_Package_Spec (N)
+            then
 
                --  For the moment when an expression function is a primitive of
                --  a tagged type T, and that T is the return type of the EF,
@@ -7511,6 +7521,28 @@ package body Instrument.Ada_Unit is
 
       return Unwrapped_N;
    end Unwrap;
+
+   ---------------------
+   -- In_Package_Spec --
+   ---------------------
+
+   function In_Package_Spec (N : Ada_Node'Class) return Boolean is
+      Decl_Part : Declarative_Part;
+   begin
+      if N.Is_Null
+         or else N.Parent.Is_Null
+         or else N.Parent.Kind /= Ada_Ada_Node_List
+         or else N.Parent.Parent.Is_Null
+         or else N.Parent.Parent.Kind not in Ada_Declarative_Part_Range
+      then
+         return False;
+      end if;
+
+      Decl_Part := N.Parent.Parent.As_Declarative_Part;
+      return
+        not Decl_Part.Parent.Is_Null
+        and then Decl_Part.Parent.Kind = Ada_Package_Decl;
+   end In_Package_Spec;
 
    ------------------------
    -- Inclusive_End_Sloc --
