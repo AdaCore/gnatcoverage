@@ -729,11 +729,17 @@ def xcov_suite_args(
         or any(arg.startswith("-P") for arg in covargs)
     )
 
-    result = (
-        gpr_common_args(project=None, auto_config_args=auto_config_args)
-        if project_handling_enabled
-        else []
-    )
+    result = []
+
+    # If --config is asked and project handling is involved, pass it and stop
+    # there. If there is a board, it must be described in the project file
+    # (gnatcov's -P argument).
+    if project_handling_enabled and auto_config_args:
+        result.append(
+            "--config={}".format(os.path.join(ROOT_DIR, BUILDER.SUITE_CGPR))
+        )
+        result.extend(RUNTIME_INFO.gpr_scenario_vars)
+        return result
 
     # If --config is asked and project handling is involved, pass it and stop
     # there. If there is a board, it must be described in the project file
