@@ -292,8 +292,7 @@ package Checkpoints is
 
       Relocations : Checkpoint_Relocations;
 
-      True_Static_SCOs  : SCO_Sets.Set;
-      False_Static_SCOs : SCO_Sets.Set;
+      Static_Decision_Evaluations : Static_Decision_Evaluation_Maps.Map;
    end record;
 
    use type Interfaces.Unsigned_32;

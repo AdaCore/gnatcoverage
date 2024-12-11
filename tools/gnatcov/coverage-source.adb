@@ -568,28 +568,77 @@ package body Coverage.Source is
             SCO     : constant SCO_Id :=
               (if Removed then No_SCO_Id else Remap_SCO_Id (Relocs, CP_SCO));
 
-            procedure Insert_Extra_Decision_SCI (B : Boolean);
+            procedure Insert_Extra_Decision_SCI
+              (S_Eval : Static_Decision_Evaluation_Sets.Set);
+            --  Add a set of static evaluations to the rest of the Decision's
+            --  evaluation set.
 
-            procedure Insert_Extra_Decision_SCI (B : Boolean) is
-               Inserted_SCI :
-                  constant Source_Coverage_Info :=
-                       (Kind => Decision,
-                        Known_Outcome_Taken =>
-                          (True => B, False => not B),
-                        others => <>);
+            procedure Insert_Extra_Decision_SCI
+              (S_Eval : Static_Decision_Evaluation_Sets.Set)
+            is
+               Inserted_SCI : Source_Coverage_Info :=
+                       (Kind => Decision, others => <>);
+
+               function To_Evaluation
+                 (SCO : SCO_Id; Eval : Static_Decision_Evaluation)
+                 return Evaluation;
+               --  Create an `Evaluation` entry from a
+               --  Static_Decision_Evaluation.
+
+               function To_Evaluation
+                 (SCO : SCO_Id; Eval : Static_Decision_Evaluation)
+                 return Evaluation
+               is
+                  E : Evaluation :=
+                    (Decision       => SCO,
+                     Outcome        => To_Tristate (Eval.Outcome),
+                     Values         => Condition_Evaluation_Vectors.Empty,
+                     Next_Condition => No_Condition_Index);
+               begin
+                  for B of Eval.Values loop
+                     E.Values.Append (To_Tristate (B));
+                  end loop;
+
+                  return E;
+               end To_Evaluation;
+
             begin
-                  Merge_Checkpoint_SCI
-                    (SCO,
-                     Tag_Provider.Map_Tag (Relocs, Inserted_SCI.Tag),
-                     Inserted_SCI,
-                     Relocs);
+               if Kind (SCO) /= Decision then
+                  raise Program_Error with "Unexpected " & Kind (SCO)'Image
+                                           & " SCO kind registered as a static"
+                                           & " decision.";
+               end if;
+
+               SCOs_Trace.Trace ("Inserting "
+                                 & S_Eval.Length'Image
+                                 & " static SCOs for "
+                                 & Image (CP_SCO));
+
+               for J in S_Eval.Iterate loop
+                  declare
+                     Eval : Static_Decision_Evaluation renames
+                        S_Eval.Element (J);
+                  begin
+                     Inserted_SCI.Evaluations.Include
+                       (To_Evaluation (CP_SCO, Eval));
+                     Inserted_SCI.Known_Outcome_Taken (Eval.Outcome) := True;
+                  end;
+               end loop;
+
+               Merge_Checkpoint_SCI
+                 (SCO,
+                  Tag_Provider.Map_Tag (Relocs, Inserted_SCI.Tag),
+                  Inserted_SCI,
+                  Relocs);
             end Insert_Extra_Decision_SCI;
          begin
-            if CLS.True_Static_SCOs.Contains (CP_SCO) then
-               Insert_Extra_Decision_SCI (True);
-            end if;
-            if CLS.False_Static_SCOs.Contains (CP_SCO) then
-               Insert_Extra_Decision_SCI (False);
+            if CLS.Static_Decision_Evaluations.Contains (CP_SCO) then
+
+               --  Check if the current SCO has static evaluations, and
+               --  merge them as an extra SCI if yes.
+
+               Insert_Extra_Decision_SCI
+                 (CLS.Static_Decision_Evaluations.Element (CP_SCO));
             end if;
 
             if not Removed then

@@ -552,6 +552,25 @@ package SC_Obligations is
 
    type Condition_Values_Array is array (Condition_Index range <>) of Tristate;
 
+   package Static_Condition_Values_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Condition_Index,
+      Element_Type => Boolean);
+
+   type Static_Decision_Evaluation is record
+      Values  : Static_Condition_Values_Vectors.Vector;
+      Outcome : Boolean;
+   end record;
+
+   function "<" (L, R : Static_Decision_Evaluation) return Boolean;
+
+   package Static_Decision_Evaluation_Sets is new Ada.Containers.Ordered_Sets
+     (Static_Decision_Evaluation);
+
+   package Static_Decision_Evaluation_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => SCO_Id,
+      Element_Type => Static_Decision_Evaluation_Sets.Set,
+      "=" => Static_Decision_Evaluation_Sets.Equivalent_Sets);
+
    type Operand_Position is (Left, Right);
 
    --  Expose BDD node id type for the benefit of checkpoints

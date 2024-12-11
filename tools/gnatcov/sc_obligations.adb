@@ -1350,6 +1350,171 @@ package body SC_Obligations is
    is
       Relocs  : Checkpoint_Relocations renames CLS.Relocations;
       Real_CU : CU_Info renames CU_Vector.Reference (Real_CU_Id).Element.all;
+
+      procedure Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id : SCO_Id)
+      with pre => Kind (New_SCO_Id) = Decision;
+
+      procedure Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id : SCO_Id)
+      is
+         use SC_Obligations.BDD;
+
+         Old_SCOD : SCO_Descriptor renames CP_Vectors.SCO_Vector (Old_SCO_Id);
+         New_SCOD : SCO_Descriptor renames SCO_Vector (New_SCO_Id);
+
+         Old_Reachable : Reachability renames
+            Old_SCOD.Decision_BDD.Reachable_Outcomes;
+         New_Reachable : Reachability renames
+            New_SCOD.Decision_BDD.Reachable_Outcomes;
+
+         function Decision_Static_Eval
+           (Vectors : Source_Coverage_Vectors;
+            SCO_Dec : SCO_Id;
+            Eval    : out Static_Decision_Evaluation) return Boolean;
+
+         function Decision_Static_Eval
+           (Vectors : Source_Coverage_Vectors;
+            SCO_Dec : SCO_Id;
+            Eval    : out Static_Decision_Evaluation) return Boolean
+         is
+            SCOD : SCO_Descriptor renames Vectors.SCO_Vector (SCO_Dec);
+
+            Reachable : constant Reachability :=
+               SCOD.Decision_BDD.Reachable_Outcomes;
+
+            Outcome : constant Tristate :=
+              (if Reachable (False) /= Reachable (True)
+                  then To_Tristate (Reachable (True))
+                  else Unknown);
+
+            E : Static_Decision_Evaluation;
+         begin
+
+            --  Do not process evaluations if the decision is not at least
+            --  partially static.
+
+            if Outcome = Unknown then
+               return False;
+            end if;
+
+            E.Outcome := To_Boolean (Outcome);
+
+            for J in Condition_Index'First .. SCOD.Last_Cond_Index
+            loop
+               declare
+                  SCO_C  : constant SCO_Id :=
+                     Condition (Vectors, SCO_Dec, J);
+                  SCOD_C : SCO_Descriptor renames
+                     Vectors.SCO_Vector (SCO_C);
+               begin
+
+                  --  If an encountered Condition has no Value, then the
+                  --  Decision is not fully static, abort processing
+
+                  if SCOD_C.Value = Unknown then
+                     E.Values.Clear;
+                     return False;
+                  end if;
+
+                  E.Values.Append (To_Boolean (SCOD_C.Value));
+               end;
+            end loop;
+
+            Eval := E;
+            return True;
+         end Decision_Static_Eval;
+
+         procedure Register_Static_Evaluation
+           (SCO : SCO_Id; Eval : Static_Decision_Evaluation);
+
+         procedure Register_Static_Evaluation
+           (SCO : SCO_Id; Eval : Static_Decision_Evaluation) is
+         begin
+            if not CLS.Static_Decision_Evaluations.Contains (SCO)
+            then
+               CLS.Static_Decision_Evaluations.Insert
+                    (SCO,
+                     Static_Decision_Evaluation_Sets.Empty_Set);
+            end if;
+            CLS.Static_Decision_Evaluations
+               .Reference (SCO)
+               .Include (Eval);
+         end Register_Static_Evaluation;
+
+         --  Start processing of Merge_Decision_SCOs
+
+      begin
+         if Old_SCOD.Decision_Instrumented then
+            New_SCOD.Decision_Instrumented := True;
+         end if;
+         if Old_SCOD.Decision_Instrumented_For_MCDC then
+            New_SCOD.Decision_Instrumented_For_MCDC := True;
+         end if;
+
+         --  The following code handles merging Decision SCOs that have a
+         --  different staticness over the 2 checkpoints that are being merged.
+         --
+         --  If the reachability of the decision in one of the checkpoints
+         --  differs from `Both_Reachable`, it means that at least one of the
+         --  two checkpoints has some static conditions and should be handled
+         --  with a specific treatment.
+         --
+         --  Upon encountering a fully-static decision, we need to register its
+         --  conditions' values so they can be used as a complementary
+         --  evaluation for MC/DC analysis.
+
+         if Old_Reachable /= Both_Reachable
+            or else
+            New_Reachable /= Both_Reachable
+         then
+            SCOs_Trace.Trace ("Consolidation encountered a decision SCO"
+                              & " whose staticness may differ at"
+                              & Image (New_SCOD.Sloc_Range));
+            declare
+               Old_Eval : Static_Decision_Evaluation;
+               --  Holds the result of the static evaluation of Old_SCO
+               --  if Old_Static is True. Otherwise, it is invalid.
+
+               New_Eval : Static_Decision_Evaluation;
+               --  Holds the result of the static evaluation of New_SCO
+               --  if New_Static is True. Otherwise, it is invalid.
+
+               Old_Static : constant Boolean :=
+                  Decision_Static_Eval (CP_Vectors, Old_SCO_Id, Old_Eval);
+               New_Static : constant Boolean :=
+                  Decision_Static_Eval (SC_Vectors, New_SCO_Id, New_Eval);
+
+            begin
+
+               --  No matter the staticness of the SCOs, we update the
+               --  reachability of each outcome by OR-ing the two checkpoints.
+
+               New_Reachable (True) := New_Reachable (True) or else
+                  Old_Reachable (True);
+
+               New_Reachable (False) := New_Reachable (False) or else
+                  Old_Reachable (False);
+
+               if Old_Static then
+
+                  --  If the decision in the Old checkpoint is static,
+                  --  add an evaluation to the SCIs corresponding to it.
+
+                  Register_Static_Evaluation (New_SCO_Id, Old_Eval);
+               end if;
+
+               if New_Static then
+
+                  --  If the decision in the New checkpoint is static,
+                  --  add an evaluation to the SCIs corresponding to it.
+
+                  Register_Static_Evaluation (New_SCO_Id, New_Eval);
+               end if;
+            end;
+         end if;
+      end Merge_Decision_SCOs;
+
+      --  Start processing of Checkpoint_Load_Merge_Unit
+
    begin
       --  Here we already have loaded full SCO information for this CU. There
       --  are two things to do:
@@ -1377,12 +1542,12 @@ package body SC_Obligations is
                          - CP_CU.First_SCO);
 
          declare
-            use SC_Obligations.BDD;
 
             Old_SCOD   : SCO_Descriptor renames
               CP_Vectors.SCO_Vector (Old_SCO_Id);
             New_SCO_Id : constant SCO_Id := Remap_SCO_Id (Relocs, Old_SCO_Id);
             SCOD       : SCO_Descriptor renames SCO_Vector (New_SCO_Id);
+
          begin
             case SCOD.Kind is
                when Statement =>
@@ -1391,56 +1556,7 @@ package body SC_Obligations is
                   end if;
 
                when Decision =>
-                  if Old_SCOD.Decision_Instrumented then
-                     SCOD.Decision_Instrumented := True;
-                  end if;
-                  if Old_SCOD.Decision_Instrumented_For_MCDC then
-                     SCOD.Decision_Instrumented_For_MCDC := True;
-                  end if;
-
-                  --  If the reachable outcomes of a decision differ, we know
-                  --  these have different staticness. it can be
-                  --  - merging static with non-static decisions
-                  --  - merging true-static with false-static decisions
-
-                  if Old_SCOD.Decision_BDD.Reachable_Outcomes /=
-                     SCOD.Decision_BDD.Reachable_Outcomes
-                  then
-                     Misc_Trace.Trace ("Consolidation encountered a decision"
-                                       & " whose staticness differs in"
-                                       & " checkpoints at"
-                                       & Image (SCOD.Sloc_Range));
-                     declare
-                        Old_Reachable : Reachability renames
-                           Old_SCOD.Decision_BDD.Reachable_Outcomes;
-                        Reachable     : Reachability renames
-                           SCOD.Decision_BDD.Reachable_Outcomes;
-
-                        Old_Outcome : constant Tristate :=
-                          (if Old_Reachable (False) /= Old_Reachable (True)
-                              then To_Tristate (Old_Reachable (True))
-                              else Unknown);
-                        Outcome : constant Tristate :=
-                          (if Reachable (False) /= Reachable (True)
-                              then To_Tristate (Reachable (True))
-                              else Unknown);
-                     begin
-                        if Old_Outcome = True or else Outcome = True then
-                           CLS.True_Static_SCOs.Include (New_SCO_Id);
-                        end if;
-
-                        if Old_Outcome = False or else Outcome = False then
-                           CLS.False_Static_SCOs.Include (New_SCO_Id);
-                        end if;
-
-                        Reachable (True) := Reachable (True) or else
-                           Old_Reachable (True);
-
-                        Reachable (False) := Reachable (False) or else
-                           Old_Reachable (False);
-
-                     end;
-                  end if;
+                  Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id);
 
                when Fun_Call_SCO_Kind  =>
                   if Old_SCOD.Fun_Call_Instrumented then
@@ -1492,6 +1608,27 @@ package body SC_Obligations is
          end loop;
       end;
    end Checkpoint_Load_Merge_Unit;
+
+   function "<" (L, R : Static_Decision_Evaluation) return Boolean is
+   begin
+      if L.Outcome /= R.Outcome then
+         return L.Outcome < R.Outcome;
+      end if;
+
+      for J in R.Values.First_Index .. R.Values.Last_Index loop
+         if J > L.Values.Last_Index then
+            return True;
+
+         elsif L.Values.Element (J) < R.Values.Element (J) then
+            return True;
+
+         elsif L.Values.Element (J) > R.Values.Element (J) then
+            return False;
+         end if;
+      end loop;
+
+      return False;
+   end "<";
 
    ------------------------------
    -- Checkpoint_Load_New_Unit --
