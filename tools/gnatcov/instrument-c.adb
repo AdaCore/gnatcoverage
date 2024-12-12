@@ -3852,6 +3852,20 @@ package body Instrument.C is
 
       I : Positive := 1;
    begin
+      if Sources_Trace.Is_Active then
+         Sources_Trace.Increase_Indent
+           ("Writing " & Instrumenter.Language_Name & " buffer unit "
+            & (+CU_Name.Filename));
+         Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
+         Sources_Trace.Trace ("For files:");
+         for SOI of UIC.Sources_Of_Interest_Info loop
+            if SOI.Of_Interest then
+               Sources_Trace.Trace ("* " & Image (SOI.CU_Name));
+            end if;
+         end loop;
+         Sources_Trace.Decrease_Indent;
+      end if;
+
       --  Compute Buffers_CUs and Buffers_CU_Names
 
       for Cur in UIC.Sources_Of_Interest_Info.Iterate loop
@@ -4118,6 +4132,16 @@ package body Instrument.C is
          Reset_Procedure : constant String :=
            Reset_Procedure_Symbol (Prj.Prj_Name);
       begin
+         if Sources_Trace.Is_Active then
+            Sources_Trace.Increase_Indent
+              ("Writing " & Instrumenter.Language_Name & " dump helper unit "
+               & Filename);
+            Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
+            Sources_Trace.Trace ("Filename: " & Filename);
+            Sources_Trace.Trace ("For main: " & Image (Main));
+            Sources_Trace.Decrease_Indent;
+         end if;
+
          --  Emit the package body
 
          Create_File (Prj, File, Filename);
@@ -4271,7 +4295,7 @@ package body Instrument.C is
           (Main => Dummy_Main, Manual => True, Prj_Name => Prj.Prj_Name);
       Reset_Procedure : constant String :=
         Reset_Procedure_Symbol (Prj.Prj_Name);
-      Extern_Prefix : constant String :=
+      Extern_Prefix   : constant String :=
         C_Family_Instrumenter_Type'Class (Self).Extern_Prefix;
 
       Annots : constant Instr_Annotation_Map :=
@@ -5182,14 +5206,13 @@ package body Instrument.C is
       Buffer_Symbols : String_Sets.Set;
       Prj            : Prj_Desc) return Compilation_Unit
    is
-      CU_Name : constant Compilation_Unit :=
-        (Language => File_Based_Language,
-         Unit_Name =>
-           +New_File
-             (Prj,
-              "gcvrtc-" & To_Symbol_Name (Prj.Prj_Name)
-              & (+Prj.Body_Suffix
-                (C_Family_Instrumenter_Type'Class (Self).Language))));
+      Filename : constant String :=
+        New_File
+         (Prj,
+          "gcvrtc-" & To_Symbol_Name (Prj.Prj_Name)
+          & (+Prj.Body_Suffix
+             (C_Family_Instrumenter_Type'Class (Self).Language)));
+      CU_Name  : constant Compilation_Unit := (File_Based_Language, +Filename);
 
       CU_File : Text_Files.File_Type;
 
@@ -5199,6 +5222,13 @@ package body Instrument.C is
       Buffer_Unit_Length : constant String :=
         Count_Type'Image (Buffer_Symbols.Length);
    begin
+      if Sources_Trace.Is_Active then
+         Sources_Trace.Increase_Indent
+           ("Writing " & Self.Language_Name & " buffer list unit " & Filename);
+         Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
+         Sources_Trace.Decrease_Indent;
+      end if;
+
       --  Emit the body to contain the list of buffers
 
       CU_File.Create (+CU_Name.Unit_Name);

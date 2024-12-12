@@ -1,0 +1,19 @@
+info: creating output path [TMP]/obj/my_tool/
+[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing My_Tool
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] GPR file: [TMP]/my_tool.gpr
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] output directory: [TMP]/obj/my_tool/my_tool-gnatcov-instr
+   [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] it does not exist
+Coverage instrumentation
+   [C++]           my_tool.cpp
+[GNATCOV.INSTRUMENT_SOURCES] Writing C++ buffer unit [TMP]/obj/my_tool/my_tool-gnatcov-instr/gcvrt_b_[HASH#1].cpp
+   [GNATCOV.INSTRUMENT_SOURCES] Project: My_Tool
+   [GNATCOV.INSTRUMENT_SOURCES] For files:
+   [GNATCOV.INSTRUMENT_SOURCES] * [TMP]/src-my_tool/my_tool.cpp
+Main instrumentation
+   [C++]           my_tool.cpp
+[GNATCOV.INSTRUMENT_SOURCES] Writing C++ dump helper unit [TMP]/obj/my_tool/my_tool-gnatcov-instr/gcvrt_d_[HASH#2].cpp
+   [GNATCOV.INSTRUMENT_SOURCES] Project: My_Tool
+   [GNATCOV.INSTRUMENT_SOURCES] Filename: [TMP]/obj/my_tool/my_tool-gnatcov-instr/gcvrt_d_[HASH#2].cpp
+   [GNATCOV.INSTRUMENT_SOURCES] For main: [TMP]/obj/my_tool/my_tool-gnatcov-instr/my_tool.cpp
+[GNATCOV.INSTRUMENT_SOURCES] Writing C++ buffer list unit [TMP]/obj/my_tool/my_tool-gnatcov-instr/gcvrtc-my_tool.cpp
+   [GNATCOV.INSTRUMENT_SOURCES] Project: My_Tool
