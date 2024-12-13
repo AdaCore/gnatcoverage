@@ -35,6 +35,10 @@ with Hex_Images;     use Hex_Images;
 
 package body Instrument is
 
+   function Hash_32_Image (S : String) return String
+   is (Hex_Image (Unsigned_32 (Ada.Strings.Hash (S))));
+   --  Return the 8-bytes image of a hash for S
+
    -------------------
    -- Language_Kind --
    -------------------
@@ -237,11 +241,7 @@ package body Instrument is
          --  Prefix the hash with "z" to ensure the unit name slug doesn't
          --  start with a digit.
 
-         return
-           "z" & Strip_Zero_Padding
-                    (Hex_Image
-                       (Unsigned_32
-                          (Ada.Strings.Hash (To_String (Result)))));
+         return "z" & Hash_32_Image (To_String (Result));
       else
          return To_String (Result);
       end if;
@@ -288,9 +288,7 @@ package body Instrument is
       use Ada.Directories;
       Result : Ada_Identifier;
 
-      Full_Name_Hash : constant String :=
-        Strip_Zero_Padding
-          (Hex_Image (Unsigned_32 (Ada.Strings.Hash (Fullname))));
+      Full_Name_Hash : constant String := Hash_32_Image (Fullname);
    begin
       if Use_Hash then
 
