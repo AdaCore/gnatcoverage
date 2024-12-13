@@ -1005,10 +1005,32 @@ package body Coverage.Source is
                   --  information.
 
                   if Decision_Outcome (SCO) /= Unknown then
-                     --  Case of a compile time known decision: exclude from
+                     --  Case of a compile time known decision
+                     --  exclude from
                      --  coverage analysis.
 
-                     if Report_If_Excluded (SCO) then
+                     if SCI.Evaluations.Length > 1 then
+                        --  Case of a compile time known decision that was
+                        --  consolidated with several checkpoints in which
+                        --  the decision had different static conditions, but
+                        --  kept the same outcome anyway.
+
+                        --  In this case, we chose to report the violation,
+                        --  because if you have a static decision in your code
+                        --  that may change depending on the build context,
+                        --  then you SHOULD get it covered
+
+                        SCO_State := Not_Covered;
+                        Report_Violation
+                           (SCO,
+                           SCI.Tag,
+                           "outcome "
+                           & To_Boolean (Decision_Outcome (SCO))'Image
+                           & " never exercised");
+                        Update_Line_State
+                          (Line_Info, SCO, SCI.Tag, Decision, SCO_State);
+
+                     elsif Report_If_Excluded (SCO) then
                         SCO_State := Not_Coverable;
 
                         --  Note: we do not report the exclusion of this SCO,
