@@ -552,6 +552,15 @@ package SC_Obligations is
 
    type Condition_Values_Array is array (Condition_Index range <>) of Tristate;
 
+   package Condition_Evaluation_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Condition_Index,
+      Element_Type => Tristate);
+
+   function To_Vector
+     (Cond_Values : Condition_Values_Array)
+      return Condition_Evaluation_Vectors.Vector;
+   --  Convert Cond_Values to a vector
+
    package Static_Condition_Values_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Condition_Index,
       Element_Type => Boolean);
@@ -1582,6 +1591,15 @@ package SC_Obligations is
           Pragma_Type_Invariant_Class => True,
 
           Unknown_Pragma => True);
+
+   procedure Populate_From_Static_Eval_Vector
+     (SCO        : SCO_Id;
+      Static_Vec : Static_Condition_Values_Vectors.Vector;
+      Vec        : out Condition_Evaluation_Vectors.Vector);
+   --  Given a static evaluation vector, the function fills the condition
+   --  evaluation vector while letting the un-encountered condition to
+   --  'unknown', so the short-circuited conditions don't prevent MCDC
+   --  coverage of other conditions.
 
 private
 

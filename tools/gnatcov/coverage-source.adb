@@ -580,26 +580,24 @@ package body Coverage.Source is
                        (Kind => Decision, others => <>);
 
                function To_Evaluation
-                 (SCO : SCO_Id; Eval : Static_Decision_Evaluation)
+                 (SCO : SCO_Id; Static_Eval : Static_Decision_Evaluation)
                  return Evaluation;
                --  Create an `Evaluation` entry from a
                --  Static_Decision_Evaluation.
 
                function To_Evaluation
-                 (SCO : SCO_Id; Eval : Static_Decision_Evaluation)
+                 (SCO : SCO_Id; Static_Eval : Static_Decision_Evaluation)
                  return Evaluation
                is
-                  E : Evaluation :=
+                  Eval : Evaluation :=
                     (Decision       => SCO,
-                     Outcome        => To_Tristate (Eval.Outcome),
+                     Outcome        => To_Tristate (Static_Eval.Outcome),
                      Values         => Condition_Evaluation_Vectors.Empty,
                      Next_Condition => No_Condition_Index);
                begin
-                  for B of Eval.Values loop
-                     E.Values.Append (To_Tristate (B));
-                  end loop;
-
-                  return E;
+                  Populate_From_Static_Eval_Vector
+                    (SCO, Static_Eval.Values, Eval.Values);
+                  return Eval;
                end To_Evaluation;
 
             begin

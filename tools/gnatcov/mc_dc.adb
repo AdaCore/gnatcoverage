@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Containers;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
 package body MC_DC is
@@ -193,25 +194,6 @@ package body MC_DC is
 
       return First_Different;
    end Is_MC_DC_Pair;
-
-   ---------------
-   -- To_Vector --
-   ---------------
-
-   function To_Vector
-     (Cond_Values : Condition_Values_Array)
-      return Condition_Evaluation_Vectors.Vector
-   is
-      Result : Condition_Evaluation_Vectors.Vector :=
-        Condition_Evaluation_Vectors.To_Vector
-          (Unknown, Length => Cond_Values'Length);
-
-   begin
-      for J in Cond_Values'Range loop
-         Result.Replace_Element (J, Cond_Values (J));
-      end loop;
-      return Result;
-   end To_Vector;
 
    ----------
    -- Read --

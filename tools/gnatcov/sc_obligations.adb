@@ -5194,6 +5194,68 @@ package body SC_Obligations is
       SCO_Vector.Reference (C_SCO).BDD_Node := BDD_Node;
    end Set_BDD_Node;
 
+   ---------------
+   -- To_Vector --
+   ---------------
+
+   function To_Vector
+     (Cond_Values : Condition_Values_Array)
+      return Condition_Evaluation_Vectors.Vector
+   is
+      Result : Condition_Evaluation_Vectors.Vector :=
+        Condition_Evaluation_Vectors.To_Vector
+          (Unknown, Length => Cond_Values'Length);
+
+   begin
+      for J in Cond_Values'Range loop
+         Result.Replace_Element (J, Cond_Values (J));
+      end loop;
+      return Result;
+   end To_Vector;
+
+   --------------------------------------
+   -- Populate_From_Static_Eval_Vector --
+   --------------------------------------
+
+   procedure Populate_From_Static_Eval_Vector
+     (SCO        : SCO_Id;
+      Static_Vec : Static_Condition_Values_Vectors.Vector;
+      Vec        : out Condition_Evaluation_Vectors.Vector)
+   is
+      use BDD; -- For using '=' for BDD_Node_Kind
+
+      SCOD  : SCO_Descriptor renames SCO_Vector.Constant_Reference (SCO);
+      D_BDD : constant BDD.BDD_Type := SCOD.Decision_BDD;
+
+      Cur : BDD_Node_Id := D_BDD.Root_Condition;
+   begin
+
+      --  First, fill the vector with 'unknown'
+
+      Vec := Condition_Evaluation_Vectors.Empty;
+      for B of Static_Vec loop
+         Vec.Append (Unknown);
+      end loop;
+
+      --  Then, walk the BDD from the root and only follow the path of the
+      --  constant value. Unencountered nodes will stay unknown, to preserve
+      --  short-circuit semantics of operators when performing MCDC analysis.
+
+      while BDD_Vector.Constant_Reference (Cur).Kind = Condition loop
+         declare
+            C_SCO : constant SCO_Id :=
+               BDD_Vector.Constant_Reference (Cur).C_SCO;
+            Index : constant Condition_Index :=
+               SCO_Vector.Element (C_SCO).Index;
+            Value : constant Boolean := Static_Vec (Index);
+         begin
+            Vec (Index) := To_Tristate (Value);
+
+            Cur := BDD_Vector.Constant_Reference (Cur).Dests (Value);
+         end;
+      end loop;
+   end Populate_From_Static_Eval_Vector;
+
    ---------------------------
    -- Are_Bit_Maps_In_Range --
    ---------------------------
