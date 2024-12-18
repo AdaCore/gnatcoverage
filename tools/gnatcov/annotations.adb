@@ -488,10 +488,17 @@ package body Annotations is
          --  because this depends on violation count for each exempted region.
 
          FI.Li_Stats := Line_Metrics (FI, 1, Last_Line (FI));
-         FI.Ob_Stats :=
-           Obligation_Metrics
-             (First_SCO (Comp_Unit (File_Index)),
-              Last_SCO (Comp_Unit (File_Index)));
+
+         declare
+            SCOs : SCO_Sets.Set;
+         begin
+            for SCO_Range of SCO_Ranges (Comp_Unit (File_Index)) loop
+               for SCO in SCO_Range.First .. SCO_Range.Last loop
+                  SCOs.Include (SCO);
+               end loop;
+            end loop;
+            FI.Ob_Stats := Obligation_Metrics (SCOs);
+         end;
 
          for J in Global_Stats'Range loop
             Global_Stats (J) := Global_Stats (J) + FI.Li_Stats (J);
@@ -1030,7 +1037,7 @@ package body Annotations is
    -- Obligation_Metrics --
    ------------------------
 
-   function Obligation_Metrics (From, To : SCO_Id) return Ob_Stat_Array
+   function Obligation_Metrics (SCOs : SCO_Sets.Set) return Ob_Stat_Array
    is
       Result : Ob_Stat_Array;
 
@@ -1076,10 +1083,7 @@ package body Annotations is
       end Update_Level_Stats;
 
    begin
-      if From = No_SCO_Id then
-         return Result;
-      end if;
-      for SCO in From .. To loop
+      for SCO of SCOs loop
          case Kind (SCO) is
             when Statement =>
                Update_Level_Stats (SCO, Get_Line_State (SCO, Stmt), Stmt);
@@ -1102,7 +1106,8 @@ package body Annotations is
                     Coverage.Assertion_Condition_Coverage_Enabled
                     and then Is_Assertion (SCO);
                begin
-                  if Coverage.MCDC_Coverage_Enabled or else Assertion_Decision
+                  if Coverage.MCDC_Coverage_Enabled
+                    or else Assertion_Decision
                   then
                      declare
                         Condition_Level : constant Coverage_Level :=
@@ -1110,7 +1115,6 @@ package body Annotations is
                            then Coverage.Assertion_Condition_Level
                            else Coverage.MCDC_Level);
                      begin
-
                         --  Conditions in that decision
 
                         for J in
@@ -1126,11 +1130,11 @@ package body Annotations is
                                                  then ATCC
                                                  else MCDC));
                               --  If the parent decision is partially covered,
-                              --  then the SCO_State for each condition will be
-                              --  No_Code, and the SCO_State for the
+                              --  then the SCO_State for each condition
+                              --  will be No_Code, and the SCO_State for the
                               --  MCDC/Assertion condition Coverage_Level
-                              --  associated to the parent decision SCO will be
-                              --  Not_Covered.
+                              --  associated to the parent decision SCO will
+                              --  be Not_Covered.
 
                               Condition_State : SCO_State;
 

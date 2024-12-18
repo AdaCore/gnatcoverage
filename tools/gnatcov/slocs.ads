@@ -74,9 +74,10 @@ package Slocs is
    function "<"  (L, R : Source_Location) return Boolean;
    function "<=" (L, R : Source_Location) return Boolean;
 
-   No_Location       : constant Source_Location :=
-                                  (No_Source_File, No_Local_Location);
-   --  Note: No_Location must sort higher than any non-null location
+   No_Location : constant Source_Location :=
+     (No_Source_File, No_Local_Location);
+   --  Note: No_Location must sort higher than any non-null location. TODO???
+   --  clarify this comment.
 
    function Image
      (Sloc        : Source_Location;
