@@ -1035,9 +1035,7 @@ package body Instrument.Ada_Unit is
       Call_Params                  : Node_Rewriting_Handle;
       Augmented_Function           : out Node_Rewriting_Handle;
       Augmented_Function_Decl      : out Node_Rewriting_Handle;
-      New_Function                 : out Node_Rewriting_Handle;
-      Fun_Witness                  : Node_Rewriting_Handle :=
-        No_Node_Rewriting_Handle);
+      New_Function                 : out Node_Rewriting_Handle);
    --  Create the augmented function from the original one (Augmented_Function)
    --  and create the new function (New_Function) that will serve as a
    --  replacement to the original one. Also create a declaration for the
@@ -1065,11 +1063,6 @@ package body Instrument.Ada_Unit is
    --  * New_Function:
    --      The new intermediate function that replaces the original one.
    --      Responsible for calling Augmented_Function.
-   --  * Fun_Witness:
-   --      Only used for function coverage. It contains the valid witness call
-   --      to be inserted as needed in New_Function to discharge the function
-   --      SCO, or is set to No_Node_Rewriting_Handle if function coverage is
-   --      not needed.
 
    function Augmented_Expr_Function_Needs_Decl
      (N : Expr_Function) return Boolean;
@@ -2649,9 +2642,7 @@ package body Instrument.Ada_Unit is
       Call_Params                  : Node_Rewriting_Handle;
       Augmented_Function           : out Node_Rewriting_Handle;
       Augmented_Function_Decl      : out Node_Rewriting_Handle;
-      New_Function                 : out Node_Rewriting_Handle;
-      Fun_Witness                  : Node_Rewriting_Handle :=
-        No_Node_Rewriting_Handle)
+      New_Function                 : out Node_Rewriting_Handle)
    is
       RC : Rewriting_Handle renames UIC.Rewriting_Context;
 
@@ -2677,13 +2668,8 @@ package body Instrument.Ada_Unit is
            then "_GNATCOV_Aux"
            else "");
 
-      Is_Subp_Body : constant Boolean :=
-        Fun_Cov and then Common_Nodes.N.Kind = Ada_Subp_Body;
-      --  We only need to consider subprogram bodies when function coverage is
-      --  needed.
-
-      Need_WP : constant Boolean := not Is_Subp_Body
-        and then Augmented_EF_Needs_Wrapper_Package (Common_Nodes);
+      Need_WP : constant Boolean :=
+        Augmented_EF_Needs_Wrapper_Package (Common_Nodes);
 
       --  Create the expression for New_Expr_Function that will call that
       --  augmented expression function.
@@ -2719,47 +2705,13 @@ package body Instrument.Ada_Unit is
    begin
       --  Create the new augmented function
 
-      if Is_Subp_Body then
-
-         --  For a regular subrogram needing function coverage, two statements
-         --  will be inserted in the body of the new function. First the
-         --  witness call linked to the function SCO, next the return or call
-         --  statement calling the new augmented function.
-
-         declare
-            Stmts : constant Node_Rewriting_Handle :=
-              Create_Regular_Node
-                (Handle   => UIC.Rewriting_Context,
-                 Kind     => Ada_Stmt_List,
-                 Children =>
-                   (1 => Fun_Witness,
-                    2 =>
-                      (if Common_Nodes.N.Kind = Ada_Subp_Body
-                       and then
-                       Common_Nodes.N.As_Subp_Body.F_Subp_Spec.F_Subp_Kind =
-                         Ada_Subp_Kind_Function
-                       then Create_Return_Stmt (RC, Call_Expr)
-                       else Create_Call_Stmt (RC, Call_Expr))));
-         begin
-            New_Function :=
-              Create_Subp_Body
-                (RC,
-                 F_Overriding => Clone (Common_Nodes.N_Overriding),
-                 F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
-                 F_Aspects    => No_Node_Rewriting_Handle,
-                 F_Decls      => No_Node_Rewriting_Handle,
-                 F_Stmts      => Stmts,
-                 F_End_Name   => Make_Identifier (UIC, Orig_Name_Text));
-         end;
-      else
-         New_Function :=
-           Create_Expr_Function
-             (RC,
-              F_Overriding => Clone (Common_Nodes.N_Overriding),
-              F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
-              F_Expr       => Create_Paren_Expr (RC, Call_Expr),
-              F_Aspects    => No_Node_Rewriting_Handle);
-      end if;
+      New_Function :=
+        Create_Expr_Function
+          (RC,
+           F_Overriding => Clone (Common_Nodes.N_Overriding),
+           F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
+           F_Expr       => Create_Paren_Expr (RC, Call_Expr),
+           F_Aspects    => No_Node_Rewriting_Handle);
 
       --  The original function becomes the augmented one:
 
@@ -2777,16 +2729,6 @@ package body Instrument.Ada_Unit is
       Replace
         (Handle (Common_Nodes.N_Name),
          Make_Identifier (UIC, Augmented_Func_Name));
-
-      if Is_Subp_Body
-        and then not Common_Nodes.N.As_Subp_Body.F_End_Name.Is_Null
-      then
-         --  For regular subprogram bodies, also change the end name
-
-         Replace
-           (Handle (Common_Nodes.N.As_Subp_Body.F_End_Name),
-            Make_Identifier (UIC, Augmented_Func_Name));
-      end if;
 
       --  Use the "augmented formal params" (i.e. original formals plus the
       --  witness one and the MC/DC state holders).
@@ -4149,9 +4091,9 @@ package body Instrument.Ada_Unit is
             UIC.MCDC_State_Inserter := Saved_MCDC_State_Inserter;
          end To_Regular_Subprogram;
 
-         --------------------------
-         -- Crete_Witness_Formal --
-         --------------------------
+         ---------------------------
+         -- Create_Witness_Formal --
+         ---------------------------
 
          procedure Create_Witness_Formal
            (Formal      : out Node_Rewriting_Handle;
@@ -4178,7 +4120,6 @@ package body Instrument.Ada_Unit is
          end Create_Witness_Formal;
 
          Is_Expr_Function : constant Boolean := N.Kind = Ada_Expr_Function;
-         Is_Subp_Body     : constant Boolean := N.Kind = Ada_Subp_Body;
 
          Gen_Names_Prefix : constant Wide_Wide_String :=
            To_Wide_Wide_String
@@ -4379,7 +4320,7 @@ package body Instrument.Ada_Unit is
                        & "cannot instrument generic expression functions."
                        & " Consider turning it into a regular function body.");
 
-            elsif not Is_Subp_Body then
+            else
                --  As Traverse_Degenerate_Subprogram deals only with expression
                --  functions and null procedures, we are in the case of a
                --  generic null procedure here.
@@ -4470,26 +4411,18 @@ package body Instrument.Ada_Unit is
                      Fun_Witness);
                end if;
 
-               if not Is_Subp_Body then
-                  --  Turn the expression function or null procedure into
-                  --  a regular subprogram. If function coverage is needed,
-                  --  declare a variable in this new subprogram which will
-                  --  be set to a witness call linked to the function SCO.
+               --  Turn the expression function or null procedure into a
+               --  regular subprogram. If function coverage is needed, declare
+               --  a variable in this new subprogram which will be set to a
+               --  witness call linked to the function SCO.
 
-                  To_Regular_Subprogram (N.As_Base_Subp_Body, Fun_Witness);
-               else
-                  if Fun_Witness /= No_Node_Rewriting_Handle then
-                     Insert_First
-                       (Handle (N.As_Subp_Body.F_Decls.F_Decls),
-                        Create_Function_Witness_Var (UIC, Fun_Witness));
-                  end if;
-               end if;
+               To_Regular_Subprogram (N.As_Base_Subp_Body, Fun_Witness);
             end;
 
             return;
          end if;
 
-         if Is_Expr_Function or else Is_Subp_Body then
+         if Is_Expr_Function then
 
             --  The statement instrumentation below will take care of assigning
             --  .Witness_* components to their definitive values.
@@ -4717,12 +4650,11 @@ package body Instrument.Ada_Unit is
             --  added to the augmented function later on.
          end if;
 
-         if Is_Expr_Function or else Is_Subp_Body then
+         if Is_Expr_Function then
             declare
                Augmented_Function       : Node_Rewriting_Handle;
                Augmented_Function_Decl  : Node_Rewriting_Handle;
                New_Function             : Node_Rewriting_Handle;
-
             begin
                --  Create the augmented expression function and amend the
                --  original one.
@@ -4734,8 +4666,7 @@ package body Instrument.Ada_Unit is
                   Call_Params,
                   Augmented_Function,
                   Augmented_Function_Decl,
-                  New_Function,
-                  Fun_Witness);
+                  New_Function);
 
                --  First comes the augmented expression function, then the new
                --  expression function.
@@ -4869,10 +4800,6 @@ package body Instrument.Ada_Unit is
 
          elsif N.Kind in Ada_Expr_Function then
             Process_Contracts (N.As_Expr_Function);
-
-            Traverse_Degenerate_Subprogram (N, N_Spec);
-
-         elsif N.Kind in Ada_Subp_Body and then Enabled (Fun_Call) then
             Traverse_Degenerate_Subprogram (N, N_Spec);
          end if;
 
@@ -5055,37 +4982,35 @@ package body Instrument.Ada_Unit is
             when Ada_Subp_Body
                | Ada_Task_Body
                =>
-               declare
-                  Is_Generic_Subp : constant Boolean :=
-                    Is_Generic (UIC, N.As_Basic_Decl);
+               UIC.In_Generic := Is_Generic (UIC, N.As_Basic_Decl);
 
-                  Fun_Witness : Node_Rewriting_Handle :=
-                    No_Node_Rewriting_Handle;
-               begin
-                  UIC.In_Generic := Is_Generic_Subp;
+               Traverse_Subprogram_Or_Task_Body (UIC, N);
 
-                  Traverse_Subprogram_Or_Task_Body (UIC, N);
+               if Enabled (Fun_Call) then
+                  declare
+                     Fun_Witness : Node_Rewriting_Handle :=
+                       No_Node_Rewriting_Handle;
+                  begin
+                     --  Add a function SCO for this subprogram and fill
+                     --  Fun_Witness with a witness call for this new SCO. The
+                     --  witness call is within a dummy variable declaration.
 
-                  if Enabled (Fun_Call) then
-                     if Is_Generic_Subp
-                       or else
-                         (UIC.Current_Insertion_Info.Get.Method = None
-                          and then N.Kind /= Ada_Null_Subp_Decl)
-                     then
-                        Instrument_For_Function_Coverage
-                          (UIC,
-                           N.As_Subp_Body.F_Subp_Spec,
-                           Function_Call,
-                           Fun_Witness);
+                     Instrument_For_Function_Coverage
+                       (UIC,
+                        N.As_Subp_Body.F_Subp_Spec,
+                        Function_Call,
+                        Fun_Witness);
 
-                        Insert_First
-                          (Handle (N.As_Subp_Body.F_Decls.F_Decls),
-                           Create_Function_Witness_Var (UIC, Fun_Witness));
-                     else
-                        Traverse_Subp_Decl_Or_Stub (N.As_Basic_Decl);
-                     end if;
-                  end if;
-               end;
+                     --  Put the dummy variable containing the witness call
+                     --  at the very top of the declarative part of this
+                     --  subprogram. This way, it will be executed as soon as
+                     --  the function is called.
+
+                     Insert_First
+                       (Handle (N.As_Subp_Body.F_Decls.F_Decls),
+                        Create_Function_Witness_Var (UIC, Fun_Witness));
+                  end;
+               end if;
 
                UIC.In_Generic := Saved_In_Generic;
 
