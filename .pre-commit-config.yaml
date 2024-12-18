@@ -33,3 +33,10 @@ repos:
     hooks:
     - id: black
       args: ["--line-length=79"]
+  - repo: local
+    hooks:
+      - id: check-formatting
+        name: check-formatting
+        entry: python .check-formatting.py
+        language: system
+        args: ["--autofix", "--ignore-non-source"]

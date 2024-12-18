@@ -214,15 +214,6 @@ pre-commit:
     # Install the clang-format executable and make it available
     - anod install libclang -Qstable
     - eval `anod printenv libclang -Qstable`
-
-    # Create a virtual env to install our deps
-    - python -mvenv /tmp/venv
-    - . /tmp/venv/bin/activate
-    - python -m pip install colorama pre-commit
-
-    - python .check-formatting.py --force-colors
-
-
 #################
 # Optional jobs #
 #################
