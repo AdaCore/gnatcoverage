@@ -3602,9 +3602,7 @@ package body Instrument.Ada_Unit is
    --  process it once; we choose to do this on the inner-most node.
 
    function Full_Call (Node : Ada_Node'Class) return Ada_Node;
-   --  From an node that is a call, get its parent if it is a
-   --  Dotted_Name. Return the dotted name if this is a call with no arguments,
-   --  or the Call_Expr parent if it is a call with arguments.
+   --  Get the outter-most node that is this call
 
    --------------------------
    -- Internal Subprograms --
@@ -6190,10 +6188,27 @@ package body Instrument.Ada_Unit is
            (Node : Ada_Node'Class)
             return Visit_Status
          is
+            Is_Op_String_Call : constant Boolean :=
+              Node.Kind in Ada_String_Literal
+              and then
+                (Node.Parent.Kind = Ada_Call_Expr
+                 or else
+                   (Node.Parent.Kind = Ada_Dotted_Name
+                    and then Node.Parent.Parent.Kind = Ada_Call_Expr));
+            --  For call of the form "+"(A,B), Node will be a String_Literal
+            --  inside a Call_Expr. String_Literals are always considered to
+            --  be static, but we don't want to instrument static expressions.
+            --  Checking this is thus needed to let calls of this form be
+            --  seen as calls.
+            --  TODO: This is a P_Is_Static_Expr bug, reported in issue
+            --  eng/libadalang/libadalang#1523. Once this is fixed this
+            --  variable and associated check should be safe to remove.
+
             Full_Call_Node : Ada_Node;
          begin
             if Is_Call_Leaf (Node)
-              and then not Is_Static_Expr (Node.As_Expr)
+              and then
+                (not Is_Static_Expr (Node.As_Expr) or else Is_Op_String_Call)
             then
                Full_Call_Node := Full_Call (Node);
 
@@ -6239,7 +6254,18 @@ package body Instrument.Ada_Unit is
                   --  site or not.
 
                   Location : constant Source_Location_Range :=
-                    Full_Call_Node.Sloc_Range;
+                    (if Node.Kind = Ada_Op_Concat
+                     then
+                       (Node
+                        .Parent
+                        .As_Concat_Operand.F_Operator.As_Ada_Node.Sloc_Range)
+                     else Full_Call_Node.Sloc_Range);
+                  --  Special case for concatenation operators: Node holds
+                  --  "& <operand>" where the call that needs to be monitored
+                  --  is the operator "&". In order to produce valid code, the
+                  --  if-expression holding the witness call is created around
+                  --  the operand, but the location of the SCO should still be
+                  --  the operator's.
                begin
                   Append_SCO
                     (C1                 => 'c',
@@ -6280,14 +6306,8 @@ package body Instrument.Ada_Unit is
                   --  need for call the are in the middle of a dotted name.
                   --  For now, do not instrument calls that wouls require such
                   --  an instrumentation.
-                  --
-                  --  USER-DEFINED OPERATORS
-                  --  gnatcov does not handle calls to user-defined operators
-                  --  as the current instrumentation is not suited to it.
 
-                  Do_Not_Instrument :=
-                    Needs_Qualified_Expr
-                    or else Node.Kind in Ada_Op;
+                  Do_Not_Instrument := Needs_Qualified_Expr;
 
                   if not Do_Not_Instrument then
                      Fill_Expression_Insertion_Info
@@ -6324,8 +6344,7 @@ package body Instrument.Ada_Unit is
                                 Create_Paren_Expr (UIC.Rewriting_Context,
                                 If_Expression))
                            else No_Node_Rewriting_Handle);
-                        Dummy : constant Wide_Wide_String :=
-                          Unparse (If_Expression);
+
                      begin
                         if Needs_Qualified_Expr then
                            Replace (Dummy_Handle, Qualified_Expr);
@@ -7186,9 +7205,6 @@ package body Instrument.Ada_Unit is
                or else (Node.Parent.Kind = Ada_Call_Expr
                         and then Node.Parent.As_Call_Expr.P_Kind = Call));
 
-         --  TODO??? Only process operators if they are **not** predefined
-         --  operators?
-
          when Ada_Un_Op | Ada_Bin_Op | Ada_Concat_Op =>
             return False;
 
@@ -7205,17 +7221,44 @@ package body Instrument.Ada_Unit is
    is
       Call : Ada_Node;
    begin
-      --  Ensure Node is the inner-most node identifying a call.
 
       pragma Assert (Is_Call_Leaf (Node));
 
       Call := Node.As_Ada_Node;
 
-      if Call.Parent.Kind = Ada_Dotted_Name then
-         Call := Call.Parent;
+      --  From a node that is a call, get:
+      --
+      --  * its parent if it is a Dotted_Name or an operator;
+      --  * its parent's parent if it is an operator called via its string
+      --    litteral name;
+      --  * the operand for concatenation operators (it will instrumented to
+      --    hold the witness statement for the operator).
+
+      if Call.Kind in Ada_String_Literal
+        and then Call.Parent.Kind in Ada_Dotted_Name
+      then
+         Call := Call.Parent.Parent;
       end if;
 
-      if Call.Parent.Kind = Ada_Call_Expr then
+      if Call.Parent.Kind in Ada_Dotted_Name
+        or else (Call.Kind in Ada_Op
+                 and then Call.Parent.Kind in
+                   Ada_Bin_Op
+                 | Ada_Un_Op
+                 | Ada_Relation_Op)
+      then
+         Call := Call.Parent;
+
+      elsif Call.Kind = Ada_Op_Concat then
+         Call := Call.Parent.As_Concat_Operand.F_Operand.As_Ada_Node;
+      end if;
+
+      --  Then, if Call's parent is a Call_Expr, it means that the call has
+      --  arguments. We want to take them into account. Otherwise the call
+      --  has no arguments and Call is already the outter-most node
+      --  representing this call.
+
+      if Call.Parent.Kind in Ada_Call_Expr then
          Call := Call.Parent;
       end if;
 
