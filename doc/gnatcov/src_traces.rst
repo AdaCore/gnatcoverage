@@ -94,6 +94,19 @@ project file that is installed.  To achieve this, update the
 
    export GPR_PROJECT_PATH=$GPR_PROJECT_PATH:/usr/custom/share/gpr
 
+In addition, when using shared libraries, the environment needs to be updated
+so that instrumented programs can load the coverage runtime's own shared
+libraries. The following command achieves this in a Unix like environment:
+
+.. code-block:: sh
+
+   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/gnatcov-rts/lib
+
+The following command performs the corresponding action on Windows systems:
+
+.. code-block:: bat
+
+   set PATH=%PATH%;C:\path\to\gnatcov-rts\bin\
 
 Multiple runtimes in the same prefix
 ------------------------------------
