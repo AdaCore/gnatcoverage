@@ -10,9 +10,10 @@ begin
 end Test_Nested;
 
 --# nested.adb
--- /stmt/   l+ ## 0
--- /fun/    l+ ## 0
--- /call/   l+ ## 0
--- /if/     l! ## dT-
--- /v_stmt/ l- ## s-
--- /v_call/ l- ## s=>s-, f=>c-
+-- /stmt/    l+ ## 0
+-- /fun/     l+ ## 0
+-- /call/    l+ ## 0
+-- /if/      l! ## dT-
+-- /v_stmt/  l- ## s-
+-- /v_call/  l- ## f=>c-
+-- /v_false/ l- ## 0

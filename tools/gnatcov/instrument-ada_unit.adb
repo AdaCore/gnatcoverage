@@ -6116,7 +6116,9 @@ package body Instrument.Ada_Unit is
          is
             Full_Call_Node : Ada_Node;
          begin
-            if Is_Call_Leaf (Node) then
+            if Is_Call_Leaf (Node)
+              and then not Is_Static_Expr (Node.As_Expr)
+            then
                Full_Call_Node := Full_Call (Node);
 
                --  Skip calls that are direct children of call statements

@@ -16,7 +16,6 @@ end Test_With_Decls_Called;
 -- /v_fun/      l- ## c-
 -- /v_sfun/     l- ## s-,c-
 -- /v_cstmt/    l- ## s-,c-
--- /v_false/    l- ## s-,c-,c-
 --# with_decls.ads
 -- /stmt/       l+ ## 0
 --# with_decls.adb

@@ -15,6 +15,6 @@ end Test_Not_Called;
 -- /decl/      l+ ## 0
 --# foo.adb
 -- /fun/       l- ## f-
--- /expr_fun/  l- ## s=>s-, f=>s-,f-,c-
+-- /expr_fun/  l- ## s=>s-, f=>s-,f-
 -- /call_stmt/ f=>l- ## s=>s-, f=>s-,c-
 -- /stmt/      l- ## s-
