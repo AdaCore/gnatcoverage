@@ -61,6 +61,8 @@ from .cnotes import (
     dNoteKinds,
     cNoteKinds,
     tNoteKinds,
+    atcNoteKinds,
+    aNoteKinds,
     fNoteKinds,
 )
 from .cnotes import XsNoteKinds, XoNoteKinds, XcNoteKinds
@@ -264,15 +266,10 @@ class _Xchecker:
         # The emitted note needs to designate a sloc range within the
         # expected sloc range and separation tags, when any is expected,
         # must match.
-        a = en.segment.within(xn.segment)
-        b = not xn.stag and not en.stag
-        c = xn.stag and en.stag
-        d = c and en.stag.match(xn.stag)
-        return a and (b or d)
-        # return en.segment.within(xn.segment) and (
-        #    (not xn.stag and not en.stag)
-        #    or (xn.stag and en.stag and en.stag.match(xn.stag))
-        # )
+        return en.segment.within(xn.segment) and (
+            (not xn.stag and not en.stag)
+            or (xn.stag and en.stag and en.stag.match(xn.stag))
+        )
 
     def try_sat_over(self, ekind, xn):
         # See if expected note XN is satisfied by one of the emitted notes of
@@ -1131,6 +1128,12 @@ class SCOV_helper:
         tc_r_rxp_for = r_rxp_for[relevance_cat]
         tc_r_ern_for = r_ern_for[relevance_cat]
 
+        if self.testcase.assert_lvl == "atc":
+            tc_r_rxp_for += atcNoteKinds
+            tc_r_ern_for += atcNoteKinds
+        elif self.testcase.assert_lvl == "atcc":
+            tc_r_rxp_for += aNoteKinds
+            tc_r_ern_for += aNoteKinds
         if self.testcase.fun_call_lvl:
             tc_r_rxp_for += fNoteKinds
             tc_r_ern_for += fNoteKinds
@@ -1302,8 +1305,12 @@ class SCOV_helper:
             return "s_"
 
         wdbase = levels[1][0]
-        wdbase += levels[-2] if self.assert_lvl else ""
-        wdbase += "fc" if self.fun_call_lvl else ""
+
+        if self.assert_lvl:
+            wdbase += self.assert_lvl
+
+        if self.fun_call_lvl:
+            wdbase += "fc"
 
         return wdbase + "_"
 
