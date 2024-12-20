@@ -92,6 +92,8 @@ private package SC_Obligations.BDD is
 
    type Reachability is array (Boolean) of Boolean;
 
+   Both_Reachable : constant Reachability := (others => True);
+
    type BDD_Type is record
       Decision       : SCO_Id;
 

@@ -18,21 +18,10 @@
 
 --  Support for MC/DC coverage analysis
 
-with Ada.Containers.Vectors;
-
 with Checkpoints;    use Checkpoints;
 with SC_Obligations; use SC_Obligations;
 
 package MC_DC is
-
-   package Condition_Evaluation_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Condition_Index,
-      Element_Type => Tristate);
-
-   function To_Vector
-     (Cond_Values : Condition_Values_Array)
-      return Condition_Evaluation_Vectors.Vector;
-   --  Convert Cond_Values to a vector
 
    --  Type Evaluation denotes one evaluation of a decision
 

@@ -1,0 +1,34 @@
+project Greet is
+   for Source_Dirs use ("src-greet");
+
+   type Decision_Type is
+      ("static_true", "static_false", "dynamic_true", "dynamic_false");
+
+   Val1_Impl : Decision_Type :=
+      external ("DEC1", "static_true");
+   Val2_Impl : Decision_Type :=
+      external ("DEC2", "static_true");
+
+   package Naming is
+      case Val1_Impl is
+         when "static_true" =>
+            for Spec ("Pkg1") use "st1_pkg.ads";
+         when "static_false" =>
+            for Spec ("Pkg1") use "sf1_pkg.ads";
+         when "dynamic_true" =>
+            for Spec ("Pkg1") use "dt1_pkg.ads";
+         when "dynamic_false" =>
+            for Spec ("Pkg1") use "df1_pkg.ads";
+      end case;
+      case Val2_Impl is
+         when "static_true" =>
+            for Spec ("Pkg2") use "st2_pkg.ads";
+         when "static_false" =>
+            for Spec ("Pkg2") use "sf2_pkg.ads";
+         when "dynamic_true" =>
+            for Spec ("Pkg2") use "dt2_pkg.ads";
+         when "dynamic_false" =>
+            for Spec ("Pkg2") use "df2_pkg.ads";
+      end case;
+   end Naming;
+end Greet;

@@ -288,6 +288,9 @@ package SC_Obligations is
    No_SCO_Id : constant SCO_Id := 0;
    subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
 
+   package SCO_Sets is
+     new Ada.Containers.Ordered_Sets (Element_Type => SCO_Id);
+
    type Scope_Entity_Identifier is record
       Decl_SFI  : Source_File_Index;
       Decl_Line : Natural;
@@ -456,13 +459,21 @@ package SC_Obligations is
    --  contain associations for "foo.ads", "foo.adb" and "foo-subunit.adb", but
    --  not for "bar.adb".
 
+   type Instr_Attached_Ctx is record
+      True_Static_SCOs  : SCO_Sets.Set;
+      False_Static_SCOs : SCO_Sets.Set;
+   end record;
+   No_Attached_Ctx : constant Instr_Attached_Ctx :=
+     (True_Static_SCOs => SCO_Sets.Empty, False_Static_SCOs => SCO_Sets.Empty);
+
    procedure Process_Low_Level_SCOs
      (Provider      : SCO_Provider;
       Origin        : Source_File_Index;
       Deps          : SFI_Vector := SFI_Vectors.Empty_Vector;
       Created_Units : out Created_Unit_Maps.Map;
       SCO_Map       : access LL_HL_SCO_Map := null;
-      Count_Paths   : Boolean);
+      Count_Paths   : Boolean;
+      Attached_Ctx  : Instr_Attached_Ctx := No_Attached_Ctx);
    --  Populate high level SCO tables (SC_Vectors, CU_Vector, ... in
    --  SC_Obligations' body) from low level ones (global tables from the SCOs
    --  unit).
@@ -540,6 +551,34 @@ package SC_Obligations is
      Any_Condition_Index range 0 .. Any_Condition_Index'Last;
 
    type Condition_Values_Array is array (Condition_Index range <>) of Tristate;
+
+   package Condition_Evaluation_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Condition_Index,
+      Element_Type => Tristate);
+
+   function To_Vector
+     (Cond_Values : Condition_Values_Array)
+      return Condition_Evaluation_Vectors.Vector;
+   --  Convert Cond_Values to a vector
+
+   package Static_Condition_Values_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Condition_Index,
+      Element_Type => Boolean);
+
+   type Static_Decision_Evaluation is record
+      Values  : Static_Condition_Values_Vectors.Vector;
+      Outcome : Boolean;
+   end record;
+
+   function "<" (L, R : Static_Decision_Evaluation) return Boolean;
+
+   package Static_Decision_Evaluation_Sets is new Ada.Containers.Ordered_Sets
+     (Static_Decision_Evaluation);
+
+   package Static_Decision_Evaluation_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => SCO_Id,
+      Element_Type => Static_Decision_Evaluation_Sets.Set,
+      "=" => Static_Decision_Evaluation_Sets.Equivalent_Sets);
 
    type Operand_Position is (Left, Right);
 
@@ -634,9 +673,6 @@ package SC_Obligations is
    --  generate any executable code, which may be treated as a documentation
    --  item in the source. The input SCO argument is expected to designate a
    --  statement SCO.
-
-   package SCO_Sets is
-     new Ada.Containers.Ordered_Sets (Element_Type => SCO_Id);
 
    procedure Set_Stmt_SCO_Non_Instr (SCO : SCO_Id) with
      Pre => Kind (SCO) = Statement;
@@ -1555,6 +1591,15 @@ package SC_Obligations is
           Pragma_Type_Invariant_Class => True,
 
           Unknown_Pragma => True);
+
+   procedure Populate_From_Static_Eval_Vector
+     (SCO        : SCO_Id;
+      Static_Vec : Static_Condition_Values_Vectors.Vector;
+      Vec        : out Condition_Evaluation_Vectors.Vector);
+   --  Given a static evaluation vector, the function fills the condition
+   --  evaluation vector while letting the un-encountered condition to
+   --  'unknown', so the short-circuited conditions don't prevent MCDC
+   --  coverage of other conditions.
 
 private
 

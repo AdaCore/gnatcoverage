@@ -360,6 +360,13 @@ package Instrument.Common is
       Non_Instr_LL_SCOs : SCO_Sets.Set;
       --  Set of low level SCO ids that were not instrumented
 
+      True_Static_LL_SCOs  : SCO_Sets.Set;
+      False_Static_LL_SCOs : SCO_Sets.Set;
+      --  Keeps track of static decision SCOs. Static SCOs are registered
+      --  identically as non-static ones, to permit consolidation when
+      --  an expression is static in some cases only (e.g. endianness
+      --  depending on system architecture)
+
       Blocks : SCO_Id_Vector_Vector;
       --  This is used when the block coverage level is enabled: list of blocks
 
