@@ -139,6 +139,10 @@ is
       --  The Source_Mapping thus maps the temporary object files to the
       --  original source.
 
+      Compiler_Driver_Arch_Switches : String_Sets.Set;
+      --  List of architecture-specific switches (such as -m32) to pass when
+      --  compiling instrumentation artifacts.
+
       Instrumentation_Objects : File_To_String_Vectors_Maps.Map;
       --  Maps the original source name to the instrumentation artifact objects
       --  (e.g. coverage buffers unit, dump helper unit).
@@ -308,9 +312,18 @@ is
       Commands_Filename   : constant String :=
         Tmp_Dir.Directory_Name / "commands";
    begin
-      --  Expand the command line using gcc's -### option. TODO??? Check if the
-      --  command we are intercepting is a compile / link target and not a
-      --  preprocessing / -### action.
+      --  Grab the architecture specific switches. The heuristic is that we
+      --  consider every switch starting with "-m" as an architecture-specific
+      --  switch. Note that when they have an argument, it is always specified
+      --  as e.g. -mabi=<arg>.
+
+      for Arg of Args loop
+         if Starts_With (Arg, "-m") then
+            Context.Compiler_Driver_Arch_Switches.Include (Arg);
+         end if;
+      end loop;
+
+      --  Expand the command line using gcc's -### option
 
       Run_Command
         (+Context.Orig_Compiler_Driver,
@@ -685,6 +698,9 @@ is
       Args_Compilation.Append (+"-o");
       Args_Compilation.Append
         (+(GNATCOLL.VFS."+" (Full_Name (Buffers_List_Object))));
+      for Switch of Context.Compiler_Driver_Arch_Switches loop
+         Args_Compilation.Append (Switch);
+      end loop;
       Run_Original_Compiler (Context, Args_Compilation);
    end Emit_Buffers_List_Object;
 
@@ -950,6 +966,9 @@ begin
                      Args_Compilation.Append (Instr_Artifact);
                      Args_Compilation.Append (+"-o");
                      Args_Compilation.Append (+Instr_Artifact_Object_Name);
+                     for Switch of Context.Compiler_Driver_Arch_Switches loop
+                        Args_Compilation.Append (Switch);
+                     end loop;
                      Run_Original_Compiler (Context, Args_Compilation);
 
                      Context.Instrumentation_Objects
@@ -993,10 +1012,13 @@ begin
                         Args_Ld.Append (Full_Name (Assembly_Command.Target));
                         Args_Ld.Append (+"-o");
                         Args_Ld.Append (+Packaged_Name);
+                        for Switch of Context.Compiler_Driver_Arch_Switches
+                        loop
+                           Args_Ld.Append (Switch);
+                        end loop;
                         Run_Command
                           (Command             =>
-                             +Instr_Config.Linkers.Element
-                               (Compiler_Exec_Basename),
+                             +Context.Orig_Compiler_Driver,
                            Arguments           => Args_Ld,
                            Origin_Command_Name => "compiler wrapper");
 
