@@ -4,7 +4,18 @@ import argparse
 import os.path
 import sys
 
-from colorama import Fore, Style
+try:
+    from colorama import Fore, Style
+
+    CYAN = Fore.CYAN
+    GREEN = Fore.GREEN
+    MAGENTA = Fore.MAGENTA
+    RESET_ALL = Style.RESET_ALL
+except ImportError:
+    MAGENTA = "\033[35m"
+    CYAN = "\033[36m"
+    GREEN = "\033[32m"
+    RESET_ALL = "\033[0m"
 
 
 args_parser = argparse.ArgumentParser(
@@ -21,6 +32,14 @@ args_parser.add_argument(
     help=(
         "Force colored output. This is necessary when the output is not a TTY"
         " but still supports ANSI codes."
+    ),
+)
+args_parser.add_argument(
+    "--ignore-non-source",
+    action="store_true",
+    help=(
+        "If set, filter the given files to only keep those which would have"
+        " been detected automatically"
     ),
 )
 args_parser.add_argument(
@@ -94,20 +113,20 @@ class Checker:
         # Build a list of text chunks to print. Put colorama elements in tuples
         # so that we can keep only text chunks if the output is not a TTY.
         chunks = [
-            (Fore.MAGENTA,),
+            (MAGENTA,),
             filename,
-            (Fore.CYAN,),
+            (CYAN,),
             ":",
         ]
         if lineno is not None:
             chunks += [
-                (Fore.GREEN,),
+                (GREEN,),
                 str(lineno),
-                (Fore.CYAN,),
+                (CYAN,),
                 ":",
             ]
         chunks += [
-            (Style.RESET_ALL,),
+            (RESET_ALL,),
             " ",
             message,
         ]
@@ -178,7 +197,12 @@ class Checker:
         # source files in the current directory.
         if args.files:
             for filename in args.files:
-                checker.process_file(filename)
+                realpath = os.path.realpath(filename)
+                if not args.ignore_non_source or (
+                    realpath not in ignore_set
+                    and filename.rsplit(".", 1)[-1] in cls.filename_extensions
+                ):
+                    checker.process_file(filename)
         else:
             for path, _, filenames in os.walk("."):
                 for f in filenames:
