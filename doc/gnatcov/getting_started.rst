@@ -198,13 +198,29 @@ commands are going to be installed::
 
 Letting further commands know about the *prefix* location is achieved
 by adding ``<prefix>/share/gpr`` to the ``GPR_PROJECT_PATH``
-variable. In a Unix like environment, this would be::
+variable. In a Unix like environment, this would be:
+
+.. code-block:: sh
 
    export GPR_PROJECT_PATH=$GPR_PROJECT_PATH:/path/to/gnatcov-rts/share/gpr
 
 This will both let the ``gprbuild`` command below locate the
 ``gnatcov_rts.gpr`` project file, and the |gcvins| command find
 default parameter values.
+
+In addition, when using shared libraries, it is necessary to let the
+environment know about the coverage runtime's own shared libraries. The
+following command achieves this in a Unix like environment:
+
+.. code-block:: sh
+
+   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/gnatcov-rts/lib
+
+The following command performs the corresponding action on Windows systems:
+
+.. code-block:: bat
+
+   set PATH=%PATH%;C:\path\to\gnatcov-rts\bin\
 
 Instrumentation is performed by a simple |gcvins| command::
 
