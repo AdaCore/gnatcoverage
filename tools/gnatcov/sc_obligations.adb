@@ -149,6 +149,9 @@ package body SC_Obligations is
 
             Bit_Maps_Fingerprint : Fingerprint_Type;
             --  Hash of Bit_Maps, for consistency checks with source traces
+
+            True_Static_SCOs  : SCO_Sets.Set;
+            False_Static_SCOs : SCO_Sets.Set;
       end case;
 
    end record;
@@ -344,7 +347,8 @@ package body SC_Obligations is
       Ignored_Slocs : in out Ignored_Slocs_Sets.Set;
       SCO_Map       : access LL_HL_SCO_Map := null;
       Count_Paths   : Boolean;
-      Provider      : SCO_Provider);
+      Provider      : SCO_Provider;
+      Attached_Ctx  : Instr_Attached_Ctx := No_Attached_Ctx);
    --  Load the low level SCO at SCO_Index into our Internal table, to be part
    --  of the CU compilation unit.
    --
@@ -557,6 +561,35 @@ package body SC_Obligations is
       BDD_Vector  : BDD.BDD_Vectors.Vector;
       SCO_Vector  : SCO_Vectors.Vector;
    end record;
+
+   function Condition
+     (Vectors : Source_Coverage_Vectors;
+      SCO     : SCO_Id;
+      Index   : Condition_Index) return SCO_Id;
+   --  Internal definition of the function free from global variables
+
+   function Enclosing
+     (Vectors : Source_Coverage_Vectors;
+      What : SCO_Kind;
+      SCO : SCO_Id) return SCO_Id;
+   --  Internal definition of the function free from global variables
+
+   function Next_BDD_Node
+     (Vectors : Source_Coverage_Vectors;
+      SCO   : SCO_Id;
+      Value : Boolean) return BDD_Node_Id;
+   --  Internal definition of the function free from global variables
+
+   function Outcome
+     (Vectors : Source_Coverage_Vectors;
+      SCO : SCO_Id;
+      Value : Boolean) return Tristate;
+   --  Internal definition of the function free from global variables
+
+   function Value
+     (Vectors : Source_Coverage_Vectors;
+      SCO     : SCO_Id) return Tristate;
+   --  Internal definition of the function free from global variables
 
    -----------------------------------------
    -- Helper routines for Checkpoint_Load --
@@ -1317,6 +1350,171 @@ package body SC_Obligations is
    is
       Relocs  : Checkpoint_Relocations renames CLS.Relocations;
       Real_CU : CU_Info renames CU_Vector.Reference (Real_CU_Id).Element.all;
+
+      procedure Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id : SCO_Id)
+      with pre => Kind (New_SCO_Id) = Decision;
+
+      procedure Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id : SCO_Id)
+      is
+         use SC_Obligations.BDD;
+
+         Old_SCOD : SCO_Descriptor renames CP_Vectors.SCO_Vector (Old_SCO_Id);
+         New_SCOD : SCO_Descriptor renames SCO_Vector (New_SCO_Id);
+
+         Old_Reachable : Reachability renames
+            Old_SCOD.Decision_BDD.Reachable_Outcomes;
+         New_Reachable : Reachability renames
+            New_SCOD.Decision_BDD.Reachable_Outcomes;
+
+         function Decision_Static_Eval
+           (Vectors : Source_Coverage_Vectors;
+            SCO_Dec : SCO_Id;
+            Eval    : out Static_Decision_Evaluation) return Boolean;
+
+         function Decision_Static_Eval
+           (Vectors : Source_Coverage_Vectors;
+            SCO_Dec : SCO_Id;
+            Eval    : out Static_Decision_Evaluation) return Boolean
+         is
+            SCOD : SCO_Descriptor renames Vectors.SCO_Vector (SCO_Dec);
+
+            Reachable : constant Reachability :=
+               SCOD.Decision_BDD.Reachable_Outcomes;
+
+            Outcome : constant Tristate :=
+              (if Reachable (False) /= Reachable (True)
+                  then To_Tristate (Reachable (True))
+                  else Unknown);
+
+            E : Static_Decision_Evaluation;
+         begin
+
+            --  Do not process evaluations if the decision is not at least
+            --  partially static.
+
+            if Outcome = Unknown then
+               return False;
+            end if;
+
+            E.Outcome := To_Boolean (Outcome);
+
+            for J in Condition_Index'First .. SCOD.Last_Cond_Index
+            loop
+               declare
+                  SCO_C  : constant SCO_Id :=
+                     Condition (Vectors, SCO_Dec, J);
+                  SCOD_C : SCO_Descriptor renames
+                     Vectors.SCO_Vector (SCO_C);
+               begin
+
+                  --  If an encountered Condition has no Value, then the
+                  --  Decision is not fully static, abort processing
+
+                  if SCOD_C.Value = Unknown then
+                     E.Values.Clear;
+                     return False;
+                  end if;
+
+                  E.Values.Append (To_Boolean (SCOD_C.Value));
+               end;
+            end loop;
+
+            Eval := E;
+            return True;
+         end Decision_Static_Eval;
+
+         procedure Register_Static_Evaluation
+           (SCO : SCO_Id; Eval : Static_Decision_Evaluation);
+
+         procedure Register_Static_Evaluation
+           (SCO : SCO_Id; Eval : Static_Decision_Evaluation) is
+         begin
+            if not CLS.Static_Decision_Evaluations.Contains (SCO)
+            then
+               CLS.Static_Decision_Evaluations.Insert
+                    (SCO,
+                     Static_Decision_Evaluation_Sets.Empty_Set);
+            end if;
+            CLS.Static_Decision_Evaluations
+               .Reference (SCO)
+               .Include (Eval);
+         end Register_Static_Evaluation;
+
+         --  Start processing of Merge_Decision_SCOs
+
+      begin
+         if Old_SCOD.Decision_Instrumented then
+            New_SCOD.Decision_Instrumented := True;
+         end if;
+         if Old_SCOD.Decision_Instrumented_For_MCDC then
+            New_SCOD.Decision_Instrumented_For_MCDC := True;
+         end if;
+
+         --  The following code handles merging Decision SCOs that have a
+         --  different staticness over the 2 checkpoints that are being merged.
+         --
+         --  If the reachability of the decision in one of the checkpoints
+         --  differs from `Both_Reachable`, it means that at least one of the
+         --  two checkpoints has some static conditions and should be handled
+         --  with a specific treatment.
+         --
+         --  Upon encountering a fully-static decision, we need to register its
+         --  conditions' values so they can be used as a complementary
+         --  evaluation for MC/DC analysis.
+
+         if Old_Reachable /= Both_Reachable
+            or else
+            New_Reachable /= Both_Reachable
+         then
+            SCOs_Trace.Trace ("Consolidation encountered a decision SCO"
+                              & " whose staticness may differ at"
+                              & Image (New_SCOD.Sloc_Range));
+            declare
+               Old_Eval : Static_Decision_Evaluation;
+               --  Holds the result of the static evaluation of Old_SCO
+               --  if Old_Static is True. Otherwise, it is invalid.
+
+               New_Eval : Static_Decision_Evaluation;
+               --  Holds the result of the static evaluation of New_SCO
+               --  if New_Static is True. Otherwise, it is invalid.
+
+               Old_Static : constant Boolean :=
+                  Decision_Static_Eval (CP_Vectors, Old_SCO_Id, Old_Eval);
+               New_Static : constant Boolean :=
+                  Decision_Static_Eval (SC_Vectors, New_SCO_Id, New_Eval);
+
+            begin
+
+               --  No matter the staticness of the SCOs, we update the
+               --  reachability of each outcome by OR-ing the two checkpoints.
+
+               New_Reachable (True) := New_Reachable (True) or else
+                  Old_Reachable (True);
+
+               New_Reachable (False) := New_Reachable (False) or else
+                  Old_Reachable (False);
+
+               if Old_Static then
+
+                  --  If the decision in the Old checkpoint is static,
+                  --  add an evaluation to the SCIs corresponding to it.
+
+                  Register_Static_Evaluation (New_SCO_Id, Old_Eval);
+               end if;
+
+               if New_Static then
+
+                  --  If the decision in the New checkpoint is static,
+                  --  add an evaluation to the SCIs corresponding to it.
+
+                  Register_Static_Evaluation (New_SCO_Id, New_Eval);
+               end if;
+            end;
+         end if;
+      end Merge_Decision_SCOs;
+
+      --  Start processing of Checkpoint_Load_Merge_Unit
+
    begin
       --  Here we already have loaded full SCO information for this CU. There
       --  are two things to do:
@@ -1344,10 +1542,12 @@ package body SC_Obligations is
                          - CP_CU.First_SCO);
 
          declare
-            Old_SCOD : SCO_Descriptor renames
+
+            Old_SCOD   : SCO_Descriptor renames
               CP_Vectors.SCO_Vector (Old_SCO_Id);
-            SCOD     : SCO_Descriptor renames
-              SCO_Vector (Remap_SCO_Id (Relocs, Old_SCO_Id));
+            New_SCO_Id : constant SCO_Id := Remap_SCO_Id (Relocs, Old_SCO_Id);
+            SCOD       : SCO_Descriptor renames SCO_Vector (New_SCO_Id);
+
          begin
             case SCOD.Kind is
                when Statement =>
@@ -1356,12 +1556,7 @@ package body SC_Obligations is
                   end if;
 
                when Decision =>
-                  if Old_SCOD.Decision_Instrumented then
-                     SCOD.Decision_Instrumented := True;
-                  end if;
-                  if Old_SCOD.Decision_Instrumented_For_MCDC then
-                     SCOD.Decision_Instrumented_For_MCDC := True;
-                  end if;
+                  Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id);
 
                when Fun_Call_SCO_Kind  =>
                   if Old_SCOD.Fun_Call_Instrumented then
@@ -1413,6 +1608,27 @@ package body SC_Obligations is
          end loop;
       end;
    end Checkpoint_Load_Merge_Unit;
+
+   function "<" (L, R : Static_Decision_Evaluation) return Boolean is
+   begin
+      if L.Outcome /= R.Outcome then
+         return L.Outcome < R.Outcome;
+      end if;
+
+      for J in R.Values.First_Index .. R.Values.Last_Index loop
+         if J > L.Values.Last_Index then
+            return True;
+
+         elsif L.Values.Element (J) < R.Values.Element (J) then
+            return True;
+
+         elsif L.Values.Element (J) > R.Values.Element (J) then
+            return False;
+         end if;
+      end loop;
+
+      return False;
+   end "<";
 
    ------------------------------
    -- Checkpoint_Load_New_Unit --
@@ -2364,10 +2580,15 @@ package body SC_Obligations is
    -- Condition --
    ---------------
 
-   function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id is
+   function Condition
+     (Vectors : Source_Coverage_Vectors;
+      SCO     : SCO_Id;
+      Index   : Condition_Index) return SCO_Id
+   is
       use BDD;
 
-      SCOD  : SCO_Descriptor renames SCO_Vector.Reference (SCO);
+      SCOD  : SCO_Descriptor renames
+         Vectors.SCO_Vector.Constant_Reference (SCO);
       First : constant BDD_Node_Id := SCOD.Decision_BDD.First_Node;
       Last  : constant BDD_Node_Id := SCOD.Decision_BDD.Last_Node;
 
@@ -2378,14 +2599,15 @@ package body SC_Obligations is
 
       for J in First .. Last loop
          declare
-            BDDN : BDD_Node renames BDD_Vector.Constant_Reference (J);
+            BDDN : BDD_Node renames Vectors.BDD_Vector.Constant_Reference (J);
          begin
             if BDDN.Kind = Condition then
                Current_Condition_Index := Current_Condition_Index + 1;
                if Current_Condition_Index = Index then
                   return C_SCO : constant SCO_Id := BDDN.C_SCO
                   do
-                     pragma Assert (Enclosing_Decision (C_SCO) = SCO);
+                     pragma Assert
+                       (Enclosing (Vectors, Decision, C_SCO) = SCO);
                      pragma Assert (SC_Obligations.Index (C_SCO) = Index);
                      null;
                   end return;
@@ -2395,6 +2617,9 @@ package body SC_Obligations is
       end loop;
       raise Constraint_Error with "condition index out of range";
    end Condition;
+
+   function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id is
+     (Condition (SC_Vectors, SCO, Index));
 
    ----------------------
    -- Condition_Values --
@@ -2576,12 +2801,16 @@ package body SC_Obligations is
    -- Enclosing --
    ---------------
 
-   function Enclosing (What : SCO_Kind; SCO : SCO_Id) return SCO_Id is
+   function Enclosing
+     (Vectors : Source_Coverage_Vectors;
+      What : SCO_Kind;
+      SCO : SCO_Id) return SCO_Id is
    begin
       return Result : SCO_Id := SCO do
          while Result /= No_SCO_Id loop
             declare
-               SCOD : SCO_Descriptor renames SCO_Vector.Reference (Result);
+               SCOD : SCO_Descriptor renames
+                  Vectors.SCO_Vector.Constant_Reference (Result);
             begin
                if SCOD.Kind = What then
                   return;
@@ -2591,6 +2820,9 @@ package body SC_Obligations is
          end loop;
       end return;
    end Enclosing;
+
+   function Enclosing (What : SCO_Kind; SCO : SCO_Id) return SCO_Id
+      is (Enclosing (SC_Vectors, What, SCO));
 
    ------------
    -- Nested --
@@ -3916,7 +4148,8 @@ package body SC_Obligations is
       Ignored_Slocs : in out Ignored_Slocs_Sets.Set;
       SCO_Map       : access LL_HL_SCO_Map := null;
       Count_Paths   : Boolean;
-      Provider      : SCO_Provider)
+      Provider      : SCO_Provider;
+      Attached_Ctx  : Instr_Attached_Ctx := No_Attached_Ctx)
    is
       Unit : CU_Info renames CU_Vector.Reference (CU);
       SCOE : SCOs.SCO_Table_Entry renames SCOs.SCO_Table.Table (SCO_Index);
@@ -3986,11 +4219,19 @@ package body SC_Obligations is
       --------------------------
 
       function Make_Condition_Value return Tristate is
+         use SCO_Sets;
       begin
          case SCOE.C2 is
             when 'f' => return False;
             when 't' => return True;
-            when 'c' => return Unknown;
+            when 'c' => return
+              (if Attached_Ctx.True_Static_SCOs.Contains
+                 (SCO_Id (SCO_Index))
+               then True
+               elsif Attached_Ctx.False_Static_SCOs.Contains
+                 (SCO_Id (SCO_Index))
+               then False
+               else Unknown);
 
             when others => raise Program_Error with
                  "invalid SCO condition value code: " & SCOE.C2;
@@ -4233,7 +4474,8 @@ package body SC_Obligations is
       Deps          : SFI_Vector := SFI_Vectors.Empty_Vector;
       Created_Units : out Created_Unit_Maps.Map;
       SCO_Map       : access LL_HL_SCO_Map := null;
-      Count_Paths   : Boolean)
+      Count_Paths   : Boolean;
+      Attached_Ctx  : Instr_Attached_Ctx := No_Attached_Ctx)
    is
       use SCOs;
 
@@ -4289,7 +4531,8 @@ package body SC_Obligations is
                      Ignored_Slocs_Set,
                      SCO_Map,
                      Count_Paths,
-                     Provider);
+                     Provider,
+                     Attached_Ctx);
                end loop;
             end loop;
 
@@ -4629,14 +4872,21 @@ package body SC_Obligations is
    -------------------
 
    function Next_BDD_Node
-     (SCO   : SCO_Id;
+     (Vectors : Source_Coverage_Vectors;
+      SCO   : SCO_Id;
       Value : Boolean) return BDD_Node_Id
    is
       use BDD;
-      BDD_Node : constant BDD_Node_Id := SCO_Vector.Reference (SCO).BDD_Node;
+      BDD_Node : constant BDD_Node_Id :=
+         Vectors.SCO_Vector.Constant_Reference (SCO).BDD_Node;
    begin
-      return BDD_Vector.Reference (BDD_Node).Dests (Value);
+      return Vectors.BDD_Vector.Constant_Reference (BDD_Node).Dests (Value);
    end Next_BDD_Node;
+
+   function Next_BDD_Node
+     (SCO   : SCO_Id;
+      Value : Boolean) return BDD_Node_Id
+   is (Next_BDD_Node (SC_Vectors, SCO, Value));
 
    --------------------
    -- Next_Condition --
@@ -4688,7 +4938,11 @@ package body SC_Obligations is
    -- Outcome --
    -------------
 
-   function Outcome (SCO : SCO_Id; Value : Boolean) return Tristate is
+   function Outcome
+     (Vectors : Source_Coverage_Vectors;
+      SCO : SCO_Id;
+      Value : Boolean) return Tristate
+   is
       use BDD;
       Cond_SCO   : SCO_Id := SCO;
       Cond_Value : Boolean := Value;
@@ -4696,8 +4950,8 @@ package body SC_Obligations is
       loop
          declare
             BDDN : constant BDD_Node :=
-              BDD_Vector.Constant_Reference
-                (Next_BDD_Node (Cond_SCO, Cond_Value));
+               Vectors.BDD_Vector.Constant_Reference
+                 (Next_BDD_Node (Vectors, Cond_SCO, Cond_Value));
          begin
             case BDDN.Kind is
                when Outcome =>
@@ -4706,7 +4960,7 @@ package body SC_Obligations is
                when Condition =>
                   declare
                      Next_Value : constant Tristate :=
-                       SC_Obligations.Value (BDDN.C_SCO);
+                       SC_Obligations.Value (Vectors, BDDN.C_SCO);
                   begin
                      if Next_Value = Unknown then
                         return Unknown;
@@ -4722,16 +4976,26 @@ package body SC_Obligations is
       end loop;
    end Outcome;
 
+   function Outcome (SCO : SCO_Id; Value : Boolean) return Tristate
+      is (Outcome (SC_Vectors, SCO, Value));
+
    -----------
    -- Value --
    -----------
 
-   function Value (SCO : SCO_Id) return Tristate is
-      SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
+   function Value
+     (Vectors : Source_Coverage_Vectors;
+      SCO     : SCO_Id) return Tristate
+   is
+      SCOD : SCO_Descriptor renames
+         Vectors.SCO_Vector.Constant_Reference (SCO);
       pragma Assert (SCOD.Kind = Condition);
    begin
       return SCOD.Value;
    end Value;
+
+   function Value (SCO : SCO_Id) return Tristate
+      is (Value (SC_Vectors, SCO));
 
    ------------
    -- Parent --
@@ -4929,6 +5193,68 @@ package body SC_Obligations is
    begin
       SCO_Vector.Reference (C_SCO).BDD_Node := BDD_Node;
    end Set_BDD_Node;
+
+   ---------------
+   -- To_Vector --
+   ---------------
+
+   function To_Vector
+     (Cond_Values : Condition_Values_Array)
+      return Condition_Evaluation_Vectors.Vector
+   is
+      Result : Condition_Evaluation_Vectors.Vector :=
+        Condition_Evaluation_Vectors.To_Vector
+          (Unknown, Length => Cond_Values'Length);
+
+   begin
+      for J in Cond_Values'Range loop
+         Result.Replace_Element (J, Cond_Values (J));
+      end loop;
+      return Result;
+   end To_Vector;
+
+   --------------------------------------
+   -- Populate_From_Static_Eval_Vector --
+   --------------------------------------
+
+   procedure Populate_From_Static_Eval_Vector
+     (SCO        : SCO_Id;
+      Static_Vec : Static_Condition_Values_Vectors.Vector;
+      Vec        : out Condition_Evaluation_Vectors.Vector)
+   is
+      use BDD; -- For using '=' for BDD_Node_Kind
+
+      SCOD  : SCO_Descriptor renames SCO_Vector.Constant_Reference (SCO);
+      D_BDD : constant BDD.BDD_Type := SCOD.Decision_BDD;
+
+      Cur : BDD_Node_Id := D_BDD.Root_Condition;
+   begin
+
+      --  First, fill the vector with 'unknown'
+
+      Vec := Condition_Evaluation_Vectors.Empty;
+      for B of Static_Vec loop
+         Vec.Append (Unknown);
+      end loop;
+
+      --  Then, walk the BDD from the root and only follow the path of the
+      --  constant value. Unencountered nodes will stay unknown, to preserve
+      --  short-circuit semantics of operators when performing MCDC analysis.
+
+      while BDD_Vector.Constant_Reference (Cur).Kind = Condition loop
+         declare
+            C_SCO : constant SCO_Id :=
+               BDD_Vector.Constant_Reference (Cur).C_SCO;
+            Index : constant Condition_Index :=
+               SCO_Vector.Element (C_SCO).Index;
+            Value : constant Boolean := Static_Vec (Index);
+         begin
+            Vec (Index) := To_Tristate (Value);
+
+            Cur := BDD_Vector.Constant_Reference (Cur).Dests (Value);
+         end;
+      end loop;
+   end Populate_From_Static_Eval_Vector;
 
    ---------------------------
    -- Are_Bit_Maps_In_Range --

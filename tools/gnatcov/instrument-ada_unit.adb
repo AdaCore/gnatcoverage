@@ -6728,33 +6728,36 @@ package body Instrument.Ada_Unit is
 
          procedure Output_Element (N : Ada_Node) is
             N_SR : constant Source_Location_Range := N.Sloc_Range;
-            C2   : Character := 'c';
+            SCO  : SCO_Id;
          begin
-            if Is_Static_Expr (N.As_Expr) then
-
-               --  This condition is static: record its value in the SCO
-
-               declare
-                  Eval : constant String := Bool_Expr_Eval (N.As_Expr);
-               begin
-                  if Eval = "True" then
-                     C2 := 't';
-                  elsif Eval = "False" then
-                     C2 := 'f';
-                  end if;
-               end;
-            end if;
 
             Append_SCO
               (C1   => ' ',
-               C2   => C2,
+               C2   => 'c',
                From => +Start_Sloc (N_SR),
                To   => +Inclusive_End_Sloc (N_SR),
                SFI  => UIC.SFI,
                Last => False);
             Hash_Entries.Append ((Start_Sloc (N_SR), SCOs.SCO_Table.Last));
+            SCO := SCO_Id (SCOs.SCO_Table.Last);
+
+            if Is_Static_Expr (N.As_Expr) then
+
+               --  This condition is static: record its value
+
+               declare
+                  Eval : constant String := Bool_Expr_Eval (N.As_Expr);
+               begin
+                  if Eval = "True" then
+                     UIC.True_Static_LL_SCOs.Include (SCO);
+                  elsif Eval = "False" then
+                     UIC.False_Static_LL_SCOs.Include (SCO);
+                  end if;
+               end;
+            end if;
+
             if UIC.Disable_Instrumentation then
-               UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
+               UIC.Non_Instr_LL_SCOs.Include (SCO);
             end if;
          end Output_Element;
 
@@ -9959,6 +9962,9 @@ package body Instrument.Ada_Unit is
 
       UIC.Non_Instr_LL_SCOs.Clear;
 
+      UIC.True_Static_LL_SCOs.Clear;
+      UIC.False_Static_LL_SCOs.Clear;
+
       Initialize_Rewriting (UIC, Instrumenter);
       UIC.Instrumented_Unit := CU_Name;
 
@@ -10039,7 +10045,11 @@ package body Instrument.Ada_Unit is
             Origin        => UIC.SFI,
             Created_Units => Created_Units,
             SCO_Map       => SCO_Map'Access,
-            Count_Paths   => True);
+            Count_Paths   => True,
+            Attached_Ctx  => Instr_Attached_Ctx'
+              (True_Static_SCOs => UIC.True_Static_LL_SCOs,
+               False_Static_SCOs => UIC.False_Static_LL_SCOs)
+            );
 
          --  In the instrumentation case, the origin of SCO information is
          --  the original source file.

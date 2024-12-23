@@ -291,6 +291,8 @@ package Checkpoints is
       --  Format version for the checkpoint being read
 
       Relocations : Checkpoint_Relocations;
+
+      Static_Decision_Evaluations : Static_Decision_Evaluation_Maps.Map;
    end record;
 
    use type Interfaces.Unsigned_32;

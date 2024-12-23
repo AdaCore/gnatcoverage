@@ -567,7 +567,78 @@ package body Coverage.Source is
             Removed : constant Boolean := SCO_Ignored (Relocs, CP_SCO);
             SCO     : constant SCO_Id :=
               (if Removed then No_SCO_Id else Remap_SCO_Id (Relocs, CP_SCO));
+
+            procedure Insert_Extra_Decision_SCI
+              (S_Eval : Static_Decision_Evaluation_Sets.Set);
+            --  Add a set of static evaluations to the rest of the Decision's
+            --  evaluation set.
+
+            procedure Insert_Extra_Decision_SCI
+              (S_Eval : Static_Decision_Evaluation_Sets.Set)
+            is
+               Inserted_SCI : Source_Coverage_Info :=
+                       (Kind => Decision, others => <>);
+
+               function To_Evaluation
+                 (SCO : SCO_Id; Static_Eval : Static_Decision_Evaluation)
+                 return Evaluation;
+               --  Create an `Evaluation` entry from a
+               --  Static_Decision_Evaluation.
+
+               function To_Evaluation
+                 (SCO : SCO_Id; Static_Eval : Static_Decision_Evaluation)
+                 return Evaluation
+               is
+                  Eval : Evaluation :=
+                    (Decision       => SCO,
+                     Outcome        => To_Tristate (Static_Eval.Outcome),
+                     Values         => Condition_Evaluation_Vectors.Empty,
+                     Next_Condition => No_Condition_Index);
+               begin
+                  Populate_From_Static_Eval_Vector
+                    (SCO, Static_Eval.Values, Eval.Values);
+                  return Eval;
+               end To_Evaluation;
+
+            begin
+               if Kind (SCO) /= Decision then
+                  raise Program_Error with "Unexpected " & Kind (SCO)'Image
+                                           & " SCO kind registered as a static"
+                                           & " decision.";
+               end if;
+
+               SCOs_Trace.Trace ("Inserting "
+                                 & S_Eval.Length'Image
+                                 & " static SCOs for "
+                                 & Image (CP_SCO));
+
+               for J in S_Eval.Iterate loop
+                  declare
+                     Eval : Static_Decision_Evaluation renames
+                        S_Eval.Element (J);
+                  begin
+                     Inserted_SCI.Evaluations.Include
+                       (To_Evaluation (CP_SCO, Eval));
+                     Inserted_SCI.Known_Outcome_Taken (Eval.Outcome) := True;
+                  end;
+               end loop;
+
+               Merge_Checkpoint_SCI
+                 (SCO,
+                  Tag_Provider.Map_Tag (Relocs, Inserted_SCI.Tag),
+                  Inserted_SCI,
+                  Relocs);
+            end Insert_Extra_Decision_SCI;
          begin
+            if CLS.Static_Decision_Evaluations.Contains (CP_SCO) then
+
+               --  Check if the current SCO has static evaluations, and
+               --  merge them as an extra SCI if yes.
+
+               Insert_Extra_Decision_SCI
+                 (CLS.Static_Decision_Evaluations.Element (CP_SCO));
+            end if;
+
             if not Removed then
                for CP_SCI of Element (SCO_Cur) loop
                   if CP_SCI /= null then
@@ -932,10 +1003,32 @@ package body Coverage.Source is
                   --  information.
 
                   if Decision_Outcome (SCO) /= Unknown then
-                     --  Case of a compile time known decision: exclude from
+                     --  Case of a compile time known decision
+                     --  exclude from
                      --  coverage analysis.
 
-                     if Report_If_Excluded (SCO) then
+                     if SCI.Evaluations.Length > 1 then
+                        --  Case of a compile time known decision that was
+                        --  consolidated with several checkpoints in which
+                        --  the decision had different static conditions, but
+                        --  kept the same outcome anyway.
+
+                        --  In this case, we chose to report the violation,
+                        --  because if you have a static decision in your code
+                        --  that may change depending on the build context,
+                        --  then you SHOULD get it covered
+
+                        SCO_State := Not_Covered;
+                        Report_Violation
+                           (SCO,
+                           SCI.Tag,
+                           "outcome "
+                           & To_Boolean (Decision_Outcome (SCO))'Image
+                           & " never exercised");
+                        Update_Line_State
+                          (Line_Info, SCO, SCI.Tag, Decision, SCO_State);
+
+                     elsif Report_If_Excluded (SCO) then
                         SCO_State := Not_Coverable;
 
                         --  Note: we do not report the exclusion of this SCO,
