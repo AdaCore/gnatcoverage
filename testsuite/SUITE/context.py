@@ -235,18 +235,42 @@ class Test(object):
             "\n{}".format(what, indent(str(expected)), indent(str(actual))),
         )
 
-    def fail_if_no_match(self, what, regexp, actual):
-        """Register a check failure when ACTUAL does not match regexp."""
+    def _fail_if_regex(self, what, regexp, actual, match_is_fail=False):
         if isinstance(regexp, str):
             regexp = re.compile(regexp)
         # Canonicalize to Unix-style line endings to have cross-platform checks
         actual = actual.replace("\r\n", "\n")
+        matching = bool(regexp.match(actual))
         self.fail_if(
-            not regexp.match(actual),
-            "Unexpected {}. Expected:"
+            matching == match_is_fail,
+            "Error {}."
+            "\n{}:"
             "\n{}"
             "\nBut got:"
-            "\n{}".format(what, indent(regexp.pattern), indent(str(actual))),
+            "\n{}".format(
+                what,
+                "Unexpected" if match_is_fail else "Expected",
+                indent(regexp.pattern),
+                indent(str(actual)),
+            ),
+        )
+
+    def fail_if_no_match(self, what, regexp, actual):
+        """Register a check failure when ACTUAL does not match regexp."""
+        self._fail_if_regex(
+            what,
+            regexp,
+            actual,
+            match_is_fail=False,
+        )
+
+    def fail_if_match(self, what, regexp, actual):
+        """Register a check failure when ACTUAL does match regexp."""
+        self._fail_if_regex(
+            what,
+            regexp,
+            actual,
+            match_is_fail=True,
         )
 
     def stop(self, exc):

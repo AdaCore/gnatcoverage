@@ -127,14 +127,40 @@ package body Instrument.Ada_Unit_Provider is
          return Element (Unit_Name_Cur);
       end if;
 
-      --  The requested unit does not belong to the project tree: look for a
-      --  source file in the runtime.
+      --  The requested unit is not registered in the project tree under its
+      --  unit name. Assume it may be an overridden runtime file present
+      --  in the project tree with a krunched name.
 
       declare
-         Basename : constant String :=
+         Runtime_Basename : constant String :=
            Libadalang.Unit_Files.File_From_Unit (Name, Kind);
+         --  Finds the krunched name of the corresponding runtime file based
+         --  on the unit name.
+
+         Unit_Basename    : String :=
+            Runtime_Basename (1 .. Runtime_Basename'Length - 4) & Part;
+         --  Re-use the krunched runtime filename to find the entry under
+         --  which the overridden runtime file may have been stored.
+         --  It's basically the runtime filename, but with '%b|%s' instead of
+         --  the file extension and with dots '.' instead of dashes '-'.
+
       begin
-         Unit_Name_Cur := Provider.Runtime_Files.Find (Basename);
+
+         for I in 1 .. Unit_Basename'Length loop
+            if Unit_Basename (I) = '-' then
+               Unit_Basename (I) := '.';
+            end if;
+         end loop;
+
+         Unit_Name_Cur := Provider.Unit_Map.Find (Unit_Basename);
+         if Has_Element (Unit_Name_Cur) then
+            return Element (Unit_Name_Cur);
+         end if;
+
+         --  The requested unit does not belong to the project tree: look for a
+         --  source file in the runtime.
+
+         Unit_Name_Cur := Provider.Runtime_Files.Find (Runtime_Basename);
          if Has_Element (Unit_Name_Cur) then
             return Element (Unit_Name_Cur);
          end if;
