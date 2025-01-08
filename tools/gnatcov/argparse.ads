@@ -18,8 +18,6 @@
 
 private with Ada.Finalization;
 
-with GNAT.Strings;
-
 with Strings; use Strings;
 
 --  This generic package is meant to take care of parsing command-line
@@ -335,7 +333,7 @@ package Argparse is
 
    function Parse
      (Parser       : Parser_Type;
-      Args         : GNAT.Strings.String_List_Access;
+      Args         : String_Vectors.Vector;
       With_Command : Command_Type := No_Command;
       Callback     : access procedure (Result : in out Parsed_Arguments;
                                        Ref    : Option_Reference) := null)

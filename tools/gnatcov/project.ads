@@ -198,10 +198,9 @@ package Project is
    --
    --  If no project is loaded, just return null.
 
-   function Switches (Op : String) return String_List_Access
+   function Switches (Op : String) return String_Vectors.Vector
       with Pre => Is_Project_Loaded;
-   --  Return a list of gnatcov switches defined by the root project. Caller
-   --  is responsible for deallocation.
+   --  Return a list of gnatcov switches defined by the root project
 
    function Output_Dir return String
       with Pre => Is_Project_Loaded;
