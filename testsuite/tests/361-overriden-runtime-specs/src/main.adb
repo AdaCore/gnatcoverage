@@ -1,11 +1,7 @@
-with Ada.Containers.Vectors;
+with Ada.Numerics.Aux;
+with Ada.Text_IO; use Ada.Text_IO;
 
 procedure Main is
-   package Int_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Integer);
-
-   V : Int_Vectors.Vector;
 begin
-   V.Append (3);
+   Put_Line (Integer'Image (Ada.Numerics.Aux.Not_Pi));
 end Main;

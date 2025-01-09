@@ -1,9 +1,7 @@
 """
 This test checks that we have no warning when instrumenting a project
-that redefines some runtime files, here a-convec.ad[sb]
+that redefines some runtime files, here a-numaux.ad[sb]
 """
-
-import re
 
 from SCOV.minicheck import build_and_run
 from SUITE.context import thistest
@@ -21,27 +19,24 @@ build_and_run(
     ),
     mains=["main"],
     covlevel="stmt",
-    extra_coverage_args=["-v"],
-    quiet=False,
+    extra_gprbuild_args=["-gnatg"],
+    extra_coverage_args=[],
 )
 
 # Ensure `gnatcov instrument` did not confuse runtime files
-warn_regexp = re.compile(
-    r".*Warning: same base name for files:\n.*a-convec\.ads\n.*a-convec\.ads.*",  # noqa: E501
-    flags=re.S,
-)
-thistest.fail_if_match(
-    "Warning found in instrumentation output, gnatcov used both overriden "
-    "and original runtime files",
-    warn_regexp,
-    contents_of("instrument.log"),
-)
+# (Do not run this check on bin-traces)
+if thistest.options.trace_mode != "bin":
+    thistest.fail_if_not_equal(
+        "Expected empty instrumentation output, but a warning/error was found",
+        "",
+        contents_of("instrument.log"),
+    )
 
 # Ensure the overridden runtime file was used
 # (i.e. calling Vector.Append prints Toto)
-thistest.fail_if_no_match(
-    "call to Vector.Append shall print 'Toto'",
-    "Toto",
+thistest.fail_if_not_equal(
+    "If the right a-numaux.ads is used, it will print 123456",
+    " 123456\n",
     contents_of("main_output.txt"),
 )
 

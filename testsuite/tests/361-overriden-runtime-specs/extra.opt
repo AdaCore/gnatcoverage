@@ -1,2 +1,0 @@
-5.04a1 DEAD 5.04a1 can't compile our custom runtime file, as it is too recent
-bin-traces DEAD GPRbuild will fail to compile this project on a leon3 target
