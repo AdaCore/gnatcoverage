@@ -33,10 +33,11 @@ if thistest.options.trace_mode != "bin":
     )
 
 # Ensure the overridden runtime file was used
-# (i.e. calling Vector.Append prints Toto)
-thistest.fail_if_not_equal(
+# On embedded targets, a source trace file will be dumped after the expected
+# output. That's why we use a regex.
+thistest.fail_if_no_match(
     "If the right a-numaux.ads is used, it will print 123456",
-    " 123456\n",
+    r"^ 123456\n(== GNATcoverage source trace file ==.*== End ==\n)?",
     contents_of("main_output.txt"),
 )
 
