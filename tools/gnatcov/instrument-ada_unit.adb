@@ -1356,7 +1356,9 @@ package body Instrument.Ada_Unit is
 
    function Get_From_File
      (Instrumenter : in out Ada_Instrumenter_Type'Class;
-      Filename     : String) return Libadalang.Analysis.Analysis_Unit;
+      Filename     : String;
+      Reparse      : Boolean := False)
+      return Libadalang.Analysis.Analysis_Unit;
    --  Fetch the analysis unit for the given filename
 
    -------------------------
@@ -8412,8 +8414,9 @@ package body Instrument.Ada_Unit is
 
    function Get_From_File
      (Instrumenter : in out Ada_Instrumenter_Type'Class;
-      Filename     : String) return Libadalang.Analysis.Analysis_Unit
-   is
+      Filename     : String;
+      Reparse      : Boolean := False)
+      return Libadalang.Analysis.Analysis_Unit is
    begin
       --  If we exceeded the maximum number of calls to Get_From_File, start
       --  with a new context.
@@ -8424,7 +8427,7 @@ package body Instrument.Ada_Unit is
       Instrumenter.Get_From_File_Count :=
         Instrumenter.Get_From_File_Count + 1;
 
-      return Instrumenter.Context.Get_From_File (Filename);
+      return Instrumenter.Context.Get_From_File (Filename, Reparse => Reparse);
    end Get_From_File;
 
    -------------------------------------------
@@ -9468,7 +9471,7 @@ package body Instrument.Ada_Unit is
                                                   then Instrumented_Filename
                                                   else Source_Filename);
       Unit                  : constant Libadalang.Analysis.Analysis_Unit :=
-        Self.Context.Get_From_File (File_To_Search);
+        Get_From_File (Self, File_To_Search);
       Rewriter              : Ada_Source_Rewriter;
       External_Annotations  : Instr_Annotation_Map;
 
@@ -9809,7 +9812,7 @@ package body Instrument.Ada_Unit is
                                                   then Instrumented_Filename
                                                   else Source_Filename);
       Unit                  : constant Libadalang.Analysis.Analysis_Unit :=
-        Self.Context.Get_From_File (File_To_Search, Reparse => True);
+        Get_From_File (Self, File_To_Search, Reparse => True);
 
       Rewriter              : Ada_Source_Rewriter;
 
