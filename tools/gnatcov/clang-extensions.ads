@@ -33,6 +33,14 @@ package Clang.Extensions is
    function Get_Body (C : Cursor_T) return Cursor_T
      with Import, Convention => C, External_Name => "clang_getBody";
 
+   function Get_Function_Signature_Sloc (C : Cursor_T) return Source_Range_T
+      with
+         Import,
+         Convention => C,
+         External_Name => "clang_getFunctionSignatureSloc";
+   --  Given a FunctionDecl or LambdaExpr, returns the Source Range of the
+   --  signature, thus excluding the body if there is one.
+
    function Get_Cond (C : Cursor_T) return Cursor_T
      with Import, Convention => C, External_Name => "clang_getCond";
 

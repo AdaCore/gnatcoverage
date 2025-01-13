@@ -1368,6 +1368,12 @@ package body Instrument.C is
                Text => Make_Statement_Witness (UIC, Buffers_Index, Bit),
                Rew  => UIC.Rewriter);
 
+         when Instr_In_Compound =>
+            Insert_Text_In_Brackets
+              (CmpdStmt => SS.Statement,
+               Text     => Make_Statement_Witness (UIC, Buffers_Index, Bit),
+               Rew      => UIC.Rewriter);
+
          when Instr_Expr =>
             Insert_Text_After_Start_Of
               (N    => SS.Statement,
@@ -2647,50 +2653,85 @@ package body Instrument.C is
                   --  Only instrument definitions, not declarations.
                   --  Lambda expressions are always definitions.
 
-                  if Is_This_Declaration_A_Definition (N) or else
-                     Cursor_Kind = Cursor_Lambda_Expr
+                  if not (Is_This_Declaration_A_Definition (N) or else
+                     Cursor_Kind = Cursor_Lambda_Expr)
                   then
-                     declare
-                        Fun_Body : constant Cursor_T := Get_Body (N);
-                        Stmts    : constant Cursor_Vectors.Vector :=
-                          Get_Children (Fun_Body);
-                        --  Get_Body returns a Compound_Stmt, convert it to a
-                        --  list of statements using the Get_Children utility.
-
-                        TB : Unbounded_String;
-                        --  Trailing braces that should be inserted at the end
-                        --  of the function body.
-
-                     begin
-                        if Cursor_Kind /= Cursor_Lambda_Expr then
-                           UIC.Pass.Enter_Scope (UIC, N);
-                        end if;
-
-                        --  Do not instrument constexpr function as it would
-                        --  violate the constexpr restrictions.
-
-                        if Is_Constexpr (N) then
-                           UIC.Pass.Report
-                             (N,
-                              "gnatcov limitation: cannot instrument constexpr"
-                              & " functions.");
-                           UIC.Disable_Instrumentation := True;
-                        end if;
-
-                        if Stmts.Length > 0 then
-                           UIC.MCDC_State_Declaration_Node :=
-                             Stmts.First_Element;
-                           Traverse_Statements (UIC, Stmts, TB);
-                           UIC.Pass.Insert_Text_Before_Token
-                             (UIC, End_Sloc (Fun_Body), +TB);
-                        end if;
-                        if Cursor_Kind /= Cursor_Lambda_Expr then
-                           UIC.Pass.Exit_Scope (UIC);
-                        end if;
-                        UIC.Disable_Instrumentation :=
-                          Save_Disable_Instrumentation;
-                     end;
+                     goto Continue;
                   end if;
+
+                  declare
+                     Fun_Body : constant Cursor_T := Get_Body (N);
+                     Stmts    : constant Cursor_Vectors.Vector :=
+                       Get_Children (Fun_Body);
+                     --  Get_Body returns a Compound_Stmt, convert it to a
+                     --  list of statements using the Get_Children utility.
+
+                     TB : Unbounded_String;
+                     --  Trailing braces that should be inserted at the end
+                     --  of the function body.
+
+                  begin
+                     if Cursor_Kind /= Cursor_Lambda_Expr then
+                        UIC.Pass.Enter_Scope (UIC, N);
+                     end if;
+
+                     --  Do not instrument constexpr function as it would
+                     --  violate the constexpr restrictions.
+
+                     if Is_Constexpr (N) then
+                        UIC.Pass.Report
+                          (N,
+                           "gnatcov limitation: cannot instrument constexpr"
+                           & " functions.");
+                        UIC.Disable_Instrumentation := True;
+                     end if;
+
+                     if Stmts.Length > 0 then
+                        UIC.MCDC_State_Declaration_Node :=
+                          Stmts.First_Element;
+                        Traverse_Statements (UIC, Stmts, TB);
+                        UIC.Pass.Insert_Text_Before_Token
+                          (UIC, End_Sloc (Fun_Body), +TB);
+                     end if;
+
+                     if Enabled (Coverage_Options.Fun_Call) and then
+                        Fun_Body /= Get_Null_Cursor
+                     then
+                        Sources_Trace.Trace ("Instrument Function at "
+                                             & Image
+                                               (Start_Sloc (Fun_Body)));
+
+                        declare
+                           Signature_SR : constant Source_Range_T :=
+                              Get_Function_Signature_Sloc (N);
+                        begin
+                           UIC.Pass.Append_SCO
+                             (UIC  => UIC,
+                              N    => N,
+                              C1   => 'c',
+                              C2   => 'F',
+                              From => Sloc (Get_Range_Start (Signature_SR)),
+                              To   => Sloc (Get_Range_End (Signature_SR)),
+                              Last => True);
+                        end;
+
+                        UIC.Pass.Start_Statement_Block (UIC);
+
+                        UIC.Pass.Instrument_Statement
+                          (UIC          => UIC,
+                           LL_SCO       => SCOs.SCO_Table.Last,
+                           Insertion_N  => Fun_Body,
+                           Instr_Scheme => Instr_In_Compound);
+
+                        UIC.Pass.End_Statement_Block (UIC);
+                     end if;
+
+                     if Cursor_Kind /= Cursor_Lambda_Expr then
+                        UIC.Pass.Exit_Scope (UIC);
+                     end if;
+                     UIC.Disable_Instrumentation :=
+                       Save_Disable_Instrumentation;
+                  end;
 
                --  Traverse the declarations of a namespace / linkage
                --  specification etc.
@@ -2714,6 +2755,8 @@ package body Instrument.C is
             end case;
 
          end if;
+
+         <<Continue>>
       end loop;
 
       --  Restore previous MCDC_State insertion node: we can have lambda

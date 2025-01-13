@@ -154,7 +154,7 @@ package Instrument.C is
    --  Create a C++ instrumenter. See the definition of the
    --  Language_Instrumenter type for the arguments semantic.
 
-   type Instr_Scheme_Type is (Instr_Stmt, Instr_Expr);
+   type Instr_Scheme_Type is (Instr_Stmt, Instr_Expr, Instr_In_Compound);
    --  Depending on the statement construct, we can instrument it either with
    --  another statement right before (Instr_Stmt), which is the case for most
    --  statements:
@@ -179,6 +179,14 @@ package Instrument.C is
    --  very well be a goto pointing inside the loop, making it skip the
    --  execution of the witness statement, but we would still be executing the
    --  condition of the loop on the second iteration.
+   --
+   --  The variant Instr_In_Compound shall be used with a Compound Statement
+   --  only. The specificity of a compound statement is that it is delimited
+   --  by brackets. Using this scheme, the instrumentation will insert a
+   --  witness statement *just* after the opening bracket. This is used for
+   --  Function coverage, and particularly useful for functions with empty
+   --  bodies in which it is not possible to refer to the body's first
+   --  statement to insert a witness statement before it.
 
    type C_Source_Statement is record
       LL_SCO : Nat;
