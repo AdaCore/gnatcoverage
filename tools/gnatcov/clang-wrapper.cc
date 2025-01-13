@@ -351,6 +351,37 @@ clang_getLBracLocPlusOne (CXCursor C)
   return translateSLoc (TU, S->getLBracLoc ().getLocWithOffset (1));
 }
 
+extern "C" bool
+clang_isInstrumentableCallExpr (CXCursor C)
+{
+  if (!clang_isExpression (C.kind))
+    return false;
+
+  // return C.kind == CXCursor_CallExpr;
+
+  const Expr *E = getCursorExpr (C);
+  switch (E->getStmtClass ())
+    {
+    case Stmt::CallExprClass:            //  Simple call expression
+    case Stmt::CXXOperatorCallExprClass: // C++ Overloaded operator call
+    case Stmt::CXXMemberCallExprClass:   // C++ Method Call
+
+      // TODO??? All theses classes are regrouped under the CXCursor_Call_Expr
+      //         kind. Decide what to do with them, so the call coverage
+      //         instrumentation of Ctors and Dtors makes sense.
+      // case Stmt::CUDAKernelCallExprClass:
+      // case Stmt::CXXConstructExprClass:
+      // case Stmt::CXXInheritedCtorInitExprClass:
+      // case Stmt::CXXTemporaryObjectExprClass:
+      // case Stmt::CXXUnresolvedConstructExprClass:
+      // case Stmt::UserDefinedLiteralClass:
+      return true;
+
+    default:
+      return false;
+    }
+}
+
 extern "C" CXSourceRange
 clang_getFunctionSignatureSloc (CXCursor C)
 {

@@ -1605,6 +1605,53 @@ package body Instrument.C is
       end if;
    end Is_Complex_Decision;
 
+   -----------------------
+   -- Process_Call_Expr --
+   -----------------------
+
+   procedure Process_Call_Expr
+     (UIC : in out C_Unit_Inst_Context; Cursor : Cursor_T);
+
+   procedure Process_Call_Expr
+     (UIC : in out C_Unit_Inst_Context; Cursor : Cursor_T)
+   is
+      function Visit_Call_Expr (C : Cursor_T) return Child_Visit_Result_T;
+
+      function Visit_Call_Expr (C : Cursor_T) return Child_Visit_Result_T is
+      begin
+         if Kind (C) = Cursor_Lambda_Expr then
+            return Child_Visit_Continue;
+         end if;
+
+         if Is_Instrumentable_Call_Expr (C) then
+            Sources_Trace.Trace ("Instrument Call at "
+                                 & Image (Start_Sloc (C)));
+
+            UIC.Pass.Append_SCO
+              (UIC  => UIC,
+               N    => C,
+               C1   => 'c',
+               C2   => 'S',
+               From => Start_Sloc (C),
+               To   => End_Sloc (C),
+               Last => True);
+
+            UIC.Pass.Instrument_Statement
+              (UIC          => UIC,
+               LL_SCO       => SCOs.SCO_Table.Last,
+               Insertion_N  => C,
+               Instr_Scheme => Instr_Expr);
+         end if;
+
+         return Child_Visit_Recurse;
+      end Visit_Call_Expr;
+
+   begin
+      if Enabled (Coverage_Options.Fun_Call) then
+         Visit (Cursor, Visit_Call_Expr'Access);
+      end if;
+   end Process_Call_Expr;
+
    ------------------------
    -- Process_Expression --
    ------------------------
@@ -2010,6 +2057,9 @@ package body Instrument.C is
       end if;
 
       Process_Decisions (UIC, N, T);
+
+      Process_Call_Expr (UIC, N);
+
       Visit (N, Process_Lambda_Expr'Access);
    end Process_Expression;
 
@@ -2114,7 +2164,8 @@ package body Instrument.C is
 
       procedure Add_SCO_And_Instrument_Statement
         (N            : Cursor_T;
-         Typ          : Character;
+         C1           : Character := 'S';
+         C2           : Character := ' ';
          Insertion_N  : Cursor_T := Get_Null_Cursor;
          Instr_Scheme : Instr_Scheme_Type := Instr_Stmt);
       --  Instrument the statement N.
@@ -2181,7 +2232,7 @@ package body Instrument.C is
             --  Determine required type character code, or ASCII.NUL if
             --  no SCO should be generated for this node.
 
-            Add_SCO_And_Instrument_Statement (N, ' ');
+            Add_SCO_And_Instrument_Statement (N, C2 => ' ');
 
             --  Process any embedded decisions
 
@@ -2222,7 +2273,7 @@ package body Instrument.C is
                  (UIC, Get_Children (N), TB, Is_Block => False);
 
             when Cursor_If_Stmt =>
-               Add_SCO_And_Instrument_Statement (N, 'I');
+               Add_SCO_And_Instrument_Statement (N, C2 => 'I');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
 
@@ -2255,7 +2306,7 @@ package body Instrument.C is
                end;
 
             when Cursor_Switch_Stmt =>
-               Add_SCO_And_Instrument_Statement (N, 'C');
+               Add_SCO_And_Instrument_Statement (N, C2 => 'C');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
                declare
@@ -2289,7 +2340,8 @@ package body Instrument.C is
                   --  initialization expression.
 
                   Add_SCO_And_Instrument_Statement
-                    (N, 'W',
+                    (N,
+                     C2           => 'W',
                      Insertion_N  => (if Is_Null (Cond_Var)
                                       then Cond
                                       else Get_Var_Init_Expr (Cond_Var)),
@@ -2318,7 +2370,7 @@ package body Instrument.C is
                   --  Process the while decision
 
                   Add_SCO_And_Instrument_Statement
-                    (Do_While, 'W', Instr_Scheme => Instr_Expr);
+                    (Do_While, C2 => 'W', Instr_Scheme => Instr_Expr);
                   UIC.Pass.End_Statement_Block (UIC);
                   UIC.Pass.Start_Statement_Block (UIC);
                   Process_Expression (UIC, Do_While, 'W');
@@ -2332,11 +2384,11 @@ package body Instrument.C is
                   For_Body : constant Cursor_T := Get_Body (N);
                begin
                   Add_SCO_And_Instrument_Statement
-                    (For_Init, ' ', Insertion_N => N);
+                    (For_Init, C2 => ' ', Insertion_N => N);
                   UIC.Pass.End_Statement_Block (UIC);
                   UIC.Pass.Start_Statement_Block (UIC);
                   Add_SCO_And_Instrument_Statement
-                    (For_Cond, 'F', Instr_Scheme => Instr_Expr);
+                    (For_Cond, C2 => 'F', Instr_Scheme => Instr_Expr);
                   UIC.Pass.End_Statement_Block (UIC);
                   UIC.Pass.Start_Statement_Block (UIC);
 
@@ -2348,7 +2400,7 @@ package body Instrument.C is
                   Traverse_Statements (UIC, To_Vector (For_Body), TB);
 
                   Add_SCO_And_Instrument_Statement
-                    (For_Inc, ' ', Instr_Scheme => Instr_Expr);
+                    (For_Inc, C2 => ' ', Instr_Scheme => Instr_Expr);
                   UIC.Pass.End_Statement_Block (UIC);
                   UIC.Pass.Start_Statement_Block (UIC);
                end;
@@ -2369,7 +2421,9 @@ package body Instrument.C is
                      --  below code.
 
                      Add_SCO_And_Instrument_Statement
-                       (For_Init_Stmt, ' ', Insertion_N  => For_Init_Stmt);
+                       (For_Init_Stmt,
+                        C2 => ' ',
+                        Insertion_N  => For_Init_Stmt);
                      UIC.Pass.End_Statement_Block (UIC);
                      UIC.Pass.Start_Statement_Block (UIC);
                      Process_Expression (UIC, For_Init_Stmt, 'X');
@@ -2384,7 +2438,7 @@ package body Instrument.C is
                   --  Instrument the range as mentioned above
 
                   Add_SCO_And_Instrument_Statement
-                    (For_Range_Decl, ' ',
+                    (For_Range_Decl, C2 => ' ',
                      Insertion_N  => N,
                      Instr_Scheme => Instr_Stmt);
                   UIC.Pass.End_Statement_Block (UIC);
@@ -2399,7 +2453,7 @@ package body Instrument.C is
                end;
 
             when Cursor_Goto_Stmt | Cursor_Indirect_Goto_Stmt =>
-               Add_SCO_And_Instrument_Statement (N, ' ');
+               Add_SCO_And_Instrument_Statement (N, C2 => ' ');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
 
@@ -2410,7 +2464,7 @@ package body Instrument.C is
                  (UIC, Get_Children (N), TB, Is_Block => False);
 
             when Cursor_Break_Stmt =>
-               Add_SCO_And_Instrument_Statement (N, ' ');
+               Add_SCO_And_Instrument_Statement (N, C2 => ' ');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
 
@@ -2438,9 +2492,15 @@ package body Instrument.C is
                   UIC.Pass.End_Statement_Block (UIC);
                   UIC.Pass.Start_Statement_Block (UIC);
                else
-                  Add_SCO_And_Instrument_Statement (N, ' ');
+                  Add_SCO_And_Instrument_Statement (N, C2 => ' ');
+
+                  --  Only call Process_Call_Expr if Process_Expression was
+                  --  not called, because it will do it otherwise.
+
                   if Has_Decision (N) then
                      Process_Expression (UIC, N, 'X');
+                  else
+                     Process_Call_Expr (UIC, N);
                   end if;
                end if;
 
@@ -2471,7 +2531,8 @@ package body Instrument.C is
 
       procedure Add_SCO_And_Instrument_Statement
         (N            : Cursor_T;
-         Typ          : Character;
+         C1           : Character := 'S';
+         C2           : Character := ' ';
          Insertion_N  : Cursor_T := Get_Null_Cursor;
          Instr_Scheme : Instr_Scheme_Type := Instr_Stmt)
       is
@@ -2516,8 +2577,8 @@ package body Instrument.C is
          UIC.Pass.Append_SCO
            (UIC  => UIC,
             N    => N,
-            C1   => 'S',
-            C2   => Typ,
+            C1   => C1,
+            C2   => C2,
             From => F,
             To   => T,
             Last => True);
