@@ -1,4 +1,5 @@
 #include "foo.h"
+#include "helpers.h"
 
 int
 main (void)
