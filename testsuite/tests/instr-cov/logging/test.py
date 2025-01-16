@@ -87,6 +87,15 @@ class SortByFiles(OutputRefiner):
                 by_file = {}
                 current_file = None
                 result.append(line)
+            elif line.startswith(
+                "[GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing "
+            ):
+                _, project_name = line.rsplit(None, 1)
+                if by_file is None:
+                    flush_files()
+                    by_file = {}
+                by_file[project_name] = [line]
+                current_file = project_name
             elif by_file is None:
                 # No section being processed: just forward this log line
                 result.append(line)
