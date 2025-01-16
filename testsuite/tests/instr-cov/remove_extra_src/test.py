@@ -40,8 +40,8 @@ mylib_gpr = gprfor(
 dummy_gpr = gprfor(
     prjid="dummy",
     mains=[],
-    langs=["C"],
-    srcdirs=["../src-myprog"],
+    langs=[],
+    srcdirs=["../src-dummy"],
     objdir="obj-myprog",
 )
 myprog_gpr = gprfor(
