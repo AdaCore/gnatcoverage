@@ -11,13 +11,13 @@ project Greet is
    package Naming is
       case Val_Impl is
          when "static_true" =>
-            for Spec ("Pkg") use "st_pkg.ads";
+            for Spec ("Pkg") use "pkg__st.ads";
          when "static_false" =>
-            for Spec ("Pkg") use "sf_pkg.ads";
+            for Spec ("Pkg") use "pkg__sf.ads";
          when "dynamic_true" =>
-            for Spec ("Pkg") use "dt_pkg.ads";
+            for Spec ("Pkg") use "pkg__dt.ads";
          when "dynamic_false" =>
-            for Spec ("Pkg") use "df_pkg.ads";
+            for Spec ("Pkg") use "pkg__df.ads";
       end case;
    end Naming;
 end Greet;
