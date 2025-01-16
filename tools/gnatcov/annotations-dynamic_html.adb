@@ -23,7 +23,6 @@ with Ada.Text_IO;
 with Ada.Text_IO.Unbounded_IO;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
-with GNATCOLL.VFS;  use GNATCOLL.VFS;
 
 with GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
@@ -449,21 +448,16 @@ package body Annotations.Dynamic_Html is
 
          --  If the project was loaded, get the language information from it
 
-         declare
-            Lang : constant String :=
-              Project.Project.Info (Create (+Info.Full_Name.all)).Language;
-         begin
-            case To_Language_Or_All (Lang) is
-               when Ada_Language =>
-                  Source.Set_Field ("language", "ada");
-               when C_Language =>
-                  Source.Set_Field ("language", "c");
-               when CPP_Language =>
-                  Source.Set_Field ("language", "cpp");
-               when All_Languages =>
-                  null;
-            end case;
-         end;
+         case Language (Info.Full_Name.all) is
+            when Ada_Language =>
+               Source.Set_Field ("language", "ada");
+            when C_Language =>
+               Source.Set_Field ("language", "c");
+            when CPP_Language =>
+               Source.Set_Field ("language", "cpp");
+            when All_Languages =>
+               null;
+         end case;
       else
          --  If no project was loaded, infer the language from the
          --  source extension.

@@ -25,7 +25,6 @@ with GNAT.Strings; use GNAT.Strings;
 
 with Command_Line; use Command_Line;
 with Outputs;      use Outputs;
-with Project;
 with Support_Files;
 with Switches;     use Switches;
 
@@ -122,5 +121,5 @@ exception
    when Xcov_Exit_Exc =>
       --  An error message has already been displayed
 
-      Project.Finalize;
+      null;
 end GNATcov;

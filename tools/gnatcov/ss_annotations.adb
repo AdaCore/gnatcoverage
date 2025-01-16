@@ -23,8 +23,9 @@ with Ada.Text_IO;
 
 with Interfaces; use Interfaces;
 
-with GNATCOLL.Projects;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
+with GPR2.Build.Source;
+with GPR2.Project.View;
 
 with TOML;
 
@@ -772,7 +773,7 @@ package body SS_Annotations is
       Annotation      : constant TOML_Value := Create_Table;
       SS_Backend      : Unbounded_String := +Opt_SS_Backend;
       File_Prefix     : Unbounded_String := +Opt_Source_Root;
-      Info            : GNATCOLL.Projects.File_Info;
+      Source          : GPR2.Build.Source.Object;
 
    begin
       --  First, determine the kind of annotation we'll be generating
@@ -798,7 +799,12 @@ package body SS_Annotations is
       Target_File := Create (+(+Args.Remaining_Args.Last_Element));
 
       if Is_Project_Loaded then
-         Info := Project.Project.Info (Target_File);
+         Source := Project.Lookup_Source (+Target_File.Full_Name);
+         if not Source.Is_Defined then
+            Fatal_Error
+              (Target_File.Display_Full_Name
+               & ": no such file in the project");
+         end if;
       end if;
 
       if not Target_File.Is_Regular_File then
@@ -916,7 +922,7 @@ package body SS_Annotations is
          --  If we have a project loaded, use it to determine the file language
 
          if Is_Project_Loaded then
-            Language := To_Language_Or_All (Info.Language);
+            Language := To_Language_Or_All (Source.Language);
          end if;
 
          --  If this failed or we have no project at hand, revert to simple
@@ -941,7 +947,7 @@ package body SS_Annotations is
       --  have a project at hand.
 
       if US.Length (File_Prefix) = 0 and then Is_Project_Loaded then
-         case To_Language_Or_All (Info.Language) is
+         case To_Language_Or_All (Source.Language) is
             when Ada_Language =>
 
                --  Ada source files are guaranteed to be unique in a project,
@@ -955,25 +961,30 @@ package body SS_Annotations is
                --  tree, if so, do the same thing.
 
                declare
-                  Ambiguous     : Boolean;
-                  File_From_Prj : Virtual_File;
-                  Rel_Path      : constant String :=
-                    +Create
-                       (Relative_Path
-                          (Target_File, Info.Project.Project_Path.Dir))
-                     .Dir_Name;
+                  Count    : Natural := 0;
+                  Basename : constant GPR2.Simple_Name :=
+                    Source.Path_Name.Simple_Name;
+                  Prj_Dir  : constant Virtual_File :=
+                    Create (+String (Source.Owning_View.Dir_Name.Value));
+                  Rel_Path : constant String :=
+                    +Create (Relative_Path (Target_File, Prj_Dir)).Dir_Name;
                begin
-                  Project.Project.Create
-                    (Name      => Target_File.Base_Name,
-                     Project   => GNATCOLL.Projects.No_Project,
-                     Ambiguous => Ambiguous,
-                     File      => File_From_Prj);
+                  for View of Project.Project loop
+                     declare
+                        S : constant GPR2.Build.Source.Object :=
+                          View.Source (Basename);
+                     begin
+                        if S.Is_Defined then
+                           Count := Count + 1;
+                        end if;
+                     end;
+                  end loop;
 
                   --  If the basename is ambiguous, use the relative path from
                   --  the project to the file, if it has no relative path
                   --  components (./ or ..).
 
-                  if Ambiguous then
+                  if Count > 1 then
                      if Has_Relative_Component (Rel_Path) then
                         Warn
                           ("Could not generate adequate file prefix from"
@@ -1143,12 +1154,34 @@ package body SS_Annotations is
 
       if Args.Remaining_Args.Is_Empty then
          declare
-            Files : File_Array_Access :=
-              Project.Project.Root_Project.Source_Files
-                (Recursive                => True,
-                 Include_Externally_Built =>
-                   Project.Externally_Built_Projects_Processing_Enabled);
+            Source_Files : String_Vectors.Vector;
+            Files        : File_Array_Access;
+            I            : Positive := 1;
+
+            procedure Add_File
+              (Project : GPR2.Project.View.Object;
+               File    : GPR2.Build.Source.Object);
+            --  Callabck for Enumerate_Sources: append File to Source_Files
+
+            --------------
+            -- Add_File --
+            --------------
+
+            procedure Add_File
+              (Project : GPR2.Project.View.Object;
+               File    : GPR2.Build.Source.Object)
+            is
+               pragma Unreferenced (Project);
+            begin
+               Source_Files.Append (+String (File.Path_Name.Value));
+            end Add_File;
          begin
+            Project.Enumerate_Sources (Add_File'Access, All_Languages);
+            Files := new File_Array (1 .. Positive (Source_Files.Length));
+            for F of Source_Files loop
+               Files.all (I) := Create (+(+F));
+               I := I + 1;
+            end loop;
             Match_Results := Match_Entries
               (Files.all, Ext_Annotation_DB, +Purpose_Filter);
             GNATCOLL.VFS.Unchecked_Free (Files);

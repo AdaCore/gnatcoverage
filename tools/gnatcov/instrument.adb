@@ -28,12 +28,21 @@ with GNAT.OS_Lib;
 with Interfaces; use Interfaces;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
+with GPR2.Build.Unit_Info;
+
+--  ??? Remove pragma Warnings once eng/toolchain/gnat#1283 is fixed
+
+pragma Warnings (Off, "not referenced");
+with GPR2.Project.View.Set;
+pragma Warnings (On, "not referenced");
 
 with Command_Line;   use Command_Line;
 with Files_Handling; use Files_Handling;
 with Hex_Images;     use Hex_Images;
 
 package body Instrument is
+
+   use type GPR2.Unit_Kind;
 
    function Hash_32_Image (S : String) return String
    is (Hex_Image (Unsigned_32 (Ada.Strings.Hash (S))));
@@ -89,7 +98,11 @@ package body Instrument is
       case CUP.Language_Kind is
          when Unit_Based_Language =>
             Read (CLS, CUP.Unit);
-            CUP.Part := Unit_Parts'Val (CLS.Read_U8);
+            CUP.Part := (case CLS.Read_U8 is
+                         when 0      => GPR2.S_Body,
+                         when 1      => GPR2.S_Spec,
+                         when 2      => GPR2.S_Separate,
+                         when others => raise Constraint_Error);
 
          when File_Based_Language =>
             CUP.Filename := CLS.Read_Unbounded_String;
@@ -117,7 +130,11 @@ package body Instrument is
       case Value.Language_Kind is
          when Unit_Based_Language =>
             Write (CSS, Value.Unit);
-            CSS.Write_U8 (Unit_Parts'Pos (Value.Part));
+            CSS.Write_U8
+              (case Value.Part is
+               when GPR2.S_Spec     => 1,
+               when GPR2.S_Body     => 0,
+               when GPR2.S_Separate => 2);
 
          when File_Based_Language =>
             CSS.Write (Value.Filename);
@@ -338,9 +355,9 @@ package body Instrument is
             return To_Ada (CU_Name.Unit)
               & " "
               & (case CU_Name.Part is
-                    when GNATCOLL.Projects.Unit_Spec     => "spec",
-                    when GNATCOLL.Projects.Unit_Body     => "body",
-                    when GNATCOLL.Projects.Unit_Separate => "subunit");
+                    when GPR2.S_Spec     => "spec",
+                    when GPR2.S_Body     => "body",
+                    when GPR2.S_Separate => "subunit");
          when File_Based_Language =>
             return +CU_Name.Filename;
       end case;
@@ -402,15 +419,15 @@ package body Instrument is
 
    function CU_Name_For_Unit
      (Unit : Ada_Qualified_Name;
-      Part : Unit_Parts) return Compilation_Unit_Part
+      Part : GPR2.Valid_Unit_Kind) return Compilation_Unit_Part
    is
    begin
       return (Unit_Based_Language, Unit, Part);
    end CU_Name_For_Unit;
 
-   -----------------------------
+   ----------------------
    -- CU_Name_For_File --
-   -----------------------------
+   ----------------------
 
    function CU_Name_For_File
      (Filename : Unbounded_String) return Compilation_Unit_Part is
@@ -423,17 +440,20 @@ package body Instrument is
    ------------------------------
 
    function To_Compilation_Unit_Name
-     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Part
-   is
+     (Source : GPR2.Build.Source.Object) return Compilation_Unit_Part is
    begin
-      case Language_Kind (To_Language (Source_File.Language)) is
+      case Language_Kind (To_Language (Source.Language)) is
          when Unit_Based_Language =>
-            return CU_Name_For_Unit
-              (Unit => To_Qualified_Name (Source_File.Unit_Name),
-               Part => Source_File.Unit_Part);
+            declare
+               Unit : constant GPR2.Build.Unit_Info.Object := Source.Unit;
+            begin
+               return CU_Name_For_Unit
+                 (Unit => To_Qualified_Name (To_Lower (String (Unit.Name))),
+                  Part => Unit.Kind);
+            end;
          when File_Based_Language =>
             return CU_Name_For_File
-              (Filename => +(+Source_File.File.Full_Name));
+              (Filename => +String (Source.Path_Name.Value));
       end case;
    end To_Compilation_Unit_Name;
 

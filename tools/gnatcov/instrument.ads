@@ -21,7 +21,8 @@
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 
-with GNATCOLL.Projects; use GNATCOLL.Projects;
+with GPR2.Build.Source;
+with GPR2.Project.View;
 
 with Types; use Types;
 
@@ -44,8 +45,6 @@ package Instrument is
    Sources_Trace : constant Logging.GNATCOLL_Trace :=
      Logging.Create_Trace ("INSTRUMENT_SOURCES");
    --  Trace to show details about written instrumented sources
-
-   package GPR renames GNATCOLL.Projects;
 
    use type Ada.Containers.Count_Type;
    use all type Unbounded_String;
@@ -103,8 +102,8 @@ package Instrument is
 
       case Language_Kind is
          when Unit_Based_Language =>
-            Unit : Ada_Qualified_Name := Ada_Identifier_Vectors.Empty_Vector;
-            Part : Unit_Parts         := GNATCOLL.Projects.Unit_Body;
+            Unit : Ada_Qualified_Name   := Ada_Identifier_Vectors.Empty_Vector;
+            Part : GPR2.Valid_Unit_Kind := GPR2.S_Body;
             --  Identifies an Ada compilation unit (unit-based)
 
          when File_Based_Language =>
@@ -126,10 +125,10 @@ package Instrument is
       Value : Compilation_Unit_Part);
    --  Write a Compilation_Unit_Part to CSS
 
-   Part_Tags : constant array (Unit_Parts) of Character :=
-     (GNATCOLL.Projects.Unit_Spec     => 'S',
-      GNATCOLL.Projects.Unit_Body     => 'B',
-      GNATCOLL.Projects.Unit_Separate => 'U');
+   Part_Tags : constant array (GPR2.Valid_Unit_Kind) of Character :=
+     (GPR2.S_Spec     => 'S',
+      GPR2.S_Body     => 'B',
+      GPR2.S_Separate => 'U');
 
    function "=" (Left, Right : Compilation_Unit_Part) return Boolean;
 
@@ -190,7 +189,7 @@ package Instrument is
 
    function CU_Name_For_Unit
      (Unit : Ada_Qualified_Name;
-      Part : Unit_Parts) return Compilation_Unit_Part;
+      Part : GPR2.Valid_Unit_Kind) return Compilation_Unit_Part;
    --  Return the compilation unit name for the Ada compilation unit
    --  corresponding to the unit name and the unit part parameters.
 
@@ -200,9 +199,8 @@ package Instrument is
    --  corresponding to the filename parameter.
 
    function To_Compilation_Unit_Name
-     (Source_File : GNATCOLL.Projects.File_Info) return Compilation_Unit_Part;
-   --  Return the compilation unit name corresponding to the unit in
-   --  Source_File.
+     (Source : GPR2.Build.Source.Object) return Compilation_Unit_Part;
+   --  Return the compilation unit name corresponding to the unit in Source
 
    package Instrumented_Unit_To_CU_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Compilation_Unit_Part,
@@ -273,6 +271,9 @@ package Instrument is
    type Prj_Desc is record
       Prj_Name : Ada_Qualified_Name;
       --  Name for the project
+
+      View : GPR2.Project.View.Object;
+      --  GPR2 view for the project, if this is backed by an actual GPR project
 
       Output_Dir : Unbounded_String;
       --  Where the instrumented sources and coverage buffer units are

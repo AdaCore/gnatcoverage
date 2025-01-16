@@ -19,12 +19,10 @@
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
 
-with GNATCOLL.VFS;
-
+with GPR2;
 with Langkit_Support.Text; use Langkit_Support.Text;
-
-with Libadalang.Analysis; use Libadalang.Analysis;
-with Libadalang.Common;   use Libadalang.Common;
+with Libadalang.Analysis;  use Libadalang.Analysis;
+with Libadalang.Common;    use Libadalang.Common;
 
 --  Custom implementation of a libadalang unit provider, using the mapping
 --  file produced from the project file (that is passed to the compiler through
@@ -32,15 +30,18 @@ with Libadalang.Common;   use Libadalang.Common;
 
 package Instrument.Ada_Unit_Provider is
 
+   procedure Create_Mapping_File (Filename : String);
+   --  Write a mapping for all Ada sources in the currently loaded project.
+   --  This mapping file is intended to be passed as Dependencies_Filename to
+   --  Create_Provider.
+
    type Provider_Type is new Libadalang.Analysis.Unit_Provider_Interface
      with private;
 
    function Create_Provider
-     (Runtime_Directories   : String_Vectors.Vector;
-      Dependencies_Filename : String) return Provider_Type;
-   --  Create a unit provider, from a list of predefined directories passed
-   --  through Runtime_Directories, and from a mapping file in the same format
-   --  as the file passed through -gnatem in the compiler invocation.
+     (Mapping_File : String) return Provider_Type;
+   --  Create a unit provider from a mapping file in the same format as the
+   --  file passed through -gnatem in the compiler invocation.
 
    overriding function Get_Unit_Filename
      (Provider : Provider_Type;
@@ -64,12 +65,10 @@ package Instrument.Ada_Unit_Provider is
    function Has_Unit
      (Provider  : Provider_Type;
       Unit_Name : String;
-      Unit_Part : Unit_Parts) return Boolean;
+      Unit_Part : GPR2.Valid_Unit_Kind) return Boolean;
    --  Returns whether given unit is in the provider unit closure
 
 private
-
-   use type GNATCOLL.VFS.Virtual_File;
 
    package String_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
@@ -81,10 +80,6 @@ private
    with record
       Unit_Map : String_Maps.Map;
       --  Mapping from unit name to file fullnames
-
-      Runtime_Files : String_Maps.Map;
-      --  Mapping from a runtime file basename to its fullname
-
    end record;
 
 end Instrument.Ada_Unit_Provider;

@@ -167,7 +167,8 @@ package Instrument.Common is
    --  gives the possibility to link two separately-instrumented libraries in
    --  the same executable.
 
-   function Project_Output_Dir (Project : Project_Type) return String;
+   function Project_Output_Dir
+     (Project : GPR2.Project.View.Object) return String;
    --  Return the directory in which we must create instrumented sources for
    --  Project. This returns an empty string for projects that do not have an
    --  object directory.
@@ -536,7 +537,7 @@ package Instrument.Common is
    procedure Replace_Manual_Indications
      (Self                  : in out Language_Instrumenter;
       Prj                   : in out Prj_Desc;
-      Source                : GNATCOLL.Projects.File_Info;
+      Source                : GPR2.Build.Source.Object;
       Has_Dump_Indication   : out Boolean;
       Has_Reset_Indication  : out Boolean);
    --  Look for the pragmas (for Ada) or comments (for C family languages)
