@@ -1,13 +1,13 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Life; use Life;
 
-procedure Test_Case_Expr_Full is
+procedure Test_Partial_Root is
    A_Dog    : constant Animal := (T => Mammal, M_Kind => Dog);
    A_Snake  : constant Animal := (T => Reptile, R_Kind => Snake);
 begin
    Put_Line (Scream (A_Dog));
    Put_Line (Scream (A_Snake));
-end Test_Case_Expr_Full;
+end Test_Partial_Root;
 
 --# life.adb
 --  /return/         l+ ## 0

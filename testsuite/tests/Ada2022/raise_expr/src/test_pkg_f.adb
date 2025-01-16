@@ -2,10 +2,10 @@ with Support;
 
 with Pkg; use Pkg;
 
-procedure Test_Pkg_T is
+procedure Test_Pkg_F is
 begin
    Support.Assert (not Identity (A => False, Do_Raise => False));
-end Test_Pkg_T;
+end Test_Pkg_F;
 
 --# pkg.adb
 --

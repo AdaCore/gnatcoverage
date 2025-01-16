@@ -2,10 +2,10 @@ with Support; use Support;
 
 with Pkg; use Pkg;
 
-procedure Test_F_F is
+procedure Test_0 is
 begin
    null;
-end Test_F_F;
+end Test_0;
 
 --# pkg.ads
 --

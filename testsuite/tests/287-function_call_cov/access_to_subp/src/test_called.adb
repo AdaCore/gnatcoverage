@@ -3,7 +3,7 @@ with Access_To_Subp;
 --  Check function and call coverage for an acces to a subprogram.
 --  Here, all calls and functions are executed.
 
-procedure Test_Not_Called is
+procedure Test_Called is
 begin
     Access_To_Subp;
 end;

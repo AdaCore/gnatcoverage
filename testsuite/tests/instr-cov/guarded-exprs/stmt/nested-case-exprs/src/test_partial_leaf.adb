@@ -1,7 +1,7 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Life; use Life;
 
-procedure Test_Case_Expr_Full is
+procedure Test_Partial_Leaf is
    A_Dog    : constant Animal := (T => Mammal, M_Kind => Dog);
    A_Cat    : constant Animal := (T => Mammal, M_Kind => Cat);
    A_Cow    : constant Animal := (T => Mammal, M_Kind => Cow);
@@ -9,7 +9,7 @@ begin
    Put_Line (Scream (A_Dog));
    Put_Line (Scream (A_Cat));
    Put_Line (Scream (A_Cow));
-end Test_Case_Expr_Full;
+end Test_Partial_Leaf;
 
 --# life.adb
 --  /return/         l+ ## 0
