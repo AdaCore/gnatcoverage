@@ -2762,6 +2762,8 @@ package body Instrument.C is
                                              & Image
                                                (Start_Sloc (Fun_Body)));
 
+                        UIC.Pass.Start_Statement_Block (UIC);
+
                         declare
                            Signature_SR : constant Source_Range_T :=
                               Get_Function_Signature_Sloc (N);
@@ -2775,8 +2777,6 @@ package body Instrument.C is
                               To   => Sloc (Get_Range_End (Signature_SR)),
                               Last => True);
                         end;
-
-                        UIC.Pass.Start_Statement_Block (UIC);
 
                         UIC.Pass.Instrument_Statement
                           (UIC          => UIC,
