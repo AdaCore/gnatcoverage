@@ -2,7 +2,7 @@
 
 """Expose operand kinds suitable for condition expressions."""
 
-import SCOV.expgen.ast as ast
+import SCOV.expgen.syntax as syntax
 
 
 class Operand(object):
@@ -73,14 +73,14 @@ class LanguageSpecific(Operand):
 
         # Convert ACTUALS to ast.XLitteral nodes.
         actuals = {
-            False: ast.XLitteral(self.LANGUAGE, self.ACTUALS[False]),
-            True: ast.XLitteral(self.LANGUAGE, self.ACTUALS[True]),
+            False: syntax.XLitteral(self.LANGUAGE, self.ACTUALS[False]),
+            True: syntax.XLitteral(self.LANGUAGE, self.ACTUALS[True]),
         }
 
         super(LanguageSpecific, self).__init__(xtypes, param_type, actuals)
 
     def get_operand(self, param):
-        return ast.XOperand(self.LANGUAGE, self.FORMAT, param)
+        return syntax.XOperand(self.LANGUAGE, self.FORMAT, param)
 
     # Mapping: type_tuple id -> ast.XType
     # This is global since a type can be used in more than one operand kind,
@@ -94,7 +94,7 @@ class LanguageSpecific(Operand):
             xtype = self.converted_types[type_id]
         except KeyError:
             declaration, usage = type_
-            xtype = ast.XType(self.LANGUAGE, declaration, usage)
+            xtype = syntax.XType(self.LANGUAGE, declaration, usage)
             self.converted_types[type_id] = xtype
         return xtype
 
@@ -103,17 +103,17 @@ class Variable(Operand):
     """The operand is just the usage of a boolean argument."""
 
     ACTUALS = {
-        False: ast.LitteralBoolean(False),
-        True: ast.LitteralBoolean(True),
+        False: syntax.LitteralBoolean(False),
+        True: syntax.LitteralBoolean(True),
     }
 
     def __init__(self):
         super(Variable, self).__init__(
-            (ast.BooleanType,), ast.BooleanType, self.ACTUALS
+            (syntax.BooleanType,), syntax.BooleanType, self.ACTUALS
         )
 
     def get_operand(self, param):
-        return ast.VariableUsage(param)
+        return syntax.VariableUsage(param)
 
 
 class IntegerComparison(Operand):
@@ -123,28 +123,28 @@ class IntegerComparison(Operand):
     # Each factory takes the compared integer and returns (a false actual, a
     # true one).
     ACTUALS_MAKERS = {
-        ast.RelOp.GT: lambda value: (value - 1, value + 1),
-        ast.RelOp.GE: lambda value: (value - 1, value + 1),
-        ast.RelOp.LT: lambda value: (value + 1, value - 2),
-        ast.RelOp.LE: lambda value: (value + 1, value - 2),
-        ast.RelOp.EQ: lambda value: (value + 1, value),
-        ast.RelOp.NE: lambda value: (value, value + 1),
+        syntax.RelOp.GT: lambda value: (value - 1, value + 1),
+        syntax.RelOp.GE: lambda value: (value - 1, value + 1),
+        syntax.RelOp.LT: lambda value: (value + 1, value - 2),
+        syntax.RelOp.LE: lambda value: (value + 1, value - 2),
+        syntax.RelOp.EQ: lambda value: (value + 1, value),
+        syntax.RelOp.NE: lambda value: (value, value + 1),
     }
 
     def __init__(self, operator, value):
         actual_false, actual_true = self.ACTUALS_MAKERS[operator](value)
         super(IntegerComparison, self).__init__(
-            (ast.IntegerType,),
-            ast.IntegerType,
+            (syntax.IntegerType,),
+            syntax.IntegerType,
             {
-                False: ast.LitteralInteger(actual_false),
-                True: ast.LitteralInteger(actual_true),
+                False: syntax.LitteralInteger(actual_false),
+                True: syntax.LitteralInteger(actual_true),
             },
         )
         self.operator = operator
-        self.value = ast.LitteralInteger(value)
+        self.value = syntax.LitteralInteger(value)
 
     def get_operand(self, param):
-        return ast.Comparison(
-            self.operator, ast.VariableUsage(param), self.value
+        return syntax.Comparison(
+            self.operator, syntax.VariableUsage(param), self.value
         )

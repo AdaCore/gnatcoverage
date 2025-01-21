@@ -3,7 +3,7 @@
 """Set of composition elements."""
 
 
-import SCOV.expgen.ast as ast
+import SCOV.expgen.syntax as syntax
 import SCOV.expgen.context as context
 import SCOV.expgen.language as language
 import SCOV.expgen.language.ada.context as ada_context
@@ -17,7 +17,7 @@ languages = [lang_mod.Language() for lang_mod in (language.ada, language.c)]
 
 operand_kinds = [
     operand.Variable(),
-    operand.IntegerComparison(ast.RelOp.GT, 1),
+    operand.IntegerComparison(syntax.RelOp.GT, 1),
     # Ada-specific operands
     ada_operand.Aggregate(),
     ada_operand.Component(),
