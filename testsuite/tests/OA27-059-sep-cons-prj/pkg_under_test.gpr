@@ -5,9 +5,9 @@ project Pkg_Under_Test is
    for Object_Dir use "obj";
 
    package Coverage is
-      for Switches ("Coverage") use
+      for Switches ("coverage") use
         ("--level=stmt+decision", "--annotate=xcov");
-      for Switches ("Instrument") use ("--level=stmt+decision");
+      for Switches ("instrument") use ("--level=stmt+decision");
       for Units use ("Pkg_Under_Test");
       for Ignored_Source_Files use ("pkg_under_test-pkg_test.adb");
    end Coverage;
