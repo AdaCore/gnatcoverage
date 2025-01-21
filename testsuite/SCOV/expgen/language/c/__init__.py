@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
 
-import SCOV.expgen.ast as ast
+import SCOV.expgen.syntax as syntax
 import SCOV.expgen.utils as utils
 import SCOV.expgen.language as language
 
 
 # Serialization of relational operators
 REL_OP = {
-    ast.RelOp.GT: ">",
-    ast.RelOp.GE: ">=",
-    ast.RelOp.LT: ">",
-    ast.RelOp.LE: ">=",
-    ast.RelOp.EQ: "==",
-    ast.RelOp.NE: "!=",
+    syntax.RelOp.GT: ">",
+    syntax.RelOp.GE: ">=",
+    syntax.RelOp.LT: ">",
+    syntax.RelOp.LE: ">=",
+    syntax.RelOp.EQ: "==",
+    syntax.RelOp.NE: "!=",
 }
 
 # Serialization for builtin types
 BUILTIN_TYPES = {
-    ast.Types.BOOLEAN: "int",
-    ast.Types.INTEGER: "int",
+    syntax.Types.BOOLEAN: "int",
+    syntax.Types.INTEGER: "int",
 }
 
 
@@ -81,8 +81,8 @@ class Language(language.Language):
             self.write("{")
             self.newline()
             with self.indent(self.INDENT):
-                call_to_run = ast.Call(
-                    ast.VariableUsage(self.ENTRY_POINT_NAME),
+                call_to_run = syntax.Call(
+                    syntax.VariableUsage(self.ENTRY_POINT_NAME),
                     [
                         op_kind.actuals[op_truth]
                         for op_kind, op_truth in zip(
@@ -91,13 +91,13 @@ class Language(language.Language):
                     ],
                 )
                 self.handle(
-                    ast.Call(
-                        ast.VariableUsage(self.ASSERT_PROC_NAME),
+                    syntax.Call(
+                        syntax.VariableUsage(self.ASSERT_PROC_NAME),
                         [
-                            ast.Comparison(
-                                ast.RelOp.EQ,
+                            syntax.Comparison(
+                                syntax.RelOp.EQ,
                                 call_to_run,
-                                ast.LitteralBoolean(truth_vector[-1]),
+                                syntax.LitteralBoolean(truth_vector[-1]),
                             )
                         ],
                     )
@@ -111,7 +111,7 @@ class Language(language.Language):
         self.set_stream(stream)
         with HeaderGuard(self, self.TYPES_MODULE):
             for type_decl in types:
-                if not isinstance(type_decl, ast.BuiltinType):
+                if not isinstance(type_decl, syntax.BuiltinType):
                     self.handle(type_decl, declaration=True)
 
     def serialize_specification_program(
@@ -124,7 +124,7 @@ class Language(language.Language):
 
             self.add_subprogram_signature(
                 self.ENTRY_POINT_NAME,
-                ast.BooleanType,
+                syntax.BooleanType,
                 formal_names,
                 formal_types,
                 True,
@@ -144,7 +144,7 @@ class Language(language.Language):
 
         self.add_subprogram_signature(
             self.ENTRY_POINT_NAME,
-            ast.BooleanType,
+            syntax.BooleanType,
             formal_names,
             formal_types,
             False,
@@ -309,9 +309,9 @@ class Language(language.Language):
         is_composite = isinstance(
             expr,
             (
-                ast.Comparison,
-                ast.And,
-                ast.Or,
+                syntax.Comparison,
+                syntax.And,
+                syntax.Or,
             ),
         )
 
