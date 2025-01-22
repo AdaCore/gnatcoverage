@@ -525,7 +525,7 @@ class SMRchapter(Rchapter):
             self, re_start=re_start, re_end=".. END OF REPORT ..$"
         )
         self.skeys = skeys
-        self.checked = {sec: False for sec in skeys}
+        self.checked = dict.fromkeys(skeys, False)
 
     def try_match(self, sec, rline):
         p = re.match(self.skeys[sec], rline)

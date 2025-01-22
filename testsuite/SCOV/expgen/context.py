@@ -3,7 +3,7 @@
 """Expose contexts suitable for decisions."""
 
 
-import SCOV.expgen.ast as ast
+import SCOV.expgen.syntax as syntax
 
 
 class Context(object):
@@ -39,15 +39,15 @@ class LanguageSpecific(Context):
         self.language = self.LANGUAGE
 
     def get_program(self, decision_expr):
-        return ast.Program(
-            [], [ast.XContext(self.LANGUAGE, self.FORMAT, decision_expr)]
+        return syntax.Program(
+            [], [syntax.XContext(self.LANGUAGE, self.FORMAT, decision_expr)]
         )
 
 
 # Tag for statements whose execution depends on the outcome of the decision
 # expression.
-ON_TRUE_TAG = ast.Tag("on-true", None, None)
-ON_FALSE_TAG = ast.Tag("on-false", None, None)
+ON_TRUE_TAG = syntax.Tag("on-true", None, None)
+ON_FALSE_TAG = syntax.Tag("on-false", None, None)
 
 
 class Call(Context):
@@ -58,22 +58,22 @@ class Call(Context):
     The user must provide an implementation for this function.
     """ ""
 
-    TAG_CONTEXT = ast.TagTypes.EXPRESSION
+    TAG_CONTEXT = syntax.TagTypes.EXPRESSION
 
     def get_program(self, param):
         temp_name = "result"
-        temp_usage = ast.VariableUsage(temp_name)
+        temp_usage = syntax.VariableUsage(temp_name)
 
-        return ast.Program(
+        return syntax.Program(
             [
-                (temp_name, ast.BooleanType),
+                (temp_name, syntax.BooleanType),
             ],
             [
-                ast.Assign(
+                syntax.Assign(
                     temp_usage,
-                    ast.Call(ast.VariableUsage("identity"), [param]),
+                    syntax.Call(syntax.VariableUsage("identity"), [param]),
                 ),
-                ast.Return(temp_usage),
+                syntax.Return(temp_usage),
             ],
         )
 
@@ -84,19 +84,21 @@ class If(Context):
     statement.
     """
 
-    TAG_CONTEXT = ast.TagTypes.DECISION
+    TAG_CONTEXT = syntax.TagTypes.DECISION
 
     def get_program(self, condition):
-        return ast.Program(
+        return syntax.Program(
             [],  # No local variable
             [
-                ast.If(
+                syntax.If(
                     condition,
-                    ast.TaggedNode(
-                        ON_TRUE_TAG, ast.Return(ast.LitteralBoolean(True))
+                    syntax.TaggedNode(
+                        ON_TRUE_TAG,
+                        syntax.Return(syntax.LitteralBoolean(True)),
                     ),
-                    ast.TaggedNode(
-                        ON_FALSE_TAG, ast.Return(ast.LitteralBoolean(False))
+                    syntax.TaggedNode(
+                        ON_FALSE_TAG,
+                        syntax.Return(syntax.LitteralBoolean(False)),
                     ),
                 )
             ],
@@ -109,32 +111,33 @@ class While(Context):
     statement.
     """
 
-    TAG_CONTEXT = ast.TagTypes.DECISION
+    TAG_CONTEXT = syntax.TagTypes.DECISION
 
     def get_program(self, condition):
-        return ast.Program(
+        return syntax.Program(
             [],  # No local variable
             [
-                ast.While(
+                syntax.While(
                     condition,
-                    ast.TaggedNode(
-                        ON_TRUE_TAG, ast.Return(ast.LitteralBoolean(True))
+                    syntax.TaggedNode(
+                        ON_TRUE_TAG,
+                        syntax.Return(syntax.LitteralBoolean(True)),
                     ),
                 ),
-                ast.TaggedNode(
-                    ON_FALSE_TAG, ast.Return(ast.LitteralBoolean(False))
+                syntax.TaggedNode(
+                    ON_FALSE_TAG, syntax.Return(syntax.LitteralBoolean(False))
                 ),
             ],
         )
 
 
 class Return(Context):
-    TAG_CONTEXT = ast.TagTypes.EXPRESSION
+    TAG_CONTEXT = syntax.TagTypes.EXPRESSION
 
     def get_program(self, condition):
-        return ast.Program(
+        return syntax.Program(
             [],
             [
-                ast.Return(condition),
+                syntax.Return(condition),
             ],
         )
