@@ -88,6 +88,12 @@ package Clang.Extensions is
 
    function Get_Callee_Name_Str (C : Cursor_T) return String with Inline;
 
+   function Is_This_Declaration_A_Definition (C : Cursor_T) return Boolean
+     with Inline;
+   --  Given a function or function template declaration, return true if
+   --  the declaration is indeed a definition (i.e. it has a body).
+   --  Providing another kind of node may return False;
+
    function Is_Constexpr (C : Cursor_T) return Boolean with Inline;
 
    function Unwrap (C : Cursor_T) return Cursor_T
