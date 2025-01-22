@@ -1358,6 +1358,10 @@ package body SC_Obligations is
       procedure Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id : SCO_Id)
       with pre => Kind (New_SCO_Id) = Decision;
 
+      -------------------------
+      -- Merge_Decision_SCOs --
+      -------------------------
+
       procedure Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id : SCO_Id)
       is
          use SC_Obligations.BDD;
@@ -1374,6 +1378,13 @@ package body SC_Obligations is
            (Vectors : Source_Coverage_Vectors;
             SCO_Dec : SCO_Id;
             Eval    : out Static_Decision_Evaluation) return Boolean;
+
+         procedure Register_Static_Evaluation
+           (SCO : SCO_Id; Eval : Static_Decision_Evaluation);
+
+         --------------------------
+         -- Decision_Static_Eval --
+         --------------------------
 
          function Decision_Static_Eval
            (Vectors : Source_Coverage_Vectors;
@@ -1427,8 +1438,9 @@ package body SC_Obligations is
             return True;
          end Decision_Static_Eval;
 
-         procedure Register_Static_Evaluation
-           (SCO : SCO_Id; Eval : Static_Decision_Evaluation);
+         --------------------------------
+         -- Register_Static_Evaluation --
+         --------------------------------
 
          procedure Register_Static_Evaluation
            (SCO : SCO_Id; Eval : Static_Decision_Evaluation) is
@@ -1444,7 +1456,7 @@ package body SC_Obligations is
                .Include (Eval);
          end Register_Static_Evaluation;
 
-         --  Start processing of Merge_Decision_SCOs
+      --  Start processing of Merge_Decision_SCOs
 
       begin
          if Old_SCOD.Decision_Instrumented then
@@ -1517,7 +1529,7 @@ package body SC_Obligations is
          end if;
       end Merge_Decision_SCOs;
 
-      --  Start processing of Checkpoint_Load_Merge_Unit
+   --  Start processing of Checkpoint_Load_Merge_Unit
 
    begin
       --  Here we already have loaded full SCO information for this CU. There
