@@ -562,6 +562,10 @@ package body SC_Obligations is
       SCO_Vector  : SCO_Vectors.Vector;
    end record;
 
+   function Index
+     (Vectors : Source_Coverage_Vectors; SCO  : SCO_Id) return Condition_Index;
+   --  Internal definition of the function free from global variables
+
    function Condition
      (Vectors : Source_Coverage_Vectors;
       SCO     : SCO_Id;
@@ -2576,6 +2580,20 @@ package body SC_Obligations is
       end if;
    end Last_SCO;
 
+   -----------
+   -- Index --
+   -----------
+
+   function Index
+     (Vectors : Source_Coverage_Vectors; SCO  : SCO_Id) return Condition_Index
+   is
+      SCOD : SCO_Descriptor renames
+        Vectors.SCO_Vector.Constant_Reference (SCO);
+   begin
+      pragma Assert (SCOD.Kind = Condition);
+      return SCOD.Index;
+   end Index;
+
    ---------------
    -- Condition --
    ---------------
@@ -2604,12 +2622,11 @@ package body SC_Obligations is
             if BDDN.Kind = Condition then
                Current_Condition_Index := Current_Condition_Index + 1;
                if Current_Condition_Index = Index then
-                  return C_SCO : constant SCO_Id := BDDN.C_SCO
-                  do
+                  return C_SCO : constant SCO_Id := BDDN.C_SCO do
                      pragma Assert
                        (Enclosing (Vectors, Decision, C_SCO) = SCO);
-                     pragma Assert (SC_Obligations.Index (C_SCO) = Index);
-                     null;
+                     pragma Assert
+                       (SC_Obligations.Index (Vectors, C_SCO) = Index);
                   end return;
                end if;
             end if;
@@ -3313,10 +3330,8 @@ package body SC_Obligations is
    -----------
 
    function Index (SCO : SCO_Id) return Condition_Index is
-      SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
    begin
-      pragma Assert (SCOD.Kind = Condition);
-      return SCOD.Index;
+      return Index (SC_Vectors, SCO);
    end Index;
 
    ----------------------------
