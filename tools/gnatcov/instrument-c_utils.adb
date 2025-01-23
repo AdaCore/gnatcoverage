@@ -351,6 +351,30 @@ package body Instrument.C_Utils is
          Insert => Text);
    end Insert_Text_After_Start_Of;
 
+   -----------------------------
+   -- Insert_Text_In_Brackets --
+   -----------------------------
+
+   procedure Insert_Text_In_Brackets
+     (CmpdStmt : Cursor_T;
+      Text     : String;
+      Rew      : Rewriter_T)
+   is
+      Location : Source_Location_T;
+   begin
+
+      --  If the Cursor is not of the right kind, the call to
+      --  Get_LBrac_Loc_Plus_One will return a null cursor.
+
+      pragma Assert (Kind (CmpdStmt) = Cursor_Compound_Stmt);
+
+      Location := Get_LBrac_Loc_Plus_One (CmpdStmt);
+      CX_Rewriter_Insert_Text_After
+        (Rew    => Rew,
+         Loc    => Location,
+         Insert => Text);
+   end Insert_Text_In_Brackets;
+
    ---------------------------------
    -- Insert_Text_Before_Start_Of --
    ---------------------------------

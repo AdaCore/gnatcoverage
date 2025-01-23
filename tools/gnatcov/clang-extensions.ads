@@ -94,6 +94,14 @@ package Clang.Extensions is
    --  the declaration is indeed a definition (i.e. it has a body).
    --  Providing another kind of node may return False;
 
+   function Get_LBrac_Loc_Plus_One (C : Cursor_T) return Source_Location_T
+     with Import, Convention => C,
+          External_Name => "clang_getLBracLocPlusOne";
+   --  Given a clang::CompoundStmt (which is a possibly empty list of
+   --  statements surrounded by brackets), return the Location just after its
+   --  opening bracket. Giving another kind of cursor will return a null
+   --  location.
+
    function Is_Constexpr (C : Cursor_T) return Boolean with Inline;
 
    function Unwrap (C : Cursor_T) return Cursor_T

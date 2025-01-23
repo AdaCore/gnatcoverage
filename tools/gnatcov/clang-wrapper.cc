@@ -335,6 +335,22 @@ clang_getWhileLoc (CXCursor C)
   return clang_getNullLocation ();
 }
 
+/* Given a clang::CompoundStmt, return the Location just after its left
+   bracket. Returns a null Location if the given argument is not as
+   expected. */
+
+extern "C" CXSourceLocation
+clang_getLBracLocPlusOne (CXCursor C)
+{
+  const auto TU = getCursorTU (C);
+  const CompoundStmt *S
+    = dyn_cast_if_present<const CompoundStmt> (getCursorStmt (C));
+  if (!S)
+    return clang_getNullLocation ();
+
+  return translateSLoc (TU, S->getLBracLoc ().getLocWithOffset (1));
+}
+
 extern "C" CXCursor
 clang_getSubExpr (CXCursor C)
 {
