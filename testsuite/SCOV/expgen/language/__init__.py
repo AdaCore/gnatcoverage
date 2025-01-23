@@ -6,7 +6,7 @@ Expose the base class for Language serializers and some formatting helpers.
 
 import io
 
-import SCOV.expgen.ast as ast
+import SCOV.expgen.syntax as syntax
 import SCOV.expgen.context as context
 import SCOV.expgen.operand as operand
 import SCOV.expgen.utils as utils
@@ -227,7 +227,7 @@ class Language(object):
         self.check_language(xoperand)
         # Languages can process identifiers in a specific way.
         formal_name, remaining_tag = self.format_tree(
-            ast.VariableUsage(xoperand.formal_name)
+            syntax.VariableUsage(xoperand.formal_name)
         )
         if remaining_tag:
             self.add_tag(remaining_tag)
@@ -291,7 +291,7 @@ class Language(object):
         """
         Return the subset of `types` that can be used with this language.
         """
-        return self._filter_nodes(ast.XType, types)
+        return self._filter_nodes(syntax.XType, types)
 
 
 #

@@ -2,13 +2,16 @@
 
 """Various helpers used through the whole package."""
 
-import SCOV.expgen.ast as ast
+import SCOV.expgen.syntax as syntax
 
 
 def check_tag(tag):
     """Assert whether the given `tag` is valid, or not."""
     if tag.name == "eval":
-        assert tag.context in (ast.TagTypes.DECISION, ast.TagTypes.EXPRESSION)
+        assert tag.context in (
+            syntax.TagTypes.DECISION,
+            syntax.TagTypes.EXPRESSION,
+        )
         assert tag.operand is not None
     else:
         assert tag.operand is None
@@ -26,7 +29,7 @@ def format_tag(tag):
 def contains_tag(node):
     """Return if the given `node` tree contains a tagged node."""
     return not isinstance(node, (str, bool, int)) and (
-        isinstance(node, ast.TaggedNode)
+        isinstance(node, syntax.TaggedNode)
         or any(contains_tag(subnode) for subnode in node)
     )
 
@@ -36,17 +39,17 @@ def is_expr(node):
     return isinstance(
         node,
         (
-            ast.VariableUsage,
-            ast.LitteralInteger,
-            ast.LitteralBoolean,
-            ast.LitteralRecord,
-            ast.Comparison,
-            ast.Call,
-            ast.XLitteral,
-            ast.XOperand,
-            ast.And,
-            ast.Or,
-            ast.Not,
+            syntax.VariableUsage,
+            syntax.LitteralInteger,
+            syntax.LitteralBoolean,
+            syntax.LitteralRecord,
+            syntax.Comparison,
+            syntax.Call,
+            syntax.XLitteral,
+            syntax.XOperand,
+            syntax.And,
+            syntax.Or,
+            syntax.Not,
         ),
     )
 
@@ -71,7 +74,7 @@ def is_topology_equal(topo1, topo2):
     """Return whether two topologies are equal."""
     if type(topo1) is not type(topo2):
         return False
-    elif isinstance(topo1, (ast.And, ast.Not, ast.Or)):
+    elif isinstance(topo1, (syntax.And, syntax.Not, syntax.Or)):
         return all(
             is_topology_equal(sub_topo1, sub_topo2)
             for sub_topo1, sub_topo2 in zip(topo1, topo2)
