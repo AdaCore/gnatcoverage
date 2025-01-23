@@ -1574,11 +1574,6 @@ package body Instrument.C is
    -- Internal Subprograms --
    --------------------------
 
-   function Has_Decision (T : Cursor_T) return Boolean;
-   --  T is the node for a subtree. Returns True if any (sub)expression in T
-   --  contains a nested decision (i.e. either is a logical operator, or
-   --  contains a logical operator in its subtree).
-
    function Is_Logical_Operator (N : Cursor_T) return Boolean;
    --  Return whether N is an operator that can be part of a decision (! or
    --  && / ||).
@@ -2063,51 +2058,6 @@ package body Instrument.C is
       Visit (N, Process_Lambda_Expr'Access);
    end Process_Expression;
 
-   ------------------
-   -- Has_Decision --
-   ------------------
-
-   function Has_Decision (T : Cursor_T) return Boolean is
-
-      function Visitor (N : Cursor_T) return Child_Visit_Result_T;
-      --  If N's kind indicates the presence of a decision, return
-      --  Child_Visit_Break, otherwise return Child_Visit_Recurse.
-      --
-      --  We know have a decision as soon as we have a logical operator (by
-      --  definition).
-
-      Has_Decision : Boolean := False;
-
-      -----------
-      -- Visit --
-      -----------
-
-      function Visitor (N : Cursor_T) return Child_Visit_Result_T
-      is
-      begin
-         if (Is_Expression (Kind (N)) and then Is_Complex_Decision (N))
-             or else Kind (N) = Cursor_Conditional_Operator
-         then
-            Has_Decision := True;
-            return Child_Visit_Break;
-
-         --  We don't want to visit lambda expressions: we will treat them
-         --  outside of the current expression.
-
-         elsif Kind (N) = Cursor_Lambda_Expr then
-            return Child_Visit_Continue;
-         else
-            return Child_Visit_Recurse;
-         end if;
-      end Visitor;
-
-   --  Start of processing for Has_Decision
-
-   begin
-      Visit (T, Visitor'Access);
-      return Has_Decision;
-   end Has_Decision;
-
    -------------------------
    -- Is_Logical_Operator --
    -------------------------
@@ -2494,14 +2444,7 @@ package body Instrument.C is
                else
                   Add_SCO_And_Instrument_Statement (N, C2 => ' ');
 
-                  --  Only call Process_Call_Expr if Process_Expression was
-                  --  not called, because it will do it otherwise.
-
-                  if Has_Decision (N) then
-                     Process_Expression (UIC, N, 'X');
-                  else
-                     Process_Call_Expr (UIC, N);
-                  end if;
+                  Process_Expression (UIC, N, 'X');
                end if;
 
             when Cursor_Decl_Stmt =>
