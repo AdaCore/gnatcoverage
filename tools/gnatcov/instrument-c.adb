@@ -4931,21 +4931,11 @@ package body Instrument.C is
 
             declare
                Body_Cursor : constant Cursor_T := Get_Body (Main_Cursor);
-
-               --  The body of a function is a compound statement, so insert
-               --  the call to atexit before its first statement.
-
-               Body_Stmts : constant Cursor_Vectors.Vector :=
-                 Get_Children (Body_Cursor);
-               First_Stmt : constant Cursor_T := Body_Stmts.First_Element;
-
-               Location : constant Source_Location_T :=
-                 Get_Cursor_Location (First_Stmt);
             begin
-               CX_Rewriter_Insert_Text_Before
-                 (Rew    => Rew.Rewriter,
-                  Loc    => Location,
-                  Insert => "atexit (" & Dump_Procedure_Symbol (Main) & ");");
+               Insert_Text_In_Brackets
+                 (CmpdStmt => Body_Cursor,
+                  Text     => "atexit (" & Dump_Procedure_Symbol (Main) & ");",
+                  Rew      => Rew.Rewriter);
             end;
 
          when others =>
