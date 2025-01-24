@@ -2162,6 +2162,39 @@ package body Instrument.C is
            UIC.Disable_Instrumentation;
          Save_Disable_Coverage        : constant Boolean :=
            UIC.Disable_Coverage;
+
+         procedure Instrument_Basic_Statement (N : Cursor_T);
+
+         --------------------------------
+         -- Instrument_Basic_Statement --
+         --------------------------------
+
+         procedure Instrument_Basic_Statement (N : Cursor_T) is
+         begin
+
+            --  Determine required type character code, or ASCII.NUL if
+            --  no SCO should be generated for this node.
+
+            Instrument_Statement (N, ' ');
+
+            --  Process any embedded decisions
+
+            if Is_Constexpr (N) then
+               UIC.Pass.Report
+                 (N,
+                  "gnatcov limitation: cannot instrument constexpr"
+                  & " variable declarations.");
+               UIC.Disable_Instrumentation := True;
+               Process_Expression (UIC, N, 'X');
+               UIC.Disable_Instrumentation :=
+                 Save_Disable_Instrumentation;
+            else
+               Process_Expression (UIC, N, 'X');
+            end if;
+         end Instrument_Basic_Statement;
+
+         --  Start processing of Traverse_One
+
       begin
          if Curlify (N) then
             Append (Trailing_Braces, '}');
@@ -2405,27 +2438,21 @@ package body Instrument.C is
                   end if;
                end if;
 
+            when Cursor_Decl_Stmt =>
+
+               --  Bail out of any "using" directive,
+               --  theses are not statements.
+
+               case Kind (Get_Single_Decl (N)) is
+                  when Cursor_Using_Declaration | Cursor_Using_Directive =>
+                     null;
+                  when others =>
+                     Instrument_Basic_Statement (N);
+               end case;
+
             when others =>
+               Instrument_Basic_Statement (N);
 
-               --  Determine required type character code, or ASCII.NUL if
-               --  no SCO should be generated for this node.
-
-               Instrument_Statement (N, ' ');
-
-               --  Process any embedded decisions
-
-               if Is_Constexpr (N) then
-                  UIC.Pass.Report
-                    (N,
-                     "gnatcov limitation: cannot instrument constexpr"
-                     & " variable declarations.");
-                  UIC.Disable_Instrumentation := True;
-                  Process_Expression (UIC, N, 'X');
-                  UIC.Disable_Instrumentation :=
-                    Save_Disable_Instrumentation;
-               else
-                  Process_Expression (UIC, N, 'X');
-               end if;
          end case;
 
          UIC.Disable_Coverage := Save_Disable_Coverage;
