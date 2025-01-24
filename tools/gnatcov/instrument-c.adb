@@ -2617,46 +2617,53 @@ package body Instrument.C is
                   | Cursor_Destructor
                   | Cursor_Lambda_Expr =>
 
-                  declare
-                     Fun_Body : constant Cursor_T := Get_Body (N);
-                     Stmts    : constant Cursor_Vectors.Vector :=
-                       Get_Children (Fun_Body);
-                     --  Get_Body returns a Compound_Stmt, convert it to a list
-                     --  of statements using the Get_Children utility.
+                  --  Only instrument definitions, not declarations.
+                  --  Lambda expressions are always definitions.
 
-                     TB : Unbounded_String;
-                     --  Trailing braces that should be inserted at the end
-                     --  of the function body.
+                  if Is_This_Declaration_A_Definition (N) or else
+                     Cursor_Kind = Cursor_Lambda_Expr
+                  then
+                     declare
+                        Fun_Body : constant Cursor_T := Get_Body (N);
+                        Stmts    : constant Cursor_Vectors.Vector :=
+                          Get_Children (Fun_Body);
+                        --  Get_Body returns a Compound_Stmt, convert it to a
+                        --  list of statements using the Get_Children utility.
 
-                  begin
-                     if Cursor_Kind /= Cursor_Lambda_Expr then
-                        UIC.Pass.Enter_Scope (UIC, N);
-                     end if;
+                        TB : Unbounded_String;
+                        --  Trailing braces that should be inserted at the end
+                        --  of the function body.
 
-                     --  Do not instrument constexpr function as it would
-                     --  violate the constexpr restrictions.
+                     begin
+                        if Cursor_Kind /= Cursor_Lambda_Expr then
+                           UIC.Pass.Enter_Scope (UIC, N);
+                        end if;
 
-                     if Is_Constexpr (N) then
-                        UIC.Pass.Report
-                          (N,
-                           "gnatcov limitation: cannot instrument constexpr"
-                           & " functions.");
-                        UIC.Disable_Instrumentation := True;
-                     end if;
+                        --  Do not instrument constexpr function as it would
+                        --  violate the constexpr restrictions.
 
-                     if Stmts.Length > 0 then
-                        UIC.MCDC_State_Declaration_Node :=
-                          Stmts.First_Element;
-                        Traverse_Statements (UIC, Stmts, TB);
-                        UIC.Pass.Insert_Text_Before_Token
-                          (UIC, End_Sloc (Fun_Body), +TB);
-                     end if;
-                     if Cursor_Kind /= Cursor_Lambda_Expr then
-                        UIC.Pass.Exit_Scope (UIC);
-                     end if;
-                     UIC.Disable_Instrumentation :=
-                       Save_Disable_Instrumentation;
-                  end;
+                        if Is_Constexpr (N) then
+                           UIC.Pass.Report
+                             (N,
+                              "gnatcov limitation: cannot instrument constexpr"
+                              & " functions.");
+                           UIC.Disable_Instrumentation := True;
+                        end if;
+
+                        if Stmts.Length > 0 then
+                           UIC.MCDC_State_Declaration_Node :=
+                             Stmts.First_Element;
+                           Traverse_Statements (UIC, Stmts, TB);
+                           UIC.Pass.Insert_Text_Before_Token
+                             (UIC, End_Sloc (Fun_Body), +TB);
+                        end if;
+                        if Cursor_Kind /= Cursor_Lambda_Expr then
+                           UIC.Pass.Exit_Scope (UIC);
+                        end if;
+                        UIC.Disable_Instrumentation :=
+                          Save_Disable_Instrumentation;
+                     end;
+                  end if;
 
                --  Traverse the declarations of a namespace / linkage
                --  specification etc.

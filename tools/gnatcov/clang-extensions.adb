@@ -90,6 +90,21 @@ package body Clang.Extensions is
       return Opcode_Str;
    end Get_Opcode_Str;
 
+   --------------------------------------
+   -- Is_This_Declaration_A_Definition --
+   --------------------------------------
+
+   function Is_This_Declaration_A_Definition (C : Cursor_T) return Boolean
+   is
+      function Is_This_Declaration_A_Definition_C
+        (C : Cursor_T) return unsigned
+        with
+          Import, Convention => C,
+          External_Name => "clang_isThisDeclarationADefinition";
+   begin
+      return Is_This_Declaration_A_Definition_C (C) /= 0;
+   end Is_This_Declaration_A_Definition;
+
    ------------------
    -- Is_Constexpr --
    ------------------
