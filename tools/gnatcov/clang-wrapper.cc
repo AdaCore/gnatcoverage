@@ -550,6 +550,20 @@ clang_isThisDeclarationADefinition (CXCursor C)
     }
 }
 
+extern "C" CXCursor
+clang_getSingleDecl (CXCursor C)
+{
+  if (clang_isStatement (C.kind))
+    {
+      if (const Stmt *S = getCursorStmt (C))
+        {
+          return MakeCXCursorWithNull (
+            llvm::cast_if_present<DeclStmt> (S)->getSingleDecl (), C);
+        }
+    }
+  return clang_getNullCursor ();
+}
+
 extern "C" unsigned
 clang_isConstexpr (CXCursor C)
 {
