@@ -11,9 +11,12 @@ import shutil
 import sys
 import tempfile
 
+from typing import AnyStr, Optional
+
 from e3.fs import cp, mkdir
 from e3.os.fs import cd, which
 from e3.os.process import Run
+from e3.testsuite.driver.diff import OutputRefiner
 
 
 def unhandled_exception_in(log):
@@ -304,6 +307,26 @@ def multi_range(*args, minus=None):
             result ^= set(range(start, end + 1))
 
     return result
+
+
+class FilePathRefiner(OutputRefiner[AnyStr]):
+    """
+    For each tag "@@FILE@@", find the file by looking at src_dir/FILE, and
+    replace the tag with the absolute path of the file.
+    """
+
+    TAG_REGEX = re.compile(r"@@(?P<filename>(?:\w|[./])+)@@")
+
+    def __init__(self, src_dir: Optional[AnyStr] = None) -> None:
+        self.src_dir = src_dir or ".."
+
+    def refine(self, output: AnyStr) -> AnyStr:
+        def _replace_tag(pat):
+            filename = pat.group("filename")
+            path = os.path.abspath(os.path.join(self.src_dir, filename))
+            return path
+
+        return re.sub(self.TAG_REGEX, _replace_tag, output)
 
 
 class Identifier:

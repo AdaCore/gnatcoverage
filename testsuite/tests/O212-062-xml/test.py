@@ -5,7 +5,7 @@ Check the content of an XML summary for assertion coverage.
 import os
 
 from SCOV.minicheck import build_run_and_coverage
-from SUITE.cutils import Wdir
+from SUITE.cutils import Wdir, FilePathRefiner
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor, thistest
 
@@ -22,6 +22,7 @@ xcov_args = build_run_and_coverage(
 thistest.fail_if_diff(
     os.path.join("..", "src-traces-index.xml.expected"),
     os.path.join("obj", "index.xml"),
+    output_refiners=[FilePathRefiner()],
 )
 
 thistest.result()

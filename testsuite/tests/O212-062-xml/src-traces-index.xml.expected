@@ -75,7 +75,7 @@
     <metric kind="disabled_coverage" count="0" ratio="0"/>
    </obligation_stats>
 
-   <file name="main.adb">
+   <file name="@@main.adb@@">
     <metric kind="total_lines_of_relevance" count="9"/>
     <metric kind="fully_covered" count="7" ratio="78"/>
     <metric kind="partially_covered" count="2" ratio="22"/>
