@@ -2443,7 +2443,7 @@ package body Instrument.C is
                --  Bail out of any "using" directive,
                --  theses are not statements.
 
-               case Kind (Get_Single_Decl (N)) is
+               case Kind (Get_First_Decl (N)) is
                   when Cursor_Using_Declaration | Cursor_Using_Directive =>
                      null;
                   when others =>
