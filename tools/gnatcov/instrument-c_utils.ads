@@ -115,6 +115,15 @@ package Instrument.C_Utils is
    --  If this procedure is called multiple times with the same N as parameter,
    --  the string will be inserted _after_ any previously inserted string.
 
+   procedure Insert_Text_In_Brackets
+     (CmpdStmt : Cursor_T;
+      Text     : String;
+      Rew      : Rewriter_T);
+   --  Insert the string Text just after the opening bracket of N.
+   --
+   --  This procedure shall be called with CompoundStmt nodes and will fail
+   --  otherwise.
+
    procedure Insert_Text_Before_Start_Of
      (N    : Cursor_T;
       Text : String;

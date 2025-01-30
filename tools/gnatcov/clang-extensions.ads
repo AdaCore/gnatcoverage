@@ -82,8 +82,10 @@ package Clang.Extensions is
    function Get_Operator_Loc (C : Cursor_T) return Source_Location_T
      with Import, Convention => C, External_Name => "clang_getOperatorLoc";
 
-   function Get_Single_Decl (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getSingleDecl";
+   function Get_First_Decl (C : Cursor_T) return Cursor_T
+     with Import, Convention => C, External_Name => "clang_getFirstDecl";
+   --  Given a Decl_Stmt, return the only declaration if it is a single decl,
+   --  and the first of the declaration list otherwise.
 
    function Get_Opcode_Str (C : Cursor_T) return String with Inline;
 
@@ -96,6 +98,14 @@ package Clang.Extensions is
    --  Given a function or function template declaration, return true if
    --  the declaration is indeed a definition (i.e. it has a body).
    --  Providing another kind of node may return False;
+
+   function Get_LBrac_Loc_Plus_One (C : Cursor_T) return Source_Location_T
+     with Import, Convention => C,
+          External_Name => "clang_getLBracLocPlusOne";
+   --  Given a clang::CompoundStmt (which is a possibly empty list of
+   --  statements surrounded by brackets), return the Location just after its
+   --  opening bracket. Giving another kind of cursor will return a null
+   --  location.
 
    function Is_Constexpr (C : Cursor_T) return Boolean with Inline;
 
