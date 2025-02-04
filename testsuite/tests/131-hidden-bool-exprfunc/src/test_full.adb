@@ -2,10 +2,10 @@ with Support; use Support;
 
 with Pkg; use Pkg;
 
-procedure Test_0 is
+procedure Test_Full is
 begin
    Assert (F (0) = 1);
-end Test_0;
+end Test_Full;
 
 --# pkg.ads
 --

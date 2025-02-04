@@ -1,10 +1,10 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Life; use Life;
 
-procedure Test_Case_Expr_None is
+procedure Test_None is
 begin
    null;
-end Test_Case_Expr_None;
+end Test_None;
 
 --# life.adb
 --  /return/         l- ## s-

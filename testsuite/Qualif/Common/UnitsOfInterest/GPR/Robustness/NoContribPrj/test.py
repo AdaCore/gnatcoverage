@@ -34,7 +34,6 @@ class ProjectConfig(object):
         return gprfor(
             prjid=name,
             mains=mains,
-            langs=["Ada"],
             deps=deps,
             srcdirs=["../../src-{}".format(name)],
             objdir="obj-{}".format(name),

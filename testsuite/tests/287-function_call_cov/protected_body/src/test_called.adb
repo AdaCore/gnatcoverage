@@ -6,7 +6,7 @@ with Foo; use Foo;
 --  function, an expression function, a procedure and a null procedure inside
 --  a protected body.
 
-procedure Test_Not_Called
+procedure Test_Called
 is
    I : Integer := 42;
 begin
@@ -15,7 +15,7 @@ begin
       Obj.P ("Hello");
    end if;
    Obj.NP;
-end Test_Not_Called;
+end Test_Called;
 
 --# foo.ads
 -- /decl/      l+ ## 0

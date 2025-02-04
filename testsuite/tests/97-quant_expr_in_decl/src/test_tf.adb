@@ -1,7 +1,7 @@
 with Support; use Support;
 with Pkg;
 
-procedure Test_T is
+procedure Test_TF is
    All_T : Pkg.My_Arr := (True, True, True);
    All_F : Pkg.My_Arr := (False, False, False);
 begin
@@ -9,7 +9,7 @@ begin
    Assert (Pkg.Some_True (All_T));
    Assert (not Pkg.All_True (All_F));
    Assert (not Pkg.Some_True (All_F));
-end Test_T;
+end Test_TF;
 
 --# pkg.adb
 --

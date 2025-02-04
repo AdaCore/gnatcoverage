@@ -10,7 +10,7 @@ abstract project Base is
 
    Style_Checks := external ("STYLE_CHECKS", "-gnaty");
 
-   for Languages use ("Ada");
+   for Languages use ();
    for Source_Files use ();
 
    package Compiler is
