@@ -1,11 +1,11 @@
 with Pkg; use Pkg;
 
-procedure Test_Not_Called is
+procedure Test_Called is
 begin
     P1;
     P2 (1, 2);
     P3;
-end Test_Not_Called;
+end Test_Called;
 
 --# pkg.adb
 -- /p/ l+ ## 0

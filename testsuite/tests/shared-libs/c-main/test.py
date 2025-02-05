@@ -1,6 +1,6 @@
 """
 Test that we can compute code coverage on Ada code located in a shared library.
-Beyond the library, the program is a mix of Ada and C, and the main is in C.
+Beyond the library, the program is composed of a C unit.
 """
 
 import os
@@ -31,7 +31,7 @@ mylib_gpr = gprfor(
 main_gpr = gprfor(
     mains=["main.c"],
     prjid="main",
-    langs=["Ada", "C"],
+    langs=["C"],
     deps=["mylib"],
     srcdirs="../src-main",
     objdir="obj-main",

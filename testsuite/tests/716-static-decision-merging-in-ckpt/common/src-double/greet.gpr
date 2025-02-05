@@ -1,5 +1,6 @@
 project Greet is
    for Source_Dirs use ("src-greet");
+   for Object_Dir use "obj";
 
    type Decision_Type is
       ("static_true", "static_false", "dynamic_true", "dynamic_false");
@@ -12,23 +13,23 @@ project Greet is
    package Naming is
       case Val1_Impl is
          when "static_true" =>
-            for Spec ("Pkg1") use "st1_pkg.ads";
+            for Spec ("Pkg1") use "pkg1__st.ads";
          when "static_false" =>
-            for Spec ("Pkg1") use "sf1_pkg.ads";
+            for Spec ("Pkg1") use "pkg1__sf.ads";
          when "dynamic_true" =>
-            for Spec ("Pkg1") use "dt1_pkg.ads";
+            for Spec ("Pkg1") use "pkg1__dt.ads";
          when "dynamic_false" =>
-            for Spec ("Pkg1") use "df1_pkg.ads";
+            for Spec ("Pkg1") use "pkg1__df.ads";
       end case;
       case Val2_Impl is
          when "static_true" =>
-            for Spec ("Pkg2") use "st2_pkg.ads";
+            for Spec ("Pkg2") use "pkg2__st.ads";
          when "static_false" =>
-            for Spec ("Pkg2") use "sf2_pkg.ads";
+            for Spec ("Pkg2") use "pkg2__sf.ads";
          when "dynamic_true" =>
-            for Spec ("Pkg2") use "dt2_pkg.ads";
+            for Spec ("Pkg2") use "pkg2__dt.ads";
          when "dynamic_false" =>
-            for Spec ("Pkg2") use "df2_pkg.ads";
+            for Spec ("Pkg2") use "pkg2__df.ads";
       end case;
    end Naming;
 end Greet;

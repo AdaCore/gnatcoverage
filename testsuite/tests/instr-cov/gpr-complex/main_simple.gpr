@@ -1,6 +1,5 @@
 project Main_Simple extends "lib" is
    for Source_Dirs use ("src-main_simple");
    for Object_Dir use "obj-main_simple";
-   for Library_Dir use "lib-main_simple";
    for Main use ("main.adb");
 end Main_Simple;

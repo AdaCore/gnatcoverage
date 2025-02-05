@@ -1,10 +1,10 @@
 with Support; use Support;
 with Pkg;
 
-procedure Test_No is
+procedure Test_0 is
 begin
    null;
-end Test_No;
+end Test_0;
 
 --# pkg.adb
 --

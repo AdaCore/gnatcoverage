@@ -22,7 +22,7 @@ code_prj = gprfor(
     srcdirs=[os.path.join("..", "src_code")],
     extra="package Coverage is"
     '\n   for Switches ("*") use ("--level=stmt+mcdc");'
-    '\n   for Switches ("Coverage") use ("-axcov", "--output-dir=xcov");'
+    '\n   for Switches ("coverage") use ("-axcov", "--output-dir=xcov");'
     "\nend Coverage;",
 )
 

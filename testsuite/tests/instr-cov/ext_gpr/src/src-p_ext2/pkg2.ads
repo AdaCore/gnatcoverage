@@ -1,3 +1,3 @@
-package Pkg_2 is
+package Pkg2 is
    I : Integer;
-end Pkg_2;
+end Pkg2;

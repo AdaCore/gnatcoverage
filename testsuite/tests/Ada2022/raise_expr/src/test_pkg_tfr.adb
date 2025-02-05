@@ -2,7 +2,7 @@ with Support;
 
 with Pkg; use Pkg;
 
-procedure Test_Pkg_TF is
+procedure Test_Pkg_TFR is
 begin
    Support.Assert (Identity (A => True, Do_Raise => False));
    Support.Assert (not Identity (A => False, Do_Raise => False));
@@ -10,7 +10,7 @@ begin
 exception
    when Custom_Error =>
       null;
-end Test_Pkg_TF;
+end Test_Pkg_TFR;
 
 --  This specific test shows that, despite having a T/F pair for Do_Raise, the
 --  raise expression evaluation prevents the last evaluation of the decision
