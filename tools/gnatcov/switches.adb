@@ -32,18 +32,17 @@ package body Switches is
    use type Unbounded_String;
    use Command_Line.Parser;
 
-   function Command_Line_Args return String_List_Access;
-   --  Return a dynamically alocated list of arguments to hold arguments from
-   --  Ada.Command_Line.
+   function Command_Line_Args return String_Vectors.Vector;
+   --  Return a string vectors to hold arguments from Ada.Command_Line
 
    function Parse
-     (Argv         : GNAT.Strings.String_List_Access;
+     (Argv         : String_Vectors.Vector;
       With_Command : Command_Type := No_Command;
       Callback     : access procedure (Result : in out Parsed_Arguments;
                                        Ref    : Option_Reference) := null)
       return Parsed_Arguments;
-   --  Parse Args using Arg_Parser. Deallocate Args before returning. If there
-   --  is an error, call Fatal_Error with the error message.
+   --  Parse Args using Arg_Parser. If there is an error, call Fatal_Error with
+   --  the error message.
 
    procedure Load_Target_Option (Default_Target : Boolean);
    --  Split the --target option into its family name (Target_Family) and the
@@ -402,14 +401,13 @@ package body Switches is
    -- Command_Line_Args --
    -----------------------
 
-   function Command_Line_Args return String_List_Access is
-      Result : constant String_List_Access :=
-        new String_List (1 .. Ada.Command_Line.Argument_Count);
+   function Command_Line_Args return String_Vectors.Vector is
    begin
-      for I in Result'Range loop
-         Result (I) := new String'(Ada.Command_Line.Argument (I));
-      end loop;
-      return Result;
+      return Result : String_Vectors.Vector do
+         for I in 1 .. Ada.Command_Line.Argument_Count loop
+            Result.Append (+Ada.Command_Line.Argument (I));
+         end loop;
+      end return;
    end Command_Line_Args;
 
    ------------------------
@@ -584,26 +582,21 @@ package body Switches is
       declare
          Command_Name     : constant String :=
            Parser.Command_Name (Arg_Parser, Args.Command);
-         Common_Switches  : constant String_List_Access :=
+         Common_Switches  : constant String_Vectors.Vector :=
            Project.Switches ("*");
-         Command_Switches : constant String_List_Access :=
+         Command_Switches : constant String_Vectors.Vector :=
            Project.Switches (Command_Name);
       begin
-         if Common_Switches /= null then
-            Project_Args := Parse
-              (Common_Switches,
+         Project_Args := Parse
+           (Common_Switches,
+            With_Command => Args.Command,
+            Callback     => Check_Allowed_Option'Access);
+         Merge
+           (Project_Args,
+            Parse
+              (Command_Switches,
                With_Command => Args.Command,
-               Callback     => Check_Allowed_Option'Access);
-         end if;
-
-         if Command_Switches /= null then
-            Merge
-              (Project_Args,
-               Parse
-                 (Command_Switches,
-                  With_Command => Args.Command,
-                  Callback     => Check_Allowed_Option'Access));
-         end if;
+               Callback     => Check_Allowed_Option'Access));
 
          --  Project_Args have precedence over Args, so merge in Project_Args
          --  first.
@@ -639,18 +632,16 @@ package body Switches is
    -----------
 
    function Parse
-     (Argv         : GNAT.Strings.String_List_Access;
+     (Argv         : String_Vectors.Vector;
       With_Command : Command_Type := No_Command;
       Callback     : access procedure (Result : in out Parsed_Arguments;
                                        Ref    : Option_Reference) := null)
       return Parsed_Arguments
    is
-      Args_Var : GNAT.Strings.String_List_Access := Argv;
       Result   : constant Parsed_Arguments :=
         Parse (Arg_Parser, Argv, With_Command, Callback);
       Error    : constant String := +Result.Error;
    begin
-      Free (Args_Var);
       if Error'Length /= 0 then
          Args.Command := Result.Command;
          Fatal_Error_With_Usage (Error);

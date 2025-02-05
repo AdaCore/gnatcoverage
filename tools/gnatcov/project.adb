@@ -1504,16 +1504,25 @@ package body Project is
    -- Switches --
    --------------
 
-   function Switches (Op : String) return String_List_Access is
+   function Switches (Op : String) return String_Vectors.Vector is
       Origin_Prj : constant String :=
         Prj_Tree.Root_Project.Attribute_Value (Origin_Project_Attribute);
       Actual_Prj : constant Project_Type :=
         (if Origin_Prj = ""
          then Prj_Tree.Root_Project
          else Lookup_Project (Origin_Prj));
+      Raw_Result : String_List_Access;
    begin
-      return Attribute_Value
-        (Actual_Prj, +Switches, Index => Op);
+      return Result : String_Vectors.Vector do
+         Raw_Result := Attribute_Value
+           (Actual_Prj, +Switches, Index => Op);
+         if Raw_Result /= null then
+            for S of Raw_Result.all loop
+               Result.Append (+S.all);
+            end loop;
+            Free (Raw_Result);
+         end if;
+      end return;
    end Switches;
 
    -----------------

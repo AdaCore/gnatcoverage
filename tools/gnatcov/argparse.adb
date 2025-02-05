@@ -581,13 +581,13 @@ package body Argparse is
 
    function Parse
      (Parser       : Parser_Type;
-      Args         : GNAT.Strings.String_List_Access;
+      Args         : String_Vectors.Vector;
       With_Command : Command_Type := No_Command;
       Callback     : access procedure (Result : in out Parsed_Arguments;
                                        Ref    : Option_Reference) := null)
       return Parsed_Arguments
    is
-      I       : Positive := Args'First;
+      I       : Natural := Args.First_Index;
       Result  : Parsed_Arguments;
 
       function Error (S : String) return Parsed_Arguments is
@@ -623,9 +623,7 @@ package body Argparse is
       --  is no argument left.
 
       function Consume_Next_Arg
-        (For_Arg : Slice;
-         I       : in out Natural)
-         return GNAT.Strings.String_Access;
+        (For_Arg : Slice; I : in out Natural) return Unbounded_String;
       --  Fetch the next argument and return an access to it. Update I
       --  accordingly. Raise an Arg_Error if there is no argument left.
 
@@ -686,7 +684,7 @@ package body Argparse is
          J       : Natural)
         return String
       is
-         Arg : String renames Args (I).all;
+         Arg : constant String := +Args (I);
       begin
          --  The current short option requires a value:
 
@@ -695,7 +693,7 @@ package body Argparse is
             --  If this is the last option in this argument, fetch the next
             --  argument.
 
-            return Consume_Next_Arg (For_Arg, I).all;
+            return +Consume_Next_Arg (For_Arg, I);
 
          else
             --  Otherwise, take the rest of the current argument (stripping the
@@ -711,17 +709,14 @@ package body Argparse is
       ----------------------
 
       function Consume_Next_Arg
-        (For_Arg : Slice;
-         I       : in out Natural)
-         return GNAT.Strings.String_Access
-      is
+        (For_Arg : Slice; I : in out Natural) return Unbounded_String is
       begin
-         if I < Args'Last then
+         if I < Args.Last_Index then
             I := I + 1;
             return Args (I);
          else
             raise Arg_Error with
-              (Args (I).all (For_Arg.First .. For_Arg.Last)
+              (US.Slice (Args (I), For_Arg.First, For_Arg.Last)
                & " requires a value");
          end if;
       end Consume_Next_Arg;
@@ -795,8 +790,8 @@ package body Argparse is
 
             --  Greedy options consume all remaining arguments
 
-            for J in I .. Args'Last loop
-               Str_Vec.Append (+Args (J).all);
+            for J in I .. Args.Last_Index loop
+               Str_Vec.Append (Args (J));
             end loop;
             return True;
 
@@ -821,21 +816,21 @@ package body Argparse is
       if With_Command /= No_Command then
          Result.Command := With_Command;
       else
-         if Args'Length = 0 then
+         if Args.Is_Empty then
             return Error ("No command specified.");
          end if;
 
          declare
-            Command : constant GNAT.Strings.String_Access := Args (Args'First);
+            Command : constant String := +Args.First_Element;
          begin
             for Cmd in Parser.Data.Command_Infos'Range loop
-               if +Parser.Data.Command_Infos (Cmd).Name = Command.all then
+               if +Parser.Data.Command_Infos (Cmd).Name = Command then
                   Result.Command := Cmd;
                   exit;
 
                elsif Cmd = Command_Type'Last then
                   return Error
-                    ("Bad command: " & Command.all & ". Try option --help");
+                    ("Bad command: " & Command & ". Try option --help");
                end if;
             end loop;
          end;
@@ -844,9 +839,9 @@ package body Argparse is
 
       --  And the parse the arguments that follow
 
-      while I <= Args'Last loop
+      while I <= Args.Last_Index loop
          declare
-            Arg           : String renames Args (I).all;
+            Arg           : constant String := +Args (I);
             Option, Value : Slice;
             J             : Natural;
             Has_Value     : Boolean;
@@ -908,7 +903,7 @@ package body Argparse is
                            Str : constant Unbounded_String :=
                              (if Has_Value
                               then +Arg (Value.First .. Value.Last)
-                              else +Consume_Next_Arg (Option, I).all);
+                              else Consume_Next_Arg (Option, I));
                         begin
                            if Opt.Kind = String_Opt then
                               if Parser.Data.String_Info
