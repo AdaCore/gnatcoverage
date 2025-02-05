@@ -72,6 +72,19 @@ package body Clang.Extensions is
       return CalleeName;
    end Get_Callee_Name_Str;
 
+   ---------------------------------
+   -- Is_Instrumentable_Call_Expr --
+   ---------------------------------
+
+   function Is_Instrumentable_Call_Expr (C : Cursor_T) return Boolean is
+      function Is_Instrumentable_Call_Expr_C (C : Cursor_T) return unsigned
+        with
+          Import, Convention => C,
+          External_Name => "clang_isInstrumentableCallExpr";
+   begin
+      return Is_Instrumentable_Call_Expr_C (C) /= 0;
+   end Is_Instrumentable_Call_Expr;
+
    --------------------
    -- Get_Opcode_Str --
    --------------------

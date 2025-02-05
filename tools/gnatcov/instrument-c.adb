@@ -1368,6 +1368,12 @@ package body Instrument.C is
                Text => Make_Statement_Witness (UIC, Buffers_Index, Bit),
                Rew  => UIC.Rewriter);
 
+         when Instr_In_Compound =>
+            Insert_Text_In_Brackets
+              (CmpdStmt => SS.Statement,
+               Text     => Make_Statement_Witness (UIC, Buffers_Index, Bit),
+               Rew      => UIC.Rewriter);
+
          when Instr_Expr =>
             Insert_Text_After_Start_Of
               (N    => SS.Statement,
@@ -1568,11 +1574,6 @@ package body Instrument.C is
    -- Internal Subprograms --
    --------------------------
 
-   function Has_Decision (T : Cursor_T) return Boolean;
-   --  T is the node for a subtree. Returns True if any (sub)expression in T
-   --  contains a nested decision (i.e. either is a logical operator, or
-   --  contains a logical operator in its subtree).
-
    function Is_Logical_Operator (N : Cursor_T) return Boolean;
    --  Return whether N is an operator that can be part of a decision (! or
    --  && / ||).
@@ -1598,6 +1599,53 @@ package body Instrument.C is
          return False;
       end if;
    end Is_Complex_Decision;
+
+   -----------------------
+   -- Process_Call_Expr --
+   -----------------------
+
+   procedure Process_Call_Expr
+     (UIC : in out C_Unit_Inst_Context; Cursor : Cursor_T);
+
+   procedure Process_Call_Expr
+     (UIC : in out C_Unit_Inst_Context; Cursor : Cursor_T)
+   is
+      function Visit_Call_Expr (C : Cursor_T) return Child_Visit_Result_T;
+
+      function Visit_Call_Expr (C : Cursor_T) return Child_Visit_Result_T is
+      begin
+         if Kind (C) = Cursor_Lambda_Expr then
+            return Child_Visit_Continue;
+         end if;
+
+         if Is_Instrumentable_Call_Expr (C) then
+            Sources_Trace.Trace ("Instrument Call at "
+                                 & Image (Start_Sloc (C)));
+
+            UIC.Pass.Append_SCO
+              (UIC  => UIC,
+               N    => C,
+               C1   => 'c',
+               C2   => 'S',
+               From => Start_Sloc (C),
+               To   => End_Sloc (C),
+               Last => True);
+
+            UIC.Pass.Instrument_Statement
+              (UIC          => UIC,
+               LL_SCO       => SCOs.SCO_Table.Last,
+               Insertion_N  => C,
+               Instr_Scheme => Instr_Expr);
+         end if;
+
+         return Child_Visit_Recurse;
+      end Visit_Call_Expr;
+
+   begin
+      if Enabled (Coverage_Options.Fun_Call) then
+         Visit (Cursor, Visit_Call_Expr'Access);
+      end if;
+   end Process_Call_Expr;
 
    ------------------------
    -- Process_Expression --
@@ -2004,53 +2052,11 @@ package body Instrument.C is
       end if;
 
       Process_Decisions (UIC, N, T);
+
+      Process_Call_Expr (UIC, N);
+
       Visit (N, Process_Lambda_Expr'Access);
    end Process_Expression;
-
-   ------------------
-   -- Has_Decision --
-   ------------------
-
-   function Has_Decision (T : Cursor_T) return Boolean is
-
-      function Visitor (N : Cursor_T) return Child_Visit_Result_T;
-      --  If N's kind indicates the presence of a decision, return
-      --  Child_Visit_Break, otherwise return Child_Visit_Recurse.
-      --
-      --  We know have a decision as soon as we have a logical operator (by
-      --  definition).
-
-      Has_Decision : Boolean := False;
-
-      -----------
-      -- Visit --
-      -----------
-
-      function Visitor (N : Cursor_T) return Child_Visit_Result_T
-      is
-      begin
-         if (Is_Expression (Kind (N)) and then Is_Complex_Decision (N))
-             or else Kind (N) = Cursor_Conditional_Operator
-         then
-            Has_Decision := True;
-            return Child_Visit_Break;
-
-         --  We don't want to visit lambda expressions: we will treat them
-         --  outside of the current expression.
-
-         elsif Kind (N) = Cursor_Lambda_Expr then
-            return Child_Visit_Continue;
-         else
-            return Child_Visit_Recurse;
-         end if;
-      end Visitor;
-
-   --  Start of processing for Has_Decision
-
-   begin
-      Visit (T, Visitor'Access);
-      return Has_Decision;
-   end Has_Decision;
 
    -------------------------
    -- Is_Logical_Operator --
@@ -2106,9 +2112,10 @@ package body Instrument.C is
       --  Traverse a statement. Set Trailing_Braces to the list of braces that
       --  should be inserted after this statement.
 
-      procedure Instrument_Statement
+      procedure Add_SCO_And_Instrument_Statement
         (N            : Cursor_T;
-         Typ          : Character;
+         C1           : Character := 'S';
+         C2           : Character := ' ';
          Insertion_N  : Cursor_T := Get_Null_Cursor;
          Instr_Scheme : Instr_Scheme_Type := Instr_Stmt);
       --  Instrument the statement N.
@@ -2175,7 +2182,7 @@ package body Instrument.C is
             --  Determine required type character code, or ASCII.NUL if
             --  no SCO should be generated for this node.
 
-            Instrument_Statement (N, ' ');
+            Add_SCO_And_Instrument_Statement (N, C2 => ' ');
 
             --  Process any embedded decisions
 
@@ -2216,7 +2223,7 @@ package body Instrument.C is
                  (UIC, Get_Children (N), TB, Is_Block => False);
 
             when Cursor_If_Stmt =>
-               Instrument_Statement (N, 'I');
+               Add_SCO_And_Instrument_Statement (N, C2 => 'I');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
 
@@ -2249,7 +2256,7 @@ package body Instrument.C is
                end;
 
             when Cursor_Switch_Stmt =>
-               Instrument_Statement (N, 'C');
+               Add_SCO_And_Instrument_Statement (N, C2 => 'C');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
                declare
@@ -2282,8 +2289,9 @@ package body Instrument.C is
                   --  If the loop condition is a declaration, instrument its
                   --  initialization expression.
 
-                  Instrument_Statement
-                    (N, 'W',
+                  Add_SCO_And_Instrument_Statement
+                    (N,
+                     C2           => 'W',
                      Insertion_N  => (if Is_Null (Cond_Var)
                                       then Cond
                                       else Get_Var_Init_Expr (Cond_Var)),
@@ -2311,8 +2319,8 @@ package body Instrument.C is
 
                   --  Process the while decision
 
-                  Instrument_Statement
-                    (Do_While, 'W', Instr_Scheme => Instr_Expr);
+                  Add_SCO_And_Instrument_Statement
+                    (Do_While, C2 => 'W', Instr_Scheme => Instr_Expr);
                   UIC.Pass.End_Statement_Block (UIC);
                   UIC.Pass.Start_Statement_Block (UIC);
                   Process_Expression (UIC, Do_While, 'W');
@@ -2325,12 +2333,12 @@ package body Instrument.C is
                   For_Inc  : constant Cursor_T := Get_For_Inc (N);
                   For_Body : constant Cursor_T := Get_Body (N);
                begin
-                  Instrument_Statement
-                    (For_Init, ' ', Insertion_N => N);
+                  Add_SCO_And_Instrument_Statement
+                    (For_Init, C2 => ' ', Insertion_N => N);
                   UIC.Pass.End_Statement_Block (UIC);
                   UIC.Pass.Start_Statement_Block (UIC);
-                  Instrument_Statement
-                    (For_Cond, 'F', Instr_Scheme => Instr_Expr);
+                  Add_SCO_And_Instrument_Statement
+                    (For_Cond, C2 => 'F', Instr_Scheme => Instr_Expr);
                   UIC.Pass.End_Statement_Block (UIC);
                   UIC.Pass.Start_Statement_Block (UIC);
 
@@ -2341,8 +2349,8 @@ package body Instrument.C is
 
                   Traverse_Statements (UIC, To_Vector (For_Body), TB);
 
-                  Instrument_Statement
-                    (For_Inc, ' ', Instr_Scheme => Instr_Expr);
+                  Add_SCO_And_Instrument_Statement
+                    (For_Inc, C2 => ' ', Instr_Scheme => Instr_Expr);
                   UIC.Pass.End_Statement_Block (UIC);
                   UIC.Pass.Start_Statement_Block (UIC);
                end;
@@ -2362,8 +2370,10 @@ package body Instrument.C is
                      --  See Fix_CXX_For_Ranges for an explanation of the
                      --  below code.
 
-                     Instrument_Statement
-                       (For_Init_Stmt, ' ', Insertion_N  => For_Init_Stmt);
+                     Add_SCO_And_Instrument_Statement
+                       (For_Init_Stmt,
+                        C2 => ' ',
+                        Insertion_N  => For_Init_Stmt);
                      UIC.Pass.End_Statement_Block (UIC);
                      UIC.Pass.Start_Statement_Block (UIC);
                      Process_Expression (UIC, For_Init_Stmt, 'X');
@@ -2377,8 +2387,8 @@ package body Instrument.C is
 
                   --  Instrument the range as mentioned above
 
-                  Instrument_Statement
-                    (For_Range_Decl, ' ',
+                  Add_SCO_And_Instrument_Statement
+                    (For_Range_Decl, C2 => ' ',
                      Insertion_N  => N,
                      Instr_Scheme => Instr_Stmt);
                   UIC.Pass.End_Statement_Block (UIC);
@@ -2393,7 +2403,7 @@ package body Instrument.C is
                end;
 
             when Cursor_Goto_Stmt | Cursor_Indirect_Goto_Stmt =>
-               Instrument_Statement (N, ' ');
+               Add_SCO_And_Instrument_Statement (N, C2 => ' ');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
 
@@ -2404,7 +2414,7 @@ package body Instrument.C is
                  (UIC, Get_Children (N), TB, Is_Block => False);
 
             when Cursor_Break_Stmt =>
-               Instrument_Statement (N, ' ');
+               Add_SCO_And_Instrument_Statement (N, C2 => ' ');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
 
@@ -2432,10 +2442,9 @@ package body Instrument.C is
                   UIC.Pass.End_Statement_Block (UIC);
                   UIC.Pass.Start_Statement_Block (UIC);
                else
-                  Instrument_Statement (N, ' ');
-                  if Has_Decision (N) then
-                     Process_Expression (UIC, N, 'X');
-                  end if;
+                  Add_SCO_And_Instrument_Statement (N, C2 => ' ');
+
+                  Process_Expression (UIC, N, 'X');
                end if;
 
             when Cursor_Decl_Stmt =>
@@ -2463,9 +2472,10 @@ package body Instrument.C is
       -- Instrument_Statement --
       --------------------------
 
-      procedure Instrument_Statement
+      procedure Add_SCO_And_Instrument_Statement
         (N            : Cursor_T;
-         Typ          : Character;
+         C1           : Character := 'S';
+         C2           : Character := ' ';
          Insertion_N  : Cursor_T := Get_Null_Cursor;
          Instr_Scheme : Instr_Scheme_Type := Instr_Stmt)
       is
@@ -2510,8 +2520,8 @@ package body Instrument.C is
          UIC.Pass.Append_SCO
            (UIC  => UIC,
             N    => N,
-            C1   => 'S',
-            C2   => Typ,
+            C1   => C1,
+            C2   => C2,
             From => F,
             To   => T,
             Last => True);
@@ -2521,7 +2531,7 @@ package body Instrument.C is
             LL_SCO       => SCOs.SCO_Table.Last,
             Insertion_N  => (if Is_Null (Insertion_N) then N else Insertion_N),
             Instr_Scheme => Instr_Scheme);
-      end Instrument_Statement;
+      end Add_SCO_And_Instrument_Statement;
 
       -------------
       -- Curlify --
@@ -2647,50 +2657,85 @@ package body Instrument.C is
                   --  Only instrument definitions, not declarations.
                   --  Lambda expressions are always definitions.
 
-                  if Is_This_Declaration_A_Definition (N) or else
-                     Cursor_Kind = Cursor_Lambda_Expr
+                  if not (Is_This_Declaration_A_Definition (N) or else
+                     Cursor_Kind = Cursor_Lambda_Expr)
                   then
-                     declare
-                        Fun_Body : constant Cursor_T := Get_Body (N);
-                        Stmts    : constant Cursor_Vectors.Vector :=
-                          Get_Children (Fun_Body);
-                        --  Get_Body returns a Compound_Stmt, convert it to a
-                        --  list of statements using the Get_Children utility.
-
-                        TB : Unbounded_String;
-                        --  Trailing braces that should be inserted at the end
-                        --  of the function body.
-
-                     begin
-                        if Cursor_Kind /= Cursor_Lambda_Expr then
-                           UIC.Pass.Enter_Scope (UIC, N);
-                        end if;
-
-                        --  Do not instrument constexpr function as it would
-                        --  violate the constexpr restrictions.
-
-                        if Is_Constexpr (N) then
-                           UIC.Pass.Report
-                             (N,
-                              "gnatcov limitation: cannot instrument constexpr"
-                              & " functions.");
-                           UIC.Disable_Instrumentation := True;
-                        end if;
-
-                        if Stmts.Length > 0 then
-                           UIC.MCDC_State_Declaration_Node :=
-                             Stmts.First_Element;
-                           Traverse_Statements (UIC, Stmts, TB);
-                           UIC.Pass.Insert_Text_Before_Token
-                             (UIC, End_Sloc (Fun_Body), +TB);
-                        end if;
-                        if Cursor_Kind /= Cursor_Lambda_Expr then
-                           UIC.Pass.Exit_Scope (UIC);
-                        end if;
-                        UIC.Disable_Instrumentation :=
-                          Save_Disable_Instrumentation;
-                     end;
+                     goto Continue;
                   end if;
+
+                  declare
+                     Fun_Body : constant Cursor_T := Get_Body (N);
+                     Stmts    : constant Cursor_Vectors.Vector :=
+                       Get_Children (Fun_Body);
+                     --  Get_Body returns a Compound_Stmt, convert it to a
+                     --  list of statements using the Get_Children utility.
+
+                     TB : Unbounded_String;
+                     --  Trailing braces that should be inserted at the end
+                     --  of the function body.
+
+                  begin
+                     if Cursor_Kind /= Cursor_Lambda_Expr then
+                        UIC.Pass.Enter_Scope (UIC, N);
+                     end if;
+
+                     --  Do not instrument constexpr function as it would
+                     --  violate the constexpr restrictions.
+
+                     if Is_Constexpr (N) then
+                        UIC.Pass.Report
+                          (N,
+                           "gnatcov limitation: cannot instrument constexpr"
+                           & " functions.");
+                        UIC.Disable_Instrumentation := True;
+                     end if;
+
+                     if Stmts.Length > 0 then
+                        UIC.MCDC_State_Declaration_Node :=
+                          Stmts.First_Element;
+                        Traverse_Statements (UIC, Stmts, TB);
+                        UIC.Pass.Insert_Text_Before_Token
+                          (UIC, End_Sloc (Fun_Body), +TB);
+                     end if;
+
+                     if Enabled (Coverage_Options.Fun_Call) and then
+                        Fun_Body /= Get_Null_Cursor
+                     then
+                        Sources_Trace.Trace ("Instrument Function at "
+                                             & Image
+                                               (Start_Sloc (Fun_Body)));
+
+                        UIC.Pass.Start_Statement_Block (UIC);
+
+                        declare
+                           Signature_SR : constant Source_Range_T :=
+                              Get_Function_Signature_Sloc (N);
+                        begin
+                           UIC.Pass.Append_SCO
+                             (UIC  => UIC,
+                              N    => N,
+                              C1   => 'c',
+                              C2   => 'F',
+                              From => Sloc (Get_Range_Start (Signature_SR)),
+                              To   => Sloc (Get_Range_End (Signature_SR)),
+                              Last => True);
+                        end;
+
+                        UIC.Pass.Instrument_Statement
+                          (UIC          => UIC,
+                           LL_SCO       => SCOs.SCO_Table.Last,
+                           Insertion_N  => Fun_Body,
+                           Instr_Scheme => Instr_In_Compound);
+
+                        UIC.Pass.End_Statement_Block (UIC);
+                     end if;
+
+                     if Cursor_Kind /= Cursor_Lambda_Expr then
+                        UIC.Pass.Exit_Scope (UIC);
+                     end if;
+                     UIC.Disable_Instrumentation :=
+                       Save_Disable_Instrumentation;
+                  end;
 
                --  Traverse the declarations of a namespace / linkage
                --  specification etc.
@@ -2714,6 +2759,8 @@ package body Instrument.C is
             end case;
 
          end if;
+
+         <<Continue>>
       end loop;
 
       --  Restore previous MCDC_State insertion node: we can have lambda
