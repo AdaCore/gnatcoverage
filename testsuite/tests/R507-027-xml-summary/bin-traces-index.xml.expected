@@ -39,7 +39,7 @@
     <metric kind="disabled_coverage" count="0" ratio="0"/>
    </obligation_stats>
 
-   <file name="data.ads">
+   <file name="@@data.ads@@">
     <metric kind="total_lines_of_relevance" count="0"/>
     <metric kind="fully_covered" count="0"/>
     <metric kind="partially_covered" count="0"/>
@@ -75,7 +75,7 @@
 
    </file>
 
-   <file name="main.adb">
+   <file name="@@main.adb@@">
     <metric kind="total_lines_of_relevance" count="3"/>
     <metric kind="fully_covered" count="3" ratio="100"/>
     <metric kind="partially_covered" count="0" ratio="0"/>
@@ -111,7 +111,7 @@
 
    </file>
 
-   <file name="pkg.adb">
+   <file name="@@pkg.adb@@">
     <metric kind="total_lines_of_relevance" count="6"/>
     <metric kind="fully_covered" count="1" ratio="17"/>
     <metric kind="partially_covered" count="1" ratio="17"/>
@@ -158,4 +158,3 @@
  </coverage_report>
 
 </document>
-

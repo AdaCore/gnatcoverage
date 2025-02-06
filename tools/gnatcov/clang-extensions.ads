@@ -33,6 +33,14 @@ package Clang.Extensions is
    function Get_Body (C : Cursor_T) return Cursor_T
      with Import, Convention => C, External_Name => "clang_getBody";
 
+   function Get_Function_Signature_Sloc (C : Cursor_T) return Source_Range_T
+      with
+         Import,
+         Convention => C,
+         External_Name => "clang_getFunctionSignatureSloc";
+   --  Given a FunctionDecl or LambdaExpr, returns the Source Range of the
+   --  signature, thus excluding the body if there is one.
+
    function Get_Cond (C : Cursor_T) return Cursor_T
      with Import, Convention => C, External_Name => "clang_getCond";
 
@@ -106,6 +114,21 @@ package Clang.Extensions is
    --  statements surrounded by brackets), return the Location just after its
    --  opening bracket. Giving another kind of cursor will return a null
    --  location.
+
+   function Is_Instrumentable_Call_Expr (C : Cursor_T) return Boolean
+     with Inline;
+   --  Given a cursor C, return True if the cursor kind is CallExpr AND if
+   --  the underlying C++ statement class is one of:
+   --  - Stmt::CallExprClass
+   --  - Stmt::CXXOperatorCallExprClass
+   --  - Stmt::CXXMemberCallExprClass
+   --
+   --  CXCursor_CallExpr is also used for other kinds of nodes that we do not
+   --  wish to instrument for function coverage, and that we need to use the
+   --  C++ API to detect.
+   --
+   --  TODO??? Actually decide what to do for the rest, so Ctor/Dtor call
+   --          coverage makes sense.
 
    function Is_Constexpr (C : Cursor_T) return Boolean with Inline;
 

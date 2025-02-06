@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<source file="main.adb" coverage_level="stmt+mcdc">
+<source file="@@src/main.adb@@" coverage_level="stmt+mcdc">
  <scope_metric scope_name="Main" scope_line="6">
   <metric kind="total_lines_of_relevance" count="24"/>
   <metric kind="fully_covered" count="22" ratio="92"/>
