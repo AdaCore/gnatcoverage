@@ -30,7 +30,8 @@ procedure Instrument.Clean_Objdirs is
    procedure Clean_Subdir (Project : Project_Type);
    --  Callback for Project.Iterate_Projects. If Project is not externally
    --  built, remove all files from the "$project_name-gnatcov-instr" folder in
-   --  Project's object directory.
+   --  Project's object directory, and remove all files ending in ".sid" from
+   --  the object directory.
 
    function Has_Regular_Files (Directory : String) return Boolean;
    --  Return whether Directory contains at least one regular file
@@ -42,6 +43,8 @@ procedure Instrument.Clean_Objdirs is
    procedure Clean_Subdir (Project : Project_Type) is
       Output_Dir     : constant String := Project_Output_Dir (Project);
       Has_Output_Dir : Boolean := True;
+      Obj_Dir_Files  : File_Array_Access;
+      Success        : Boolean;
    begin
       Clean_Objdirs_Trace.Increase_Indent ("Processing " & Project.Name);
       Clean_Objdirs_Trace.Trace
@@ -111,6 +114,26 @@ procedure Instrument.Clean_Objdirs is
       end if;
 
       Delete_Tree (Directory => Output_Dir);
+
+      --  Remove the SID files if any
+
+      Obj_Dir_Files := Project.Object_Dir.Read_Dir (Files_Only);
+      if Obj_Dir_Files /= null then
+         for File of Obj_Dir_Files.all loop
+            if File.File_Extension (Normalize => True) = ".sid"
+              and then File.Is_Regular_File
+            then
+               File.Delete (Success);
+               if not Success then
+                  Warn
+                    ("Failed to delete old SID file: "
+                     & File.Display_Full_Name);
+               end if;
+            end if;
+         end loop;
+         Unchecked_Free (Obj_Dir_Files);
+      end if;
+
       Clean_Objdirs_Trace.Decrease_Indent;
    end Clean_Subdir;
 
