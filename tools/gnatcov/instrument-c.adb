@@ -4101,17 +4101,21 @@ package body Instrument.C is
             MCDC_Init.Append (+("&" & MCDC_Buffer_Repr & "[0]"));
 
             --  gnatcov_rts_coverage_buffers struct
+            --  ".field =" identifiers are commented because even though
+            --  they are valid C99, they are officially not supported before
+            --  C++20 in C++.
+            --  Kept as comments for the sake of readability and debugging
 
             File.Put_Line
               ("static const struct gnatcov_rts_coverage_buffers "
                & Buffers_Struct & " = {"
                & ASCII.LF
-               & "  .fingerprint = "
+               & "/*  .fingerprint =               */ "
                & Format_Fingerprint (SC_Obligations.Fingerprint (CU)) & ","
                & ASCII.LF
-               & "  .language_kind = FILE_BASED_LANGUAGE,"
+               & "/*  .language_kind =             */ FILE_BASED_LANGUAGE,"
                & ASCII.LF
-               & "  .unit_part = NOT_APPLICABLE_PART,"
+               & "/*  .unit_part =                 */ NOT_APPLICABLE_PART,"
                & ASCII.LF
 
                --  Old toolchains (for instance GNAT Pro 7.1.2) consider that
@@ -4124,18 +4128,18 @@ package body Instrument.C is
                --  the string, which can appear e.g. in in windows full
                --  filenames.
 
-               & "  .unit_name = "
-               & " {" & C_String_Literal (CU_Filename) & ", "
+               & "/*  .unit_name =                 */ {"
+               & C_String_Literal (CU_Filename) & ", "
                & CU_Filename'Length'Image & "}"
                & ","
                & ASCII.LF
 
-               & "  .bit_maps_fingerprint = "
+               & "/*  .bit_maps_fingerprint =      */ "
                & Format_Fingerprint (SC_Obligations.Bit_Maps_Fingerprint (CU))
                & ","
                & ASCII.LF
 
-               & "  .annotations_fingerprint = "
+               & "/*  .annotations_fingerprint =   */ "
                & Format_Fingerprint
                  (SC_Obligations.Annotations_Fingerprint (CU))
                & ","
@@ -4148,20 +4152,25 @@ package body Instrument.C is
                --  around it, we simply use the original expression instead of
                --  using a wrapper pointer.
 
-               & "  .statement = &" & Statement_Buffer_Repr & "[0],"
+               & "/*  .statement =                 */ &"
+               & Statement_Buffer_Repr & "[0],"
                & ASCII.LF
-               & "  .decision = &" & Decision_Buffer_Repr & "[0],"
+               & "/*  .decision =                  */ &"
+               & Decision_Buffer_Repr & "[0],"
                & ASCII.LF
-               & "  .mcdc = &" & MCDC_Buffer_Repr & "[0],"
+               & "/*  .mcdc =                      */ &"
+               & MCDC_Buffer_Repr & "[0],"
                & ASCII.LF
 
-               & "  .statement_last_bit = "
+               & "/*  .statement_last_bit =        */ "
                & Img (Unit_Bits.Last_Statement_Bit) & ","
                & ASCII.LF
-               & "  .decision_last_bit = " & Img (Unit_Bits.Last_Outcome_Bit)
+               & "/*  .decision_last_bit =         */ "
+               & Img (Unit_Bits.Last_Outcome_Bit)
                & ","
                & ASCII.LF
-               & "  .mcdc_last_bit = " & Img (Unit_Bits.Last_Path_Bit)
+               & "/*  .mcdc_last_bit =             */ "
+               & Img (Unit_Bits.Last_Path_Bit)
                & ASCII.LF
                & "};");
             Group_Init.Append (+("&" & Buffers_Struct));
@@ -5340,10 +5349,12 @@ package body Instrument.C is
 
       CU_File : Text_Files.File_Type;
 
-      Buffer_Array_Decl  : constant String :=
+      Buffer_Array_Decl     : constant String :=
         "const struct gnatcov_rts_coverage_buffers_group_array "
         & Unit_Buffers_Array_Name (Prj.Prj_Name);
-      Buffer_Unit_Length : constant String :=
+      Buffer_Group_Var_Name : constant String :=
+        "__gcvrt_internal_buffer_group_" & To_Symbol_Name (Prj.Prj_Name);
+      Buffer_Unit_Length    : constant String :=
         Count_Type'Image (Buffer_Symbols.Length);
    begin
       if Sources_Trace.Is_Active then
@@ -5373,6 +5384,26 @@ package body Instrument.C is
       --  C++ to set the C linkage), and finally the definition for that array.
 
       CU_File.Put_Line (Self.Extern_Prefix & Buffer_Array_Decl & ";");
+
+      if String_Sets.Length (Buffer_Symbols) /= 0 then
+
+        --  Create a "temporary" variable to create the buffer group array.
+        --  We can't create it on the fly because this would create invalid C++
+        --  code (compound literals are valid C99, invalid C++ until C++20).
+
+         CU_File.Put_Line
+           ("const struct gnatcov_rts_coverage_buffers_group *"
+            & Buffer_Group_Var_Name
+            & "[] = {");
+         for BS of Buffer_Symbols loop
+            CU_File.Put ("    &" & (+BS));
+            if BS /= Buffer_Symbols.Last_Element then
+               CU_File.Put_Line (",");
+            end if;
+         end loop;
+         CU_File.Put_Line ("};");
+      end if;
+
       CU_File.Put_Line (Buffer_Array_Decl & " = {");
       CU_File.Put_Line ("  " & Buffer_Unit_Length & ",");
       if String_Sets.Length (Buffer_Symbols) = 0 then
@@ -5382,15 +5413,7 @@ package body Instrument.C is
 
          CU_File.Put_Line ("NULL");
       else
-         CU_File.Put_Line
-           ("  (const struct gnatcov_rts_coverage_buffers_group *[]) {");
-         for BS of Buffer_Symbols loop
-            CU_File.Put ("    &" & (+BS));
-            if BS /= Buffer_Symbols.Last_Element then
-               CU_File.Put_Line (",");
-            end if;
-         end loop;
-         CU_File.Put_Line ("}");
+         CU_File.Put_Line (Buffer_Group_Var_Name);
       end if;
       CU_File.Put_Line ("};");
       return CU_Name;
