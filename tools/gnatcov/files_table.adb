@@ -79,9 +79,9 @@ package body Files_Table is
    --  Freeze the files table and compute Unique_Name fields for file entries
 
    function Create_File_Info
-     (Kind                   : File_Kind;
-      Full_Name, Simple_Name : String_Access;
-      Indexed_Simple_Name    : Boolean)
+     (Kind                                        : File_Kind;
+      Full_Name, Preserved_Full_Name, Simple_Name : String_Access;
+      Indexed_Simple_Name                         : Boolean)
       return File_Info_Access;
    --  Allocate a new File_Info record of type Kind and for the given file
    --  names. This does not modify Files_Table nor full/simple name maps.
@@ -748,9 +748,11 @@ package body Files_Table is
       use Filename_Rebase_Maps;
       use Simple_Name_Maps;
 
-      Original_Full_Path : constant Virtual_File :=
-        Create (+Canonicalize_Filename (Full_Name));
-      Full_Path          : Virtual_File := Original_Full_Path;
+      Preserved_Full_Name : constant String :=
+         Canonicalize_Filename (Full_Name, False);
+      Original_Full_Path  : constant Virtual_File :=
+         Create (+Canonicalize_Filename (Full_Name));
+      Full_Path           : Virtual_File := Original_Full_Path;
       --  Full_Path can be modified to hold the result of the source rebase
 
       Cur         : Filename_Maps.Cursor;
@@ -816,6 +818,12 @@ package body Files_Table is
                Info_Simple.Full_Name :=
                  new String'(+GNATCOLL.VFS.Full_Name (Full_Path));
                Full_Name_Map.Insert (Full_Path, Res);
+
+               if Info_Simple.Preserved_Full_Name = null then
+                  Info_Simple.Preserved_Full_Name :=
+                     new String'(Preserved_Full_Name);
+               end if;
+
                goto Do_Return;
 
             else
@@ -842,6 +850,7 @@ package body Files_Table is
          Files_Table.Append (Create_File_Info
            (Kind,
             new String'(+GNATCOLL.VFS.Full_Name (Full_Path)),
+            new String'(Preserved_Full_Name),
             new String'(+GNATCOLL.VFS.Full_Name (Simple_Path)),
             Indexed_Simple_Name));
          Res := Files_Table.Last_Index;
@@ -911,6 +920,7 @@ package body Files_Table is
          Files_Table.Append (Create_File_Info
            (Kind                => Kind,
             Full_Name           => null,
+            Preserved_Full_Name => null,
             Simple_Name         => new String'(+Full_Name (Simple_Path)),
             Indexed_Simple_Name => True));
          Res := Files_Table.Last_Index;
@@ -1537,14 +1547,26 @@ package body Files_Table is
    ----------------------
 
    function Create_File_Info
-     (Kind                   : File_Kind;
-      Full_Name, Simple_Name : String_Access;
-      Indexed_Simple_Name    : Boolean)
+     (Kind                                        : File_Kind;
+      Full_Name, Preserved_Full_Name, Simple_Name : String_Access;
+      Indexed_Simple_Name                         : Boolean)
       return File_Info_Access
    is
       Result : constant File_Info_Access := new File_Info (Kind);
+
+      function Defer_Or_Null (S : String_Access) return String is
+         (if S = null then "<<null>>" else "<<" & S.all & ">>");
    begin
+      Files_Table_Trace.Trace ("CFI ->      Simple Name:"
+                               & Defer_Or_Null (Simple_Name)
+                               & ASCII.LF
+                               & "    Preserved Full Name: "
+                               & Defer_Or_Null (Preserved_Full_Name)
+                               & ASCII.LF
+                               & "    Canonical Full Name: "
+                               & Defer_Or_Null (Full_Name));
       Result.Full_Name := Full_Name;
+      Result.Preserved_Full_Name := Preserved_Full_Name;
       Result.Simple_Name := Simple_Name;
       Result.Indexed_Simple_Name := Indexed_Simple_Name;
       if Result.Kind = Source_File then
@@ -1591,8 +1613,12 @@ package body Files_Table is
 
          declare
             New_FI : constant File_Info_Access :=
-              Create_File_Info
-                (Kind, FI.Full_Name, FI.Simple_Name, FI.Indexed_Simple_Name);
+               Create_File_Info
+                 (Kind,
+                  FI.Full_Name,
+                  FI.Preserved_Full_Name,
+                  FI.Simple_Name,
+                  FI.Indexed_Simple_Name);
          begin
             New_FI.Has_Source := FI.Has_Source;
             Free (FI);
@@ -1739,6 +1765,12 @@ package body Files_Table is
    --  Start of processing for Open
 
    begin
+      Files_Table_Trace.Trace ("Open FILE : " & FI.Simple_Name.all);
+      if FI.Preserved_Full_Name /= null then
+         Files_Table_Trace.Trace ("   Full name "
+                                  & FI.Preserved_Full_Name.all);
+      end if;
+
       if not FI.Has_Source then
          Success := False;
          return;
@@ -2129,8 +2161,8 @@ package body Files_Table is
             CSS.Write_SFI (File_Vectors.To_Index (FI_C));
             CSS.Write_Unbounded
               (String_Access'
-                 (if FI.Full_Name /= null
-                  then FI.Full_Name
+                 (if FI.Preserved_Full_Name /= null
+                  then FI.Preserved_Full_Name
                   else FI.Simple_Name).all);
             CSS.Write_U8 (File_Kind'Pos (FI.Kind));
             CSS.Write (FI.Indexed_Simple_Name);
@@ -2161,6 +2193,7 @@ package body Files_Table is
       Sorted_Files_Table.Clear;
       for FI of Files_Table loop
          Free (FI.Full_Name);
+         Free (FI.Preserved_Full_Name);
          Free (FI.Simple_Name);
          if FI.Kind = Source_File then
 

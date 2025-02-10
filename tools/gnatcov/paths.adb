@@ -32,7 +32,9 @@ package body Paths is
    function Likely_Windows_Path (Path : String) return Boolean;
    --  Whether the provided Path features Windows typical markers
 
-   function Normalize_Windows_Pattern (Pattern : String) return String;
+   function Normalize_Windows_Pattern
+     (Pattern : String;
+      Lower   : Boolean := True) return String;
    --  Assuming Pattern is a Windows file name or globbing pattern, return a
    --  minimally normalized version of it, with all chars converted to lower
    --  case and \ used consistently as the dir separator. Pattern may actually
@@ -79,7 +81,10 @@ package body Paths is
    -- Canonicalize_Filename --
    ---------------------------
 
-   function Canonicalize_Filename (Filename : String) return String is
+   function Canonicalize_Filename
+     (Filename : String;
+      Lower : Boolean := True) return String
+   is
 
       --  Start with a very basic normalization step as for globbing
       --  patterns. If we have a Windows path but are not on a Windows
@@ -90,7 +95,7 @@ package body Paths is
 
       Name : constant String :=
         (if Likely_Windows
-         then Normalize_Windows_Pattern (Filename)
+         then Normalize_Windows_Pattern (Filename, Lower)
          else Filename);
    begin
       if Likely_Windows and then not On_Windows then
@@ -100,9 +105,11 @@ package body Paths is
       end if;
    end Canonicalize_Filename;
 
-   function Canonicalize_Filename (Filename : String) return String_Access is
+   function Canonicalize_Filename
+     (Filename : String;
+      Lower : Boolean := True) return String_Access is
    begin
-      return new String'(Canonicalize_Filename (Filename));
+      return new String'(Canonicalize_Filename (Filename, Lower));
    end Canonicalize_Filename;
 
    --------------------
@@ -269,7 +276,9 @@ package body Paths is
    -- Normalize_Windows_Pattern --
    -------------------------------
 
-   function Normalize_Windows_Pattern (Pattern : String) return String is
+   function Normalize_Windows_Pattern
+     (Pattern : String;
+      Lower   : Boolean := True) return String is
 
       --  Force lower case and Backslashify, paying attention not to add
       --  multiple backslashes in a row.
@@ -297,8 +306,12 @@ package body Paths is
          Newchar := (if Pattern (I) = '/' then '\' else Pattern (I));
          New_Is_Sep := Newchar = '\';
 
+         if Lower then
+            Newchar := To_Lower (Newchar);
+         end if;
+
          if not New_Is_Sep or else not Last_Was_Sep then
-            Append (Res, To_Lower (Newchar));
+            Append (Res, Newchar);
             Last_Was_Sep := New_Is_Sep;
          end if;
       end loop;
