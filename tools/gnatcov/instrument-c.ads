@@ -192,6 +192,8 @@ package Instrument.C is
       LL_SCO : Nat;
       --  Low-level SCO id of statement
 
+      Kind : SCO_Kind := Statement;
+
       Instr_Scheme : Instr_Scheme_Type;
       --  How should the statement be instrumented. See documentation of
       --  Instr_Scheme_Type.
@@ -465,7 +467,8 @@ private
       UIC          : in out C_Unit_Inst_Context'Class;
       LL_SCO       : Nat;
       Insertion_N  : Cursor_T;
-      Instr_Scheme : Instr_Scheme_Type) is null;
+      Instr_Scheme : Instr_Scheme_Type;
+      Kind         : SCO_Kind := Statement) is null;
 
    procedure Instrument_Decision
      (Pass     : Pass_Kind;
