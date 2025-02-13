@@ -645,14 +645,29 @@ build for instance.
 Function and call coverage limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Function and call coverage is only available for Ada. Currently, gnatcov is
-unable to provided coverage information for:
+Function and call coverage supports all three Ada, C and C++ languages,
+with language-specific limitations.
+
+For the Ada language, gnatcov is currently unable to provided coverage
+information for:
 
 * Call expressions part of the prefix of a dotted name
 
-* Calls to user-defined operators
-
 The coverage state of these cases will be reported as undetermined.
+
+For the C++ language, gnatcov will currently not instrument nor provide
+coverage information for:
+
+* Constructor and Destructor functions
+
+* Constructor and Destructor calls
+
+Guarded expression coverage limitations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Guarded expression coverage is only available for the Ada language.
+For implementation reasons, it is only available starting from version 2022 of
+the language.
 
 .. _instr-build:
 

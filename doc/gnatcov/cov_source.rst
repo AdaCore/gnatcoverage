@@ -1546,7 +1546,7 @@ Function and Call Coverage (FUN_CALL) analysis (experimental)
 =============================================================
 
 |gcv| can also provide an analysis of the coverage of subprograms and calls for
-Ada source traces.
+Ada, C, and C++ source traces.
 
 If such coverage analysis is needed, it should always be activated along one of
 the non-assertion coverage levels previously described. In this section on
@@ -1580,6 +1580,67 @@ section.
 It is important to note that for an :dfn:`uncovered` statement which happens
 to be a call statement, only a statement violation will be emitted in
 coverage reports.
+
+The limitations of this coverage level are detailed in the
+:ref:`instr-limitations` section.
+
+.. _scov-gexpr:
+
+Guarded Expression Coverage (GEXPR) analysis (experimental)
+============================================================
+
+For the Ada language, |gcv| can provide an analysis on coverage of guarded
+expressions.
+
+Core notions and Reporting (:cmd-option:`--level=...+gexpr`)
+------------------------------------------------------------
+
+|gcv| the following syntaxes to be :dfn:`guarded expressions`:
+
+* Then and Else dependent expressions of :dfn:`if expressions`
+
+.. code-block:: ada
+
+   procedure Foo (A : Boolean) is
+      Var : constant String :=
+        (if A
+         then "True expression"
+         else "False expression");
+   begin
+      null;
+   end Foo;
+
+* Dependent expressions of :dfn:`case expressions`
+
+.. code-block:: ada
+
+   type Animal is (Cat, Dog, Cow);
+
+   procedure Foo (A : Animal) is
+      Var : constant String :=
+        (case A
+         when Cat    => "Expression Cat",
+         when Dog    => "Expression Dog",
+         when others => "Expression other");
+   begin
+      null;
+   end Foo;
+
+* Predicate expression of :dfn:`quantified expressions`
+
+.. code-block:: ada
+
+   function Prime_In_Range (L, R : Natural) return Boolean is
+   begin
+
+      --  Is_Prime (I) is the child expression that will be analysized.
+
+      return (for some I in (L .. R) => Is_Prime (I));
+   end Foo;
+
+For each of these, we consider the expression to be :dfn:`covered` and the
+obligation to be :dfn:`discharged` if the execution flow evaluated it at least
+once.
 
 The limitations of this coverage level are detailed in the
 :ref:`instr-limitations` section.
