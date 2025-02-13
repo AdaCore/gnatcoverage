@@ -224,7 +224,8 @@ package body Instrument.C is
       UIC          : in out C_Unit_Inst_Context'Class;
       LL_SCO       : Nat;
       Insertion_N  : Cursor_T;
-      Instr_Scheme : Instr_Scheme_Type);
+      Instr_Scheme : Instr_Scheme_Type;
+      Kind         : SCO_Kind := Statement);
    --  Add an entry to UIC.Source_Statements
 
    overriding procedure Instrument_Decision
@@ -1236,7 +1237,8 @@ package body Instrument.C is
       UIC          : in out C_Unit_Inst_Context'Class;
       LL_SCO       : Nat;
       Insertion_N  : Cursor_T;
-      Instr_Scheme : Instr_Scheme_Type) is
+      Instr_Scheme : Instr_Scheme_Type;
+      Kind         : SCO_Kind := Statement) is
    begin
       if UIC.Disable_Instrumentation then
          UIC.Non_Instr_LL_SCOs.Include (SCO_Id (LL_SCO));
@@ -1244,6 +1246,7 @@ package body Instrument.C is
          UIC.Block_Stack.Reference (UIC.Block_Stack.Last).Append
            (C_Source_Statement'
               (LL_SCO       => LL_SCO,
+               Kind         => Kind,
                Instr_Scheme => Instr_Scheme,
                Statement    => Insertion_N));
       end if;
@@ -1635,7 +1638,8 @@ package body Instrument.C is
               (UIC          => UIC,
                LL_SCO       => SCOs.SCO_Table.Last,
                Insertion_N  => C,
-               Instr_Scheme => Instr_Expr);
+               Instr_Scheme => Instr_Expr,
+               Kind         => Call);
          end if;
 
          return Child_Visit_Recurse;
@@ -2725,7 +2729,8 @@ package body Instrument.C is
                           (UIC          => UIC,
                            LL_SCO       => SCOs.SCO_Table.Last,
                            Insertion_N  => Fun_Body,
-                           Instr_Scheme => Instr_In_Compound);
+                           Instr_Scheme => Instr_In_Compound,
+                           Kind         => Fun);
 
                         UIC.Pass.End_Statement_Block (UIC);
                      end if;
@@ -3660,13 +3665,61 @@ package body Instrument.C is
                   if Switches.Instrument_Block then
                      declare
                         Block_SCOs : SCO_Id_Vectors.Vector;
+                        Last_Stmt_Idx : Natural := Block.Last_Index;
                      begin
-                        Insert_Statement_Witness
-                          (UIC, Ent.Buffers_Index, Block.Last_Element);
-                        for SS of Block loop
-                           Block_SCOs.Append (SCO_Map (SS.LL_SCO));
+
+                        --  The block does not only carry statement SCOs,
+                        --  it also carries the SCOs of coverage levels
+                        --  that rely on stmt-like instrumentation:
+                        --  - FunCall,
+                        --  - Gexpr (albeit not in C/C++)
+                        --
+                        --  However, when using block instrumentation,
+                        --  we should not consider these not-stmt SCOs
+                        --  and instrument them manually.
+
+                        --  Non-statement SCOs are instrumented as usual,
+                        --  but in any case, we need to preserve the order
+                        --  in which each SCO is instrumented.
+
+                        --  1. Search the last Statement SCO in the block,
+                        --  it is the only one we will instrument.
+
+                        while Last_Stmt_Idx > Block.First_Index and then
+                           Block.Reference
+                             (Last_Stmt_Idx).Kind /= Statement
+                        loop
+                           Last_Stmt_Idx := Last_Stmt_Idx - 1;
                         end loop;
-                        Blocks.Append (Block_SCOs);
+
+                        --  2. Once found, instrument the last stmt SCO
+
+                        if Last_Stmt_Idx >= Block.First_Index then
+                           Insert_Statement_Witness
+                             (UIC,
+                              Ent.Buffers_Index,
+                              Block.Reference (Last_Stmt_Idx));
+                        end if;
+
+                        --  3. Finally, for all the SCOs in the block, either:
+                        --    - Attach them to the block if it's a statement
+                        --    - Or instrument it,
+
+                        for SS of Block loop
+                           if SS.Kind = Statement then
+                              Block_SCOs.Append (SCO_Map (SS.LL_SCO));
+                           else
+
+                              --  Manually instrument non-statement SCOs
+
+                              Insert_Statement_Witness
+                                (UIC, Ent.Buffers_Index, SS);
+                           end if;
+                        end loop;
+
+                        if not Block_SCOs.Is_Empty then
+                           Blocks.Append (Block_SCOs);
+                        end if;
                      end;
                   else
                      for SS of Block loop
