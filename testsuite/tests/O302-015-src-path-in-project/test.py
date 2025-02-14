@@ -49,6 +49,7 @@ trace_file = xcov_args[-1]
 
 
 def try_coverage(xcov_args, use_project):
+    thistest.log(f"== try_coverage(use_project={use_project})")
     rm(pkg_ads_report_path)
 
     if not use_project:
