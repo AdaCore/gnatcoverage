@@ -43,11 +43,17 @@ package Paths is
    --  If this is a Windows host, return the lower-cased filename, otherwise
    --  leave it unchanged.
 
-   function Canonicalize_Filename (Filename : String) return String;
-   function Canonicalize_Filename (Filename : String) return String_Access;
+   function Canonicalize_Filename
+     (Filename : String;
+      Lower : Boolean := True) return String;
+   function Canonicalize_Filename
+     (Filename : String;
+      Lower : Boolean := True) return String_Access;
    --  Assuming Filename is a full pathname to a file, return a normalized
    --  version of it such that different references to the same file map to the
    --  same canonical string as much as possible.
+   --  On Windows, if the Lower argument is true, the path will also be
+   --  lowercased. If it's false, the original case is kept.
 
    function Glob_To_Regexp (Pattern : String) return String;
    --  Convert the provided globbing Pattern to a regular expression.  This

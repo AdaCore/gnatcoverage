@@ -486,7 +486,8 @@ package body Annotations.Xml is
             FI : constant File_Info_Access := Get_File (File_Index);
          begin
             if FI.Kind = Source_File and then To_Display (FI) then
-               Pp.ST ("file", A ("name", FI.Full_Name.all), Dest_Index);
+               Pp.ST
+                 ("file", A ("name", FI.Preserved_Full_Name.all), Dest_Index);
                Print_Coverage_Li_Stats (Pp, FI.Li_Stats, Dest_Index);
                Print_Coverage_Ob_Stats (Pp, FI.Ob_Stats, Dest_Index);
                Pp.ET ("file", Dest_Index);
@@ -540,7 +541,7 @@ package body Annotations.Xml is
       --  No stats are emitted in the XML output; the user is supposed
       --  to compute them by himself by post-processing the output.
 
-      Abs_Filename  : constant String := Info.Full_Name.all;
+      Abs_Filename  : constant String := Info.Preserved_Full_Name.all;
       Xml_File_Name : constant String := Get_Unique_Filename (File, "xml");
    begin
       if not Info.Has_Source then

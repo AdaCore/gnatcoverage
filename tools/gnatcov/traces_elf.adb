@@ -2831,8 +2831,7 @@ package body Traces_Elf is
                  then Dw_Filename
                  else Build_Filename (Dir.all, Dw_Filename));
       begin
-         Filenames.Append
-           (new String'(Canonicalize_Filename (Filename)));
+         Filenames.Append (Canonicalize_Filename (Filename));
          Compute_File_Index (Filenames.Last_Element.all);
       end Register_Filename;
 
