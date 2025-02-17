@@ -364,7 +364,15 @@ package Files_Table is
       --  Source file information
 
       Full_Name : String_Access;
-      --  Full path name
+      --  Full path name. This path is normalized (and lowercased on
+      --  windows platforms).
+
+      Preserved_Full_Name : String_Access;
+      --  Full canonicalized path name that inconditionally matches the casing
+      --  of the original filename that was given to gnatcov.
+      --  It is used for display purpose.
+      --  It is also this, instead of Full_Name, that gets saved in
+      --  checkpoint files.
 
       Simple_Name : String_Access;
       --  File name of the source file, without the path
