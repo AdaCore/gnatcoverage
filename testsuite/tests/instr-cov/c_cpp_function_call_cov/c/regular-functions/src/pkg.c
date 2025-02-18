@@ -1,5 +1,5 @@
 #include "pkg.h"
-#include <stdio.h>
+#include "message.h"
 
 // A forward declaration should not be instrumented for function coverage.
 void bar (void); // # bar_decl
@@ -32,5 +32,5 @@ bar (void) // # bar_def_2
 {          // # bar_def_2
 
   // call of a function that is not in the same file or compilation unit
-  puts ("bar"); // # printf_call
+  print_message ("bar"); // # printf_call
 }
