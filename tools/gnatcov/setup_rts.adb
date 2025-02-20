@@ -514,16 +514,14 @@ package body Setup_RTS is
                          (GPR2.Project.Registry.Attribute.Compiler.Driver,
                           GPR2.Project.Attribute_Index.Create
                             (GPR2.C_Language));
-
-            Driver_Fullname : constant String := Driver.Value.Text;
-            Driver_Basename : constant String := Simple_Name (Driver_Fullname);
          begin
             --  If C's compiler driver is defined, and contains a dash, we
             --  can only suppose it's a cross compiler with an executable of
             --  the form <target_name>-<compiler>.
 
             if Driver.Is_Defined
-              and then Ada.Strings.Fixed.Index (Driver_Basename, "-") > 0
+              and then Ada.Strings.Fixed.Index
+                (Simple_Name (Driver.Value.Text), "-") > 0
             then
                Auto_RTS_Profile := Embedded;
             else
