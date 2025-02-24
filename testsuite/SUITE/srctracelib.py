@@ -138,7 +138,7 @@ class SrcTraceFile(object):
             )
 
         alignment = header["alignment"]
-        if alignment not in (1, 2, 4, 8):
+        if alignment not in (1, 2, 4, 8, 16):
             raise ValueError("Invalid alignment: {}".format(alignment))
 
         info_entries = []
