@@ -1203,6 +1203,7 @@ package SC_Obligations is
       Pragma_Profile,
       Pragma_Profile_Warnings,
       Pragma_Propagate_Exceptions,
+      Pragma_Program_Exit,
       Pragma_Provide_Shift_Operators,
       Pragma_Psect_Object,
       Pragma_Pure,
@@ -1553,15 +1554,17 @@ package SC_Obligations is
           Pragma_Storage_Size => False,
           Pragma_Storage_Unit => False,
 
-          --  Special case for pre/postcondition: these do not generate code
-          --  at their normal point of occurrence in the instruction flow,
-          --  and in the case of instrumentation based coverage, they cannot
-          --  be instrumented because of their special placement rules. So,
-          --  we mark them as generating no code, and we treat them as
-          --  "free-standing" decisions (outside of statement context).
+          --  Special case for pre/postconditions (Program_Exit is processed
+          --  like a postcondition): these do not generate code at their normal
+          --  point of occurrence in the instruction flow, and in the case of
+          --  instrumentation based coverage, they cannot be instrumented
+          --  because of their special placement rules. So, we mark them as
+          --  generating no code, and we treat them as "free-standing"
+          --  decisions (outside of statement context).
 
           Pragma_Postcondition => False,
           Pragma_Precondition => False,
+          Pragma_Program_Exit => False,
 
           --  Now pragmas which might generate code. This is an explicit list
           --  instead of a mere "others" fallback to make sure we notice when
