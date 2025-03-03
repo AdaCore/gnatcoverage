@@ -376,25 +376,12 @@ package SC_Obligations is
    function Get_CU (ST : Scope_Traversal_Type) return CU_Id;
    --  Return the compilation unit id which ST is currently traversing
 
-   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id) with
-     Pre => Get_CU (ST) = No_CU_Id
-           or else SCO in First_SCO (Get_CU (ST)) .. Last_SCO (Get_CU (ST));
-   --  Position ST on the inner-most scope that contains SCO.
-   --
-   --  This does nothing on a scope traversal type not initialized, or
-   --  initialized on a CU with no scopes attached to it.
-
-   function In_Scope_Of_Interest (ST : Scope_Traversal_Type) return Boolean;
-   --  Return whether at least one scope in Switches.Subps_Of_Interest contains
-   --  the last SCO on which Traverse_SCO (ST, ...) was called. Note that this
-   --  also returns True if Switches.Subps_Of_Interest is empty (i.e. consider
-   --  that all subprograms are of interest in that case).
-
    function In_Scope_Of_Interest
-     (ST : in out Scope_Traversal_Type; SCO : SCO_Id) return Boolean with
-     Pre => Get_CU (ST) = No_CU_Id
-           or else SCO in First_SCO (Get_CU (ST)) .. Last_SCO (Get_CU (ST));
-   --  Shortcut for Traverse_SCO (ST, SCO); return In_Scope_Of_Interest (ST);
+     (ST : in out Scope_Traversal_Type; SCO : SCO_Id) return Boolean;
+   --  Return whether at least one scope in Switches.Subps_Of_Interest contains
+   --  the given SCO.
+   --  Note that this also returns True if Switches.Subps_Of_Interest is empty
+   --  (i.e. consider that all subprograms are of interest in that case).
 
    No_Scope_Entity : constant Scope_Entity :=
      (From       => No_SCO_Id,

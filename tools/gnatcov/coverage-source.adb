@@ -2169,8 +2169,7 @@ package body Coverage.Source is
          Process : access procedure (SCI : in out Source_Coverage_Info))
       is
       begin
-         Traverse_SCO (ST, SCO);
-         if In_Scope_Of_Interest (ST) then
+         if In_Scope_Of_Interest (ST, SCO) then
             Update_SCI (SCO, Tag, Process);
          end if;
       end Update_SCI_Wrapper;
