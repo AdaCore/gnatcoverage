@@ -72,6 +72,19 @@ package body SC_Obligations is
    --  Return whether SCO is covered by that element's SCO range. Id the SCO is
    --  a function SCO, then the scope can be the root of the tree.
 
+   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id) with
+     Pre => Get_CU (ST) = No_CU_Id
+           or else SCO in First_SCO (Get_CU (ST)) .. Last_SCO (Get_CU (ST));
+   --  Position ST on the inner-most scope that contains SCO.
+   --
+   --  This does nothing on a scope traversal type not initialized, or
+   --  initialized on a CU with no scopes attached to it.
+   --
+   --  NOTE: Traverse_SCO will browse the scope tree structure at each new
+   --  given SCO, making it a very EXPENSIVE call.
+   --  For now, it memoizes the result for each SCO in its SCO descriptor,
+   --  so the browsing is not duplicated.
+
    ---------------
    -- Instances --
    ---------------
@@ -1026,10 +1039,15 @@ package body SC_Obligations is
    -- In_Scope_Of_Interest --
    --------------------------
 
-   function In_Scope_Of_Interest (ST : Scope_Traversal_Type) return Boolean is
+   function In_Scope_Of_Interest
+     (ST  : in out Scope_Traversal_Type;
+      SCO : SCO_Id) return Boolean
+   is
       use Scope_Entities_Trees;
       Cur : Cursor;
    begin
+      Traverse_SCO (ST, SCO);
+
       --  If no subprogram of interest was requested, consider that they are
       --  all of interest.
 
@@ -1048,19 +1066,6 @@ package body SC_Obligations is
          Cur := Parent (Cur);
       end loop;
       return False;
-   end In_Scope_Of_Interest;
-
-   --------------------------
-   -- In_Scope_Of_Interest --
-   --------------------------
-
-   function In_Scope_Of_Interest
-     (ST  : in out Scope_Traversal_Type;
-      SCO : SCO_Id) return Boolean
-   is
-   begin
-      Traverse_SCO (ST, SCO);
-      return In_Scope_Of_Interest (ST);
    end In_Scope_Of_Interest;
 
    -----------------
