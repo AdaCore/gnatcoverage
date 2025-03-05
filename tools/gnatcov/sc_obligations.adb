@@ -72,6 +72,19 @@ package body SC_Obligations is
    --  Return whether SCO is covered by that element's SCO range. Id the SCO is
    --  a function SCO, then the scope can be the root of the tree.
 
+   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id) with
+     Pre => Get_CU (ST) = No_CU_Id
+           or else SCO in First_SCO (Get_CU (ST)) .. Last_SCO (Get_CU (ST));
+   --  Position ST on the inner-most scope that contains SCO.
+   --
+   --  This does nothing on a scope traversal type not initialized, or
+   --  initialized on a CU with no scopes attached to it.
+   --
+   --  NOTE: Traverse_SCO will browse the scope tree structure at each new
+   --  given SCO, making it a very EXPENSIVE call.
+   --  For now, it memoizes the result for each SCO in its SCO descriptor,
+   --  so the browsing is not duplicated.
+
    ---------------
    -- Instances --
    ---------------
@@ -387,6 +400,13 @@ package body SC_Obligations is
          --
          --  For a condition or operator, pointer to the enclosing operator, or
          --  to enclosing decision if at top level.
+
+         Scope : Scope_Entities_Trees.Cursor :=
+            Scope_Entities_Trees.No_Element;
+         --  This fields's purpose is to memoize the result of Traverse_SCO
+         --  for finding the scope of the given SCO.
+         --  It should not be used nor modified outside the function.
+         --  It should not be written to checkpoint files.
 
          case Kind is
          when Removed =>
@@ -942,74 +962,92 @@ package body SC_Obligations is
          return;
       end if;
 
-      --  Check whether the current scope covers SCO. If not, find the first
-      --  one that does in the parent chain. There is always a scope for the
-      --  compilation unit / file, so this is guaranteed to finish.
+      declare
+         SCOD : SCO_Descriptor renames SCO_Vector (SCO);
+      begin
 
-      while not Covers_SCO (ST, SCO) loop
-         ST.Cur := Parent (ST.Cur);
+         --  Early return if the SCO's Scope was memoized.
 
-         --  If we reach the root of the tree, this means this SCO is not in
-         --  any scope, which is clearly a bug. Unless this is a function SCO
-         --  which can be at the root of the tree.
+         if SCOD.Scope /= No_Element then
+            ST.Cur := SCOD.Scope;
+            return;
+         end if;
 
-         declare
-            SCOD : SCO_Descriptor renames SCO_Vector (SCO);
-         begin
-            if SCOD.Kind /= Fun then
-               if Is_Root (ST.Cur) then
-                  raise Program_Error
-                    with "No scope found for " &  Image (SCO);
-               end if;
+         --  Check whether the current scope covers SCO. If not, find the first
+         --  one that does in the parent chain. There is always a scope for the
+         --  compilation unit / file, so this is guaranteed to finish.
+
+         while not Covers_SCO (ST, SCO) loop
+            ST.Cur := Parent (ST.Cur);
+
+            --  If we reach the root of the tree, this means this SCO is not in
+            --  any scope, which is clearly a bug. Unless this is a function
+            --  SCO which can be at the root of the tree.
+
+            if Is_Root (ST.Cur) and then SCOD.Kind /= Fun then
+               raise Program_Error
+                 with "No scope found for " &  Image (SCO);
             end if;
-         end;
-      end loop;
+         end loop;
 
-      --  Descend into the tree until we are on a leaf, or no child of the
-      --  current scope entity covers the SCO.
+         --  Descend into the tree until we are on a leaf, or no child of the
+         --  current scope entity covers the SCO.
 
-      Depth_Descent :
-      while not Is_Leaf (ST.Cur) loop
+         Depth_Descent :
+         while not Is_Leaf (ST.Cur) loop
 
-         --  Otherwise, find if there is a child that covers SCO, this is a
-         --  linear search. We could search by dichotomy as the children are
-         --  sorted, but this seems overkill.
+            --  Otherwise, find if there is a child that covers SCO, this is a
+            --  linear search. We could search by dichotomy as the children are
+            --  sorted, but this seems overkill.
+            --  Actually, the Multiway_Tree structure does not allow access
+            --  to an arbitrary nth_child (children are a linked list),
+            --  so a binary search would need a rewrite of the Scope handling.
 
-         declare
-            Child    : Cursor := First_Child (ST.Cur);
-            In_Child : Boolean := False;
-            --  Whether the low bound of Child is lower than SCO (and thus
-            --  Child covers SCO when exiting the loop).
-         begin
-            Child_Search :
-            while Has_Element (Child) loop
-               declare
-                  SE : constant Scope_Entity := Element (Child);
-               begin
-                  In_Child := SE.From <= SCO;
-                  exit Child_Search when SE.To >= SCO;
-                  Child := Next_Sibling (Child);
-               end;
-            end loop Child_Search;
+            declare
+               Child    : Cursor := First_Child (ST.Cur);
+               In_Child : Boolean := False;
+               --  Whether the low bound of Child is lower than SCO (and thus
+               --  Child covers SCO when exiting the loop).
+            begin
+               Child_Search :
+               while Has_Element (Child) loop
+                  declare
+                     SE : constant Scope_Entity := Element (Child);
+                  begin
+                     In_Child := SE.From <= SCO;
+                     exit Child_Search when SE.To >= SCO;
+                     Child := Next_Sibling (Child);
+                  end;
+               end loop Child_Search;
 
-            --  If we found a child containing SCO, keep descending into its
-            --  children, otherwise we have found the inner most scope.
+               --  If we found a child containing SCO, keep descending into its
+               --  children, otherwise we have found the inner most scope.
 
-            exit Depth_Descent when not In_Child or else Child = No_Element;
-            ST.Cur := Child;
-            pragma Loop_Invariant (Covers_SCO (ST, SCO));
-         end;
-      end loop Depth_Descent;
+               exit Depth_Descent when not In_Child or else Child = No_Element;
+               ST.Cur := Child;
+               pragma Loop_Invariant (Covers_SCO (ST, SCO));
+            end;
+         end loop Depth_Descent;
+
+         --  Memoize the Scope in the SCO descriptor.
+
+         SCOD.Scope := ST.Cur;
+      end;
    end Traverse_SCO;
 
    --------------------------
    -- In_Scope_Of_Interest --
    --------------------------
 
-   function In_Scope_Of_Interest (ST : Scope_Traversal_Type) return Boolean is
+   function In_Scope_Of_Interest
+     (ST  : in out Scope_Traversal_Type;
+      SCO : SCO_Id) return Boolean
+   is
       use Scope_Entities_Trees;
       Cur : Cursor;
    begin
+      Traverse_SCO (ST, SCO);
+
       --  If no subprogram of interest was requested, consider that they are
       --  all of interest.
 
@@ -1028,19 +1066,6 @@ package body SC_Obligations is
          Cur := Parent (Cur);
       end loop;
       return False;
-   end In_Scope_Of_Interest;
-
-   --------------------------
-   -- In_Scope_Of_Interest --
-   --------------------------
-
-   function In_Scope_Of_Interest
-     (ST  : in out Scope_Traversal_Type;
-      SCO : SCO_Id) return Boolean
-   is
-   begin
-      Traverse_SCO (ST, SCO);
-      return In_Scope_Of_Interest (ST);
    end In_Scope_Of_Interest;
 
    -----------------
