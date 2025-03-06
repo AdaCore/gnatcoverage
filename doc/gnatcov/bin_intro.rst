@@ -186,4 +186,6 @@ specific considerations:
 
 - :ref:`osmetrics`
 
+- :ref:`generics_sep`
+
 - :ref:`bin_convert`

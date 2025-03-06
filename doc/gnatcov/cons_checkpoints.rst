@@ -164,22 +164,21 @@ sequence of commands such as::
 
   # Process test1.trace, saving the resulting coverage state in a newly
   # created checkpoint:
-  gnatcov coverage --level=<> --scos=@alis test1.trace \
+  gnatcov coverage --level=<> -P<project> test1.srctrace \
                    --save-checkpoint=testsuite.ckpt
 
-  # Process subsequent test traces test2.trace .. testN.trace, each time
+  # Process subsequent test traces test2.srctrace .. testN.srctrace, each time
   # starting with the coverage state reached at the previous iteration,
   # and saving the resulting coverage state in the same checkpoint file
   # (overwriting it):
-  gnatcov coverage --level=<> --scos=@alis test2.trace \
+  gnatcov coverage --level=<> -P<project> test2.srctrace \
                    --checkpoint=testsuite.ckpt --save-checkpoint=testsuite.ckpt
   ...
-  gnatcov coverage --level=<> --scos=@alis testN.trace \
+  gnatcov coverage --level=<> -P<project> testN.srctrace \
                    --checkpoint=testsuite.ckpt --save-checkpoint=testsuite.ckpt
 
   # Now produce a report from the cumulated results:
-  gnatcov coverage --level=<> --scos=@alis \
-                   --checkpoint=testsuite.ckpt --annotate=<>
+  gnatcov coverage --level=<> --checkpoint=testsuite.ckpt --annotate=<>
 
 
 The big advantage of this approach is that it stores everything in a single
@@ -211,9 +210,9 @@ Now suppose that you want to assess the global coverage for a system comprising
 both unit A and unit B. If the two sets of trace files are consolidated
 using a single execution of |gcvcov| as in::
 
-  gnatcov coverage --level=stmt --scos=a.ali --scos=b.ali --annotate=report \
-                   testA1.trace ... testAN.trace \
-                   testB1.trace ... testBN.trace
+  gnatcov coverage --level=stmt --units=A --units=B --annotate=report \
+                   testA1.srctrace ... testAN.srctrace \
+                   testB1.srctrace ... testBN.srctrace
 
 then calls to B made by A while running testsuite A will contribute
 to discharging coverage obligations for unit B, and the other way round.
@@ -229,17 +228,17 @@ interest for that run.
 A consolidated coverage report can thus be constructed using a two pass
 analysis::
 
-  # Discharge the coverage obligations for unit A (--scos=a.ali) using
+  # Discharge the coverage obligations for unit A (--units=A) using
   # trace files from testsuite A.
-  gnatcov coverage --level=stmt --scos=a.ali \
-                   testA1.trace ... testAN.trace \
+  gnatcov coverage --level=stmt --units=A \
+                   testA1.srctrace ... testAN.srctrace \
                    --save-checkpoint=testsuiteA.ckpt
 
-  # Discharge the coverage obligations for unit B (--scos=b.ali) using
+  # Discharge the coverage obligations for unit B (--units=B) using
   # trace files from testsuite B, consolidate with previous results from
   # testsuite A (--checkpoint), and produce a report (--annotate).
-  gnatcov coverage --level=stmt --scos=b.ali \
-                   testB1.trace ... testBN.trace --checkpoint=testsuiteA.ckpt \
+  gnatcov coverage --level=stmt --units=B \
+                   testB1.srctrace ... testBN.srctrace --checkpoint=testsuiteA.ckpt \
                    --annotate=report
 
 In a consolidated report produced following this procedure, each set of trace
