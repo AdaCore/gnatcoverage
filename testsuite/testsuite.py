@@ -1150,7 +1150,7 @@ class TestSuite(e3.testsuite.Testsuite):
         # termination, which is not the point of the silent last chance
         # handler. QNX however does provide the exit function, so use that
         # instead.
-        if args.target and "qnx" in args.target:
+        if args.target and ("qnx" in args.target or "morello" in args.target):
             libsup_vars.append("SILENT_LCH=exit")
 
         logfile = os.path.join(self.output_dir, "build_support.out")

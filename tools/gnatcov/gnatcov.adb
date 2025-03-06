@@ -65,7 +65,11 @@ begin
         --  Otherwise, infer the gnatcov executable to use from the target
         --  option.
 
-        or else Index (Target (Target'First .. Last_Before_Dash), "64") /= 0;
+        or else Index (Target (Target'First .. Last_Before_Dash), "64") /= 0
+
+        -- morello is 64-bits even though it's not explicitely written.
+
+        or else Index (Target, "morello") /= 0;
    end;
 
    --  Now run the correct arch-specific entry point

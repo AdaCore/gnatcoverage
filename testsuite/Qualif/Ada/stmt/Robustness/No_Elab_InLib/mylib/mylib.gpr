@@ -4,7 +4,16 @@ library project mylib is
   for library_kind use "static";
   for library_name use project'name;
   for library_dir use "lib";
+
+  type Trace_Mode_Enum is ("src", "bin");
+  Trace_Mode : Trace_Mode_Enum := external ("TRACE_MODE");
   package compiler is
-    for switches("ada") use ("-fpreserve-control-flow", "-fdump-scos", "-g");
+    case Trace_Mode is
+      when "bin" =>
+        for switches("ada") use
+          ("-fpreserve-control-flow", "-fdump-scos", "-g");
+      when "src" =>
+        null;
+    end case;
   end compiler;
 end mylib;
