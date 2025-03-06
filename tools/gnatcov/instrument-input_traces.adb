@@ -1114,6 +1114,14 @@ package body Instrument.Input_Traces is
 
             if not TIO.End_Of_Line (Input) and then TIO.Col (Input) > 1 then
                if Started_Trace and then not Ignore_Line then
+
+                  --  Remove any corrupted source trace file that
+                  --  started to be generated.
+
+                  if Had_One_Trace then
+                     BIO.Delete (Output);
+                  end if;
+
                   Outputs.Fatal_Error
                     ("Unexpected long line in Base64 trace");
                else
@@ -1172,6 +1180,15 @@ package body Instrument.Input_Traces is
             --  base64 characters.
 
             if Buffer (First .. Last)'Length mod 4 /= 0 then
+
+               --  If there is a format error in the base64 encoding,
+               --  properly exit by removing the output file that may have been
+               --  created, to avoid leaving a corrupted file to the user.
+
+               if Had_One_Trace then
+                  BIO.Delete (Output);
+               end if;
+
                Outputs.Fatal_Error
                  ("Invalid Base64 trace: incomplete group of 4 characters");
             end if;
@@ -1221,7 +1238,7 @@ package body Instrument.Input_Traces is
       if not Had_One_Trace then
          Outputs.Fatal_Error ("No Base64 trace found");
       elsif Started_Trace then
-         BIO.Close (Output);
+         BIO.Delete (Output);
          Outputs.Fatal_Error ("Incomplete Base64 trace");
       end if;
    end Extract_Base64_Trace;
