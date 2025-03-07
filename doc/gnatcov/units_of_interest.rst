@@ -266,6 +266,10 @@ unit of interest encompass some of its testing sources, for example
 when parts of the testing code is implemented with ``separate``
 subunits in Ada.
 
+The sources for the following example can be found under the
+`share/examples/gnatcoverage/doc/subunits/` directory of the GNATDAS
+distribution.
+
 The dummy example below shows a possible organization of this kind,
 with a ``Data_Processing`` package to be tested which contains a ``Test``
 procedure declared as a ``separate`` entity::
@@ -312,10 +316,23 @@ one or the other based on a scenario variable::
      pragma Assert (Internal_Data < 0);
   end;
 
+  -- run_all.adb; main file to run the test
+
+  with Data_Processing;
+  procedure Run_All is
+  begin
+     Data_Processing.Test;
+  end;
+
   -- Project file with a Body source file name selection in a
   -- Naming project package:
 
   project P is
+
+    for Object_Dir use "obj";
+    for Source_Dirs use ("src");
+    for Main use ("run_all.adb");
+
     TEST := external ("TEST");
     package Naming is
       for Body ("data_processing.test") use "data_processing-" & TEST & ".adb";
@@ -324,16 +341,8 @@ one or the other based on a scenario variable::
 
 Then we can build one variant or the other with::
 
-  -- run_all.adb
-
-  with Data_Processing;
-  procedure Run_All is
-  begin
-     Data_Processing.Test;
-  end;
-
-  $ gprbuild -Pp.gpr -XTEST=test1 run_all.adb
-  $ gprbuild -Pp.gpr -XTEST=test2 run_all.adb
+  $ gprbuild -Pp.gpr -XTEST=test1
+  $ gprbuild -Pp.gpr -XTEST=test2
   ...
 
 As any testing code, such subunits usually need to be excluded from
