@@ -11,4 +11,5 @@ Appendix A. Using GNATcoverage Binary Traces
    cov_metrics
    bin_gps
    bin_convert
+   separate_cov
    bin_limitations

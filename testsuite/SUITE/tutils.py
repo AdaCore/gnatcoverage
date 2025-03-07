@@ -1063,10 +1063,16 @@ def run_cov_program(
         assert thistest.options.board or thistest.env.target.machine
 
         target = thistest.env.target.platform
+        os_ver = (
+            thistest.env.target.os.version if thistest.env.target.os else ""
+        )
+
+        target += f",{os_ver}"
+
         if thistest.options.board:
-            target += f",,{thistest.options.board}"
+            target += f",{thistest.options.board}"
         else:
-            target += f",,{thistest.env.target.machine}"
+            target += f",{thistest.env.target.machine}"
 
         # run-cross2 is a python script. As Windows does not parse shebangs,
         # use the python executable as main program instead of the script.

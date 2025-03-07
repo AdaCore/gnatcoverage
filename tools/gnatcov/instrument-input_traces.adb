@@ -366,7 +366,7 @@ package body Instrument.Input_Traces is
               " only.");
             return;
 
-         elsif Raw_Header.Alignment not in 1 | 2 | 4 | 8 then
+         elsif Raw_Header.Alignment not in 1 | 2 | 4 | 8 | 16 then
             Create_Error (Result, "invalid alignment");
             return;
 

@@ -63,7 +63,14 @@ project Libsupport is
 
          Langs := Langs & ("C");
 
-         Source_Dirs := Source_Dirs & ("src/memory");
+         -- Use libsupport's custom memory functions, except for the
+         -- morello target, for which they produce unwanted behavior.
+
+         case Conf.Target is
+            when "morello-elf" => null;
+            when others => Source_Dirs := Source_Dirs & ("src/memory");
+         end case;
+
          Source_Dirs := Source_Dirs & ("src/" & Conf.Target);
 
          --  Add whatever we need to find our Last Chance Handler, to

@@ -173,4 +173,3 @@ solid theoretical grounds established as part of the *Couverture* research
 project from which |gcp| originates. The core particularity allowing full
 branch coverage without mcdc is the presence of decisions with BDDs which
 are not trees, as we have in this specfic case,
-
