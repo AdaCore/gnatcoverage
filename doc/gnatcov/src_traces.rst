@@ -844,6 +844,10 @@ Its contents are:
   pragma Ignore_Pragma (Refined_Global);
   pragma Ignore_Pragma (Refined_Depends);
 
+The source for the following example can be found under the
+`share/examples/gnatcoverage/spark_instrumentation/` directory of the GNATDAS
+distribution.
+
 The configuration pragma file can be passed to the compiler either by
 specifying it on the gprbuild command line with the ``-gnatec`` switch::
 
