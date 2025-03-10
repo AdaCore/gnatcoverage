@@ -1,1 +1,0 @@
-bin-traces,CARGS_O1,CARGS_gnatp XFAIL U621-007: decision map & recursive inlined expr. func.

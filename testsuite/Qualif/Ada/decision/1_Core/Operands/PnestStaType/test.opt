@@ -1,3 +1,2 @@
 7.1.2,bin-traces SKIP bogus sloc info for condition involving packed array, fixed post 7.0
 5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
-c XFAIL pending resolution of eng/toolchain/gnat-llvm#221
