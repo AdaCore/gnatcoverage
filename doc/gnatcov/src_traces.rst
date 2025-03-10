@@ -912,6 +912,10 @@ Here we will consider examining the coverage achieved by the execution of the
 very basic sample program below, assuming the existence of a ``Sensors``
 source unit providing access to some sensor values.
 
+The sources for this example can be found under the
+`share/examples/gnatcoverage/doc/cross_example` directory of the GNATDAS
+disctribution.
+
 .. code-block:: ada
 
   with Sensors; use Sensors;
