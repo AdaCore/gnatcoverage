@@ -55,6 +55,11 @@ def ext(filename):
     return os.path.splitext(filename)[1]
 
 
+def exists(filename):
+    """Return true if the filename exists"""
+    return os.path.exists(filename)
+
+
 def contents_of(filename):
     """Return contents of file FILENAME"""
     with open(filename) as fd:
