@@ -1038,6 +1038,10 @@ For the sake of the example, we will consider that
   by each new test individually or for the current set of tests
   at a given point in time.
 
+The sources for this example can be found under the
+`share/examples/gnatcoverage/doc/library_instr/` directory of the GNATDAS
+distribution.
+
 Setting up the coverage runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
