@@ -1571,6 +1571,9 @@ begin
          then
             Instrumenters (Lang).Emit_Buffers_List_Unit
               (Instr_Units, Root_Project_Info.Desc);
+
+            Instrumenters (Lang).Emit_Observability_Unit
+              (Root_Project_Info.Desc);
             exit;
          end if;
       end loop;

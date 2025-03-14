@@ -555,6 +555,12 @@ package Instrument.Common is
    --  not stub instrumenters (e.g. the one declared in instrument-c__stub) in
    --  which case it will raise a Program_Error.
 
+   procedure Emit_Observability_Unit
+     (Self : in out Language_Instrumenter;
+      Prj  : in out Prj_Desc) is null;
+   --  Emit in the root project a file that exposes live coverage observability
+   --  features, such as the number of bits set in the buffers.
+
    function New_File
      (Prj : Prj_Desc; Name : String) return String;
    --  Compute the path to the file to create in Self.Output_Dir
