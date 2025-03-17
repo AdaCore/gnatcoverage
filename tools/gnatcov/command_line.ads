@@ -1395,7 +1395,7 @@ package Command_Line is
       Opt_Scenario_Var => Create
         (Short_Name => "-X",
          Pattern    => "[NAME]=[VALUE]",
-         Help       => "Define a scenario variable for project files.",
+         Help       => "Specify an external reference for Project Files.",
          Commands   => (Cmd_Print_GPR_Registry
                         | Cmd_All_Setups => False,
                         others => True),
