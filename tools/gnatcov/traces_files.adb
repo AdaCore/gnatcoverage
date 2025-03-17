@@ -389,7 +389,7 @@ package body Traces_Files is
       Kind := Binary_Trace_File;
 
       if Fd = Invalid_FD then
-         Create_Error (Result, "cannot open " & Filename);
+         Create_Open_Error (Result, Filename);
          return;
       end if;
 
