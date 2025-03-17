@@ -31,6 +31,7 @@ with GNAT.Byte_Swapping; use GNAT.Byte_Swapping;
 
 with Hex_Images;
 with Outputs;
+with Traces_Files; use Traces_Files;
 
 package body Instrument.Input_Traces is
 
@@ -103,7 +104,7 @@ package body Instrument.Input_Traces is
       EOF          : out Boolean;
       Result       : in out Read_Result;
       Error_If_EOF : Boolean := True)
-      with Pre => Result.Success;
+      with Pre => Is_Success (Result);
    --  Try to read Size bytes from Stream. Put the result in Stream.Buffer and
    --  Stream.Buffer_Last. By default, set EOF to False (see below).
    --
@@ -141,7 +142,7 @@ package body Instrument.Input_Traces is
      (Stream      : in out Binary_Stream;
       File_Header : out Trace_File_Header;
       Result      : in out Read_Result)
-      with Pre => Result.Success;
+      with Pre => Is_Success (Result);
    --  Read a trace file header from Stream and store it in File_Header. Set
    --  Result to an error if something wrong happened.
 
@@ -151,7 +152,7 @@ package body Instrument.Input_Traces is
       Kind        : out Supported_Info_Kind;
       Data        : out GNAT.OS_Lib.String_Access;
       Result      : in out Read_Result)
-      with Pre => Result.Success;
+      with Pre => Is_Success (Result);
    --  Read a trace info entry from Stream. Return an error if something wrong
    --  happened, otherwise put its kind in Kind and allocate a string in Data
    --  to hold the data associated to this entry.
@@ -162,7 +163,7 @@ package body Instrument.Input_Traces is
       Entry_Header : out Trace_Entry_Header;
       Trace_Entry  : out Trace_Entry_Elements;
       Result       : in out Read_Result) return Boolean
-      with Pre => Result.Success;
+      with Pre => Is_Success (Result);
    --  Try to read a trace entry header from Stream.
    --
    --  If Stream already reached EOF, just return False. Otherwise, decode it
@@ -178,7 +179,7 @@ package body Instrument.Input_Traces is
       Raw_Buffer : Bytes_Array;
       Buffer     : out Coverage_Buffer;
       Result     : in out Read_Result)
-      with Pre => Result.Success;
+      with Pre => Is_Success (Result);
    --  Decode the given Raw_Buffer according to the given Encoding, and but the
    --  result in Buffer. If all goes well, keep Result as it is, otherwise set
    --  it to the corresponding error information.
@@ -328,7 +329,7 @@ package body Instrument.Input_Traces is
    begin
       Read_Bytes
         (Stream, File_Header'Size / 8, Ignored_EOF, Result);
-      if not Result.Success then
+      if not Is_Success (Result) then
          return;
       end if;
 
@@ -401,7 +402,7 @@ package body Instrument.Input_Traces is
 
       Read_Bytes
         (Stream, Trace_Info_Header'Size / 8, Ignored_EOF, Result);
-      if not Result.Success then
+      if not Is_Success (Result) then
          return;
       end if;
 
@@ -444,7 +445,7 @@ package body Instrument.Input_Traces is
       begin
          Read_Bytes (Stream, Read_Size, Ignored_EOF, Result);
       end;
-      if not Result.Success then
+      if not Is_Success (Result) then
          Free (Data);
          return;
       end if;
@@ -473,7 +474,7 @@ package body Instrument.Input_Traces is
 
       Read_Bytes
         (Stream, Entry_Header'Size / 8, EOF, Result, Error_If_EOF => False);
-      if EOF or else not Result.Success then
+      if EOF or else not Is_Success (Result) then
          return False;
       end if;
 
@@ -558,7 +559,7 @@ package body Instrument.Input_Traces is
                 System.Storage_Elements.Storage_Offset (Offset)));
       begin
          Read_Bytes (Stream, Data_Size, EOF, Result);
-         if not Result.Success then
+         if not Is_Success (Result) then
             return False;
          end if;
 
@@ -625,13 +626,13 @@ package body Instrument.Input_Traces is
       Decision_Buffer  : Coverage_Buffer_Access;
       MCDC_Buffer      : Coverage_Buffer_Access;
    begin
-      Result := (Success => True);
+      Result := (Kind => Success);
 
       --  Try to open the file
 
       Stream.File := Open_Read (Filename, Binary);
       if Stream.File = Invalid_FD then
-         Create_Error (Result, "cannot open " & Filename);
+         Create_Error (Result, Filename);
          return;
       end if;
       Stream.Offset := 0;
@@ -639,7 +640,7 @@ package body Instrument.Input_Traces is
       --  Read the trace file header
 
       Read_Trace_File_Header (Stream, File_Header, Result);
-      if not Result.Success then
+      if not Is_Success (Result) then
          goto Cleanup_And_Exit;
       end if;
 
@@ -651,7 +652,7 @@ package body Instrument.Input_Traces is
             Data : GNAT.OS_Lib.String_Access;
          begin
             Read_Trace_Info (Stream, File_Header, Kind, Data, Result);
-            if not Result.Success then
+            if not Is_Success (Result) then
                goto Cleanup_And_Exit;
             end if;
 
@@ -726,7 +727,7 @@ package body Instrument.Input_Traces is
                Statement_Buffer
                  (0 .. Last_Bit (Entry_Header.Statement_Bit_Count)),
                Result);
-            if not Result.Success then
+            if not Is_Success (Result) then
                goto Cleanup_And_Exit;
             end if;
 
@@ -736,7 +737,7 @@ package body Instrument.Input_Traces is
                Decision_Buffer
                  (0 .. Last_Bit (Entry_Header.Decision_Bit_Count)),
                Result);
-            if not Result.Success then
+            if not Is_Success (Result) then
                goto Cleanup_And_Exit;
             end if;
 
@@ -745,7 +746,7 @@ package body Instrument.Input_Traces is
                Raw_MCDC_Buffer,
                MCDC_Buffer (0 .. Last_Bit (Entry_Header.MCDC_Bit_Count)),
                Result);
-            if not Result.Success then
+            if not Is_Success (Result) then
                goto Cleanup_And_Exit;
             end if;
 
@@ -916,7 +917,7 @@ package body Instrument.Input_Traces is
 
    begin
       Read_Source_Trace_File (Filename, Result);
-      if not Result.Success then
+      if not Is_Success (Result) then
          Outputs.Fatal_Error (+Result.Error);
       end if;
    end Dump_Source_Trace_File;
