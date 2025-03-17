@@ -1185,7 +1185,9 @@ procedure GNATcov_Bits_Specific is
    is
       Message : constant String := Trace_Filename & ": " & (+Result.Error);
    begin
-      if Keep_Reading_Traces then
+      if Result.Kind in Recoverable_Read_Result_Kind then
+         Outputs.Warn (Message);
+      elsif Keep_Reading_Traces then
          Outputs.Error (Message);
       else
          Outputs.Fatal_Error (Message);
@@ -1933,6 +1935,13 @@ begin
                Probe_Trace_File (Trace_File_Name, Kind, Result);
                if not Is_Success (Result) then
                   Report_Bad_Trace (Trace_File_Name, Result);
+
+                  --  If the file does not exist, do not try to Process it
+                  --  further.
+
+                  if Result.Kind = Open_Error then
+                     return;
+                  end if;
                end if;
 
                case Kind is
