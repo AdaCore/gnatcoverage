@@ -46,7 +46,7 @@ We do observe violations on the ``Vops`` generic body, fully covered without
 two generic instances separately, each designated by a ``(from <instantiation
 source location>)`` indication.
 
-|gcv| needs to see the coverage obligations correponding to each instance in
+|gcv| needs to see the coverage obligations corresponding to each instance in
 this mode. This is achieved transparently by the use of a project file in the
 example command lines we quoted and needs particular care when the Library
 Information files are provided manually with :cmd-option:`--scos` instead.

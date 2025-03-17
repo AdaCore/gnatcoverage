@@ -805,7 +805,7 @@ And to instrument Ada, C and C++ units:
 Instrumentation and coverage of SPARK code
 ==========================================
 
-The instrumentation of a SPARK project requires an additionnal step in order
+The instrumentation of a SPARK project requires an additional step in order
 to make the compiler accept the instrumented code. Additionally, some parts of
 SPARK sources are not processed by the instrumenter, and thus will not have
 any coverage obligation attached to them.
@@ -813,8 +813,8 @@ any coverage obligation attached to them.
 Inhibiting SPARK related pragmas
 ---------------------------------
 
-SPARK introduces a certain number of pragmas and aspects to aid the developper
-in writting program contracts and guiding the automatic provers. These are only
+SPARK introduces a certain number of pragmas and aspects to aid the developer
+in writing program contracts and guiding the automatic provers. These are only
 useful for static proof purposes, and are not used when assessing the coverage
 of a project during testing. As such, the instrumenter ignores those
 pragmas/aspects, and the compiler must be instructed to disregard them when
@@ -880,7 +880,7 @@ compiled, and are mainly used to aid the proof of the program.
 Computing coverage for such source regions isn't meaningful and are thus
 ignored by the instrumenter. This means that those regions will not have any
 coverage obligation attached to them in the coverage reports, unless
-explicity requested by enabling the coverage of assertions.
+explicitly requested by enabling the coverage of assertions.
 
 The concerned pieces of code are notably:
 

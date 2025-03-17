@@ -187,7 +187,7 @@ considered of interest within a project are as follows:
   attributes are removed from the initial set to yield the set to consider.
 
 Finally, the list of units of interest for a given execution of |gcv| can also
-be overriden from the command line using the :cmd-option:`--units` switch.
+be overridden from the command line using the :cmd-option:`--units` switch.
 When this option is used, the project files attributes are ignored.
 
 The switch may appear multiple times. Each occurrence indicates one
@@ -251,7 +251,7 @@ as the ``-X`` series setting scenarii variables.
 
 In some cases, such as ``--target`` or ``--RTS``, the effect of the command
 line switch can be achieved with a project file attribute, which |gcp| knows
-how to interepret as well.
+how to interpret as well.
 
 .. _ignore_source_files:
 
@@ -411,7 +411,7 @@ attributes or :cmd-option:`--units` arguments to elaborate the set of
 
 This offers a simple and consistent naming basis to users, orthogonal to the
 unit/source name mapping. Consider, for example, a project file with the set
-of declarations below, which parameterizes the source file name to use for the
+of declarations below, which parametrizes the source file name to use for the
 body of a ``Logger`` package depending on the kind of build performed::
 
   type Build_Mode_Type is ("Production", "Debug");

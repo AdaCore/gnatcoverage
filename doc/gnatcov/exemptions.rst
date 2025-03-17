@@ -118,7 +118,7 @@ regions in the analysis scope. This section lists the exempted regions,
 displaying for each the source location span, the number of actually exempted
 violations in the region, the exemption justification text and the observed
 exempted violations per regions. It also includes a total count of the number
-of exempted regions and another for exempted violations accross all sections at
+of exempted regions and another for exempted violations across all sections at
 the end.
 
 The corresponding :cmd-option:`=report` excerpt below illustrates this for the
