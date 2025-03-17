@@ -614,6 +614,39 @@ unable to provided coverage information for:
 
 The coverage state of these cases will be reported as undetermined.
 
+For the C++ language, gnatcov will currently not instrument nor provide
+coverage information for:
+
+* Constructor and Destructor functions
+
+* Constructor and Destructor calls
+
+Guarded expression coverage limitations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Guarded expression coverage is only available for the Ada language.
+For implementation reasons, it is only available starting from version 2022 of
+the language.
+
+.. _instr-opti:
+
+Optimizing the execution of instrumented programs
+=================================================
+
+To monitor the execution of statement obligations, gnatcov instruments the code
+which results in an execution overhead.
+
+To mitigate the performance impact, one can use the
+:cmd-option:`--instrument-block switch`. Instead of instrumenting for the
+execution of one statement, gnatcov instrument the code for the execution of a
+block of statements, greatly reducing the execution overhead. The coverage
+report is left unchanged, only the way coverage obligation are discarded is.
+
+It is important to note that this could result in *false negatives* (i.e.
+covered code reported as uncovered) when exceptions are used as a control flow
+mechanism, and do not necessarily signal an abnormal termination of the program.
+The tool will never report false positives (uncovered code reported as covered).
+
 .. _instr-build:
 
 Building instrumented components
