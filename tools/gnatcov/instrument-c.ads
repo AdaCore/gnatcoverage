@@ -35,9 +35,15 @@ with Files_Handling;     use Files_Handling;
 with Files_Table;        use Files_Table;
 with Instrument.C_Utils; use Instrument.C_Utils;
 with Instrument.Common;  use Instrument.Common;
+with Logging;
 with Slocs;              use Slocs;
 
 package Instrument.C is
+
+   Clang_Trace : constant Logging.GNATCOLL_Trace :=
+     Logging.Create_Trace ("CLANG_DIAGNOSTICS");
+   --  Trace meant to output diagnostics emitted by clang, for which we don't
+   --  necessarily want to generate a warning / error.
 
    type C_Family_Instrumenter_Type is
      abstract new Language_Instrumenter with
