@@ -390,7 +390,7 @@ Switches for ``gnattest`` in framework generation mode
 :switch:`--reporter={val}`
   Use specified reporter in the test driver. ``val`` is expected to be a name
   of child package of AUnit.Reporter. Test drivers generated with non-default
-  reporter specified cannot be properly processd by test execution mode of ``gnattest``.
+  reporter specified cannot be properly processed by test execution mode of ``gnattest``.
 
 
 :switch:`--tests-root`, :switch:`--subdirs` and :switch:`--tests-dir` switches are mutually exclusive.

@@ -242,7 +242,7 @@ Multiple executions of a single program
 =======================================
 
 Consider the example C program below, offering a simple command line interface
-to perform very basic math operations. This is splitted in two main source
+to perform very basic math operations. This is split in two main source
 files: ``process.c`` doing the computation and displaying the result, and
 ``main.c`` for the main entry point and basic usage control:
 

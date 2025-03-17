@@ -68,7 +68,7 @@ re-written as::
 
 The ``*`` arguments are always inserted first with respect to the final
 command line interpretation. In the example above, ``--level`` from the ``*``
-list cumulates before ``--annotate`` for |gcvcov|. Similarily, switches from
+list cumulates before ``--annotate`` for |gcvcov|. Similarly, switches from
 the project file are always processed as if appearing before the others on the
 command line.
 

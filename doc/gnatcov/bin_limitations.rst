@@ -96,7 +96,7 @@ such decisions are statistically rare.  |gcv| can report about them on demand,
 thanks to the :command:`scan-decisions` command together with the the set of
 coverage obligations to examine. Below is an excerpt of a an execution for a
 project which encompasses this function, where we see that |gcv| provides the
-source location of conditions rechable through multiple paths::
+source location of conditions reachable through multiple paths::
 
   gnatcov scan-decisions -Pmytest.gpr
   ...

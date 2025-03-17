@@ -34,7 +34,7 @@ consists of two files:
 
 The makefile also assumes that the |gcp| runtime is already built and installed,
 and that the path to its project file is in the environment variable
-``GPR_PROJECT_PATH`` so it can be automaticaly located by GPRbuild.
+``GPR_PROJECT_PATH`` so it can be automatically located by GPRbuild.
 It is also possible to specify the path to the project file in the
 ``GNATCOV_RTS`` variable in the ``coverage_settings.mk`` file. See
 :ref:`instr-rts` for instructions on building and installing the runtime.
@@ -74,7 +74,7 @@ the ``Board`` attribute in the package ``Emulator`` needs to be specified in
 the root project file, or alternatively the ``GNATEMU_BOARD`` variable must be
 set in the ``coverage_settings.mk`` secondary makefile.
 
-For source traces, the instrumented program will be run using GNATemuator
+For source traces, the instrumented program will be run using GNATemulator
 directly, and assumes that the standard package Ada.GNAT_IO allows data to be
 output on a serial port. The instrumentation process overrides the two switches
 :cmd-option:`--dump-trigger` and :cmd-option:`--dump-channel` to the values
@@ -291,7 +291,7 @@ example, this would be like:
   ** END OF REPORT **
 
 The log shows all the steps necessary to obtain coverage results from the
-mutliple test drivers, and end with the report.
+multiple test drivers, and end with the report.
 
 From the coverage report, we see that the only lines not covered are in
 ``pkg1.adb``, which is expected as the tests corresponding to that unit are
