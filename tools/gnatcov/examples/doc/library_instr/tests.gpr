@@ -1,0 +1,12 @@
+with "code.gpr";
+
+project Tests is
+  for Source_Dirs use ("tests");
+  for Object_Dir use "obj-" & Project'Name;
+
+  for Main use ("test_inc.adb");
+
+  package Coverage is
+    for Units use ();
+  end Coverage;
+end Tests;

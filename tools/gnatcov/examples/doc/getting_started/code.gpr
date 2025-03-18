@@ -1,0 +1,4 @@
+project Code is
+  for Source_Dirs use ("opslib");
+  for Object_Dir use "obj-" & Project'Name;
+end Code;

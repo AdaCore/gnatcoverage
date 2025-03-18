@@ -844,6 +844,10 @@ Its contents are:
   pragma Ignore_Pragma (Refined_Global);
   pragma Ignore_Pragma (Refined_Depends);
 
+The source for the following example can be found under the
+`share/examples/gnatcoverage/spark_instrumentation/` directory of the GNATDAS
+distribution.
+
 The configuration pragma file can be passed to the compiler either by
 specifying it on the gprbuild command line with the ``-gnatec`` switch::
 
@@ -907,6 +911,10 @@ Whole program instrumented at once, cross configuration, base64 output
 Here we will consider examining the coverage achieved by the execution of the
 very basic sample program below, assuming the existence of a ``Sensors``
 source unit providing access to some sensor values.
+
+The sources for this example can be found under the
+`share/examples/gnatcoverage/doc/cross_example` directory of the GNATDAS
+disctribution.
 
 .. code-block:: ada
 
@@ -1029,6 +1037,10 @@ For the sake of the example, we will consider that
 - We will be adding tests and assess the achieved coverage
   by each new test individually or for the current set of tests
   at a given point in time.
+
+The sources for this example can be found under the
+`share/examples/gnatcoverage/doc/library_instr/` directory of the GNATDAS
+distribution.
 
 Setting up the coverage runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

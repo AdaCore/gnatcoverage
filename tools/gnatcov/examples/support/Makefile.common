@@ -14,7 +14,7 @@ TARGET =
 BOARD =
 
 # ==========================================================
-# What --target will we pass to XCOV run
+# What --target will we pass to gnatcov
 # ==========================================================
 
 # gnatcov doesn't support a separate notion of board vs

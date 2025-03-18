@@ -62,6 +62,10 @@ generated compiler wrapper instead of the original compiler.
 A simple Makefile example
 =========================
 
+The sources for the following example can be found under the
+``share/examples/gnatcoverage/doc/integrated`` directory of the GNATDAS
+distribution.
+
 The following considers that the instrumentation runtime was previously
 installed with ``gnatcov setup``, and that the ``GPR_PROJECT_PATH`` variable
 contains its installed location. See :ref:`instr-rts`.
@@ -111,6 +115,12 @@ when run, that can be analyzed with ``gnatcov coverage``.
 A simple CMake example
 ======================
 
+The sources for the following example can be found under the
+``share/examples/gnatcoverage/doc/integrated`` directory of the GNATDAS
+distribution. To ensure that the Makefile provided with the example sources
+uses CMake as a build system, specify ``BUILD_SYSTEM=CMake`` on the `make`
+invocation.
+
 The following considers that the instrumentation runtime  was installed through
 the use of ``gnatcov setup``.
 
@@ -129,8 +139,8 @@ The CMakeLists.txt file to be used to compile the main.cpp file is :
 
 .. code-block:: cmake
 
+   cmake_minimum_required(VERSION 3.5)
    project(HelloWorld)
-   cmake_minimum_required(VERSION 3.0)
 
    add_executable(hello_world main.cpp)
 

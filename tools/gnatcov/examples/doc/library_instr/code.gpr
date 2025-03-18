@@ -1,0 +1,18 @@
+library project Code is
+  for Source_Dirs use ("code");
+  for Object_Dir use "obj-" & Project'Name;
+
+  for Library_Dir use "lib-" & project'Name;
+  for Library_Kind use "static";
+  for Library_Name use "code";
+
+  type Mode is ("build", "instrument", "use");
+  LIB_MODE : Mode := external ("CODE_LIBMODE", "use");
+
+  case LIB_MODE is
+     when "build"      => for Externally_Built use "False";
+     when "instrument" => for Externally_Built use "False";
+     when "use"        => for Externally_Built use "True";
+  end case;
+
+end Code;

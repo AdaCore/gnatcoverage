@@ -1,13 +1,13 @@
 ------------------------------------------------------------------------------
 --                              GNATcoverage                                --
---                     Copyright (C) 2012-2021, AdaCore                     --
+--                     Copyright (C) 2012-2025, AdaCore                     --
 ------------------------------------------------------------------------------
 
-with Ops;
+-- data_processing-test2.adb; test variation #2
 
-procedure Test_Inc is
-   X : Integer := 4;
+separate (Data_Processing)
+procedure Test is
 begin
-   Ops.Apply (Ops.Increment, X);
-   pragma Assert (X = 5);
-end Test_Inc;
+   Process (X => -8);
+   pragma Assert (Internal_Data < 0);
+end;

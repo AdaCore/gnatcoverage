@@ -114,6 +114,10 @@ time.
 Sample project
 --------------
 
+The sources for this examples are provided under the
+`share/examples/gnatcoverage/doc/getting_started/` directory of the GNATDAS
+distribution.
+
 We consider an Ada package providing a set of elementary operations
 over ``Integer`` objects, with a spec and body in source files named
 ``ops.ads`` and ``ops.adb``:

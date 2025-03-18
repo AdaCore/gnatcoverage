@@ -1,0 +1,22 @@
+Documentation examples
+----------------------
+
+This directory contains the sources of the examples used throughout the
+GNATcoverage user's manual, Each directory contains the sources and project for
+a single example, as well as a Makefile that reproduces (in a linux or cygwin
+environment) the commands described in the relevant documentation section.
+
+The Makefiles start with a comment briefly describing the example, the
+demonstrated feature, and referencing the corresponding section in the user's
+manual. It is best to go through these examples by following the indications
+in the user's manual, as they will be much more detailed, and may provide
+additional context.
+
+When a section name is referenced, either in this document, or in the Makefile
+comments, this is always a section within the GNATcoverage manual, which is
+itself a subset of the GNATDAS user's manual.
+
+
+- getting_started: A simple project on which the general GNATcoverage workflow
+is demonstrated. See section "Getting Started" of the manual for more
+information.
