@@ -71,7 +71,7 @@ The available options are as follows:
 
 :cmd-option:`--non-coverable`:
    Report about language statements for which no object code could be found in
-   the surrounding suprogram (typically out of optimization).
+   the surrounding subprogram (typically out of optimization).
 
 :cmd-option:`-P`:
    Use the indicated project file as the root project to select the units of
@@ -221,7 +221,7 @@ Later in this chapter we name output formats by the text to add to
 :cmd-option:`--annotate=report`".
 
 We will illustrate the various formats with samples extracted from outputs
-obtained by perfoming coverage analysis of the following example Ada
+obtained by performing coverage analysis of the following example Ada
 application unit:
 
 .. code-block:: ada
@@ -699,7 +699,7 @@ We can observe that:
 
 - The inner ``raise`` and ``return`` statements are marked uncovered and
   covered respectively, as expected since the function was only called with
-  arguments for which the ``if`` controling decision evaluates False.
+  arguments for which the ``if`` controlling decision evaluates False.
 
 As a second experiment, we exercise the function for Y = 0 only, using:
 
@@ -1052,7 +1052,7 @@ commands. :dfn:`Decisions` in this context are defined as:
 Then for all the decisions in the sources of interest:
 
 * Testing shall exercise both the True and False outcomes of the expression as
-  a whole and demonstrate the :dfn:`independant influence` of :dfn:`conditions`
+  a whole and demonstrate the :dfn:`independent influence` of :dfn:`conditions`
   in |do| parlance, where ...
 
 * Separate conditions in a decision are identified as the operands of
@@ -1061,7 +1061,7 @@ Then for all the decisions in the sources of interest:
 Regarding coverage status definitions:
 
 * A condition is :dfn:`covered`, and the obligation discharged, when
-  the independant effect on the enclosing decision was demonstrated by
+  the independent effect on the enclosing decision was demonstrated by
   the tests,
 
 * A condition is said :dfn:`uncovered` otherwise.
@@ -1070,7 +1070,7 @@ The :ref:`mcdc-decisions` section that follows provides a few examples to
 illustrate the identification of decisions and conditions.
 :ref:`non-short-circuit` focuses on the handling of computational Boolean
 operators, then :ref:`mcdc-variants` expands on the notion of
-:dfn:`independant influence` and on possible variations of the MCDC criterion
+:dfn:`independent influence` and on possible variations of the MCDC criterion
 definition.
 
 Output-wise, the source annotations for the :cmd-option:`=xcov` or
@@ -1094,7 +1094,7 @@ absence of other known violations for that same line.
 The :cmd-option:`=report` outputs feature an extra MCDC section in the Coverage
 Violations segment, which holds:
 
-- The condition specific diagnosics (``independent influence not
+- The condition specific diagnostics (``independent influence not
   demonstrated``), as well as
 
 - Decision level diagnostics (such as ``decision outcome True not covered``
@@ -1269,7 +1269,7 @@ short-circuited:
 
 
 Each line in such a table is called an :term:`evaluation vector <Evaluation
-Vector>`, and the pairs that demonstrate the independant effect of conditions
+Vector>`, and the pairs that demonstrate the independent effect of conditions
 are known as :term:`independence pairs <Independence Pair>`.
 
 Evaluations 1 + 3 constitute a Unique Cause independence pair for A, where A

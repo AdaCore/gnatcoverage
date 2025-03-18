@@ -398,4 +398,3 @@ specifying the annotation identifier to be replaced, and forcing the
 replacement::
 
     gnatcov add-annotation --annotation-id=IDENTIFIER --force [OPTIONS]
-

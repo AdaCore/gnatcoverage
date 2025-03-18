@@ -6,7 +6,7 @@ Disable coverage analysis
 
 It is possible to fully disable coverage analysis over a specific region. In
 contrast to exemption regions, gnatcov skips over disabled coverage region and
-treats them similarily as a no code region, e.g. with no source coverage
+treats them similarly as a no code region, e.g. with no source coverage
 obligations.
 
 Such a mechanism can typically be used to disable coverage for a code region

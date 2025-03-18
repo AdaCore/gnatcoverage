@@ -30,7 +30,7 @@ analyzed.
 
 The :ref:`bin_traces` chapter of this document provides details
 on the trace production interface. The remainder of this chapter explains the
-use of |gcvcov| in particular, to analyse traces once they have been
+use of |gcvcov| in particular, to analyze traces once they have been
 produced. The general command line structure is always like::
 
   gnatcov coverage --level=<criterion> --annotate=<format>
@@ -118,7 +118,7 @@ coverage indication attached to every single instruction. This is the base
 information of interest to object coverage analysis, simply presented in
 different manners through the other possible output formats. The
 :cmd-option:`xcov` and :cmd-option:`html` formats produce a set of annotated
-source files, in the directory where |gcv| is launched unless overriden with a
+source files, in the directory where |gcv| is launched unless overridden with a
 :cmd-option:`--output-dir` option. Even though presented on sources, the
 annotations remain representative of object coverage metrics, synthesized for
 all the instructions associated with each source line.
@@ -270,7 +270,7 @@ description of the assessment context (assessed criteria, set of trace files
 involved, ...) and a summary of the coverage results for all the units, with
 links to their annotated sources.
 
-Similarily to the :cmd-option:`xcov` format case, :cmd-option:`--annotate=html`
+Similarly to the :cmd-option:`xcov` format case, :cmd-option:`--annotate=html`
 attaches to each line details about the coverage status of all the individual
 instructions generated for the line. These are folded within the line and
 expanded when a mouse click hits it.
@@ -503,8 +503,8 @@ Inlining & Ada Generic units
 
 The generated code for an inlined subprogram call or a generic instantiation
 materializes two distinct source entities: the expanded source (of the inlined
-subprogram or of the instanciated generic body) and the expansion request (the
-subprogram call or the generic instanciation). While this is of no consequence
+subprogram or of the instantiated generic body) and the expansion request (the
+subprogram call or the generic instantiation). While this is of no consequence
 for :cmd-option:`=asm` outputs, which just report coverage of raw machine
 instructions within their object level subprograms, regardless of the object
 code origin, this raises a few points of note for in-source outputs.
