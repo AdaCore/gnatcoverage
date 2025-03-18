@@ -1118,18 +1118,14 @@ begin
    for Lang in Src_Supported_Language loop
       if Src_Enabled_Languages (Lang) then
          Project.Enumerate_Sources
-           (Add_Instrumented_Unit'Access,
-            Lang,
-            Include_Stubs => True,
-            Only_UOIs     => True);
+           (Add_Instrumented_Unit'Access, Lang, Only_UOIs => True);
 
          if Dump_Config.Trigger = Manual then
 
             --  The expected manual dump indication can be located in any
             --  source file, not only in sources of interest.
 
-            Project.Enumerate_Sources
-              (Add_Project_Source'Access, Lang, Include_Stubs => True);
+            Project.Enumerate_Sources (Add_Project_Source'Access, Lang);
          end if;
       end if;
    end loop;
