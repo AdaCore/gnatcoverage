@@ -437,27 +437,6 @@ package body Instrument is
       end case;
    end To_Compilation_Unit_Name;
 
-   -----------------
-   -- To_Filename --
-   -----------------
-
-   function To_Filename
-     (Project  : Project_Type;
-      CU_Name  : Compilation_Unit_Part;
-      Language : Any_Language) return String is
-   begin
-      case CU_Name.Language_Kind is
-         when Unit_Based_Language =>
-            return +Project.File_From_Unit
-              (Unit_Name       => To_Ada (CU_Name.Unit),
-               Part            => CU_Name.Part,
-               Language        => Image (Language),
-               File_Must_Exist => False);
-         when File_Based_Language =>
-            return +CU_Name.Filename;
-      end case;
-   end To_Filename;
-
    ----------------------------
    -- Find_Instrumented_Unit --
    ----------------------------
