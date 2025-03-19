@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Directories;
 with Ada.Exceptions;
 
 with GNAT.Strings; use GNAT.Strings;
@@ -98,6 +99,25 @@ package Switches is
    --  Copy the list of strings referenced in Option to the List input list,
    --  expanding arguments that start with '@' according to rules described in
    --  Inputs.Expand_Argument.
+
+   procedure Process_File_Or_Dir_Switch
+     (Args              : String_Vectors.Vector;
+      Orig_Switch       : String;
+      Process_Dir_Entry : access procedure
+        (Dir : Ada.Directories.Directory_Entry_Type);
+      Process_Arg       : access procedure (Exp_Arg : String);
+      Pattern           : String := "");
+   --  This procedure is dedicated to switches accepting a list of files, e.g.
+   --  --trace, which are either to be passed as an explicit list of files /
+   --  response file, or as a directory (thus ending with a directory
+   --  separator) containing a list of files.
+   --
+   --  Args is the list of arguments, Orig_Switch is the name of the switch
+   --  for proper error messaging. Process_Dir_Entry processes a directory
+   --  entry belonging to one of the directory arguments. Process_Arg processes
+   --  a file explicitly passed on the command line / response file (expanded).
+   --  If not empty, Pattern is the file pattern to look for in directory
+   --  arguments.
 
    ----------------------------
    -- Miscellaneous switches --

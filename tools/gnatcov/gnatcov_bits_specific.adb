@@ -533,7 +533,37 @@ procedure GNATcov_Bits_Specific is
          Invalidate_Unit_List ("--scos is present");
       end if;
 
-      Copy_Arg_List (Opt_SID, SID_Inputs);
+      declare
+         procedure Process_Dir_Entry (Dir_Entry : Directory_Entry_Type);
+
+         procedure Process_Arg (Exp_Arg : String);
+
+         -----------------------
+         -- Process_Dir_Entry --
+         -----------------------
+
+         procedure Process_Dir_Entry (Dir_Entry : Directory_Entry_Type) is
+         begin
+            SID_Inputs.Append (+Full_Name (Dir_Entry));
+         end Process_Dir_Entry;
+
+         -----------------
+         -- Process_Arg --
+         -----------------
+
+         procedure Process_Arg (Exp_Arg : String) is
+         begin
+            SID_Inputs.Append (+Exp_Arg);
+         end Process_Arg;
+
+      begin
+         Switches.Process_File_Or_Dir_Switch
+           (Args              => Args.String_List_Args (Opt_SID),
+            Orig_Switch       => "--sid",
+            Process_Dir_Entry => Process_Dir_Entry'Access,
+            Process_Arg       => Process_Arg'Access,
+            Pattern           => "*.sid");
+      end;
       if not SID_Inputs.Is_Empty then
          Invalidate_Unit_List ("--sid is present");
       end if;
@@ -681,11 +711,36 @@ procedure GNATcov_Bits_Specific is
            (+Args.String_Args (Opt_Output_Directory).Value);
       end if;
 
-      for Arg of Args.String_List_Args (Opt_Trace) loop
-         for Exp_Arg of Expand_Argument (+Arg) loop
-            Handle_Trace_List_Element (+Exp_Arg);
-         end loop;
-      end loop;
+      declare
+         procedure Process_Dir_Entry (Dir_Entry : Directory_Entry_Type);
+
+         procedure Process_Arg (Exp_Arg : String);
+
+         -----------------------
+         -- Process_Dir_Entry --
+         -----------------------
+
+         procedure Process_Dir_Entry (Dir_Entry : Directory_Entry_Type) is
+         begin
+            Trace_Inputs.Append ((+Full_Name (Dir_Entry), Current_Exec));
+         end Process_Dir_Entry;
+
+         -----------------
+         -- Process_Arg --
+         -----------------
+
+         procedure Process_Arg (Exp_Arg : String) is
+         begin
+            Handle_Trace_List_Element (Exp_Arg);
+         end Process_Arg;
+
+      begin
+         Switches.Process_File_Or_Dir_Switch
+           (Args              => Args.String_List_Args (Opt_Trace),
+            Orig_Switch       => "--trace",
+            Process_Dir_Entry => Process_Dir_Entry'Access,
+            Process_Arg       => Process_Arg'Access);
+      end;
 
       if Args.String_Args (Opt_Trace_Source).Present then
          Convert.Set_Trace_Source (+Args.String_Args (Opt_Trace_Source).Value);

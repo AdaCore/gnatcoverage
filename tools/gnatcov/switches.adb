@@ -19,7 +19,6 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;
 with Ada.Containers;          use Ada.Containers;
-with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 
@@ -157,6 +156,61 @@ package body Switches is
          Append_Expanded_Argument (+Arg, List);
       end loop;
    end Copy_Arg_List;
+
+   --------------------------------
+   -- Process_File_Or_Dir_Switch --
+   --------------------------------
+
+   procedure Process_File_Or_Dir_Switch
+     (Args              : String_Vectors.Vector;
+      Orig_Switch       : String;
+      Process_Dir_Entry : access procedure
+        (Dir : Ada.Directories.Directory_Entry_Type);
+      Process_Arg       : access procedure (Exp_Arg : String);
+      Pattern           : String := "")
+   is
+      use Ada.Directories;
+      use US;
+   begin
+      for Arg of Args loop
+
+         --  The argument is either a directory or a file / response file when
+         --  prefixed with a '@'.
+
+         --  First, deal with the case when it is a directory.
+
+         if US.Element (Arg, Length (Arg)) in '/' | '\' then
+            declare
+               Path      : constant String := +Arg;
+               S         : Search_Type;
+               Dir_Entry : Directory_Entry_Type;
+            begin
+               if Kind (Path) = Directory then
+                  Start_Search
+                    (Search    => S,
+                     Directory => Path,
+                     Pattern   => Pattern,
+                     Filter    => (Ordinary_File => True, others => False));
+
+                  while More_Entries (S) loop
+                     Get_Next_Entry (S, Dir_Entry);
+                     Process_Dir_Entry (Dir_Entry);
+                  end loop;
+                  End_Search (S);
+               else
+                  Outputs.Warn
+                    ("Skipping processing of " & Orig_Switch & " argument "
+                     & Path & ". Expecting a directory but got a "
+                     & Ada.Directories.File_Kind'Image (Kind (Path)) & ".");
+               end if;
+            end;
+         else
+            for Exp_Arg of Expand_Argument (+Arg) loop
+               Process_Arg (+Exp_Arg);
+            end loop;
+         end if;
+      end loop;
+   end Process_File_Or_Dir_Switch;
 
    ----------------------
    -- Load_Dump_Config --
