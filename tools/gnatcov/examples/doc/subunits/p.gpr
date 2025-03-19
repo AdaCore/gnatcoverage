@@ -1,0 +1,16 @@
+-- Project file with a Body source file name selection in a
+-- Naming project package:
+
+project P is
+
+   for Object_Dir use "obj";
+   for Source_Dirs use ("src");
+   for Main use ("run_all.adb");
+
+   TEST := external ("TEST");
+
+   package Naming is
+      for Body ("data_processing.test") use "data_processing-" & TEST & ".adb";
+   end Naming;
+
+end P;

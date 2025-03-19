@@ -1,12 +1,9 @@
-TARGET=powerpc-elf
-RTS=zfp-prep
-
 XCOVLEVEL=stmt
 ANNOTATE=xcov
 
 # unit test name and gpr file
 
-UT=
+UT=  #test_...
 GPR=ut.gpr
 TDIR=_$(UT:test_%=%)
 OSUBDIR=obj
@@ -20,14 +17,12 @@ build:
 	@echo '  for Source_Dirs use ("../src");' >> $(GPR)
 	@echo '  for Object_Dir use "$(OSUBDIR)";' >> $(GPR)
 	@echo 'end UT;' >> $(GPR)
-	gprbuild -p -f --target=$(TARGET) --RTS=$(TARGET)/$(RTS) -P$(GPR) $(UT).adb \
-	-cargs:Ada -gnateS -gnaty -gnatwe -cargs -g -fpreserve-control-flow \
-	-bargs -A=$(UT).alis
+	gnatcov instrument -P$(GPR) --level=$(XCOVLEVEL) --dump-filename-simple \
+	--units=$(UT) $(UT).adb
+	gprbuild -p -f -P$(GPR) $(UT).adb --src-subdirs=gnatcov-instr \
+	--implicit-with=gnatcov_rts.gpr
 
 run:
-	gnatcov run $(OSUBDIR)/$(UT)
-	grep -v xxsupport.ali $(OSUBDIR)/$(UT).alis > alis
-	gnatcov coverage --level=$(XCOVLEVEL) --scos=@alis \
-	--annotate=$(ANNOTATE) $(UT).trace
-
-
+	$(OSUBDIR)/$(UT)
+	gnatcov coverage --level=$(XCOVLEVEL) -P$(GPR) \
+	--annotate=$(ANNOTATE) --units=$(UT) $(UT).srctrace

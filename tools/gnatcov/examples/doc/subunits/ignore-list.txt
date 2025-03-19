@@ -1,0 +1,2 @@
+*-test*.adb
+run_all.adb

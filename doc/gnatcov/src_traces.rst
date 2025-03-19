@@ -669,6 +669,25 @@ Guarded expression coverage is only available for the Ada language.
 For implementation reasons, it is only available starting from version 2022 of
 the language.
 
+.. _instr-opti:
+
+Optimizing the execution of instrumented programs
+=================================================
+
+To monitor the execution of statement obligations, gnatcov instruments the code
+which results in an execution overhead.
+
+To mitigate the performance impact, one can use the
+:cmd-option:`--instrument-block switch`. Instead of instrumenting for the
+execution of one statement, gnatcov instrument the code for the execution of a
+block of statements, greatly reducing the execution overhead. The coverage
+report is left unchanged, only the way coverage obligation are discarded is.
+
+It is important to note that this could result in *false negatives* (i.e.
+covered code reported as uncovered) when exceptions are used as a control flow
+mechanism, and do not necessarily signal an abnormal termination of the program.
+The tool will never report false positives (uncovered code reported as covered).
+
 .. _instr-build:
 
 Building instrumented components
@@ -844,6 +863,10 @@ Its contents are:
   pragma Ignore_Pragma (Refined_Global);
   pragma Ignore_Pragma (Refined_Depends);
 
+The source for the following example can be found under the
+`share/examples/gnatcoverage/spark_instrumentation/` directory of the GNATDAS
+distribution.
+
 The configuration pragma file can be passed to the compiler either by
 specifying it on the gprbuild command line with the ``-gnatec`` switch::
 
@@ -907,6 +930,10 @@ Whole program instrumented at once, cross configuration, base64 output
 Here we will consider examining the coverage achieved by the execution of the
 very basic sample program below, assuming the existence of a ``Sensors``
 source unit providing access to some sensor values.
+
+The sources for this example can be found under the
+`share/examples/gnatcoverage/doc/cross_example` directory of the GNATDAS
+disctribution.
 
 .. code-block:: ada
 
@@ -1029,6 +1056,10 @@ For the sake of the example, we will consider that
 - We will be adding tests and assess the achieved coverage
   by each new test individually or for the current set of tests
   at a given point in time.
+
+The sources for this example can be found under the
+`share/examples/gnatcoverage/doc/library_instr/` directory of the GNATDAS
+distribution.
 
 Setting up the coverage runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
