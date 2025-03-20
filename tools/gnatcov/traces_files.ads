@@ -32,21 +32,12 @@ with Traces;
 
 package Traces_Files is
 
-   type Read_Result_Kind is (Success, Open_Error, Other_Error);
-
-   subtype Error_Read_Result_Kind is
-      Read_Result_Kind range Open_Error .. Other_Error;
-
-   subtype Recoverable_Read_Result_Kind is
-      Read_Result_Kind range Open_Error .. Open_Error;
-   --  Errors that are actually recoverable which should only trigger a warning
-
-   type Read_Result (Kind : Read_Result_Kind := Success) is record
-      case Kind is
-         when Success =>
-            null;
-         when others =>
+   type Read_Result (Success : Boolean := True) is record
+      case Success is
+         when False =>
             Error : Unbounded_String;
+         when True =>
+            null;
       end case;
    end record;
    --  Description of the result of a trace read operation: either it was
@@ -56,9 +47,6 @@ package Traces_Files is
    --  traces coming from the execution of uninstrumented programs), the
    --  following procedure enables to probe a trace file in order to determine
    --  if it's a binary trace file or a source trace file.
-
-   function Is_Success (R : Read_Result) return Boolean is
-     (R.Kind = Success);
 
    type Any_Accepted_Trace_Kind is
      (Unknown, Binary_Trace_File, Source_Trace_File, All_Trace_Files);
@@ -99,10 +87,9 @@ package Traces_Files is
    type Trace_File_Descriptor is limited private;
    --  Descriptor to read or write a trace file
 
-   Read_Success : constant Read_Result := (Kind => Success);
+   Read_Success : constant Read_Result := (Success => True);
 
    procedure Create_Error (Result : out Read_Result; Error : String);
-   procedure Create_Open_Error (Result : out Read_Result; Filename : String);
    --  Shortcut to create a Read_Result that contains an error
 
    procedure Success_Or_Fatal_Error (Filename : String; Result : Read_Result);
