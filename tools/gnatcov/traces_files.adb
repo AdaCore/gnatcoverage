@@ -287,7 +287,7 @@ package body Traces_Files is
    procedure Success_Or_Fatal_Error (Filename : String; Result : Read_Result)
    is
    begin
-      if not Result.Success then
+      if not Is_Success (Result) then
          Fatal_Error (Filename & ": " & (+Result.Error));
       end if;
    end Success_Or_Fatal_Error;
@@ -385,11 +385,11 @@ package body Traces_Files is
       --  Return whether the given Magic matches the first bytes in Buffer
 
    begin
-      Result := (Success => True);
+      Result := (Kind => Success);
       Kind := Binary_Trace_File;
 
       if Fd = Invalid_FD then
-         Create_Error (Result, "cannot open " & Filename);
+         Create_Open_Error (Result, Filename);
          return;
       end if;
 
@@ -461,7 +461,7 @@ package body Traces_Files is
       --  there.
 
       Check_Header (Desc, Hdr, Result);
-      if not Result.Success then
+      if not Is_Success (Result) then
          return;
       end if;
 
@@ -481,7 +481,7 @@ package body Traces_Files is
 
             else
                Decode_Trace_Header (Hdr.all, Trace_File, Desc, Result);
-               if not Result.Success then
+               if not Is_Success (Result) then
                   return;
                end if;
             end if;
@@ -497,12 +497,12 @@ package body Traces_Files is
       --  kind as a second header.
 
       Append_Info_Entries_From_Descriptor (Desc, Trace_File, Result);
-      if For_Trace_Output or else not Result.Success then
+      if For_Trace_Output or else not Is_Success (Result) then
          return;
       end if;
 
       Check_Header (Desc, Hdr, Result);
-      if not Result.Success then
+      if not Is_Success (Result) then
          return;
       end if;
 
@@ -647,7 +647,7 @@ package body Traces_Files is
       Result := Read_Success;
 
       Read_Info_Entries (Desc, Result);
-      if not Result.Success then
+      if not Is_Success (Result) then
          return;
       end if;
 
@@ -927,7 +927,7 @@ package body Traces_Files is
       Open_Trace_File (Filename, Desc, Trace_File);
       Trace_File.Filename := +Filename;
       Process_Info_Entries (Trace_File, Result);
-      if not Result.Success then
+      if not Is_Success (Result) then
          return;
       end if;
 
@@ -942,7 +942,7 @@ package body Traces_Files is
 
          loop
             Read_Trace_Entry (Desc, EOF, Raw_Entry, Result);
-            if not Result.Success then
+            if not Is_Success (Result) then
                return;
             elsif EOF then
                Create_Error (Result, "No 'loadaddr' special trace entry");
@@ -986,7 +986,7 @@ package body Traces_Files is
 
       loop
          Read_Trace_Entry (Desc, EOF, Raw_Entry, Result);
-         if not Result.Success then
+         if not Is_Success (Result) then
             return;
          end if;
          exit when EOF;
@@ -1012,7 +1012,7 @@ package body Traces_Files is
                   First, Last : Pc_Type;
                begin
                   Read_SO_Info (Desc, Filename, Sig, Code_Size, Result);
-                  if not Result.Success then
+                  if not Is_Success (Result) then
                      return;
                   end if;
                   First := Raw_Entry.Pc;
@@ -1770,7 +1770,11 @@ package body Traces_Files is
 
    procedure Create_Error (Result : out Read_Result; Error : String) is
    begin
-      Result := (Success => False, Error => +Error);
+      Result := (Kind => Other_Error, Error => +Error);
    end Create_Error;
 
+   procedure Create_Open_Error (Result : out Read_Result; Filename : String) is
+   begin
+      Result := (Kind => Open_Error, Error => +("cannot open " & Filename));
+   end Create_Open_Error;
 end Traces_Files;

@@ -190,7 +190,7 @@ procedure GNATcov_Bits_Specific is
    --  or all explicitly passed SID files.
 
    procedure Report_Bad_Trace (Trace_Filename : String; Result : Read_Result)
-      with Pre => not Result.Success;
+      with Pre => not Is_Success (Result);
    --  Emit the error corresponding to Result with Outputs. If
    --  Keep_Reading_Tracess is false, this is a fatal error.
 
@@ -1184,7 +1184,9 @@ procedure GNATcov_Bits_Specific is
    is
       Message : constant String := Trace_Filename & ": " & (+Result.Error);
    begin
-      if Keep_Reading_Traces then
+      if Result.Kind in Recoverable_Read_Result_Kind then
+         Outputs.Warn (Message);
+      elsif Keep_Reading_Traces then
          Outputs.Error (Message);
       else
          Outputs.Fatal_Error (Message);
@@ -1944,8 +1946,15 @@ begin
                end if;
 
                Probe_Trace_File (Trace_File_Name, Kind, Result);
-               if not Result.Success then
+               if not Is_Success (Result) then
                   Report_Bad_Trace (Trace_File_Name, Result);
+
+                  --  If the file does not exist, do not try to Process it
+                  --  further.
+
+                  if Result.Kind = Open_Error then
+                     return;
+                  end if;
                end if;
 
                case Kind is
@@ -2006,7 +2015,7 @@ begin
                --  We can now read it and import its data
 
                Read_Source_Trace_File (Trace_File_Name, Result);
-               if not Result.Success then
+               if not Is_Success (Result) then
                   Report_Bad_Trace (Trace_File_Name, Result);
                end if;
 
@@ -2076,7 +2085,7 @@ begin
                      TF       : Trace_File_Type;
                   begin
                      Read_Trace_File (Trace_Filename, TF, Result, Base);
-                     if not Result.Success then
+                     if not Is_Success (Result) then
                         Report_Bad_Trace (Trace_Filename, Result);
                         return;
                      end if;
@@ -2156,7 +2165,7 @@ begin
                   Result : out Read_Result) is
                begin
                   Check_Trace_File_From_Exec (TF, Result);
-                  if not Result.Success then
+                  if not Is_Success (Result) then
                      return;
                   end if;
                   Exe_File := Open_Exec_For_Trace
@@ -2248,7 +2257,7 @@ begin
                      Result : Read_Result;
                   begin
                      Read_Trace_File (Trace_Filename, TF, Result);
-                     if not Result.Success then
+                     if not Is_Success (Result) then
                         Report_Bad_Trace (Trace_Filename, Result);
                         return;
                      end if;
