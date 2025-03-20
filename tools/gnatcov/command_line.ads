@@ -564,7 +564,8 @@ package Command_Line is
          Help      => "When an error occurs while reading a trace file,"
                       & " skip it and keep reading other trace files until a"
                       & " coverage report can be produced. Note that this"
-                      & " makes gnatcov exit with an error status.",
+                      & " raises a warning, but does not make gnatcov exit"
+                      & " with an error status.",
          Commands  => (Cmd_Coverage => True, others => False),
          Internal  => False),
 
