@@ -160,7 +160,11 @@ package Instrument.C is
    --  Create a C++ instrumenter. See the definition of the
    --  Language_Instrumenter type for the arguments semantic.
 
-   type Instr_Scheme_Type is (Instr_Stmt, Instr_Expr, Instr_In_Compound);
+   type Instr_Scheme_Type is
+     (Instr_Stmt,
+      Instr_Expr,
+      Instr_In_Compound,
+      Instr_Prefixed_CXXMemberCallExpr);
    --  Depending on the statement construct, we can instrument it either with
    --  another statement right before (Instr_Stmt), which is the case for most
    --  statements:
@@ -193,6 +197,12 @@ package Instrument.C is
    --  Function coverage, and particularly useful for functions with empty
    --  bodies in which it is not possible to refer to the body's first
    --  statement to insert a witness statement before it.
+   --
+   --  The variant Instr_Prefixed_CXXMemberCallExpr is expected to be used on
+   --  C++ prefixed method calls like `foo.bar()` or `foo->bar()`.
+   --  It will be instrumented using a generic templated witness to conserve
+   --  the execution order of witnesses in method call chains.
+   --  Note that NON-prefixed method calls are handled like simple functions.
 
    type C_Source_Statement is record
       LL_SCO : Nat;

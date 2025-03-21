@@ -20,6 +20,8 @@
 /* Make sure we refer to the static version of symbols on Windows, not to DLL
    importers.  */
 
+#include "clang-c/CXSourceLocation.h"
+#include "clang/AST/Expr.h"
 #define CINDEX_NO_EXPORTS
 
 #include "libclang/CXCursor.h"
@@ -33,6 +35,7 @@
 #include "clang/AST/ExprCXX.h"
 #include "clang/AST/ParentMapContext.h"
 #include "clang/AST/StmtCXX.h"
+#include "clang/Basic/CharInfo.h"
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/ASTUnit.h"
@@ -351,7 +354,7 @@ clang_getLBracLocPlusOne (CXCursor C)
   return translateSLoc (TU, S->getLBracLoc ().getLocWithOffset (1));
 }
 
-extern "C" bool
+extern "C" unsigned
 clang_isInstrumentableCallExpr (CXCursor C)
 {
   if (!clang_isExpression (C.kind))
@@ -380,6 +383,76 @@ clang_isInstrumentableCallExpr (CXCursor C)
     default:
       return false;
     }
+}
+
+// Return true if the cursor is C++ Method Call with an explicit base.
+extern "C" unsigned
+clang_isPrefixedCXXMemberCallExpr (CXCursor C)
+{
+  if (!clang_isExpression (C.kind))
+    return false;
+
+  const Expr *E = getCursorExpr (C);
+  if (E->getStmtClass () != Stmt::CXXMemberCallExprClass)
+    return false;
+
+  const CXXMemberCallExpr *MCE = cast<CXXMemberCallExpr> (E);
+  const MemberExpr *ME = cast<MemberExpr> (MCE->getCallee ());
+
+  return !ME->isImplicitAccess ();
+}
+
+extern "C" CXSourceRange
+clang_getCXXMemberCallExprSCOSlocRange (CXCursor C)
+{
+  if (!clang_isExpression (C.kind))
+    return clang_getNullRange ();
+
+  const Expr *E = getCursorExpr (C);
+  if (E->getStmtClass () != Stmt::CXXMemberCallExprClass)
+    return clang_getNullRange ();
+
+  const CXXMemberCallExpr *MCE = cast<CXXMemberCallExpr> (E);
+  const MemberExpr *ME = cast<MemberExpr> (MCE->getCallee ());
+
+  ASTContext &ctx = getContext (C);
+
+  const SourceLocation start_loc = ME->getOperatorLoc ();
+  const SourceLocation end_loc = ME->getMemberLoc ().getLocWithOffset (
+    ((long) ME->getMemberDecl ()->getName ().size ()) - 1);
+
+  // Check for validity on both sides.
+  // Specifically, start loc can fail if there is no operator, if the method
+  // call is made from another method and thus not prefixed by `object.` or
+  // `object->`
+  if (start_loc.isInvalid () || end_loc.isInvalid ())
+    return clang_getNullRange ();
+
+  // Do not use the translateSourceRange wrapper because the token
+  // delimitation is not right for us.
+  return translateSourceRange (
+    ctx.getSourceManager (), ctx.getLangOpts (),
+    CharSourceRange::getCharRange (SourceRange (start_loc, end_loc)));
+}
+
+extern "C" CXSourceRange
+clang_getCXXMemberCallExprBaseSlocRange (CXCursor C)
+{
+  if (!clang_isExpression (C.kind))
+    return clang_getNullRange ();
+
+  const Expr *E = getCursorExpr (C);
+  if (E->getStmtClass () != Stmt::CXXMemberCallExprClass)
+    return clang_getNullRange ();
+
+  const CXXMemberCallExpr *MCE = cast<CXXMemberCallExpr> (E);
+  const MemberExpr *ME = cast<MemberExpr> (MCE->getCallee ());
+
+  const SourceLocation start_loc = ME->getBase ()->getBeginLoc ();
+  const SourceLocation end_loc = ME->getBase ()->getEndLoc ();
+
+  return translateSourceRange (getContext (C),
+                               SourceRange (start_loc, end_loc));
 }
 
 extern "C" CXSourceRange

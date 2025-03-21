@@ -1367,6 +1367,35 @@ package body Instrument.C is
               (N    => SS.Statement,
                Text => ")",
                Rew  => UIC.Rewriter);
+
+         when Instr_Prefixed_CXXMemberCallExpr =>
+
+            --  In case we are instrumenting a C++ method call `foo.bar()`
+            --  we wrap the base in a generic witness which is an identity
+            --  function and call the method on the witness like so :
+            --
+            --  `witness_generic(buf, id, foo).bar()`
+
+            declare
+               Base_Sloc_Range : constant Source_Range_T :=
+                  Get_CXX_Member_Call_Expr_Base_Sloc_Range (SS.Statement);
+               Witness_Params  : constant String :=
+                  Statement_Buffer_Symbol (UIC.Instrumented_Unit)
+                  & Buffers_Subscript (Buffers_Index) & ", " & Img (Bit);
+            begin
+               CX_Rewriter_Insert_Text_After
+                 (Rew    => UIC.Rewriter,
+                  Loc    => Get_Range_Start (Base_Sloc_Range),
+                  Insert => "gnatcov_rts_witness_generic ("
+                            & Witness_Params & ", ");
+
+               CX_Rewriter_Insert_Text_Before
+                 (Rew    => UIC.Rewriter,
+                  Loc    => Get_Range_End (Base_Sloc_Range),
+                  Insert => ")");
+            end;
+
+            null;
       end case;
    end Insert_Statement_Witness;
 
@@ -1583,54 +1612,6 @@ package body Instrument.C is
       end if;
    end Is_Complex_Decision;
 
-   -----------------------
-   -- Process_Call_Expr --
-   -----------------------
-
-   procedure Process_Call_Expr
-     (UIC : in out C_Unit_Inst_Context; Cursor : Cursor_T);
-
-   procedure Process_Call_Expr
-     (UIC : in out C_Unit_Inst_Context; Cursor : Cursor_T)
-   is
-      function Visit_Call_Expr (C : Cursor_T) return Child_Visit_Result_T;
-
-      function Visit_Call_Expr (C : Cursor_T) return Child_Visit_Result_T is
-      begin
-         if Kind (C) = Cursor_Lambda_Expr then
-            return Child_Visit_Continue;
-         end if;
-
-         if Is_Instrumentable_Call_Expr (C) then
-            Sources_Trace.Trace ("Instrument Call at "
-                                 & Image (Start_Sloc (C)));
-
-            UIC.Pass.Append_SCO
-              (UIC  => UIC,
-               N    => C,
-               C1   => 'c',
-               C2   => 'S',
-               From => Start_Sloc (C),
-               To   => End_Sloc (C),
-               Last => True);
-
-            UIC.Pass.Instrument_Statement
-              (UIC          => UIC,
-               LL_SCO       => SCOs.SCO_Table.Last,
-               Insertion_N  => C,
-               Instr_Scheme => Instr_Expr,
-               Kind         => Call);
-         end if;
-
-         return Child_Visit_Recurse;
-      end Visit_Call_Expr;
-
-   begin
-      if Enabled (Coverage_Options.Fun_Call) then
-         Visit (Cursor, Visit_Call_Expr'Access);
-      end if;
-   end Process_Call_Expr;
-
    ------------------------
    -- Process_Expression --
    ------------------------
@@ -1649,6 +1630,8 @@ package body Instrument.C is
         (UIC : in out C_Unit_Inst_Context;
          N   : Cursor_T;
          T   : Character);
+
+      function Process_Call_Expr (C : Cursor_T) return Child_Visit_Result_T;
 
       -------------------------
       -- Process_Lambda_Expr --
@@ -2030,6 +2013,69 @@ package body Instrument.C is
          Hash_Entries.Free;
       end Process_Decisions;
 
+      -------------------------
+      --  Process_Call_Expr  --
+      -------------------------
+
+      function Process_Call_Expr (C : Cursor_T) return Child_Visit_Result_T is
+      begin
+
+         --  Lambda functions are handled in Process_Lambda_Expr
+
+         if Kind (C) = Cursor_Lambda_Expr then
+            return Child_Visit_Continue;
+         end if;
+
+         if Is_Instrumentable_Call_Expr (C) then
+            Sources_Trace.Trace ("Instrument Call at "
+                                 & Image (Start_Sloc (C)));
+
+            declare
+               From         : Source_Location := Start_Sloc (C);
+               To           : Source_Location := End_Sloc (C);
+               Instr_Scheme : Instr_Scheme_Type := Instr_Expr;
+            begin
+               if Is_Prefixed_CXX_Member_Call_Expr (C) then
+
+                  --  If we are instrumenting a method call like `foo.bar()`,
+                  --  adjust the SCO to `.bar`, and set a specific
+                  --  instrumentation scheme.
+                  --
+                  --  This does not apply to un-prefixed method calls (in other
+                  --  method calls), which are instrumented as regular
+                  --  functions.
+
+                  declare
+                     CX_Source_Range : constant Source_Range_T :=
+                        Get_CXX_Member_Call_Expr_SCO_Sloc_Range (C);
+                  begin
+                     From         := Sloc (Get_Range_Start (CX_Source_Range));
+                     To           := Sloc (Get_Range_End (CX_Source_Range));
+                     Instr_Scheme := Instr_Prefixed_CXXMemberCallExpr;
+                  end;
+               end if;
+
+               UIC.Pass.Append_SCO
+                 (UIC  => UIC,
+                  N    => C,
+                  C1   => 'c',
+                  C2   => 'E',
+                  From => From,
+                  To   => To,
+                  Last => True);
+
+               UIC.Pass.Instrument_Statement
+                 (UIC          => UIC,
+                  LL_SCO       => SCOs.SCO_Table.Last,
+                  Insertion_N  => C,
+                  Instr_Scheme => Instr_Scheme,
+                  Kind         => Call);
+            end;
+         end if;
+
+         return Child_Visit_Recurse;
+      end Process_Call_Expr;
+
    begin
       if UIC.Disable_Coverage then
          return;
@@ -2037,7 +2083,9 @@ package body Instrument.C is
 
       Process_Decisions (UIC, N, T);
 
-      Process_Call_Expr (UIC, N);
+      if Enabled (Coverage_Options.Fun_Call) then
+         Visit (N, Process_Call_Expr'Access);
+      end if;
 
       Visit (N, Process_Lambda_Expr'Access);
    end Process_Expression;
