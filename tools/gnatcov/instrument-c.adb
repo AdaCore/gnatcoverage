@@ -305,20 +305,6 @@ package body Instrument.C is
    --  Note that while Buffers_Index is 1-based, C arrays are 0-based, hence
    --  the index "off-by-1" conversion.
 
-   function Make_Expr_Witness
-     (UIC          : C_Unit_Inst_Context;
-      Buffer_Index : Positive;
-      Bit          : Bit_Id) return String;
-   --  Create a procedure call expression on to witness execution of the low
-   --  level SCO with the given Bit id in the statement buffer at Buffer_Index.
-
-   function Make_Statement_Witness
-     (UIC          : C_Unit_Inst_Context;
-      Buffer_Index : Positive;
-      Bit          : Bit_Id) return String;
-   --  Create a procedure call statement to witness execution of the low level
-   --  SCO with the given Bit id in the statement buffer at Buffer_Index.
-
    procedure Insert_Statement_Witness
      (UIC           : in out C_Unit_Inst_Context;
       Buffers_Index : Positive;
@@ -1317,33 +1303,6 @@ package body Instrument.C is
                           Kind);
    end Report;
 
-   -----------------------
-   -- Make_Expr_Witness --
-   -----------------------
-
-   function Make_Expr_Witness
-     (UIC          : C_Unit_Inst_Context;
-      Buffer_Index : Positive;
-      Bit          : Bit_Id) return String is
-   begin
-      return
-        "gnatcov_rts_witness ("
-        & Statement_Buffer_Symbol (UIC.Instrumented_Unit)
-        & Buffers_Subscript (Buffer_Index) & ", " & Img (Bit) & ")";
-   end Make_Expr_Witness;
-
-   ----------------------------
-   -- Make_Statement_Witness --
-   ----------------------------
-
-   function Make_Statement_Witness
-     (UIC          : C_Unit_Inst_Context;
-      Buffer_Index : Positive;
-      Bit          : Bit_Id) return String is
-   begin
-      return Make_Expr_Witness (UIC, Buffer_Index, Bit) & ";";
-   end Make_Statement_Witness;
-
    ------------------------------
    -- Insert_Statement_Witness --
    ------------------------------
@@ -1359,6 +1318,27 @@ package body Instrument.C is
 
       Bit : constant Bit_Id :=
         Allocate_Statement_Bit (Unit_Bits, SS.LL_SCO);
+
+      function Make_Expr_Witness
+        (UIC          : C_Unit_Inst_Context;
+         Buffer_Index : Positive;
+         Bit          : Bit_Id) return String
+      is ("gnatcov_rts_witness ("
+          & Statement_Buffer_Symbol (UIC.Instrumented_Unit)
+          & Buffers_Subscript (Buffer_Index) & ", " & Img (Bit) & ")");
+      --  Create a procedure call expression on to witness execution of the low
+      --  level SCO with the given Bit id in the statement buffer at
+      --  Buffer_Index.
+
+      function Make_Statement_Witness
+        (UIC          : C_Unit_Inst_Context;
+         Buffer_Index : Positive;
+         Bit          : Bit_Id) return String
+      is (Make_Expr_Witness (UIC, Buffer_Index, Bit) & ";");
+      --  Create a procedure call statement to witness execution of the low
+      --  level SCO with the given Bit id in the statement buffer at
+      --  Buffer_Index.
+
    begin
       --  Insert the call to the witness function: as a foregoing statement if
       --  SS.Statement is a statement, or as a previous expression (using the
