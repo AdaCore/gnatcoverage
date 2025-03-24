@@ -87,7 +87,8 @@ standard_installation () {
    # only contains the new sources.
    mkdir -p "$prefix"
    rm -rf "$prefix/share/gnatcoverage/gnatcov_rts/"
-   (tar cf - bin lib libexec share \
+   rm -rf "$prefix/src/gnatfuzz/"
+   (tar cf - bin lib libexec share src \
       | (cd "$prefix"; tar xf -)) 2>&1 | tee $tmpout
 
    # Check that installation was OK
