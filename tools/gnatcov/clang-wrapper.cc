@@ -508,6 +508,32 @@ clang_getCalleeName (CXCursor C)
   return createEmpty ();
 }
 
+extern "C" bool
+clang_isThisDeclarationADefinition (CXCursor C)
+{
+  if (!clang_isDeclaration (C.kind))
+    {
+      return false;
+    }
+
+  const Decl *D = getCursorDecl (C);
+  switch (D->getKind ())
+    {
+    case Decl::FunctionTemplate:
+      return cast<FunctionTemplateDecl> (D)
+        ->getTemplatedDecl ()
+        ->isThisDeclarationADefinition ();
+    case Decl::Function:
+    case Decl::CXXMethod:
+    case Decl::CXXConstructor:
+    case Decl::CXXDestructor:
+    case Decl::CXXConversion:
+      return cast<FunctionDecl> (D)->isThisDeclarationADefinition ();
+    default:
+      return false;
+    }
+}
+
 extern "C" unsigned
 clang_isConstexpr (CXCursor C)
 {
