@@ -82,6 +82,11 @@ package Clang.Extensions is
    function Get_Operator_Loc (C : Cursor_T) return Source_Location_T
      with Import, Convention => C, External_Name => "clang_getOperatorLoc";
 
+   function Get_First_Decl (C : Cursor_T) return Cursor_T
+     with Import, Convention => C, External_Name => "clang_getFirstDecl";
+   --  Given a Decl_Stmt, return the only declaration if it is a single decl,
+   --  and the first of the declaration list otherwise.
+
    function Get_Opcode_Str (C : Cursor_T) return String with Inline;
 
    function Get_Decl_Name_Str (C : Cursor_T) return String with Inline;

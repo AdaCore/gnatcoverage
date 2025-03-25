@@ -550,6 +550,33 @@ clang_isThisDeclarationADefinition (CXCursor C)
     }
 }
 
+/* Given a Decl_Stmt, return the only declaration if it is a single decl,
+   and the first of the declaration list otherwise. */
+extern "C" CXCursor
+clang_getFirstDecl (CXCursor C)
+{
+  if (clang_isStatement (C.kind))
+    {
+      if (const Stmt *S = getCursorStmt (C))
+        {
+          if (S->getStmtClass () != Stmt::DeclStmtClass)
+            return clang_getNullCursor ();
+
+          auto DGR = llvm::cast<DeclStmt> (S)->getDeclGroup ();
+
+          if (DGR.isSingleDecl ())
+            return MakeCXCursorWithNull (DGR.getSingleDecl (), C);
+
+          auto DI = DGR.begin ();
+
+          assert (DI != DGR.end () && "Unexpected empty DeclGroup");
+
+          return MakeCXCursorWithNull (*DI, C);
+        }
+    }
+  return clang_getNullCursor ();
+}
+
 extern "C" unsigned
 clang_isConstexpr (CXCursor C)
 {
