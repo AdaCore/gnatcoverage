@@ -2178,6 +2178,8 @@ package body Coverage.Source is
    --  Start of processing for Compute_Source_Coverage
 
    begin
+      Misc_Trace.Trace ("processing traces for unit " & Unit_Image);
+
       CU := Find_Instrumented_Unit (CU_Name);
 
       if CU = No_CU_Id then
