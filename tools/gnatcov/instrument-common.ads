@@ -576,9 +576,7 @@ package Instrument.Common is
    --  cases, the basename is taken and the file is created in Prj.Output_Dir.
 
    function To_Filename
-     (Prj      : Prj_Desc;
-      Lang     : Src_Supported_Language;
-      CU_Name  : Compilation_Unit_Part) return String;
+     (Prj : Prj_Desc; CU_Name : Compilation_Unit_Part) return String;
    --  Convert a Compilation_Unit_Name to a file basename, using the body /
    --  spec suffix and dot replacement (for unit based languages) defined in
    --  Prj.

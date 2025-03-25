@@ -427,33 +427,34 @@ package body Instrument.Common is
    -----------------
 
    function To_Filename
-     (Prj      : Prj_Desc;
-      Lang     : Src_Supported_Language;
-      CU_Name  : Compilation_Unit_Part) return String
-   is
-      Filename : Unbounded_String;
+     (Prj : Prj_Desc; CU_Name : Compilation_Unit_Part) return String is
    begin
       case CU_Name.Language_Kind is
          when Unit_Based_Language =>
-            for Id of CU_Name.Unit loop
-               if Filename /= "" then
-                  Append (Filename, Prj.Dot_Replacement);
-               end if;
-               Append (Filename, To_Lower (To_String (Id)));
-            end loop;
+            declare
+               Filename : Unbounded_String;
+            begin
+               for Id of CU_Name.Unit loop
+                  if Filename /= "" then
+                     Append (Filename, Prj.Dot_Replacement);
+                  end if;
+                  Append (Filename, To_Lower (To_String (Id)));
+               end loop;
 
-            case CU_Name.Part is
-               when GNATCOLL.Projects.Unit_Body
-                  | GNATCOLL.Projects.Unit_Separate
-               =>
-                  Append (Filename, Prj.Body_Suffix (Lang));
-               when GNATCOLL.Projects.Unit_Spec =>
-                  Append (Filename, Prj.Spec_Suffix (Lang));
-            end case;
+               case CU_Name.Part is
+                  when GNATCOLL.Projects.Unit_Body
+                     | GNATCOLL.Projects.Unit_Separate
+                  =>
+                     Append (Filename, Prj.Body_Suffix (Ada_Language));
+                  when GNATCOLL.Projects.Unit_Spec =>
+                     Append (Filename, Prj.Spec_Suffix (Ada_Language));
+               end case;
+
+               return +Filename;
+            end;
          when File_Based_Language =>
-            Filename := CU_Name.Filename;
+            return +CU_Name.Filename;
       end case;
-      return +Filename;
    end To_Filename;
 
    -----------------

@@ -10269,8 +10269,7 @@ package body Instrument.Ada_Unit is
       Pkg_Name : constant String := To_Ada (Buffer_Unit.Unit);
       --  Package name for the buffer unit
 
-      Filename : constant String :=
-        To_Filename (Prj, Ada_Language, Buffer_Unit);
+      Filename : constant String := To_Filename (Prj, Buffer_Unit);
 
       File              : Text_Files.File_Type;
       Last_Buffer_Index : constant Natural := Natural (Unit_Bits.Length);
@@ -10456,8 +10455,7 @@ package body Instrument.Ada_Unit is
    is
       Last_Buffer_Index : constant Natural := Natural (CU_Names.Length);
       Pkg_Name : constant String := To_Ada (PB_Unit.Unit);
-      Filename : constant String :=
-        New_File (Prj, To_Filename (Prj, Ada_Language, PB_Unit));
+      Filename : constant String := New_File (Prj, To_Filename (Prj, PB_Unit));
       File     : Text_Files.File_Type;
 
       procedure Put_Language_Version_Pragma;
@@ -10551,7 +10549,7 @@ package body Instrument.Ada_Unit is
                Unit          => PB_Unit.Unit,
                Part          => GNATCOLL.Projects.Unit_Body);
             PB_Filename  : constant String :=
-              New_File (Prj, To_Filename (Prj, Ada_Language, PB_Unit_Body));
+              New_File (Prj, To_Filename (Prj, PB_Unit_Body));
          begin
             File.Create (PB_Filename);
 
@@ -10676,12 +10674,10 @@ package body Instrument.Ada_Unit is
          Spec_Filename : constant String :=
            To_Filename
              (Prj,
-              Ada_Language,
               CU_Name_For_Unit (Helper_Unit, GNATCOLL.Projects.Unit_Spec));
          Body_Filename : constant String :=
            To_Filename
              (Prj,
-              Ada_Language,
               CU_Name_For_Unit (Helper_Unit, GNATCOLL.Projects.Unit_Body));
 
          Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
@@ -11017,8 +11013,7 @@ package body Instrument.Ada_Unit is
         CU_Name_For_Unit
           (Buffers_List_Unit (Prj.Prj_Name), GNATCOLL.Projects.Unit_Spec);
       Unit_Name       : constant String := To_Ada (Buffers_CU_Name.Unit);
-      Filename        : constant String :=
-        To_Filename (Prj, Ada_Language, Buffers_CU_Name);
+      Filename        : constant String := To_Filename (Prj, Buffers_CU_Name);
       File            : Text_Files.File_Type;
    begin
       if Sources_Trace.Is_Active then
@@ -11137,13 +11132,9 @@ package body Instrument.Ada_Unit is
       Obs_Unit_Name : constant String := To_Ada (Obs_Unit);
 
       Obs_Spec_Filename : constant String := To_Filename
-        (Prj,
-         Ada_Language,
-         CU_Name_For_Unit (Obs_Unit, GNATCOLL.Projects.Unit_Spec));
+        (Prj, CU_Name_For_Unit (Obs_Unit, GNATCOLL.Projects.Unit_Spec));
       Obs_Body_Filename : constant String := To_Filename
-        (Prj,
-         Ada_Language,
-         CU_Name_For_Unit (Obs_Unit, GNATCOLL.Projects.Unit_Body));
+        (Prj, CU_Name_For_Unit (Obs_Unit, GNATCOLL.Projects.Unit_Body));
 
       Spec_File : Text_Files.File_Type;
       Body_File : Text_Files.File_Type;
