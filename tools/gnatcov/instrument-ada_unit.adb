@@ -11116,6 +11116,67 @@ package body Instrument.Ada_Unit is
       File.Put_Line ("end " & Unit_Name & ";");
    end Emit_Buffers_List_Unit;
 
+   -----------------------------
+   -- Emit_Observability_Unit --
+   -----------------------------
+
+   overriding procedure Emit_Observability_Unit
+     (Self : in out Ada_Instrumenter_Type;
+      Prj  : in out Prj_Desc)
+   is
+
+      pragma Unreferenced (Self);
+
+      Buf_List_Unit      : constant Ada_Qualified_Name := CU_Name_For_Unit
+        (Buffers_List_Unit (Prj.Prj_Name), GNATCOLL.Projects.Unit_Spec).Unit;
+      Buf_List_Unit_Name : constant String := To_Ada (Buf_List_Unit);
+
+      Obs_Unit      : constant Ada_Qualified_Name :=
+         Buf_List_Unit & Ada_Identifier_Vectors.To_Vector
+           (To_Unbounded_String ("Observe"), 1);
+      Obs_Unit_Name : constant String := To_Ada (Obs_Unit);
+
+      Obs_Spec_Filename : constant String := To_Filename
+        (Prj,
+         Ada_Language,
+         CU_Name_For_Unit (Obs_Unit, GNATCOLL.Projects.Unit_Spec));
+      Obs_Body_Filename : constant String := To_Filename
+        (Prj,
+         Ada_Language,
+         CU_Name_For_Unit (Obs_Unit, GNATCOLL.Projects.Unit_Body));
+
+      Spec_File : Text_Files.File_Type;
+      Body_File : Text_Files.File_Type;
+   begin
+      Create_File (Prj, Spec_File, Obs_Spec_Filename);
+      Create_File (Prj, Body_File, Obs_Body_Filename);
+
+      Spec_File.Put_Line ("package " & Obs_Unit_Name & " is");
+      Spec_File.Put_Line ("   function Sum_Buffer_Bits return Positive;");
+      Spec_File.Put_Line ("end " & Obs_Unit_Name & ";");
+
+      Body_File.Put_Line ("with Interfaces.C;");
+      Body_File.Put_Line
+        ("with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;");
+      Body_File.New_Line;
+      Body_File.Put_Line ("package body " & Obs_Unit_Name & " is");
+      Body_File.Put_Line ("   function Sum_Buffer_Bits return Positive is");
+      Body_File.Put_Line ("      function Sum_Buffer_Bits_C");
+      Body_File.Put_Line
+        ("        (C_List : GNATcov_RTS_Coverage_Buffers_Group_Array)");
+      Body_File.Put_Line ("      return Interfaces.C.unsigned_long;");
+      Body_File.Put_Line
+        ("pragma Import (C, Sum_Buffer_Bits_C,"
+         & " ""gnatcov_rts_sum_buffer_bits"");");
+      Body_File.Put_Line ("   begin");
+      Body_File.Put_Line
+        ("      return Positive(Sum_Buffer_Bits_C ("
+         & Buf_List_Unit_Name & ".C_List));");
+      Body_File.Put_Line ("   end;");
+      Body_File.Put_Line ("end " & Obs_Unit_Name & ";");
+
+   end Emit_Observability_Unit;
+
    ---------------------------------
    -- Save_Config_Pragmas_Mapping --
    ---------------------------------

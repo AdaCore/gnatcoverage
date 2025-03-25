@@ -29,6 +29,8 @@ thistest.fail_if_no_match(
             r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bz[a-f0-9]{8}\.ads",
             r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bz[a-f0-9]{8}\.ads",
             r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-bz[a-f0-9]{8}\.ads",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-p_ext2-observe\.adb",
+            r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-p_ext2-observe\.ads",
             r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-p_ext2\.ads",
             r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",
             r"obj-p_ext2/p_ext2-gnatcov-instr/gcvrt-pz[a-f0-9]{8}\.ads",

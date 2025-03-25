@@ -130,6 +130,15 @@ extern "C"
     const struct gnatcov_rts_coverage_buffers_group **groups;
   };
 
+  /*****************/
+  /* Observability */
+  /*****************/
+
+  /* Return the sum of all bits in the given buffers.
+     A higher number means a higher coverage. */
+  uint64_t gnatcov_rts_sum_buffer_bits (
+    const struct gnatcov_rts_coverage_buffers_group_array *arr);
+
   /*********************/
   /* Clear subprograms */
   /*********************/
