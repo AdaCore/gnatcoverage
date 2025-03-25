@@ -74,15 +74,22 @@ def gnatcov_coverage(keep_reading_traces):
         argv.append("--keep-reading-traces")
 
     p = xcov(argv + tracefiles, out=log_file, register_failure=False)
-    thistest.fail_if(
-        p.status == 0, '"gnatcov coverage" status code is 0 (error expected)'
-    )
+    if keep_reading_traces:
+        thistest.fail_if(
+            p.status != 0, '"gnatcov coverage" status code is non-zero.'
+        )
+    else:
+        thistest.fail_if(
+            p.status == 0,
+            '"gnatcov coverage" status code is zero (expected error).',
+        )
 
     coverage_log = contents_of(log_file).strip()
+    diag = "warning" if keep_reading_traces else "gnatcov"
     expected_log = re.compile(
         # Regexp to accommodate output differences between the various
         # supported platforms.
-        "[^\n]*gnatcov[^\n]*: traces[/\\\\]main_b[^\n]*.trace: file truncated"
+        f"[^\n]*{diag}[^\n]*: traces[/\\\\]main_b[^\n]*.trace: file truncated"
     )
     thistest.fail_if(
         not expected_log.match(coverage_log),
