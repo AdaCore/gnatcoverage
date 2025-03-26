@@ -1471,8 +1471,11 @@ begin
               Value (Args, Opt_Runtime_Project, "gnatcov_rts");
 
             Setup_Cfg : constant Setup_Config := Load
-              (Target          => "",
-               RTS             => "",
+              (Target          =>
+                (if Switches.Target_Family /= null
+                 then Switches.Target_Family.all
+                 else ""),
+               RTS             => Value (Args, Opt_Runtime),
                Config_File     => Value (Args, Opt_Config),
                Runtime_Project => Runtime_Project);
             --  TODO??? We should not leave the target and runtime empty, but

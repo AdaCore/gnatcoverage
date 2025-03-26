@@ -1421,3 +1421,65 @@ def generate_annotations(annotations, subdir="", tolerate_messages=None):
             tolerate_messages=tolerate_messages,
         )
     return annot_file
+
+
+def driver_for_lang(lang: str) -> str | None:
+    """
+    Inspect the contents of suite.cgpr to determine what the compiler driver
+    for the given language is. lang is case sensitive. This returns None if
+    the driver was not found.
+    """
+    driver_match = re.search(
+        r'for Driver *\("' + lang + r'"\) use "(.*)";',
+        contents_of(os.path.join(ROOT_DIR, "suite.cgpr")),
+    )
+
+    return driver_match.group(1) if driver_match else None
+
+
+# Mapping from the CPU name to the C BSP example in the gnat installation tree
+BSP_MAP = {
+    "zynqmp": "zcu102",
+    "stm32f4": "stm32f429disco",
+    "leon3": "leon3",
+    "mpc8641": "mpc8641",
+}
+
+
+def bsp_project(cpu):
+    """
+    Return the name of the bsp project (without extension) for the given cpu
+    """
+    return BSP_MAP.get(cpu, None)
+
+
+def get_c_bsp(rts, destdir):
+    """
+    Build & install the C BSP project that is shipped with gnat. The BSP
+    exposes a subset of stdio that can be used to dump traces.
+
+    RTS is used to locate the correct BSP, we assume that:
+    - RTS is of the form <variant>-<cpu>
+    - in the gnat installation tree there is a <install
+    prefix>/share/examples/gnat-c/<cpu> directory, in which there is a
+    bsp_map[<cpu>].gpr project (see above for bsp_map).
+
+    This function will copy destdir, and return the name of the project.
+    """
+
+    cpu_name = rts.split("-")[-1]
+
+    thistest.fail_if(
+        not cpu_name,
+        f"Could not deduce CPU name from RTS: {rts}",
+    )
+
+    gcc = driver_for_lang("C")
+    thistest.fail_if(not gcc, "Could not locate gcc executable")
+
+    bsp_original_location = os.path.join(
+        os.path.dirname(gcc), "..", "share", "examples", "gnat-c", cpu_name
+    )
+    cp(os.path.join(bsp_original_location, "*"), destdir, recursive=True)
+
+    return bsp_project(cpu_name)
