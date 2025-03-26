@@ -24,18 +24,31 @@ build_and_run(
     extra_coverage_args=[],
 )
 
+# In case block instrumentation is enabled, the number of bits set to 1 in the
+# buffers is not equivalent to the number of statements executed.
+if thistest.options.block:
+    counts = [0, 0, 3]
+else:
+    counts = [2, 4, 8]
+
 OUTPUT = contents_of("main_output.txt")
 
 thistest.fail_if_no_match(
-    "Wrong first buffer sum", re.compile(r".*First: *2.*", re.S), OUTPUT
+    "Wrong first buffer sum",
+    re.compile(f".*First: *{counts[0]}.*", re.S),
+    OUTPUT,
 )
 
 thistest.fail_if_no_match(
-    "Wrong second buffer sum", re.compile(r".*Second: *4.*", re.S), OUTPUT
+    "Wrong second buffer sum",
+    re.compile(f".*Second: *{counts[1]}.*", re.S),
+    OUTPUT,
 )
 
 thistest.fail_if_no_match(
-    "Wrong third buffer sum", re.compile(r".*Third: *8.*", re.S), OUTPUT
+    "Wrong third buffer sum",
+    re.compile(f".*Third: *{counts[2]}.*", re.S),
+    OUTPUT,
 )
 
 thistest.result()
