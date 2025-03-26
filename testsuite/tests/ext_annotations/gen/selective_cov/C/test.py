@@ -25,7 +25,8 @@ annotations = generate_annotations(
         Cov_On("src/pkg.h", "7:3", None),
         Cov_Off("src/pkg.h", "11:3", None),
         Cov_On("src/pkg.h", "13:3", None),
-    ]
+    ],
+    tolerate_messages="--justification missing",
 )
 
 thistest.options.consolidate = "checkpoints"

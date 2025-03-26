@@ -121,7 +121,8 @@ package body Setup_RTS is
    --  Load the project file at Project_File using the Target/RTS/Config_File
    --  parameters, then try to guess the profile of the actual runtime in
    --  effect (Auto_RTS_Profile) and determine the support for libraries for
-   --  this configuration (Lib_Support).
+   --  this configuration (Lib_Support). Pass Db_Dir as an additional knowledge
+   --  base. when creating the configuration file.
    --
    --  Set Actual_Target, Actual_RTS_Dir and Actual_RTS_Name to the actual
    --  target/RTS names for the loaded project: they can be different from

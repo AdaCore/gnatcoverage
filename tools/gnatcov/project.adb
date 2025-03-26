@@ -366,6 +366,11 @@ package body Project is
       if Unit.Warned_About_Missing_Info
          or else (Currently_Accepted_Trace_Kind = Binary_Trace_File
                   and then Unit.Language = CPP_Language)
+
+        --  Ignore units in a language that is ignored through the
+        --  --restricted-to-languages switch.
+
+        or else not Src_Enabled_Languages (Unit.Language)
       then
          return;
       end if;

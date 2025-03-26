@@ -68,7 +68,6 @@ def build_and_run(
     program_env=None,
     tolerate_instrument_messages=None,
     exec_args=None,
-    auto_languages=True,
     manual_prj_name=None,
     auto_config_args=True,
 ):
@@ -142,7 +141,6 @@ def build_and_run(
         output.
     :param None|list[str] exec_args: List of arguments to pass to the
         executable. This will only work for native configurations.
-    :param bool auto_languages: See SUITE.tutils.xcov.
     :param None|str manual_prj_name: When the dump trigger is manual, several
         traces files (one per project) can be emitted if there are dump buffers
         procedure calls in at least two distinct projects. This is the name of
@@ -283,7 +281,6 @@ def build_and_run(
             out="instrument.log",
             register_failure=register_failure,
             tolerate_messages=tolerate_instrument_messages,
-            auto_languages=auto_languages,
             auto_config_args=auto_config_args,
         )
         gprbuild_wrapper(gprsw.root_project)
@@ -431,6 +428,7 @@ def build_run_and_coverage(
     err=None,
     register_failure=True,
     auto_config_args=True,
+    tolerate_coverage_messages=None,
     **kwargs,
 ):
     """
@@ -442,6 +440,10 @@ def build_run_and_coverage(
     `out` and `err` are forwarded to `xcov`, `register_failure` and
     `auto_config_args` are reported to `xcov` and `build_and_run`, other
     arguments are forwarded to `build_and_run`.
+
+    If tolerate_coverage_messages is not None, filter out error or warning
+    messages from the "gnatcov coverage" output matching the regular
+    expression.
     """
     xcov_args = build_and_run(
         register_failure=register_failure,
@@ -454,6 +456,7 @@ def build_run_and_coverage(
         out=out,
         err=err,
         register_failure=register_failure,
+        tolerate_messages=tolerate_coverage_messages,
     )
 
 

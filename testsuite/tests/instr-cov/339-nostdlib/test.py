@@ -38,6 +38,7 @@ def error_case(tc_id, args, expected_out, expect_failure):
         out=log,
         register_failure=not expect_failure,
         auto_config_args=False,
+        tolerate_messages=".",
     )
 
     thistest.fail_if(

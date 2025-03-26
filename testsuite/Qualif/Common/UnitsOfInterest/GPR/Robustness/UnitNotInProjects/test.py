@@ -43,8 +43,9 @@ build_run_and_coverage(
     covlevel="stmt",
     mains=["main"],
     gpr_obj_dir="obj-main",
-    tolerate_instrument_messages="no unit.*in the projects",
+    tolerate_instrument_messages="no unit .* in the projects",
     extra_coverage_args=["-axcov"],
+    tolerate_coverage_messages="no unit .* in the projects",
 )
 
 log_file = (

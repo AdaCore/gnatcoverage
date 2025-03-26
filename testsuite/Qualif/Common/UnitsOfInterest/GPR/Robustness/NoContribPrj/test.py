@@ -103,8 +103,9 @@ def run_test(
         covlevel="stmt",
         mains=["main"],
         gpr_obj_dir="obj-main",
-        tolerate_instrument_messages="project.*provides no unit",
+        tolerate_instrument_messages="project .* provides no unit",
         extra_coverage_args=["-axcov"],
+        tolerate_coverage_messages="project .* provides no unit",
     )
 
     log_file = (

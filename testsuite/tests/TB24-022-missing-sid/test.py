@@ -33,6 +33,7 @@ build_run_and_coverage(
         "-v",
     ],
     trace_mode="src",
+    tolerate_coverage_messages="no SID file found for unit p2",
 )
 
 thistest.fail_if(

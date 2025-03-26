@@ -35,6 +35,8 @@ def run_one(tc_id, annotation_file, expected_results):
         gprsw=GPRswitches(prj),
         extra_instr_args=[
             f"--external-annotations={annotation_file}",
+        ],
+        extra_args=[
             "--units=Pkg",
             "--units=c_unit.c",
             "--units=cpp_unit.cpp",

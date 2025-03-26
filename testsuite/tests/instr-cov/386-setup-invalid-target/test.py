@@ -21,7 +21,6 @@ p = xcov(
     ],
     out=setup_log,
     auto_config_args=False,
-    auto_languages=False,
     auto_target_args=False,
     register_failure=False,
 )

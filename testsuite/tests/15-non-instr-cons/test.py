@@ -40,7 +40,13 @@ xcov(xcov_args + ["--save-checkpoint=test_t.ckpt", trace_t])
 xcov(xcov_args + ["--save-checkpoint=test_f.ckpt", trace_f])
 
 # Try to consolidate the checkpoint
-xcov(xcov_args + ["-Ctest_t.ckpt", "-Ctest_f.ckpt", "-axcov"])
+xcov(
+    xcov_args + ["-Ctest_t.ckpt", "-Ctest_f.ckpt", "-axcov"],
+    tolerate_messages=(
+        "warning: Specifying units of interest through --units"
+        " has no effect on checkpoints"
+    ),
+)
 
 check_xcov_reports("obj", {"pkg.ads.xcov": {"?": {10}, "+": {5, 6, 7}}})
 

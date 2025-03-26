@@ -86,14 +86,13 @@ for label, interleaved_outputs, trailing_output, cov in [
     xcov(
         [
             "coverage",
-            "-P",
-            p.root_project,
             "--level=stmt",
             "--annotate=xcov",
             "--output-dir",
             xcov_dir,
             trace_filename,
         ]
+        + p.cov_switches
     )
     check_xcov_reports(xcov_dir, cov, discard_empty=False)
 
