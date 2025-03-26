@@ -988,11 +988,24 @@ package body Annotations is
      (FI       : File_Info_Access;
       From, To : Natural) return Li_Stat_Array
    is
-      Result : Li_Stat_Array := (others => 0);
+      Result           : Li_Stat_Array := (others => 0);
+      Actual_To        : Natural := To;
+      Last_Loaded_Line : Natural renames Last_Line (FI);
    begin
-      for L in From .. To loop
+      --  Do not try to retrieve a line that was not loaded (which has an index
+      --  superior to Last_Line (FI)). This can happen when the sources are not
+      --  available. In that case, only loop until the last loaded line is
+      --  reached (it actually corresponds to the last SCO line), and consider
+      --  the subsequent lines as no code.
+
+      if To > Last_Loaded_Line then
+         Result (No_Code) := To - Last_Loaded_Line;
+         Actual_To := Last_Loaded_Line;
+      end if;
+
+      for L in From .. Actual_To loop
          declare
-            LI : constant Line_Info_Access := Get_Line (FI, L);
+            LI : constant Line_Info_Access :=  Get_Line (FI, L);
             S  : constant Any_Line_State := Aggregated_State (LI.all);
          begin
             --  Update counts. Note that No_Code lines are always counted as
