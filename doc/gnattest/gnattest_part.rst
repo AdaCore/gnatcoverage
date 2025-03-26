@@ -367,7 +367,9 @@ Switches for ``gnattest`` in framework generation mode
 :switch:`--exit-status={val}`
   Specifies whether or not generated test driver should return failure exit
   status if at least one test fails or crashes. ``val`` can be either
-  "on" or "off", "off" being the default.
+  "on" or "off", "off" being the default. If ``--exit-status=on`` is used to
+  generate the test harness, it should also be used if running the test
+  drivers via the ``gnattest test_drivers.list`` command.
 
 
   .. index:: --omit-sloc (gnattest)
@@ -415,6 +417,12 @@ Switches for ``gnattest`` in test execution mode
   Specifies whether or not passed tests should be shown. ``val`` can be either
   "show" or "hide", "show" being the default.
 
+:switch:`--exit-status={val}`
+  Specifies whether or not generated test driver should return failure exit
+  status if at least one test fails or crashes. ``val`` can be either
+  "on" or "off", "off" being the default. The switch ``--exit-status=on``
+  should be used both when generating the test harness and when running the
+  test drivers via the ``gnattest test_drivers.list`` command.
 
   .. index:: --queues (gnattest)
   .. index:: -j (gnattest)
