@@ -135,6 +135,10 @@ package Instrument.Ada_Unit is
       Instr_Units : Unit_Sets.Set;
       Prj         : Prj_Desc);
 
+   overriding procedure Emit_Observability_Unit
+     (Self : in out Ada_Instrumenter_Type;
+      Prj  : in out Prj_Desc);
+
    procedure Save_Config_Pragmas_Mapping (Filename : String);
    --  Create a configuration pragmas mapping for the loaded project and write
    --  a JSON description file of it to Filename.

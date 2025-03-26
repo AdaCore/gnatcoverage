@@ -22,6 +22,60 @@
 #include <stddef.h>
 #include <stdint.h>
 
+uint64_t
+gnatcov_rts_sum_buffer_bits (
+  const struct gnatcov_rts_coverage_buffers_group_array *arr)
+{
+  if (arr == NULL)
+    return 0;
+
+  unsigned i, j, sum = 0;
+  int x;
+  for (i = 0; i < arr->length; i++)
+    {
+      const struct gnatcov_rts_coverage_buffers_group *buf_grp
+        = arr->groups[i];
+
+      if (buf_grp == NULL)
+        return 0;
+
+      for (j = 0; j < buf_grp->length; j++)
+        {
+          const struct gnatcov_rts_coverage_buffers *unit_bufs
+            = buf_grp->buffers[j];
+
+          /* Statement buffer */
+          if (unit_bufs->statement != NULL)
+            {
+              for (x = 0; x < unit_bufs->statement_last_bit + 1; x++)
+                {
+                  sum += unit_bufs->statement[x];
+                }
+            }
+
+          /* Decision buffer */
+          if (unit_bufs->decision != NULL)
+            {
+              for (x = 0; x < unit_bufs->decision_last_bit + 1; x++)
+                {
+                  sum += unit_bufs->decision[x];
+                }
+            }
+
+          /* MCDC buffer */
+          if (unit_bufs->mcdc != NULL)
+            {
+              for (x = 0; x < unit_bufs->mcdc_last_bit + 1; x++)
+                {
+                  sum += unit_bufs->mcdc[x];
+                }
+            }
+        }
+    }
+
+  return sum;
+}
+
 void
 gnatcov_rts_reset_buffers (const struct gnatcov_rts_coverage_buffers *buffs)
 {
