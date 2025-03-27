@@ -19,6 +19,7 @@ xcov(
         "../main.trace.asset",
     ],
     out="asm-report.txt",
+    tolerate_messages="executable file .* does not seem to match trace file",
 )
 lines = lines_of("asm-report.txt")
 
