@@ -204,13 +204,6 @@ package Instrument is
    --  Return the compilation unit name corresponding to the unit in
    --  Source_File.
 
-   function To_Filename
-     (Project  : Project_Type;
-      CU_Name  : Compilation_Unit_Part;
-      Language : Any_Language) return String;
-   --  Return the name of the file to contain the given compilation unit,
-   --  according to Project's naming scheme.
-
    package Instrumented_Unit_To_CU_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Compilation_Unit_Part,
       Element_Type => CU_Id);

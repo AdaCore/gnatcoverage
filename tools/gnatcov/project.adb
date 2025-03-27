@@ -80,19 +80,15 @@ package body Project is
    --  Build identifiers for attributes in package Coverage
 
    procedure Iterate_Source_Files
-     (Root_Project  : Project_Type;
-      Process       : access procedure
+     (Root_Project : Project_Type;
+      Process      : access procedure
         (Info : File_Info; Unit_Name : String);
-      Recursive     : Boolean;
-      Include_Stubs : Boolean := False);
+      Recursive    : Boolean);
    --  Call Process on all source files in Root_Project (recursively
    --  considering source files of sub-projects if Recursive is true).
    --
    --  This passes the name of the unit as Unit_Name for languages featuring
    --  this notion (Ada) and the base file name otherwise (i.e. for C sources).
-   --
-   --  If Include_Stubs is false (the default) then Callback will skip
-   --  sources files that are subunits (Ada) or headers (C/C++).
 
    Env : Project_Environment_Access;
    --  Environment in which we load the project tree
@@ -437,11 +433,10 @@ package body Project is
    --------------------------
 
    procedure Iterate_Source_Files
-     (Root_Project  : Project_Type;
-      Process       : access procedure
+     (Root_Project : Project_Type;
+      Process      : access procedure
         (Info : File_Info; Unit_Name : String);
-      Recursive     : Boolean;
-      Include_Stubs : Boolean := False)
+      Recursive    : Boolean)
    is
       --  If Root_Project is extending some project P, consider for coverage
       --  purposes that source files in P also belong to Root_Project. For
@@ -479,12 +474,9 @@ package body Project is
                      Info : constant File_Info := File_Info (Abstract_Info);
                   begin
                      --  Process only source files in supported languages (Ada,
-                     --  C and C++), and include subunits only if requested.
+                     --  C and C++):
 
-                     if To_Lower (Info.Language) in "ada" | "c" | "c++"
-                       and then (Include_Stubs
-                                 or else Info.Unit_Part /= Unit_Separate)
-                     then
+                     if To_Lower (Info.Language) in "ada" | "c" | "c++" then
                         Process.all
                           (Info      => Info,
                            Unit_Name => (if Info.Unit_Name = ""
@@ -580,12 +572,11 @@ package body Project is
    -----------------------
 
    procedure Enumerate_Sources
-     (Callback      : access procedure
+     (Callback  : access procedure
         (Project : GNATCOLL.Projects.Project_Type;
          File    : GNATCOLL.Projects.File_Info);
-      Language      : Any_Language;
-      Include_Stubs : Boolean := False;
-      Only_UOIs     : Boolean := False)
+      Language  : Any_Language;
+      Only_UOIs : Boolean := False)
    is
       procedure Process_Source_File (Info : File_Info; Unit_Name : String);
       --  Callback for Iterate_Source_File. If Only_UOIs is set to true, call
@@ -613,11 +604,8 @@ package body Project is
               --  Otherwise, check if the unit is in the units of interest
               --  map
 
-              or else (Only_UOIs
-                       and then (Unit_Map.Contains (To_Compilation_Unit (Info))
-                                 and then (Info.Unit_Part /= Unit_Separate
-                                           or else Include_Stubs)))
               or else not Only_UOIs
+              or else Unit_Map.Contains (To_Compilation_Unit (Info))
             then
                Callback (Info.Project, Info);
             end if;
@@ -631,8 +619,7 @@ package body Project is
          Iterate_Source_Files
            (Prj_Info.Project,
             Process_Source_File'Access,
-            Recursive     => False,
-            Include_Stubs => Include_Stubs);
+            Recursive     => False);
       end loop;
    end Enumerate_Sources;
 
@@ -984,9 +971,7 @@ package body Project is
                --  Units attributes only apply to the project itself.
 
                Iterate_Source_Files
-                 (Project, Process_Source_File'Access,
-                  Recursive     => False,
-                  Include_Stubs => True);
+                 (Project, Process_Source_File'Access, Recursive => False);
                Inc_Units_Defined := True;
             end;
          end if;
@@ -1265,8 +1250,7 @@ package body Project is
       --  source file name.
 
       Iterate_Source_Files
-        (Prj, Process_Source_File'Access,
-         Recursive => False, Include_Stubs => True);
+        (Prj, Process_Source_File'Access, Recursive => False);
 
       for Pattern of Patterns_Not_Covered loop
          Warn ("no unit " & (+Pattern) & " in project " & Prj.Name & " ("
