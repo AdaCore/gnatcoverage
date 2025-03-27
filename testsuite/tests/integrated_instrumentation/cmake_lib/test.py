@@ -24,6 +24,7 @@ xcov(
         f"--files={os.path.join(cwd, '..', 'src', 'main.c')}",
         f"--files={os.path.join(cwd, '..', 'src', 'lib.c')}",
         "--compilers=gcc",
+        "--level=stmt",
     ]
 )
 

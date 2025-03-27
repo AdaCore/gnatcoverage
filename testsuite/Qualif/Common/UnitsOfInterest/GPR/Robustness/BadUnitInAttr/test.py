@@ -21,8 +21,9 @@ build_run_and_coverage(
     ),
     covlevel="stmt",
     mains=["main"],
-    tolerate_instrument_messages="no unit.*in project",
+    tolerate_instrument_messages="no unit .* in project",
     extra_coverage_args=["-axcov"],
+    tolerate_coverage_messages="no unit .* in project",
 )
 
 log_file = (

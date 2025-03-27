@@ -7,7 +7,7 @@ from e3.fs import mkdir
 
 from SUITE.context import thistest
 from SUITE.control import env
-from SUITE.cutils import contents_of, copy_to_dir, ext, indent
+from SUITE.cutils import contents_of, ext, copy_to_dir
 from SUITE.tutils import RUNTIME_INFO, GNATCOV_INFO, locate_gpr_file, xcov
 
 
@@ -58,7 +58,6 @@ def xcov_instrument(
     register_failure=True,
     auto_config_args=True,
     auto_target_args=True,
-    auto_languages=True,
 ):
     """
     Run "gnatcov instrument" on a project.
@@ -87,7 +86,6 @@ def xcov_instrument(
     :param bool register_failure: See SUITE.tutils.xcov.
     :param bool auto_config_args: See SUITE.tutils.xcov.
     :param bool auto_target_args: See SUITE.tutils.xcov.
-    :param bool auto_languages: See SUITE.tutils.xcov.
 
     See SUITE.tutils.xcov for the other supported options.
     """
@@ -137,20 +135,9 @@ def xcov_instrument(
     if thistest.options.block:
         args.append("--instrument-block")
 
-    out = out or "instrument.log"
-    result = xcov(
-        args,
-        out=out,
-        err=err,
-        register_failure=register_failure,
-        auto_config_args=auto_config_args,
-        auto_target_args=auto_target_args,
-        auto_languages=auto_languages,
-    )
-
     # When no message is to be tolerated, fallback to an actual regexp
     # that will never match:
-    re_tolerate_messages = tolerate_messages or "__NEVER_IN_A_WARNING___"
+    re_tolerate_messages = tolerate_messages or ""
 
     # For qualification purposes, tolerate possible warnings about
     # inexistant object dirs from older gnatcov versions, typically
@@ -163,36 +150,16 @@ def xcov_instrument(
             for mre in ["object directory.*not found", re_tolerate_messages]
         )
 
-    if register_failure:
-        output = contents_of(out)
-
-        # Check for unexpected messages. Beware that the "warning:"
-        # indication at least is not necessarily at the beginning of
-        # a line, as in
-        #
-        #    app.gpr:4:23: warning: object directory "obj" not found
-
-        messages = re.findall(
-            pattern=r"(?:!!!|\*\*\*|warning:).*$",
-            string=output,
-            flags=re.MULTILINE,
-        )
-
-        unexpected_messages = [
-            w
-            for w in messages
-            if not re.search(pattern=re_tolerate_messages, string=w)
-        ]
-        thistest.fail_if(
-            unexpected_messages,
-            f"Unexpected messages in the output of 'gnatcov instrument':"
-            f"\n{indent(output)}"
-            + (
-                f"\n(allowed: {tolerate_messages})"
-                if tolerate_messages
-                else ""
-            ),
-        )
+    out = out or "instrument.log"
+    result = xcov(
+        args,
+        out=out,
+        err=err,
+        register_failure=register_failure,
+        auto_config_args=auto_config_args,
+        auto_target_args=auto_target_args,
+        tolerate_messages=re_tolerate_messages,
+    )
 
     return result
 

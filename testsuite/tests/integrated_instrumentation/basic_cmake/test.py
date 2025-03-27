@@ -22,6 +22,7 @@ xcov(
         "setup-integration",
         f"--files={os.path.join(cwd, '..', 'main.c')}",
         "--compilers=gcc",
+        "--level=stmt",
     ]
 )
 

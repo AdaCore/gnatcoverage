@@ -41,4 +41,4 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-#endif // GNATCOV_RTS_C_MEMORY_H
+#endif

@@ -21,6 +21,7 @@ def process(c_flags, subdir):
     xcov(
         [
             "setup-integration",
+            "--level=stmt",
             f"--files={os.path.join(cwd, '..', 'main.c')}",
             f"--files={os.path.join(cwd, '..','pkg.h')}",
             "--compilers=gcc",

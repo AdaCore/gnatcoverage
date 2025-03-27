@@ -223,8 +223,8 @@ package Switches is
 
    Src_Enabled_Languages : array (Src_Supported_Language) of Boolean :=
      (others => False);
-   --  List of languages for which source files should be instrumented.
-   --  Initialized during command line arguments parsing.
+   --  List of languages for which coverage analysis is enabled. Initialized
+   --  during command line arguments parsing.
 
    Builtin_Support : array (Src_Supported_Language) of Boolean :=
      (others => True);

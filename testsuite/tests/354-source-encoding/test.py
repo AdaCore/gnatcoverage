@@ -211,7 +211,11 @@ def check_report(
     argv = xcov_args + [f"--output-dir=out-{label}"]
     if encoding is not None:
         argv.append(f"--source-encoding={encoding}")
-    xcov(argv, out=log_file)
+
+    tolerate_messages = (
+        "|".join(expected_warnings) if expected_warnings else None
+    )
+    xcov(argv, out=log_file, tolerate_messages=tolerate_messages)
 
     # Check that we have exacly the expected warnings
     thistest.fail_if_not_equal(

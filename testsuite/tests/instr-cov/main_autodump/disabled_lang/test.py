@@ -22,9 +22,12 @@ build_run_and_coverage(
     covlevel="stmt",
     mains=["main"],
     extra_instr_args=["--restricted-to-languages=C"],
-    extra_coverage_args=["-axcov", "--output-dir=xcov"],
+    extra_coverage_args=[
+        "-axcov",
+        "--output-dir=xcov",
+        "--restricted-to-languages=C",
+    ],
     trace_mode="src",
-    auto_languages=False,
 )
 check_xcov_reports("xcov", {"tested.c.xcov": {"+": {5}, "-": {7}}})
 tmp.to_homedir()
@@ -40,9 +43,12 @@ build_run_and_coverage(
     covlevel="stmt",
     mains=["main"],
     extra_instr_args=["--restricted-to-languages=Ada"],
-    extra_coverage_args=["-axcov", "--output-dir=xcov"],
+    extra_coverage_args=[
+        "-axcov",
+        "--output-dir=xcov",
+        "--restricted-to-languages=Ada",
+    ],
     trace_mode="src",
-    auto_languages=False,
 )
 check_xcov_reports(
     "xcov",
