@@ -11,7 +11,7 @@ Once a topology is defined, it can be instanciated to a full decision
 expression: to do so, placeholders are replaced by "operand" expressions.
 """
 
-import SCOV.expgen.ast as ast
+import SCOV.expgen.syntax as syntax
 
 
 class OperandPlaceholder(object):
@@ -56,8 +56,8 @@ class Topology(object):
             # If we find a placeholder, return the next operand after tagging
             # it.
             if isinstance(expression, OperandPlaceholder):
-                result = ast.TaggedNode(
-                    ast.Tag("eval", formal_names[i], context.TAG_CONTEXT),
+                result = syntax.TaggedNode(
+                    syntax.Tag("eval", formal_names[i], context.TAG_CONTEXT),
                     operands[i],
                 )
                 return (result, i + 1)
@@ -100,15 +100,15 @@ class Topology(object):
                 return (operands[i], i + 1)
 
             # Otherwise, evaluate sub-expressions and return the result.
-            if isinstance(expression, ast.And):
+            if isinstance(expression, syntax.And):
                 left, i = helper(expression.left, i)
                 right, i = helper(expression.right, i)
                 return (left and right, i)
-            elif isinstance(expression, ast.Or):
+            elif isinstance(expression, syntax.Or):
                 left, i = helper(expression.left, i)
                 right, i = helper(expression.right, i)
                 return (left or right, i)
-            elif isinstance(expression, ast.Not):
+            elif isinstance(expression, syntax.Not):
                 result, i = helper(expression.expr, i)
                 return (not result, i)
             else:
@@ -133,11 +133,11 @@ class Topology(object):
         def helper(expr):
             if isinstance(expr, OperandPlaceholder):
                 return placeholders.pop()
-            elif isinstance(expr, ast.And):
+            elif isinstance(expr, syntax.And):
                 return "({} and {})".format(
                     helper(expr.left), helper(expr.right)
                 )
-            elif isinstance(expr, ast.Or):
+            elif isinstance(expr, syntax.Or):
                 return "({} or {})".format(
                     helper(expr.left), helper(expr.right)
                 )

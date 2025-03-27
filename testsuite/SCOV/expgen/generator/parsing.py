@@ -5,7 +5,7 @@ Code is generated depending on information extracted from test drivers. This
 module provides various helpers to parse them.
 """
 
-import SCOV.expgen.ast as ast
+import SCOV.expgen.syntax as syntax
 import SCOV.expgen.topology as topology
 
 from SCOV.expgen.generator.errors import DriverError, BadTopologyError
@@ -43,7 +43,7 @@ def parse_topology(topo_dir, driver, line_no, tokens):
                 )
             i += 2
             right, i = parse_and(i)
-            left = ast.And(left, right)
+            left = syntax.And(left, right)
         return left, i
 
     def parse_and(i):
@@ -56,14 +56,14 @@ def parse_topology(topo_dir, driver, line_no, tokens):
                 )
             i += 2
             right, i = parse_not(i)
-            left = ast.And(left, right)
+            left = syntax.And(left, right)
         return left, i
 
     def parse_not(i):
         check_eof(i)
         if tokens[i] == "not":
             expr, i = parse_not(i + 1)
-            return ast.Not(expr), i
+            return syntax.Not(expr), i
         elif tokens[i] == "_":
             return (topology.OperandPlaceholder(), i + 1)
         elif tokens[i] == "(":
