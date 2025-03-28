@@ -130,6 +130,33 @@ package Clang.Extensions is
    --  TODO??? Actually decide what to do for the rest, so Ctor/Dtor call
    --          coverage makes sense.
 
+   function Is_Prefixed_CXX_Member_Call_Expr (C : Cursor_T) return Boolean
+      with Inline;
+   --  Return True if the given cursor is a statement with type
+   --  Stmt::CXXMemberCallExprClass, and if it is a prefixed method call
+   --  (meaning not a method that is called from the body of another method
+   --  in which it is possible to simply omit `this->`).
+
+   function Get_CXX_Member_Call_Expr_SCO_Sloc_Range
+     (C : Cursor_T) return Source_Range_T
+      with
+         Import,
+         Convention => C,
+         External_Name => "clang_getCXXMemberCallExprSCOSlocRange";
+   --  Assume the given cursor is a Stmt::CXXMemberCallExprClass.
+   --  Given the expression is `Foo.Bar(Baz)`, it will return a source range
+   --  containing `.Bar`.
+
+   function Get_CXX_Member_Call_Expr_Base_Sloc_Range
+     (C : Cursor_T) return Source_Range_T
+      with
+         Import,
+         Convention => C,
+         External_Name => "clang_getCXXMemberCallExprBaseSlocRange";
+   --  Assume the given cursor is a Stmt::CXXMemberCallExprClass.
+   --  Given the expression is `Foo.Bar(Baz)`, it will return the source
+   --  range of `Foo`.
+
    function Is_Constexpr (C : Cursor_T) return Boolean with Inline;
 
    function Unwrap (C : Cursor_T) return Cursor_T

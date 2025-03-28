@@ -159,16 +159,12 @@ package Project is
         (Project : GNATCOLL.Projects.Project_Type;
          File    : GNATCOLL.Projects.File_Info);
       Language      : Any_Language;
-      Include_Stubs : Boolean := False;
       Only_UOIs     : Boolean := False)
      with Pre => Is_Project_Loaded;
    --  Call Callback once for every source file of the given language
    --  mentionned in a previous Add_Project call. If Only_UOIs is set to True,
    --  only call Callback on sources that are units of interest. Override_Units
    --  has the same semantics as in Enumerate_LIs.
-   --
-   --  If Include_Stubs is false (the default) then Callback will skip
-   --  sources files that are subunits (Ada) or headers (C/C++).
 
    type Main_Source_File is record
       File    : GNATCOLL.VFS.Virtual_File;

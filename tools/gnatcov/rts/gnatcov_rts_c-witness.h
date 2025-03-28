@@ -35,6 +35,19 @@ gnatcov_rts_witness (unsigned char *buffer, unsigned bit_id)
   return 1;
 }
 
+#ifdef __cplusplus
+
+template <class T>
+T
+gnatcov_rts_witness_generic (unsigned char *buffer, unsigned int bit_id,
+                             T value)
+{
+  gnatcov_rts_witness (buffer, bit_id);
+  return value;
+}
+
+#endif /* __cplusplus */
+
 /* Decisions */
 
 /* If VALUE is false, set the boolean corresponding to FALSE_BIT to true in
