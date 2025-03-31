@@ -25,14 +25,18 @@ def do_for(target):
     out_actual = target + "-actual.out"
     out_expected = "../" + target + "-expected.out"
 
-    xcov(["scan-objects"] + ofiles, out=out_actual)
+    xcov(["scan-objects"] + ofiles, out=out_actual, tolerate_messages=".")
 
     thistest.fail_if(
         diff(out_actual, out_expected),
         "%s != %s, using explicit list" % (out_actual, out_expected),
     )
 
-    xcov(["scan-objects", "@" + list_to_file(ofiles)], out=out_actual)
+    xcov(
+        ["scan-objects", "@" + list_to_file(ofiles)],
+        out=out_actual,
+        tolerate_messages=".",
+    )
 
     thistest.fail_if(
         diff(out_actual, out_expected),
