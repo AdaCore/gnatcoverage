@@ -11146,7 +11146,7 @@ package body Instrument.Ada_Unit is
       Spec_File.Put_Line ("   function Sum_Buffer_Bits return Natural;");
       Spec_File.Put_Line ("end " & Obs_Unit_Name & ";");
 
-      Body_File.Put_Line ("with Interfaces.C;");
+      Body_File.Put_Line ("with Interfaces;");
       Body_File.Put_Line
         ("with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;");
       Body_File.New_Line;
@@ -11155,14 +11155,17 @@ package body Instrument.Ada_Unit is
       Body_File.Put_Line ("      function Sum_Buffer_Bits_C");
       Body_File.Put_Line
         ("        (C_List : GNATcov_RTS_Coverage_Buffers_Group_Array)");
-      Body_File.Put_Line ("      return Interfaces.C.unsigned_long;");
+      Body_File.Put_Line ("      return Interfaces.Unsigned_64;");
       Body_File.Put_Line
         ("pragma Import (C, Sum_Buffer_Bits_C,"
          & " ""gnatcov_rts_sum_buffer_bits"");");
       Body_File.Put_Line ("   begin");
       Body_File.Put_Line
-        ("      return Natural(Sum_Buffer_Bits_C ("
-         & Buf_List_Unit_Name & ".C_List));");
+        ("      return Natural" & ASCII.LF &
+         "        (Interfaces.Unsigned_64'Min" & ASCII.LF &
+         "           (Sum_Buffer_Bits_C (" & Buf_List_Unit_Name & ".C_List),"
+         & ASCII.LF &
+         "            Interfaces.Unsigned_64 (Natural'Last)));");
       Body_File.Put_Line ("   end;");
       Body_File.Put_Line ("end " & Obs_Unit_Name & ";");
 
