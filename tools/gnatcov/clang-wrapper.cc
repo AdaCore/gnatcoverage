@@ -20,8 +20,6 @@
 /* Make sure we refer to the static version of symbols on Windows, not to DLL
    importers.  */
 
-#include "clang-c/CXSourceLocation.h"
-#include "clang/AST/Expr.h"
 #define CINDEX_NO_EXPORTS
 
 #include "libclang/CXCursor.h"
