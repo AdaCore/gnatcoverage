@@ -1519,7 +1519,10 @@ package Command_Line is
         (Long_Name   => "--trace",
          Short_Name  => "-T",
          Pattern     => "[TRACE|@LISTFILE]",
-         Help        => "Specify trace files to read.",
+         Help        =>
+           "Specify trace files to read. If the path ends with a directory "
+           & " separator, consider it is a directory path containing the list"
+           & " of traces to be read.",
          Commands    => (Cmd_Coverage
                          | Cmd_Dump_Trace
                          | Cmd_Dump_Trace_Raw
