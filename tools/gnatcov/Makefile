@@ -105,7 +105,7 @@ include architecture.mk
 
 ifeq ($(HOST_OS), windows)
 ifeq ($(BITS_ARCH), 32)
-DEFAULT_ADAPTERS = trace32
+DEFAULT_ADAPTERS = trace32 llvm_json
 else
 DEFAULT_ADAPTERS =
 endif
@@ -115,11 +115,11 @@ ifeq ($(HOST_OS), linux)
 ifeq ($(BITS_ARCH), 32)
 DEFAULT_ADAPTERS =
 else
-DEFAULT_ADAPTERS = trace32
+DEFAULT_ADAPTERS = trace32 llvm_json
 endif
 endif
 
-ADAPTERS_LIST=$(DEFAULT_ADAPTERS)
+ADAPTERS_LIST ?= $(DEFAULT_ADAPTERS)
 
 PROCESSORS=0
 BUILD_MODE=dev
@@ -128,8 +128,9 @@ BUILD_MODE=dev
 # == Variables to pass down to sub-makefiles for trace adapters ==
 # ================================================================
 
-# The Trace32 adapter use the same prefix as GNATcov
+# The trace adapters use the same prefix as GNATcov
 trace32_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
+llvm_json_ADAPTER_INSTALL_VARS=PREFIX=$(PREFIX)
 
 .PHONY: default all adapters bin $(PGMPATH)
 
