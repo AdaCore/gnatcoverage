@@ -37,8 +37,10 @@ package body GNATcov_RTS.Base_Io is
    ---------
 
    procedure Put (S : GNATcov_RTS_String) is
+      pragma Warnings (Off);
       Str : String (1 .. Integer (S.Length));
       for Str'Address use S.Str;
+      pragma Warning (On);
    begin
       Print_Tag;
       GNAT.IO.Put_Line (Str);
