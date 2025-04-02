@@ -23,7 +23,7 @@ def process(c_flags, subdir):
             "setup-integration",
             "--level=stmt",
             f"--files={os.path.join(cwd, '..', 'main.c')}",
-            f"--files={os.path.join(cwd, '..','pkg.h')}",
+            f"--files={os.path.join(cwd, '..', 'pkg.h')}",
             "--compilers=gcc",
         ]
     )
