@@ -165,7 +165,8 @@ package Instrument.C is
      (Instr_Stmt,
       Instr_Expr,
       Instr_In_Compound,
-      Instr_Prefixed_CXXMemberCallExpr);
+      Instr_Prefixed_CXXMemberCallExpr,
+      Instr_StructField_CallExpr);
    --  Depending on the statement construct, we can instrument it either with
    --  another statement right before (Instr_Stmt), which is the case for most
    --  statements:

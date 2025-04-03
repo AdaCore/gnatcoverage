@@ -1352,6 +1352,32 @@ package body Instrument.C is
       --  level SCO with the given Bit id in the statement buffer at
       --  Buffer_Index.
 
+      procedure Wrap_In_CXX_Generic_Witness (SR : Source_Range_T);
+      --  Wraps the given source range inside a generic witness function like
+      --  so: `foo` becomes `gnatcov_rts_witness_generic(buffer, sco_id, foo)`.
+
+      ---------------------------------
+      -- Wrap_In_CXX_Generic_Witness --
+      ---------------------------------
+
+      procedure Wrap_In_CXX_Generic_Witness (SR : Source_Range_T)
+      is
+         Witness_Params  : constant String :=
+            Statement_Buffer_Symbol (UIC.Instrumented_Unit)
+            & Buffers_Subscript (Buffers_Index) & ", " & Img (Bit);
+      begin
+         CX_Rewriter_Insert_Text_After
+           (Rew    => UIC.Rewriter,
+            Loc    => Get_Range_Start (SR),
+            Insert => "gnatcov_rts_witness_generic ("
+                      & Witness_Params & ", ");
+
+         CX_Rewriter_Insert_Text_Before
+           (Rew    => UIC.Rewriter,
+            Loc    => Get_Range_End (SR),
+            Insert => ")");
+      end Wrap_In_CXX_Generic_Witness;
+
    begin
       --  Insert the call to the witness function: as a foregoing statement if
       --  SS.Statement is a statement, or as a previous expression (using the
@@ -1389,26 +1415,16 @@ package body Instrument.C is
             --
             --  `witness_generic(buf, id, foo).bar()`
 
-            declare
-               Base_Sloc_Range : constant Source_Range_T :=
-                  Get_CXX_Member_Call_Expr_Base_Sloc_Range (SS.Statement);
-               Witness_Params  : constant String :=
-                  Statement_Buffer_Symbol (UIC.Instrumented_Unit)
-                  & Buffers_Subscript (Buffers_Index) & ", " & Img (Bit);
-            begin
-               CX_Rewriter_Insert_Text_After
-                 (Rew    => UIC.Rewriter,
-                  Loc    => Get_Range_Start (Base_Sloc_Range),
-                  Insert => "gnatcov_rts_witness_generic ("
-                            & Witness_Params & ", ");
+            Wrap_In_CXX_Generic_Witness
+              (Get_CXX_Member_Call_Expr_Base_Sloc_Range (SS.Statement));
 
-               CX_Rewriter_Insert_Text_Before
-                 (Rew    => UIC.Rewriter,
-                  Loc    => Get_Range_End (Base_Sloc_Range),
-                  Insert => ")");
-            end;
+         when Instr_StructField_CallExpr =>
 
-            null;
+            --  In case we are instrumenting the call from a function pointer
+            --  that is a field from a struct.
+
+            Wrap_In_CXX_Generic_Witness
+              (Get_Struct_Field_Call_Expr_Base_Sloc_Range (SS.Statement));
       end case;
    end Insert_Statement_Witness;
 
@@ -2050,6 +2066,7 @@ package body Instrument.C is
             begin
                if Is_Prefixed_CXX_Member_Call_Expr (C) then
 
+                  --  C++ only.
                   --  If we are instrumenting a method call like `foo.bar()`,
                   --  adjust the SCO to `.bar`, and set a specific
                   --  instrumentation scheme.
@@ -2065,6 +2082,16 @@ package body Instrument.C is
                      From         := Sloc (Get_Range_Start (CX_Source_Range));
                      To           := Sloc (Get_Range_End (CX_Source_Range));
                      Instr_Scheme := Instr_Prefixed_CXXMemberCallExpr;
+                  end;
+               elsif Is_Struct_Field_Call_Expr (C) then
+
+                  declare
+                     CX_Source_Range : constant Source_Range_T :=
+                        Get_Struct_Field_Call_Expr_SCO_Sloc_Range (C);
+                  begin
+                     From         := Sloc (Get_Range_Start (CX_Source_Range));
+                     To           := Sloc (Get_Range_End (CX_Source_Range));
+                     Instr_Scheme := Instr_StructField_CallExpr;
                   end;
                end if;
 

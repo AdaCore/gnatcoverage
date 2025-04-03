@@ -400,6 +400,64 @@ clang_isPrefixedCXXMemberCallExpr (CXCursor C)
   return !ME->isImplicitAccess ();
 }
 
+/* A struct field call expr is a call expression whose callee is a function
+   pointer stored as a member of a struct. This function detects such a
+   construction. Note that for compilation reasons, clang wraps the callee
+   in an `ImplicitCastExpr` we need to handle. */
+extern "C" unsigned
+clang_isStructFieldCallExpr (CXCursor C)
+{
+  if (!clang_isExpression (C.kind))
+    return false;
+
+  const Expr *E = getCursorExpr (C);
+  if (E->getStmtClass () != Stmt::CallExprClass)
+    return false;
+
+  const Expr *callee = cast<CallExpr> (E)->getCallee ();
+
+  // Skip implicit LValueToRValue cast that is not relevant for us.
+  if (callee->getStmtClass () == Stmt::ImplicitCastExprClass)
+    callee = cast<ImplicitCastExpr> (callee)->getSubExpr ();
+
+  return callee->getStmtClass () == Stmt::MemberExprClass;
+}
+
+/* Given a Member expression, return a CharSourceRange that wraps the accessing
+    operator (. or ->) and the member name. */
+static CharSourceRange
+getMemberSloc (const MemberExpr *ME)
+{
+  const SourceLocation start_loc = ME->getOperatorLoc ();
+  const SourceLocation end_loc = ME->getMemberLoc ().getLocWithOffset (
+    ((long) ME->getMemberDecl ()->getName ().size ()) - 1);
+
+  // Check for validity on both sides.
+  // Specifically, start loc can fail if there is no operator, if the member
+  // reference is made from a method and thus not prefixed by `object.` or
+  // `object->` (implicit `this->`).
+  if (start_loc.isInvalid () || end_loc.isInvalid ())
+    return CharSourceRange ();
+
+  return CharSourceRange::getCharRange (SourceRange (start_loc, end_loc));
+}
+
+static const MemberExpr *
+getMemberExprFromCallExpr (const CallExpr *CE)
+{
+  const Expr *callee = CE->getCallee ();
+
+  // Skip implicit LValueToRValue cast that is not relevant for us.
+  if (callee->getStmtClass () == Stmt::ImplicitCastExprClass)
+    callee = cast<ImplicitCastExpr> (callee)->getSubExpr ();
+
+  // We should have a member expr here.
+  if (callee->getStmtClass () != Stmt::MemberExprClass)
+    return nullptr;
+
+  return cast<MemberExpr> (callee);
+}
+
 extern "C" CXSourceRange
 clang_getCXXMemberCallExprSCOSlocRange (CXCursor C)
 {
@@ -415,22 +473,32 @@ clang_getCXXMemberCallExprSCOSlocRange (CXCursor C)
 
   ASTContext &ctx = getContext (C);
 
-  const SourceLocation start_loc = ME->getOperatorLoc ();
-  const SourceLocation end_loc = ME->getMemberLoc ().getLocWithOffset (
-    ((long) ME->getMemberDecl ()->getName ().size ()) - 1);
+  // Do not use the translateSourceRange wrapper because the token
+  // delimitation is not right for us.
+  return translateSourceRange (ctx.getSourceManager (), ctx.getLangOpts (),
+                               getMemberSloc (ME));
+}
 
-  // Check for validity on both sides.
-  // Specifically, start loc can fail if there is no operator, if the method
-  // call is made from another method and thus not prefixed by `object.` or
-  // `object->`
-  if (start_loc.isInvalid () || end_loc.isInvalid ())
+extern "C" CXSourceRange
+clang_getStructFieldCallExprSCOSlocRange (CXCursor C)
+{
+  if (!clang_isExpression (C.kind))
     return clang_getNullRange ();
+
+  const Expr *E = getCursorExpr (C);
+  if (E->getStmtClass () != Stmt::CallExprClass)
+    return clang_getNullRange ();
+
+  const MemberExpr *ME = getMemberExprFromCallExpr (cast<CallExpr> (E));
+  if (ME == nullptr)
+    return clang_getNullRange ();
+
+  ASTContext &ctx = getContext (C);
 
   // Do not use the translateSourceRange wrapper because the token
   // delimitation is not right for us.
-  return translateSourceRange (
-    ctx.getSourceManager (), ctx.getLangOpts (),
-    CharSourceRange::getCharRange (SourceRange (start_loc, end_loc)));
+  return translateSourceRange (ctx.getSourceManager (), ctx.getLangOpts (),
+                               getMemberSloc (ME));
 }
 
 extern "C" CXSourceRange
@@ -445,6 +513,27 @@ clang_getCXXMemberCallExprBaseSlocRange (CXCursor C)
 
   const CXXMemberCallExpr *MCE = cast<CXXMemberCallExpr> (E);
   const MemberExpr *ME = cast<MemberExpr> (MCE->getCallee ());
+
+  const SourceLocation start_loc = ME->getBase ()->getBeginLoc ();
+  const SourceLocation end_loc = ME->getBase ()->getEndLoc ();
+
+  return translateSourceRange (getContext (C),
+                               SourceRange (start_loc, end_loc));
+}
+
+extern "C" CXSourceRange
+clang_getStructFieldCallExprBaseSlocRange (CXCursor C)
+{
+  if (!clang_isExpression (C.kind))
+    return clang_getNullRange ();
+
+  const Expr *E = getCursorExpr (C);
+  if (E->getStmtClass () != Stmt::CallExprClass)
+    return clang_getNullRange ();
+
+  const MemberExpr *ME = getMemberExprFromCallExpr (cast<CallExpr> (E));
+  if (ME == nullptr)
+    return clang_getNullRange ();
 
   const SourceLocation start_loc = ME->getBase ()->getBeginLoc ();
   const SourceLocation end_loc = ME->getBase ()->getEndLoc ();

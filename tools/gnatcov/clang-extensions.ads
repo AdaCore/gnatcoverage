@@ -137,6 +137,10 @@ package Clang.Extensions is
    --  (meaning not a method that is called from the body of another method
    --  in which it is possible to simply omit `this->`).
 
+   function Is_Struct_Field_Call_Expr (C : Cursor_T) return Boolean;
+   --  Return true if the cursor points to a CallExpr, whose callee is a
+   --  MemberExpr.
+
    function Get_CXX_Member_Call_Expr_SCO_Sloc_Range
      (C : Cursor_T) return Source_Range_T
       with
@@ -156,6 +160,24 @@ package Clang.Extensions is
    --  Assume the given cursor is a Stmt::CXXMemberCallExprClass.
    --  Given the expression is `Foo.Bar(Baz)`, it will return the source
    --  range of `Foo`.
+
+   function Get_Struct_Field_Call_Expr_SCO_Sloc_Range
+     (C : Cursor_T) return Source_Range_T
+      with
+         Import,
+         Convention => C,
+         External_Name => "clang_getStructFieldCallExprSCOSlocRange";
+   --  Given the expression is `Foo.Bar(Baz)`, it will return the source range
+   --  for `.Bar(Baz)`.
+
+   function Get_Struct_Field_Call_Expr_Base_Sloc_Range
+     (C : Cursor_T) return Source_Range_T
+      with
+         Import,
+         Convention => C,
+         External_Name => "clang_getStructFieldCallExprBaseSlocRange";
+   --  Given the expression is `Foo.Bar(Baz)`, it will return the source range
+   --  for `Foo`.
 
    function Is_Constexpr (C : Cursor_T) return Boolean with Inline;
 
