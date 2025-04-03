@@ -1356,6 +1356,18 @@ package body Instrument.C is
       --  Wraps the given source range inside a generic witness function like
       --  so: `foo` becomes `gnatcov_rts_witness_generic(buffer, sco_id, foo)`.
 
+      procedure Wrap_Struct_Call_In_Stmt_Expr (C : Cursor_T);
+      --  In C, transform a `foo->bar(args)` struct field call expr into
+      --
+      --  ({
+      --    <type-of-foo> tmp = <instrumented-foo>;
+      --    witness(bar);
+      --    tmp->bar(<instrumented-args>);
+      --  })
+      --
+      --  NOTE: this creates a statement expression construct, which is a GCC
+      --    extension (clang supports it too) not defined by ISO nor ANSI C.
+
       ---------------------------------
       -- Wrap_In_CXX_Generic_Witness --
       ---------------------------------
@@ -1377,6 +1389,49 @@ package body Instrument.C is
             Loc    => Get_Range_End (SR),
             Insert => ")");
       end Wrap_In_CXX_Generic_Witness;
+
+      -----------------------------------
+      -- Wrap_Struct_Call_In_Stmt_Expr --
+      -----------------------------------
+
+      procedure Wrap_Struct_Call_In_Stmt_Expr (C : Cursor_T) is
+         Base_SR : constant Source_Range_T :=
+            Get_Struct_Field_Call_Expr_Base_Sloc_Range (C);
+
+         Cursor_Type : constant String :=
+            Get_Type_Spelling (Get_Cursor_Type
+              (Get_Struct_Field_Call_Expr_Base_Expr (C)));
+         --  Eventually get rid of this if we plan to only support
+         --  language version over C23, as we can just use "auto" as
+         --  in C++ in this case.
+
+      begin
+         CX_Rewriter_Insert_Text_After
+           (Rew    => UIC.Rewriter,
+            Loc    => Get_Range_Start (Base_SR),
+            Insert => "__extension__ ({ " & Cursor_Type & " tmp = ");
+         --  `__extension__` at the beginning of the rewrite mentions to the
+         --  compiler that this is an expected language extension
+         --  (statement expression). This prevents `-pedantic` from raising the
+         --  error. The extension has been supported by gcc, clang and msvc
+         --  for many years, so that should not cause any problem.
+
+         CX_Rewriter_Insert_Text_Before
+           (Rew    => UIC.Rewriter,
+            Loc    => Get_Range_End (Base_SR),
+            Insert =>
+               "; "
+               & Make_Statement_Witness (UIC, Buffers_Index, Bit)
+               & " tmp"
+            );
+
+         CX_Rewriter_Insert_Text_Before
+           (Rew    => UIC.Rewriter,
+            Loc    => End_Sloc (C),
+            Insert => ";})");
+      end Wrap_Struct_Call_In_Stmt_Expr;
+
+      --  Start processing of Instrument_Statement_Witness
 
    begin
       --  Insert the call to the witness function: as a foregoing statement if
@@ -1421,10 +1476,19 @@ package body Instrument.C is
          when Instr_StructField_CallExpr =>
 
             --  In case we are instrumenting the call from a function pointer
-            --  that is a field from a struct.
+            --  that is a field from a struct, the instrumentation depends
+            --  on whether we are in C or C++.
+            --  For C++, we use the same generic witness instrumentation as for
+            --  member call exprs.
+            --  For C, we wrap the base of the member expression in a statement
+            --  expression.
 
-            Wrap_In_CXX_Generic_Witness
-              (Get_Struct_Field_Call_Expr_Base_Sloc_Range (SS.Statement));
+            if Get_Cursor_Language (SS.Statement) = Language_C_Plus_Plus then
+               Wrap_In_CXX_Generic_Witness
+                 (Get_Struct_Field_Call_Expr_Base_Sloc_Range (SS.Statement));
+            else
+               Wrap_Struct_Call_In_Stmt_Expr (SS.Statement);
+            end if;
       end case;
    end Insert_Statement_Witness;
 
@@ -2084,6 +2148,12 @@ package body Instrument.C is
                      Instr_Scheme := Instr_Prefixed_CXXMemberCallExpr;
                   end;
                elsif Is_Struct_Field_Call_Expr (C) then
+
+                  --  C and C++.
+                  --  We are instrumenting a function call whose callee is
+                  --  a member from a struct, as function pointer.
+                  --  This language feature can lead to call chains as well,
+                  --  which we need to handle properly.
 
                   declare
                      CX_Source_Range : constant Source_Range_T :=

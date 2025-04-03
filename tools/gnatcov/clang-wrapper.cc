@@ -458,6 +458,23 @@ getMemberExprFromCallExpr (const CallExpr *CE)
   return cast<MemberExpr> (callee);
 }
 
+static const Expr *
+getBaseExprFromStructFieldCallExpr (CXCursor C)
+{
+  if (!clang_isExpression (C.kind))
+    return nullptr;
+
+  const Expr *E = getCursorExpr (C);
+  if (E->getStmtClass () != Stmt::CallExprClass)
+    return nullptr;
+
+  const MemberExpr *ME = getMemberExprFromCallExpr (cast<CallExpr> (E));
+  if (ME == nullptr)
+    return nullptr;
+
+  return ME->getBase ();
+}
+
 extern "C" CXSourceRange
 clang_getCXXMemberCallExprSCOSlocRange (CXCursor C)
 {
@@ -524,22 +541,25 @@ clang_getCXXMemberCallExprBaseSlocRange (CXCursor C)
 extern "C" CXSourceRange
 clang_getStructFieldCallExprBaseSlocRange (CXCursor C)
 {
-  if (!clang_isExpression (C.kind))
+  const Expr *base = getBaseExprFromStructFieldCallExpr (C);
+  if (base == nullptr)
     return clang_getNullRange ();
 
-  const Expr *E = getCursorExpr (C);
-  if (E->getStmtClass () != Stmt::CallExprClass)
-    return clang_getNullRange ();
-
-  const MemberExpr *ME = getMemberExprFromCallExpr (cast<CallExpr> (E));
-  if (ME == nullptr)
-    return clang_getNullRange ();
-
-  const SourceLocation start_loc = ME->getBase ()->getBeginLoc ();
-  const SourceLocation end_loc = ME->getBase ()->getEndLoc ();
+  const SourceLocation start_loc = base->getBeginLoc ();
+  const SourceLocation end_loc = base->getEndLoc ();
 
   return translateSourceRange (getContext (C),
                                SourceRange (start_loc, end_loc));
+}
+
+extern "C" CXCursor
+clang_getStructFieldCallExprBaseExpr (CXCursor C)
+{
+  const Expr *base = getBaseExprFromStructFieldCallExpr (C);
+  if (base == nullptr)
+    return clang_getNullCursor ();
+
+  return MakeCXCursorWithNull (base, C);
 }
 
 extern "C" CXSourceRange

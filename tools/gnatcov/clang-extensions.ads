@@ -179,6 +179,16 @@ package Clang.Extensions is
    --  Given the expression is `Foo.Bar(Baz)`, it will return the source range
    --  for `Foo`.
 
+   function Get_Struct_Field_Call_Expr_Base_Expr
+     (C : Cursor_T) return Cursor_T
+      with
+         Import,
+         Convention => C,
+         External_Name => "clang_getStructFieldCallExprBaseExpr";
+   --  Given the expression is `Foo.Bar(Baz)`, it will return the Base
+   --  expression of the MemberExpr underlying the call, meaning the `Foo`
+   --  expression.
+
    function Is_Constexpr (C : Cursor_T) return Boolean with Inline;
 
    function Unwrap (C : Cursor_T) return Cursor_T
