@@ -93,7 +93,7 @@ def check_one_exec(cov_args, lang):
     traces.sort()
 
     for i in range(len(traces)):
-        thistest.log(f"-- {i+1}. --")
+        thistest.log(f"-- {i + 1}. --")
         output_dir = f"output_{lang}_{i}/"
         xcov(
             cov_args + [f"--output-dir={output_dir}", traces[i]],
