@@ -250,6 +250,13 @@ Switches for ``gnattest`` in framework generation mode
   code under test.
 
 
+  .. index:: --recursive-stub (gnattest)
+
+:switch:`--recursive-stub`
+  Used along --stub, indicates gnattest to generate stubs for all the packages
+  that are withed by the stubbed units, recursively.
+
+
   .. index:: --harness-dir (gnattest)
 
 :switch:`--harness-dir={dirname}`
