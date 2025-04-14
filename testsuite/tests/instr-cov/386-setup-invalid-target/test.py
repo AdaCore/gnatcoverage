@@ -32,8 +32,11 @@ thistest.fail_if(
 thistest.fail_if_no_match(
     "Unexpectect 'gnatcov setup' output",
     regexp=(
-        r".*gnatcov(.exe)?: Cannot get library support for this"
-        r" configuration"
+        "kb: info: can't find a toolchain for the following configuration:"
+        " language 'Ada', target 'INVALID', default runtime\n"
+        "kb: info: can't find a toolchain for the following configuration:"
+        " language 'C', target 'INVALID', default runtime\n"
+        ".*gnatcov(.exe)?: Cannot get library support for this configuration"
     ),
     actual=contents_of(setup_log).strip(),
 )
