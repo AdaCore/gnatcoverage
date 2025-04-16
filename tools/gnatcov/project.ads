@@ -19,11 +19,16 @@
 --  GNAT projects support
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Containers.Vectors;
 
 with GNAT.Strings; use GNAT.Strings;
 
-with GNATCOLL.Projects; use GNATCOLL.Projects;
-with GNATCOLL.VFS;
+with GPR2.Build.Compilation_Unit;
+with GPR2.Build.Source;
+with GPR2.Build.Unit_Info;
+with GPR2.Project.Tree;
+with GPR2.Project.View;
+with GPR2.Reporter;
 
 with Files_Table;
 with Strings;      use Strings;
@@ -45,10 +50,6 @@ package Project is
    function Units_Of_Interest_Computed return Boolean;
    --  Return whether the set of units of interest has been computed by calling
    --  the Compute_Units_Of_Interest procedure.
-
-   procedure Finalize;
-   --  Release all resources allocated by project handling. Must be called
-   --  before leaving gnatcov.
 
    -------------------------------
    -- Pre-loading configuration --
@@ -88,9 +89,7 @@ package Project is
       Target, Runtime, CGPR_File : GNAT.Strings.String_Access;
       DB_Dir                     : String;
       From_Driver                : Boolean := False)
-      with Pre  => not Is_Project_Loaded
-                   and then ((Target = null and then Runtime = null)
-                             or else CGPR_File = null),
+      with Pre  => not Is_Project_Loaded,
            Post => Is_Project_Loaded;
    --  Load the project tree rooted at Prj_Name (with optional
    --  Project_File_Extension). Target is the target prefix, or NULL in the
@@ -98,9 +97,6 @@ package Project is
    --  runtime case. CGPR_File is the path to the configuration project file,
    --  if any. DB_Dir is the path to the additional knowledge base directory,
    --  if any.
-   --
-   --  Note that Target/Runtime must not be provided if a configuration project
-   --  file is provided, and reciprocally.
    --
    --  If From_Driver is True, do not compute the list of projects/units of
    --  interest. This is meant to be used only in the gnatcov driver, where we
@@ -129,13 +125,13 @@ package Project is
    --  path of its main executable (including its suffix, for instance ".exe").
    --  Otherwise, return an empty string.
 
-   function Owning_Unit_Name (Info : File_Info) return String
-     with Pre => Is_Project_Loaded;
-   --  Return the owning unit name meaning the unit name if this is a body /
-   --  specification, and the top parent unit name if this is a separate.
+   function Get_Unit_Name (Source : GPR2.Build.Source.Object) return String;
+   --  Return the gnatcov-style unit name for the given source. For Ada, it is
+   --  the actual unit name (same meaning as in GPR2), but for other languages,
+   --  it is the file basename.
 
    function To_Compilation_Unit
-     (Info : File_Info) return Files_Table.Compilation_Unit;
+     (Source : GPR2.Build.Source.Object) return Files_Table.Compilation_Unit;
    --  Return the Compilation_Unit for Info
 
    --------------------------------------
@@ -156,8 +152,8 @@ package Project is
 
    procedure Enumerate_Sources
      (Callback      : access procedure
-        (Project : GNATCOLL.Projects.Project_Type;
-         File    : GNATCOLL.Projects.File_Info);
+        (Project : GPR2.Project.View.Object;
+         File    : GPR2.Build.Source.Object);
       Language      : Any_Language;
       Only_UOIs     : Boolean := False)
      with Pre => Is_Project_Loaded;
@@ -166,19 +162,9 @@ package Project is
    --  only call Callback on sources that are units of interest. Override_Units
    --  has the same semantics as in Enumerate_LIs.
 
-   type Main_Source_File is record
-      File    : GNATCOLL.VFS.Virtual_File;
-      --  Base name for the source file
-
-      Project : GNATCOLL.Projects.Project_Type;
-      --  The project this source files comes from
-   end record;
-
-   type Main_Source_File_Array is
-      array (Positive range <>) of Main_Source_File;
-
    function Enumerate_Mains
-     (Language : Any_Language) return Main_Source_File_Array
+     (Language : Any_Language)
+      return GPR2.Build.Compilation_Unit.Unit_Location_Vector
       with Pre => Is_Project_Loaded;
    --  Return the list of all main source files found in the project tree for
    --  the given Language, or for all languages if Language is All_Languages.
@@ -202,11 +188,16 @@ package Project is
       with Pre => Is_Project_Loaded;
    --  Return the output directory of the root project
 
-   function Project_Name (Source_Name : String) return String
+   function Project_Name (Full_Name : String) return String
       with Pre => Is_Project_Loaded;
    --  Return the name of the project containing the given source file. Return
    --  the empty string if Source_Name cannot be associated with a project
    --  name. This can happen for sources that belong eg. to the runtime.
+
+   function Language (Full_Name : String) return Any_Language
+      with Pre => Is_Project_Loaded;
+   --  Return the language for the given source file, or All_Languages if the
+   --  file is unknown.
 
    function Target return String
       with Pre => Is_Project_Loaded;
@@ -230,13 +221,13 @@ package Project is
    -- Raw accessors for the project tree --
    ----------------------------------------
 
-   function Project return GNATCOLL.Projects.Project_Tree_Access
+   function Project return GPR2.Project.Tree.Object
       with Pre => Is_Project_Loaded;
 
    procedure Iterate_Projects
-     (Root_Project             : GNATCOLL.Projects.Project_Type;
+     (Root_Project             : GPR2.Project.View.Object;
       Process                  : access procedure
-                                   (Prj : GNATCOLL.Projects.Project_Type);
+                                   (Prj : GPR2.Project.View.Object);
       Recursive                : Boolean;
       Include_Extended         : Boolean := False;
       Include_Externally_Built : Boolean :=
@@ -251,8 +242,48 @@ package Project is
 
    function Source_Suffix
      (Lang    : Src_Supported_Language;
-      Part    : GNATCOLL.Projects.Unit_Parts;
-      Project : GNATCOLL.Projects.Project_Type) return String;
+      Part    : GPR2.Valid_Unit_Kind;
+      Project : GPR2.Project.View.Object) return String;
    --  Return the filename suffix corresponding for Part files and Lang
+
+   function Lookup_Source
+     (Full_Name : String) return GPR2.Build.Source.Object;
+   --  Look for a source file by full name in the loaded project tree
+
+   -------------------
+   -- GPR2 reporter --
+   -------------------
+
+   function Create_Reporter return GPR2.Reporter.Object'Class;
+   --  Returns a wrapper around GPR2.Reporter.Console so that we detect when
+   --  warnings are emitted, allowing us to implement --warning-as-errors.
+
+   ---------------------
+   -- GPR2 extensions --
+   ---------------------
+
+   function Most_Extending
+     (View : GPR2.Project.View.Object) return GPR2.Project.View.Object;
+   --  If View is an extended project, return Most_Extending (View.Extending).
+   --  Return View itself otherwise.
+   --
+   --  ??? Remove once eng/gpr/gpr-issues#501 is implemented.
+
+   package Source_Vectors is new Ada.Containers.Vectors
+     (Positive, GPR2.Build.Source.Object, "=" => GPR2.Build.Source."=");
+
+   function Source_Closure
+     (View                  : GPR2.Project.View.Object;
+      With_Externally_Built : Boolean;
+      With_Runtime          : Boolean) return Source_Vectors.Vector;
+   --  Return the set of all sources in the closure of View (its own sources
+   --  included). Include sources from externally built projects iff
+   --  With_Externally_Built is True, include sources from the runtime iff
+   --  With_Runtime is True.
+
+   function First_Unit
+     (Source : GPR2.Build.Source.Object) return GPR2.Build.Unit_Info.Object;
+   --  Assuming that Source has a unit-based language, return the first unit it
+   --  contains.
 
 end Project;

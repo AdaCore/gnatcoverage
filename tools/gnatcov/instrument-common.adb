@@ -19,7 +19,7 @@
 with Ada.Containers; use Ada.Containers;
 with Ada.Directories;
 
-with GNATCOLL.VFS;
+with GPR2.Path_Name;
 
 with Coverage;
 with Diagnostics;
@@ -121,20 +121,23 @@ package body Instrument.Common is
    -- Project_Output_Dir --
    ------------------------
 
-   function Project_Output_Dir (Project : Project_Type) return String is
-      use type GNATCOLL.VFS.Filesystem_String;
-      Obj_Dir : constant String := +Project.Object_Dir.Full_Name;
+   function Project_Output_Dir
+     (Project : GPR2.Project.View.Object) return String is
    begin
-      if Obj_Dir'Length = 0 then
+      if Project.Kind not in GPR2.With_Object_Dir_Kind then
          return "";
-      else
-         declare
-            Prj_Name : constant String :=
-               Ada.Characters.Handling.To_Lower (Project.Name);
-         begin
-            return Obj_Dir / Prj_Name & "-gnatcov-instr";
-         end;
       end if;
+
+      declare
+         Obj_Dir  : constant GPR2.Path_Name.Object := Project.Object_Directory;
+         Prj_Name : constant String :=
+           Ada.Characters.Handling.To_Lower (String (Project.Name));
+      begin
+         return String
+           (Obj_Dir
+            .Compose (GPR2.Simple_Name (Prj_Name & "-gnatcov-instr"))
+            .Value);
+      end;
    end Project_Output_Dir;
 
    ------------------------
@@ -431,27 +434,9 @@ package body Instrument.Common is
    begin
       case CU_Name.Language_Kind is
          when Unit_Based_Language =>
-            declare
-               Filename : Unbounded_String;
-            begin
-               for Id of CU_Name.Unit loop
-                  if Filename /= "" then
-                     Append (Filename, Prj.Dot_Replacement);
-                  end if;
-                  Append (Filename, To_Lower (To_String (Id)));
-               end loop;
-
-               case CU_Name.Part is
-                  when GNATCOLL.Projects.Unit_Body
-                     | GNATCOLL.Projects.Unit_Separate
-                  =>
-                     Append (Filename, Prj.Body_Suffix (Ada_Language));
-                  when GNATCOLL.Projects.Unit_Spec =>
-                     Append (Filename, Prj.Spec_Suffix (Ada_Language));
-               end case;
-
-               return +Filename;
-            end;
+            return String
+              (Prj.View.Filename_For_Unit
+                (GPR2.Name_Type (To_Ada (CU_Name.Unit)), CU_Name.Part));
          when File_Based_Language =>
             return +CU_Name.Filename;
       end case;
@@ -792,7 +777,7 @@ package body Instrument.Common is
    procedure Replace_Manual_Indications
      (Self                  : in out Language_Instrumenter;
       Prj                   : in out Prj_Desc;
-      Source                : GNATCOLL.Projects.File_Info;
+      Source                : GPR2.Build.Source.Object;
       Has_Dump_Indication   : out Boolean;
       Has_Reset_Indication  : out Boolean) is
    begin

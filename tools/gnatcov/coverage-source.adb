@@ -25,8 +25,8 @@ with Ada.Unchecked_Deallocation;
 
 with Interfaces;
 
-with GNATCOLL.Projects;
-with GNATCOLL.VFS;
+with GPR2.Build.Source;
+with GPR2.Project.View;
 
 with Binary_Files;      use Binary_Files;
 with Coverage.Tags;     use Coverage.Tags;
@@ -340,8 +340,8 @@ package body Coverage.Source is
       use Types;
 
       procedure Callback
-        (Project : GNATCOLL.Projects.Project_Type;
-         File    : GNATCOLL.Projects.File_Info);
+        (Project : GPR2.Project.View.Object;
+         File    : GPR2.Build.Source.Object);
       --  If the file is a (sometimes) ignored file, compute its unit name and
       --  store it in the file table.
 
@@ -350,13 +350,12 @@ package body Coverage.Source is
       --------------
 
       procedure Callback
-        (Project : GNATCOLL.Projects.Project_Type;
-         File    : GNATCOLL.Projects.File_Info)
+        (Project : GPR2.Project.View.Object;
+         File    : GPR2.Build.Source.Object)
       is
          pragma Unreferenced (Project);
-         use GNATCOLL.VFS;
          SFI : constant Source_File_Index := Get_Index_From_Generic_Name
-           (+File.File.Full_Name, Source_File, Insert => False);
+           (String (File.Path_Name.Value), Source_File, Insert => False);
          FI  : constant File_Info_Access := (if SFI /= No_Source_File
                                              then Get_File (SFI)
                                              else null);
@@ -2237,7 +2236,7 @@ package body Coverage.Source is
       procedure Set_Executed (SCI : in out Source_Coverage_Info);
       --  Mark SCI as executed
 
-      function Part_Image (Part : GNATCOLL.Projects.Unit_Parts) return String;
+      function Part_Image (Part : GPR2.Valid_Unit_Kind) return String;
       --  Helper to include Part in an error message
 
       function Unit_Image return String is
@@ -2273,13 +2272,12 @@ package body Coverage.Source is
       -- Part_Image --
       ----------------
 
-      function Part_Image (Part : GNATCOLL.Projects.Unit_Parts) return String
-      is
+      function Part_Image (Part : GPR2.Valid_Unit_Kind) return String is
       begin
          return (case Part is
-                 when GNATCOLL.Projects.Unit_Body => "body of",
-                 when GNATCOLL.Projects.Unit_Spec => "spec of",
-                 when GNATCOLL.Projects.Unit_Separate => "separate");
+                 when GPR2.S_Body => "body of",
+                 when GPR2.S_Spec => "spec of",
+                 when GPR2.S_Separate => "separate");
       end Part_Image;
 
       ------------------------

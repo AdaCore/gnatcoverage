@@ -32,18 +32,24 @@ with GNAT.Exception_Actions;
 
 with GNAT.OS_Lib;
 with GNAT.Regexp;
-with GNAT.Strings;
 
 with GNATCOLL.JSON;         use GNATCOLL.JSON;
 with GNATCOLL.VFS;          use GNATCOLL.VFS;
-with GNATCOLL.Projects.Aux; use GNATCOLL.Projects.Aux;
+with GPR2.Build.Compilation_Unit;
+with GPR2.Build.Source;
+with GPR2.Containers;
+with GPR2.Path_Name;
+with GPR2.Project.Attribute;
+with GPR2.Project.Attribute_Index;
+with GPR2.Project.Registry.Attribute;
 
 with Binary_Files;
 with Command_Line;        use Command_Line;
 with Files_Handling;      use Files_Handling;
 with Files_Table;
-with Instrument.Ada_Unit; use Instrument.Ada_Unit;
 with Instrument.Ada_Preprocessing;
+with Instrument.Ada_Unit; use Instrument.Ada_Unit;
+with Instrument.Ada_Unit_Provider;
 with Instrument.C;        use Instrument.C;
 with Instrument.Clean_Objdirs;
 with Instrument.Common;   use Instrument.Common;
@@ -80,8 +86,11 @@ procedure Instrument.Projects
    Ignored_Source_Files : access GNAT.Regexp.Regexp;
    Mains                : String_Vectors.Vector)
 is
+   use type GPR2.Path_Name.Object;
+   use type GPR2.Unit_Kind;
+
    type Project_Info is record
-      Project : Project_Type;
+      Project : GPR2.Project.View.Object;
       --  Project that this record describes
 
       Externally_Built : Boolean;
@@ -122,20 +131,20 @@ is
    package Main_To_Instrument_Vectors is new Ada.Containers.Vectors
      (Positive, Main_To_Instrument);
 
-   function Less (L, R : File_Info) return Boolean is
-     (L.File.Full_Name < R.File.Full_Name);
-   function Equal (L, R : File_Info) return Boolean is
-     (Equal (L.File.Full_Name, R.File.Full_Name));
+   function Less (L, R : GPR2.Build.Source.Object) return Boolean is
+     (L.Path_Name < R.Path_Name);
+   function Equal (L, R : GPR2.Build.Source.Object) return Boolean is
+     (L.Path_Name = R.Path_Name);
 
    package File_Info_Sets is new Ada.Containers.Indefinite_Ordered_Sets
-     (Element_Type => File_Info, "<" => Less, "=" => Equal);
+     (Element_Type => GPR2.Build.Source.Object, "<" => Less, "=" => Equal);
 
    type Library_Unit_Info is record
       Unit_Name : Unbounded_String;
       --  Name of this unit: unit name for unit-based languages, simple name
       --  for file-based languages.
 
-      Instr_Project : GPR.Project_Type;
+      Instr_Project : GPR2.Project.View.Object;
       --  Project in which instrumentation artifacts for this unit are
       --  generated.
 
@@ -168,8 +177,6 @@ is
       --  pragma files. See the Save_Config_Pragmas_Mapping and
       --  Load_Config_Pragmas_Mapping procedures in Instrument.Ada_Unit for
       --  more information.
-
-      Predefined_Source_Dirs : String_Vectors.Vector;
 
       Sources_Of_Interest_Response_File : Unbounded_String;
       --  File containing the list of units of interest, identified by their
@@ -210,18 +217,16 @@ is
 
    function Get_Or_Create_Project_Info
      (Context : in out Inst_Context;
-      Project : Project_Type) return Project_Info_Access;
+      Project : GPR2.Project.View.Object) return Project_Info_Access;
    --  Return the Project_Info record corresponding to Project. Create it if it
    --  does not exist.
 
    procedure Register_Main_To_Instrument
      (Context : in out Inst_Context;
       Mains   : in out Main_To_Instrument_Vectors.Vector;
-      File    : GNATCOLL.VFS.Virtual_File;
-      Project : Project_Type);
-   --  Register in Mains a main to be instrumented so that it dumps coverage
-   --  buffers. File is the source file for this main, and Project is the
-   --  project that owns this main.
+      Main    : GPR2.Build.Compilation_Unit.Unit_Location);
+   --  Register Main (a main source to be instrumented) into Mains so that it
+   --  dumps coverage buffers.
 
    procedure Prepare_Output_Dirs (IC : Inst_Context);
    --  Make sure we have the expected tree of directories for the
@@ -230,11 +235,11 @@ is
    function SID_Filename
      (LU_Info : Library_Unit_Info; In_Library_Dir : Boolean) return String;
    --  Return the filename of the SID file to create for the given library
-   --  unit. If In_Library_Dir is true, then return a filename located in the
-   --  project library directory. Otherwise, the filename is located in the
-   --  object directory.
+   --  unit. If In_Library_Dir is True and LU_Info lives in a library project,
+   --  then return a filename located in the project library directory.
+   --  Otherwise, the filename is located in the object directory.
 
-   function Load_From_Project (Prj : Project_Type) return Prj_Desc;
+   function Load_From_Project (Prj : GPR2.Project.View.Object) return Prj_Desc;
    --  Load the project description from the given project
 
    function Compilation_Unit_Options
@@ -246,7 +251,8 @@ is
    --  LU_Info, belonging to the project Prj.
 
    procedure Add_Project_Source
-     (Project : GPR.Project_Type; Source_File : GPR.File_Info);
+     (Project     : GPR2.Project.View.Object;
+      Source_File : GPR2.Build.Source.Object);
    --  If an instrumenter supports Source_File's language and if Project is not
    --  externally built, add Source_File to Project_Sources.
 
@@ -266,7 +272,8 @@ is
    --  empty.
 
    procedure Add_Instrumented_Unit
-     (Project : GPR.Project_Type; Source_File : GPR.File_Info);
+     (Project     : GPR2.Project.View.Object;
+      Source_File : GPR2.Build.Source.Object);
    --  Add this source file to the list of units to instrument
 
    procedure Clean_And_Print (Exc : Ada.Exceptions.Exception_Occurrence);
@@ -281,20 +288,25 @@ is
    -- Load_From_Project --
    -----------------------
 
-   function Load_From_Project (Prj : Project_Type) return Prj_Desc
+   function Load_From_Project (Prj : GPR2.Project.View.Object) return Prj_Desc
    is
+      package R renames GPR2.Project.Registry.Attribute;
+
+      Languages       : constant GPR2.Containers.Language_Set :=
+        Prj.Language_Ids;
       Dot_Replacement : constant String :=
-        Prj.Attribute_Value
-          (Attribute => Build ("Naming", "Dot_Replacement"));
+        Prj.Attribute (Name => R.Naming.Dot_Replacement).Value.Text;
       Result          : Prj_Desc;
    begin
       for Lang in Some_Language loop
-         if Builtin_Support (Lang) then
+         if Builtin_Support (Lang)
+            and then Languages.Contains (To_Language_Id (Lang))
+         then
             declare
                Body_Suffix  : constant String :=
-                 Project.Source_Suffix (Lang, GPR.Unit_Body, Prj);
+                 Project.Source_Suffix (Lang, GPR2.S_Body, Prj);
                Spec_Suffix  : constant String :=
-                 Project.Source_Suffix (Lang, GPR.Unit_Spec, Prj);
+                 Project.Source_Suffix (Lang, GPR2.S_Spec, Prj);
             begin
                Result.Body_Suffix (Lang) := +Body_Suffix;
                Result.Spec_Suffix (Lang) := +Spec_Suffix;
@@ -302,14 +314,15 @@ is
          end if;
       end loop;
 
-      Result.Prj_Name := To_Qualified_Name (Prj.Name);
+      Result.Prj_Name := To_Qualified_Name (String (Prj.Name));
+      Result.View := Prj;
       Result.Dot_Replacement := +Dot_Replacement;
 
       --  Register the source directories of the project tree
 
       declare
          procedure Register_Source_Dirs
-           (P : GNATCOLL.Projects.Project_Type);
+           (P : GPR2.Project.View.Object);
          --  Add the source directories of P's project file to the search
          --  paths to be passed as -I arguments later. The order in which
          --  the paths are added to the search paths vector is the same
@@ -322,11 +335,10 @@ is
          --------------------------
 
          procedure Register_Source_Dirs
-           (P : GNATCOLL.Projects.Project_Type) is
+           (P : GPR2.Project.View.Object) is
          begin
-            for Dir of P.Source_Dirs loop
-               Result.Search_Paths.Append
-                 ("-I" & (+GNATCOLL.VFS."+" (GNATCOLL.VFS.Dir_Name (Dir))));
+            for Dir of P.Source_Directories loop
+               Result.Search_Paths.Append (+("-I" & String (Dir.Dir_Name)));
             end loop;
          end Register_Source_Dirs;
       begin
@@ -351,60 +363,68 @@ is
       --  Load the set of compiler switches for languages requiring it
 
       for Lang in C_Family_Language loop
-         declare
-            use type GNAT.Strings.String_List_Access;
-            Options         : Analysis_Options;
-            Compiler_Opts   : String_Vectors.Vector;
-            Switches        : GNAT.Strings.String_List_Access;
-            Compiler_Driver : constant String :=
-              GNATCOLL.Projects.Attribute_Value
-                (Prj,
-                 GPR.Compiler_Driver_Attribute,
-                 Image (Lang));
+         if Languages.Contains (To_Language_Id (Lang)) then
+            declare
+               Lang_Index : constant GPR2.Project.Attribute_Index.Object :=
+                 GPR2.Project.Attribute_Index.Create (Image (Lang));
 
-         begin
-            --  Get the compiler switches from the project file. When
-            --  registering a compilation unit for instrumentation, we also
-            --  fill the compilation unit specific switches that will override
-            --  the project defaults, if there are any (see
-            --  Add_Instrumented_Unit).
-            --
-            --  Language specific switches can be specified through the
-            --  Compiler.Switches or the Compiler.Default_Switches attribute,
-            --  the former being prioritized over the latter.
+               package R renames GPR2.Project.Registry.Attribute;
 
-            Switches :=
-              Prj.Attribute_Value
-                (Attribute => GPR.Build ("compiler", "switches"),
-                 Index     => Image (Lang));
+               Options         : Analysis_Options;
+               Compiler_Opts   : String_Vectors.Vector;
+               Switches        : GPR2.Project.Attribute.Object;
+               Compiler_Driver : constant GPR2.Project.Attribute.Object :=
+                 Prj.Attribute
+                   (Name => R.Compiler.Driver, Index => Lang_Index);
 
-            if Switches = null then
+            begin
+               --  Get the compiler switches from the project file. When
+               --  registering a compilation unit for instrumentation, we also
+               --  fill the compilation unit specific switches that will
+               --  override the project defaults, if there are any (see
+               --  Add_Instrumented_Unit).
+               --
+               --  Language specific switches can be specified through the
+               --  Compiler.Switches or the Compiler.Default_Switches
+               --  attribute, the former being prioritized over the latter.
+
                Switches :=
-                 Prj.Attribute_Value
-                   (Attribute => GPR.Compiler_Default_Switches_Attribute,
-                    Index     => Image (Lang));
-            end if;
+                 Prj.Attribute
+                   (Name => R.Compiler.Switches, Index => Lang_Index);
 
-            --  If we manage to find appropriate switches, convert them to a
-            --  string vector import the switches.
+               if not Switches.Is_Defined then
+                  Switches :=
+                    Prj.Attribute
+                      (Name  => R.Compiler.Default_Switches,
+                       Index => Lang_Index);
+               end if;
 
-            if Switches /= null then
-               declare
-                  Args : String_Vectors.Vector;
-               begin
-                  for S of Switches.all loop
-                     Args.Append (+S.all);
-                  end loop;
-                  GNAT.Strings.Free (Switches);
-                  Import_From_Args (Options, Args);
-               end;
-            end if;
+               --  If we manage to find appropriate switches, convert them to a
+               --  string vector import the switches.
 
-            Add_Options (Compiler_Opts, Options, Pass_Builtins => False);
+               if Switches.Is_Defined then
+                  declare
+                     Args : String_Vectors.Vector;
+                  begin
+                     for S of Switches.Values loop
+                        Args.Append (+S.Text);
+                     end loop;
+                     Import_From_Args (Options, Args);
+                  end;
+               end if;
 
-            Result.Compiler_Options (Lang) := Compiler_Opts;
-            Result.Compiler_Driver (Lang) := +Compiler_Driver;
-         end;
+               Add_Options (Compiler_Opts, Options, Pass_Builtins => False);
+
+               --  If we could not find a C compiler, stay silent at this
+               --  point: the C instrumenter will complain if needed.
+
+               Result.Compiler_Options (Lang) := Compiler_Opts;
+               Result.Compiler_Driver (Lang) :=
+                 +(if Compiler_Driver.Is_Defined
+                   then Compiler_Driver.Value.Text
+                   else "");
+            end;
+         end if;
       end loop;
 
       return Result;
@@ -467,6 +487,7 @@ is
       --  Cleanup temporary artifacts if not instructed to keep them
 
       if not Save_Temps then
+         Delete_File_Wrapper (Context.Mapping_File);
          Delete_File_Wrapper (Context.Config_Pragmas_Mapping);
          Delete_File_Wrapper (Context.Sources_Of_Interest_Response_File);
          Delete_File_Wrapper (Context.Ada_Preprocessor_Data_File);
@@ -494,13 +515,13 @@ is
 
    function Get_Or_Create_Project_Info
      (Context : in out Inst_Context;
-      Project : Project_Type) return Project_Info_Access
+      Project : GPR2.Project.View.Object) return Project_Info_Access
    is
       use Project_Info_Maps;
 
       --  Look for an existing Project_Info record corresponding to Project
 
-      Project_Name : constant Unbounded_String := +Project.Name;
+      Project_Name : constant Unbounded_String := +String (Project.Name);
       Position     : constant Cursor := Context.Project_Info_Map.Find
         (Project_Name);
    begin
@@ -512,8 +533,8 @@ is
          --  register it and return it.
 
          declare
-            Storage_Project : constant Project_Type :=
-              Project.Extending_Project (Recurse => True);
+            Storage_Project : constant GPR2.Project.View.Object :=
+              Most_Extending (Project);
             --  Actual project that will host instrumented sources: even when
             --  we instrument an extended project, the resulting instrumented
             --  sources must go to the ultimate extending project's object
@@ -523,7 +544,7 @@ is
 
             Result : constant Project_Info_Access := new Project_Info'
               (Project          => Project,
-               Externally_Built => Project.Externally_Built,
+               Externally_Built => Project.Is_Externally_Built,
                Output_Dir       => +Project_Output_Dir (Storage_Project),
                Desc             => Load_From_Project (Project));
          begin
@@ -566,20 +587,17 @@ is
    procedure Register_Main_To_Instrument
      (Context : in out Inst_Context;
       Mains   : in out Main_To_Instrument_Vectors.Vector;
-      File    : GNATCOLL.VFS.Virtual_File;
-      Project : Project_Type)
+      Main    : GPR2.Build.Compilation_Unit.Unit_Location)
    is
-      File_Info : constant GNATCOLL.Projects.File_Info :=
-         Standard.Project.Project.Info (File);
       CU_Name   : constant Compilation_Unit_Part :=
-         To_Compilation_Unit_Name (File_Info);
+         To_Compilation_Unit_Name (Main.View.Source (Main.Source.Simple_Name));
       Prj_Info  : constant Project_Info_Access :=
-        Get_Or_Create_Project_Info (Context, Project);
+        Get_Or_Create_Project_Info (Context, Main.View);
    begin
       Mains.Append
         (Main_To_Instrument'
            (CU_Name  => CU_Name,
-            File     => File,
+            File     => Create (+String (Main.Source.Value)),
             Prj_Info => Prj_Info));
    end Register_Main_To_Instrument;
 
@@ -600,35 +618,26 @@ is
 
       SID_Basename : Unbounded_String;
 
-      Project  : constant GPR.Project_Type :=
-        GPR.Extending_Project
-          (Project => LU_Info.Instr_Project,
-           Recurse => True);
-      pragma Assert (Project /= GPR.No_Project);
+      Project : constant GPR2.Project.View.Object :=
+        Most_Extending (LU_Info.Instr_Project);
 
-      Output_Directory : constant Virtual_File :=
-        (if In_Library_Dir
+      Output_Directory : constant GPR2.Path_Name.Object :=
+        (if In_Library_Dir and then Project.Is_Library
          then Project.Library_Ali_Directory
-         else Project.Object_Dir);
+         else Project.Object_Directory);
    begin
       case Language_Kind (LU_Info.Language) is
          when Unit_Based_Language =>
             declare
-               Src_Body_Basename : constant String := +Project.File_From_Unit
-                 (Unit_Name       => +LU_Info.Unit_Name,
-                  Part            => GNATCOLL.Projects.Unit_Body,
-                  Language        => Image (LU_Info.Language),
-                  File_Must_Exist => True);
-               Src_Spec_Basename : constant String := +Project.File_From_Unit
-                 (Unit_Name       => +LU_Info.Unit_Name,
-                  Part            => GNATCOLL.Projects.Unit_Spec,
-                  Language        => Image (LU_Info.Language),
-                  File_Must_Exist => True);
-               Src_Basename      : constant String :=
-                 (if Src_Body_Basename = ""
-                  then Src_Spec_Basename
-                  else Src_Body_Basename);
-               Src_Ext_Index     : constant Positive :=
+               Unit          : constant GPR2.Build.Compilation_Unit.Object :=
+                 Project.Namespace_Roots.First_Element
+                 .Unit (GPR2.Name_Type (+LU_Info.Unit_Name));
+               Src_Basename  : constant String :=
+                 String
+                   (if Unit.Has_Part (GPR2.S_Body)
+                    then Unit.Main_Body.Source.Simple_Name
+                    else Unit.Spec.Source.Simple_Name);
+               Src_Ext_Index : constant Positive :=
                  Ada.Strings.Fixed.Index
                    (Src_Basename, ".", Ada.Strings.Backward);
             begin
@@ -641,7 +650,7 @@ is
               +Ada.Directories.Simple_Name (+LU_Info.Unit_Name) & ".sid";
       end case;
 
-      return String'(+Output_Directory.Full_Name) / (+SID_Basename);
+      return String (Output_Directory.Value) / (+SID_Basename);
    end SID_Filename;
 
    ------------------------------
@@ -664,12 +673,6 @@ is
               ("--config-pragmas-mapping=" & IC.Config_Pragmas_Mapping);
             Result.Append
               ("--ada-preprocessor-data=" & IC.Ada_Preprocessor_Data_File);
-
-            --  Load the predefined source directories
-
-            for Dir of IC.Predefined_Source_Dirs loop
-               Result.Append ("--runtime-dir=" & Dir);
-            end loop;
 
          when others =>
             null;
@@ -730,10 +733,11 @@ is
    ------------------------
 
    procedure Add_Project_Source
-     (Project : GPR.Project_Type; Source_File : GPR.File_Info) is
+     (Project     : GPR2.Project.View.Object;
+      Source_File : GPR2.Build.Source.Object) is
    begin
       if Builtin_Support (To_Language (Source_File.Language))
-         and then not Project.Externally_Built
+         and then not Project.Is_Externally_Built
       then
          Project_Sources.Insert (Source_File);
       end if;
@@ -744,7 +748,8 @@ is
    ---------------------------
 
    procedure Add_Instrumented_Unit
-     (Project : GPR.Project_Type; Source_File : GPR.File_Info)
+     (Project     : GPR2.Project.View.Object;
+      Source_File : GPR2.Build.Source.Object)
    is
       Language  : constant Src_Supported_Language :=
         To_Language (Source_File.Language);
@@ -753,12 +758,11 @@ is
       use Unit_Maps;
       Unit_Name : constant String :=
         (case Lang_Kind is
-            when Unit_Based_Language => Owning_Unit_Name (Source_File),
-            when File_Based_Language =>
-              GNATCOLL.VFS."+" (Source_File.File.Full_Name));
+         when Unit_Based_Language => Get_Unit_Name (Source_File),
+         when File_Based_Language => String (Source_File.Path_Name.Value));
 
       Prj_Info : constant Project_Info_Access :=
-        Get_Or_Create_Project_Info (IC, Source_File.Project);
+        Get_Or_Create_Project_Info (IC, Source_File.Owning_View);
 
       LU_Info : constant Library_Unit_Info :=
         (Unit_Name            => +Unit_Name,
@@ -770,7 +774,9 @@ is
    begin
       --  Check if this is an ignored source file
 
-      if Is_Ignored_Source_File (IC, +Source_File.File.Base_Name) then
+      if Is_Ignored_Source_File
+           (IC, String (Source_File.Path_Name.Simple_Name))
+      then
          return;
       end if;
 
@@ -784,13 +790,21 @@ is
       --  Otherwise, this is a source of interest
 
       Files_Of_Interest_Info.Insert (Source_File);
-      Files_Of_Interest.Insert (Source_File.File);
+      Files_Of_Interest.Insert
+        (Create (+String (Source_File.Path_Name.Value)));
 
-      --  Headers are not instrumented by themselves, so exit early as soon
-      --  as they have been added to the sources of interest.
+      if
+         --  Headers are not instrumented by themselves, so exit early as soon
+         --  as they have been added to the sources of interest.
 
-      if Language in C_Family_Language
-         and then Source_File.Unit_Part = GNATCOLL.Projects.Unit_Spec
+         (Language in C_Family_Language
+          and then Source_File.Kind = GPR2.S_Spec)
+
+         --  Ada bodies that just contain the No_Body pragmas cannot be
+         --  instrumented (not worthwhile anyway): just skip them.
+
+         or else (Language = Ada_Language
+                  and then First_Unit (Source_File).Kind = GPR2.S_No_Body)
       then
          return;
       end if;
@@ -813,7 +827,7 @@ is
       --  in the current instrumentation run, so there is no need to grab
       --  information useful for instrumentation purposes.
 
-      if Source_File.Project.Externally_Built
+      if Source_File.Owning_View.Is_Externally_Built
       then
          return;
       end if;
@@ -823,24 +837,25 @@ is
 
       if Language in C_Family_Language then
          declare
-            use type GNAT.Strings.String_List_Access;
+            package R renames GPR2.Project.Registry.Attribute;
+
             Options       : Analysis_Options;
             Compiler_Opts : String_Vectors.Vector;
-            Switches      : GNAT.Strings.String_List_Access;
-            Basename      : constant String := +Source_File.File.Base_Name;
+            Switches      : GPR2.Project.Attribute.Object;
+            Basename      : constant String :=
+              String (Source_File.Path_Name.Simple_Name);
          begin
             Switches :=
-              Project.Attribute_Value
-                (Attribute => GPR.Build ("compiler", "switches"),
-                 Index     => Basename);
-            if Switches /= null then
+              Project.Attribute
+                (Name  => R.Compiler.Switches,
+                 Index => GPR2.Project.Attribute_Index.Create (Basename));
+            if Switches.Is_Defined then
                declare
                   Args : String_Vectors.Vector;
                begin
-                  for S of Switches.all loop
-                     Args.Append (+S.all);
+                  for S of Switches.Values loop
+                     Args.Append (+S.Text);
                   end loop;
-                  GNAT.Strings.Free (Switches);
                   Import_From_Args (Options, Args);
                end;
                Add_Options (Compiler_Opts, Options, Pass_Builtins => False);
@@ -881,9 +896,11 @@ is
 
       for Source of Project_Sources loop
          if To_Language (Source.Language) = Language
-           and then Source.Unit_Part = GNATCOLL.Projects.Unit_Body
-           and then (Manual_Indication_Files.Is_Empty
-                     or else Manual_Indication_Files.Contains (Source.File))
+           and then Source.Kind = GPR2.S_Body
+           and then
+              (Manual_Indication_Files.Is_Empty
+               or else Manual_Indication_Files.Contains
+                         (Create (+String (Source.Path_Name.Value))))
          then
             Processed_Files.Include (Source);
          end if;
@@ -901,12 +918,12 @@ is
 
             Prj_Info             : constant Project_Info_Access :=
               Get_Or_Create_Project_Info
-                (IC, Source.Project.Extending_Project (Recurse => True));
+                (IC, Most_Extending (Source.Owning_View));
             Prj                  : Prj_Desc renames Prj_Info.Desc;
             Is_Root_Prj          : constant Boolean :=
-              To_Ada (Prj.Prj_Name) = Root_Project_Info.Project.Name;
+              To_Ada (Prj.Prj_Name) = String (Root_Project_Info.Project.Name);
             Source_Name          : constant String :=
-              GNATCOLL.VFS."+" (Source.File.Full_Name);
+              String (Source.Path_Name.Value);
             Helper_Unit_Name     : constant Unbounded_String :=
               Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name;
             Had_Dump_Indication  : Boolean := False;
@@ -945,21 +962,18 @@ is
                declare
                   use Files_Table;
                   Instr_Units  : Unit_Sets.Set;
-                  Source_Files : GNATCOLL.VFS.File_Array_Access :=
-                    Source.Project.Source_Files
-                      (Recursive                => True,
-                       Include_Externally_Built =>
-                         Externally_Built_Projects_Processing_Enabled);
                begin
-                  for S of Source_Files.all loop
-
+                  for S of Source_Closure
+                    (View                  => Source.Owning_View,
+                     With_Externally_Built =>
+                       Externally_Built_Projects_Processing_Enabled,
+                     With_Runtime          => False)
+                  loop
                      --  First, check if S is even a source of a language we
                      --  recognize. If not, it can't have been instrumented
                      --  so skip it.
 
-                     if To_Language_Or_All
-                       (Project.Project.Info (S).Language) = All_Languages
-                     then
+                     if To_Language_Or_All (S.Language) = All_Languages then
                         goto Skip_File;
                      end if;
 
@@ -967,8 +981,7 @@ is
                         use Unit_Maps;
                         Unit_C : constant Unit_Maps.Cursor :=
                           Instrumented_Sources.Find
-                            (+To_Compilation_Unit
-                               (Project.Project.Info (S)).Unit_Name);
+                            (+To_Compilation_Unit (S).Unit_Name);
                      begin
                         if Unit_C /= Unit_Maps.No_Element then
                            declare
@@ -995,8 +1008,6 @@ is
                   if not Is_Root_Prj then
                      Instrumenter.Emit_Buffers_List_Unit (Instr_Units, Prj);
                   end if;
-
-                  GNATCOLL.VFS.Unchecked_Free (Source_Files);
                end;
 
                Emitted_Manual_Helpers.Insert (Helper_Unit_Name);
@@ -1068,12 +1079,13 @@ is
          Put (Filename_Indentation);
 
          --  To keep progress logs readable, use source basenames for
-         --  file-based languages.
+         --  file-based languages. Fold actual unit names to lower case for
+         --  readability.
 
          if Language_Kind (Language) = File_Based_Language then
             Put_Line (Ada.Directories.Simple_Name (Unit_Name));
          else
-            Put_Line (Unit_Name);
+            Put_Line (To_Lower (Unit_Name));
          end if;
       end;
    end Show_Progress;
@@ -1134,13 +1146,18 @@ begin
    --  this is not supported. TODO??? We should probably issue a warning there.
 
    for Source of Files_Of_Interest_Info.Copy loop
-      if Source.Unit_Part = GNATCOLL.Projects.Unit_Separate then
+      if Source.Has_Units and then First_Unit (Source).Kind = GPR2.S_Separate
+      then
          declare
-            Parent_Unit : constant GNATCOLL.Projects.File_Info :=
-              Project.Project.Info
-                (Project.Project.Other_File (Source.File));
+            Parent_Unit : constant GPR2.Build.Compilation_Unit.Unit_Location :=
+              Source.Owning_View.Namespace_Roots.First_Element
+              .Unit (Source.Unit.Name).Main_Body;
+            Parent_File : constant GPR2.Path_Name.Object :=
+              Parent_Unit.Source;
+            Parent_Source : constant GPR2.Build.Source.Object :=
+              Parent_Unit.View.Source (Parent_File.Simple_Name);
          begin
-            if not Files_Of_Interest_Info.Contains (Parent_Unit) then
+            if not Files_Of_Interest_Info.Contains (Parent_Source) then
                Files_Of_Interest_Info.Delete (Source);
             end if;
          end;
@@ -1159,8 +1176,7 @@ begin
    if Mains.Is_Empty then
       for Lang in Src_Supported_Language loop
          for Main of Project.Enumerate_Mains (Lang) loop
-            Register_Main_To_Instrument
-              (IC, Mains_To_Instrument (Lang), Main.File, Main.Project);
+            Register_Main_To_Instrument (IC, Mains_To_Instrument (Lang), Main);
          end loop;
       end loop;
 
@@ -1171,18 +1187,16 @@ begin
    else
       for Filename of Mains loop
          declare
-            F       : constant String := +Filename;
-            Info    : constant File_Info :=
-              Project.Project.Root_Project.Create_From_Project (+F);
-            File    : constant Virtual_File := Info.File;
-            Project : constant Project_Type := Info.Project;
-            Lang    : Any_Language;
+            F      : constant String := +Filename;
+            Source : constant GPR2.Build.Source.Object :=
+              Project.Project.Root_Project.Source (GPR2.Simple_Name (F));
+            Lang   : Any_Language;
          begin
-            if File = No_File or else Project = No_Project then
+            if not Source.Is_Defined then
                Outputs.Fatal_Error ("No such source file: " & F);
             end if;
 
-            Lang := To_Language_Or_All (Info.Language);
+            Lang := To_Language_Or_All (Source.Language);
             if Lang not in Src_Supported_Language
               or else not Builtin_Support (Lang)
             then
@@ -1192,7 +1206,11 @@ begin
             end if;
 
             Register_Main_To_Instrument
-              (IC, Mains_To_Instrument (Lang), File, Project);
+              (Context => IC,
+               Mains   => Mains_To_Instrument (Lang),
+               Main    => (Source.Owning_View,
+                           Source.Path_Name,
+                           others => <>));
          end;
       end loop;
    end if;
@@ -1223,7 +1241,7 @@ begin
    --  coverage data is in including bodies' coverage buffers).
 
    IC.Mapping_File :=
-     +Create_Ada_Mapping_File (Project.Project.Root_Project);
+     +(+Root_Project_Info.all.Output_Dir) / ".ada-src-mapping";
    IC.Config_Pragmas_Mapping :=
      +(+Root_Project_Info.all.Output_Dir) / "config-pragmas.json";
    IC.Sources_Of_Interest_Response_File :=
@@ -1231,19 +1249,13 @@ begin
    IC.Ada_Preprocessor_Data_File :=
      +(+Root_Project_Info.all.Output_Dir) / "prep-data.json";
 
+   Instrument.Ada_Unit_Provider.Create_Mapping_File (+IC.Mapping_File);
+
    Instrument.Ada_Unit.Save_Config_Pragmas_Mapping
      (+IC.Config_Pragmas_Mapping);
 
    Instrument.Ada_Preprocessing.Create_Preprocessor_Data_File
      (+IC.Ada_Preprocessor_Data_File);
-
-   --  Set the runtime directories
-
-   for Dir of
-     Project.Project.Root_Project.Get_Environment.Predefined_Source_Path
-   loop
-      IC.Predefined_Source_Dirs.Append (Full_Name (Dir));
-   end loop;
 
    --  Initialize the instrumenters: we will use them when parallelization is
    --  disabled, but also to generate the unit holding the list of buffers,
@@ -1254,7 +1266,6 @@ begin
        (Tag                        => IC.Tag,
         Config_Pragmas_Mapping     => +IC.Config_Pragmas_Mapping,
         Mapping_Filename           => +IC.Mapping_File,
-        Predefined_Source_Dirs     => IC.Predefined_Source_Dirs,
         Preprocessor_Data_Filename => +IC.Ada_Preprocessor_Data_File);
    C_Instrumenter := Create_C_Instrumenter (IC.Tag, Project_Instrumentation);
    CPP_Instrumenter :=
@@ -1285,7 +1296,7 @@ begin
       Sources_Of_Interest_File.Create
         (+IC.Sources_Of_Interest_Response_File);
       for Source of Files_Of_Interest_Info loop
-         Sources_Of_Interest_File.Put_Line (+Source.File.Full_Name);
+         Sources_Of_Interest_File.Put_Line (String (Source.Path_Name.Value));
       end loop;
       Sources_Of_Interest_File.Close;
    end;
@@ -1319,9 +1330,10 @@ begin
             Obj_SID   : constant String :=
               SID_Filename (LU_Info, In_Library_Dir => False);
 
-            Prj       : constant Project_Type := LU_Info.Instr_Project;
+            Prj       : constant GPR2.Project.View.Object :=
+              LU_Info.Instr_Project;
             Desc      : constant Prj_Desc :=
-              IC.Project_Info_Map.Element (+Prj.Name).Desc;
+              IC.Project_Info_Map.Element (+String (Prj.Name)).Desc;
          begin
             --  Skip instrumentation of the unit if it was already
             --  instrumented.
@@ -1377,7 +1389,10 @@ begin
            SID_Filename (LU_Info, In_Library_Dir => True);
          Success : Boolean;
       begin
-         if not LU_Info.All_Externally_Built and then Obj_SID /= Lib_SID then
+         if not LU_Info.All_Externally_Built
+            and then Lib_SID /= ""
+            and then Obj_SID /= Lib_SID
+         then
 
             --  Unlike the object directory, which GNATCOLL.Project
             --  creates automatically, the library directory may not
@@ -1432,7 +1447,7 @@ begin
       --  coverage buffers is defined accordingly.
 
       Instrument_Main_Args.Append
-        (+"--project-name=" & Root_Project_Info.Project.Name);
+        (+"--project-name=" & String (Root_Project_Info.Project.Name));
 
       Instrument_Main_Args.Append (Common_Switches (Cmd_Instrument_Main));
 
@@ -1465,11 +1480,14 @@ begin
                   --  here: we use the executable name, that is retrieved from
                   --  the project.
 
-                     if Dump_Config.Filename_Prefix = "" then
-                        Explicit_Dump_Config.Filename_Prefix :=
-                          +(+Root_Project_Info.Project.Executable_Name
-                              (Main.File.Full_Name, Include_Suffix => True));
-                     end if;
+                  if Dump_Config.Filename_Prefix = "" then
+                     Explicit_Dump_Config.Filename_Prefix :=
+                       +String
+                         (Root_Project_Info.Project.Executable
+                           (Source => GPR2.Simple_Name (Main.File.Base_Name),
+                            At_Pos => 0)
+                         .Simple_Name);
+                  end if;
                end if;
             end;
 
@@ -1519,7 +1537,8 @@ begin
                         Instr_Units : String_Sets.Set;
                      begin
                         for Source of Files_Of_Interest_Info loop
-                           Instr_Units.Insert (Full_Name (Source.File));
+                           Instr_Units.Insert
+                             (+String (Source.Path_Name.Value));
                         end loop;
                         Instrument.Main
                           (Instrumenter  => Instrumenters (Language).all,
@@ -1556,6 +1575,8 @@ begin
    declare
       use Files_Table;
       Instr_Units : Unit_Sets.Set;
+      Langs       : constant GPR2.Containers.Language_Set :=
+        Root_Project_Info.Project.Language_Ids;
    begin
       for LU_Info of Instrumented_Sources loop
          Instr_Units.Insert
@@ -1563,7 +1584,7 @@ begin
       end loop;
       for Lang in Src_Supported_Language loop
          if Builtin_Support (Lang)
-           and then Root_Project_Info.Project.Has_Language (Image (Lang))
+           and then Langs.Contains (To_Language_Id (Lang))
          then
             Instrumenters (Lang).Emit_Buffers_List_Unit
               (Instr_Units, Root_Project_Info.Desc);

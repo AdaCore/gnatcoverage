@@ -148,7 +148,7 @@ package body Instrument.C is
    --  a file.
 
    procedure Preprocess_And_Record_Include_Paths
-     (Source        : GNATCOLL.Projects.File_Info;
+     (Source        : GPR2.Build.Source.Object;
       Instrumenter  : C_Family_Instrumenter_Type'Class;
       Prj           : in out Prj_Desc;
       PP_Filename   : out Unbounded_String);
@@ -3066,13 +3066,13 @@ package body Instrument.C is
    -----------------------------------------
 
    procedure Preprocess_And_Record_Include_Paths
-     (Source        : GNATCOLL.Projects.File_Info;
+     (Source        : GPR2.Build.Source.Object;
       Instrumenter  : C_Family_Instrumenter_Type'Class;
       Prj           : in out Prj_Desc;
       PP_Filename   : out Unbounded_String)
    is
       Options  : Analysis_Options;
-      Filename : constant String := +Source.File.Full_Name;
+      Filename : constant String := String (Source.Path_Name.Value);
    begin
       Preprocess_Source
          (Filename, Instrumenter, Prj, PP_Filename, Options);
@@ -3088,7 +3088,7 @@ package body Instrument.C is
 
          for Path of Options.PP_Search_Path loop
             Prj.Compiler_Options_Unit.Insert
-              (Key       => Source.File,
+              (Key       => Create (+String (Source.Path_Name.Value)),
                New_Item  => String_Vectors.Empty_Vector,
                Position  => Cur,
                Inserted  => Inserted);
@@ -4465,7 +4465,7 @@ package body Instrument.C is
    overriding procedure Replace_Manual_Indications
      (Self                 : in out C_Family_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
-      Source               : GNATCOLL.Projects.File_Info;
+      Source               : GPR2.Build.Source.Object;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean)
    is
@@ -4482,7 +4482,7 @@ package body Instrument.C is
         C_Family_Instrumenter_Type'Class (Self).Extern_Prefix;
 
       Annots : constant Instr_Annotation_Map :=
-        Get_Buffer_Annotations (+Source.File.Full_Name);
+        Get_Buffer_Annotations (String (Source.Path_Name.Value));
 
       Annot_Mapping : Sloc_To_Index_Maps.Map;
       --  Mapping from source locations of the annotations in the
@@ -4542,7 +4542,7 @@ package body Instrument.C is
          for Annot_Cur in Annots.Iterate loop
             Annot_Mapping.Insert (Instr_Annotation_Maps.Key (Annot_Cur), 0);
          end loop;
-         Remap_Locations (Str, +Source.File.Full_Name, Annot_Mapping);
+         Remap_Locations (Str, String (Source.Path_Name.Value), Annot_Mapping);
          Ext_Annot_Cur := Annot_Mapping.First;
 
          Has_Dump_Indication := False;
@@ -4614,7 +4614,7 @@ package body Instrument.C is
                if Matches (Buffer_Dump_Group) /= No_Match then
                   Switches.Misc_Trace.Trace
                     ("Found buffer dump indication in file "
-                     & (+Source.File.Base_Name));
+                     & String (Source.Path_Name.Simple_Name));
 
                   --  If we had a prefix specified in the comment, include it
                   --  in the dump procedure call. Use the project name as the
@@ -4635,7 +4635,7 @@ package body Instrument.C is
                   pragma Assert (Matches (Buffer_Reset_Group) /= No_Match);
                   Switches.Misc_Trace.Trace
                     ("Found buffer reset indication in file "
-                      & (+Source.File.Base_Name));
+                      & String (Source.Path_Name.Simple_Name));
 
                   String'Write (S, Reset_Procedure & "();");
                   Has_Reset_Indication := True;
@@ -4691,7 +4691,7 @@ package body Instrument.C is
          if Has_Element (Ext_Annot_Cur) then
             Warning_Or_Error
               ("Some external annotations could not be re-mapped in the"
-               & " preprocessed version of " & Source.File.Display_Full_Name
+               & " preprocessed version of " & String (Source.Path_Name.Value)
                & ", They have been ignored. Use -v for more details.");
             while Has_Element (Ext_Annot_Cur) loop
                declare
@@ -4732,7 +4732,7 @@ package body Instrument.C is
                if not Success then
                   Outputs.Fatal_Error
                     ("Failed to replace manual dump indication for Source "
-                     & (+Source.File.Full_Name));
+                     & String (Source.Path_Name.Value));
                end if;
             end;
          else

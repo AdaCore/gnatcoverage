@@ -4,8 +4,6 @@ Check that --warnings-as-errors works as expected.
 
 import re
 
-from e3.fs import mkdir, rm
-
 from SCOV.instr import xcov_instrument
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
@@ -16,7 +14,7 @@ from SUITE.gprutils import GPRswitches
 tmp = Wdir("tmp_")
 
 
-def check(slug, project, warning):
+def check(slug, project, warning, extra_args):
     """
     Check that "gnatcov instrument" on the given project yields the expected
     warning, and that it exits with an error when --warnings-as-errors is
@@ -29,6 +27,7 @@ def check(slug, project, warning):
     log = f"{slug}-sc.txt"
     process = xcov_instrument(
         gprsw=GPRswitches(root_project=project),
+        extra_args=extra_args,
         covlevel="stmt",
         register_failure=False,
         out=log,
@@ -44,7 +43,7 @@ def check(slug, project, warning):
     process = xcov_instrument(
         gprsw=GPRswitches(root_project=project),
         covlevel="stmt",
-        extra_args=["--warnings-as-errors"],
+        extra_args=["--warnings-as-errors"] + extra_args,
         register_failure=False,
         out=log,
     )
@@ -57,37 +56,33 @@ def check(slug, project, warning):
 
 
 # Check the handling of warnings emitted before command line options (including
-# --warnings-as-errors) are fully loaded. It also happens to be emitted by
-# LibGPR.
+# --warnings-as-errors) are fully loaded: this happens for warnings emitted by
+# LibGPR2.
 #
-# To achieve that, create a project with one listed source directory that does
-# not exist and run "gnatcov instrument" on it: we expect a warning that
-# complains about the missing directory. Note that we expect the warning twice:
-# once for the wrapper gnatcov program, and one for the gnatcov64 program (both
-# need to load the project).
-#
-# In order to create that project, we need to temporarily create that source
-# directory so that gprfor does not strip it automagically.
-missing_dir = "foobar"
-mkdir(missing_dir)
+# To trigger them, just try to load a project with both --target and --config
+# arguments.  Note that we expect the warning twice: once for the wrapper
+# gnatcov program, and one for the gnatcov64 program (both need to load the
+# project).
 project = gprfor(
-    prjid="missing_srcdir",
+    prjid="regular",
     mains=["main.adb"],
-    srcdirs=["../missing-srcdir", missing_dir],
+    srcdirs=["../regular"],
 )
-rm(missing_dir, recursive=True)
 check(
-    "missing-srcdir",
+    "project-warning",
     project,
-    '.*warning: "foobar" is not a valid directory'
-    '\n\n.*warning: "foobar" is not a valid directory\n',
+    "suite.cgpr:.*: error: --target: 'foo' is different from the target value"
+    " in the configuration project '.*'"
+    "\nsuite.cgpr:.*: error: --target: 'foo' is different from the target"
+    " value in the configuration project '.*'",
+    extra_args=["--target=foo"],
 )
 
 # Create a project with a missing source file, on which the Ada instrumenter
 # will complain. This checks the handling of warnings emitted after command
 # line options are fully loaded.
 check(
-    "missing-srcfile",
+    "instrumenter-warning",
     gprfor(
         prjid="missing_srcfile",
         mains=["main.adb"],
@@ -97,6 +92,7 @@ check(
         "warning: While instrumenting main.adb..."
         "\nwarning: Cannot find required source file: pkg.ads"
     ),
+    extra_args=[],
 )
 
 thistest.result()

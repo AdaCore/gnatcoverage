@@ -24,7 +24,7 @@
 
 with Interfaces; use Interfaces;
 
-with GNATCOLL.Projects;
+with GPR2;
 
 --  Describes the content of a source trace file. Should be kept up to date
 --  when the trace format is modified. It is notably used to parse source
@@ -88,17 +88,17 @@ package Traces_Source is
    --  Describe the kind of unit referenced by a trace entry
 
    function "+"
-     (Part : Supported_Unit_Part) return GNATCOLL.Projects.Unit_Parts
+     (Part : Supported_Unit_Part) return GPR2.Valid_Unit_Kind
    is (case Part is
-       when Unit_Body     => GNATCOLL.Projects.Unit_Body,
-       when Unit_Spec     => GNATCOLL.Projects.Unit_Spec,
-       when Unit_Separate => GNATCOLL.Projects.Unit_Separate);
+       when Unit_Body     => GPR2.S_Body,
+       when Unit_Spec     => GPR2.S_Spec,
+       when Unit_Separate => GPR2.S_Separate);
    function "+"
-     (Part : GNATCOLL.Projects.Unit_Parts) return Supported_Unit_Part
+     (Part : GPR2.Valid_Unit_Kind) return Supported_Unit_Part
    is (case Part is
-       when GNATCOLL.Projects.Unit_Body     => Unit_Body,
-       when GNATCOLL.Projects.Unit_Spec     => Unit_Spec,
-       when GNATCOLL.Projects.Unit_Separate => Unit_Separate);
+       when GPR2.S_Body     => Unit_Body,
+       when GPR2.S_Spec     => Unit_Spec,
+       when GPR2.S_Separate => Unit_Separate);
 
    type Any_Bit_Count is new Unsigned_32;
    --  Number of bits contained in a coverage buffer

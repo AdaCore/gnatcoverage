@@ -60,7 +60,6 @@ with Text_Files;       use Text_Files;
 
 package body Instrument.Ada_Unit is
 
-   package GPR renames GNATCOLL.Projects;
    package LAL renames Libadalang.Analysis;
    package LALCO renames Libadalang.Common;
 
@@ -91,10 +90,10 @@ package body Instrument.Ada_Unit is
    is (Instrument.Common.Format_Fingerprint (Fingerprint, "(", ")"));
    --  Helper to format a String literal for a fingerprint
 
-   function "+" (Part : Analysis_Unit_Kind) return GNATCOLL.Projects.Unit_Parts
+   function "+" (Part : Analysis_Unit_Kind) return GPR2.Valid_Unit_Kind
    is (case Part is
-       when LALCO.Unit_Body          => GNATCOLL.Projects.Unit_Body,
-       when LALCO.Unit_Specification => GNATCOLL.Projects.Unit_Spec);
+       when LALCO.Unit_Body          => GPR2.S_Body,
+       when LALCO.Unit_Specification => GPR2.S_Spec);
 
    function Referenced_Attribute (N : Ada_Node'Class) return Text_Type
    is (if N.Kind = Ada_Attribute_Ref
@@ -202,9 +201,9 @@ package body Instrument.Ada_Unit is
             when Ada_Single_Tok_Node =>
                declare
 
-                  --  ??? GNATCOLL.Projects does not specify how to encode
-                  --  Unicode unit names as strings, so for now, assume that we
-                  --  process only codepoints in the ASCII range and thus use
+                  --  ??? GPR2 does not specify how to encode Unicode unit
+                  --  names as strings, so for now, assume that we process only
+                  --  codepoints in the ASCII range and thus use
                   --  Langkit_Support.Text.Image.
 
                   Identifier : constant Ada_Identifier :=
@@ -8519,7 +8518,7 @@ package body Instrument.Ada_Unit is
 
       Main : Compilation_Unit_Part (Unit_Based_Language) :=
         (Language_Kind => Unit_Based_Language,
-         Part          => GNATCOLL.Projects.Unit_Body,
+         Part          => GPR2.S_Body,
          others        => <>);
       --  Note that we can't get the compilation unit name using the
       --  To_Compilation_Unit_Name overload taking a File_Info parameter,
@@ -9457,14 +9456,14 @@ package body Instrument.Ada_Unit is
    overriding procedure Replace_Manual_Indications
      (Self                 : in out Ada_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
-      Source               : GNATCOLL.Projects.File_Info;
+      Source               : GPR2.Build.Source.Object;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean)
    is
       Instrumented_Filename : constant String :=
-        +(Prj.Output_Dir & "/" & GNATCOLL.VFS."+" (Source.File.Base_Name));
+        +(Prj.Output_Dir & "/" & String (Source.Path_Name.Simple_Name));
       Source_Filename       : constant String :=
-        GNATCOLL.VFS."+" (Source.File.Full_Name);
+         String (Source.Path_Name.Value);
       Instrumented_Exists   : constant Boolean :=
         Ada.Directories.Exists (Instrumented_Filename);
       File_To_Search        : constant String := (if Instrumented_Exists
@@ -9915,7 +9914,7 @@ package body Instrument.Ada_Unit is
       --  compilation unit's contents.
 
       if UIC.Root_Unit.F_Body.Kind = Ada_Subunit then
-         CU_Name.Part := GNATCOLL.Projects.Unit_Separate;
+         CU_Name.Part := GPR2.S_Separate;
       end if;
 
       CU_Name.Unit := To_Qualified_Name
@@ -10302,9 +10301,9 @@ package body Instrument.Ada_Unit is
 
             Unit_Part : constant String :=
               (case CU_Name.Part is
-                  when GPR.Unit_Spec     => "Unit_Spec",
-                  when GPR.Unit_Body     => "Unit_Body",
-                  when GPR.Unit_Separate => "Unit_Separate");
+                  when GPR2.S_Spec     => "Unit_Spec",
+                  when GPR2.S_Body     => "Unit_Body",
+                  when GPR2.S_Separate => "Unit_Separate");
             --  Do not use 'Image so that we use the original casing for the
             --  enumerators, and thus avoid compilation warnings/errors.
 
@@ -10547,7 +10546,7 @@ package body Instrument.Ada_Unit is
             PB_Unit_Body : constant Compilation_Unit_Part :=
               (Language_Kind => Unit_Based_Language,
                Unit          => PB_Unit.Unit,
-               Part          => GNATCOLL.Projects.Unit_Body);
+               Part          => GPR2.S_Body);
             PB_Filename  : constant String :=
               New_File (Prj, To_Filename (Prj, PB_Unit_Body));
          begin
@@ -10672,13 +10671,9 @@ package body Instrument.Ada_Unit is
 
       declare
          Spec_Filename : constant String :=
-           To_Filename
-             (Prj,
-              CU_Name_For_Unit (Helper_Unit, GNATCOLL.Projects.Unit_Spec));
+           To_Filename (Prj, CU_Name_For_Unit (Helper_Unit, GPR2.S_Spec));
          Body_Filename : constant String :=
-           To_Filename
-             (Prj,
-              CU_Name_For_Unit (Helper_Unit, GNATCOLL.Projects.Unit_Body));
+           To_Filename (Prj, CU_Name_For_Unit (Helper_Unit, GPR2.S_Body));
 
          Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
          Dump_Procedure   : constant String := To_String (Dump_Procedure_Name);
@@ -11011,7 +11006,7 @@ package body Instrument.Ada_Unit is
    is
       Buffers_CU_Name : constant Compilation_Unit_Part :=
         CU_Name_For_Unit
-          (Buffers_List_Unit (Prj.Prj_Name), GNATCOLL.Projects.Unit_Spec);
+          (Buffers_List_Unit (Prj.Prj_Name), GPR2.S_Spec);
       Unit_Name       : constant String := To_Ada (Buffers_CU_Name.Unit);
       Filename        : constant String := To_Filename (Prj, Buffers_CU_Name);
       File            : Text_Files.File_Type;
@@ -11123,7 +11118,7 @@ package body Instrument.Ada_Unit is
       pragma Unreferenced (Self);
 
       Buf_List_Unit      : constant Ada_Qualified_Name := CU_Name_For_Unit
-        (Buffers_List_Unit (Prj.Prj_Name), GNATCOLL.Projects.Unit_Spec).Unit;
+        (Buffers_List_Unit (Prj.Prj_Name), GPR2.S_Spec).Unit;
       Buf_List_Unit_Name : constant String := To_Ada (Buf_List_Unit);
 
       Obs_Unit      : constant Ada_Qualified_Name :=
@@ -11132,9 +11127,9 @@ package body Instrument.Ada_Unit is
       Obs_Unit_Name : constant String := To_Ada (Obs_Unit);
 
       Obs_Spec_Filename : constant String := To_Filename
-        (Prj, CU_Name_For_Unit (Obs_Unit, GNATCOLL.Projects.Unit_Spec));
+        (Prj, CU_Name_For_Unit (Obs_Unit, GPR2.S_Spec));
       Obs_Body_Filename : constant String := To_Filename
-        (Prj, CU_Name_For_Unit (Obs_Unit, GNATCOLL.Projects.Unit_Body));
+        (Prj, CU_Name_For_Unit (Obs_Unit, GPR2.S_Body));
 
       Spec_File : Text_Files.File_Type;
       Body_File : Text_Files.File_Type;
@@ -11188,7 +11183,7 @@ package body Instrument.Ada_Unit is
 
       Context : constant Analysis_Context := Create_Context;
       Mapping : constant Config_Pragmas_Mapping :=
-        Import_From_Project (Context, Project.Project.all);
+        Import_From_Project (Context, Project.Project);
 
       --  Then, turn this mapping into a JSON description
 
@@ -11274,7 +11269,6 @@ package body Instrument.Ada_Unit is
      (Tag                        : Unbounded_String;
       Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
-      Predefined_Source_Dirs     : String_Vectors.Vector;
       Preprocessor_Data_Filename : String)
       return Ada_Instrumenter_Type
    is
@@ -11285,8 +11279,7 @@ package body Instrument.Ada_Unit is
       --  First create the context for Libadalang
 
       Instrumenter.Provider :=
-        Instrument.Ada_Unit_Provider.Create_Provider
-          (Predefined_Source_Dirs, Mapping_Filename);
+        Instrument.Ada_Unit_Provider.Create_Provider (Mapping_Filename);
 
       --  Create a file reader, to let Libadalang preprocess source files that
       --  need it.
@@ -11379,10 +11372,10 @@ package body Instrument.Ada_Unit is
 
       UIC.Buffer_Unit :=
         CU_Name_For_Unit
-          (Buffer_Unit (To_Qualified_Name (Unit_Name)), GPR.Unit_Spec);
+          (Buffer_Unit (To_Qualified_Name (Unit_Name)), GPR2.S_Spec);
       UIC.Pure_Buffer_Unit :=
         CU_Name_For_Unit
-          (Pure_Buffer_Unit (To_Qualified_Name (Unit_Name)), GPR.Unit_Spec);
+          (Pure_Buffer_Unit (To_Qualified_Name (Unit_Name)), GPR2.S_Spec);
 
       --  We consider that theer is no No_Elaboration_Code_All pragma/aspect
       --  until we see one.

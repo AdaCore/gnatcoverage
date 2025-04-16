@@ -421,6 +421,16 @@ package body Switches is
       end if;
    end To_Language;
 
+   function To_Language (Id : GPR2.Language_Id) return Some_Language is
+      Result : constant Any_Language := To_Language_Or_All (Id);
+   begin
+      if Result = All_Languages then
+         Fatal_Error ("Unsupported language: " & String (GPR2.Name (Id)));
+      else
+         return Result;
+      end if;
+   end To_Language;
+
    ------------------------
    -- To_Language_Or_All --
    ------------------------
@@ -439,6 +449,20 @@ package body Switches is
       end if;
    end To_Language_Or_All;
 
+   function To_Language_Or_All (Id : GPR2.Language_Id) return Any_Language is
+      use type GPR2.Language_Id;
+   begin
+      if Id = GPR2.Ada_Language then
+         return Ada_Language;
+      elsif Id = GPR2.C_Language then
+         return C_Language;
+      elsif Id = GPR2.CPP_Language then
+         return CPP_Language;
+      else
+         return All_Languages;
+      end if;
+   end To_Language_Or_All;
+
    -----------
    -- Image --
    -----------
@@ -450,6 +474,19 @@ package body Switches is
               when C_Language   => "C",
               when CPP_Language => "C++");
    end Image;
+
+   --------------------
+   -- To_Language_Id --
+   --------------------
+
+   function To_Language_Id (Language : Some_Language) return GPR2.Language_Id
+   is
+   begin
+      return (case Language is
+              when Ada_Language => GPR2.Ada_Language,
+              when C_Language   => GPR2.C_Language,
+              when CPP_Language => GPR2.CPP_Language);
+   end To_Language_Id;
 
    -----------------------
    -- Command_Line_Args --
@@ -598,10 +635,6 @@ package body Switches is
          if Args.String_Args (Opt_Root_Dir).Present then
             Set_Root_Dir (+Args.String_Args (Opt_Root_Dir).Value);
          end if;
-
-      elsif Args.String_Args (Opt_Root_Dir).Present then
-         Fatal_Error
-           ("--root-dir cannot be used without --relocate-build-tree");
       end if;
 
       --  If the project file does not define a target, loading it needs the
@@ -609,14 +642,6 @@ package body Switches is
 
       Load_Target_Option (Default_Target => False);
       Copy_Arg (Opt_Runtime, Runtime);
-
-      if Args.String_Args (Opt_Config).Present
-           and then
-         (Args.String_Args (Opt_Target).Present
-          or else Args.String_Args (Opt_Runtime).Present)
-      then
-         Fatal_Error ("--config cannot be used with --target and --RTS");
-      end if;
       Copy_Arg (Opt_Config, CGPR_File);
 
       --  All -X command line switches have now been processed: initialize the

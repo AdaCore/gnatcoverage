@@ -19,32 +19,65 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Text_IO;             use Ada.Text_IO;
 
+with GPR2.Build.Unit_Info;
+with GPR2.Path_Name;
 with Libadalang.Unit_Files;
 
 with Outputs;
+with Project;
+with Text_Files;
 
 package body Instrument.Ada_Unit_Provider is
 
+   use type GPR2.Language_Id;
+
    package LALCO renames Libadalang.Common;
+
+   function Unit_Key
+     (Name : String; Part : GPR2.Valid_Unit_Kind) return String
+   is (To_Lower (Name)
+       & '%'
+       & (case Part is
+          when GPR2.S_Spec => 's',
+          when others      => 'b'));
+   --  Key used to find a source file in the provider map
+
+   -------------------------
+   -- Create_Mapping_File --
+   -------------------------
+
+   procedure Create_Mapping_File (Filename : String) is
+      F : Text_Files.File_Type;
+   begin
+      F.Create (Filename);
+      for Source of Project.Source_Closure
+        (View                  => Project.Project.Root_Project,
+         With_Externally_Built => True,
+         With_Runtime          => True)
+      loop
+         if Source.Language = GPR2.Ada_Language then
+            for Unit of Source.Units loop
+               if Unit.Kind in GPR2.Valid_Unit_Kind then
+                  F.Put_Line (Unit_Key (String (Unit.Full_Name), Unit.Kind));
+                  F.Put_Line (String (Source.Path_Name.Simple_Name));
+                  F.Put_Line (String (Source.Path_Name.Value));
+               end if;
+            end loop;
+         end if;
+      end loop;
+   end Create_Mapping_File;
 
    ---------------------
    -- Create_Provider --
    ---------------------
 
-   function Create_Provider
-     (Runtime_Directories   : String_Vectors.Vector;
-      Dependencies_Filename : String) return Provider_Type
-   is
-      use GNATCOLL.VFS;
-
+   function Create_Provider (Mapping_File : String) return Provider_Type is
       Provider : Provider_Type;
-
-      Dependencies_File : File_Type;
-
+      F        : File_Type;
    begin
       --  Parse the mapping file and fill Provider.Unit_Map
 
-      Open (Dependencies_File, In_File, Dependencies_Filename);
+      Open (F, In_File, Mapping_File);
 
       --  The mapping file is a succession of triplets as such:
       --  <unit_name>{%b,%s}
@@ -52,53 +85,21 @@ package body Instrument.Ada_Unit_Provider is
       --  <file_fullname>
 
       begin
-         while not End_Of_File (Dependencies_File) loop
+         while not End_Of_File (F) loop
             declare
-               Unit_Name      : constant String :=
-                 Get_Line (Dependencies_File);
-               Dummy_Basename : constant String :=
-                 Get_Line (Dependencies_File);
-               File_Fullname  : constant String :=
-                 Get_Line (Dependencies_File);
+               Unit_Name      : constant String := Get_Line (F);
+               Dummy_Basename : constant String := Get_Line (F);
+               File_Fullname  : constant String := Get_Line (F);
             begin
-               Provider.Unit_Map.Insert (To_Lower (Unit_Name), File_Fullname);
+               Provider.Unit_Map.Include (To_Lower (Unit_Name), File_Fullname);
             end;
          end loop;
       exception
          when End_Error =>
-            Outputs.Warn ("mapping file """ & Dependencies_Filename
-                          & " "" is truncated");
+            Outputs.Warn
+              ("mapping file """ & Mapping_File & " "" is truncated");
       end;
-      Close (Dependencies_File);
-
-      --  Read the runtime files and fill Provider.Runtime_Files.
-      --
-      --  Note that the GPR system does not ensure that all runtime directories
-      --  actually exist, so do not crash in this case.
-
-      for Dirname of Runtime_Directories loop
-         declare
-            Runtime_Dir : constant Virtual_File := Create (+(+Dirname));
-            Files       : File_Array_Access;
-         begin
-            if Runtime_Dir.Is_Directory then
-               Files := Runtime_Dir.Read_Dir;
-               for File of Files.all loop
-
-                  --  It is allowed to have multiple version of the same file
-                  --  in a project: the builder will pick the first one found.
-                  --  Apply the same semantics here, and ignore all later
-                  --  occurrences of a file already encountered.
-
-                  if not Provider.Runtime_Files.Contains (+File.Base_Name) then
-                     Provider.Runtime_Files.Insert
-                       (+File.Base_Name, +File.Full_Name);
-                  end if;
-               end loop;
-               Unchecked_Free (Files);
-            end if;
-         end;
-      end loop;
+      Close (F);
 
       return Provider;
    end Create_Provider;
@@ -114,61 +115,17 @@ package body Instrument.Ada_Unit_Provider is
    is
       use String_Maps;
 
-      Part      : constant String :=
+      Part          : constant GPR2.Valid_Unit_Kind :=
         (case Kind is
-            when Libadalang.Common.Unit_Body          => "%b",
-            when Libadalang.Common.Unit_Specification => "%s");
-      Unit_Name : constant String :=
-        Libadalang.Unit_Files.Unit_String_Name (Name) & Part;
-
-      Unit_Name_Cur : Cursor := Provider.Unit_Map.Find (Unit_Name);
+         when Libadalang.Common.Unit_Body          => GPR2.S_Body,
+         when Libadalang.Common.Unit_Specification => GPR2.S_Spec);
+      Key           : constant String :=
+        Unit_Key (Libadalang.Unit_Files.Unit_String_Name (Name), Part);
+      Unit_Name_Cur : constant Cursor := Provider.Unit_Map.Find (Key);
    begin
-      if Has_Element (Unit_Name_Cur) then
-         return Element (Unit_Name_Cur);
-      end if;
-
-      --  The requested unit is not registered in the project tree under its
-      --  unit name. Assume it may be an overridden runtime file present
-      --  in the project tree with a krunched name.
-
-      declare
-         Runtime_Basename : constant String :=
-           Libadalang.Unit_Files.File_From_Unit (Name, Kind);
-         --  Finds the krunched name of the corresponding runtime file based
-         --  on the unit name.
-
-         Unit_Basename    : String :=
-            Runtime_Basename (1 .. Runtime_Basename'Length - 4) & Part;
-         --  Re-use the krunched runtime filename to find the entry under
-         --  which the overridden runtime file may have been stored.
-         --  It's basically the runtime filename, but with '%b|%s' instead of
-         --  the file extension and with dots '.' instead of dashes '-'.
-
-      begin
-
-         for I in 1 .. Unit_Basename'Length loop
-            if Unit_Basename (I) = '-' then
-               Unit_Basename (I) := '.';
-            end if;
-         end loop;
-
-         Unit_Name_Cur := Provider.Unit_Map.Find (Unit_Basename);
-         if Has_Element (Unit_Name_Cur) then
-            return Element (Unit_Name_Cur);
-         end if;
-
-         --  The requested unit does not belong to the project tree: look for a
-         --  source file in the runtime.
-
-         Unit_Name_Cur := Provider.Runtime_Files.Find (Runtime_Basename);
-         if Has_Element (Unit_Name_Cur) then
-            return Element (Unit_Name_Cur);
-         end if;
-      end;
-
-      --  The unit could not be found. Return an empty string
-
-      return "";
+      return (if Has_Element (Unit_Name_Cur)
+              then Element (Unit_Name_Cur)
+              else "");
    end Get_Unit_Filename;
 
    --------------
@@ -212,15 +169,9 @@ package body Instrument.Ada_Unit_Provider is
    function Has_Unit
      (Provider  : Provider_Type;
       Unit_Name : String;
-      Unit_Part : Unit_Parts) return Boolean
-   is
-      Unit_Name_And_Part : constant String :=
-        To_Lower (Unit_Name)
-        & (case Unit_Part is
-              when GNATCOLL.Projects.Unit_Spec => "%s",
-              when others    => "%b");
+      Unit_Part : GPR2.Valid_Unit_Kind) return Boolean is
    begin
-      return Provider.Unit_Map.Contains (Unit_Name_And_Part);
+      return Provider.Unit_Map.Contains (Unit_Key (Unit_Name, Unit_Part));
    end Has_Unit;
 
 end Instrument.Ada_Unit_Provider;

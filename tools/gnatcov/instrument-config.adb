@@ -40,8 +40,6 @@ begin
                +Args.String_Args (Opt_Config_Pragmas_Mapping).Value,
             Mapping_Filename           =>
                +Args.String_Args (Opt_Gnatem).Value,
-            Predefined_Source_Dirs     =>
-               Args.String_List_Args (Opt_Runtime_Dir),
             Preprocessor_Data_Filename =>
                +Args.String_Args (Opt_Ada_Preprocessor_Data).Value);
       when C_Language =>
