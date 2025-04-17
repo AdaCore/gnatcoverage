@@ -33,6 +33,8 @@ thistest.fail_if(
 thistest.fail_if_no_match(
     "Unexpectect 'gnatcov setup' output",
     regexp=(
+        r"(kb: warning: can't find a toolchain for the following configuration"
+        r": .*\n)*"
         r".*gnatcov(.exe)?: Cannot get library support for this"
         r" configuration"
     ),
