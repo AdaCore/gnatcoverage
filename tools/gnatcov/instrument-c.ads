@@ -25,6 +25,7 @@ with Ada.Finalization;
 with Namet; use Namet;
 
 with GNATCOLL.VFS; use GNATCOLL.VFS;
+with GPR2.Build.Source;
 
 with Clang.CX_Source_Location; use Clang.CX_Source_Location;
 with Clang.Index;              use Clang.Index;
@@ -67,7 +68,7 @@ package Instrument.C is
    overriding procedure Replace_Manual_Indications
      (Self                 : in out C_Family_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
-      Source               : GNATCOLL.Projects.File_Info;
+      Source               : GPR2.Build.Source.Object;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean);
    --  Preprocess Source and look through the text content of the preprocessed

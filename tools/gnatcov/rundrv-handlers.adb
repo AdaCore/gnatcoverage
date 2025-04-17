@@ -22,8 +22,6 @@ with Ada.Directories;   use Ada.Directories;
 with Ada.Strings;       use Ada.Strings;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
-with GNATCOLL.VFS; use GNATCOLL.VFS;
-
 with Arch;
 with Coverage;      use Coverage;
 with Paths;         use Paths;
@@ -250,7 +248,7 @@ package body Rundrv.Handlers is
 
       if Project.Is_Project_Loaded then
          Append_Arg
-           (Cmd, "-P", +Project.Project.Root_Project.Project_Path.Full_Name);
+           (Cmd, "-P", String (Project.Project.Root_Project.Path_Name.Value));
 
          declare
             use Key_Element_Maps;

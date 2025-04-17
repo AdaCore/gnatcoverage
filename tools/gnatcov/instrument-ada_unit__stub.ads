@@ -39,7 +39,6 @@ package Instrument.Ada_Unit is
      (Tag                        : Unbounded_String;
       Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
-      Predefined_Source_Dirs     : String_Vectors.Vector;
       Preprocessor_Data_Filename : String)
       return Ada_Instrumenter_Type
    is (Ada_Instrumenter_Type'(others => <>));

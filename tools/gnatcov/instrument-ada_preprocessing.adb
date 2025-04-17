@@ -106,7 +106,7 @@ package body Instrument.Ada_Preprocessing is
 
       begin
          Extract_Preprocessor_Data_From_Project
-           (Tree           => Project.Project.all,
+           (Tree           => Project.Project,
             Default_Config => Default_Config,
             File_Configs   => File_Configs);
       exception

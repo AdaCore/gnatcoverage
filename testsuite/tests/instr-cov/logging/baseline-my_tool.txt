@@ -1,4 +1,4 @@
-info: creating output path [TMP]/obj/my_tool/
+info: creating output path [TMP]/obj/my_tool
 [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing My_Tool
    [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] GPR file: [TMP]/my_tool.gpr
    [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] output directory: [TMP]/obj/my_tool/my_tool-gnatcov-instr

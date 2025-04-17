@@ -98,7 +98,7 @@ package Instrument.Ada_Unit is
    overriding procedure Replace_Manual_Indications
      (Self                 : in out Ada_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
-      Source               : GNATCOLL.Projects.File_Info;
+      Source               : GPR2.Build.Source.Object;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean);
    --  Once the instrumentation has finished, if the dump trigger is "manual"
@@ -155,7 +155,6 @@ package Instrument.Ada_Unit is
      (Tag                        : Unbounded_String;
       Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
-      Predefined_Source_Dirs     : String_Vectors.Vector;
       Preprocessor_Data_Filename : String)
       return Ada_Instrumenter_Type;
    --  Create an Ada instrumenter.
@@ -166,11 +165,8 @@ package Instrument.Ada_Unit is
    --  Mapping_Filename is the fullname to the mapping file, which maps unit
    --  names to file fullnames.
    --
-   --  Predefined_Source_Dirs is the list of directories hosting runtime files.
-   --
-   --  Both Mapping_Filename and Predefined_Source_Dirs are used to instantiate
-   --  our custom unit provider, which does not rely on project files (see
-   --  Instrument.Ada_Unit_Provider).
+   --  Mapping_Filename is used to instantiate our custom unit provider, which
+   --  does not rely on project files (see Instrument.Ada_Unit_Provider).
    --
    --  Preprocessor_Data_Filename is the name of the file that contains
    --  preprocessor configuration data (see Instrument.Ada_Preprocessing).

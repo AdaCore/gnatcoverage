@@ -21,6 +21,7 @@ with Ada.Directories;
 with Ada.Exceptions;
 
 with GNAT.Strings; use GNAT.Strings;
+with GPR2;
 
 with Calendar_Utils; use Calendar_Utils;
 with Command_Line;   use Command_Line;
@@ -228,11 +229,22 @@ package Switches is
    --  Convert a human-readable language name to the corresponding enumeration
    --  value. Abort with a fatal error if Name is invalid.
 
+   function To_Language (Id : GPR2.Language_Id) return Some_Language;
+   --  Convert a GPR2 lanugage ID to our enumeration value. Abort with a fatal
+   --  error if Name is invalid.
+
    function To_Language_Or_All (Name : String) return Any_Language;
+   --  Like To_Language, but return All_Languages if Name is invalid
+
+   function To_Language_Or_All (Id : GPR2.Language_Id) return Any_Language;
    --  Like To_Language, but return All_Languages if Name is invalid
 
    function Image (Language : Some_Language) return String;
    --  Return a human-readable name for the given language
+
+   function To_Language_Id (Language : Some_Language) return GPR2.Language_Id;
+   --   Convert our enumeration value for languages to the corresponding GPR2
+   --   language ID.
 
    subtype Bin_Supported_Language is
      Some_Language range Ada_Language .. C_Language;

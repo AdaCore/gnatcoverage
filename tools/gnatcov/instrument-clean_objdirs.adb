@@ -18,8 +18,8 @@
 
 with Ada.Directories; use Ada.Directories;
 
-with GNATCOLL.Projects; use GNATCOLL.Projects;
-with GNATCOLL.VFS;      use GNATCOLL.VFS;
+with GNATCOLL.VFS; use GNATCOLL.VFS;
+with GPR2.Path_Name;
 
 with Instrument.Common; use Instrument.Common;
 with Outputs;           use Outputs;
@@ -27,7 +27,7 @@ with Project;           use Project;
 
 procedure Instrument.Clean_Objdirs is
 
-   procedure Clean_Subdir (Project : Project_Type);
+   procedure Clean_Subdir (Project : GPR2.Project.View.Object);
    --  Callback for Project.Iterate_Projects. If Project is not externally
    --  built, remove all files from the "$project_name-gnatcov-instr" folder in
    --  Project's object directory, and remove all files ending in ".sid" from
@@ -40,15 +40,14 @@ procedure Instrument.Clean_Objdirs is
    -- Clean_Subdir --
    ------------------
 
-   procedure Clean_Subdir (Project : Project_Type) is
+   procedure Clean_Subdir (Project : GPR2.Project.View.Object) is
       Output_Dir     : constant String := Project_Output_Dir (Project);
       Has_Output_Dir : Boolean := True;
-      Obj_Dir_Files  : File_Array_Access;
-      Success        : Boolean;
    begin
-      Clean_Objdirs_Trace.Increase_Indent ("Processing " & Project.Name);
+      Clean_Objdirs_Trace.Increase_Indent
+        ("Processing " & String (Project.Name));
       Clean_Objdirs_Trace.Trace
-        ("GPR file: " & (+Project.Project_Path.Full_Name));
+        ("GPR file: " & String (Project.Path_Name.Value));
 
       --  Some projects don't have an object directory: ignore them as there is
       --  nothing to do.
@@ -90,7 +89,7 @@ procedure Instrument.Clean_Objdirs is
       --  To avoid confusion, warn about such cases now, so that users have a
       --  clear lead on how to address such problems.
 
-      if Project.Externally_Built then
+      if Project.Is_Externally_Built then
          Clean_Objdirs_Trace.Trace ("it is an externally built project");
 
          if not Externally_Built_Projects_Processing_Enabled
@@ -101,9 +100,9 @@ procedure Instrument.Clean_Objdirs is
             --  Output_Dir would be considered as sources with --src-subdirs:
             --  consider that all files there could be sources.
 
-            Warn ("Project """ & Project.Name & """ is externally built and"
-                  & " does not contain units of interest, however it contains"
-                  & " instrumented sources");
+            Warn ("Project """ & String (Project.Name) & """ is externally"
+                  & " built and does not contain units of interest, however it"
+                  & " contains instrumented sources");
          end if;
 
          --  We should never try to modify externally built projects, so do not
@@ -117,21 +116,31 @@ procedure Instrument.Clean_Objdirs is
 
       --  Remove the SID files if any
 
-      Obj_Dir_Files := Project.Object_Dir.Read_Dir (Files_Only);
-      if Obj_Dir_Files /= null then
-         for File of Obj_Dir_Files.all loop
-            if File.File_Extension (Normalize => True) = ".sid"
-              and then File.Is_Regular_File
-            then
-               File.Delete (Success);
-               if not Success then
-                  Warn
-                    ("Failed to delete old SID file: "
-                     & File.Display_Full_Name);
-               end if;
+      if Project.Kind in GPR2.With_Object_Dir_Kind then
+         declare
+            Obj_Dir       : constant GPR2.Path_Name.Object :=
+              Project.Object_Directory;
+            Obj_Dir_Files : File_Array_Access;
+            Success       : Boolean;
+         begin
+            Obj_Dir_Files :=
+              Create (Filesystem_String (Obj_Dir.Value)).Read_Dir (Files_Only);
+            if Obj_Dir_Files /= null then
+               for File of Obj_Dir_Files.all loop
+                  if File.File_Extension (Normalize => True) = ".sid"
+                    and then File.Is_Regular_File
+                  then
+                     File.Delete (Success);
+                     if not Success then
+                        Warn
+                          ("Failed to delete old SID file: "
+                           & File.Display_Full_Name);
+                     end if;
+                  end if;
+               end loop;
+               Unchecked_Free (Obj_Dir_Files);
             end if;
-         end loop;
-         Unchecked_Free (Obj_Dir_Files);
+         end;
       end if;
 
       Clean_Objdirs_Trace.Decrease_Indent;

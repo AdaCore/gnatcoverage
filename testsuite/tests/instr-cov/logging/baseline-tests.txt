@@ -1,4 +1,4 @@
-info: creating output path [TMP]/obj/tests/
+info: creating output path [TMP]/obj/tests
 [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] Processing Mylib
    [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] GPR file: [TMP]/mylib.gpr
    [GNATCOV.INSTRUMENT_CLEAN_OBJDIRS] output directory: [TMP]/obj/mylib/mylib-gnatcov-instr
@@ -19,20 +19,20 @@ Coverage instrumentation
 [GNATCOV.INSTRUMENT_SOURCES] Instrumenting mylib.ads
 [GNATCOV.INSTRUMENT_SOURCES] Instrumenting mylib.adb
 [GNATCOV.INSTRUMENT_SOURCES] Writing Ada buffer unit GCVRT.B[HASH#1]
-   [GNATCOV.INSTRUMENT_SOURCES] Project: Mylib
+   [GNATCOV.INSTRUMENT_SOURCES] Project: Mylib_Extended
    [GNATCOV.INSTRUMENT_SOURCES] Filename: gcvrt-b[HASH#1].ads
    [GNATCOV.INSTRUMENT_SOURCES] For units:
    [GNATCOV.INSTRUMENT_SOURCES] * mylib spec
    [GNATCOV.INSTRUMENT_SOURCES] * mylib body
 [GNATCOV.INSTRUMENT_SOURCES] Writing pure Ada buffer unit GCVRT.P[HASH#1]
-   [GNATCOV.INSTRUMENT_SOURCES] Project: Mylib
+   [GNATCOV.INSTRUMENT_SOURCES] Project: Mylib_Extended
    [GNATCOV.INSTRUMENT_SOURCES] Filename: [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/gcvrt-p[HASH#1].ads
    [GNATCOV.INSTRUMENT_SOURCES] For units:
    [GNATCOV.INSTRUMENT_SOURCES] * mylib spec
    [GNATCOV.INSTRUMENT_SOURCES] * mylib body
    [C]             mylib_ext.c
 [GNATCOV.INSTRUMENT_SOURCES] Writing C buffer unit [TMP]/obj/mylib_extended/mylib_extended-gnatcov-instr/gcvrt_b_[HASH#2].c
-   [GNATCOV.INSTRUMENT_SOURCES] Project: Mylib
+   [GNATCOV.INSTRUMENT_SOURCES] Project: Mylib_Extended
    [GNATCOV.INSTRUMENT_SOURCES] For files:
    [GNATCOV.INSTRUMENT_SOURCES] * [TMP]/src-mylib/mylib_ext.c
 Main instrumentation

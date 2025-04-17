@@ -2632,8 +2632,6 @@ begin
       Perf_Counters.Display;
    end if;
 
-   Project.Finalize;
-
 exception
    --  The following handler is for files that gnatcov could not locate or
    --  open. Display the corresponding error message.
@@ -2641,12 +2639,11 @@ exception
    when Error : Binary_Files.Error
       | Ada.IO_Exceptions.Name_Error =>
       Outputs.Error (Switches.Exception_Info (Error));
-      Project.Finalize;
 
    --  Each chunk of code with "raise" statements for Xcov_Exit_Exc exceptions
    --  is supposed to print an error message and set a failure exit status
    --  before raising the exception.
 
    when Xcov_Exit_Exc =>
-      Project.Finalize;
+      null;
 end GNATcov_Bits_Specific;
