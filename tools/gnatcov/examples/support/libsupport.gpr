@@ -61,7 +61,17 @@ project Libsupport is
 
       when others =>
 
-         Langs := Langs & ("C");
+         --  To avoid "warning: there are no sources of language "C" in this
+         --  project" messages from LibGPR2, add the C language only for target
+         --  specific directories that really needed it: the leon ones.
+
+         case Conf.Target is
+            when "leon-elf" | "leon3-elf" =>
+               Langs := Langs & ("C");
+            when others =>
+               null;
+         end case;
+
 
          -- Use libsupport's custom memory functions, except for the
          -- morello target, for which they produce unwanted behavior.
