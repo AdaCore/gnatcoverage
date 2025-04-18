@@ -281,9 +281,6 @@ package Instrument is
       Prj_Name : Ada_Qualified_Name;
       --  Name for the project
 
-      View : GPR2.Project.View.Object;
-      --  GPR2 view for the project, if this is backed by an actual GPR project
-
       Output_Dir : Unbounded_String;
       --  Where the instrumented sources and coverage buffer units are
       --  generated.

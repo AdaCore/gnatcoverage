@@ -296,7 +296,6 @@ is
       Result    : Prj_Desc;
    begin
       Result.Prj_Name := To_Qualified_Name (String (Prj.Name));
-      Result.View := Prj;
 
       --  Load the naming scheme from project attributes
 
