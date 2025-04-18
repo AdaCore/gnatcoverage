@@ -782,10 +782,12 @@ begin
 
    Prj.Prj_Name := To_Qualified_Name ("main");
    Prj.Output_Dir := +Instr_Dir.Directory_Name;
-   Prj.Spec_Suffix :=
-     (C_Language => +".h", CPP_Language => +".hh", others => <>);
-   Prj.Body_Suffix :=
-     (C_Language => +".c", CPP_Language => +".cc", others => <>);
+   Prj.Naming_Scheme :=
+     (Spec_Suffix     =>
+        (C_Language => +".h", CPP_Language => +".hh", others => <>),
+      Body_Suffix     =>
+        (C_Language => +".c", CPP_Language => +".cc", others => <>),
+      Dot_Replacement => +"-");
 
    --  Then, invoke the right set of gnatcov commands
 

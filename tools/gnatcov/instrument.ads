@@ -268,6 +268,15 @@ package Instrument is
      of Unbounded_String;
    type C_Lang_Array_Vec is array (C_Family_Language) of String_Vectors.Vector;
 
+   type Naming_Scheme_Desc is record
+      Spec_Suffix, Body_Suffix : Lang_Array (Src_Supported_Language);
+      --  Suffixes for the body and the spec
+
+      Dot_Replacement : Unbounded_String;
+      --  Character to use as identifier separator for file naming (used for
+      --  unit-based languages).
+   end record;
+
    type Prj_Desc is record
       Prj_Name : Ada_Qualified_Name;
       --  Name for the project
@@ -279,12 +288,8 @@ package Instrument is
       --  Where the instrumented sources and coverage buffer units are
       --  generated.
 
-      Spec_Suffix, Body_Suffix : Lang_Array (Src_Supported_Language);
-      --  Suffixes for the body and the spec
-
-      Dot_Replacement : Unbounded_String;
-      --  Character to use as identifier separator for file naming (used for
-      --  unit-based languages).
+      Naming_Scheme : Naming_Scheme_Desc;
+      --  Naming scheme for this project
 
       Compiler_Driver : Lang_Array (C_Family_Language);
       --  Compiler used to compile the sources

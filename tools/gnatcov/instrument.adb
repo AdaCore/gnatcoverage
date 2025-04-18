@@ -513,12 +513,16 @@ package body Instrument is
            (Opt_Compiler_Driver, Result.Compiler_Driver (Language));
       end if;
       Fill_If_Present (Opt_Output_Directory, Result.Output_Dir);
-      Fill_If_Present (Opt_Spec_Suffix, Result.Spec_Suffix (Language));
-      Fill_If_Present (Opt_Body_Suffix, Result.Body_Suffix (Language));
       Fill_If_Present (Opt_Project_Name, Prj_Name);
-      Fill_If_Present (Opt_Dot_Replacement, Result.Dot_Replacement);
-
       Result.Prj_Name := To_Qualified_Name (+Prj_Name);
+
+      declare
+         NS : Naming_Scheme_Desc renames Result.Naming_Scheme;
+      begin
+         Fill_If_Present (Opt_Spec_Suffix, NS.Spec_Suffix (Language));
+         Fill_If_Present (Opt_Body_Suffix, NS.Body_Suffix (Language));
+         Fill_If_Present (Opt_Dot_Replacement, NS.Dot_Replacement);
+      end;
 
       --  Compiler options are loaded through the --c/c++-opts switch
 
@@ -537,22 +541,26 @@ package body Instrument is
       Result        : String_Vectors.Vector;
       Compiler_Opts : String_Vectors.Vector;
    begin
-      --  Pass the right body / spec suffixes
+      --  Pass naming scheme settings
 
-      if Desc.Body_Suffix (Lang) /= "" then
-         Result.Append (+"--body-suffix");
-         Result.Append (Desc.Body_Suffix (Lang));
-      end if;
+      declare
+         NS : Naming_Scheme_Desc renames Desc.Naming_Scheme;
+      begin
+         if NS.Body_Suffix (Lang) /= "" then
+            Result.Append (+"--body-suffix");
+            Result.Append (NS.Body_Suffix (Lang));
+         end if;
 
-      if Desc.Spec_Suffix (Lang) /= "" then
-         Result.Append (+"--spec-suffix");
-         Result.Append (Desc.Spec_Suffix (Lang));
-      end if;
+         if NS.Spec_Suffix (Lang) /= "" then
+            Result.Append (+"--spec-suffix");
+            Result.Append (NS.Spec_Suffix (Lang));
+         end if;
 
-      if Desc.Dot_Replacement /= "" then
-         Result.Append (+"--dot-replacement");
-         Result.Append (Desc.Dot_Replacement);
-      end if;
+         if NS.Dot_Replacement /= "" then
+            Result.Append (+"--dot-replacement");
+            Result.Append (NS.Dot_Replacement);
+         end if;
+      end;
 
       if Lang in C_Family_Language then
          Compiler_Opts.Append (Desc.Search_Paths);
