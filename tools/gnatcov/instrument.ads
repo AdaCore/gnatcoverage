@@ -268,23 +268,38 @@ package Instrument is
      of Unbounded_String;
    type C_Lang_Array_Vec is array (C_Family_Language) of String_Vectors.Vector;
 
-   type Prj_Desc is record
-      Prj_Name : Ada_Qualified_Name;
-      --  Name for the project
+   type Casing_Type is (Lowercase, Uppercase, Mixedcase);
+   --  Casing for source files in projects
 
-      View : GPR2.Project.View.Object;
-      --  GPR2 view for the project, if this is backed by an actual GPR project
+   function Casing_From_String (Value, Context : String) return Casing_Type;
+   --  Convert Value to the corresponding Casing_Type value.
+   --
+   --  If Value is an invalid name for a casing, raise a fatal error, using
+   --  Context to specify in the error message where the casing value comes
+   --  from.
 
-      Output_Dir : Unbounded_String;
-      --  Where the instrumented sources and coverage buffer units are
-      --  generated.
-
+   type Naming_Scheme_Desc is record
       Spec_Suffix, Body_Suffix : Lang_Array (Src_Supported_Language);
       --  Suffixes for the body and the spec
 
       Dot_Replacement : Unbounded_String;
       --  Character to use as identifier separator for file naming (used for
       --  unit-based languages).
+
+      Casing : Casing_Type;
+      --  Casing conversion for unit names to file names
+   end record;
+
+   type Prj_Desc is record
+      Prj_Name : Ada_Qualified_Name;
+      --  Name for the project
+
+      Output_Dir : Unbounded_String;
+      --  Where the instrumented sources and coverage buffer units are
+      --  generated.
+
+      Naming_Scheme : Naming_Scheme_Desc;
+      --  Naming scheme for this project
 
       Compiler_Driver : Lang_Array (C_Family_Language);
       --  Compiler used to compile the sources

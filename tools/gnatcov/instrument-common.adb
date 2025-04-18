@@ -434,9 +434,53 @@ package body Instrument.Common is
    begin
       case CU_Name.Language_Kind is
          when Unit_Based_Language =>
-            return String
-              (Prj.View.Filename_For_Unit
-                (GPR2.Name_Type (To_Ada (CU_Name.Unit)), CU_Name.Part));
+
+            --  It is tempting here to fetch the answer from the best source of
+            --  truth: the GPR library for the given project. Unfortunately
+            --  this is not always possible: this function may be called in a
+            --  subprocess for the parallel instrumentation, and no GPR project
+            --  is loaded in this context.
+            --
+            --  Fortunately, this function is called only to create new sources
+            --  (i.e. not instrumented sources, but extra helpers): all we have
+            --  to do in principle is to follow the general purpose naming
+            --  scheme directives (dot replacement and body/spec sufifxes), as
+            --  project files are very unlikely to contain naming exceptions
+            --  for extra helpers, which are sources that do not exist before
+            --  instrumentation.
+
+            declare
+               --  Do the same assumption as GPR2: the only unit-based language
+               --  is Ada.
+
+               Language : constant Src_Supported_Language := Ada_Language;
+
+               NS       : Naming_Scheme_Desc renames Prj.Naming_Scheme;
+               Filename : Unbounded_String;
+            begin
+               for Id of CU_Name.Unit loop
+                  if Filename /= "" then
+                     Append (Filename, NS.Dot_Replacement);
+                  end if;
+                  case NS.Casing is
+                     when Lowercase =>
+                        Append (Filename, To_Lower (To_String (Id)));
+                     when Uppercase =>
+                        Append (Filename, To_Upper (To_String (Id)));
+                     when Mixedcase =>
+                        Append (Filename, To_String (Id));
+                  end case;
+               end loop;
+
+               case CU_Name.Part is
+                  when GPR2.S_Body | GPR2.S_Separate =>
+                     Append (Filename, NS.Body_Suffix (Language));
+                  when GPR2.S_Spec =>
+                     Append (Filename, NS.Spec_Suffix (Language));
+               end case;
+               return +Filename;
+            end;
+
          when File_Based_Language =>
             return +CU_Name.Filename;
       end case;
