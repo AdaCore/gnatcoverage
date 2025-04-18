@@ -9,7 +9,7 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
 
-wd = Wdir("wd_")
+wd = Wdir("tmp_")
 
 
 gprname = "p"

@@ -5,7 +5,7 @@ from SUITE.cutils import Wdir, contents_of, match
 from SUITE.tutils import exepath_to, gprbuild, gprfor, xcov, xrun
 
 
-wd = Wdir("wd_")
+wd = Wdir("tmp_")
 
 # GPR with multiple mains
 

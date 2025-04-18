@@ -38,7 +38,7 @@ def try_one_gpr(gpr, no_such):
 
 
 # Empty by specifying a single, non-existing unit in only
-wd.to_subdir("wd_1")
+wd.to_subdir("tmp_1")
 try_one_gpr(
     gpr=gprfor(
         srcdirs="../src",
@@ -49,7 +49,7 @@ try_one_gpr(
 )
 
 # Empty by excluding the only candidate unit
-wd.to_subdir("wd_2")
+wd.to_subdir("tmp_2")
 try_one_gpr(
     gpr=gprfor(
         srcdirs="../src",
@@ -60,7 +60,7 @@ try_one_gpr(
 )
 
 # Empty by including the empty set explicitly
-wd.to_subdir("wd_3")
+wd.to_subdir("tmp_3")
 try_one_gpr(
     gpr=gprfor(
         srcdirs="../src", mains="p.adb", extra=CovControl(units_in=[]).gpr()

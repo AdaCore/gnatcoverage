@@ -5,7 +5,7 @@ from SUITE.cutils import Wdir, list_to_file
 
 wd = Wdir()
 
-wd.to_subdir("wd_1")
+wd.to_subdir("tmp_1")
 TestCase(category=None).run(
     covcontrol=CovControl(
         ulist_in="../" + list_to_file(["ops*"]),

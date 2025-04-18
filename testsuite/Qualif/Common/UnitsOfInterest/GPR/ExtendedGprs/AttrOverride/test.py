@@ -5,7 +5,7 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import gprfor
 
 
-wd = Wdir("wd_")
+wd = Wdir("tmp_")
 
 build_run_and_coverage(
     gprsw=GPRswitches(
