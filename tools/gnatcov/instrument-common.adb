@@ -462,7 +462,14 @@ package body Instrument.Common is
                   if Filename /= "" then
                      Append (Filename, NS.Dot_Replacement);
                   end if;
-                  Append (Filename, To_Lower (To_String (Id)));
+                  case NS.Casing is
+                     when Lowercase =>
+                        Append (Filename, To_Lower (To_String (Id)));
+                     when Uppercase =>
+                        Append (Filename, To_Upper (To_String (Id)));
+                     when Mixedcase =>
+                        Append (Filename, To_String (Id));
+                  end case;
                end loop;
 
                case CU_Name.Part is

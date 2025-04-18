@@ -268,6 +268,16 @@ package Instrument is
      of Unbounded_String;
    type C_Lang_Array_Vec is array (C_Family_Language) of String_Vectors.Vector;
 
+   type Casing_Type is (Lowercase, Uppercase, Mixedcase);
+   --  Casing for source files in projects
+
+   function Casing_From_String (Value, Context : String) return Casing_Type;
+   --  Convert Value to the corresponding Casing_Type value.
+   --
+   --  If Value is an invalid name for a casing, raise a fatal error, using
+   --  Context to specify in the error message where the casing value comes
+   --  from.
+
    type Naming_Scheme_Desc is record
       Spec_Suffix, Body_Suffix : Lang_Array (Src_Supported_Language);
       --  Suffixes for the body and the spec
@@ -275,6 +285,9 @@ package Instrument is
       Dot_Replacement : Unbounded_String;
       --  Character to use as identifier separator for file naming (used for
       --  unit-based languages).
+
+      Casing : Casing_Type;
+      --  Casing conversion for unit names to file names
    end record;
 
    type Prj_Desc is record

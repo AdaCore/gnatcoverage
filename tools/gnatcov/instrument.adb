@@ -39,6 +39,7 @@ pragma Warnings (On, "not referenced");
 with Command_Line;   use Command_Line;
 with Files_Handling; use Files_Handling;
 with Hex_Images;     use Hex_Images;
+with Outputs;
 
 package body Instrument is
 
@@ -475,6 +476,23 @@ package body Instrument is
       end if;
    end Find_Instrumented_Unit;
 
+   ------------------------
+   -- Casing_From_String --
+   ------------------------
+
+   function Casing_From_String (Value, Context : String) return Casing_Type is
+   begin
+      if Value = "lowercase" then
+         return Lowercase;
+      elsif Value = "uppercase" then
+         return Uppercase;
+      elsif Value = "mixedcase" then
+         return Mixedcase;
+      else
+         Outputs.Fatal_Error ("Invalid casing from " & Context & ": " & Value);
+      end if;
+   end Casing_From_String;
+
    ----------------------------
    -- Load_From_Command_Line --
    ----------------------------
@@ -517,11 +535,18 @@ package body Instrument is
       Result.Prj_Name := To_Qualified_Name (+Prj_Name);
 
       declare
-         NS : Naming_Scheme_Desc renames Result.Naming_Scheme;
+         NS     : Naming_Scheme_Desc renames Result.Naming_Scheme;
+         Casing : String_Option renames Args.String_Args (Opt_Casing);
       begin
          Fill_If_Present (Opt_Spec_Suffix, NS.Spec_Suffix (Language));
          Fill_If_Present (Opt_Body_Suffix, NS.Body_Suffix (Language));
          Fill_If_Present (Opt_Dot_Replacement, NS.Dot_Replacement);
+         if Casing.Present then
+            NS.Casing :=
+              Casing_From_String (+Casing.Value, "argument --casing");
+         else
+            NS.Casing := Lowercase;
+         end if;
       end;
 
       --  Compiler options are loaded through the --c/c++-opts switch
@@ -560,6 +585,9 @@ package body Instrument is
             Result.Append (+"--dot-replacement");
             Result.Append (NS.Dot_Replacement);
          end if;
+
+         Result.Append (+"--casing");
+         Result.Append (+To_Lower (NS.Casing'Image));
       end;
 
       if Lang in C_Family_Language then

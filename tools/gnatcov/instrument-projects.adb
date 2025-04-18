@@ -319,6 +319,9 @@ is
          end loop;
          NS.Dot_Replacement :=
            +Prj.Attribute (Name => R.Naming.Dot_Replacement).Value.Text;
+         NS.Casing := Casing_From_String
+           (Prj.Attribute (Name => R.Naming.Casing).Value.Text,
+            "project " & String (Prj.Name));
       end;
 
       --  Register the source directories of the project tree

@@ -787,7 +787,8 @@ begin
         (C_Language => +".h", CPP_Language => +".hh", others => <>),
       Body_Suffix     =>
         (C_Language => +".c", CPP_Language => +".cc", others => <>),
-      Dot_Replacement => +"-");
+      Dot_Replacement => +"-",
+      Casing          => Mixedcase);
 
    --  Then, invoke the right set of gnatcov commands
 

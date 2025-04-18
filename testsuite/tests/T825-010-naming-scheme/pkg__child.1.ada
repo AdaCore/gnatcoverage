@@ -1,4 +1,4 @@
-package P.Q is
+package Pkg.Child is
    procedure Proc (I : Int);
    V : constant Int := Identity (2);
-end P.Q;
+end Pkg.Child;
