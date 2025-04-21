@@ -292,31 +292,37 @@ is
    is
       package R renames GPR2.Project.Registry.Attribute;
 
-      Languages       : constant GPR2.Containers.Language_Set :=
-        Prj.Language_Ids;
-      Dot_Replacement : constant String :=
-        Prj.Attribute (Name => R.Naming.Dot_Replacement).Value.Text;
-      Result          : Prj_Desc;
+      Languages : constant GPR2.Containers.Language_Set := Prj.Language_Ids;
+      Result    : Prj_Desc;
    begin
-      for Lang in Some_Language loop
-         if Builtin_Support (Lang)
-            and then Languages.Contains (To_Language_Id (Lang))
-         then
-            declare
-               Body_Suffix  : constant String :=
-                 Project.Source_Suffix (Lang, GPR2.S_Body, Prj);
-               Spec_Suffix  : constant String :=
-                 Project.Source_Suffix (Lang, GPR2.S_Spec, Prj);
-            begin
-               Result.Body_Suffix (Lang) := +Body_Suffix;
-               Result.Spec_Suffix (Lang) := +Spec_Suffix;
-            end;
-         end if;
-      end loop;
-
       Result.Prj_Name := To_Qualified_Name (String (Prj.Name));
-      Result.View := Prj;
-      Result.Dot_Replacement := +Dot_Replacement;
+
+      --  Load the naming scheme from project attributes
+
+      declare
+         NS : Naming_Scheme_Desc renames Result.Naming_Scheme;
+      begin
+         for Lang in Some_Language loop
+            if Builtin_Support (Lang)
+               and then Languages.Contains (To_Language_Id (Lang))
+            then
+               declare
+                  Body_Suffix : constant String :=
+                    Project.Source_Suffix (Lang, GPR2.S_Body, Prj);
+                  Spec_Suffix : constant String :=
+                    Project.Source_Suffix (Lang, GPR2.S_Spec, Prj);
+               begin
+                  NS.Body_Suffix (Lang) := +Body_Suffix;
+                  NS.Spec_Suffix (Lang) := +Spec_Suffix;
+               end;
+            end if;
+         end loop;
+         NS.Dot_Replacement :=
+           +Prj.Attribute (Name => R.Naming.Dot_Replacement).Value.Text;
+         NS.Casing := Casing_From_String
+           (Prj.Attribute (Name => R.Naming.Casing).Value.Text,
+            "project " & String (Prj.Name));
+      end;
 
       --  Register the source directories of the project tree
 

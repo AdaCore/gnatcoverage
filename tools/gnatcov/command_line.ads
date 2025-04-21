@@ -147,6 +147,7 @@ package Command_Line is
       Opt_Spec_Suffix,
       Opt_Body_Suffix,
       Opt_Dot_Replacement,
+      Opt_Casing,
       Opt_Gnatem,
       Opt_Config_Pragmas_Mapping,
       Opt_Ada_Preprocessor_Data,
@@ -1203,6 +1204,18 @@ package Command_Line is
          Help         =>
            "Dot replacement for source files created by the instrumenter for"
          & " the instrumentation of a source",
+         Commands     =>
+           (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+            others                                      => False),
+         At_Most_Once => False,
+         Internal     => True),
+
+      Opt_Casing => Create
+        (Long_Name    => "--casing",
+         Pattern      => "CASING",
+         Help         =>
+           "Casing for source files created by the instrumenter for the"
+           & " instrumentation of a source.",
          Commands     =>
            (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
             others                                      => False),

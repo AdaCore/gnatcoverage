@@ -1,6 +1,6 @@
-with P.Q;
+with Pkg.Child;
 
 procedure Main is
 begin
-   P.Q.Proc (1);
+   Pkg.Child.Proc (1);
 end Main;

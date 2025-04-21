@@ -421,6 +421,19 @@ package body Instrument.C is
    -- Source instrumentation --
    ----------------------------
 
+   function New_Body_File
+     (Prj                  : Prj_Desc;
+      Instrumenter         : C_Family_Instrumenter_Type'Class;
+      Slug                 : String;
+      With_Language_Suffix : Boolean := False) return String;
+   --  Wrapper around Instrument.Common.New_File to generate a file in the
+   --  given project output directory with a filename that matches:
+   --
+   --     {Sys_Suffix}{Slug}{Body_Suffix}
+   --
+   --  If With_Language_Suffix is True, append a language-specific suffix to
+   --  Slug.
+
    procedure Emit_Buffer_Unit
      (UIC          : C_Unit_Inst_Context'Class;
       Unit         : Compilation_Unit;
@@ -3975,6 +3988,33 @@ package body Instrument.C is
       return (+Result);
    end Format_Array_Init_Expr;
 
+   -------------------
+   -- New_Body_File --
+   -------------------
+
+   function New_Body_File
+     (Prj                  : Prj_Desc;
+      Instrumenter         : C_Family_Instrumenter_Type'Class;
+      Slug                 : String;
+      With_Language_Suffix : Boolean := False) return String
+   is
+      Language        : constant C_Family_Language := Instrumenter.Language;
+      Language_Suffix : constant String :=
+        (if With_Language_Suffix
+         then (case Language is
+               when C_Language   => "_c",
+               when CPP_Language => "_cpp")
+         else "");
+   begin
+      return
+        New_File
+          (Prj,
+           To_Symbol_Name (Sys_Prefix)
+           & Slug
+           & Language_Suffix
+           & (+Prj.Naming_Scheme.Body_Suffix (Language)));
+   end New_Body_File;
+
    ----------------------
    -- Emit_Buffer_Unit --
    ----------------------
@@ -5100,21 +5140,12 @@ package body Instrument.C is
    function Buffer_Unit
      (Self : C_Family_Instrumenter_Type;
       CU   : Compilation_Unit;
-      Prj  : Prj_Desc) return Compilation_Unit
-   is
-      Name : constant String :=
-        To_Symbol_Name (Sys_Prefix) & "_b_"
-        & Filename_Slug (+CU.Unit_Name)
-        & (+Prj.Body_Suffix
-          (C_Family_Instrumenter_Type'Class (Self).Language));
+      Prj  : Prj_Desc) return Compilation_Unit is
    begin
-      declare
-         Filename : constant String := New_File (Prj, Name);
-      begin
-         return Compilation_Unit'
-           (Language  => File_Based_Language,
-            Unit_Name => +Filename);
-      end;
+      return Compilation_Unit'
+        (Language  => File_Based_Language,
+         Unit_Name => +New_Body_File
+                         (Prj, Self, "_b_" & Filename_Slug (+CU.Unit_Name)));
    exception
       when Exc : Ada.IO_Exceptions.Name_Error =>
          Fatal_Error
@@ -5128,23 +5159,20 @@ package body Instrument.C is
 
    overriding function Dump_Manual_Helper_Unit
      (Self : C_Family_Instrumenter_Type;
-      Prj  : Prj_Desc) return Compilation_Unit
-   is
-      Lang     : Src_Supported_Language renames
-        C_Family_Instrumenter_Type'Class (Self).Language;
-      Filename : constant String :=
-        New_File
-          (Prj,
-           To_Symbol_Name (Sys_Prefix)
-           & "_d_b_" & To_Symbol_Name (Prj.Prj_Name)
-           & (if Lang = CPP_Language then "_cpp" else "_c")
-           & (+Prj.Body_Suffix (Lang)));
-      --  The _cpp or _c suffix is required so that in case both C and C++
-      --  helper units are generated, they don't have homonym object filenames.
+      Prj  : Prj_Desc) return Compilation_Unit is
    begin
+      --  Add a language specific suffix so that in case both C and C++ helper
+      --  units are generated for this project, they don't have homonym object
+      --  filenames.
+
       return Compilation_Unit'
         (Language  => File_Based_Language,
-         Unit_Name => +Filename);
+         Unit_Name =>
+           +New_Body_File
+             (Prj,
+              Self,
+              "_d_b_" & To_Symbol_Name (Prj.Prj_Name),
+              With_Language_Suffix => True));
    end Dump_Manual_Helper_Unit;
 
    ----------------------
@@ -5154,20 +5182,12 @@ package body Instrument.C is
    overriding function Dump_Helper_Unit
      (Self : C_Family_Instrumenter_Type;
       CU   : Compilation_Unit;
-      Prj  : Prj_Desc) return Compilation_Unit
-   is
-      Filename : constant String :=
-        New_File
-          (Prj,
-           To_Symbol_Name (Sys_Prefix)
-           & "_d_"
-           & Filename_Slug (+CU.Unit_Name)
-           & (+Prj.Body_Suffix
-             (C_Family_Instrumenter_Type'Class (Self).Language)));
+      Prj  : Prj_Desc) return Compilation_Unit is
    begin
       return Compilation_Unit'
         (Language  => File_Based_Language,
-         Unit_Name => +Filename);
+         Unit_Name => +New_Body_File
+                         (Prj, Self, "_d_" & Filename_Slug (+CU.Unit_Name)));
    end Dump_Helper_Unit;
 
    --------------
@@ -5380,11 +5400,7 @@ package body Instrument.C is
       Prj            : Prj_Desc) return Compilation_Unit
    is
       Filename : constant String :=
-        New_File
-         (Prj,
-          "gcvrtc-" & To_Symbol_Name (Prj.Prj_Name)
-          & (+Prj.Body_Suffix
-             (C_Family_Instrumenter_Type'Class (Self).Language)));
+        New_Body_File (Prj, Self, "c-" & To_Symbol_Name (Prj.Prj_Name));
       CU_Name  : constant Compilation_Unit := (File_Based_Language, +Filename);
 
       CU_File : Text_Files.File_Type;
