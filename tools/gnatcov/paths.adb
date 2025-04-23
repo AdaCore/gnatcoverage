@@ -83,9 +83,8 @@ package body Paths is
 
    function Canonicalize_Filename
      (Filename : String;
-      Lower : Boolean := True) return String
+      Lower    : Boolean := True) return String
    is
-
       --  Start with a very basic normalization step as for globbing
       --  patterns. If we have a Windows path but are not on a Windows
       --  host, stop there as there's not much more we can reasonably
@@ -107,7 +106,7 @@ package body Paths is
 
    function Canonicalize_Filename
      (Filename : String;
-      Lower : Boolean := True) return String_Access is
+      Lower    : Boolean := True) return String_Access is
    begin
       return new String'(Canonicalize_Filename (Filename, Lower));
    end Canonicalize_Filename;
