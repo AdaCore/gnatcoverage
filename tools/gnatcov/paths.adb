@@ -83,9 +83,8 @@ package body Paths is
 
    function Canonicalize_Filename
      (Filename : String;
-      Lower : Boolean := True) return String
+      Lower    : Boolean := True) return String
    is
-
       --  Start with a very basic normalization step as for globbing
       --  patterns. If we have a Windows path but are not on a Windows
       --  host, stop there as there's not much more we can reasonably
@@ -107,7 +106,7 @@ package body Paths is
 
    function Canonicalize_Filename
      (Filename : String;
-      Lower : Boolean := True) return String_Access is
+      Lower    : Boolean := True) return String_Access is
    begin
       return new String'(Canonicalize_Filename (Filename, Lower));
    end Canonicalize_Filename;
@@ -262,6 +261,24 @@ package body Paths is
       return Is_Absolute_Unix_Path (Path)
              or else Is_Absolute_Windows_Path (Path);
    end Is_Absolute_Path;
+
+   -----------------------------------
+   -- Platform_Independent_Basename --
+   -----------------------------------
+
+   function Platform_Independent_Basename (Filename : String) return String is
+      Likely_Windows : constant Boolean := Likely_Windows_Path (Filename);
+      First          : Natural := Filename'Last;
+   begin
+      while Filename'First < First
+            and then Filename (First - 1) /= '/'
+            and then (not Likely_Windows or else Filename (First - 1) /= '\')
+      loop
+         First := First - 1;
+      end loop;
+
+      return Filename (First .. Filename'Last);
+   end Platform_Independent_Basename;
 
    -------------------------
    -- Likely_Windows_Path --

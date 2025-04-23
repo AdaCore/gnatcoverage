@@ -45,13 +45,14 @@ package Paths is
 
    function Canonicalize_Filename
      (Filename : String;
-      Lower : Boolean := True) return String;
+      Lower    : Boolean := True) return String;
    function Canonicalize_Filename
      (Filename : String;
-      Lower : Boolean := True) return String_Access;
+      Lower    : Boolean := True) return String_Access;
    --  Assuming Filename is a full pathname to a file, return a normalized
    --  version of it such that different references to the same file map to the
    --  same canonical string as much as possible.
+   --
    --  On Windows, if the Lower argument is true, the path will also be
    --  lowercased. If it's false, the original case is kept.
 
@@ -69,6 +70,11 @@ package Paths is
    --  Return whether Path is an absolute path. Unlike the GNAT runtime version
    --  of the service, this one always matches both Windows or Unix file path
    --  flavors.
+
+   function Platform_Independent_Basename (Filename : String) return String;
+   --  Regardless of the platfrom on which gnatcov runs, extract the basename
+   --  of the given absolute filename, which may be a Windows-style filename or
+   --  a Unix-style one.
 
    --  TODO??? Handle Unicode file names
 
