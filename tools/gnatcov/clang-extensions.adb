@@ -98,6 +98,19 @@ package body Clang.Extensions is
       return Is_CXX_Member_Call_Expr_C (C) /= 0;
    end Is_Prefixed_CXX_Member_Call_Expr;
 
+   ----------------------------------
+   --  Is_Struct_Field_Call_Expr --
+   ----------------------------------
+
+   function Is_Struct_Field_Call_Expr (C : Cursor_T) return Boolean is
+      function Is_Struct_Field_Call_Expr_C (C : Cursor_T) return unsigned
+        with
+          Import, Convention => C,
+          External_Name => "clang_isStructFieldCallExpr";
+   begin
+      return Is_Struct_Field_Call_Expr_C (C) /= 0;
+   end Is_Struct_Field_Call_Expr;
+
    --------------------
    -- Get_Opcode_Str --
    --------------------
