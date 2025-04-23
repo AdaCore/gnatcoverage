@@ -1304,7 +1304,7 @@ package body Files_Table is
       ----------------------
 
       procedure Grow_Unique_Name (File : File_Info_Access) is
-         Full : String renames File.Full_Name.all;
+         Full : String renames File.Preserved_Full_Name.all;
 
          procedure Get_Previous_Separator (Index : in out Positive);
          --  Assuming index is a valid index in Full, decrease it until either
@@ -1433,8 +1433,22 @@ package body Files_Table is
          if Alias_Set.Length = 1 then
             declare
                File : File_Info renames Alias_Set.First_Element.all;
+
+               --  If available, extract the basename from the preserved full
+               --  name so that the original casing is preserved (.Simple_Name
+               --  is case folded on Windows). Since that preserved name may be
+               --  a Windows absolute name while we are running on a Unix
+               --  system, using the regular filename manipulation functions
+               --  will not always work: implement basename extraction to
+               --  handle both.
+
+               Name : constant String_Access :=
+                 (if File.Preserved_Full_Name = null
+                  then File.Simple_Name
+                  else File.Preserved_Full_Name);
             begin
-               File.Unique_Name := new String'(File.Simple_Name.all);
+               File.Unique_Name :=
+                 new String'(Platform_Independent_Basename (Name.all));
             end;
          end if;
 

@@ -71,6 +71,11 @@ package Paths is
    --  of the service, this one always matches both Windows or Unix file path
    --  flavors.
 
+   function Platform_Independent_Basename (Filename : String) return String;
+   --  Regardless of the platfrom on which gnatcov runs, extract the basename
+   --  of the given absolute filename, which may be a Windows-style filename or
+   --  a Unix-style one.
+
    --  TODO??? Handle Unicode file names
 
    function Workaround_Simple_Name (Path : String) return String;
