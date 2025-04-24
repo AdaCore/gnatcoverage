@@ -1,18 +1,13 @@
-with Support, Silent_Last_Chance, Pval; use Support, Pval;
+with Support, Pval; use Support, Pval;
 
 procedure Test_Pval_TF is
 begin
    Assert (F (False) = True);
    Assert (F (True) = False);
-exception
-    when others => null;
-end;
-
---# pval.ads
--- /eval/    l+ ## 0
+end Test_Pval_TF;
 
 --# pval.adb
--- /eval/    l+ ## 0
--- /returnTrue/  l+ ## 0
--- /returnFalse/ l+ ## 0
--- /returnVal/   l+ ## 0
+-- /eval/      l+ ## 0
+-- /set_true/  l+ ## 0
+-- /set_false/ l+ ## 0
+-- /ret_val/   l+ ## 0

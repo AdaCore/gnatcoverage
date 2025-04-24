@@ -205,9 +205,17 @@ class Artifact(object):
 
     def hash(self: Artifact) -> str:  # noqa: A003
         """Return a hash based on the artifact full name"""
-        hashobj = hashlib.new("sha1")
-        hashobj.update(self.full_name.encode("utf-8"))
-        return hashobj.hexdigest()
+        use_full_slug = os.environ.get("GNATCOV_QUALKIT_FULL_SLUGS", None)
+
+        if not use_full_slug or use_full_slug == "False":
+            hashobj = hashlib.new("sha1")
+            hashobj.update(self.full_name.encode("utf-8"))
+            return hashobj.hexdigest()
+        return (
+            os.path.relpath(os.path.abspath(self.full_name), os.getcwd())
+            .replace("/", "_")
+            .replace(".._", "")
+        )
 
 
 class MetaArtifactImporter(type):

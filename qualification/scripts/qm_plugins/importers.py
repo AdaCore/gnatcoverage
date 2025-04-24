@@ -541,11 +541,12 @@ class TCIndexImporter(ArtifactImporter):
                 links.append((a, default_importer(a)))
 
         output += writer.toctree(
-            # [lnk[0].docfile()
-            #  for lnk in links
-            #  if not is_tc_or_set(lnk[0]) or is_tc_or_set(parent)],
-            # [lnk[0].docfile() for lnk in links],
-            docrefs,
+            [
+                lnk[0].docfile()
+                for lnk in links
+                if not is_tc_or_set(lnk[0]) or is_tc_or_set(parent)
+            ],
+            # docrefs,
             hidden=True,
         )
 
@@ -569,7 +570,7 @@ class RequirementImporter(ArtifactImporter):
         type and ID on the first line
         """
 
-        result = ".. _%s:\n\n" % artifact.id.replace("/", "_")[1:]
+        result = ".. _%s:\n\n" % artifact.docfile(True)
         result += DefaultImporter().to_rest(artifact) + "\n\n"
 
         return result
@@ -587,7 +588,10 @@ class TCSetImporter(ArtifactImporter):
         in order to keep them close in the final pdf generation
         """
 
-        reference = ".. _%s:\n\n" % artifact.id.replace("/", "_")[1:]
+        reference = ".. _%s:\n\n" % artifact.docfile(True)
+        reference += writer.raw(
+            "\\label{%s::doc}" % artifact.docfile(True), "latex"
+        )
         result = ""
         qmlink = ""
         in_qmlink = False
@@ -793,7 +797,11 @@ class TestCaseImporter(ArtifactImporter):
 
     def to_rest(self, artifact):
 
-        reference = "\n\n.. _%s:\n" % artifact.id.replace("/", "_")[1:]
+        reference = "\n\n.. _%s:\n" % artifact.docfile(True)
+
+        reference += writer.raw(
+            "\\label{%s::doc}" % artifact.docfile(True), "latex"
+        )
 
         result_pdf = "**TEST CASE**:  %s\n\n" % artifact.id
         result_html = "%s\n%s\n" % (artifact.id, "=" * len(artifact.id))
@@ -1165,7 +1173,7 @@ class TestCasesImporter(ArtifactImporter):
             links=tc_or_set_links,
         )
 
-        output = writer.only(html_output, "html")
-        output += writer.only(pdf_output, "latex")
+        output = writer.only(pdf_output, "latex")
+        output += writer.only(html_output, "html")
 
         return output, mixed_links

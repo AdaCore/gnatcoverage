@@ -57,7 +57,7 @@ def directive(name, content=None, argument=None, options=None):
     :type options: None or a dictionnary
     :rtype: a string
     """
-    result = [".. %s::" % name]
+    result = ["\n\n.. %s::" % name]
     if argument is not None:
         result[0] += " %s" % argument
 
@@ -183,6 +183,12 @@ def only(content, format_tag):
     """
 
     return directive("only", content=content, argument=format_tag)
+
+
+def include(format_tag):
+    """Return a ReST include directive"""
+
+    return directive("include", argument=format_tag)
 
 
 # Roles #

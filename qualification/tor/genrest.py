@@ -13,7 +13,10 @@ from tor.genrest_conf import ALLOW_UNCLASSIFIED_FOLDERS, SUPRESS_MSG_TYPES
 import scripts.rest as rest
 import scripts.logger as logger
 from scripts.rest import Artifact, ArtifactImporter, writer
-from scripts.qm_plugins.importers import resolve_importer
+from scripts.qm_plugins.importers import (
+    resolve_importer,
+    default_importer,
+)
 from itertools import zip_longest
 from scripts.common_conf import tor_doc_id
 from tor.proj_conf import get_var_replacements
@@ -854,12 +857,8 @@ class Dir(Artifact):
                             clean_line = line.strip()
                             if not clean_line:
                                 # empty line after the first row. Promote the
-                                # first row to be the title.
-                                title = (
-                                    title_candidate
-                                    + "\n"
-                                    + "*" * (len(title_candidate) + 1)
-                                )
+                                # first row to be the "title".
+                                title = title_candidate
                             elif (
                                 not re.search(r"[^=]", clean_line)
                                 or not re.search(r"[^\*]", clean_line)
@@ -882,18 +881,14 @@ class Dir(Artifact):
                                 title_prefix += line + "\n"
                             else:
                                 # any other text is considered as title
-                                title_candidate = line.strip().strip("*")
+                                title_candidate = line.strip()
 
                 if title:
-                    content = (
-                        title
-                        + "\n\n"
-                        + self.full_id
-                        + "\n\n"
-                        + self.parent_ref
-                        + "\n\n"
-                        + body
-                    )
+                    content = title + "\n\n" + self.parent_ref + "\n\n" + body
+                else:
+                    content = content + "\n\n" + self.parent_ref
+            else:
+                content = content + "\n\n" + self.parent_ref
 
             return content
 
@@ -956,11 +951,7 @@ class Dir(Artifact):
         if self.pdo:
             return (
                 "**Parent"
-                + (
-                    (" " + self.pdo.kind.txthdl.lower())
-                    if self.pdo.req
-                    else ""
-                )
+                + ((" " + self.pdo.kind.txthdl) if self.pdo.req else "")
                 + "** "
                 + self.pdo.rest_doc_ref()
             )
@@ -1552,47 +1543,14 @@ class DocGenerator(object):
         """Fetch descriptive text form the file corresponding to diro.
         Append a TC index to TC set descriptions that don't have one."""
 
-        # Fetch the descriptive text
+        # Fetch the descriptive text either through a specialized importer, or
+        # through our own
 
-        res = diro.dtext()
-
-        # Compute the dictionary of substitutions to apply
-
-        # SUBST = {
-        #     "toplevel-index": self.toplev_index,
-        #     "tc-index": self.tc_index,
-        #     "app-index": self.app_index,
-        #     "subset-index": self.subset_index,
-        #     "global-reqindex": self.global_reqindex,
-        #     "req-headline": self.req_headline,
-        #     "tstrategy-headline": self.tstrat_headline,
-        #     "toc": self.toc,
-        # }
-
-        # dosubst = {
-        #     (key, SUBST[key](diro))
-        #     for key in SUBST
-        #     if (f"%({key})s") in contents
-        # }
-        # Compute the extra text to add at the end, depending on
-        # the kind of artifact and on what substitutions apply
-
-        # extratext = (
-        #     self.tc_index(diro)
-        #     if (
-        #         diro.tcgroup
-        #         and "tc-index" not in dosubst
-        #         and "subset-index" not in dosubst
-        #     )
-        #     else ""
-        # )
-        # if len(dosubst) != 0:
-        #     try:
-        #         res = contents % dosubst  # + extratext
-        #     except Exception as e:
-        #         err("Failed to apply substitutes %s\n\n%s" % (e, contents))
+        importer = default_importer(diro)
+        # if isinstance(importer, DefaultImporter):
+        #     res = diro.to_rest()
         # else:
-        #     res = contents
+        res = importer.to_rest(diro)
         res = replace_variables(res)
         res = self.process_qmlink(diro, res)
 
@@ -1810,9 +1768,6 @@ class DocGenerator(object):
             self.ofd.write(self.contents_from(diro))
 
         if diro.tc:
-            # importer = qm_plugins.importers.default_importer(diro)
-            # qmlink_rst = importer.to_rest(diro)
-            # self.ofd.write(qmlink_rst)
             self.gen_tc_section(diro)
 
         # close the document to measure the size
