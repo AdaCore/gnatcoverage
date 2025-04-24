@@ -45,7 +45,7 @@ build:
     - anod build --smart-rebuild --deps-only gnatcov $ACI_TRACK_QUALIFIER
 
     # 2. Install vanilla gnatcov from cathod
-    - anod install gnatcov $ACI_TRACK_QUALIFIER --build-date=20250415
+    - anod install gnatcov $ACI_TRACK_QUALIFIER --latest
 
     # 3. Build using anod, but minimally as all dependencies are supposed to be
     #    already built/installed via 1, but we don't want to re-build the
