@@ -31,10 +31,11 @@ with GNATCOLL.Iconv; use GNATCOLL.Iconv;
 with GNATCOLL.Utils; use GNATCOLL.Utils;
 with GNATCOLL.VFS;   use GNATCOLL.VFS;
 
-with Checkpoints;   use Checkpoints;
-with Coverage;      use Coverage;
+with Checkpoints;           use Checkpoints;
+with Coverage;              use Coverage;
+with LLVM_JSON_Checkpoints; use LLVM_JSON_Checkpoints;
 with Outputs;
-with Perf_Counters; use Perf_Counters;
+with Perf_Counters;         use Perf_Counters;
 with Project;
 
 package body Files_Table is
@@ -2470,6 +2471,30 @@ package body Files_Table is
          Free (FE.Name);
       end loop;
    end Checkpoint_Load;
+
+   --------------------
+   -- LLVM_JSON_Load --
+   --------------------
+
+   procedure LLVM_JSON_Load
+     (Ckpt : access constant LLVM_Coverage_Ckpt)
+   is
+   begin
+      LLVM_Trace.Trace ("Files_Table.LLVM_JSON_Load");
+
+      for File_Report of Ckpt.File_Reports loop
+         declare
+            SFI : constant Source_File_Index :=
+               Get_Index_From_Full_Name (+File_Report.Filename, Source_File);
+            CU : Compilation_Unit;
+         begin
+            CU.Language  := File_Based_Language;
+            CU.Unit_Name := File_Report.Filename;
+            Consolidate_Ignore_Status (SFI, Never);
+            Consolidate_Source_File_Unit (SFI, CU);
+         end;
+      end loop;
+   end LLVM_JSON_Load;
 
    ------------------------
    -- Postprocess_Source --

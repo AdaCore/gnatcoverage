@@ -1,0 +1,171 @@
+{
+  "data": [
+    {
+      "filename": "/home/peron/playground/RUST_TESTS/impl/src/impl.rs",
+      "functions": [
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                49,
+                1,
+                58,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "impl::main",
+          "mcdc_records": [],
+          "name": "_RNvCslINASTaKc5F_4impl4main"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                8,
+                5,
+                12,
+                6
+              ]
+            }
+          ],
+          "demangled_name": "<impl::Foo>::new",
+          "mcdc_records": [],
+          "name": "_RNvMCslINASTaKc5F_4implNtB2_3Foo3new"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                14,
+                5,
+                16,
+                6
+              ]
+            }
+          ],
+          "demangled_name": "<impl::Foo>::print",
+          "mcdc_records": [],
+          "name": "_RNvMCslINASTaKc5F_4implNtB2_3Foo5print"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                44,
+                5,
+                46,
+                6
+              ]
+            }
+          ],
+          "demangled_name": "<impl::Bar as impl::Hello>::hello",
+          "mcdc_records": [],
+          "name": "_RNvXs0_CslINASTaKc5F_4implNtB5_3BarNtB5_5Hello5hello"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                38,
+                5,
+                40,
+                6
+              ]
+            }
+          ],
+          "demangled_name": "<impl::Foo as impl::Hello>::hello",
+          "mcdc_records": [],
+          "name": "_RNvXs_CslINASTaKc5F_4implNtB4_3FooNtB4_5Hello5hello"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                5,
+                26,
+                6
+              ]
+            }
+          ],
+          "demangled_name": "<impl::Bar as impl::Hello>::say_hello",
+          "mcdc_records": [],
+          "name": "_RNvYNtCslINASTaKc5F_4impl3BarNtB4_5Hello9say_helloB4_"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                28,
+                5,
+                30,
+                6
+              ]
+            }
+          ],
+          "demangled_name": "<impl::Foo as impl::Hello>::say_bye",
+          "mcdc_records": [],
+          "name": "_RNvYNtCslINASTaKc5F_4impl3FooNtB4_5Hello7say_byeB4_"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                5,
+                26,
+                6
+              ]
+            }
+          ],
+          "demangled_name": "<impl::Foo as impl::Hello>::say_hello",
+          "mcdc_records": [],
+          "name": "_RNvYNtCslINASTaKc5F_4impl3FooNtB4_5Hello9say_helloB4_"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                32,
+                5,
+                34,
+                6
+              ]
+            }
+          ],
+          "demangled_name": "<_ as impl::Hello>::say_nothing",
+          "mcdc_records": [],
+          "name": "_RNvYpNtCslINASTaKc5F_4impl5Hello11say_nothingB5_"
+        }
+      ]
+    }
+  ]
+}

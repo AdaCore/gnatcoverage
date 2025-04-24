@@ -68,6 +68,25 @@ package body Slocs is
         and then
       not (L.Last_Sloc <= R.Last_Sloc)));
 
+   -----------
+   -- Image --
+   -----------
+
+   function Image (SLOC : Local_Source_Location_Range) return String
+   is
+      Result : constant Unbounded_String :=
+         +("(" & Image (SLOC.First_Sloc) & " -> "
+           & Image (SLOC.Last_Sloc) & ")");
+   begin
+      return +Result;
+   end Image;
+
+   function Contained_In (C, P : Local_Source_Location_Range) return Boolean is
+   begin
+      return      P.First_Sloc <= C.First_Sloc
+         and then C.Last_Sloc  <= P.Last_Sloc;
+   end Contained_In;
+
    function "<" (L, R : Source_Location) return Boolean is
    begin
       --  Note: No_Location must sort higher than any specific source location,

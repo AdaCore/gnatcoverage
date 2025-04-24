@@ -25,6 +25,7 @@ with GNAT.Strings; use GNAT.Strings;
 with GNAT.Regexp;
 
 limited with Checkpoints;
+limited with LLVM_JSON_Checkpoints;
 with Coverage_Options; use Coverage_Options;
 with Diagnostics;      use Diagnostics;
 with Logging;
@@ -631,6 +632,10 @@ package Files_Table is
    --  Load checkpointed files table from S and merge in current state.
    --  Ignore_Source_Files should be null if the checkpoint purpose is
    --  Consolidation.
+
+   procedure LLVM_JSON_Load
+     (Ckpt : access constant LLVM_JSON_Checkpoints.LLVM_Coverage_Ckpt);
+   --  Use the JSON loaded checkpoint to create file tables,
 
    procedure Postprocess_Source
      (Preprocessed_Filename  : String;

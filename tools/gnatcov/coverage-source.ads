@@ -16,19 +16,29 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Containers.Ordered_Sets;
+with Ada.Containers.Vectors;
 with Ada.Text_IO; use Ada.Text_IO;
 
+limited with LLVM_JSON_Checkpoints;
 with Checkpoints;             use Checkpoints;
 with Files_Table;             use Files_Table;
 with Instrument;              use Instrument;
 with Instrument.Input_Traces; use Instrument.Input_Traces;
 with Logging;
+with MC_DC;                   use MC_DC;
 with SC_Obligations;          use SC_Obligations;
 with Traces;                  use Traces;
 with Traces_Names;            use Traces_Names;
 with Traces_Lines;            use Traces_Lines;
 
 package Coverage.Source is
+
+   package Evaluation_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => Evaluation);
+
+   package Evaluation_Sets is new Ada.Containers.Ordered_Sets (Evaluation);
 
    Ignore_Exemptions_Trace : constant Logging.GNATCOLL_Trace :=
      Logging.Create_Trace ("IGNORE_EXEMPTIONS");
@@ -164,5 +174,9 @@ package Coverage.Source is
 
    procedure Checkpoint_Load (CLS : in out Checkpoint_Load_State);
    --  Load checkpointed coverage state from S and merge into current state
+
+   procedure LLVM_JSON_Load
+     (Ckpt : access constant LLVM_JSON_Checkpoints.LLVM_Coverage_Ckpt);
+   --  Register statement counters and MC/DC evaluations from Report.
 
 end Coverage.Source;

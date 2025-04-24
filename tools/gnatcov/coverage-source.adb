@@ -16,8 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Vectors;
-with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Streams; use Ada.Streams;
@@ -28,19 +26,19 @@ with Interfaces;
 with GPR2.Build.Source;
 with GPR2.Project.View;
 
-with Binary_Files;      use Binary_Files;
-with Coverage.Tags;     use Coverage.Tags;
-with Decision_Map;      use Decision_Map;
-with Diagnostics;       use Diagnostics;
-with Elf_Disassemblers; use Elf_Disassemblers;
-with MC_DC;             use MC_DC;
-with Outputs;           use Outputs;
-with Project;           use Project;
-with Slocs;             use Slocs;
-with Switches;          use Switches;
-with Traces_Elf;        use Traces_Elf;
-with Traces_Files;      use Traces_Files;
-with Traces_Source;     use Traces_Source;
+with Binary_Files;          use Binary_Files;
+with Coverage.Tags;         use Coverage.Tags;
+with Decision_Map;          use Decision_Map;
+with Diagnostics;           use Diagnostics;
+with Elf_Disassemblers;     use Elf_Disassemblers;
+with LLVM_JSON_Checkpoints; use LLVM_JSON_Checkpoints;
+with Outputs;               use Outputs;
+with Project;               use Project;
+with Slocs;                 use Slocs;
+with Switches;              use Switches;
+with Traces_Elf;            use Traces_Elf;
+with Traces_Files;          use Traces_Files;
+with Traces_Source;         use Traces_Source;
 with Types;
 
 package body Coverage.Source is
@@ -60,12 +58,6 @@ package body Coverage.Source is
    --  For each source coverage obligation, we maintain a corresponding source
    --  coverage information record, which denotes the coverage state of the
    --  SCO. Default initialization denotes a completely uncovered state.
-
-   package Evaluation_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Evaluation);
-
-   package Evaluation_Sets is new Ada.Containers.Ordered_Sets (Evaluation);
 
    procedure Read is new Read_Set
      (Element_Type => Evaluation,
@@ -684,6 +676,78 @@ package body Coverage.Source is
          end;
       end if;
    end Checkpoint_Load;
+
+   --------------------
+   -- LLVM_JSON_Load --
+   --------------------
+
+   procedure LLVM_JSON_Load
+     (Ckpt : access constant LLVM_Coverage_Ckpt)
+   is
+      Rep_SCI : Source_Coverage_Info;
+   begin
+      LLVM_Trace.Trace ("Coverage.Source.LLVM_JSON_Load");
+
+      --  Extend the SCI vector to accomodate for the SCOs.
+
+      Initialize_SCI;
+
+      for File_Report of Ckpt.File_Reports loop
+         for Fct_Report of File_Report.Functions loop
+            for Region of Fct_Report.Regions loop
+               if Region.Kind = Statement then
+                  Rep_SCI :=
+                    (Kind                 => Statement,
+                     Basic_Block_Has_Code => True,
+                     Executed             => Region.Execution_Count > 0,
+                     others               => <>);
+               elsif Region.Kind = Decision then
+                  declare
+                     Eval_Set   : Evaluation_Sets.Set;
+                     T_Executed : Boolean := False;
+                     F_Executed : Boolean := False;
+                  begin
+
+                     --  Convert an evaluation vector to a set,
+                     --  and check True/False_executed accordingly.
+
+                     for Eval of Region.Test_Vectors loop
+                        declare
+                           Eval_Cpy : Evaluation := Eval;
+                        begin
+                           --  Reassign the Decision to set it to the right
+                           --  SCO, and insert it in the set.
+
+                           Eval_Cpy.Decision := Region.SCO;
+                           if not Eval_Set.Contains (Eval_Cpy) then
+                              Eval_Set.Insert (Eval_Cpy);
+                           end if;
+                        end;
+                        case Eval.Outcome is
+                           when True => T_Executed := True;
+                           when False => F_Executed := True;
+                           when others => null;
+                        end case;
+                     end loop;
+
+                     Rep_SCI :=
+                       (Kind          => Decision,
+                        Outcome_Taken =>
+                          (True => T_Executed, False => F_Executed),
+                        Evaluations   => Eval_Set,
+                        others        => <>);
+                  end;
+               end if;
+
+               if Region.Kind /= Condition then
+                  SCI_Vector (Region.SCO).Append
+                    (new Source_Coverage_Info'(Rep_SCI));
+               end if;
+            end loop;
+         end loop;
+      end loop;
+
+   end LLVM_JSON_Load;
 
    ------------------------
    -- Compute_Line_State --
