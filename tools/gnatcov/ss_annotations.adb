@@ -799,7 +799,12 @@ package body SS_Annotations is
       Target_File := Create (+(+Args.Remaining_Args.Last_Element));
 
       if Is_Project_Loaded then
-         Source := Project.Lookup_Source (+Target_File.Full_Name);
+         declare
+            Normalized : constant Virtual_File :=
+              Create (Target_File.Full_Name, Normalize => True);
+         begin
+            Source := Project.Lookup_Source (Normalized.Display_Full_Name);
+         end;
          if not Source.Is_Defined then
             Fatal_Error
               (Target_File.Display_Full_Name
