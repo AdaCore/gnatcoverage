@@ -47,6 +47,7 @@ with CFG_Dump;
 with Calendar_Utils;
 with Check_SCOs;
 with Checkpoints;
+with LLVM_JSON_Checkpoints;
 with Command_Line;          use Command_Line;
 use Command_Line.Parser;
 with Convert;
@@ -104,34 +105,35 @@ procedure GNATcov_Bits_Specific is
    --  Results of the command line processing. It is filled by
    --  Process_Arguments once Switches.Args reached its final state.
 
-   Annotation           : Annotation_Formats_Arr renames
+   Annotation            : Annotation_Formats_Arr renames
      Annotations.Annotation;
-   Trace_Inputs         : Requested_Trace_Vectors.Vector;
-   Exe_Inputs           : String_Vectors.Vector;
-   Obj_Inputs           : String_Vectors.Vector;
-   ALIs_Inputs          : String_Vectors.Vector;
-   Routines_Inputs      : String_Vectors.Vector;
-   Checkpoints_Inputs   : String_Vectors.Vector;
-   SID_Inputs           : String_Vectors.Vector;
-   Ignored_Source_Files : String_Vectors.Vector;
-   Files_Of_Interest    : String_Vectors.Vector;
-   Compiler_Drivers     : String_Vectors.Vector;
-   Source_Rebase_Inputs : String_Vectors.Vector;
-   Source_Search_Inputs : String_Vectors.Vector;
-   Subprograms_Inputs   : String_Vectors.Vector;
-   Text_Start           : Pc_Type := 0;
-   Output               : String_Access := null;
-   Tag                  : String_Access := null;
-   Kernel               : String_Access := null;
-   Save_Checkpoint      : String_Access := null;
-   Eargs                : String_Vectors.Vector;
-   Executable_Path      : String_Access := null;
-   Locations_Inputs     : Object_Locations.User_Locations;
-   CFG_Output_Format    : CFG_Dump.Output_Format := CFG_Dump.None;
-   Keep_Edges           : Boolean := False;
-   SO_Inputs            : SO_Set_Type;
-   Keep_Reading_Traces  : Boolean := False;
-   Emit_Report          : Boolean := True;
+   Trace_Inputs          : Requested_Trace_Vectors.Vector;
+   Exe_Inputs            : String_Vectors.Vector;
+   Obj_Inputs            : String_Vectors.Vector;
+   ALIs_Inputs           : String_Vectors.Vector;
+   Routines_Inputs       : String_Vectors.Vector;
+   Checkpoints_Inputs    : String_Vectors.Vector;
+   LLVM_JSON_Ckpt_Inputs : String_Vectors.Vector;
+   SID_Inputs            : String_Vectors.Vector;
+   Ignored_Source_Files  : String_Vectors.Vector;
+   Files_Of_Interest     : String_Vectors.Vector;
+   Compiler_Drivers      : String_Vectors.Vector;
+   Source_Rebase_Inputs  : String_Vectors.Vector;
+   Source_Search_Inputs  : String_Vectors.Vector;
+   Subprograms_Inputs    : String_Vectors.Vector;
+   Text_Start            : Pc_Type := 0;
+   Output                : String_Access := null;
+   Tag                   : String_Access := null;
+   Kernel                : String_Access := null;
+   Save_Checkpoint       : String_Access := null;
+   Eargs                 : String_Vectors.Vector;
+   Executable_Path       : String_Access := null;
+   Locations_Inputs      : Object_Locations.User_Locations;
+   CFG_Output_Format     : CFG_Dump.Output_Format := CFG_Dump.None;
+   Keep_Edges            : Boolean := False;
+   SO_Inputs             : SO_Set_Type;
+   Keep_Reading_Traces   : Boolean := False;
+   Emit_Report           : Boolean := True;
 
    Dump_Units_Filename  : String_Access := null;
    --  If null, dump the list of units of interest as a section in the report
@@ -248,6 +250,7 @@ procedure GNATcov_Bits_Specific is
 
       if Source_Coverage_Enabled
          and then Checkpoints_Inputs.Is_Empty
+         and then LLVM_JSON_Ckpt_Inputs.Is_Empty
          and then SID_Inputs.Is_Empty
          and then ALIs_Inputs.Is_Empty
          and then not Args.String_Args (Opt_Project).Present
@@ -579,6 +582,7 @@ procedure GNATcov_Bits_Specific is
       end if;
 
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
+      Copy_Arg_List (Opt_LLVM_JSON_Checkpoint, LLVM_JSON_Ckpt_Inputs);
 
       Copy_Arg_List (Opt_Ignore_Source_Files, Ignored_Source_Files);
       Copy_Arg_List (Opt_Files, Files_Of_Interest);
@@ -2314,7 +2318,9 @@ begin
             end Process_Trace_For_Src_Coverage;
 
          begin
-            if Checkpoints_Inputs.Is_Empty then
+            if Checkpoints_Inputs.Is_Empty
+               and then LLVM_JSON_Ckpt_Inputs.Is_Empty
+            then
                Check_Traces_Available;
             end if;
             for Filename of Exe_Inputs loop
@@ -2364,6 +2370,10 @@ begin
 
          for Filename of Checkpoints_Inputs loop
             Checkpoints.Checkpoint_Load (+Filename);
+         end loop;
+
+         for Filename of LLVM_JSON_Ckpt_Inputs loop
+            LLVM_JSON_Checkpoints.JSON_Load (+Filename);
          end loop;
 
          --  Now determine coverage according to the requested metric (for

@@ -34,6 +34,7 @@ with Namet;
 with Types; use Types;
 
 limited with Checkpoints;
+limited with LLVM_JSON_Checkpoints;
 with Logging;
 with Slocs;   use Slocs;
 with Strings; use Strings;
@@ -112,7 +113,7 @@ package SC_Obligations is
    --      unit maps to a source file, regardless of the language for this
    --      source file, and there is at most one unit for a given source file.
 
-   type SCO_Provider is (Compiler, Instrumenter);
+   type SCO_Provider is (Compiler, Instrumenter, LLVM);
 
    type CU_Id is new Natural;
    No_CU_Id : constant CU_Id := 0;
@@ -993,6 +994,12 @@ package SC_Obligations is
 
    procedure Checkpoint_Load (CLS : in out Checkpoints.Checkpoint_Load_State);
    --  Load checkpointed SCOs from stream and merge them in current state
+
+   procedure LLVM_JSON_Load
+     (Ckpt : access LLVM_JSON_Checkpoints.LLVM_Coverage_Ckpt);
+   --  Use the JSON loaded checkpoint to create SCOs.
+   --  Note that for each Region Vector, Decision regions referenced by
+   --  their Condition regions must appear before them in the vector.
 
    ---------------------------
    -- Accessors for CU_Info --

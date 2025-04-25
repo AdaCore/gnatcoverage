@@ -1,0 +1,165 @@
+{
+  "data": [
+    {
+      "filename": "/home/peron/playground/RUST_TESTS/closures/src/closures.rs",
+      "functions": [
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 35,
+              "kind": "CodeRegion",
+              "span": [
+                14,
+                27,
+                14,
+                39
+              ]
+            }
+          ],
+          "demangled_name": "closures::closure_imm::{closure#0}",
+          "mcdc_records": [],
+          "name": "_RNCNvCseR1raopjrvP_8closures11closure_imm0B3_"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 35,
+              "kind": "CodeRegion",
+              "span": [
+                4,
+                29,
+                4,
+                41
+              ]
+            }
+          ],
+          "demangled_name": "closures::closure_in_var::{closure#0}",
+          "mcdc_records": [],
+          "name": "_RNCNvCseR1raopjrvP_8closures14closure_in_var0B3_"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                21,
+                27,
+                21,
+                39
+              ]
+            }
+          ],
+          "demangled_name": "closures::closure_uncovered::{closure#0}",
+          "mcdc_records": [],
+          "name": "_RNCNvCseR1raopjrvP_8closures17closure_uncovered0B3_"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                12,
+                1,
+                14,
+                17
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                14,
+                39,
+                17,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "closures::closure_imm",
+          "mcdc_records": [],
+          "name": "_RNvCseR1raopjrvP_8closures11closure_imm"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                3,
+                1,
+                4,
+                16
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                6,
+                9,
+                10,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "closures::closure_in_var",
+          "mcdc_records": [],
+          "name": "_RNvCseR1raopjrvP_8closures14closure_in_var"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                19,
+                1,
+                21,
+                17
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                21,
+                39,
+                24,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "closures::closure_uncovered",
+          "mcdc_records": [],
+          "name": "_RNvCseR1raopjrvP_8closures17closure_uncovered"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                26,
+                1,
+                30,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "closures::main",
+          "mcdc_records": [],
+          "name": "_RNvCseR1raopjrvP_8closures4main"
+        }
+      ]
+    }
+  ]
+}

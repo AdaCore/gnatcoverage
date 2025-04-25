@@ -1667,20 +1667,37 @@ package body Project is
    function Lookup_Source
      (Full_Name : String) return GPR2.Build.Source.Object
    is
-      Basename : constant GPR2.Simple_Name :=
-        GPR2.Simple_Name (Simple_Name (Full_Name));
-      Resolved : constant GPR2.Path_Name.Object :=
-        GPR2.Path_Name.Create_File (GPR2.Filename_Type (Full_Name));
+      --  Full_Name can come from debug info or from another OS, so it may be
+      --  an invalid filename for the current host OS (for instance
+      --  "<built-in>"). Because of this, calling Ada.Directories.Simple_Name
+      --  to extract the basename may trigger an exception. Use our own
+      --  extraction helper (Platform_Independent_Basename) that will not crash
+      --  in these legitimate cases.
+
+      Basename : constant String := Platform_Independent_Basename (Full_Name);
    begin
-      for P of Prj_Tree.Root_Project.Closure (Include_Self => True) loop
+      --  Likewise, GPR2 has restrictions on what a "Simple_Name" can be: do
+      --  not bother performing a GPR lookup if the basename we have is invalid
+      --  according to GPR2.
+
+      if GPR2.Is_Simple_Name (GPR2.Filename_Type (Basename)) then
          declare
-            Source : constant GPR2.Build.Source.Object := P.Source (Basename);
+            Resolved : constant GPR2.Path_Name.Object :=
+              GPR2.Path_Name.Create_File (GPR2.Filename_Type (Full_Name));
          begin
-            if Source.Is_Defined and then Source.Path_Name = Resolved then
-               return Source;
-            end if;
+            for P of Prj_Tree.Root_Project.Closure (Include_Self => True) loop
+               declare
+                  Source : constant GPR2.Build.Source.Object :=
+                    P.Source (GPR2.Simple_Name (Basename));
+               begin
+                  if Source.Is_Defined and then Source.Path_Name = Resolved
+                  then
+                     return Source;
+                  end if;
+               end;
+            end loop;
          end;
-      end loop;
+      end if;
 
       return GPR2.Build.Source.Undefined;
    end Lookup_Source;

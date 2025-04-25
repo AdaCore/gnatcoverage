@@ -35,4 +35,24 @@ package JSON is
    function Read (File : Virtual_File) return Read_Result;
    --  Likewise, but starting from a Virtual_File
 
+   function Read_File (Filename : String) return JSON_Value;
+   --  Read and parse a JSON filename. Exit with Fatal_Error in case of fail.
+   --  Return the top-level JSON value.
+
+   -------------------------------
+   -- JSON_Value Read Utilities --
+   -------------------------------
+
+   --  The following functions get internal fields and abort the program if
+   --  The value does not exist, of if it is of the wrong type.
+
+   function Child_Int (Value : JSON_Value; Field : String) return Integer;
+
+   function Child_String
+      (Value : JSON_Value; Field : String) return UTF8_String;
+
+   function Child_Array (Value : JSON_Value; Field : String) return JSON_Array;
+
+   function Array_Nth_Integer (List : JSON_Array; N : Integer) return Integer;
+
 end JSON;

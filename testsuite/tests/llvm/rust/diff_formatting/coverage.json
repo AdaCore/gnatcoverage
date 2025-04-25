@@ -1,0 +1,187 @@
+{
+  "data": [
+    {
+      "filename": "/home/peron/playground/RUST_TESTS/diff_formatting/src/diff_formatting.rs",
+      "functions": [
+        {
+          "branch_regions": [
+            {
+              "false_count": 1,
+              "kind": "BranchRegion",
+              "span": [
+                19,
+                16,
+                19,
+                26
+              ],
+              "true_count": 0
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                18,
+                1,
+                18,
+                17
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                19,
+                9,
+                19,
+                10
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                19,
+                16,
+                19,
+                26
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                19,
+                29,
+                19,
+                46
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                19,
+                56,
+                19,
+                72
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                21,
+                5,
+                22,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "diff_formatting::bar",
+          "mcdc_records": [],
+          "name": "_RNvCs4ofb7EzyXpa_15diff_formatting3bar"
+        },
+        {
+          "branch_regions": [
+            {
+              "false_count": 1,
+              "kind": "BranchRegion",
+              "span": [
+                5,
+                12,
+                7,
+                14
+              ],
+              "true_count": 0
+            }
+          ],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                3,
+                1,
+                3,
+                17
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                4,
+                9,
+                4,
+                10
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                5,
+                12,
+                7,
+                14
+              ]
+            },
+            {
+              "count": 0,
+              "kind": "CodeRegion",
+              "span": [
+                9,
+                13,
+                9,
+                30
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                11,
+                13,
+                11,
+                29
+              ]
+            },
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                14,
+                5,
+                15,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "diff_formatting::foo",
+          "mcdc_records": [],
+          "name": "_RNvCs4ofb7EzyXpa_15diff_formatting3foo"
+        },
+        {
+          "branch_regions": [],
+          "code_regions": [
+            {
+              "count": 1,
+              "kind": "CodeRegion",
+              "span": [
+                24,
+                1,
+                27,
+                2
+              ]
+            }
+          ],
+          "demangled_name": "diff_formatting::main",
+          "mcdc_records": [],
+          "name": "_RNvCs4ofb7EzyXpa_15diff_formatting4main"
+        }
+      ]
+    }
+  ]
+}

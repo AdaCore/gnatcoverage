@@ -52,6 +52,13 @@ package Slocs is
    --  Sort on lower bound first, then REVERSED on higher bound, so that
    --  for two nested ranges, the innermost one always sorts higher.
 
+   function Image (SLOC : Local_Source_Location_Range) return String;
+   --  Return a string in the form `(LL:CC -> LL:CC)`.
+
+   function Contained_In (C, P : Local_Source_Location_Range) return Boolean;
+   --  Return True if C(hild) bounds are contained in P(arent).
+   --  The relation is reflexive : `Contained_In (X, X)` is always true.
+
    No_Local_Range : constant Local_Source_Location_Range :=
                       (No_Local_Location, No_Local_Location);
 
