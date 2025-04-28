@@ -2782,7 +2782,8 @@ package body SC_Obligations is
    is
       use BDD;
 
-      SCOD  : SCO_Descriptor renames SCO_Vector.Reference (SCO);
+      SCOD  : SCO_Descriptor renames
+        Vectors.SCO_Vector.Constant_Reference (SCO);
 
       First : constant BDD_Node_Id := SCOD.Decision_BDD.First_Node;
       Last  : constant BDD_Node_Id := SCOD.Decision_BDD.Last_Node;
