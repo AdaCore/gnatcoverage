@@ -804,7 +804,14 @@ def xcov_suite_args(
 
 
 def cmdrun(
-    cmd, for_pgm, inp=None, out=None, err=None, env=None, register_failure=True
+    cmd,
+    for_pgm,
+    inp=None,
+    out=None,
+    err=None,
+    env=None,
+    register_failure=True,
+    expect_non_zero_code=False,
 ):
     """
     Execute the command+args list in CMD, redirecting its input, output and
@@ -817,6 +824,11 @@ def cmdrun(
     REGISTER_FAILURE is True. If FOR_PGM is also True (in addition to
     REGISTER_FAILURE) also check the program's output for an occurrence
     of unhandled exception in cross configurations.
+
+    In case EXPECT_NON_ZERO_CODE is True, and the command runs successfully
+    and returns a null exit code, will stop the test with FatalError.
+
+    EXPECT_NON_ZERO_CODE=True overrides REGISTER_FAILURE=False
 
     In absence of fatal error, return the process descriptor.
     """
@@ -840,7 +852,15 @@ def cmdrun(
     # Check for FatalError conditions. Minimize the situations where we look
     # into the program's output as this is a central spot.
 
-    if register_failure and p.status != 0:
+    if expect_non_zero_code:
+        if p.status == 0:
+            thistest.stop(
+                FatalError(
+                    '"%s"' % " ".join(cmd) + ": expected non-zero exit code",
+                    outfile=out,
+                )
+            )
+    elif register_failure and p.status != 0:
         output = contents_of(out) if out else p.out
         thistest.stop(
             FatalError(
@@ -1057,7 +1077,12 @@ def xrun(
 
 
 def run_cov_program(
-    executable, out=None, env=None, exec_args=None, register_failure=True
+    executable,
+    out=None,
+    env=None,
+    exec_args=None,
+    register_failure=True,
+    expect_non_zero_code=False,
 ):
     """
     Assuming that `executable` was instrumented, run it according to the
@@ -1130,6 +1155,11 @@ def run_cov_program(
             # where the source trace may be created (see below).
             "--save-temps",
         ]
+
+        # pycross might obfuscate the error exit code in light runtime cases.
+        expect_non_zero_code = (
+            expect_non_zero_code and not RUNTIME_INFO.has_light_runtime
+        )
     else:
         # Native programs using a light runtime can't set the exit code, and
         # will often terminate with a non-zero status code even though nothing
@@ -1147,6 +1177,7 @@ def run_cov_program(
         inp=inp,
         env=env,
         register_failure=register_failure,
+        expect_non_zero_code=expect_non_zero_code,
         for_pgm=True,
     )
 

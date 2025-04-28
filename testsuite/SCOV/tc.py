@@ -136,6 +136,7 @@ class TestCase:
         extracargs="",
         category=CAT.auto,
         tolerate_messages=None,
+        expect_non_zero_code=False,
         assert_lvl=None,
         fun_call_lvl=False,
         gexpr_lvl=False,
@@ -143,6 +144,9 @@ class TestCase:
         # By default, these test cases expect no error from subprocesses (xrun,
         # xcov, etc.)
         self.expect_failures = False
+        # Specifically expect the test binary (eventually run in a
+        # cross environment) to return a non-zero exit code.
+        self.expect_non_zero_code = expect_non_zero_code
 
         # Pass tolerate_messages to gnatcov instrument invocations (see the doc
         # for xcov_instrument).

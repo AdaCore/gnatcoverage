@@ -1546,7 +1546,10 @@ class SCOV_helper_src_traces(SCOV_helper):
         out_file = "cmdrun_{}.out".format(main)
         main_path = os.path.join(self.abdir_for(main), exename_for(main))
         run_cov_program(
-            main_path, out=out_file, register_failure=register_failure
+            main_path,
+            out=out_file,
+            register_failure=register_failure,
+            expect_non_zero_code=self.testcase.expect_non_zero_code,
         )
 
         # If the dump channel just writes text on stdout, extract traces from
