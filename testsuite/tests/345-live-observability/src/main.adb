@@ -1,26 +1,30 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with GCVRT.Gen.Observe; use GCVRT.Gen.Observe;
+with Pkg;
 
 procedure Main is
-   N : Integer;
 begin
-   --  Two statements executed
-   --  - the one for the declaration of N
-   --  - the one for this specific statement
+   --  No statement should be covered yet here.
    Put_Line ("First: " & Positive'Image (Sum_Buffer_Bits));
 
-   N := 5;
+   Pkg.Foo (False);
 
-   -- 2 two statements were executed since last call.
+   --  2 statements were executed since last call.
+   --  (if stmt + False Put_Line)
    Put_Line ("Second: " & Positive'Image (Sum_Buffer_Bits));
 
-   if N > 3 then
-      Put_Line ("Foo");
-      Put_Line ("Bar");
-   else
-      Put_Line ("Baz");
-   end if;
+   Pkg.Foo (True);
 
-   -- 4 more statements were executed (including the if stmt).
+   --  2 statements were executed since last call.
+   --  (if stmt is already covered, + 2 Put_Lines)
    Put_Line ("Third: " & Positive'Image (Sum_Buffer_Bits));
+
+   --  No change since last call
+   Put_Line ("Third-bis: " & Positive'Image (Sum_Buffer_Bits));
+
+   Pkg.Bar (42);
+
+   --  2 more statements covered
+   --  (Integer declaration, Put_Line)
+   Put_Line ("Fourth: " & Positive'Image (Sum_Buffer_Bits));
 end Main;
