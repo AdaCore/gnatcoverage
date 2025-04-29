@@ -16,7 +16,10 @@ wd = Wdir("tmp_")
 
 build_and_run(
     gprsw=GPRswitches(
-        root_project=gprfor(mains=["main.adb"], srcdirs=["../src"]),
+        root_project=gprfor(
+            mains=["main.adb"], srcdirs=["../src"], deps=["../libpkg.gpr"]
+        ),
+        projects=["libpkg"],
     ),
     mains=["main"],
     covlevel="stmt",
@@ -27,9 +30,9 @@ build_and_run(
 # In case block instrumentation is enabled, the number of bits set to 1 in the
 # buffers is not equivalent to the number of statements executed.
 if thistest.options.block:
-    counts = [0, 0, 3]
+    counts = [0, 2, 3, 4]
 else:
-    counts = [2, 4, 8]
+    counts = [0, 2, 4, 6]
 
 OUTPUT = contents_of("main_output.txt")
 
@@ -48,6 +51,18 @@ thistest.fail_if_no_match(
 thistest.fail_if_no_match(
     "Wrong third buffer sum",
     re.compile(f".*Third: *{counts[2]}.*", re.S),
+    OUTPUT,
+)
+
+thistest.fail_if_no_match(
+    "Wrong third-bis buffer sum",
+    re.compile(f".*Third-bis: *{counts[2]}.*", re.S),
+    OUTPUT,
+)
+
+thistest.fail_if_no_match(
+    "Wrong fourth buffer sum",
+    re.compile(f".*Fourth: *{counts[3]}.*", re.S),
     OUTPUT,
 )
 
