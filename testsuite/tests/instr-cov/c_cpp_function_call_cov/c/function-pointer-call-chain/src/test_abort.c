@@ -17,7 +17,7 @@ struct list *
 head_abort ()
 {
   /* GNATCOV_DUMP_BUFFERS */
-  exit (0);    // # not-call
+  abort ();    // # not-call
   return HEAD; // # not-reached
 }
 
