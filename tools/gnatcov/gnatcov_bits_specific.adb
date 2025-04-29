@@ -252,6 +252,7 @@ procedure GNATcov_Bits_Specific is
          and then LLVM_JSON_Ckpt_Inputs.Is_Empty
          and then SID_Inputs.Is_Empty
          and then ALIs_Inputs.Is_Empty
+         and then Args.String_List_Args (Opt_Exec).Is_Empty
          and then not Args.String_Args (Opt_Project).Present
       then
          Report_Missing_Argument
@@ -1991,6 +1992,8 @@ begin
                        (Trace_File_Name, Exec_Name_Override);
                   when Source_Trace_File =>
                      Process_Source_Trace (Trace_File_Name);
+                  when LLVM_Trace_File =>
+                     Outputs.Fatal_Error ("LLVM trace file not implemented");
                end case;
             end Process_Trace;
 

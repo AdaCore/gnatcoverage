@@ -144,7 +144,7 @@ package Project is
 
    procedure Enumerate_SCOs_Files
      (Callback : access procedure (Lib_Name : String);
-      Kind     : Traces_Files.Trace_File_Kind)
+      Kind     : Traces_Files.GNATcov_Trace_File_Kind)
       with Pre  => Is_Project_Loaded;
    --  Invoke Callback once for every SCOs file (SID / ALI depending on the
    --  trace mode) corresponding to a unit of interest. This emits a warning
