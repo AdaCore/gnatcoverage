@@ -2347,8 +2347,47 @@ begin
          end if;
 
          --  Read and process traces
+         --  In case there is as least one, probe it to decide if it is
+         --  a gnatcov trace or an LLVM one.
 
-         Read_And_Process_GNATcov_Traces (Base'Access);
+         declare
+            Has_Traces  : constant Boolean := not Trace_Inputs.Is_Empty;
+            Trace_Kind  : Any_Accepted_Trace_Kind := Unknown;
+            Result      : Read_Result;
+         begin
+            if Has_Traces then
+               declare
+                  Trace_File : constant String :=
+                     +Trace_Inputs.First_Element.Filename;
+               begin
+                  Probe_Trace_File (Trace_File, Trace_Kind, Result);
+
+                  if not Result.Success then
+                     Report_Bad_Trace (Trace_File, Result);
+                  end if;
+               end;
+            end if;
+
+            if Trace_Kind /= LLVM_Trace_File then
+
+               --  Process classic GNATcov traces
+
+               Read_And_Process_GNATcov_Traces (Base'Access);
+            else
+
+               --  ??? Ensure an exec file was passed
+
+               --  ??? Validate all traces (or let llvm-profdata figure out ?)
+
+               --  ??? Aggregate profraws using llvm-profdata
+
+               --  ??? Convert the profdata into a JSON using trace adapter
+
+               --  ??? Add the generated JSON to the list of LLVM JSON CKPTs
+
+               Outputs.Fatal_Error ("Not yet implemented");
+            end if;
+         end;
 
          --  Reconstruct unit names for ignored source files. This is done
          --  before loading checkpoints, because this will already have been
