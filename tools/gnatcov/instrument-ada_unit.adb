@@ -251,6 +251,7 @@ package body Instrument.Ada_Unit is
 
       --  Pragmas
 
+      Convention,
       Profile,
       Restrictions,
 
@@ -293,6 +294,7 @@ package body Instrument.Ada_Unit is
       Predicate               => Precompute_Symbol (Predicate),
       Static_Predicate        => Precompute_Symbol (Static_Predicate),
       Type_Invariant          => Precompute_Symbol (Type_Invariant),
+      Convention              => Precompute_Symbol (Convention),
       Profile                 => Precompute_Symbol (Profile),
       Restrictions            => Precompute_Symbol (Restrictions),
       No_Dependence           => Precompute_Symbol (No_Dependence),
@@ -1241,6 +1243,11 @@ package body Instrument.Ada_Unit is
      (Args.Child (I).As_Pragma_Argument_Assoc.F_Expr);
    --  Return the expression for the Index'th argument of a pragma's
    --  arguments.
+
+   function Get_Convention (Decl : Basic_Decl) return Identifier;
+   --  Return the convention associated with Decl, either from the Convention
+   --  aspect or from the convention specified in the Export aspect. If no
+   --  convention is defined, return No_Identifier.
 
    procedure Process_Annotation
      (UIC       : in out Ada_Unit_Inst_Context;
@@ -3296,6 +3303,71 @@ package body Instrument.Ada_Unit is
       return False;
    end Has_No_Elaboration_Code_All;
 
+   --------------------
+   -- Get_Convention --
+   --------------------
+
+   function Get_Convention (Decl : Basic_Decl) return Identifier is
+      Convention_Aspect : constant Libadalang.Analysis.Aspect :=
+         Decl.P_Get_Aspect (To_Unbounded_Text ("convention"));
+      Export_Aspect     : constant Libadalang.Analysis.Aspect :=
+         Decl.P_Get_Aspect (To_Unbounded_Text ("export"));
+   begin
+      if Exists (Convention_Aspect) then
+         return Value (Convention_Aspect).As_Identifier;
+      elsif Exists (Export_Aspect)
+           and then Node (Export_Aspect).Kind = Ada_Pragma_Node
+      then
+
+         --  If the export aspect is present as an aspect, the convention will
+         --  also be specified as a standalone aspect and/or pragma, so it will
+         --  have been picked up by the previous branch.
+
+         --  Either we have a named association ...
+
+         for Assoc_Item of Node (Export_Aspect).As_Pragma_Node.F_Args loop
+            declare
+               Prag_Assoc : constant Pragma_Argument_Assoc :=
+                 Assoc_Item.As_Pragma_Argument_Assoc;
+            begin
+               if not Prag_Assoc.F_Name.Is_Null
+                 and then Prag_Assoc.F_Name.Kind in LALCO.Ada_Identifier
+                 and then
+                   As_Symbol (Prag_Assoc.F_Name.As_Identifier)
+                   = Precomputed_Symbols (Convention)
+               then
+                  return Prag_Assoc.F_Expr.As_Identifier;
+               end if;
+            end;
+         end loop;
+
+         --  ... Otherwise for a positional association the convention comes
+         --  first.
+
+         declare
+            First_Child : constant Ada_Node'Class :=
+              Node (Export_Aspect).As_Pragma_Node.F_Args.Child (1);
+         begin
+            case First_Child.Kind is
+               when Ada_Pragma_Argument_Assoc =>
+                  return First_Child.As_Pragma_Argument_Assoc.F_Expr
+                         .As_Identifier;
+
+               when LALCO.Ada_Identifier => return First_Child.As_Identifier;
+
+               when others =>
+                  Report (Node => First_Child,
+                          Msg  => "Unexpected kind for a convention name: "
+                                  & First_Child.Kind_Name,
+                          Kind => Low_Warning);
+                  return No_Identifier;
+            end case;
+         end;
+      end if;
+
+      return No_Identifier;
+   end Get_Convention;
+
    ------------------------
    -- Process_Annotation --
    ------------------------
@@ -4736,9 +4808,30 @@ package body Instrument.Ada_Unit is
                    then Fun_Witness
                    else No_Node_Rewriting_Handle));
 
-               --  Insert the renaming in the wrapper package
+               --  Insert the instance in the wrapper package
 
                Insert_Last (Common_Nodes.Wrapper_Pkg_Decls, Instance);
+
+               --  Check if there is a convention aspect on the null procedure,
+               --  in which case we need to match it in the instance so that
+               --  the renaming is subtype conformant.
+
+               declare
+                  Convention_Id : constant Identifier :=
+                    Get_Convention (Common_Nodes.N);
+               begin
+                  if not Convention_Id.Is_Null then
+                     Insert_Last
+                       (Common_Nodes.Wrapper_Pkg_Decls,
+                        Create_Pragma_Node
+                          (RC,
+                           F_Id   => Create_Identifier (RC, "Convention"),
+                           F_Args => Create_Regular_Node
+                             (RC, Ada_Assoc_List,
+                               (1 => Clone (Convention_Id),
+                                2 => Clone (Common_Nodes.N_Name)))));
+                  end if;
+               end;
 
                --  Push the wrapper package and the renaming down to the end of
                --  the current list of declarations.
