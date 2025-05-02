@@ -1156,9 +1156,11 @@ def run_cov_program(
             "--save-temps",
         ]
 
-        # pycross might obfuscate the error exit code in light runtime cases.
-        expect_non_zero_code = (
-            expect_non_zero_code and not RUNTIME_INFO.has_light_runtime
+        # pycross might obfuscate the error exit code in light runtime cases
+        # and for embedded-leon3.
+        expect_non_zero_code = expect_non_zero_code and not (
+            RUNTIME_INFO.has_light_runtime
+            or RUNTIME_INFO.runtime_name == "embedded-leon3"
         )
     else:
         # Native programs using a light runtime can't set the exit code, and
