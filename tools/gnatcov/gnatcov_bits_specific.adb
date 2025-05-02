@@ -69,6 +69,7 @@ with Instrument.Main;
 with Instrument.Projects;
 with Instrument.Setup_Config;
 with Instrument.Source;
+with LLVM;
 with Logging;
 with Object_Locations;
 with Outputs;               use Outputs;
@@ -741,7 +742,7 @@ procedure GNATcov_Bits_Specific is
          and then LLVM_JSON_Ckpt_Inputs.Is_Empty
          and then SID_Inputs.Is_Empty
          and then ALIs_Inputs.Is_Empty
-         and then Args.String_List_Args (Opt_Exec).Is_Empty
+         and then Exe_Inputs.Is_Empty
          and then not Args.String_Args (Opt_Project).Present
       then
          Report_Missing_Argument
@@ -2375,17 +2376,68 @@ begin
                Read_And_Process_GNATcov_Traces (Base'Access);
             else
 
-               --  ??? Ensure an exec file was passed
+               --  Process LLVM traces (.profraw files)
+               --
+               --  The pipeline is the following:
+               --  1. Aggregate the profraw files into a single profdata
+               --     using llvm-profdata.
+               --  2. Use the llvm-json-exporter trace adapter to translate
+               --     the profdata file into a LLVM JSON checkpoint file.
+               --  3. Add the checkpoint file to the LLVM checkpoints so
+               --     gnatcov loads it.
 
-               --  ??? Validate all traces (or let llvm-profdata figure out ?)
+               declare
+                  LLVM_Profdata_File : constant String := "output.profdata";
+                  LLVM_JSON_File     : constant String := "llvm-ckpt.json";
+               begin
 
-               --  ??? Aggregate profraws using llvm-profdata
+                  --  Ensure an exec file was passed
 
-               --  ??? Convert the profdata into a JSON using trace adapter
+                  if Exe_Inputs.Is_Empty then
+                     Outputs.Fatal_Error ("LLVM coverage needs an executable"
+                                          & " file to retrieve coverage"
+                                          & " mappings. Use --exec");
+                  end if;
 
-               --  ??? Add the generated JSON to the list of LLVM JSON CKPTs
+                  --  Probe and validate all traces but the first one that was
+                  --  already validated.
 
-               Outputs.Fatal_Error ("Not yet implemented");
+                  for Trace in
+                     Trace_Inputs.First_Index + 1 .. Trace_Inputs.Last_Index
+                  loop
+                     declare
+                        Trace_Name : constant String :=
+                           +Trace_Inputs.Element (Trace).Filename;
+                     begin
+                        Probe_Trace_File (Trace_Name, Trace_Kind, Result);
+
+                        if not Result.Success then
+                           Outputs.Fatal_Error
+                             (Trace_Name & ": " & (+Result.Error));
+                        elsif Trace_Kind /= LLVM_Trace_File then
+                           Outputs.Fatal_Error
+                             (Trace_Name
+                              & ": Invalid .profraw file (bad magic)");
+                        end if;
+                     end;
+                  end loop;
+
+                  --  Aggregate profraws using llvm-profdata
+
+                  LLVM.Make_Profdata_From_Traces
+                    (Trace_Inputs, LLVM_Profdata_File);
+
+                  --  Convert the profdata into a JSON using trace adapter
+
+                  LLVM.Make_LLVM_Checkpoint_From_Profdata
+                    (LLVM_Profdata_File,
+                     +Exe_Inputs.First_Element,
+                     LLVM_JSON_File);
+
+                  --  Add the generated JSON to the list of LLVM JSON CKPTs
+
+                  LLVM_JSON_Ckpt_Inputs.Prepend (+LLVM_JSON_File);
+               end;
             end if;
          end;
 
