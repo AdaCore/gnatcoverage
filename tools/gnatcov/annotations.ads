@@ -141,7 +141,7 @@ private
       Need_Sources : Boolean;
       Show_Details : Boolean;
 
-      Use_UTF8 : Boolean;
+      Use_UTF8 : Boolean := False;
       --  Whether source excerpts need to be converted to UTF-8 for this format
 
       Context : Coverage.Context_Access;
