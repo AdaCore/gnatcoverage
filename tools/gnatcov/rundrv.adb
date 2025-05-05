@@ -37,15 +37,16 @@ package body Rundrv is
 
    package Env renames Ada.Environment_Variables;
 
-   Native_Warning : constant String :=
-      "Support for coverage of non-instrumented native programs is deprecated"
-      & " and will disappear after GNATcoverage 21 releases. You are"
+   Warning : constant String :=
+      "Support for coverage of non-instrumented programs is deprecated"
+      & " and will disappear after GNATcoverage 26 releases. You are"
       & " encouraged to migrate to instrumentation-based coverage: you can"
       & " read more about it in our documentation:"
-      & " <http://docs.adacore.com/gnatcoverage-docs/html/gnatcov.html>";
-   --  Warning to emit when running native programs
+      & " <https://docs.adacore.com/live/wave/gnatdas/html/gnatdas_ug/gnatcov"
+      & "/src_traces.html>";
+   --  Warning to emit when using binary traces
 
-   Native_Warning_Envvar : constant String := "GNATCOV_NO_NATIVE_WARNING";
+   Warning_Envvar : constant String := "GNATCOV_NO_BINARY_TRACES_WARNING";
    --  Name of the environment variable to define in order to disable this
    --  warning.
 
@@ -116,9 +117,6 @@ package body Rundrv is
               ("No builtin or GNATemulator execution driver found for"
                & " target: " & Context.Target_Family.all);
             return;
-
-         elsif Native and then Env.Value (Native_Warning_Envvar, "") = "" then
-            Outputs.Warn (Native_Warning);
          end if;
 
          --  And now create the trace file itself.
@@ -174,5 +172,16 @@ package body Rundrv is
          Dummy := Run_Command (Run_Cmd, "gnatcov run", Ignore_Error => True);
       end if;
    end Driver;
+
+   ------------------------------
+   -- Emit_Deprecation_Warning --
+   ------------------------------
+
+   procedure Emit_Deprecation_Warning is
+   begin
+      if Env.Value (Warning_Envvar, "") = "" then
+         Outputs.Warn (Warning);
+      end if;
+   end Emit_Deprecation_Warning;
 
 end Rundrv;

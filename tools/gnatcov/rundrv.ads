@@ -53,4 +53,9 @@ package Rundrv is
    --  command-line arguments for Exe_File. Write traces in the Output trace
    --  file. If Tag is not null, append it to the trace header.
 
+   procedure Emit_Deprecation_Warning;
+   --  Unless the GNATCOV_NO_BINARY_TRACES_WARNING environment variable is set,
+   --  emit a warning to say that support for coverage of non-instrumented
+   --  programs is deprecated.
+
 end Rundrv;
