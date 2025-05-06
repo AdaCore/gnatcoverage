@@ -627,6 +627,10 @@ class TestPyRunner:
         self.testcase_cmd = testcase_cmd
         self.testcase_timeout = timeout
 
+        # Disable the warning about usage of binary traces in gnatcov 26.* by
+        # default: it is irrelevant here.
+        os.environ["GNATCOV_NO_BINARY_TRACES_WARNING"] = "yes"
+
     def maybe_exec(self, binfile, args=None, edir=None):
         """
         Shortcut for the global maybe_exec. Log the result in
