@@ -10,4 +10,9 @@ project GNATcov_LLVM_exporter is
        for Executable ("main.cpp") use "gnatcov_llvm_exporter";
     end Builder;
 
+    package Compiler is
+        for Driver ("C") use "gcc";
+        for Driver ("C++") use "g++";
+    end Compiler;
+
 end GNATcov_LLVM_exporter;
