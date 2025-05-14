@@ -2,17 +2,8 @@
 
 set -ex
 
-if [ $# -eq 0 ]; then
-  echo "No arguments provided. Please provide the name of the gnatcov branch"
-  exit 1
-fi
-
 # Create a sandbox
 cd /Users/itmgr
-if ! [ -d gnatcoverage ]
-then
-    git clone git-adacore:eng/cov/gnatcoverage
-fi
 if ! [ -d wave ]
 then
     anod init wave
@@ -20,8 +11,7 @@ fi
 
 # Checkout the right gnatcov branch
 cd /Users/itmgr/gnatcoverage
-git fetch origin
-git checkout origin/$1
+git reset --hard wip
 
 # Build gnatcov
 cd /Users/itmgr/wave

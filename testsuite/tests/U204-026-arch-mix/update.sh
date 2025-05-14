@@ -33,6 +33,7 @@ then
     "$IOD_DEV_DIR/create-base.py" --base-image x86_64-windows-2019
 fi
 
-git_branch=$(git rev-parse --abbrev-ref HEAD)
-ssh iod 'bash -s' < update_arch_mix_windows.sh $git_branch
+ssh iod 'bash -s' < update_win_setup_git.sh
+git push -f iod:gnatcoverage HEAD:wip
+ssh iod 'bash -s' < update_arch_mix_windows.sh
 rsync -av iod:/cygdrive/c/tmp/U204-026-arch-mix/gen/* gen/
