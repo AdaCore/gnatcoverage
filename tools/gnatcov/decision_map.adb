@@ -27,7 +27,6 @@ with System.Storage_Elements;
 
 with Binary_Files;      use Binary_Files;
 with Coverage.Source;   use Coverage.Source;
-with Coverage.Tags;     use Coverage.Tags;
 with Coverage_Options;  use Coverage_Options;
 with Diagnostics;       use Diagnostics;
 with Elf_Common;
@@ -124,9 +123,7 @@ package body Decision_Map is
       --  If this is a conditional branch testing a condition, identifies it
 
       Branch_SCO             : SCO_Id := No_SCO_Id;
-      Branch_SCO_Tag         : SC_Tag := No_SC_Tag;
-      --  Condition or Statement SCO for To_PC, with corresponding tag, for
-      --  statistics purposes.
+      --  Condition or Statement SCO for To_PC, for statistics purposes
 
       --  If multiple SCOs are associated with this PC:
       --    - if one of them is a Condition, it is selected (in which case
@@ -224,7 +221,6 @@ package body Decision_Map is
    procedure Analyze_Conditional_Branch
      (Exec        : Exe_File_Acc;
       Insn        : Binary_Content;
-      Tag         : SC_Tag;
       C_SCO       : SCO_Id;
       Branch_Dest : Dest;
       FT_Dest     : Dest;
@@ -352,7 +348,6 @@ package body Decision_Map is
             --  Process the reference instance of the routine
 
             if First_Symbol_Occurrence then
-               Tag_Provider.Enter_Routine (Subp_Info);
 
                --  Map routine instructions to SCOs
 
@@ -433,7 +428,6 @@ package body Decision_Map is
    procedure Analyze_Conditional_Branch
      (Exec        : Exe_File_Acc;
       Insn        : Binary_Content;
-      Tag         : SC_Tag;
       C_SCO       : SCO_Id;
       Branch_Dest : Dest;
       FT_Dest     : Dest;
@@ -554,10 +548,6 @@ package body Decision_Map is
                   Msg :=
                     +("unexpected condition" & CI'Img
                       & " in decision " & Image (DS_Top.Decision));
-
-                  if Tag /= No_SC_Tag then
-                     Append (Msg, ", tag=" & Tag_Provider.Tag_Name (Tag));
-                  end if;
 
                   --  This could correspond to some finalization code, that has
                   --  a debug info code location corresponding to a condition.
@@ -2469,7 +2459,6 @@ package body Decision_Map is
             Exe  => Exec,
             PC   => BB.To_PC,
             Sloc => First_Sloc (BB.Branch_SCO),
-            Tag  => BB.Branch_SCO_Tag,
             Kind => Warning);
       end Report_Non_Traceable;
 
@@ -2483,7 +2472,6 @@ package body Decision_Map is
          Insn_First, Insn_Last : Pc_Type;
          --  Conditional branch instruction PC range in Insns
 
-         Tag                   : SC_Tag;
          C_SCO                 : SCO_Id;
          --  SCO and sloc information for this instruction
 
@@ -2550,16 +2538,16 @@ package body Decision_Map is
             Flag_Cond   : Boolean;
             Branch_Dest : Dest;
             FT_Dest     : Dest;
-            Tslocs      : constant Tagged_Slocs :=
-                            Tag_Provider.Get_Slocs_And_Tags (PC);
+            Slocs       : constant Source_Locations :=
+                            Get_Slocs (Context.Subprg.Lines, PC);
             --  Properties of Insn
 
          begin
             --  Check if this is a thunk
 
             if PC = Insns.First and then Match (Subp_Name, Thunk_Matcher) then
-               for Tsloc of Tslocs loop
-                  LI := Get_Line (Tsloc.Sloc);
+               for Sloc of Slocs loop
+                  LI := Get_Line (Sloc);
                   if LI /= null and then LI.SCOs /= null then
                      for SCO of LI.SCOs.all loop
                         if Kind (SCO) = Statement
@@ -2581,8 +2569,8 @@ package body Decision_Map is
             --  is done for all SCOs on the line, else only for those that
             --  contain that column number.
 
-            for Tsloc of Tslocs loop
-               LI := Get_Line (Tsloc.Sloc);
+            for Sloc of Slocs loop
+               LI := Get_Line (Sloc);
                if LI /= null and then LI.SCOs /= null then
 
                   --  Record presence of code for all Statement SCOs on line
@@ -2591,16 +2579,16 @@ package body Decision_Map is
 
                      if Kind (SCO) = Statement
                           and then
-                        (Tsloc.Sloc.L.Column = 0
-                           or else In_Range (Tsloc.Sloc, Sloc_Range (SCO)))
+                        (Sloc.L.Column = 0
+                           or else In_Range (Sloc, Sloc_Range (SCO)))
                      then
-                        Set_Basic_Block_Has_Code (SCO, Tsloc.Tag);
+                        Set_Basic_Block_Has_Code (SCO);
                      end if;
                   end loop;
 
                   --  Record presence of code for compilation unit
 
-                  Set_Unit_Has_Code (Comp_Unit (Tsloc.Sloc.Source_File));
+                  Set_Unit_Has_Code (Comp_Unit (Sloc.Source_File));
                end if;
             end loop;
 
@@ -2681,10 +2669,7 @@ package body Decision_Map is
             if Branch /= Br_None then
                Analyze_Branch : declare
                   SCO            : SCO_Id;
-                  Tag            : SC_Tag;
-
                   Branch_SCO     : SCO_Id renames BB.Branch_SCO;
-                  Branch_SCO_Tag : SC_Tag renames BB.Branch_SCO_Tag;
 
                --  Start of processing for Analyze_Branch
 
@@ -2710,9 +2695,8 @@ package body Decision_Map is
                     and then BB.Branch = Br_Jmp
                     and then BB.From = BB.To_PC;
 
-                  for Tsloc of Tslocs loop
-                     SCO := Sloc_To_SCO (Tsloc.Sloc);
-                     Tag := Tsloc.Tag;
+                  for Sloc of Slocs loop
+                     SCO := Sloc_To_SCO (Sloc);
 
                      if Flag_Cond then
                         if Branch = Br_Jmp or else Branch = Br_Ret then
@@ -2747,7 +2731,6 @@ package body Decision_Map is
                                    (Pending_Cond_Branch'
                                       (Insn_First  => Insn.First,
                                        Insn_Last   => Insn.Last,
-                                       Tag         => Tsloc.Tag,
                                        C_SCO       => SCO,
                                        Branch_Dest => Branch_Dest,
                                        FT_Dest     => FT_Dest,
@@ -2766,8 +2749,7 @@ package body Decision_Map is
                      end if;
 
                      if Branch_SCO = No_SCO_Id and then SCO /= No_SCO_Id then
-                        Branch_SCO     := SCO;
-                        Branch_SCO_Tag := Tag;
+                        Branch_SCO := SCO;
                      end if;
                   end loop;
 
@@ -2821,7 +2803,6 @@ package body Decision_Map is
               (Exec        => Exec,
                Insn        =>
                  Slice (Insns, Cond_Branch.Insn_First, Cond_Branch.Insn_Last),
-               Tag         => Cond_Branch.Tag,
                C_SCO       => Cond_Branch.C_SCO,
                Branch_Dest => Cond_Branch.Branch_Dest,
                FT_Dest     => Cond_Branch.FT_Dest,

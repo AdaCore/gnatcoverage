@@ -33,7 +33,6 @@ with Coverage_Options; use Coverage_Options;
 with Coverage;         use Coverage;
 with Coverage.Object;  use Coverage.Object;
 with Coverage.Source;
-with Coverage.Tags;    use Coverage.Tags;
 with Diagnostics;
 with Disa_Ppc;
 with Disassemblers;    use Disassemblers;
@@ -2706,12 +2705,10 @@ package body Traces_Elf is
 
                      --  If the code maps to source code targetted by SCOs,
                      --  tag the SCOs as having code so that we will emit a
-                     --  coverage violation for it. We have no symbol and no
-                     --  subprogram, thus we cannot get a tag for this code.
+                     --  coverage violation for it.
 
                      if SCO /= No_SCO_Id then
-                        Coverage.Source.Set_Basic_Block_Has_Code
-                          (SCO, No_SC_Tag);
+                        Coverage.Source.Set_Basic_Block_Has_Code (SCO);
                      end if;
                   end if;
 
@@ -4788,7 +4785,6 @@ package body Traces_Elf is
          pragma Unreferenced (Key);
       begin
          if Info.Exec /= null and then Is_Loaded (Info.Insns) then
-            Tag_Provider.Enter_Routine (Info);
             Build_Debug_Lines (Info.Exec.all);
             Build_Source_Lines_For_Section
               (Info.Exec, Info.Traces, Info.Insns);

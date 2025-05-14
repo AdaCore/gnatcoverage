@@ -1,3 +1,0 @@
-7.1.2 DEAD testing per-instance analysis of generics, implemented post 7.0.3
-src-traces XFAIL S628-011: src-traces and per-instance coverage of generics
-5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04

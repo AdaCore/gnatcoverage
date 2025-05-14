@@ -21,13 +21,12 @@ with Ada.Containers.Vectors;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Text_IO;             use Ada.Text_IO;
 
-with Calendar_Utils;   use Calendar_Utils;
-with Coverage;         use Coverage;
-with Coverage.Source;  use Coverage.Source;
-with Coverage.Tags;    use Coverage.Tags;
+with Calendar_Utils;  use Calendar_Utils;
+with Coverage;        use Coverage;
+with Coverage.Source; use Coverage.Source;
 with SC_Obligations;
 with Switches;
-with Traces_Files;     use Traces_Files;
+with Traces_Files;    use Traces_Files;
 
 package body Annotations.Report is
 
@@ -440,11 +439,6 @@ package body Annotations.Report is
            (Output => Output.all,
             Text   => Msg (First .. Msg'Last));
 
-         if M.SCO /= No_SCO_Id and then M.Tag /= No_SC_Tag then
-            Put (Output.all,
-                 " (from " & Tag_Provider.Tag_Name (M.Tag) & ")");
-         end if;
-
          New_Line (Output.all);
          Output_Annotations (Output.all, SCO_Annotations (M.SCO));
       end Output_Message;
@@ -655,11 +649,6 @@ package body Annotations.Report is
             Output_Multiline_Msg
               (Output => Output.all,
                Text   => Msg (First .. Msg'Last));
-
-            if M.SCO /= No_SCO_Id and then M.Tag /= No_SC_Tag then
-               Put (Output.all,
-                    " (from " & Tag_Provider.Tag_Name (M.Tag) & ")");
-            end if;
 
             New_Line (Output.all);
             if M.SCO /= No_SCO_Id then

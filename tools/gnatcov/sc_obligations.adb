@@ -33,8 +33,8 @@ with SCOs;
 with Snames;
 
 with Checkpoints;           use Checkpoints;
+with Coverage;              use Coverage;
 with Coverage.Source;
-with Coverage.Tags;         use Coverage, Coverage.Tags;
 with Diagnostics;           use Diagnostics;
 with Files_Table;           use Files_Table;
 with Inputs;                use Inputs;
@@ -212,10 +212,6 @@ package body SC_Obligations is
    procedure Register_CU (CU : CU_Id);
    --  Register CU in Origin_To_CUs_Map. This assumes that CU's Origin is
    --  properly initialized.
-
-   function Instance_Loc (Inst_Index : Inst_Id) return String;
-   --  Return a string representation of the instantiation location denoted
-   --  by Inst_Index, which must be in Comp_Unit's instance range.
 
    -----------------------------------
    -- Low level SCO tables handling --
@@ -549,29 +545,6 @@ package body SC_Obligations is
 
    procedure Add_SCO_To_Lines (SCO : SCO_Id; SCOD : SCO_Descriptor);
    --  Link the given SCO and SCOD to the corresponding entries in line tables
-
-   -----------------------
-   -- Instance coverage --
-   -----------------------
-
-   type Instance_Tag_Provider_Type is new Tag_Provider_Type with null record;
-
-   overriding function Get_Slocs_And_Tags
-     (TP : access Instance_Tag_Provider_Type;
-      PC : Pc_Type) return Tagged_Slocs;
-
-   overriding function Tag_Name
-     (TP  : access Instance_Tag_Provider_Type;
-      Tag : SC_Tag) return String;
-
-   overriding function Map_Tag
-     (TP     : access Instance_Tag_Provider_Type;
-      Relocs : Checkpoint_Relocations;
-      CP_Tag : SC_Tag) return SC_Tag;
-
-   package R is new Tag_Providers.Register_Factory
-     (Name => "instance", T => Instance_Tag_Provider_Type);
-   pragma Unreferenced (R);
 
    --  Source_Coverage_Vectors holds all SCO-related data. This holder can
    --  contain data loaded from a checkpoint.
@@ -3184,75 +3157,6 @@ package body SC_Obligations is
       end if;
    end Get_Origin;
 
-   -------------
-   -- Get_Tag --
-   -------------
-
-   overriding function Get_Slocs_And_Tags
-     (TP : access Instance_Tag_Provider_Type;
-      PC : Pc_Type) return Tagged_Slocs
-   is
-      use type Pc_Type;
-      use type Interfaces.Unsigned_32;
-
-      Line_Infos : constant Address_Info_Arr :=
-        Get_Address_Infos (TP.Current_Subp.Lines, Line_Addresses, PC);
-
-      Tslocs : Tagged_Slocs (1 .. Integer (Line_Infos'Length));
-      Last   : Natural := Tslocs'First - 1;
-
-      Global_Instance_Index : Inst_Id;
-
-      CU  : CU_Id renames TP.Current_Subp.Subprogram_CU;
-      CUI : CU_Info;
-      Has_Instances : Boolean;
-
-   begin
-      pragma Assert
-        (PC in TP.Current_Routine.Insns.First + TP.Current_Routine.Offset
-            .. TP.Current_Routine.Insns.Last  + TP.Current_Routine.Offset);
-
-      if CU /= No_CU_Id then
-         CUI := CU_Vector.Constant_Reference (CU);
-         Has_Instances := CUI.First_Instance <= CUI.Last_Instance;
-      else
-         Has_Instances := False;
-      end if;
-
-      for Line_Info of Line_Infos loop
-         if Line_Info.Last >= Line_Info.First then
-            Last := Last + 1;
-            Tslocs (Last).Sloc := Line_Info.Sloc;
-
-            --  Discriminator is an instance index if instance table is present
-            --  (SCOs loaded) and not empty.
-
-            if Has_Instances and then Line_Info.Disc /= 0 then
-
-               --  Non-zero discriminator found: it is an instance index within
-               --  the current compilation unit. Convert it to a global
-               --  instance index, and cast to tag.
-
-               Global_Instance_Index :=
-                 CUI.First_Instance + Inst_Id (Line_Info.Disc - 1);
-
-               pragma Assert
-                 (Global_Instance_Index <= CUI.Last_Instance);
-
-               pragma Assert
-                 (Inst_Vector.Constant_Reference
-                    (Global_Instance_Index).Comp_Unit
-                    = TP.Current_Subp.Subprogram_CU);
-
-               Tslocs (Last).Tag := Valid_SC_Tag (Global_Instance_Index);
-            else
-               Tslocs (Last).Tag := No_SC_Tag;
-            end if;
-         end if;
-      end loop;
-      return Tslocs (Tslocs'First .. Last);
-   end Get_Slocs_And_Tags;
-
    -------------------
    -- Handler_Range --
    -------------------
@@ -3649,21 +3553,6 @@ package body SC_Obligations is
 
       Origin_To_CUs_Map.Reference (Cur).Insert (CU);
    end Register_CU;
-
-   ------------------
-   -- Instance_Loc --
-   ------------------
-
-   function Instance_Loc (Inst_Index : Inst_Id) return String
-   is
-      II : Inst_Info renames Inst_Vector.Constant_Reference (Inst_Index);
-   begin
-      return
-        Image (II.Sloc)
-          & (if II.Enclosing_Instance = No_Inst_Id
-             then ""
-             else " [" & Instance_Loc (II.Enclosing_Instance) & "]");
-   end Instance_Loc;
 
    ------------------
    -- Is_Assertion --
@@ -5106,27 +4995,6 @@ package body SC_Obligations is
          end;
       end loop;
    end Process_Low_Level_SCOs;
-
-   -------------
-   -- Map_Tag --
-   -------------
-
-   overriding function Map_Tag
-     (TP     : access Instance_Tag_Provider_Type;
-      Relocs : Checkpoint_Relocations;
-      CP_Tag : SC_Tag) return SC_Tag
-   is
-      pragma Unreferenced (TP);
-   begin
-      --  Remap CP_Tag interpreted as a global instance id. No remapping is
-      --  needed for No_SC_Tag as it designates the absence of instance.
-
-      if CP_Tag = No_SC_Tag then
-         return No_SC_Tag;
-      else
-         return SC_Tag (Remap_Inst_Id (Relocs, Inst_Id (CP_Tag)));
-      end if;
-   end Map_Tag;
 
    -------------------
    -- Next_BDD_Node --
@@ -6711,19 +6579,6 @@ package body SC_Obligations is
                             and then Kind (SCO) = Condition));
       return SCO;
    end Sloc_To_SCO;
-
-   --------------
-   -- Tag_Name --
-   --------------
-
-   overriding function Tag_Name
-     (TP  : access Instance_Tag_Provider_Type;
-      Tag : SC_Tag) return String
-   is
-      pragma Unreferenced (TP);
-   begin
-      return Instance_Loc (Inst_Id (Tag));
-   end Tag_Name;
 
    ----------------------
    -- To_Decision_Kind --

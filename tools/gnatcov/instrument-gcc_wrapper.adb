@@ -27,7 +27,6 @@ with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 with GNAT.OS_Lib;
 
-with Coverage.Tags;           use Coverage.Tags;
 with Files_Handling;          use Files_Handling;
 with Files_Table;             use Files_Table;
 with Instrument.C;            use Instrument.C;
@@ -762,7 +761,6 @@ begin
 
    --  Set things that must be set as we don't go through gnatcov_bits_specific
 
-   Tag_Provider := Tag_Providers.Create (Default_Tag_Provider_Name);
    Traces_Files.Update_Current_Trace_Kind (Traces_Files.Source_Trace_File);
 
    Context.Orig_Compiler_Driver :=
