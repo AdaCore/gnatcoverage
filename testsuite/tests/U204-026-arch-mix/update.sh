@@ -22,5 +22,5 @@ cp -rf /tmp/U204-026-arch-mix/* .
 [ ! -d '/tmp/iod-dev' ] && git clone git-adacore:eng/shared/iod-dev /tmp/iod-dev
 /tmp/iod-dev/create-base.py --base-image x86_64-windows-2019
 git_branch=$(git rev-parse --abbrev-ref HEAD)
-sshpass ssh iod 'bash -s' < update_arch_mix_windows.sh $git_branch
+ssh iod 'bash -s' < update_arch_mix_windows.sh $git_branch
 rsync -av iod:/cygdrive/c/tmp/U204-026-arch-mix/gen/* gen/
