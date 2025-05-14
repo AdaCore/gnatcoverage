@@ -21,6 +21,7 @@ git checkout origin/$1
 cd /Users/itmgr/wave
 anod vcs --add-repo gnatcoverage /Users/itmgr/gnatcoverage
 anod build gnatcov --interactive never
+anod install gnatall -Qstable
 eval $(anod printenv gnatcov)
 eval $(anod printenv gnatall -Qstable)
 
