@@ -16,7 +16,6 @@ DIRNAME=gnatcoverage
 GPRBUILD_FLAGS := \
 			-cargs:c++ $(LLVM_CXXFLAGS) -g \
 			-largs \
-				-fuse-ld=lld \
 				-L $(LIBSTD_PATH) \
 				$(LLVM_LDFLAGS) \
 				$(LLVM_LIBS)

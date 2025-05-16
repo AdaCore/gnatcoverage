@@ -12,15 +12,28 @@ fi
 
 # Update the linux artifacts
 cd ..
-cp -rf U204-026-arch-mix /tmp/
+rsync -ar U204-026-arch-mix/ /tmp/U204-026-arch-mix
 cd /tmp/U204-026-arch-mix
 ./gen.sh linux
 cd $cwd
-cp -rf /tmp/U204-026-arch-mix/* .
+rsync -ar /tmp/U204-026-arch-mix/ .
 
-# Then update the windows artifacts
-[ ! -d '/tmp/iod-dev' ] && git clone git-adacore:eng/shared/iod-dev /tmp/iod-dev
-/tmp/iod-dev/create-base.py --base-image x86_64-windows-2019
-git_branch=$(git rev-parse --abbrev-ref HEAD)
-sshpass ssh iod 'bash -s' < update_arch_mix_windows.sh $git_branch
+# Then update the Windows artifacts using an IOD machine. Do not create the IOD
+# instance if one already exists
+IOD_DEV_DIR=/tmp/iod-dev
+INSTANCES_FILE="$IOD_DEV_DIR/instances.txt"
+if ! [ -d "$IOD_DEV_DIR" ]
+then
+    git clone git-adacore:eng/shared/iod-dev "$IOD_DEV_DIR"
+fi
+iod list --instances > "$INSTANCES_FILE" 2>&1
+if ! grep "You have some running instance" "$INSTANCES_FILE" \
+    > /dev/null
+then
+    "$IOD_DEV_DIR/create-base.py" --base-image x86_64-windows-2019
+fi
+
+ssh iod 'bash -s' < update_win_setup_git.sh
+git push -f iod:gnatcoverage HEAD:wip
+ssh iod 'bash -s' < update_arch_mix_windows.sh
 rsync -av iod:/cygdrive/c/tmp/U204-026-arch-mix/gen/* gen/
