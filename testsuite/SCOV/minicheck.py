@@ -17,6 +17,7 @@ from e3.fs import rm
 
 from SCOV.instr import (
     default_dump_channel,
+    maybe_copy_runtime,
     maybe_relocate_binaries,
     xcov_convert_base64,
     xcov_instrument,
@@ -268,6 +269,11 @@ def build_and_run(
 
         if dump_channel == "auto":
             dump_channel = default_dump_channel()
+
+        # The AAMP target does not support library project and requires
+        # rebuilding the instrumentation runtime: copy it in the test
+        # directory.
+        maybe_copy_runtime(os.getcwd())
 
         # Instrument the project and build the result
         extra_instr_args = cov_or_instr_args + list(extra_instr_args or [])
