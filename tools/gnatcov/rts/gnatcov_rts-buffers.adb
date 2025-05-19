@@ -33,6 +33,7 @@ package body GNATcov_RTS.Buffers is
    procedure Witness (Buffer_Address : System.Address; Bit : Bit_Id) is
       Buffer : Coverage_Buffer_Type (0 .. Bit);
       for Buffer'Address use Buffer_Address;
+      pragma Import (Ada, Buffer);
    begin
       --  Here and below: deactivate warnings about possible exception
       --  propagation under light runtimes.
