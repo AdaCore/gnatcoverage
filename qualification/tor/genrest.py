@@ -791,10 +791,6 @@ class Dir(Artifact):
             )
         )
 
-        # if not base and self.sdset.some_tcorset:
-        #     self.tcset = True
-        #     base = "tc_set.rst"
-
         return os.path.join(self.root, base) if base and path else base
 
     @property
@@ -1083,7 +1079,7 @@ class DirTree:
         """prune all subdirs of self that are do *not* lead to any dir
         in NAMELIST"""
 
-        class WalkInfo:
+        class WalkInfo(DirTree.WalkInfo):
             def __init__(self: WalkInfo, tokeep: List[str]):
                 self.tokeep = tokeep
                 self.toprune: List[Dir] = []
@@ -1266,19 +1262,6 @@ class DirTree:
             "missing testcases for leaf req in %s" % diro.root,
         )
 
-        # Warn on missing testing strategy in leaf requirement with multiple
-        # testcases
-
-        # CAN NOT BE DIAGNOSED IN RST DATA ANY MORE
-
-        # warn_if(
-        #     diro.req
-        #     and len(diro.subdos) > 1
-        #     and diro.sdset.all_tcorset
-        #     and "%(tstrategy-headline)s" not in diro.dtext(),
-        #     "req at %s misses testing strategy description" % diro.root,
-        # )
-
     def topdown_check_consistency(
         self: DirTree, diro: Dir, pathi: PathInfo, data
     ):
@@ -1290,6 +1273,7 @@ class DirTree:
 
 
 class DirTree_FromPath(DirTree):
+
     def __init__(self: DirTree_FromPath, rootp: str):
         DirTree.__init__(self, roots=[])
 
@@ -1409,11 +1393,15 @@ class DirTree_FromPath(DirTree):
             subdo.tname = ".".join([diro.tname, subdo.tname])
             subdo.sname = ".".join([diro.sname, subdo.sname])
 
+    class WalkInfo(DirTree.WalkInfo):
+        def __init__(self: DirTree_FromPath.WalkInfo):
+            self.tobridge = []
+
     def __decide_cross_over(
         self: DirTree_FromPath,
         diro: Dir,
         pathi: PathInfo,
-        wi: DirTree.WalkInfo,
+        wi: DirTree_FromPath.WalkInfo,
     ):
         """Add DIRO to WI.tobridge if DIRO ought to be removed from the
         tree."""
@@ -1432,11 +1420,7 @@ class DirTree_FromPath(DirTree):
         # Collect the set of nodes to remove first, then remove each one in
         # turn. Removing while we're walking the tree is, mm, hazardous.
 
-        class WalkInfo:
-            def __init__(self: WalkInfo):
-                self.tobridge = []
-
-        wi = WalkInfo()
+        wi = DirTree_FromPath.WalkInfo()
         self.walk(mode=topdown, process=self.__decide_cross_over, data=wi)
 
         [self.__do_bridge_over(diro) for diro in wi.tobridge]
@@ -1752,17 +1736,6 @@ class DocGenerator(object):
         if not os.path.isdir(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename))
         self.ofd = open(filename, "w")
-
-        # FIXME Double-check why this was here. It adds an extra title not
-        # conforming to that in the existing qualkits
-        # ttext = (
-        #     self.ALT_TITLES[diro.tname]
-        #     if diro.tname in self.ALT_TITLES else diro.tname
-        # )
-
-        # txthdl = diro.kind.txthdl
-        # self.ofd.write(
-        #     rest.section(ttext + (" -- %s" % txthdl if txthdl else "")))
 
         if diro.dfile():
             self.ofd.write(self.contents_from(diro))

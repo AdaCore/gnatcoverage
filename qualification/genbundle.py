@@ -368,6 +368,7 @@ class QMAT:
 
         self.workdir = os.path.abspath(options.workdir)
         self.repodir = os.path.join(self.workdir, REPO_IMAGE_SUBDIR)
+        self.qualdir = os.path.join(self.repodir, "qualification")
 
         # A local place where the testsuite tree may be found,
         # possibly after remote syncing from testsuite_dir if that
@@ -377,7 +378,7 @@ class QMAT:
 
         # To be set prior to build_as_needed():
 
-        self.this_docformat = None
+        self.this_docformat: str = ""
 
         # Sequence number of doc build pass we are processing:
 
@@ -616,53 +617,13 @@ class QMAT:
             )
         )
 
-    # ------------------
-    # -- gen_qm_model --
-    # ------------------
-
-    def gen_qm_model(self):
-        """Generate model.xml that __qm_build will use."""
-
-        announce("generating qm model")
-
-        os.chdir(os.path.join(self.repodir, "qualification", "qm"))
-
-        run(
-            sys.executable
-            + " genmodel.py --dolevel=%s --languages=%s"
-            % (self.o.dolevel, self.o.languages)
-        )
-
-    # ----------------
-    # -- __qm_build --
-    # ----------------
-
-    def __qm_build(self, part):
-        """Build one PART of using the Qualifying Machine."""
-
-        announce("building %s %s" % (self.this_docformat, part.upper()))
-
-        os.chdir(os.path.join(self.repodir, "qualification", "qm"))
-
-        # The qmachine model might use the "build" directory as
-        # a repository, and it has to preexist:
-
-        mkdir("build")
-        run(
-            "qmachine model.xml -l scripts/generate_%s_%s.py"
-            % (part, self.this_docformat),
-            env={"GENBUNDLE_DOLEVEL": self.o.dolevel},
-        )
-
-        self.__latch_into(dirname=self.itemsdir(), part=part, toplevel=False)
-
     # ---------------
     # -- build_tor --
     # ---------------
 
     def build_tor(self):
         # If we have a local testsuite dir at hand and we haven't done so
-        # already, fetch the testsresults that the QM needs to check TOR/TC
+        # already, fetch the tests results that the QM needs to check TOR/TC
         # consistency:
 
         if self.local_testsuite_dir and self.passno == 1:
@@ -686,17 +647,21 @@ class QMAT:
 
         announce("building %s %s" % (self.this_docformat, "TOR"))
 
-        os.chdir(os.path.join(self.repodir, "qualification", "tor", "scripts"))
+        os.chdir(os.path.join(self.repodir, "qualification", "tor"))
 
         run(
-            "python genrest.py --dolevel %s --force" % (self.o.dolevel)
+            "python genrest.py --dolevel %s --force" % (self.o.dolevel),
+            env={"PYTHONPATH": self.qualdir},
         )
         run(
-            "make %s" % (self.this_docformat),
-            env={"GENBUNDLE_DOLEVEL": self.o.dolevel},
+            "make %s" % (sphinx_target_for[self.this_docformat]),
+            env={
+                "GENBUNDLE_DOLEVEL": self.o.dolevel,
+                "PYTHONPATH": self.qualdir,
+            },
         )
 
-        self.__latch_into(dir=self.itemsdir(), part="tor", toplevel=False)
+        self.__latch_into(dirname=self.itemsdir(), part="tor", toplevel=False)
 
     # ------------------------------
     # -- dump_kit_consistency_log --
@@ -949,14 +914,23 @@ class QMAT:
     # -----------------
 
     def build_plans(self):
-        plans_root = os.path.join(self.repodir, "qualification", "qm", "plans")
+        plans_root = os.path.join(self.repodir, "qualification", "plans")
         trace_specific_content = [
             os.path.join(
                 plans_root, "Tool_Qualification_Plan", "Qualified_Interface"
             )
         ]
         self.prepare_content(trace_specific_content)
-        self.__qm_build(part="plans")
+
+        os.chdir(plans_root)
+        run(
+            f"make {sphinx_target_for[self.this_docformat]}",
+            env={"PYTHONPATH": self.qualdir},
+        )
+
+        self.__latch_into(
+            dirname=self.itemsdir(), part="plans", toplevel=False
+        )
 
     # ---------------
     # -- build_kit --
@@ -1367,11 +1341,6 @@ if __name__ == "__main__":
 
     if options.branchname:
         qmat.switch_to_branch()
-
-    # Produce each part we are requested to produce, with a tailored
-    # QM model:
-
-    qmat.gen_qm_model()
 
     # Build the various parts and maybe the kit for each requested format:
 
