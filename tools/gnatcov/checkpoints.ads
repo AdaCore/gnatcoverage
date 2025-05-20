@@ -295,14 +295,6 @@ package Checkpoints is
       Static_Decision_Evaluations : Static_Decision_Evaluation_Maps.Map;
    end record;
 
-   use type Interfaces.Unsigned_32;
-   function Version_Less
-     (CLS : Checkpoint_Load_State; Than : Checkpoint_Version) return Boolean
-   is (CLS.Version < Than)
-     with Inline;
-   --  This is provided as a function to prevent the compiler from generating
-   --  "can never be greater than" warnings.
-
    procedure Checkpoint_Save
      (Filename : String;
       Context  : access Coverage.Context;
