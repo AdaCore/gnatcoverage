@@ -35,11 +35,12 @@ TAGS
 *.log
 
 # temporary output of genrest.py
-qualification/tor/scripts/source/
+qualification/tor/source/
 
 # generated output of genbundle.py
 **/build
 **/source
+**/missing_tr_log.txt
 
 # vscode local settings
 .env
