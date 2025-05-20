@@ -12,31 +12,16 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os, glob
+from scripts.common_conf import (
+    project_name,
+    str_doc_id,
+    version,
+)
 
 doc_standard_name = "Tool Operational Verification and Validation Results"
-project_name = "GNAT Coverage"
-str_doc_id = "TOVVR"
-version = "DRAFT"
 
 rst_prolog = ".. |str_doc| replace:: *%s*" % doc_standard_name
 
-# Locate and import common_conf.py
-
-work_dir = os.path.join(
-    os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    )
-)
-common_conf_glob = f"{work_dir}/*/qualification/qm/common_conf.py"
-common_conf_candidates = glob.glob(common_conf_glob)
-
-assert (
-    len(common_conf_candidates) == 1
-), f"{__file__} couldn't locate lone common_conf.py out of {common_conf_glob}"
-
-common_conf_py = common_conf_candidates[0]
-exec(open(common_conf_py).read())
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the

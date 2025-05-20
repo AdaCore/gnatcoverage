@@ -21,7 +21,9 @@ from e3.fs import find
 # --testsuite-dir, though the two should be consistent wrt the python script
 # sources (e.g. the CTXdata structure must match)
 
-LOCAL_TESTSUITE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOCAL_TESTSUITE_DIR = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
+)
 sys.path.append(LOCAL_TESTSUITE_DIR)
 
 TEST_LOG = "test.py.log"
@@ -48,6 +50,8 @@ from SCOV.internals.cnotes import (
     ePartCov,
     eNoCov,
     cPartCov,
+    XsNoCov,
+    Xr0c,
     xBlock1,
 )
 from SUITE.cutils import FatalError, lines_of
@@ -911,6 +915,7 @@ class QDreport(object):
             for src in qde.xrnotes
             for notelist in qde.xrnotes[src].values()
             for note in notelist
+            if note.kind not in range(XsNoCov, Xr0c + 1)
         ]
 
         return this_tcdata
@@ -1214,7 +1219,11 @@ class QDreport(object):
             of the form <switch>=<value> in SWITCHES_STRING."""
 
             return dict(
-                [sw.split("=") for sw in switches_string.split() if "=" in sw]
+                [
+                    sw.split("=", 1)
+                    for sw in switches_string.split()
+                    if "=" in sw
+                ]
             )
 
         itemno = Column(htext="Item #", legend=None)

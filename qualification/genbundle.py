@@ -905,7 +905,10 @@ class QMAT:
 
         os.chdir(os.path.join(self.local_testsuite_dir, "STR"))
 
-        run("make %s" % sphinx_target_for[self.this_docformat])
+        run(
+            "make %s" % sphinx_target_for[self.this_docformat],
+            env={"PYTHONPATH": self.qualdir},
+        )
 
         self.__latch_into(dirname=self.itemsdir(), part="str", toplevel=False)
 
