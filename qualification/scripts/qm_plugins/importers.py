@@ -6,9 +6,7 @@ from itertools import zip_longest
 from collections import OrderedDict
 import os
 
-# FIXME
-# MISSING_TR_LOG = os.path.join(get_project_dir(), "missing_tr_log.txt")
-MISSING_TR_LOG = "missing_tr_log.txt"
+MISSING_TR_LOG = os.path.join(os.getcwd(), "missing_tr_log.txt")
 
 
 def resolve_importer(qmlink_txt: str) -> ArtifactImporter | None:

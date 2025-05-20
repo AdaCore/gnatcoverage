@@ -769,7 +769,7 @@ class QMAT:
         log.write("\n-- TOR/TR CONSISTENCY LOG:\n")
 
         tor_tr_logfile = os.path.join(
-            self.repodir, "qualification", "qm", "missing_tr_log.txt"
+            self.repodir, "qualification", "tor", "missing_tr_log.txt"
         )
 
         if not os.path.exists(tor_tr_logfile):
