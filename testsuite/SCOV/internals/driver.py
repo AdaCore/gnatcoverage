@@ -32,6 +32,7 @@ from SCOV.instr import (
     add_dumper_lch_hook,
     default_dump_channel,
     default_dump_trigger,
+    maybe_copy_runtime,
     maybe_relocate_binaries,
     xcov_convert_base64,
     xcov_instrument,
@@ -1483,6 +1484,11 @@ class SCOV_helper_src_traces(SCOV_helper):
         else:
             subdirs = None
             instrument_gprsw = GPRswitches(root_project=self.gpr)
+
+        # The AAMP target does not support library project and requires
+        # rebuilding the instrumentation runtime: copy it in the test
+        # directory.
+        maybe_copy_runtime(os.getcwd())
 
         # Instrument now, requesting the propagation of instrumentation
         # issues on the test status. Note that we expect this to include
