@@ -2376,6 +2376,37 @@ begin
                Read_And_Process_GNATcov_Traces (Base'Access);
             else
 
+               --  Ensure an exec file was passed
+
+               if Exe_Inputs.Is_Empty then
+                  Outputs.Fatal_Error ("LLVM coverage needs an executable"
+                                       & " file to retrieve coverage"
+                                       & " mappings. Use --exec");
+               end if;
+
+               --  Probe and validate all traces but the first one that was
+               --  already validated.
+
+               for Trace in
+                  Trace_Inputs.First_Index + 1 .. Trace_Inputs.Last_Index
+               loop
+                  declare
+                     Trace_Name : constant String :=
+                        +Trace_Inputs.Element (Trace).Filename;
+                  begin
+                     Probe_Trace_File (Trace_Name, Trace_Kind, Result);
+
+                     if not Result.Success then
+                        Outputs.Fatal_Error
+                          (Trace_Name & ": " & (+Result.Error));
+                     elsif Trace_Kind /= LLVM_Trace_File then
+                        Outputs.Fatal_Error
+                          (Trace_Name
+                           & ": Invalid .profraw file (bad magic)");
+                     end if;
+                  end;
+               end loop;
+
                --  Process LLVM traces (.profraw files)
                --
                --  The pipeline is the following:
@@ -2387,56 +2418,14 @@ begin
                --     gnatcov loads it.
 
                declare
-                  LLVM_Profdata_File : constant String := "output.profdata";
-                  LLVM_JSON_File     : constant String := "llvm-ckpt.json";
+                  LLVM_JSON_Ckpt : Unbounded_String;
                begin
+                  LLVM.Create_LLVM_Temp_Dir (Auto_Delete => not Save_Temps);
 
-                  --  Ensure an exec file was passed
+                  LLVM_JSON_Ckpt := LLVM.Make_LLVM_Checkpoint_From_Traces
+                    (Trace_Inputs, +Exe_Inputs.First_Element);
 
-                  if Exe_Inputs.Is_Empty then
-                     Outputs.Fatal_Error ("LLVM coverage needs an executable"
-                                          & " file to retrieve coverage"
-                                          & " mappings. Use --exec");
-                  end if;
-
-                  --  Probe and validate all traces but the first one that was
-                  --  already validated.
-
-                  for Trace in
-                     Trace_Inputs.First_Index + 1 .. Trace_Inputs.Last_Index
-                  loop
-                     declare
-                        Trace_Name : constant String :=
-                           +Trace_Inputs.Element (Trace).Filename;
-                     begin
-                        Probe_Trace_File (Trace_Name, Trace_Kind, Result);
-
-                        if not Result.Success then
-                           Outputs.Fatal_Error
-                             (Trace_Name & ": " & (+Result.Error));
-                        elsif Trace_Kind /= LLVM_Trace_File then
-                           Outputs.Fatal_Error
-                             (Trace_Name
-                              & ": Invalid .profraw file (bad magic)");
-                        end if;
-                     end;
-                  end loop;
-
-                  --  Aggregate profraws using llvm-profdata
-
-                  LLVM.Make_Profdata_From_Traces
-                    (Trace_Inputs, LLVM_Profdata_File);
-
-                  --  Convert the profdata into a JSON using trace adapter
-
-                  LLVM.Make_LLVM_Checkpoint_From_Profdata
-                    (LLVM_Profdata_File,
-                     +Exe_Inputs.First_Element,
-                     LLVM_JSON_File);
-
-                  --  Add the generated JSON to the list of LLVM JSON CKPTs
-
-                  LLVM_JSON_Ckpt_Inputs.Prepend (+LLVM_JSON_File);
+                  LLVM_JSON_Ckpt_Inputs.Prepend (LLVM_JSON_Ckpt);
                end;
             end if;
          end;
