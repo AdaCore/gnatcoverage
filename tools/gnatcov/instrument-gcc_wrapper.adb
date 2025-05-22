@@ -655,11 +655,23 @@ is
             Arg     : constant Unbounded_String := Element (Cur);
             Arg_Str : constant String := +Arg;
          begin
+            --  Include family switches will have already had an effect during
+            --  the initial preprocessing, skip them here
+
             if Arg_Str in "-include" | "--include" then
                Cur := Next (Cur);
             elsif Starts_With (Arg, "--include=")
               or else Starts_With (Arg, "-include")
             then
+               null;
+
+            --  The -M family of switches should not be propagated as it
+            --  otherwise leads to the inclusion of coverage artifacts in the
+            --  generated dependency files.
+
+            elsif Arg_Str in "-MF" | "-MT" | "-MQ" then
+               Next (Cur);
+            elsif Starts_With (Arg, "-M") then
                null;
             else
                Result.Append (Element (Cur));
@@ -758,9 +770,13 @@ begin
 
    --  If this driver invocation is not meant to compile a source file, there
    --  is no instrumentation to do: just run the original driver and exit.
+   --
+   --  The -M family of flags imply -E, so there nothing to do for us in that
+   --  case too, EXCEPT FOR -MD and -MMD, which do not imply -E. See section
+   --  13 of the C preprocessor manual.
 
    for Arg of Cargs loop
-      if +Arg in "-###" | "-E" then
+      if +Arg in "-###" | "-E" | "-M" | "-MM" then
          Run_Original_Compiler (Context, Cargs);
          return;
       end if;
