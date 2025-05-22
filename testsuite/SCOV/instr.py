@@ -2,8 +2,9 @@
 
 import os.path
 import re
+import shutil
 
-from e3.fs import mkdir
+from e3.fs import mkdir, sync_tree
 
 from SUITE.context import thistest
 from SUITE.control import env
@@ -344,3 +345,21 @@ def maybe_relocate_binaries(object_dir, exe_dir, mains):
     if "aamp" in env.target.platform:
         for main in mains:
             copy_to_dir(object_dir, exe_dir, main)
+
+
+def maybe_copy_runtime(test_dir):
+    """
+    Copy the Ada instrumentation runtime in test_dir for the AAMP target.
+    """
+    if "aamp" in env.target.platform:
+        rts_path = os.path.join(
+            os.path.dirname(shutil.which("gnatcov")),
+            "..",
+            "share",
+            "gnatcoverage",
+            "gnatcov_ada_rts",
+        )
+        rts_dest_path = os.path.join(test_dir, "rts")
+        mkdir(rts_dest_path)
+        sync_tree(rts_path, rts_dest_path)
+        env.add_search_path(env_var="GPR_PROJECT_PATH", path=rts_dest_path)
