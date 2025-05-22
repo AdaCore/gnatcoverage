@@ -78,6 +78,10 @@ package body Instrument.Ada_Unit is
    --  Set of versions of the Ada language that support declare
    --  expressions.
 
+   subtype If_Expr_Supported_Versions is Any_Language_Version range
+      Ada_2012 .. Any_Language_Version'Last;
+   --  Set of versions of the Ada language that support if expressions.
+
    function Create_Context_Instrument
      (N : Libadalang.Analysis.Ada_Node'Class) return Context_Handle;
    --  Create a context to show that gnatcov is instrumenting the given node
@@ -8179,17 +8183,14 @@ package body Instrument.Ada_Unit is
                   --  we can simply convert the original expression to
                   --  Standard.Boolean.
 
-                  Old_Cond := Create_Call_Expr
-                    (RC,
-                     F_Name   => Make_Identifier
-                       (RC, To_Text ("GNATcov_RTS.Std.Boolean")),
-                     F_Suffix => Create_Regular_Node
+                  if UIC.Language_Version in If_Expr_Supported_Versions then
+                     Wrap_In_If_Expr (RC, Old_Cond);
+                  else
+                     Wrap_In_Call_Expr
                        (RC,
-                        Ada_Assoc_List,
-                        (1 => Create_Param_Assoc
-                             (RC,
-                              F_Designator => No_Node_Rewriting_Handle,
-                              F_R_Expr     => Old_Cond))));
+                        Prefix => To_Text ("GNATcov_RTS.Std.Boolean"),
+                        Node   => Old_Cond);
+                  end if;
 
                   Set_Child
                     (New_Cond, Member_Refs.Bin_Op_F_Right, Old_Cond);
