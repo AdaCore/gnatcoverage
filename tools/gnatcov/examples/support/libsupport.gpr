@@ -5,7 +5,10 @@
 
 with "common.gpr", "conf.gpr";
 
-library project Libsupport is
+project Libsupport is
+
+   Library_Support : Common.Yes_No_Type := external ("LIBRARY_SUPPORT", "yes");
+   --  Whether the platform supports library projects
 
    Do_Build  : Common.Yes_No_Type := external ("LIBSUPPORT_BUILD", "no");
    --  Whether we're using this file to build the library or to link
@@ -15,30 +18,36 @@ library project Libsupport is
    --  Whether we are building/using for an Aunit context or not, with
    --  influence on the last_chance handler inclusion.
 
+   Langs := ("Ada");
+
+   for Object_Dir use "obj/" & Conf.Target;
+
    --  Common library attributes:
    --  ==========================
 
-   for Library_Kind use "static";
-   for Library_Auto_Init use "False";
-
-   Langs := ("Ada");
-
-   for Library_Dir use "lib/" & Conf.Target;
-   for Object_Dir use "obj/" & Conf.Target;
-
-   --  We might have needs for both aunit and !aunit libs for a run
-   --  so pick a different libname for each case:
-
-   case Use_AUnit is
+   case Library_Support is
       when "yes" =>
-         for Library_Name use "supportaunit";
-      when "no" =>
-         for Library_name use "support";
-   end case;
+         for Library_Dir use "lib/" & Conf.Target;
+         for Library_Kind use "static";
+         for Library_Auto_Init use "False";
 
-   case Do_Build is
-      when "no"  => for Externally_Built use "true";
-      when "yes" => for Externally_Built use "false";
+         --  We might have needs for both aunit and !aunit libs for a run
+         --  so pick a different libname for each case:
+
+         case Use_AUnit is
+            when "yes" =>
+               for Library_Name use "supportaunit";
+            when "no" =>
+               for Library_name use "support";
+         end case;
+
+         case Do_Build is
+            when "no"  => for Externally_Built use "true";
+            when "yes" => for Externally_Built use "false";
+         end case;
+
+      when "no" =>
+         null;
    end case;
 
    --  Now compute the set of source directories to use. A common one,
@@ -48,7 +57,7 @@ library project Libsupport is
    Source_Dirs := ("src", "src/helpers");
 
    case Conf.Target is
-      when "" | "c" => null;
+      when "" | "c" | "aamp" => null;
 
       when others =>
 

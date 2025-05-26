@@ -24,6 +24,7 @@ build_run_and_coverage(
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
     gpr_obj_dir=obj_dir,
     gpr_exe_dir=obj_dir,
+    extra_gprbuild_args=["-q"],
     extra_gprbuild_cargs=["-gnatwae"],
     check_gprbuild_output=True,
     trace_mode="src",

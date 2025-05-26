@@ -305,7 +305,23 @@ package body GNATcov_RTS.Traces.Output is
    begin
       Write_Header (Output);
       Write_Info (Output, Info_Program_Name, Program_Name);
-      Write_Info (Output, Info_Exec_Date, String'(1 .. 8 => 'A'));
+
+      --  Write the exec date
+
+      declare
+         Timestamp : Interfaces.Unsigned_64 := Exec_Date;
+         Bytes     : Uint8_Array (1 .. 8);
+         Bytes_Str : String (1 .. 8);
+         for Bytes_Str'Address use Bytes'Address;
+         pragma Import (Ada, Bytes_Str);
+      begin
+         for I in 1 .. 8 loop
+            Bytes (I) := Interfaces.Unsigned_8 (Timestamp mod 8);
+            Timestamp := Shift_Right (Timestamp, 8);
+         end loop;
+         Write_Info (Output, Info_Exec_Date, Bytes_Str);
+      end;
+
       Write_Info (Output, Info_User_Data, User_Data);
       Write_Info (Output, Info_End, "");
       for I in Buffers_Groups'Range loop

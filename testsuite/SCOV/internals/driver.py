@@ -32,6 +32,8 @@ from SCOV.instr import (
     add_dumper_lch_hook,
     default_dump_channel,
     default_dump_trigger,
+    maybe_copy_runtime,
+    maybe_relocate_binaries,
     xcov_convert_base64,
     xcov_instrument,
 )
@@ -624,12 +626,13 @@ class SCOV_helper:
         this_depth = thistest.depth + 1 if self.covctl else thistest.depth
 
         self.gpr_obj_dir = "obj"
+        self.gpr_exe_dir = self.abdir(attribute=True)
         self.gpr = gprfor(
             mains=self.drivers,
             prjid="gen",
             objdir=self.gpr_obj_dir,
             srcdirs=["../" * n + "src" for n in range(1, this_depth)],
-            exedir=self.abdir(attribute=True),
+            exedir=self.gpr_exe_dir,
             main_cargs="-fno-inline",
             deps=self.covctl.deps if self.covctl else [],
             extra=self.covctl.gpr() if self.covctl else "",
@@ -1479,6 +1482,11 @@ class SCOV_helper_src_traces(SCOV_helper):
             subdirs = None
             instrument_gprsw = GPRswitches(root_project=self.gpr)
 
+        # The AAMP target does not support library project and requires
+        # rebuilding the instrumentation runtime: copy it in the test
+        # directory.
+        maybe_copy_runtime(os.getcwd())
+
         # Instrument now, requesting the propagation of instrumentation
         # issues on the test status. Note that we expect this to include
         # a check on instrumentation warnings.
@@ -1529,6 +1537,9 @@ class SCOV_helper_src_traces(SCOV_helper):
             self.gpr,
             extracargs=self.extracargs,
             gargs=self.common_build_gargs() + ["--src-subdirs=gnatcov-instr"],
+        )
+        maybe_relocate_binaries(
+            self.gpr_obj_dir, self.gpr_exe_dir, [exename_for(self.main())]
         )
 
     def mode_execute(self, main):

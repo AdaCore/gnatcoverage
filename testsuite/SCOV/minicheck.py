@@ -17,11 +17,14 @@ from e3.fs import rm
 
 from SCOV.instr import (
     default_dump_channel,
+    maybe_copy_runtime,
+    maybe_relocate_binaries,
     xcov_convert_base64,
     xcov_instrument,
 )
 from SUITE.cutils import contents_of, indent
 from SUITE.tutils import (
+    exename_for,
     exepath_to,
     gprbuild,
     run_cov_program,
@@ -267,6 +270,11 @@ def build_and_run(
         if dump_channel == "auto":
             dump_channel = default_dump_channel()
 
+        # The AAMP target does not support library project and requires
+        # rebuilding the instrumentation runtime: copy it in the test
+        # directory.
+        maybe_copy_runtime(os.getcwd())
+
         # Instrument the project and build the result
         extra_instr_args = cov_or_instr_args + list(extra_instr_args or [])
         xcov_instrument(
@@ -353,6 +361,8 @@ def build_and_run(
         # multiple traces in the current directory.
         for m in mains:
             rm(srctrace_pattern_for(m, is_manual, manual_prj_name))
+            # Callback to run for each instrumented main
+            maybe_relocate_binaries(gpr_obj_dir, gpr_exe_dir, [exename_for(m)])
 
         patterns = set()
         trace_files = []
