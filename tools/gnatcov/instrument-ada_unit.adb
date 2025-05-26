@@ -417,10 +417,6 @@ package body Instrument.Ada_Unit is
               | Ada_Decl_Expr);
    --  Whether nodes of type Kind must be wrapped with parens
 
-   function Create_Identifier
-     (RH : Rewriting_Handle; Text : Text_Type) return Node_Rewriting_Handle
-   is (Create_Token_Node (RH, Libadalang.Common.Ada_Identifier, Text));
-
    function Expression_Type
      (UIC : Ada_Unit_Inst_Context;
       E   : Expr) return Base_Type_Decl;
@@ -488,17 +484,15 @@ package body Instrument.Ada_Unit is
    --  Shortcut to create a node of the given kind
 
    function Make_Identifier
-     (UIC : Ada_Unit_Inst_Context'Class;
-      Id  : Wide_Wide_String) return Node_Rewriting_Handle
-   is (Create_Token_Node
-       (UIC.Rewriting_Context, Libadalang.Common.Ada_Identifier, Id));
+     (RH : Rewriting_Handle; Id : Text_Type) return Node_Rewriting_Handle
+   is (Create_Token_Node (RH, Libadalang.Common.Ada_Identifier, Id));
    --  Shortcut to create an identifier node
 
    function Make_Defining_Name
      (UIC    : Ada_Unit_Inst_Context'Class;
       D_Name : Wide_Wide_String) return Node_Rewriting_Handle
    is (Create_Defining_Name (UIC.Rewriting_Context,
-                             Make_Identifier (UIC, D_Name)));
+                             Make_Identifier (UIC.Rewriting_Context, D_Name)));
    --  Shortcut to create a defining identifier tree
 
    function Make_Std_Ref
@@ -1691,7 +1685,7 @@ package body Instrument.Ada_Unit is
                .P_Top_Level_Decl (To_Type.Unit)
                .P_Canonical_Fully_Qualified_Name);
             To_Type_Indentifier :=
-              Create_Identifier
+              Make_Identifier
                 (IC.Rewriting_Context,
                  To_Type.P_Canonical_Fully_Qualified_Name);
          else
@@ -2050,7 +2044,7 @@ package body Instrument.Ada_Unit is
             else Insert_Info.RH_List);
 
          Result.Wrapper_Pkg_Name :=
-           Make_Identifier (UIC, Gen_Names_Prefix & "Pkg");
+           Make_Identifier (UIC.Rewriting_Context, Gen_Names_Prefix & "Pkg");
 
          Result.Wrapper_Pkg_Decls :=
            Create_Regular_Node (RC, Ada_Ada_Node_List, No_Children);
@@ -2081,7 +2075,8 @@ package body Instrument.Ada_Unit is
 
       No_Param : constant Boolean := N_Spec.F_Subp_Params.Is_Null;
    begin
-      Nodes.Name := Make_Identifier (UIC, Gen_Names_Prefix & "Gen");
+      Nodes.Name := Make_Identifier
+        (UIC.Rewriting_Context, Gen_Names_Prefix & "Gen");
 
       Nodes.Formals := Make (UIC, Ada_Ada_Node_List);
 
@@ -2456,7 +2451,7 @@ package body Instrument.Ada_Unit is
 
          --  Return a reference to this formal
 
-         return Make_Identifier (UIC, Formal_Type_Name);
+         return Make_Identifier (UIC.Rewriting_Context, Formal_Type_Name);
       end Make_Formal_Type;
 
    --  Start of processing for Collect_Null_Proc_Formals
@@ -2577,7 +2572,7 @@ package body Instrument.Ada_Unit is
         "GNATcov_RTS.Buffers.MCDC_State_Holder";
 
       State_Identifier : constant Node_Rewriting_Handle :=
-        Make_Identifier (UIC, To_Wide_Wide_String (Name));
+        Make_Identifier (UIC.Rewriting_Context, To_Wide_Wide_String (Name));
 
       State_Formal : constant Node_Rewriting_Handle :=
         Create_Defining_Name (RC, State_Identifier);
@@ -2592,14 +2587,15 @@ package body Instrument.Ada_Unit is
                 Children => (1 => State_Formal)),
            F_Has_Aliased  => No_Node_Rewriting_Handle,
            F_Mode         => No_Node_Rewriting_Handle,
-           F_Type_Expr    => Make_Identifier (UIC, Holder_Type),
+           F_Type_Expr    => Make_Identifier
+              (UIC.Rewriting_Context, Holder_Type),
            F_Default_Expr => No_Node_Rewriting_Handle,
            F_Aspects      => No_Node_Rewriting_Handle);
 
       State_Actual : constant Node_Rewriting_Handle :=
         Create_Qual_Expr
           (RC,
-           F_Prefix => Make_Identifier (UIC, Holder_Type),
+           F_Prefix => Make_Identifier (UIC.Rewriting_Context, Holder_Type),
            F_Suffix =>
              Create_Aggregate
                (RC,
@@ -2737,11 +2733,8 @@ package body Instrument.Ada_Unit is
          then Create_Dotted_Name
            (RC,
             F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
-            F_Suffix => Create_Identifier
-              (RC,
-               Text => Augmented_Func_Name))
-         else Create_Identifier
-           (RC, Text => Augmented_Func_Name));
+            F_Suffix => Make_Identifier (RC, Augmented_Func_Name))
+         else Make_Identifier (RC, Augmented_Func_Name));
 
       Call_Expr : constant Node_Rewriting_Handle :=
         (if Call_Params = No_Node_Rewriting_Handle
@@ -2791,7 +2784,7 @@ package body Instrument.Ada_Unit is
 
       Replace
         (Handle (Common_Nodes.N_Name),
-         Make_Identifier (UIC, Augmented_Func_Name));
+         Make_Identifier (UIC.Rewriting_Context, Augmented_Func_Name));
 
       --  Use the "augmented formal params" (i.e. original formals plus the
       --  witness one and the MC/DC state holders).
@@ -2838,7 +2831,8 @@ package body Instrument.Ada_Unit is
             if not Fun_Cov then
                Set_Child (New_Spec,
                           Member_Refs.Subp_Spec_F_Subp_Name,
-                          Make_Identifier (UIC, Augmented_Func_Name));
+                          Make_Identifier (UIC.Rewriting_Context,
+                                           Augmented_Func_Name));
             end if;
 
             --  Add the augmented params to this spec as well
@@ -2884,7 +2878,7 @@ package body Instrument.Ada_Unit is
             Ghost_Aspect : constant Node_Rewriting_Handle :=
               Create_Aspect_Assoc
                 (RC,
-                 Make_Identifier (UIC, "Ghost"),
+                 Make_Identifier (UIC.Rewriting_Context, "Ghost"),
                  No_Node_Rewriting_Handle);
 
             Aspects : constant Node_Rewriting_Handle :=
@@ -4037,7 +4031,7 @@ package body Instrument.Ada_Unit is
          N_Spec : Subp_Spec)
       is
          Stub : constant Node_Rewriting_Handle :=
-           Make_Identifier (UIC, "Stub");
+           Make_Identifier (UIC.Rewriting_Context, "Stub");
          --  Placeholder for the the degenerate subprogram node while it is
          --  rewritten.
 
@@ -4182,7 +4176,7 @@ package body Instrument.Ada_Unit is
             Formal_Name : Wide_Wide_String)
          is
             Formal_Id     : constant Node_Rewriting_Handle :=
-              Make_Identifier (UIC, Formal_Name);
+              Make_Identifier (UIC.Rewriting_Context, Formal_Name);
             Formal_Def_Id : constant Node_Rewriting_Handle :=
               Create_Regular_Node
                 (UIC.Rewriting_Context,
@@ -4542,7 +4536,8 @@ package body Instrument.Ada_Unit is
                            .As_Param_Spec.F_Ids.Children
                   loop
                      Insert_Last
-                       (Call_Params, Make_Identifier (UIC, Id.Text));
+                       (Call_Params,
+                        Make_Identifier (UIC.Rewriting_Context, Id.Text));
                   end loop;
                end loop;
             end if;
@@ -4825,7 +4820,7 @@ package body Instrument.Ada_Unit is
                        (Common_Nodes.Wrapper_Pkg_Decls,
                         Create_Pragma_Node
                           (RC,
-                           F_Id   => Create_Identifier (RC, "Convention"),
+                           F_Id   => Make_Identifier (RC, "Convention"),
                            F_Args => Create_Regular_Node
                              (RC, Ada_Assoc_List,
                                (1 => Clone (Convention_Id),
@@ -7371,7 +7366,7 @@ package body Instrument.Ada_Unit is
       Bit         : Any_Bit_Id)
    is
       Formal_Name   : constant Node_Rewriting_Handle :=
-        Make_Identifier (UIC, "Dummy_Witness_Result");
+        Make_Identifier (UIC.Rewriting_Context, "Dummy_Witness_Result");
       Formal_Def_Id : constant Node_Rewriting_Handle :=
         Create_Regular_Node
           (UIC.Rewriting_Context,
@@ -7776,7 +7771,7 @@ package body Instrument.Ada_Unit is
    begin
       for Id of Name loop
          declare
-            Id_Node : constant Node_Rewriting_Handle := Create_Identifier
+            Id_Node : constant Node_Rewriting_Handle := Make_Identifier
               (Handle, To_Text (To_String (Id)));
          begin
             if Result = No_Node_Rewriting_Handle then
@@ -8189,7 +8184,7 @@ package body Instrument.Ada_Unit is
 
                   Old_Cond := Create_Call_Expr
                     (RC,
-                     F_Name   => Create_Identifier
+                     F_Name   => Make_Identifier
                        (RC, To_Text ("GNATcov_RTS.Std.Boolean")),
                      F_Suffix => Create_Regular_Node
                        (RC,
@@ -8316,7 +8311,8 @@ package body Instrument.Ada_Unit is
                RC : constant Rewriting_Handle := UIC.Rewriting_Context;
 
                Formal_Name   : constant Node_Rewriting_Handle :=
-                 Make_Identifier (UIC, "Dummy_Witness_Result");
+                 Make_Identifier
+                    (UIC.Rewriting_Context, "Dummy_Witness_Result");
                Formal_Def_Id : constant Node_Rewriting_Handle :=
                  Create_Regular_Node
                    (RC,
