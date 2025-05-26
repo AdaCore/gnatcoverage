@@ -2,6 +2,9 @@
 Verify that gnatcov cleans up existing SID files during instrumentation.
 """
 
+from e3.fs import cp
+import glob
+
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
@@ -9,8 +12,14 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import contents_of, gprfor
 
 Wdir("tmp_")
+cp("../lib.gpr", ".")
 
-prj = gprfor(mains=["main.adb"], srcdirs=[".."])
+prj = gprfor(
+    mains=["main.adb"],
+    srcdirs=[".."],
+    deps=["lib.gpr"],
+    extra='for Source_Files use ("main.adb");',
+)
 
 expected_cov = {
     "main.adb.xcov": {"+": {9, 8}},
@@ -61,6 +70,13 @@ thistest.fail_if_not_equal(
     what="Unexpected 'gnatcov coverage' output",
     expected="warning: no SID file found for unit pkh",
     actual=contents_of("coverage.log").strip(),
+)
+
+# Check that there is indeed no sid file for Pkh
+thistest.fail_if_not_equal(
+    what="Found an SID file for Pkh",
+    expected=[],
+    actual=glob.glob("**/pkh.sid"),
 )
 
 thistest.result()
