@@ -266,3 +266,38 @@ test_src_light:
     - testsuite_reports
 
   <<: *artifacts
+
+test_qualkit:
+  interruptible: true
+  services:
+    - image:pe-base
+    - cpu:16
+    - mem:16
+  stage: test
+  script:
+    - *basic_test_setup
+
+    # Use the gnatcov-qualrun and gnatcov-qualkit specs to run the
+    # qualification testsuite and create a qualification kit
+    - anod test gnatcov-qualrun --minimal -Qci $ACI_TRACK_QUALIFIER
+    - anod build gnatcov-qualkit --minimal -Qci $ACI_TRACK_QUALIFIER
+    - QUALKIT_BSN=$(anod eval --primitive=build gnatcov-qualkit -Qci $ACI_TRACK_QUALIFIER build_space_name)
+    - mkdir $CI_PROJECT_DIR/qualkits
+    - cp $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$QUALKIT_BSN/install/*.zip $CI_PROJECT_DIR/qualkits/
+    - testsuite_reports
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      changes:
+        paths:
+          - "qualification/**/*"
+          - "testsuite/Qualif/**/*"
+          - "testsuite/STR/**/*"
+          - "testsuite/SCOV/**/*"
+        compare_to: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+  artifacts:
+    when: always
+    paths:
+      - xunit-*.xml
+      - qualkits/*.zip
+    reports:
+      junit: xunit-*.xml
