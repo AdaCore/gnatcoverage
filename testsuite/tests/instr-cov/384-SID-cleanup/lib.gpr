@@ -1,0 +1,10 @@
+library project Lib is
+
+   for Library_Dir use "lib";
+   for Object_Dir use "obj_lib";
+   for Source_Dirs use ("..");
+   for Excluded_Source_Files use ("main.adb");
+   for Library_Kind use "static";
+   for Library_Name use "lib";
+
+end Lib;
