@@ -22,7 +22,6 @@ with GNATCOLL.Symbols; use GNATCOLL.Symbols;
 with GNATCOLL.Utils;   use GNATCOLL.Utils;
 
 with Binary_Files;  use Binary_Files;
-with Coverage;      use Coverage;
 with Traces;        use Traces;
 with Traces_Dbase;  use Traces_Dbase;
 with Traces_Lines;  use Traces_Lines;
@@ -82,10 +81,6 @@ package Traces_Names is
       --  Offset to be added to trace PCs to rebase them for the reference
       --  code in Insns. Updated each time Add_Code is used to register a new
       --  instance of the code for this routine.
-
-      Routine_Tag : SC_Tag := No_SC_Tag;
-      --  Routine tag used when doing source coverage analysis with per-routine
-      --  tagging.
    end record;
 
    function Key_To_Name (Key : Subprogram_Key) return Cst_String_Access;
@@ -197,4 +192,6 @@ package Traces_Names is
    Consolidation_Error : exception;
    --  Raised if consolidation is not possible (eg different code for a
    --  function).
+
+   Current_Routine : Subprogram_Info;
 end Traces_Names;

@@ -20,12 +20,11 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Text_IO;             use Ada.Text_IO;
 
-with Command_Line;  use Command_Line;
-with Coverage.Tags; use Coverage.Tags;
-with Files_Table;   use Files_Table;
-with Hex_Images;    use Hex_Images;
+with Command_Line; use Command_Line;
+with Files_Table;  use Files_Table;
+with Hex_Images;   use Hex_Images;
 with Outputs;
-with Switches;      use Switches;
+with Switches;     use Switches;
 
 package body Diagnostics is
 
@@ -65,9 +64,6 @@ package body Diagnostics is
 
       function Sloc_Image return String;
       --  Image of Sloc, null string for the value No_Location
-
-      function Tag_Image return String;
-      --  Tag indication, null string for the value No_SC_Tag
 
       ----------------
       -- Kind_Image --
@@ -128,19 +124,6 @@ package body Diagnostics is
          end if;
       end SCO_Image;
 
-      ---------------
-      -- Tag_Image --
-      ---------------
-
-      function Tag_Image return String is
-      begin
-         if M.Tag /= No_SC_Tag then
-            return " (from " & Tag_Provider.Tag_Name (M.Tag) & ")";
-         else
-            return "";
-         end if;
-      end Tag_Image;
-
       Msg   : constant String := +M.Msg;
       First : Natural         := Msg'First;
 
@@ -157,7 +140,7 @@ package body Diagnostics is
         Sloc_Image        &
         " "               &
         Kind_Image        &
-        SCO_Image & Msg (First .. Msg'Last) & Tag_Image;
+        SCO_Image & Msg (First .. Msg'Last);
    end Image;
 
    ------------
@@ -203,7 +186,6 @@ package body Diagnostics is
       Sloc           : Source_Location := No_Location;
       Violation_Sloc : Source_Location := No_Location;
       SCO            : SCO_Id          := No_SCO_Id;
-      Tag            : SC_Tag          := No_SC_Tag;
       Kind           : Report_Kind     := Error)
    is
       M : constant Message :=
@@ -215,7 +197,6 @@ package body Diagnostics is
                             then Sloc
                             else Violation_Sloc),
          SCO            => SCO,
-         Tag            => Tag,
          Msg            => +Msg);
    begin
       Output_Message (M);
@@ -228,7 +209,6 @@ package body Diagnostics is
 
    procedure Report_Coverage
      (SCO  : SCO_Id;
-      Tag  : SC_Tag;
       Msg  : String;
       Kind : Coverage_Kind)
    is
@@ -253,7 +233,6 @@ package body Diagnostics is
               Sloc           => Sloc,
               Violation_Sloc => Violation_Sloc,
               SCO            => SCO,
-              Tag            => Tag,
               Kind           => Kind);
    end Report_Coverage;
 
@@ -263,11 +242,10 @@ package body Diagnostics is
 
    procedure Report_Exclusion
      (SCO : SCO_Id;
-      Tag : SC_Tag;
       Msg : String)
    is
    begin
-      Report_Coverage (SCO, Tag, Msg, Kind => Exclusion);
+      Report_Coverage (SCO, Msg, Kind => Exclusion);
    end Report_Exclusion;
 
    ----------------------
@@ -276,11 +254,10 @@ package body Diagnostics is
 
    procedure Report_Violation
      (SCO : SCO_Id;
-      Tag : SC_Tag;
       Msg : String)
    is
    begin
-      Report_Coverage (SCO, Tag, Msg, Kind => Violation);
+      Report_Coverage (SCO, Msg, Kind => Violation);
    end Report_Violation;
 
    --------------------

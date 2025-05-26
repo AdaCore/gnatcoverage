@@ -24,16 +24,13 @@ with Ada.Text_IO; use Ada.Text_IO;
 
 with Interfaces;
 
-with GNAT.Strings;  use GNAT.Strings;
+with GNAT.Strings; use GNAT.Strings;
 
-with Checkpoints;
-with Coverage.Object;   use Coverage.Object;
-with Coverage.Tags;     use Coverage.Tags;
-with Inputs;            use Inputs;
-with Outputs;           use Outputs;
+with Coverage.Object; use Coverage.Object;
+with Inputs;          use Inputs;
+with Outputs;         use Outputs;
 with Paths;
-with Switches;          use Switches;
-with Symbols;           use Symbols;
+with Symbols;         use Symbols;
 
 package body Traces_Names is
 
@@ -48,31 +45,6 @@ package body Traces_Names is
      (Element_Type => Symbol,
       "<"          => "<",
       "="          => "=");
-
-   package Routine_Tag_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Valid_SC_Tag,
-      Element_Type => Cst_String_Access);
-
-   type Routine_Tag_Provider_Type is new Tag_Provider_Type with record
-      Routine_Tags : Routine_Tag_Vectors.Vector;
-   end record;
-
-   overriding function Get_Slocs_And_Tags
-     (TP : access Routine_Tag_Provider_Type;
-      PC : Pc_Type) return Tagged_Slocs;
-
-   overriding function Tag_Name
-     (TP  : access Routine_Tag_Provider_Type;
-      Tag : SC_Tag) return String;
-
-   overriding function Map_Tag
-     (TP     : access Routine_Tag_Provider_Type;
-      Relocs : Checkpoints.Checkpoint_Relocations;
-      CP_Tag : SC_Tag) return SC_Tag;
-
-   package R is new Tag_Providers.Register_Factory
-     (Name => "routine", T => Routine_Tag_Provider_Type);
-   pragma Unreferenced (R);
 
    package Routines_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Subprogram_Key,
@@ -173,10 +145,7 @@ package body Traces_Names is
       Section : Section_Index)
    is
       use Routines_Maps;
-      TP  : Tag_Provider_Access renames Tag_Provider;
       Cur : Cursor;
-      Tag : SC_Tag;
-
    begin
       --  If the routine has no compile unit, it must not be consolidated, so
       --  it is made unique using its Origin member.
@@ -194,22 +163,6 @@ package body Traces_Names is
 
       Cur := Routines.Find (Key);
       if Cur = No_Element then
-
-         --  If doing routine-based separated coverage analysis, record name in
-         --  routine tags table.
-
-         if TP.all in Routine_Tag_Provider_Type'Class then
-            declare
-               RTags : Routine_Tag_Vectors.Vector
-                  renames Routine_Tag_Provider_Type (TP.all).Routine_Tags;
-            begin
-               RTags.Append (Key_To_Name (Key));
-               Tag := RTags.Last_Index;
-            end;
-         else
-            Tag := No_SC_Tag;
-         end if;
-
          Routines.Insert
            (Key,
             Subprogram_Info'(Exec             => Exec,
@@ -217,18 +170,7 @@ package body Traces_Names is
                              Padding_Stripped => <>,
                              Insns            => Invalid_Binary_Content,
                              Traces           => null,
-                             Offset           => 0,
-                             Routine_Tag      => Tag));
-      else
-         --  If doing routine-based separated coverage analysis, take the tag
-         --  of the consolidated subprogram.
-
-         Tag := Element (Cur).Routine_Tag;
-      end if;
-
-      if Tag /= No_SC_Tag then
-         Misc_Trace.Trace
-           ("Routine tag" & Tag'Img & ": "  & Key_To_Name (Key).all);
+                             Offset           => 0));
       end if;
    end Add_Routine;
 
@@ -611,51 +553,6 @@ package body Traces_Names is
    begin
       return False;
    end Equal;
-
-   ------------------------
-   -- Get_Slocs_And_Tags --
-   ------------------------
-
-   overriding function Get_Slocs_And_Tags
-     (TP  : access Routine_Tag_Provider_Type;
-      PC  : Pc_Type) return Tagged_Slocs
-   is
-      use type Pc_Type;
-   begin
-      pragma Assert
-        (PC in TP.Current_Routine.Insns.First + TP.Current_Routine.Offset
-            .. TP.Current_Routine.Insns.Last  + TP.Current_Routine.Offset);
-      return Get_Slocs_With_Tag
-        (TP.Current_Subp.Lines, PC, TP.Current_Routine.Routine_Tag);
-   end Get_Slocs_And_Tags;
-
-   --------------
-   -- Tag_Name --
-   --------------
-
-   overriding function Tag_Name
-     (TP  : access Routine_Tag_Provider_Type;
-      Tag : SC_Tag) return String
-   is
-   begin
-      return TP.Routine_Tags.Element (Tag).all;
-   end Tag_Name;
-
-   -------------
-   -- Map_Tag --
-   -------------
-
-   overriding function Map_Tag
-     (TP     : access Routine_Tag_Provider_Type;
-      Relocs : Checkpoints.Checkpoint_Relocations;
-      CP_Tag : SC_Tag) return SC_Tag
-   is
-      pragma Unreferenced (TP, Relocs, CP_Tag);
-   begin
-      Fatal_Error ("cannot perform incremental coverage with "
-                   & "routines-based separation");
-      return No_SC_Tag;
-   end Map_Tag;
 
    ----------------------------------
    -- Read_Routine_Names_From_Text --

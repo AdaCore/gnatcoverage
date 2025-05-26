@@ -102,17 +102,14 @@ package Coverage.Source is
      (SCO   : SCO_Id;
       Level : Coverage_Level) return SCO_State;
    --  Return SCO's contribution to the state of the enclosing line, i.e.
-   --  SCO's specific coverage state, ignoring any exemptions. This coverage
-   --  is cumulative over all SCIs for this SCO, for the case of a SCO that
-   --  has multiple tags (i.e. multiple, distinct coverage analyses).
+   --  SCO's specific coverage state, ignoring any exemptions.
 
-   function Basic_Block_Has_Code (SCO : SCO_Id; Tag : SC_Tag) return Boolean;
-   --  True if any SCO in basic block has associated object code with then
-   --  given tag.
+   function Basic_Block_Has_Code (SCO : SCO_Id) return Boolean;
+   --  True if any SCO in basic block has associated object code
 
-   procedure Set_Basic_Block_Has_Code (SCO : SCO_Id; Tag : SC_Tag);
+   procedure Set_Basic_Block_Has_Code (SCO : SCO_Id);
    --  Set Basic_Block_Has_Code for SCO (a Statement SCO) as well as all
-   --  previous SCOs in its basic block, for the given tag.
+   --  previous SCOs in its basic block.
 
    ---------------------------------------------------------
    -- Handling of the list of names for units of interest --

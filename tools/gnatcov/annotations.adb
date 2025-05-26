@@ -28,7 +28,6 @@ with Calendar_Utils;
 with Coverage;
 with Coverage.Object;
 with Coverage.Source;  use Coverage.Source;
-with Coverage.Tags;
 with Instrument;
 with Outputs;          use Outputs;
 with SS_Annotations;   use SS_Annotations;
@@ -629,7 +628,6 @@ package body Annotations is
    ------------------------
 
    function Message_Annotation (M : Message) return String is
-      use Coverage, Coverage.Tags;
    begin
       if M.SCO /= No_SCO_Id then
          return SCO_Kind_Image (M.SCO)
@@ -647,9 +645,6 @@ package body Annotations is
               and then Kind (M.SCO) = Condition
               then ")"
               else "")
-           & (if M.Tag = No_SC_Tag
-              then ""
-              else " (from " & Tag_Provider.Tag_Name (M.Tag) & ")")
            & " " & (+M.Msg);
       else
          return Image (M.Sloc, Unique_Name => True) & ": " & (+M.Msg);
