@@ -9954,6 +9954,11 @@ package body Instrument.Ada_Unit is
       --  Whether there is a pragma Short_Circuit_And_Or that applies to this
       --  unit.
    begin
+      --  Reset the language version to the default of the program to avoid
+      --  a 'pragma <Ada_Version>' to be propagated from the spec to body.
+
+      UIC.Language_Version := Switches.Global_Language_Version;
+
       Start_Rewriting (Rewriter, Instrumenter, Prj, Filename);
 
       Root_Analysis_Unit := Rewriter.Rewritten_Unit;
