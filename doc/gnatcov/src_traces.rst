@@ -602,6 +602,13 @@ it is required to remove any :cmd-option:`-include` switch that is passed to
 the compiler invocation, by having a dedicated scenario variable for a coverage
 build for instance.
 
+To support annotations such as :ref:`exemptions<exemptions>` or :ref:`buffer
+output indications<manual_dump>`, the |gcvins| attempts to preserve comments
+when preprocessing the sources. If this is not possible (e.g. due to illegal
+concatenation of a comment with another token), the tool will emit a warning
+and ignore any in-source annotation for the mentioned file, as well as any
+other transitively included file.
+
 Function and call coverage limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
