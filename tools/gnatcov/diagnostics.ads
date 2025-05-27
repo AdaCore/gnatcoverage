@@ -35,7 +35,6 @@
 
 with Ada.Containers.Vectors;
 
-with Coverage;       use Coverage;
 with Logging;
 with SC_Obligations; use SC_Obligations;
 with Slocs;          use Slocs;
@@ -66,7 +65,6 @@ package Diagnostics is
       Sloc           : Source_Location;
       Violation_Sloc : Source_Location;
       SCO            : SCO_Id;
-      Tag            : SC_Tag;
       Msg            : Unbounded_String;
    end record;
 
@@ -87,7 +85,6 @@ package Diagnostics is
 
    procedure Report_Coverage
      (SCO  : SCO_Id;
-      Tag  : SC_Tag;
       Msg  : String;
       Kind : Coverage_Kind);
    --  Report coverage messages. Common processing for Report_Violation and
@@ -95,7 +92,6 @@ package Diagnostics is
 
    procedure Report_Violation
      (SCO : SCO_Id;
-      Tag : SC_Tag;
       Msg : String);
    --  Report a violation of a source coverage obligation. Note: the SCO kind
    --  will be prepended to Msg in reports, unless Msg starts with ^ (caret).
@@ -103,12 +99,11 @@ package Diagnostics is
 
    procedure Report_Exclusion
      (SCO : SCO_Id;
-      Tag : SC_Tag;
       Msg : String);
    --  Report exclusion of a SCO from coverage analysis. No coverage status
-   --  will be reported for SCO/Tag. Note: the SCO kind will be prepended to
-   --  Msg in reports, unless Msg starts with ^ (caret). A violation message
-   --  has message kind Exclusion.
+   --  will be reported for SCO. Note: the SCO kind will be prepended to Msg in
+   --  reports, unless Msg starts with ^ (caret). A violation message has
+   --  message kind Exclusion.
 
    procedure Report
      (Msg            : String;
@@ -117,7 +112,6 @@ package Diagnostics is
       Sloc           : Source_Location := No_Location;
       Violation_Sloc : Source_Location := No_Location;
       SCO            : SCO_Id          := No_SCO_Id;
-      Tag            : SC_Tag          := No_SC_Tag;
       Kind           : Report_Kind     := Error);
    --  Output diagnostic message during coverage analysis. Messages with Notice
    --  kind are omitted unless global flag Verbose is set. A prefix is

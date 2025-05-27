@@ -123,7 +123,6 @@ package Command_Line is
       Opt_Exec_Prefix,
       Opt_HW_Trigger_Traces,
       Opt_Input,
-      Opt_Separate,
       Opt_Output_Format,
       Opt_Trace_Source,
       Opt_Save_Checkpoint,
@@ -892,14 +891,6 @@ package Command_Line is
          Pattern      => "[INPUT_TRACE]",
          Help         => "File containing trace data to be converted.",
          Commands     => (Cmd_Convert => True, others => False),
-         At_Most_Once => False,
-         Internal     => False),
-      Opt_Separate => Create
-        (Short_Name   => "-S",
-         Pattern      => "[TAG]",
-         Help         => "Perform separate source coverage analysis.",
-         Commands     => (Cmd_Coverage | Cmd_Instrument => True,
-                          others                        => False),
          At_Most_Once => False,
          Internal     => False),
       Opt_Output_Format => Create

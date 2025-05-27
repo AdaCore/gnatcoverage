@@ -39,7 +39,7 @@ with Traces_Source;  use Traces_Source;
 
 package Checkpoints is
 
-   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 17;
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 18;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
@@ -61,6 +61,7 @@ package Checkpoints is
    --  15 -- Increase size of Pragma_Id after addition of 255th pragma
    --  16 -- Extend Scope_Entity to include the Start/End_Sloc of the scope
    --  17 -- Add support for Fun_Call and Guarded Expression coverage
+   --  18 -- Removed support for tags (separate coverage)
    --
    --  Note that we always use the last version when creating a checkpoint.
    --
@@ -294,14 +295,6 @@ package Checkpoints is
 
       Static_Decision_Evaluations : Static_Decision_Evaluation_Maps.Map;
    end record;
-
-   use type Interfaces.Unsigned_32;
-   function Version_Less
-     (CLS : Checkpoint_Load_State; Than : Checkpoint_Version) return Boolean
-   is (CLS.Version < Than)
-     with Inline;
-   --  This is provided as a function to prevent the compiler from generating
-   --  "can never be greater than" warnings.
 
    procedure Checkpoint_Save
      (Filename : String;

@@ -52,7 +52,6 @@ with Command_Line;          use Command_Line;
 use Command_Line.Parser;
 with Convert;
 with Coverage.Source;       use Coverage.Source;
-with Coverage.Tags;         use Coverage.Tags;
 with Coverage;              use Coverage;
 with Coverage_Options;      use Coverage_Options;
 with Decision_Map;          use Decision_Map;
@@ -750,20 +749,6 @@ procedure GNATcov_Bits_Specific is
          Convert.Set_Trace_Source (+Args.String_Args (Opt_Trace_Source).Value);
       end if;
 
-      if Args.String_Args (Opt_Separate).Present then
-         Warn ("-S is deprecated. This option will be removed in release 26.");
-         declare
-            Name : constant String := +Args.String_Args (Opt_Separate).Value;
-         begin
-            Tag_Provider := Tag_Providers.Create (Name);
-         exception
-            when Constraint_Error =>
-               Fatal_Error ("Invalid separated coverage analysis mode: "
-                            & Name & " (available: "
-                            & Tag_Providers.Registered_Names (", ") & ")");
-         end;
-      end if;
-
       if Args.String_Args (Opt_Output_Format).Present then
          declare
             Arg : constant String :=
@@ -1224,16 +1209,6 @@ procedure GNATcov_Bits_Specific is
             Enumerate_Ignored_Source_Files (Add_Source_File'Access);
          end;
       end if;
-
-      --  Set defaults for options not specified so far
-
-      declare
-         use type Tag_Provider_Access;
-      begin
-         if Tag_Provider = null then
-            Tag_Provider := Tag_Providers.Create (Default_Tag_Provider_Name);
-         end if;
-      end;
    end Process_Arguments;
 
    ----------------------

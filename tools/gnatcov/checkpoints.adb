@@ -601,7 +601,8 @@ package body Checkpoints is
 
          CLS.Version := CLS.Read_U32;
          if CLS.Version /= Checkpoint_Version'Last then
-            Fatal_Error ("invalid checkpoint version" & CLS.Version'Img);
+            Fatal_Error
+              (Filename & ": invalid checkpoint version" & CLS.Version'Img);
          end if;
 
          --  Check that we are loading the kind of checkpoint we are
