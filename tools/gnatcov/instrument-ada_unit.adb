@@ -46,6 +46,8 @@ with Coverage_Options; use Coverage_Options;
 with Coverage;         use Coverage;
 with Diagnostics;      use Diagnostics;
 with Instrument.Ada_Preprocessing;
+with Instrument.Ada_Unit.Rewriting_Utils;
+use Instrument.Ada_Unit.Rewriting_Utils;
 with JSON;             use JSON;
 with Namet;            use Namet;
 with Outputs;          use Outputs;
@@ -482,11 +484,6 @@ package body Instrument.Ada_Unit is
       K   : Ada_Node_Kind_Type) return Node_Rewriting_Handle
    is (Create_Node (UIC.Rewriting_Context, K));
    --  Shortcut to create a node of the given kind
-
-   function Make_Identifier
-     (RH : Rewriting_Handle; Id : Text_Type) return Node_Rewriting_Handle
-   is (Create_Token_Node (RH, Libadalang.Common.Ada_Identifier, Id));
-   --  Shortcut to create an identifier node
 
    function Make_Defining_Name
      (UIC    : Ada_Unit_Inst_Context'Class;
