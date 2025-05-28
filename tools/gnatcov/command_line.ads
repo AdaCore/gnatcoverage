@@ -770,8 +770,7 @@ package Command_Line is
                          & " ""Target""/""Runtime"" attributes. It is also"
                          & " needed for ""run"" commands without a project"
                          & " file.",
-         Commands     => (Cmd_Print_GPR_Registry
-                          | Cmd_Setup_Integration => False,
+         Commands     => (Cmd_Print_GPR_Registry => False,
                           others => True),
          At_Most_Once => True,
          Internal     => False),
@@ -782,8 +781,7 @@ package Command_Line is
                          & " to build the analyzed programs. If project files"
                          & " don't already set the runtime, this is required"
                          & " for correct project files processing.",
-         Commands     => (Cmd_Print_GPR_Registry
-                          | Cmd_Setup_Integration => False,
+         Commands     => (Cmd_Print_GPR_Registry => False,
                           others => True),
          At_Most_Once => True,
          Internal     => False),

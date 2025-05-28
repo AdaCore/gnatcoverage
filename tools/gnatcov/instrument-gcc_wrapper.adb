@@ -1083,6 +1083,8 @@ begin
             --  Add the coverage buffers symbols referenced in the Symbol_File
             --  to Buffer_Symbols.
 
+            procedure Inspect_Dynamic_Deps;
+
             ---------------------------------
             -- Add_Coverage_Buffer_Symbols --
             ---------------------------------
@@ -1098,30 +1100,50 @@ begin
                      Config          => Instr_Config));
             end Add_Coverage_Buffer_Symbols;
 
-         begin
-            --  Grab the buffer symbols in the link closure
+            --------------------------
+            -- Inspect_Dynamic_Deps --
+            --------------------------
 
-            Add_Coverage_Buffer_Symbols (Comp_DB.Link_Command.Target);
-
-            --  Get the buffer symbols in the dynamic libraries the executable
-            --  depends on.
-
-            declare
+            procedure Inspect_Dynamic_Deps is
                Args         : String_Vectors.Vector;
                Ldd_Filename : constant String :=
                  (+Prj.Output_Dir)
                  / ("ldd_"
                     & Filename_Slug (+Comp_DB.Link_Command.Target.Full_Name));
                Ldd_File     : File_Type;
+               Success      : Boolean;
             begin
                Args.Append (+(+Comp_DB.Link_Command.Target.Full_Name));
-               Run_Command
+               Success := Run_Command
                  (Command             => +"ldd",
                   Arguments           => Args,
                   Origin_Command_Name => "compiler wrapper",
-                  Output_File         => Ldd_Filename);
+                  Output_File         => Ldd_Filename,
+                  Ignore_Error        => True);
 
                Open (Ldd_File, In_File, Ldd_Filename);
+               if not Success then
+
+                  if Ada.Strings.Fixed.Trim
+                       (Get_Line (Ldd_File), Ada.Strings.Both) /=
+                       "not a dynamic executable"
+                  then
+                     --  The executable does not depend on any dynamic library,
+                     --  nothing to do here.
+
+                     Close (Ldd_File);
+                     return;
+                  end if;
+
+                  --  Otherwise, something went wrong in the ldd call, abort.
+
+                  Close (Ldd_File);
+                  Outputs.Fatal_Error
+                    ("Error while running LDD on the instrumented executable");
+               end if;
+
+               --  Inspect the output of lld to find the dependencies
+
                while not End_Of_File (Ldd_File) loop
                   declare
                      use Ada.Strings.Fixed;
@@ -1171,7 +1193,17 @@ begin
                   end;
                end loop;
                Close (Ldd_File);
-            end;
+            end Inspect_Dynamic_Deps;
+
+         begin
+            --  Grab the buffer symbols in the link closure
+
+            Add_Coverage_Buffer_Symbols (Comp_DB.Link_Command.Target);
+
+            --  Get the buffer symbols in the dynamic libraries the executable
+            --  depends on.
+
+            Inspect_Dynamic_Deps;
 
             --  Generate the actual buffers unit list
 
