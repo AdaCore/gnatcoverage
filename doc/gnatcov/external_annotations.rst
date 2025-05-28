@@ -37,22 +37,22 @@ The help section for the |gcvaddan| command can be displayed by running
 
 Some notable command line options are:
 
-:cmd-option:`--output`:
+:cmd-option:`--output`
     Name of the file to the newly created annotation will be written. If there
     already is a file, it will be overwritten.
 
-:cmd-option:`--external-annotations`, |rarg|:
+:cmd-option:`--external-annotations`, |rarg|
     Loads pre-existing annotations from `FILENAME`. They are used to check that
     the new annotation does not conflict with any pre-existing one. The loaded
     annotations are all written to the output file specified through
     :cmd-option:`--output`.
 
-:cmd-option:`FILENAME`, positional:
+:cmd-option:`FILENAME`, positional
     Filename to which the new annotation should apply. There are special
     considerations to keep in mind when specifying the name of the file to be
     annotated, see :ref:`ext_annot_relocs`
 
-:cmd-option:`--annotation-id=IDENTIFIER`, optional:
+:cmd-option:`--annotation-id=IDENTIFIER`, optional
     Unique identifier for the new annotation. If not specified, |gcv| will
     generate one based on the kind of annotation and the designated location.
 
@@ -61,7 +61,7 @@ Some notable command line options are:
     manipulation commands, |gcvdelan| and |gcvshoan| to uniquely designate an
     annotation.
 
-:cmd-option:`--force`, optional:
+:cmd-option:`--force`, optional
     Force overwriting of a pre-existing annotation for the same location, or
     with the same identifier. If not specified, gnatcov will emit an error and
     abort the annotation generation. The output file will not be modified.
@@ -74,65 +74,65 @@ help text for the |gcvaddan| command, and are detailed bellow. A switch in
 brackets signifies that the switch is optional, otherwise the switch is required
 and |gcvaddan| will emit an error if not found on the command line.
 
-* :cmd-option:`--kind=Exempt_On`:
+* :cmd-option:`--kind=Exempt_On`
     Generate an annotation symbolizing the beginning of an
     :ref:`exempted region <exemptions>`.
 
-    :cmd-option:`--location=LINE:COL`:
+    :cmd-option:`--location=LINE:COL`
         Source location for the beginning of the exempted region.
 
-    :cmd-option:`--justification=MESSAGE`:
+    :cmd-option:`--justification=MESSAGE`
         Justification message to be displayed in the coverage reports for the
         exempted region.
 
-*  :cmd-option:`--kind=Exempt_Off`:
+*  :cmd-option:`--kind=Exempt_Off`
     Generate an annotation symbolizing the end of an exempted region.
 
-    :cmd-option:`--location=LINE:COL`:
+    :cmd-option:`--location=LINE:COL`
         Source location for the end of the exempted region.
 
-* :cmd-option:`--kind=Exempt_Region`:
+* :cmd-option:`--kind=Exempt_Region`
     Generate an annotation symbolizing an entire exempted region.
 
-    :cmd-option:`--start-location=LINE:COL`:
+    :cmd-option:`--start-location=LINE:COL`
         Source location for the beginning of the exempted region.
 
-    :cmd-option:`--end-location=LINE:COL`:
+    :cmd-option:`--end-location=LINE:COL`
         Source location for the end of the exempted region.
 
-    :cmd-option:`--justification=MESSAGE`:
+    :cmd-option:`--justification=MESSAGE`
         Justification message to be displayed in the coverage reports for the
         exempted region.
 
-* :cmd-option:`--kind=Cov_Off`:
+* :cmd-option:`--kind=Cov_Off`
     Generate an annotation symbolizing the beginning of a :ref:`disabled
     coverage region <disable_cov>`.
 
-    :cmd-option:`--location=LINE:COL`:
+    :cmd-option:`--location=LINE:COL`
         Source location for the beginning of the disabled coverage region.
 
-    :cmd-option:`--justification=MESSAGE`:
+    :cmd-option:`--justification=MESSAGE`
         Justification message for the disabled coverage region, to be displayed
         in the coverage reports.
 
-* :cmd-option:`--kind=Cov_On`:
+* :cmd-option:`--kind=Cov_On`
     Generate an annotation symbolizing the end of a disabled coverage region.
 
-    :cmd-option:`--location=LINE:COL`:
+    :cmd-option:`--location=LINE:COL`
         Location for the end of the disabled coverage region.
 
-* :cmd-option:`--kind=Dump_Buffers`:
+* :cmd-option:`--kind=Dump_Buffers`
     Generate an annotation instructing |gcv| to insert a
     :ref:`buffer dump procedure call <manual_dump>` at the specified location.
     This is only taken into account when the selected dump trigger is
     ``manual``, see :ref:`Dump_Triggers` for more information concerning the
     dump triggers.
 
-    :cmd-option:`--location=LINE:COL`:
+    :cmd-option:`--location=LINE:COL`
         Source location at which the buffer dump procedure call should be
         inserted.
 
-    :cmd-option:`[--dump-filename-prefix=TEXT]`:
+    :cmd-option:`[--dump-filename-prefix=TEXT]`
         Optional trace filename prefix to be passed to the buffer dump procedure
         call. This will be textually passed as argument to the buffer dump, and
         must be an expression evaluating to a null-terminated ``char *``. As
@@ -140,21 +140,21 @@ and |gcvaddan| will emit an error if not found on the command line.
         to ``--dump-filename-prefix`` must contain quotes
         (e.g. ``--dump-filename-prefix='"my_trace"'``).
 
-    :cmd-option:`[--annotate-after]`:
+    :cmd-option:`[--annotate-after]`
         If specified, instruct |gcv| to insert the buffer dump procedure
         **after** the statement designated by the annotation. See
         :ref:`buf_semantics` for more details on the meaning of this option.
 
-* :cmd-option:`--kind=Reset_Buffers`:
+* :cmd-option:`--kind=Reset_Buffers`
     Generate an annotation instructing gnatcov to insert a :ref:`coverage buffer
     reset procedure call <buff_reset>` at the specified location. This is only
     taken into account when the selected dump trigger is ``manual``, see
     :ref:`Dump_Triggers` for more information concerning the dump triggers.
 
-    :cmd-option:`--location=LINE:COL`:
+    :cmd-option:`--location=LINE:COL`
         Location at which the buffer reset procedure call should be inserted.
 
-    :cmd-option:`[--annotate-after]`:
+    :cmd-option:`[--annotate-after]`
         If specified, instruct |gcv| to insert the buffer reset procedure
         **after** the statement designated by the annotation. See
         :ref:`buf_semantics` for more details on the meaning of this option.
