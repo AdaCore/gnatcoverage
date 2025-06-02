@@ -948,8 +948,22 @@ begin
       for I in 0 .. Natural (String_Vectors.Length (New_Args) - 1) loop
          declare
             Arg : constant Unbounded_String := New_Args.Element (I);
+
+            --  In order to check if Arg designates an existing file, get ready
+            --  for Name_Error exceptions on Windows, as Ada.Directories.Exists
+            --  will raise this exception on this platform when Arg is not a
+            --  correctly formatted path, which is the case for most arguments
+            --  (e.g. -I).
+
+            Exists : Boolean;
          begin
-            if Ada.Directories.Exists (+Arg) then
+            begin
+               Exists := Ada.Directories.Exists (+Arg);
+            exception
+               when Ada.Directories.Name_Error =>
+                  Exists := False;
+            end;
+            if Exists then
                declare
                   Base     : constant String := Simple_Name (+Arg);
                   Fullname : constant String := Full_Name (+Arg);
