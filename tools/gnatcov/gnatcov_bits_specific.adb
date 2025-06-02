@@ -1186,7 +1186,7 @@ procedure GNATcov_Bits_Specific is
       Message : constant String := Trace_Filename & ": " & (+Result.Error);
    begin
       if Keep_Reading_Traces then
-         Outputs.Error (Message);
+         Outputs.Warn (Message);
       else
          Outputs.Fatal_Error (Message);
       end if;
