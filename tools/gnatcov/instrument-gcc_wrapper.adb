@@ -52,6 +52,14 @@ is
    Compiler_Exec_Basename : constant Unbounded_String :=
      +Simple_Name (Compiler_Exec);
 
+   --  Host-dependent names for toolchain executables
+
+   Exec_Suffix   : constant String := Executable_Suffix;
+   Cc1_Name      : constant String := "cc1" & Exec_Suffix;
+   Cc1plus_Name  : constant String := "cc1plus" & Exec_Suffix;
+   As_Name       : constant String := "as" & Exec_Suffix;
+   Collect2_Name : constant String := "collect2" & Exec_Suffix;
+
    type Compilation_Command_Type is record
       Language : Any_Language;
       --  Language of the file that is compiled
@@ -350,8 +358,8 @@ is
                if Line = "" then
                   goto Continue;
                end if;
-               if Ends_With (Command.First_Element, "cc1")
-                 or else Ends_With (Command.First_Element, "cc1plus")
+               if Ends_With (Command.First_Element, Cc1_Name)
+                 or else Ends_With (Command.First_Element, Cc1plus_Name)
                then
                   declare
                      CC_Command : constant Compilation_Command_Type :=
@@ -361,7 +369,7 @@ is
                         Result.Compilation_Commands.Append (CC_Command);
                      end if;
                   end;
-               elsif Ends_With (Command.First_Element, "as") then
+               elsif Ends_With (Command.First_Element, As_Name) then
                   declare
                      As_Command : constant Assembly_Command_Type :=
                        Parse_Assembly_Command (Context, Command);
@@ -370,7 +378,7 @@ is
                         Result.Assembly_Commands.Append (As_Command);
                      end if;
                   end;
-               elsif Ends_With (Command.First_Element, "collect2") then
+               elsif Ends_With (Command.First_Element, Collect2_Name) then
 
                   --  Assume that we can only have a single link command. If
                   --  that's not the case, error out.
@@ -411,9 +419,9 @@ is
       Result : Compilation_Command_Type;
       Cur    : Cursor := First (Command);
    begin
-      if Ends_With (Command.First_Element, "cc1plus") then
+      if Ends_With (Command.First_Element, Cc1plus_Name) then
          Result.Language := CPP_Language;
-      elsif Ends_With (Command.First_Element, "cc1") then
+      elsif Ends_With (Command.First_Element, Cc1_Name) then
          Result.Language := C_Language;
       else
          --  Unreachable code. Parse_Compilation_Command is always called with
