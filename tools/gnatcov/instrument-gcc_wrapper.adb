@@ -376,6 +376,7 @@ is
                   --  that's not the case, error out.
 
                   if Parsed_Link_Command then
+                     Close (Commands_File);
                      Outputs.Fatal_Error
                        ("The compiler driver invocation yielded several link"
                         & " commands, which is not supported");
@@ -387,6 +388,7 @@ is
                <<Continue>>
             end;
          end loop;
+         Close (Commands_File);
       end;
       return Result;
    end Parse_Compiler_Driver_Command;
