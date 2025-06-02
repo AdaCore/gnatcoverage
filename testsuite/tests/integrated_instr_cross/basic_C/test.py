@@ -5,7 +5,7 @@ Simple sanity check test for integrated instrumentation for cross targets
 import os
 import os.path
 
-from e3.fs import cp
+from e3.fs import cp, mkdir
 
 from SUITE.control import env, GPRBUILD
 from SUITE.cutils import Wdir
@@ -37,6 +37,7 @@ cp("../main.c", ".")
 
 # Build the C BSP
 bsp_root = "bsp_root"
+mkdir(bsp_root)
 bsp_prj_name = get_c_bsp(thistest.options.RTS, bsp_root)
 
 bsp_prj = os.path.join(bsp_root, f"{bsp_prj_name}.gpr")
