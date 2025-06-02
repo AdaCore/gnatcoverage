@@ -122,6 +122,7 @@ package body Instrument.Setup_Config is
       Nms : constant JSON_Value := Create_Object;
       --  For each compiler driver, location of the nm executable
 
+      Exec_Suffix : constant String := Executable_Suffix;
    begin
       --  Find the installed coverage runtime, using gprls. TODO??? Deal with
       --  cross cases.
@@ -252,8 +253,10 @@ package body Instrument.Setup_Config is
                   end;
 
                   GNAT.OS_Lib.Copy_File
-                    (Support_Files.Libexec_Dir
-                     / ("compiler_wrappers-" & (+Compiler_Identifier)),
+                    (Name => Support_Files.Libexec_Dir
+                             / ("compiler_wrappers-"
+                                & (+Compiler_Identifier)
+                                & Exec_Suffix),
                      Pathname => Output_Dir / (+Compiler_Driver),
                      Success  => Success,
                      Mode     => GNAT.OS_Lib.Overwrite,
