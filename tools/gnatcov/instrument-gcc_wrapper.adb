@@ -599,7 +599,7 @@ is
       Args.Append (Full_Name (Symbol_File));
       Run_Command
         (Command             =>
-           +Config.Nms.Element (+Base_Name (Compiler_Driver)),
+           +Config.Nms.Element (+Simple_Name (Compiler_Driver)),
          Arguments           => Args,
          Origin_Command_Name => "compiler wrapper",
          Output_File         => Output_Filename);
