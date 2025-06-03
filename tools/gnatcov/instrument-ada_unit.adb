@@ -10809,6 +10809,12 @@ package body Instrument.Ada_Unit is
          File.Put_Line ("package " & Helper_Unit_Name & " is");
          File.New_Line;
 
+         --  Make this unit preelaborated, so that it is possible to reset/dump
+         --  coverage state from preelaborated units.
+
+         File.Put_Line ("   pragma Preelaborate;");
+         File.New_Line;
+
          --  Do not generate routines to deal with streaming attributes in this
          --  helper unit: we do not need them, and they can bring in the
          --  secondary stack, which may in turn violate the No_Secondary_Stack
