@@ -39,6 +39,8 @@ with GNAT.IO;
 
 private package GNATcov_RTS.Traces.Output.Text_IO is
 
+   pragma Preelaborate;
+
    procedure New_Line (N : Positive := 1) renames GNAT.IO.New_Line;
    procedure Put (S : String) renames GNAT.IO.Put;
    procedure Put_Line (S : String) renames GNAT.IO.Put_Line;

@@ -40,6 +40,8 @@ with GNAT.OS_Lib;
 
 private package GNATcov_RTS.Traces.Output.Bytes_IO is
 
+   pragma Preelaborate;
+
    package OSLIB renames GNAT.OS_Lib;
    use type OSLIB.File_Descriptor;
 

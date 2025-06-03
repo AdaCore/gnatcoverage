@@ -28,6 +28,8 @@ with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 
 package GNATcov_RTS.Traces.Output is
 
+   pragma Preelaborate;
+
    subtype Serialized_Timestamp is String (1 .. 8);
    --  Little-endian 64-bit unsigned integer. Represents a date/time as the
    --  number of seconds that passed since the Unix Epoch. In other words, a
