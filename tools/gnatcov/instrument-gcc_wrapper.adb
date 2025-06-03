@@ -52,6 +52,14 @@ is
    Compiler_Exec_Basename : constant Unbounded_String :=
      +Simple_Name (Compiler_Exec);
 
+   --  Host-dependent names for toolchain executables
+
+   Exec_Suffix   : constant String := Executable_Suffix;
+   Cc1_Name      : constant String := "cc1" & Exec_Suffix;
+   Cc1plus_Name  : constant String := "cc1plus" & Exec_Suffix;
+   As_Name       : constant String := "as" & Exec_Suffix;
+   Collect2_Name : constant String := "collect2" & Exec_Suffix;
+
    type Compilation_Command_Type is record
       Language : Any_Language;
       --  Language of the file that is compiled
@@ -350,8 +358,8 @@ is
                if Line = "" then
                   goto Continue;
                end if;
-               if Ends_With (Command.First_Element, "cc1")
-                 or else Ends_With (Command.First_Element, "cc1plus")
+               if Ends_With (Command.First_Element, Cc1_Name)
+                 or else Ends_With (Command.First_Element, Cc1plus_Name)
                then
                   declare
                      CC_Command : constant Compilation_Command_Type :=
@@ -361,7 +369,7 @@ is
                         Result.Compilation_Commands.Append (CC_Command);
                      end if;
                   end;
-               elsif Ends_With (Command.First_Element, "as") then
+               elsif Ends_With (Command.First_Element, As_Name) then
                   declare
                      As_Command : constant Assembly_Command_Type :=
                        Parse_Assembly_Command (Context, Command);
@@ -370,12 +378,13 @@ is
                         Result.Assembly_Commands.Append (As_Command);
                      end if;
                   end;
-               elsif Ends_With (Command.First_Element, "collect2") then
+               elsif Ends_With (Command.First_Element, Collect2_Name) then
 
                   --  Assume that we can only have a single link command. If
                   --  that's not the case, error out.
 
                   if Parsed_Link_Command then
+                     Close (Commands_File);
                      Outputs.Fatal_Error
                        ("The compiler driver invocation yielded several link"
                         & " commands, which is not supported");
@@ -387,6 +396,7 @@ is
                <<Continue>>
             end;
          end loop;
+         Close (Commands_File);
       end;
       return Result;
    end Parse_Compiler_Driver_Command;
@@ -409,9 +419,9 @@ is
       Result : Compilation_Command_Type;
       Cur    : Cursor := First (Command);
    begin
-      if Ends_With (Command.First_Element, "cc1plus") then
+      if Ends_With (Command.First_Element, Cc1plus_Name) then
          Result.Language := CPP_Language;
-      elsif Ends_With (Command.First_Element, "cc1") then
+      elsif Ends_With (Command.First_Element, Cc1_Name) then
          Result.Language := C_Language;
       else
          --  Unreachable code. Parse_Compilation_Command is always called with
@@ -589,7 +599,7 @@ is
       Args.Append (Full_Name (Symbol_File));
       Run_Command
         (Command             =>
-           +Config.Nms.Element (+Base_Name (Compiler_Driver)),
+           +Config.Nms.Element (+Simple_Name (Compiler_Driver)),
          Arguments           => Args,
          Origin_Command_Name => "compiler wrapper",
          Output_File         => Output_Filename);
@@ -938,8 +948,22 @@ begin
       for I in 0 .. Natural (String_Vectors.Length (New_Args) - 1) loop
          declare
             Arg : constant Unbounded_String := New_Args.Element (I);
+
+            --  In order to check if Arg designates an existing file, get ready
+            --  for Name_Error exceptions on Windows, as Ada.Directories.Exists
+            --  will raise this exception on this platform when Arg is not a
+            --  correctly formatted path, which is the case for most arguments
+            --  (e.g. -I).
+
+            Exists : Boolean;
          begin
-            if Ada.Directories.Exists (+Arg) then
+            begin
+               Exists := Ada.Directories.Exists (+Arg);
+            exception
+               when Ada.Directories.Name_Error =>
+                  Exists := False;
+            end;
+            if Exists then
                declare
                   Base     : constant String := Simple_Name (+Arg);
                   Fullname : constant String := Full_Name (+Arg);
