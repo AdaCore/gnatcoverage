@@ -16,7 +16,23 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with GNAT.OS_Lib;
+
 package body Files_Handling is
+
+   -----------------------
+   -- Executable_Suffix --
+   -----------------------
+
+   function Executable_Suffix return String is
+      use GNAT.OS_Lib;
+
+      Value : String_Access := Get_Executable_Suffix;
+   begin
+      return Result : constant String := Value.all do
+         Free (Value);
+      end return;
+   end Executable_Suffix;
 
    -----------------------
    -- Create_Normalized --

@@ -27,6 +27,10 @@ with Strings; use Strings;
 
 package Files_Handling is
 
+   function Executable_Suffix return String;
+   --  Wrapper around GNAT.OS_Lib.Get_Executable_Suffix to return the string
+   --  by-value.
+
    function Create_Normalized (Filename : String) return Virtual_File;
    --  Wrapper around GNATCOLL.VFS.Create_From_Base, that normalizes by
    --  default the Virtual_File.
