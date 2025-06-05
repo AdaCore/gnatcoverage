@@ -12,8 +12,8 @@ build systems so far.
 As with the workflow involving a separate instrumentation, a :term:`coverage
 runtime <Coverage Runtime>` to be used by the instrumented code needs to be
 setup as a required prerequisite. Refer to the :ref:`instr-rts` section of this
-manual for a description of this step. The installed instrumentation runtime
-must be visible on the ``GPR_PROJECT_PATH``.
+manual for a description of this step. The installed coverage runtime must be
+visible on the ``GPR_PROJECT_PATH``.
 
 Then the process essentially goes like:
 
@@ -31,11 +31,11 @@ environment (e.g. the path for the original compiler) changes.
 Specifying instrumentation switches
 ===================================
 
-The user specifies the switches through the ``gnatcov setup-integration``
-command, which accepts any option accepted by ``gnatcov instrument``, except the
-ones using project mechanisms to filter out units of interest: ``--units`` and
-``--projects``. Refer to :ref:`src_traces` for more information regarding the
-source instrumentation specific switches.
+The user specifies the switches through the |gcvsti| command, which accepts any
+option accepted by |gcvins|, except the ones using project mechanisms to filter
+out units of interest: ``--units`` and ``--projects``.  Refer to
+:ref:`src_traces` for more information regarding the source instrumentation
+specific switches.
 
 As there is no project acting as a units of interest provider, the user must
 explicitly pass files of interest through the ``--files`` switch, which expects
@@ -66,9 +66,9 @@ The sources for the following example can be found under the
 ``share/examples/gnatcoverage/doc/integrated`` directory of the GNATDAS
 distribution.
 
-The following considers that the instrumentation runtime was previously
-installed with ``gnatcov setup``, and that the ``GPR_PROJECT_PATH`` variable
-contains its installed location. See :ref:`instr-rts`.
+The following considers that the coverage runtime was previously installed with
+|gcvstp|, and that the ``GPR_PROJECT_PATH`` variable contains its installed
+location. See :ref:`instr-rts`.
 
 Let's consider a simple ``main.cpp`` file:
 
@@ -110,7 +110,7 @@ on the path:
    make
 
 This will produce an instrumented executable, that will produce a source trace
-when run, that can be analyzed with ``gnatcov coverage``.
+when run, that can be analyzed with |gcvstp|.
 
 A simple CMake example
 ======================
@@ -121,8 +121,8 @@ distribution. To ensure that the Makefile provided with the example sources
 uses CMake as a build system, specify ``BUILD_SYSTEM=CMake`` on the `make`
 invocation.
 
-The following considers that the instrumentation runtime  was installed through
-the use of ``gnatcov setup``.
+The following considers that the coverage runtime was installed through the use
+of |gcvstp|.
 
 Let's consider a simple ``main.cpp`` file
 
@@ -166,4 +166,4 @@ directory:
 
 The default generator for CMake is "Unix Makefiles", so we can then run the
 build process with ``make``, and our executable which will produce a source trace
-that can be analyzed by ``gnatcov coverage``.
+that can be analyzed by |gcvcov|.
