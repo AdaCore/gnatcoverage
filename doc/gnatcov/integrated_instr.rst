@@ -13,7 +13,14 @@ As with the workflow involving a separate instrumentation, a :term:`coverage
 runtime <Coverage Runtime>` to be used by the instrumented code needs to be
 setup as a required prerequisite. Refer to the :ref:`instr-rts` section of this
 manual for a description of this step. The installed coverage runtime must be
-visible on the ``GPR_PROJECT_PATH``.
+visible on the ``GPR_PROJECT_PATH``. Note that, by default, |gcvstp| sets up
+the coverage runtime for Ada and C/C++. If no Ada toolchain is available, its
+support should be explicitly disabled. For instance:
+
+.. code-block:: sh
+
+   gnatcov setup --restricted-to-languages=C,C++ --prefix=/usr/custom
+   export GPR_PROJECT_PATH=$GPR_PROJECT_PATH:/usr/custom/share/gpr
 
 Then the process essentially goes like:
 
