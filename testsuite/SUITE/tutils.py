@@ -139,6 +139,17 @@ def run_and_log(*args, **kwargs):
     return p
 
 
+def effective_trace_mode(override_trace_mode):
+    """
+    Compute the effective trace mode to be used from override_trace_mode
+    if available, or from the testsuite options otherwise.
+    """
+    if override_trace_mode is None:
+        return thistest.options.trace_mode
+    else:
+        return override_trace_mode
+
+
 def gprbuild_gargs_with(thisgargs, trace_mode=None, runtime_project=None):
     """
     Compute and return all the toplevel gprbuild arguments to pass. Account for
@@ -150,7 +161,7 @@ def gprbuild_gargs_with(thisgargs, trace_mode=None, runtime_project=None):
     If RUNTIME_PROJECT is not null, it will be used as the name of the
     instrumentation runtime project in source trace mode.
     """
-    trace_mode = trace_mode or thistest.options.trace_mode
+    trace_mode = effective_trace_mode(trace_mode)
 
     # Force a few bits useful for practical reasons and without influence on
     # code generation
@@ -342,7 +353,12 @@ def gprbuild(
     common_args = gpr_common_args(project, auto_config_args)
 
     # Now cleanup, do build and check status
-    thistest.cleanup(project, common_args)
+
+    # TODO (gpr-issues#241) Temporary workaround for the gprclean problem
+    # As gpr2clean currently deletes .sid files, we should not call
+    # gprclean between the instrumentation and the build.
+    if effective_trace_mode(trace_mode) == "bin":
+        thistest.cleanup(project, common_args)
 
     # lookup the hook for the executable name without extension
     builder = thistest.suite_gprpgm_for(
