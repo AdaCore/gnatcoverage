@@ -5,6 +5,8 @@ instrumentation and regular SCOs.
 Also check that passing both kind of traces is rejected by gnatcov.
 """
 
+from e3.fs import cp, mkdir
+
 from SCOV.minicheck import build_and_run
 from SUITE.cutils import Wdir, contents_of
 from SUITE.gprutils import GPRswitches
@@ -50,6 +52,13 @@ src_trace = build_and_run(
     trace_mode="src",
 )[-1]
 
+# The build_and_run invocation bellow implicitly invokes gprclean which will
+# delete the SID files, so we need to copy them elsewhere to avoid having them
+# be deleted.
+sids_dir = "sids"
+mkdir(sids_dir)
+cp("obj/*.sid", sids_dir)
+
 # Second, build and run the program to produce SCOs (ALIs) and a binary trace
 bin_trace = build_and_run(
     gprsw=GPRswitches(root_project=prj),
@@ -90,7 +99,7 @@ check(
         "--scos",
         "obj/main.ali",
         "--sid",
-        "obj/main.sid",
+        f"{sids_dir}/main.sid",
         src_trace,
         bin_trace,
     ],
@@ -107,7 +116,7 @@ check(
         "--scos",
         "obj/main.ali",
         "--sid",
-        "obj/main.sid",
+        f"{sids_dir}/main.sid",
         src_trace,
         bin_trace,
     ],
@@ -125,7 +134,7 @@ check(
         "--scos",
         "obj/main.ali",
         "--sid",
-        "obj/main.sid",
+        f"{sids_dir}/main.sid",
         "--save-checkpoint=src.ckpt",
         src_trace,
     ],
@@ -147,7 +156,7 @@ check(
         "--scos",
         "obj/main.ali",
         "--sid",
-        "obj/main.sid",
+        f"{sids_dir}/main.sid",
         "--save-checkpoint=bin.ckpt",
         bin_trace,
     ],
@@ -160,7 +169,7 @@ check(
     expect_failure=False,
 )
 
-# Check that mixing tarce kinds through checkpoints is rejected
+# Check that mixing trace kinds through checkpoints is rejected
 
 check(
     "mixed_checkpoint",
