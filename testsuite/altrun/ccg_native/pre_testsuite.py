@@ -86,13 +86,25 @@ def prepare_rts():
     rm(os.path.join(custom_rts_dir, "gnatcov_rts_c-os_interface*"))
     rm(os.path.join(custom_rts_dir, "gnatcov_rts_c-traces-output-files*"))
 
-    # Amend gnatcov_rts-base_io.adb to change the dependency on GNAT.IO to
-    # Ada.Text_IO, the former not being available in the CCG runtime.
+    # Amend gnatcov_rts-base_io.adb to remove the dependency on GNAT.IO (it is
+    # not available in the CCG runtime) and to directly use the libc instead.
     amend_file(
         os.path.join(custom_rts_dir, "gnatcov_rts-base_io.adb"),
         substs=[
-            ("with GNAT.IO;", "with Ada.Text_IO;"),
-            ("GNAT.IO.Put (Str);", "      Ada.Text_IO.Put (Str);"),
+            ("with GNAT.IO;", ""),
+            (
+                "pragma Warnings (On);",
+                "      pragma Warnings (On);"
+                "\n      function Putchar (C : Integer) return Integer;"
+                "\n      pragma Import (C, Putchar);"
+                "\n      Ignored : Integer;",
+            ),
+            (
+                "GNAT.IO.Put (Str);",
+                "      for C of Str loop"
+                "\n         Ignored := Putchar (Character'Pos (C));"
+                "\n      end loop;",
+            ),
         ],
     )
 
