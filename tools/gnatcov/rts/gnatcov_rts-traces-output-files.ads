@@ -31,6 +31,8 @@ with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 
 package GNATcov_RTS.Traces.Output.Files is
 
+   pragma Preelaborate;
+
    type Time is new Interfaces.Unsigned_64;
    --  Derived type to represent timestamps (as a number of seconds elapsed)
 

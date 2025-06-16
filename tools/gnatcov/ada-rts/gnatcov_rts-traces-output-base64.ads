@@ -26,6 +26,8 @@
 
 package GNATcov_RTS.Traces.Output.Base64 is
 
+   pragma Preelaborate;
+
    procedure Write_Trace_File
      (Buffers_Groups : Coverage_Buffers_Group_Array;
       Program_Name   : String;

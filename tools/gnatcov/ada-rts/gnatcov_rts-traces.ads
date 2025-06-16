@@ -32,6 +32,8 @@ with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;
 
 package GNATcov_RTS.Traces is
 
+   pragma Preelaborate;
+
    type Uint8_Array is array (Positive range <>) of Interfaces.Unsigned_8;
    pragma Pack (Uint8_Array);
 

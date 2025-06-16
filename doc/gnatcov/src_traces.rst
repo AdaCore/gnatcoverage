@@ -1305,6 +1305,108 @@ file so that it implements the interface described in the (unmodified)
      size_t length;
    };
 
+When the customized runtime needs elaboration
+---------------------------------------------
+
+Ada units in the coverage runtime are all required to be either pure or
+preelaborated (``pragma Pure;`` or ``pragma Preelaborate;``). This requirement
+is essential for the instrumenter to generate compilable code for manual
+reset/dump of coverage buffers in instrumented Ada units that are themselves
+preelaborated: these units will need to have the coverage runtime in their
+closure, and it is illegal for a preelaborated unit to have in its closure a
+unit that is not either preelaborated or pure.
+
+This requirement is however impractical in some cases: for instance, on some
+targets, coverage buffers may need to be dumped on a custom stream that needs
+to be initialized at elaboration time: running initialization code during the
+elaboration of the coverage runtime would be handy, but it unfortunately
+violates the preelaborated requirement mentionned above.
+
+Ultimately, it is necessary for this case to work around compiler-enforced
+elaboration constraints using interfacing pragmas (``pragma Import``/``pragma
+Export``). Assuming that the IO handling code is self-contained and is already
+present in the closure of the project to analyze, the following example
+demonstrates how to handle this case.
+
+First, move the IO handling code to an independent library project:
+
+.. code-block:: ada
+
+   -- stateful_io.gpr
+   library project Stateful_IO is
+      type Any_Library_Type is ("static", "relocatable", "static-pic");
+      Library_Type : Any_Library_Type := external ("LIBRARY_TYPE", "static");
+
+      for Library_Name use "stateful_io";
+      for Library_Kind use Library_Type;
+      for Library_Dir use "lib." & Library_Type;
+      for Object_Dir use "obj." & Library_Type;
+   end Stateful_IO;
+
+   -- stateful_io.ads
+   package Stateful_IO is
+      procedure Put (S : String);
+      pragma Export (Ada, Put, "stateful_io_put");
+   end Stateful_IO;package Stateful_IO is
+
+   -- stateful_io.adb
+   with GNAT.IO;
+
+   package body Stateful_IO is
+
+      --  Since we are short-circuiting the Ada compiler's elaboration checks,
+      --  preserve a manual guard to detect attempts to send data to the IO
+      --  channel before elaboration has occurred.
+
+      Initialized : Boolean := False;
+
+      procedure Put (S : String) is
+      begin
+         if not Initialized then
+            raise Program_Error with
+              "attempt to call Stateful_IO.Put before elaboration";
+         end if;
+
+         --  Replace the following with the actual code to send data to the IO
+         --  stream used by coverage data.
+
+         GNAT.IO.Put (S);
+      end Put;
+
+   begin
+      --  Here, do whatever necessary to initialize the IO stream
+
+      Initialized := True;
+   end Stateful_IO;
+
+Then, bind this code (non preelaborated) to the customized coverage runtime
+(``my_rts.gpr`` as in the previous section, preelaborated) using the
+interfacing pragmas:
+
+.. code-block:: ada
+
+   -- gnatcov_rts-base_io.adb
+   package body GNATcov_RTS.Base_IO is
+
+      procedure Stateful_IO_Put (S : String);
+      pragma Import (Ada, Stateful_IO_Put, "stateful_io_put");
+
+      procedure Put (S : GNATcov_RTS_String) is
+         Str : String (1 .. Integer (S.Length));
+         for Str'Address use S.Str;
+         pragma Import (Ada, Str);
+      begin
+         Stateful_IO_Put (Str);
+      end Put;
+
+   end GNATcov_RTS.Base_IO;
+
+Finally, make sure that the project file for the instrumented codebase contains
+a ``with "stateful_io";`` clause and that at least one of its unit has a ``with
+Stateful_IO;`` clause, so that the ``Stateful_IO`` library gets included during
+the build of the instrumented project.
+
+
 Building instrumented programs with CCG
 =======================================
 
