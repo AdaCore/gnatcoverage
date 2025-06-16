@@ -21,14 +21,15 @@ build_run_and_coverage(
     manual_prj_name="gen",
     trace_mode="src",
 )
-check_xcov_reports(
-    "xcov",
-    {
-        "main.adb.xcov": {"+": {9, 10}, "-": {7, 8}},
-        "pkg.ads.xcov": {},
-        "pkg.adb.xcov": {"+": {27, 28}, "-": {30}},
-    },
-    discard_empty=False,
-)
+expected_report = {
+    "main.adb.xcov": (
+        {"+": {7, 8, 9, 10}}
+        if thistest.options.block
+        else {"+": {9, 10}, "-": {7, 8}}
+    ),
+    "pkg.ads.xcov": {},
+    "pkg.adb.xcov": {"+": {27, 28}, "-": {30}},
+}
+check_xcov_reports("xcov", expected_report, discard_empty=False)
 
 thistest.result()
