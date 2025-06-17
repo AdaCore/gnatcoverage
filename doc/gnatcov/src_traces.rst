@@ -1447,10 +1447,22 @@ must be deleted:
 Finally, it is necessary to modify the contents of
 ``ccg_gnatcov_rts/gnatcov_rts-base_io.adb`` to use an alternate medium on which
 the execution trace will be output. By default this relies on ``GNAT.IO``,
-which is not available in the CCG runtime. It is possible to replace occurrences
-of this unit by ``Ada.Text_IO``, which is supported by CCG, but which relies on
-the C standard function ``putchar``. Otherwise, see :ref:`custom_base_64` for
-more details on the expected interface to dump the coverage trace information.
+which is not available in the CCG runtime. One way to modify it is to implement it on top of the ``putchar`` libc function:
+
+.. code-block:: ada
+
+   declare
+      function Putchar (C : Integer) return Integer;
+      pragma Import (C, Putchar);
+      Ignored : Integer;
+   begin
+      for C of Str loop
+         Ignored := Putchar (Character'Pos (C));
+      end loop;
+   end;
+
+Otherwise, see :ref:`custom_base_64` for more details on the expected interface
+to dump the coverage trace information.
 
 Building an instrumented program with CCG
 -----------------------------------------
