@@ -631,6 +631,10 @@ package Instrument.Common is
       Raw_Switches : String_Vectors.Vector;
       --  List of switches passed to the compiler driver without filtering
 
+      Clang_Needs_M32 : Boolean := False;
+      --  Wether we need to pass -m32 to libclang's parsing commands. This is
+      --  only the case when the compiler driver is a native 32 bit compiler.
+
    end record;
    --  Options to analyze (preprocess and/or parse) a compilation unit
 
