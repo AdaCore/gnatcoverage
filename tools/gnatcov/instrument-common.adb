@@ -549,6 +549,11 @@ package body Instrument.Common is
 
       Args.Append (Options.Compiler_Switches);
 
+      --  Add -m32 if needed
+
+      if Options.Clang_Needs_M32 then
+         Args.Append (+"-m32");
+      end if;
    end Add_Options;
 
    ----------------------------
@@ -732,6 +737,9 @@ package body Instrument.Common is
 
             elsif Has_Prefix (A, "-include") then
                Self.Include_Files.Append (+A (9 .. A'Last));
+
+            elsif A = "-m32" then
+               Self.Compiler_Switches.Append (+A);
 
             end if;
 
