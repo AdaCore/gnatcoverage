@@ -573,15 +573,20 @@ package body Instrument.C is
    function Compiler_Is_X86
      (Compiler_Driver : Unbounded_String) return Boolean
    is
+      Driver_Basename : constant String :=
+        Ada.Directories.Simple_Name (+Compiler_Driver);
       Cmd             : constant Command_Type :=
         (Command   => Compiler_Driver,
          Arguments => String_Vectors.To_Vector (+"-dumpmachine", 1),
          others    => <>);
       Basename_Suffix : constant String := "compiler_target.txt";
       Filename        : constant String :=
-        (+Compiler_Driver) & "_"
-         & Hex_Image (Unsigned_64 (Pid_To_Integer (Current_Process_Id)))
-         & "_" & Basename_Suffix;
+        Ada.Directories.Compose
+          (Containing_Directory => Get_Output_Dir,
+           Name                 =>
+             Driver_Basename & "_"
+             & Hex_Image (Unsigned_64 (Pid_To_Integer (Current_Process_Id)))
+             & "_" & Basename_Suffix);
       File            : Ada.Text_IO.File_Type;
       Res             : Boolean := False;
    begin
