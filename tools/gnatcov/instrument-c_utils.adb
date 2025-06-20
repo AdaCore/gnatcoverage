@@ -278,7 +278,13 @@ package body Instrument.C_Utils is
          then
             return Child_Visit_Recurse;
          end if;
-         if Cursor_Get_Mangling (Cursor) = "main" then
+
+         --  Clang will append an underscore to the mangled names of entities
+         --  when -m32 is passed, so we also need to check for this case.
+
+         if Cursor_Get_Mangling (Cursor) = "main"
+           or else Cursor_Get_Mangling (Cursor) = "_main"
+         then
             Result := Cursor;
             return Child_Visit_Break;
          end if;
