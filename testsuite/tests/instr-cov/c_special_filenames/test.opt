@@ -1,1 +1,2 @@
+ALL XFAIL Source naming makes GPR2 crash (eng/gpr/gpr-issues#624)
 !C++ DEAD test requires C++ compiler

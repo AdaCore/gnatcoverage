@@ -21,6 +21,7 @@ with Ada.Containers;  use Ada.Containers;
 with Ada.Directories; use Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams.Stream_IO;
+with Ada.Strings.Fixed;
 with Ada.Text_IO;     use Ada.Text_IO;
 
 with Clang.CX_Diagnostic; use Clang.CX_Diagnostic;
@@ -44,6 +45,7 @@ with Outputs;             use Outputs;
 with Paths;               use Paths;
 with SCOs;
 with SS_Annotations;      use SS_Annotations;
+with Switches;
 with System;              use System;
 with Table;
 with Text_Files;          use Text_Files;
@@ -471,9 +473,11 @@ package body Instrument.C is
      (Self         : out C_Source_Rewriter;
       Filename     : String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc);
+      Prj          : Prj_Desc;
+      Options      : out Analysis_Options);
    --  Start a rewriting session for the given file identified by its full
-   --  name. If not already done, preprocess it beforehand.
+   --  name. If not already done, preprocess it beforehand and record
+   --  information from the preprocessing stage in Options.
 
    procedure Run_Diagnostics (TU : Translation_Unit_T);
    --  Output clang diagnostics on the given translation unit
@@ -561,6 +565,56 @@ package body Instrument.C is
       Name         : String;
       Func_Args    : String := "");
    --  Like Format_Extern_Decl, but write the definition to File
+
+   ---------------------
+   -- Compiler_Is_X86 --
+   ---------------------
+
+   function Compiler_Is_X86
+     (Compiler_Driver : Unbounded_String) return Boolean
+   is
+      Driver_Basename : constant String :=
+        Ada.Directories.Simple_Name (+Compiler_Driver);
+      Cmd             : constant Command_Type :=
+        (Command   => Compiler_Driver,
+         Arguments => String_Vectors.To_Vector (+"-dumpmachine", 1),
+         others    => <>);
+      Basename_Suffix : constant String := "compiler_target.txt";
+      Filename        : constant String :=
+        Ada.Directories.Compose
+          (Containing_Directory => Get_Output_Dir,
+           Name                 =>
+             Driver_Basename & "_"
+             & Hex_Image (Unsigned_64 (Pid_To_Integer (Current_Process_Id)))
+             & "_" & Basename_Suffix);
+      File            : Ada.Text_IO.File_Type;
+      Res             : Boolean := False;
+   begin
+      Run_Command
+        (Command             => Cmd,
+         Origin_Command_Name => "gnatcov insturment",
+         Output_File         => Filename);
+      Open (File, In_File, Filename);
+
+      --  We only expect one line in the output file, with only the triplet
+      --  in it. Check it against a ground truth string, and if it matches
+      --  and we don't expect a non-native target, assume we need to forward
+      --  -m32 to libclang.
+
+      if Ada.Strings.Fixed.Index (Get_Line (File), "i686-pc") = 1 then
+         Res := True;
+      end if;
+      Close (File);
+      Delete_File (Filename);
+      return Res;
+   exception
+      when others =>
+         if Is_Open (File) then
+            Close (File);
+            Delete_File (Filename);
+         end if;
+         raise;
+   end Compiler_Is_X86;
 
    ------------------------
    -- To_Chars_Ptr_Array --
@@ -3311,11 +3365,11 @@ package body Instrument.C is
      (Self         : out C_Source_Rewriter;
       Filename     : String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
-      Prj          : Prj_Desc)
+      Prj          : Prj_Desc;
+      Options      : out Analysis_Options)
    is
       PP_Filename : Unbounded_String;
 
-      Options : Analysis_Options;
       Args    : String_Vectors.Vector;
    begin
       Preprocess_Source
@@ -3671,8 +3725,6 @@ package body Instrument.C is
         CU_Name_For_File (+Unit_Name);
 
       Orig_Filename : constant String  := Unit_Name;
-      PP_Filename   : Unbounded_String;
-      --  Respectively original, and preprocessed filename
 
       Buffer_Filename : constant String :=
         +Self.Buffer_Unit
@@ -3744,17 +3796,15 @@ package body Instrument.C is
       UIC.Files_Of_Interest := Files_Of_Interest;
 
       --  Run the preprocessor (this also takes care of importing the
-      --  preprocessor options into UIC.Options).
-
-      Preprocess_Source (Orig_Filename, Self, Prj, PP_Filename, UIC.Options);
-
-      --  Parse the preprocessed version of the file
+      --  preprocessor options into UIC.Options) and parse the preprocessed
+      --  version of the file.
 
       Start_Rewriting
         (Self         => Rewriter,
-         Filename     => +PP_Filename,
+         Filename     => Orig_Filename,
          Instrumenter => Self,
-         Prj          => Prj);
+         Prj          => Prj,
+         Options      => UIC.Options);
       UIC.TU := Rewriter.TU;
       UIC.Rewriter := Rewriter.Rewriter;
 
@@ -5136,10 +5186,12 @@ package body Instrument.C is
 
       Main_Cursor : Cursor_T;
       --  Cursor of the main declaration
+
+      Dummy_Options : Analysis_Options;
    begin
       Check_Compiler_Driver (Prj, Self);
 
-      Rew.Start_Rewriting (Filename, Self, Prj);
+      Rew.Start_Rewriting (Filename, Self, Prj, Dummy_Options);
 
       Insert_Extern_Location :=
         Start_Sloc (Get_Translation_Unit_Cursor (Rew.TU));
@@ -5362,8 +5414,10 @@ package body Instrument.C is
       Main_Cursor : Cursor_T;
       --  Cursor of the main declaration
 
+      Dummy_Options : Analysis_Options;
+
    begin
-      Rew.Start_Rewriting (Filename, Self, Prj);
+      Rew.Start_Rewriting (Filename, Self, Prj, Dummy_Options);
       Main_Cursor := Get_Main (Rew.TU);
       if Main_Cursor = Get_Null_Cursor then
          return False;
@@ -5742,6 +5796,18 @@ package body Instrument.C is
          Self.Compiler_Switches,
          Instrumenter.Instr_Mode,
          Self.Builtin_Macros);
+
+      --  Deptermine if the compiler is an x86 32bit compiler. The integrated
+      --  instrumentation process only forwards the actual compiler, not the
+      --  driver to the instrumentation process, so only perform this check for
+      --  project based instrumentation, the compiler wrapper is responsible
+      --  for adding -m32 if needed to the compiler switches.
+      if Instrumenter.Instr_Mode = Project_Instrumentation
+        and then Compiler_Is_X86 (Prj.Compiler_Driver (Instrumenter.Language))
+      then
+         Self.Clang_Needs_M32 := True;
+      end if;
+
    end Import_Options;
 
    ---------------------------
