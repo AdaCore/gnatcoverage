@@ -86,26 +86,6 @@ package body SC_Obligations is
    --  For now, it memoizes the result for each SCO in its SCO descriptor,
    --  so the browsing is not duplicated.
 
-   ---------------
-   -- Instances --
-   ---------------
-
-   type Inst_Info is record
-      Sloc               : Source_Location;
-      --  Instantiation location
-
-      Enclosing_Instance : Inst_Id;
-      --  Index of enclosing instance, or No_Inst_Id if instance is not nested
-
-      Comp_Unit          : CU_Id;
-      --  Originating compilation unit, for sanity checking purposes
-   end record;
-
-   package Inst_Info_Vectors is
-     new Ada.Containers.Vectors
-       (Index_Type   => Valid_Inst_Id,
-        Element_Type => Inst_Info);
-
    ------------------------
    -- Source units table --
    ------------------------
@@ -123,9 +103,6 @@ package body SC_Obligations is
 
       First_SCO, Last_SCO : SCO_Id := No_SCO_Id;
       --  First and last SCO ids for this unit
-
-      First_Instance, Last_Instance : Inst_Id := No_Inst_Id;
-      --  First and last index of Inst_Vector entries for this unit
 
       Deps : SFI_Vector;
       --  Mapping of this unit's dependency numbers to source file indices
@@ -550,10 +527,9 @@ package body SC_Obligations is
    --  contain data loaded from a checkpoint.
 
    type Source_Coverage_Vectors is record
-      CU_Vector   : CU_Info_Vectors.Vector;
-      Inst_Vector : Inst_Info_Vectors.Vector;
-      BDD_Vector  : BDD.BDD_Vectors.Vector;
-      SCO_Vector  : SCO_Vectors.Vector;
+      CU_Vector  : CU_Info_Vectors.Vector;
+      BDD_Vector : BDD.BDD_Vectors.Vector;
+      SCO_Vector : SCO_Vectors.Vector;
    end record;
 
    function Index
@@ -633,17 +609,6 @@ package body SC_Obligations is
      (Valid_CU_Id, CU_Info, "=", CU_Info_Vectors, Read);
    --  Read a vector of CU_Info records from CLS and append them to CU_Vector
 
-   procedure Read
-     (CLS : in out Checkpoint_Load_State; Element : out Inst_Info);
-   --  Read an Inst_Info from CLS
-
-   procedure Read is new Read_Vector
-     (Index_Type   => Valid_Inst_Id,
-      Element_Type => Inst_Info,
-      "="          => "=",
-      Vectors      => Inst_Info_Vectors,
-      Read_Element => Read);
-
    procedure Read is new Read_Set
      (Element_Type => Pc_Type,
       Set_Type     => PC_Sets.Set,
@@ -708,7 +673,6 @@ package body SC_Obligations is
      (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
-      CP_CU_Id   : CU_Id;
       New_CU_Id  : out CU_Id);
    --  Load CU from checkpoint that does not correspond to a current unit of
    --  interest. The newly assigned CU_Id is returned in New_CU_Id.
@@ -717,7 +681,6 @@ package body SC_Obligations is
      (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
-      CP_CU_Id   : CU_Id;
       New_CU_Id  : out CU_Id);
    --  Process one compilation unit from a checkpoint.
    --  CP_CU_Id is the CU_Id in the checkpoint.
@@ -769,16 +732,6 @@ package body SC_Obligations is
    procedure Write is new Write_Vector
      (Valid_CU_Id, CU_Info, "=", CU_Info_Vectors, Write);
    --  Write a vector of CU_Info records to CSS
-
-   procedure Write (CSS : in out Checkpoint_Save_State; Value : Inst_Info);
-   --  Write an Inst_Info to CSS
-
-   procedure Write is new Write_Vector
-     (Index_Type   => Valid_Inst_Id,
-      Element_Type => Inst_Info,
-      "="          => "=",
-      Vectors      => Inst_Info_Vectors,
-      Write_Element => Write);
 
    procedure Write is new Write_Set
      (Element_Type  => Pc_Type,
@@ -851,9 +804,6 @@ package body SC_Obligations is
    --  assumes that the compilation unit vector is naturally ordered by SCO
    --  ranges. This is true by construction, as we remap SCOs while we load
    --  new units.
-
-   Inst_Vector : Inst_Info_Vectors.Vector renames SC_Vectors.Inst_Vector;
-   --  Vector of info for generic instantiations
 
    BDD_Vector : BDD.BDD_Vectors.Vector renames SC_Vectors.BDD_Vector;
    --  Vector for BDD nodes (one per BDD node, all BDDs considered)
@@ -1176,8 +1126,6 @@ package body SC_Obligations is
       Value.Main_Source := CLS.Read_SFI;
       Value.First_SCO := CLS.Read_SCO;
       Value.Last_SCO := CLS.Read_SCO;
-      Value.First_Instance := CLS.Read_Inst;
-      Value.Last_Instance := CLS.Read_Inst;
       Read (CLS, Value.Deps);
       Value.Has_Code := CLS.Read_Boolean;
       Value.Fingerprint := CLS.Read_Fingerprint;
@@ -1237,14 +1185,6 @@ package body SC_Obligations is
                Read (CLS, Value.Blocks);
             end if;
       end case;
-   end Read;
-
-   procedure Read (CLS : in out Checkpoint_Load_State; Element : out Inst_Info)
-   is
-   begin
-      Element.Sloc := CLS.Read_Source_Location;
-      Element.Enclosing_Instance := CLS.Read_Inst;
-      Element.Comp_Unit := CLS.Read_CU;
    end Read;
 
    procedure Read
@@ -1534,9 +1474,9 @@ package body SC_Obligations is
       --  Here we already have loaded full SCO information for this CU. There
       --  are two things to do:
       --
-      --  * Populate the tables mapping the SCO and instance IDs for this unit
-      --    in the checkpoint to their counterparts in the current context, and
-      --    merge non-instrumented SCO information if available.
+      --  * Populate the tables mapping the SCO for this unit in the checkpoint
+      --    to their counterparts in the current context, and merge
+      --    non-instrumented SCO information if available.
       --
       --  * Merge the annotations
       --
@@ -1589,22 +1529,6 @@ package body SC_Obligations is
          end;
       end loop;
 
-      --  Instances
-
-      pragma Assert
-        (CP_CU.Last_Instance - CP_CU.First_Instance
-         =
-           Real_CU.Last_Instance - Real_CU.First_Instance);
-
-      for Old_Inst_Id in CP_CU.First_Instance
-        .. CP_CU.Last_Instance
-      loop
-         Set_Inst_Id_Map (Relocs, Old_Inst_Id,
-                          Old_Inst_Id
-                          + Real_CU.First_Instance
-                          - CP_CU.First_Instance);
-      end loop;
-
       --  Has_Code indication
 
       Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
@@ -1653,13 +1577,11 @@ package body SC_Obligations is
      (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
-      CP_CU_Id   : CU_Id;
       New_CU_Id  : out CU_Id)
    is
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
 
-      New_First_Instance : Inst_Id;
-      New_First_SCO      : SCO_Id;
+      New_First_SCO : SCO_Id;
 
       Cur_Source_File : Source_File_Index := No_Source_File;
       Last_Line       : Natural := 0;
@@ -1772,46 +1694,6 @@ package body SC_Obligations is
       New_CU_Id := CU_Vector.Last_Index + 1;
 
       CU_Map.Insert (CP_CU.Main_Source, New_CU_Id);
-
-      --  Remap instance ids
-
-      New_First_Instance := Inst_Vector.Last_Index + 1;
-      for Old_Inst_Id
-        in CP_CU.First_Instance .. CP_CU.Last_Instance
-      loop
-         Remap_Inst : declare
-            New_Inst : Inst_Info :=
-              CP_Vectors.Inst_Vector.Element (Old_Inst_Id);
-
-            procedure Remap_Inst_Id (S : in out Inst_Id);
-            --  Remap an Inst_Id. Note: this assumes possible
-            --  forward references, and does not rely on Inst_Map.
-
-            -------------------
-            -- Remap_Inst_Id --
-            -------------------
-
-            procedure Remap_Inst_Id (S : in out Inst_Id) is
-            begin
-               if S /= No_Inst_Id then
-                  S := New_First_Instance
-                    + S
-                    - CP_CU.First_Instance;
-               end if;
-            end Remap_Inst_Id;
-
-         --  Start of processing for Remap_Inst
-
-         begin
-            Remap_SFI (Relocs, New_Inst.Sloc.Source_File);
-            Remap_Inst_Id (New_Inst.Enclosing_Instance);
-            pragma Assert (New_Inst.Comp_Unit = CP_CU_Id);
-            New_Inst.Comp_Unit := New_CU_Id;
-
-            Inst_Vector.Append (New_Inst);
-            Set_Inst_Id_Map (Relocs, Old_Inst_Id, Inst_Vector.Last_Index);
-         end Remap_Inst;
-      end loop;
 
       --  Remap SCO ids. Note that BDD nodes are imported (and remapped) as
       --  needed during the process.
@@ -2015,12 +1897,6 @@ package body SC_Obligations is
 
       --  Perform final fixups and insert CU
 
-      CP_CU.Last_Instance :=
-        New_First_Instance
-          + CP_CU.Last_Instance
-        - CP_CU.First_Instance;
-      CP_CU.First_Instance := New_First_Instance;
-
       CP_CU.Last_SCO :=
         New_First_SCO
           + CP_CU.Last_SCO
@@ -2048,7 +1924,6 @@ package body SC_Obligations is
      (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
-      CP_CU_Id   : CU_Id;
       New_CU_Id  : out CU_Id)
    is
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
@@ -2090,13 +1965,11 @@ package body SC_Obligations is
            (CLS,
             CP_Vectors,
             CP_CU,
-            CP_CU_Id  => CP_CU_Id,
             New_CU_Id => New_CU_Id);
 
       --  Case 2: CU already loaded from LI info. Perform consistency checks,
       --  skipping the checkpointed unit altogether and emitting a warning if
-      --  there is a mismatch. Record mapping of checkpoint identifiers (SCOs
-      --  and instances) otherwise.
+      --  there is a mismatch. Record mapping of checkpoint SCOs otherwise.
 
       else
          declare
@@ -2212,8 +2085,6 @@ package body SC_Obligations is
       CSS.Write_SFI  (Value.Main_Source);
       CSS.Write_SCO  (Value.First_SCO);
       CSS.Write_SCO  (Value.Last_SCO);
-      CSS.Write_Inst (Value.First_Instance);
-      CSS.Write_Inst (Value.Last_Instance);
       Write     (CSS, Value.Deps);
       CSS.Write      (Value.Has_Code);
       CSS.Write      (Value.Fingerprint);
@@ -2256,14 +2127,6 @@ package body SC_Obligations is
             end if;
       end case;
 
-   end Write;
-
-   procedure Write
-     (CSS : in out Checkpoint_Save_State; Value : Inst_Info) is
-   begin
-      CSS.Write (Value.Sloc);
-      CSS.Write_Inst (Value.Enclosing_Instance);
-      CSS.Write_CU (Value.Comp_Unit);
    end Write;
 
    procedure Write
@@ -2363,7 +2226,6 @@ package body SC_Obligations is
       --  This part must be kept consistent with Checkpoint_Save
 
       Read (CLS, CP_Vectors.CU_Vector);
-      Read (CLS, CP_Vectors.Inst_Vector);
       SC_Obligations.BDD.Read (CLS, CP_Vectors.BDD_Vector);
       Read (CLS, CP_Vectors.SCO_Vector);
 
@@ -2411,7 +2273,7 @@ package body SC_Obligations is
          end loop;
       end;
 
-      --  Allocate mapping tables for SCOs, instance identifiers and BDD nodes
+      --  Allocate mapping tables for SCOs and BDD nodes
 
       Allocate_CU_Id_Maps (Relocs,
                            CP_Vectors.CU_Vector.First_Index,
@@ -2419,9 +2281,6 @@ package body SC_Obligations is
       Allocate_SCO_Id_Map (Relocs,
                            CP_Vectors.SCO_Vector.First_Index,
                            CP_Vectors.SCO_Vector.Last_Index);
-      Allocate_Inst_Id_Map (Relocs,
-                            CP_Vectors.Inst_Vector.First_Index,
-                            CP_Vectors.Inst_Vector.Last_Index);
       Allocate_BDD_Node_Id_Map (Relocs,
                                 CP_Vectors.BDD_Vector.First_Index,
                                 CP_Vectors.BDD_Vector.Last_Index);
@@ -2472,7 +2331,6 @@ package body SC_Obligations is
                  (CLS,
                   CP_Vectors,
                   CP_CU,
-                  CP_CU_Id  => CP_CU_Id,
                   New_CU_Id => New_CU_Id);
                Set_CU_Id_Map (Relocs, CP_CU_Id, New_CU_Id);
             end if;
@@ -2631,7 +2489,6 @@ package body SC_Obligations is
       CU_Map.Clear;
       Origin_To_CUs_Map.Clear;
       CU_Vector.Clear;
-      Inst_Vector.Clear;
       BDD_Vector.Clear;
       SCO_Vector.Clear;
    end Checkpoint_Clear;
@@ -2643,7 +2500,6 @@ package body SC_Obligations is
    procedure Checkpoint_Save (CSS : access Checkpoint_Save_State) is
    begin
       Write (CSS.all, CU_Vector);
-      Write (CSS.all, Inst_Vector);
       BDD.Write (CSS.all, BDD_Vector);
       Write (CSS.all, SCO_Vector);
 
@@ -3909,7 +3765,7 @@ package body SC_Obligations is
       ALI_Index : constant Source_File_Index := Load_ALI
         (ALI_Filename, Ignored_Source_Files, Units, Deps,
          Temp_ALI_Annotations, With_SCOs => True);
-      --  Load ALI file and update the last SCO and instance indices
+      --  Load ALI file and update the last SCO index
 
    begin
       if ALI_Index = No_Source_File then
@@ -4263,8 +4119,6 @@ package body SC_Obligations is
       New_CU_Info.Main_Source := Main_Source;
       New_CU_Info.First_SCO := Valid_SCO_Id'First;
       New_CU_Info.Last_SCO := No_SCO_Id;
-      New_CU_Info.First_Instance := Valid_Inst_Id'First;
-      New_CU_Info.Last_Instance := No_Inst_Id;
       New_CU_Info.Fingerprint := Fingerprint;
       CU_Vector.Append (New_CU_Info);
 
@@ -4627,8 +4481,6 @@ package body SC_Obligations is
       Count_Paths   : Boolean;
       Attached_Ctx  : Instr_Attached_Ctx := No_Attached_Ctx)
    is
-      use SCOs;
-
       LI_First_SCO : constant SCO_Id := SCO_Vector.Last_Index + 1;
       --  Index of the first high level SCO we are going to create
 
@@ -4644,8 +4496,7 @@ package body SC_Obligations is
          declare
             --  Record entry high water mark in high level SCO tables
 
-            First_SCO      : constant SCO_Id := SCO_Vector.Last_Index + 1;
-            First_Instance : constant Inst_Id := Inst_Vector.Last_Index + 1;
+            First_SCO : constant SCO_Id := SCO_Vector.Last_Index + 1;
 
             Fingerprint : constant Fingerprint_Type := Fingerprint_Type
               (GNAT.SHA1.Binary_Message_Digest'
@@ -4690,39 +4541,6 @@ package body SC_Obligations is
 
             Prealloc_Lines (Info.Source_File, State.Last_Line);
 
-            --  Import unit instance table into global table. Even though all
-            --  units created for this LI file have in principle the same
-            --  instance, it is necessary to duplicate them in our internal
-            --  tables so that they can be filtered out/consolidated
-            --  separately later on.
-
-            for LL_Inst_Id in SCO_Instance_Table.First
-                           .. SCO_Instance_Table.Last
-            loop
-               declare
-                  SIE : SCO_Instance_Table_Entry renames
-                     SCO_Instance_Table.Table (LL_Inst_Id);
-
-                  Sloc : constant Source_Location :=
-                    (Source_File => Deps.Element (SIE.Inst_Dep_Num),
-                     L           => (Line   => Natural (SIE.Inst_Loc.Line),
-                                     Column => Natural (SIE.Inst_Loc.Col)));
-
-                  Enclosing_Inst : Inst_Id := No_Inst_Id;
-                  --  Index of the enclosing instance for SIE
-               begin
-                  --  If there is an enclosing instance, compute the index of
-                  --  the high-level one from the index of the low-level one.
-
-                  if SIE.Enclosing_Instance /= 0 then
-                     Enclosing_Inst :=
-                        First_Instance + Inst_Id (SIE.Enclosing_Instance) - 1;
-                  end if;
-
-                  Inst_Vector.Append (Inst_Info'(Sloc, Enclosing_Inst, CU));
-               end;
-            end loop;
-
             --  Finally update CU info
 
             declare
@@ -4732,9 +4550,6 @@ package body SC_Obligations is
 
                Unit.First_SCO := First_SCO;
                Unit.Last_SCO  := SCO_Vector.Last_Index;
-
-               Unit.First_Instance := First_Instance;
-               Unit.Last_Instance  := Inst_Vector.Last_Index;
             end;
          end;
 

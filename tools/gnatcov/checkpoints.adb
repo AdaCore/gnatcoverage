@@ -41,8 +41,6 @@ package body Checkpoints is
    procedure Free is new Ada.Unchecked_Deallocation
      (CU_Id_Map_Array, CU_Id_Map_Acc);
    procedure Free is new Ada.Unchecked_Deallocation
-     (Inst_Id_Map_Array, Inst_Id_Map_Acc);
-   procedure Free is new Ada.Unchecked_Deallocation
      (BDD_Node_Id_Map_Array, BDD_Node_Id_Map_Acc);
    procedure Free is new Ada.Unchecked_Deallocation
      (SCO_Id_Map_Array, SCO_Id_Map_Acc);
@@ -121,20 +119,6 @@ package body Checkpoints is
       Relocs.Ignored_CUs :=
         new CU_Id_Ignored_Map_Array'(First  .. Last => False);
    end Allocate_CU_Id_Maps;
-
-   ---------------------------
-   -- Allocate_Inst_Id_Maps --
-   ---------------------------
-
-   procedure Allocate_Inst_Id_Map
-     (Relocs      : in out Checkpoint_Relocations;
-      First, Last : Inst_Id)
-   is
-   begin
-      pragma Assert (Relocs.Inst_Map = null);
-      Relocs.Inst_Map :=
-        new Inst_Id_Map_Array'(First .. Last => No_Inst_Id);
-   end Allocate_Inst_Id_Map;
 
    -------------------------------
    -- Allocate_BDD_Node_Id_Maps --
@@ -291,18 +275,6 @@ package body Checkpoints is
       Relocs.CU_Map (Source_CU_Id) := Target_CU_Id;
    end Set_CU_Id_Map;
 
-   ---------------------
-   -- Set_Inst_Id_Map --
-   ---------------------
-
-   procedure Set_Inst_Id_Map
-     (Relocs                         : in out Checkpoint_Relocations;
-      Source_Inst_Id, Target_Inst_Id : Valid_Inst_Id)
-   is
-   begin
-      Relocs.Inst_Map (Source_Inst_Id) := Target_Inst_Id;
-   end Set_Inst_Id_Map;
-
    -------------------------
    -- Set_BDD_Node_Id_Map --
    -------------------------
@@ -373,22 +345,6 @@ package body Checkpoints is
       end if;
       return CP_CU_Id;
    end Remap_CU_Id;
-
-   -------------------
-   -- Remap_Inst_Id --
-   -------------------
-
-   function Remap_Inst_Id
-     (Relocs     : Checkpoint_Relocations;
-      CP_Inst_Id : Inst_Id) return Inst_Id
-   is
-   begin
-      if CP_Inst_Id /= No_Inst_Id then
-         pragma Assert (Relocs.Inst_Map (CP_Inst_Id) /= No_Inst_Id);
-         return Relocs.Inst_Map (CP_Inst_Id);
-      end if;
-      return CP_Inst_Id;
-   end Remap_Inst_Id;
 
    -----------------------
    -- Remap_BDD_Node_Id --
@@ -703,7 +659,6 @@ package body Checkpoints is
    begin
       Free (Relocs.SFI_Map);
       Free (Relocs.CU_Map);
-      Free (Relocs.Inst_Map);
       Free (Relocs.BDD_Map);
       Free (Relocs.SCO_Map);
       Free (Relocs.Ignored_SFIs);
@@ -830,15 +785,6 @@ package body Checkpoints is
    begin
       return Integer (Self.Read_I32);
    end Read_Integer;
-
-   ---------------
-   -- Read_Inst --
-   ---------------
-
-   function Read_Inst (Self : in out Checkpoint_Load_State) return Inst_Id is
-   begin
-      return Inst_Id (Self.Read_I32);
-   end Read_Inst;
 
    ------------------------
    -- Read_Language_Kind --
@@ -1286,16 +1232,6 @@ package body Checkpoints is
    begin
       Interfaces.Integer_32'Write (Self.Stream, Value);
    end Write_I32;
-
-   ----------------
-   -- Write_Inst --
-   ----------------
-
-   procedure Write_Inst (Self : in out Checkpoint_Save_State; Value : Inst_Id)
-   is
-   begin
-      Self.Write_I32 (Interfaces.Integer_32 (Value));
-   end Write_Inst;
 
    -------------------
    -- Write_Integer --
