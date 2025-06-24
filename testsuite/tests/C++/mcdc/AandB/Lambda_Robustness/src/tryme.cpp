@@ -11,8 +11,8 @@ tryme (bool aa, bool bb, bool skip)
         return true;                        // # lambda_true
       else                                  // # lambda_other
         return false;                       // # lambda_false
-    };                                      // # lambda_other
-    volatile bool a = InCompound (aa, bb);  // # other
+    }; // # lambda_other
+    volatile bool a = InCompound (aa, bb); // # other
   }
 
   // A lambda function in a for statement
@@ -23,7 +23,7 @@ tryme (bool aa, bool bb, bool skip)
         return true;        // # lambda_true
       else                  // # lambda_other
         return false;       // # lambda_false
-    }(aa, bb);              // # lambda_other
+    }(aa, bb); // # lambda_other
 
   // A nested lambda
   [] (int aa, int bb) {     // # other
@@ -32,6 +32,6 @@ tryme (bool aa, bool bb, bool skip)
         return true;        // # lambda_true
       else                  // # lambda_other
         return false;       // # lambda_false
-    }(aa, bb);              // # lambda_other
-  }(aa, bb);                // # lambda_other
+    }(aa, bb); // # lambda_other
+  }(aa, bb); // # lambda_other
 }

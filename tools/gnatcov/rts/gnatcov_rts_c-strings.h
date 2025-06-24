@@ -37,12 +37,9 @@ extern "C"
    value.  */
 #ifdef __cplusplus
 #define STR(x)                                                                \
-  {                                                                           \
-    x, sizeof (x) - 1                                                         \
-  } // Avoid compound literal which is not valid C++
+  { x, sizeof (x) - 1 } // Avoid compound literal which is not valid C++
 #else
-#define STR(x)                                                                \
-  (struct gnatcov_rts_string) { x, sizeof (x) - 1 }
+#define STR(x) (struct gnatcov_rts_string){ x, sizeof (x) - 1 }
 #endif
 
 #ifdef __cplusplus

@@ -8,7 +8,7 @@ foo (int i) // # foo_def_2
     [&i] (int x) { // # lambda_def
       // # lambda_comment
       return x + i; // # lambda_return
-    };              // # lambda_bracket
+    }; // # lambda_bracket
 
   // This should not be instrumented as a call even though under the hood, a
   // call to a copy constructor is made for f.
