@@ -259,11 +259,16 @@ or provided by the user.
   such as light runtimes, the runtime checks will implicitly depend on some Ada
   runtime symbols.
 
-  To avoid this, it is necessary to provide a user defined
-  last chance handler, as detailed in the
+  If this dependency is a problem, it can be avoided by either providing a user
+  defined last chance handler, as detailed in the
   `GNAT's users guide supplement for cross platforms <https://docs.adacore.com/live
   /wave/gnat_ugx/html/gnat_ugx/gnat_ugx/gnat_runtimes.html#exceptions-and-the-last-
-  chance-handler>`_.
+  chance-handler>`_, or by disabling runtime checks during the coverage runtime
+  setup:
+
+  .. code-block::
+
+    gnatcov setup --no-stdlib -gargs -gnatp
 
 Instrumenting programs
 ======================
