@@ -250,6 +250,21 @@ or provided by the user.
   ``gnatcov_rts_putchar`` symbol, as detailed in the
   :ref:`section dedicated to coverage runtime customization<basic_rts_custom>`.
 
+.. note::
+  While the coverage runtime does not explicitly depend on any object or function
+  from the Ada runtime, runtime checks added by the compiler will produce a
+  reference to the ``__gnat_last_chance_handler`` symbol on configurations that
+  do not support exception propagation. This in turn means that for
+  configurations that provide a default implementation of the last chance handler,
+  such as light runtimes, the runtime checks will implicitly depend on some Ada
+  runtime symbols.
+
+  To avoid this, it is necessary to provide a user defined
+  last chance handler, as detailed in the
+  `GNAT's users guide supplement for cross platforms <https://docs.adacore.com/live
+  /wave/gnat_ugx/html/gnat_ugx/gnat_ugx/gnat_runtimes.html#exceptions-and-the-last-
+  chance-handler>`_.
+
 Instrumenting programs
 ======================
 
