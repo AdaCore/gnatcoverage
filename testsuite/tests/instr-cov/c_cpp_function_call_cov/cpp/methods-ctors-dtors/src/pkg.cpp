@@ -6,8 +6,8 @@ class Point2D
   int y = 0;
 
 public:
-  Point2D () = default;                    // # default_ctor_def
-  Point2D (int x, int y) : x (x), y (y){}; // # var_ctor_def
+  Point2D () = default;                     // # default_ctor_def
+  Point2D (int x, int y) : x (x), y (y) {}; // # var_ctor_def
 
   Point2D add (Point2D &other) const;
 };

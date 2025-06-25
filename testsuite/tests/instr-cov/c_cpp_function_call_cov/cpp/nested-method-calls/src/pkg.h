@@ -6,7 +6,7 @@ class A
   int _x;
 
 public:
-  A (int x) : _x (x){};
+  A (int x) : _x (x) {};
 
   int
   get_x () const
@@ -20,7 +20,7 @@ class B
   A _a;
 
 public:
-  B (A a) : _a (a){};
+  B (A a) : _a (a) {};
 
   A
   get_a () const

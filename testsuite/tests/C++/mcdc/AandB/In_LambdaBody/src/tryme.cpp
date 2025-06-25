@@ -11,7 +11,7 @@ tryme (bool aa, bool bb, bool skip)
       return true;                     // # lambda_true
     else                               // # lambda_other
       return false;                    // # lambda_false
-  };                                   // # lambda_other
+  }; // # lambda_other
 
   volatile bool b = AndExpr (aa, bb); // # other
 }
