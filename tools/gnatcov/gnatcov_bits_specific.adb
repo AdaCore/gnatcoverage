@@ -1006,7 +1006,6 @@ procedure GNATcov_Bits_Specific is
             Copy_Arg_List (Args.Remaining_Args, Exe_Inputs);
 
          when Cmd_Run =>
-            Rundrv.Emit_Deprecation_Warning;
 
             --  Sort out what to use as the executable name and what EARGS to
             --  forward to our Eargs local, depending on whether we have an
@@ -2064,9 +2063,6 @@ begin
                --  Record we are loading a binary trace
 
                Update_Current_Trace_Kind (Binary_Trace_File);
-               if not Bin_Traces_Present then
-                  Rundrv.Emit_Deprecation_Warning;
-               end if;
                Bin_Traces_Present := True;
 
                Load_All_ALIs (Check_SCOs => False);
