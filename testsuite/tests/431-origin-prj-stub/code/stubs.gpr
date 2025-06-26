@@ -1,0 +1,13 @@
+project Stubs extends "user.gpr" is
+
+   for Object_Dir use "obj_stubs";
+   for Source_Dirs use ("stub_src");
+
+   package Coverage is
+
+      --  Pkh is stubbed, do not compute coverage over it.
+
+      for Excluded_Units use ("Pkh");
+   end Coverage;
+
+end stubs;

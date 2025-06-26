@@ -1449,9 +1449,18 @@ package body Project is
           (GPR2.Project.Registry.Attribute.Origin_Project);
       Actual_Prj  : constant GPR2.Project.View.Object :=
         (if Origin_Attr.Is_Defined
-         then Most_Extending (Lookup_Project (Origin_Attr.Value.Text))
+         then Lookup_Project (Origin_Attr.Value.Text)
          else Prj_Tree.Root_Project);
-      Attr        : GPR2.Project.Attribute.Object;
+      --  This intentionally does not use the most-extending view, as the
+      --  origin project is supposed to be the root project of the user, and
+      --  any extension is a tooling artifact.
+      --
+      --  In the case of gnattest, an extending project is used to override
+      --  some source when generating stubs, still the user coverage
+      --  preferences are to be loaded from the project designated by
+      --  Origin_Project.
+
+      Attr : GPR2.Project.Attribute.Object;
    begin
       return Result : String_Vectors.Vector do
          Attr := Actual_Prj.Attribute

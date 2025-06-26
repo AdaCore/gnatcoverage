@@ -8,7 +8,7 @@ tryme (bool aa, bool bb, bool skip)
 
   auto AndExpr = [] (int aa, int bb) { // # other
     return aa > 0 && bb > 0;           // # eval :o/e:
-  };                                   // # lambda_other
+  }; // # lambda_other
 
   volatile bool b = AndExpr (aa, bb); // # other
 }

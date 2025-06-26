@@ -1,0 +1,11 @@
+project User is
+
+   for Source_Dirs use ("src");
+   for Object_Dir use "obj";
+
+   package Coverage is
+      for Switches ("*") use ("--level=stmt+decision");
+      for Switches ("coverage") use ("--annotate=xcov", "--output-dir=xcov");
+   end Coverage;
+
+end User;
