@@ -46,6 +46,8 @@ with Coverage_Options; use Coverage_Options;
 with Coverage;         use Coverage;
 with Diagnostics;      use Diagnostics;
 with Instrument.Ada_Preprocessing;
+with Instrument.Ada_Unit.Rewriting_Utils;
+use Instrument.Ada_Unit.Rewriting_Utils;
 with JSON;             use JSON;
 with Namet;            use Namet;
 with Outputs;          use Outputs;
@@ -75,6 +77,10 @@ package body Instrument.Ada_Unit is
       Ada_2022 .. Any_Language_Version'Last;
    --  Set of versions of the Ada language that support declare
    --  expressions.
+
+   subtype If_Expr_Supported_Versions is Any_Language_Version range
+      Ada_2012 .. Any_Language_Version'Last;
+   --  Set of versions of the Ada language that support if expressions.
 
    function Create_Context_Instrument
      (N : Libadalang.Analysis.Ada_Node'Class) return Context_Handle;
@@ -482,11 +488,6 @@ package body Instrument.Ada_Unit is
       K   : Ada_Node_Kind_Type) return Node_Rewriting_Handle
    is (Create_Node (UIC.Rewriting_Context, K));
    --  Shortcut to create a node of the given kind
-
-   function Make_Identifier
-     (RH : Rewriting_Handle; Id : Text_Type) return Node_Rewriting_Handle
-   is (Create_Token_Node (RH, Libadalang.Common.Ada_Identifier, Id));
-   --  Shortcut to create an identifier node
 
    function Make_Defining_Name
      (UIC    : Ada_Unit_Inst_Context'Class;
@@ -8182,17 +8183,14 @@ package body Instrument.Ada_Unit is
                   --  we can simply convert the original expression to
                   --  Standard.Boolean.
 
-                  Old_Cond := Create_Call_Expr
-                    (RC,
-                     F_Name   => Make_Identifier
-                       (RC, To_Text ("GNATcov_RTS.Std.Boolean")),
-                     F_Suffix => Create_Regular_Node
+                  if UIC.Language_Version in If_Expr_Supported_Versions then
+                     Wrap_In_If_Expr (RC, Old_Cond);
+                  else
+                     Wrap_In_Call_Expr
                        (RC,
-                        Ada_Assoc_List,
-                        (1 => Create_Param_Assoc
-                             (RC,
-                              F_Designator => No_Node_Rewriting_Handle,
-                              F_R_Expr     => Old_Cond))));
+                        Prefix => To_Text ("GNATcov_RTS.Std.Boolean"),
+                        Node   => Old_Cond);
+                  end if;
 
                   Set_Child
                     (New_Cond, Member_Refs.Bin_Op_F_Right, Old_Cond);
@@ -9956,6 +9954,11 @@ package body Instrument.Ada_Unit is
       --  Whether there is a pragma Short_Circuit_And_Or that applies to this
       --  unit.
    begin
+      --  Reset the language version to the default of the program to avoid
+      --  a 'pragma <Ada_Version>' to be propagated from the spec to body.
+
+      UIC.Language_Version := Switches.Global_Language_Version;
+
       Start_Rewriting (Rewriter, Instrumenter, Prj, Filename);
 
       Root_Analysis_Unit := Rewriter.Rewritten_Unit;

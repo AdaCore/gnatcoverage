@@ -1,0 +1,2 @@
+CARGS_gnat2012 DEAD The test is expected to run on Ada 2005 or lower
+CARGS_gnat2022 DEAD The test is expected to run on Ada 2005 or lower
