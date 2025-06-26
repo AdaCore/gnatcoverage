@@ -39,7 +39,7 @@ with Traces_Source;  use Traces_Source;
 
 package Checkpoints is
 
-   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 18;
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 19;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
@@ -62,6 +62,7 @@ package Checkpoints is
    --  16 -- Extend Scope_Entity to include the Start/End_Sloc of the scope
    --  17 -- Add support for Fun_Call and Guarded Expression coverage
    --  18 -- Removed support for tags (separate coverage)
+   --  19 -- Removed support for instance ids (separate coverage)
    --
    --  Note that we always use the last version when creating a checkpoint.
    --
@@ -93,9 +94,6 @@ package Checkpoints is
    procedure Allocate_CU_Id_Maps
      (Relocs      : in out Checkpoint_Relocations;
       First, Last : CU_Id);
-   procedure Allocate_Inst_Id_Map
-     (Relocs      : in out Checkpoint_Relocations;
-      First, Last : Inst_Id);
    procedure Allocate_BDD_Node_Id_Map
      (Relocs      : in out Checkpoint_Relocations;
       First, Last : BDD_Node_Id);
@@ -167,11 +165,6 @@ package Checkpoints is
    --  Source_CU_Id must not have been previously marked as ignored with
    --  Ignore_CU_Id.
 
-   procedure Set_Inst_Id_Map
-     (Relocs                         : in out Checkpoint_Relocations;
-      Source_Inst_Id, Target_Inst_Id : Valid_Inst_Id);
-   --  Associate Source_Inst_Id to Target_Inst_Id in the relocations map
-
    procedure Set_BDD_Node_Id_Map
      (Relocs                                 : in out Checkpoint_Relocations;
       Source_BDD_Node_Id, Target_BDD_Node_Id : Valid_BDD_Node_Id);
@@ -203,15 +196,6 @@ package Checkpoints is
    --  Remap one CU_Id.
    --
    --  If CP_CU_Id is No_CU_Id then it's returned unchanged. If it is
-   --  any other value, then it is remapped to the corresponding value in
-   --  the current run.
-
-   function Remap_Inst_Id
-     (Relocs     : Checkpoint_Relocations;
-      CP_Inst_Id : Inst_Id) return Inst_Id;
-   --  Remap one Inst_Id.
-   --
-   --  If CP_Inst_Id is No_Inst_Id then it's returned unchanged. If it is
    --  any other value, then it is remapped to the corresponding value in
    --  the current run.
 
@@ -382,7 +366,6 @@ package Checkpoints is
       return SC_Obligations.Fingerprint_Type;
    function Read_I32
      (Self : in out Checkpoint_Load_State) return Interfaces.Integer_32;
-   function Read_Inst (Self : in out Checkpoint_Load_State) return Inst_Id;
    function Read_Integer (Self : in out Checkpoint_Load_State) return Integer;
    function Read_Language_Kind
      (Self : in out Checkpoint_Load_State) return Supported_Language_Kind;
@@ -515,7 +498,6 @@ package Checkpoints is
      (Self : in out Checkpoint_Save_State; Value : Count_Type);
    procedure Write_I32
      (Self : in out Checkpoint_Save_State; Value : Interfaces.Integer_32);
-   procedure Write_Inst (Self : in out Checkpoint_Save_State; Value : Inst_Id);
    procedure Write_Integer
      (Self : in out Checkpoint_Save_State; Value : Integer);
    procedure Write_PC (Self : in out Checkpoint_Save_State; Value : Pc_Type);
@@ -638,9 +620,6 @@ private
    type CU_Id_Map_Array is array (CU_Id range <>) of CU_Id;
    type CU_Id_Map_Acc is access all CU_Id_Map_Array;
 
-   type Inst_Id_Map_Array is array (Inst_Id range <>) of Inst_Id;
-   type Inst_Id_Map_Acc is access all Inst_Id_Map_Array;
-
    type BDD_Node_Id_Map_Array is array (BDD_Node_Id range <>) of BDD_Node_Id;
    type BDD_Node_Id_Map_Acc is access all BDD_Node_Id_Map_Array;
 
@@ -661,11 +640,10 @@ private
    type SFI_Simple_Name_Map_Access is access all SFI_Simple_Name_Map_Array;
 
    type Checkpoint_Relocations is  record
-      SFI_Map  : SFI_Map_Acc;
-      CU_Map   : CU_Id_Map_Acc;
-      Inst_Map : Inst_Id_Map_Acc;
-      BDD_Map  : BDD_Node_Id_Map_Acc;
-      SCO_Map  : SCO_Id_Map_Acc;
+      SFI_Map : SFI_Map_Acc;
+      CU_Map  : CU_Id_Map_Acc;
+      BDD_Map : BDD_Node_Id_Map_Acc;
+      SCO_Map : SCO_Id_Map_Acc;
       --  Maps to replace checkpoint identifiers with local table identifiers
       --  after merging the checkpoint in local tables.
 

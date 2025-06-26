@@ -3,6 +3,8 @@ with GNATcov_RTS.Buffers;
 with Ada.Finalization;
 package GCVRT.DB_z794ac68b is
 
+   pragma Preelaborate;
+
    pragma No_Tagged_Streams;
 
    procedure Dump_Buffers;
