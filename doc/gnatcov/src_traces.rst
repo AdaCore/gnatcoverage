@@ -566,6 +566,13 @@ Below are listed the limitations associated with general Ada sources.
 Coverage of SPARK sources require additional considerations, detailed in
 section :ref:`spark_instr`.
 
+|gcvins| limitations are inherently bound to the version of the Ada language
+used. The version is indicated to the tool via the ``--ada`` command line
+switch, which is set to ``2012`` by default. Additionally, |gcvins| can also
+retrieve the langage version for a specific source file which contains a
+``pragma Ada_nnnn;`` directive. The pragma prevails on the command line
+argument.
+
 Unsupported source constructs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -582,10 +589,8 @@ The list of unsupported constructs is as follows:
 * Protected bodies entry guards when the ``Simple_Barriers`` restriction or
   the ``Pure_Barriers`` one apply.
 
-Additionally, if the Ada language version in use, indicated to the tool by
-either a ``pragma Ada_nnnn`` pragma in the sources or through the ``--ada``
-command line switch, is less or equal to Ada 2012, the following constructs are
-also unsupported:
+Additionally, if the Ada language version in use, is less or equal to Ada 2012,
+the following constructs are also unsupported:
 
 * Generic expression functions,
 * Recursive expression functions which are primitives of some tagged type,
@@ -625,6 +630,14 @@ There are also a few limitations concerning the source trace workflow as a
 whole:
 
 - Separate analysis of generic package instances is not supported.
+
+Additionally, the detected Ada language version can also alter the way some
+constructs are instrumented, to use new language features and make the
+instrumentation more robust.
+
+This limitation happens on the decision coverage level, which makes use of
+if-expressions to instrument ``elsif`` decisions when the language version is
+2012 or above.
 
 Toolchain-specific limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

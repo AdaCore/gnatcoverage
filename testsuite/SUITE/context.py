@@ -457,6 +457,12 @@ class Test(object):
 
         parser.add_argument("--tags", default="")
 
+        parser.add_argument(
+            "--ada-version",
+            help="Ada version that is passed to gnatcov instrument",
+            default="",
+        )
+
         control.add_shared_options_to(parser, toplevel=False)
 
         main.parse_args()

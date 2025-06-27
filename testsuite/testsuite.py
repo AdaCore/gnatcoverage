@@ -7,6 +7,7 @@ Run the GNATcoverage testsuite
 See ./testsuite.py -h for more help
 """
 
+import logging
 import time
 import os
 import re
@@ -582,6 +583,9 @@ class TestPyRunner:
         if mopt.block:
             testcase_cmd.append("--block")
 
+        if mopt.ada_version:
+            testcase_cmd.append(f"--ada-version={mopt.ada_version}")
+
         # --gnatcov_<cmd> family
 
         for pgm, cmd in control.ALTRUN_GNATCOV_PAIRS:
@@ -626,10 +630,6 @@ class TestPyRunner:
 
         self.testcase_cmd = testcase_cmd
         self.testcase_timeout = timeout
-
-        # Disable the warning about usage of binary traces in gnatcov 26.* by
-        # default: it is irrelevant here.
-        os.environ["GNATCOV_NO_BINARY_TRACES_WARNING"] = "yes"
 
     def maybe_exec(self, binfile, args=None, edir=None):
         """
@@ -1187,22 +1187,69 @@ class TestSuite(e3.testsuite.Testsuite):
         # running for qualification, making sure we know what target language
         # we're qualifying for.
 
+        def _get_canonical_ada_version(ada_ver: str) -> str:
+            if ada_ver in ["83", "95"]:
+                # For Ada 1983 and 1995, only -gnatYY is correct
+                return ada_ver
+            elif ada_ver in ["05", "2005"]:
+                # For Ada 2005, use "05" to make sure all compilers get it.
+                return "05"
+            elif ada_ver[-2:] in ["12", "22"]:
+                # Since Ada 2012, -gnatYY and -gnatYYYY are accepted
+                # For Ada 2022, -gnatYYYY is mandatory
+                return "20" + ada_ver[-2:]
+            raise FatalError(f"Unable to retrieve Ada version from {ada_ver}")
+
         attr_cargs_ada = cargs_attr_for("Ada")
         cargs_ada = getattr(args, attr_cargs_ada)
         attr_cargs = cargs_attr_for("")
         cargs = getattr(args, attr_cargs)
-        if not re.search("-gnat95|-gnat05|-gnat12", cargs_ada + cargs):
+
+        gnatcov_instr_ada_version = None
+        qualifiable_ada_versions = ["95", "05", "12"]
+        qav_str = "|".join(qualifiable_ada_versions)
+        ada_version_match = re.match(
+            r"-gnat(95|(?:20)?(?:05|12)|2022)", cargs_ada + cargs
+        )
+
+        if ada_version_match:
+            ada_version = _get_canonical_ada_version(
+                ada_version_match.groups()[0]
+            )
+
+            if (
+                args.qualif_level
+                and ada_version[-2:] not in qualifiable_ada_versions
+            ):
+                raise FatalError(
+                    f"-gnat{ada_version} is invalid for qualification. "
+                    f"Allowed versions are -gnat<{qav_str}>"
+                )
+
+            logging.debug(
+                f"Setting Ada version to Ada {ada_version} from cargs"
+            )
+            gnatcov_instr_ada_version = ada_version
+        else:
             if args.qualif_level:
                 raise FatalError(
-                    "Missing -gnat<95|05|12> in cargs:Ada for qualification"
+                    f"Missing -gnat<{qav_str}> in cargs:Ada for qualification"
                 )
             else:
+                logging.debug("Setting default Ada version to Ada 05")
+                gnatcov_instr_ada_version = "05"
                 setattr(args, attr_cargs_ada, cargs_ada + " -gnat05")
 
         # Most SPARK testcases require Ada 2022
 
         if args.spark_tests:
+            logging.debug("Setting Ada version to Ada 2022 for SPARK")
+            gnatcov_instr_ada_version = "2022"
             setattr(args, attr_cargs_ada, cargs_ada + " -gnat2022")
+
+        # Make sure gnatcov instrument is called with the same Ada version as
+        # the one passed to gnat afterwards
+        args.ada_version = gnatcov_instr_ada_version
 
         # Expect an explicit -gnatec if we're running for qualification
 

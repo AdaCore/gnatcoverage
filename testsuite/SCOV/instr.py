@@ -142,6 +142,10 @@ def xcov_instrument(
     if thistest.options.block:
         args.append("--instrument-block")
 
+    # Get the Ada version from the test framework
+    if thistest.options.ada_version:
+        args += ["--ada", thistest.options.ada_version]
+
     # TODO (gpr-issues#241) temporary workaround.
     # Since gpr2clean deletes .sid files for the moment, we need to
     # clean the project before instrumenting (this used to be done before the
