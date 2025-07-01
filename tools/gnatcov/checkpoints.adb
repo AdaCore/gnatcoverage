@@ -444,8 +444,10 @@ package body Checkpoints is
          declare
             Bits : constant Binary_Traces_Bits :=
               (case Currently_Accepted_Trace_Kind is
-               when Unknown | Source_Trace_File         => Undetermined,
-               when Binary_Trace_File | All_Trace_Files => Supported_Bits);
+               when Unknown | Source_Trace_File | LLVM_Trace_File =>
+                  Undetermined,
+               when Binary_Trace_File | All_Trace_Files =>
+                  Supported_Bits);
          begin
             CSS.Write_U8 (Binary_Traces_Bits'Pos (Bits));
          end;

@@ -258,7 +258,7 @@ package body Traces_Files is
       case Current_Trace_Kind is
          when Unknown =>
             Current_Trace_Kind := New_Kind;
-         when Source_Trace_File | Binary_Trace_File =>
+         when GNATcov_Trace_File_Kind =>
             if Current_Trace_Kind /= New_Kind then
 
                --  Warn or emit an error message if we have inconsistent
@@ -270,6 +270,14 @@ package body Traces_Files is
                   Fatal_Error (Trace_Mix_Error_Msg);
                end if;
                Current_Trace_Kind := All_Trace_Files;
+            end if;
+         when LLVM_Trace_File =>
+
+            --  ??? Review the possibility of merging LLVM traces with others
+            --      when everything works.
+
+            if Current_Trace_Kind /= New_Kind then
+               Fatal_Error (Trace_Mix_Error_Msg);
             end if;
          when All_Trace_Files =>
 
@@ -303,6 +311,8 @@ package body Traces_Files is
             return "binary";
          when Source_Trace_File =>
             return "source";
+         when LLVM_Trace_File =>
+            return "LLVM";
       end case;
    end Image;
 
@@ -373,11 +383,14 @@ package body Traces_Files is
    is
       Fd : constant File_Descriptor := Open_Read (Filename, Binary);
 
-      Binary_Magic : String renames Qemu_Trace_Magic;
-      Source_Magic : String renames Traces_Source.Trace_File_Magic;
+      Binary_Magic   : String renames Qemu_Trace_Magic;
+      Source_Magic   : String renames Traces_Source.Trace_File_Magic;
+      LLVM_Raw_Magic : constant String :=
+         String'(Character'Val (16#81#) & "rforpl" & Character'Val (16#FF#));
 
       Magic_Max_Size : constant Natural := Integer'Max
-        (Binary_Magic'Length, Source_Magic'Length);
+        (LLVM_Raw_Magic'Length,
+         Integer'Max (Binary_Magic'Length, Source_Magic'Length));
       Buffer         : String (1 .. Magic_Max_Size);
 
       function Magic_Matches (Magic : String) return Boolean
@@ -399,6 +412,8 @@ package body Traces_Files is
          Kind := Binary_Trace_File;
       elsif Magic_Matches (Source_Magic) then
          Kind := Source_Trace_File;
+      elsif Magic_Matches (LLVM_Raw_Magic) then
+         Kind := LLVM_Trace_File;
       else
          Create_Error (Result, "invalid trace file: " & Filename);
       end if;

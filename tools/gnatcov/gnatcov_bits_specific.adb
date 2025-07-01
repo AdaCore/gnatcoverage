@@ -69,6 +69,7 @@ with Instrument.Main;
 with Instrument.Projects;
 with Instrument.Setup_Config;
 with Instrument.Source;
+with LLVM;
 with Logging;
 with Object_Locations;
 with Outputs;               use Outputs;
@@ -195,6 +196,495 @@ procedure GNATcov_Bits_Specific is
    --  Emit the error corresponding to Result with Outputs. If
    --  Keep_Reading_Tracess is false, this is a fatal error.
 
+   procedure Read_And_Process_GNATcov_Traces (Base_Acc : access Traces_Base);
+   --  Part of `gnatcov coverage` that handles reading trace files and loading
+   --  them in the internal structures.
+
+   -------------------------------------
+   -- Read_And_Process_GNATcov_Traces --
+   -------------------------------------
+
+   procedure Read_And_Process_GNATcov_Traces (Base_Acc : access Traces_Base) is
+      Bin_Traces_Present : Boolean := False;
+      Src_Traces_Present : Boolean := False;
+
+      procedure Process_Exec (Exec_Name : String);
+      --  Load a consolidated executable
+
+      procedure Process_Trace
+        (Trace_File_Name    : String;
+         Exec_Name_Override : String);
+      --  Try to read Trace_File_Name. Depending on the probed trace file
+      --  kind, dispatch to Process_Binary_Trace or Process_Source_Trace.
+      --  If Trace_File_Name is an empty string, just dispatch to
+      --  Process_Binary_Trace (case of forcing the load of a program).
+
+      procedure Process_Source_Trace (Trace_File_Name : String);
+      --  Process the given source trace file, discharging SCIs
+      --  referenced by its coverage buffers.
+
+      procedure Process_Binary_Trace
+        (Trace_File_Name    : String;
+         Exec_Name_Override : String);
+      --  Common dispatching point for object and source coverage:
+      --  process one trace file (with optional override of exec file
+      --  name), or load one consolidated executable (if Trace_File_Name
+      --  is an empty string, in which case Exec_Name_Override is not
+      --  allowed to be null).
+
+      procedure Process_Trace_For_Obj_Coverage
+        (Trace_File         : Trace_File_Element_Acc;
+         Exec_Name_Override : String);
+      --  Open Trace_File and merge it into the trace database
+
+      procedure Process_Trace_For_Src_Coverage
+        (Trace_File         : Trace_File_Element_Acc;
+         Exec_Name_Override : String);
+      --  Process Trace_File for source coverage. No trace database is
+      --  used.
+
+      function Open_Exec_For_Trace
+        (Trace_File_Name    : String;
+         Trace_File         : Trace_File_Type;
+         Exec_Name_Override : String) return Exe_File_Acc;
+      --  Open the executable for TF, taking into account a possible
+      --  command line override of the executable file name. The opened
+      --  exec file is entered in the global execs list.
+
+      -------------------------
+      -- Open_Exec_For_Trace --
+      -------------------------
+
+      function Open_Exec_For_Trace
+        (Trace_File_Name    : String;
+         Trace_File         : Trace_File_Type;
+         Exec_Name_Override : String) return Exe_File_Acc
+      is
+         use Qemu_Traces;
+
+         function Get_Exe_Name return String;
+         --  Executable name as determined from trace file or overridden
+
+         ------------------
+         -- Get_Exe_Name --
+         ------------------
+
+         function Get_Exe_Name return String is
+         begin
+            if Exec_Name_Override /= "" then
+               return Exec_Name_Override;
+            end if;
+
+            declare
+               Exec_Name_From_Trace : constant String :=
+                 Get_Info (Trace_File, Exec_File_Name);
+            begin
+               if Exec_Name_From_Trace = "" then
+                  Fatal_Error
+                    ("Cannot find executable filename in trace file "
+                     & Trace_File_Name);
+               end if;
+
+               return Exec_Name_From_Trace;
+            end;
+         end Get_Exe_Name;
+
+         Exe_Name : constant String := Get_Exe_Name;
+
+      --  Start of processing for Open_Exec_For_Trace
+
+      begin
+         return Exe_File : Exe_File_Acc do
+            Execs_Dbase.Open_Exec_For_Trace
+              (Exe_Name, Text_Start,
+               Trace_File_Name, Get_Signature (Trace_File),
+               Exe_File);
+         end return;
+      exception
+         when E : Binary_Files.Error =>
+            Fatal_Error ("Cannot open ELF file " & Exe_Name
+                         & " for trace file " & Trace_File_Name & ": "
+                         & Switches.Exception_Info (E));
+      end Open_Exec_For_Trace;
+
+      ------------------
+      -- Process_Exec --
+      ------------------
+
+      procedure Process_Exec (Exec_Name : String) is
+      begin
+         Load_All_ALIs (Check_SCOs => False);
+         Process_Trace
+           (Trace_File_Name => "", Exec_Name_Override => Exec_Name);
+      end Process_Exec;
+
+      -------------------
+      -- Process_Trace --
+      -------------------
+
+      procedure Process_Trace
+        (Trace_File_Name    : String;
+         Exec_Name_Override : String)
+      is
+         Kind   : Trace_File_Kind;
+         Result : Read_Result;
+      begin
+         if Trace_File_Name = "" then
+            Process_Binary_Trace (Trace_File_Name, Exec_Name_Override);
+            return;
+         end if;
+
+         Probe_Trace_File (Trace_File_Name, Kind, Result);
+         if not Result.Success then
+            Report_Bad_Trace (Trace_File_Name, Result);
+         end if;
+
+         case Kind is
+            when Binary_Trace_File =>
+               Process_Binary_Trace
+                 (Trace_File_Name, Exec_Name_Override);
+            when Source_Trace_File =>
+               Process_Source_Trace (Trace_File_Name);
+            when LLVM_Trace_File =>
+               Outputs.Fatal_Error ("LLVM trace file not implemented");
+         end case;
+      end Process_Trace;
+
+      --------------------------
+      -- Process_Source_Trace --
+      --------------------------
+
+      procedure Process_Source_Trace (Trace_File_Name : String) is
+         procedure On_Trace_Info
+           (Kind : Traces_Source.Supported_Info_Kind; Data : String);
+         --  Callback for Read_Source_Trace_File
+
+         procedure Read_Source_Trace_File is new
+            Instrument.Input_Traces.Generic_Read_Source_Trace_File
+              (On_Trace_Info  => On_Trace_Info,
+               On_Trace_Entry => Compute_Source_Coverage);
+
+         Trace_File : Trace_File_Element_Acc;
+         Result     : Read_Result;
+
+         -------------------
+         -- On_Trace_Info --
+         -------------------
+
+         procedure On_Trace_Info
+           (Kind : Traces_Source.Supported_Info_Kind; Data : String) is
+         begin
+            Update_From_Source_Trace (Trace_File.all, Kind, Data);
+         end On_Trace_Info;
+
+      --  Start of processing for Process_Source_Trace
+
+      begin
+         --  Reccord we are loading a source trace
+
+         Update_Current_Trace_Kind (Source_Trace_File);
+         Src_Traces_Present := True;
+
+         --  Make sure SID files (to decode source trace files) are
+         --  loaded.
+
+         Load_All_SIDs;
+
+         --  Register the trace file, so it is included in coverage
+         --  reports.
+
+         Trace_File := Create_Trace_File_Element
+           (Trace_File_Name, Source_Trace_File);
+
+         --  We can now read it and import its data
+
+         Read_Source_Trace_File (Trace_File_Name, Result);
+         if not Result.Success then
+            Report_Bad_Trace (Trace_File_Name, Result);
+         end if;
+
+         Add_Traces_File (Trace_File);
+      end Process_Source_Trace;
+
+      --------------------------
+      -- Process_Binary_Trace --
+      --------------------------
+
+      procedure Process_Binary_Trace
+        (Trace_File_Name    : String;
+         Exec_Name_Override : String)
+      is
+         Trace_File : Trace_File_Element_Acc;
+      begin
+         --  Record we are loading a binary trace
+
+         Update_Current_Trace_Kind (Binary_Trace_File);
+         Bin_Traces_Present := True;
+
+         Load_All_ALIs (Check_SCOs => False);
+
+         if Trace_File_Name /= "" then
+            Trace_File := Create_Trace_File_Element
+              (Trace_File_Name, Binary_Trace_File);
+         else
+            pragma Assert (Exec_Name_Override /= "");
+         end if;
+
+         if Object_Coverage_Enabled then
+            Process_Trace_For_Obj_Coverage
+              (Trace_File, Exec_Name_Override);
+         else
+            Process_Trace_For_Src_Coverage
+              (Trace_File, Exec_Name_Override);
+         end if;
+
+         if Trace_File /= null then
+            Add_Traces_File (Trace_File);
+         end if;
+      end Process_Binary_Trace;
+
+      ------------------------------------
+      -- Process_Trace_For_Obj_Coverage --
+      ------------------------------------
+
+      procedure Process_Trace_For_Obj_Coverage
+        (Trace_File         : Trace_File_Element_Acc;
+         Exec_Name_Override : String)
+      is
+         --  TODO??? Handle shared objects
+
+         Trace_Filename : constant String :=
+           (if Trace_File = null
+            then ""
+            else +Trace_File.Filename);
+         Exe_File : Exe_File_Acc;
+      begin
+         Init_Base (Base_Acc.all);
+
+         if Trace_File = null then
+            Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
+         else
+            declare
+               Result   : Read_Result;
+               TF       : Trace_File_Type;
+            begin
+               Read_Trace_File (Trace_Filename, TF, Result, Base_Acc.all);
+               if not Result.Success then
+                  Report_Bad_Trace (Trace_Filename, Result);
+                  return;
+               end if;
+               Update_From_Binary_Trace (Trace_File.all, TF);
+               Exe_File := Open_Exec_For_Trace
+                 (Trace_Filename, TF, Exec_Name_Override);
+               Free (TF);
+            end;
+         end if;
+
+         --  If there is no routine in list, get routine names from the
+         --  first executable. A test earlier allows this only if there
+         --  is one trace file.
+
+         if Routines_Inputs.Is_Empty then
+            Read_Routine_Names (Exe_File.all, Exclude => False);
+         end if;
+
+         Build_Debug_Compile_Units (Exe_File.all);
+
+         if Trace_File /= null then
+            Misc_Trace.Trace
+              ("Processing traces from " & Trace_Filename);
+         end if;
+
+         Load_Code_And_Traces (Exe_File, Base_Acc);
+      end Process_Trace_For_Obj_Coverage;
+
+      ------------------------------------
+      -- Process_Trace_For_Src_Coverage --
+      ------------------------------------
+
+      procedure Process_Trace_For_Src_Coverage
+        (Trace_File         : Trace_File_Element_Acc;
+         Exec_Name_Override : String)
+      is
+         Exe_File : Exe_File_Acc;
+         --  Executable this trace file refers to
+
+         Trace_Filename : constant String :=
+           (if Trace_File = null
+            then ""
+            else +Trace_File.Filename);
+
+         Current_Exec            : Exe_File_Acc;
+         Current_Sym             : Address_Info_Acc;
+         Current_Subp_Key        : Subprogram_Key;
+         Current_Subp_Info       : aliased Subprogram_Info;
+         Current_Subp_Info_Valid : Boolean;
+
+         procedure Process_Info_Entries
+           (TF     : Trace_File_Type;
+            Result : out Read_Result);
+
+         function Load_Shared_Object
+            (TF          : Trace_File_Type;
+             Filename    : String;
+             Signature   : Binary_Files.Binary_File_Signature;
+             First, Last : Traces.Pc_Type) return Exe_File_Acc;
+
+         procedure Process_Trace_Entry
+           (TF : Trace_File_Type; SO : Exe_File_Acc; E : Trace_Entry);
+
+         procedure Read_Trace_File is new Read_Trace_File_Gen
+           (Shared_Object_Type   => Exe_File_Acc,
+            No_Shared_Object     => null,
+            Process_Info_Entries => Process_Info_Entries,
+            Load_Shared_Object   => Load_Shared_Object,
+            Process_Trace_Entry  => Process_Trace_Entry);
+
+         --------------------------
+         -- Process_Info_Entries --
+         --------------------------
+
+         procedure Process_Info_Entries
+           (TF     : Trace_File_Type;
+            Result : out Read_Result) is
+         begin
+            Check_Trace_File_From_Exec (TF, Result);
+            if not Result.Success then
+               return;
+            end if;
+            Exe_File := Open_Exec_For_Trace
+              (Trace_Filename, TF, Exec_Name_Override);
+            Decision_Map.Analyze (Exe_File);
+         end Process_Info_Entries;
+
+         ------------------------
+         -- Load_Shared_Object --
+         ------------------------
+
+         function Load_Shared_Object
+            (TF          : Trace_File_Type;
+             Filename    : String;
+             Signature   : Binary_Files.Binary_File_Signature;
+             First, Last : Traces.Pc_Type) return Exe_File_Acc
+         is
+            pragma Unreferenced (TF);
+            pragma Unreferenced (First);
+            pragma Unreferenced (Last);
+            Result : Exe_File_Acc;
+         begin
+            Open_Exec_For_Trace
+              (Filename, 0, Trace_Filename, Signature, Result);
+            Decision_Map.Analyze (Result);
+            return Result;
+         end Load_Shared_Object;
+
+         -------------------------
+         -- Process_Trace_Entry --
+         -------------------------
+
+         procedure Process_Trace_Entry
+           (TF : Trace_File_Type; SO : Exe_File_Acc; E : Trace_Entry)
+         is
+            pragma Unreferenced (TF);
+
+            Exe : constant Exe_File_Acc :=
+              (if SO = null then Exe_File else SO);
+         begin
+            --  Get the symbol the trace entry is in
+
+            if Current_Sym = null or else Current_Exec /= Exe
+              or else
+               E.First not in Current_Sym.First .. Current_Sym.Last
+            then
+               Current_Exec := Exe;
+               Current_Sym :=
+                 Get_Address_Info
+                   (Exe.all, Symbol_Addresses, E.First);
+
+               if Current_Sym = null then
+                  Current_Subp_Info_Valid := False;
+               else
+                  Key_From_Symbol
+                    (Exe, Current_Sym, Current_Subp_Key);
+                  Current_Subp_Info_Valid :=
+                     Is_In (Current_Subp_Key);
+               end if;
+
+               if Current_Subp_Info_Valid then
+                  Current_Subp_Info :=
+                    Get_Subp_Info (Current_Subp_Key);
+               end if;
+            end if;
+
+            if Current_Subp_Info_Valid then
+               Compute_Source_Coverage
+                 (Current_Subp_Key, Current_Subp_Info, E);
+            end if;
+         end Process_Trace_Entry;
+
+      --  Start of processing for Process_Trace_For_Src_Coverage
+
+      begin
+         --  Whether we have a trace file or just an executable, load
+         --  symbols from executable (sets the rebase offset for each
+         --  symbol) and perform static analysis.
+         --
+         --  If this is a trace file, also make it contribute to coverage
+         --  state.
+
+         if Trace_File = null then
+            Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
+            Decision_Map.Analyze (Exe_File);
+         else
+            declare
+               TF     : Trace_File_Type;
+               Result : Read_Result;
+            begin
+               Read_Trace_File (Trace_Filename, TF, Result);
+               if not Result.Success then
+                  Report_Bad_Trace (Trace_Filename, Result);
+                  return;
+               end if;
+               Update_From_Binary_Trace (Trace_File.all, TF);
+               Free (TF);
+            end;
+         end if;
+      end Process_Trace_For_Src_Coverage;
+
+   begin
+      for Filename of Exe_Inputs loop
+         Process_Exec (+Filename);
+      end loop;
+      for RT of Trace_Inputs loop
+         Process_Trace (+RT.Filename, +RT.Executable);
+      end loop;
+
+      --  Use dominant information to refine decision coverage
+      --  information wrt. outcomes taken. This is a binary information
+      --  specificity as we always know which outcomes were taken in the
+      --  context of source traces.
+
+      if Currently_Accepted_Trace_Kind = Binary_Trace_File then
+         Refine_Source_Coverage;
+      end if;
+
+      --  Warn when using --scos with source traces or --sid with bin
+      --  traces.
+
+      if not SID_Inputs.Is_Empty and then Bin_Traces_Present then
+         Warn ("Using option --sid with binary trace files has no"
+               & " effect." & ASCII.LF & "Please consider using option"
+               & " --scos or -P<project file> in conjunction with"
+               & " --units to specify units of interest.");
+      end if;
+      if not ALIs_Inputs.Is_Empty and then Src_Traces_Present then
+         Warn ("Using option --scos with source trace files has no"
+               & " effect." & ASCII.LF & "Please consider using option"
+               & " --sid or -P<project file> in conjunction with --units"
+               & " to specify units of interest.");
+      end if;
+   end Read_And_Process_GNATcov_Traces;
+
    -----------------------------
    -- Report_Missing_Argument --
    -----------------------------
@@ -252,6 +742,7 @@ procedure GNATcov_Bits_Specific is
          and then LLVM_JSON_Ckpt_Inputs.Is_Empty
          and then SID_Inputs.Is_Empty
          and then ALIs_Inputs.Is_Empty
+         and then Exe_Inputs.Is_Empty
          and then not Args.String_Args (Opt_Project).Present
       then
          Report_Missing_Argument
@@ -1848,489 +2339,94 @@ begin
             end if;
          end if;
 
+         --  If no checkpoint is provided, expect at least 1 TRACE_FILE.
+
+         if Checkpoints_Inputs.Is_Empty
+            and then LLVM_JSON_Ckpt_Inputs.Is_Empty
+         then
+            Check_Traces_Available;
+         end if;
+
          --  Read and process traces
+         --  In case there is as least one, probe it to decide if it is
+         --  a gnatcov trace or an LLVM one.
 
          declare
-            Bin_Traces_Present : Boolean := False;
-            Src_Traces_Present : Boolean := False;
-
-            procedure Process_Exec (Exec_Name : String);
-            --  Load a consolidated executable
-
-            procedure Process_Trace
-              (Trace_File_Name    : String;
-               Exec_Name_Override : String);
-            --  Try to read Trace_File_Name. Depending on the probed trace file
-            --  kind, dispatch to Process_Binary_Trace or Process_Source_Trace.
-            --  If Trace_File_Name is an empty string, just dispatch to
-            --  Process_Binary_Trace (case of forcing the load of a program).
-
-            procedure Process_Source_Trace (Trace_File_Name : String);
-            --  Process the given source trace file, discharging SCIs
-            --  referenced by its coverage buffers.
-
-            procedure Process_Binary_Trace
-              (Trace_File_Name    : String;
-               Exec_Name_Override : String);
-            --  Common dispatching point for object and source coverage:
-            --  process one trace file (with optional override of exec file
-            --  name), or load one consolidated executable (if Trace_File_Name
-            --  is an empty string, in which case Exec_Name_Override is not
-            --  allowed to be null).
-
-            procedure Process_Trace_For_Obj_Coverage
-              (Trace_File         : Trace_File_Element_Acc;
-               Exec_Name_Override : String);
-            --  Open Trace_File and merge it into the trace database
-
-            procedure Process_Trace_For_Src_Coverage
-              (Trace_File         : Trace_File_Element_Acc;
-               Exec_Name_Override : String);
-            --  Process Trace_File for source coverage. No trace database is
-            --  used.
-
-            function Open_Exec_For_Trace
-              (Trace_File_Name    : String;
-               Trace_File         : Trace_File_Type;
-               Exec_Name_Override : String) return Exe_File_Acc;
-            --  Open the executable for TF, taking into account a possible
-            --  command line override of the executable file name. The opened
-            --  exec file is entered in the global execs list.
-
-            -------------------------
-            -- Open_Exec_For_Trace --
-            -------------------------
-
-            function Open_Exec_For_Trace
-              (Trace_File_Name    : String;
-               Trace_File         : Trace_File_Type;
-               Exec_Name_Override : String) return Exe_File_Acc
-            is
-               use Qemu_Traces;
-
-               function Get_Exe_Name return String;
-               --  Executable name as determined from trace file or overridden
-
-               ------------------
-               -- Get_Exe_Name --
-               ------------------
-
-               function Get_Exe_Name return String is
-               begin
-                  if Exec_Name_Override /= "" then
-                     return Exec_Name_Override;
-                  end if;
-
-                  declare
-                     Exec_Name_From_Trace : constant String :=
-                       Get_Info (Trace_File, Exec_File_Name);
-                  begin
-                     if Exec_Name_From_Trace = "" then
-                        Fatal_Error
-                          ("Cannot find executable filename in trace file "
-                           & Trace_File_Name);
-                     end if;
-
-                     return Exec_Name_From_Trace;
-                  end;
-               end Get_Exe_Name;
-
-               Exe_Name : constant String := Get_Exe_Name;
-
-            --  Start of processing for Open_Exec_For_Trace
-
-            begin
-               return Exe_File : Exe_File_Acc do
-                  Execs_Dbase.Open_Exec_For_Trace
-                    (Exe_Name, Text_Start,
-                     Trace_File_Name, Get_Signature (Trace_File),
-                     Exe_File);
-               end return;
-            exception
-               when E : Binary_Files.Error =>
-                  Fatal_Error ("Cannot open ELF file " & Exe_Name
-                               & " for trace file " & Trace_File_Name & ": "
-                               & Switches.Exception_Info (E));
-            end Open_Exec_For_Trace;
-
-            ------------------
-            -- Process_Exec --
-            ------------------
-
-            procedure Process_Exec (Exec_Name : String) is
-            begin
-               Load_All_ALIs (Check_SCOs => False);
-               Process_Trace
-                 (Trace_File_Name => "", Exec_Name_Override => Exec_Name);
-            end Process_Exec;
-
-            -------------------
-            -- Process_Trace --
-            -------------------
-
-            procedure Process_Trace
-              (Trace_File_Name    : String;
-               Exec_Name_Override : String)
-            is
-               Kind   : Trace_File_Kind;
-               Result : Read_Result;
-            begin
-               if Trace_File_Name = "" then
-                  Process_Binary_Trace (Trace_File_Name, Exec_Name_Override);
-                  return;
-               end if;
-
-               Probe_Trace_File (Trace_File_Name, Kind, Result);
-               if not Result.Success then
-                  Report_Bad_Trace (Trace_File_Name, Result);
-               end if;
-
-               case Kind is
-                  when Binary_Trace_File =>
-                     Process_Binary_Trace
-                       (Trace_File_Name, Exec_Name_Override);
-                  when Source_Trace_File =>
-                     Process_Source_Trace (Trace_File_Name);
-               end case;
-            end Process_Trace;
-
-            --------------------------
-            -- Process_Source_Trace --
-            --------------------------
-
-            procedure Process_Source_Trace (Trace_File_Name : String) is
-               procedure On_Trace_Info
-                 (Kind : Traces_Source.Supported_Info_Kind; Data : String);
-               --  Callback for Read_Source_Trace_File
-
-               procedure Read_Source_Trace_File is new
-                  Instrument.Input_Traces.Generic_Read_Source_Trace_File
-                    (On_Trace_Info  => On_Trace_Info,
-                     On_Trace_Entry => Compute_Source_Coverage);
-
-               Trace_File : Trace_File_Element_Acc;
-               Result     : Read_Result;
-
-               -------------------
-               -- On_Trace_Info --
-               -------------------
-
-               procedure On_Trace_Info
-                 (Kind : Traces_Source.Supported_Info_Kind; Data : String) is
-               begin
-                  Update_From_Source_Trace (Trace_File.all, Kind, Data);
-               end On_Trace_Info;
-
-            --  Start of processing for Process_Source_Trace
-
-            begin
-               --  Reccord we are loading a source trace
-
-               Update_Current_Trace_Kind (Source_Trace_File);
-               Src_Traces_Present := True;
-
-               --  Make sure SID files (to decode source trace files) are
-               --  loaded.
-
-               Load_All_SIDs;
-
-               --  Register the trace file, so it is included in coverage
-               --  reports.
-
-               Trace_File := Create_Trace_File_Element
-                 (Trace_File_Name, Source_Trace_File);
-
-               --  We can now read it and import its data
-
-               Read_Source_Trace_File (Trace_File_Name, Result);
-               if not Result.Success then
-                  Report_Bad_Trace (Trace_File_Name, Result);
-               end if;
-
-               Add_Traces_File (Trace_File);
-            end Process_Source_Trace;
-
-            --------------------------
-            -- Process_Binary_Trace --
-            --------------------------
-
-            procedure Process_Binary_Trace
-              (Trace_File_Name    : String;
-               Exec_Name_Override : String)
-            is
-               Trace_File : Trace_File_Element_Acc;
-            begin
-               --  Record we are loading a binary trace
-
-               Update_Current_Trace_Kind (Binary_Trace_File);
-               Bin_Traces_Present := True;
-
-               Load_All_ALIs (Check_SCOs => False);
-
-               if Trace_File_Name /= "" then
-                  Trace_File := Create_Trace_File_Element
-                    (Trace_File_Name, Binary_Trace_File);
-               else
-                  pragma Assert (Exec_Name_Override /= "");
-               end if;
-
-               if Object_Coverage_Enabled then
-                  Process_Trace_For_Obj_Coverage
-                    (Trace_File, Exec_Name_Override);
-               else
-                  Process_Trace_For_Src_Coverage
-                    (Trace_File, Exec_Name_Override);
-               end if;
-
-               if Trace_File /= null then
-                  Add_Traces_File (Trace_File);
-               end if;
-            end Process_Binary_Trace;
-
-            ------------------------------------
-            -- Process_Trace_For_Obj_Coverage --
-            ------------------------------------
-
-            procedure Process_Trace_For_Obj_Coverage
-              (Trace_File         : Trace_File_Element_Acc;
-               Exec_Name_Override : String)
-            is
-               --  TODO??? Handle shared objects
-
-               Trace_Filename : constant String :=
-                 (if Trace_File = null
-                  then ""
-                  else +Trace_File.Filename);
-               Exe_File : Exe_File_Acc;
-            begin
-               Init_Base (Base);
-
-               if Trace_File = null then
-                  Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
-               else
-                  declare
-                     Result   : Read_Result;
-                     TF       : Trace_File_Type;
-                  begin
-                     Read_Trace_File (Trace_Filename, TF, Result, Base);
-                     if not Result.Success then
-                        Report_Bad_Trace (Trace_Filename, Result);
-                        return;
-                     end if;
-                     Update_From_Binary_Trace (Trace_File.all, TF);
-                     Exe_File := Open_Exec_For_Trace
-                       (Trace_Filename, TF, Exec_Name_Override);
-                     Free (TF);
-                  end;
-               end if;
-
-               --  If there is no routine in list, get routine names from the
-               --  first executable. A test earlier allows this only if there
-               --  is one trace file.
-
-               if Routines_Inputs.Is_Empty then
-                  Read_Routine_Names (Exe_File.all, Exclude => False);
-               end if;
-
-               Build_Debug_Compile_Units (Exe_File.all);
-
-               if Trace_File /= null then
-                  Misc_Trace.Trace
-                    ("Processing traces from " & Trace_Filename);
-               end if;
-
-               Load_Code_And_Traces (Exe_File, Base'Access);
-            end Process_Trace_For_Obj_Coverage;
-
-            ------------------------------------
-            -- Process_Trace_For_Src_Coverage --
-            ------------------------------------
-
-            procedure Process_Trace_For_Src_Coverage
-              (Trace_File         : Trace_File_Element_Acc;
-               Exec_Name_Override : String)
-            is
-               Exe_File : Exe_File_Acc;
-               --  Executable this trace file refers to
-
-               Trace_Filename : constant String :=
-                 (if Trace_File = null
-                  then ""
-                  else +Trace_File.Filename);
-
-               Current_Exec            : Exe_File_Acc;
-               Current_Sym             : Address_Info_Acc;
-               Current_Subp_Key        : Subprogram_Key;
-               Current_Subp_Info       : aliased Subprogram_Info;
-               Current_Subp_Info_Valid : Boolean;
-
-               procedure Process_Info_Entries
-                 (TF     : Trace_File_Type;
-                  Result : out Read_Result);
-
-               function Load_Shared_Object
-                  (TF          : Trace_File_Type;
-                   Filename    : String;
-                   Signature   : Binary_Files.Binary_File_Signature;
-                   First, Last : Traces.Pc_Type) return Exe_File_Acc;
-
-               procedure Process_Trace_Entry
-                 (TF : Trace_File_Type; SO : Exe_File_Acc; E : Trace_Entry);
-
-               procedure Read_Trace_File is new Read_Trace_File_Gen
-                 (Shared_Object_Type   => Exe_File_Acc,
-                  No_Shared_Object     => null,
-                  Process_Info_Entries => Process_Info_Entries,
-                  Load_Shared_Object   => Load_Shared_Object,
-                  Process_Trace_Entry  => Process_Trace_Entry);
-
-               --------------------------
-               -- Process_Info_Entries --
-               --------------------------
-
-               procedure Process_Info_Entries
-                 (TF     : Trace_File_Type;
-                  Result : out Read_Result) is
-               begin
-                  Check_Trace_File_From_Exec (TF, Result);
-                  if not Result.Success then
-                     return;
-                  end if;
-                  Exe_File := Open_Exec_For_Trace
-                    (Trace_Filename, TF, Exec_Name_Override);
-                  Decision_Map.Analyze (Exe_File);
-               end Process_Info_Entries;
-
-               ------------------------
-               -- Load_Shared_Object --
-               ------------------------
-
-               function Load_Shared_Object
-                  (TF          : Trace_File_Type;
-                   Filename    : String;
-                   Signature   : Binary_Files.Binary_File_Signature;
-                   First, Last : Traces.Pc_Type) return Exe_File_Acc
-               is
-                  pragma Unreferenced (TF);
-                  pragma Unreferenced (First);
-                  pragma Unreferenced (Last);
-                  Result : Exe_File_Acc;
-               begin
-                  Open_Exec_For_Trace
-                    (Filename, 0, Trace_Filename, Signature, Result);
-                  Decision_Map.Analyze (Result);
-                  return Result;
-               end Load_Shared_Object;
-
-               -------------------------
-               -- Process_Trace_Entry --
-               -------------------------
-
-               procedure Process_Trace_Entry
-                 (TF : Trace_File_Type; SO : Exe_File_Acc; E : Trace_Entry)
-               is
-                  pragma Unreferenced (TF);
-
-                  Exe : constant Exe_File_Acc :=
-                    (if SO = null then Exe_File else SO);
-               begin
-                  --  Get the symbol the trace entry is in
-
-                  if Current_Sym = null or else Current_Exec /= Exe
-                    or else
-                     E.First not in Current_Sym.First .. Current_Sym.Last
-                  then
-                     Current_Exec := Exe;
-                     Current_Sym :=
-                       Get_Address_Info
-                         (Exe.all, Symbol_Addresses, E.First);
-
-                     if Current_Sym = null then
-                        Current_Subp_Info_Valid := False;
-                     else
-                        Key_From_Symbol
-                          (Exe, Current_Sym, Current_Subp_Key);
-                        Current_Subp_Info_Valid :=
-                           Is_In (Current_Subp_Key);
-                     end if;
-
-                     if Current_Subp_Info_Valid then
-                        Current_Subp_Info :=
-                          Get_Subp_Info (Current_Subp_Key);
-                     end if;
-                  end if;
-
-                  if Current_Subp_Info_Valid then
-                     Compute_Source_Coverage
-                       (Current_Subp_Key, Current_Subp_Info, E);
-                  end if;
-               end Process_Trace_Entry;
-
-            --  Start of processing for Process_Trace_For_Src_Coverage
-
-            begin
-               --  Whether we have a trace file or just an executable, load
-               --  symbols from executable (sets the rebase offset for each
-               --  symbol) and perform static analysis.
-               --
-               --  If this is a trace file, also make it contribute to coverage
-               --  state.
-
-               if Trace_File = null then
-                  Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
-                  Decision_Map.Analyze (Exe_File);
-               else
-                  declare
-                     TF     : Trace_File_Type;
-                     Result : Read_Result;
-                  begin
-                     Read_Trace_File (Trace_Filename, TF, Result);
-                     if not Result.Success then
-                        Report_Bad_Trace (Trace_Filename, Result);
-                        return;
-                     end if;
-                     Update_From_Binary_Trace (Trace_File.all, TF);
-                     Free (TF);
-                  end;
-               end if;
-            end Process_Trace_For_Src_Coverage;
-
+            Has_Traces  : constant Boolean := not Trace_Inputs.Is_Empty;
+            Trace_Kind  : Any_Accepted_Trace_Kind := Unknown;
+            Result      : Read_Result;
          begin
-            if Checkpoints_Inputs.Is_Empty
-               and then LLVM_JSON_Ckpt_Inputs.Is_Empty
-            then
-               Check_Traces_Available;
-            end if;
-            for Filename of Exe_Inputs loop
-               Process_Exec (+Filename);
-            end loop;
-            for RT of Trace_Inputs loop
-               Process_Trace (+RT.Filename, +RT.Executable);
-            end loop;
+            if Has_Traces then
+               declare
+                  Trace_File : constant String :=
+                     +Trace_Inputs.First_Element.Filename;
+               begin
+                  Probe_Trace_File (Trace_File, Trace_Kind, Result);
 
-            --  Use dominant information to refine decision coverage
-            --  information wrt. outcomes taken. This is a binary information
-            --  specificity as we always know which outcomes were taken in the
-            --  context of source traces.
-
-            if Currently_Accepted_Trace_Kind = Binary_Trace_File then
-               Refine_Source_Coverage;
+                  if not Result.Success then
+                     Report_Bad_Trace (Trace_File, Result);
+                  end if;
+               end;
             end if;
 
-            --  Warn when using --scos with source traces or --sid with bin
-            --  traces.
+            if Trace_Kind /= LLVM_Trace_File then
 
-            if not SID_Inputs.Is_Empty and then Bin_Traces_Present then
-               Warn ("Using option --sid with binary trace files has no"
-                     & " effect." & ASCII.LF & "Please consider using option"
-                     & " --scos or -P<project file> in conjunction with"
-                     & " --units to specify units of interest.");
-            end if;
-            if not ALIs_Inputs.Is_Empty and then Src_Traces_Present then
-               Warn ("Using option --scos with source trace files has no"
-                     & " effect." & ASCII.LF & "Please consider using option"
-                     & " --sid or -P<project file> in conjunction with --units"
-                     & " to specify units of interest.");
+               --  Process classic GNATcov traces
+
+               Read_And_Process_GNATcov_Traces (Base'Access);
+            else
+
+               --  Ensure an exec file was passed
+
+               if Exe_Inputs.Is_Empty then
+                  Outputs.Fatal_Error ("LLVM coverage needs an executable"
+                                       & " file to retrieve coverage"
+                                       & " mappings. Use --exec");
+               end if;
+
+               --  Probe and validate all traces but the first one that was
+               --  already validated.
+
+               for Trace in
+                  Trace_Inputs.First_Index + 1 .. Trace_Inputs.Last_Index
+               loop
+                  declare
+                     Trace_Name : constant String :=
+                        +Trace_Inputs.Element (Trace).Filename;
+                  begin
+                     Probe_Trace_File (Trace_Name, Trace_Kind, Result);
+
+                     if not Result.Success then
+                        Outputs.Fatal_Error
+                          (Trace_Name & ": " & (+Result.Error));
+                     elsif Trace_Kind /= LLVM_Trace_File then
+                        Outputs.Fatal_Error
+                          (Trace_Name
+                           & ": Invalid .profraw file (bad magic)");
+                     end if;
+                  end;
+               end loop;
+
+               --  Process LLVM traces (.profraw files)
+               --
+               --  The pipeline is the following:
+               --  1. Aggregate the profraw files into a single profdata
+               --     using llvm-profdata.
+               --  2. Use the llvm-json-exporter trace adapter to translate
+               --     the profdata file into a LLVM JSON checkpoint file.
+               --  3. Add the checkpoint file to the LLVM checkpoints so
+               --     gnatcov loads it.
+
+               declare
+                  LLVM_JSON_Ckpt : Unbounded_String;
+               begin
+                  LLVM.Create_LLVM_Temp_Dir (Auto_Delete => not Save_Temps);
+
+                  LLVM_JSON_Ckpt := LLVM.Make_LLVM_Checkpoint_From_Traces
+                    (Trace_Inputs, +Exe_Inputs.First_Element);
+
+                  LLVM_JSON_Ckpt_Inputs.Prepend (LLVM_JSON_Ckpt);
+               end;
             end if;
          end;
 
