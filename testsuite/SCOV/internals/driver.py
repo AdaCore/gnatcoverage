@@ -1055,105 +1055,6 @@ class SCOV_helper:
         """Switch to this test's homedir."""
         cd(self.homedir)
 
-    # -----------------------
-    # - common_build_gargs --
-    # -----------------------
-    def common_build_gargs(self):
-        """Mode agnostic gargs switches to pass to gprbuild commands."""
-
-        gargs = []
-
-        # If we have general options to honor when interpreting
-        # project files for coverage purposes (e.g. --subdirs or -X),
-        # the builds must be performed accordingly:
-        if self.covctl and self.covctl.gprsw:
-            gargs.extend(self.covctl.gprsw.build_switches)
-
-        return gargs
-
-    # --------------------------
-    # -- coverage_sco_options --
-    # --------------------------
-    def coverage_sco_options(self):
-        """The list of options to pass to gnatcov coverage to convey
-        SCOs to be discharged for the test at hand."""
-
-        # If we have a request for specific options, honor that.
-
-        if self.covctl and self.covctl.gprsw:
-            return self.covctl.gprsw.cov_switches
-
-        # Otherwise, if we are requested to convey unit of interest through
-        # project file attributes and this is not a consolidation test, use
-        # our build project file which has been amended for that.
-
-        # ??? Situations where we need to reuse artifacts from the object
-        # directory of previous tests (e.g. for consolidation or mcdc
-        # variation tests) would require crafting a project file referring to
-        # the projects of interest for those previous tests, which isn't
-        # implemented yet.
-
-        elif self.gprmode and self.singletest() and not self.wdctl.reuse_bin:
-            return ["-P%s" % self.gpr]
-
-        # Fallback to --scos/--sid with a list of files we compute here:
-
-        else:
-            return [
-                "%s=@%s"
-                % (
-                    self.mode_scofiles_switch(),
-                    list_to_file(self._scofiles_list(), "scos.list"),
-                )
-            ]
-
-    def _locate_scofile(self, source):
-        """Return the fullpath of the ali file corresponding to the given
-        SOURCE file.  Return None if none was found.
-        """
-
-        # Whatever the kind of test we are (single or consolidation), we
-        # expect every ALI file of interest to be associated with at least
-        # one single test, and to be present in the "obj" subdirectory of
-        # the associated binary dir.
-
-        # Compute the local path from single test bindir and iterate over
-        # binary dir for all our drivers until we find. There might actually
-        # be several instances in the consolidation case. We assume they are
-        # all identical, and they should be for typical situations where the
-        # same sources were exercised by multiple drivers:
-
-        lpath = os.path.join("obj", self.mode_scofile_for(source))
-        for main in self.drivers:
-            tloc = os.path.join(self.abdir_for(no_ext(main)), lpath)
-            if os.path.exists(tloc):
-                return tloc
-
-        return None
-
-    def _scofiles_list(self):
-        """Return a set of ali or sid files corresponding to the list of
-        sources specified in this tests's UXset.
-        """
-
-        # It is legitimate for some sources to not have an associated ali, for
-        # example Ada separate sub-units compiled as part of their parent. We
-        # just skip those and will fail matching expectations if the SCOs are
-        # nowhere else.
-
-        # We might also have expectations for different sources that map to
-        # the same ali, as for example with the spec and body of the same
-        # package.  We make our result a set to prevent duplicates and xcov
-        # warnings later on.
-
-        return {
-            scof
-            for scof in (
-                self._locate_scofile(soi) for soi in self.sources_of_interest()
-            )
-            if scof
-        }
-
     def wdbase_for(self, covlevel):
         """
         Compute a short base prefix for the working directory that will
@@ -1196,6 +1097,11 @@ class SCOV_helper:
             res += "+" + wdbase[1:]
 
         return res
+
+    def coverage_sco_options(self) -> list[str]:
+        """The list of options to pass to gnatcov coverage to convey
+        SCOs to be discharged for the test at hand."""
+        raise NotImplementedError
 
 
 class SCOV_helper_gpr(SCOV_helper):
@@ -1350,6 +1256,105 @@ class SCOV_helper_gpr(SCOV_helper):
                 uoi.add(os.path.basename(soi))
 
         return uoi
+
+    # -----------------------
+    # - common_build_gargs --
+    # -----------------------
+    def common_build_gargs(self):
+        """Mode agnostic gargs switches to pass to gprbuild commands."""
+
+        gargs = []
+
+        # If we have general options to honor when interpreting
+        # project files for coverage purposes (e.g. --subdirs or -X),
+        # the builds must be performed accordingly:
+        if self.covctl and self.covctl.gprsw:
+            gargs.extend(self.covctl.gprsw.build_switches)
+
+        return gargs
+
+    # --------------------------
+    # -- coverage_sco_options --
+    # --------------------------
+    def coverage_sco_options(self):
+        """The list of options to pass to gnatcov coverage to convey
+        SCOs to be discharged for the test at hand."""
+
+        # If we have a request for specific options, honor that.
+
+        if self.covctl and self.covctl.gprsw:
+            return self.covctl.gprsw.cov_switches
+
+        # Otherwise, if we are requested to convey unit of interest through
+        # project file attributes and this is not a consolidation test, use
+        # our build project file which has been amended for that.
+
+        # ??? Situations where we need to reuse artifacts from the object
+        # directory of previous tests (e.g. for consolidation or mcdc
+        # variation tests) would require crafting a project file referring to
+        # the projects of interest for those previous tests, which isn't
+        # implemented yet.
+
+        elif self.gprmode and self.singletest() and not self.wdctl.reuse_bin:
+            return ["-P%s" % self.gpr]
+
+        # Fallback to --scos/--sid with a list of files we compute here:
+
+        else:
+            return [
+                "%s=@%s"
+                % (
+                    self.mode_scofiles_switch(),
+                    list_to_file(self._scofiles_list(), "scos.list"),
+                )
+            ]
+
+    def _locate_scofile(self, source):
+        """Return the fullpath of the ali file corresponding to the given
+        SOURCE file.  Return None if none was found.
+        """
+
+        # Whatever the kind of test we are (single or consolidation), we
+        # expect every ALI file of interest to be associated with at least
+        # one single test, and to be present in the "obj" subdirectory of
+        # the associated binary dir.
+
+        # Compute the local path from single test bindir and iterate over
+        # binary dir for all our drivers until we find. There might actually
+        # be several instances in the consolidation case. We assume they are
+        # all identical, and they should be for typical situations where the
+        # same sources were exercised by multiple drivers:
+
+        lpath = os.path.join("obj", self.mode_scofile_for(source))
+        for main in self.drivers:
+            tloc = os.path.join(self.abdir_for(no_ext(main)), lpath)
+            if os.path.exists(tloc):
+                return tloc
+
+        return None
+
+    def _scofiles_list(self):
+        """Return a set of ali or sid files corresponding to the list of
+        sources specified in this tests's UXset.
+        """
+
+        # It is legitimate for some sources to not have an associated ali, for
+        # example Ada separate sub-units compiled as part of their parent. We
+        # just skip those and will fail matching expectations if the SCOs are
+        # nowhere else.
+
+        # We might also have expectations for different sources that map to
+        # the same ali, as for example with the spec and body of the same
+        # package.  We make our result a set to prevent duplicates and xcov
+        # warnings later on.
+
+        return {
+            scof
+            for scof in (
+                self._locate_scofile(soi) for soi in self.sources_of_interest()
+            )
+            if scof
+        }
 
 
 class SCOV_helper_bin_traces(SCOV_helper_gpr):
@@ -1630,6 +1635,9 @@ class SCOV_helper_rust(SCOV_helper):
 
         self.gprmode = False
 
+    def coverage_sco_options(self) -> list[str]:
+        return ["--exec", self.get_executable()]
+
     def run(self):
         self.log()
 
@@ -1664,18 +1672,7 @@ class SCOV_helper_rust(SCOV_helper):
         # gnatcov coverage to get actual coverage reports and check against our
         # Xpectation specs.
 
-        # Generate report file
-        self.gen_one_xcov_report(
-            trace=self.PROFRAW_FILE,
-            report_format="report",
-            options=f"--exec {self.get_executable()} -o test.rep",
-        )
-        # Generate xcov file
-        self.gen_one_xcov_report(
-            trace=self.PROFRAW_FILE,
-            report_format="xcov",
-            options=f"--exec {self.get_executable()}",
-        )
+        self.gen_xcov_reports()
         self.check_expectations()
 
         self.to_homedir()
