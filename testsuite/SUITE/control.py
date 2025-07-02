@@ -98,6 +98,9 @@ LANGINFO = {
         scofile_for=None,
         sidfile_for=lambda source: source + ".sid",
     ),
+    "Rust": LangInfo(
+        name="Rust", src_ext=[".rs"], comment="//", scofile_for=None
+    ),
     "Asm": LangInfo(name="Asm", src_ext=[".s"], comment="#", scofile_for=None),
     "Cons": LangInfo(
         name="Consolidation", src_ext=[".txt"], comment="--", scofile_for=None

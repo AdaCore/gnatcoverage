@@ -58,10 +58,10 @@ class TestCase:
         return a string listing PATTERN with all the possible language
         extensions we expect for drivers."""
 
-        # We expect .adb for Ada bodies, .c for C sources and .cpp
-        # for C++ sources.
+        # We expect .adb for Ada bodies, .c for C sources, .cpp
+        # for C++ sources and .rs for Rust sources.
         return " ".join(
-            "%s%s" % (pattern, ext) for ext in [".adb", ".c", ".cpp"]
+            "%s%s" % (pattern, ext) for ext in [".adb", ".c", ".cpp", ".rs"]
         )
 
     def __expand_shared_controllers(self, drivers, cspecs):
