@@ -228,7 +228,8 @@ package body Subprocesses is
          Out_To_Null,
          In_To_Null,
          Ignore_Error);
-      Success : constant Boolean := Wait (Handle) = 0;
+      Success : constant Boolean :=
+          Wait (Handle) = 0 and then Handle /= Invalid_Handle;
    begin
       Check_Status (Success, Ignore_Error, Command, Origin_Command_Name);
       return Success;

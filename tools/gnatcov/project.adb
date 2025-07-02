@@ -108,7 +108,7 @@ package body Project is
 
    function SCO_Filename
      (Source : GPR2.Build.Source.Object;
-      Kind   : Trace_File_Kind)
+      Kind   : GNATcov_Trace_File_Kind)
       return GPR2.Path_Name.Object;
    --  Return the SCO absolute filename corresponding to the given source file
    --  and the given trace kind (.ali/.gli for binary traces, .sid for source
@@ -523,7 +523,7 @@ package body Project is
 
    function SCO_Filename
      (Source : GPR2.Build.Source.Object;
-      Kind   : Trace_File_Kind)
+      Kind   : GNATcov_Trace_File_Kind)
       return GPR2.Path_Name.Object
    is
       Is_Ada    : constant Boolean := Source.Language = GPR2.Ada_Language;
@@ -568,7 +568,7 @@ package body Project is
 
    procedure Enumerate_SCOs_Files
      (Callback : access procedure (Lib_Name : String);
-      Kind     : Trace_File_Kind)
+      Kind     : GNATcov_Trace_File_Kind)
    is
       Files_Found : String_Sets.Set;
    begin

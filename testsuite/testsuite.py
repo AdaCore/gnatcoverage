@@ -1394,6 +1394,7 @@ class TestSuite(e3.testsuite.Testsuite):
             + self._rts_discriminants()
             + self._toolchain_discriminants()
             + self._gnatcov_discriminants()
+            + self._rust_toolchain_discriminants()
         )
 
     def _base_discriminants(self):
@@ -1523,6 +1524,14 @@ class TestSuite(e3.testsuite.Testsuite):
             if gnatcov_info.major()
             else []
         )
+
+    def _rust_toolchain_discriminants(self):
+        """
+        Compute the discriminant that reflects the presence of a rust
+        toolchain.
+        """
+
+        return ["rust"] if which("cargo") else []
 
     # --------------------------
     # -- Command-line options --

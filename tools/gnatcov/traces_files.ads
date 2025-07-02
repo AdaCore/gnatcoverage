@@ -49,7 +49,8 @@ package Traces_Files is
    --  if it's a binary trace file or a source trace file.
 
    type Any_Accepted_Trace_Kind is
-     (Unknown, Binary_Trace_File, Source_Trace_File, All_Trace_Files);
+     (Unknown, Binary_Trace_File, Source_Trace_File,
+      LLVM_Trace_File, All_Trace_Files);
    --  We normally do not allow to mix trace kinds, but in case this should be
    --  supported in the future we have "All_Trace_File" to represent that
    --  gnatcov accepts both kinds of traces.
@@ -64,6 +65,9 @@ package Traces_Files is
    --  only emit a warning and not an error.
 
    subtype Trace_File_Kind
+     is Any_Accepted_Trace_Kind range Binary_Trace_File .. LLVM_Trace_File;
+
+   subtype GNATcov_Trace_File_Kind
      is Any_Accepted_Trace_Kind range Binary_Trace_File .. Source_Trace_File;
 
    function Image (Kind : Trace_File_Kind) return String;
