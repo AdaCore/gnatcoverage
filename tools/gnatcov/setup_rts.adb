@@ -370,6 +370,25 @@ package body Setup_RTS is
       Name : constant String := Project_Name (Project_File);
       File : Text_Files.File_Type;
    begin
+      --  Start by checking that Tree_Dir is not a parent dir of Tree_Dir_Copy.
+      --  Otherwise, we will end up with a stack overflow as Tree_Dir_Copy
+      --  will be recursively copied.
+
+      declare
+         Tree_Dir_VF : constant Virtual_File := Create (+Tree_Dir);
+         Parent      : Virtual_File :=
+           Get_Parent (Create (+Tree_Dir_Copy));
+      begin
+         while Parent /= No_File loop
+            if Parent = Tree_Dir_VF then
+               Outputs.Fatal_Error
+                 ("Do not run this command in the same directory/in a"
+                  & " subdirectory of the installed runtime");
+            end if;
+            Parent := Get_Parent (Parent);
+         end loop;
+      end;
+
       --  Copy the sources of the project to build
 
       declare

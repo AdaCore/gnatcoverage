@@ -1285,6 +1285,7 @@ included in this custom coverage runtime. Like in non-customized cases,
 .. code-block:: sh
 
    # Add --target and --RTS if needed according to the toolchain to use
+   # Make sure not to run this in my_rts.gpr directory
    gnatcov setup my_rts/my_rts.gpr
 
 While it is technically possible with this mechanism to modify all aspects of
