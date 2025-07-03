@@ -44,7 +44,7 @@ from SUITE.cutils import ext, to_list, list_to_file, no_ext, FatalError
 from SUITE.cutils import contents_of, lines_of, unhandled_exception_in
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
-from SUITE.tutils import gprbuild_cargs_with
+from SUITE.tutils import gprbuild_cargs_with, run_and_log
 from SUITE.tutils import exename_for
 from SUITE.tutils import (
     srctrace_pattern_for,
@@ -53,6 +53,7 @@ from SUITE.tutils import (
     ckptname_for,
     run_cov_program,
 )
+from SUITE.cargo_utils import cargo_for
 
 from .cnotes import r0, r0c, xBlock0, xBlock1, lx0, lx1, lFullCov, lPartCov
 from .cnotes import Xr0, Xr0c
@@ -232,6 +233,17 @@ r_rxp_for = {
     CAT.decision: r_ern_for[CAT.decision] + rAntiKinds,
     CAT.mcdc: r_ern_for[CAT.mcdc] + rAntiKinds,
 }
+
+
+def strictest_cat_for(level: str):
+    if level.startswith("stmt+mcdc"):
+        return CAT.mcdc
+    elif level.startswith("stmt+decision"):
+        return CAT.decision
+    elif level.startswith("stmt"):
+        return CAT.stmt
+    else:
+        thistest.stop(FatalError("unknwon coverage level: " + level))
 
 
 class _Xchecker:
@@ -414,44 +426,12 @@ class _Xchecker:
 class SCOV_helper:
     """Helper class for source coverage activities."""
 
+    def sources_of_interest(self):
+        """List of sources for which we have expectations to match."""
+        return self.xrnotes.keys()
+
     # The differences between the different kinds of traces (binary or source)
     # are handled by specializing a few operations.
-
-    def mode_build(self):
-        """For a single test (not consolidation), build the program to run
-        out of the test sources.
-        """
-        raise NotImplementedError
-
-    def mode_execute(self, main):
-        """Execute the program designated by MAIN, arranging to produce an
-        execution trace. Return the name of a file containing the execution
-        output.
-        """
-        raise NotImplementedError
-
-    def mode_scofile_for(self, source):
-        """The _base_ file name of a file that would contain SCOs for the
-        provide source file name. This is used as a candidate file name to
-        be searched in a set of possible object directories for the current
-        test.
-        """
-        raise NotImplementedError
-
-    def mode_scofiles_switch(self):
-        """The command line switch to pass to convey the name of a file
-        containing SCOs, expected to support the '@' response file syntax
-        as well. This would be passed to gnatcov coverage when units of
-        interest are not to be conveyed by way of project files.
-        """
-        raise NotImplementedError
-
-    def mode_tracename_for(self, pgm):
-        """Name of the trace file for the given program name.
-
-        Due to specificities of the source trace files in native contexts, this
-        method should be called only once the trace file has been created."""
-        raise NotImplementedError
 
     def __init__(self, testcase, drivers, xfile, xcovlevel, covctl, wdctl):
         # The TESTCASE object that delegates the hard work to us :-)
@@ -530,48 +510,6 @@ class SCOV_helper:
         thistest.fail_if(not self.xlnotes, "empty xlnotes from %s !!" % xfile)
         thistest.fail_if(not self.xrnotes, "empty xrnotes from %s !!" % xfile)
 
-    def sources_of_interest(self):
-        """List of sources for which we have expectations to match."""
-        return self.xrnotes.keys()
-
-    def is_subunit(self, soi):
-        """Determine whether the input Source Of Interest name denotes
-        a subunit, assuming source file names obey the standard GNAT naming
-        convention.
-        """
-
-        # There has to be a '-' in the source file name, which could also
-        # be for a child unit. Check if we also have a line starting with
-        # "separate" to disambiguate.
-
-        return "-" in os.path.basename(soi) and any(
-            line.lstrip().lower().startswith("separate")
-            for line in lines_of(self.abspaths[soi])
-        )
-
-    def units_of_interest(self):
-        """Set of units for which we have expectations to match, based
-        on the list of sources for which we have expectations and assuming
-        standard  use of '-' in filenames for child units or subunits
-        (foo-bar.ads for package Foo.Bar). Subunits are excluded from this
-        set..
-
-        ??? If a project has an instrument-c ada unit and an instrument.c
-        C source file, the representative string will be the same for both.
-        """
-
-        uoi = set()
-
-        for soi in self.sources_of_interest():
-            extension = ext(soi)
-            if extension == ".adb" or extension == ".ads":
-                if not self.is_subunit(soi):
-                    uoi.add(no_ext(os.path.basename(soi)).replace("-", "."))
-            else:
-                uoi.add(os.path.basename(soi))
-
-        return uoi
-
     def programs(self):
         """List of base binary file names for the test drivers we are
         given to exercise.
@@ -592,81 +530,12 @@ class SCOV_helper:
         """Whether SELF instantiates a single test."""
         return len(self.drivers) == 1
 
-    def run(self):
-        """Evaluate source coverage as exercised by self.drivers"""
-
-        self.log()
-
-        # Whatever the kind of test, we get to a Working Directory and
-        # switch back when done:
-        self.to_workdir(self.rwdir())
-
-        # If we are requested to convey units of interest through a project
-        # file and don't have a coverage control object to obey, build one to
-        # convey the units of interest:
-
-        if thistest.options.gprmode and not self.covctl:
-            self.covctl = CovControl(units_in=self.units_of_interest())
-
-        # Assess whether we should be using a project file to convey units of
-        # interest, either requested from the command line or for specific
-        # test purposes:
-
-        self.gprmode = thistest.options.gprmode or (
-            self.covctl and self.covctl.requires_gpr()
-        )
-
-        # Compute our GPR now, which we will need for build of single tests
-        # and/or analysis later on if in gprmode.  Turn inlining off for the
-        # driver unit, so we exercise the functional code as separately
-        # compiled, not as an inlined version of it in a non-representative
-        # driver context.
-
-        # Most of the tests with coverage control operate within
-        # an extra subdir level
-        this_depth = thistest.depth + 1 if self.covctl else thistest.depth
-
-        self.gpr_obj_dir = "obj"
-        self.gpr_exe_dir = self.abdir(attribute=True)
-        self.gpr = gprfor(
-            mains=self.drivers,
-            prjid="gen",
-            objdir=self.gpr_obj_dir,
-            srcdirs=["../" * n + "src" for n in range(1, this_depth)],
-            exedir=self.gpr_exe_dir,
-            main_cargs="-fno-inline",
-            deps=self.covctl.deps if self.covctl else [],
-            extra=self.covctl.gpr() if self.covctl else "",
-        )
-
-        # For single tests (no consolidation), we first need to build, then
-        # to execute to get an execution trace.  All these we already have for
-        # consolidation tests, and there's actually no need to build if we
-        # were provided a bin directory to reuse:
-
-        if self.singletest() and not self.wdctl.reuse_bin:
-            self.mode_build()
-
-        # Do gnatcov run now unless we're consolidating.  We'll just reuse
-        # traces from previous executions in the latter case.
-
-        if self.singletest():
-            self.run_test(main=no_ext(self.drivers[0]))
-
-        # At this point, we have everything we need for the analysis. Either
-        # from the just done build+run in the single test case, or from
-        # previous such sequences in the consolidation case.  Run gnatcov
-        # coverage to get actual coverage reports and check against our
-        # Xpectation specs.
-
-        self.gen_xcov_reports()
-        self.check_expectations()
-
-        self.to_homedir()
-        thistest.flush()
-
-        # Let callers retrieve execution data at will
-        return self
+    def run():
+        """Main driver procedure, which is responsible for generating the
+        environment, building the test and checking the coverage result against
+        the expected SCOs.
+        """
+        raise NotImplementedError
 
     # -------------------------
     # -- working directories --
@@ -778,10 +647,10 @@ class SCOV_helper:
                 "exception raised while running '%s'." % main,
             )
 
-    def gen_one_xcov_report(self, inputs, report_format, options=""):
+    def gen_one_xcov_report(self, trace, report_format, options=""):
         """
         Helper for gen_xcov_reports, to produce one specific report for a
-        particular REPORT_FORMAT, from provided INPUTS. The command output is
+        particular REPORT_FORMAT, from provided TRACE. The command output is
         saved in a file named REPORT_FORMAT.out.
         """
 
@@ -795,7 +664,7 @@ class SCOV_helper:
         # descriptions.
 
         covargs = (
-            ["--annotate=" + report_format, inputs]
+            ["--annotate=" + report_format, trace]
             + self.covoptions
             + to_list(options)
         )
@@ -820,8 +689,8 @@ class SCOV_helper:
         output_lines = lines_of(ofile)
         for i, line in reversed(list(enumerate(output_lines))):
             if line == (
-                "warning: -S is deprecated. This option will be removed in"
-                " release 26."
+                "warning: -S is deprecated. "
+                "This option will be removed in release 26."
             ):
                 output_lines.pop(i)
         output = "\n".join(output_lines)
@@ -1023,16 +892,6 @@ class SCOV_helper:
         # For tests without a category, we will pick the relevant note
         # kinds from the strictest category possibly corresponding to the
         # xcov-level.
-
-        def strictest_cat_for(level: str):
-            if level.startswith("stmt+mcdc"):
-                return CAT.mcdc
-            elif level.startswith("stmt+decision"):
-                return CAT.decision
-            elif level.startswith("stmt"):
-                return CAT.stmt
-            else:
-                thistest.stop(FatalError("unknwon coverage level: " + level))
 
         relevance_cat = (
             self.testcase.category
@@ -1339,7 +1198,161 @@ class SCOV_helper:
         return res
 
 
-class SCOV_helper_bin_traces(SCOV_helper):
+class SCOV_helper_gpr(SCOV_helper):
+    """Helper class for GPR-based tests."""
+
+    def mode_build(self):
+        """For a single test (not consolidation), build the program to run
+        out of the test sources.
+        """
+        raise NotImplementedError
+
+    def mode_execute(self, main):
+        """Execute the program designated by MAIN, arranging to produce an
+        execution trace. Return the name of a file containing the execution
+        output.
+        """
+        raise NotImplementedError
+
+    def mode_scofile_for(self, source):
+        """The _base_ file name of a file that would contain SCOs for the
+        provide source file name. This is used as a candidate file name to
+        be searched in a set of possible object directories for the current
+        test.
+        """
+        raise NotImplementedError
+
+    def mode_scofiles_switch(self):
+        """The command line switch to pass to convey the name of a file
+        containing SCOs, expected to support the '@' response file syntax
+        as well. This would be passed to gnatcov coverage when units of
+        interest are not to be conveyed by way of project files.
+        """
+        raise NotImplementedError
+
+    def mode_tracename_for(self, pgm):
+        """Name of the trace file for the given program name.
+
+        Due to specificities of the source trace files in native contexts, this
+        method should be called only once the trace file has been created."""
+        raise NotImplementedError
+
+    def run(self):
+        """Evaluate source coverage as exercised by self.drivers"""
+
+        self.log()
+
+        # Whatever the kind of test, we get to a Working Directory and
+        # switch back when done:
+        self.to_workdir(self.rwdir())
+
+        # If we are requested to convey units of interest through a project
+        # file and don't have a coverage control object to obey, build one to
+        # convey the units of interest:
+
+        if thistest.options.gprmode and not self.covctl:
+            self.covctl = CovControl(units_in=self.units_of_interest())
+
+        # Assess whether we should be using a project file to convey units of
+        # interest, either requested from the command line or for specific
+        # test purposes:
+
+        self.gprmode = thistest.options.gprmode or (
+            self.covctl and self.covctl.requires_gpr()
+        )
+
+        # Compute our GPR now, which we will need for build of single tests
+        # and/or analysis later on if in gprmode.  Turn inlining off for the
+        # driver unit, so we exercise the functional code as separately
+        # compiled, not as an inlined version of it in a non-representative
+        # driver context.
+
+        # Most of the tests with coverage control operate within
+        # an extra subdir level
+        this_depth = thistest.depth + 1 if self.covctl else thistest.depth
+
+        self.gpr_obj_dir = "obj"
+        self.gpr_exe_dir = self.abdir(attribute=True)
+        self.gpr = gprfor(
+            mains=self.drivers,
+            prjid="gen",
+            objdir=self.gpr_obj_dir,
+            srcdirs=["../" * n + "src" for n in range(1, this_depth)],
+            exedir=self.gpr_exe_dir,
+            main_cargs="-fno-inline",
+            deps=self.covctl.deps if self.covctl else [],
+            extra=self.covctl.gpr() if self.covctl else "",
+        )
+
+        # For single tests (no consolidation), we first need to build, then
+        # to execute to get an execution trace.  All these we already have for
+        # consolidation tests, and there's actually no need to build if we
+        # were provided a bin directory to reuse:
+
+        if self.singletest() and not self.wdctl.reuse_bin:
+            self.mode_build()
+
+        # Do gnatcov run now unless we're consolidating.  We'll just reuse
+        # traces from previous executions in the latter case.
+
+        if self.singletest():
+            self.run_test(main=no_ext(self.drivers[0]))
+
+        # At this point, we have everything we need for the analysis. Either
+        # from the just done build+run in the single test case, or from
+        # previous such sequences in the consolidation case.  Run gnatcov
+        # coverage to get actual coverage reports and check against our
+        # Xpectation specs.
+
+        self.gen_xcov_reports()
+        self.check_expectations()
+
+        self.to_homedir()
+        thistest.flush()
+
+        # Let callers retrieve execution data at will
+        return self
+
+    def is_subunit(self, soi):
+        """Determine whether the input Source Of Interest name denotes
+        a subunit, assuming source file names obey the standard GNAT naming
+        convention.
+        """
+
+        # There has to be a '-' in the source file name, which could also
+        # be for a child unit. Check if we also have a line starting with
+        # "separate" to disambiguate.
+
+        return "-" in os.path.basename(soi) and any(
+            line.lstrip().lower().startswith("separate")
+            for line in lines_of(self.abspaths[soi])
+        )
+
+    def units_of_interest(self):
+        """Set of units for which we have expectations to match, based
+        on the list of sources for which we have expectations and assuming
+        standard  use of '-' in filenames for child units or subunits
+        (foo-bar.ads for package Foo.Bar). Subunits are excluded from this
+        set..
+
+        If a project has an instrument-c ada unit and an instrument.c
+        C source file, the representative string will be the same for both.
+        """
+
+        uoi = set()
+
+        for soi in self.sources_of_interest():
+            extension = ext(soi)
+            if extension == ".adb" or extension == ".ads":
+                if not self.is_subunit(soi):
+                    uoi.add(no_ext(os.path.basename(soi)).replace("-", "."))
+            else:
+                uoi.add(os.path.basename(soi))
+
+        return uoi
+
+
+class SCOV_helper_bin_traces(SCOV_helper_gpr):
     """SCOV_helper specialization for the binary execution trace based mode."""
 
     # Outline of the binary trace based scheme:
@@ -1404,7 +1417,7 @@ class SCOV_helper_bin_traces(SCOV_helper):
         return tracename_for(pgm)
 
 
-class SCOV_helper_src_traces(SCOV_helper):
+class SCOV_helper_src_traces(SCOV_helper_gpr):
     """SCOV_helper specialization for the source instrumentation mode."""
 
     # Outline of the source instrumentation based scheme:
@@ -1596,3 +1609,110 @@ class SCOV_helper_src_traces(SCOV_helper):
             return self.covctl.dump_trigger
         else:
             return default_dump_trigger(self.drivers)
+
+
+class SCOV_helper_rust(SCOV_helper):
+    """Helper class for Rust-based tests."""
+
+    PROFRAW_FILE = "out.profraw"
+
+    def __init__(self, testcase, drivers, xfile, xcovlevel, covctl, wdctl):
+        assert len(drivers) == 1, "Multi-driver test is not supported in Rust"
+
+        super().__init__(
+            testcase,
+            drivers,
+            xfile,
+            xcovlevel,
+            covctl,
+            wdctl,
+        )
+
+        self.gprmode = False
+
+    def run(self):
+        self.log()
+
+        # Whatever the kind of test, we get to a Working Directory and
+        # switch back when done:
+        self.to_workdir(self.rwdir())
+
+        # Build the cargo file
+        cargo_for(
+            prjid="cargo-gen",
+            main=self.drivers[0],
+            src_dir=os.path.join("..", "src"),
+            cargo_dir=self.awdir(),
+        )
+
+        # Build the project cargo
+        p = run_and_log(
+            ["cargo", "build", "-v"],
+            env=self.cargo_environment(),
+            ignore_environ=False,
+        )
+        if p.status != 0:
+            thistest.stop(FatalError("cargo build failed", outstr=p.err))
+
+        # Run the program
+        p = run_and_log(
+            [self.get_executable()],
+            env={"LLVM_PROFILE_FILE": self.PROFRAW_FILE},
+        )
+
+        # At this point, we have everything we need for the analysis. Run
+        # gnatcov coverage to get actual coverage reports and check against our
+        # Xpectation specs.
+
+        # Generate report file
+        self.gen_one_xcov_report(
+            trace=self.PROFRAW_FILE,
+            report_format="report",
+            options=f"--exec {self.get_executable()} -o test.rep",
+        )
+        # Generate xcov file
+        self.gen_one_xcov_report(
+            trace=self.PROFRAW_FILE,
+            report_format="xcov",
+            options=f"--exec {self.get_executable()}",
+        )
+        self.check_expectations()
+
+        self.to_homedir()
+        thistest.flush()
+
+        # Let callers retrieve execution data at will
+        return self
+
+    def _covlevel_to_rust_args(self) -> str:
+        cov_category = (
+            self.testcase.category
+            if self.testcase.category
+            else strictest_cat_for(self.xcovlevel)
+        )
+
+        if cov_category == CAT.mcdc:
+            return ["-Cinstrument-coverage", "-Ccoverage-options=mcdc"]
+        elif cov_category == CAT.decision:
+            # decision coverage uses Rust's MCDC instrumentation
+            return ["-Cinstrument-coverage", "-Ccoverage-options=mcdc"]
+        elif cov_category == CAT.stmt:
+            return ["-Cinstrument-coverage"]
+        else:
+            thistest.stop(
+                FatalError(f"Unknown coverage level '{cov_category}'")
+            )
+
+    def cargo_environment(self) -> dict[str, str]:
+        return {"RUSTFLAGS": " ".join(self._covlevel_to_rust_args())}
+
+    def get_executable(self):
+        return os.path.join(
+            self.abdir(),
+            "target",
+            "debug",
+            exename_for(no_ext(self.drivers[0])),
+        )
+
+    def mode_tracename_for(self, _pgm):
+        return self.PROFRAW_FILE
