@@ -556,6 +556,26 @@ preserved during preprocessing, column numbers may be different between the
 original code and the preprocessed code and thus the coverage report.
 
 
+.. _instr-c_cpp:
+
+Instrumentation of C and C++ code
+---------------------------------
+
+If the project contains C, and C++ sources (meaning the project Language
+attributes contains C and/or C++), |gcvins| will instrument them.
+
+As |gcvins| preprocesses the C/C++ source prior to instrumenting it, it supports
+a variety of flags dedicated to C/C++ instrumentation, and some flags passed to
+:command:`gprbuild` must also be passed to |gcvins|. Generally speaking, all of
+the switches that could impact the preprocessing of the source (e.g. macro
+definitions/undefinitions, explicit include paths ...) should be added to the
+|gcvins| command line.
+
+To pass these switches, use the :cmd-option:`-c-opts` and
+:cmd-option:`-c++-opts` command line switches. They expect a list of
+comma-separated arguments that are forwarded to the preprocessing invocation.
+
+
 .. _instr-limitations:
 
 |gcvins| limitations

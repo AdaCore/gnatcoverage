@@ -8,7 +8,8 @@ General notions
 |gcp| is a code coverage analysis tool offering support for a range of
 coverage metrics and output formats associated with powerful
 :dfn:`consolidation` features letting users assess the combined
-coverage achievements of multiple program executions.
+coverage achievements of multiple program executions. It supports Ada, C
+and C++.
 
 The set of compilation units for which a user needs to assess coverage
 is commonly designated as the set of :dfn:`units of interest`. This is a
