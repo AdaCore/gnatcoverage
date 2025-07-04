@@ -1381,7 +1381,9 @@ Ultimately, it is necessary for this case to work around compiler-enforced
 elaboration constraints using interfacing pragmas (``pragma Import``/``pragma
 Export``). Assuming that the IO handling code is self-contained and is already
 present in the closure of the project to analyze, the following example
-demonstrates how to handle this case.
+demonstrates how to handle this case. The sources can be found under the
+`share/examples/gnatcoverage/custom_rt/` directory of the GNATDAS distribution.
+
 
 First, move the IO handling code to an independent library project:
 
@@ -1402,7 +1404,7 @@ First, move the IO handling code to an independent library project:
    package Stateful_IO is
       procedure Put (S : String);
       pragma Export (Ada, Put, "stateful_io_put");
-   end Stateful_IO;package Stateful_IO is
+   end Stateful_IO;
 
    -- stateful_io.adb
    with GNAT.IO;
