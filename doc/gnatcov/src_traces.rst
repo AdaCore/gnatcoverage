@@ -335,11 +335,11 @@ with N > 0 to specify the desired level of concurrency.
 
 .. _Dump_Triggers:
 
-Output strategies for main units
---------------------------------
+Output strategies for coverage information
+------------------------------------------
 
-The choice of a ``--dump-trigger``/``--dump-channel`` pair for main units
-depends on the runtime environment available to your program.
+The choice of a ``--dump-trigger``/``--dump-channel`` pair for coverage
+information depends on the runtime environment available to your program.
 
 For a native program with access to a full Ada runtime and the associated
 coverage runtime, ``--dump-channel=bin-file`` is the recommended choice as it
