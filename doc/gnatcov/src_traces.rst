@@ -67,7 +67,9 @@ of this project.
 Just like :command:`gprbuild`, |gcvstp| accept the :cmd-option:`--RTS`,
 :cmd-option:`--config` and :cmd-option:`--target` command line options: you
 need to build the coverage runtime with the same toolchain and runtime as the
-ones used to build the application code.  For instance:
+ones used to build the application code. It also supports a
+:cmd-option:`--gargs` option to pass arguments to the :command:`gprbuild`
+invocation. For instance:
 
 .. code-block:: sh
 
