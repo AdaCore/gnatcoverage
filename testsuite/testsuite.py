@@ -1531,7 +1531,12 @@ class TestSuite(e3.testsuite.Testsuite):
         toolchain.
         """
 
-        return ["rust"] if which("cargo") else []
+        # Enable the rust discriminant when on native run and a rust toolchain
+        # is found
+        if self.env.host == self.env.target and which("cargo"):
+            return ["rust"]
+        else:
+            return []
 
     # --------------------------
     # -- Command-line options --

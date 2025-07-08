@@ -30,11 +30,12 @@ from e3.fs import ls
 from SCOV.internals.driver import (
     SCOV_helper_bin_traces,
     SCOV_helper_src_traces,
+    SCOV_helper_rust,
 )
 from SCOV.internals.driver import WdirControl
 from SCOV.tctl import CAT
 from SUITE.context import thistest
-from SUITE.cutils import to_list, contents_of, FatalError
+from SUITE.cutils import to_list, contents_of, FatalError, ext
 from SUITE.qdata import Qdata, QDentry
 
 
@@ -58,10 +59,10 @@ class TestCase:
         return a string listing PATTERN with all the possible language
         extensions we expect for drivers."""
 
-        # We expect .adb for Ada bodies, .c for C sources and .cpp
-        # for C++ sources.
+        # We expect .adb for Ada bodies, .c for C sources, .cpp
+        # for C++ sources and .rs for Rust sources.
         return " ".join(
-            "%s%s" % (pattern, ext) for ext in [".adb", ".c", ".cpp"]
+            "%s%s" % (pattern, ext) for ext in [".adb", ".c", ".cpp", ".rs"]
         )
 
     def __expand_shared_controllers(self, drivers, cspecs):
@@ -265,15 +266,20 @@ class TestCase:
         requesting SUBDIRHINT to be part of temp dir names.
         """
 
-        this_scov_helper = (
-            SCOV_helper_bin_traces
-            if thistest.options.trace_mode == "bin"
-            else (
-                SCOV_helper_src_traces
-                if thistest.options.trace_mode == "src"
-                else None
-            )
+        rust_test = any(ext(drv) == ".rs" for drv in self.all_drivers)
+        thistest.stop_if(
+            rust_test
+            and not all(ext(drv) == ".rs" for drv in self.all_drivers),
+            "Rust drivers with other drivers is not yet supported",
         )
+
+        this_scov_helper = None
+        if rust_test:
+            this_scov_helper = SCOV_helper_rust
+        elif thistest.options.trace_mode == "bin":
+            this_scov_helper = SCOV_helper_bin_traces
+        elif thistest.options.trace_mode == "src":
+            this_scov_helper = SCOV_helper_src_traces
 
         # Compute the Working directory base for this level, then run the test
         # for each indivdual driver.
