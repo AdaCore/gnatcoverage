@@ -1428,7 +1428,7 @@ package Command_Line is
          Pattern    => "[GARGS ...]",
          Help       => "Pass GARGS arguments to gprbuild.",
          Commands   => (Cmd_Setup => True, others => False),
-         Internal   => True,
+         Internal   => False,
          Greedy     => True),
       Opt_Scos => Create
         (Long_Name   => "--scos|--alis",
