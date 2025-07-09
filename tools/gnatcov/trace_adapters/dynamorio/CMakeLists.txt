@@ -3,10 +3,12 @@
 # cmake -DDynamoRIO_DIR=$PWD/../dynamorio/cmake ../dr-gnatcov
 # make
 # ../dynamorio/bin64/drrun -client libqtrace.so 0 -- /bin/ls
-
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.15)
+project(qtrace C)
 
 add_library(qtrace SHARED qtrace.c)
+target_link_libraries(qtrace vcruntime libucrt)
+
 find_package(DynamoRIO)
 if (NOT DynamoRIO_FOUND)
   message(FATAL_ERROR "DynamoRIO package required to build")
