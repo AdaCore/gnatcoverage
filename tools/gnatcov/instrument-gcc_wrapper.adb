@@ -1199,19 +1199,26 @@ begin
                            Lib_Filename : constant String :=
                              Line (Arrow_Index + 3 .. Filename_End);
                         begin
-                           --  If the library is not on the LD_LIBRARY_PATH,
-                           --  it will be displayed as:
+                           --  If the library is not on the PATH/
+                           --  LD_LIBRARY_PATH, it will be displayed as:
                            --
                            --  <lib_basename> => not found
 
                            if Line (Arrow_Index + 3 .. Line'Last) = "not found"
                            then
-                              Outputs.Warn
-                                ("Could not find library "
-                                 & Line (Line'First + 1 .. Arrow_Index - 2)
-                                 & ". Add its directory to the"
-                                 & " LD_LIBRARY_PATH if this is an"
-                                 & " instrumented library.");
+                              declare
+                                 Path : String :=
+                                   (if Paths.On_Windows
+                                    then "PATH"
+                                    else "LD_LIBRARY_PATH");
+                              begin
+                                 Outputs.Warn
+                                   ("Could not find library "
+                                    & Line (Line'First + 1 .. Arrow_Index - 2)
+                                    & ". Add its directory to the "
+                                    & Path
+                                    & " if this is an instrumented library.");
+                              end;
 
                            --  Check if this is an actual path, to safeguard
                            --  against cases displayed as:

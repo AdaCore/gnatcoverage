@@ -1,2 +1,2 @@
-native,linux,src-traces,!5.04a1,!7.1.2,!RTS_ZFP
-ALL DEAD Prototype for integrated instrumentation functional for native linux
+native,src-traces,!5.04a1,!7.1.2,!RTS_ZFP
+ALL DEAD Prototype for integrated instrumentation functional for native

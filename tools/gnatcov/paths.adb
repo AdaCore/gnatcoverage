@@ -18,7 +18,6 @@
 
 with Ada.Characters.Handling;
 
-with GNAT.OS_Lib;
 with GNAT.Regpat;
 
 with Strings; use Strings;
@@ -26,8 +25,6 @@ with Strings; use Strings;
 package body Paths is
 
    use all type Unbounded_String;
-
-   On_Windows : constant Boolean := GNAT.OS_Lib.Directory_Separator = '\';
 
    function Likely_Windows_Path (Path : String) return Boolean;
    --  Whether the provided Path features Windows typical markers

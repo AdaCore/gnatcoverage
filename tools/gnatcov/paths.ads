@@ -18,9 +18,12 @@
 
 with Ada.Directories;
 
+with GNAT.OS_Lib;
 with GNAT.Strings; use GNAT.Strings;
 
 package Paths is
+
+   On_Windows : constant Boolean := GNAT.OS_Lib.Directory_Separator = '\';
 
    subtype File_Name is String_Access;
 
