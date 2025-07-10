@@ -17,7 +17,7 @@ from e3.fs import cp
 
 from SCOV.minicheck import check_xcov_reports
 from SUITE.control import env
-from SUITE.cutils import contents_of, Wdir
+from SUITE.cutils import Wdir
 from SUITE.tutils import cmdrun, srctracename_for, thistest, xcov
 
 Wdir("tmp_")
@@ -69,25 +69,6 @@ xcov(
     out=log_file,
 )
 
-# TODO: the warnings regarding homonym filenames are unexpected but they do not
-# affect the testcase.
-expected_warning = ("Warning: same base name for files:"
-    '\r?\n  {libfoo_foo}'
-    '\r?\n  {libbar_foo}'
-    "\r?\nWarning: same base name for files:"
-    '\r?\n  {libfoo_bar}'
-    '\r?\n  {libbar_bar}').format(
-        libfoo_foo=os.path.join(cwd, "libfoo", "foo.c"),
-        libbar_foo=os.path.join(cwd, "libbar", "foo.c"),
-        libfoo_bar=os.path.join(cwd, "libfoo", "bar.c"),
-        libbar_bar=os.path.join(cwd, "libbar", "bar.c"),
-    )
-
-thistest.fail_if_no_match(
-    '"gnatcov output" ({})'.format(log_file),
-    expected_warning,
-    contents_of(log_file),
-)
 check_xcov_reports(
     ".",
     {
