@@ -6369,7 +6369,7 @@ package body Instrument.Ada_Unit is
                   --  Pre-compute the return type of the expression if we
                   --  need to generate a qualified expression.
                   --
-                  --  If we cannot determine it, do not insturment the call.
+                  --  If we cannot determine it, do not instrument the call.
 
                   begin
                      if Needs_Qualified_Expr then
