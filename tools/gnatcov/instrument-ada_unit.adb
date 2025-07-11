@@ -4285,6 +4285,14 @@ package body Instrument.Ada_Unit is
             return;
          end if;
 
+         --  Do not create coverage obligations for static expression functions
+
+         if Is_Expr_Function
+           and then N.P_Has_Aspect (To_Unbounded_Text ("Static"))
+         then
+            return;
+         end if;
+
          UIC.Degenerate_Subprogram_Index :=
            UIC.Degenerate_Subprogram_Index + 1;
 
