@@ -598,7 +598,10 @@ def srctrace_pattern_for(pgmname, manual=False, manual_prj_name=None):
         mode contain the name of the relevant project in their name.
         manual_prj_name is the name of the project which trace we want to find.
     """
-    return (manual_prj_name if manual else exename_for(pgmname)) + "*.srctrace"
+    # Do not take into account the executable extension as under some
+    # configurations (e.g. integrated instrumentation), we use the main
+    # basename.
+    return (manual_prj_name if manual else pgmname) + "*.srctrace"
 
 
 def srctracename_for(

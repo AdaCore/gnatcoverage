@@ -1,7 +1,9 @@
-main: main.o lib/libfoobar.so
+include lib/common.mk
+
+main: main.o lib/$(LIB)
 	gcc -o main main.o -Llib/ -lfoobar
 
-lib/libfoobar.so:
+lib/$(LIB):
 	$(MAKE) -C lib
 
 %.o: %.c
