@@ -1,2 +1,1 @@
-!rust DEAD Rust tests need a rust toolchain
-5.04a1 DEAD Rust toolchain needs gcc >= 4.2
+!rust DEAD Rust support not available in this configuration

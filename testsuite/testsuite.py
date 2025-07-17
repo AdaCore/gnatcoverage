@@ -1531,12 +1531,19 @@ class TestSuite(e3.testsuite.Testsuite):
         toolchain.
         """
 
-        # Enable the rust discriminant when on native run and a rust toolchain
-        # is found
-        if self.env.host == self.env.target and which("cargo"):
-            return ["rust"]
-        else:
-            return []
+        # Enable the rust discriminant when:
+        # * targeting a native platform;
+        # * gcc is recent enough (>= 4.2);
+        # * a Rust toolchain is found.
+        return (
+            ["rust"]
+            if (
+                not self.env.is_cross
+                and "5.04a1" not in self._toolchain_discriminants()
+                and which("cargo")
+            )
+            else []
+        )
 
     # --------------------------
     # -- Command-line options --
