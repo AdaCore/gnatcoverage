@@ -39,22 +39,30 @@ xcov(
 # Shadow the compiler driver with the generated wrapper
 env.add_search_path(env_var="PATH", path=cwd)
 
+# For windows, the OS looks for the DLL in the PATH, and for Linux, it looks
+# in the LD_LIBRARY_PATH.
+if thistest.env.target.os.name == "windows":
+    so_path = "PATH"
+    so_name = "libfoobar.dll"
+else:
+    so_path = "LD_LIBRARY_PATH"
+    so_name = "libfoobar.so"
+
 # Check that when running the build process without LD_LIBRARY_PATH set,
 # gnatcov warns that it cannot find the shared library dependency (because it
 # relies on ldd, which looks at the LD_LIBRARY_PATH to know the shared library
 # location).
 cmdrun(["make"], out="make.out", for_pgm=False)
 thistest.fail_if(
-    "warning: Could not find library libfoobar.so. Add its directory to"
-    " the LD_LIBRARY_PATH if this is an instrumented library."
+    f"warning: Could not find library {so_name}. Add its directory to"
+    f" the {so_path} if this is an instrumented library."
     not in contents_of("make.out"),
     "Missing warning in make output",
 )
 
-
-# Then, run the build process with LD_LIBRARY_PATH properly set
+# Then, run the build process
 env.add_search_path(
-    "LD_LIBRARY_PATH",
+    so_path,
     os.path.join(cwd, "lib"),
 )
 cmdrun(["make", "clean"], for_pgm=False)

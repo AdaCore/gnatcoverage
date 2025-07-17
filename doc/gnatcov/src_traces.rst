@@ -578,25 +578,20 @@ preserved during preprocessing, column numbers may be different between the
 original code and the preprocessed code and thus the coverage report.
 
 
-.. _instr-c_cpp:
+C/C++ pecularities
+^^^^^^^^^^^^^^^^^^
 
-Instrumentation of C and C++ code
----------------------------------
+As a wide variety of compiler switches impacts the preprocessing configuration,
+gnatcov supports passing compiler switches to the compiler preprocessor
+invocation through the :cmd-option:`-c-opts` and :cmd-option:`-c++-opts`.
+Generally speaking, any switch that could impact the preprocessing of the source
+(e.g. macro definitions / undefinitions, explicit include paths ...) must be
+added to the |gcvins| command line.
 
-If the project contains C, and C++ sources (meaning the project Language
-attributes contains C and/or C++), |gcvins| will instrument them.
-
-As |gcvins| preprocesses the C/C++ source prior to instrumenting it, it supports
-a variety of flags dedicated to C/C++ instrumentation, and some flags passed to
-:command:`gprbuild` must also be passed to |gcvins|. Generally speaking, all of
-the switches that could impact the preprocessing of the source (e.g. macro
-definitions/undefinitions, explicit include paths ...) should be added to the
-|gcvins| command line.
-
-To pass these switches, use the :cmd-option:`-c-opts` and
-:cmd-option:`-c++-opts` command line switches. They expect a list of
-comma-separated arguments that are forwarded to the preprocessing invocation.
-
+Coverage obligations resulting from macro expansions are designated as such in
+detailed (e.g. HTML and XML) coverage reports and their expansions chain is
+reported. Note that contrarily to Ada, line and column numbers are preserved in
+the coverage report.
 
 .. _instr-limitations:
 
