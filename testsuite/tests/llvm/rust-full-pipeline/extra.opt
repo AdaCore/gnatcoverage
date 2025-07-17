@@ -1,1 +1,2 @@
 !rust DEAD Rust support not available in this configuration
+windows XFAIL Infra. issues investigated under eng/das/cov/gnatcoverage#416
