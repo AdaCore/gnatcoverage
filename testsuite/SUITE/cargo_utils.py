@@ -27,7 +27,7 @@ def cargo_for(prjid: str, main: str, src_dir: str, cargo_dir: str) -> str:
             CARGO_TEMPLATE.format(
                 pkg_name=prjid,
                 bin_name=no_ext(main),
-                main_path=os.path.join(src_dir, main),
+                main_path=os.path.join(src_dir, main).replace("\\", "\\\\"),
             )
         )
 
