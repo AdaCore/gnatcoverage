@@ -182,7 +182,8 @@ main (int argc, const char *argv[])
 
   if (Error e = coverage_or_err.takeError ())
     {
-      errs () << "Failed to load coverage: " << toString (std::move (e));
+      errs () << "Failed to load coverage: " << toString (std::move (e))
+              << '\n';
       return EXIT_FAILURE;
     }
 
