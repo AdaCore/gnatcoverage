@@ -112,28 +112,19 @@ package body LLVM is
    is
       Trace_Adapter_Cmd : Command_Type :=
         (+Get_LLVM_Trace_Adapter_Exe, others => <>);
-      Output_Path       : constant String :=
-        LLVM_Artifacts_Temp_Dir.Directory_Name / Output_File;
    begin
-
-      Subprocesses.Append_Arg (Trace_Adapter_Cmd, "--instr-prof");
-      Subprocesses.Append_Arg (Trace_Adapter_Cmd, Profdata_File);
-      Subprocesses.Append_Arg (Trace_Adapter_Cmd, Exe_File);
-
-      if not Subprocesses.Run_Command
-               (Command             => Trace_Adapter_Cmd,
-                Origin_Command_Name => "gnatcov coverage",
-                Output_File         => Output_Path,
-                In_To_Null          => True)
-      then
-         Outputs.Fatal_Error
-           ("Call to llvm trace adapter didn't succeed."
-            & " See `"
-            & Output_Path
-            & "` for details.");
-      end if;
-
-      return Output_Path;
+      return Output_Path : constant String :=
+        LLVM_Artifacts_Temp_Dir.Directory_Name / Output_File
+      do
+         Subprocesses.Append_Arg (Trace_Adapter_Cmd, "--instr-prof");
+         Subprocesses.Append_Arg (Trace_Adapter_Cmd, Profdata_File);
+         Subprocesses.Append_Arg (Trace_Adapter_Cmd, Output_Path);
+         Subprocesses.Append_Arg (Trace_Adapter_Cmd, Exe_File);
+         Subprocesses.Run_Command
+           (Command             => Trace_Adapter_Cmd,
+            Origin_Command_Name => "gnatcov coverage",
+            In_To_Null          => True);
+      end return;
    end Make_LLVM_Checkpoint_From_Profdata;
 
    --------------------------------------
