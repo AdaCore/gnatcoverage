@@ -23,9 +23,9 @@ main ()
 
 //# test_constexpr.cpp
 //
-//    /ce-body/        l? ## s?
-//    /single-ce-decl/ l? ## d?
-//    /double-ce-decl/ l? ## d?, d?
-//    /if-ce/          l? ## d?
+//    /ce-body/        l. ## 0
+//    /single-ce-decl/ l+ ## 0
+//    /double-ce-decl/ l+ ## 0
+//    /if-ce/          l+ ## 0
 //    /if-rt/          l- ## s-
 //    /rt/             l+ ## 0

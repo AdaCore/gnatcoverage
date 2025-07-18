@@ -2373,8 +2373,6 @@ package body Instrument.C is
          --  being done with the instrumentation of the function (see the body
          --  of Traverse_Declarations).
 
-         Save_Disable_Instrumentation : constant Boolean :=
-           UIC.Disable_Instrumentation;
          Save_Disable_Coverage        : constant Boolean :=
            UIC.Disable_Coverage;
 
@@ -2395,14 +2393,7 @@ package body Instrument.C is
             --  Process any embedded decisions
 
             if Is_Constexpr (N) then
-               UIC.Pass.Report
-                 (N,
-                  "gnatcov limitation: cannot instrument constexpr"
-                  & " variable declarations.");
-               UIC.Disable_Instrumentation := True;
-               Process_Expression (UIC, N, 'X');
-               UIC.Disable_Instrumentation :=
-                 Save_Disable_Instrumentation;
+               return;
             else
                Process_Expression (UIC, N, 'X');
             end if;
@@ -2439,15 +2430,9 @@ package body Instrument.C is
                   Then_Part : constant Cursor_T := Get_Then (N);
                   Else_Part : constant Cursor_T := Get_Else (N);
                begin
-                  if Is_Constexpr (N) then
-                     UIC.Pass.Report
-                       (N,
-                        "gnatcov limitation: cannot instrument constexpr if"
-                        & " statement.");
-                     UIC.Disable_Instrumentation := True;
+                  if not Is_Constexpr (N) then
+                     Process_Expression (UIC, Get_Cond (N), 'I');
                   end if;
-                  Process_Expression (UIC, Get_Cond (N), 'I');
-                  UIC.Disable_Instrumentation := Save_Disable_Instrumentation;
                   Traverse_Statements (UIC, To_Vector (Then_Part), TB);
 
                   --  Traverse the ELSE statements if present
@@ -2840,8 +2825,6 @@ package body Instrument.C is
       use Cursor_Vectors;
       Saved_MCDC_State_Declaration_Node : constant Cursor_T :=
         UIC.MCDC_State_Declaration_Node;
-      Save_Disable_Instrumentation      : constant Boolean :=
-        UIC.Disable_Instrumentation;
       Cursor_Kind                       : Cursor_Kind_T;
    begin
       for N of L loop
@@ -2883,19 +2866,15 @@ package body Instrument.C is
                      --  of the function body.
 
                   begin
-                     if Cursor_Kind /= Cursor_Lambda_Expr then
-                        UIC.Pass.Enter_Scope (UIC, N);
-                     end if;
-
-                     --  Do not instrument constexpr function as it would
-                     --  violate the constexpr restrictions.
+                     --  Do not instrument constexpr functions similarly to
+                     --  Ada static expression functions.
 
                      if Is_Constexpr (N) then
-                        UIC.Pass.Report
-                          (N,
-                           "gnatcov limitation: cannot instrument constexpr"
-                           & " functions.");
-                        UIC.Disable_Instrumentation := True;
+                        goto Continue;
+                     end if;
+
+                     if Cursor_Kind /= Cursor_Lambda_Expr then
+                        UIC.Pass.Enter_Scope (UIC, N);
                      end if;
 
                      if Stmts.Length > 0 then
@@ -2942,8 +2921,6 @@ package body Instrument.C is
                      if Cursor_Kind /= Cursor_Lambda_Expr then
                         UIC.Pass.Exit_Scope (UIC);
                      end if;
-                     UIC.Disable_Instrumentation :=
-                       Save_Disable_Instrumentation;
                   end;
 
                --  Traverse the declarations of a namespace / linkage
