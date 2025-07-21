@@ -1,8 +1,0 @@
-with "../libfoo/install/gpr/libfoo.gpr";
-project Default is
-   for Main use ("main.adb");
-   for Object_Dir use "obj";
-   package Compiler is
-      for Switches ("Ada") use ("-g", "-fpreserve-control-flow", "-fdump-scos");
-   end Compiler;
-end Default;
