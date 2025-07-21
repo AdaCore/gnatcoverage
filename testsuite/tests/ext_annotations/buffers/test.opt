@@ -1,1 +1,2 @@
 !C++ DEAD Requires C++ compiler
+bin-traces DEAD Test requires support for C++ source coverage
