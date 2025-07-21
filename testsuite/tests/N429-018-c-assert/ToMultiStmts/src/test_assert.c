@@ -1,4 +1,17 @@
-#include <assert.h>
+#include <stdio.h>
+
+void
+write_error (const char *)
+{
+}
+
+// Dummy implementation of assert that expands to multiple statements.
+#define assert(expr)                                                          \
+  ({                                                                          \
+    int _result = expr;                                                       \
+    if (!_result)                                                             \
+      write_error ("assertion failure: " #expr);                              \
+  })
 
 int
 main (int argc, char *argv[])
@@ -11,6 +24,5 @@ main (int argc, char *argv[])
 //# test_assert.c
 //  /stmt-simple/ l+ ## 0
 //  /stmt-assert/ l! ## s-
-//	On GNU/Linux, "assert" is usually implemented as a macro which, after
-//	expansion, yields multiple statements.  Given the current state of the
-//	technology, one of them is expected not to be covered.  See NB17-025.
+//	Given the current state of the technology, one of the expanded
+//	statements is expected not to be covered.  See NB17-025.
