@@ -170,27 +170,39 @@ main (int argc, const char *argv[])
 {
   cl::opt<std::string> profdata_filename (
     "instr-prof", cl::Required, cl::desc (".profdata file location"));
+  cl::opt<std::string> json_filename (cl::Positional, cl::Required,
+                                      cl::desc ("output JSON file location"));
   cl::opt<std::string> object_filename (cl::Positional, cl::Required,
                                         cl::desc ("object file location"));
   cl::ParseCommandLineOptions (argc, argv,
                                "GNATcov LLVM profiling data exporting tool");
 
-  auto FS = vfs::getRealFileSystem ();
+  // Open the JSON output file
+  std::error_code EC;
+  raw_fd_ostream json_file (json_filename, EC);
+  if (EC)
+    {
+      errs () << "Failed to open the JSON output file: " << EC.message ()
+              << '\n';
+      return EXIT_FAILURE;
+    }
 
+  // Load the coverage data
+  auto FS = vfs::getRealFileSystem ();
   auto coverage_or_err = coverage::CoverageMapping::load (
     { object_filename }, profdata_filename, *FS);
 
   if (Error e = coverage_or_err.takeError ())
     {
-      errs () << "Failed to load coverage: " << toString (std::move (e));
+      errs () << "Failed to load coverage: " << toString (std::move (e))
+              << '\n';
       return EXIT_FAILURE;
     }
 
+  // Convert the coverage data to JSON and write it to the output file
   auto coverage = std::move (coverage_or_err->get ());
-
   auto json_export = dump_coverage (*coverage);
-
-  outs () << std::move (json_export);
+  json_file << std::move (json_export);
 
   return EXIT_SUCCESS;
 }

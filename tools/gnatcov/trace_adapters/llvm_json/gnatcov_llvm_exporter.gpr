@@ -10,4 +10,8 @@ project GNATcov_LLVM_exporter is
        for Executable ("main.cpp") use "gnatcov_llvm_exporter";
     end Builder;
 
+    package Linker is
+      for Required_Switches use ("-static-libstdc++", "-static-libgcc");
+    end Linker;
+
 end GNATcov_LLVM_exporter;
