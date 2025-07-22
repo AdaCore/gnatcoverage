@@ -24,7 +24,6 @@ copy_map = {
     "ada_main.adb": "ada_main.adb",
     "bar.c": "src bar.c" if env.build.os.name == "windows" else 'src\\"bar.c',
     "foo.c": "src foo$@.c",
-    "main.c": "main.c",
 }
 for src, dest in copy_map.items():
     cp(os.path.join("..", src), dest)
@@ -34,10 +33,9 @@ for src, dest in copy_map.items():
 # path separator canonicalization) and then the unique filename machinery turns
 # '/' to '-'.
 coverage_data = {
-    "ada_main.adb": {"+": {7, 9}},
+    "ada_main.adb": {"+": {10, 12}},
     "bar.c": {"+": {4, 5}, "-": {7}},
     "foo.c": {"+": {4}},
-    "main.c": {"+": {7, 8}},
 }
 expected_report = {
     "{}.xcov".format(copy_map[filename].replace("\\", "-")): report
@@ -46,10 +44,12 @@ expected_report = {
 
 build_run_and_coverage(
     gprsw=GPRswitches(
-        root_project=gprfor(srcdirs=["."], mains=["main.c", "ada_main.adb"])
+        root_project=gprfor(
+            srcdirs=["."], mains=["ada_main.adb"], langs=["Ada", "C"]
+        )
     ),
     covlevel="stmt",
-    mains=["main", "ada_main"],
+    mains=["ada_main"],
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
     trace_mode="src",
 )

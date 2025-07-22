@@ -652,8 +652,18 @@ is
                    & "sid");
             end;
          when File_Based_Language =>
-            SID_Basename :=
-              +Ada.Directories.Simple_Name (+LU_Info.Unit_Name) & ".sid";
+
+            --  TODO (eng/toolchain/gnat#603)??? Ada.Directories.Simple_Name
+            --  fails in edge cases. Use GNATCOLL.VFS instead for more reliable
+            --  results.
+
+            declare
+               File     : constant Virtual_File :=
+                 Create (+(+LU_Info.Unit_Name));
+               Basename : constant String := +File.Base_Name;
+            begin
+               SID_Basename := +Basename & ".sid";
+            end;
       end case;
 
       return String (Output_Directory.Value) / (+SID_Basename);
