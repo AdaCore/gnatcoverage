@@ -1,4 +1,7 @@
-#include <stdlib.h>
+#include <stddef.h>
+
+// Calls abort after the last chance handler from libsupport.
+void __gnat_last_chance_handler (void);
 
 struct list;
 
@@ -17,8 +20,8 @@ struct list *
 head_abort ()
 {
   /* GNATCOV_DUMP_BUFFERS */
-  abort ();    // # not-call
-  return HEAD; // # not-reached
+  __gnat_last_chance_handler (); // # not-call
+  return HEAD;                   // # not-reached
 }
 
 int
