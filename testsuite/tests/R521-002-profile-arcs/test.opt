@@ -1,4 +1,0 @@
-7.0.2 DEAD Test relies on a compiler change introduced on 2018-06, not in 7.0.2
-!native DEAD Test relies on a working gcov setup, which we only have with native toolchains
-!bin-traces DEAD Test makes sense only with compiler SCOs
-5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
