@@ -1,3 +1,5 @@
+pragma Ada_2012;
+
 package Lib is
    function First return Integer;
    function Next (I : Integer) return Integer

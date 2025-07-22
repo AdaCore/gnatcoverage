@@ -1,3 +1,2 @@
-!native DEAD Test relies on host standard header files
 !bin-traces DEAD Coverage for C supported only with binary traces
 windows DEAD This test variant has platform-specific expectations

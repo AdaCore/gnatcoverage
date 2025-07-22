@@ -6,75 +6,59 @@ Note that in this testcase, both absolute paths come from debug info line
 mapping (.debug_lines).
 """
 
-import os
-
-from e3.fs import rm
-from e3.os.process import Run
+import os.path
 
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
+from SUITE.tutils import gprbuild, gprfor, gprinstall, xcov, xrun
 
 
-wd = Wdir("tmp_")
-log_dir = os.getcwd()
-wd.to_homedir()
-
-
-def in_home(*args):
-    return os.path.join(wd.homedir, *args)
-
-
-def try_run(cmd, out_file):
-    out_file = os.path.join(log_dir, out_file)
-    p = Run(cmd, output=out_file)
-    out = contents_of(out_file)
-    thistest.fail_if(
-        p.status != 0,
-        "Unexpected failure.\n"
-        "Command was:\n"
-        "%s\n"
-        "Output was:\n"
-        "%s" % (" ".join(cmd), out),
-    )
-    return out
-
-
-os.chdir(in_home("libfoo"))
-rm("install", recursive=True)
-
-try_run(["gprbuild", "-f", "-Plibfoo.gpr", "-p"], "gprbuild-libfoo.txt")
-try_run(
-    [
-        "gprinstall",
-        "-f",
-        "-Plibfoo.gpr",
-        "-p",
-        "--prefix=install",
-        "--project-subdir=gpr",
-    ],
-    "gprinstall.txt",
+# Build libfoo and install it in some prefix, then make the installed project
+# available through the GPR_PROJECT_PATH environment variable.
+tmp = Wdir("tmp_libfoo")
+install_dir = os.path.abspath("install")
+libfoo_gpr = gprfor(
+    prjid="libfoo",
+    mains=[],
+    srcdirs=["../libfoo"],
+    langs=["Ada"],
+    extra="""
+        for Library_Kind use "static";
+        for Library_Name use "foo";
+        for Library_Dir use "lib";
+    """,
 )
+gprbuild(libfoo_gpr)
+gprinstall(libfoo_gpr, gargs=[f"--prefix={install_dir}"])
+os.environ["GPR_PROJECT_PATH"] = os.path.join(install_dir, "share", "gpr")
+tmp.to_homedir()
 
-os.chdir(in_home("app"))
-
-try_run(["gprbuild", "-f", "-Pdefault.gpr", "-p"], "gprbuild-app.txt")
-try_run(["gnatcov", "run", "obj/main"], "gnatcov-run.txt")
+# Now, in another directory (so that we are sure it is the installed libfoo
+# that is used), build the main application, then generate a binary trace for
+# it.
+tmp = Wdir("tmp_app")
+app_gpr = gprfor(
+    prjid="app", mains=["main.adb"], srcdirs=["../app"], deps=["libfoo"]
+)
+gprbuild(app_gpr)
+xrun("./main")
 
 # The very goal of this testcase is to compute code coverage for a unit that
 # belongs to a project installed with gprinstall, so we need to enable the
 # processing of externally built projects.
 log_file = "gnatcov-coverage.txt"
-log = try_run(
+xcov(
     [
-        "gnatcov",
         "coverage",
         "--annotate=xcov",
         "--level=stmt",
-        "-Pdefault",
+        "-P",
+        app_gpr,
+        "--projects=app",
         "--externally-built-projects",
         "main.trace",
     ],
-    log_file,
+    out=log_file,
 )
 thistest.fail_if_no_match(
     '"gnatcov output" ({})'.format(log_file),
@@ -83,7 +67,7 @@ thistest.fail_if_no_match(
     "\r?\n  [^\n]+{}".format(
         os.path.join(
             "SB06-033-homonyms",
-            "libfoo",
+            "tmp_libfoo",
             "install",
             "include",
             "libfoo",
@@ -91,7 +75,7 @@ thistest.fail_if_no_match(
         ),
         os.path.join("SB06-033-homonyms", "libfoo", "lib.adb"),
     ),
-    log,
+    contents_of(log_file),
 )
 
 thistest.result()

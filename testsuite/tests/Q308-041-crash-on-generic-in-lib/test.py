@@ -7,58 +7,53 @@ mapping (.debug_lines) while the other only comes from the debug info
 DW_TAG_compilation_unit entry (.debug_info).
 """
 
-import os
+import os.path
 
-from e3.fs import rm
-from e3.os.process import Run
-
-from SUITE.tutils import thistest
-
-
-def try_run(cmd):
-    p = Run(cmd)
-    thistest.fail_if(
-        p.status != 0,
-        "Unexpected failure.\n"
-        "Command was:\n"
-        "%s\n"
-        "Output was:\n"
-        "%s" % (" ".join(cmd), p.out),
-    )
+from SUITE.context import thistest
+from SUITE.cutils import Wdir
+from SUITE.tutils import gprfor, gprbuild, gprinstall, xrun, xcov
 
 
-home = os.getcwd()
-
-os.chdir("%s/libfoo" % home)
-rm("install", recursive=True)
-
-try_run(["gprbuild", "-f", "-Plibfoo.gpr", "-p"])
-try_run(
-    [
-        "gprinstall",
-        "-f",
-        "-Plibfoo.gpr",
-        "-p",
-        "--prefix=install",
-        "--project-subdir=gpr",
-    ]
+# Build libfoo and install it in some prefix, then make the installed project
+# available through the GPR_PROJECT_PATH environment variable.
+tmp = Wdir("tmp_libfoo")
+install_dir = os.path.abspath("install")
+libfoo_gpr = gprfor(
+    prjid="libfoo",
+    mains=[],
+    srcdirs=["../libfoo"],
+    langs=["Ada"],
+    extra="""
+        for Library_Kind use "static";
+        for Library_Name use "foo";
+        for Library_Dir use "lib";
+    """,
 )
+gprbuild(libfoo_gpr)
+gprinstall(libfoo_gpr, gargs=[f"--prefix={install_dir}"])
+os.environ["GPR_PROJECT_PATH"] = os.path.join(install_dir, "share", "gpr")
+tmp.to_homedir()
 
-os.chdir("%s/app" % home)
-
-try_run(["gprbuild", "-f", "-Pdefault.gpr", "-p"])
-try_run(["gnatcov", "run", "obj/main"])
+# Now, in another directory (so that we are sure it is the installed libfoo
+# that is used), build the main application, then generate a binary trace for
+# it.
+tmp = Wdir("tmp_app")
+app_gpr = gprfor(
+    prjid="app", mains=["main.adb"], srcdirs=["../app"], deps=["libfoo"]
+)
+gprbuild(app_gpr)
+xrun("./main")
 
 # The very goal of this testcase is to compute code coverage for a unit that
 # belongs to a project installed with gprinstall, so we need to enable the
 # processing of externally built projects.
-try_run(
+xcov(
     [
-        "gnatcov",
         "coverage",
         "--annotate=xcov",
         "--level=stmt",
-        "-Pdefault",
+        "-P",
+        app_gpr,
         "--projects=libfoo",
         "--externally-built-projects",
         "main.trace",

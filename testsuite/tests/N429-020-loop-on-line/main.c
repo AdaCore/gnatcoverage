@@ -1,5 +1,3 @@
-#include <assert.h>
-
 #define MAX_FD 32
 #define NULL ((void *) 0)
 
