@@ -1,7 +1,6 @@
-#include <iostream>
-
+extern "C" void bar();
 extern void shared();
 
 inline void shared() {
-    std::cout << "Hello, world!" << std::endl;
+    bar();
 }

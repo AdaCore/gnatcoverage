@@ -20,7 +20,8 @@ build_run_and_coverage(
             langs=["Ada", "C", "C++"],
             mains=["main.adb"],
             srcdirs=[".."],
-        )
+        ),
+        units=["main", "c_unit.c", "cpp_unit.cpp"],
     ),
     covlevel="stmt",
     mains=["main"],
@@ -35,8 +36,8 @@ check_xcov_reports(
     "xcov",
     {
         "main.adb.xcov": {"+": {7, 8}},
-        "c_unit.c.xcov": {"+": {8}},
-        "cpp_unit.cpp.xcov": {"+": {11}},
+        "c_unit.c.xcov": {"+": {7, 8}},
+        "cpp_unit.cpp.xcov": {"+": {10}},
     },
 )
 

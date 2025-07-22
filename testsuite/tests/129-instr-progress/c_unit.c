@@ -1,10 +1,9 @@
-#include <stdio.h>
-
 extern void cpp_func (void);
+extern void print_msg (const char *);
 
 void
 c_func (void)
 {
-  puts ("c:c_func");
+  print_msg ("c:c_func");
   cpp_func ();
 }
