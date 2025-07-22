@@ -1,3 +1,2 @@
 5.04a1        DEAD Requires assembly features not in 5.04a1
-!bin-traces   DEAD Binary traces specific testcase
 !x86_64-linux DEAD Contains assembly code for x86_64-linux
