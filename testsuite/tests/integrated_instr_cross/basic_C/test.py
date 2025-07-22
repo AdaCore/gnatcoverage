@@ -1,5 +1,5 @@
 """
-Simple sanity check test for integrated instrumentation for cross targets
+Simple sanity check test for integrated instrumentation for bareboard targets.
 """
 
 import os
