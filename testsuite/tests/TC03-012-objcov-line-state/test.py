@@ -1,35 +1,55 @@
 """
-Testcase for TC03-012: Check that line coverage state is correctly computed,
-even if some debug information is missing from the executable.
+Testcase for TC03-012: check that gnatcov reports as uncovered an instruction
+that is not executed, but that follows an executed instruction and has the same
+sloc.
 """
 
-import os
-from e3.os.process import Run
+from e3.fs import cp, mkdir
 
 from SCOV.minicheck import check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
 from SUITE.tutils import (
     exepath_to,
-    exename_for,
+    gprbuild,
     gprfor,
     xcov,
     xrun,
     tracename_for,
 )
 
-Wdir("tmp")
+Wdir("tmp_")
 
-prj = gprfor(srcdirs=[".."], objdir=".", mains=["main.c"], prjid="gen")
+# Compile all C sources
+original_prj = gprfor(
+    srcdirs=[".."],
+    mains=["main.c"],
+    objdir="obj-original",
+    prjid="original",
+    langs=["C"],
+)
+gprbuild(original_prj, extracargs=["-save-temps"])
 
-# Compile assembly
-Run(["gcc", "-o", exename_for("main"), os.path.join("..", "main.s")])
+# Use our custom assembly source for fact.c
+mkdir("src")
+cp("../main.c", "src/main.c")
+cp("../fact.s", "src/fact.s")
+prj = gprfor(srcdirs=["src"], mains=["main.c"], prjid="gen")
+gprbuild(prj)
 
-# Run and coverage
+# Run and compute the XCOV coverage report
 xrun(["-cinsn", exepath_to("main")])
 xcov(["coverage", "-cinsn", "-axcov", "-Pgen", tracename_for("main")])
 
-# Check that line 3 is correctly marked as partially covered
-check_xcov_reports(".", {"main.c.xcov": {"-": {4}, "!": {3}}})
+# Check that line 4 is correctly marked as partially covered, as it contains
+# an uncovered instruction that follows an (always taken) branch (see the
+# comment in fact.s).
+check_xcov_reports(
+    "obj",
+    {
+        "fact.c.xcov": {"+": {6, 7, 9}, "-": {5}, "!": {4}},
+        "main.c.xcov": {"+": {6}},
+    },
+)
 
 thistest.result()
