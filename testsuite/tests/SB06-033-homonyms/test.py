@@ -7,6 +7,7 @@ mapping (.debug_lines).
 """
 
 import os.path
+import re
 
 from SUITE.context import thistest
 from SUITE.cutils import Wdir, contents_of
@@ -65,15 +66,17 @@ thistest.fail_if_no_match(
     "Warning: same base name for files:"
     "\r?\n  [^\n]+{}"
     "\r?\n  [^\n]+{}".format(
-        os.path.join(
-            "SB06-033-homonyms",
-            "tmp_libfoo",
-            "install",
-            "include",
-            "libfoo",
-            "lib.adb",
+        re.escape(
+            os.path.join(
+                "SB06-033-homonyms",
+                "tmp_libfoo",
+                "install",
+                "include",
+                "libfoo",
+                "lib.adb",
+            )
         ),
-        os.path.join("SB06-033-homonyms", "libfoo", "lib.adb"),
+        re.escape(os.path.join("SB06-033-homonyms", "libfoo", "lib.adb")),
     ),
     contents_of(log_file),
 )
