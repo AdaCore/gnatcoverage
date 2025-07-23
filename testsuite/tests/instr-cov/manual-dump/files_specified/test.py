@@ -12,7 +12,6 @@ from SUITE.cutils import contents_of, Wdir
 from SUITE.gprutils import GPRswitches
 from SUITE.tutils import gprfor
 
-test_dir = os.getcwd()
 
 # Expected xcov report
 expected_xcov = {
@@ -25,10 +24,19 @@ expected_xcov = {
     "foo_skipped_cpp.cpp.xcov": {"-": {4}},
 }
 
+# Source files in which to process manual directives
+manual_files = [
+    "../main.adb",
+    "../foo.adb",
+    "../foo_c.c",
+    "../foo_cpp.cpp",
+]
 
-def GPRswitches_wrapper():
+
+def get_gprsw():
     """
     Generate a project file in the current directory and return the GPRswitches
+    instance.
     """
     return GPRswitches(
         gprfor(
@@ -40,32 +48,30 @@ def GPRswitches_wrapper():
     )
 
 
+#
+# Regular cases
+#
+
 thistest.log("====== Pass filenames on the command line ======")
 tmp = Wdir("tmp_simple")
-
-# Check by passing a simple filename
 build_run_and_coverage(
-    gprsw=GPRswitches_wrapper(),
+    gprsw=get_gprsw(),
     covlevel="stmt",
     mains=["main"],
     extra_coverage_args=["--annotate=xcov", "--output-dir=xcov"],
-    dump_trigger="manual,../main.adb,../foo.adb,../foo_c.c,../foo_cpp.cpp",
+    dump_trigger=",".join(["manual"] + manual_files),
     manual_prj_name="main",
 )
 check_xcov_reports("xcov", expected_xcov)
-
-# Check by passing a response file
-thistest.log("====== Pass filenames through a response file ======")
 tmp.to_homedir()
-tmp = Wdir("tmp_resp")
 
-with open("resp", "w") as resp_file:
-    resp_file.write(os.path.join(test_dir, "main.adb") + "\n")
-    resp_file.write(os.path.join(test_dir, "foo.adb") + "\n")
-    resp_file.write(os.path.join(test_dir, "foo_c.c") + "\n")
-    resp_file.write(os.path.join(test_dir, "foo_cpp.cpp") + "\n")
+thistest.log("====== Pass filenames through a response file ======")
+tmp = Wdir("tmp_resp")
+with open("resp", "w") as f:
+    for filename in manual_files:
+        print(os.path.abspath(filename), file=f)
 build_run_and_coverage(
-    gprsw=GPRswitches_wrapper(),
+    gprsw=get_gprsw(),
     covlevel="stmt",
     mains=["main"],
     extra_coverage_args=["--annotate=xcov", "--output-dir=xcov"],
@@ -73,52 +79,49 @@ build_run_and_coverage(
     manual_prj_name="main",
 )
 check_xcov_reports("xcov", expected_xcov)
-
-# Check error cases
-thistest.log("====== Check error cases ======")
 tmp.to_homedir()
+
+#
+# Error cases
+#
+
+thistest.log("====== Check error cases ======")
 tmp = Wdir("tmp_err")
-GPRswitches_wrapper()
+get_gprsw()
 
-# Check that gnatcov exits with an error when passing a file that does not
-# exist.
-instr_out = "instr_wrong_file.out"
-xcov(
-    [
-        "instrument",
-        "-Pmain",
-        "--level=stmt",
-        "--dump-trigger=manual,unknown",
-        "--quiet",
-    ],
-    out=instr_out,
-    register_failure=False,
-)
-thistest.fail_if_no_match(
-    "missing error in gnatcov instrument output",
-    r".*gnatcov(\.exe)?: File unknown does not exist",
-    contents_of(instr_out),
-)
-
-# Check that gnatcov exits with an error when passing
-# --dump-trigger=atexit,file.
-instr_out = "instr_wrong_trigger.out"
-xcov(
-    [
-        "instrument",
-        "-Pmain",
-        "--level=stmt",
-        "--dump-trigger=atexit,../main.adb",
-        "--quiet",
-    ],
-    out=instr_out,
-    register_failure=False,
-)
-thistest.fail_if_no_match(
-    "missing error in gnatcov instrument output",
-    r".*gnatcov(\.exe)?: --dump-trigger=atexit|main-end accepts a single"
-    " argument",
-    contents_of(instr_out),
-)
+for label, dump_trigger, error in [
+    (
+        # Check that gnatcov exits with an error when passing a file that does
+        # not exist.
+        "instr_wrong_file",
+        "manual,unknown",
+        r".*gnatcov(\.exe)?: File unknown does not exist",
+    ),
+    (
+        # Check that gnatcov exits with an error when passing
+        # --dump-trigger=atexit,file.
+        "instr_wrong_trigger",
+        "atexit,../main.adb",
+        r".*gnatcov(\.exe)?: --dump-trigger=atexit|main-end accepts a single"
+        " argument",
+    ),
+]:
+    instr_out = f"{label}.out"
+    xcov(
+        [
+            "instrument",
+            "-Pmain",
+            "--level=stmt",
+            f"--dump-trigger={dump_trigger}",
+            "--quiet",
+        ],
+        out=instr_out,
+        register_failure=False,
+    )
+    thistest.fail_if_no_match(
+        "missing error in gnatcov instrument output",
+        error,
+        contents_of(instr_out),
+    )
 
 thistest.result()
