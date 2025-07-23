@@ -1,1 +1,2 @@
-!ppc-elf XFAIL there are various issues with the other BSPs
+!bareboard DEAD This test relies on examples specific to bareboard targets
+leon3-elf XFAIL Linker cannot find fwrite (to be investigated)
