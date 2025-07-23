@@ -1,2 +1,0 @@
-!x86-linux,!x86_64-linux DEAD test behavior on program using "system"
-!bin-traces              DEAD Binary traces specific testcase

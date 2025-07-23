@@ -1,7 +1,0 @@
-library project Libfoo is
-   for Library_Kind use "static";
-   for Library_Name use "foo";
-   for Object_Dir use "obj";
-   for Library_Dir use "lib";
-
-end Libfoo;

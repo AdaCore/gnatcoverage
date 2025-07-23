@@ -10,7 +10,11 @@ gprbuild(gprfor(srcdirs=[".."], mains=["foo.adb"]))
 
 # We want to check that "gnatcov run" will find the executable even though the
 # input casing is different and even though it misses the ".exe" suffix.
-os.rename("foo.exe", "Foo.Exe")
+#
+# This test runs only on Windows, and binary traces support for Windows is not
+# supported anymore, so executables produced by gprbuild by default never have
+# the "exe" extension.
+os.rename("foo", "Foo.Exe")
 xrun("foo")
 
 # Here, we also want to check that the default filename for the trace file is

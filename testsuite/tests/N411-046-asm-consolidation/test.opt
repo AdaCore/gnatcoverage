@@ -1,4 +1,2 @@
---  Binary traces specific testcase
-bin-traces,x86
-bin-traces,x86_64
-ALL               DEAD Embeds x86* assembly sources
+bin-traces
+ALL DEAD Binary traces specific testcase

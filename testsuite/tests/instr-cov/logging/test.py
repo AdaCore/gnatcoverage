@@ -127,6 +127,12 @@ for project, subproject in [("tests", "mylib"), ("my_tool", "my_tool")]:
             f"--projects={subproject}",
             "--log=instrument_clean_objdirs",
             "--log=instrument_sources",
+            # Some automatic dump triggers (ravenscar-task-termination) are not
+            # available for all languages: instrumenting a C/C++ project with
+            # the default dump trigger in some configurations yields a warning.
+            # Explicitly ask for a dump trigger that is always supported to
+            # avoid this warning.
+            "--dump-trigger=main-end",
         ],
         out=log,
     )
