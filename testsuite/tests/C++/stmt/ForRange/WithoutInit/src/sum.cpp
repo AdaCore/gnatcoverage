@@ -1,12 +1,12 @@
 #include "sum.hh"
 
 int
-sum (std::vector<int> ints)
+sum (const RangeIterable &r)
 {
-  int result = 0;           // # init
-  for (const int &i : ints) // # for-range
+  int result = 0; // # init
+  for (int i : r) // # for-range
     {
-      if (i == 0)  // # if-cond
+      if (i == 10) // # if-cond
         return 0;  // # if-return
       result += i; // # if-add
     }

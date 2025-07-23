@@ -3,7 +3,7 @@
 int
 main (void)
 {
-  if (sum ({ 0, 1 }) != 0)
+  if (sum (RangeIterable (10)) != 0)
     return 1;
   return 0;
 }
@@ -14,5 +14,5 @@ main (void)
 //  /for-range/ l+ ## 0
 //  /if-cond/   l+ ## 0
 //  /if-return/ l+ ## 0
-//  /if-add/    l- ## s-
+//  /if-add/    l+ ## 0
 //  /return/    l- ## s-
