@@ -18,7 +18,6 @@
 ------------------------------------------------------------------------------
 
 with GNAT.IO;
-with System;
 
 package body Simple_Last_Chance_Handler is
 
@@ -43,6 +42,11 @@ package body Simple_Last_Chance_Handler is
       pragma Import (C, Stdout, "stdout");
    begin
       Lch_Enter;
+
+      GNAT.IO.New_Line;
+      GNAT.IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
+      GNAT.IO.Put_Line ("!!! EXCEPTION RAISED !!!");
+      GNAT.IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
 
       --  In QNX, QEMU does not flush the stdout buffer before aborting,
       --  so we do it.
