@@ -12,7 +12,7 @@ import shutil
 from SCOV.minicheck import build_and_run, checked_xcov, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.gprutils import GPRswitches
-from SUITE.cutils import Wdir
+from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import xcov
 
 
@@ -70,6 +70,7 @@ def build_and_run_tests(ignored_source_files=None):
             ignored_source_files=ignored_source_files,
             gpr_obj_dir=testcase.obj_dir(),
             gpr_exe_dir=testcase.exe_dir(),
+            extra_instr_args=["--dump-filename-simple"],
             extra_coverage_args=["--annotate=xcov", "--output-dir=output"],
             scos_for_run=False,
         )
@@ -82,12 +83,22 @@ def build_and_run_tests(ignored_source_files=None):
 # consolidation error by default.
 clean_output_directory()
 xcov_args = build_and_run_tests()
+bin_traces = thistest.options.trace_mode == "bin"
 p = xcov(xcov_args, out="cons-1.log", register_failure=False)
-thistest.fail_if(
-    p.status == 0,
-    '"gnatcov coverage" is supposed to complain about different symbols during'
-    " consolidation, but it did not.",
-)
+if bin_traces:
+    thistest.fail_if(
+        p.status == 0,
+        '"gnatcov coverage" is supposed to complain about different symbols'
+        " during consolidation, but it did not.",
+    )
+else:
+    thistest.fail_if_not_equal(
+        "'gnatcov coverage' output (cons-1.log)",
+        "warning: traces for separate pkg_under_test.pkg_test (from"
+        " main_test1.srctrace) are inconsistent with the corresponding Source"
+        " Instrumentation Data",
+        contents_of("cons-1.log").strip(),
+    )
 
 # Build and run tests with ignored source files. Check that the new option
 # makes it ignore the problematic symbols, and succeeds to create a report with
@@ -95,6 +106,12 @@ thistest.fail_if(
 clean_output_directory()
 xcov_args = build_and_run_tests(["pkg_under_test-pkg_test.adb"])
 p = checked_xcov(xcov_args, "cons-2.log")
-check_xcov_reports("output", {"pkg_under_test.adb.xcov": {"+": {7, 8, 10}}})
+check_xcov_reports(
+    "output",
+    {
+        "pkg_under_test.adb.xcov": {"+": {7, 8, 10}},
+        "pkg_under_test.ads.xcov": {},
+    },
+)
 
 thistest.result()
