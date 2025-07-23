@@ -1,8 +1,16 @@
-#include <iostream>
+class C
+{
+public:
+  int
+  get_zero ()
+  {
+    return 0;
+  }
+};
 
 int
 main ()
 {
-  std::cout << "Hello World!";
-  return 0;
+  C c;
+  return c.get_zero ();
 }
