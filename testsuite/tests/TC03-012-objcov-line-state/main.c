@@ -1,16 +1,7 @@
-int
-add_n (int a, int b)
-{
-  int res = b;
-  for (int x = 0; x < a; x++)
-    {
-      res += 1;
-    }
-  return res;
-}
+extern int fact (int n);
 
 int
-main ()
+main (void)
 {
-  return add_n (0, 0);
+  return fact (2);
 }
