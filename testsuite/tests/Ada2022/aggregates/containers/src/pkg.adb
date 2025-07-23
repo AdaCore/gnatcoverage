@@ -11,9 +11,12 @@ package body Pkg is
       if Input = [] then  -- # empty_aggr_guard
          return [];  -- # empty_aggr_st
       elsif Input.Length = 1 then  -- # single_elt_guard
-         return                                                -- # single_elt_st
-           (declare Elt : Integer renames Input.First_Element; -- # single_elt_st
-            begin [(If Elt > 0 then Elt else Elt)]);           -- # single_elt_dc
+         declare
+            Elt : constant Integer := Input.First_Element; -- # single_elt_st
+         begin
+            return [(if Elt > 0 then Elt else Elt) =>      -- # single_elt_dc
+                    (if Elt > 0 then Elt else Elt)];       -- # single_elt_dc
+         end;
       else
          return [for Elt of Input use                  -- # multi_elt_st
                    (if Elt > 0 then Elt else Elt) =>   -- # multi_elt_dc
