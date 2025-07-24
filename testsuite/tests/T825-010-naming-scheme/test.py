@@ -53,17 +53,6 @@ for casing, converter in [
         extra_coverage_args=["-axcov", "--output-dir=report"],
     )
 
-    # On Windows, GNAT stores sources file basenames in ALI files as lowercase,
-    # so for binary traces, gnatcov has no way to find out the original casing
-    # for source files that are not mentionned in the debug info (in our test
-    # project: spec files).
-    if (
-        thistest.options.trace_mode == "bin"
-        and thistest.env.build.os.name == "windows"
-    ):
-        pkg_spec = pkg_spec.lower()
-        child_spec = child_spec.lower()
-
     check_xcov_reports(
         "report",
         {
