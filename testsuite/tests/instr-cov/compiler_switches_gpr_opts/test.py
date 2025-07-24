@@ -10,7 +10,12 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import gprfor
 
 tmp = Wdir("tmp_")
-xcov_args = ["instrument", "--level=stmt"]
+
+# Some automatic dump triggers (ravenscar-task-termination) are not available
+# for all languages: instrumenting a C/C++ project with the default dump
+# trigger in some configurations yields a warning. Explicitly ask for a dump
+# trigger that is always supported to avoid this warning.
+xcov_args = ["instrument", "--level=stmt", "--dump-trigger=main-end"]
 
 
 def check_lang(lang, file_ext):
