@@ -3,11 +3,11 @@ pragma Ada_2022;
 with Pkg;   use Pkg;
 with Check;
 
-procedure Test_Single is
+procedure Test_Empty is
    use Int_Sets;
 begin
    Check ([]);
-end Test_Single;
+end Test_Empty;
 
 --# pkg.adb
 --

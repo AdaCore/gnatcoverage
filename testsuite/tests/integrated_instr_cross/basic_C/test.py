@@ -1,5 +1,5 @@
 """
-Simple sanity check test for integrated instrumentation for cross targets
+Simple sanity check test for integrated instrumentation for bareboard targets.
 """
 
 import os
@@ -30,8 +30,6 @@ env.add_search_path(
     "GPR_PROJECT_PATH",
     os.path.join(gcvrt_prefix, "share", "gpr"),
 )
-
-cwd = os.getcwd()
 
 cp("../main.c", ".")
 
@@ -74,7 +72,7 @@ xcov(
     [
         "setup-integration",
         "--level=stmt+mcdc",
-        f"--files={os.path.join(cwd, 'main.c')}",
+        f"--files={os.path.abspath('main.c')}",
         f"--compilers={os.path.basename(compiler)}",
         f"--output-dir={gnatcov_artifact_dir}",
     ]
