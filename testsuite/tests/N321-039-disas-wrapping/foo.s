@@ -4,7 +4,11 @@
 .file "foo.c"
 .text
 .align 2
+.syntax unified
+.thumb
+.thumb_func
 .type _start, %function
 _start:
-.word 0
+mov r0, r1
+mov r0, r1
 .size _start, .-_start
