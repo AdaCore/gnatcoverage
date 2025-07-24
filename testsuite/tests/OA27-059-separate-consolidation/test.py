@@ -70,11 +70,17 @@ def build_and_run_tests(ignored_source_files=None):
             ignored_source_files=ignored_source_files,
             gpr_obj_dir=testcase.obj_dir(),
             gpr_exe_dir=testcase.exe_dir(),
-            extra_instr_args=["--dump-filename-simple"],
             extra_coverage_args=["--annotate=xcov", "--output-dir=output"],
             scos_for_run=False,
         )
-        trace_files.append(xcov_args.pop())
+
+        # Rename the trace file so that 1) the next iteration does not
+        # overwrite it if trace filenames are stable and 2) we get
+        # deterministic filenames, useful for warning baselines below.
+        filename = xcov_args.pop()
+        renamed = f"t-{testcase.name}.srctrace"
+        os.rename(filename, renamed)
+        trace_files.append(renamed)
 
     return xcov_args + trace_files
 
@@ -95,7 +101,7 @@ else:
     thistest.fail_if_not_equal(
         "'gnatcov coverage' output (cons-1.log)",
         "warning: traces for separate pkg_under_test.pkg_test (from"
-        " main_test1.srctrace) are inconsistent with the corresponding Source"
+        " t-test1.srctrace) are inconsistent with the corresponding Source"
         " Instrumentation Data",
         contents_of("cons-1.log").strip(),
     )
