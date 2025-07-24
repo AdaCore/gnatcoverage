@@ -1,3 +1,3 @@
-#include <vector>
+#include "range_iterable.hh"
 
-extern int sum (std::vector<int> ints);
+extern int sum (const RangeIterable &r);

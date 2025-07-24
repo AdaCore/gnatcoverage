@@ -1,16 +1,19 @@
-#include <iostream>
+void
+print_msg (const char *)
+{
+}
 
 int
 main ()
 {
 #if defined(__STDC_VERSION__)
   // This is true if the code is preprocessed as C code
-  std::cout << "This is C code" << std::endl;
+  print_msg ("This is C code");
 #elif __cplusplus == 202002L
   // This is true if the code is preprocessed as C++20 code
-  std::cout << "This is C++20 code" << std::endl;
+  print_msg ("This is C++20 code");
 #else
-  std::cout << "This is C++ code" << std::endl;
+  print_msg ("This is C++ code");
 #endif
   return 0;
 }

@@ -1,11 +1,10 @@
 #include "pkg.h"
-#include <iostream>
 
 template <class T>
 void
 print_point (Point<T> p)
 {
-  std::cout << p.x << '\n' << p.y << std::endl;
+  (void) p;
 }
 
 void

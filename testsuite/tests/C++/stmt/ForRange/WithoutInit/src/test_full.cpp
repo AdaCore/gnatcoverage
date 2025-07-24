@@ -3,7 +3,7 @@
 int
 main (void)
 {
-  if (sum ({ 1, 2 }) != 3)
+  if (sum (RangeIterable (2)) != 3)
     return 1;
   return 0;
 }

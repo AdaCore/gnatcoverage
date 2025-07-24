@@ -1,6 +1,9 @@
 #include "stuff.hpp"
 
-#include <iostream>
+void
+print_int (int)
+{
+}
 
 int
 main (int argc, char **argv)
@@ -11,7 +14,7 @@ main (int argc, char **argv)
 
   Stuff a = { 5 };
 
-  std::cout << a.data << "\n";
+  print_int (a.data);
 
   /* GNATCOV_DUMP_BUFFERS */
 
