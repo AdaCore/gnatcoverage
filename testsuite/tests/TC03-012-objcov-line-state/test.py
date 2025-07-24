@@ -30,16 +30,30 @@ original_prj = gprfor(
 )
 gprbuild(original_prj, extracargs=["-save-temps"])
 
-# Use our custom assembly source for fact.c
+# Use our custom assembly source for fact.c. Explicitly ask for debug info so
+# that "gnatcov covearge" can generate XCOV reports.
 mkdir("src")
 cp("../main.c", "src/main.c")
 cp("../fact.s", "src/fact.s")
 prj = gprfor(srcdirs=["src"], mains=["main.c"], prjid="gen")
-gprbuild(prj)
+gprbuild(prj, extracargs=["-g"])
 
-# Run and compute the XCOV coverage report
-xrun(["-cinsn", exepath_to("main")])
-xcov(["coverage", "-cinsn", "-axcov", "-Pgen", tracename_for("main")])
+# Run and compute the XCOV coverage report. Restrict the set of routines
+# considered for object coverage so that gnatcov does not try to look for the
+# source files used to implement the RTS.
+routines = ["--routines=main", "--routines=fact"]
+xrun(["-cinsn", exepath_to("main"), *routines])
+xcov(
+    [
+        "coverage",
+        "-cinsn",
+        "-axcov",
+        "-Pgen",
+        *routines,
+        "--source-search=..",
+        tracename_for("main"),
+    ]
+)
 
 # Check that line 4 is correctly marked as partially covered, as it contains
 # an uncovered instruction that follows an (always taken) branch (see the
