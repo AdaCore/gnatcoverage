@@ -30,7 +30,7 @@ def run_variant(
     """
 
     tmp = Wdir(f"tmp_{variant_name}")
-    prj = gprfor(srcdirs=[".."], mains=["main.cpp"])
+    prj = gprfor(srcdirs=[".."], mains=["main.cpp"], langs=["C", "C++"])
     xcov_instrument(
         gprsw=GPRswitches(root_project=prj),
         covlevel="stmt",
@@ -52,7 +52,7 @@ def run_variant(
 run_variant(
     variant_name="gprbuild-c++20",
     extra_instr_cppargs=[],
-    extra_gprbuild_cargs=["-std=c++20", "-save-temps"],
+    extra_gprbuild_cargs=["-cargs:C++", "-std=c++20", "-save-temps"],
     pred=lambda: "This is C++ code" in contents_of("obj/main.s"),
 )
 run_variant(
@@ -66,7 +66,7 @@ run_variant(
 run_variant(
     variant_name="instr-gprbuild-c++20",
     extra_instr_cppargs=["-std=c++20"],
-    extra_gprbuild_cargs=["-std=c++20", "-save-temps"],
+    extra_gprbuild_cargs=["-cargs:C++", "-std=c++20", "-save-temps"],
     pred=lambda: "This is C++20 code" in contents_of("obj/main.s"),
 )
 
