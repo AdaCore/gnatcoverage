@@ -4,3 +4,4 @@
 --  target.
 src-traces,qnx,RTS_LIGHT_TASKING
 ALL DEAD
+src-traces,qnx,RTS_LIGHT_TASKING XFAIL See eng/toolchain/pycross#227
