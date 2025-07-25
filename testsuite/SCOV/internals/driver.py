@@ -1661,7 +1661,10 @@ class SCOV_helper_rust(SCOV_helper):
         )
         if p.status != 0:
             thistest.stop(
-                FatalError("cargo build failed", outstr=p.out + p.err)
+                FatalError(
+                    "cargo build failed",
+                    outstr=f"stdout:\n{p.out}\n\nstderr:\n{p.err}",
+                )
             )
 
         # Run the program
