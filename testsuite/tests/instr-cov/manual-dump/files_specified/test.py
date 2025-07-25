@@ -45,6 +45,13 @@ expected_xcov = {
     "unit_c_skipped.c.xcov": {"+": {6, 8}},
 }
 
+# Mains always have their first statement covered, so in block coverage, we
+# expect the whole statement sequence to be covered.
+if thistest.options.block:
+    for filename, report in expected_xcov.items():
+        if filename.startswith("main_") and "-" in report:
+            report["+"].update(report.pop("-"))
+
 # List of source files, as well as the mains in the generated project
 source_files = [os.path.splitext(filename)[0] for filename in expected_xcov]
 mains_files = [
