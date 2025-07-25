@@ -35,7 +35,7 @@ build_run_and_coverage(
     mains=["main"],
     gpr_obj_dir="obj_ext",
     dump_trigger="manual",
-    manual_prj_name="",
+    manual_prj_name="P_Ext",
     extra_coverage_args=["-axcov"],
 )
 

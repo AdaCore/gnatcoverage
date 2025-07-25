@@ -3,11 +3,11 @@ Check that gnatcov produces valid code when the code needs to be preprocessed
 with the right preprocessor configuration.
 """
 
-from SCOV.minicheck import build_and_run
+from SCOV.instr import xcov_instrument
 from SUITE.context import thistest
-from SUITE.cutils import contents_of, Wdir
-from SUITE.tutils import gprfor
+from SUITE.cutils import Wdir, contents_of
 from SUITE.gprutils import GPRswitches
+from SUITE.tutils import gprbuild, gprfor
 
 
 def run_variant(
@@ -16,6 +16,7 @@ def run_variant(
     extra_gprbuild_cargs,
     tolerate_instrument_messages=None,
     pred=lambda: True,
+    skip_build=False,
 ):
     """
     Build and run the project with the given arguments, and check the predicate
@@ -25,22 +26,21 @@ def run_variant(
     :param extra_instr_cpp_args: Args passed to gnatcov instrument --c++-opts.
     :param extra_gprbuild_cargs: Args passed to gprbuild -cargs.
     :param pred: Predicate checked after building and running.
+    :param skip_build: Whether to skip the build of the instrumented sources.
     """
 
     tmp = Wdir(f"tmp_{variant_name}")
-    build_and_run(
-        gprsw=GPRswitches(
-            root_project=gprfor(srcdirs=[".."], mains=["main.cpp"])
-        ),
+    prj = gprfor(srcdirs=[".."], mains=["main.cpp"])
+    xcov_instrument(
+        gprsw=GPRswitches(root_project=prj),
         covlevel="stmt",
-        mains=["main"],
-        extra_instr_args=[f"--c++-opts={','.join(extra_instr_cppargs)}"],
-        extra_gprbuild_cargs=extra_gprbuild_cargs,
-        trace_mode="src",
-        tolerate_instrument_messages=tolerate_instrument_messages,
-        extra_coverage_args=[],
+        extra_args=[f"--c++-opts={','.join(extra_instr_cppargs)}"],
+        tolerate_messages=tolerate_instrument_messages,
         register_failure=False,
     )
+
+    if not skip_build:
+        gprbuild(prj, extracargs=extra_gprbuild_cargs, trace_mode="src")
 
     thistest.fail_if(
         not pred(), f"Unexpected assertion failure for variant {variant_name}"
@@ -52,8 +52,8 @@ def run_variant(
 run_variant(
     variant_name="gprbuild-c++20",
     extra_instr_cppargs=[],
-    extra_gprbuild_cargs=["-std=c++20"],
-    pred=lambda: "This is C++ code" in contents_of("main_output.txt"),
+    extra_gprbuild_cargs=["-std=c++20", "-save-temps"],
+    pred=lambda: "This is C++ code" in contents_of("obj/main.s"),
 )
 run_variant(
     variant_name="instr-c89",
@@ -61,12 +61,13 @@ run_variant(
     extra_gprbuild_cargs=[],
     tolerate_instrument_messages="Failed to parse",
     pred=lambda: "Failed to parse" in contents_of("instrument.log"),
+    skip_build=True,
 )
 run_variant(
     variant_name="instr-gprbuild-c++20",
     extra_instr_cppargs=["-std=c++20"],
-    extra_gprbuild_cargs=["-std=c++20"],
-    pred=lambda: "This is C++20 code" in contents_of("main_output.txt"),
+    extra_gprbuild_cargs=["-std=c++20", "-save-temps"],
+    pred=lambda: "This is C++20 code" in contents_of("obj/main.s"),
 )
 
 thistest.result()

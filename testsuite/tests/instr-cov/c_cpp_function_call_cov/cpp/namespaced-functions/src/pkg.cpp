@@ -1,15 +1,13 @@
 #include "pkg.h"
-#include <iostream>
 
 namespace sub_module
 {
 void hello_world (void);
 
-void               // # hello_def_1
-hello_world (void) // # hello_def_2
-{                  // # hello_def_2
-
-  puts ("Hello"); // # print
+void                   // # hello_def_1
+hello_world (void)     // # hello_def_2
+{                      // # hello_def_2
+  print_msg ("Hello"); // # print
 }
 }
 

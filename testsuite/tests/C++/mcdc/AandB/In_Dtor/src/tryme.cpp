@@ -30,6 +30,5 @@ tryme (bool aa, bool bb, bool skip)
   if (skip) // # test_skip
     return; // # skip
 
-  AndExpr *e = new AndExpr (aa, bb); // # other
-  delete e;                          // # other
+  AndExpr e (aa, bb); // # other
 }

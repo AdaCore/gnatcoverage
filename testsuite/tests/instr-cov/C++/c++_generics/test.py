@@ -35,64 +35,18 @@ def build_and_run_with_main(main):
 
 # Testcase both instantiation calls
 build_and_run_with_main(MAIN_BOTH)
-check_xcov_reports(
-    "xcov",
-    {
-        "pkg.cpp.xcov": {
-            "+": {
-                8,
-                14,
-                15,
-                21,
-                22,
-            }
-        }
-    },
-)
+check_xcov_reports("xcov", {"pkg.cpp.xcov": {"+": {7, 13, 14, 20, 21}}})
 
 # Testcase only int instantiation call
 build_and_run_with_main(MAIN_INT)
-check_xcov_reports(
-    "xcov",
-    {
-        "pkg.cpp.xcov": {
-            "-": {
-                21,
-                22,
-            }
-        }
-    },
-)
+check_xcov_reports("xcov", {"pkg.cpp.xcov": {"-": {20, 21}}})
 
 # Testcase only float instantiation call
 build_and_run_with_main(MAIN_FLOAT)
-check_xcov_reports(
-    "xcov",
-    {
-        "pkg.cpp.xcov": {
-            "-": {
-                14,
-                15,
-            }
-        }
-    },
-)
+check_xcov_reports("xcov", {"pkg.cpp.xcov": {"-": {13, 14}}})
 
 # Testcase no instantiation call
 build_and_run_with_main(MAIN_NONE)
-check_xcov_reports(
-    "xcov",
-    {
-        "pkg.cpp.xcov": {
-            "-": {
-                8,
-                14,
-                15,
-                21,
-                22,
-            }
-        }
-    },
-)
+check_xcov_reports("xcov", {"pkg.cpp.xcov": {"-": {7, 13, 14, 20, 21}}})
 
 thistest.result()

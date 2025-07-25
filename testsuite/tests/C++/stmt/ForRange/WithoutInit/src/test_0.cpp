@@ -4,7 +4,7 @@ int
 main (void)
 {
   volatile bool b = false;
-  return b && sum ({ 0, 1 });
+  return b && sum (RangeIterable (1));
 }
 
 //# sum.cpp

@@ -44,10 +44,7 @@ build_run_and_coverage(
 # Check that we got the expected coverage report
 
 check_xcov_reports(
-    "obj",
-    {
-        "main.cpp.xcov": {"+": {9, 10, 12, 14}, "-": {18}},
-    },
+    "obj", {"main.cpp.xcov": {"+": {12, 13, 15, 17}, "-": {21}}}
 )
 
 thistest.result()

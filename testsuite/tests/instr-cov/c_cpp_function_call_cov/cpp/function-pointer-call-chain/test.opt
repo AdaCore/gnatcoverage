@@ -1,0 +1,4 @@
+--  Technically, it could be possible to use exception propagation instead of
+--  the exit system call for this test, but this would not help to support this
+--  on cross targets.
+!native DEAD Tested features requires program abortion

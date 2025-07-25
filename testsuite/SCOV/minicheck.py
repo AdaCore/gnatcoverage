@@ -401,7 +401,7 @@ def build_and_run(
                     m, is_manual, manual_prj_name
                 )
                 patterns.add(src_pattern)
-                trace_file = src_pattern.replace("*", "unique")
+                trace_file = src_pattern.replace("*", "-" + m)
 
                 # Here we're really supposed to have a trace in the output
                 # so we can be a tad stricter on the conversion outcome.
