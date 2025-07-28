@@ -1,7 +1,4 @@
-void
-print_msg (const char *)
-{
-}
+extern "C" void print_msg (const char *msg);
 
 int
 main ()

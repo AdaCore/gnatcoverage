@@ -5,6 +5,7 @@ procedure is part of an unit of interest, but the coverage campaign ignores the
 separate itself.
 """
 
+import glob
 import os
 import os.path
 import shutil
@@ -44,10 +45,12 @@ class Testcase(object):
         return os.path.join("..", "bin", *args)
 
 
-def clean_output_directory():
+def clean_objdir():
     if os.path.exists("output"):
         shutil.rmtree("output")
     os.mkdir("output")
+    for t in glob.glob("*.srctrace"):
+        os.unlink(t)
 
 
 test1 = Testcase("test1", "obj1")
@@ -87,7 +90,7 @@ def build_and_run_tests(ignored_source_files=None):
 
 # Build and run tests without ignored source files. Check that we indeed have a
 # consolidation error by default.
-clean_output_directory()
+clean_objdir()
 xcov_args = build_and_run_tests()
 bin_traces = thistest.options.trace_mode == "bin"
 p = xcov(xcov_args, out="cons-1.log", register_failure=False)
@@ -109,7 +112,7 @@ else:
 # Build and run tests with ignored source files. Check that the new option
 # makes it ignore the problematic symbols, and succeeds to create a report with
 # the expected coverage data.
-clean_output_directory()
+clean_objdir()
 xcov_args = build_and_run_tests(["pkg_under_test-pkg_test.adb"])
 p = checked_xcov(xcov_args, "cons-2.log")
 check_xcov_reports(
