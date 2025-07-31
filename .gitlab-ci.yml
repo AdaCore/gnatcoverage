@@ -6,11 +6,24 @@ workflow:
 variables:
    PACKAGE_BASE_NAME: gnatcoverage.tar.gz
    PACKAGE_ABSOLUTE_NAME: $CI_PROJECT_DIR/$PACKAGE_BASE_NAME
+   GNATFORMAT_DATE: 20250917
 
 include:
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/pre-commit@~latest
     inputs:
-      stage: test
+      stage: check
+      # Do not run gnatformat in pre-commit as it is missing from the environment.
+      # A specific CI job is used instead.
+      pre-commit-skip: "gnatformat"
+
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/gnatformat@~latest
+    inputs:
+      stage: check
+      anod-spec: gnatcov
+      gnatformat-args: --no-project --check $(find tools/gnatcov -iname '*.ad[bs]')
+      install-gnatformat: true
+      install-gnatformat-extra-anod-args: -Qedge -Qdate=$GNATFORMAT_DATE
+
   #TODO: workaround to allow dynamically setting the interruptible policy until https://gitlab.com/gitlab-org/gitlab/-/issues/194023 is implemented
   - local: utils/ci/interruptible.yml
     rules:
@@ -206,6 +219,9 @@ test_spark:
 
   <<: *artifacts
 
+##########
+# Checks #
+##########
 
 pre-commit:
   before_script:
@@ -214,6 +230,7 @@ pre-commit:
     # Install the clang-format executable and make it available
     - anod install libclang -Qstable
     - eval `anod printenv libclang -Qstable`
+
 #################
 # Optional jobs #
 #################
