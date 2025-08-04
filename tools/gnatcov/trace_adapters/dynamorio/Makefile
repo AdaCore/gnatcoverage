@@ -7,11 +7,7 @@ DYNRIO_CLIENT=INVALID
 
 ifeq ($(HOST_OS), windows)
 DYNRIO_CLIENT=build/$(DYNRIO_CONFIG)/qtrace.dll
-ifeq ($(BITS_ARCH), 32)
-G_OPTION=-G"Visual Studio 17"
-else
-G_OPTION=-G"Visual Studio 17 Win64"
-endif
+G_OPTION=-G"Visual Studio 17 2022"
 endif
 
 ifeq ($(HOST_OS), linux)
