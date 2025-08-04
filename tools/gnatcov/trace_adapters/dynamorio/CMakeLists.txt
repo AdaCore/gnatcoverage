@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.15)
 project(qtrace C)
 
 add_library(qtrace SHARED qtrace.c)
-target_link_libraries(qtrace vcruntime libucrt)
+target_link_libraries(qtrace)
 
 find_package(DynamoRIO)
 if (NOT DynamoRIO_FOUND)
