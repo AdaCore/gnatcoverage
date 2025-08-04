@@ -8,9 +8,9 @@ DYNRIO_CLIENT=INVALID
 ifeq ($(HOST_OS), windows)
 DYNRIO_CLIENT=build/$(DYNRIO_CONFIG)/qtrace.dll
 ifeq ($(BITS_ARCH), 32)
-G_OPTION=-G"Visual Studio 12"
+G_OPTION=-G"Visual Studio 17"
 else
-G_OPTION=-G"Visual Studio 12 Win64"
+G_OPTION=-G"Visual Studio 17 Win64"
 endif
 endif
 
@@ -29,8 +29,8 @@ all: $(DYNRIO_CLIENT)
 
 $(DYNRIO_CLIENT):
 	mkdir build || true
-	cd build && cmake -DDynamoRIO_DIR=$(DYNRIO_PREFIX)/cmake $(G_OPTION) ..
-	cd build && cmake --build . --config $(DYNRIO_CONFIG)
+	cd build && cmake -Wno-dev -DDynamoRIO_DIR=$(DYNRIO_PREFIX)/cmake $(G_OPTION) ..
+	cd build && cmake --build . --config $(DYNRIO_CONFIG) -v 
 
 ################
 # Installation #
