@@ -320,7 +320,7 @@ private
    --  Return line metrics for the given line range
 
    function Obligation_Metrics (SCOs : SCO_Sets.Set) return Ob_Stat_Array;
-   --  Return obligation metrics for the given SCO ranges
+   --  Return obligation metrics for the given SCO set
 
    function SCO_Kind_Image (SCO : SCO_Id) return String;
    --  Get the string representation of the SCO_Kind of SCO. A special

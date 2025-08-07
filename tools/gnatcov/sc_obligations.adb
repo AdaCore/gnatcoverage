@@ -747,7 +747,6 @@ package body SC_Obligations is
 
    procedure Remap_SCO_Descriptor
      (CP_Vectors : Source_Coverage_Vectors;
-      CP_CU      : CU_Info;
       Relocs     : in out Checkpoint_Relocations;
       SCOD       : in out SCO_Descriptor);
    --  Remap one SCO_Descriptor. Note that this assumes that
@@ -755,6 +754,16 @@ package body SC_Obligations is
    --
    --  Note that this expects condition SCOs of a decision to have been
    --  remapped calling Remap_SCO_Descriptor
+
+   function Check_SCOs_Consistency
+     (CLS        : in out Checkpoint_Load_State;
+      CP_Vectors : Source_Coverage_Vectors;
+      CP_CU      : in out CU_Info) return Boolean;
+   --  Check the consistency of the SCO in CP_CU wrt. SCOs previously loaded
+   --  for the a different version of the same unit. When a new SCO overlaps
+   --  with an existing one, this breaks the consistency of SCOs. Note that we
+   --  accept no SCO overlaps (thus no nesting) across compilation unit
+   --  versions.
 
    procedure Checkpoint_Load_SCOs
      (CLS        : in out Checkpoint_Load_State;
@@ -1492,6 +1501,93 @@ package body SC_Obligations is
       return False;
    end "<";
 
+   ----------------------------
+   -- Check_SCOs_Consistency --
+   ----------------------------
+
+   function Check_SCOs_Consistency
+     (CLS        : in out Checkpoint_Load_State;
+      CP_Vectors : Source_Coverage_Vectors;
+      CP_CU      : in out CU_Info) return Boolean is
+   begin
+      for SCO_Range of CP_CU.SCOs loop
+         for Old_SCO_Id in SCO_Range.First .. SCO_Range.Last loop
+            declare
+               New_SCOD : constant SCO_Descriptor :=
+                 CP_Vectors.SCO_Vector.Element (Old_SCO_Id);
+               Kind     : Any_SCO_Kind renames New_SCOD.Kind;
+
+               Sloc_Range : Source_Location_Range := New_SCOD.Sloc_Range;
+
+               Real_SCO : SCO_Id := No_SCO_Id;
+               --  Value of the SCO if it already exists, otherwise left to
+               --  No_SCO_Id.
+
+            begin
+               --  This is specific to binary traces: decision issued from
+               --  control expressions are actually located at the range
+               --  (SCOD.Control_Location, No_Location) in the Sloc_To_SCO_Map.
+
+               if New_SCOD.Kind = Decision
+                 and then New_SCOD.Control_Location /= No_Location
+               then
+                  Sloc_Range :=
+                    To_Range (New_SCOD.Control_Location, No_Location);
+               end if;
+
+               --  Remap SFIs in all source locations
+
+               Remap_SFI (CLS.Relocations, Sloc_Range.Source_File);
+
+               --  Only consider statement / decision / condition coverage
+               --  obligations as other SCO kinds are not considered by
+               --  Sloc_To_SCO and this is a good enough condition to ensure
+               --  SCOs consistency.
+
+               if Kind not in Statement .. Condition then
+                  goto Continue;
+               end if;
+
+               --  Try to find if the SCO already exists, or if there is an
+               --  existing SCO at the same location but not with the same
+               --  source range.
+
+               --  First, try to find if we have a SCO of the exact same kind
+               --  and range.
+
+               declare
+                  use Sloc_To_SCO_Maps;
+                  Cur : constant Cursor :=
+                    Sloc_To_SCO_Map
+                      (Sloc_Range.Source_File, Kind).Find (Sloc_Range.L);
+               begin
+                  if Has_Element (Cur)
+                    and then SCO_Vector.Element (Element (Cur)).Kind = Kind
+                  then
+                     goto Continue;
+                  end if;
+               end;
+
+               --  If we did not find a SCO with the exact same range, check
+               --  whether there is an overlapping SCO.
+
+               Real_SCO :=
+                 Sloc_To_SCO
+                   (Slocs.Source_Location'
+                      (Source_File => Sloc_Range.Source_File,
+                       L           => New_SCOD.Sloc_Range.L.First_Sloc),
+                    Include_Decisions => True);
+
+               if Real_SCO /= No_SCO_Id then
+                  return False;
+               end if;
+            end;
+            <<Continue>>
+         end loop;
+      end loop;
+      return True;
+   end Check_SCOs_Consistency;
+
    --------------------------
    -- Checkpoint_Load_SCOs --
    --------------------------
@@ -1526,9 +1622,7 @@ package body SC_Obligations is
 
                Real_SCO : SCO_Id := No_SCO_Id;
                --  Value of the SCO if it already exists, otherwise left to
-               --  No_SCO_Id. To check if the SCO already exists, we use the
-               --  Sloc_To_SCO_Map and look for an existing SCO with the exact
-               --  same source range.
+               --  No_SCO_Id.
 
             begin
                if New_SCOD.Kind = Removed then
@@ -1545,7 +1639,7 @@ package body SC_Obligations is
                declare
                   use Sloc_To_SCO_Maps;
                   Cur : constant Cursor :=
-                    Files_Table.Sloc_To_SCO_Map
+                    Sloc_To_SCO_Map
                       (New_SCOD.Sloc_Range.Source_File,
                        New_SCOD.Kind).Find (New_SCOD.Sloc_Range.L);
                begin
@@ -1554,30 +1648,17 @@ package body SC_Obligations is
                   end if;
                end;
 
+               --  If the SCO already exists, only add an entry to remap the
+               --  Old_SCO_Id to the actual SCO.
+
                if Real_SCO /= No_SCO_Id then
-                  loop
-                     declare
-                        Real_SCOD : constant SCO_Vectors.Reference_Type :=
-                          SCO_Vector.Reference (Real_SCO);
-                     begin
-                        exit when
-                          Real_SCOD.Kind = New_SCOD.Kind
-                          and then Real_SCOD.Sloc_Range = New_SCOD.Sloc_Range;
-                        Real_SCO := Parent (Real_SCO);
-                        exit when Real_SCO = No_SCO_Id;
-                     end;
-                  end loop;
-
-                  --  If the SCO already exist, only add an entry to remap the
-                  --  Old_SCO_Id to the actual SCO.
-
-                  if Real_SCO /= No_SCO_Id then
-                     Set_SCO_Id_Map (Relocs, Old_SCO_Id, Real_SCO);
-                     goto Next_SCO;
-                  end if;
+                  Set_SCO_Id_Map (Relocs, Old_SCO_Id, Real_SCO);
+                  goto Next_SCO;
                end if;
 
-               --  At this point, if Real_SCO is No_SCO_Id, this is a new SCO
+               --  At this point, if Real_SCO is No_SCO_Id, this is a new SCO:
+               --  it cannot overlap with an existing SCO as this was checked
+               --  by Check_SCOs_Consistency.
 
                if Real_SCO = No_SCO_Id then
                   Set_SCO_Id_Map
@@ -1585,11 +1666,7 @@ package body SC_Obligations is
 
                   --  Append new SCOD and record mapping
 
-                  Remap_SCO_Descriptor
-                    (CP_Vectors,
-                     CP_CU,
-                     Relocs,
-                     New_SCOD);
+                  Remap_SCO_Descriptor (CP_Vectors, Relocs, New_SCOD);
 
                   --  Preallocate line table entries for previous unit
 
@@ -1605,9 +1682,9 @@ package body SC_Obligations is
                   end if;
 
                   Last_Line := Natural'Max
-                    (Get_File (Cur_Source_File).Lines.Last_Index,
+                    (Files_Table.Last_Line (Get_File (Cur_Source_File)),
                      New_SCOD.Sloc_Range.L.Last_Sloc.Line);
-                     SCO_Vector.Append (New_SCOD);
+                  SCO_Vector.Append (New_SCOD);
 
                   --  Add it into the Sloc_To_SCO_Map
 
@@ -1971,11 +2048,9 @@ package body SC_Obligations is
 
    procedure Remap_SCO_Descriptor
      (CP_Vectors : Source_Coverage_Vectors;
-      CP_CU      : CU_Info;
       Relocs     : in out Checkpoint_Relocations;
       SCOD       : in out SCO_Descriptor)
    is
-      pragma Unreferenced (CP_CU);
       New_First_SCO : SCO_Id := SCO_Vector.Last_Index + 1;
    begin
       --  If this is a decision, start by recording all of the operator
@@ -2409,6 +2484,18 @@ package body SC_Obligations is
                end if;
             end loop;
             Register_CU (Real_CU_Id);
+
+         else
+            --  Otherwise, check that the SCOs in the new version are
+            --  consistent with those previously loaded.
+
+            if not Check_SCOs_Consistency (CLS, CP_Vectors, CP_CU) then
+               Outputs.Warn
+                 ("Discarding source coverage data for unit "
+                  & Get_Full_Name (Real_CU.Main_Source) & " (from "
+                  & Get_Full_Name (Real_CU.Origin) & ")");
+               return;
+            end if;
          end if;
 
          --  In all cases, load the SCOs: if they already exist in Real_CU,
