@@ -676,28 +676,36 @@ class SCOV_helper:
         # return.
 
         ofile = report_format + ".out"
-        xcov(args=["coverage"] + covargs, out=ofile)
-
-        # Standard output might typically contain labeling warnings issued
-        # by the static analysis phase, or error messages issued when a trace
-        # indicates that some unlabeled edge was taken.  None of this should
-        # happen so we simply fail as soon as the output file is not empty.
-        # Note that we do this in qualification mode as well, even though what
-        # we're looking at is not stricly part of the qualified interface.
-
-        # Warnings about -S being deprecated are expected: just ignore them
-        output_lines = lines_of(ofile)
-        for i, line in reversed(list(enumerate(output_lines))):
-            if line == (
-                "warning: -S is deprecated. "
-                "This option will be removed in release 26."
-            ):
-                output_lines.pop(i)
-        output = "\n".join(output_lines)
-
-        thistest.fail_if(
-            output, f"xcov standard output not empty ({ofile}:\n--\n{output}"
+        xcov(
+            args=["coverage"] + covargs,
+            tolerate_messages=self.testcase.tolerate_cov_messages,
+            out=ofile,
         )
+
+        # Only check the output when running with binary traces, as this is
+        # done in xcov for source traces.
+        if thistest.options.trace_mode == "bin":
+            # Standard output might typically contain labeling warnings issued
+            # by the static analysis phase, or error messages issued when a
+            # trace indicates that some unlabeled edge was taken. None of this
+            # should happen so we simply fail as soon as the output file is not
+            # empty. Note that we do this in qualification mode as well, even
+            # though what we're looking at is not stricly part of the qualified
+            # interface.
+
+            # Warnings about -S being deprecated are expected: just ignore them
+            output_lines = lines_of(ofile)
+            for i, line in reversed(list(enumerate(output_lines))):
+                if line == (
+                        "warning: -S is deprecated. "
+                        "This option will be removed in release 26."
+                ):
+                    output_lines.pop(i)
+            output = "\n".join(output_lines)
+                    
+            thistest.fail_if(
+                output, f"xcov standard output not empty ({ofile}:\n--\n{output}"
+            )
 
     def force_xcov_report(self, source):
         filename = self.xcov_translation_for(source) + ".xcov"
