@@ -5840,10 +5840,6 @@ package body Instrument.C is
             return UIC.Sources_Of_Interest_Info.Reference (Cur).Of_Interest;
          end if;
 
-         --  Consider that File is of interest iff it belongs to a loaded
-         --  project. TODO??? This should also consider units of interest
-         --  switches.
-
          if UIC.Files_Of_Interest.Contains (File) then
             declare
                SFI : constant Source_File_Index :=
