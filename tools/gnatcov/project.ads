@@ -40,6 +40,11 @@ package Project is
    Externally_Built_Projects_Processing_Enabled : Boolean := False;
    --  Whether to include projects marked as externally built to processings
 
+   Warn_About_Missing_Info :  Boolean := True;
+   --  Whether to warn about missing coverage information for units of
+   --  interest. Set to False when generating a report without traces or
+   --  checkpoints specified.
+
    -----------------------
    -- Lifetime handling --
    -----------------------

@@ -659,6 +659,29 @@ procedure GNATcov_Bits_Specific is
          Process_Trace (+RT.Filename, +RT.Executable);
       end loop;
 
+      --  Try loading SCOs if no executable or traces were passed, to generate
+      --  a report with only violations.
+
+      if Checkpoints_Inputs.Is_Empty
+        and then LLVM_JSON_Ckpt_Inputs.Is_Empty
+        and then SID_Inputs.Is_Empty
+        and then ALIs_Inputs.Is_Empty
+        and then Exe_Inputs.Is_Empty
+        and then Trace_Inputs.Is_Empty
+      then
+         Project.Warn_About_Missing_Info := False;
+
+         --  Try loading SIDs first (as source traces are more widely used)
+
+         Load_All_SIDs;
+
+         --  If no SID files were found, try loading ALIs
+
+         if SID_Inputs.Is_Empty then
+            Load_All_ALIs (Check_SCOs => False);
+         end if;
+      end if;
+
       --  Use dominant information to refine decision coverage
       --  information wrt. outcomes taken. This is a binary information
       --  specificity as we always know which outcomes were taken in the
@@ -2339,12 +2362,15 @@ begin
             end if;
          end if;
 
-         --  If no checkpoint is provided, expect at least 1 TRACE_FILE.
+         --  Warn if the user provided no checkpoints or traces
 
          if Checkpoints_Inputs.Is_Empty
-            and then LLVM_JSON_Ckpt_Inputs.Is_Empty
+           and then LLVM_JSON_Ckpt_Inputs.Is_Empty
+           and then Trace_Inputs.Is_Empty
          then
-            Check_Traces_Available;
+            Outputs.Warn
+              ("No trace files specified. GNATcoverage will still generate a"
+               & " report");
          end if;
 
          --  Read and process traces
