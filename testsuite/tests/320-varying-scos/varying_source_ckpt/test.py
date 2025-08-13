@@ -3,9 +3,6 @@ Check that gnatcov coverage correctly aggregates coverage data of a file that
 has various version according to the preprocessing configuration.
 """
 
-import os
-import os.path
-
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
@@ -43,7 +40,8 @@ xcov(
 )
 
 check_xcov_reports(
-    "obj", {"main.c.xcov": {"+": {4, 7}}},
+    "obj",
+    {"main.c.xcov": {"+": {5, 8}}},
     discard_empty=False,
 )
 

@@ -1,6 +1,3 @@
-import os
-import os.path
-
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
@@ -24,7 +21,7 @@ check_xcov_reports(
         "bar.c.xcov": {},
         "foo.c.xcov": {},
         "foo.h.xcov": {"-": {4, 11}},
-        "main.c.xcov": {"+": {3}},
+        "main.c.xcov": {"+": {4}},
     },
     discard_empty=False,
 )

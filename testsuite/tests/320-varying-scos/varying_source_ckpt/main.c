@@ -1,4 +1,5 @@
-int main()
+int
+main ()
 {
 #ifdef A
   return 0;

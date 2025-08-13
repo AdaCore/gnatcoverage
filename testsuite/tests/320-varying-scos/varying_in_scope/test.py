@@ -5,9 +5,6 @@ versions. Check that the scope metrics are as expected by inspecting the XML
 report.
 """
 
-import os
-import os.path
-
 from lxml import etree
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
@@ -33,14 +30,17 @@ check_xcov_reports(
         "bar.c.xcov": {},
         "foo.c.xcov": {},
         "foo.h.xcov": {"-": {4, 7}},
-        "main.c.xcov": {"+": {3}},
+        "main.c.xcov": {"+": {4}},
     },
     discard_empty=False,
 )
 
 # Check scope metrics
 xml = etree.parse("report/xml/foo.h.xml")
-xpath_query = './/scope_metric/obligation_stats/metric[@kind="total_obligations_of_relevance"]'
+xpath_query = (
+    ".//scope_metric/obligation_stats/metric"
+    '[@kind="total_obligations_of_relevance"]'
+)
 
 # Find all matching metrics
 metrics = xml.xpath(xpath_query)
@@ -48,7 +48,7 @@ metrics = xml.xpath(xpath_query)
 # We expect 2 statement violations for the header and the associated function
 thistest.fail_if(
     int(metrics[0].get("count")) != 2 or int(metrics[1].get("count")) != 2,
-    "unexpected scope metrics"
+    "unexpected scope metrics",
 )
 
 thistest.result()

@@ -755,6 +755,14 @@ package body SC_Obligations is
    --  Note that this expects condition SCOs of a decision to have been
    --  remapped calling Remap_SCO_Descriptor
 
+   function Sloc_Range_For_SCO
+     (SCOD : SCO_Descriptor) return Source_Location_Range;
+   --  Get the Source_Location_Range to search for in the Sloc_To_SCO map for
+   --  the given SCO, accounting for the specific case of decision with
+   --  a control location (when using binary traces): in this case, the
+   --  decision are located at their control location rather than the actual
+   --  decision location.
+
    function Check_SCOs_Consistency
      (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
@@ -1501,6 +1509,22 @@ package body SC_Obligations is
       return False;
    end "<";
 
+   ------------------------
+   -- Sloc_Range_For_SCO --
+   ------------------------
+
+   function Sloc_Range_For_SCO
+     (SCOD : SCO_Descriptor) return Source_Location_Range
+   is
+      Sloc_Range : Source_Location_Range := SCOD.Sloc_Range;
+   begin
+      if SCOD.Kind = Decision and then SCOD.Control_Location /= No_Location
+      then
+         Sloc_Range := To_Range (SCOD.Control_Location, No_Location);
+      end if;
+      return Sloc_Range;
+   end Sloc_Range_For_SCO;
+
    ----------------------------
    -- Check_SCOs_Consistency --
    ----------------------------
@@ -1517,24 +1541,14 @@ package body SC_Obligations is
                  CP_Vectors.SCO_Vector.Element (Old_SCO_Id);
                Kind     : Any_SCO_Kind renames New_SCOD.Kind;
 
-               Sloc_Range : Source_Location_Range := New_SCOD.Sloc_Range;
+               Sloc_Range : Source_Location_Range :=
+                 Sloc_Range_For_SCO (New_SCOD);
 
                Real_SCO : SCO_Id := No_SCO_Id;
                --  Value of the SCO if it already exists, otherwise left to
                --  No_SCO_Id.
 
             begin
-               --  This is specific to binary traces: decision issued from
-               --  control expressions are actually located at the range
-               --  (SCOD.Control_Location, No_Location) in the Sloc_To_SCO_Map.
-
-               if New_SCOD.Kind = Decision
-                 and then New_SCOD.Control_Location /= No_Location
-               then
-                  Sloc_Range :=
-                    To_Range (New_SCOD.Control_Location, No_Location);
-               end if;
-
                --  Remap SFIs in all source locations
 
                Remap_SFI (CLS.Relocations, Sloc_Range.Source_File);
@@ -1617,10 +1631,11 @@ package body SC_Obligations is
       for SCO_Range of CP_CU.SCOs loop
          for Old_SCO_Id in SCO_Range.First .. SCO_Range.Last loop
             declare
-               New_SCOD : SCO_Descriptor :=
+               New_SCOD   : SCO_Descriptor :=
                  CP_Vectors.SCO_Vector.Element (Old_SCO_Id);
-
-               Real_SCO : SCO_Id := No_SCO_Id;
+               Sloc_Range : Source_Location_Range :=
+                 Sloc_Range_For_SCO (New_SCOD);
+               Real_SCO   : SCO_Id := No_SCO_Id;
                --  Value of the SCO if it already exists, otherwise left to
                --  No_SCO_Id.
 
@@ -1632,7 +1647,7 @@ package body SC_Obligations is
 
                --  Remap SFIs in all source locations
 
-               Remap_SFI (Relocs, New_SCOD.Sloc_Range.Source_File);
+               Remap_SFI (Relocs, Sloc_Range.Source_File);
 
                --  Try to find if the SCO already exists
 
@@ -1640,8 +1655,8 @@ package body SC_Obligations is
                   use Sloc_To_SCO_Maps;
                   Cur : constant Cursor :=
                     Sloc_To_SCO_Map
-                      (New_SCOD.Sloc_Range.Source_File,
-                       New_SCOD.Kind).Find (New_SCOD.Sloc_Range.L);
+                      (Sloc_Range.Source_File,
+                       New_SCOD.Kind).Find (Sloc_Range.L);
                begin
                   if Has_Element (Cur) then
                      Real_SCO := Element (Cur);
@@ -1691,10 +1706,9 @@ package body SC_Obligations is
                   declare
                      Map : constant access Sloc_To_SCO_Maps.Map :=
                        Writeable_Sloc_To_SCO_Map
-                         (New_SCOD.Sloc_Range.Source_File,
-                          New_SCOD.Kind);
+                         (Sloc_Range.Source_File, New_SCOD.Kind);
                   begin
-                     Map.Insert (New_SCOD.Sloc_Range.L, SCO_Vector.Last_Index);
+                     Map.Insert (Sloc_Range.L, SCO_Vector.Last_Index);
                   end;
 
                   if SCOs_Trace.Is_Active then
@@ -2053,6 +2067,8 @@ package body SC_Obligations is
    is
       New_First_SCO : SCO_Id := SCO_Vector.Last_Index + 1;
    begin
+      Remap_SFI (Relocs, SCOD.Sloc_Range.Source_File);
+
       --  If this is a decision, start by recording all of the operator
       --  and condition SCOs in the relocation map, before relocating all
       --  of the components of the SCO_Descriptor.
