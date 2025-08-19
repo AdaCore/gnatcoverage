@@ -2509,7 +2509,8 @@ package body SC_Obligations is
                Outputs.Warn
                  ("Discarding source coverage data for unit "
                   & Get_Full_Name (Real_CU.Main_Source) & " (from "
-                  & Get_Full_Name (Real_CU.Origin) & ")");
+                  & Get_Full_Name (Real_CU.Origin) & "), loaded from "
+                  & (+CLS.Filename));
                return;
             end if;
          end if;
@@ -2527,7 +2528,7 @@ package body SC_Obligations is
 
          --  If this is a new unit / it contains new SCOs, load additional
          --  information (SID information, preprocessing information, and
-         --  copes).
+         --  scopes).
 
          if Has_New_SCOs then
 
@@ -4296,6 +4297,11 @@ package body SC_Obligations is
       SID_Infos : constant SID_Info_Maps.Map :=
         CU_Vector.Element (CU).SIDs_Info;
    begin
+      if SID_Infos.Length /= 1 then
+         Outputs.Fatal_Error
+           ("Found multiple versions for "
+            & Get_Full_Name (CU_Vector.Element (CU).Main_Source));
+      end if;
       pragma Assert (SID_Infos.Length = 1);
       return SID_Infos.First_Key;
    end Fingerprint;

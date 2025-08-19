@@ -604,7 +604,7 @@ package body Annotations.Dynamic_Html is
               (if Is_Root then Last_Line (File_Info)
                else Scope_Ent.Source_Range.L.Last_Sloc.Line));
          --  Adjust Scope_Ent.End_Sloc for the root node as it is
-         --  No_Local_Location by default. TODO???
+         --  No_Local_Location by default.
 
          Ob_Stats : constant Ob_Stat_Array :=
            Obligation_Metrics (Get_SCOs (Scope_Ent.Source_Range));

@@ -76,8 +76,7 @@ package Slocs is
 
    No_Location : constant Source_Location :=
      (No_Source_File, No_Local_Location);
-   --  Note: No_Location must sort higher than any non-null location. TODO???
-   --  clarify this comment.
+   --  Note: No_Location must sort higher than any non-null location
 
    function Image
      (Sloc        : Source_Location;

@@ -1,4 +1,5 @@
-int foo()
+int
+foo ()
 {
 #ifdef A
   return 0;

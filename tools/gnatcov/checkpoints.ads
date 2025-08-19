@@ -64,7 +64,7 @@ package Checkpoints is
    --  18 -- Removed support for tags (separate coverage)
    --  19 -- Removed support for instance ids (separate coverage)
    --  20 -- Rework Scope_Entity to identify scopes by their Start/End_Sloc
-   --        rather than their Start/End_Scope.
+   --        rather than their Start/End_SCO.
    --
    --  Note that we always use the last version when creating a checkpoint.
    --

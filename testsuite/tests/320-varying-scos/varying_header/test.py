@@ -20,7 +20,7 @@ check_xcov_reports(
     {
         "bar.c.xcov": {},
         "foo.c.xcov": {},
-        "foo.h.xcov": {"-": {4, 11}},
+        "foo.h.xcov": {"-": {5, 13}},
         "main.c.xcov": {"+": {4}},
     },
     discard_empty=False,

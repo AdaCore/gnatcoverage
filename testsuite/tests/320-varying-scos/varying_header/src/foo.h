@@ -1,12 +1,14 @@
 #ifdef A
-int foo()
+int
+foo ()
 {
   return 0;
 }
 #endif
 
 #ifdef B
-int bar()
+int
+bar ()
 {
   return 0;
 }

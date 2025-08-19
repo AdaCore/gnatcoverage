@@ -697,14 +697,15 @@ class SCOV_helper:
             output_lines = lines_of(ofile)
             for i, line in reversed(list(enumerate(output_lines))):
                 if line == (
-                        "warning: -S is deprecated. "
-                        "This option will be removed in release 26."
+                    "warning: -S is deprecated. "
+                    "This option will be removed in release 26."
                 ):
                     output_lines.pop(i)
             output = "\n".join(output_lines)
-                    
+
             thistest.fail_if(
-                output, f"xcov standard output not empty ({ofile}:\n--\n{output}"
+                output,
+                f"xcov standard output not empty ({ofile}:\n--\n{output}",
             )
 
     def force_xcov_report(self, source):
