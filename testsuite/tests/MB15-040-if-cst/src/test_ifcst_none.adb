@@ -7,4 +7,10 @@ begin
 end;
 
 --# monitor.adb
---  /called/ l- ## s-
+--  /called/    l- ## s-
+--
+--%opts: --trace-mode=bin
+--  /cond-stmt/ l. ## 0
+--
+--%opts: --trace-mode=src
+--  /cond-stmt/ l- ## s-

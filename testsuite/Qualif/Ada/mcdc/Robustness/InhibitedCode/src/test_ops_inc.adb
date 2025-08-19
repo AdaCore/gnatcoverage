@@ -9,8 +9,16 @@ end;
 
 --# ops.adb
 -- /incOp/     l+ ## 0
+-- /elabOp/    l+ ## 0
+--
+--%opts: --trace-mode=bin
 -- /incCheck/  l. ## 0
 -- /incCount/  l. ## 0
--- /elabOp/    l+ ## 0
 -- /elabCheck/ l. ## 0
 -- /elabCount/ l. ## 0
+--
+--%opts: --trace-mode=src
+-- /incCheck/  l+ ## 0
+-- /incCount/  l- ## s-
+-- /elabCheck/ l+ ## 0
+-- /elabCount/ l- ## s-
