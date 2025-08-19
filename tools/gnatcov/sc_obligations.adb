@@ -138,8 +138,14 @@ package body SC_Obligations is
       Has_Code : Boolean := False;
       --  Set True when object code for some source file in this unit is seen
 
-      PP_Info_Map : SCO_PP_Info_Maps.Map;
-      --  Information about preprocessing
+      Macro_Info_Map : SCO_PP_Info_Maps.Map;
+      --  Information about preprocessing wrt. macro expansions
+
+      Include_Info_Map : SCO_PP_Info_Maps.Map;
+      --  Information about inclusion directive expansion, to indicate the
+      --  chain of inclusion for a relocated source coverage obligation. For
+      --  more information about this, refer to the comment of the
+      --  Instrument.C.Relocate_SCO subprogram.
 
       Scope_Entities : Scope_Entities_Tree := Scope_Entities_Trees.Empty_Tree;
       --  Scope tree, used to output e.g. subprogram metrics
@@ -750,6 +756,12 @@ package body SC_Obligations is
    --  Remap a SCO_Id. Note: this assumes possible forward references, and
    --  does not rely on SCO_Map.
 
+   procedure Remap_PP_Info_Map
+     (Relocs        : in out Checkpoint_Relocations;
+      Added_PP_Info : SCO_PP_Info_Maps.Map;
+      Real_PP_Info  : in out SCO_PP_Info_Maps.Map);
+   --  Remap and add the contents of Added_PP_Info not in Real_PP_Info
+
    procedure Remap_SCO_Descriptor
      (CP_Vectors : Source_Coverage_Vectors;
       Relocs     : in out Checkpoint_Relocations;
@@ -1248,28 +1260,71 @@ package body SC_Obligations is
         .SIDs_Info.Element (SCO_Fingerprint).Blocks;
    end Blocks;
 
-   -----------------
-   -- Has_PP_Info --
-   -----------------
+   --------------------
+   -- Has_Macro_Info --
+   --------------------
 
-   function Has_PP_Info (SCO : SCO_Id) return Boolean is
+   function Has_Macro_Info (SCO : SCO_Id) return Boolean is
       CU : constant CU_Id := Comp_Unit (SCO);
    begin
       if CU = No_CU_Id then
          return False;
       end if;
-      return CU_Vector.Reference (CU).Element.PP_Info_Map.Contains (SCO);
-   end Has_PP_Info;
+      return CU_Vector.Element (CU).Macro_Info_Map.Contains (SCO);
+   end Has_Macro_Info;
 
-   -----------------
-   -- Get_PP_Info --
-   -----------------
+   ----------------------
+   -- Has_Include_Info --
+   ----------------------
 
-   function Get_PP_Info (SCO : SCO_Id) return PP_Info is
+   function Has_Include_Info (SCO : SCO_Id) return Boolean is
       CU : constant CU_Id := Comp_Unit (SCO);
    begin
-      return CU_Vector.Reference (CU).Element.PP_Info_Map.Element (SCO);
-   end Get_PP_Info;
+      if CU = No_CU_Id then
+         return False;
+      end if;
+      return CU_Vector.Element (CU).Include_Info_Map.Contains (SCO);
+   end Has_Include_Info;
+
+   --------------------
+   -- Get_Macro_Info --
+   --------------------
+
+   function Get_Macro_Info (SCO : SCO_Id) return PP_Info is
+      CU : constant CU_Id := Comp_Unit (SCO);
+   begin
+      return CU_Vector.Reference (CU).Element.Macro_Info_Map.Element (SCO);
+   end Get_Macro_Info;
+
+   ----------------------
+   -- Get_Include_Info --
+   ----------------------
+
+   function Get_Include_Info (SCO : SCO_Id) return PP_Info is
+      CU : constant CU_Id := Comp_Unit (SCO);
+   begin
+      return CU_Vector.Reference (CU).Element.Include_Info_Map.Element (SCO);
+   end Get_Include_Info;
+
+   --------------------
+   -- Add_Macro_Info --
+   --------------------
+
+   procedure Add_Macro_Info (SCO : SCO_Id; Info : PP_Info) is
+      CU : constant CU_Id := Comp_Unit (SCO);
+   begin
+      CU_Vector.Reference (CU).Element.Macro_Info_Map.Insert (SCO, Info);
+   end Add_Macro_Info;
+
+   ----------------------
+   -- Add_Include_Info --
+   ----------------------
+
+   procedure Add_Include_Info (SCO : SCO_Id; Info : PP_Info) is
+      CU : constant CU_Id := Comp_Unit (SCO);
+   begin
+      CU_Vector.Reference (CU).Element.Include_Info_Map.Insert (SCO, Info);
+   end Add_Include_Info;
 
    ----------
    -- Read --
@@ -1279,16 +1334,16 @@ package body SC_Obligations is
      (CLS : in out Checkpoint_Load_State; Value : out Expansion_Info)
    is
    begin
-      Value.Macro_Name := CLS.Read_Unbounded_String;
+      Value.Name := CLS.Read_Unbounded_String;
       Value.Sloc := CLS.Read_Source_Location;
    end Read;
 
    procedure Read (CLS : in out Checkpoint_Load_State; Value : out PP_Info) is
-      Result : PP_Info (SCO_PP_Kind'Val (CLS.Read_U8));
+      Result : PP_Info;
       Count  : Interfaces.Integer_32;
    begin
-      Result.Actual_Source_Range := CLS.Read_Local_Source_Location_Range;
-      Result.PP_Source_Range := CLS.Read_Local_Source_Location_Range;
+      Result.Actual_Source_Range := CLS.Read_Source_Location_Range;
+      Result.Tokens_Source_Range := CLS.Read_Source_Location_Range;
 
       Result.Expansion_Stack.Clear;
       Count := CLS.Read_I32;
@@ -1300,15 +1355,7 @@ package body SC_Obligations is
             Result.Expansion_Stack.Append (EI);
          end;
       end loop;
-
-      case Result.Kind is
-         when In_Expansion =>
-            Read (CLS, Result.Definition_Loc);
-
-         when others =>
-            null;
-      end case;
-
+      Read (CLS, Result.Definition_Loc);
       Value := Result;
    end Read;
 
@@ -1390,7 +1437,8 @@ package body SC_Obligations is
       Value.Main_Source := CLS.Read_SFI;
       Read (CLS, Value.Deps);
       Value.Has_Code := CLS.Read_Boolean;
-      Read (CLS, Value.PP_Info_Map);
+      Read (CLS, Value.Macro_Info_Map);
+      Read (CLS, Value.Include_Info_Map);
       Read (CLS, Value.Scope_Entities);
       Read (CLS, Value.ALI_Annotations);
       Read (CLS, Value.SCOs);
@@ -1810,32 +1858,17 @@ package body SC_Obligations is
    procedure Checkpoint_Load_PP_Info
      (CLS     : in out Checkpoint_Load_State;
       CP_CU   : in out CU_Info;
-      Real_CU : in out CU_Info)
-   is
-      use SCO_PP_Info_Maps;
-      Relocs : Checkpoint_Relocations renames CLS.Relocations;
+      Real_CU : in out CU_Info) is
    begin
-      for Cur in CP_CU.PP_Info_Map.Iterate loop
-         declare
-            SCO  : SCO_Id := Key (Cur);
-            Info : PP_Info := Element (Cur);
-         begin
-            if not Real_CU.PP_Info_Map.Contains (SCO) then
-               if Info.Kind = In_Expansion then
-                  for Expansion of Info.Expansion_Stack loop
-                     Remap_SFI
-                       (Relocs,
-                        Expansion.Sloc.Source_File);
-                  end loop;
-                  Remap_SFI
-                    (Relocs,
-                     Info.Definition_Loc.Sloc.Source_File);
-               end if;
-               Remap_SCO_Id (Relocs, SCO);
-               Real_CU.PP_Info_Map.Insert (SCO, Info);
-            end if;
-         end;
-      end loop;
+      --  Remap macro information
+
+      Remap_PP_Info_Map
+        (CLS.Relocations, CP_CU.Macro_Info_Map, Real_CU.Macro_Info_Map);
+
+      --  Remap include information
+
+      Remap_PP_Info_Map
+        (CLS.Relocations, CP_CU.Include_Info_Map, Real_CU.Include_Info_Map);
    end Checkpoint_Load_PP_Info;
 
    ----------------------------
@@ -2065,6 +2098,38 @@ package body SC_Obligations is
    begin
       S := Checkpoints.Remap_SCO_Id (Relocs, S);
    end Remap_SCO_Id;
+
+   -----------------------
+   -- Remap_PP_Info_Map --
+   -----------------------
+
+   procedure Remap_PP_Info_Map
+     (Relocs        : in out Checkpoint_Relocations;
+      Added_PP_Info : SCO_PP_Info_Maps.Map;
+      Real_PP_Info  : in out SCO_PP_Info_Maps.Map)
+   is
+      use SCO_PP_Info_Maps;
+   begin
+      for Cur in Added_PP_Info.Iterate loop
+         declare
+            Info : PP_Info := Element (Cur);
+            SCO  : SCO_Id := Key (Cur);
+         begin
+            if not Real_PP_Info.Contains (SCO) then
+               for Expansion of Info.Expansion_Stack loop
+                  Remap_SFI
+                    (Relocs,
+                     Expansion.Sloc.Source_File);
+               end loop;
+               Remap_SFI
+                 (Relocs,
+                  Info.Definition_Loc.Sloc.Source_File);
+               Remap_SCO_Id (Relocs, SCO);
+               Real_PP_Info.Insert (SCO, Info);
+            end if;
+         end;
+      end loop;
+   end Remap_PP_Info_Map;
 
    --------------------------
    -- Remap_SCO_Descriptor --
@@ -2628,28 +2693,19 @@ package body SC_Obligations is
    procedure Write (CSS : in out Checkpoint_Save_State; Value : Expansion_Info)
    is
    begin
-      CSS.Write (Value.Macro_Name);
+      CSS.Write (Value.Name);
       CSS.Write (Value.Sloc);
    end Write;
 
    procedure Write (CSS : in out Checkpoint_Save_State; Value : PP_Info) is
    begin
-      CSS.Write_U8 (SCO_PP_Kind'Pos (Value.Kind));
       CSS.Write (Value.Actual_Source_Range);
-      CSS.Write (Value.PP_Source_Range);
-
+      CSS.Write (Value.Tokens_Source_Range);
       CSS.Write_Count (Value.Expansion_Stack.Length);
       for EI of Value.Expansion_Stack loop
          Write (CSS, EI);
       end loop;
-
-      case Value.Kind is
-         when In_Expansion =>
-            Write (CSS, Value.Definition_Loc);
-
-         when others =>
-            null;
-      end case;
+      Write (CSS, Value.Definition_Loc);
    end Write;
 
    procedure Write (CSS : in out Checkpoint_Save_State; Value : Scope_Entity)
@@ -2705,7 +2761,8 @@ package body SC_Obligations is
       CSS.Write_SFI  (Value.Main_Source);
       Write     (CSS, Value.Deps);
       CSS.Write      (Value.Has_Code);
-      Write     (CSS, Value.PP_Info_Map);
+      Write     (CSS, Value.Macro_Info_Map);
+      Write     (CSS, Value.Include_Info_Map);
       Write     (CSS, Value.Scope_Entities);
       Write     (CSS, Value.ALI_Annotations);
       Write     (CSS, Value.SCOs);
@@ -3577,8 +3634,13 @@ package body SC_Obligations is
       Sloc : Source_Location :=
         First_Sloc (SCO_Vector.Reference (SCO).Sloc_Range);
    begin
-      if Has_PP_Info (SCO) then
-         Sloc.L := Get_PP_Info (SCO).Actual_Source_Range.First_Sloc;
+      --  First check if the SCO has inclusion information: if that is the
+      --  case, then return the inclusion source location.
+
+      if Has_Include_Info (SCO) then
+         Sloc.L := Get_Include_Info (SCO).Actual_Source_Range.L.First_Sloc;
+      elsif Has_Macro_Info (SCO) then
+         Sloc.L := Get_Macro_Info (SCO).Actual_Source_Range.L.First_Sloc;
       end if;
       return Sloc;
    end First_Sloc;
@@ -4255,8 +4317,10 @@ package body SC_Obligations is
       Sloc : Source_Location :=
         Last_Sloc (SCO_Vector.Reference (SCO).Sloc_Range);
    begin
-      if Has_PP_Info (SCO) then
-         Sloc.L := Get_PP_Info (SCO).Actual_Source_Range.Last_Sloc;
+      if Has_Include_Info (SCO) then
+         Sloc.L := Get_Include_Info (SCO).Actual_Source_Range.L.Last_Sloc;
+      elsif Has_Macro_Info (SCO) then
+         Sloc.L := Get_Macro_Info (SCO).Actual_Source_Range.L.Last_Sloc;
       end if;
       return Sloc;
    end Last_Sloc;
@@ -7167,16 +7231,6 @@ package body SC_Obligations is
             return Unknown_Pragma;
       end;
    end Case_Insensitive_Get_Pragma_Id;
-
-   ------------------
-   -- Add_PP_Info --
-   ------------------
-
-   procedure Add_PP_Info (SCO : SCO_Id; Info : PP_Info) is
-      CU : constant CU_Id := Comp_Unit (SCO);
-   begin
-      CU_Vector.Reference (CU).Element.PP_Info_Map.Insert (SCO, Info);
-   end Add_PP_Info;
 
 begin
    Snames.Initialize;

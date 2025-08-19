@@ -19,6 +19,8 @@
 with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Vectors;
 
+with Interfaces.C;
+
 with Clang.CX_Source_Location; use Clang.CX_Source_Location;
 with Clang.Index;              use Clang.Index;
 with Clang.Rewrite;            use Clang.Rewrite;
@@ -61,6 +63,9 @@ package Instrument.C_Utils is
    function End_Sloc (N : Cursor_T) return Source_Location_T;
    function End_Sloc (N : Cursor_T) return Source_Location;
    --  Return the end location of a node
+
+   function Offset (Loc : Source_Location_T) return Interfaces.C.unsigned;
+   --  Return the offset of the location in the text buffer
 
    function Kind (N : Cursor_T) return Cursor_Kind_T;
    --  Return the kind of the node N
