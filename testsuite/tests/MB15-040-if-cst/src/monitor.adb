@@ -7,7 +7,7 @@ package body Monitor is
    procedure Op is
    begin
       if Count_Ops then          -- # called
-         Opcount := Opcount + 1;
+         Opcount := Opcount + 1; -- # cond-stmt
       end if;
       Moncalls := Moncalls + 1;  -- # called
    end;

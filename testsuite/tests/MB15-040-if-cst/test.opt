@@ -1,4 +1,3 @@
 7.0.3 DEAD constant conditions, compiler change on 2013-11-18, not in 7.0.3
 7.2.2 DEAD constant conditions, compiler change on 2013-11-18, not in 7.2.2
-src-traces XFAIL S628-012: src-traces and inhibited code
 5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
