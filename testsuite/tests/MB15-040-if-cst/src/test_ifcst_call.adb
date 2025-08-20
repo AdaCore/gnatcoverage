@@ -8,4 +8,10 @@ begin
 end;
 
 --# monitor.adb
---  /called/ l+ ## 0
+--  /called/    l+ ## 0
+--
+--%opts: --trace-mode=bin
+--  /cond-stmt/ l. ## 0
+--
+--%opts: --trace-mode=src
+--  /cond-stmt/ l- ## s-
