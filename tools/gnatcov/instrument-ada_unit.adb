@@ -7935,7 +7935,7 @@ package body Instrument.Ada_Unit is
             Report
               (UIC, Decl,
                "Failed to look for a previous declaration of this expression"
-               & " function" & Switches.Exception_Info (Exc),
+               & " function: " & Switches.Exception_Info (Exc),
                Warning);
       end;
 
@@ -7945,7 +7945,7 @@ package body Instrument.Ada_Unit is
          when Exc : Property_Error =>
             Report
               (UIC, Decl,
-               "Failed to look for a Ghost aspect for this declaration"
+               "Failed to look for a Ghost aspect for this declaration: "
                & Switches.Exception_Info (Exc),
                Warning);
             return False;
@@ -7971,7 +7971,7 @@ package body Instrument.Ada_Unit is
          when Exc : Property_Error =>
             Report
               (UIC, Decl,
-               "Failed to look for a canonical part of this declaration"
+               "Failed to look for a canonical part of this declaration: "
                & Switches.Exception_Info (Exc),
                Warning);
       end;
