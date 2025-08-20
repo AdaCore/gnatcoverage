@@ -4726,7 +4726,7 @@ package body Instrument.Ada_Unit is
          --  be legal Ada.
 
          if Kind (N) in Ada_Base_Subp_Body
-           and then N.As_Base_Subp_Body.P_Previous_Part.Is_Null
+           and then Safe_Previous_Part_For_Decl (N.As_Base_Subp_Body).Is_Null
            and then (not Is_Expr_Function
                      or else Is_Self_Referencing (UIC, N.As_Expr_Function))
          then
@@ -6156,7 +6156,8 @@ package body Instrument.Ada_Unit is
       end case;
 
       declare
-         Previous_Part : constant Basic_Decl := N.As_Body_Node.P_Previous_Part;
+         Previous_Part : constant Basic_Decl :=
+           Safe_Previous_Part_For_Decl (N.As_Body_Node);
          Decl          : constant Basic_Decl :=
            (if Previous_Part.Is_Null
             then N.As_Body_Node.P_Subp_Spec_Or_Null.P_Parent_Basic_Decl
@@ -7935,7 +7936,7 @@ package body Instrument.Ada_Unit is
             Report
               (UIC, Decl,
                "Failed to look for a previous declaration of this expression"
-               & " function" & Switches.Exception_Info (Exc),
+               & " function: " & Switches.Exception_Info (Exc),
                Warning);
       end;
 
@@ -7945,7 +7946,7 @@ package body Instrument.Ada_Unit is
          when Exc : Property_Error =>
             Report
               (UIC, Decl,
-               "Failed to look for a Ghost aspect for this declaration"
+               "Failed to look for a Ghost aspect for this declaration: "
                & Switches.Exception_Info (Exc),
                Warning);
             return False;
@@ -7971,9 +7972,10 @@ package body Instrument.Ada_Unit is
          when Exc : Property_Error =>
             Report
               (UIC, Decl,
-               "Failed to look for a canonical part of this declaration"
+               "Failed to look for a canonical part of this declaration: "
                & Switches.Exception_Info (Exc),
                Warning);
+            return False;
       end;
 
       return Canonical_Decl.Kind in
