@@ -10,6 +10,7 @@ GNATcoverage User's Guide
    src_traces
    integrated_instr
    cov_source
+   cov_rust
    consolidation
    exemptions
    disable_cov
