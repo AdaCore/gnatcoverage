@@ -344,78 +344,6 @@ of-interest for the reported assessment, as well as the list of source files
 individually ignored with the ``Ignored_Source_Files`` project attribute and
 corresponding command-line option.
 
-
-Annotated sources, text (:cmd-option:`=xcov[+]`)
-------------------------------------------------
-
-For source coverage criteria, |gcvcov| :cmd-option:`--annotate=xcov` produces
-an annotated version of each source file, in text format, named after the
-original source with an extra ``.xcov`` extension at the end (``x.ext.xcov``
-for a source named ``x.ext``).
-
-Each annotated source contains a global summary of the assessment results
-followed by the original source lines, all numbered and marked with a coverage
-annotation next to the line number. The annotation on a line always consists
-in a single character, which may be one of the following:
-
-.. tabularcolumns:: cl
-.. csv-table::
-   :delim: |
-   :widths: 10, 80
-   :header: Annotation, Meaning
-
-   ``.`` | No coverage obligation is attached to the line
-   ``-`` | Coverage obligations attached to the line, none satisfied
-   ``!`` | Coverage obligations attached to the line, some satisfied
-   ``?`` | Coverage obligations attached to the line, undetermined coverage state (*)
-   ``+`` | Coverage obligations attached to the line, all satisfied
-
-(*) The Undetermined Coverage state (``?``) is only shown on the line in the
-absence of other known violations for that same line.
-
-Here is, to illustrate, the full statement coverage report produced for our
-example unit when the ``Between`` function was called so that the ``if``
-control evaluated True only. The function is actually part of an Ada package,
-called Ranges, with an original body source file named ``ranges.adb``:
-
-.. code-block::
-
- examples/src/ranges.adb:
- 67% of 3 lines covered
- Coverage level: stmt
-   1 .: package body Ranges is
-   2 .:    function Between (X1, X2, V : Integer) return Boolean is
-   3 .:    begin
-   4 +:       if X1 < X2 then
-   5 +:          return V >= X1 and then V <= X2;
-   6 .:       else
-   7 -:          return V >= X2 and then V <= X1;
-   8 .:       end if;
-   9 .:    end;
-  10 .: end;
-
-:cmd-option:`--annotate=xcov+` (with a trailing +) works the same, only
-providing extra details below lines with improperly satisfied obligations. The
-available details consists in the list of :term:`coverage violations <Coverage
-Violation>` diagnosed for the line, which depends on the coverage criteria
-involved. Here is an excerpt for our previous example, where the only
-improperly satisfied obligation is an uncovered statement on line 7::
-
-   7 -:          return V >= X2 and then V <= X1;
-   STATEMENT "return V ..." at 7:10 not executed
-
-
-XML report, xml (:cmd-option:`=xml`)
-------------------------------------
-
-:cmd-option:`--annotate=xml` produces a coverage report in the XML format, as
-specified per the ``gnatcov-xml-report.xsd`` (XML schema description) that is
-generated alongside.
-
-This report format is on par with the HTML report in terms of features, and it
-is the preferred choice for programmatically accessing the coverage results.
-
-
 Assessment Context
 ^^^^^^^^^^^^^^^^^^
 
@@ -557,6 +485,77 @@ each of the previous sections.  For our example report so far, this would be::
 This section provides a quick way to determine whether the requested coverage
 level is fully satisfied, with details available from the per criterion
 sections that precede.
+
+
+Annotated sources, text (:cmd-option:`=xcov[+]`)
+------------------------------------------------
+
+For source coverage criteria, |gcvcov| :cmd-option:`--annotate=xcov` produces
+an annotated version of each source file, in text format, named after the
+original source with an extra ``.xcov`` extension at the end (``x.ext.xcov``
+for a source named ``x.ext``).
+
+Each annotated source contains a global summary of the assessment results
+followed by the original source lines, all numbered and marked with a coverage
+annotation next to the line number. The annotation on a line always consists
+in a single character, which may be one of the following:
+
+.. tabularcolumns:: cl
+.. csv-table::
+   :delim: |
+   :widths: 10, 80
+   :header: Annotation, Meaning
+
+   ``.`` | No coverage obligation is attached to the line
+   ``-`` | Coverage obligations attached to the line, none satisfied
+   ``!`` | Coverage obligations attached to the line, some satisfied
+   ``?`` | Coverage obligations attached to the line, undetermined coverage state (*)
+   ``+`` | Coverage obligations attached to the line, all satisfied
+
+(*) The Undetermined Coverage state (``?``) is only shown on the line in the
+absence of other known violations for that same line.
+
+Here is, to illustrate, the full statement coverage report produced for our
+example unit when the ``Between`` function was called so that the ``if``
+control evaluated True only. The function is actually part of an Ada package,
+called Ranges, with an original body source file named ``ranges.adb``:
+
+.. code-block::
+
+ examples/src/ranges.adb:
+ 67% of 3 lines covered
+ Coverage level: stmt
+   1 .: package body Ranges is
+   2 .:    function Between (X1, X2, V : Integer) return Boolean is
+   3 .:    begin
+   4 +:       if X1 < X2 then
+   5 +:          return V >= X1 and then V <= X2;
+   6 .:       else
+   7 -:          return V >= X2 and then V <= X1;
+   8 .:       end if;
+   9 .:    end;
+  10 .: end;
+
+:cmd-option:`--annotate=xcov+` (with a trailing +) works the same, only
+providing extra details below lines with improperly satisfied obligations. The
+available details consists in the list of :term:`coverage violations <Coverage
+Violation>` diagnosed for the line, which depends on the coverage criteria
+involved. Here is an excerpt for our previous example, where the only
+improperly satisfied obligation is an uncovered statement on line 7::
+
+   7 -:          return V >= X2 and then V <= X1;
+   STATEMENT "return V ..." at 7:10 not executed
+
+
+XML report, xml (:cmd-option:`=xml`)
+------------------------------------
+
+:cmd-option:`--annotate=xml` produces a coverage report in the XML format, as
+specified per the ``gnatcov-xml-report.xsd`` (XML schema description) that is
+generated alongside.
+
+This report format is on par with the HTML report in terms of features, and it
+is the preferred choice for programmatically accessing the coverage results.
 
 
 .. _scov-stmt:
