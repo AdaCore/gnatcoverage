@@ -3660,6 +3660,10 @@ package body Instrument.Ada_Unit is
    --
    --  This also processes any nested declare expressions.
 
+   procedure Process_Formal_Default_Exprs
+     (UIC : in out Ada_Unit_Inst_Context; N_Spec : Subp_Spec);
+   --  Process default expressions for formals in N_Spec
+
    function Is_Call_Leaf (Node : Ada_Node'Class) return Boolean;
    --  Return True if Node is the leaf of a call expression, that is there are
    --  no nodes in the children of Node identifying the same call.
@@ -4894,11 +4898,7 @@ package body Instrument.Ada_Unit is
          --  a previous declaration that must be used as scope identifier.
 
       begin
-         --  Process decisions nested in formal parameters
-
-         if not N_Spec.Is_Null then
-            Process_Expression (UIC, N_Spec.F_Subp_Params, 'X');
-         end if;
+         Process_Formal_Default_Exprs (UIC, N_Spec);
 
          Enter_Scope
            (UIC  => UIC,
@@ -6174,6 +6174,8 @@ package body Instrument.Ada_Unit is
             Decl => Decl);
       end;
 
+      Process_Formal_Default_Exprs (UIC, N.P_Subp_Spec_Or_Null.As_Subp_Spec);
+
       --  If assertion coverage is enabled, process the decisions in the
       --  contracts. This is needed in the case of a subprogram body with
       --  aspect with no prior declaration.
@@ -7282,6 +7284,25 @@ package body Instrument.Ada_Unit is
          N.Traverse (Process_Case_Expr'Access);
       end if;
    end Process_Expression;
+
+   ----------------------------------
+   -- Process_Formal_Default_Exprs --
+   ----------------------------------
+
+   procedure Process_Formal_Default_Exprs
+     (UIC : in out Ada_Unit_Inst_Context; N_Spec : Subp_Spec)
+   is
+      Saved_Disable_Instrumentation : constant Boolean :=
+        UIC.Disable_Instrumentation;
+   begin
+      if N_Spec.Is_Null then
+         return;
+      end if;
+
+      UIC.Disable_Instrumentation := True;
+      Process_Expression (UIC, N_Spec.F_Subp_Params, 'X');
+      UIC.Disable_Instrumentation := Saved_Disable_Instrumentation;
+   end Process_Formal_Default_Exprs;
 
    ------------------
    -- Is_Call_Leaf --

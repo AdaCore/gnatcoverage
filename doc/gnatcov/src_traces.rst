@@ -625,6 +625,8 @@ The list of unsupported constructs is as follows:
 * Generic null procedures,
 * Protected bodies entry guards when the ``Simple_Barriers`` restriction or
   the ``Pure_Barriers`` one apply.
+* Decisions in default expressions of subprogram formals (for all
+  decision-related coverage criteria).
 
 Additionally, if the Ada language version in use, is less or equal to Ada 2012,
 the following constructs are also unsupported:
