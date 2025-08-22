@@ -15,6 +15,8 @@ end Test_Multi;
 -- /empty_aggr_st/    l- ## s-
 -- /single_elt_guard/ l! ## dT-
 -- /single_elt_st/    l- ## s-
--- /single_elt_dc/    l- ## 0
+-- /single_elt_dc1/   l- ## s-
+-- /single_elt_dc2/   l- ## 0
 -- /multi_elt_st/     l+ ## 0
--- /multi_elt_dc/     l+ ## 0
+-- /multi_elt_dc1/    l+ ## 0
+-- /multi_elt_dc2/    l+ ## 0

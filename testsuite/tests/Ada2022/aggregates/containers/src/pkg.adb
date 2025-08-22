@@ -14,13 +14,13 @@ package body Pkg is
          declare
             Elt : constant Integer := Input.First_Element; -- # single_elt_st
          begin
-            return [(if Elt > 0 then Elt else Elt) =>      -- # single_elt_dc
-                    (if Elt > 0 then Elt else Elt)];       -- # single_elt_dc
+            return [(if Elt > 0 then Elt else Elt) =>      -- # single_elt_dc1
+                    (if Elt > 0 then Elt else Elt)];       -- # single_elt_dc2
          end;
       else
          return [for Elt of Input use                  -- # multi_elt_st
-                   (if Elt > 0 then Elt else Elt) =>   -- # multi_elt_dc
-                   (if Elt > 0 then Elt else Elt)];    -- # multi_elt_dc
+                   (if Elt > 0 then Elt else Elt) =>   -- # multi_elt_dc1
+                   (if Elt > 0 then Elt else Elt)];    -- # multi_elt_dc2
       end if;
    end Overly_Complex_Identity_Build;
 
