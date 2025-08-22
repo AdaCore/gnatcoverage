@@ -446,7 +446,7 @@ package body Instrument.Ada_Unit is
 
    function Is_Generic
      (UIC  : Ada_Unit_Inst_Context;
-      Decl : Basic_Decl) return Boolean;
+      Decl : Basic_Decl'Class) return Boolean;
    --  Return whether the given declaration is generic (its canonical part is
    --  generic).
 
@@ -3633,7 +3633,7 @@ package body Instrument.Ada_Unit is
 
    procedure Traverse_Subprogram_Or_Task_Body
      (UIC : in out Ada_Unit_Inst_Context;
-      N   : Ada_Node);
+      N   : Body_Node'Class);
 
    procedure Traverse_Sync_Definition
      (UIC : in out Ada_Unit_Inst_Context;
@@ -4398,7 +4398,7 @@ package body Instrument.Ada_Unit is
             end;
          end if;
 
-         if Is_Generic (UIC, N.As_Basic_Decl) then
+         if Is_Generic (UIC, N) then
             if Is_Expr_Function then
                UIC.Disable_Instrumentation := True;
                Report (UIC, N,
@@ -5061,9 +5061,13 @@ package body Instrument.Ada_Unit is
             --  Package body
 
             when Ada_Package_Body =>
-               UIC.In_Generic := Is_Generic (UIC, N.As_Basic_Decl);
-               Traverse_Package_Body (UIC, N.As_Package_Body, Preelab);
-               UIC.In_Generic := Saved_In_Generic;
+               declare
+                  PB : constant Package_Body := N.As_Package_Body;
+               begin
+                  UIC.In_Generic := Is_Generic (UIC, PB);
+                  Traverse_Package_Body (UIC, PB, Preelab);
+                  UIC.In_Generic := Saved_In_Generic;
+               end;
 
             --  Subprogram declaration or subprogram body stub
 
@@ -5098,44 +5102,48 @@ package body Instrument.Ada_Unit is
 
             when Ada_Subp_Body
                | Ada_Task_Body
-               =>
-               UIC.In_Generic := Is_Generic (UIC, N.As_Basic_Decl);
+            =>
+               declare
+                  B : constant Body_Node := N.As_Body_Node;
+               begin
+                  UIC.In_Generic := Is_Generic (UIC, B);
 
-               Traverse_Subprogram_Or_Task_Body (UIC, N);
+                  Traverse_Subprogram_Or_Task_Body (UIC, B);
 
-               if Enabled (Fun_Call) then
-                  declare
-                     Fun_Witness : Node_Rewriting_Handle :=
-                       No_Node_Rewriting_Handle;
-                  begin
-                     --  Add a function SCO for this subprogram and fill
-                     --  Fun_Witness with a witness call for this new SCO. The
-                     --  witness call is within a dummy variable declaration.
+                  if B.Kind = Ada_Subp_Body and then Enabled (Fun_Call) then
+                     declare
+                        SB          : constant Subp_Body := N.As_Subp_Body;
+                        Fun_Witness : Node_Rewriting_Handle :=
+                          No_Node_Rewriting_Handle;
+                     begin
+                        --  Add a function SCO for this subprogram and fill
+                        --  Fun_Witness with a witness call for this new SCO.
+                        --  The witness call is within a dummy variable
+                        --  declaration.
 
-                     Instrument_For_Function_Coverage
-                       (UIC,
-                        N.As_Subp_Body.F_Subp_Spec,
-                        Function_Call,
-                        Fun_Witness);
+                        Instrument_For_Function_Coverage
+                          (UIC, SB.F_Subp_Spec, Function_Call, Fun_Witness);
 
-                     --  Put the dummy variable containing the witness call
-                     --  at the very top of the declarative part of this
-                     --  subprogram. This way, it will be executed as soon as
-                     --  the function is called.
+                        --  Put the dummy variable containing the witness call
+                        --  at the very top of the declarative part of this
+                        --  subprogram. This way, it will be executed as soon
+                        --  as the function is called.
 
-                     Insert_First
-                       (Handle (N.As_Subp_Body.F_Decls.F_Decls),
-                        Create_Function_Witness_Var (UIC, Fun_Witness));
-                  end;
-               end if;
+                        Insert_First
+                          (Handle (SB.F_Decls.F_Decls),
+                           Create_Function_Witness_Var (UIC, Fun_Witness));
+                     end;
+                  end if;
 
-               UIC.In_Generic := Saved_In_Generic;
+                  UIC.In_Generic := Saved_In_Generic;
+               end;
 
             --  Entry body
 
             when Ada_Entry_Body =>
                declare
-                  Cond : constant Expr := As_Entry_Body (N).F_Barrier;
+                  EB   : constant Entry_Body := N.As_Entry_Body;
+                  Cond : constant Expr := EB.F_Barrier;
                   Unit : LAL.Analysis_Unit;
 
                   Save_Disable_Instrumentation : constant Boolean :=
@@ -5151,7 +5159,7 @@ package body Instrument.Ada_Unit is
                        Save_Disable_Instrumentation;
                   end if;
 
-                  Traverse_Subprogram_Or_Task_Body (UIC, N);
+                  Traverse_Subprogram_Or_Task_Body (UIC, EB);
                end;
 
             --  Protected body
@@ -6114,7 +6122,7 @@ package body Instrument.Ada_Unit is
 
    procedure Traverse_Subprogram_Or_Task_Body
      (UIC : in out Ada_Unit_Inst_Context;
-      N   : Ada_Node)
+      N   : Body_Node'Class)
    is
       Decls   : Declarative_Part;
       HSS     : Handled_Stmts;
@@ -6156,10 +6164,10 @@ package body Instrument.Ada_Unit is
 
       declare
          Previous_Part : constant Basic_Decl :=
-           Safe_Previous_Part_For_Decl (N.As_Body_Node);
+           Safe_Previous_Part_For_Decl (N);
          Decl          : constant Basic_Decl :=
            (if Previous_Part.Is_Null
-            then N.As_Body_Node.P_Subp_Spec_Or_Null.P_Parent_Basic_Decl
+            then N.P_Subp_Spec_Or_Null.P_Parent_Basic_Decl
             else Previous_Part);
       begin
          Enter_Scope
@@ -7958,7 +7966,7 @@ package body Instrument.Ada_Unit is
 
    function Is_Generic
      (UIC  : Ada_Unit_Inst_Context;
-      Decl : Basic_Decl) return Boolean
+      Decl : Basic_Decl'Class) return Boolean
    is
       Canonical_Decl : Basic_Decl;
    begin
