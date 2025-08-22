@@ -39,7 +39,7 @@ with Traces_Source;  use Traces_Source;
 
 package Checkpoints is
 
-   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 19;
+   subtype Checkpoint_Version is Interfaces.Unsigned_32 range 1 .. 20;
    --  For compatibility with previous Gnatcov versions, the checkpoint
    --  file format is versioned.
    --
@@ -63,6 +63,8 @@ package Checkpoints is
    --  17 -- Add support for Fun_Call and Guarded Expression coverage
    --  18 -- Removed support for tags (separate coverage)
    --  19 -- Removed support for instance ids (separate coverage)
+   --  20 -- Rework Scope_Entity to identify scopes by their Start/End_Sloc
+   --        rather than their Start/End_SCO.
    --
    --  Note that we always use the last version when creating a checkpoint.
    --
@@ -115,7 +117,7 @@ package Checkpoints is
      (Relocs   : in out Checkpoint_Relocations;
       CP_CU_Id : CU_Id);
    --  Mark the source file index or compilation unit as ignored in the
-   --  checkpoint relocation. Tying to remap that source file index or
+   --  checkpoint relocation. Trying to remap that source file index or
    --  compilation unit will result in an error.
 
    procedure Ignore_SCO
