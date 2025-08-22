@@ -10047,7 +10047,6 @@ package body Instrument.Ada_Unit is
       UIC.Annotations.Clear;
       UIC.Scope_Entities := Scope_Entities_Trees.Empty_Tree;
       UIC.Current_Scope_Entity := UIC.Scope_Entities.Root;
-      UIC.Degenerate_Subprogram_Index := 0;
       UIC.Source_Decisions := Source_Decision_Vectors.Empty;
       UIC.Source_Conditions := Source_Condition_Vectors.Empty;
       UIC.Unit_Bits.Last_Statement_Bit := No_Bit_Id;
