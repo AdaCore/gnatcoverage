@@ -44,10 +44,11 @@ out units of interest: ``--units`` and ``--projects``.  Refer to
 :ref:`src_traces` for more information regarding the source instrumentation
 specific switches.
 
-As there is no project acting as a units of interest provider, the user must
-explicitly pass files of interest through the ``--files`` switch, which expects
-a list of full filenames that can be passed through the command line, or using a
-response file.
+As there is no project acting as a units of interest provider, every file that
+is not a system header is considered as a file of interest. The user can
+explicitly specify files of interest through the ``--files`` switch, which
+expects a list of full filenames that can be passed through the command line, or
+using a response file.
 
 To generate a compiler wrapper, use the ``--compilers`` switch. The list of
 supported compilers is ``gcc`` and ``g++``.
@@ -56,7 +57,9 @@ This will generate in the current directory, or in the directory specified by
 the ``--output-dir`` switch an executable compiler wrapper and a
 ``gnatcov_config.json`` file along. Note that this configuration file is used to
 configure various instrumentation options: it is thus very important that it
-resides in the same directory as the compiler wrapper.
+resides in the same directory as the compiler wrapper. Note that all of the
+instrumentation artifacts, notably SID files that must be passed later to
+|gcvcov|, are also generated in the current or specified output directory.
 
 
 Building an instrumented executable

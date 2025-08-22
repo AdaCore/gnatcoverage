@@ -54,6 +54,10 @@ package Instrument.Setup_Config is
    Instrumentation_Config_Filename : constant String := "gnatcov_config.json";
    --  Simple name of the file containing the instrumentation configuration
 
+   Every_File_Of_Interest : Boolean := False;
+   --  Whether every file is of interest or if it the list of files of
+   --  interest was specified by the user (using the --files switch).
+
    procedure Generate_Config
      (Files_Of_Interest : File_Sets.Set;
       Coverage_Level    : String;

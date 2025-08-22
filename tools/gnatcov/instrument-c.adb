@@ -34,6 +34,7 @@ with GNAT.Regpat; use GNAT.Regpat;
 with GNATCOLL.Mmap;
 with GNATCOLL.Utils;
 
+with Instrument.Setup_Config;
 with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
@@ -5808,6 +5809,24 @@ package body Instrument.C is
                              Column   => Column'Access);
       File := Create_Normalized (Get_C_String (C_File));
 
+      --  If every file is of interest, ignore code from system headers and
+      --  consider everything else as of interest. TODO??? we could add a
+      --  switch for users who want to cover the runtime.
+
+      if Instrument.Setup_Config.Every_File_Of_Interest then
+         if Location_Is_In_System_Header (Loc) then
+            return False;
+         else
+            --  If this source is of interest, and if it was not done yet,
+            --  record it in UIC.Files_Of_Interest and
+            --  UIC.Sources_Of_Interest_Info.
+
+            if not UIC.Files_Of_Interest.Contains (File) then
+               UIC.Files_Of_Interest.Insert (File);
+            end if;
+         end if;
+      end if;
+
       --  Look for a corresponding entry in UIC.Sources_Of_Interest, create one
       --  if it is missing.
 
@@ -5820,10 +5839,6 @@ package body Instrument.C is
          if Has_Element (Cur) then
             return UIC.Sources_Of_Interest_Info.Reference (Cur).Of_Interest;
          end if;
-
-         --  Consider that File is of interest iff it belongs to a loaded
-         --  project. TODO??? This should also consider units of interest
-         --  switches.
 
          if UIC.Files_Of_Interest.Contains (File) then
             declare
