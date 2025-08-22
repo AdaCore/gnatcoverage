@@ -4,7 +4,7 @@ with Ada.Containers.Ordered_Sets;
 package Pkg is
 
    package Int_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type => Positive, Element_Type => Integer);
+     (Key_Type => Integer, Element_Type => Integer);
    subtype Int_Map is Int_Maps.Map;
 
    package Int_Sets is new Ada.Containers.Ordered_Sets
