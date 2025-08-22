@@ -15,6 +15,6 @@ tmp = Wdir("tmp_")
 xcov_instrument(
     gprsw=GPRswitches(root_project=gprfor(mains=[], srcdirs=[".."])),
     covlevel="stmt",
-    tolerate_messages=r"\*\*\* pkg\.adb:\d+:\d+: warning: .*",
+    tolerate_messages=r"\*\*\* pkg\.(adb|ads):\d+:\d+: (low_)?warning: .*",
 )
 thistest.result()
