@@ -627,6 +627,8 @@ The list of unsupported constructs is as follows:
   the ``Pure_Barriers`` one apply.
 * Decisions in default expressions of subprogram formals (for all
   decision-related coverage criteria).
+* Decisions in default expressions of record component declarations (for MC/DC
+  coverage criteria).
 
 Additionally, if the Ada language version in use, is less or equal to Ada 2012,
 the following constructs are also unsupported:

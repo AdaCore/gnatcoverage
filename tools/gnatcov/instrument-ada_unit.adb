@@ -3660,6 +3660,13 @@ package body Instrument.Ada_Unit is
    --
    --  This also processes any nested declare expressions.
 
+   procedure Process_Expression_No_MCDC
+     (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character);
+   --  Wrapper around Process_Expression that temporarily removes the MCDC
+   --  state inserter. This convenience function allows to process expressions
+   --  in contexts where we know that we cannot insert MCDC state variables
+   --  (instrumenter limitation).
+
    procedure Process_Formal_Default_Exprs
      (UIC : in out Ada_Unit_Inst_Context; N_Spec : Subp_Spec);
    --  Process default expressions for formals in N_Spec
@@ -3754,6 +3761,9 @@ package body Instrument.Ada_Unit is
          N_Spec : Subp_Spec);
       --  Additional specific processing for the case of degenerate
       --  subprograms (null procedures and expression functions).
+
+      procedure Traverse_Component_List (CL : Component_List);
+      --  Traverse a list of components (if a type declaration)
 
       ------------------------------------------
       -- Utility functions for node synthesis --
@@ -4870,6 +4880,40 @@ package body Instrument.Ada_Unit is
          Remove_Child (Stub);
       end Traverse_Degenerate_Subprogram;
 
+      -----------------------------
+      -- Traverse_Component_List --
+      -----------------------------
+
+      procedure Traverse_Component_List (CL : Component_List) is
+      begin
+         for N of CL.F_Components loop
+            if N.Kind = Ada_Component_Decl then
+               declare
+                  C : constant Component_Decl := N.As_Component_Decl;
+               begin
+                  --  The component definition may contain an arbitrary
+                  --  expression in its type expression. This expression is
+                  --  evaluated as part as the type elaboration, so its MC/DC
+                  --  coverage can be computed using a variable in the local
+                  --  context.
+                  --
+                  --  However, the default expression is evaluated when
+                  --  creating a record value, so there is no appropriate room
+                  --  to insert the MC/DC local state variable.
+
+                  Process_Expression (UIC, C.F_Component_Def.As_Ada_Node, 'X');
+                  Process_Expression_No_MCDC (UIC, C.F_Default_Expr, 'X');
+               end;
+            end if;
+         end loop;
+
+         if not CL.F_Variant_Part.Is_Null then
+            for V of CL.F_Variant_Part.F_Variant loop
+               Traverse_Component_List (V.F_Components);
+            end loop;
+         end if;
+      end Traverse_Component_List;
+
       --------------------------------
       -- Traverse_Subp_Decl_Or_Stub --
       --------------------------------
@@ -5043,6 +5087,11 @@ package body Instrument.Ada_Unit is
                      Insert_Last (Handle (CUN.F_Prelude), With_PB_Clause);
                   end;
                end;
+
+            when Ada_Ada_Node_List =>
+               for Child of N.As_Ada_Node_List loop
+                  Traverse_One (Child.As_Ada_Node);
+               end loop;
 
             --  Package declaration
 
@@ -5610,6 +5659,57 @@ package body Instrument.Ada_Unit is
 
                Traverse_Sync_Definition (UIC, N);
 
+            when Ada_Base_Subtype_Decl
+               | Ada_Incomplete_Type_Decl
+               | Ada_Type_Decl
+            =>
+               --  Instrument the type declaration itself as a statement
+
+               declare
+                  Typ : Character;
+               begin
+                  if N.Kind = Ada_Subtype_Decl then
+                     Typ := 's';
+                  else
+                     Typ := 't';
+                     Process_Contract (UIC, N.As_Basic_Decl, "Type_Invariant");
+                  end if;
+
+                  Instrument_Statement (UIC, N, Typ);
+               end;
+
+               --  Process any embedded decisions
+
+               if N.Kind /= Ada_Concrete_Type_Decl then
+                  Process_Expression (UIC, N, 'X');
+                  return;
+               end if;
+
+               declare
+                  TD : constant Concrete_Type_Decl := N.As_Concrete_Type_Decl;
+               begin
+                  --  For concrete type declarations, the discriminant default
+                  --  expression may contain decisions, but is not evaluated
+                  --  during the type elaboration, so we cannot insert a MC/DC
+                  --  state variable here.
+
+                  Process_Expression_No_MCDC (UIC, TD.F_Discriminants, 'X');
+
+                  --  Default expressions for regular components behave the
+                  --  same: process them accordingly.
+
+                  if TD.F_Type_Def.Kind = Ada_Record_Type_Def then
+                     Traverse_Component_List
+                       (TD
+                        .F_Type_Def
+                        .As_Record_Type_Def
+                        .F_Record_Def
+                        .F_Components);
+                  else
+                     Process_Expression (UIC, TD.F_Type_Def, 'X');
+                  end if;
+               end;
+
             when Ada_Named_Stmt =>
                Traverse_One (N.As_Named_Stmt.F_Stmt.As_Ada_Node);
 
@@ -5657,14 +5757,6 @@ package body Instrument.Ada_Unit is
                   Typ : Character;
                begin
                   case N.Kind is
-                     when Ada_Base_Type_Decl =>
-                        if N.Kind = Ada_Subtype_Decl then
-                           Typ := 's';
-                        else
-                           Typ := 't';
-                           Process_Contract
-                             (UIC, N.As_Basic_Decl, "Type_Invariant");
-                        end if;
 
                      --  Entity declaration nodes that may also be used
                      --  for entity renamings.
@@ -7284,6 +7376,21 @@ package body Instrument.Ada_Unit is
          N.Traverse (Process_Case_Expr'Access);
       end if;
    end Process_Expression;
+
+   --------------------------------
+   -- Process_Expression_No_MCDC --
+   --------------------------------
+
+   procedure Process_Expression_No_MCDC
+     (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character)
+   is
+      UIC_SI   : Any_MCDC_State_Inserter renames UIC.MCDC_State_Inserter;
+      Saved_SI : constant Any_MCDC_State_Inserter := UIC_SI;
+   begin
+      UIC_SI := null;
+      Process_Expression (UIC, N, T);
+      UIC_SI := Saved_SI;
+   end Process_Expression_No_MCDC;
 
    ----------------------------------
    -- Process_Formal_Default_Exprs --
@@ -10242,9 +10349,13 @@ package body Instrument.Ada_Unit is
                        Enclosing_Decision (Condition);
                   begin
                      --  If the number of paths in the decision binary diagram
-                     --  exceeds the path count limit, we do not instrument it.
+                     --  exceeds the path count limit or if we could not find a
+                     --  way to create a MC/DC state local variable to track
+                     --  the path, we do not instrument the condition.
 
-                     if Path_Count (Decision) > Get_Path_Count_Limit then
+                     if SC.State = ""
+                        or else Path_Count (Decision) > Get_Path_Count_Limit
+                     then
                         Set_Decision_SCO_Non_Instr_For_MCDC (Decision);
                      else
                         Insert_Condition_Witness
