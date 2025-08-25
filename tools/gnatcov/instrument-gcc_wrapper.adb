@@ -775,6 +775,15 @@ is
    Has_Link_Command : Boolean := False;
    --  Indicates whether the compiler driver command creates an executable
 
+   Manual_Dump_Helper_Generated : Boolean := False;
+   --  When in manual dump trigger mode, true if we instrumented a file with a
+   --  dump or reset indication.
+
+   Manual_Dump_Helper_Unit_Name : Unbounded_String;
+   --  When in manual dump trigger mode, holds the name of the manual dump
+   --  helper unit. It is only generated and valid when
+   --  `Manual_Dump_Helper_Generated` is True.
+
 --  Start of processing for Compiler_Wrappers.GCC
 
 begin
@@ -894,9 +903,54 @@ begin
             end;
          end if;
 
-         --  Then, instrument it as a main if it is one
+         if Instr_Config.Dump_Config.Trigger = Manual then
+            --  When in manual dump trigger mode, check if the current file is
+            --  expected to contain a manual dump/reset indication.
 
-         if Instrumenter.Has_Main (Fullname, Prj) then
+            declare
+               V_File : constant Virtual_File := Create_From_UTF8 (Fullname);
+               Has_Dump_Indication  : Boolean := False;
+               Has_Reset_Indication : Boolean := False;
+            begin
+               if Instr_Config.Dump_Config.Manual_Indication_Files
+                  .Contains (V_File)
+               then
+                  --  If the file is expected to contain indications, run the
+                  --  substitution engine and find out if substitutions where
+                  --  indeed made.
+
+                  Instrumenter.Replace_Manual_Indications
+                    (Prj, V_File, Has_Dump_Indication, Has_Reset_Indication);
+
+                  if Has_Dump_Indication or else Has_Reset_Indication then
+                     if not Manual_Dump_Helper_Generated then
+
+                        --  Compute the dump helper file name.
+
+                        Manual_Dump_Helper_Unit_Name :=
+                           Instrumenter.Dump_Manual_Helper_Unit
+                             (Prj).Unit_Name;
+
+                        --  Generate the dump helper file.
+
+                        Instrumenter.Emit_Dump_Helper_Unit_Manual
+                          (Instr_Config.Dump_Config, Prj);
+
+                        --  Set the Manual_Dump_Helper_Generated flag to avoid
+                        --  re-emitting the dump helper.
+
+                        Manual_Dump_Helper_Generated := True;
+                     end if;
+
+                     Comp_Command_Ref.Instrumentation_Sources.Append
+                       (Manual_Dump_Helper_Unit_Name);
+                  end if;
+
+                  Instrumented_Files.Include (+Fullname);
+               end if;
+            end;
+         elsif Instrumenter.Has_Main (Fullname, Prj) then
+            --  Then, instrument it as a main if it is one
 
             --  Pick as the trace name prefix the base name of the main
             --  filename
@@ -908,13 +962,18 @@ begin
 
             Instrumenter.Auto_Dump_Buffers_In_Main
               (Instr_Name, Instr_Config.Dump_Config, Prj);
-            Comp_Command_Ref.Instrumentation_Sources.Append
-              (Instrumenter.Dump_Helper_Unit
-                 (Compilation_Unit'
-                      (File_Based_Language, +Instr_Name),
-                  Prj)
-               .Unit_Name);
+
+            declare
+               Unit_Name : constant Unbounded_String :=
+                  Instrumenter.Dump_Helper_Unit
+                    (Compilation_Unit'(File_Based_Language, +Instr_Name),
+                     Prj).Unit_Name;
+            begin
+               Comp_Command_Ref.Instrumentation_Sources.Append (Unit_Name);
+            end;
+
             Instrumented_Files.Include (+Fullname);
+
          end if;
       end;
    end loop;
