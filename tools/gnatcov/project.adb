@@ -358,6 +358,7 @@ package body Project is
         --  --restricted-to-languages switch.
 
         or else not Src_Enabled_Languages (Unit.Language)
+        or else not Warn_About_Missing_Info
       then
          return;
       end if;

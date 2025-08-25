@@ -8017,16 +8017,18 @@ package body Instrument.Ada_Unit is
            Kind                => Files_Table.Source_File,
            Indexed_Simple_Name => True);
       New_Scope_Ent : constant Scope_Entity :=
-        (From       => SCO_Id (SCOs.SCO_Table.Last + 1),
-         To         => No_SCO_Id,
-         Start_Sloc => Local_Sloc (Start_Sloc (N.Sloc_Range)),
-         End_Sloc   => Local_Sloc (End_Sloc (N.Sloc_Range)),
-         Name       =>
+        (Source_Range => Slocs.Source_Location_Range'
+           (Source_File  => UIC.SFI,
+            L         => Slocs.Local_Source_Location_Range'
+              (First_Sloc => Local_Sloc (Start_Sloc (N.Sloc_Range)),
+               Last_Sloc  => Local_Sloc (End_Sloc (N.Sloc_Range)))),
+         Name         =>
            +Langkit_Support.Text.To_UTF8 (Decl.P_Defining_Name.F_Name.Text),
-         Sloc       => Local_Sloc (Sloc (N)),
-         Identifier =>
+         Sloc         => Local_Sloc (Sloc (N)),
+         Identifier   =>
            (Decl_SFI  => Decl_SFI,
-            Decl_Line => Natural (Decl.Sloc_Range.Start_Line)));
+            Decl_Line => Natural (Decl.Sloc_Range.Start_Line)),
+         Start_SCO    => SCO_Id (SCOs.SCO_Table.Last + 1));
       Inserted : Scope_Entities_Trees.Cursor;
    begin
       UIC.Scope_Entities.Insert_Child
@@ -8044,20 +8046,16 @@ package body Instrument.Ada_Unit is
    procedure Exit_Scope (UIC : in out Ada_Unit_Inst_Context)
    is
       use Scope_Entities_Trees;
+      Cur_Scope    : Scope_Entity renames
+        Scope_Entities_Trees.Element (UIC.Current_Scope_Entity);
       Parent_Scope : constant Cursor := Parent (UIC.Current_Scope_Entity);
       --  Latch the parent value before UIC.Current_Scope_Entity is freed
 
-      Scope : constant Reference_Type :=
-        UIC.Scope_Entities.Reference (UIC.Current_Scope_Entity);
    begin
-      --  Update the last SCO for this scope entity
-
-      Scope.To := SCO_Id (SCOs.SCO_Table.Last);
-
       --  If the scope has no SCO (it could be possible for a package spec with
       --  only subprogram declarations for instance), discard it.
 
-      if Scope.To < Scope.From then
+      if SCO_Id (SCOs.SCO_Table.Last) < Cur_Scope.Start_SCO then
          UIC.Scope_Entities.Delete_Leaf (UIC.Current_Scope_Entity);
       end if;
 
@@ -10047,7 +10045,6 @@ package body Instrument.Ada_Unit is
       UIC.Annotations.Clear;
       UIC.Scope_Entities := Scope_Entities_Trees.Empty_Tree;
       UIC.Current_Scope_Entity := UIC.Scope_Entities.Root;
-      UIC.Degenerate_Subprogram_Index := 0;
       UIC.Source_Decisions := Source_Decision_Vectors.Empty;
       UIC.Source_Conditions := Source_Condition_Vectors.Empty;
       UIC.Unit_Bits.Last_Statement_Bit := No_Bit_Id;
@@ -10278,11 +10275,6 @@ package body Instrument.Ada_Unit is
          end loop;
 
          Set_Bit_Maps (UIC.CU, Bit_Maps);
-
-          --  Remap low level SCOS in Scope_Entity records to high-level SCOs.
-          --  See the comment for Scope_Entity.From/To.
-
-         Remap_Scope_Entities (UIC.Scope_Entities, SCO_Map);
          Set_Scope_Entities (UIC.CU, UIC.Scope_Entities);
 
          --  Remap low level SCOs in blocks to high level SCOs
@@ -10394,9 +10386,6 @@ package body Instrument.Ada_Unit is
             CU_Name : constant Compilation_Unit_Part := CU_Names.Element (I);
             CU : constant CU_Id := CUs.Element (I);
 
-            Fingerprint : Unbounded_String;
-            --  Fingerprint for the instrumented unit
-
             Unit_Name : constant String := Ada.Characters.Handling.To_Lower
               (To_Ada (CU_Name.Unit));
             --  Lower-case name for the instrumented unit
@@ -10418,24 +10407,10 @@ package body Instrument.Ada_Unit is
 
             Suffix : constant String := "_" & Img (I);
 
+            SCOs_Fingerprint : constant SC_Obligations.Fingerprint_Type :=
+              SC_Obligations.Fingerprint (CU);
+
          begin
-            --  Turn the fingerprint value into the corresponding Ada literal
-
-            declare
-               First : Boolean := True;
-            begin
-               Append (Fingerprint, "(");
-               for Byte of SC_Obligations.Fingerprint (CU) loop
-                  if First then
-                     First := False;
-                  else
-                     Append (Fingerprint, ", ");
-                  end if;
-                  Append (Fingerprint, Strings.Img (Integer (Byte)));
-               end loop;
-               Append (Fingerprint, ")");
-            end;
-
             --  Create declarations for individual buffers (statement, decision
             --  and MC/DC) as well as their exported addresses. Put this in
             --  an individual package, to avoid having to suffix each
@@ -10485,24 +10460,25 @@ package body Instrument.Ada_Unit is
             File.Put_Line ("   Buffers : aliased constant"
                            & " GNATcov_RTS_Coverage_Buffers :=");
             File.Put_Line ("     (Fingerprint => "
-                           & Format_Fingerprint
-                             (SC_Obligations.Fingerprint (CU))
-                           & ",");
+                           & Format_Fingerprint (SCOs_Fingerprint) & ",");
 
             File.Put_Line ("      Language  => Unit_Based_Language,");
             File.Put_Line ("      Unit_Part => " & Unit_Part & ",");
             File.Put_Line ("      Unit_Name =>"
                            & " (Unit_Name'Address, Unit_Name'Length),");
 
-            File.Put_Line ("      Bit_Maps_Fingerprint => "
-                           & Format_Fingerprint
-                             (SC_Obligations.Bit_Maps_Fingerprint (CU))
-                           & ",");
+            File.Put_Line
+              ("      Bit_Maps_Fingerprint => "
+               & Format_Fingerprint
+                   (SC_Obligations.Bit_Maps_Fingerprint (CU, SCOs_Fingerprint))
+               & ",");
 
-            File.Put_Line ("      Annotations_Fingerprint => "
-                           & Format_Fingerprint
-                             (SC_Obligations.Annotations_Fingerprint (CU))
-                           & ",");
+            File.Put_Line
+              ("      Annotations_Fingerprint => "
+               & Format_Fingerprint
+                 (SC_Obligations.Annotations_Fingerprint
+                    (CU, SCOs_Fingerprint))
+               & ",");
 
             File.Put_Line ("      Statement => Statement_Buffer'Address,");
             File.Put_Line ("      Decision  => Decision_Buffer'Address,");

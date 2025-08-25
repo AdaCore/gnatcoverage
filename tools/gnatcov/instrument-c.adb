@@ -34,6 +34,7 @@ with GNAT.Regpat; use GNAT.Regpat;
 with GNATCOLL.Mmap;
 with GNATCOLL.Utils;
 
+with Instrument.Setup_Config;
 with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
@@ -200,15 +201,6 @@ package body Instrument.C is
    --  from UIC.Scopes if it does not contain SCOs. Assume that the last
    --  generated SCO (SCOs.SCO_Table.Last) is the last SCO for the current
    --  scope.
-
-   procedure Remap_Scopes
-     (Scopes  : in out Scopes_In_Files_Map.Map;
-      SCO_Map : LL_HL_SCO_Map);
-   --  Convert low level SCOs in each scope for each file to high-level SCOs
-   --  using the mapping in SCO_Map. Set the file's SCO range to cover all of
-   --  its scopes' SCO ranges.
-   --
-   --  Also remove from the Scopes map empty file scopes.
 
    overriding procedure Append_SCO
      (Pass               : Instrument_Pass_Kind;
@@ -708,13 +700,17 @@ package body Instrument.C is
                File_Scope    : constant Scopes_In_Files_Map.Reference_Type :=
                  UIC.Scopes.Reference (File_Scope_Position);
                New_Scope_Ent : constant Scope_Entity :=
-                 (From       => SCO_Id (SCOs.SCO_Table.Last + 1),
-                  To         => No_SCO_Id,
-                  Start_Sloc => (Line => 1, Column => 0),
-                  End_Sloc   => No_Local_Location,
-                  Name       => +Get_Simple_Name (SFI),
-                  Sloc       => (Line => 1, Column => 0),
-                  Identifier => (Decl_SFI => SFI, Decl_Line => 0));
+                 (Source_Range => Source_Location_Range'
+                    (Source_File => SFI,
+                     L           => Local_Source_Location_Range'
+                       (First_Sloc => (Line => 1, Column => 0),
+                        Last_Sloc  => (Line => Natural'Last, Column => 0))),
+                  Name         => +Get_Simple_Name (SFI),
+                  Sloc         => (Line => 1, Column => 0),
+                  Identifier   => (Decl_SFI => SFI, Decl_Line => 0),
+                  Start_SCO    => No_SCO_Id);
+               --  Set Last_Sloc to Natural'Last so that it defaults to the
+               --  whole file as long as the scope is not closed.
 
                Scope_Entity_Position : Scope_Entities_Trees.Cursor;
             begin
@@ -752,13 +748,15 @@ package body Instrument.C is
          File_Scope    : constant Scopes_In_Files_Map.Reference_Type :=
            UIC.Scopes.Reference (C);
          New_Scope_Ent : constant Scope_Entity :=
-           (From       => SCO_Id (SCOs.SCO_Table.Last + 1),
-            To         => No_SCO_Id,
-            Start_Sloc => Sloc.L,
-            End_Sloc   => End_Sloc (N).L,
+           (Source_Range => Source_Location_Range'
+              (Source_File => File,
+               L           => Local_Source_Location_Range'
+                 (First_Sloc => Sloc.L,
+                  Last_Sloc  => End_Sloc (N).L)),
             Name       => +Get_Decl_Name_Str (N),
             Sloc       => Sloc.L,
-            Identifier => (Decl_SFI => File, Decl_Line => Sloc.L.Line));
+            Identifier => (Decl_SFI => File, Decl_Line => Sloc.L.Line),
+            Start_SCO  => No_SCO_Id);
          Inserted      : Scope_Entities_Trees.Cursor;
       begin
          --  Add New_Scope_Ent to the children of the last open scope in the
@@ -786,58 +784,13 @@ package body Instrument.C is
    is
       File_Scope_Ref   : constant Scopes_In_Files_Map.Reference_Type :=
         UIC.Scopes.Reference (UIC.Current_File_Scope);
-      Scope_Entity_Ref : constant Scope_Entities_Trees.Reference_Type :=
-        File_Scope_Ref.Scope_Entities.Reference
-          (File_Scope_Ref.Current_Scope_Entity);
       Parent           : constant Scope_Entities_Trees.Cursor :=
         Scope_Entities_Trees.Parent (File_Scope_Ref.Current_Scope_Entity);
    begin
-      Scope_Entity_Ref.To := SCO_Id (SCOs.SCO_Table.Last);
-
-      --  Discard the scope entity if it has no associated SCOs
-
-      if Scope_Entity_Ref.To < Scope_Entity_Ref.From then
-         File_Scope_Ref.Scope_Entities.Delete_Leaf
-           (File_Scope_Ref.Current_Scope_Entity);
-      else
-         --  Update the last SCO for the file scope
-
-         File_Scope_Ref.Scope_Entities.Reference
-           (File_Scope_Ref.File_Scope_Entity).To := Scope_Entity_Ref.To;
-      end if;
-
       --  Go back to the parent scope entity
 
       File_Scope_Ref.Current_Scope_Entity := Parent;
    end Exit_Scope;
-
-   ------------------
-   -- Remap_Scopes --
-   ------------------
-
-   procedure Remap_Scopes
-     (Scopes  : in out Scopes_In_Files_Map.Map;
-      SCO_Map : LL_HL_SCO_Map)
-   is
-      Res : Scopes_In_Files_Map.Map;
-   begin
-      for Cur in Scopes.Iterate loop
-         declare
-            File_Scope        : File_Scope_Type :=
-              Scopes_In_Files_Map.Element (Cur);
-            File_Scope_Entity : Scope_Entity renames
-              Scope_Entities_Trees.Element (File_Scope.File_Scope_Entity);
-         begin
-            --  If the file scope is empty, do not add it to the resulting map
-
-            if File_Scope_Entity.To >= File_Scope_Entity.From then
-               Remap_Scope_Entities (File_Scope.Scope_Entities, SCO_Map);
-               Res.Insert (Scopes_In_Files_Map.Key (Cur), File_Scope);
-            end if;
-         end;
-      end loop;
-      Scopes := Res;
-   end Remap_Scopes;
 
    ----------------
    -- Append_SCO --
@@ -4057,8 +4010,6 @@ package body Instrument.C is
 
          --  Iterate through the package level body entities
 
-         Remap_Scopes (UIC.Scopes, SCO_Map);
-
          for C in UIC.Scopes.Iterate loop
             declare
                CU : constant Created_Unit_Maps.Cursor :=
@@ -4342,6 +4293,10 @@ package body Instrument.C is
             --  Name of the gnatcov_rts_coverage_buffers struct for this
             --  source file.
 
+            SCOs_Fingerprint : constant SC_Obligations.Fingerprint_Type :=
+              SC_Obligations.Fingerprint (CU);
+            --  SCOs fingerprint for the unit
+
          begin
             File.Put_Line ("/* Buffers for " & Get_Full_Name (SFI) & " */");
 
@@ -4376,7 +4331,7 @@ package body Instrument.C is
                & Buffers_Struct & " = {"
                & ASCII.LF
                & "/*  .fingerprint =               */ "
-               & Format_Fingerprint (SC_Obligations.Fingerprint (CU)) & ","
+               & Format_Fingerprint (SCOs_Fingerprint) & ","
                & ASCII.LF
                & "/*  .language_kind =             */ FILE_BASED_LANGUAGE,"
                & ASCII.LF
@@ -4400,13 +4355,15 @@ package body Instrument.C is
                & ASCII.LF
 
                & "/*  .bit_maps_fingerprint =      */ "
-               & Format_Fingerprint (SC_Obligations.Bit_Maps_Fingerprint (CU))
+               & Format_Fingerprint
+                  (SC_Obligations.Bit_Maps_Fingerprint (CU, SCOs_Fingerprint))
                & ","
                & ASCII.LF
 
                & "/*  .annotations_fingerprint =   */ "
                & Format_Fingerprint
-                 (SC_Obligations.Annotations_Fingerprint (CU))
+                 (SC_Obligations.Annotations_Fingerprint
+                    (CU, SCOs_Fingerprint))
                & ","
                & ASCII.LF
 
@@ -5808,6 +5765,24 @@ package body Instrument.C is
                              Column   => Column'Access);
       File := Create_Normalized (Get_C_String (C_File));
 
+      --  If every file is of interest, ignore code from system headers and
+      --  consider everything else as of interest. TODO??? we could add a
+      --  switch for users who want to cover the runtime.
+
+      if Instrument.Setup_Config.Every_File_Of_Interest then
+         if Location_Is_In_System_Header (Loc) then
+            return False;
+         else
+            --  If this source is of interest, and if it was not done yet,
+            --  record it in UIC.Files_Of_Interest and
+            --  UIC.Sources_Of_Interest_Info.
+
+            if not UIC.Files_Of_Interest.Contains (File) then
+               UIC.Files_Of_Interest.Insert (File);
+            end if;
+         end if;
+      end if;
+
       --  Look for a corresponding entry in UIC.Sources_Of_Interest, create one
       --  if it is missing.
 
@@ -5820,10 +5795,6 @@ package body Instrument.C is
          if Has_Element (Cur) then
             return UIC.Sources_Of_Interest_Info.Reference (Cur).Of_Interest;
          end if;
-
-         --  Consider that File is of interest iff it belongs to a loaded
-         --  project. TODO??? This should also consider units of interest
-         --  switches.
 
          if UIC.Files_Of_Interest.Contains (File) then
             declare

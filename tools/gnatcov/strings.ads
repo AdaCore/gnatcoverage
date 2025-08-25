@@ -59,7 +59,8 @@ package Strings is
    --  Assuming that L and R are not null, return true iff L.all < R.all
 
    function Img (I : Integer) return String;
-   --  Same as Integer'Image without the starting space character
+   function Img (H : Ada.Containers.Hash_Type) return String;
+   --  Same as <type>'Image without the starting space character
 
    function Has_Prefix (S : String; Prefix : String) return Boolean;
    --  True if S starts with Prefix

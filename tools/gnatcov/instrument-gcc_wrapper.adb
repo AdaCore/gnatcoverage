@@ -853,33 +853,45 @@ begin
          Fullname    : constant String := +Comp_Command.File.Full_Name;
          Simple_Name : constant String := +Comp_Command.File.Base_Name;
          Instr_Name  : constant String := (+Prj.Output_Dir) / Simple_Name;
-
-         FI : constant File_To_String_Maps.Cursor :=
-           Instr_Config.File_To_SID.Find (Comp_Command.File);
       begin
          --  Start by instrumenting the file as a source, if it is a unit of
          --  interest.
 
-         if File_To_String_Maps.Has_Element (FI) then
+         if Every_File_Of_Interest
+           or else Instr_Config.File_To_SID.Contains (Comp_Command.File)
+         then
+            declare
+               --  If every file is of interest, then compute the SID name
+               --  according to the basename + the hash of the fullname.
+               --  This has the downside of making the SID name system-
+               --  dependent, but a typical use case across systems would
+               --  involve using checkpoint, thus removing this worry.
 
-            --  Pass the compiler switches through the project description
+               SID_Name : constant String :=
+                 (if Every_File_Of_Interest
+                  then Ada.Directories.Base_Name (Fullname)
+                  & Img (Full_Name_Hash (Comp_Command.File))
+                  & Ada.Directories.Extension (Fullname) & ".sid"
+                  else +Instr_Config.File_To_SID.Element (Comp_Command.File));
+            begin
 
-            Instrument.Source
-              (Unit_Name         => Fullname,
-               SID_Name          =>
-                 Compiler_Wrapper_Dir /
-                   (+File_To_String_Maps.Element (FI)),
-               Instrumenter      => Instrumenter,
-               Files_Of_Interest => Files_Of_Interest,
-               Prj               => Prj);
+               --  Pass the compiler switches through the project description
 
-            Comp_Command_Ref.Instrumentation_Sources.Append
-              (Instrumenter.Buffer_Unit
-                 (Compilation_Unit'
-                    (File_Based_Language, Full_Name (Comp_Command.File)),
-                  Prj)
-               .Unit_Name);
-            Instrumented_Files.Include (+Fullname);
+               Instrument.Source
+                 (Unit_Name         => Fullname,
+                  SID_Name          => Compiler_Wrapper_Dir / SID_Name,
+                  Instrumenter      => Instrumenter,
+                  Files_Of_Interest => Files_Of_Interest,
+                  Prj               => Prj);
+
+               Comp_Command_Ref.Instrumentation_Sources.Append
+                 (Instrumenter.Buffer_Unit
+                    (Compilation_Unit'
+                         (File_Based_Language, Full_Name (Comp_Command.File)),
+                     Prj)
+                  .Unit_Name);
+               Instrumented_Files.Include (+Fullname);
+            end;
          end if;
 
          --  Then, instrument it as a main if it is one

@@ -61,6 +61,12 @@ package body Strings is
       return Result (First .. Result'Last);
    end Img;
 
+   function Img (H : Ada.Containers.Hash_Type) return String is
+      Result : constant String := Ada.Containers.Hash_Type'Image (H);
+   begin
+      return Result (Result'First + 1 .. Result'Last);
+   end Img;
+
    ---------
    -- "<" --
    ---------

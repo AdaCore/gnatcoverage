@@ -409,6 +409,9 @@ package body Instrument.Setup_Config is
          FOI_JSON : constant JSON_Array :=
            Config_JSON.Get ("files-of-interest");
       begin
+         if Is_Empty (FOI_JSON) then
+            Every_File_Of_Interest := True;
+         end if;
          for FOI of FOI_JSON loop
             Result.File_To_SID.Insert
               (Create_Normalized (FOI.Get ("source-file")),
