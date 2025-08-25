@@ -3733,9 +3733,9 @@ package body Instrument.Ada_Unit is
       procedure Process_Contract
         (UIC  : in out Ada_Unit_Inst_Context;
          D    : Basic_Decl'Class;
-         Name : Text_Type)
-        with Pre => Assertion_Coverage_Enabled;
-      --  Register decision of contrat of name Name of declaration node D
+         Name : Text_Type);
+      --  If Assertion_Coverage_Enabled is False, do nothing. Otherwise,
+      --  register decision of contrat of name Name of declaration node D
 
       procedure Traverse_One (N : Ada_Node);
       --  Traverse one declaration or statement
@@ -4017,10 +4017,12 @@ package body Instrument.Ada_Unit is
          D    : Basic_Decl'Class;
          Name : Text_Type) is
       begin
-         Process_Expression
-           (UIC,
-            P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)),
-           'A');
+         if Assertion_Coverage_Enabled then
+            Process_Expression
+              (UIC,
+               P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)),
+              'A');
+         end if;
       end Process_Contract;
 
       ------------------------------------
@@ -4879,10 +4881,8 @@ package body Instrument.Ada_Unit is
 
          procedure Process_Contracts (D : Basic_Decl'Class) is
          begin
-            if Assertion_Coverage_Enabled then
-               Process_Contract (UIC, D, "Pre");
-               Process_Contract (UIC, D, "Post");
-            end if;
+            Process_Contract (UIC, D, "Pre");
+            Process_Contract (UIC, D, "Post");
          end Process_Contracts;
 
          Dummy_Ctx : constant Context_Handle := Create_Context_Instrument (N);
@@ -5662,10 +5662,8 @@ package body Instrument.Ada_Unit is
                            Typ := 's';
                         else
                            Typ := 't';
-                           if Assertion_Coverage_Enabled then
-                              Process_Contract
-                                (UIC, N.As_Basic_Decl, "Type_Invariant");
-                           end if;
+                           Process_Contract
+                             (UIC, N.As_Basic_Decl, "Type_Invariant");
                         end if;
 
                      --  Entity declaration nodes that may also be used
