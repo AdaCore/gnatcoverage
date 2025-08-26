@@ -356,6 +356,7 @@ package body Subprocesses is
       Success : constant Boolean := Wait (Self.Handles (Id)) = 0;
       Info    : Process_Info renames Self.Process_Infos (Id);
    begin
+      Self.Handles (Id) := Invalid_Handle;
       Self.Nb_Running_Processes := Self.Nb_Running_Processes - 1;
 
       --  Dump the output of the process that terminated to stdout if it was
@@ -474,6 +475,7 @@ package body Subprocesses is
    procedure Initialize (Pool : in out Process_Pool) is
    begin
       Create_Temporary_Directory (Pool.Output_Dir, "gnatcov_outputs");
+      Pool.Handles := (others => Invalid_Handle);
       Pool.Nb_Running_Processes := 0;
    end Initialize;
 
