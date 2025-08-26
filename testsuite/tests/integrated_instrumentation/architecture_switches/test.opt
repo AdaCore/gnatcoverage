@@ -1,0 +1,12 @@
+--  This tests the fixes that makes gnatcov pass the architecture-specific
+--  compiler switches (-m*) to:
+--
+--    1. the compilation of buffer units,
+--    2. the compilation of buffer list units,
+--    3. the partial linking command that merges object files for the buffer
+--       unit and the corresponding "user" unit.
+--
+--  Since 1 and 2 are just data units (they contain no subprogram), the only
+--  switch that is relevant in this context is "-m32" from x86_64 toolchains,
+--  so running this test makes no sense in other contexts.
+!x86_64 DEAD
