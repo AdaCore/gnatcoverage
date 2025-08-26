@@ -525,8 +525,12 @@ package body SC_Obligations is
    Removed_SCO_Descriptor : constant SCO_Descriptor := (Kind => Removed);
 
    package SCO_Vectors is new Ada.Containers.Vectors
-       (Index_Type   => Valid_SCO_Id,
-        Element_Type => SCO_Descriptor);
+     (Index_Type   => Valid_SCO_Id,
+      Element_Type => SCO_Descriptor);
+
+   package SCO_To_CU_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Valid_SCO_Id,
+      Element_Type => CU_Id);
 
    function Next_BDD_Node
      (SCO   : SCO_Id;
@@ -566,9 +570,10 @@ package body SC_Obligations is
    --  contain data loaded from a checkpoint.
 
    type Source_Coverage_Vectors is record
-      CU_Vector   : CU_Info_Vectors.Vector;
-      BDD_Vector  : BDD.BDD_Vectors.Vector;
-      SCO_Vector  : SCO_Vectors.Vector;
+      CU_Vector        : CU_Info_Vectors.Vector;
+      BDD_Vector       : BDD.BDD_Vectors.Vector;
+      SCO_Vector       : SCO_Vectors.Vector;
+      SCO_To_CU_Vector : SCO_To_CU_Vectors.Vector;
    end record;
 
    function Index
@@ -957,6 +962,10 @@ package body SC_Obligations is
 
    SCO_Vector : SCO_Vectors.Vector renames SC_Vectors.SCO_Vector;
    --  Vector of high-level Source Coverage Obligations (for all units)
+
+   SCO_To_CU_Vector : SCO_To_CU_Vectors.Vector renames
+     SC_Vectors.SCO_To_CU_Vector;
+   --  Mapping of SCO_Id to CU, for performance purposes
 
    -----------
    -- Image --
@@ -1700,6 +1709,7 @@ package body SC_Obligations is
                     (Files_Table.Last_Line (Get_File (Cur_Source_File)),
                      New_SCOD.Sloc_Range.L.Last_Sloc.Line);
                   SCO_Vector.Append (New_SCOD);
+                  SCO_To_CU_Vector.Append (Real_CU_Id);
 
                   --  Add it into the Sloc_To_SCO_Map
 
@@ -3021,6 +3031,7 @@ package body SC_Obligations is
                                  others     => <>);
                         end case;
                         SCO_Vector.Append (SCOD);
+                        SCO_To_CU_Vector.Append (CUID);
                         SCO := SCO_Vector.Last_Index;
 
                         --  Keep a reference to the just added SCO id.
@@ -3069,6 +3080,7 @@ package body SC_Obligations is
       CU_Vector.Clear;
       BDD_Vector.Clear;
       SCO_Vector.Clear;
+      SCO_To_CU_Vector.Clear;
    end Checkpoint_Clear;
 
    ---------------------
@@ -3879,18 +3891,10 @@ package body SC_Obligations is
 
    function Comp_Unit (SCO : SCO_Id) return CU_Id is
    begin
-      --  TODO??? we are losing the logarithmic complexity
-
-      for Cur in CU_Vector.Iterate loop
-         declare
-            CU : constant CU_Id := CU_Info_Vectors.To_Index (Cur);
-         begin
-            if In_CU (CU, SCO) then
-               return CU;
-            end if;
-         end;
-      end loop;
-      return No_CU_Id;
+      if SCO = No_SCO_Id then
+         return No_CU_Id;
+      end if;
+      return SCO_To_CU_Vector.Element (SCO);
    end Comp_Unit;
 
    -----------
@@ -4771,6 +4775,7 @@ package body SC_Obligations is
          New_SCO : SCO_Id;
       begin
          SCO_Vector.Append (SCOD);
+         SCO_To_CU_Vector.Append (CU);
          New_SCO := SCO_Vector.Last_Index;
          if SCO_Map /= null then
             SCO_Map (SCO_Index) := New_SCO;
