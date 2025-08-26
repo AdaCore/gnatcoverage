@@ -133,8 +133,13 @@ package SC_Obligations is
    No_Fingerprint : constant Fingerprint_Type := (others => 0);
 
    function Fingerprint (CU : CU_Id) return Fingerprint_Type;
-   --  Assuming the CU has only one SID version, return its fingerprint. See
-   --  CU_Info.SID_Info for more information.
+   --  Hash of SCO info in ALI, for incremental coverage consistency check
+
+   function Bit_Maps_Fingerprint (CU : CU_Id) return Fingerprint_Type;
+   --  Hash of buffer bit mappings in CU
+
+   function Annotations_Fingerprint (CU : CU_Id) return Fingerprint_Type;
+   --  Hash of annotations in CU
 
    function Comp_Unit (Src_File : Source_File_Index) return CU_Id;
    --  Return the identifier for the compilation unit containing the given
@@ -255,6 +260,14 @@ package SC_Obligations is
    --
    --  Deps are the dependencies of the compilation.
 
+   ---------------
+   -- Instances --
+   ---------------
+
+   type Inst_Id is new Natural;
+   No_Inst_Id : constant Inst_Id := 0;
+   subtype Valid_Inst_Id is Inst_Id range No_Inst_Id + 1 .. Inst_Id'Last;
+
    ---------------------------------
    -- Source Coverage Obligations --
    ---------------------------------
@@ -296,10 +309,15 @@ package SC_Obligations is
       else L.Decl_SFI < R.Decl_SFI);
 
    type Scope_Entity is record
-      Source_Range : Source_Location_Range;
-      --  Source_Location_Range for this scope. This is more precise than the
-      --  SCO range as the SCO range may skip over lines with disabled
-      --  coverage, which we want to report on.
+      From, To : SCO_Id;
+      --  SCO range for this scope. As scope entities are computed during
+      --  instrumentation, From and To designate low level SCOs that are then
+      --  converted to high level SCOs after processing the low level SCOs.
+
+      Start_Sloc, End_Sloc : Local_Source_Location;
+      --  Start/End_Sloc for this scope. This is more precise than the SCO
+      --  range as the SCO range may skip over lines with disabled coverage,
+      --  which we want to report on.
 
       Name : Unbounded_String;
       Sloc : Local_Source_Location;
@@ -307,14 +325,6 @@ package SC_Obligations is
 
       Identifier : Scope_Entity_Identifier;
       --  Identifier for this scope entity
-
-      --  Below are the fields only used when instrumenting and not stored in
-      --  checkpoints.
-
-      Start_SCO : SCO_Id;
-      --  Index of the expected start SCO. This is used to discard scopes
-      --  without any SCOs at instrumentation time.
-
    end record;
    --  Scope_Entity (SE) stores the SCO range, the name and the sloc of a SE.
    --  Note that we assume that the SCOs of a SE can be designated by a range.
@@ -357,6 +367,12 @@ package SC_Obligations is
    --  Utilities type to efficiently traverse the scopes in a compilation unit.
    --  This is a tree-like data structure, with an iterator pointing to the
    --  currently traversed inner scope.
+   --
+   --  The intended use is to create a Scope_Traversal_Type using the
+   --  Scope_Traversal function, and then call Traverse_SCO every time
+   --  we traverse a SCO to update the scope traversal iterator, and call
+   --  Is_Active to know whether a given scope is active in the given
+   --  traversal.
 
    function Scope_Traversal (CU : CU_Id) return Scope_Traversal_Type;
    --  Return a scope traversal for the given compilation unit
@@ -372,11 +388,13 @@ package SC_Obligations is
    --  (i.e. consider that all subprograms are of interest in that case).
 
    No_Scope_Entity : constant Scope_Entity :=
-     (Source_Range => No_Range,
-      Name         => +"",
-      Sloc         => No_Local_Location,
-      Identifier   => No_Scope_Entity_Identifier,
-      Start_SCO    => No_SCO_Id);
+     (From       => No_SCO_Id,
+      To         => No_SCO_Id,
+      Start_Sloc => No_Local_Location,
+      End_Sloc   => No_Local_Location,
+      Name       => +"",
+      Sloc       => No_Local_Location,
+      Identifier => No_Scope_Entity_Identifier);
 
    type Any_SCO_Kind is
      (Removed, Statement, Decision, Condition, Operator, Fun, Call,
@@ -888,46 +906,13 @@ package SC_Obligations is
       "="          => SCO_Id_Vectors."=");
    subtype SCO_Id_Vector_Vector is SCO_Id_Vector_Vectors.Vector;
 
-   function Has_Fingerprint
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return Boolean;
-   --  Return whether there is a match for the given CU and SCO_Fingerprint
-
-   package Fingerprint_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Fingerprint_Type);
-
-   function Fingerprints (CU : CU_Id) return Fingerprint_Vectors.Vector;
-   --  Return the fingerprints for all the different versions of the
-   --  compilation unit identified by CU.
-
-   function Bit_Maps
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return CU_Bit_Maps;
+   function Bit_Maps (CU : CU_Id) return CU_Bit_Maps;
    --  For a unit whose coverage is assessed through source code
-   --  instrumentation, return bit maps for the version of the compilation unit
-   --  denoted by SCO_Fingerprint.
+   --  instrumentation, return bit maps.
 
-   function Bit_Maps_Fingerprint
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return Fingerprint_Type;
+   function Blocks (CU : CU_Id) return SCO_Id_Vector_Vector;
    --  For a unit whose coverage is assessed through source code
-   --  instrumentation, return the bit maps fingerprint for the version of the
-   --  compilation unit denoted by SCO_Fingerprint.
-
-   function Annotations_Fingerprint
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return Fingerprint_Type;
-   --  For a unit whose coverage is assessed through source code
-   --  instrumentation, return the annotations fingerprint for the version of
-   --  the compilation unit denoted by SCO_Fingerprint.
-
-   function Blocks
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return SCO_Id_Vector_Vector;
-   --  For a unit whose coverage is assessed through source code
-   --  instrumentation, return blocks information for the version of the
-   --  compilation unit denoted by SCO_Fingerprint.
+   --  instrumentation, return blocks information.
 
    procedure Set_Bit_Maps (CU : CU_Id; Bit_Maps : CU_Bit_Maps);
    --  Set the tables mapping source trace bit indices to SCO discharge info
@@ -1020,22 +1005,11 @@ package SC_Obligations is
    -- Accessors for CU_Info --
    ---------------------------
 
-   type SCO_Range is record
-      First, Last : SCO_Id;
-   end record;
+   function First_SCO (CU : CU_Id) return SCO_Id;
+   --  Return the first SCO of the compilation unit
 
-   function "=" (L, R : SCO_Range) return Boolean
-   is (L.First = R.First and then R.Last = L.Last);
-
-   package SCO_Range_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => SCO_Range);
-
-   function SCO_Ranges (CU : CU_Id) return SCO_Range_Vectors.Vector;
-   --  Return the list of SCOs for the compilation unit
-
-   function In_CU (CU : CU_Id; SCO : SCO_Id) return Boolean;
-   --  Return whether SCO pertain to CU
+   function Last_SCO (CU : CU_Id) return SCO_Id;
+   --  Return the last SCO of the compilation unit
 
    -------------
    -- Pragmas --

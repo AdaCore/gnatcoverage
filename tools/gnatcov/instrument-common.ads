@@ -422,6 +422,12 @@ package Instrument.Common is
    --  source file, also append a new entry to the SCO_Unit_Table, otherwise
    --  complete its last entry.
 
+   procedure Remap_Scope_Entities
+     (Scope_Entities : in out Scope_Entities_Tree;
+      SCO_Map        : LL_HL_SCO_Map);
+   --  Convert low level SCOs in Scope_Entity to high-level SCOs using the
+   --  mapping in SCO_Map.
+
    procedure Remap_Blocks
      (Blocks  : in out SCO_Id_Vector_Vector;
       SCO_Map : LL_HL_SCO_Map);

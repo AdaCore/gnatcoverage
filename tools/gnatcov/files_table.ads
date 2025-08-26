@@ -319,12 +319,7 @@ package Files_Table is
    type Line_Info_Access is access all Line_Info;
    Empty_Line_Info : constant Line_Info_Access;
 
-   --  Describe a source file - one element per line
-
-   package Source_Line_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Line_Info_Access);
-   type Source_Lines is new Source_Line_Vectors.Vector with null record;
+   type Source_Lines is private;
 
    type Any_Ignore_Status is (Unknown, Always, Sometimes, Never);
    --  Represents the different states a source file can be regarding the
@@ -518,11 +513,7 @@ package Files_Table is
    function Get_Line (Sloc : Source_Location) return Line_Info_Access
       with Pre =>
          Sloc = Slocs.No_Location
-       or else Get_File (Sloc.Source_File).Kind in Stub_File | Source_File;
-
-   function Get_SCOs
-     (Source_Range : Source_Location_Range) return SCO_Sets.Set;
-   --  Return all of the SCOs under the given Source_Range
+         or else Get_File (Sloc.Source_File).Kind in Stub_File | Source_File;
 
    procedure Set_Encoding (Encoding : String);
    --  Set the encoding used to interpret source code (this is a global
@@ -685,6 +676,12 @@ package Files_Table is
    --    "-Wimplicit-fallthrough"
 
 private
+   --  Describe a source file - one element per line
+
+   package Source_Line_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Line_Info_Access);
+   type Source_Lines is new Source_Line_Vectors.Vector with null record;
 
    Empty_Line_Info : constant Line_Info_Access := new Line_Info;
 

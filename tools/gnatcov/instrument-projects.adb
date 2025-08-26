@@ -256,7 +256,7 @@ is
    --  If an instrumenter supports Source_File's language and if Project is not
    --  externally built, add Source_File to Project_Sources.
 
-   procedure Replace_Manual_Indications
+   procedure Insert_Manual_Dump_Trigger
      (Language                : Src_Supported_Language;
       Project_Sources         : in out File_Info_Sets.Set;
       Instrumenter            : in out Language_Instrumenter'Class;
@@ -883,14 +883,14 @@ is
    end Add_Instrumented_Unit;
 
    --------------------------------
-   -- Replace_Manual_Indications --
+   -- Insert_Manual_Dump_Trigger --
    --------------------------------
 
-   procedure Replace_Manual_Indications
-     (Language             : Src_Supported_Language;
-      Project_Sources      : in out File_Info_Sets.Set;
-      Instrumenter         : in out Language_Instrumenter'Class;
-      Manual_Dump_Inserted : in out Boolean;
+   procedure Insert_Manual_Dump_Trigger
+     (Language                : Src_Supported_Language;
+      Project_Sources         : in out File_Info_Sets.Set;
+      Instrumenter            : in out Language_Instrumenter'Class;
+      Manual_Dump_Inserted    : in out Boolean;
       Manual_Indication_Files : File_Sets.Set)
    is
 
@@ -1062,7 +1062,7 @@ is
                & " from a source in a parent project.");
          end;
       end if;
-   end Replace_Manual_Indications;
+   end Insert_Manual_Dump_Trigger;
 
    ---------------------
    -- Clean_And_Print --
@@ -1292,20 +1292,13 @@ begin
       --  Replace manual dump indications for C-like languages
 
       for Lang in C_Family_Language loop
-         Replace_Manual_Indications
+         Insert_Manual_Dump_Trigger
            (Lang,
             Project_Sources,
             Instrumenters (Lang).all,
             Manual_Dump_Inserted,
             Dump_Config.Manual_Indication_Files);
       end loop;
-
-      --  The replacement of manual indications may incur filling of e.g.
-      --  the files table, which is then dumped into the first written
-      --  checkpoint before being cleared out. Preemptively clear it to avoid
-      --  that.
-
-      Checkpoints.Checkpoint_Clear;
    end if;
 
    --  Write the files of interest to temporary files in the instrumentation
@@ -1620,7 +1613,7 @@ begin
    end;
 
    if Dump_Config.Trigger = Manual then
-      Replace_Manual_Indications
+      Insert_Manual_Dump_Trigger
         (Ada_Language,
          Project_Sources,
          Ada_Instrumenter,

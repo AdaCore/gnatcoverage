@@ -600,14 +600,14 @@ package body Annotations.Dynamic_Html is
          Line_Stats : constant Li_Stat_Array :=
            Line_Metrics
              (File_Info,
-              Scope_Ent.Source_Range.L.First_Sloc.Line,
+              Scope_Ent.Start_Sloc.Line,
               (if Is_Root then Last_Line (File_Info)
-               else Scope_Ent.Source_Range.L.Last_Sloc.Line));
+               else Scope_Ent.End_Sloc.Line));
          --  Adjust Scope_Ent.End_Sloc for the root node as it is
          --  No_Local_Location by default.
 
-         Ob_Stats : constant Ob_Stat_Array :=
-           Obligation_Metrics (Get_SCOs (Scope_Ent.Source_Range));
+         Ob_Stats   : constant Ob_Stat_Array :=
+           Obligation_Metrics (Scope_Ent.From, Scope_Ent.To);
       begin
          Scope_Metrics_JSON.Set_Field ("scopeName", Scope_Ent.Name);
          Scope_Metrics_JSON.Set_Field ("scopeLine", Scope_Ent.Sloc.Line);
