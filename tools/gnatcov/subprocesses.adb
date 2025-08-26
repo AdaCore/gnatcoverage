@@ -350,12 +350,36 @@ package body Subprocesses is
 
    function Wait_And_Finalize (Self : in out Process_Pool) return Positive
    is
-      --  Wait until one process terminates, then free its pool slot
+      function Find_Waitable return Positive;
+      --  Wait until one process terminates, then return its index in
+      --  Self.Handle.
 
-      Id      : constant Positive := Wait_For_Processes (Self.Handles);
+      -------------------
+      -- Find_Waitable --
+      -------------------
+
+      function Find_Waitable return Positive is
+         Result : Integer := WAIT_TIMEOUT;
+      begin
+         --  Use a long timeout (one hour) to avoid busy polling instead of
+         --  using INFINITE_TIMEOUT to workaround a GNATCOLL.OS.Process bug.
+
+         while Result = WAIT_TIMEOUT loop
+            Result := Wait_For_Processes (Self.Handles, 3600.0);
+         end loop;
+         pragma Assert (Result in Self.Handles'Range);
+         return Result;
+      end Find_Waitable;
+
+      Id      : constant Positive := Find_Waitable;
       Success : constant Boolean := Wait (Self.Handles (Id)) = 0;
       Info    : Process_Info renames Self.Process_Infos (Id);
+
+   --  Start of processing for Wait_And_Finalize
+
    begin
+      --  Free the pool slot for this terminated process
+
       Self.Handles (Id) := Invalid_Handle;
       Self.Nb_Running_Processes := Self.Nb_Running_Processes - 1;
 
