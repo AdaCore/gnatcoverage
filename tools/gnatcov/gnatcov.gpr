@@ -130,6 +130,8 @@ project Gnatcov is
          when "False" =>
             for Specification ("Instrument.C") use "instrument-c__stub.ads";
             for Body ("Instrument.C") use "instrument-c__stub.adb";
+            for Body ("Set_Builtin_Support")
+               use "set_builtin_support_no_c.adb";
          when "True" =>
             null;
       end case;
