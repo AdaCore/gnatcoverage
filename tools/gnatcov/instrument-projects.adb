@@ -947,7 +947,7 @@ is
          begin
             Instrumenter.Replace_Manual_Indications
               (Prj_Info.Desc,
-               Source,
+               Source.Path_Name.Virtual_File,
                Had_Dump_Indication,
                Had_Reset_Indication);
 

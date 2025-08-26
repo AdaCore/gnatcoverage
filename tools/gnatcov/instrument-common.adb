@@ -829,7 +829,7 @@ package body Instrument.Common is
    procedure Replace_Manual_Indications
      (Self                  : in out Language_Instrumenter;
       Prj                   : in out Prj_Desc;
-      Source                : GPR2.Build.Source.Object;
+      Source                : Virtual_File;
       Has_Dump_Indication   : out Boolean;
       Has_Reset_Indication  : out Boolean) is
    begin
