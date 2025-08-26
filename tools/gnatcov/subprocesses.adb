@@ -350,47 +350,25 @@ package body Subprocesses is
 
    function Wait_And_Finalize (Self : in out Process_Pool) return Positive
    is
-      Terminated_Process : Process_Handle := Invalid_Handle;
-      Id                 : Positive;
-      --  Terminated process
+      --  Wait until one process terminates, then free its pool slot
 
-      Success : Boolean;
-      --  Status of the process that terminated
-
+      Id      : constant Positive := Wait_For_Processes (Self.Handles);
+      Success : constant Boolean := Wait (Self.Handles (Id)) = 0;
+      Info    : Process_Info renames Self.Process_Infos (Id);
    begin
-      while Terminated_Process = Invalid_Handle loop
-
-         --  Wait until one process terminates
-
-         Terminated_Process :=
-           Wait_For_Processes (Self.Handles, Duration'Last);
-      end loop;
-
       Self.Nb_Running_Processes := Self.Nb_Running_Processes - 1;
-
-      --  Find the id of the process that terminated
-
-      for I in Self.Handles'Range loop
-         if Self.Handles (I) = Terminated_Process then
-            Id := I;
-         end if;
-      end loop;
-
-      --  Get its termination status
-
-      Success := Wait (Self.Handles (Id)) = 0;
 
       --  Dump the output of the process that terminated to stdout if it was
       --  not redirected to a file.
 
-      if Self.Process_Infos (Id).Output_To_Stdout then
+      if Info.Output_To_Stdout then
          declare
             Output_File : Mapped_File;
             Region      : Mapped_Region;
             Str         : Str_Access;
             Str_Last    : Natural;
          begin
-            Output_File := Open_Read (+Self.Process_Infos (Id).Output_File);
+            Output_File := Open_Read (+Info.Output_File);
             Region := Read (Output_File);
             Str := Data (Region);
             Str_Last := Last (Region);
@@ -415,10 +393,7 @@ package body Subprocesses is
       --  If the subprocess terminated with an error, deal with it here
 
       Check_Status
-        (Success,
-         Self.Process_Infos (Id).Ignore_Error,
-         +Self.Process_Infos (Id).Command,
-         +Self.Process_Infos (Id).Origin_Command_Name);
+        (Success, Info.Ignore_Error, +Info.Command, +Info.Origin_Command_Name);
       return Id;
    end Wait_And_Finalize;
 
