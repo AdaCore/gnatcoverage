@@ -716,7 +716,8 @@ class RblockSet:
             "statement was not instrumented": sUndetCov,
             "decision was not instrumented"
             " for decision coverage": dUndetCov,
-            "decision was not instrumented for MC/DC coverage": eUndetCov,
+            "decision was not instrumented for MCDC": eUndetCov,
+            "decision was not instrumented for UC_MCDC": eUndetCov,
             "function was not instrumented": fUndetCov,
             "call was not instrumented": cUndetCov,
             "guarded_expr was not instrumented": gUndetCov,
