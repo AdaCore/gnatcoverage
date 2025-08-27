@@ -57,6 +57,7 @@ with Ada.Containers.Vectors;
 with GNAT.Regpat; use GNAT.Regpat;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
+with GNATCOLL.VFS;  use GNATCOLL.VFS;
 
 with Files_Handling; use Files_Handling;
 with Files_Table;    use Files_Table;
@@ -537,7 +538,7 @@ package Instrument.Common is
    procedure Replace_Manual_Indications
      (Self                  : in out Language_Instrumenter;
       Prj                   : in out Prj_Desc;
-      Source                : GPR2.Build.Source.Object;
+      Source                : Virtual_File;
       Has_Dump_Indication   : out Boolean;
       Has_Reset_Indication  : out Boolean);
    --  Look for the pragmas (for Ada) or comments (for C family languages)

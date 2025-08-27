@@ -958,7 +958,10 @@ package Command_Line is
                          & " determines the dump procedure."
                          & ASCII.LF & ASCII.LF & "Only the last occurrence of"
                          & " the switch is taken into account.",
-         Commands     => (Cmd_Setup | Cmd_Instrument => True, others => False),
+         Commands     => (Cmd_Setup
+                          | Cmd_Setup_Integration
+                          | Cmd_Instrument => True,
+                          others           => False),
          At_Most_Once => False,
          Pattern      => "manual[,FILES]|atexit|main-end",
          Internal     => False),

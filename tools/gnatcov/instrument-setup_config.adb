@@ -311,11 +311,26 @@ package body Instrument.Setup_Config is
       --  command line.
 
       declare
-         Dump_Config_JSON : constant JSON_Value := Create_Object;
+         Dump_Config_JSON       : constant JSON_Value := Create_Object;
+         Manual_Dump_Files_JSON : JSON_Array;
       begin
          case Dump_Config.Trigger is
             when Manual =>
                Dump_Config_JSON.Set_Field ("dump-trigger", "manual");
+               if Dump_Config.Manual_Indication_Files.Is_Empty then
+                  Outputs.Fatal_Error
+                    ("Manual dump trigger FILES indication is missing,"
+                     & " mandatory in integrated instrumentation mode:"
+                     & " --dump-trigger=manual,FILES");
+               else
+                  for Manual_Dump_File of Dump_Config.Manual_Indication_Files
+                  loop
+                     Append (Manual_Dump_Files_JSON,
+                             Create (Display_Full_Name (Manual_Dump_File)));
+                  end loop;
+                  Dump_Config_JSON.Set_Field ("manual-dump-files",
+                                              Manual_Dump_Files_JSON);
+               end if;
             when At_Exit =>
                Dump_Config_JSON.Set_Field ("dump-trigger", "atexit");
             when Ravenscar_Task_Termination =>
@@ -449,6 +464,18 @@ package body Instrument.Setup_Config is
                Dump_Config.Trigger := Ravenscar_Task_Termination;
             elsif Dump_Trigger_Str = "manual" then
                Dump_Config.Trigger := Manual;
+               if Dump_Config_JSON.Has_Field ("manual-dump-files") then
+                  declare
+                     Manual_Dump_Files_JSON : constant JSON_Array :=
+                        Dump_Config_JSON.Get ("manual-dump-files");
+                  begin
+                     for Manual_Dump_File_JSON of Manual_Dump_Files_JSON loop
+                        Dump_Config.Manual_Indication_Files.Include
+                          (Create_From_UTF8
+                             (String'(Get (Manual_Dump_File_JSON))));
+                     end loop;
+                  end;
+               end if;
             else
                Outputs.Fatal_Error ("unsupported dump trigger");
             end if;

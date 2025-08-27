@@ -9686,14 +9686,13 @@ package body Instrument.Ada_Unit is
    overriding procedure Replace_Manual_Indications
      (Self                 : in out Ada_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
-      Source               : GPR2.Build.Source.Object;
+      Source               : Virtual_File;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean)
    is
       Instrumented_Filename : constant String :=
-        +(Prj.Output_Dir & "/" & String (Source.Path_Name.Simple_Name));
-      Source_Filename       : constant String :=
-         String (Source.Path_Name.Value);
+        +(Prj.Output_Dir & "/" & (+Source.Base_Name));
+      Source_Filename       : constant String := +Source.Full_Name;
       Instrumented_Exists   : constant Boolean :=
         Ada.Directories.Exists (Instrumented_Filename);
       File_To_Search        : constant String := (if Instrumented_Exists
@@ -10455,7 +10454,8 @@ package body Instrument.Ada_Unit is
         Qualified_Name_Slug (Project_Name, Use_Hash => False);
    begin
       return Ada_Identifier_Vectors."&"
-        (Sys_Prefix, Instrument.Ada_Identifier (+Project_Name_Slug));
+        (Sys_Prefix,
+         Ada_Identifier (Unbounded_String'(+Project_Name_Slug)));
    end Buffers_List_Unit;
 
    -----------------
@@ -10468,7 +10468,9 @@ package body Instrument.Ada_Unit is
       Simple_Name : Ada_Identifier;
    begin
       Append (Simple_Name, "B");
-      Append (Simple_Name, Ada_Identifier (+Qualified_Name_Slug (Unit_Name)));
+      Append
+        (Simple_Name,
+         Ada_Identifier (Unbounded_String'(+Qualified_Name_Slug (Unit_Name))));
       return CU_Name : Ada_Qualified_Name := Sys_Prefix do
          CU_Name.Append (Simple_Name);
       end return;
@@ -10484,7 +10486,9 @@ package body Instrument.Ada_Unit is
       Simple_Name : Instrument.Ada_Identifier;
    begin
       Append (Simple_Name, 'P');
-      Append (Simple_Name, Ada_Identifier (+Qualified_Name_Slug (Unit_Name)));
+      Append
+        (Simple_Name,
+         Ada_Identifier (Unbounded_String'(+Qualified_Name_Slug (Unit_Name))));
       return CU_Name : Ada_Qualified_Name := Sys_Prefix do
          CU_Name.Append (Simple_Name);
       end return;
