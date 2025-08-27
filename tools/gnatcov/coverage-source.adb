@@ -220,13 +220,6 @@ package body Coverage.Source is
    Ignored_SF_Map : Unit_To_Ignored_Maps.Map;
    --  Map units of interest to the list of associated ignored source files
 
-   procedure Initialize_SCI_For_SID
-     (CU               : CU_Id;
-      SCOs_Fingerprint : SC_Obligations.Fingerprint_Type);
-   --  Initialize source coverage information vectors for obligations in CU,
-   --  for SCOs_Fingerprint version, assumed to come from source
-   --  instrumentation.
-
    --------------------------
    -- Basic_Block_Has_Code --
    --------------------------
@@ -2199,11 +2192,12 @@ package body Coverage.Source is
       --  Sanity check that Fingerprint is consistent with what the
       --  instrumenter recorded in the CU info.
 
-      if not Has_Fingerprint (CU, Fingerprint)
-        or else Bit_Maps_Fingerprint /=
-          SC_Obligations.Bit_Maps_Fingerprint (CU, Fingerprint)
-        or else Annotations_Fingerprint /=
-          SC_Obligations.Annotations_Fingerprint (CU, Fingerprint)
+      if Fingerprint /= SC_Obligations.Fingerprint (CU)
+           or else
+         Bit_Maps_Fingerprint /= SC_Obligations.Bit_Maps_Fingerprint (CU)
+        or else
+          Annotations_Fingerprint /=
+            SC_Obligations.Annotations_Fingerprint (CU)
       then
          Warn ("traces for " & Unit_Image  & " (from " & Filename & ") are"
                & " inconsistent with the corresponding Source Instrumentation"
@@ -2217,7 +2211,7 @@ package body Coverage.Source is
 
       --  Discharge SCOs based on source traces
 
-      BM := Bit_Maps (CU, Fingerprint);
+      BM := Bit_Maps (CU);
 
       ST := Scope_Traversal (CU);
       for J in Stmt_Buffer'Range loop
@@ -2233,7 +2227,7 @@ package body Coverage.Source is
       --  when one of them (which actually is the last) is covered.
 
       declare
-         Stmt_Blocks : SCO_Id_Vector_Vector renames Blocks (CU, Fingerprint);
+         Stmt_Blocks : SCO_Id_Vector_Vector renames Blocks (CU);
          Block_Index : Positive;
       begin
          if not Stmt_Blocks.Is_Empty then
@@ -2479,13 +2473,11 @@ package body Coverage.Source is
       end if;
    end Initialize_SCI;
 
-   ----------------------------
-   -- Initialize_SCI_For_SID --
-   ----------------------------
+   ----------------------------------------
+   -- Initialize_SCI_For_Instrumented_CU --
+   ----------------------------------------
 
-   procedure Initialize_SCI_For_SID
-     (CU               : CU_Id;
-      SCOs_Fingerprint : SC_Obligations.Fingerprint_Type) is
+   procedure Initialize_SCI_For_Instrumented_CU (CU : CU_Id) is
 
       procedure Set_Has_Code (SCO : SCO_Id);
       --  If SCO is a statement, mark it as having code
@@ -2503,7 +2495,7 @@ package body Coverage.Source is
       end Set_Has_Code;
 
       Stmt_Bit_Map : Statement_Bit_Map renames
-        Bit_Maps (CU, SCOs_Fingerprint).Statement_Bits.all;
+        Bit_Maps (CU).Statement_Bits.all;
 
    --  Start of processing for Initialize_SCI_For_Instrumented_CU
 
@@ -2517,8 +2509,7 @@ package body Coverage.Source is
       --  instrumented statement SCOs in blocks.
 
       declare
-         Stmt_Blocks : SCO_Id_Vector_Vector renames
-           Blocks (CU, SCOs_Fingerprint);
+         Stmt_Blocks : SCO_Id_Vector_Vector renames Blocks (CU);
          Block_Index : Positive;
       begin
          if not Stmt_Blocks.Is_Empty then
@@ -2551,17 +2542,6 @@ package body Coverage.Source is
             end loop;
          end if;
       end;
-   end Initialize_SCI_For_SID;
-
-   ----------------------------------------
-   -- Initialize_SCI_For_Instrumented_CU --
-   ----------------------------------------
-
-   procedure Initialize_SCI_For_Instrumented_CU (CU : CU_Id) is
-   begin
-      for Fingerprint of SC_Obligations.Fingerprints (CU) loop
-         Initialize_SCI_For_SID (CU, Fingerprint);
-      end loop;
    end Initialize_SCI_For_Instrumented_CU;
 
    --------------------------

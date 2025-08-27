@@ -898,14 +898,6 @@ procedure GNATcov_Bits_Specific is
            (+Filename, (if Has_Matcher then Matcher'Access else null));
       end loop;
 
-      --  Then, create source coverage data structure for each loaded unit.
-      --  Note that this must be done after having loaded every version of
-      --  the compilation unit, which can be found across SID files.
-
-      for CU in Valid_CU_Id'First .. Last_CU loop
-         Coverage.Source.Initialize_SCI_For_Instrumented_CU (CU);
-      end loop;
-
       --  Now that all the scope entities that can be referenced by
       --  --subprograms are known, dump them if requested.
 

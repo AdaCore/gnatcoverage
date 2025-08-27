@@ -1206,35 +1206,6 @@ package body Files_Table is
       end;
    end Get_Line;
 
-   --------------
-   -- Get_SCOs --
-   --------------
-
-   function Get_SCOs
-     (Source_Range : Source_Location_Range) return SCO_Sets.Set
-   is
-      Result : SCO_Sets.Set;
-      FI     : constant File_Info_Access :=
-        Get_File (Source_Range.Source_File);
-      Last   : constant Positive := Last_Line (FI);
-   begin
-      for Line in
-        Source_Range.L.First_Sloc.Line .. Source_Range.L.Last_Sloc.Line
-      loop
-         exit when Line > Last;
-         declare
-            SCOs : constant SCO_Id_Array_Acc := Get_Line (FI, Line).SCOs;
-         begin
-            if SCOs /= null then
-               for SCO of SCOs.all loop
-                  Result.Include (SCO);
-               end loop;
-            end if;
-         end;
-      end loop;
-      return Result;
-   end Get_SCOs;
-
    ---------------------
    -- Get_Simple_Name --
    ---------------------
