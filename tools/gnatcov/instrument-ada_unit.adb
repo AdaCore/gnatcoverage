@@ -5500,17 +5500,16 @@ package body Instrument.Ada_Unit is
                         if Assertion_Coverage_Enabled then
                            Instrument_Statement (UIC, N, 'P');
                            declare
-                              Index : Positive :=
+                              Index : constant Positive :=
                                 (case Nam is
                                     when Name_Check => 2,
                                     when others     => 1);
                            begin
-                              while not Is_Null (Prag_Args.Child (Index)) loop
+                              if not Is_Null (Prag_Args.Child (Index)) then
                                  Process_Expression
                                    (UIC,
                                     Prag_Arg_Expr (Prag_Args, Index), 'P');
-                                 Index := Index + 1;
-                              end loop;
+                              end if;
                            end;
                         else
                            Instrument_Statement (UIC, N, 'p');
