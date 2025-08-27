@@ -6978,8 +6978,8 @@ package body Instrument.Ada_Unit is
                end if;
 
                --  Do not instrument this decision if we have already
-               --  determined from the context that instrumenting it
-               --  could produce invalid code.
+               --  determined from the context that instrumenting it could
+               --  produce invalid code.
                --
                --  Instrumenting static decisions would make them non-static by
                --  wrapping them in a Witness call. This transformation would
@@ -10187,7 +10187,7 @@ package body Instrument.Ada_Unit is
          then
             for SD of UIC.Source_Decisions loop
                declare
-                  HL_SCO : constant SCO_Id := SCO_Map (SD.LL_SCO);
+                  HL_SCO            : constant SCO_Id := SCO_Map (SD.LL_SCO);
                   Should_Instrument : constant Boolean :=
                     ((not SD.Is_Contract
                      and then (Coverage.Enabled (Decision)
@@ -10204,7 +10204,6 @@ package body Instrument.Ada_Unit is
             if MCDC_Coverage_Enabled
               or else Assertion_Condition_Coverage_Enabled
             then
-
                --  As high-level SCO tables have been populated, we have built
                --  BDDs for each decision, and we can now set the correct MC/DC
                --  path offset for each condition.
