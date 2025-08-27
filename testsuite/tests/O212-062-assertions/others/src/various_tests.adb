@@ -11,7 +11,7 @@ is
 begin
    --  Only the first condition is evaluated
 
-   pragma Assert ((X = 0 or else A) or else X = 8);         -- # assert_1
+   pragma Assert ((X = 0 or else A) or else X = 8, "msg");  -- # assert_1
 
    --  Call a function. Evaluate all conditions of the precondition;
    --  evaluate only the first condition of the postcondition. The first
