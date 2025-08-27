@@ -1305,7 +1305,8 @@ package body Project is
          With_Runtime         => True,
          Reporter             => Create_Reporter,
          Artifacts_Info_Level => GPR2.Sources_Units,
-         Absent_Dir_Error     => GPR2.No_Error)
+         Absent_Dir_Error     => GPR2.No_Error,
+         Check_Drivers        => False)
       then
          Fatal_Error ("Could not load the project file, aborting.");
       end if;

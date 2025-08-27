@@ -238,7 +238,8 @@ package body Setup_RTS is
                                  then GPR2.Reporter.Regular
                                  else GPR2.Reporter.No_Warnings)),
          With_Runtime     => True,
-         Absent_Dir_Error => GPR2.No_Error);
+         Absent_Dir_Error => GPR2.No_Error,
+         Check_Drivers    => False);
    end Load_Project;
 
    -----------
