@@ -61,14 +61,26 @@ class LangInfo:
         sidfile_for:
            A function which returns the name of the SID file for a given SOURCE
            file name. This is, for example, "x.sid" for "x.adb".
+
+        in_gpr:
+           Whether this language can be mentionned in project files.
     """
 
-    def __init__(self, name, src_ext, comment, scofile_for, sidfile_for=None):
+    def __init__(
+        self,
+        name,
+        src_ext,
+        comment,
+        scofile_for,
+        sidfile_for=None,
+        in_gpr=True,
+    ):
         self.name = name
         self.src_ext = src_ext
         self.comment = comment
         self.scofile_for = scofile_for
         self.sidfile_for = sidfile_for
+        self.in_gpr = in_gpr
 
 
 # A dictionary mapping a LangInfo instance to each known language.
@@ -103,7 +115,11 @@ LANGINFO = {
     ),
     "Asm": LangInfo(name="Asm", src_ext=[".s"], comment="#", scofile_for=None),
     "Cons": LangInfo(
-        name="Consolidation", src_ext=[".txt"], comment="--", scofile_for=None
+        name="Consolidation",
+        src_ext=[".txt"],
+        comment="--",
+        scofile_for=None,
+        in_gpr=False,
     ),
 }
 
