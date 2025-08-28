@@ -6,7 +6,12 @@ begin
 end;
 
 --# andthen.adb
---  /andthen/  l- ## s-
 --  /retTrue/  l- ## s-
 --  /retFalse/ l- ## s-
 --  /retVal/   l- ## s-
+--
+--%opts: --trace-mode=bin
+--  /andthen/  l. ## 0
+--
+--%opts: --trace-mode=src
+--  /andthen/  l! ## e-

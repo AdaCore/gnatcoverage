@@ -4,10 +4,14 @@ package body Andthen is
 
    function Expr
      (Value : Boolean := AA and then BB) -- # andthen
+     return Boolean;
+
+   function Expr
+     (Value : Boolean := AA and then BB) -- # andthen
      return Boolean
    is
    begin
-      return Value;
+      return Value; -- # retVal
    end;
 
    function And_Then (A, B : Boolean) return Boolean is

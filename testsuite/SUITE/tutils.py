@@ -491,7 +491,7 @@ def gprfor(
             for srcdir in srcdirs_list
             for src in os.listdir(os.path.join(cwd, srcdir))
         ]
-        langs = {li.name for li in lang_infos if li}
+        langs = {li.name for li in lang_infos if li and li.in_gpr}
 
     srcdirs = ", ".join('"%s"' % d for d in srcdirs_list)
     languages = ", ".join('"%s"' % lang for lang in langs)

@@ -30,7 +30,7 @@ with Libadalang.Config_Pragmas; use Libadalang.Config_Pragmas;
 with Libadalang.Rewriting;      use Libadalang.Rewriting;
 
 with GNATCOLL.Refcount; use GNATCOLL.Refcount;
-with GNATCOLL.VFS;
+with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
 with Files_Handling;    use Files_Handling;
 with Files_Table;       use Files_Table;
@@ -98,7 +98,7 @@ package Instrument.Ada_Unit is
    overriding procedure Replace_Manual_Indications
      (Self                 : in out Ada_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
-      Source               : GPR2.Build.Source.Object;
+      Source               : Virtual_File;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean);
    --  Once the instrumentation has finished, if the dump trigger is "manual"

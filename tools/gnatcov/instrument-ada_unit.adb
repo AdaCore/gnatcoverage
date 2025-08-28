@@ -446,7 +446,7 @@ package body Instrument.Ada_Unit is
 
    function Is_Generic
      (UIC  : Ada_Unit_Inst_Context;
-      Decl : Basic_Decl) return Boolean;
+      Decl : Basic_Decl'Class) return Boolean;
    --  Return whether the given declaration is generic (its canonical part is
    --  generic).
 
@@ -3633,7 +3633,7 @@ package body Instrument.Ada_Unit is
 
    procedure Traverse_Subprogram_Or_Task_Body
      (UIC : in out Ada_Unit_Inst_Context;
-      N   : Ada_Node);
+      N   : Body_Node'Class);
 
    procedure Traverse_Sync_Definition
      (UIC : in out Ada_Unit_Inst_Context;
@@ -3659,6 +3659,17 @@ package body Instrument.Ada_Unit is
    --  top level).
    --
    --  This also processes any nested declare expressions.
+
+   procedure Process_Expression_No_MCDC
+     (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character);
+   --  Wrapper around Process_Expression that temporarily removes the MCDC
+   --  state inserter. This convenience function allows to process expressions
+   --  in contexts where we know that we cannot insert MCDC state variables
+   --  (instrumenter limitation).
+
+   procedure Process_Formal_Default_Exprs
+     (UIC : in out Ada_Unit_Inst_Context; N_Spec : Subp_Spec);
+   --  Process default expressions for formals in N_Spec
 
    function Is_Call_Leaf (Node : Ada_Node'Class) return Boolean;
    --  Return True if Node is the leaf of a call expression, that is there are
@@ -3733,9 +3744,9 @@ package body Instrument.Ada_Unit is
       procedure Process_Contract
         (UIC  : in out Ada_Unit_Inst_Context;
          D    : Basic_Decl'Class;
-         Name : Text_Type)
-        with Pre => Assertion_Coverage_Enabled;
-      --  Register decision of contrat of name Name of declaration node D
+         Name : Text_Type);
+      --  If Assertion_Coverage_Enabled is False, do nothing. Otherwise,
+      --  register decision of contrat of name Name of declaration node D
 
       procedure Traverse_One (N : Ada_Node);
       --  Traverse one declaration or statement
@@ -3750,6 +3761,9 @@ package body Instrument.Ada_Unit is
          N_Spec : Subp_Spec);
       --  Additional specific processing for the case of degenerate
       --  subprograms (null procedures and expression functions).
+
+      procedure Traverse_Component_List (CL : Component_List);
+      --  Traverse a list of components (if a type declaration)
 
       ------------------------------------------
       -- Utility functions for node synthesis --
@@ -4017,10 +4031,12 @@ package body Instrument.Ada_Unit is
          D    : Basic_Decl'Class;
          Name : Text_Type) is
       begin
-         Process_Expression
-           (UIC,
-            P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)),
-           'A');
+         if Assertion_Coverage_Enabled then
+            Process_Expression
+              (UIC,
+               P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)),
+              'A');
+         end if;
       end Process_Contract;
 
       ------------------------------------
@@ -4398,7 +4414,7 @@ package body Instrument.Ada_Unit is
             end;
          end if;
 
-         if Is_Generic (UIC, N.As_Basic_Decl) then
+         if Is_Generic (UIC, N) then
             if Is_Expr_Function then
                UIC.Disable_Instrumentation := True;
                Report (UIC, N,
@@ -4864,6 +4880,40 @@ package body Instrument.Ada_Unit is
          Remove_Child (Stub);
       end Traverse_Degenerate_Subprogram;
 
+      -----------------------------
+      -- Traverse_Component_List --
+      -----------------------------
+
+      procedure Traverse_Component_List (CL : Component_List) is
+      begin
+         for N of CL.F_Components loop
+            if N.Kind = Ada_Component_Decl then
+               declare
+                  C : constant Component_Decl := N.As_Component_Decl;
+               begin
+                  --  The component definition may contain an arbitrary
+                  --  expression in its type expression. This expression is
+                  --  evaluated as part as the type elaboration, so its MC/DC
+                  --  coverage can be computed using a variable in the local
+                  --  context.
+                  --
+                  --  However, the default expression is evaluated when
+                  --  creating a record value, so there is no appropriate room
+                  --  to insert the MC/DC local state variable.
+
+                  Process_Expression (UIC, C.F_Component_Def.As_Ada_Node, 'X');
+                  Process_Expression_No_MCDC (UIC, C.F_Default_Expr, 'X');
+               end;
+            end if;
+         end loop;
+
+         if not CL.F_Variant_Part.Is_Null then
+            for V of CL.F_Variant_Part.F_Variant loop
+               Traverse_Component_List (V.F_Components);
+            end loop;
+         end if;
+      end Traverse_Component_List;
+
       --------------------------------
       -- Traverse_Subp_Decl_Or_Stub --
       --------------------------------
@@ -4879,10 +4929,8 @@ package body Instrument.Ada_Unit is
 
          procedure Process_Contracts (D : Basic_Decl'Class) is
          begin
-            if Assertion_Coverage_Enabled then
-               Process_Contract (UIC, D, "Pre");
-               Process_Contract (UIC, D, "Post");
-            end if;
+            Process_Contract (UIC, D, "Pre");
+            Process_Contract (UIC, D, "Post");
          end Process_Contracts;
 
          Dummy_Ctx : constant Context_Handle := Create_Context_Instrument (N);
@@ -4894,11 +4942,7 @@ package body Instrument.Ada_Unit is
          --  a previous declaration that must be used as scope identifier.
 
       begin
-         --  Process decisions nested in formal parameters
-
-         if not N_Spec.Is_Null then
-            Process_Expression (UIC, N_Spec.F_Subp_Params, 'X');
-         end if;
+         Process_Formal_Default_Exprs (UIC, N_Spec);
 
          Enter_Scope
            (UIC  => UIC,
@@ -5044,6 +5088,11 @@ package body Instrument.Ada_Unit is
                   end;
                end;
 
+            when Ada_Ada_Node_List =>
+               for Child of N.As_Ada_Node_List loop
+                  Traverse_One (Child.As_Ada_Node);
+               end loop;
+
             --  Package declaration
 
             when Ada_Package_Decl =>
@@ -5061,9 +5110,13 @@ package body Instrument.Ada_Unit is
             --  Package body
 
             when Ada_Package_Body =>
-               UIC.In_Generic := Is_Generic (UIC, N.As_Basic_Decl);
-               Traverse_Package_Body (UIC, N.As_Package_Body, Preelab);
-               UIC.In_Generic := Saved_In_Generic;
+               declare
+                  PB : constant Package_Body := N.As_Package_Body;
+               begin
+                  UIC.In_Generic := Is_Generic (UIC, PB);
+                  Traverse_Package_Body (UIC, PB, Preelab);
+                  UIC.In_Generic := Saved_In_Generic;
+               end;
 
             --  Subprogram declaration or subprogram body stub
 
@@ -5098,44 +5151,48 @@ package body Instrument.Ada_Unit is
 
             when Ada_Subp_Body
                | Ada_Task_Body
-               =>
-               UIC.In_Generic := Is_Generic (UIC, N.As_Basic_Decl);
+            =>
+               declare
+                  B : constant Body_Node := N.As_Body_Node;
+               begin
+                  UIC.In_Generic := Is_Generic (UIC, B);
 
-               Traverse_Subprogram_Or_Task_Body (UIC, N);
+                  Traverse_Subprogram_Or_Task_Body (UIC, B);
 
-               if Enabled (Fun_Call) then
-                  declare
-                     Fun_Witness : Node_Rewriting_Handle :=
-                       No_Node_Rewriting_Handle;
-                  begin
-                     --  Add a function SCO for this subprogram and fill
-                     --  Fun_Witness with a witness call for this new SCO. The
-                     --  witness call is within a dummy variable declaration.
+                  if B.Kind = Ada_Subp_Body and then Enabled (Fun_Call) then
+                     declare
+                        SB          : constant Subp_Body := N.As_Subp_Body;
+                        Fun_Witness : Node_Rewriting_Handle :=
+                          No_Node_Rewriting_Handle;
+                     begin
+                        --  Add a function SCO for this subprogram and fill
+                        --  Fun_Witness with a witness call for this new SCO.
+                        --  The witness call is within a dummy variable
+                        --  declaration.
 
-                     Instrument_For_Function_Coverage
-                       (UIC,
-                        N.As_Subp_Body.F_Subp_Spec,
-                        Function_Call,
-                        Fun_Witness);
+                        Instrument_For_Function_Coverage
+                          (UIC, SB.F_Subp_Spec, Function_Call, Fun_Witness);
 
-                     --  Put the dummy variable containing the witness call
-                     --  at the very top of the declarative part of this
-                     --  subprogram. This way, it will be executed as soon as
-                     --  the function is called.
+                        --  Put the dummy variable containing the witness call
+                        --  at the very top of the declarative part of this
+                        --  subprogram. This way, it will be executed as soon
+                        --  as the function is called.
 
-                     Insert_First
-                       (Handle (N.As_Subp_Body.F_Decls.F_Decls),
-                        Create_Function_Witness_Var (UIC, Fun_Witness));
-                  end;
-               end if;
+                        Insert_First
+                          (Handle (SB.F_Decls.F_Decls),
+                           Create_Function_Witness_Var (UIC, Fun_Witness));
+                     end;
+                  end if;
 
-               UIC.In_Generic := Saved_In_Generic;
+                  UIC.In_Generic := Saved_In_Generic;
+               end;
 
             --  Entry body
 
             when Ada_Entry_Body =>
                declare
-                  Cond : constant Expr := As_Entry_Body (N).F_Barrier;
+                  EB   : constant Entry_Body := N.As_Entry_Body;
+                  Cond : constant Expr := EB.F_Barrier;
                   Unit : LAL.Analysis_Unit;
 
                   Save_Disable_Instrumentation : constant Boolean :=
@@ -5151,7 +5208,7 @@ package body Instrument.Ada_Unit is
                        Save_Disable_Instrumentation;
                   end if;
 
-                  Traverse_Subprogram_Or_Task_Body (UIC, N);
+                  Traverse_Subprogram_Or_Task_Body (UIC, EB);
                end;
 
             --  Protected body
@@ -5500,17 +5557,16 @@ package body Instrument.Ada_Unit is
                         if Assertion_Coverage_Enabled then
                            Instrument_Statement (UIC, N, 'P');
                            declare
-                              Index : Positive :=
+                              Index : constant Positive :=
                                 (case Nam is
                                     when Name_Check => 2,
                                     when others     => 1);
                            begin
-                              while not Is_Null (Prag_Args.Child (Index)) loop
+                              if not Is_Null (Prag_Args.Child (Index)) then
                                  Process_Expression
                                    (UIC,
                                     Prag_Arg_Expr (Prag_Args, Index), 'P');
-                                 Index := Index + 1;
-                              end loop;
+                              end if;
                            end;
                         else
                            Instrument_Statement (UIC, N, 'p');
@@ -5603,6 +5659,57 @@ package body Instrument.Ada_Unit is
 
                Traverse_Sync_Definition (UIC, N);
 
+            when Ada_Base_Subtype_Decl
+               | Ada_Incomplete_Type_Decl
+               | Ada_Type_Decl
+            =>
+               --  Instrument the type declaration itself as a statement
+
+               declare
+                  Typ : Character;
+               begin
+                  if N.Kind = Ada_Subtype_Decl then
+                     Typ := 's';
+                  else
+                     Typ := 't';
+                     Process_Contract (UIC, N.As_Basic_Decl, "Type_Invariant");
+                  end if;
+
+                  Instrument_Statement (UIC, N, Typ);
+               end;
+
+               --  Process any embedded decisions
+
+               if N.Kind /= Ada_Concrete_Type_Decl then
+                  Process_Expression (UIC, N, 'X');
+                  return;
+               end if;
+
+               declare
+                  TD : constant Concrete_Type_Decl := N.As_Concrete_Type_Decl;
+               begin
+                  --  For concrete type declarations, the discriminant default
+                  --  expression may contain decisions, but is not evaluated
+                  --  during the type elaboration, so we cannot insert a MC/DC
+                  --  state variable here.
+
+                  Process_Expression_No_MCDC (UIC, TD.F_Discriminants, 'X');
+
+                  --  Default expressions for regular components behave the
+                  --  same: process them accordingly.
+
+                  if TD.F_Type_Def.Kind = Ada_Record_Type_Def then
+                     Traverse_Component_List
+                       (TD
+                        .F_Type_Def
+                        .As_Record_Type_Def
+                        .F_Record_Def
+                        .F_Components);
+                  else
+                     Process_Expression (UIC, TD.F_Type_Def, 'X');
+                  end if;
+               end;
+
             when Ada_Named_Stmt =>
                Traverse_One (N.As_Named_Stmt.F_Stmt.As_Ada_Node);
 
@@ -5650,16 +5757,6 @@ package body Instrument.Ada_Unit is
                   Typ : Character;
                begin
                   case N.Kind is
-                     when Ada_Base_Type_Decl =>
-                        if N.Kind = Ada_Subtype_Decl then
-                           Typ := 's';
-                        else
-                           Typ := 't';
-                           if Assertion_Coverage_Enabled then
-                              Process_Contract
-                                (UIC, N.As_Basic_Decl, "Type_Invariant");
-                           end if;
-                        end if;
 
                      --  Entity declaration nodes that may also be used
                      --  for entity renamings.
@@ -6115,7 +6212,7 @@ package body Instrument.Ada_Unit is
 
    procedure Traverse_Subprogram_Or_Task_Body
      (UIC : in out Ada_Unit_Inst_Context;
-      N   : Ada_Node)
+      N   : Body_Node'Class)
    is
       Decls   : Declarative_Part;
       HSS     : Handled_Stmts;
@@ -6157,10 +6254,10 @@ package body Instrument.Ada_Unit is
 
       declare
          Previous_Part : constant Basic_Decl :=
-           Safe_Previous_Part_For_Decl (N.As_Body_Node);
+           Safe_Previous_Part_For_Decl (N);
          Decl          : constant Basic_Decl :=
            (if Previous_Part.Is_Null
-            then N.As_Body_Node.P_Subp_Spec_Or_Null.P_Parent_Basic_Decl
+            then N.P_Subp_Spec_Or_Null.P_Parent_Basic_Decl
             else Previous_Part);
       begin
          Enter_Scope
@@ -6168,6 +6265,8 @@ package body Instrument.Ada_Unit is
             N    => N,
             Decl => Decl);
       end;
+
+      Process_Formal_Default_Exprs (UIC, N.P_Subp_Spec_Or_Null.As_Subp_Spec);
 
       --  If assertion coverage is enabled, process the decisions in the
       --  contracts. This is needed in the case of a subprogram body with
@@ -6971,8 +7070,8 @@ package body Instrument.Ada_Unit is
                end if;
 
                --  Do not instrument this decision if we have already
-               --  determined from the context that instrumenting it
-               --  could produce invalid code.
+               --  determined from the context that instrumenting it could
+               --  produce invalid code.
                --
                --  Instrumenting static decisions would make them non-static by
                --  wrapping them in a Witness call. This transformation would
@@ -7277,6 +7376,40 @@ package body Instrument.Ada_Unit is
          N.Traverse (Process_Case_Expr'Access);
       end if;
    end Process_Expression;
+
+   --------------------------------
+   -- Process_Expression_No_MCDC --
+   --------------------------------
+
+   procedure Process_Expression_No_MCDC
+     (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character)
+   is
+      UIC_SI   : Any_MCDC_State_Inserter renames UIC.MCDC_State_Inserter;
+      Saved_SI : constant Any_MCDC_State_Inserter := UIC_SI;
+   begin
+      UIC_SI := null;
+      Process_Expression (UIC, N, T);
+      UIC_SI := Saved_SI;
+   end Process_Expression_No_MCDC;
+
+   ----------------------------------
+   -- Process_Formal_Default_Exprs --
+   ----------------------------------
+
+   procedure Process_Formal_Default_Exprs
+     (UIC : in out Ada_Unit_Inst_Context; N_Spec : Subp_Spec)
+   is
+      Saved_Disable_Instrumentation : constant Boolean :=
+        UIC.Disable_Instrumentation;
+   begin
+      if N_Spec.Is_Null then
+         return;
+      end if;
+
+      UIC.Disable_Instrumentation := True;
+      Process_Expression (UIC, N_Spec.F_Subp_Params, 'X');
+      UIC.Disable_Instrumentation := Saved_Disable_Instrumentation;
+   end Process_Formal_Default_Exprs;
 
    ------------------
    -- Is_Call_Leaf --
@@ -7959,7 +8092,7 @@ package body Instrument.Ada_Unit is
 
    function Is_Generic
      (UIC  : Ada_Unit_Inst_Context;
-      Decl : Basic_Decl) return Boolean
+      Decl : Basic_Decl'Class) return Boolean
    is
       Canonical_Decl : Basic_Decl;
    begin
@@ -9553,14 +9686,13 @@ package body Instrument.Ada_Unit is
    overriding procedure Replace_Manual_Indications
      (Self                 : in out Ada_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
-      Source               : GPR2.Build.Source.Object;
+      Source               : Virtual_File;
       Has_Dump_Indication  : out Boolean;
       Has_Reset_Indication : out Boolean)
    is
       Instrumented_Filename : constant String :=
-        +(Prj.Output_Dir & "/" & String (Source.Path_Name.Simple_Name));
-      Source_Filename       : constant String :=
-         String (Source.Path_Name.Value);
+        +(Prj.Output_Dir & "/" & (+Source.Base_Name));
+      Source_Filename       : constant String := +Source.Full_Name;
       Instrumented_Exists   : constant Boolean :=
         Ada.Directories.Exists (Instrumented_Filename);
       File_To_Search        : constant String := (if Instrumented_Exists
@@ -10180,7 +10312,7 @@ package body Instrument.Ada_Unit is
          then
             for SD of UIC.Source_Decisions loop
                declare
-                  HL_SCO : constant SCO_Id := SCO_Map (SD.LL_SCO);
+                  HL_SCO            : constant SCO_Id := SCO_Map (SD.LL_SCO);
                   Should_Instrument : constant Boolean :=
                     ((not SD.Is_Contract
                      and then (Coverage.Enabled (Decision)
@@ -10197,7 +10329,6 @@ package body Instrument.Ada_Unit is
             if MCDC_Coverage_Enabled
               or else Assertion_Condition_Coverage_Enabled
             then
-
                --  As high-level SCO tables have been populated, we have built
                --  BDDs for each decision, and we can now set the correct MC/DC
                --  path offset for each condition.
@@ -10217,9 +10348,13 @@ package body Instrument.Ada_Unit is
                        Enclosing_Decision (Condition);
                   begin
                      --  If the number of paths in the decision binary diagram
-                     --  exceeds the path count limit, we do not instrument it.
+                     --  exceeds the path count limit or if we could not find a
+                     --  way to create a MC/DC state local variable to track
+                     --  the path, we do not instrument the condition.
 
-                     if Path_Count (Decision) > Get_Path_Count_Limit then
+                     if SC.State = ""
+                        or else Path_Count (Decision) > Get_Path_Count_Limit
+                     then
                         Set_Decision_SCO_Non_Instr_For_MCDC (Decision);
                      else
                         Insert_Condition_Witness
@@ -10319,7 +10454,8 @@ package body Instrument.Ada_Unit is
         Qualified_Name_Slug (Project_Name, Use_Hash => False);
    begin
       return Ada_Identifier_Vectors."&"
-        (Sys_Prefix, Instrument.Ada_Identifier (+Project_Name_Slug));
+        (Sys_Prefix,
+         Ada_Identifier (Unbounded_String'(+Project_Name_Slug)));
    end Buffers_List_Unit;
 
    -----------------
@@ -10332,7 +10468,9 @@ package body Instrument.Ada_Unit is
       Simple_Name : Ada_Identifier;
    begin
       Append (Simple_Name, "B");
-      Append (Simple_Name, Ada_Identifier (+Qualified_Name_Slug (Unit_Name)));
+      Append
+        (Simple_Name,
+         Ada_Identifier (Unbounded_String'(+Qualified_Name_Slug (Unit_Name))));
       return CU_Name : Ada_Qualified_Name := Sys_Prefix do
          CU_Name.Append (Simple_Name);
       end return;
@@ -10348,7 +10486,9 @@ package body Instrument.Ada_Unit is
       Simple_Name : Instrument.Ada_Identifier;
    begin
       Append (Simple_Name, 'P');
-      Append (Simple_Name, Ada_Identifier (+Qualified_Name_Slug (Unit_Name)));
+      Append
+        (Simple_Name,
+         Ada_Identifier (Unbounded_String'(+Qualified_Name_Slug (Unit_Name))));
       return CU_Name : Ada_Qualified_Name := Sys_Prefix do
          CU_Name.Append (Simple_Name);
       end return;
