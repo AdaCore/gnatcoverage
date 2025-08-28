@@ -16,7 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with System; use System;
+with System;       use System;
 with Interfaces.C; use Interfaces.C;
 
 package Libsupport.Memory is

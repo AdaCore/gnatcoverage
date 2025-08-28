@@ -19,17 +19,19 @@
 
 with AUnit.Assertions; use AUnit.Assertions;
 with Actors;           use Actors;
-with Geomaps;          use Geomaps, Geomaps.Situation_Links;
-with Controls;         use Controls, Controls.Robot_Control_Links;
+with Geomaps;
+use Geomaps, Geomaps.Situation_Links;
+with Controls;
+use Controls, Controls.Robot_Control_Links;
 with Robots_Devices;   use Robots_Devices;
 
 package body Robots.Test is
 
    Default_Env : constant Test_Env :=
-                   (Robot_Destroyed      => False,
-                    Probe_Ahead_Square   => Ground,
-                    Position             => (X => 2, Y => 2),
-                    Direction            => East);
+     (Robot_Destroyed    => False,
+      Probe_Ahead_Square => Ground,
+      Position           => (X => 2, Y => 2),
+      Direction          => East);
 
    ------------------
    -- Step_Forward --
@@ -40,11 +42,14 @@ package body Robots.Test is
       case Device.Env.Direction is
          when North =>
             Device.Env.Position.Y := Device.Env.Position.Y - 1;
+
          when South =>
             Device.Env.Position.Y := Device.Env.Position.Y + 1;
-         when West =>
+
+         when West  =>
             Device.Env.Position.X := Device.Env.Position.X - 1;
-         when East =>
+
+         when East  =>
             Device.Env.Position.X := Device.Env.Position.X + 1;
       end case;
 
@@ -59,16 +64,19 @@ package body Robots.Test is
    -- Rotate_Left --
    -----------------
 
-   procedure Rotate_Left  (Device : access Test_Engine) is
+   procedure Rotate_Left (Device : access Test_Engine) is
    begin
       case Device.Env.Direction is
          when North =>
             Device.Env.Direction := West;
-         when West =>
+
+         when West  =>
             Device.Env.Direction := South;
+
          when South =>
             Device.Env.Direction := East;
-         when East =>
+
+         when East  =>
             Device.Env.Direction := North;
       end case;
    end Rotate_Left;
@@ -82,11 +90,14 @@ package body Robots.Test is
       case Device.Env.Direction is
          when South =>
             Device.Env.Direction := West;
-         when East =>
+
+         when East  =>
             Device.Env.Direction := South;
+
          when North =>
             Device.Env.Direction := East;
-         when West =>
+
+         when West  =>
             Device.Env.Direction := North;
       end case;
    end Rotate_Right;
@@ -104,7 +115,7 @@ package body Robots.Test is
    -- Get_Position --
    ------------------
 
-   function Get_Position  (Device : access Test_Locator) return Position is
+   function Get_Position (Device : access Test_Locator) return Position is
    begin
       return Device.Env.Position;
    end Get_Position;
@@ -141,17 +152,18 @@ package body Robots.Test is
             Loc => new Test_Locator);
          T.Env := new Test_Env;
 
-         Test_Engine  (T.Hardware.Eng.all).Env := T.Env;
-         Test_Radar   (T.Hardware.Rad.all).Env := T.Env;
+         Test_Engine (T.Hardware.Eng.all).Env := T.Env;
+         Test_Radar (T.Hardware.Rad.all).Env := T.Env;
          Test_Locator (T.Hardware.Loc.all).Env := T.Env;
       end if;
 
       T.Test_Robot.all :=
-        (Actors.Actor with
-         Robot_Control_Inp    => null,
-         Robot_Situation_Outp => null,
-         Hw                   => (Eng => null, Rad => null, Loc => null),
-         Mode                 => Cautious);
+        (Actors.Actor
+         with
+           Robot_Control_Inp    => null,
+           Robot_Situation_Outp => null,
+           Hw                   => (Eng => null, Rad => null, Loc => null),
+           Mode                 => Cautious);
       T.Env.all := Default_Env;
    end Set_Up;
 
@@ -185,9 +197,7 @@ package body Robots.Test is
       --  Nop
       T.Env.all := Default_Env;
       Controls.Robot_Control_Links.Push
-        (Robot_Control'
-           (Code  => Nop,
-            Value => 0),
+        (Robot_Control'(Code => Nop, Value => 0),
          Robot_Control_Inport (T.Test_Robot.all));
       Run (T.Test_Robot);
       Assert
@@ -200,9 +210,7 @@ package body Robots.Test is
       --  Opmode
       T.Env.all := Default_Env;
       Controls.Robot_Control_Links.Push
-        (Robot_Control'
-           (Code  => Opmode,
-            Value => Robot_Opmode'Pos (Dumb)),
+        (Robot_Control'(Code => Opmode, Value => Robot_Opmode'Pos (Dumb)),
          Robot_Control_Inport (T.Test_Robot.all));
       Run (T.Test_Robot);
       Assert
@@ -213,15 +221,13 @@ package body Robots.Test is
          "The robot should not send situation report upon Opmode reception");
 
       Controls.Robot_Control_Links.Push
-        (Robot_Control'
-           (Code  => Opmode,
-            Value => Robot_Opmode'Pos (Cautious)),
+        (Robot_Control'(Code => Opmode, Value => Robot_Opmode'Pos (Cautious)),
          Robot_Control_Inport (T.Test_Robot.all));
       Run (T.Test_Robot);
       Assert
         (T.Test_Robot.Mode = Cautious,
-         "The robot mode should be set to Cautions after (Opmode, Cautious)" &
-         " is sent");
+         "The robot mode should be set to Cautions after (Opmode, Cautious)"
+         & " is sent");
       Assert
         (Empty (Robot_Situation_Outport (T.Test_Robot.all)),
          "The robot should not send situation report upon Opmode reception");
@@ -245,20 +251,18 @@ package body Robots.Test is
          T.Env.Direction := South;
 
          Controls.Robot_Control_Links.Push
-           (Robot_Control'
-              (Code  => Step_Forward,
-               Value => 0),
+           (Robot_Control'(Code => Step_Forward, Value => 0),
             Robot_Control_Inport (T.Test_Robot.all));
          Run (T.Test_Robot);
 
          Assert
            (T.Env.Position = (X => 2, Y => 3),
-            "The robot should have stepped forward upon Step_Forward with" &
-            " ground ahead");
+            "The robot should have stepped forward upon Step_Forward with"
+            & " ground ahead");
          Assert
            (Empty (Robot_Situation_Outport (T.Test_Robot.all)),
-            "The robot should not send situation report upon Step forward" &
-            " reception");
+            "The robot should not send situation report upon Step forward"
+            & " reception");
       end loop;
 
       --  Test Step_Forward 2: Water/Block ahead, mode = cautious
@@ -271,17 +275,15 @@ package body Robots.Test is
          T.Env.Direction := South;
 
          Controls.Robot_Control_Links.Push
-           (Robot_Control'
-              (Code  => Step_Forward,
-               Value => 0),
+           (Robot_Control'(Code => Step_Forward, Value => 0),
             Robot_Control_Inport (T.Test_Robot.all));
          Run (T.Test_Robot);
 
          Assert
            (not T.Env.Robot_Destroyed
             and then T.Env.Position = (X => 2, Y => 2),
-            "The robot should not have stepped forward upon Step_Forward " &
-            "with water or block ahead (Cautious mode)");
+            "The robot should not have stepped forward upon Step_Forward "
+            & "with water or block ahead (Cautious mode)");
       end loop;
 
       --  Test Step_Forward 3: Water/Block ahead, mode = dumb
@@ -294,20 +296,18 @@ package body Robots.Test is
          T.Env.Direction := South;
 
          Controls.Robot_Control_Links.Push
-           (Robot_Control'
-              (Code  => Step_Forward,
-               Value => 0),
+           (Robot_Control'(Code => Step_Forward, Value => 0),
             Robot_Control_Inport (T.Test_Robot.all));
          Run (T.Test_Robot);
 
          Assert
            (T.Env.Robot_Destroyed,
-            "The robot should have stepped forward upon Step_Forward " &
-            "with water or block ahead (Dumb mode)");
+            "The robot should have stepped forward upon Step_Forward "
+            & "with water or block ahead (Dumb mode)");
          Assert
            (Empty (Robot_Situation_Outport (T.Test_Robot.all)),
-            "The robot should not send situation report upon Step forward" &
-            " reception");
+            "The robot should not send situation report upon Step forward"
+            & " reception");
       end loop;
 
       --  Turn_Right, Turn_Left
@@ -321,9 +321,7 @@ package body Robots.Test is
             T.Env.Direction := South;
 
             Controls.Robot_Control_Links.Push
-              (Robot_Control'
-                 (Code  => Rotate_Right,
-                  Value => 0),
+              (Robot_Control'(Code => Rotate_Right, Value => 0),
                Robot_Control_Inport (T.Test_Robot.all));
             Run (T.Test_Robot);
             Assert
@@ -331,9 +329,7 @@ package body Robots.Test is
                "The robot should have turned right upon Rotate_Right cmd");
 
             Controls.Robot_Control_Links.Push
-              (Robot_Control'
-                 (Code  => Rotate_Left,
-                  Value => 0),
+              (Robot_Control'(Code => Rotate_Left, Value => 0),
                Robot_Control_Inport (T.Test_Robot.all));
             Run (T.Test_Robot);
             Assert
@@ -341,8 +337,8 @@ package body Robots.Test is
                "The robot should have turned left upon Rotate_Left cmd");
             Assert
               (Empty (Robot_Situation_Outport (T.Test_Robot.all)),
-               "The robot should not send situation report upon Step forward" &
-               " reception");
+               "The robot should not send situation report upon Step forward"
+               & " reception");
          end loop;
       end loop;
 
@@ -361,9 +357,7 @@ package body Robots.Test is
                T.Env.all := The_Env;
 
                Controls.Robot_Control_Links.Push
-                 (Robot_Control'
-                    (Code  => Probe,
-                     Value => 0),
+                 (Robot_Control'(Code => Probe, Value => 0),
                   Robot_Control_Inport (T.Test_Robot.all));
                Run (T.Test_Robot);
 
@@ -376,9 +370,7 @@ package body Robots.Test is
 
                Pop (Situ, Robot_Situation_Outport (T.Test_Robot.all));
                Assert
-                 (Situ = (Pos => The_Env.Position,
-                          Dir => Dir,
-                          Sqa => Sq),
+                 (Situ = (Pos => The_Env.Position, Dir => Dir, Sqa => Sq),
                   "Unexpected Situation received after a probe");
             end;
          end loop;

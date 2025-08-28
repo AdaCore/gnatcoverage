@@ -43,7 +43,7 @@ package Stations is
 
 private
    type Station is new Actor with record
-      Robot_Control_Outp : Robot_Control_Links.IOport_Access;
+      Robot_Control_Outp  : Robot_Control_Links.IOport_Access;
       Robot_Situation_Inp : Situation_Links.IOport_Access;
 
       Map : Geomap;

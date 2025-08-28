@@ -25,12 +25,9 @@ package body Geomaps.Test is
    -- Test_Pos_Ahead_Of --
    -----------------------
 
-   procedure Test_Pos_Ahead_Of (T : in out Test)
-   is
+   procedure Test_Pos_Ahead_Of (T : in out Test) is
       Situ : Situation :=
-               (Pos => (X => 3, Y => 3),
-                Dir => South,
-                Sqa => Ground);
+        (Pos => (X => 3, Y => 3), Dir => South, Sqa => Ground);
       Res  : Position;
 
    begin

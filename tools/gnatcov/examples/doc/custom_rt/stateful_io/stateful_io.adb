@@ -11,8 +11,8 @@ package body Stateful_IO is
    procedure Put (S : String) is
    begin
       if not Initialized then
-         raise Program_Error with
-           "attempt to call Stateful_IO.Put before elaboration";
+         raise Program_Error
+           with "attempt to call Stateful_IO.Put before elaboration";
       end if;
 
       --  Replace the following with the actual code to send data to the IO

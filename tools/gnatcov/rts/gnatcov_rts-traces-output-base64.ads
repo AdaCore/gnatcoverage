@@ -41,7 +41,8 @@ package GNATcov_RTS.Traces.Output.Base64 is
      (Buffers_Groups : Coverage_Buffers_Group_Array;
       Program_Name   : String;
       Exec_Date      : Unsigned_64;
-      User_Data      : String := "") renames Write_Trace_File;
+      User_Data      : String := "")
+   renames Write_Trace_File;
    --  Renaming to mirror the API in GNATcov_RTS.Traces.Output.Files. This
    --  avoids special cases in the generation of automatic buffer dumps: except
    --  for the package that is WITHed, generated code is the same for

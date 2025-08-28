@@ -23,32 +23,35 @@ package body Links.Gen_Test.Gen_Suite is
       Ret : Access_Test_Suite := New_Suite;
    begin
       AUnit.Test_Suites.Add_Test
-        (Ret, Caller.Create
-          ("Test " & Instance_Name & ".Full", Test_Full_Access));
+        (Ret,
+         Caller.Create ("Test " & Instance_Name & ".Full", Test_Full_Access));
       AUnit.Test_Suites.Add_Test
-        (Ret, Caller.Create
-          ("Test " & Instance_Name & ".Empty", Test_Empty_Access));
+        (Ret,
+         Caller.Create
+           ("Test " & Instance_Name & ".Empty", Test_Empty_Access));
       AUnit.Test_Suites.Add_Test
-        (Ret, Caller.Create
-          ("Test " & Instance_Name & ".Pop", Test_Pop_Access));
+        (Ret,
+         Caller.Create ("Test " & Instance_Name & ".Pop", Test_Pop_Access));
       AUnit.Test_Suites.Add_Test
-        (Ret, Caller.Create
-          ("Test " & Instance_Name & ".Push", Test_Push_Access));
+        (Ret,
+         Caller.Create ("Test " & Instance_Name & ".Push", Test_Push_Access));
       AUnit.Test_Suites.Add_Test
-        (Ret, Caller.Create
-          ("Test " & Instance_Name & ".Owner", Test_Owner_Access));
+        (Ret,
+         Caller.Create
+           ("Test " & Instance_Name & ".Owner", Test_Owner_Access));
       AUnit.Test_Suites.Add_Test
-        (Ret, Caller.Create
+        (Ret,
+         Caller.Create
            ("Test " & Instance_Name & ".Connect", Test_Connect_Access));
 
---        AUnit.Test_Suites.Add_Test
---          (Ret, Caller.Create
---             ("Test " & Instance_Name & ".Pop raises expected exceptions",
---              Test_Pop_Raise_Access));
---        AUnit.Test_Suites.Add_Test
---          (Ret, Caller.Create
---             ("Test " & Instance_Name & ".Push raises expected exceptions",
---              Test_Push_Raise_Access));
+      --        AUnit.Test_Suites.Add_Test
+      --          (Ret, Caller.Create
+      --             ("Test " & Instance_Name & ".Pop raises expected exceptions",
+      --              Test_Pop_Raise_Access));
+      --        AUnit.Test_Suites.Add_Test
+      --          (Ret, Caller.Create
+      --             ("Test " & Instance_Name & ".Push raises expected exceptions",
+      --              Test_Push_Raise_Access));
 
       return Ret;
    end Suite;

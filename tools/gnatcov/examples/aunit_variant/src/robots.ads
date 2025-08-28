@@ -55,8 +55,8 @@ private
       Robot_Control_Inp    : Robot_Control_Links.IOport_Access;
       Robot_Situation_Outp : Situation_Links.IOport_Access;
 
-      Hw                   : Robot_Hardware;
-      Mode                 : Robot_Opmode := Cautious;
+      Hw   : Robot_Hardware;
+      Mode : Robot_Opmode := Cautious;
    end record;
 
    function Unsafe (Cmd : Robot_Command; Sqa : Square) return Boolean;

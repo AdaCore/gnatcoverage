@@ -28,6 +28,6 @@ private
 
    package Caller is new AUnit.Test_Caller (Geomaps.Test.Test);
    Test_Pos_Ahead_Of_Access : constant Caller.Test_Method :=
-                                Test_Pos_Ahead_Of'Access;
+     Test_Pos_Ahead_Of'Access;
 
 end Geomaps.Test.Suite;

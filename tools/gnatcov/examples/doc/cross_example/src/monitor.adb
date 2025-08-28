@@ -3,7 +3,7 @@
 --                     Copyright (C) 2012-2025, AdaCore                     --
 ------------------------------------------------------------------------------
 
-with Sensors; use Sensors;
+with Sensors;     use Sensors;
 with Ada.Text_IO; use Ada.Text_IO;
 
 procedure Monitor is

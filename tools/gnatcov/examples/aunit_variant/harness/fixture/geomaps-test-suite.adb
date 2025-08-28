@@ -33,10 +33,10 @@ package body Geomaps.Test.Suite is
       Ret : constant Access_Test_Suite := New_Suite;
    begin
       AUnit.Test_Suites.Add_Test
-        (Ret, Caller.Create
+        (Ret,
+         Caller.Create
            ("Test Geomaps.Pos_Ahead_Of", Test_Pos_Ahead_Of_Access));
-      AUnit.Test_Suites.Add_Test
-        (Ret, Situation_Link_Suite.Suite);
+      AUnit.Test_Suites.Add_Test (Ret, Situation_Link_Suite.Suite);
       return Ret;
    end Suite;
 

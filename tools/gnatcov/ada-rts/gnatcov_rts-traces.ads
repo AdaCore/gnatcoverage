@@ -72,7 +72,7 @@ package GNATcov_RTS.Traces is
    Little_Endian : constant Any_Endianity := 0;
    Big_Endian    : constant Any_Endianity := 1;
    subtype Supported_Endianity is
-      Any_Endianity range Little_Endian ..  Big_Endian;
+     Any_Endianity range Little_Endian .. Big_Endian;
    --  Endianity to decode multi-byte scalars
 
    function Native_Endianity return Supported_Endianity;
@@ -80,21 +80,20 @@ package GNATcov_RTS.Traces is
 
    type Any_Unit_Part is new Unsigned_8;
    Not_Applicable_Part : constant Any_Unit_Part :=
-      Buffers.Any_Unit_Part'Pos (Buffers.Not_Applicable_Part);
+     Buffers.Any_Unit_Part'Pos (Buffers.Not_Applicable_Part);
    Unit_Body           : constant Any_Unit_Part :=
-      Buffers.Any_Unit_Part'Pos (Buffers.Unit_Body);
+     Buffers.Any_Unit_Part'Pos (Buffers.Unit_Body);
    Unit_Spec           : constant Any_Unit_Part :=
-      Buffers.Any_Unit_Part'Pos (Buffers.Unit_Spec);
+     Buffers.Any_Unit_Part'Pos (Buffers.Unit_Spec);
    Unit_Separate       : constant Any_Unit_Part :=
-      Buffers.Any_Unit_Part'Pos (Buffers.Unit_Separate);
+     Buffers.Any_Unit_Part'Pos (Buffers.Unit_Separate);
    subtype All_Unit_Part is
-      Any_Unit_Part range Not_Applicable_Part .. Unit_Separate;
+     Any_Unit_Part range Not_Applicable_Part .. Unit_Separate;
    subtype Supported_Unit_Part is
-      Any_Unit_Part range Unit_Body .. Unit_Separate;
+     Any_Unit_Part range Unit_Body .. Unit_Separate;
    --  Describe the kind of unit referenced by a trace entry
 
-   Unit_Part_Map : constant
-      array (Buffers.Any_Unit_Part) of All_Unit_Part :=
+   Unit_Part_Map : constant array (Buffers.Any_Unit_Part) of All_Unit_Part :=
      (Buffers.Not_Applicable_Part => Not_Applicable_Part,
       Buffers.Unit_Body           => Unit_Body,
       Buffers.Unit_Spec           => Unit_Spec,
@@ -112,17 +111,17 @@ package GNATcov_RTS.Traces is
      Any_Language_Kind range Unit_Based_Language .. File_Based_Language;
    --  Language kind for a compilation unit
 
-   Any_Language_Kind_Map : constant
-      array (Buffers.Any_Language_Kind) of Supported_Language_Kind :=
-     (Buffers.Unit_Based_Language => Unit_Based_Language,
-      Buffers.File_Based_Language => File_Based_Language);
+   Any_Language_Kind_Map :
+     constant array (Buffers.Any_Language_Kind) of Supported_Language_Kind :=
+       (Buffers.Unit_Based_Language => Unit_Based_Language,
+        Buffers.File_Based_Language => File_Based_Language);
 
    -----------------------
    -- Trace file header --
    -----------------------
 
    Trace_File_Magic : constant String (1 .. 32) :=
-      "GNATcov source trace file" & (26 .. 32 => ASCII.NUL);
+     "GNATcov source trace file" & (26 .. 32 => ASCII.NUL);
    --  Expected value of the Trace_File_Header.Magic field (32 bytes)
 
    type Trace_File_Header is record
@@ -163,7 +162,7 @@ package GNATcov_RTS.Traces is
    --  "tag".
 
    subtype Supported_Info_Kind is
-      Any_Info_Kind range Info_End ..  Info_User_Data;
+     Any_Info_Kind range Info_End .. Info_User_Data;
 
    type Trace_Info_Header is record
       Kind : Any_Info_Kind;
@@ -205,7 +204,7 @@ package GNATcov_RTS.Traces is
    --    significant bit maps to bit 8 * Y + 7.
 
    subtype Supported_Bit_Buffer_Encoding is
-      Any_Bit_Buffer_Encoding range LSB_First_Bytes .. LSB_First_Bytes;
+     Any_Bit_Buffer_Encoding range LSB_First_Bytes .. LSB_First_Bytes;
 
    type Trace_Entry_Header is record
       Unit_Name_Length : Unsigned_32;
@@ -238,7 +237,7 @@ package GNATcov_RTS.Traces is
       --  be able to interpret buffer bits from a source traces using buffer
       --  bit mappings from SID files.
 
-      Annotations_Fingerprint   : Fingerprint_Type;
+      Annotations_Fingerprint : Fingerprint_Type;
       --  Hash of annotations for this unit, as gnatcov computes it (see
       --  SC_Obligations). Used as a fast way to check that source traces and
       --  coverage data are consistent.

@@ -1,4 +1,3 @@
-
 package body Support is
 
    procedure Assert (Cond : Boolean) is

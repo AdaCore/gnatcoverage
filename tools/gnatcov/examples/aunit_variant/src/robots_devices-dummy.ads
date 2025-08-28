@@ -26,10 +26,10 @@ package Robots_Devices.Dummy is
    procedure Step_Forward (Device : access Dummy_Engine);
    --  Make the Engines step forward
 
-   procedure Rotate_Left    (Device : access Dummy_Engine);
+   procedure Rotate_Left (Device : access Dummy_Engine);
    --  Make the Engines rotate left
 
-   procedure Rotate_Right   (Device : access Dummy_Engine);
+   procedure Rotate_Right (Device : access Dummy_Engine);
    --  Make the Engines rotate right
 
    type Dummy_Radar is new Robots_Devices.Radar with private;
@@ -39,7 +39,7 @@ package Robots_Devices.Dummy is
 
    type Dummy_Locator is new Robots_Devices.Locator with private;
 
-   function Get_Position  (Device : access Dummy_Locator) return Position;
+   function Get_Position (Device : access Dummy_Locator) return Position;
    function Get_Direction (Device : access Dummy_Locator) return Direction;
    --  Use the locator to retrieve the current position and direction.
 
