@@ -13,7 +13,7 @@ is
    Data_Array     : array (1 .. 4) of Integer := (others => 0);
 
    procedure Process_1 (Value : Integer)
-     with Global => (Output => (Data_Array, Last_Increment)), Pre => Value > 0;
+   with Global => (Output => (Data_Array, Last_Increment)), Pre => Value > 0;
 
    procedure Process (Value : Integer) is
    begin
@@ -25,9 +25,10 @@ is
       for I in Data_Array'Range loop
          Data_Array (I) := Data_Array (I) + Value;
 
-         pragma Loop_Invariant
-           (for all J in Data_Array'First .. I =>
-              Data_Array (J) = Data_Array'Loop_Entry (J) + Value);
+         pragma
+           Loop_Invariant
+             (for all J in Data_Array'First .. I =>
+                Data_Array (J) = Data_Array'Loop_Entry (J) + Value);
       end loop;
       Last_Increment := Value;
    end Process_1;

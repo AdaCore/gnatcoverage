@@ -47,7 +47,7 @@
 --  only one to one connections.
 
 with Actors, Queues;
-use  Actors;
+use Actors;
 
 generic
    type Data_Type is private;
@@ -106,7 +106,7 @@ private
    type Callback_Access is access procedure (Port : IOport_Access);
 
    type IOport (Capacity : Natural) is record
-      Data  : Data_Queue (Capacity => Capacity);
+      Data          : Data_Queue (Capacity => Capacity);
       Push_Callback : Callback_Access;
 
       Owner : Actor_Ref;

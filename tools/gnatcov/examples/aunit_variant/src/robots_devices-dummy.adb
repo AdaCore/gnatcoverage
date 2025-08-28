@@ -124,22 +124,20 @@ package body Robots_Devices.Dummy is
       Env : Environment_Access := new Environment;
    begin
       --  Create the hardware set.
-      Hw := (Eng => new Dummy_Engine,
-             Rad => new Dummy_Radar,
-             Loc => new Dummy_Locator);
+      Hw :=
+        (Eng => new Dummy_Engine,
+         Rad => new Dummy_Radar,
+         Loc => new Dummy_Locator);
 
       --  All devices share the same environment.
-      Dummy_Engine  (Hw.Eng.all).Env := Env;
-      Dummy_Radar   (Hw.Rad.all).Env := Env;
+      Dummy_Engine (Hw.Eng.all).Env := Env;
+      Dummy_Radar (Hw.Rad.all).Env := Env;
       Dummy_Locator (Hw.Loc.all).Env := Env;
 
       --  We now initialize the environment with a dummy map and initial
       --  position
       Fake_Map (Env.Map);
-      Env.Situ :=
-        (Pos => (X => 2, Y => 2),
-         Dir => East,
-         Sqa => Ground);
+      Env.Situ := (Pos => (X => 2, Y => 2), Dir => East, Sqa => Ground);
 
       --  Verify that the Sqa value is correct.
       Update_Square_Ahead (Dummy_Engine (Hw.Eng.all)'Access);

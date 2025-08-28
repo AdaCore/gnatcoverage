@@ -32,8 +32,7 @@ package body Links is
       return Ret;
    end Create_IOport;
 
-   procedure On_Push
-     (Port : IOport_Access; Callback : Callback_Access) is
+   procedure On_Push (Port : IOport_Access; Callback : Callback_Access) is
    begin
       Port.Push_Callback := Callback;
    end On_Push;
@@ -85,8 +84,7 @@ package body Links is
       end loop;
    end Flush;
 
-   procedure Connect
-     (Outp, Inp : IOport_Access; Link : IOlink_Access) is
+   procedure Connect (Outp, Inp : IOport_Access; Link : IOlink_Access) is
    begin
       Inp.Link := Link;
       Outp.Link := Link;

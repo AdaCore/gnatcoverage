@@ -84,8 +84,8 @@ package body GNATcov_RTS.Buffers.Lists is
          return;
       end if;
       declare
-         Buffers_Group : Coverage_Buffers_Group
-           (1 .. Integer (C_Buffers_Group.Length));
+         Buffers_Group :
+           Coverage_Buffers_Group (1 .. Integer (C_Buffers_Group.Length));
          pragma Import (C, Buffers_Group);
          for Buffers_Group'Address use C_Buffers_Group.Buffers;
       begin
@@ -102,8 +102,8 @@ package body GNATcov_RTS.Buffers.Lists is
    procedure Reset_Group_Array_Buffers
      (Arr : GNATcov_RTS_Coverage_Buffers_Group_Array)
    is
-      Buffers_Groups : Coverage_Buffers_Group_Array
-        (1 .. Integer (Arr.Length));
+      Buffers_Groups :
+        Coverage_Buffers_Group_Array (1 .. Integer (Arr.Length));
       pragma Import (C, Buffers_Groups);
       for Buffers_Groups'Address use Arr.Groups;
    begin

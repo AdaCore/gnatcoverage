@@ -10,10 +10,17 @@ package body Sensors is
       --  Dummy implementation, for demonstration purposes
 
       case Index is
-         when 1 => return 1;
-         when 2 => return 5;
-         when 3 => return 3;
-         when 4 => return 7;
+         when 1 =>
+            return 1;
+
+         when 2 =>
+            return 5;
+
+         when 3 =>
+            return 3;
+
+         when 4 =>
+            return 7;
       end case;
    end Value;
 

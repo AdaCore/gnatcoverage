@@ -17,13 +17,13 @@
 ------------------------------------------------------------------------------
 
 with Ada.Text_IO;
-with Interfaces;         use Interfaces;
+with Interfaces; use Interfaces;
 
-with Diagnostics;        use Diagnostics;
-with Outputs;            use Outputs;
+with Diagnostics;  use Diagnostics;
+with Outputs;      use Outputs;
 with Qemu_Traces;
-with Traces;             use Traces;
-with Trace_Output;       use Trace_Output;
+with Traces;       use Traces;
+with Trace_Output; use Trace_Output;
 
 with Instructions_Info;  use Instructions_Info;
 with Trace32.Branchflow; use Trace32.Branchflow;
@@ -56,29 +56,28 @@ package body Trace32.Conversion is
       Qemu_Trace_File   : String;
       Decision_Map_File : String)
    is
-      Insn           : Instructions_Info.Insn_Info;
-      Branch_Flow    : BF.Branchflow_Trace;
-      BF_Entry       : BF.Branchflow_Trace_Entry;
-      BF_Status      : BF.Status_Kind;
-      Prev_Landing   : Pc_Type;
-      Output         : Trace_Output.QEMU_Trace_Output;
-      Kind           : Instruction_Kind;
+      Insn         : Instructions_Info.Insn_Info;
+      Branch_Flow  : BF.Branchflow_Trace;
+      BF_Entry     : BF.Branchflow_Trace_Entry;
+      BF_Status    : BF.Status_Kind;
+      Prev_Landing : Pc_Type;
+      Output       : Trace_Output.QEMU_Trace_Output;
+      Kind         : Instruction_Kind;
    begin
 
       --  Load the instruction info from the ELF file
       Insn.Load_Elf (Elf_File);
 
       if not Insn.Loaded then
-         Outputs.Fatal_Error ("Cannot load .text section for ELF file: '"
-                                & Elf_File & "'");
+         Outputs.Fatal_Error
+           ("Cannot load .text section for ELF file: '" & Elf_File & "'");
       end if;
 
       Report ("Loading Trace32 Branch Flow file: " & Branchflow_File);
 
-      if Branch_Flow.Open (Branchflow_File) /= BF.Status_Ok
-      then
-         Outputs.Fatal_Error ("Cannot open Trace32 Branch Flow file: '"
-                                & Branchflow_File & "'");
+      if Branch_Flow.Open (Branchflow_File) /= BF.Status_Ok then
+         Outputs.Fatal_Error
+           ("Cannot open Trace32 Branch Flow file: '" & Branchflow_File & "'");
       end if;
 
       Output.Open (Qemu_Trace_File, Decision_Map_File);
@@ -95,15 +94,16 @@ package body Trace32.Conversion is
 
       if BF_Status /= Status_Ok then
          --  No entry in Branchflow file
-         Outputs.Fatal_Error ("No entry in Trace32 Branchflow file'"
-                                & Branchflow_File & "'");
+         Outputs.Fatal_Error
+           ("No entry in Trace32 Branchflow file'" & Branchflow_File & "'");
       else
          --  Use Target address of first branchflow entry as the first address
          --  of the first basic block.
          Prev_Landing := BF_Entry.Target;
       end if;
 
-      Conversion : loop
+      Conversion :
+      loop
 
          BF_Status := Branch_Flow.Next_Entry (BF_Entry);
 
@@ -124,17 +124,19 @@ package body Trace32.Conversion is
 
                   --  Set the address of the last byte of the last instruction
                   --  in the basic block.
-                  Ent.Last  := BF_Entry.Caller +
-                    Insn.Get_Insn_Length (BF_Entry.Caller) - 1;
+                  Ent.Last :=
+                    BF_Entry.Caller
+                    + Insn.Get_Insn_Length (BF_Entry.Caller)
+                    - 1;
 
                   --  Mark the basic block as executed
-                  Ent.Op    := Qemu_Traces.Trace_Op_Block;
+                  Ent.Op := Qemu_Traces.Trace_Op_Block;
 
                   if Kind = Branch then
                      --  Check if Target is the fallthrough address of Caller
                      --  instruction.
-                     if Insn.Fallthrough_Address (BF_Entry.Caller,
-                                                  BF_Entry.Target)
+                     if Insn.Fallthrough_Address
+                          (BF_Entry.Caller, BF_Entry.Target)
                      then
                         --  Fallthrough
                         Ent.Op := Ent.Op or Qemu_Traces.Trace_Op_Br1;
@@ -153,7 +155,7 @@ package body Trace32.Conversion is
                   Output.Push_Entry (Ent);
                end;
 
-            when Unknown =>
+            when Unknown               =>
 
                --  The kind of instruction is unknown, this most probably means
                --  that the instruction is not within the sections of the ELF
@@ -164,18 +166,21 @@ package body Trace32.Conversion is
                --  so we will try to recover from this situation by searching
                --  for the next known instruction.
 
-               Recovery : loop
+               Recovery :
+               loop
 
                   if Insn.Kind (BF_Entry.Caller) /= Unknown then
 
                      Outputs.Warn
                        ("Recovering from unknown instruction ("
-                          & Hex_Image (BF_Entry.Target) & ")");
+                        & Hex_Image (BF_Entry.Target)
+                        & ")");
                      exit Recovery;
                   else
                      Outputs.Warning_Or_Error
                        ("Could not get instruction info ("
-                          & Hex_Image (BF_Entry.Caller) & ")");
+                        & Hex_Image (BF_Entry.Caller)
+                        & ")");
                   end if;
 
                   BF_Status := Branch_Flow.Next_Entry (BF_Entry);

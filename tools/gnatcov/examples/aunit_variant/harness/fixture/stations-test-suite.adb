@@ -27,11 +27,10 @@ package body Stations.Test.Suite is
       Ret : constant Access_Test_Suite := New_Suite;
    begin
       AUnit.Test_Suites.Add_Test
-        (Ret, Caller.Create
-           ("Test Stations.Kill/Live", Test_Live_And_Kill_Access));
+        (Ret,
+         Caller.Create ("Test Stations.Kill/Live", Test_Live_And_Kill_Access));
       AUnit.Test_Suites.Add_Test
-        (Ret, Caller.Create
-           ("Test Stations.Init", Test_Init_Access));
+        (Ret, Caller.Create ("Test Stations.Init", Test_Init_Access));
       return Ret;
    end Suite;
 

@@ -1,4 +1,3 @@
-
 package Support is
 
    --  First, common subprograms intended for either Ada or C tests.

@@ -31,12 +31,10 @@ package body Trace_Output is
    procedure Open
      (This              : in out QEMU_Trace_Output;
       Output_Trace_Path : String;
-      Decision_Map_Path : String := "")
-   is
+      Decision_Map_Path : String := "") is
    begin
-      Open_Output_Flat_Trace_File (Output_Trace_Path,
-                                   This.Desc,
-                                   This.Trace_File);
+      Open_Output_Flat_Trace_File
+        (Output_Trace_Path, This.Desc, This.Trace_File);
       This.Open := True;
 
       Traces_Dbase.Init_Base (This.Base);
@@ -50,17 +48,15 @@ package body Trace_Output is
    -- Is_Open --
    -------------
 
-   function Is_Open (This : in out QEMU_Trace_Output) return Boolean is
-      (This.Open);
+   function Is_Open (This : in out QEMU_Trace_Output) return Boolean
+   is (This.Open);
 
    ----------------
    -- Push_Entry --
    ----------------
 
    procedure Push_Entry
-     (This        : in out QEMU_Trace_Output;
-      Trace_Entry : Traces.Trace_Entry)
-   is
+     (This : in out QEMU_Trace_Output; Trace_Entry : Traces.Trace_Entry) is
    begin
       if This.Keep_History (Trace_Entry.Last) then
          --  If we have to keep history for this trace, we write it directly to
@@ -76,9 +72,7 @@ package body Trace_Output is
    -- Close_Trace_File --
    ----------------------
 
-   procedure Close_Trace_File
-     (This : in out QEMU_Trace_Output)
-   is
+   procedure Close_Trace_File (This : in out QEMU_Trace_Output) is
       procedure Write_Entry (E : Trace_Entry);
 
       procedure Write_Entry (E : Trace_Entry) is
@@ -99,16 +93,13 @@ package body Trace_Output is
    -- Update_Entry --
    ------------------
 
-   procedure Update_Entry (This        : in out QEMU_Trace_Output;
-                           Trace_Entry : Traces.Trace_Entry)
-   is
+   procedure Update_Entry
+     (This : in out QEMU_Trace_Output; Trace_Entry : Traces.Trace_Entry) is
    begin
       --  Traces_Dbase.Add_Entry is expected handle the merge of Op if we see
       --  the same entry twice.
-      Traces_Dbase.Add_Entry (This.Base,
-                              Trace_Entry.First,
-                              Trace_Entry.Last,
-                              Trace_Entry.Op);
+      Traces_Dbase.Add_Entry
+        (This.Base, Trace_Entry.First, Trace_Entry.Last, Trace_Entry.Op);
    end Update_Entry;
 
    -----------------------
@@ -116,57 +107,53 @@ package body Trace_Output is
    -----------------------
 
    procedure Load_Decision_Map
-     (This              : in out QEMU_Trace_Output;
-      Decision_Map_Path : String)
+     (This : in out QEMU_Trace_Output; Decision_Map_Path : String)
    is
 
       function Load_Shared_Object
-        (Ignored_Trace_File : Trace_File_Type;
-         Ignored_Filename   : String;
-         Ignored_Signature  : Binary_File_Signature;
-         Ignored_First,
-         Ignored_Last       : Traces.Pc_Type) return Boolean
+        (Ignored_Trace_File          : Trace_File_Type;
+         Ignored_Filename            : String;
+         Ignored_Signature           : Binary_File_Signature;
+         Ignored_First, Ignored_Last : Traces.Pc_Type) return Boolean
       is (True);
 
       procedure Process_Info_Entries
-        (Trace_File : Trace_File_Type;
-         Result     : out Read_Result);
+        (Trace_File : Trace_File_Type; Result : out Read_Result);
 
       procedure Process_Trace_Entry
-        (Trace_File : Trace_File_Type;
-         SO         : Boolean;
-         E          : Trace_Entry);
+        (Trace_File : Trace_File_Type; SO : Boolean; E : Trace_Entry);
 
-      procedure Read_Decision_Map_File is new Read_Trace_File_Gen
-        (Shared_Object_Type   => Boolean,
-         No_Shared_Object     => False,
-         Process_Info_Entries => Process_Info_Entries,
-         Load_Shared_Object   => Load_Shared_Object,
-         Process_Trace_Entry  => Process_Trace_Entry);
+      procedure Read_Decision_Map_File is new
+        Read_Trace_File_Gen
+          (Shared_Object_Type   => Boolean,
+           No_Shared_Object     => False,
+           Process_Info_Entries => Process_Info_Entries,
+           Load_Shared_Object   => Load_Shared_Object,
+           Process_Trace_Entry  => Process_Trace_Entry);
 
       --------------------------
       -- Process_Info_Entries --
       --------------------------
 
       procedure Process_Info_Entries
-        (Trace_File : Trace_File_Type;
-         Result     : out Read_Result) is
+        (Trace_File : Trace_File_Type; Result : out Read_Result) is
       begin
          case Kind (Trace_File) is
-         when Flat | History =>
-            Create_Error
-              (Result, "decision map expected, but this is a execution trace");
+            when Flat | History =>
+               Create_Error
+                 (Result,
+                  "decision map expected, but this is a execution trace");
 
-         when Decision_Map =>
-            null;
+            when Decision_Map   =>
+               null;
 
-         when Info =>
-            --  If Trace_File's first header has an Info kind, then it is
-            --  supposed to have a second header, and Trace_File's kind must
-            --  come from this second header. Header reading must have already
-            --  ensured that.
+            when Info           =>
+               --  If Trace_File's first header has an Info kind, then it is
+               --  supposed to have a second header, and Trace_File's kind must
+               --  come from this second header. Header reading must have
+               --  already ensured that.
 
-            raise Program_Error;
+               raise Program_Error;
          end case;
       end Process_Info_Entries;
 
@@ -175,9 +162,7 @@ package body Trace_Output is
       -------------------------
 
       procedure Process_Trace_Entry
-        (Trace_File : Trace_File_Type;
-         SO         : Boolean;
-         E          : Trace_Entry)
+        (Trace_File : Trace_File_Type; SO : Boolean; E : Trace_Entry)
       is
          pragma Unreferenced (Trace_File);
          pragma Unreferenced (SO);
@@ -203,8 +188,8 @@ package body Trace_Output is
    -- Keep_History --
    ------------------
 
-   function Keep_History (This : in out QEMU_Trace_Output;
-                          Pc   : Pc_Type) return Boolean
+   function Keep_History
+     (This : in out QEMU_Trace_Output; Pc : Pc_Type) return Boolean
    is
       use Address_Set;
    begin

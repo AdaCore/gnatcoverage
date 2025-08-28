@@ -52,18 +52,14 @@ package body Robots is
    begin
       --  Stepping forward with a rock block or a water pit ahead is Unsafe
 
-      return
-        Cmd = Step_Forward
-        and then (Sqa = Block or else Sqa = Water);
+      return Cmd = Step_Forward and then (Sqa = Block or else Sqa = Water);
    end Unsafe;
 
    --------------------------
    -- Process_Next_Control --
    --------------------------
 
-   procedure Process_Next_Control
-     (Port : Robot_Control_Links.IOport_Access)
-   is
+   procedure Process_Next_Control (Port : Robot_Control_Links.IOport_Access) is
       Ctrl  : Robot_Control;
       Robot : Robot_Access := Robot_Access (Owner (Port));
 
@@ -79,22 +75,22 @@ package body Robots is
       end if;
 
       case Ctrl.Code is
-         when Nop =>
+         when Nop          =>
             return;
 
-         when Opmode =>
+         when Opmode       =>
             Robot.Mode := Robot_Opmode'Val (Ctrl.Value);
 
          when Step_Forward =>
             Step_Forward (Robot.Hw.Eng);
 
-         when Rotate_Left =>
+         when Rotate_Left  =>
             Rotate_Left (Robot.Hw.Eng);
 
          when Rotate_Right =>
             Rotate_Right (Robot.Hw.Eng);
 
-         when Probe =>
+         when Probe        =>
             Situation_Links.Push
               (Situation'
                  (Pos => Get_Position (Robot.Hw.Loc),
@@ -124,13 +120,10 @@ package body Robots is
    procedure Init (R : Robot_Access; Hw : Robot_Hardware) is
    begin
       R.Robot_Situation_Outp :=
-        Situation_Links.Create_IOport
-         (Capacity => 1,
-          Owner => Actor_Ref (R));
+        Situation_Links.Create_IOport (Capacity => 1, Owner => Actor_Ref (R));
       R.Robot_Control_Inp :=
         Robot_Control_Links.Create_IOport
-         (Capacity => 2,
-          Owner    => Actor_Ref (R));
+          (Capacity => 2, Owner => Actor_Ref (R));
       R.Hw := Hw;
    end Init;
 

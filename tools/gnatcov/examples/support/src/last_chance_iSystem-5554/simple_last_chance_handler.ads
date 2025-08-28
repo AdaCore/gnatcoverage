@@ -22,8 +22,11 @@ with System;
 package Simple_Last_Chance_Handler is
 
    Unexpected_Last_Chance_Call : Integer := 0;
-   pragma Export (Ada, Unexpected_Last_Chance_Call,
-                  "__gnat_unexpected_last_chance_call");
+   pragma
+     Export
+       (Ada,
+        Unexpected_Last_Chance_Call,
+        "__gnat_unexpected_last_chance_call");
    --  This declaration and comment should appear in all of the Ada
    --  specs defining __gnat_last_chance_handler, and being used by
    --  the GNATcoverage testsuite.  Even if the value is not modified

@@ -16,7 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Assert, Engines; use Engines;
+with Assert, Engines;
+use Engines;
 
 procedure Test_Unstable_T is
    E : Engine;

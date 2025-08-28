@@ -19,8 +19,10 @@
 
 with AUnit.Assertions; use AUnit.Assertions;
 with Actors;           use Actors;
-with Geomaps;          use Geomaps, Geomaps.Situation_Links;
-with Controls;         use Controls, Controls.Robot_Control_Links;
+with Geomaps;
+use Geomaps, Geomaps.Situation_Links;
+with Controls;
+use Controls, Controls.Robot_Control_Links;
 
 package body Stations.Test is
 
@@ -44,10 +46,11 @@ package body Stations.Test is
       end if;
 
       T.Test_Station.all :=
-        (Actors.Actor with
-         Robot_Control_Outp  => null,
-         Robot_Situation_Inp => null,
-         Map                 => (others => (others => Ground)));
+        (Actors.Actor
+         with
+           Robot_Control_Outp  => null,
+           Robot_Situation_Inp => null,
+           Map                 => (others => (others => Ground)));
    end Set_Up;
 
    ---------------
