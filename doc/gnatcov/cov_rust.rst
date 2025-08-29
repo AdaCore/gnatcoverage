@@ -23,6 +23,9 @@ it for coverage analysis. The instrumentation is delegated to ``rustc``.
 Then, run the program, which produces trace files. Finally, use |gcvcov| to
 generate a coverage report.
 
+An example project demonstrating Rust instrumentation can be found at
+``share/examples/gnatcoverage/doc/rust_cov``.
+
 .. _rust_cov_workflow_1:
 
 Instrument and build the project
