@@ -1,0 +1,4 @@
+project My_RTS extends "gnatcov_rts" is
+   for Object_Dir use "obj." & GNATcov_RTS.Library_Type;
+   for Library_Dir use "lib." & GNATcov_RTS.Library_Type;
+end My_RTS;

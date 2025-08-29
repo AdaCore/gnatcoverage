@@ -18,6 +18,10 @@ The following subsections provide examples of possible use cases of this facilit
 Single unit tested by different programs
 ========================================
 
+The sources for the following example can be found under the
+`share/examples/gnatcoverage/doc/cons_traces` directory of the GNATDAS
+disctribution.
+
 We will first consider achieving statement coverage of the following example
 Ada unit, which implements part of a robot controller able to send actuator
 commands depending on what a front sensor perceives is ahead of the robot:
@@ -130,7 +134,7 @@ Assuming you have obtained one trace for the execution of each test,
 the command to produce the combined report would be something like::
 
     gnatcov coverage --level=stmt <units-of-interest> --annotate=xcov
-      test_cmd_safe.trace test_cmd_unsafe.trace
+      test_cmd_safe.srctrace test_cmd_unsafe.srctrace
 
 The means to obtain the traces and the :cmd-option:`<units-of-interest>`
 switches would depend on how the functional and testing code has been
