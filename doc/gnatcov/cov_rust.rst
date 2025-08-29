@@ -113,3 +113,15 @@ Approximative source location ranges
 Currently, you may witness that some SCOs have a source location range that
 can overlap or merge with its neighbours. This is due to bugs in the
 compiler's instrumentation logic and will be fixed in coming releases.
+
+Unsupported constructs
+----------------------
+
+Some constructs are not yet supported:
+
+- MC/DC instrumentation of pattern matching. Pattern matching can be viewed
+  as a decision with multiple conditions. However, it can lead to more than
+  just 2 outcomes.
+
+- Rust ``macros by example`` and procedural macros are not yet instrumented.
+
