@@ -336,7 +336,7 @@ is
       --  sources. Adding this switch on the gcc command line should not change
       --  anything.
 
-      if Compiler_Is_X86 (Context.Orig_Compiler_Driver) then
+      if Compiler_Is_32bits (Context.Orig_Compiler_Driver) then
          Additional_Args.Append (+"-m32");
       end if;
 
