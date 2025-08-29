@@ -403,27 +403,27 @@
     </obligation_stats>
 
     <obligation_stats kind="Decision">
-     <metric kind="total_obligations_of_relevance" count="0"/>
-     <metric kind="fully_covered" count="0"/>
-     <metric kind="partially_covered" count="0"/>
-     <metric kind="not_covered" count="0"/>
-     <metric kind="undetermined_coverage" count="0"/>
-     <metric kind="exempted_no_violation" count="0"/>
-     <metric kind="exempted" count="0"/>
-     <metric kind="exempted_undetermined_coverage" count="0"/>
-     <metric kind="disabled_coverage" count="0"/>
+     <metric kind="total_obligations_of_relevance" count="1"/>
+     <metric kind="fully_covered" count="1" ratio="100"/>
+     <metric kind="partially_covered" count="0" ratio="0"/>
+     <metric kind="not_covered" count="0" ratio="0"/>
+     <metric kind="undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="exempted_no_violation" count="0" ratio="0"/>
+     <metric kind="exempted" count="0" ratio="0"/>
+     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
     </obligation_stats>
 
     <obligation_stats kind="MCDC">
-     <metric kind="total_obligations_of_relevance" count="0"/>
-     <metric kind="fully_covered" count="0"/>
-     <metric kind="partially_covered" count="0"/>
-     <metric kind="not_covered" count="0"/>
-     <metric kind="undetermined_coverage" count="0"/>
-     <metric kind="exempted_no_violation" count="0"/>
-     <metric kind="exempted" count="0"/>
-     <metric kind="exempted_undetermined_coverage" count="0"/>
-     <metric kind="disabled_coverage" count="0"/>
+     <metric kind="total_obligations_of_relevance" count="1"/>
+     <metric kind="fully_covered" count="1" ratio="100"/>
+     <metric kind="partially_covered" count="0" ratio="0"/>
+     <metric kind="not_covered" count="0" ratio="0"/>
+     <metric kind="undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="exempted_no_violation" count="0" ratio="0"/>
+     <metric kind="exempted" count="0" ratio="0"/>
+     <metric kind="exempted_undetermined_coverage" count="0" ratio="0"/>
+     <metric kind="disabled_coverage" count="0" ratio="0"/>
     </obligation_stats>
 
    </scope_metric>

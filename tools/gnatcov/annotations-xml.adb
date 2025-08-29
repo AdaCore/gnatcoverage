@@ -586,9 +586,9 @@ package body Annotations.Xml is
          Line_Stats : constant Li_Stat_Array :=
            Line_Metrics
              (File_Info,
-              Scope_Ent.Start_Sloc.Line,
+              Scope_Ent.Source_Range.L.First_Sloc.Line,
               (if Is_Root then Last_Line (File_Info)
-               else Scope_Ent.End_Sloc.Line));
+               else Scope_Ent.Source_Range.L.Last_Sloc.Line));
          --  Adjust Scope_Ent.End_Sloc for the root node as it is
          --  No_Local_Location by default.
       begin
@@ -598,7 +598,7 @@ package body Annotations.Xml is
          Print_Coverage_Li_Stats (Pp, Line_Stats, Dest_Compilation_Unit);
          Print_Coverage_Ob_Stats
            (Pp,
-            Obligation_Metrics (Scope_Ent.From, Scope_Ent.To),
+            Obligation_Metrics (Get_SCOs (Scope_Ent.Source_Range)),
             Dest_Compilation_Unit);
          while Has_Element (Child) loop
             Pp_Scope_Entity (Child);

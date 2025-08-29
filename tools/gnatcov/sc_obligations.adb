@@ -23,6 +23,7 @@ with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Deallocation;
 
+with GNATCOLL.VFS;
 with Interfaces;
 
 with Aspects;     use Aspects;
@@ -34,7 +35,6 @@ with Snames;
 
 with Checkpoints;           use Checkpoints;
 with Coverage;              use Coverage;
-with Coverage.Source;
 with Diagnostics;           use Diagnostics;
 with Files_Table;           use Files_Table;
 with Inputs;                use Inputs;
@@ -64,8 +64,13 @@ package body SC_Obligations is
    --  * properly ordered: if E1 and E2 are consecutive siblings, E1.To must be
    --    smaller than E2.From.
 
+   function Floor
+     (Tree : Scope_Entities_Trees.Tree;
+      Sloc : Source_Location) return Scope_Entities_Trees.Cursor;
+   --  Return the innermost scope containing Sloc
+
    function Covers_SCO (SE : Scope_Entity; SCO : SCO_Id) return Boolean
-   is (SCO in SE.From .. SE.To);
+   is (In_Range (First_Sloc (SCO), SE.Source_Range));
    --  Return whether SCO is covered by SE's SCO range
 
    function Covers_SCO
@@ -73,9 +78,12 @@ package body SC_Obligations is
    --  Return whether SCO is covered by that element's SCO range. Id the SCO is
    --  a function SCO, then the scope can be the root of the tree.
 
-   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id) with
-     Pre => Get_CU (ST) = No_CU_Id
-           or else SCO in First_SCO (Get_CU (ST)) .. Last_SCO (Get_CU (ST));
+   function Contains_SCO (SCO : SCO_Id; CU : CU_Id) return Boolean;
+   --  Return whether the given CU contains the given SCO
+
+   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id)
+     with Pre => Get_CU (ST) = No_CU_Id
+     or else Contains_SCO (SCO, Get_CU (ST));
    --  Position ST on the inner-most scope that contains SCO.
    --
    --  This does nothing on a scope traversal type not initialized, or
@@ -90,6 +98,29 @@ package body SC_Obligations is
    -- Source units table --
    ------------------------
 
+   type SID_Info is record
+      Blocks : SCO_Id_Vector_Vector;
+      --  List of blocks. A block is a list of statement SCOs. Note that
+      --  this is specific to source instrumentation, but a container cannot
+      --  be a discriminant-dependent component.
+
+      Bit_Maps : CU_Bit_Maps;
+      --  Mapping of bits in coverage buffers to SCOs
+
+      Bit_Maps_Fingerprint : Fingerprint_Type;
+      --  Hash of Bit_Maps, for consistency checks with source traces
+
+      Annotations_Fingerprint : Fingerprint_Type := No_Fingerprint;
+      --  Hash of ALI_Annotations, for consistency checks with source traces
+
+   end record;
+   --  Part of the information stored in a SID file, and needed to compute
+   --  coverage results.
+
+   package SID_Info_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Fingerprint_Type,
+      Element_Type => SID_Info);
+
    type CU_Info (Provider : SCO_Provider := SCO_Provider'First) is record
       Origin : Source_File_Index;
       --  File from which this unit's SCO info comes from.
@@ -101,17 +132,11 @@ package body SC_Obligations is
       --  For Ada this is a simple name; for C this is either a simple name
       --  or full name, depending on whether the information is available.
 
-      First_SCO, Last_SCO : SCO_Id := No_SCO_Id;
-      --  First and last SCO ids for this unit
-
       Deps : SFI_Vector;
       --  Mapping of this unit's dependency numbers to source file indices
 
       Has_Code : Boolean := False;
       --  Set True when object code for some source file in this unit is seen
-
-      Fingerprint : Fingerprint_Type;
-      --  Hash of SCO info in ALI, for incremental coverage consistency check
 
       PP_Info_Map : SCO_PP_Info_Maps.Map;
       --  Information about preprocessing
@@ -119,38 +144,51 @@ package body SC_Obligations is
       Scope_Entities : Scope_Entities_Tree := Scope_Entities_Trees.Empty_Tree;
       --  Scope tree, used to output e.g. subprogram metrics
 
-      Blocks : SCO_Id_Vector_Vector;
-      --  List of blocks. A block is a list of statement SCOs. Note that this
-      --  is specific to source instrumentation, but a container cannot be
-      --  a discriminant-dependent component.
-
       ALI_Annotations : ALI_Annotation_Maps.Map;
       --  List of annotations for the unit
 
-      Annotations_Fingerprint : Fingerprint_Type := No_Fingerprint;
-      --  Hash of ALI_Annotations, for consistency checks with source traces
+      SCOs : SCO_Range_Vectors.Vector;
+      --  List of SCOs for this unit
+
+      SIDs_Info : SID_Info_Maps.Map;
+      --  Mapping from SCOs fingerprint to SID information. A compilation
+      --  unit has various SID versions when it has varying SCOs: this can
+      --  happen when including a header file with varying inclusion
+      --  contexts (e.g. macro definition varying at the inclusion point).
+      --  Note that this is exclusively computing coverage results (e.g.
+      --  analyzing a trace along with SID files).
+      --
+      --  Note that we only use the SID_Info when computing coverage results
+      --  resulting from instrumentation (and thus analyzing traces with SID
+      --  files). When retrieving coverage results from checkpoint, we only
+      --  need the list of SCOs fingerprints for quicker consolidation, so
+      --  this map elements will be empty.
 
       case Provider is
          when Compiler | LLVM =>
-            null;
+            SCOs_Fingerprint : Fingerprint_Type;
+            --  Hash of SCO info in checkpoint, for incremental coverage
+            --  consistency check.
 
          when Instrumenter =>
-            Bit_Maps : CU_Bit_Maps;
-            --  Mapping of bits in coverage buffers to SCOs
-
-            Bit_Maps_Fingerprint : Fingerprint_Type;
-            --  Hash of Bit_Maps, for consistency checks with source traces
+            Source_Fingerprint : Fingerprint_Type;
+            --  Hash of source code in checkpoint, for incremental coverage
+            --  consistency check. Note that contrarily to binary traces, we
+            --  can have a varying set of SCOs from a checkpoint to another,
+            --  so we rely on the source code fingerprint rather than the
+            --  SCOs.
 
             True_Static_SCOs  : SCO_Sets.Set;
             False_Static_SCOs : SCO_Sets.Set;
-      end case;
 
+      end case;
    end record;
 
    procedure Free (CU : in out CU_Info);
 
    function Has_SCOs (CUI : CU_Info) return Boolean is
-     (CUI.First_SCO <= CUI.Last_SCO);
+     (CUI.SCOs.Length > 0
+      and then CUI.SCOs.First_Element.First <= CUI.SCOs.First_Element.Last);
 
    function Are_Bit_Maps_In_Range
      (Bit_Maps : CU_Bit_Maps; CU : CU_Info) return Boolean;
@@ -429,7 +467,8 @@ package body SC_Obligations is
 
          when Decision =>
             Expression : SCO_Id := No_SCO_Id;
-            --  Top expression node for this decision
+            --  Top expression node for this decision. This refers to the first
+            --  condition SCO of the decision.
 
             D_Kind : Decision_Kind;
             --  Decision kind indication
@@ -486,8 +525,12 @@ package body SC_Obligations is
    Removed_SCO_Descriptor : constant SCO_Descriptor := (Kind => Removed);
 
    package SCO_Vectors is new Ada.Containers.Vectors
-       (Index_Type   => Valid_SCO_Id,
-        Element_Type => SCO_Descriptor);
+     (Index_Type   => Valid_SCO_Id,
+      Element_Type => SCO_Descriptor);
+
+   package SCO_To_CU_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Valid_SCO_Id,
+      Element_Type => CU_Id);
 
    function Next_BDD_Node
      (SCO   : SCO_Id;
@@ -527,9 +570,10 @@ package body SC_Obligations is
    --  contain data loaded from a checkpoint.
 
    type Source_Coverage_Vectors is record
-      CU_Vector  : CU_Info_Vectors.Vector;
-      BDD_Vector : BDD.BDD_Vectors.Vector;
-      SCO_Vector : SCO_Vectors.Vector;
+      CU_Vector        : CU_Info_Vectors.Vector;
+      BDD_Vector       : BDD.BDD_Vectors.Vector;
+      SCO_Vector       : SCO_Vectors.Vector;
+      SCO_To_CU_Vector : SCO_To_CU_Vectors.Vector;
    end record;
 
    function Index
@@ -583,6 +627,11 @@ package body SC_Obligations is
    procedure Read (CLS : in out Checkpoint_Load_State; Value : out PP_Info);
    --  Read a PP_Info from CLS
 
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Fingerprint : out Fingerprint_Type);
+   --  Wrapper around CLS.Read_Fingerprint to accomodate for the Read_Map
+   --  instantiation below.
+
    procedure Read is new Read_Map
      (Key_Type     => SCO_Id,
       Element_Type => PP_Info,
@@ -590,7 +639,7 @@ package body SC_Obligations is
       Clear        => SCO_PP_Info_Maps.Clear,
       Insert       => SCO_PP_Info_Maps.Insert,
       Read_Key     => Read,
-      Read_element => Read);
+      Read_Element => Read);
 
    procedure Read
      (CLS : in out Checkpoint_Load_State; Value : out Scope_Entity);
@@ -602,6 +651,29 @@ package body SC_Obligations is
       Multiway_Trees => Scope_Entities_Trees,
       Read_Element   => Read);
 
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out SCO_Range);
+   --  Read a SCO_Range from CLS
+
+   procedure Read is new Read_Vector
+     (Index_Type   => Positive,
+      Element_Type => SCO_Range,
+      "="          => "=",
+      Vectors      => SCO_Range_Vectors,
+      Read_Element => Read);
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out SID_Info);
+   --  Read a SID_Info from CLS
+
+   procedure Read is new Read_Map
+     (Key_Type     => Fingerprint_Type,
+      Element_Type => SID_Info,
+      Map_Type     => SID_Info_Maps.Map,
+      Clear        => SID_Info_Maps.Clear,
+      Insert       => SID_Info_Maps.Insert,
+      Read_Key     => Read,
+      Read_Element => Read);
    procedure Read (CLS : in out Checkpoint_Load_State; Value : out CU_Info);
    --  Read a CU_Info from CLS
 
@@ -661,32 +733,85 @@ package body SC_Obligations is
       Read_Element => Read);
    --  Read a ALI_Annotation_Maps.Map from CLS
 
-   procedure Checkpoint_Load_Merge_Unit
+   procedure Remap_BDD
+     (CP_Vectors   : Source_Coverage_Vectors;
+      Relocs       : in out Checkpoint_Relocations;
+      Decision_BDD : in out BDD.BDD_Type);
+   --  Remap a sequence of BDD nodes, for a whole decision BDD
+
+   procedure Remap_BDD_Node
+     (Relocs : Checkpoint_Relocations;
+      B      : in out BDD_Node_Id);
+   --  Remap a BDD node id
+
+   procedure Remap_SCO_Id
+     (Relocs : Checkpoint_Relocations;
+      S      : in out SCO_Id);
+   --  Remap a SCO_Id. Note: this assumes possible forward references, and
+   --  does not rely on SCO_Map.
+
+   procedure Remap_SCO_Descriptor
+     (CP_Vectors : Source_Coverage_Vectors;
+      Relocs     : in out Checkpoint_Relocations;
+      SCOD       : in out SCO_Descriptor);
+   --  Remap one SCO_Descriptor. Note that this assumes that
+   --  SCOD.Sloc_Range.Source_File has already been remapped.
+   --
+   --  Note that this expects condition SCOs of a decision to have been
+   --  remapped calling Remap_SCO_Descriptor
+
+   function Sloc_Range_For_SCO
+     (SCOD : SCO_Descriptor) return Source_Location_Range;
+   --  Get the Source_Location_Range to search for in the Sloc_To_SCO map for
+   --  the given SCO, accounting for the specific case of decision with
+   --  a control location (when using binary traces): in this case, the
+   --  decision are located at their control location rather than the actual
+   --  decision location.
+
+   function Check_SCOs_Consistency
      (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
-      CP_CU      : CU_Info;
-      Real_CU_Id : CU_Id);
-   --  Load CU from checkpoint that corresponds to a current unit of interest
-   --  whose ID is Real_CU_Id.
+      CP_CU      : in out CU_Info) return Boolean;
+   --  Check the consistency of the SCO in CP_CU wrt. SCOs previously loaded
+   --  for the a different version of the same unit. When a new SCO overlaps
+   --  with an existing one, this breaks the consistency of SCOs. Note that we
+   --  accept no SCO overlaps (thus no nesting) across compilation unit
+   --  versions.
 
-   procedure Checkpoint_Load_New_Unit
+   procedure Checkpoint_Load_SCOs
      (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
-      New_CU_Id  : out CU_Id);
-   --  Load CU from checkpoint that does not correspond to a current unit of
-   --  interest. The newly assigned CU_Id is returned in New_CU_Id.
+      Real_CU    : in out CU_Info;
+      Real_CU_Id : CU_Id);
+   --  Load the SCOs in CP_CU and add them to Real_CU, which is the CU entry
+   --  for Real_CU_Id.
+
+   procedure Checkpoint_Load_SID_Info
+     (CLS     : in out Checkpoint_Load_State;
+      CP_CU   : in out CU_Info;
+      Real_CU : in out CU_Info);
+   --  Load the SID information entries in SIDs_Info and add them to Real_CU
+
+   procedure Checkpoint_Load_PP_Info
+     (CLS     : in out Checkpoint_Load_State;
+      CP_CU   : in out CU_Info;
+      Real_CU : in out CU_Info);
+   --  Load the preprocessing information in CP_CU and add them to Real_CU
+
+   procedure Checkpoint_Load_Scopes
+     (CLS     : in out Checkpoint_Load_State;
+      CP_CU   : in out CU_Info;
+      Real_CU : in out CU_Info);
+   --  Load the scopes in CP_CU and add them to Real_CU
 
    procedure Checkpoint_Load_Unit
      (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
       CP_CU      : in out CU_Info;
-      New_CU_Id  : out CU_Id);
+      CP_CU_Id   : CU_Id);
    --  Process one compilation unit from a checkpoint.
    --  CP_CU_Id is the CU_Id in the checkpoint.
-   --  New_CU_Id is the corresponding CU_Id in the current context, and is
-   --  either an already existing CU_Id (if the unit was already known),
-   --  or a newly assigned one (if not).
 
    -----------------------------------------
    -- Helper routines for Checkpoint_Save --
@@ -725,6 +850,33 @@ package body SC_Obligations is
       "="             => "=",
       Multiway_Trees  => Scope_Entities_Trees,
       Write_Element   => Write);
+
+   procedure Write
+     (CSS : in out Checkpoint_Save_State; Value : SID_Info);
+   --  Write a SID_Info to CSS
+
+   procedure Write is new Write_Map
+     (Key_Type      => Fingerprint_Type,
+      Element_Type  => SID_Info,
+      Map_Type      => SID_Info_Maps.Map,
+      Cursor_Type   => SID_Info_Maps.Cursor,
+      Length        => SID_Info_Maps.Length,
+      Iterate       => SID_Info_Maps.Iterate,
+      Query_Element => SID_Info_Maps.Query_Element,
+      Write_Key     => Write,
+      Write_Element => Write);
+   --  Write a vector of SID_Info records to CSS
+
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : SCO_Range);
+   --  Write a SCO_Range to CSS
+
+   procedure Write is new Write_Vector
+     (Index_Type    => Positive,
+      Element_Type  => SCO_Range,
+      "="           => "=",
+      Vectors       => SCO_Range_Vectors,
+      Write_Element => Write);
+   --  Write a vector of SCO_Range records to CSS
 
    procedure Write (CSS : in out Checkpoint_Save_State; Value : CU_Info);
    --  Write a CU_Info to CSS
@@ -811,6 +963,10 @@ package body SC_Obligations is
    SCO_Vector : SCO_Vectors.Vector renames SC_Vectors.SCO_Vector;
    --  Vector of high-level Source Coverage Obligations (for all units)
 
+   SCO_To_CU_Vector : SCO_To_CU_Vectors.Vector renames
+     SC_Vectors.SCO_To_CU_Vector;
+   --  Mapping of SCO_Id to CU, for performance purposes
+
    -----------
    -- Image --
    -----------
@@ -845,9 +1001,9 @@ package body SC_Obligations is
             SE     : Scope_Entity renames
               Scope_Entities.Constant_Reference (Cur);
          begin
-            Put_Line (Prefix & Image (SE));
-            Put_Line (Prefix & "... from " & Image (SE.From));
-            Put_Line (Prefix & "    to   " & Image (SE.To));
+            Put_Line
+              (Prefix & Image (SE) & " source range "
+               & Image (SE.Source_Range));
          end;
       end loop;
    end Dump;
@@ -877,8 +1033,10 @@ package body SC_Obligations is
    -- Traverse_SCO --
    ------------------
 
-   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id) is
+   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id)
+   is
       use Scope_Entities_Trees;
+      SCO_Sloc : constant Local_Source_Location := First_Sloc (SCO).L;
    begin
       --  Don't do anything if there is no scope attached to ST.
 
@@ -938,8 +1096,9 @@ package body SC_Obligations is
                   declare
                      SE : constant Scope_Entity := Element (Child);
                   begin
-                     In_Child := SE.From <= SCO;
-                     exit Child_Search when SE.To >= SCO;
+                        In_Child := SE.Source_Range.L.First_Sloc <= SCO_Sloc;
+                        exit Child_Search when
+                          SCO_Sloc <= SE.Source_Range.L.Last_Sloc;
                      Child := Next_Sibling (Child);
                   end;
                end loop Child_Search;
@@ -1015,22 +1174,78 @@ package body SC_Obligations is
       end loop;
    end Add_SCO_To_Lines;
 
+   ---------------------
+   -- Has_Fingerprint --
+   ---------------------
+
+   function Has_Fingerprint
+     (CU              : CU_Id;
+      SCO_Fingerprint : Fingerprint_Type) return Boolean is
+   begin
+      return
+        CU_Vector.Constant_Reference (CU).SIDs_Info.Contains (SCO_Fingerprint);
+   end Has_Fingerprint;
+
+   ------------------
+   -- Fingerprints --
+   ------------------
+
+   function Fingerprints (CU : CU_Id) return Fingerprint_Vectors.Vector
+   is
+      Result : Fingerprint_Vectors.Vector;
+   begin
+      for Cur in CU_Vector.Reference (CU).SIDs_Info.Iterate loop
+         Result.Append (SID_Info_Maps.Key (Cur));
+      end loop;
+      return Result;
+   end Fingerprints;
+
    --------------
    -- Bit_Maps --
    --------------
 
-   function Bit_Maps (CU : CU_Id) return CU_Bit_Maps is
+   function Bit_Maps
+     (CU              : CU_Id;
+      SCO_Fingerprint : Fingerprint_Type) return CU_Bit_Maps is
    begin
-      return CU_Vector.Reference (CU).Element.Bit_Maps;
+      return CU_Vector.Reference (CU)
+        .SIDs_Info.Element (SCO_Fingerprint).Bit_Maps;
    end Bit_Maps;
+
+   --------------------------
+   -- Bit_Maps_Fingerprint --
+   --------------------------
+
+   function Bit_Maps_Fingerprint
+     (CU              : CU_Id;
+      SCO_Fingerprint : Fingerprint_Type) return Fingerprint_Type is
+   begin
+      return CU_Vector.Constant_Reference (CU)
+        .SIDs_Info.Element (SCO_Fingerprint).Bit_Maps_Fingerprint;
+   end Bit_Maps_Fingerprint;
+
+   -----------------------------
+   -- Annotations_Fingerprint --
+   -----------------------------
+
+   function Annotations_Fingerprint
+     (CU              : CU_Id;
+      SCO_Fingerprint : Fingerprint_Type) return Fingerprint_Type is
+   begin
+      return CU_Vector.Constant_Reference (CU)
+        .SIDs_Info.Element (SCO_Fingerprint).Annotations_Fingerprint;
+   end Annotations_Fingerprint;
 
    ------------
    -- Blocks --
    ------------
 
-   function Blocks (CU : CU_Id) return SCO_Id_Vector_Vector is
+   function Blocks
+     (CU              : CU_Id;
+      SCO_Fingerprint : Fingerprint_Type) return SCO_Id_Vector_Vector is
    begin
-      return CU_Vector.Reference (CU).Element.Blocks;
+      return CU_Vector.Reference (CU)
+        .SIDs_Info.Element (SCO_Fingerprint).Blocks;
    end Blocks;
 
    -----------------
@@ -1098,14 +1313,58 @@ package body SC_Obligations is
    end Read;
 
    procedure Read
+     (CLS : in out Checkpoint_Load_State; Fingerprint : out Fingerprint_Type)
+   is
+   begin
+      Fingerprint := CLS.Read_Fingerprint;
+   end Read;
+
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out SID_Info)
+   is
+      Stmt_First, DC_First, MCDC_First : Bit_Id;
+      Stmt_Last, DC_Last, MCDC_Last    : Any_Bit_Id;
+   begin
+      --  Read block information
+
+      Read (CLS, Value.Blocks);
+
+      --  Read bit maps
+
+      Stmt_First := CLS.Read_Bit_Id;
+      Stmt_Last := CLS.Read_Bit_Id;
+      Value.Bit_Maps.Statement_Bits :=
+        new Statement_Bit_Map (Stmt_First .. Stmt_Last);
+      for SCO of Value.Bit_Maps.Statement_Bits.all loop
+         SCO := CLS.Read_SCO;
+      end loop;
+
+      DC_First := CLS.Read_Bit_Id;
+      DC_Last := CLS.Read_Bit_Id;
+      Value.Bit_Maps.Decision_Bits :=
+        new Decision_Bit_Map (DC_First .. DC_Last);
+      for Info of Value.Bit_Maps.Decision_Bits.all loop
+         Info.D_SCO := CLS.Read_SCO;
+         Info.Outcome := CLS.Read_Boolean;
+      end loop;
+
+      MCDC_First := CLS.Read_Bit_Id;
+      MCDC_Last := CLS.Read_Bit_Id;
+      Value.Bit_Maps.MCDC_Bits :=
+        new MCDC_Bit_Map (MCDC_First .. MCDC_Last);
+      for Info of Value.Bit_Maps.MCDC_Bits.all loop
+         Info.D_SCO := CLS.Read_SCO;
+         Info.Path_Index := CLS.Read_Integer;
+      end loop;
+      Value.Bit_Maps_Fingerprint := CLS.Read_Fingerprint;
+      Value.Annotations_Fingerprint := CLS.Read_Fingerprint;
+   end Read;
+
+   procedure Read
      (CLS : in out Checkpoint_Load_State; Value : out Scope_Entity)
    is
    begin
-      Value.From := CLS.Read_SCO;
-      Value.To := CLS.Read_SCO;
-
-      Value.Start_Sloc := CLS.Read_Local_Source_Location;
-      Value.End_Sloc := CLS.Read_Local_Source_Location;
+      Value.Source_Range := CLS.Read_Source_Location_Range;
 
       Value.Name := CLS.Read_Unbounded_String;
       Value.Sloc := CLS.Read_Local_Source_Location;
@@ -1114,76 +1373,33 @@ package body SC_Obligations is
       Value.Identifier.Decl_Line := CLS.Read_Integer;
    end Read;
 
+   procedure Read
+     (CLS : in out Checkpoint_Load_State; Value : out SCO_Range)
+   is
+   begin
+      Value.First := CLS.Read_SCO;
+      Value.Last := CLS.Read_SCO;
+   end Read;
+
    procedure Read (CLS : in out Checkpoint_Load_State; Value : out CU_Info)
    is
       Element_Template : CU_Info (SCO_Provider'Val (CLS.Read_U8));
    begin
       Value := Element_Template;
-
-      --  Checkpoint version 1 data
-
       Value.Origin := CLS.Read_SFI;
       Value.Main_Source := CLS.Read_SFI;
-      Value.First_SCO := CLS.Read_SCO;
-      Value.Last_SCO := CLS.Read_SCO;
       Read (CLS, Value.Deps);
       Value.Has_Code := CLS.Read_Boolean;
-      Value.Fingerprint := CLS.Read_Fingerprint;
       Read (CLS, Value.PP_Info_Map);
       Read (CLS, Value.Scope_Entities);
       Read (CLS, Value.ALI_Annotations);
-      Value.Annotations_Fingerprint := CLS.Read_Fingerprint;
-
-      case Value.Provider is
+      Read (CLS, Value.SCOs);
+      case Element_Template.Provider is
          when Compiler | LLVM =>
-            null;
+            Value.SCOs_Fingerprint := CLS.Read_Fingerprint;
          when Instrumenter =>
-
-            --  By default, use "no fingerprint" for buffer bit maps
-            --  fingerprints: by design checkpoints contains neither bit maps
-            --  nor their fingerprints (all source traces are processed before
-            --  loading checkpoints, and bit maps are needed only to interpret
-            --  source traces).
-
-            Value.Bit_Maps_Fingerprint := No_Fingerprint;
-
-            if Purpose_Of (CLS) = Instrumentation then
-               declare
-                  Stmt_First, DC_First, MCDC_First : Bit_Id;
-                  Stmt_Last, DC_Last, MCDC_Last    : Any_Bit_Id;
-               begin
-                  Stmt_First := CLS.Read_Bit_Id;
-                  Stmt_Last := CLS.Read_Bit_Id;
-                  Value.Bit_Maps.Statement_Bits :=
-                    new Statement_Bit_Map (Stmt_First .. Stmt_Last);
-                  for SCO of Value.Bit_Maps.Statement_Bits.all loop
-                     SCO := CLS.Read_SCO;
-                  end loop;
-
-                  DC_First := CLS.Read_Bit_Id;
-                  DC_Last := CLS.Read_Bit_Id;
-                  Value.Bit_Maps.Decision_Bits :=
-                    new Decision_Bit_Map (DC_First .. DC_Last);
-                  for Info of Value.Bit_Maps.Decision_Bits.all loop
-                     Info.D_SCO := CLS.Read_SCO;
-                     Info.Outcome := CLS.Read_Boolean;
-                  end loop;
-
-                  MCDC_First := CLS.Read_Bit_Id;
-                  MCDC_Last := CLS.Read_Bit_Id;
-                  Value.Bit_Maps.MCDC_Bits :=
-                    new MCDC_Bit_Map (MCDC_First .. MCDC_Last);
-                  for Info of Value.Bit_Maps.MCDC_Bits.all loop
-                     Info.D_SCO := CLS.Read_SCO;
-                     Info.Path_Index := CLS.Read_Integer;
-                  end loop;
-               end;
-               Value.Bit_Maps_Fingerprint := CLS.Read_Fingerprint;
-
-               --  Read block information
-
-               Read (CLS, Value.Blocks);
-            end if;
+            Read (CLS, Value.SIDs_Info);
+            Value.Source_Fingerprint := CLS.Read_Fingerprint;
       end case;
    end Read;
 
@@ -1281,21 +1497,672 @@ package body SC_Obligations is
       Value.Undetermined_Cov_Count := 0;
    end Read;
 
-   --------------------------------
-   -- Checkpoint_Load_Merge_Unit --
-   --------------------------------
+   function "<" (L, R : Static_Decision_Evaluation) return Boolean is
+   begin
+      if L.Outcome /= R.Outcome then
+         return L.Outcome < R.Outcome;
+      end if;
 
-   procedure Checkpoint_Load_Merge_Unit
+      for J in R.Values.First_Index .. R.Values.Last_Index loop
+         if J > L.Values.Last_Index then
+            return True;
+
+         elsif L.Values.Element (J) < R.Values.Element (J) then
+            return True;
+
+         elsif L.Values.Element (J) > R.Values.Element (J) then
+            return False;
+         end if;
+      end loop;
+
+      return False;
+   end "<";
+
+   ------------------------
+   -- Sloc_Range_For_SCO --
+   ------------------------
+
+   function Sloc_Range_For_SCO
+     (SCOD : SCO_Descriptor) return Source_Location_Range
+   is
+      Sloc_Range : Source_Location_Range := SCOD.Sloc_Range;
+   begin
+      if SCOD.Kind = Decision and then SCOD.Control_Location /= No_Location
+      then
+         Sloc_Range := To_Range (SCOD.Control_Location, No_Location);
+      end if;
+      return Sloc_Range;
+   end Sloc_Range_For_SCO;
+
+   ----------------------------
+   -- Check_SCOs_Consistency --
+   ----------------------------
+
+   function Check_SCOs_Consistency
      (CLS        : in out Checkpoint_Load_State;
       CP_Vectors : Source_Coverage_Vectors;
-      CP_CU      : CU_Info;
+      CP_CU      : in out CU_Info) return Boolean is
+   begin
+      for SCO_Range of CP_CU.SCOs loop
+         for Old_SCO_Id in SCO_Range.First .. SCO_Range.Last loop
+            declare
+               New_SCOD : constant SCO_Descriptor :=
+                 CP_Vectors.SCO_Vector.Element (Old_SCO_Id);
+               Kind     : Any_SCO_Kind renames New_SCOD.Kind;
+
+               Sloc_Range : Source_Location_Range :=
+                 Sloc_Range_For_SCO (New_SCOD);
+
+               Real_SCO : SCO_Id := No_SCO_Id;
+               --  Value of the SCO if it already exists, otherwise left to
+               --  No_SCO_Id.
+
+            begin
+               --  Remap SFIs in all source locations
+
+               Remap_SFI (CLS.Relocations, Sloc_Range.Source_File);
+
+               --  Only consider statement / decision / condition coverage
+               --  obligations as other SCO kinds are not considered by
+               --  Sloc_To_SCO and this is a good enough condition to ensure
+               --  SCOs consistency.
+
+               if Kind not in Statement .. Condition then
+                  goto Continue;
+               end if;
+
+               --  Try to find if the SCO already exists, or if there is an
+               --  existing SCO at the same location but not with the same
+               --  source range.
+
+               --  First, try to find if we have a SCO of the exact same kind
+               --  and range.
+
+               declare
+                  use Sloc_To_SCO_Maps;
+                  Cur : constant Cursor :=
+                    Sloc_To_SCO_Map
+                      (Sloc_Range.Source_File, Kind).Find (Sloc_Range.L);
+               begin
+                  if Has_Element (Cur)
+                    and then SCO_Vector.Element (Element (Cur)).Kind = Kind
+                  then
+                     goto Continue;
+                  end if;
+               end;
+
+               --  If we did not find a SCO with the exact same range, check
+               --  whether there is an overlapping SCO.
+
+               Real_SCO :=
+                 Sloc_To_SCO
+                   (Slocs.Source_Location'
+                      (Source_File => Sloc_Range.Source_File,
+                       L           => New_SCOD.Sloc_Range.L.First_Sloc),
+                    Include_Decisions => True);
+
+               if Real_SCO /= No_SCO_Id then
+                  return False;
+               end if;
+            end;
+            <<Continue>>
+         end loop;
+      end loop;
+      return True;
+   end Check_SCOs_Consistency;
+
+   --------------------------
+   -- Checkpoint_Load_SCOs --
+   --------------------------
+
+   procedure Checkpoint_Load_SCOs
+     (CLS        : in out Checkpoint_Load_State;
+      CP_Vectors : Source_Coverage_Vectors;
+      CP_CU      : in out CU_Info;
+      Real_CU    : in out CU_Info;
       Real_CU_Id : CU_Id)
    is
       Relocs  : Checkpoint_Relocations renames CLS.Relocations;
-      Real_CU : CU_Info renames CU_Vector.Reference (Real_CU_Id).Element.all;
+
+      Cur_Source_File : Source_File_Index := No_Source_File;
+      Last_Line       : Natural := 0;
+
+      New_First_SCO : constant SCO_Id := SCO_Vector.Last_Index + 1;
+   begin
+      --  When loading a SCO, we check if it already exists:
+      --     * If it is the case, merge it and adequately set the bit map
+      --       relocation to the existing SCO.
+      --     * Otherwise, create it.
+      --
+      --  The heuristic to consider that a SCO already exists or not is to
+      --  check for a SCO with the exact same source location.
+
+      for SCO_Range of CP_CU.SCOs loop
+         for Old_SCO_Id in SCO_Range.First .. SCO_Range.Last loop
+            declare
+               New_SCOD   : SCO_Descriptor :=
+                 CP_Vectors.SCO_Vector.Element (Old_SCO_Id);
+               Sloc_Range : Source_Location_Range :=
+                 Sloc_Range_For_SCO (New_SCOD);
+               Real_SCO   : SCO_Id := No_SCO_Id;
+               --  Value of the SCO if it already exists, otherwise left to
+               --  No_SCO_Id.
+
+            begin
+               if New_SCOD.Kind = Removed then
+                  Ignore_SCO (Relocs, Old_SCO_Id);
+                  goto Next_SCO;
+               end if;
+
+               --  Remap SFIs in all source locations
+
+               Remap_SFI (Relocs, Sloc_Range.Source_File);
+
+               --  Try to find if the SCO already exists
+
+               declare
+                  use Sloc_To_SCO_Maps;
+                  Cur : constant Cursor :=
+                    Sloc_To_SCO_Map
+                      (Sloc_Range.Source_File,
+                       New_SCOD.Kind).Find (Sloc_Range.L);
+               begin
+                  if Has_Element (Cur) then
+                     Real_SCO := Element (Cur);
+                  end if;
+               end;
+
+               --  If the SCO already exists, only add an entry to remap the
+               --  Old_SCO_Id to the actual SCO.
+
+               if Real_SCO /= No_SCO_Id then
+                  Set_SCO_Id_Map (Relocs, Old_SCO_Id, Real_SCO);
+                  goto Next_SCO;
+               end if;
+
+               --  At this point, if Real_SCO is No_SCO_Id, this is a new SCO:
+               --  it cannot overlap with an existing SCO as this was checked
+               --  by Check_SCOs_Consistency.
+
+               if Real_SCO = No_SCO_Id then
+                  Set_SCO_Id_Map
+                    (Relocs, Old_SCO_Id, SCO_Vector.Last_Index + 1);
+
+                  --  Append new SCOD and record mapping
+
+                  Remap_SCO_Descriptor (CP_Vectors, Relocs, New_SCOD);
+
+                  --  Preallocate line table entries for previous unit
+
+                  if New_SCOD.Sloc_Range.Source_File /= Cur_Source_File then
+                     Prealloc_Lines (Cur_Source_File, Last_Line);
+                     Cur_Source_File := New_SCOD.Sloc_Range.Source_File;
+                     CU_Map.Include (Cur_Source_File, Real_CU_Id);
+                  end if;
+                  if New_SCOD.Kind in
+                    Statement | Decision | Fun_Call_SCO_Kind | Guarded_Expr
+                  then
+                     Add_SCO_To_Lines (SCO_Vector.Last_Index + 1, New_SCOD);
+                  end if;
+
+                  Last_Line := Natural'Max
+                    (Files_Table.Last_Line (Get_File (Cur_Source_File)),
+                     New_SCOD.Sloc_Range.L.Last_Sloc.Line);
+                  SCO_Vector.Append (New_SCOD);
+                  SCO_To_CU_Vector.Append (Real_CU_Id);
+
+                  --  Add it into the Sloc_To_SCO_Map
+
+                  declare
+                     Map : constant access Sloc_To_SCO_Maps.Map :=
+                       Writeable_Sloc_To_SCO_Map
+                         (Sloc_Range.Source_File, New_SCOD.Kind);
+                  begin
+                     Map.Insert (Sloc_Range.L, SCO_Vector.Last_Index);
+                  end;
+
+                  if SCOs_Trace.Is_Active then
+                     SCOs_Trace.Trace
+                       ("Loaded from checkpoint: "
+                        & Image (SCO_Vector.Last_Index)
+                        & " (was #"
+                        & Trim (Old_SCO_Id'Img, Side => Ada.Strings.Both)
+                        & " in checkpoint)");
+                  end if;
+               end if;
+            end;
+            <<Next_SCO>>
+         end loop;
+      end loop;
+
+      --  Add the newly created SCOs to Real_CU.SCOs
+
+      if SCO_Vector.Last_Index >= New_First_SCO then
+         Real_CU.SCOs.Append
+           (SCO_Range'(First => New_First_SCO, Last => SCO_Vector.Last_Index));
+      end if;
+   end Checkpoint_Load_SCOs;
+
+   ------------------------------
+   -- Checkpoint_Load_SID_Info --
+   ------------------------------
+
+   procedure Checkpoint_Load_SID_Info
+     (CLS     : in out Checkpoint_Load_State;
+      CP_CU   : in out CU_Info;
+      Real_CU : in out CU_Info)
+   is
+      Relocs : Checkpoint_Relocations renames CLS.Relocations;
+   begin
+      for Cur in CP_CU.SIDs_Info.Iterate loop
+         declare
+            SID_Fingerprint : constant Fingerprint_Type :=
+              SID_Info_Maps.Key (Cur);
+            SID_Version     : SID_Info := SID_Info_Maps.Element (Cur);
+         begin
+            if not Real_CU.SIDs_Info.Contains (SID_Fingerprint) then
+
+               --  Remap bit map buffers
+
+               if SID_Version.Bit_Maps.Statement_Bits /= null then
+                  for S_SCO of SID_Version.Bit_Maps.Statement_Bits.all loop
+                     Remap_SCO_Id (Relocs, S_SCO);
+                  end loop;
+               end if;
+
+               if SID_Version.Bit_Maps.Decision_Bits /= null then
+                  for D_Outcome of SID_Version.Bit_Maps.Decision_Bits.all
+                  loop
+                     Remap_SCO_Id (Relocs, D_Outcome.D_SCO);
+                  end loop;
+               end if;
+
+               if SID_Version.Bit_Maps.MCDC_Bits /= null then
+                  for D_Path of SID_Version.Bit_Maps.MCDC_Bits.all loop
+                     Remap_SCO_Id (Relocs, D_Path.D_SCO);
+                  end loop;
+               end if;
+
+               --  Remap blocks information
+
+               for Block_Cur in SID_Version.Blocks.Iterate loop
+                  declare
+                     Block_Ref : constant
+                       SCO_Id_Vector_Vectors.Reference_Type :=
+                         SID_Version.Blocks.Reference (Block_Cur);
+                  begin
+                     for SCO_Cur in Block_Ref.Iterate loop
+                        Remap_SCO_Id (Relocs, Block_Ref.Reference (SCO_Cur));
+                     end loop;
+                  end;
+               end loop;
+
+               Real_CU.SIDs_Info.Insert (SID_Fingerprint, SID_Version);
+            end if;
+         end;
+      end loop;
+   end Checkpoint_Load_SID_Info;
+
+   -----------------------------
+   -- Checkpoint_Load_PP_Info --
+   -----------------------------
+
+   procedure Checkpoint_Load_PP_Info
+     (CLS     : in out Checkpoint_Load_State;
+      CP_CU   : in out CU_Info;
+      Real_CU : in out CU_Info)
+   is
+      use SCO_PP_Info_Maps;
+      Relocs : Checkpoint_Relocations renames CLS.Relocations;
+   begin
+      for Cur in CP_CU.PP_Info_Map.Iterate loop
+         declare
+            SCO  : SCO_Id := Key (Cur);
+            Info : PP_Info := Element (Cur);
+         begin
+            if not Real_CU.PP_Info_Map.Contains (SCO) then
+               if Info.Kind = In_Expansion then
+                  for Expansion of Info.Expansion_Stack loop
+                     Remap_SFI
+                       (Relocs,
+                        Expansion.Sloc.Source_File);
+                  end loop;
+                  Remap_SFI
+                    (Relocs,
+                     Info.Definition_Loc.Sloc.Source_File);
+               end if;
+               Remap_SCO_Id (Relocs, SCO);
+               Real_CU.PP_Info_Map.Insert (SCO, Info);
+            end if;
+         end;
+      end loop;
+   end Checkpoint_Load_PP_Info;
+
+   ----------------------------
+   -- Checkpoint_Load_Scopes --
+   ----------------------------
+
+   procedure Checkpoint_Load_Scopes
+     (CLS     : in out Checkpoint_Load_State;
+      CP_CU   : in out CU_Info;
+      Real_CU : in out CU_Info)
+   is
+      Relocs : Checkpoint_Relocations renames CLS.Relocations;
+   begin
+      --  For scope entities, only add those that do not violate the
+      --  nesting and ordering of the structure
+
+      for Scope_Ent of CP_CU.Scope_Entities loop
+
+         --  Scopes whose identifier references ignored source files will
+         --  lose their identifier: such scopes will remain, but users
+         --  will not be able to mark them of interest.
+
+         if SFI_Ignored (Relocs, Scope_Ent.Identifier.Decl_SFI) then
+            Scope_Ent.Identifier := No_Scope_Entity_Identifier;
+         else
+            Remap_SFI (Relocs, Scope_Ent.Identifier.Decl_SFI);
+         end if;
+
+         Remap_SFI (Relocs, Scope_Ent.Source_Range.Source_File);
+
+         declare
+            use Scope_Entities_Trees;
+
+            Real_Scope : constant Cursor :=
+              Floor
+                (Real_CU.Scope_Entities,
+                 Source_Location'
+                   (Source_File => Scope_Ent.Source_Range.Source_File,
+                    L           => Scope_Ent.Source_Range.L.First_Sloc));
+
+            Added_Scope : Boolean := False;
+            --  Whether the current Scope_Ent was added to the list of scopes
+            --  (it is a new scope that does not clash with existing scopes).
+
+         begin
+            if not Scope_Entities_Trees.Has_Element (Real_Scope) then
+
+               --  This is a new scope that do not nest with an existing
+               --  scope (basically the case of a new compilation unit).
+
+               Real_CU.Scope_Entities.Insert_Child
+                 (Parent   => Real_CU.Scope_Entities.Root,
+                  Before   => No_Element,
+                  New_Item => Scope_Ent);
+               Added_Scope := True;
+            else
+               declare
+                  Found_Scope_Ent : constant Scope_Entity :=
+                    Real_CU.Scope_Entities.Reference (Real_Scope);
+                  Child           : Cursor :=
+                    First_Child (Real_Scope);
+                  Src_Range       : constant Source_Location_Range :=
+                    Found_Scope_Ent.Source_Range;
+               begin
+
+                  if Scope_Ent.Source_Range = Src_Range then
+
+                     --  The scope already exists: do nothing
+
+                     null;
+
+                  elsif Src_Range.L.First_Sloc <
+                    Scope_Ent.Source_Range.L.First_Sloc
+                    and then
+                      Scope_Ent.Source_Range.L.Last_Sloc <
+                        Src_Range.L.Last_Sloc
+                  then
+                     --  Check if it nests with the innermost scope entity. If
+                     --  this is the case, insert it as a child.
+
+                     while Has_Element (Child)
+                       and then Element (Child).Source_Range.L.First_Sloc
+                       < Scope_Ent.Source_Range.L.First_Sloc
+                     loop
+                        Child := Next_Sibling (Child);
+                     end loop;
+                     Added_Scope := True;
+
+                     if not Has_Element (Child) then
+
+                        --  Insert it as the last children
+
+                        Real_CU.Scope_Entities.Insert_Child
+                          (Parent   => Real_Scope,
+                           Before   => No_Element,
+                           New_Item => Scope_Ent);
+
+                     else
+                        --  Insert it before the identified child
+
+                        Real_CU.Scope_Entities.Insert_Child
+                          (Parent   => Real_Scope,
+                           Before   => Child,
+                           New_Item => Scope_Ent);
+
+                     end if;
+                  else
+                     --  Discard overlapping cases
+
+                     Outputs.Fatal_Error
+                       ("Scope "
+                        & (+Scope_Ent.Name)
+                        & " at source location: "
+                        & Image (Scope_Ent.Source_Range)
+                        & " clashes with scope "
+                        & (+Found_Scope_Ent.Name)
+                        & " at location: "
+                        & Image (Found_Scope_Ent.Source_Range));
+                  end if;
+               end;
+            end if;
+
+            --  Register each scope identifiers to make them available to
+            --  users on the command line.
+
+            if Added_Scope then
+               Available_Subps_Of_Interest.Include (Scope_Ent.Identifier);
+            end if;
+         end;
+      end loop;
+      pragma Assert (SCOs_Nested_And_Ordered (Real_CU.Scope_Entities));
+   end Checkpoint_Load_Scopes;
+
+   ---------------
+   -- Remap_BDD --
+   ---------------
+
+   procedure Remap_BDD
+     (CP_Vectors   : Source_Coverage_Vectors;
+      Relocs       : in out Checkpoint_Relocations;
+      Decision_BDD : in out BDD.BDD_Type)
+   is
+      CP_First  : constant BDD_Node_Id := Decision_BDD.First_Node;
+      CP_Last   : constant BDD_Node_Id := Decision_BDD.Last_Node;
+      New_First : constant BDD_Node_Id := BDD_Vector.Last_Index + 1;
+   begin
+      --  Import the relevant BDD nodes from CP_Vectors.BDD_Vector
+
+      for Old_BDD_Node_Id in CP_First .. CP_Last loop
+         declare
+            --  We are supposed to remap individual BDD nodes only once
+
+            New_BDD_Node : BDD.BDD_Node :=
+              CP_Vectors.BDD_Vector.Element (Old_BDD_Node_Id);
+
+            procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id);
+            --  Remap a BDD node id
+
+            -----------------------
+            -- Remap_BDD_Node_Id --
+            -----------------------
+
+            procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id) is
+            begin
+               if S /= No_BDD_Node_Id then
+                  S := S - CP_First + New_First;
+               end if;
+            end Remap_BDD_Node_Id;
+
+         begin
+            case New_BDD_Node.Kind is
+               when BDD.Condition =>
+                  Remap_BDD_Node_Id (New_BDD_Node.Parent);
+                  for Valuation in New_BDD_Node.Dests'Range loop
+                     Remap_BDD_Node_Id
+                       (New_BDD_Node.Dests (Valuation));
+                  end loop;
+
+                  --  Note that we leave New_BDD_Node.C_SCO unremapped here:
+                  --  the loading of the corresponding SCO condition will
+                  --  take care of it (see below).
+
+               when BDD.Jump =>
+                  Remap_BDD_Node_Id (New_BDD_Node.Dest);
+
+               when others =>
+                  null;
+            end case;
+
+            BDD_Vector.Append (New_BDD_Node);
+            Set_BDD_Node_Id_Map
+              (Relocs, Old_BDD_Node_Id, BDD_Vector.Last_Index);
+         end;
+      end loop;
+
+      --  Remap IDs in Decision_BDD
+
+      Remap_SCO_Id (Relocs, Decision_BDD.Decision);
+
+      Remap_BDD_Node (Relocs, Decision_BDD.Root_Condition);
+      Remap_BDD_Node (Relocs, Decision_BDD.First_Node);
+      Remap_BDD_Node (Relocs, Decision_BDD.Last_Node);
+      Remap_BDD_Node (Relocs, Decision_BDD.First_Multipath_Condition);
+   end Remap_BDD;
+
+   --------------------
+   -- Remap_BDD_Node --
+   --------------------
+
+   procedure Remap_BDD_Node
+     (Relocs : Checkpoint_Relocations;
+      B      : in out BDD_Node_Id) is
+   begin
+      if B /= No_BDD_Node_Id then
+         B := Remap_BDD_Node_Id (Relocs, B);
+         pragma Assert (B /= No_BDD_Node_Id);
+      end if;
+   end Remap_BDD_Node;
+
+   ------------------
+   -- Remap_SCO_Id --
+   ------------------
+
+   procedure Remap_SCO_Id
+     (Relocs : Checkpoint_Relocations;
+      S      : in out SCO_Id) is
+   begin
+      S := Checkpoints.Remap_SCO_Id (Relocs, S);
+   end Remap_SCO_Id;
+
+   --------------------------
+   -- Remap_SCO_Descriptor --
+   --------------------------
+
+   procedure Remap_SCO_Descriptor
+     (CP_Vectors : Source_Coverage_Vectors;
+      Relocs     : in out Checkpoint_Relocations;
+      SCOD       : in out SCO_Descriptor)
+   is
+      New_First_SCO : SCO_Id := SCO_Vector.Last_Index + 1;
+   begin
+      Remap_SFI (Relocs, SCOD.Sloc_Range.Source_File);
+
+      --  If this is a decision, start by recording all of the operator
+      --  and condition SCOs in the relocation map, before relocating all
+      --  of the components of the SCO_Descriptor.
+
+      case SCOD.Kind is
+         when Decision =>
+            declare
+               Expr_SCO  : SCO_Id := SCOD.Expression - 1;
+               Expr_SCOD : SCO_Descriptor :=
+                 CP_Vectors.SCO_Vector.Element (Expr_SCO);
+            begin
+               loop
+                  Expr_SCO := Expr_SCO + 1;
+                  exit when Expr_SCO > CP_Vectors.SCO_Vector.Last_Index;
+                  Expr_SCOD := CP_Vectors.SCO_Vector.Element (Expr_SCO);
+                  exit when Expr_SCOD.Kind not in Condition | Operator;
+                  New_First_SCO := New_First_SCO + 1;
+                  Set_SCO_Id_Map (Relocs, Expr_SCO, New_First_SCO);
+               end loop;
+            end;
+         when others =>
+            null;
+      end case;
+
+      SCOD.Origin := Remap_CU_Id (Relocs, SCOD.Origin);
+
+      --  Remap SCO_Ids
+
+      Remap_SCO_Id (Relocs, SCOD.Parent);
+
+      --  Make further adjustments based on SCO kind
+      --  In particular reset all components that reference
+      --  data that is not saved to checkpoint files (such as
+      --  BDD information).
+
+      case SCO_Kind (SCOD.Kind) is
+         when Statement =>
+            Remap_SFI (Relocs, SCOD.Dominant_Sloc.Source_File);
+            Remap_SFI (Relocs, SCOD.Handler_Range.Source_File);
+
+            Remap_SCO_Id (Relocs, SCOD.Dominant);
+
+         when Decision =>
+            Remap_SCO_Id (Relocs, SCOD.Expression);
+            Remap_SFI (Relocs, SCOD.Control_Location.Source_File);
+            Remap_BDD (CP_Vectors, Relocs, SCOD.Decision_BDD);
+
+         when Operator =>
+            for Op_SCO in SCOD.Operands'Range loop
+               Remap_SCO_Id (Relocs, SCOD.Operands (Op_SCO));
+            end loop;
+
+         when Condition =>
+            Remap_BDD_Node (Relocs, SCOD.BDD_Node);
+            Remap_SCO_Id
+              (Relocs, BDD_Vector.Reference (SCOD.BDD_Node).C_SCO);
+
+            SCOD.PC_Set.Clear;
+
+         when Fun_Call_SCO_Kind | Guarded_Expr =>
+            null;
+
+      end case;
+   end Remap_SCO_Descriptor;
+
+   --------------------------
+   -- Checkpoint_Load_Unit --
+   --------------------------
+
+   procedure Checkpoint_Load_Unit
+     (CLS        : in out Checkpoint_Load_State;
+      CP_Vectors : Source_Coverage_Vectors;
+      CP_CU      : in out CU_Info;
+      CP_CU_Id   : CU_Id)
+   is
+      Relocs : Checkpoint_Relocations renames CLS.Relocations;
+
+      procedure Ignore_SCOs;
+      --  Mark all the SCOs in CP_CU as being ignored. This is useful when
+      --  skipping coverage information for a unit because the consistency
+      --  checks failed.
 
       procedure Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id : SCO_Id)
-      with pre => Kind (New_SCO_Id) = Decision;
+        with Pre => Kind (New_SCO_Id) = Decision;
 
       -------------------------
       -- Merge_Decision_SCOs --
@@ -1468,465 +2335,20 @@ package body SC_Obligations is
          end if;
       end Merge_Decision_SCOs;
 
-   --  Start processing of Checkpoint_Load_Merge_Unit
+      -----------------
+      -- Ignore_SCOs --
+      -----------------
 
-   begin
-      --  Here we already have loaded full SCO information for this CU. There
-      --  are two things to do:
-      --
-      --  * Populate the tables mapping the SCO for this unit in the checkpoint
-      --    to their counterparts in the current context, and merge
-      --    non-instrumented SCO information if available.
-      --
-      --  * Merge the annotations
-      --
-      --  * Merge the information about non instrumented SCOs. We consider that
-      --    a SCO was instrumented iff at least one merged unit has it
-      --    instrumented.
-
-      --  SCOs
-
-      pragma Assert (CP_CU.Last_SCO - CP_CU.First_SCO
-                       =
-                     Real_CU.Last_SCO - Real_CU.First_SCO);
-
-      for Old_SCO_Id in CP_CU.First_SCO .. CP_CU.Last_SCO loop
-         Set_SCO_Id_Map (Relocs, Old_SCO_Id,
-                         Old_SCO_Id
-                         + Real_CU.First_SCO
-                         - CP_CU.First_SCO);
-
-         declare
-
-            Old_SCOD   : SCO_Descriptor renames
-              CP_Vectors.SCO_Vector (Old_SCO_Id);
-            New_SCO_Id : constant SCO_Id := Remap_SCO_Id (Relocs, Old_SCO_Id);
-            SCOD       : SCO_Descriptor renames SCO_Vector (New_SCO_Id);
-
-         begin
-            case SCOD.Kind is
-               when Statement =>
-                  if Old_SCOD.Stmt_Instrumented then
-                     SCOD.Stmt_Instrumented := True;
-                  end if;
-
-               when Decision =>
-                  Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id);
-
-               when Fun_Call_SCO_Kind  =>
-                  if Old_SCOD.Fun_Call_Instrumented then
-                     SCOD.Fun_Call_Instrumented := True;
-                  end if;
-
-               when Guarded_Expr =>
-                  if Old_SCOD.GExpr_Instrumented then
-                     SCOD.GExpr_Instrumented := True;
-                  end if;
-
-               when others =>
-                  null;
-            end case;
-         end;
-      end loop;
-
-      --  Has_Code indication
-
-      Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
-
-      --  Remap ALI annotations and then merge them
-
-      declare
-         Remapped_Annotations : ALI_Annotation_Maps.Map :=
-           CP_CU.ALI_Annotations;
+      procedure Ignore_SCOs is
       begin
-         Remap_ALI_Annotations (Relocs, Remapped_Annotations);
-         for Cur in Remapped_Annotations.Iterate loop
-            Real_CU.ALI_Annotations.Include
-              (ALI_Annotation_Maps.Key (Cur),
-               ALI_Annotation_Maps.Element (Cur));
-         end loop;
-      end;
-   end Checkpoint_Load_Merge_Unit;
-
-   function "<" (L, R : Static_Decision_Evaluation) return Boolean is
-   begin
-      if L.Outcome /= R.Outcome then
-         return L.Outcome < R.Outcome;
-      end if;
-
-      for J in R.Values.First_Index .. R.Values.Last_Index loop
-         if J > L.Values.Last_Index then
-            return True;
-
-         elsif L.Values.Element (J) < R.Values.Element (J) then
-            return True;
-
-         elsif L.Values.Element (J) > R.Values.Element (J) then
-            return False;
-         end if;
-      end loop;
-
-      return False;
-   end "<";
-
-   ------------------------------
-   -- Checkpoint_Load_New_Unit --
-   ------------------------------
-
-   procedure Checkpoint_Load_New_Unit
-     (CLS        : in out Checkpoint_Load_State;
-      CP_Vectors : Source_Coverage_Vectors;
-      CP_CU      : in out CU_Info;
-      New_CU_Id  : out CU_Id)
-   is
-      Relocs : Checkpoint_Relocations renames CLS.Relocations;
-
-      New_First_SCO : SCO_Id;
-
-      Cur_Source_File : Source_File_Index := No_Source_File;
-      Last_Line       : Natural := 0;
-
-      procedure Remap_BDD (Decision_BDD : in out BDD.BDD_Type);
-      --  Remap a sequence of BDD nodes, for a whole decision BDD
-
-      procedure Remap_BDD_Node (B : in out BDD_Node_Id);
-      --  Remap a BDD node id
-
-      procedure Remap_SCO_Id (S : in out SCO_Id);
-      --  Remap a SCO_Id. Note: this assumes possible forward references, and
-      --  does not rely on SCO_Map.
-
-      ---------------
-      -- Remap_BDD --
-      ---------------
-
-      procedure Remap_BDD (Decision_BDD : in out BDD.BDD_Type) is
-         CP_First  : constant BDD_Node_Id := Decision_BDD.First_Node;
-         CP_Last   : constant BDD_Node_Id := Decision_BDD.Last_Node;
-         New_First : constant BDD_Node_Id := BDD_Vector.Last_Index + 1;
-      begin
-         --  Import the relevant BDD nodes from CP_Vectors.BDD_Vector
-
-         for Old_BDD_Node_Id in CP_First .. CP_Last loop
-            declare
-               --  We are supposed to remap individual BDD nodes only once
-
-               New_BDD_Node : BDD.BDD_Node :=
-                 CP_Vectors.BDD_Vector.Element (Old_BDD_Node_Id);
-
-               procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id);
-               --  Remap a BDD node id
-
-               -----------------------
-               -- Remap_BDD_Node_Id --
-               -----------------------
-
-               procedure Remap_BDD_Node_Id (S : in out BDD_Node_Id) is
-               begin
-                  if S /= No_BDD_Node_Id then
-                     S := S - CP_First + New_First;
-                  end if;
-               end Remap_BDD_Node_Id;
-
-            begin
-               case New_BDD_Node.Kind is
-                  when BDD.Condition =>
-                     Remap_BDD_Node_Id (New_BDD_Node.Parent);
-                     for Valuation in New_BDD_Node.Dests'Range loop
-                        Remap_BDD_Node_Id
-                          (New_BDD_Node.Dests (Valuation));
-                     end loop;
-
-                     --  Note that we leave New_BDD_Node.C_SCO unremapped here:
-                     --  the loading of the corresponding SCO condition will
-                     --  take care of it (see below).
-
-                  when BDD.Jump =>
-                     Remap_BDD_Node_Id (New_BDD_Node.Dest);
-
-                  when others =>
-                     null;
-               end case;
-
-               BDD_Vector.Append (New_BDD_Node);
-               Set_BDD_Node_Id_Map
-                 (Relocs, Old_BDD_Node_Id, BDD_Vector.Last_Index);
-            end;
-         end loop;
-
-         --  Remap IDs in Decision_BDD
-
-         Remap_SCO_Id (Decision_BDD.Decision);
-
-         Remap_BDD_Node (Decision_BDD.Root_Condition);
-         Remap_BDD_Node (Decision_BDD.First_Node);
-         Remap_BDD_Node (Decision_BDD.Last_Node);
-         Remap_BDD_Node (Decision_BDD.First_Multipath_Condition);
-      end Remap_BDD;
-
-      --------------------
-      -- Remap_BDD_Node --
-      --------------------
-
-      procedure Remap_BDD_Node (B : in out BDD_Node_Id) is
-      begin
-         if B /= No_BDD_Node_Id then
-            B := Remap_BDD_Node_Id (Relocs, B);
-            pragma Assert (B /= No_BDD_Node_Id);
-         end if;
-      end Remap_BDD_Node;
-
-      ------------------
-      -- Remap_SCO_Id --
-      ------------------
-
-      procedure Remap_SCO_Id (S : in out SCO_Id) is
-      begin
-         if S /= No_SCO_Id then
-            S := New_First_SCO + S - CP_CU.First_SCO;
-            pragma Assert (S /= No_SCO_Id);
-         end if;
-      end Remap_SCO_Id;
-
-   --  Start of processing for Checkpoint_Load_New_Unit
-
-   begin
-      New_CU_Id := CU_Vector.Last_Index + 1;
-
-      CU_Map.Insert (CP_CU.Main_Source, New_CU_Id);
-
-      --  Remap SCO ids. Note that BDD nodes are imported (and remapped) as
-      --  needed during the process.
-
-      New_First_SCO := SCO_Vector.Last_Index + 1;
-      for Old_SCO_Id in CP_CU.First_SCO .. CP_CU.Last_SCO loop
-         declare
-            New_SCOD : SCO_Descriptor :=
-              CP_Vectors.SCO_Vector.Element (Old_SCO_Id);
-         begin
-            if New_SCOD.Kind = Removed then
-               Ignore_SCO (Relocs, Old_SCO_Id);
-               goto Next_SCO;
-            end if;
-
-            New_SCOD.Origin := New_CU_Id;
-
-            --  Remap SFIs in all source locations
-
-            Remap_SFI (Relocs, New_SCOD.Sloc_Range.Source_File);
-
-            --  Preallocate line table entries for previous unit
-
-            if New_SCOD.Sloc_Range.Source_File /= Cur_Source_File then
-               Prealloc_Lines (Cur_Source_File, Last_Line);
-               Cur_Source_File := New_SCOD.Sloc_Range.Source_File;
-               CU_Map.Include (Cur_Source_File, New_CU_Id);
-            end if;
-
-            Last_Line := Natural'Max
-              (Last_Line,
-               New_SCOD.Sloc_Range.L.Last_Sloc.Line);
-
-            --  Remap SCO_Ids
-
-            Remap_SCO_Id (New_SCOD.Parent);
-
-            --  Make further adjustments based on SCO kind
-            --  In particular reset all components that reference
-            --  data that is not saved to checkpoint files (such as
-            --  BDD information).
-
-            case SCO_Kind (New_SCOD.Kind) is
-               when Statement =>
-                  Remap_SFI (Relocs, New_SCOD.Dominant_Sloc.Source_File);
-                  Remap_SFI (Relocs, New_SCOD.Handler_Range.Source_File);
-
-                  Remap_SCO_Id (New_SCOD.Dominant);
-
-               when Decision =>
-                  Remap_SCO_Id (New_SCOD.Expression);
-                  Remap_SFI (Relocs, New_SCOD.Control_Location.Source_File);
-                  Remap_BDD (New_SCOD.Decision_BDD);
-
-               when Operator =>
-                  for Op_SCO in New_SCOD.Operands'Range loop
-                     Remap_SCO_Id (New_SCOD.Operands (Op_SCO));
-                  end loop;
-
-               when Condition =>
-                  Remap_BDD_Node (New_SCOD.BDD_Node);
-                  Remap_SCO_Id
-                    (BDD_Vector.Reference (New_SCOD.BDD_Node).C_SCO);
-
-                  New_SCOD.PC_Set.Clear;
-
-               when Fun_Call_SCO_Kind | Guarded_Expr =>
-                  null;
-
-            end case;
-
-            --  Append new SCOD and record mapping
-
-            SCO_Vector.Append (New_SCOD);
-            Set_SCO_Id_Map (Relocs, Old_SCO_Id, SCO_Vector.Last_Index);
-            if SCOs_Trace.Is_Active then
-               SCOs_Trace.Trace
-                 ("Loaded from checkpoint: "
-                  & Image (SCO_Vector.Last_Index)
-                  & " (was #" & Trim (Old_SCO_Id'Img, Side => Ada.Strings.Both)
-                  & " in checkpoint)");
-            end if;
-         end;
-
-         <<Next_SCO>> null;
-      end loop;
-
-      --  Remap SCO_Ids in source trace bit maps
-
-      if CP_CU.Provider = Instrumenter then
-         if CP_CU.Bit_Maps.Statement_Bits /= null then
-            for S_SCO of CP_CU.Bit_Maps.Statement_Bits.all loop
-               Remap_SCO_Id (S_SCO);
+         for SCO_Range of CP_CU.SCOs loop
+            for SCO in SCO_Range.First .. SCO_Range.Last loop
+               Ignore_SCO (Relocs, SCO);
             end loop;
-         end if;
-
-         if CP_CU.Bit_Maps.Decision_Bits /= null then
-            for D_Outcome of CP_CU.Bit_Maps.Decision_Bits.all loop
-               Remap_SCO_Id (D_Outcome.D_SCO);
-            end loop;
-         end if;
-
-         if CP_CU.Bit_Maps.MCDC_Bits /= null then
-            for D_Path of CP_CU.Bit_Maps.MCDC_Bits.all loop
-               Remap_SCO_Id (D_Path.D_SCO);
-            end loop;
-         end if;
-
-         --  Remap blocks information
-
-         for Block_Cur in CP_CU.Blocks.Iterate loop
-            declare
-               Block_Ref : constant SCO_Id_Vector_Vectors.Reference_Type :=
-                 CP_CU.Blocks.Reference (Block_Cur);
-            begin
-               for SCO_Cur in Block_Ref.Iterate loop
-                  Remap_SCO_Id (Block_Ref.Reference (SCO_Cur));
-               end loop;
-            end;
          end loop;
+      end Ignore_SCOs;
 
-         --  Remap macro information
-
-         declare
-            use SCO_PP_Info_Maps;
-            Remapped_PP_Info_Map : SCO_PP_Info_Maps.Map;
-         begin
-            for Cur in CP_CU.PP_Info_Map.Iterate loop
-               declare
-                  Info : PP_Info := Element (Cur);
-               begin
-                  if Info.Kind = In_Expansion then
-                     for Expansion of Info.Expansion_Stack loop
-                        Remap_SFI
-                          (Relocs,
-                           Expansion.Sloc.Source_File);
-                     end loop;
-                     Remap_SFI
-                       (Relocs,
-                        Info.Definition_Loc.Sloc.Source_File);
-                  end if;
-                  declare
-                     SCO : SCO_Id := Key (Cur);
-                  begin
-                     Remap_SCO_Id (SCO);
-                     Remapped_PP_Info_Map.Insert (SCO, Info);
-                  end;
-               end;
-            end loop;
-            CP_CU.PP_Info_Map := Remapped_PP_Info_Map;
-         end;
-
-         --  Remap SCOs span for scope entities
-
-         for Scope_Ent of CP_CU.Scope_Entities loop
-            Remap_SCO_Id (Scope_Ent.From);
-            Remap_SCO_Id (Scope_Ent.To);
-
-            --  Scopes whose identifier references ignored source files will
-            --  lose their identifier: such scopes will remain, but users will
-            --  not be able to mark them of interest.
-
-            if SFI_Ignored (Relocs, Scope_Ent.Identifier.Decl_SFI) then
-               Scope_Ent.Identifier := No_Scope_Entity_Identifier;
-            else
-               Remap_SFI (Relocs, Scope_Ent.Identifier.Decl_SFI);
-            end if;
-
-            --  Register each scope identifiers to make them available to users
-            --  on the command line.
-
-            Available_Subps_Of_Interest.Include (Scope_Ent.Identifier);
-         end loop;
-         if not SCOs_Nested_And_Ordered (CP_CU.Scope_Entities) then
-            raise Program_Error
-              with "Error when loading scopes from checkpoints";
-         end if;
-      end if;
-
-      --  Remap ALI annotations
-
-      Remap_ALI_Annotations (Relocs, CP_CU.ALI_Annotations);
-
-      --  Preallocate line table entries for last file
-
-      Prealloc_Lines (Cur_Source_File, Last_Line);
-
-      --  Link new SCOs to source line tables
-
-      for SCO in New_First_SCO .. SCO_Vector.Last_Index loop
-         declare
-            SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
-         begin
-            if SCOD.Kind in
-               Statement | Decision | Fun_Call_SCO_Kind | Guarded_Expr
-            then
-               Add_SCO_To_Lines (SCO, SCOD);
-            end if;
-         end;
-      end loop;
-
-      --  Perform final fixups and insert CU
-
-      CP_CU.Last_SCO :=
-        New_First_SCO
-          + CP_CU.Last_SCO
-        - CP_CU.First_SCO;
-      CP_CU.First_SCO := New_First_SCO;
-
-      CU_Vector.Append (CP_CU);
-      Register_CU (New_CU_Id);
-
-      --  If we are loading a SID file, create source coverage data structures.
-      --  There is no need to do it when loading a checkpoint: that checkpoint
-      --  was created loading a SID file, and thus already has the
-      --  corresponding SCI tables populated.
-
-      if CLS.Purpose = Instrumentation then
-         Coverage.Source.Initialize_SCI_For_Instrumented_CU (New_CU_Id);
-      end if;
-   end Checkpoint_Load_New_Unit;
-
-   --------------------------
-   -- Checkpoint_Load_Unit --
-   --------------------------
-
-   procedure Checkpoint_Load_Unit
-     (CLS        : in out Checkpoint_Load_State;
-      CP_Vectors : Source_Coverage_Vectors;
-      CP_CU      : in out CU_Info;
-      New_CU_Id  : out CU_Id)
-   is
-      Relocs : Checkpoint_Relocations renames CLS.Relocations;
+      Actual_CU_Id : CU_Id;
    begin
       if CP_CU.Provider = Instrumenter then
          Instrumented_Units_Present := True;
@@ -1938,11 +2360,11 @@ package body SC_Obligations is
       Remap_SFI (Relocs, CP_CU.Main_Source);
       for Dep_SFI of CP_CU.Deps loop
 
-         --  Units of interest can depend on units outside of the
-         --  scope of code coverage analysis. Keeping track of these
-         --  introduces clashes between stubbed units and the real
-         --  one, so they are excluded from checkpoints. Hence, allow
-         --  them to be missing here.
+         --  Units of interest can depend on units outside of the scope of
+         --  code coverage analysis. Keeping track of these introduces clashes
+         --  between stubbed units and the real one, so they are excluded from
+         --  checkpoints. Hence, allow them to be missing here.
+
          if not SFI_Ignored (Relocs, Dep_SFI) then
             Remap_SFI (Relocs, Dep_SFI);
          end if;
@@ -1950,30 +2372,19 @@ package body SC_Obligations is
 
       --  Next check whether this unit is already known
 
-      New_CU_Id := Comp_Unit (CP_CU.Main_Source);
+      Actual_CU_Id := Comp_Unit (CP_CU.Main_Source);
 
       SCOs_Trace.Trace
-        ("Remapped CU: id " & New_CU_Id'Img
+        ("Remapped CU: id " & Actual_CU_Id'Img
          & ", main source" & CP_CU.Main_Source'Img
          & " " & Get_Full_Name (CP_CU.Main_Source, Or_Simple => True));
 
-      --  Case 1: CU not already present. Load all SCO information
-      --  from checkpoint.
+      --  If the CU was already loaded, perform consistency checks prior to
+      --  loading it.
 
-      if New_CU_Id = No_CU_Id then
-         Checkpoint_Load_New_Unit
-           (CLS,
-            CP_Vectors,
-            CP_CU,
-            New_CU_Id => New_CU_Id);
-
-      --  Case 2: CU already loaded from LI info. Perform consistency checks,
-      --  skipping the checkpointed unit altogether and emitting a warning if
-      --  there is a mismatch. Record mapping of checkpoint SCOs otherwise.
-
-      else
+      if Actual_CU_Id /= No_CU_Id then
          declare
-            CU_Record : CU_Info renames CU_Vector.Reference (New_CU_Id);
+            CU_Record : CU_Info renames CU_Vector.Reference (Actual_CU_Id);
 
             function Provider_Image (Provider : SCO_Provider) return String is
               (case Provider is
@@ -1988,6 +2399,8 @@ package body SC_Obligations is
             --  Helper to refer to the compilation unit in an error message
 
          begin
+            Set_CU_Id_Map (Relocs, CP_CU_Id, Actual_CU_Id);
+
             --  Ignore CU when the provenance of SCOs is inconsistent
 
             if CP_CU.Provider /= CU_Record.Provider then
@@ -1995,40 +2408,217 @@ package body SC_Obligations is
                Warn ("SCOs for this unit come from both "
                      & Provider_Image (CP_CU.Provider)
                      & " and from " & Provider_Image (CU_Record.Provider));
+               Ignore_SCOs;
+               return;
 
-            --  Ignore also when the fingerprints do not match.
-            --
-            --  Note that only recent enough SID files contain buffer bit maps
-            --  and their fingerprints. Bit_Maps_Fingerprint is left to
-            --  No_Fingerprint for checkpoints. Skip the consistency check for
-            --  these cases, and if the loaded CU has these fingerprints,
-            --  record them for later consistency checks.
+            --  Ignore also when the fingerprints do not match
 
-            elsif CP_CU.Fingerprint /= CU_Record.Fingerprint
+            elsif (CP_CU.Provider = Compiler
+                   and then CP_CU.SCOs_Fingerprint
+                            /= CU_Record.SCOs_Fingerprint)
                     or else
                   (CP_CU.Provider = Instrumenter
-                   and then CP_CU.Bit_Maps_Fingerprint /= No_Fingerprint
-                   and then CU_Record.Bit_Maps_Fingerprint /= No_Fingerprint
-                   and then CP_CU.Bit_Maps_Fingerprint
-                            /= CU_Record.Bit_Maps_Fingerprint)
+                   and then CP_CU.Source_Fingerprint
+                            /= CU_Record.Source_Fingerprint)
             then
                Warn ("unexpected fingerprint, cannot merge coverage"
                      & " information for " & CU_Image);
-
-            else
-               if CU_Record.Provider = Instrumenter
-                  and then CU_Record.Bit_Maps_Fingerprint = No_Fingerprint
-               then
-                  CU_Record.Bit_Maps_Fingerprint := CP_CU.Bit_Maps_Fingerprint;
-               end if;
-               Checkpoint_Load_Merge_Unit
-                 (CLS,
-                  CP_CU      => CP_CU,
-                  CP_Vectors => CP_Vectors,
-                  Real_CU_Id => New_CU_Id);
+               Ignore_SCOs;
+               return;
             end if;
          end;
       end if;
+
+      --  Load the checkpointed information
+
+      declare
+         Relocs  : Checkpoint_Relocations renames CLS.Relocations;
+
+         Is_New_CU : constant Boolean :=
+           not CU_Map.Contains (CP_CU.Main_Source);
+         --  Whether this is a new compilation unit
+
+         Has_New_SCOs : Boolean;
+         --  Whether the loaded checkpoint contains additional SCOs for the CU.
+         --  In this case, load SCOs and scopes from the loaded checkpoint.
+
+         Real_CU_Id : constant CU_Id :=
+           (if Is_New_CU
+            then CU_Vector.Last_Index + 1
+            else CU_Map.Element (CP_CU.Main_Source));
+
+         type CU_Info_Access is access all CU_Info;
+         Real_CU : CU_Info_Access;
+         --  Pointer to the update CU_Info in CU_Vector. This is a new entry
+         --  into CU_Vector if Is_New_CU, otherwise an existing one.
+
+      begin
+         Set_CU_Id_Map (Relocs, CP_CU_Id, Real_CU_Id);
+
+         --  If this is a new compilation unit, add a new entry into the
+         --  CU_Vector.
+
+         if Is_New_CU then
+            declare
+               New_CU : CU_Info (CP_CU.Provider);
+            begin
+               CU_Vector.Append (New_CU);
+            end;
+         end if;
+
+         --  Then, retrieve the newly created (or existing) CU
+
+         Real_CU :=
+           CU_Info_Access (CU_Vector.Reference (Real_CU_Id).Element);
+
+         --  Check if the unit has new SCOs
+
+         Has_New_SCOs := Is_New_CU;
+         if not Is_New_CU then
+            for SID_Info in CP_CU.SIDs_Info.Iterate loop
+               if not Real_CU.SIDs_Info.Contains (SID_Info_Maps.Key (SID_Info))
+               then
+                  Has_New_SCOs := True;
+                  exit;
+               end if;
+            end loop;
+         end if;
+
+         --  If this is a new CU, initialize the CU fields shared for all
+         --  versions.
+
+         if Is_New_CU then
+            Real_CU.Origin         := CP_CU.Origin;
+            Real_CU.Main_Source    := CP_CU.Main_Source;
+            case Real_CU.Provider is
+               when Compiler | LLVM =>
+                  Real_CU.SCOs_Fingerprint := CP_CU.SCOs_Fingerprint;
+               when Instrumenter =>
+                  Real_CU.Source_Fingerprint := CP_CU.Source_Fingerprint;
+            end case;
+            CU_Map.Insert (CP_CU.Main_Source, Real_CU_Id);
+            for Dep_SFI of Real_CU.Deps loop
+
+               --  Units of interest can depend on units outside of the
+               --  scope of code coverage analysis. Keeping track of these
+               --  introduces clashes between stubbed units and the real
+               --  one, so they are excluded from checkpoints. Hence, allow
+               --  them to be missing here.
+
+               if not SFI_Ignored (Relocs, Dep_SFI) then
+                  Remap_SFI (Relocs, Dep_SFI);
+               end if;
+            end loop;
+            Register_CU (Real_CU_Id);
+
+         else
+            --  Otherwise, check that the SCOs in the new version are
+            --  consistent with those previously loaded.
+
+            if not Check_SCOs_Consistency (CLS, CP_Vectors, CP_CU) then
+               Outputs.Warn
+                 ("Discarding source coverage data for unit "
+                  & Get_Full_Name (Real_CU.Main_Source) & " (from "
+                  & Get_Full_Name (Real_CU.Origin) & "), loaded from "
+                  & (+CLS.Filename));
+               return;
+            end if;
+         end if;
+
+         --  In all cases, load the SCOs: if they already exist in Real_CU,
+         --  we will remap the SCOs in the loaded checkpoint to the already
+         --  existing ones.
+
+         Checkpoint_Load_SCOs
+           (CLS        => CLS,
+            CP_Vectors => CP_Vectors,
+            CP_CU      => CP_CU,
+            Real_CU    => Real_CU.all,
+            Real_CU_Id => Real_CU_Id);
+
+         --  If this is a new unit / it contains new SCOs, load additional
+         --  information (SID information, preprocessing information, and
+         --  scopes).
+
+         if Has_New_SCOs then
+
+            --  Process SID information
+
+            Checkpoint_Load_SID_Info
+              (CLS     => CLS,
+               CP_CU   => CP_CU,
+               Real_CU => Real_CU.all);
+
+            --  Process macro information
+
+            Checkpoint_Load_PP_Info
+              (CLS     => CLS,
+               CP_CU   => CP_CU,
+               Real_CU => Real_CU.all);
+
+            --  Process scopes
+
+            Checkpoint_Load_Scopes
+              (CLS     => CLS,
+               CP_CU   => CP_CU,
+               Real_CU => Real_CU.all);
+         end if;
+
+         --  Read uninstrumented SCOs for stmt/decision
+
+         for SCO_Range of CP_CU.SCOs loop
+            for Old_SCO_Id in SCO_Range.First .. SCO_Range.Last loop
+               declare
+                  Old_SCOD   : SCO_Descriptor renames
+                    CP_Vectors.SCO_Vector (Old_SCO_Id);
+                  New_SCO_Id : constant SCO_Id :=
+                    Remap_SCO_Id (Relocs, Old_SCO_Id);
+                  SCOD       : SCO_Descriptor renames SCO_Vector (New_SCO_Id);
+               begin
+                  case SCOD.Kind is
+                     when Statement =>
+                        if Old_SCOD.Stmt_Instrumented then
+                           SCOD.Stmt_Instrumented := True;
+                        end if;
+
+                     when Decision =>
+                        Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id);
+
+                     when Fun_Call_SCO_Kind  =>
+                        if Old_SCOD.Fun_Call_Instrumented then
+                           SCOD.Fun_Call_Instrumented := True;
+                        end if;
+
+                     when Guarded_Expr =>
+                        if Old_SCOD.GExpr_Instrumented then
+                           SCOD.GExpr_Instrumented := True;
+                        end if;
+
+                     when others =>
+                        null;
+                  end case;
+               end;
+            end loop;
+         end loop;
+
+         --  Has_Code indication
+
+         Real_CU.Has_Code := Real_CU.Has_Code or CP_CU.Has_Code;
+
+         --  Remap ALI annotations and then merge them
+
+         declare
+            Remapped_Annotations : ALI_Annotation_Maps.Map :=
+              CP_CU.ALI_Annotations;
+         begin
+            Remap_ALI_Annotations (Relocs, Remapped_Annotations);
+            for Cur in Remapped_Annotations.Iterate loop
+               Real_CU.ALI_Annotations.Include
+                 (ALI_Annotation_Maps.Key (Cur),
+                  ALI_Annotation_Maps.Element (Cur));
+            end loop;
+         end;
+      end;
    end Checkpoint_Load_Unit;
 
    -----------
@@ -2065,11 +2655,7 @@ package body SC_Obligations is
    procedure Write (CSS : in out Checkpoint_Save_State; Value : Scope_Entity)
    is
    begin
-      CSS.Write_SCO (Value.From);
-      CSS.Write_SCO (Value.To);
-
-      CSS.Write (Value.Start_Sloc);
-      CSS.Write (Value.End_Sloc);
+      CSS.Write (Value.Source_Range);
 
       CSS.Write (Value.Name);
       CSS.Write (Value.Sloc);
@@ -2078,55 +2664,59 @@ package body SC_Obligations is
       CSS.Write_Integer (Value.Identifier.Decl_Line);
    end Write;
 
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : SCO_Range) is
+   begin
+      CSS.Write_SCO (Value.First);
+      CSS.Write_SCO (Value.Last);
+   end Write;
+
+   procedure Write
+     (CSS : in out Checkpoint_Save_State; Value : SID_Info) is
+   begin
+      Write (CSS, Value.Blocks);
+      CSS.Write_Bit_Id (Value.Bit_Maps.Statement_Bits.all'First);
+      CSS.Write_Bit_Id (Value.Bit_Maps.Statement_Bits.all'Last);
+      for SCO of Value.Bit_Maps.Statement_Bits.all loop
+         CSS.Write_SCO (SCO);
+      end loop;
+
+      CSS.Write_Bit_Id (Value.Bit_Maps.Decision_Bits.all'First);
+      CSS.Write_Bit_Id (Value.Bit_Maps.Decision_Bits.all'Last);
+      for Info of Value.Bit_Maps.Decision_Bits.all loop
+         CSS.Write_SCO (Info.D_SCO);
+         CSS.Write (Info.Outcome);
+      end loop;
+
+      CSS.Write_Bit_Id (Value.Bit_Maps.MCDC_Bits.all'First);
+      CSS.Write_Bit_Id (Value.Bit_Maps.MCDC_Bits.all'Last);
+      for Info of Value.Bit_Maps.MCDC_Bits.all loop
+         CSS.Write_SCO (Info.D_SCO);
+         CSS.Write_Integer (Info.Path_Index);
+      end loop;
+
+      CSS.Write (Value.Bit_Maps_Fingerprint);
+      CSS.Write (Value.Annotations_Fingerprint);
+   end Write;
+
    procedure Write (CSS : in out Checkpoint_Save_State; Value : CU_Info) is
    begin
       CSS.Write_U8   (SCO_Provider'Pos (Value.Provider));
       CSS.Write_SFI  (Value.Origin);
       CSS.Write_SFI  (Value.Main_Source);
-      CSS.Write_SCO  (Value.First_SCO);
-      CSS.Write_SCO  (Value.Last_SCO);
       Write     (CSS, Value.Deps);
       CSS.Write      (Value.Has_Code);
-      CSS.Write      (Value.Fingerprint);
       Write     (CSS, Value.PP_Info_Map);
       Write     (CSS, Value.Scope_Entities);
       Write     (CSS, Value.ALI_Annotations);
-      CSS.Write      (Value.Annotations_Fingerprint);
+      Write     (CSS, Value.SCOs);
 
       case Value.Provider is
-         when Compiler | LLVM =>
-            null;
-
+         when Compiler | LLVM  =>
+            CSS.Write (Value.SCOs_Fingerprint);
          when Instrumenter =>
-            if CSS.Purpose_Of = Instrumentation then
-               CSS.Write_Bit_Id (Value.Bit_Maps.Statement_Bits.all'First);
-               CSS.Write_Bit_Id (Value.Bit_Maps.Statement_Bits.all'Last);
-               for SCO of Value.Bit_Maps.Statement_Bits.all loop
-                  CSS.Write_SCO (SCO);
-               end loop;
-
-               CSS.Write_Bit_Id (Value.Bit_Maps.Decision_Bits.all'First);
-               CSS.Write_Bit_Id (Value.Bit_Maps.Decision_Bits.all'Last);
-               for Info of Value.Bit_Maps.Decision_Bits.all loop
-                  CSS.Write_SCO (Info.D_SCO);
-                  CSS.Write (Info.Outcome);
-               end loop;
-
-               CSS.Write_Bit_Id (Value.Bit_Maps.MCDC_Bits.all'First);
-               CSS.Write_Bit_Id (Value.Bit_Maps.MCDC_Bits.all'Last);
-               for Info of Value.Bit_Maps.MCDC_Bits.all loop
-                  CSS.Write_SCO (Info.D_SCO);
-                  CSS.Write_Integer (Info.Path_Index);
-               end loop;
-
-               CSS.Write (Value.Bit_Maps_Fingerprint);
-
-               --  Write the blocks information
-
-               Write (CSS, Value.Blocks);
-            end if;
+            Write     (CSS, Value.SIDs_Info);
+            CSS.Write (Value.Source_Fingerprint);
       end case;
-
    end Write;
 
    procedure Write
@@ -2207,11 +2797,11 @@ package body SC_Obligations is
       procedure Free is new Ada.Unchecked_Deallocation
         (MCDC_Bit_Map, MCDC_Bit_Map_Access);
    begin
-      if CU.Provider = Instrumenter then
-         Free (CU.Bit_Maps.Statement_Bits);
-         Free (CU.Bit_Maps.Decision_Bits);
-         Free (CU.Bit_Maps.MCDC_Bits);
-      end if;
+      for SID_Info of CU.SIDs_Info loop
+         Free (SID_Info.Bit_Maps.Statement_Bits);
+         Free (SID_Info.Bit_Maps.Decision_Bits);
+         Free (SID_Info.Bit_Maps.MCDC_Bits);
+      end loop;
    end Free;
 
    ---------------------
@@ -2291,9 +2881,8 @@ package body SC_Obligations is
          declare
             use CU_Info_Vectors;
 
-            CP_CU_Id  : constant CU_Id := To_Index (Cur);
-            CP_CU     : CU_Info := Element (Cur);
-            New_CU_Id : CU_Id := No_CU_Id;
+            CP_CU_Id : constant CU_Id := To_Index (Cur);
+            CP_CU    : CU_Info := Element (Cur);
 
             --  If the CU Origin or its Main_Source files are ignored, we
             --  cannot load this CU.
@@ -2331,8 +2920,7 @@ package body SC_Obligations is
                  (CLS,
                   CP_Vectors,
                   CP_CU,
-                  New_CU_Id => New_CU_Id);
-               Set_CU_Id_Map (Relocs, CP_CU_Id, New_CU_Id);
+                  CP_CU_Id => CP_CU_Id);
             end if;
          end;
       end loop;
@@ -2443,6 +3031,7 @@ package body SC_Obligations is
                                  others     => <>);
                         end case;
                         SCO_Vector.Append (SCOD);
+                        SCO_To_CU_Vector.Append (CUID);
                         SCO := SCO_Vector.Last_Index;
 
                         --  Keep a reference to the just added SCO id.
@@ -2470,8 +3059,8 @@ package body SC_Obligations is
             if Last_SCO < First_SCO then
                Warn ("[LLVM-JSON] No regions to process");
             else
-               CU_Vector (CUID).First_SCO := First_SCO;
-               CU_Vector (CUID).Last_SCO := Last_SCO;
+               CU_Vector (CUID).SCOs.Append
+                 (SCO_Range'(First => First_SCO, Last => Last_SCO));
             end if;
          end;
       end loop;
@@ -2491,6 +3080,7 @@ package body SC_Obligations is
       CU_Vector.Clear;
       BDD_Vector.Clear;
       SCO_Vector.Clear;
+      SCO_To_CU_Vector.Clear;
    end Checkpoint_Clear;
 
    ---------------------
@@ -2560,31 +3150,32 @@ package body SC_Obligations is
       end if;
    end Comp_Unit;
 
-   ---------------
-   -- First_SCO --
-   ---------------
+   ----------------
+   -- SCO_Ranges --
+   ----------------
 
-   function First_SCO (CU : CU_Id) return SCO_Id is
+   function SCO_Ranges (CU : CU_Id) return SCO_Range_Vectors.Vector is
    begin
       if CU = No_CU_Id then
-         return No_SCO_Id;
+         return SCO_Range_Vectors.Empty_Vector;
       else
-         return CU_Vector.Constant_Reference (CU).First_SCO;
+         return CU_Vector.Constant_Reference (CU).SCOs;
       end if;
-   end First_SCO;
+   end SCO_Ranges;
 
-   --------------
-   -- Last_SCO --
-   --------------
+   -----------
+   -- In_CU --
+   -----------
 
-   function Last_SCO (CU : CU_Id) return SCO_Id is
+   function In_CU (CU : CU_Id; SCO : SCO_Id) return Boolean is
    begin
-      if CU = No_CU_Id then
-         return No_SCO_Id;
-      else
-         return CU_Vector.Constant_Reference (CU).Last_SCO;
-      end if;
-   end Last_SCO;
+      for SCO_Range of SCO_Ranges (CU) loop
+         if SCO >= SCO_Range.First and then SCO <= SCO_Range.Last then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end In_CU;
 
    -----------
    -- Index --
@@ -2646,7 +3237,7 @@ package body SC_Obligations is
          begin
             --  Search for the first Condition of the Decision.
 
-            while C_SCO <= Last_SCO (CU)
+            while In_CU (CU, C_SCO)
                   and then
                     (Kind (C_SCO) /= Condition
                      or else Parent (C_SCO) /= SCO) loop
@@ -2661,13 +3252,13 @@ package body SC_Obligations is
                Index_Mut := Index_Mut - 1;
                loop
                   C_SCO := C_SCO + 1;
-                  exit when C_SCO > Last_SCO (CU);
+                  exit when not In_CU (CU, C_SCO);
                   exit when Kind (C_SCO) = Condition
                             and then Parent (C_SCO) = SCO;
                end loop;
             end loop;
 
-            if C_SCO > Last_SCO (CU) then
+            if not In_CU (CU, C_SCO) then
                Fatal_Error ("Malformed SCO Vector, a condition SCO"
                             & " is missing");
             end if;
@@ -3063,8 +3654,8 @@ package body SC_Obligations is
          use Sloc_To_SCO_Maps;
 
          Position : Cursor :=
-                      Sloc_To_SCO_Map (Sloc_End.Source_File, Kind).Floor
-                        ((Sloc_End.L, No_Local_Location));
+           Sloc_To_SCO_Map (Sloc_End.Source_File, Kind).Floor
+             ((Sloc_End.L, No_Local_Location));
       begin
          while Position /= No_Element loop
             declare
@@ -3299,29 +3890,11 @@ package body SC_Obligations is
    ---------------
 
    function Comp_Unit (SCO : SCO_Id) return CU_Id is
-      LB, UB, Middle : Valid_CU_Id;
    begin
-      --  Assume that compilation units in CU_Vector are ordered by SCO range
-      --  to look up efficiently (by dichotomy) the compilation unit for the
-      --  SCO.
-
-      LB := CU_Vector.First_Index;
-      UB := CU_Vector.Last_Index;
-      while LB <= UB loop
-         Middle := LB + (UB - LB) / 2;
-         declare
-            CU : CU_Info renames CU_Vector.Constant_Reference (Middle);
-         begin
-            if SCO in CU.First_SCO .. CU.Last_SCO then
-               return Middle;
-            elsif SCO < CU.First_SCO then
-               UB := Middle - 1;
-            else
-               LB := Middle + 1;
-            end if;
-         end;
-      end loop;
-      return No_CU_Id;
+      if SCO = No_SCO_Id then
+         return No_CU_Id;
+      end if;
+      return SCO_To_CU_Vector.Element (SCO);
    end Comp_Unit;
 
    -----------
@@ -3723,28 +4296,19 @@ package body SC_Obligations is
    -- Fingerprint --
    -----------------
 
-   function Fingerprint (CU : CU_Id) return Fingerprint_Type is
+   function Fingerprint (CU : CU_Id) return Fingerprint_Type
+   is
+      SID_Infos : constant SID_Info_Maps.Map :=
+        CU_Vector.Element (CU).SIDs_Info;
    begin
-      return CU_Vector.Reference (CU).Fingerprint;
+      if SID_Infos.Length /= 1 then
+         Outputs.Fatal_Error
+           ("Found multiple versions for "
+            & Get_Full_Name (CU_Vector.Element (CU).Main_Source));
+      end if;
+      pragma Assert (SID_Infos.Length = 1);
+      return SID_Infos.First_Key;
    end Fingerprint;
-
-   --------------------------
-   -- Bit_Maps_Fingerprint --
-   --------------------------
-
-   function Bit_Maps_Fingerprint (CU : CU_Id) return Fingerprint_Type is
-   begin
-      return CU_Vector.Reference (CU).Bit_Maps_Fingerprint;
-   end Bit_Maps_Fingerprint;
-
-   -----------------------------
-   -- Annotations_Fingerprint --
-   -----------------------------
-
-   function Annotations_Fingerprint (CU : CU_Id) return Fingerprint_Type is
-   begin
-      return CU_Vector.Reference (CU).Annotations_Fingerprint;
-   end Annotations_Fingerprint;
 
    ---------------
    -- Load_SCOs --
@@ -3765,7 +4329,7 @@ package body SC_Obligations is
       ALI_Index : constant Source_File_Index := Load_ALI
         (ALI_Filename, Ignored_Source_Files, Units, Deps,
          Temp_ALI_Annotations, With_SCOs => True);
-      --  Load ALI file and update the last SCO index
+      --  Load ALI file and update the last SCO
 
    begin
       if ALI_Index = No_Source_File then
@@ -4050,11 +4614,14 @@ package body SC_Obligations is
       Created_Units       : in out Created_Unit_Maps.Map) return CU_Id
    is
       use Created_Unit_Maps;
+      use GNATCOLL.VFS;
 
       New_CU_Info : CU_Info (Provider);
 
-      CU_Index : constant CU_Id := Comp_Unit (Main_Source);
-      Cur      : constant Cursor := Created_Units.Find (Main_Source);
+      CU_Index   : constant CU_Id := Comp_Unit (Main_Source);
+      CU_Version : SID_Info;
+      Cur        : constant Cursor := Created_Units.Find (Main_Source);
+
    begin
       --  Check whether there is already a compilation unit for this main
       --  source.
@@ -4074,7 +4641,7 @@ package body SC_Obligations is
          --  this duplicate, and return no CU to signify to the caller that we
          --  must abort the loading.
 
-         if CU_Vector.Reference (CU_Index).Fingerprint = Fingerprint then
+         if SC_Obligations.Fingerprint (CU_Index) = Fingerprint then
             return No_CU_Id;
          end if;
 
@@ -4117,9 +4684,30 @@ package body SC_Obligations is
 
       New_CU_Info.Origin := Origin;
       New_CU_Info.Main_Source := Main_Source;
-      New_CU_Info.First_SCO := Valid_SCO_Id'First;
-      New_CU_Info.Last_SCO := No_SCO_Id;
-      New_CU_Info.Fingerprint := Fingerprint;
+      New_CU_Info.SIDs_Info.Insert (Fingerprint, CU_Version);
+
+      --  Also create the fingerprint: the SCOs fingerprint for binary traces,
+      --  which is still used for consistency checks, and the source
+      --  fingerprint for source traces.
+
+      case Provider is
+         when Compiler | LLVM =>
+            New_CU_Info.SCOs_Fingerprint := Fingerprint;
+         when Instrumenter =>
+            declare
+               Source_Fingerprint_Context : GNAT.SHA1.Context;
+               Contents                   : GNAT.Strings.String_Access :=
+                 Read_File (Create (+Get_Full_Name (Main_Source)));
+            begin
+               GNAT.SHA1.Update (Source_Fingerprint_Context, Contents.all);
+               Free (Contents);
+               New_CU_Info.Source_Fingerprint :=
+                 Fingerprint_Type
+                   (GNAT.SHA1.Binary_Message_Digest'
+                      (GNAT.SHA1.Digest (Source_Fingerprint_Context)));
+            end;
+      end case;
+
       CU_Vector.Append (New_CU_Info);
 
       return Result : constant CU_Id := CU_Vector.Last_Index do
@@ -4187,6 +4775,7 @@ package body SC_Obligations is
          New_SCO : SCO_Id;
       begin
          SCO_Vector.Append (SCOD);
+         SCO_To_CU_Vector.Append (CU);
          New_SCO := SCO_Vector.Last_Index;
          if SCO_Map /= null then
             SCO_Map (SCO_Index) := New_SCO;
@@ -4548,8 +5137,10 @@ package body SC_Obligations is
             begin
                Unit.Deps := Deps;
 
-               Unit.First_SCO := First_SCO;
-               Unit.Last_SCO  := SCO_Vector.Last_Index;
+               Unit.SCOs.Append
+                 (SCO_Range'
+                    (First => First_SCO,
+                     Last  => SCO_Vector.Last_Index));
             end;
          end;
 
@@ -5207,7 +5798,8 @@ package body SC_Obligations is
    function Are_Bit_Maps_In_Range
      (Bit_Maps : CU_Bit_Maps; CU : CU_Info) return Boolean
    is
-      subtype SCO_Range is SCO_Id range CU.First_SCO .. CU.Last_SCO;
+      subtype SCO_Range is
+        SCO_Id range CU.SCOs.First_Element.First .. CU.SCOs.First_Element.Last;
    begin
       return
         (for all SCO of Bit_Maps.Statement_Bits.all => SCO in SCO_Range)
@@ -5225,6 +5817,8 @@ package body SC_Obligations is
       use GNAT.SHA1;
 
       Info : CU_Info renames CU_Vector.Reference (CU);
+      CU_Version : SID_Info renames
+        Info.SIDs_Info.Reference (Info.SIDs_Info.First);
       Ctx  : GNAT.SHA1.Context;
       LF   : constant String := (1 => ASCII.LF);
 
@@ -5253,7 +5847,7 @@ package body SC_Obligations is
       ------------
 
       procedure Update (SCO : SCO_Id) is
-         Relative_SCO : constant SCO_Id := SCO - Info.First_SCO;
+         Relative_SCO : constant SCO_Id := SCO - Info.SCOs.First_Element.First;
       begin
          Update (Ctx, Relative_SCO'Image);
       end Update;
@@ -5261,7 +5855,7 @@ package body SC_Obligations is
    begin
       pragma Assert (Are_Bit_Maps_In_Range (Bit_Maps, Info));
 
-      Info.Bit_Maps := Bit_Maps;
+      CU_Version.Bit_Maps := Bit_Maps;
 
       --  Compute the fingerprint for these bit maps
 
@@ -5285,7 +5879,7 @@ package body SC_Obligations is
       end loop;
       Update (Ctx, LF);
 
-      Info.Bit_Maps_Fingerprint := Fingerprint_Type
+      CU_Version.Bit_Maps_Fingerprint := Fingerprint_Type
         (GNAT.SHA1.Binary_Message_Digest'(GNAT.SHA1.Digest (Ctx)));
    end Set_Bit_Maps;
 
@@ -5295,8 +5889,10 @@ package body SC_Obligations is
 
    procedure Set_Blocks (CU : CU_Id; Blocks : SCO_Id_Vector_Vector) is
       Info : CU_Info renames CU_Vector.Reference (CU);
+      CU_Version : SID_Info renames
+        Info.SIDs_Info.Reference (Info.SIDs_Info.First);
    begin
-      Info.Blocks := Blocks;
+      CU_Version.Blocks := Blocks;
    end Set_Blocks;
 
    ---------------------
@@ -5312,6 +5908,31 @@ package body SC_Obligations is
       Current_Ctx : GNAT.SHA1.Context := Initial_Context;
       --  Current file being processed
 
+      procedure Set_Annotations_Fingerprint;
+      --  Set the annotations fingerprint for Current_CU if it is not null,
+      --  stored in Current_Ctx.
+
+      ---------------------------------
+      -- Set_Annotations_Fingerprint --
+      ---------------------------------
+
+      procedure Set_Annotations_Fingerprint is
+      begin
+         if Current_CU /= No_CU_Id then
+            declare
+               SID_Maps : SID_Info_Maps.Map renames
+                 CU_Vector.Reference (Current_CU).SIDs_Info;
+               SID      : SID_Info renames
+                 SID_Maps.Reference (SID_Maps.First);
+            begin
+               SID.Annotations_Fingerprint :=
+                 Fingerprint_Type
+                   (GNAT.SHA1.Binary_Message_Digest'
+                      (GNAT.SHA1.Digest (Current_Ctx)));
+            end;
+         end if;
+      end Set_Annotations_Fingerprint;
+
    begin
       --  As a reminder, Source_Location sort on the file index first, so we
       --  are guaranteed to have annotations grouped by source files.
@@ -5326,12 +5947,7 @@ package body SC_Obligations is
             --  dump the annotations fingerprint that was processed.
 
             if Sloc.Source_File /= Current_SFI then
-               if Current_CU /= No_CU_Id then
-                  CU_Vector.Reference (Current_CU).Annotations_Fingerprint :=
-                    Fingerprint_Type
-                      (GNAT.SHA1.Binary_Message_Digest'
-                         (GNAT.SHA1.Digest (Current_Ctx)));
-               end if;
+               Set_Annotations_Fingerprint;
                Current_Ctx := Initial_Context;
                Current_SFI := Sloc.Source_File;
                Current_CU := Comp_Unit (Current_SFI);
@@ -5345,12 +5961,7 @@ package body SC_Obligations is
               (Sloc, Ann);
          end;
       end loop;
-      if Current_CU /= No_CU_Id then
-         CU_Vector.Reference (Current_CU).Annotations_Fingerprint :=
-           Fingerprint_Type
-             (GNAT.SHA1.Binary_Message_Digest'
-                (GNAT.SHA1.Digest (Current_Ctx)));
-      end if;
+      Set_Annotations_Fingerprint;
    end Set_Annotations;
 
    ------------------------
@@ -5378,9 +5989,11 @@ package body SC_Obligations is
       --  Exception raised when the nesting/ordering invariant is found to be
       --  broken.
 
-      Lower_Bound : SCO_Id := No_SCO_Id;
-      --  At every step of the check, this designates the minimum possible SCO
-      --  value for the .From component for the next element to inspect.
+      Lower_Bound : Local_Source_Location :=
+        Local_Source_Location'(Line => 1, Column => 0);
+      --  At every step of the check, this designates the minimum possible
+      --  source location value for the .Source_Range.L.First_Sloc component
+      --  for the next element to inspect.
 
       procedure Check_Element (Cur : Cursor);
       --  Check that Cur's From/To SCOs range is not empty and
@@ -5394,14 +6007,14 @@ package body SC_Obligations is
          SE    : Scope_Entity renames Tree.Constant_Reference (Cur);
          Child : Cursor := First_Child (Cur);
 
-         Last : SCO_Id;
-         --  SCO range upper bound for Cur's last child, or SE.From if there is
-         --  no child.
+         Last : Local_Source_Location;
+         --  Source_Location upper bound for Cur's last child, or
+         --  SE.Source_Range.First_Sloc if there is no child.
       begin
-         --  Check that SCO ranges are never empty
+         --  Check that source ranges are never empty
 
-         if SE.From > SE.To then
-            raise Failure with "empty SCO range for " & Image (SE);
+         if SE.Source_Range.L.Last_Sloc < SE.Source_Range.L.First_Sloc then
+            raise Failure with "empty source range for " & Image (SE);
          end if;
 
          --  Check that the SCO range lower bound is both:
@@ -5412,11 +6025,12 @@ package body SC_Obligations is
          --  * greater than the previous sibling (if any: this checks the
          --    ordering).
 
-         if SE.From < Lower_Bound then
-            raise Failure with "SCO lower bound too low for " & Image (SE);
+         if SE.Source_Range.L.First_Sloc < Lower_Bound then
+            raise Failure with
+              "source range lower bound too low for " & Image (SE);
          end if;
-         Lower_Bound := SE.From;
-         Last := SE.From;
+         Lower_Bound := SE.Source_Range.L.First_Sloc;
+         Last := SE.Source_Range.L.First_Sloc;
 
          while Has_Element (Child) loop
             Check_Element (Child);
@@ -5425,17 +6039,21 @@ package body SC_Obligations is
 
             --  The next sibling's SCO range cannot overlap with the current's
 
-            Lower_Bound := Lower_Bound + 1;
+            Lower_Bound :=
+              Local_Source_Location'
+                (Line   => Lower_Bound.Line,
+                 Column => Lower_Bound.Column + 1);
          end loop;
 
          --  Check that the SCO range upper bound is greater or equal to
          --  the upper bound of the last child's upper bound (this is the
          --  second half of the nesting check).
 
-         if SE.To < Last then
-            raise Failure with "SCO higher bound too low for " & Image (SE);
+         if SE.Source_Range.L.Last_Sloc < Last then
+            raise Failure with
+              "Source location bound too low for " & Image (SE);
          end if;
-         Lower_Bound := SE.To;
+         Lower_Bound := SE.Source_Range.L.Last_Sloc;
       end Check_Element;
 
       Cur : Cursor := First_Child (Tree.Root);
@@ -5465,6 +6083,37 @@ package body SC_Obligations is
          return False;
    end SCOs_Nested_And_Ordered;
 
+   -----------
+   -- Floor --
+   -----------
+
+   function Floor
+     (Tree : Scope_Entities_Trees.Tree;
+      Sloc : Source_Location) return Scope_Entities_Trees.Cursor
+   is
+      use Scope_Entities_Trees;
+
+      Result : Scope_Entities_Trees.Cursor := Scope_Entities_Trees.No_Element;
+
+      procedure Process_Node (Cur : Cursor);
+
+      ------------------
+      -- Process_Node --
+      ------------------
+
+      procedure Process_Node (Cur : Cursor) is
+      begin
+         if In_Range (Sloc, Element (Cur).Source_Range) then
+            Result := Cur;
+            Iterate_Children (Cur, Process_Node'Access);
+         end if;
+      end Process_Node;
+
+   begin
+      Iterate_Children (Tree.Root, Process_Node'Access);
+      return Result;
+   end Floor;
+
    ----------------
    -- Covers_SCO --
    ----------------
@@ -5475,6 +6124,22 @@ package body SC_Obligations is
      ((SCO_Vector (SCO).Kind = Fun
       and then Scope_Entities_Trees.Is_Root (ST.Cur))
       or else Covers_SCO (Scope_Entities_Trees.Element (ST.Cur), SCO));
+
+   ------------------
+   -- Contains_SCO --
+   ------------------
+
+   function Contains_SCO (SCO : SCO_Id; CU : CU_Id) return Boolean
+   is
+      Unit : CU_Info renames CU_Vector.Reference (CU);
+   begin
+      for SCO_Range of Unit.SCOs loop
+         if SCO in SCO_Range.First .. SCO_Range.Last then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Contains_SCO;
 
    ------------------------
    -- Set_Scope_Entities --
@@ -6285,7 +6950,7 @@ package body SC_Obligations is
       --  operand, if it is a condition.
 
       Cur := Sloc_To_SCO_Map (Sloc.Source_File, Operator).Find
-               ((Sloc.L, No_Local_Location));
+        ((Sloc.L, No_Local_Location));
       if Cur /= No_Element then
          SCO := Element (Cur);
          while Kind (SCO) = Operator and then Op_Kind (SCO) = Op_Not loop
@@ -6377,9 +7042,7 @@ package body SC_Obligations is
          Cur := Sloc_To_SCO_Map (Sloc.Source_File, Decision)
                   .Find ((Sloc.L, No_Local_Location));
 
-         if Cur = No_Element then
-            SCO := No_SCO_Id;
-         else
+         if Cur /= No_Element then
             pragma Assert
               (SCO = No_SCO_Id
                  or else SCO = Enclosing_Statement (Element (Cur)));
