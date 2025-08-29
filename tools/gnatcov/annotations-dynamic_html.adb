@@ -648,7 +648,7 @@ package body Annotations.Dynamic_Html is
       Clear (Pp.Current_SCOs);
       Clear (Pp.Current_Conditions);
 
-      Line_Obj.Set_Field ("lineNumber", Img (Line_Num));
+      Line_Obj.Set_Field ("lineNumber", Line_Num);
       Line_Obj.Set_Field ("src", Line);
 
       Mapping.Set_Field ("coverage", Coverage_State);
