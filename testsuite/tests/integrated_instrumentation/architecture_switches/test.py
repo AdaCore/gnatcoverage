@@ -28,7 +28,10 @@ xcov(
 # Shadow the compiler driver with the generated wrapper
 env.add_search_path(env_var="PATH", path=os.getcwd())
 
-# Try to compile the source. The test used to fail there.
+# Try to compile the source: the test used to fail there, because gnatcov used
+# to run partial linking ("gcc -r"), to combine the actual code unit
+# (expectedly built with -m32) with the coverage buffer unit (unexpectedly
+# built with default settings: -m64), which the linker rejected.
 cmdrun(["gcc", "-m32", "../pkg.c", "-c"], for_pgm=False)
 
 thistest.result()

@@ -19,7 +19,6 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Environment_Variables;
-with Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.OS_Lib;
@@ -372,6 +371,25 @@ package body Setup_RTS is
       Name : constant String := Project_Name (Project_File);
       File : Text_Files.File_Type;
    begin
+      --  Start by checking that Tree_Dir is not a parent dir of Tree_Dir_Copy.
+      --  Otherwise, we will end up with a stack overflow as Tree_Dir_Copy
+      --  will be recursively copied.
+
+      declare
+         Tree_Dir_VF : constant Virtual_File := Create (+Tree_Dir);
+         Parent      : Virtual_File :=
+           Get_Parent (Create (+Tree_Dir_Copy));
+      begin
+         while Parent /= No_File loop
+            if Parent = Tree_Dir_VF then
+               Outputs.Fatal_Error
+                 ("Do not run this command in the same directory/in a"
+                  & " subdirectory of the installed runtime");
+            end if;
+            Parent := Get_Parent (Parent);
+         end loop;
+      end;
+
       --  Copy the sources of the project to build
 
       declare
@@ -510,23 +528,28 @@ package body Setup_RTS is
             Auto_RTS_Profile := Full;
          end if;
       else
-         declare
-            Driver : constant GPR2.Project.Attribute.Object :=
-                       Prj.Root_Project.Attribute
-                         (GPR2.Project.Registry.Attribute.Compiler.Driver,
-                          GPR2.Project.Attribute_Index.Create
-                            (GPR2.C_Language));
-         begin
-            --  If C's compiler driver is defined, and contains a dash, we
-            --  can only suppose it's a cross compiler with an executable of
-            --  the form <target_name>-<compiler>.
+         --  Determine the target for the loaded project (Target) and the host
+         --  platform (Host): consider that project is native if both are
+         --  identical.
+         --
+         --  In order to get the canonical form for the host target, we need a
+         --  knowledge base: if the project does not have one (that is the case
+         --  when a configuration project is used), we need to load the default
+         --  one.
 
-            if Driver.Is_Defined
-              and then Ada.Strings.Fixed.Index
-                (Simple_Name (Driver.Value.Text), "-") > 0
-            then
-               Auto_RTS_Profile := Embedded;
-            else
+         declare
+            KB     : constant GPR2.KB.Object :=
+              (if Prj.Get_KB.Is_Defined
+               then Prj.Get_KB
+               else GPR2.KB.Create_Default (GPR2.KB.Default_Flags));
+            Target : constant String :=
+              String (Prj.Target (Canonical => True));
+            Host   : constant String :=
+              String (KB.Normalized_Target (GPR2.Project.Tree.Target_Name));
+         begin
+            Setup_RTS_Trace.Trace ("Target: " & Target);
+            Setup_RTS_Trace.Trace ("Host: " & Host);
+            if Target = Host then
                Auto_RTS_Profile := Full;
             end if;
          end;

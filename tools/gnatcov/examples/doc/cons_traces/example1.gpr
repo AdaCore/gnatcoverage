@@ -1,0 +1,12 @@
+project Example1 is
+
+  for Object_Dir use "obj";
+
+  -- Test drivers
+  for Main use ("test_cmd_safe.adb", "test_cmd_unsafe.adb");
+
+  -- State subset of units of interest to coverage analysis
+  package Coverage is
+    for Units use ("commands");
+  end Coverage;
+end Example1;

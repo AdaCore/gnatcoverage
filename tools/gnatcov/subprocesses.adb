@@ -350,47 +350,50 @@ package body Subprocesses is
 
    function Wait_And_Finalize (Self : in out Process_Pool) return Positive
    is
-      Terminated_Process : Process_Handle := Invalid_Handle;
-      Id                 : Positive;
-      --  Terminated process
+      function Find_Waitable return Positive;
+      --  Wait until one process terminates, then return its index in
+      --  Self.Handle.
 
-      Success : Boolean;
-      --  Status of the process that terminated
+      -------------------
+      -- Find_Waitable --
+      -------------------
+
+      function Find_Waitable return Positive is
+         Result : Integer := WAIT_TIMEOUT;
+      begin
+         --  Use a long timeout (one hour) to avoid busy polling instead of
+         --  using INFINITE_TIMEOUT to workaround a GNATCOLL.OS.Process bug.
+
+         while Result = WAIT_TIMEOUT loop
+            Result := Wait_For_Processes (Self.Handles, 3600.0);
+         end loop;
+         pragma Assert (Result in Self.Handles'Range);
+         return Result;
+      end Find_Waitable;
+
+      Id      : constant Positive := Find_Waitable;
+      Success : constant Boolean := Wait (Self.Handles (Id)) = 0;
+      Info    : Process_Info renames Self.Process_Infos (Id);
+
+   --  Start of processing for Wait_And_Finalize
 
    begin
-      while Terminated_Process = Invalid_Handle loop
+      --  Free the pool slot for this terminated process
 
-         --  Wait until one process terminates
-
-         Terminated_Process :=
-           Wait_For_Processes (Self.Handles, Duration'Last);
-      end loop;
-
+      Self.Handles (Id) := Invalid_Handle;
       Self.Nb_Running_Processes := Self.Nb_Running_Processes - 1;
-
-      --  Find the id of the process that terminated
-
-      for I in Self.Handles'Range loop
-         if Self.Handles (I) = Terminated_Process then
-            Id := I;
-         end if;
-      end loop;
-
-      --  Get its termination status
-
-      Success := Wait (Self.Handles (Id)) = 0;
 
       --  Dump the output of the process that terminated to stdout if it was
       --  not redirected to a file.
 
-      if Self.Process_Infos (Id).Output_To_Stdout then
+      if Info.Output_To_Stdout then
          declare
             Output_File : Mapped_File;
             Region      : Mapped_Region;
             Str         : Str_Access;
             Str_Last    : Natural;
          begin
-            Output_File := Open_Read (+Self.Process_Infos (Id).Output_File);
+            Output_File := Open_Read (+Info.Output_File);
             Region := Read (Output_File);
             Str := Data (Region);
             Str_Last := Last (Region);
@@ -415,10 +418,7 @@ package body Subprocesses is
       --  If the subprocess terminated with an error, deal with it here
 
       Check_Status
-        (Success,
-         Self.Process_Infos (Id).Ignore_Error,
-         +Self.Process_Infos (Id).Command,
-         +Self.Process_Infos (Id).Origin_Command_Name);
+        (Success, Info.Ignore_Error, +Info.Command, +Info.Origin_Command_Name);
       return Id;
    end Wait_And_Finalize;
 
@@ -499,6 +499,7 @@ package body Subprocesses is
    procedure Initialize (Pool : in out Process_Pool) is
    begin
       Create_Temporary_Directory (Pool.Output_Dir, "gnatcov_outputs");
+      Pool.Handles := (others => Invalid_Handle);
       Pool.Nb_Running_Processes := 0;
    end Initialize;
 

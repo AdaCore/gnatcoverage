@@ -137,6 +137,7 @@ class TestCase:
         extracargs="",
         category=CAT.auto,
         tolerate_messages=None,
+        tolerate_cov_messages=None,
         expect_non_zero_code=False,
         assert_lvl=None,
         fun_call_lvl=False,
@@ -152,6 +153,10 @@ class TestCase:
         # Pass tolerate_messages to gnatcov instrument invocations (see the doc
         # for xcov_instrument).
         self.tolerate_messages = tolerate_messages
+
+        # Pass tolerate_cov_messages to gnatcov coverage invocations (only when
+        # using source traces).
+        self.tolerate_cov_messages = tolerate_cov_messages
 
         # Step 1: Compute the list of drivers and consolidation specs
         #         to exercise
