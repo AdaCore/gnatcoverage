@@ -940,10 +940,13 @@ package body SS_Annotations is
          case Language is
             when Ada_Language => SS_Backend := +"lal_context";
 
-            --  Stable_Sloc is missing a stable backend for C/C++, so default
-            --  to an absolute entry.
+            when C_Language | CPP_Language => SS_Backend := +"clang_context";
 
-            when All_Languages | C_Language | CPP_Language =>
+            when All_Languages =>
+
+               --  This should not hit but maybe with rust coverage we may
+               --  hit this?
+
                SS_Backend := +"absolute";
          end case;
       end if;
