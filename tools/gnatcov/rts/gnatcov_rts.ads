@@ -42,9 +42,10 @@ package GNATcov_RTS is
    pragma Warnings (Off, Std);
    pragma Warnings (Off, Sys);
 
-   Version : constant := 8;
+   Version : constant := 9;
    --  For compatibility with the GNATcoverage in use, GNATcov_RTS is
-   --  versioned.
+   --  versioned. When updating the runtime version, also update it in
+   --  gnatcov_rts_c.h, and in the Instrument.Common unit.
    --
    --  1 -- initial runtime version
    --  2 -- extend trace entry model to account for C files
@@ -55,5 +56,6 @@ package GNATcov_RTS is
    --  6 -- buffer clear mechanism and trace filename indices
    --  7 -- enable inlining of witness subprograms
    --  8 -- introduce fingerprints for annotations
+   --  9 -- add versioning for C sources
 
 end GNATcov_RTS;

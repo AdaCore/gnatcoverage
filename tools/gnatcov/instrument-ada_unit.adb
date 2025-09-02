@@ -9577,7 +9577,7 @@ package body Instrument.Ada_Unit is
          Runtime_Version_Check_Node : constant Node_Rewriting_Handle :=
            Create_From_Template
              (RH,
-              Template  => To_Wide_Wide_String (Runtime_Version_Check),
+              Template  => To_Wide_Wide_String (Ada_Runtime_Version_Check),
               Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
               Rule      => Pragma_Rule);
 
@@ -10707,7 +10707,7 @@ package body Instrument.Ada_Unit is
 
       File.Put_Line ("with GNATcov_RTS;");
       File.Put_Line ("with GNATcov_RTS.Buffers;");
-      File.Put_Line (Runtime_Version_Check);
+      File.Put_Line (Ada_Runtime_Version_Check);
 
       File.New_Line;
       File.Put_Line ("package " & Pkg_Name & " is");
