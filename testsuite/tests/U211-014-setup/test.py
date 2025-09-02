@@ -110,7 +110,12 @@ def xsetup(args, out, register_failure=True, auto_config_args=True):
     arguments.
     """
     return xcov(
-        ["setup", f"--install-name={rt_prj}", f"--prefix={rt_install_dir}"]
+        [
+            "setup",
+            f"--install-name={rt_prj}",
+            f"--prefix={rt_install_dir}",
+            "-v",
+        ]
         + args,
         out=out,
         register_failure=register_failure,
@@ -187,7 +192,7 @@ thistest.fail_if(
 )
 thistest.fail_if_no_match(
     log_file,
-    ".*The C language must be enabled.*",
+    "(.|\n)*The C language must be enabled(.\n)*",
     contents_of(log_file),
 )
 
