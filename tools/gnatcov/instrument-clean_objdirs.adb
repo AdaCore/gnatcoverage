@@ -156,12 +156,10 @@ begin
    --  through extended projects, as their object directories can interfere
    --  with the build of the extending project.
 
-   if not Save_Temps then
-      Iterate_Projects
-        (Root_Project             => Project.Project.Root_Project,
-         Process                  => Clean_Subdir'Access,
-         Recursive                => True,
-         Include_Extended         => True,
-         Include_Externally_Built => True);
-   end if;
+   Iterate_Projects
+     (Root_Project             => Project.Project.Root_Project,
+      Process                  => Clean_Subdir'Access,
+      Recursive                => True,
+      Include_Extended         => True,
+      Include_Externally_Built => True);
 end Instrument.Clean_Objdirs;

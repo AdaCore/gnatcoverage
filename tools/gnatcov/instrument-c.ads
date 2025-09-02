@@ -451,7 +451,11 @@ package Instrument.C is
    --    C_String_Literal ("a\b") = """a\\b"""
    --    C_String_Literal ("a""b") = """a\""b"""
 
-   function Compiler_Is_X86
+   function Compiler_Target (Compiler_Driver : Unbounded_String) return String;
+   --  Return the compiler target (i.e. the result of the
+   --  <Compiler_Driver> -dump-machine command).
+
+   function Compiler_Is_32bits
      (Compiler_Driver : Unbounded_String) return Boolean;
    --  Check wether the compiler designated by Compiler_Driver is a native x86
    --  32 bit compiler. This function will only work if Compiler_Driver

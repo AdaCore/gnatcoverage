@@ -22,6 +22,7 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Streams;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Equal_Case_Insensitive;
 with Ada.Strings.Unbounded.Hash;
@@ -163,6 +164,10 @@ package Strings is
    --  are supported (no octal nor hexadecimal escape sequences).
    --
    --  Raise Constraint_Error on invalid or unsupported escape sequences.
+
+   function Contains (Str, Substr : String) return Boolean
+   is (Ada.Strings.Fixed.Index (Str, Substr) /= 0);
+   --  Return whether Str contains the given Substr
 
 private
    pragma Inline (Hash);
