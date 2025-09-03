@@ -58,7 +58,7 @@ package Instrument.C is
      (Preprocessed_Filename  : String;
       Postprocessed_Filename : String) is null;
 
-   function Compiler_Is_X86
+   function Compiler_Is_32bits
      (Compiler_Driver : Unbounded_String) return Boolean;
 
 end Instrument.C;

@@ -551,10 +551,10 @@ package body Setup_RTS is
             Setup_RTS_Trace.Trace ("Host: " & Host);
 
             --  TODO??? (eng/gpr/gpr-issues#683) Remove the special case for
-            --  x86-linux once LibGPR2 sets it as the native target when
+            --  x86 platforms once LibGPR2 sets them as the native target when
             --  gprconfig comes from a 32-bit package.
 
-            if Target = Host or else Target = "x86-linux" then
+            if Target = Host or else Target in "x86-linux" | "x86-windows" then
                Auto_RTS_Profile := Full;
             end if;
          end;

@@ -21,7 +21,6 @@ with Ada.Containers;  use Ada.Containers;
 with Ada.Directories; use Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams.Stream_IO;
-with Ada.Strings.Fixed;
 with Ada.Text_IO;     use Ada.Text_IO;
 
 with Clang.CX_Diagnostic; use Clang.CX_Diagnostic;
@@ -558,12 +557,7 @@ package body Instrument.C is
       Func_Args    : String := "");
    --  Like Format_Extern_Decl, but write the definition to File
 
-   ---------------------
-   -- Compiler_Is_X86 --
-   ---------------------
-
-   function Compiler_Is_X86
-     (Compiler_Driver : Unbounded_String) return Boolean
+   function Compiler_Target (Compiler_Driver : Unbounded_String) return String
    is
       Driver_Basename : constant String :=
         Ada.Directories.Simple_Name (+Compiler_Driver);
@@ -580,25 +574,21 @@ package body Instrument.C is
              & Hex_Image (Unsigned_64 (Pid_To_Integer (Current_Process_Id)))
              & "_" & Basename_Suffix);
       File            : Ada.Text_IO.File_Type;
-      Res             : Boolean := False;
+      Res             : Unbounded_String;
    begin
       Run_Command
         (Command             => Cmd,
-         Origin_Command_Name => "gnatcov insturment",
+         Origin_Command_Name => "gnatcov instrument",
          Output_File         => Filename);
       Open (File, In_File, Filename);
 
       --  We only expect one line in the output file, with only the triplet
-      --  in it. Check it against a ground truth string, and if it matches
-      --  and we don't expect a non-native target, assume we need to forward
-      --  -m32 to libclang.
+      --  in it.
 
-      if Ada.Strings.Fixed.Index (Get_Line (File), "i686-pc") = 1 then
-         Res := True;
-      end if;
+      Res := +Get_Line (File);
       Close (File);
       Delete_File (Filename);
-      return Res;
+      return +Res;
    exception
       when others =>
          if Is_Open (File) then
@@ -606,7 +596,28 @@ package body Instrument.C is
             Delete_File (Filename);
          end if;
          raise;
-   end Compiler_Is_X86;
+   end Compiler_Target;
+
+   ------------------------
+   -- Compiler_Is_32bits --
+   ------------------------
+
+   function Compiler_Is_32bits
+     (Compiler_Driver : Unbounded_String) return Boolean
+   is
+      Target : constant String := Compiler_Target (Compiler_Driver);
+   begin
+      --  Check if the triplet is a 32-bits platform.
+
+      if Contains (Target, "i686-pc")
+        or else Contains (Target, "powerpc")
+        or else Contains (Target, "arm-eabi")
+        or else Contains (Target, "riscv32")
+      then
+         return True;
+      end if;
+      return False;
+   end Compiler_Is_32bits;
 
    ------------------------
    -- To_Chars_Ptr_Array --
@@ -5731,13 +5742,15 @@ package body Instrument.C is
          Instrumenter.Instr_Mode,
          Self.Builtin_Macros);
 
-      --  Deptermine if the compiler is an x86 32bit compiler. The integrated
+      --  Determine if the compiler is a 32bit compiler. The integrated
       --  instrumentation process only forwards the actual compiler, not the
       --  driver to the instrumentation process, so only perform this check for
       --  project based instrumentation, the compiler wrapper is responsible
       --  for adding -m32 if needed to the compiler switches.
+
       if Instrumenter.Instr_Mode = Project_Instrumentation
-        and then Compiler_Is_X86 (Prj.Compiler_Driver (Instrumenter.Language))
+        and then Compiler_Is_32bits
+          (Prj.Compiler_Driver (Instrumenter.Language))
       then
          Self.Clang_Needs_M32 := True;
       end if;
