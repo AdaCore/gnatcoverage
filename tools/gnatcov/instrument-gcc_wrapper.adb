@@ -318,8 +318,6 @@ is
       Parsed_Link_Command : Boolean := False;
       Commands_Filename   : constant String :=
         Tmp_Dir.Directory_Name / "commands";
-      Additional_Args     : String_Vectors.Vector :=
-        String_Vectors.To_Vector (+"-###", 1);
    begin
       --  Grab the architecture specific switches. The heuristic is that we
       --  consider every switch starting with "-m" as an architecture-specific
@@ -332,21 +330,11 @@ is
          end if;
       end loop;
 
-      --  Check if we shouldn't add -m32 so that clang correctly interprets the
-      --  sources. Adding this switch on the gcc command line should not change
-      --  anything.
-
-      if Compiler_Is_32bits (Context.Orig_Compiler_Driver) then
-         Additional_Args.Append (+"-m32");
-      end if;
-
-      --  Expand the command line using gcc's -### option, and the addition
-      --  -m32 flag, if any. Putting the additional args first ensures we don't
-      --  override a potential (but unlikely) -m16 flag.
+      --  Expand the command line using gcc's -### option
 
       Run_Command
         (+Context.Orig_Compiler_Driver,
-          Additional_Args & Args,
+          String_Vectors.To_Vector (+"-###", 1) & Args,
          "gnatcov",
          Output_File => Commands_Filename);
 
