@@ -676,3 +676,8 @@ def add_shared_options_to(parser, toplevel):
         help='Pass --block-instrument to "gnatcov instrument",'
         " to enable block instrumentation.",
     )
+
+    # --community
+    parser.add_argument(
+        "--community", action="store_true", help="Only run community tests."
+    )
