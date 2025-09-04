@@ -1449,7 +1449,7 @@ def driver_for_lang(lang: str) -> str | None:
     the driver was not found.
     """
     driver_match = re.search(
-        r'for Driver *\("' + lang + r'"\) use "(.*)";',
+        r'for Driver *\("' + re.escape(lang) + r'"\) use "(.*)";',
         contents_of(os.path.join(ROOT_DIR, "suite.cgpr")),
     )
 
