@@ -38,8 +38,7 @@ package body Subprocesses is
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
       Out_To_Null         : Boolean := False;
-      In_To_Null          : Boolean := False;
-      Ignore_Error        : Boolean := False) return Process_Handle;
+      In_To_Null          : Boolean := False) return Process_Handle;
    --  Overload to run asynchronously a command
 
    function Wait_And_Finalize (Self : in out Process_Pool) return Positive;
@@ -226,8 +225,7 @@ package body Subprocesses is
          Output_File,
          Err_To_Out,
          Out_To_Null,
-         In_To_Null,
-         Ignore_Error);
+         In_To_Null);
       Success : constant Boolean :=
           Wait (Handle) = 0 and then Handle /= Invalid_Handle;
    begin
@@ -243,8 +241,7 @@ package body Subprocesses is
       Output_File         : String := "";
       Err_To_Out          : Boolean := True;
       Out_To_Null         : Boolean := False;
-      In_To_Null          : Boolean := False;
-      Ignore_Error        : Boolean := False) return Process_Handle
+      In_To_Null          : Boolean := False) return Process_Handle
    is
       package Process_Types renames GNATCOLL.OS.Process_Types;
 
@@ -487,8 +484,7 @@ package body Subprocesses is
 
          Err_To_Out   => Output_File = "",
          Out_To_Null  => Out_To_Null,
-         In_To_Null   => In_To_Null,
-         Ignore_Error => Ignore_Error);
+         In_To_Null   => In_To_Null);
       Pool.Nb_Running_Processes := Pool.Nb_Running_Processes + 1;
    end Run_Command;
 
