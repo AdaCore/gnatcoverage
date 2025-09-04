@@ -43,5 +43,8 @@ error_msg = "gcc: error: unrecognized command-line option '-invalid-switch'"
 thistest.fail_if_no_match(
     "gcc wrapper output", f"(.|\n)*{re.escape(error_msg)}(.|\n)*", output
 )
+thistest.fail_if_match(
+    "gcc wrapper output", re.escape("== gnatcov bug detected =="), output
+)
 
 thistest.result()

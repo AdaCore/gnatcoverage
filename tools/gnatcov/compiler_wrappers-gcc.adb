@@ -22,6 +22,7 @@ with Ada.Directories;  use Ada.Directories;
 with GNAT.OS_Lib;
 
 with Instrument.Setup_Config; use Instrument.Setup_Config;
+with Outputs;                 use Outputs;
 with Paths;                   use Paths;
 with Strings;                 use Strings;
 with Subprocesses;            use Subprocesses;
@@ -58,4 +59,10 @@ begin
      (Command             => Gnatcov_Exec,
       Arguments           => Args,
       Origin_Command_Name => "gnatcov gcc-wrapper");
+
+exception
+   when Xcov_Exit_Exc =>
+      --  An error message has already been displayed
+
+      null;
 end Compiler_Wrappers.Gcc;
