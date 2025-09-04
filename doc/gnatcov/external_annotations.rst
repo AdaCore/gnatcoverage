@@ -378,8 +378,14 @@ This depends mainly on the language of the file to be annotated:
   of that construct the annotation will be remapped properly. If the enclosing
   construct is modified, the annotation will be invalidated.
 
-- For C sources, the annotations are currently not stable through modifications.
-  Any modification to the annotated source file will invalidate the annotations.
+- For Cor C++ sources, the annotations are tied to the inner-most enclosing
+  named declaration, such as a function declaration for C, or any of a
+  namespace declaration, a class declaration or function/method declaration for
+  C++.
+
+Note that in both cases, if no enclosing named construct can be found, the
+|gcvaddan| command will emit a warning and fall back to an absolute annotation,
+which is invalidated as soon as the file is modified.
 
 If an annotation is invalidated gnatcov will emit a warning stating that the
 annotation was ignored, along with its unique identifier.

@@ -167,6 +167,10 @@ package body SS_Annotations is
    --  Helper for the above procedure, validate a single entry, if it is ok
    --  then copy it in Valid_Annotation_DB, otherwise emit a warning.
 
+   procedure Check_New_Entry_Diags (Diags : Load_Diagnostic_Arr);
+   --  Check if Diags is empty, and if not error out while displaying the
+   --  diagnostics.
+
    ---------------------
    -- Annotation_Kind --
    ---------------------
@@ -940,10 +944,13 @@ package body SS_Annotations is
          case Language is
             when Ada_Language => SS_Backend := +"lal_context";
 
-            --  Stable_Sloc is missing a stable backend for C/C++, so default
-            --  to an absolute entry.
+            when C_Language | CPP_Language => SS_Backend := +"clang_context";
 
-            when All_Languages | C_Language | CPP_Language =>
+            when All_Languages =>
+
+               --  This should not hit but maybe with rust coverage we may
+               --  hit this?
+
                SS_Backend := +"absolute";
          end case;
       end if;
@@ -1006,6 +1013,7 @@ package body SS_Annotations is
       end if;
 
       declare
+         Target_Span : constant Sloc_Span := (+Start_Sloc, +End_Sloc);
          Diags : constant Load_Diagnostic_Arr :=
            Add_Or_Update_Entry
              (DB          => New_Annot_DB,
@@ -1013,16 +1021,49 @@ package body SS_Annotations is
               Annotation  => Annotation,
               Kind        => SS_Backend,
               File        => Target_File,
-              Span        => (+Start_Sloc, +End_Sloc),
+              Span        => Target_Span,
               File_Prefix => File_Prefix);
       begin
-         if Diags'Length /= 0 then
-            Outputs.Error ("Error while generating annotation:");
-            for Diag of Diags loop
-               Outputs.Error (Format_Diagnostic (Diag));
-            end loop;
-            raise Xcov_Exit_Exc;
+         --  Do not fallback if we have an explicit backend specified on
+         --  command line, or if the backend is already "absolute"
+
+         if Diags'Length /= 0
+           and then SS_Backend /= "absolute"
+           and then not Args.String_Args (Opt_SS_Backend).Present
+         then
+            --  Try again, but with the "absolute" backend. If that fails do
+            --  not log a warning about the first attempt.
+
+            declare
+               Msg : Unbounded_String :=
+                 +("Could not create an auto-relocating annotation for "
+                   & Target_File.Display_Full_Name & ":" & Image (Target_Span)
+                   & ", creating an absolute location annotation instead.");
+               Abs_Diags : constant Load_Diagnostic_Arr :=
+                 Add_Or_Update_Entry
+                   (DB          => New_Annot_DB,
+                    Identifier  => Entry_Id,
+                    Annotation  => Annotation,
+                    Kind        => +"absolute",
+                    File        => Target_File,
+                    Span        => Target_Span,
+                    File_Prefix => File_Prefix);
+            begin
+               Check_New_Entry_Diags (Abs_Diags);
+
+               if Ext_Annotation_Trace.Is_Active then
+                  Msg := Msg & (ASCII.LF & "Error was: ");
+
+                  for Diag of Diags loop
+                     Msg := Msg & (ASCII.LF & Format_Diagnostic (Diag));
+                  end loop;
+               end if;
+               Warn (+Msg);
+            end;
+         else
+            Check_New_Entry_Diags (Diags);
          end if;
+
       end;
 
       --  Check if there already is an entry with the same identifier in the
@@ -1386,5 +1427,20 @@ package body SS_Annotations is
            (Valid_Annotation_DB, Ext_Annotation_DB, Identifier, Identifier);
       end if;
    end Validate_Annotation;
+
+   ---------------------------
+   -- Check_New_Entry_Diags --
+   ---------------------------
+
+   procedure Check_New_Entry_Diags (Diags : Load_Diagnostic_Arr) is
+   begin
+      if Diags'Length /= 0 then
+         Outputs.Error ("Error while generating annotation:");
+         for Diag of Diags loop
+            Outputs.Error (Format_Diagnostic (Diag));
+         end loop;
+         raise Xcov_Exit_Exc;
+      end if;
+   end Check_New_Entry_Diags;
 
 end SS_Annotations;
