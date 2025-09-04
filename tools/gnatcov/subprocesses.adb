@@ -45,12 +45,20 @@ package body Subprocesses is
    --  Wait for a process to terminate and handle its output. Return the id in
    --  Self for the process that terminated.
 
+   procedure Print_On_Stderr (Filename : String);
+   --  If Filename is not empty, read the content of the given file and forward
+   --  it to the standard error stream.
+
    procedure Check_Status
      (Success             : Boolean;
+      Output_File         : String;
       Ignore_Error        : Boolean;
       Command             : String;
       Origin_Command_Name : String);
-   --  If Ignore_Error is False and Success is False, raise a Fatal_Error
+   --  If Ignore_Error is False and Success is False, raise a Fatal_Error.
+   --
+   --  In addition, in case of failure and Output_File is not empty, forward
+   --  its content to the standard error strem.
 
    ---------
    -- "=" --
@@ -110,17 +118,35 @@ package body Subprocesses is
       Cmd.Arguments.Append_Vector (Args);
    end Append_Args;
 
+   ---------------------
+   -- Print_On_Stderr --
+   ---------------------
+
+   procedure Print_On_Stderr (Filename : String) is
+      F : File_Type;
+   begin
+      if Filename /= "" then
+         Open (F, In_File, Filename);
+         while not End_Of_File (F) loop
+            Warning_Or_Error (Get_Line (F));
+         end loop;
+         Close (F);
+      end if;
+   end Print_On_Stderr;
+
    ------------------
    -- Check_Status --
    ------------------
 
    procedure Check_Status
      (Success             : Boolean;
+      Output_File         : String;
       Ignore_Error        : Boolean;
       Command             : String;
       Origin_Command_Name : String) is
    begin
       if not Ignore_Error and then not Success then
+         Print_On_Stderr (Output_File);
          Fatal_Error (Origin_Command_Name & " failed: aborting");
 
       elsif Subprocesses_Trace.Is_Active then
@@ -131,6 +157,7 @@ package body Subprocesses is
             --  here we are precisely ignoring the fact that the subprocess
             --  failed.
 
+            Print_On_Stderr (Output_File);
             Warning_Or_Error (Origin_Command_Name & " failed");
          end if;
       end if;
@@ -229,7 +256,8 @@ package body Subprocesses is
       Success : constant Boolean :=
           Wait (Handle) = 0 and then Handle /= Invalid_Handle;
    begin
-      Check_Status (Success, Ignore_Error, Command, Origin_Command_Name);
+      Check_Status
+        (Success, Output_File, Ignore_Error, Command, Origin_Command_Name);
       return Success;
    end Run_Command;
 
@@ -414,8 +442,19 @@ package body Subprocesses is
 
       --  If the subprocess terminated with an error, deal with it here
 
-      Check_Status
-        (Success, Info.Ignore_Error, +Info.Command, +Info.Origin_Command_Name);
+      declare
+         Output_File : constant String :=
+           (if Info.Output_To_Stdout
+            then ""
+            else +Info.Output_File);
+      begin
+         Check_Status
+           (Success,
+            Output_File,
+            Info.Ignore_Error,
+            +Info.Command,
+            +Info.Origin_Command_Name);
+      end;
       return Id;
    end Wait_And_Finalize;
 
