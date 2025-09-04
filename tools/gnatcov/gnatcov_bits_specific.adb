@@ -78,6 +78,7 @@ with Project;               use Project;
 with Qemu_Traces;
 with Rundrv;                use Rundrv;
 with SC_Obligations;        use SC_Obligations;
+with Set_Builtin_Support;
 with Setup_RTS;             use Setup_RTS;
 with SS_Annotations;        use SS_Annotations;
 with Strings;               use Strings;
@@ -1779,6 +1780,7 @@ begin
    Parse_Arguments (From_Driver => False);
    Raise_Stub_Internal_Error_For (Arguments_Loading);
    Process_Arguments;
+   Set_Builtin_Support;
 
    if Misc_Trace.Is_Active then
       Show_Version;

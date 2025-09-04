@@ -1430,6 +1430,9 @@ class TestSuite(e3.testsuite.Testsuite):
         if self.main.args.block:
             result.append("block")
 
+        if self.main.args.community:
+            result.append("community")
+
         return result
 
     def _board_discriminants(self):

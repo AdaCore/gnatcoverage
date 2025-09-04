@@ -358,6 +358,13 @@ package body Project is
         --  --restricted-to-languages switch.
 
         or else not Src_Enabled_Languages (Unit.Language)
+
+        --  Ignore units in a language not supported by the tool
+
+        or else not Builtin_Support (Unit.Language)
+
+        --  Ignore units for which gnatcov already warned
+
         or else not Warn_About_Missing_Info
       then
          return;

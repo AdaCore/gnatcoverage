@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2023-2024, AdaCore                     --
+--                     Copyright (C) 2025, AdaCore                          --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,5 +16,10 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-package body Instrument.Ada_Unit is
-end Instrument.Ada_Unit;
+with Switches; use Switches;
+
+procedure Set_Builtin_Support is
+begin
+   Builtin_Support (C_Language) := False;
+   Builtin_Support (CPP_Language) := False;
+end Set_Builtin_Support;
