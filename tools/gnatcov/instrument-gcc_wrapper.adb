@@ -478,6 +478,11 @@ is
       if Result.File = No_File or else Result.Target = No_File then
          return No_Compilation_Command;
       end if;
+
+      --  Note: we pass the compiler rather than the compiler driver, as
+      --  we retrieve preprocessing arguments from the compiler invocation,
+      --  and such arguments may not be accepted by the compiler driver.
+
       Prj.Compiler_Driver (Result.Language) := Command.First_Element;
       Prj.Compiler_Options_Unit.Insert (Result.File, PP_Args);
       Context.Source_Mapping.Include (Result.Target, Result.File);
