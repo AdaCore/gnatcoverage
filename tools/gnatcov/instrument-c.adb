@@ -557,68 +557,6 @@ package body Instrument.C is
       Func_Args    : String := "");
    --  Like Format_Extern_Decl, but write the definition to File
 
-   function Compiler_Target (Compiler_Driver : Unbounded_String) return String
-   is
-      Driver_Basename : constant String :=
-        Ada.Directories.Simple_Name (+Compiler_Driver);
-      Cmd             : constant Command_Type :=
-        (Command   => Compiler_Driver,
-         Arguments => String_Vectors.To_Vector (+"-dumpmachine", 1),
-         others    => <>);
-      Basename_Suffix : constant String := "compiler_target.txt";
-      Filename        : constant String :=
-        Ada.Directories.Compose
-          (Containing_Directory => Get_Output_Dir,
-           Name                 =>
-             Driver_Basename & "_"
-             & Hex_Image (Unsigned_64 (Pid_To_Integer (Current_Process_Id)))
-             & "_" & Basename_Suffix);
-      File            : Ada.Text_IO.File_Type;
-      Res             : Unbounded_String;
-   begin
-      Run_Command
-        (Command             => Cmd,
-         Origin_Command_Name => "gnatcov instrument",
-         Output_File         => Filename);
-      Open (File, In_File, Filename);
-
-      --  We only expect one line in the output file, with only the triplet
-      --  in it.
-
-      Res := +Get_Line (File);
-      Close (File);
-      Delete_File (Filename);
-      return +Res;
-   exception
-      when others =>
-         if Is_Open (File) then
-            Close (File);
-            Delete_File (Filename);
-         end if;
-         raise;
-   end Compiler_Target;
-
-   ------------------------
-   -- Compiler_Is_32bits --
-   ------------------------
-
-   function Compiler_Is_32bits
-     (Compiler_Driver : Unbounded_String) return Boolean
-   is
-      Target : constant String := Compiler_Target (Compiler_Driver);
-   begin
-      --  Check if the triplet is a 32-bits platform.
-
-      if Contains (Target, "i686-pc")
-        or else Contains (Target, "powerpc")
-        or else Contains (Target, "arm-eabi")
-        or else Contains (Target, "riscv32")
-      then
-         return True;
-      end if;
-      return False;
-   end Compiler_Is_32bits;
-
    ------------------------
    -- To_Chars_Ptr_Array --
    ------------------------
@@ -5742,19 +5680,22 @@ package body Instrument.C is
          Instrumenter.Instr_Mode,
          Self.Builtin_Macros);
 
-      --  Determine if the compiler is a 32bit compiler. The integrated
-      --  instrumentation process only forwards the actual compiler, not the
-      --  driver to the instrumentation process, so only perform this check for
-      --  project based instrumentation, the compiler wrapper is responsible
-      --  for adding -m32 if needed to the compiler switches.
+      --  Infer if the compiler is a 32 bit compiler from the value of the
+      --  the __SIZEOF_POINTER__ builtin macro.
 
-      if Instrumenter.Instr_Mode = Project_Instrumentation
-        and then Compiler_Is_32bits
-          (Prj.Compiler_Driver (Instrumenter.Language))
-      then
-         Self.Clang_Needs_M32 := True;
-      end if;
-
+      declare
+         use Macro_Sets;
+         Cur : constant Cursor := Self.Builtin_Macros.Find
+           (Macro_Definition'(Name => +"__SIZEOF_POINTER__", others => <>));
+         Size_Of_Pointer : constant Integer :=
+           (if Has_Element (Cur)
+            then Integer'Value (+Self.Builtin_Macros.Element (Cur).Value)
+            else 8);
+      begin
+         if Size_Of_Pointer = 4 then
+            Self.Clang_Needs_M32 := True;
+         end if;
+      end;
    end Import_Options;
 
    ---------------------------

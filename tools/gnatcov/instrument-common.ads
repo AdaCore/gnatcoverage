@@ -597,6 +597,7 @@ package Instrument.Common is
    --  defined, its optional arguments and value.
 
    function "<" (L, R : Macro_Definition) return Boolean is (L.Name < R.Name);
+   function "=" (L, R : Macro_Definition) return Boolean is (L.Name = R.Name);
    --  As we store Macro_Definition in sets, we do not want two conflicting
    --  definitions of the same macro to coexist. Thus, we compare only the
    --  name, meaning that when we insert a new definition, it will replace
