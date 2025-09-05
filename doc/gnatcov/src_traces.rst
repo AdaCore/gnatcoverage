@@ -925,7 +925,7 @@ Its contents are:
   pragma Ignore_Pragma (Refined_Depends);
 
 The source for the following example can be found under the
-`share/examples/gnatcoverage/spark_instrumentation/` directory of the GNATDAS
+`share/examples/gnatcoverage/spark_instrumentation/` directory of the GNAT DAS
 distribution.
 
 The configuration pragma file can be passed to the compiler either by
@@ -993,7 +993,7 @@ very basic sample program below, assuming the existence of a ``Sensors``
 source unit providing access to some sensor values.
 
 The sources for this example can be found under the
-`share/examples/gnatcoverage/doc/cross_example` directory of the GNATDAS
+`share/examples/gnatcoverage/doc/cross_example` directory of the GNAT DAS
 disctribution.
 
 .. code-block:: ada
@@ -1119,7 +1119,7 @@ For the sake of the example, we will consider that
   at a given point in time.
 
 The sources for this example can be found under the
-`share/examples/gnatcoverage/doc/library_instr/` directory of the GNATDAS
+`share/examples/gnatcoverage/doc/library_instr/` directory of the GNAT DAS
 distribution.
 
 Setting up the coverage runtime
@@ -1382,7 +1382,7 @@ elaboration constraints using interfacing pragmas (``pragma Import``/``pragma
 Export``). Assuming that the IO handling code is self-contained and is already
 present in the closure of the project to analyze, the following example
 demonstrates how to handle this case. The sources can be found under the
-`share/examples/gnatcoverage/custom_rt/` directory of the GNATDAS distribution.
+`share/examples/gnatcoverage/custom_rt/` directory of the GNAT DAS distribution.
 
 
 First, move the IO handling code to an independent library project:

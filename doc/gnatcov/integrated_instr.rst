@@ -83,7 +83,7 @@ A simple Makefile example
 =========================
 
 The sources for the following example can be found under the
-``share/examples/gnatcoverage/doc/integrated`` directory of the GNATDAS
+``share/examples/gnatcoverage/doc/integrated`` directory of the GNAT DAS
 distribution.
 
 The following considers that the coverage runtime was previously installed with
@@ -136,7 +136,7 @@ A simple CMake example
 ======================
 
 The sources for the following example can be found under the
-``share/examples/gnatcoverage/doc/integrated`` directory of the GNATDAS
+``share/examples/gnatcoverage/doc/integrated`` directory of the GNAT DAS
 distribution. To ensure that the Makefile provided with the example sources
 uses CMake as a build system, specify ``BUILD_SYSTEM=CMake`` on the `make`
 invocation.
