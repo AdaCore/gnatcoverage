@@ -1,11 +1,11 @@
 .. _operational-conditions:
 
-|opcond_section_title|
-======================
+Operational Conditions of Use
+=============================
 
 This chapter describes rules on which the correctness of the source coverage
 assessments performed by GNATcoverage depends. This instance of the document
-is valid for use in a certification context no stricter than DAL |dolevel|.
+is valid for use in a certification context no stricter than DAL |prj_DAL|.
 
 .. _operational-context:
 
@@ -22,18 +22,18 @@ matching process.
 
 .. tabularcolumns:: |p{0.06\textwidth}|p{0.30\textwidth}|p{0.60\textwidth}|
 
-.. csv-table::
-   :header: "Item #"| "Description"| "Expected value"
+.. csv-table:: Expected verification Environment values
+   :header: "Item #", "Description", "Expected value"
    :widths: 5, 30, 60
-   :delim:  |
+   :delim:  /
 
-   e1 | Host Operating System name and version | Linux Redhat 7
-   e2 | GNATcoverage executable name and version | GNATcoverage 19.3 (20200318)
-   e3 | GNAT Pro compiler executable name and version | gcc (GCC) 7.3.1 20180924 (for GNAT Pro 19lts 20200331) [i686-pc-linux-gnu]
-   s1 | GNAT Pro compilation switches | -gnat12
-   s2 | GNAT Pro Runtime Library Profile | No --RTS switch expected. Programs shall honor the :ref:`language-scope` restrictions, nevertheless.
-   s3 | GNATcov dump trigger switch value | :literal:`--dump-triger=atexit`
-   s4 | GNATcov dump channel switch value | :literal:`--dump-channel=bin-file`
+   e1 / Host Operating System name and version / |prj_host_platform|
+   e2 / GNATcoverage executable name and version / |gnatcov_version|
+   e3 / GNAT Pro compiler executable name and version / |gnatpro_version|
+   s1 / GNAT Pro compilation switches / |prj_switches|
+   s2 / GNAT Pro Runtime Library Profile / |prj_RTS|
+   s3 / GNATcov dump trigger switch value / |prj_dump_trigger|
+   s4 / GNATcov dump channel switch value / |prj_dump_channel|
 
 
 For the GNAT Pro compilation switches, additional options which do not
@@ -75,7 +75,7 @@ General use of the tool is described in the Tool User's Guide document, which
 can be found in the subdirectory :literal:`share/doc` of the tool
 installation.  For qualified use more specifically, the Tool User shall also
 conform to the rules described in the *Qualified Interface* section of the
-qualification |plans_doc| document.
+ |plans_doc| document.
 
 
 .. _language-scope:

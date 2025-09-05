@@ -35,12 +35,17 @@ TAGS
 *.log
 
 # temporary output of genrest.py
-qualification/tor/source/
+qualification/qualkit/tor/source/
+
+# local copy/link to the gnatcheck-qualkit sources
+qualification/gnatcheck_qualkit_common
 
 # generated output of genbundle.py
-**/build
-**/source
-**/missing_tr_log.txt
+qualification/**/build
+qualification/**/source
+qualification/**/missing_tr_log.txt
+testsuite/STR/build
+testsuite/STR/source
 
 # vscode local settings
 .env

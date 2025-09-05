@@ -17,8 +17,8 @@ Several chapters aren't included for reasons listed in the following table:
 
 .. tabularcolumns:: |p{0.3\textwidth}|p{0.65\textwidth}|
 
-.. csv-table::
-   :header: "Chapter"| "Not included because ..."
+.. csv-table:: ARM chapter exclusions
+   :header: "Chapter", "Not included because ..."
    :widths: 28, 65
    :delim: |
 
@@ -32,4 +32,3 @@ Several chapters aren't included for reasons listed in the following table:
 .. qmlink:: SubsetIndexTocTree
 
    *
-

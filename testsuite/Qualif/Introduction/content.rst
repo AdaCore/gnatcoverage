@@ -1,5 +1,5 @@
-|torintro_section_title|
-************************
+Document Purpose and Organization
+*********************************
 
 Document Purpose
 ================
@@ -94,7 +94,7 @@ so testcase identifiers are continuations of the parent requirement's
 identifier, for example
 `/TOR/Ada/stmt/Core/CompoudStatements/Loop/Incomplete_Iteration`.
 
-These identifiers are used to denote individual testcases in the |str_doc|
+These identifiers are used to denote individual testcases in the |str_abb|
 report produced out of testuite runs for qualification.
 
 For a more detailed description of how testscase sources are organized and how
@@ -108,10 +108,10 @@ Abbreviations
 
 The following abbreviations are used throughout this document:
 
-.. csv-table::
+.. csv-table:: Abbreviation definitions
    :delim: |
    :widths: 30, 40
-   :header: "Abbreviation"| "Meaning"
+   :header: "Abbreviation", "Meaning"
 
    ARM|Ada Reference Manual
    LRM|(Ada) Language Reference Manual
@@ -124,4 +124,3 @@ The following abbreviations are used throughout this document:
    rqg|requirement group
    tc|test case
    tcg|test case group
-

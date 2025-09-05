@@ -1,0 +1,21 @@
+document:
+    subst:
+        doc_title:       *prj_doc_str
+    # USER_ENTRIES
+        doc_short_title: 'STR'
+        doc_hdr_title:   *prj_doc_str
+        doc_version:     '1'
+        doc_status:      'DRAFT'
+        doc_id:          *prj_docid_str
+
+    assignments:
+        authors: [*prj_assignment_wri]
+        project_manager: [*prj_assignment_pm]
+        verifier: [*prj_assignment_ver]
+
+    history:
+        - version: 1
+          date: today
+          comments: Initial version
+
+    # END_OF_USER_ENTRIES

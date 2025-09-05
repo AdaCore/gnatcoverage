@@ -192,7 +192,7 @@
 # *****************************************************************************
 
 from e3.os.process import Run
-from e3.fs import cp, mv, rm, mkdir, ls, find
+from e3.fs import cp, mv, rm, mkdir, ls, find, sync_tree
 
 from datetime import date
 
@@ -368,13 +368,13 @@ class QMAT:
 
         self.workdir = os.path.abspath(options.workdir)
         self.repodir = os.path.join(self.workdir, REPO_IMAGE_SUBDIR)
-        self.qualdir = os.path.join(self.repodir, "qualification")
+        self.qualdir = os.path.join(self.repodir, "qualification", "qualkit")
 
         # A local place where the testsuite tree may be found,
         # possibly after remote syncing from testsuite_dir if that
         # is non-local:
 
-        self.local_testsuite_dir = None
+        self.local_testsuite_dir = ""
 
         # To be set prior to build_as_needed():
 
@@ -384,41 +384,21 @@ class QMAT:
 
         self.passno = 0
 
-    def process_imports(self, dirname):
-        """
-        Process the template file in dirname, replacing the occurrences of
-        <%name%> in the text by the contents of name_<trace_mode>.rst,
-        according to the qualification parameters
-        """
-
-        def replace_one(p):
-            return contents_of(
-                os.path.join(dirname, p.group(1) + f"_{self.o.trace_mode}.rst")
-            )
-
-        template_content = contents_of(os.path.join(dirname, "content.tmpl"))
-        with open(os.path.join(dirname, "content.rst"), "w") as f:
-            f.write(
-                re.sub(
-                    pattern=r"<%([^%]+)%>",
-                    repl=replace_one,
-                    string=template_content,
-                )
-            )
-
     # ---------------------
     # -- prepare_content --
     # ---------------------
 
-    def prepare_content(self, dirs):
+    def prepare_content(self, dirs, root):
         """
-        Prepare the content files by choosing the correct content_*.rst file
+        Prepare the content files by choosing the correct *_content.rst file
         according to the qualification parameters.
         """
         for dirname in dirs:
             cp(
-                os.path.join(dirname, f"content_{self.o.trace_mode}.rst"),
-                os.path.join(dirname, "content.rst"),
+                os.path.join(
+                    root, dirname, f"{self.o.trace_mode}_content.rst"
+                ),
+                os.path.join(root, dirname, "content.rst"),
             )
 
     # --------------------
@@ -520,7 +500,7 @@ class QMAT:
         )
 
         return "%(part)s%(suffix)s" % {
-            "part": part.upper(),
+            "part": part.lower(),
             "suffix": this_item_suffix,
         }
 
@@ -580,14 +560,14 @@ class QMAT:
 
         this_build_subdir = os.path.join(
             copy_from if copy_from is not None else "build",
-            sphinx_target_for[self.this_docformat],
+            self.this_docformat,
         )
 
         this_source = (
             this_build_subdir
             if this_target_is_tree
             else os.path.join(
-                this_build_subdir, part.upper() + ".%s" % self.this_docformat
+                this_build_subdir, part.lower() + ".%s" % self.this_docformat
             )
         )
 
@@ -640,28 +620,23 @@ class QMAT:
 
             [sync(tr) for tr in find(root=".", pattern="tcs.dump")]
 
-        env_chapter_dir = os.path.join(
-            self.repodir, "testsuite", "Qualif", "Environment"
-        )
-        self.process_imports(env_chapter_dir)
-
         announce("building %s %s" % (self.this_docformat, "TOR"))
 
-        os.chdir(os.path.join(self.repodir, "qualification", "tor"))
-
+        tor_dir = os.path.join(self.repodir, "qualification", "qualkit", "tor")
         run(
-            "python genrest.py --dolevel %s --force" % (self.o.dolevel),
+            f"python genrest.py --dolevel {self.o.dolevel} --force"
+            f" --testsuite-dir {self.o.testsuite_dir}",
             env={"PYTHONPATH": self.qualdir},
+            dirname=tor_dir,
         )
-        run(
-            "make %s" % (sphinx_target_for[self.this_docformat]),
-            env={
-                "GENBUNDLE_DOLEVEL": self.o.dolevel,
-                "PYTHONPATH": self.qualdir,
-            },
-        )
+        run("make %s" % (self.this_docformat), dirname=tor_dir)
 
-        self.__latch_into(dirname=self.itemsdir(), part="tor", toplevel=False)
+        self.__latch_into(
+            dirname=self.itemsdir(),
+            part="tor",
+            toplevel=False,
+            copy_from=os.path.join(tor_dir, "build"),
+        )
 
     # ------------------------------
     # -- dump_kit_consistency_log --
@@ -769,7 +744,11 @@ class QMAT:
         log.write("\n-- TOR/TR CONSISTENCY LOG:\n")
 
         tor_tr_logfile = os.path.join(
-            self.repodir, "qualification", "tor", "missing_tr_log.txt"
+            self.repodir,
+            "qualification",
+            "qualkit",
+            "tor",
+            "missing_tr_log.txt",
         )
 
         if not os.path.exists(tor_tr_logfile):
@@ -903,36 +882,50 @@ class QMAT:
     def build_str(self):
         announce("building %s STR" % self.this_docformat)
 
-        os.chdir(os.path.join(self.local_testsuite_dir, "STR"))
+        str_dir = os.path.join(self.qualdir, "str")
 
-        run(
-            "make %s" % sphinx_target_for[self.this_docformat],
-            env={"PYTHONPATH": self.qualdir},
+        source_str_dir = os.path.join(
+            self.local_testsuite_dir, "STR", "source"
         )
+        dest_str_dir = os.path.join(str_dir, "source")
 
-        self.__latch_into(dirname=self.itemsdir(), part="str", toplevel=False)
+        # Copy the sources from the testsuite into the work dir
+        sync_tree(source_str_dir, dest_str_dir, delete=True)
+
+        run("make %s" % self.this_docformat, dirname=str_dir)
+
+        self.__latch_into(
+            dirname=self.itemsdir(),
+            part="str",
+            toplevel=False,
+            copy_from=os.path.join(str_dir, "build"),
+        )
 
     # -----------------
     # -- build_plans --
     # -----------------
 
     def build_plans(self):
-        plans_root = os.path.join(self.repodir, "qualification", "plans")
+        plans_root = os.path.join(
+            self.repodir,
+            "qualification",
+            "qualkit",
+            "plans",
+        )
         trace_specific_content = [
             os.path.join(
                 plans_root, "Tool_Qualification_Plan", "Qualified_Interface"
             )
         ]
-        self.prepare_content(trace_specific_content)
+        self.prepare_content(trace_specific_content, root=plans_root)
 
-        os.chdir(plans_root)
-        run(
-            f"make {sphinx_target_for[self.this_docformat]}",
-            env={"PYTHONPATH": self.qualdir},
-        )
+        run(f"make {self.this_docformat}", dirname=plans_root)
 
         self.__latch_into(
-            dirname=self.itemsdir(), part="plans", toplevel=False
+            dirname=self.itemsdir(),
+            part="plans",
+            toplevel=False,
+            copy_from=os.path.join(plans_root, "build"),
         )
 
     # ---------------

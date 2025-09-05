@@ -282,8 +282,12 @@ test_qualkit:
     - anod test gnatcov-qualrun --minimal -Qci $ACI_TRACK_QUALIFIER
     - anod build gnatcov-qualkit --minimal -Qci $ACI_TRACK_QUALIFIER
     - QUALKIT_BSN=$(anod eval --primitive=build gnatcov-qualkit -Qci $ACI_TRACK_QUALIFIER build_space_name)
+    - QUALRUN_BSN=$(anod eval --primitive=test gnatcov-qualrun -Qci $ACI_TRACK_QUALIFIER build_space_name)
     - mkdir $CI_PROJECT_DIR/qualkits
+    - mkdir $CI_PROJECT_DIR/qualrun
+    - cp $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$QUALRUN_BSN/tmp/attachment-testsuite_tree.tgz $CI_PROJECT_DIR/qualrun/
     - cp $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$QUALKIT_BSN/install/*.zip $CI_PROJECT_DIR/qualkits/
+    - cp $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$QUALKIT_BSN/install/consistency.log $CI_PROJECT_DIR/qualkits/
     - testsuite_reports
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
@@ -299,5 +303,7 @@ test_qualkit:
     paths:
       - xunit-*.xml
       - qualkits/*.zip
+      - qualkits/consistency.log
+      - qualrun/attachment-testsuite_tree.tgz
     reports:
       junit: xunit-*.xml
