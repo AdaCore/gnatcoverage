@@ -17,13 +17,6 @@
 ------------------------------------------------------------------------------
 
 package body Instrument.C is
-   function Compiler_Is_32bits
-     (Compiler_Driver : Unbounded_String) return Boolean is
-      pragma Unreferenced (Compiler_Driver);
-   begin
-      raise Program_Error;
-      return False;
-   end Compiler_Is_32bits;
 begin
    Builtin_Support (C_Language) := False;
    Builtin_Support (CPP_Language) := False;
