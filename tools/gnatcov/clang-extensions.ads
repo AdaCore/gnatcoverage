@@ -284,7 +284,7 @@ package Clang.Extensions is
      with
        Import, Convention => C,
        External_Name => "clang_getImmediateMacroCallerLoc";
-   --  See getImmediateMacroCallerLoc in clang/Basic/SourceManager.h.
+   --  See getImmediateMacroCallerLoc in clang/Basic/SourceManager.h
 
    function Get_Immediate_Expansion_Loc
      (Loc : Source_Location_T;
@@ -292,7 +292,7 @@ package Clang.Extensions is
      with
        Import, Convention => C,
        External_Name => "clang_getImmediateExpansionLoc";
-   --  See getImmediateExpansionRange in clang/Basic/SourceManager.h.
+   --  See getImmediateExpansionRange in clang/Basic/SourceManager.h
 
    function Get_Expansion_End
      (TU  : Translation_Unit_T;
@@ -300,13 +300,19 @@ package Clang.Extensions is
      with
        Import, Convention => C,
        External_Name => "clang_getExpansionEnd";
-   --  See getExpansionRange in clang/Basic/SourceManager.h.
+   --  See getExpansionRange in clang/Basic/SourceManager.h
 
    function Get_Spelling_Loc
      (TU  : Translation_Unit_T;
       Loc : Source_Location_T) return Source_Location_T
      with Import, Convention => C, External_Name => "clang_getSpellingLoc";
    --  See getSpellingLoc in clang/Basic/SourceManager.h
+
+   function Get_Include_Loc
+     (TU  : Translation_Unit_T;
+      Loc : Source_Location_T) return Source_Location_T
+     with Import, Convention => C, External_Name => "clang_getIncludeLoc";
+   --  See getIncludeLoc in clang/Basic/SourceManager.h
 
    procedure Print_Location (TU : Translation_Unit_T; Loc : Source_Location_T)
      with Import, Convention => C, External_Name => "clang_printLocation";

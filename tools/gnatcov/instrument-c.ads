@@ -395,8 +395,11 @@ package Instrument.C is
          Pass : Pass_Kind_Acc;
          --  Current pass. See the Pass_Kind documentation for more details.
 
-         LL_PP_Info_Map : LL_SCO_PP_Info_Maps.Map;
-         --  Preprocessing information for low level SCOs
+         LL_Macro_Info_Map : LL_SCO_PP_Info_Maps.Map;
+         --  Macro information for low level SCOs
+
+         LL_Include_Info_Map : LL_SCO_PP_Info_Maps.Map;
+         --  Inclusion information for low level SCOs
 
          Files_Of_Interest        : File_Sets.Set;
          Sources_Of_Interest_Info : Source_Of_Interest_Maps.Map;
@@ -471,13 +474,6 @@ private
       From, To           : Source_Location;
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name) is null;
-
-   procedure Enter_Scope (Pass : Pass_Kind;
-                          UIC  : in out C_Unit_Inst_Context'Class;
-                          N    : Cursor_T) is null;
-
-   procedure Exit_Scope (Pass : Pass_Kind;
-                         UIC  : in out C_Unit_Inst_Context'Class) is null;
 
    procedure Instrument_Statement
      (Pass         : Pass_Kind;
