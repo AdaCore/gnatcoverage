@@ -4355,7 +4355,9 @@ package body Instrument.C is
 
       Create_File (Prj, File, +CU_Name.Filename);
 
+      File.Put_Line ("#include ""gnatcov_rts_c.h""");
       File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
+      File.Put_Line (C_Runtime_Version_Check);
       File.New_Line;
 
       --  Define coverage buffers for each source file:
@@ -4617,8 +4619,10 @@ package body Instrument.C is
 
          Create_File (Prj, File, Filename);
 
+         File.Put_Line ("#include ""gnatcov_rts_c.h""");
          File.Put_Line ("#include ""gnatcov_rts_c-strings.h""");
          File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
+         File.Put_Line (C_Runtime_Version_Check);
 
          case Dump_Config.Channel is
             when Binary_File =>
