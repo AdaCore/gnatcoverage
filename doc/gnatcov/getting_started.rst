@@ -116,7 +116,7 @@ Sample project
 --------------
 
 The sources for this examples are provided under the
-`share/examples/gnatcoverage/doc/getting_started/` directory of the GNATDAS
+`share/examples/gnatcoverage/doc/getting_started/` directory of the GNAT DAS
 distribution.
 
 We consider an Ada package providing a set of elementary operations
