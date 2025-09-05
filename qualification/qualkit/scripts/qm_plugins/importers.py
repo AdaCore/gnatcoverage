@@ -922,6 +922,7 @@ class TestCaseImporter(ArtifactImporter):
 
 
 class IndexImporter(ArtifactImporter):
+    current_req = None
 
     def append_to_items(self, art, depth):
 
@@ -930,7 +931,7 @@ class IndexImporter(ArtifactImporter):
             kind_text = writer.strong("(%s)" % class_to_string(art))
             id_text = writer.strong("%s" % art.id.replace("/TOR", ""))
 
-        elif is_tc(art):
+        else:
             kind_text = "(%s)" % class_to_string(art)
 
             common_prefix_parent_req = os.path.commonprefix(
@@ -953,14 +954,26 @@ class IndexImporter(ArtifactImporter):
 
         self.items = []
 
+        # HACK: not sure how this importer is supposed to work, the only
+        # IndexImporter occurence in the `Qualif/Index` directory which doesn't
+        # have any subdirectories, and the directive does not feature any
+        # param/links to resolve. As we want this to walk all the tests and
+        # requirements, we hardcode the artifacts list to be all the children
+        # of the parents of self.
+
         def sortkey_for(art):
 
             # Arrange for stmt requirements to come first, before decision and
             # mcdc. Work from locations, which contain the explicit ordering
             # requests in the names (numeric prefixes like 1_).
 
-            return str(art.location).replace("/stmt", "/a")
+            return str(art.id).replace("/stmt", "/a")
 
+        artifacts = [
+            art
+            for art in parent.pdo.relatives
+            if "Ada" in art.id or "Common" in art.id
+        ]
         artifacts.sort(key=sortkey_for)
 
         for art in artifacts:

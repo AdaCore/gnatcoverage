@@ -1602,7 +1602,7 @@ class DocGenerator(object):
             elif not in_qmlink:
                 res += "\n" + line
 
-        if importer and subartifacts:
+        if importer:
             # rst section in the end of the document
             qmlink_rst, links = importer.qmlink_to_rest(diro, subartifacts)
             diro.subdos += [
