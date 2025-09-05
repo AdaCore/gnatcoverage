@@ -275,7 +275,7 @@ class LRMTableImporter(ArtifactImporter):
 
                     if len(ref[req]) > 1:
                         pdf_other_tcs = "%s + %d other tests" % (
-                            writer.role("raw-latex", r"\newline"),
+                            writer.raw(r"\newline", "latex"),
                             (len(ref[req]) - 1),
                         )
 
@@ -301,10 +301,10 @@ class LRMTableImporter(ArtifactImporter):
 
                     pdf_tc_list += "%s %s %s %s %s " % (
                         requirement_str,
-                        writer.role("raw-latex", r"\newline"),
+                        writer.raw(r"\newline", "latex"),
                         first_tc_str,
                         pdf_other_tcs,
-                        writer.role("raw-latex", r"\newline"),
+                        writer.raw(r"\newline", "latex"),
                     )
 
                     html_tc_list += "%s %s  * TC: %s %s " % (
@@ -323,7 +323,7 @@ class LRMTableImporter(ArtifactImporter):
                         pdf_comment = (
                             comment
                             + " "
-                            + writer.role("raw-latex", r"\newline")
+                            + writer.raw(r"\newline", "latex")
                             + " "
                         )
                         html_comment = (
@@ -343,9 +343,7 @@ class LRMTableImporter(ArtifactImporter):
                         )
 
                         pdf_comment = (
-                            comment
-                            + writer.role("raw-latex", r"\newline")
-                            + " "
+                            comment + writer.raw(r"\newline", "latex") + " "
                         )
                         html_comment = (
                             comment + writer.role("raw-html", r"<br>") + " "
@@ -1099,9 +1097,7 @@ class TestCasesImporter(ArtifactImporter):
                         writer.section("%s Testcases" % toplevel) + "\n"
                     )
                 else:
-                    pdf_output += (
-                        writer.role("raw-latex", r"\newpage") + "\n\n"
-                    )
+                    pdf_output += writer.raw(r"\newpage", "latex") + "\n\n"
 
                 pdf_output += subdir_output
 

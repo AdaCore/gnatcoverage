@@ -1,5 +1,5 @@
 GNATcoverage - |tool_standard| Qualification Material: |doc_title|
-#################################################################
+##################################################################
 
 .. rubric:: List of referenced documents
 
@@ -38,6 +38,10 @@ GNATcoverage - |tool_standard| Qualification Material: |doc_title|
 
    Ada
    Common
+
+.. raw:: latex
+
+   \appendix
 
 
 .. only:: html
