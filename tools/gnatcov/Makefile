@@ -263,6 +263,9 @@ install-gnatcov_rts:
 	   $(PREFIX)/share/$(DIRNAME)/gnatcov_rts
 	$(CP) -r ada-rts/*.gpr ada-rts/*.ads ada-rts/*.adb \
 	   $(PREFIX)/share/$(DIRNAME)/gnatcov_ada_rts
+	# Copy gnatcov_rts.ads from the regular runtime to the Ada only one to make
+	# sure we keep the runtime versions in sync
+	$(CP) rts/gnatcov_rts.ads $(PREFIX)/share/$(DIRNAME)/gnatcov_ada_rts
 	# Create library/object directories for gnatcov_rts in the installed tree.
 	# This is necessary for out-of-tree builds of gnatcov_rts to work, as
 	# gnatcov_rts may be read-only after final installation, and gprbuild
