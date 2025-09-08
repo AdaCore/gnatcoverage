@@ -20,7 +20,6 @@
 
 with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Doubly_Linked_Lists;
-with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
@@ -940,55 +939,60 @@ package SC_Obligations is
   --  mechanisms to let us track and eventually report how expanded SCOs
   --  connect to the original sources.
 
-   type SCO_PP_Kind is (In_Expansion, No_Expansion);
-
    type Expansion_Info is record
-      Macro_Name : Unbounded_String;
-      Sloc       : Slocs.Source_Location;
+      Name : Unbounded_String;
+      Sloc : Slocs.Source_Location;
    end record;
 
    package Expansion_Lists is new Ada.Containers.Doubly_Linked_Lists
      (Element_Type => Expansion_Info);
 
-   type PP_Info (Kind : SCO_PP_Kind := No_Expansion) is record
-      Actual_Source_Range : Slocs.Local_Source_Location_Range;
-      --  Refers to the source location of a SCO in the unpreprocessed view
-      --  of the source file.
+   type PP_Info is record
+      Actual_Source_Range : Slocs.Source_Location_Range;
+      --  Refers to the source location of a SCO in the original (as opposed to
+      --  preprocessed) view of the source file. TODO??? remap this.
 
-      PP_Source_Range : Slocs.Local_Source_Location_Range;
-      --  Refer to a source location from the preprocessed version of the
-      --  source file, without accounting for preprocessor-inserted line
-      --  directives.
+      Tokens_Source_Range : Slocs.Source_Location_Range;
+      --  Source location for the tokens representing this source coverage
+      --  obligation. Note that this source location refers to the
+      --  *preprocessed* view of the file when this is a macro expansion.
 
       Expansion_Stack : Expansion_Lists.List;
-      --  Empty if PP_Info.Kind = No_Expansion
+      --  Chain of expansions
 
-      case Kind is
-         when In_Expansion =>
-            Definition_Loc : Expansion_Info;
-            --  Location in the definition of the ultimate macro expansion
+      Definition_Loc : Expansion_Info;
+      --  Location in the macro definition / file of the ultimate
+      --  expansion.
 
-         when others =>
-            null;
-      end case;
    end record;
    --  Preprocessing information for SCOs. Hold basic information to enhance
    --  the report output with more precise messages.
 
-   package SCO_PP_Info_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+   package SCO_PP_Info_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => SCO_Id,
       Element_Type => PP_Info);
 
-   procedure Add_PP_Info (SCO : SCO_Id; Info : PP_Info)
-      with Pre => not Has_PP_Info (SCO);
-      --  Add macro expansion information for the given SCO
+   procedure Add_Macro_Info (SCO : SCO_Id; Info : PP_Info)
+      with Pre => not Has_Macro_Info (SCO);
+   --  Add macro expansion information for the given SCO
 
-   function Has_PP_Info (SCO : SCO_Id) return Boolean;
+   procedure Add_Include_Info (SCO : SCO_Id; Info : PP_Info)
+      with Pre => not Has_Include_Info (SCO);
+      --  Add inclusion expansion information for the given SCO
+
+   function Has_Macro_Info (SCO : SCO_Id) return Boolean;
    --  Return whether the given SCO comes has preprocessing information
 
-   function Get_PP_Info (SCO : SCO_Id) return PP_Info
-     with Pre => Has_PP_Info (SCO);
-   --  Return the preprocessing information (if any) for the given SCO
+   function Has_Include_Info (SCO : SCO_Id) return Boolean;
+   --  Return whether the given SCO comes has preprocessing information
+
+   function Get_Macro_Info (SCO : SCO_Id) return PP_Info
+     with Pre => Has_Macro_Info (SCO);
+   --  Return the macro expansion information (if any) for the given SCO
+
+   function Get_Include_Info (SCO : SCO_Id) return PP_Info
+     with Pre => Has_Include_Info (SCO);
+   --  Return the macro expansion information (if any) for the given SCO
 
    function Get_Scope_Entities (CU : CU_Id) return Scope_Entities_Trees.Tree;
    --  Return the scope entities for the given compilation unit

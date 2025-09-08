@@ -19,7 +19,7 @@ Single unit tested by different programs
 ========================================
 
 The sources for the following example can be found under the
-`share/examples/gnatcoverage/doc/cons_traces` directory of the GNATDAS
+`share/examples/gnatcoverage/doc/cons_traces` directory of the GNAT DAS
 disctribution.
 
 We will first consider achieving statement coverage of the following example

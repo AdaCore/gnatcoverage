@@ -152,6 +152,22 @@ package body Instrument.C_Utils is
       return Sloc (Loc);
    end End_Sloc;
 
+   ------------
+   -- Offset --
+   ------------
+
+   function Offset (Loc : Source_Location_T) return unsigned is
+      Offset : aliased unsigned;
+   begin
+      Get_File_Location
+        (Loc,
+         System.Null_Address,
+         null,
+         null,
+         Offset'Access);
+      return Offset;
+   end Offset;
+
    ----------
    -- Kind --
    ----------

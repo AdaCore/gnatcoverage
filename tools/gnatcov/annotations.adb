@@ -691,6 +691,7 @@ package body Annotations is
    is
       Sloc_Start : Source_Location := First_Sloc (SCO);
       Sloc_End   : Source_Location := End_Lex_Element (Last_Sloc (SCO));
+      pragma Assert (Sloc_Start.Source_File = Sloc_End.Source_File);
 
       Desc : Unbounded_String;
       --  SCO description: shortened view of the SCO tokens, with a macro
@@ -700,11 +701,11 @@ package body Annotations is
       --  First, if this is a SCO inside a macro expansion, get the
       --  preprocessed excerpt for reporting purposes.
 
-      if Has_PP_Info (SCO) and then Get_PP_Info (SCO).Kind = In_Expansion then
+      if Has_Macro_Info (SCO) then
          declare
             SFI : constant Source_File_Index := Sloc_Start.Source_File;
 
-            Info                   : constant PP_Info := Get_PP_Info (SCO);
+            Info                   : constant PP_Info := Get_Macro_Info (SCO);
             Preprocessed_Filename  : constant String :=
               Get_PP_Filename (SFI) & ".prepro";
             Postprocessed_Filename : constant String := Get_PP_Filename (SFI);
@@ -712,7 +713,6 @@ package body Annotations is
               Get_Index_From_Generic_Name
                 (Postprocessed_Filename,
                  Source_File, Insert => False);
-
          begin
             if Postprocessed_SFI = No_Source_File then
                declare
@@ -755,11 +755,18 @@ package body Annotations is
             end if;
 
             if Postprocessed_SFI /= No_Source_File then
+               Sloc_Start := First_Sloc (Info.Tokens_Source_Range);
                Sloc_Start.Source_File := Postprocessed_SFI;
-               Sloc_Start.L := Info.PP_Source_Range.First_Sloc;
+               Sloc_End := Last_Sloc (Info.Tokens_Source_Range);
                Sloc_End.Source_File := Postprocessed_SFI;
-               Sloc_End.L := Info.PP_Source_Range.Last_Sloc;
             end if;
+         end;
+      elsif Has_Include_Info (SCO) then
+         declare
+            Info : constant PP_Info := Get_Include_Info (SCO);
+         begin
+            Sloc_Start := First_Sloc (Info.Tokens_Source_Range);
+            Sloc_End := Last_Sloc (Info.Tokens_Source_Range);
          end;
       end if;
 
@@ -840,33 +847,54 @@ package body Annotations is
    -- SCO_Annotations --
    ---------------------
 
-   function SCO_Annotations (SCO : SCO_Id) return String_Vectors.Vector is
+   function SCO_Annotations (SCO : SCO_Id) return String_Vectors.Vector
+   is
+      Annotations : String_Vectors.Vector;
    begin
-      if Has_PP_Info (SCO) then
+      --  Start by adding the inclusion information
+
+      if Has_Include_Info (SCO) then
          declare
-            Info        : constant PP_Info := Get_PP_Info (SCO);
-            Annotations : String_Vectors.Vector;
+            Info : constant PP_Info := Get_Include_Info (SCO);
          begin
-            if Info.Kind = In_Expansion then
+            Annotations.Append
+              ("in file "
+               & Info.Definition_Loc.Name
+               & " at location "
+               & Slocs.Image (Info.Definition_Loc.Sloc));
+
+            for Exp_Info of Info.Expansion_Stack loop
                Annotations.Append
-                 ("in definition of macro "
-                  & Info.Definition_Loc.Macro_Name
+                 ("from inclusion of "
+                  & Exp_Info.Name
                   & " at location "
-                  & Slocs.Image (Info.Definition_Loc.Sloc));
-
-               for Exp_Info of Info.Expansion_Stack loop
-                  Annotations.Append
-                    ("from expansion of macro "
-                     & Exp_Info.Macro_Name
-                     & " at location "
-                     & Slocs.Image (Exp_Info.Sloc));
-               end loop;
-
-               return Annotations;
-            end if;
+                  & Slocs.Image (Exp_Info.Sloc));
+            end loop;
          end;
       end if;
-      return String_Vectors.Empty_Vector;
+
+      --  Then, add the macro expansion information
+
+      if Has_Macro_Info (SCO) then
+         declare
+            Info : constant PP_Info := Get_Macro_Info (SCO);
+         begin
+            Annotations.Append
+              ("in definition of macro "
+               & Info.Definition_Loc.Name
+               & " at location "
+               & Slocs.Image (Info.Definition_Loc.Sloc));
+
+            for Exp_Info of Info.Expansion_Stack loop
+               Annotations.Append
+                 ("from expansion of macro "
+                  & Exp_Info.Name
+                  & " at location "
+                  & Slocs.Image (Exp_Info.Sloc));
+            end loop;
+         end;
+      end if;
+      return Annotations;
    end SCO_Annotations;
 
    ------------------------

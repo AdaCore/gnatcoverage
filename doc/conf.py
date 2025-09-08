@@ -59,7 +59,7 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = "GNATDAS"
+project = "GNAT DAS"
 copyright = f"2009-{datetime.now().year}, AdaCore"  # noqa: A001
 docname = "Manuals"
 

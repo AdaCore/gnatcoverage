@@ -262,6 +262,8 @@ package body Annotations.Dynamic_Html is
    --    * text
    --    * coverage
    --    * range
+   --    * annotations
+   --    * kind
 
    function Src_Range (SCO : SCO_Id) return JSON_Array;
    --  Return a JSON array for the range Sloc_Start .. Sloc_End from SCO

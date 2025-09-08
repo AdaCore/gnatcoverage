@@ -267,7 +267,7 @@ when parts of the testing code is implemented with ``separate``
 subunits in Ada.
 
 The sources for the following example can be found under the
-`share/examples/gnatcoverage/doc/subunits/` directory of the GNATDAS
+`share/examples/gnatcoverage/doc/subunits/` directory of the GNAT DAS
 distribution.
 
 The dummy example below shows a possible organization of this kind,

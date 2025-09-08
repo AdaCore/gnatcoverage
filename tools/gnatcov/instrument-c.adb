@@ -162,6 +162,78 @@ package body Instrument.C is
    --  Return the list of arguments that should always be passed to
    --  Parse_Translation_Unit.
 
+   -------------------
+   --  Scopes logic --
+   -------------------
+
+   procedure Enter_Scope
+     (UIC : in out C_Unit_Inst_Context'Class;
+      N   : Cursor_T);
+   --  Open a scope for N under the scope of the file in which the
+   --  corresponding code was written. This must be completed with a call to
+   --  the function Exit_Scope, defined below. Assume that the scope first SCO
+   --  is the next generated SCO (SCOs.SCO_Table.Last + 1). Update
+   --  UIC.Scopes to the created entity and UIC.Current_File_Scope to the
+   --  corresponding file.
+
+   procedure Exit_Scope (UIC : in out C_Unit_Inst_Context'Class);
+   --  Close the current scope, removing the current scope of the current file
+   --  from UIC.Scopes if it does not contain SCOs. Assume that the last
+   --  generated SCO (SCOs.SCO_Table.Last) is the last SCO for the current
+   --  scope.
+
+   function Relocate_SCO
+     (UIC : C_Unit_Inst_Context'Class;
+      Loc : Source_Location) return Boolean
+   is (Scopes_In_Files_Map.Key (UIC.Current_File_Scope) /= Loc.Source_File);
+   --  As we don't allow scopes across various files, every SCO needs to be in
+   --  the same file of the file its parent scope belongs to. This function
+   --  indicates whether the SCO located at Loc falls in the latter case,
+   --  meaning it should be relocated to its inclusion point in its parent
+   --  scope. Note that this is typically used when doing metaprogramming
+   --  in C/C++, along with abusing the macro system.
+   --
+   --  See this C example (reduced from the git codebase):
+   --
+   --  // main.c
+   --  /* auxiliary function for binary search in interval table */
+   --  static int bisearch(int ucs, int max)
+   --  {
+   --    return 0;
+   --  }
+   --
+   --
+   --  static int git_wcwidth(int ch)
+   --  {
+   --    /*
+   --     * Sorted list of non-overlapping intervals of non-spacing characters,
+   --     */
+   --  #include "unicode-width.h"
+   --
+   --    return 1;
+   --  }
+   --
+   --  // unicode-width.h
+   --  static const struct interval zero_width[] = {{ 0x0300, 0x036F }};
+   --
+   --  For more complex metaprogramming instances, see this C++ code excerpt
+   --  from the LLVM code base - which uses token concatenations in addition
+   --  to the macro system:
+   --
+   --  #define OVERLOADED_OPERATOR                           \
+   --     (Name, Spelling, Token, Unary, Binary, MemberOnly) \
+   --    case OO_##Name:                                     \
+   --      OperatorName = "operator" Spelling;               \
+   --      break;
+   --  #define OVERLOADED_OPERATOR_MULTI                     \
+   --     (Name, Spelling, Unary, Binary, MemberOnly)
+   --  #include "clang/Basic/OperatorKinds.def"
+   --
+   --  In the OperatorKinds.def file, each of the overloadable C++
+   --  operators is enumerated with either the OVERLOADED_OPERATOR or
+   --  OVERLOADED_OPERATOR_MULTI macro, each of which can be specified by
+   --  the code including this file.
+
    ---------------------------
    --  Passes specificities --
    ---------------------------
@@ -181,25 +253,6 @@ package body Instrument.C is
    --  this is a SCO inside a macro expansion.
 
    type Instrument_Pass_Kind is new Pass_Kind with null record;
-
-   overriding procedure Enter_Scope
-     (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class;
-      N    : Cursor_T);
-   --  Open a scope for N under the scope of the file in which the
-   --  corresponding code was written. This must be completed with a call to
-   --  the function Exit_Scope, defined below. Assume that the scope first SCO
-   --  is the next generated SCO (SCOs.SCO_Table.Last + 1). Update
-   --  UIC.Scopes to the created entity and UIC.Current_File_Scope to the
-   --  corresponding file.
-
-   overriding procedure Exit_Scope
-     (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class);
-   --  Close the current scope, removing the current scope of the current file
-   --  from UIC.Scopes if it does not contain SCOs. Assume that the last
-   --  generated SCO (SCOs.SCO_Table.Last) is the last SCO for the current
-   --  scope.
 
    overriding procedure Append_SCO
      (Pass               : Instrument_Pass_Kind;
@@ -611,10 +664,9 @@ package body Instrument.C is
    -- Enter_Scope --
    -----------------
 
-   overriding procedure Enter_Scope
-     (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class;
-      N    : Cursor_T)
+   procedure Enter_Scope
+     (UIC : in out C_Unit_Inst_Context'Class;
+      N   : Cursor_T)
    is
       procedure Enter_File_Scope
         (UIC : in out C_Unit_Inst_Context'Class;
@@ -727,9 +779,7 @@ package body Instrument.C is
    -- Exit_Scope --
    ----------------
 
-   overriding procedure Exit_Scope
-     (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class)
+   procedure Exit_Scope (UIC : in out C_Unit_Inst_Context'Class)
    is
       File_Scope_Ref   : constant Scopes_In_Files_Map.Reference_Type :=
         UIC.Scopes.Reference (UIC.Current_File_Scope);
@@ -754,8 +804,9 @@ package body Instrument.C is
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
-      Loc  : Source_Location_T := Start_Sloc (N);
-      Info : PP_Info;
+      Loc_C : Source_Location_T := Start_Sloc (N);
+      Loc   : constant Source_Location := Sloc (Loc_C);
+      Info  : PP_Info;
    begin
       Append_SCO
         (C1, C2, From.L, To.L, From.Source_File, Last, Pragma_Aspect_Name);
@@ -767,16 +818,67 @@ package body Instrument.C is
          return;
       end if;
 
-      --  TODO??? The actual source range should be a Source_Location, and not
-      --  a Local_Source_Location as it can refer to #included files.
+      --  Start by checking whether this is an instance of metaprogramming
+      --  (i.e. whose parent scope is in a different file than the node).
+      --  In this case, set the SCO location to the file of the parent scope.
 
-      Info.Actual_Source_Range := (From.L, To.L);
-      Info.PP_Source_Range := No_Local_Range;
+      if Relocate_SCO (UIC, From) then
+
+         --  Retrieve the inclusion expansion chain
+
+         --  TODO??? deal with the case where the SCO is both in an instance
+         --  of metaprogramming and a macro expansion (and think of adding a
+         --  test for it).
+
+         declare
+            Scope_SFI       : Source_File_Index renames
+              Scopes_In_Files_Map.Key (UIC.Current_File_Scope);
+            Inclusion_Loc_C : Source_Location_T :=
+              Get_Include_Loc (UIC.TU, Loc_C);
+            Inclusion_Stack : Expansion_Lists.List;
+            Inclusion_Loc   : Source_Location := Sloc (Inclusion_Loc_C);
+            Inclusion_File  : Source_File_Index := Loc.Source_File;
+         begin
+            loop
+               Inclusion_Stack.Append
+                 (Expansion_Info'
+                    (Name => +Get_Simple_Name (Inclusion_File),
+                     Sloc => Inclusion_Loc));
+               Inclusion_File := Inclusion_Loc.Source_File;
+
+               --  Exit before updating Inclusion_Loc to use the initial
+               --  inclusion point as an Actual_Source_Range for the stored
+               --  preprocessing information.
+
+               exit when Scope_SFI = Inclusion_File;
+               Inclusion_Loc_C := Get_Include_Loc (UIC.TU, Inclusion_Loc_C);
+               Inclusion_Loc := Sloc (Inclusion_Loc_C);
+            end loop;
+
+            --  The actual source range for the coverage obligation is the
+            --  location of the include directive in the parent scope source
+            --  file.
+
+            Info :=
+              (Tokens_Source_Range     => To_Range (From, To),
+               Actual_Source_Range =>
+                 To_Range (Inclusion_Loc, Inclusion_Loc),
+               Expansion_Stack     => Inclusion_Stack,
+               Definition_Loc      =>
+                 Expansion_Info'
+                   (Name => +Get_Simple_Name (Loc.Source_File), Sloc => Loc));
+
+            UIC.LL_Include_Info_Map.Insert (SCOs.SCO_Table.Last, Info);
+         end;
+      end if;
+
+      Info.Actual_Source_Range := To_Range (From, To);
+      Info.Tokens_Source_Range := No_Range;
 
       --  Check if this is comes from a macro expansion, in which case we need
       --  to record some information, for reporting purposes.
 
-      if Is_Macro_Location (Loc) then
+      if Is_Macro_Location (Loc_C) then
          declare
             Expansion_Stack : Expansion_Lists.List;
             Definition_Info : Expansion_Info;
@@ -856,15 +958,15 @@ package body Instrument.C is
             --  API to get either a filename, or a <command line> or <built-in>
             --  string in these cases.
 
-            if Is_Macro_Arg_Expansion (Loc, Macro_Arg_Expanded_Loc, UIC.TU)
+            if Is_Macro_Arg_Expansion (Loc_C, Macro_Arg_Expanded_Loc, UIC.TU)
             then
                Macro_Expansion_Name :=
                  +Get_Immediate_Macro_Name_For_Diagnostics
                     (Macro_Arg_Expanded_Loc, UIC.TU);
 
                Definition_Info :=
-                 (Macro_Name => Macro_Expansion_Name,
-                  Sloc       =>
+                 (Name => Macro_Expansion_Name,
+                  Sloc =>
                     Presumed_Spelling_Location
                       (UIC.TU,
                        Macro_Arg_Expanded_Loc,
@@ -872,20 +974,20 @@ package body Instrument.C is
                        UIC.Options.Builtin_Macros));
             else
                Macro_Expansion_Name :=
-                 +Get_Immediate_Macro_Name_For_Diagnostics (Loc, UIC.TU);
+                 +Get_Immediate_Macro_Name_For_Diagnostics (Loc_C, UIC.TU);
                Definition_Info :=
-                 (Macro_Name => Macro_Expansion_Name,
-                  Sloc       =>
+                 (Name => Macro_Expansion_Name,
+                  Sloc =>
                     Presumed_Spelling_Location
                       (UIC.TU,
-                       Loc,
+                       Loc_C,
                        Macro_Expansion_Name,
                        UIC.Options.Builtin_Macros));
             end if;
 
-            while Is_Macro_Location (Loc) loop
+            while Is_Macro_Location (Loc_C) loop
 
-               Immediate_Expansion_Loc := Loc;
+               Immediate_Expansion_Loc := Loc_C;
 
                --  Find the location of the immediately expanded macro. Getting
                --  the immediate expansion location yields a location in the
@@ -945,11 +1047,11 @@ package body Instrument.C is
                Immediate_Expansion_Loc :=
                  Get_Immediate_Expansion_Loc (Immediate_Expansion_Loc, UIC.TU);
                Macro_Expansion_Name :=
-                 +Get_Immediate_Macro_Name_For_Diagnostics (Loc, UIC.TU);
+                 +Get_Immediate_Macro_Name_For_Diagnostics (Loc_C, UIC.TU);
 
                --  Then, keep going up the expansion stack
 
-               Loc := Get_Immediate_Macro_Caller_Loc (Loc, UIC.TU);
+               Loc_C := Get_Immediate_Macro_Caller_Loc (Loc_C, UIC.TU);
 
                --  If the returned Macro_Definition_Name is an empty string,
                --  then it means the location refers to a token paste, or
@@ -957,8 +1059,8 @@ package body Instrument.C is
 
                if Macro_Expansion_Name /= "" then
                   Expansion_Stack.Append
-                    ((Macro_Name => Macro_Expansion_Name,
-                      Sloc       =>
+                    ((Name => Macro_Expansion_Name,
+                      Sloc =>
                         Presumed_Spelling_Location
                           (UIC.TU,
                            Immediate_Expansion_Loc,
@@ -968,15 +1070,13 @@ package body Instrument.C is
             end loop;
 
             Info :=
-              (Kind                => In_Expansion,
-               PP_Source_Range     => Info.PP_Source_Range,
+              (Tokens_Source_Range     => Info.Tokens_Source_Range,
                Actual_Source_Range => Info.Actual_Source_Range,
                Expansion_Stack     => Expansion_Stack,
                Definition_Loc      => Definition_Info);
          end;
+         UIC.LL_Macro_Info_Map.Insert (SCOs.SCO_Table.Last, Info);
       end if;
-
-      UIC.LL_PP_Info_Map.Insert (SCOs.SCO_Table.Last, Info);
    end Append_SCO;
 
    overriding procedure Append_SCO
@@ -988,9 +1088,48 @@ package body Instrument.C is
       Last               : Boolean;
       Pragma_Aspect_Name : Name_Id := Namet.No_Name)
    is
+      Actual_From : Source_Location := From;
+      Actual_To   : Source_Location := To;
+      --  TODO??? clarify whether we still need From and To
    begin
       if UIC.Disable_Coverage then
          return;
+      end if;
+
+      if Relocate_SCO (UIC, From) then
+
+         --  If we relocate the SCO, we still preserve the SCO nesting by
+         --  locating it at:
+         --
+         --    <Relocation_SFI>:<Offset (Start_Sloc)>-<Offset (End_Sloc)>
+         --
+         --  where Offset is the location of the sloc in the text buffer.
+
+         declare
+            Relocation_SFI : Source_File_Index renames
+              Scopes_In_Files_Map.Key (UIC.Current_File_Scope);
+            Include_Loc_C  : Source_Location_T :=
+              Get_Include_Loc (UIC.TU, Start_Sloc (N));
+            Include_Loc    : Source_Location;
+         begin
+            loop
+               Include_Loc := Sloc (Include_Loc_C);
+               exit when Include_Loc.Source_File = Relocation_SFI;
+               Include_Loc_C := Get_Include_Loc (UIC.TU, Include_Loc_C);
+            end loop;
+
+            Actual_From := Source_Location'
+              (Source_File => Relocation_SFI,
+               L           => Local_Source_Location'
+                 (Line   => Include_Loc.L.Line,
+                  Column => Integer (Offset (Start_Sloc (N)))));
+
+            Actual_To := Source_Location'
+              (Source_File => Relocation_SFI,
+               L           => Local_Source_Location'
+                 (Line   => Include_Loc.L.Line,
+                  Column => Integer (Offset (End_Sloc (N)))));
+         end;
       end if;
 
       --  Insert a new entry to the UIC.Instrumented_Entities maps: even if
@@ -1000,8 +1139,9 @@ package body Instrument.C is
       --  proper initialization of checkpoints structures (e.g. Statement_Bits)
       --  later on.
 
-      if not UIC.Instrumented_Entities.Contains (From.Source_File) then
-         UIC.Instrumented_Entities.Insert (From.Source_File, (others => <>));
+      if not UIC.Instrumented_Entities.Contains (Actual_From.Source_File) then
+         UIC.Instrumented_Entities.Insert
+           (Actual_From.Source_File, (others => <>));
       end if;
 
       --  End the statement block if we entered a new file: we do not want
@@ -1011,7 +1151,7 @@ package body Instrument.C is
          use type SCOs.SCO_Unit_Index;
       begin
          if SCOs.SCO_Unit_Table.Last /= 0
-           and then Last_File /= From.Source_File
+           and then Last_File /= Actual_From.Source_File
          then
             UIC.Pass.End_Statement_Block (UIC);
             UIC.Pass.Start_Statement_Block (UIC);
@@ -1019,7 +1159,8 @@ package body Instrument.C is
       end;
 
       Append_SCO
-        (C1, C2, From.L, To.L, From.Source_File, Last, Pragma_Aspect_Name);
+        (C1, C2, Actual_From.L, Actual_To.L, Actual_From.Source_File, Last,
+         Pragma_Aspect_Name);
 
       --  If this SCO is in a macro expansion, let's add source location
       --  information: we want to be able to know the actual source location
@@ -1027,12 +1168,12 @@ package body Instrument.C is
       --  retrieve the actual string (from the preprocessed code) when
       --  producing a coverage report.
 
-      if UIC.LL_PP_Info_Map.Contains (SCOs.SCO_Table.Last) then
+      if UIC.LL_Macro_Info_Map.Contains (SCOs.SCO_Table.Last) then
          declare
             Start_Loc : constant Source_Location_T := Start_Sloc (N);
             End_Loc   : constant Source_Location_T := End_Sloc (N);
 
-            Cursor_Source_Range : Slocs.Local_Source_Location_Range;
+            Cursor_Source_Range : Slocs.Source_Location_Range;
 
             procedure Update (LL_SCO : Nat; Info : in out PP_Info);
 
@@ -1043,22 +1184,22 @@ package body Instrument.C is
             procedure Update (LL_SCO : Nat; Info : in out PP_Info) is
                pragma Unreferenced (LL_SCO);
             begin
-               if Info.Kind = In_Expansion then
-                  Info.PP_Source_Range := Cursor_Source_Range;
-               end if;
+               Info.Tokens_Source_Range := Cursor_Source_Range;
             end Update;
 
          begin
             --  Get start and end of the range. Note: End_Loc is exclusive,
             --  whereas we need Cursor_Source_Range.Last_Sloc to be inclusive.
 
-            Cursor_Source_Range.First_Sloc := File_Location (Start_Loc);
-            Cursor_Source_Range.Last_Sloc := File_Location (End_Loc);
-            Cursor_Source_Range.Last_Sloc.Column :=
-              Cursor_Source_Range.Last_Sloc.Column - 1;
+            Cursor_Source_Range.Source_File := Actual_From.Source_File;
+            Cursor_Source_Range.L.First_Sloc := File_Location (Start_Loc);
+            Cursor_Source_Range.L.Last_Sloc := File_Location (End_Loc);
+            Cursor_Source_Range.L.Last_Sloc.Column :=
+              Cursor_Source_Range.L.Last_Sloc.Column - 1;
 
-            UIC.LL_PP_Info_Map.Update_Element
-              (UIC.LL_PP_Info_Map.Find (SCOs.SCO_Table.Last), Update'Access);
+            UIC.LL_Macro_Info_Map.Update_Element
+              (UIC.LL_Macro_Info_Map.Find (SCOs.SCO_Table.Last),
+               Update'Access);
          end;
       end if;
    end Append_SCO;
@@ -2776,7 +2917,7 @@ package body Instrument.C is
                      end if;
 
                      if Cursor_Kind /= Cursor_Lambda_Expr then
-                        UIC.Pass.Enter_Scope (UIC, N);
+                        Enter_Scope (UIC, N);
                      end if;
 
                      if Stmts.Length > 0 then
@@ -2821,7 +2962,7 @@ package body Instrument.C is
                      end if;
 
                      if Cursor_Kind /= Cursor_Lambda_Expr then
-                        UIC.Pass.Exit_Scope (UIC);
+                        Exit_Scope (UIC);
                      end if;
                   end;
 
@@ -2833,11 +2974,11 @@ package body Instrument.C is
                   | Cursor_Class_Decl
                   | Cursor_Struct_Decl =>
 
-                  UIC.Pass.Enter_Scope (UIC, N);
+                  Enter_Scope (UIC, N);
 
                   Traverse_Declarations (UIC, Get_Children (N));
 
-                  UIC.Pass.Exit_Scope (UIC);
+                  Exit_Scope (UIC);
 
                when Cursor_Linkage_Spec =>
                   Traverse_Declarations (UIC, Get_Children (N));
@@ -3578,7 +3719,8 @@ package body Instrument.C is
 
       --  Save into UIC the preprocessing information
 
-      UIC.LL_PP_Info_Map := UIC_Copy.LL_PP_Info_Map;
+      UIC.LL_Macro_Info_Map := UIC_Copy.LL_Macro_Info_Map;
+      UIC.LL_Include_Info_Map := UIC_Copy.LL_Include_Info_Map;
 
       --  Also copy back the annotation map and disabled region vector as well
       --  as the info on sources of interest, to avoid double processing.
@@ -3703,6 +3845,8 @@ package body Instrument.C is
 
       Record_PP_Info_Last_SCO := SCOs.SCO_Table.Last;
       SCOs.Initialize;
+      UIC.Scopes.Clear;
+      UIC.Current_File_Scope := Scopes_In_Files_Map.No_Element;
 
       --  Then, instrument
 
@@ -3734,7 +3878,8 @@ package body Instrument.C is
             & Nat'Image (Record_PP_Info_Last_SCO) & " coverage obligations,"
             & " but got" & Nat'Image (SCOs.SCO_Table.Last)
             & ". Discarding preprocessing information.");
-         UIC.LL_PP_Info_Map.Clear;
+         UIC.LL_Macro_Info_Map.Clear;
+         UIC.LL_Include_Info_Map.Clear;
       end if;
 
       --  Now that the set of coverage obligations and the set of source files
@@ -3765,13 +3910,25 @@ package body Instrument.C is
          --  SCO macro info map in our unit instrumentation context (bound to
          --  low level SCOs), and add it to the global macro info map.
 
-         for Cursor in UIC.LL_PP_Info_Map.Iterate loop
+         for Cursor in UIC.LL_Macro_Info_Map.Iterate loop
             declare
                use LL_SCO_PP_Info_Maps;
                LL_SCO : constant Nat := Key (Cursor);
                Info   : constant PP_Info := Element (Cursor);
             begin
-               Add_PP_Info (SCO_Map (LL_SCO), Info);
+               Add_Macro_Info (SCO_Map (LL_SCO), Info);
+            end;
+         end loop;
+
+         --  Do the same for inclusion information
+
+         for Cursor in UIC.LL_Include_Info_Map.Iterate loop
+            declare
+               use LL_SCO_PP_Info_Maps;
+               LL_SCO : constant Nat := Key (Cursor);
+               Info   : constant PP_Info := Element (Cursor);
+            begin
+               Add_Include_Info (SCO_Map (LL_SCO), Info);
             end;
          end loop;
 
@@ -4198,7 +4355,9 @@ package body Instrument.C is
 
       Create_File (Prj, File, +CU_Name.Filename);
 
+      File.Put_Line ("#include ""gnatcov_rts_c.h""");
       File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
+      File.Put_Line (C_Runtime_Version_Check);
       File.New_Line;
 
       --  Define coverage buffers for each source file:
@@ -4460,8 +4619,10 @@ package body Instrument.C is
 
          Create_File (Prj, File, Filename);
 
+         File.Put_Line ("#include ""gnatcov_rts_c.h""");
          File.Put_Line ("#include ""gnatcov_rts_c-strings.h""");
          File.Put_Line ("#include ""gnatcov_rts_c-buffers.h""");
+         File.Put_Line (C_Runtime_Version_Check);
 
          case Dump_Config.Channel is
             when Binary_File =>

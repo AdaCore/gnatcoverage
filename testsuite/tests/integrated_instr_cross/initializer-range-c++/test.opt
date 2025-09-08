@@ -1,3 +1,4 @@
 !bareboard DEAD This test relies on examples specific to bareboard targets
 morello-elf DEAD No BSP provided with this toolchain
 leon3-elf XFAIL Linker cannot find fwrite (to be investigated)
+ppc-elf DEAD Structure of the bsp project is not as expected

@@ -1126,6 +1126,14 @@ clang_getExpansionEnd (CXTranslationUnit TU, CXSourceLocation Loc)
   return translateSLoc (TU, SM.getExpansionRange (SLoc).getEnd ());
 }
 
+extern "C" CXSourceLocation
+clang_getIncludeLoc (CXTranslationUnit TU, CXSourceLocation Loc)
+{
+  SourceLocation SLoc = translateSourceLocation (Loc);
+  const SourceManager &SM = getSourceManager (TU);
+  return translateSLoc (TU, SM.getPresumedLoc (SLoc).getIncludeLoc ());
+}
+
 extern "C" CXTranslationUnit
 clang_getCursorTU (CXCursor C)
 {
