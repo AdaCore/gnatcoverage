@@ -1,8 +1,6 @@
 SC requirements for mixed statement constructs
 ==============================================
 
-%REQ_ID%
-
 Correct coverage shall be reported for programs that use combinations of Ada
 constructs with arbitrary levels of syntactic nesting, for example on
 statements nested within LOOPs within IF constructs within subprograms.

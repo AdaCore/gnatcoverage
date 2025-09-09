@@ -21,5 +21,5 @@ This incurs a set of related requirements summarized in the following table:
    GnatcovSwitches
    MainAttr
    ConfigAttr
-   SubdirsSwitch
+   Subdirs
 

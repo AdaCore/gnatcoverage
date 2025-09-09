@@ -2,8 +2,6 @@ SC requirements for Pragmas (ARM 2.8)
 =====================================
 
 
-%REQ_ID%
-
 
 
 Different kinds of pragmas exist, some possibly generating code such

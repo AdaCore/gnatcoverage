@@ -1,13 +1,13 @@
 .. _testsuite-overview:
 
-|testproc_section_title|
-************************
+Overview of the Test Procedures Organization
+********************************************
 
 The GNATcoverage *testsuite* consists of the set of executable *tests* that
 implement *Testcases*, driven by an execution and control harness to validate
 part or all of a *Tool Operational Requirement*. Each test involves sources
 and a description of expected results, which, in association with the harness
-operation, consitutes a *test procedure*.
+operation, constitutes a *test procedure*.
 
 Very broadly, the testsuite harness builds executables from the sources,
 executes the resulting programs, invokes GNATcoverage to perform some coverage
@@ -394,5 +394,3 @@ with the test category to prevent FAILures from violations of stricter
 criteria. In our example test of statement category, the ``0`` expectations
 are meant to convey that we expect no *statement coverage* violation on the
 lines, and violations of stricter criteria there ought to be ignored.
-
-

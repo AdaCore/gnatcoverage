@@ -1,8 +1,6 @@
 DC requirements for potentially confusing constructs
 ====================================================
 
-%REQ_ID%
-
 Combined Statement and Decision Coverage assessments shall remain correct in
 the presence of code constructs that require sophisticated analysis by the
 coverage tool not to end up confused by the visible or internal complexity,

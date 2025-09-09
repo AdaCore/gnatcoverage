@@ -16,7 +16,7 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor
 
 
-tmp = Wdir("wd_")
+tmp = Wdir("tmp_")
 mkdir("obj-helper")
 mkdir("obj-main")
 

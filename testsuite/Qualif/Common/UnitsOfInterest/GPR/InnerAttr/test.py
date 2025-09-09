@@ -30,7 +30,7 @@ check(
         "ops-orelse.ads",
         "ops-orelse.adb",
     ],
-    subdir="wd_1",
+    subdir="tmp_1",
 )
 
 # ops.gpr: for Units use ...
@@ -38,7 +38,7 @@ check(
 check(
     opspkg=gprcov_for(units_in=["ops.andthen"]),
     xreports=["ops-andthen.ads", "ops-andthen.adb"],
-    subdir="wd_2",
+    subdir="tmp_2",
 )
 
 # ops.gpr: for Excluded_Units use ...
@@ -46,7 +46,7 @@ check(
 check(
     opspkg=gprcov_for(units_out=["ops.andthen"]),
     xreports=["ops.ads", "ops.adb", "ops-orelse.ads", "ops-orelse.adb"],
-    subdir="wd_3",
+    subdir="tmp_3",
 )
 
 # ops.gpr: for Units use ... for Excluded_Units use ...
@@ -56,7 +56,7 @@ check(
         units_in=["ops", "ops.orelse", "ops.andthen"], units_out=["ops.orelse"]
     ),
     xreports=["ops.ads", "ops.adb", "ops-andthen.ads", "ops-andthen.adb"],
-    subdir="wd_3",
+    subdir="tmp_3",
 )
 
 

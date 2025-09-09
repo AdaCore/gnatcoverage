@@ -258,6 +258,7 @@ package body Instrument.Ada_Unit is
       --  Pragmas
 
       Convention,
+      Debug,
       Profile,
       Restrictions,
 
@@ -302,6 +303,7 @@ package body Instrument.Ada_Unit is
       Type_Invariant          => Precompute_Symbol (Type_Invariant),
       Convention              => Precompute_Symbol (Convention),
       Profile                 => Precompute_Symbol (Profile),
+      Debug                   => Precompute_Symbol (Debug),
       Restrictions            => Precompute_Symbol (Restrictions),
       No_Dependence           => Precompute_Symbol (No_Dependence),
       No_Finalization         => Precompute_Symbol (No_Finalization),
@@ -6970,7 +6972,7 @@ package body Instrument.Ada_Unit is
             Nam : Name_Id := Namet.No_Name;
             --  For the case of an aspect, aspect name
 
-            Is_Contract : constant Boolean := T in 'a' | 'A' | 'P';
+            Is_Contract : Boolean := T in 'a' | 'A' | 'P';
             --  Is the decision that of a contract
 
          begin
@@ -7015,6 +7017,9 @@ package body Instrument.Ada_Unit is
                      PN := PN.Parent;
                   end loop;
                   Loc := Sloc (PN);
+                  Is_Contract :=
+                    Pragma_Name (PN.As_Pragma_Node)
+                    /= Precomputed_Symbols (Debug);
                end;
 
             when 'X' =>

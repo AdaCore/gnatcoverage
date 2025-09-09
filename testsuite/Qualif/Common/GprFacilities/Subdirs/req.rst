@@ -1,8 +1,6 @@
 Requirements for the :option:`--subdirs` switch
 =====================================================
 
-%REQ_ID%
-
 The tool shall handle the :option:`--subdirs` command line switch,
 following similar semantics as for gprbuild: with :option:`--subdir=<sd>`,
 everything which should normally be performed within a project's

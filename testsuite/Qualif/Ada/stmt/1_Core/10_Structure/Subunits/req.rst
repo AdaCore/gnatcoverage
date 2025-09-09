@@ -2,8 +2,6 @@ SC requirements for Subunits (ARM 10.1.3)
 =========================================
 
 
-%REQ_ID%
-
 
 
 SC assessments shall treat subunits as  regular units.

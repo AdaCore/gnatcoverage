@@ -28,7 +28,7 @@ mainunit = mainbase + ".adb"
 env = Env()
 target = env.target.triplet
 
-Wdir("wd_")
+Wdir("tmp_")
 
 # Get a template for the project file.
 gpr_filename = gprfor(
@@ -58,7 +58,7 @@ def instantiate_gpr(target):
 
 
 for mode in ("no_arg", "with_arg"):
-    wd = Wdir("wd_{}".format(mode))
+    wd = Wdir("tmp_{}".format(mode))
 
     exe = exepath_to(mainbase)
     trace = tracename_for(mainbase)

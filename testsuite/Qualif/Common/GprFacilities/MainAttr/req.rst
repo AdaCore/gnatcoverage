@@ -1,8 +1,6 @@
 Requirements for Main attributes in project files
 =======================================================
 
-%REQ_ID%
-
 The gnatcov run command shall handle a Main attribute in the root
 project file.
 

@@ -11,6 +11,5 @@ GNATcoverage DO178C/ED-12C Qualification Material: Tool Operational Verification
 
    intro.rst
    env.rst
-   tctables.rst
    tssummary.rst
-
+   tctables.rst

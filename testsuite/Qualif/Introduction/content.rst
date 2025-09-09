@@ -1,5 +1,5 @@
-|torintro_section_title|
-************************
+Document Purpose and Organization
+*********************************
 
 Document Purpose
 ================
@@ -45,7 +45,7 @@ for this requirement. Each line in such a table designates a particular
 testcase, requirement or group artifact, with an abbreviation denoting the
 kind of artifact in the first column, the artifact local name in the second
 column and a short description of the artifact contents in the third.  See the
-:ref:`abbrevs` section later in this chapter for the list of abbrevations used
+:ref:`abbrevs` section later in this chapter for the list of abbreviations used
 in the first column.
 
 At the top of the hierarchy, collections of high level requirement groups are
@@ -71,7 +71,7 @@ requirement groups, addressing:
   tool behavior with respect to the stated requirements, testcases in this
   category are also typically designed to exercise multiple kinds of language
   constructs mixed together. They represent a good opportunity to do so as
-  they are not directed to focus on specific contructs by the nature of the
+  they are not directed to focus on specific constructs by the nature of the
   requirements to exercise, unlike a core requirement on, say, *If* statements
   for example.
 
@@ -85,16 +85,16 @@ testsuite harness to search for criteria violation messages.
 Every requirement is assigned a unique **Requirement Identifier** computed
 from its local name and position in the hierarchy of chapters and groups.
 This identifier is denoted as a path with slashes between each intermediate
-level, for example `/TOR/Ada/stmt/Core/CompoudStatements/Loop`.
+level, for example `/TOR/Ada/stmt/Core/CompoundStatements/Loop`.
 
 Likewise, each Testcase is assigned a unique **Testcase Identifier**, computed
 from its local name and position in the hierarchy of requirements and
 testcases.  Each testcase or group is always attached to a single requirement,
 so testcase identifiers are continuations of the parent requirement's
 identifier, for example
-`/TOR/Ada/stmt/Core/CompoudStatements/Loop/Incomplete_Iteration`.
+`/TOR/Ada/stmt/Core/CompoundStatements/Loop/Incomplete_Iteration`.
 
-These identifiers are used to denote individual testcases in the |str_doc|
+These identifiers are used to denote individual testcases in the |str_abb|
 report produced out of testuite runs for qualification.
 
 For a more detailed description of how testscase sources are organized and how
@@ -108,7 +108,7 @@ Abbreviations
 
 The following abbreviations are used throughout this document:
 
-.. csv-table::
+.. csv-table:: Abbreviation definitions
    :delim: |
    :widths: 30, 40
    :header: "Abbreviation", "Meaning"
@@ -124,4 +124,3 @@ The following abbreviations are used throughout this document:
    rqg|requirement group
    tc|test case
    tcg|test case group
-

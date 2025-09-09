@@ -7,7 +7,7 @@ wd = Wdir()
 
 # Check on lone node unit only
 
-wd.to_subdir("wd_1")
+wd.to_subdir("tmp_1")
 
 TestCase(category=None).run(
     covcontrol=CovControl(
@@ -16,7 +16,7 @@ TestCase(category=None).run(
 )
 
 # Check on lone node + child unit
-wd.to_subdir("wd_2")
+wd.to_subdir("tmp_2")
 TestCase(category=None).run(
     covcontrol=CovControl(
         ulist_in="../" + list_to_file(["ops", "ops.andthen"]),
@@ -25,7 +25,7 @@ TestCase(category=None).run(
 )
 
 # Check on lone child unit only
-wd.to_subdir("wd_3")
+wd.to_subdir("tmp_3")
 TestCase(category=None).run(
     covcontrol=CovControl(
         ulist_in="../" + list_to_file(["ops.andthen"]),

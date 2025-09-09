@@ -5,8 +5,6 @@ SC requirements regarding potentially confusing constructs, e.g. multiple
 statements sharing a line.
 
 
-%REQ_ID%
-
 
 
 Statement Coverage assessment is correct in the presence of code

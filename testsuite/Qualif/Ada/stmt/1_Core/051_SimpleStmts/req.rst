@@ -2,8 +2,6 @@ SC requirements for ARM chap. 5 : Simple Statements
 ===================================================
 
 
-%REQ_ID%
-
 
 
 A simple statement (i.e., one that does not contain other statements)
