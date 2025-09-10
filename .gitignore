@@ -32,3 +32,22 @@ gnatinspect.db
 README.html
 TAGS
 *.~undo-tree~
+*.log
+
+# temporary output of genrest.py
+qualification/qualkit/tor/source/
+
+# local copy/link to the gnatcheck-qualkit sources
+qualification/gnatcheck_qualkit_common
+
+# generated output of genbundle.py
+qualification/**/build
+qualification/**/source
+qualification/**/missing_tr_log.txt
+testsuite/STR/build
+testsuite/STR/source
+
+# vscode local settings
+.env
+.vscode
+

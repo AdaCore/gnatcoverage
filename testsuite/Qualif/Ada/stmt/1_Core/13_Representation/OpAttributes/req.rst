@@ -1,8 +1,6 @@
 Attribute Definition Clauses for Operational Attributes
 =======================================================
 
-%REQ_ID%
-
 Subprogram calls issued through operational attributes shall be
 treated as regular subprogram calls, regarding both the call statement
 itself and the called subprogram code.

@@ -4,8 +4,6 @@ SC requirements for chapter 6, section 5: Expressions
 SC requirements regarding chapter 6, section 5: Expressions
 
 
-%REQ_ID%
-
 
 
 All C expressions can be used as a statement.

@@ -5,8 +5,6 @@ Attribute definition clauses for representation attributes are
 of interest in that some of them allow the evaluation of expressions
 with possible side effects.
 
-%REQ_ID%
-
 Attribute definition clauses for representation attributes aren't statements
 in the language definition sense and shall not be considered as such by the
 tool.

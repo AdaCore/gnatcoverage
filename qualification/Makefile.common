@@ -1,0 +1,58 @@
+# Makefile for Sphinx documentation
+#
+
+# You can set these variables from the command line.
+CONFDIR       = ../../gnatcheck_qualkit_common
+SOURCEDIR     = ..
+SPHINXOPTS    = -c $(CONFDIR)
+SPHINXBUILD   = DOC_NAME=$(DOC) TOOL_DIR=$(TOOL) MASTER=$(MASTER_DOC) sphinx-build
+PAPER         =
+BUILDDIR      = build
+
+# Internal variables.
+PAPEROPT_a4     = -D latex_paper_size=a4
+PAPEROPT_letter = -D latex_paper_size=letter
+ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(SOURCEDIR)
+
+.PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest
+
+help:
+	@echo "Please use \`make <target>' where <target> is one of"
+	@echo "  html       to make standalone HTML files"
+	@echo "  dirhtml    to make HTML files named index.html in directories"
+	@echo "  singlehtml to make a single large HTML file"
+	@echo "  pickle     to make pickle files"
+	@echo "  json       to make JSON files"
+	@echo "  htmlhelp   to make HTML files and a HTML help project"
+	@echo "  qthelp     to make HTML files and a qthelp project"
+	@echo "  devhelp    to make HTML files and a Devhelp project"
+	@echo "  epub       to make an epub"
+	@echo "  latex      to make LaTeX files, you can set PAPER=a4 or PAPER=letter"
+	@echo "  latexpdf   to make LaTeX files and run them through pdflatex"
+	@echo "  text       to make text files"
+	@echo "  man        to make manual pages"
+	@echo "  changes    to make an overview of all changed/added/deprecated items"
+	@echo "  linkcheck  to check all external links for integrity"
+	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
+
+clean:
+	-rm -rf $(BUILDDIR)/*
+
+html:
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+
+
+pdf:
+	@echo "Copying adacore.png to $(BUILDDIR)/pdf"
+	@echo "Source: $(CONFDIR)/adacore.png"
+	@echo "Destination: $(BUILDDIR)/pdf"
+	@if [ -f $(CONFDIR)/adacore.png ]; then echo "Source file exists"; else echo "Source file does not exist"; fi
+	@if [ -d $(BUILDDIR)/pdf ]; then echo "Destination directory exists"; else echo "Creating destination directory"; mkdir -p $(BUILDDIR)/pdf; fi
+	cp $(CONFDIR)/adacore.png  $(BUILDDIR)/pdf
+	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/pdf
+	@echo "Running LaTeX files through pdflatex..."
+	make -C $(BUILDDIR)/pdf all-pdf
+	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/pdf."
+
+.PHONY: all
+all : html latexpdf

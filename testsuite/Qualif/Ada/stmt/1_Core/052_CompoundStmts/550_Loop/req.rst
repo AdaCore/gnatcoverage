@@ -2,8 +2,6 @@ SC requirements for Loop statements (ARM 5.5)
 =============================================
 
 
-%REQ_ID%
-
 
 
 A LOOP statement contains a loop *header* (optional iteration scheme followed

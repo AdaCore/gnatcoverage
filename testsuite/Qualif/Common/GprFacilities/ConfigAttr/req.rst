@@ -1,8 +1,6 @@
 Requirements for Target and Runtime attributes
 ====================================================
 
-%REQ_ID%
-
 For cross configurations, unless an explicit :option:`--target` or
 :option:`--RTS` option is provided on the command line, the tool shall
 assume their respective values from a :option:`Target` or a

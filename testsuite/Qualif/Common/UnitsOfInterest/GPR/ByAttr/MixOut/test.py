@@ -10,7 +10,7 @@ base_out = ["test_or_ft", "test_and_tt", "test_and_tf"]
 wd = Wdir()
 
 # Check on lone node unit only
-wd.to_subdir("wd_1")
+wd.to_subdir("tmp_1")
 TestCase(category=None).run(
     covcontrol=CovControl(
         units_out=base_out,
@@ -25,7 +25,7 @@ TestCase(category=None).run(
 )
 
 # Check on child units only
-wd.to_subdir("wd_2")
+wd.to_subdir("tmp_2")
 TestCase(category=None).run(
     covcontrol=CovControl(
         units_out=base_out,
@@ -35,7 +35,7 @@ TestCase(category=None).run(
 )
 
 # Check on root + child unit
-wd.to_subdir("wd_3")
+wd.to_subdir("tmp_3")
 TestCase(category=None).run(
     covcontrol=CovControl(
         units_out=base_out,

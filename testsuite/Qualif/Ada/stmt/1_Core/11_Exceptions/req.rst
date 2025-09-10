@@ -4,8 +4,6 @@ SC requirements for ARM chap. 11 : Exceptions
 =============================================
 
 
-%REQ_ID%
-
 Statement Coverage assessments shall handle the Ada exceptions related
 features described in Chapter 11 of the language Reference Manual. This
 requires accounting for exception handlers, implicit or explicit raise

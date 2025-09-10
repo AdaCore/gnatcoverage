@@ -1,8 +1,6 @@
 MCDC requirements for potentially confusing constructs
 ======================================================
 
-%REQ_ID%
-
 The Core MCDC requirements shall remain satisfied in presence of constructs
 that could fool simple minded analyzers, e.g. multiple decisions sharing a
 line.

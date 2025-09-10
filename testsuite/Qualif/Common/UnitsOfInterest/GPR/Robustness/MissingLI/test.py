@@ -22,7 +22,7 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor, xcov
 
 
-tmp = Wdir("wd_")
+tmp = Wdir("tmp_")
 
 xcov_args = build_and_run(
     gprsw=GPRswitches(root_project=gprfor("main.adb", srcdirs="..")),

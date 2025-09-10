@@ -2,8 +2,6 @@ SC requirements for Renaming declarations (ARM 8.5)
 ===================================================
 
 
-%REQ_ID%
-
 
 
 * Renaming declarations shall be recognized and processed as regular object

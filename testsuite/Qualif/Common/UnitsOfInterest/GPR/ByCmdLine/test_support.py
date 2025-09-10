@@ -83,7 +83,7 @@ def check(root_project, recurse, projects=None, units=None, xreports=None):
 
     # Arrange to execute each check in its own temporary directory and copying
     # shared projects in that directory prevent mixups across test variants.
-    tmpdir = f"wd_{label}"
+    tmpdir = f"tmp_{label}"
     wd = Wdir(tmpdir)
 
     # Copy shared projects in the temporary directory and create their object

@@ -24,3 +24,6 @@ The test harness shall comply to the following requirements:
 * Presence in the output report of violations not applicable to the test
   category shall be ignored
 
+.. qmlink:: TCIndexImporter
+
+   *

@@ -10,7 +10,7 @@ from SUITE.cutils import Wdir
 from SUITE.tutils import gprfor
 
 
-wd = Wdir("wd_")
+wd = Wdir("tmp_")
 
 # Prepare the two project files
 p = gprfor(prjid="p", mains=["main1.adb"], srcdirs=["../src"], objdir="obj-p")

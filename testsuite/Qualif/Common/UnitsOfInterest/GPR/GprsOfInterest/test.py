@@ -17,7 +17,7 @@ import e3.fs
 root_project = os.path.abspath("root.gpr")
 board = gnatemu_board_name(env.target.machine)
 board_arg = "-XBOARD={}".format(board)
-wd = Wdir("wd_")
+wd = Wdir("tmp_")
 
 # Every project of interest is setup to feature a single unit named after the
 # project. Dumping the units of interest for a given analysis, with

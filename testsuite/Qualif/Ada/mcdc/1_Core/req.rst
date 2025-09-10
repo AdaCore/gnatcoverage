@@ -1,8 +1,6 @@
 Core MCDC requirements
 ======================
 
-%REQ_ID%
-
 For MCDC assessments, the tool processes as decisions all the expressions
 processed as such for Decision Coverage (Boolean expressions used to influence
 control flow constructs), as well as all the Boolean expressions with more than

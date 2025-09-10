@@ -59,7 +59,7 @@ def try_one(subdir, extra_covargs, xreports, xwarnings):
 
 
 try_one(
-    subdir="wd_1",
+    subdir="tmp_1",
     extra_covargs=[],
     xreports={
         "flip.adb.xcov": {"+": {3}},
@@ -70,7 +70,7 @@ try_one(
 )
 
 try_one(
-    subdir="wd_2",
+    subdir="tmp_2",
     extra_covargs=["--units=flop"],
     xreports={},
     xwarnings=["no unit flop (from --units) in the projects of interest"],

@@ -2,8 +2,6 @@ SC requirements for Inlining effects
 ====================================
 
 
-%REQ_ID%
-
 
 
 SC assessments for simple statements shall not be influenced by subprogram

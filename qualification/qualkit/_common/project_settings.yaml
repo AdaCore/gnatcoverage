@@ -1,0 +1,225 @@
+project:
+    subst: {
+
+    # USER_ENTRIES
+
+    # Project definitions
+    'prj_title':                    'GNATcoverage - DO-330/ED-215 QDP',
+    'prj_toolset':                  'GNATcoverage',
+    'prj_toolset_bold':             '**GNATcoverage**',
+    'prj_switches':                 '<none>',
+    'prj_platform':                 'TBD',
+    'prj_host_platform':            'TBD',
+    'prj_RTS':                      'No --RTS switch expected. Programs shall honor the :ref:`language-scope` restrictions, nevertheless.',
+    'prj_dump_trigger':             ':literal:`--dump-triger=atexit`',
+    'prj_dump_channel':             ':literal:`--dump-channel=bin-file`',
+    'prj_ASIL':                     'ASIL D',
+    'prj_DAL':                      'A',
+    'prj_TCL':                      'TCL 3',
+    'prj_TQL':                      'TQL-5',
+    'tool_standard':                'DO-178C/ED-12C',
+    'tool_supplement_standard':     'DO-330/ED-215',
+    'prj_release_plan_repository':  'git@ssh.gitlab.adacore-it.com:eng/it/anod.git',
+    'prj_release_process_database': 'TBD',
+    'prj_new_features':             'TBD',
+    'prj_known_problems':           'TBD',
+    'prj_gpr_new_features':         'TBD',
+    'prj_gpr_known_problems':       'TBD',
+    'prj_known_problems_date':      'TBD',
+
+    # Project assignments
+
+    'prj_pm':       &prj_assignment_pm    'Vasiliy Fofanov',
+    'prj_sm':       &prj_assignment_sm    'TBD',
+    'prj_ver':      &prj_assignment_ver   'TBD',
+    'prj_wri':      &prj_assignment_wri   'TBD',
+
+    # Document definitions
+    'plans_doc':    &prj_doc_plans      'Qualification Plans',
+    'plans_id':     &prj_docid_plans    'SE.DOC-TBD',
+    'plans_abb':                        '*PLANS*',
+
+    'tor_doc':    &prj_doc_tor          'Tool Operational Requirements and V\&V Cases and Procedures',
+    'tor_id':     &prj_docid_tor        'SE.DOC-TBD',
+    'tor_abb':                          '*TOR*',
+
+    'str_doc':    &prj_doc_str          'Tool Operational Verification and Validation Results',
+    'str_id':     &prj_docid_str        'SE.DOC-TBD',
+    'str_abb':                          '*STR*',
+
+    'tqa_doc':    &prj_doc_tqa          'Tool Quality Assurance Records',
+    'tqa_id':     &prj_docid_tqa        'SE.DOC-TBD',
+
+    # Project tool versions
+
+    'gnatcov_version':  'TDB',
+    'gnatpro_version':  'TDB',
+    'gprbuild_version': 'TDB',
+    'gnatemu_version':  'TDB',
+
+    # END_OF_USER_ENTRIES
+
+    # Project abbreviations
+
+    'TBD': &prj_abbr_tbd 'To Be Done',
+    'QA':                'Quality Assurance',
+    'adacore':           'AdaCore',
+
+    # AdaCore QMS documents
+
+    'acqp_doc':        'AdaCore Quality Procedures',
+    'acqp_ref':        'ACQP',
+    'acqp_id':         'ENG.DOC-107',
+    'acqp_version':    'Version 13',
+
+    'accm_doc':        'AdaCore ISO 9001:2015 Compliance Matrix',
+    'accm_ref':        'ACCM',
+    'accm_id':         'ENG.DOC-101',
+    'accm_version':    'Version 3',
+
+    'acip_doc':        'AdaCore ISO 9001:2015 Procedures',
+    'acip_ref':        'ACIP',
+    'acip_id':         'ENG.DOC-102',
+    'acip_version':    'Version 4',
+
+    'acp_doc':         'AdaCore Procedures',
+    'acp_ref':         'ACP',
+    'acp_id':          'SE.DOC-353',
+    'acp_version':     'Version 10',
+
+    'acqm_doc':        'AdaCore Quality Manual',
+    'acqm_ref':        'ACQM',
+    'acqm_id':         'ENG.DOC-104',
+    'acqm_version':    'Version 4',
+
+    'acrp_doc':        'AdaCore Release Procedures',
+    'acrp_ref':        'ACRP',
+    'acrp_id':         'SE.DOC-361',
+    'acrp_version':    'Version 13',
+
+    'pep_doc':         'Product Engineering Procedures',
+    'pep_ref':         'PEP',
+    'pep_id':          'ENG.DOC-383',
+    'pep_version':     'Version 6',
+
+    # Technical documents
+
+    'acs_doc':         'Ada Coding Style',
+    'acs_ref':         'ACS',
+    'acs_id':          'SE.DOC-359',
+    'acs_version':     'Version 6',
+
+    'alrm_doc':        'Ada Reference Manual - Language and Standard Libraries',
+    'alrm_ref':        'ALRM',
+    'alrm_id':         'N/A',
+    'alrm_version':    'ISO/IEC 8652:2012(E) with COR.1:2016',
+
+    'atsug_doc':       'The Ada Conformity Assessment Test Suite (ACATS) User''s guide',
+    'atsug_ref':       'ATSUG',
+    'atsug_id':        'N/A',
+    'atsug_version':   'Version 3.1, January 30, 2014',
+
+    'gaug_doc':        'Using as',
+    'gaug_ref':        'GAUG',
+    'gaug_id':         'N/A',
+    'gaug_version':    'TBD',
+
+    'gbu_doc':         'GNU Binary Utilities',
+    'gbu_ref':         'GBU',
+    'gbu_id':          'N/A',
+    'gbu_version':     'TBD',
+
+    'gbug_doc':        'GPR Tools User''s Guide',
+    'gbug_ref':        'GPRUG',
+    'gbug_id':         'N/A',
+    'gbug_version':    '19.8',
+
+    'gccug_doc':       'using gcc',
+    'gccug_ref':       'GCCUG',
+    'gccug_id':        'n/a',
+    'gccug_version':   'TBD',
+
+    'glug_doc':        'The GNU linker',
+    'glug_ref':        'GLUG',
+    'glug_id':         'n/a',
+    'glug_version':    'TBD',
+
+    'gprm_doc':        'GNAT Pro Reference Manual',
+    'gprm_ref':        'GPRM',
+    'gprm_id':         'N/A',
+    'gprm_version':    '19.8',
+
+    'gpug_doc':        'GNAT Pro User''s Guide for Native Platforms',
+    'gpug_ref':        'GPUG',
+    'gpug_id':         'N/A',
+    'gpug_version':    'TBD',
+
+    'gpugc_doc':       'GNAT Pro User Guide Supplement for Cross Platforms',
+    'gpugc_ref':       'GPUGC',
+    'gpugc_id':        'N/A',
+    'gpugc_version':   'TBD',
+
+    'spug_doc':       'SPARK 2014 Toolset User''s Guide',
+    'spug_ref':       'SPUG',
+    'spug_id':        'N/A',
+    'spug_version':   'TBD',
+
+    'gcheck_doc':         'GNATcheck Reference Manual',
+    'gcheck_ref':         'GCRM',
+    'gcheck_id':          'N/A',
+    'gcheck_version':     '19.8',
+
+    'gsas_doc':         'GNAT SAS User''s Guide',
+    'gsas_ref':         'GSASUG',
+    'gsas_id':          'N/A',
+    'gsas_version':     'TBD',
+
+    # Standards
+
+    'guapl_doc':       'Information technology - Programming languages - Guide for the Use of the Ada Programming Language in High Integrity Systems',
+    'guapl_ref':       'GUAPL',
+    'guapl_id':        'N/A',
+    'guapl_version':   'ISO/IEC TR 15942:2000(E)',
+
+    'iec_doc':         'Functional safety of electrical/electronic/programmable electronic safety-related systems',
+    'iec_ref' :        'IEC-61508',
+    'iec_id':          'N/A',
+    'iec_version':     'IEC 61508:2010',
+
+    'iqms_doc':        'ISO 9001:2015(E) Quality Management Systems - Requirements',
+    'iqms_ref':        'IQMS',
+    'iqms_id':         'N/A',
+    'iqms_version':    'ISO 9001:2015(E)',
+
+    'iso_doc':         'Road Vehicles - Functional Safety',
+    'iso_ref' :        'ISO-26262',
+    'iso_id':          'N/A',
+    'iso_version':     'ISO 26262:2018',
+
+    'racsps_doc':      'Railway applications - Communications, signalling and processing systems - Software for railway control and protection systems',
+    'racsps_ref':      'RACSPS',
+    'racsps_id':       'N/A',
+    'racsps_version':  'EN 50128:2001',
+
+    'racspsb_doc':     'Railway applications - Communications, signalling and processing systems - Software for railway control and     protection systems',
+    'racspsb_ref':     'RACSPSB',
+    'racspsb_id':      'N/A',
+    'racspsb_version': 'EN 50128:2011',
+
+    'spasb_doc':       'Space Product Assurance',
+    'spasb_ref':       'SPASB',
+    'spasb_id':        'N/A',
+    'spasb_version':   'B',
+
+    'spasc_doc':       'Space Product Assurance',
+    'spasc_ref':       'SPASC',
+    'spasc_id':        'N/A',
+    'spasc_version':   'C',
+
+    'do_doc':          'Software Considerations in Airborne Systems and Equipment Certification',
+    'do_ref':          'DO-178',
+    'do_id':           'N/A',
+    'do_version':      'DO-178C',
+
+
+    }

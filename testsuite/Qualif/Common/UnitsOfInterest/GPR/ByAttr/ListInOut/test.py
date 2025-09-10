@@ -7,7 +7,7 @@ from SUITE.cutils import Wdir, list_to_tmp
 wd = Wdir()
 
 # Remove a parent unit
-wd.to_subdir("wd_1")
+wd.to_subdir("tmp_1")
 TestCase(category=None).run(
     covcontrol=CovControl(
         ulist_in=list_to_tmp(["ops", "ops.andthen"]),
@@ -17,7 +17,7 @@ TestCase(category=None).run(
 )
 
 # Remove a child unit
-wd.to_subdir("wd_2")
+wd.to_subdir("tmp_2")
 TestCase(category=None).run(
     covcontrol=CovControl(
         ulist_in=list_to_tmp(["ops", "ops.andthen"]),
@@ -27,7 +27,7 @@ TestCase(category=None).run(
 )
 
 # Remove one that's not in
-wd.to_subdir("wd_3")
+wd.to_subdir("tmp_3")
 TestCase(category=None).run(
     covcontrol=CovControl(
         ulist_in=list_to_tmp(["ops", "ops.andthen"]),

@@ -4,7 +4,7 @@ from SUITE.tutils import gprbuild, gprfor
 
 from test_support import check
 
-wd = Wdir("wd_")
+wd = Wdir("tmp_")
 gprbuild(
     gprfor(
         srcdirs=[

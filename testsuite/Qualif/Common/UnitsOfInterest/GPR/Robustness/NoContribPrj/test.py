@@ -15,7 +15,7 @@ from SUITE.cutils import Wdir, contents_of
 from SUITE.tutils import gprfor
 
 
-tmp = Wdir("wd_")
+tmp = Wdir("tmp_")
 
 
 class ProjectConfig(object):
@@ -74,7 +74,7 @@ def run_test(
     expected_cov_list = expected_cov_list or []
 
     thistest.log("== [{}] {} ==".format(slug, label))
-    tmp.to_subdir("wd_/{}".format(slug))
+    tmp.to_subdir("tmp_/{}".format(slug))
 
     expected_output = "\n".join(
         "warning: project {} provides no unit of interest".format(project)
