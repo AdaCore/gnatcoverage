@@ -265,7 +265,7 @@
                   "uri": "c_source.c"
                 },
                 "region": {
-                  "startColumn": 8,
+                  "startColumn": 7,
                   "startLine": 24
                 }
               }
@@ -307,7 +307,7 @@
                   "uri": "c_source.c"
                 },
                 "region": {
-                  "startColumn": 8,
+                  "startColumn": 7,
                   "startLine": 34
                 }
               }
@@ -412,7 +412,7 @@
                   "uri": "cpp_source.cpp"
                 },
                 "region": {
-                  "startColumn": 8,
+                  "startColumn": 7,
                   "startLine": 24
                 }
               }
@@ -454,7 +454,7 @@
                   "uri": "cpp_source.cpp"
                 },
                 "region": {
-                  "startColumn": 8,
+                  "startColumn": 7,
                   "startLine": 34
                 }
               }
