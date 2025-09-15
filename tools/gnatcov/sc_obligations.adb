@@ -7145,7 +7145,7 @@ package body SC_Obligations is
    is
    begin
       if Pragma_Name = No_Name then
-         return Unknown_Pragma;
+         return Pragma_Unknown;
       end if;
 
       --  Retrieve the pragma name as a string
@@ -7164,7 +7164,7 @@ package body SC_Obligations is
          return Pragma_Id'Value (Enum_Name);
       exception
          when Constraint_Error =>
-            return Unknown_Pragma;
+            return Pragma_Unknown;
       end;
    end Case_Insensitive_Get_Pragma_Id;
 

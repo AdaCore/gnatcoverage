@@ -1304,8 +1304,8 @@ package SC_Obligations is
       Pragma_Warnings,
       Pragma_Weak_External,
       Pragma_Wide_Character_Encoding,
-      Unknown_Pragma);
-   --  Set of pragmas that GNATcoverage knows (or Unknown_Pragma if not)
+      Pragma_Unknown);
+   --  Set of pragmas that GNATcoverage knows (or Pragma_Unknown if not)
 
    function Case_Insensitive_Get_Pragma_Id
      (Pragma_Name : Namet.Name_Id) return Pragma_Id;
@@ -1619,7 +1619,7 @@ package SC_Obligations is
           Pragma_Type_Invariant => True,
           Pragma_Type_Invariant_Class => True,
 
-          Unknown_Pragma => True);
+          Pragma_Unknown => True);
 
    procedure Populate_From_Static_Eval_Vector
      (SCO        : SCO_Id;
