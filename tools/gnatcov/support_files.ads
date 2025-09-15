@@ -23,6 +23,7 @@ with Ada.Environment_Variables; use Ada.Environment_Variables;
 with GNAT.OS_Lib;
 
 package Support_Files is
+   use type GNAT.OS_Lib.String_Access;
 
    --  This package offers various helpers to locate support files in gnatcov's
    --  installation prefix.
@@ -35,18 +36,30 @@ package Support_Files is
    --  Name of the environment variable which, when defined, provides the name
    --  of the "gnatcov" command that the user ran.
 
+   Not_Found : constant String := "GNATCOV_NOT_FOUND";
+   --  Magic value propagated throughout the elaboration if we can't lookup
+   --  gnatcov on PATH. An error will be reported after elaboration completes.
+
    Gnatcov_Command_Name : String :=
      (if Value (Command_Name_Envvar, "") = ""
       then Command_Name
       else Value (Command_Name_Envvar));
 
-   Gnatcov_Dir : constant String := Containing_Directory
-     (GNAT.OS_Lib.Locate_Exec_On_Path (Command_Name).all);
-   --  Directory that contains the current program
+   Gnatcov_Exec : constant GNAT.OS_Lib.String_Access :=
+     GNAT.OS_Lib.Locate_Exec_On_Path (Command_Name);
+
+   Gnatcov_Dir : constant String :=
+     (if Gnatcov_Exec /= null
+      then Containing_Directory (Gnatcov_Exec.all)
+      else Not_Found);
+   --  Use a magic value when we can't locate gnatcov on path
 
    Gnatcov_Prefix : constant String :=
       (if Value (Prefix_Envvar, "") = ""
-       then Containing_Directory (Gnatcov_Dir)
+       then
+         (if Gnatcov_Dir /= Not_Found
+          then Containing_Directory (Gnatcov_Dir)
+          else Not_Found)
        else Value (Prefix_Envvar));
    --  Installation prefix for gnatcov
 
