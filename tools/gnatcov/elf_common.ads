@@ -18,16 +18,15 @@
 with Interfaces; use Interfaces;
 
 package Elf_Common is
-   subtype Elf_Half  is Unsigned_16;
+   subtype Elf_Half is Unsigned_16;
    subtype Elf_Sxword is Integer_64;
-   subtype Elf_Xword  is Unsigned_64;
+   subtype Elf_Xword is Unsigned_64;
    subtype Elf_Sword is Integer_32;
-   subtype Elf_Word  is Unsigned_32;
+   subtype Elf_Word is Unsigned_32;
    subtype Elf_Uchar is Unsigned_8;
 
    EI_NIDENT : constant Natural := 16;
-   type E_Ident_Type is array (Natural range 0 .. EI_NIDENT - 1)
-     of Elf_Uchar;
+   type E_Ident_Type is array (Natural range 0 .. EI_NIDENT - 1) of Elf_Uchar;
 
    --  e_type values.
    ET_NONE   : constant Elf_Half := 0;        --  No file type
@@ -274,19 +273,19 @@ package Elf_Common is
 
    --  For sparc
    R_SPARC_NONE    : constant Elf_Word := 0; -- none
-   R_SPARC_32 :      constant Elf_Word := 3; -- (S + A)
+   R_SPARC_32      : constant Elf_Word := 3; -- (S + A)
    R_SPARC_WDISP30 : constant Elf_Word := 7; -- (S + A - P) >> 2
    R_SPARC_WDISP22 : constant Elf_Word := 8; -- (S + A - P) >> 2
-   R_SPARC_HI22 :    constant Elf_Word := 9; -- (S + A) >> 10
-   R_SPARC_LO10 :    constant Elf_Word := 12; -- (S + A) & 0x3ff
-   R_SPARC_UA32 :    constant Elf_Word := 23; -- (S + A)
+   R_SPARC_HI22    : constant Elf_Word := 9; -- (S + A) >> 10
+   R_SPARC_LO10    : constant Elf_Word := 12; -- (S + A) & 0x3ff
+   R_SPARC_UA32    : constant Elf_Word := 23; -- (S + A)
 
    --  For PPC.
    R_PPC_NONE   : constant Elf_Word := 0;
    R_PPC_ADDR32 : constant Elf_Word := 1; -- S + A
 
    --  For LMP
-   R_LMP_32     : constant Elf_Word := 3;
+   R_LMP_32 : constant Elf_Word := 3;
 
    --  For AArch64
    R_AARCH64_ABS64 : constant Elf_Word := 257; -- word64 (S + A)

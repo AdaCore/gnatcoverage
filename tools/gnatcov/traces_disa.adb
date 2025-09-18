@@ -16,15 +16,15 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO;    use Ada.Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 
-with Interfaces;        use Interfaces;
+with Interfaces; use Interfaces;
 
 with Arch;
-with Disassemblers;     use Disassemblers;
+with Disassemblers; use Disassemblers;
 with Execs_Dbase;
-with Hex_Images;        use Hex_Images;
-with Highlighting;      use Highlighting;
+with Hex_Images;    use Hex_Images;
+with Highlighting;  use Highlighting;
 with Traces_Files;
 
 package body Traces_Disa is
@@ -59,11 +59,11 @@ package body Traces_Disa is
       Insn_Set : Insn_Set_Type;
       Sym      : Symbolizer'Class) return String
    is
-      Buffer : Buffer_Type (128);
+      Buffer   : Buffer_Type (128);
       Insn_Len : Natural;
    begin
-      Disa_For_Machine (Machine, Insn_Set).
-        Disassemble_Insn (Insn, Pc, Buffer, Insn_Len, Sym);
+      Disa_For_Machine (Machine, Insn_Set).Disassemble_Insn
+        (Insn, Pc, Buffer, Insn_Len, Sym);
 
       if Arch.Arch_Addr (Insn_Len) /= Length (Insn) then
          raise Constraint_Error;
@@ -83,13 +83,14 @@ package body Traces_Disa is
       Sym      : Symbolizer'Class)
    is
       Off : Pc_Type := Addr;
-      I : Pc_Type;
+      I   : Pc_Type;
    begin
       if Break_Long_Instructions_Trace.Is_Active then
          while
-            --  Make sure we process each byte of the given instruction.
-            Off <= Insn.Last
-            and then Off >= Addr --  And handle overflow
+           --  Make sure we process each byte of the given instruction.
+           Off
+           <= Insn.Last
+           and then Off >= Addr --  And handle overflow
          loop
             --  Each dump line must start with indentation, the memory address
             --  of the first byte we are dumping and the state char.
@@ -163,8 +164,9 @@ package body Traces_Disa is
    begin
       Pc := Insns.First;
       while Iterate_Over_Insns (I_Ranges, Cache, Insns.Last, Pc, Insn_Set) loop
-         Insn_Len := Disa_For_Machine (Machine, Insn_Set).
-           Get_Insn_Length (Slice (Insns, Pc, Insns.Last));
+         Insn_Len :=
+           Disa_For_Machine (Machine, Insn_Set).Get_Insn_Length
+             (Slice (Insns, Pc, Insns.Last));
 
          Cb.all
            (Pc,
@@ -187,11 +189,13 @@ package body Traces_Disa is
      (Insns    : Binary_Content;
       I_Ranges : Insn_Set_Ranges;
       Base     : Traces_Base;
-      Cb       : access procedure (Addr     : Pc_Type;
-                                   State    : Insn_State;
-                                   Insn     : Binary_Content;
-                                   Insn_Set : Insn_Set_Type;
-                                   Sym      : Symbolizer'Class);
+      Cb       :
+        access procedure
+          (Addr     : Pc_Type;
+           State    : Insn_State;
+           Insn     : Binary_Content;
+           Insn_Set : Insn_Set_Type;
+           Sym      : Symbolizer'Class);
       Sym      : Symbolizer'Class)
    is
       It        : Entry_Iterator;
@@ -248,16 +252,16 @@ package body Traces_Disa is
    --------------------------
 
    procedure Dump_Traces_With_Asm
-    (Exe : Exe_File_Type'Class; Trace_Filename : String)
+     (Exe : Exe_File_Type'Class; Trace_Filename : String)
    is
       use Traces_Files;
       Addr : Address_Info_Acc := null;
 
       function Load_Shared_Object
-         (Trace_File  : Trace_File_Type;
-          Filename    : String;
-          Signature   : Binary_File_Signature;
-          First, Last : Traces.Pc_Type) return Exe_File_Acc;
+        (Trace_File  : Trace_File_Type;
+         Filename    : String;
+         Signature   : Binary_File_Signature;
+         First, Last : Traces.Pc_Type) return Exe_File_Acc;
 
       procedure Disp_Entry
         (Trace_File : Trace_File_Type;
@@ -265,22 +269,23 @@ package body Traces_Disa is
          E          : Trace_Entry);
       --  Comment needed???
 
-      procedure Read_Trace_File is new Read_Trace_File_Gen
-        (Shared_Object_Type   => Exe_File_Acc,
-         No_Shared_Object     => Exe'Unrestricted_Access,
-         Process_Info_Entries => Check_Trace_File_From_Exec,
-         Load_Shared_Object   => Load_Shared_Object,
-         Process_Trace_Entry  => Disp_Entry);
+      procedure Read_Trace_File is new
+        Read_Trace_File_Gen
+          (Shared_Object_Type   => Exe_File_Acc,
+           No_Shared_Object     => Exe'Unrestricted_Access,
+           Process_Info_Entries => Check_Trace_File_From_Exec,
+           Load_Shared_Object   => Load_Shared_Object,
+           Process_Trace_Entry  => Disp_Entry);
 
       ------------------------
       -- Load_Shared_Object --
       ------------------------
 
       function Load_Shared_Object
-         (Trace_File  : Trace_File_Type;
-          Filename    : String;
-          Signature   : Binary_File_Signature;
-          First, Last : Traces.Pc_Type) return Exe_File_Acc
+        (Trace_File  : Trace_File_Type;
+         Filename    : String;
+         Signature   : Binary_File_Signature;
+         First, Last : Traces.Pc_Type) return Exe_File_Acc
       is
          pragma Unreferenced (Trace_File);
          pragma Unreferenced (First);
@@ -308,9 +313,7 @@ package body Traces_Disa is
          Buffer : Highlighting.Buffer_Type (128);
       begin
          Dump_Entry (E);
-         if Addr = null
-           or else E.First not in Addr.First .. Addr.Last
-         then
+         if Addr = null or else E.First not in Addr.First .. Addr.Last then
             Addr := Get_Symbol (SO, E.First);
          end if;
 
@@ -328,16 +331,19 @@ package body Traces_Disa is
             end loop;
 
             Load_Section_Content (SO, Sec);
-            For_Each_Insn (Slice (Sec.Section_Content, E.First, E.Last),
-                           Get_Insn_Set_Ranges (SO, Sec.Section_Sec_Idx).all,
-                           Covered, Textio_Disassemble_Cb'Access, SO);
+            For_Each_Insn
+              (Slice (Sec.Section_Content, E.First, E.Last),
+               Get_Insn_Set_Ranges (SO, Sec.Section_Sec_Idx).all,
+               Covered,
+               Textio_Disassemble_Cb'Access,
+               SO);
          end if;
       end Disp_Entry;
 
       File   : Trace_File_Type;
       Result : Read_Result;
 
-   --  Start of processing for Dump_Traces_With_Asm
+      --  Start of processing for Dump_Traces_With_Asm
 
    begin
       Read_Trace_File (Trace_Filename, File, Result);

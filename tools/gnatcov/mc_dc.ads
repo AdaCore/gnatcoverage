@@ -26,14 +26,14 @@ package MC_DC is
    --  Type Evaluation denotes one evaluation of a decision
 
    type Evaluation is record
-      Decision       : SCO_Id;
+      Decision : SCO_Id;
       --  The decision being evaluated
 
-      Values         : Condition_Evaluation_Vectors.Vector;
+      Values : Condition_Evaluation_Vectors.Vector;
       --  Values of the conditions (True or False if condition has been
       --  evaluated, Unknown if it is masked or not evaluated yet).
 
-      Outcome        : Tristate;
+      Outcome : Tristate;
       --  Outcome of the decision with the given set of conditions values,
       --  Unknown as long as the evaluation is not completed).
 
@@ -47,8 +47,8 @@ package MC_DC is
    --  Operator used to build an ordered set of evaluations
 
    function Is_MC_DC_Pair
-     (Eval_1, Eval_2 : Evaluation;
-      Unique_Cause   : Boolean) return Any_Condition_Index;
+     (Eval_1, Eval_2 : Evaluation; Unique_Cause : Boolean)
+      return Any_Condition_Index;
    --  For two evaluations Eval_1 and Eval_2 of a decision, determine whether
    --  the two evaluations demonstrate independent influence of a condition on
    --  the decision outcome, and if so, return the index of the condition (note
@@ -70,17 +70,19 @@ package MC_DC is
    function Image (EV : Condition_Evaluation_Vectors.Vector) return String;
    --  Image of EV, for reporting purposes
 
-   procedure Read is new Read_Vector
-     (Index_Type   => Condition_Index,
-      Element_Type => Tristate,
-      Vectors      => Condition_Evaluation_Vectors,
-      Read_Element => Read);
+   procedure Read is new
+     Read_Vector
+       (Index_Type   => Condition_Index,
+        Element_Type => Tristate,
+        Vectors      => Condition_Evaluation_Vectors,
+        Read_Element => Read);
 
-   procedure Write is new Write_Vector
-     (Index_Type    => Condition_Index,
-      Element_Type  => Tristate,
-      Vectors       => Condition_Evaluation_Vectors,
-      Write_Element => Write);
+   procedure Write is new
+     Write_Vector
+       (Index_Type    => Condition_Index,
+        Element_Type  => Tristate,
+        Vectors       => Condition_Evaluation_Vectors,
+        Write_Element => Write);
 
    procedure Read (CLS : in out Checkpoint_Load_State; Value : out Evaluation);
    --  Read an Evaluation from CLS

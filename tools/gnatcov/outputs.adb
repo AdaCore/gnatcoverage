@@ -75,14 +75,9 @@ package body Outputs is
    --  Create_Output_File --
    -------------------------
 
-   procedure Create_Output_File
-     (File      : out File_Type;
-      File_Name : String)
-   is
+   procedure Create_Output_File (File : out File_Type; File_Name : String) is
       Full_Path_Name : constant String :=
-        Get_Output_Dir
-        & Directory_Separator
-        & File_Name;
+        Get_Output_Dir & Directory_Separator & File_Name;
    begin
       Create (File, Out_File, Full_Path_Name);
    exception
@@ -107,9 +102,9 @@ package body Outputs is
       --  time is not supported: first collect all files to remove (iteration)
       --  and then remove them.
 
-      To_Delete  : String_Vectors.Vector;
-      Search     : Search_Type;
-      Dir_Entry  : Directory_Entry_Type;
+      To_Delete : String_Vectors.Vector;
+      Search    : Search_Type;
+      Dir_Entry : Directory_Entry_Type;
    begin
       --  Nothing to do if Dir does not exist or is not a directory
 
@@ -128,8 +123,7 @@ package body Outputs is
          Get_Next_Entry (Search, Dir_Entry);
          declare
             Name      : constant String := Simple_Name (Dir_Entry);
-            Full_Name : constant Unbounded_String :=
-              +(Dir / Name);
+            Full_Name : constant Unbounded_String := +(Dir / Name);
          begin
             if not Ignored_Files.Contains (Full_Name) then
                To_Delete.Append (Full_Name);
@@ -264,7 +258,8 @@ package body Outputs is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize (Dummy : in out Context_Handle) is
+   overriding
+   procedure Finalize (Dummy : in out Context_Handle) is
 
       --  Pop the Current_Context stack and push the pop'ed item to
       --  Freed_Context.
@@ -322,7 +317,8 @@ package body Outputs is
    -- Output_Dir_Defined --
    ------------------------
 
-   function Output_Dir_Defined return Boolean is (Report_Output_Dir /= null);
+   function Output_Dir_Defined return Boolean
+   is (Report_Output_Dir /= null);
 
    ---------------------
    --  Set_Output_Dir --
@@ -343,7 +339,9 @@ package body Outputs is
             when Exc : Name_Error | Use_Error =>
                Fatal_Error
                  ("cannot create output path "
-                  & Output_Dir & ": " & Exception_Message (Exc));
+                  & Output_Dir
+                  & ": "
+                  & Exception_Message (Exc));
          end;
       end if;
 
@@ -373,8 +371,9 @@ package body Outputs is
    end Warning_Or_Error;
 
 begin
-   Internal_Error_Trigger := String_To_Internal_Error
-     (Value ("GNATCOV_INTERNAL_ERROR_TRIGGER", "none"));
+   Internal_Error_Trigger :=
+     String_To_Internal_Error
+       (Value ("GNATCOV_INTERNAL_ERROR_TRIGGER", "none"));
    GNAT.Exception_Actions.Register_Global_Unhandled_Action
      (Print_Internal_Error'Access);
 end Outputs;

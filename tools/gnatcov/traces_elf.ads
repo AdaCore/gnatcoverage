@@ -49,16 +49,15 @@ package Traces_Elf is
    --  Executable file type.
    --  Extracted information are stored into such object.
 
-   overriding procedure Symbolize
-     (Sym      : Exe_File_Type;
-      Pc       : Traces.Pc_Type;
-      Buffer   : in out Highlighting.Buffer_Type);
+   overriding
+   procedure Symbolize
+     (Sym    : Exe_File_Type;
+      Pc     : Traces.Pc_Type;
+      Buffer : in out Highlighting.Buffer_Type);
    --  Makes symbolize non-abstract
 
    function Open_File
-     (Filename   : String;
-      Text_Start : Pc_Type)
-      return Exe_File_Acc;
+     (Filename : String; Text_Start : Pc_Type) return Exe_File_Acc;
    --  Open an ELF file.
    --  TEXT_START is the offset of .text section.
    --  Exception Elf_Files.Error is raised in case of error.
@@ -70,7 +69,8 @@ package Traces_Elf is
      (Exec    : in out Exe_File_Type;
       Sec_Idx : Section_Index;
       LS      : in out Loaded_Section;
-      Data    : in out Binary_Content) is abstract;
+      Data    : in out Binary_Content)
+   is abstract;
    --  Apply relocations from SEC_REL to DATA.
    --  This procedure should only be called to relocate dwarf debug sections,
    --  and therefore handles only a small subset of the relocations. DATA must
@@ -108,13 +108,11 @@ package Traces_Elf is
    --  Build sections map for the current ELF file
 
    procedure Load_Section_Content
-     (Exec : Exe_File_Type;
-      Sec  : Address_Info_Acc);
+     (Exec : Exe_File_Type; Sec : Address_Info_Acc);
    --  Load the content of a section
 
    procedure Load_Code_And_Traces
-     (Exec : Exe_File_Acc;
-      Base : access Traces_Base);
+     (Exec : Exe_File_Acc; Base : access Traces_Base);
    --  Load code for all symbols in Exec. If Base is not null, also load the
    --  traces into the routine database.
 
@@ -138,9 +136,7 @@ package Traces_Elf is
    --  Read dwarfs info to build lines list
 
    procedure Build_Source_Lines_For_Section
-     (Exec    : Exe_File_Acc;
-      Base    : Traces_Base_Acc;
-      Section : Binary_Content);
+     (Exec : Exe_File_Acc; Base : Traces_Base_Acc; Section : Binary_Content);
    --  Build source lines for a specific section of Exec
    --  If Base is not null, line state is initialized with object coverage
    --  status for each line.
@@ -180,8 +176,7 @@ package Traces_Elf is
       It   : out Addresses_Iterator);
 
    procedure Next_Iterator
-     (It   : in out Addresses_Iterator;
-      Addr : out Address_Info_Acc);
+     (It : in out Addresses_Iterator; Addr : out Address_Info_Acc);
 
    function "<" (L, R : Address_Info_Acc) return Boolean;
    --  Compare L and R by start address order in designated Address_Info
@@ -212,13 +207,13 @@ package Traces_Elf is
    --  The order "<" defines ensures that the first Address_Info of a tree will
    --  be the root when iterating over an Ordered Set.
 
-   package Address_Info_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Address_Info_Acc);
+   package Address_Info_Sets is new
+     Ada.Containers.Ordered_Sets (Element_Type => Address_Info_Acc);
 
    type DIE_CU_Id is new Natural;
    No_DIE_CU_Id : constant DIE_CU_Id := 0;
    subtype Valid_DIE_CU_Id is
-      DIE_CU_Id range No_DIE_CU_Id + 1 ..  DIE_CU_Id'Last;
+     DIE_CU_Id range No_DIE_CU_Id + 1 .. DIE_CU_Id'Last;
 
    type Address_Info (Kind : Address_Info_Kind) is record
       --  Range of the info
@@ -253,8 +248,8 @@ package Traces_Elf is
             Section_LS      : Loaded_Section;
 
          when Subprogram_Addresses =>
-            Subprogram_Name   : String_Access;
-            Subprogram_CU     : CU_Id;
+            Subprogram_Name : String_Access;
+            Subprogram_CU   : CU_Id;
             --  Compilation Unit (in the LI file sense) for SCOs
 
             Subprogram_DIE_CU : DIE_CU_Id;
@@ -262,7 +257,7 @@ package Traces_Elf is
             --  Associate one to each subprogram whenever possible since
             --  CU DIEs may not be a single memory block.
 
-            Lines             : aliased Address_Info_Sets.Set;
+            Lines : aliased Address_Info_Sets.Set;
             --  Line_Addresses info for this subprogram
 
          when Inlined_Subprogram_Addresses =>
@@ -274,7 +269,7 @@ package Traces_Elf is
 
          when Line_Addresses =>
             Sloc : Source_Location := No_Location;
-            Disc : Unsigned_32     := 0;
+            Disc : Unsigned_32 := 0;
 
             Is_Non_Empty : Boolean := False;
             --  Set True for the (only one) of a set of slocs associated with a
@@ -287,30 +282,26 @@ package Traces_Elf is
    --  Deallocate Info and all the resources it owns (string accesses, etc.)
 
    function Empty_Range (Info : Address_Info) return Boolean
-     is (Traces.Empty_Range (Info.First, Info.Last));
+   is (Traces.Empty_Range (Info.First, Info.Last));
    --  True if Info has an empty PC range
 
    function Find_Address_Info
-     (Set  : Address_Info_Sets.Set;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return Address_Info_Sets.Cursor;
+     (Set : Address_Info_Sets.Set; Kind : Address_Info_Kind; PC : Pc_Type)
+      return Address_Info_Sets.Cursor;
    pragma Inline (Find_Address_Info);
    --  Find cursor for address set entry containing PC
 
    function Find_Address_Info
-     (Exec : Exe_File_Type;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return Address_Info_Sets.Cursor;
+     (Exec : Exe_File_Type; Kind : Address_Info_Kind; PC : Pc_Type)
+      return Address_Info_Sets.Cursor;
    --  Likewise, seeking the right address set depending on Kind
 
    function Get_Address_Info
-     (Exec : Exe_File_Type;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return Address_Info_Acc;
+     (Exec : Exe_File_Type; Kind : Address_Info_Kind; PC : Pc_Type)
+      return Address_Info_Acc;
    function Get_Address_Info
-     (Set  : Address_Info_Sets.Set;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return Address_Info_Acc;
+     (Set : Address_Info_Sets.Set; Kind : Address_Info_Kind; PC : Pc_Type)
+      return Address_Info_Acc;
    --  Retrieve the innermost descriptor of the given Kind whose range contains
    --  address PC in Exec/Set.
 
@@ -349,8 +340,7 @@ package Traces_Elf is
    --  Raises Constraint_Error if the insertion is not successful.
 
    function Get_Symbol
-     (Exec : Exe_File_Type;
-      PC   : Pc_Type) return Address_Info_Acc;
+     (Exec : Exe_File_Type; PC : Pc_Type) return Address_Info_Acc;
    --  Short-hand for Get_Address_Info (Exec, Symbol_Address, PC)
 
    function Get_Slocs
@@ -361,15 +351,12 @@ package Traces_Elf is
    --  instruction at PC.
 
    function Get_Sloc
-     (Set : Address_Info_Sets.Set;
-      PC  : Pc_Type) return Source_Location;
+     (Set : Address_Info_Sets.Set; PC : Pc_Type) return Source_Location;
    --  Same as Get_Slocs, but returning a unique source location, with a
    --  non-empty range.
 
    function Get_Call_Target
-     (Exec     : Exe_File_Type;
-      PC       : Pc_Type;
-      Call_Len : Pc_Type) return Pc_Type;
+     (Exec : Exe_File_Type; PC : Pc_Type; Call_Len : Pc_Type) return Pc_Type;
    --  Return the target address of a call instruction from the debug
    --  information, or No_PC if there is no such information. PC must be the
    --  address of the first byte of the call instruction, and Call_Len its
@@ -396,9 +383,7 @@ package Traces_Elf is
    --  with a null SYM_CB is useful.
 
    procedure Read_Routine_Names
-     (Filename  : String;
-      Exclude   : Boolean;
-      Strict    : Boolean);
+     (Filename : String; Exclude : Boolean; Strict : Boolean);
    procedure Read_Routine_Names
      (File    : in out Exe_File_Type'Class;
       Exclude : Boolean;
@@ -409,9 +394,10 @@ package Traces_Elf is
 
    procedure Routine_Names_From_Lines
      (Exec     : Exe_File_Acc;
-      Selected : not null access
-                   function (Sloc_Begin : Source_Location;
-                             Sloc_End   : Source_Location) return Boolean);
+      Selected :
+        not null access function
+          (Sloc_Begin : Source_Location; Sloc_End : Source_Location)
+           return Boolean);
    --  Add routines read from an ELF image to the routines database. A
    --  routine is added iff at least one source line in the routine is
    --  selected by the filter (i.e. if Selected returns True for this line).
@@ -434,12 +420,12 @@ package Traces_Elf is
    --  Disassemble file with labels (for debugging purposes)
 
    function Get_Insn_Set_Ranges
-     (File    : Exe_File_Type;
-      Section : Section_Index) return Insn_Set_Ranges_Cst_Acc;
+     (File : Exe_File_Type; Section : Section_Index)
+      return Insn_Set_Ranges_Cst_Acc;
    --  Return an Insn_Set_Ranges that describes Section
 
    function Has_Precise_Symbol_Size (File : Exe_File_Type) return Boolean
-     with Inline => True;
+   with Inline => True;
    --  Return whether File contains precise sizes for symbols.  This is true
    --  for ELF binaries but false for PE-COFF ones.
    --
@@ -454,9 +440,8 @@ package Traces_Elf is
    --  computations.
 
    function Find_Padding_First
-     (Exec    : Exe_File_Acc;
-      Section : Section_Index;
-      Insns   : Binary_Content) return Pc_Type;
+     (Exec : Exe_File_Acc; Section : Section_Index; Insns : Binary_Content)
+      return Pc_Type;
    --  Find the address of the first padding instruction in Insns. Padding
    --  instructions are consecutive effect-less instruction at the end of
    --  the routine.  If there is no padding instruction in Insn, return
@@ -472,8 +457,7 @@ package Traces_Elf is
    --  Padding_Found to whether we found padding instructions.
 
    function Platform_Independent_Symbol
-     (Name : String;
-      File : Exe_File_Type) return String;
+     (Name : String; File : Exe_File_Type) return String;
    --  Return a platform-independant symbol name for Name. This is used to hide
    --  differences between symbol names from 32-bit PE on Windows (all prefixed
    --  with an underscore) and symbol names on other platforms. Also removes
@@ -489,19 +473,20 @@ private
       Pc_High               : Pc_Type;
    end record;
 
-   package Compile_Unit_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Valid_DIE_CU_Id,
-      Element_Type => Compile_Unit_Desc);
+   package Compile_Unit_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Valid_DIE_CU_Id,
+        Element_Type => Compile_Unit_Desc);
 
    type Inlined_Subprogram_Raw is record
-      First, Last        : Traces.Pc_Type;
+      First, Last : Traces.Pc_Type;
       --  Range of addresses of the inlined subprogram
 
-      Stmt_List_Offset   : Unsigned_32;
+      Stmt_List_Offset : Unsigned_32;
       --  Offset into the .debug_line section for the corresponding compile
       --  unit.
 
-      Section            : Address_Info_Acc;
+      Section : Address_Info_Acc;
       --  "Parent" section of the corresponding Inlined_Subprogram_Addresses
 
       File, Line, Column : Natural;
@@ -514,25 +499,27 @@ private
    --  it is later (in Read_Debug_Lines) refined in order to produce an
    --  Adddress_Info (Inlined_Subprogram_Addresses) record.
 
-   package Inlined_Subprogram_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Inlined_Subprogram_Raw);
+   package Inlined_Subprogram_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Natural,
+        Element_Type => Inlined_Subprogram_Raw);
 
-   package Call_Site_To_Target_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Pc_Type,
-      Element_Type => Pc_Type);
+   package Call_Site_To_Target_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Pc_Type,
+        Element_Type => Pc_Type);
 
-   package Symbol_To_PC_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Symbol,
-      Element_Type => Pc_Type);
+   package Symbol_To_PC_Maps is new
+     Ada.Containers.Ordered_Maps (Key_Type => Symbol, Element_Type => Pc_Type);
 
-   package Insn_Set_Ranges_Per_Section is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Section_Index,
-      Element_Type => Insn_Set_Ranges_Acc);
+   package Insn_Set_Ranges_Per_Section is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Section_Index,
+        Element_Type => Insn_Set_Ranges_Acc);
 
    type Desc_Sets_Type is
      array (Address_Info_Kind
-            range Compilation_Unit_Addresses .. Symbol_Addresses)
+              range Compilation_Unit_Addresses .. Symbol_Addresses)
      of aliased Address_Info_Sets.Set;
    --  Note: line addresses are stored within the enclosing Symbol entry
 
@@ -541,58 +528,58 @@ private
    type File_Kind is (File_Executable, File_Object, File_Others);
 
    type Exe_File_Type is abstract limited new Symbolizer with record
-      File                : Binary_File_Acc;
-      Kind                : File_Kind;
+      File : Binary_File_Acc;
+      Kind : File_Kind;
 
-      Exe_Text_Start      : Elf_Addr;
-      Exe_Machine         : Elf_Half;
-      Is_Big_Endian       : Boolean;
+      Exe_Text_Start : Elf_Addr;
+      Exe_Machine    : Elf_Half;
+      Is_Big_Endian  : Boolean;
 
-      Sec_Debug_Abbrev    : Section_Index := No_Section;
-      Sec_Debug_Info      : Section_Index := No_Section;
-      Sec_Debug_Line      : Section_Index := No_Section;
-      Sec_Debug_Line_Str  : Section_Index := No_Section;  -- DWARF 5
-      Sec_Debug_Str       : Section_Index := No_Section;
+      Sec_Debug_Abbrev   : Section_Index := No_Section;
+      Sec_Debug_Info     : Section_Index := No_Section;
+      Sec_Debug_Line     : Section_Index := No_Section;
+      Sec_Debug_Line_Str : Section_Index := No_Section;  -- DWARF 5
+      Sec_Debug_Str      : Section_Index := No_Section;
 
-      Addr_Size           : Natural := 0;
+      Addr_Size : Natural := 0;
       --  Size of an address as encoded in the header of .debug_line
 
       --  .debug_str contents
 
-      Debug_Str_Base      : Address := Null_Address;
-      Debug_Str_Len       : Elf_Addr;
-      Debug_Str           : Binary_Content := Invalid_Binary_Content;
-      Debug_Str_Section   : Loaded_Section := No_Loaded_Section;
+      Debug_Str_Base    : Address := Null_Address;
+      Debug_Str_Len     : Elf_Addr;
+      Debug_Str         : Binary_Content := Invalid_Binary_Content;
+      Debug_Str_Section : Loaded_Section := No_Loaded_Section;
 
       --  .debug_line contents
 
-      Lines_Len           : Elf_Addr := 0;
-      Lines               : Binary_Content := Invalid_Binary_Content;
-      Lines_Section       : Loaded_Section := No_Loaded_Section;
+      Lines_Len     : Elf_Addr := 0;
+      Lines         : Binary_Content := Invalid_Binary_Content;
+      Lines_Section : Loaded_Section := No_Loaded_Section;
 
       --  .debug_line_str contents (DWARF 5)
 
-      Line_Str_Base       : Address := Null_Address;
-      Line_Str_Len        : Elf_Addr := 0;
-      Line_Str            : Binary_Content := Invalid_Binary_Content;
-      Line_Str_Section    : Loaded_Section := No_Loaded_Section;
+      Line_Str_Base    : Address := Null_Address;
+      Line_Str_Len     : Elf_Addr := 0;
+      Line_Str         : Binary_Content := Invalid_Binary_Content;
+      Line_Str_Section : Loaded_Section := No_Loaded_Section;
 
       --  Symbol table
 
-      Symtab              : Binary_Content := Invalid_Binary_Content;
-      Symtab_Section      : Loaded_Section := No_Loaded_Section;
-      Nbr_Symbols         : Natural := 0;
-      Symbol_To_PC        : Symbol_To_PC_Maps.Map;
+      Symtab         : Binary_Content := Invalid_Binary_Content;
+      Symtab_Section : Loaded_Section := No_Loaded_Section;
+      Nbr_Symbols    : Natural := 0;
+      Symbol_To_PC   : Symbol_To_PC_Maps.Map;
 
-      Compile_Units       : Compile_Unit_Vectors.Vector;
+      Compile_Units : Compile_Unit_Vectors.Vector;
       --  Compilation units
 
       Call_Site_To_Target : Call_Site_To_Target_Maps.Map;
 
-      Desc_Sets           : Desc_Sets_Type;
+      Desc_Sets : Desc_Sets_Type;
       --  Address descriptor sets
 
-      Insn_Set_Ranges     : Insn_Set_Ranges_Per_Section.Map;
+      Insn_Set_Ranges : Insn_Set_Ranges_Per_Section.Map;
       --  For each section, a set of associations: address range -> instruction
       --  set; see Elf_Disassemblers.
 
@@ -612,15 +599,14 @@ private
    --  the file.
 
    function Get_Signature (Exec : Exe_File_Type) return Binary_File_Signature
-   is
-      (Get_Signature (Exec.File.all));
+   is (Get_Signature (Exec.File.all));
 
-   type Elf_Exe_File_Type is limited new Exe_File_Type  with record
+   type Elf_Exe_File_Type is limited new Exe_File_Type with record
       Elf_File : aliased Elf_Files.Elf_File;
 
       --  Sections index
 
-      Sec_Symtab          : Elf_Half := SHN_UNDEF;
+      Sec_Symtab : Elf_Half := SHN_UNDEF;
    end record;
 
    procedure Close_Exe_File (Exec : in out Elf_Exe_File_Type);
@@ -636,7 +622,7 @@ private
       Sym_Cb : access procedure (Sym : Address_Info_Acc);
       Strict : Boolean);
 
-   type PE_Exe_File_Type is limited new Exe_File_Type  with record
+   type PE_Exe_File_Type is limited new Exe_File_Type with record
       PE_File : aliased PECoff_Files.PE_File;
    end record;
 

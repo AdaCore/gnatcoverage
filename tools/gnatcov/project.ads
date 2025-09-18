@@ -40,7 +40,7 @@ package Project is
    Externally_Built_Projects_Processing_Enabled : Boolean := False;
    --  Whether to include projects marked as externally built to processings
 
-   Warn_About_Missing_Info :  Boolean := True;
+   Warn_About_Missing_Info : Boolean := True;
    --  Whether to warn about missing coverage information for units of
    --  interest. Set to False when generating a report without traces or
    --  checkpoints specified.
@@ -61,16 +61,16 @@ package Project is
    -------------------------------
 
    procedure Enable_Externally_Built_Projects_Processing
-      with Pre => not Is_Project_Loaded;
+   with Pre => not Is_Project_Loaded;
    --  Request that the projects marked as externally built are included in
    --  processings (they are excluded by default).
 
    procedure Set_Subdirs (Subdir : String)
-      with Pre => not Is_Project_Loaded;
+   with Pre => not Is_Project_Loaded;
    --  Set the object subdir for all loaded projects
 
    procedure Add_Project (Prj_Name : String)
-     with Pre => not Units_Of_Interest_Computed;
+   with Pre => not Units_Of_Interest_Computed;
    --  Add Prj_Name to the list of projects for which coverage analysis is
    --  desired.
    --
@@ -80,12 +80,12 @@ package Project is
    --  later emit an error.
 
    procedure Set_Build_Tree_Dir_To_Current
-     with Pre => not Is_Project_Loaded;
+   with Pre => not Is_Project_Loaded;
    --  Set the root build directory to current directory, for out of tree
    --  builds.
 
    procedure Set_Root_Dir (Dir : String)
-     with Pre => not Is_Project_Loaded;
+   with Pre => not Is_Project_Loaded;
    --  Set the directory to consider as topmost directory when relocating
    --  the build tree.
 
@@ -94,8 +94,7 @@ package Project is
       Target, Runtime, CGPR_File : GNAT.Strings.String_Access;
       DB_Dir                     : String;
       From_Driver                : Boolean := False)
-      with Pre  => not Is_Project_Loaded,
-           Post => Is_Project_Loaded;
+   with Pre => not Is_Project_Loaded, Post => Is_Project_Loaded;
    --  Load the project tree rooted at Prj_Name (with optional
    --  Project_File_Extension). Target is the target prefix, or NULL in the
    --  native case. Runtime is the Ada runtime to use, or NULL in the default
@@ -121,11 +120,11 @@ package Project is
    ----------------------------
 
    function Root_Project_Filename return String
-      with Pre => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
    --  Return the file name for the loaded root project
 
    function Get_Single_Main_Executable return String
-      with Pre => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
    --  If there is only one main source in the loaded project, return the full
    --  path of its main executable (including its suffix, for instance ".exe").
    --  Otherwise, return an empty string.
@@ -150,18 +149,19 @@ package Project is
    procedure Enumerate_SCOs_Files
      (Callback : access procedure (Lib_Name : String);
       Kind     : Traces_Files.GNATcov_Trace_File_Kind)
-      with Pre  => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
    --  Invoke Callback once for every SCOs file (SID / ALI depending on the
    --  trace mode) corresponding to a unit of interest. This emits a warning
    --  for all units of interest that have no SCOs file.
 
    procedure Enumerate_Sources
-     (Callback      : access procedure
-        (Project : GPR2.Project.View.Object;
-         File    : GPR2.Build.Source.Object);
-      Language      : Any_Language;
-      Only_UOIs     : Boolean := False)
-     with Pre => Is_Project_Loaded;
+     (Callback  :
+        access procedure
+          (Project : GPR2.Project.View.Object;
+           File    : GPR2.Build.Source.Object);
+      Language  : Any_Language;
+      Only_UOIs : Boolean := False)
+   with Pre => Is_Project_Loaded;
    --  Call Callback once for every source file of the given language
    --  mentionned in a previous Add_Project call. If Only_UOIs is set to True,
    --  only call Callback on sources that are units of interest. Override_Units
@@ -170,7 +170,7 @@ package Project is
    function Enumerate_Mains
      (Language : Any_Language)
       return GPR2.Build.Compilation_Unit.Unit_Location_Vector
-      with Pre => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
    --  Return the list of all main source files found in the project tree for
    --  the given Language, or for all languages if Language is All_Languages.
    --
@@ -186,37 +186,37 @@ package Project is
    --  If no project is loaded, just return null.
 
    function Switches (Op : String) return String_Vectors.Vector
-      with Pre => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
    --  Return a list of gnatcov switches defined by the root project
 
    function Output_Dir return String
-      with Pre => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
    --  Return the output directory of the root project
 
    function Project_Name (Full_Name : String) return String
-      with Pre => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
    --  Return the name of the project containing the given source file. Return
    --  the empty string if Source_Name cannot be associated with a project
    --  name. This can happen for sources that belong eg. to the runtime.
 
    function Language (Full_Name : String) return Any_Language
-      with Pre => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
    --  Return the language for the given source file, or All_Languages if the
    --  file is unknown.
 
    function Target return String
-      with Pre => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
    --  Return the target in the root project, if any, and the empty string
    --  otherwise.
 
    function Runtime return String
-      with Pre => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
    --  Return the runtime in the root project, if any, and the empty string
    --  otherwise. This concerns only the runtime for Ada.
 
    procedure Enumerate_Ignored_Source_Files
      (Process : access procedure (Source_File : String))
-      with Pre => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
    --  Call Process on each name in the Coverage'Ignored_Source_File attribute
 
    function Runtime_Dirs return String_Vectors.Vector;
@@ -227,17 +227,17 @@ package Project is
    ----------------------------------------
 
    function Project return GPR2.Project.Tree.Object
-      with Pre => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
 
    procedure Iterate_Projects
      (Root_Project             : GPR2.Project.View.Object;
-      Process                  : access procedure
-                                   (Prj : GPR2.Project.View.Object);
+      Process                  :
+        access procedure (Prj : GPR2.Project.View.Object);
       Recursive                : Boolean;
       Include_Extended         : Boolean := False;
       Include_Externally_Built : Boolean :=
         Externally_Built_Projects_Processing_Enabled)
-      with Pre => Is_Project_Loaded;
+   with Pre => Is_Project_Loaded;
    --  Call Process on Root_Project if Recursive is False, or on the whole
    --  project tree otherwise.
    --
@@ -251,8 +251,7 @@ package Project is
       Project : GPR2.Project.View.Object) return String;
    --  Return the filename suffix corresponding for Part files and Lang
 
-   function Lookup_Source
-     (Full_Name : String) return GPR2.Build.Source.Object;
+   function Lookup_Source (Full_Name : String) return GPR2.Build.Source.Object;
    --  Look for a source file by full name in the loaded project tree
 
    -------------------
@@ -274,8 +273,11 @@ package Project is
    --
    --  ??? Remove once eng/gpr/gpr-issues#501 is implemented.
 
-   package Source_Vectors is new Ada.Containers.Vectors
-     (Positive, GPR2.Build.Source.Object, "=" => GPR2.Build.Source."=");
+   package Source_Vectors is new
+     Ada.Containers.Vectors
+       (Positive,
+        GPR2.Build.Source.Object,
+        "=" => GPR2.Build.Source."=");
 
    function Source_Closure
      (View                  : GPR2.Project.View.Object;

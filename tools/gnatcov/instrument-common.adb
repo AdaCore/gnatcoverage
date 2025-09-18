@@ -30,8 +30,8 @@ with SCOs;
 package body Instrument.Common is
 
    function Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Part;
-      Buffer_Name       : String) return String;
+     (Instrumented_Unit : Compilation_Unit_Part; Buffer_Name : String)
+      return String;
    --  Helper for Statement_Buffer_Symbol and Decision_Buffer_Symbol. Return
    --  the name of the symbol for the entity that contains the address of a
    --  coverage buffer for Instrumented_Unit.
@@ -45,8 +45,8 @@ package body Instrument.Common is
    -------------------
 
    function Buffer_Symbol
-     (Instrumented_Unit : Compilation_Unit_Part;
-      Buffer_Name       : String) return String
+     (Instrumented_Unit : Compilation_Unit_Part; Buffer_Name : String)
+      return String
    is
       Slug : constant String := Instrumented_Unit_Slug (Instrumented_Unit);
    begin
@@ -84,8 +84,9 @@ package body Instrument.Common is
    end MCDC_Buffer_Symbol;
 
    Dump_Pattern  : constant Pattern_Matcher :=
-      Compile (Dump_Procedure_Symbol
-        ((File_Based_Language, Null_Unbounded_String), Manual => True));
+     Compile
+       (Dump_Procedure_Symbol
+          ((File_Based_Language, Null_Unbounded_String), Manual => True));
    Reset_Pattern : constant Pattern_Matcher :=
      Compile (Reset_Procedure_Symbol (Ada_Identifier_Vectors.Empty_Vector));
    --  Precomputed patterns to be used as helpers for
@@ -96,11 +97,10 @@ package body Instrument.Common is
    -------------------------------------------
 
    function Is_Manual_Indication_Procedure_Symbol
-     (Symbol : String) return Boolean
-   is
+     (Symbol : String) return Boolean is
    begin
-      return Match (Dump_Pattern, Symbol)
-            or else Match (Reset_Pattern, Symbol);
+      return
+        Match (Dump_Pattern, Symbol) or else Match (Reset_Pattern, Symbol);
    end Is_Manual_Indication_Procedure_Symbol;
 
    -----------------------
@@ -110,9 +110,9 @@ package body Instrument.Common is
    function Unit_Buffers_Name (Unit : Compilation_Unit) return String is
       Slug : constant String :=
         (case Unit.Language is
-            when Unit_Based_Language =>
-              Qualified_Name_Slug (To_Qualified_Name (+Unit.Unit_Name)),
-            when File_Based_Language => Filename_Slug (+Unit.Unit_Name));
+           when Unit_Based_Language =>
+             Qualified_Name_Slug (To_Qualified_Name (+Unit.Unit_Name)),
+           when File_Based_Language => Filename_Slug (+Unit.Unit_Name));
    begin
       return To_Symbol_Name (Sys_Buffers) & "_" & Slug & "_buffers";
    end Unit_Buffers_Name;
@@ -133,10 +133,10 @@ package body Instrument.Common is
          Prj_Name : constant String :=
            Ada.Characters.Handling.To_Lower (String (Project.Name));
       begin
-         return String
-           (Obj_Dir
-            .Compose (GPR2.Simple_Name (Prj_Name & "-gnatcov-instr"))
-            .Value);
+         return
+           String
+             (Obj_Dir.Compose (GPR2.Simple_Name (Prj_Name & "-gnatcov-instr"))
+                .Value);
       end;
    end Project_Output_Dir;
 
@@ -145,8 +145,8 @@ package body Instrument.Common is
    ------------------------
 
    function Format_Fingerprint
-     (Fingerprint      : SC_Obligations.Fingerprint_Type;
-      Opening, Closing : String) return String
+     (Fingerprint : SC_Obligations.Fingerprint_Type; Opening, Closing : String)
+      return String
    is
       Result : Unbounded_String;
       First  : Boolean := True;
@@ -212,10 +212,10 @@ package body Instrument.Common is
          --  the decision.
 
          if (Coverage.MCDC_Coverage_Enabled
-               or else Coverage.Assertion_Condition_Coverage_Enabled)
-            and then State_Variable /= ""
-            and then Path_Count > 0
-            and then Path_Count < Get_Path_Count_Limit
+             or else Coverage.Assertion_Condition_Coverage_Enabled)
+           and then State_Variable /= ""
+           and then Path_Count > 0
+           and then Path_Count < Get_Path_Count_Limit
          then
             Result.Path_Bits_Base := Unit_Bits.Last_Path_Bit + 1;
             Unit_Bits.Last_Path_Bit :=
@@ -232,7 +232,9 @@ package body Instrument.Common is
             Diagnostics.Report
               (Decision_Sloc,
                "Number of distinct paths in the decision exceeds the limit"
-               & " (" & Img (SC_Obligations.Get_Path_Count_Limit) & ")."
+               & " ("
+               & Img (SC_Obligations.Get_Path_Count_Limit)
+               & ")."
                & " MC/DC coverage for this decision will be left undetermined"
                & " in coverage reports. Use option --path-count-limit to"
                & " adjust the limit if the default value is too low.",
@@ -283,14 +285,23 @@ package body Instrument.Common is
             Remapped_SCO : constant SCO_Id := SCO_Map (Nat (LL_SCO));
          begin
             case Kind (Remapped_SCO) is
-               when Statement => Set_Stmt_SCO_Non_Instr (Remapped_SCO);
-               when Decision  => Set_Decision_SCO_Non_Instr (Remapped_SCO);
-               when Condition => Set_Decision_SCO_Non_Instr_For_MCDC
+               when Statement         =>
+                  Set_Stmt_SCO_Non_Instr (Remapped_SCO);
+
+               when Decision          =>
+                  Set_Decision_SCO_Non_Instr (Remapped_SCO);
+
+               when Condition         =>
+                  Set_Decision_SCO_Non_Instr_For_MCDC
                     (Enclosing_Decision (Remapped_SCO));
+
                when Fun_Call_SCO_Kind =>
                   Set_Fun_Call_SCO_Non_Instr (Remapped_SCO);
-               when Guarded_Expr => Set_GExpr_SCO_Non_Instr (Remapped_SCO);
-               when others =>
+
+               when Guarded_Expr      =>
+                  Set_GExpr_SCO_Non_Instr (Remapped_SCO);
+
+               when others            =>
                   null;
             end case;
          end;
@@ -329,9 +340,8 @@ package body Instrument.Common is
       --  which can happen with #included files for instance).
 
       if SCOs.SCO_Unit_Table.Last = 0
-         or else
-           SCOs.SCO_Unit_Table.Table (SCOs.SCO_Unit_Table.Last).File_Index /=
-              SFI
+        or else SCOs.SCO_Unit_Table.Table (SCOs.SCO_Unit_Table.Last).File_Index
+                /= SFI
       then
          Append_Unit (SFI);
       end if;
@@ -340,7 +350,7 @@ package body Instrument.Common is
 
       SCOs.SCO_Table.Append
         ((From               =>
-              (Logical_Line_Number (From.Line), Column_Number (From.Column)),
+            (Logical_Line_Number (From.Line), Column_Number (From.Column)),
           To                 =>
             (Logical_Line_Number (To.Line), Column_Number (To.Column)),
           C1                 => C1,
@@ -360,8 +370,7 @@ package body Instrument.Common is
    ------------------
 
    procedure Remap_Blocks
-     (Blocks  : in out SCO_Id_Vector_Vector;
-      SCO_Map : LL_HL_SCO_Map)
+     (Blocks : in out SCO_Id_Vector_Vector; SCO_Map : LL_HL_SCO_Map)
    is
       Result : SCO_Id_Vector_Vector;
    begin
@@ -382,11 +391,8 @@ package body Instrument.Common is
    -- New_File --
    --------------
 
-   function New_File
-     (Prj : Prj_Desc; Name : String) return String
-   is
-      Base_Filename   : constant String :=
-        Ada.Directories.Simple_Name (Name);
+   function New_File (Prj : Prj_Desc; Name : String) return String is
+      Base_Filename   : constant String := Ada.Directories.Simple_Name (Name);
       Output_Filename : constant String := (+Prj.Output_Dir) / Base_Filename;
    begin
       return Output_Filename;
@@ -397,9 +403,7 @@ package body Instrument.Common is
    -----------------
 
    procedure Create_File
-     (Prj  : Prj_Desc;
-      File : in out Text_Files.File_Type;
-      Name : String)
+     (Prj : Prj_Desc; File : in out Text_Files.File_Type; Name : String)
    is
       Filename : constant String := New_File (Prj, Name);
    begin
@@ -446,8 +450,10 @@ package body Instrument.Common is
                   case NS.Casing is
                      when Lowercase =>
                         Append (Filename, To_Lower (To_String (Id)));
+
                      when Uppercase =>
                         Append (Filename, To_Upper (To_String (Id)));
+
                      when Mixedcase =>
                         Append (Filename, To_String (Id));
                   end case;
@@ -456,7 +462,8 @@ package body Instrument.Common is
                case CU_Name.Part is
                   when GPR2.S_Body | GPR2.S_Separate =>
                      Append (Filename, NS.Body_Suffix (Language));
-                  when GPR2.S_Spec =>
+
+                  when GPR2.S_Spec                   =>
                      Append (Filename, NS.Spec_Suffix (Language));
                end case;
                return +Filename;
@@ -475,7 +482,8 @@ package body Instrument.Common is
      (Args          : in out String_Vectors.Vector;
       Options       : Analysis_Options;
       Pass_Builtins : Boolean := True;
-      Preprocessed  : Boolean := False) is
+      Preprocessed  : Boolean := False)
+   is
 
       procedure Add_Macro_Switches (Macros : Macro_Set);
       --  Add the given macro switches to Args
@@ -542,9 +550,7 @@ package body Instrument.Common is
    ----------------------------
 
    procedure Parse_Macro_Definition
-     (Str        : String;
-      Parsed_Def : out Macro_Definition;
-      Success    : out Boolean)
+     (Str : String; Parsed_Def : out Macro_Definition; Success : out Boolean)
    is
       Matches : Match_Array (0 .. 3);
    begin
@@ -566,9 +572,7 @@ package body Instrument.Common is
    ------------------------------------
 
    procedure Parse_Cmdline_Macro_Definition
-     (Str        : String;
-      Parsed_Def : out Macro_Definition;
-      Success    : out Boolean)
+     (Str : String; Parsed_Def : out Macro_Definition; Success : out Boolean)
    is
       Matches : Match_Array (0 .. 4);
    begin
@@ -613,9 +617,8 @@ package body Instrument.Common is
       Last : constant Integer := Args.Last_Index;
 
       function Read_With_Argument
-        (Arg         : String;
-         Option_Name : Character;
-         Value       : out Unbounded_String) return Boolean;
+        (Arg : String; Option_Name : Character; Value : out Unbounded_String)
+         return Boolean;
       --  Assuming that Arg starts with "-X" where X is Option_Name, try to
       --  fetch the value for this option. If we managed to get one, return
       --  True and set Value to it. Return False otherwise.
@@ -625,9 +628,8 @@ package body Instrument.Common is
       ------------------------
 
       function Read_With_Argument
-        (Arg         : String;
-         Option_Name : Character;
-         Value       : out Unbounded_String) return Boolean
+        (Arg : String; Option_Name : Character; Value : out Unbounded_String)
+         return Boolean
       is
          Prefix : constant String := "-" & Option_Name;
       begin
@@ -652,7 +654,7 @@ package body Instrument.Common is
          return False;
       end Read_With_Argument;
 
-   --  Start of processing for Import_From_Args
+      --  Start of processing for Import_From_Args
 
    begin
       Self.Raw_Switches.Append_Vector (Args);
@@ -687,15 +689,16 @@ package body Instrument.Common is
                   if Success then
                      Self.PP_Macros.Include (Macro_Def);
                   else
-                     Warn ("Failed to parse command-line macro definition: "
-                           & (+Value));
+                     Warn
+                       ("Failed to parse command-line macro definition: "
+                        & (+Value));
                   end if;
                end;
 
             elsif Read_With_Argument (A, 'U', Value) then
                Self.PP_Macros.Include ((Define => False, Name => Value));
-               --  Account for all the switches that can influence the file
-               --  preprocessing.
+            --  Account for all the switches that can influence the file
+            --  preprocessing.
 
             elsif Has_Prefix (A, "-std")
               or else Has_Prefix (A, "-fno-rtti")
@@ -734,8 +737,7 @@ package body Instrument.Common is
    ------------------------
 
    function Is_Disabled_Region
-     (UIC : Unit_Inst_Context; Sloc : Source_Location) return Boolean
-   is
+     (UIC : Unit_Inst_Context; Sloc : Source_Location) return Boolean is
    begin
       for Disabled_Region of UIC.Disable_Cov_Regions loop
          if In_Range (Sloc, Disabled_Region) then
@@ -772,12 +774,12 @@ package body Instrument.Common is
             UIC.Annotations.Append
               (Annotation_Couple'
                  ((Source_File => SFI, L => Off_Sloc),
-                  (Kind          => Cov_Off,
-                   Message       =>
+                  (Kind    => Cov_Off,
+                   Message =>
                      (if Length (Off_Annot.Justification) /= 0
                       then new String'(+Off_Annot.Justification)
                       else null),
-                   others        => <>)));
+                   others  => <>)));
 
             --  Then the Cov_On annotation
 
@@ -795,9 +797,7 @@ package body Instrument.Common is
 
             UIC.Disable_Cov_Regions.Append
               (Source_Location_Range'
-                 (SFI,
-                  (First_Sloc => Off_Sloc,
-                   Last_Sloc  => Key (Cur))));
+                 (SFI, (First_Sloc => Off_Sloc, Last_Sloc => Key (Cur))));
          end;
          Next (Cur);
       end loop;
@@ -808,11 +808,11 @@ package body Instrument.Common is
    --------------------------------
 
    procedure Replace_Manual_Indications
-     (Self                  : in out Language_Instrumenter;
-      Prj                   : in out Prj_Desc;
-      Source                : Virtual_File;
-      Has_Dump_Indication   : out Boolean;
-      Has_Reset_Indication  : out Boolean) is
+     (Self                 : in out Language_Instrumenter;
+      Prj                  : in out Prj_Desc;
+      Source               : Virtual_File;
+      Has_Dump_Indication  : out Boolean;
+      Has_Reset_Indication : out Boolean) is
    begin
       raise Program_Error;
    end Replace_Manual_Indications;
@@ -824,8 +824,8 @@ begin
    Sys_Buffers.Append (To_Unbounded_String ("Buffers"));
 
    Statement_Buffer_Name.Append (To_Unbounded_String ("Statement_Buffer"));
-   Decision_Buffer_Name.Append  (To_Unbounded_String ("Decision_Buffer"));
-   MCDC_Buffer_Name.Append      (To_Unbounded_String ("MCDC_Buffer"));
+   Decision_Buffer_Name.Append (To_Unbounded_String ("Decision_Buffer"));
+   MCDC_Buffer_Name.Append (To_Unbounded_String ("MCDC_Buffer"));
 
    Witness_Dummy_Type_Name := Sys_Buffers;
    Witness_Dummy_Type_Name.Append (To_Unbounded_String ("Witness_Dummy_Type"));

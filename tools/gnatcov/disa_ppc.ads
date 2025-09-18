@@ -32,22 +32,23 @@ package Disa_Ppc is
    function Extract_APU_Info
      (Filename         : String;
       Is_Big_Endian    : Boolean;
-      APU_Info_Section : Binary_Content)
-      return Traces.Machine_Type;
+      APU_Info_Section : Binary_Content) return Traces.Machine_Type;
    --  The PowerPC ABI defines an ELF section ".PPC.EMB.apuinfo" section to
    --  provide information to properly interpret opcodes. This attempts to
    --  extract a specific machine type out of it. Filename must be the name of
    --  the executable this section comes from; it is used to emit diagnostics.
 
    type PPC_Disassembler is
-     new Ada.Finalization.Limited_Controlled and Disassembler with private;
+     new Ada.Finalization.Limited_Controlled
+     and Disassembler with private;
 
-   overriding function Get_Insn_Length
-     (Self     : PPC_Disassembler;
-      Insn_Bin : Binary_Content) return Positive;
+   overriding
+   function Get_Insn_Length
+     (Self : PPC_Disassembler; Insn_Bin : Binary_Content) return Positive;
    --  Return the length of the instruction at the beginning of Insn_Bin
 
-   overriding procedure Disassemble_Insn
+   overriding
+   procedure Disassemble_Insn
      (Self     : PPC_Disassembler;
       Insn_Bin : Binary_Content;
       Pc       : Pc_Type;
@@ -58,7 +59,8 @@ package Disa_Ppc is
    --  LINE_POS is the index of the next character to be written (ie line
    --  length if Line'First = 1).
 
-   overriding procedure Get_Insn_Properties
+   overriding
+   procedure Get_Insn_Properties
      (Self        : PPC_Disassembler;
       Insn_Bin    : Binary_Content;
       Pc          : Pc_Type;
@@ -72,36 +74,39 @@ package Disa_Ppc is
    --  For a branch, indicate whether it is indirect (Flag_Indir) and whether
    --  it is conditional (Flag_Cond), and determine its destination (Dest).
 
-   overriding function Is_Padding
-     (Self     : PPC_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean;
+   overriding
+   function Is_Padding
+     (Self : PPC_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean;
    --  See disassemblers.ads
 
-   overriding function Is_Nop
-     (Self     : PPC_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean is (False);
+   overriding
+   function Is_Nop
+     (Self : PPC_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean
+   is (False);
    --  See disassembler.ads
 
-   overriding procedure Initialize
-     (Object : in out PPC_Disassembler);
+   overriding
+   procedure Initialize (Object : in out PPC_Disassembler);
    --  Override of controlled object primitive
 
-   overriding procedure Finalize
-     (Object : in out PPC_Disassembler);
+   overriding
+   procedure Finalize (Object : in out PPC_Disassembler);
    --  Override of controlled object primitive
 
    type E500_Disassembler is new PPC_Disassembler with private;
 
-   overriding procedure Initialize
-     (Object : in out E500_Disassembler);
+   overriding
+   procedure Initialize (Object : in out E500_Disassembler);
    --  Override of controlled object primitive
 
 private
 
    type PPC_Disassembler is
-     new Ada.Finalization.Limited_Controlled and Disassembler with record
+     new Ada.Finalization.Limited_Controlled
+     and Disassembler
+   with record
       Handle : Dis_Opcodes.Disassemble_Handle;
    end record;
 

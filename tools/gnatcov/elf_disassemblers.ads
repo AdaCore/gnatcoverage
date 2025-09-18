@@ -30,8 +30,8 @@ package Elf_Disassemblers is
    --  to disassemble.
 
    function Disa_For_Machine
-     (Machine  : Machine_Type;
-      Insn_Set : Insn_Set_Type) return access Disassembler'Class;
+     (Machine : Machine_Type; Insn_Set : Insn_Set_Type)
+      return access Disassembler'Class;
    pragma Inline (Disa_For_Machine);
 
    type Insn_Set_Ranges is private;
@@ -59,9 +59,8 @@ package Elf_Disassemblers is
    Empty_Cache : constant Insn_Set_Cache;
 
    function Get_Insn_Set
-     (Ranges : Insn_Set_Ranges;
-      Cache  : in out Insn_Set_Cache;
-      PC     : Pc_Type) return Insn_Set_Type;
+     (Ranges : Insn_Set_Ranges; Cache : in out Insn_Set_Cache; PC : Pc_Type)
+      return Insn_Set_Type;
    --  Return the instruction set associated to the PC address. Return Default
    --  is there is no such association.
 
@@ -120,8 +119,8 @@ private
 
    function "<" (L, R : Insn_Set_Range) return Boolean;
 
-   package Ranges_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Insn_Set_Range);
+   package Ranges_Sets is new
+     Ada.Containers.Ordered_Sets (Element_Type => Insn_Set_Range);
 
    type Insn_Set_Ranges is new Ranges_Sets.Set with null record;
 
@@ -131,6 +130,7 @@ private
 
    No_Insn_Set_Ranges : aliased constant Insn_Set_Ranges :=
      (Ranges_Sets.Empty_Set with null record);
-   Empty_Cache : constant Insn_Set_Cache := (Cur => Ranges_Sets.No_Element);
+   Empty_Cache        : constant Insn_Set_Cache :=
+     (Cur => Ranges_Sets.No_Element);
 
 end Elf_Disassemblers;

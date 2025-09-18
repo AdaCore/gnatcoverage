@@ -45,9 +45,7 @@ with Traces_Source;           use Traces_Source;
 --  Implementation for the "gcc-wrapper" command
 
 procedure Instrument.Gcc_Wrapper
-  (Config_File   : String;
-   Compiler_Exec : String;
-   Cargs         : String_Vectors.Vector)
+  (Config_File : String; Compiler_Exec : String; Cargs : String_Vectors.Vector)
 is
    Compiler_Exec_Basename : constant Unbounded_String :=
      +Simple_Name (Compiler_Exec);
@@ -84,8 +82,10 @@ is
       Target                  => No_File,
       Instrumentation_Sources => String_Vectors.Empty_Vector);
 
-   package Compilation_Command_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Compilation_Command_Type);
+   package Compilation_Command_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Compilation_Command_Type);
 
    type Assembly_Command_Type is record
       Filename : Virtual_File;
@@ -101,8 +101,10 @@ is
    No_Assembly_Command : constant Assembly_Command_Type :=
      (Filename => No_File, Target => No_File);
 
-   package Assembly_Command_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Assembly_Command_Type);
+   package Assembly_Command_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Assembly_Command_Type);
 
    type Link_Command_Type is record
       Target : Virtual_File;
@@ -161,14 +163,14 @@ is
    is (Index (Str, Pattern, 1) = 1);
    --  Returns whether the given Str starts with the given Pattern
 
-   function Ends_With
-     (Str : Unbounded_String; Pattern : String) return Boolean
+   function Ends_With (Str : Unbounded_String; Pattern : String) return Boolean
    is (Length (Str) >= Pattern'Length
-       and then
-       Index
-         (Str, Pattern, From => Positive (Length (Str)), Going => Backward)
-       =
-         Length (Str) - Pattern'Length + 1);
+       and then Index
+                  (Str,
+                   Pattern,
+                   From  => Positive (Length (Str)),
+                   Going => Backward)
+                = Length (Str) - Pattern'Length + 1);
    --  Returns whether the given Str ends with the given Pattern
 
    function Split_Args (Command : String) return String_Vectors.Vector;
@@ -189,8 +191,8 @@ is
    --  Parse a compilation command
 
    function Parse_Assembly_Command
-     (Context : in out Parsing_Context;
-      Command : String_Vectors.Vector) return Assembly_Command_Type;
+     (Context : in out Parsing_Context; Command : String_Vectors.Vector)
+      return Assembly_Command_Type;
    --  Parse an assembly command
 
    function Parse_Link_Command
@@ -206,8 +208,7 @@ is
    --  (object or library file).
 
    procedure Run_Original_Compiler
-     (Context : Parsing_Context;
-      Args    : String_Vectors.Vector);
+     (Context : Parsing_Context; Args : String_Vectors.Vector);
    --  Run the wrapped compiler with the given Args
 
    function Remove_Pp_Switches
@@ -229,8 +230,7 @@ is
    ----------------
 
    function Split_Args (Command : String) return String_Vectors.Vector is
-      type State_Kind is
-        (No_Argument, Simple_Argument, Quoted_Argument);
+      type State_Kind is (No_Argument, Simple_Argument, Quoted_Argument);
 
       State  : State_Kind := No_Argument;
       Arg    : Unbounded_String;
@@ -258,7 +258,7 @@ is
       while I <= Command'Last loop
          C := Command (I);
          case State is
-            when No_Argument =>
+            when No_Argument     =>
                if C = '"' then
                   State := Quoted_Argument;
                elsif C /= ' ' then
@@ -334,7 +334,7 @@ is
 
       Run_Command
         (+Context.Orig_Compiler_Driver,
-          String_Vectors.To_Vector (+"-###", 1) & Args,
+         String_Vectors.To_Vector (+"-###", 1) & Args,
          "gnatcov",
          Output_File => Commands_Filename);
 
@@ -389,8 +389,7 @@ is
                        ("The compiler driver invocation yielded several link"
                         & " commands, which is not supported");
                   end if;
-                  Result.Link_Command :=
-                    (Parse_Link_Command (Command));
+                  Result.Link_Command := (Parse_Link_Command (Command));
                   Parsed_Link_Command := True;
                end if;
                <<Continue>>
@@ -438,8 +437,7 @@ is
 
       while Has_Element (Cur) loop
          declare
-            Arg : constant Unbounded_String :=
-              String_Vectors.Element (Cur);
+            Arg : constant Unbounded_String := String_Vectors.Element (Cur);
          begin
             --  Skip switches arguments that look like filenames. Ideally, we
             --  would find the positional argument but it is not
@@ -461,7 +459,9 @@ is
                else
                   Outputs.Warn
                     ("Found multiple filenames in the compiler invocation: "
-                     & (+Result.File.Base_Name) & " and " & (+Arg)
+                     & (+Result.File.Base_Name)
+                     & " and "
+                     & (+Arg)
                      & ". Keeping the former, which was parsed before.");
                end if;
             elsif Arg = "-o" then
@@ -494,15 +494,14 @@ is
    ----------------------------
 
    function Parse_Assembly_Command
-     (Context : in out Parsing_Context;
-      Command : String_Vectors.Vector) return Assembly_Command_Type
+     (Context : in out Parsing_Context; Command : String_Vectors.Vector)
+      return Assembly_Command_Type
    is
       Result : Assembly_Command_Type;
    begin
       for Cur in Command.Iterate loop
          declare
-            Arg : constant Unbounded_String :=
-              String_Vectors.Element (Cur);
+            Arg : constant Unbounded_String := String_Vectors.Element (Cur);
          begin
             if Arg = "-o" then
                Result.Target :=
@@ -570,9 +569,7 @@ is
       declare
          Target : constant String := +Result.Target.Base_Name;
       begin
-         if Ends_With (+Target, ".so")
-           or else Ends_With (+Target, ".o")
-         then
+         if Ends_With (+Target, ".so") or else Ends_With (+Target, ".o") then
             return No_Link_Command;
          end if;
       end;
@@ -644,8 +641,7 @@ is
    ---------------------------
 
    procedure Run_Original_Compiler
-     (Context : Parsing_Context;
-      Args    : String_Vectors.Vector) is
+     (Context : Parsing_Context; Args : String_Vectors.Vector) is
    begin
       Run_Command
         (Command             => +Context.Orig_Compiler_Driver,
@@ -708,8 +704,7 @@ is
       Buffer_Symbols      : String_Sets.Set)
    is
       Instrumenter : constant Language_Instrumenter'Class :=
-        Create_C_Instrumenter
-          (Instr_Config.Tag, Integrated_Instrumentation);
+        Create_C_Instrumenter (Instr_Config.Tag, Integrated_Instrumentation);
       --  Emit the buffers list unit as a C compilation unit as it is
       --  compilable by a C / C++ compiler, which are the languages
       --  supported by the integrated instrumentation scheme.
@@ -717,14 +712,13 @@ is
       Buffers_List_Unit : constant Virtual_File :=
         Create
           (GNATCOLL.VFS."+"
-             (+Instrumenter.Emit_Buffers_List_Unit
-                (Buffer_Symbols, Prj).Unit_Name));
+             (+Instrumenter.Emit_Buffers_List_Unit (Buffer_Symbols, Prj)
+                 .Unit_Name));
 
       Args_Compilation : String_Vectors.Vector;
    begin
       Args_Compilation.Append (+"-c");
-      Args_Compilation.Append
-        ("-I" & Instr_Config.GNATcov_RTS_Include_Dir);
+      Args_Compilation.Append ("-I" & Instr_Config.GNATcov_RTS_Include_Dir);
       Args_Compilation.Append
         (+(GNATCOLL.VFS."+" (Full_Name (Buffers_List_Unit))));
       Args_Compilation.Append (+"-o");
@@ -740,8 +734,7 @@ is
      Containing_Directory (Config_File);
    --  Directory that contains the current program
 
-   Instr_Config : Instrumentation_Config :=
-     Load_Config (Config_File);
+   Instr_Config : Instrumentation_Config := Load_Config (Config_File);
    --  Instrumentation configuration previously generated by the setup step
 
    Instr_Dir : Temporary_Directory;
@@ -777,7 +770,7 @@ is
    --  helper unit. It is only generated and valid when
    --  `Manual_Dump_Helper_Generated` is True.
 
---  Start of processing for Compiler_Wrappers.GCC
+   --  Start of processing for Compiler_Wrappers.GCC
 
 begin
    Create_Temporary_Directory
@@ -842,15 +835,15 @@ begin
            Comp_DB.Compilation_Commands.Reference (Cur);
          Instrumenter     : Language_Instrumenter'Class :=
            (case Comp_Command.Language is
-           when C_Language   =>
-             Create_C_Instrumenter
-                (Instr_Config.Tag, Integrated_Instrumentation),
-           when CPP_Language =>
-             Create_CPP_Instrumenter
-                (Instr_Config.Tag, Integrated_Instrumentation),
-           when others       =>
-              raise Program_Error
-                with "Unsupported language for integrated instrumentation");
+              when C_Language   =>
+                Create_C_Instrumenter
+                  (Instr_Config.Tag, Integrated_Instrumentation),
+              when CPP_Language =>
+                Create_CPP_Instrumenter
+                  (Instr_Config.Tag, Integrated_Instrumentation),
+              when others       =>
+                raise Program_Error
+                  with "Unsupported language for integrated instrumentation");
 
          Fullname    : constant String := +Comp_Command.File.Full_Name;
          Simple_Name : constant String := +Comp_Command.File.Base_Name;
@@ -871,9 +864,11 @@ begin
 
                SID_Name : constant String :=
                  (if Every_File_Of_Interest
-                  then Ada.Directories.Base_Name (Fullname)
-                  & Img (Full_Name_Hash (Comp_Command.File))
-                  & Ada.Directories.Extension (Fullname) & ".sid"
+                  then
+                    Ada.Directories.Base_Name (Fullname)
+                    & Img (Full_Name_Hash (Comp_Command.File))
+                    & Ada.Directories.Extension (Fullname)
+                    & ".sid"
                   else +Instr_Config.File_To_SID.Element (Comp_Command.File));
             begin
 
@@ -889,9 +884,9 @@ begin
                Comp_Command_Ref.Instrumentation_Sources.Append
                  (Instrumenter.Buffer_Unit
                     (Compilation_Unit'
-                         (File_Based_Language, Full_Name (Comp_Command.File)),
+                       (File_Based_Language, Full_Name (Comp_Command.File)),
                      Prj)
-                  .Unit_Name);
+                    .Unit_Name);
                Instrumented_Files.Include (+Fullname);
             end;
          end if;
@@ -901,12 +896,13 @@ begin
             --  expected to contain a manual dump/reset indication.
 
             declare
-               V_File : constant Virtual_File := Create_From_UTF8 (Fullname);
+               V_File               : constant Virtual_File :=
+                 Create_From_UTF8 (Fullname);
                Has_Dump_Indication  : Boolean := False;
                Has_Reset_Indication : Boolean := False;
             begin
-               if Instr_Config.Dump_Config.Manual_Indication_Files
-                  .Contains (V_File)
+               if Instr_Config.Dump_Config.Manual_Indication_Files.Contains
+                    (V_File)
                then
                   --  If the file is expected to contain indications, run the
                   --  substitution engine and find out if substitutions where
@@ -921,8 +917,7 @@ begin
                         --  Compute the dump helper file name.
 
                         Manual_Dump_Helper_Unit_Name :=
-                           Instrumenter.Dump_Manual_Helper_Unit
-                             (Prj).Unit_Name;
+                          Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name;
 
                         --  Generate the dump helper file.
 
@@ -958,9 +953,9 @@ begin
 
             declare
                Unit_Name : constant Unbounded_String :=
-                  Instrumenter.Dump_Helper_Unit
-                    (Compilation_Unit'(File_Based_Language, +Instr_Name),
-                     Prj).Unit_Name;
+                 Instrumenter.Dump_Helper_Unit
+                   (Compilation_Unit'(File_Based_Language, +Instr_Name), Prj)
+                   .Unit_Name;
             begin
                Comp_Command_Ref.Instrumentation_Sources.Append (Unit_Name);
             end;
@@ -977,8 +972,7 @@ begin
 
    if Has_Link_Command then
       Buffers_List_Object :=
-        Create
-          (GNATCOLL.VFS."+" (New_File (Prj, +"gcvrtc-main" & ".o")));
+        Create (GNATCOLL.VFS."+" (New_File (Prj, +"gcvrtc-main" & ".o")));
       Emit_Buffers_List_Object
         (Context,
          Instr_Config,
@@ -1077,7 +1071,7 @@ begin
 
                for Instr_Artifact of Comp_Command.Instrumentation_Sources loop
                   declare
-                     Args_Compilation : String_Vectors.Vector;
+                     Args_Compilation           : String_Vectors.Vector;
                      Instr_Artifact_Object_Name : constant String :=
                        New_File
                          (Prj,
@@ -1094,8 +1088,8 @@ begin
                      end loop;
                      Run_Original_Compiler (Context, Args_Compilation);
 
-                     Context.Instrumentation_Objects
-                       .Reference (Comp_Command.File)
+                     Context.Instrumentation_Objects.Reference
+                       (Comp_Command.File)
                        .Append (+Instr_Artifact_Object_Name);
                   end;
                end loop;
@@ -1122,9 +1116,10 @@ begin
                   Packaged_Name : constant String :=
                     New_File
                       (Prj,
-                       "instr_" & Filename_Slug (+Orig_Source.Full_Name)
+                       "instr_"
+                       & Filename_Slug (+Orig_Source.Full_Name)
                        & ".a");
-                  Success : Boolean;
+                  Success       : Boolean;
                begin
                   if not Instr_Objects.Is_Empty then
                      declare
@@ -1173,8 +1168,8 @@ begin
       --  list compilation unit generated below overwrites the dummy one.
 
       if Has_Link_Command
-         and then Ada.Directories.Exists
-           (+Comp_DB.Link_Command.Target.Full_Name)
+        and then Ada.Directories.Exists
+                   (+Comp_DB.Link_Command.Target.Full_Name)
       then
          declare
             Buffer_Symbols : String_Sets.Set;
@@ -1214,19 +1209,20 @@ begin
                Success      : Boolean;
             begin
                Args.Append (+(+Comp_DB.Link_Command.Target.Full_Name));
-               Success := Run_Command
-                 (Command             => +"ldd",
-                  Arguments           => Args,
-                  Origin_Command_Name => "compiler wrapper",
-                  Output_File         => Ldd_Filename,
-                  Ignore_Error        => True);
+               Success :=
+                 Run_Command
+                   (Command             => +"ldd",
+                    Arguments           => Args,
+                    Origin_Command_Name => "compiler wrapper",
+                    Output_File         => Ldd_Filename,
+                    Ignore_Error        => True);
 
                Open (Ldd_File, In_File, Ldd_Filename);
                if not Success then
 
                   if Ada.Strings.Fixed.Trim
-                       (Get_Line (Ldd_File), Ada.Strings.Both) /=
-                       "not a dynamic executable"
+                       (Get_Line (Ldd_File), Ada.Strings.Both)
+                    /= "not a dynamic executable"
                   then
                      --  The executable does not depend on any dynamic library,
                      --  nothing to do here.
@@ -1290,7 +1286,7 @@ begin
                            --  <lib_basename> => (<load_address>)
 
                            elsif GNATCOLL.VFS.Is_Regular_File
-                             (GNATCOLL.VFS.Create (+Lib_Filename))
+                                   (GNATCOLL.VFS.Create (+Lib_Filename))
                            then
                               Add_Coverage_Buffer_Symbols
                                 (Create (+Lib_Filename));

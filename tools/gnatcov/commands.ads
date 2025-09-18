@@ -45,8 +45,7 @@ package Commands is
       Cmd_Run,
       Cmd_Scan_Decisions,
       Cmd_Scan_Objects,
-      Cmd_Convert
-     );
+      Cmd_Convert);
 
    function To_Command (Opt_String : String) return Command_Type;
    --  Convert a string of the form "com-mand" to the corresponding

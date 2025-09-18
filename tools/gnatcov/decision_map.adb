@@ -60,17 +60,19 @@ package body Decision_Map is
    --  The decision map is a list of code addresses, so we manage it as a
    --  trace database.
 
-   package Decision_Occurrence_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Decision_Occurrence_Access);
+   package Decision_Occurrence_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Natural,
+        Element_Type => Decision_Occurrence_Access);
    use type Decision_Occurrence_Vectors.Vector;
    --  A list of decision occurrences, used for Decision_Occurrence_Maps below,
    --  and also to maintain the stack of open decision occurrences while
    --  analysing object code.
 
-   package Decision_Occurrence_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => SCO_Id,
-      Element_Type => Decision_Occurrence_Vectors.Vector);
+   package Decision_Occurrence_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => SCO_Id,
+        Element_Type => Decision_Occurrence_Vectors.Vector);
    Decision_Occurrence_Map : Decision_Occurrence_Maps.Map;
    --  The decision occurrence map lists all object code occurrences of each
    --  source decision (identified by its SCO_Id).
@@ -88,41 +90,42 @@ package body Decision_Map is
    --
    --  A basic block in object code
 
-   package Outcome_Reached_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Pc_Type,
-      Element_Type => Boolean);
+   package Outcome_Reached_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Pc_Type,
+        Element_Type => Boolean);
    --  Map of decision occurrence (identified by PC of first conditional
    --  branch instruction) to Outcome_Reached status (see below).
 
    type Basic_Block is record
-      From, To_PC, To  : Pc_Type := No_PC;
+      From, To_PC, To : Pc_Type := No_PC;
       --  Start and end addresses (note: To is not necessarily a valid PC value
       --  but instead the address of the last byte in the last instruction of
       --  the BB, whose first byte is at To_PC).
 
       --  Properties of the branch instruction at the end of the basic block:
 
-      Branch_Dest, FT_Dest   : Dest := (Target => No_PC, Delay_Slot => No_PC);
+      Branch_Dest, FT_Dest : Dest := (Target => No_PC, Delay_Slot => No_PC);
       --  Branch and fallthrough destinations
 
-      Branch                 : Branch_Kind := Br_None;
+      Branch : Branch_Kind := Br_None;
       --  Branch kind
 
-      Cond                   : Boolean := False;
+      Cond : Boolean := False;
       --  True if conditional branch
 
-      First_Cond             : Boolean := False;
+      First_Cond : Boolean := False;
       --  True if Cond and this is the first conditional branch in the
       --  enclosing decision occurrence.
 
-      Call                   : Call_Kind := Normal;
-      Called_Sym             : String_Access;
+      Call       : Call_Kind := Normal;
+      Called_Sym : String_Access;
       --  If Branch = Br_Call, information about the called subprogram
 
-      Condition              : SCO_Id := No_SCO_Id;
+      Condition : SCO_Id := No_SCO_Id;
       --  If this is a conditional branch testing a condition, identifies it
 
-      Branch_SCO             : SCO_Id := No_SCO_Id;
+      Branch_SCO : SCO_Id := No_SCO_Id;
       --  Condition or Statement SCO for To_PC, for statistics purposes
 
       --  If multiple SCOs are associated with this PC:
@@ -132,7 +135,7 @@ package body Decision_Map is
 
       --  Note that no two condition SCOs may be associated with a given PC.
 
-      Outcome_Reached        : Outcome_Reached_Maps.Map;
+      Outcome_Reached : Outcome_Reached_Maps.Map;
       --  Set True for basic blocks that are reached after the outcome of the
       --  enclosing decision is determined: subsequent conditional branch
       --  instructions in the decision occurrence must be excluded from
@@ -144,7 +147,7 @@ package body Decision_Map is
       --  initial (pre-outcome) basic block of the second occurrence might
       --  need to be marked as a post-outcome block for the first one.
 
-      Jump_Only              : Boolean := False;
+      Jump_Only : Boolean := False;
       --  Set True for basic blocks that are a singleton unconditional branch.
       --  The compiler creates such basic blocks only to hold source locations:
       --  they can be useful for decision mapping heuristics, but can also be
@@ -157,21 +160,20 @@ package body Decision_Map is
    function "<" (L, R : Basic_Block) return Boolean;
    --  Order by From
 
-   Finalizer_Symbol_Pattern : constant Regexp := Compile
-     (".*___finalizer\.[0-9]+");
-   Pre_Finalizer_Symbol_Pattern : constant Regexp := Compile
-     ("system__finalization_primitives__.*");
+   Finalizer_Symbol_Pattern     : constant Regexp :=
+     Compile (".*___finalizer\.[0-9]+");
+   Pre_Finalizer_Symbol_Pattern : constant Regexp :=
+     Compile ("system__finalization_primitives__.*");
 
    package Pc_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
    package Basic_Block_Sets is new Ada.Containers.Ordered_Sets (Basic_Block);
 
    function Find_Basic_Block
-     (Basic_Blocks : Basic_Block_Sets.Set;
-      PC           : Pc_Type) return Basic_Block_Sets.Cursor;
+     (Basic_Blocks : Basic_Block_Sets.Set; PC : Pc_Type)
+      return Basic_Block_Sets.Cursor;
    function Find_Basic_Block
-     (Basic_Blocks : Basic_Block_Sets.Set;
-      PC           : Pc_Type) return Basic_Block;
+     (Basic_Blocks : Basic_Block_Sets.Set; PC : Pc_Type) return Basic_Block;
    --  Return the basic block containing PC from the given set, or
    --  No_Element / No_Basic_Block if none.
 
@@ -192,8 +194,8 @@ package body Decision_Map is
    type Cond_Branch_Count_Array is array (Cond_Branch_Kind) of Natural;
 
    type Branch_Statistics is record
-      Branch_Counts      : Branch_Count_Array      :=
-                             (others => (others => (others => 0)));
+      Branch_Counts      : Branch_Count_Array :=
+        (others => (others => (others => 0)));
       Cond_Branch_Counts : Cond_Branch_Count_Array := (others => 0);
       Non_Traceable      : Natural := 0;
    end record;
@@ -202,20 +204,18 @@ package body Decision_Map is
       Decision_Stack : Decision_Occurrence_Vectors.Vector;
       --  The stack of open decision occurrences
 
-      Basic_Blocks   : Basic_Block_Sets.Set;
+      Basic_Blocks : Basic_Block_Sets.Set;
       --  All basic blocks in the routine being analyzed
 
-      Stats          : Branch_Statistics;
+      Stats : Branch_Statistics;
       --  Statistics on conditional branches in the routine being analyzed
 
-      Subprg         : Address_Info_Acc;
+      Subprg : Address_Info_Acc;
       --  Info of enclosing subprogram
    end record;
 
    procedure Analyze_Routine
-     (Name  : String_Access;
-      Exec  : Exe_File_Acc;
-      Insns : Binary_Content);
+     (Name : String_Access; Exec : Exe_File_Acc; Insns : Binary_Content);
    --  Build decision map for the given subprogram
 
    procedure Analyze_Conditional_Branch
@@ -242,8 +242,7 @@ package body Decision_Map is
    --  the SCO of skipped conditions in Skipped.
 
    function Is_Expected_First_Condition
-     (Decision  : SCO_Id;
-      Condition : SCO_Id) return Boolean;
+     (Decision : SCO_Id; Condition : SCO_Id) return Boolean;
    --  Return whether Condition can be the first condition to be evaluated at
    --  runtime for Decision.
 
@@ -291,7 +290,8 @@ package body Decision_Map is
    function "<" (L, R : Cond_Branch_Loc) return Boolean is
       use System.Storage_Elements;
    begin
-      return To_Integer (L.Exe.all'Address) < To_Integer (R.Exe.all'Address)
+      return
+        To_Integer (L.Exe.all'Address) < To_Integer (R.Exe.all'Address)
         or else (L.Exe = R.Exe and then L.PC < R.PC);
    end "<";
 
@@ -370,10 +370,8 @@ package body Decision_Map is
    begin
       return
         (Symbol_Name = "__gnat_last_chance_handler"
-         or else
-         Symbol_Name = "system__assertions__raise_assert_failure"
-         or else
-         Has_Prefix (Symbol_Name, Prefix => "__gnat_rcheck_"));
+         or else Symbol_Name = "system__assertions__raise_assert_failure"
+         or else Has_Prefix (Symbol_Name, Prefix => "__gnat_rcheck_"));
    end Subp_Raises_Exception;
 
    ------------------
@@ -397,7 +395,7 @@ package body Decision_Map is
 
       declare
          Sym_Name : constant String :=
-            Platform_Independent_Symbol (BB.Called_Sym.all, Exe.all);
+           Platform_Independent_Symbol (BB.Called_Sym.all, Exe.all);
 
       begin
          if Sym_Name = "ada__exceptions__triggered_by_abort" then
@@ -450,14 +448,15 @@ package body Decision_Map is
          BB : constant Basic_Block :=
            Find_Basic_Block (Ctx.Basic_Blocks, D.Target);
       begin
-         return BB /= No_Basic_Block
+         return
+           BB /= No_Basic_Block
            and then BB.Branch = Br_Call
            and then BB.Called_Sym /= null
            and then Platform_Independent_Symbol (BB.Called_Sym.all, Exec.all)
-                      in "__gnat_begin_handler" | "__gnat_begin_handler_v1";
+                    in "__gnat_begin_handler" | "__gnat_begin_handler_v1";
       end Is_Begin_Handler_Call;
 
-   --  Start of processing for Analyze_Conditional_Branch
+      --  Start of processing for Analyze_Conditional_Branch
 
    begin
       --  If one of the edges branches to a __gnat_begin_handler
@@ -465,11 +464,9 @@ package body Decision_Map is
       --  dispatch test, and does not contribute to any decision.
 
       if Is_Begin_Handler_Call (Branch_Dest)
-           or else
-         Is_Begin_Handler_Call (FT_Dest)
+        or else Is_Begin_Handler_Call (FT_Dest)
       then
-         Report
-           (Exec, Insn.First, "exception dispatch", Kind => Notice);
+         Report (Exec, Insn.First, "exception dispatch", Kind => Notice);
          return;
       end if;
 
@@ -495,8 +492,7 @@ package body Decision_Map is
          --  Index of C_SCO in D_SCO
 
          Starting_Evaluation : constant Boolean :=
-           Is_Expected_First_Condition
-             (D_SCO, Condition (D_SCO, Cond_Index));
+           Is_Expected_First_Condition (D_SCO, Condition (D_SCO, Cond_Index));
          --  True if this condition can be the first one evaluated in
          --  its decision.
 
@@ -504,8 +500,8 @@ package body Decision_Map is
          --  Innermost currently open decision evaluation
 
          function Is_Expected_Condition
-           (CI                   : Condition_Index;
-            Report_If_Unexpected : Boolean := False) return Boolean;
+           (CI : Condition_Index; Report_If_Unexpected : Boolean := False)
+            return Boolean;
          --  Check whether we expect to evaluate CI: either we remain in the
          --  current condition (case of a condition that requires multiple
          --  branches), or we move to the next one..
@@ -515,27 +511,28 @@ package body Decision_Map is
          ---------------------------
 
          function Is_Expected_Condition
-           (CI                   : Condition_Index;
-            Report_If_Unexpected : Boolean := False) return Boolean
+           (CI : Condition_Index; Report_If_Unexpected : Boolean := False)
+            return Boolean
          is
-            Current_CI  : Condition_Index renames DS_Top.Seen_Condition;
+            Current_CI : Condition_Index renames DS_Top.Seen_Condition;
 
          begin
             if
-              --  Case of remaining in the current evaluation, or starting a
-              --  new one if there's none in progress.
+            --  Case of remaining in the current evaluation, or starting a
+            --  new one if there's none in progress.
 
-              CI = Condition_Index'Max (Current_CI, 0)
+              CI
+              = Condition_Index'Max (Current_CI, 0)
 
               --  Else the next condition is reachable through the fallthrough
               --  edge of the current condition, so it must be a possible
               --  successor.
 
-                or else
-              Check_Possible_Successor
-                (DS_Top.Decision,
-                 This_Condition => Current_CI,
-                 Next_Condition => CI) /= Unknown
+              or else Check_Possible_Successor
+                        (DS_Top.Decision,
+                         This_Condition => Current_CI,
+                         Next_Condition => CI)
+                      /= Unknown
 
             then
                return True;
@@ -546,8 +543,10 @@ package body Decision_Map is
                   Msg : Unbounded_String;
                begin
                   Msg :=
-                    +("unexpected condition" & CI'Img
-                      & " in decision " & Image (DS_Top.Decision));
+                    +("unexpected condition"
+                      & CI'Img
+                      & " in decision "
+                      & Image (DS_Top.Decision));
 
                   --  This could correspond to some finalization code, that has
                   --  a debug info code location corresponding to a condition.
@@ -560,16 +559,14 @@ package body Decision_Map is
             return False;
          end Is_Expected_Condition;
 
-      --  Start of processing for Process_Condition
+         --  Start of processing for Process_Condition
 
       begin
          --  Determine enclosing SCO
 
          Parent_SCO := Parent (D_SCO);
 
-         if Parent_SCO /= No_SCO_Id
-           and then Kind (Parent_SCO) = Condition
-         then
+         if Parent_SCO /= No_SCO_Id and then Kind (Parent_SCO) = Condition then
             Enclosing_D_SCO := Enclosing_Decision (Parent_SCO);
          else
             Enclosing_D_SCO := No_SCO_Id;
@@ -585,7 +582,8 @@ package body Decision_Map is
 
          while Ctx.Decision_Stack.Length > 0 loop
             DS_Top := Ctx.Decision_Stack.Last_Element;
-            exit when DS_Top.Decision = D_SCO
+            exit when
+              DS_Top.Decision = D_SCO
               and then DS_Top.Inlined_Body = Enclosing_Inlined_Body
               and then Is_Expected_Condition (Cond_Index);
 
@@ -594,8 +592,8 @@ package body Decision_Map is
                --  condition in another decision, and DS_Top is that
                --  enclosing decision.
 
-               if not Is_Expected_Condition (Index (Parent_SCO),
-                                             Report_If_Unexpected => True)
+               if not Is_Expected_Condition
+                        (Index (Parent_SCO), Report_If_Unexpected => True)
                then
                   return;
                end if;
@@ -617,8 +615,9 @@ package body Decision_Map is
                   null;
 
                elsif DS_Top.Inlined_Body /= null
-                 and then Insn.First not in DS_Top.Inlined_Body.First
-                                         .. DS_Top.Inlined_Body.Last
+                 and then Insn.First
+                          not in DS_Top.Inlined_Body.First
+                               .. DS_Top.Inlined_Body.Last
                then
                   --  Exited inlined body of previous evaluation: pop it
 
@@ -632,20 +631,20 @@ package body Decision_Map is
 
             elsif (DS_Top.Inlined_Body = null
                    and then Enclosing_Inlined_Body /= null)
-              or else
-                (DS_Top.Inlined_Body /= null
-                 and then Enclosing_Inlined_Body /= DS_Top.Inlined_Body
-                 and then Insn.First in DS_Top.Inlined_Body.First
-                                     .. DS_Top.Inlined_Body.Last)
+              or else (DS_Top.Inlined_Body /= null
+                       and then Enclosing_Inlined_Body /= DS_Top.Inlined_Body
+                       and then Insn.First
+                                in DS_Top.Inlined_Body.First
+                                 .. DS_Top.Inlined_Body.Last)
             then
                --  Entering an inlined body: do not presume that the current
                --  evaluation is completed.
 
                exit;
 
-               --  Check whether call site loc is within current decision???
-               --  Difficulty: case of nested inlined calls, we need to find
-               --  the call site for the outermost call in that case???
+            --  Check whether call site loc is within current decision???
+            --  Difficulty: case of nested inlined calls, we need to find
+            --  the call site for the outermost call in that case???
 
             end if;
 
@@ -694,9 +693,10 @@ package body Decision_Map is
          --  Push a new occurrence on the evaluation stack, if needed
 
          if
-           --  No pending evaluation
+         --  No pending evaluation
 
-           DS_Top = null
+           DS_Top
+           = null
 
            --  Evaluating a new, different decision than an enclosing one
 
@@ -721,32 +721,37 @@ package body Decision_Map is
                function Enclosing_Inlined_Body_Image return String is
                begin
                   if Enclosing_Inlined_Body /= null then
-                     return " in inlined call from "
+                     return
+                       " in inlined call from "
                        & Image (Enclosing_Inlined_Body.Call_Sloc)
                        & " ("
                        & Hex_Image (Enclosing_Inlined_Body.First)
-                       & ".." & Hex_Image (Enclosing_Inlined_Body.Last) & ")";
+                       & ".."
+                       & Hex_Image (Enclosing_Inlined_Body.Last)
+                       & ")";
                   else
                      return "";
                   end if;
                end Enclosing_Inlined_Body_Image;
 
             begin
-               Report (Exec, Insn.First,
-                       "starting occurrence"
-                       & Enclosing_Inlined_Body_Image,
-                       SCO  => D_SCO,
-                       Kind => Notice);
+               Report
+                 (Exec,
+                  Insn.First,
+                  "starting occurrence" & Enclosing_Inlined_Body_Image,
+                  SCO  => D_SCO,
+                  Kind => Notice);
             end;
 
-            DS_Top := new Decision_Occurrence'
-              (Last_Cond_Index => Last_Cond_Index (D_SCO),
-               Decision        => D_SCO,
-               Inlined_Body    => Enclosing_Inlined_Body,
-               others          => <>);
+            DS_Top :=
+              new Decision_Occurrence'
+                (Last_Cond_Index => Last_Cond_Index (D_SCO),
+                 Decision        => D_SCO,
+                 Inlined_Body    => Enclosing_Inlined_Body,
+                 others          => <>);
 
-            if not Is_Expected_Condition (Cond_Index,
-                                          Report_If_Unexpected => True)
+            if not Is_Expected_Condition
+                     (Cond_Index, Report_If_Unexpected => True)
             then
                return;
             end if;
@@ -760,9 +765,13 @@ package body Decision_Map is
          --  Record condition occurrence
 
          Report
-           (Exec, Insn.First,
-            "cond branch for " & Image (C_SCO)
-            & " (" & Img (Integer (Index (C_SCO))) & ")",
+           (Exec,
+            Insn.First,
+            "cond branch for "
+            & Image (C_SCO)
+            & " ("
+            & Img (Integer (Index (C_SCO)))
+            & ")",
             Kind => Notice);
          pragma Assert (BB.Condition = No_SCO_Id);
          BB.Condition := C_SCO;
@@ -785,9 +794,7 @@ package body Decision_Map is
                      Dest_Kind   =>
                        (if BB.Branch = Br_Ret then Outcome else Unknown),
                      others      => <>),
-                  Fallthrough =>
-                    (Destination => FT_Dest,
-                     others      => <>))));
+                  Fallthrough => (Destination => FT_Dest, others => <>))));
       end Process_Condition;
    end Analyze_Conditional_Branch;
 
@@ -830,8 +837,8 @@ package body Decision_Map is
 
                --  No successor: outcome reached
 
-               Outcome := SC_Obligations.Outcome
-                 (Cond, To_Boolean (Cond_Value));
+               Outcome :=
+                 SC_Obligations.Outcome (Cond, To_Boolean (Cond_Value));
                Cond := No_SCO_Id;
                return;
 
@@ -849,8 +856,7 @@ package body Decision_Map is
    ---------------------------------
 
    function Is_Expected_First_Condition
-     (Decision  : SCO_Id;
-      Condition : SCO_Id) return Boolean
+     (Decision : SCO_Id; Condition : SCO_Id) return Boolean
    is
       use SCO_Sets;
 
@@ -862,9 +868,9 @@ package body Decision_Map is
    begin
       Skip_Constant_Conditions
         (First_Condition, Outcome, Possible_First_Conditions'Access);
-      return Condition = First_Condition
-                or else
-             Possible_First_Conditions.Contains (Condition);
+      return
+        Condition = First_Condition
+        or else Possible_First_Conditions.Contains (Condition);
    end Is_Expected_First_Condition;
 
    -------------------------------
@@ -890,9 +896,9 @@ package body Decision_Map is
       --  skipping constants conditions.
 
       for Value in Boolean'Range loop
-         CI_SCO := Next_Condition
-           (Condition (D_Occ.Decision, D_Occ.Seen_Condition),
-            Value);
+         CI_SCO :=
+           Next_Condition
+             (Condition (D_Occ.Decision, D_Occ.Seen_Condition), Value);
          Skip_Constant_Conditions (CI_SCO, Outcome, null);
          if CI_SCO /= No_SCO_Id then
             return False;
@@ -916,15 +922,15 @@ package body Decision_Map is
       D_Occ : Decision_Occurrence_Access)
    is
       First_Seen_Condition_PC : constant Pc_Type :=
-                                  D_Occ.Conditional_Branches.First_Element;
-      Last_Seen_Condition_PC : constant Pc_Type :=
-                                 D_Occ.Conditional_Branches.Last_Element;
+        D_Occ.Conditional_Branches.First_Element;
+      Last_Seen_Condition_PC  : constant Pc_Type :=
+        D_Occ.Conditional_Branches.Last_Element;
 
       --  Note: all the analysis is done under control of an initial check that
       --    D_Occ.Seen_Condition = D_Occ.Last_Condition_Index
 
       Last_CBI : constant Cond_Branch_Info :=
-                   Cond_Branch_Map.Element ((Exe, Last_Seen_Condition_PC));
+        Cond_Branch_Map.Element ((Exe, Last_Seen_Condition_PC));
 
       --  For destinations for which we have identified origin information,
       --  reference to the conditional branch and edge having that destination,
@@ -946,9 +952,10 @@ package body Decision_Map is
          Edge           : Edge_Kind;
       end record;
 
-      package Known_Destination_Maps is new Ada.Containers.Ordered_Maps
-        (Key_Type     => Dest,
-         Element_Type => Known_Destination);
+      package Known_Destination_Maps is new
+        Ada.Containers.Ordered_Maps
+          (Key_Type     => Dest,
+           Element_Type => Known_Destination);
 
       Known_Destinations : Known_Destination_Maps.Map;
 
@@ -993,9 +1000,8 @@ package body Decision_Map is
       --  but another edge with the same destination is, copy its information.
 
       function Label_From_BB
-        (Cond_Branch_PC : Pc_Type;
-         CBI            : Cond_Branch_Info;
-         Edge           : Edge_Kind) return Tristate;
+        (Cond_Branch_PC : Pc_Type; CBI : Cond_Branch_Info; Edge : Edge_Kind)
+         return Tristate;
       --  Helper for the third pass of control flow analysis: Edge must be an
       --  unknown outcome. If there is another edge that is a known outcome and
       --  that points to some previous instruction in the same basic block,
@@ -1010,22 +1016,17 @@ package body Decision_Map is
       --  tested by the conditional branch at Cond_Branch_PC, described by CBI.
 
       procedure Record_Known_Destination
-        (Cond_Branch_PC : Pc_Type;
-         Destination    : Dest;
-         Edge           : Edge_Kind);
+        (Cond_Branch_PC : Pc_Type; Destination : Dest; Edge : Edge_Kind);
       --  Once this destination has been fully qualified, remember it so
       --  that further tests with the same destination can reuse the
       --  information.
 
       procedure Label_Destinations
-        (CB_Loc : Cond_Branch_Loc;
-         CBI    : in out Cond_Branch_Info);
+        (CB_Loc : Cond_Branch_Loc; CBI : in out Cond_Branch_Info);
       --  Identify destination kind of each edge of CBI using information local
       --  to CBI.
 
-      procedure Output_Cond_Branch
-        (Exe   : Exe_File_Acc;
-         CB_PC : Pc_Type);
+      procedure Output_Cond_Branch (Exe : Exe_File_Acc; CB_PC : Pc_Type);
       --  Output decision map entry for the conditional branch instruction at
       --  CB_PC in Exe. Report unlabeled destinations as we go. Remove the
       --  instruction from the Cond_Branch_Map if not contributive to coverage
@@ -1034,9 +1035,10 @@ package body Decision_Map is
       function Decision_Of_Jump (Jump_PC : Pc_Type) return SCO_Id;
       --  Return the SCO for the decision containing Jump_PC, if any
 
-      Has_Valuation : array (Condition_Index'First .. D_Occ.Last_Cond_Index,
-                             Boolean range False .. True) of Boolean :=
-                               (others => (others => False));
+      Has_Valuation :
+        array (Condition_Index'First .. D_Occ.Last_Cond_Index,
+               Boolean range False .. True)
+        of Boolean := (others => (others => False));
       --  For each valuation of each condition, indicates whether there is
       --  one edge corresponding to each possible valuation of the condition.
 
@@ -1052,10 +1054,10 @@ package body Decision_Map is
          D_SCO_For_Jump : SCO_Id;
       begin
          D_SCO_For_Jump :=
-           Sloc_To_SCO (Get_Sloc (Ctx.Subprg.Lines, Jump_PC),
-                        Include_Decisions => True);
+           Sloc_To_SCO
+             (Get_Sloc (Ctx.Subprg.Lines, Jump_PC), Include_Decisions => True);
          if D_SCO_For_Jump /= No_SCO_Id
-              and then Kind (D_SCO_For_Jump) = Condition
+           and then Kind (D_SCO_For_Jump) = Condition
          then
             D_SCO_For_Jump := Enclosing_Decision (D_SCO_For_Jump);
          end if;
@@ -1068,8 +1070,8 @@ package body Decision_Map is
 
       function Get_CBE (KD : Known_Destination) return Cond_Edge_Info is
       begin
-         return Cond_Branch_Map.Element
-           ((Exe, KD.Cond_Branch_PC)).Edges (KD.Edge);
+         return
+           Cond_Branch_Map.Element ((Exe, KD.Cond_Branch_PC)).Edges (KD.Edge);
       end Get_CBE;
 
       -----------------------
@@ -1112,14 +1114,14 @@ package body Decision_Map is
          --  the last conditional branch instruction for the last condition.
 
          if (Edge_Info.Dest_Kind = Outcome and then Edge_Info.Origin = Unknown)
-              or else
-            (Edge_Info.Dest_Kind = Unknown
-               and then
-             (Edge_Info.Destination
-                = Last_CBI.Edges (Branch).Destination
-                or else Edge_Info.Destination
-                          = Last_CBI.Edges (Fallthrough).Destination
-                or else Edge_Info.Destination.Target > Last_Seen_Condition_PC))
+           or else (Edge_Info.Dest_Kind = Unknown
+                    and then (Edge_Info.Destination
+                              = Last_CBI.Edges (Branch).Destination
+                              or else Edge_Info.Destination
+                                      = Last_CBI.Edges (Fallthrough)
+                                          .Destination
+                              or else Edge_Info.Destination.Target
+                                      > Last_Seen_Condition_PC))
          then
             Edge_Info.Dest_Kind := Outcome;
 
@@ -1187,14 +1189,15 @@ package body Decision_Map is
                   --  decision according to the BDD.
 
                   Report
-                    (Exe, Cond_Branch_PC,
+                    (Exe,
+                     Cond_Branch_PC,
                      Edge_Name & " destination unexpectedly out of decision");
 
                elsif Outcome_Origin /= Unknown then
                   Set_Known_Origin
                     (Cond_Branch_PC, CBI, Edge, To_Boolean (Outcome_Origin));
-                  Known_Outcome (To_Boolean (Edge_Info.Outcome)).
-                    Include (Edge_Info.Destination);
+                  Known_Outcome (To_Boolean (Edge_Info.Outcome)).Include
+                    (Edge_Info.Destination);
 
                else
                   --  In the case of a decision with only one condition (but
@@ -1223,7 +1226,9 @@ package body Decision_Map is
                      --  for this edge is True, else it is False.
 
                      Set_Known_Origin
-                       (Cond_Branch_PC, CBI, Edge,
+                       (Cond_Branch_PC,
+                        CBI,
+                        Edge,
                         Outcome (CBI.Condition, True) = To_Tristate (True));
                   end if;
                end if;
@@ -1254,7 +1259,8 @@ package body Decision_Map is
                   --  a possible successor nor remaining in the same condition.
 
                   Report
-                    (Exe, Cond_Branch_PC,
+                    (Exe,
+                     Cond_Branch_PC,
                      Edge_Name
                      & " does not branch to a possible successor condition");
                end if;
@@ -1270,9 +1276,9 @@ package body Decision_Map is
             Label_From_Other (Cond_Branch_PC, CBI, Edge);
          end if;
 
-         --  Destination may still be unlabeled at this point, which is not
-         --  a problem if we can label it later on by inference from the
-         --  opposite edge.
+      --  Destination may still be unlabeled at this point, which is not
+      --  a problem if we can label it later on by inference from the
+      --  opposite edge.
       end Label_Destination;
 
       ------------------------
@@ -1280,16 +1286,14 @@ package body Decision_Map is
       ------------------------
 
       procedure Label_Destinations
-        (CB_Loc : Cond_Branch_Loc;
-         CBI    : in out Cond_Branch_Info)
+        (CB_Loc : Cond_Branch_Loc; CBI : in out Cond_Branch_Info)
       is
          Cond_Branch_PC   : Pc_Type renames CB_Loc.PC;
          Cond_Branch_Sloc : constant Source_Location :=
-                              Get_Sloc (Ctx.Subprg.Lines, Cond_Branch_PC);
+           Get_Sloc (Ctx.Subprg.Lines, Cond_Branch_PC);
 
          procedure Mark_Successors
-           (Dest_PC         : Pc_Type;
-            Outcome_Reached : Boolean);
+           (Dest_PC : Pc_Type; Outcome_Reached : Boolean);
          --  Mark basic blocks within the decision that are reachable
          --  from Dest_PC as having known/unknown outcome. If known, do so
          --  recursively.
@@ -1299,8 +1303,7 @@ package body Decision_Map is
          ---------------------
 
          procedure Mark_Successors
-           (Dest_PC         : Pc_Type;
-            Outcome_Reached : Boolean)
+           (Dest_PC : Pc_Type; Outcome_Reached : Boolean)
          is
             use Basic_Block_Sets;
 
@@ -1322,7 +1325,7 @@ package body Decision_Map is
 
             BB := Element (Cur);
             BB_D_SCO := Decision_Of_Jump (BB.To_PC);
-            if BB_D_SCO /= D_Occ.Decision  then
+            if BB_D_SCO /= D_Occ.Decision then
                return;
             end if;
 
@@ -1343,10 +1346,12 @@ package body Decision_Map is
                   --  branching to a new evaluation of the decision (for the
                   --  next loop iteration).
 
-                  Report (Exe, Cond_Branch_PC,
-                          "tried to exclude pre-outcome basic block at "
-                          & Hex_Image (Next_PC),
-                          Kind => Diagnostics.Error);
+                  Report
+                    (Exe,
+                     Cond_Branch_PC,
+                     "tried to exclude pre-outcome basic block at "
+                     & Hex_Image (Next_PC),
+                     Kind => Diagnostics.Error);
                end if;
 
             else
@@ -1365,8 +1370,8 @@ package body Decision_Map is
                --  or if the branch is a call that returns.
 
                if (Outcome_Reached and then BB.Cond)
-                 or else
-                   (BB.Branch = Br_Call and then BB.Call /= Raise_Exception)
+                 or else (BB.Branch = Br_Call
+                          and then BB.Call /= Raise_Exception)
                then
                   Next_PC := BB.FT_Dest.Target;
                   goto Tail_Recurse;
@@ -1376,7 +1381,7 @@ package body Decision_Map is
 
          Labeling_Complete : Boolean;
 
-      --  Start of processing for Label_Destinations
+         --  Start of processing for Label_Destinations
 
       begin
          --  Skip branch if already identified as not contributing to the
@@ -1397,7 +1402,7 @@ package body Decision_Map is
             use Basic_Block_Sets;
 
             BB_Cur : constant Cursor :=
-                       Find_Basic_Block (Ctx.Basic_Blocks, Cond_Branch_PC);
+              Find_Basic_Block (Ctx.Basic_Blocks, Cond_Branch_PC);
             BB     : Basic_Block := Element (BB_Cur);
 
             function BB_Outcome_Reached return Tristate;
@@ -1436,10 +1441,13 @@ package body Decision_Map is
 
             if BB_Outcome_Reached = True then
                CBI.Condition := No_SCO_Id;
-               Report (Exe, Cond_Branch_PC,
-                       "skipping post-outcome branch"
-                       & " in BB @" & Hex_Image (BB.From),
-                       Kind => Notice);
+               Report
+                 (Exe,
+                  Cond_Branch_PC,
+                  "skipping post-outcome branch"
+                  & " in BB @"
+                  & Hex_Image (BB.From),
+                  Kind => Notice);
                return;
             end if;
          end;
@@ -1449,12 +1457,10 @@ package body Decision_Map is
          Labeling_Complete := True;
          for Edge in Edge_Kind loop
             if CBI.Edges (Edge).Origin /= Unknown
-                 or else
-               CBI.Edges (Edge).Dest_Kind = Raise_Exception
-                 or else
-               (CBI.Edges (Edge).Dest_Kind = Condition
-                  and then
-                CBI.Edges (Edge).Next_Condition = Index (CBI.Condition))
+              or else CBI.Edges (Edge).Dest_Kind = Raise_Exception
+              or else (CBI.Edges (Edge).Dest_Kind = Condition
+                       and then CBI.Edges (Edge).Next_Condition
+                                = Index (CBI.Condition))
             then
                --  Labeling already complete for this edge, nothing else to do
 
@@ -1481,8 +1487,9 @@ package body Decision_Map is
 
             if CBI.Edges (Edge).Origin /= Unknown then
                Has_Valuation
-                 (Index (CBI.Condition), To_Boolean (CBI.Edges (Edge).Origin))
-                   := True;
+                 (Index (CBI.Condition),
+                  To_Boolean (CBI.Edges (Edge).Origin)) :=
+                 True;
             end if;
          end loop;
 
@@ -1493,17 +1500,14 @@ package body Decision_Map is
          --  taken).
 
          if CBI.Edges (Branch).Dest_Kind = Unknown
-              and then
-            Get_Sloc
-              (Ctx.Subprg.Lines, CBI.Edges (Branch).Destination.Target)
-              = Cond_Branch_Sloc
-              and then
-            CBI.Edges (Fallthrough).Dest_Kind = Unknown
-              and then
-            Get_Sloc
-              (Ctx.Subprg.Lines,
-               CBI.Edges (Fallthrough).Destination.Target)
-              = Cond_Branch_Sloc
+           and then Get_Sloc
+                      (Ctx.Subprg.Lines, CBI.Edges (Branch).Destination.Target)
+                    = Cond_Branch_Sloc
+           and then CBI.Edges (Fallthrough).Dest_Kind = Unknown
+           and then Get_Sloc
+                      (Ctx.Subprg.Lines,
+                       CBI.Edges (Fallthrough).Destination.Target)
+                    = Cond_Branch_Sloc
          then
             for Edge of CBI.Edges loop
                Edge.Dest_Kind := Condition;
@@ -1546,7 +1550,7 @@ package body Decision_Map is
       is
          This_CBE     : Cond_Edge_Info renames CBI.Edges (Edge);
          Opposite_CBE : Cond_Edge_Info renames
-                          CBI.Edges (Edge_Kind'Val (1 - Edge_Kind'Pos (Edge)));
+           CBI.Edges (Edge_Kind'Val (1 - Edge_Kind'Pos (Edge)));
       begin
          if This_CBE.Origin /= Unknown
            or else This_CBE.Dest_Kind = Condition
@@ -1578,14 +1582,13 @@ package body Decision_Map is
 
             declare
                Candidate_Val     : constant Boolean :=
-                                     not To_Boolean (Opposite_CBE.Origin);
+                 not To_Boolean (Opposite_CBE.Origin);
                Candidate_Outcome : constant Tristate :=
-                                     Outcome (CBI.Condition, Candidate_Val);
+                 Outcome (CBI.Condition, Candidate_Val);
             begin
                if Candidate_Outcome = Unknown
-                 or else not Known_Outcome
-                   (not To_Boolean (Candidate_Outcome)).
-                     Contains (CBI.Edges (Edge).Destination)
+                 or else not Known_Outcome (not To_Boolean (Candidate_Outcome))
+                               .Contains (CBI.Edges (Edge).Destination)
                then
                   Set_Known_Origin
                     (Cond_Branch_PC,
@@ -1633,13 +1636,13 @@ package body Decision_Map is
                begin
                   --  Assert consistency of dest kind, if known
 
-                  pragma Assert
-                    (CBE.Dest_Kind = Unknown
-                     or else
-                     CBE.Dest_Kind = Other_CBE.Dest_Kind);
+                  pragma
+                    Assert
+                      (CBE.Dest_Kind = Unknown
+                         or else CBE.Dest_Kind = Other_CBE.Dest_Kind);
 
-                  CBE.Dest_Kind      := Other_CBE.Dest_Kind;
-                  CBE.Outcome        := Other_CBE.Outcome;
+                  CBE.Dest_Kind := Other_CBE.Dest_Kind;
+                  CBE.Outcome := Other_CBE.Outcome;
                   CBE.Next_Condition := Other_CBE.Next_Condition;
                end;
                exit;
@@ -1647,8 +1650,7 @@ package body Decision_Map is
             --  If edge is not found but branches immediately to a further
             --  unconditional jump, then follow that jump.
 
-            elsif BB.Jump_Only
-            then
+            elsif BB.Jump_Only then
                CBE_Dest := BB.Branch_Dest;
             else
                exit;
@@ -1667,8 +1669,8 @@ package body Decision_Map is
          --  which starts with a x87-FPU instruction.
 
          declare
-            Sec      : constant Address_Info_Acc := Get_Address_Info
-              (Exe.all, Section_Addresses, BB.From);
+            Sec      : constant Address_Info_Acc :=
+              Get_Address_Info (Exe.all, Section_Addresses, BB.From);
             Buffer   : Highlighting.Buffer_Type (1);
             Line_Len : Natural;
          begin
@@ -1693,12 +1695,12 @@ package body Decision_Map is
 
          if CBE.Dest_Kind = Outcome and then CBE.Outcome = Unknown then
             declare
-               Opposite_Edge : constant Edge_Kind :=
+               Opposite_Edge    : constant Edge_Kind :=
                  Edge_Kind'Val (1 - Edge_Kind'Pos (Edge));
-               CBE_Outcome : constant Tristate := Label_From_BB
-                 (Cond_Branch_PC, CBI, Edge);
-               Opposite_Outcome : constant Tristate := Label_From_BB
-                 (Cond_Branch_PC, CBI, Opposite_Edge);
+               CBE_Outcome      : constant Tristate :=
+                 Label_From_BB (Cond_Branch_PC, CBI, Edge);
+               Opposite_Outcome : constant Tristate :=
+                 Label_From_BB (Cond_Branch_PC, CBI, Opposite_Edge);
             begin
                --  Accept the estimated outcome value only if the opposite
                --  one is different.
@@ -1715,9 +1717,8 @@ package body Decision_Map is
       -------------------
 
       function Label_From_BB
-        (Cond_Branch_PC : Pc_Type;
-         CBI            : Cond_Branch_Info;
-         Edge           : Edge_Kind) return Tristate
+        (Cond_Branch_PC : Pc_Type; CBI : Cond_Branch_Info; Edge : Edge_Kind)
+         return Tristate
       is
          use Known_Destination_Maps;
          BB     : Basic_Block;
@@ -1736,9 +1737,10 @@ package body Decision_Map is
             --  basic block whose last instruction is the origin of the
             --  edge.
 
-            raise Program_Error with
-               "Cannot find a basic block for the branch instruction at "
-               & Hex_Image (Cond_Branch_PC);
+            raise Program_Error
+              with
+                "Cannot find a basic block for the branch instruction at "
+                & Hex_Image (Cond_Branch_PC);
          end if;
 
          --  If this branch is a conditional return, there is nothing to
@@ -1749,8 +1751,7 @@ package body Decision_Map is
             --  Otherwise, get for the basic block that contain CBE's
             --  destination.
 
-            BB := Find_Basic_Block
-              (Ctx.Basic_Blocks, CBE.Destination.Target);
+            BB := Find_Basic_Block (Ctx.Basic_Blocks, CBE.Destination.Target);
             if BB /= No_Basic_Block then
                --  Then look at edges whose destination is before CBEs in the
                --  same basic block and with the same kind of destination.
@@ -1758,17 +1759,14 @@ package body Decision_Map is
                --  we met, if any.
 
                Cur := Known_Destinations.Ceiling ((BB.From - 1, 0));
-               while Cur /= No_Element
-                        and then
-                     Key (Cur) < CBE.Destination
+               while Cur /= No_Element and then Key (Cur) < CBE.Destination
                loop
                   declare
                      Other_CBE : Cond_Edge_Info renames
-                        Get_CBE (Element (Cur));
+                       Get_CBE (Element (Cur));
                   begin
                      if Other_CBE.Dest_Kind = Outcome
-                           and then
-                        Other_CBE.Outcome /= Unknown
+                       and then Other_CBE.Outcome /= Unknown
                      then
                         return Other_CBE.Outcome;
                      end if;
@@ -1780,11 +1778,12 @@ package body Decision_Map is
                --  This should *never* happen: for every edge, there must be a
                --  basic block that contains the destination of the edge.
 
-               raise Program_Error with
-                  "Cannot find a basic block for the edge "
-                  & Hex_Image (Cond_Branch_PC)
-                  & " -> "
-                  & Hex_Image (CBE.Destination.Target);
+               raise Program_Error
+                 with
+                   "Cannot find a basic block for the edge "
+                   & Hex_Image (Cond_Branch_PC)
+                   & " -> "
+                   & Hex_Image (CBE.Destination.Target);
             end if;
          end if;
 
@@ -1799,14 +1798,10 @@ package body Decision_Map is
       ------------------------------
 
       procedure Record_Known_Destination
-        (Cond_Branch_PC : Pc_Type;
-         Destination    : Dest;
-         Edge           : Edge_Kind)
-      is
+        (Cond_Branch_PC : Pc_Type; Destination : Dest; Edge : Edge_Kind) is
       begin
          if not Known_Destinations.Contains (Destination) then
-            Known_Destinations.Insert
-              (Destination, (Cond_Branch_PC, Edge));
+            Known_Destinations.Insert (Destination, (Cond_Branch_PC, Edge));
          end if;
       end Record_Known_Destination;
 
@@ -1814,10 +1809,7 @@ package body Decision_Map is
       -- Output_Cond_Branch --
       ------------------------
 
-      procedure Output_Cond_Branch
-        (Exe   : Exe_File_Acc;
-         CB_PC : Pc_Type)
-      is
+      procedure Output_Cond_Branch (Exe : Exe_File_Acc; CB_PC : Pc_Type) is
          use Cond_Branch_Maps;
 
          Cur : Cursor := Cond_Branch_Map.Find ((Exe, CB_PC));
@@ -1825,8 +1817,7 @@ package body Decision_Map is
          CBI : Cond_Branch_Info renames Element (Cur);
 
          function Dest_Image
-           (Edge      : Edge_Kind;
-            Edge_Info : Cond_Edge_Info) return String;
+           (Edge : Edge_Kind; Edge_Info : Cond_Edge_Info) return String;
          --  Return string representation of the given edge of CBI
 
          ----------------
@@ -1834,8 +1825,7 @@ package body Decision_Map is
          ----------------
 
          function Dest_Image
-           (Edge      : Edge_Kind;
-            Edge_Info : Cond_Edge_Info) return String
+           (Edge : Edge_Kind; Edge_Info : Cond_Edge_Info) return String
          is
             function Additional_Info_Image return String;
             --  Edge_Info.Next_Condition if Dest_Kind is Condition,
@@ -1850,36 +1840,40 @@ package body Decision_Map is
             begin
                case Edge_Info.Dest_Kind is
                   when Condition =>
-                     return " ("
-                       & Img (Integer (Edge_Info.Next_Condition))
-                       & ")";
+                     return
+                       " (" & Img (Integer (Edge_Info.Next_Condition)) & ")";
 
-                  when Outcome =>
+                  when Outcome   =>
                      return " (" & Edge_Info.Outcome'Img & ")";
 
-                  when others =>
+                  when others    =>
                      return "";
                end case;
             end Additional_Info_Image;
 
-         --  Start of processing for Dest_Image
+            --  Start of processing for Dest_Image
 
          begin
-            return Edge_Info.Origin'Img & "->" & Edge'Img
-              & " = " & Hex_Image (Edge_Info.Destination.Target)
-              & " " & Edge_Info.Dest_Kind'Img & Additional_Info_Image;
+            return
+              Edge_Info.Origin'Img
+              & "->"
+              & Edge'Img
+              & " = "
+              & Hex_Image (Edge_Info.Destination.Target)
+              & " "
+              & Edge_Info.Dest_Kind'Img
+              & Additional_Info_Image;
          end Dest_Image;
 
-      --  Start of processing for Output_Cond_Branch
+         --  Start of processing for Output_Cond_Branch
 
       begin
          if CBI.Condition = No_SCO_Id
            or else (CBI.Edges (Branch).Origin = Unknown
-                      and then
-                    CBI.Edges (Fallthrough).Origin = Unknown)
+                    and then CBI.Edges (Fallthrough).Origin = Unknown)
          then
-            Report (Exe, CB_PC,
-                    "omitted non-contributive branch", Kind => Notice);
+            Report
+              (Exe, CB_PC, "omitted non-contributive branch", Kind => Notice);
             Cond_Branch_Map.Delete (Cur);
             return;
          end if;
@@ -1903,20 +1897,23 @@ package body Decision_Map is
 
          for Edge in Edge_Kind loop
             if CBI.Edges (Edge).Dest_Kind = Unknown
-                 or else
-               (CBI.Edges (Edge).Dest_Kind = Outcome
-                  and then CBI.Edges (Edge).Origin = Unknown)
+              or else (CBI.Edges (Edge).Dest_Kind = Outcome
+                       and then CBI.Edges (Edge).Origin = Unknown)
             then
-               Report (Exe, CB_PC,
-                       "unable to label " & Edge'Img
-                       & " destination "
-                       & Hex_Image (CBI.Edges (Edge).Destination.Target),
-                       Kind => Warning);
+               Report
+                 (Exe,
+                  CB_PC,
+                  "unable to label "
+                  & Edge'Img
+                  & " destination "
+                  & Hex_Image (CBI.Edges (Edge).Destination.Target),
+                  Kind => Warning);
             end if;
          end loop;
 
          Report
-           (Exe, CB_PC,
+           (Exe,
+            CB_PC,
             Dest_Image (Branch, CBI.Edges (Branch))
             & " / "
             & Dest_Image (Fallthrough, CBI.Edges (Fallthrough)),
@@ -1936,9 +1933,9 @@ package body Decision_Map is
          CBE        : Cond_Edge_Info renames CBI.Edges (Edge);
          Next_C_SCO : SCO_Id;
          BB         : constant Basic_Block :=
-                        Find_Basic_Block (Ctx.Basic_Blocks, Cond_Branch_PC);
+           Find_Basic_Block (Ctx.Basic_Blocks, Cond_Branch_PC);
       begin
-         CBE.Origin  := To_Tristate (Origin);
+         CBE.Origin := To_Tristate (Origin);
          CBE.Outcome := Outcome (CBI.Condition, Origin);
 
          if CBE.Outcome = Unknown then
@@ -1987,8 +1984,8 @@ package body Decision_Map is
                   exit when not BB.Jump_Only;
 
                   Destination := BB.Branch_Dest;
-                  BB := Find_Basic_Block (Ctx.Basic_Blocks,
-                                          Destination.Target);
+                  BB :=
+                    Find_Basic_Block (Ctx.Basic_Blocks, Destination.Target);
                end loop;
                Record_Known_Destination (Cond_Branch_PC, Destination, Edge);
             end;
@@ -2015,7 +2012,7 @@ package body Decision_Map is
          Next_PC       : Pc_Type;
          In_Delay_Slot : Boolean := False;
 
-         BB            : Basic_Block;
+         BB : Basic_Block;
 
          After_Call : Boolean := False;
          --  Whether the previous basic block ends with a call instruction.
@@ -2045,8 +2042,7 @@ package body Decision_Map is
          -- Is_Visited_BB --
          -------------------
 
-         function Is_Visited_BB (Pc : Pc_Type) return Boolean
-         is
+         function Is_Visited_BB (Pc : Pc_Type) return Boolean is
             use Pc_Sets;
          begin
             return Visited_BB.Find (Pc) /= Pc_Sets.No_Element;
@@ -2092,7 +2088,7 @@ package body Decision_Map is
 
          if BB = No_Basic_Block then
             if After_Call
-               or else Next_PC not in Ctx.Subprg.First .. Ctx.Subprg.Last
+              or else Next_PC not in Ctx.Subprg.First .. Ctx.Subprg.Last
             then
                --  If After_Call is true, the previously processed basic block
                --  is probably a non-returning call (although there is no way
@@ -2115,9 +2111,10 @@ package body Decision_Map is
                --  of the current routine, so all jumps must target an existing
                --  basic block.
 
-               raise Program_Error with
-                 "Cannot find a basic block for the instruction at "
-                 & Hex_Image (Next_PC);
+               raise Program_Error
+                 with
+                   "Cannot find a basic block for the instruction at "
+                   & Hex_Image (Next_PC);
             end if;
 
          elsif Is_Visited_BB (BB.From) then
@@ -2145,8 +2142,7 @@ package body Decision_Map is
 
          if Next_PC_SCO /= No_SCO_Id
            and then not (Next_PC_Sloc.L.Column = 0
-                           and then
-                         Is_Multistatement_Line (Next_PC_Sloc))
+                         and then Is_Multistatement_Line (Next_PC_Sloc))
          then
             declare
                Dom_SCO : SCO_Id;
@@ -2201,15 +2197,13 @@ package body Decision_Map is
 
          Leaves_Statement :=
            Leaves_Statement
-             or else
-               (S_SCO /= No_SCO_Id
-                  and then
-                (if Next_PC_SCO /= No_SCO_Id then
-                   S_SCO /= Next_PC_SCO
-                 elsif Next_PC_Sloc /= No_Location then
-                   not In_Range (Next_PC_Sloc, Sloc_Range (S_SCO))
-                 else
-                   False));
+           or else (S_SCO /= No_SCO_Id
+                    and then (if Next_PC_SCO /= No_SCO_Id
+                              then S_SCO /= Next_PC_SCO
+                              elsif Next_PC_Sloc /= No_Location
+                              then
+                                not In_Range (Next_PC_Sloc, Sloc_Range (S_SCO))
+                              else False));
 
          --  If this is a call to a finalization symbol (besides the finalizer
          --  itself), assume that we remain in the decision. Otherwise, look
@@ -2247,7 +2241,7 @@ package body Decision_Map is
          --  the decision.
 
          case BB.Branch is
-            when Br_Jmp =>
+            when Br_Jmp  =>
                if BB.Cond then
                   if BB.Condition /= No_SCO_Id
                     and then Enclosing_Decision (BB.Condition) = D_Occ.Decision
@@ -2280,7 +2274,7 @@ package body Decision_Map is
                --  we will deactivate it in this case.
 
                if BB.Call = Finalizer
-                  and then not Is_Quantified_Expression (CBI.Condition)
+                 and then not Is_Quantified_Expression (CBI.Condition)
                then
                   Edge_Info.Dest_Kind := Outcome;
 
@@ -2288,8 +2282,7 @@ package body Decision_Map is
                --  an exception: the edge is either a failed run time check
                --  or a False outcome for an assertion/pre/post-condition.
 
-               elsif BB.Call = Raise_Exception
-                     and then D_SCO_For_Jump = D_SCO
+               elsif BB.Call = Raise_Exception and then D_SCO_For_Jump = D_SCO
                then
                   --  Call to Raise_Assert_Failure in an Assert/PPC decision:
                   --  False outcome. Note that more than one condition within
@@ -2299,12 +2292,12 @@ package body Decision_Map is
                   --  than SCO (but always within the same enclosing decision).
 
                   if Is_Assertion (D_SCO)
-                     and then Platform_Independent_Symbol (BB.Called_Sym.all,
-                                                           Exe.all)
-                              = "system__assertions__raise_assert_failure"
+                    and then Platform_Independent_Symbol
+                               (BB.Called_Sym.all, Exe.all)
+                             = "system__assertions__raise_assert_failure"
                   then
                      Edge_Info.Dest_Kind := Outcome;
-                     Edge_Info.Outcome   := False;
+                     Edge_Info.Outcome := False;
 
                   else
                      Edge_Info.Dest_Kind := Raise_Exception;
@@ -2316,7 +2309,7 @@ package body Decision_Map is
                   goto Follow_Jump;
                end if;
 
-            when Br_Ret =>
+            when Br_Ret  =>
 
                --  Edge returning from the current function can only be an
                --  outcome.
@@ -2324,18 +2317,20 @@ package body Decision_Map is
                Edge_Info.Dest_Kind := Outcome;
                return;
 
-            when others =>
+            when others  =>
                null;
          end case;
       end Trace_Destination;
 
-   --  Start of processing for Analyze_Decision_Occurrence
+      --  Start of processing for Analyze_Decision_Occurrence
 
    begin
-      Report (Exe, First_CBI_PC (D_Occ),
-              "analyzing occurrence",
-              SCO  => D_Occ.Decision,
-              Kind => Notice);
+      Report
+        (Exe,
+         First_CBI_PC (D_Occ),
+         "analyzing occurrence",
+         SCO  => D_Occ.Decision,
+         Kind => Notice);
 
       --  Detect and report incomplete occurrences (i.e. occurrence where the
       --  last seen condition is not the last run-time-evaluated condition of
@@ -2370,11 +2365,10 @@ package body Decision_Map is
       for J in Condition_Index'First .. D_Occ.Last_Cond_Index loop
          for Val in Boolean'Range loop
             if not Has_Valuation (J, Val)
-              and then
-                Value (Condition (D_Occ.Decision, J)) = Unknown
+              and then Value (Condition (D_Occ.Decision, J)) = Unknown
             then
                D_Occ.Missing_Valuations.Insert
-                 (Valuation_Type'(CI  => J, Val => Val));
+                 (Valuation_Type'(CI => J, Val => Val));
             end if;
          end loop;
       end loop;
@@ -2396,9 +2390,7 @@ package body Decision_Map is
    Thunk_Matcher : constant GNAT.Regexp.Regexp := Compile (".*__T[0-9]+[bs]");
 
    procedure Analyze_Routine
-     (Name  : String_Access;
-      Exec  : Exe_File_Acc;
-      Insns : Binary_Content)
+     (Name : String_Access; Exec : Exe_File_Acc; Insns : Binary_Content)
    is
       PC       : Pc_Type;
       Insn_Len : Natural;
@@ -2414,9 +2406,7 @@ package body Decision_Map is
       procedure Put_Line (S : String; Underline : Character);
       --  Output S, underline with the given character
 
-      procedure Report_Non_Traceable
-        (BB     : Basic_Block;
-         Reason : String);
+      procedure Report_Non_Traceable (BB : Basic_Block; Reason : String);
       --  Emit a diagnostic for a non-traceable conditional branch instruction
       --  at BB.To_PC.
 
@@ -2446,13 +2436,9 @@ package body Decision_Map is
       -- Report_Non_Traceable --
       --------------------------
 
-      procedure Report_Non_Traceable
-        (BB     : Basic_Block;
-         Reason : String)
-      is
+      procedure Report_Non_Traceable (BB : Basic_Block; Reason : String) is
       begin
-         Context.Stats.Non_Traceable :=
-           Context.Stats.Non_Traceable + 1;
+         Context.Stats.Non_Traceable := Context.Stats.Non_Traceable + 1;
 
          Report
            ("non-traceable: " & Reason,
@@ -2472,19 +2458,20 @@ package body Decision_Map is
          Insn_First, Insn_Last : Pc_Type;
          --  Conditional branch instruction PC range in Insns
 
-         C_SCO                 : SCO_Id;
+         C_SCO : SCO_Id;
          --  SCO and sloc information for this instruction
 
-         Branch_Dest, FT_Dest  : Dest;
+         Branch_Dest, FT_Dest : Dest;
          --  Machine properties for this conditional branch
 
-         BB_From               : Pc_Type;
+         BB_From : Pc_Type;
          --  First PC of the basic block that contains this instruction
       end record;
 
-      package Pending_Cond_Branch_Vectors is new Ada.Containers.Vectors
-        (Index_Type   => Natural,
-         Element_Type => Pending_Cond_Branch);
+      package Pending_Cond_Branch_Vectors is new
+        Ada.Containers.Vectors
+          (Index_Type   => Natural,
+           Element_Type => Pending_Cond_Branch);
       use Pending_Cond_Branch_Vectors;
 
       Pending_Cond_Branches : Pending_Cond_Branch_Vectors.Vector;
@@ -2500,7 +2487,7 @@ package body Decision_Map is
       Cache    : Insn_Set_Cache := Empty_Cache;
       Insn_Set : Insn_Set_Type;
 
-   --  Start of processing for Analyze_Routine
+      --  Start of processing for Analyze_Routine
 
    begin
       if Branch_Stats_Trace.Is_Active then
@@ -2522,8 +2509,7 @@ package body Decision_Map is
       PC := Insns.First;
       New_Basic_Block;
 
-      while Iterate_Over_Insns
-        (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
+      while Iterate_Over_Insns (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
       loop
          Disas := Disa_For_Machine (Machine, Insn_Set);
          Insn_Len := Disas.Get_Insn_Length (Slice (Insns, PC, Insns.Last));
@@ -2539,7 +2525,7 @@ package body Decision_Map is
             Branch_Dest : Dest;
             FT_Dest     : Dest;
             Slocs       : constant Source_Locations :=
-                            Get_Slocs (Context.Subprg.Lines, PC);
+              Get_Slocs (Context.Subprg.Lines, PC);
             --  Properties of Insn
 
          begin
@@ -2553,10 +2539,12 @@ package body Decision_Map is
                         if Kind (SCO) = Statement
                           and then S_Kind (SCO) = Type_Declaration
                         then
-                           Report (Exec, PC,
-                                   Msg  => "ignoring thunk " & Subp_Name,
-                                   SCO  => SCO,
-                                   Kind => Notice);
+                           Report
+                             (Exec,
+                              PC,
+                              Msg  => "ignoring thunk " & Subp_Name,
+                              SCO  => SCO,
+                              Kind => Notice);
                            return;
                         end if;
                      end loop;
@@ -2578,9 +2566,8 @@ package body Decision_Map is
                   for SCO of LI.SCOs.all loop
 
                      if Kind (SCO) = Statement
-                          and then
-                        (Sloc.L.Column = 0
-                           or else In_Range (Sloc, Sloc_Range (SCO)))
+                       and then (Sloc.L.Column = 0
+                                 or else In_Range (Sloc, Sloc_Range (SCO)))
                      then
                         Set_Basic_Block_Has_Code (SCO);
                      end if;
@@ -2606,8 +2593,8 @@ package body Decision_Map is
             --  Use debug information to complete properties
 
             if Branch = Br_Call and then Flag_Indir then
-               Branch_Dest.Target := Get_Call_Target
-                 (Exec.all, PC, Pc_Type (Insn_Len));
+               Branch_Dest.Target :=
+                 Get_Call_Target (Exec.all, PC, Pc_Type (Insn_Len));
             end if;
 
             --  If both edges have the same delay slot address, then said delay
@@ -2638,10 +2625,11 @@ package body Decision_Map is
                     Disas.Get_Insn_Length
                       (Slice (Insns, Delay_Slot_PC, Insns.Last));
                   Delay_Slot_Insn : constant Binary_Content :=
-                    Slice (Insns,
-                           Delay_Slot_PC,
-                           Delay_Slot_PC + Pc_Type (Delay_Slot_Len) - 1);
-                  Delay_Slot_Loc  : constant  Source_Location :=
+                    Slice
+                      (Insns,
+                       Delay_Slot_PC,
+                       Delay_Slot_PC + Pc_Type (Delay_Slot_Len) - 1);
+                  Delay_Slot_Loc  : constant Source_Location :=
                     Get_Sloc (Context.Subprg.Lines, Delay_Slot_PC);
                   Branch_Sloc     : constant Source_Location :=
                     Get_Sloc (Context.Subprg.Lines, PC);
@@ -2667,21 +2655,22 @@ package body Decision_Map is
             end if;
 
             if Branch /= Br_None then
-               Analyze_Branch : declare
-                  SCO            : SCO_Id;
-                  Branch_SCO     : SCO_Id renames BB.Branch_SCO;
+               Analyze_Branch :
+               declare
+                  SCO        : SCO_Id;
+                  Branch_SCO : SCO_Id renames BB.Branch_SCO;
 
-               --  Start of processing for Analyze_Branch
+                  --  Start of processing for Analyze_Branch
 
                begin
                   --  Update BB info
 
-                  BB.To_PC       := Insn.First;
-                  BB.To          := Insn.Last;
+                  BB.To_PC := Insn.First;
+                  BB.To := Insn.Last;
                   BB.Branch_Dest := Branch_Dest;
-                  BB.FT_Dest     := FT_Dest;
-                  BB.Branch      := Branch;
-                  BB.Cond        := Flag_Cond;
+                  BB.FT_Dest := FT_Dest;
+                  BB.Branch := Branch;
+                  BB.Cond := Flag_Cond;
 
                   if Branch = Br_Call then
                      Analyze_Call (Exec, BB);
@@ -2700,8 +2689,7 @@ package body Decision_Map is
 
                      if Flag_Cond then
                         if Branch = Br_Jmp or else Branch = Br_Ret then
-                           if SCO /= No_SCO_Id
-                             and then Kind (SCO) = Condition
+                           if SCO /= No_SCO_Id and then Kind (SCO) = Condition
                            then
                               --  Assumption: a given conditional branch
                               --  instruction tests at most 1 source condition.
@@ -2743,7 +2731,8 @@ package body Decision_Map is
                            --  (such combinations are not supported).
 
                            Report_Non_Traceable
-                             (BB, "unexpected conditional branch of type "
+                             (BB,
+                              "unexpected conditional branch of type "
                               & Branch'Img);
                         end if;
                      end if;
@@ -2774,15 +2763,15 @@ package body Decision_Map is
 
       if BB.From <= Insns.Last then
          BB.To_PC := Insns.Last - Pc_Type (Insn_Len) + 1;
-         BB.To    := Insns.Last;
+         BB.To := Insns.Last;
          Context.Basic_Blocks.Insert (BB);
       end if;
 
       --  All done if doing only statement coverage
 
       if not (Branch_Stats_Trace.Is_Active
-                or else Enabled (Decision)
-                or else MCDC_Coverage_Enabled)
+              or else Enabled (Decision)
+              or else MCDC_Coverage_Enabled)
       then
          return;
       end if;
@@ -2791,9 +2780,9 @@ package body Decision_Map is
 
       for Cond_Branch of Pending_Cond_Branches loop
          declare
-            BB_Cur      : constant Basic_Block_Sets.Cursor :=
+            BB_Cur : constant Basic_Block_Sets.Cursor :=
               Find_Basic_Block (Context.Basic_Blocks, Cond_Branch.BB_From);
-            BB          : Basic_Block := Basic_Block_Sets.Element (BB_Cur);
+            BB     : Basic_Block := Basic_Block_Sets.Element (BB_Cur);
             --  This conditional branch has been found when building the list
             --  of basic blocks, so we know there is exactly one basic block
             --  ending with it.
@@ -2819,8 +2808,8 @@ package body Decision_Map is
 
       --  Flush pending decisions
 
-      for J in reverse Context.Decision_Stack.First_Index
-                    .. Context.Decision_Stack.Last_Index
+      for J in reverse
+        Context.Decision_Stack.First_Index .. Context.Decision_Stack.Last_Index
       loop
          Analyze_Decision_Occurrence
            (Exec, Context, Context.Decision_Stack.Element (J));
@@ -2844,8 +2833,9 @@ package body Decision_Map is
          begin
             for D_Occ of D_Occs loop
                Missing_Valuations.Intersection (D_Occ.Missing_Valuations);
-               Incomplete_Occurrence := Incomplete_Occurrence and then
-                 not Is_Last_Runtime_Condition (D_Occ);
+               Incomplete_Occurrence :=
+                 Incomplete_Occurrence
+                 and then not Is_Last_Runtime_Condition (D_Occ);
             end loop;
 
             --  Detect and report incomplete occurrences (i.e. occurrence where
@@ -2853,10 +2843,11 @@ package body Decision_Map is
             --  condition of the decision).
 
             if Incomplete_Occurrence then
-               Report (Exec,
-                       D_Occs.First_Element.Conditional_Branches.Last_Element,
-                       "incomplete occurrence",
-                       SCO => D_Occs.First_Element.Decision);
+               Report
+                 (Exec,
+                  D_Occs.First_Element.Conditional_Branches.Last_Element,
+                  "incomplete occurrence",
+                  SCO => D_Occs.First_Element.Decision);
             end if;
 
             for Valuation of Missing_Valuations loop
@@ -2866,15 +2857,19 @@ package body Decision_Map is
                   Condition_SCO : constant SCO_Id :=
                     Condition (D_Occ.Decision, Valuation.CI);
                begin
-                  Report (First_Sloc (Condition_SCO),
-                          Msg  => Image (Condition_SCO)
-                          & " lacks edge for "
-                          & Valuation.Val'Img
-                          & " in decision occurrence starting @"
-                          & Hex_Image
-                            (D_Occs.First_Element.Conditional_Branches
-                             .First_Element),
-                          Kind => Warning);
+                  Report
+                    (First_Sloc (Condition_SCO),
+                     Msg  =>
+                       Image (Condition_SCO)
+                       & " lacks edge for "
+                       & Valuation.Val'Img
+                       & " in decision occurrence starting @"
+                       & Hex_Image
+                           (D_Occs
+                              .First_Element
+                              .Conditional_Branches
+                              .First_Element),
+                     Kind => Warning);
                end;
             end loop;
          end;
@@ -2893,8 +2888,7 @@ package body Decision_Map is
                  S_Kind (Enclosing_Statement (BB.Branch_SCO));
             begin
                Context.Stats.Branch_Counts (BB.Branch, SK, BB.Cond) :=
-                 Context.Stats.Branch_Counts (BB.Branch, SK, BB.Cond)
-                 + 1;
+                 Context.Stats.Branch_Counts (BB.Branch, SK, BB.Cond) + 1;
             end;
 
             if BB.Cond then
@@ -2933,8 +2927,8 @@ package body Decision_Map is
 
                      if S_Kind (BB.Branch_SCO) /= For_Loop_Statement then
                         Report_Non_Traceable
-                          (BB, "cond branch for "
-                           & S_Kind (BB.Branch_SCO)'Img);
+                          (BB,
+                           "cond branch for " & S_Kind (BB.Branch_SCO)'Img);
                      end if;
 
                   elsif Is_Cleanup_CBI then
@@ -2948,7 +2942,7 @@ package body Decision_Map is
                         if CBI.Edges (Decision_Map.Branch).Dest_Kind
                           = Raise_Exception
                           or else CBI.Edges (Fallthrough).Dest_Kind
-                          = Raise_Exception
+                                  = Raise_Exception
                         then
                            CBK := Check;
 
@@ -2988,16 +2982,18 @@ package body Decision_Map is
             for J in Context.Stats.Branch_Counts'Range (1) loop
                First := True;
                for K in Context.Stats.Branch_Counts'Range (2) loop
-                  Count := Context.Stats.Branch_Counts (J, K, False)
-                         + Context.Stats.Branch_Counts (J, K, True);
+                  Count :=
+                    Context.Stats.Branch_Counts (J, K, False)
+                    + Context.Stats.Branch_Counts (J, K, True);
                   if Count > 0 then
                      if First then
-                        Put_Line ("  "
-                                  & (case J is
-                                       when Br_None => "not a branch     ",
-                                       when Br_Call => "subprogram call  ",
-                                       when Br_Ret  => "subprogram return",
-                                       when Br_Jmp  => "simple branch    "));
+                        Put_Line
+                          ("  "
+                           & (case J is
+                                when Br_None => "not a branch     ",
+                                when Br_Call => "subprogram call  ",
+                                when Br_Ret  => "subprogram return",
+                                when Br_Jmp  => "simple branch    "));
                         First := False;
                      end if;
 
@@ -3026,11 +3022,11 @@ package body Decision_Map is
                   Put_Line
                     (" "
                      & (case J is
-                       when None      => "no SCO       ",
-                       when Statement => "statement    ",
-                       when Condition => "condition    ",
-                       when Check     => "runtime check",
-                       when Cleanup   => "cleanup")
+                          when None      => "no SCO       ",
+                          when Statement => "statement    ",
+                          when Condition => "condition    ",
+                          when Check     => "runtime check",
+                          when Cleanup   => "cleanup")
                      & Context.Stats.Cond_Branch_Counts (J)'Img);
                end if;
             end loop;
@@ -3066,9 +3062,7 @@ package body Decision_Map is
    ------------------------
 
    procedure Build_Decision_Map
-     (Exec_Name    : String;
-      Text_Start   : Pc_Type;
-      Map_Filename : String)
+     (Exec_Name : String; Text_Start : Pc_Type; Map_Filename : String)
    is
       Exec : Exe_File_Acc;
    begin
@@ -3086,8 +3080,7 @@ package body Decision_Map is
    function Check_Possible_Successor
      (D_SCO          : SCO_Id;
       This_Condition : Any_Condition_Index;
-      Next_Condition : Condition_Index) return Tristate
-   is
+      Next_Condition : Condition_Index) return Tristate is
    begin
       --  If This_Condition is No_Condition_Index, iterate just once with an
       --  arbitrary for J, else check both valuations of the current condition.
@@ -3096,7 +3089,7 @@ package body Decision_Map is
          declare
             use SCO_Sets;
 
-            Next_Condition_SCO  : constant SCO_Id :=
+            Next_Condition_SCO : constant SCO_Id :=
               Condition (D_SCO, Next_Condition);
 
             Next_C              : SCO_Id;
@@ -3111,8 +3104,9 @@ package body Decision_Map is
                --  Go to the next condition with the J valuation for the
                --  current condition, and skip constant conditions if any.
 
-               Next_C := SC_Obligations.Next_Condition
-                           (Condition (D_SCO, This_Condition), J);
+               Next_C :=
+                 SC_Obligations.Next_Condition
+                   (Condition (D_SCO, This_Condition), J);
             end if;
 
             Skip_Constant_Conditions
@@ -3121,8 +3115,7 @@ package body Decision_Map is
             --  If there is a match between the resulting condition and
             --  the given Next_Condition, return the tried valuation.
 
-            if (Next_C /= No_SCO_Id
-                and then Index (Next_C) = Next_Condition)
+            if (Next_C /= No_SCO_Id and then Index (Next_C) = Next_Condition)
               or else Possible_Successors.Contains (Next_Condition_SCO)
             then
                return To_Tristate (J);
@@ -3141,8 +3134,8 @@ package body Decision_Map is
    ----------------------
 
    function Find_Basic_Block
-     (Basic_Blocks : Basic_Block_Sets.Set;
-      PC           : Pc_Type) return Basic_Block_Sets.Cursor
+     (Basic_Blocks : Basic_Block_Sets.Set; PC : Pc_Type)
+      return Basic_Block_Sets.Cursor
    is
       use Basic_Block_Sets;
 
@@ -3157,8 +3150,7 @@ package body Decision_Map is
    end Find_Basic_Block;
 
    function Find_Basic_Block
-     (Basic_Blocks : Basic_Block_Sets.Set;
-      PC           : Pc_Type) return Basic_Block
+     (Basic_Blocks : Basic_Block_Sets.Set; PC : Pc_Type) return Basic_Block
    is
       use Basic_Block_Sets;
 
@@ -3186,11 +3178,17 @@ package body Decision_Map is
 
    function Image (BB : Basic_Block) return String is
       Cond_Char : constant array (Boolean) of Character :=
-                    (False => ' ', True => '?');
+        (False => ' ', True => '?');
    begin
-      return Hex_Image (BB.From) & "-" & Hex_Image (BB.To)
-               & " " & BB.Branch'Img & Cond_Char (BB.Cond) & " "
-               & Hex_Image (BB.Branch_Dest.Target);
+      return
+        Hex_Image (BB.From)
+        & "-"
+        & Hex_Image (BB.To)
+        & " "
+        & BB.Branch'Img
+        & Cond_Char (BB.Cond)
+        & " "
+        & Hex_Image (BB.Branch_Dest.Target);
    end Image;
 
    -------------------------

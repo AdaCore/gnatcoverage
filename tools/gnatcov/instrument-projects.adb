@@ -33,8 +33,8 @@ with GNAT.Exception_Actions;
 with GNAT.OS_Lib;
 with GNAT.Regexp;
 
-with GNATCOLL.JSON;         use GNATCOLL.JSON;
-with GNATCOLL.VFS;          use GNATCOLL.VFS;
+with GNATCOLL.JSON; use GNATCOLL.JSON;
+with GNATCOLL.VFS;  use GNATCOLL.VFS;
 with GPR2.Build.Compilation_Unit;
 with GPR2.Build.Source;
 with GPR2.Containers;
@@ -107,11 +107,12 @@ is
 
    type Project_Info_Access is access all Project_Info;
 
-   package Project_Info_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Unbounded_String,
-      Element_Type    => Project_Info_Access,
-      Equivalent_Keys => "=",
-      Hash            => Strings.Hash);
+   package Project_Info_Maps is new
+     Ada.Containers.Hashed_Maps
+       (Key_Type        => Unbounded_String,
+        Element_Type    => Project_Info_Access,
+        Equivalent_Keys => "=",
+        Hash            => Strings.Hash);
    --  Mapping from project name (as returned by GNATCOLL.Projects.Name) to
    --  Project_Info records. Project_Info records are owned by this map, and
    --  thus must be deallocated when maps are deallocated.
@@ -128,16 +129,19 @@ is
       --  that owns the main to instrument.
    end record;
 
-   package Main_To_Instrument_Vectors is new Ada.Containers.Vectors
-     (Positive, Main_To_Instrument);
+   package Main_To_Instrument_Vectors is new
+     Ada.Containers.Vectors (Positive, Main_To_Instrument);
 
-   function Less (L, R : GPR2.Build.Source.Object) return Boolean is
-     (L.Path_Name < R.Path_Name);
-   function Equal (L, R : GPR2.Build.Source.Object) return Boolean is
-     (L.Path_Name = R.Path_Name);
+   function Less (L, R : GPR2.Build.Source.Object) return Boolean
+   is (L.Path_Name < R.Path_Name);
+   function Equal (L, R : GPR2.Build.Source.Object) return Boolean
+   is (L.Path_Name = R.Path_Name);
 
-   package File_Info_Sets is new Ada.Containers.Indefinite_Ordered_Sets
-     (Element_Type => GPR2.Build.Source.Object, "<" => Less, "=" => Equal);
+   package File_Info_Sets is new
+     Ada.Containers.Indefinite_Ordered_Sets
+       (Element_Type => GPR2.Build.Source.Object,
+        "<"          => Less,
+        "="          => Equal);
 
    type Library_Unit_Info is record
       Unit_Name : Unbounded_String;
@@ -216,8 +220,8 @@ is
    --  source file.
 
    function Get_Or_Create_Project_Info
-     (Context : in out Inst_Context;
-      Project : GPR2.Project.View.Object) return Project_Info_Access;
+     (Context : in out Inst_Context; Project : GPR2.Project.View.Object)
+      return Project_Info_Access;
    --  Return the Project_Info record corresponding to Project. Create it if it
    --  does not exist.
 
@@ -243,9 +247,8 @@ is
    --  Load the project description from the given project
 
    function Compilation_Unit_Options
-     (IC      : Inst_Context;
-      Prj     : Prj_Desc;
-      LU_Info : Library_Unit_Info) return String_Vectors.Vector;
+     (IC : Inst_Context; Prj : Prj_Desc; LU_Info : Library_Unit_Info)
+      return String_Vectors.Vector;
    --  Return the list of options to pass to a gnatcov instrument-source /
    --  instrument-main (depending on Purpose) for the given compilation unit
    --  LU_Info, belonging to the project Prj.
@@ -304,7 +307,7 @@ is
       begin
          for Lang in Some_Language loop
             if Builtin_Support (Lang)
-               and then Languages.Contains (To_Language_Id (Lang))
+              and then Languages.Contains (To_Language_Id (Lang))
             then
                declare
                   Body_Suffix : constant String :=
@@ -319,16 +322,16 @@ is
          end loop;
          NS.Dot_Replacement :=
            +Prj.Attribute (Name => R.Naming.Dot_Replacement).Value.Text;
-         NS.Casing := Casing_From_String
-           (Prj.Attribute (Name => R.Naming.Casing).Value.Text,
-            "project " & String (Prj.Name));
+         NS.Casing :=
+           Casing_From_String
+             (Prj.Attribute (Name => R.Naming.Casing).Value.Text,
+              "project " & String (Prj.Name));
       end;
 
       --  Register the source directories of the project tree
 
       declare
-         procedure Register_Source_Dirs
-           (P : GPR2.Project.View.Object);
+         procedure Register_Source_Dirs (P : GPR2.Project.View.Object);
          --  Add the source directories of P's project file to the search
          --  paths to be passed as -I arguments later. The order in which
          --  the paths are added to the search paths vector is the same
@@ -340,8 +343,7 @@ is
          -- Register_Source_Dirs --
          --------------------------
 
-         procedure Register_Source_Dirs
-           (P : GPR2.Project.View.Object) is
+         procedure Register_Source_Dirs (P : GPR2.Project.View.Object) is
          begin
             for Dir of P.Source_Directories loop
                Result.Search_Paths.Append (+("-I" & String (Dir.Dir_Name)));
@@ -457,8 +459,8 @@ is
 
    procedure Destroy_Context (Context : in out Inst_Context) is
       use Ada.Directories;
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Project_Info, Project_Info_Access);
+      procedure Free is new
+        Ada.Unchecked_Deallocation (Project_Info, Project_Info_Access);
 
       procedure Delete_File_Wrapper (Filename : US.Unbounded_String);
       --  Wrapper around Delete_File to ignore non-existing files
@@ -505,14 +507,13 @@ is
    ----------------------------
 
    function Is_Ignored_Source_File
-     (Context : Inst_Context; Filename : String) return Boolean
-   is
+     (Context : Inst_Context; Filename : String) return Boolean is
    begin
       return
-         Context.Ignored_Source_Files_Present
-         and then GNAT.Regexp.Match
-                    (S => Fold_Filename_Casing (Filename),
-                     R => Context.Ignored_Source_Files);
+        Context.Ignored_Source_Files_Present
+        and then GNAT.Regexp.Match
+                   (S => Fold_Filename_Casing (Filename),
+                    R => Context.Ignored_Source_Files);
    end Is_Ignored_Source_File;
 
    --------------------------------
@@ -520,16 +521,16 @@ is
    --------------------------------
 
    function Get_Or_Create_Project_Info
-     (Context : in out Inst_Context;
-      Project : GPR2.Project.View.Object) return Project_Info_Access
+     (Context : in out Inst_Context; Project : GPR2.Project.View.Object)
+      return Project_Info_Access
    is
       use Project_Info_Maps;
 
       --  Look for an existing Project_Info record corresponding to Project
 
       Project_Name : constant Unbounded_String := +String (Project.Name);
-      Position     : constant Cursor := Context.Project_Info_Map.Find
-        (Project_Name);
+      Position     : constant Cursor :=
+        Context.Project_Info_Map.Find (Project_Name);
    begin
       if Has_Element (Position) then
          return Element (Position);
@@ -548,11 +549,12 @@ is
             --  object files when GPRbuild processes a project that is
             --  extended.
 
-            Result : constant Project_Info_Access := new Project_Info'
-              (Project          => Project,
-               Externally_Built => Project.Is_Externally_Built,
-               Output_Dir       => +Project_Output_Dir (Storage_Project),
-               Desc             => Load_From_Project (Project));
+            Result : constant Project_Info_Access :=
+              new Project_Info'
+                (Project          => Project,
+                 Externally_Built => Project.Is_Externally_Built,
+                 Output_Dir       => +Project_Output_Dir (Storage_Project),
+                 Desc             => Load_From_Project (Project));
          begin
             Result.Desc.Output_Dir := Result.Output_Dir;
             Context.Project_Info_Map.Insert (Project_Name, Result);
@@ -578,7 +580,7 @@ is
             --  permissions to create directories there.
 
             if not Prj_Info.Externally_Built
-               and then not Ada.Directories.Exists (Output_Dir)
+              and then not Ada.Directories.Exists (Output_Dir)
             then
                Ada.Directories.Create_Path (Output_Dir);
             end if;
@@ -595,9 +597,9 @@ is
       Mains   : in out Main_To_Instrument_Vectors.Vector;
       Main    : GPR2.Build.Compilation_Unit.Unit_Location)
    is
-      CU_Name   : constant Compilation_Unit_Part :=
-         To_Compilation_Unit_Name (Main.View.Source (Main.Source.Simple_Name));
-      Prj_Info  : constant Project_Info_Access :=
+      CU_Name  : constant Compilation_Unit_Part :=
+        To_Compilation_Unit_Name (Main.View.Source (Main.Source.Simple_Name));
+      Prj_Info : constant Project_Info_Access :=
         Get_Or_Create_Project_Info (Context, Main.View);
    begin
       Mains.Append
@@ -612,8 +614,7 @@ is
    ------------------
 
    function SID_Filename
-     (LU_Info        : Library_Unit_Info;
-      In_Library_Dir : Boolean) return String
+     (LU_Info : Library_Unit_Info; In_Library_Dir : Boolean) return String
    is
       --  Determine in which project we will put this SID file, and the
       --  basename for the SID file to create. Mimic how GNAT creates ALI
@@ -636,8 +637,8 @@ is
          when Unit_Based_Language =>
             declare
                Unit          : constant GPR2.Build.Compilation_Unit.Object :=
-                 Project.Namespace_Roots.First_Element
-                 .Unit (GPR2.Name_Type (+LU_Info.Unit_Name));
+                 Project.Namespace_Roots.First_Element.Unit
+                   (GPR2.Name_Type (+LU_Info.Unit_Name));
                Src_Basename  : constant String :=
                  String
                    (if Unit.Has_Part (GPR2.S_Body)
@@ -648,9 +649,9 @@ is
                    (Src_Basename, ".", Ada.Strings.Backward);
             begin
                SID_Basename :=
-                 +(Src_Basename (Src_Basename'First ..  Src_Ext_Index)
-                   & "sid");
+                 +(Src_Basename (Src_Basename'First .. Src_Ext_Index) & "sid");
             end;
+
          when File_Based_Language =>
 
             --  TODO (eng/toolchain/gnat#603)??? Ada.Directories.Simple_Name
@@ -674,9 +675,8 @@ is
    ------------------------------
 
    function Compilation_Unit_Options
-     (IC      : Inst_Context;
-      Prj     : Prj_Desc;
-      LU_Info : Library_Unit_Info) return String_Vectors.Vector
+     (IC : Inst_Context; Prj : Prj_Desc; LU_Info : Library_Unit_Info)
+      return String_Vectors.Vector
    is
       Result : String_Vectors.Vector;
    begin
@@ -690,7 +690,7 @@ is
             Result.Append
               ("--ada-preprocessor-data=" & IC.Ada_Preprocessor_Data_File);
 
-         when others =>
+         when others       =>
             null;
       end case;
 
@@ -753,7 +753,7 @@ is
       Source_File : GPR2.Build.Source.Object) is
    begin
       if Builtin_Support (To_Language (Source_File.Language))
-         and then not Project.Is_Externally_Built
+        and then not Project.Is_Externally_Built
       then
          Project_Sources.Insert (Source_File);
       end if;
@@ -774,8 +774,8 @@ is
       use Unit_Maps;
       Unit_Name : constant String :=
         (case Lang_Kind is
-         when Unit_Based_Language => Get_Unit_Name (Source_File),
-         when File_Based_Language => String (Source_File.Path_Name.Value));
+           when Unit_Based_Language => Get_Unit_Name (Source_File),
+           when File_Based_Language => String (Source_File.Path_Name.Value));
 
       Prj_Info : constant Project_Info_Access :=
         Get_Or_Create_Project_Info (IC, Source_File.Owning_View);
@@ -810,17 +810,17 @@ is
         (Create (+String (Source_File.Path_Name.Value)));
 
       if
-         --  Headers are not instrumented by themselves, so exit early as soon
-         --  as they have been added to the sources of interest.
+      --  Headers are not instrumented by themselves, so exit early as soon
+      --  as they have been added to the sources of interest.
 
          (Language in C_Family_Language
           and then Source_File.Kind = GPR2.S_Spec)
 
-         --  Ada bodies that just contain the No_Body pragmas cannot be
-         --  instrumented (not worthwhile anyway): just skip them.
+        --  Ada bodies that just contain the No_Body pragmas cannot be
+        --  instrumented (not worthwhile anyway): just skip them.
 
-         or else (Language = Ada_Language
-                  and then First_Unit (Source_File).Kind = GPR2.S_No_Body)
+        or else (Language = Ada_Language
+                 and then First_Unit (Source_File).Kind = GPR2.S_No_Body)
       then
          return;
       end if;
@@ -843,8 +843,7 @@ is
       --  in the current instrumentation run, so there is no need to grab
       --  information useful for instrumentation purposes.
 
-      if Source_File.Owning_View.Is_Externally_Built
-      then
+      if Source_File.Owning_View.Is_Externally_Built then
          return;
       end if;
 
@@ -887,10 +886,10 @@ is
    --------------------------------
 
    procedure Replace_Manual_Indications
-     (Language             : Src_Supported_Language;
-      Project_Sources      : in out File_Info_Sets.Set;
-      Instrumenter         : in out Language_Instrumenter'Class;
-      Manual_Dump_Inserted : in out Boolean;
+     (Language                : Src_Supported_Language;
+      Project_Sources         : in out File_Info_Sets.Set;
+      Instrumenter            : in out Language_Instrumenter'Class;
+      Manual_Dump_Inserted    : in out Boolean;
       Manual_Indication_Files : File_Sets.Set)
    is
 
@@ -913,10 +912,9 @@ is
       for Source of Project_Sources loop
          if To_Language (Source.Language) = Language
            and then Source.Kind = GPR2.S_Body
-           and then
-              (Manual_Indication_Files.Is_Empty
-               or else Manual_Indication_Files.Contains
-                         (Create (+String (Source.Path_Name.Value))))
+           and then (Manual_Indication_Files.Is_Empty
+                     or else Manual_Indication_Files.Contains
+                               (Create (+String (Source.Path_Name.Value))))
          then
             Processed_Files.Include (Source);
          end if;
@@ -977,13 +975,14 @@ is
 
                declare
                   use Files_Table;
-                  Instr_Units  : Unit_Sets.Set;
+                  Instr_Units : Unit_Sets.Set;
                begin
-                  for S of Source_Closure
-                    (View                  => Source.Owning_View,
-                     With_Externally_Built =>
-                       Externally_Built_Projects_Processing_Enabled,
-                     With_Runtime          => False)
+                  for S of
+                    Source_Closure
+                      (View                  => Source.Owning_View,
+                       With_Externally_Built =>
+                         Externally_Built_Projects_Processing_Enabled,
+                       With_Runtime          => False)
                   loop
                      --  First, check if S is even a source of a language we
                      --  recognize. If not, it can't have been instrumented
@@ -1005,8 +1004,7 @@ is
                                 Element (Unit_C);
                               Instr_Unit : constant Compilation_Unit :=
                                 Compilation_Unit'
-                                  (Unit.Language_Kind,
-                                   Unit.Unit_Name);
+                                  (Unit.Language_Kind, Unit.Unit_Name);
                            begin
                               if not Instr_Units.Contains (Instr_Unit) then
                                  Instr_Units.Insert (Instr_Unit);
@@ -1050,13 +1048,16 @@ is
 
             Outputs.Warn
               ("Manual buffer dump/reset indications were found in subprojects"
-               & " in the following files:" & ASCII.LF
+               & " in the following files:"
+               & ASCII.LF
                & (+All_File_Names)
                & "The coverage report built from the source traces they will"
                & " produce will show all code from projects higher in the"
                & " project tree as not covered. To get a full coverage"
                & " analysis, consider placing the manual dump buffers"
-               & " indication in the root project." & ASCII.LF & ASCII.LF
+               & " indication in the root project."
+               & ASCII.LF
+               & ASCII.LF
                & "Additionally, resetting the buffers in a subproject may"
                & " result in incoherent coverage reports from traces dumped"
                & " from a source in a parent project.");
@@ -1086,7 +1087,7 @@ is
 
       declare
          Language_Name        : constant String :=
-           "[" & Image (Language)  & "]";
+           "[" & Image (Language) & "]";
          Filename_Indentation : constant String :=
            (1 .. 16 - Language_Name'Length => ' ');
       begin
@@ -1106,8 +1107,8 @@ is
       end;
    end Show_Progress;
 
-   Mains_To_Instrument : array (Src_Supported_Language)
-     of Main_To_Instrument_Vectors.Vector;
+   Mains_To_Instrument :
+     array (Src_Supported_Language) of Main_To_Instrument_Vectors.Vector;
    --  For each supported language, list of mains to instrument. Note that
    --  this is filled even when dump-trigger is manual: in that case the
    --  instrumentation of the main will do nothing.
@@ -1115,22 +1116,24 @@ is
    Manual_Dump_Inserted : Boolean := False;
    --  Whether or not a dump procedure was inserted in any source file
 
-   Exec_Filename : constant String := Ada.Directories.Compose
-     (Support_Files.Libexec_Dir,
-      "gnatcov64" & GNAT.OS_Lib.Get_Executable_Suffix.all);
+   Exec_Filename : constant String :=
+     Ada.Directories.Compose
+       (Support_Files.Libexec_Dir,
+        "gnatcov64" & GNAT.OS_Lib.Get_Executable_Suffix.all);
    --  Launch gnatcov64 for gnatcov subprocesses (when instrumenting sources
    --  and mains), to bypass the wrapper and save some execution time.
 
    Ada_Instrumenter : aliased Instrument.Ada_Unit.Ada_Instrumenter_Type;
    C_Instrumenter   : aliased Instrument.C.C_Instrumenter_Type;
    CPP_Instrumenter : aliased Instrument.C.CPP_Instrumenter_Type;
-   Instrumenters    : constant array (Src_Supported_Language)
+   Instrumenters    :
+     constant array (Src_Supported_Language)
      of access Language_Instrumenter'Class :=
        (Ada_Language => Ada_Instrumenter'Access,
         C_Language   => C_Instrumenter'Access,
         CPP_Language => CPP_Instrumenter'Access);
 
---  Start of processing for Instrument_Units_Of_Interest
+   --  Start of processing for Instrument_Units_Of_Interest
 
 begin
    --  Set the instrumentation tag
@@ -1165,10 +1168,12 @@ begin
       if Source.Has_Units and then First_Unit (Source).Kind = GPR2.S_Separate
       then
          declare
-            Parent_Unit : constant GPR2.Build.Compilation_Unit.Unit_Location :=
-              Source.Owning_View.Namespace_Roots.First_Element
-              .Unit (Source.Unit.Name).Main_Body;
-            Parent_File : constant GPR2.Path_Name.Object :=
+            Parent_Unit   :
+              constant GPR2.Build.Compilation_Unit.Unit_Location :=
+                Source.Owning_View.Namespace_Roots.First_Element.Unit
+                  (Source.Unit.Name)
+                  .Main_Body;
+            Parent_File   : constant GPR2.Path_Name.Object :=
               Parent_Unit.Source;
             Parent_Source : constant GPR2.Build.Source.Object :=
               Parent_Unit.View.Source (Parent_File.Simple_Name);
@@ -1218,15 +1223,15 @@ begin
             then
                Outputs.Fatal_Error
                  ("Cannot instrument main source file (unsupported"
-                  & " language): " & F);
+                  & " language): "
+                  & F);
             end if;
 
             Register_Main_To_Instrument
               (Context => IC,
                Mains   => Mains_To_Instrument (Lang),
-               Main    => (Source.Owning_View,
-                           Source.Path_Name,
-                           others => <>));
+               Main    =>
+                 (Source.Owning_View, Source.Path_Name, others => <>));
          end;
       end loop;
    end if;
@@ -1316,8 +1321,7 @@ begin
       --  File containing the list of sources of interest
 
    begin
-      Sources_Of_Interest_File.Create
-        (+IC.Sources_Of_Interest_Response_File);
+      Sources_Of_Interest_File.Create (+IC.Sources_Of_Interest_Response_File);
       for Source of Files_Of_Interest_Info loop
          Sources_Of_Interest_File.Put_Line (String (Source.Path_Name.Value));
       end loop;
@@ -1339,8 +1343,7 @@ begin
 
    begin
       Instrument_Source_Args.Append (+"instrument-source");
-      Instrument_Source_Args.Append
-        (Common_Switches (Cmd_Instrument_Source));
+      Instrument_Source_Args.Append (Common_Switches (Cmd_Instrument_Source));
       for Cur in Instrumented_Sources.Iterate loop
          declare
             Unit_Args : String_Vectors.Vector := Instrument_Source_Args;
@@ -1353,9 +1356,8 @@ begin
             Obj_SID   : constant String :=
               SID_Filename (LU_Info, In_Library_Dir => False);
 
-            Prj       : constant GPR2.Project.View.Object :=
-              LU_Info.Instr_Project;
-            Desc      : constant Prj_Desc :=
+            Prj  : constant GPR2.Project.View.Object := LU_Info.Instr_Project;
+            Desc : constant Prj_Desc :=
               IC.Project_Info_Map.Element (+String (Prj.Name)).Desc;
          begin
             --  Skip instrumentation of the unit if it was already
@@ -1413,8 +1415,8 @@ begin
          Success : Boolean;
       begin
          if not LU_Info.All_Externally_Built
-            and then Lib_SID /= ""
-            and then Obj_SID /= Lib_SID
+           and then Lib_SID /= ""
+           and then Obj_SID /= Lib_SID
          then
 
             --  Unlike the object directory, which GNATCOLL.Project
@@ -1425,8 +1427,7 @@ begin
                Create (Create (+Lib_SID).Dir_Name).Make_Dir;
             exception
                when Exc : VFS_Directory_Error =>
-                  Outputs.Fatal_Error
-                    (Ada.Exceptions.Exception_Message (Exc));
+                  Outputs.Fatal_Error (Ada.Exceptions.Exception_Message (Exc));
             end;
 
             GNAT.OS_Lib.Copy_File
@@ -1436,8 +1437,10 @@ begin
                Mode     => GNAT.OS_Lib.Overwrite);
             if not Success then
                Outputs.Fatal_Error
-                 ("Error while copying " & Obj_SID
-                  & " to the library directory: " & Lib_SID);
+                 ("Error while copying "
+                  & Obj_SID
+                  & " to the library directory: "
+                  & Lib_SID);
             end if;
          end if;
       end;
@@ -1479,9 +1482,8 @@ begin
             declare
                Unit_Name : constant Unbounded_String :=
                  +(case Main.CU_Name.Language_Kind is
-                      when Unit_Based_Language =>
-                        To_Ada (Main.CU_Name.Unit),
-                      when File_Based_Language => (+Main.File.Full_Name));
+                     when Unit_Based_Language => To_Ada (Main.CU_Name.Unit),
+                     when File_Based_Language => (+Main.File.Full_Name));
                Unit_Args : String_Vectors.Vector := Instrument_Main_Args;
             begin
                Unit_Args.Append
@@ -1506,10 +1508,10 @@ begin
                   if Dump_Config.Filename_Prefix = "" then
                      Explicit_Dump_Config.Filename_Prefix :=
                        +String
-                         (Root_Project_Info.Project.Executable
-                           (Source => GPR2.Simple_Name (Main.File.Base_Name),
-                            At_Pos => 0)
-                         .Simple_Name);
+                          (Root_Project_Info.Project.Executable
+                             (Source => GPR2.Simple_Name (Main.File.Base_Name),
+                              At_Pos => 0)
+                             .Simple_Name);
                   end if;
                end if;
             end;
@@ -1518,8 +1520,8 @@ begin
                declare
                   Unit_Name : constant String :=
                     (case Main.CU_Name.Language_Kind is
-                     when Unit_Based_Language => To_Ada (Main.CU_Name.Unit),
-                     when File_Based_Language => +Main.File.Full_Name);
+                       when Unit_Based_Language => To_Ada (Main.CU_Name.Unit),
+                       when File_Based_Language => +Main.File.Full_Name);
                   Unit_Args : String_Vectors.Vector := Instrument_Main_Args;
                begin
                   if not Quiet and then First_Main then
@@ -1625,13 +1627,11 @@ begin
          Project_Sources,
          Ada_Instrumenter,
          Manual_Dump_Inserted,
-        Dump_Config.Manual_Indication_Files);
+         Dump_Config.Manual_Indication_Files);
 
       for Main of Mains_To_Instrument (Ada_Language) loop
          Insert_With_Dump_Helper
-           (Ada_Instrumenter,
-            Source => Main.File,
-            Prj    => Main.Prj_Info.Desc);
+           (Ada_Instrumenter, Source => Main.File, Prj => Main.Prj_Info.Desc);
       end loop;
 
       --  At this point, all source files for all languages have been looked
@@ -1661,8 +1661,7 @@ begin
 
    declare
       J        : constant GNATCOLL.JSON.JSON_Value := Create_Object;
-      Filename : constant String :=
-        Project.Output_Dir & "/gnatcov-instr.json";
+      Filename : constant String := Project.Output_Dir & "/gnatcov-instr.json";
    begin
       J.Set_Field ("dump-trigger", Image (Dump_Config.Trigger));
       J.Set_Field ("dump-channel", Image (Dump_Config.Channel));
@@ -1674,9 +1673,9 @@ exception
    --  by a global handler and not dealt with by the registered hook) was
    --  raised.
 
-   when Binary_Files.Error
-      | Ada.IO_Exceptions.Name_Error
-      | Outputs.Xcov_Exit_Exc =>
+   when
+     Binary_Files.Error | Ada.IO_Exceptions.Name_Error | Outputs.Xcov_Exit_Exc
+   =>
       Clean_Objdirs;
       raise;
 end Instrument.Projects;

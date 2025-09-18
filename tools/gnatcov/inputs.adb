@@ -22,7 +22,7 @@ with Ada.Text_IO;             use Ada.Text_IO;
 with GNAT.CRC32;
 with GNATCOLL.Mmap;
 
-with Hex_Images;  use Hex_Images;
+with Hex_Images; use Hex_Images;
 with Paths;
 with Switches;
 
@@ -33,8 +33,7 @@ package body Inputs is
    -------------------------
 
    procedure Read_List_From_File
-     (File_Name : String;
-      Process   : not null access procedure (Name : String))
+     (File_Name : String; Process : not null access procedure (Name : String))
    is
       function Get_Line_Compatible (F : File_Type) return String;
       --  Same as Get_Line but eat trailing ASCII.CR so that DOS text files can
@@ -56,7 +55,7 @@ package body Inputs is
 
       F : File_Type;
 
-   --  Start of processing for Read_List_From_File
+      --  Start of processing for Read_List_From_File
 
    begin
       Open (F, In_File, File_Name);
@@ -94,7 +93,7 @@ package body Inputs is
 
          F       : Mapped_File := Open_Read (File_Name);
          Content : Mapped_Region := Read (F);
-         C : CRC32;
+         C       : CRC32;
       begin
          Initialize (C);
          Update (C, String (Data (Content).all (1 .. Last (Content))));
@@ -102,14 +101,18 @@ package body Inputs is
          Close (F);
          return "0x" & Hex_Image (Get_Value (C));
       exception
-         when Name_Error => return "<None>";
+         when Name_Error =>
+            return "<None>";
       end Get_CRC32;
 
    begin
       if Switches.Misc_Trace.Is_Active then
          Switches.Misc_Trace.Trace
-           ("--- notice: open """ & File_Name
-            & """ (CRC32 = " & Get_CRC32 & ")");
+           ("--- notice: open """
+            & File_Name
+            & """ (CRC32 = "
+            & Get_CRC32
+            & ")");
       end if;
    end Log_File_Open;
 
@@ -146,9 +149,7 @@ package body Inputs is
       procedure Process (C : Cursor) is
          Raw_Pattern  : constant String := +String_Vectors.Element (C);
          Glob_Pattern : constant String :=
-           (if Case_Insensitive
-            then To_Lower (Raw_Pattern)
-            else Raw_Pattern);
+           (if Case_Insensitive then To_Lower (Raw_Pattern) else Raw_Pattern);
       begin
          --  Ignore blank lines
 
@@ -164,7 +165,7 @@ package body Inputs is
          Append (Pattern, Paths.Glob_To_Regexp (Glob_Pattern));
       end Process;
 
-   --  Start of processing for Create_Matcher
+      --  Start of processing for Create_Matcher
 
    begin
       String_Vectors.Iterate (Pattern_List, Process'Access);

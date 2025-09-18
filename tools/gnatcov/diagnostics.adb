@@ -44,14 +44,14 @@ package body Diagnostics is
    function Image (M : Message) return String is
       subtype Prefix_Str is String (1 .. 3);
       Prefix : constant array (Report_Kind) of Prefix_Str :=
-                 (Notice           => "---",
-                  Low_Warning      => "***",
-                  Warning          => "***",
-                  Error            => "!!!",
-                  Info             => ".C.",
-                  Violation        => "!C!",
-                  Undetermined_Cov => "?C?",
-                  Exclusion        => "-C-");
+        (Notice           => "---",
+         Low_Warning      => "***",
+         Warning          => "***",
+         Error            => "!!!",
+         Info             => ".C.",
+         Violation        => "!C!",
+         Undetermined_Cov => "?C?",
+         Exclusion        => "-C-");
 
       function Kind_Image return String;
       --  Text prefix for Kind, empty for the value Error
@@ -86,8 +86,10 @@ package body Diagnostics is
          use type Pc_Type;
       begin
          if M.PC /= 0 then
-            return Ada.Directories.Simple_Name (M.Exe.Get_Filename)
-              & "@" & Hex_Image (M.PC);
+            return
+              Ada.Directories.Simple_Name (M.Exe.Get_Filename)
+              & "@"
+              & Hex_Image (M.PC);
          else
             return "";
          end if;
@@ -117,17 +119,17 @@ package body Diagnostics is
       function SCO_Image return String is
       begin
          if M.SCO /= No_SCO_Id then
-            return Image (M.SCO, With_Sloc => First_Sloc (M.SCO) /= M.Sloc)
-              & ": ";
+            return
+              Image (M.SCO, With_Sloc => First_Sloc (M.SCO) /= M.Sloc) & ": ";
          else
             return "";
          end if;
       end SCO_Image;
 
       Msg   : constant String := +M.Msg;
-      First : Natural         := Msg'First;
+      First : Natural := Msg'First;
 
-   --  Start of processing for Image
+      --  Start of processing for Image
 
    begin
       if Msg (First) = '^' then
@@ -135,12 +137,13 @@ package body Diagnostics is
       end if;
 
       return
-        Prefix (M.Kind)   &
-        PC_Image          &
-        Sloc_Image        &
-        " "               &
-        Kind_Image        &
-        SCO_Image & Msg (First .. Msg'Last);
+        Prefix (M.Kind)
+        & PC_Image
+        & Sloc_Image
+        & " "
+        & Kind_Image
+        & SCO_Image
+        & Msg (First .. Msg'Last);
    end Image;
 
    ------------
@@ -157,45 +160,34 @@ package body Diagnostics is
       Subprg : constant Address_Info_Acc :=
         Get_Address_Info (Exe.all, Subprogram_Addresses, PC);
       Sloc   : constant Source_Location :=
-        (if Subprg = null
-         then No_Location
-         else Get_Sloc (Subprg.Lines, PC));
+        (if Subprg = null then No_Location else Get_Sloc (Subprg.Lines, PC));
    begin
       Report
-        (Msg,
-         Exe  => Exe,
-         PC   => PC,
-         Sloc => Sloc,
-         SCO  => SCO,
-         Kind => Kind);
+        (Msg, Exe => Exe, PC => PC, Sloc => Sloc, SCO => SCO, Kind => Kind);
    end Report;
 
    procedure Report
-     (Sloc : Source_Location;
-      Msg  : String;
-      Kind : Report_Kind := Error)
-   is
+     (Sloc : Source_Location; Msg : String; Kind : Report_Kind := Error) is
    begin
       Report (Msg, Sloc => Sloc, Kind => Kind);
    end Report;
 
    procedure Report
      (Msg            : String;
-      Exe            : Exe_File_Acc    := null;
-      PC             : Pc_Type         := No_PC;
+      Exe            : Exe_File_Acc := null;
+      PC             : Pc_Type := No_PC;
       Sloc           : Source_Location := No_Location;
       Violation_Sloc : Source_Location := No_Location;
-      SCO            : SCO_Id          := No_SCO_Id;
-      Kind           : Report_Kind     := Error)
+      SCO            : SCO_Id := No_SCO_Id;
+      Kind           : Report_Kind := Error)
    is
       M : constant Message :=
         (Kind           => Kind,
          Exe            => Exe,
          PC             => PC,
          Sloc           => Sloc,
-         Violation_Sloc => (if Sloc /= No_Location
-                            then Sloc
-                            else Violation_Sloc),
+         Violation_Sloc =>
+           (if Sloc /= No_Location then Sloc else Violation_Sloc),
          SCO            => SCO,
          Msg            => +Msg);
    begin
@@ -207,12 +199,9 @@ package body Diagnostics is
    -- Report_Coverage --
    ---------------------
 
-   procedure Report_Coverage
-     (SCO  : SCO_Id;
-      Msg  : String;
-      Kind : Coverage_Kind)
+   procedure Report_Coverage (SCO : SCO_Id; Msg : String; Kind : Coverage_Kind)
    is
-      Sloc     : Source_Location;
+      Sloc : Source_Location;
       --  Sloc of the message
 
       Violation_Sloc : Source_Location;
@@ -222,28 +211,26 @@ package body Diagnostics is
       --  the benefit of HTML output.
 
       if SC_Obligations.Kind (SCO) = Condition then
-         Sloc           := Last_Sloc (Enclosing_Decision (SCO));
+         Sloc := Last_Sloc (Enclosing_Decision (SCO));
          Violation_Sloc := First_Sloc (Enclosing_Decision (SCO));
       else
-         Sloc           := Last_Sloc (SCO);
+         Sloc := Last_Sloc (SCO);
          Violation_Sloc := First_Sloc (SCO);
       end if;
 
-      Report (Msg,
-              Sloc           => Sloc,
-              Violation_Sloc => Violation_Sloc,
-              SCO            => SCO,
-              Kind           => Kind);
+      Report
+        (Msg,
+         Sloc           => Sloc,
+         Violation_Sloc => Violation_Sloc,
+         SCO            => SCO,
+         Kind           => Kind);
    end Report_Coverage;
 
    ----------------------
    -- Report_Exclusion --
    ----------------------
 
-   procedure Report_Exclusion
-     (SCO : SCO_Id;
-      Msg : String)
-   is
+   procedure Report_Exclusion (SCO : SCO_Id; Msg : String) is
    begin
       Report_Coverage (SCO, Msg, Kind => Exclusion);
    end Report_Exclusion;
@@ -252,10 +239,7 @@ package body Diagnostics is
    -- Report_Violation --
    ----------------------
 
-   procedure Report_Violation
-     (SCO : SCO_Id;
-      Msg : String)
-   is
+   procedure Report_Violation (SCO : SCO_Id; Msg : String) is
    begin
       Report_Coverage (SCO, Msg, Kind => Violation);
    end Report_Violation;
@@ -272,7 +256,7 @@ package body Diagnostics is
       --  fine to omit them here.
 
       if Diagnostics_Trace.Is_Active
-         or else (M.Kind < Violation and then not Suppress_Message (M))
+        or else (M.Kind < Violation and then not Suppress_Message (M))
       then
          if M.Kind in Warning then
             Outputs.Register_Warning;
@@ -286,9 +270,8 @@ package body Diagnostics is
    -------------------
 
    procedure Store_Message (M : Message) is
-      procedure Append_Message is new Append_To_Array
-        (Natural, Message,
-         Message_Array, Message_Array_Acc);
+      procedure Append_Message is new
+        Append_To_Array (Natural, Message, Message_Array, Message_Array_Acc);
    begin
       if not Suppress_Message (M) then
          declare

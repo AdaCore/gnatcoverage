@@ -57,21 +57,23 @@ package body Coverage.Source is
    --  coverage information record, which denotes the coverage state of the
    --  SCO. Default initialization denotes a completely uncovered state.
 
-   procedure Read is new Read_Set
-     (Element_Type => Evaluation,
-      Set_Type     => Evaluation_Sets.Set,
-      Clear        => Evaluation_Sets.Clear,
-      Insert       => Evaluation_Sets.Insert,
-      Read_Element => Read);
+   procedure Read is new
+     Read_Set
+       (Element_Type => Evaluation,
+        Set_Type     => Evaluation_Sets.Set,
+        Clear        => Evaluation_Sets.Clear,
+        Insert       => Evaluation_Sets.Insert,
+        Read_Element => Read);
 
-   procedure Write is new Write_Set
-     (Element_Type  => Evaluation,
-      Set_Type      => Evaluation_Sets.Set,
-      Cursor_Type   => Evaluation_Sets.Cursor,
-      Length        => Evaluation_Sets.Length,
-      Iterate       => Evaluation_Sets.Iterate,
-      Query_Element => Evaluation_Sets.Query_Element,
-      Write_Element => Write);
+   procedure Write is new
+     Write_Set
+       (Element_Type  => Evaluation,
+        Set_Type      => Evaluation_Sets.Set,
+        Cursor_Type   => Evaluation_Sets.Cursor,
+        Length        => Evaluation_Sets.Length,
+        Iterate       => Evaluation_Sets.Iterate,
+        Query_Element => Evaluation_Sets.Query_Element,
+        Write_Element => Write);
 
    type Outcome_Taken_Type is array (Boolean) of Boolean;
    No_Outcome_Taken    : constant Outcome_Taken_Type := (others => False);
@@ -126,31 +128,32 @@ package body Coverage.Source is
       end case;
    end record;
 
-   package SCI_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Valid_SCO_Id,
-      Element_Type => Source_Coverage_Info);
+   package SCI_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Valid_SCO_Id,
+        Element_Type => Source_Coverage_Info);
 
    procedure Read
-     (CLS   : in out Checkpoint_Load_State;
-      Value : out Source_Coverage_Info);
+     (CLS : in out Checkpoint_Load_State; Value : out Source_Coverage_Info);
    --  Read a SCI initialized from CLS
 
    procedure Write
-     (CSS   : in out Checkpoint_Save_State;
-      Value : Source_Coverage_Info);
+     (CSS : in out Checkpoint_Save_State; Value : Source_Coverage_Info);
    --  Write a SCI to CSS
 
-   procedure Read is new Read_Vector
-     (Index_Type   => Valid_SCO_Id,
-      Element_Type => Source_Coverage_Info,
-      Vectors      => SCI_Vectors,
-      Read_Element => Read);
+   procedure Read is new
+     Read_Vector
+       (Index_Type   => Valid_SCO_Id,
+        Element_Type => Source_Coverage_Info,
+        Vectors      => SCI_Vectors,
+        Read_Element => Read);
 
-   procedure Write is new Write_Vector
-     (Index_Type    => Valid_SCO_Id,
-      Element_Type  => Source_Coverage_Info,
-      Vectors       => SCI_Vectors,
-      Write_Element => Write);
+   procedure Write is new
+     Write_Vector
+       (Index_Type    => Valid_SCO_Id,
+        Element_Type  => Source_Coverage_Info,
+        Vectors       => SCI_Vectors,
+        Write_Element => Write);
 
    SCI_Vector : SCI_Vectors.Vector;
 
@@ -159,21 +162,16 @@ package body Coverage.Source is
    Evaluation_Stack : Evaluation_Vectors.Vector;
 
    procedure Condition_Evaluated
-     (Exe     : Exe_File_Acc;
-      PC      : Pc_Type;
-      C_SCO   : SCO_Id;
-      C_Value : Boolean);
+     (Exe : Exe_File_Acc; PC : Pc_Type; C_SCO : SCO_Id; C_Value : Boolean);
    --  Record evaluation of condition C_SCO with the given C_Value in the
    --  current decision evaluation.
 
    function Compute_MCDC_State
-     (SCO : SCO_Id;
-      SCI : Source_Coverage_Info) return Line_State;
+     (SCO : SCO_Id; SCI : Source_Coverage_Info) return Line_State;
    --  Compute the MC/DC state of SCO, which is already covered for DC
 
    function Compute_ATCC_State
-     (SCO : SCO_Id;
-      SCI : Source_Coverage_Info) return Line_State;
+     (SCO : SCO_Id; SCI : Source_Coverage_Info) return Line_State;
    --  Compute the ATCC state of SCO, which is already covered for ATC
 
    function Decision_Requires_Coverage (SCO : SCO_Id) return Boolean;
@@ -213,16 +211,16 @@ package body Coverage.Source is
    --  List of names for units of interest. Store it as an ordered set so that
    --  the order of dump depends on its content, not on the way it was created.
 
-   package Unit_To_Ignored_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Compilation_Unit,
-      Element_Type => Ignored_Sources_Vector_Access);
+   package Unit_To_Ignored_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Compilation_Unit,
+        Element_Type => Ignored_Sources_Vector_Access);
 
    Ignored_SF_Map : Unit_To_Ignored_Maps.Map;
    --  Map units of interest to the list of associated ignored source files
 
    procedure Initialize_SCI_For_SID
-     (CU               : CU_Id;
-      SCOs_Fingerprint : SC_Obligations.Fingerprint_Type);
+     (CU : CU_Id; SCOs_Fingerprint : SC_Obligations.Fingerprint_Type);
    --  Initialize source coverage information vectors for obligations in CU,
    --  for SCOs_Fingerprint version, assumed to come from source
    --  instrumentation.
@@ -279,13 +277,11 @@ package body Coverage.Source is
    -- Compute_Unit_Name_For_Ignored_Sources --
    -------------------------------------------
 
-   procedure Compute_Unit_Name_For_Ignored_Sources
-   is
+   procedure Compute_Unit_Name_For_Ignored_Sources is
       use Types;
 
       procedure Callback
-        (Project : GPR2.Project.View.Object;
-         File    : GPR2.Build.Source.Object);
+        (Project : GPR2.Project.View.Object; File : GPR2.Build.Source.Object);
       --  If the file is a (sometimes) ignored file, compute its unit name and
       --  store it in the file table.
 
@@ -294,41 +290,36 @@ package body Coverage.Source is
       --------------
 
       procedure Callback
-        (Project : GPR2.Project.View.Object;
-         File    : GPR2.Build.Source.Object)
+        (Project : GPR2.Project.View.Object; File : GPR2.Build.Source.Object)
       is
          pragma Unreferenced (Project);
-         SFI : constant Source_File_Index := Get_Index_From_Generic_Name
-           (String (File.Path_Name.Value), Source_File, Insert => False);
-         FI  : constant File_Info_Access := (if SFI /= No_Source_File
-                                             then Get_File (SFI)
-                                             else null);
+         SFI : constant Source_File_Index :=
+           Get_Index_From_Generic_Name
+             (String (File.Path_Name.Value), Source_File, Insert => False);
+         FI  : constant File_Info_Access :=
+           (if SFI /= No_Source_File then Get_File (SFI) else null);
       begin
          if FI /= null and then not FI.Unit.Known then
             declare
-               Unit : constant Compilation_Unit :=
-                 To_Compilation_Unit (File);
+               Unit : constant Compilation_Unit := To_Compilation_Unit (File);
             begin
                Consolidate_Source_File_Unit (SFI, Unit);
             end;
          end if;
       end Callback;
 
-   --  Start of processing for Compute_Unit_Name_For_Ignored_Sources
+      --  Start of processing for Compute_Unit_Name_For_Ignored_Sources
 
    begin
       Enumerate_Sources
-        (Callback'Access,
-         Language  => All_Languages,
-         Only_UOIs => True);
+        (Callback'Access, Language => All_Languages, Only_UOIs => True);
    end Compute_Unit_Name_For_Ignored_Sources;
 
    -------------------------
    -- Fill_Ignored_SF_Map --
    -------------------------
 
-   procedure Fill_Ignored_SF_Map
-   is
+   procedure Fill_Ignored_SF_Map is
       use Unit_To_Ignored_Maps;
 
       procedure Callback (SFI : Types.Source_File_Index);
@@ -339,8 +330,7 @@ package body Coverage.Source is
       -- Callback --
       --------------
 
-      procedure Callback (SFI : Types.Source_File_Index)
-      is
+      procedure Callback (SFI : Types.Source_File_Index) is
          FI  : constant File_Info_Access := Get_File (SFI);
          Vec : Ignored_Sources_Vector_Access;
       begin
@@ -357,7 +347,7 @@ package body Coverage.Source is
          end if;
       end Callback;
 
-   --  Start of processing for Fill_Ignored_SF_Map
+      --  Start of processing for Fill_Ignored_SF_Map
 
    begin
       Files_Table_Iterate (Callback'Access);
@@ -368,10 +358,9 @@ package body Coverage.Source is
    --------------------------
 
    procedure Iterate_On_Unit_List
-     (Process_Unit        : not null access procedure
-        (Name : Compilation_Unit);
-      Process_Source_File : not null access procedure (FI : File_Info))
-   is
+     (Process_Unit        :
+        not null access procedure (Name : Compilation_Unit);
+      Process_Source_File : not null access procedure (FI : File_Info)) is
    begin
       for S of Unit_List loop
          Process_Unit.all (S);
@@ -417,16 +406,16 @@ package body Coverage.Source is
          case Unit.Language is
             when File_Based_Language =>
                Put_Line (File, Ada.Directories.Simple_Name (+Unit.Unit_Name));
+
             when Unit_Based_Language =>
                Put_Line (File, +Unit.Unit_Name);
          end case;
       end Print_Unit_Name;
 
-   --  Start of processing for Report_Units
+      --  Start of processing for Report_Units
 
    begin
-      Iterate_On_Unit_List
-        (Print_Unit_Name'Access, Print_Ignored_File'Access);
+      Iterate_On_Unit_List (Print_Unit_Name'Access, Print_Ignored_File'Access);
    end Report_Units;
 
    ---------------------
@@ -482,7 +471,8 @@ package body Coverage.Source is
       Read (CLS, CP_SCI_Vector);
 
       for SCO_Cur in CP_SCI_Vector.Iterate loop
-         Process_One_SCO : declare
+         Process_One_SCO :
+         declare
             CP_SCO  : constant SCO_Id := To_Index (SCO_Cur);
             Removed : constant Boolean := SCO_Ignored (Relocs, CP_SCO);
             SCO     : constant SCO_Id :=
@@ -497,17 +487,17 @@ package body Coverage.Source is
               (S_Eval : Static_Decision_Evaluation_Sets.Set)
             is
                Inserted_SCI : Source_Coverage_Info :=
-                       (Kind => Decision, others => <>);
+                 (Kind => Decision, others => <>);
 
                function To_Evaluation
                  (SCO : SCO_Id; Static_Eval : Static_Decision_Evaluation)
-                 return Evaluation;
+                  return Evaluation;
                --  Create an `Evaluation` entry from a
                --  Static_Decision_Evaluation.
 
                function To_Evaluation
                  (SCO : SCO_Id; Static_Eval : Static_Decision_Evaluation)
-                 return Evaluation
+                  return Evaluation
                is
                   Eval : Evaluation :=
                     (Decision       => SCO,
@@ -522,20 +512,24 @@ package body Coverage.Source is
 
             begin
                if Kind (SCO) /= Decision then
-                  raise Program_Error with "Unexpected " & Kind (SCO)'Image
-                                           & " SCO kind registered as a static"
-                                           & " decision.";
+                  raise Program_Error
+                    with
+                      "Unexpected "
+                      & Kind (SCO)'Image
+                      & " SCO kind registered as a static"
+                      & " decision.";
                end if;
 
-               SCOs_Trace.Trace ("Inserting "
-                                 & S_Eval.Length'Image
-                                 & " static SCOs for "
-                                 & Image (CP_SCO));
+               SCOs_Trace.Trace
+                 ("Inserting "
+                  & S_Eval.Length'Image
+                  & " static SCOs for "
+                  & Image (CP_SCO));
 
                for J in S_Eval.Iterate loop
                   declare
                      Eval : Static_Decision_Evaluation renames
-                        S_Eval.Element (J);
+                       S_Eval.Element (J);
                   begin
                      Inserted_SCI.Evaluations.Include
                        (To_Evaluation (CP_SCO, Eval));
@@ -592,9 +586,7 @@ package body Coverage.Source is
    -- LLVM_JSON_Load --
    --------------------
 
-   procedure LLVM_JSON_Load
-     (Ckpt : access constant LLVM_Coverage_Ckpt)
-   is
+   procedure LLVM_JSON_Load (Ckpt : access constant LLVM_Coverage_Ckpt) is
       Rep_SCI : Source_Coverage_Info;
    begin
       LLVM_Trace.Trace ("Coverage.Source.LLVM_JSON_Load");
@@ -635,9 +627,14 @@ package body Coverage.Source is
                            end if;
                         end;
                         case Eval.Outcome is
-                           when True => T_Executed := True;
-                           when False => F_Executed := True;
-                           when others => null;
+                           when True   =>
+                              T_Executed := True;
+
+                           when False  =>
+                              F_Executed := True;
+
+                           when others =>
+                              null;
                         end case;
                      end loop;
 
@@ -674,19 +671,17 @@ package body Coverage.Source is
          Line_Info : Line_Info_Access;
          SCI       : in out Source_Coverage_Info;
          Level     : Coverage_Level)
-        with Pre => Level in MCDC | UC_MCDC | ATCC;
-         --  Complete computation of Level coverage state if SCO is covered for
-         --  the previous less strict coverage level. The coverage status for
-         --  decision coverage is SCO_State.
-         --
-         --  This function is useful for the levels that require to compute
-         --  the coverage of conditions, namely MCDC and ATCC. Their previous
-         --  less strict coverage levels are respectively Decision and ATC.
+      with Pre => Level in MCDC | UC_MCDC | ATCC;
+      --  Complete computation of Level coverage state if SCO is covered for
+      --  the previous less strict coverage level. The coverage status for
+      --  decision coverage is SCO_State.
+      --
+      --  This function is useful for the levels that require to compute
+      --  the coverage of conditions, namely MCDC and ATCC. Their previous
+      --  less strict coverage levels are respectively Decision and ATC.
 
       procedure Report_Insufficiently_Instrumented
-        (SCO       : SCO_Id;
-         Level     : Coverage_Level;
-         Line_Info : Line_Info_Access);
+        (SCO : SCO_Id; Level : Coverage_Level; Line_Info : Line_Info_Access);
       --  Appropriately report the case in which a SCO is not sufficiently
       --  instrumented to compute its coverage for MCDC or ATCC level.
 
@@ -699,8 +694,7 @@ package body Coverage.Source is
          SCO_State : Line_State;
          Line_Info : Line_Info_Access;
          SCI       : in out Source_Coverage_Info;
-         Level     : Coverage_Level)
-      is
+         Level     : Coverage_Level) is
       begin
          if SCO_State = Covered then
 
@@ -735,10 +729,7 @@ package body Coverage.Source is
       -------------------------------------
 
       procedure Report_Insufficiently_Instrumented
-        (SCO       : SCO_Id;
-         Level     : Coverage_Level;
-         Line_Info : Line_Info_Access)
-      is
+        (SCO : SCO_Id; Level : Coverage_Level; Line_Info : Line_Info_Access) is
       begin
          --  This decision was not instrumented for Level, so report only
          --  once for the whole decision, but still mark each condition
@@ -765,7 +756,7 @@ package body Coverage.Source is
       Multiple_Statements_Reported : Boolean := False;
       --  Set True when a diagnosis has been emitted for multiple statements
 
-   --  Start of processing for Compute_Line_State
+      --  Start of processing for Compute_Line_State
 
    begin
       if Line_Info.Coverage_Processed then
@@ -803,7 +794,8 @@ package body Coverage.Source is
             goto Next_SCO;
          end if;
 
-         SCOs_Of_Line : declare
+         SCOs_Of_Line :
+         declare
             SCO_State : Line_State := No_Code;
             SCI       : Source_Coverage_Info renames
               SCI_Vector.Reference (SCO);
@@ -859,9 +851,7 @@ package body Coverage.Source is
 
                      SCO_State := Undetermined_Coverage;
                      Report_Coverage
-                       (SCO,
-                        "was not instrumented",
-                        Kind => Undetermined_Cov);
+                       (SCO, "was not instrumented", Kind => Undetermined_Cov);
 
                   elsif Report_If_Excluded (SCO) then
                      SCO_State := Not_Coverable;
@@ -887,8 +877,9 @@ package body Coverage.Source is
                         Multiple_Statements_Reported := True;
                         Report_Violation
                           (SCO,
-                           Msg => "^multiple statements on line, unable to "
-                                  & "establish full statement coverage");
+                           Msg =>
+                             "^multiple statements on line, unable to "
+                             & "establish full statement coverage");
                      end if;
                      SCO_State := Partially_Covered;
 
@@ -975,23 +966,21 @@ package body Coverage.Source is
                         "outcome "
                         & To_Boolean (Decision_Outcome (SCO))'Image
                         & " never exercised");
-                     Update_Line_State
-                       (Line_Info, SCO, Decision, SCO_State);
+                     Update_Line_State (Line_Info, SCO, Decision, SCO_State);
 
                   elsif Report_If_Excluded (SCO) then
                      SCO_State := Not_Coverable;
 
-                     --  Note: we do not report the exclusion of this SCO,
-                     --  because if it is in an IF statement, then the IF
-                     --  statement could be covered by back propagation, and it
-                     --  would be confusing to see a line marked + in annotated
-                     --  sources in conjunction with a message mentioning an
-                     --  uncoverable construct in the report output.
+                  --  Note: we do not report the exclusion of this SCO,
+                  --  because if it is in an IF statement, then the IF
+                  --  statement could be covered by back propagation, and it
+                  --  would be confusing to see a line marked + in annotated
+                  --  sources in conjunction with a message mentioning an
+                  --  uncoverable construct in the report output.
                   end if;
 
                elsif SCI.Outcome_Taken = Both_Outcomes_Taken
-                       or else
-                     SCI.Known_Outcome_Taken = Both_Outcomes_Taken
+                 or else SCI.Known_Outcome_Taken = Both_Outcomes_Taken
                then
                   --  Here for a decision whose both outcomes have been
                   --  exercised.
@@ -999,8 +988,7 @@ package body Coverage.Source is
                   SCO_State := Covered;
 
                elsif SCI.Outcome_Taken /= No_Outcome_Taken
-                       or else
-                     SCI.Known_Outcome_Taken /= No_Outcome_Taken
+                 or else SCI.Known_Outcome_Taken /= No_Outcome_Taken
                then
                   --  Assertion coverage
 
@@ -1017,8 +1005,7 @@ package body Coverage.Source is
                         SCO_State := Covered;
                      else
                         SCO_State := Not_Covered;
-                        Report_Violation
-                          (SCO, "outcome TRUE never exercised");
+                        Report_Violation (SCO, "outcome TRUE never exercised");
                      end if;
 
                   else
@@ -1054,7 +1041,8 @@ package body Coverage.Source is
                            Report_Violation
                              (SCO,
                               "outcome "
-                              & Missing_Outcome'Img & " never exercised");
+                              & Missing_Outcome'Img
+                              & " never exercised");
                         end if;
                      end;
                   end if;
@@ -1062,7 +1050,7 @@ package body Coverage.Source is
                elsif Enclosing_Statement (SCO) = No_SCO_Id
                  or else (Basic_Block_Has_Code (Enclosing_Statement (SCO))
                           and then Stmt_SCO_Instrumented
-                            (Enclosing_Statement (SCO)))
+                                     (Enclosing_Statement (SCO)))
                then
                   --  Similar to the above for statement coverage: a decision
                   --  that cannot ever be executed is reported as No_Code, not
@@ -1168,9 +1156,7 @@ package body Coverage.Source is
                if not Fun_Call_SCO_Instrumented (SCO) then
                   SCO_State := Undetermined_Coverage;
                   Report_Coverage
-                    (SCO,
-                     "was not instrumented",
-                     Kind => Undetermined_Cov);
+                    (SCO, "was not instrumented", Kind => Undetermined_Cov);
 
                --  For call statements, we only need to rely on the state of
                --  the enclosing statement.
@@ -1181,15 +1167,13 @@ package body Coverage.Source is
                   begin
                      SCO_State :=
                        (if S_SCO /= No_SCO_Id
-                           and then SCI_Vector (S_SCO).Executed
+                          and then SCI_Vector (S_SCO).Executed
                         then Covered
                         else Not_Covered);
                   end;
                else
                   SCO_State :=
-                    (if SCI.Fun_Call_Executed
-                     then Covered
-                     else Not_Covered);
+                    (if SCI.Fun_Call_Executed then Covered else Not_Covered);
                end if;
 
                if SCO_State = Not_Covered then
@@ -1198,20 +1182,15 @@ package body Coverage.Source is
 
                Update_Line_State (Line_Info, SCO, Fun_Call, SCO_State);
 
-            elsif Kind (SCO) in Fun_Call_SCO_Kind
-              and then Enabled (Fun_Call)
+            elsif Kind (SCO) in Fun_Call_SCO_Kind and then Enabled (Fun_Call)
             then
                SCO_State := SCI.State (Fun_Call);
                Update_Line_State (Line_Info, SCO, Fun_Call, SCO_State);
-            elsif Kind (SCO) = Guarded_Expr
-               and then Enabled (GExpr)
-            then
+            elsif Kind (SCO) = Guarded_Expr and then Enabled (GExpr) then
                if not GExpr_SCO_Instrumented (SCO) then
                   SCO_State := Undetermined_Coverage;
                   Report_Coverage
-                    (SCO,
-                     "was not instrumented",
-                     Kind => Undetermined_Cov);
+                    (SCO, "was not instrumented", Kind => Undetermined_Cov);
                elsif SCI.GExpr_Executed then
                   SCO_State := Covered;
                else
@@ -1229,7 +1208,8 @@ package body Coverage.Source is
             end if;
          end SCOs_Of_Line;
 
-         <<Next_SCO>> null;
+         <<Next_SCO>>
+         null;
       end loop;
       --  Record that this line has been processed
 
@@ -1241,13 +1221,12 @@ package body Coverage.Source is
    ------------------------
 
    function Compute_MCDC_State
-     (SCO : SCO_Id;
-      SCI : Source_Coverage_Info) return Line_State
+     (SCO : SCO_Id; SCI : Source_Coverage_Info) return Line_State
    is
       use Evaluation_Sets;
 
       Indep : array (0 .. Last_Cond_Index (SCO)) of Boolean :=
-                (others => False);
+        (others => False);
       --  Indicates whether independent influence of each condition has been
       --  shown.
 
@@ -1260,11 +1239,13 @@ package body Coverage.Source is
 
       type Cond_Set_Access is access Condition_Set.Set;
 
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Condition_Set.Set, Cond_Set_Access);
+      procedure Free is new
+        Ada.Unchecked_Deallocation (Condition_Set.Set, Cond_Set_Access);
 
-      package Evaluation_to_Cond_Set_Map is new Ada.Containers.Ordered_Maps
-        (Key_Type => Evaluation, Element_Type => Cond_Set_Access);
+      package Evaluation_to_Cond_Set_Map is new
+        Ada.Containers.Ordered_Maps
+          (Key_Type     => Evaluation,
+           Element_Type => Cond_Set_Access);
 
       Eval_Cond_Set_Map : Evaluation_to_Cond_Set_Map.Map;
       --  Map between evaluations and the conditions for which they are in a
@@ -1299,7 +1280,8 @@ package body Coverage.Source is
                Cond_Set : Condition_Set.Set renames
                  Eval_Cond_Set_Map.Element (Eval).all;
             begin
-               if not Cond_Set.Is_Empty then  --  This evaluation is in a pair
+               if not Cond_Set.Is_Empty then
+                  --  This evaluation is in a pair
                   Append (Msg, "    " & Image (Eval) & "  In a pair for ");
                   for Cond of Cond_Set loop
                      Append (Msg, 'C' & Img (Integer (Cond)));
@@ -1310,8 +1292,11 @@ package body Coverage.Source is
                   Append (Msg, ASCII.LF);
                else
                   Append
-                    (No_Pair_Msg, "    " & Image (Eval)
-                     & "  Not part of any pair" & ASCII.LF);
+                    (No_Pair_Msg,
+                     "    "
+                     & Image (Eval)
+                     & "  Not part of any pair"
+                     & ASCII.LF);
                end if;
             end;
          end loop;
@@ -1319,7 +1304,7 @@ package body Coverage.Source is
          return +(Msg & No_Pair_Msg);
       end Emit_Evaluation_Vector_Message;
 
-   --  Start of processing for Compute_MCDC_State
+      --  Start of processing for Compute_MCDC_State
 
    begin
       for Cur of SCI.Evaluations loop
@@ -1330,10 +1315,11 @@ package body Coverage.Source is
       while E1 /= No_Element loop
          E2 := Next (E1);
          while E2 /= No_Element loop
-            Influent_Condition := Is_MC_DC_Pair
-              (Element (E1),
-               Element (E2),
-               Unique_Cause => MCDC_Level = UC_MCDC);
+            Influent_Condition :=
+              Is_MC_DC_Pair
+                (Element (E1),
+                 Element (E2),
+                 Unique_Cause => MCDC_Level = UC_MCDC);
             --  Record and report the first eval pair that shows independent
             --  influence of Influent_Condition.
 
@@ -1341,22 +1327,24 @@ package body Coverage.Source is
                 or else Switches.Show_Condition_Vectors)
               and then Influent_Condition /= No_Condition_Index
             then
-               Eval_Cond_Set_Map.Element
-                 (Element (E1)).Include (Influent_Condition);
-               Eval_Cond_Set_Map.Element
-                 (Element (E2)).Include (Influent_Condition);
+               Eval_Cond_Set_Map.Element (Element (E1)).Include
+                 (Influent_Condition);
+               Eval_Cond_Set_Map.Element (Element (E2)).Include
+                 (Influent_Condition);
             end if;
 
             if Influent_Condition /= No_Condition_Index
-                 and then
-               not Indep (Influent_Condition)
+              and then not Indep (Influent_Condition)
             then
 
                Indep (Influent_Condition) := True;
                Report
-                 ("C" & Img (Integer (Influent_Condition))
+                 ("C"
+                  & Img (Integer (Influent_Condition))
                   & " independent influence shown by eval pair: "
-                  & Image (Element (E1)) & " / " & Image (Element (E2)),
+                  & Image (Element (E1))
+                  & " / "
+                  & Image (Element (E2)),
                   Sloc => First_Sloc (SCO),
                   SCO  => Condition (SCO, Influent_Condition),
                   Kind => Notice);
@@ -1383,9 +1371,7 @@ package body Coverage.Source is
       for J in Indep'Range loop
          if not Indep (J) then
             Update_State
-              (SCO_State,
-               Condition (SCO, J),
-               MCDC_Level, Not_Covered);
+              (SCO_State, Condition (SCO, J), MCDC_Level, Not_Covered);
             Report_Violation
               (SCO => Condition (SCO, J),
                Msg => "has no independent influence pair, MC/DC not achieved");
@@ -1408,16 +1394,14 @@ package body Coverage.Source is
                --  message sloc to the one of the enclosing decision when the
                --  SCO is a condition.
 
-               Report_Coverage (SCO  => Condition (SCO, J),
-                                Msg  => Emit_Evaluation_Vector_Message,
-                                Kind => Info);
+               Report_Coverage
+                 (SCO  => Condition (SCO, J),
+                  Msg  => Emit_Evaluation_Vector_Message,
+                  Kind => Info);
             end if;
 
          else
-            Update_State
-              (SCO_State,
-               Condition (SCO, J),
-               MCDC_Level, Covered);
+            Update_State (SCO_State, Condition (SCO, J), MCDC_Level, Covered);
          end if;
       end loop;
 
@@ -1438,8 +1422,7 @@ package body Coverage.Source is
    ------------------------
 
    function Compute_ATCC_State
-     (SCO : SCO_Id;
-      SCI : Source_Coverage_Info) return Line_State
+     (SCO : SCO_Id; SCI : Source_Coverage_Info) return Line_State
    is
 
       function Emit_Evaluation_Vector_Message return String;
@@ -1472,12 +1455,12 @@ package body Coverage.Source is
       Last_Cond_Idx : constant Condition_Index := Last_Cond_Index (SCO);
       --  Index of last condition in decision
 
-      type Condition_Evaluated_Array is array
-        (Condition_Index'First .. Last_Cond_Idx) of Boolean;
+      type Condition_Evaluated_Array is
+        array (Condition_Index'First .. Last_Cond_Idx) of Boolean;
 
       Condition_Evaluated : Condition_Evaluated_Array := (others => False);
 
-   --  Start of processing for Compute_ATCC_State
+      --  Start of processing for Compute_ATCC_State
 
    begin
 
@@ -1506,12 +1489,12 @@ package body Coverage.Source is
 
       for I in Condition_Evaluated_Array'Range loop
          if not Condition_Evaluated (I) then
-            Update_State
-              (SCO_State, Condition (SCO, I), ATCC, Not_Covered);
+            Update_State (SCO_State, Condition (SCO, I), ATCC, Not_Covered);
             Report_Violation
               (SCO => Condition (SCO, I),
-               Msg => "was never evaluated during an evaluation of the " &
-                 "decision to True, ATCC not achieved");
+               Msg =>
+                 "was never evaluated during an evaluation of the "
+                 & "decision to True, ATCC not achieved");
 
             if Switches.Show_Condition_Vectors
               and then I = Last_Cond_Not_Evaluated
@@ -1520,9 +1503,10 @@ package body Coverage.Source is
                --  vector with ATCC violations and after the last ATCC
                --  violation of the decision.
 
-               Report_Coverage (SCO  => Condition (SCO, I),
-                                Msg  => Emit_Evaluation_Vector_Message,
-                                Kind => Info);
+               Report_Coverage
+                 (SCO  => Condition (SCO, I),
+                  Msg  => Emit_Evaluation_Vector_Message,
+                  Kind => Info);
             end if;
          else
             Update_State (SCO_State, Condition (SCO, I), ATCC, Covered);
@@ -1542,9 +1526,7 @@ package body Coverage.Source is
    -----------------------------
 
    procedure Compute_Source_Coverage
-     (Subp_Key  : Subprogram_Key;
-      Subp_Info : Subprogram_Info;
-      T         : Trace_Entry)
+     (Subp_Key : Subprogram_Key; Subp_Info : Subprogram_Info; T : Trace_Entry)
    is
       pragma Unreferenced (Subp_Key);
 
@@ -1603,15 +1585,17 @@ package body Coverage.Source is
                S_SCO_First : constant Source_Location := First_Sloc (S_SCO);
                S_SCO_Last  : constant Source_Location := Last_Sloc (S_SCO);
 
-               Cur_SCI     : Source_Coverage_Info renames
+               Cur_SCI : Source_Coverage_Info renames
                  SCI_Vector.Constant_Reference (S_SCO);
             begin
-               Line_Executed := not Precise
+               Line_Executed :=
+                 not Precise
                  and then Sloc.Source_File = S_SCO_First.Source_File
                  and then Sloc.L.Line
-                            in S_SCO_First.L.Line .. S_SCO_Last.L.Line;
+                          in S_SCO_First.L.Line .. S_SCO_Last.L.Line;
 
-               exit when Cur_SCI.Executed
+               exit when
+                 Cur_SCI.Executed
                  or else (Line_Executed and Cur_SCI.Line_Executed);
             end;
 
@@ -1621,31 +1605,32 @@ package body Coverage.Source is
             --  cannot propagate from an imprecise sloc if the line has
             --  multiple statements.
 
-            No_Propagation := Is_Pragma_Pre_Post_Condition (S_SCO)
+            No_Propagation :=
+              Is_Pragma_Pre_Post_Condition (S_SCO)
               or else (not Precise and then Multistatement_Line);
 
             if not (Propagating and No_Propagation) then
-                  --  Mark S_SCO as executed
+               --  Mark S_SCO as executed
 
-                  Report
-                    ((if Line_Executed then "line " else "")
-                     & "executed"
-                     & (if Propagating then " (propagating)" else ""),
-                     SCO  => S_SCO,
-                     Exe  => Exe,
-                     PC   => PC,
-                     Kind => Notice);
+               Report
+                 ((if Line_Executed then "line " else "")
+                  & "executed"
+                  & (if Propagating then " (propagating)" else ""),
+                  SCO  => S_SCO,
+                  Exe  => Exe,
+                  PC   => PC,
+                  Kind => Notice);
 
-                  declare
-                     SCI : Source_Coverage_Info renames
-                       SCI_Vector.Reference (S_SCO);
-                  begin
-                     if Line_Executed then
-                        SCI.Line_Executed := True;
-                     else
-                        SCI.Executed := True;
-                     end if;
-                  end;
+               declare
+                  SCI : Source_Coverage_Info renames
+                    SCI_Vector.Reference (S_SCO);
+               begin
+                  if Line_Executed then
+                     SCI.Line_Executed := True;
+                  else
+                     SCI.Executed := True;
+                  end if;
+               end;
             end if;
 
             exit when not Propagating and No_Propagation;
@@ -1686,12 +1671,13 @@ package body Coverage.Source is
          --  Here we have a condition SCO and the PC for a conditional branch
          --  instruction.
 
-         Process_Conditional_Branch : declare
+         Process_Conditional_Branch :
+         declare
             D_SCO : constant SCO_Id := Enclosing_Decision (SCO);
             --  Enclosing decision
 
             CBI : constant Cond_Branch_Info :=
-                    Cond_Branch_Map.Element ((Subp_Info.Exec, PC));
+              Cond_Branch_Map.Element ((Subp_Info.Exec, PC));
             pragma Assert (CBI.Condition = SCO);
 
             procedure Edge_Taken (E : Edge_Kind);
@@ -1731,14 +1717,15 @@ package body Coverage.Source is
 
                   function Pop_Eval return Evaluation is
                   begin
-                     return ES_Top : constant Evaluation :=
-                                       Evaluation_Stack.Last_Element
+                     return
+                        ES_Top : constant Evaluation :=
+                          Evaluation_Stack.Last_Element
                      do
                         Evaluation_Stack.Delete_Last;
                      end return;
                   end Pop_Eval;
 
-               --  Start of processing for Set_Outcome_Taken
+                  --  Start of processing for Set_Outcome_Taken
 
                begin
                   --  If for some reason we failed to identify which value
@@ -1755,11 +1742,11 @@ package body Coverage.Source is
                   SCI.Outcome_Taken (To_Boolean (CBE.Outcome)) := True;
 
                   Report
-                    ("outcome " & CBE.Outcome'Img
-                     & (if Degraded_Origins (D_SCO)
-                       then " (degraded)"
-                       else "")
-                     & " taken by " & E'Img,
+                    ("outcome "
+                     & CBE.Outcome'Img
+                     & (if Degraded_Origins (D_SCO) then " (degraded)" else "")
+                     & " taken by "
+                     & E'Img,
                      SCO  => D_SCO,
                      Exe  => Exe,
                      PC   => PC,
@@ -1796,15 +1783,16 @@ package body Coverage.Source is
                              (D_SCO,
                               "^inferred values mismatch: expected "
                               & Image (Inferred_Values)
-                              & ", got " & Image (Eval.Values));
+                              & ", got "
+                              & Image (Eval.Values));
                         end if;
 
                      else
                         --  Reconstruct complete evaluation information from
                         --  just the outcome.
 
-                        Eval.Decision       := D_SCO;
-                        Eval.Values         := Inferred_Values;
+                        Eval.Decision := D_SCO;
+                        Eval.Values := Inferred_Values;
                         Eval.Next_Condition := No_Condition_Index;
                      end if;
                   end if;
@@ -1815,12 +1803,13 @@ package body Coverage.Source is
                   SCI.Evaluations.Include (Eval);
                end Set_Outcome_Taken;
 
-            --  Start of processing for Edge_Taken
+               --  Start of processing for Edge_Taken
 
             begin
                if CBE.Dest_Kind = Unknown then
                   Report
-                    (Exe, PC,
+                    (Exe,
+                     PC,
                      "unlabeled edge " & E'Img & " taken",
                      Kind => Diagnostics.Error);
 
@@ -1840,9 +1829,14 @@ package body Coverage.Source is
 
                         --  Exception raised: abandon current evaluation
 
-                        Report (Exe, PC,
-                          "edge " & E'Img & " raised an exception, "
-                          & "abandoning evaluation", Kind => Notice);
+                        Report
+                          (Exe,
+                           PC,
+                           "edge "
+                           & E'Img
+                           & " raised an exception, "
+                           & "abandoning evaluation",
+                           Kind => Notice);
 
                         if Has_Multipath_Condition (D_SCO)
                           or else Full_History_Trace.Is_Active
@@ -1852,7 +1846,8 @@ package body Coverage.Source is
 
                      else
                         Report
-                          (Exe, PC,
+                          (Exe,
+                           PC,
                            "edge " & E'Img & " with unlabeled origin taken",
                            Kind => Diagnostics.Error);
                      end if;
@@ -1873,36 +1868,41 @@ package body Coverage.Source is
 
             use type Interfaces.Unsigned_8;
 
-         --  Start of processing for Process_Conditional_Branch
+            --  Start of processing for Process_Conditional_Branch
 
          begin
             Report
-              (Exe, PC,
-               "processing cond branch trace op" & T.Op'Img & " (" &
-               (case T.Op and 3 is
-                     when 1      => "branch",
-                     when 2      => "fallthrough",
-                     when 3      => "both",
-                     when others => "???") & " taken)",
+              (Exe,
+               PC,
+               "processing cond branch trace op"
+               & T.Op'Img
+               & " ("
+               & (case T.Op and 3 is
+                    when 1      => "branch",
+                    when 2      => "fallthrough",
+                    when 3      => "both",
+                    when others => "???")
+               & " taken)",
                Kind => Notice);
 
             case T.Op and 3 is
-               when 1 =>
+               when 1      =>
                   Edge_Taken (Branch);
 
-               when 2 =>
+               when 2      =>
                   Edge_Taken (Fallthrough);
 
-               when 3 =>
+               when 3      =>
                   if MCDC_Coverage_Enabled
-                       and then (Has_Multipath_Condition (D_SCO)
-                                   or else Full_History_Trace.Is_Active)
+                    and then (Has_Multipath_Condition (D_SCO)
+                              or else Full_History_Trace.Is_Active)
                   then
                      --  For MC/DC we need full historical traces, not just
                      --  accumulated traces.
 
                      Report
-                       (Exe, PC,
+                       (Exe,
+                        PC,
                         "missing full traces of conditional branch for MC/DC");
                   else
                      Edge_Taken (Branch);
@@ -1911,7 +1911,8 @@ package body Coverage.Source is
 
                when others =>
                   Report
-                    (Exe, PC,
+                    (Exe,
+                     PC,
                      "unexpected cond branch trace state " & T.State'Img,
                      Kind => Warning);
 
@@ -1924,7 +1925,7 @@ package body Coverage.Source is
       Cache    : Insn_Set_Cache := Empty_Cache;
       Insn_Set : Insn_Set_Type;
 
-   --  Start of processing for Compute_Source_Coverage
+      --  Start of processing for Compute_Source_Coverage
 
    begin
       --  Iterate over trace for this routine
@@ -1933,10 +1934,11 @@ package body Coverage.Source is
 
       Trace_Insns :
       while Iterate_Over_Insns
-        (I_Ranges, Cache, T.Last + Subp_Info.Offset, PC, Insn_Set)
+              (I_Ranges, Cache, T.Last + Subp_Info.Offset, PC, Insn_Set)
       loop
-         Insn_Len := Disa_For_Machine (Machine, Insn_Set).
-           Get_Insn_Length (Slice (Subp_Info.Insns, PC, Subp_Info.Insns.Last));
+         Insn_Len :=
+           Disa_For_Machine (Machine, Insn_Set).Get_Insn_Length
+             (Slice (Subp_Info.Insns, PC, Subp_Info.Insns.Last));
 
          --  Discharge each SCO for source locations associated with this
          --  instruction.
@@ -2021,8 +2023,7 @@ package body Coverage.Source is
    -- Refine_Source_Coverage --
    ----------------------------
 
-   procedure Refine_Source_Coverage
-   is
+   procedure Refine_Source_Coverage is
       --  Refine the outcome taken information. See the documentation of
       --  Process_SCO below.
 
@@ -2039,8 +2040,7 @@ package body Coverage.Source is
       -- Process_SCO --
       -----------------
 
-      procedure Process_SCO (SCO : SCO_Id)
-      is
+      procedure Process_SCO (SCO : SCO_Id) is
          Dom_SCO : SCO_Id;
          Dom_Val : Boolean;
       begin
@@ -2110,10 +2110,10 @@ package body Coverage.Source is
       function Part_Image (Part : GPR2.Valid_Unit_Kind) return String;
       --  Helper to include Part in an error message
 
-      function Unit_Image return String is
-        (case CU_Name.Language_Kind is
+      function Unit_Image return String
+      is (case CU_Name.Language_Kind is
             when Unit_Based_Language =>
-               (Part_Image (CU_Name.Part) & " " & To_Ada (CU_Name.Unit)),
+              (Part_Image (CU_Name.Part) & " " & To_Ada (CU_Name.Unit)),
             when File_Based_Language => +CU_Name.Filename);
       --  Helper to refer to the instrumented unit in an error message
 
@@ -2144,10 +2144,11 @@ package body Coverage.Source is
 
       function Part_Image (Part : GPR2.Valid_Unit_Kind) return String is
       begin
-         return (case Part is
-                 when GPR2.S_Body => "body of",
-                 when GPR2.S_Spec => "spec of",
-                 when GPR2.S_Separate => "separate");
+         return
+           (case Part is
+              when GPR2.S_Body     => "body of",
+              when GPR2.S_Spec     => "spec of",
+              when GPR2.S_Separate => "separate");
       end Part_Image;
 
       ----------------
@@ -2156,15 +2157,14 @@ package body Coverage.Source is
 
       procedure Update_SCI
         (SCO     : SCO_Id;
-         Process : access procedure (SCI : in out Source_Coverage_Info))
-      is
+         Process : access procedure (SCI : in out Source_Coverage_Info)) is
       begin
          if In_Scope_Of_Interest (ST, SCO) then
             Process.all (SCI_Vector.Reference (SCO));
          end if;
       end Update_SCI;
 
-   --  Start of processing for Compute_Source_Coverage
+      --  Start of processing for Compute_Source_Coverage
 
    begin
       Misc_Trace.Trace ("processing traces for unit " & Unit_Image);
@@ -2191,8 +2191,10 @@ package body Coverage.Source is
          --  its source trace buffer, so we have inconsistent information. Just
          --  ignore this coverage information and proceed.
 
-         Warn ("inconsistent coverage method, ignoring coverage information"
-               & " for " & Unit_Image);
+         Warn
+           ("inconsistent coverage method, ignoring coverage information"
+            & " for "
+            & Unit_Image);
          return;
       end if;
 
@@ -2200,14 +2202,19 @@ package body Coverage.Source is
       --  instrumenter recorded in the CU info.
 
       if not Has_Fingerprint (CU, Fingerprint)
-        or else Bit_Maps_Fingerprint /=
-          SC_Obligations.Bit_Maps_Fingerprint (CU, Fingerprint)
-        or else Annotations_Fingerprint /=
-          SC_Obligations.Annotations_Fingerprint (CU, Fingerprint)
+        or else Bit_Maps_Fingerprint
+                /= SC_Obligations.Bit_Maps_Fingerprint (CU, Fingerprint)
+        or else Annotations_Fingerprint
+                /= SC_Obligations.Annotations_Fingerprint (CU, Fingerprint)
       then
-         Warn ("traces for " & Unit_Image  & " (from " & Filename & ") are"
-               & " inconsistent with the corresponding Source Instrumentation"
-               & " Data");
+         Warn
+           ("traces for "
+            & Unit_Image
+            & " (from "
+            & Filename
+            & ") are"
+            & " inconsistent with the corresponding Source Instrumentation"
+            & " Data");
          return;
       end if;
 
@@ -2251,13 +2258,11 @@ package body Coverage.Source is
 
                if Stmt_Buffer (J) then
                   for SCO of Stmt_Blocks.Element (Block_Index) loop
-                     Update_SCI
-                       (SCO     => SCO,
-                        Process => Set_Executed'Access);
+                     Update_SCI (SCO => SCO, Process => Set_Executed'Access);
                   end loop;
                end if;
                Block_Index := Block_Index + 1;
-            <<Continue>>
+               <<Continue>>
             end loop;
          end if;
       end;
@@ -2324,10 +2329,7 @@ package body Coverage.Source is
    -------------------------
 
    procedure Condition_Evaluated
-     (Exe     : Exe_File_Acc;
-      PC      : Pc_Type;
-      C_SCO   : SCO_Id;
-      C_Value : Boolean)
+     (Exe : Exe_File_Acc; PC : Pc_Type; C_SCO : SCO_Id; C_Value : Boolean)
    is
       D_SCO : constant SCO_Id := Enclosing_Decision (C_SCO);
 
@@ -2348,12 +2350,13 @@ package body Coverage.Source is
          declare
             ES_Top : Evaluation renames Evaluation_Stack.Last_Element;
          begin
-            return ES_Top.Decision = D_SCO
+            return
+              ES_Top.Decision = D_SCO
               and then ES_Top.Next_Condition = Index (C_SCO);
          end;
       end In_Current_Evaluation;
 
-   --  Start of processing for Condition_Evaluated
+      --  Start of processing for Condition_Evaluated
 
    begin
       --  No-op unless doing MC/DC analysis
@@ -2372,16 +2375,20 @@ package body Coverage.Source is
 
       if not In_Current_Evaluation then
          Evaluation_Stack.Append
-           (Evaluation'(Decision       => D_SCO,
-                        Next_Condition => 0,
-                        Outcome        => Unknown,
-                        others         => <>));
+           (Evaluation'
+              (Decision       => D_SCO,
+               Next_Condition => 0,
+               Outcome        => Unknown,
+               others         => <>));
       end if;
 
       if not In_Current_Evaluation then
          Report
-           (Exe, PC,
-            "unexpected condition" & Index (C_SCO)'Img & " in trace, expected"
+           (Exe,
+            PC,
+            "unexpected condition"
+            & Index (C_SCO)'Img
+            & " in trace, expected"
             & Evaluation_Stack.Last_Element.Next_Condition'Img,
             Kind => Warning);
       end if;
@@ -2391,7 +2398,7 @@ package body Coverage.Source is
 
       declare
          ES_Top     : Evaluation renames
-            Evaluation_Stack.Reference (Evaluation_Stack.Last_Index);
+           Evaluation_Stack.Reference (Evaluation_Stack.Last_Index);
          Next_C_SCO : SCO_Id;
       begin
          --  Add Unknown markers for masked conditions
@@ -2423,10 +2430,10 @@ package body Coverage.Source is
    begin
       pragma Assert (Kind (SCO) = Decision);
 
-      return Switches.All_Decisions
+      return
+        Switches.All_Decisions
         or else not Is_Expression (SCO)
-        or else (MCDC_Coverage_Enabled
-                 and then Last_Cond_Index (SCO) > 0);
+        or else (MCDC_Coverage_Enabled and then Last_Cond_Index (SCO) > 0);
    end Decision_Requires_Coverage;
 
    ------------------------------------------
@@ -2438,7 +2445,8 @@ package body Coverage.Source is
    begin
       pragma Assert (Kind (SCO) in Decision | Condition);
 
-      return Currently_Accepted_Trace_Kind /= Binary_Trace_File
+      return
+        Currently_Accepted_Trace_Kind /= Binary_Trace_File
         and then Assertion_Coverage_Enabled
         and then Is_Assertion_To_Cover (SCO);
    end Decision_Requires_Assertion_Coverage;
@@ -2448,8 +2456,7 @@ package body Coverage.Source is
    --------------------
 
    function Get_Line_State
-     (SCO   : SCO_Id;
-      Level : Coverage_Level) return SCO_State is
+     (SCO : SCO_Id; Level : Coverage_Level) return SCO_State is
    begin
       return SCI_Vector (SCO).State (Level);
    end Get_Line_State;
@@ -2484,8 +2491,8 @@ package body Coverage.Source is
    ----------------------------
 
    procedure Initialize_SCI_For_SID
-     (CU               : CU_Id;
-      SCOs_Fingerprint : SC_Obligations.Fingerprint_Type) is
+     (CU : CU_Id; SCOs_Fingerprint : SC_Obligations.Fingerprint_Type)
+   is
 
       procedure Set_Has_Code (SCO : SCO_Id);
       --  If SCO is a statement, mark it as having code
@@ -2505,7 +2512,7 @@ package body Coverage.Source is
       Stmt_Bit_Map : Statement_Bit_Map renames
         Bit_Maps (CU, SCOs_Fingerprint).Statement_Bits.all;
 
-   --  Start of processing for Initialize_SCI_For_Instrumented_CU
+      --  Start of processing for Initialize_SCI_For_Instrumented_CU
 
    begin
       Initialize_SCI;
@@ -2585,20 +2592,20 @@ package body Coverage.Source is
          when Statement =>
             SCI.Basic_Block_Has_Code :=
               SCI.Basic_Block_Has_Code or CP_SCI.Basic_Block_Has_Code;
-            SCI.Executed      := SCI.Executed or CP_SCI.Executed;
+            SCI.Executed := SCI.Executed or CP_SCI.Executed;
             SCI.Line_Executed := SCI.Line_Executed or CP_SCI.Line_Executed;
 
-         when Decision =>
+         when Decision  =>
             SCI.Known_Outcome_Taken :=
               SCI.Known_Outcome_Taken or CP_SCI.Known_Outcome_Taken;
 
             --  Note: if checkpoint has only one Outcome_Taken, and the SCO has
-              --  degraded origins, then we can't take advantage of it, because
-              --  it might be negated compared to the current context.
+            --  degraded origins, then we can't take advantage of it, because
+            --  it might be negated compared to the current context.
 
             if not Degraded_Origins (SCO)
-                 or else
-               CP_SCI.Outcome_Taken (False) = CP_SCI.Outcome_Taken (True)
+              or else CP_SCI.Outcome_Taken (False)
+                      = CP_SCI.Outcome_Taken (True)
             then
                SCI.Outcome_Taken := SCI.Outcome_Taken or CP_SCI.Outcome_Taken;
             end if;
@@ -2614,7 +2621,7 @@ package body Coverage.Source is
                end;
             end loop;
 
-         when others =>
+         when others    =>
             null;
       end case;
    end Merge_Checkpoint_SCI;
@@ -2624,8 +2631,7 @@ package body Coverage.Source is
    ----------
 
    procedure Read
-     (CLS   : in out Checkpoint_Load_State;
-      Value : out Source_Coverage_Info)
+     (CLS : in out Checkpoint_Load_State; Value : out Source_Coverage_Info)
    is
       CP_SCI : Source_Coverage_Info (SCO_Kind'Val (CLS.Read_U8));
    begin
@@ -2635,25 +2641,25 @@ package body Coverage.Source is
          for I in States'Range loop
             States (I) := CLS.Read_Line_State;
          end loop;
-         CP_SCI.State (Insn)     := States (1);
-         CP_SCI.State (Branch)   := States (2);
-         CP_SCI.State (Stmt)     := States (3);
+         CP_SCI.State (Insn) := States (1);
+         CP_SCI.State (Branch) := States (2);
+         CP_SCI.State (Stmt) := States (3);
          CP_SCI.State (Decision) := States (4);
-         CP_SCI.State (MCDC)     := States (5);
-         CP_SCI.State (UC_MCDC)  := States (6);
-         CP_SCI.State (ATC)      := States (7);
-         CP_SCI.State (ATCC)     := States (8);
+         CP_SCI.State (MCDC) := States (5);
+         CP_SCI.State (UC_MCDC) := States (6);
+         CP_SCI.State (ATC) := States (7);
+         CP_SCI.State (ATCC) := States (8);
          CP_SCI.State (Fun_Call) := States (9);
-         CP_SCI.State (GExpr)    := States (10);
+         CP_SCI.State (GExpr) := States (10);
       end;
 
       case CP_SCI.Kind is
-         when Statement =>
+         when Statement         =>
             CP_SCI.Basic_Block_Has_Code := CLS.Read_Boolean;
             CP_SCI.Executed := CLS.Read_Boolean;
             CP_SCI.Line_Executed := CLS.Read_Boolean;
 
-         when Decision =>
+         when Decision          =>
             CP_SCI.Outcome_Taken (False) := CLS.Read_Boolean;
             CP_SCI.Outcome_Taken (True) := CLS.Read_Boolean;
 
@@ -2661,13 +2667,14 @@ package body Coverage.Source is
             CP_SCI.Known_Outcome_Taken (True) := CLS.Read_Boolean;
 
             Read (CLS, CP_SCI.Evaluations);
-         when Fun_Call_SCO_Kind  =>
+
+         when Fun_Call_SCO_Kind =>
             CP_SCI.Fun_Call_Executed := CLS.Read_Boolean;
 
-         when Guarded_Expr  =>
+         when Guarded_Expr      =>
             CP_SCI.GExpr_Executed := CLS.Read_Boolean;
 
-         when others =>
+         when others            =>
             null;
       end case;
 
@@ -2679,8 +2686,7 @@ package body Coverage.Source is
    -----------
 
    procedure Write
-     (CSS   : in out Checkpoint_Save_State;
-      Value : Source_Coverage_Info) is
+     (CSS : in out Checkpoint_Save_State; Value : Source_Coverage_Info) is
    begin
       CSS.Write_U8 (SCO_Kind'Pos (Value.Kind));
       for S of Value.State loop
@@ -2688,12 +2694,12 @@ package body Coverage.Source is
       end loop;
 
       case Value.Kind is
-         when Statement =>
+         when Statement         =>
             CSS.Write (Value.Basic_Block_Has_Code);
             CSS.Write (Value.Executed);
             CSS.Write (Value.Line_Executed);
 
-         when Decision =>
+         when Decision          =>
             CSS.Write (Value.Outcome_Taken (False));
             CSS.Write (Value.Outcome_Taken (True));
 
@@ -2705,10 +2711,10 @@ package body Coverage.Source is
          when Fun_Call_SCO_Kind =>
             CSS.Write (Value.Fun_Call_Executed);
 
-         when Guarded_Expr =>
+         when Guarded_Expr      =>
             CSS.Write (Value.GExpr_Executed);
 
-         when others =>
+         when others            =>
             null;
       end case;
    end Write;
@@ -2720,9 +2726,10 @@ package body Coverage.Source is
    function Report_If_Excluded (SCO : SCO_Id) return Boolean is
    begin
       if Excluded_SCOs then
-         return Kind (SCO) = Decision
+         return
+           Kind (SCO) = Decision
            or else (Kind (SCO) = Statement
-                      and then S_Kind (SCO) in Ada_Statement_Kind);
+                    and then S_Kind (SCO) in Ada_Statement_Kind);
       else
          return False;
       end if;
@@ -2739,7 +2746,7 @@ package body Coverage.Source is
 
       Propagating, No_Propagation : Boolean;
 
-   --  Start of processing for Set_Basic_Block_Has_Code
+      --  Start of processing for Set_Basic_Block_Has_Code
 
    begin
       Propagating := False;
@@ -2761,8 +2768,8 @@ package body Coverage.Source is
 
          Propagating := True;
          S_SCO := Previous (S_SCO);
-         exit when S_SCO = No_SCO_Id
-                     or else SCI_Vector (S_SCO).Basic_Block_Has_Code;
+         exit when
+           S_SCO = No_SCO_Id or else SCI_Vector (S_SCO).Basic_Block_Has_Code;
       end loop;
    end Set_Basic_Block_Has_Code;
 

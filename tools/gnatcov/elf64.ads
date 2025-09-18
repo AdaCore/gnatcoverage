@@ -20,13 +20,13 @@ with System;
 with Elf_Common; use Elf_Common;
 
 package Elf64 is
-   subtype Elf64_Addr  is Unsigned_64;
-   subtype Elf64_Half  is Unsigned_16;
-   subtype Elf64_Off   is Unsigned_64;
-   subtype Elf64_Sxword  is Integer_64;
-   subtype Elf64_Xword  is Unsigned_64;
+   subtype Elf64_Addr is Unsigned_64;
+   subtype Elf64_Half is Unsigned_16;
+   subtype Elf64_Off is Unsigned_64;
+   subtype Elf64_Sxword is Integer_64;
+   subtype Elf64_Xword is Unsigned_64;
    subtype Elf64_Sword is Integer_32;
-   subtype Elf64_Word  is Unsigned_32;
+   subtype Elf64_Word is Unsigned_32;
    subtype Elf64_Uchar is Unsigned_8;
 
    type Elf64_Ehdr is record
@@ -99,13 +99,13 @@ package Elf64 is
    --  Relocation.
    type Elf64_Rel is record
       R_Offset : Elf64_Addr;
-      R_Info : Elf64_Xword;
+      R_Info   : Elf64_Xword;
    end record;
    Elf64_Rel_Size : constant Natural := Elf64_Rel'Size / System.Storage_Unit;
 
    type Elf64_Rela is record
       R_Offset : Elf64_Addr;
-      R_Info : Elf64_Xword;
+      R_Info   : Elf64_Xword;
       R_Addend : Elf64_Sxword;
    end record;
    Elf64_Rela_Size : constant Natural := Elf64_Rela'Size / System.Storage_Unit;

@@ -27,18 +27,15 @@ package Paths is
 
    subtype File_Name is String_Access;
 
+   function Build_Filename (Dir : String; Filename : String) return String;
    function Build_Filename
-     (Dir      : String;
-      Filename : String) return String;
-   function Build_Filename
-     (Dir      : String;
-      Filename : String) return String_Access;
+     (Dir : String; Filename : String) return String_Access;
    --  Create a filename from a directory name and a filename. The directory
    --  name is expected to be not empty and the result is _not_ canonicalized
    --  (left to the callers to decide).
 
-   function "/" (Dir, Name : String) return String is
-     (Ada.Directories.Compose (Dir, Name));
+   function "/" (Dir, Name : String) return String
+   is (Ada.Directories.Compose (Dir, Name));
    --  Likewise, without the "dir shouldn't be empty" constraint but checking
    --  that the path components are valid when not empty.
 
@@ -47,11 +44,9 @@ package Paths is
    --  leave it unchanged.
 
    function Canonicalize_Filename
-     (Filename : String;
-      Lower    : Boolean := True) return String;
+     (Filename : String; Lower : Boolean := True) return String;
    function Canonicalize_Filename
-     (Filename : String;
-      Lower    : Boolean := True) return String_Access;
+     (Filename : String; Lower : Boolean := True) return String_Access;
    --  Assuming Filename is a full pathname to a file, return a normalized
    --  version of it such that different references to the same file map to the
    --  same canonical string as much as possible.

@@ -43,17 +43,18 @@ package body Traces_Stats is
    -- Get_Line_Stat_String --
    --------------------------
 
-   function Get_Line_Stat_String (Stats : Li_Stat_Array) return String
-   is
+   function Get_Line_Stat_String (Stats : Li_Stat_Array) return String is
       Total : constant Natural := Get_Total (Stats);
    begin
       if Total = 0 then
          return "no code";
       else
          declare
-            Res : constant String := Natural'Image (Ratio (Stats (Covered),
-                                                           Total))
-              & "% of" & Natural'Image (Total) & " lines covered";
+            Res : constant String :=
+              Natural'Image (Ratio (Stats (Covered), Total))
+              & "% of"
+              & Natural'Image (Total)
+              & " lines covered";
          begin
             return Res (Res'First + 1 .. Res'Last);
          end;
@@ -76,8 +77,8 @@ package body Traces_Stats is
          others   => +"");
       Res           : Unbounded_String := Null_Unbounded_String;
 
-      function Trimmed_Image (N : Natural) return String is
-        (Trim (Natural'Image (N), Ada.Strings.Left));
+      function Trimmed_Image (N : Natural) return String
+      is (Trim (Natural'Image (N), Ada.Strings.Left));
 
    begin
       if Stats (Stmt).Total = 0 then
@@ -92,9 +93,17 @@ package body Traces_Stats is
                   R         : constant String :=
                     Trimmed_Image (Ratio (N_Covered, Total));
                begin
-                  Res := Res & R & "% " & SCO_Kind_Repr (Level)
-                    & " coverage (" & Trimmed_Image (N_Covered) & " out of "
-                    & Trimmed_Image (Total) & ")" & ASCII.LF;
+                  Res :=
+                    Res
+                    & R
+                    & "% "
+                    & SCO_Kind_Repr (Level)
+                    & " coverage ("
+                    & Trimmed_Image (N_Covered)
+                    & " out of "
+                    & Trimmed_Image (Total)
+                    & ")"
+                    & ASCII.LF;
                end;
             end if;
          end loop;
@@ -107,8 +116,8 @@ package body Traces_Stats is
    -----------
 
    function Ratio (Part : Natural; Total : Natural) return Natural is
-      Percentage : Natural := Natural (Float'Rounding (Float (Part) * 100.0
-                                      / Float (Total)));
+      Percentage : Natural :=
+        Natural (Float'Rounding (Float (Part) * 100.0 / Float (Total)));
    begin
       --  Percentages will be a gross approximation on the extremes, e.g.
       --  1 line not covered out of 201+ lines will still result in 1% of non

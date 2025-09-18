@@ -136,7 +136,7 @@ procedure GNATcov_Bits_Specific is
    Keep_Reading_Traces   : Boolean := False;
    Emit_Report           : Boolean := True;
 
-   Dump_Units_Filename  : String_Access := null;
+   Dump_Units_Filename : String_Access := null;
    --  If null, dump the list of units of interest as a section in the report
    --  annotation format (if "-a report") or on the standard output
    --  (otherwise). When non-null, dump the list of units to the designated
@@ -163,8 +163,7 @@ procedure GNATcov_Bits_Specific is
    --  Show the current working directory
 
    procedure Report_Missing_Argument
-     (What            : String;
-      Additional_Info : String := "")
+     (What : String; Additional_Info : String := "")
    with No_Return;
    --  Report a fatal error telling the user that an argument is missing.
 
@@ -193,7 +192,7 @@ procedure GNATcov_Bits_Specific is
    --  or all explicitly passed SID files.
 
    procedure Report_Bad_Trace (Trace_Filename : String; Result : Read_Result)
-      with Pre => not Result.Success;
+   with Pre => not Result.Success;
    --  Emit the error corresponding to Result with Outputs. If
    --  Keep_Reading_Tracess is false, this is a fatal error.
 
@@ -213,8 +212,7 @@ procedure GNATcov_Bits_Specific is
       --  Load a consolidated executable
 
       procedure Process_Trace
-        (Trace_File_Name    : String;
-         Exec_Name_Override : String);
+        (Trace_File_Name : String; Exec_Name_Override : String);
       --  Try to read Trace_File_Name. Depending on the probed trace file
       --  kind, dispatch to Process_Binary_Trace or Process_Source_Trace.
       --  If Trace_File_Name is an empty string, just dispatch to
@@ -225,8 +223,7 @@ procedure GNATcov_Bits_Specific is
       --  referenced by its coverage buffers.
 
       procedure Process_Binary_Trace
-        (Trace_File_Name    : String;
-         Exec_Name_Override : String);
+        (Trace_File_Name : String; Exec_Name_Override : String);
       --  Common dispatching point for object and source coverage:
       --  process one trace file (with optional override of exec file
       --  name), or load one consolidated executable (if Trace_File_Name
@@ -234,13 +231,11 @@ procedure GNATcov_Bits_Specific is
       --  allowed to be null).
 
       procedure Process_Trace_For_Obj_Coverage
-        (Trace_File         : Trace_File_Element_Acc;
-         Exec_Name_Override : String);
+        (Trace_File : Trace_File_Element_Acc; Exec_Name_Override : String);
       --  Open Trace_File and merge it into the trace database
 
       procedure Process_Trace_For_Src_Coverage
-        (Trace_File         : Trace_File_Element_Acc;
-         Exec_Name_Override : String);
+        (Trace_File : Trace_File_Element_Acc; Exec_Name_Override : String);
       --  Process Trace_File for source coverage. No trace database is
       --  used.
 
@@ -292,20 +287,26 @@ procedure GNATcov_Bits_Specific is
 
          Exe_Name : constant String := Get_Exe_Name;
 
-      --  Start of processing for Open_Exec_For_Trace
+         --  Start of processing for Open_Exec_For_Trace
 
       begin
          return Exe_File : Exe_File_Acc do
             Execs_Dbase.Open_Exec_For_Trace
-              (Exe_Name, Text_Start,
-               Trace_File_Name, Get_Signature (Trace_File),
+              (Exe_Name,
+               Text_Start,
+               Trace_File_Name,
+               Get_Signature (Trace_File),
                Exe_File);
          end return;
       exception
          when E : Binary_Files.Error =>
-            Fatal_Error ("Cannot open ELF file " & Exe_Name
-                         & " for trace file " & Trace_File_Name & ": "
-                         & Switches.Exception_Info (E));
+            Fatal_Error
+              ("Cannot open ELF file "
+               & Exe_Name
+               & " for trace file "
+               & Trace_File_Name
+               & ": "
+               & Switches.Exception_Info (E));
       end Open_Exec_For_Trace;
 
       ------------------
@@ -324,8 +325,7 @@ procedure GNATcov_Bits_Specific is
       -------------------
 
       procedure Process_Trace
-        (Trace_File_Name    : String;
-         Exec_Name_Override : String)
+        (Trace_File_Name : String; Exec_Name_Override : String)
       is
          Kind   : Trace_File_Kind;
          Result : Read_Result;
@@ -342,11 +342,12 @@ procedure GNATcov_Bits_Specific is
 
          case Kind is
             when Binary_Trace_File =>
-               Process_Binary_Trace
-                 (Trace_File_Name, Exec_Name_Override);
+               Process_Binary_Trace (Trace_File_Name, Exec_Name_Override);
+
             when Source_Trace_File =>
                Process_Source_Trace (Trace_File_Name);
-            when LLVM_Trace_File =>
+
+            when LLVM_Trace_File   =>
                Outputs.Fatal_Error ("LLVM trace file not implemented");
          end case;
       end Process_Trace;
@@ -361,9 +362,9 @@ procedure GNATcov_Bits_Specific is
          --  Callback for Read_Source_Trace_File
 
          procedure Read_Source_Trace_File is new
-            Instrument.Input_Traces.Generic_Read_Source_Trace_File
-              (On_Trace_Info  => On_Trace_Info,
-               On_Trace_Entry => Compute_Source_Coverage);
+           Instrument.Input_Traces.Generic_Read_Source_Trace_File
+             (On_Trace_Info  => On_Trace_Info,
+              On_Trace_Entry => Compute_Source_Coverage);
 
          Trace_File : Trace_File_Element_Acc;
          Result     : Read_Result;
@@ -378,7 +379,7 @@ procedure GNATcov_Bits_Specific is
             Update_From_Source_Trace (Trace_File.all, Kind, Data);
          end On_Trace_Info;
 
-      --  Start of processing for Process_Source_Trace
+         --  Start of processing for Process_Source_Trace
 
       begin
          --  Reccord we are loading a source trace
@@ -394,8 +395,8 @@ procedure GNATcov_Bits_Specific is
          --  Register the trace file, so it is included in coverage
          --  reports.
 
-         Trace_File := Create_Trace_File_Element
-           (Trace_File_Name, Source_Trace_File);
+         Trace_File :=
+           Create_Trace_File_Element (Trace_File_Name, Source_Trace_File);
 
          --  We can now read it and import its data
 
@@ -412,8 +413,7 @@ procedure GNATcov_Bits_Specific is
       --------------------------
 
       procedure Process_Binary_Trace
-        (Trace_File_Name    : String;
-         Exec_Name_Override : String)
+        (Trace_File_Name : String; Exec_Name_Override : String)
       is
          Trace_File : Trace_File_Element_Acc;
       begin
@@ -425,18 +425,16 @@ procedure GNATcov_Bits_Specific is
          Load_All_ALIs (Check_SCOs => False);
 
          if Trace_File_Name /= "" then
-            Trace_File := Create_Trace_File_Element
-              (Trace_File_Name, Binary_Trace_File);
+            Trace_File :=
+              Create_Trace_File_Element (Trace_File_Name, Binary_Trace_File);
          else
             pragma Assert (Exec_Name_Override /= "");
          end if;
 
          if Object_Coverage_Enabled then
-            Process_Trace_For_Obj_Coverage
-              (Trace_File, Exec_Name_Override);
+            Process_Trace_For_Obj_Coverage (Trace_File, Exec_Name_Override);
          else
-            Process_Trace_For_Src_Coverage
-              (Trace_File, Exec_Name_Override);
+            Process_Trace_For_Src_Coverage (Trace_File, Exec_Name_Override);
          end if;
 
          if Trace_File /= null then
@@ -449,16 +447,13 @@ procedure GNATcov_Bits_Specific is
       ------------------------------------
 
       procedure Process_Trace_For_Obj_Coverage
-        (Trace_File         : Trace_File_Element_Acc;
-         Exec_Name_Override : String)
+        (Trace_File : Trace_File_Element_Acc; Exec_Name_Override : String)
       is
          --  TODO??? Handle shared objects
 
          Trace_Filename : constant String :=
-           (if Trace_File = null
-            then ""
-            else +Trace_File.Filename);
-         Exe_File : Exe_File_Acc;
+           (if Trace_File = null then "" else +Trace_File.Filename);
+         Exe_File       : Exe_File_Acc;
       begin
          Init_Base (Base_Acc.all);
 
@@ -466,8 +461,8 @@ procedure GNATcov_Bits_Specific is
             Open_Exec (Exec_Name_Override, Text_Start, Exe_File);
          else
             declare
-               Result   : Read_Result;
-               TF       : Trace_File_Type;
+               Result : Read_Result;
+               TF     : Trace_File_Type;
             begin
                Read_Trace_File (Trace_Filename, TF, Result, Base_Acc.all);
                if not Result.Success then
@@ -475,8 +470,8 @@ procedure GNATcov_Bits_Specific is
                   return;
                end if;
                Update_From_Binary_Trace (Trace_File.all, TF);
-               Exe_File := Open_Exec_For_Trace
-                 (Trace_Filename, TF, Exec_Name_Override);
+               Exe_File :=
+                 Open_Exec_For_Trace (Trace_Filename, TF, Exec_Name_Override);
                Free (TF);
             end;
          end if;
@@ -492,8 +487,7 @@ procedure GNATcov_Bits_Specific is
          Build_Debug_Compile_Units (Exe_File.all);
 
          if Trace_File /= null then
-            Misc_Trace.Trace
-              ("Processing traces from " & Trace_Filename);
+            Misc_Trace.Trace ("Processing traces from " & Trace_Filename);
          end if;
 
          Load_Code_And_Traces (Exe_File, Base_Acc);
@@ -504,16 +498,13 @@ procedure GNATcov_Bits_Specific is
       ------------------------------------
 
       procedure Process_Trace_For_Src_Coverage
-        (Trace_File         : Trace_File_Element_Acc;
-         Exec_Name_Override : String)
+        (Trace_File : Trace_File_Element_Acc; Exec_Name_Override : String)
       is
          Exe_File : Exe_File_Acc;
          --  Executable this trace file refers to
 
          Trace_Filename : constant String :=
-           (if Trace_File = null
-            then ""
-            else +Trace_File.Filename);
+           (if Trace_File = null then "" else +Trace_File.Filename);
 
          Current_Exec            : Exe_File_Acc;
          Current_Sym             : Address_Info_Acc;
@@ -522,39 +513,38 @@ procedure GNATcov_Bits_Specific is
          Current_Subp_Info_Valid : Boolean;
 
          procedure Process_Info_Entries
-           (TF     : Trace_File_Type;
-            Result : out Read_Result);
+           (TF : Trace_File_Type; Result : out Read_Result);
 
          function Load_Shared_Object
-            (TF          : Trace_File_Type;
-             Filename    : String;
-             Signature   : Binary_Files.Binary_File_Signature;
-             First, Last : Traces.Pc_Type) return Exe_File_Acc;
+           (TF          : Trace_File_Type;
+            Filename    : String;
+            Signature   : Binary_Files.Binary_File_Signature;
+            First, Last : Traces.Pc_Type) return Exe_File_Acc;
 
          procedure Process_Trace_Entry
            (TF : Trace_File_Type; SO : Exe_File_Acc; E : Trace_Entry);
 
-         procedure Read_Trace_File is new Read_Trace_File_Gen
-           (Shared_Object_Type   => Exe_File_Acc,
-            No_Shared_Object     => null,
-            Process_Info_Entries => Process_Info_Entries,
-            Load_Shared_Object   => Load_Shared_Object,
-            Process_Trace_Entry  => Process_Trace_Entry);
+         procedure Read_Trace_File is new
+           Read_Trace_File_Gen
+             (Shared_Object_Type   => Exe_File_Acc,
+              No_Shared_Object     => null,
+              Process_Info_Entries => Process_Info_Entries,
+              Load_Shared_Object   => Load_Shared_Object,
+              Process_Trace_Entry  => Process_Trace_Entry);
 
          --------------------------
          -- Process_Info_Entries --
          --------------------------
 
          procedure Process_Info_Entries
-           (TF     : Trace_File_Type;
-            Result : out Read_Result) is
+           (TF : Trace_File_Type; Result : out Read_Result) is
          begin
             Check_Trace_File_From_Exec (TF, Result);
             if not Result.Success then
                return;
             end if;
-            Exe_File := Open_Exec_For_Trace
-              (Trace_Filename, TF, Exec_Name_Override);
+            Exe_File :=
+              Open_Exec_For_Trace (Trace_Filename, TF, Exec_Name_Override);
             Decision_Map.Analyze (Exe_File);
          end Process_Info_Entries;
 
@@ -563,10 +553,10 @@ procedure GNATcov_Bits_Specific is
          ------------------------
 
          function Load_Shared_Object
-            (TF          : Trace_File_Type;
-             Filename    : String;
-             Signature   : Binary_Files.Binary_File_Signature;
-             First, Last : Traces.Pc_Type) return Exe_File_Acc
+           (TF          : Trace_File_Type;
+            Filename    : String;
+            Signature   : Binary_Files.Binary_File_Signature;
+            First, Last : Traces.Pc_Type) return Exe_File_Acc
          is
             pragma Unreferenced (TF);
             pragma Unreferenced (First);
@@ -593,27 +583,23 @@ procedure GNATcov_Bits_Specific is
          begin
             --  Get the symbol the trace entry is in
 
-            if Current_Sym = null or else Current_Exec /= Exe
-              or else
-               E.First not in Current_Sym.First .. Current_Sym.Last
+            if Current_Sym = null
+              or else Current_Exec /= Exe
+              or else E.First not in Current_Sym.First .. Current_Sym.Last
             then
                Current_Exec := Exe;
                Current_Sym :=
-                 Get_Address_Info
-                   (Exe.all, Symbol_Addresses, E.First);
+                 Get_Address_Info (Exe.all, Symbol_Addresses, E.First);
 
                if Current_Sym = null then
                   Current_Subp_Info_Valid := False;
                else
-                  Key_From_Symbol
-                    (Exe, Current_Sym, Current_Subp_Key);
-                  Current_Subp_Info_Valid :=
-                     Is_In (Current_Subp_Key);
+                  Key_From_Symbol (Exe, Current_Sym, Current_Subp_Key);
+                  Current_Subp_Info_Valid := Is_In (Current_Subp_Key);
                end if;
 
                if Current_Subp_Info_Valid then
-                  Current_Subp_Info :=
-                    Get_Subp_Info (Current_Subp_Key);
+                  Current_Subp_Info := Get_Subp_Info (Current_Subp_Key);
                end if;
             end if;
 
@@ -623,7 +609,7 @@ procedure GNATcov_Bits_Specific is
             end if;
          end Process_Trace_Entry;
 
-      --  Start of processing for Process_Trace_For_Src_Coverage
+         --  Start of processing for Process_Trace_For_Src_Coverage
 
       begin
          --  Whether we have a trace file or just an executable, load
@@ -696,16 +682,22 @@ procedure GNATcov_Bits_Specific is
       --  traces.
 
       if not SID_Inputs.Is_Empty and then Bin_Traces_Present then
-         Warn ("Using option --sid with binary trace files has no"
-               & " effect." & ASCII.LF & "Please consider using option"
-               & " --scos or -P<project file> in conjunction with"
-               & " --units to specify units of interest.");
+         Warn
+           ("Using option --sid with binary trace files has no"
+            & " effect."
+            & ASCII.LF
+            & "Please consider using option"
+            & " --scos or -P<project file> in conjunction with"
+            & " --units to specify units of interest.");
       end if;
       if not ALIs_Inputs.Is_Empty and then Src_Traces_Present then
-         Warn ("Using option --scos with source trace files has no"
-               & " effect." & ASCII.LF & "Please consider using option"
-               & " --sid or -P<project file> in conjunction with --units"
-               & " to specify units of interest.");
+         Warn
+           ("Using option --scos with source trace files has no"
+            & " effect."
+            & ASCII.LF
+            & "Please consider using option"
+            & " --sid or -P<project file> in conjunction with --units"
+            & " to specify units of interest.");
       end if;
    end Read_And_Process_GNATcov_Traces;
 
@@ -714,12 +706,13 @@ procedure GNATcov_Bits_Specific is
    -----------------------------
 
    procedure Report_Missing_Argument
-     (What            : String;
-      Additional_Info : String := "")
-   is
+     (What : String; Additional_Info : String := "") is
    begin
       Fatal_Error_With_Usage
-        ("Please specify " & What & " on the command line" & Additional_Info
+        ("Please specify "
+         & What
+         & " on the command line"
+         & Additional_Info
          & ".");
    end Report_Missing_Argument;
 
@@ -730,8 +723,7 @@ procedure GNATcov_Bits_Specific is
    procedure Check_Argument_Available
      (Input_Args      : String_Vectors.Vector;
       What            : String;
-      Additional_Info : String := "")
-   is
+      Additional_Info : String := "") is
    begin
       if Input_Args.Is_Empty then
          Report_Missing_Argument (What, Additional_Info);
@@ -762,12 +754,12 @@ procedure GNATcov_Bits_Specific is
       --  anything useful, so we need to ask for that and stop.
 
       if Source_Coverage_Enabled
-         and then Checkpoints_Inputs.Is_Empty
-         and then LLVM_JSON_Ckpt_Inputs.Is_Empty
-         and then SID_Inputs.Is_Empty
-         and then ALIs_Inputs.Is_Empty
-         and then Exe_Inputs.Is_Empty
-         and then not Args.String_Args (Opt_Project).Present
+        and then Checkpoints_Inputs.Is_Empty
+        and then LLVM_JSON_Ckpt_Inputs.Is_Empty
+        and then SID_Inputs.Is_Empty
+        and then ALIs_Inputs.Is_Empty
+        and then Exe_Inputs.Is_Empty
+        and then not Args.String_Args (Opt_Project).Present
       then
          Report_Missing_Argument
            ("SCOs",
@@ -796,7 +788,7 @@ procedure GNATcov_Bits_Specific is
          Append_Expanded_Argument (S, ALIs_Inputs);
       end Add_LI;
 
-   --  Start of processing for Load_All_ALIs
+      --  Start of processing for Load_All_ALIs
 
    begin
       if Check_SCOs then
@@ -875,7 +867,7 @@ procedure GNATcov_Bits_Specific is
          Append_Expanded_Argument (SID_Name, SID_Inputs);
       end Add_SID_File;
 
-   --  Start of processing for Load_All_SIDs
+      --  Start of processing for Load_All_SIDs
 
    begin
       if SIDs_Loaded then
@@ -941,14 +933,16 @@ procedure GNATcov_Bits_Specific is
             if Identifier.Decl_SFI = No_Source_File then
                Outputs.Fatal_Error
                  ("Error when parsing --subprograms argument "
-                  & N & ": unknown source file");
+                  & N
+                  & ": unknown source file");
             end if;
             Identifier.Decl_Line := Natural'Value (Column);
 
             if not Available_Subps_Of_Interest.Contains (Identifier) then
                Outputs.Fatal_Error
                  ("Error when parsing --subprograms argument "
-                  & N & ": unknown subprogram");
+                  & N
+                  & ": unknown subprogram");
             end if;
             Subps_Of_Interest.Include (Identifier);
          exception
@@ -957,7 +951,8 @@ procedure GNATcov_Bits_Specific is
             when Constraint_Error =>
                Outputs.Fatal_Error
                  ("Wrong argument passed to --subprograms: "
-                  & "expecting <file>:<line> but got " & N);
+                  & "expecting <file>:<line> but got "
+                  & N);
          end;
       end loop;
    end Load_All_SIDs;
@@ -984,8 +979,7 @@ procedure GNATcov_Bits_Specific is
       -- Parse_Hex --
       ---------------
 
-      function Parse_Hex (S : String; Flag_Name : String) return Pc_Type
-      is
+      function Parse_Hex (S : String; Flag_Name : String) return Pc_Type is
          Res : Pc_Type;
          Pos : Natural;
       begin
@@ -1016,34 +1010,35 @@ procedure GNATcov_Bits_Specific is
          end if;
       end Handle_Trace_List_Element;
 
-   --  Start of processing for Process_Arguments
+      --  Start of processing for Process_Arguments
 
    begin
       --  First, handle all options...
 
-      Switches.All_Decisions   := Args.Bool_Args (Opt_All_Decisions);
-      Switches.All_Messages    := Args.Bool_Args (Opt_All_Messages);
-      Excluded_SCOs            := Args.Bool_Args (Opt_Excluded_SCOs);
-      Keep_Edges               := Args.Bool_Args (Opt_Keep_Edges);
-      Pretty_Print             := Args.Bool_Args (Opt_Pretty_Print);
-      Keep_Reading_Traces      := Args.Bool_Args (Opt_Keep_Reading_Traces);
-      Dump_Units               := Args.String_Args (Opt_Dump_Units_To).Present;
-      Show_MCDC_Vectors        := (Args.Bool_Args (Opt_Show_MCDC_Vectors)
-                                   or else All_Messages);
-      Show_Condition_Vectors   := (Args.Bool_Args (Opt_Show_Condition_Vectors)
-                                   or else All_Messages);
+      Switches.All_Decisions := Args.Bool_Args (Opt_All_Decisions);
+      Switches.All_Messages := Args.Bool_Args (Opt_All_Messages);
+      Excluded_SCOs := Args.Bool_Args (Opt_Excluded_SCOs);
+      Keep_Edges := Args.Bool_Args (Opt_Keep_Edges);
+      Pretty_Print := Args.Bool_Args (Opt_Pretty_Print);
+      Keep_Reading_Traces := Args.Bool_Args (Opt_Keep_Reading_Traces);
+      Dump_Units := Args.String_Args (Opt_Dump_Units_To).Present;
+      Show_MCDC_Vectors :=
+        (Args.Bool_Args (Opt_Show_MCDC_Vectors) or else All_Messages);
+      Show_Condition_Vectors :=
+        (Args.Bool_Args (Opt_Show_Condition_Vectors) or else All_Messages);
       Allow_Mixing_Trace_Kinds := Args.Bool_Args (Opt_Allow_Mix_Trace_Kind);
-      Short_Circuit_And_Or     := Args.Bool_Args
-                                    (Opt_Boolean_Short_Circuit_And_Or);
-      Emit_Report              := not Args.Bool_Args (Opt_Cancel_Annotate);
-      Save_Temps               := Args.Bool_Args (Opt_Save_Temps);
-      SPARK_Compat             := Args.Bool_Args (Opt_SPARK_Compat);
-      Use_Full_Slugs           := Args.Bool_Args (Opt_Full_Slugs);
-      Force                    := Args.Bool_Args (Opt_Force);
+      Short_Circuit_And_Or :=
+        Args.Bool_Args (Opt_Boolean_Short_Circuit_And_Or);
+      Emit_Report := not Args.Bool_Args (Opt_Cancel_Annotate);
+      Save_Temps := Args.Bool_Args (Opt_Save_Temps);
+      SPARK_Compat := Args.Bool_Args (Opt_SPARK_Compat);
+      Use_Full_Slugs := Args.Bool_Args (Opt_Full_Slugs);
+      Force := Args.Bool_Args (Opt_Force);
 
       if Args.Bool_Args (Opt_Recursive) then
-         Warn ("--recursive is deprecated. Recursive is now the default"
-               & " behavior.");
+         Warn
+           ("--recursive is deprecated. Recursive is now the default"
+            & " behavior.");
       end if;
 
       Copy_Arg (Opt_Output, Output);
@@ -1099,8 +1094,9 @@ procedure GNATcov_Bits_Specific is
       if not Args.String_List_Args (Opt_Checkpoint).Is_Empty
         and then not Args.String_List_Args (Opt_Units).Is_Empty
       then
-         Warn ("Specifying units of interest through --units has no effect on "
-               & "checkpoints");
+         Warn
+           ("Specifying units of interest through --units has no effect on "
+            & "checkpoints");
       end if;
 
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
@@ -1119,9 +1115,7 @@ procedure GNATcov_Bits_Specific is
 
       if Args.String_List_Args (Opt_Restricted_To_Languages).Is_Empty then
          Src_Enabled_Languages :=
-           (Ada_Language => True,
-            C_Language   => True,
-            CPP_Language => True);
+           (Ada_Language => True, C_Language => True, CPP_Language => True);
       else
          for Arg of Args.String_List_Args (Opt_Restricted_To_Languages) loop
             Src_Enabled_Languages (To_Language (+Arg)) := True;
@@ -1183,9 +1177,9 @@ procedure GNATcov_Bits_Specific is
          --  --run)???
 
          begin
-            Text_Start := Parse_Hex
-              (+Args.String_Args (Opt_Text_Start).Value,
-               "--text-start");
+            Text_Start :=
+              Parse_Hex
+                (+Args.String_Args (Opt_Text_Start).Value, "--text-start");
          exception
             when Constraint_Error =>
                Fatal_Error ("Failure to parse --text-start");
@@ -1295,13 +1289,13 @@ procedure GNATcov_Bits_Specific is
             --  Raise a fatal error for using both "none" and "all" options
 
             procedure Set_Mode (SO_Set : SO_Set_Type)
-               with Pre => SO_Set.Kind /= Some_SO;
+            with Pre => SO_Set.Kind /= Some_SO;
             --  Switch to the given SO_Set mode. Raise a fatal error if there
             --  is already a non-default mode or if there are already
             --  explicitly listed shared objects.
 
             procedure Invalid_SO_With (Mode : SO_Set_Kind)
-               with Pre => Mode /= Some_SO;
+            with Pre => Mode /= Some_SO;
             --  Raise a fatal error for trying to switch to the non-default
             --  "mode" whereas there are already explicitly listed shared
             --  objects.
@@ -1311,8 +1305,9 @@ procedure GNATcov_Bits_Specific is
             --------------
 
             procedure SO_Error (Msg : String) is
-               Opt_Name : constant String := Option_Name
-                 (Arg_Parser, (String_List_Opt, Opt_Shared_Object));
+               Opt_Name : constant String :=
+                 Option_Name
+                   (Arg_Parser, (String_List_Opt, Opt_Shared_Object));
             begin
                Fatal_Error (Opt_Name & ": " & Msg);
             end SO_Error;
@@ -1346,9 +1341,9 @@ procedure GNATcov_Bits_Specific is
             procedure Invalid_SO_With (Mode : SO_Set_Kind) is
                Name : constant String :=
                  (case Mode is
-                  when None => "none",
-                  when Some_SO => raise Program_Error,
-                  when All_SO => "all");
+                    when None    => "none",
+                    when Some_SO => raise Program_Error,
+                    when All_SO  => "all");
             begin
                SO_Error
                  ("cannot provide shared objects with """ & Name & """");
@@ -1361,22 +1356,35 @@ procedure GNATcov_Bits_Specific is
 
             if +Arg = "none" then
                case SO_Inputs.Kind is
-                  when None    => null;
-                  when Some_SO => Set_Mode ((Kind => None));
-                  when All_SO  => None_And_All_Error;
+                  when None    =>
+                     null;
+
+                  when Some_SO =>
+                     Set_Mode ((Kind => None));
+
+                  when All_SO  =>
+                     None_And_All_Error;
                end case;
 
             elsif +Arg = "all" then
                case SO_Inputs.Kind is
-                  when None    => None_And_All_Error;
-                  when Some_SO => Set_Mode ((Kind => All_SO));
-                  when All_SO  => null;
+                  when None    =>
+                     None_And_All_Error;
+
+                  when Some_SO =>
+                     Set_Mode ((Kind => All_SO));
+
+                  when All_SO  =>
+                     null;
                end case;
 
             else
                case SO_Inputs.Kind is
-                  when None | All_SO => Invalid_SO_With (SO_Inputs.Kind);
-                  when Some_SO       => SO_Inputs.Set.Append (Arg);
+                  when None | All_SO =>
+                     Invalid_SO_With (SO_Inputs.Kind);
+
+                  when Some_SO       =>
+                     SO_Inputs.Set.Append (Arg);
                end case;
             end if;
          end;
@@ -1389,7 +1397,7 @@ procedure GNATcov_Bits_Specific is
 
          declare
             Arg : constant String :=
-               +Args.String_Args (Opt_Dump_Units_To).Value;
+              +Args.String_Args (Opt_Dump_Units_To).Value;
          begin
             if Arg /= "-" then
                Dump_Units_Filename := new String'(Arg);
@@ -1410,7 +1418,7 @@ procedure GNATcov_Bits_Specific is
       --  meanings.
 
       case Args.Command is
-         when Cmd_Setup =>
+         when Cmd_Setup                                      =>
 
             --  Accept one optional argument: the project file name for the
             --  instrumentation runtime to build and install.
@@ -1421,10 +1429,11 @@ procedure GNATcov_Bits_Specific is
                declare
                   Prj : constant String := +Args.Remaining_Args.Element (0);
                begin
-                  Runtime_Project := new String'
-                    (if GNAT.OS_Lib.Is_Absolute_Path (Prj)
-                     then Prj
-                     else (Current_Directory & "/" & Prj));
+                  Runtime_Project :=
+                    new String'
+                      (if GNAT.OS_Lib.Is_Absolute_Path (Prj)
+                       then Prj
+                       else (Current_Directory & "/" & Prj));
                end;
             else
                Fatal_Error ("at most one positional argument allowed");
@@ -1435,7 +1444,7 @@ procedure GNATcov_Bits_Specific is
             | Cmd_Dump_Trace_Raw
             | Cmd_Dump_Trace_Base
             | Cmd_Dump_Trace_Asm
-            | Cmd_Dump_Src_Trace =>
+            | Cmd_Dump_Src_Trace                             =>
 
             --  For "coverage", if the annotation format is not specified on
             --  the command line, default to report, unless we must save a
@@ -1468,12 +1477,11 @@ procedure GNATcov_Bits_Specific is
                Set_Encoding (+Args.String_Args (Opt_Source_Encoding).Value);
             end if;
 
-            --  Remaining arguments are supposed to be copied to Opt_Trace,
-            --  which is already handled, so there's nothing left to do with
-            --  them.
+         --  Remaining arguments are supposed to be copied to Opt_Trace,
+         --  which is already handled, so there's nothing left to do with
+         --  them.
 
-         when Cmd_Disp_Routines
-            | Cmd_Scan_Objects =>
+         when Cmd_Disp_Routines | Cmd_Scan_Objects           =>
             Copy_Arg_List (Args.Remaining_Args, Obj_Inputs);
 
          when Cmd_Dump_Sections
@@ -1483,7 +1491,7 @@ procedure GNATcov_Bits_Specific is
             | Cmd_Dump_Inlined_Subprograms
             | Cmd_Dump_Lines
             | Cmd_Disassemble_Raw
-            | Cmd_Disassemble =>
+            | Cmd_Disassemble                                =>
             Copy_Arg_List (Args.Remaining_Args, Exe_Inputs);
 
          when Cmd_Disassemble_Insn_Properties | Cmd_Dump_CFG =>
@@ -1504,13 +1512,12 @@ procedure GNATcov_Bits_Specific is
                      Next (Cur);
                      exit when Cur = No_Element;
                      Locations_Inputs.Append
-                       (Object_Locations.Parse_User_Location
-                          (+Element (Cur)));
+                       (Object_Locations.Parse_User_Location (+Element (Cur)));
                   end loop;
                end if;
             end;
 
-         when Cmd_Dump_Pragmas =>
+         when Cmd_Dump_Pragmas                               =>
             if Args.Bool_Args (Opt_GNAT_Pragmas) then
                for P in Snames.Pragma_Id loop
                   Put_Line (P'Image);
@@ -1521,14 +1528,14 @@ procedure GNATcov_Bits_Specific is
                end loop;
             end if;
 
-         when Cmd_Map_Routines =>
+         when Cmd_Map_Routines                               =>
             --  Set MC/DC coverage level in order to generate a complete
             --  decision map.
 
             Set_Coverage_Levels ("stmt+mcdc");
             Copy_Arg_List (Args.Remaining_Args, Exe_Inputs);
 
-         when Cmd_Run =>
+         when Cmd_Run                                        =>
 
             --  Sort out what to use as the executable name and what EARGS to
             --  forward to our Eargs local, depending on whether we have an
@@ -1537,7 +1544,7 @@ procedure GNATcov_Bits_Specific is
 
             case Args.Remaining_Args.Length is
 
-               when 0 =>
+               when 0      =>
 
                   --  We don't have an executable specified on the base
                   --  command line (before eargs).
@@ -1551,13 +1558,13 @@ procedure GNATcov_Bits_Specific is
                   --  Otherwise, complain about missing an executable to run.
 
                   declare
-                     Eargs_Arg : String_Vectors.Vector
-                     renames Args.String_List_Args (Opt_Eargs);
+                     Eargs_Arg : String_Vectors.Vector renames
+                       Args.String_List_Args (Opt_Eargs);
 
                      Exe_From_Project : constant String :=
                        (if Is_Project_Loaded
-                          then Get_Single_Main_Executable
-                          else "");
+                        then Get_Single_Main_Executable
+                        else "");
 
                      C : String_Vectors.Cursor :=
                        String_Vectors.First (Eargs_Arg);
@@ -1589,7 +1596,7 @@ procedure GNATcov_Bits_Specific is
 
                   end;
 
-               when 1 =>
+               when 1      =>
 
                   --  We have single executable argument on the base command
                   --  line (before eargs). Use it and forward all the EARGS
@@ -1607,17 +1614,17 @@ procedure GNATcov_Bits_Specific is
                   Fatal_Error ("Only one EXEC parameter is allowed");
             end case;
 
-         when Cmd_Check_SCOs =>
+         when Cmd_Check_SCOs                                 =>
             Copy_Arg_List (Args.Remaining_Args, ALIs_Inputs);
 
-         when Cmd_Convert =>
+         when Cmd_Convert                                    =>
             if Args.String_List_Args (Opt_Exec).Is_Empty then
                Fatal_Error
                  (Option_Name (Arg_Parser, (String_List_Opt, Opt_Exec))
                   & " is missing (required for ""convert"")");
             end if;
 
-         when Cmd_Instrument_With_Setup =>
+         when Cmd_Instrument_With_Setup                      =>
 
             --  Ensure we have a source coverage level. If not, we might have
             --  either an object level specified, or possibly no --level at
@@ -1627,12 +1634,15 @@ procedure GNATcov_Bits_Specific is
                Fatal_Error
                  ("Instrumentation requires a source coverage level"
                   & ASCII.LF
-                  & "  (--level=" & Source_Level_Options & ")");
+                  & "  (--level="
+                  & Source_Level_Options
+                  & ")");
             elsif not Source_Coverage_Enabled then
                Warn
                  ("Coverage level not specified on the command"
                   & " line or in the project file (--level="
-                  & Source_Level_Options & "), defaulting to ""stmt"".");
+                  & Source_Level_Options
+                  & "), defaulting to ""stmt"".");
                Set_Coverage_Levels ("stmt");
             end if;
 
@@ -1646,8 +1656,9 @@ procedure GNATcov_Bits_Specific is
                          (+Args.String_Args (Opt_Path_Count_Limit).Value);
                   exception
                      when Constraint_Error =>
-                        Fatal_Error ("--path-count-limit expects a positive"
-                                     & " integer value");
+                        Fatal_Error
+                          ("--path-count-limit expects a positive"
+                           & " integer value");
                   end;
                   SC_Obligations.Set_Path_Count_Limit (Limit);
                end;
@@ -1666,8 +1677,9 @@ procedure GNATcov_Bits_Specific is
                          (+Args.String_Args (Opt_Parallelism_Level).Value);
                   exception
                      when Constraint_Error =>
-                        Fatal_Error ("Parallelism level (-j or --jobs)"
-                                     & " must be a natural integer value");
+                        Fatal_Error
+                          ("Parallelism level (-j or --jobs)"
+                           & " must be a natural integer value");
                   end;
 
                   --  Limit the number of spawned subprocesses to the number
@@ -1682,7 +1694,7 @@ procedure GNATcov_Bits_Specific is
                end;
             end if;
 
-         when others =>
+         when others                                         =>
             null;
       end case;
 
@@ -1766,10 +1778,10 @@ procedure GNATcov_Bits_Specific is
       Put_Line ("CWD = " & GNAT.OS_Lib.Normalize_Pathname ("."));
    end Show_CWD;
 
-   Base        : aliased Traces_Base;
-   Exec        : Exe_File_Acc;
+   Base : aliased Traces_Base;
+   Exec : Exe_File_Acc;
 
---  Start of processing for GNATcov
+   --  Start of processing for GNATcov
 
 begin
 
@@ -1791,28 +1803,28 @@ begin
    --  Now execute the specified command
 
    case Args.Command is
-      when None =>
+      when None                                           =>
          --  This can happen only if there is an error during arguments
          --  parsing. In this case, we are supposed to stop earlier, so
          --  we're not supposed to end up here.
 
          raise Program_Error;
 
-      when Cmd_Help =>
+      when Cmd_Help                                       =>
          Print_Usage (Arg_Parser, False, False);
 
-      when Cmd_Help_Internal =>
+      when Cmd_Help_Internal                              =>
          Print_Usage (Arg_Parser, True, False);
 
-      when Cmd_Version =>
+      when Cmd_Version                                    =>
          if not Misc_Trace.Is_Active then
             Show_Version;
          end if;
 
-      when Cmd_List_Logs =>
+      when Cmd_List_Logs                                  =>
          Logging.Print_List;
 
-      when Cmd_Print_GPR_Registry =>
+      when Cmd_Print_GPR_Registry                         =>
          declare
             use GPR2.Project.Registry.Exchange;
             Format_Arg : constant String :=
@@ -1831,7 +1843,7 @@ begin
             Export (Format => Format, Output => Put'Access);
          end;
 
-      when Cmd_Disp_Routines =>
+      when Cmd_Disp_Routines                              =>
          declare
             Mode_Exclude : Boolean := False;
          begin
@@ -1843,15 +1855,13 @@ begin
                   Mode_Exclude := False;
                else
                   Traces_Elf.Read_Routine_Names
-                    (+Arg,
-                     Exclude => Mode_Exclude,
-                     Strict  => False);
+                    (+Arg, Exclude => Mode_Exclude, Strict => False);
                end if;
             end loop;
             Traces_Names.Disp_All_Routines_Of_Interest;
          end;
 
-      when Cmd_Setup =>
+      when Cmd_Setup                                      =>
          declare
             Project_File : String renames Runtime_Project.all;
 
@@ -1868,18 +1878,16 @@ begin
 
             Target_Arg : constant String := Value (Args, Opt_Target);
             Target     : constant String :=
-              (if Target_Arg = ""
-               then ""
-               else Target_Family.all);
+              (if Target_Arg = "" then "" else Target_Family.all);
 
             --  Unless a specific installation name is requested, use the name
             --  of the project to build and install.
 
             Install_Name : constant String :=
               Value
-                 (Args,
-                  Opt_Install_Name,
-                  Setup_RTS.Project_Name (Project_File));
+                (Args,
+                 Opt_Install_Name,
+                 Setup_RTS.Project_Name (Project_File));
 
             RTS_Profile_Str : constant String :=
               Value (Args, Opt_RTS_Profile, "auto");
@@ -1905,7 +1913,9 @@ begin
             if Args.Bool_Args (Opt_No_Stdlib) then
                if RTS_Profile not in Minimal | Auto then
                   Fatal_Error
-                    ("RTS profile """ & RTS_Profile_Str & """ not compatible"
+                    ("RTS profile """
+                     & RTS_Profile_Str
+                     & """ not compatible"
                      & " with --no-stdlib");
                end if;
                RTS_Profile := Minimal;
@@ -1923,10 +1933,11 @@ begin
                Gargs        => Args.String_List_Args (Opt_Gargs));
          end;
 
-      when Cmd_Instrument_Project =>
+      when Cmd_Instrument_Project                         =>
          if not Is_Project_Loaded then
-            Fatal_Error ("instrumentation requires a project file;"
-                         & " please use the -P option");
+            Fatal_Error
+              ("instrumentation requires a project file;"
+               & " please use the -P option");
          end if;
 
          declare
@@ -1937,11 +1948,12 @@ begin
             Runtime_Project : constant String :=
               Value (Args, Opt_Runtime_Project, "gnatcov_rts");
 
-            Setup_Cfg   : constant Setup_Config := Load
-              (Project.Target,
-               Project.Runtime,
-               Value (Args, Opt_Config),
-               Runtime_Project);
+            Setup_Cfg   : constant Setup_Config :=
+              Load
+                (Project.Target,
+                 Project.Runtime,
+                 Value (Args, Opt_Config),
+                 Runtime_Project);
             Dump_Config : constant Any_Dump_Config :=
               Load_Dump_Config (Setup_Cfg.Default_Dump_Config);
 
@@ -1965,7 +1977,7 @@ begin
             --  selected RTS and the selected dump configuration.
 
             if Setup_Cfg.RTS_Profile_Present
-               and then Check_RTS_Profile (Setup_Cfg.RTS_Profile, Dump_Config)
+              and then Check_RTS_Profile (Setup_Cfg.RTS_Profile, Dump_Config)
             then
                Warn
                  ("(selected runtime from " & (+Setup_Cfg.Project_File) & ")");
@@ -1978,7 +1990,7 @@ begin
                Mains                => Args.Remaining_Args);
          end;
 
-      when Cmd_Setup_Integration =>
+      when Cmd_Setup_Integration                          =>
 
          --  The integrated instrumentation scheme does not support Ada, so
          --  disable it.
@@ -1993,14 +2005,15 @@ begin
             Runtime_Project : constant String :=
               Value (Args, Opt_Runtime_Project, "gnatcov_rts");
 
-            Setup_Cfg : constant Setup_Config := Load
-              (Target          =>
-                (if Switches.Target_Family /= null
-                 then Switches.Target_Family.all
-                 else ""),
-               RTS             => Value (Args, Opt_Runtime),
-               Config_File     => Value (Args, Opt_Config),
-               Runtime_Project => Runtime_Project);
+            Setup_Cfg : constant Setup_Config :=
+              Load
+                (Target          =>
+                   (if Switches.Target_Family /= null
+                    then Switches.Target_Family.all
+                    else ""),
+                 RTS             => Value (Args, Opt_Runtime),
+                 Config_File     => Value (Args, Opt_Config),
+                 Runtime_Project => Runtime_Project);
             --  TODO??? We should not leave the target and runtime empty, but
             --  we have no project to load here.
 
@@ -2020,7 +2033,7 @@ begin
                Runtime_Project   => Runtime_Project);
          end;
 
-      when Cmd_Gcc_Wrapper =>
+      when Cmd_Gcc_Wrapper                                =>
          if Args.Remaining_Args.Length /= 2 then
             Fatal_Error ("exactly two positional arguments expected");
          end if;
@@ -2029,7 +2042,7 @@ begin
             Compiler_Exec => +Args.Remaining_Args.Element (1),
             Cargs         => Args.String_List_Args (Opt_Cargs));
 
-      when Cmd_Instrument_Source =>
+      when Cmd_Instrument_Source                          =>
 
          --  For the instrument-source command, and for the instrument-main,
          --  we do not check the command-line semantics as these commands are
@@ -2050,7 +2063,7 @@ begin
                  +Args.String_List_Args (Opt_SID).First_Element);
          end;
 
-      when Cmd_Instrument_Main =>
+      when Cmd_Instrument_Main                            =>
          declare
             --  The dump config is loaded from the command line. The
             --  implementation of the main instrumentation process assumes that
@@ -2073,7 +2086,7 @@ begin
                Instrument.Load_From_Command_Line);
          end;
 
-      when Cmd_Scan_Objects =>
+      when Cmd_Scan_Objects                               =>
 
          --  Scan symbols from all given ELF files in strict mode, warning
          --  about text section points of note wrt object coverage (empty
@@ -2082,12 +2095,10 @@ begin
          Check_Argument_Available (Obj_Inputs, "FILEs");
          for Filename of Obj_Inputs loop
             Traces_Elf.Scan_Symbols_From
-              (+Filename,
-               Sym_Cb => null,
-               Strict => True);
+              (+Filename, Sym_Cb => null, Strict => True);
          end loop;
 
-      when Cmd_Map_Routines =>
+      when Cmd_Map_Routines                               =>
          Load_All_ALIs (Check_SCOs => True);
          for Filename of Exe_Inputs loop
             declare
@@ -2101,31 +2112,31 @@ begin
          end if;
          SC_Obligations.Report_Units_Without_Code;
 
-      when Cmd_Scan_Decisions =>
+      when Cmd_Scan_Decisions                             =>
          Set_Coverage_Levels ("stmt");
          Load_All_ALIs (Check_SCOs => True);
          SC_Obligations.Report_Multipath_Decisions;
 
-      when Cmd_Check_SCOs =>
+      when Cmd_Check_SCOs                                 =>
          Set_Coverage_Levels ("stmt");
          for Filename of ALIs_Inputs loop
             Check_SCOs.Check_SCO_Syntax (+Filename);
          end loop;
          Load_All_ALIs (Check_SCOs => True);
 
-      when Cmd_Dump_Trace =>
+      when Cmd_Dump_Trace                                 =>
          Check_Traces_Available;
          for RT of Trace_Inputs loop
             Dump_Trace_File (+RT.Filename);
          end loop;
 
-      when Cmd_Dump_Trace_Raw =>
+      when Cmd_Dump_Trace_Raw                             =>
          Check_Traces_Available;
          for RT of Trace_Inputs loop
             Dump_Raw_Trace_File (+RT.Filename);
          end loop;
 
-      when Cmd_Dump_Trace_Base =>
+      when Cmd_Dump_Trace_Base                            =>
          declare
             procedure Dump_Trace_Base (Trace_File_Name : String);
             --  Raw display of merged trace files
@@ -2150,7 +2161,7 @@ begin
             end loop;
          end;
 
-      when Cmd_Dump_Trace_Asm =>
+      when Cmd_Dump_Trace_Asm                             =>
          Check_Argument_Available (Exe_Inputs, "EXE");
          Check_Traces_Available;
          for Filename of Exe_Inputs loop
@@ -2162,17 +2173,17 @@ begin
             Traces_Disa.Dump_Traces_With_Asm (Exec.all, +TF.Filename);
          end loop;
 
-      when Cmd_Dump_Src_Trace =>
+      when Cmd_Dump_Src_Trace                             =>
          Check_Traces_Available;
          for TF of Trace_Inputs loop
             Instrument.Input_Traces.Dump_Source_Trace_File (+TF.Filename);
          end loop;
 
       when Cmd_Dump_Sections
-        | Cmd_Dump_Symbols
-        | Cmd_Dump_Subprograms
-        | Cmd_Dump_Inlined_Subprograms
-        | Cmd_Dump_Lines =>
+         | Cmd_Dump_Symbols
+         | Cmd_Dump_Subprograms
+         | Cmd_Dump_Inlined_Subprograms
+         | Cmd_Dump_Lines                                 =>
          declare
             --  Dump Exec_File_Name's sections|symbols|subprograms|lines,
             --  depending on the current command.
@@ -2185,14 +2196,14 @@ begin
                Build_Sections (Exec.all);
 
                case Args.Command is
-                  when Cmd_Dump_Sections =>
+                  when Cmd_Dump_Sections            =>
                      To_Display := Section_Addresses;
 
-                  when Cmd_Dump_Symbols =>
+                  when Cmd_Dump_Symbols             =>
                      Build_Symbols (Exec.all);
                      To_Display := Symbol_Addresses;
 
-                  when Cmd_Dump_Subprograms =>
+                  when Cmd_Dump_Subprograms         =>
                      Build_Debug_Compile_Units (Exec.all);
                      To_Display := Subprogram_Addresses;
 
@@ -2200,11 +2211,11 @@ begin
                      Build_Debug_Lines (Exec.all);
                      To_Display := Inlined_Subprogram_Addresses;
 
-                  when Cmd_Dump_Lines =>
+                  when Cmd_Dump_Lines               =>
                      Build_Debug_Lines (Exec.all);
                      To_Display := Line_Addresses;
 
-                  when others =>
+                  when others                       =>
                      --  Never happens
 
                      raise Program_Error;
@@ -2215,7 +2226,7 @@ begin
             end loop;
          end;
 
-      when Cmd_Dump_Compile_Units =>
+      when Cmd_Dump_Compile_Units                         =>
          Check_Argument_Available (Exe_Inputs, "EXEs");
          for Filename of Exe_Inputs loop
             Exec := Open_File (+Filename, 0);
@@ -2225,7 +2236,7 @@ begin
             Close_File (Exec);
          end loop;
 
-      when Cmd_Disassemble_Raw =>
+      when Cmd_Disassemble_Raw                            =>
          Check_Argument_Available (Exe_Inputs, "EXEs");
          for Filename of Exe_Inputs loop
             Exec := Open_File (+Filename, 0);
@@ -2233,7 +2244,7 @@ begin
             Close_File (Exec);
          end loop;
 
-      when Cmd_Disassemble =>
+      when Cmd_Disassemble                                =>
          Check_Argument_Available (Exe_Inputs, "EXEs");
          for Filename of Exe_Inputs loop
             Exec := Open_File (+Filename, 0);
@@ -2252,9 +2263,7 @@ begin
 
          if Args.Command = Cmd_Disassemble_Insn_Properties then
             Disassemble_Insn_Properties.Disassemble
-              (Executable_Path.all,
-               Locations_Inputs,
-               not Pretty_Print);
+              (Executable_Path.all, Locations_Inputs, not Pretty_Print);
 
          else
             CFG_Dump.Dump
@@ -2268,19 +2277,23 @@ begin
          end if;
          Free (Executable_Path);
 
-      when Cmd_Dump_Pragmas =>
+      when Cmd_Dump_Pragmas                               =>
          null;
 
-      when Cmd_Coverage =>
+      when Cmd_Coverage                                   =>
 
          --  Warn when the user hasn't explicitly set a coverage level and
          --  default to stmt.
 
          if not (Source_Coverage_Enabled or else Object_Coverage_Enabled) then
-            Warn ("Coverage level not specified on the command line or in the"
-                  & " project file (--level=" & Source_Level_Options
-                  & "|" & Object_Level_Options ("|") & "), defaulting to"
-                  & " ""stmt"".");
+            Warn
+              ("Coverage level not specified on the command line or in the"
+               & " project file (--level="
+               & Source_Level_Options
+               & "|"
+               & Object_Level_Options ("|")
+               & "), defaulting to"
+               & " ""stmt"".");
             Set_Coverage_Levels ("stmt");
          end if;
 
@@ -2288,26 +2301,28 @@ begin
          --  object coverage.
 
          if Object_Coverage_Enabled then
-            if Annotation (Annotate_Report)
-              or else Annotation (Annotate_Sarif)
+            if Annotation (Annotate_Report) or else Annotation (Annotate_Sarif)
             then
                Fatal_Error
                  (""""
                   & (if Annotation (Annotate_Report)
-                    then "report"
-                    else "SARIF")
+                     then "report"
+                     else "SARIF")
                   & """ output format (from --annotate) is"
                   & " only for source coverage criteria"
                   & ASCII.LF
-                  & "  (--level=" & Source_Level_Options
+                  & "  (--level="
+                  & Source_Level_Options
                   & ", not --level="
-                  & Coverage_Option_Value (Current_Levels) & ")");
+                  & Coverage_Option_Value (Current_Levels)
+                  & ")");
 
             elsif not Checkpoints_Inputs.Is_Empty
               or else Save_Checkpoint /= null
             then
-               Fatal_Error ("Incremental coverage is supported for source"
-                            & " coverage only");
+               Fatal_Error
+                 ("Incremental coverage is supported for source"
+                  & " coverage only");
             end if;
          end if;
 
@@ -2326,7 +2341,7 @@ begin
          end if;
 
          if Annotation (Annotate_Cobertura)
-            and then not Annotations.Cobertura.Installed
+           and then not Annotations.Cobertura.Installed
          then
             Fatal_Error ("Cobertura report format support is not installed.");
          end if;
@@ -2388,14 +2403,14 @@ begin
          --  a gnatcov trace or an LLVM one.
 
          declare
-            Has_Traces  : constant Boolean := not Trace_Inputs.Is_Empty;
-            Trace_Kind  : Any_Accepted_Trace_Kind := Unknown;
-            Result      : Read_Result;
+            Has_Traces : constant Boolean := not Trace_Inputs.Is_Empty;
+            Trace_Kind : Any_Accepted_Trace_Kind := Unknown;
+            Result     : Read_Result;
          begin
             if Has_Traces then
                declare
                   Trace_File : constant String :=
-                     +Trace_Inputs.First_Element.Filename;
+                    +Trace_Inputs.First_Element.Filename;
                begin
                   Probe_Trace_File (Trace_File, Trace_Kind, Result);
 
@@ -2415,20 +2430,21 @@ begin
                --  Ensure an exec file was passed
 
                if Exe_Inputs.Is_Empty then
-                  Outputs.Fatal_Error ("LLVM coverage needs an executable"
-                                       & " file to retrieve coverage"
-                                       & " mappings. Use --exec");
+                  Outputs.Fatal_Error
+                    ("LLVM coverage needs an executable"
+                     & " file to retrieve coverage"
+                     & " mappings. Use --exec");
                end if;
 
                --  Probe and validate all traces but the first one that was
                --  already validated.
 
                for Trace in
-                  Trace_Inputs.First_Index + 1 .. Trace_Inputs.Last_Index
+                 Trace_Inputs.First_Index + 1 .. Trace_Inputs.Last_Index
                loop
                   declare
                      Trace_Name : constant String :=
-                        +Trace_Inputs.Element (Trace).Filename;
+                       +Trace_Inputs.Element (Trace).Filename;
                   begin
                      Probe_Trace_File (Trace_Name, Trace_Kind, Result);
 
@@ -2437,8 +2453,7 @@ begin
                           (Trace_Name & ": " & (+Result.Error));
                      elsif Trace_Kind /= LLVM_Trace_File then
                         Outputs.Fatal_Error
-                          (Trace_Name
-                           & ": Invalid .profraw file (bad magic)");
+                          (Trace_Name & ": Invalid .profraw file (bad magic)");
                      end if;
                   end;
                end loop;
@@ -2458,8 +2473,9 @@ begin
                begin
                   LLVM.Create_LLVM_Temp_Dir (Auto_Delete => not Save_Temps);
 
-                  LLVM_JSON_Ckpt := LLVM.Make_LLVM_Checkpoint_From_Traces
-                    (Trace_Inputs, +Exe_Inputs.First_Element);
+                  LLVM_JSON_Ckpt :=
+                    LLVM.Make_LLVM_Checkpoint_From_Traces
+                      (Trace_Inputs, +Exe_Inputs.First_Element);
 
                   LLVM_JSON_Ckpt_Inputs.Prepend (LLVM_JSON_Ckpt);
                end;
@@ -2516,9 +2532,9 @@ begin
             Context : aliased Coverage.Context := Get_Context;
 
             Dump_Units_In_Report : constant Boolean :=
-               Dump_Units
-               and then Dump_Units_Filename = null
-               and then Annotation (Annotate_Report);
+              Dump_Units
+              and then Dump_Units_Filename = null
+              and then Annotation (Annotate_Report);
             --  Whether the list of units of interest should be dumped in the
             --  coverage report itself.
          begin
@@ -2526,8 +2542,9 @@ begin
             --  sure we can do it.
 
             if Dump_Units and not Unit_List_Is_Valid then
-               Fatal_Error ("Cannot dump the list of names for units of"
-                            & " interest: see above.");
+               Fatal_Error
+                 ("Cannot dump the list of names for units of"
+                  & " interest: see above.");
             end if;
 
             --  If we must dump the list of units of interest in a dedicated
@@ -2554,11 +2571,13 @@ begin
                   if Source_Coverage_Enabled then
                      Fatal_Error
                        ("""asm"" output format (from --annotate) is"
-                          & " only for object coverage criteria"
-                          & ASCII.LF
-                          & "  (--level=" & Object_Level_Options ("|")
-                          & ", not --level="
-                          & Coverage_Option_Value (Current_Levels) & ")");
+                        & " only for object coverage criteria"
+                        & ASCII.LF
+                        & "  (--level="
+                        & Object_Level_Options ("|")
+                        & ", not --level="
+                        & Coverage_Option_Value (Current_Levels)
+                        & ")");
                   end if;
                   Traces_Dump.Dump_Routines_Traces (Output);
                end if;
@@ -2566,8 +2585,10 @@ begin
                --  Create the temporary directory that will hold the
                --  preprocessed view of sources.
 
-               Create_Temporary_Directory (PP_Temp_Dir, "gnatcov_rts_pp",
-                                           Auto_Delete => not Save_Temps);
+               Create_Temporary_Directory
+                 (PP_Temp_Dir,
+                  "gnatcov_rts_pp",
+                  Auto_Delete => not Save_Temps);
 
                if Annotation (Annotate_Xml) then
                   Annotations.Xml.Generate_Report (Context'Unchecked_Access);
@@ -2602,8 +2623,7 @@ begin
                end if;
 
                if Annotation (Annotate_Sarif) then
-                  Annotations.Sarif.Generate_Report
-                    (Context'Unchecked_Access);
+                  Annotations.Sarif.Generate_Report (Context'Unchecked_Access);
                end if;
 
                if Annotation (Annotate_Report) then
@@ -2642,7 +2662,7 @@ begin
             end if;
          end;
 
-      when Cmd_Run =>
+      when Cmd_Run                                        =>
          Check_Argument_Available (Exe_Inputs, "EXE");
          for Filename of Exe_Inputs loop
             declare
@@ -2664,30 +2684,41 @@ begin
 
                      OS.Create_Temp_File (Dmap_FD, Dmap_Filename);
                      if Dmap_FD = OS.Invalid_FD then
-                        Fatal_Error ("Cannot open a temporary file for the"
-                                     & "decision map");
+                        Fatal_Error
+                          ("Cannot open a temporary file for the"
+                           & "decision map");
                      end if;
                      OS.Close (Dmap_FD, Success);
                      if not Success then
-                        Fatal_Error ("Cannot close the decision map temporary"
-                                     & " file: " & Dmap_Filename);
+                        Fatal_Error
+                          ("Cannot close the decision map temporary"
+                           & " file: "
+                           & Dmap_Filename);
                      end if;
 
                      --  For some reason, Create_Temp_File leaves a NUL byte at
                      --  the end of Dmap_Filename. We need to get rid of it.
 
-                     pragma Assert
-                       (Dmap_Filename (OS.Temp_File_Name'Last) = ASCII.NUL);
-                     Histmap := new String'
-                       (Dmap_Filename (1 ..  OS.Temp_File_Len - 1));
+                     pragma
+                       Assert
+                         (Dmap_Filename (OS.Temp_File_Name'Last) = ASCII.NUL);
+                     Histmap :=
+                       new String'(Dmap_Filename (1 .. OS.Temp_File_Len - 1));
 
                      Build_Decision_Map (+Filename, Text_Start, Histmap.all);
                   end if;
                end if;
 
-               Rundrv.Driver (+Filename, Target_Family, Target_Board, Tag,
-                              Output, Histmap, Kernel, Vector_To_List (Eargs),
-                              SO_Inputs);
+               Rundrv.Driver
+                 (+Filename,
+                  Target_Family,
+                  Target_Board,
+                  Tag,
+                  Output,
+                  Histmap,
+                  Kernel,
+                  Vector_To_List (Eargs),
+                  SO_Inputs);
 
                --  Now that we are done with the decision map file, make sure
                --  we remove it to avoid polluting users' filesystems.
@@ -2704,12 +2735,11 @@ begin
             end;
          end loop;
 
-      when Cmd_Convert =>
+      when Cmd_Convert                                    =>
          declare
             Exec    : constant String :=
               +Args.String_List_Args (Opt_Exec).Last_Element;
-            Histmap : constant String :=
-              Exec & ".dmap";
+            Histmap : constant String := Exec & ".dmap";
          begin
             if MCDC_Coverage_Enabled then
                Load_All_ALIs (Check_SCOs => False);
@@ -2726,11 +2756,14 @@ begin
             --  an executable argument, which is not needed now we have a clean
             --  way to process arguments. Likwise for Histmap.
 
-            Convert.Run_Convert (Exec'Unrestricted_Access, Output,
-                                 Histmap'Unrestricted_Access, Tag);
+            Convert.Run_Convert
+              (Exec'Unrestricted_Access,
+               Output,
+               Histmap'Unrestricted_Access,
+               Tag);
          end;
 
-      when Cmd_Extract_Base64_Trace =>
+      when Cmd_Extract_Base64_Trace                       =>
          if Args.Remaining_Args.Length /= 2 then
             Fatal_Error ("Exactly two arguments expected");
          end if;
@@ -2738,13 +2771,13 @@ begin
            (Input_File  => +Args.Remaining_Args (0),
             Output_File => +Args.Remaining_Args (1));
 
-      when Cmd_Add_Annotation =>
+      when Cmd_Add_Annotation                             =>
          SS_Annotations.Add_Annotation (Args);
 
-      when Cmd_Delete_Annotation =>
+      when Cmd_Delete_Annotation                          =>
          SS_Annotations.Delete_Annotation (Args);
 
-      when Cmd_Show_Annotations =>
+      when Cmd_Show_Annotations                           =>
          SS_Annotations.Show_Annotations (Args);
    end case;
 
@@ -2756,13 +2789,12 @@ exception
    --  The following handler is for files that gnatcov could not locate or
    --  open. Display the corresponding error message.
 
-   when Error : Binary_Files.Error
-      | Ada.IO_Exceptions.Name_Error =>
+   when Error : Binary_Files.Error | Ada.IO_Exceptions.Name_Error =>
       Outputs.Error (Switches.Exception_Info (Error));
 
-   --  Each chunk of code with "raise" statements for Xcov_Exit_Exc exceptions
-   --  is supposed to print an error message and set a failure exit status
-   --  before raising the exception.
+      --  Each chunk of code with "raise" statements for Xcov_Exit_Exc
+      --  exceptions is supposed to print an error message and set a failure
+      --  exit status before raising the exception.
 
    when Xcov_Exit_Exc =>
       null;

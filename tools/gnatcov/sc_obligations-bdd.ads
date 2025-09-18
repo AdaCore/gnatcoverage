@@ -36,7 +36,7 @@ private package SC_Obligations.BDD is
       --  Evaluate condition
 
       Jump);
-      --  Indirect reference to another BDD node
+   --  Indirect reference to another BDD node
 
    type BDD_Node (Kind : BDD_Node_Kind := Outcome) is record
       case Kind is
@@ -75,8 +75,8 @@ private package SC_Obligations.BDD is
    pragma Warnings (Off, "* is not referenced");
    --  Work around compiler bug: bogus warning???
 
-   package BDD_Vectors is
-     new Ada.Containers.Vectors
+   package BDD_Vectors is new
+     Ada.Containers.Vectors
        (Index_Type   => Valid_BDD_Node_Id,
         Element_Type => BDD_Node);
 
@@ -95,13 +95,13 @@ private package SC_Obligations.BDD is
    Both_Reachable : constant Reachability := (others => True);
 
    type BDD_Type is record
-      Decision       : SCO_Id;
+      Decision : SCO_Id;
 
       Root_Condition : BDD_Node_Id := No_BDD_Node_Id;
       --  First tested condition
 
-      First_Node     : BDD_Node_Id := No_BDD_Node_Id;
-      Last_Node      : BDD_Node_Id := No_BDD_Node_Id;
+      First_Node : BDD_Node_Id := No_BDD_Node_Id;
+      Last_Node  : BDD_Node_Id := No_BDD_Node_Id;
       --  Index range of BDD nodes of this BDD
 
       First_Multipath_Condition : BDD_Node_Id := No_BDD_Node_Id;
@@ -189,16 +189,16 @@ private package SC_Obligations.BDD is
    --  with direct references to their destinations.
 
    type Arcs is record
-      Dests      : Destinations;
+      Dests : Destinations;
       --  Outgoing arcs for next condition
 
-      Origin     : BDD_Node_Id := No_BDD_Node_Id;
+      Origin : BDD_Node_Id := No_BDD_Node_Id;
       --  Jump node referencing next condition
 
       Parent_SCO : SCO_Id;
       --  Reference to parent operator or decision
 
-      O_Pos      : Operand_Position;
+      O_Pos : Operand_Position;
       --  Position of this node within the enclosing operator (Left or Right)
    end record;
 
@@ -209,11 +209,11 @@ private package SC_Obligations.BDD is
    --  Construction of a BDD
 
    function Create
-     (BDD_Vector : in out BDD_Vectors.Vector;
-      Decision   : SCO_Id) return BDD_Type;
+     (BDD_Vector : in out BDD_Vectors.Vector; Decision : SCO_Id)
+      return BDD_Type;
    --  Start construction of a new BDD for the given decision
 
-   procedure Process_Not (O_SCO : SCO_Id; BDD   : BDD_Type);
+   procedure Process_Not (O_SCO : SCO_Id; BDD : BDD_Type);
    procedure Process_And_Then
      (BDD_Vector : in out BDD_Vectors.Vector;
       O_SCO      : SCO_Id;
@@ -236,9 +236,7 @@ private package SC_Obligations.BDD is
       Count_Paths : Boolean);
    --  Called when all items in decision have been processed
 
-   procedure Dump_BDD
-     (BDD_Vector : BDD_Vectors.Vector;
-      BDD        : BDD_Type);
+   procedure Dump_BDD (BDD_Vector : BDD_Vectors.Vector; BDD : BDD_Type);
    --  Display BDD for debugging purposes
 
 end SC_Obligations.BDD;

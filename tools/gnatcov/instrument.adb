@@ -56,10 +56,10 @@ package body Instrument is
    function Language_Kind
      (Language : Some_Language) return Supported_Language_Kind is
    begin
-      return (case Language is
-              when Ada_Language => Unit_Based_Language,
-              when C_Language
-                 | CPP_Language => File_Based_Language);
+      return
+        (case Language is
+           when Ada_Language              => Unit_Based_Language,
+           when C_Language | CPP_Language => File_Based_Language);
    end Language_Kind;
 
    ------------
@@ -99,11 +99,12 @@ package body Instrument is
       case CUP.Language_Kind is
          when Unit_Based_Language =>
             Read (CLS, CUP.Unit);
-            CUP.Part := (case CLS.Read_U8 is
-                         when 0      => GPR2.S_Body,
-                         when 1      => GPR2.S_Spec,
-                         when 2      => GPR2.S_Separate,
-                         when others => raise Constraint_Error);
+            CUP.Part :=
+              (case CLS.Read_U8 is
+                 when 0      => GPR2.S_Body,
+                 when 1      => GPR2.S_Spec,
+                 when 2      => GPR2.S_Separate,
+                 when others => raise Constraint_Error);
 
          when File_Based_Language =>
             CUP.Filename := CLS.Read_Unbounded_String;
@@ -133,9 +134,9 @@ package body Instrument is
             Write (CSS, Value.Unit);
             CSS.Write_U8
               (case Value.Part is
-               when GPR2.S_Spec     => 1,
-               when GPR2.S_Body     => 0,
-               when GPR2.S_Separate => 2);
+                 when GPR2.S_Spec     => 1,
+                 when GPR2.S_Body     => 0,
+                 when GPR2.S_Separate => 2);
 
          when File_Based_Language =>
             CSS.Write (Value.Filename);
@@ -163,8 +164,9 @@ package body Instrument is
                            if not Strings.Equal_Case_Insensitive
                                     (Left_Id, Right_Id)
                            then
-                              return Strings.Less_Case_Insensitive
-                                       (Left_Id, Right_Id);
+                              return
+                                Strings.Less_Case_Insensitive
+                                  (Left_Id, Right_Id);
                            end if;
                         end;
                      end loop;
@@ -178,6 +180,7 @@ package body Instrument is
                else
                   return Left.Part < Right.Part;
                end if;
+
             when File_Based_Language =>
                return Left.Filename < Right.Filename;
          end case;
@@ -190,20 +193,19 @@ package body Instrument is
    -- "=" --
    ---------
 
-   function "=" (Left, Right : Compilation_Unit_Part) return Boolean
-   is
+   function "=" (Left, Right : Compilation_Unit_Part) return Boolean is
       use Ada_Identifier_Vectors;
    begin
       if Left.Language_Kind = Right.Language_Kind then
          case Left.Language_Kind is
             when Unit_Based_Language =>
                if Left.Part = Right.Part
-                  and then Length (Left.Unit) = Length (Right.Unit)
+                 and then Length (Left.Unit) = Length (Right.Unit)
                then
                   for I in 1 .. Integer (Length (Left.Unit)) loop
                      if not Strings.Equal_Case_Insensitive
-                       (Unbounded_String (Left.Unit.Element (I)),
-                        Unbounded_String (Right.Unit.Element (I)))
+                              (Unbounded_String (Left.Unit.Element (I)),
+                               Unbounded_String (Right.Unit.Element (I)))
                      then
                         return False;
                      end if;
@@ -214,6 +216,7 @@ package body Instrument is
                   return True;
                end if;
                return False;
+
             when File_Based_Language =>
                return Left.Filename = Right.Filename;
          end case;
@@ -270,8 +273,7 @@ package body Instrument is
    ----------------------------
 
    function Instrumented_Unit_Slug
-     (Instrumented_Unit : Compilation_Unit_Part) return String
-   is
+     (Instrumented_Unit : Compilation_Unit_Part) return String is
    begin
       case Instrumented_Unit.Language_Kind is
          when Unit_Based_Language =>
@@ -300,8 +302,8 @@ package body Instrument is
    -------------------
 
    function Filename_Slug
-     (Fullname : String;
-      Use_Hash : Boolean := not Switches.Use_Full_Slugs) return String
+     (Fullname : String; Use_Hash : Boolean := not Switches.Use_Full_Slugs)
+      return String
    is
       use Ada.Directories;
       Result : Ada_Identifier;
@@ -334,8 +336,7 @@ package body Instrument is
          else
             Append
               (Result,
-               "_" & Hex_Image
-                 (Interfaces.Unsigned_8'(Character'Pos (C))));
+               "_" & Hex_Image (Interfaces.Unsigned_8'(Character'Pos (C))));
          end if;
       end loop;
 
@@ -353,12 +354,14 @@ package body Instrument is
    begin
       case CU_Name.Language_Kind is
          when Unit_Based_Language =>
-            return To_Ada (CU_Name.Unit)
+            return
+              To_Ada (CU_Name.Unit)
               & " "
               & (case CU_Name.Part is
-                    when GPR2.S_Spec     => "spec",
-                    when GPR2.S_Body     => "body",
-                    when GPR2.S_Separate => "subunit");
+                   when GPR2.S_Spec     => "spec",
+                   when GPR2.S_Body     => "body",
+                   when GPR2.S_Separate => "subunit");
+
          when File_Based_Language =>
             return +CU_Name.Filename;
       end case;
@@ -419,9 +422,8 @@ package body Instrument is
    ----------------------
 
    function CU_Name_For_Unit
-     (Unit : Ada_Qualified_Name;
-      Part : GPR2.Valid_Unit_Kind) return Compilation_Unit_Part
-   is
+     (Unit : Ada_Qualified_Name; Part : GPR2.Valid_Unit_Kind)
+      return Compilation_Unit_Part is
    begin
       return (Unit_Based_Language, Unit, Part);
    end CU_Name_For_Unit;
@@ -448,13 +450,15 @@ package body Instrument is
             declare
                Unit : constant GPR2.Build.Unit_Info.Object := Source.Unit;
             begin
-               return CU_Name_For_Unit
-                 (Unit => To_Qualified_Name (To_Lower (String (Unit.Name))),
-                  Part => Unit.Kind);
+               return
+                 CU_Name_For_Unit
+                   (Unit => To_Qualified_Name (To_Lower (String (Unit.Name))),
+                    Part => Unit.Kind);
             end;
+
          when File_Based_Language =>
-            return CU_Name_For_File
-              (Filename => +String (Source.Path_Name.Value));
+            return
+              CU_Name_For_File (Filename => +String (Source.Path_Name.Value));
       end case;
    end To_Compilation_Unit_Name;
 
@@ -523,7 +527,7 @@ package body Instrument is
          end if;
       end Fill_If_Present;
 
-   --  Start of processing for Load_From_Command_Line
+      --  Start of processing for Load_From_Command_Line
 
    begin
       if Language in C_Family_Language then
@@ -606,7 +610,8 @@ package body Instrument is
             case C_Family_Language (Lang) is
                when CPP_Language =>
                   Result.Append (+"--c++-opts");
-               when C_Language =>
+
+               when C_Language   =>
                   Result.Append (+"--c-opts");
             end case;
          end if;
@@ -641,14 +646,11 @@ package body Instrument is
    -- Instrumentation_Tag --
    -------------------------
 
-   function Instrumentation_Tag return String
-   is
+   function Instrumentation_Tag return String is
       Time : constant Unsigned_64 :=
-        Unsigned_64
-          (GNAT.OS_Lib.To_C (GNAT.OS_Lib.Current_Time));
+        Unsigned_64 (GNAT.OS_Lib.To_C (GNAT.OS_Lib.Current_Time));
       Tag  : constant String :=
-        Hex_Images.Strip_Zero_Padding
-          (Hex_Images.Hex_Image (Time));
+        Hex_Images.Strip_Zero_Padding (Hex_Images.Hex_Image (Time));
       --  Tag for the current instrumentation run. Passed on to instrument-main
       --  invocations, to have the same tag for mains instrumented at the
       --  same time.

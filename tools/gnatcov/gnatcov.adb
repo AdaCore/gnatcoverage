@@ -21,7 +21,7 @@ with Ada.Directories;
 with Ada.Environment_Variables; use Ada.Environment_Variables;
 with Ada.Strings.Fixed;         use Ada.Strings.Fixed;
 with GNAT.OS_Lib;
-with GNAT.Strings; use GNAT.Strings;
+with GNAT.Strings;              use GNAT.Strings;
 
 with Command_Line; use Command_Line;
 with Outputs;      use Outputs;
@@ -72,7 +72,9 @@ begin
         --  gnatcov32 does not package instrumentation. It can still be used to
         --  decode source binary traces, but not to instrument source files.
 
-        Args.Command in Cmd_Setup | Cmd_Instrument
+          Args
+          .Command
+        in Cmd_Setup | Cmd_Instrument
 
         --  Otherwise, infer the gnatcov executable to use from the target
         --  option.
@@ -88,11 +90,11 @@ begin
 
    declare
       Exec_Basename : constant String :=
-         "gnatcov"
-         & (if Use_Gnatcov64 then "64" else "32")
-         & GNAT.OS_Lib.Get_Executable_Suffix.all;
-      Exec_Filename : constant String := Ada.Directories.Compose
-        (Support_Files.Libexec_Dir, Exec_Basename);
+        "gnatcov"
+        & (if Use_Gnatcov64 then "64" else "32")
+        & GNAT.OS_Lib.Get_Executable_Suffix.all;
+      Exec_Filename : constant String :=
+        Ada.Directories.Compose (Support_Files.Libexec_Dir, Exec_Basename);
 
       Args : String_List (1 .. Argument_Count);
 
@@ -105,8 +107,9 @@ begin
       --  the command that users ran is propagated.
 
       Set (Support_Files.Prefix_Envvar, Support_Files.Gnatcov_Prefix);
-      Set (Support_Files.Command_Name_Envvar,
-           Support_Files.Gnatcov_Command_Name);
+      Set
+        (Support_Files.Command_Name_Envvar,
+         Support_Files.Gnatcov_Command_Name);
 
       --  Just copy the command line
 

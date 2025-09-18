@@ -46,11 +46,11 @@ package body Traces_Files is
    -----------------------------------------------------------
 
    Trace_Header_Size      : constant Natural :=
-      Trace_Header'Size / System.Storage_Unit;
+     Trace_Header'Size / System.Storage_Unit;
    Trace_Info_Header_Size : constant Natural :=
-      Trace_Info_Header'Size / System.Storage_Unit;
+     Trace_Info_Header'Size / System.Storage_Unit;
    Trace_Entry_Size       : constant Natural :=
-      Qemu_Trace_Entry'Size / System.Storage_Unit;
+     Qemu_Trace_Entry'Size / System.Storage_Unit;
 
    generic
       type Object (<>) is limited private;
@@ -59,18 +59,17 @@ package body Traces_Files is
       Object_Size : Natural;
       --  Size of this object, in bytes
 
-   package Object_IO is
+   package Object_IO
+   is
       --  Wrappers around the Read_Or_None/Read function to deal with actual
       --  object types instead of System.Address values.
 
       type Ref is access all Object;
 
       function Read_Or_None
-        (Desc   : in out Input_Trace_File;
-         Object : out Ref) return Read_Status;
+        (Desc : in out Input_Trace_File; Object : out Ref) return Read_Status;
       function Read
-        (Desc   : in out Input_Trace_File;
-         Object : out Ref) return Boolean;
+        (Desc : in out Input_Trace_File; Object : out Ref) return Boolean;
 
    end Object_IO;
 
@@ -87,13 +86,13 @@ package body Traces_Files is
       ------------------
 
       function Read_Or_None
-        (Desc   : in out Input_Trace_File;
-         Object : out Ref) return Read_Status
+        (Desc : in out Input_Trace_File; Object : out Ref) return Read_Status
       is
          Object_Address : System.Address;
       begin
-         return Result : constant Read_Status := Read_Or_None
-           (Desc, Object_Size, Object_Address)
+         return
+            Result : constant Read_Status :=
+              Read_Or_None (Desc, Object_Size, Object_Address)
          do
             Object := Convert (Object_Address);
          end return;
@@ -104,21 +103,18 @@ package body Traces_Files is
       ----------
 
       function Read
-        (Desc   : in out Input_Trace_File;
-         Object : out Ref) return Boolean
-      is
+        (Desc : in out Input_Trace_File; Object : out Ref) return Boolean is
       begin
          return Read_Or_None (Desc, Object) = Full;
       end Read;
 
    end Object_IO;
 
-   package Trace_Header_IO is new Object_IO
-     (Trace_Header, Trace_Header_Size);
-   package Trace_Info_Header_IO is new Object_IO
-     (Trace_Info_Header, Trace_Info_Header_Size);
-   package Trace_Entry_IO is new Object_IO
-     (Qemu_Trace_Entry, Trace_Entry_Size);
+   package Trace_Header_IO is new Object_IO (Trace_Header, Trace_Header_Size);
+   package Trace_Info_Header_IO is new
+     Object_IO (Trace_Info_Header, Trace_Info_Header_Size);
+   package Trace_Entry_IO is new
+     Object_IO (Qemu_Trace_Entry, Trace_Entry_Size);
 
    Current_Trace_Kind : Any_Accepted_Trace_Kind := Unknown;
    --  The currently accepted trace kind, start as Unknown and is updated as
@@ -136,7 +132,7 @@ package body Traces_Files is
       with procedure Process_Info (Kind : Info_Kind_Type; Data : String);
       --  Called for each trace info entry
 
-   procedure Read_Trace_File_Entries
+     procedure Read_Trace_File_Entries
      (Desc : in out Trace_File_Descriptor; Result : out Read_Result);
    --  Read all trace file info entries from Desc and call Process_Info for
    --  each of them. Raise a fatal error if one entry is invalid.
@@ -159,12 +155,9 @@ package body Traces_Files is
 
    procedure Dump_Infos (Trace_File : Trace_File_Type);
    procedure Write_Trace_File_Info
-     (Desc       : Output_Trace_File;
-      Trace_File : Trace_File_Type);
+     (Desc : Output_Trace_File; Trace_File : Trace_File_Type);
    procedure Write_Trace_File_Traces
-     (Desc : Output_Trace_File;
-      Kind : Trace_Kind;
-      Base : Traces_Base);
+     (Desc : Output_Trace_File; Kind : Trace_Kind; Base : Traces_Base);
    --  Need comments???
 
    procedure Dump_Trace_File (Filename : String; Raw : Boolean);
@@ -214,8 +207,7 @@ package body Traces_Files is
       Result     : out Read_Result);
 
    function Open_File
-     (Filename : String;
-      Mode     : File_Open_Mode) return Trace_File_Descriptor;
+     (Filename : String; Mode : File_Open_Mode) return Trace_File_Descriptor;
    --  Open a file, without reading or writing to it. In case of failure, an
    --  exception is raised.
 
@@ -231,9 +223,7 @@ package body Traces_Files is
    --  information. Set it to Read_Success otherwise.
 
    function Decode_Trace_Entry
-     (E      : Qemu_Trace_Entry;
-      Offset : Pc_Type := 0)
-      return Trace_Entry;
+     (E : Qemu_Trace_Entry; Offset : Pc_Type := 0) return Trace_Entry;
    --  Turn a raw trace entry from a trace file into a high-level trace entry
    --  that fits our internal data structures. Offset is used to relocate the
    --  entry. It is 0 for statically linked code and non-null for dynamically
@@ -243,8 +233,8 @@ package body Traces_Files is
    -- Currently_accepted_Trace_Kind --
    -----------------------------------
 
-   function Currently_Accepted_Trace_Kind return Any_Accepted_Trace_Kind is
-     (Current_Trace_Kind);
+   function Currently_Accepted_Trace_Kind return Any_Accepted_Trace_Kind
+   is (Current_Trace_Kind);
 
    -------------------------------
    -- Update_Current_Trace_Kind --
@@ -256,8 +246,9 @@ package body Traces_Files is
         & " use a single kind of traces.";
    begin
       case Current_Trace_Kind is
-         when Unknown =>
+         when Unknown                 =>
             Current_Trace_Kind := New_Kind;
+
          when GNATcov_Trace_File_Kind =>
             if Current_Trace_Kind /= New_Kind then
 
@@ -271,7 +262,8 @@ package body Traces_Files is
                end if;
                Current_Trace_Kind := All_Trace_Files;
             end if;
-         when LLVM_Trace_File =>
+
+         when LLVM_Trace_File         =>
 
             --  ??? Review the possibility of merging LLVM traces with others
             --      when everything works.
@@ -279,7 +271,8 @@ package body Traces_Files is
             if Current_Trace_Kind /= New_Kind then
                Fatal_Error (Trace_Mix_Error_Msg);
             end if;
-         when All_Trace_Files =>
+
+         when All_Trace_Files         =>
 
             --  We cannot accept more trace kinds than All_Trace_File,
             --  so there is nothing to do.
@@ -309,9 +302,11 @@ package body Traces_Files is
       case Kind is
          when Binary_Trace_File =>
             return "binary";
+
          when Source_Trace_File =>
             return "source";
-         when LLVM_Trace_File =>
+
+         when LLVM_Trace_File   =>
             return "LLVM";
       end case;
    end Image;
@@ -329,7 +324,7 @@ package body Traces_Files is
 
       Old_Position : constant Storage_Offset := Desc.Position;
       New_Position : constant Storage_Offset :=
-         Desc.Position + Storage_Count (Size);
+        Desc.Position + Storage_Count (Size);
    begin
       Buffer := Desc.Buffer + Desc.Position;
       Desc.Position := Storage_Offset'Min (New_Position, Desc.Length);
@@ -353,8 +348,7 @@ package body Traces_Files is
    function Read
      (Desc   : in out Input_Trace_File;
       Size   : Natural;
-      Buffer : out System.Address) return Boolean
-   is
+      Buffer : out System.Address) return Boolean is
    begin
       return Read_Or_None (Desc, Size, Buffer) = Full;
    end Read;
@@ -364,10 +358,8 @@ package body Traces_Files is
    -----------
 
    function Write
-     (Desc   : Output_Trace_File;
-      Buffer : System.Address;
-      Size   : Positive) return Boolean
-   is
+     (Desc : Output_Trace_File; Buffer : System.Address; Size : Positive)
+      return Boolean is
    begin
       return Write (Desc.Fd, Buffer, Size) = Size;
    end Write;
@@ -377,20 +369,19 @@ package body Traces_Files is
    ----------------------
 
    procedure Probe_Trace_File
-     (Filename : String;
-      Kind     : out Trace_File_Kind;
-      Result   : out Read_Result)
+     (Filename : String; Kind : out Trace_File_Kind; Result : out Read_Result)
    is
       Fd : constant File_Descriptor := Open_Read (Filename, Binary);
 
       Binary_Magic   : String renames Qemu_Trace_Magic;
       Source_Magic   : String renames Traces_Source.Trace_File_Magic;
       LLVM_Raw_Magic : constant String :=
-         String'(Character'Val (16#81#) & "rforpl" & Character'Val (16#FF#));
+        String'(Character'Val (16#81#) & "rforpl" & Character'Val (16#FF#));
 
-      Magic_Max_Size : constant Natural := Integer'Max
-        (LLVM_Raw_Magic'Length,
-         Integer'Max (Binary_Magic'Length, Source_Magic'Length));
+      Magic_Max_Size : constant Natural :=
+        Integer'Max
+          (LLVM_Raw_Magic'Length,
+           Integer'Max (Binary_Magic'Length, Source_Magic'Length));
       Buffer         : String (1 .. Magic_Max_Size);
 
       function Magic_Matches (Magic : String) return Boolean
@@ -428,8 +419,7 @@ package body Traces_Files is
    procedure Check_Header
      (Desc   : in out Trace_File_Descriptor;
       Hdr    : out Trace_Header_IO.Ref;
-      Result : out Read_Result)
-   is
+      Result : out Read_Result) is
    begin
       --  First read the header
 
@@ -486,12 +476,13 @@ package body Traces_Files is
               (Result, "invalid first header: " & Trace_Kind'Image (Hdr.Kind));
             return;
 
-         when Decision_Map =>
+         when Decision_Map   =>
 
             if For_Trace_Output then
                Create_Error
-                 (Result, "invalid first header for trace output: "
-                          & Trace_Kind'Image (Hdr.Kind));
+                 (Result,
+                  "invalid first header for trace output: "
+                  & Trace_Kind'Image (Hdr.Kind));
                return;
 
             else
@@ -503,7 +494,7 @@ package body Traces_Files is
 
             return;
 
-         when Info =>
+         when Info           =>
             null;
       end case;
 
@@ -546,14 +537,14 @@ package body Traces_Files is
 
       Desc.Header.Sizeof_Target_Pc := Hdr.Sizeof_Target_Pc;
       if Desc.Header.Sizeof_Target_Pc /= 4
-         and then Desc.Header.Sizeof_Target_Pc /= 8
+        and then Desc.Header.Sizeof_Target_Pc /= 8
       then
          Create_Error (Result, "invalid header (bad pc size)");
          return;
       end if;
 
-      Trace_File.Header.Machine := Unsigned_16 (Hdr.Machine_Hi) * 256
-        + Unsigned_16 (Hdr.Machine_Lo);
+      Trace_File.Header.Machine :=
+        Unsigned_16 (Hdr.Machine_Hi) * 256 + Unsigned_16 (Hdr.Machine_Lo);
 
       if ELF_Machine = 0 or else ELF_Machine = Trace_File.Header.Machine then
          ELF_Machine := Trace_File.Header.Machine;
@@ -569,10 +560,10 @@ package body Traces_Files is
    ---------------
 
    function Open_File
-     (Filename : String;
-      Mode     : File_Open_Mode) return Trace_File_Descriptor
+     (Filename : String; Mode : File_Open_Mode) return Trace_File_Descriptor
    is
-      procedure Cannot_Open_Error with No_Return;
+      procedure Cannot_Open_Error
+      with No_Return;
       --  Call Fatal_Error to complain that we cannot open Filename
 
       procedure Cannot_Open_Error is
@@ -584,7 +575,7 @@ package body Traces_Files is
       return Desc : Trace_File_Descriptor (Writeable => Mode /= Read_File) do
          Desc.Filename := +Filename;
          case Mode is
-            when Read_File =>
+            when Read_File   =>
                Log_File_Open (Filename);
                begin
                   Desc.File := Mmap.Open_Read (Filename);
@@ -603,6 +594,7 @@ package body Traces_Files is
 
             when Create_File =>
                Desc.Fd := Create_File (Filename, Binary);
+
             when Append_File =>
                Desc.Fd := Open_Append (Filename, Binary);
          end case;
@@ -628,32 +620,37 @@ package body Traces_Files is
       Sig   : Binary_File_Signature;
       CS    : Pc_Type := 0;
 
-      procedure Process_Info_Entry
-        (Kind   : Info_Kind_Type;
-         Data   : String);
+      procedure Process_Info_Entry (Kind : Info_Kind_Type; Data : String);
       --  Decode shared object information and import them in the local
       --  variables above.
 
-      procedure Read_Info_Entries is new Read_Trace_File_Entries
-        (Process_Info_Entry);
+      procedure Read_Info_Entries is new
+        Read_Trace_File_Entries (Process_Info_Entry);
 
       ------------------------
       -- Process_Info_Entry --
       ------------------------
 
-      procedure Process_Info_Entry
-        (Kind : Info_Kind_Type;
-         Data : String)
-      is
+      procedure Process_Info_Entry (Kind : Info_Kind_Type; Data : String) is
       begin
          case Kind is
-         when Exec_File_Name  => Fname := new String'(Data);
-         when Exec_File_Size  => Sig.Size := Long_Integer'Value (Data);
-         when Exec_File_Time_Stamp =>
-            Sig.Time_Stamp := Time_Stamp_Value (Data);
-         when Exec_File_CRC32 => Sig.CRC32 := Unsigned_32'Value (Data);
-         when Exec_Code_Size  => CS := Pc_Type'Value (Data);
-         when others => null;
+            when Exec_File_Name       =>
+               Fname := new String'(Data);
+
+            when Exec_File_Size       =>
+               Sig.Size := Long_Integer'Value (Data);
+
+            when Exec_File_Time_Stamp =>
+               Sig.Time_Stamp := Time_Stamp_Value (Data);
+
+            when Exec_File_CRC32      =>
+               Sig.CRC32 := Unsigned_32'Value (Data);
+
+            when Exec_Code_Size       =>
+               CS := Pc_Type'Value (Data);
+
+            when others               =>
+               null;
          end case;
       end Process_Info_Entry;
 
@@ -667,10 +664,10 @@ package body Traces_Files is
       end if;
 
       if Fname = null
-         or else Sig.Size = 0
-         or else Sig.Time_Stamp = Invalid_Time
-         or else Sig.CRC32 = 0
-         or else CS = 0
+        or else Sig.Size = 0
+        or else Sig.Time_Stamp = Invalid_Time
+        or else Sig.CRC32 = 0
+        or else CS = 0
       then
          Create_Error (Result, "incomplete shared object load event");
          return;
@@ -686,9 +683,7 @@ package body Traces_Files is
    ------------------------
 
    function Decode_Trace_Entry
-     (E      : Qemu_Trace_Entry;
-      Offset : Pc_Type := 0)
-      return Trace_Entry
+     (E : Qemu_Trace_Entry; Offset : Pc_Type := 0) return Trace_Entry
    is
       First : constant Pc_Type := E.Pc - Offset;
    begin
@@ -717,8 +712,10 @@ package body Traces_Files is
       when E : others =>
          Close_Trace_File (Desc);
          Fatal_Error
-           ("processing of trace file " & Filename
-            & " failed: " & Exception_Message (E)
+           ("processing of trace file "
+            & Filename
+            & " failed: "
+            & Exception_Message (E)
             & (if Exception_Identity (E) = Truncated_File'Identity
                then " (truncated file?)"
                else ""));
@@ -763,8 +760,10 @@ package body Traces_Files is
       when E : others =>
          Close_Trace_File (Desc);
          Fatal_Error
-           ("processing of trace file " & Filename
-            & " failed: " & Exception_Message (E)
+           ("processing of trace file "
+            & Filename
+            & " failed: "
+            & Exception_Message (E)
             & (if Exception_Identity (E) = Truncated_File'Identity
                then " (truncated file?)"
                else ""));
@@ -803,8 +802,8 @@ package body Traces_Files is
          exception
             when Constraint_Error =>
                Create_Error
-                 (Result, "unknown trace info kind: 0x"
-                           & Hex_Image (Ihdr.Info_Kind));
+                 (Result,
+                  "unknown trace info kind: 0x" & Hex_Image (Ihdr.Info_Kind));
                return;
          end;
 
@@ -843,7 +842,7 @@ package body Traces_Files is
 
             declare
                Pad : constant String (1 .. Pad_Len)
-                  with Import, Address => Pad_Address;
+               with Import, Address => Pad_Address;
             begin
                for B of Pad loop
                   if B /= Character'Val (0) then
@@ -857,7 +856,7 @@ package body Traces_Files is
 
          declare
             Data : constant String (1 .. Data_Length)
-               with Import, Address => Data_Address;
+            with Import, Address => Data_Address;
          begin
             Process_Info (Kind, Data);
          end;
@@ -878,8 +877,8 @@ package body Traces_Files is
       --  just read from Desc. Append a representation of that entry to
       --  Trace_File internals.
 
-      procedure Read_Info_Entries is new Read_Trace_File_Entries
-        (Process_Info);
+      procedure Read_Info_Entries is new
+        Read_Trace_File_Entries (Process_Info);
 
       ------------------
       -- Process_Info --
@@ -911,28 +910,28 @@ package body Traces_Files is
          --  Address range for the shared object executable code in the process
          --  address space for this trace.
 
-         SO          : Shared_Object_Type;
+         SO : Shared_Object_Type;
          --  User data for this shared object
       end record;
       --  Describe the features of a loaded shared library
 
-      function "=" (L, R : Shared_Object_Desc) return Boolean is
-        (L.First <= R.Last and then L.Last >= R.First);
-      function "<" (L, R : Shared_Object_Desc) return Boolean is
-        (L.Last < R.First);
+      function "=" (L, R : Shared_Object_Desc) return Boolean
+      is (L.First <= R.Last and then L.Last >= R.First);
+      function "<" (L, R : Shared_Object_Desc) return Boolean
+      is (L.Last < R.First);
       --  Ordering predicates to order shared objects in our internal mapping.
       --  We consider any overlapping entries to be conflicting: processes are
       --  not supposed to be able to map two things at the same address.
 
-      package Shared_Object_Sets is new Ada.Containers.Ordered_Sets
-        (Element_Type => Shared_Object_Desc);
+      package Shared_Object_Sets is new
+        Ada.Containers.Ordered_Sets (Element_Type => Shared_Object_Desc);
 
-      SO_Set    : Shared_Object_Sets.Set;
+      SO_Set : Shared_Object_Sets.Set;
       --  Set of shared objects that are loaded at some point. Updated each
       --  time we process a loading/unloading event.
 
-      function SOD_For_PC (PC : Pc_Type) return Shared_Object_Desc is
-        ((First  => PC, Last => PC, others => <>));
+      function SOD_For_PC (PC : Pc_Type) return Shared_Object_Desc
+      is ((First => PC, Last => PC, others => <>));
       --  Return a Shared_Object_Desc that can be used as a key for lookups in
       --  SO_Set.
 
@@ -969,7 +968,8 @@ package body Traces_Files is
                   Create_Error
                     (Result,
                      "'loadaddr' special trace entry expected but got instead"
-                     & " a 0x" & Hex_Image (Raw_Entry.Size)
+                     & " a 0x"
+                     & Hex_Image (Raw_Entry.Size)
                      & " special entry");
                   return;
                elsif Raw_Entry.Pc = 0 then
@@ -991,7 +991,8 @@ package body Traces_Files is
 
             if not Handle_Relocations then
                Process_Trace_Entry
-                 (Trace_File, No_Shared_Object,
+                 (Trace_File,
+                  No_Shared_Object,
                   Decode_Trace_Entry (Raw_Entry.all));
             end if;
          end loop;
@@ -1008,47 +1009,48 @@ package body Traces_Files is
 
          if Raw_Entry.Op = Qemu_Traces.Trace_Op_Special then
             case Raw_Entry.Size is
-            when Trace_Special_Loadaddr =>
+               when Trace_Special_Loadaddr             =>
 
-               --  There can be only one loadaddr special trace entry per trace
-               --  file.  If it exists, we already processed it before the
-               --  loop, above.
+                  --  There can be only one loadaddr special trace entry per
+                  --  trace file.  If it exists, we already processed it before
+                  --  the loop, above.
 
-               Create_Error
-                 (Result, "Unexpected 'loadaddr' special trace entry.");
-               return;
+                  Create_Error
+                    (Result, "Unexpected 'loadaddr' special trace entry.");
+                  return;
 
-            when Trace_Special_Load_Shared_Object =>
-               declare
-                  Filename  : String_Access;
-                  Sig       : Binary_File_Signature;
-                  Code_Size : Pc_Type;
+               when Trace_Special_Load_Shared_Object   =>
+                  declare
+                     Filename  : String_Access;
+                     Sig       : Binary_File_Signature;
+                     Code_Size : Pc_Type;
 
-                  First, Last : Pc_Type;
-               begin
-                  Read_SO_Info (Desc, Filename, Sig, Code_Size, Result);
-                  if not Result.Success then
-                     return;
-                  end if;
-                  First := Raw_Entry.Pc;
-                  Last := First + Code_Size - 1;
-                  SO_Set.Insert
-                    ((First => First,
-                      Last  => Last,
-                      SO    => Load_Shared_Object
-                                 (Trace_File, Filename.all, Sig, First,
-                                  Last)));
-                  Free (Filename);
-               end;
+                     First, Last : Pc_Type;
+                  begin
+                     Read_SO_Info (Desc, Filename, Sig, Code_Size, Result);
+                     if not Result.Success then
+                        return;
+                     end if;
+                     First := Raw_Entry.Pc;
+                     Last := First + Code_Size - 1;
+                     SO_Set.Insert
+                       ((First => First,
+                         Last  => Last,
+                         SO    =>
+                           Load_Shared_Object
+                             (Trace_File, Filename.all, Sig, First, Last)));
+                     Free (Filename);
+                  end;
 
-            when Trace_Special_Unload_Shared_Object =>
-               SO_Set.Delete (SOD_For_PC (Raw_Entry.Pc));
+               when Trace_Special_Unload_Shared_Object =>
+                  SO_Set.Delete (SOD_For_PC (Raw_Entry.Pc));
 
-            when others =>
-               Create_Error
-                 (Result, "Unknown special trace entry: 0x"
-                          & Hex_Image (Raw_Entry.Size));
-               return;
+               when others                             =>
+                  Create_Error
+                    (Result,
+                     "Unknown special trace entry: 0x"
+                     & Hex_Image (Raw_Entry.Size));
+                  return;
             end case;
             goto Skip;
          end if;
@@ -1073,7 +1075,7 @@ package body Traces_Files is
             use Shared_Object_Sets;
 
             Cur          : constant Cursor :=
-               SO_Set.Find (SOD_For_PC (Raw_Entry.Pc));
+              SO_Set.Find (SOD_For_PC (Raw_Entry.Pc));
             SOD          : Shared_Object_Desc;
             Trace_Offset : Pc_Type;
             SO           : Shared_Object_Type;
@@ -1083,18 +1085,18 @@ package body Traces_Files is
                SO := No_Shared_Object;
             else
                SOD := Element (Cur);
-               Trace_Offset := (if Handle_Relocations
-                                then SOD.First
-                                else 0);
+               Trace_Offset := (if Handle_Relocations then SOD.First else 0);
                SO := SOD.SO;
             end if;
 
             Process_Trace_Entry
-              (Trace_File, SO,
+              (Trace_File,
+               SO,
                Decode_Trace_Entry (Raw_Entry.all, Trace_Offset));
          end;
 
-         << Skip >> null;
+         <<Skip>>
+         null;
       end loop;
 
       Close_Trace_File (Desc);
@@ -1109,22 +1111,23 @@ package body Traces_Files is
      (Desc   : in out Trace_File_Descriptor;
       Eof    : out Boolean;
       E      : out Trace_Entry_IO.Ref;
-      Result : out Read_Result)
-   is
+      Result : out Read_Result) is
    begin
       Eof := False;
       Result := Read_Success;
       if Desc.Header.Sizeof_Target_Pc /= Pc_Type_Size then
          Create_Error
-           (Result, "only" & Unsigned_8'Image (Pc_Type_Size)
-                    & " bytes pc are handled");
+           (Result,
+            "only"
+            & Unsigned_8'Image (Pc_Type_Size)
+            & " bytes pc are handled");
          return;
       end if;
 
       --  Read an entry, making sure the read operation could get a whole one
 
       case Trace_Entry_IO.Read_Or_None (Desc, E) is
-         when None =>
+         when None    =>
             Eof := True;
             return;
 
@@ -1133,7 +1136,7 @@ package body Traces_Files is
             Create_Error (Result, "file truncated");
             return;
 
-         when Full =>
+         when Full    =>
             Eof := False;
 
             if Desc.Header.Big_Endian /= Big_Endian_Host then
@@ -1147,22 +1150,22 @@ package body Traces_Files is
    -- Write_Trace_Entry --
    -----------------------
 
-   procedure Write_Trace_Entry
-     (Desc : Trace_File_Descriptor;
-      E    : Trace_Entry)
+   procedure Write_Trace_Entry (Desc : Trace_File_Descriptor; E : Trace_Entry)
    is
       Ent : Qemu_Traces_Entries.Trace_Entry;
    begin
 
       if Desc.Header.Sizeof_Target_Pc /= Pc_Type_Size then
-         raise Write_Error with
-            "only" & Unsigned_8'Image (Pc_Type_Size)
-            & " bytes pc are handled";
+         raise Write_Error
+           with
+             "only"
+             & Unsigned_8'Image (Pc_Type_Size)
+             & " bytes pc are handled";
       end if;
 
-      Ent.Pc   := E.First;
+      Ent.Pc := E.First;
       Ent.Size := Unsigned_16 (E.Last - E.First + 1);
-      Ent.Op   := E.Op;
+      Ent.Op := E.Op;
 
       if Desc.Header.Big_Endian /= Big_Endian_Host then
          Qemu_Traces.Swap_Pc (Ent.Pc);
@@ -1180,8 +1183,7 @@ package body Traces_Files is
    -- Close_Trace_File --
    ----------------------
 
-   procedure Close_Trace_File (Desc : in out Trace_File_Descriptor)
-   is
+   procedure Close_Trace_File (Desc : in out Trace_File_Descriptor) is
    begin
       if Desc.Writeable then
          Close (Desc.Fd);
@@ -1201,19 +1203,18 @@ package body Traces_Files is
    --------------------------------
 
    procedure Check_Trace_File_From_Exec
-     (Trace_File : Trace_File_Type;
-      Result     : out Read_Result) is
+     (Trace_File : Trace_File_Type; Result : out Read_Result) is
    begin
       Result := Read_Success;
       case Trace_File.Header.Kind is
          when Flat | History =>
             null;
 
-         when Decision_Map =>
+         when Decision_Map   =>
             Create_Error
               (Result, "execution trace expected, but this is a decision map");
 
-         when Info =>
+         when Info           =>
             --  If Trace_File's first header has an Info kind, then it is
             --  supposed to have a second header, and Trace_File's kind must
             --  come from this second header. Header reading must have already
@@ -1234,33 +1235,30 @@ package body Traces_Files is
       Base       : in out Traces_Base)
    is
       function Load_Shared_Object
-         (Ignored_Trace_File : Trace_File_Type;
-          Ignored_Filename   : String;
-          Ignored_Signature  : Binary_File_Signature;
-          Ignored_First      : Traces.Pc_Type;
-          Ignored_Last       : Traces.Pc_Type) return Boolean
+        (Ignored_Trace_File : Trace_File_Type;
+         Ignored_Filename   : String;
+         Ignored_Signature  : Binary_File_Signature;
+         Ignored_First      : Traces.Pc_Type;
+         Ignored_Last       : Traces.Pc_Type) return Boolean
       is (True);
 
       procedure Process_Trace_Entry
-        (Trace_File : Trace_File_Type;
-         SO         : Boolean;
-         E          : Trace_Entry);
+        (Trace_File : Trace_File_Type; SO : Boolean; E : Trace_Entry);
 
-      procedure Read_Trace_File is new Read_Trace_File_Gen
-        (Shared_Object_Type   => Boolean,
-         No_Shared_Object     => False,
-         Process_Info_Entries => Check_Trace_File_From_Exec,
-         Load_Shared_Object   => Load_Shared_Object,
-         Process_Trace_Entry  => Process_Trace_Entry);
+      procedure Read_Trace_File is new
+        Read_Trace_File_Gen
+          (Shared_Object_Type   => Boolean,
+           No_Shared_Object     => False,
+           Process_Info_Entries => Check_Trace_File_From_Exec,
+           Load_Shared_Object   => Load_Shared_Object,
+           Process_Trace_Entry  => Process_Trace_Entry);
 
       -------------------------
       -- Process_Trace_Entry --
       -------------------------
 
       procedure Process_Trace_Entry
-        (Trace_File : Trace_File_Type;
-         SO         : Boolean;
-         E          : Trace_Entry)
+        (Trace_File : Trace_File_Type; SO : Boolean; E : Trace_Entry)
       is
          pragma Unreferenced (Trace_File);
          pragma Unreferenced (SO);
@@ -1276,9 +1274,8 @@ package body Traces_Files is
    -- Dump_Infos --
    ----------------
 
-   procedure Dump_Infos (Trace_File : Trace_File_Type)
-   is
-      Info : Trace_File_Info_Acc;
+   procedure Dump_Infos (Trace_File : Trace_File_Type) is
+      Info     : Trace_File_Info_Acc;
       Is_Print : Boolean;
    begin
       Info := Trace_File.First_Infos;
@@ -1287,9 +1284,11 @@ package body Traces_Files is
          case Info.Kind is
             when User_Data =>
                Put (" (User_Tag)");
+
             when Date_Time =>
                Put (" (Date)");
-            when others =>
+
+            when others    =>
                null;
          end case;
          New_Line;
@@ -1323,7 +1322,8 @@ package body Traces_Files is
                   Put (Format_Date_Info (Info.Data));
                end if;
                New_Line;
-            when others =>
+
+            when others    =>
                null;
          end case;
          New_Line;
@@ -1341,41 +1341,36 @@ package body Traces_Files is
    procedure Dump_Trace_File (Filename : String; Raw : Boolean) is
 
       procedure Process_Info_Entries
-        (Trace_File : Trace_File_Type;
-         Result     : out Read_Result);
+        (Trace_File : Trace_File_Type; Result : out Read_Result);
 
       procedure Process_Loadaddr
-        (Trace_File : Trace_File_Type;
-         Offset     : Pc_Type);
+        (Trace_File : Trace_File_Type; Offset : Pc_Type);
 
       procedure Process_Trace_Entry
-        (Trace_File : Trace_File_Type;
-         SO         : Unbounded_String;
-         E          : Trace_Entry);
+        (Trace_File : Trace_File_Type; SO : Unbounded_String; E : Trace_Entry);
 
       function Load_Shared_Object
         (Trace_File  : Trace_File_Type;
          Filename    : String;
          Signature   : Binary_File_Signature;
-         First, Last : Pc_Type)
-         return Unbounded_String;
+         First, Last : Pc_Type) return Unbounded_String;
 
-      procedure Read_Trace_File is new Read_Trace_File_Gen
-        (Shared_Object_Type   => Unbounded_String,
-         No_Shared_Object     => Null_Unbounded_String,
-         Process_Info_Entries => Process_Info_Entries,
-         Process_Loadaddr     => Process_Loadaddr,
-         Load_Shared_Object   => Load_Shared_Object,
-         Process_Trace_Entry  => Process_Trace_Entry,
-         Handle_Relocations   => not Raw);
+      procedure Read_Trace_File is new
+        Read_Trace_File_Gen
+          (Shared_Object_Type   => Unbounded_String,
+           No_Shared_Object     => Null_Unbounded_String,
+           Process_Info_Entries => Process_Info_Entries,
+           Process_Loadaddr     => Process_Loadaddr,
+           Load_Shared_Object   => Load_Shared_Object,
+           Process_Trace_Entry  => Process_Trace_Entry,
+           Handle_Relocations   => not Raw);
 
       --------------------------
       -- Process_Info_Entries --
       --------------------------
 
       procedure Process_Info_Entries
-        (Trace_File : Trace_File_Type;
-         Result     : out Read_Result) is
+        (Trace_File : Trace_File_Type; Result : out Read_Result) is
       begin
          Put_Line ("Kind: " & Trace_Kind'Image (Kind (Trace_File)));
          New_Line;
@@ -1388,8 +1383,7 @@ package body Traces_Files is
       ----------------------
 
       procedure Process_Loadaddr
-        (Trace_File : Trace_File_Type;
-         Offset     : Pc_Type)
+        (Trace_File : Trace_File_Type; Offset : Pc_Type)
       is
          pragma Unreferenced (Trace_File);
       begin
@@ -1404,8 +1398,7 @@ package body Traces_Files is
         (Trace_File  : Trace_File_Type;
          Filename    : String;
          Signature   : Binary_File_Signature;
-         First, Last : Pc_Type)
-         return Unbounded_String
+         First, Last : Pc_Type) return Unbounded_String
       is
          pragma Unreferenced (Trace_File);
          pragma Unreferenced (Signature);
@@ -1420,9 +1413,7 @@ package body Traces_Files is
       -------------------------
 
       procedure Process_Trace_Entry
-        (Trace_File : Trace_File_Type;
-         SO         : Unbounded_String;
-         E          : Trace_Entry)
+        (Trace_File : Trace_File_Type; SO : Unbounded_String; E : Trace_Entry)
       is
          pragma Unreferenced (Trace_File);
          pragma Unreferenced (SO);
@@ -1463,15 +1454,16 @@ package body Traces_Files is
 
    function Make_Trace_Header (Kind : Trace_Kind) return Trace_Header is
    begin
-      return Trace_Header'
-        (Magic            => Qemu_Trace_Magic,
-         Version          => Qemu_Trace_Version,
-         Kind             => Kind,
-         Sizeof_Target_Pc => Pc_Type_Size,
-         Big_Endian       => Big_Endian_Host,
-         Machine_Hi       => Unsigned_8 (Shift_Right (ELF_Machine, 8)),
-         Machine_Lo       => Unsigned_8 (ELF_Machine and 16#Ff#),
-         Padding          => 0);
+      return
+        Trace_Header'
+          (Magic            => Qemu_Trace_Magic,
+           Version          => Qemu_Trace_Version,
+           Kind             => Kind,
+           Sizeof_Target_Pc => Pc_Type_Size,
+           Big_Endian       => Big_Endian_Host,
+           Machine_Hi       => Unsigned_8 (Shift_Right (ELF_Machine, 8)),
+           Machine_Lo       => Unsigned_8 (ELF_Machine and 16#Ff#),
+           Padding          => 0);
    end Make_Trace_Header;
 
    ---------------------------
@@ -1479,8 +1471,7 @@ package body Traces_Files is
    ---------------------------
 
    procedure Write_Trace_File_Info
-     (Desc       : Output_Trace_File;
-      Trace_File : Trace_File_Type)
+     (Desc : Output_Trace_File; Trace_File : Trace_File_Type)
    is
       Hdr     : constant Trace_Header := Make_Trace_Header (Info);
       Tr_Info : Trace_File_Info_Acc;
@@ -1494,8 +1485,8 @@ package body Traces_Files is
       while Tr_Info /= null loop
          declare
             Pad : constant String :=
-                    (1 .. (-Tr_Info.Raw_Length) mod Trace_Info_Alignment =>
-                       ASCII.NUL);
+              (1 .. (-Tr_Info.Raw_Length) mod Trace_Info_Alignment =>
+                 ASCII.NUL);
          begin
             Ihdr.Info_Kind := Info_Kind_Type'Pos (Tr_Info.Kind);
             Ihdr.Info_Length := Unsigned_32 (Tr_Info.Raw_Length);
@@ -1520,7 +1511,7 @@ package body Traces_Files is
 
       --  Write the terminator
 
-      Ihdr.Info_Kind    := Info_Kind_Type'Pos (Info_End);
+      Ihdr.Info_Kind := Info_Kind_Type'Pos (Info_End);
       Ihdr.Info_Length := 0;
       if not Write (Desc, Ihdr'Address, Trace_Info_Header_Size) then
          raise Write_Error with "failed to write info header";
@@ -1532,9 +1523,7 @@ package body Traces_Files is
    -----------------------------
 
    procedure Write_Trace_File_Traces
-     (Desc : Output_Trace_File;
-      Kind : Trace_Kind;
-      Base : Traces_Base)
+     (Desc : Output_Trace_File; Kind : Trace_Kind; Base : Traces_Base)
    is
       pragma Assert (Kind /= Info);
       Hdr : constant Trace_Header := Make_Trace_Header (Kind);
@@ -1556,10 +1545,11 @@ package body Traces_Files is
       Get_Next_Trace (E, Cur);
       while E /= Bad_Trace loop
 
-         Ent := (Pc     => E.First,
-                 Size   => Unsigned_16 (E.Last - E.First + 1),
-                 Op     => E.Op,
-                 others => <>);
+         Ent :=
+           (Pc     => E.First,
+            Size   => Unsigned_16 (E.Last - E.First + 1),
+            Op     => E.Op,
+            others => <>);
 
          if not Write (Desc, Addr, Res_Size) then
             raise Write_Error with "failed to write entry";
@@ -1574,14 +1564,12 @@ package body Traces_Files is
    ----------------------
 
    procedure Write_Trace_File
-     (Trace_File : Trace_File_Type;
-      Base       : Traces_Base)
+     (Trace_File : Trace_File_Type; Base : Traces_Base)
    is
       Filename : constant String := Traces_Files.Filename (Trace_File);
       Desc     : Output_Trace_File := Open_File (Filename, Create_File);
    begin
-      if Trace_File.First_Infos /= null
-        or else Trace_File.Header.Kind = Info
+      if Trace_File.First_Infos /= null or else Trace_File.Header.Kind = Info
       then
          Write_Trace_File_Info (Desc, Trace_File);
       end if;
@@ -1603,8 +1591,7 @@ package body Traces_Files is
    -- Write_Trace_File --
    ----------------------
 
-   procedure Write_Trace_File (Trace_File : Trace_File_Type)
-   is
+   procedure Write_Trace_File (Trace_File : Trace_File_Type) is
       Filename : constant String := Traces_Files.Filename (Trace_File);
       Desc     : Output_Trace_File := Open_File (Filename, Create_File);
    begin
@@ -1620,9 +1607,8 @@ package body Traces_Files is
    -- Append_Info --
    -----------------
 
-   procedure Append_Info (File : in out Trace_File_Type;
-                          Kind : Info_Kind_Type;
-                          Data : String)
+   procedure Append_Info
+     (File : in out Trace_File_Type; Kind : Info_Kind_Type; Data : String)
    is
       Info : constant Trace_File_Info_Acc :=
         new Trace_File_Info'(Data'Length, null, Kind, Data);
@@ -1639,8 +1625,8 @@ package body Traces_Files is
    -- Get_Info --
    --------------
 
-   function Get_Info (File : Trace_File_Type; Kind : Info_Kind_Type)
-                     return String
+   function Get_Info
+     (File : Trace_File_Type; Kind : Info_Kind_Type) return String
    is
       Info : Trace_File_Info_Acc;
    begin
@@ -1658,8 +1644,7 @@ package body Traces_Files is
    -- Format_Date_Info --
    ----------------------
 
-   function Format_Date_Info (Raw_String : String) return String
-   is
+   function Format_Date_Info (Raw_String : String) return String is
       use Ada.Calendar;
       use Calendar_Utils;
 
@@ -1667,8 +1652,8 @@ package body Traces_Files is
       Date      : Time;
 
       subtype String_8 is String (1 .. 8);
-      function Str_To_Date_Info is new Ada.Unchecked_Conversion
-        (String_8, Trace_Info_Date);
+      function Str_To_Date_Info is new
+        Ada.Unchecked_Conversion (String_8, Trace_Info_Date);
 
    begin
       if Raw_String = "" then
@@ -1698,23 +1683,24 @@ package body Traces_Files is
 
    function Parse_Date_Info (Formatted : String) return String is
       Result : String (1 .. Trace_Info_Date'Size / 8);
-      Struct : Trace_Info_Date with Import, Address => Result'Address;
+      Struct : Trace_Info_Date
+      with Import, Address => Result'Address;
       O      : constant Positive := Formatted'First;
-      Year   : String renames Formatted (O + 0  .. O + 3);
-      Month  : String renames Formatted (O + 5  .. O + 6);
-      Day    : String renames Formatted (O + 8  .. O + 9);
+      Year   : String renames Formatted (O + 0 .. O + 3);
+      Month  : String renames Formatted (O + 5 .. O + 6);
+      Day    : String renames Formatted (O + 8 .. O + 9);
       Hour   : String renames Formatted (O + 11 .. O + 12);
       Minute : String renames Formatted (O + 14 .. O + 15);
       Second : String renames Formatted (O + 17 .. O + 18);
 
    begin
-      Struct.Year  := Unsigned_16'Value (Year);
+      Struct.Year := Unsigned_16'Value (Year);
       Struct.Month := Unsigned_8'Value (Month);
-      Struct.Day   := Unsigned_8'Value (Day);
-      Struct.Hour  := Unsigned_8'Value (Hour);
-      Struct.Min   := Unsigned_8'Value (Minute);
-      Struct.Sec   := Unsigned_8'Value (Second);
-      Struct.Pad   := 0;
+      Struct.Day := Unsigned_8'Value (Day);
+      Struct.Hour := Unsigned_8'Value (Hour);
+      Struct.Min := Unsigned_8'Value (Minute);
+      Struct.Sec := Unsigned_8'Value (Second);
+      Struct.Pad := 0;
       return Result;
    end Parse_Date_Info;
 
@@ -1722,9 +1708,7 @@ package body Traces_Files is
    -- Get_Signature --
    -------------------
 
-   function Get_Signature
-     (File : Trace_File_Type)
-      return Binary_File_Signature
+   function Get_Signature (File : Trace_File_Type) return Binary_File_Signature
    is
       Result : Binary_File_Signature;
 
@@ -1748,8 +1732,7 @@ package body Traces_Files is
    -- Free --
    ----------
 
-   procedure Free (Trace_File : in out Trace_File_Type)
-   is
+   procedure Free (Trace_File : in out Trace_File_Type) is
       procedure Unchecked_Deallocation is new
         Ada.Unchecked_Deallocation (Trace_File_Info, Trace_File_Info_Acc);
       Info, N_Info : Trace_File_Info_Acc;
@@ -1767,16 +1750,15 @@ package body Traces_Files is
    -----------------------
 
    procedure Create_Trace_File
-     (Filename   : String;
-      Kind       : Trace_Kind;
-      Trace_File : out Trace_File_Type)
+     (Filename : String; Kind : Trace_Kind; Trace_File : out Trace_File_Type)
    is
    begin
-      Trace_File := Trace_File_Type'
-        (Filename    => +Filename,
-         Header      => (Kind, Pc_Type_Size, Big_Endian_Host, 0),
-         First_Infos => null,
-         Last_Infos  => null);
+      Trace_File :=
+        Trace_File_Type'
+          (Filename    => +Filename,
+           Header      => (Kind, Pc_Type_Size, Big_Endian_Host, 0),
+           First_Infos => null,
+           Last_Infos  => null);
    end Create_Trace_File;
 
    ------------------

@@ -17,7 +17,7 @@
 ------------------------------------------------------------------------------
 with Interfaces;
 with Elf_Common; use Elf_Common;
-with Elf64; use Elf64;
+with Elf64;      use Elf64;
 
 package Arch is
    subtype Arch_Addr is Interfaces.Unsigned_64;
@@ -40,23 +40,15 @@ package Arch is
 
    Elf_Arch_Class : constant Elf_Uchar := ELFCLASS64;
 
-   procedure Elf_Ehdr_Swap (Ehdr : in out Elf_Ehdr)
-     renames Elf64_Ehdr_Swap;
-   procedure Elf_Shdr_Swap (Shdr : in out Elf_Shdr)
-     renames Elf64_Shdr_Swap;
-   procedure Elf_Chdr_Swap (Chdr : in out Elf_Chdr)
-     renames Elf64_Chdr_Swap;
-   procedure Elf_Rela_Swap (Rela : in out Elf_Rela)
-     renames Elf64_Rela_Swap;
-   procedure Elf_Sym_Swap (Sym : in out Elf_Sym)
-     renames Elf64_Sym_Swap;
+   procedure Elf_Ehdr_Swap (Ehdr : in out Elf_Ehdr) renames Elf64_Ehdr_Swap;
+   procedure Elf_Shdr_Swap (Shdr : in out Elf_Shdr) renames Elf64_Shdr_Swap;
+   procedure Elf_Chdr_Swap (Chdr : in out Elf_Chdr) renames Elf64_Chdr_Swap;
+   procedure Elf_Rela_Swap (Rela : in out Elf_Rela) renames Elf64_Rela_Swap;
+   procedure Elf_Sym_Swap (Sym : in out Elf_Sym) renames Elf64_Sym_Swap;
 
-   function Elf_R_Sym (I : Elf_Xword) return Elf_Word
-     renames Elf64_R_Sym;
-   function Elf_R_Type (I : Elf_Xword) return Elf_Word
-     renames Elf64_R_Type;
-   function Elf_R_Info (S, T : Elf_Word) return Elf_Xword
-     renames Elf64_R_Info;
+   function Elf_R_Sym (I : Elf_Xword) return Elf_Word renames Elf64_R_Sym;
+   function Elf_R_Type (I : Elf_Xword) return Elf_Word renames Elf64_R_Type;
+   function Elf_R_Info (S, T : Elf_Word) return Elf_Xword renames Elf64_R_Info;
 
    Current_Bits : constant String := "64";
 end Arch;

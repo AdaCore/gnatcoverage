@@ -28,8 +28,7 @@ package Coverage_Options is
    use all type Unbounded_String;
 
    type Coverage_Level is
-     (Insn, Branch, Stmt, Decision, MCDC, UC_MCDC, ATC, ATCC, Fun_Call,
-      GExpr);
+     (Insn, Branch, Stmt, Decision, MCDC, UC_MCDC, ATC, ATCC, Fun_Call, GExpr);
    --  Coverage objectives supported by xcov. The following values are
    --  supported:
 
@@ -73,16 +72,16 @@ package Coverage_Options is
    --  (for some and for all), which may not run if executed against an empty
    --  array.
 
-   subtype Object_Coverage_Level    is Coverage_Level range Insn .. Branch;
-   subtype Source_Coverage_Level    is Coverage_Level range Stmt .. GExpr;
-   subtype MCDC_Coverage_Level      is Coverage_Level range MCDC .. UC_MCDC;
+   subtype Object_Coverage_Level is Coverage_Level range Insn .. Branch;
+   subtype Source_Coverage_Level is Coverage_Level range Stmt .. GExpr;
+   subtype MCDC_Coverage_Level is Coverage_Level range MCDC .. UC_MCDC;
    subtype Contract_Condition_Level is Coverage_Level range ATCC .. ATCC;
 
    type Levels_Type is array (Coverage_Level) of Boolean;
    --  Set of Coverage_Levels
 
-   package Levels_Option_Maps is
-     new Ada.Containers.Ordered_Maps
+   package Levels_Option_Maps is new
+     Ada.Containers.Ordered_Maps
        (Key_Type     => GNAT.Strings.String_Access,
         Element_Type => Levels_Type,
         "<"          => Strings."<");

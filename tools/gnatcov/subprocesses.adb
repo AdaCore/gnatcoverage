@@ -64,12 +64,10 @@ package body Subprocesses is
    -- "=" --
    ---------
 
-   function "=" (L, R : Command_Type) return Boolean
-   is
+   function "=" (L, R : Command_Type) return Boolean is
       use String_Vectors;
    begin
-      return L.Command = R.Command
-        and then L.Arguments = R.Arguments;
+      return L.Command = R.Command and then L.Arguments = R.Arguments;
    end "=";
 
    ----------
@@ -77,8 +75,8 @@ package body Subprocesses is
    ----------
 
    procedure Read
-     (CLS   : in out Checkpoints.Checkpoint_Load_State;
-      Value : out Command_Type) is
+     (CLS : in out Checkpoints.Checkpoint_Load_State; Value : out Command_Type)
+   is
    begin
       Value.Command := CLS.Read_Unbounded_String;
       Read (CLS, Value.Arguments);
@@ -174,19 +172,19 @@ package body Subprocesses is
       Err_To_Out          : Boolean := True;
       Out_To_Null         : Boolean := False;
       In_To_Null          : Boolean := False;
-      Ignore_Error        : Boolean := False) return Boolean
-   is
+      Ignore_Error        : Boolean := False) return Boolean is
    begin
-      return Run_Command
-        (+Command.Command,
-         Command.Arguments,
-         Origin_Command_Name,
-         Command.Environment,
-         Output_File,
-         Err_To_Out,
-         Out_To_Null,
-         In_To_Null,
-         Ignore_Error);
+      return
+        Run_Command
+          (+Command.Command,
+           Command.Arguments,
+           Origin_Command_Name,
+           Command.Environment,
+           Output_File,
+           Err_To_Out,
+           Out_To_Null,
+           In_To_Null,
+           Ignore_Error);
    end Run_Command;
 
    procedure Run_Command
@@ -197,14 +195,15 @@ package body Subprocesses is
       Out_To_Null         : Boolean := False;
       In_To_Null          : Boolean := False)
    is
-      Dummy : constant Boolean := Run_Command
-        (Command,
-         Origin_Command_Name,
-         Output_File,
-         Err_To_Out,
-         Out_To_Null,
-         In_To_Null,
-         Ignore_Error => False);
+      Dummy : constant Boolean :=
+        Run_Command
+          (Command,
+           Origin_Command_Name,
+           Output_File,
+           Err_To_Out,
+           Out_To_Null,
+           In_To_Null,
+           Ignore_Error => False);
    begin
       null;
    end Run_Command;
@@ -219,16 +218,17 @@ package body Subprocesses is
       Out_To_Null         : Boolean := False;
       In_To_Null          : Boolean := False)
    is
-      Dummy : constant Boolean := Run_Command
-        (Command,
-         Arguments,
-         Origin_Command_Name,
-         Environment,
-         Output_File,
-         Err_To_Out,
-         Out_To_Null,
-         In_To_Null,
-         Ignore_Error => False);
+      Dummy : constant Boolean :=
+        Run_Command
+          (Command,
+           Arguments,
+           Origin_Command_Name,
+           Environment,
+           Output_File,
+           Err_To_Out,
+           Out_To_Null,
+           In_To_Null,
+           Ignore_Error => False);
    begin
       null;
    end Run_Command;
@@ -244,17 +244,18 @@ package body Subprocesses is
       In_To_Null          : Boolean := False;
       Ignore_Error        : Boolean := False) return Boolean
    is
-      Handle  : constant Process_Handle := Run_Command
-        (Command,
-         Arguments,
-         Origin_Command_Name,
-         Environment,
-         Output_File,
-         Err_To_Out,
-         Out_To_Null,
-         In_To_Null);
+      Handle  : constant Process_Handle :=
+        Run_Command
+          (Command,
+           Arguments,
+           Origin_Command_Name,
+           Environment,
+           Output_File,
+           Err_To_Out,
+           Out_To_Null,
+           In_To_Null);
       Success : constant Boolean :=
-          Wait (Handle) = 0 and then Handle /= Invalid_Handle;
+        Wait (Handle) = 0 and then Handle /= Invalid_Handle;
    begin
       Check_Status
         (Success, Output_File, Ignore_Error, Command, Origin_Command_Name);
@@ -285,8 +286,11 @@ package body Subprocesses is
 
       Program := GNAT.OS_Lib.Locate_Exec_On_Path (Command);
       if Program = null then
-         Error (Origin_Command_Name & ": cannot find "
-                & Command & " on your path");
+         Error
+           (Origin_Command_Name
+            & ": cannot find "
+            & Command
+            & " on your path");
          return Invalid_Handle;
       end if;
 
@@ -353,12 +357,13 @@ package body Subprocesses is
          end if;
          Stderr := (if Err_To_Out then Stdout else Standerr);
 
-         Handle := Start
-           (Args   => Args,
-            Env    => Env,
-            Stdin  => Stdin,
-            Stdout => Stdout,
-            Stderr => Stderr);
+         Handle :=
+           Start
+             (Args   => Args,
+              Env    => Env,
+              Stdin  => Stdin,
+              Stdout => Stdout,
+              Stderr => Stderr);
 
          Process_Types.Deallocate (Args);
          Process_Types.Deallocate (Env);
@@ -373,8 +378,7 @@ package body Subprocesses is
    -- Wait_And_Finalize --
    -----------------------
 
-   function Wait_And_Finalize (Self : in out Process_Pool) return Positive
-   is
+   function Wait_And_Finalize (Self : in out Process_Pool) return Positive is
       function Find_Waitable return Positive;
       --  Wait until one process terminates, then return its index in
       --  Self.Handle.
@@ -400,7 +404,7 @@ package body Subprocesses is
       Success : constant Boolean := Wait (Self.Handles (Id)) = 0;
       Info    : Process_Info renames Self.Process_Infos (Id);
 
-   --  Start of processing for Wait_And_Finalize
+      --  Start of processing for Wait_And_Finalize
 
    begin
       --  Free the pool slot for this terminated process
@@ -444,9 +448,7 @@ package body Subprocesses is
 
       declare
          Output_File : constant String :=
-           (if Info.Output_To_Stdout
-            then ""
-            else +Info.Output_File);
+           (if Info.Output_To_Stdout then "" else +Info.Output_File);
       begin
          Check_Status
            (Success,
@@ -505,25 +507,27 @@ package body Subprocesses is
 
          Pool.Process_Infos (Id).Output_File :=
            +(Pool.Output_Dir.Directory_Name / "job-"
-             & Strings.Img (Id) & ".txt");
+             & Strings.Img (Id)
+             & ".txt");
          Pool.Process_Infos (Id).Output_To_Stdout := True;
       else
          Pool.Process_Infos (Id).Output_To_Stdout := False;
       end if;
 
-      Pool.Handles (Id) := Run_Command
-        (Command,
-         Arguments,
-         Origin_Command_Name,
-         Environment,
-         +Pool.Process_Infos (Id).Output_File,
+      Pool.Handles (Id) :=
+        Run_Command
+          (Command,
+           Arguments,
+           Origin_Command_Name,
+           Environment,
+           +Pool.Process_Infos (Id).Output_File,
 
-         --  TODO??? There will be mangling on the stderr if stdout was
-         --  redirected to an output file.
+           --  TODO??? There will be mangling on the stderr if stdout was
+           --  redirected to an output file.
 
-         Err_To_Out   => Output_File = "",
-         Out_To_Null  => Out_To_Null,
-         In_To_Null   => In_To_Null);
+           Err_To_Out  => Output_File = "",
+           Out_To_Null => Out_To_Null,
+           In_To_Null  => In_To_Null);
       Pool.Nb_Running_Processes := Pool.Nb_Running_Processes + 1;
    end Run_Command;
 
@@ -542,8 +546,8 @@ package body Subprocesses is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize (Self : in out Process_Pool)
-   is
+   overriding
+   procedure Finalize (Self : in out Process_Pool) is
       Dummy : Positive;
    begin
       while Self.Nb_Running_Processes /= 0 loop

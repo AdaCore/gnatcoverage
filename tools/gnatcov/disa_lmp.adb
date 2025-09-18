@@ -19,7 +19,7 @@
 with Ada.Unchecked_Conversion;
 with Interfaces; use Interfaces;
 
-with Disa_Common;  use Disa_Common;
+with Disa_Common; use Disa_Common;
 
 package body Disa_Lmp is
 
@@ -31,10 +31,10 @@ package body Disa_Lmp is
    pragma Unreferenced (Non_Storage_Register, Storage_Immediate);
    --  GR5/GR6 instruction class. Determines how the instruction is encoded.
 
-   type Operation_Type is mod 2 ** 4;
+   type Operation_Type is mod 2**4;
    --  Instruction fields used to dispatch through decoding tables
 
-   OP_BRA     : constant Operation_Type := 2#1100#;
+   OP_BRA : constant Operation_Type := 2#1100#;
 
    type Condition_Type is new Natural range 0 .. 15;
 
@@ -48,10 +48,22 @@ package body Disa_Lmp is
    type Bits_Size is new Natural range 1 .. 16;
    type Bit_Masks is array (Bits_Size) of Unsigned_32;
    Masks : constant Bit_Masks :=
-     (16#0001#, 16#0003#, 16#0007#, 16#000f#,
-      16#001f#, 16#003f#, 16#007f#, 16#00ff#,
-      16#01ff#, 16#03ff#, 16#07ff#, 16#0fff#,
-      16#1fff#, 16#3fff#, 16#7fff#, 16#ffff#);
+     (16#0001#,
+      16#0003#,
+      16#0007#,
+      16#000f#,
+      16#001f#,
+      16#003f#,
+      16#007f#,
+      16#00ff#,
+      16#01ff#,
+      16#03ff#,
+      16#07ff#,
+      16#0fff#,
+      16#1fff#,
+      16#3fff#,
+      16#7fff#,
+      16#ffff#);
 
    type Bit_Location is new Integer range -1 .. 31;
    --  Location of a single bit in an instruction
@@ -62,15 +74,14 @@ package body Disa_Lmp is
       Start : Bit_Location := No_Bit_Location;
       --  Location of the least significant bit
 
-      Size  : Bits_Size;
+      Size : Bits_Size;
       --  Number of bits
    end record;
    --  Location of continuous bits in an instruction
 
    function Get
      (Insn : Unsigned_32; Location : Bits_Location) return Unsigned_32
-   is
-     (Shift_Right (Insn, Natural (Location.Start)) and Masks (Location.Size));
+   is (Shift_Right (Insn, Natural (Location.Start)) and Masks (Location.Size));
    --  Extract and return bits from an instruction
    --  TODO??? Raise an error if Location invalid
 
@@ -89,10 +100,10 @@ package body Disa_Lmp is
 
    --  Location of fields in instructions: common fields
 
-   Op_Type_Loc               : constant Bits_Location := (25, 2);
+   Op_Type_Loc : constant Bits_Location := (25, 2);
 
-   Operation_Loc             : constant Bits_Location := (21, 4);
-   Condition_Loc             : constant Bits_Location := (27, 4);
+   Operation_Loc : constant Bits_Location := (21, 4);
+   Condition_Loc : constant Bits_Location := (27, 4);
 
    --  Non-storage relative class instructions fields
 
@@ -103,8 +114,8 @@ package body Disa_Lmp is
    --  Can be used to extract the Relative Offset field of non-storage relative
    --  class instructions.
 
-   function Get_Insn_Class (Insn : Unsigned_32) return Insn_Class is
-     (Insn_Class'Val (Natural (Get (Insn, Op_Type_Loc))));
+   function Get_Insn_Class (Insn : Unsigned_32) return Insn_Class
+   is (Insn_Class'Val (Natural (Get (Insn, Op_Type_Loc))));
    --  Return the instruction class of Insn
 
    -------------------------
@@ -125,8 +136,8 @@ package body Disa_Lmp is
    -- Initialize --
    ----------------
 
-   overriding procedure Initialize
-     (Object : in out LMP_Disassembler) is
+   overriding
+   procedure Initialize (Object : in out LMP_Disassembler) is
    begin
       Object.Handle := Dis_Opcodes.Create_Visium_Disassembler;
    end Initialize;
@@ -135,8 +146,8 @@ package body Disa_Lmp is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize
-     (Object : in out LMP_Disassembler) is
+   overriding
+   procedure Finalize (Object : in out LMP_Disassembler) is
    begin
       Dis_Opcodes.Delete_Disassembler (Object.Handle);
    end Finalize;
@@ -145,9 +156,9 @@ package body Disa_Lmp is
    -- Get_Insn_Length --
    ---------------------
 
-   overriding function Get_Insn_Length
-     (Self     : LMP_Disassembler;
-      Insn_Bin : Binary_Content) return Positive
+   overriding
+   function Get_Insn_Length
+     (Self : LMP_Disassembler; Insn_Bin : Binary_Content) return Positive
    is
       pragma Unreferenced (Self);
       pragma Unreferenced (Insn_Bin);
@@ -159,13 +170,14 @@ package body Disa_Lmp is
    -- Disassemble_Insn --
    ----------------------
 
-   overriding procedure Disassemble_Insn
-      (Self     : LMP_Disassembler;
-       Insn_Bin : Binary_Content;
-       Pc       : Pc_Type;
-       Buffer   : in out Highlighting.Buffer_Type;
-       Insn_Len : out Natural;
-       Sym      : Symbolizer'Class) is
+   overriding
+   procedure Disassemble_Insn
+     (Self     : LMP_Disassembler;
+      Insn_Bin : Binary_Content;
+      Pc       : Pc_Type;
+      Buffer   : in out Highlighting.Buffer_Type;
+      Insn_Len : out Natural;
+      Sym      : Symbolizer'Class) is
    begin
       Disa_Common.Opcodes_Disassemble_Insn
         (Self.Handle, Insn_Bin, Pc, Buffer, Insn_Len, Sym, 4);
@@ -175,7 +187,8 @@ package body Disa_Lmp is
    -- Get_Insn_Properties --
    -------------------------
 
-   overriding procedure Get_Insn_Properties
+   overriding
+   procedure Get_Insn_Properties
      (Self        : LMP_Disassembler;
       Insn_Bin    : Binary_Content;
       Pc          : Pc_Type;
@@ -187,22 +200,22 @@ package body Disa_Lmp is
    is
       pragma Unreferenced (Self);
 
-      Insn       : constant Unsigned_32 := To_Big_Endian_U32
-        (Slice (Insn_Bin, Pc, Pc + 3));
+      Insn       : constant Unsigned_32 :=
+        To_Big_Endian_U32 (Slice (Insn_Bin, Pc, Pc + 3));
       Class      : constant Insn_Class := Get_Insn_Class (Insn);
       Delay_Slot : constant Pc_Type := Pc + 4;
 
-      function Condition return Condition_Type is
-        (Condition_Type (Get (Insn, Condition_Loc)));
+      function Condition return Condition_Type
+      is (Condition_Type (Get (Insn, Condition_Loc)));
 
    begin
       --  These are default values for control-flow "unrelated" instructions
 
-      Branch      := Br_None;
-      Flag_Indir  := False;
-      Flag_Cond   := False;
+      Branch := Br_None;
+      Flag_Indir := False;
+      Flag_Cond := False;
       Branch_Dest := (No_PC, No_PC);
-      FT_Dest     := (No_PC, No_PC);
+      FT_Dest := (No_PC, No_PC);
 
       --  Look for a control-flow instruction and if Insn_Bin is one, update
       --  its properties. Return without changing anything otherwise.
@@ -213,15 +226,16 @@ package body Disa_Lmp is
             --  This is a BRR instruction
 
             declare
-               function Offset_To_PC is new Ada.Unchecked_Conversion
-                 (Integer_32, Unsigned_32);
+               function Offset_To_PC is new
+                 Ada.Unchecked_Conversion (Integer_32, Unsigned_32);
 
-               Offset    : constant Integer_16 :=
-                 Get_Relative_Offset (Insn);
-               Dest      : constant Pc_Type :=
-                 Pc + 4 * (if Offset < 0
-                  then Pc_Type (Offset_To_PC (Integer_32 (Offset)))
-                  else Pc_Type (Offset));
+               Offset : constant Integer_16 := Get_Relative_Offset (Insn);
+               Dest   : constant Pc_Type :=
+                 Pc
+                 + 4
+                   * (if Offset < 0
+                      then Pc_Type (Offset_To_PC (Integer_32 (Offset)))
+                      else Pc_Type (Offset));
 
             begin
                case Condition is
@@ -231,33 +245,33 @@ package body Disa_Lmp is
 
                      return;
 
-                  when others =>
+                  when others     =>
 
                      --  The if branch is always taken: this is a jump,
                      --  otherwise this is a conditional jump.
 
                      Flag_Cond := Condition /= COND_TRUE;
                end case;
-               Branch      := Br_Jmp;
+               Branch := Br_Jmp;
                Branch_Dest := (Dest, Delay_Slot);
-               FT_Dest     := (Delay_Slot + 4, Delay_Slot);
+               FT_Dest := (Delay_Slot + 4, Delay_Slot);
             end;
 
-         when Storage_Register =>
+         when Storage_Register     =>
             declare
                Operation : constant Operation_Type :=
                  Operation_Type (Get (Insn, Operation_Loc));
             begin
-                  if Operation = OP_BRA and then Condition /= COND_FALSE then
-                     Branch      := Br_Call;
-                     Flag_Indir  := True;
-                     Flag_Cond   := Condition /= COND_TRUE;
-                     Branch_Dest := (No_PC, Delay_Slot);
-                     FT_Dest     := (Delay_Slot + 4, Delay_Slot);
-                  end if;
+               if Operation = OP_BRA and then Condition /= COND_FALSE then
+                  Branch := Br_Call;
+                  Flag_Indir := True;
+                  Flag_Cond := Condition /= COND_TRUE;
+                  Branch_Dest := (No_PC, Delay_Slot);
+                  FT_Dest := (Delay_Slot + 4, Delay_Slot);
+               end if;
             end;
 
-         when others =>
+         when others               =>
             null;
       end case;
    end Get_Insn_Properties;
@@ -267,9 +281,8 @@ package body Disa_Lmp is
    ----------------
 
    function Is_Padding
-     (Self     : LMP_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean
+     (Self : LMP_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean
    is
       pragma Unreferenced (Self, Insn_Bin, Pc);
    begin
