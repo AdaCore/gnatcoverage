@@ -54,6 +54,7 @@ with Instrument.Ada_Unit_Provider;
 with Instrument.C;        use Instrument.C;
 with Instrument.Clean_Objdirs;
 with Instrument.Common;   use Instrument.Common;
+with Instrument.Debug_Dump;
 with Instrument.Main;
 with Instrument.Source;
 with JSON;                use JSON;
@@ -922,6 +923,17 @@ is
                Prj_Info.Desc.Compiler_Options_Unit.Insert
                  (Create_Normalized (Unit_Name), Compiler_Opts);
             end if;
+         end;
+      end if;
+
+      --  If dump debug info was requested, add entries for buffer symbols
+
+      if Args.String_Args (Opt_Dump_Debug).Present then
+         declare
+            CU : constant Files_Table.Compilation_Unit :=
+              (Lang_Kind, Unit_Name => +Unit_Name);
+         begin
+            Instrument.Debug_Dump.Register_Buffer_Symbols_For_Unit (CU);
          end;
       end if;
    end Add_Instrumented_Unit;

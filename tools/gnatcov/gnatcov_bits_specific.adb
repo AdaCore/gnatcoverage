@@ -63,6 +63,7 @@ with Inputs;                use Inputs;
 with Instrument;
 with Instrument.Common;     use Instrument.Common;
 with Instrument.Config;
+with Instrument.Debug_Dump;
 with Instrument.Gcc_Wrapper;
 with Instrument.Input_Traces;
 with Instrument.Main;
@@ -2045,6 +2046,10 @@ begin
                  (if Has_Matcher then Matcher'Access else null),
                Mains                 => Args.Remaining_Args);
          end;
+         if Args.String_Args (Opt_Dump_Debug).Present then
+            Instrument.Debug_Dump.Write_Debug_Dump_File
+              (+Args.String_Args (Opt_Dump_Debug).Value);
+         end if;
 
       when Cmd_Setup_Integration                          =>
 
