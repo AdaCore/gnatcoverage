@@ -57,7 +57,7 @@ package Switches is
    --  gnatcov driver, where we just need to determine the target.
 
    Arg_Parser : constant Command_Line.Parser.Parser_Type :=
-      Command_Line.Create;
+     Command_Line.Create;
    --  Parser for command-line arguments
 
    Args : Command_Line.Parser.Parsed_Arguments;
@@ -67,9 +67,7 @@ package Switches is
    --  All the variables below are used to store results of the command line
    --  parsing and analysis.
 
-   procedure Copy_Arg
-     (Option   : String_Options;
-      Variable : out String_Access);
+   procedure Copy_Arg (Option : String_Options; Variable : out String_Access);
    --  Copy the string for Option into Variable. If the option is present, this
    --  allocates a new string in Variable.
 
@@ -92,11 +90,9 @@ package Switches is
    --  Expand Argument and append the resulting arguments to List
 
    procedure Copy_Arg_List
-     (Option : String_List_Options;
-      List   : in out String_Vectors.Vector);
+     (Option : String_List_Options; List : in out String_Vectors.Vector);
    procedure Copy_Arg_List
-     (Args : String_Vectors.Vector;
-      List  : in out String_Vectors.Vector);
+     (Args : String_Vectors.Vector; List : in out String_Vectors.Vector);
    --  Copy the list of strings referenced in Option to the List input list,
    --  expanding arguments that start with '@' according to rules described in
    --  Inputs.Expand_Argument.
@@ -104,8 +100,8 @@ package Switches is
    procedure Process_File_Or_Dir_Switch
      (Args              : String_Vectors.Vector;
       Orig_Switch       : String;
-      Process_Dir_Entry : access procedure
-        (Dir : Ada.Directories.Directory_Entry_Type);
+      Process_Dir_Entry :
+        access procedure (Dir : Ada.Directories.Directory_Entry_Type);
       Process_Arg       : access procedure (Exp_Arg : String);
       Pattern           : String := "");
    --  This procedure is dedicated to switches accepting a list of files, e.g.
@@ -277,8 +273,8 @@ package Switches is
    -- Project related switches that may need to be propagated --
    -------------------------------------------------------------
 
-   package Key_Element_Maps is
-     new Ada.Containers.Indefinite_Ordered_Maps
+   package Key_Element_Maps is new
+     Ada.Containers.Indefinite_Ordered_Maps
        (Key_Type     => String,
         Element_Type => String);
 
@@ -319,7 +315,8 @@ package Switches is
    function Value (Dump_Trigger : String) return Any_Dump_Trigger;
    function Value (Dump_Channel : String) return Any_Dump_Channel;
 
-   type Any_Dump_Config (Channel : Any_Dump_Channel := Any_Dump_Channel'First)
+   type Any_Dump_Config
+     (Channel : Any_Dump_Channel := Any_Dump_Channel'First)
    is record
       Trigger : Any_Dump_Trigger := Manual;
 
@@ -342,7 +339,7 @@ package Switches is
             --
             --  Controlled by --dump-filename-env-var.
 
-            Filename_Prefix  : Unbounded_String;
+            Filename_Prefix : Unbounded_String;
             --  Prefix for the source trace filename. If empty, use the
             --  program's basename (see Default_Trace_Filename_Prefix in
             --  GNATcov_RTS.Traces.Output.Files).

@@ -29,14 +29,16 @@ with Traces;         use Traces;
 package Disa_X86 is
 
    type X86_Disassembler is
-     new Ada.Finalization.Limited_Controlled and Disassembler with private;
+     new Ada.Finalization.Limited_Controlled
+     and Disassembler with private;
 
-   overriding function Get_Insn_Length
-     (Self     : X86_Disassembler;
-      Insn_Bin : Binary_Content) return Positive;
+   overriding
+   function Get_Insn_Length
+     (Self : X86_Disassembler; Insn_Bin : Binary_Content) return Positive;
    --  Return the length of the instruction at the beginning of Insn_Bin
 
-   overriding procedure Disassemble_Insn
+   overriding
+   procedure Disassemble_Insn
      (Self     : X86_Disassembler;
       Insn_Bin : Binary_Content;
       Pc       : Pc_Type;
@@ -47,7 +49,8 @@ package Disa_X86 is
    --  LINE_POS is the index of the next character to be written (ie line
    --  length if Line'First = 1).
 
-   overriding procedure Get_Insn_Properties
+   overriding
+   procedure Get_Insn_Properties
      (Self        : X86_Disassembler;
       Insn_Bin    : Binary_Content;
       Pc          : Pc_Type;
@@ -61,30 +64,33 @@ package Disa_X86 is
    --  For a branch, indicate whether it is indirect (Flag_Indir) and whether
    --  it is conditional (Flag_Cond), and determine its destination (Dest).
 
-   overriding function Is_Padding
-     (Self     : X86_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean;
+   overriding
+   function Is_Padding
+     (Self : X86_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean;
    --  See disassemblers.ads
 
-   overriding function Is_Nop
-     (Self     : X86_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean is (False);
+   overriding
+   function Is_Nop
+     (Self : X86_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean
+   is (False);
    --  See disassembler.ads
 
-   overriding procedure Initialize
-     (Object : in out X86_Disassembler);
+   overriding
+   procedure Initialize (Object : in out X86_Disassembler);
    --  Override of controlled object primitive
 
-   overriding procedure Finalize
-     (Object : in out X86_Disassembler);
+   overriding
+   procedure Finalize (Object : in out X86_Disassembler);
    --  Override of controlled object primitive
 
 private
 
    type X86_Disassembler is
-     new Ada.Finalization.Limited_Controlled and Disassembler with record
+     new Ada.Finalization.Limited_Controlled
+     and Disassembler
+   with record
       Handle : Dis_Opcodes.Disassemble_Handle;
    end record;
 

@@ -20,9 +20,10 @@ with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
 with Ada.Strings.Fixed;
-with Ada.Text_IO;       use Ada.Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 
-with Interfaces.C.Strings; use Interfaces.C, Interfaces.C.Strings;
+with Interfaces.C.Strings;
+use Interfaces.C, Interfaces.C.Strings;
 
 with System.Storage_Elements; use System.Storage_Elements;
 
@@ -52,8 +53,8 @@ with Types;            use Types;
 
 package body Traces_Elf is
 
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Exe_File_Type'Class, Exe_File_Acc);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (Exe_File_Type'Class, Exe_File_Acc);
 
    No_Stmt_List : constant Unsigned_32 := Unsigned_32'Last;
    --  Value indicating there is no AT_stmt_list
@@ -66,11 +67,11 @@ package body Traces_Elf is
    --  ELF, these tell us whether code is ARM or Thumb). We use these symbols
    --  to fill Insn_Set_Ranges data structures.
 
-   function "<" (L, R : Mapping_Symbol) return Boolean is
-     (L.Address < R.Address);
+   function "<" (L, R : Mapping_Symbol) return Boolean
+   is (L.Address < R.Address);
 
-   package Mapping_Symbol_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Mapping_Symbol);
+   package Mapping_Symbol_Sets is new
+     Ada.Containers.Ordered_Sets (Element_Type => Mapping_Symbol);
 
    procedure Build_Insn_Set_Ranges
      (Exec            : in out Exe_File_Type'Class;
@@ -172,8 +173,7 @@ package body Traces_Elf is
       Len     : in out Elf_Addr;
       Content : in out Binary_Content;
       LS      : in out Loaded_Section;
-      Addr    : in out Address)
-     return Boolean;
+      Addr    : in out Address) return Boolean;
    pragma Inline (Load_Section_Content_And_Address);
    --  Wrapper around Alloc_And_Load_Section: if CONTENT is not already loaded,
    --  allocate memory for section SEC of EXEC and then do the same processing
@@ -185,9 +185,8 @@ package body Traces_Elf is
    --  loaded.
 
    function Get_Desc_Set
-     (Exec : Exe_File_Type;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return access constant Address_Info_Sets.Set;
+     (Exec : Exe_File_Type; Kind : Address_Info_Kind; PC : Pc_Type)
+      return access constant Address_Info_Sets.Set;
    pragma Inline (Get_Desc_Set);
    --  Return the Address_Info_Set of type Kind in Exec containing PC
 
@@ -204,8 +203,7 @@ package body Traces_Elf is
    --  unsuccessful, raise a Binary_Files.Error exception.
 
    function Tree_Assumption_Respected
-     (Set  : Address_Info_Sets.Set;
-      Item : Address_Info_Acc) return Boolean;
+     (Set : Address_Info_Sets.Set; Item : Address_Info_Acc) return Boolean;
    --  Return whether, for all elements E of Set, E and Item are either
    --  disjoint or one contains the other.
 
@@ -252,7 +250,7 @@ package body Traces_Elf is
          end if;
       end Names_Lt;
 
-   --  Start of processing for "<"
+      --  Start of processing for "<"
 
    begin
       --  Lower start PC sorts lower
@@ -281,21 +279,22 @@ package body Traces_Elf is
       --  Here if L.First = R.First and L.Last = R.Last
 
       case L.Kind is
-         when Compilation_Unit_Addresses =>
+         when Compilation_Unit_Addresses   =>
             return L.DIE_CU < R.DIE_CU;
-         when Section_Addresses =>
+
+         when Section_Addresses            =>
             return Names_Lt (L.Section_Name, R.Section_Name);
 
-         when Subprogram_Addresses =>
+         when Subprogram_Addresses         =>
             return Names_Lt (L.Subprogram_Name, R.Subprogram_Name);
 
          when Inlined_Subprogram_Addresses =>
             return L.Call_Sloc < R.Call_Sloc;
 
-         when Symbol_Addresses =>
+         when Symbol_Addresses             =>
             return Names_Lt (L.Symbol_Name, R.Symbol_Name);
 
-         when Line_Addresses =>
+         when Line_Addresses               =>
             return L.Sloc < R.Sloc;
       end case;
    end "<";
@@ -306,7 +305,7 @@ package body Traces_Elf is
 
    function Image (El : Address_Info_Acc) return String is
       Range_Img : constant String :=
-                    Hex_Image (El.First) & '-' & Hex_Image (El.Last);
+        Hex_Image (El.First) & '-' & Hex_Image (El.Last);
 
       function Sloc_Image (Line, Column : Natural) return String;
       --  Return the image of the given sloc. Column info is included only
@@ -323,38 +322,45 @@ package body Traces_Elf is
          if Column = 0 then
             return Line_Img (Line_Img'First + 1 .. Line_Img'Last);
          else
-            return Line_Img (Line_Img'First + 1 .. Line_Img'Last)
+            return
+              Line_Img (Line_Img'First + 1 .. Line_Img'Last)
               & ':'
               & Column_Img (Column_Img'First + 1 .. Column_Img'Last);
          end if;
       end Sloc_Image;
 
-   --  Start of processing for Image
+      --  Start of processing for Image
 
    begin
       case El.Kind is
-         when Compilation_Unit_Addresses =>
+         when Compilation_Unit_Addresses   =>
             return Range_Img & " compilation unit";
 
-         when Section_Addresses =>
+         when Section_Addresses            =>
             return Range_Img & " section " & El.Section_Name.all;
 
-         when Subprogram_Addresses =>
+         when Subprogram_Addresses         =>
             return Range_Img & " subprogram " & El.Subprogram_Name.all;
 
          when Inlined_Subprogram_Addresses =>
-            return Range_Img & " inlined subprogram line "
-              & Get_Full_Name (El.Call_Sloc.Source_File) & ':'
+            return
+              Range_Img
+              & " inlined subprogram line "
+              & Get_Full_Name (El.Call_Sloc.Source_File)
+              & ':'
               & Sloc_Image
-                 (Line   => El.Call_Sloc.L.Line,
-                  Column => El.Call_Sloc.L.Column);
+                  (Line   => El.Call_Sloc.L.Line,
+                   Column => El.Call_Sloc.L.Column);
 
-         when Symbol_Addresses =>
+         when Symbol_Addresses             =>
             return Range_Img & " symbol for " & El.Symbol_Name.all;
 
-         when Line_Addresses =>
-            return Range_Img & " line "
-              & Get_Full_Name (El.Sloc.Source_File) & ':'
+         when Line_Addresses               =>
+            return
+              Range_Img
+              & " line "
+              & Get_Full_Name (El.Sloc.Source_File)
+              & ':'
               & Sloc_Image (Line => El.Sloc.L.Line, Column => El.Sloc.L.Column)
               & (if El.Disc /= 0 then " discriminator" & El.Disc'Img else "");
       end case;
@@ -388,7 +394,7 @@ package body Traces_Elf is
          Disp_Address (Element (Cur));
       end Disp_Address;
 
-   --  Start of processing for Disp_Addresses
+      --  Start of processing for Disp_Addresses
 
    begin
       if Kind = Line_Addresses then
@@ -406,7 +412,7 @@ package body Traces_Elf is
 
    procedure Disp_Compilation_Units (Exec : Exe_File_Type) is
       use Compile_Unit_Vectors;
-      Cu : Compile_Unit_Desc;
+      Cu  : Compile_Unit_Desc;
       Cur : Cursor;
    begin
       Cur := Exec.Compile_Units.First;
@@ -447,18 +453,16 @@ package body Traces_Elf is
    ---------------
 
    function Open_File
-     (Filename   : String;
-      Text_Start : Pc_Type)
-      return Exe_File_Acc
+     (Filename : String; Text_Start : Pc_Type) return Exe_File_Acc
    is
       procedure Merge_Architecture
-        (Arch          : Unsigned_16;
-         Is_Big_Endian : Boolean);
+        (Arch : Unsigned_16; Is_Big_Endian : Boolean);
       --  Set Machine or check it.
 
-      procedure Set_Debug_Section (File : in out Exe_File_Type'Class;
-                                   Index : Section_Index;
-                                   Name : String);
+      procedure Set_Debug_Section
+        (File  : in out Exe_File_Type'Class;
+         Index : Section_Index;
+         Name  : String);
       --  If NAME is the name of a known dwarf debug section, save index.
 
       ------------------------
@@ -466,9 +470,7 @@ package body Traces_Elf is
       ------------------------
 
       procedure Merge_Architecture
-        (Arch          : Unsigned_16;
-         Is_Big_Endian : Boolean)
-      is
+        (Arch : Unsigned_16; Is_Big_Endian : Boolean) is
       begin
          if ELF_Machine = 0 then
             ELF_Machine := Arch;
@@ -497,9 +499,10 @@ package body Traces_Elf is
       -- Set_Debug_Section --
       -----------------------
 
-      procedure Set_Debug_Section (File : in out Exe_File_Type'Class;
-                                   Index : Section_Index;
-                                   Name : String) is
+      procedure Set_Debug_Section
+        (File  : in out Exe_File_Type'Class;
+         Index : Section_Index;
+         Name  : String) is
       begin
          if Name = ".debug_abbrev" then
             File.Sec_Debug_Abbrev := Index;
@@ -525,7 +528,7 @@ package body Traces_Elf is
 
       Ehdr : Elf_Ehdr;
 
-   --  Start of processing for Open_File
+      --  Start of processing for Open_File
 
    begin
       Open_Exec_Fd (Filename, Name, Fd);
@@ -538,11 +541,10 @@ package body Traces_Elf is
             --  variable first.
 
             E_File   : constant Elf_File := Create_File (Fd, Name);
-            Exec_Acc : constant Exe_File_Acc := new Elf_Exe_File_Type'
-              (Elf_File => E_File,
-               others => <>);
+            Exec_Acc : constant Exe_File_Acc :=
+              new Elf_Exe_File_Type'(Elf_File => E_File, others => <>);
             Exec     : Elf_Exe_File_Type renames
-               Elf_Exe_File_Type (Exec_Acc.all);
+              Elf_Exe_File_Type (Exec_Acc.all);
 
          begin
             Exec.File := Exec.Elf_File'Unchecked_Access;
@@ -556,22 +558,23 @@ package body Traces_Elf is
             case Get_Ehdr (Exec.Elf_File).E_Type is
                when ET_EXEC =>
                   Exec.Kind := File_Executable;
-               when ET_REL =>
+
+               when ET_REL  =>
                   Exec.Kind := File_Object;
-               when others =>
+
+               when others  =>
                   Exec.Kind := File_Others;
             end case;
 
             for I in 0 .. Get_Shdr_Num (Exec.Elf_File) - 1 loop
                declare
-                  Name : constant String :=
-                    Get_Shdr_Name (Exec.Elf_File, I);
+                  Name : constant String := Get_Shdr_Name (Exec.Elf_File, I);
                begin
                   if Name = ".symtab" then
                      Exec.Sec_Symtab := I;
 
                   elsif Exec.Exe_Machine = EM_PPC
-                        and then Name = ".PPC.EMB.apuinfo"
+                    and then Name = ".PPC.EMB.apuinfo"
                   then
                      declare
                         Len     : Elf_Addr;
@@ -580,8 +583,9 @@ package body Traces_Elf is
                      begin
                         Alloc_And_Load_Section
                           (Exec, Section_Index (I), Len, Content, LS);
-                        Machine := Disa_Ppc.Extract_APU_Info
-                          (Filename, Big_Endian_ELF, Content);
+                        Machine :=
+                          Disa_Ppc.Extract_APU_Info
+                            (Filename, Big_Endian_ELF, Content);
                         Free (LS);
                      end;
 
@@ -595,21 +599,24 @@ package body Traces_Elf is
 
       elsif Is_PE_File (Fd) then
          declare
-            Exec_Acc : constant Exe_File_Acc := new PE_Exe_File_Type'
-               (PE_File => Create_File (Fd, Name),
-                others => <>);
-            Exec : PE_Exe_File_Type renames PE_Exe_File_Type (Exec_Acc.all);
+            Exec_Acc : constant Exe_File_Acc :=
+              new PE_Exe_File_Type'
+                (PE_File => Create_File (Fd, Name), others => <>);
+            Exec     : PE_Exe_File_Type renames
+              PE_Exe_File_Type (Exec_Acc.all);
          begin
             Exec.File := Exec.PE_File'Unchecked_Access;
             Exec.Exe_Text_Start := Text_Start;
             --  Ehdr := Get_Ehdr (Exec.Elf_File);
             Exec.Is_Big_Endian := False;
             case Get_Hdr (Exec.PE_File).F_Machine is
-               when Coff.I386magic =>
+               when Coff.I386magic  =>
                   Exec.Exe_Machine := EM_386;
+
                when Coff.AMD64magic =>
                   Exec.Exe_Machine := EM_X86_64;
-               when others =>
+
+               when others          =>
                   Outputs.Fatal_Error
                     ("unhandled PE architecture for " & Filename);
             end case;
@@ -664,11 +671,11 @@ package body Traces_Elf is
       end if;
       Exec.Nbr_Symbols := 0;
 
-      Exec.Sec_Debug_Abbrev   := No_Section;
-      Exec.Sec_Debug_Info     := No_Section;
-      Exec.Sec_Debug_Line     := No_Section;
+      Exec.Sec_Debug_Abbrev := No_Section;
+      Exec.Sec_Debug_Info := No_Section;
+      Exec.Sec_Debug_Line := No_Section;
       Exec.Sec_Debug_Line_Str := No_Section;
-      Exec.Sec_Debug_Str      := No_Section;
+      Exec.Sec_Debug_Str := No_Section;
 
       for I_Ranges of Exec.Insn_Set_Ranges loop
          Free (I_Ranges);
@@ -681,7 +688,7 @@ package body Traces_Elf is
 
       Close_Exe_File (Exe_File_Type (Exec));
 
-      Exec.Sec_Symtab         := SHN_UNDEF;
+      Exec.Sec_Symtab := SHN_UNDEF;
    end Close_Exe_File;
 
    procedure Close_Exe_File (Exec : in out PE_Exe_File_Type) is
@@ -713,31 +720,31 @@ package body Traces_Elf is
    ----------
 
    procedure Free (Info : in out Address_Info_Acc) is
-      procedure Deallocate is new Ada.Unchecked_Deallocation
-        (Address_Info, Address_Info_Acc);
+      procedure Deallocate is new
+        Ada.Unchecked_Deallocation (Address_Info, Address_Info_Acc);
    begin
       if Info = null then
          return;
       end if;
 
       case Info.Kind is
-         when Compilation_Unit_Addresses =>
+         when Compilation_Unit_Addresses   =>
             null;
 
-         when Section_Addresses =>
+         when Section_Addresses            =>
             Free (Info.Section_Name);
             Free (Info.Section_LS);
 
-         when Subprogram_Addresses =>
+         when Subprogram_Addresses         =>
             Free (Info.Subprogram_Name);
 
          when Inlined_Subprogram_Addresses =>
             null;
 
-         when Symbol_Addresses =>
+         when Symbol_Addresses             =>
             Free (Info.Symbol_Name);
 
-         when Line_Addresses =>
+         when Line_Addresses               =>
             null;
       end case;
 
@@ -749,9 +756,8 @@ package body Traces_Elf is
    -----------------------
 
    function Find_Address_Info
-     (Set  : Address_Info_Sets.Set;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return Address_Info_Sets.Cursor
+     (Set : Address_Info_Sets.Set; Kind : Address_Info_Kind; PC : Pc_Type)
+      return Address_Info_Sets.Cursor
    is
       use Address_Info_Sets;
       PC_Addr   : aliased Address_Info (Kind);
@@ -763,7 +769,7 @@ package body Traces_Elf is
       --  starting at PC.
 
       PC_Addr.First := PC;
-      PC_Addr.Last  := PC - 1;
+      PC_Addr.Last := PC - 1;
 
       --  Set.Floor is a good initial guess, but needs to be refined to get the
       --  immediatly enclosing Address_Info.
@@ -806,9 +812,8 @@ package body Traces_Elf is
    -----------------------
 
    function Find_Address_Info
-     (Exec : Exe_File_Type;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return Address_Info_Sets.Cursor
+     (Exec : Exe_File_Type; Kind : Address_Info_Kind; PC : Pc_Type)
+      return Address_Info_Sets.Cursor
    is
       Set : Address_Info_Sets.Set renames Get_Desc_Set (Exec, Kind, PC).all;
    begin
@@ -865,14 +870,13 @@ package body Traces_Elf is
    ------------------
 
    function Get_Desc_Set
-     (Exec : Exe_File_Type;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return access constant Address_Info_Sets.Set
-   is
+     (Exec : Exe_File_Type; Kind : Address_Info_Kind; PC : Pc_Type)
+      return access constant Address_Info_Sets.Set is
    begin
       if Kind in Exec.Desc_Sets'Range then
          return Exec.Desc_Sets (Kind)'Unchecked_Access;
-      else pragma Assert (Kind = Line_Addresses);
+      else
+         pragma Assert (Kind = Line_Addresses);
          return Get_Address_Info (Exec, Subprogram_Addresses, PC).Lines'Access;
       end if;
    end Get_Desc_Set;
@@ -908,8 +912,7 @@ package body Traces_Elf is
      (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
-      Res  : out Unsigned_64)
-   is
+      Res  : out Unsigned_64) is
    begin
       if Exec.Is_Big_Endian then
          Read_Word8_Be (Base, Off, Res);
@@ -926,8 +929,7 @@ package body Traces_Elf is
      (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
-      Res  : out Unsigned_32)
-   is
+      Res  : out Unsigned_32) is
    begin
       if Exec.Is_Big_Endian then
          Read_Word4_Be (Base, Off, Res);
@@ -944,8 +946,7 @@ package body Traces_Elf is
      (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
-      Res  : out Unsigned_16)
-   is
+      Res  : out Unsigned_16) is
    begin
       if Exec.Is_Big_Endian then
          Read_Word2_Be (Base, Off, Res);
@@ -962,8 +963,7 @@ package body Traces_Elf is
      (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
-      Val  : Unsigned_64)
-   is
+      Val  : Unsigned_64) is
    begin
       if Exec.Is_Big_Endian then
          Write_Word8_Be (Base, Off, Val);
@@ -980,8 +980,7 @@ package body Traces_Elf is
      (Exec : Exe_File_Type'Class;
       Base : Address;
       Off  : in out Storage_Offset;
-      Val  : Unsigned_32)
-   is
+      Val  : Unsigned_32) is
    begin
       if Exec.Is_Big_Endian then
          Write_Word4_Be (Base, Off, Val);
@@ -1000,8 +999,8 @@ package body Traces_Elf is
       Off  : in out Storage_Offset;
       Val  : Integer_32)
    is
-      function To_Unsigned_32 is
-        new Ada.Unchecked_Conversion (Integer_32, Unsigned_32);
+      function To_Unsigned_32 is new
+        Ada.Unchecked_Conversion (Integer_32, Unsigned_32);
    begin
       Write_Word4 (Exec, Base, Off, To_Unsigned_32 (Val));
    end Write_Word4;
@@ -1015,8 +1014,7 @@ package body Traces_Elf is
       Base : Address;
       Off  : in out Storage_Offset;
       Sz   : Natural;
-      Res  : out Pc_Type)
-   is
+      Res  : out Pc_Type) is
    begin
       if Sz /= Natural (Pc_Type_Size) then
          raise Program_Error with "address size mismatch";
@@ -1047,36 +1045,33 @@ package body Traces_Elf is
       use Dwarf;
    begin
       case Form is
-         when DW_FORM_addr =>
+         when DW_FORM_addr                                                  =>
             Read_Address (Exec, Base, Off, Exec.Addr_Size, Pc_Type (Res));
 
          when DW_FORM_addrx1
             | DW_FORM_data1
             | DW_FORM_flag
             | DW_FORM_ref1
-            | DW_FORM_strx1 =>
+            | DW_FORM_strx1                                                 =>
             Read_Byte (Base, Off, Unsigned_8 (Res));
 
-         when DW_FORM_addrx2
-            | DW_FORM_data2
-            | DW_FORM_ref2
-            | DW_FORM_strx2 =>
+         when DW_FORM_addrx2 | DW_FORM_data2 | DW_FORM_ref2 | DW_FORM_strx2 =>
             Read_Word2 (Exec, Base, Off, Unsigned_16 (Res));
 
          when DW_FORM_addrx4
             | DW_FORM_data4
             | DW_FORM_ref4
             | DW_FORM_ref_sup4
-            | DW_FORM_strx4 =>
+            | DW_FORM_strx4                                                 =>
             Read_Word4 (Exec, Base, Off, Unsigned_32 (Res));
 
          when DW_FORM_data8
             | DW_FORM_ref8
             | DW_FORM_ref_sup8
-            | DW_FORM_ref_sig8 =>
+            | DW_FORM_ref_sig8                                              =>
             Read_Word8 (Exec, Base, Off, Res);
 
-         when DW_FORM_sdata =>
+         when DW_FORM_sdata                                                 =>
             Read_SLEB128 (Base, Off, Unsigned_32 (Res));
 
          when DW_FORM_addrx
@@ -1084,14 +1079,14 @@ package body Traces_Elf is
             | DW_FORM_ref_udata
             | DW_FORM_rnglistx
             | DW_FORM_strx
-            | DW_FORM_udata =>
+            | DW_FORM_udata                                                 =>
             Read_ULEB128 (Base, Off, Unsigned_32 (Res));
 
          when DW_FORM_ref_addr
             | DW_FORM_sec_offset
             | DW_FORM_strp
             | DW_FORM_line_strp
-            | DW_FORM_strp_sup =>
+            | DW_FORM_strp_sup                                              =>
             --  This must be changed to 8 for 64-bit DWARF
 
             Read_Word4 (Exec, Base, Off, Unsigned_32 (Res));
@@ -1102,15 +1097,15 @@ package body Traces_Elf is
             | DW_FORM_block4
             | DW_FORM_block
             | DW_FORM_exprloc
-            | DW_FORM_string =>
+            | DW_FORM_string                                                =>
             raise Program_Error with "DWARF form too large";
 
-         when DW_FORM_indirect =>
+         when DW_FORM_indirect                                              =>
             raise Program_Error with "DW_FORM_indirect unhandled";
 
-         when others =>
-            raise Program_Error with
-              "unhandled DWARF 64-bit form #" & Unsigned_32'Image (Form);
+         when others                                                        =>
+            raise Program_Error
+              with "unhandled DWARF 64-bit form #" & Unsigned_32'Image (Form);
       end case;
    end Read_Dwarf_Form_U64;
 
@@ -1123,8 +1118,7 @@ package body Traces_Elf is
       Base : Address;
       Off  : in out Storage_Offset;
       Form : Unsigned_32;
-      Res  : out Unsigned_32)
-   is
+      Res  : out Unsigned_32) is
    begin
       Read_Dwarf_Form_U64 (Exec, Base, Off, Form, Unsigned_64 (Res));
    end Read_Dwarf_Form_U32;
@@ -1162,7 +1156,7 @@ package body Traces_Elf is
                end if;
             end;
 
-         when DW_FORM_strp =>
+         when DW_FORM_strp      =>
             declare
                V : Unsigned_32;
             begin
@@ -1181,13 +1175,13 @@ package body Traces_Elf is
                end if;
             end;
 
-         when DW_FORM_string =>
+         when DW_FORM_string    =>
             Res := Base + Off;
             Read_String (Base, Off);
 
-         when others =>
-            raise Program_Error with
-              "unhandled DWARF string form #" & Unsigned_32'Image (Form);
+         when others            =>
+            raise Program_Error
+              with "unhandled DWARF string form #" & Unsigned_32'Image (Form);
       end case;
    end Read_Dwarf_Form_String;
 
@@ -1204,10 +1198,10 @@ package body Traces_Elf is
       use Dwarf;
    begin
       case Form is
-         when DW_FORM_addr =>
+         when DW_FORM_addr                                                  =>
             Off := Off + Storage_Offset (Exec.Addr_Size);
 
-         when DW_FORM_block1 =>
+         when DW_FORM_block1                                                =>
             declare
                V : Unsigned_8;
             begin
@@ -1215,7 +1209,7 @@ package body Traces_Elf is
                Off := Off + Storage_Offset (V);
             end;
 
-         when DW_FORM_block2 =>
+         when DW_FORM_block2                                                =>
             declare
                V : Unsigned_16;
             begin
@@ -1223,7 +1217,7 @@ package body Traces_Elf is
                Off := Off + Storage_Offset (V);
             end;
 
-         when DW_FORM_block4 =>
+         when DW_FORM_block4                                                =>
             declare
                V : Unsigned_32;
             begin
@@ -1231,7 +1225,7 @@ package body Traces_Elf is
                Off := Off + Storage_Offset (V);
             end;
 
-         when DW_FORM_block | DW_FORM_exprloc =>
+         when DW_FORM_block | DW_FORM_exprloc                               =>
             declare
                V : Unsigned_32;
             begin
@@ -1243,36 +1237,32 @@ package body Traces_Elf is
             | DW_FORM_data1
             | DW_FORM_flag
             | DW_FORM_ref1
-            | DW_FORM_strx1 =>
+            | DW_FORM_strx1                                                 =>
             Off := Off + 1;
 
-         when DW_FORM_addrx2
-            | DW_FORM_data2
-            | DW_FORM_ref2
-            | DW_FORM_strx2 =>
+         when DW_FORM_addrx2 | DW_FORM_data2 | DW_FORM_ref2 | DW_FORM_strx2 =>
             Off := Off + 2;
 
-         when DW_FORM_addrx3
-            | DW_FORM_strx3 =>
+         when DW_FORM_addrx3 | DW_FORM_strx3                                =>
             Off := Off + 3;
 
          when DW_FORM_addrx4
             | DW_FORM_data4
             | DW_FORM_ref4
             | DW_FORM_ref_sup4
-            | DW_FORM_strx4 =>
+            | DW_FORM_strx4                                                 =>
             Off := Off + 4;
 
          when DW_FORM_data8
             | DW_FORM_ref8
             | DW_FORM_ref_sup8
-            | DW_FORM_ref_sig8 =>
+            | DW_FORM_ref_sig8                                              =>
             Off := Off + 8;
 
-         when DW_FORM_data16 =>
+         when DW_FORM_data16                                                =>
             Off := Off + 16;
 
-         when DW_FORM_sdata =>
+         when DW_FORM_sdata                                                 =>
             declare
                V : Unsigned_32;
             begin
@@ -1284,14 +1274,14 @@ package body Traces_Elf is
             | DW_FORM_ref_udata
             | DW_FORM_rnglistx
             | DW_FORM_strx
-            | DW_FORM_udata =>
+            | DW_FORM_udata                                                 =>
             declare
                V : Unsigned_32;
             begin
                Read_ULEB128 (Base, Off, V);
             end;
 
-         when DW_FORM_flag_present | DW_FORM_implicit_const =>
+         when DW_FORM_flag_present | DW_FORM_implicit_const                 =>
             --  This flag is implicitely present, so it is not materialized
             --  outside abbreviations.
 
@@ -1301,20 +1291,20 @@ package body Traces_Elf is
             | DW_FORM_sec_offset
             | DW_FORM_strp
             | DW_FORM_line_strp
-            | DW_FORM_strp_sup =>
+            | DW_FORM_strp_sup                                              =>
             --  This must be changed to 8 for 64-bit DWARF
 
             Off := Off + 4;
 
-         when DW_FORM_string =>
+         when DW_FORM_string                                                =>
             Read_String (Base, Off);
 
-         when DW_FORM_indirect =>
+         when DW_FORM_indirect                                              =>
             raise Program_Error with "DW_FORM_indirect unhandled";
 
-         when others =>
-            raise Program_Error with
-              "unhandled DWARF form #" & Unsigned_32'Image (Form);
+         when others                                                        =>
+            raise Program_Error
+              with "unhandled DWARF form #" & Unsigned_32'Image (Form);
       end case;
    end Skip_Dwarf_Form;
 
@@ -1364,8 +1354,7 @@ package body Traces_Elf is
       Sec_Rel := 0;
       for I in 0 .. Get_Nbr_Sections (Exec.Elf_File) - 1 loop
          Shdr := Get_Shdr (Exec.Elf_File, Elf_Half (I));
-         if Shdr.Sh_Type = SHT_RELA
-           and then Shdr.Sh_Info = Elf_Word (Sec_Idx)
+         if Shdr.Sh_Type = SHT_RELA and then Shdr.Sh_Info = Elf_Word (Sec_Idx)
          then
             Sec_Rel := Elf_Half (I);
             exit;
@@ -1410,108 +1399,125 @@ package body Traces_Elf is
          if Sym_Num > Unsigned_32 (Exec.Nbr_Symbols) then
             raise Program_Error with "invalid symbol number in relocation";
          end if;
-         Sym := Get_Sym
-           (Exec.Elf_File,
-            Address_Of
-              (Exec.Symtab, Elf_Addr (Sym_Num) * Elf_Addr (Elf_Sym_Size)));
+         Sym :=
+           Get_Sym
+             (Exec.Elf_File,
+              Address_Of
+                (Exec.Symtab, Elf_Addr (Sym_Num) * Elf_Addr (Elf_Sym_Size)));
 
          if Elf_St_Type (Sym.St_Info) = STT_SECTION then
-            Offset := Get_Shdr (Exec.Elf_File,
-                                Sym.St_Shndx).Sh_Addr;
+            Offset := Get_Shdr (Exec.Elf_File, Sym.St_Shndx).Sh_Addr;
          else
             --  Also relocate global/local symbols ???
             Offset := 0;
          end if;
 
          case Exec.Exe_Machine is
-            when EM_X86_64 =>
+            when EM_X86_64  =>
                case Elf_R_Type (R.R_Info) is
                   when R_X86_64_NONE =>
                      null;
-                  when R_X86_64_64 =>
+
+                  when R_X86_64_64   =>
                      --  When compiled in 64-bit mode, Elf_Addr is a subtype of
                      --  Unsigned_64, so the following conversion is redundant.
                      --  However, is is needed when compiling in 32-bit mode,
                      --  in which Elf_Addr is a subtype of Unsigned_32.
 
                      pragma Warnings (Off);
-                     Write_Word8 (Exec,
-                                  Address_Of (Data, 0),
-                                  Storage_Offset (R.R_Offset),
-                                  Unsigned_64 (Offset
-                                               + Elf_Addr (R.R_Addend)));
+                     Write_Word8
+                       (Exec,
+                        Address_Of (Data, 0),
+                        Storage_Offset (R.R_Offset),
+                        Unsigned_64 (Offset + Elf_Addr (R.R_Addend)));
                      pragma Warnings (On);
-                  when R_X86_64_32 =>
+
+                  when R_X86_64_32   =>
                      --  There is no need to disable the warnings for the
                      --  following conversion to Unsigned_32 even in 32-bit
                      --  mode since it is considered by the compiler as a
                      --  "disambiguation mean" between the unsigned/signed
                      --  Write_Word4 functions.
 
-                     Write_Word4 (Exec,
-                                  Address_Of (Data, 0),
-                                  Storage_Offset (R.R_Offset),
-                                  Unsigned_32 (Offset
-                                               + Elf_Addr (R.R_Addend)));
-                  when others =>
-                     raise Program_Error with
-                        ("unhandled x86_64 relocation, reloc is "
-                         & Elf_Word'Image (Elf_R_Type (R.R_Info)));
+                     Write_Word4
+                       (Exec,
+                        Address_Of (Data, 0),
+                        Storage_Offset (R.R_Offset),
+                        Unsigned_32 (Offset + Elf_Addr (R.R_Addend)));
+
+                  when others        =>
+                     raise Program_Error
+                       with
+                         ("unhandled x86_64 relocation, reloc is "
+                          & Elf_Word'Image (Elf_R_Type (R.R_Info)));
                end case;
-            when EM_PPC =>
+
+            when EM_PPC     =>
                case Elf_R_Type (R.R_Info) is
                   when R_PPC_ADDR32 =>
-                     Write_Word4 (Exec,
-                                  Address_Of (Data, 0),
-                                  Storage_Offset (R.R_Offset),
-                                  Unsigned_32 (Offset
-                                               + Elf_Addr (R.R_Addend)));
-                  when R_PPC_NONE =>
+                     Write_Word4
+                       (Exec,
+                        Address_Of (Data, 0),
+                        Storage_Offset (R.R_Offset),
+                        Unsigned_32 (Offset + Elf_Addr (R.R_Addend)));
+
+                  when R_PPC_NONE   =>
                      null;
-                  when others =>
+
+                  when others       =>
                      raise Program_Error with "unhandled PPC relocation";
                end case;
-            when EM_SPARC =>
+
+            when EM_SPARC   =>
                case Elf_R_Type (R.R_Info) is
                   when R_SPARC_UA32 =>
-                     Write_Word4 (Exec,
-                                  Address_Of (Data, 0),
-                                  Storage_Offset (R.R_Offset),
-                                  Unsigned_32 (Offset
-                                               + Elf_Addr (R.R_Addend)));
-                  when others =>
+                     Write_Word4
+                       (Exec,
+                        Address_Of (Data, 0),
+                        Storage_Offset (R.R_Offset),
+                        Unsigned_32 (Offset + Elf_Addr (R.R_Addend)));
+
+                  when others       =>
                      raise Program_Error with "unhandled SPARC relocation";
                end case;
-            when EM_LMP =>
+
+            when EM_LMP     =>
                case Elf_R_Type (R.R_Info) is
                   when R_LMP_32 =>
-                     Write_Word4 (Exec,
-                                  Address_Of (Data, 0),
-                                  Storage_Offset (R.R_Offset),
-                                  Unsigned_32 (Offset
-                                    + Elf_Addr (R.R_Addend)));
-                  when others =>
+                     Write_Word4
+                       (Exec,
+                        Address_Of (Data, 0),
+                        Storage_Offset (R.R_Offset),
+                        Unsigned_32 (Offset + Elf_Addr (R.R_Addend)));
+
+                  when others   =>
                      raise Program_Error with "unhandled LMP relocation";
                end case;
+
             when EM_AARCH64 =>
                case Elf_R_Type (R.R_Info) is
                   when R_AARCH64_ABS32 =>
-                     Write_Word4 (Exec,
-                                  Address_Of (Data, 0),
-                                  Storage_Offset (R.R_Offset),
-                                  Unsigned_32 (Offset
-                                    + Elf_Addr (R.R_Addend)));
+                     Write_Word4
+                       (Exec,
+                        Address_Of (Data, 0),
+                        Storage_Offset (R.R_Offset),
+                        Unsigned_32 (Offset + Elf_Addr (R.R_Addend)));
+
                   when R_AARCH64_ABS64 =>
-                     Write_Word8 (Exec,
-                                  Address_Of (Data, 0),
-                                  Storage_Offset (R.R_Offset),
-                                  Unsigned_64 (Offset
-                                    + Elf_Addr (R.R_Addend)));
-                  when others =>
-                     raise Program_Error with "unhandled AARCH64 relocation" &
-                     Elf_Word'Image (Elf_R_Type (R.R_Info));
+                     Write_Word8
+                       (Exec,
+                        Address_Of (Data, 0),
+                        Storage_Offset (R.R_Offset),
+                        Unsigned_64 (Offset + Elf_Addr (R.R_Addend)));
+
+                  when others          =>
+                     raise Program_Error
+                       with
+                         "unhandled AARCH64 relocation"
+                         & Elf_Word'Image (Elf_R_Type (R.R_Info));
                end case;
-            when others =>
+
+            when others     =>
                Outputs.Fatal_Error
                  ("Relocs unhandled for this machine, reloc is"
                   & Elf_Word'Image (Elf_R_Type (R.R_Info)));
@@ -1541,8 +1547,7 @@ package body Traces_Elf is
       Sec     : Section_Index;
       Len     : out Elf_Addr;
       Content : out Binary_Content;
-      LS      : out Loaded_Section)
-   is
+      LS      : out Loaded_Section) is
    begin
       if Sec /= No_Section then
          Len := Get_Section_Length (Exec.File.all, Sec);
@@ -1650,23 +1655,25 @@ package body Traces_Elf is
       --  tags and attributes comes from the debug information, then bind data
       --  into Exec.
 
-      package Subprg_DIE_To_PC_Maps is new Ada.Containers.Ordered_Maps
-        (Key_Type     => Storage_Offset,
-         Element_Type => Pc_Type);
+      package Subprg_DIE_To_PC_Maps is new
+        Ada.Containers.Ordered_Maps
+          (Key_Type     => Storage_Offset,
+           Element_Type => Pc_Type);
 
       type Call_Target is record
          To_PC             : Pc_Type;
          Target_Subprg_Tag : Storage_Offset;
       end record;
 
-      package Call_Site_To_Target_Maps is new Ada.Containers.Vectors
-        (Index_Type   => Natural,
-         Element_Type => Call_Target);
+      package Call_Site_To_Target_Maps is new
+        Ada.Containers.Vectors
+          (Index_Type   => Natural,
+           Element_Type => Call_Target);
 
       Subprg_To_PC        : Subprg_DIE_To_PC_Maps.Map;
       Call_Site_To_Target : Call_Site_To_Target_Maps.Vector;
 
-   --  Start of processing for Build_Debug_Compile_Units
+      --  Start of processing for Build_Debug_Compile_Units
 
    begin
       --  Return now if already loaded
@@ -1683,16 +1690,16 @@ package body Traces_Elf is
 
       --  Load .debug_abbrev
 
-      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Abbrev,
-                              Abbrev_Len, Abbrevs, Abbrevs_Section);
+      Alloc_And_Load_Section
+        (Exec, Exec.Sec_Debug_Abbrev, Abbrev_Len, Abbrevs, Abbrevs_Section);
       Abbrev_Base := Address_Of (Abbrevs, 0);
 
       Map := null;
 
       --  Load .debug_info
 
-      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Info,
-                              Info_Len, Infos, Infos_Section);
+      Alloc_And_Load_Section
+        (Exec, Exec.Sec_Debug_Info, Info_Len, Infos, Infos_Section);
       Base := Address_Of (Infos, 0);
 
       --  Load symbols
@@ -1702,7 +1709,8 @@ package body Traces_Elf is
       Apply_Relocations (Exec, Exec.Sec_Debug_Info, Infos_Section, Infos);
 
       Off := 0;
-      CU_Loop : while Off < Storage_Offset (Info_Len) loop
+      CU_Loop :
+      while Off < Storage_Offset (Info_Len) loop
          --  Read .debug_info header:
 
          Sec_Off := Off;
@@ -1737,8 +1745,9 @@ package body Traces_Elf is
 
          --  Read DIEs
 
-         DIE_Loop : loop
-         <<Again>>
+         DIE_Loop :
+         loop
+            <<Again>>
             exit DIE_Loop when Off >= Last;
             Tag_Off := Off;
             Read_ULEB128 (Base, Off, Num);
@@ -1781,7 +1790,8 @@ package body Traces_Elf is
 
             Is_High_Pc_Offset := False;
 
-            Attr_Loop : loop
+            Attr_Loop :
+            loop
                Read_ULEB128 (Abbrev, Aoff, Name);
                Read_ULEB128 (Abbrev, Aoff, Form);
 
@@ -1794,54 +1804,65 @@ package body Traces_Elf is
                exit Attr_Loop when Name = 0 and then Form = 0;
 
                case Name is
-                  when DW_AT_name =>
+                  when DW_AT_name                                   =>
                      Read_Dwarf_Form_String (Exec, Base, Off, Form, At_Name);
-                  when DW_AT_comp_dir =>
-                     Read_Dwarf_Form_String (Exec, Base, Off, Form,
-                                             At_Comp_Dir);
+
+                  when DW_AT_comp_dir                               =>
+                     Read_Dwarf_Form_String
+                       (Exec, Base, Off, Form, At_Comp_Dir);
+
                   when DW_AT_MIPS_linkage_name | DW_AT_linkage_name =>
-                     Read_Dwarf_Form_String (Exec, Base, Off, Form,
-                                             At_Linkage_Name);
-                  when DW_AT_stmt_list =>
+                     Read_Dwarf_Form_String
+                       (Exec, Base, Off, Form, At_Linkage_Name);
+
+                  when DW_AT_stmt_list                              =>
                      Read_Dwarf_Form_U32 (Exec, Base, Off, Form, At_Stmt_List);
-                  when DW_AT_low_pc =>
+
+                  when DW_AT_low_pc                                 =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Low_Pc);
-                  when DW_AT_high_pc =>
+
+                  when DW_AT_high_pc                                =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_High_Pc);
                      Is_High_Pc_Offset := Form /= DW_FORM_addr;
-                  when DW_AT_language =>
+
+                  when DW_AT_language                               =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Lang);
-                  when DW_AT_abstract_origin =>
-                     Read_Dwarf_Form_U64 (Exec, Base, Off, Form,
-                                          At_Abstract_Origin);
+
+                  when DW_AT_abstract_origin                        =>
+                     Read_Dwarf_Form_U64
+                       (Exec, Base, Off, Form, At_Abstract_Origin);
 
                      --  References to other DIEs are relative to the beginning
                      --  of the current compile unit.
 
                      At_Abstract_Origin :=
-                        Unsigned_64 (Sec_Off) + At_Abstract_Origin;
-                  when DW_AT_call_file =>
+                       Unsigned_64 (Sec_Off) + At_Abstract_Origin;
+
+                  when DW_AT_call_file                              =>
                      if Form = DW_FORM_implicit_const then
                         At_Call_File := Cst;
                      else
-                        Read_Dwarf_Form_U32 (Exec, Base, Off, Form,
-                                             At_Call_File);
+                        Read_Dwarf_Form_U32
+                          (Exec, Base, Off, Form, At_Call_File);
                      end if;
-                  when DW_AT_call_line =>
+
+                  when DW_AT_call_line                              =>
                      if Form = DW_FORM_implicit_const then
                         At_Call_Line := Cst;
                      else
-                        Read_Dwarf_Form_U32 (Exec, Base, Off, Form,
-                                             At_Call_Line);
+                        Read_Dwarf_Form_U32
+                          (Exec, Base, Off, Form, At_Call_Line);
                      end if;
-                  when DW_AT_call_column =>
+
+                  when DW_AT_call_column                            =>
                      if Form = DW_FORM_implicit_const then
                         At_Call_Column := Cst;
                      else
-                        Read_Dwarf_Form_U32 (Exec, Base, Off, Form,
-                                             At_Call_Column);
+                        Read_Dwarf_Form_U32
+                          (Exec, Base, Off, Form, At_Call_Column);
                      end if;
-                  when others =>
+
+                  when others                                       =>
                      Skip_Dwarf_Form (Exec, Base, Off, Form);
                end case;
             end loop Attr_Loop;
@@ -1869,7 +1890,7 @@ package body Traces_Elf is
             end if;
 
             case Tag is
-               when DW_TAG_compile_unit =>
+               when DW_TAG_compile_unit                     =>
 
                   --  If we know that this compilation unit is for a language
                   --  we do not support, just skip it. This is an optimization,
@@ -1881,12 +1902,13 @@ package body Traces_Elf is
                   --  compilation unit in that case.
 
                   if not Object_Coverage_Enabled
-                     and then At_Lang not in DW_LANG_C
-                                           | DW_LANG_C89
-                                           | DW_LANG_C99
-                                           | DW_LANG_C11
-                                           | DW_LANG_Ada83
-                                           | DW_LANG_Ada95
+                    and then At_Lang
+                             not in DW_LANG_C
+                                  | DW_LANG_C89
+                                  | DW_LANG_C99
+                                  | DW_LANG_C11
+                                  | DW_LANG_Ada83
+                                  | DW_LANG_Ada95
                   then
                      Off := Last;
                      exit DIE_Loop;
@@ -1912,10 +1934,10 @@ package body Traces_Elf is
 
                   declare
                      Unit_File : Source_File_Index :=
-                        Get_Index_From_Generic_Name
-                          (Name   => Unit_Filename.all,
-                           Kind   => Source_File,
-                           Insert => False);
+                       Get_Index_From_Generic_Name
+                         (Name   => Unit_Filename.all,
+                          Kind   => Source_File,
+                          Insert => False);
                   begin
 
                      --  Do not load info for files that are always ignored
@@ -1923,10 +1945,11 @@ package body Traces_Elf is
                      if Unit_File /= No_Source_File
                        and then Get_File (Unit_File).Ignore_Status /= Always
                      then
-                        Unit_File := Get_Index_From_Generic_Name
-                          (Name   => Unit_Filename.all,
-                           Kind   => Source_File,
-                           Insert => True);
+                        Unit_File :=
+                          Get_Index_From_Generic_Name
+                            (Name   => Unit_Filename.all,
+                             Kind   => Source_File,
+                             Insert => True);
                         Current_CU := Comp_Unit (Unit_File);
                      else
                         Current_CU := No_CU_Id;
@@ -1944,25 +1967,26 @@ package body Traces_Elf is
                   end if;
 
                   Exec.Compile_Units.Append
-                    (Compile_Unit_Desc'(Unit_Filename,
-                                        Compilation_Dir,
-                                        At_Stmt_List,
-                                        Pc_Type (At_Low_Pc),
-                                        Pc_Type (At_High_Pc)));
+                    (Compile_Unit_Desc'
+                       (Unit_Filename,
+                        Compilation_Dir,
+                        At_Stmt_List,
+                        Pc_Type (At_Low_Pc),
+                        Pc_Type (At_High_Pc)));
                   Current_DIE_CU := DIE_CU_Id (Exec.Compile_Units.Length);
 
                   if At_High_Pc > At_Low_Pc then
 
                      declare
                         Item : Address_Info_Acc :=
-                           new Address_Info'
-                             (Kind      => Compilation_Unit_Addresses,
-                              First     => Exec.Exe_Text_Start
-                              + Pc_Type (At_Low_Pc),
-                              Last      => Pc_Type (At_High_Pc - 1),
-                              Top_Level => <>,
-                              Parent    => null,
-                              DIE_CU    => Current_DIE_CU);
+                          new Address_Info'
+                            (Kind      => Compilation_Unit_Addresses,
+                             First     =>
+                               Exec.Exe_Text_Start + Pc_Type (At_Low_Pc),
+                             Last      => Pc_Type (At_High_Pc - 1),
+                             Top_Level => <>,
+                             Parent    => null,
+                             DIE_CU    => Current_DIE_CU);
                      begin
                         Insert_With_Top_Level_Update
                           (Exec.Desc_Sets (Compilation_Unit_Addresses), Item);
@@ -1971,18 +1995,19 @@ package body Traces_Elf is
 
                   Current_Stmt_List := At_Stmt_List;
 
-               when DW_TAG_subprogram =>
+               when DW_TAG_subprogram                       =>
                   if At_High_Pc > At_Low_Pc then
                      --  It looks like this subprogram is present in this
                      --  compile unit.
 
                      Subprg_Low := Exec.Exe_Text_Start + Pc_Type (At_Low_Pc);
                      if Current_Sec = null
-                       or else
-                       Subprg_Low not in Current_Sec.First .. Current_Sec.Last
+                       or else Subprg_Low
+                               not in Current_Sec.First .. Current_Sec.Last
                      then
-                        Current_Sec := Get_Address_Info
-                          (Exec, Section_Addresses, Subprg_Low);
+                        Current_Sec :=
+                          Get_Address_Info
+                            (Exec, Section_Addresses, Subprg_Low);
                      end if;
 
                      if Current_Sec = null then
@@ -2010,11 +2035,11 @@ package body Traces_Elf is
                      --  then the subprogram was very likely eliminated.
 
                      elsif At_Low_Pc /= Unsigned_64 (No_PC)
-                       or else
-                         Symbol_Exists (Subprg_Low,
-                                        (if At_Linkage_Name = Null_Address
-                                         then At_Name
-                                         else At_Linkage_Name))
+                       or else Symbol_Exists
+                                 (Subprg_Low,
+                                  (if At_Linkage_Name = Null_Address
+                                   then At_Name
+                                   else At_Linkage_Name))
                      then
                         Current_Subprg :=
                           new Address_Info'
@@ -2025,7 +2050,7 @@ package body Traces_Elf is
                              Parent            => Current_Sec,
                              Top_Level         => <>,
                              Subprogram_Name   =>
-                                new String'(Read_String (At_Name)),
+                               new String'(Read_String (At_Name)),
                              Subprogram_CU     => Current_CU,
                              Subprogram_DIE_CU => Current_DIE_CU,
                              Lines             => Address_Info_Sets.Empty_Set);
@@ -2037,8 +2062,7 @@ package body Traces_Elf is
                      end if;
 
                   elsif At_Linkage_Name /= Null_Address
-                           or else
-                        At_Name /= Null_Address
+                    or else At_Name /= Null_Address
                   then
                      --  Missing subprograms can be referenced by call sites:
                      --  collect their addresses.
@@ -2053,10 +2077,10 @@ package body Traces_Elf is
 
                      declare
                         use Symbol_To_PC_Maps;
-                        Subprg_Sym : constant Symbol := To_Symbol
-                          (Read_String (At_Linkage_Name));
-                        Cur : constant Symbol_To_PC_Maps.Cursor :=
-                           Exec.Symbol_To_PC.Find (Subprg_Sym);
+                        Subprg_Sym : constant Symbol :=
+                          To_Symbol (Read_String (At_Linkage_Name));
+                        Cur        : constant Symbol_To_PC_Maps.Cursor :=
+                          Exec.Symbol_To_PC.Find (Subprg_Sym);
                      begin
                         --  Sometimes, subprogram DIEs references a symbol that
                         --  is not present. In these case, just ignore them.
@@ -2076,7 +2100,7 @@ package body Traces_Elf is
                            Storage_Offset (At_Abstract_Origin)));
                   end if;
 
-               when DW_TAG_inlined_subroutine =>
+               when DW_TAG_inlined_subroutine               =>
                   if At_High_Pc > At_Low_Pc then
                      --  TODO: handle address ranges
 
@@ -2091,7 +2115,7 @@ package body Traces_Elf is
                            Column           => Natural (At_Call_Column)));
                   end if;
 
-               when others =>
+               when others                                  =>
                   null;
             end case;
 
@@ -2116,7 +2140,7 @@ package body Traces_Elf is
          declare
             use Subprg_DIE_To_PC_Maps;
             Cur : constant Subprg_DIE_To_PC_Maps.Cursor :=
-               Subprg_To_PC.Find (Call_To_Target.Target_Subprg_Tag);
+              Subprg_To_PC.Find (Call_To_Target.Target_Subprg_Tag);
          begin
             if Cur /= Subprg_DIE_To_PC_Maps.No_Element then
                Exec.Call_Site_To_Target.Insert
@@ -2132,7 +2156,7 @@ package body Traces_Elf is
 
    procedure Load_Symtab (Exec : in out Elf_Exe_File_Type) is
       Symtab_Shdr : Elf_Shdr_Acc;
-      Symtab_Len : Elf_Addr;
+      Symtab_Len  : Elf_Addr;
    begin
       if Exec.Nbr_Symbols /= 0 then
          --  Already loaded.
@@ -2143,8 +2167,12 @@ package body Traces_Elf is
          raise Program_Error with "no symbol table";
       end if;
 
-      Alloc_And_Load_Section (Exec, Section_Index (Exec.Sec_Symtab),
-                              Symtab_Len, Exec.Symtab, Exec.Symtab_Section);
+      Alloc_And_Load_Section
+        (Exec,
+         Section_Index (Exec.Sec_Symtab),
+         Symtab_Len,
+         Exec.Symtab,
+         Exec.Symtab_Section);
       Symtab_Shdr := Get_Shdr (Exec.Elf_File, Exec.Sec_Symtab);
       if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
         or else Symtab_Shdr.Sh_Link = 0
@@ -2165,11 +2193,15 @@ package body Traces_Elf is
    --  the Directories and File_Names fields of the header. But, in DWARF 5,
    --  they are explicitly represented resp. in them with index 0.
 
-   package Filenames_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Natural, Element_Type => String_Access);
+   package Filenames_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Natural,
+        Element_Type => String_Access);
 
-   package File_Indices_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Natural, Element_Type => Source_File_Index);
+   package File_Indices_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Natural,
+        Element_Type => Source_File_Index);
 
    ----------------------
    -- Read_Debug_Lines --
@@ -2189,8 +2221,8 @@ package body Traces_Elf is
 
       Opc_Length : Opc_Length_Acc;
 
-      procedure Free is
-        new Ada.Unchecked_Deallocation (Opc_Length_Type, Opc_Length_Acc);
+      procedure Free is new
+        Ada.Unchecked_Deallocation (Opc_Length_Type, Opc_Length_Acc);
 
       Total_Len       : Unsigned_32;
       Version         : Unsigned_16;
@@ -2262,10 +2294,8 @@ package body Traces_Elf is
       procedure Compute_File_Index (Filename : String);
       --  Compute the element in File_Indices for Filename
 
-      Cur_Subprg,
-      Cur_Sec    : Address_Info_Sets.Cursor;
-      Subprg,
-      Sec        : Address_Info_Acc;
+      Cur_Subprg, Cur_Sec : Address_Info_Sets.Cursor;
+      Subprg, Sec         : Address_Info_Acc;
       --  Current subprogram and section
 
       Cache            : Insn_Set_Cache := Empty_Cache;
@@ -2288,8 +2318,7 @@ package body Traces_Elf is
       --  that is part of that instruction.
 
       procedure Register_Dirname
-        (Dw_Dirname : String;
-         Dw_Len     : out Storage_Offset);
+        (Dw_Dirname : String; Dw_Len : out Storage_Offset);
       --  From a DWARF directory name provided in Dw_Dirname, full or
       --  relative, compute and add a directory name to our Directories
       --  list. Perform best-effort to come up with a full path name; in
@@ -2298,8 +2327,7 @@ package body Traces_Elf is
       --  the length of Dw_Dirname.
 
       procedure Register_Filename
-        (Dw_Filename : String;
-         Dw_Dirindex : Unsigned_32);
+        (Dw_Filename : String; Dw_Dirindex : Unsigned_32);
       --  For a provided Dwarf filename and file directory index, compute
       --  the filename to add to our filenames table and append it there.
       --  Perform best-effort to come up with a full path name and always
@@ -2373,8 +2401,8 @@ package body Traces_Elf is
                --  byte in the insn_n instruction.
 
                Other_Lines : constant Address_Info_Arr :=
-                  Get_Address_Infos
-                    (Subprg.Lines, Line_Addresses, Last_Line.First);
+                 Get_Address_Infos
+                   (Subprg.Lines, Line_Addresses, Last_Line.First);
                --  In the example above, all entries which start at the same
                --  address as insn_1.
 
@@ -2435,9 +2463,7 @@ package body Traces_Elf is
       procedure Compute_File_Index (Filename : String) is
          Filter_Lines : constant Boolean := Source_Coverage_Enabled;
          Kind         : constant Files_Table.File_Kind :=
-                          (if Source_Coverage_Enabled
-                           then Stub_File
-                           else Source_File);
+           (if Source_Coverage_Enabled then Stub_File else Source_File);
          --  For source coverage, it's the coverage obligations that
          --  determine which source files are relevant for coverage
          --  analysis. In this case, consider that other source files are
@@ -2451,8 +2477,9 @@ package body Traces_Elf is
          --  are enough. Do not even load debug line information for
          --  files that don't have statement SCOs.
 
-         File_Index := Get_Index_From_Full_Name
-                         (Filename, Kind, Insert => not Filter_Lines);
+         File_Index :=
+           Get_Index_From_Full_Name
+             (Filename, Kind, Insert => not Filter_Lines);
 
          if Filter_Lines and then File_Index /= No_Source_File then
             declare
@@ -2474,8 +2501,8 @@ package body Traces_Elf is
 
             No_File_Of_Interest := False;
             if Filter_Lines then
-               File_Index := Get_Index_From_Full_Name
-                               (Filename, Kind, Insert => True);
+               File_Index :=
+                 Get_Index_From_Full_Name (Filename, Kind, Insert => True);
             end if;
          end if;
 
@@ -2572,7 +2599,7 @@ package body Traces_Elf is
             Read_ULEB128 (Base, Off, Form);
 
             case C_Type is
-               when DW_LNCT_path .. DW_LNCT_MD5 =>
+               when DW_LNCT_path .. DW_LNCT_MD5        =>
                   if N not in Res'Range then
                      raise Program_Error with "duplicate DWARF content type";
                   end if;
@@ -2583,7 +2610,7 @@ package body Traces_Elf is
                when DW_LNCT_lo_user .. DW_LNCT_hi_user =>
                   null;
 
-               when others =>
+               when others                             =>
                   raise Program_Error with "unhandled DWARF content type";
             end case;
          end loop;
@@ -2596,11 +2623,11 @@ package body Traces_Elf is
       procedure Reset_Lines is
       begin
          Base_Pc := 0;
-         Pc      := 0;
-         File    := 1;
-         Line    := 1;
-         Column  := 0;
-         Disc    := 0;
+         Pc := 0;
+         File := 1;
+         Line := 1;
+         Column := 0;
+         Disc := 0;
       end Reset_Lines;
 
       -----------------
@@ -2622,8 +2649,7 @@ package body Traces_Elf is
          procedure Set_Parent
            (Kind  : Address_Info_Kind;
             Cur   : in out Cursor;
-            Cache : in out Address_Info_Acc)
-         is
+            Cache : in out Address_Info_Acc) is
          begin
             if Cache = null or else PC < Cache.First then
                Cur := Find_Address_Info (Exec.Desc_Sets (Kind), Kind, PC);
@@ -2657,7 +2683,7 @@ package body Traces_Elf is
          end Set_Parent;
 
       begin
-         Set_Parent (Section_Addresses,    Cur_Sec,    Sec);
+         Set_Parent (Section_Addresses, Cur_Sec, Sec);
          Set_Parent (Subprogram_Addresses, Cur_Subprg, Subprg);
 
          if Subprg = null then
@@ -2668,9 +2694,7 @@ package body Traces_Elf is
 
                Symbol   : constant Address_Info_Acc :=
                  Get_Address_Info
-                   (Exec.Desc_Sets (Symbol_Addresses),
-                    Symbol_Addresses,
-                    PC);
+                   (Exec.Desc_Sets (Symbol_Addresses), Symbol_Addresses, PC);
                Inserted : Boolean;
 
                SCO      : SCO_Id := No_SCO_Id;
@@ -2684,8 +2708,8 @@ package body Traces_Elf is
                   --  for coverage.
 
                   if Source_Coverage_Enabled then
-                     SCO := SC_Obligations.Enclosing_Statement
-                       (Sloc_To_SCO (Sloc));
+                     SCO :=
+                       SC_Obligations.Enclosing_Statement (Sloc_To_SCO (Sloc));
                      Complain := SCO /= No_SCO_Id;
 
                   else
@@ -2699,7 +2723,8 @@ package body Traces_Elf is
 
                   if Complain then
                      Diagnostics.Report
-                       (Exec'Unrestricted_Access, PC,
+                       (Exec'Unrestricted_Access,
+                        PC,
                         "code has debug line information, but no symbol",
                         Kind => Diagnostics.Warning);
 
@@ -2713,17 +2738,18 @@ package body Traces_Elf is
                   end if;
 
                else
-                  Subprg := new Address_Info'
-                    (Kind              => Subprogram_Addresses,
-                     First             => Symbol.First,
-                     Last              => Symbol.Last,
-                     Parent            => Sec,
-                     Top_Level         => <>,
-                     Subprogram_Name   =>
-                        new String'("<None@" & Symbol.Symbol_Name.all & ">"),
-                     Subprogram_CU     => No_CU_Id,
-                     Subprogram_DIE_CU => No_DIE_CU_Id,
-                     Lines             => Address_Info_Sets.Empty_Set);
+                  Subprg :=
+                    new Address_Info'
+                      (Kind              => Subprogram_Addresses,
+                       First             => Symbol.First,
+                       Last              => Symbol.Last,
+                       Parent            => Sec,
+                       Top_Level         => <>,
+                       Subprogram_Name   =>
+                         new String'("<None@" & Symbol.Symbol_Name.all & ">"),
+                       Subprogram_CU     => No_CU_Id,
+                       Subprogram_DIE_CU => No_DIE_CU_Id,
+                       Lines             => Address_Info_Sets.Empty_Set);
 
                   --  And insert it to the database. This subprogram is create
                   --  because there was none for this PC, so inserting must
@@ -2747,9 +2773,9 @@ package body Traces_Elf is
 
       function Last_For_Insn (First : Pc_Type) return Pc_Type is
          Code_Section : constant Address_Info_Acc :=
-            Exec.Get_Address_Info (Section_Addresses, First);
+           Exec.Get_Address_Info (Section_Addresses, First);
          Ranges       : constant Insn_Set_Ranges_Cst_Acc :=
-            Exec.Get_Insn_Set_Ranges (Code_Section.Section_Sec_Idx);
+           Exec.Get_Insn_Set_Ranges (Code_Section.Section_Sec_Idx);
       begin
          Exec.Load_Section_Content (Code_Section);
 
@@ -2763,14 +2789,15 @@ package body Traces_Elf is
 
          declare
             Insn_Set : constant Insn_Set_Type :=
-               Get_Insn_Set (Ranges.all, Cache, Last_Line.First);
+              Get_Insn_Set (Ranges.all, Cache, Last_Line.First);
             Code     : constant Binary_Content :=
-               Slice (Code_Section.Section_Content,
-                      Last_Line.First,
-                      Code_Section.Section_Content.Last);
+              Slice
+                (Code_Section.Section_Content,
+                 Last_Line.First,
+                 Code_Section.Section_Content.Last);
 
             Insn_Length : constant Positive :=
-               Disa_For_Machine (Machine, Insn_Set).Get_Insn_Length (Code);
+              Disa_For_Machine (Machine, Insn_Set).Get_Insn_Length (Code);
          begin
             return First + Pc_Type (Insn_Length) - 1;
          end;
@@ -2781,14 +2808,13 @@ package body Traces_Elf is
       ----------------------
 
       procedure Register_Dirname
-        (Dw_Dirname : String;
-         Dw_Len     : out Storage_Offset)
+        (Dw_Dirname : String; Dw_Len : out Storage_Offset)
       is
-         Dirname : constant String
-           := (if Is_Absolute_Path (Dw_Dirname)
-                 or else Compilation_Directory = null
-               then Dw_Dirname
-               else Build_Filename (Compilation_Directory.all, Dw_Dirname));
+         Dirname : constant String :=
+           (if Is_Absolute_Path (Dw_Dirname)
+              or else Compilation_Directory = null
+            then Dw_Dirname
+            else Build_Filename (Compilation_Directory.all, Dw_Dirname));
 
       begin
          Dirnames.Append (new String'(Dirname));
@@ -2800,8 +2826,7 @@ package body Traces_Elf is
       -----------------------
 
       procedure Register_Filename
-        (Dw_Filename : String;
-         Dw_Dirindex : Unsigned_32)
+        (Dw_Filename : String; Dw_Dirindex : Unsigned_32)
       is
          --  Use the filename we have if it is absolute to begin with, or if we
          --  don't have a directory to prepend. Otherwise, when we have both a
@@ -2823,24 +2848,27 @@ package body Traces_Elf is
             then Compilation_Directory
             else Dirnames.Element (Integer (Dw_Dirindex)));
 
-         Filename : constant String
-             := (if Is_Absolute_Path (Dw_Filename) or else Dir = null
-                 then Dw_Filename
-                 else Build_Filename (Dir.all, Dw_Filename));
+         Filename : constant String :=
+           (if Is_Absolute_Path (Dw_Filename) or else Dir = null
+            then Dw_Filename
+            else Build_Filename (Dir.all, Dw_Filename));
       begin
          Filenames.Append (new String'(Filename));
          Compute_File_Index (Filenames.Last_Element.all);
       end Register_Filename;
 
-   --  Start of processing for Read_Debug_Lines
+      --  Start of processing for Read_Debug_Lines
 
    begin
       --  Load .debug_line
 
       if not Is_Loaded (Exec.Lines) then
-         Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Line,
-                                 Exec.Lines_Len, Exec.Lines,
-                                 Exec.Lines_Section);
+         Alloc_And_Load_Section
+           (Exec,
+            Exec.Sec_Debug_Line,
+            Exec.Lines_Len,
+            Exec.Lines,
+            Exec.Lines_Section);
          Apply_Relocations
            (Exec, Exec.Sec_Debug_Line, Exec.Lines_Section, Exec.Lines);
       end if;
@@ -2907,8 +2935,7 @@ package body Traces_Elf is
             exit when B = 0;
 
             Register_Dirname
-              (Dw_Dirname => Read_String (Base + Off),
-               Dw_Len     => Str_Len);
+              (Dw_Dirname => Read_String (Base + Off), Dw_Len => Str_Len);
 
             Off := Off + Str_Len + 1;
             Nbr_Dirnames := Nbr_Dirnames + 1;
@@ -3002,9 +3029,10 @@ package body Traces_Elf is
                      when DW_FORM_udata =>
                         Read_ULEB128 (Base, Off, File_Dir);
 
-                     when others =>
-                        raise Program_Error with
-                          "invalid DWARF form for DW_LNCT_directory_index";
+                     when others        =>
+                        raise Program_Error
+                          with
+                            "invalid DWARF form for DW_LNCT_directory_index";
                   end case;
 
                else
@@ -3048,21 +3076,21 @@ package body Traces_Elf is
             Old_Off := Off;
             Read_Byte (Base, Off, Ext_Opc);
             case Ext_Opc is
-               when DW_LNE_end_sequence =>
+               when DW_LNE_end_sequence      =>
                   Close_Source_Line;
                   Reset_Lines;
 
-               when DW_LNE_set_address =>
+               when DW_LNE_set_address       =>
                   Read_Address (Exec, Base, Off, Arch.Arch_Addr'Size / 8, Pc);
                   Base_Pc := Pc;
 
-               when DW_LNE_define_file =>
+               when DW_LNE_define_file       =>
                   raise Program_Error with "DW_LNE_define_file unhandled";
 
                when DW_LNE_set_discriminator =>
                   Read_ULEB128 (Base, Off, Disc);
 
-               when others =>
+               when others                   =>
                   raise Program_Error
                     with "unhandled DW_LNE" & Unsigned_8'Image (Ext_Opc);
             end case;
@@ -3073,42 +3101,43 @@ package body Traces_Elf is
             --  Standard opcode
 
             case B is
-               when DW_LNS_copy =>
+               when DW_LNS_copy                                 =>
                   New_Source_Line;
 
-               when DW_LNS_advance_pc =>
+               when DW_LNS_advance_pc                           =>
                   Read_ULEB128 (Base, Off, Arg);
                   Pc := Pc + Pc_Type (Arg * Unsigned_32 (Min_Insn_Len));
 
-               when DW_LNS_advance_line =>
+               when DW_LNS_advance_line                         =>
                   Read_SLEB128 (Base, Off, Arg);
                   Line := Line + Arg;
 
-               when DW_LNS_set_file =>
+               when DW_LNS_set_file                             =>
                   Read_ULEB128 (Base, Off, Arg);
                   File := Natural (Arg);
 
-               when DW_LNS_set_column =>
+               when DW_LNS_set_column                           =>
                   Read_ULEB128 (Base, Off, Column);
 
-               when DW_LNS_negate_stmt     |
-                    DW_LNS_set_basic_block =>
+               when DW_LNS_negate_stmt | DW_LNS_set_basic_block =>
                   null;
 
-               when DW_LNS_const_add_pc =>
-                  Pc := Pc + Pc_Type
-                    (Unsigned_32 ((255 - Opc_Base) / Line_Range)
-                       * Unsigned_32 (Min_Insn_Len));
+               when DW_LNS_const_add_pc                         =>
+                  Pc :=
+                    Pc
+                    + Pc_Type
+                        (Unsigned_32 ((255 - Opc_Base) / Line_Range)
+                         * Unsigned_32 (Min_Insn_Len));
 
-               when DW_LNS_fixed_advance_pc =>
+               when DW_LNS_fixed_advance_pc                     =>
                   raise Program_Error with "DW_LNS_fixed_advance_pc unhandled";
 
-               when DW_LNS_set_prologue_end   |
-                    DW_LNS_set_epilogue_begin |
-                    DW_LNS_set_isa            =>
+               when DW_LNS_set_prologue_end
+                  | DW_LNS_set_epilogue_begin
+                  | DW_LNS_set_isa                              =>
                   null;
 
-               when others =>
+               when others                                      =>
 
                   --  Instruction length
 
@@ -3122,8 +3151,10 @@ package body Traces_Elf is
             --  Special opcode
 
             B := B - Opc_Base;
-            Pc := Pc + Pc_Type (Unsigned_32 (B / Line_Range)
-                                  * Unsigned_32 (Min_Insn_Len));
+            Pc :=
+              Pc
+              + Pc_Type
+                  (Unsigned_32 (B / Line_Range) * Unsigned_32 (Min_Insn_Len));
             Line := Line + Line_Base2 + Unsigned_32 (B mod Line_Range);
             New_Source_Line;
          end if;
@@ -3147,21 +3178,23 @@ package body Traces_Elf is
                File : constant Source_File_Index :=
                  (if Inlined_Subp.File = 0
                   then No_Source_File
-                  else Get_Index_From_Full_Name
-                    (Full_Name => Filenames.Element (Inlined_Subp.File).all,
-                     Kind      => Stub_File,
-                     Insert    => False));
+                  else
+                    Get_Index_From_Full_Name
+                      (Full_Name => Filenames.Element (Inlined_Subp.File).all,
+                       Kind      => Stub_File,
+                       Insert    => False));
                Info : Address_Info_Acc :=
-                  new Address_Info'
-                    (Kind      => Inlined_Subprogram_Addresses,
-                     First     => Inlined_Subp.First,
-                     Last      => Inlined_Subp.Last,
-                     Top_Level => <>,
-                     Parent    => Inlined_Subp.Section,
-                     Call_Sloc =>
-                       (Source_File => File,
-                        L           => (Line   => Inlined_Subp.Line,
-                                        Column => Inlined_Subp.Column)));
+                 new Address_Info'
+                   (Kind      => Inlined_Subprogram_Addresses,
+                    First     => Inlined_Subp.First,
+                    Last      => Inlined_Subp.Last,
+                    Top_Level => <>,
+                    Parent    => Inlined_Subp.Section,
+                    Call_Sloc =>
+                      (Source_File => File,
+                       L           =>
+                         (Line   => Inlined_Subp.Line,
+                          Column => Inlined_Subp.Column)));
 
                Position : Address_Info_Sets.Cursor;
                Inserted : Boolean;
@@ -3251,7 +3284,8 @@ package body Traces_Elf is
                --  Relocate the current section, making sure we respect its
                --  alignment constraint.
 
-               Offset := (Offset + Shdr.Sh_Addralign - 1)
+               Offset :=
+                 (Offset + Shdr.Sh_Addralign - 1)
                  and not (Shdr.Sh_Addralign - 1);
 
                Shdr.Sh_Addr := Shdr.Sh_Addr + Offset;
@@ -3267,17 +3301,17 @@ package body Traces_Elf is
 
             declare
                Item : Address_Info_Acc :=
-                  new Address_Info'
-                    (Kind            => Section_Addresses,
-                     First           => Addr,
-                     Last            => Last,
-                     Top_Level       => <>,
-                     Parent          => null,
-                     Section_Name    => new String'(
-                       Get_Shdr_Name (Exec.Elf_File, Idx)),
-                     Section_Sec_Idx => Section_Index (Idx),
-                     Section_Content => Invalid_Binary_Content,
-                     Section_LS      => No_Loaded_Section);
+                 new Address_Info'
+                   (Kind            => Section_Addresses,
+                    First           => Addr,
+                    Last            => Last,
+                    Top_Level       => <>,
+                    Parent          => null,
+                    Section_Name    =>
+                      new String'(Get_Shdr_Name (Exec.Elf_File, Idx)),
+                    Section_Sec_Idx => Section_Index (Idx),
+                    Section_Content => Invalid_Binary_Content,
+                    Section_LS      => No_Loaded_Section);
             begin
                Insert_With_Top_Level_Update
                  (Exec.Desc_Sets (Section_Addresses), Item);
@@ -3288,7 +3322,7 @@ package body Traces_Elf is
 
    procedure Build_Sections (Exec : in out PE_Exe_File_Type) is
       use Coff;
-      Scn : Scnhdr;
+      Scn  : Scnhdr;
       Addr : Pc_Type;
       Last : Pc_Type;
       Item : Address_Info_Acc;
@@ -3306,23 +3340,22 @@ package body Traces_Elf is
 
          --  Only TEXT sections are interesting.
 
-         if (Scn.S_Flags and STYP_TEXT) /= 0
-           and then Scn.S_Size > 0
-         then
+         if (Scn.S_Flags and STYP_TEXT) /= 0 and then Scn.S_Size > 0 then
             Addr := Pc_Type (Scn.S_Vaddr) + Get_Image_Base (Exec.PE_File);
             Last := Addr + Get_Section_Length (Exec.PE_File, Idx) - 1;
 
-            Item := new Address_Info'
-              (Kind            => Section_Addresses,
-               First           => Addr,
-               Last            => Last,
-               Top_Level       => <>,
-               Parent          => null,
-               Section_Name    => new String'(
-                 Get_Section_Name (Exec.PE_File, Idx)),
-               Section_Sec_Idx => Section_Index (Idx),
-               Section_Content => Invalid_Binary_Content,
-               Section_LS      => No_Loaded_Section);
+            Item :=
+              new Address_Info'
+                (Kind            => Section_Addresses,
+                 First           => Addr,
+                 Last            => Last,
+                 Top_Level       => <>,
+                 Parent          => null,
+                 Section_Name    =>
+                   new String'(Get_Section_Name (Exec.PE_File, Idx)),
+                 Section_Sec_Idx => Section_Index (Idx),
+                 Section_Content => Invalid_Binary_Content,
+                 Section_LS      => No_Loaded_Section);
             Insert_With_Top_Level_Update
               (Exec.Desc_Sets (Section_Addresses), Item);
          end if;
@@ -3334,11 +3367,10 @@ package body Traces_Elf is
    --------------
 
    function Get_Sloc
-     (Set : Address_Info_Sets.Set;
-      PC  : Pc_Type) return Source_Location
+     (Set : Address_Info_Sets.Set; PC : Pc_Type) return Source_Location
    is
       SL : constant Source_Locations :=
-         Get_Slocs (Set, PC, Non_Empty_Only => True);
+        Get_Slocs (Set, PC, Non_Empty_Only => True);
    begin
       if SL'Length = 0 then
          return Slocs.No_Location;
@@ -3358,15 +3390,14 @@ package body Traces_Elf is
       Non_Empty_Only : Boolean := False) return Source_Locations
    is
       Line_Infos : constant Address_Info_Arr :=
-                           Get_Address_Infos (Set, Line_Addresses, PC);
+        Get_Address_Infos (Set, Line_Addresses, PC);
       Result     : Source_Locations (1 .. Natural (Line_Infos'Length));
       Last       : Natural := Result'First - 1;
 
    begin
       for Addr_Info of Line_Infos loop
          if not Empty_Range (Addr_Info.all)
-              and then
-            (Addr_Info.Is_Non_Empty or else not Non_Empty_Only)
+           and then (Addr_Info.Is_Non_Empty or else not Non_Empty_Only)
          then
             Last := Last + 1;
             Result (Last) := Addr_Info.Sloc;
@@ -3381,9 +3412,7 @@ package body Traces_Elf is
    ---------------------
 
    function Get_Call_Target
-     (Exec     : Exe_File_Type;
-      PC       : Pc_Type;
-      Call_Len : Pc_Type) return Pc_Type
+     (Exec : Exe_File_Type; PC : Pc_Type; Call_Len : Pc_Type) return Pc_Type
    is
       use Call_Site_To_Target_Maps;
       Cur : constant Cursor := Exec.Call_Site_To_Target.Find (PC + Call_Len);
@@ -3435,8 +3464,7 @@ package body Traces_Elf is
 
       else
          declare
-            CU : Compile_Unit_Desc renames
-              Exec.Compile_Units.Element (CU_Id);
+            CU : Compile_Unit_Desc renames Exec.Compile_Units.Element (CU_Id);
          begin
             CU_Filename := CU.Compile_Unit_Filename;
             CU_Directory := CU.Compilation_Directory;
@@ -3449,15 +3477,17 @@ package body Traces_Elf is
    --------------------------
 
    procedure Load_Section_Content
-     (Exec : Exe_File_Type;
-      Sec  : Address_Info_Acc)
+     (Exec : Exe_File_Type; Sec : Address_Info_Acc)
    is
       Len : Elf_Addr;
    begin
       if not Is_Loaded (Sec.Section_Content) then
          Alloc_And_Load_Section
-           (Exec, Sec.Section_Sec_Idx,
-            Len, Sec.Section_Content, Sec.Section_LS);
+           (Exec,
+            Sec.Section_Sec_Idx,
+            Len,
+            Sec.Section_Content,
+            Sec.Section_LS);
          Relocate (Sec.Section_Content, Sec.First);
       end if;
    end Load_Section_Content;
@@ -3472,9 +3502,7 @@ package body Traces_Elf is
       Len     : in out Elf_Addr;
       Content : in out Binary_Content;
       LS      : in out Loaded_Section;
-      Addr    : in out Address)
-     return Boolean
-   is
+      Addr    : in out Address) return Boolean is
    begin
       if not Is_Loaded (Content) then
          Alloc_And_Load_Section (Exec, Sec, Len, Content, LS);
@@ -3494,8 +3522,7 @@ package body Traces_Elf is
    --------------------------
 
    procedure Load_Code_And_Traces
-     (Exec : Exe_File_Acc;
-      Base : access Traces_Base)
+     (Exec : Exe_File_Acc; Base : access Traces_Base)
    is
       use Address_Info_Sets;
 
@@ -3528,8 +3555,7 @@ package body Traces_Elf is
             --  routines database.
 
             Traces_Names.Key_From_Symbol (Exec, Sym, Subp_Key);
-            Traces_Names.Add_Routine
-              (Subp_Key, Exec, Sec.Section_Sec_Idx);
+            Traces_Names.Add_Routine (Subp_Key, Exec, Sec.Section_Sec_Idx);
 
             begin
                Traces_Names.Add_Code_And_Traces
@@ -3554,23 +3580,22 @@ package body Traces_Elf is
    ------------------------------------
 
    procedure Build_Source_Lines_For_Section
-     (Exec    : Exe_File_Acc;
-      Base    : Traces_Base_Acc;
-      Section : Binary_Content)
+     (Exec : Exe_File_Acc; Base : Traces_Base_Acc; Section : Binary_Content)
    is
       use Address_Info_Sets;
 
-      First_Subp : constant Cursor := Find_Address_Info
-        (Exec.Desc_Sets (Subprogram_Addresses),
-         Subprogram_Addresses,
-         Section.First);
+      First_Subp : constant Cursor :=
+        Find_Address_Info
+          (Exec.Desc_Sets (Subprogram_Addresses),
+           Subprogram_Addresses,
+           Section.First);
       --  First subprogram to iterate on, used in Iterate_On_Lines. This is the
       --  subprogram with lowest start address that is strictly greater than
       --  Section.First - 1.
 
-      Line_Counts : array (Source_File_Index
-                           range Files_Table.First_File
-                           .. Files_Table.Last_File)
+      Line_Counts :
+        array (Source_File_Index
+                 range Files_Table.First_File .. Files_Table.Last_File)
         of Natural := (others => 0);
       --  For each source file, used to store the index of the last referenced
       --  line.
@@ -3668,7 +3693,7 @@ package body Traces_Elf is
             Exec);
       end Build_Source_Line;
 
-   --  Start of processing for Build_Source_Lines_For_Section
+      --  Start of processing for Build_Source_Lines_For_Section
 
    begin
       if Object_Coverage_Enabled then
@@ -3743,8 +3768,8 @@ package body Traces_Elf is
       First_Cond_Len : Pc_Type;
       Cond_State     : Insn_State;
 
-      Cache          : Insn_Set_Cache := Empty_Cache;
-      Next_Pc        : Pc_Type;
+      Cache   : Insn_Set_Cache := Empty_Cache;
+      Next_Pc : Pc_Type;
       --  Temporary instruction address, used only when looking for last
       --  instructions.
 
@@ -3755,7 +3780,7 @@ package body Traces_Elf is
 
       Disa : access Disassembler'Class;
 
-   --  Start of processing for Set_Insn_State
+      --  Start of processing for Set_Insn_State
 
    begin
       Last_Executed := No_PC;
@@ -3774,8 +3799,10 @@ package body Traces_Elf is
          Last_Pc_2 := Trace.First;
          loop
             Disa := Disa_For_Machine (Machine, I_Ranges, Cache, Last_Pc_2);
-            Last_Insn_2_Len := Pc_Type
-              (Disa.Get_Insn_Length (Slice (Section, Last_Pc_2, Trace.Last)));
+            Last_Insn_2_Len :=
+              Pc_Type
+                (Disa.Get_Insn_Length
+                   (Slice (Section, Last_Pc_2, Trace.Last)));
             Next_Pc := Last_Pc_2 + Last_Insn_2_Len;
             exit when Next_Pc = Trace.Last + 1;
 
@@ -3807,7 +3834,8 @@ package body Traces_Elf is
                Branch,
                Flag_Indir,
                Is_Cond,
-               Branch_Dest, FT_Dest);
+               Branch_Dest,
+               FT_Dest);
             if Is_Cond then
                First_Cond_Pc := Last_Pc_1;
                First_Cond_Len := Last_Insn_1_Len;
@@ -3820,7 +3848,8 @@ package body Traces_Elf is
                Branch,
                Flag_Indir,
                Is_Cond,
-               Branch_Dest, FT_Dest);
+               Branch_Dest,
+               FT_Dest);
             First_Cond_Pc := Last_Pc_2;
             First_Cond_Len := Last_Insn_2_Len;
          end if;
@@ -3840,14 +3869,23 @@ package body Traces_Elf is
 
          if Is_Cond then
             case Trace.Op and 2#111# is
-               when 0 => Cond_State := Covered;
-               when 1 => Cond_State := Branch_Taken;
-               when 2 => Cond_State := Fallthrough_Taken;
-               when 3 => Cond_State := Both_Taken;
+               when 0      =>
+                  Cond_State := Covered;
+
+               when 1      =>
+                  Cond_State := Branch_Taken;
+
+               when 2      =>
+                  Cond_State := Fallthrough_Taken;
+
+               when 3      =>
+                  Cond_State := Both_Taken;
+
                when others =>
-                  raise Program_Error with
-                    ("Invalid flags combination: "
-                     & Unsigned_8'Image (Trace.Op));
+                  raise Program_Error
+                    with
+                      ("Invalid flags combination: "
+                       & Unsigned_8'Image (Trace.Op));
             end case;
             Update_State (Base, It, Coverage_State (Cond_State));
 
@@ -3858,7 +3896,8 @@ package body Traces_Elf is
 
             if First_Cond_Pc = Last_Pc_1 then
                Split_Trace
-                 (Base, It,
+                 (Base,
+                  It,
                   First_Cond_Pc + First_Cond_Len - 1,
                   Coverage_State (Cond_State));
                Update_State (Base, It, Coverage_State (Covered));
@@ -3878,8 +3917,8 @@ package body Traces_Elf is
       Mapping_Symbols : Mapping_Symbol_Sets.Set;
       Section         : Address_Info_Acc)
    is
-      Sec_Idx          : constant Section_Index := Section.Section_Sec_Idx;
-      I_Ranges         : constant Insn_Set_Ranges_Acc := new Insn_Set_Ranges;
+      Sec_Idx  : constant Section_Index := Section.Section_Sec_Idx;
+      I_Ranges : constant Insn_Set_Ranges_Acc := new Insn_Set_Ranges;
 
       Current_Insn_Set : Insn_Set_Type := Default;
       First_Addr       : Pc_Type := Section.First;
@@ -3889,13 +3928,10 @@ package body Traces_Elf is
 
       for Sym of Mapping_Symbols loop
          if Sym.Insn_Set /= Current_Insn_Set then
-            if Current_Insn_Set /= Default
-              and then Sym.Address /= First_Addr
+            if Current_Insn_Set /= Default and then Sym.Address /= First_Addr
             then
                Add_Range
-                 (I_Ranges.all,
-                  First_Addr, Sym.Address  - 1,
-                  Current_Insn_Set);
+                 (I_Ranges.all, First_Addr, Sym.Address - 1, Current_Insn_Set);
             end if;
             First_Addr := Sym.Address;
             Current_Insn_Set := Sym.Insn_Set;
@@ -3903,10 +3939,7 @@ package body Traces_Elf is
       end loop;
 
       if Current_Insn_Set /= Default then
-         Add_Range
-           (I_Ranges.all,
-            First_Addr, Section.Last,
-            Current_Insn_Set);
+         Add_Range (I_Ranges.all, First_Addr, Section.Last, Current_Insn_Set);
       end if;
    end Build_Insn_Set_Ranges;
 
@@ -3917,17 +3950,17 @@ package body Traces_Elf is
    procedure Build_Symbols (Exec : in out Elf_Exe_File_Type) is
       use Address_Info_Sets;
 
-      type Addr_Info_Acc_Arr is array (0 .. Get_Shdr_Num (Exec.Elf_File))
-        of Address_Info_Acc;
+      type Addr_Info_Acc_Arr is
+        array (0 .. Get_Shdr_Num (Exec.Elf_File)) of Address_Info_Acc;
       Sections_Info : Addr_Info_Acc_Arr := (others => null);
-      Sec : Address_Info_Acc;
+      Sec           : Address_Info_Acc;
 
-      type Mapping_Symbols_Arr is array (0 .. Get_Shdr_Num (Exec.Elf_File))
-        of Mapping_Symbol_Sets.Set;
+      type Mapping_Symbols_Arr is
+        array (0 .. Get_Shdr_Num (Exec.Elf_File)) of Mapping_Symbol_Sets.Set;
       Mapping_Symbols : Mapping_Symbols_Arr;
 
       Symtab_Base : Address;
-      Do_Reloc : Boolean;
+      Do_Reloc    : Boolean;
 
       Strtab_Idx      : Elf_Half;
       Strtab_Len      : Elf_Addr;
@@ -3940,9 +3973,9 @@ package body Traces_Elf is
       Sym      : Address_Info_Acc;
 
       Cur : Cursor;
-      Ok : Boolean;
+      Ok  : Boolean;
 
-   --  Start of processing for Build_Symbols
+      --  Start of processing for Build_Symbols
 
    begin
       --  Build_Sections must be called before
@@ -3976,16 +4009,21 @@ package body Traces_Elf is
       if Strtab_Idx = SHN_UNDEF then
          return;
       end if;
-      Alloc_And_Load_Section (Exec, Section_Index (Strtab_Idx),
-                              Strtab_Len, Strtabs, Strtabs_Section);
+      Alloc_And_Load_Section
+        (Exec,
+         Section_Index (Strtab_Idx),
+         Strtab_Len,
+         Strtabs,
+         Strtabs_Section);
 
       Do_Reloc := Get_Ehdr (Exec.Elf_File).E_Type = ET_REL;
       Offset := Exec.Exe_Text_Start;
 
       for I in 1 .. Exec.Nbr_Symbols loop
-         ESym := Get_Sym
-           (Exec.Elf_File,
-            Symtab_Base + Storage_Offset ((I - 1) * Elf_Sym_Size));
+         ESym :=
+           Get_Sym
+             (Exec.Elf_File,
+              Symtab_Base + Storage_Offset ((I - 1) * Elf_Sym_Size));
          Sym_Type := Elf_St_Type (ESym.St_Info);
 
          if (Sym_Type = STT_FUNC or else Sym_Type = STT_NOTYPE)
@@ -3995,20 +4033,23 @@ package body Traces_Elf is
          then
             if Do_Reloc then
                --  Relocate symbols
-               Offset := Exec.Exe_Text_Start
-                 + Sections_Info (ESym.St_Shndx).First;
+               Offset :=
+                 Exec.Exe_Text_Start + Sections_Info (ESym.St_Shndx).First;
             end if;
 
-            Sym := new Address_Info'
-              (Kind          => Symbol_Addresses,
-               First         => Offset + Pc_Type (ESym.St_Value),
-               Last          => Offset + Pc_Type
-                                           (ESym.St_Value
-                                            + Elf_Addr (ESym.St_Size) - 1),
-               Parent        => Sections_Info (ESym.St_Shndx),
-               Symbol_Name   => new String'
-                 (Read_String (Address_Of (Strtabs, Elf_Addr (ESym.St_Name)))),
-               others        => <>);
+            Sym :=
+              new Address_Info'
+                (Kind        => Symbol_Addresses,
+                 First       => Offset + Pc_Type (ESym.St_Value),
+                 Last        =>
+                   Offset
+                   + Pc_Type (ESym.St_Value + Elf_Addr (ESym.St_Size) - 1),
+                 Parent      => Sections_Info (ESym.St_Shndx),
+                 Symbol_Name =>
+                   new String'
+                     (Read_String
+                        (Address_Of (Strtabs, Elf_Addr (ESym.St_Name)))),
+                 others      => <>);
 
             --  On ARM, the low address bit is used to distinguish ARM and
             --  Thumb instructions but it must be discarded when dealing
@@ -4027,14 +4068,13 @@ package body Traces_Elf is
          --  no section (external) in the current compile unit.
 
          if (Sym_Type = STT_FUNC or else Sym_Type = STT_NOTYPE)
-              and then
-            Elf_St_Bind (ESym.St_Info) = STB_GLOBAL
+           and then Elf_St_Bind (ESym.St_Info) = STB_GLOBAL
          then
             declare
                use Ada.Strings.Fixed;
 
-               Name     : constant String := Read_String
-                 (Address_Of (Strtabs, Elf_Addr (ESym.St_Name)));
+               Name     : constant String :=
+                 Read_String (Address_Of (Strtabs, Elf_Addr (ESym.St_Name)));
                At_Index : Natural := Index (Name, "@@", Name'First);
 
             begin
@@ -4055,33 +4095,33 @@ package body Traces_Elf is
            and then Elf_St_Bind (ESym.St_Info) = STB_LOCAL
          then
             declare
-               Name : constant String := Read_String
-                 (Address_Of (Strtabs, Elf_Addr (ESym.St_Name)));
+               Name : constant String :=
+                 Read_String (Address_Of (Strtabs, Elf_Addr (ESym.St_Name)));
             begin
                if Name'Length >= 2 and then Name (1) = '$' then
 
                   if ESym.St_Size /= 0 then
-                     raise Program_Error with
-                       "Illegal mapping symbol (size not null)";
+                     raise Program_Error
+                       with "Illegal mapping symbol (size not null)";
 
                   elsif not (Name (2) in 'a' | 'd' | 't')
-                    or else (Name'Length > 2
-                             and then Name (3) /= '.')
+                    or else (Name'Length > 2 and then Name (3) /= '.')
                   then
-                     raise Program_Error with
-                       "Illegal mapping symbol (invalid name)";
+                     raise Program_Error
+                       with "Illegal mapping symbol (invalid name)";
                   end if;
 
                   declare
                      Mapping  : Mapping_Symbol_Sets.Set renames
-                        Mapping_Symbols (ESym.St_Shndx);
+                       Mapping_Symbols (ESym.St_Shndx);
                      Symbol   : constant Mapping_Symbol :=
                        ((Address  => ESym.St_Value,
-                         Insn_Set => (case Name (2) is
-                                      when 'a' => ARM,
-                                      when 'd' => Data,
-                                      when 't' => Thumb,
-                                      when others => raise Program_Error)));
+                         Insn_Set =>
+                           (case Name (2) is
+                              when 'a'    => ARM,
+                              when 'd'    => Data,
+                              when 't'    => Thumb,
+                              when others => raise Program_Error)));
                      Position : Mapping_Symbol_Sets.Cursor;
                      Inserted : Boolean;
                   begin
@@ -4091,13 +4131,13 @@ package body Traces_Elf is
                      --  can happen: just check that they are not inconsistent.
 
                      if not Inserted
-                          and then
-                        Mapping_Symbol_Sets.Element (Position).Insn_Set
-                          /= Symbol.Insn_Set
+                       and then Mapping_Symbol_Sets.Element (Position).Insn_Set
+                                /= Symbol.Insn_Set
                      then
-                        raise Program_Error with
-                          ("Inconsistent mapping symbols at "
-                           & Hex_Image (ESym.St_Value));
+                        raise Program_Error
+                          with
+                            ("Inconsistent mapping symbols at "
+                             & Hex_Image (ESym.St_Value));
                      end if;
                   end;
                end if;
@@ -4120,21 +4160,24 @@ package body Traces_Elf is
 
       declare
          procedure For_Each_Synthetic_Symbol
-           (Filename : chars_ptr;
-            Callback : access procedure (Sym_Name  : chars_ptr;
-                                         Sym_Value : Elf_Addr);
-            Warn_Callback : access procedure (C_Msg : chars_ptr;
-                                              C_BFD_Msg : chars_ptr));
-         pragma Import (C, For_Each_Synthetic_Symbol,
-                        "_gnatcov_for_each_synthetic_symbol");
+           (Filename      : chars_ptr;
+            Callback      :
+              access procedure (Sym_Name : chars_ptr; Sym_Value : Elf_Addr);
+            Warn_Callback :
+              access procedure (C_Msg : chars_ptr; C_BFD_Msg : chars_ptr));
+         pragma
+           Import
+             (C,
+              For_Each_Synthetic_Symbol,
+              "_gnatcov_for_each_synthetic_symbol");
 
          procedure Enter_Synthetic_Symbol
-           (Sym_Name  : chars_ptr;
-            Sym_Value : Elf_Addr) with Convention => C;
+           (Sym_Name : chars_ptr; Sym_Value : Elf_Addr)
+         with Convention => C;
          --  Callback to enter a synthetic symbol into the symbol table
 
          procedure Warn (C_Msg : chars_ptr; C_BFD_Msg : chars_ptr)
-           with Convention => C;
+         with Convention => C;
          --  Callback to process a warning from the BFD helpers
 
          ----------------------------
@@ -4142,18 +4185,17 @@ package body Traces_Elf is
          ----------------------------
 
          procedure Enter_Synthetic_Symbol
-           (Sym_Name  : chars_ptr;
-            Sym_Value : Elf_Addr)
-         is
+           (Sym_Name : chars_ptr; Sym_Value : Elf_Addr) is
          begin
-            Sym := new Address_Info'
-              (Kind          => Symbol_Addresses,
-               First         => Sym_Value,
-               Last          => Sym_Value,
-               Top_Level     => <>,
-               Parent        => null,
-               Symbol_Name   => new String'(Value (Sym_Name)),
-               others        => <>);
+            Sym :=
+              new Address_Info'
+                (Kind        => Symbol_Addresses,
+                 First       => Sym_Value,
+                 Last        => Sym_Value,
+                 Top_Level   => <>,
+                 Parent      => null,
+                 Symbol_Name => new String'(Value (Sym_Name)),
+                 others      => <>);
 
             Insert_With_Top_Level_Update
               (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
@@ -4190,15 +4232,15 @@ package body Traces_Elf is
    procedure Build_Symbols (Exec : in out PE_Exe_File_Type) is
       use Address_Info_Sets;
 
-      type Addr_Info_Acc_Arr is array (0 .. Get_Nbr_Sections (Exec.File.all))
-        of Address_Info_Acc;
+      type Addr_Info_Acc_Arr is
+        array (0 .. Get_Nbr_Sections (Exec.File.all)) of Address_Info_Acc;
       Sections_Info : Addr_Info_Acc_Arr := (others => null);
-      Sec : Address_Info_Acc;
+      Sec           : Address_Info_Acc;
 
       Sym : Address_Info_Acc;
 
       Cur : Cursor;
-      Ok : Boolean;
+      Ok  : Boolean;
    begin
       --  Build_Sections must be called before
 
@@ -4222,8 +4264,7 @@ package body Traces_Elf is
       declare
          Syms      : constant Loaded_Section := Get_Symbols (Exec.PE_File);
          Syms_Base : constant Address := Address_Of (Syms);
-         Nbr_Syms  : constant Unsigned_32 :=
-           Get_Hdr (Exec.PE_File).F_Nsyms;
+         Nbr_Syms  : constant Unsigned_32 := Get_Hdr (Exec.PE_File).F_Nsyms;
          I         : Unsigned_32;
       begin
          I := 0;
@@ -4238,15 +4279,16 @@ package body Traces_Elf is
                   --  A function
                   Sec := Sections_Info (Section_Index (S.E_Scnum));
                   if Sec /= null then
-                     Sym := new Address_Info'
-                       (Kind        => Symbol_Addresses,
-                        First       => Sec.First + Pc_Type (S.E_Value),
-                        Last        => Sec.First + Pc_Type (S.E_Value),
-                        Top_Level   => True,
-                        Parent      => Sec,
-                        Symbol_Name => new String'
-                        (Get_Symbol_Name (Exec.PE_File, S)),
-                        others      => <>);
+                     Sym :=
+                       new Address_Info'
+                         (Kind        => Symbol_Addresses,
+                          First       => Sec.First + Pc_Type (S.E_Value),
+                          Last        => Sec.First + Pc_Type (S.E_Value),
+                          Top_Level   => True,
+                          Parent      => Sec,
+                          Symbol_Name =>
+                            new String'(Get_Symbol_Name (Exec.PE_File, S)),
+                          others      => <>);
 
                      --  Address_Info ranges are built "artificially" so that
                      --  all symbols are contiguous. There is no need to keep
@@ -4271,7 +4313,7 @@ package body Traces_Elf is
       --  Traces_Names.
 
       declare
-         Prev : Address_Info_Acc;
+         Prev     : Address_Info_Acc;
          Prev_Cur : Cursor;
       begin
          Cur := First (Exec.Desc_Sets (Symbol_Addresses));
@@ -4310,12 +4352,11 @@ package body Traces_Elf is
    ----------------------
 
    function Get_Address_Info
-     (Set  : Address_Info_Sets.Set;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return Address_Info_Acc
+     (Set : Address_Info_Sets.Set; Kind : Address_Info_Kind; PC : Pc_Type)
+      return Address_Info_Acc
    is
       Addr_Infos : constant Address_Info_Arr :=
-                     Get_Address_Infos (Set, Kind, PC, Innermost_Only => True);
+        Get_Address_Infos (Set, Kind, PC, Innermost_Only => True);
    begin
       if Addr_Infos'Length = 0 then
          return null;
@@ -4325,9 +4366,8 @@ package body Traces_Elf is
    end Get_Address_Info;
 
    function Get_Address_Info
-     (Exec : Exe_File_Type;
-      Kind : Address_Info_Kind;
-      PC   : Pc_Type) return Address_Info_Acc
+     (Exec : Exe_File_Type; Kind : Address_Info_Kind; PC : Pc_Type)
+      return Address_Info_Acc
    is (Get_Address_Info (Get_Desc_Set (Exec, Kind, PC).all, Kind, PC));
 
    -----------------------
@@ -4359,11 +4399,9 @@ package body Traces_Elf is
       --  First check whether results for the last lookup still match
 
       if Cache.Last /= No_Element
-           and then
-         Set'Unrestricted_Access = Cache.Last_Set
-           and then
-         (PC in Cache.Last_Info.First .. Cache.Last_Info.Last
-          or else PC = Cache.Last_Info.First)
+        and then Set'Unrestricted_Access = Cache.Last_Set
+        and then (PC in Cache.Last_Info.First .. Cache.Last_Info.Last
+                  or else PC = Cache.Last_Info.First)
       then
          --  We have a candidate match, whose range contains the PC we're
          --  looking for. Now move from there to make sure that we return
@@ -4381,10 +4419,9 @@ package body Traces_Elf is
                     Element (Candidate);
                begin
                   if PC in Candidate_Info.First .. Candidate_Info.Last
-                       or else
-                     PC = Candidate_Info.First
+                    or else PC = Candidate_Info.First
                   then
-                     Cache.Last      := Candidate;
+                     Cache.Last := Candidate;
                      Cache.Last_Info := Candidate_Info;
                   end if;
 
@@ -4418,7 +4455,7 @@ package body Traces_Elf is
 
          if Cache.Last /= No_Element then
             Cache.Last_Info := Element (Cache.Last);
-            Cache.Last_Set  := Set'Unchecked_Access;
+            Cache.Last_Set := Set'Unchecked_Access;
          end if;
       end if;
 
@@ -4429,9 +4466,10 @@ package body Traces_Elf is
          declare
             Prev_Info : constant Address_Info_Acc := Element (Prev);
          begin
-            exit when not (Prev_Info.First <= PC
-                           and then (Prev_Info.First > Prev_Info.Last
-                                     or else Prev_Info.Last >= PC));
+            exit when
+              not (Prev_Info.First <= PC
+                   and then (Prev_Info.First > Prev_Info.Last
+                             or else Prev_Info.Last >= PC));
          end;
 
          Count := Count + 1;
@@ -4454,22 +4492,20 @@ package body Traces_Elf is
       Kind           : Address_Info_Kind;
       PC             : Pc_Type;
       Innermost_Only : Boolean := False) return Address_Info_Arr
-   is
-     (Get_Address_Infos
-        (Get_Desc_Set (Exec, Kind, PC).all, Kind, PC, Innermost_Only));
+   is (Get_Address_Infos
+         (Get_Desc_Set (Exec, Kind, PC).all, Kind, PC, Innermost_Only));
 
    -------------------------------
    -- Tree_Assumption_Respected --
    -------------------------------
 
    function Tree_Assumption_Respected
-     (Set  : Address_Info_Sets.Set;
-      Item : Address_Info_Acc) return Boolean
+     (Set : Address_Info_Sets.Set; Item : Address_Info_Acc) return Boolean
    is
       use Address_Info_Sets;
 
       Init : constant Cursor := Set.Floor (Item);
-      Cur : Cursor;
+      Cur  : Cursor;
 
       function Contains (Outer, Inner : Address_Info_Acc) return Boolean
       is (Outer.First <= Inner.First and then Outer.Last >= Inner.Last);
@@ -4477,13 +4513,12 @@ package body Traces_Elf is
 
       function Nested_Or_Disjoint
         (Item, Other : Address_Info_Acc) return Boolean
-      is
-        (Empty_Range (Item.all)
-         or else Empty_Range (Other.all)
-         or else Contains (Item, Other)
-         or else Contains (Other, Item)
-         or else Item.First > Other.Last
-         or else Item.Last < Other.First);
+      is (Empty_Range (Item.all)
+          or else Empty_Range (Other.all)
+          or else Contains (Item, Other)
+          or else Contains (Other, Item)
+          or else Item.First > Other.Last
+          or else Item.Last < Other.First);
       --  Return whether Item and Other respect the assumption that either one
       --  contains the other, or the are disjoint. If one of the Address_Info
       --  has an empty range, we consider the assumption to be true.
@@ -4569,7 +4604,9 @@ package body Traces_Elf is
                  when Inlined_Subprogram_Addresses => "inlined subprogram",
                  when Symbol_Addresses             => "symbol",
                  when Line_Addresses               => "debug line")
-            & " between " & Hex_Image (Item.First) & " and "
+            & " between "
+            & Hex_Image (Item.First)
+            & " and "
             & Hex_Image (Item.Last));
       end if;
 
@@ -4625,9 +4662,8 @@ package body Traces_Elf is
          Previous (Prev_TL_Cur);
       end loop;
 
-      Next_Item := (if Has_Element (Next (Pos))
-                    then Element (Next (Pos))
-                    else null);
+      Next_Item :=
+        (if Has_Element (Next (Pos)) then Element (Next (Pos)) else null);
 
       --  If the Address_Info we are inserting is top level, we may need to
       --  update the next element in the set depending on the nesting:
@@ -4664,12 +4700,12 @@ package body Traces_Elf is
       if not Inserted then
          Existing_Item := Address_Info_Sets.Element (Pos);
          if Item.Kind = Subprogram_Addresses
-            and then Item.First = Existing_Item.First
-            and then Item.Last = Existing_Item.Last
-            and then Item.Subprogram_Name /= null
-            and then Existing_Item.Subprogram_Name /= null
-            and then Item.Subprogram_Name.all
-                     = Existing_Item.Subprogram_Name.all
+           and then Item.First = Existing_Item.First
+           and then Item.Last = Existing_Item.Last
+           and then Item.Subprogram_Name /= null
+           and then Existing_Item.Subprogram_Name /= null
+           and then Item.Subprogram_Name.all
+                    = Existing_Item.Subprogram_Name.all
          then
             Free (Item);
             Item := Existing_Item;
@@ -4686,9 +4722,7 @@ package body Traces_Elf is
    ----------------
 
    function Get_Symbol
-     (Exec : Exe_File_Type;
-      PC   : Pc_Type) return Address_Info_Acc
-   is
+     (Exec : Exe_File_Type; PC : Pc_Type) return Address_Info_Acc is
    begin
       return Get_Address_Info (Exec, Symbol_Addresses, PC);
    end Get_Symbol;
@@ -4698,15 +4732,15 @@ package body Traces_Elf is
    ---------------
 
    procedure Symbolize
-     (Sym      : Exe_File_Type;
-      Pc       : Traces.Pc_Type;
-      Buffer   : in out Highlighting.Buffer_Type)
+     (Sym    : Exe_File_Type;
+      Pc     : Traces.Pc_Type;
+      Buffer : in out Highlighting.Buffer_Type)
    is
       use Highlighting;
 
       Symbol : constant Address_Info_Acc := Get_Symbol (Sym, Pc);
 
-   --  Start of processing for Symbolize
+      --  Start of processing for Symbolize
 
    begin
       if Symbol = null then
@@ -4769,8 +4803,7 @@ package body Traces_Elf is
       use Traces_Names;
 
       procedure Build_Source_Lines_For_Routine
-        (Key  : Subprogram_Key;
-         Info : in out Subprogram_Info);
+        (Key : Subprogram_Key; Info : in out Subprogram_Info);
       --  Build source line information from debug information for the given
       --  routine.
 
@@ -4779,8 +4812,7 @@ package body Traces_Elf is
       ------------------------------------
 
       procedure Build_Source_Lines_For_Routine
-        (Key  : Subprogram_Key;
-         Info : in out Subprogram_Info)
+        (Key : Subprogram_Key; Info : in out Subprogram_Info)
       is
          pragma Unreferenced (Key);
       begin
@@ -4791,7 +4823,7 @@ package body Traces_Elf is
          end if;
       end Build_Source_Lines_For_Routine;
 
-   --  Start of processing for Build_Source_Lines
+      --  Start of processing for Build_Source_Lines
 
    begin
       Iterate (Build_Source_Lines_For_Routine'Access);
@@ -4805,13 +4837,11 @@ package body Traces_Elf is
       use Traces_Names;
 
       procedure Build_Routine_Insn_State
-        (Key  : Subprogram_Key;
-         Info : in out Subprogram_Info);
+        (Key : Subprogram_Key; Info : in out Subprogram_Info);
       --  Set trace state for the given routine
 
       procedure Do_Set_Insn_State
-        (Info          : in out Subprogram_Info;
-         Last_Executed : out Pc_Type);
+        (Info : in out Subprogram_Info; Last_Executed : out Pc_Type);
       --  Helper to invoke Set_Insn_Trace in Build_Routine_Insn_State
 
       ------------------------------
@@ -4819,8 +4849,7 @@ package body Traces_Elf is
       ------------------------------
 
       procedure Build_Routine_Insn_State
-        (Key  : Subprogram_Key;
-         Info : in out Subprogram_Info)
+        (Key : Subprogram_Key; Info : in out Subprogram_Info)
       is
          pragma Unreferenced (Key);
 
@@ -4839,10 +4868,8 @@ package body Traces_Elf is
          --  the object coverage for it.
 
          if Last_Executed < Info.Insns.Last
-              and then
-            not Info.Padding_Stripped
-              and then
-            not Has_Precise_Symbol_Size (Info.Exec.all)
+           and then not Info.Padding_Stripped
+           and then not Has_Precise_Symbol_Size (Info.Exec.all)
          then
             Strip_Padding (Info.Exec, Info.Section, Info.Insns, Padding_Found);
             Info.Padding_Stripped := True;
@@ -4857,9 +4884,7 @@ package body Traces_Elf is
       -----------------------
 
       procedure Do_Set_Insn_State
-        (Info          : in out Subprogram_Info;
-         Last_Executed : out Pc_Type)
-      is
+        (Info : in out Subprogram_Info; Last_Executed : out Pc_Type) is
       begin
          Set_Insn_State
            (Info.Traces.all,
@@ -4868,7 +4893,7 @@ package body Traces_Elf is
             Last_Executed);
       end Do_Set_Insn_State;
 
-   --  Start of processing for Build_Routines_Insn_State
+      --  Start of processing for Build_Routines_Insn_State
 
    begin
       Iterate (Build_Routine_Insn_State'Access);
@@ -4897,8 +4922,8 @@ package body Traces_Elf is
            Get_Insn_Set_Ranges (File, Sec.Section_Sec_Idx).all;
          Cache    : Insn_Set_Cache := Empty_Cache;
 
-         Insns    : Binary_Content;
-         Buffer   : Highlighting.Buffer_Type (128);
+         Insns  : Binary_Content;
+         Buffer : Highlighting.Buffer_Type (128);
       begin
          Load_Section_Content (File, Sec);
          Put_Line ("section " & Sec.Section_Name.all);
@@ -4911,10 +4936,8 @@ package body Traces_Elf is
             Put (ASCII.HT);
 
             Buffer.Reset;
-            Disa_For_Machine (Machine, I_Ranges, Cache, Pc).
-              Disassemble_Insn
-                (Slice (Insns, Pc, Insns.Last), Pc,
-                 Buffer, Insn_Len, File);
+            Disa_For_Machine (Machine, I_Ranges, Cache, Pc).Disassemble_Insn
+              (Slice (Insns, Pc, Insns.Last), Pc, Buffer, Insn_Len, File);
 
             for I in Pc .. Pc + Pc_Type (Insn_Len - 1) loop
                Put (Hex_Image (Get (Insns, I)));
@@ -4934,7 +4957,7 @@ package body Traces_Elf is
          end loop;
       end Local_Disassembler;
 
-   --  Start of processing for Disassemble_File_Raw
+      --  Start of processing for Disassemble_File_Raw
 
    begin
       Build_Sections (File);
@@ -4948,10 +4971,10 @@ package body Traces_Elf is
 
    procedure Disassemble_File (File : in out Exe_File_Type) is
       use Address_Info_Sets;
-      Cur        : Cursor;
-      Sec        : Address_Info_Acc;
-      I_Ranges   : Insn_Set_Ranges_Cst_Acc;
-      Addr       : Pc_Type;
+      Cur      : Cursor;
+      Sec      : Address_Info_Acc;
+      I_Ranges : Insn_Set_Ranges_Cst_Acc;
+      Addr     : Pc_Type;
 
       Cur_Subprg : Cursor;
       Subprg     : Address_Info_Acc;
@@ -4959,7 +4982,7 @@ package body Traces_Elf is
       Cur_Symbol : Cursor;
       Symbol     : Address_Info_Acc;
 
-      Last_Addr  : Pc_Type;
+      Last_Addr : Pc_Type;
    begin
       Cur := First (File.Desc_Sets (Section_Addresses));
 
@@ -5047,9 +5070,9 @@ package body Traces_Elf is
 
             if Symbol /= null then
                if Addr = Symbol.First
-                  and then (Subprg = null
-                            or else Subprg.Subprogram_Name.all
-                                    /= Symbol.Symbol_Name.all)
+                 and then (Subprg = null
+                           or else Subprg.Subprogram_Name.all
+                                   /= Symbol.Symbol_Name.all)
                then
                   Put ('<');
                   Put (Symbol.Symbol_Name.all);
@@ -5082,7 +5105,9 @@ package body Traces_Elf is
             Traces_Disa.For_Each_Insn
               (Slice (Sec.Section_Content, Addr, Last_Addr),
                I_Ranges.all,
-               Not_Covered, Traces_Disa.Textio_Disassemble_Cb'Access, File);
+               Not_Covered,
+               Traces_Disa.Textio_Disassemble_Cb'Access,
+               File);
 
             Addr := Last_Addr;
             exit when Addr = Pc_Type'Last;
@@ -5128,8 +5153,8 @@ package body Traces_Elf is
       Strict : Boolean)
    is
       pragma Unreferenced (Strict);
-      It : Addresses_Iterator;
-      Sym : Address_Info_Acc;
+      It       : Addresses_Iterator;
+      Sym      : Address_Info_Acc;
       Sym_Copy : Address_Info (Symbol_Addresses);
    begin
       Build_Symbols (Exe_File_Type'Class (File));
@@ -5156,8 +5181,8 @@ package body Traces_Elf is
       Nbr_Shdr : constant Elf_Half := Get_Shdr_Num (Efile);
 
       type Set_Acc is access Address_Info_Sets.Set;
-      procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-        (Address_Info_Sets.Set, Set_Acc);
+      procedure Unchecked_Deallocation is new
+        Ada.Unchecked_Deallocation (Address_Info_Sets.Set, Set_Acc);
       type Set_Acc_Array is array (0 .. Nbr_Shdr) of Set_Acc;
 
       Shdr_Sets : Set_Acc_Array := (others => null);
@@ -5220,11 +5245,19 @@ package body Traces_Elf is
 
       --  Load symtab and strtab
 
-      Alloc_And_Load_Section (File, Section_Index (File.Sec_Symtab),
-                              Symtab_Len, Symtabs, Symtabs_Section);
+      Alloc_And_Load_Section
+        (File,
+         Section_Index (File.Sec_Symtab),
+         Symtab_Len,
+         Symtabs,
+         Symtabs_Section);
       Symtab_Base := Address_Of (Symtabs, 0);
-      Alloc_And_Load_Section (File, Section_Index (Strtab_Idx),
-                              Strtab_Len, Strtabs, Strtabs_Section);
+      Alloc_And_Load_Section
+        (File,
+         Section_Index (Strtab_Idx),
+         Strtab_Len,
+         Strtabs,
+         Strtabs_Section);
 
       --  Walk the symtab and put interesting symbols into the containers.
       --  Except for warnings in strict mode, leave empty symbols alone. We'd
@@ -5234,17 +5267,19 @@ package body Traces_Elf is
       --  FIXME: this somewhat duplicates the logic of Build_Symbols.
 
       for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
-         A_Sym := Get_Sym
-           (Efile, Symtab_Base + Storage_Offset ((I - 1) * Elf_Sym_Size));
+         A_Sym :=
+           Get_Sym
+             (Efile, Symtab_Base + Storage_Offset ((I - 1) * Elf_Sym_Size));
          Sym_Type := Elf_St_Type (A_Sym.St_Info);
 
-         if  (Sym_Type = STT_FUNC or Sym_Type = STT_NOTYPE)
+         if (Sym_Type = STT_FUNC or Sym_Type = STT_NOTYPE)
            and then A_Sym.St_Shndx in Shdr_Sets'Range
            and then Shdr_Sets (A_Sym.St_Shndx) /= null
          then
 
-            Sym_Name := new String'
-              (Read_String (Address_Of (Strtabs, Elf_Addr (A_Sym.St_Name))));
+            Sym_Name :=
+              new String'
+                (Read_String (Address_Of (Strtabs, Elf_Addr (A_Sym.St_Name))));
 
             if A_Sym.St_Size = 0 then
 
@@ -5253,8 +5288,10 @@ package body Traces_Elf is
 
                if Strict then
                   Outputs.Warn
-                    ("empty symbol " & Sym_Name.all
-                     & " at " & Hex_Image (A_Sym.St_Value)
+                    ("empty symbol "
+                     & Sym_Name.all
+                     & " at "
+                     & Hex_Image (A_Sym.St_Value)
                      & " in section "
                      & Get_Shdr_Name (Efile, A_Sym.St_Shndx));
                end if;
@@ -5265,7 +5302,7 @@ package body Traces_Elf is
                declare
                   Sym_First : Pc_Type := Pc_Type (A_Sym.St_Value);
                   Sym_Last  : Pc_Type :=
-                     Sym_First + Pc_Type (A_Sym.St_Size) - 1;
+                    Sym_First + Pc_Type (A_Sym.St_Size) - 1;
                begin
                   --  On ARM, the low address bit is used to distinguish ARM
                   --  and Thumb instructions but it must be discarded when
@@ -5288,14 +5325,17 @@ package body Traces_Elf is
                         Parent      => null,
                         Symbol_Name => Sym_Name,
                         others      => <>),
-                     Cur, Ok);
+                     Cur,
+                     Ok);
                end;
 
                if not Ok then
-                  Put_Line (Standard_Error,
-                            "symbol " & Sym_Name.all
-                              & " is an alias at "
-                              & Hex_Image (A_Sym.St_Value));
+                  Put_Line
+                    (Standard_Error,
+                     "symbol "
+                     & Sym_Name.all
+                     & " is an alias at "
+                     & Hex_Image (A_Sym.St_Value));
                end if;
 
             end if;
@@ -5321,9 +5361,7 @@ package body Traces_Elf is
 
             Cur_Sym := First (Shdr_Sets (I).all);
 
-            Sym := (if Has_Element (Cur_Sym)
-                    then Element (Cur_Sym)
-                    else null);
+            Sym := (if Has_Element (Cur_Sym) then Element (Cur_Sym) else null);
 
             --  Get the first symbol in the section
 
@@ -5333,18 +5371,21 @@ package body Traces_Elf is
             while Sym /= null and then Sym.First + Offset < Addr loop
                --  Can this happen ?
                Put_Line
-                 (Standard_Error, "symbol " & Sym.Symbol_Name.all
+                 (Standard_Error,
+                  "symbol "
+                  & Sym.Symbol_Name.all
                   & " doesn't belong to its section "
-                  &  Get_Shdr_Name (Efile, I)
-                  & " [" & Unsigned_16'Image (I) & " ]");
+                  & Get_Shdr_Name (Efile, I)
+                  & " ["
+                  & Unsigned_16'Image (I)
+                  & " ]");
 
                Free (Sym.Symbol_Name);
                Free (Sym);
 
                Next (Cur_Sym);
-               Sym := (if Has_Element (Cur_Sym)
-                       then Element (Cur_Sym)
-                       else null);
+               Sym :=
+                 (if Has_Element (Cur_Sym) then Element (Cur_Sym) else null);
             end loop;
 
             --  Now, process the symbols that are in the section's range.
@@ -5357,10 +5398,14 @@ package body Traces_Elf is
                if Strict and then Sym.First + Offset > Addr then
                   Outputs.Warn
                     ("no symbols for "
-                     & Hex_Image (Addr) & "-"
+                     & Hex_Image (Addr)
+                     & "-"
                      & Hex_Image (Sym.First + Offset - 1)
-                     & " in section " &  Get_Shdr_Name (Efile, I)
-                     & " [" & Unsigned_16'Image (I) & " ]");
+                     & " in section "
+                     & Get_Shdr_Name (Efile, I)
+                     & " ["
+                     & Unsigned_16'Image (I)
+                     & " ]");
                end if;
 
                if Sym_Cb /= null then
@@ -5375,17 +5420,21 @@ package body Traces_Elf is
                Free (Sym);
 
                Next (Cur_Sym);
-               Sym := (if Has_Element (Cur_Sym)
-                       then Element (Cur_Sym)
-                       else null);
+               Sym :=
+                 (if Has_Element (Cur_Sym) then Element (Cur_Sym) else null);
             end loop;
 
             if Strict and then Addr < Last then
                Outputs.Warn
                  ("no symbols for "
-                  & Hex_Image (Addr) & "-" & Hex_Image (Last)
-                  & " in section " &  Get_Shdr_Name (Efile, I)
-                  & " [" & Unsigned_16'Image (I) & " ]");
+                  & Hex_Image (Addr)
+                  & "-"
+                  & Hex_Image (Last)
+                  & " in section "
+                  & Get_Shdr_Name (Efile, I)
+                  & " ["
+                  & Unsigned_16'Image (I)
+                  & " ]");
             end if;
             Unchecked_Deallocation (Shdr_Sets (I));
          end if;
@@ -5443,8 +5492,7 @@ package body Traces_Elf is
             --  from the executable), we *have to* avoid adding the same symbol
             --  name twice.
 
-            if not Traces_Names.Is_Routine_Of_Interest
-               (Sym.Symbol_Name.all)
+            if not Traces_Names.Is_Routine_Of_Interest (Sym.Symbol_Name.all)
             then
                Traces_Names.Add_Routine_Of_Interest (Sym.Symbol_Name.all);
             end if;
@@ -5456,13 +5504,11 @@ package body Traces_Elf is
          end if;
       end Add_Symbol;
 
-   --  Start of processing for Read_Routine_Names
+      --  Start of processing for Read_Routine_Names
 
    begin
       Scan_Symbols_From
-        (File   => File,
-         Sym_Cb => Add_Symbol'Access,
-         Strict => Strict);
+        (File => File, Sym_Cb => Add_Symbol'Access, Strict => Strict);
    end Read_Routine_Names;
 
    ------------------------
@@ -5470,9 +5516,7 @@ package body Traces_Elf is
    ------------------------
 
    procedure Read_Routine_Names
-     (Filename : String;
-      Exclude  : Boolean;
-      Strict   : Boolean)
+     (Filename : String; Exclude : Boolean; Strict : Boolean)
    is
       --  Wrapper for the version working from an executable file descriptor
 
@@ -5488,7 +5532,7 @@ package body Traces_Elf is
          Read_Routine_Names (Exec, Exclude, Strict);
       end Process;
 
-   --  Start of processing for Read_Routine_Names
+      --  Start of processing for Read_Routine_Names
 
    begin
       On_Elf_From (Filename, Process'Access);
@@ -5500,9 +5544,10 @@ package body Traces_Elf is
 
    procedure Routine_Names_From_Lines
      (Exec     : Exe_File_Acc;
-      Selected : not null access
-                   function (Sloc_Begin : Source_Location;
-                             Sloc_End   : Source_Location) return Boolean)
+      Selected :
+        not null access function
+          (Sloc_Begin : Source_Location; Sloc_End : Source_Location)
+           return Boolean)
    is
       use Address_Info_Sets;
       use Traces_Names;
@@ -5526,7 +5571,8 @@ package body Traces_Elf is
             Sym := Element (Cur);
             if Line.First < Sym.First then
                Diagnostics.Report
-                 (Exec, Line.First,
+                 (Exec,
+                  Line.First,
                   "Source line belongs to no symbol",
                   Kind => Diagnostics.Warning);
                exit;
@@ -5544,15 +5590,15 @@ package body Traces_Elf is
          return null;
       end Get_Symbol;
 
-      Line_Cursor   : Cursor;
-      Sym_End_Addr  : aliased Address_Info (Line_Addresses);
+      Line_Cursor  : Cursor;
+      Sym_End_Addr : aliased Address_Info (Line_Addresses);
 
       Cached_Symbol : Address_Info_Acc;
       Cached_Line   : Address_Info_Acc;
       --  Cached values for Element (Line_Cursor / Symbol_Cursor) to avoid
       --  costly calls to Address_Info_Sets.Element (Set, Cursor);
 
-      Subp_Key      : Subprogram_Key;
+      Subp_Key : Subprogram_Key;
 
    begin
       for Subprg of Exec.Desc_Sets (Subprogram_Addresses) loop
@@ -5659,8 +5705,7 @@ package body Traces_Elf is
                      --  There can be symbols that have the same name, but that
                      --  are different anyway.
 
-                     if not Is_Routine_Of_Interest
-                              (Symbol.Symbol_Name.all)
+                     if not Is_Routine_Of_Interest (Symbol.Symbol_Name.all)
                      then
                         Add_Routine_Of_Interest (Symbol.Symbol_Name.all);
                      end if;
@@ -5668,15 +5713,14 @@ package body Traces_Elf is
                      Key_From_Symbol (Exec, Symbol, Subp_Key);
                      if not Is_In (Subp_Key) then
                         Add_Routine
-                          (Subp_Key,
-                           Exec, Symbol.Parent.Section_Sec_Idx);
+                          (Subp_Key, Exec, Symbol.Parent.Section_Sec_Idx);
                         Symbol.Symbol_Origin := Subp_Key.Origin;
                      end if;
 
                      --  Fast-forward to end of symbol
 
                      Sym_End_Addr.First := Symbol.Last;
-                     Sym_End_Addr.Last  := Symbol.Last;
+                     Sym_End_Addr.Last := Symbol.Last;
                      Line_Cursor :=
                        Subprg.Lines.Ceiling (Sym_End_Addr'Unchecked_Access);
 
@@ -5694,8 +5738,8 @@ package body Traces_Elf is
    -------------------------
 
    function Get_Insn_Set_Ranges
-     (File    : Exe_File_Type;
-      Section : Section_Index) return Insn_Set_Ranges_Cst_Acc
+     (File : Exe_File_Type; Section : Section_Index)
+      return Insn_Set_Ranges_Cst_Acc
    is
       use Insn_Set_Ranges_Per_Section;
 
@@ -5722,9 +5766,8 @@ package body Traces_Elf is
    ------------------------
 
    function Find_Padding_First
-     (Exec    : Exe_File_Acc;
-      Section : Section_Index;
-      Insns   : Binary_Content) return Pc_Type
+     (Exec : Exe_File_Acc; Section : Section_Index; Insns : Binary_Content)
+      return Pc_Type
    is
       Disas    : access Disassembler'Class;
       I_Ranges : Insn_Set_Ranges_Cst_Acc;
@@ -5738,8 +5781,7 @@ package body Traces_Elf is
    begin
       I_Ranges := Get_Insn_Set_Ranges (Exec.all, Section);
 
-      while Iterate_Over_Insns
-        (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
+      while Iterate_Over_Insns (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
       loop
          Disas := Disa_For_Machine (Machine, Insn_Set);
          Insns_Slice := Slice (Insns, PC, Insns.Last);
@@ -5751,8 +5793,7 @@ package body Traces_Elf is
 
          if Insn_Len > Insns.Last - PC + 1 then
             Abort_Disassembler_Error
-              (PC, Insns_Slice,
-               "suspicious instruction is out of bounds");
+              (PC, Insns_Slice, "suspicious instruction is out of bounds");
          end if;
 
          --  As soon as we meet a non-padding instruction, pretend that the
@@ -5779,7 +5820,7 @@ package body Traces_Elf is
       Padding_Found : out Boolean)
    is
       Padding_First : constant Pc_Type :=
-         Find_Padding_First (Exec, Section, Insns) - 1;
+        Find_Padding_First (Exec, Section, Insns) - 1;
    begin
       if Padding_First /= Insns.Last then
          Padding_Found := True;
@@ -5794,8 +5835,7 @@ package body Traces_Elf is
    ---------------------------------
 
    function Platform_Independent_Symbol
-     (Name : String;
-      File : Exe_File_Type) return String
+     (Name : String; File : Exe_File_Type) return String
    is
       Is_PE    : constant Boolean := File.File.all in PE_File'Class;
       Is_32bit : constant Boolean := Pc_Type_Size = 4;

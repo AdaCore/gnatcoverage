@@ -17,7 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Directories; use Ada.Directories;
-with Interfaces; use Interfaces;
+with Interfaces;      use Interfaces;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
@@ -69,7 +69,8 @@ package body Temp_Dirs is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize (Self : in out Temporary_Directory) is
+   overriding
+   procedure Finalize (Self : in out Temporary_Directory) is
    begin
       if Self.Name /= "" and then Self.Auto_Delete then
          Delete_Tree (+Self.Name);

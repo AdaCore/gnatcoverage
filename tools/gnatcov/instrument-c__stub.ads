@@ -24,38 +24,38 @@ package Instrument.C is
 
    pragma Elaborate_Body;
 
-   type C_Family_Instrumenter_Type is
-     abstract new Language_Instrumenter with null record;
+   type C_Family_Instrumenter_Type is abstract new Language_Instrumenter
+   with null record;
    --  Common instrumentation primitives for C/C++
 
-   type C_Instrumenter_Type is
-     new C_Family_Instrumenter_Type with null record;
+   type C_Instrumenter_Type is new C_Family_Instrumenter_Type with null record;
    --  Instrumentation primitives for C
 
-   overriding function Language
-     (Self : C_Instrumenter_Type) return Src_Supported_Language
+   overriding
+   function Language (Self : C_Instrumenter_Type) return Src_Supported_Language
    is (C_Language);
 
    function Create_C_Instrumenter
-     (Tag        : Unbounded_String;
-      Instr_Mode : Instrumentation_Mode) return C_Instrumenter_Type
+     (Tag : Unbounded_String; Instr_Mode : Instrumentation_Mode)
+      return C_Instrumenter_Type
    is (C_Instrumenter_Type'(others => <>));
 
-   type CPP_Instrumenter_Type is
-     new C_Family_Instrumenter_Type with null record;
+   type CPP_Instrumenter_Type is new C_Family_Instrumenter_Type
+   with null record;
    --  Instrumentation primitives for C++
 
-   overriding function Language
+   overriding
+   function Language
      (Self : CPP_Instrumenter_Type) return Src_Supported_Language
    is (CPP_Language);
 
    function Create_CPP_Instrumenter
-     (Tag        : Unbounded_String;
-      Instr_Mode : Instrumentation_Mode) return CPP_Instrumenter_Type
+     (Tag : Unbounded_String; Instr_Mode : Instrumentation_Mode)
+      return CPP_Instrumenter_Type
    is (CPP_Instrumenter_Type'(others => <>));
 
    procedure Postprocess_Source
-     (Preprocessed_Filename  : String;
-      Postprocessed_Filename : String) is null;
+     (Preprocessed_Filename : String; Postprocessed_Filename : String)
+   is null;
 
 end Instrument.C;

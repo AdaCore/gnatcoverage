@@ -34,11 +34,12 @@ package body Rundrv.Config is
    -- Matching helpers for built-in targets --
    -------------------------------------------
 
-   type Driver_Creator_Type is access procedure
-     (Context : Context_Type;
-      Matches : Match_Array;
-      Cmd     : out Command_Type;
-      Native  : out Boolean);
+   type Driver_Creator_Type is
+     access procedure
+       (Context : Context_Type;
+        Matches : Match_Array;
+        Cmd     : out Command_Type;
+        Native  : out Boolean);
    --  Procedure that creates a command for some target.
    --
    --  Such procedures are evaluated when the target family string matches some
@@ -54,7 +55,7 @@ package body Rundrv.Config is
    --  arguments list.
 
    type Builtin_Target_Type is record
-      Pattern        : Unbounded_String;
+      Pattern : Unbounded_String;
       --  Pattern used to match a target family string
 
       Driver_Creator : Driver_Creator_Type;
@@ -63,16 +64,16 @@ package body Rundrv.Config is
    --  Descriptor for a handled builtin target
 
    type Builtin_Targets_Type is
-      array (Positive range <>) of Builtin_Target_Type;
+     array (Positive range <>) of Builtin_Target_Type;
 
    Builtin_Targets : constant Builtin_Targets_Type :=
      ((+"(i686|x86_64).*linux", Rundrv.Handlers.Native_Linux'Access),
       (+"(i686|x86_64).*mingw", Rundrv.Handlers.Native_Windows'Access),
-      (+"(x86|x86_64)-linux",   Rundrv.Handlers.Native_Linux'Access),
+      (+"(x86|x86_64)-linux", Rundrv.Handlers.Native_Linux'Access),
       (+"(x86|x86_64)-windows", Rundrv.Handlers.Native_Windows'Access),
-      (+"iSystem-(5554|5634)",  Rundrv.Handlers.ISystem'Access),
-      (+"prepare(32|64)",       Rundrv.Handlers.Prepare'Access),
-      (+"visium-elf",           Rundrv.Handlers.Visium_ELF'Access));
+      (+"iSystem-(5554|5634)", Rundrv.Handlers.ISystem'Access),
+      (+"prepare(32|64)", Rundrv.Handlers.Prepare'Access),
+      (+"visium-elf", Rundrv.Handlers.Visium_ELF'Access));
    --  For each target category, this table provides a target triples
    --  (without board name) pattern and a function to create the corresponding
    --  driver.

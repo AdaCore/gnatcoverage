@@ -29,9 +29,10 @@ package body Factory_Registry is
       Tag     : Ada.Tags.Tag;
    end record;
 
-   package Registry_Maps is new Ada.Containers.Indefinite_Ordered_Maps
-     (Key_Type     => String,
-      Element_Type => Factory_Record);
+   package Registry_Maps is new
+     Ada.Containers.Indefinite_Ordered_Maps
+       (Key_Type     => String,
+        Element_Type => Factory_Record);
 
    Registry_Map : Registry_Maps.Map;
 
@@ -50,7 +51,7 @@ package body Factory_Registry is
          return new T;
       end Create_T;
 
-   --  Start of processing for Register_Factory
+      --  Start of processing for Register_Factory
 
    begin
       Registry_Map.Insert (Name, (Factory => Create_T_Acc, Tag => T'Tag));
@@ -87,8 +88,8 @@ package body Factory_Registry is
          end if;
       end loop;
 
-      raise Constraint_Error with
-        "no factory for " & Ada.Tags.External_Tag (Tag);
+      raise Constraint_Error
+        with "no factory for " & Ada.Tags.External_Tag (Tag);
    end Name;
 
    ----------------------

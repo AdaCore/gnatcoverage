@@ -55,15 +55,14 @@ package body Perf_Counters is
 
       if Counters (Line_Table_Alloc) > 0 then
          Counters (Line_Table_Alloc_Avg_Size) :=
-           Counters (Line_Table_Alloc_Size)
-           / Counters (Line_Table_Alloc);
+           Counters (Line_Table_Alloc_Size) / Counters (Line_Table_Alloc);
       end if;
 
       --  Compute maximum name and value lengths
 
       for J in Counters'Range loop
          Max_Name := Natural'Max (Max_Name, J'Img'Length);
-         Max_Val  := Natural'Max (Max_Val,  Counters (J));
+         Max_Val := Natural'Max (Max_Val, Counters (J));
       end loop;
 
       --  Display
@@ -74,7 +73,7 @@ package body Perf_Counters is
       New_Line;
 
       Max_Name := Max_Name + 1;
-      Max_Val  := Max_Val'Img'Length;
+      Max_Val := Max_Val'Img'Length;
 
       for J in Counters'Range loop
          Put_Line (Head (J'Img, Max_Name) & Tail (Counters (J)'Img, Max_Val));

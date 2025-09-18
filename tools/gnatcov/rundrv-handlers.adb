@@ -23,11 +23,11 @@ with Ada.Strings;       use Ada.Strings;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
 with Arch;
-with Coverage;      use Coverage;
-with Paths;         use Paths;
+with Coverage; use Coverage;
+with Paths;    use Paths;
 with Project;
 with Support_Files;
-with Switches;      use Switches;
+with Switches; use Switches;
 
 package body Rundrv.Handlers is
 
@@ -49,9 +49,8 @@ package body Rundrv.Handlers is
 
    function Bundled_Or_Plain (What, Where : String) return String is
       Dir     : constant String :=
-         Paths.Build_Filename (Support_Files.Libexec_Dir, Where);
-      Bundled : constant String :=
-         Paths.Build_Filename (Dir, What);
+        Paths.Build_Filename (Support_Files.Libexec_Dir, Where);
+      Bundled : constant String := Paths.Build_Filename (Dir, What);
    begin
       return (if Exists (Bundled) then Bundled else What);
    end Bundled_Or_Plain;
@@ -76,7 +75,7 @@ package body Rundrv.Handlers is
       --  possible references to relative directories within the path.
 
       Trace_Name : constant String :=
-         GNAT.OS_Lib.Normalize_Pathname (Context.Trace_File.all);
+        GNAT.OS_Lib.Normalize_Pathname (Context.Trace_File.all);
    begin
       if Context.Histmap /= null then
          return "histmap=" & Context.Histmap.all & ',' & Trace_Name;
@@ -136,9 +135,9 @@ package body Rundrv.Handlers is
       pragma Unreferenced (Matches);
 
       Drrun    : constant String :=
-         Bundled_Or_Plain (What => "drrun.exe", Where => "bin" & Bits);
+        Bundled_Or_Plain (What => "drrun.exe", Where => "bin" & Bits);
       Drclient : constant String :=
-         Bundled_Or_Plain (What => "qtrace.dll", Where => "lib" & Bits);
+        Bundled_Or_Plain (What => "qtrace.dll", Where => "lib" & Bits);
    begin
       Native := True;
       Cmd := (Command => +Drrun, others => <>);
@@ -169,7 +168,7 @@ package body Rundrv.Handlers is
         Context.Target_Family.all (Matches (1).First .. Matches (1).Last);
    begin
       Native := False;
-      Cmd := (Command => +"../libexec/gnatcoverage/isys_drv", others  => <>);
+      Cmd := (Command => +"../libexec/gnatcoverage/isys_drv", others => <>);
       Append_Arg (Cmd, System);
       Append_Arg (Cmd, Context.Exe_File.all);
       Append_Arg (Cmd, Trace_Input (Context));
@@ -188,7 +187,7 @@ package body Rundrv.Handlers is
       pragma Unreferenced (Context, Matches);
    begin
       Native := False;
-      Cmd := (Command => +"", others  => <>);
+      Cmd := (Command => +"", others => <>);
    end Prepare;
 
    ----------------
@@ -204,7 +203,7 @@ package body Rundrv.Handlers is
       pragma Unreferenced (Matches);
    begin
       Native := False;
-      Cmd := (Command => +"visium-elf-run", others  => <>);
+      Cmd := (Command => +"visium-elf-run", others => <>);
       Append_Arg (Cmd, "--trace=" & Context.Trace_File.all);
       Append_Arg (Cmd, Context.Exe_File.all);
    end Visium_ELF;
@@ -219,8 +218,9 @@ package body Rundrv.Handlers is
       Cmd     : out Command_Type;
       Native  : out Boolean)
    is
-      Gnatemu : String_Access := GNAT.OS_Lib.Locate_Exec_On_Path
-        (Context.Target_Family.all & "-gnatemu");
+      Gnatemu : String_Access :=
+        GNAT.OS_Lib.Locate_Exec_On_Path
+          (Context.Target_Family.all & "-gnatemu");
    begin
       if Gnatemu = null then
          Found := False;
@@ -254,8 +254,9 @@ package body Rundrv.Handlers is
             use Key_Element_Maps;
          begin
             for Scenario_Var in S_Variables.Iterate loop
-               Append_Arg (Cmd, "-X" & Key (Scenario_Var)
-                                & "=" & Element (Scenario_Var));
+               Append_Arg
+                 (Cmd,
+                  "-X" & Key (Scenario_Var) & "=" & Element (Scenario_Var));
             end loop;
          end;
       end if;

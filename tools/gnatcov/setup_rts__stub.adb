@@ -118,8 +118,8 @@ package body Setup_RTS is
    -----------------------
 
    function Check_RTS_Profile
-     (Profile     : Resolved_RTS_Profile;
-      Dump_Config : Any_Dump_Config) return Boolean
+     (Profile : Resolved_RTS_Profile; Dump_Config : Any_Dump_Config)
+      return Boolean
    is
       pragma Unreferenced (Profile, Dump_Config);
    begin

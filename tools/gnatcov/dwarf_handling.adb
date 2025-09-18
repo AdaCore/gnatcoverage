@@ -102,14 +102,13 @@ package body Dwarf_Handling is
    -- Read_ULEB128 --
    ------------------
 
-   procedure Read_ULEB128 (Base : Address;
-                           Off  : in out Storage_Offset;
-                           Res  : out Unsigned_32)
+   procedure Read_ULEB128
+     (Base : Address; Off : in out Storage_Offset; Res : out Unsigned_32)
    is
       B     : Unsigned_8;
       Shift : Integer;
    begin
-      Res   := 0;
+      Res := 0;
       Shift := 0;
 
       loop
@@ -126,14 +125,13 @@ package body Dwarf_Handling is
    -- Read_SLEB128 --
    ------------------
 
-   procedure Read_SLEB128 (Base : Address;
-                           Off  : in out Storage_Offset;
-                           Res  : out Unsigned_32)
+   procedure Read_SLEB128
+     (Base : Address; Off : in out Storage_Offset; Res : out Unsigned_32)
    is
       B     : Unsigned_8;
       Shift : Integer;
    begin
-      Res   := 0;
+      Res := 0;
       Shift := 0;
 
       loop
@@ -154,9 +152,8 @@ package body Dwarf_Handling is
    -- Read_Word8_Le --
    -------------------
 
-   procedure Read_Word8_Le (Base : Address;
-                            Off  : in out Storage_Offset;
-                            Res  : out Unsigned_64)
+   procedure Read_Word8_Le
+     (Base : Address; Off : in out Storage_Offset; Res : out Unsigned_64)
    is
       B : Unsigned_8;
    begin
@@ -172,9 +169,8 @@ package body Dwarf_Handling is
    -- Read_Word4_Le --
    -------------------
 
-   procedure Read_Word4_Le (Base : Address;
-                            Off : in out Storage_Offset;
-                            Res : out Unsigned_32)
+   procedure Read_Word4_Le
+     (Base : Address; Off : in out Storage_Offset; Res : out Unsigned_32)
    is
       B0, B1, B2, B3 : Unsigned_8;
    begin
@@ -182,7 +178,8 @@ package body Dwarf_Handling is
       B1 := Read_Byte (Base + Off + 1);
       B2 := Read_Byte (Base + Off + 2);
       B3 := Read_Byte (Base + Off + 3);
-      Res := Shift_Left (Unsigned_32 (B3), 24)
+      Res :=
+        Shift_Left (Unsigned_32 (B3), 24)
         or Shift_Left (Unsigned_32 (B2), 16)
         or Shift_Left (Unsigned_32 (B1), 8)
         or Shift_Left (Unsigned_32 (B0), 0);
@@ -193,16 +190,15 @@ package body Dwarf_Handling is
    -- Read_Word2_Le --
    -------------------
 
-   procedure Read_Word2_Le (Base : Address;
-                            Off : in out Storage_Offset;
-                            Res : out Unsigned_16)
+   procedure Read_Word2_Le
+     (Base : Address; Off : in out Storage_Offset; Res : out Unsigned_16)
    is
       B0, B1 : Unsigned_8;
    begin
       B0 := Read_Byte (Base + Off + 0);
       B1 := Read_Byte (Base + Off + 1);
-      Res := Shift_Left (Unsigned_16 (B1), 8)
-        or Shift_Left (Unsigned_16 (B0), 0);
+      Res :=
+        Shift_Left (Unsigned_16 (B1), 8) or Shift_Left (Unsigned_16 (B0), 0);
       Off := Off + 2;
    end Read_Word2_Le;
 
@@ -210,9 +206,8 @@ package body Dwarf_Handling is
    -- Read_Word8_Be --
    -------------------
 
-   procedure Read_Word8_Be (Base : Address;
-                            Off : in out Storage_Offset;
-                            Res : out Unsigned_64)
+   procedure Read_Word8_Be
+     (Base : Address; Off : in out Storage_Offset; Res : out Unsigned_64)
    is
       B : Unsigned_8;
    begin
@@ -228,9 +223,8 @@ package body Dwarf_Handling is
    -- Read_Word4_Be --
    -------------------
 
-   procedure Read_Word4_Be (Base : Address;
-                            Off : in out Storage_Offset;
-                            Res : out Unsigned_32)
+   procedure Read_Word4_Be
+     (Base : Address; Off : in out Storage_Offset; Res : out Unsigned_32)
    is
       B0, B1, B2, B3 : Unsigned_8;
    begin
@@ -238,7 +232,8 @@ package body Dwarf_Handling is
       B1 := Read_Byte (Base + Off + 1);
       B2 := Read_Byte (Base + Off + 2);
       B3 := Read_Byte (Base + Off + 3);
-      Res := Shift_Left (Unsigned_32 (B0), 24)
+      Res :=
+        Shift_Left (Unsigned_32 (B0), 24)
         or Shift_Left (Unsigned_32 (B1), 16)
         or Shift_Left (Unsigned_32 (B2), 8)
         or Shift_Left (Unsigned_32 (B3), 0);
@@ -249,16 +244,15 @@ package body Dwarf_Handling is
    -- Read_Word2_Be --
    -------------------
 
-   procedure Read_Word2_Be (Base : Address;
-                         Off : in out Storage_Offset;
-                         Res : out Unsigned_16)
+   procedure Read_Word2_Be
+     (Base : Address; Off : in out Storage_Offset; Res : out Unsigned_16)
    is
       B0, B1 : Unsigned_8;
    begin
       B0 := Read_Byte (Base + Off + 0);
       B1 := Read_Byte (Base + Off + 1);
-      Res := Shift_Left (Unsigned_16 (B0), 8)
-        or Shift_Left (Unsigned_16 (B1), 0);
+      Res :=
+        Shift_Left (Unsigned_16 (B0), 8) or Shift_Left (Unsigned_16 (B1), 0);
       Off := Off + 2;
    end Read_Word2_Be;
 
@@ -266,10 +260,8 @@ package body Dwarf_Handling is
    -- Read_Byte --
    ---------------
 
-   procedure Read_Byte (Base : Address;
-                        Off : in out Storage_Offset;
-                        Res : out Unsigned_8)
-   is
+   procedure Read_Byte
+     (Base : Address; Off : in out Storage_Offset; Res : out Unsigned_8) is
    begin
       Res := Read_Byte (Base + Off);
       Off := Off + 1;
@@ -279,8 +271,7 @@ package body Dwarf_Handling is
    -- Read_String --
    -----------------
 
-   procedure Read_String (Base : Address; Off : in out Storage_Offset)
-   is
+   procedure Read_String (Base : Address; Off : in out Storage_Offset) is
       B : Unsigned_8;
    begin
       loop
@@ -293,16 +284,15 @@ package body Dwarf_Handling is
    -- Read_String --
    -----------------
 
-   function Read_String (Addr : Address) return String
-   is
+   function Read_String (Addr : Address) return String is
       function C_Strlen (Addr : Address) return Integer;
       pragma Import (C, C_Strlen, "strlen");
       Len : Integer;
 
       subtype Fat_String is String (Positive);
       type Fat_String_Acc is access Fat_String;
-      function To_Fat_String is new Ada.Unchecked_Conversion
-        (Address, Fat_String_Acc);
+      function To_Fat_String is new
+        Ada.Unchecked_Conversion (Address, Fat_String_Acc);
       Str : constant Fat_String_Acc := To_Fat_String (Addr);
    begin
       if Addr = Null_Address then
@@ -316,11 +306,10 @@ package body Dwarf_Handling is
    -- Write_Byte --
    ----------------
 
-   procedure Write_Byte (Addr : Address; Val : Unsigned_8)
-   is
+   procedure Write_Byte (Addr : Address; Val : Unsigned_8) is
       type Unsigned_8_Acc is access all Unsigned_8;
-      function To_Unsigned_8_Acc is new Ada.Unchecked_Conversion
-        (Address, Unsigned_8_Acc);
+      function To_Unsigned_8_Acc is new
+        Ada.Unchecked_Conversion (Address, Unsigned_8_Acc);
    begin
       To_Unsigned_8_Acc (Addr).all := Val;
    end Write_Byte;
@@ -329,9 +318,8 @@ package body Dwarf_Handling is
    -- Write_Word4_Le --
    --------------------
 
-   procedure Write_Word4_Le (Base : Address;
-                             Off : in out Storage_Offset;
-                             Val : Unsigned_32)
+   procedure Write_Word4_Le
+     (Base : Address; Off : in out Storage_Offset; Val : Unsigned_32)
    is
       B0, B1, B2, B3 : Unsigned_8;
    begin
@@ -351,9 +339,8 @@ package body Dwarf_Handling is
    -- Write_Word4_Be --
    --------------------
 
-   procedure Write_Word4_Be (Base : Address;
-                             Off : in out Storage_Offset;
-                             Val : Unsigned_32)
+   procedure Write_Word4_Be
+     (Base : Address; Off : in out Storage_Offset; Val : Unsigned_32)
    is
       B0, B1, B2, B3 : Unsigned_8;
    begin
@@ -373,9 +360,8 @@ package body Dwarf_Handling is
    -- Write_Word8_Le --
    --------------------
 
-   procedure Write_Word8_Le (Base : Address;
-                             Off : in out Storage_Offset;
-                             Val : Unsigned_64)
+   procedure Write_Word8_Le
+     (Base : Address; Off : in out Storage_Offset; Val : Unsigned_64)
    is
       B : Unsigned_8;
    begin
@@ -390,9 +376,8 @@ package body Dwarf_Handling is
    -- Write_Word8_Be --
    --------------------
 
-   procedure Write_Word8_Be (Base : Address;
-                             Off : in out Storage_Offset;
-                             Val : Unsigned_64)
+   procedure Write_Word8_Be
+     (Base : Address; Off : in out Storage_Offset; Val : Unsigned_64)
    is
       B : Unsigned_8;
    begin

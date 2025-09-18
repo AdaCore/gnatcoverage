@@ -129,8 +129,8 @@ package Setup_RTS is
    --  config is missing from this project, abort with a fatal error.
 
    function Check_RTS_Profile
-     (Profile     : Resolved_RTS_Profile;
-      Dump_Config : Any_Dump_Config) return Boolean;
+     (Profile : Resolved_RTS_Profile; Dump_Config : Any_Dump_Config)
+      return Boolean;
    --  Check that Dump_Config is compatible with Profile. If there is an
    --  incompatibility, emit warnings and return True. Return False otherwise.
    --

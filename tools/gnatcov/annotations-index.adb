@@ -18,13 +18,13 @@
 
 with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Ordered_Maps;
-with Ada.Text_IO;      use Ada.Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 
 with GNAT.OS_Lib;
 
-with Coverage;         use Coverage;
+with Coverage; use Coverage;
 with Project;
-with Outputs;          use Outputs;
+with Outputs;  use Outputs;
 
 --  This package generates one coverage statistics report per enabled coverage
 --  level and one for the coverage stats of lines. If multiple report formats
@@ -33,17 +33,17 @@ with Outputs;          use Outputs;
 package body Annotations.Index is
 
    subtype Index_Cov_States is Any_Line_State range Not_Covered .. Covered;
-   subtype Percentage       is Natural range 0 .. 100;
+   subtype Percentage is Natural range 0 .. 100;
 
    type Stats_Per_State is array (Index_Cov_States) of Natural
-     with Default_Component_Value => 0;
+   with Default_Component_Value => 0;
    --  Array of coverage percentage per coverage state
 
    type Project_Stats is record
-      Total       : Natural := 0;
+      Total : Natural := 0;
       --  Total number of lines/obligations to be covered
 
-      Stats       : Stats_Per_State;
+      Stats : Stats_Per_State;
       --  Array of coverage percentage per state
 
       Files_Stats : Strings.Unbounded_String;
@@ -53,9 +53,10 @@ package body Annotations.Index is
    end record;
    --  Record storing a project's coverage information
 
-   package Projects_Stats_Maps is new Ada.Containers.Indefinite_Ordered_Maps
-     (Key_Type     => String,
-      Element_Type => Project_Stats);
+   package Projects_Stats_Maps is new
+     Ada.Containers.Indefinite_Ordered_Maps
+       (Key_Type     => String,
+        Element_Type => Project_Stats);
    --  Map associating the project's name to its coverage statistics
 
    function "+" (P : Percentage) return String;
@@ -63,24 +64,19 @@ package body Annotations.Index is
    --  by replacing the missing digits by spaces.
 
    function Build_Stat_String
-     (Name     : String;
-      Stats    : Stats_Per_State;
-      Total    : Natural;
-      Lines    : Boolean;
-      Is_Prj   : Boolean := False)
-      return String;
+     (Name   : String;
+      Stats  : Stats_Per_State;
+      Total  : Natural;
+      Lines  : Boolean;
+      Is_Prj : Boolean := False) return String;
    --  Return a formated string expressing the coverage stats
 
    function Compute_Percentage
-     (Stats : Stats_Per_State;
-      Total : Positive)
-     return Stats_Per_State;
+     (Stats : Stats_Per_State; Total : Positive) return Stats_Per_State;
    --  Return an array of coverage percentage, dividing each value of Stats by
    --  Total.
 
-   procedure Generate_Index
-     (L     : Coverage_Level := Stmt;
-      Lines : Boolean);
+   procedure Generate_Index (L : Coverage_Level := Stmt; Lines : Boolean);
    --  Generate the coverage index file for coverage level L, or for lines if
    --  Lines is set to True.
 
@@ -88,8 +84,7 @@ package body Annotations.Index is
    -- Generate_Indices --
    ----------------------
 
-   procedure Generate_Indices
-   is
+   procedure Generate_Indices is
       Output_Dir    : constant String := Get_Output_Dir;
       Output_Subdir : constant String :=
         Output_Dir & "/stats" & GNAT.OS_Lib.Directory_Separator;
@@ -123,8 +118,7 @@ package body Annotations.Index is
    -- "+" --
    ---------
 
-   function "+" (P : Percentage) return String
-   is
+   function "+" (P : Percentage) return String is
       P_Str         : Unbounded_String := +Percentage'Image (P);
       Needed_Spaces : constant Natural := 3 - (Length (P_Str) - 1);
    begin
@@ -140,17 +134,14 @@ package body Annotations.Index is
    -----------------------
 
    function Build_Stat_String
-     (Name     : String;
-      Stats    : Stats_Per_State;
-      Total    : Natural;
-      Lines    : Boolean;
-      Is_Prj   : Boolean := False)
-      return String
+     (Name   : String;
+      Stats  : Stats_Per_State;
+      Total  : Natural;
+      Lines  : Boolean;
+      Is_Prj : Boolean := False) return String
    is
       function Metric_Stats
-        (Stats : Stats_Per_State;
-         Total : Natural)
-         return String;
+        (Stats : Stats_Per_State; Total : Natural) return String;
       --  Express the Stats as a string
 
       ------------------
@@ -158,9 +149,7 @@ package body Annotations.Index is
       ------------------
 
       function Metric_Stats
-        (Stats : Stats_Per_State;
-         Total : Natural)
-         return String
+        (Stats : Stats_Per_State; Total : Natural) return String
       is
          Percentages : Stats_Per_State;
          Res         : Unbounded_String := +"-   -%, !   -%, +   -%";
@@ -171,7 +160,7 @@ package body Annotations.Index is
 
          if Total /= 0 then
             Percentages := Compute_Percentage (Stats, Total);
-            Res         := Null_Unbounded_String;
+            Res := Null_Unbounded_String;
 
             for State in Stats'Range loop
                Append
@@ -188,10 +177,14 @@ package body Annotations.Index is
    begin
       return
         +(+(if Is_Prj then "" else "    ")
-          & Name & ":" & ASCII.LF
-          & "        " & Metric_Stats (Stats, Total)
-          & "     out of" & Natural'Image (Total)
-          & (if Lines then  " lines" else " obligations"));
+          & Name
+          & ":"
+          & ASCII.LF
+          & "        "
+          & Metric_Stats (Stats, Total)
+          & "     out of"
+          & Natural'Image (Total)
+          & (if Lines then " lines" else " obligations"));
    end Build_Stat_String;
 
    -------------------------
@@ -199,14 +192,11 @@ package body Annotations.Index is
    -------------------------
 
    function Compute_Percentage
-     (Stats : Stats_Per_State;
-      Total : Positive)
-      return Stats_Per_State
-   is
+     (Stats : Stats_Per_State; Total : Positive) return Stats_Per_State is
    begin
       return Res : Stats_Per_State do
          for State in Stats_Per_State'Range loop
-               Res (State) := (Stats (State) * 100) / Total;
+            Res (State) := (Stats (State) * 100) / Total;
          end loop;
       end return;
    end Compute_Percentage;
@@ -215,10 +205,7 @@ package body Annotations.Index is
    -- Generate_Index --
    --------------------
 
-   procedure Generate_Index
-     (L     : Coverage_Level := Stmt;
-      Lines : Boolean)
-   is
+   procedure Generate_Index (L : Coverage_Level := Stmt; Lines : Boolean) is
       Projects_Stats      : Projects_Stats_Maps.Map :=
         Projects_Stats_Maps.Empty_Map;
       Other_Sources_Stats : Project_Stats;
@@ -249,8 +236,7 @@ package body Annotations.Index is
          File_Stats : Stats_Per_State;
          File_Name  : String;
          Lines      : Boolean;
-         Is_Prj     : Boolean := False)
-      is
+         Is_Prj     : Boolean := False) is
       begin
          --  If the file contained relevant obligations or lines, update its
          --  project's statistics.
@@ -285,22 +271,22 @@ package body Annotations.Index is
 
          Append
            (Prj_Stats.Files_Stats,
-            ASCII.LF & (if Is_Prj then "" & ASCII.LF else "")
+            ASCII.LF
+            & (if Is_Prj then "" & ASCII.LF else "")
             & Build_Stat_String
-              (File_Name,
-               File_Stats,
-               File_Total,
-               Lines  => Lines,
-               Is_Prj => Is_Prj));
+                (File_Name,
+                 File_Stats,
+                 File_Total,
+                 Lines  => Lines,
+                 Is_Prj => Is_Prj));
       end Update;
 
       ----------------------
       -- Process_One_File --
       ----------------------
 
-      procedure Process_One_File (Source_Index : Source_File_Index)
-      is
-         Info : constant File_Info_Access := Get_File (Source_Index);
+      procedure Process_One_File (Source_Index : Source_File_Index) is
+         Info  : constant File_Info_Access := Get_File (Source_Index);
          Total : constant Natural :=
            (if Info.Kind = Source_File
             then
@@ -336,8 +322,9 @@ package body Annotations.Index is
          Source_Name : constant String := Info.Simple_Name.all;
          Prj_Name    : constant String :=
            (if Info.Kind = Source_File and then Project.Is_Project_Loaded
-            then Project.Project_Name
-              (Get_Full_Name (Source_Index, Or_Simple => True))
+            then
+              Project.Project_Name
+                (Get_Full_Name (Source_Index, Or_Simple => True))
             else "");
          --  Note that P_Name can be "" here either because we don't have
          --  a root project at all or because we were unable to find the
@@ -352,8 +339,7 @@ package body Annotations.Index is
          if Prj_Name /= "" then
             declare
                procedure Update_Stats
-                 (Key     : String;
-                  Element : in out Project_Stats);
+                 (Key : String; Element : in out Project_Stats);
                --  Update the project's stats according to the file's
 
                ------------------
@@ -361,17 +347,17 @@ package body Annotations.Index is
                ------------------
 
                procedure Update_Stats
-                 (Key     : String;
-                  Element : in out Project_Stats)
+                 (Key : String; Element : in out Project_Stats)
                is
                   pragma Unreferenced (Key);
                begin
-                  Update (Element,
-                          Total,
-                          Stats,
-                          Source_Name,
-                          Lines  => Lines,
-                          Is_Prj => False);
+                  Update
+                    (Element,
+                     Total,
+                     Stats,
+                     Source_Name,
+                     Lines  => Lines,
+                     Is_Prj => False);
                end Update_Stats;
 
                Prj_C : constant Projects_Stats_Maps.Cursor :=
@@ -384,20 +370,21 @@ package body Annotations.Index is
                       Stats       => Stats,
                       Files_Stats =>
                         ASCII.LF
-                      & (+Build_Stat_String
-                           (Source_Name, Stats, Total, Lines))));
+                        & (+Build_Stat_String
+                              (Source_Name, Stats, Total, Lines))));
                else
                   Projects_Stats.Update_Element (Prj_C, Update_Stats'Access);
                end if;
             end;
          else
             if Info.Kind = Source_File then
-               Update (Other_Sources_Stats,
-                       Total,
-                       Stats,
-                       Source_Name,
-                       Lines  => Lines,
-                       Is_Prj => False);
+               Update
+                 (Other_Sources_Stats,
+                  Total,
+                  Stats,
+                  Source_Name,
+                  Lines  => Lines,
+                  Is_Prj => False);
             end if;
          end if;
       end Process_One_File;
@@ -406,8 +393,7 @@ package body Annotations.Index is
       -- Write_Index --
       -----------------
 
-      procedure Write_Index
-      is
+      procedure Write_Index is
          Cov_Index_File : File_Type;
 
          Metric   : constant String :=
@@ -466,14 +452,15 @@ package body Annotations.Index is
 
          Create_Output_File (Cov_Index_File, Filename);
          Put_Line (Cov_Index_File, Metric);
-         Put_Line (Cov_Index_File,
-                   ASCII.LF
-                   & Build_Stat_String
-                     ("Global",
-                      Global_Stats.Stats,
-                      Global_Stats.Total,
-                      Is_Prj => True,
-                      Lines  => Lines));
+         Put_Line
+           (Cov_Index_File,
+            ASCII.LF
+            & Build_Stat_String
+                ("Global",
+                 Global_Stats.Stats,
+                 Global_Stats.Total,
+                 Is_Prj => True,
+                 Lines  => Lines));
          Put_Line (Cov_Index_File, +Contents);
       end Write_Index;
 

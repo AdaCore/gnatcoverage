@@ -59,9 +59,9 @@ package body Setup_RTS is
    LK_Static      : aliased constant String := "static";
    LK_Static_PIC  : aliased constant String := "static-pic";
    LK_Relocatable : aliased constant String := "relocatable";
-   Library_Kinds  : constant array (Positive range <>)
-                             of access constant String :=
-     (LK_Static'Access, LK_Static_PIC'Access, LK_Relocatable'Access);
+   Library_Kinds  :
+     constant array (Positive range <>) of access constant String :=
+       (LK_Static'Access, LK_Static_PIC'Access, LK_Relocatable'Access);
 
    Ravenscar_RTS_Regexp : constant GNAT.Regexp.Regexp :=
      GNAT.Regexp.Compile (".*(ravenscar|light-tasking|embedded).*");
@@ -160,8 +160,8 @@ package body Setup_RTS is
    --  to run the instrumenter).
 
    function Load
-     (Project_File      : String;
-      Setup_Config_File : Virtual_File) return Setup_Config;
+     (Project_File : String; Setup_Config_File : Virtual_File)
+      return Setup_Config;
    --  Helper for the public Load function: load the setup config file at
    --  Setup_Config_File. On success, use Project_File for the result's
    --  Project_File component.
@@ -217,9 +217,11 @@ package body Setup_RTS is
       end if;
 
       for C in Context.Iterate loop
-         Opts.Add_Switch (GPR2.Options.X,
-                          String (GPR2.Context.Key_Value.Key (C)) & '=' &
-                            String (GPR2.Context.Key_Value.Element (C)));
+         Opts.Add_Switch
+           (GPR2.Options.X,
+            String (GPR2.Context.Key_Value.Key (C))
+            & '='
+            & String (GPR2.Context.Key_Value.Element (C)));
       end loop;
 
       if RTS /= "" then
@@ -230,15 +232,17 @@ package body Setup_RTS is
          Opts.Add_Switch (GPR2.Options.Target, Target);
       end if;
 
-      return Project.Load
-        (Opts,
-         Reporter         => GPR2.Reporter.Console.Create
-                               ((if Setup_RTS_Trace.Is_Active
-                                 then GPR2.Reporter.Regular
-                                 else GPR2.Reporter.No_Warnings)),
-         With_Runtime     => True,
-         Absent_Dir_Error => GPR2.No_Error,
-         Check_Drivers    => False);
+      return
+        Project.Load
+          (Opts,
+           Reporter         =>
+             GPR2.Reporter.Console.Create
+               ((if Setup_RTS_Trace.Is_Active
+                 then GPR2.Reporter.Regular
+                 else GPR2.Reporter.No_Warnings)),
+           With_Runtime     => True,
+           Absent_Dir_Error => GPR2.No_Error,
+           Check_Drivers    => False);
    end Load_Project;
 
    -----------
@@ -247,11 +251,12 @@ package body Setup_RTS is
 
    function Image (Profile : Any_RTS_Profile) return String is
    begin
-      return (case Profile is
-              when Auto     => "auto",
-              when Full     => "full",
-              when Embedded => "embedded",
-              when Minimal  => "minimal");
+      return
+        (case Profile is
+           when Auto     => "auto",
+           when Full     => "full",
+           when Embedded => "embedded",
+           when Minimal  => "minimal");
    end Image;
 
    -----------
@@ -270,8 +275,7 @@ package body Setup_RTS is
          return Minimal;
       else
          return
-           (raise Constraint_Error
-            with "invalid RTS profile: " & Profile);
+           (raise Constraint_Error with "invalid RTS profile: " & Profile);
       end if;
    end Value;
 
@@ -284,7 +288,7 @@ package body Setup_RTS is
    is
    begin
       case RTS_Profile is
-         when Full =>
+         when Full     =>
 
             --  The runtime is full so, use the handiest dump configuration:
             --  directly create source trace files, and to it automatically at
@@ -300,14 +304,14 @@ package body Setup_RTS is
             --  runtimes).
 
             return
-              (Channel                => Base64_Standard_Output,
-               Trigger                =>
+              (Channel                 => Base64_Standard_Output,
+               Trigger                 =>
                  (if GNAT.Regexp.Match (RTS, Ravenscar_RTS_Regexp)
                   then Ravenscar_Task_Termination
                   else Main_End),
-              Manual_Indication_Files => File_Sets.Empty_Set);
+               Manual_Indication_Files => File_Sets.Empty_Set);
 
-         when Minimal =>
+         when Minimal  =>
 
             --  The minimal configuration cannot rely on any Ada runtime
             --  feature, in particular tasking constructs, so only main-end
@@ -328,12 +332,13 @@ package body Setup_RTS is
 
    function Default_Project_File return String is
    begin
-      return Result : constant String :=
-        Support_Files.In_Share_Dir ("gnatcov_rts") / "gnatcov_rts.gpr"
+      return
+         Result : constant String :=
+           Support_Files.In_Share_Dir ("gnatcov_rts") / "gnatcov_rts.gpr"
       do
          if not Exists (Result) then
-            Fatal_Error ("No instrumentation runtime project file at "
-                         & Result);
+            Fatal_Error
+              ("No instrumentation runtime project file at " & Result);
          end if;
       end return;
    end Default_Project_File;
@@ -377,8 +382,7 @@ package body Setup_RTS is
 
       declare
          Tree_Dir_VF : constant Virtual_File := Create (+Tree_Dir);
-         Parent      : Virtual_File :=
-           Get_Parent (Create (+Tree_Dir_Copy));
+         Parent      : Virtual_File := Get_Parent (Create (+Tree_Dir_Copy));
       begin
          while Parent /= No_File loop
             if Parent = Tree_Dir_VF then
@@ -393,7 +397,7 @@ package body Setup_RTS is
       --  Copy the sources of the project to build
 
       declare
-         Success  : Boolean;
+         Success : Boolean;
       begin
          Create (+Tree_Dir).Copy (+Tree_Dir_Copy, Success);
          if not Success then
@@ -408,8 +412,9 @@ package body Setup_RTS is
       if Name = Install_Name then
          return Project_File_Copy;
       else
-         return Result : constant String :=
-           Temp_Dir.Directory_Name / (Install_Name & ".gpr")
+         return
+            Result : constant String :=
+              Temp_Dir.Directory_Name / (Install_Name & ".gpr")
          do
             File.Create (Result);
             File.Put_Line ("project " & Install_Name);
@@ -445,9 +450,7 @@ package body Setup_RTS is
    is
       Has_Ada       : constant Boolean := Src_Enabled_Languages (Ada_Language);
       Main_Language : constant GPR2.Language_Id :=
-        (if Has_Ada
-         then GPR2.Ada_Language
-         else GPR2.C_Language);
+        (if Has_Ada then GPR2.Ada_Language else GPR2.C_Language);
 
       Ctx       : GPR2.Context.Object;
       Prj       : GPR2.Project.Tree.Object;
@@ -473,20 +476,20 @@ package body Setup_RTS is
       --  C-only projects do not require a runtime, so do not complain if there
       --  is no runtime project in this case.
 
-      Has_Error := Has_Error
-        or else (Has_Ada and then not Prj.Has_Runtime_Project);
+      Has_Error :=
+        Has_Error or else (Has_Ada and then not Prj.Has_Runtime_Project);
 
       declare
          Logs : constant access GPR2.Log.Object := Prj.Log_Messages;
       begin
          if Logs.Has_Element
-           (Hint     => False,
-            Warning  => True,
-            Error    => False,
-            End_User => False,
-            Lint     => False,
-            Read     => True,
-            Unread   => True)
+              (Hint     => False,
+               Warning  => True,
+               Error    => False,
+               End_User => False,
+               Lint     => False,
+               Read     => True,
+               Unread   => True)
          then
             Register_Warning;
          end if;
@@ -656,12 +659,13 @@ package body Setup_RTS is
 
       --  The project may not have been installed there yet, so ignore errors
 
-      Dummy := Run_Command
-        (Command             => "gprinstall",
-         Arguments           => Args,
-         Origin_Command_Name => "gprinstall",
-         Out_To_Null         => not Setup_RTS_Trace.Is_Active,
-         Ignore_Error        => True);
+      Dummy :=
+        Run_Command
+          (Command             => "gprinstall",
+           Arguments           => Args,
+           Origin_Command_Name => "gprinstall",
+           Out_To_Null         => not Setup_RTS_Trace.Is_Active,
+           Ignore_Error        => True);
    end Uninstall;
 
    -----------------------
@@ -779,9 +783,7 @@ package body Setup_RTS is
       --  If a specific RTS profile was requested, use it
 
       Actual_RTS_Profile :=
-        (if RTS_Profile = Auto
-         then Auto_RTS_Profile
-         else RTS_Profile);
+        (if RTS_Profile = Auto then Auto_RTS_Profile else RTS_Profile);
 
       Setup_RTS_Trace.Trace
         ("Actual RTS profile: " & Actual_RTS_Profile'Image);
@@ -805,7 +807,7 @@ package body Setup_RTS is
          --  default dump config for the selected language runtime, then refine
          --  it with the command-line arguments.
 
-         Dump_Config         : constant Any_Dump_Config :=
+         Dump_Config : constant Any_Dump_Config :=
            Load_Dump_Config
              (Default_Dump_Config (Actual_RTS_Profile, +Actual_RTS_Name));
       begin
@@ -898,7 +900,7 @@ package body Setup_RTS is
             end;
 
             case Lib_Support is
-               when None =>
+               when None        =>
                   Fatal_Error
                     ("This target/runtime configuration does not support"
                      & " library projects: cannot build the instrumentation"
@@ -912,7 +914,7 @@ package body Setup_RTS is
                      Build_Args,
                      Install_Args);
 
-               when Full =>
+               when Full        =>
                   for LK of Library_Kinds loop
                      Build_And_Install
                        (Actual_Project_File,
@@ -935,8 +937,7 @@ package body Setup_RTS is
                & " is ready to use it.");
          else
             declare
-               Dir_Sep    : Character renames
-                 GNAT.OS_Lib.Directory_Separator;
+               Dir_Sep    : Character renames GNAT.OS_Lib.Directory_Separator;
                On_Windows : constant Boolean := Dir_Sep = '\';
 
                Norm_Prefix    : constant String :=
@@ -958,8 +959,8 @@ package body Setup_RTS is
                New_Line;
                Put_Line ("  " & Shared_Lib_Dir);
                New_Line;
-               Put_Line ("to the " & Shared_Lib_Var
-                         & " environment variable.");
+               Put_Line
+                 ("to the " & Shared_Lib_Var & " environment variable.");
             end;
          end if;
       end if;
@@ -1002,8 +1003,7 @@ package body Setup_RTS is
       --  over, we should not have to worry about discrepancies anymore.
 
       function Canonicalize_Target (Name : String) return String
-      is (String
-            (GPR2.KB.Create.Normalized_Target (GPR2.Name_Type (Name))));
+      is (String (GPR2.KB.Create.Normalized_Target (GPR2.Name_Type (Name))));
 
       --------------------------
       -- Canonicalize_Runtime --
@@ -1024,7 +1024,7 @@ package body Setup_RTS is
          return Name (Name'First .. Last);
       end Canonicalize_Runtime;
 
-   --  Start of processing for Check_Target_RTS_Consistency
+      --  Start of processing for Check_Target_RTS_Consistency
 
    begin
       --  If no project was loaded, there is no current target/RTS, and so
@@ -1036,12 +1036,20 @@ package body Setup_RTS is
 
       declare
          function Error_Message (What, Expected, Actual : String) return String
-         is ("Current " & What & " is:"
-             & ASCII.LF & "  "
+         is ("Current "
+             & What
+             & " is:"
+             & ASCII.LF
+             & "  "
              & (if Actual = "" then "<none>" else Actual)
-             & ASCII.LF & "which is inconsistent with the " & What
-             & " for " & GNATcov_RTS_Project & ": "
-             & ASCII.LF & "  "
+             & ASCII.LF
+             & "which is inconsistent with the "
+             & What
+             & " for "
+             & GNATcov_RTS_Project
+             & ": "
+             & ASCII.LF
+             & "  "
              & (if Expected = "" then "<none>" else Expected));
 
          Expected_Target   : constant String :=
@@ -1060,8 +1068,8 @@ package body Setup_RTS is
          if Expected_Target /= Actual_Target then
             Warn (Error_Message ("target", Expected_Target, Actual_Target));
          elsif Actual_RTS /= ""
-               and then Expected_RTS_Dir /= Actual_RTS
-               and then Expected_RTS_Name /= Actual_RTS
+           and then Expected_RTS_Dir /= Actual_RTS
+           and then Expected_RTS_Name /= Actual_RTS
          then
             Warn (Error_Message ("runtime", Expected_RTS_Dir, Actual_RTS));
          end if;
@@ -1083,7 +1091,7 @@ package body Setup_RTS is
       Prj_Ext      : constant String := ".gpr";
       Prj_Filename : constant String :=
         (if not Has_Suffix (Runtime_Project, Prj_Ext)
-            and then Exists (Runtime_Project & Prj_Ext)
+           and then Exists (Runtime_Project & Prj_Ext)
          then Runtime_Project & Prj_Ext
          else Runtime_Project);
       --  Name of the runtime project file to load it with GPR2.
@@ -1106,8 +1114,8 @@ package body Setup_RTS is
       --  case, so return a dummy one.
 
       if To_Lower (Target) in "c" | "aamp"
-         or else (Project.Is_Project_Loaded
-                  and then To_Lower (Project.Target) in "c" | "aamp")
+        or else (Project.Is_Project_Loaded
+                 and then To_Lower (Project.Target) in "c" | "aamp")
       then
          return Default_Setup_Config;
       end if;
@@ -1117,8 +1125,8 @@ package body Setup_RTS is
       --  fails to load, just return the default setup config.
 
       if not Load_Project (Prj, Prj_Filename, Target, RTS, Config_File)
-         or else (Src_Enabled_Languages (Ada_Language)
-                  and then not Prj.Has_Runtime_Project)
+        or else (Src_Enabled_Languages (Ada_Language)
+                 and then not Prj.Has_Runtime_Project)
       then
          Error
            ("Could not load the coverage runtime project " & Runtime_Project);
@@ -1151,24 +1159,27 @@ package body Setup_RTS is
            ("Please install the coverage runtime with ""gnatcov setup""");
       end if;
 
-      return Result : constant Setup_Config :=
-        Load (+Project_File.Full_Name, Setup_Config_File)
+      return
+         Result : constant Setup_Config :=
+           Load (+Project_File.Full_Name, Setup_Config_File)
       do
          Setup_RTS_Trace.Trace
            ("Successfully loaded the setup configuration file "
-            & (+Setup_Config_File.Full_Name) & ".");
+            & (+Setup_Config_File.Full_Name)
+            & ".");
       end return;
    end Load;
 
    function Load
-     (Project_File      : String;
-      Setup_Config_File : Virtual_File) return Setup_Config
+     (Project_File : String; Setup_Config_File : Virtual_File)
+      return Setup_Config
    is
       J : JSON_Value;
       --  Top-level object in the Setup_Config_File JSON file, validated to be
       --  an object (JSON mapping).
 
-      procedure Stop_With_Error (Message : String) with No_Return;
+      procedure Stop_With_Error (Message : String)
+      with No_Return;
       --  Output an error for the loading of the config file with the given
       --  message and raise a Xcov_Exit_Exc exception.
 
@@ -1191,7 +1202,7 @@ package body Setup_RTS is
       begin
          Error
            ("Error while loading the setup config file "
-             & (+Setup_Config_File.Full_Name));
+            & (+Setup_Config_File.Full_Name));
          Error (Message);
          raise Xcov_Exit_Exc;
       end Stop_With_Error;
@@ -1235,7 +1246,7 @@ package body Setup_RTS is
       Channel : Any_Dump_Channel;
       Trigger : Any_Dump_Trigger;
 
-   --  Start of processing for Load
+      --  Start of processing for Load
 
    begin
       if not Parsed_JSON.Success then
@@ -1279,7 +1290,7 @@ package body Setup_RTS is
       end;
 
       case Channel is
-         when Binary_File =>
+         when Binary_File            =>
             Result.Default_Dump_Config :=
               (Channel                 => Binary_File,
                Trigger                 => Trigger,
@@ -1327,13 +1338,12 @@ package body Setup_RTS is
          J.Set_Field ("dump-channel", Image (Dump_Cfg.Channel));
          J.Set_Field ("dump-trigger", Image (Dump_Cfg.Trigger));
          case Dump_Cfg.Channel is
-            when Binary_File =>
-               J.Set_Field
-                 ("dump-filename-simple", Dump_Cfg.Filename_Simple);
+            when Binary_File            =>
+               J.Set_Field ("dump-filename-simple", Dump_Cfg.Filename_Simple);
                J.Set_Field
                  ("dump-filename-env-var", Dump_Cfg.Filename_Env_Var);
-               J.Set_Field
-                 ("dump-filename-prefix", Dump_Cfg.Filename_Prefix);
+               J.Set_Field ("dump-filename-prefix", Dump_Cfg.Filename_Prefix);
+
             when Base64_Standard_Output =>
                null;
          end case;
@@ -1349,8 +1359,8 @@ package body Setup_RTS is
    -----------------------
 
    function Check_RTS_Profile
-     (Profile     : Resolved_RTS_Profile;
-      Dump_Config : Any_Dump_Config) return Boolean
+     (Profile : Resolved_RTS_Profile; Dump_Config : Any_Dump_Config)
+      return Boolean
    is
       Had_Warnings : Boolean := False;
 
@@ -1381,21 +1391,23 @@ package body Setup_RTS is
       end if;
 
       case Profile is
-         when Full =>
-            Warn (Dump_Config.Trigger = Ravenscar_Task_Termination,
-                  "--dump-trigger=ravenscar-task-termination");
+         when Full     =>
+            Warn
+              (Dump_Config.Trigger = Ravenscar_Task_Termination,
+               "--dump-trigger=ravenscar-task-termination");
 
          when Embedded =>
             Warn (Dump_Config.Trigger = At_Exit, "--dump-trigger=atexit");
-            Warn (Dump_Config.Channel = Binary_File,
-                  "--dump-channel=bin-file");
+            Warn
+              (Dump_Config.Channel = Binary_File, "--dump-channel=bin-file");
 
-         when Minimal =>
+         when Minimal  =>
             Warn (Dump_Config.Trigger = At_Exit, "--dump-trigger=atexit");
-            Warn (Dump_Config.Trigger = Ravenscar_Task_Termination,
-                  "--dump-trigger=ravenscar-task-termination");
-            Warn (Dump_Config.Channel = Binary_File,
-                  "--dump-channel=bin-file");
+            Warn
+              (Dump_Config.Trigger = Ravenscar_Task_Termination,
+               "--dump-trigger=ravenscar-task-termination");
+            Warn
+              (Dump_Config.Channel = Binary_File, "--dump-channel=bin-file");
       end case;
 
       return Had_Warnings;
@@ -1416,11 +1428,9 @@ package body Setup_RTS is
 
       Start_Search
         (Lib_Dir_Search,
-         Directory =>
-         RTS_Dir & GNAT.OS_Lib.Directory_Separator & "adalib",
+         Directory => RTS_Dir & GNAT.OS_Lib.Directory_Separator & "adalib",
          Pattern   => "*" & Shared_Lib_Ext,
-         Filter    =>
-           (Ordinary_File => True, others => False));
+         Filter    => (Ordinary_File => True, others => False));
 
       return Res : constant Boolean := More_Entries (Lib_Dir_Search) do
          End_Search (Lib_Dir_Search);

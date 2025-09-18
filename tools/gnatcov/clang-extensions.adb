@@ -29,11 +29,10 @@ package body Clang.Extensions is
 
    function To_Sloc
      (File : File_T; Line, Column : unsigned) return Source_Location
-   is
-     ((Source_File => Get_Index_From_Generic_Name
-                        (Name => Get_File_Name (File),
-                         Kind => Source_File),
-       L           =>  To_Sloc (Line, Column)));
+   is ((Source_File =>
+          Get_Index_From_Generic_Name
+            (Name => Get_File_Name (File), Kind => Source_File),
+        L           => To_Sloc (Line, Column)));
    --  Convert a Clang source location to gnatcov's own format
 
    -----------------------
@@ -43,12 +42,10 @@ package body Clang.Extensions is
    function Get_Decl_Name_Str (C : Cursor_T) return String is
 
       function Get_Decl_Name_Str_C (C : Cursor_T) return String_T
-        with
-          Import, Convention => C,
-          External_Name => "clang_getDeclName";
+      with Import, Convention => C, External_Name => "clang_getDeclName";
 
       DeclName_Str_C : constant String_T := Get_Decl_Name_Str_C (C);
-      DeclName       : constant String   := Get_C_String (DeclName_Str_C);
+      DeclName       : constant String := Get_C_String (DeclName_Str_C);
    begin
       Dispose_String (DeclName_Str_C);
       return DeclName;
@@ -61,12 +58,10 @@ package body Clang.Extensions is
    function Get_Callee_Name_Str (C : Cursor_T) return String is
 
       function Get_Callee_Name_Str_C (C : Cursor_T) return String_T
-        with
-          Import, Convention => C,
-          External_Name => "clang_getCalleeName";
+      with Import, Convention => C, External_Name => "clang_getCalleeName";
 
       CalleeName_Str_C : constant String_T := Get_Callee_Name_Str_C (C);
-      CalleeName       : constant String   := Get_C_String (CalleeName_Str_C);
+      CalleeName       : constant String := Get_C_String (CalleeName_Str_C);
    begin
       Dispose_String (CalleeName_Str_C);
       return CalleeName;
@@ -78,9 +73,10 @@ package body Clang.Extensions is
 
    function Is_Instrumentable_Call_Expr (C : Cursor_T) return Boolean is
       function Is_Instrumentable_Call_Expr_C (C : Cursor_T) return unsigned
-        with
-          Import, Convention => C,
-          External_Name => "clang_isInstrumentableCallExpr";
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_isInstrumentableCallExpr";
    begin
       return Is_Instrumentable_Call_Expr_C (C) /= 0;
    end Is_Instrumentable_Call_Expr;
@@ -91,9 +87,10 @@ package body Clang.Extensions is
 
    function Is_Prefixed_CXX_Member_Call_Expr (C : Cursor_T) return Boolean is
       function Is_CXX_Member_Call_Expr_C (C : Cursor_T) return unsigned
-        with
-          Import, Convention => C,
-          External_Name => "clang_isPrefixedCXXMemberCallExpr";
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_isPrefixedCXXMemberCallExpr";
    begin
       return Is_CXX_Member_Call_Expr_C (C) /= 0;
    end Is_Prefixed_CXX_Member_Call_Expr;
@@ -104,9 +101,10 @@ package body Clang.Extensions is
 
    function Is_Struct_Field_Call_Expr (C : Cursor_T) return Boolean is
       function Is_Struct_Field_Call_Expr_C (C : Cursor_T) return unsigned
-        with
-          Import, Convention => C,
-          External_Name => "clang_isStructFieldCallExpr";
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_isStructFieldCallExpr";
    begin
       return Is_Struct_Field_Call_Expr_C (C) /= 0;
    end Is_Struct_Field_Call_Expr;
@@ -118,9 +116,7 @@ package body Clang.Extensions is
    function Get_Opcode_Str (C : Cursor_T) return String is
 
       function Get_Opcode_Str_C (C : Cursor_T) return String_T
-        with
-          Import, Convention => C,
-          External_Name => "clang_getOpcodeStr";
+      with Import, Convention => C, External_Name => "clang_getOpcodeStr";
 
       Opcode_Str_C : constant String_T := Get_Opcode_Str_C (C);
       Opcode_Str   : constant String := Get_C_String (Opcode_Str_C);
@@ -133,13 +129,13 @@ package body Clang.Extensions is
    -- Is_This_Declaration_A_Definition --
    --------------------------------------
 
-   function Is_This_Declaration_A_Definition (C : Cursor_T) return Boolean
-   is
+   function Is_This_Declaration_A_Definition (C : Cursor_T) return Boolean is
       function Is_This_Declaration_A_Definition_C
         (C : Cursor_T) return unsigned
-        with
-          Import, Convention => C,
-          External_Name => "clang_isThisDeclarationADefinition";
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_isThisDeclarationADefinition";
    begin
       return Is_This_Declaration_A_Definition_C (C) /= 0;
    end Is_This_Declaration_A_Definition;
@@ -148,12 +144,9 @@ package body Clang.Extensions is
    -- Is_Constexpr --
    ------------------
 
-   function Is_Constexpr (C : Cursor_T) return Boolean
-   is
+   function Is_Constexpr (C : Cursor_T) return Boolean is
       function Is_Constexpr_C (C : Cursor_T) return unsigned
-        with
-          Import, Convention => C,
-          External_Name => "clang_isConstexpr";
+      with Import, Convention => C, External_Name => "clang_isConstexpr";
    begin
       return Is_Constexpr_C (C) /= 0;
    end Is_Constexpr;
@@ -163,17 +156,14 @@ package body Clang.Extensions is
    -----------------------------------
 
    procedure CX_Rewriter_Insert_Text_After
-     (Rew    : Rewriter_T;
-      Loc    : Source_Location_T;
-      Insert : String)
+     (Rew : Rewriter_T; Loc : Source_Location_T; Insert : String)
    is
       procedure CX_Rewriter_Insert_Text_After_C
-        (Rew    : Rewriter_T;
-         Loc    : Source_Location_T;
-         Insert : String)
-        with
-          Import, Convention => C,
-          External_Name => "clang_CXRewriter_insertTextAfter";
+        (Rew : Rewriter_T; Loc : Source_Location_T; Insert : String)
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_CXRewriter_insertTextAfter";
    begin
       CX_Rewriter_Insert_Text_After_C (Rew, Loc, Insert & ASCII.NUL);
    end CX_Rewriter_Insert_Text_After;
@@ -183,17 +173,14 @@ package body Clang.Extensions is
    -----------------------------------------
 
    procedure CX_Rewriter_Insert_Text_After_Token
-     (Rew    : Rewriter_T;
-      Loc    : Source_Location_T;
-      Insert : String)
+     (Rew : Rewriter_T; Loc : Source_Location_T; Insert : String)
    is
       procedure CX_Rewriter_Insert_Text_After_Token_C
-        (Rew    : Rewriter_T;
-         Loc    : Source_Location_T;
-         Insert : String)
-        with
-          Import, Convention => C,
-          External_Name => "clang_CXRewriter_insertTextAfterToken";
+        (Rew : Rewriter_T; Loc : Source_Location_T; Insert : String)
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_CXRewriter_insertTextAfterToken";
    begin
       CX_Rewriter_Insert_Text_After_Token_C (Rew, Loc, Insert & ASCII.NUL);
    end CX_Rewriter_Insert_Text_After_Token;
@@ -203,17 +190,14 @@ package body Clang.Extensions is
    ------------------------------------------
 
    procedure CX_Rewriter_Insert_Text_Before_Token
-     (Rew    : Rewriter_T;
-      Loc    : Source_Location_T;
-      Insert : String)
+     (Rew : Rewriter_T; Loc : Source_Location_T; Insert : String)
    is
       procedure CX_Rewriter_Insert_Text_Before_Token_C
-        (Rew    : Rewriter_T;
-         Loc    : Source_Location_T;
-         Insert : String)
-        with
-          Import, Convention => C,
-          External_Name => "clang_CXRewriter_insertTextBeforeToken";
+        (Rew : Rewriter_T; Loc : Source_Location_T; Insert : String)
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_CXRewriter_insertTextBeforeToken";
    begin
       CX_Rewriter_Insert_Text_Before_Token_C (Rew, Loc, Insert & ASCII.NUL);
    end CX_Rewriter_Insert_Text_Before_Token;
@@ -223,15 +207,14 @@ package body Clang.Extensions is
    ------------------------------------
 
    function CX_Rewriter_Get_Rewritten_Text
-     (Rew : Rewriter_T;
-      R   : Source_Range_T) return String
+     (Rew : Rewriter_T; R : Source_Range_T) return String
    is
       function CX_Rewriter_Get_Rewritten_Text
-        (Rew : Rewriter_T;
-         R   : Source_Range_T) return String_T
-        with
-          Import, Convention => C,
-          External_Name => "clang_CXRewriter_getRewrittenText";
+        (Rew : Rewriter_T; R : Source_Range_T) return String_T
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_CXRewriter_getRewrittenText";
 
       Rewritten_Text_C : constant String_T :=
         CX_Rewriter_Get_Rewritten_Text (Rew, R);
@@ -290,12 +273,9 @@ package body Clang.Extensions is
    -- Is_Macro_Location --
    -----------------------
 
-   function Is_Macro_Location (Loc : Source_Location_T) return Boolean
-   is
+   function Is_Macro_Location (Loc : Source_Location_T) return Boolean is
       function Is_Macro_Location_C (Loc : Source_Location_T) return unsigned
-        with
-          Import, Convention => C,
-          External_Name => "clang_isMacroLocation";
+      with Import, Convention => C, External_Name => "clang_isMacroLocation";
    begin
       return Is_Macro_Location_C (Loc) /= 0;
    end Is_Macro_Location;
@@ -313,14 +293,16 @@ package body Clang.Extensions is
         (Loc       : Source_Location_T;
          Start_Loc : access Source_Location_T;
          TU        : Translation_Unit_T) return unsigned
-        with
-          Import, Convention => C,
-          External_Name      => "clang_isMacroArgExpansion";
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_isMacroArgExpansion";
 
       C_Start_Loc : aliased Source_Location_T;
    begin
-      return Result : constant Boolean :=
-        Is_Macro_Arg_Expansion (Loc, C_Start_Loc'Access, TU) /= 0
+      return
+         Result : constant Boolean :=
+           Is_Macro_Arg_Expansion (Loc, C_Start_Loc'Access, TU) /= 0
       do
          Start_Loc := C_Start_Loc;
       end return;
@@ -331,20 +313,18 @@ package body Clang.Extensions is
    ----------------------------------------------
 
    function Get_Immediate_Macro_Name_For_Diagnostics
-     (Loc : Source_Location_T;
-      TU  : Translation_Unit_T) return String
+     (Loc : Source_Location_T; TU : Translation_Unit_T) return String
    is
       function Get_Immediate_Macro_Name_For_Diagnostics_C
-        (Loc : Source_Location_T;
-         TU  : Translation_Unit_T) return String_T
-        with
-          Import, Convention => C,
-          External_Name      => "clang_getImmediateMacroNameForDiagnostics";
+        (Loc : Source_Location_T; TU : Translation_Unit_T) return String_T
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_getImmediateMacroNameForDiagnostics";
 
       Macro_Name_C : constant String_T :=
         Get_Immediate_Macro_Name_For_Diagnostics_C (Loc, TU);
-      Macro_Name   : constant String :=
-        Get_C_String (Macro_Name_C);
+      Macro_Name   : constant String := Get_C_String (Macro_Name_C);
    begin
       Dispose_String (Macro_Name_C);
       return Macro_Name;

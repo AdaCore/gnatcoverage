@@ -36,9 +36,7 @@ with Traces_Elf;   use Traces_Elf;
 package Execs_Dbase is
 
    procedure Open_Exec
-     (File_Name  : String;
-      Text_Start : Pc_Type;
-      Exec       : out Exe_File_Acc);
+     (File_Name : String; Text_Start : Pc_Type; Exec : out Exe_File_Acc);
    --  Search for a file named File_Name in the Exec database. If one found,
    --  return it; otherwise, open File_Name and add it to the database, then
    --  return it in Exec.
@@ -73,7 +71,7 @@ private
       --  Name of the file associated to this entry. This should be a full path
       --  to an target executable on the host file system.
 
-      Exec           : Exe_File_Acc;
+      Exec : Exe_File_Acc;
       --  Access to the exe file information of the file whose name is
       --  Elf_File_Name.
    end record;
@@ -81,12 +79,13 @@ private
    function "=" (L, R : Exec_Base_Entry) return Boolean;
    --  Return True if L and R represent the same executable.
 
-   package Execs_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => String_Access,
-      Element_Type    => Exec_Base_Entry,
-      Hash            => Hash,
-      Equivalent_Keys => Equal,
-      "="             => "=");
+   package Execs_Maps is new
+     Ada.Containers.Hashed_Maps
+       (Key_Type        => String_Access,
+        Element_Type    => Exec_Base_Entry,
+        Hash            => Hash,
+        Equivalent_Keys => Equal,
+        "="             => "=");
 
    type Exec_Base_Type is access all Execs_Maps.Map;
 

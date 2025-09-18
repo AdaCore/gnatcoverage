@@ -23,8 +23,8 @@ with Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with Inputs;
-with Outputs;        use Outputs;
-with Project;        use Project;
+with Outputs; use Outputs;
+with Project; use Project;
 
 package body Switches is
 
@@ -37,8 +37,9 @@ package body Switches is
    function Parse
      (Argv         : String_Vectors.Vector;
       With_Command : Command_Type := No_Command;
-      Callback     : access procedure (Result : in out Parsed_Arguments;
-                                       Ref    : Option_Reference) := null)
+      Callback     :
+        access procedure
+          (Result : in out Parsed_Arguments; Ref : Option_Reference) := null)
       return Parsed_Arguments;
    --  Parse Args using Arg_Parser. If there is an error, call Fatal_Error with
    --  the error message.
@@ -71,9 +72,7 @@ package body Switches is
    -- Copy_Arg --
    --------------
 
-   procedure Copy_Arg
-     (Option   : String_Options;
-      Variable : out String_Access)
+   procedure Copy_Arg (Option : String_Options; Variable : out String_Access)
    is
       Opt : String_Option renames Args.String_Args (Option);
    begin
@@ -120,7 +119,7 @@ package body Switches is
          end if;
       end Process;
 
-   --  Start of processing for Expand_Argument
+      --  Start of processing for Expand_Argument
 
    begin
       Process (Argument);
@@ -142,15 +141,13 @@ package body Switches is
    -------------------
 
    procedure Copy_Arg_List
-     (Option : String_List_Options;
-      List   : in out String_Vectors.Vector) is
+     (Option : String_List_Options; List : in out String_Vectors.Vector) is
    begin
       Copy_Arg_List (Args.String_List_Args (Option), List);
    end Copy_Arg_List;
 
    procedure Copy_Arg_List
-     (Args : String_Vectors.Vector;
-      List  : in out String_Vectors.Vector) is
+     (Args : String_Vectors.Vector; List : in out String_Vectors.Vector) is
    begin
       for Arg of Args loop
          Append_Expanded_Argument (+Arg, List);
@@ -164,8 +161,8 @@ package body Switches is
    procedure Process_File_Or_Dir_Switch
      (Args              : String_Vectors.Vector;
       Orig_Switch       : String;
-      Process_Dir_Entry : access procedure
-        (Dir : Ada.Directories.Directory_Entry_Type);
+      Process_Dir_Entry :
+        access procedure (Dir : Ada.Directories.Directory_Entry_Type);
       Process_Arg       : access procedure (Exp_Arg : String);
       Pattern           : String := "")
    is
@@ -199,9 +196,13 @@ package body Switches is
                   End_Search (S);
                else
                   Outputs.Warn
-                    ("Skipping processing of " & Orig_Switch & " argument "
-                     & Path & ". Expecting a directory but got a "
-                     & Ada.Directories.File_Kind'Image (Kind (Path)) & ".");
+                    ("Skipping processing of "
+                     & Orig_Switch
+                     & " argument "
+                     & Path
+                     & ". Expecting a directory but got a "
+                     & Ada.Directories.File_Kind'Image (Kind (Path))
+                     & ".");
                end if;
             end;
          else
@@ -323,7 +324,8 @@ package body Switches is
             Dump_Filename_Simple := Default_Dump_Config.Filename_Simple;
             Dump_Filename_Env_Var := Default_Dump_Config.Filename_Env_Var;
             Dump_Filename_Prefix := Default_Dump_Config.Filename_Prefix;
-         when others =>
+
+         when others      =>
             null;
       end case;
 
@@ -350,7 +352,7 @@ package body Switches is
 
       return Dump_Config : Any_Dump_Config do
          case Dump_Channel is
-            when Binary_File =>
+            when Binary_File            =>
                Dump_Config :=
                  (Channel                 => Binary_File,
                   Trigger                 => Dump_Trigger,
@@ -358,6 +360,7 @@ package body Switches is
                   Filename_Simple         => Dump_Filename_Simple,
                   Filename_Env_Var        => Dump_Filename_Env_Var,
                   Filename_Prefix         => Dump_Filename_Prefix);
+
             when Base64_Standard_Output =>
                Dump_Config :=
                  (Channel                 => Base64_Standard_Output,
@@ -378,17 +381,20 @@ package body Switches is
    begin
       Result.Append (+"--dump-trigger");
       case Dump_Config.Trigger is
-         when Manual =>
+         when Manual                     =>
             Result.Append (+"manual");
-         when At_Exit =>
+
+         when At_Exit                    =>
             Result.Append (+"atexit");
+
          when Ravenscar_Task_Termination =>
             Result.Append (+"ravenscar-task-termination");
-         when Main_End =>
+
+         when Main_End                   =>
             Result.Append (+"main-end");
       end case;
       case Dump_Config.Channel is
-         when Binary_File =>
+         when Binary_File            =>
             Result.Append (+"--dump-channel=bin-file");
             if Dump_Config.Filename_Simple then
                Result.Append (+"--dump-filename-simple");
@@ -401,6 +407,7 @@ package body Switches is
                Result.Append
                  (+"--dump-filename-prefix=" & Dump_Config.Filename_Prefix);
             end if;
+
          when Base64_Standard_Output =>
             Result.Append (+"--dump-channel=base64-stdout");
       end case;
@@ -469,10 +476,11 @@ package body Switches is
 
    function Image (Language : Some_Language) return String is
    begin
-      return (case Language is
-              when Ada_Language => "Ada",
-              when C_Language   => "C",
-              when CPP_Language => "C++");
+      return
+        (case Language is
+           when Ada_Language => "Ada",
+           when C_Language   => "C",
+           when CPP_Language => "C++");
    end Image;
 
    --------------------
@@ -482,10 +490,11 @@ package body Switches is
    function To_Language_Id (Language : Some_Language) return GPR2.Language_Id
    is
    begin
-      return (case Language is
-              when Ada_Language => GPR2.Ada_Language,
-              when C_Language   => GPR2.C_Language,
-              when CPP_Language => GPR2.CPP_Language);
+      return
+        (case Language is
+           when Ada_Language => GPR2.Ada_Language,
+           when C_Language   => GPR2.C_Language,
+           when CPP_Language => GPR2.CPP_Language);
    end To_Language_Id;
 
    -----------------------
@@ -527,10 +536,10 @@ package body Switches is
 
          for I in Real_Target'Range loop
             if Real_Target (I) = ',' then
-               Target_Family := new String'
-                 (Real_Target (Real_Target'First .. I - 1));
-               Target_Board  := new String'
-                 (Real_Target (I + 1 .. Real_Target'Last));
+               Target_Family :=
+                 new String'(Real_Target (Real_Target'First .. I - 1));
+               Target_Board :=
+                 new String'(Real_Target (I + 1 .. Real_Target'Last));
                return;
             end if;
          end loop;
@@ -548,8 +557,8 @@ package body Switches is
 
    procedure Load_Project_Arguments (From_Driver : Boolean) is
 
-      procedure Check_Allowed_Option (Result : in out Parsed_Arguments;
-                                      Ref    : Option_Reference);
+      procedure Check_Allowed_Option
+        (Result : in out Parsed_Arguments; Ref : Option_Reference);
       --  Put an error message in Result if Ref is an option that is forbidden
       --  in project files.
 
@@ -557,22 +566,28 @@ package body Switches is
       -- Check_Allowed_Option --
       --------------------------
 
-      procedure Check_Allowed_Option (Result : in out Parsed_Arguments;
-                                      Ref    : Option_Reference)
+      procedure Check_Allowed_Option
+        (Result : in out Parsed_Arguments; Ref : Option_Reference)
       is
          Complain : Boolean := False;
       begin
          case Ref.Kind is
             when String_Opt =>
-               Complain := Ref.String_Option in
-                 Opt_Project | Opt_Target | Opt_Runtime | Opt_Subdirs |
-                 Opt_Root_Dir;
-            when others =>
+               Complain :=
+                 Ref.String_Option
+                 in Opt_Project
+                  | Opt_Target
+                  | Opt_Runtime
+                  | Opt_Subdirs
+                  | Opt_Root_Dir;
+
+            when others     =>
                null;
          end case;
          if Complain then
-            Result.Error := +(Option_Name (Arg_Parser, Ref)
-                              & " may not be specified in a project.");
+            Result.Error :=
+              +(Option_Name (Arg_Parser, Ref)
+                & " may not be specified in a project.");
          end if;
       end Check_Allowed_Option;
 
@@ -581,7 +596,7 @@ package body Switches is
       Runtime      : String_Access;
       CGPR_File    : String_Access;
 
-   --  Start of processing for Load_Project_Arguments
+      --  Start of processing for Load_Project_Arguments
 
    begin
       if not Args.String_Args (Opt_Project).Present then
@@ -607,17 +622,14 @@ package body Switches is
             Name_Last, Value_First : Natural;
          begin
             Name_Last := Str'First - 1;
-            while Name_Last < Str'Last
-              and then Str (Name_Last + 1) /= '='
-            loop
+            while Name_Last < Str'Last and then Str (Name_Last + 1) /= '=' loop
                Name_Last := Name_Last + 1;
             end loop;
 
             Value_First := Name_Last + 2;
 
             S_Variables.Include
-              (Str (Str'First .. Name_Last),
-               Str (Value_First .. Str'Last));
+              (Str (Str'First .. Name_Last), Str (Value_First .. Str'Last));
          end;
       end loop;
 
@@ -666,10 +678,11 @@ package body Switches is
          Command_Switches : constant String_Vectors.Vector :=
            Project.Switches (Command_Name);
       begin
-         Project_Args := Parse
-           (Common_Switches,
-            With_Command => Args.Command,
-            Callback     => Check_Allowed_Option'Access);
+         Project_Args :=
+           Parse
+             (Common_Switches,
+              With_Command => Args.Command,
+              Callback     => Check_Allowed_Option'Access);
          Merge
            (Project_Args,
             Parse
@@ -699,7 +712,7 @@ package body Switches is
       end if;
 
       if not Args.String_Args (Opt_Runtime).Present
-         and then Project.Runtime /= ""
+        and then Project.Runtime /= ""
       then
          Args.String_Args (Opt_Runtime) :=
            (Present => True, Value => +Project.Runtime);
@@ -713,13 +726,14 @@ package body Switches is
    function Parse
      (Argv         : String_Vectors.Vector;
       With_Command : Command_Type := No_Command;
-      Callback     : access procedure (Result : in out Parsed_Arguments;
-                                       Ref    : Option_Reference) := null)
+      Callback     :
+        access procedure
+          (Result : in out Parsed_Arguments; Ref : Option_Reference) := null)
       return Parsed_Arguments
    is
-      Result   : constant Parsed_Arguments :=
+      Result : constant Parsed_Arguments :=
         Parse (Arg_Parser, Argv, With_Command, Callback);
-      Error    : constant String := +Result.Error;
+      Error  : constant String := +Result.Error;
    begin
       if Error'Length /= 0 then
          Args.Command := Result.Command;
@@ -802,18 +816,20 @@ package body Switches is
 
    function Image (Dump_Trigger : Any_Dump_Trigger) return String is
    begin
-      return (case Dump_Trigger is
-              when Manual                     => "manual",
-              when At_Exit                    => "atexit",
-              when Ravenscar_Task_Termination => "ravenscar-task-termination",
-              when Main_End                   => "main-end");
+      return
+        (case Dump_Trigger is
+           when Manual                     => "manual",
+           when At_Exit                    => "atexit",
+           when Ravenscar_Task_Termination => "ravenscar-task-termination",
+           when Main_End                   => "main-end");
    end Image;
 
    function Image (Dump_Channel : Any_Dump_Channel) return String is
    begin
-      return (case Dump_Channel is
-              when Binary_File            => "bin-file",
-              when Base64_Standard_Output => "base64-stdout");
+      return
+        (case Dump_Channel is
+           when Binary_File            => "bin-file",
+           when Base64_Standard_Output => "base64-stdout");
    end Image;
 
    -----------
@@ -833,7 +849,7 @@ package body Switches is
       else
          return
            (raise Constraint_Error
-            with "invalid dump trigger: " & Dump_Trigger);
+              with "invalid dump trigger: " & Dump_Trigger);
       end if;
    end Value;
 
@@ -846,7 +862,7 @@ package body Switches is
       else
          return
            (raise Constraint_Error
-            with "invalid dump channel: " & Dump_Channel);
+              with "invalid dump channel: " & Dump_Channel);
       end if;
    end Value;
 
@@ -875,7 +891,7 @@ package body Switches is
       procedure Process (Option : Option_Reference) is
       begin
          if Is_Present (Args, Option)
-            and then Supports (Arg_Parser, Cmd, Option)
+           and then Supports (Arg_Parser, Cmd, Option)
          then
             Result.Append_Vector (Unparse (Arg_Parser, Args, Option));
          end if;
@@ -915,8 +931,7 @@ package body Switches is
          declare
             Year : constant String := Ada_Version'Image (5 .. 8);
          begin
-            if Index (From, Year) /= 0
-              or else Index (From, Year (7 .. 8)) /= 0
+            if Index (From, Year) /= 0 or else Index (From, Year (7 .. 8)) /= 0
             then
                V := Ada_Version;
                return True;

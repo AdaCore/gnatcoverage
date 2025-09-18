@@ -92,16 +92,19 @@ procedure Instrument.Clean_Objdirs is
          Clean_Objdirs_Trace.Trace ("it is an externally built project");
 
          if not Externally_Built_Projects_Processing_Enabled
-            and then Has_Regular_Files (Output_Dir)
+           and then Has_Regular_Files (Output_Dir)
          then
             --  Short of re-implementing non trivial project handling logic,
             --  there is no API that allows us to determine whether files in
             --  Output_Dir would be considered as sources with --src-subdirs:
             --  consider that all files there could be sources.
 
-            Warn ("Project """ & String (Project.Name) & """ is externally"
-                  & " built and does not contain units of interest, however it"
-                  & " contains instrumented sources");
+            Warn
+              ("Project """
+               & String (Project.Name)
+               & """ is externally"
+               & " built and does not contain units of interest, however it"
+               & " contains instrumented sources");
          end if;
 
          --  We should never try to modify externally built projects, so do not
@@ -118,8 +121,7 @@ procedure Instrument.Clean_Objdirs is
       if Project.Kind in GPR2.With_Object_Dir_Kind
         and then Project.Object_Directory.Exists
       then
-         Clean_Dir
-           (Project.Object_Directory.String_Value, Pattern => "*.sid");
+         Clean_Dir (Project.Object_Directory.String_Value, Pattern => "*.sid");
       end if;
       if Project.Kind in GPR2.Library_Kind
         and then Project.Library_Directory.Exists
@@ -149,7 +151,7 @@ procedure Instrument.Clean_Objdirs is
       end return;
    end Has_Regular_Files;
 
---  Start of processing for Instrument.Clean_Objdirs
+   --  Start of processing for Instrument.Clean_Objdirs
 
 begin
    --  Go through all projects to clear up their object directories. Also go

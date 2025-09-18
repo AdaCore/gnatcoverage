@@ -27,16 +27,19 @@ package body Instrument.Ada_Unit.Rewriting_Utils is
       Prefix : Text_Type;
       Node   : in out Node_Rewriting_Handle) is
    begin
-      Node := Create_Call_Expr
-        (RH,
-         F_Name   => Make_Identifier (RH, Prefix),
-         F_Suffix => Create_Regular_Node
-           (RH,
-            Ada_Assoc_List,
-            (1 => Create_Param_Assoc
-                 (RH,
-                  F_Designator => No_Node_Rewriting_Handle,
-                  F_R_Expr     => Node))));
+      Node :=
+        Create_Call_Expr
+          (RH,
+           F_Name   => Make_Identifier (RH, Prefix),
+           F_Suffix =>
+             Create_Regular_Node
+               (RH,
+                Ada_Assoc_List,
+                (1 =>
+                   Create_Param_Assoc
+                     (RH,
+                      F_Designator => No_Node_Rewriting_Handle,
+                      F_R_Expr     => Node))));
    end Wrap_In_Call_Expr;
 
    -------------------------
@@ -44,8 +47,7 @@ package body Instrument.Ada_Unit.Rewriting_Utils is
    -------------------------
 
    procedure Wrap_In_Parentheses
-     (RH     : Rewriting_Handle;
-      Node   : in out Node_Rewriting_Handle) is
+     (RH : Rewriting_Handle; Node : in out Node_Rewriting_Handle) is
    begin
       Node := Create_Paren_Expr (RH, F_Expr => Node);
    end Wrap_In_Parentheses;
@@ -55,17 +57,15 @@ package body Instrument.Ada_Unit.Rewriting_Utils is
    ---------------------
 
    procedure Wrap_In_If_Expr
-     (RH     : Rewriting_Handle;
-      Node   : in out Node_Rewriting_Handle) is
+     (RH : Rewriting_Handle; Node : in out Node_Rewriting_Handle) is
    begin
-      Node := Create_If_Expr
-        (RH,
-         F_Cond_Expr => Node,
-         F_Then_Expr =>
-            Make_Identifier (RH, To_Text ("True")),
-         F_Alternatives => No_Node_Rewriting_Handle,
-         F_Else_Expr =>
-            Make_Identifier (RH, To_Text ("False")));
+      Node :=
+        Create_If_Expr
+          (RH,
+           F_Cond_Expr    => Node,
+           F_Then_Expr    => Make_Identifier (RH, To_Text ("True")),
+           F_Alternatives => No_Node_Rewriting_Handle,
+           F_Else_Expr    => Make_Identifier (RH, To_Text ("False")));
 
       Wrap_In_Parentheses (RH, Node);
    end Wrap_In_If_Expr;

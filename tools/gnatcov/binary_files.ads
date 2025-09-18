@@ -44,46 +44,44 @@ package Binary_Files is
    end record;
    --  An array of byte, used to store ELF sections
 
-   Invalid_Binary_Content : constant Binary_Content :=
-     (null, 0, 0);
+   Invalid_Binary_Content : constant Binary_Content := (null, 0, 0);
 
    function Wrap
-     (Content     : System.Address;
-      First, Last : Arch.Arch_Addr) return Binary_Content
-     with Inline;
+     (Content : System.Address; First, Last : Arch.Arch_Addr)
+      return Binary_Content
+   with Inline;
    --  Constructor for Binary_Content
 
    procedure Relocate
-     (Bin_Cont  : in out Binary_Content;
-      New_First : Arch.Arch_Addr)
-     with Inline;
+     (Bin_Cont : in out Binary_Content; New_First : Arch.Arch_Addr)
+   with Inline;
    --  Update First and Last in Bin_Cont so that First is New_First
 
    function Length (Bin_Cont : Binary_Content) return Arch.Arch_Addr
-     with Inline;
+   with Inline;
    --  Return the number of bytes in Bin_Cont
 
    function Is_Loaded (Bin_Cont : Binary_Content) return Boolean
-     with Inline;
+   with Inline;
    --  Return whether Bin_Cont actually contains something
 
    function Get
-     (Bin_Cont : Binary_Content;
-      Offset   : Arch.Arch_Addr) return Interfaces.Unsigned_8
-     with Inline;
+     (Bin_Cont : Binary_Content; Offset : Arch.Arch_Addr)
+      return Interfaces.Unsigned_8
+   with Inline;
    --  Return the byte in Bin_Cont at Offset
 
    function Slice
-     (Bin_Cont    : Binary_Content;
-      First, Last : Arch.Arch_Addr) return Binary_Content
-     with Inline;
+     (Bin_Cont : Binary_Content; First, Last : Arch.Arch_Addr)
+      return Binary_Content
+   with Inline;
    --  Return a new Binary_Content value referencing the slice of bytes in
    --  Bin_Cont from First to Last (no copy is done).
 
    function Address_Of
-     (Bin_Cont : Binary_Content;
-      Offset   : Arch.Arch_Addr := 0) return System.Address
-     with Inline;
+     (Bin_Cont : Binary_Content; Offset : Arch.Arch_Addr := 0)
+      return System.Address
+   with Inline;
    --  Return the address of the Offset'th item in the binary content
 
    ---------------------
@@ -97,28 +95,24 @@ package Binary_Files is
    No_Loaded_Section : constant Loaded_Section;
 
    function Allocate (Size : Arch.Arch_Addr) return Loaded_Section
-     with Inline;
+   with Inline;
    --  Allocate a new section content for the given size
 
    function "+" (Region : Mapped_Region) return Loaded_Section
-     with Inline;
+   with Inline;
    --  Wrap a memory mapped file region into a loaded section
 
-   function Size (LS : Loaded_Section) return Arch.Arch_Addr with
-     Inline,
-     Pre => LS /= No_Loaded_Section;
+   function Size (LS : Loaded_Section) return Arch.Arch_Addr
+   with Inline, Pre => LS /= No_Loaded_Section;
    --  Return the size of the section in LS
 
-   function Content (LS : Loaded_Section) return Binary_Content with
-     Inline,
-     Pre => LS /= No_Loaded_Section;
+   function Content (LS : Loaded_Section) return Binary_Content
+   with Inline, Pre => LS /= No_Loaded_Section;
    --  Return the content of the given loaded section
 
    function Address_Of
-     (LS     : Loaded_Section;
-      Offset : Arch.Arch_Addr := 0) return System.Address with
-     Inline,
-     Pre => LS /= No_Loaded_Section;
+     (LS : Loaded_Section; Offset : Arch.Arch_Addr := 0) return System.Address
+   with Inline, Pre => LS /= No_Loaded_Section;
    --  Return the address of the Offset'th item in the binary content
 
    procedure Free (LS : in out Loaded_Section);
@@ -132,8 +126,8 @@ package Binary_Files is
 
    type Binary_File_Status is
      (
-      --  No error.
-      Status_Ok,
+     --  No error.
+     Status_Ok,
 
       --  Cannot open file.
       Status_Open_Failure,
@@ -143,8 +137,7 @@ package Binary_Files is
       Status_Read_Error,
       Status_Bad_Magic,
       Status_Bad_Class,
-      Status_Bad_Version
-      );
+      Status_Bad_Version);
 
    type Binary_File is tagged private;
 
@@ -179,7 +172,7 @@ package Binary_Files is
    procedure Close_File (File : in out Binary_File);
 
    procedure Make_Mutable (File : Binary_File; LS : in out Loaded_Section)
-     with Pre => LS /= No_Loaded_Section;
+   with Pre => LS /= No_Loaded_Section;
    --  If Loaded_Section is a read-only mapped region, reload it as a mutable
    --  one.
 
@@ -200,13 +193,13 @@ package Binary_Files is
    --  and primitives to emulate this.
 
    type Binary_File_Signature is record
-      Size       : Long_Integer := 0;
+      Size : Long_Integer := 0;
       --  File size (in bytes), or 0 if unknown.
 
       Time_Stamp : OS_Time := Invalid_Time;
       --  File modification time, or Invalid_Time if not known
 
-      CRC32      : Interfaces.Unsigned_32 := 0;
+      CRC32 : Interfaces.Unsigned_32 := 0;
       --  CRC32 checksum for the file content or 0 if unknown.
    end record;
    --  Container for several binary file features like file size. Used to
@@ -222,14 +215,13 @@ package Binary_Files is
    --  Reciprocal function of Time_Stamp_Image: parse broken down UTC time
    --  and return the corresponding OS_Time.
 
-   function Get_Signature (File : Binary_File) return Binary_File_Signature is
-     ((Size       => Get_Size (File),
-       Time_Stamp => Get_Time_Stamp (File),
-       CRC32      => Get_CRC32 (File)));
+   function Get_Signature (File : Binary_File) return Binary_File_Signature
+   is ((Size       => Get_Size (File),
+        Time_Stamp => Get_Time_Stamp (File),
+        CRC32      => Get_CRC32 (File)));
 
    function Match_Signatures
-     (S_File, S_Trace : Binary_File_Signature)
-      return String;
+     (S_File, S_Trace : Binary_File_Signature) return String;
    --  If the two input signatures (one for an executable file, the other from
    --  a trace file) do not match, return an non-empty string telling why.
    --  Return an empty string otherwise.
@@ -237,28 +229,28 @@ package Binary_Files is
 private
 
    type Binary_File is tagged record
-      Filename         : String_Access;
+      Filename : String_Access;
       --  Name of the file
 
-      Fd               : File_Descriptor;
-      File             : Mapped_File;
-      Region           : Mapped_Region;
+      Fd     : File_Descriptor;
+      File   : Mapped_File;
+      Region : Mapped_Region;
       --  Access the ELF content. FD is open first, then File is open using FD,
       --  and Region maps the whole content of File.
 
-      Status           : Binary_File_Status;
+      Status : Binary_File_Status;
       --  Status, used to report errors.
 
       --  A few characteristics for this file. They will be saved here as soon
       --  as the file is open, since the ELF might be closed when they are
       --  requested.
 
-      Nbr_Sections     : Section_Index;
+      Nbr_Sections : Section_Index;
       --  Number of sections.  This is the index of the last section + 1.
 
-      Size             : Long_Integer;
-      Time_Stamp       : GNAT.OS_Lib.OS_Time;
-      CRC32            : Interfaces.Unsigned_32;
+      Size       : Long_Integer;
+      Time_Stamp : GNAT.OS_Lib.OS_Time;
+      CRC32      : Interfaces.Unsigned_32;
    end record;
 
    type Loaded_Section_Kind is (None, Mapped, Allocated);
@@ -267,8 +259,10 @@ private
       case Kind is
          when None =>
             null;
+
          when Mapped =>
             Region : Mapped_Region;
+
          when Allocated =>
             Buffer : String_Access;
       end case;

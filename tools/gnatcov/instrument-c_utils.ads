@@ -28,12 +28,12 @@ with Slocs;             use Slocs;
 
 package Instrument.C_Utils is
 
-   package Cursor_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Cursor_T);
+   package Cursor_Vectors is new
+     Ada.Containers.Vectors (Index_Type => Natural, Element_Type => Cursor_T);
 
-   type Cursor_Visitor_Function is access function
-     (Node : Cursor_T) return Child_Visit_Result_T with Convention => C;
+   type Cursor_Visitor_Function is
+     access function (Node : Cursor_T) return Child_Visit_Result_T
+   with Convention => C;
 
    ------------------------
    -- Location utilities --
@@ -70,14 +70,16 @@ package Instrument.C_Utils is
 
    procedure Visit_Children
      (Parent  : Cursor_T;
-      Visitor : not null access function
-                  (Node : Cursor_T) return Child_Visit_Result_T);
+      Visitor :
+        not null access function
+          (Node : Cursor_T) return Child_Visit_Result_T);
    --  Wrapper for the Visit_Children clang procedure
 
    procedure Visit
      (Parent  : Cursor_T;
-      Visitor : not null access function
-                  (Node : Cursor_T) return Child_Visit_Result_T);
+      Visitor :
+        not null access function
+          (Node : Cursor_T) return Child_Visit_Result_T);
    --  Wrapper for the Visit clang procedure
 
    function Get_Children (N : Cursor_T) return Cursor_Vectors.Vector;
@@ -107,45 +109,35 @@ package Instrument.C_Utils is
    -------------------------
 
    procedure Insert_Text_After_Start_Of
-     (N    : Cursor_T;
-      Text : String;
-      Rew  : Rewriter_T);
+     (N : Cursor_T; Text : String; Rew : Rewriter_T);
    --  Inserts the string Text at the start location of N.
    --
    --  If this procedure is called multiple times with the same N as parameter,
    --  the string will be inserted _after_ any previously inserted string.
 
    procedure Insert_Text_In_Brackets
-     (CmpdStmt : Cursor_T;
-      Text     : String;
-      Rew      : Rewriter_T);
+     (CmpdStmt : Cursor_T; Text : String; Rew : Rewriter_T);
    --  Insert the string Text just after the opening bracket of N.
    --
    --  This procedure shall be called with CompoundStmt nodes and will fail
    --  otherwise.
 
    procedure Insert_Text_Before_Start_Of
-     (N    : Cursor_T;
-      Text : String;
-      Rew  : Rewriter_T);
+     (N : Cursor_T; Text : String; Rew : Rewriter_T);
    --  Inserts the string Text at the start location of N.
    --
    --  If this procedure is called multiple times with the same N as parameter,
    --  the string will be inserted _before_ any previously inserted string.
 
    procedure Insert_Text_After_End_Of
-     (N    : Cursor_T;
-      Text : String;
-      Rew  : Rewriter_T);
+     (N : Cursor_T; Text : String; Rew : Rewriter_T);
    --  Inserts the string Text at the end location of N.
    --
    --  If this procedure is called multiple times with the same N as parameter,
    --  the string will be inserted _after_ any previously inserted string.
 
    procedure Insert_Text_Before_End_Of
-     (N    : Cursor_T;
-      Text : String;
-      Rew  : Rewriter_T);
+     (N : Cursor_T; Text : String; Rew : Rewriter_T);
    --  Inserts the string Text at the end location of N.
    --
    --  If this procedure is called multiple times with the same N as parameter,

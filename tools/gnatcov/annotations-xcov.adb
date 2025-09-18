@@ -17,7 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Integer_Text_IO;
-with Ada.Text_IO;    use Ada.Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 
 with Coverage;    use Coverage;
 with Hex_Images;  use Hex_Images;
@@ -35,8 +35,8 @@ package body Annotations.Xcov is
       --  e.g. hello.adb.xcov for hello.adb.
    end record;
 
-   overriding function Format
-     (Pp : Xcov_Pretty_Printer) return Annotation_Format_Family
+   overriding
+   function Format (Pp : Xcov_Pretty_Printer) return Annotation_Format_Family
    is (Annotate_Xcov);
 
    ------------------------------------------------
@@ -70,8 +70,7 @@ package body Annotations.Xcov is
       Sym      : Symbolizer'Class);
 
    procedure Pretty_Print_Message
-     (Pp : in out Xcov_Pretty_Printer;
-      M  : Message);
+     (Pp : in out Xcov_Pretty_Printer; M : Message);
 
    procedure Pretty_Print_End_File (Pp : in out Xcov_Pretty_Printer);
 
@@ -80,8 +79,7 @@ package body Annotations.Xcov is
    ---------------------
 
    procedure Generate_Report
-     (Context      : Coverage.Context_Access;
-      Show_Details : Boolean)
+     (Context : Coverage.Context_Access; Show_Details : Boolean)
    is
       Pp : Xcov_Pretty_Printer :=
         (Need_Sources => True,
@@ -132,8 +130,7 @@ package body Annotations.Xcov is
    --------------------------
 
    procedure Pretty_Print_Message
-     (Pp : in out Xcov_Pretty_Printer;
-      M  : Message) is
+     (Pp : in out Xcov_Pretty_Printer; M : Message) is
    begin
       Output_Multiline_Msg (Pp.Xcov_File, Message_Annotation (M));
       New_Line (Pp.Xcov_File);
@@ -206,7 +203,7 @@ package body Annotations.Xcov is
       Offset : Pc_Type;
       State  : Line_State)
    is
-      Label  : constant String := "<" & Name & "+" & Hex_Image (Offset) & ">:";
+      Label : constant String := "<" & Name & "+" & Hex_Image (Offset) & ">:";
    begin
       Put (Pp.Xcov_File, Label);
       Put (Pp.Xcov_File, State_Char (State));

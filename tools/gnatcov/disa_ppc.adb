@@ -20,10 +20,10 @@ with Interfaces; use Interfaces;
 with System;
 with System.Storage_Elements;
 
-with Arch;         use Arch;
+with Arch;      use Arch;
 with Disa_Common;
 with Dwarf_Handling;
-with Ppc_Descs;    use Ppc_Descs;
+with Ppc_Descs; use Ppc_Descs;
 with Outputs;
 
 package body Disa_Ppc is
@@ -38,8 +38,7 @@ package body Disa_Ppc is
    function Extract_APU_Info
      (Filename         : String;
       Is_Big_Endian    : Boolean;
-      APU_Info_Section : Binary_Content)
-      return Traces.Machine_Type
+      APU_Info_Section : Binary_Content) return Traces.Machine_Type
    is
       Section : Binary_Content renames APU_Info_Section;
       Cursor  : Arch_Addr := Section.First;
@@ -91,8 +90,7 @@ package body Disa_Ppc is
 
       procedure Fatal_Error (Msg : String) is
       begin
-         Outputs.Fatal_Error
-           (Filename & ": " & Msg);
+         Outputs.Fatal_Error (Filename & ": " & Msg);
       end Fatal_Error;
 
       Name_Length : constant Unsigned_32 := Read_Word;
@@ -124,7 +122,7 @@ package body Disa_Ppc is
          declare
             Data_Entry     : constant Unsigned_32 := Read_Word;
             APU_Identifier : constant Unsigned_16 :=
-               Unsigned_16 (Shift_Right (Data_Entry, 16));
+              Unsigned_16 (Shift_Right (Data_Entry, 16));
          begin
             if APU_Identifier in APU_E500_SPE | APU_E500_SPFP_EFS then
                return Traces.E500;
@@ -135,16 +133,16 @@ package body Disa_Ppc is
       return Traces.PPC;
    end Extract_APU_Info;
 
-   function To_Insn (Insn_Bin : Binary_Content) return Unsigned_32 is
-     (Disa_Common.To_Big_Endian_U32
-        (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3)));
+   function To_Insn (Insn_Bin : Binary_Content) return Unsigned_32
+   is (Disa_Common.To_Big_Endian_U32
+         (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3)));
 
    ----------------
    -- Initialize --
    ----------------
 
-   overriding procedure Initialize
-     (Object : in out PPC_Disassembler) is
+   overriding
+   procedure Initialize (Object : in out PPC_Disassembler) is
    begin
       Object.Handle := Dis_Opcodes.Create_Ppc_Disassembler;
    end Initialize;
@@ -153,8 +151,8 @@ package body Disa_Ppc is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize
-     (Object : in out PPC_Disassembler) is
+   overriding
+   procedure Finalize (Object : in out PPC_Disassembler) is
    begin
       Dis_Opcodes.Delete_Disassembler (Object.Handle);
    end Finalize;
@@ -164,8 +162,7 @@ package body Disa_Ppc is
    ---------------------
 
    function Get_Insn_Length
-     (Self     : PPC_Disassembler;
-      Insn_Bin : Binary_Content) return Positive
+     (Self : PPC_Disassembler; Insn_Bin : Binary_Content) return Positive
    is
       pragma Unreferenced (Self);
       pragma Unreferenced (Insn_Bin);
@@ -206,16 +203,16 @@ package body Disa_Ppc is
       Insn : constant Unsigned_32 := To_Insn (Insn_Bin);
 
       Opc, Xo, Bo : Unsigned_32;
-      D : Pc_Type;
+      D           : Pc_Type;
    begin
       Branch_Dest := (No_PC, No_PC);
-      FT_Dest     := (No_PC, No_PC);
+      FT_Dest := (No_PC, No_PC);
 
       Flag_Indir := False;
-      Flag_Cond  := False;
+      Flag_Cond := False;
 
       Opc := Get_Field (F_OPC, Insn);
-      Xo  := Get_Field (F_XO, Insn);
+      Xo := Get_Field (F_XO, Insn);
 
       --  To be overriden for non-common cases
 
@@ -274,9 +271,8 @@ package body Disa_Ppc is
    ----------------
 
    function Is_Padding
-     (Self     : PPC_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean
+     (Self : PPC_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean
    is
       pragma Unreferenced (Self, Insn_Bin, Pc);
    begin
@@ -287,8 +283,8 @@ package body Disa_Ppc is
    -- Initialize --
    ----------------
 
-   overriding procedure Initialize
-     (Object : in out E500_Disassembler) is
+   overriding
+   procedure Initialize (Object : in out E500_Disassembler) is
    begin
       Object.Handle := Dis_Opcodes.Create_E500_Disassembler;
    end Initialize;

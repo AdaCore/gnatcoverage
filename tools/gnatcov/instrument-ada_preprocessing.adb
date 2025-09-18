@@ -53,12 +53,14 @@ package body Instrument.Ada_Preprocessing is
          case Value.Kind is
             when Libadalang.Preprocessing.Empty =>
                return Create;
-            when String_Literal =>
+
+            when String_Literal                 =>
                return Result : constant JSON_Value := Create_Object do
                   Result.Set_Field ("kind", "string");
                   Result.Set_Field ("value", Value.String_Value);
                end return;
-            when Symbol =>
+
+            when Symbol                         =>
                return Result : constant JSON_Value := Create_Object do
                   Result.Set_Field ("kind", "symbol");
                   Result.Set_Field ("value", Value.Symbol_Value);
@@ -99,7 +101,7 @@ package body Instrument.Ada_Preprocessing is
 
       Result : constant JSON_Value := Create_Object;
 
-   --  Start of processing for Create_Preprocessor_Data_File
+      --  Start of processing for Create_Preprocessor_Data_File
 
    begin
       --  Extract preprocessor data from the loaded project
@@ -110,8 +112,10 @@ package body Instrument.Ada_Preprocessing is
             Default_Config => Default_Config,
             File_Configs   => File_Configs);
       exception
-         when Exc : Langkit_Support.Errors.File_Read_Error
-                  | Langkit_Support.Errors.Syntax_Error
+         when
+           Exc :
+             Langkit_Support.Errors.File_Read_Error
+             | Langkit_Support.Errors.Syntax_Error
          =>
             Outputs.Error
               ("error while loading preprocessor data from project");
@@ -198,11 +202,10 @@ package body Instrument.Ada_Preprocessing is
             Kind : constant String := Desc.Get ("kind");
          begin
             if Kind = "string" then
-               return (Kind         => String_Literal,
-                       String_Value => Desc.Get ("value"));
+               return
+                 (Kind => String_Literal, String_Value => Desc.Get ("value"));
             elsif Kind = "symbol" then
-               return (Kind         => Symbol,
-                       Symbol_Value => Desc.Get ("value"));
+               return (Kind => Symbol, Symbol_Value => Desc.Get ("value"));
             else
                Fatal_Error ("invalid value kind: " & Kind);
             end if;
@@ -250,7 +253,7 @@ package body Instrument.Ada_Preprocessing is
 
       Parsed_JSON : Read_Result;
 
-   --  Start of processing for Create_Preprocessor
+      --  Start of processing for Create_Preprocessor
 
    begin
       --  Parse the preprocessor data from the given filename
@@ -264,7 +267,8 @@ package body Instrument.Ada_Preprocessing is
       declare
          Dummy : constant Context_Handle :=
            Create_Context
-             ("Loading preprocessor data from temporary file " & Filename
+             ("Loading preprocessor data from temporary file "
+              & Filename
               & " for the default config");
       begin
          Default_Config :=
@@ -286,8 +290,10 @@ package body Instrument.Ada_Preprocessing is
          procedure Process (Name : UTF8_String; Value : JSON_Value) is
             Dummy : constant Context_Handle :=
               Create_Context
-                ("Loading preprocessor data from temporary file " & Filename
-                 & " for " & Name);
+                ("Loading preprocessor data from temporary file "
+                 & Filename
+                 & " for "
+                 & Name);
          begin
             File_Configs.Insert (+Name, Deserialize (Value));
          end Process;

@@ -100,7 +100,7 @@ package body Coverage_Options is
          Append (Options, Key (Cur).all);
       end Put_Option;
 
-   --  Start of processing for Level_Options
+      --  Start of processing for Level_Options
 
    begin
       Map.Iterate (Put_Option'Access);
@@ -125,16 +125,31 @@ package body Coverage_Options is
       --  Return the lowercase string representation of L
 
       function Level_Str (L : Source_Coverage_Level) return String
-        is (To_Lower (L'Img));
+      is (To_Lower (L'Img));
    begin
-      return Level_Str (Stmt)
-        & "(+" & Level_Str (Decision) & "|"
-        & "+"  & Level_Str (MCDC)     & "|"
-        & "+"  & Level_Str (UC_MCDC)  & ")?"
-        & "(+" & Level_Str (ATC)      & "|"
-        & "+"  & Level_Str (ATCC)     & ")?"
-        & "(+" & Level_Str (Fun_Call) & ")?"
-        & "(+" & Level_Str (GExpr)    & ")?";
+      return
+        Level_Str (Stmt)
+        & "(+"
+        & Level_Str (Decision)
+        & "|"
+        & "+"
+        & Level_Str (MCDC)
+        & "|"
+        & "+"
+        & Level_Str (UC_MCDC)
+        & ")?"
+        & "(+"
+        & Level_Str (ATC)
+        & "|"
+        & "+"
+        & Level_Str (ATCC)
+        & ")?"
+        & "(+"
+        & Level_Str (Fun_Call)
+        & ")?"
+        & "(+"
+        & Level_Str (GExpr)
+        & ")?";
    end Source_Level_Options;
 
    -------------------------------------
@@ -158,8 +173,7 @@ package body Coverage_Options is
       -- Add_Fun_Call_Coverage_Level --
       ---------------------------------
 
-      procedure Add_Fun_Call_Coverage_Level (Combinaison : Levels_Type)
-      is
+      procedure Add_Fun_Call_Coverage_Level (Combinaison : Levels_Type) is
          Comb : Levels_Type := Combinaison;
       begin
          Comb (Fun_Call) := True;
@@ -173,7 +187,7 @@ package body Coverage_Options is
       procedure Add_Assert_Coverage_Levels (Combinaison : Levels_Type) is
          Assert_Levels : constant array (1 .. 2) of Coverage_Level :=
            (ATC, ATCC);
-         Comb : Levels_Type := Combinaison;
+         Comb          : Levels_Type := Combinaison;
       begin
          for Lvl of Assert_Levels loop
 
@@ -258,26 +272,34 @@ package body Coverage_Options is
       Res : Unbounded_String;
    begin
       for Kind in Exempt_Region .. Any_Annotation_Kind'Last loop
-         Res := Res &
-           (+(ASCII.LF & ASCII.LF & "   " & Kind_Image (Kind) & ": "));
+         Res :=
+           Res & (+(ASCII.LF & ASCII.LF & "   " & Kind_Image (Kind) & ": "));
          case Kind is
-            when Exempt_On =>
+            when Exempt_On     =>
                Res := Res & "--location=LINE:COL --justification=MESSAGE";
-            when Exempt_Off =>
+
+            when Exempt_Off    =>
                Res := Res & "--location=LINE:COL";
+
             when Exempt_Region =>
-               Res := Res
+               Res :=
+                 Res
                  & "--start-location=LINE:COL --end-location=LINE:COL"
                  & " --justification=MESSAGE";
-            when Dump_Buffers =>
-               Res := Res
+
+            when Dump_Buffers  =>
+               Res :=
+                 Res
                  & "--location=LINE:COL [--annotate-after]"
                  & " [--dump-filename-prefix=TEXT]";
+
             when Reset_Buffers =>
                Res := Res & "--location=LINE:COL [--annotate-after]";
-            when Cov_On =>
+
+            when Cov_On        =>
                Res := Res & "--location=LINE:COL";
-            when Cov_Off =>
+
+            when Cov_Off       =>
                Res := Res & "--location=LINE:COL [--justification=MESSAGE]";
          end case;
       end loop;
@@ -289,8 +311,8 @@ package body Coverage_Options is
    ----------------
 
    function Kind_Image
-     (Kind : SC_Obligations.Any_Annotation_Kind) return String is
-     (case Kind is
+     (Kind : SC_Obligations.Any_Annotation_Kind) return String
+   is (case Kind is
          when SC_Obligations.Unknown       => "Unknown",
          when SC_Obligations.Exempt_Region => "Exempt_Region",
          when SC_Obligations.Exempt_On     => "Exempt_On",
@@ -305,10 +327,8 @@ begin
 
    --  Object coverage levels
 
-   Add_Object_Level_Option ((Insn   => True,
-                             others => False));
-   Add_Object_Level_Option ((Branch => True,
-                             others => False));
+   Add_Object_Level_Option ((Insn => True, others => False));
+   Add_Object_Level_Option ((Branch => True, others => False));
 
    --  Source coverage levels
 

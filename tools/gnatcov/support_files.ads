@@ -55,12 +55,12 @@ package Support_Files is
    --  Use a magic value when we can't locate gnatcov on path
 
    Gnatcov_Prefix : constant String :=
-      (if Value (Prefix_Envvar, "") = ""
-       then
-         (if Gnatcov_Dir /= Not_Found
-          then Containing_Directory (Gnatcov_Dir)
-          else Not_Found)
-       else Value (Prefix_Envvar));
+     (if Value (Prefix_Envvar, "") = ""
+      then
+        (if Gnatcov_Dir /= Not_Found
+         then Containing_Directory (Gnatcov_Dir)
+         else Not_Found)
+      else Value (Prefix_Envvar));
    --  Installation prefix for gnatcov
 
    Lib_Dir : constant String := Gnatcov_Prefix & "/lib/gnatcoverage";
@@ -75,16 +75,16 @@ package Support_Files is
    --  GNATcoverage-specific directory in the installation prefix's "share"
    --  directory.
 
-   function In_Lib_Dir (File : String) return String is
-     (Lib_Dir & "/" & File);
+   function In_Lib_Dir (File : String) return String
+   is (Lib_Dir & "/" & File);
    --  Helper to build the name of a file inside the lib directory
 
-   function In_Libexec_Dir (File : String) return String is
-     (Libexec_Dir & "/" & File);
+   function In_Libexec_Dir (File : String) return String
+   is (Libexec_Dir & "/" & File);
    --  Helper to build the name of a file inside the libexec directory
 
-   function In_Share_Dir (File : String) return String is
-     (Share_Dir & "/" & File);
+   function In_Share_Dir (File : String) return String
+   is (Share_Dir & "/" & File);
    --  Helper to build the name of a file inside the share directory
 
 end Support_Files;

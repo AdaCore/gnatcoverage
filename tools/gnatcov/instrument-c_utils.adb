@@ -33,10 +33,9 @@ package body Instrument.C_Utils is
    use Cursor_Vectors;
 
    function Visitor_Wrapper
-     (Node        : Cursor_T;
-      Parent      : Cursor_T;
-      Client_Data : Client_Data_T) return Child_Visit_Result_T
-     with Convention => C;
+     (Node : Cursor_T; Parent : Cursor_T; Client_Data : Client_Data_T)
+      return Child_Visit_Result_T
+   with Convention => C;
    --  Helper for Visit_Children and Visit procedures.
    --
    --  Interpret Client_Data as the Visitor anonymous function for these
@@ -77,8 +76,8 @@ package body Instrument.C_Utils is
          --  Fix this for macros that are actually built-in.
 
          if Builtin_Macros.Contains
-           (Macro_Definition'
-              (Define => True, Name => Macro_Name, others => <>))
+              (Macro_Definition'
+                 (Define => True, Name => Macro_Name, others => <>))
          then
             Filename := +"<built-in>";
          end if;
@@ -90,10 +89,10 @@ package body Instrument.C_Utils is
 
       Dispose_String (C_Filename);
       return
-        (Source_File => Get_Index_From_Generic_Name
-           (Name => +Filename,
-            Kind => Source_File),
-         L           =>  Sloc);
+        (Source_File =>
+           Get_Index_From_Generic_Name
+             (Name => +Filename, Kind => Source_File),
+         L           => Sloc);
    end Presumed_Spelling_Location;
 
    ----------
@@ -107,17 +106,16 @@ package body Instrument.C_Utils is
       if Loc = Get_Null_Location then
          return Slocs.No_Location;
       end if;
-      Get_Presumed_Location (Location => Loc,
-                             Filename => File'Access,
-                             Line     => Line'Access,
-                             Column   => Column'Access);
+      Get_Presumed_Location
+        (Location => Loc,
+         Filename => File'Access,
+         Line     => Line'Access,
+         Column   => Column'Access);
       return
         (Source_File =>
            Get_Index_From_Generic_Name
              (Full_Name (Get_C_String (File)), Kind => Source_File),
-         L           =>
-           (Line   => Natural (Line),
-            Column => Natural (Column)));
+         L           => (Line => Natural (Line), Column => Natural (Column)));
    end Sloc;
 
    ----------------
@@ -175,13 +173,11 @@ package body Instrument.C_Utils is
    ---------------------
 
    function Visitor_Wrapper
-     (Node        : Cursor_T;
-      Parent      : Cursor_T;
-      Client_Data : Client_Data_T) return Child_Visit_Result_T
+     (Node : Cursor_T; Parent : Cursor_T; Client_Data : Client_Data_T)
+      return Child_Visit_Result_T
    is
       pragma Unreferenced (Parent);
-      Callback : access function
-                   (Node : Cursor_T) return Child_Visit_Result_T
+      Callback : access function (Node : Cursor_T) return Child_Visit_Result_T
       with Import, Address => System.Address (Client_Data);
    begin
       return Callback.all (Node);
@@ -193,11 +189,12 @@ package body Instrument.C_Utils is
 
    procedure Visit_Children
      (Parent  : Cursor_T;
-      Visitor : not null access function
-                  (Node : Cursor_T) return Child_Visit_Result_T)
+      Visitor :
+        not null access function (Node : Cursor_T) return Child_Visit_Result_T)
    is
-      Dummy : constant unsigned := Visit_Children
-        (Parent, Visitor_Wrapper'Access, Client_Data_T (Visitor'Address));
+      Dummy : constant unsigned :=
+        Visit_Children
+          (Parent, Visitor_Wrapper'Access, Client_Data_T (Visitor'Address));
    begin
       null;
    end Visit_Children;
@@ -208,11 +205,12 @@ package body Instrument.C_Utils is
 
    procedure Visit
      (Parent  : Cursor_T;
-      Visitor : not null access function
-                  (Node : Cursor_T) return Child_Visit_Result_T)
+      Visitor :
+        not null access function (Node : Cursor_T) return Child_Visit_Result_T)
    is
-      Dummy : constant unsigned := Visit
-        (Parent, Visitor_Wrapper'Access, Client_Data_T (Visitor'Address));
+      Dummy : constant unsigned :=
+        Visit
+          (Parent, Visitor_Wrapper'Access, Client_Data_T (Visitor'Address));
    begin
       null;
    end Visit;
@@ -238,7 +236,7 @@ package body Instrument.C_Utils is
          return Child_Visit_Continue;
       end Append_Child;
 
-   --  Start of processing for Get_Children
+      --  Start of processing for Get_Children
 
    begin
       Visit_Children (N, Get_Children.Append_Child'Access);
@@ -274,8 +272,7 @@ package body Instrument.C_Utils is
 
       function Visit_Decl (Cursor : Cursor_T) return Child_Visit_Result_T is
       begin
-         if Kind (Cursor) in Cursor_Translation_Unit | Cursor_Linkage_Spec
-         then
+         if Kind (Cursor) in Cursor_Translation_Unit | Cursor_Linkage_Spec then
             return Child_Visit_Recurse;
          end if;
 
@@ -291,11 +288,12 @@ package body Instrument.C_Utils is
          return Child_Visit_Continue;
       end Visit_Decl;
 
-   --  Start of processing for Get_Main
+      --  Start of processing for Get_Main
 
    begin
-      Visit_Children (Parent  => Get_Translation_Unit_Cursor (TU),
-                      Visitor => Visit_Decl'Access);
+      Visit_Children
+        (Parent  => Get_Translation_Unit_Cursor (TU),
+         Visitor => Visit_Decl'Access);
       return Result;
    end Get_Main;
 
@@ -318,8 +316,7 @@ package body Instrument.C_Utils is
 
       function Is_Atexit (Cursor : Cursor_T) return Child_Visit_Result_T is
       begin
-         if Kind (Cursor) in Cursor_Translation_Unit | Cursor_Linkage_Spec
-         then
+         if Kind (Cursor) in Cursor_Translation_Unit | Cursor_Linkage_Spec then
             return Child_Visit_Recurse;
          elsif Cursor_Get_Mangling (Cursor) = "atexit" then
             Has_Atexit_Declaration := True;
@@ -332,8 +329,9 @@ package body Instrument.C_Utils is
       --  Start of processing for Is_Atexit_Declared
 
    begin
-      Visit_Children (Parent  => Get_Translation_Unit_Cursor (TU),
-                      Visitor => Is_Atexit'Access);
+      Visit_Children
+        (Parent  => Get_Translation_Unit_Cursor (TU),
+         Visitor => Is_Atexit'Access);
       return Has_Atexit_Declaration;
    end Is_Atexit_Declared;
 
@@ -344,17 +342,13 @@ package body Instrument.C_Utils is
    --------------------------------
 
    procedure Insert_Text_After_Start_Of
-     (N    : Cursor_T;
-      Text : String;
-      Rew  : Rewriter_T)
+     (N : Cursor_T; Text : String; Rew : Rewriter_T)
    is
       Location : constant Source_Location_T :=
         Get_Range_Start (Get_Cursor_Extent (N));
    begin
       CX_Rewriter_Insert_Text_After
-        (Rew    => Rew,
-         Loc    => Location,
-         Insert => Text);
+        (Rew => Rew, Loc => Location, Insert => Text);
    end Insert_Text_After_Start_Of;
 
    -----------------------------
@@ -362,9 +356,7 @@ package body Instrument.C_Utils is
    -----------------------------
 
    procedure Insert_Text_In_Brackets
-     (CmpdStmt : Cursor_T;
-      Text     : String;
-      Rew      : Rewriter_T)
+     (CmpdStmt : Cursor_T; Text : String; Rew : Rewriter_T)
    is
       Location : Source_Location_T;
    begin
@@ -376,9 +368,7 @@ package body Instrument.C_Utils is
 
       Location := Get_LBrac_Loc_Plus_One (CmpdStmt);
       CX_Rewriter_Insert_Text_After
-        (Rew    => Rew,
-         Loc    => Location,
-         Insert => Text);
+        (Rew => Rew, Loc => Location, Insert => Text);
    end Insert_Text_In_Brackets;
 
    ---------------------------------
@@ -386,17 +376,13 @@ package body Instrument.C_Utils is
    ---------------------------------
 
    procedure Insert_Text_Before_Start_Of
-     (N    : Cursor_T;
-      Text : String;
-      Rew  : Rewriter_T)
+     (N : Cursor_T; Text : String; Rew : Rewriter_T)
    is
       Location : constant Source_Location_T :=
         Get_Range_Start (Get_Cursor_Extent (N));
    begin
       CX_Rewriter_Insert_Text_Before
-        (Rew    => Rew,
-         Loc    => Location,
-         Insert => Text);
+        (Rew => Rew, Loc => Location, Insert => Text);
    end Insert_Text_Before_Start_Of;
 
    -------------------------------
@@ -404,17 +390,13 @@ package body Instrument.C_Utils is
    -------------------------------
 
    procedure Insert_Text_After_End_Of
-     (N    : Cursor_T;
-      Text : String;
-      Rew  : Rewriter_T)
+     (N : Cursor_T; Text : String; Rew : Rewriter_T)
    is
       Location : constant Source_Location_T :=
         Get_Range_End (Get_Cursor_Extent (N));
    begin
       CX_Rewriter_Insert_Text_After
-        (Rew    => Rew,
-         Loc    => Location,
-         Insert => Text);
+        (Rew => Rew, Loc => Location, Insert => Text);
    end Insert_Text_After_End_Of;
 
    -------------------------------
@@ -422,17 +404,13 @@ package body Instrument.C_Utils is
    -------------------------------
 
    procedure Insert_Text_Before_End_Of
-     (N    : Cursor_T;
-      Text : String;
-      Rew  : Rewriter_T)
+     (N : Cursor_T; Text : String; Rew : Rewriter_T)
    is
       Location : constant Source_Location_T :=
         Get_Range_End (Get_Cursor_Extent (N));
    begin
       CX_Rewriter_Insert_Text_Before
-        (Rew    => Rew,
-         Loc    => Location,
-         Insert => Text);
+        (Rew => Rew, Loc => Location, Insert => Text);
    end Insert_Text_Before_End_Of;
 
    --------------------
@@ -449,16 +427,16 @@ package body Instrument.C_Utils is
       Num_Tokens   : aliased Interfaces.C.unsigned;
       Toks_Ptr     : System.Address;
       type Token_Acc is access Token_T;
-      function To_Access is new Ada.Unchecked_Conversion
-        (System.Address, Token_Acc);
+      function To_Access is new
+        Ada.Unchecked_Conversion (System.Address, Token_Acc);
    begin
       Tokenize (TU, Source_Range, Toks_Ptr'Address, Num_Tokens'Access);
       if Toks_Ptr = Null_Address then
          return;
       end if;
       declare
-         Tokens  : Tokens_Array (1 .. Natural (Num_Tokens))
-           with Import, Address => Toks_Ptr;
+         Tokens : Tokens_Array (1 .. Natural (Num_Tokens))
+         with Import, Address => Toks_Ptr;
       begin
          for J in Tokens'Range loop
             Process.all (Tokens (J));
@@ -487,7 +465,7 @@ package body Instrument.C_Utils is
          Put (Get_Token_Spelling (TU, Tok));
       end Put_Token;
 
-   --  Start of processing for Print_Tokens
+      --  Start of processing for Print_Tokens
 
    begin
       Iterate_Tokens (TU, N, Put_Token'Access);

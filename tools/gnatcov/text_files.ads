@@ -32,75 +32,60 @@ package Text_Files is
    --  closed if open.
 
    function Is_Open (Self : File_Type) return Boolean
-      with Inline;
+   with Inline;
    --  Return whether Self references an open file. By default, files are
    --  closed.
 
    function Mode (Self : File_Type) return File_Mode
-      with Pre => Self.Is_Open,
-           Inline;
+   with Pre => Self.Is_Open, Inline;
    --  Return the opening mode for Self. See the Open primitive.
 
    function Open
      (Self : in out File_Type;
       Name : String;
-      Mode : File_Mode := Ada.Text_IO.In_File)
-      return Boolean
-      with Pre  => not Self.Is_Open,
-           Post => Open'Result = Self.Is_Open,
-           Inline;
+      Mode : File_Mode := Ada.Text_IO.In_File) return Boolean
+   with Pre => not Self.Is_Open, Post => Open'Result = Self.Is_Open, Inline;
    --  Try to open Name in the given mode. Return whether it was successful.
 
    function Create
      (Self : in out File_Type;
       Name : String;
-      Mode : File_Mode := Ada.Text_IO.Out_File)
-      return Boolean
-      with Pre  => not Self.Is_Open,
-           Post => Create'Result = Self.Is_Open,
-           Inline;
+      Mode : File_Mode := Ada.Text_IO.Out_File) return Boolean
+   with Pre => not Self.Is_Open, Post => Create'Result = Self.Is_Open, Inline;
    --  Try to open Name in the given mode. Return whether it was successful.
 
    procedure Open
      (Self : in out File_Type;
       Name : String;
       Mode : File_Mode := Ada.Text_IO.In_File)
-      with Pre => not Self.Is_Open,
-           Inline;
+   with Pre => not Self.Is_Open, Inline;
    --  Try to open Name in the given mode. If unsuccessful, emit a fatal error.
 
    procedure Create
      (Self : in out File_Type;
       Name : String;
       Mode : File_Mode := Ada.Text_IO.Out_File)
-      with Pre => not Self.Is_Open,
-           Inline;
+   with Pre => not Self.Is_Open, Inline;
    --  Try to open Name in the given mode. If unsuccessful, emit a fatal error.
 
    procedure Put (Self : in out File_Type; Item : String)
-      with Pre => Self.Is_Open,
-           Inline;
+   with Pre => Self.Is_Open, Inline;
    procedure Put (Self : in out File_Type; Item : Unbounded_String)
-      with Pre => Self.Is_Open,
-           Inline;
+   with Pre => Self.Is_Open, Inline;
    --  Write Item to Self
 
    procedure Put_Line (Self : in out File_Type; Item : String)
-      with Pre => Self.Is_Open,
-           Inline;
+   with Pre => Self.Is_Open, Inline;
    procedure Put_Line (Self : in out File_Type; Item : Unbounded_String)
-      with Pre => Self.Is_Open,
-           Inline;
+   with Pre => Self.Is_Open, Inline;
    --  Write Item to Self and start a new line
 
    procedure New_Line (Self : in out File_Type)
-      with Pre => Self.Is_Open,
-           Inline;
+   with Pre => Self.Is_Open, Inline;
    --  Start a new line in Self
 
    procedure Close (Self : in out File_Type)
-      with Pre => Self.Is_Open,
-           Inline;
+   with Pre => Self.Is_Open, Inline;
    --  Close the text file that Self references
 
    procedure Run_GNATpp (Filename : String);
@@ -118,6 +103,7 @@ private
       Filename : Unbounded_String;
    end record;
 
-   overriding procedure Finalize (Self : in out File_Type);
+   overriding
+   procedure Finalize (Self : in out File_Type);
 
 end Text_Files;

@@ -61,8 +61,7 @@ package Traces_Lines is
       --  precedence over it.
      );
 
-   subtype Line_State is Any_Line_State
-     range Not_Covered .. Disabled_Coverage;
+   subtype Line_State is Any_Line_State range Not_Covered .. Disabled_Coverage;
    --  Non-exempted line state
 
    type State_Char_Array is array (Any_Line_State) of Character;

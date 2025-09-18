@@ -62,17 +62,15 @@ package Traces_Files_Registry is
    function "<" (Left, Right : Trace_File_Element_Acc) return Boolean;
    function Hash
      (Element : Trace_File_Element_Acc) return Ada.Containers.Hash_Type;
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Trace_File_Element, Trace_File_Element_Acc);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (Trace_File_Element, Trace_File_Element_Acc);
 
    function Create_Trace_File_Element
-     (Filename : String;
-      Kind     : Trace_File_Kind) return Trace_File_Element_Acc;
+     (Filename : String; Kind : Trace_File_Kind) return Trace_File_Element_Acc;
    --  Create a new trace file element for our list
 
    procedure Update_From_Binary_Trace
-     (Element : in out Trace_File_Element;
-      File    : Trace_File_Type);
+     (Element : in out Trace_File_Element; File : Trace_File_Type);
    --  Initialize Element fields using information read from File
 
    procedure Update_From_Source_Trace
@@ -82,9 +80,10 @@ package Traces_Files_Registry is
    --  Initialize Element fields using a trace info entry from a source trace
    --  file.
 
-   package Traces_Files_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Trace_File_Element_Acc);
+   package Traces_Files_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Trace_File_Element_Acc);
 
    procedure Add_Traces_File (TF : in out Trace_File_Element_Acc);
    --  Add TF to the list of known traces files. If TF was already known, free

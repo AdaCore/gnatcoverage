@@ -99,7 +99,8 @@ package body Coverage is
 
    function Assertion_Coverage_Enabled return Boolean is
    begin
-      return Source_Coverage_Enabled
+      return
+        Source_Coverage_Enabled
         and then (Enabled (ATC) or else Enabled (ATCC));
    end Assertion_Coverage_Enabled;
 
@@ -107,8 +108,8 @@ package body Coverage is
    -- Assertion_Condition_Coverage_Enabled --
    ------------------------------------------
 
-   function Assertion_Condition_Coverage_Enabled return Boolean is
-     (Enabled (ATCC));
+   function Assertion_Condition_Coverage_Enabled return Boolean
+   is (Enabled (ATCC));
 
    ----------------
    -- MCDC_Level --
@@ -189,12 +190,14 @@ package body Coverage is
 
       Levels := Element (Cur);
 
-      Object_Coverage_Enabled_Cached := Any_Coverage_Enabled
-        ((Object_Coverage_Level => True, others => False));
-      Source_Coverage_Enabled_Cached := Any_Coverage_Enabled
-        ((Source_Coverage_Level => True, others => False));
-      MCDC_Coverage_Enabled_Cached := Any_Coverage_Enabled
-        ((MCDC_Coverage_Level => True, others => False));
+      Object_Coverage_Enabled_Cached :=
+        Any_Coverage_Enabled
+          ((Object_Coverage_Level => True, others => False));
+      Source_Coverage_Enabled_Cached :=
+        Any_Coverage_Enabled
+          ((Source_Coverage_Level => True, others => False));
+      MCDC_Coverage_Enabled_Cached :=
+        Any_Coverage_Enabled ((MCDC_Coverage_Level => True, others => False));
    end Set_Coverage_Levels;
 
    --------------------
@@ -267,21 +270,25 @@ package body Coverage is
       --  checkpoints.
 
       if (for some L in Object_Coverage_Level => Checkpoint_Levels (L)) then
-         return ("object coverage in checkpoint is not supported. Corrupted"
-                 & " checkpoint file?");
+         return
+           ("object coverage in checkpoint is not supported. Corrupted"
+            & " checkpoint file?");
       end if;
 
       --  We allow loading iff the current levels are a subset of
       --  Checkpoint_Levels.
 
       if (for some L in Source_Coverage_Level =>
-             not Checkpoint_Levels (L) and then Levels (L))
+            not Checkpoint_Levels (L) and then Levels (L))
       then
-         return ("incompatible coverage level: " & Filename
-                 & " was produced with """
-                 & Coverage_Option_Value (Checkpoint_Levels)
-                 & """ but we expect at least """
-                 & Coverage_Option_Value & """");
+         return
+           ("incompatible coverage level: "
+            & Filename
+            & " was produced with """
+            & Coverage_Option_Value (Checkpoint_Levels)
+            & """ but we expect at least """
+            & Coverage_Option_Value
+            & """");
       end if;
 
       return "";
@@ -300,11 +307,12 @@ package body Coverage is
          Append (Command, ' ' & Argument (J));
       end loop;
 
-      return Context'
-        (Timestamp         => Clock,
-         Version           => +Xcov_Version,
-         Command           => Command,
-         Levels            => +Coverage_Option_Value);
+      return
+        Context'
+          (Timestamp => Clock,
+           Version   => +Xcov_Version,
+           Command   => Command,
+           Levels    => +Coverage_Option_Value);
    end Get_Context;
 
    ---------------

@@ -45,8 +45,8 @@ package Traces is
    subtype Pc_Type is Elf_Addr;
    No_PC : constant Pc_Type := 0;
 
-   function Empty_Range (First, Last : Pc_Type) return Boolean is
-      (Last - First >= 2 ** (Pc_Type'Size - 1));
+   function Empty_Range (First, Last : Pc_Type) return Boolean
+   is (Last - First >= 2**(Pc_Type'Size - 1));
    --  True if First .. Last denotes an empty range.
    --
    --  As a special case, 0 .. Pc_Type'Last is considered as an empty range.
@@ -65,24 +65,24 @@ package Traces is
    --  Target machine as conveyed by the EM field in the ELF file. Set to 0
    --  when unknown.
 
-   type Machine_Type is (Unknown, ARM, E500, PPC, SPARC, Visium, X86, X86_64,
-                         AArch64);
+   type Machine_Type is
+     (Unknown, ARM, E500, PPC, SPARC, Visium, X86, X86_64, AArch64);
    Machine : Machine_Type := Unknown;
    --  Refined target machine, computed from ELF_Machine and refined using
    --  other sources of information. This is the case for processor variants
    --  such as e500 (variant of PowerPC), for which we find out it's a variant
    --  thanks to an ELF section.
 
-   function Decode_EM (EM : Unsigned_16) return Machine_Type is
-     (case EM is
-      when EM_386             => X86,
-      when EM_ARM             => ARM,
-      when EM_PPC             => PPC,
-      when EM_SPARC           => SPARC,
-      when EM_X86_64          => X86_64,
-      when EM_LMP | EM_VISIUM => Visium,
-      when EM_AARCH64         => AArch64,
-      when others             => Unknown);
+   function Decode_EM (EM : Unsigned_16) return Machine_Type
+   is (case EM is
+         when EM_386             => X86,
+         when EM_ARM             => ARM,
+         when EM_PPC             => PPC,
+         when EM_SPARC           => SPARC,
+         when EM_X86_64          => X86_64,
+         when EM_LMP | EM_VISIUM => Visium,
+         when EM_AARCH64         => AArch64,
+         when others             => Unknown);
    --  Turn the EM field of an ELF file into a known machine type, hence
    --  without variant information. Return Unknown otherwise.
 
@@ -99,9 +99,9 @@ package Traces is
 
    type Insn_State is
      (
-      --  High level state of a trace entry
+     --  High level state of a trace entry
 
-      Unknown,
+     Unknown,
       --  Not yet filled.
 
       Not_Covered,
@@ -121,7 +121,7 @@ package Traces is
       Both_Taken
       --  The code is covered, the last instruction is a branch and the
       --  branch was both taken and not taken.
-      );
+     );
 
    type Trace_Entry is record
       --  Trace entry as recorded in the trace database
@@ -142,10 +142,8 @@ package Traces is
 
    end record;
 
-   Bad_Trace : constant Trace_Entry := (First  => 1,
-                                        Last   => 0,
-                                        Op     => 0,
-                                        State  => Unknown);
+   Bad_Trace : constant Trace_Entry :=
+     (First => 1, Last => 0, Op => 0, State => Unknown);
    --  Constant value for invalid traces
 
    procedure Dump_Op (Op : Unsigned_8);

@@ -21,8 +21,7 @@ with Coverage;
 package Annotations.Xcov is
 
    procedure Generate_Report
-     (Context      : Coverage.Context_Access;
-      Show_Details : Boolean);
+     (Context : Coverage.Context_Access; Show_Details : Boolean);
    --  Annotate the source file in XCOV format with line states, embedding
    --  justifications on each non-fully-covered line if Show_Details is True.
 

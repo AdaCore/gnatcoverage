@@ -35,7 +35,5 @@ begin
    end if;
 
    Instrumenter.Auto_Dump_Buffers_In_Main
-     (Filename    => Main_Filename,
-      Dump_Config => Dump_Config,
-      Prj         => Prj);
+     (Filename => Main_Filename, Dump_Config => Dump_Config, Prj => Prj);
 end Instrument.Main;

@@ -28,7 +28,7 @@ with Subprocesses; use Subprocesses;
 package Rundrv.Config is
 
    type Context_Type is record
-      Exe_File      : String_Access;
+      Exe_File : String_Access;
       --  Filename for the executable to run. Must not be null.
 
       Target_Family : String_Access;
@@ -36,22 +36,22 @@ package Rundrv.Config is
       --  --target command-line argument, or from the native target otherwise.
       --  Must not be null.
 
-      Target_Board  : String_Access;
+      Target_Board : String_Access;
       --  Board name, or null if irrelevant. Computed from the --target
       --  command-line argument.
 
-      Kernel        : String_Access;
+      Kernel : String_Access;
       --  Filename for the kernel to use, or null if irrevelant. Computed from
       --  the --kernel command-line argument.
 
-      Histmap       : String_Access;
+      Histmap : String_Access;
       --  Filename for history map description (useful for MC/DC), or null if
       --  irrelevant.
 
-      Trace_File    : String_Access;
+      Trace_File : String_Access;
       --  Filename for the output trace file. Must not be null.
 
-      Eargs         : String_List_Access;
+      Eargs : String_List_Access;
       --  List of additional arguments to pass to the executable to run
    end record;
    --  Holder for various information used to instantiate a command to run

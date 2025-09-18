@@ -30,14 +30,16 @@ with Ada.Finalization;
 package Disa_Sparc is
 
    type SPARC_Disassembler is
-     new Ada.Finalization.Limited_Controlled and Disassembler with private;
+     new Ada.Finalization.Limited_Controlled
+     and Disassembler with private;
 
-   overriding function Get_Insn_Length
-     (Self     : SPARC_Disassembler;
-      Insn_Bin : Binary_Content) return Positive;
+   overriding
+   function Get_Insn_Length
+     (Self : SPARC_Disassembler; Insn_Bin : Binary_Content) return Positive;
    --  Return the length of the instruction at the beginning of Insn_Bin
 
-   overriding procedure Disassemble_Insn
+   overriding
+   procedure Disassemble_Insn
      (Self     : SPARC_Disassembler;
       Insn_Bin : Binary_Content;
       Pc       : Pc_Type;
@@ -48,7 +50,8 @@ package Disa_Sparc is
    --  LINE_POS is the index of the next character to be written (ie line
    --  length if Line'First = 1).
 
-   overriding procedure Get_Insn_Properties
+   overriding
+   procedure Get_Insn_Properties
      (Self        : SPARC_Disassembler;
       Insn_Bin    : Binary_Content;
       Pc          : Pc_Type;
@@ -63,30 +66,32 @@ package Disa_Sparc is
    --  it is conditional (Flag_Cond), and determine its destination (Dest).
    --  NOT IMPLEMENTED for SPARC (will raise Program_Error).
 
-   overriding function Is_Padding
-     (Self     : SPARC_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean;
+   overriding
+   function Is_Padding
+     (Self : SPARC_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean;
    --  See disassemblers.ads
 
-   overriding function Is_Nop
-     (Self     : SPARC_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean;
+   overriding
+   function Is_Nop
+     (Self : SPARC_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean;
    --  See disassembler.ads
 
-   overriding procedure Initialize
-     (Object : in out SPARC_Disassembler);
+   overriding
+   procedure Initialize (Object : in out SPARC_Disassembler);
    --  Override of controlled object primitive
 
-   overriding procedure Finalize
-     (Object : in out SPARC_Disassembler);
+   overriding
+   procedure Finalize (Object : in out SPARC_Disassembler);
    --  Override of controlled object primitive
 
 private
 
    type SPARC_Disassembler is
-     new Ada.Finalization.Limited_Controlled and Disassembler with record
+     new Ada.Finalization.Limited_Controlled
+     and Disassembler
+   with record
       Handle : Dis_Opcodes.Disassemble_Handle;
    end record;
 

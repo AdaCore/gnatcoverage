@@ -27,12 +27,12 @@ with Interfaces;
 with Calendar_Utils;
 with Coverage;
 with Coverage.Object;
-with Coverage.Source;  use Coverage.Source;
+with Coverage.Source; use Coverage.Source;
 with Instrument;
-with Outputs;          use Outputs;
-with SS_Annotations;   use SS_Annotations;
+with Outputs;         use Outputs;
+with SS_Annotations;  use SS_Annotations;
 with Subprocesses;
-with Switches;         use Switches;
+with Switches;        use Switches;
 with Traces_Disa;
 
 package body Annotations is
@@ -44,21 +44,16 @@ package body Annotations is
    --  Go through file and and let Pp annotate its lines with coverage
    --  information
 
-   procedure Disp_Messages
-     (Pp : in out Pretty_Printer'Class;
-      LI : Line_Info);
+   procedure Disp_Messages (Pp : in out Pretty_Printer'Class; LI : Line_Info);
    --  Go through LI's messages and let Pp display them
 
    procedure Disp_Instruction_Sets
-     (Pp : in out Pretty_Printer'Class;
-      LI : Line_Info);
+     (Pp : in out Pretty_Printer'Class; LI : Line_Info);
    --  In object coverage, go through instructions at line LI
    --  and let Pp display them
 
    procedure Disp_SCOs
-     (Pp   : in out Pretty_Printer'Class;
-      Line : Natural;
-      LI   : Line_Info);
+     (Pp : in out Pretty_Printer'Class; Line : Natural; LI : Line_Info);
    --  In source coverage, go through source coverage information at line LI
    --  and let Pp display them
 
@@ -67,9 +62,7 @@ package body Annotations is
    ----------------------
 
    procedure Pretty_Print_Fun
-     (Pp    : in out Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State) is
+     (Pp : in out Pretty_Printer; SCO : SCO_Id; State : Line_State) is
    begin
       Pp.Pretty_Print_Statement (SCO, State);
    end Pretty_Print_Fun;
@@ -79,9 +72,7 @@ package body Annotations is
    -----------------------
 
    procedure Pretty_Print_Call
-     (Pp    : in out Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State) is
+     (Pp : in out Pretty_Printer; SCO : SCO_Id; State : Line_State) is
    begin
       Pp.Pretty_Print_Statement (SCO, State);
    end Pretty_Print_Call;
@@ -91,17 +82,17 @@ package body Annotations is
    ----------------------
 
    function Aggregated_State
-     (Info              : Line_Info;
-      Ignore_Exemptions : Boolean := False) return Any_Line_State is
+     (Info : Line_Info; Ignore_Exemptions : Boolean := False)
+      return Any_Line_State
+   is
       Result : Line_State := No_Code;
    begin
       --  Exempted case
 
-      if Info.Exemption /= Slocs.No_Location
-        and then not Ignore_Exemptions
+      if Info.Exemption /= Slocs.No_Location and then not Ignore_Exemptions
       then
          if Get_Exemption_Violation_Count (Info.Exemption) = 0
-            and then Get_Exemption_Undet_Cov_Count (Info.Exemption) = 0
+           and then Get_Exemption_Undet_Cov_Count (Info.Exemption) = 0
          then
             return Exempted_No_Violation;
          elsif Get_Exemption_Violation_Count (Info.Exemption) = 0 then
@@ -160,7 +151,7 @@ package body Annotations is
 
       Skip : Boolean;
 
-   --  Start of processing for Disp_File_Line_State
+      --  Start of processing for Disp_File_Line_State
 
    begin
       Files_Table.Fill_Line_Cache (FI);
@@ -196,8 +187,7 @@ package body Annotations is
    ---------------------------
 
    procedure Disp_Instruction_Sets
-     (Pp : in out Pretty_Printer'Class;
-      LI : Line_Info)
+     (Pp : in out Pretty_Printer'Class; LI : Line_Info)
    is
       use Traces_Disa;
 
@@ -232,13 +222,10 @@ package body Annotations is
       Ls              : constant Any_Line_State := Aggregated_State (LI);
       In_Symbol       : Boolean;
 
-   --  Start of processing for Disp_Instruction_Sets
+      --  Start of processing for Disp_Instruction_Sets
 
    begin
-      if not Coverage.Object_Coverage_Enabled
-            or else
-         LI.Obj_Infos = null
-      then
+      if not Coverage.Object_Coverage_Enabled or else LI.Obj_Infos = null then
          return;
       end if;
 
@@ -270,18 +257,20 @@ package body Annotations is
 
          Sec_Info := Instruction_Set.Parent;
 
-         while Sec_Info /= null
-           and then Sec_Info.Kind /= Section_Addresses
+         while Sec_Info /= null and then Sec_Info.Kind /= Section_Addresses
          loop
             Sec_Info := Sec_Info.Parent;
          end loop;
 
          Disp_Assembly_Lines
-           (Slice (Sec_Info.Section_Content,
-                   Instruction_Set.First,
-                   Instruction_Set.Last),
+           (Slice
+              (Sec_Info.Section_Content,
+               Instruction_Set.First,
+               Instruction_Set.Last),
             Get_Insn_Set_Ranges (Info.Exec.all, Sec_Info.Section_Sec_Idx).all,
-            Info.Base.all, Pretty_Print_Insn'Access, Info.Exec.all);
+            Info.Base.all,
+            Pretty_Print_Insn'Access,
+            Info.Exec.all);
 
          if In_Symbol then
             Pretty_Print_End_Symbol (Pp);
@@ -295,9 +284,7 @@ package body Annotations is
    -- Disp_Messages --
    -------------------
 
-   procedure Disp_Messages
-     (Pp : in out Pretty_Printer'Class;
-      LI : Line_Info)
+   procedure Disp_Messages (Pp : in out Pretty_Printer'Class; LI : Line_Info)
    is
    begin
       if LI.Messages /= null then
@@ -312,9 +299,7 @@ package body Annotations is
    ---------------
 
    procedure Disp_SCOs
-     (Pp   : in out Pretty_Printer'Class;
-      Line : Natural;
-      LI   : Line_Info)
+     (Pp : in out Pretty_Printer'Class; Line : Natural; LI : Line_Info)
    is
 
       SCO_State : Line_State;
@@ -330,13 +315,13 @@ package body Annotations is
 
          if Kind (SCO) /= Removed and then First_Sloc (SCO).L.Line = Line then
             case SCO_Kind (Kind (SCO)) is
-               when Statement =>
+               when Statement    =>
                   if Coverage.Enabled (Stmt) then
                      SCO_State := Get_Line_State (SCO, Stmt);
                      Pretty_Print_Statement (Pp, SCO, SCO_State);
                   end if;
 
-               when Decision =>
+               when Decision     =>
                   if Coverage.Enabled (Decision)
                     or else Coverage.MCDC_Coverage_Enabled
                   then
@@ -358,30 +343,30 @@ package body Annotations is
                            Pretty_Print_Condition
                              (Pp,
                               Condition (SCO, J),
-                              Get_Line_State (Condition (SCO, J),
-                                              Coverage.MCDC_Level));
+                              Get_Line_State
+                                (Condition (SCO, J), Coverage.MCDC_Level));
                         end loop;
                      end if;
 
                      Pretty_Print_End_Decision (Pp);
                   end if;
 
-               when Condition =>
+               when Condition    =>
                   --  Condition without a parent decision. This should never
                   --  happen; fatal error.
 
                   Fatal_Error ("no decision attached to " & Image (SCO));
 
-               when Operator =>
+               when Operator     =>
                   null;
 
-               when Fun =>
+               when Fun          =>
                   if Coverage.Enabled (Fun_Call) then
                      SCO_State := Get_Line_State (SCO, Fun_Call);
                      Pretty_Print_Fun (Pp, SCO, SCO_State);
                   end if;
 
-               when Call =>
+               when Call         =>
                   if Coverage.Enabled (Fun_Call) then
                      SCO_State := Get_Line_State (SCO, Fun_Call);
                      Pretty_Print_Call (Pp, SCO, SCO_State);
@@ -402,10 +387,10 @@ package body Annotations is
    ---------------------
 
    procedure Generate_Report
-     (Pp               : in out Pretty_Printer'Class;
-      Show_Details     : Boolean;
-      Subdir           : String := "";
-      Clean_Pattern    : String := No_Cleaning)
+     (Pp            : in out Pretty_Printer'Class;
+      Show_Details  : Boolean;
+      Subdir        : String := "";
+      Clean_Pattern : String := No_Cleaning)
    is
       use Coverage;
 
@@ -424,11 +409,9 @@ package body Annotations is
       -- Compute_File_State --
       ------------------------
 
-      procedure Compute_File_State (File_Index : Source_File_Index)
-      is
+      procedure Compute_File_State (File_Index : Source_File_Index) is
          ST : Scope_Traversal_Type;
-         FI : constant File_Info_Access :=
-           Get_File (File_Index);
+         FI : constant File_Info_Access := Get_File (File_Index);
 
          procedure Compute_Line_State (L : Positive);
          --  Given a source line located in FI's source file, at line L,
@@ -470,7 +453,7 @@ package body Annotations is
             end if;
          end Compute_Line_State;
 
-      --  Start of processing for Compute_File_State
+         --  Start of processing for Compute_File_State
       begin
          if FI.Kind /= Source_File or else FI.Ignore_Status = Always then
             return;
@@ -528,7 +511,7 @@ package body Annotations is
       --  Current output dir, needed to restore it after we change to the
       --  requested subdirectory for this report.
 
-   --  Start of processing for Generate_Report
+      --  Start of processing for Generate_Report
 
    begin
       --  Report generation increments counters for exemptions. Reset them
@@ -617,8 +600,7 @@ package body Annotations is
    -- Get_Exemption_Message --
    ---------------------------
 
-   function Get_Exemption_Message
-     (Sloc : Source_Location) return String_Access
+   function Get_Exemption_Message (Sloc : Source_Location) return String_Access
    is
       use ALI_Annotation_Maps;
       Cur : constant Cursor := Get_Annotation (Sloc);
@@ -637,22 +619,25 @@ package body Annotations is
    function Message_Annotation (M : Message) return String is
    begin
       if M.SCO /= No_SCO_Id then
-         return SCO_Kind_Image (M.SCO)
+         return
+           SCO_Kind_Image (M.SCO)
            & (if (Switches.Show_MCDC_Vectors
-              or else Switches.Show_Condition_Vectors)
-              and then Kind (M.SCO) = Condition
+                  or else Switches.Show_Condition_Vectors)
+                and then Kind (M.SCO) = Condition
               then Index (M.SCO)'Image & " ("
               else " ")
            & SCO_Image (M.SCO)
            & " at "
-           & Img (First_Sloc (M.SCO).L.Line) & ":"
+           & Img (First_Sloc (M.SCO).L.Line)
+           & ":"
            & Img (First_Sloc (M.SCO).L.Column)
            & (if (Switches.Show_MCDC_Vectors
-              or else Switches.Show_Condition_Vectors)
-              and then Kind (M.SCO) = Condition
+                  or else Switches.Show_Condition_Vectors)
+                and then Kind (M.SCO) = Condition
               then ")"
               else "")
-           & " " & (+M.Msg);
+           & " "
+           & (+M.Msg);
       else
          return Image (M.Sloc, Unique_Name => True) & ": " & (+M.Msg);
       end if;
@@ -685,9 +670,8 @@ package body Annotations is
    --------------
 
    function SCO_Text
-     (SCO    : SCO_Id;
-      Length : Natural := 9;
-      UTF8   : Boolean := False) return String
+     (SCO : SCO_Id; Length : Natural := 9; UTF8 : Boolean := False)
+      return String
    is
       Sloc_Start : Source_Location := First_Sloc (SCO);
       Sloc_End   : Source_Location := End_Lex_Element (Last_Sloc (SCO));
@@ -710,8 +694,7 @@ package body Annotations is
             Postprocessed_Filename : constant String := Get_PP_Filename (SFI);
             Postprocessed_SFI      : Source_File_Index :=
               Get_Index_From_Generic_Name
-                (Postprocessed_Filename,
-                 Source_File, Insert => False);
+                (Postprocessed_Filename, Source_File, Insert => False);
 
          begin
             if Postprocessed_SFI = No_Source_File then
@@ -723,7 +706,8 @@ package body Annotations is
                   if PP_Cmds.Contains (SFI) then
                      Preprocessed :=
                        Run_Command
-                         (PP_Cmds.Element (SFI), "Preprocessing",
+                         (PP_Cmds.Element (SFI),
+                          "Preprocessing",
                           Preprocessed_Filename,
                           Err_To_Out   => False,
                           Ignore_Error => True);
@@ -746,7 +730,8 @@ package body Annotations is
                      else
                         PP_Cmds.Delete (SFI);
                         Outputs.Warn
-                          ("unable to preprocess " & Get_Full_Name (SFI)
+                          ("unable to preprocess "
+                           & Get_Full_Name (SFI)
                            & ". This will result in degraded messages at lines"
                            & " with macro expansions.");
                      end if;
@@ -874,8 +859,7 @@ package body Annotations is
    ------------------------
 
    procedure Output_Annotations
-     (Output      : Ada.Text_IO.File_Type;
-      Annotations : String_Vectors.Vector)
+     (Output : Ada.Text_IO.File_Type; Annotations : String_Vectors.Vector)
    is
       use Ada.Text_IO;
    begin
@@ -888,8 +872,7 @@ package body Annotations is
    -- SCO_Image --
    ---------------
 
-   function SCO_Image (SCO : SCO_Id; Length : Natural := 9) return String
-   is
+   function SCO_Image (SCO : SCO_Id; Length : Natural := 9) return String is
    begin
       return """" & SCO_Text (SCO, Length) & """";
    end SCO_Image;
@@ -949,8 +932,8 @@ package body Annotations is
    --------------------------
 
    procedure Output_Multiline_Msg
-     (Output           : Ada.Text_IO.File_Type;
-      Text             : String) is
+     (Output : Ada.Text_IO.File_Type; Text : String)
+   is
       use Ada.Text_IO;
       use Ada.Strings.Fixed;
 
@@ -965,10 +948,8 @@ package body Annotations is
       loop
          --  Find the index of the next LF character
 
-         Line_Last := Index
-           (Source => Text,
-            Pattern => EOL,
-            From => Line_First);
+         Line_Last :=
+           Index (Source => Text, Pattern => EOL, From => Line_First);
 
          if Line_Last = 0 then
             --  No LF found, so there is only one line remaining.
@@ -995,8 +976,7 @@ package body Annotations is
    ------------------
 
    function Line_Metrics
-     (FI       : File_Info_Access;
-      From, To : Natural) return Li_Stat_Array
+     (FI : File_Info_Access; From, To : Natural) return Li_Stat_Array
    is
       Result           : Li_Stat_Array := (others => 0);
       Actual_To        : Natural := To;
@@ -1015,7 +995,7 @@ package body Annotations is
 
       for L in From .. Actual_To loop
          declare
-            LI : constant Line_Info_Access :=  Get_Line (FI, L);
+            LI : constant Line_Info_Access := Get_Line (FI, L);
             S  : constant Any_Line_State := Aggregated_State (LI.all);
          begin
             --  Update counts. Note that No_Code lines are always counted as
@@ -1037,14 +1017,11 @@ package body Annotations is
    -- Obligation_Metrics --
    ------------------------
 
-   function Obligation_Metrics (SCOs : SCO_Sets.Set) return Ob_Stat_Array
-   is
+   function Obligation_Metrics (SCOs : SCO_Sets.Set) return Ob_Stat_Array is
       Result : Ob_Stat_Array;
 
       procedure Update_Level_Stats
-        (SCO   : SCO_Id;
-         State : SCO_State;
-         Level : Coverage_Level);
+        (SCO : SCO_Id; State : SCO_State; Level : Coverage_Level);
       --  Update the obligation statistics for the given coverage level
 
       ------------------------
@@ -1052,9 +1029,7 @@ package body Annotations is
       ------------------------
 
       procedure Update_Level_Stats
-        (SCO   : SCO_Id;
-         State : SCO_State;
-         Level : Coverage_Level)
+        (SCO : SCO_Id; State : SCO_State; Level : Coverage_Level)
       is
          LI : constant Line_Info_Access := Get_Line (First_Sloc (SCO));
       begin
@@ -1062,8 +1037,7 @@ package body Annotations is
             return;
          end if;
 
-         Result (Level).Total :=
-           Result (Level).Total + 1;
+         Result (Level).Total := Result (Level).Total + 1;
 
          if LI.Exemption /= Slocs.No_Location then
             if State = Covered or else State = Not_Coverable then
@@ -1077,25 +1051,25 @@ package body Annotations is
                  Result (Level).Stats (Exempted_With_Violation) + 1;
             end if;
          else
-            Result (Level).Stats (State) :=
-              Result (Level).Stats (State) + 1;
+            Result (Level).Stats (State) := Result (Level).Stats (State) + 1;
          end if;
       end Update_Level_Stats;
 
    begin
       for SCO of SCOs loop
          case Kind (SCO) is
-            when Statement =>
+            when Statement         =>
                Update_Level_Stats (SCO, Get_Line_State (SCO, Stmt), Stmt);
+
             when Fun_Call_SCO_Kind =>
                Update_Level_Stats
                  (SCO, Get_Line_State (SCO, Fun_Call), Fun_Call);
-            when Decision =>
+
+            when Decision          =>
                if Coverage.Assertion_Coverage_Enabled
                  and then Is_Assertion (SCO)
                then
-                  Update_Level_Stats
-                    (SCO, Get_Line_State (SCO, ATC), ATC);
+                  Update_Level_Stats (SCO, Get_Line_State (SCO, ATC), ATC);
                else
                   Update_Level_Stats
                     (SCO, Get_Line_State (SCO, Decision), Decision);
@@ -1106,8 +1080,7 @@ package body Annotations is
                     Coverage.Assertion_Condition_Coverage_Enabled
                     and then Is_Assertion (SCO);
                begin
-                  if Coverage.MCDC_Coverage_Enabled
-                    or else Assertion_Decision
+                  if Coverage.MCDC_Coverage_Enabled or else Assertion_Decision
                   then
                      declare
                         Condition_Level : constant Coverage_Level :=
@@ -1117,18 +1090,18 @@ package body Annotations is
                      begin
                         --  Conditions in that decision
 
-                        for J in
-                          Condition_Index'First .. Last_Cond_Index (SCO)
+                        for J in Condition_Index'First .. Last_Cond_Index (SCO)
                         loop
                            declare
                               Condition_SCO : constant SCO_Id :=
                                 Condition (SCO, J);
 
                               Line_Condition_State : constant SCO_State :=
-                                Get_Line_State (SCO,
-                                                (if Assertion_Decision
-                                                 then ATCC
-                                                 else MCDC));
+                                Get_Line_State
+                                  (SCO,
+                                   (if Assertion_Decision
+                                    then ATCC
+                                    else MCDC));
                               --  If the parent decision is partially covered,
                               --  then the SCO_State for each condition
                               --  will be No_Code, and the SCO_State for the
@@ -1154,7 +1127,8 @@ package body Annotations is
                      end;
                   end if;
                end;
-            when others =>
+
+            when others            =>
                null;
          end case;
       end loop;
@@ -1192,24 +1166,27 @@ package body Annotations is
    begin
       if M.SCO /= No_SCO_Id and then M.Kind in Coverage_Kind then
          case M.Kind is
-         when Exclusion =>
-            return Coverage_Exclusions;
-         when Undetermined_Cov =>
-            return Undet_Coverage;
-         when others =>
-            pragma Assert (M.Kind = Violation or else M.Kind = Info);
+            when Exclusion        =>
+               return Coverage_Exclusions;
 
-            declare
-               S : constant Report_Section := Section_Of_SCO (M.SCO);
-            begin
-               if S = Other_Errors then
-                  --  A violation message is expected to always be relevant to
-                  --  some report section.
+            when Undetermined_Cov =>
+               return Undet_Coverage;
 
-                  raise Program_Error with "unexpected SCO kind in violation";
-               end if;
-               return S;
-            end;
+            when others           =>
+               pragma Assert (M.Kind = Violation or else M.Kind = Info);
+
+               declare
+                  S : constant Report_Section := Section_Of_SCO (M.SCO);
+               begin
+                  if S = Other_Errors then
+                     --  A violation message is expected to always be relevant
+                     --  to some report section.
+
+                     raise Program_Error
+                       with "unexpected SCO kind in violation";
+                  end if;
+                  return S;
+               end;
          end case;
 
       else
@@ -1236,10 +1213,10 @@ package body Annotations is
       end if;
 
       case Kind (SCO) is
-         when Statement =>
+         when Statement         =>
             return Coverage_Level'Pos (Stmt);
 
-         when Decision =>
+         when Decision          =>
             if Is_Expression (SCO)
               and then not Decision_Requires_Assertion_Coverage (SCO)
             then
@@ -1250,7 +1227,7 @@ package body Annotations is
                return Coverage_Level'Pos (Decision);
             end if;
 
-         when Condition =>
+         when Condition         =>
             if Coverage.Enabled (ATCC)
               and then Decision_Requires_Assertion_Coverage (SCO)
             then
@@ -1262,10 +1239,10 @@ package body Annotations is
          when Fun_Call_SCO_Kind =>
             return Coverage_Level'Pos (Fun_Call);
 
-         when Guarded_Expr =>
+         when Guarded_Expr      =>
             return Coverage_Level'Pos (GExpr);
 
-         when others =>
+         when others            =>
             return Other_Errors;
       end case;
    end Section_Of_SCO;

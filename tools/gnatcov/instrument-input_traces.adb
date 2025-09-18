@@ -35,21 +35,20 @@ with Outputs;
 package body Instrument.Input_Traces is
 
    Native_Endianity : constant Supported_Endianity :=
-      Traces_Source.Native_Endianity;
+     Traces_Source.Native_Endianity;
 
    subtype Read_Result is Traces_Files.Read_Result;
    procedure Create_Error (Result : out Read_Result; Error : String)
-      renames Traces_Files.Create_Error;
+   renames Traces_Files.Create_Error;
 
    function Buffer_Size
-     (Encoding  : Supported_Bit_Buffer_Encoding;
-      Bit_Count : Any_Bit_Count) return Natural;
+     (Encoding : Supported_Bit_Buffer_Encoding; Bit_Count : Any_Bit_Count)
+      return Natural;
    --  Return the size (in bytes) of the representation of a coverage buffer in
    --  a source trace file given an encoding and a bit count.
 
    function With_Padding
-     (Alignment : Supported_Alignment;
-      Size      : Natural) return Natural;
+     (Alignment : Supported_Alignment; Size : Natural) return Natural;
    --  Return Size plus the number of padding bytes required so that the result
    --  is a multiple of Alignment.
 
@@ -57,8 +56,8 @@ package body Instrument.Input_Traces is
 
    type Bytes_Access is access all Bytes_Array;
 
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Bytes_Array, Bytes_Access);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (Bytes_Array, Bytes_Access);
 
    type Buffer_Range is record
       Offset, Size : Natural;
@@ -71,9 +70,9 @@ package body Instrument.Input_Traces is
    --  Describe a range of bytes in a buffer
 
    function Range_For
-     (Alignment    : Supported_Alignment;
-      Offset, Size : Natural) return Buffer_Range
-      with Pre => Offset = With_Padding (Alignment, Offset);
+     (Alignment : Supported_Alignment; Offset, Size : Natural)
+      return Buffer_Range
+   with Pre => Offset = With_Padding (Alignment, Offset);
    --  Return a Buffer_Range object corresponding to the given constraints
 
    function Offset_After (Self : Buffer_Range) return Natural;
@@ -103,7 +102,7 @@ package body Instrument.Input_Traces is
       EOF          : out Boolean;
       Result       : in out Read_Result;
       Error_If_EOF : Boolean := True)
-      with Pre => Result.Success;
+   with Pre => Result.Success;
    --  Try to read Size bytes from Stream. Put the result in Stream.Buffer and
    --  Stream.Buffer_Last. By default, set EOF to False (see below).
    --
@@ -117,7 +116,7 @@ package body Instrument.Input_Traces is
    --  an error about a truncated file and set EOF to True.
 
    function Buffer_Address (Stream : Binary_Stream) return System.Address
-      with Pre => Stream.Buffer /= null;
+   with Pre => Stream.Buffer /= null;
    --  Return the address for the content of the buffer in Stream
 
    type Trace_Entry_Elements is record
@@ -129,19 +128,18 @@ package body Instrument.Input_Traces is
 
    type Coverage_Buffer_Access is access all Coverage_Buffer;
 
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Coverage_Buffer, Coverage_Buffer_Access);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (Coverage_Buffer, Coverage_Buffer_Access);
 
    procedure Reserve
-     (Buffer : in out Coverage_Buffer_Access;
-      Size   : Any_Bit_Count);
+     (Buffer : in out Coverage_Buffer_Access; Size : Any_Bit_Count);
    --  Reallocate Buffer if needed so that it can contain at least Size bits
 
    procedure Read_Trace_File_Header
      (Stream      : in out Binary_Stream;
       File_Header : out Trace_File_Header;
       Result      : in out Read_Result)
-      with Pre => Result.Success;
+   with Pre => Result.Success;
    --  Read a trace file header from Stream and store it in File_Header. Set
    --  Result to an error if something wrong happened.
 
@@ -151,7 +149,7 @@ package body Instrument.Input_Traces is
       Kind        : out Supported_Info_Kind;
       Data        : out GNAT.OS_Lib.String_Access;
       Result      : in out Read_Result)
-      with Pre => Result.Success;
+   with Pre => Result.Success;
    --  Read a trace info entry from Stream. Return an error if something wrong
    --  happened, otherwise put its kind in Kind and allocate a string in Data
    --  to hold the data associated to this entry.
@@ -162,7 +160,7 @@ package body Instrument.Input_Traces is
       Entry_Header : out Trace_Entry_Header;
       Trace_Entry  : out Trace_Entry_Elements;
       Result       : in out Read_Result) return Boolean
-      with Pre => Result.Success;
+   with Pre => Result.Success;
    --  Try to read a trace entry header from Stream.
    --
    --  If Stream already reached EOF, just return False. Otherwise, decode it
@@ -178,7 +176,7 @@ package body Instrument.Input_Traces is
       Raw_Buffer : Bytes_Array;
       Buffer     : out Coverage_Buffer;
       Result     : in out Read_Result)
-      with Pre => Result.Success;
+   with Pre => Result.Success;
    --  Decode the given Raw_Buffer according to the given Encoding, and but the
    --  result in Buffer. If all goes well, keep Result as it is, otherwise set
    --  it to the corresponding error information.
@@ -188,8 +186,8 @@ package body Instrument.Input_Traces is
    -----------------
 
    function Buffer_Size
-     (Encoding  : Supported_Bit_Buffer_Encoding;
-      Bit_Count : Any_Bit_Count) return Natural is
+     (Encoding : Supported_Bit_Buffer_Encoding; Bit_Count : Any_Bit_Count)
+      return Natural is
    begin
       case Encoding is
          when LSB_First_Bytes =>
@@ -202,8 +200,7 @@ package body Instrument.Input_Traces is
    ------------------
 
    function With_Padding
-     (Alignment : Supported_Alignment;
-      Size      : Natural) return Natural
+     (Alignment : Supported_Alignment; Size : Natural) return Natural
    is
       Result : constant Natural := Size mod Natural (Alignment);
    begin
@@ -215,8 +212,8 @@ package body Instrument.Input_Traces is
    ---------------
 
    function Range_For
-     (Alignment    : Supported_Alignment;
-      Offset, Size : Natural) return Buffer_Range is
+     (Alignment : Supported_Alignment; Offset, Size : Natural)
+      return Buffer_Range is
    begin
       return (Offset, Size, With_Padding (Alignment, Size));
    end Range_For;
@@ -264,10 +261,11 @@ package body Instrument.Input_Traces is
       begin
          Stream.Buffer_Last := 0;
          while Stream.Buffer_Last < Size loop
-            Read_Size := Read
-              (Stream.File,
-               Buffer (Stream.Buffer_Last + 1)'Address,
-               Size - Stream.Buffer_Last);
+            Read_Size :=
+              Read
+                (Stream.File,
+                 Buffer (Stream.Buffer_Last + 1)'Address,
+                 Size - Stream.Buffer_Last);
 
             if Read_Size = 0 then
                EOF := True;
@@ -290,7 +288,7 @@ package body Instrument.Input_Traces is
 
    function Buffer_Address (Stream : Binary_Stream) return System.Address is
    begin
-      return Stream.Buffer.all (1) 'Address;
+      return Stream.Buffer.all (1)'Address;
    end Buffer_Address;
 
    -------------
@@ -298,8 +296,7 @@ package body Instrument.Input_Traces is
    -------------
 
    procedure Reserve
-     (Buffer : in out Coverage_Buffer_Access;
-      Size   : Any_Bit_Count)
+     (Buffer : in out Coverage_Buffer_Access; Size : Any_Bit_Count)
    is
       Last_Bit : constant Any_Bit_Id := Any_Bit_Id (Size) - 1;
 
@@ -326,8 +323,7 @@ package body Instrument.Input_Traces is
    is
       Ignored_EOF : Boolean;
    begin
-      Read_Bytes
-        (Stream, File_Header'Size / 8, Ignored_EOF, Result);
+      Read_Bytes (Stream, File_Header'Size / 8, Ignored_EOF, Result);
       if not Result.Success then
          return;
       end if;
@@ -336,7 +332,7 @@ package body Instrument.Input_Traces is
          use type Interfaces.Unsigned_16;
 
          Raw_Header : Trace_File_Header
-            with Import, Address => Buffer_Address (Stream);
+         with Import, Address => Buffer_Address (Stream);
       begin
          if Raw_Header.Magic /= Trace_File_Magic then
             Create_Error (Result, "invalid magic");
@@ -356,14 +352,14 @@ package body Instrument.Input_Traces is
          --  Go on checking fields...
 
          if Raw_Header.Format_Version /= Current_Version then
-            Create_Error (
-              Result,
-              "Trace format v" &
-                 Strings.Img (Integer (Raw_Header.Format_Version)) &
-              " is not supported by this version of gnatcov. " &
-              "Handling v"
-                 & Strings.Img (Integer (Current_Version)) &
-              " only.");
+            Create_Error
+              (Result,
+               "Trace format v"
+               & Strings.Img (Integer (Raw_Header.Format_Version))
+               & " is not supported by this version of gnatcov. "
+               & "Handling v"
+               & Strings.Img (Integer (Current_Version))
+               & " only.");
             return;
 
          elsif Raw_Header.Alignment not in 1 | 2 | 4 | 8 | 16 then
@@ -399,8 +395,7 @@ package body Instrument.Input_Traces is
 
       --  Read the trace info header
 
-      Read_Bytes
-        (Stream, Trace_Info_Header'Size / 8, Ignored_EOF, Result);
+      Read_Bytes (Stream, Trace_Info_Header'Size / 8, Ignored_EOF, Result);
       if not Result.Success then
          return;
       end if;
@@ -409,7 +404,7 @@ package body Instrument.Input_Traces is
          use type Interfaces.Unsigned_32;
 
          Header : Trace_Info_Header
-            with Import, Address => Buffer_Address (Stream);
+         with Import, Address => Buffer_Address (Stream);
       begin
          --  Swap bytes if needed, according to the file endianity
 
@@ -440,7 +435,7 @@ package body Instrument.Input_Traces is
 
       declare
          Read_Size : constant Natural :=
-            With_Padding (File_Header.Alignment, Data.all'Length);
+           With_Padding (File_Header.Alignment, Data.all'Length);
       begin
          Read_Bytes (Stream, Read_Size, Ignored_EOF, Result);
       end;
@@ -450,7 +445,7 @@ package body Instrument.Input_Traces is
       end if;
       declare
          Data_As_String : String (Data.all'Range)
-            with Import, Address => Buffer_Address (Stream);
+         with Import, Address => Buffer_Address (Stream);
       begin
          Data.all := Data_As_String;
       end;
@@ -479,7 +474,7 @@ package body Instrument.Input_Traces is
 
       declare
          Raw_Header : Trace_Entry_Header
-            with Import, Address => Buffer_Address (Stream);
+         with Import, Address => Buffer_Address (Stream);
       begin
          --  Swap bytes if needed, according to the file endianity
 
@@ -498,20 +493,19 @@ package body Instrument.Input_Traces is
          --  current language kind.
 
          elsif (case Raw_Header.Language_Kind is
-                when Traces_Source.Unit_Based_Language =>
-                  Raw_Header.Unit_Part not in Supported_Unit_Part,
-                when Traces_Source.File_Based_Language =>
-                  Raw_Header.Unit_Part /=
-                     Traces_Source.Not_Applicable_Part,
-                when others =>
-                   raise Program_Error
-                     with "invalid language while already validated")
+                  when Traces_Source.Unit_Based_Language =>
+                    Raw_Header.Unit_Part not in Supported_Unit_Part,
+                  when Traces_Source.File_Based_Language =>
+                    Raw_Header.Unit_Part /= Traces_Source.Not_Applicable_Part,
+                  when others                            =>
+                    raise Program_Error
+                      with "invalid language while already validated")
          then
             Create_Error (Result, "invalid unit part");
             return False;
 
-         elsif Raw_Header.Bit_Buffer_Encoding not in
-            Supported_Bit_Buffer_Encoding
+         elsif Raw_Header.Bit_Buffer_Encoding
+               not in Supported_Bit_Buffer_Encoding
          then
             Create_Error (Result, "invalid bit buffer encoding");
             return False;
@@ -529,23 +523,31 @@ package body Instrument.Input_Traces is
 
       declare
          Unit_Name_Range        : constant Buffer_Range :=
-            Range_For (File_Header.Alignment, 0,
-                       Natural (Entry_Header.Unit_Name_Length));
+           Range_For
+             (File_Header.Alignment,
+              0,
+              Natural (Entry_Header.Unit_Name_Length));
          Statement_Buffer_Range : constant Buffer_Range :=
-            Range_For (File_Header.Alignment,
-                       Offset_After (Unit_Name_Range),
-                       Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
-                                    Entry_Header.Statement_Bit_Count));
+           Range_For
+             (File_Header.Alignment,
+              Offset_After (Unit_Name_Range),
+              Buffer_Size
+                (Entry_Header.Bit_Buffer_Encoding,
+                 Entry_Header.Statement_Bit_Count));
          Decision_Buffer_Range  : constant Buffer_Range :=
-            Range_For (File_Header.Alignment,
-                       Offset_After (Statement_Buffer_Range),
-                       Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
-                                    Entry_Header.Decision_Bit_Count));
+           Range_For
+             (File_Header.Alignment,
+              Offset_After (Statement_Buffer_Range),
+              Buffer_Size
+                (Entry_Header.Bit_Buffer_Encoding,
+                 Entry_Header.Decision_Bit_Count));
          MCDC_Buffer_Range      : constant Buffer_Range :=
-            Range_For (File_Header.Alignment,
-                       Offset_After (Decision_Buffer_Range),
-                       Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
-                                    Entry_Header.MCDC_Bit_Count));
+           Range_For
+             (File_Header.Alignment,
+              Offset_After (Decision_Buffer_Range),
+              Buffer_Size
+                (Entry_Header.Bit_Buffer_Encoding,
+                 Entry_Header.MCDC_Bit_Count));
 
          Data_Size    : constant Natural := Offset_After (MCDC_Buffer_Range);
          Base_Address : System.Address;
@@ -565,10 +567,11 @@ package body Instrument.Input_Traces is
          --  Communicate their address in Stream.Buffer to Trace_Entry
 
          Base_Address := Buffer_Address (Stream);
-         Trace_Entry := (Base_Address + Unit_Name_Range.Offset,
-                         Base_Address + Statement_Buffer_Range.Offset,
-                         Base_Address + Decision_Buffer_Range.Offset,
-                         Base_Address + MCDC_Buffer_Range.Offset);
+         Trace_Entry :=
+           (Base_Address + Unit_Name_Range.Offset,
+            Base_Address + Statement_Buffer_Range.Offset,
+            Base_Address + Decision_Buffer_Range.Offset,
+            Base_Address + MCDC_Buffer_Range.Offset);
          return True;
       end;
    end Read_Trace_Entry;
@@ -614,8 +617,7 @@ package body Instrument.Input_Traces is
    ------------------------------------
 
    procedure Generic_Read_Source_Trace_File
-     (Filename : String;
-      Result   : out Traces_Files.Read_Result)
+     (Filename : String; Result : out Traces_Files.Read_Result)
    is
       Stream           : Binary_Stream;
       File_Header      : Trace_File_Header;
@@ -669,46 +671,49 @@ package body Instrument.Input_Traces is
       --  If all went well so far, go through all trace entries
 
       while Read_Trace_Entry
-        (Stream, File_Header, Entry_Header, Trace_Entry, Result)
+              (Stream, File_Header, Entry_Header, Trace_Entry, Result)
       loop
          declare
-            Unit_Name    : constant String
-              (1 .. Natural (Entry_Header.Unit_Name_Length))
-               with Import, Address => Trace_Entry.Unit_Name;
+            Unit_Name :
+              constant String (1 .. Natural (Entry_Header.Unit_Name_Length))
+            with Import, Address => Trace_Entry.Unit_Name;
 
-            function Convert is new Ada.Unchecked_Conversion
-              (Traces_Source.Fingerprint_Type,
-               SC_Obligations.Fingerprint_Type);
+            function Convert is new
+              Ada.Unchecked_Conversion
+                (Traces_Source.Fingerprint_Type,
+                 SC_Obligations.Fingerprint_Type);
 
             Fingerprint          : constant SC_Obligations.Fingerprint_Type :=
-               Convert (Entry_Header.Fingerprint);
+              Convert (Entry_Header.Fingerprint);
             Bit_Maps_Fingerprint : constant SC_Obligations.Fingerprint_Type :=
               Convert (Entry_Header.Bit_Maps_Fingerprint);
 
-            Annotations_Fingerprint : constant
-              SC_Obligations.Fingerprint_Type :=
+            Annotations_Fingerprint :
+              constant SC_Obligations.Fingerprint_Type :=
                 Convert (Entry_Header.Annotations_Fingerprint);
 
             Statement_Buffer_Size : constant Natural :=
-               Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
-                            Entry_Header.Statement_Bit_Count);
-            Raw_Statement_Buffer  : constant Bytes_Array
-              (1 .. Statement_Buffer_Size)
-               with Import, Address => Trace_Entry.Statement_Buffer;
+              Buffer_Size
+                (Entry_Header.Bit_Buffer_Encoding,
+                 Entry_Header.Statement_Bit_Count);
+            Raw_Statement_Buffer  :
+              constant Bytes_Array (1 .. Statement_Buffer_Size)
+            with Import, Address => Trace_Entry.Statement_Buffer;
 
             Decision_Buffer_Size : constant Natural :=
-               Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
-                            Entry_Header.Decision_Bit_Count);
-            Raw_Decision_Buffer  : constant Bytes_Array
-              (1 .. Decision_Buffer_Size)
-               with Import, Address => Trace_Entry.Decision_Buffer;
+              Buffer_Size
+                (Entry_Header.Bit_Buffer_Encoding,
+                 Entry_Header.Decision_Bit_Count);
+            Raw_Decision_Buffer  :
+              constant Bytes_Array (1 .. Decision_Buffer_Size)
+            with Import, Address => Trace_Entry.Decision_Buffer;
 
             MCDC_Buffer_Size : constant Natural :=
-               Buffer_Size (Entry_Header.Bit_Buffer_Encoding,
-                            Entry_Header.MCDC_Bit_Count);
-            Raw_MCDC_Buffer  : constant Bytes_Array
-              (1 .. MCDC_Buffer_Size)
-               with Import, Address => Trace_Entry.MCDC_Buffer;
+              Buffer_Size
+                (Entry_Header.Bit_Buffer_Encoding,
+                 Entry_Header.MCDC_Bit_Count);
+            Raw_MCDC_Buffer  : constant Bytes_Array (1 .. MCDC_Buffer_Size)
+            with Import, Address => Trace_Entry.MCDC_Buffer;
 
             function Last_Bit (Bit_Count : Any_Bit_Count) return Any_Bit_Id
             is (Any_Bit_Id (Bit_Count) - 1);
@@ -751,9 +756,11 @@ package body Instrument.Input_Traces is
 
             case Supported_Language_Kind (Entry_Header.Language_Kind) is
                when Traces_Source.Unit_Based_Language =>
-                  CU_Name := CU_Name_For_Unit
-                    (Unit => To_Qualified_Name (Unit_Name),
-                     Part => +Entry_Header.Unit_Part);
+                  CU_Name :=
+                    CU_Name_For_Unit
+                      (Unit => To_Qualified_Name (Unit_Name),
+                       Part => +Entry_Header.Unit_Part);
+
                when Traces_Source.File_Based_Language =>
                   CU_Name := CU_Name_For_File (+Unit_Name);
             end case;
@@ -768,12 +775,11 @@ package body Instrument.Input_Traces is
                  (0 .. Last_Bit (Entry_Header.Statement_Bit_Count)),
                Decision_Buffer
                  (0 .. Last_Bit (Entry_Header.Decision_Bit_Count)),
-               MCDC_Buffer
-                 (0 .. Last_Bit (Entry_Header.MCDC_Bit_Count)));
+               MCDC_Buffer (0 .. Last_Bit (Entry_Header.MCDC_Bit_Count)));
          end;
       end loop;
 
-   <<Cleanup_And_Exit>>
+      <<Cleanup_And_Exit>>
       Free (Statement_Buffer);
       Free (Decision_Buffer);
       Free (MCDC_Buffer);
@@ -788,8 +794,7 @@ package body Instrument.Input_Traces is
    procedure Dump_Source_Trace_File (Filename : String) is
 
       procedure On_Trace_Info
-        (Kind : Traces_Source.Supported_Info_Kind;
-         Data : String);
+        (Kind : Traces_Source.Supported_Info_Kind; Data : String);
       procedure On_Trace_Entry
         (Filename                : String;
          Fingerprint             : SC_Obligations.Fingerprint_Type;
@@ -812,16 +817,15 @@ package body Instrument.Input_Traces is
       -------------------
 
       procedure On_Trace_Info
-        (Kind : Traces_Source.Supported_Info_Kind;
-         Data : String)
+        (Kind : Traces_Source.Supported_Info_Kind; Data : String)
       is
          use Ada.Text_IO;
          Kind_Name : constant String :=
            (case Kind is
-            when Info_End          => raise Program_Error,
-            when Info_Program_Name => "Program_Name",
-            when Info_Exec_Date    => "Exec_Date",
-            when Info_User_Data    => "User_Data");
+              when Info_End          => raise Program_Error,
+              when Info_Program_Name => "Program_Name",
+              when Info_Exec_Date    => "Exec_Date",
+              when Info_User_Data    => "User_Data");
       begin
          Put_Line ("Info " & Kind_Name & ": " & Data);
          Last_Is_Info := True;
@@ -851,8 +855,13 @@ package body Instrument.Input_Traces is
 
          case CU_Name.Language_Kind is
             when Traces_Source.Unit_Based_Language =>
-               Put ("Unit " & To_Ada (CU_Name.Unit) & " (" & CU_Name.Part'Image
-                    & ", ");
+               Put
+                 ("Unit "
+                  & To_Ada (CU_Name.Unit)
+                  & " ("
+                  & CU_Name.Part'Image
+                  & ", ");
+
             when Traces_Source.File_Based_Language =>
                Put ("Unit " & (+CU_Name.Filename) & " (");
          end case;
@@ -893,8 +902,10 @@ package body Instrument.Input_Traces is
          if Buffer'Length = 0 then
             Put ("empty range");
          else
-            Put (Strings.Img (Integer (Buffer'First))
-                 & "-" & Strings.Img (Integer (Buffer'Last)));
+            Put
+              (Strings.Img (Integer (Buffer'First))
+               & "-"
+               & Strings.Img (Integer (Buffer'Last)));
          end if;
          Put ("]");
          for Bit_Id in Buffer'Range loop
@@ -913,7 +924,7 @@ package body Instrument.Input_Traces is
 
       Result : Read_Result;
 
-   --  Start of processing for Dump_Source_Trace_File
+      --  Start of processing for Dump_Source_Trace_File
 
    begin
       Read_Source_Trace_File (Filename, Result);
@@ -932,8 +943,9 @@ package body Instrument.Input_Traces is
       package TIO renames Ada.Text_IO;
       package BIO is new Ada.Direct_IO (Interfaces.Unsigned_8);
 
-      subtype Whitespace is Character with Static_Predicate =>
-         Whitespace in ' ' | ASCII.HT | ASCII.CR | ASCII.LF;
+      subtype Whitespace is Character
+      with
+        Static_Predicate => Whitespace in ' ' | ASCII.HT | ASCII.CR | ASCII.LF;
 
       procedure Trim
         (S : String; First : in out Positive; Last : in out Natural);
@@ -987,16 +999,21 @@ package body Instrument.Input_Traces is
 
       begin
          case C is
-            when Upper =>
+            when Upper  =>
                return C_Pos - Upper_A_Pos + Upper_Offset;
-            when Lower =>
+
+            when Lower  =>
                return C_Pos - Lower_A_Pos + Lower_Offset;
-            when Digit =>
+
+            when Digit  =>
                return C_Pos - Digit_0_Pos + Digit_Offset;
-            when '+' =>
+
+            when '+'    =>
                return Plus_Offset;
-            when '/' =>
+
+            when '/'    =>
                return Plus_Offset + 1;
+
             when others =>
                Outputs.Fatal_Error ("Invalid Base64 digit: " & C);
          end case;
@@ -1013,7 +1030,7 @@ package body Instrument.Input_Traces is
       --  If Started_Trace is True, line prefix for the base64 dump for that
       --  source trace.
 
-   --  Start of processing for Extract_Base64_Trace
+      --  Start of processing for Extract_Base64_Trace
 
    begin
       --  Read the input file line by line. We use gotos to Read_Next_Line as a
@@ -1094,8 +1111,9 @@ package body Instrument.Input_Traces is
 
             Ignore_Line :=
               Started_Trace
-              and then not Has_Prefix (Buffer (First .. Last),
-                                       Prefix (Prefix'First .. Prefix_Last));
+              and then not Has_Prefix
+                             (Buffer (First .. Last),
+                              Prefix (Prefix'First .. Prefix_Last));
 
             --  If the line is too long for our buffer:
             --
@@ -1122,8 +1140,7 @@ package body Instrument.Input_Traces is
                      BIO.Delete (Output);
                   end if;
 
-                  Outputs.Fatal_Error
-                    ("Unexpected long line in Base64 trace");
+                  Outputs.Fatal_Error ("Unexpected long line in Base64 trace");
                else
                   TIO.Skip_Line (Input);
                   goto Read_Next_Line;
@@ -1152,7 +1169,7 @@ package body Instrument.Input_Traces is
                   begin
                      Prefix_Last := Prefix_Length + Prefix'First - 1;
                      Prefix (Prefix'First .. Prefix_Last) :=
-                       Buffer (First ..  First + Prefix_Length - 1);
+                       Buffer (First .. First + Prefix_Length - 1);
                   end;
                   BIO.Create (Output, BIO.Out_File, Output_File);
                end if;
@@ -1214,8 +1231,7 @@ package body Instrument.Input_Traces is
                   --  ('=' character).
 
                   BIO.Write
-                    (Output,
-                     Shift_Left (D (0), 2) or Shift_Right (D (1), 4));
+                    (Output, Shift_Left (D (0), 2) or Shift_Right (D (1), 4));
                   if Buffer (Next + 2) /= '=' then
                      BIO.Write
                        (Output,

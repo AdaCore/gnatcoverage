@@ -29,8 +29,7 @@ package Inputs is
    --  reading such inputs from a list in a file.
 
    procedure Read_List_From_File
-     (File_Name : String;
-      Process   : not null access procedure (Name : String));
+     (File_Name : String; Process : not null access procedure (Name : String));
    --  Read a list of names from a text file in the following format:
    --   * lines starting with '#' are ignored
    --   * one name per line

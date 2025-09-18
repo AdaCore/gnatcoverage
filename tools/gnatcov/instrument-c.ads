@@ -45,26 +45,28 @@ package Instrument.C is
    --  Trace meant to output diagnostics emitted by clang, for which we don't
    --  necessarily want to generate a warning / error.
 
-   type C_Family_Instrumenter_Type is
-     abstract new Language_Instrumenter with
-      record
-         Instr_Mode : Instrumentation_Mode;
-      end record;
+   type C_Family_Instrumenter_Type is abstract new Language_Instrumenter
+   with record
+      Instr_Mode : Instrumentation_Mode;
+   end record;
    --  Common instrumentation primitives for C/C++
 
-   overriding procedure Instrument_Unit
+   overriding
+   procedure Instrument_Unit
      (Self              : in out C_Family_Instrumenter_Type;
       Unit_Name         : String;
       Prj               : Prj_Desc;
       Files_Of_Interest : File_Sets.Set);
 
-   overriding procedure Auto_Dump_Buffers_In_Main
+   overriding
+   procedure Auto_Dump_Buffers_In_Main
      (Self        : in out C_Family_Instrumenter_Type;
       Filename    : String;
       Dump_Config : Any_Dump_Config;
       Prj         : Prj_Desc);
 
-   overriding procedure Replace_Manual_Indications
+   overriding
+   procedure Replace_Manual_Indications
      (Self                 : in out C_Family_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
       Source               : Virtual_File;
@@ -86,76 +88,80 @@ package Instrument.C is
    --
    --  Is_Main has no effect for C-like languages.
 
-   overriding procedure Emit_Dump_Helper_Unit_Manual
+   overriding
+   procedure Emit_Dump_Helper_Unit_Manual
      (Self        : in out C_Family_Instrumenter_Type;
       Dump_Config : Any_Dump_Config;
       Prj         : Prj_Desc);
    --  Emit the dump helper unit
 
-   overriding procedure Emit_Buffers_List_Unit
+   overriding
+   procedure Emit_Buffers_List_Unit
      (Self        : C_Family_Instrumenter_Type;
       Instr_Units : Unit_Sets.Set;
       Prj         : Prj_Desc);
 
-   overriding function Emit_Buffers_List_Unit
+   overriding
+   function Emit_Buffers_List_Unit
      (Self           : C_Family_Instrumenter_Type;
       Buffer_Symbols : String_Sets.Set;
       Prj            : Prj_Desc) return Compilation_Unit;
 
-   overriding function Buffer_Unit
-     (Self : C_Family_Instrumenter_Type;
-      CU   : Compilation_Unit;
-      Prj  : Prj_Desc) return Compilation_Unit;
+   overriding
+   function Buffer_Unit
+     (Self : C_Family_Instrumenter_Type; CU : Compilation_Unit; Prj : Prj_Desc)
+      return Compilation_Unit;
 
-   overriding function Dump_Manual_Helper_Unit
-     (Self : C_Family_Instrumenter_Type;
-      Prj  : Prj_Desc) return Compilation_Unit;
+   overriding
+   function Dump_Manual_Helper_Unit
+     (Self : C_Family_Instrumenter_Type; Prj : Prj_Desc)
+      return Compilation_Unit;
 
-   overriding function Dump_Helper_Unit
-     (Self : C_Family_Instrumenter_Type;
-      CU   : Compilation_Unit;
-      Prj  : Prj_Desc) return Compilation_Unit;
+   overriding
+   function Dump_Helper_Unit
+     (Self : C_Family_Instrumenter_Type; CU : Compilation_Unit; Prj : Prj_Desc)
+      return Compilation_Unit;
 
-   overriding function Has_Main
+   overriding
+   function Has_Main
      (Self     : in out C_Family_Instrumenter_Type;
       Filename : String;
       Prj      : Prj_Desc) return Boolean;
 
-   function Extern_Prefix
-     (Self : C_Family_Instrumenter_Type) return String
+   function Extern_Prefix (Self : C_Family_Instrumenter_Type) return String
    is ("extern ");
    --  Return the prefix for declarations and definitions so have C linkage
 
-   type C_Instrumenter_Type is
-     new C_Family_Instrumenter_Type with null record;
+   type C_Instrumenter_Type is new C_Family_Instrumenter_Type with null record;
    --  Instrumentation primitives for C
 
-   overriding function Language
-     (Self : C_Instrumenter_Type) return Src_Supported_Language
+   overriding
+   function Language (Self : C_Instrumenter_Type) return Src_Supported_Language
    is (C_Language);
 
    function Create_C_Instrumenter
-     (Tag        : Unbounded_String;
-      Instr_Mode : Instrumentation_Mode) return C_Instrumenter_Type
+     (Tag : Unbounded_String; Instr_Mode : Instrumentation_Mode)
+      return C_Instrumenter_Type
    is (C_Instrumenter_Type'(Tag => Tag, Instr_Mode => Instr_Mode));
    --  Create a C instrumenter. See the definition of the
    --  Language_Instrumenter type for the arguments semantic.
 
-   type CPP_Instrumenter_Type is
-     new C_Family_Instrumenter_Type with null record;
+   type CPP_Instrumenter_Type is new C_Family_Instrumenter_Type
+   with null record;
    --  Instrumentation primitives for C++
 
-   overriding function Language
+   overriding
+   function Language
      (Self : CPP_Instrumenter_Type) return Src_Supported_Language
    is (CPP_Language);
 
-   overriding function Extern_Prefix
-     (Self : CPP_Instrumenter_Type) return String
+   overriding
+   function Extern_Prefix (Self : CPP_Instrumenter_Type) return String
    is ("extern ""C"" ");
 
    function Create_CPP_Instrumenter
-     (Tag        : Unbounded_String;
-      Instr_Mode : Instrumentation_Mode) return CPP_Instrumenter_Type
+     (Tag : Unbounded_String; Instr_Mode : Instrumentation_Mode)
+      return CPP_Instrumenter_Type
    is (CPP_Instrumenter_Type'(Tag => Tag, Instr_Mode => Instr_Mode));
    --  Create a C++ instrumenter. See the definition of the
    --  Language_Instrumenter type for the arguments semantic.
@@ -244,17 +250,18 @@ package Instrument.C is
       --  True if this condition is the first one in its decision
    end record;
 
-   package Source_Statement_Vectors is
-      new Ada.Containers.Vectors (Natural, C_Source_Statement);
-   package Source_Decision_Vectors is
-     new Ada.Containers.Vectors (Natural, C_Source_Decision);
-   package Source_Condition_Vectors is
-     new Ada.Containers.Vectors (Natural, C_Source_Condition);
+   package Source_Statement_Vectors is new
+     Ada.Containers.Vectors (Natural, C_Source_Statement);
+   package Source_Decision_Vectors is new
+     Ada.Containers.Vectors (Natural, C_Source_Decision);
+   package Source_Condition_Vectors is new
+     Ada.Containers.Vectors (Natural, C_Source_Condition);
 
-   package Block_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Source_Statement_Vectors.Vector,
-      "="          => Source_Statement_Vectors."=");
+   package Block_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Source_Statement_Vectors.Vector,
+        "="          => Source_Statement_Vectors."=");
 
    type C_Instrumented_Entities is record
       Buffers_Index : Natural := 0;
@@ -270,9 +277,10 @@ package Instrument.C is
    end record;
    --  Coverage buffer information for a given source file
 
-   package C_Instrumented_Entities_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Valid_Source_File_Index,
-      Element_Type => C_Instrumented_Entities);
+   package C_Instrumented_Entities_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Valid_Source_File_Index,
+        Element_Type => C_Instrumented_Entities);
    --  Mapping from source files to all the entities to be instrumented in that
    --  source file.
 
@@ -325,9 +333,8 @@ package Instrument.C is
    --  discard the preprocessed information recorded by the first pass, and
    --  produce a degraded report.
 
-   package LL_SCO_PP_Info_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Nat,
-      Element_Type => PP_Info);
+   package LL_SCO_PP_Info_Maps is new
+     Ada.Containers.Ordered_Maps (Key_Type => Nat, Element_Type => PP_Info);
 
    function Split_Args (Args : Unbounded_String) return String_Vectors.Vector;
    --  Split a comma-separated list of arguments
@@ -344,6 +351,7 @@ package Instrument.C is
       case Of_Interest is
          when False =>
             null;
+
          when True =>
             SFI     : Valid_Source_File_Index;
             CU_Name : Compilation_Unit_Part;
@@ -354,11 +362,12 @@ package Instrument.C is
    --  gnatcov's file table and Project_Name is the name of the project that
    --  owns this source file.
 
-   package Source_Of_Interest_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Virtual_File,
-      Element_Type => Source_Of_Interest,
-      "<"          => GNATCOLL.VFS."<",
-      "="          => "=");
+   package Source_Of_Interest_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Virtual_File,
+        Element_Type => Source_Of_Interest,
+        "<"          => GNATCOLL.VFS."<",
+        "="          => "=");
 
    type File_Scope_Type is record
       Scope_Entities       : Scope_Entities_Tree;
@@ -367,72 +376,73 @@ package Instrument.C is
    end record;
    --  Store scope entities and the currently traversed scope
 
-   package Scopes_In_Files_Map is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Source_File_Index,
-      Element_Type => File_Scope_Type);
+   package Scopes_In_Files_Map is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Source_File_Index,
+        Element_Type => File_Scope_Type);
    --  Mapping from a source file to the tree of scopes opened within it. The
    --  root of each tree is the scope corresponding to the file itself in which
    --  all its scopes are stored.
 
-   type C_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
-      record
-         TU       : Translation_Unit_T;
-         CIdx     : Index_T;
-         Rewriter : Rewriter_T;
+   type C_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context
+   with record
+      TU       : Translation_Unit_T;
+      CIdx     : Index_T;
+      Rewriter : Rewriter_T;
 
-         Instrumented_Entities : C_Instrumented_Entities_Maps.Map;
-         --  Statements, decisions and (for MC/DC) conditions to be
-         --  instrumented.
+      Instrumented_Entities : C_Instrumented_Entities_Maps.Map;
+      --  Statements, decisions and (for MC/DC) conditions to be
+      --  instrumented.
 
-         MCDC_State_Declaration_Node : Cursor_T;
-         --  Where should MCDC state declaration be inserted (the beginning of
-         --  the procedure).
+      MCDC_State_Declaration_Node : Cursor_T;
+      --  Where should MCDC state declaration be inserted (the beginning of
+      --  the procedure).
 
-         Options : Analysis_Options;
-         --  Configuration for the preprocessor/parser when working on this
-         --  source file.
+      Options : Analysis_Options;
+      --  Configuration for the preprocessor/parser when working on this
+      --  source file.
 
-         Pass : Pass_Kind_Acc;
-         --  Current pass. See the Pass_Kind documentation for more details.
+      Pass : Pass_Kind_Acc;
+      --  Current pass. See the Pass_Kind documentation for more details.
 
-         LL_PP_Info_Map : LL_SCO_PP_Info_Maps.Map;
-         --  Preprocessing information for low level SCOs
+      LL_PP_Info_Map : LL_SCO_PP_Info_Maps.Map;
+      --  Preprocessing information for low level SCOs
 
-         Files_Of_Interest        : File_Sets.Set;
-         Sources_Of_Interest_Info : Source_Of_Interest_Maps.Map;
-         --  Records for each source file processed during the instrumentation
-         --  whether it is a source of interest, and some properties if it is.
+      Files_Of_Interest        : File_Sets.Set;
+      Sources_Of_Interest_Info : Source_Of_Interest_Maps.Map;
+      --  Records for each source file processed during the instrumentation
+      --  whether it is a source of interest, and some properties if it is.
 
-         Allocated_Bits : Allocated_Bits_Vectors.Vector;
-         --  Allocated bits in coverage buffers for low-level SCOs. We allocate
-         --  one set of coverage buffers per source file, i.e. one per entry in
-         --  Instrumented_Entities.
+      Allocated_Bits : Allocated_Bits_Vectors.Vector;
+      --  Allocated bits in coverage buffers for low-level SCOs. We allocate
+      --  one set of coverage buffers per source file, i.e. one per entry in
+      --  Instrumented_Entities.
 
-         CUs : Created_Unit_Maps.Map;
-         --  Compilation units created while instrumenting this source file.
-         --  Initialized when calling Process_Low_Level_SCOs in
-         --  Instrument_Source_File.
+      CUs : Created_Unit_Maps.Map;
+      --  Compilation units created while instrumenting this source file.
+      --  Initialized when calling Process_Low_Level_SCOs in
+      --  Instrument_Source_File.
 
-         Scopes : Scopes_In_Files_Map.Map := Scopes_In_Files_Map.Empty_Map;
-         --  Mapping between a file's SFI and the scopes containing SCOs
-         --  defined within that file. The SCOs located in imported files
-         --  are traversed during the instrumentation of the importing file
-         --  after preprocessing. This is needed in order to keep track of
-         --  which scope was originally opened in which file.
+      Scopes : Scopes_In_Files_Map.Map := Scopes_In_Files_Map.Empty_Map;
+      --  Mapping between a file's SFI and the scopes containing SCOs
+      --  defined within that file. The SCOs located in imported files
+      --  are traversed during the instrumentation of the importing file
+      --  after preprocessing. This is needed in order to keep track of
+      --  which scope was originally opened in which file.
 
-         Current_File_Scope : Scopes_In_Files_Map.Cursor;
-         --  Source file in which the last scope encountered was opened
+      Current_File_Scope : Scopes_In_Files_Map.Cursor;
+      --  Source file in which the last scope encountered was opened
 
-         Instrumented_CXX_For_Ranges : Cursor_Vectors.Vector;
-         --  List of instrumented for ranges. For an explanation of why we need
-         --  to store these, see the documentation of the Fix_CXX_For_Ranges
-         --  subprogram.
+      Instrumented_CXX_For_Ranges : Cursor_Vectors.Vector;
+      --  List of instrumented for ranges. For an explanation of why we need
+      --  to store these, see the documentation of the Fix_CXX_For_Ranges
+      --  subprogram.
 
-         Block_Stack : Block_Vectors.Vector;
-         --  Currently processed blocks (blocks can nest in the source,
-         --  when e.g. we have a lambda expression).
+      Block_Stack : Block_Vectors.Vector;
+      --  Currently processed blocks (blocks can nest in the source,
+      --  when e.g. we have a lambda expression).
 
-      end record;
+   end record;
 
    type C_Source_Rewriter is tagged limited private;
    --  Helper object to instrument a source file
@@ -454,10 +464,9 @@ package Instrument.C is
 private
 
    function Find_Instrumented_Entities
-     (UIC : in out C_Unit_Inst_Context'Class;
-      SFI : Valid_Source_File_Index)
+     (UIC : in out C_Unit_Inst_Context'Class; SFI : Valid_Source_File_Index)
       return C_Instrumented_Entities_Maps.Reference_Type
-     with Pre => UIC.Instrumented_Entities.Contains (SFI);
+   with Pre => UIC.Instrumented_Entities.Contains (SFI);
    --  Return a reference to the UIC.Instrumented_Entities entry
    --  corresponding to the source file that SFI designates.
 
@@ -470,14 +479,16 @@ private
       C1, C2             : Character;
       From, To           : Source_Location;
       Last               : Boolean;
-      Pragma_Aspect_Name : Name_Id := Namet.No_Name) is null;
+      Pragma_Aspect_Name : Name_Id := Namet.No_Name)
+   is null;
 
-   procedure Enter_Scope (Pass : Pass_Kind;
-                          UIC  : in out C_Unit_Inst_Context'Class;
-                          N    : Cursor_T) is null;
+   procedure Enter_Scope
+     (Pass : Pass_Kind; UIC : in out C_Unit_Inst_Context'Class; N : Cursor_T)
+   is null;
 
-   procedure Exit_Scope (Pass : Pass_Kind;
-                         UIC  : in out C_Unit_Inst_Context'Class) is null;
+   procedure Exit_Scope
+     (Pass : Pass_Kind; UIC : in out C_Unit_Inst_Context'Class)
+   is null;
 
    procedure Instrument_Statement
      (Pass         : Pass_Kind;
@@ -485,14 +496,16 @@ private
       LL_SCO       : Nat;
       Insertion_N  : Cursor_T;
       Instr_Scheme : Instr_Scheme_Type;
-      Kind         : SCO_Kind := Statement) is null;
+      Kind         : SCO_Kind := Statement)
+   is null;
 
    procedure Instrument_Decision
      (Pass     : Pass_Kind;
       UIC      : in out C_Unit_Inst_Context'Class;
       LL_SCO   : Nat;
       Decision : Cursor_T;
-      State    : Unbounded_String) is null;
+      State    : Unbounded_String)
+   is null;
 
    procedure Instrument_Condition
      (Pass      : Pass_Kind;
@@ -500,51 +513,56 @@ private
       LL_SCO    : Nat;
       Condition : Cursor_T;
       State     : Unbounded_String;
-      First     : Boolean) is null;
+      First     : Boolean)
+   is null;
 
    procedure Insert_MCDC_State
      (Pass       : Pass_Kind;
       UIC        : in out C_Unit_Inst_Context'Class;
       Name       : String;
-      MCDC_State : out Unbounded_String) is null;
+      MCDC_State : out Unbounded_String)
+   is null;
 
    procedure Insert_Text_Before_Token
      (Pass : Pass_Kind;
       UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
-      Text : String) is null;
+      Text : String)
+   is null;
 
    procedure Insert_Text_Before
      (Pass : Pass_Kind;
       UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
-      Text : String) is null;
+      Text : String)
+   is null;
 
    procedure Insert_Text_After
      (Pass : Pass_Kind;
       UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
-      Text : String) is null;
+      Text : String)
+   is null;
 
    procedure Report
      (Pass : Pass_Kind;
       Node : Cursor_T;
       Msg  : String;
-      Kind : Report_Kind := Diagnostics.Warning) is null;
+      Kind : Report_Kind := Diagnostics.Warning)
+   is null;
 
    procedure Register_CXX_For_Range
-     (Pass : Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class;
-      N    : Cursor_T) is null;
+     (Pass : Pass_Kind; UIC : in out C_Unit_Inst_Context'Class; N : Cursor_T)
+   is null;
    --  See the documentation of Fix_CXX_For_Ranges
 
    procedure Start_Statement_Block
-     (Pass : Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class) is null;
+     (Pass : Pass_Kind; UIC : in out C_Unit_Inst_Context'Class)
+   is null;
 
    procedure End_Statement_Block
-     (Pass : Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class) is null;
+     (Pass : Pass_Kind; UIC : in out C_Unit_Inst_Context'Class)
+   is null;
 
    type C_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
    with record
@@ -561,7 +579,9 @@ private
       Output_Filename : Unbounded_String;
    end record;
 
-   overriding procedure Initialize (Self : in out C_Source_Rewriter);
-   overriding procedure Finalize (Self : in out C_Source_Rewriter);
+   overriding
+   procedure Initialize (Self : in out C_Source_Rewriter);
+   overriding
+   procedure Finalize (Self : in out C_Source_Rewriter);
 
 end Instrument.C;

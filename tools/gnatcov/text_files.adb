@@ -49,8 +49,7 @@ package body Text_Files is
    function Open
      (Self : in out File_Type;
       Name : String;
-      Mode : File_Mode := Ada.Text_IO.In_File)
-      return Boolean is
+      Mode : File_Mode := Ada.Text_IO.In_File) return Boolean is
    begin
       Open (Self.File, Mode, Name);
       Self.Filename := +Name;
@@ -67,8 +66,7 @@ package body Text_Files is
    function Create
      (Self : in out File_Type;
       Name : String;
-      Mode : File_Mode := Ada.Text_IO.Out_File)
-      return Boolean is
+      Mode : File_Mode := Ada.Text_IO.Out_File) return Boolean is
    begin
       Create (Self.File, Mode, Name);
       Self.Filename := +Name;
@@ -156,7 +154,8 @@ package body Text_Files is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize (Self : in out File_Type) is
+   overriding
+   procedure Finalize (Self : in out File_Type) is
    begin
       if Self.Is_Open then
          Close (Self.File);

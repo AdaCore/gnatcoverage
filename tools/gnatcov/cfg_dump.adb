@@ -68,12 +68,12 @@ package body CFG_Dump is
    type Output_Kind is (File, Subprocess);
    type Output_File_Access is access all File_Type;
    type Output_Type is record
-      Kind     : Output_Kind;
+      Kind : Output_Kind;
 
-      File     : Output_File_Access;
+      File : Output_File_Access;
       --  Used when Kind => File
 
-      Pd       : Process_Descriptor;
+      Pd : Process_Descriptor;
       --  Used when Kind => Subprogram
 
       To_Close : Boolean;
@@ -93,9 +93,9 @@ package body CFG_Dump is
    type Successor_Kind is (Fallthrough, Branch, Subp_Return, Raise_Exception);
 
    type Successor_Record is record
-      Kind    : Successor_Kind;
+      Kind : Successor_Kind;
 
-      Known   : Boolean;
+      Known : Boolean;
       --  Whether the address of this successor instruction is known (i.e if it
       --  is not the target of an indirect branch).
 
@@ -106,39 +106,40 @@ package body CFG_Dump is
    --  sometimes jump. This type is used to describe the possible successors
    --  of some instruction during the execution.
 
-   package Successor_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Successor_Record);
+   package Successor_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Successor_Record);
 
-   package Boolean_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Boolean);
+   package Boolean_Vectors is new
+     Ada.Containers.Vectors (Index_Type => Positive, Element_Type => Boolean);
 
-   package PC_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Pc_Type,
-      "<"          => "<",
-      "="          => "=");
+   package PC_Sets is new
+     Ada.Containers.Ordered_Sets
+       (Element_Type => Pc_Type,
+        "<"          => "<",
+        "="          => "=");
    subtype PC_Set is PC_Sets.Set;
 
    type Instruction_Record;
    type Instruction_Access is access all Instruction_Record;
 
    type Instruction_Record is record
-      Bytes               : Binary_Content;
+      Bytes : Binary_Content;
       --  Location and content for this instruction
 
-      Section             : Binary_Files.Section_Index;
+      Section : Binary_Files.Section_Index;
       --  Index of the section in which this instruction was found
 
-      Insn_Set            : Elf_Disassemblers.Insn_Set_Type;
+      Insn_Set : Elf_Disassemblers.Insn_Set_Type;
 
-      Selected            : Boolean;
+      Selected : Boolean;
       --  Whether this instruction matches selected locations
 
-      Executed            : Boolean;
+      Executed : Boolean;
       --  Whether this instructions was executed when producing traces
 
-      Control_Flow_Pair   : Pc_Type;
+      Control_Flow_Pair : Pc_Type;
       --  If this instruction has control flow effects, contains the address
       --  of the last instructions executed before the effects are applied.
       --  On architectures with no delay slot, this will be this instruction
@@ -151,7 +152,7 @@ package body CFG_Dump is
       --
       --  In all other cases, contains No_PC.
 
-      Successors          : Successor_Vectors.Vector;
+      Successors : Successor_Vectors.Vector;
       --  Set of instructions that can be executed right after this one (with
       --  fallthrough, branch, call, etc.).
 
@@ -159,26 +160,26 @@ package body CFG_Dump is
       --  For each successor, whether the corresponding branch has been taken
    end record;
 
-   function Has_Lower_Address
-     (Left, Right : Instruction_Access) return Boolean is
-     (Left.Bytes.First < Right.Bytes.First);
-   function Has_Same_Address
-     (Left, Right : Instruction_Access) return Boolean is
-     (Left.Bytes.First = Right.Bytes.First);
-   function Address (Insn : Instruction_Access) return Pc_Type is
-     (Insn.Bytes.First);
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Instruction_Record, Instruction_Access);
+   function Has_Lower_Address (Left, Right : Instruction_Access) return Boolean
+   is (Left.Bytes.First < Right.Bytes.First);
+   function Has_Same_Address (Left, Right : Instruction_Access) return Boolean
+   is (Left.Bytes.First = Right.Bytes.First);
+   function Address (Insn : Instruction_Access) return Pc_Type
+   is (Insn.Bytes.First);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (Instruction_Record, Instruction_Access);
 
-   package Instruction_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Instruction_Access);
+   package Instruction_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Instruction_Access);
    subtype Instructions_Vector is Instruction_Vectors.Vector;
 
-   package Instruction_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Instruction_Access,
-      "<"          => Has_Lower_Address,
-      "="          => Has_Same_Address);
+   package Instruction_Sets is new
+     Ada.Containers.Ordered_Sets
+       (Element_Type => Instruction_Access,
+        "<"          => Has_Lower_Address,
+        "="          => Has_Same_Address);
    subtype Instructions_Set is Instruction_Sets.Set;
 
    subtype Basic_Block is Instructions_Vector;
@@ -190,25 +191,25 @@ package body CFG_Dump is
 
    type Basic_Block_Access is access all Basic_Block;
 
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Basic_Block, Basic_Block_Access);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (Basic_Block, Basic_Block_Access);
 
-   package Basic_Block_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Pc_Type,
-      Element_Type => Basic_Block_Access);
+   package Basic_Block_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Pc_Type,
+        Element_Type => Basic_Block_Access);
    subtype Basic_Blocks is Basic_Block_Maps.Map;
 
-   function Address (BB : Basic_Block) return Pc_Type is
-      (BB.First_Element.Bytes.First);
+   function Address (BB : Basic_Block) return Pc_Type
+   is (BB.First_Element.Bytes.First);
    --  Return the address of the first instruction of a basic block
 
-   function Successors (BB : Basic_Block) return Successor_Vectors.Vector is
-     (BB.Last_Element.Successors);
+   function Successors (BB : Basic_Block) return Successor_Vectors.Vector
+   is (BB.Last_Element.Successors);
    --  Return the successors of the last instruction of a basic block
 
    function Get_Instruction
-     (CFG     : Basic_Blocks;
-      Address : Pc_Type) return Instruction_Access;
+     (CFG : Basic_Blocks; Address : Pc_Type) return Instruction_Access;
    --  Return the instruction whose first byte is Address, or null if there is
    --  no one.
 
@@ -244,8 +245,7 @@ package body CFG_Dump is
    type Context_Access is access all Context_Type;
 
    procedure Collect_Instructions
-     (Context : Context_Access;
-      Section : Address_Info_Acc);
+     (Context : Context_Access; Section : Address_Info_Acc);
    --  Complete Context.Instructions with instructions found in Section that
    --  match provided locations.
    --  This disassembles all of Section, not just the specified locations,
@@ -279,7 +279,7 @@ package body CFG_Dump is
    -- Colors --
    ------------
 
-   Hex_Color             : constant Highlighting.Color_Type := "808080";
+   Hex_Color : constant Highlighting.Color_Type := "808080";
 
    Edge_Unselected_Color : constant Highlighting.Color_Type := "808080";
    Edge_Default_Color    : constant Highlighting.Color_Type := "800000";
@@ -288,17 +288,16 @@ package body CFG_Dump is
    Executed_Insn_Color   : constant Highlighting.Color_Type := "008000";
    Sloc_Color            : constant Highlighting.Color_Type := "004080";
 
-   Unknown_Color         : constant Highlighting.Color_Type := "a0a0a0";
-   True_Color            : constant Highlighting.Color_Type := "008000";
-   False_Color           : constant Highlighting.Color_Type := "800000";
+   Unknown_Color : constant Highlighting.Color_Type := "a0a0a0";
+   True_Color    : constant Highlighting.Color_Type := "008000";
+   False_Color   : constant Highlighting.Color_Type := "800000";
 
    ---------------------
    -- Get_Instruction --
    ---------------------
 
    function Get_Instruction
-     (CFG     : Basic_Blocks;
-      Address : Pc_Type) return Instruction_Access
+     (CFG : Basic_Blocks; Address : Pc_Type) return Instruction_Access
    is
       use Basic_Block_Maps;
 
@@ -319,8 +318,7 @@ package body CFG_Dump is
    --------------------------
 
    procedure Collect_Instructions
-     (Context : Context_Access;
-      Section : Address_Info_Acc)
+     (Context : Context_Access; Section : Address_Info_Acc)
    is
       Code    : constant Binary_Content := Section.Section_Content;
       Sec_Ndx : constant Binary_Files.Section_Index := Section.Section_Sec_Idx;
@@ -332,21 +330,18 @@ package body CFG_Dump is
       Disas    : access Disassemblers.Disassembler'Class;
       Insn_Set : Elf_Disassemblers.Insn_Set_Type;
 
-      type Disassembly_State is
-        (OK,
-         Invalid_Insn,
-         Skip_Padding);
+      type Disassembly_State is (OK, Invalid_Insn, Skip_Padding);
       State : Disassembly_State;
       --  Disassembled instructions
 
       Disas_Error : Unbounded_String;
       --  Hold the error message when disassembling failed
 
-      PC      : Pc_Type := Code.First;
+      PC : Pc_Type := Code.First;
       --  Address of the first byte of the instruction we are about to
       --  disassemble.
 
-      Old_PC  : Pc_Type := Code.First;
+      Old_PC : Pc_Type := Code.First;
       --  Likewise for the previous instruction
 
       Sym_Cur : Address_Info_Sets.Cursor :=
@@ -354,7 +349,7 @@ package body CFG_Dump is
       --  Cursor to the symbol that contains PC, if it exists, or to the first
       --  symbol after PC. If there is no such symbol, No_Element.
 
-      Symbol  : Address_Info_Acc;
+      Symbol : Address_Info_Acc;
       --  Symbol corresponding to Sym_Cur, on null if it is No_Element
 
       Insn, Last_Insn : Instruction_Access := null;
@@ -365,7 +360,7 @@ package body CFG_Dump is
       --  Whether the current/previous instruction is referenced in the
       --  database. Used to know what to deallocate.
 
-      Insn_Len        : Positive;
+      Insn_Len : Positive;
       --  Length of the current instruction
 
       Insn_Branch                     : Branch_Kind;
@@ -378,20 +373,21 @@ package body CFG_Dump is
          Branch_Instruction : Pc_Type;
          --  Instruction this branch point comes from
 
-         Address            : Pc_Type;
+         Address : Pc_Type;
          --  Address of the last instruction that is executed before the branch
          --  actually happens.
 
-         Target             : Successor_Record;
+         Target : Successor_Record;
          --  Describes the effect of this branch
 
-         Is_Conditional     : Boolean;
+         Is_Conditional : Boolean;
          --  Whether is a conditional branch
       end record;
       --  Holds information about the effect of a branching instruction
 
-      package Branch_Point_Lists is new Ada.Containers.Doubly_Linked_Lists
-        (Element_Type => Branch_Point_Record);
+      package Branch_Point_Lists is new
+        Ada.Containers.Doubly_Linked_Lists
+          (Element_Type => Branch_Point_Record);
       use Branch_Point_Lists;
 
       Branch_Points : Branch_Point_Lists.List;
@@ -419,32 +415,29 @@ package body CFG_Dump is
          Branch_Points.Append
            ((Branch_Instruction => Address,
              Address            =>
-                 (if Delay_Slot = No_PC
-                  then Address
-                  else Delay_Slot),
+               (if Delay_Slot = No_PC then Address else Delay_Slot),
              Target             =>
-               (Kind    => Effect,
-                Known   => Target /= No_PC,
-                Address => Target),
+               (Kind => Effect, Known => Target /= No_PC, Address => Target),
              Is_Conditional     => Is_Conditional));
       end Add_Branch_Point;
 
-   --  Start of processing for Collect_Instructions
+      --  Start of processing for Collect_Instructions
 
    begin
 
       while Elf_Disassemblers.Iterate_Over_Insns
-        (I_Ranges, Cache, Code.Last, PC, Insn_Set)
+              (I_Ranges, Cache, Code.Last, PC, Insn_Set)
       loop
-         Disas := Elf_Disassemblers.Disa_For_Machine
-           (Traces.Machine, Insn_Set);
+         Disas :=
+           Elf_Disassemblers.Disa_For_Machine (Traces.Machine, Insn_Set);
 
          if Insn = null or else Insn_Added then
-            Insn := new Instruction_Record'
-              (Bytes    => (null, PC, No_PC),
-               Section  => Sec_Ndx,
-               Insn_Set => Insn_Set,
-               others   => <>);
+            Insn :=
+              new Instruction_Record'
+                (Bytes    => (null, PC, No_PC),
+                 Section  => Sec_Ndx,
+                 Insn_Set => Insn_Set,
+                 others   => <>);
             Insn_Added := False;
          end if;
 
@@ -464,10 +457,8 @@ package body CFG_Dump is
 
          begin
             State := OK;
-            Insn_Len := Disas.Get_Insn_Length
-              (Slice (Code, PC, Code.Last));
-            Insn.Bytes := Slice
-              (Code, PC, PC + Pc_Type (Insn_Len) - 1);
+            Insn_Len := Disas.Get_Insn_Length (Slice (Code, PC, Code.Last));
+            Insn.Bytes := Slice (Code, PC, PC + Pc_Type (Insn_Len) - 1);
 
             if Symbol /= null then
                if Insn.Bytes.First < Symbol.First
@@ -503,9 +494,10 @@ package body CFG_Dump is
          end;
 
          case State is
-            when OK =>
-               Insn.Selected := Matches_Locations
-                 (Context.Exec, Context.Locs, Address (Insn));
+            when OK           =>
+               Insn.Selected :=
+                 Matches_Locations
+                   (Context.Exec, Context.Locs, Address (Insn));
                Insn.Executed := False;
                Insn.Control_Flow_Pair := No_PC;
 
@@ -554,65 +546,65 @@ package body CFG_Dump is
                --  to apply them after the delay slot.
 
                case Insn_Branch is
-               when Br_Jmp =>
-                  Add_Branch_Point
-                    (Address (Insn),
-                     Insn_Branch_Dest.Target,
-                     Insn_Branch_Dest.Delay_Slot,
-                     Branch,
-                     Insn_Flag_Cond);
-                  Insn.Control_Flow_Pair := Insn_Branch_Dest.Delay_Slot;
+                  when Br_Jmp  =>
+                     Add_Branch_Point
+                       (Address (Insn),
+                        Insn_Branch_Dest.Target,
+                        Insn_Branch_Dest.Delay_Slot,
+                        Branch,
+                        Insn_Flag_Cond);
+                     Insn.Control_Flow_Pair := Insn_Branch_Dest.Delay_Slot;
 
-               when Br_Ret =>
-                  Add_Branch_Point
-                    (Address (Insn),
-                     No_PC,
-                     Insn_Branch_Dest.Delay_Slot,
-                     Subp_Return,
-                     Insn_Flag_Cond);
+                  when Br_Ret  =>
+                     Add_Branch_Point
+                       (Address (Insn),
+                        No_PC,
+                        Insn_Branch_Dest.Delay_Slot,
+                        Subp_Return,
+                        Insn_Flag_Cond);
 
-               when Br_Call =>
-                  --  Calls usually have a fallthrough edge. However, calls
-                  --  that raise an exception do have one.
+                  when Br_Call =>
+                     --  Calls usually have a fallthrough edge. However, calls
+                     --  that raise an exception do have one.
 
-                  if not Context.Keep_Edges then
+                     if not Context.Keep_Edges then
+                        --  Use debug information to get indirect call target,
+                        --  if possible.
 
-                     --  Use debug information to get indirect call target, if
-                     --  possible.
+                        if Insn_Flag_Indir then
+                           Insn_Branch_Dest.Target :=
+                             Get_Call_Target
+                               (Context.Exec.all,
+                                Address (Insn),
+                                Pc_Type (Insn_Len));
+                        end if;
 
-                     if Insn_Flag_Indir then
-                        Insn_Branch_Dest.Target := Get_Call_Target
-                          (Context.Exec.all,
-                           Address (Insn),
-                           Pc_Type (Insn_Len));
+                        declare
+                           Symbol      : constant Address_Info_Acc :=
+                             Get_Symbol
+                               (Context.Exec.all, Insn_Branch_Dest.Target);
+                           Symbol_Name : constant String_Access :=
+                             (if Symbol = null
+                              then null
+                              else Symbol.Symbol_Name);
+                        begin
+                           if Symbol_Name /= null
+                             and then Decision_Map.Subp_Raises_Exception
+                                        (Traces_Elf.Platform_Independent_Symbol
+                                           (Symbol_Name.all, Context.Exec.all))
+                           then
+                              Add_Branch_Point
+                                (Address (Insn),
+                                 No_PC,
+                                 Insn_Branch_Dest.Delay_Slot,
+                                 Raise_Exception,
+                                 Insn_Flag_Cond);
+                           end if;
+                        end;
                      end if;
 
-                     declare
-                        Symbol : constant Address_Info_Acc := Get_Symbol
-                          (Context.Exec.all, Insn_Branch_Dest.Target);
-                        Symbol_Name : constant String_Access :=
-                          (if Symbol = null
-                           then null
-                           else Symbol.Symbol_Name);
-                     begin
-                        if Symbol_Name /= null
-                          and then
-                            Decision_Map.Subp_Raises_Exception
-                              (Traces_Elf.Platform_Independent_Symbol
-                                 (Symbol_Name.all, Context.Exec.all))
-                        then
-                           Add_Branch_Point
-                             (Address (Insn),
-                              No_PC,
-                              Insn_Branch_Dest.Delay_Slot,
-                              Raise_Exception,
-                              Insn_Flag_Cond);
-                        end if;
-                     end;
-                  end if;
-
-               when others =>
-                  null;
+                  when others  =>
+                     null;
                end case;
 
             when Invalid_Insn =>
@@ -658,7 +650,7 @@ package body CFG_Dump is
 
                   if BP.Target.Known then
                      if Matches_Locations
-                       (Context.Exec, Context.Locs, BP.Target.Address)
+                          (Context.Exec, Context.Locs, BP.Target.Address)
                      then
                         Context.Basic_Block_Starters.Include
                           (BP.Target.Address);
@@ -674,9 +666,9 @@ package body CFG_Dump is
                            PC         : constant Pc_Type := BP.Target.Address;
                            Dummy_Insn : Instruction_Access :=
                              new Instruction_Record'
-                               (Bytes => (null, PC, No_PC),
+                               (Bytes   => (null, PC, No_PC),
                                 Section => 0,
-                                others => <>);
+                                others  => <>);
                            Cur        : Instruction_Sets.Cursor;
                            Inserted   : Boolean;
                         begin
@@ -723,7 +715,7 @@ package body CFG_Dump is
    ------------------------
 
    procedure Build_Basic_Blocks (Context : Context_Access) is
-      CFG : Basic_Blocks renames Context.CFG;
+      CFG        : Basic_Blocks renames Context.CFG;
       Current_BB : Basic_Block_Access := null;
 
       procedure Finalize_Successors (BB : in out Basic_Block);
@@ -753,7 +745,7 @@ package body CFG_Dump is
          end loop;
       end Finalize_Successors;
 
-   --  Start of processing for Build_Basic_Blocks
+      --  Start of processing for Build_Basic_Blocks
 
    begin
       for Insn of Context.Instructions loop
@@ -826,18 +818,21 @@ package body CFG_Dump is
          Success_Or_Fatal_Error (Filename, Result);
          declare
             Exec_Sig        : constant Binary_File_Signature :=
-               Get_Signature (Context.Exec.all);
+              Get_Signature (Context.Exec.all);
             Trace_Sig       : constant Binary_File_Signature :=
-               Get_Signature (Trace_File);
+              Get_Signature (Trace_File);
             Mismatch_Reason : constant String :=
-               Match_Signatures (Exec_Sig, Trace_Sig);
+              Match_Signatures (Exec_Sig, Trace_Sig);
 
          begin
             if Mismatch_Reason /= "" then
                Warn
-                 ("ELF file " & Exec_Path
+                 ("ELF file "
+                  & Exec_Path
                   & " does not seem to match trace file "
-                  & Filename & ": " & Mismatch_Reason);
+                  & Filename
+                  & ": "
+                  & Mismatch_Reason);
             end if;
          end;
       end Import_Traces;
@@ -889,8 +884,8 @@ package body CFG_Dump is
                      --  applies. Due to the nature of delay slots, this branch
                      --  instruction may appear in the middle of a basic block.
 
-                     Branch_Insn := Get_Instruction
-                       (Context.CFG, Insn.Control_Flow_Pair);
+                     Branch_Insn :=
+                       Get_Instruction (Context.CFG, Insn.Control_Flow_Pair);
 
                   else
                      Branch_Insn := Insn;
@@ -937,7 +932,7 @@ package body CFG_Dump is
          use Ada.Containers;
          use Qemu_Traces;
 
-         I         : Natural;
+         I : Natural;
       begin
          I := Insn.Successors.First_Index;
          for Succ of Insn.Successors loop
@@ -947,23 +942,20 @@ package body CFG_Dump is
             if not Insn.Executed_Successors.Element (I) then
                Insn.Executed_Successors.Replace_Element
                  (I,
-                  ((Op and
-                     (case Succ.Kind is
-                         when Fallthrough =>
-                            Trace_Op_Br1,
-                         when Branch      =>
-                      --  For unconditional branches, Op_Block is
-                      --  used instead of Op_Br*.
+                  ((Op
+                    and (case Succ.Kind is
+                           when Fallthrough     => Trace_Op_Br1,
+                           when Branch          =>
+                             --  For unconditional branches, Op_Block is
+                             --  used instead of Op_Br*.
 
-                        (if Insn.Successors.Length = 1
-                         then Trace_Op_Block
-                         else Trace_Op_Br0),
+                              (if Insn.Successors.Length = 1
+                               then Trace_Op_Block
+                               else Trace_Op_Br0),
 
-                         when Subp_Return =>
-                            Trace_Op_Block,
+                           when Subp_Return     => Trace_Op_Block,
 
-                         when Raise_Exception =>
-                            Trace_Op_Fault))
+                           when Raise_Exception => Trace_Op_Fault))
                    /= 0));
             end if;
             I := I + 1;
@@ -973,7 +965,7 @@ package body CFG_Dump is
       Iter  : Entry_Iterator;
       Trace : Trace_Entry;
 
-   --  Start of processingr for Tag_Executed_Instructions
+      --  Start of processingr for Tag_Executed_Instructions
 
    begin
       Init_Base (Base);
@@ -1003,16 +995,17 @@ package body CFG_Dump is
       use type SC_Obligations.SCO_Id;
       subtype SCO_Id is SC_Obligations.SCO_Id;
 
-      F : Output_Type renames Context.Output;
+      F                       : Output_Type renames Context.Output;
       Unknown_Address_Counter : Natural := 0;
 
-      function "=" (Ignored_Left, Ignored_Right : Basic_Block_Maps.Map)
-        return Boolean
+      function "="
+        (Ignored_Left, Ignored_Right : Basic_Block_Maps.Map) return Boolean
       is (False);
 
-      package Grouped_Basic_Blocks_Maps is new Ada.Containers.Ordered_Maps
-        (Key_Type     => SCO_Id,
-         Element_Type => Basic_Block_Maps.Map);
+      package Grouped_Basic_Blocks_Maps is new
+        Ada.Containers.Ordered_Maps
+          (Key_Type     => SCO_Id,
+           Element_Type => Basic_Block_Maps.Map);
       Grouped_Basic_Blocks : Grouped_Basic_Blocks_Maps.Map;
       --  When decision static analysis has been performed, this map is used
       --  to group basic blocks by decision, so that they are displayed under
@@ -1026,8 +1019,7 @@ package body CFG_Dump is
       --  conditional branch.
 
       No_Cond_Edge : constant Cond_Edge_Info :=
-        (Decision_Map.Cond_Branch_Maps.No_Element,
-         Decision_Map.Fallthrough);
+        (Decision_Map.Cond_Branch_Maps.No_Element, Decision_Map.Fallthrough);
 
       type Edge_Descriptor is record
          From_Id, To_Id     : Unbounded_String;
@@ -1040,8 +1032,8 @@ package body CFG_Dump is
       --  visiting basic blocks so that they are all output at the end of the
       --  dot document.
 
-      package Edge_Lists is new Ada.Containers.Doubly_Linked_Lists
-        (Element_Type => Edge_Descriptor);
+      package Edge_Lists is new
+        Ada.Containers.Doubly_Linked_Lists (Element_Type => Edge_Descriptor);
       Edges : Edge_Lists.List;
 
       function First_Digit (Address : String) return Natural;
@@ -1061,8 +1053,8 @@ package body CFG_Dump is
       --  Return a colored hexadecimal string
 
       function Tristate_Colored_Image
-        (T : SC_Obligations.Tristate) return String is
-        (case T is
+        (T : SC_Obligations.Tristate) return String
+      is (case T is
             when SC_Obligations.Unknown => Colored ("???", Unknown_Color),
             when SC_Obligations.True    => Colored ("True", True_Color),
             when SC_Obligations.False   => Colored ("False", False_Color));
@@ -1078,37 +1070,33 @@ package body CFG_Dump is
       --  Escape HTML special characters into HTML entities
 
       function Format_Slocs_For_PC
-        (PC        : Pc_Type;
-         Last_Sloc : Address_Info_Sets.Cursor) return String;
+        (PC : Pc_Type; Last_Sloc : Address_Info_Sets.Cursor) return String;
       --  Format the list of slocs associated to the instruction at PC for a
       --  dot label.
 
       function Format_Slocs_For_PC (PC : Pc_Type) return String;
       --  Likewise, but automatically look for the sloc cursor
 
-      function Format_Basic_Block_Label
-        (BB : Basic_Block) return String;
+      function Format_Basic_Block_Label (BB : Basic_Block) return String;
       --  Format the content of a basic block (i.e. its instructions) into a
       --  suitable dot label.
 
       function Get_Cond_Edge_Info
-        (From_Insn : Instruction_Access;
-         Successor : Successor_Record) return Cond_Edge_Info;
+        (From_Insn : Instruction_Access; Successor : Successor_Record)
+         return Cond_Edge_Info;
       --  Search and return information about an edge and its conditional
       --  branch, if any. Return No_Cond_Edge otherwise.
 
       function Get_Cond_Branch_Info
-        (From_BB   : Basic_Block) return Decision_Map.Cond_Branch_Maps.Cursor
-      is
-        (Decision_Map.Cond_Branch_Map.Find
-           ((Context.Exec, From_BB.Last_Element.Control_Flow_Pair)));
+        (From_BB : Basic_Block) return Decision_Map.Cond_Branch_Maps.Cursor
+      is (Decision_Map.Cond_Branch_Map.Find
+            ((Context.Exec, From_BB.Last_Element.Control_Flow_Pair)));
 
       procedure Group_BB_By_Condition;
 
       procedure Output_Edge (Edge : Edge_Descriptor);
 
-      procedure Add_Basic_Block
-        (BB : Basic_Block_Access);
+      procedure Add_Basic_Block (BB : Basic_Block_Access);
 
       -----------------
       -- First_Digit --
@@ -1182,8 +1170,8 @@ package body CFG_Dump is
       -- Node_Id --
       -------------
 
-      function Node_Id (Address : Pc_Type) return String is
-        ("bb_" & Hex_Image (Address));
+      function Node_Id (Address : Pc_Type) return String
+      is ("bb_" & Hex_Image (Address));
 
       ----------------------------
       -- Get_Unknown_Address_Id --
@@ -1204,20 +1192,23 @@ package body CFG_Dump is
       begin
          for C of S loop
             case C is
-               when '&' =>
+               when '&'    =>
                   Append (Result, "&amp;");
-               when '<' =>
+
+               when '<'    =>
                   Append (Result, "&lt;");
-               when '>' =>
+
+               when '>'    =>
                   Append (Result, "&gt;");
 
                --  These two entities are not necessary according to the dot
                --  language specification, this is a workaround for a bug in
                --  the graphviz/dot parser.
 
-               when '[' =>
+               when '['    =>
                   Append (Result, "&#91;");
-               when ']' =>
+
+               when ']'    =>
                   Append (Result, "&#93;");
 
                when others =>
@@ -1232,8 +1223,7 @@ package body CFG_Dump is
       -------------------------
 
       function Format_Slocs_For_PC
-        (PC        : Pc_Type;
-         Last_Sloc : Address_Info_Sets.Cursor) return String
+        (PC : Pc_Type; Last_Sloc : Address_Info_Sets.Cursor) return String
       is
          use Address_Info_Sets;
 
@@ -1258,17 +1248,15 @@ package body CFG_Dump is
       -- Format_Slocs_For_PC --
       -------------------------
 
-      function Format_Slocs_For_PC (PC : Pc_Type) return String
-      is
+      function Format_Slocs_For_PC (PC : Pc_Type) return String is
          use Address_Info_Sets;
 
-         Subp : constant Address_Info_Acc := Get_Address_Info
-           (Context.Exec.all, Subprogram_Addresses, PC);
+         Subp : constant Address_Info_Acc :=
+           Get_Address_Info (Context.Exec.all, Subprogram_Addresses, PC);
          Sloc : Cursor := No_Element;
       begin
          if Subp /= null then
-            Sloc := Find_Address_Info
-              (Subp.Lines, Line_Addresses, PC);
+            Sloc := Find_Address_Info (Subp.Lines, Line_Addresses, PC);
          end if;
          return Format_Slocs_For_PC (PC, Sloc);
       end Format_Slocs_For_PC;
@@ -1277,9 +1265,7 @@ package body CFG_Dump is
       -- Format_Basic_Block_Label --
       ------------------------------
 
-      function Format_Basic_Block_Label
-        (BB : Basic_Block) return String
-      is
+      function Format_Basic_Block_Label (BB : Basic_Block) return String is
          use Address_Info_Sets;
 
          Result : Unbounded_String;
@@ -1295,17 +1281,20 @@ package body CFG_Dump is
          Last_Sloc : Cursor := Address_Info_Sets.No_Element;
          Sloc      : Cursor;
 
-         Subp : constant Address_Info_Acc := Get_Address_Info
-           (Context.Exec.all, Subprogram_Addresses, Address (BB));
+         Subp : constant Address_Info_Acc :=
+           Get_Address_Info
+             (Context.Exec.all, Subprogram_Addresses, Address (BB));
 
       begin
          for Insn of BB loop
-            Disas := Elf_Disassemblers.Disa_For_Machine
-              (Traces.Machine, Insn.Insn_Set);
+            Disas :=
+              Elf_Disassemblers.Disa_For_Machine
+                (Traces.Machine, Insn.Insn_Set);
 
             if Subp /= null then
-               Sloc := Find_Address_Info
-                 (Subp.Lines, Line_Addresses, Address (Insn));
+               Sloc :=
+                 Find_Address_Info
+                   (Subp.Lines, Line_Addresses, Address (Insn));
             end if;
             if Sloc /= Last_Sloc then
                Last_Sloc := Sloc;
@@ -1314,15 +1303,15 @@ package body CFG_Dump is
 
             Buffer.Reset;
             Disas.Disassemble_Insn
-              (Insn.Bytes, Address (Insn),
-               Buffer,
-               Insn_Len,
-               Context.Exec.all);
+              (Insn.Bytes, Address (Insn), Buffer, Insn_Len, Context.Exec.all);
             Disas.Get_Insn_Properties
-              (Insn.Bytes, Address (Insn),
+              (Insn.Bytes,
+               Address (Insn),
                Branch,
-               Flag_Indir, Flag_Cond,
-               Branch_Dest, FT_Dest);
+               Flag_Indir,
+               Flag_Cond,
+               Branch_Dest,
+               FT_Dest);
             Append (Result, "  ");
             Append
               (Result,
@@ -1333,7 +1322,7 @@ package body CFG_Dump is
                      (if Insn.Executed
                       then Executed_Insn_Color
                       else Unexecuted_Insn_Color)
-                  else Hex_Color)));
+                   else Hex_Color)));
             Append (Result, "  ");
             declare
                use Highlighting;
@@ -1341,17 +1330,13 @@ package body CFG_Dump is
                Cur           : Highlighting.Cursor := Buffer.First;
                Mnemonic_Kind : constant Token_Kind :=
                  (case Branch is
-                     when Br_Call | Br_Ret =>
-                    (if Flag_Cond
-                     then Mnemonic_Branch
-                     else Mnemonic_Call),
+                    when Br_Call | Br_Ret =>
+                      (if Flag_Cond then Mnemonic_Branch else Mnemonic_Call),
 
-                     when Br_Jmp =>
-                    (if Flag_Cond
-                     then Mnemonic_Branch
-                     else Mnemonic_Call),
+                    when Br_Jmp           =>
+                      (if Flag_Cond then Mnemonic_Branch else Mnemonic_Call),
 
-                     when others => Mnemonic);
+                    when others           => Mnemonic);
                Kind          : Token_Kind;
                Column        : Positive := 1;
 
@@ -1364,11 +1349,11 @@ package body CFG_Dump is
                   declare
                      Token_Text        : constant String := Text (Cur);
                      Tab_Expanded_Text : constant String :=
-                        Expand_Tabs (Token_Text, Column);
+                       Expand_Tabs (Token_Text, Column);
                      HTML_Escaped_Text : constant String :=
-                        HTML_Escape (Tab_Expanded_Text);
+                       HTML_Escape (Tab_Expanded_Text);
                      Styled_Text       : constant String :=
-                        Styled (HTML_Escaped_Text, Style_Default (Kind));
+                       Styled (HTML_Escaped_Text, Style_Default (Kind));
                   begin
                      Append (Result, Styled_Text);
                      Column := Column + Tab_Expanded_Text'Length;
@@ -1386,22 +1371,25 @@ package body CFG_Dump is
       ------------------------
 
       function Get_Cond_Edge_Info
-        (From_Insn : Instruction_Access;
-         Successor : Successor_Record) return Cond_Edge_Info
+        (From_Insn : Instruction_Access; Successor : Successor_Record)
+         return Cond_Edge_Info
       is
          use Decision_Map;
          use Decision_Map.Cond_Branch_Maps;
 
-         Cond_Branch : constant Cursor := Decision_Map.Cond_Branch_Map.Find
-           ((Context.Exec, From_Insn.Control_Flow_Pair));
+         Cond_Branch : constant Cursor :=
+           Decision_Map.Cond_Branch_Map.Find
+             ((Context.Exec, From_Insn.Control_Flow_Pair));
       begin
          if Cond_Branch /= No_Element then
             case Successor.Kind is
                when Fallthrough =>
                   return (Cond_Branch, Fallthrough);
-               when Branch =>
+
+               when Branch      =>
                   return (Cond_Branch, Branch);
-               when others =>
+
+               when others      =>
                   null;
             end case;
          end if;
@@ -1441,8 +1429,9 @@ package body CFG_Dump is
 
                Branch_Info := Get_Cond_Branch_Info (BB.all);
                if Branch_Info /= Decision_Map.Cond_Branch_Maps.No_Element then
-                  Condition := Reference
-                    (Decision_Map.Cond_Branch_Map, Branch_Info).Condition;
+                  Condition :=
+                    Reference (Decision_Map.Cond_Branch_Map, Branch_Info)
+                      .Condition;
                   exit;
 
                elsif Successors (BB.all).Length = 1
@@ -1497,10 +1486,12 @@ package body CFG_Dump is
          Put (F, " -> ");
          Put (F, +Edge.To_Id);
          Put (F, " [color=""#" & Color & """,penwidth=3,style=");
-         Put (F, (case Edge.Kind is
-                 when Fallthrough                   => "solid",
-                 when Branch                        => "dashed",
-                 when Subp_Return | Raise_Exception => "dotted"));
+         Put
+           (F,
+            (case Edge.Kind is
+               when Fallthrough                   => "solid",
+               when Branch                        => "dashed",
+               when Subp_Return | Raise_Exception => "dotted"));
 
          --  If possible, annotate this edge with decision static analysis
          --  results.
@@ -1527,13 +1518,16 @@ package body CFG_Dump is
                end if;
 
                case This_Edge.Dest_Kind is
-                  when Outcome =>
+                  when Outcome         =>
                      if Line_Started then
                         Put (F, "<BR />");
                      end if;
                      Put (F, "Decision #");
-                     Put (F, Img (Integer (Enclosing_Decision
-                          (This_Branch.Condition))));
+                     Put
+                       (F,
+                        Img
+                          (Integer
+                             (Enclosing_Decision (This_Branch.Condition))));
                      Put (F, " is ");
                      Put (F, Tristate_Colored_Image (This_Edge.Outcome));
                      if Degraded_Origins
@@ -1550,14 +1544,14 @@ package body CFG_Dump is
                      Put (F, "Exception");
                      Line_Started := True;
 
-                  when Unknown =>
+                  when Unknown         =>
                      if Line_Started then
                         Put (F, "<BR />");
                      end if;
                      Put (F, "???");
                      Line_Started := True;
 
-                  when others =>
+                  when others          =>
                      null;
                end case;
                Put (F, '>');
@@ -1571,9 +1565,7 @@ package body CFG_Dump is
       -- Add_Basic_Block --
       ---------------------
 
-      procedure Add_Basic_Block
-        (BB : Basic_Block_Access)
-      is
+      procedure Add_Basic_Block (BB : Basic_Block_Access) is
          use Boolean_Vectors;
          use type Ada.Containers.Count_Type;
 
@@ -1611,7 +1603,7 @@ package body CFG_Dump is
                       Selected =>
                         (not Successor.Known
                          or else not Context.Other_Outcome.Contains
-                           (Successor_Key'Unchecked_Access)),
+                                       (Successor_Key'Unchecked_Access)),
                       Executed => Element (Succ_Cur),
                       Info     => Edge_Info));
                   if not Successor.Known then
@@ -1624,7 +1616,7 @@ package body CFG_Dump is
          end loop;
       end Add_Basic_Block;
 
-   --  Start of processing for Output_CFG
+      --  Start of processing for Output_CFG
 
    begin
       Put_Line (F, "// This CFG was generated with the following command:");
@@ -1721,18 +1713,18 @@ package body CFG_Dump is
    -- Dump --
    ----------
 
-   procedure Dump (Exec_Path         : String;
-                   Locations         : User_Locations;
-                   Output            : String_Access;
-                   Format            : Output_Format;
-                   SCO_Files_List    : String_Vectors.Vector;
-                   Traces_Files_List : Requested_Trace_Vectors.Vector;
-                   Keep_Edges        : Boolean)
+   procedure Dump
+     (Exec_Path         : String;
+      Locations         : User_Locations;
+      Output            : String_Access;
+      Format            : Output_Format;
+      SCO_Files_List    : String_Vectors.Vector;
+      Traces_Files_List : Requested_Trace_Vectors.Vector;
+      Keep_Edges        : Boolean)
    is
-      Context           : aliased Context_Type;
-      Ctx               : constant Context_Access :=
-        Context'Unrestricted_Access;
-      Output_File       : aliased File_Type;
+      Context     : aliased Context_Type;
+      Ctx         : constant Context_Access := Context'Unrestricted_Access;
+      Output_File : aliased File_Type;
    begin
       Context.Group_By_Condition := not SCO_Files_List.Is_Empty;
       Context.Keep_Edges := Keep_Edges;
@@ -1740,9 +1732,7 @@ package body CFG_Dump is
 
       CFG_Dump_Trace.Trace ("Dumping code from: " & Exec_Path);
       CFG_Dump_Trace.Trace
-        (if Output = null
-         then "To standard output"
-         else "To " & Output.all);
+        (if Output = null then "To standard output" else "To " & Output.all);
       CFG_Dump_Trace.Trace ("Format: " & Output_Format'Image (Format));
       CFG_Dump_Trace.Trace
         (if Keep_Edges
@@ -1803,8 +1793,7 @@ package body CFG_Dump is
 
       if Ctx.Instructions.Is_Empty then
          Report
-           (Msg  => "No code matched: the graph is empty",
-            Kind => Warning);
+           (Msg => "No code matched: the graph is empty", Kind => Warning);
          return;
       end if;
 
@@ -1814,8 +1803,8 @@ package body CFG_Dump is
          Context.Output.Kind := File;
          if Output = null then
             declare
-               function Convert is new Ada.Unchecked_Conversion
-                 (File_Access, Output_File_Access);
+               function Convert is new
+                 Ada.Unchecked_Conversion (File_Access, Output_File_Access);
             begin
                Context.Output.File := Convert (Standard_Output);
                Context.Output.To_Close := False;
@@ -1830,16 +1819,15 @@ package body CFG_Dump is
          declare
             Format_Flag : constant String :=
               (case Format is
-                  when None => raise Program_Error,
-                  when Dot  => "dot",
-                  when SVG  => "svg",
-                  when PDF  => "pdf",
-                  when PNG  => "png");
+                 when None => raise Program_Error,
+                 when Dot  => "dot",
+                 when SVG  => "svg",
+                 when PDF  => "pdf",
+                 when PNG  => "png");
             Output_Args : constant GNAT.OS_Lib.Argument_List :=
-              (if Output = null then
-                 (1 .. 0 => <>)
-               else
-                 (new String'("-o"), new String'(Output.all)));
+              (if Output = null
+               then (1 .. 0 => <>)
+               else (new String'("-o"), new String'(Output.all)));
             Args        : constant GNAT.OS_Lib.Argument_List :=
               (1 => new String'("-T" & Format_Flag)) & Output_Args;
          begin
@@ -1855,9 +1843,9 @@ package body CFG_Dump is
 
       begin
          Close (Context.Output);
-         --  ??? In subprocess mode this will immediately send SIGKILL to the
-         --  subprocess, not waiting for it to complete, so output will likely
-         --  be missing or truncated.
+      --  ??? In subprocess mode this will immediately send SIGKILL to the
+      --  subprocess, not waiting for it to complete, so output will likely
+      --  be missing or truncated.
       exception
          when Error : Program_Error =>
             Fatal_Error
@@ -1872,8 +1860,9 @@ package body CFG_Dump is
    procedure Put (Output : in out Output_Type; C : Character) is
    begin
       case Output.Kind is
-         when File =>
+         when File       =>
             Put (Output.File.all, C);
+
          when Subprocess =>
             Send (Output.Pd, (1 => C), Add_LF => False);
       end case;
@@ -1886,8 +1875,9 @@ package body CFG_Dump is
    procedure Put (Output : in out Output_Type; S : String) is
    begin
       case Output.Kind is
-         when File =>
+         when File       =>
             Put (Output.File.all, S);
+
          when Subprocess =>
             Send (Output.Pd, S, Add_LF => False);
       end case;
@@ -1900,8 +1890,9 @@ package body CFG_Dump is
    procedure Put_Line (Output : in out Output_Type; S : String) is
    begin
       case Output.Kind is
-         when File =>
+         when File       =>
             Put_Line (Output.File.all, S);
+
          when Subprocess =>
             Send (Output.Pd, S, Add_LF => True);
       end case;
@@ -1915,17 +1906,19 @@ package body CFG_Dump is
    begin
       if Output.To_Close then
          case Output.Kind is
-            when File =>
+            when File       =>
                Close (Output.File.all);
+
             when Subprocess =>
                declare
                   Status : Integer;
                begin
                   Close (Output.Pd, Status);
                   if Status /= 0 then
-                     raise Program_Error with
-                       ("subprocess exited with status code"
-                        & Integer'Image (Status));
+                     raise Program_Error
+                       with
+                         ("subprocess exited with status code"
+                          & Integer'Image (Status));
                   end if;
                end;
          end case;
@@ -1955,7 +1948,7 @@ package body CFG_Dump is
          if C = ASCII.HT then
             declare
                Expansion_Length : constant Positive :=
-                  8 - ((Column - 1) mod 8);
+                 8 - ((Column - 1) mod 8);
             begin
                Append (Result, (1 .. Expansion_Length => ' '));
                Column := Column + Expansion_Length;
