@@ -1,1 +1,2 @@
 !windows-host DEAD Test requires conditions only available on Windows, see #393
+all XFAIL Difference in config between prod and development setup, see #393
