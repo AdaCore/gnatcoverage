@@ -768,10 +768,12 @@ reuse of a project hierarchy without replication of the directory structure,
 not even modification of the project files.
 
 For each project in the closure of-interest, the instrumentation generates the
-alternative sources in the ``gnatcov-instr`` subdirectory of the project's
-object directory.  Giving priority to this subdir when it exists is achieved by
-passing a :cmd-option:`--src-subdirs` switch to :command:`gprbuild`, naming
-that particular relative subdirectory.
+alternative sources in the ``PROJECT-gnatcov-instr`` subdirectory of the
+project's object directory (replace ``PROJECT`` with the lower cased actual
+name of the project: e.g. ``mylib-gnatcov-instr`` for ``mylib.gpr``).  Giving
+priority to this subdir when it exists is achieved by passing a
+:cmd-option:`--src-subdirs` switch to :command:`gprbuild`, naming that
+particular relative subdirectory.
 
 Then :command:`gprbuild` now supports a :cmd-option:`--implicit-with` option
 which requests processing every project as if it started with a ``with``
