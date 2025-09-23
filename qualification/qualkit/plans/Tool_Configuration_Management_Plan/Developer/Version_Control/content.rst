@@ -10,10 +10,10 @@ All the GNATcoverage development and verification artifacts are version
 controlled in AdaCore's configuration management system, in particular:
 
 * All the TOR related artifacts (requirements, testcases, test sources, ...),
-  each materialized as a distinct file to permit atomic tracking,
+  each represented by a distinct file to permit atomic tracking,
 * The GNATcoverage tool source code,
 * The build/test infrastructure (framework to build the tool, run
-  testsuites, monitor results ...),
+  testsuites, monitor results, etc),
 
 Plans and documentation
 -----------------------
@@ -30,16 +30,21 @@ textual artifact of GNATcoverage qualification material. Quality assurance
 reports are specific for each tool released and their lifecycle is tracked on
 a release-specific basis.
 
-Open problems
--------------
+Open Problems Identification
+----------------------------
 
-Open problems are tracked via emails. Each email is associated with a unique
-problem identifier, assigned by AdaCore's tracking system when the first message
-about an issue is received. At any given point in time, each issue is assigned
-to a single member of the Development or Qualification team who is then
-responsible for the problem management: launching investigations, developing
-corrections, updating the problem status (open/closed) or assigning to
-another team member for further action until a resolution is found. The
-complete problem evolution (related email exchanges) and status history are
+Open problems are tracked throughout their lifecycle. Each problem is associated
+with a unique problem identifier, assigned when the issue is created.
+
+At any given point in time, each issue is assigned to one or more members of the
+Development or Qualification team, who are then responsible for the problem
+management:
+
+* launching investigations;
+* developing corrections;
+* updating the problem status (open/closed);
+* or assigning to another team member for further actions until a resolution
+  is found.
+
+The complete problem evolution and status history are
 tracked in a database thanks to the unique issue identifier.
-

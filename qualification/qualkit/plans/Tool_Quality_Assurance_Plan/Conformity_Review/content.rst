@@ -9,9 +9,9 @@ These objectives are achieved in the scope of the tool conformity review:
    management and managed as described
  * **8.3.b**: Check that activities of the TQP, TCMP and TQAP are
    completed and have produced the items described
-   at :ref:`tcmp`
+   at :ref:`dev-conf-management`
  * **8.3.c**: Check that problems have been reported and evaluated according to
-   the :ref:`tcmp`.
+   the :ref:`dev-conf-management`.
  * **8.3.d**: Record and approve software requirements deviations arising from
    two sources: (1) deviations exposed by test failures reported in the
    |prj_toolset| |str_doc| provided as part of the tool qualification data;
