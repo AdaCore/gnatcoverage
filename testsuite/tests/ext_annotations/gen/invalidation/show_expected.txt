@@ -3,4 +3,4 @@ main.adb:
 - STALE ANNOTATION; id: exempt_ada; kind: Exempt_Region; Justification: Useless code; diagnostic: Contents of <SubpBody ["Nested"] main.adb:2:4-7:15> changed
 
 main_c.c:
-- STALE ANNOTATION; id: exempt_c; kind: Exempt_Region; Justification: Useless code; diagnostic: file has been modified
+- STALE ANNOTATION; id: exempt_c; kind: Exempt_Region; Justification: Useless code; diagnostic: Content of declaration ident has changed

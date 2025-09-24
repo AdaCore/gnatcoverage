@@ -1059,6 +1059,7 @@ package SC_Obligations is
       Pragma_Annotate,
       Pragma_Assert,
       Pragma_Assert_And_Cut,
+      Pragma_Assertion_Level,
       Pragma_Assertion_Policy,
       Pragma_Assume,
       Pragma_Assume_No_Invalid_Values,
@@ -1289,6 +1290,7 @@ package SC_Obligations is
       Pragma_Unreferenced,
       Pragma_Unreferenced_Objects,
       Pragma_Unreserve_All_Interrupts,
+      Pragma_Unsigned_Base_Range,
       Pragma_Unsuppress,
       Pragma_Unused,
       Pragma_Use_VADS_Size,
@@ -1302,8 +1304,8 @@ package SC_Obligations is
       Pragma_Warnings,
       Pragma_Weak_External,
       Pragma_Wide_Character_Encoding,
-      Unknown_Pragma);
-   --  Set of pragmas that GNATcoverage knows (or Unknown_Pragma if not)
+      Pragma_Unknown);
+   --  Set of pragmas that GNATcoverage knows (or Pragma_Unknown if not)
 
    function Case_Insensitive_Get_Pragma_Id
      (Pragma_Name : Namet.Name_Id) return Pragma_Id;
@@ -1338,6 +1340,7 @@ package SC_Obligations is
           Pragma_Aggregate_Individually_Assign => False,
           Pragma_Allow_Integer_Address => False,
           Pragma_Annotate => False,
+          Pragma_Assertion_Level => False,
           Pragma_Assertion_Policy => False,
           Pragma_Assume_No_Invalid_Values => False,
           Pragma_C_Pass_By_Copy => False,
@@ -1552,6 +1555,7 @@ package SC_Obligations is
           Pragma_Unreferenced => False,
           Pragma_Unreferenced_Objects => False,
           Pragma_Unreserve_All_Interrupts => False,
+          Pragma_Unsigned_Base_Range => False,
           Pragma_Unused => False,
           Pragma_Volatile => False,
           Pragma_Volatile_Components => False,
@@ -1615,7 +1619,7 @@ package SC_Obligations is
           Pragma_Type_Invariant => True,
           Pragma_Type_Invariant_Class => True,
 
-          Unknown_Pragma => True);
+          Pragma_Unknown => True);
 
    procedure Populate_From_Static_Eval_Vector
      (SCO        : SCO_Id;

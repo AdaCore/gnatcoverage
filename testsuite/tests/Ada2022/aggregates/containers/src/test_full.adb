@@ -18,6 +18,8 @@ end Test_Full;
 -- /empty_aggr_st/    l+ ## 0
 -- /single_elt_guard/ l+ ## 0
 -- /single_elt_st/    l+ ## 0
--- /single_elt_dc/    l+ ## 0
+-- /single_elt_dc1/   l+ ## 0
+-- /single_elt_dc2/   l+ ## 0
 -- /multi_elt_st/     l+ ## 0
--- /multi_elt_dc/     l+ ## 0
+-- /multi_elt_dc1/    l+ ## 0
+-- /multi_elt_dc2/    l+ ## 0
