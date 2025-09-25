@@ -371,20 +371,8 @@ class QMAT:
         self.repodir = os.path.join(self.workdir, REPO_IMAGE_SUBDIR)
         self.qualdir = os.path.join(self.repodir, "qualification", "qualkit")
 
-        # Load project settings from the yaml common file
-        settings_file = os.path.join(
-            self.qualdir,
-            "_common",
-            "project_settings.yaml",
-        )
         self.settings = {}
-        with open(settings_file) as fd:
-            self.settings = yaml.safe_load(fd)
-
         self.doc_versions = {}
-
-        for part in ["str", "plans", "tor"]:
-            self.doc_versions[part] = self.get_doc_version(part)
 
         # A local place where the testsuite tree may be found,
         # possibly after remote syncing from testsuite_dir if that
@@ -407,7 +395,6 @@ class QMAT:
         """
         doc_settings_filename = os.path.join(
             self.qualdir,
-            "qualkit",
             part,
             "document_settings.yaml",
         )
@@ -415,7 +402,21 @@ class QMAT:
             for line in fd.readlines():
                 match_res = re.search(r"doc_version: +'(\d+)'", line)
                 if match_res:
-                    return match_res
+                    return match_res.group(1)
+
+    def load_settings(self):
+        """
+        Load project settings from the yaml common file
+        """
+        settings_file = os.path.join(
+            self.qualdir,
+            "_common",
+            "project_settings.yaml",
+        )
+        with open(settings_file) as fd:
+            self.settings = yaml.safe_load(fd)
+        for part in ["str", "plans", "tor"]:
+            self.doc_versions[part] = self.get_doc_version(part)
 
     # ---------------------
     # -- prepare_content --
@@ -1070,6 +1071,9 @@ class QMAT:
 
         if self.o.testsuite_dir and not self.local_testsuite_dir:
             self.__localize_testsuite_dir()
+
+        if not self.settings:
+            self.load_settings()
 
         # Build the STR as needed, using the REST generated
         # by prepare_str_dir above:
