@@ -31,7 +31,7 @@ annotations = [
 annot_file = generate_annotations(
     annotations,
     tolerate_messages=(
-        "warning: Could not create an auto-relocating annotation for src/"
+        r"warning: Could not create an auto-relocating annotation for src."
         "pkg.c:6:4 - 12:22, creating an absolute location annotation instead."
     ),
 )
