@@ -9,7 +9,7 @@ project:
     'prj_toolset_bold':             '**GNATcoverage**',
     'prj_switches':                 '<none>',
     'prj_platform':                 'TBD',
-    'prj_host_platform':            'TBD',
+    'prj_host_platform':            'linux',
     'prj_RTS':                      'No --RTS switch expected. Programs shall honor the :ref:`language-scope` restrictions, nevertheless.',
     'prj_dump_trigger':             ':literal:`--dump-triger=atexit`',
     'prj_dump_channel':             ':literal:`--dump-channel=bin-file`',

@@ -27,9 +27,9 @@ matching process.
    :widths: 5, 30, 60
    :delim:  /
 
-   e1 / Host Operating System name and version / |prj_host_platform|
-   e2 / GNATcoverage executable name and version / |gnatcov_version|
-   e3 / GNAT Pro compiler executable name and version / |gnatpro_version|
+   e1 / Host Operating System family / |prj_host_platform|
+   e2 / GNATcoverage version / |gnatcov_version|
+   e3 / GNAT Pro platform version / |gnatpro_version|
    s1 / GNAT Pro compilation switches / |prj_switches|
    s2 / GNAT Pro Runtime Library Profile / |prj_RTS|
    s3 / GNATcov dump trigger switch value / |prj_dump_trigger|
