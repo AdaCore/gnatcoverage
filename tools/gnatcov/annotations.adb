@@ -87,6 +87,12 @@ package body Annotations is
    is
       Result : Line_State := No_Code;
    begin
+      --  Disabled coverage case: note that it takes precedence over exemptions
+
+      if Info.Disabled_Cov /= Slocs.No_Location then
+         return Disabled_Coverage;
+      end if;
+
       --  Exempted case
 
       if Info.Exemption /= Slocs.No_Location and then not Ignore_Exemptions
@@ -100,10 +106,6 @@ package body Annotations is
          else
             return Exempted_With_Violation;
          end if;
-      end if;
-
-      if Info.Disabled_Cov /= Slocs.No_Location then
-         return Disabled_Coverage;
       end if;
 
       --  Non-exempted case

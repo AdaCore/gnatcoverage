@@ -303,14 +303,27 @@ package body Annotations.Report is
       --  with Pretty_Print_Message is that Put_Message does not tries to
       --  know if the message should be exempted or not.
 
-      procedure Output_Exemption (C : Cursor);
+      procedure Output_Exemption (C : Cursor)
+      with Pre => Element (C).Kind = Exempt_On;
       --  Show summary information for exemption denoted by C
 
-      procedure Output_Disable_Cov (C : Cursor);
+      procedure Output_Disable_Cov (C : Cursor)
+      with Pre => Element (C).Kind = Cov_Off;
       --  Show summary information for disabled coverage regions
 
       procedure Count_SCO (SCO : SCO_Id);
       --  Account for SCO in the coverage tally
+
+      procedure Iterate
+        (Map     : ALI_Annotation_Maps.Map;
+         Process : not null access procedure (Position : Cursor);
+         Kind    : Src_Annotation_Kind);
+      --  Iterate over the given Map and execute Process for cursor of the
+      --  given Kind.
+
+      function Next (C : Cursor) return Cursor;
+      --  Return the matching cursor for C (e.g. the Exempt_Off cursor if
+      --  C is an Exempt_On cursor) and No_Element if none was found.
 
       ---------------
       -- Count_SCO --
@@ -346,6 +359,43 @@ package body Annotations.Report is
             end if;
          end if;
       end Count_SCO;
+
+      -------------
+      -- Iterate --
+      -------------
+
+      procedure Iterate
+        (Map     : ALI_Annotation_Maps.Map;
+         Process : not null access procedure (Position : Cursor);
+         Kind    : Src_Annotation_Kind) is
+      begin
+         for C in Map.Iterate loop
+            if Element (C).Kind = Kind then
+               Process (C);
+            end if;
+         end loop;
+      end Iterate;
+
+      ----------
+      -- Next --
+      ----------
+
+      function Next (C : Cursor) return Cursor is
+         Cur            : Cursor := C;
+         E              : Src_Annotation_Kind renames Element (C).Kind;
+         End_Annotation : constant Src_Annotation_Kind :=
+           (case E is
+              when Cov_Off   => Cov_On,
+              when Exempt_On => Exempt_Off,
+              when others    => raise Program_Error);
+      begin
+         loop
+            Cur := SC_Obligations.ALI_Annotation_Maps.Next (Cur);
+            exit when Cur = No_Element;
+            exit when Element (Cur).Kind = End_Annotation;
+         end loop;
+         return Cur;
+      end Next;
 
       -------------------------
       -- Has_Exempted_Region --
@@ -440,10 +490,6 @@ package body Annotations.Report is
          Sloc     : constant Source_Location := Key (C);
          End_Sloc : Source_Location := Slocs.No_Location;
       begin
-         if E.Kind /= Exempt_On then
-            return;
-         end if;
-
          --  Determine end sloc of exempted region
 
          if Next_C /= No_Element then
@@ -531,10 +577,6 @@ package body Annotations.Report is
          Sloc     : constant Source_Location := Key (C);
          End_Sloc : Source_Location := Slocs.No_Location;
       begin
-         if E.Kind /= Cov_Off then
-            return;
-         end if;
-
          --  Determine end sloc of disabled coverage region
 
          if Next_C /= No_Element then
@@ -756,7 +798,7 @@ package body Annotations.Report is
       if Has_Exempted_Region then
          Pp.Chapter ("EXEMPTED REGIONS");
          Total_Exempted_Regions := 0;
-         ALI_Annotations.Iterate (Output_Exemption'Access);
+         Iterate (ALI_Annotations, Output_Exemption'Access, Exempt_On);
 
          New_Line (Output.all);
          Put_Line
@@ -770,7 +812,7 @@ package body Annotations.Report is
       if Has_Disabled_Cov_Region then
          Pp.Chapter ("COVERAGE DISABLED REGIONS");
          Total_Disabled_Cov_Regions := 0;
-         ALI_Annotations.Iterate (Output_Disable_Cov'Access);
+         Iterate (ALI_Annotations, Output_Disable_Cov'Access, Cov_Off);
 
          New_Line (Output.all);
          Put_Line
