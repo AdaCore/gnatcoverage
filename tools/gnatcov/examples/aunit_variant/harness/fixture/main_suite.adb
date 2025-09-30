@@ -28,17 +28,10 @@ package body Main_Suite is
       Ret : constant Access_Test_Suite := New_Suite;
    begin
       AUnit.Test_Suites.Add_Test
-        (Ret,
-         Controls.Test.Suite.Robot_Control_Link_Suite.Suite);
-      AUnit.Test_Suites.Add_Test
-        (Ret,
-         Geomaps.Test.Suite.Suite);
-      AUnit.Test_Suites.Add_Test
-        (Ret,
-         Robots.Test.Suite.Suite);
-      AUnit.Test_Suites.Add_Test
-        (Ret,
-         Stations.Test.Suite.Suite);
+        (Ret, Controls.Test.Suite.Robot_Control_Link_Suite.Suite);
+      AUnit.Test_Suites.Add_Test (Ret, Geomaps.Test.Suite.Suite);
+      AUnit.Test_Suites.Add_Test (Ret, Robots.Test.Suite.Suite);
+      AUnit.Test_Suites.Add_Test (Ret, Stations.Test.Suite.Suite);
       return Ret;
    end Suite;
 

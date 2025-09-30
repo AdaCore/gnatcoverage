@@ -32,64 +32,68 @@ package body Argparse is
    type Option_Info_Access is access constant Option_Info'Class;
    type Option_Info_Array is array (Natural range <>) of Option_Info_Access;
 
-   package Option_Reference_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Option_Reference);
+   package Option_Reference_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Option_Reference);
 
    type Option_Reference_Vector is access Option_Reference_Vectors.Vector;
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Option_Reference_Vectors.Vector, Option_Reference_Vector);
+   procedure Free is new
+     Ada.Unchecked_Deallocation
+       (Option_Reference_Vectors.Vector,
+        Option_Reference_Vector);
 
-   function Hash (C : Character) return Ada.Containers.Hash_Type is
-     (Ada.Containers.Hash_Type (Character'Pos (C)));
+   function Hash (C : Character) return Ada.Containers.Hash_Type
+   is (Ada.Containers.Hash_Type (Character'Pos (C)));
 
-   package Short_Options_Index is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Character,
-      Hash            => Hash,
-      Element_Type    => Option_Reference_Vector,
-      Equivalent_Keys => "=");
+   package Short_Options_Index is new
+     Ada.Containers.Hashed_Maps
+       (Key_Type        => Character,
+        Hash            => Hash,
+        Element_Type    => Option_Reference_Vector,
+        Equivalent_Keys => "=");
 
-   package Long_Options_Index is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Unbounded_String,
-      Hash            => Strings.Hash,
-      Element_Type    => Option_Reference_Vector,
-      Equivalent_Keys => "=");
+   package Long_Options_Index is new
+     Ada.Containers.Hashed_Maps
+       (Key_Type        => Unbounded_String,
+        Hash            => Strings.Hash,
+        Element_Type    => Option_Reference_Vector,
+        Equivalent_Keys => "=");
 
    type Parse_Table is record
       Short_Index : Short_Options_Index.Map;
       --  Options sorted by short name letter. Multiple options can have
       --  similar short names, so the map contains vectors of options.
 
-      Long_Index  : Long_Options_Index.Map;
+      Long_Index : Long_Options_Index.Map;
       --  Options sorted by long name. Multiple options can have similar long
       --  names, so the map contains vectors of options.
    end record;
    --  Helper data structure for parsing
 
    type Parser_Record is record
-      Command_Infos        : Command_Info_Array;
+      Command_Infos : Command_Info_Array;
 
-      Bool_Info            : Bool_Option_Info_Array;
-      String_Info          : String_Option_Info_Array;
-      String_List_Info     : String_List_Option_Info_Array;
+      Bool_Info        : Bool_Option_Info_Array;
+      String_Info      : String_Option_Info_Array;
+      String_List_Info : String_List_Option_Info_Array;
 
       Bool_Callback        : Bool_Callback_Type;
       String_Callback      : String_Callback_Type;
       String_List_Callback : String_List_Callback_Type;
       Arg_Callback         : Arg_Callback_Type;
 
-      Table                : Parse_Table;
+      Table : Parse_Table;
    end record;
 
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Parser_Record, Parser_Access);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (Parser_Record, Parser_Access);
 
    function Option_Name (Option : Option_Info'Class) return String;
    --  Shortcut for Option_Name (Ref_For_Option)
 
    function Get_Option
-     (Parser : Parser_Access;
-      Ref    : Option_Reference)
+     (Parser : Parser_Access; Ref : Option_Reference)
       return Option_Info_Access;
    --  Return an access to the Option_Info record corresponding to Ref in
    --  Parser.
@@ -105,8 +109,7 @@ package body Argparse is
    function Sorted_Options
      (Parser        : Parser_Access;
       With_Internal : Boolean;
-      For_Command   : Command_Type := No_Command)
-      return Option_Info_Array;
+      For_Command   : Command_Type := No_Command) return Option_Info_Array;
    --  Return a list of options, sorted by long and then short names.
    --  With_Internal and For_Command are used to filter the set of options
    --  to return: they have the same meaning as in Print_Usage.
@@ -115,8 +118,7 @@ package body Argparse is
      (Text              : String;
       First_Line_Indent : Natural;
       Next_Lines_Indent : Natural;
-      Width             : Natural)
-      return String;
+      Width             : Natural) return String;
    --  Wrap each line in Text on Width columns (0). Each line will be prefixed
    --  with First_Line_Indent spaces (1), plus Next_Line_Indent ones (2) for
    --  all but the first line and plus any existing spaces prefix for each
@@ -135,9 +137,7 @@ package body Argparse is
    ------------------
 
    function Command_Name
-     (Parser  : Parser_Type;
-      Command : Valid_Commands)
-      return String
+     (Parser : Parser_Type; Command : Valid_Commands) return String
    is (+Parser.Data.Command_Infos (Command).Name);
 
    -----------------
@@ -145,11 +145,8 @@ package body Argparse is
    -----------------
 
    function Option_Name
-     (Parser : Parser_Type;
-      Ref    : Option_Reference)
-      return String
-   is
-     (Option_Name (Get_Option (Parser.Data, Ref).all));
+     (Parser : Parser_Type; Ref : Option_Reference) return String
+   is (Option_Name (Get_Option (Parser.Data, Ref).all));
 
    -----------------
    -- Option_Name --
@@ -193,14 +190,15 @@ package body Argparse is
    ----------------
 
    function Is_Present
-     (Args : Parsed_Arguments;
-      Ref  : Option_Reference) return Boolean is
+     (Args : Parsed_Arguments; Ref : Option_Reference) return Boolean is
    begin
       case Ref.Kind is
-         when Bool_Opt =>
+         when Bool_Opt        =>
             return Args.Bool_Args (Ref.Bool_Option);
-         when String_Opt =>
+
+         when String_Opt      =>
             return Args.String_Args (Ref.String_Option).Present;
+
          when String_List_Opt =>
             return not Args.String_List_Args (Ref.String_List_Option).Is_Empty;
       end case;
@@ -211,13 +209,13 @@ package body Argparse is
    -----------
 
    function Value
-     (Args    : Parsed_Arguments;
-      Option  : String_Options;
-      Default : String := "") return String is
+     (Args : Parsed_Arguments; Option : String_Options; Default : String := "")
+      return String is
    begin
-      return (if Args.String_Args (Option).Present
-              then +Args.String_Args (Option).Value
-              else Default);
+      return
+        (if Args.String_Args (Option).Present
+         then +Args.String_Args (Option).Value
+         else Default);
    end Value;
 
    --------------
@@ -225,19 +223,21 @@ package body Argparse is
    --------------
 
    function Supports
-     (Parser : Parser_Type;
-      Cmd    : Command_Type;
-      Option : Option_Reference) return Boolean is
+     (Parser : Parser_Type; Cmd : Command_Type; Option : Option_Reference)
+      return Boolean is
    begin
       case Option.Kind is
-         when Bool_Opt =>
+         when Bool_Opt        =>
             return Parser.Data.Bool_Info (Option.Bool_Option).Commands (Cmd);
-         when String_Opt =>
-            return Parser.Data.String_Info
-              (Option.String_Option).Commands (Cmd);
+
+         when String_Opt      =>
+            return
+              Parser.Data.String_Info (Option.String_Option).Commands (Cmd);
+
          when String_List_Opt =>
-            return Parser.Data.String_List_Info
-              (Option.String_List_Option).Commands (Cmd);
+            return
+              Parser.Data.String_List_Info (Option.String_List_Option).Commands
+                (Cmd);
       end case;
    end Supports;
 
@@ -246,28 +246,26 @@ package body Argparse is
    -------------
 
    function Unparse
-     (Parser : Parser_Type;
-      Args   : Parsed_Arguments;
-      Option : Option_Reference) return String_Vectors.Vector
+     (Parser : Parser_Type; Args : Parsed_Arguments; Option : Option_Reference)
+      return String_Vectors.Vector
    is
       Result : String_Vectors.Vector;
 
-      function Name (Opt : Option_Info'Class) return Unbounded_String is
-        (if Opt.Long_Name = ""
-         then Opt.Short_Name
-         else Opt.Long_Name);
+      function Name (Opt : Option_Info'Class) return Unbounded_String
+      is (if Opt.Long_Name = "" then Opt.Short_Name else Opt.Long_Name);
       --  Some options such as -P do not defined a long name. In this case,
       --  return the short name.
 
    begin
       case Option.Kind is
-         when Bool_Opt =>
-            Result.Append
-              (Name (Parser.Data.Bool_Info (Option.Bool_Option)));
-         when String_Opt =>
+         when Bool_Opt        =>
+            Result.Append (Name (Parser.Data.Bool_Info (Option.Bool_Option)));
+
+         when String_Opt      =>
             Result.Append
               (Name (Parser.Data.String_Info (Option.String_Option)));
             Result.Append (Args.String_Args (Option.String_Option).Value);
+
          when String_List_Opt =>
             declare
                Opt_Name : constant Unbounded_String :=
@@ -289,15 +287,12 @@ package body Argparse is
    ----------------
 
    function Get_Option
-     (Parser : Parser_Access;
-      Ref    : Option_Reference)
-      return Option_Info_Access
-   is
-     (case Ref.Kind is
-         when Bool_Opt => Parser.Bool_Info (Ref.Bool_Option)'Access,
-         when String_Opt => Parser.String_Info (Ref.String_Option)'Access,
+     (Parser : Parser_Access; Ref : Option_Reference) return Option_Info_Access
+   is (case Ref.Kind is
+         when Bool_Opt        => Parser.Bool_Info (Ref.Bool_Option)'Access,
+         when String_Opt      => Parser.String_Info (Ref.String_Option)'Access,
          when String_List_Opt =>
-            Parser.String_List_Info (Ref.String_List_Option)'Access);
+           Parser.String_List_Info (Ref.String_List_Option)'Access);
 
    ------------
    -- Create --
@@ -307,10 +302,8 @@ package body Argparse is
      (Name        : String;
       Pattern     : String := "";
       Description : String;
-      Internal    : Boolean)
-      return Command_Info
-   is
-     (+Name, +Pattern, +Description, Internal);
+      Internal    : Boolean) return Command_Info
+   is (+Name, +Pattern, +Description, Internal);
 
    ------------
    -- Create --
@@ -319,10 +312,8 @@ package body Argparse is
    function Create
      (Long_Name, Short_Name, Help : String := "";
       Commands                    : Command_Set := All_Commands;
-      Internal                    : Boolean)
-      return Bool_Option_Info
-   is
-     ((+Long_Name, +Short_Name, +Help, Commands, Internal));
+      Internal                    : Boolean) return Bool_Option_Info
+   is ((+Long_Name, +Short_Name, +Help, Commands, Internal));
 
    ------------
    -- Create --
@@ -332,11 +323,14 @@ package body Argparse is
      (Long_Name, Short_Name, Help : String := "";
       Commands                    : Command_Set := All_Commands;
       Internal, At_Most_Once      : Boolean;
-      Pattern                     : String := "")
-      return String_Option_Info
-   is
-     (+Long_Name, +Short_Name, +Help, Commands, Internal, At_Most_Once,
-      +Pattern);
+      Pattern                     : String := "") return String_Option_Info
+   is (+Long_Name,
+       +Short_Name,
+       +Help,
+       Commands,
+       Internal,
+       At_Most_Once,
+       +Pattern);
 
    ------------
    -- Create --
@@ -350,9 +344,14 @@ package body Argparse is
       Pattern                     : String := "";
       Accepts_Comma_Separator     : Boolean := False)
       return String_List_Option_Info
-   is
-     (+Long_Name, +Short_Name, +Help, Commands, Internal, Greedy, +Pattern,
-      Accepts_Comma_Separator);
+   is (+Long_Name,
+       +Short_Name,
+       +Help,
+       Commands,
+       Internal,
+       Greedy,
+       +Pattern,
+       Accepts_Comma_Separator);
 
    ------------
    -- Create --
@@ -367,14 +366,19 @@ package body Argparse is
       Bool_Callback        : Bool_Callback_Type := null;
       String_Callback      : String_Callback_Type := null;
       String_List_Callback : String_List_Callback_Type := null;
-      Arg_Callback         : Arg_Callback_Type := null)
-      return Parser_Type
+      Arg_Callback         : Arg_Callback_Type := null) return Parser_Type
    is
-      Result : constant Parser_Access := new Parser_Record'
-        (Command_Infos,
-         Bool_Infos, String_Infos, String_List_Infos,
-         Bool_Callback, String_Callback, String_List_Callback, Arg_Callback,
-         Table => <>);
+      Result : constant Parser_Access :=
+        new Parser_Record'
+          (Command_Infos,
+           Bool_Infos,
+           String_Infos,
+           String_List_Infos,
+           Bool_Callback,
+           String_Callback,
+           String_List_Callback,
+           Arg_Callback,
+           Table => <>);
    begin
       Build_Parse_Table (Result);
       return (Ada.Finalization.Limited_Controlled with Data => Result);
@@ -384,7 +388,8 @@ package body Argparse is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize (Self : in out Parser_Type) is
+   overriding
+   procedure Finalize (Self : in out Parser_Type) is
    begin
       if Self.Data /= null then
          for Ref of Self.Data.Table.Short_Index loop
@@ -412,8 +417,8 @@ package body Argparse is
 
       With_Internal_Options : constant Boolean :=
         (For_Command /= No_Command
-            and then Parser.Data.Command_Infos (For_Command).Internal)
-         or else With_Internal;
+         and then Parser.Data.Command_Infos (For_Command).Internal)
+        or else With_Internal;
 
       Option_Infos : constant Option_Info_Array :=
         Sorted_Options (Parser.Data, With_Internal_Options, For_Command);
@@ -427,7 +432,7 @@ package body Argparse is
       --      provided pattern or " [...]" if the option has none.
 
       procedure Put_Wrapped
-        (Text : String;
+        (Text              : String;
          First_Line_Indent : Natural;
          Next_Lines_Indent : Natural);
       --  Put on standard output Text wrapped on 80 columns according to
@@ -448,9 +453,7 @@ package body Argparse is
             return "";
          end if;
 
-         return (if Candidate = ""
-                 then " [...]"
-                 else " " & (+Candidate));
+         return (if Candidate = "" then " [...]" else " " & (+Candidate));
       end Get_Pattern;
 
       -----------------
@@ -458,10 +461,9 @@ package body Argparse is
       -----------------
 
       procedure Put_Wrapped
-        (Text : String;
+        (Text              : String;
          First_Line_Indent : Natural;
-         Next_Lines_Indent : Natural)
-      is
+         Next_Lines_Indent : Natural) is
       begin
          Put (Wrap (Text, First_Line_Indent, Next_Lines_Indent, 80));
       end Put_Wrapped;
@@ -472,12 +474,14 @@ package body Argparse is
          --  Describe commands first, or one command if asked so
 
          Put_Line
-           ("Usage: " & Support_Files.Gnatcov_Command_Name
+           ("Usage: "
+            & Support_Files.Gnatcov_Command_Name
             & " ACTION [OPTIONS ...]");
 
          if Short then
             Put_Line
-              ("Run '" & Support_Files.Gnatcov_Command_Name
+              ("Run '"
+               & Support_Files.Gnatcov_Command_Name
                & " --help' for more information.");
             return;
          end if;
@@ -501,15 +505,25 @@ package body Argparse is
       else
          declare
             Info : Command_Info renames
-               Parser.Data.Command_Infos (For_Command);
+              Parser.Data.Command_Infos (For_Command);
          begin
-            Put_Wrapped ("Usage: " & Support_Files.Gnatcov_Command_Name & " "
-                         & (+Info.Name) & " " & (+Info.Pattern), 0, 4);
+            Put_Wrapped
+              ("Usage: "
+               & Support_Files.Gnatcov_Command_Name
+               & " "
+               & (+Info.Name)
+               & " "
+               & (+Info.Pattern),
+               0,
+               4);
 
             if Short then
                Put_Line
-                 ("Run '" & Support_Files.Gnatcov_Command_Name & " "
-                  & (+Info.Name) & " --help' for more information.");
+                 ("Run '"
+                  & Support_Files.Gnatcov_Command_Name
+                  & " "
+                  & (+Info.Name)
+                  & " --help' for more information.");
                return;
             end if;
 
@@ -551,10 +565,8 @@ package body Argparse is
                   Append (Set_Image, '[');
                   for Cmd in Valid_Commands'Range loop
                      if Info.Commands (Cmd)
-                       and then
-                         (not Parser.Data.Command_Infos (Cmd).Internal
-                          or else
-                          With_Internal_Options)
+                       and then (not Parser.Data.Command_Infos (Cmd).Internal
+                                 or else With_Internal_Options)
                      then
                         if not First then
                            Append (Set_Image, ", ");
@@ -583,15 +595,16 @@ package body Argparse is
      (Parser       : Parser_Type;
       Args         : String_Vectors.Vector;
       With_Command : Command_Type := No_Command;
-      Callback     : access procedure (Result : in out Parsed_Arguments;
-                                       Ref    : Option_Reference) := null)
+      Callback     :
+        access procedure
+          (Result : in out Parsed_Arguments; Ref : Option_Reference) := null)
       return Parsed_Arguments
    is
-      I       : Natural := Args.First_Index;
-      Result  : Parsed_Arguments;
+      I      : Natural := Args.First_Index;
+      Result : Parsed_Arguments;
 
-      function Error (S : String) return Parsed_Arguments is
-        ((Error => +S, Command => Result.Command, others => <>));
+      function Error (S : String) return Parsed_Arguments
+      is ((Error => +S, Command => Result.Command, others => <>));
 
       Arg_Error : exception;
       --  Exception to raise in order to abort the parsing process. The
@@ -603,18 +616,13 @@ package body Argparse is
       --  Slice of the current argument (i.e. Args (I))
 
       procedure Split_Arg
-        (Arg           : String;
-         Option, Value : out Slice;
-         Has_Value     : out Boolean);
+        (Arg : String; Option, Value : out Slice; Has_Value : out Boolean);
       --  Try to split Arg into Option and Value. For instance, if Arg is
       --  "--foo=bar", Option will refer to "--foo" while Value will refer
       --  to "bar". Set Has_Value to whether there is a "=" substring.
 
       function Consume_Value
-        (For_Arg : Slice;
-         I       : in out Natural;
-         J       : Natural)
-         return String;
+        (For_Arg : Slice; I : in out Natural; J : Natural) return String;
       --  Considering the For_Arg slice (which is the option part of the
       --  currently parsed argument Args(I)), try to fetch a value for the
       --  option wthat was just parsed. Look for any value starting at Args
@@ -628,8 +636,7 @@ package body Argparse is
       --  accordingly. Raise an Arg_Error if there is no argument left.
 
       function Select_Option
-        (Opt_Name : String;
-         Opt_Vec  : Option_Reference_Vector)
+        (Opt_Name : String; Opt_Vec : Option_Reference_Vector)
          return Option_Reference;
       --  Given Opt_Name (the currently parsed option) and Opt_Vec (a set of
       --  candidates for a match), return the option that is accepted by the
@@ -644,9 +651,7 @@ package body Argparse is
       --  boolean option callback if provided.
 
       function Handle_String_List
-        (Opt : String_List_Options;
-         Str : Unbounded_String)
-         return Boolean;
+        (Opt : String_List_Options; Str : Unbounded_String) return Boolean;
       --  Invoke the multiple strings option callback if provided. Then, if Opt
       --  is greedy, consume all the arguments, store them in Result and return
       --  True. Consume only one Str and return False otherwise.
@@ -656,10 +661,7 @@ package body Argparse is
       ---------------
 
       procedure Split_Arg
-        (Arg           : String;
-         Option, Value : out Slice;
-         Has_Value     : out Boolean)
-      is
+        (Arg : String; Option, Value : out Slice; Has_Value : out Boolean) is
       begin
          for I in Arg'Range loop
             if Arg (I) = '=' then
@@ -679,10 +681,7 @@ package body Argparse is
       -------------------
 
       function Consume_Value
-        (For_Arg : Slice;
-         I       : in out Natural;
-         J       : Natural)
-        return String
+        (For_Arg : Slice; I : in out Natural; J : Natural) return String
       is
          Arg : constant String := +Args (I);
       begin
@@ -715,9 +714,10 @@ package body Argparse is
             I := I + 1;
             return Args (I);
          else
-            raise Arg_Error with
-              (US.Slice (Args (I), For_Arg.First, For_Arg.Last)
-               & " requires a value");
+            raise Arg_Error
+              with
+                (US.Slice (Args (I), For_Arg.First, For_Arg.Last)
+                 & " requires a value");
          end if;
       end Consume_Next_Arg;
 
@@ -726,19 +726,20 @@ package body Argparse is
       -------------------
 
       function Select_Option
-        (Opt_Name : String;
-         Opt_Vec  : Option_Reference_Vector)
-         return Option_Reference
-      is
+        (Opt_Name : String; Opt_Vec : Option_Reference_Vector)
+         return Option_Reference is
       begin
          for Ref of Opt_Vec.all loop
             if Get_Option (Parser.Data, Ref).Commands (Result.Command) then
                return Ref;
             end if;
          end loop;
-         raise Arg_Error with
-           (Opt_Name & " is not valid with the """
-            & Command_Name (Parser, Result.Command) & """ command.");
+         raise Arg_Error
+           with
+             (Opt_Name
+              & " is not valid with the """
+              & Command_Name (Parser, Result.Command)
+              & """ command.");
       end Select_Option;
 
       ---------------------
@@ -758,8 +759,7 @@ package body Argparse is
       -- Handle_Bool --
       -----------------
 
-      procedure Handle_Bool (Opt : Bool_Options)
-      is
+      procedure Handle_Bool (Opt : Bool_Options) is
       begin
          if Parser.Data.Bool_Callback /= null then
             Parser.Data.Bool_Callback (Result, Opt);
@@ -773,12 +773,9 @@ package body Argparse is
       ------------------------
 
       function Handle_String_List
-        (Opt : String_List_Options;
-         Str : Unbounded_String)
-         return Boolean
+        (Opt : String_List_Options; Str : Unbounded_String) return Boolean
       is
-         Str_Vec : String_Vectors.Vector renames
-           Result.String_List_Args (Opt);
+         Str_Vec : String_Vectors.Vector renames Result.String_List_Args (Opt);
          Option  : String_List_Option_Info renames
            Parser.Data.String_List_Info (Opt);
       begin
@@ -829,8 +826,8 @@ package body Argparse is
                   exit;
 
                elsif Cmd = Command_Type'Last then
-                  return Error
-                    ("Bad command: " & Command & ". Try option --help");
+                  return
+                    Error ("Bad command: " & Command & ". Try option --help");
                end if;
             end loop;
          end;
@@ -846,10 +843,10 @@ package body Argparse is
             J             : Natural;
             Has_Value     : Boolean;
 
-            Long_Cur      : Long_Options_Index.Cursor;
-            Short_Cur     : Short_Options_Index.Cursor;
+            Long_Cur  : Long_Options_Index.Cursor;
+            Short_Cur : Short_Options_Index.Cursor;
 
-            Opt           : Option_Reference;
+            Opt : Option_Reference;
          begin
             --  The following allow users to query help messages for a specific
             --  subcommand.
@@ -876,25 +873,28 @@ package body Argparse is
                --  single dash ('-'), let's first match a long option.
 
                Split_Arg (Arg, Option, Value, Has_Value);
-               Long_Cur := Parser.Data.Table.Long_Index.Find
-                 (+Arg (Option.First .. Option.Last));
+               Long_Cur :=
+                 Parser.Data.Table.Long_Index.Find
+                   (+Arg (Option.First .. Option.Last));
 
                if Long_Options_Index.Has_Element (Long_Cur) then
 
                   --  We found a match! Interpret it, now.
 
-                  Opt := Select_Option
-                    (Arg (Option.First .. Option.Last),
-                     Long_Options_Index.Element (Long_Cur));
+                  Opt :=
+                    Select_Option
+                      (Arg (Option.First .. Option.Last),
+                       Long_Options_Index.Element (Long_Cur));
                   if Invoke_Callback (Opt) then
                      return Result;
                   end if;
                   case Opt.Kind is
-                     when Bool_Opt =>
+                     when Bool_Opt                     =>
                         if Has_Value then
-                           return Error
-                             (Option_Name (Parser, Opt)
-                              & " does not accept a value.");
+                           return
+                             Error
+                               (Option_Name (Parser, Opt)
+                                & " does not accept a value.");
                         end if;
                         Handle_Bool (Opt.Bool_Option);
 
@@ -906,13 +906,14 @@ package body Argparse is
                               else Consume_Next_Arg (Option, I));
                         begin
                            if Opt.Kind = String_Opt then
-                              if Parser.Data.String_Info
-                                   (Opt.String_Option).At_Most_Once
-                                 and then Is_Present (Result, Opt)
+                              if Parser.Data.String_Info (Opt.String_Option)
+                                   .At_Most_Once
+                                and then Is_Present (Result, Opt)
                               then
-                                 return Error
-                                   (Option_Name (Parser, Opt)
-                                    & " cannot appear multiple times.");
+                                 return
+                                   Error
+                                     (Option_Name (Parser, Opt)
+                                      & " cannot appear multiple times.");
                               end if;
 
                               if Parser.Data.String_Callback /= null then
@@ -921,11 +922,10 @@ package body Argparse is
                               end if;
 
                               Result.String_Args (Opt.String_Option) :=
-                                (Present => True,
-                                 Value   => Str);
+                                (Present => True, Value => Str);
 
                            elsif Handle_String_List
-                             (Opt.String_List_Option, Str)
+                                   (Opt.String_List_Option, Str)
                            then
                               --  If this is a greedy option, it consumes the
                               --  rest of the arguments, so we only have to
@@ -937,8 +937,9 @@ package body Argparse is
                   end case;
 
                elsif Arg (Arg'First + 1) = '-' then
-                  return Error
-                    ("Unknown option: " & Arg (Option.First .. Option.Last));
+                  return
+                    Error
+                      ("Unknown option: " & Arg (Option.First .. Option.Last));
 
                --  Past this point, this is either a short option or an unknown
                --  one.
@@ -946,23 +947,27 @@ package body Argparse is
                else
                   J := Arg'First + 1;
                   while J <= Arg'Last loop
-                     Short_Cur :=
-                       Parser.Data.Table.Short_Index.Find (Arg (J));
+                     Short_Cur := Parser.Data.Table.Short_Index.Find (Arg (J));
 
                      if not Short_Options_Index.Has_Element (Short_Cur) then
-                        return Error
-                          ("Unknown option: -" & Arg (J) & " (from "
-                           & Arg (Option.First .. Option.Last) & ").");
+                        return
+                          Error
+                            ("Unknown option: -"
+                             & Arg (J)
+                             & " (from "
+                             & Arg (Option.First .. Option.Last)
+                             & ").");
                      end if;
 
-                     Opt := Select_Option
-                       (Arg (Option.First .. Option.Last),
-                        Short_Options_Index.Element (Short_Cur));
+                     Opt :=
+                       Select_Option
+                         (Arg (Option.First .. Option.Last),
+                          Short_Options_Index.Element (Short_Cur));
                      if Invoke_Callback (Opt) then
                         return Result;
                      end if;
                      case Opt.Kind is
-                        when Bool_Opt =>
+                        when Bool_Opt                     =>
                            Handle_Bool (Opt.Bool_Option);
                            J := J + 1;
 
@@ -984,11 +989,10 @@ package body Argparse is
                                       (Result, Opt.String_Option, +Str);
                                  end if;
                                  Result.String_Args (Opt.String_Option) :=
-                                   (Present => True,
-                                    Value   => Str);
+                                   (Present => True, Value => Str);
 
                               elsif Handle_String_List
-                                (Opt.String_List_Option, Str)
+                                      (Opt.String_List_Option, Str)
                               then
 
                                  --  If this is a greedy option, it consumes
@@ -1031,9 +1035,7 @@ package body Argparse is
    -----------
 
    procedure Merge
-     (Args       : in out Parsed_Arguments;
-      Other_Args : Parsed_Arguments)
-   is
+     (Args : in out Parsed_Arguments; Other_Args : Parsed_Arguments) is
    begin
       Args.Command := Other_Args.Command;
 
@@ -1114,8 +1116,7 @@ package body Argparse is
       begin
          for Name of Split_Option_Text (+Opt.Long_Name) loop
             if Length (Name) < 2 or else Element (Name, 1) /= '-' then
-               raise Program_Error
-                 with "Invalid option long name: " & (+Name);
+               raise Program_Error with "Invalid option long name: " & (+Name);
             end if;
 
             --  TODO??? Also check that the option name matches [-a-zA-Z]+
@@ -1123,11 +1124,11 @@ package body Argparse is
             declare
                use Long_Options_Index;
 
-               Index   : Long_Options_Index.Map
-               renames Parser.Table.Long_Index;
+               Index   : Long_Options_Index.Map renames
+                 Parser.Table.Long_Index;
                Opt_Vec : Option_Reference_Vector;
 
-               Cur     : constant Cursor := Index.Find (Name);
+               Cur : constant Cursor := Index.Find (Name);
             begin
                if Cur = No_Element then
                   Opt_Vec := new Option_Reference_Vectors.Vector;
@@ -1156,7 +1157,7 @@ package body Argparse is
                Key     : constant Character := Element (Name, 2);
                Opt_Vec : Option_Reference_Vector;
 
-               Cur     : constant Cursor := Index.Find (Key);
+               Cur : constant Cursor := Index.Find (Key);
             begin
                if Cur = No_Element then
                   Opt_Vec := new Option_Reference_Vectors.Vector;
@@ -1185,18 +1186,19 @@ package body Argparse is
                declare
                   Opt         : constant Option_Info_Access :=
                     Get_Option (Parser, Ref);
-                  Opt_Cmd_Set : Command_Set renames
-                    Opt.Commands;
+                  Opt_Cmd_Set : Command_Set renames Opt.Commands;
                begin
                   for Cmd in Command_Set'Range loop
                      if Opt_Cmd_Set (Cmd) then
                         if Busy_Commands (Cmd) /= null then
-                           raise Program_Error with
-                             ("The following options conflict on the """
-                              & (+Parser.Command_Infos (Cmd).Name)
-                              & """ command: "
-                              & Option_Name (Busy_Commands (Cmd).all)
-                              & " and " & Option_Name (Opt.all));
+                           raise Program_Error
+                             with
+                               ("The following options conflict on the """
+                                & (+Parser.Command_Infos (Cmd).Name)
+                                & """ command: "
+                                & Option_Name (Busy_Commands (Cmd).all)
+                                & " and "
+                                & Option_Name (Opt.all));
                         end if;
                         Busy_Commands (Cmd) := Opt;
                      end if;
@@ -1242,9 +1244,12 @@ package body Argparse is
             Check_Homonym (Opt_Vec);
 
             if Parser.Table.Short_Index.Contains (C) then
-               raise Program_Error with
-                 ("Long option name " & (+Name)
-                  & " conflicts with short name -" & C);
+               raise Program_Error
+                 with
+                   ("Long option name "
+                    & (+Name)
+                    & " conflicts with short name -"
+                    & C);
             end if;
          end;
       end loop;
@@ -1258,15 +1263,15 @@ package body Argparse is
    function Sorted_Options
      (Parser        : Parser_Access;
       With_Internal : Boolean;
-      For_Command   : Command_Type := No_Command)
-      return Option_Info_Array
+      For_Command   : Command_Type := No_Command) return Option_Info_Array
    is
       function "<" (Left, Right : Option_Info_Access) return Boolean;
 
-      procedure Sort is new Ada.Containers.Generic_Array_Sort
-        (Index_Type   => Natural,
-         Element_Type => Option_Info_Access,
-         Array_Type   => Option_Info_Array);
+      procedure Sort is new
+        Ada.Containers.Generic_Array_Sort
+          (Index_Type   => Natural,
+           Element_Type => Option_Info_Access,
+           Array_Type   => Option_Info_Array);
 
       procedure Append (O : Option_Info_Access);
       --  Append O to Result and increment Last
@@ -1283,10 +1288,8 @@ package body Argparse is
       ---------
 
       function "<" (Left, Right : Option_Info_Access) return Boolean is
-         Left_Str : constant Unbounded_String :=
-           (if Left.Long_Name = ""
-            then Left.Short_Name
-            else Left.Long_Name);
+         Left_Str  : constant Unbounded_String :=
+           (if Left.Long_Name = "" then Left.Short_Name else Left.Long_Name);
          Right_Str : constant Unbounded_String :=
            (if Right.Long_Name = ""
             then Right.Short_Name
@@ -1313,8 +1316,8 @@ package body Argparse is
             --  internal and if not asked for internal options.
 
             if not Parser.Command_Infos (For_Command).Internal
-              and then
-                O.Internal and then not With_Internal
+              and then O.Internal
+              and then not With_Internal
             then
                return;
             end if;
@@ -1353,8 +1356,7 @@ package body Argparse is
      (Text              : String;
       First_Line_Indent : Natural;
       Next_Lines_Indent : Natural;
-      Width             : Natural)
-      return String
+      Width             : Natural) return String
    is
       type Word_Type is record
          First, Last : Natural;
@@ -1402,9 +1404,8 @@ package body Argparse is
 
       procedure Put_Indent is
          Size : constant Natural :=
-           (if First_Line
-            then First_Line_Indent
-            else Next_Lines_Indent) + Relative_Indent;
+           (if First_Line then First_Line_Indent else Next_Lines_Indent)
+           + Relative_Indent;
       begin
          Append (Result, (1 .. Size => ' '));
          Column := Column + Size;
@@ -1426,9 +1427,11 @@ package body Argparse is
                   Start := I;
                   I := I + 1;
                   return (Start, Start);
-               when ' ' =>
+
+               when ' '      =>
                   null;
-               when others =>
+
+               when others   =>
                   exit;
             end case;
             I := I + 1;

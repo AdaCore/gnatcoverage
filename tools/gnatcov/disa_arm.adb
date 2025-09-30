@@ -21,21 +21,21 @@ with Disa_Common;
 
 package body Disa_ARM is
 
-   function To_Insn (Insn_Bin : Binary_Content) return Unsigned_32 is
-     (Disa_Common.ELF_To_U32
-        (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3)));
+   function To_Insn (Insn_Bin : Binary_Content) return Unsigned_32
+   is (Disa_Common.ELF_To_U32
+         (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3)));
 
-   type Cond_Type is mod 2 ** 4;
+   type Cond_Type is mod 2**4;
 
-   function Get_Cond (Insn : Unsigned_32) return Cond_Type is
-     (Cond_Type (Shift_Right (Insn, 28)));
+   function Get_Cond (Insn : Unsigned_32) return Cond_Type
+   is (Cond_Type (Shift_Right (Insn, 28)));
 
-   function Get_Imm24 (Insn                : Unsigned_32;
-                       Ignored_Sign_Extend : Boolean) return Unsigned_32
+   function Get_Imm24
+     (Insn : Unsigned_32; Ignored_Sign_Extend : Boolean) return Unsigned_32
    is (Shift_Right_Arithmetic (Shift_Left (Insn, 8), 8));
 
-   function Get_Target24 (Insn : Unsigned_32;
-                          Pc   : Unsigned_32) return Unsigned_32
+   function Get_Target24
+     (Insn : Unsigned_32; Pc : Unsigned_32) return Unsigned_32
    is (Pc + Shift_Left (Get_Imm24 (Insn, True), 2) + 8);
    --  The PC is always 2 instructions beyond the currently executing
    --  instruction, hence the +8 offset.
@@ -44,8 +44,8 @@ package body Disa_ARM is
    -- Initialize --
    ----------------
 
-   overriding procedure Initialize
-     (Object : in out ARM_Disassembler) is
+   overriding
+   procedure Initialize (Object : in out ARM_Disassembler) is
    begin
       Object.Handle := Dis_Opcodes.Create_Arm_Disassembler;
    end Initialize;
@@ -54,8 +54,8 @@ package body Disa_ARM is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize
-     (Object : in out ARM_Disassembler) is
+   overriding
+   procedure Finalize (Object : in out ARM_Disassembler) is
    begin
       Dis_Opcodes.Delete_Disassembler (Object.Handle);
    end Finalize;
@@ -65,8 +65,7 @@ package body Disa_ARM is
    ---------------------
 
    function Get_Insn_Length
-     (Self     : ARM_Disassembler;
-      Insn_Bin : Binary_Content) return Positive
+     (Self : ARM_Disassembler; Insn_Bin : Binary_Content) return Positive
    is
       pragma Unreferenced (Self);
       pragma Unreferenced (Insn_Bin);
@@ -84,8 +83,7 @@ package body Disa_ARM is
       Pc       : Traces.Pc_Type;
       Buffer   : in out Highlighting.Buffer_Type;
       Insn_Len : out Natural;
-      Sym      : Symbolizer'Class)
-   is
+      Sym      : Symbolizer'Class) is
    begin
       Disa_Common.Opcodes_Disassemble_Insn
         (Self.Handle, Insn_Bin, Pc, Buffer, Insn_Len, Sym, 4);
@@ -111,95 +109,95 @@ package body Disa_ARM is
 
    begin
       Branch_Dest := (No_PC, No_PC);
-      FT_Dest     := (No_PC, No_PC);
+      FT_Dest := (No_PC, No_PC);
 
       Flag_Indir := False;
-      Flag_Cond  := False;
+      Flag_Cond := False;
 
       case Cond is
 
-      --  Unconditional instructions
+         --  Unconditional instructions
 
-      when 2#1111# =>
-         Flag_Cond := False;
-         Branch := Br_None;
+         when 2#1111# =>
+            Flag_Cond := False;
+            Branch := Br_None;
 
-         if (Shift_Right (Insn, 24) and 2#1110#) = 2#1010# then
+            if (Shift_Right (Insn, 24) and 2#1110#) = 2#1010# then
 
-            --  BLX (immediate)
-
-            Branch := Br_Call;
-            Branch_Dest.Target := Pc_Type (Get_Target24 (Insn, PC32));
-         end if;
-
-      --  Conditional instructions
-
-      when others =>
-         Flag_Cond := Cond /= 2#1110#;
-
-         case Shift_Right (Insn, 22) and 2#111111# is
-
-         when 2#1000_10# =>
-
-            --  LDM/LDMIA/LDMFD (A1)
-
-            if (Insn and 2**15) = 0 then
-               Branch := Br_None;
-            else
-               --  This instructions writes in PC, so it's a control-flow
-               --  instruction.
-
-               Branch := Br_Jmp;
-               Flag_Indir := True;
-            end if;
-
-         when 2#1010_00# .. 2#1010_11# =>
-
-            --  B
-
-            Branch := Br_Jmp;
-            Branch_Dest.Target := Pc_Type (Get_Target24 (Insn, PC32));
-
-         when 2#1011_00# .. 2#1011_11# =>
-
-            --  BL
-
-            Branch := Br_Call;
-            Branch_Dest.Target := Pc_Type (Get_Target24 (Insn, PC32));
-
-         when others =>
-            case Shift_Right (Insn, 4) and 16#ffffff# is
-            when 2#00010010_11111111_11110011# =>
-
-               --  BLX (register)
+               --  BLX (immediate)
 
                Branch := Br_Call;
-               Flag_Indir := True;
+               Branch_Dest.Target := Pc_Type (Get_Target24 (Insn, PC32));
+            end if;
 
-            when 2#00010010_11111111_11110001#
-               | 2#00010010_11111111_11110010# =>
+         --  Conditional instructions
 
-               --  BX / BJX
+         when others  =>
+            Flag_Cond := Cond /= 2#1110#;
 
-               Branch := Br_Jmp;
-               Flag_Indir := True;
+            case Shift_Right (Insn, 22) and 2#111111# is
 
-            when others =>
-               if Cond /= 2#1110# then
+               when 2#1000_10#               =>
 
-                  --  Represent conditional instructions that are not branches
-                  --  as branches to the next instruction.
+                  --  LDM/LDMIA/LDMFD (A1)
+
+                  if (Insn and 2**15) = 0 then
+                     Branch := Br_None;
+                  else
+                     --  This instructions writes in PC, so it's a control-flow
+                     --  instruction.
+
+                     Branch := Br_Jmp;
+                     Flag_Indir := True;
+                  end if;
+
+               when 2#1010_00# .. 2#1010_11# =>
+
+                  --  B
 
                   Branch := Br_Jmp;
-                  FT_Dest.Target := Pc + 4;
-                  Branch_Dest.Target := Pc + 4;
+                  Branch_Dest.Target := Pc_Type (Get_Target24 (Insn, PC32));
 
-               else
-                  Branch := Br_None;
-               end if;
+               when 2#1011_00# .. 2#1011_11# =>
+
+                  --  BL
+
+                  Branch := Br_Call;
+                  Branch_Dest.Target := Pc_Type (Get_Target24 (Insn, PC32));
+
+               when others                   =>
+                  case Shift_Right (Insn, 4) and 16#ffffff# is
+                     when 2#00010010_11111111_11110011# =>
+
+                        --  BLX (register)
+
+                        Branch := Br_Call;
+                        Flag_Indir := True;
+
+                     when 2#00010010_11111111_11110001#
+                        | 2#00010010_11111111_11110010# =>
+
+                        --  BX / BJX
+
+                        Branch := Br_Jmp;
+                        Flag_Indir := True;
+
+                     when others                        =>
+                        if Cond /= 2#1110# then
+
+                           --  Represent conditional instructions that are not
+                           --  branches as branches to the next instruction.
+
+                           Branch := Br_Jmp;
+                           FT_Dest.Target := Pc + 4;
+                           Branch_Dest.Target := Pc + 4;
+
+                        else
+                           Branch := Br_None;
+                        end if;
+                  end case;
+
             end case;
-
-         end case;
       end case;
 
       FT_Dest.Target := Pc + Pc_Type (Get_Insn_Length (Self, Insn_Bin));
@@ -210,9 +208,8 @@ package body Disa_ARM is
    ----------------
 
    function Is_Padding
-     (Self     : ARM_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean
+     (Self : ARM_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean
    is
       pragma Unreferenced (Self, Insn_Bin, Pc);
    begin

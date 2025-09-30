@@ -32,8 +32,7 @@ package Annotations.Html is
    --  HTML documents.
 
    function Title_Prefix
-     (Report_Title : Command_Line.Parser.String_Option)
-      return Unbounded_String
+     (Report_Title : Command_Line.Parser.String_Option) return Unbounded_String
    is ((if Report_Title.Present and then Length (Report_Title.Value) > 0
         then +(To_Xml_String (+Report_Title.Value & " - "))
         else Null_Unbounded_String));

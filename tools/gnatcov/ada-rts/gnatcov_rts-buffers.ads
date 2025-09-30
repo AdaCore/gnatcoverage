@@ -100,12 +100,12 @@ package GNATcov_RTS.Buffers is
       --  "foo.c".
 
       Bit_Maps_Fingerprint : Fingerprint_Type;
-       --  Hash of buffer bit mappings for this unit, as gnatcov computes it
-       --  (see SC_Obligations). Used as a fast way to check that gnatcov will
-       --  be able to interpret buffer bits from a source traces using buffer
-       --  bit mappings from SID files.
+      --  Hash of buffer bit mappings for this unit, as gnatcov computes it
+      --  (see SC_Obligations). Used as a fast way to check that gnatcov will
+      --  be able to interpret buffer bits from a source traces using buffer
+      --  bit mappings from SID files.
 
-      Annotations_Fingerprint   : Fingerprint_Type;
+      Annotations_Fingerprint : Fingerprint_Type;
       --  Hash of annotations for this unit, as gnatcov computes it (see
       --  SC_Obligations). Used as a fast way to check that source traces and
       --  coverage data are consistent.

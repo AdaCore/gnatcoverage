@@ -18,7 +18,7 @@
 
 with Ada.IO_Exceptions;
 
-with GNAT.Regpat;       use GNAT.Regpat;
+with GNAT.Regpat; use GNAT.Regpat;
 
 with Outputs;
 
@@ -35,8 +35,7 @@ package body Trace32.Branchflow is
    ---------------------
 
    function Open
-     (This : in out Branchflow_Trace;
-      Path : String) return Status_Kind
+     (This : in out Branchflow_Trace; Path : String) return Status_Kind
    is
       function Check_Header return Boolean;
       --  Return True if the trace header is correct
@@ -52,15 +51,14 @@ package body Trace32.Branchflow is
          Line4 : constant String := Get_Line (This.File);
       begin
          return
-           (Line1 = "######################################################" &
-              "#################"
-            and then
-            Line2 = "# Branch Flow trace file"
-            and then
-            Line3 = "# target; caller; trace record"
-            and then
-            Line4 = "######################################################" &
-              "#################");
+           (Line1
+            = "######################################################"
+              & "#################"
+            and then Line2 = "# Branch Flow trace file"
+            and then Line3 = "# target; caller; trace record"
+            and then Line4
+                     = "######################################################"
+                       & "#################");
       end Check_Header;
    begin
       This.Open := False;
@@ -77,7 +75,8 @@ package body Trace32.Branchflow is
       This.Line_Number := 4;
       return Status_Ok;
    exception
-      when others => return File_Error;
+      when others =>
+         return File_Error;
    end Open;
 
    -------------
@@ -93,8 +92,7 @@ package body Trace32.Branchflow is
    -- Close_Trace_File --
    ----------------------
 
-   procedure Close_Trace_File (This : in out Branchflow_Trace)
-   is
+   procedure Close_Trace_File (This : in out Branchflow_Trace) is
    begin
       Close (This.File);
       This.Open := False;
@@ -105,9 +103,8 @@ package body Trace32.Branchflow is
    ----------------
 
    function Next_Entry
-     (This : in out Branchflow_Trace;
-      Ent  : out Branchflow_Trace_Entry) return Status_Kind
-   is
+     (This : in out Branchflow_Trace; Ent : out Branchflow_Trace_Entry)
+      return Status_Kind is
    begin
       declare
          Line : constant String := Get_Line (This.File);
@@ -124,8 +121,10 @@ package body Trace32.Branchflow is
          Match (Matcher, Line, Matches);
 
          if (for some M of Matches => M = No_Match) then
-            Outputs.Warn ("Bad line format in branchflow file (line " &
-                            This.Line_Number'Img & ")");
+            Outputs.Warn
+              ("Bad line format in branchflow file (line "
+               & This.Line_Number'Img
+               & ")");
             return No_More_Entry;
          end if;
 

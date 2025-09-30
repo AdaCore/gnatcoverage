@@ -28,37 +28,37 @@ pragma Warnings (On, "* is an internal GNAT unit");
 with Ada.Streams.Stream_IO;
 
 with Langkit_Support;
-with Langkit_Support.Slocs;    use Langkit_Support.Slocs;
-with Langkit_Support.Symbols;  use Langkit_Support.Symbols;
+with Langkit_Support.Slocs;                     use Langkit_Support.Slocs;
+with Langkit_Support.Symbols;                   use Langkit_Support.Symbols;
 with Langkit_Support.Generic_API.Introspection;
 use Langkit_Support.Generic_API.Introspection;
-with Libadalang.Common;        use Libadalang.Common;
+with Libadalang.Common;                         use Libadalang.Common;
 with Libadalang.Expr_Eval;
 with Libadalang.Generic_API;
 with Libadalang.Generic_API.Introspection;
 use Libadalang.Generic_API.Introspection;
-with Libadalang.Sources;       use Libadalang.Sources;
+with Libadalang.Sources;                        use Libadalang.Sources;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 with GNATCOLL.Utils;
 
-with Coverage_Options; use Coverage_Options;
-with Coverage;         use Coverage;
-with Diagnostics;      use Diagnostics;
+with Coverage_Options;                    use Coverage_Options;
+with Coverage;                            use Coverage;
+with Diagnostics;                         use Diagnostics;
 with Instrument.Ada_Preprocessing;
 with Instrument.Ada_Unit.Rewriting_Utils;
 use Instrument.Ada_Unit.Rewriting_Utils;
-with JSON;             use JSON;
-with Namet;            use Namet;
-with Outputs;          use Outputs;
-with Paths;            use Paths;
+with JSON;                                use JSON;
+with Namet;                               use Namet;
+with Outputs;                             use Outputs;
+with Paths;                               use Paths;
 with Project;
 with SCOs;
 with Slocs;
-with Snames;           use Snames;
-with SS_Annotations;   use SS_Annotations;
+with Snames;                              use Snames;
+with SS_Annotations;                      use SS_Annotations;
 with Table;
-with Text_Files;       use Text_Files;
+with Text_Files;                          use Text_Files;
 
 package body Instrument.Ada_Unit is
 
@@ -73,13 +73,13 @@ package body Instrument.Ada_Unit is
       Is_Pure     : Boolean);
    --  Helper to display details about a buffer unit to be emitted
 
-   subtype Decl_Expr_Supported_Versions is Any_Language_Version range
-      Ada_2022 .. Any_Language_Version'Last;
+   subtype Decl_Expr_Supported_Versions is
+     Any_Language_Version range Ada_2022 .. Any_Language_Version'Last;
    --  Set of versions of the Ada language that support declare
    --  expressions.
 
-   subtype If_Expr_Supported_Versions is Any_Language_Version range
-      Ada_2012 .. Any_Language_Version'Last;
+   subtype If_Expr_Supported_Versions is
+     Any_Language_Version range Ada_2012 .. Any_Language_Version'Last;
    --  Set of versions of the Ada language that support if expressions.
 
    function Create_Context_Instrument
@@ -98,8 +98,8 @@ package body Instrument.Ada_Unit is
 
    function "+" (Part : Analysis_Unit_Kind) return GPR2.Valid_Unit_Kind
    is (case Part is
-       when LALCO.Unit_Body          => GPR2.S_Body,
-       when LALCO.Unit_Specification => GPR2.S_Spec);
+         when LALCO.Unit_Body          => GPR2.S_Body,
+         when LALCO.Unit_Specification => GPR2.S_Spec);
 
    function Referenced_Attribute (N : Ada_Node'Class) return Text_Type
    is (if N.Kind = Ada_Attribute_Ref
@@ -115,9 +115,14 @@ package body Instrument.Ada_Unit is
    function Create_Context_Instrument
      (N : Libadalang.Analysis.Ada_Node'Class) return Context_Handle is
    begin
-      return Create_Context
-        ("Instrumenting " & N.Kind_Name
-         & " at " & N.Unit.Get_Filename & ":" & Image (N.Sloc_Range));
+      return
+        Create_Context
+          ("Instrumenting "
+           & N.Kind_Name
+           & " at "
+           & N.Unit.Get_Filename
+           & ":"
+           & Image (N.Sloc_Range));
    end Create_Context_Instrument;
 
    function To_Qualified_Name
@@ -131,8 +136,8 @@ package body Instrument.Ada_Unit is
    --  Convert a Libadalang fully qualified name into our format
 
    function Find_Ada_Units
-     (Instrumenter : in out Ada_Instrumenter_Type;
-      Filename     : String) return String_Vectors.Vector;
+     (Instrumenter : in out Ada_Instrumenter_Type; Filename : String)
+      return String_Vectors.Vector;
    --  Consider that Filename is a source file to instrument (i.e. a unit of
    --  interest) and return the list of all compilation units that must be
    --  instrumented with it (i.e. related subunits, if present).
@@ -189,16 +194,15 @@ package body Instrument.Ada_Unit is
    -----------------------
 
    function To_Qualified_Name
-     (Name : Libadalang.Analysis.Name) return Ada_Qualified_Name
-   is
+     (Name : Libadalang.Analysis.Name) return Ada_Qualified_Name is
    begin
       return Result : Ada_Qualified_Name do
          case Ada_Name (Name.Kind) is
-            when Ada_Dotted_Name =>
+            when Ada_Dotted_Name     =>
                declare
                   DN     : constant Dotted_Name := Name.As_Dotted_Name;
-                  Suffix : constant Ada_Qualified_Name := To_Qualified_Name
-                     (DN.F_Suffix.As_Name);
+                  Suffix : constant Ada_Qualified_Name :=
+                    To_Qualified_Name (DN.F_Suffix.As_Name);
                begin
                   Result := To_Qualified_Name (DN.F_Prefix);
                   Result.Append (Suffix);
@@ -213,14 +217,14 @@ package body Instrument.Ada_Unit is
                   --  Langkit_Support.Text.Image.
 
                   Identifier : constant Ada_Identifier :=
-                     To_Unbounded_String (Image (Name.Text));
+                    To_Unbounded_String (Image (Name.Text));
                begin
                   Result.Append (Identifier);
                end;
 
-            when others =>
+            when others              =>
                raise Constraint_Error
-                  with "no qualified name for " & Name.Kind'Image & " nodes";
+                 with "no qualified name for " & Name.Kind'Image & " nodes";
          end case;
       end return;
    end To_Qualified_Name;
@@ -242,9 +246,9 @@ package body Instrument.Ada_Unit is
 
    type All_Symbols is
      (
-      --  Aspects
+     --  Aspects
 
-      Dynamic_Predicate,
+     Dynamic_Predicate,
       Invariant,
       Ghost_Predicate,
       Post,
@@ -287,8 +291,8 @@ package body Instrument.Ada_Unit is
    Symbols : constant Symbol_Table := Create_Symbol_Table;
    --  Holder for name singletons
 
-   function Precompute_Symbol (S : All_Symbols) return Symbol_Type is
-     (Find (Symbols, Canonicalize (To_Wide_Wide_String (S'Image)).Symbol));
+   function Precompute_Symbol (S : All_Symbols) return Symbol_Type
+   is (Find (Symbols, Canonicalize (To_Wide_Wide_String (S'Image)).Symbol));
 
    Precomputed_Symbols : constant array (All_Symbols) of Symbol_Type :=
      (Dynamic_Predicate       => Precompute_Symbol (Dynamic_Predicate),
@@ -319,15 +323,15 @@ package body Instrument.Ada_Unit is
       Dump_Buffers            => Precompute_Symbol (Dump_Buffers),
       Reset_Buffers           => Precompute_Symbol (Reset_Buffers));
 
-   function As_Symbol (S : All_Symbols) return Symbol_Type is
-     (Precomputed_Symbols (S));
+   function As_Symbol (S : All_Symbols) return Symbol_Type
+   is (Precomputed_Symbols (S));
 
    function As_Symbol (Id : Identifier) return Symbol_Type;
    function As_Name (Id : Identifier) return Name_Id;
    --  Canonicalize Node and return a corresponding Name_Id/Symbol_Type
 
-   function As_Symbol (Id : Text_Type) return Symbol_Type is
-     (Find (Symbols, Id));
+   function As_Symbol (Id : Text_Type) return Symbol_Type
+   is (Find (Symbols, Id));
    --  Return a symbol for the given identifier Id. Note that Id is supposed
    --  to be already canonicalized.
 
@@ -412,22 +416,19 @@ package body Instrument.Ada_Unit is
    --  in the form of a quoted string literal), return a name
    --  suitable for construction of a regular identifier.
 
-   function Sloc (N : Ada_Node'Class) return Source_Location is
-     (Start_Sloc (N.Sloc_Range));
+   function Sloc (N : Ada_Node'Class) return Source_Location
+   is (Start_Sloc (N.Sloc_Range));
 
    function "+" (Sloc : Source_Location) return Slocs.Local_Source_Location
    is ((Natural (Sloc.Line), Natural (Sloc.Column)));
 
    function Expr_Needs_Parens (Kind : Ada_Node_Kind_Type) return Boolean
-   is (Kind in Ada_Quantified_Expr
-              | Ada_If_Expr
-              | Ada_Case_Expr
-              | Ada_Decl_Expr);
+   is (Kind
+       in Ada_Quantified_Expr | Ada_If_Expr | Ada_Case_Expr | Ada_Decl_Expr);
    --  Whether nodes of type Kind must be wrapped with parens
 
    function Expression_Type
-     (UIC : Ada_Unit_Inst_Context;
-      E   : Expr) return Base_Type_Decl;
+     (UIC : Ada_Unit_Inst_Context; E : Expr) return Base_Type_Decl;
    --  Wrapper around E.P_Expression_Type, logging a warning and returning
    --  Standard.Boolean if unable to determine the type.
 
@@ -441,21 +442,19 @@ package body Instrument.Ada_Unit is
    --  to evaluate the expression.
 
    function Is_Ghost
-     (UIC : Ada_Unit_Inst_Context;
-      D   : Basic_Decl) return Boolean;
+     (UIC : Ada_Unit_Inst_Context; D : Basic_Decl) return Boolean;
    --  Return whether the given expression function is ghost (EF or its
    --  canonical declaration has a Ghost aspect).
 
    function Is_Generic
-     (UIC  : Ada_Unit_Inst_Context;
-      Decl : Basic_Decl'Class) return Boolean;
+     (UIC : Ada_Unit_Inst_Context; Decl : Basic_Decl'Class) return Boolean;
    --  Return whether the given declaration is generic (its canonical part is
    --  generic).
 
    function To_Nodes
-     (Handle : Rewriting_Handle;
-      Name   : Ada_Qualified_Name) return Node_Rewriting_Handle
-     with Pre => not Name.Is_Empty;
+     (Handle : Rewriting_Handle; Name : Ada_Qualified_Name)
+      return Node_Rewriting_Handle
+   with Pre => not Name.Is_Empty;
    --  Turn the given qualified name into a name tree for rewriting
 
    function Unwrap (N : Expr) return Expr;
@@ -473,8 +472,8 @@ package body Instrument.Ada_Unit is
    --  sloc of this last character, so we need to subtract 1 from the column
    --  number.
 
-   function Clone (N : Ada_Node'Class) return Node_Rewriting_Handle is
-     (if N.Is_Null then No_Node_Rewriting_Handle else Clone (Handle (N)));
+   function Clone (N : Ada_Node'Class) return Node_Rewriting_Handle
+   is (if N.Is_Null then No_Node_Rewriting_Handle else Clone (Handle (N)));
    --  Simple wrapper around Libadalang's Clone, except that it works on parse
    --  nodes, and accepts null nodes.
 
@@ -486,24 +485,26 @@ package body Instrument.Ada_Unit is
      (1 .. 0 => No_Node_Rewriting_Handle);
 
    function Make
-     (UIC : Ada_Unit_Inst_Context'Class;
-      K   : Ada_Node_Kind_Type) return Node_Rewriting_Handle
+     (UIC : Ada_Unit_Inst_Context'Class; K : Ada_Node_Kind_Type)
+      return Node_Rewriting_Handle
    is (Create_Node (UIC.Rewriting_Context, K));
    --  Shortcut to create a node of the given kind
 
    function Make_Defining_Name
-     (UIC    : Ada_Unit_Inst_Context'Class;
-      D_Name : Wide_Wide_String) return Node_Rewriting_Handle
-   is (Create_Defining_Name (UIC.Rewriting_Context,
-                             Make_Identifier (UIC.Rewriting_Context, D_Name)));
+     (UIC : Ada_Unit_Inst_Context'Class; D_Name : Wide_Wide_String)
+      return Node_Rewriting_Handle
+   is (Create_Defining_Name
+         (UIC.Rewriting_Context,
+          Make_Identifier (UIC.Rewriting_Context, D_Name)));
    --  Shortcut to create a defining identifier tree
 
    function Make_Std_Ref
-     (UIC    : Ada_Unit_Inst_Context'Class;
-      Entity : Text_Type) return Node_Rewriting_Handle
+     (UIC : Ada_Unit_Inst_Context'Class; Entity : Text_Type)
+      return Node_Rewriting_Handle
    is (Create_From_Template
          (UIC.Rewriting_Context,
-          "GNATcov_RTS.Std." & Entity, (1 .. 0 => <>),
+          "GNATcov_RTS.Std." & Entity,
+          (1 .. 0 => <>),
           Rule => Expr_Rule));
    --  Language-defined entities such as "Standard" or "Boolean" may be hidden
    --  by entities defined in the code to instrument. To avoid compilation
@@ -544,12 +545,13 @@ package body Instrument.Ada_Unit is
    is
       LAL_Loc : constant Source_Location := Sloc (Node);
    begin
-      Diagnostics.Report ((Source_File => UIC.SFI,
-                           L           => (Line   => Integer (LAL_Loc.Line),
-                                           Column =>
-                                             Integer (LAL_Loc.Column))),
-                          Msg,
-                          Kind);
+      Diagnostics.Report
+        ((Source_File => UIC.SFI,
+          L           =>
+            (Line   => Integer (LAL_Loc.Line),
+             Column => Integer (LAL_Loc.Column))),
+         Msg,
+         Kind);
    end Report;
 
    procedure Report
@@ -564,12 +566,13 @@ package body Instrument.Ada_Unit is
            Indexed_Simple_Name => True);
       LAL_Loc : constant Source_Location := Sloc (Node);
    begin
-      Diagnostics.Report ((Source_File => SFI,
-                           L           => (Line   => Integer (LAL_Loc.Line),
-                                           Column =>
-                                             Integer (LAL_Loc.Column))),
-                          Msg,
-                          Kind);
+      Diagnostics.Report
+        ((Source_File => SFI,
+          L           =>
+            (Line   => Integer (LAL_Loc.Line),
+             Column => Integer (LAL_Loc.Column))),
+         Msg,
+         Kind);
    end Report;
 
    -------------------------------------
@@ -636,18 +639,17 @@ package body Instrument.Ada_Unit is
    --  a declaration in a declare expression.
 
    procedure Fill_Expression_Insertion_Info
-     (UIC         : in out Ada_Unit_Inst_Context;
-      Bit         : Any_Bit_Id);
+     (UIC : in out Ada_Unit_Inst_Context; Bit : Any_Bit_Id);
    --  Fill UIC.Current_Insertion_Info with new witness formal and actual
 
-   procedure Ensure_With (UIC : in out Ada_Unit_Inst_Context'Class;
-                          Unit : Text_Type);
+   procedure Ensure_With
+     (UIC : in out Ada_Unit_Inst_Context'Class; Unit : Text_Type);
    --  Ensure that the unit being instrumented has a dependency on the named
    --  Unit, which must be specified in the normalized form expected for
    --  FQN_Sets (lower case, period separated, fully qualified).
 
-   function Make_MCDC_State_Name (LL_SCO_Id : Nat) return String is
-     ("MCDC_State_" & Img (Integer (LL_SCO_Id)));
+   function Make_MCDC_State_Name (LL_SCO_Id : Nat) return String
+   is ("MCDC_State_" & Img (Integer (LL_SCO_Id)));
    --  Return the name of the MC/DC state local variable for the given
    --  decision SCO.
 
@@ -658,7 +660,8 @@ package body Instrument.Ada_Unit is
       Local_Decls : Node_Rewriting_Handle;
    end record;
 
-   overriding function Insert_MCDC_State
+   overriding
+   function Insert_MCDC_State
      (Inserter : in out Default_MCDC_State_Inserter;
       UIC      : in out Ada_Unit_Inst_Context'Class;
       Name     : String) return String;
@@ -1029,39 +1032,39 @@ package body Instrument.Ada_Unit is
    --  associated to the null procedure.
 
    function Clone_Params
-     (UIC    : Ada_Unit_Inst_Context;
-      N_Spec : Subp_Spec) return Node_Rewriting_Handle;
+     (UIC : Ada_Unit_Inst_Context; N_Spec : Subp_Spec)
+      return Node_Rewriting_Handle;
    --  Create a list of formal parameters as a copy of N_Spec's. If N_Spec has
    --  no formals, return an empty list.
 
-   type Expr_Func_MCDC_State_Inserter is new Root_MCDC_State_Inserter with
-      record
-         N_Spec : Subp_Spec;
-         --  Subprogram spec for the original expression function
+   type Expr_Func_MCDC_State_Inserter is new Root_MCDC_State_Inserter
+   with record
+      N_Spec : Subp_Spec;
+      --  Subprogram spec for the original expression function
 
-         Call_Params : Node_Rewriting_Handle;
-         --  Assoc_List node for the call to the augmented expression function
+      Call_Params : Node_Rewriting_Handle;
+      --  Assoc_List node for the call to the augmented expression function
 
-         Formal_Params : Node_Rewriting_Handle;
-         --  Formal parameter list where new parameters are added to hold MC/DC
-         --  temporary buffers.
-      end record;
+      Formal_Params : Node_Rewriting_Handle;
+      --  Formal parameter list where new parameters are added to hold MC/DC
+      --  temporary buffers.
+   end record;
 
-   overriding function Insert_MCDC_State
+   overriding
+   function Insert_MCDC_State
      (Inserter : in out Expr_Func_MCDC_State_Inserter;
       UIC      : in out Ada_Unit_Inst_Context'Class;
       Name     : String) return String;
 
    function Create_Function_Witness_Var
-     (UIC         : Ada_Unit_Inst_Context;
-      Fun_Witness : Node_Rewriting_Handle)
+     (UIC : Ada_Unit_Inst_Context; Fun_Witness : Node_Rewriting_Handle)
       return Node_Rewriting_Handle
    is (Create_From_Template
-       (UIC.Rewriting_Context,
-          Template => "Dummy_Witness_Var : constant Boolean := {};",
+         (UIC.Rewriting_Context,
+          Template  => "Dummy_Witness_Var : constant Boolean := {};",
           Arguments => (1 => Fun_Witness),
-          Rule => Basic_Decls_Rule))
-     with Pre => Fun_Witness /= No_Node_Rewriting_Handle;
+          Rule      => Basic_Decls_Rule))
+   with Pre => Fun_Witness /= No_Node_Rewriting_Handle;
    --  Create a dummy variable and set it to the properly set function witness
    --  call. The function witness must be a function call.
 
@@ -1070,19 +1073,19 @@ package body Instrument.Ada_Unit is
       Spec           : Subp_Spec;
       Witness_Flavor : Statement_Witness_Flavor;
       Fun_Witness    : out Node_Rewriting_Handle)
-     with Pre => Enabled (Fun_Call);
+   with Pre => Enabled (Fun_Call);
    --  Add a function coverage SCO to Spec and set Fun_Witness to a valid
    --  witness call of flavor Flavor.
 
    procedure Create_Augmented_Function
-     (UIC                          : Ada_Unit_Inst_Context;
-      Common_Nodes                 : Degenerate_Subp_Common_Nodes;
-      Formal_Params                : Node_Rewriting_Handle;
-      Call_Params                  : Node_Rewriting_Handle;
-      Augmented_Function           : out Node_Rewriting_Handle;
-      Augmented_Function_Decl      : out Node_Rewriting_Handle;
-      New_Function                 : out Node_Rewriting_Handle;
-      Needs_Aspects                : Boolean := False);
+     (UIC                     : Ada_Unit_Inst_Context;
+      Common_Nodes            : Degenerate_Subp_Common_Nodes;
+      Formal_Params           : Node_Rewriting_Handle;
+      Call_Params             : Node_Rewriting_Handle;
+      Augmented_Function      : out Node_Rewriting_Handle;
+      Augmented_Function_Decl : out Node_Rewriting_Handle;
+      New_Function            : out Node_Rewriting_Handle;
+      Needs_Aspects           : Boolean := False);
    --  Create the augmented function from the original one (Augmented_Function)
    --  and create the new function (New_Function) that will serve as a
    --  replacement to the original one. Also create a declaration for the
@@ -1134,16 +1137,15 @@ package body Instrument.Ada_Unit is
    --  a nested package.
 
    function Is_Self_Referencing
-     (UIC : Ada_Unit_Inst_Context;
-      EF  : Expr_Function) return Boolean;
+     (UIC : Ada_Unit_Inst_Context; EF : Expr_Function) return Boolean;
    --  Return if EF is a self-referencing expression function, i.e. if its
    --  expression has a reference to itself (for instance: it's a recursive
    --  function).
 
    function Return_Type_Is_Controlling
-     (UIC          : Ada_Unit_Inst_Context;
-      Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean with
-     Pre => not Is_Null (Common_Nodes.N_Spec.F_Subp_Returns);
+     (UIC : Ada_Unit_Inst_Context; Common_Nodes : Degenerate_Subp_Common_Nodes)
+      return Boolean
+   with Pre => not Is_Null (Common_Nodes.N_Spec.F_Subp_Returns);
    --  Return True if the expression function from which the common nodes were
    --  generated is a primitive of a tagged type, and if that tagged type is
    --  the return type of the expression function.
@@ -1165,9 +1167,8 @@ package body Instrument.Ada_Unit is
    --  messages.
 
    function Has_Unit
-     (Context : Analysis_Context;
-      Unit    : String;
-      Part    : Analysis_Unit_Kind) return Boolean;
+     (Context : Analysis_Context; Unit : String; Part : Analysis_Unit_Kind)
+      return Boolean;
    --  Return whether the given unit exists
 
    Pragma_Restricts_Finalization_Matchers : constant Pragma_Matcher_Array :=
@@ -1236,8 +1237,8 @@ package body Instrument.Ada_Unit is
      (Unit : LAL.Compilation_Unit) return Boolean;
    --  Return whether the No_Elaboration_Code_All aspect/pragma applies to Unit
 
-   function Prag_Arg_Expr (Args : Base_Assoc_List; I : Positive) return Expr is
-     (Args.Child (I).As_Pragma_Argument_Assoc.F_Expr);
+   function Prag_Arg_Expr (Args : Base_Assoc_List; I : Positive) return Expr
+   is (Args.Child (I).As_Pragma_Argument_Assoc.F_Expr);
    --  Return the expression for the Index'th argument of a pragma's
    --  arguments.
 
@@ -1250,7 +1251,8 @@ package body Instrument.Ada_Unit is
      (UIC       : in out Ada_Unit_Inst_Context;
       N         : Ada_Node;
       Prag_Args : Base_Assoc_List)
-     with Pre =>
+   with
+     Pre =>
        N.Kind = Ada_Pragma_Node
        and then Pragma_Name (N.As_Pragma_Node) = Name_Annotate;
    --  Handle an Annotate pragma.
@@ -1329,9 +1331,11 @@ package body Instrument.Ada_Unit is
 
    type Missing_Src_Reporter_Access is access all Missing_Src_Reporter;
 
-   overriding procedure Release (Self : in out Missing_Src_Reporter) is null;
+   overriding
+   procedure Release (Self : in out Missing_Src_Reporter) is null;
 
-   overriding procedure Unit_Requested_Callback
+   overriding
+   procedure Unit_Requested_Callback
      (Self               : in out Missing_Src_Reporter;
       Context            : Libadalang.Analysis.Analysis_Context'Class;
       Name               : Langkit_Support.Text.Text_Type;
@@ -1342,7 +1346,7 @@ package body Instrument.Ada_Unit is
    --  Make sure we warn only once about a given source file.
 
    function Create_Missing_File_Reporter
-     return Libadalang.Analysis.Event_Handler_Reference;
+      return Libadalang.Analysis.Event_Handler_Reference;
    --  Create an event handler to warn about source files that Libadalang needs
    --  to perform semantic analysis (so mandated by Ada), but which are not
    --  available.
@@ -1369,16 +1373,16 @@ package body Instrument.Ada_Unit is
    -------------------------
 
    type Ada_Source_Rewriter is limited new Ada.Finalization.Limited_Controlled
-     with
-      record
-         Input_Filename  : Unbounded_String;
-         Output_Filename : Unbounded_String;
+   with record
+      Input_Filename  : Unbounded_String;
+      Output_Filename : Unbounded_String;
 
-         Unit   : Libadalang.Analysis.Analysis_Unit;
-         Handle : Libadalang.Rewriting.Rewriting_Handle;
-      end record;
+      Unit   : Libadalang.Analysis.Analysis_Unit;
+      Handle : Libadalang.Rewriting.Rewriting_Handle;
+   end record;
 
-   overriding procedure Finalize (Self : in out Ada_Source_Rewriter);
+   overriding
+   procedure Finalize (Self : in out Ada_Source_Rewriter);
 
    procedure Start_Rewriting
      (Self           : out Ada_Source_Rewriter'Class;
@@ -1461,8 +1465,8 @@ package body Instrument.Ada_Unit is
    Cannot_Instrument_Main_Error : exception;
    --  See Probe_Main
 
-   type Main_Instrumentation_Description (Synthetic : Boolean := False)
-   is record
+   type Main_Instrumentation_Description (Synthetic : Boolean := False) is
+   record
       Main : Compilation_Unit_Part;
       --  Name of the compilation unit corresponding to the main body
 
@@ -1565,8 +1569,8 @@ package body Instrument.Ada_Unit is
    --  write it is assigned to Generic_Wrapper_Body_Filename.
 
    function Simple_Dump_Proc_Call
-     (RH          : Rewriting_Handle;
-      Helper_Unit : Ada_Qualified_Name) return Node_Rewriting_Handle;
+     (RH : Rewriting_Handle; Helper_Unit : Ada_Qualified_Name)
+      return Node_Rewriting_Handle;
    --  Assuming that RH is the rewriting handle for the main to instrument in
    --  main-end mode and that Helper_Unit is the unit that contains the dump
    --  procedure, return a call statement node for this dump procedure.
@@ -1640,8 +1644,7 @@ package body Instrument.Ada_Unit is
    --  * Has_No_Elaboration_Code_All
 
    function Create_Manual_Helper_Unit_Name
-      (Prj : Prj_Desc)
-   return Ada_Qualified_Name;
+     (Prj : Prj_Desc) return Ada_Qualified_Name;
    --  Return the name for the dump helper unit for manual dump trigger
 
    procedure Emit_Dump_Helper_Unit
@@ -1684,9 +1687,8 @@ package body Instrument.Ada_Unit is
          if To_Type /= To_Type.P_Bool_Type.As_Base_Type_Decl then
             Ensure_With
               (IC,
-               To_Type
-               .P_Top_Level_Decl (To_Type.Unit)
-               .P_Canonical_Fully_Qualified_Name);
+               To_Type.P_Top_Level_Decl (To_Type.Unit)
+                 .P_Canonical_Fully_Qualified_Name);
             To_Type_Indentifier :=
               Make_Identifier
                 (IC.Rewriting_Context,
@@ -1699,10 +1701,11 @@ package body Instrument.Ada_Unit is
             To_Type_Indentifier := Make_Std_Ref (IC, "Boolean");
          end if;
 
-         return Create_Call_Expr
-           (IC.Rewriting_Context,
-            F_Name   => To_Type_Indentifier,
-            F_Suffix => RH_N);
+         return
+           Create_Call_Expr
+             (IC.Rewriting_Context,
+              F_Name   => To_Type_Indentifier,
+              F_Suffix => RH_N);
       end if;
    end Convert_To;
 
@@ -1728,12 +1731,13 @@ package body Instrument.Ada_Unit is
 
       Call_Img : constant String :=
         "{}.Witness ({}"
-        & "," & Img (Bits.Outcome_Bits (False))
-        & "," & Img (Bits.Outcome_Bits (True))
+        & ","
+        & Img (Bits.Outcome_Bits (False))
+        & ","
+        & Img (Bits.Outcome_Bits (True))
         & (if Is_MCDC
-           then ", {}"
-           & ", " & Img (Bits.Path_Bits_Base)
-           & ", " & (+MCDC_State)
+           then
+             ", {}" & ", " & Img (Bits.Path_Bits_Base) & ", " & (+MCDC_State)
            else "")
         & ")";
 
@@ -1741,11 +1745,11 @@ package body Instrument.Ada_Unit is
         Create_From_Template
           (IC.Rewriting_Context,
            Template  => To_Wide_Wide_String (Call_Img),
-           Arguments => (1 => E.Common_Buffers,
-                         2 => E.Decision_Buffer)
-           & (if Is_MCDC
-             then (1 => E.MCDC_Buffer)
-             else (1 .. 0 => No_Node_Rewriting_Handle)),
+           Arguments =>
+             (1 => E.Common_Buffers, 2 => E.Decision_Buffer)
+             & (if Is_MCDC
+                then (1 => E.MCDC_Buffer)
+                else (1 .. 0 => No_Node_Rewriting_Handle)),
            Rule      => Expr_Rule);
 
       D_Node : constant Expr := Node (Decision).As_Expr;
@@ -1783,8 +1787,13 @@ package body Instrument.Ada_Unit is
    is
       E        : Instrumentation_Entities renames IC.Entities;
       Call_Img : constant String :=
-        "{}.Witness (" & (+MCDC_State) & ","
-        & Img (Offset) & "," & First'Img & ")";
+        "{}.Witness ("
+        & (+MCDC_State)
+        & ","
+        & Img (Offset)
+        & ","
+        & First'Img
+        & ")";
 
       RH_Call : constant Node_Rewriting_Handle :=
         Create_From_Template
@@ -1831,42 +1840,54 @@ package body Instrument.Ada_Unit is
       In_Generic   : Boolean;
       In_Decl_Expr : Boolean) return Node_Rewriting_Handle
    is
-      Bit_Img : constant String  := Img (Bit);
+      Bit_Img : constant String := Img (Bit);
       E       : Instrumentation_Entities renames UIC.Entities;
 
-      function Call_Img return String is
-        ("{}.Witness ({}, " & Bit_Img & ")"
-         & (if Flavor = Function_Call then "" else ";"));
+      function Call_Img return String
+      is ("{}.Witness ({}, "
+          & Bit_Img
+          & ")"
+          & (if Flavor = Function_Call then "" else ";"));
 
       --  Note: package spec and package body are instrumented separately,
       --  so we need to make sure that variables declared in a body can't
       --  clash with those from the corresponding spec, hence the inclusion
       --  of the unit part in the variable name.
 
-      function Decl_Img return String is
-        ("Discard_" & UIC.Instrumented_Unit.Part'Img & Bit_Img
-         & " :" & (if In_Decl_Expr then " constant" else "") & " {}."
-         & (if In_Generic and then Switches.SPARK_Compat
-            then "Non_Volatile_"
-            else "")
-         & "Witness_Dummy_Type := " & Call_Img);
+      function Decl_Img return String
+      is ("Discard_"
+          & UIC.Instrumented_Unit.Part'Img
+          & Bit_Img
+          & " :"
+          & (if In_Decl_Expr then " constant" else "")
+          & " {}."
+          & (if In_Generic and then Switches.SPARK_Compat
+             then "Non_Volatile_"
+             else "")
+          & "Witness_Dummy_Type := "
+          & Call_Img);
 
-   --  Start of processing for Make_Statement_Witness
+      --  Start of processing for Make_Statement_Witness
 
    begin
       if Flavor = Declaration then
-         return Create_From_Template
-           (UIC.Rewriting_Context,
-            Template  => To_Wide_Wide_String (Decl_Img),
-            Arguments => (1 | 2 => E.Common_Buffers, 3 => E.Statement_Buffer),
-            Rule      => Object_Decl_Rule);
+         return
+           Create_From_Template
+             (UIC.Rewriting_Context,
+              Template  => To_Wide_Wide_String (Decl_Img),
+              Arguments =>
+                (1 | 2 => E.Common_Buffers, 3 => E.Statement_Buffer),
+              Rule      => Object_Decl_Rule);
       else
-         return Create_From_Template
-           (UIC.Rewriting_Context,
-            Template  => To_Wide_Wide_String (Call_Img),
-            Arguments => (E.Common_Buffers, E.Statement_Buffer),
-            Rule      =>
-              (if Flavor = Procedure_Call then Call_Stmt_Rule else Name_Rule));
+         return
+           Create_From_Template
+             (UIC.Rewriting_Context,
+              Template  => To_Wide_Wide_String (Call_Img),
+              Arguments => (E.Common_Buffers, E.Statement_Buffer),
+              Rule      =>
+                (if Flavor = Procedure_Call
+                 then Call_Stmt_Rule
+                 else Name_Rule));
       end if;
    end Make_Statement_Witness;
 
@@ -1882,8 +1903,7 @@ package body Instrument.Ada_Unit is
       N : Expr renames SC.Condition;
 
       RH_P : constant Node_Rewriting_Handle :=
-        Create_Node
-          (IC.Rewriting_Context, Libadalang.Common.Ada_Identifier);
+        Create_Node (IC.Rewriting_Context, Libadalang.Common.Ada_Identifier);
       RH_N : Node_Rewriting_Handle;
 
    begin
@@ -1897,8 +1917,7 @@ package body Instrument.Ada_Unit is
       --  need to move them along with their enclosing parentheses, if they
       --  exist. Otherwise, add the needed parenthesis.
 
-      if Expr_Needs_Parens (N.Kind)
-        and then Kind (N.Parent) = Ada_Paren_Expr
+      if Expr_Needs_Parens (N.Kind) and then Kind (N.Parent) = Ada_Paren_Expr
       then
          RH_N := Handle (N.Parent);
       else
@@ -1913,8 +1932,7 @@ package body Instrument.Ada_Unit is
       --  Now attach witness call at the place of the original condition
 
       Replace
-        (RH_P,
-         Make_Condition_Witness (IC, SC.State, RH_N, Offset, SC.First));
+        (RH_P, Make_Condition_Witness (IC, SC.State, RH_N, Offset, SC.First));
    end Insert_Condition_Witness;
 
    -----------------------------
@@ -1929,8 +1947,7 @@ package body Instrument.Ada_Unit is
       N : Expr renames SD.Decision;
 
       RH_P : constant Node_Rewriting_Handle :=
-        Create_Node
-          (IC.Rewriting_Context, Libadalang.Common.Ada_Identifier);
+        Create_Node (IC.Rewriting_Context, Libadalang.Common.Ada_Identifier);
 
       RH_N : constant Node_Rewriting_Handle := Handle (N);
 
@@ -1951,8 +1968,7 @@ package body Instrument.Ada_Unit is
 
       --  Now attach witness call at the place of the original decision
 
-      Replace (RH_P,
-               Make_Decision_Witness (IC, Bits, SD.State, RH_N));
+      Replace (RH_P, Make_Decision_Witness (IC, Bits, SD.State, RH_N));
    end Insert_Decision_Witness;
 
    -----------------
@@ -1960,8 +1976,7 @@ package body Instrument.Ada_Unit is
    -----------------
 
    procedure Ensure_With
-     (UIC  : in out Ada_Unit_Inst_Context'Class;
-      Unit : Text_Type)
+     (UIC : in out Ada_Unit_Inst_Context'Class; Unit : Text_Type)
    is
       RH : Rewriting_Handle renames UIC.Rewriting_Context;
    begin
@@ -1991,24 +2006,28 @@ package body Instrument.Ada_Unit is
    is
       E             : Instrumentation_Entities renames UIC.Entities;
       Var_Decl_Img  : constant String :=
-        Name & "_Var :" & (if UIC.In_Decl_Expr then " constant" else "")
+        Name
+        & "_Var :"
+        & (if UIC.In_Decl_Expr then " constant" else "")
         & " {}.MCDC_State_Type := 0;";
       Addr_Decl_Img : constant String :=
-        Name & " : constant GNATCov_RTS.Sys.Address := "
-        & Name & "_Var'Address;";
+        Name
+        & " : constant GNATCov_RTS.Sys.Address := "
+        & Name
+        & "_Var'Address;";
 
       Decl       : constant Node_Rewriting_Handle :=
         Create_From_Template
-         (UIC.Rewriting_Context,
-          Template  => To_Wide_Wide_String (Var_Decl_Img),
-          Arguments => (1 => E.Common_Buffers),
-          Rule      => Object_Decl_Rule);
+          (UIC.Rewriting_Context,
+           Template  => To_Wide_Wide_String (Var_Decl_Img),
+           Arguments => (1 => E.Common_Buffers),
+           Rule      => Object_Decl_Rule);
       Rep_Clause : constant Node_Rewriting_Handle :=
         Create_From_Template
-         (UIC.Rewriting_Context,
-          Template  => To_Wide_Wide_String (Addr_Decl_Img),
-          Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
-          Rule      => Object_Decl_Rule);
+          (UIC.Rewriting_Context,
+           Template  => To_Wide_Wide_String (Addr_Decl_Img),
+           Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
+           Rule      => Object_Decl_Rule);
    begin
       Insert_First (Inserter.Local_Decls, Rep_Clause);
       Insert_First (Inserter.Local_Decls, Decl);
@@ -2031,9 +2050,10 @@ package body Instrument.Ada_Unit is
       return Result : Degenerate_Subp_Common_Nodes do
          Result.N := N;
          Result.N_Spec := N_Spec;
-         Result.N_Overriding := (if Kind (N) = Ada_Subp_Decl
-                                 then N.As_Subp_Decl.F_Overriding
-                                 else N.As_Base_Subp_Body.F_Overriding);
+         Result.N_Overriding :=
+           (if Kind (N) = Ada_Subp_Decl
+            then N.As_Subp_Decl.F_Overriding
+            else N.As_Base_Subp_Body.F_Overriding);
          Result.N_Name := N_Spec.F_Subp_Name.F_Name;
          Result.N_Params :=
            (if N_Spec.F_Subp_Params.Is_Null
@@ -2057,8 +2077,8 @@ package body Instrument.Ada_Unit is
              (RC,
               F_Package_Name => Result.Wrapper_Pkg_Name,
               F_Aspects      => No_Node_Rewriting_Handle,
-              F_Public_Part  => Create_Public_Part
-                                  (RC, F_Decls => Result.Wrapper_Pkg_Decls),
+              F_Public_Part  =>
+                Create_Public_Part (RC, F_Decls => Result.Wrapper_Pkg_Decls),
               F_Private_Part => No_Node_Rewriting_Handle,
               F_End_Name     => No_Node_Rewriting_Handle);
       end return;
@@ -2078,8 +2098,8 @@ package body Instrument.Ada_Unit is
 
       No_Param : constant Boolean := N_Spec.F_Subp_Params.Is_Null;
    begin
-      Nodes.Name := Make_Identifier
-        (UIC.Rewriting_Context, Gen_Names_Prefix & "Gen");
+      Nodes.Name :=
+        Make_Identifier (UIC.Rewriting_Context, Gen_Names_Prefix & "Gen");
 
       Nodes.Formals := Make (UIC, Ada_Ada_Node_List);
 
@@ -2091,31 +2111,32 @@ package body Instrument.Ada_Unit is
       Nodes.Null_Stmt := Make (UIC, Ada_Null_Stmt);
 
       Nodes.Stmt_List :=
-         Create_Regular_Node (RC, Ada_Stmt_List, (1 => Nodes.Null_Stmt));
+        Create_Regular_Node (RC, Ada_Stmt_List, (1 => Nodes.Null_Stmt));
 
       Nodes.Subp_Spec :=
-         Create_Subp_Spec
-           (RC,
-            F_Subp_Kind    => Make (UIC, Ada_Subp_Kind_Procedure),
-            F_Subp_Name    => Create_Defining_Name (RC, Nodes.Name),
+        Create_Subp_Spec
+          (RC,
+           F_Subp_Kind    => Make (UIC, Ada_Subp_Kind_Procedure),
+           F_Subp_Name    => Create_Defining_Name (RC, Nodes.Name),
 
-            F_Subp_Params  =>
-              (if No_Param
-               then No_Node_Rewriting_Handle
-               else Create_Params (RC, F_Params => Nodes.Param_Specs)),
+           F_Subp_Params  =>
+             (if No_Param
+              then No_Node_Rewriting_Handle
+              else Create_Params (RC, F_Params => Nodes.Param_Specs)),
 
-            F_Subp_Returns => No_Node_Rewriting_Handle);
+           F_Subp_Returns => No_Node_Rewriting_Handle);
 
       Nodes.Subp_Decl :=
-         Create_Generic_Subp_Decl
-           (RC,
-            F_Formal_Part => Create_Generic_Formal_Part
-                               (RC, F_Decls => Nodes.Formals),
-            F_Subp_Decl   => Create_Generic_Subp_Internal
-                               (RC,
-                                F_Subp_Spec => Nodes.Subp_Spec,
-                                F_Aspects   => No_Node_Rewriting_Handle),
-            F_Aspects     => No_Node_Rewriting_Handle);
+        Create_Generic_Subp_Decl
+          (RC,
+           F_Formal_Part =>
+             Create_Generic_Formal_Part (RC, F_Decls => Nodes.Formals),
+           F_Subp_Decl   =>
+             Create_Generic_Subp_Internal
+               (RC,
+                F_Subp_Spec => Nodes.Subp_Spec,
+                F_Aspects   => No_Node_Rewriting_Handle),
+           F_Aspects     => No_Node_Rewriting_Handle);
 
       Nodes.Inst_Params := Make (UIC, Ada_Assoc_List);
    end Create_Null_Proc_Nodes;
@@ -2222,7 +2243,7 @@ package body Instrument.Ada_Unit is
          --   also need to turn X'Class into [formalX]'Class.
 
          case TE.Kind is
-            when Ada_Anonymous_Type =>
+            when Ada_Anonymous_Type     =>
                declare
                   TD : constant Type_Def :=
                     TE.As_Anonymous_Type.F_Type_Decl.F_Type_Def;
@@ -2231,18 +2252,21 @@ package body Instrument.Ada_Unit is
                   --  types, and access to subprogram types.
 
                   case TD.Kind is
-                  when Ada_Type_Access_Def =>
-                     return Gen_Type_Expr_For_Simple_Access_Type
-                       (TD.As_Type_Access_Def);
+                     when Ada_Type_Access_Def    =>
+                        return
+                          Gen_Type_Expr_For_Simple_Access_Type
+                            (TD.As_Type_Access_Def);
 
-                  when Ada_Access_To_Subp_Def =>
-                     return Gen_Type_Expr_For_Access_To_Subp
-                       (TD.As_Access_To_Subp_Def);
+                     when Ada_Access_To_Subp_Def =>
+                        return
+                          Gen_Type_Expr_For_Access_To_Subp
+                            (TD.As_Access_To_Subp_Def);
 
-                  when others =>
-                     raise Program_Error with
-                       "unexpected anonymous type definition: "
-                       & TD.Kind'Image;
+                     when others                 =>
+                        raise Program_Error
+                          with
+                            "unexpected anonymous type definition: "
+                            & TD.Kind'Image;
                   end case;
                end;
 
@@ -2266,7 +2290,7 @@ package body Instrument.Ada_Unit is
                   end if;
                end;
 
-            when others =>
+            when others                 =>
                null;
          end case;
 
@@ -2290,26 +2314,27 @@ package body Instrument.Ada_Unit is
 
          Formal_Subt_Decl : constant Base_Type_Decl :=
            Formal_Subtype_Indication.P_Designated_Type_Decl;
-         Ctrl_Type        : Base_Type_Decl renames
-           Common_Nodes.Ctrl_Type;
+         Ctrl_Type        : Base_Type_Decl renames Common_Nodes.Ctrl_Type;
          Is_Controlling   : constant Boolean :=
            (if Ctrl_Type.Is_Null
             then False
-            else Formal_Subt_Decl = Ctrl_Type
-                 or else Formal_Subt_Decl = Ctrl_Type.P_Full_View);
-         Has_Not_Null : constant Node_Rewriting_Handle :=
+            else
+              Formal_Subt_Decl = Ctrl_Type
+              or else Formal_Subt_Decl = Ctrl_Type.P_Full_View);
+         Has_Not_Null     : constant Node_Rewriting_Handle :=
            (if Is_Controlling
             then Make (UIC, Ada_Not_Null_Present)
             else Clone (Access_Def.F_Has_Not_Null));
       begin
-         return Make_Anonymous_Type_Decl
-           (Create_Type_Access_Def
-              (RC,
-               F_Has_Not_Null       => Has_Not_Null,
-               F_Has_All            => No_Node_Rewriting_Handle,
-               F_Has_Constant       => Clone (Access_Def.F_Has_Constant),
-               F_Subtype_Indication => Make_Formal_Type
-                                         (Formal_Subtype_Indication)));
+         return
+           Make_Anonymous_Type_Decl
+             (Create_Type_Access_Def
+                (RC,
+                 F_Has_Not_Null       => Has_Not_Null,
+                 F_Has_All            => No_Node_Rewriting_Handle,
+                 F_Has_Constant       => Clone (Access_Def.F_Has_Constant),
+                 F_Subtype_Indication =>
+                   Make_Formal_Type (Formal_Subtype_Indication)));
       end Gen_Type_Expr_For_Simple_Access_Type;
 
       --------------------------------------
@@ -2327,9 +2352,7 @@ package body Instrument.Ada_Unit is
             then No_Param_Spec_List
             else Orig_Spec.F_Subp_Params.F_Params);
          Param_Spec_Count : constant Natural :=
-           (if Orig_Params.Is_Null
-            then 0
-            else Orig_Params.Children_Count);
+           (if Orig_Params.Is_Null then 0 else Orig_Params.Children_Count);
 
          New_Params : Node_Rewriting_Handle_Array (1 .. Param_Spec_Count);
          --  List of param spec for the returned access to subprogram type
@@ -2346,15 +2369,15 @@ package body Instrument.Ada_Unit is
          --  Create param specs for the returned access to subprogram type
 
          for J in 1 .. Param_Spec_Count loop
-            New_Params (J) := Gen_Proc_Param_For
-              (Orig_Params.Child (J).As_Param_Spec);
+            New_Params (J) :=
+              Gen_Proc_Param_For (Orig_Params.Child (J).As_Param_Spec);
          end loop;
 
          New_F_Subp_Params :=
            (if Param_Spec_Count > 0
-            then Create_Params
-                   (RC,
-                    Create_Regular_Node (RC, Ada_Param_Spec_List, New_Params))
+            then
+              Create_Params
+                (RC, Create_Regular_Node (RC, Ada_Param_Spec_List, New_Params))
             else No_Node_Rewriting_Handle);
 
          --  Create its return type (if it is a function)
@@ -2367,19 +2390,21 @@ package body Instrument.Ada_Unit is
          --  We can now create the whole subprogram spec, and then the
          --  anonymous type.
 
-         Subp_Spec := Create_Subp_Spec
-           (RC,
-            F_Subp_Kind    => Create_Node (RC, Subp_Kind),
-            F_Subp_Name    => No_Node_Rewriting_Handle,
-            F_Subp_Params  => New_F_Subp_Params,
-            F_Subp_Returns => New_Return_Type);
+         Subp_Spec :=
+           Create_Subp_Spec
+             (RC,
+              F_Subp_Kind    => Create_Node (RC, Subp_Kind),
+              F_Subp_Name    => No_Node_Rewriting_Handle,
+              F_Subp_Params  => New_F_Subp_Params,
+              F_Subp_Returns => New_Return_Type);
 
-         return Make_Anonymous_Type_Decl
-           (Create_Access_To_Subp_Def
-              (RC,
-               F_Has_Not_Null  => Clone (Access_Def.F_Has_Not_Null),
-               F_Has_Protected => Clone (Access_Def.F_Has_Protected),
-               F_Subp_Spec     => Subp_Spec));
+         return
+           Make_Anonymous_Type_Decl
+             (Create_Access_To_Subp_Def
+                (RC,
+                 F_Has_Not_Null  => Clone (Access_Def.F_Has_Not_Null),
+                 F_Has_Protected => Clone (Access_Def.F_Has_Protected),
+                 F_Subp_Spec     => Subp_Spec));
       end Gen_Type_Expr_For_Access_To_Subp;
 
       ----------------------
@@ -2428,8 +2453,7 @@ package body Instrument.Ada_Unit is
                             then Make (UIC, Ada_Tagged_Present)
                             else No_Node_Rewriting_Handle),
 
-                         F_Has_Limited  =>
-                           Make (UIC, Ada_Limited_Present)),
+                         F_Has_Limited  => Make (UIC, Ada_Limited_Present)),
 
                     F_Default_Type  => No_Node_Rewriting_Handle,
 
@@ -2457,7 +2481,7 @@ package body Instrument.Ada_Unit is
          return Make_Identifier (UIC.Rewriting_Context, Formal_Type_Name);
       end Make_Formal_Type;
 
-   --  Start of processing for Collect_Null_Proc_Formals
+      --  Start of processing for Collect_Null_Proc_Formals
 
    begin
       --  Process all formals (there is nothing to do if there is none)
@@ -2497,52 +2521,60 @@ package body Instrument.Ada_Unit is
          Insert_First (NP_Nodes.Stmt_List, Fun_Witness);
       end if;
 
-      Subp_Body := Create_Subp_Body
-        (RC,
-         F_Overriding => No_Node_Rewriting_Handle,
-         F_Subp_Spec  => Clone (NP_Nodes.Subp_Spec),
-         F_Aspects    => No_Node_Rewriting_Handle,
+      Subp_Body :=
+        Create_Subp_Body
+          (RC,
+           F_Overriding => No_Node_Rewriting_Handle,
+           F_Subp_Spec  => Clone (NP_Nodes.Subp_Spec),
+           F_Aspects    => No_Node_Rewriting_Handle,
 
-         F_Decls      => Create_Declarative_Part
-                           (RC, F_Decls => Make (UIC, Ada_Ada_Node_List)),
+           F_Decls      =>
+             Create_Declarative_Part
+               (RC, F_Decls => Make (UIC, Ada_Ada_Node_List)),
 
-         F_Stmts      => Create_Handled_Stmts
-                           (RC,
-                            F_Stmts      => NP_Nodes.Stmt_List,
-                            F_Exceptions => No_Node_Rewriting_Handle),
-         F_End_Name   => No_Node_Rewriting_Handle);
+           F_Stmts      =>
+             Create_Handled_Stmts
+               (RC,
+                F_Stmts      => NP_Nodes.Stmt_List,
+                F_Exceptions => No_Node_Rewriting_Handle),
+           F_End_Name   => No_Node_Rewriting_Handle);
 
       --  Create an instantiation for this generic subprogram
 
-      Instance := Create_Generic_Subp_Instantiation
-        (RC,
-         F_Overriding        => No_Node_Rewriting_Handle,
-         F_Kind              => Make (UIC, Ada_Subp_Kind_Procedure),
-         F_Subp_Name         => Make_Defining_Name
-                                  (UIC, Text (Common_Nodes.N_Name)),
-         F_Generic_Subp_Name => Create_Dotted_Name
-                                  (RC,
-                                   F_Prefix => Clone (E.Unit_Buffers),
-                                   F_Suffix => Clone (NP_Nodes.Name)),
-         F_Params            => NP_Nodes.Inst_Params,
-         F_Aspects           => No_Node_Rewriting_Handle);
+      Instance :=
+        Create_Generic_Subp_Instantiation
+          (RC,
+           F_Overriding        => No_Node_Rewriting_Handle,
+           F_Kind              => Make (UIC, Ada_Subp_Kind_Procedure),
+           F_Subp_Name         =>
+             Make_Defining_Name (UIC, Text (Common_Nodes.N_Name)),
+           F_Generic_Subp_Name =>
+             Create_Dotted_Name
+               (RC,
+                F_Prefix => Clone (E.Unit_Buffers),
+                F_Suffix => Clone (NP_Nodes.Name)),
+           F_Params            => NP_Nodes.Inst_Params,
+           F_Aspects           => No_Node_Rewriting_Handle);
 
       --  Finally, create the declaration that renames the instantiated generic
       --  subprogram.
 
-      Renaming_Decl := Create_Subp_Renaming_Decl
-        (RC,
-         F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
-         F_Overriding => Clone (Common_Nodes.N_Overriding),
+      Renaming_Decl :=
+        Create_Subp_Renaming_Decl
+          (RC,
+           F_Subp_Spec  => Clone (Common_Nodes.N_Spec),
+           F_Overriding => Clone (Common_Nodes.N_Overriding),
 
-         F_Renames    => Create_Renaming_Clause
-           (RC,
-            F_Renamed_Object => Create_Dotted_Name
-              (RC,
-               F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
-               F_Suffix => Clone (Common_Nodes.N_Name))),
+           F_Renames    =>
+             Create_Renaming_Clause
+               (RC,
+                F_Renamed_Object =>
+                  Create_Dotted_Name
+                    (RC,
+                     F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
+                     F_Suffix => Clone (Common_Nodes.N_Name))),
 
-         F_Aspects    => No_Node_Rewriting_Handle);
+           F_Aspects    => No_Node_Rewriting_Handle);
    end Complete_Null_Proc_Decls;
 
    ------------------
@@ -2550,21 +2582,23 @@ package body Instrument.Ada_Unit is
    ------------------
 
    function Clone_Params
-     (UIC    : Ada_Unit_Inst_Context;
-      N_Spec : Subp_Spec) return Node_Rewriting_Handle
+     (UIC : Ada_Unit_Inst_Context; N_Spec : Subp_Spec)
+      return Node_Rewriting_Handle
    is
       P : constant Params := N_Spec.F_Subp_Params;
    begin
-      return (if P.Is_Null
-              then Make (UIC, Ada_Param_Spec_List)
-              else Clone (P.F_Params));
+      return
+        (if P.Is_Null
+         then Make (UIC, Ada_Param_Spec_List)
+         else Clone (P.F_Params));
    end Clone_Params;
 
    -----------------------
    -- Insert_MCDC_State --
    -----------------------
 
-   overriding function Insert_MCDC_State
+   overriding
+   function Insert_MCDC_State
      (Inserter : in out Expr_Func_MCDC_State_Inserter;
       UIC      : in out Ada_Unit_Inst_Context'Class;
       Name     : String) return String
@@ -2585,13 +2619,11 @@ package body Instrument.Ada_Unit is
           (RC,
            F_Ids          =>
              Create_Regular_Node
-               (RC,
-                Ada_Defining_Name_List,
-                Children => (1 => State_Formal)),
+               (RC, Ada_Defining_Name_List, Children => (1 => State_Formal)),
            F_Has_Aliased  => No_Node_Rewriting_Handle,
            F_Mode         => No_Node_Rewriting_Handle,
-           F_Type_Expr    => Make_Identifier
-              (UIC.Rewriting_Context, Holder_Type),
+           F_Type_Expr    =>
+             Make_Identifier (UIC.Rewriting_Context, Holder_Type),
            F_Default_Expr => No_Node_Rewriting_Handle,
            F_Aspects      => No_Node_Rewriting_Handle);
 
@@ -2608,17 +2640,21 @@ package body Instrument.Ada_Unit is
                     (RC,
                      Kind     => Ada_Assoc_List,
                      Children =>
-                       (1 => Create_Aggregate_Assoc
-                          (RC,
-                           F_Designators =>
-                             Create_Regular_Node
-                               (RC, Ada_Alternatives_List,
-                                (1 => Create_Regular_Node
-                                        (RC, Ada_Others_Designator,
-                                         No_Children))),
-                           F_R_Expr =>
-                             Create_Regular_Node
-                               (RC, Ada_Box_Expr, No_Children))))));
+                       (1 =>
+                          Create_Aggregate_Assoc
+                            (RC,
+                             F_Designators =>
+                               Create_Regular_Node
+                                 (RC,
+                                  Ada_Alternatives_List,
+                                  (1 =>
+                                     Create_Regular_Node
+                                       (RC,
+                                        Ada_Others_Designator,
+                                        No_Children))),
+                             F_R_Expr      =>
+                               Create_Regular_Node
+                                 (RC, Ada_Box_Expr, No_Children))))));
 
    begin
       if Inserter.Formal_Params = No_Node_Rewriting_Handle then
@@ -2692,22 +2728,21 @@ package body Instrument.Ada_Unit is
    -------------------------------
 
    procedure Create_Augmented_Function
-     (UIC                          : Ada_Unit_Inst_Context;
-      Common_Nodes                 : Degenerate_Subp_Common_Nodes;
-      Formal_Params                : Node_Rewriting_Handle;
-      Call_Params                  : Node_Rewriting_Handle;
-      Augmented_Function           : out Node_Rewriting_Handle;
-      Augmented_Function_Decl      : out Node_Rewriting_Handle;
-      New_Function                 : out Node_Rewriting_Handle;
-      Needs_Aspects                : Boolean := False)
+     (UIC                     : Ada_Unit_Inst_Context;
+      Common_Nodes            : Degenerate_Subp_Common_Nodes;
+      Formal_Params           : Node_Rewriting_Handle;
+      Call_Params             : Node_Rewriting_Handle;
+      Augmented_Function      : out Node_Rewriting_Handle;
+      Augmented_Function_Decl : out Node_Rewriting_Handle;
+      New_Function            : out Node_Rewriting_Handle;
+      Needs_Aspects           : Boolean := False)
    is
       RC : Rewriting_Handle renames UIC.Rewriting_Context;
 
       --  Compute the name of the augmented function
 
-      Orig_Name_Text : constant Wide_Wide_String :=
-        Text (Common_Nodes.N_Name);
-      Is_Op_Symbol : constant Boolean :=
+      Orig_Name_Text : constant Wide_Wide_String := Text (Common_Nodes.N_Name);
+      Is_Op_Symbol   : constant Boolean :=
         Orig_Name_Text (Orig_Name_Text'First) = '"';
 
       Fun_Cov : constant Boolean := Enabled (Fun_Call);
@@ -2717,13 +2752,9 @@ package body Instrument.Ada_Unit is
         (if Is_Op_Symbol
          then Op_Symbol_To_Name (Common_Nodes.N_Name) & "_Op"
          else Orig_Name_Text)
-        & (if not Fun_Cov
-           then "_With_State_"
-           else "_")
+        & (if not Fun_Cov then "_With_State_" else "_")
         & To_Wide_Wide_String (Img (UIC.Degenerate_Subprogram_Index))
-        & (if Fun_Cov
-           then "_GNATCOV_Aux"
-           else "");
+        & (if Fun_Cov then "_GNATCOV_Aux" else "");
 
       Need_WP : constant Boolean :=
         Augmented_EF_Needs_Wrapper_Package (Common_Nodes);
@@ -2731,29 +2762,28 @@ package body Instrument.Ada_Unit is
       --  Create the expression for New_Expr_Function that will call that
       --  augmented expression function.
 
-      Callee    : constant Node_Rewriting_Handle :=
+      Callee : constant Node_Rewriting_Handle :=
         (if Need_WP
-         then Create_Dotted_Name
-           (RC,
-            F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
-            F_Suffix => Make_Identifier (RC, Augmented_Func_Name))
+         then
+           Create_Dotted_Name
+             (RC,
+              F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
+              F_Suffix => Make_Identifier (RC, Augmented_Func_Name))
          else Make_Identifier (RC, Augmented_Func_Name));
 
       Call_Expr : constant Node_Rewriting_Handle :=
         (if Call_Params = No_Node_Rewriting_Handle
          then Callee
-         else Create_Call_Expr
-           (RC,
-            F_Name   => Callee,
-            F_Suffix => Call_Params));
+         else
+           Create_Call_Expr (RC, F_Name => Callee, F_Suffix => Call_Params));
 
       --  No need for a declaration if we are using a nested package
 
       Needs_Decl : constant Boolean :=
         Common_Nodes.N.Kind = Ada_Expr_Function
         and then not Need_WP
-         and then Augmented_Expr_Function_Needs_Decl
-          (Common_Nodes.N.As_Expr_Function);
+        and then Augmented_Expr_Function_Needs_Decl
+                   (Common_Nodes.N.As_Expr_Function);
 
       Orig_Aspects : constant Aspect_Spec := Common_Nodes.N.F_Aspects;
    begin
@@ -2832,10 +2862,11 @@ package body Instrument.Ada_Unit is
 
             --  Replace the original EF name by the augmented EF name
             if not Fun_Cov then
-               Set_Child (New_Spec,
-                          Member_Refs.Subp_Spec_F_Subp_Name,
-                          Make_Identifier (UIC.Rewriting_Context,
-                                           Augmented_Func_Name));
+               Set_Child
+                 (New_Spec,
+                  Member_Refs.Subp_Spec_F_Subp_Name,
+                  Make_Identifier
+                    (UIC.Rewriting_Context, Augmented_Func_Name));
             end if;
 
             --  Add the augmented params to this spec as well
@@ -2849,20 +2880,23 @@ package body Instrument.Ada_Unit is
 
             Augmented_Function_Decl :=
               (if not Fun_Cov
-               then Create_Subp_Decl
-                 (Handle       => UIC.Rewriting_Context,
-                  F_Overriding => No_Node_Rewriting_Handle,
-                  F_Subp_Spec  => New_Spec,
-                  F_Aspects    => No_Node_Rewriting_Handle)
+               then
+                 Create_Subp_Decl
+                   (Handle       => UIC.Rewriting_Context,
+                    F_Overriding => No_Node_Rewriting_Handle,
+                    F_Subp_Spec  => New_Spec,
+                    F_Aspects    => No_Node_Rewriting_Handle)
                else No_Node_Rewriting_Handle);
 
          exception
             when Exc : Property_Error =>
-               Report (Node => Common_Nodes.N,
-                       Msg  => "Could not find previous declaration for the"
-                                & " expression function: "
-                                & Switches.Exception_Info (Exc),
-                       Kind => Low_Warning);
+               Report
+                 (Node => Common_Nodes.N,
+                  Msg  =>
+                    "Could not find previous declaration for the"
+                    & " expression function: "
+                    & Switches.Exception_Info (Exc),
+                  Kind => Low_Warning);
          end;
       else
          Augmented_Function_Decl := No_Node_Rewriting_Handle;
@@ -2872,10 +2906,10 @@ package body Instrument.Ada_Unit is
       --  augmented one.
 
       if Is_Ghost
-        (UIC,
-         (if Common_Nodes.N.Kind = Ada_Expr_Function
-          then Common_Nodes.N.As_Expr_Function.As_Basic_Decl
-          else Common_Nodes.N.As_Basic_Decl))
+           (UIC,
+            (if Common_Nodes.N.Kind = Ada_Expr_Function
+             then Common_Nodes.N.As_Expr_Function.As_Basic_Decl
+             else Common_Nodes.N.As_Basic_Decl))
       then
          declare
             Ghost_Aspect : constant Node_Rewriting_Handle :=
@@ -2885,9 +2919,7 @@ package body Instrument.Ada_Unit is
                  No_Node_Rewriting_Handle);
 
             Aspects : constant Node_Rewriting_Handle :=
-              Create_Regular_Node (RC,
-                                   Ada_Aspect_Spec,
-                                   (1 => Ghost_Aspect));
+              Create_Regular_Node (RC, Ada_Aspect_Spec, (1 => Ghost_Aspect));
          begin
             if Needs_Decl then
                Set_Child
@@ -2908,8 +2940,7 @@ package body Instrument.Ada_Unit is
          --  Put the augmented expression function in the wrapper package, and
          --  return its handle instead of the one of the expression function.
 
-         Insert_Last
-           (Common_Nodes.Wrapper_Pkg_Decls, Augmented_Function);
+         Insert_Last (Common_Nodes.Wrapper_Pkg_Decls, Augmented_Function);
 
          Augmented_Function := Common_Nodes.Wrapper_Pkg;
       end if;
@@ -2937,11 +2968,13 @@ package body Instrument.Ada_Unit is
          end if;
       exception
          when Exc : Property_Error =>
-            Report (Node => N,
-                    Msg  => "Could not determine if expression function is a"
-                    & " primitive: "
-                    & Switches.Exception_Info (Exc),
-                    Kind => Warning);
+            Report
+              (Node => N,
+               Msg  =>
+                 "Could not determine if expression function is a"
+                 & " primitive: "
+                 & Switches.Exception_Info (Exc),
+               Kind => Warning);
             return False;
       end;
 
@@ -2962,20 +2995,22 @@ package body Instrument.Ada_Unit is
 
          if Semantic_Parent.Is_Null
            or else Prev_Part_Semantic_Parent.Is_Null
-           or else
-             (Semantic_Parent.Kind not in Ada_Public_Part | Ada_Private_Part
-              and then Semantic_Parent /= Prev_Part_Semantic_Parent)
+           or else (Semantic_Parent.Kind
+                    not in Ada_Public_Part | Ada_Private_Part
+                    and then Semantic_Parent /= Prev_Part_Semantic_Parent)
          then
             return False;
          end if;
       exception
          when Exc : Property_Error =>
-            Report (Node => N,
-                    Msg  => "Could not determine the semantic parent of the"
-                    & " expression function or the semantic parent of its"
-                    & " previous declaration: "
-                    & Switches.Exception_Info (Exc),
-                    Kind => Warning);
+            Report
+              (Node => N,
+               Msg  =>
+                 "Could not determine the semantic parent of the"
+                 & " expression function or the semantic parent of its"
+                 & " previous declaration: "
+                 & Switches.Exception_Info (Exc),
+               Kind => Warning);
             return False;
       end;
 
@@ -2992,17 +3027,20 @@ package body Instrument.Ada_Unit is
    function Augmented_EF_Needs_Wrapper_Package
      (Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean is
    begin
-      return Common_Nodes.Ctrl_Type /= No_Base_Type_Decl
+      return
+        Common_Nodes.Ctrl_Type /= No_Base_Type_Decl
         and then not Common_Nodes.N_Spec.P_Return_Type.Is_Null
         and then Common_Nodes.N_Spec.P_Return_Type = Common_Nodes.Ctrl_Type;
 
    exception
       when Exc : Property_Error =>
-         Report (Node => Common_Nodes.N,
-                 Msg  => "Could not determine the return type of the"
-                 & " expression function: "
-                 & Switches.Exception_Info (Exc),
-                 Kind => Warning);
+         Report
+           (Node => Common_Nodes.N,
+            Msg  =>
+              "Could not determine the return type of the"
+              & " expression function: "
+              & Switches.Exception_Info (Exc),
+            Kind => Warning);
          return False;
    end Augmented_EF_Needs_Wrapper_Package;
 
@@ -3011,8 +3049,7 @@ package body Instrument.Ada_Unit is
    -------------------------
 
    function Is_Self_Referencing
-     (UIC : Ada_Unit_Inst_Context;
-      EF  : Expr_Function) return Boolean
+     (UIC : Ada_Unit_Inst_Context; EF : Expr_Function) return Boolean
    is
       EF_Decl : constant Basic_Decl := EF.As_Basic_Decl;
 
@@ -3048,7 +3085,7 @@ package body Instrument.Ada_Unit is
             return Into;
       end Process_Node;
 
-   --  Start of processing for Is_Self_Referencing
+      --  Start of processing for Is_Self_Referencing
 
    begin
       --  Return whether we can find at least on enode in EF's expression that
@@ -3062,9 +3099,8 @@ package body Instrument.Ada_Unit is
    --------------------------------
 
    function Return_Type_Is_Controlling
-     (UIC          : Ada_Unit_Inst_Context;
-      Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean
-   is
+     (UIC : Ada_Unit_Inst_Context; Common_Nodes : Degenerate_Subp_Common_Nodes)
+      return Boolean is
    begin
       if Common_Nodes.Ctrl_Type.Is_Null then
          return False;
@@ -3075,15 +3111,16 @@ package body Instrument.Ada_Unit is
 
       return
         Common_Nodes.N_Spec.F_Subp_Returns.P_Designated_Type_Decl.P_Full_View
-          = Common_Nodes.Ctrl_Type.P_Full_View;
+        = Common_Nodes.Ctrl_Type.P_Full_View;
    exception
       when Exc : Property_Error =>
-      Report (UIC,
-              Common_Nodes.N,
-              "failed to determine return type of expression function: "
-              & Switches.Exception_Info (Exc),
-              Low_Warning);
-      return False;
+         Report
+           (UIC,
+            Common_Nodes.N,
+            "failed to determine return type of expression function: "
+            & Switches.Exception_Info (Exc),
+            Low_Warning);
+         return False;
    end Return_Type_Is_Controlling;
 
    ------------------------------
@@ -3111,7 +3148,7 @@ package body Instrument.Ada_Unit is
          return Into;
       end Process_Node;
 
-   --  Start of processing for Has_Access_Attribute_Ref
+      --  Start of processing for Has_Access_Attribute_Ref
 
    begin
       return E.Traverse (Process_Node'Access) = Stop;
@@ -3141,27 +3178,29 @@ package body Instrument.Ada_Unit is
             return False;
          end if;
          case Parent_Basic_Decl.Kind is
-            when Ada_Subp_Body_Range =>
+            when Ada_Subp_Body_Range
+            =>
                return Parent_Basic_Decl.As_Subp_Body = Subp;
 
-            when Ada_Accept_Stmt
-               | Ada_Accept_Stmt_With_Stmts
-               | Ada_Entry_Body =>
+            when Ada_Accept_Stmt | Ada_Accept_Stmt_With_Stmts | Ada_Entry_Body
+            =>
 
-                  --  A return statement may only appear within a callable
-                  --  construct (RM 6.5 (4/2)), which are either subprogram
-                  --  bodies, entry bodies or accept statements (RM 6.2)). As
-                  --  Subp is a Subp_Body if we encounter an accept statement
-                  --  or an entry body on the way we can't be returning from
-                  --  Subp.
+               --  A return statement may only appear within a callable
+               --  construct (RM 6.5 (4/2)), which are either subprogram
+               --  bodies, entry bodies or accept statements (RM 6.2)). As
+               --  Subp is a Subp_Body if we encounter an accept statement
+               --  or an entry body on the way we can't be returning from
+               --  Subp.
 
-                  return False;
-            when others =>
+               return False;
+
+            when others
+            =>
                return Subp_Body_Is_Parent_Decl (Parent_Basic_Decl);
          end case;
       end Subp_Body_Is_Parent_Decl;
 
-   --  Start of processing for Return_From_Body
+      --  Start of processing for Return_From_Body
 
    begin
       return Subp_Body_Is_Parent_Decl (Ret_Node);
@@ -3169,8 +3208,10 @@ package body Instrument.Ada_Unit is
       when Exc : Property_Error =>
          Report
            (Node => Ret_Node,
-            Msg  => "Unable to determine to which body this return statment"
-                    & "applies: " & Switches.Exception_Info (Exc),
+            Msg  =>
+              "Unable to determine to which body this return statment"
+              & "applies: "
+              & Switches.Exception_Info (Exc),
             Kind => Low_Warning);
 
          --  Inserting an extranous Dump_Buffer call isn't really a problem
@@ -3196,8 +3237,9 @@ package body Instrument.Ada_Unit is
       when Exc : Property_Error =>
          Report
            (Node => Decl,
-            Msg  => "Could not find the parent package: "
-                    & Switches.Exception_Info (Exc),
+            Msg  =>
+              "Could not find the parent package: "
+              & Switches.Exception_Info (Exc),
             Kind => Warning);
          return No_Basic_Decl;
    end Parent_Decl;
@@ -3215,12 +3257,13 @@ package body Instrument.Ada_Unit is
             --  For library units, only packages (generic, declarations and
             --  bodies) contain library-level declarations.
 
-            return Unit.F_Body.As_Library_Item.F_Item.Kind in
-                     Ada_Package_Decl
-                   | Ada_Package_Body
-                   | Ada_Generic_Package_Decl;
+            return
+              Unit.F_Body.As_Library_Item.F_Item.Kind
+              in Ada_Package_Decl
+               | Ada_Package_Body
+               | Ada_Generic_Package_Decl;
 
-         when Ada_Subunit =>
+         when Ada_Subunit      =>
 
             --  We consider that declarations in subunits are library-level if
             --  the subunit is for a package body (in Ada, the only other valid
@@ -3240,7 +3283,7 @@ package body Instrument.Ada_Unit is
                return True;
             end;
 
-         when others =>
+         when others           =>
             raise Program_Error;
       end case;
    end Decls_Are_Library_Level;
@@ -3269,8 +3312,8 @@ package body Instrument.Ada_Unit is
                begin
                   for P of Parts loop
                      if not P.Is_Null
-                        and then P.F_Body.As_Library_Item.F_Item
-                                 .P_Has_Aspect (Id)
+                       and then P.F_Body.As_Library_Item.F_Item.P_Has_Aspect
+                                  (Id)
                      then
                         return True;
                      end if;
@@ -3278,7 +3321,7 @@ package body Instrument.Ada_Unit is
                   exit;
                end;
 
-            when Ada_Subunit =>
+            when Ada_Subunit      =>
 
                --  For subunits, the pragma/aspect applies only when present in
                --  the "root" body or its spec.
@@ -3292,7 +3335,7 @@ package body Instrument.Ada_Unit is
                   CU := Next.As_Compilation_Unit;
                end;
 
-            when others =>
+            when others           =>
                exit;
          end case;
       end loop;
@@ -3306,14 +3349,14 @@ package body Instrument.Ada_Unit is
 
    function Get_Convention (Decl : Basic_Decl) return Identifier is
       Convention_Aspect : constant Libadalang.Analysis.Aspect :=
-         Decl.P_Get_Aspect (To_Unbounded_Text ("convention"));
+        Decl.P_Get_Aspect (To_Unbounded_Text ("convention"));
       Export_Aspect     : constant Libadalang.Analysis.Aspect :=
-         Decl.P_Get_Aspect (To_Unbounded_Text ("export"));
+        Decl.P_Get_Aspect (To_Unbounded_Text ("export"));
    begin
       if Exists (Convention_Aspect) then
          return Value (Convention_Aspect).As_Identifier;
       elsif Exists (Export_Aspect)
-           and then Node (Export_Aspect).Kind = Ada_Pragma_Node
+        and then Node (Export_Aspect).Kind = Ada_Pragma_Node
       then
 
          --  If the export aspect is present as an aspect, the convention will
@@ -3329,9 +3372,8 @@ package body Instrument.Ada_Unit is
             begin
                if not Prag_Assoc.F_Name.Is_Null
                  and then Prag_Assoc.F_Name.Kind in LALCO.Ada_Identifier
-                 and then
-                   As_Symbol (Prag_Assoc.F_Name.As_Identifier)
-                   = Precomputed_Symbols (Convention)
+                 and then As_Symbol (Prag_Assoc.F_Name.As_Identifier)
+                          = Precomputed_Symbols (Convention)
                then
                   return Prag_Assoc.F_Expr.As_Identifier;
                end if;
@@ -3347,16 +3389,19 @@ package body Instrument.Ada_Unit is
          begin
             case First_Child.Kind is
                when Ada_Pragma_Argument_Assoc =>
-                  return First_Child.As_Pragma_Argument_Assoc.F_Expr
-                         .As_Identifier;
+                  return
+                    First_Child.As_Pragma_Argument_Assoc.F_Expr.As_Identifier;
 
-               when LALCO.Ada_Identifier => return First_Child.As_Identifier;
+               when LALCO.Ada_Identifier      =>
+                  return First_Child.As_Identifier;
 
-               when others =>
-                  Report (Node => First_Child,
-                          Msg  => "Unexpected kind for a convention name: "
-                                  & First_Child.Kind_Name,
-                          Kind => Low_Warning);
+               when others                    =>
+                  Report
+                    (Node => First_Child,
+                     Msg  =>
+                       "Unexpected kind for a convention name: "
+                       & First_Child.Kind_Name,
+                     Kind => Low_Warning);
                   return No_Identifier;
             end case;
          end;
@@ -3375,22 +3420,17 @@ package body Instrument.Ada_Unit is
       Prag_Args : Base_Assoc_List)
    is
       function Get_Arg
-        (Prag_Args : Base_Assoc_List;
-         I         : Natural)
-         return Symbol_Type
-      is
-        (if Prag_Arg_Expr (Prag_Args, I).Kind =
-             Libadalang.Common.Ada_Identifier
-         then As_Symbol (Prag_Arg_Expr (Prag_Args, I).As_Identifier)
-         else No_Symbol);
+        (Prag_Args : Base_Assoc_List; I : Natural) return Symbol_Type
+      is (if Prag_Arg_Expr (Prag_Args, I).Kind
+            = Libadalang.Common.Ada_Identifier
+          then As_Symbol (Prag_Arg_Expr (Prag_Args, I).As_Identifier)
+          else No_Symbol);
       --  Attempt to get the pragma's Ith argument as an identifier. If
       --  it is not an identifier, return null. Else, return the identifier
       --  as a symbol.
 
       procedure Safe_String_Eval
-        (E       : Expr;
-         Result  : out Unbounded_Text_Type;
-         Success : out Boolean);
+        (E : Expr; Result : out Unbounded_Text_Type; Success : out Boolean);
       --  Evaluate the given Expr E and set Result to the evaluated string
       --  and Success to True if it could be evaluated, otherwise set
       --  Success to False.
@@ -3400,9 +3440,7 @@ package body Instrument.Ada_Unit is
       ----------------------
 
       procedure Safe_String_Eval
-        (E       : Expr;
-         Result  : out Unbounded_Text_Type;
-         Success : out Boolean)
+        (E : Expr; Result : out Unbounded_Text_Type; Success : out Boolean)
       is
          use Libadalang.Expr_Eval;
       begin
@@ -3411,7 +3449,7 @@ package body Instrument.Ada_Unit is
          --  using exception handling.
 
          declare
-            String_Expr_Eval : constant Eval_Result :=  Expr_Eval (E);
+            String_Expr_Eval : constant Eval_Result := Expr_Eval (E);
          begin
             if String_Expr_Eval.Kind /= String_Lit then
                Success := False;
@@ -3429,7 +3467,7 @@ package body Instrument.Ada_Unit is
       Kind        : Symbol_Type;
       Result      : ALI_Annotation;
 
-   --  Start of processing for Process_Annotation
+      --  Start of processing for Process_Annotation
 
    begin
       --  Ignore all but Xcov annotations
@@ -3485,87 +3523,85 @@ package body Instrument.Ada_Unit is
                UIC.Disable_Coverage := True;
             end if;
             case Nb_Children is
-            when 2 =>
-               if Result.Kind = Exempt_On then
-                  Report
-                    (N, "No justification given for exempted region",
-                     Warning);
-               elsif Result.Kind = Cov_Off then
-                  Report
-                    (N,
-                     "No justification given for disabled coverage region",
-                     Warning);
-               end if;
-               UIC.Annotations.Append
-                 (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
-
-            when 3 =>
-               declare
-                  String_Value : Unbounded_Text_Type;
-                  Success      : Boolean;
-               begin
-                  Safe_String_Eval
-                    (Prag_Arg_Expr (Prag_Args, 3), String_Value, Success);
-                  if not Success then
+               when 2      =>
+                  if Result.Kind = Exempt_On then
                      Report
                        (N,
-                        "Invalid justification argument: static string"
-                        & " expression expected",
+                        "No justification given for exempted region",
                         Warning);
-                     return;
+                  elsif Result.Kind = Cov_Off then
+                     Report
+                       (N,
+                        "No justification given for disabled coverage region",
+                        Warning);
                   end if;
-                  Result.Message := new String'
-                    (To_UTF8 (To_Text (String_Value)));
-
                   UIC.Annotations.Append
-                    (Annotation_Couple'
-                       ((UIC.SFI, +Sloc (N)), Result));
-               end;
+                    (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
 
-            when others =>
-               Report (N, "At most 3 pragma arguments allowed", Warning);
-               return;
-            end case;
+               when 3      =>
+                  declare
+                     String_Value : Unbounded_Text_Type;
+                     Success      : Boolean;
+                  begin
+                     Safe_String_Eval
+                       (Prag_Arg_Expr (Prag_Args, 3), String_Value, Success);
+                     if not Success then
+                        Report
+                          (N,
+                           "Invalid justification argument: static string"
+                           & " expression expected",
+                           Warning);
+                        return;
+                     end if;
+                     Result.Message :=
+                       new String'(To_UTF8 (To_Text (String_Value)));
 
-         when Exempt_Off =>
-            if Nb_Children > 2 then
-               Report
-                 (N, "At most 2 pragma arguments allowed", Warning);
-               return;
-            end if;
-            UIC.Annotations.Append
-              (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
-
-         when Cov_On =>
-            if Nb_Children > 2 then
-               Report
-                 (N, "At most 2 pragma arguments allowed", Warning);
-               return;
-            end if;
-            UIC.Disable_Coverage := False;
-            UIC.Annotations.Append
-              (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
-
-         when Dump_Buffers =>
-
-            --  Expected formats:
-            --  * (Xcov, Dump_Buffers)
-            --  * (Xcov, Dump_Buffers, Prefix)
-
-            case Nb_Children is
-               when 2 | 3 =>
-
-                  --  TODO??? check that the Prefix expression is a string
-                  --  type when eng/libadalang/libadalang#1360 is dealt
-                  --  with.
-               null;
+                     UIC.Annotations.Append
+                       (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+                  end;
 
                when others =>
                   Report (N, "At most 3 pragma arguments allowed", Warning);
                   return;
             end case;
 
-         when Reset_Buffers =>
+         when Exempt_Off          =>
+            if Nb_Children > 2 then
+               Report (N, "At most 2 pragma arguments allowed", Warning);
+               return;
+            end if;
+            UIC.Annotations.Append
+              (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+
+         when Cov_On              =>
+            if Nb_Children > 2 then
+               Report (N, "At most 2 pragma arguments allowed", Warning);
+               return;
+            end if;
+            UIC.Disable_Coverage := False;
+            UIC.Annotations.Append
+              (Annotation_Couple'((UIC.SFI, +Sloc (N)), Result));
+
+         when Dump_Buffers        =>
+
+            --  Expected formats:
+            --  * (Xcov, Dump_Buffers)
+            --  * (Xcov, Dump_Buffers, Prefix)
+
+            case Nb_Children is
+               when 2 | 3  =>
+
+                  --  TODO??? check that the Prefix expression is a string
+                  --  type when eng/libadalang/libadalang#1360 is dealt
+                  --  with.
+                  null;
+
+               when others =>
+                  Report (N, "At most 3 pragma arguments allowed", Warning);
+                  return;
+            end case;
+
+         when Reset_Buffers       =>
             if Nb_Children /= 2 then
                Report (N, "At most 2 pragma arguments allowed", Warning);
                return;
@@ -3580,11 +3616,11 @@ package body Instrument.Ada_Unit is
    procedure Traverse_Declarations_Or_Statements
      (UIC                        : in out Ada_Unit_Inst_Context;
       L                          : Ada_List'Class;
-      Preelab                    : Boolean       := False;
-      P                          : Ada_Node      := No_Ada_Node;
-      Is_Select_Stmt_Alternative : Boolean       := False;
-      Priv_Part                  : Private_Part  := No_Private_Part;
-      Is_Block                   : Boolean       := True);
+      Preelab                    : Boolean := False;
+      P                          : Ada_Node := No_Ada_Node;
+      Is_Select_Stmt_Alternative : Boolean := False;
+      Priv_Part                  : Private_Part := No_Private_Part;
+      Is_Block                   : Boolean := True);
    --  Process L, a list of statements or declarations. If P is present, it is
    --  processed as though it had been prepended to L.
    --
@@ -3620,13 +3656,10 @@ package body Instrument.Ada_Unit is
       Preelab : Boolean);
 
    procedure Traverse_Handled_Statement_Sequence
-     (UIC : in out Ada_Unit_Inst_Context;
-      N   : Handled_Stmts);
+     (UIC : in out Ada_Unit_Inst_Context; N : Handled_Stmts);
 
    procedure Traverse_Package_Body
-     (UIC     : in out Ada_Unit_Inst_Context;
-      N       : Package_Body;
-      Preelab : Boolean);
+     (UIC : in out Ada_Unit_Inst_Context; N : Package_Body; Preelab : Boolean);
 
    procedure Traverse_Package_Declaration
      (UIC     : in out Ada_Unit_Inst_Context;
@@ -3634,12 +3667,10 @@ package body Instrument.Ada_Unit is
       Preelab : Boolean);
 
    procedure Traverse_Subprogram_Or_Task_Body
-     (UIC : in out Ada_Unit_Inst_Context;
-      N   : Body_Node'Class);
+     (UIC : in out Ada_Unit_Inst_Context; N : Body_Node'Class);
 
    procedure Traverse_Sync_Definition
-     (UIC : in out Ada_Unit_Inst_Context;
-      N   : Ada_Node);
+     (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node);
    --  Traverse a protected definition or task definition
 
    --  Note regarding traversals: In a few cases where an Alternatives list is
@@ -3650,9 +3681,7 @@ package body Instrument.Ada_Unit is
    --  which aren't valid for a pragma.
 
    procedure Process_Expression
-     (UIC : in out Ada_Unit_Inst_Context;
-      N   : Ada_Node'Class;
-      T   : Character);
+     (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character);
    --  If N is Empty, has no effect. Otherwise scans the tree for the node N,
    --  to output any decisions it contains. T is one of IEGPWX (for context of
    --  expression: if/exit when/entry guard/pragma/while/expression). If T is
@@ -3705,7 +3734,7 @@ package body Instrument.Ada_Unit is
    --  OR-ELSE operator.
 
    function Is_Standard_Boolean_And_Or (N : Op) return Boolean
-     with Pre => N.Kind in Ada_Op_And | Ada_Op_Or;
+   with Pre => N.Kind in Ada_Op_And | Ada_Op_Or;
    --  Return whether N is a Standard.Boolean and/or operator, i.e. is not an
    --  overloading operator, both its operands are of Standard.Boolean type
    --  and its return type is of Standard.Boolean type.
@@ -3717,11 +3746,11 @@ package body Instrument.Ada_Unit is
    procedure Traverse_Declarations_Or_Statements
      (UIC                        : in out Ada_Unit_Inst_Context;
       L                          : Ada_List'Class;
-      Preelab                    : Boolean       := False;
-      P                          : Ada_Node      := No_Ada_Node;
-      Is_Select_Stmt_Alternative : Boolean       := False;
-      Priv_Part                  : Private_Part  := No_Private_Part;
-      Is_Block                   : Boolean       := True)
+      Preelab                    : Boolean := False;
+      P                          : Ada_Node := No_Ada_Node;
+      Is_Select_Stmt_Alternative : Boolean := False;
+      Priv_Part                  : Private_Part := No_Private_Part;
+      Is_Block                   : Boolean := True)
    is
       procedure Instrument_Statement
         (UIC         : in out Ada_Unit_Inst_Context;
@@ -3759,8 +3788,7 @@ package body Instrument.Ada_Unit is
       --  and expression functions.
 
       procedure Traverse_Degenerate_Subprogram
-        (N      : Basic_Decl;
-         N_Spec : Subp_Spec);
+        (N : Basic_Decl; N_Spec : Subp_Spec);
       --  Additional specific processing for the case of degenerate
       --  subprograms (null procedures and expression functions).
 
@@ -3795,9 +3823,9 @@ package body Instrument.Ada_Unit is
             then Pragma_Name (N.As_Pragma_Node)
             else Namet.No_Name);
 
-         SR      : constant Source_Location_Range := N.Sloc_Range;
-         From    : Source_Location := Start_Sloc (SR);
-         To      : Source_Location := Inclusive_End_Sloc (SR);
+         SR   : constant Source_Location_Range := N.Sloc_Range;
+         From : Source_Location := Start_Sloc (SR);
+         To   : Source_Location := Inclusive_End_Sloc (SR);
          --  Source location bounds used to produre a SCO statement. By
          --  default, this should cover the same source location range as N,
          --  however for nodes that can contain themselves other statements
@@ -3842,31 +3870,28 @@ package body Instrument.Ada_Unit is
                   end if;
                end;
 
-            when Ada_Case_Stmt =>
+            when Ada_Case_Stmt                                =>
                To_Node := N.As_Case_Stmt.F_Expr.As_Ada_Node;
 
-            when Ada_Elsif_Stmt_Part =>
+            when Ada_Elsif_Stmt_Part                          =>
                To_Node := N.As_Elsif_Stmt_Part.F_Cond_Expr.As_Ada_Node;
                Instrument_Location := Inside_Expr;
 
-            when Ada_If_Stmt =>
+            when Ada_If_Stmt                                  =>
                To_Node := N.As_If_Stmt.F_Cond_Expr.As_Ada_Node;
 
-            when Ada_Extended_Return_Stmt =>
+            when Ada_Extended_Return_Stmt                     =>
                To_Node := N.As_Extended_Return_Stmt.F_Decl.As_Ada_Node;
 
-            when Ada_Base_Loop_Stmt =>
+            when Ada_Base_Loop_Stmt                           =>
                To_Node := N.As_Base_Loop_Stmt.F_Spec.As_Ada_Node;
 
             when Ada_Select_Stmt
                | Ada_Single_Protected_Decl
-               | Ada_Single_Task_Decl
-            =>
+               | Ada_Single_Task_Decl                         =>
                To := From;
 
-            when Ada_Protected_Type_Decl
-               | Ada_Task_Type_Decl
-            =>
+            when Ada_Protected_Type_Decl | Ada_Task_Type_Decl =>
                declare
                   Aspects       : constant Aspect_Spec :=
                     (if N.Kind = Ada_Protected_Type_Decl
@@ -3888,17 +3913,17 @@ package body Instrument.Ada_Unit is
                   end if;
                end;
 
-            when Ada_Expr =>
+            when Ada_Expr                                     =>
                To_Node := N.As_Ada_Node;
 
-            when Ada_Null_Subp_Decl =>
+            when Ada_Null_Subp_Decl                           =>
                --  Special case: this SCO is for the fictitious NULL statement
                --  in a null procedure. The assigned sloc is that of the NULL
                --  token in the sequence "<last token of spec> IS NULL".
 
                declare
-                  function NNT (TR : Token_Reference) return Token_Reference is
-                    (Next (TR, Exclude_Trivia => True));
+                  function NNT (TR : Token_Reference) return Token_Reference
+                  is (Next (TR, Exclude_Trivia => True));
                   --  Next with no trivia (i.e. excluding whitespace/comment
                   --  tokens).
 
@@ -3908,7 +3933,7 @@ package body Instrument.Ada_Unit is
                   From := Start_Sloc (Sloc_Range (Data (Null_Token)));
                end;
 
-            when others =>
+            when others                                       =>
                null;
          end case;
 
@@ -3917,16 +3942,16 @@ package body Instrument.Ada_Unit is
          end if;
 
          Instrument_Location :=
-         --  See the comment attached to the declaration of the
-         --  Instrument_Location_Type.
+           --  See the comment attached to the declaration of the
+           --  Instrument_Location_Type.
 
-           (if Is_Select_Stmt_Alternative
-            and then N = L.Children (L.Children'First)
-            then (case N.Kind is
-                 when Ada_Delay_Stmt
-                   | Ada_Call_Stmt => Before_Parent,
-                 when others => After)
-            else Instrument_Location);
+            (if Is_Select_Stmt_Alternative
+               and then N = L.Children (L.Children'First)
+             then
+               (case N.Kind is
+                  when Ada_Delay_Stmt | Ada_Call_Stmt => Before_Parent,
+                  when others                         => After)
+             else Instrument_Location);
 
          Append_SCO
            (C1                 => 'S',
@@ -3941,13 +3966,17 @@ package body Instrument.Ada_Unit is
          --  unless...
 
          if
-           --  ... there is no enclosing list to which a witness call
-           --  can be attached.
+         --  ... there is no enclosing list to which a witness call
+         --  can be attached.
 
-           UIC.Current_Insertion_Info.Get.Method /= None
+                                UIC
+                                .Current_Insertion_Info
+                                .Get
+                                .Method
+           /= None
 
-         --  ... this is a top-level declaration in a Preelaborate
-         --  package.
+           --  ... this is a top-level declaration in a Preelaborate
+           --  package.
 
            and then (UIC.Current_Insertion_Info.Get.Method
                      not in Statement | Declaration
@@ -3958,13 +3987,12 @@ package body Instrument.Ada_Unit is
            --  pragmas).
 
            and then (not Is_Pragma
-                     or else
-                     Pragma_Might_Generate_Code
-                       (Case_Insensitive_Get_Pragma_Id
-                            (Pragma_Aspect_Name)))
+                     or else Pragma_Might_Generate_Code
+                               (Case_Insensitive_Get_Pragma_Id
+                                  (Pragma_Aspect_Name)))
 
-             --  ... this is a disabled pragma that we assume will not
-             --  generate code.
+           --  ... this is a disabled pragma that we assume will not
+           --  generate code.
 
            and then Typ /= 'p'
          then
@@ -4014,11 +4042,12 @@ package body Instrument.Ada_Unit is
 
                Insert_Stmt_Witness
                  (UIC             => UIC,
-                  Stmt_Instr_Info => Stmt_Instr_Info_Type'
-                    (Insertion_N         => Actual_Insertion_N,
-                     Instrument_Location => Instrument_Location,
-                     Insert_Info_Ref     => UIC.Current_Insertion_Info,
-                     In_Decl_Expr        => UIC.In_Decl_Expr),
+                  Stmt_Instr_Info =>
+                    Stmt_Instr_Info_Type'
+                      (Insertion_N         => Actual_Insertion_N,
+                       Instrument_Location => Instrument_Location,
+                       Insert_Info_Ref     => UIC.Current_Insertion_Info,
+                       In_Decl_Expr        => UIC.In_Decl_Expr),
                   Bit             => Bit);
             end;
          end if;
@@ -4035,9 +4064,7 @@ package body Instrument.Ada_Unit is
       begin
          if Assertion_Coverage_Enabled then
             Process_Expression
-              (UIC,
-               P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)),
-              'A');
+              (UIC, P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)), 'A');
          end if;
       end Process_Contract;
 
@@ -4046,8 +4073,7 @@ package body Instrument.Ada_Unit is
       ------------------------------------
 
       procedure Traverse_Degenerate_Subprogram
-        (N      : Basic_Decl;
-         N_Spec : Subp_Spec)
+        (N : Basic_Decl; N_Spec : Subp_Spec)
       is
          Stub : constant Node_Rewriting_Handle :=
            Make_Identifier (UIC.Rewriting_Context, "Stub");
@@ -4097,14 +4123,16 @@ package body Instrument.Ada_Unit is
          procedure To_Regular_Subprogram
            (N           : Base_Subp_Body;
             Fun_Witness : Node_Rewriting_Handle := No_Node_Rewriting_Handle)
-           is
+         is
             Single_Stmt_RH : constant Node_Rewriting_Handle :=
               (if N.Kind = Ada_Expr_Function
-              then Create_Return_Stmt
-                     (Handle        => UIC.Rewriting_Context,
-                      F_Return_Expr => Detach (N.As_Expr_Function.F_Expr))
-              else Create_Node (Handle => UIC.Rewriting_Context,
-                                Kind   => Ada_Null_Stmt));
+               then
+                 Create_Return_Stmt
+                   (Handle        => UIC.Rewriting_Context,
+                    F_Return_Expr => Detach (N.As_Expr_Function.F_Expr))
+               else
+                 Create_Node
+                   (Handle => UIC.Rewriting_Context, Kind => Ada_Null_Stmt));
             Stmt_list_RH   : constant Node_Rewriting_Handle :=
               Create_Regular_Node
                 (Handle   => UIC.Rewriting_Context,
@@ -4120,12 +4148,11 @@ package body Instrument.Ada_Unit is
                 (Handle => UIC.Rewriting_Context,
                  F_Name => Clone (N.F_Subp_Spec.F_Subp_Name.F_Name));
             Decl_List      : constant Node_Rewriting_Handle :=
-              Create_Node (Handle => UIC.Rewriting_Context,
-                           Kind   => Ada_Decl_List);
+              Create_Node
+                (Handle => UIC.Rewriting_Context, Kind => Ada_Decl_List);
             Proc_Decls     : constant Node_Rewriting_Handle :=
-                Create_Declarative_Part
-                  (Handle  => UIC.Rewriting_Context,
-                   F_Decls => Decl_List);
+              Create_Declarative_Part
+                (Handle => UIC.Rewriting_Context, F_Decls => Decl_List);
 
             II : aliased Insertion_Info (Statement);
             --  We need to change the insertion method to a statement insertion
@@ -4147,10 +4174,7 @@ package body Instrument.Ada_Unit is
             --  Add witness statement for the single statement
 
             Instrument_Statement
-              (UIC         => UIC,
-               N           => N,
-               Typ         => ' ',
-               Insertion_N => Single_Stmt_RH);
+              (UIC => UIC, N => N, Typ => ' ', Insertion_N => Single_Stmt_RH);
 
             --  Process the returned expression for any decisions if we are
             --  dealing with an expression function
@@ -4164,9 +4188,9 @@ package body Instrument.Ada_Unit is
                  (Decl_List,
                   Create_From_Template
                     (UIC.Rewriting_Context,
-                     Template => "Dummy_Witness_Var : Boolean := {};",
+                     Template  => "Dummy_Witness_Var : Boolean := {};",
                      Arguments => (1 => Fun_Witness),
-                     Rule => Basic_Decls_Rule));
+                     Rule      => Basic_Decls_Rule));
             end if;
 
             --  Insert the new regular function in place of the old subprogram
@@ -4191,8 +4215,7 @@ package body Instrument.Ada_Unit is
          ---------------------------
 
          procedure Create_Witness_Formal
-           (Formal      : out Node_Rewriting_Handle;
-            Formal_Name : Wide_Wide_String)
+           (Formal : out Node_Rewriting_Handle; Formal_Name : Wide_Wide_String)
          is
             Formal_Id     : constant Node_Rewriting_Handle :=
               Make_Identifier (UIC.Rewriting_Context, Formal_Name);
@@ -4201,17 +4224,19 @@ package body Instrument.Ada_Unit is
                 (UIC.Rewriting_Context,
                  Ada_Defining_Name_List,
                  Children =>
-                   (1 => Create_Defining_Name
-                      (UIC.Rewriting_Context, Formal_Id)));
+                   (1 =>
+                      Create_Defining_Name
+                        (UIC.Rewriting_Context, Formal_Id)));
          begin
-            Formal := Create_Param_Spec
-              (UIC.Rewriting_Context,
-               F_Ids          => Formal_Def_Id,
-               F_Has_Aliased  => No_Node_Rewriting_Handle,
-               F_Mode         => No_Node_Rewriting_Handle,
-               F_Type_Expr    => Make_Std_Ref (UIC, "Boolean"),
-               F_Default_Expr => No_Node_Rewriting_Handle,
-               F_Aspects      => No_Node_Rewriting_Handle);
+            Formal :=
+              Create_Param_Spec
+                (UIC.Rewriting_Context,
+                 F_Ids          => Formal_Def_Id,
+                 F_Has_Aliased  => No_Node_Rewriting_Handle,
+                 F_Mode         => No_Node_Rewriting_Handle,
+                 F_Type_Expr    => Make_Std_Ref (UIC, "Boolean"),
+                 F_Default_Expr => No_Node_Rewriting_Handle,
+                 F_Aspects      => No_Node_Rewriting_Handle);
          end Create_Witness_Formal;
 
          Is_Expr_Function : constant Boolean := N.Kind = Ada_Expr_Function;
@@ -4225,8 +4250,8 @@ package body Instrument.Ada_Unit is
          Gen_Names_Prefix : constant Wide_Wide_String :=
            To_Wide_Wide_String
              ((if Is_Expr_Function
-              then "Func_Expr"
-              else (if Fun_Cov then "Aux" else "Null_Proc"))
+               then "Func_Expr"
+               else (if Fun_Cov then "Aux" else "Null_Proc"))
               & "_"
               & Img (UIC.Degenerate_Subprogram_Index)
               & Part_Tags (UIC.Instrumented_Unit.Part)
@@ -4235,7 +4260,7 @@ package body Instrument.Ada_Unit is
 
          Call_Params : constant Node_Rewriting_Handle :=
            (if Is_Expr_Function
-            or else (Fun_Cov and then not N_Spec.F_Subp_Params.Is_Null)
+              or else (Fun_Cov and then not N_Spec.F_Subp_Params.Is_Null)
             then Make (UIC, Ada_Assoc_List)
             else No_Node_Rewriting_Handle);
          --  List of formal/actual associations for the call to the augmented
@@ -4243,7 +4268,7 @@ package body Instrument.Ada_Unit is
 
          Formal_Params : constant Node_Rewriting_Handle :=
            (if Is_Expr_Function
-            or else (Fun_Cov and then not N_Spec.F_Subp_Params.Is_Null)
+              or else (Fun_Cov and then not N_Spec.F_Subp_Params.Is_Null)
             then Clone_Params (UIC, N_Spec)
             else No_Node_Rewriting_Handle);
          --  List of formal parameters for the augmented function. Unused if we
@@ -4268,7 +4293,7 @@ package body Instrument.Ada_Unit is
          -- Local contexts for statement and MC/DC instrumentation --
          ------------------------------------------------------------
 
-         New_Insertion_Info : Insertion_Info_Ref;
+         New_Insertion_Info     : Insertion_Info_Ref;
          --  Witness insertion info for statements (for both null procedures
          --  and expression functions).
          New_Fun_Insertion_Info : aliased Insertion_Info;
@@ -4286,7 +4311,7 @@ package body Instrument.Ada_Unit is
          --   MC/DC state inserter for this expression function (unused if
          --   instrumenting a null procedure).
 
-      --  Start of processing for Traverse_Degenerate_Subprogram
+         --  Start of processing for Traverse_Degenerate_Subprogram
 
       begin
          --------------------------
@@ -4297,8 +4322,8 @@ package body Instrument.Ada_Unit is
          --  type, because it must be either abstract or null.
 
          if not Is_Expr_Function
-            and then not Common_Nodes.Ctrl_Type.Is_Null
-            and then Common_Nodes.Ctrl_Type.P_Is_Interface_Type
+           and then not Common_Nodes.Ctrl_Type.Is_Null
+           and then Common_Nodes.Ctrl_Type.P_Is_Interface_Type
          then
             return;
          end if;
@@ -4351,11 +4376,11 @@ package body Instrument.Ada_Unit is
                --  statement witness will be inserted.
 
                Local_Insertion_Info : constant Insertion_Info :=
-                 (Method      => Declaration,
-                  RH_List     => Decl_List,
-                  Preelab     => False,
-                  Parent      => null,
-                  others      => <>);
+                 (Method  => Declaration,
+                  RH_List => Decl_List,
+                  Preelab => False,
+                  Parent  => null,
+                  others  => <>);
                --  Insertion info points to the newly created declaration list.
                --  Index is 1 as we want to insert a witness call at the
                --  beginning of the list.
@@ -4419,10 +4444,12 @@ package body Instrument.Ada_Unit is
          if Is_Generic (UIC, N) then
             if Is_Expr_Function then
                UIC.Disable_Instrumentation := True;
-               Report (UIC, N,
-                       "gnatcov limitation: "
-                       & "cannot instrument generic expression functions."
-                       & " Consider turning it into a regular function body.");
+               Report
+                 (UIC,
+                  N,
+                  "gnatcov limitation: "
+                  & "cannot instrument generic expression functions."
+                  & " Consider turning it into a regular function body.");
 
             else
                --  As Traverse_Degenerate_Subprogram deals only with expression
@@ -4430,11 +4457,13 @@ package body Instrument.Ada_Unit is
                --  generic null procedure here.
 
                UIC.Disable_Instrumentation := True;
-               Report (UIC, N,
-                       "gnatcov limitation:"
-                       & " cannot instrument generic null procedures."
-                       & " Consider turning it into a regular procedure"
-                       & " body.");
+               Report
+                 (UIC,
+                  N,
+                  "gnatcov limitation:"
+                  & " cannot instrument generic null procedures."
+                  & " Consider turning it into a regular procedure"
+                  & " body.");
             end if;
          end if;
 
@@ -4444,7 +4473,7 @@ package body Instrument.Ada_Unit is
             --  expression function for it will not create a new primitive.
 
             if Return_Type_Is_Controlling (UIC, Common_Nodes)
-               and then In_Package_Spec (N)
+              and then In_Package_Spec (N)
             then
 
                --  For the moment when an expression function is a primitive of
@@ -4472,28 +4501,32 @@ package body Instrument.Ada_Unit is
                --  return type. Need to check for potential freezing issues.
 
                UIC.Disable_Instrumentation := True;
-               Report (UIC, N,
-                       "gnatcov limitation:"
-                       & " cannot instrument an expression function which is"
-                       & " a primitive of its return type, when this type is"
-                       & " a tagged type. Consider turning it into a regular"
-                       & " function body.",
-                       Warning);
+               Report
+                 (UIC,
+                  N,
+                  "gnatcov limitation:"
+                  & " cannot instrument an expression function which is"
+                  & " a primitive of its return type, when this type is"
+                  & " a tagged type. Consider turning it into a regular"
+                  & " function body.",
+                  Warning);
             elsif Is_Self_Referencing (UIC, N.As_Expr_Function)
-                 and then not Common_Nodes.Ctrl_Type.Is_Null
+              and then not Common_Nodes.Ctrl_Type.Is_Null
             then
                UIC.Disable_Instrumentation := True;
-               Report (UIC, N,
-                       "gnatcov limitation:"
-                       & " instrumenting a self referencing (i.e. recursive)"
-                       & " expression function which is a primitive of some"
-                       & " tagged type will move the freezing point of that"
-                       & " type if the expression function is not the last"
-                       & " primitive to be declared. Consider turning the"
-                       & " expression function into a regular function body"
-                       & " or moving it to the end of the declarative"
-                       & " region.",
-                       Warning);
+               Report
+                 (UIC,
+                  N,
+                  "gnatcov limitation:"
+                  & " instrumenting a self referencing (i.e. recursive)"
+                  & " expression function which is a primitive of some"
+                  & " tagged type will move the freezing point of that"
+                  & " type if the expression function is not the last"
+                  & " primitive to be declared. Consider turning the"
+                  & " expression function into a regular function body"
+                  & " or moving it to the end of the declarative"
+                  & " region.",
+                  Warning);
             end if;
          end if;
 
@@ -4539,9 +4572,9 @@ package body Instrument.Ada_Unit is
 
             New_Insertion_Info.Set
               (Insertion_Info'
-                (Method         => Expression_Function,
-                 Witness_Actual => No_Node_Rewriting_Handle,
-                 Witness_Formal => No_Node_Rewriting_Handle));
+                 (Method         => Expression_Function,
+                  Witness_Actual => No_Node_Rewriting_Handle,
+                  Witness_Formal => No_Node_Rewriting_Handle));
 
             if Is_Expr_Function and then Fun_Cov then
                New_Fun_Insertion_Info :=
@@ -4555,12 +4588,17 @@ package body Instrument.Ada_Unit is
                --  Pass all expression function parameters to the augmented
                --  expression function call.
 
-               for J in 1 .. (if Common_Nodes.N_Params.Is_Null
-                              then 0
-                              else Common_Nodes.N_Params.Children_Count)
+               for J in
+                 1
+                 .. (if Common_Nodes.N_Params.Is_Null
+                     then 0
+                     else Common_Nodes.N_Params.Children_Count)
                loop
-                  for Id of Common_Nodes.N_Params.Child (J)
-                           .As_Param_Spec.F_Ids.Children
+                  for Id of
+                    Common_Nodes.N_Params.Child (J)
+                      .As_Param_Spec
+                      .F_Ids
+                      .Children
                   loop
                      Insert_Last
                        (Call_Params,
@@ -4588,13 +4626,13 @@ package body Instrument.Ada_Unit is
                  (Method  => Statement,
                   RH_List => NP_Nodes.Stmt_List,
 
-                 --  Even if the current package has elaboration restrictions,
-                 --  this Insertion_Info is used to insert a witness call in
-                 --  the procedure in the generic body: the elaboration
-                 --  restriction does not apply there.
+                  --  Even if the current package has elaboration restrictions,
+                  --  this Insertion_Info is used to insert a witness call in
+                  --  the procedure in the generic body: the elaboration
+                  --  restriction does not apply there.
 
-                 Preelab => False,
-                 Parent  => null));
+                  Preelab => False,
+                  Parent  => null));
          end if;
 
          ----------------------------------
@@ -4665,9 +4703,7 @@ package body Instrument.Ada_Unit is
 
             declare
                Witness_Flavor : constant Statement_Witness_Flavor :=
-                 (if Is_Expr_Function
-                  then Function_Call
-                  else Procedure_Call);
+                 (if Is_Expr_Function then Function_Call else Procedure_Call);
 
             begin
                Instrument_For_Function_Coverage
@@ -4750,7 +4786,8 @@ package body Instrument.Ada_Unit is
          then
 
             Insert_Before
-              (Stub, Create_Subp_Decl
+              (Stub,
+               Create_Subp_Decl
                  (RC,
                   F_Overriding => Detach (Common_Nodes.N_Overriding),
                   F_Subp_Spec  => Clone (N_Spec),
@@ -4765,9 +4802,9 @@ package body Instrument.Ada_Unit is
 
          if Is_Expr_Function then
             declare
-               Augmented_Function       : Node_Rewriting_Handle;
-               Augmented_Function_Decl  : Node_Rewriting_Handle;
-               New_Function             : Node_Rewriting_Handle;
+               Augmented_Function      : Node_Rewriting_Handle;
+               Augmented_Function_Decl : Node_Rewriting_Handle;
+               New_Function            : Node_Rewriting_Handle;
             begin
                --  Create the augmented expression function and amend the
                --  original one.
@@ -4826,9 +4863,7 @@ package body Instrument.Ada_Unit is
                   Subp_Body,
                   Instance,
                   Renaming_Decl,
-                  (if Fun_Cov
-                   then Fun_Witness
-                   else No_Node_Rewriting_Handle));
+                  (if Fun_Cov then Fun_Witness else No_Node_Rewriting_Handle));
 
                --  Insert the instance in the wrapper package
 
@@ -4848,10 +4883,12 @@ package body Instrument.Ada_Unit is
                         Create_Pragma_Node
                           (RC,
                            F_Id   => Make_Identifier (RC, "Convention"),
-                           F_Args => Create_Regular_Node
-                             (RC, Ada_Assoc_List,
-                               (1 => Clone (Convention_Id),
-                                2 => Clone (Common_Nodes.N_Name)))));
+                           F_Args =>
+                             Create_Regular_Node
+                               (RC,
+                                Ada_Assoc_List,
+                                (1 => Clone (Convention_Id),
+                                 2 => Clone (Common_Nodes.N_Name)))));
                   end if;
                end;
 
@@ -4869,8 +4906,8 @@ package body Instrument.Ada_Unit is
                UIC.Degenerate_Subprogram_Generics.Append
                  (Generic_Subp'
                     (Generic_Subp_Decl =>
-                         To_Unbounded_Wide_Wide_String
-                            (Unparse (NP_Nodes.Subp_Decl)),
+                       To_Unbounded_Wide_Wide_String
+                         (Unparse (NP_Nodes.Subp_Decl)),
                      Generic_Subp_Body =>
                        To_Unbounded_Wide_Wide_String (Unparse (Subp_Body))));
             end;
@@ -4982,7 +5019,7 @@ package body Instrument.Ada_Unit is
          case N.Kind is
             --  Top of the tree: Compilation unit
 
-            when Ada_Compilation_Unit =>
+            when Ada_Compilation_Unit                              =>
                declare
                   CUN          : constant LAL.Compilation_Unit :=
                     N.As_Compilation_Unit;
@@ -5008,9 +5045,10 @@ package body Instrument.Ada_Unit is
                         Traverse_Context_Clause
                           (UIC,
                            CU_Prev_Decl
-                           .Unit.Root
-                           .As_Compilation_Unit
-                           .F_Prelude,
+                             .Unit
+                             .Root
+                             .As_Compilation_Unit
+                             .F_Prelude,
                            Process_Pragmas => False);
                      end if;
 
@@ -5020,10 +5058,14 @@ package body Instrument.Ada_Unit is
                      begin
                         while AUN /= Std loop
                            declare
-                              Root_Decl   : constant Basic_Decl :=
-                                AUN.Root.As_Compilation_Unit
-                                  .F_Body.As_Library_Item.F_Item;
-                              Parent      : constant Basic_Decl :=
+                              Root_Decl : constant Basic_Decl :=
+                                AUN
+                                  .Root
+                                  .As_Compilation_Unit
+                                  .F_Body
+                                  .As_Library_Item
+                                  .F_Item;
+                              Parent    : constant Basic_Decl :=
                                 Parent_Decl (Root_Decl);
                            begin
                               UIC.Withed_Units.Include
@@ -5047,8 +5089,7 @@ package body Instrument.Ada_Unit is
                         | Ada_Protected_Body
                         | Ada_Subp_Body
                         | Ada_Subp_Decl
-                        | Ada_Task_Body
-                     =>
+                        | Ada_Task_Body =>
                         if CU_Decl.Kind = Ada_Generic_Package_Decl then
                            UIC.In_Generic := True;
                         end if;
@@ -5063,7 +5104,7 @@ package body Instrument.Ada_Unit is
                      --  All other cases of compilation units (e.g. renamings),
                      --  generate no SCO information.
 
-                     when others =>
+                     when others        =>
                         null;
                   end case;
 
@@ -5075,35 +5116,37 @@ package body Instrument.Ada_Unit is
                        To_Nodes
                          (UIC.Rewriting_Context, UIC.Pure_Buffer_Unit.Unit);
                      With_Buffers_Clause : constant Node_Rewriting_Handle :=
-                        Create_From_Template
-                          (UIC.Rewriting_Context, "with {};",
-                           (1 => To_Nodes
-                              (UIC.Rewriting_Context, Sys_Buffers)),
-                            With_Clause_Rule);
+                       Create_From_Template
+                         (UIC.Rewriting_Context,
+                          "with {};",
+                          (1 => To_Nodes (UIC.Rewriting_Context, Sys_Buffers)),
+                          With_Clause_Rule);
                      With_PB_Clause      : constant Node_Rewriting_Handle :=
-                        Create_From_Template
-                          (UIC.Rewriting_Context, "with {};",
-                           (1 => Buffers_Unit), With_Clause_Rule);
+                       Create_From_Template
+                         (UIC.Rewriting_Context,
+                          "with {};",
+                          (1 => Buffers_Unit),
+                          With_Clause_Rule);
                   begin
                      Insert_Last (Handle (CUN.F_Prelude), With_Buffers_Clause);
                      Insert_Last (Handle (CUN.F_Prelude), With_PB_Clause);
                   end;
                end;
 
-            when Ada_Ada_Node_List =>
+            when Ada_Ada_Node_List                                 =>
                for Child of N.As_Ada_Node_List loop
                   Traverse_One (Child.As_Ada_Node);
                end loop;
 
             --  Package declaration
 
-            when Ada_Package_Decl =>
+            when Ada_Package_Decl                                  =>
                Traverse_Package_Declaration
                  (UIC, N.As_Base_Package_Decl, Preelab);
 
             --  Generic package declaration
 
-            when Ada_Generic_Package_Decl =>
+            when Ada_Generic_Package_Decl                          =>
                UIC.In_Generic := True;
                Traverse_Generic_Package_Declaration
                  (UIC, N.As_Generic_Package_Decl, Preelab);
@@ -5111,7 +5154,7 @@ package body Instrument.Ada_Unit is
 
             --  Package body
 
-            when Ada_Package_Body =>
+            when Ada_Package_Body                                  =>
                declare
                   PB : constant Package_Body := N.As_Package_Body;
                begin
@@ -5125,25 +5168,23 @@ package body Instrument.Ada_Unit is
             when Ada_Expr_Function
                | Ada_Null_Subp_Decl
                | Ada_Subp_Body_Stub
-               | Ada_Subp_Decl
-            =>
+               | Ada_Subp_Decl                                     =>
                Traverse_Subp_Decl_Or_Stub (N.As_Basic_Decl);
 
             --  Entry declaration
 
-            when Ada_Entry_Decl =>
+            when Ada_Entry_Decl                                    =>
                Process_Expression
                  (UIC, As_Entry_Decl (N).F_Spec.F_Entry_Params, 'X');
 
             --  Generic subprogram declaration
 
-            when Ada_Generic_Subp_Decl =>
+            when Ada_Generic_Subp_Decl                             =>
                declare
                   GSD : constant Generic_Subp_Decl := As_Generic_Subp_Decl (N);
                begin
                   UIC.In_Generic := True;
-                  Process_Expression
-                    (UIC, GSD.F_Formal_Part.F_Decls, 'X');
+                  Process_Expression (UIC, GSD.F_Formal_Part.F_Decls, 'X');
                   Process_Expression
                     (UIC, GSD.F_Subp_Decl.F_Subp_Spec.F_Subp_Params, 'X');
                   UIC.In_Generic := Saved_In_Generic;
@@ -5151,9 +5192,7 @@ package body Instrument.Ada_Unit is
 
             --  Task or subprogram body
 
-            when Ada_Subp_Body
-               | Ada_Task_Body
-            =>
+            when Ada_Subp_Body | Ada_Task_Body                     =>
                declare
                   B : constant Body_Node := N.As_Body_Node;
                begin
@@ -5191,7 +5230,7 @@ package body Instrument.Ada_Unit is
 
             --  Entry body
 
-            when Ada_Entry_Body =>
+            when Ada_Entry_Body                                    =>
                declare
                   EB   : constant Entry_Body := N.As_Entry_Body;
                   Cond : constant Expr := EB.F_Barrier;
@@ -5215,38 +5254,40 @@ package body Instrument.Ada_Unit is
 
             --  Protected body
 
-            when Ada_Protected_Body =>
+            when Ada_Protected_Body                                =>
                Enter_Scope
                  (UIC, N, Safe_Previous_Part_For_Decl (As_Protected_Body (N)));
                Traverse_Declarations_Or_Statements
                  (UIC, L => As_Protected_Body (N).F_Decls.F_Decls);
                Exit_Scope (UIC);
 
-            when Ada_Exit_Stmt =>
+            when Ada_Exit_Stmt                                     =>
                Instrument_Statement (UIC, N, 'E');
                End_Statement_Block (UIC);
                Start_Statement_Block (UIC);
                Process_Expression (UIC, As_Exit_Stmt (N).F_Cond_Expr, 'E');
 
-            when Ada_Decl_Block | Ada_Begin_Block =>
+            when Ada_Decl_Block | Ada_Begin_Block                  =>
 
                if N.Kind = Ada_Decl_Block then
 
                   --  A declaration block does not start a new block
 
                   Traverse_Declarations_Or_Statements
-                    (UIC, L => As_Decl_Block (N).F_Decls.F_Decls,
+                    (UIC,
+                     L        => As_Decl_Block (N).F_Decls.F_Decls,
                      Is_Block => False);
                end if;
 
                Traverse_Handled_Statement_Sequence
                  (UIC,
-                  N => (case N.Kind is
-                           when Ada_Decl_Block  => As_Decl_Block (N).F_Stmts,
-                           when Ada_Begin_Block => As_Begin_Block (N).F_Stmts,
-                           when others          => raise Program_Error));
+                  N =>
+                    (case N.Kind is
+                       when Ada_Decl_Block  => As_Decl_Block (N).F_Stmts,
+                       when Ada_Begin_Block => As_Begin_Block (N).F_Stmts,
+                       when others          => raise Program_Error));
 
-            when Ada_If_Stmt =>
+            when Ada_If_Stmt                                       =>
                Instrument_Statement (UIC, N, 'I');
                End_Statement_Block (UIC);
 
@@ -5259,8 +5300,7 @@ package body Instrument.Ada_Unit is
                   --  Now we traverse the statements in the THEN part
 
                   Traverse_Declarations_Or_Statements
-                    (UIC,
-                     L => If_N.F_Then_Stmts.As_Ada_Node_List);
+                    (UIC, L => If_N.F_Then_Stmts.As_Ada_Node_List);
 
                   --  Loop through ELSIF parts if present
 
@@ -5272,7 +5312,8 @@ package body Instrument.Ada_Unit is
                         Start_Statement_Block (UIC);
                         Instrument_Statement
                           (UIC,
-                           Ada_Node (Elif), 'I',
+                           Ada_Node (Elif),
+                           'I',
                            Insertion_N => Handle (Elif.F_Cond_Expr));
                         End_Statement_Block (UIC);
 
@@ -5289,8 +5330,7 @@ package body Instrument.Ada_Unit is
 
                   if not If_N.F_Else_Part.Is_Null then
                      Traverse_Declarations_Or_Statements
-                       (UIC,
-                        L => If_N.F_Else_Part.F_Stmts.As_Ada_Node_List);
+                       (UIC, L => If_N.F_Else_Part.F_Stmts.As_Ada_Node_List);
                   end if;
                end;
 
@@ -5298,7 +5338,7 @@ package body Instrument.Ada_Unit is
 
                Start_Statement_Block (UIC);
 
-            when Ada_Case_Stmt =>
+            when Ada_Case_Stmt                                     =>
                Instrument_Statement (UIC, N, 'C');
                End_Statement_Block (UIC);
 
@@ -5317,8 +5357,7 @@ package body Instrument.Ada_Unit is
                           Alt_L.Child (J).As_Case_Stmt_Alternative;
                      begin
                         Traverse_Declarations_Or_Statements
-                          (UIC,
-                           L => Alt.F_Stmts.As_Ada_Node_List);
+                          (UIC, L => Alt.F_Stmts.As_Ada_Node_List);
                      end;
                   end loop;
                end;
@@ -5329,7 +5368,7 @@ package body Instrument.Ada_Unit is
 
             --  ACCEPT statement
 
-            when Ada_Accept_Stmt | Ada_Accept_Stmt_With_Stmts =>
+            when Ada_Accept_Stmt | Ada_Accept_Stmt_With_Stmts      =>
                Instrument_Statement (UIC, N, 'A');
                End_Statement_Block (UIC);
 
@@ -5338,8 +5377,7 @@ package body Instrument.Ada_Unit is
 
                   Start_Statement_Block (UIC);
                   Traverse_Handled_Statement_Sequence
-                    (UIC,
-                     N => N.As_Accept_Stmt_With_Stmts.F_Stmts);
+                    (UIC, N => N.As_Accept_Stmt_With_Stmts.F_Stmts);
                   End_Statement_Block (UIC);
                end if;
 
@@ -5351,7 +5389,7 @@ package body Instrument.Ada_Unit is
             --  (all 4 non-terminals: selective_accept, timed_entry_call,
             --  conditional_entry_call, and asynchronous_select).
 
-            when Ada_Select_Stmt =>
+            when Ada_Select_Stmt                                   =>
                Instrument_Statement (UIC, N, 'S');
                End_Statement_Block (UIC);
 
@@ -5360,7 +5398,7 @@ package body Instrument.Ada_Unit is
                begin
                   for J in 1 .. Sel_N.F_Guards.Children_Count loop
                      declare
-                        Alt : constant Select_When_Part :=
+                        Alt   : constant Select_When_Part :=
                           Sel_N.F_Guards.Child (J).As_Select_When_Part;
                         Guard : Expr;
                      begin
@@ -5375,7 +5413,8 @@ package body Instrument.Ada_Unit is
 
                         Traverse_Declarations_Or_Statements
                           (UIC,
-                           L => Alt.F_Stmts.As_Ada_Node_List,
+                           L                          =>
+                             Alt.F_Stmts.As_Ada_Node_List,
                            Is_Select_Stmt_Alternative => True);
                      end;
                   end loop;
@@ -5385,8 +5424,7 @@ package body Instrument.Ada_Unit is
 
                   if not Sel_N.F_Else_Part.Is_Null then
                      Traverse_Declarations_Or_Statements
-                       (UIC,
-                        L => Sel_N.F_Else_Part.F_Stmts.As_Ada_Node_List);
+                       (UIC, L => Sel_N.F_Else_Part.F_Stmts.As_Ada_Node_List);
                   end if;
                   if not Sel_N.F_Then_Abort_Part.Is_Null then
                      Traverse_Declarations_Or_Statements
@@ -5403,13 +5441,10 @@ package body Instrument.Ada_Unit is
             --  be dubious anyway, since no code is actually executed if the
             --  alternative is selected.
 
-            when Ada_Terminate_Alternative =>
+            when Ada_Terminate_Alternative                         =>
                null;
 
-            when Ada_Goto_Stmt
-               | Ada_Raise_Stmt
-               | Ada_Requeue_Stmt
-            =>
+            when Ada_Goto_Stmt | Ada_Raise_Stmt | Ada_Requeue_Stmt =>
                Instrument_Statement (UIC, N, ' ');
                End_Statement_Block (UIC);
 
@@ -5420,16 +5455,15 @@ package body Instrument.Ada_Unit is
             --  Simple return statement. which is an exit point, but we
             --  have to process the return expression for decisions.
 
-            when Ada_Return_Stmt =>
+            when Ada_Return_Stmt                                   =>
                Instrument_Statement (UIC, N, ' ');
                End_Statement_Block (UIC);
                Start_Statement_Block (UIC);
-               Process_Expression
-                 (UIC, N.As_Return_Stmt.F_Return_Expr, 'X');
+               Process_Expression (UIC, N.As_Return_Stmt.F_Return_Expr, 'X');
 
             --  Extended return statement
 
-            when Ada_Extended_Return_Stmt =>
+            when Ada_Extended_Return_Stmt                          =>
                Instrument_Statement (UIC, N, 'R');
                declare
                   ER_N : constant Extended_Return_Stmt :=
@@ -5438,12 +5472,11 @@ package body Instrument.Ada_Unit is
                   Process_Expression (UIC, ER_N.F_Decl, 'X');
 
                   Start_Statement_Block (UIC);
-                  Traverse_Handled_Statement_Sequence
-                    (UIC, N => ER_N.F_Stmts);
+                  Traverse_Handled_Statement_Sequence (UIC, N => ER_N.F_Stmts);
                   End_Statement_Block (UIC);
                end;
 
-            when Ada_Base_Loop_Stmt =>
+            when Ada_Base_Loop_Stmt                                =>
                declare
                   Loop_S : constant Base_Loop_Stmt := N.As_Base_Loop_Stmt;
                   ISC    : constant Loop_Spec := Loop_S.F_Spec;
@@ -5494,13 +5527,12 @@ package body Instrument.Ada_Unit is
                   End_Statement_Block (UIC);
                   Start_Statement_Block (UIC);
                   Traverse_Declarations_Or_Statements
-                    (UIC,
-                     L => Loop_S.F_Stmts.As_Ada_Node_List);
+                    (UIC, L => Loop_S.F_Stmts.As_Ada_Node_List);
                end;
 
             --  Pragma
 
-            when Ada_Pragma_Node =>
+            when Ada_Pragma_Node                                   =>
 
                --  Processing depends on the kind of pragma
 
@@ -5515,29 +5547,31 @@ package body Instrument.Ada_Unit is
                      when Name_Type_Invariant
                         | Name_Precondition
                         | Name_Postcondition
-                        =>
+                     =>
                         Instrument_Statement (UIC, N, 'p');
 
                         if Assertion_Coverage_Enabled then
                            declare
                               Pragma_Name : constant String :=
                                 (case Nam is
-                                    when Name_Type_Invariant =>
-                                      "Type_Invariant",
-                                    when Name_Precondition =>
-                                       "Precondition",
-                                    when Name_Postcondition =>
-                                      "Postcondition",
-                                    when others => "");
+                                   when Name_Type_Invariant =>
+                                     "Type_Invariant",
+                                   when Name_Precondition   => "Precondition",
+                                   when Name_Postcondition  => "Postcondition",
+                                   when others              => "");
                               Location    : constant String :=
                                 Ada.Directories.Simple_Name
                                   (N.Unit.Get_Filename)
-                                & ":" & Image (Sloc (N));
+                                & ":"
+                                & Image (Sloc (N));
                            begin
-                              Warn ("gnatcov limitation: pragma " & Pragma_Name
-                                    & " ignored during instrumentation at "
-                                    & Location & ". Consider expressing it as"
-                                    & " an aspect instead.");
+                              Warn
+                                ("gnatcov limitation: pragma "
+                                 & Pragma_Name
+                                 & " ignored during instrumentation at "
+                                 & Location
+                                 & ". Consider expressing it as"
+                                 & " an aspect instead.");
                            end;
                         end if;
 
@@ -5561,20 +5595,22 @@ package body Instrument.Ada_Unit is
                            declare
                               Index : constant Positive :=
                                 (case Nam is
-                                    when Name_Check => 2,
-                                    when others     => 1);
+                                   when Name_Check => 2,
+                                   when others     => 1);
                            begin
                               if not Is_Null (Prag_Args.Child (Index)) then
                                  Process_Expression
                                    (UIC,
-                                    Prag_Arg_Expr (Prag_Args, Index), 'P');
+                                    Prag_Arg_Expr (Prag_Args, Index),
+                                    'P');
                               end if;
                            end;
                         else
                            Instrument_Statement (UIC, N, 'p');
                         end if;
 
-                     when Name_Debug =>
+                     when Name_Debug
+                     =>
 
                         --  Note: conservatively assume that the check policy
                         --  for pragma debug is enabled.
@@ -5594,7 +5630,8 @@ package body Instrument.Ada_Unit is
                         Process_Expression
                           (UIC, Prag_Arg_Expr (Prag_Args, Arg), 'X');
 
-                     when Name_Annotate =>
+                     when Name_Annotate
+                     =>
 
                         --  If this is a coverage exemption, record it. Raise
                         --  a warning if the annotation could not be processed.
@@ -5619,7 +5656,8 @@ package body Instrument.Ada_Unit is
                      --  Should generate P decisions (not X) for assertion
                      --  related pragmas: [{Static,Dynamic}_]Predicate???
 
-                     when others =>
+                     when others
+                     =>
                         Instrument_Statement (UIC, N, 'P');
                         Process_Expression (UIC, N, 'X');
                   end case;
@@ -5629,42 +5667,34 @@ package body Instrument.Ada_Unit is
             --  Generate a single SCO even if multiple defining identifiers
             --  are present.
 
-            when Ada_Number_Decl
-               | Ada_Object_Decl
-            =>
+            when Ada_Number_Decl | Ada_Object_Decl                 =>
                Instrument_Statement (UIC, N, 'o');
                Process_Expression (UIC, N, 'X');
 
-            when Ada_Protected_Type_Decl
-               | Ada_Task_Type_Decl
-            =>
+            when Ada_Protected_Type_Decl | Ada_Task_Type_Decl      =>
                Instrument_Statement (UIC, N, 't');
                declare
                   Disc_N : constant Discriminant_Part :=
                     (case N.Kind is
-                        when Ada_Protected_Type_Decl =>
-                          N.As_Protected_Type_Decl.F_Discriminants,
-                        when Ada_Task_Type_Decl      =>
-                          N.As_Task_Type_Decl.F_Discriminants,
-                        when others                  =>
-                           raise Program_Error);
+                       when Ada_Protected_Type_Decl =>
+                         N.As_Protected_Type_Decl.F_Discriminants,
+                       when Ada_Task_Type_Decl      =>
+                         N.As_Task_Type_Decl.F_Discriminants,
+                       when others                  => raise Program_Error);
                begin
                   Process_Expression (UIC, Disc_N, 'X');
                end;
 
                Traverse_Sync_Definition (UIC, N);
 
-            when Ada_Single_Protected_Decl
-               | Ada_Single_Task_Decl
-            =>
+            when Ada_Single_Protected_Decl | Ada_Single_Task_Decl  =>
                Instrument_Statement (UIC, N, 'o');
 
                Traverse_Sync_Definition (UIC, N);
 
             when Ada_Base_Subtype_Decl
                | Ada_Incomplete_Type_Decl
-               | Ada_Type_Decl
-            =>
+               | Ada_Type_Decl                                     =>
                --  Instrument the type declaration itself as a statement
 
                declare
@@ -5703,37 +5733,34 @@ package body Instrument.Ada_Unit is
                   if TD.F_Type_Def.Kind = Ada_Record_Type_Def then
                      Traverse_Component_List
                        (TD
-                        .F_Type_Def
-                        .As_Record_Type_Def
-                        .F_Record_Def
-                        .F_Components);
+                          .F_Type_Def
+                          .As_Record_Type_Def
+                          .F_Record_Def
+                          .F_Components);
                   else
                      Process_Expression (UIC, TD.F_Type_Def, 'X');
                   end if;
                end;
 
-            when Ada_Named_Stmt =>
+            when Ada_Named_Stmt                                    =>
                Traverse_One (N.As_Named_Stmt.F_Stmt.As_Ada_Node);
 
             when Ada_Package_Renaming_Decl
                | Ada_Subp_Renaming_Decl
                | Ada_Generic_Renaming_Decl
-               | Ada_Generic_Instantiation
-            =>
-               Enter_Scope
-                 (UIC  => UIC,
-                  N    => N,
-                  Decl => N.As_Basic_Decl);
+               | Ada_Generic_Instantiation                         =>
+               Enter_Scope (UIC => UIC, N => N, Decl => N.As_Basic_Decl);
                Instrument_Statement
-                 (UIC, N,
+                 (UIC,
+                  N,
                   (if N.Kind in Ada_Generic_Instantiation then 'i' else 'r'));
                Exit_Scope (UIC);
 
-            when Ada_Label =>
+            when Ada_Label                                         =>
                End_Statement_Block (UIC);
                Start_Statement_Block (UIC);
 
-            when Ada_Call_Stmt =>
+            when Ada_Call_Stmt                                     =>
                Instrument_Statement (UIC, N, ' ');
 
                if Enabled (Fun_Call) then
@@ -5751,7 +5778,7 @@ package body Instrument.Ada_Unit is
 
                Process_Expression (UIC, N, 'X');
 
-            when others =>
+            when others                                            =>
                --  Determine required type character code, or ASCII.NUL if
                --  no SCO should be generated for this node.
 
@@ -5767,12 +5794,12 @@ package body Instrument.Ada_Unit is
                         declare
                            Ren_N : constant Renaming_Clause :=
                              (case N.Kind is
-                                 when Ada_Object_Decl    =>
-                                   N.As_Object_Decl.F_Renaming_Clause,
-                                 when Ada_Exception_Decl =>
-                                   N.As_Exception_Decl.F_Renames,
-                                 when others             =>
-                                    raise Program_Error);
+                                when Ada_Object_Decl    =>
+                                  N.As_Object_Decl.F_Renaming_Clause,
+                                when Ada_Exception_Decl =>
+                                  N.As_Exception_Decl.F_Renames,
+                                when others             =>
+                                  raise Program_Error);
                         begin
                            if not Ren_N.Is_Null then
                               Typ := 'r';
@@ -5786,11 +5813,10 @@ package body Instrument.Ada_Unit is
                         | Ada_Aspect_Clause
                         | Ada_Task_Body_Stub
                         | Ada_Use_Package_Clause
-                        | Ada_Use_Type_Clause
-                     =>
+                        | Ada_Use_Type_Clause                  =>
                         Typ := ASCII.NUL;
 
-                     when others =>
+                     when others                               =>
                         if N.Kind in Ada_Stmt then
                            Typ := ' ';
                         else
@@ -5817,7 +5843,7 @@ package body Instrument.Ada_Unit is
       end Traverse_One;
 
       Saved_Insertion_Info : constant Insertion_Info_Ref :=
-         UIC.Current_Insertion_Info;
+        UIC.Current_Insertion_Info;
 
       Items_Count : constant Natural :=
         (if L.Is_Null then 0 else L.Children_Count);
@@ -5845,10 +5871,8 @@ package body Instrument.Ada_Unit is
       if not (L.Is_Null or else L.Kind = Ada_Pragma_Node_List) then
          declare
             Method : constant Insertion_Method :=
-              (if L.Kind = Ada_Stmt_List
-               then Statement
-               else Declaration);
-            II : Insertion_Info (Method);
+              (if L.Kind = Ada_Stmt_List then Statement else Declaration);
+            II     : Insertion_Info (Method);
          begin
             II.RH_List := Handle (L);
             II.Preelab := Preelab;
@@ -5875,11 +5899,10 @@ package body Instrument.Ada_Unit is
             --  Only traverse the nodes if they are not ghost entities
 
             if not (UIC.Ghost_Code
-                    or else
-                      (N.Kind in Ada_Stmt and then Safe_Is_Ghost (N.As_Stmt))
-                    or else
-                      (N.Kind in Ada_Basic_Decl
-                       and then Safe_Is_Ghost (N.As_Basic_Decl)))
+                    or else (N.Kind in Ada_Stmt
+                             and then Safe_Is_Ghost (N.As_Stmt))
+                    or else (N.Kind in Ada_Basic_Decl
+                             and then Safe_Is_Ghost (N.As_Basic_Decl)))
             then
                Traverse_One (N);
             end if;
@@ -5905,8 +5928,7 @@ package body Instrument.Ada_Unit is
       Process_Pragmas : Boolean)
    is
       function Withed_Unit_Normalized_Name
-        (N : Libadalang.Analysis.Name)
-         return Text_Type;
+        (N : Libadalang.Analysis.Name) return Text_Type;
       --  Return the normalized name (see FQN_Sets) of N, a name for a withed
       --  unit.
 
@@ -5915,28 +5937,28 @@ package body Instrument.Ada_Unit is
       ---------------------------------
 
       function Withed_Unit_Normalized_Name
-        (N : Libadalang.Analysis.Name)
-         return Text_Type
-      is
+        (N : Libadalang.Analysis.Name) return Text_Type is
       begin
          case N.Kind is
-            when Ada_Base_Id =>
+            when Ada_Base_Id     =>
                return Canonicalize (N.Text).Symbol;
 
             when Ada_Dotted_Name =>
                declare
                   DN : constant Dotted_Name := N.As_Dotted_Name;
                begin
-                  return (Withed_Unit_Normalized_Name (DN.F_Prefix) & "."
-                          & Withed_Unit_Normalized_Name (DN.F_Suffix.As_Name));
+                  return
+                    (Withed_Unit_Normalized_Name (DN.F_Prefix)
+                     & "."
+                     & Withed_Unit_Normalized_Name (DN.F_Suffix.As_Name));
                end;
 
-            when others =>
+            when others          =>
                raise Program_Error with "unreachable code";
          end case;
       end Withed_Unit_Normalized_Name;
 
-   --  Start of processing for Traverse_Context_Clause
+      --  Start of processing for Traverse_Context_Clause
 
    begin
       for J in 1 .. L.Children_Count loop
@@ -5959,20 +5981,20 @@ package body Instrument.Ada_Unit is
                               Pragma_Str : constant String :=
                                 Image (N.As_Pragma_Node.F_Id.Text);
                            begin
-                              if not
-                                Set_Language_Version
-                                  (UIC.Language_Version, From => Pragma_Str)
+                              if not Set_Language_Version
+                                       (UIC.Language_Version,
+                                        From => Pragma_Str)
                               then
                                  Report
-                                 (UIC,
+                                   (UIC,
                                     N,
                                     "Unknown language pragma version: "
                                     & Pragma_Str,
                                     Kind => Warning);
                               end if;
                            end;
-                        elsif
-                          Instrument.Ada_Unit.Pragma_Name (N.As_Pragma_Node)
+                        elsif Instrument.Ada_Unit.Pragma_Name
+                                (N.As_Pragma_Node)
                           = Name_Annotate
                         then
                            Process_Annotation
@@ -5996,7 +6018,7 @@ package body Instrument.Ada_Unit is
                      end if;
                   end;
 
-               when others =>
+               when others          =>
                   null;
             end case;
          end;
@@ -6011,8 +6033,7 @@ package body Instrument.Ada_Unit is
    procedure Traverse_Generic_Package_Declaration
      (UIC     : in out Ada_Unit_Inst_Context;
       N       : Generic_Package_Decl;
-      Preelab : Boolean)
-   is
+      Preelab : Boolean) is
    begin
       Process_Expression (UIC, N.F_Formal_Part, 'X');
       Traverse_Package_Declaration
@@ -6024,9 +6045,7 @@ package body Instrument.Ada_Unit is
    -----------------------------------------
 
    procedure Traverse_Handled_Statement_Sequence
-     (UIC : in out Ada_Unit_Inst_Context;
-      N   : Handled_Stmts)
-   is
+     (UIC : in out Ada_Unit_Inst_Context; N : Handled_Stmts) is
    begin
       if N.Is_Null then
          return;
@@ -6057,9 +6076,7 @@ package body Instrument.Ada_Unit is
    ---------------------------
 
    procedure Traverse_Package_Body
-     (UIC     : in out Ada_Unit_Inst_Context;
-      N       : Package_Body;
-      Preelab : Boolean)
+     (UIC : in out Ada_Unit_Inst_Context; N : Package_Body; Preelab : Boolean)
    is
       Saved_MCDC_State_Inserter : constant Any_MCDC_State_Inserter :=
         UIC.MCDC_State_Inserter;
@@ -6077,10 +6094,7 @@ package body Instrument.Ada_Unit is
       end if;
 
       UIC.Ghost_Code := Safe_Is_Ghost (N);
-      Enter_Scope
-        (UIC  => UIC,
-         N    => N,
-         Decl => Decl);
+      Enter_Scope (UIC => UIC, N => N, Decl => Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       Start_Statement_Block (UIC);
@@ -6109,16 +6123,16 @@ package body Instrument.Ada_Unit is
         (Local_Decls => Handle (N.F_Public_Part.F_Decls));
    begin
       UIC.Ghost_Code := Safe_Is_Ghost (N);
-      Enter_Scope
-        (UIC  => UIC,
-         N    => N,
-         Decl => N.As_Basic_Decl);
+      Enter_Scope (UIC => UIC, N => N, Decl => N.As_Basic_Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
       Start_Statement_Block (UIC);
       Traverse_Declarations_Or_Statements
-        (UIC, N.F_Public_Part.F_Decls, Preelab,
-         Priv_Part => N.F_Private_Part, Is_Block => False);
+        (UIC,
+         N.F_Public_Part.F_Decls,
+         Preelab,
+         Priv_Part => N.F_Private_Part,
+         Is_Block  => False);
 
       if not N.F_Private_Part.Is_Null then
          Traverse_Declarations_Or_Statements
@@ -6138,8 +6152,7 @@ package body Instrument.Ada_Unit is
    ------------------------------
 
    procedure Traverse_Sync_Definition
-     (UIC : in out Ada_Unit_Inst_Context;
-      N   : Ada_Node)
+     (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node)
    is
       Vis_Decl  : Public_Part := No_Public_Part;
       Priv_Decl : Private_Part := No_Private_Part;
@@ -6147,7 +6160,7 @@ package body Instrument.Ada_Unit is
 
    begin
       case N.Kind is
-         when Ada_Protected_Type_Decl =>
+         when Ada_Protected_Type_Decl   =>
             declare
                Prot_Def : constant Protected_Def :=
                  N.As_Protected_Type_Decl.F_Definition;
@@ -6165,7 +6178,7 @@ package body Instrument.Ada_Unit is
                Priv_Decl := Prot_Def.F_Private_Part;
             end;
 
-         when Ada_Single_Task_Decl =>
+         when Ada_Single_Task_Decl      =>
             declare
                T_Def : constant Task_Def :=
                  N.As_Single_Task_Decl.F_Task_Type.F_Definition;
@@ -6176,10 +6189,9 @@ package body Instrument.Ada_Unit is
                end if;
             end;
 
-         when Ada_Task_Type_Decl =>
+         when Ada_Task_Type_Decl        =>
             declare
-               T_Def : constant Task_Def :=
-                 N.As_Task_Type_Decl.F_Definition;
+               T_Def : constant Task_Def := N.As_Task_Type_Decl.F_Definition;
             begin
                if not T_Def.Is_Null then
                   Vis_Decl := T_Def.F_Public_Part;
@@ -6187,7 +6199,7 @@ package body Instrument.Ada_Unit is
                end if;
             end;
 
-         when others =>
+         when others                    =>
             raise Program_Error;
       end case;
 
@@ -6197,8 +6209,10 @@ package body Instrument.Ada_Unit is
       Start_Statement_Block (UIC);
       if not Vis_Decl.Is_Null then
          Traverse_Declarations_Or_Statements
-           (UIC, L => Vis_Decl.F_Decls, Priv_Part => Priv_Decl,
-            Is_Block => False);
+           (UIC,
+            L         => Vis_Decl.F_Decls,
+            Priv_Part => Priv_Decl,
+            Is_Block  => False);
       end if;
 
       if not Priv_Decl.Is_Null then
@@ -6213,8 +6227,7 @@ package body Instrument.Ada_Unit is
    --------------------------------------
 
    procedure Traverse_Subprogram_Or_Task_Body
-     (UIC : in out Ada_Unit_Inst_Context;
-      N   : Body_Node'Class)
+     (UIC : in out Ada_Unit_Inst_Context; N : Body_Node'Class)
    is
       Decls   : Declarative_Part;
       HSS     : Handled_Stmts;
@@ -6226,20 +6239,21 @@ package body Instrument.Ada_Unit is
 
    begin
       case Kind (N) is
-         when Ada_Subp_Body =>
+         when Ada_Subp_Body  =>
             declare
                SBN : constant Subp_Body := N.As_Subp_Body;
             begin
-               Decls   := SBN.F_Decls;
-               HSS     := SBN.F_Stmts;
+               Decls := SBN.F_Decls;
+               HSS := SBN.F_Stmts;
                Aspects := SBN.F_Aspects;
             end;
-         when Ada_Task_Body =>
+
+         when Ada_Task_Body  =>
             declare
                TBN : constant Task_Body := N.As_Task_Body;
             begin
                Decls := TBN.F_Decls;
-               HSS   := TBN.F_Stmts;
+               HSS := TBN.F_Stmts;
             end;
 
          when Ada_Entry_Body =>
@@ -6250,7 +6264,7 @@ package body Instrument.Ada_Unit is
                HSS := EBN.F_Stmts;
             end;
 
-         when others =>
+         when others         =>
             raise Program_Error;
       end case;
 
@@ -6262,10 +6276,7 @@ package body Instrument.Ada_Unit is
             then N.P_Subp_Spec_Or_Null.P_Parent_Basic_Decl
             else Previous_Part);
       begin
-         Enter_Scope
-           (UIC  => UIC,
-            N    => N,
-            Decl => Decl);
+         Enter_Scope (UIC => UIC, N => N, Decl => Decl);
       end;
 
       Process_Formal_Default_Exprs (UIC, N.P_Subp_Spec_Or_Null.As_Subp_Spec);
@@ -6283,8 +6294,7 @@ package body Instrument.Ada_Unit is
             while Has_Elt loop
                Process_Expression
                  (UIC,
-                  As_Ada_Node
-                    (Assocs.Aspect_Assoc_List_Element (Idx).F_Expr),
+                  As_Ada_Node (Assocs.Aspect_Assoc_List_Element (Idx).F_Expr),
                   'A');
                Idx := Idx + 1;
                Has_Elt := Assocs.Aspect_Assoc_List_Has_Element (Idx);
@@ -6312,9 +6322,7 @@ package body Instrument.Ada_Unit is
    ------------------------
 
    procedure Process_Expression
-     (UIC : in out Ada_Unit_Inst_Context;
-      N   : Ada_Node'Class;
-      T   : Character)
+     (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character)
    is
       procedure Process_Call_Expression (N : Ada_Node'Class);
       --  Traverse the expression N to instrument calls for call coverage.
@@ -6345,10 +6353,10 @@ package body Instrument.Ada_Unit is
       --  ending the current statement block if a raise expression is found.
 
       procedure Instrument_GExpr
-      (E                 : Expr;
-       SR                : Source_Location_Range;
-       Parent_Handle     : Node_Rewriting_Handle;
-       Parent_Member_Ref : Struct_Member_Ref);
+        (E                 : Expr;
+         SR                : Source_Location_Range;
+         Parent_Handle     : Node_Rewriting_Handle;
+         Parent_Member_Ref : Struct_Member_Ref);
       --  Instrument a guarded expression.
       --  > Register a new SCO
       --  > If the detected langage version is < Ada2022
@@ -6369,11 +6377,9 @@ package body Instrument.Ada_Unit is
       -- Process_Call_Expression --
       -----------------------------
 
-      procedure Process_Call_Expression (N : Ada_Node'Class)
-      is
+      procedure Process_Call_Expression (N : Ada_Node'Class) is
          function Aux_Process_Call_Expression
-           (Node : Ada_Node'Class)
-            return Visit_Status;
+           (Node : Ada_Node'Class) return Visit_Status;
          --  Auxiliary function, responsible for the actual instrumentation. It
          --  is called on all children of N. if Node is a call expression it is
          --  instrumented. Otherwise, Into is returned to ensure all children
@@ -6385,16 +6391,14 @@ package body Instrument.Ada_Unit is
          ---------------------------------
 
          function Aux_Process_Call_Expression
-           (Node : Ada_Node'Class)
-            return Visit_Status
+           (Node : Ada_Node'Class) return Visit_Status
          is
             Is_Op_String_Call : constant Boolean :=
               Node.Kind in Ada_String_Literal
-              and then
-                (Node.Parent.Kind = Ada_Call_Expr
-                 or else
-                   (Node.Parent.Kind = Ada_Dotted_Name
-                    and then Node.Parent.Parent.Kind = Ada_Call_Expr));
+              and then (Node.Parent.Kind = Ada_Call_Expr
+                        or else (Node.Parent.Kind = Ada_Dotted_Name
+                                 and then Node.Parent.Parent.Kind
+                                          = Ada_Call_Expr));
             --  For call of the form "+"(A,B), Node will be a String_Literal
             --  inside a Call_Expr. String_Literals are always considered to
             --  be static, but we don't want to instrument static expressions.
@@ -6407,8 +6411,8 @@ package body Instrument.Ada_Unit is
             Full_Call_Node : Ada_Node;
          begin
             if Is_Call_Leaf (Node)
-              and then
-                (not Is_Static_Expr (Node.As_Expr) or else Is_Op_String_Call)
+              and then (not Is_Static_Expr (Node.As_Expr)
+                        or else Is_Op_String_Call)
             then
                Full_Call_Node := Full_Call (Node);
 
@@ -6425,14 +6429,14 @@ package body Instrument.Ada_Unit is
                     Handle (Full_Call_Node);
                   Dummy_Handle : constant Node_Rewriting_Handle :=
                     Create_Node (UIC.Rewriting_Context, Full_Call_Node.Kind);
-                  Then_Node : constant Node_Rewriting_Handle :=
+                  Then_Node    : constant Node_Rewriting_Handle :=
                     Clone (Full_Call_Node);
 
                   Return_Type : Base_Type_Decl := No_Base_Type_Decl;
 
                   Needs_Qualified_Expr : constant Boolean :=
-                    Full_Call_Node.Parent.Kind in
-                      Ada_Dotted_Name | Ada_Explicit_Deref;
+                    Full_Call_Node.Parent.Kind
+                    in Ada_Dotted_Name | Ada_Explicit_Deref;
                   --  We only need to turn the if-expression into a qualified
                   --  when the parent of the call and its parent are both
                   --  dotted named. For example, with A and B packages, F a
@@ -6457,8 +6461,11 @@ package body Instrument.Ada_Unit is
                     (if Node.Kind = Ada_Op_Concat
                      then
                        (Node
-                        .Parent
-                        .As_Concat_Operand.F_Operator.As_Ada_Node.Sloc_Range)
+                          .Parent
+                          .As_Concat_Operand
+                          .F_Operator
+                          .As_Ada_Node
+                          .Sloc_Range)
                      else Full_Call_Node.Sloc_Range);
                   --  Special case for concatenation operators: Node holds
                   --  "& <operand>" where the call that needs to be monitored
@@ -6513,8 +6520,7 @@ package body Instrument.Ada_Unit is
                      Fill_Expression_Insertion_Info
                        (UIC,
                         Allocate_Statement_Bit
-                          (UIC.Unit_Bits,
-                           SCOs.SCO_Table.Last));
+                          (UIC.Unit_Bits, SCOs.SCO_Table.Last));
 
                      Replace (Orig_Handle, Dummy_Handle);
 
@@ -6527,22 +6533,23 @@ package body Instrument.Ada_Unit is
                                 UIC.Current_Insertion_Info.Get.Witness_Actual,
                                 Then_Node,
                                 No_Node_Rewriting_Handle,
-                                Orig_Handle
-                               ));
+                                Orig_Handle));
 
                         Qualified_Expr : constant Node_Rewriting_Handle :=
                           (if Needs_Qualified_Expr
                            then
-                              Create_Qual_Expr
-                             (UIC.Rewriting_Context,
-                              F_Prefix => To_Nodes
-                                (UIC.Rewriting_Context,
-                                 To_Qualified_Name
-                                   (Return_Type.As_Basic_Decl
-                                    .P_Fully_Qualified_Name_Array)),
-                              F_Suffix =>
-                                Create_Paren_Expr (UIC.Rewriting_Context,
-                                If_Expression))
+                             Create_Qual_Expr
+                               (UIC.Rewriting_Context,
+                                F_Prefix =>
+                                  To_Nodes
+                                    (UIC.Rewriting_Context,
+                                     To_Qualified_Name
+                                       (Return_Type
+                                          .As_Basic_Decl
+                                          .P_Fully_Qualified_Name_Array)),
+                                F_Suffix =>
+                                  Create_Paren_Expr
+                                    (UIC.Rewriting_Context, If_Expression))
                            else No_Node_Rewriting_Handle);
 
                      begin
@@ -6558,8 +6565,8 @@ package body Instrument.Ada_Unit is
                         Full_Call_Node,
                         "gnatcov limitation: cannot instrument calls "
                         & (if Needs_Qualified_Expr
-                          then "within dotted names"
-                          else "to user-defined operators"),
+                           then "within dotted names"
+                           else "to user-defined operators"),
                         Warning);
                      UIC.Non_Instr_LL_SCOs.Include
                        (SCO_Id (SCOs.SCO_Table.Last));
@@ -6574,11 +6581,11 @@ package body Instrument.Ada_Unit is
          Saved_Insertion_Info : constant Insertion_Info_Ref :=
            UIC.Current_Insertion_Info;
 
-         Local_Insertion_Info : constant Insertion_Info (Expression_Function)
-           :=
-              (Method         => Expression_Function,
-               Witness_Actual => No_Node_Rewriting_Handle,
-               Witness_Formal => No_Node_Rewriting_Handle);
+         Local_Insertion_Info :
+           constant Insertion_Info (Expression_Function) :=
+             (Method         => Expression_Function,
+              Witness_Actual => No_Node_Rewriting_Handle,
+              Witness_Formal => No_Node_Rewriting_Handle);
       begin
          if N.Is_Null then
             return;
@@ -6629,43 +6636,40 @@ package body Instrument.Ada_Unit is
       ----------------------
 
       procedure Instrument_GExpr
-      (E                 : Expr;
-       SR                : Source_Location_Range;
-       Parent_Handle     : Node_Rewriting_Handle;
-       Parent_Member_Ref : Struct_Member_Ref)
-      is
+        (E                 : Expr;
+         SR                : Source_Location_Range;
+         Parent_Handle     : Node_Rewriting_Handle;
+         Parent_Member_Ref : Struct_Member_Ref) is
       begin
          Append_SCO
-            (C1   => 'g',
-             C2   => 'c',
-             From => +Start_Sloc (SR),
-             To   => +Inclusive_End_Sloc (SR),
-             SFI  => UIC.SFI,
-             Last => False);
+           (C1   => 'g',
+            C2   => 'c',
+            From => +Start_Sloc (SR),
+            To   => +Inclusive_End_Sloc (SR),
+            SFI  => UIC.SFI,
+            Last => False);
 
          if UIC.Language_Version in Decl_Expr_Supported_Versions then
             declare
                Bit                 : constant Bit_Id :=
-                  Allocate_Statement_Bit (UIC.Unit_Bits, SCOs.SCO_Table.Last);
+                 Allocate_Statement_Bit (UIC.Unit_Bits, SCOs.SCO_Table.Last);
                Witness_Decl_Handle : constant Node_Rewriting_Handle :=
-                  Make_Statement_Witness
-                    (UIC          => UIC,
-                     Bit          => Bit,
-                     Flavor       => Declaration,
-                     In_Generic   => UIC.In_Generic,
-                     In_Decl_Expr => True);
+                 Make_Statement_Witness
+                   (UIC          => UIC,
+                    Bit          => Bit,
+                    Flavor       => Declaration,
+                    In_Generic   => UIC.In_Generic,
+                    In_Decl_Expr => True);
                Decl_Expr_Handle    : constant Node_Rewriting_Handle :=
-                  Create_Paren_Expr
-                    (Handle => UIC.Rewriting_Context,
-                     F_Expr => Create_Decl_Expr
-                          (Handle =>  UIC.Rewriting_Context,
-                           F_Decls => Witness_Decl_Handle,
-                           F_Expr  => Detach (E)));
+                 Create_Paren_Expr
+                   (Handle => UIC.Rewriting_Context,
+                    F_Expr =>
+                      Create_Decl_Expr
+                        (Handle  => UIC.Rewriting_Context,
+                         F_Decls => Witness_Decl_Handle,
+                         F_Expr  => Detach (E)));
             begin
-               Set_Child
-                 (Parent_Handle,
-                  Parent_Member_Ref,
-                  Decl_Expr_Handle);
+               Set_Child (Parent_Handle, Parent_Member_Ref, Decl_Expr_Handle);
             end;
          else
 
@@ -6675,8 +6679,9 @@ package body Instrument.Ada_Unit is
             Report
               (UIC  => UIC,
                Node => E,
-               Msg  => "Guarded Expression coverage is not available"
-                        & " before Ada2022",
+               Msg  =>
+                 "Guarded Expression coverage is not available"
+                 & " before Ada2022",
                Kind => Diagnostics.Warning);
             UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
          end if;
@@ -6692,7 +6697,7 @@ package body Instrument.Ada_Unit is
             declare
                Case_Node    : constant Case_Expr := N.As_Case_Expr;
                Alternatives : constant Case_Expr_Alternative_List :=
-                  Case_Node.F_Cases;
+                 Case_Node.F_Cases;
             begin
                for Alt of Alternatives loop
 
@@ -6704,9 +6709,7 @@ package body Instrument.Ada_Unit is
                      Handle (Alt),
                      Member_Refs.Case_Expr_Alternative_F_Expr);
                   Process_Expression
-                    (UIC,
-                     Alt.As_Case_Expr_Alternative.F_Expr,
-                     T);
+                    (UIC, Alt.As_Case_Expr_Alternative.F_Expr, T);
                end loop;
                return Over; -- Do not use `Traverse` to recurse into case-exprs
             end;
@@ -6736,9 +6739,7 @@ package body Instrument.Ada_Unit is
       -----------------------
 
       procedure Process_Decisions
-        (UIC : in out Ada_Unit_Inst_Context;
-         N   : Ada_Node'Class;
-         T   : Character)
+        (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character)
       is
          Mark : Nat;
          --  This is used to mark the location of a decision sequence in the
@@ -6762,13 +6763,14 @@ package body Instrument.Ada_Unit is
          --  This data structure holds the conditions/pragmas to register in
          --  SCO_Raw_Hash_Table.
 
-         package Hash_Entries is new Table.Table
-           (Table_Component_Type => Hash_Entry,
-            Table_Index_Type     => Nat,
-            Table_Low_Bound      => 1,
-            Table_Initial        => 10,
-            Table_Increment      => 10,
-            Table_Name           => "Hash_Entries");
+         package Hash_Entries is new
+           Table.Table
+             (Table_Component_Type => Hash_Entry,
+              Table_Index_Type     => Nat,
+              Table_Low_Bound      => 1,
+              Table_Initial        => 10,
+              Table_Increment      => 10,
+              Table_Name           => "Hash_Entries");
          --  Hold temporarily (i.e. free'd before returning) the Hash_Entry
          --  before they are registered in SCO_Raw_Hash_Table.
 
@@ -6798,8 +6800,7 @@ package body Instrument.Ada_Unit is
          --  decision (MC/DC and ATCC only).
 
          procedure Output_Decision_Operand
-           (Operand         : Expr;
-            Decision_Static : Boolean);
+           (Operand : Expr; Decision_Static : Boolean);
          --  The node Operand is the top level logical operator of a decision,
          --  or it is one of the operands of a logical operator belonging to
          --  a single complex decision. This (recursive) routine outputs the
@@ -6899,7 +6900,7 @@ package body Instrument.Ada_Unit is
                end if;
                Output_Decision_Operand (R, Decision_Static);
 
-               --  Not a logical operator -> condition
+            --  Not a logical operator -> condition
 
             else
                Output_Element (N.As_Ada_Node);
@@ -6912,10 +6913,10 @@ package body Instrument.Ada_Unit is
                then
                   UIC.Source_Conditions.Append
                     (Source_Condition'
-                       (LL_SCO          => SCOs.SCO_Table.Last,
-                        Condition       => N.As_Expr,
-                        State           => Conditions_State,
-                        First           => Condition_Count = 0));
+                       (LL_SCO    => SCOs.SCO_Table.Last,
+                        Condition => N.As_Expr,
+                        State     => Conditions_State,
+                        First     => Condition_Count = 0));
 
                   Condition_Count := Condition_Count + 1;
                end if;
@@ -6977,65 +6978,65 @@ package body Instrument.Ada_Unit is
 
          begin
             case T is
-            when 'I' | 'E' | 'W' | 'a' | 'A' =>
+               when 'I' | 'E' | 'W' | 'a' | 'A' =>
 
-               --  For IF, EXIT, WHILE, or aspects, the token SLOC is that of
-               --  the parent of the expression.
+                  --  For IF, EXIT, WHILE, or aspects, the token SLOC is that
+                  --  of the parent of the expression.
 
-               Loc := Sloc (Parent (N));
+                  Loc := Sloc (Parent (N));
 
-               if T in 'a' | 'A' then
-                  Nam := Aspect_Assoc_Name (N.Parent.As_Aspect_Assoc);
-               end if;
-
-            when 'G' =>
-
-               --  For an entry body guard, use the location of the entry body.
-               --  For the guard on a select alternative, we do not have access
-               --  to the token location for the WHEN, so we use the sloc
-               --  of the condition itself.
-
-               declare
-                  Par : constant Ada_Node := N.Parent;
-               begin
-                  if Par.Kind = Ada_Entry_Body then
-                     Loc := Sloc (Par);
-                  else
-                     Loc := Sloc (N);
+                  if T in 'a' | 'A' then
+                     Nam := Aspect_Assoc_Name (N.Parent.As_Aspect_Assoc);
                   end if;
-               end;
 
-            when 'P' =>
+               when 'G'                         =>
 
-               --  For PRAGMA, we must get the location from the pragma node.
-               --  Argument N is the pragma argument.
+                  --  For an entry body guard, use the location of the entry
+                  --  body. For the guard on a select alternative, we do not
+                  --  have access to the token location for the WHEN, so we use
+                  --  the sloc of the condition itself.
 
-               declare
-                  PN : Ada_Node := N.As_Ada_Node;
-               begin
-                  while PN.Kind /= Ada_Pragma_Node loop
-                     PN := PN.Parent;
-                  end loop;
-                  Loc := Sloc (PN);
-                  Is_Contract :=
-                    Pragma_Name (PN.As_Pragma_Node)
-                    /= Precomputed_Symbols (Debug);
-               end;
+                  declare
+                     Par : constant Ada_Node := N.Parent;
+                  begin
+                     if Par.Kind = Ada_Entry_Body then
+                        Loc := Sloc (Par);
+                     else
+                        Loc := Sloc (N);
+                     end if;
+                  end;
 
-            when 'X' =>
+               when 'P'                         =>
 
-               --  For an expression, we will use the sloc of the first
-               --  condition. This is done afterwards, when processing the low
-               --  level scos in sc_obligations.adb.
-               --
-               --  cf. the Update_Decision_Sloc procedure.
+                  --  For PRAGMA, we must get the location from the pragma
+                  --  node. Argument N is the pragma argument.
 
-               null;
+                  declare
+                     PN : Ada_Node := N.As_Ada_Node;
+                  begin
+                     while PN.Kind /= Ada_Pragma_Node loop
+                        PN := PN.Parent;
+                     end loop;
+                     Loc := Sloc (PN);
+                     Is_Contract :=
+                       Pragma_Name (PN.As_Pragma_Node)
+                       /= Precomputed_Symbols (Debug);
+                  end;
+
+               when 'X'                         =>
+
+                  --  For an expression, we will use the sloc of the first
+                  --  condition. This is done afterwards, when processing the
+                  --  low level scos in sc_obligations.adb.
+                  --
+                  --  cf. the Update_Decision_Sloc procedure.
+
+                  null;
 
                --  No other possibilities
 
-            when others =>
-               raise Program_Error;
+               when others                      =>
+                  raise Program_Error;
             end case;
 
             Append_SCO
@@ -7054,7 +7055,7 @@ package body Instrument.Ada_Unit is
 
             if Coverage.Enabled (Decision)
               or else MCDC_Coverage_Enabled
-                          or else Assertion_Condition_Coverage_Enabled
+              or else Assertion_Condition_Coverage_Enabled
             then
                if MCDC_Coverage_Enabled
                  or else (Is_Contract
@@ -7063,14 +7064,17 @@ package body Instrument.Ada_Unit is
                   Condition_Count := 0;
 
                   if UIC.MCDC_State_Inserter = null then
-                     Report (UIC, N,
-                             "gnatcov limitation: "
-                             & "cannot find local declarative part for MC/DC",
-                             Kind => Diagnostics.Error);
+                     Report
+                       (UIC,
+                        N,
+                        "gnatcov limitation: "
+                        & "cannot find local declarative part for MC/DC",
+                        Kind => Diagnostics.Error);
                   else
-                     Conditions_State := To_Unbounded_String
-                       (UIC.MCDC_State_Inserter.Insert_MCDC_State
-                          (UIC, Make_MCDC_State_Name (SCOs.SCO_Table.Last)));
+                     Conditions_State :=
+                       To_Unbounded_String
+                         (UIC.MCDC_State_Inserter.Insert_MCDC_State
+                            (UIC, Make_MCDC_State_Name (SCOs.SCO_Table.Last)));
                   end if;
                end if;
 
@@ -7149,11 +7153,11 @@ package body Instrument.Ada_Unit is
             --  as the operand of an IF, WHILE, EXIT WHEN, or special PRAGMA
             --  construct.
 
-              (N = Process_Decisions.N and then T /= 'X')
+               (N = Process_Decisions.N and then T /= 'X')
               or else
 
-            --  Complex decision, whether at outer level or nested: a boolean
-            --  expression involving a logical operator.
+              --  Complex decision, whether at outer level or nested: a boolean
+              --  expression involving a logical operator.
 
               (N.Kind in Ada_Expr
                and then Is_Complex_Decision (UIC, N.As_Expr));
@@ -7177,14 +7181,13 @@ package body Instrument.Ada_Unit is
                   --  Output header for sequence
 
                   X_Not_Decision := T = 'X' and then N.Kind = Ada_Op_Not;
-                  Mark      := SCOs.SCO_Table.Last;
+                  Mark := SCOs.SCO_Table.Last;
                   Mark_Hash := Hash_Entries.Last;
                   Output_Header (T, N);
 
                   --  Output the decision (recursively traversing operands)
 
-                  Output_Decision_Operand
-                    (EN, Is_Static_Expr (N.As_Expr));
+                  Output_Decision_Operand (EN, Is_Static_Expr (N.As_Expr));
 
                   --  If the decision was in an expression context (T =
                   --  'X') and contained only NOT operators, then we don't
@@ -7195,16 +7198,16 @@ package body Instrument.Ada_Unit is
                      SCOs.SCO_Table.Set_Last (Mark);
                      Hash_Entries.Set_Last (Mark_Hash);
 
-                     --  Otherwise, set Last in last table entry to mark end
+                  --  Otherwise, set Last in last table entry to mark end
 
                   else
                      SCOs.SCO_Table.Table (SCOs.SCO_Table.Last).Last := True;
                   end if;
 
-               --  Process any embedded decisions. For the sake of simplicity
-               --  the coverage of nested decisions in contract decisions
-               --  should not be checked. Therefore they should be
-               --  instrumented.
+                  --  Process any embedded decisions. For the sake of
+                  --  simplicity the coverage of nested decisions in contract
+                  --  decisions should not be checked. Therefore they should be
+                  --  instrumented.
 
                   if T not in 'P' | 'A' | 'a' then
                      Find_Nested_Decisions (EN);
@@ -7218,115 +7221,116 @@ package body Instrument.Ada_Unit is
             case N.Kind is
                --  CASE expression: processed in Process_Case_Expr
 
-            when Ada_Case_Expr =>
-               return (if Enabled (GExpr) then Over else Into);
+               when Ada_Case_Expr       =>
+                  return (if Enabled (GExpr) then Over else Into);
 
                --  IF expression: processed like an if statement
 
-            when Ada_If_Expr =>
-               declare
-                  IEN  : constant If_Expr := N.As_If_Expr;
-                  Alt  : constant Elsif_Expr_Part_List := IEN.F_Alternatives;
+               when Ada_If_Expr         =>
+                  declare
+                     IEN : constant If_Expr := N.As_If_Expr;
+                     Alt : constant Elsif_Expr_Part_List := IEN.F_Alternatives;
 
-               begin
-                  Process_Decisions (UIC, IEN.F_Cond_Expr, 'I');
-                  Process_Decisions (UIC, IEN.F_Then_Expr, 'X');
+                  begin
+                     Process_Decisions (UIC, IEN.F_Cond_Expr, 'I');
+                     Process_Decisions (UIC, IEN.F_Then_Expr, 'X');
+                     if Enabled (GExpr) then
+                        Instrument_GExpr
+                          (IEN.F_Then_Expr,
+                           IEN.F_Then_Expr.Sloc_Range,
+                           Handle (IEN),
+                           Member_Refs.If_Expr_F_Then_Expr);
+                     end if;
+
+                     for J in 1 .. Alt.Children_Count loop
+                        declare
+                           EIN : constant Elsif_Expr_Part :=
+                             Alt.Child (J).As_Elsif_Expr_Part;
+                        begin
+                           Process_Decisions (UIC, EIN.F_Cond_Expr, 'I');
+                           Process_Decisions (UIC, EIN.F_Then_Expr, 'X');
+                           if Enabled (GExpr) then
+                              Instrument_GExpr
+                                (EIN.F_Then_Expr,
+                                 EIN.F_Then_Expr.Sloc_Range,
+                                 Handle (EIN),
+                                 Member_Refs.Elsif_Expr_Part_F_Then_Expr);
+                           end if;
+                        end;
+                     end loop;
+
+                     Process_Decisions (UIC, IEN.F_Else_Expr, 'X');
+                     if Enabled (GExpr) then
+                        Instrument_GExpr
+                          (IEN.F_Else_Expr,
+                           IEN.F_Else_Expr.Sloc_Range,
+                           Handle (IEN),
+                           Member_Refs.If_Expr_F_Else_Expr);
+                     end if;
+                     return Over;
+                  end;
+
+               when Ada_Quantified_Expr =>
+                  Process_Decisions
+                    (UIC, N.As_Quantified_Expr.F_Loop_Spec, 'X');
+                  Process_Decisions (UIC, N.As_Quantified_Expr.F_Expr, 'W');
+
                   if Enabled (GExpr) then
                      Instrument_GExpr
-                       (IEN.F_Then_Expr,
-                        IEN.F_Then_Expr.Sloc_Range,
-                        Handle (IEN),
-                        Member_Refs.If_Expr_F_Then_Expr);
-                  end if;
-
-                  for J in 1 .. Alt.Children_Count loop
-                     declare
-                        EIN : constant Elsif_Expr_Part :=
-                          Alt.Child (J).As_Elsif_Expr_Part;
-                     begin
-                        Process_Decisions (UIC, EIN.F_Cond_Expr, 'I');
-                        Process_Decisions (UIC, EIN.F_Then_Expr, 'X');
-                        if Enabled (GExpr) then
-                           Instrument_GExpr
-                             (EIN.F_Then_Expr,
-                              EIN.F_Then_Expr.Sloc_Range,
-                              Handle (EIN),
-                              Member_Refs.Elsif_Expr_Part_F_Then_Expr);
-                        end if;
-                     end;
-                  end loop;
-
-                  Process_Decisions (UIC, IEN.F_Else_Expr, 'X');
-                  if Enabled (GExpr) then
-                     Instrument_GExpr
-                       (IEN.F_Else_Expr,
-                        IEN.F_Else_Expr.Sloc_Range,
-                        Handle (IEN),
-                        Member_Refs.If_Expr_F_Else_Expr);
+                       (N.As_Quantified_Expr.F_Expr,
+                        N.As_Quantified_Expr.F_Expr.Sloc_Range,
+                        Handle (N),
+                        Member_Refs.Quantified_Expr_F_Expr);
                   end if;
                   return Over;
-               end;
 
-            when Ada_Quantified_Expr =>
-               Process_Decisions
-                 (UIC, N.As_Quantified_Expr.F_Loop_Spec, 'X');
-               Process_Decisions (UIC, N.As_Quantified_Expr.F_Expr, 'W');
-
-               if Enabled (GExpr) then
-                  Instrument_GExpr
-                    (N.As_Quantified_Expr.F_Expr,
-                     N.As_Quantified_Expr.F_Expr.Sloc_Range,
-                     Handle (N),
-                     Member_Refs.Quantified_Expr_F_Expr);
-               end if;
-               return Over;
-
-            when Ada_For_Loop_Spec =>
-               declare
-                  LS : constant For_Loop_Spec := N.As_For_Loop_Spec;
-               begin
-                  Process_Decisions (UIC, LS.F_Var_Decl, 'X');
-                  Process_Decisions (UIC, LS.F_Iter_Expr, 'X');
-                  if not LS.F_Iter_Filter.Is_Null then
-                     Process_Decisions (UIC, LS.F_Iter_Filter.F_Expr, 'W');
-                  end if;
-               end;
-               return Over;
+               when Ada_For_Loop_Spec   =>
+                  declare
+                     LS : constant For_Loop_Spec := N.As_For_Loop_Spec;
+                  begin
+                     Process_Decisions (UIC, LS.F_Var_Decl, 'X');
+                     Process_Decisions (UIC, LS.F_Iter_Expr, 'X');
+                     if not LS.F_Iter_Filter.Is_Null then
+                        Process_Decisions (UIC, LS.F_Iter_Filter.F_Expr, 'W');
+                     end if;
+                  end;
+                  return Over;
 
                --  Aspects for which we don't want to instrument the decision
 
-            when Ada_Aspect_Assoc =>
-               declare
-                  AN : constant Aspect_Assoc := N.As_Aspect_Assoc;
-               begin
-                  if Aspect_Assoc_Name (AN) in As_Symbol (Dynamic_Predicate)
-                    | As_Symbol (Invariant)
-                    | As_Symbol (Ghost_Predicate)
-                    | As_Symbol (Post)
-                    | As_Symbol (Postcondition)
-                    | As_Symbol (Pre)
-                    | As_Symbol (Precondition)
-                    | As_Symbol (Predicate)
-                    | As_Symbol (Static_Predicate)
-                    | As_Symbol (Type_Invariant)
-                  then
-                     return Over;
-                  end if;
-                  return Into;
-               end;
+               when Ada_Aspect_Assoc    =>
+                  declare
+                     AN : constant Aspect_Assoc := N.As_Aspect_Assoc;
+                  begin
+                     if Aspect_Assoc_Name (AN)
+                        in As_Symbol (Dynamic_Predicate)
+                         | As_Symbol (Invariant)
+                         | As_Symbol (Ghost_Predicate)
+                         | As_Symbol (Post)
+                         | As_Symbol (Postcondition)
+                         | As_Symbol (Pre)
+                         | As_Symbol (Precondition)
+                         | As_Symbol (Predicate)
+                         | As_Symbol (Static_Predicate)
+                         | As_Symbol (Type_Invariant)
+                     then
+                        return Over;
+                     end if;
+                     return Into;
+                  end;
 
                --  Declare expressions: do not process the nested decisions
                --  in the declarations, as those will be processed when
                --  instrumenting them, but do process the final expression.
 
-            when Ada_Decl_Expr =>
-               Process_Decisions (UIC, N.As_Decl_Expr.F_Expr, 'X');
-               return Over;
+               when Ada_Decl_Expr       =>
+                  Process_Decisions (UIC, N.As_Decl_Expr.F_Expr, 'X');
+                  return Over;
 
                --  All other cases, continue scan
 
-            when others =>
-               return Into;
+               when others              =>
+                  return Into;
             end case;
          end Process_Node;
 
@@ -7360,14 +7364,11 @@ package body Instrument.Ada_Unit is
       --  different, and the declaration and body will not be conformant
       --  with each other anymore.
 
-      if Enabled (Fun_Call)
-        and then N.Parent.Kind /= Ada_Subp_Spec
-      then
+      if Enabled (Fun_Call) and then N.Parent.Kind /= Ada_Subp_Spec then
          if N.Kind = Ada_Call_Stmt then
             for Child of N.Children loop
                if Child.Kind = Ada_Call_Expr then
-                  Process_Call_Expression
-                    (Child.As_Call_Expr.F_Suffix);
+                  Process_Call_Expression (Child.As_Call_Expr.F_Suffix);
                end if;
             end loop;
          else
@@ -7423,7 +7424,7 @@ package body Instrument.Ada_Unit is
    function Is_Call_Leaf (Node : Ada_Node'Class) return Boolean is
    begin
       case Node.Kind is
-         when LALCO.Ada_Name =>
+         when LALCO.Ada_Name                         =>
 
             --  The suffix of a Dotted name will designate the same call
 
@@ -7448,7 +7449,7 @@ package body Instrument.Ada_Unit is
          when Ada_Un_Op | Ada_Bin_Op | Ada_Concat_Op =>
             return False;
 
-         when others =>
+         when others                                 =>
             return False;
       end case;
    end Is_Call_Leaf;
@@ -7457,8 +7458,7 @@ package body Instrument.Ada_Unit is
    -- Full_Call --
    ---------------
 
-   function Full_Call (Node : Ada_Node'Class) return Ada_Node
-   is
+   function Full_Call (Node : Ada_Node'Class) return Ada_Node is
       Call : Ada_Node;
    begin
 
@@ -7482,10 +7482,8 @@ package body Instrument.Ada_Unit is
 
       if Call.Parent.Kind in Ada_Dotted_Name
         or else (Call.Kind in Ada_Op
-                 and then Call.Parent.Kind in
-                   Ada_Bin_Op
-                 | Ada_Un_Op
-                 | Ada_Relation_Op)
+                 and then Call.Parent.Kind
+                          in Ada_Bin_Op | Ada_Un_Op | Ada_Relation_Op)
       then
          Call := Call.Parent;
 
@@ -7510,8 +7508,7 @@ package body Instrument.Ada_Unit is
    ------------------------------------
 
    procedure Fill_Expression_Insertion_Info
-     (UIC         : in out Ada_Unit_Inst_Context;
-      Bit         : Any_Bit_Id)
+     (UIC : in out Ada_Unit_Inst_Context; Bit : Any_Bit_Id)
    is
       Formal_Name   : constant Node_Rewriting_Handle :=
         Make_Identifier (UIC.Rewriting_Context, "Dummy_Witness_Result");
@@ -7525,12 +7522,13 @@ package body Instrument.Ada_Unit is
       --  Create both the witness call and a formal parameter to
       --  accept it as an actual.
 
-      UIC.Current_Insertion_Info.Get.Witness_Actual := Make_Statement_Witness
-        (UIC,
-         Bit        => Bit,
-         Flavor     => Function_Call,
-         In_Generic => UIC.In_Generic,
-         In_Decl_Expr => UIC.In_Decl_Expr);
+      UIC.Current_Insertion_Info.Get.Witness_Actual :=
+        Make_Statement_Witness
+          (UIC,
+           Bit          => Bit,
+           Flavor       => Function_Call,
+           In_Generic   => UIC.In_Generic,
+           In_Decl_Expr => UIC.In_Decl_Expr);
 
       UIC.Current_Insertion_Info.Get.Witness_Formal :=
         Create_Param_Spec
@@ -7549,8 +7547,7 @@ package body Instrument.Ada_Unit is
    -------------------------
 
    function Is_Logical_Operator
-     (UIC : Ada_Unit_Inst_Context; N : Ada_Node'Class) return Boolean
-   is
+     (UIC : Ada_Unit_Inst_Context; N : Ada_Node'Class) return Boolean is
    begin
       if N.Kind not in Ada_Expr then
          return False;
@@ -7564,22 +7561,23 @@ package body Instrument.Ada_Unit is
          end if;
 
          case Op_N.Kind is
-            when Ada_Op_Not =>
+            when Ada_Op_Not                       =>
                return True;
 
             when Ada_Op_And_Then | Ada_Op_Or_Else =>
                return True;
 
-            when Ada_Op_And | Ada_Op_Or =>
+            when Ada_Op_And | Ada_Op_Or           =>
 
-            --  Only consider Op_N as logical operators if we are told "and"
-            --  and "or" have short circuit semantics, and that it is a
-            --  Standard.Boolean operator.
+               --  Only consider Op_N as logical operators if we are told "and"
+               --  and "or" have short circuit semantics, and that it is a
+               --  Standard.Boolean operator.
 
-               return UIC.Short_Circuit_And_Or
+               return
+                 UIC.Short_Circuit_And_Or
                  and then Is_Standard_Boolean_And_Or (Op_N);
 
-            when others =>
+            when others                           =>
                return False;
          end case;
       end;
@@ -7599,7 +7597,7 @@ package body Instrument.Ada_Unit is
       end if;
 
       case Op_N.Kind is
-         when Ada_Op_Not =>
+         when Ada_Op_Not                       =>
 
             --  A "not" operator is the root of a decision iff its operand
             --  itself could be the root of a decision on its own. For
@@ -7616,16 +7614,17 @@ package body Instrument.Ada_Unit is
          when Ada_Op_And_Then | Ada_Op_Or_Else =>
             return True;
 
-         when Ada_Op_And | Ada_Op_Or =>
+         when Ada_Op_And | Ada_Op_Or           =>
 
             --  Only consider these as decisions if we are told the operators
             --  have short circuit semantics, and that it is a Standard.Boolean
             --  operator.
 
-            return UIC.Short_Circuit_And_Or
+            return
+              UIC.Short_Circuit_And_Or
               and then Is_Standard_Boolean_And_Or (Op_N);
 
-         when others =>
+         when others                           =>
             return False;
       end case;
    end Is_Complex_Decision;
@@ -7645,7 +7644,8 @@ package body Instrument.Ada_Unit is
       Left_Typ := Binop_N.F_Left.P_Expression_Type;
       Right_Typ := Binop_N.F_Right.P_Expression_Type;
 
-      return N.P_Referenced_Decl.Is_Null
+      return
+        N.P_Referenced_Decl.Is_Null
         and then Expr_Typ /= No_Ada_Node
         and then Left_Typ /= No_Ada_Node
         and then Right_Typ /= No_Ada_Node
@@ -7668,37 +7668,33 @@ package body Instrument.Ada_Unit is
    function Op_Symbol_To_Name
      (Op : Libadalang.Analysis.Name) return Wide_Wide_String
    is
-      function Strip_Quotes
-        (WWS : Wide_Wide_String) return Wide_Wide_String
-      is
-        (WWS (WWS'First + 1 .. WWS'Last - 1))
-          with Pre => WWS (WWS'First) = '"'
-                      and WWS (WWS'Last) = '"';
+      function Strip_Quotes (WWS : Wide_Wide_String) return Wide_Wide_String
+      is (WWS (WWS'First + 1 .. WWS'Last - 1))
+      with Pre => WWS (WWS'First) = '"' and WWS (WWS'Last) = '"';
 
-      Op_Sym : constant Wide_Wide_String :=
-        Strip_Quotes (Text (Op));
+      Op_Sym : constant Wide_Wide_String := Strip_Quotes (Text (Op));
    begin
-      if    Op_Sym = "+"  then
+      if Op_Sym = "+" then
          return "add";
-      elsif Op_Sym = "-"  then
+      elsif Op_Sym = "-" then
          return "sub";
-      elsif Op_Sym = "*"  then
+      elsif Op_Sym = "*" then
          return "mul";
-      elsif Op_Sym = "/"  then
+      elsif Op_Sym = "/" then
          return "div";
       elsif Op_Sym = "**" then
          return "pow";
-      elsif Op_Sym = "&"  then
+      elsif Op_Sym = "&" then
          return "concat";
-      elsif Op_Sym = "<"  then
+      elsif Op_Sym = "<" then
          return "lt";
       elsif Op_Sym = "<=" then
          return "le";
-      elsif Op_Sym = ">"  then
+      elsif Op_Sym = ">" then
          return "gt";
       elsif Op_Sym = ">=" then
          return "ge";
-      elsif Op_Sym = "="  then
+      elsif Op_Sym = "=" then
          return "eq";
       elsif Op_Sym = "/=" then
          return "ne";
@@ -7714,11 +7710,13 @@ package body Instrument.Ada_Unit is
    function Operator (N : Expr'Class) return Op is
    begin
       case N.Kind is
-         when Ada_Un_Op =>
+         when Ada_Un_Op  =>
             return N.As_Un_Op.F_Op;
+
          when Ada_Bin_Op =>
             return N.As_Bin_Op.F_Op;
-         when others =>
+
+         when others     =>
             return No_Op;
       end case;
    end Operator;
@@ -7739,17 +7737,17 @@ package body Instrument.Ada_Unit is
    -- As_Name --
    -------------
 
-   function As_Symbol (Id : Identifier) return Symbol_Type is
-     (Find (Symbols, Canonicalize (Id.Text).Symbol));
+   function As_Symbol (Id : Identifier) return Symbol_Type
+   is (Find (Symbols, Canonicalize (Id.Text).Symbol));
 
    -----------------
    -- Pragma_Name --
    -----------------
 
-   function Pragma_Name (P : Pragma_Node) return Symbol_Type is
-     (As_Symbol (P.F_Id));
-   function Pragma_Name (P : Pragma_Node) return Name_Id is
-     (As_Name (P.F_Id));
+   function Pragma_Name (P : Pragma_Node) return Symbol_Type
+   is (As_Symbol (P.F_Id));
+   function Pragma_Name (P : Pragma_Node) return Name_Id
+   is (As_Name (P.F_Id));
 
    -------------------
    -- Safe_Is_Ghost --
@@ -7760,10 +7758,12 @@ package body Instrument.Ada_Unit is
       return not (for all DN of N.P_Defining_Names => not DN.P_Is_Ghost_Code);
    exception
       when E : Property_Error =>
-         Report (Node => N,
-                 Msg  => "Could not determine if decl is ghost: "
-                         & Switches.Exception_Info (E),
-                 Kind => Low_Warning);
+         Report
+           (Node => N,
+            Msg  =>
+              "Could not determine if decl is ghost: "
+              & Switches.Exception_Info (E),
+            Kind => Low_Warning);
          return False;
 
    end Safe_Is_Ghost;
@@ -7773,10 +7773,12 @@ package body Instrument.Ada_Unit is
       return N.P_Is_Ghost_Code;
    exception
       when E : Property_Error =>
-         Report (Node => N,
-                 Msg  => "Could not determine if stmt is ghost: "
-                         & Switches.Exception_Info (E),
-                 Kind => Low_Warning);
+         Report
+           (Node => N,
+            Msg  =>
+              "Could not determine if stmt is ghost: "
+              & Switches.Exception_Info (E),
+            Kind => Low_Warning);
          return False;
 
    end Safe_Is_Ghost;
@@ -7786,16 +7788,17 @@ package body Instrument.Ada_Unit is
    ---------------------------------
 
    function Safe_Previous_Part_For_Decl
-     (N : Basic_Decl'Class) return Basic_Decl
-   is
+     (N : Basic_Decl'Class) return Basic_Decl is
    begin
       return N.P_Previous_Part_For_Decl;
    exception
       when E : Property_Error =>
-         Report (Node => N,
-                 Msg  => "Could not resolve the previous declaration: "
-                         & Switches.Exception_Info (E),
-                 Kind => Warning);
+         Report
+           (Node => N,
+            Msg  =>
+              "Could not resolve the previous declaration: "
+              & Switches.Exception_Info (E),
+            Kind => Warning);
          return No_Basic_Decl;
    end Safe_Previous_Part_For_Decl;
 
@@ -7824,29 +7827,31 @@ package body Instrument.Ada_Unit is
             when Libadalang.Common.Ada_Identifier =>
                return As_Symbol (E.As_Identifier);
 
-            when Ada_Dotted_Name =>
+            when Ada_Dotted_Name                  =>
                declare
                   DN     : constant Dotted_Name := E.As_Dotted_Name;
                   Prefix : constant Symbol_Type :=
                     As_Symbol (DN.F_Prefix.As_Expr);
                begin
-                  return (if Prefix = No_Symbol
-                          then No_Symbol
-                          else Find
-                                 (Symbols,
-                                  Image (Prefix)
-                                  & "."
-                                  & Image (As_Symbol (DN.F_Suffix.As_Expr))));
+                  return
+                    (if Prefix = No_Symbol
+                     then No_Symbol
+                     else
+                       Find
+                         (Symbols,
+                          Image (Prefix)
+                          & "."
+                          & Image (As_Symbol (DN.F_Suffix.As_Expr))));
                end;
 
-            when others =>
+            when others                           =>
                return No_Symbol;
          end case;
       end As_Symbol;
 
       Pragma_Name : constant Symbol_Type := As_Symbol (P.F_Id);
 
-   --  Start of processing for Matches
+      --  Start of processing for Matches
 
    begin
       for Matcher of Matchers loop
@@ -7864,7 +7869,7 @@ package body Instrument.Ada_Unit is
                      --  We expect an "Expr_Name" expression
 
                      if A.F_Name.Is_Null
-                        and then As_Symbol (A.F_Expr) = Matcher.Expr_Name
+                       and then As_Symbol (A.F_Expr) = Matcher.Expr_Name
                      then
                         return True;
                      end if;
@@ -7872,7 +7877,7 @@ package body Instrument.Ada_Unit is
                   --  We expect a "Assoc_Name => Expr_Name" association
 
                   elsif As_Symbol (A.F_Name.As_Expr) = Matcher.Assoc_Name
-                        and then As_Symbol (A.F_Expr) = Matcher.Expr_Name
+                    and then As_Symbol (A.F_Expr) = Matcher.Expr_Name
                   then
                      return True;
                   end if;
@@ -7902,25 +7907,25 @@ package body Instrument.Ada_Unit is
       end if;
    end Aspect_Assoc_Name;
 
-   function Aspect_Assoc_Name (A : Aspect_Assoc) return Symbol_Type is
-      (As_Symbol (Aspect_Assoc_Name (A)));
-   function Aspect_Assoc_Name (A : Aspect_Assoc) return Name_Id is
-      (As_Name (Aspect_Assoc_Name (A)));
+   function Aspect_Assoc_Name (A : Aspect_Assoc) return Symbol_Type
+   is (As_Symbol (Aspect_Assoc_Name (A)));
+   function Aspect_Assoc_Name (A : Aspect_Assoc) return Name_Id
+   is (As_Name (Aspect_Assoc_Name (A)));
 
    --------------
    -- To_Nodes --
    --------------
 
    function To_Nodes
-     (Handle : Rewriting_Handle;
-      Name   : Ada_Qualified_Name) return Node_Rewriting_Handle
+     (Handle : Rewriting_Handle; Name : Ada_Qualified_Name)
+      return Node_Rewriting_Handle
    is
       Result : Node_Rewriting_Handle := No_Node_Rewriting_Handle;
    begin
       for Id of Name loop
          declare
-            Id_Node : constant Node_Rewriting_Handle := Make_Identifier
-              (Handle, To_Text (To_String (Id)));
+            Id_Node : constant Node_Rewriting_Handle :=
+              Make_Identifier (Handle, To_Text (To_String (Id)));
          begin
             if Result = No_Node_Rewriting_Handle then
                Result := Id_Node;
@@ -7939,8 +7944,7 @@ package body Instrument.Ada_Unit is
    function Unwrap (N : Expr) return Expr is
       Unwrapped_N : Expr := N;
    begin
-      while Unwrapped_N.Kind = Ada_Paren_Expr
-      loop
+      while Unwrapped_N.Kind = Ada_Paren_Expr loop
          Unwrapped_N := Unwrapped_N.As_Paren_Expr.F_Expr;
       end loop;
 
@@ -7955,10 +7959,10 @@ package body Instrument.Ada_Unit is
       Decl_Part : Declarative_Part;
    begin
       if N.Is_Null
-         or else N.Parent.Is_Null
-         or else N.Parent.Kind /= Ada_Ada_Node_List
-         or else N.Parent.Parent.Is_Null
-         or else N.Parent.Parent.Kind not in Ada_Declarative_Part_Range
+        or else N.Parent.Is_Null
+        or else N.Parent.Kind /= Ada_Ada_Node_List
+        or else N.Parent.Parent.Is_Null
+        or else N.Parent.Parent.Kind not in Ada_Declarative_Part_Range
       then
          return False;
       end if;
@@ -7974,8 +7978,7 @@ package body Instrument.Ada_Unit is
    ------------------------
 
    function Inclusive_End_Sloc
-     (SL : Source_Location_Range) return Source_Location
-   is
+     (SL : Source_Location_Range) return Source_Location is
    begin
       return Result : Source_Location := End_Sloc (SL) do
          pragma Assert (Result.Column > 1);
@@ -7988,8 +7991,7 @@ package body Instrument.Ada_Unit is
    ---------------------
 
    function Expression_Type
-     (UIC : Ada_Unit_Inst_Context;
-      E   : Expr) return Base_Type_Decl
+     (UIC : Ada_Unit_Inst_Context; E : Expr) return Base_Type_Decl
    is
       ET : Base_Type_Decl;
    begin
@@ -7998,7 +8000,8 @@ package body Instrument.Ada_Unit is
 
          if ET.Is_Null then
             Report
-              (UIC, E,
+              (UIC,
+               E,
                "failed to determine expression type (got null type)",
                Warning);
          end if;
@@ -8006,7 +8009,8 @@ package body Instrument.Ada_Unit is
       exception
          when Exc : Property_Error =>
             Report
-              (UIC, E,
+              (UIC,
+               E,
                "failed to determine expression type: "
                & Switches.Exception_Info (Exc),
                Warning);
@@ -8058,8 +8062,7 @@ package body Instrument.Ada_Unit is
    --------------
 
    function Is_Ghost
-     (UIC : Ada_Unit_Inst_Context;
-      D   : Basic_Decl) return Boolean
+     (UIC : Ada_Unit_Inst_Context; D : Basic_Decl) return Boolean
    is
       Decl : Basic_Decl := D;
    begin
@@ -8072,9 +8075,11 @@ package body Instrument.Ada_Unit is
       exception
          when Exc : Property_Error =>
             Report
-              (UIC, Decl,
+              (UIC,
+               Decl,
                "Failed to look for a previous declaration of this expression"
-               & " function: " & Switches.Exception_Info (Exc),
+               & " function: "
+               & Switches.Exception_Info (Exc),
                Warning);
       end;
 
@@ -8083,7 +8088,8 @@ package body Instrument.Ada_Unit is
       exception
          when Exc : Property_Error =>
             Report
-              (UIC, Decl,
+              (UIC,
+               Decl,
                "Failed to look for a Ghost aspect for this declaration: "
                & Switches.Exception_Info (Exc),
                Warning);
@@ -8096,8 +8102,7 @@ package body Instrument.Ada_Unit is
    ----------------
 
    function Is_Generic
-     (UIC  : Ada_Unit_Inst_Context;
-      Decl : Basic_Decl'Class) return Boolean
+     (UIC : Ada_Unit_Inst_Context; Decl : Basic_Decl'Class) return Boolean
    is
       Canonical_Decl : Basic_Decl;
    begin
@@ -8109,15 +8114,17 @@ package body Instrument.Ada_Unit is
       exception
          when Exc : Property_Error =>
             Report
-              (UIC, Decl,
+              (UIC,
+               Decl,
                "Failed to look for a canonical part of this declaration: "
                & Switches.Exception_Info (Exc),
                Warning);
             return False;
       end;
 
-      return Canonical_Decl.Kind in
-        Ada_Generic_Subp_Decl | Ada_Generic_Package_Decl;
+      return
+        Canonical_Decl.Kind
+        in Ada_Generic_Subp_Decl | Ada_Generic_Package_Decl;
    end Is_Generic;
 
    ------------
@@ -8146,8 +8153,7 @@ package body Instrument.Ada_Unit is
    is
       function Local_Sloc
         (Sloc : Source_Location) return Slocs.Local_Source_Location
-      is ((Line   => Natural (Sloc.Line),
-           Column => Natural (Sloc.Column)));
+      is ((Line => Natural (Sloc.Line), Column => Natural (Sloc.Column)));
 
       Decl_SFI      : constant Source_File_Index :=
         Get_Index_From_Generic_Name
@@ -8155,11 +8161,13 @@ package body Instrument.Ada_Unit is
            Kind                => Files_Table.Source_File,
            Indexed_Simple_Name => True);
       New_Scope_Ent : constant Scope_Entity :=
-        (Source_Range => Slocs.Source_Location_Range'
-           (Source_File  => UIC.SFI,
-            L         => Slocs.Local_Source_Location_Range'
-              (First_Sloc => Local_Sloc (Start_Sloc (N.Sloc_Range)),
-               Last_Sloc  => Local_Sloc (End_Sloc (N.Sloc_Range)))),
+        (Source_Range =>
+           Slocs.Source_Location_Range'
+             (Source_File => UIC.SFI,
+              L           =>
+                Slocs.Local_Source_Location_Range'
+                  (First_Sloc => Local_Sloc (Start_Sloc (N.Sloc_Range)),
+                   Last_Sloc  => Local_Sloc (End_Sloc (N.Sloc_Range)))),
          Name         =>
            +Langkit_Support.Text.To_UTF8 (Decl.P_Defining_Name.F_Name.Text),
          Sloc         => Local_Sloc (Sloc (N)),
@@ -8167,7 +8175,7 @@ package body Instrument.Ada_Unit is
            (Decl_SFI  => Decl_SFI,
             Decl_Line => Natural (Decl.Sloc_Range.Start_Line)),
          Start_SCO    => SCO_Id (SCOs.SCO_Table.Last + 1));
-      Inserted : Scope_Entities_Trees.Cursor;
+      Inserted      : Scope_Entities_Trees.Cursor;
    begin
       UIC.Scope_Entities.Insert_Child
         (Parent   => UIC.Current_Scope_Entity,
@@ -8181,8 +8189,7 @@ package body Instrument.Ada_Unit is
    -- Exit_Scope --
    ----------------
 
-   procedure Exit_Scope (UIC : in out Ada_Unit_Inst_Context)
-   is
+   procedure Exit_Scope (UIC : in out Ada_Unit_Inst_Context) is
       use Scope_Entities_Trees;
       Cur_Scope    : Scope_Entity renames
         Scope_Entities_Trees.Element (UIC.Current_Scope_Entity);
@@ -8214,16 +8221,14 @@ package body Instrument.Ada_Unit is
       end if;
       UIC.Block_Stack.Append
         (Block_Information'
-           (Block  => SCO_Id_Vectors.Empty_Vector,
-            others => <>));
+           (Block => SCO_Id_Vectors.Empty_Vector, others => <>));
    end Start_Statement_Block;
 
    -------------------------
    -- End_Statement_Block --
    -------------------------
 
-   procedure End_Statement_Block (UIC : in out Ada_Unit_Inst_Context)
-   is
+   procedure End_Statement_Block (UIC : in out Ada_Unit_Inst_Context) is
       Bit : Any_Bit_Id;
    begin
       if not Switches.Instrument_Block then
@@ -8289,12 +8294,13 @@ package body Instrument.Ada_Unit is
                       (RC,
                        Ada_Bin_Op,
                        Children =>
-                         (1 => Make_Statement_Witness
-                            (UIC,
-                             Bit          => Bit,
-                             Flavor       => Function_Call,
-                             In_Generic   => UIC.In_Generic,
-                             In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr),
+                         (1 =>
+                            Make_Statement_Witness
+                              (UIC,
+                               Bit          => Bit,
+                               Flavor       => Function_Call,
+                               In_Generic   => UIC.In_Generic,
+                               In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr),
 
                           2 => Make (UIC, Ada_Op_Or_Else),
 
@@ -8338,8 +8344,7 @@ package body Instrument.Ada_Unit is
                         Node   => Old_Cond);
                   end if;
 
-                  Set_Child
-                    (New_Cond, Member_Refs.Bin_Op_F_Right, Old_Cond);
+                  Set_Child (New_Cond, Member_Refs.Bin_Op_F_Right, Old_Cond);
                end;
 
             else
@@ -8359,10 +8364,11 @@ package body Instrument.Ada_Unit is
                   if Kind (Insertion_N) = Ada_Accept_Stmt_With_Stmts
                     and then Instrument_Location = After
                   then
-                     Ref_Node := Child
-                       (Insertion_N,
-                        (Member_Refs.Accept_Stmt_With_Stmts_F_Stmts,
-                         Member_Refs.Handled_Stmts_F_Stmts));
+                     Ref_Node :=
+                       Child
+                         (Insertion_N,
+                          (Member_Refs.Accept_Stmt_With_Stmts_F_Stmts,
+                           Member_Refs.Handled_Stmts_F_Stmts));
                      Insert_Sibling := False;
 
                   else
@@ -8392,7 +8398,7 @@ package body Instrument.Ada_Unit is
                         Ref_List : Node_Rewriting_Handle;
                      begin
                         case Instrument_Location is
-                           when Before =>
+                           when Before        =>
                               Is_Before := True;
                               Ref_List := Insert_Info.Get.RH_List;
 
@@ -8400,16 +8406,16 @@ package body Instrument.Ada_Unit is
                               Is_Before := True;
                               Ref_List := Insert_Info.Get.Parent.RH_List;
 
-                           when After =>
+                           when After         =>
                               Is_Before := False;
                               Ref_List := Insert_Info.Get.RH_List;
 
-                              --  The cases where we need to instrument
-                              --  inside an expression are handled before,
-                              --  as they do not trigger the insertion of a
-                              --  new statement in a statement list.
+                           --  The cases where we need to instrument
+                           --  inside an expression are handled before,
+                           --  as they do not trigger the insertion of a
+                           --  new statement in a statement list.
 
-                           when Inside_Expr =>
+                           when Inside_Expr   =>
                               raise Program_Error;
                         end case;
 
@@ -8427,10 +8433,10 @@ package body Instrument.Ada_Unit is
                        Bit          => Bit,
                        Flavor       =>
                          (case Insert_Info.Get.Method is
-                             when Statement => Procedure_Call,
-                             when Declaration => Declaration,
-                             when Expression_Function | None =>
-                                raise Program_Error),
+                            when Statement                  => Procedure_Call,
+                            when Declaration                => Declaration,
+                            when Expression_Function | None =>
+                              raise Program_Error),
                        In_Generic   => UIC.In_Generic,
                        In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr);
 
@@ -8446,7 +8452,7 @@ package body Instrument.Ada_Unit is
                end;
             end if;
 
-         when Expression_Function =>
+         when Expression_Function     =>
 
             --  Create both the witness call and a formal parameter to
             --  accept it as an actual.
@@ -8456,32 +8462,33 @@ package body Instrument.Ada_Unit is
 
                Formal_Name   : constant Node_Rewriting_Handle :=
                  Make_Identifier
-                    (UIC.Rewriting_Context, "Dummy_Witness_Result");
+                   (UIC.Rewriting_Context, "Dummy_Witness_Result");
                Formal_Def_Id : constant Node_Rewriting_Handle :=
                  Create_Regular_Node
                    (RC,
                     Ada_Defining_Name_List,
-                    Children =>
-                      (1 => Create_Defining_Name (RC, Formal_Name)));
+                    Children => (1 => Create_Defining_Name (RC, Formal_Name)));
             begin
-               Insert_Info.Get.Witness_Actual := Make_Statement_Witness
-                 (UIC,
-                  Bit          => Bit,
-                  Flavor       => Function_Call,
-                  In_Generic   => UIC.In_Generic,
-                  In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr);
+               Insert_Info.Get.Witness_Actual :=
+                 Make_Statement_Witness
+                   (UIC,
+                    Bit          => Bit,
+                    Flavor       => Function_Call,
+                    In_Generic   => UIC.In_Generic,
+                    In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr);
 
-               Insert_Info.Get.Witness_Formal := Create_Param_Spec
-                 (RC,
-                  F_Ids          => Formal_Def_Id,
-                  F_Has_Aliased  => No_Node_Rewriting_Handle,
-                  F_Mode         => No_Node_Rewriting_Handle,
-                  F_Type_Expr    => Make_Std_Ref (UIC, "Boolean"),
-                  F_Default_Expr => No_Node_Rewriting_Handle,
-                  F_Aspects      => No_Node_Rewriting_Handle);
+               Insert_Info.Get.Witness_Formal :=
+                 Create_Param_Spec
+                   (RC,
+                    F_Ids          => Formal_Def_Id,
+                    F_Has_Aliased  => No_Node_Rewriting_Handle,
+                    F_Mode         => No_Node_Rewriting_Handle,
+                    F_Type_Expr    => Make_Std_Ref (UIC, "Boolean"),
+                    F_Default_Expr => No_Node_Rewriting_Handle,
+                    F_Aspects      => No_Node_Rewriting_Handle);
             end;
 
-         when None =>
+         when None                    =>
             raise Program_Error;
       end case;
    end Insert_Stmt_Witness;
@@ -8501,8 +8508,8 @@ package body Instrument.Ada_Unit is
    begin
       if Unit.Has_Diagnostics then
          Outputs.Error ("instrumentation failed for " & Input_Filename);
-         Outputs.Error ("please make sure the original project can be "
-                          & "compiled");
+         Outputs.Error
+           ("please make sure the original project can be " & "compiled");
          for D of Unit.Diagnostics loop
             Outputs.Error (Unit.Format_GNU_Diagnostic (D));
          end loop;
@@ -8522,9 +8529,8 @@ package body Instrument.Ada_Unit is
       Unit         : Analysis_Unit)
    is
       Base_Filename   : constant String :=
-         Ada.Directories.Simple_Name (Unit.Get_Filename);
-      Output_Filename : constant String :=
-        New_File (Prj, Base_Filename);
+        Ada.Directories.Simple_Name (Unit.Get_Filename);
+      Output_Filename : constant String := New_File (Prj, Base_Filename);
    begin
       Self.Input_Filename := +Unit.Get_Filename;
       Self.Output_Filename := +Output_Filename;
@@ -8547,14 +8553,14 @@ package body Instrument.Ada_Unit is
    -- Unit_Requested_Callback --
    -----------------------------
 
-   overriding procedure Unit_Requested_Callback
+   overriding
+   procedure Unit_Requested_Callback
      (Self               : in out Missing_Src_Reporter;
       Context            : Libadalang.Analysis.Analysis_Context'Class;
       Name               : Langkit_Support.Text.Text_Type;
       From               : Libadalang.Analysis.Analysis_Unit'Class;
       Found              : Boolean;
-      Is_Not_Found_Error : Boolean)
-   is
+      Is_Not_Found_Error : Boolean) is
    begin
       --  We need to warn about sources that we could not find *and* whose
       --  presence is mandated by Ada.
@@ -8591,9 +8597,10 @@ package body Instrument.Ada_Unit is
                --  missing.
 
                if Self.Instrumented_File /= "" then
-                  Warn ("While instrumenting "
-                        & (+Self.Instrumented_File)
-                        & "...");
+                  Warn
+                    ("While instrumenting "
+                     & (+Self.Instrumented_File)
+                     & "...");
                   Self.Instrumented_File := Null_Unbounded_String;
                end if;
 
@@ -8608,11 +8615,10 @@ package body Instrument.Ada_Unit is
    ----------------------------------
 
    function Create_Missing_File_Reporter
-     return Libadalang.Analysis.Event_Handler_Reference
-   is
+      return Libadalang.Analysis.Event_Handler_Reference is
    begin
-      return Create_Event_Handler_Reference
-        (Missing_Src_Reporter'(others => <>));
+      return
+        Create_Event_Handler_Reference (Missing_Src_Reporter'(others => <>));
    end Create_Missing_File_Reporter;
 
    ------------------------
@@ -8622,11 +8628,12 @@ package body Instrument.Ada_Unit is
    procedure Create_LAL_Context
      (Instrumenter : in out Ada_Instrumenter_Type'Class) is
    begin
-      Instrumenter.Context := Create_Context
-        (Unit_Provider =>
-           Create_Unit_Provider_Reference (Instrumenter.Provider),
-         Event_Handler => Instrumenter.Event_Handler,
-         File_Reader   => Instrumenter.File_Reader);
+      Instrumenter.Context :=
+        Create_Context
+          (Unit_Provider =>
+             Create_Unit_Provider_Reference (Instrumenter.Provider),
+           Event_Handler => Instrumenter.Event_Handler,
+           File_Reader   => Instrumenter.File_Reader);
       Instrumenter.Get_From_File_Count := 0;
 
       declare
@@ -8647,8 +8654,8 @@ package body Instrument.Ada_Unit is
    function Get_From_File
      (Instrumenter : in out Ada_Instrumenter_Type'Class;
       Filename     : String;
-      Reparse      : Boolean := False)
-      return Libadalang.Analysis.Analysis_Unit is
+      Reparse      : Boolean := False) return Libadalang.Analysis.Analysis_Unit
+   is
    begin
       --  If we exceeded the maximum number of calls to Get_From_File, start
       --  with a new context.
@@ -8656,8 +8663,7 @@ package body Instrument.Ada_Unit is
       if Instrumenter.Get_From_File_Count >= Max_Get_From_File_Count then
          Create_LAL_Context (Instrumenter);
       end if;
-      Instrumenter.Get_From_File_Count :=
-        Instrumenter.Get_From_File_Count + 1;
+      Instrumenter.Get_From_File_Count := Instrumenter.Get_From_File_Count + 1;
 
       return Instrumenter.Context.Get_From_File (Filename, Reparse => Reparse);
    end Get_From_File;
@@ -8667,8 +8673,7 @@ package body Instrument.Ada_Unit is
    -------------------------------------------
 
    procedure Put_Warnings_And_Style_Checks_Pragmas
-     (File : in out Text_Files.File_Type)
-   is
+     (File : in out Text_Files.File_Type) is
    begin
       File.Put_Line ("pragma Style_Checks (Off); pragma Warnings (Off);");
    end Put_Warnings_And_Style_Checks_Pragmas;
@@ -8704,12 +8709,13 @@ package body Instrument.Ada_Unit is
               To_Qualified_Name ("Buffers_" & Img (E.Buffers_Index))
               & Buffer_Kind;
          begin
-            return Create_From_Template
-              (Handle    => RH,
-               Template  =>
-                 To_Text (To_Ada (UIC.Pure_Buffer_Unit.Unit & Buffer)),
-               Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
-               Rule      => Expr_Rule);
+            return
+              Create_From_Template
+                (Handle    => RH,
+                 Template  =>
+                   To_Text (To_Ada (UIC.Pure_Buffer_Unit.Unit & Buffer)),
+                 Arguments => (1 .. 0 => No_Node_Rewriting_Handle),
+                 Rule      => Expr_Rule);
          end Indexed_Buffer;
 
       begin
@@ -8797,7 +8803,7 @@ package body Instrument.Ada_Unit is
 
       Tmp := Tmp.As_Library_Item.F_Item.As_Ada_Node;
       case Tmp.Kind is
-         when Ada_Subp_Body =>
+         when Ada_Subp_Body                  =>
             declare
                Subp_Body : constant LAL.Subp_Body := Tmp.As_Subp_Body;
             begin
@@ -8846,7 +8852,7 @@ package body Instrument.Ada_Unit is
          --  Note that a renaming ("procedure X renames ...") cannot be used as
          --  a main program.
 
-         when others =>
+         when others                         =>
             Stop_Probe_Main (U, "subprogram body expected");
       end case;
    end Probe_Main;
@@ -8887,8 +8893,8 @@ package body Instrument.Ada_Unit is
       RH   : constant Rewriting_Handle := Handle (Unit.Context);
 
       function Wrap_Name
-        (Orig_Name : Defining_Name;
-         Prefix    : String) return Node_Rewriting_Handle;
+        (Orig_Name : Defining_Name; Prefix : String)
+         return Node_Rewriting_Handle;
       --  Return a node that is a copy of Orig_Name but with an additional
       --  prefix for the identifier of the designated entity.
       --
@@ -8909,8 +8915,8 @@ package body Instrument.Ada_Unit is
       ---------------
 
       function Wrap_Name
-        (Orig_Name : Defining_Name;
-         Prefix    : String) return Node_Rewriting_Handle
+        (Orig_Name : Defining_Name; Prefix : String)
+         return Node_Rewriting_Handle
       is
          Result : constant Node_Rewriting_Handle :=
            Clone (Handle (Orig_Name.F_Name));
@@ -8925,10 +8931,10 @@ package body Instrument.Ada_Unit is
                Id := Id.As_Dotted_Name.F_Suffix.As_Name;
                R_Id := Child (R_Id, Member_Refs.Dotted_Name_F_Suffix);
 
-            when LALCO.Ada_Identifier =>
+            when LALCO.Ada_Identifier  =>
                null;
 
-            when others =>
+            when others                =>
                Stop_Probe_Main
                  (Unit, "unexpected unit name component: " & Id.Kind'Image);
          end case;
@@ -8958,7 +8964,7 @@ package body Instrument.Ada_Unit is
          procedure Visit (N : Node_Rewriting_Handle) is
          begin
             case Kind (N) is
-               when LALCO.Ada_Identifier =>
+               when LALCO.Ada_Identifier  =>
                   Append (Result, To_UTF8 (Text (N)));
 
                when LALCO.Ada_Dotted_Name =>
@@ -8966,17 +8972,17 @@ package body Instrument.Ada_Unit is
                   Append (Result, '-');
                   Visit (Child (N, Member_Refs.Dotted_Name_F_Suffix));
 
-               when others =>
+               when others                =>
 
                   --  Since we abort rewriting in Wrap_Name above for such
                   --  cases, the following should be unreachable.
 
-                  raise Program_Error with
-                    "invalid unit name component: " & Kind (N)'Image;
+                  raise Program_Error
+                    with "invalid unit name component: " & Kind (N)'Image;
             end case;
          end Visit;
 
-      --  Start of processing for Filename
+         --  Start of processing for Filename
 
       begin
          Visit (Unit_Name);
@@ -8990,19 +8996,25 @@ package body Instrument.Ada_Unit is
       --  expanding this main.
 
       Generic_Wrapper_Spec_Template : constant Text_Type :=
-        "generic" & Chars.LF
-        & "procedure {};" & Chars.LF;
+        "generic" & Chars.LF & "procedure {};" & Chars.LF;
       Generic_Wrapper_Body_Template : constant Text_Type :=
-        "with {};" & Chars.LF
+        "with {};"
         & Chars.LF
-        & "procedure {} is" & Chars.LF
-        & "begin" & Chars.LF
-        & "   {};" & Chars.LF
-        & "end {};" & Chars.LF;
-      Main_Template            : constant Text_Type :=
-        "with {};" & Chars.LF
         & Chars.LF
-        & "procedure {} is new {};" & Chars.LF;
+        & "procedure {} is"
+        & Chars.LF
+        & "begin"
+        & Chars.LF
+        & "   {};"
+        & Chars.LF
+        & "end {};"
+        & Chars.LF;
+      Main_Template                 : constant Text_Type :=
+        "with {};"
+        & Chars.LF
+        & Chars.LF
+        & "procedure {} is new {};"
+        & Chars.LF;
       --  Templates used to produce the synthetic sources created while
       --  expanding this main.
 
@@ -9019,7 +9031,7 @@ package body Instrument.Ada_Unit is
 
       Has_Error : Boolean := False;
 
-   --  Start of processing for Expand_Main_Generic_Instantiation
+      --  Start of processing for Expand_Main_Generic_Instantiation
 
    begin
       --  In order for the renaming to be valid, update all references to this
@@ -9029,13 +9041,13 @@ package body Instrument.Ada_Unit is
       begin
          for R of Orig_Name.P_Find_All_References (Units => (1 => Unit)) loop
             case Kind (R) is
-               when Precise =>
+               when Precise            =>
                   Replace (Handle (Ref (R)), Clone (Wrapped_Name));
 
                when No_Ref | Imprecise =>
                   null;
 
-               when LALCO.Error =>
+               when LALCO.Error        =>
                   Has_Error := True;
             end case;
          end loop;
@@ -9044,9 +9056,10 @@ package body Instrument.Ada_Unit is
             Has_Error := True;
       end;
       if Has_Error then
-         Report (Node => Orig_Name,
-                 Msg  => "Could not find all references to this subprogram",
-                 Kind => Low_Warning);
+         Report
+           (Node => Orig_Name,
+            Msg  => "Could not find all references to this subprogram",
+            Kind => Low_Warning);
       end if;
 
       --  Rename the defining name itself and write the resulting unit in a new
@@ -9124,14 +9137,15 @@ package body Instrument.Ada_Unit is
    ---------------------------
 
    function Simple_Dump_Proc_Call
-     (RH          : Rewriting_Handle;
-      Helper_Unit : Ada_Qualified_Name) return Node_Rewriting_Handle
+     (RH : Rewriting_Handle; Helper_Unit : Ada_Qualified_Name)
+      return Node_Rewriting_Handle
    is
       Dump_Procedure : Ada_Qualified_Name := Helper_Unit;
    begin
       Dump_Procedure.Append (Dump_Procedure_Name);
-      return Create_Regular_Node
-        (RH, Ada_Call_Stmt, (1 => To_Nodes (RH, Dump_Procedure)));
+      return
+        Create_Regular_Node
+          (RH, Ada_Call_Stmt, (1 => To_Nodes (RH, Dump_Procedure)));
    end Simple_Dump_Proc_Call;
 
    -----------------------------------
@@ -9152,8 +9166,7 @@ package body Instrument.Ada_Unit is
         Simple_Dump_Proc_Call (RH, Helper_Unit);
       --  Call invoking the dump procedure
 
-      function Process_Returns
-         (Node : Ada_Node'Class) return Visit_Status;
+      function Process_Returns (Node : Ada_Node'Class) return Visit_Status;
       --  Helper for LAL's Traverse procedure. If node is a return
       --  statement that returns from the main, insert a call to the
       --  dump buffer procedure right before.
@@ -9165,8 +9178,7 @@ package body Instrument.Ada_Unit is
       function Process_Returns (Node : Ada_Node'Class) return Visit_Status is
       begin
          if Node.Kind in Ada_Return_Stmt
-           and then Return_From_Subp_Body
-                      (Node.As_Return_Stmt, Subp_Body)
+           and then Return_From_Subp_Body (Node.As_Return_Stmt, Subp_Body)
          then
             --  Child_Index is 0 based whereas Insert_Child is 1 based
 
@@ -9180,7 +9192,7 @@ package body Instrument.Ada_Unit is
       Handled_Stmt_List : constant Node_Rewriting_Handle :=
         Handle (Subp_Body.F_Stmts.F_Stmts);
 
-   --  Start of processing for Insert_Simple_Dump_Proc_Calls
+      --  Start of processing for Insert_Simple_Dump_Proc_Calls
 
    begin
       --  Add a Dump_Buffer call at the end of the main's handeled statements
@@ -9230,11 +9242,12 @@ package body Instrument.Ada_Unit is
    begin
       Controlled_Type_Name.Append
         (To_Unbounded_String ("Dump_Controlled_Type"));
-      Dump_Object_Decl := Create_From_Template
-        (RH,
-         "GNATcov_Dump_Object : {};",
-         (1 => To_Nodes (RH, Controlled_Type_Name)),
-         Object_Decl_Rule);
+      Dump_Object_Decl :=
+        Create_From_Template
+          (RH,
+           "GNATcov_Dump_Object : {};",
+           (1 => To_Nodes (RH, Controlled_Type_Name)),
+           Object_Decl_Rule);
 
       --  Insert the declaration as the first declaration in the
       --  list to ensure it is finalized last.
@@ -9263,11 +9276,11 @@ package body Instrument.Ada_Unit is
       --  of restrictions associated with the runtime.
 
    begin
-      if not Unusable_System_Reported and then System_Unit.Has_Diagnostics
-      then
+      if not Unusable_System_Reported and then System_Unit.Has_Diagnostics then
          Diagnostics.Report
-           (Msg  => "Could not parse the System unit for the runtime,"
-                    & " instrumentation of mains may be incorrect:",
+           (Msg  =>
+              "Could not parse the System unit for the runtime,"
+              & " instrumentation of mains may be incorrect:",
             Kind => Low_Warning);
          for Diag of System_Unit.Diagnostics loop
             Diagnostics.Report
@@ -9290,12 +9303,12 @@ package body Instrument.Ada_Unit is
    --------------
 
    function Has_Unit
-     (Context : Analysis_Context;
-      Unit    : String;
-      Part    : Analysis_Unit_Kind) return Boolean is
+     (Context : Analysis_Context; Unit : String; Part : Analysis_Unit_Kind)
+      return Boolean is
    begin
-      return Context.Unit_Provider.Get.Get_Unit_Filename
-        (To_Text (Unit), Part) /= "";
+      return
+        Context.Unit_Provider.Get.Get_Unit_Filename (To_Text (Unit), Part)
+        /= "";
    end Has_Unit;
 
    -------------------------------------
@@ -9318,9 +9331,10 @@ package body Instrument.Ada_Unit is
       then
          return True;
       end if;
-      return not Has_Unit (Context, "Ada.Finalization", Unit_Specification)
-            or else Has_Matching_Pragma_For_Unit
-                      (Context, Unit, Pragma_Restricts_Finalization_Matchers);
+      return
+        not Has_Unit (Context, "Ada.Finalization", Unit_Specification)
+        or else Has_Matching_Pragma_For_Unit
+                  (Context, Unit, Pragma_Restricts_Finalization_Matchers);
    end Finalization_Restricted_In_Unit;
 
    ---------------------------------
@@ -9338,11 +9352,12 @@ package body Instrument.Ada_Unit is
       then
          return True;
       end if;
-      return not Has_Unit (Context, "Ada.Task.Termination", Unit_Specification)
+      return
+        not Has_Unit (Context, "Ada.Task.Termination", Unit_Specification)
         or else not Has_Unit
-          (Context, "Ada.Task.Identification", Unit_Specification)
+                      (Context, "Ada.Task.Identification", Unit_Specification)
         or else Has_Matching_Pragma_For_Unit
-          (Context, Unit, Pragma_Prevents_Task_Termination_Matchers);
+                  (Context, Unit, Pragma_Prevents_Task_Termination_Matchers);
    end Task_Termination_Restricted;
 
    -----------------------------
@@ -9353,8 +9368,9 @@ package body Instrument.Ada_Unit is
      (Context : Analysis_Context; Unit : LAL.Compilation_Unit) return Boolean
    is
    begin
-      return Has_Matching_Pragma_For_Unit
-        (Context, Unit, Pragma_Restricts_Entry_Guards_Matchers);
+      return
+        Has_Matching_Pragma_For_Unit
+          (Context, Unit, Pragma_Restricts_Entry_Guards_Matchers);
    end Entry_Guards_Restricted;
 
    -----------
@@ -9372,7 +9388,8 @@ package body Instrument.Ada_Unit is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize (Self : in out Ada_Source_Rewriter) is
+   overriding
+   procedure Finalize (Self : in out Ada_Source_Rewriter) is
    begin
       if Self.Handle /= No_Rewriting_Handle then
          Abort_Rewriting (Self.Handle);
@@ -9409,8 +9426,9 @@ package body Instrument.Ada_Unit is
             Symbol : constant Symbolization_Result :=
               Canonicalize (Text (Child (Node, Member_Refs.Pragma_Node_F_Id)));
          begin
-            return (Symbol.Success
-                    and then Symbol.Symbol in "warnings" | "style_checks");
+            return
+              (Symbol.Success
+               and then Symbol.Symbol in "warnings" | "style_checks");
          end;
       end Should_Remove;
 
@@ -9437,7 +9455,7 @@ package body Instrument.Ada_Unit is
          end loop;
       end Process;
 
-   --  Start of processing for Remove_Warnings_And_Style_Checks_Pragmas
+      --  Start of processing for Remove_Warnings_And_Style_Checks_Pragmas
 
    begin
       Process (Root (Unit));
@@ -9495,13 +9513,13 @@ package body Instrument.Ada_Unit is
          while Position <= Length loop
             declare
                Chunk_First : constant Natural := Position;
-               Chunk_Last  : constant Natural := Natural'Min
-                 (Chunk_First + Chunk_Size - 1, Length);
+               Chunk_Last  : constant Natural :=
+                 Natural'Min (Chunk_First + Chunk_Size - 1, Length);
 
                Chunk         : Wide_Wide_String renames
-                  Source_Access.all (Chunk_First .. Chunk_Last);
+                 Source_Access.all (Chunk_First .. Chunk_Last);
                Encoded_Chunk : constant String :=
-                  Ada.Characters.Conversions.To_String (Chunk);
+                 Ada.Characters.Conversions.To_String (Chunk);
             begin
                String'Write (S, Encoded_Chunk);
                Position := Chunk_Last + 1;
@@ -9519,11 +9537,12 @@ package body Instrument.Ada_Unit is
    -- Auto_Dump_Buffers_In_Main --
    -------------------------------
 
-   overriding procedure Auto_Dump_Buffers_In_Main
-     (Self          : in out Ada_Instrumenter_Type;
-      Filename      : String;
-      Dump_Config   : Any_Dump_Config;
-      Prj           : Prj_Desc)
+   overriding
+   procedure Auto_Dump_Buffers_In_Main
+     (Self        : in out Ada_Instrumenter_Type;
+      Filename    : String;
+      Dump_Config : Any_Dump_Config;
+      Prj         : Prj_Desc)
    is
       Rewriter : Ada_Source_Rewriter;
       RH       : Rewriting_Handle renames Rewriter.Handle;
@@ -9598,70 +9617,74 @@ package body Instrument.Ada_Unit is
 
       case Desc.Actual_Dump_Trigger is
 
-      when At_Exit | Ravenscar_Task_Termination =>
+         when At_Exit | Ravenscar_Task_Termination =>
 
-         --  Build the call to the registration function and insert it in
-         --  the main's declarative part, right before the first declaration.
+            --  Build the call to the registration function and insert it in
+            --  the main's declarative part, right before the first
+            --  declaration.
 
-         declare
-            Register_Function : Ada_Qualified_Name;
-            --  Name of the function to register the coverage buffers dump
-            --  routine.
+            declare
+               Register_Function : Ada_Qualified_Name;
+               --  Name of the function to register the coverage buffers dump
+               --  routine.
 
-            Call_Expr : Node_Rewriting_Handle;
-            Call_Decl : Node_Rewriting_Handle;
-         begin
-            Register_Function := Helper_Unit;
-            Register_Function.Append (Register_Dump_Function_Name);
-            Call_Expr := To_Nodes (RH, Register_Function);
+               Call_Expr : Node_Rewriting_Handle;
+               Call_Decl : Node_Rewriting_Handle;
+            begin
+               Register_Function := Helper_Unit;
+               Register_Function.Append (Register_Dump_Function_Name);
+               Call_Expr := To_Nodes (RH, Register_Function);
 
-            Call_Decl := Create_From_Template
-              (RH,
-               "Autodump_Dummy : {} := {};",
-               (1 => To_Nodes (RH, Witness_Dummy_Type_Name), 2 => Call_Expr),
-               Object_Decl_Rule);
-            Insert_First (Desc.Main_Decls, Call_Decl);
-         end;
+               Call_Decl :=
+                 Create_From_Template
+                   (RH,
+                    "Autodump_Dummy : {} := {};",
+                    (1 => To_Nodes (RH, Witness_Dummy_Type_Name),
+                     2 => Call_Expr),
+                    Object_Decl_Rule);
+               Insert_First (Desc.Main_Decls, Call_Decl);
+            end;
 
-      when Main_End =>
+         when Main_End                             =>
 
-         --  For Main_End we have three instrumentation schemes depending on
-         --  the availability of tasks and controlled types:
-         --
-         --  - If controlled types are available use a controlled object to
-         --    dump the buffers as part of its finalization.
-         --
-         --  - If controlled types are unavailable but task types are, then
-         --    use the Ravenscar_Task_Termination dump trigger as we otherwise
-         --    have no instrumentation method that works with all code
-         --    constructs. In that case, Actuall_Dump_Trigger is set to
-         --    Ravenscar_Task_Termination and we should not reach this part of
-         --    the code.
-         --
-         --  - If we do not have finalization or tasks then simply insert calls
-         --    right before all the exit points of the main.
+            --  For Main_End we have three instrumentation schemes depending on
+            --  the availability of tasks and controlled types:
+            --
+            --  - If controlled types are available use a controlled object to
+            --    dump the buffers as part of its finalization.
+            --
+            --  - If controlled types are unavailable but task types are, then
+            --    use the Ravenscar_Task_Termination dump trigger as we
+            --    otherwise have no instrumentation method that works with all
+            --    code constructs. In that case, Actuall_Dump_Trigger is set to
+            --    Ravenscar_Task_Termination and we should not reach this part
+            --    of the code.
+            --
+            --  - If we do not have finalization or tasks then simply insert
+            --    calls right before all the exit points of the main.
 
-         if Desc.Controlled_Types_Available then
-            Insert_Controlled_Dump_Object_Decl
-              (RH, Helper_Unit, Desc.Main_Decls);
+            if Desc.Controlled_Types_Available then
+               Insert_Controlled_Dump_Object_Decl
+                 (RH, Helper_Unit, Desc.Main_Decls);
 
-         --  Past this, we know that we have to insert a call to the dump
-         --  procedure at points where to dump traces.
+            --  Past this, we know that we have to insert a call to the dump
+            --  procedure at points where to dump traces.
 
-         elsif Desc.Synthetic then
+            elsif Desc.Synthetic then
 
-            --  The code to instrument is synthetic: we do not have regular
-            --  nodes, and thus we cannot call Insert_Simple_Dump_Proc_Calls.
-            --  Fortunately, in this situation we know there there is only one
-            --  place where we want to dump coverage buffers: at the end of the
-            --  wrapper procedure body.
+               --  The code to instrument is synthetic: we do not have regular
+               --  nodes, and thus we cannot call
+               --  Insert_Simple_Dump_Proc_Calls. Fortunately, in this
+               --  situation we know there there is only one place where we
+               --  want to dump coverage buffers: at the end of the wrapper
+               --  procedure body.
 
-            Insert_Last
-              (Desc.Main_Stmts, Simple_Dump_Proc_Call (RH, Helper_Unit));
+               Insert_Last
+                 (Desc.Main_Stmts, Simple_Dump_Proc_Call (RH, Helper_Unit));
 
-         else
-            Insert_Simple_Dump_Proc_Calls (RH, Helper_Unit, Desc.Subp_Body);
-         end if;
+            else
+               Insert_Simple_Dump_Proc_Calls (RH, Helper_Unit, Desc.Subp_Body);
+            end if;
       end case;
 
       --  In case we created synthetic sources, write them down before calling
@@ -9686,7 +9709,8 @@ package body Instrument.Ada_Unit is
    -- Replace_Manual_Indications --
    --------------------------------
 
-   overriding procedure Replace_Manual_Indications
+   overriding
+   procedure Replace_Manual_Indications
      (Self                 : in out Ada_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
       Source               : Virtual_File;
@@ -9698,9 +9722,10 @@ package body Instrument.Ada_Unit is
       Source_Filename       : constant String := +Source.Full_Name;
       Instrumented_Exists   : constant Boolean :=
         Ada.Directories.Exists (Instrumented_Filename);
-      File_To_Search        : constant String := (if Instrumented_Exists
-                                                  then Instrumented_Filename
-                                                  else Source_Filename);
+      File_To_Search        : constant String :=
+        (if Instrumented_Exists
+         then Instrumented_Filename
+         else Source_Filename);
       Unit                  : constant Libadalang.Analysis.Analysis_Unit :=
         Get_From_File (Self, File_To_Search);
       Rewriter              : Ada_Source_Rewriter;
@@ -9710,8 +9735,7 @@ package body Instrument.Ada_Unit is
         Create_Context ("Searching manual indications in " & Source_Filename);
 
       function Find_And_Replace_Pragma
-        (N : Ada_Node'Class)
-         return Visit_Status;
+        (N : Ada_Node'Class) return Visit_Status;
       --  If N is the expected pragma statement, replace it with the actual
       --  call.
 
@@ -9722,13 +9746,14 @@ package body Instrument.Ada_Unit is
       function Find_And_Replace_Pragma (N : Ada_Node'Class) return Visit_Status
       is
          function Is_Expected_Argument
-           (Args : Base_Assoc_List;
-            Idx  : Positive;
-            Arg  : All_Symbols)
+           (Args : Base_Assoc_List; Idx : Positive; Arg : All_Symbols)
             return Boolean
          is ((As_Symbol
-             (Args.Child (Idx).As_Pragma_Argument_Assoc.F_Expr.As_Identifier)
-             = As_Symbol (Arg)));
+                (Args.Child (Idx)
+                   .As_Pragma_Argument_Assoc
+                   .F_Expr
+                   .As_Identifier)
+              = As_Symbol (Arg)));
          --  Check if the argument of Prag_N at Index matches Arg
 
       begin
@@ -9740,9 +9765,9 @@ package body Instrument.Ada_Unit is
                if Pragma_Name (Prag_N) = Name_Annotate
                  and then Prag_Args.Children_Count in 2 .. 3
                  and then Is_Expected_Argument (Prag_Args, 1, Xcov)
-                 and then
-                   (Is_Expected_Argument (Prag_Args, 2, Dump_Buffers)
-                    or else Is_Expected_Argument (Prag_Args, 2, Reset_Buffers))
+                 and then (Is_Expected_Argument (Prag_Args, 2, Dump_Buffers)
+                           or else Is_Expected_Argument
+                                     (Prag_Args, 2, Reset_Buffers))
                then
                   --  First, check that we are in a statement list, no point in
                   --  generating invalid code.
@@ -9768,23 +9793,22 @@ package body Instrument.Ada_Unit is
                   declare
                      RH         : constant Rewriting_Handle := Rewriter.Handle;
                      With_Unit  : constant Node_Rewriting_Handle :=
-                       To_Nodes
-                         (RH,
-                          Create_Manual_Helper_Unit_Name (Prj));
-                     Dump_Call  : constant  Node_Rewriting_Handle :=
+                       To_Nodes (RH, Create_Manual_Helper_Unit_Name (Prj));
+                     Dump_Call  : constant Node_Rewriting_Handle :=
                        To_Nodes
                          (RH,
                           To_Qualified_Name (To_String (Dump_Procedure_Name)));
                      Dump_Args  : constant Node_Rewriting_Handle :=
                        (if Prag_Args.Children_Count = 3
                         then Detach (Prag_Args.Child (3))
-                        else Create_Token_Node
-                               (RH,
-                                Kind => Ada_String_Literal,
-                                Text => To_Text
-                                          ("""" & (To_Ada (Prj.Prj_Name))
-                                           & """")));
-                     Reset_Call  : constant Node_Rewriting_Handle :=
+                        else
+                          Create_Token_Node
+                            (RH,
+                             Kind => Ada_String_Literal,
+                             Text =>
+                               To_Text
+                                 ("""" & (To_Ada (Prj.Prj_Name)) & """")));
+                     Reset_Call : constant Node_Rewriting_Handle :=
                        To_Nodes
                          (RH,
                           To_Qualified_Name
@@ -9800,7 +9824,7 @@ package body Instrument.Ada_Unit is
                              (RH,
                               Template  => "with {};",
                               Arguments => (1 => With_Unit),
-                              Rule => With_Clause_Rule));
+                              Rule      => With_Clause_Rule));
                      end if;
 
                      if Is_Expected_Argument (Prag_Args, 2, Dump_Buffers) then
@@ -9818,10 +9842,11 @@ package body Instrument.Ada_Unit is
                            Create_From_Template
                              (RH,
                               "{}.{} ({});",
-                              Arguments => (1 => With_Unit,
-                                            2 => Dump_Call,
-                                            3 => Dump_Args),
-                              Rule => Call_Stmt_Rule));
+                              Arguments =>
+                                (1 => With_Unit,
+                                 2 => Dump_Call,
+                                 3 => Dump_Args),
+                              Rule      => Call_Stmt_Rule));
                         Has_Dump_Indication := True;
                      else
 
@@ -9839,7 +9864,7 @@ package body Instrument.Ada_Unit is
                              (RH,
                               "{}.{};",
                               Arguments => (1 => With_Unit, 2 => Reset_Call),
-                              Rule => Call_Stmt_Rule));
+                              Rule      => Call_Stmt_Rule));
                         Has_Reset_Indication := True;
                      end if;
                   end;
@@ -9897,8 +9922,7 @@ package body Instrument.Ada_Unit is
       -- Insert_One --
       ----------------
 
-      procedure Insert_One (Cur : Instr_Annotation_Maps.Cursor)
-      is
+      procedure Insert_One (Cur : Instr_Annotation_Maps.Cursor) is
          Loc      : constant Slocs.Local_Source_Location :=
            Instr_Annotation_Maps.Key (Cur);
          LAL_Loc  : constant Source_Location :=
@@ -9916,13 +9940,17 @@ package body Instrument.Ada_Unit is
 
          if Cur_Node = No_Ada_Node then
             Warning_Or_Error
-              ("Could not find node for source location " & Slocs.Image (Loc)
-               & " in file " & Unit.Get_Filename & ", external "
-               & Annot.Kind'Image & "annotation ignored.");
+              ("Could not find node for source location "
+               & Slocs.Image (Loc)
+               & " in file "
+               & Unit.Get_Filename
+               & ", external "
+               & Annot.Kind'Image
+               & "annotation ignored.");
             return;
          end if;
          while Cur_Node /= No_Ada_Node
-              and then Cur_Node.Kind not in Ada_Stmt_List | Ada_Decl_List
+           and then Cur_Node.Kind not in Ada_Stmt_List | Ada_Decl_List
          loop
             Cur_Node := Cur_Node.Parent;
          end loop;
@@ -9933,8 +9961,12 @@ package body Instrument.Ada_Unit is
          if Cur_Node = No_Ada_Node then
             Warning_Or_Error
               ("Could not find statement or declaration list enclosing "
-               & Slocs.Image (Loc) & " in file " & Unit.Get_Filename
-               & ", external " & Annot.Kind'Image & " annotation ignored.");
+               & Slocs.Image (Loc)
+               & " in file "
+               & Unit.Get_Filename
+               & ", external "
+               & Annot.Kind'Image
+               & " annotation ignored.");
             return;
          end if;
 
@@ -9944,8 +9976,8 @@ package body Instrument.Ada_Unit is
          declare
             Child : Ada_Node := Cur_Node.First_Child;
          begin
-            while Child /= No_Ada_Node and then
-                 Compare (Child, LAL_Loc) = After
+            while Child /= No_Ada_Node
+              and then Compare (Child, LAL_Loc) = After
             loop
                Child := Child.Next_Sibling;
             end loop;
@@ -9966,41 +9998,41 @@ package body Instrument.Ada_Unit is
             --  Create the proper pragma based on the annotation
 
             case Annot.Kind is
-               when Dump_Buffers =>
-                  Prag_Stmt := Create_From_Template
-                    (RH,
-                     "pragma Annotate (Xcov, Dump_Buffers"
-                     & (if Length (Annot.Trace_Prefix) /= 0
-                        then To_Text (", " & (+Annot.Trace_Prefix))
-                        else "") & ");",
-                     (1 .. 0 => No_Node_Rewriting_Handle),
-                     Pragma_Rule);
+               when Dump_Buffers     =>
+                  Prag_Stmt :=
+                    Create_From_Template
+                      (RH,
+                       "pragma Annotate (Xcov, Dump_Buffers"
+                       & (if Length (Annot.Trace_Prefix) /= 0
+                          then To_Text (", " & (+Annot.Trace_Prefix))
+                          else "")
+                       & ");",
+                       (1 .. 0 => No_Node_Rewriting_Handle),
+                       Pragma_Rule);
 
-               when Reset_Buffers =>
-                  Prag_Stmt := Create_From_Template
-                    (RH,
-                     "pragma Annotate (Xcov, Reset_Buffers);",
-                     (1 .. 0 => No_Node_Rewriting_Handle),
-                     Pragma_Rule);
+               when Reset_Buffers    =>
+                  Prag_Stmt :=
+                    Create_From_Template
+                      (RH,
+                       "pragma Annotate (Xcov, Reset_Buffers);",
+                       (1 .. 0 => No_Node_Rewriting_Handle),
+                       Pragma_Rule);
 
-               when Cov_Off | Cov_On => raise Program_Error with "Unreachable";
+               when Cov_Off | Cov_On =>
+                  raise Program_Error with "Unreachable";
             end case;
             --  Insert the proper annotation pragma in the statement list, in
             --  the right location.
 
             if Annot.Insert_After then
-               Insert_After
-                 (Insert_Child,
-                  New_Sibling => Prag_Stmt);
+               Insert_After (Insert_Child, New_Sibling => Prag_Stmt);
             else
-               Insert_Before
-                 (Insert_Child,
-                  New_Sibling => Prag_Stmt);
+               Insert_Before (Insert_Child, New_Sibling => Prag_Stmt);
             end if;
          end;
       end Insert_One;
 
-   --  Start of processing for Insert_External_Annotations
+      --  Start of processing for Insert_External_Annotations
 
    begin
       Annotations.Iterate (Insert_One'Access);
@@ -10015,7 +10047,8 @@ package body Instrument.Ada_Unit is
          if not Apply_Res.Success then
             Warning_Or_Error
               ("Failed to import external buffer annotations for "
-               & Unit.Get_Filename & ", they will be ignored.");
+               & Unit.Get_Filename
+               & ", they will be ignored.");
             for D of Apply_Res.Diagnostics loop
                Warning_Or_Error (Unit.Format_GNU_Diagnostic (D));
             end loop;
@@ -10039,13 +10072,14 @@ package body Instrument.Ada_Unit is
         GNATCOLL.VFS."+" (Source.Full_Name);
       Instrumented_Exists   : constant Boolean :=
         Ada.Directories.Exists (Instrumented_Filename);
-      File_To_Search        : constant String := (if Instrumented_Exists
-                                                  then Instrumented_Filename
-                                                  else Source_Filename);
+      File_To_Search        : constant String :=
+        (if Instrumented_Exists
+         then Instrumented_Filename
+         else Source_Filename);
       Unit                  : constant Libadalang.Analysis.Analysis_Unit :=
         Get_From_File (Self, File_To_Search, Reparse => True);
 
-      Rewriter              : Ada_Source_Rewriter;
+      Rewriter : Ada_Source_Rewriter;
 
       Dummy_Ctx : constant Context_Handle :=
         Create_Context ("Inserting with dump helper in " & Source_Filename);
@@ -10060,10 +10094,10 @@ package body Instrument.Ada_Unit is
            (Rewriter.Handle,
             Template  => "with {};",
             Arguments =>
-              (1 => To_Nodes
-                   (Rewriter.Handle,
-                    Create_Manual_Helper_Unit_Name (Prj))),
-            Rule => With_Clause_Rule));
+              (1 =>
+                 To_Nodes
+                   (Rewriter.Handle, Create_Manual_Helper_Unit_Name (Prj))),
+            Rule      => With_Clause_Rule));
       Rewriter.Apply;
    end Insert_With_Dump_Helper;
 
@@ -10113,7 +10147,7 @@ package body Instrument.Ada_Unit is
       --  again if there were any annotations.
 
       declare
-         Buffer_Annots       : constant  Instr_Annotation_Map :=
+         Buffer_Annots : constant Instr_Annotation_Map :=
            Get_Buffer_Annotations (Filename);
       begin
          if not Buffer_Annots.Is_Empty then
@@ -10134,8 +10168,10 @@ package body Instrument.Ada_Unit is
       exception
          when Libadalang.Common.Property_Error =>
             Report
-              (Msg  => "failed to determine No_Elaboration_Code_All constraint"
-                       & " for " & Filename,
+              (Msg  =>
+                 "failed to determine No_Elaboration_Code_All constraint"
+                 & " for "
+                 & Filename,
                Kind => Warning);
             Has_No_Elab_Code_All := False;
       end;
@@ -10154,8 +10190,8 @@ package body Instrument.Ada_Unit is
          CU_Name.Part := GPR2.S_Separate;
       end if;
 
-      CU_Name.Unit := To_Qualified_Name
-        (UIC.Root_Unit.P_Decl.P_Fully_Qualified_Name_Array);
+      CU_Name.Unit :=
+        To_Qualified_Name (UIC.Root_Unit.P_Decl.P_Fully_Qualified_Name_Array);
 
       begin
          --  Library level declarations can be instrumented only when
@@ -10170,8 +10206,9 @@ package body Instrument.Ada_Unit is
       exception
          when Libadalang.Common.Property_Error =>
             Report
-              (Msg  => "failed to determine preelaboration constraint for "
-               & Filename,
+              (Msg  =>
+                 "failed to determine preelaboration constraint for "
+                 & Filename,
                Kind => Warning);
             Preelab := False;
       end;
@@ -10207,8 +10244,10 @@ package body Instrument.Ada_Unit is
       UIC.Instrumented_Unit := CU_Name;
 
       begin
-         Has_Pragma_SCAO := UIC.Root_Unit.P_Config_Pragmas
-           (To_Unbounded_Text ("Short_Circuit_And_Or"))'Length /= 0;
+         Has_Pragma_SCAO :=
+           UIC.Root_Unit.P_Config_Pragmas
+             (To_Unbounded_Text ("Short_Circuit_And_Or"))'Length
+           /= 0;
       exception
          when Exc : Property_Error =>
             Report
@@ -10232,10 +10271,11 @@ package body Instrument.Ada_Unit is
       --  try to load SCOs for the same unit from an ALI file, as ALI files
       --  only provide simple names.
 
-      UIC.SFI := Get_Index_From_Generic_Name
-        (Filename,
-         Kind                => Files_Table.Source_File,
-         Indexed_Simple_Name => True);
+      UIC.SFI :=
+        Get_Index_From_Generic_Name
+          (Filename,
+           Kind                => Files_Table.Source_File,
+           Indexed_Simple_Name => True);
       UIC.Fullname := +Filename;
       UIC.Unit_Bits.SFI := UIC.SFI;
 
@@ -10284,10 +10324,10 @@ package body Instrument.Ada_Unit is
             Created_Units => Created_Units,
             SCO_Map       => SCO_Map'Access,
             Count_Paths   => True,
-            Attached_Ctx  => Instr_Attached_Ctx'
-              (True_Static_SCOs => UIC.True_Static_LL_SCOs,
-               False_Static_SCOs => UIC.False_Static_LL_SCOs)
-            );
+            Attached_Ctx  =>
+              Instr_Attached_Ctx'
+                (True_Static_SCOs  => UIC.True_Static_LL_SCOs,
+                 False_Static_SCOs => UIC.False_Static_LL_SCOs));
 
          --  In the instrumentation case, the origin of SCO information is
          --  the original source file.
@@ -10310,7 +10350,8 @@ package body Instrument.Ada_Unit is
 
          --  Insert calls to condition/decision witnesses
 
-         if Coverage.Enabled (Decision) or else MCDC_Coverage_Enabled
+         if Coverage.Enabled (Decision)
+           or else MCDC_Coverage_Enabled
            or else Assertion_Condition_Coverage_Enabled
          then
             for SD of UIC.Source_Decisions loop
@@ -10318,10 +10359,10 @@ package body Instrument.Ada_Unit is
                   HL_SCO            : constant SCO_Id := SCO_Map (SD.LL_SCO);
                   Should_Instrument : constant Boolean :=
                     ((not SD.Is_Contract
-                     and then (Coverage.Enabled (Decision)
-                       or else MCDC_Coverage_Enabled))
+                      and then (Coverage.Enabled (Decision)
+                                or else MCDC_Coverage_Enabled))
                      or else (SD.Is_Contract
-                       and then Assertion_Coverage_Enabled));
+                              and then Assertion_Coverage_Enabled));
                begin
                   if Should_Instrument then
                      Insert_Decision_Witness (UIC, SD, Path_Count (HL_SCO));
@@ -10356,7 +10397,7 @@ package body Instrument.Ada_Unit is
                      --  the path, we do not instrument the condition.
 
                      if SC.State = ""
-                        or else Path_Count (Decision) > Get_Path_Count_Limit
+                       or else Path_Count (Decision) > Get_Path_Count_Limit
                      then
                         Set_Decision_SCO_Non_Instr_For_MCDC (Decision);
                      else
@@ -10372,14 +10413,18 @@ package body Instrument.Ada_Unit is
          --  bit maps.
 
          Bit_Maps :=
-           (Statement_Bits => new Statement_Bit_Map'
-              (Bit_Id'First .. UIC.Unit_Bits.Last_Statement_Bit => No_SCO_Id),
-            Decision_Bits  => new Decision_Bit_Map'
-              (Bit_Id'First .. UIC.Unit_Bits.Last_Outcome_Bit =>
+           (Statement_Bits =>
+              new Statement_Bit_Map'
+                (Bit_Id'First .. UIC.Unit_Bits.Last_Statement_Bit =>
+                   No_SCO_Id),
+            Decision_Bits  =>
+              new Decision_Bit_Map'
+                (Bit_Id'First .. UIC.Unit_Bits.Last_Outcome_Bit =>
                    (No_SCO_Id, False)),
             MCDC_Bits      =>
-               new MCDC_Bit_Map'(Bit_Id'First .. UIC.Unit_Bits.Last_Path_Bit =>
-                                     (No_SCO_Id, 0)));
+              new MCDC_Bit_Map'
+                (Bit_Id'First .. UIC.Unit_Bits.Last_Path_Bit =>
+                   (No_SCO_Id, 0)));
 
          for S_Bit_Alloc of UIC.Unit_Bits.Statement_Bits loop
             Bit_Maps.Statement_Bits (S_Bit_Alloc.Executed) :=
@@ -10393,12 +10438,12 @@ package body Instrument.Ada_Unit is
                for Outcome in Boolean loop
                   Bit_Maps.Decision_Bits
                     (D_Bit_Alloc.Outcome_Bits (Outcome)) :=
-                      (D_SCO, Outcome);
+                    (D_SCO, Outcome);
                end loop;
 
                if (MCDC_Coverage_Enabled
                    or else Assertion_Condition_Coverage_Enabled)
-                  and then D_Bit_Alloc.Path_Bits_Base /= No_Bit_Id
+                 and then D_Bit_Alloc.Path_Bits_Base /= No_Bit_Id
                then
                   declare
                      Path_Count : constant Natural :=
@@ -10434,10 +10479,11 @@ package body Instrument.Ada_Unit is
       --  Update the Ignore_Status of the CU we instrumented
 
       Files_Table.Consolidate_Ignore_Status
-        (Index  => Files_Table.Get_Index_From_Generic_Name
-           (Name                => Filename,
-            Kind                => Files_Table.Source_File,
-            Indexed_Simple_Name => True),
+        (Index  =>
+           Files_Table.Get_Index_From_Generic_Name
+             (Name                => Filename,
+              Kind                => Files_Table.Source_File,
+              Indexed_Simple_Name => True),
          Status => Files_Table.Never);
    end Instrument_Source_File;
 
@@ -10451,9 +10497,9 @@ package body Instrument.Ada_Unit is
       Project_Name_Slug : constant String :=
         Qualified_Name_Slug (Project_Name, Use_Hash => False);
    begin
-      return Ada_Identifier_Vectors."&"
-        (Sys_Prefix,
-         Ada_Identifier (Unbounded_String'(+Project_Name_Slug)));
+      return
+        Ada_Identifier_Vectors."&"
+          (Sys_Prefix, Ada_Identifier (Unbounded_String'(+Project_Name_Slug)));
    end Buffers_List_Unit;
 
    -----------------
@@ -10528,27 +10574,27 @@ package body Instrument.Ada_Unit is
       for I in 1 .. Last_Buffer_Index loop
          declare
             Unit_Bit : constant Allocated_Bits := Unit_Bits.Element (I);
-            CU_Name : constant Compilation_Unit_Part := CU_Names.Element (I);
-            CU : constant CU_Id := CUs.Element (I);
+            CU_Name  : constant Compilation_Unit_Part := CU_Names.Element (I);
+            CU       : constant CU_Id := CUs.Element (I);
 
-            Unit_Name : constant String := Ada.Characters.Handling.To_Lower
-              (To_Ada (CU_Name.Unit));
+            Unit_Name : constant String :=
+              Ada.Characters.Handling.To_Lower (To_Ada (CU_Name.Unit));
             --  Lower-case name for the instrumented unit
 
             Unit_Part : constant String :=
               (case CU_Name.Part is
-                  when GPR2.S_Spec     => "Unit_Spec",
-                  when GPR2.S_Body     => "Unit_Body",
-                  when GPR2.S_Separate => "Unit_Separate");
+                 when GPR2.S_Spec     => "Unit_Spec",
+                 when GPR2.S_Body     => "Unit_Body",
+                 when GPR2.S_Separate => "Unit_Separate");
             --  Do not use 'Image so that we use the original casing for the
             --  enumerators, and thus avoid compilation warnings/errors.
 
-            Statement_Last_Bit : constant String := Img
-              (Unit_Bit.Last_Statement_Bit);
-            Decision_Last_Bit  : constant String := Img
-              (Unit_Bit.Last_Outcome_Bit);
-            MCDC_Last_Bit      : constant String := Img
-              (Unit_Bit.Last_Path_Bit);
+            Statement_Last_Bit : constant String :=
+              Img (Unit_Bit.Last_Statement_Bit);
+            Decision_Last_Bit  : constant String :=
+              Img (Unit_Bit.Last_Outcome_Bit);
+            MCDC_Last_Bit      : constant String :=
+              Img (Unit_Bit.Last_Path_Bit);
 
             Suffix : constant String := "_" & Img (I);
 
@@ -10563,54 +10609,76 @@ package body Instrument.Ada_Unit is
 
             File.Put_Line ("package Buffers" & Suffix & " is");
 
-            File.Put_Line ("   Statement_Buffer"
-                           & " : Coverage_Buffer_Type"
-                           & " (0 .. " & Statement_Last_Bit & ") :="
-                           & " (others => False);");
-            File.Put_Line ("   Statement_Buffer_Address"
-                           & " : constant System.Address"
-                           & " := Statement_Buffer'Address;");
-            File.Put_Line ("   pragma Export (C, Statement_Buffer_Address, """
-                           & Statement_Buffer_Symbol (CU_Name) & Suffix
-                           & """);");
+            File.Put_Line
+              ("   Statement_Buffer"
+               & " : Coverage_Buffer_Type"
+               & " (0 .. "
+               & Statement_Last_Bit
+               & ") :="
+               & " (others => False);");
+            File.Put_Line
+              ("   Statement_Buffer_Address"
+               & " : constant System.Address"
+               & " := Statement_Buffer'Address;");
+            File.Put_Line
+              ("   pragma Export (C, Statement_Buffer_Address, """
+               & Statement_Buffer_Symbol (CU_Name)
+               & Suffix
+               & """);");
             File.New_Line;
 
-            File.Put_Line ("   Decision_Buffer : Coverage_Buffer_Type"
-                           & " (0 .. " & Decision_Last_Bit & ") :="
-                           & " (others => False);");
-            File.Put_Line ("   Decision_Buffer_Address"
-                           & " : constant System.Address"
-                           & " := Decision_Buffer'Address;");
-            File.Put_Line ("   pragma Export (C, Decision_Buffer_Address, """
-                           & Decision_Buffer_Symbol (CU_Name) & Suffix
-                           & """);");
+            File.Put_Line
+              ("   Decision_Buffer : Coverage_Buffer_Type"
+               & " (0 .. "
+               & Decision_Last_Bit
+               & ") :="
+               & " (others => False);");
+            File.Put_Line
+              ("   Decision_Buffer_Address"
+               & " : constant System.Address"
+               & " := Decision_Buffer'Address;");
+            File.Put_Line
+              ("   pragma Export (C, Decision_Buffer_Address, """
+               & Decision_Buffer_Symbol (CU_Name)
+               & Suffix
+               & """);");
             File.New_Line;
 
-            File.Put_Line ("   MCDC_Buffer : Coverage_Buffer_Type"
-                           & " (0 .. " & MCDC_Last_Bit & ") :="
-                           & " (others => False);");
-            File.Put_Line ("   MCDC_Buffer_Address : constant System.Address"
-                           & " := MCDC_Buffer'Address;");
-            File.Put_Line ("   pragma Export (C, MCDC_Buffer_Address, """
-                           & MCDC_Buffer_Symbol (CU_Name)
-                           & Suffix & """);");
+            File.Put_Line
+              ("   MCDC_Buffer : Coverage_Buffer_Type"
+               & " (0 .. "
+               & MCDC_Last_Bit
+               & ") :="
+               & " (others => False);");
+            File.Put_Line
+              ("   MCDC_Buffer_Address : constant System.Address"
+               & " := MCDC_Buffer'Address;");
+            File.Put_Line
+              ("   pragma Export (C, MCDC_Buffer_Address, """
+               & MCDC_Buffer_Symbol (CU_Name)
+               & Suffix
+               & """);");
             File.New_Line;
 
             --  Create the GNATcov_RTS_Coverage_Buffers record
 
-            File.Put_Line ("   Unit_Name : constant String := """
-                           & Unit_Name & """;");
+            File.Put_Line
+              ("   Unit_Name : constant String := """ & Unit_Name & """;");
             File.New_Line;
 
-            File.Put_Line ("   Buffers : aliased constant"
-                           & " GNATcov_RTS_Coverage_Buffers :=");
-            File.Put_Line ("     (Fingerprint => "
-                           & Format_Fingerprint (SCOs_Fingerprint) & ",");
+            File.Put_Line
+              ("   Buffers : aliased constant"
+               & " GNATcov_RTS_Coverage_Buffers :=");
+            File.Put_Line
+              ("     (Fingerprint => "
+               & Format_Fingerprint (SCOs_Fingerprint)
+               & ",");
 
             File.Put_Line ("      Language  => Unit_Based_Language,");
             File.Put_Line ("      Unit_Part => " & Unit_Part & ",");
-            File.Put_Line ("      Unit_Name =>"
-                           & " (Unit_Name'Address, Unit_Name'Length),");
+            File.Put_Line
+              ("      Unit_Name =>"
+               & " (Unit_Name'Address, Unit_Name'Length),");
 
             File.Put_Line
               ("      Bit_Maps_Fingerprint => "
@@ -10621,18 +10689,18 @@ package body Instrument.Ada_Unit is
             File.Put_Line
               ("      Annotations_Fingerprint => "
                & Format_Fingerprint
-                 (SC_Obligations.Annotations_Fingerprint
-                    (CU, SCOs_Fingerprint))
+                   (SC_Obligations.Annotations_Fingerprint
+                      (CU, SCOs_Fingerprint))
                & ",");
 
             File.Put_Line ("      Statement => Statement_Buffer'Address,");
             File.Put_Line ("      Decision  => Decision_Buffer'Address,");
             File.Put_Line ("      MCDC      => MCDC_Buffer'Address,");
 
-            File.Put_Line ("      Statement_Last_Bit => " & Statement_Last_Bit
-                           & ",");
-            File.Put_Line ("      Decision_Last_Bit => " & Decision_Last_Bit
-                           & ",");
+            File.Put_Line
+              ("      Statement_Last_Bit => " & Statement_Last_Bit & ",");
+            File.Put_Line
+              ("      Decision_Last_Bit => " & Decision_Last_Bit & ",");
             File.Put_Line ("      MCDC_Last_Bit => " & MCDC_Last_Bit & ");");
             File.Put_Line ("end Buffers" & Suffix & ";");
             File.New_Line;
@@ -10655,9 +10723,13 @@ package body Instrument.Ada_Unit is
       File.Put_Line
         ("   C_Buffers_Group : aliased constant"
          & " GNATcov_RTS_Coverage_Buffers_Group :="
-         & " (" & Last_Buffer_Index'Image & ", Buffers_Group'Address);");
-      File.Put_Line ("      pragma Export (C, C_Buffers_Group, """
-                     & Unit_Buffers_Name (Unit) & """);");
+         & " ("
+         & Last_Buffer_Index'Image
+         & ", Buffers_Group'Address);");
+      File.Put_Line
+        ("      pragma Export (C, C_Buffers_Group, """
+         & Unit_Buffers_Name (Unit)
+         & """);");
       File.New_Line;
 
       File.Put_Line ("end " & Pkg_Name & ";");
@@ -10676,9 +10748,10 @@ package body Instrument.Ada_Unit is
       Has_No_Elaboration_Code_All    : Boolean)
    is
       Last_Buffer_Index : constant Natural := Natural (CU_Names.Length);
-      Pkg_Name : constant String := To_Ada (PB_Unit.Unit);
-      Filename : constant String := New_File (Prj, To_Filename (Prj, PB_Unit));
-      File     : Text_Files.File_Type;
+      Pkg_Name          : constant String := To_Ada (PB_Unit.Unit);
+      Filename          : constant String :=
+        New_File (Prj, To_Filename (Prj, PB_Unit));
+      File              : Text_Files.File_Type;
 
       procedure Put_Language_Version_Pragma;
       --  If the instrumented unit has a language version configuration
@@ -10700,7 +10773,7 @@ package body Instrument.Ada_Unit is
          end if;
       end Put_Language_Version_Pragma;
 
-   --  Start of processing for Emit_Pure_Buffer_Unit
+      --  Start of processing for Emit_Pure_Buffer_Unit
 
    begin
       Trace_Buffer_Unit (Pkg_Name, Filename, Prj, CU_Names, Is_Pure => True);
@@ -10730,23 +10803,30 @@ package body Instrument.Ada_Unit is
 
       for I in 1 .. Last_Buffer_Index loop
          declare
-            Suffix : constant String := "_" & Img (I);
+            Suffix  : constant String := "_" & Img (I);
             CU_Name : constant Compilation_Unit_Part := CU_Names.Element (I);
          begin
             File.Put_Line ("package Buffers" & Suffix & " is");
             File.Put_Line ("   Statement_Buffer : constant System.Address;");
-            File.Put_Line ("   pragma Import (C, Statement_Buffer, """
-                           & Statement_Buffer_Symbol (CU_Name) & Suffix
-                           & """);");
+            File.Put_Line
+              ("   pragma Import (C, Statement_Buffer, """
+               & Statement_Buffer_Symbol (CU_Name)
+               & Suffix
+               & """);");
             File.New_Line;
             File.Put_Line ("   Decision_Buffer : constant System.Address;");
-            File.Put_Line ("   pragma Import (C, Decision_Buffer, """
-                           & Decision_Buffer_Symbol (CU_Name) & Suffix
-                           & """);");
+            File.Put_Line
+              ("   pragma Import (C, Decision_Buffer, """
+               & Decision_Buffer_Symbol (CU_Name)
+               & Suffix
+               & """);");
             File.New_Line;
             File.Put_Line ("   MCDC_Buffer : constant System.Address;");
-            File.Put_Line ("   pragma Import (C, MCDC_Buffer, """
-                           & MCDC_Buffer_Symbol (CU_Name) & Suffix & """);");
+            File.Put_Line
+              ("   pragma Import (C, MCDC_Buffer, """
+               & MCDC_Buffer_Symbol (CU_Name)
+               & Suffix
+               & """);");
             File.New_Line;
             File.Put_Line ("end Buffers" & Suffix & ";");
             File.New_Line;
@@ -10798,14 +10878,16 @@ package body Instrument.Ada_Unit is
    -- Dump_Manual_Helper_Unit --
    -----------------------------
 
-   overriding function Dump_Manual_Helper_Unit
-     (Self : Ada_Instrumenter_Type;
-      Prj  : Prj_Desc) return Files_Table.Compilation_Unit
+   overriding
+   function Dump_Manual_Helper_Unit
+     (Self : Ada_Instrumenter_Type; Prj : Prj_Desc)
+      return Files_Table.Compilation_Unit
    is
       pragma Unreferenced (Self);
    begin
-      return (Language  => Unit_Based_Language,
-              Unit_Name => +To_Ada (Create_Manual_Helper_Unit_Name (Prj)));
+      return
+        (Language  => Unit_Based_Language,
+         Unit_Name => +To_Ada (Create_Manual_Helper_Unit_Name (Prj)));
    end Dump_Manual_Helper_Unit;
 
    ------------------------------------
@@ -10813,16 +10895,16 @@ package body Instrument.Ada_Unit is
    ------------------------------------
 
    function Create_Manual_Helper_Unit_Name
-     (Prj : Prj_Desc)
-   return Ada_Qualified_Name
+     (Prj : Prj_Desc) return Ada_Qualified_Name
    is
       Helper_Unit : Ada_Qualified_Name;
    begin
       Helper_Unit := Sys_Prefix;
       Helper_Unit.Append
         (To_Unbounded_String
-          ("D" & "B_manual_"
-           & Qualified_Name_Slug (Prj.Prj_Name, Use_Hash => False)));
+           ("D"
+            & "B_manual_"
+            & Qualified_Name_Slug (Prj.Prj_Name, Use_Hash => False)));
       return Helper_Unit;
    end Create_Manual_Helper_Unit_Name;
 
@@ -10863,7 +10945,7 @@ package body Instrument.Ada_Unit is
          else Override_Dump_Trigger);
       --  Resolved dump trigger
 
-   --  Start of processing for Emit_Dump_Helper_Unit
+      --  Start of processing for Emit_Dump_Helper_Unit
 
    begin
       --  Create the name of the helper unit
@@ -10882,8 +10964,8 @@ package body Instrument.Ada_Unit is
          use type Ada_Qualified_Name;
          Unit : constant String :=
            (case Dump_Config.Channel is
-               when Binary_File            => "Files",
-               when Base64_Standard_Output => "Base64");
+              when Binary_File            => "Files",
+              when Base64_Standard_Output => "Base64");
       begin
          Output_Unit.Append (To_Unbounded_String ("GNATcov_RTS"));
          Output_Unit.Append (To_Unbounded_String ("Traces"));
@@ -10918,7 +11000,9 @@ package body Instrument.Ada_Unit is
 
          if Sources_Trace.Is_Active then
             Sources_Trace.Increase_Indent
-              ("Writing " & Instrumenter.Language_Name & " dump helper unit "
+              ("Writing "
+               & Instrumenter.Language_Name
+               & " dump helper unit "
                & Helper_Unit_Name);
             Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
             Sources_Trace.Trace ("Spec filename: " & Spec_Filename);
@@ -10956,11 +11040,11 @@ package body Instrument.Ada_Unit is
 
          File.Put_Line ("   pragma No_Tagged_Streams;");
          File.New_Line;
-         File.Put_Line ("   procedure " & Dump_Procedure
-                        & (if Dump_Trigger = Manual
-                           then " (Prefix : String)"
-                           else "")
-                        & ";");
+         File.Put_Line
+           ("   procedure "
+            & Dump_Procedure
+            & (if Dump_Trigger = Manual then " (Prefix : String)" else "")
+            & ";");
          if Dump_Trigger /= Manual then
             File.Put_Line
               ("   pragma Convention (C, " & Dump_Procedure & ");");
@@ -10971,20 +11055,24 @@ package body Instrument.Ada_Unit is
             when At_Exit | Ravenscar_Task_Termination =>
                File.Put_Line
                  ("   function "
-                  & To_String (Register_Dump_Function_Name) & " return "
-                  & To_Ada (Witness_Dummy_Type_Name) & ";");
+                  & To_String (Register_Dump_Function_Name)
+                  & " return "
+                  & To_Ada (Witness_Dummy_Type_Name)
+                  & ";");
                File.New_Line;
 
-            when Main_End =>
+            when Main_End                             =>
                if Has_Controlled then
                   File.Put_Line ("   type Dump_Controlled_Type is new");
                   File.Put_Line ("     Ada.Finalization.Limited_Controlled");
                   File.Put_Line ("     with null record;");
-                  File.Put_Line ("   overriding procedure Finalize (Self : in"
-                                 & " out Dump_Controlled_Type);");
+                  File.Put_Line
+                    ("   overriding procedure Finalize (Self : in"
+                     & " out Dump_Controlled_Type);");
                   File.New_Line;
                end if;
-            when Manual =>
+
+            when Manual                               =>
                File.Put_Line ("   procedure " & Reset_Procedure & ";");
                File.New_Line;
          end case;
@@ -11002,19 +11090,22 @@ package body Instrument.Ada_Unit is
          Put_With (Sys_Lists);
 
          case Dump_Trigger is
-            when Ravenscar_Task_Termination  =>
+            when Ravenscar_Task_Termination =>
                File.Put_Line ("with Ada.Task_Identification;");
                File.Put_Line ("with Ada.Task_Termination;");
-            when At_Exit =>
+
+            when At_Exit                    =>
                File.Put_Line ("with Interfaces.C;");
-            when others =>
+
+            when others                     =>
                null;
          end case;
 
          case Dump_Config.Channel is
             when Binary_File =>
                File.Put_Line ("with Interfaces.C.Strings;");
-            when others =>
+
+            when others      =>
                null;
          end case;
 
@@ -11026,11 +11117,11 @@ package body Instrument.Ada_Unit is
 
          --  Emit the procedure to write the trace file
 
-         File.Put_Line ("   procedure " & Dump_Procedure
-                        & (if Dump_Trigger = Manual
-                           then " (Prefix : String)"
-                           else "")
-                        &  " is");
+         File.Put_Line
+           ("   procedure "
+            & Dump_Procedure
+            & (if Dump_Trigger = Manual then " (Prefix : String)" else "")
+            & " is");
 
          case Dump_Config.Channel is
             when Binary_File =>
@@ -11038,18 +11129,15 @@ package body Instrument.Ada_Unit is
                   Env_Var : constant String :=
                     (if Dump_Config.Filename_Env_Var = ""
                      then Output_Unit_Str & ".Default_Trace_Filename_Env_Var"
-                     else """" & (+Dump_Config.Filename_Env_Var)
-                          & """");
+                     else """" & (+Dump_Config.Filename_Env_Var) & """");
                   Prefix  : constant String :=
                     (if Dump_Config.Trigger = Manual
                      then "Prefix"
                      else """" & (+Dump_Config.Filename_Prefix) & """");
                   Tag     : constant String :=
-                    """" & (+Instrumenter.Tag)  & """";
+                    """" & (+Instrumenter.Tag) & """";
                   Simple  : constant String :=
-                    (if Dump_Config.Filename_Simple
-                     then "True"
-                     else "False");
+                    (if Dump_Config.Filename_Simple then "True" else "False");
                begin
                   File.Put_Line
                     (Indent1 & "Filename : Interfaces.C.Strings.chars_ptr :=");
@@ -11060,7 +11148,8 @@ package body Instrument.Ada_Unit is
                   File.Put_Line (Indent3 & " Tag     => " & Tag & ",");
                   File.Put_Line (Indent3 & " Simple  => " & Simple & ");");
                end;
-            when others =>
+
+            when others      =>
                null;
          end case;
 
@@ -11073,11 +11162,9 @@ package body Instrument.Ada_Unit is
             & To_Ada (Buffers_List_Unit (Prj.Prj_Name))
             & ".List,");
          case Dump_Config.Channel is
-            when Binary_File =>
-               File.Put_Line
-                 (Indent2 & " Filename       => Filename,");
-               File.Put
-                 (Indent2 & " Program_Name   => " & Project_Name_Str);
+            when Binary_File            =>
+               File.Put_Line (Indent2 & " Filename       => Filename,");
+               File.Put (Indent2 & " Program_Name   => " & Project_Name_Str);
 
             when Base64_Standard_Output =>
 
@@ -11088,8 +11175,7 @@ package body Instrument.Ada_Unit is
 
                File.Put_Line
                  (Indent2 & " Program_Name => " & Project_Name_Str & ",");
-               File.Put
-                 (Indent2 & " Exec_Date => 0");
+               File.Put (Indent2 & " Exec_Date => 0");
          end case;
          File.Put_Line (");");
 
@@ -11097,7 +11183,8 @@ package body Instrument.Ada_Unit is
             when Binary_File =>
                File.Put_Line
                  (Indent1 & "Interfaces.C.Strings.Free (Filename);");
-            when others =>
+
+            when others      =>
                null;
          end case;
 
@@ -11107,20 +11194,24 @@ package body Instrument.Ada_Unit is
          --  Emit trigger-specific subprograms
 
          case Dump_Trigger is
-            when At_Exit =>
+            when At_Exit                    =>
 
                --  Emit a function to schedule a trace dump with atexit
 
                File.Put_Line
                  ("   function "
-                  & To_String (Register_Dump_Function_Name) & " return "
-                  & To_Ada (Witness_Dummy_Type_Name) & " is");
+                  & To_String (Register_Dump_Function_Name)
+                  & " return "
+                  & To_Ada (Witness_Dummy_Type_Name)
+                  & " is");
                File.Put_Line (Indent1 & "type Callback is access procedure;");
                File.Put_Line (Indent1 & "pragma Convention (C, Callback);");
                File.New_Line;
 
-               File.Put_Line (Indent1 & "function atexit (Func : Callback)"
-                              & " return Interfaces.C.int;");
+               File.Put_Line
+                 (Indent1
+                  & "function atexit (Func : Callback)"
+                  & " return Interfaces.C.int;");
                File.Put_Line (Indent1 & "pragma Import (C, atexit);");
                File.Put_Line
                  (Indent1 & "Dummy : constant Interfaces.C.int :=");
@@ -11138,13 +11229,15 @@ package body Instrument.Ada_Unit is
                --  Emit a protected object for the callback
 
                File.Put_Line ("  protected Wrapper is");
-               File.Put_Line ("     procedure Do_Dump"
-                              & " (T : Ada.Task_Identification.Task_Id);");
+               File.Put_Line
+                 ("     procedure Do_Dump"
+                  & " (T : Ada.Task_Identification.Task_Id);");
                File.Put_Line ("  end Wrapper;");
                File.New_Line;
                File.Put_Line ("  protected body Wrapper is");
-               File.Put_Line ("     procedure Do_Dump"
-                              & " (T : Ada.Task_Identification.Task_Id) is");
+               File.Put_Line
+                 ("     procedure Do_Dump"
+                  & " (T : Ada.Task_Identification.Task_Id) is");
                File.Put_Line ("        pragma Unreferenced (T);");
                File.Put_Line ("     begin");
                File.Put_Line ("        " & Dump_Procedure & ";");
@@ -11157,38 +11250,45 @@ package body Instrument.Ada_Unit is
 
                File.Put_Line
                  ("function "
-                  & To_String (Register_Dump_Function_Name) & " return "
-                  & To_Ada (Witness_Dummy_Type_Name) & " is");
+                  & To_String (Register_Dump_Function_Name)
+                  & " return "
+                  & To_Ada (Witness_Dummy_Type_Name)
+                  & " is");
                File.Put_Line ("begin");
-               File.Put_Line ("   Ada.Task_Termination"
-                              & ".Set_Dependents_Fallback_Handler"
-                              & " (Wrapper.Do_Dump'Access);");
+               File.Put_Line
+                 ("   Ada.Task_Termination"
+                  & ".Set_Dependents_Fallback_Handler"
+                  & " (Wrapper.Do_Dump'Access);");
                File.Put_Line ("   return (Data => False);");
                File.Put_Line
                  ("end " & To_String (Register_Dump_Function_Name) & ";");
                File.New_Line;
 
-            when Main_End =>
+            when Main_End                   =>
                if Has_Controlled then
-                  File.Put_Line ("   overriding procedure Finalize (Self : in"
-                                  & " out Dump_Controlled_Type) is");
+                  File.Put_Line
+                    ("   overriding procedure Finalize (Self : in"
+                     & " out Dump_Controlled_Type) is");
                   File.Put_Line ("   begin");
                   File.Put_Line ("      Dump_Buffers;");
                   File.Put_Line ("   end Finalize;");
                   File.New_Line;
                end if;
 
-            when Manual =>
+            when Manual                     =>
 
                --  Emit Buffer reset procedure
 
                File.Put_Line ("   procedure " & Reset_Procedure & " is");
                File.Put_Line ("   begin");
-               File.Put_Line ("      " & To_Ada (Sys_Lists)
-                              & ".Reset_Group_Array_Buffers");
-               File.Put_Line ("        ("
-                              & To_Ada (Buffers_List_Unit (Prj.Prj_Name))
-                              & ".C_List);");
+               File.Put_Line
+                 ("      "
+                  & To_Ada (Sys_Lists)
+                  & ".Reset_Group_Array_Buffers");
+               File.Put_Line
+                 ("        ("
+                  & To_Ada (Buffers_List_Unit (Prj.Prj_Name))
+                  & ".C_List);");
                File.Put_Line ("end " & Reset_Procedure & ";");
                File.New_Line;
          end case;
@@ -11228,21 +11328,23 @@ package body Instrument.Ada_Unit is
    -- Emit_Buffers_List_Unit --
    ----------------------------
 
-   overriding procedure Emit_Buffers_List_Unit
+   overriding
+   procedure Emit_Buffers_List_Unit
      (Self        : Ada_Instrumenter_Type;
       Instr_Units : Unit_Sets.Set;
       Prj         : Prj_Desc)
    is
       Buffers_CU_Name : constant Compilation_Unit_Part :=
-        CU_Name_For_Unit
-          (Buffers_List_Unit (Prj.Prj_Name), GPR2.S_Spec);
+        CU_Name_For_Unit (Buffers_List_Unit (Prj.Prj_Name), GPR2.S_Spec);
       Unit_Name       : constant String := To_Ada (Buffers_CU_Name.Unit);
       Filename        : constant String := To_Filename (Prj, Buffers_CU_Name);
       File            : Text_Files.File_Type;
    begin
       if Sources_Trace.Is_Active then
          Sources_Trace.Increase_Indent
-           ("Writing " & Self.Language_Name & " buffer list unit "
+           ("Writing "
+            & Self.Language_Name
+            & " buffer list unit "
             & Unit_Name);
          Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
          Sources_Trace.Trace ("Filename: " & Filename);
@@ -11268,7 +11370,7 @@ package body Instrument.Ada_Unit is
             File.Put_Line
               ("with "
                & To_Ada
-                 (Buffer_Unit (To_Qualified_Name (+Instr_Unit.Unit_Name)))
+                   (Buffer_Unit (To_Qualified_Name (+Instr_Unit.Unit_Name)))
                & ";");
          end if;
       end loop;
@@ -11285,10 +11387,15 @@ package body Instrument.Ada_Unit is
             Buffer_Name : constant String := Unit_Buffers_Name (Instr_Unit);
          begin
             File.Put_Line
-              ("   " & Buffer_Name
+              ("   "
+               & Buffer_Name
                & " : aliased constant GNATcov_RTS_Coverage_Buffers_Group;");
-            File.Put_Line ("   pragma Import (C, " & Buffer_Name & ","""
-                           & Buffer_Name & """);");
+            File.Put_Line
+              ("   pragma Import (C, "
+               & Buffer_Name
+               & ","""
+               & Buffer_Name
+               & """);");
          end;
       end loop;
 
@@ -11299,16 +11406,20 @@ package body Instrument.Ada_Unit is
 
       --  Create the list of coverage buffers
 
-      File.Put_Line ("   List : constant GNATcov_RTS.Buffers.Lists"
-                     & ".Coverage_Buffers_Group_Array := (");
+      File.Put_Line
+        ("   List : constant GNATcov_RTS.Buffers.Lists"
+         & ".Coverage_Buffers_Group_Array := (");
       declare
          Index : Positive := 1;
          Last  : constant Natural := Natural (Instr_Units.Length);
       begin
          for Instr_Unit of Instr_Units loop
             File.Put
-              ("      " & Img (Index) & " => "
-               & Unit_Buffers_Name (Instr_Unit) & "'Access");
+              ("      "
+               & Img (Index)
+               & " => "
+               & Unit_Buffers_Name (Instr_Unit)
+               & "'Access");
             if Index = Last then
                File.Put_Line (");");
             else
@@ -11322,14 +11433,16 @@ package body Instrument.Ada_Unit is
          File.Put ("      1 => Dummy'Access);");
       end if;
 
-      File.Put_Line ("   C_List : constant GNATcov_RTS.Buffers.Lists"
-                     & ".GNATcov_RTS_Coverage_Buffers_Group_Array :=");
-      File.Put_Line ("      (" & Instr_Units.Length'Image
-                     & ", List'Address);");
+      File.Put_Line
+        ("   C_List : constant GNATcov_RTS.Buffers.Lists"
+         & ".GNATcov_RTS_Coverage_Buffers_Group_Array :=");
+      File.Put_Line
+        ("      (" & Instr_Units.Length'Image & ", List'Address);");
 
       File.Put_Line
         ("   pragma Export (C, C_List, """
-         & Unit_Buffers_Array_Name (Prj.Prj_Name) & """);");
+         & Unit_Buffers_Array_Name (Prj.Prj_Name)
+         & """);");
 
       File.New_Line;
       File.Put_Line ("end " & Unit_Name & ";");
@@ -11339,26 +11452,27 @@ package body Instrument.Ada_Unit is
    -- Emit_Observability_Unit --
    -----------------------------
 
-   overriding procedure Emit_Observability_Unit
-     (Self : in out Ada_Instrumenter_Type;
-      Prj  : in out Prj_Desc)
+   overriding
+   procedure Emit_Observability_Unit
+     (Self : in out Ada_Instrumenter_Type; Prj : in out Prj_Desc)
    is
 
       pragma Unreferenced (Self);
 
-      Buf_List_Unit      : constant Ada_Qualified_Name := CU_Name_For_Unit
-        (Buffers_List_Unit (Prj.Prj_Name), GPR2.S_Spec).Unit;
+      Buf_List_Unit      : constant Ada_Qualified_Name :=
+        CU_Name_For_Unit (Buffers_List_Unit (Prj.Prj_Name), GPR2.S_Spec).Unit;
       Buf_List_Unit_Name : constant String := To_Ada (Buf_List_Unit);
 
       Obs_Unit      : constant Ada_Qualified_Name :=
-         Buf_List_Unit & Ada_Identifier_Vectors.To_Vector
-           (To_Unbounded_String ("Observe"), 1);
+        Buf_List_Unit
+        & Ada_Identifier_Vectors.To_Vector
+            (To_Unbounded_String ("Observe"), 1);
       Obs_Unit_Name : constant String := To_Ada (Obs_Unit);
 
-      Obs_Spec_Filename : constant String := To_Filename
-        (Prj, CU_Name_For_Unit (Obs_Unit, GPR2.S_Spec));
-      Obs_Body_Filename : constant String := To_Filename
-        (Prj, CU_Name_For_Unit (Obs_Unit, GPR2.S_Body));
+      Obs_Spec_Filename : constant String :=
+        To_Filename (Prj, CU_Name_For_Unit (Obs_Unit, GPR2.S_Spec));
+      Obs_Body_Filename : constant String :=
+        To_Filename (Prj, CU_Name_For_Unit (Obs_Unit, GPR2.S_Body));
 
       Spec_File : Text_Files.File_Type;
       Body_File : Text_Files.File_Type;
@@ -11385,11 +11499,15 @@ package body Instrument.Ada_Unit is
          & " ""gnatcov_rts_sum_buffer_bits"");");
       Body_File.Put_Line ("   begin");
       Body_File.Put_Line
-        ("      return Natural" & ASCII.LF &
-         "        (Interfaces.Unsigned_64'Min" & ASCII.LF &
-         "           (Sum_Buffer_Bits_C (" & Buf_List_Unit_Name & ".C_List),"
-         & ASCII.LF &
-         "            Interfaces.Unsigned_64 (Natural'Last)));");
+        ("      return Natural"
+         & ASCII.LF
+         & "        (Interfaces.Unsigned_64'Min"
+         & ASCII.LF
+         & "           (Sum_Buffer_Bits_C ("
+         & Buf_List_Unit_Name
+         & ".C_List),"
+         & ASCII.LF
+         & "            Interfaces.Unsigned_64 (Natural'Last)));");
       Body_File.Put_Line ("   end;");
       Body_File.Put_Line ("end " & Obs_Unit_Name & ";");
 
@@ -11498,8 +11616,7 @@ package body Instrument.Ada_Unit is
      (Tag                        : Unbounded_String;
       Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
-      Preprocessor_Data_Filename : String)
-      return Ada_Instrumenter_Type
+      Preprocessor_Data_Filename : String) return Ada_Instrumenter_Type
    is
       Instrumenter : Ada_Instrumenter_Type;
    begin
@@ -11559,8 +11676,7 @@ package body Instrument.Ada_Unit is
       -- Instrument_Source_File_Wrapper --
       ------------------------------------
 
-      procedure Instrument_Source_File_Wrapper (Filename : String)
-      is
+      procedure Instrument_Source_File_Wrapper (Filename : String) is
          Event_Handler : Missing_Src_Reporter renames
            Missing_Src_Reporter_Access (Self.Event_Handler.Unchecked_Get).all;
          --  Handle to the event handler we use to report missing source files;
@@ -11617,11 +11733,11 @@ package body Instrument.Ada_Unit is
 
       for Part in Analysis_Unit_Kind loop
          if Self.Provider.Has_Unit (Unit_Name, +Part) then
-            for Filename of Find_Ada_Units
-                              (Self,
-                               Self.Provider.Get_Unit_Filename
-                                 (Langkit_Support.Text.From_UTF8 (Unit_Name),
-                                  Part))
+            for Filename of
+              Find_Ada_Units
+                (Self,
+                 Self.Provider.Get_Unit_Filename
+                   (Langkit_Support.Text.From_UTF8 (Unit_Name), Part))
             loop
                Instrument_Source_File_Wrapper (+Filename);
             end loop;
@@ -11651,8 +11767,8 @@ package body Instrument.Ada_Unit is
    --------------------
 
    function Find_Ada_Units
-     (Instrumenter : in out Ada_Instrumenter_Type;
-      Filename     : String) return String_Vectors.Vector
+     (Instrumenter : in out Ada_Instrumenter_Type; Filename : String)
+      return String_Vectors.Vector
    is
 
       function Process_Node (N : LAL.Ada_Node'Class) return Visit_Status;
@@ -11677,9 +11793,13 @@ package body Instrument.Ada_Unit is
                   else
                      Dependent_Comp_Units.Append
                        (Find_Ada_Units
-                         (Instrumenter,
-                          Instrumenter.Context.Unit_Provider.Get
-                          .Get_Unit_Filename (Subunit_FQN, LALCO.Unit_Body)));
+                          (Instrumenter,
+                           Instrumenter
+                             .Context
+                             .Unit_Provider
+                             .Get
+                             .Get_Unit_Filename
+                                (Subunit_FQN, LALCO.Unit_Body)));
                   end if;
                end;
             exception
@@ -11720,8 +11840,9 @@ package body Instrument.Ada_Unit is
 
       elsif Unit.Root.Kind = Ada_Compilation_Unit_List then
          Outputs.Error ("instrumentation failed for " & Filename);
-         Outputs.Error ("source files containing multiple compilation units"
-                & " are not supported");
+         Outputs.Error
+           ("source files containing multiple compilation units"
+            & " are not supported");
          raise Xcov_Exit_Exc;
       end if;
 

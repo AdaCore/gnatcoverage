@@ -16,22 +16,23 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Calendar.Formatting; use Ada.Calendar, Ada.Calendar.Formatting;
+with Ada.Calendar.Formatting;
+use Ada.Calendar, Ada.Calendar.Formatting;
 
 with Ada.Unchecked_Conversion;
 with Interfaces; use Interfaces;
 
-with GNAT.CRC32;  use GNAT.CRC32;
+with GNAT.CRC32; use GNAT.CRC32;
 
 with Hex_Images; use Hex_Images;
 
 package body Binary_Files is
 
-   function Convert is new Ada.Unchecked_Conversion
-     (System.Address, Binary_Content_Bytes_Acc);
+   function Convert is new
+     Ada.Unchecked_Conversion (System.Address, Binary_Content_Bytes_Acc);
 
-   function Convert is new Ada.Unchecked_Conversion
-     (Str_Access, System.Address);
+   function Convert is new
+     Ada.Unchecked_Conversion (Str_Access, System.Address);
 
    function Compute_CRC32 (File : Binary_File) return Unsigned_32;
    --  Compute and return the CRC32 of File
@@ -65,10 +66,12 @@ package body Binary_Files is
    function Size (LS : Loaded_Section) return Arch.Arch_Addr is
    begin
       case LS.Kind is
-         when None =>
+         when None      =>
             raise Program_Error;
-         when Mapped =>
+
+         when Mapped    =>
             return Arch.Arch_Addr (Data_Size (LS.Region));
+
          when Allocated =>
             return LS.Buffer.all'Length;
       end case;
@@ -83,10 +86,10 @@ package body Binary_Files is
       Size : Arch.Arch_Addr;
    begin
       case LS.Kind is
-         when None =>
+         when None      =>
             raise Program_Error;
 
-         when Mapped =>
+         when Mapped    =>
             Addr := Convert (Data (LS.Region));
             Size := Arch.Arch_Addr (Data_Size (LS.Region));
 
@@ -95,9 +98,8 @@ package body Binary_Files is
             Size := LS.Buffer.all'Length;
       end case;
 
-      return (if Size > 0
-              then Wrap (Addr, 0, Size - 1)
-              else Wrap (Addr, 1, 0));
+      return
+        (if Size > 0 then Wrap (Addr, 0, Size - 1) else Wrap (Addr, 1, 0));
    end Content;
 
    ----------------
@@ -105,8 +107,8 @@ package body Binary_Files is
    ----------------
 
    function Address_Of
-     (LS     : Loaded_Section;
-      Offset : Arch.Arch_Addr := 0) return System.Address is
+     (LS : Loaded_Section; Offset : Arch.Arch_Addr := 0) return System.Address
+   is
    begin
       return Address_Of (Content (LS), Offset);
    end Address_Of;
@@ -118,10 +120,10 @@ package body Binary_Files is
    procedure Free (LS : in out Loaded_Section) is
    begin
       case LS.Kind is
-         when None =>
+         when None      =>
             null;
 
-         when Mapped =>
+         when Mapped    =>
             Free (LS.Region);
 
          when Allocated =>
@@ -243,15 +245,17 @@ package body Binary_Files is
    function Create_File
      (Fd : File_Descriptor; Filename : String_Access) return Binary_File is
    begin
-      return Res : Binary_File := (Fd           => Fd,
-                                   Filename     => Filename,
-                                   File         => Invalid_Mapped_File,
-                                   Region       => Invalid_Mapped_Region,
-                                   Status       => Status_Ok,
-                                   Size         => File_Length (Fd),
-                                   Nbr_Sections => 0,
-                                   Time_Stamp   => File_Time_Stamp (Fd),
-                                   CRC32        => 0)
+      return
+         Res : Binary_File :=
+           (Fd           => Fd,
+            Filename     => Filename,
+            File         => Invalid_Mapped_File,
+            Region       => Invalid_Mapped_Region,
+            Status       => Status_Ok,
+            Size         => File_Length (Fd),
+            Nbr_Sections => 0,
+            Time_Stamp   => File_Time_Stamp (Fd),
+            CRC32        => 0)
       do
          Res.File := Open_Read (Filename.all);
          Res.CRC32 := Compute_CRC32 (Res);
@@ -268,8 +272,8 @@ package body Binary_Files is
       Close (File.File);
       File.Fd := Invalid_FD;
 
-      --  Note: File.Filename may be referenced later on to produce error
-      --  messages, so we don't deallocate it.
+   --  Note: File.Filename may be referenced later on to produce error
+   --  messages, so we don't deallocate it.
    end Close_File;
 
    -------------------
@@ -291,17 +295,16 @@ package body Binary_Files is
    -- Make_Mutable --
    ------------------
 
-   procedure Make_Mutable
-     (File : Binary_File; LS : in out Loaded_Section) is
+   procedure Make_Mutable (File : Binary_File; LS : in out Loaded_Section) is
    begin
       --  If the region is already mutable (this can happen, for instance, if
       --  it was byte-swapped), do not risk losing changes remapping it.
 
       case LS.Kind is
-         when None =>
+         when None      =>
             raise Program_Error;
 
-         when Mapped =>
+         when Mapped    =>
             if not Is_Mutable (LS.Region) then
                Read
                  (File    => File.File,
@@ -321,8 +324,7 @@ package body Binary_Files is
    ------------------------
 
    function Get_Section_Length
-     (File : Binary_File;
-      Index : Section_Index) return Arch.Arch_Addr is
+     (File : Binary_File; Index : Section_Index) return Arch.Arch_Addr is
    begin
       raise Program_Error;
       return 0;
@@ -345,13 +347,10 @@ package body Binary_Files is
    ----------
 
    function Wrap
-     (Content     : System.Address;
-      First, Last : Arch.Arch_Addr) return Binary_Content
-   is
+     (Content : System.Address; First, Last : Arch.Arch_Addr)
+      return Binary_Content is
    begin
-      return (Content => Convert (Content),
-              First   => First,
-              Last    => Last);
+      return (Content => Convert (Content), First => First, Last => Last);
    end Wrap;
 
    --------------
@@ -359,8 +358,7 @@ package body Binary_Files is
    --------------
 
    procedure Relocate
-     (Bin_Cont  : in out Binary_Content;
-      New_First : Arch.Arch_Addr) is
+     (Bin_Cont : in out Binary_Content; New_First : Arch.Arch_Addr) is
    begin
       Bin_Cont.Last := New_First + Length (Bin_Cont) - 1;
       Bin_Cont.First := New_First;
@@ -393,8 +391,8 @@ package body Binary_Files is
    ---------
 
    function Get
-     (Bin_Cont : Binary_Content;
-      Offset : Arch.Arch_Addr) return Interfaces.Unsigned_8 is
+     (Bin_Cont : Binary_Content; Offset : Arch.Arch_Addr)
+      return Interfaces.Unsigned_8 is
    begin
       return Bin_Cont.Content (Offset - Bin_Cont.First);
    end Get;
@@ -404,14 +402,14 @@ package body Binary_Files is
    -----------
 
    function Slice
-     (Bin_Cont    : Binary_Content;
-      First, Last : Arch.Arch_Addr) return Binary_Content
+     (Bin_Cont : Binary_Content; First, Last : Arch.Arch_Addr)
+      return Binary_Content
    is
       RFirst : constant Arch.Arch_Addr :=
         (if Bin_Cont.First <= First
          then First
          else raise Constraint_Error with "First out of bounds");
-      RLast : constant Arch.Arch_Addr :=
+      RLast  : constant Arch.Arch_Addr :=
         (if Bin_Cont.Last >= Last
          then Last
          else raise Constraint_Error with "Last out of bounds");
@@ -427,8 +425,8 @@ package body Binary_Files is
    ----------------
 
    function Address_Of
-     (Bin_Cont : Binary_Content;
-      Offset   : Arch.Arch_Addr := 0) return System.Address is
+     (Bin_Cont : Binary_Content; Offset : Arch.Arch_Addr := 0)
+      return System.Address is
    begin
       if Bin_Cont.Content = null then
          return System.Null_Address;
@@ -441,19 +439,18 @@ package body Binary_Files is
    -- Time_Stamp_Image --
    ----------------------
 
-   function Time_Stamp_Image (TS : OS_Time) return String is
-     (Image (To_Time (TS)));
+   function Time_Stamp_Image (TS : OS_Time) return String
+   is (Image (To_Time (TS)));
 
-   function Time_Stamp_Value (S : String) return OS_Time is
-     (To_OS_Time (Value (S)));
+   function Time_Stamp_Value (S : String) return OS_Time
+   is (To_OS_Time (Value (S)));
 
    ----------------------
    -- Match_Signatures --
    ----------------------
 
    function Match_Signatures
-     (S_File, S_Trace : Binary_File_Signature)
-      return String
+     (S_File, S_Trace : Binary_File_Signature) return String
    is
       File_Time_Stamp_Image  : constant String :=
         Time_Stamp_Image (S_File.Time_Stamp);
@@ -465,9 +462,10 @@ package body Binary_Files is
    begin
       if S_Trace.Size /= 0 and then S_File.Size /= S_Trace.Size then
          return
-            ("Executable file is" & Long_Integer'Image (S_File.Size)
-             & " bytes long, but trace indicates"
-             & Long_Integer'Image (S_Trace.Size));
+           ("Executable file is"
+            & Long_Integer'Image (S_File.Size)
+            & " bytes long, but trace indicates"
+            & Long_Integer'Image (S_Trace.Size));
 
       --  We want to compare the time stamps, but on Windows we cannot
       --  distinguish time stamps differing by just one second, so instead
@@ -477,15 +475,17 @@ package body Binary_Files is
         and then File_Time_Stamp_Image /= Trace_Time_Stamp_Image
       then
          return
-            ("Executable file created on "
-             & File_Time_Stamp_Image
-             & " but trace indicates "
-             & Trace_Time_Stamp_Image);
+           ("Executable file created on "
+            & File_Time_Stamp_Image
+            & " but trace indicates "
+            & Trace_Time_Stamp_Image);
 
       elsif S_Trace.CRC32 /= 0 and then S_File.CRC32 /= S_Trace.CRC32 then
          return
-            ("Executable file CRC32 checksum is 0x" & Hex_Image (S_File.CRC32)
-             & " but trace indicates 0x" & Hex_Image (S_Trace.CRC32));
+           ("Executable file CRC32 checksum is 0x"
+            & Hex_Image (S_File.CRC32)
+            & " but trace indicates 0x"
+            & Hex_Image (S_Trace.CRC32));
 
       else
          return "";
@@ -524,8 +524,8 @@ package body Binary_Files is
       Day     : Day_Number;
       Seconds : Day_Duration;
 
-      Hour    : Hour_Number;
-      Minute  : Minute_Number;
+      Hour   : Hour_Number;
+      Minute : Minute_Number;
 
    begin
       --  Split T into its components, in local time zone
@@ -542,9 +542,8 @@ package body Binary_Files is
       Minute := Minute_Number (Integer (Seconds) / 60);
       Seconds := Seconds - Minute * 60.0;
 
-      return GM_Time_Of
-        (Year, Month, Day,
-         Hour, Minute, Second_Number (Seconds));
+      return
+        GM_Time_Of (Year, Month, Day, Hour, Minute, Second_Number (Seconds));
    end To_OS_Time;
 
 end Binary_Files;

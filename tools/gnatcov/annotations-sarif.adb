@@ -19,12 +19,12 @@
 with Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 
-with Ada.Text_IO;        use Ada.Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 
-with GNATCOLL.JSON;      use GNATCOLL.JSON;
+with GNATCOLL.JSON; use GNATCOLL.JSON;
 
-with Coverage;           use Coverage;
-with Outputs;            use Outputs;
+with Coverage; use Coverage;
+with Outputs;  use Outputs;
 with Version;
 
 package body Annotations.Sarif is
@@ -51,9 +51,10 @@ package body Annotations.Sarif is
    --  Record describing the elements of a result. A result represents a
    --  violation.
 
-   package Result_Info_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Result_Info);
+   package Result_Info_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Natural,
+        Element_Type => Result_Info);
    --  Vector storing the results' information of this run of gnatcov
 
    type Sarif_Pretty_Printer is new Pretty_Printer with record
@@ -74,8 +75,8 @@ package body Annotations.Sarif is
    end record;
    --  Pretty printer for the SARIF annotation format
 
-   overriding function Format
-     (Pp : Sarif_Pretty_Printer) return Annotation_Format_Family
+   overriding
+   function Format (Pp : Sarif_Pretty_Printer) return Annotation_Format_Family
    is (Annotate_Sarif);
 
    -------------------------------------------------
@@ -99,8 +100,7 @@ package body Annotations.Sarif is
       Line     : String);
 
    procedure Pretty_Print_Message
-     (Pp : in out Sarif_Pretty_Printer;
-      M  : Message);
+     (Pp : in out Sarif_Pretty_Printer; M : Message);
 
    ----------------------------
    --  SARIF report elements --
@@ -124,9 +124,9 @@ package body Annotations.Sarif is
    end record;
    --  Coverage analysis rule representation
 
-   type Rules_Range is range
-     Source_Coverage_Level'Pos (Source_Coverage_Level'First) ..
-     Source_Coverage_Level'Pos (Source_Coverage_Level'Last) + 1;
+   type Rules_Range is
+     range Source_Coverage_Level'Pos (Source_Coverage_Level'First)
+           .. Source_Coverage_Level'Pos (Source_Coverage_Level'Last) + 1;
 
    Undet_Rule : constant Rules_Range := Rules_Range'Last;
 
@@ -151,7 +151,7 @@ package body Annotations.Sarif is
          Name        => +"Decision Coverage",
          Short_Descr =>
            +("The decision has been evaluated at least once to True"
-           & " and once False during program execution"),
+             & " and once False during program execution"),
          Help_Uri    =>
            +(Doc_Link & "gnatcov/cov_source.html#decision-coverage-analysis"),
          Config      => +"error"),
@@ -160,19 +160,19 @@ package body Annotations.Sarif is
          Name        => +"Modified Condition/Decision Coverage",
          Short_Descr =>
            +("The independant effect of the conditions on the"
-           & " enclosing decision was demonstrated by the tests"),
-         Help_Uri    => +(Doc_Link
-         & "gnatcov/cov_source.html#modified-condition-decision-coverage"
-         & "-analysis"),
-        Config      => +"error"),
+             & " enclosing decision was demonstrated by the tests"),
+         Help_Uri    =>
+           +(Doc_Link
+             & "gnatcov/cov_source.html#modified-condition-decision-coverage"
+             & "-analysis"),
+         Config      => +"error"),
       Source_Coverage_Level'Pos (UC_MCDC)  =>
         (Id          => +UC_MCDC'Image,
-         Name        =>
-           +"Unique Cause Modified Condition/Decision Coverage",
+         Name        => +"Unique Cause Modified Condition/Decision Coverage",
          Short_Descr =>
            +("The independent influence of a specific condition"
-           & " must be demonstrated by a pair of tests where only that"
-           & " condition changes and the decision value toggles."),
+             & " must be demonstrated by a pair of tests where only that"
+             & " condition changes and the decision value toggles."),
          Help_Uri    => +(Doc_Link & "gnatcov/cov_source.html#mcdc-variants"),
          Config      => +"error"),
       Source_Coverage_Level'Pos (ATC)      =>
@@ -180,18 +180,20 @@ package body Annotations.Sarif is
          Name        => +"Assertion True Coverage",
          Short_Descr =>
            +"Control flow should reach the assertion at least once",
-         Help_Uri    => +(Doc_Link
-           & "gnatcov/cov_source.html#assertion-true-coverage-atc-analysis"),
+         Help_Uri    =>
+           +(Doc_Link
+             & "gnatcov/cov_source.html#assertion-true-coverage-atc-analysis"),
          Config      => +"error"),
       Source_Coverage_Level'Pos (ATCC)     =>
         (Id          => +ATCC'Image,
          Name        => +"Assertion True Condition Coverage",
          Short_Descr =>
            +("The assertion decision has been evaluated at least once"
-           & " to True and once False during program execution"),
-         Help_Uri    => +(Doc_Link
-           & "gnatcov/cov_source.html#assertion-true-condition-coverage-"
-           & "analysis-atcc"),
+             & " to True and once False during program execution"),
+         Help_Uri    =>
+           +(Doc_Link
+             & "gnatcov/cov_source.html#assertion-true-condition-coverage-"
+             & "analysis-atcc"),
          Config      => +"error"),
       Source_Coverage_Level'Pos (Fun_Call) =>
         (Id          => +Fun_Call'Image,
@@ -199,24 +201,26 @@ package body Annotations.Sarif is
          Short_Descr =>
            (+"The subprogram was entered at least once or the call"
             & " was executed at least once"),
-         Help_Uri    => +Doc_Link
-         & "gnatcov/cov_source.html#function-and-call-coverage-fun-call-"
-         & "analysis-experimental",
+         Help_Uri    =>
+           +Doc_Link
+           & "gnatcov/cov_source.html#function-and-call-coverage-fun-call-"
+           & "analysis-experimental",
          Config      => +"error"),
-      Source_Coverage_Level'Pos (GExpr) =>
+      Source_Coverage_Level'Pos (GExpr)    =>
         (Id          => +GExpr'Image,
          Name        => +"Guarded Expression coverage",
          Short_Descr =>
            (+"The expression belongs to a conditional expression structure"
             & " and was executed at least once"),
-         Help_Uri    => +Doc_Link
-         & "gnatcov/cov_source.html#foobar",    --  FIXME(dprn): valid URL
+         Help_Uri    => +Doc_Link & "gnatcov/cov_source.html#foobar",
+         --  FIXME(dprn): valid URL
          Config      => +"error"),
-      Undet_Rule     =>
+      Undet_Rule                           =>
         (Id          => +"UNDET",
          Name        => +"Undetermined Coverage",
-         Short_Descr => +("Gnatcov was unable to determine the coverage state"
-           & " of the obligation"),
+         Short_Descr =>
+           +("Gnatcov was unable to determine the coverage state"
+             & " of the obligation"),
          Help_Uri    => Null_Unbounded_String,
          Config      => +"warning"));
 
@@ -227,8 +231,7 @@ package body Annotations.Sarif is
    --  Return the SARIF tool informations
 
    function Create_Results
-     (Results : Result_Info_Vectors.Vector)
-      return JSON_Array;
+     (Results : Result_Info_Vectors.Vector) return JSON_Array;
    --  Return the JSON array of SARIF results representing each of the
    --  violations found.
 
@@ -236,15 +239,13 @@ package body Annotations.Sarif is
    -- Create_Rules --
    ------------------
 
-   function Create_Rules return JSON_Array
-   is
+   function Create_Rules return JSON_Array is
       function Create_Rule (R : Rule_Info) return JSON_Value;
       --  Create single rule as a JSON object
 
-      function Create_Rule (R : Rule_Info) return JSON_Value
-      is
-         Rule : constant JSON_Value := Create_Object;
-         Short_Description : constant JSON_Value := Create_Object;
+      function Create_Rule (R : Rule_Info) return JSON_Value is
+         Rule                  : constant JSON_Value := Create_Object;
+         Short_Description     : constant JSON_Value := Create_Object;
          Default_Configuration : constant JSON_Value := Create_Object;
 
       begin
@@ -280,12 +281,10 @@ package body Annotations.Sarif is
    -- Create_Tool --
    -----------------
 
-   function Create_Tool return JSON_Value
-   is
+   function Create_Tool return JSON_Value is
       function Create_Driver return JSON_Value;
 
-      function Create_Driver return JSON_Value
-      is
+      function Create_Driver return JSON_Value is
          Driver : constant JSON_Value := Create_Object;
       begin
          Driver.Set_Field ("name", "gnatcov");
@@ -307,8 +306,7 @@ package body Annotations.Sarif is
    --------------------
 
    function Create_Results
-     (Results : Result_Info_Vectors.Vector)
-      return JSON_Array
+     (Results : Result_Info_Vectors.Vector) return JSON_Array
    is
       function Create_Result (R : Result_Info) return JSON_Value;
       --  Return a single SARIF results representing one violations
@@ -317,10 +315,9 @@ package body Annotations.Sarif is
       -- Create_Result --
       -------------------
 
-      function Create_Result (R : Result_Info) return JSON_Value
-      is
-         Res, Msg_Text, Region, Physical_Location, Uri, Locations
-         : constant JSON_Value := Create_Object;
+      function Create_Result (R : Result_Info) return JSON_Value is
+         Res, Msg_Text, Region, Physical_Location, Uri, Locations :
+           constant JSON_Value := Create_Object;
 
          Locations_Arr : JSON_Array := Empty_Array;
 
@@ -335,11 +332,11 @@ package body Annotations.Sarif is
          Res.Set_Field ("ruleId", R.Rule_Id);
          Res.Set_Field ("kind", "fail");
 
-         Res.Set_Field ("level",
-                        (if R.Is_Exempted
-                         then "note"
-                         else
-                           (if R.Is_Violation then "error" else "warning")));
+         Res.Set_Field
+           ("level",
+            (if R.Is_Exempted
+             then "note"
+             else (if R.Is_Violation then "error" else "warning")));
 
          Msg_Text.Set_Field ("text", R.Message);
          Res.Set_Field ("message", Msg_Text);
@@ -398,9 +395,7 @@ package body Annotations.Sarif is
    --------------------------
 
    procedure Pretty_Print_Message
-     (Pp : in out Sarif_Pretty_Printer;
-      M  : Message)
-   is
+     (Pp : in out Sarif_Pretty_Printer; M : Message) is
    begin
       if M.Kind > Notice then
          declare
@@ -419,7 +414,7 @@ package body Annotations.Sarif is
               Source_Coverage_Level'Pos (Source_Coverage_Level'Last);
             Is_Coverage_Level : constant Boolean :=
               First_Level_Pos <= Rep_Section_Pos
-                and then Rep_Section_Pos <= Last_Level_Pos;
+              and then Rep_Section_Pos <= Last_Level_Pos;
          begin
             if (Is_Coverage_Level and then M.Kind in Violation)
               or else M.Kind = Undetermined_Cov
@@ -430,12 +425,16 @@ package body Annotations.Sarif is
                    Rule_Id      =>
                      (if M.Kind = Undetermined_Cov
                       then Rules (Undet_Rule).Id
-                      else Rules
-                        (Source_Coverage_Level'Pos
-                             (Coverage_Level'Val (Rep_Section))).Id),
+                      else
+                        Rules
+                          (Source_Coverage_Level'Pos
+                             (Coverage_Level'Val (Rep_Section)))
+                          .Id),
                    Message      =>
                      Ada.Characters.Handling.To_Lower
-                       (SCO_Kind'Image (Kind (M.SCO))) & (+" ") & M.Msg,
+                       (SCO_Kind'Image (Kind (M.SCO)))
+                     & (+" ")
+                     & M.Msg,
                    Location     =>
                      +(Get_File (M.Sloc.Source_File).Full_Name.all),
                    Region       => First_Sloc (M.SCO).L));
@@ -463,12 +462,10 @@ package body Annotations.Sarif is
    -- Pretty_Print_End --
    ----------------------
 
-   procedure Pretty_Print_End (Pp : in out Sarif_Pretty_Printer)
-   is
+   procedure Pretty_Print_End (Pp : in out Sarif_Pretty_Printer) is
       function Create_Run return JSON_Value;
 
-      function Create_Run return JSON_Value
-      is
+      function Create_Run return JSON_Value is
          Run : constant JSON_Value := Create_Object;
       begin
          Run.Set_Field ("tool", Create_Tool);
@@ -497,19 +494,13 @@ package body Annotations.Sarif is
    -- Generate_Report --
    ---------------------
 
-   procedure Generate_Report (Context : Coverage.Context_Access)
-   is
+   procedure Generate_Report (Context : Coverage.Context_Access) is
       Pp : Sarif_Pretty_Printer :=
-        (Need_Sources => True,
-         Context      => Context,
-         others       => <>);
+        (Need_Sources => True, Context => Context, others => <>);
    begin
       Create_Output_File (Pp.Sarif_File, +Pp.Sarif_Filename);
 
-      Annotations.Generate_Report
-        (Pp,
-         True,
-         Subdir => ("sarif"));
+      Annotations.Generate_Report (Pp, True, Subdir => ("sarif"));
 
       Close (Pp.Sarif_File);
    end Generate_Report;

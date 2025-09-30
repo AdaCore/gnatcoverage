@@ -16,8 +16,7 @@ repos:
             SpacesInLineCommentPrefix: {
               Minimum: 0,
               Maximum: -1
-            }
-        }"]
+            }}"]
   - repo: https://github.com/pycqa/flake8
     rev: 7.1.1
     hooks:
@@ -40,3 +39,12 @@ repos:
         entry: python .check-formatting.py
         language: system
         args: ["--autofix", "--ignore-non-source"]
+  - repo: local
+    hooks:
+      - id: gnatformat
+        name: Run gnatformat
+        entry: gnatformat
+        args: ["--no-project"]
+        language: system
+        files: "^tools/gnatcov/.*\\.ad(b|s)$"
+

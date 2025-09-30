@@ -18,7 +18,7 @@
 ------------------------------------------------------------------------------
 
 with System;
-with AUnit.Assertions;      use AUnit.Assertions;
+with AUnit.Assertions; use AUnit.Assertions;
 
 package body Links.Gen_Test is
 
@@ -47,11 +47,10 @@ package body Links.Gen_Test is
    -- Test_Full --
    ---------------
 
-   procedure Test_Full  (T : in out Test) is
+   procedure Test_Full (T : in out Test) is
    begin
       Assert
-        (Full (T.Port0),
-         "Port with a capacity of 0 should always be full");
+        (Full (T.Port0), "Port with a capacity of 0 should always be full");
       Assert
         (not Full (T.Port1),
          "Port with a capacity > 0 should not be full by default");
@@ -61,8 +60,7 @@ package body Links.Gen_Test is
 
       Push (Data_Val1, T.Port1);
       Assert
-        (Full (T.Port1),
-         "Port with 'capacity' pushed items should be full");
+        (Full (T.Port1), "Port with 'capacity' pushed items should be full");
 
       Push (Data_Val1, T.Port4);
       Assert
@@ -77,8 +75,7 @@ package body Links.Gen_Test is
    procedure Test_Empty (T : in out Test) is
    begin
       Assert
-        (Empty (T.Port0),
-         "Port with a capacity of 0 should always be empty");
+        (Empty (T.Port0), "Port with a capacity of 0 should always be empty");
       Assert
         (Empty (T.Port1),
          "Port with a capacity > 0 should be empty by default");
@@ -101,23 +98,18 @@ package body Links.Gen_Test is
    -- Test_Pop --
    --------------
 
-   procedure Test_Pop   (T : in out Test)
-   is
+   procedure Test_Pop (T : in out Test) is
       D : Data_Type;
 
    begin
       Push (Data_Val1, T.Port1);
       Pop (D, T.Port1);
-      Assert
-        (D = Data_Val1,
-         "Poped value after a push is not the same");
+      Assert (D = Data_Val1, "Poped value after a push is not the same");
 
       Push (Data_Val1, T.Port4);
       Push (Data_Val2, T.Port4);
       Pop (D, T.Port4);
-      Assert
-        (D = Data_Val1,
-         "Poped value after a two pushes is not the same");
+      Assert (D = Data_Val1, "Poped value after a two pushes is not the same");
       Pop (D, T.Port4);
       Assert
         (D = Data_Val2,
@@ -128,7 +120,7 @@ package body Links.Gen_Test is
    -- Test_Push --
    ---------------
 
-   procedure Test_Push  (T : in out Test) is
+   procedure Test_Push (T : in out Test) is
 
       Tested_Port : Links.IOport_Access := null;
    begin
@@ -165,8 +157,7 @@ package body Links.Gen_Test is
 
       Assert
         (Empty (T.Outp), "Output port shall be empty after initialisation");
-      Assert
-        (Empty (T.Inp),  "Input port shall be empty after initialisation");
+      Assert (Empty (T.Inp), "Input port shall be empty after initialisation");
 
       Push (Data_Val1, T.Outp);
 
@@ -181,100 +172,99 @@ package body Links.Gen_Test is
 
       Assert
         (D = Data_Val1,
-         "The value received by the input port shall be the same as the one" &
-         " sent to the output port");
+         "The value received by the input port shall be the same as the one"
+         & " sent to the output port");
 
       Push (Data_Val2, T.Outp);
       Pop (D, T.Inp);
 
       Assert
         (D = Data_Val2,
-         "The value received by the input port shall be the same as the one" &
-         " sent to the output port");
+         "The value received by the input port shall be the same as the one"
+         & " sent to the output port");
 
       Assert
-        (Empty (T.Outp),
-         "Output port shall be empty after sending messages");
+        (Empty (T.Outp), "Output port shall be empty after sending messages");
       Assert
         (Empty (T.Inp),
          "Input port shall be empty after all messages are read");
    end Test_Connect;
 
---     --------------------
---     -- Test_Pop_Raise --
---     --------------------
---
---     procedure Test_Pop_Raise (T : in out Test)
---     is
---        Tested_Port : Links.IOport_Access := null;
---        D           : Data_Type;
---
---        procedure Pop_Raise;
---        --  Pop on Tested_Port with expected exception raised
---
---        ----------------
---        -- Pop_Raise --
---        ----------------
---
---        procedure Pop_Raise is
---        begin
---           Pop (D, Tested_Port);
---        end Pop_Raise;
---
---        procedure Test_Pop_Raise is new Assert_Exception (Pop_Raise);
---
---     begin
---        Tested_Port := T.Port0;
---        Test_Pop_Raise
---          ("Pop with 0 capacity should always raise an exception");
---
---        Tested_Port := T.Port1;
---        Test_Pop_Raise
---          ("Pop on an empty port should raise an exception");
---
---        Push (Data_Val1, T.Port1);
---        Pop (D, T.Port1);
---        Tested_Port := T.Port1;
---        Test_Pop_Raise
---          ("Calling two pops with a single pushed value should raise " &
---           "an exception");
---     end Test_Pop_Raise;
---
---     ---------------------
---     -- Test_Push_Raise --
---     ---------------------
---
---     procedure Test_Push_Raise (T : in out Test)
---     is
---        Tested_Port : Links.IOport_Access := null;
---
---        procedure Push_Raise;
---        --  Push on Tested_Port with expected exception raised
---
---        ----------------
---        -- Push_Raise --
---        ----------------
---
---        procedure Push_Raise is
---        begin
---           Push (Data_Val1, Tested_Port);
---        end Push_Raise;
---
---        procedure Test_Push_Raise is new Assert_Exception (Push_Raise);
---
---     begin
---        Tested_Port := null;
---        Test_Push_Raise
---          ("Push on a null port should raise an exception");
---
---        Tested_Port := T.Port0;
---        Test_Push_Raise
---          ("Push on a port with 0 capacity should raise an exception");
---
---        Tested_Port := T.Port1;
---        Push (Data_Val1, T.Port1);
---        Test_Push_Raise
---          ("Push on a full port should raise an exception");
---     end Test_Push_Raise;
+   --     --------------------
+   --     -- Test_Pop_Raise --
+   --     --------------------
+   --
+   --     procedure Test_Pop_Raise (T : in out Test)
+   --     is
+   --        Tested_Port : Links.IOport_Access := null;
+   --        D           : Data_Type;
+   --
+   --        procedure Pop_Raise;
+   --        --  Pop on Tested_Port with expected exception raised
+   --
+   --        ----------------
+   --        -- Pop_Raise --
+   --        ----------------
+   --
+   --        procedure Pop_Raise is
+   --        begin
+   --           Pop (D, Tested_Port);
+   --        end Pop_Raise;
+   --
+   --        procedure Test_Pop_Raise is new Assert_Exception (Pop_Raise);
+   --
+   --     begin
+   --        Tested_Port := T.Port0;
+   --        Test_Pop_Raise
+   --          ("Pop with 0 capacity should always raise an exception");
+   --
+   --        Tested_Port := T.Port1;
+   --        Test_Pop_Raise
+   --          ("Pop on an empty port should raise an exception");
+   --
+   --        Push (Data_Val1, T.Port1);
+   --        Pop (D, T.Port1);
+   --        Tested_Port := T.Port1;
+   --        Test_Pop_Raise
+   --          ("Calling two pops with a single pushed value should raise " &
+   --           "an exception");
+   --     end Test_Pop_Raise;
+   --
+   --     ---------------------
+   --     -- Test_Push_Raise --
+   --     ---------------------
+   --
+   --     procedure Test_Push_Raise (T : in out Test)
+   --     is
+   --        Tested_Port : Links.IOport_Access := null;
+   --
+   --        procedure Push_Raise;
+   --        --  Push on Tested_Port with expected exception raised
+   --
+   --        ----------------
+   --        -- Push_Raise --
+   --        ----------------
+   --
+   --        procedure Push_Raise is
+   --        begin
+   --           Push (Data_Val1, Tested_Port);
+   --        end Push_Raise;
+   --
+   --        procedure Test_Push_Raise is new Assert_Exception (Push_Raise);
+   --
+   --     begin
+   --        Tested_Port := null;
+   --        Test_Push_Raise
+   --          ("Push on a null port should raise an exception");
+   --
+   --        Tested_Port := T.Port0;
+   --        Test_Push_Raise
+   --          ("Push on a port with 0 capacity should raise an exception");
+   --
+   --        Tested_Port := T.Port1;
+   --        Push (Data_Val1, T.Port1);
+   --        Test_Push_Raise
+   --          ("Push on a full port should raise an exception");
+   --     end Test_Push_Raise;
 
 end Links.Gen_Test;

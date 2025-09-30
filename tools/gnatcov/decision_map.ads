@@ -40,9 +40,7 @@ package Decision_Map is
    --  valid throughout execution.
 
    procedure Build_Decision_Map
-     (Exec_Name    : String;
-      Text_Start   : Pc_Type;
-      Map_Filename : String);
+     (Exec_Name : String; Text_Start : Pc_Type; Map_Filename : String);
    --  Analyze the named executable using the provided ALI list to
    --  generate the decision map file to Map_Filename for stateful
    --  (historical) traces collection.
@@ -68,8 +66,7 @@ package Decision_Map is
    --  This information is made visible here for the benefit of the trace
    --  analysis circuitry in Coverage.Sources.
 
-   type Edge_Dest_Kind is
-     (Unknown, Condition, Outcome, Raise_Exception);
+   type Edge_Dest_Kind is (Unknown, Condition, Outcome, Raise_Exception);
    --  Destination of an edge in the control flow graph within an occurrence of
    --  a decision: not determined yet, test another condition, final decision
    --  outcome reached, or raising an exception.
@@ -78,26 +75,26 @@ package Decision_Map is
    --  control flow graph.
 
    type Cond_Edge_Info is record
-      Origin            : Tristate := Unknown;
+      Origin : Tristate := Unknown;
       --  If not Unknown, indicate which value of the tested condition causes
       --  this edge to be taken.
 
-      Destination       : Dest;
+      Destination : Dest;
       --  Edge destination (note: meaningless, and set to (No_PC, No_PC), if
       --  the cond branch instruction for the edge is a conditional return).
 
-      Dest_Kind         : Edge_Dest_Kind := Unknown;
+      Dest_Kind : Edge_Dest_Kind := Unknown;
       --  Edge destination classification, if known
 
-      Op_SCO            : SCO_Id := No_SCO_Id;
+      Op_SCO : SCO_Id := No_SCO_Id;
       --  For an edge that corresponds to the shortcut case of an operator,
       --  reference to the operator SCO.
 
-      Next_Condition    : Any_Condition_Index := No_Condition_Index;
+      Next_Condition : Any_Condition_Index := No_Condition_Index;
       --  For the case where Dest_Kind is Condition, index within decision of
       --  the next tested condition.
 
-      Outcome           : Tristate := Unknown;
+      Outcome : Tristate := Unknown;
       --  For the case where Dest_Kind is Outcome, corresponding valuation of
       --  the decision, if known.
    end record;
@@ -112,16 +109,16 @@ package Decision_Map is
    type Decision_Occurrence_Access is access all Decision_Occurrence;
 
    type Cond_Branch_Info is record
-      Last_PC             : Pc_Type;
+      Last_PC : Pc_Type;
       --  High bound of PC range for this instruction
 
       Decision_Occurrence : Decision_Occurrence_Access;
       --  The decision occurrence containing this conditional branch
 
-      Condition           : SCO_Id;
+      Condition : SCO_Id;
       --  Condition being tested by the conditional branch instruction
 
-      Edges               : Edges_Type;
+      Edges : Edges_Type;
       --  Edge information for the branch case and fallthrough case
    end record;
 
@@ -129,35 +126,33 @@ package Decision_Map is
    --  one or more conditional branch instruction.
 
    use type Pc_Type;
-   package PC_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Pc_Type);
+   package PC_Vectors is new
+     Ada.Containers.Vectors (Index_Type => Natural, Element_Type => Pc_Type);
 
    type Valuation_Type is record
-      CI : Condition_Index;
+      CI  : Condition_Index;
       Val : Boolean;
    end record;
 
-   function "<" (L, R : Valuation_Type) return Boolean is
-      (L.CI < R.CI or else L.Val < R.Val);
+   function "<" (L, R : Valuation_Type) return Boolean
+   is (L.CI < R.CI or else L.Val < R.Val);
 
-   package Valuation_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Valuation_Type);
+   package Valuation_Sets is new
+     Ada.Containers.Ordered_Sets (Element_Type => Valuation_Type);
 
-   type Decision_Occurrence
-     (Last_Cond_Index : Condition_Index)
-   is limited record
-      Decision             : SCO_Id;
+   type Decision_Occurrence (Last_Cond_Index : Condition_Index) is
+   limited record
+      Decision : SCO_Id;
       --  The decision being evaluated
 
-      Inlined_Body         : Address_Info_Acc;
+      Inlined_Body : Address_Info_Acc;
       --  If the decision is in an inlined body, pointer to its descriptor
       --  (an Address_Info record with Kind = Inlined_Subprogram_Addresses).
 
       Conditional_Branches : PC_Vectors.Vector;
       --  Conditional branch instructions testing this decision's conditions
 
-      Seen_Condition       : Any_Condition_Index := No_Condition_Index;
+      Seen_Condition : Any_Condition_Index := No_Condition_Index;
       --  Index of the last seen condition (i.e. condition index of the last
       --  test in Conditional_Branches).
 
@@ -183,9 +178,10 @@ package Decision_Map is
 
    function "<" (L, R : Cond_Branch_Loc) return Boolean;
 
-   package Cond_Branch_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Cond_Branch_Loc,
-      Element_Type => Cond_Branch_Info);
+   package Cond_Branch_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Cond_Branch_Loc,
+        Element_Type => Cond_Branch_Info);
 
    Cond_Branch_Map : Cond_Branch_Maps.Map;
 

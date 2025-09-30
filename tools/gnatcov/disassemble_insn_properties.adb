@@ -22,19 +22,19 @@ with Interfaces;  use Interfaces;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
 
-with Binary_Files;      use Binary_Files;
+with Binary_Files; use Binary_Files;
 with Disassemblers;
 with Elf_Disassemblers;
 with Hex_Images;
 with Highlighting;
-with Strings;           use Strings;
-with Traces_Elf;        use Traces_Elf;
-with Traces;            use Traces;
+with Strings;      use Strings;
+with Traces_Elf;   use Traces_Elf;
+with Traces;       use Traces;
 
 package body Disassemble_Insn_Properties is
 
-   function "+" (PC : Pc_Type) return JSON_Value is
-     (Create ("0x" & Hex_Images.Hex_Image (PC)));
+   function "+" (PC : Pc_Type) return JSON_Value
+   is (Create ("0x" & Hex_Images.Hex_Image (PC)));
    --  Shortcut to convert addresses to GNATCOLL.JSON strings "0x...". We
    --  represent addresses as hexadecimal strings in order not to rely on JSON
    --  libraries implementation constraints about abritrarily sized integers.
@@ -50,9 +50,7 @@ package body Disassemble_Insn_Properties is
    -----------------
 
    procedure Disassemble
-     (Exec_File_Name : String;
-      Locations      : User_Locations;
-      Compact        : Boolean)
+     (Exec_File_Name : String; Locations : User_Locations; Compact : Boolean)
    is
       Exec_Acc : Exe_File_Acc := Open_File (Exec_File_Name, 0);
       Exec     : Exe_File_Type'Class renames Exec_Acc.all;
@@ -82,8 +80,7 @@ package body Disassemble_Insn_Properties is
       -- Create_Section --
       --------------------
 
-      function Create_Section (Section : Address_Info_Acc) return JSON_Value
-      is
+      function Create_Section (Section : Address_Info_Acc) return JSON_Value is
          Result : constant JSON_Value := Create_Object;
       begin
          Result.Set_Field ("name", Section.Section_Name.all);
@@ -96,12 +93,11 @@ package body Disassemble_Insn_Properties is
       -- Create_Instruction --
       ------------------------
 
-      function Create_Instruction (PC : Pc_Type) return JSON_Value
-      is
+      function Create_Instruction (PC : Pc_Type) return JSON_Value is
          use Highlighting;
 
-         Result                : constant JSON_Value := Create_Object;
-         JSON_Tokens           : JSON_Array;
+         Result      : constant JSON_Value := Create_Object;
+         JSON_Tokens : JSON_Array;
 
          Insn                  : constant Binary_Content :=
            Slice (Insns, PC, Insns.Last);
@@ -111,20 +107,15 @@ package body Disassemble_Insn_Properties is
          Branch_Dest, FT_Dest  : Disassemblers.Dest;
          Mnemonic_Kind         : Some_Token_Kind;
 
-         Cur                   : Cursor;
+         Cur : Cursor;
 
       begin
          --  Get disassembly tokens and instruction properties
 
          Disassembler.Disassemble_Insn (Insn, PC, Buffer, Insn_Len, Exec);
          Disassembler.Get_Insn_Properties
-           (Insn, PC,
-            Branch,
-            Flag_Indir, Flag_Cond,
-            Branch_Dest, FT_Dest);
-         Mnemonic_Kind :=
-           Disassemblers.Get_Mnemonic_Kind
-             (Branch, Flag_Cond);
+           (Insn, PC, Branch, Flag_Indir, Flag_Cond, Branch_Dest, FT_Dest);
+         Mnemonic_Kind := Disassemblers.Get_Mnemonic_Kind (Branch, Flag_Cond);
 
          --  Fill the JSON_Tokens array with all tokens
 
@@ -141,8 +132,7 @@ package body Disassemble_Insn_Properties is
                   else Token (Cur));
             begin
                JSON_Token.Set_Field
-                 ("type",
-                  To_Lower (Some_Token_Kind'Image (Token_Kind)));
+                 ("type", To_Lower (Some_Token_Kind'Image (Token_Kind)));
                JSON_Token.Set_Field ("text", Text (Cur));
                Append (JSON_Tokens, JSON_Token);
             end;
@@ -153,8 +143,7 @@ package body Disassemble_Insn_Properties is
 
          Result.Set_Field ("asm", JSON_Tokens);
          Result.Set_Field ("low", +PC);
-         Result.Set_Field
-           ("high", +(PC + Pc_Type (Insn_Len) - 1));
+         Result.Set_Field ("high", +(PC + Pc_Type (Insn_Len) - 1));
 
          Result.Set_Field ("type", Branch_Kind_Strings (Branch));
          Result.Set_Field ("cond", Flag_Cond);
@@ -178,7 +167,7 @@ package body Disassemble_Insn_Properties is
       Cache    : Elf_Disassemblers.Insn_Set_Cache;
       Insn_Set : Elf_Disassemblers.Insn_Set_Type;
 
-   --  Start of processing for Disassemble
+      --  Start of processing for Disassemble
 
    begin
       Build_Sections (Exec);
@@ -202,12 +191,12 @@ package body Disassemble_Insn_Properties is
          Cache := Elf_Disassemblers.Empty_Cache;
 
          while Elf_Disassemblers.Iterate_Over_Insns
-           (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
+                 (I_Ranges.all, Cache, Insns.Last, PC, Insn_Set)
          loop
-            Disassembler := Elf_Disassemblers.Disa_For_Machine
-              (Machine, Insn_Set);
-            Insn_Len := Disassembler.
-              Get_Insn_Length (Slice (Insns, PC, Insns.Last));
+            Disassembler :=
+              Elf_Disassemblers.Disa_For_Machine (Machine, Insn_Set);
+            Insn_Len :=
+              Disassembler.Get_Insn_Length (Slice (Insns, PC, Insns.Last));
 
             if Matches_Locations (Exec_Acc, Proc_Locs, PC) then
                Append (JSON_Insns, Create_Instruction (PC));

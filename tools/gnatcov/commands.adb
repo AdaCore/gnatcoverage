@@ -17,7 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
-with Outputs; use Outputs;
+with Outputs;                 use Outputs;
 
 package body Commands is
 
@@ -36,8 +36,8 @@ package body Commands is
          end if;
       end loop;
 
-      Fatal_Error ("No option " & Option
-                   & " for command " & To_Switch (Command));
+      Fatal_Error
+        ("No option " & Option & " for command " & To_Switch (Command));
    end Check_Option;
 
    ------------------------

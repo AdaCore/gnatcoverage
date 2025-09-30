@@ -28,8 +28,8 @@ package Disassemblers is
    type Disassembler is limited interface;
 
    function Get_Insn_Length
-     (Self     : Disassembler;
-      Insn_Bin : Binary_Content) return Positive is abstract;
+     (Self : Disassembler; Insn_Bin : Binary_Content) return Positive
+   is abstract;
    --  Return the length of the instruction at the beginning of Insn_Bin
 
    procedure Disassemble_Insn
@@ -38,13 +38,14 @@ package Disassemblers is
       Pc       : Pc_Type;
       Buffer   : in out Highlighting.Buffer_Type;
       Insn_Len : out Natural;
-      Sym      : Symbolizer'Class) is abstract;
+      Sym      : Symbolizer'Class)
+   is abstract;
    --  Disassemble instruction at ADDR, and put the result in LINE/LINE_POS.
    --  LINE_POS is the index of the next character to be written (ie line
    --  length if Line'First = 1).
 
    type Dest is record
-      Target     : Pc_Type;
+      Target : Pc_Type;
       --  Target address of the branch destination
 
       Delay_Slot : Pc_Type := No_PC;
@@ -62,7 +63,8 @@ package Disassemblers is
       Flag_Indir  : out Boolean;
       Flag_Cond   : out Boolean;
       Branch_Dest : out Dest;
-      FT_Dest     : out Dest) is abstract;
+      FT_Dest     : out Dest)
+   is abstract;
    --  Determine whether the given instruction, located at PC, is a branch
    --  instruction of some kind (indicated by Branch).
    --  For a branch, indicate whether it is indirect (Flag_Indir) and whether
@@ -75,9 +77,9 @@ package Disassemblers is
    --  after the delay slot.
 
    function Is_Padding
-     (Self     : Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean is abstract;
+     (Self : Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean
+   is abstract;
    --  Return whether the given instruction, located at PC, is a potential
    --  padding instruction.
    --
@@ -90,9 +92,9 @@ package Disassemblers is
    --  instructions are always aligned, and thus there is no need for padding.
 
    function Is_Nop
-     (Self     : Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean is abstract;
+     (Self : Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean
+   is abstract;
    --  Return whether the given instruction, located at PC, is a NOP
    --  instruction.
    --
@@ -103,23 +105,20 @@ package Disassemblers is
    --  the branch).
 
    procedure Abort_Disassembler_Error
-     (PC       : Pc_Type;
-      Insn_Bin : Binary_Content;
-      Exn_Info : String);
+     (PC : Pc_Type; Insn_Bin : Binary_Content; Exn_Info : String);
    --  Print an error message suitable for disassembler error reports, giving
    --  enough context information to investigate and debug disassembly issues.
 
    function Get_Mnemonic_Kind
-     (Branch    : Branch_Kind;
-      Flag_Cond : Boolean) return Highlighting.Some_Token_Kind
-   is
-     (case Branch is
+     (Branch : Branch_Kind; Flag_Cond : Boolean)
+      return Highlighting.Some_Token_Kind
+   is (case Branch is
          when Br_Call | Br_Ret | Br_Jmp =>
-        (if Flag_Cond
-         then Highlighting.Mnemonic_Branch
-         else Highlighting.Mnemonic_Call),
+           (if Flag_Cond
+            then Highlighting.Mnemonic_Branch
+            else Highlighting.Mnemonic_Call),
 
-         when others => Highlighting.Mnemonic);
+         when others                    => Highlighting.Mnemonic);
    --  Given some instruction properties, return the mnemonic token kind
    --  suitable for it. Note that Disassemble_Insn do not return specialized
    --  mnemonic tokens itself because it would require information that can

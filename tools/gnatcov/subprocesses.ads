@@ -189,8 +189,8 @@ private
    type Process_Info_Array is array (Positive range <>) of Process_Info;
 
    type Process_Pool (Parallelism_Level : Positive) is
-     new Ada.Finalization.Limited_Controlled with
-   record
+     new Ada.Finalization.Limited_Controlled
+   with record
       Handles : Process_Array (1 .. Parallelism_Level);
       --  Processes currently running / waitable
 
@@ -206,13 +206,14 @@ private
       --  subprocess outputs.
 
    end record
-     with Dynamic_Predicate =>
-       (Nb_Running_Processes in 0 .. Parallelism_Level);
+   with Dynamic_Predicate => (Nb_Running_Processes in 0 .. Parallelism_Level);
 
-   overriding procedure Initialize (Pool : in out Process_Pool);
+   overriding
+   procedure Initialize (Pool : in out Process_Pool);
    --  Initialize the process pool
 
-   overriding procedure Finalize (Self : in out Process_Pool);
+   overriding
+   procedure Finalize (Self : in out Process_Pool);
    --  Wait for all still running subprocesses in Self and handle their outputs
 
 end Subprocesses;

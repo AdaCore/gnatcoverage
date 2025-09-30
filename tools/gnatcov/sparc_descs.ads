@@ -21,8 +21,8 @@ package Sparc_Descs is
    --  Extracted from V8.pdf p44.
    type Sparc_Fields is
      (
-      --  The format
-      F_Op,
+     --  The format
+     F_Op,
 
       --  Format 1 (op = 1)
       F_Disp30,
@@ -44,8 +44,7 @@ package Sparc_Descs is
       F_Simm13,
       F_Opf,
 
-      F_Others
-     );
+      F_Others);
 
    --  Generate a bit mask from a field.
    --  function Get_Mask (Field : Sparc_Fields) return Unsigned_32;
@@ -66,27 +65,25 @@ package Sparc_Descs is
 
    --  PPC fields description.
    Fields_Mask : constant Fields_Mask_Type :=
-     (
-      F_Op => (31, 30),
+     (F_Op     => (31, 30),
 
       F_Disp30 => (29, 0),
 
-      F_Rd => (29, 25),
-      F_Op2 => (24, 22),
-      F_Imm22 => (21, 0),
-      F_A => (29, 29),
-      F_Cond => (28, 25),
+      F_Rd     => (29, 25),
+      F_Op2    => (24, 22),
+      F_Imm22  => (21, 0),
+      F_A      => (29, 29),
+      F_Cond   => (28, 25),
       F_Disp22 => (21, 0),
 
-      F_Op3 => (24, 19),
-      F_Rs1 => (18, 14),
-      F_I => (13, 13),
-      F_Asi => (12, 5),
-      F_Rs2 => (4, 0),
+      F_Op3    => (24, 19),
+      F_Rs1    => (18, 14),
+      F_I      => (13, 13),
+      F_Asi    => (12, 5),
+      F_Rs2    => (4, 0),
       F_Simm13 => (12, 0),
-      F_Opf => (12, 5),
+      F_Opf    => (12, 5),
 
-      F_Others => (0, 31)
-     );
+      F_Others => (0, 31));
 
 end Sparc_Descs;

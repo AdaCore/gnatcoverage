@@ -34,9 +34,10 @@ with Traces_Lines;            use Traces_Lines;
 
 package Coverage.Source is
 
-   package Evaluation_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Evaluation);
+   package Evaluation_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Natural,
+        Element_Type => Evaluation);
 
    package Evaluation_Sets is new Ada.Containers.Ordered_Sets (Evaluation);
 
@@ -64,9 +65,7 @@ package Coverage.Source is
    --  level is enabled.
 
    procedure Compute_Source_Coverage
-     (Subp_Key  : Subprogram_Key;
-      Subp_Info : Subprogram_Info;
-      T         : Trace_Entry);
+     (Subp_Key : Subprogram_Key; Subp_Info : Subprogram_Info; T : Trace_Entry);
    --  Analyze execution environment traces for the given subprogram to
    --  determine the coverage state of each SCO.
 
@@ -99,8 +98,7 @@ package Coverage.Source is
 
    subtype SCO_State is Line_State range Not_Covered .. Undetermined_Coverage;
    function Get_Line_State
-     (SCO   : SCO_Id;
-      Level : Coverage_Level) return SCO_State;
+     (SCO : SCO_Id; Level : Coverage_Level) return SCO_State;
    --  Return SCO's contribution to the state of the enclosing line, i.e.
    --  SCO's specific coverage state, ignoring any exemptions.
 
@@ -126,7 +124,7 @@ package Coverage.Source is
    --  dump it.
 
    procedure Invalidate_Unit_List (Reason : String)
-      with Post => not Unit_List_Is_Valid;
+   with Post => not Unit_List_Is_Valid;
    --  Set the list of names for units of interest as invalid. The Reason
    --  message is used for logging purposes, so that users can find out why we
    --  cannot dump the list of units of interest.
@@ -144,8 +142,8 @@ package Coverage.Source is
    --  unit names, linking them to the list of ignored source files.
 
    procedure Iterate_On_Unit_List
-     (Process_Unit        : not null access procedure
-        (Name : Compilation_Unit);
+     (Process_Unit        :
+        not null access procedure (Name : Compilation_Unit);
       Process_Source_File : not null access procedure (FI : File_Info))
    with Pre => Unit_List_Is_Valid;
    --  Call Process_Unit for each unit of interest, passing to it the name of

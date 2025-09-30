@@ -55,8 +55,7 @@ package body MC_DC is
 
    function Image (E : Evaluation) return String is
       Masked_Len : constant Integer :=
-                     Integer (Last_Cond_Index (E.Decision)
-                                - E.Values.Last_Index);
+        Integer (Last_Cond_Index (E.Decision) - E.Values.Last_Index);
       --  Count of masked conditions after the last non-masked one.
 
       Masked_Values : constant String := Masked_Len * "- ";
@@ -71,8 +70,10 @@ package body MC_DC is
          case EV.Element (J) is
             when False   =>
                Cond_Vector (1 + 2 * Integer (J - EV.First_Index)) := 'F';
+
             when True    =>
                Cond_Vector (1 + 2 * Integer (J - EV.First_Index)) := 'T';
+
             when Unknown =>
                Cond_Vector (1 + 2 * Integer (J - EV.First_Index)) := '-';
          end case;
@@ -119,15 +120,14 @@ package body MC_DC is
    -------------------
 
    function Is_MC_DC_Pair
-     (Eval_1, Eval_2 : Evaluation;
-      Unique_Cause   : Boolean) return Any_Condition_Index
+     (Eval_1, Eval_2 : Evaluation; Unique_Cause : Boolean)
+      return Any_Condition_Index
    is
       First_Different : Any_Condition_Index := No_Condition_Index;
    begin
       pragma Assert (Eval_1.Decision = Eval_2.Decision);
-      pragma Assert (Eval_1.Outcome /= Unknown
-                       and then
-                     Eval_2.Outcome /= Unknown);
+      pragma
+        Assert (Eval_1.Outcome /= Unknown and then Eval_2.Outcome /= Unknown);
 
       --  Not an MC/DC pair if both evaluations produced the same outcome
 
@@ -139,10 +139,13 @@ package body MC_DC is
       --  different value in both, and in the case of Unique Cause, check
       --  whether it is the only one.
 
-      for J in reverse 0 .. Condition_Index'Max
-        (Eval_1.Values.Last_Index, Eval_2.Values.Last_Index)
+      for J in reverse
+        0
+        .. Condition_Index'Max
+             (Eval_1.Values.Last_Index, Eval_2.Values.Last_Index)
       loop
-         Check_Condition : declare
+         Check_Condition :
+         declare
             function Cond_J
               (V : Condition_Evaluation_Vectors.Vector) return Tristate;
             --  Return the value of condition J in V, or Unknown if not
@@ -153,8 +156,7 @@ package body MC_DC is
             ------------
 
             function Cond_J
-              (V : Condition_Evaluation_Vectors.Vector) return Tristate
-            is
+              (V : Condition_Evaluation_Vectors.Vector) return Tristate is
             begin
                if J in V.First_Index .. V.Last_Index then
                   return V.Element (J);
@@ -166,10 +168,11 @@ package body MC_DC is
             Val_1 : constant Tristate := Cond_J (Eval_1.Values);
             Val_2 : constant Tristate := Cond_J (Eval_2.Values);
 
-         --  Start of processing for Check_Condition
+            --  Start of processing for Check_Condition
 
          begin
-            if Val_1 /= Unknown and then Val_2 /= Unknown
+            if Val_1 /= Unknown
+              and then Val_2 /= Unknown
               and then Val_1 /= Val_2
             then
                if not Unique_Cause then

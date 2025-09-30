@@ -21,10 +21,11 @@ with Links.Gen_Test;
 
 package Controls.Test is
 
-   package Robot_Link_Test is new Controls.Robot_Control_Links.Gen_Test
-     (Act1      => null,
-      Act2      => null,
-      Data_Val1 => Robot_Control'(Code => Nop, Value => 0),
-      Data_Val2 => Robot_Control'(Code => Opmode, Value => 1));
+   package Robot_Link_Test is new
+     Controls.Robot_Control_Links.Gen_Test
+       (Act1      => null,
+        Act2      => null,
+        Data_Val1 => Robot_Control'(Code => Nop, Value => 0),
+        Data_Val2 => Robot_Control'(Code => Opmode, Value => 1));
 
 end Controls.Test;

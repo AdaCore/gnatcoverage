@@ -87,23 +87,28 @@ package body Stations is
       --  Map user input character C to Robot_Control command, Nop if
       --  the input isn't recognized.
 
-      function Control_For
-        (C : Character) return Robot_Control is
+      function Control_For (C : Character) return Robot_Control is
       begin
          case C is
             when 'p' | 'P' =>
                return (Code => Probe, Value => 0);
+
             when 's' | 'S' =>
                return (Code => Step_Forward, Value => 0);
+
             when 'l' | 'L' =>
                return (Code => Rotate_Left, Value => 0);
+
             when 'r' | 'R' =>
                return (Code => Rotate_Right, Value => 0);
+
             when 'c' | 'C' =>
                return (Code => Opmode, Value => Robot_Opmode'Pos (Cautious));
+
             when 'd' | 'D' =>
                return (Code => Opmode, Value => Robot_Opmode'Pos (Dumb));
-            when others =>
+
+            when others    =>
                return (Code => Nop, Value => 0);
          end case;
       end Control_For;
@@ -120,7 +125,9 @@ package body Stations is
       Put_Line ("'C'autious mode, 'D'umb mode");
       Put_Line ("'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? ");
 
-      Get (C); Put (C); New_Line;
+      Get (C);
+      Put (C);
+      New_Line;
 
       if C = 'Q' or else C = 'q' then
          Kill (Sta.all);
@@ -167,12 +174,10 @@ package body Stations is
    begin
       Sta.Robot_Control_Outp :=
         Robot_Control_Links.Create_IOport
-         (Capacity => 2,
-          Owner => Actor_Ref (Sta));
+          (Capacity => 2, Owner => Actor_Ref (Sta));
       Sta.Robot_Situation_Inp :=
         Situation_Links.Create_IOport
-         (Capacity => 1,
-          Owner => Actor_Ref (Sta));
+          (Capacity => 1, Owner => Actor_Ref (Sta));
       All_Unknown (Sta.Map);
    end Init;
 

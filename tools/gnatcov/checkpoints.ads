@@ -83,72 +83,63 @@ package Checkpoints is
 
    function Purpose_Name (Purpose : Checkpoint_Purpose) return String
    is (case Purpose is
-       when Instrumentation => "Source Instrumentation Data (SID)",
-       when Consolidation   => "checkpoint");
+         when Instrumentation => "Source Instrumentation Data (SID)",
+         when Consolidation   => "checkpoint");
    --  Return a user-level name to designate a checkpoint created for the given
    --  Purpose.
 
    type Checkpoint_Relocations is private;
 
    procedure Allocate_SFI_Maps
-     (Relocs      : in out Checkpoint_Relocations;
-      First, Last : Source_File_Index);
+     (Relocs : in out Checkpoint_Relocations; First, Last : Source_File_Index);
    procedure Allocate_CU_Id_Maps
-     (Relocs      : in out Checkpoint_Relocations;
-      First, Last : CU_Id);
+     (Relocs : in out Checkpoint_Relocations; First, Last : CU_Id);
    procedure Allocate_BDD_Node_Id_Map
-     (Relocs      : in out Checkpoint_Relocations;
-      First, Last : BDD_Node_Id);
+     (Relocs : in out Checkpoint_Relocations; First, Last : BDD_Node_Id);
    procedure Allocate_SCO_Id_Map
-     (Relocs      : in out Checkpoint_Relocations;
-      First, Last : SCO_Id);
+     (Relocs : in out Checkpoint_Relocations; First, Last : SCO_Id);
    --  Allocate the various tables in the checkpoint relocations.
 
    function Get_Simple_Name
-     (Relocs : Checkpoint_Relocations;
-      CP_SFI : Valid_Source_File_Index) return Unbounded_String;
+     (Relocs : Checkpoint_Relocations; CP_SFI : Valid_Source_File_Index)
+      return Unbounded_String;
    --  Return the simple file name for CP_SFI. Using this function is necessary
    --  when CP_SFI is ignored, as it is not possible to call Remap_SFI on it.
 
    procedure Ignore_SFI
-     (Relocs : in out Checkpoint_Relocations;
-      CP_SFI : Source_File_Index);
+     (Relocs : in out Checkpoint_Relocations; CP_SFI : Source_File_Index);
    procedure Ignore_CU_Id
-     (Relocs   : in out Checkpoint_Relocations;
-      CP_CU_Id : CU_Id);
+     (Relocs : in out Checkpoint_Relocations; CP_CU_Id : CU_Id);
    --  Mark the source file index or compilation unit as ignored in the
    --  checkpoint relocation. Trying to remap that source file index or
    --  compilation unit will result in an error.
 
    procedure Ignore_SCO
-     (Relocs    : in out Checkpoint_Relocations;
-      CP_SCO_Id : SCO_Id);
+     (Relocs : in out Checkpoint_Relocations; CP_SCO_Id : SCO_Id);
    --  Mark the SCO_Id as being removed in the checkpoint relocation.
    --  No information relative to this SCO should be loaded. In particular,
    --  trying to remap this SCO_Id will result in an error.
 
    function SFI_Ignored
-     (Relocs : Checkpoint_Relocations;
-      CP_SFI : Source_File_Index) return Boolean;
+     (Relocs : Checkpoint_Relocations; CP_SFI : Source_File_Index)
+      return Boolean;
    --  Return whether CP_SFI is ignored in the checkpoint or not.
    --  For convenience, No_Source_File is considered as never ignored.
 
    function CU_Id_Ignored
-     (Relocs   : Checkpoint_Relocations;
-      CP_CU_Id : CU_Id) return Boolean;
+     (Relocs : Checkpoint_Relocations; CP_CU_Id : CU_Id) return Boolean;
    --  Return whether CP_CU_Id is ignored in the checkpoint or not.
    --  For convenience, No_CU_Id is never considered ignored.
 
    function SCO_Ignored
-     (Relocs    : Checkpoint_Relocations;
-      CP_SCO_Id : SCO_Id) return Boolean;
+     (Relocs : Checkpoint_Relocations; CP_SCO_Id : SCO_Id) return Boolean;
    --  Return whether CP_SCO_Id was marked as removed in this checkpoint.
    --  For convenience, No_SCO_Id is never considered ignored.
 
    procedure Set_SFI_Map
      (Relocs                 : in out Checkpoint_Relocations;
-      Source_SFI, Target_SFI : Valid_Source_File_Index) with
-     Pre => not SFI_Ignored (Relocs, Source_SFI);
+      Source_SFI, Target_SFI : Valid_Source_File_Index)
+   with Pre => not SFI_Ignored (Relocs, Source_SFI);
    --  Associate Source_SFI to Target_SFI in the relocations map.
    --  Source_SFI must not have been previously marked as ignored with
    --  Ignore_SFI.
@@ -161,8 +152,8 @@ package Checkpoints is
 
    procedure Set_CU_Id_Map
      (Relocs                     : in out Checkpoint_Relocations;
-      Source_CU_Id, Target_CU_Id : Valid_CU_Id) with
-     Pre => not CU_Id_Ignored (Relocs, Source_CU_Id);
+      Source_CU_Id, Target_CU_Id : Valid_CU_Id)
+   with Pre => not CU_Id_Ignored (Relocs, Source_CU_Id);
    --  Associate Source_CU_ID to Target_CU_ID in the relocations map.
    --  Source_CU_Id must not have been previously marked as ignored with
    --  Ignore_CU_Id.
@@ -174,27 +165,26 @@ package Checkpoints is
 
    procedure Set_SCO_Id_Map
      (Relocs                       : in out Checkpoint_Relocations;
-      Source_SCO_Id, Target_SCO_Id : Valid_SCO_Id) with
-     Pre => not SCO_Ignored (Relocs, Source_SCO_Id);
+      Source_SCO_Id, Target_SCO_Id : Valid_SCO_Id)
+   with Pre => not SCO_Ignored (Relocs, Source_SCO_Id);
    --  Associate Source_SCO_ID to Target_SCO_ID in the relocations map
 
    procedure Free (Relocs : in out Checkpoint_Relocations);
    --  Relase allocated maps in Relocs
 
    function Remap_SFI
-     (Relocs : Checkpoint_Relocations;
-      CP_SFI : Source_File_Index) return Source_File_Index with
-     Pre => not SFI_Ignored (Relocs, CP_SFI);
-  --  Remap one source file index.
-  --
-  --  If CP_SFI is No_Source_File then it's returned unchanged. If it is
-  --  any other value, then it is remapped to the corresponding value in
-  --  the current run.
+     (Relocs : Checkpoint_Relocations; CP_SFI : Source_File_Index)
+      return Source_File_Index
+   with Pre => not SFI_Ignored (Relocs, CP_SFI);
+   --  Remap one source file index.
+   --
+   --  If CP_SFI is No_Source_File then it's returned unchanged. If it is
+   --  any other value, then it is remapped to the corresponding value in
+   --  the current run.
 
    function Remap_CU_Id
-     (Relocs   : Checkpoint_Relocations;
-      CP_CU_Id : CU_Id) return CU_Id with
-     Pre => not CU_Id_Ignored (Relocs, CP_CU_Id);
+     (Relocs : Checkpoint_Relocations; CP_CU_Id : CU_Id) return CU_Id
+   with Pre => not CU_Id_Ignored (Relocs, CP_CU_Id);
    --  Remap one CU_Id.
    --
    --  If CP_CU_Id is No_CU_Id then it's returned unchanged. If it is
@@ -202,8 +192,8 @@ package Checkpoints is
    --  the current run.
 
    function Remap_BDD_Node_Id
-     (Relocs         : Checkpoint_Relocations;
-      CP_BDD_Node_Id : BDD_Node_Id) return BDD_Node_Id;
+     (Relocs : Checkpoint_Relocations; CP_BDD_Node_Id : BDD_Node_Id)
+      return BDD_Node_Id;
    --  Remap one BDD_Node_Id.
    --
    --  If CP_BDD_Node_Id is No_BDD_Node_Id then it's returned unchanged. If it
@@ -211,9 +201,8 @@ package Checkpoints is
    --  the current run.
 
    function Remap_SCO_Id
-     (Relocs    : Checkpoint_Relocations;
-      CP_SCO_Id : SCO_Id) return SCO_Id with
-     Pre => not SCO_Ignored (Relocs, CP_SCO_Id);
+     (Relocs : Checkpoint_Relocations; CP_SCO_Id : SCO_Id) return SCO_Id
+   with Pre => not SCO_Ignored (Relocs, CP_SCO_Id);
    --  Remap one SCO_Id.
    --
    --  If CP_SCO_Id is No_SCO_Id then it's returned unchanged. If it
@@ -221,9 +210,8 @@ package Checkpoints is
    --  the current run.
 
    procedure Remap_SFI
-     (Relocs : Checkpoint_Relocations;
-      CP_SFI : in out Source_File_Index) with
-     Pre => not SFI_Ignored (Relocs, CP_SFI);
+     (Relocs : Checkpoint_Relocations; CP_SFI : in out Source_File_Index)
+   with Pre => not SFI_Ignored (Relocs, CP_SFI);
    --  Remap one source file index.
    --
    --  If CP_SFI is No_Source_File then it's returned unchanged. If it is
@@ -242,28 +230,26 @@ package Checkpoints is
    --  checkpoint load or save.
 
    type Stateful_Stream (Stream : access Root_Stream_Type'Class) is abstract
-     new Root_Stream_Type with
-      record
-         Filename : Unbounded_String;
-         --  Name of the checkpoint being written/read
+     new Root_Stream_Type
+   with record
+      Filename : Unbounded_String;
+      --  Name of the checkpoint being written/read
 
-         Purpose : Checkpoint_Purpose;
-         --  Purpose for the checkpoint being written/read
-      end record;
+      Purpose : Checkpoint_Purpose;
+      --  Purpose for the checkpoint being written/read
+   end record;
 
    procedure Read
      (Stream : in out Stateful_Stream;
       Item   : out Stream_Element_Array;
       Last   : out Stream_Element_Offset);
    procedure Write
-     (Stream : in out Stateful_Stream;
-      Item   : Stream_Element_Array);
+     (Stream : in out Stateful_Stream; Item : Stream_Element_Array);
    --  Read/write from/to underlying stream
 
-   function Purpose_Of
-     (SS : Stateful_Stream'Class) return Checkpoint_Purpose
+   function Purpose_Of (SS : Stateful_Stream'Class) return Checkpoint_Purpose
    is (SS.Purpose)
-     with Inline;
+   with Inline;
    --  Shortcut to get the purpose of a stream that is known to be an instance
    --  of Stateful_Stream.
 
@@ -292,8 +278,7 @@ package Checkpoints is
    --  Clear the internal data structures used to create checkpoints
 
    procedure SID_Load
-     (Filename             : String;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp);
+     (Filename : String; Ignored_Source_Files : access GNAT.Regexp.Regexp);
    --  Load an SID file into internal data structures, ignoring files
    --  that match Ignored_Source_Files.
 
@@ -405,13 +390,16 @@ package Checkpoints is
       type Map_Type is private;
 
       with procedure Clear (Self : in out Map_Type);
-      with procedure Insert
-        (Self : in out Map_Type; Key : Key_Type; Element : Element_Type);
+      with
+        procedure Insert
+          (Self : in out Map_Type; Key : Key_Type; Element : Element_Type);
 
-      with procedure Read_Key
-        (Self : in out Checkpoint_Load_State; Key : out Key_Type);
-      with procedure Read_Element
-        (Self : in out Checkpoint_Load_State; Element : out Element_Type);
+      with
+        procedure Read_Key
+          (Self : in out Checkpoint_Load_State; Key : out Key_Type);
+      with
+        procedure Read_Element
+          (Self : in out Checkpoint_Load_State; Element : out Element_Type);
    procedure Read_Map
      (Self : in out Checkpoint_Load_State; Map : out Map_Type);
    --  Generic implementation to read a map from a checkpoint. Since there are
@@ -426,8 +414,9 @@ package Checkpoints is
       with procedure Clear (Self : in out Set_Type);
       with procedure Insert (Self : in out Set_Type; Element : Element_Type);
 
-      with procedure Read_Element
-        (Self : in out Checkpoint_Load_State; Element : out Element_Type);
+      with
+        procedure Read_Element
+          (Self : in out Checkpoint_Load_State; Element : out Element_Type);
    procedure Read_Set
      (Self : in out Checkpoint_Load_State; Set : out Set_Type);
    --  Generic implementation to read a set from a checkpoint. Since there are
@@ -438,10 +427,11 @@ package Checkpoints is
    generic
       type Element_Type is private;
       with function "=" (Left, Right : Element_Type) return Boolean is <>;
-      with package Multiway_Trees is new Ada.Containers.Multiway_Trees
-        (Element_Type, "=");
-      with procedure Read_Element
-        (Self : in out Checkpoint_Load_State; Element : out Element_Type);
+      with package Multiway_Trees is new
+        Ada.Containers.Multiway_Trees (Element_Type, "=");
+      with
+        procedure Read_Element
+          (Self : in out Checkpoint_Load_State; Element : out Element_Type);
    procedure Read_Tree
      (Self : in out Checkpoint_Load_State; Tree : out Multiway_Trees.Tree);
    --  Generic implementation to read a multiway tree from a checkpoint
@@ -450,28 +440,25 @@ package Checkpoints is
       type Index_Type is range <>;
       type Element_Type is private;
       with function "=" (Left, Right : Element_Type) return Boolean is <>;
-      with package Vectors is new Ada.Containers.Vectors
-        (Index_Type, Element_Type, "=");
-      with procedure Read_Element
-        (Self : in out Checkpoint_Load_State; Element : out Element_Type);
+      with package Vectors is new
+        Ada.Containers.Vectors (Index_Type, Element_Type, "=");
+      with
+        procedure Read_Element
+          (Self : in out Checkpoint_Load_State; Element : out Element_Type);
    procedure Read_Vector
      (Self : in out Checkpoint_Load_State; Vector : out Vectors.Vector);
    --  Generic implementation to read a vector tree from a checkpoint
 
    procedure Read (Self : in out Checkpoint_Load_State; Value : out U8_Array);
-   procedure Read
-     (Self : in out Checkpoint_Load_State; Value : out CU_Id);
-   procedure Read
-     (Self : in out Checkpoint_Load_State; Value : out Pc_Type);
-   procedure Read
-     (Self : in out Checkpoint_Load_State; Value : out SCO_Id);
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out CU_Id);
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out Pc_Type);
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out SCO_Id);
    procedure Read
      (Self : in out Checkpoint_Load_State; Value : out Source_File_Index);
    procedure Read
      (Self : in out Checkpoint_Load_State; Value : out Source_Location);
    procedure Read (Self : in out Checkpoint_Load_State; Value : out String);
-   procedure Read
-     (Self : in out Checkpoint_Load_State; Value : out Tristate);
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out Tristate);
    procedure Read
      (Self : in out Checkpoint_Load_State; Value : out Unbounded_String);
 
@@ -549,20 +536,24 @@ package Checkpoints is
       type Cursor_Type is private;
 
       with function Length (Self : Map_Type) return Count_Type is <>;
-      with procedure Iterate
-        (Self    : Map_Type;
-         Process : not null access procedure (Position : Cursor_Type));
-      with procedure Query_Element
-        (Position : Cursor_Type;
-         Process  : not null access
-                      procedure (Key : Key_Type; Element : Element_Type));
+      with
+        procedure Iterate
+          (Self    : Map_Type;
+           Process : not null access procedure (Position : Cursor_Type));
+      with
+        procedure Query_Element
+          (Position : Cursor_Type;
+           Process  :
+             not null access procedure
+               (Key : Key_Type; Element : Element_Type));
 
-      with procedure Write_Key
-        (Self : in out Checkpoint_Save_State; Key : Key_Type);
-      with procedure Write_Element
-        (Self : in out Checkpoint_Save_State; Element : Element_Type);
-   procedure Write_Map
-     (Self : in out Checkpoint_Save_State; Map : Map_Type);
+      with
+        procedure Write_Key
+          (Self : in out Checkpoint_Save_State; Key : Key_Type);
+      with
+        procedure Write_Element
+          (Self : in out Checkpoint_Save_State; Element : Element_Type);
+   procedure Write_Map (Self : in out Checkpoint_Save_State; Map : Map_Type);
    --  Generic implementation to write a map to a checkpoint. Since there are
    --  two flavors for maps (ordered and hashed), do not take a instantiated
    --  formal package, but rather the only three map primitives that we need:
@@ -574,17 +565,19 @@ package Checkpoints is
       type Cursor_Type is private;
 
       with function Length (Self : Set_Type) return Count_Type is <>;
-      with procedure Iterate
-        (Self    : Set_Type;
-         Process : not null access procedure (Position : Cursor_Type));
-      with procedure Query_Element
-        (Position : Cursor_Type;
-         Process  : not null access procedure (Element : Element_Type));
+      with
+        procedure Iterate
+          (Self    : Set_Type;
+           Process : not null access procedure (Position : Cursor_Type));
+      with
+        procedure Query_Element
+          (Position : Cursor_Type;
+           Process  : not null access procedure (Element : Element_Type));
 
-      with procedure Write_Element
-        (Self : in out Checkpoint_Save_State; Element : Element_Type);
-   procedure Write_Set
-     (Self : in out Checkpoint_Save_State; Set : Set_Type);
+      with
+        procedure Write_Element
+          (Self : in out Checkpoint_Save_State; Element : Element_Type);
+   procedure Write_Set (Self : in out Checkpoint_Save_State; Set : Set_Type);
    --  Generic implementation to write a set to a checkpoint. Since there are
    --  two flavors for sets (ordered and hashed), do not take a instantiated
    --  formal package, but rather the only three set primitives that we need:
@@ -593,10 +586,11 @@ package Checkpoints is
    generic
       type Element_Type is private;
       with function "=" (Left, Right : Element_Type) return Boolean is <>;
-      with package Multiway_Trees is new Ada.Containers.Multiway_Trees
-        (Element_Type, "=");
-      with procedure Write_Element
-        (Self : in out Checkpoint_Save_State; Element : Element_Type);
+      with package Multiway_Trees is new
+        Ada.Containers.Multiway_Trees (Element_Type, "=");
+      with
+        procedure Write_Element
+          (Self : in out Checkpoint_Save_State; Element : Element_Type);
    procedure Write_Tree
      (Self : in out Checkpoint_Save_State; Tree : Multiway_Trees.Tree);
    --  Generic implementation to write a multiway tree from a checkpoint
@@ -605,10 +599,11 @@ package Checkpoints is
       type Index_Type is range <>;
       type Element_Type is private;
       with function "=" (Left, Right : Element_Type) return Boolean is <>;
-      with package Vectors is new Ada.Containers.Vectors
-        (Index_Type, Element_Type, "=");
-      with procedure Write_Element
-        (Self : in out Checkpoint_Save_State; Element : Element_Type);
+      with package Vectors is new
+        Ada.Containers.Vectors (Index_Type, Element_Type, "=");
+      with
+        procedure Write_Element
+          (Self : in out Checkpoint_Save_State; Element : Element_Type);
    procedure Write_Vector
      (Self : in out Checkpoint_Save_State; Vector : Vectors.Vector);
    --  Generic implementation to write a vector tree to a checkpoint
@@ -641,7 +636,7 @@ private
      array (Source_File_Index range <>) of Unbounded_String;
    type SFI_Simple_Name_Map_Access is access all SFI_Simple_Name_Map_Array;
 
-   type Checkpoint_Relocations is  record
+   type Checkpoint_Relocations is record
       SFI_Map : SFI_Map_Acc;
       CU_Map  : CU_Id_Map_Acc;
       BDD_Map : BDD_Node_Id_Map_Acc;

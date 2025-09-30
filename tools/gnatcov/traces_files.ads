@@ -17,7 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Vectors;
-with Interfaces;  use Interfaces;
+with Interfaces; use Interfaces;
 private with System.Storage_Elements;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
@@ -36,6 +36,7 @@ package Traces_Files is
       case Success is
          when False =>
             Error : Unbounded_String;
+
          when True =>
             null;
       end case;
@@ -49,8 +50,11 @@ package Traces_Files is
    --  if it's a binary trace file or a source trace file.
 
    type Any_Accepted_Trace_Kind is
-     (Unknown, Binary_Trace_File, Source_Trace_File,
-      LLVM_Trace_File, All_Trace_Files);
+     (Unknown,
+      Binary_Trace_File,
+      Source_Trace_File,
+      LLVM_Trace_File,
+      All_Trace_Files);
    --  We normally do not allow to mix trace kinds, but in case this should be
    --  supported in the future we have "All_Trace_File" to represent that
    --  gnatcov accepts both kinds of traces.
@@ -64,19 +68,17 @@ package Traces_Files is
    --  inconsistent trace kinds. If Switches.Allow_Mix_Trace_Kinds is True,
    --  only emit a warning and not an error.
 
-   subtype Trace_File_Kind
-     is Any_Accepted_Trace_Kind range Binary_Trace_File .. LLVM_Trace_File;
+   subtype Trace_File_Kind is
+     Any_Accepted_Trace_Kind range Binary_Trace_File .. LLVM_Trace_File;
 
-   subtype GNATcov_Trace_File_Kind
-     is Any_Accepted_Trace_Kind range Binary_Trace_File .. Source_Trace_File;
+   subtype GNATcov_Trace_File_Kind is
+     Any_Accepted_Trace_Kind range Binary_Trace_File .. Source_Trace_File;
 
    function Image (Kind : Trace_File_Kind) return String;
    --  Human-readable name for Kind
 
    procedure Probe_Trace_File
-     (Filename : String;
-      Kind     : out Trace_File_Kind;
-      Result   : out Read_Result);
+     (Filename : String; Kind : out Trace_File_Kind; Result : out Read_Result);
    --  Open Filename in read mode as a trace file and try to determine the kind
    --  of trace file it is.
    --
@@ -103,9 +105,7 @@ package Traces_Files is
    --  Exception is raised in case of OS error during write
 
    procedure Create_Trace_File
-     (Filename   : String;
-      Kind       : Trace_Kind;
-      Trace_File : out Trace_File_Type);
+     (Filename : String; Kind : Trace_Kind; Trace_File : out Trace_File_Type);
    --  Create an empty Trace_File object of the given kind
 
    function Kind (Trace_File : Trace_File_Type) return Trace_Kind;
@@ -123,32 +123,34 @@ package Traces_Files is
       --  Value to use to mean "it's not in a shared object, it's in the main
       --  executable".
 
-      with procedure Process_Info_Entries
-        (Trace_File : Trace_File_Type;
-         Result     : out Read_Result) is null;
+      with
+        procedure Process_Info_Entries
+          (Trace_File : Trace_File_Type; Result : out Read_Result) is null;
       --  Called right before processing trace entries. If Result.Success is
       --  set to False, this will abort trace reading and will forward error
       --  information.
 
-      with procedure Process_Loadaddr
-        (Trace_File : Trace_File_Type;
-         Offset     : Traces.Pc_Type) is null;
+      with
+        procedure Process_Loadaddr
+          (Trace_File : Trace_File_Type; Offset : Traces.Pc_Type) is null;
       --  Called when coming across a Loadaddr special trace entry. Note that
       --  this is not called when such an entry is unexpected.
 
-      with function Load_Shared_Object
-         (Trace_File  : Trace_File_Type;
-          Filename    : String;
-          Signature   : Binary_File_Signature;
-          First, Last : Traces.Pc_Type) return Shared_Object_Type is <>;
+      with
+        function Load_Shared_Object
+          (Trace_File  : Trace_File_Type;
+           Filename    : String;
+           Signature   : Binary_File_Signature;
+           First, Last : Traces.Pc_Type) return Shared_Object_Type is <>;
       --  Called when processing a load shared object event. The result will be
       --  used as an actual for the SO formal in Process_Trace_Entry when
       --  processing trace entries related to this shared object.
 
-      with procedure Process_Trace_Entry
-        (Trace_File : Trace_File_Type;
-         SO         : Shared_Object_Type;
-         E          : Traces.Trace_Entry) is null;
+      with
+        procedure Process_Trace_Entry
+          (Trace_File : Trace_File_Type;
+           SO         : Shared_Object_Type;
+           E          : Traces.Trace_Entry) is null;
       --  Called for each regular trace entry (i.e. not for special ones). Some
       --  regular entries may also be skipped: see documentation below for
       --  Handle_Relocations.
@@ -169,7 +171,7 @@ package Traces_Files is
       --  are discarded: we will not call Process_Trace_Entry on them, as they
       --  are irrelevant after the relocation process.
 
-   procedure Read_Trace_File_Gen
+     procedure Read_Trace_File_Gen
      (Filename   : String;
       Trace_File : out Trace_File_Type;
       Result     : out Read_Result);
@@ -182,8 +184,7 @@ package Traces_Files is
    --  left undefined.
 
    procedure Check_Trace_File_From_Exec
-     (Trace_File : Trace_File_Type;
-      Result     : out Read_Result);
+     (Trace_File : Trace_File_Type; Result : out Read_Result);
    --  If Trace_File is not a trace file that is the result of program
    --  execution, set Result to the corresponding error information.
 
@@ -202,9 +203,7 @@ package Traces_Files is
    --  Deallocate all dynamic data associated with Trace_File
 
    procedure Append_Info
-     (File : in out Trace_File_Type;
-      Kind : Info_Kind_Type;
-      Data : String);
+     (File : in out Trace_File_Type; Kind : Info_Kind_Type; Data : String);
    --  Add an info to trace file.
    --  We use a string type even if any byte stream is allowed.
 
@@ -230,28 +229,24 @@ package Traces_Files is
    --  In case of failure, a fatal error is raised.
 
    procedure Write_Trace_Entry
-     (Desc : Trace_File_Descriptor;
-      E    : Traces.Trace_Entry);
+     (Desc : Trace_File_Descriptor; E : Traces.Trace_Entry);
    --  Write a trace to DESC. In case of failure, an exception is raised and
    --  the file is closed.
 
-   procedure Close_Trace_File
-     (Desc : in out Trace_File_Descriptor);
+   procedure Close_Trace_File (Desc : in out Trace_File_Descriptor);
    --  Close DESC
 
    function Get_Signature
-     (File : Trace_File_Type)
-      return Binary_File_Signature;
+     (File : Trace_File_Type) return Binary_File_Signature;
    --  Return the signature of the executable that was used to produce the File
    --  trace file.
 
    procedure Write_Trace_File
-     (Trace_File : Trace_File_Type;
-      Base       : Traces_Base);
+     (Trace_File : Trace_File_Type; Base : Traces_Base);
    --  Write traces to a file, including trace entries from Base
 
    procedure Write_Trace_File (Trace_File : Trace_File_Type)
-      with Pre => Kind (Trace_File) = Info;
+   with Pre => Kind (Trace_File) = Info;
    --  Write a trace file of kind Info (no traces base needed)
 
    procedure Dump_Trace_File (Filename : String);
@@ -268,8 +263,8 @@ package Traces_Files is
    --  the trace file, and, if non-empty, Executable overrides the binary used
    --  for decision mapping when analyzing this trace file.
 
-   package Requested_Trace_Vectors is new Ada.Containers.Vectors
-     (Positive, Requested_Trace);
+   package Requested_Trace_Vectors is new
+     Ada.Containers.Vectors (Positive, Requested_Trace);
 
 private
 
@@ -360,16 +355,15 @@ private
    --  Like Read_Or_None, but return instead whether the read was full
 
    function Write
-     (Desc   : Output_Trace_File;
-      Buffer : System.Address;
-      Size   : Positive) return Boolean;
+     (Desc : Output_Trace_File; Buffer : System.Address; Size : Positive)
+      return Boolean;
    --  Try to write the Size bytes at the Buffer adress to Desc. Return whether
    --  the write completed.
 
-   function Kind (Trace_File : Trace_File_Type) return Trace_Kind is
-     (Trace_File.Header.Kind);
+   function Kind (Trace_File : Trace_File_Type) return Trace_Kind
+   is (Trace_File.Header.Kind);
 
-   function Filename (Trace_File : Trace_File_Type) return String is
-     (+Trace_File.Filename);
+   function Filename (Trace_File : Trace_File_Type) return String
+   is (+Trace_File.Filename);
 
 end Traces_Files;

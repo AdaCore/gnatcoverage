@@ -28,21 +28,21 @@ package Instrument.Input_Traces is
    --  Content of a coverage buffer
 
    generic
-      with procedure On_Trace_Info
-        (Kind : Traces_Source.Supported_Info_Kind;
-         Data : String) is <>;
-      with procedure On_Trace_Entry
-        (Filename                : String;
-         Fingerprint             : SC_Obligations.Fingerprint_Type;
-         CU_Name                 : Compilation_Unit_Part;
-         Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
-         Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
-         Stmt_Buffer             : Coverage_Buffer;
-         Decision_Buffer         : Coverage_Buffer;
-         MCDC_Buffer             : Coverage_Buffer) is <>;
+      with
+        procedure On_Trace_Info
+          (Kind : Traces_Source.Supported_Info_Kind; Data : String) is <>;
+      with
+        procedure On_Trace_Entry
+          (Filename                : String;
+           Fingerprint             : SC_Obligations.Fingerprint_Type;
+           CU_Name                 : Compilation_Unit_Part;
+           Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
+           Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
+           Stmt_Buffer             : Coverage_Buffer;
+           Decision_Buffer         : Coverage_Buffer;
+           MCDC_Buffer             : Coverage_Buffer) is <>;
    procedure Generic_Read_Source_Trace_File
-     (Filename : String;
-      Result   : out Traces_Files.Read_Result);
+     (Filename : String; Result : out Traces_Files.Read_Result);
    --  Read the given Filename source trace file and call:
    --
    --    * On_Trace_Info on each decoded trace info entry;

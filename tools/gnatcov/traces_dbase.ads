@@ -49,29 +49,25 @@ package Traces_Dbase is
    --  What does this comment apply to? There is no mention of "ADDR" anywhere
    --  in sight??
 
-   procedure Iterate (Base    : Traces_Base;
-                      Process : not null access procedure (E : Trace_Entry));
+   procedure Iterate
+     (Base    : Traces_Base;
+      Process : not null access procedure (E : Trace_Entry));
    --  Call Process for each entry in the Traces_Base
 
    type Entry_Iterator is limited private;
 
    procedure Init
-     (Base     : Traces_Base;
-      Iterator : out Entry_Iterator;
-      Pc       : Pc_Type);
+     (Base : Traces_Base; Iterator : out Entry_Iterator; Pc : Pc_Type);
    --  Return an iterator that points to the first element before Pc
 
    procedure Init_Post
-     (Base     : Traces_Base;
-      Iterator : out Entry_Iterator;
-      Pc       : Pc_Type);
+     (Base : Traces_Base; Iterator : out Entry_Iterator; Pc : Pc_Type);
    --  Return an iterator that points to the first element which contains Pc
    --  in its range, or (if there is no such element in Base) to the first
    --  element after Pc.
 
    procedure Get_Next_Trace
-     (Trace    : out Trace_Entry;
-      Iterator : in out Entry_Iterator);
+     (Trace : out Trace_Entry; Iterator : in out Entry_Iterator);
    --  Return the next entry from Iterator, or Bad_Trace if none is left
 
    procedure Update_State
@@ -93,19 +89,20 @@ private
 
    --  Operations for Ordered_Sets
 
-   function Is_Equal (L, R : Trace_Entry) return Boolean is
-     (L.First <= R.Last and then L.Last >= R.First);
+   function Is_Equal (L, R : Trace_Entry) return Boolean
+   is (L.First <= R.Last and then L.Last >= R.First);
    --  Return whether L and R overlap.  This relation is reflexive and
    --  symmetric.
 
-   function Is_Smaller (L, R : Trace_Entry) return Boolean is
-     (L.Last < R.First);
+   function Is_Smaller (L, R : Trace_Entry) return Boolean
+   is (L.Last < R.First);
    --  Return whether L and R are disjoint and L is inferior to R
 
-   package Entry_Set is new Ada.Containers.Ordered_Sets
-     (Element_Type => Trace_Entry,
-      "="          => Is_Equal,
-      "<"          => Is_Smaller);
+   package Entry_Set is new
+     Ada.Containers.Ordered_Sets
+       (Element_Type => Trace_Entry,
+        "="          => Is_Equal,
+        "<"          => Is_Smaller);
 
    type Traces_Base is record
       Entries : Entry_Set.Set;

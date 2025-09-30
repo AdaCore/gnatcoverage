@@ -34,9 +34,8 @@ package Dis_Opcodes is
 
    type BFD_Byte_Array is array (Natural range <>) of BFD_Byte;
 
-   type BFD_Endian is
-     (BFD_ENDIAN_BIG, BFD_ENDIAN_LITTLE, BFD_ENDIAN_UNKNOWN)
-     with Convention => C;
+   type BFD_Endian is (BFD_ENDIAN_BIG, BFD_ENDIAN_LITTLE, BFD_ENDIAN_UNKNOWN)
+   with Convention => C;
    --  Possible endianness values of the program to disassemble
 
    ---------------
@@ -47,57 +46,66 @@ package Dis_Opcodes is
    --  Opaque object used to disassemble binary code
 
    function Create_Arm_Disassembler return Disassemble_Handle
-     with Import        => True,
-          Convention    => C,
-          External_Name => "create_arm_disassembler";
+   with
+     Import        => True,
+     Convention    => C,
+     External_Name => "create_arm_disassembler";
    --  Returns a handle to disassemble ARM binary code
 
    function Create_Thumb_Disassembler return Disassemble_Handle
-     with Import        => True,
-          Convention    => C,
-          External_Name => "create_thumb_disassembler";
+   with
+     Import        => True,
+     Convention    => C,
+     External_Name => "create_thumb_disassembler";
    --  Returns a handle to disassemble Thumb binary code
 
    function Create_X86_Disassembler return Disassemble_Handle
-     with Import        => True,
-          Convention    => C,
-          External_Name => "create_x86_disassembler";
+   with
+     Import        => True,
+     Convention    => C,
+     External_Name => "create_x86_disassembler";
    --  Returns a handle to disassemble x86 binary code
 
    function Create_Visium_Disassembler return Disassemble_Handle
-     with Import        => True,
-          Convention    => C,
-          External_Name => "create_visium_disassembler";
+   with
+     Import        => True,
+     Convention    => C,
+     External_Name => "create_visium_disassembler";
    --  Returns a handle to disassemble Visium binary code
 
    function Create_Ppc_Disassembler return Disassemble_Handle
-     with Import        => True,
-          Convention    => C,
-          External_Name => "create_ppc_disassembler";
+   with
+     Import        => True,
+     Convention    => C,
+     External_Name => "create_ppc_disassembler";
    --  Returns a handle to disassemble PowerPC binary code
 
    function Create_E500_Disassembler return Disassemble_Handle
-      with Import        => True,
-           Convention    => C,
-           External_Name => "create_e500_disassembler";
+   with
+     Import        => True,
+     Convention    => C,
+     External_Name => "create_e500_disassembler";
    --  Return a handle to disassemble e500 binary code
 
    function Create_Sparc_Disassembler return Disassemble_Handle
-     with Import        => True,
-          Convention    => C,
-          External_Name => "create_sparc_disassembler";
+   with
+     Import        => True,
+     Convention    => C,
+     External_Name => "create_sparc_disassembler";
    --  Returns a handle to disassemble SPARC binary code
 
    function Create_AArch64_Disassembler return Disassemble_Handle
-     with Import        => True,
-          Convention    => C,
-          External_Name => "create_aarch64_disassembler";
+   with
+     Import        => True,
+     Convention    => C,
+     External_Name => "create_aarch64_disassembler";
    --  Returns a handle to disassemble Aarch64 binary code
 
    procedure Delete_Disassembler (DH : Disassemble_Handle)
-     with Import        => True,
-          Convention    => C,
-          External_Name => "delete_disassembler";
+   with
+     Import        => True,
+     Convention    => C,
+     External_Name => "delete_disassembler";
    --  Frees any memory used by the handle
 
    function Disassemble_To_Text
@@ -108,9 +116,10 @@ package Dis_Opcodes is
       Insn_Buffer : BFD_Byte_Array;
       Ib_Size     : unsigned;
       Endian      : BFD_Endian) return int
-     with Import        => True,
-          Convention    => C,
-          External_Name => "disassemble_to_text";
+   with
+     Import        => True,
+     Convention    => C,
+     External_Name => "disassemble_to_text";
    --  Disassemble the instruction in Insn_Buffer of size Ib_Size.
    --  The instruction is considered to be located at address Pc and
    --  represented in endianness Endian.
@@ -118,11 +127,13 @@ package Dis_Opcodes is
    --  Returns the size (in bytes) of the binary instruction that was
    --  disassembled.
 
-   type Print_Symbol_Cb is access function
-     (Addr       : BFD_VMA;
-      Symbolizer : System.Address;
-      Buff_Addr  : System.Address;
-      Buff_Size  : int) return int with Convention => C;
+   type Print_Symbol_Cb is
+     access function
+       (Addr       : BFD_VMA;
+        Symbolizer : System.Address;
+        Buff_Addr  : System.Address;
+        Buff_Size  : int) return int
+   with Convention => C;
    --  Symbolizer should denote the address of a Symbolizer'Class object.
    --  Functions of this type should return the number of characters written
    --  by the function.
@@ -132,9 +143,10 @@ package Dis_Opcodes is
      (DH         : Disassemble_Handle;
       Symbolizer : System.Address;
       Address_Cb : Print_Symbol_Cb)
-     with Import        => True,
-          Convention    => C,
-          External_Name => "set_disassembler_symbolizer";
+   with
+     Import        => True,
+     Convention    => C,
+     External_Name => "set_disassembler_symbolizer";
    --  Sets the callback to print symbols for the given handle.
    --  Symbolizer is the argument that will be given to Address_Cb for its
    --  formal parameter of the same name.

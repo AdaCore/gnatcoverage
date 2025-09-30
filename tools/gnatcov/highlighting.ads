@@ -45,14 +45,14 @@ package Highlighting is
    No_Element : constant Cursor;
    --  Cursor to iterate on the tokens contained in a buffer.
 
-   overriding procedure Initialize (Object : in out Buffer_Type);
+   overriding
+   procedure Initialize (Object : in out Buffer_Type);
 
    procedure Reset (Buffer : in out Buffer_Type);
    --  Empty a buffer
 
    procedure Start_Token
-     (Buffer : in out Buffer_Type;
-      Token : Some_Token_Kind);
+     (Buffer : in out Buffer_Type; Token : Some_Token_Kind);
    --  Make the next characters written into Buffer belong to a new token, of
    --  kind Token.
 
@@ -105,7 +105,7 @@ package Highlighting is
 
    Style_Default : constant Style_Type :=
      (None            => ("000000", False, False, False),
-      Error           => ("a00000", True,  False, False),
+      Error           => ("a00000", True, False, False),
       Text            => ("202020", False, False, False),
       Comment         => ("808080", False, False, False),
       Punctuation     => ("202020", False, False, False),
@@ -113,7 +113,7 @@ package Highlighting is
       Mnemonic        => ("0e84b5", False, False, False),
       Mnemonic_Call   => ("0e84b5", False, False, False),
       Mnemonic_Jump   => ("0e84b5", False, False, False),
-      Mnemonic_Branch => ("cd9129", True,  False, False),
+      Mnemonic_Branch => ("cd9129", True, False, False),
       Literal         => ("0e84b5", False, False, False),
       Register        => ("902000", False, False, False),
       Name            => ("007020", False, False, False));
@@ -126,7 +126,7 @@ private
    type Token_Stream is array (Natural range <>) of Token_Kind;
 
    type Buffer_Type (Length : Natural) is new Controlled with record
-      Str    : String (1 .. Length);
+      Str : String (1 .. Length);
       --  Tokens as a flat stream of characters
 
       Tokens : Token_Stream (1 .. Length);
@@ -134,7 +134,7 @@ private
       --  the cells that start a token. In such a case, the cell contains the
       --  corresponding token type.
 
-      Last   : Natural;
+      Last : Natural;
       --  Index of the last character written to the buffer, or zero when the
       --  buffer is empty.
    end record;
@@ -142,7 +142,7 @@ private
    type Buffer_Access is access all Buffer_Type;
 
    type Cursor is record
-      Buffer      : Buffer_Access;
+      Buffer : Buffer_Access;
       --  The buffer this cursor is associated to
 
       First, Last : Natural;
@@ -152,13 +152,13 @@ private
 
    No_Element : constant Cursor := (null, 0, 0);
 
-   function Last_Index (Buffer : Buffer_Type) return Natural is
-     (Buffer.Last);
+   function Last_Index (Buffer : Buffer_Type) return Natural
+   is (Buffer.Last);
 
-   function Get_Raw (Buffer : Buffer_Type; Index : Natural) return Character is
-     (Buffer.Str (Index));
+   function Get_Raw (Buffer : Buffer_Type; Index : Natural) return Character
+   is (Buffer.Str (Index));
 
-   function Get_Raw (Buffer : Buffer_Type) return String is
-     (Buffer.Str (1 .. Buffer.Last));
+   function Get_Raw (Buffer : Buffer_Type) return String
+   is (Buffer.Str (1 .. Buffer.Last));
 
 end Highlighting;

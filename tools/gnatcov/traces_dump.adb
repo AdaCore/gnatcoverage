@@ -37,20 +37,18 @@ package body Traces_Dump is
    -- Dump_Routines_Traces --
    --------------------------
 
-   procedure Dump_Routines_Traces (Output_Name : String_Access)
-   is
+   procedure Dump_Routines_Traces (Output_Name : String_Access) is
       use Traces_Disa;
 
       Routine_Seen : Boolean := False;
 
       Insn_Count, Insn_Covered : Integer := 0;
 
-      Branch_Count, Branch_Partially_Covered, Branch_Fully_Covered : Integer
-         := 0;
+      Branch_Count, Branch_Partially_Covered, Branch_Fully_Covered : Integer :=
+        0;
 
       procedure Process_Subp
-        (Key  : Subprogram_Key;
-         Info : in out Subprogram_Info);
+        (Key : Subprogram_Key; Info : in out Subprogram_Info);
       --  Display traces for one routine
 
       procedure Process_Insn
@@ -66,8 +64,7 @@ package body Traces_Dump is
       ------------------
 
       procedure Process_Subp
-        (Key  : Subprogram_Key;
-         Info : in out Subprogram_Info)
+        (Key : Subprogram_Key; Info : in out Subprogram_Info)
       is
          use Hex_Images;
 
@@ -84,14 +81,18 @@ package body Traces_Dump is
          end if;
 
          if Is_Loaded (Info.Insns) then
-            Put (": " & Hex_Image (Info.Insns.First)
-                 & '-' & Hex_Image (Info.Insns.Last));
+            Put
+              (": "
+               & Hex_Image (Info.Insns.First)
+               & '-'
+               & Hex_Image (Info.Insns.Last));
          end if;
          New_Line;
 
          if Info.Traces /= null then
             Disp_Assembly_Lines
-              (Info.Insns, I_Ranges,
+              (Info.Insns,
+               I_Ranges,
                Info.Traces.all,
                Process_Insn'Access,
                Info.Exec.all);
@@ -112,9 +113,10 @@ package body Traces_Dump is
          Textio_Disassemble_Cb (Addr, State, Insn, Insn_Set, Sym);
          Insn_Count := Insn_Count + 1;
          case State is
-            when Unknown =>
+            when Unknown                          =>
                raise Program_Error;
-            when Not_Covered =>
+
+            when Not_Covered                      =>
                declare
                   use Disassemblers;
                   Branch                : Branch_Kind;
@@ -122,21 +124,28 @@ package body Traces_Dump is
                   Branch_Dest, FT_Dest  : Dest;
                begin
                   Disa_For_Machine (Machine, Insn_Set).Get_Insn_Properties
-                    (Insn, Addr, Branch, Flag_Indir, Flag_Cond, Branch_Dest,
+                    (Insn,
+                     Addr,
+                     Branch,
+                     Flag_Indir,
+                     Flag_Cond,
+                     Branch_Dest,
                      FT_Dest);
-                  if Branch in Br_Call | Br_Ret | Br_Jmp
-                     and then Flag_Cond
+                  if Branch in Br_Call | Br_Ret | Br_Jmp and then Flag_Cond
                   then
                      Branch_Count := Branch_Count + 1;
                   end if;
                end;
-            when Covered =>
+
+            when Covered                          =>
                Insn_Covered := Insn_Covered + 1;
+
             when Branch_Taken | Fallthrough_Taken =>
                Insn_Covered := Insn_Covered + 1;
                Branch_Count := Branch_Count + 1;
                Branch_Partially_Covered := Branch_Partially_Covered + 1;
-            when Both_Taken =>
+
+            when Both_Taken                       =>
                Insn_Covered := Insn_Covered + 1;
                Branch_Count := Branch_Count + 1;
                Branch_Fully_Covered := Branch_Fully_Covered + 1;
@@ -155,9 +164,9 @@ package body Traces_Dump is
       --  in internal services.
 
       Entry_Output : constant File_Access := Current_Output;
-      Output_File : File_Type;
+      Output_File  : File_Type;
 
-   --  Start of processing for Dump_Routines_Traces
+      --  Start of processing for Dump_Routines_Traces
 
    begin
       if Output_Name /= null then
@@ -175,11 +184,15 @@ package body Traces_Dump is
          if Coverage.Object_Level = Branch then
             Put_Line (Img (Branch_Count) & " conditional branches analyzed:");
             Put_Line ("  " & Img (Branch_Fully_Covered) & " fully covered");
-            Put_Line ("  " & Img (Branch_Partially_Covered)
-                      & " partially covered");
-            Put_Line ("  " & Img (Branch_Count - Branch_Fully_Covered
-                                    - Branch_Partially_Covered)
-                      & " not executed");
+            Put_Line
+              ("  " & Img (Branch_Partially_Covered) & " partially covered");
+            Put_Line
+              ("  "
+               & Img
+                   (Branch_Count
+                    - Branch_Fully_Covered
+                    - Branch_Partially_Covered)
+               & " not executed");
          end if;
       else
          Put_Line ("*** No routine of interest");
@@ -195,8 +208,7 @@ package body Traces_Dump is
    procedure Dump_Uncovered_Routines (Report : File_Access) is
 
       procedure Process_One
-        (Key  : Subprogram_Key;
-         Info : in out Subprogram_Info);
+        (Key : Subprogram_Key; Info : in out Subprogram_Info);
       --  Report information for the given routine
 
       -----------------
@@ -204,29 +216,24 @@ package body Traces_Dump is
       -----------------
 
       procedure Process_One
-        (Key  : Subprogram_Key;
-         Info : in out Subprogram_Info)
+        (Key : Subprogram_Key; Info : in out Subprogram_Info)
       is
          Routine_State : constant Line_State :=
-                           Compute_Routine_State (Info.Insns, Info.Traces);
+           Compute_Routine_State (Info.Insns, Info.Traces);
       begin
          if not Is_Loaded (Info.Insns) then
             Put_Line
               (Report.all,
                Key_To_Name (Key).all & " not found in executable(s)");
 
-         elsif Routine_State /= Covered
-           and then Routine_State /= No_Code
-         then
-            Put
-              (Report.all,
-               Key_To_Name (Key).all & " not fully covered : ");
+         elsif Routine_State /= Covered and then Routine_State /= No_Code then
+            Put (Report.all, Key_To_Name (Key).all & " not fully covered : ");
             Put (Report.all, State_Char (Routine_State));
             New_Line (Report.all);
          end if;
       end Process_One;
 
-   --  Start of processing for Dump_Uncovered_Routines
+      --  Start of processing for Dump_Uncovered_Routines
 
    begin
       Put_Line (Report.all, "ERRORS BY ROUTINE:");

@@ -16,7 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with System;      use System;
+with System; use System;
 
 package body Symbols is
 
@@ -38,8 +38,7 @@ package body Symbols is
    -- To_Symbol --
    ---------------
 
-   function To_Symbol (S : String) return Symbol
-   is
+   function To_Symbol (S : String) return Symbol is
    begin
       return Strings.Find (S);
    end To_Symbol;
@@ -48,8 +47,7 @@ package body Symbols is
    -- To_String --
    ---------------
 
-   function To_String (S : Symbol) return Cst_String_Access
-   is
+   function To_String (S : Symbol) return Cst_String_Access is
    begin
       return Get (S);
    end To_String;

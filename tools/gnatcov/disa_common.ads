@@ -18,11 +18,11 @@
 
 --  Common subprograms shared by several disassembler components
 
-with Interfaces; use Interfaces;
+with Interfaces;   use Interfaces;
 with Interfaces.C; use Interfaces.C;
 with System;
 
-with Binary_Files; use Binary_Files;
+with Binary_Files;   use Binary_Files;
 with Dis_Opcodes;
 with Disa_Symbolize; use Disa_Symbolize;
 with Highlighting;
@@ -47,7 +47,7 @@ package Disa_Common is
       Insn_Len     : out Positive;
       Sym          : Symbolizer'Class;
       Insn_Max_Len : Positive)
-     with Inline => True;
+   with Inline => True;
    --  Common function to disassemble through libopcode bindings.
    --
    --  Disassemble instruction at Pc in Insn_Bin, and put the result in Buffer.
@@ -61,7 +61,7 @@ package Disa_Common is
       Insn_Bin     : Binary_Content;
       Pc           : Traces.Pc_Type;
       Insn_Max_Len : Positive) return Positive
-     with Inline => True;
+   with Inline => True;
    --  Common function to get instruction length through libopcode bindings.
    --
    --  Disassemble instruction at Pc in Insn_Bin and return the instruction
@@ -75,8 +75,7 @@ package Disa_Common is
       Symbol_Manager : System.Address;
       Buff_Addr      : System.Address;
       Buff_Size      : int) return int
-     with Convention => C,
-          Post => Print_Symbol_Func'Result <= Buff_Size;
+   with Convention => C, Post => Print_Symbol_Func'Result <= Buff_Size;
    --  Prints symbol at address Addr to Buff if there is one.
    --  Does nothing otherwise.
    --  Writes at most Buff_Size characters.

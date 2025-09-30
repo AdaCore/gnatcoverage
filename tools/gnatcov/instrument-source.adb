@@ -53,9 +53,7 @@ begin
    --  Save the SCOs for the unit in the SID file
 
    Checkpoints.Checkpoint_Save
-     (SID_Name,
-      Context'Access,
-      Purpose => Checkpoints.Instrumentation);
+     (SID_Name, Context'Access, Purpose => Checkpoints.Instrumentation);
 
    if SC_Obligations.SCOs_Trace.Is_Active then
       SC_Obligations.Dump_All_SCOs;

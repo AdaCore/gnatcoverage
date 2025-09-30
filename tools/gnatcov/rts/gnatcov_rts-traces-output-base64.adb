@@ -33,8 +33,8 @@ package body GNATcov_RTS.Traces.Output.Base64 is
       Program_Name   : GNATcov_RTS_String;
       Exec_Date      : Unsigned_64;
       User_Data      : GNATcov_RTS_String);
-   pragma Import
-     (C, Write_Trace_File_C, "gnatcov_rts_write_trace_file_base64");
+   pragma
+     Import (C, Write_Trace_File_C, "gnatcov_rts_write_trace_file_base64");
 
    ----------------------
    -- Write_Trace_File --

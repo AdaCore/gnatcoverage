@@ -65,8 +65,8 @@ package body SC_Obligations is
    --    smaller than E2.From.
 
    function Floor
-     (Tree : Scope_Entities_Trees.Tree;
-      Sloc : Source_Location) return Scope_Entities_Trees.Cursor;
+     (Tree : Scope_Entities_Trees.Tree; Sloc : Source_Location)
+      return Scope_Entities_Trees.Cursor;
    --  Return the innermost scope containing Sloc
 
    function Covers_SCO (SE : Scope_Entity; SCO : SCO_Id) return Boolean
@@ -82,8 +82,7 @@ package body SC_Obligations is
    --  Return whether the given CU contains the given SCO
 
    procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id)
-     with Pre => Get_CU (ST) = No_CU_Id
-     or else Contains_SCO (SCO, Get_CU (ST));
+   with Pre => Get_CU (ST) = No_CU_Id or else Contains_SCO (SCO, Get_CU (ST));
    --  Position ST on the inner-most scope that contains SCO.
    --
    --  This does nothing on a scope traversal type not initialized, or
@@ -117,9 +116,10 @@ package body SC_Obligations is
    --  Part of the information stored in a SID file, and needed to compute
    --  coverage results.
 
-   package SID_Info_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Fingerprint_Type,
-      Element_Type => SID_Info);
+   package SID_Info_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Fingerprint_Type,
+        Element_Type => SID_Info);
 
    type CU_Info (Provider : SCO_Provider := SCO_Provider'First) is record
       Origin : Source_File_Index;
@@ -186,21 +186,23 @@ package body SC_Obligations is
 
    procedure Free (CU : in out CU_Info);
 
-   function Has_SCOs (CUI : CU_Info) return Boolean is
-     (CUI.SCOs.Length > 0
-      and then CUI.SCOs.First_Element.First <= CUI.SCOs.First_Element.Last);
+   function Has_SCOs (CUI : CU_Info) return Boolean
+   is (CUI.SCOs.Length > 0
+       and then CUI.SCOs.First_Element.First <= CUI.SCOs.First_Element.Last);
 
    function Are_Bit_Maps_In_Range
      (Bit_Maps : CU_Bit_Maps; CU : CU_Info) return Boolean;
    --  Return whether all SCOs referenced in Bit_Maps belong to CU
 
-   package CU_Info_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Valid_CU_Id,
-      Element_Type => CU_Info);
+   package CU_Info_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Valid_CU_Id,
+        Element_Type => CU_Info);
 
-   package CU_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Source_File_Index,
-      Element_Type => Valid_CU_Id);
+   package CU_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Source_File_Index,
+        Element_Type => Valid_CU_Id);
 
    CU_Map : CU_Maps.Map;
    --  Map of source file names to CU_Vector indices. Note: there may be
@@ -210,13 +212,14 @@ package body SC_Obligations is
    --  appears as a key in this map. In addition, for C files, the *full*
    --  name of each main source file also appears as a key.
 
-   package CU_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Valid_CU_Id);
+   package CU_Sets is new
+     Ada.Containers.Ordered_Sets (Element_Type => Valid_CU_Id);
 
-   package Origin_To_CUs_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Source_File_Index,
-      Element_Type => CU_Sets.Set,
-      "="          => CU_Sets."=");
+   package Origin_To_CUs_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Source_File_Index,
+        Element_Type => CU_Sets.Set,
+        "="          => CU_Sets."=");
 
    Origin_To_CUs_Map : Origin_To_CUs_Maps.Map;
    --  For each compilation unit Id CU, CU is present in the
@@ -255,8 +258,10 @@ package body SC_Obligations is
    --  Inclusive range of indexes in SCOs.SCO_Table (i.e. a range of
    --  SCOs.SCO_Table_Entry objects).
 
-   package Nat_Range_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Nat_Range);
+   package Nat_Range_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Nat_Range);
 
    type CU_Load_Info is record
       File_Name_Ptr : Types.String_Ptr;
@@ -291,16 +296,17 @@ package body SC_Obligations is
 
    type CU_Load_Info_Access is access all CU_Load_Info;
 
-   package CU_Load_Info_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => CU_Load_Info_Access);
+   package CU_Load_Info_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => CU_Load_Info_Access);
 
    procedure Free (Infos : in out CU_Load_Info_Vectors.Vector);
    --  Free all resources allocated in Infos and make it empty
 
    function Main_Source_For
-     (Unit : SCOs.SCO_Unit_Table_Entry;
-      Deps : SFI_Vector) return Source_File_Index;
+     (Unit : SCOs.SCO_Unit_Table_Entry; Deps : SFI_Vector)
+      return Source_File_Index;
    --  Return the source file corresponding to the low level unit at the given
    --  index (Unit). Create it if needed. Return No_Source_File if this
    --  source file is ignored (case where .Dep_Num = Missing_Dep_Num).
@@ -337,8 +343,8 @@ package body SC_Obligations is
    --  given Main_Source and Fingerprint, keep track of it in Created_Units,
    --  and return its unit Id.
 
-   package Ignored_Slocs_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Source_Location);
+   package Ignored_Slocs_Sets is new
+     Ada.Containers.Ordered_Sets (Element_Type => Source_Location);
 
    type CU_Load_State is record
       Last_Line : Natural := 0;
@@ -355,9 +361,9 @@ package body SC_Obligations is
       Current_BDD : BDD.BDD_Type;
       --  BDD of current decision
 
-      Dom_SCO               : SCO_Id          := No_SCO_Id;
+      Dom_SCO               : SCO_Id := No_SCO_Id;
       Dom_Sloc              : Source_Location := No_Location;
-      Dom_Val               : Tristate        := Unknown;
+      Dom_Val               : Tristate := Unknown;
       Current_Handler_Range : Source_Location_Range := No_Range;
       --  Dominant information for basic block chaining
    end record;
@@ -395,146 +401,146 @@ package body SC_Obligations is
 
    type SCO_Descriptor (Kind : Any_SCO_Kind := SCO_Kind'First) is record
       case Kind is
-      when Removed =>
-         null;
-
-      when others =>
-         Origin : CU_Id;
-         --  Compilation unit whose LI file containing this SCO
-
-         Sloc_Range : Source_Location_Range := No_Range;
-         --  For a decision, cumulative range from all conditions
-
-         Parent : SCO_Id := No_SCO_Id;
-         --  For a decision, pointer to the enclosing statement (or condition
-         --  in the case of a nested decision), unset if decision is part of a
-         --  flow control structure.
-         --
-         --  For a condition or operator, pointer to the enclosing operator, or
-         --  to enclosing decision if at top level.
-
-         Scope : Scope_Entities_Trees.Cursor :=
-            Scope_Entities_Trees.No_Element;
-         --  This fields's purpose is to memoize the result of Traverse_SCO
-         --  for finding the scope of the given SCO.
-         --  It should not be used nor modified outside the function.
-         --  It should not be written to checkpoint files.
-
-         case Kind is
          when Removed =>
             null;
 
-         when Statement =>
-            S_Kind         : Statement_Kind := Statement_Kind'First;
-            --  Statement kind indication
+         when others =>
+            Origin : CU_Id;
+            --  Compilation unit whose LI file containing this SCO
 
-            Dominant       : SCO_Id   := No_SCO_Id;
-            Dominant_Value : Tristate := Unknown;
-            --  Previous statement in sequence, or dominant decision. See
-            --  comment for function Dominant. Dominant_Value is Unknown for
-            --  a statement dominant, or a valid boolean value for a decision
-            --  dominant.
+            Sloc_Range : Source_Location_Range := No_Range;
+            --  For a decision, cumulative range from all conditions
 
-            Dominant_Sloc  : Source_Location := No_Location;
-            --  While SCOs are being read, we only get the sloc of the dominant
-            --  and store it here. We set the Dominant component later on after
-            --  the Sloc -> SCO map has been constructed.
+            Parent : SCO_Id := No_SCO_Id;
+            --  For a decision, pointer to the enclosing statement (or
+            --  condition in the case of a nested decision), unset if decision
+            --  is part of a flow control structure.
+            --
+            --  For a condition or operator, pointer to the enclosing operator,
+            --  or to enclosing decision if at top level.
 
-            Handler_Range : Source_Location_Range := No_Range;
-            --  Sloc range of the exception handler of which this is the first
-            --  statement.
+            Scope : Scope_Entities_Trees.Cursor :=
+              Scope_Entities_Trees.No_Element;
+            --  This fields's purpose is to memoize the result of Traverse_SCO
+            --  for finding the scope of the given SCO.
+            --  It should not be used nor modified outside the function.
+            --  It should not be written to checkpoint files.
 
-            Pragma_Name : Pragma_Id := Pragma_Id'First;
-            --  For a Pragma_Statement, corresponding pragma identifier
+            case Kind is
+               when Removed =>
+                  null;
 
-            Stmt_Instrumented : Boolean := True;
-            --  Whether this SCO was instrumented
+               when Statement =>
+                  S_Kind : Statement_Kind := Statement_Kind'First;
+                  --  Statement kind indication
 
-         when Condition =>
-            Value : Tristate;
-            --  Indicates whether this condition is always true, always false,
-            --  or tested at run time (Unknown).
+                  Dominant       : SCO_Id := No_SCO_Id;
+                  Dominant_Value : Tristate := Unknown;
+                  --  Previous statement in sequence, or dominant decision. See
+                  --  comment for function Dominant. Dominant_Value is Unknown
+                  --  for a statement dominant, or a valid boolean value for a
+                  --  decision dominant.
 
-            PC_Set : PC_Sets.Set;
-            --  Addresses of conditional branches testing this condition
-            --  (if Value = Unknown).
+                  Dominant_Sloc : Source_Location := No_Location;
+                  --  While SCOs are being read, we only get the sloc of the
+                  --  dominant and store it here. We set the Dominant component
+                  --  later on after the Sloc -> SCO map has been constructed.
 
-            BDD_Node : BDD_Node_Id;
-            --  Associated node in the decision's BDD
+                  Handler_Range : Source_Location_Range := No_Range;
+                  --  Sloc range of the exception handler of which this is the
+                  --  first statement.
 
-            Index : Condition_Index;
-            --  Index of this condition in the decision
+                  Pragma_Name : Pragma_Id := Pragma_Id'First;
+                  --  For a Pragma_Statement, corresponding pragma identifier
 
-         when Decision =>
-            Expression : SCO_Id := No_SCO_Id;
-            --  Top expression node for this decision. This refers to the first
-            --  condition SCO of the decision.
+                  Stmt_Instrumented : Boolean := True;
+                  --  Whether this SCO was instrumented
 
-            D_Kind : Decision_Kind;
-            --  Decision kind indication
+               when Condition =>
+                  Value : Tristate;
+                  --  Indicates whether this condition is always true, always
+                  --  false, or tested at run time (Unknown).
 
-            Control_Location : Source_Location := No_Location;
-            --  For a decision other than an Expression, sloc of the execution
-            --  flow control construct.
+                  PC_Set : PC_Sets.Set;
+                  --  Addresses of conditional branches testing this condition
+                  --  (if Value = Unknown).
 
-            Last_Cond_Index : Any_Condition_Index;
-            --  Index of last condition in decision (should be > 0 for complex
-            --  decisions, = 0 otherwise).
+                  BDD_Node : BDD_Node_Id;
+                  --  Associated node in the decision's BDD
 
-            Decision_BDD : BDD.BDD_Type;
-            --  BDD of the decision
+                  Index : Condition_Index;
+                  --  Index of this condition in the decision
 
-            Degraded_Origins : Boolean := False;
-            --  Set True for the case of a single-condition decision, whose
-            --  conditional branch instructions have origins (i.e. condition
-            --  value labels) set modulo an arbitrary negation.
+               when Decision =>
+                  Expression : SCO_Id := No_SCO_Id;
+                  --  Top expression node for this decision. This refers to the
+                  --  first condition SCO of the decision.
 
-            Aspect_Name : Aspect_Id := No_Aspect;
-            --  For an aspect decision, name of the aspect
+                  D_Kind : Decision_Kind;
+                  --  Decision kind indication
 
-            Path_Count : Natural := 0;
-            --  Count of distinct paths through the BDD from the root condition
-            --  to any outcome.
+                  Control_Location : Source_Location := No_Location;
+                  --  For a decision other than an Expression, sloc of the
+                  --  execution flow control construct.
 
-            Decision_Instrumented : Boolean := True;
-            --  Whether this SCO was instrumented for decision coverage
+                  Last_Cond_Index : Any_Condition_Index;
+                  --  Index of last condition in decision (should be > 0 for
+                  --  complex decisions, = 0 otherwise).
 
-            Decision_Instrumented_For_MCDC : Boolean := True;
-            --  Whether this SCO was instrumented for MC/DC coverage
+                  Decision_BDD : BDD.BDD_Type;
+                  --  BDD of the decision
 
-         when Operator =>
-            Operands : Operand_Pair := (others => No_SCO_Id);
-            --  Operands of this operator
+                  Degraded_Origins : Boolean := False;
+                  --  Set True for the case of a single-condition decision,
+                  --  whose conditional branch instructions have origins (i.e.
+                  --  condition value labels) set modulo an arbitrary negation.
 
-            Op_Kind : Operator_Kind;
-            --  Kind of operation this node represents
+                  Aspect_Name : Aspect_Id := No_Aspect;
+                  --  For an aspect decision, name of the aspect
 
-         when Fun_Call_SCO_Kind =>
-            Is_Expr : Boolean := False;
-            --  Set to true if it is a call and an expression
+                  Path_Count : Natural := 0;
+                  --  Count of distinct paths through the BDD from the root
+                  --  condition to any outcome.
 
-            Fun_Call_Instrumented : Boolean := True;
-            --  Whether this function or call SCO was instrumented
+                  Decision_Instrumented : Boolean := True;
+                  --  Whether this SCO was instrumented for decision coverage
 
-         when Guarded_Expr =>
-            GExpr_Instrumented : Boolean := True;
-         end case;
+                  Decision_Instrumented_For_MCDC : Boolean := True;
+                  --  Whether this SCO was instrumented for MC/DC coverage
+
+               when Operator =>
+                  Operands : Operand_Pair := (others => No_SCO_Id);
+                  --  Operands of this operator
+
+                  Op_Kind : Operator_Kind;
+                  --  Kind of operation this node represents
+
+               when Fun_Call_SCO_Kind =>
+                  Is_Expr : Boolean := False;
+                  --  Set to true if it is a call and an expression
+
+                  Fun_Call_Instrumented : Boolean := True;
+                  --  Whether this function or call SCO was instrumented
+
+               when Guarded_Expr =>
+                  GExpr_Instrumented : Boolean := True;
+            end case;
       end case;
    end record;
 
    Removed_SCO_Descriptor : constant SCO_Descriptor := (Kind => Removed);
 
-   package SCO_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Valid_SCO_Id,
-      Element_Type => SCO_Descriptor);
+   package SCO_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Valid_SCO_Id,
+        Element_Type => SCO_Descriptor);
 
-   package SCO_To_CU_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Valid_SCO_Id,
-      Element_Type => CU_Id);
+   package SCO_To_CU_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Valid_SCO_Id,
+        Element_Type => CU_Id);
 
-   function Next_BDD_Node
-     (SCO   : SCO_Id;
-      Value : Boolean) return BDD_Node_Id;
+   function Next_BDD_Node (SCO : SCO_Id; Value : Boolean) return BDD_Node_Id;
    --  Given a Condition SCO and the value of the condition, return the
    --  corresponding target node in the decision's BDD.
 
@@ -550,16 +556,14 @@ package body SC_Obligations is
    --  Return whether R is nested in L, exclusive at boundaries
 
    function Invalid_Overlap
-     (SCOD          : SCO_Descriptor;
-      Enclosing_SCO : SCO_Id) return Boolean;
+     (SCOD : SCO_Descriptor; Enclosing_SCO : SCO_Id) return Boolean;
    --  If Enclosing_SCO is No_SCO_Id, return False. Otherwise, assume that
    --  SCOD and Enclosing_SCO share part of their sloc range. Issue a warning
    --  and return True if this is an invalid case of overlap (if both SCOs
    --  overlap without nesting).
 
    procedure Prealloc_Lines
-     (Cur_Source_File : Source_File_Index;
-      Last_Line       : in out Natural);
+     (Cur_Source_File : Source_File_Index; Last_Line : in out Natural);
    --  Pre-allocate line table entries for Cur_Source_File to accomodate
    --  Last_Line (optimization only). Last_Line is reset to 0.
 
@@ -577,48 +581,44 @@ package body SC_Obligations is
    end record;
 
    function Index
-     (Vectors : Source_Coverage_Vectors; SCO  : SCO_Id) return Condition_Index;
+     (Vectors : Source_Coverage_Vectors; SCO : SCO_Id) return Condition_Index;
    --  Internal definition of the function free from global variables
 
    function Condition
-     (Vectors : Source_Coverage_Vectors;
-      SCO     : SCO_Id;
-      Index   : Condition_Index) return SCO_Id;
+     (Vectors : Source_Coverage_Vectors; SCO : SCO_Id; Index : Condition_Index)
+      return SCO_Id;
    --  Internal definition of the function free from global variables
 
    function Enclosing
-     (Vectors : Source_Coverage_Vectors;
-      What : SCO_Kind;
-      SCO : SCO_Id) return SCO_Id;
+     (Vectors : Source_Coverage_Vectors; What : SCO_Kind; SCO : SCO_Id)
+      return SCO_Id;
    --  Internal definition of the function free from global variables
 
    function Next_BDD_Node
-     (Vectors : Source_Coverage_Vectors;
-      SCO   : SCO_Id;
-      Value : Boolean) return BDD_Node_Id;
+     (Vectors : Source_Coverage_Vectors; SCO : SCO_Id; Value : Boolean)
+      return BDD_Node_Id;
    --  Internal definition of the function free from global variables
 
    function Outcome
-     (Vectors : Source_Coverage_Vectors;
-      SCO : SCO_Id;
-      Value : Boolean) return Tristate;
+     (Vectors : Source_Coverage_Vectors; SCO : SCO_Id; Value : Boolean)
+      return Tristate;
    --  Internal definition of the function free from global variables
 
    function Value
-     (Vectors : Source_Coverage_Vectors;
-      SCO     : SCO_Id) return Tristate;
+     (Vectors : Source_Coverage_Vectors; SCO : SCO_Id) return Tristate;
    --  Internal definition of the function free from global variables
 
    -----------------------------------------
    -- Helper routines for Checkpoint_Load --
    -----------------------------------------
 
-   procedure Read is new Read_Vector
-     (Index_Type   => Pos,
-      Element_Type => Source_File_Index,
-      "="          => "=",
-      Vectors      => SFI_Vectors,
-      Read_Element => Read);
+   procedure Read is new
+     Read_Vector
+       (Index_Type   => Pos,
+        Element_Type => Source_File_Index,
+        "="          => "=",
+        Vectors      => SFI_Vectors,
+        Read_Element => Read);
 
    procedure Read
      (CLS : in out Checkpoint_Load_State; Value : out Expansion_Info);
@@ -632,105 +632,113 @@ package body SC_Obligations is
    --  Wrapper around CLS.Read_Fingerprint to accomodate for the Read_Map
    --  instantiation below.
 
-   procedure Read is new Read_Map
-     (Key_Type     => SCO_Id,
-      Element_Type => PP_Info,
-      Map_Type     => SCO_PP_Info_Maps.Map,
-      Clear        => SCO_PP_Info_Maps.Clear,
-      Insert       => SCO_PP_Info_Maps.Insert,
-      Read_Key     => Read,
-      Read_Element => Read);
+   procedure Read is new
+     Read_Map
+       (Key_Type     => SCO_Id,
+        Element_Type => PP_Info,
+        Map_Type     => SCO_PP_Info_Maps.Map,
+        Clear        => SCO_PP_Info_Maps.Clear,
+        Insert       => SCO_PP_Info_Maps.Insert,
+        Read_Key     => Read,
+        Read_Element => Read);
 
    procedure Read
      (CLS : in out Checkpoint_Load_State; Value : out Scope_Entity);
    --  Read a Scope_Entity from CLS
 
-   procedure Read is new Read_Tree
-     (Element_Type   => Scope_Entity,
-      "="            => "=",
-      Multiway_Trees => Scope_Entities_Trees,
-      Read_Element   => Read);
+   procedure Read is new
+     Read_Tree
+       (Element_Type   => Scope_Entity,
+        "="            => "=",
+        Multiway_Trees => Scope_Entities_Trees,
+        Read_Element   => Read);
 
-   procedure Read
-     (CLS : in out Checkpoint_Load_State; Value : out SCO_Range);
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out SCO_Range);
    --  Read a SCO_Range from CLS
 
-   procedure Read is new Read_Vector
-     (Index_Type   => Positive,
-      Element_Type => SCO_Range,
-      "="          => "=",
-      Vectors      => SCO_Range_Vectors,
-      Read_Element => Read);
+   procedure Read is new
+     Read_Vector
+       (Index_Type   => Positive,
+        Element_Type => SCO_Range,
+        "="          => "=",
+        Vectors      => SCO_Range_Vectors,
+        Read_Element => Read);
 
-   procedure Read
-     (CLS : in out Checkpoint_Load_State; Value : out SID_Info);
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out SID_Info);
    --  Read a SID_Info from CLS
 
-   procedure Read is new Read_Map
-     (Key_Type     => Fingerprint_Type,
-      Element_Type => SID_Info,
-      Map_Type     => SID_Info_Maps.Map,
-      Clear        => SID_Info_Maps.Clear,
-      Insert       => SID_Info_Maps.Insert,
-      Read_Key     => Read,
-      Read_Element => Read);
+   procedure Read is new
+     Read_Map
+       (Key_Type     => Fingerprint_Type,
+        Element_Type => SID_Info,
+        Map_Type     => SID_Info_Maps.Map,
+        Clear        => SID_Info_Maps.Clear,
+        Insert       => SID_Info_Maps.Insert,
+        Read_Key     => Read,
+        Read_Element => Read);
    procedure Read (CLS : in out Checkpoint_Load_State; Value : out CU_Info);
    --  Read a CU_Info from CLS
 
-   procedure Read is new Read_Vector
-     (Valid_CU_Id, CU_Info, "=", CU_Info_Vectors, Read);
+   procedure Read is new
+     Read_Vector (Valid_CU_Id, CU_Info, "=", CU_Info_Vectors, Read);
    --  Read a vector of CU_Info records from CLS and append them to CU_Vector
 
-   procedure Read is new Read_Set
-     (Element_Type => Pc_Type,
-      Set_Type     => PC_Sets.Set,
-      Clear        => PC_Sets.Clear,
-      Insert       => PC_Sets.Insert,
-      Read_Element => Read);
+   procedure Read is new
+     Read_Set
+       (Element_Type => Pc_Type,
+        Set_Type     => PC_Sets.Set,
+        Clear        => PC_Sets.Clear,
+        Insert       => PC_Sets.Insert,
+        Read_Element => Read);
 
    procedure Read
      (CLS : in out Checkpoint_Load_State; Element : out SCO_Descriptor);
    --  Read a SCO_Descriptor from CLS
 
-   procedure Read is new Read_Set
-     (Element_Type => SCO_Id,
-      Set_Type     => SCO_Sets.Set,
-      Clear        => SCO_Sets.Clear,
-      Insert       => SCO_Sets.Insert,
-      Read_Element => Read);
+   procedure Read is new
+     Read_Set
+       (Element_Type => SCO_Id,
+        Set_Type     => SCO_Sets.Set,
+        Clear        => SCO_Sets.Clear,
+        Insert       => SCO_Sets.Insert,
+        Read_Element => Read);
 
-   procedure Read is new Read_Vector
-     (Index_Type   => Valid_SCO_Id,
-      Element_Type => SCO_Descriptor,
-      "="          => "=",
-      Vectors      => SCO_Vectors,
-      Read_Element => Read);
+   procedure Read is new
+     Read_Vector
+       (Index_Type   => Valid_SCO_Id,
+        Element_Type => SCO_Descriptor,
+        "="          => "=",
+        Vectors      => SCO_Vectors,
+        Read_Element => Read);
 
-   procedure Read is new Read_Vector
-     (Index_Type   => Positive,
-      Element_Type => SCO_Id,
-      Vectors      => SCO_Id_Vectors,
-      Read_Element => Read);
+   procedure Read is new
+     Read_Vector
+       (Index_Type   => Positive,
+        Element_Type => SCO_Id,
+        Vectors      => SCO_Id_Vectors,
+        Read_Element => Read);
 
-   procedure Read is new Read_Vector
-     (Index_Type   => Positive,
-      Element_Type => SCO_Id_Vectors.Vector,
-      "="          => SCO_Id_Vectors."=",
-      Vectors      => SCO_Id_Vector_Vectors,
-      Read_Element => Read);
+   procedure Read is new
+     Read_Vector
+       (Index_Type   => Positive,
+        Element_Type => SCO_Id_Vectors.Vector,
+        "="          => SCO_Id_Vectors."=",
+        Vectors      => SCO_Id_Vector_Vectors,
+        Read_Element => Read);
 
    procedure Read
      (CLS : in out Checkpoint_Load_State; Value : out ALI_Annotation);
    --  Read a ALI_Annotation from CLS
 
-   procedure Read is new Checkpoints.Read_Map
-     (Key_Type     => Source_Location,
-      Element_Type => ALI_Annotation,
-      Map_Type     => ALI_Annotation_Maps.Map,
-      Clear        => ALI_Annotation_Maps.Clear,
-      Insert       => ALI_Annotation_Maps.Insert,
-      Read_Key     => Read,
-      Read_Element => Read);
+   procedure Read is new
+     Checkpoints.Read_Map
+       (Key_Type     => Source_Location,
+        Element_Type => ALI_Annotation,
+        Map_Type     => ALI_Annotation_Maps.Map,
+        Clear        => ALI_Annotation_Maps.Clear,
+        Insert       => ALI_Annotation_Maps.Insert,
+        Read_Key     => Read,
+        Read_Element => Read);
    --  Read a ALI_Annotation_Maps.Map from CLS
 
    procedure Remap_BDD
@@ -740,13 +748,10 @@ package body SC_Obligations is
    --  Remap a sequence of BDD nodes, for a whole decision BDD
 
    procedure Remap_BDD_Node
-     (Relocs : Checkpoint_Relocations;
-      B      : in out BDD_Node_Id);
+     (Relocs : Checkpoint_Relocations; B : in out BDD_Node_Id);
    --  Remap a BDD node id
 
-   procedure Remap_SCO_Id
-     (Relocs : Checkpoint_Relocations;
-      S      : in out SCO_Id);
+   procedure Remap_SCO_Id (Relocs : Checkpoint_Relocations; S : in out SCO_Id);
    --  Remap a SCO_Id. Note: this assumes possible forward references, and
    --  does not rely on SCO_Map.
 
@@ -817,12 +822,13 @@ package body SC_Obligations is
    -- Helper routines for Checkpoint_Save --
    -----------------------------------------
 
-   procedure Write is new Write_Vector
-     (Index_Type    => Pos,
-      Element_Type  => Source_File_Index,
-      "="           => "=",
-      Vectors       => SFI_Vectors,
-      Write_Element => Write_SFI);
+   procedure Write is new
+     Write_Vector
+       (Index_Type    => Pos,
+        Element_Type  => Source_File_Index,
+        "="           => "=",
+        Vectors       => SFI_Vectors,
+        Write_Element => Write_SFI);
 
    procedure Write
      (CSS : in out Checkpoint_Save_State; Value : Expansion_Info);
@@ -831,116 +837,125 @@ package body SC_Obligations is
    procedure Write (CSS : in out Checkpoint_Save_State; Value : PP_Info);
    --  Write a PP_Info to CSS
 
-   procedure Write is new Write_Map
-     (Key_Type      => SCO_Id,
-      Element_Type  => PP_Info,
-      Map_Type      => SCO_PP_Info_Maps.Map,
-      Cursor_Type   => SCO_PP_Info_Maps.Cursor,
-      Length        => SCO_PP_Info_Maps.Length,
-      Iterate       => SCO_PP_Info_Maps.Iterate,
-      Query_Element => SCO_PP_Info_Maps.Query_Element,
-      Write_Key     => Write_SCO,
-      Write_Element => Write);
+   procedure Write is new
+     Write_Map
+       (Key_Type      => SCO_Id,
+        Element_Type  => PP_Info,
+        Map_Type      => SCO_PP_Info_Maps.Map,
+        Cursor_Type   => SCO_PP_Info_Maps.Cursor,
+        Length        => SCO_PP_Info_Maps.Length,
+        Iterate       => SCO_PP_Info_Maps.Iterate,
+        Query_Element => SCO_PP_Info_Maps.Query_Element,
+        Write_Key     => Write_SCO,
+        Write_Element => Write);
 
    procedure Write (CSS : in out Checkpoint_Save_State; Value : Scope_Entity);
    --  Write a Scope_Entity to CSS
 
-   procedure Write is new Write_Tree
-     (Element_Type    => Scope_Entity,
-      "="             => "=",
-      Multiway_Trees  => Scope_Entities_Trees,
-      Write_Element   => Write);
+   procedure Write is new
+     Write_Tree
+       (Element_Type   => Scope_Entity,
+        "="            => "=",
+        Multiway_Trees => Scope_Entities_Trees,
+        Write_Element  => Write);
 
-   procedure Write
-     (CSS : in out Checkpoint_Save_State; Value : SID_Info);
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : SID_Info);
    --  Write a SID_Info to CSS
 
-   procedure Write is new Write_Map
-     (Key_Type      => Fingerprint_Type,
-      Element_Type  => SID_Info,
-      Map_Type      => SID_Info_Maps.Map,
-      Cursor_Type   => SID_Info_Maps.Cursor,
-      Length        => SID_Info_Maps.Length,
-      Iterate       => SID_Info_Maps.Iterate,
-      Query_Element => SID_Info_Maps.Query_Element,
-      Write_Key     => Write,
-      Write_Element => Write);
+   procedure Write is new
+     Write_Map
+       (Key_Type      => Fingerprint_Type,
+        Element_Type  => SID_Info,
+        Map_Type      => SID_Info_Maps.Map,
+        Cursor_Type   => SID_Info_Maps.Cursor,
+        Length        => SID_Info_Maps.Length,
+        Iterate       => SID_Info_Maps.Iterate,
+        Query_Element => SID_Info_Maps.Query_Element,
+        Write_Key     => Write,
+        Write_Element => Write);
    --  Write a vector of SID_Info records to CSS
 
    procedure Write (CSS : in out Checkpoint_Save_State; Value : SCO_Range);
    --  Write a SCO_Range to CSS
 
-   procedure Write is new Write_Vector
-     (Index_Type    => Positive,
-      Element_Type  => SCO_Range,
-      "="           => "=",
-      Vectors       => SCO_Range_Vectors,
-      Write_Element => Write);
+   procedure Write is new
+     Write_Vector
+       (Index_Type    => Positive,
+        Element_Type  => SCO_Range,
+        "="           => "=",
+        Vectors       => SCO_Range_Vectors,
+        Write_Element => Write);
    --  Write a vector of SCO_Range records to CSS
 
    procedure Write (CSS : in out Checkpoint_Save_State; Value : CU_Info);
    --  Write a CU_Info to CSS
 
-   procedure Write is new Write_Vector
-     (Valid_CU_Id, CU_Info, "=", CU_Info_Vectors, Write);
+   procedure Write is new
+     Write_Vector (Valid_CU_Id, CU_Info, "=", CU_Info_Vectors, Write);
    --  Write a vector of CU_Info records to CSS
 
-   procedure Write is new Write_Set
-     (Element_Type  => Pc_Type,
-      Set_Type      => PC_Sets.Set,
-      Cursor_Type   => PC_Sets.Cursor,
-      Length        => PC_Sets.Length,
-      Iterate       => PC_Sets.Iterate,
-      Query_Element => PC_Sets.Query_Element,
-      Write_Element => Write_PC);
+   procedure Write is new
+     Write_Set
+       (Element_Type  => Pc_Type,
+        Set_Type      => PC_Sets.Set,
+        Cursor_Type   => PC_Sets.Cursor,
+        Length        => PC_Sets.Length,
+        Iterate       => PC_Sets.Iterate,
+        Query_Element => PC_Sets.Query_Element,
+        Write_Element => Write_PC);
 
    procedure Write
      (CSS : in out Checkpoint_Save_State; Value : SCO_Descriptor);
    --  Write a SCO_Descriptor to CSS
 
-   procedure Write is new Write_Set
-     (Element_Type  => SCO_Id,
-      Set_Type      => SCO_Sets.Set,
-      Cursor_Type   => SCO_Sets.Cursor,
-      Length        => SCO_Sets.Length,
-      Iterate       => SCO_Sets.Iterate,
-      Query_Element => SCO_Sets.Query_Element,
-      Write_Element => Write_SCO);
+   procedure Write is new
+     Write_Set
+       (Element_Type  => SCO_Id,
+        Set_Type      => SCO_Sets.Set,
+        Cursor_Type   => SCO_Sets.Cursor,
+        Length        => SCO_Sets.Length,
+        Iterate       => SCO_Sets.Iterate,
+        Query_Element => SCO_Sets.Query_Element,
+        Write_Element => Write_SCO);
 
-   procedure Write is new Write_Vector
-     (Index_Type    => Valid_SCO_Id,
-      Element_Type  => SCO_Descriptor,
-      "="           => "=",
-      Vectors       => SCO_Vectors,
-      Write_Element => Write);
+   procedure Write is new
+     Write_Vector
+       (Index_Type    => Valid_SCO_Id,
+        Element_Type  => SCO_Descriptor,
+        "="           => "=",
+        Vectors       => SCO_Vectors,
+        Write_Element => Write);
 
-   procedure Write is new Write_Vector
-     (Index_Type    => Positive,
-      Element_Type  => SCO_Id,
-      Vectors       => SCO_Id_Vectors,
-      Write_Element => Write_SCO);
+   procedure Write is new
+     Write_Vector
+       (Index_Type    => Positive,
+        Element_Type  => SCO_Id,
+        Vectors       => SCO_Id_Vectors,
+        Write_Element => Write_SCO);
 
-   procedure Write is new Write_Vector
-     (Index_Type    => Positive,
-      Element_Type  => SCO_Id_Vectors.Vector,
-      "="           => SCO_Id_Vectors."=",
-      Vectors       => SCO_Id_Vector_Vectors,
-      Write_Element => Write);
+   procedure Write is new
+     Write_Vector
+       (Index_Type    => Positive,
+        Element_Type  => SCO_Id_Vectors.Vector,
+        "="           => SCO_Id_Vectors."=",
+        Vectors       => SCO_Id_Vector_Vectors,
+        Write_Element => Write);
 
    procedure Write
      (CSS : in out Checkpoint_Save_State; Value : ALI_Annotation);
    --  Write a ALI_Annotation to CSS
 
-   procedure Write is new Checkpoints.Write_Map
-     (Key_Type      => Source_Location,
-      Element_Type  => ALI_Annotation,
-      Map_Type      => ALI_Annotation_Maps.Map,
-      Cursor_Type   => ALI_Annotation_Maps.Cursor,
-      Length        => ALI_Annotation_Maps.Length,
-      Iterate       => ALI_Annotation_Maps.Iterate,
-      Query_Element => ALI_Annotation_Maps.Query_Element,
-      Write_Key     => Write,
-      Write_Element => Write);
+   procedure Write is new
+     Checkpoints.Write_Map
+       (Key_Type      => Source_Location,
+        Element_Type  => ALI_Annotation,
+        Map_Type      => ALI_Annotation_Maps.Map,
+        Cursor_Type   => ALI_Annotation_Maps.Cursor,
+        Length        => ALI_Annotation_Maps.Length,
+        Iterate       => ALI_Annotation_Maps.Iterate,
+        Query_Element => ALI_Annotation_Maps.Query_Element,
+        Write_Key     => Write,
+        Write_Element => Write);
    --  Write a ALI_Annotation_Maps.Map to CSS
 
    ------------------
@@ -975,14 +990,19 @@ package body SC_Obligations is
       Identifier_Image : constant String :=
         (if SE.Identifier.Decl_SFI = No_Source_File
          then "ignored"
-         else "at " & Get_Simple_Name (SE.Identifier.Decl_SFI)
-              & ":" & Img (SE.Identifier.Decl_Line));
+         else
+           "at "
+           & Get_Simple_Name (SE.Identifier.Decl_SFI)
+           & ":"
+           & Img (SE.Identifier.Decl_Line));
    begin
       return
         "Scope for "
         & (+SE.Name)
-        & "[" & Slocs.Image (SE.Sloc)
-        & "], identifier " & Identifier_Image;
+        & "["
+        & Slocs.Image (SE.Sloc)
+        & "], identifier "
+        & Identifier_Image;
    end Image;
 
    ----------
@@ -1002,7 +1022,9 @@ package body SC_Obligations is
               Scope_Entities.Constant_Reference (Cur);
          begin
             Put_Line
-              (Prefix & Image (SE) & " source range "
+              (Prefix
+               & Image (SE)
+               & " source range "
                & Image (SE.Source_Range));
          end;
       end loop;
@@ -1027,14 +1049,14 @@ package body SC_Obligations is
    -- Get_CU --
    ------------
 
-   function Get_CU (ST : Scope_Traversal_Type) return CU_Id is (ST.CU);
+   function Get_CU (ST : Scope_Traversal_Type) return CU_Id
+   is (ST.CU);
 
    ------------------
    -- Traverse_SCO --
    ------------------
 
-   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id)
-   is
+   procedure Traverse_SCO (ST : in out Scope_Traversal_Type; SCO : SCO_Id) is
       use Scope_Entities_Trees;
       SCO_Sloc : constant Local_Source_Location := First_Sloc (SCO).L;
    begin
@@ -1067,8 +1089,7 @@ package body SC_Obligations is
             --  SCO which can be at the root of the tree.
 
             if Is_Root (ST.Cur) and then SCOD.Kind /= Fun then
-               raise Program_Error
-                 with "No scope found for " &  Image (SCO);
+               raise Program_Error with "No scope found for " & Image (SCO);
             end if;
          end loop;
 
@@ -1096,9 +1117,9 @@ package body SC_Obligations is
                   declare
                      SE : constant Scope_Entity := Element (Child);
                   begin
-                        In_Child := SE.Source_Range.L.First_Sloc <= SCO_Sloc;
-                        exit Child_Search when
-                          SCO_Sloc <= SE.Source_Range.L.Last_Sloc;
+                     In_Child := SE.Source_Range.L.First_Sloc <= SCO_Sloc;
+                     exit Child_Search when
+                       SCO_Sloc <= SE.Source_Range.L.Last_Sloc;
                      Child := Next_Sibling (Child);
                   end;
                end loop Child_Search;
@@ -1123,8 +1144,7 @@ package body SC_Obligations is
    --------------------------
 
    function In_Scope_Of_Interest
-     (ST  : in out Scope_Traversal_Type;
-      SCO : SCO_Id) return Boolean
+     (ST : in out Scope_Traversal_Type; SCO : SCO_Id) return Boolean
    is
       use Scope_Entities_Trees;
       Cur : Cursor;
@@ -1166,11 +1186,10 @@ package body SC_Obligations is
 
    procedure Add_SCO_To_Lines (SCO : SCO_Id; SCOD : SCO_Descriptor) is
    begin
-      for L in SCOD.Sloc_Range.L.First_Sloc.Line
-            .. SCOD.Sloc_Range.L.Last_Sloc.Line
+      for L in
+        SCOD.Sloc_Range.L.First_Sloc.Line .. SCOD.Sloc_Range.L.Last_Sloc.Line
       loop
-         Add_Line_For_Source_Coverage
-           (SCOD.Sloc_Range.Source_File, L, SCO);
+         Add_Line_For_Source_Coverage (SCOD.Sloc_Range.Source_File, L, SCO);
       end loop;
    end Add_SCO_To_Lines;
 
@@ -1179,8 +1198,7 @@ package body SC_Obligations is
    ---------------------
 
    function Has_Fingerprint
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return Boolean is
+     (CU : CU_Id; SCO_Fingerprint : Fingerprint_Type) return Boolean is
    begin
       return
         CU_Vector.Constant_Reference (CU).SIDs_Info.Contains (SCO_Fingerprint);
@@ -1190,8 +1208,7 @@ package body SC_Obligations is
    -- Fingerprints --
    ------------------
 
-   function Fingerprints (CU : CU_Id) return Fingerprint_Vectors.Vector
-   is
+   function Fingerprints (CU : CU_Id) return Fingerprint_Vectors.Vector is
       Result : Fingerprint_Vectors.Vector;
    begin
       for Cur in CU_Vector.Reference (CU).SIDs_Info.Iterate loop
@@ -1205,11 +1222,10 @@ package body SC_Obligations is
    --------------
 
    function Bit_Maps
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return CU_Bit_Maps is
+     (CU : CU_Id; SCO_Fingerprint : Fingerprint_Type) return CU_Bit_Maps is
    begin
-      return CU_Vector.Reference (CU)
-        .SIDs_Info.Element (SCO_Fingerprint).Bit_Maps;
+      return
+        CU_Vector.Reference (CU).SIDs_Info.Element (SCO_Fingerprint).Bit_Maps;
    end Bit_Maps;
 
    --------------------------
@@ -1217,11 +1233,12 @@ package body SC_Obligations is
    --------------------------
 
    function Bit_Maps_Fingerprint
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return Fingerprint_Type is
+     (CU : CU_Id; SCO_Fingerprint : Fingerprint_Type) return Fingerprint_Type
+   is
    begin
-      return CU_Vector.Constant_Reference (CU)
-        .SIDs_Info.Element (SCO_Fingerprint).Bit_Maps_Fingerprint;
+      return
+        CU_Vector.Constant_Reference (CU).SIDs_Info.Element (SCO_Fingerprint)
+          .Bit_Maps_Fingerprint;
    end Bit_Maps_Fingerprint;
 
    -----------------------------
@@ -1229,11 +1246,12 @@ package body SC_Obligations is
    -----------------------------
 
    function Annotations_Fingerprint
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return Fingerprint_Type is
+     (CU : CU_Id; SCO_Fingerprint : Fingerprint_Type) return Fingerprint_Type
+   is
    begin
-      return CU_Vector.Constant_Reference (CU)
-        .SIDs_Info.Element (SCO_Fingerprint).Annotations_Fingerprint;
+      return
+        CU_Vector.Constant_Reference (CU).SIDs_Info.Element (SCO_Fingerprint)
+          .Annotations_Fingerprint;
    end Annotations_Fingerprint;
 
    ------------
@@ -1241,11 +1259,11 @@ package body SC_Obligations is
    ------------
 
    function Blocks
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return SCO_Id_Vector_Vector is
+     (CU : CU_Id; SCO_Fingerprint : Fingerprint_Type)
+      return SCO_Id_Vector_Vector is
    begin
-      return CU_Vector.Reference (CU)
-        .SIDs_Info.Element (SCO_Fingerprint).Blocks;
+      return
+        CU_Vector.Reference (CU).SIDs_Info.Element (SCO_Fingerprint).Blocks;
    end Blocks;
 
    -----------------
@@ -1276,8 +1294,7 @@ package body SC_Obligations is
    ----------
 
    procedure Read
-     (CLS : in out Checkpoint_Load_State; Value : out Expansion_Info)
-   is
+     (CLS : in out Checkpoint_Load_State; Value : out Expansion_Info) is
    begin
       Value.Macro_Name := CLS.Read_Unbounded_String;
       Value.Sloc := CLS.Read_Source_Location;
@@ -1305,7 +1322,7 @@ package body SC_Obligations is
          when In_Expansion =>
             Read (CLS, Result.Definition_Loc);
 
-         when others =>
+         when others       =>
             null;
       end case;
 
@@ -1319,9 +1336,7 @@ package body SC_Obligations is
       Fingerprint := CLS.Read_Fingerprint;
    end Read;
 
-   procedure Read
-     (CLS : in out Checkpoint_Load_State; Value : out SID_Info)
-   is
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out SID_Info) is
       Stmt_First, DC_First, MCDC_First : Bit_Id;
       Stmt_Last, DC_Last, MCDC_Last    : Any_Bit_Id;
    begin
@@ -1350,8 +1365,7 @@ package body SC_Obligations is
 
       MCDC_First := CLS.Read_Bit_Id;
       MCDC_Last := CLS.Read_Bit_Id;
-      Value.Bit_Maps.MCDC_Bits :=
-        new MCDC_Bit_Map (MCDC_First .. MCDC_Last);
+      Value.Bit_Maps.MCDC_Bits := new MCDC_Bit_Map (MCDC_First .. MCDC_Last);
       for Info of Value.Bit_Maps.MCDC_Bits.all loop
          Info.D_SCO := CLS.Read_SCO;
          Info.Path_Index := CLS.Read_Integer;
@@ -1361,8 +1375,7 @@ package body SC_Obligations is
    end Read;
 
    procedure Read
-     (CLS : in out Checkpoint_Load_State; Value : out Scope_Entity)
-   is
+     (CLS : in out Checkpoint_Load_State; Value : out Scope_Entity) is
    begin
       Value.Source_Range := CLS.Read_Source_Location_Range;
 
@@ -1373,16 +1386,14 @@ package body SC_Obligations is
       Value.Identifier.Decl_Line := CLS.Read_Integer;
    end Read;
 
-   procedure Read
-     (CLS : in out Checkpoint_Load_State; Value : out SCO_Range)
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out SCO_Range)
    is
    begin
       Value.First := CLS.Read_SCO;
       Value.Last := CLS.Read_SCO;
    end Read;
 
-   procedure Read (CLS : in out Checkpoint_Load_State; Value : out CU_Info)
-   is
+   procedure Read (CLS : in out Checkpoint_Load_State; Value : out CU_Info) is
       Element_Template : CU_Info (SCO_Provider'Val (CLS.Read_U8));
    begin
       Value := Element_Template;
@@ -1397,7 +1408,8 @@ package body SC_Obligations is
       case Element_Template.Provider is
          when Compiler | LLVM =>
             Value.SCOs_Fingerprint := CLS.Read_Fingerprint;
-         when Instrumenter =>
+
+         when Instrumenter    =>
             Read (CLS, Value.SIDs_Info);
             Value.Source_Fingerprint := CLS.Read_Fingerprint;
       end case;
@@ -1413,68 +1425,68 @@ package body SC_Obligations is
          return;
       end if;
 
-      SCOD.Origin     := CLS.Read_CU;
+      SCOD.Origin := CLS.Read_CU;
       SCOD.Sloc_Range := CLS.Read_Source_Location_Range;
-      SCOD.Parent     := CLS.Read_SCO;
+      SCOD.Parent := CLS.Read_SCO;
 
       case SCOD.Kind is
-      when Removed =>
-         raise Program_Error with "unreachable code";
+         when Removed           =>
+            raise Program_Error with "unreachable code";
 
-      when Statement =>
-         SCOD.S_Kind         := Statement_Kind'Val (CLS.Read_U8);
-         SCOD.Dominant       := CLS.Read_SCO;
-         SCOD.Dominant_Value := CLS.Read_Tristate;
-         SCOD.Dominant_Sloc  := CLS.Read_Source_Location;
-         SCOD.Handler_Range  := CLS.Read_Source_Location_Range;
-         SCOD.Pragma_Name    := Pragma_Id'Val (CLS.Read_U16);
+         when Statement         =>
+            SCOD.S_Kind := Statement_Kind'Val (CLS.Read_U8);
+            SCOD.Dominant := CLS.Read_SCO;
+            SCOD.Dominant_Value := CLS.Read_Tristate;
+            SCOD.Dominant_Sloc := CLS.Read_Source_Location;
+            SCOD.Handler_Range := CLS.Read_Source_Location_Range;
+            SCOD.Pragma_Name := Pragma_Id'Val (CLS.Read_U16);
 
-         --  See the TODO in the declaration of Checkpoint_Version
+            --  See the TODO in the declaration of Checkpoint_Version
 
-         SCOD.Stmt_Instrumented := True;
+            SCOD.Stmt_Instrumented := True;
 
-      when Condition =>
-         SCOD.Value := CLS.Read_Tristate;
-         Read (CLS, SCOD.PC_Set);
-         SCOD.BDD_Node := CLS.Read_BDD_Node;
-         SCOD.Index := CLS.Read_Condition;
+         when Condition         =>
+            SCOD.Value := CLS.Read_Tristate;
+            Read (CLS, SCOD.PC_Set);
+            SCOD.BDD_Node := CLS.Read_BDD_Node;
+            SCOD.Index := CLS.Read_Condition;
 
-      when Decision =>
-         SCOD.Expression       := CLS.Read_SCO;
-         SCOD.D_Kind           := Decision_Kind'Val (CLS.Read_U8);
-         SCOD.Control_Location := CLS.Read_Source_Location;
-         SCOD.Last_Cond_Index  := CLS.Read_Condition;
-         SC_Obligations.BDD.Read (CLS, SCOD.Decision_BDD);
-         SCOD.Degraded_Origins := CLS.Read_Boolean;
-         SCOD.Aspect_Name      := Aspect_Id'Val (CLS.Read_U8);
-         SCOD.Path_Count       := CLS.Read_Integer;
+         when Decision          =>
+            SCOD.Expression := CLS.Read_SCO;
+            SCOD.D_Kind := Decision_Kind'Val (CLS.Read_U8);
+            SCOD.Control_Location := CLS.Read_Source_Location;
+            SCOD.Last_Cond_Index := CLS.Read_Condition;
+            SC_Obligations.BDD.Read (CLS, SCOD.Decision_BDD);
+            SCOD.Degraded_Origins := CLS.Read_Boolean;
+            SCOD.Aspect_Name := Aspect_Id'Val (CLS.Read_U8);
+            SCOD.Path_Count := CLS.Read_Integer;
 
-         --  See the TODO in the declaration of Checkpoint_Version
+            --  See the TODO in the declaration of Checkpoint_Version
 
-         SCOD.Decision_Instrumented          := True;
-         SCOD.Decision_Instrumented_For_MCDC := True;
+            SCOD.Decision_Instrumented := True;
+            SCOD.Decision_Instrumented_For_MCDC := True;
 
-      when Operator =>
-         declare
-            First : constant Operand_Position :=
-              Operand_Position'Val (CLS.Read_U8);
-            Last  : constant Operand_Position :=
-              Operand_Position'Val (CLS.Read_U8);
-         begin
-            pragma Assert (First = Left);
-            pragma Assert (Last = Right);
+         when Operator          =>
+            declare
+               First : constant Operand_Position :=
+                 Operand_Position'Val (CLS.Read_U8);
+               Last  : constant Operand_Position :=
+                 Operand_Position'Val (CLS.Read_U8);
+            begin
+               pragma Assert (First = Left);
+               pragma Assert (Last = Right);
 
-            SCOD.Operands (Left) := CLS.Read_SCO;
-            SCOD.Operands (Right) := CLS.Read_SCO;
-         end;
-         SCOD.Op_Kind := Operator_Kind'Val (CLS.Read_U8);
+               SCOD.Operands (Left) := CLS.Read_SCO;
+               SCOD.Operands (Right) := CLS.Read_SCO;
+            end;
+            SCOD.Op_Kind := Operator_Kind'Val (CLS.Read_U8);
 
-      when Fun_Call_SCO_Kind =>
-         SCOD.Is_Expr := CLS.Read_Boolean;
-         SCOD.Fun_Call_Instrumented := CLS.Read_Boolean;
+         when Fun_Call_SCO_Kind =>
+            SCOD.Is_Expr := CLS.Read_Boolean;
+            SCOD.Fun_Call_Instrumented := CLS.Read_Boolean;
 
-      when Guarded_Expr =>
-         SCOD.GExpr_Instrumented := CLS.Read_Boolean;
+         when Guarded_Expr      =>
+            SCOD.GExpr_Instrumented := CLS.Read_Boolean;
       end case;
 
       Element := SCOD;
@@ -1581,8 +1593,8 @@ package body SC_Obligations is
                declare
                   use Sloc_To_SCO_Maps;
                   Cur : constant Cursor :=
-                    Sloc_To_SCO_Map
-                      (Sloc_Range.Source_File, Kind).Find (Sloc_Range.L);
+                    Sloc_To_SCO_Map (Sloc_Range.Source_File, Kind).Find
+                      (Sloc_Range.L);
                begin
                   if Has_Element (Cur)
                     and then SCO_Vector.Element (Element (Cur)).Kind = Kind
@@ -1622,7 +1634,7 @@ package body SC_Obligations is
       Real_CU    : in out CU_Info;
       Real_CU_Id : CU_Id)
    is
-      Relocs  : Checkpoint_Relocations renames CLS.Relocations;
+      Relocs : Checkpoint_Relocations renames CLS.Relocations;
 
       Cur_Source_File : Source_File_Index := No_Source_File;
       Last_Line       : Natural := 0;
@@ -1663,9 +1675,8 @@ package body SC_Obligations is
                declare
                   use Sloc_To_SCO_Maps;
                   Cur : constant Cursor :=
-                    Sloc_To_SCO_Map
-                      (Sloc_Range.Source_File,
-                       New_SCOD.Kind).Find (Sloc_Range.L);
+                    Sloc_To_SCO_Map (Sloc_Range.Source_File, New_SCOD.Kind)
+                      .Find (Sloc_Range.L);
                begin
                   if Has_Element (Cur) then
                      Real_SCO := Element (Cur);
@@ -1699,15 +1710,16 @@ package body SC_Obligations is
                      Cur_Source_File := New_SCOD.Sloc_Range.Source_File;
                      CU_Map.Include (Cur_Source_File, Real_CU_Id);
                   end if;
-                  if New_SCOD.Kind in
-                    Statement | Decision | Fun_Call_SCO_Kind | Guarded_Expr
+                  if New_SCOD.Kind
+                     in Statement | Decision | Fun_Call_SCO_Kind | Guarded_Expr
                   then
                      Add_SCO_To_Lines (SCO_Vector.Last_Index + 1, New_SCOD);
                   end if;
 
-                  Last_Line := Natural'Max
-                    (Files_Table.Last_Line (Get_File (Cur_Source_File)),
-                     New_SCOD.Sloc_Range.L.Last_Sloc.Line);
+                  Last_Line :=
+                    Natural'Max
+                      (Files_Table.Last_Line (Get_File (Cur_Source_File)),
+                       New_SCOD.Sloc_Range.L.Last_Sloc.Line);
                   SCO_Vector.Append (New_SCOD);
                   SCO_To_CU_Vector.Append (Real_CU_Id);
 
@@ -1771,8 +1783,7 @@ package body SC_Obligations is
                end if;
 
                if SID_Version.Bit_Maps.Decision_Bits /= null then
-                  for D_Outcome of SID_Version.Bit_Maps.Decision_Bits.all
-                  loop
+                  for D_Outcome of SID_Version.Bit_Maps.Decision_Bits.all loop
                      Remap_SCO_Id (Relocs, D_Outcome.D_SCO);
                   end loop;
                end if;
@@ -1787,8 +1798,8 @@ package body SC_Obligations is
 
                for Block_Cur in SID_Version.Blocks.Iterate loop
                   declare
-                     Block_Ref : constant
-                       SCO_Id_Vector_Vectors.Reference_Type :=
+                     Block_Ref :
+                       constant SCO_Id_Vector_Vectors.Reference_Type :=
                          SID_Version.Blocks.Reference (Block_Cur);
                   begin
                      for SCO_Cur in Block_Ref.Iterate loop
@@ -1823,13 +1834,9 @@ package body SC_Obligations is
             if not Real_CU.PP_Info_Map.Contains (SCO) then
                if Info.Kind = In_Expansion then
                   for Expansion of Info.Expansion_Stack loop
-                     Remap_SFI
-                       (Relocs,
-                        Expansion.Sloc.Source_File);
+                     Remap_SFI (Relocs, Expansion.Sloc.Source_File);
                   end loop;
-                  Remap_SFI
-                    (Relocs,
-                     Info.Definition_Loc.Sloc.Source_File);
+                  Remap_SFI (Relocs, Info.Definition_Loc.Sloc.Source_File);
                end if;
                Remap_SCO_Id (Relocs, SCO);
                Real_CU.PP_Info_Map.Insert (SCO, Info);
@@ -1895,8 +1902,7 @@ package body SC_Obligations is
                declare
                   Found_Scope_Ent : constant Scope_Entity :=
                     Real_CU.Scope_Entities.Reference (Real_Scope);
-                  Child           : Cursor :=
-                    First_Child (Real_Scope);
+                  Child           : Cursor := First_Child (Real_Scope);
                   Src_Range       : constant Source_Location_Range :=
                     Found_Scope_Ent.Source_Range;
                begin
@@ -1907,18 +1913,17 @@ package body SC_Obligations is
 
                      null;
 
-                  elsif Src_Range.L.First_Sloc <
-                    Scope_Ent.Source_Range.L.First_Sloc
-                    and then
-                      Scope_Ent.Source_Range.L.Last_Sloc <
-                        Src_Range.L.Last_Sloc
+                  elsif Src_Range.L.First_Sloc
+                    < Scope_Ent.Source_Range.L.First_Sloc
+                    and then Scope_Ent.Source_Range.L.Last_Sloc
+                             < Src_Range.L.Last_Sloc
                   then
                      --  Check if it nests with the innermost scope entity. If
                      --  this is the case, insert it as a child.
 
                      while Has_Element (Child)
                        and then Element (Child).Source_Range.L.First_Sloc
-                       < Scope_Ent.Source_Range.L.First_Sloc
+                                < Scope_Ent.Source_Range.L.First_Sloc
                      loop
                         Child := Next_Sibling (Child);
                      end loop;
@@ -2010,18 +2015,17 @@ package body SC_Obligations is
                when BDD.Condition =>
                   Remap_BDD_Node_Id (New_BDD_Node.Parent);
                   for Valuation in New_BDD_Node.Dests'Range loop
-                     Remap_BDD_Node_Id
-                       (New_BDD_Node.Dests (Valuation));
+                     Remap_BDD_Node_Id (New_BDD_Node.Dests (Valuation));
                   end loop;
 
-                  --  Note that we leave New_BDD_Node.C_SCO unremapped here:
-                  --  the loading of the corresponding SCO condition will
-                  --  take care of it (see below).
+               --  Note that we leave New_BDD_Node.C_SCO unremapped here:
+               --  the loading of the corresponding SCO condition will
+               --  take care of it (see below).
 
-               when BDD.Jump =>
+               when BDD.Jump      =>
                   Remap_BDD_Node_Id (New_BDD_Node.Dest);
 
-               when others =>
+               when others        =>
                   null;
             end case;
 
@@ -2046,8 +2050,7 @@ package body SC_Obligations is
    --------------------
 
    procedure Remap_BDD_Node
-     (Relocs : Checkpoint_Relocations;
-      B      : in out BDD_Node_Id) is
+     (Relocs : Checkpoint_Relocations; B : in out BDD_Node_Id) is
    begin
       if B /= No_BDD_Node_Id then
          B := Remap_BDD_Node_Id (Relocs, B);
@@ -2059,9 +2062,8 @@ package body SC_Obligations is
    -- Remap_SCO_Id --
    ------------------
 
-   procedure Remap_SCO_Id
-     (Relocs : Checkpoint_Relocations;
-      S      : in out SCO_Id) is
+   procedure Remap_SCO_Id (Relocs : Checkpoint_Relocations; S : in out SCO_Id)
+   is
    begin
       S := Checkpoints.Remap_SCO_Id (Relocs, S);
    end Remap_SCO_Id;
@@ -2099,7 +2101,8 @@ package body SC_Obligations is
                   Set_SCO_Id_Map (Relocs, Expr_SCO, New_First_SCO);
                end loop;
             end;
-         when others =>
+
+         when others   =>
             null;
       end case;
 
@@ -2115,26 +2118,25 @@ package body SC_Obligations is
       --  BDD information).
 
       case SCO_Kind (SCOD.Kind) is
-         when Statement =>
+         when Statement                        =>
             Remap_SFI (Relocs, SCOD.Dominant_Sloc.Source_File);
             Remap_SFI (Relocs, SCOD.Handler_Range.Source_File);
 
             Remap_SCO_Id (Relocs, SCOD.Dominant);
 
-         when Decision =>
+         when Decision                         =>
             Remap_SCO_Id (Relocs, SCOD.Expression);
             Remap_SFI (Relocs, SCOD.Control_Location.Source_File);
             Remap_BDD (CP_Vectors, Relocs, SCOD.Decision_BDD);
 
-         when Operator =>
+         when Operator                         =>
             for Op_SCO in SCOD.Operands'Range loop
                Remap_SCO_Id (Relocs, SCOD.Operands (Op_SCO));
             end loop;
 
-         when Condition =>
+         when Condition                        =>
             Remap_BDD_Node (Relocs, SCOD.BDD_Node);
-            Remap_SCO_Id
-              (Relocs, BDD_Vector.Reference (SCOD.BDD_Node).C_SCO);
+            Remap_SCO_Id (Relocs, BDD_Vector.Reference (SCOD.BDD_Node).C_SCO);
 
             SCOD.PC_Set.Clear;
 
@@ -2162,23 +2164,22 @@ package body SC_Obligations is
       --  checks failed.
 
       procedure Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id : SCO_Id)
-        with Pre => Kind (New_SCO_Id) = Decision;
+      with Pre => Kind (New_SCO_Id) = Decision;
 
       -------------------------
       -- Merge_Decision_SCOs --
       -------------------------
 
-      procedure Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id : SCO_Id)
-      is
+      procedure Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id : SCO_Id) is
          use SC_Obligations.BDD;
 
          Old_SCOD : SCO_Descriptor renames CP_Vectors.SCO_Vector (Old_SCO_Id);
          New_SCOD : SCO_Descriptor renames SCO_Vector (New_SCO_Id);
 
          Old_Reachable : Reachability renames
-            Old_SCOD.Decision_BDD.Reachable_Outcomes;
+           Old_SCOD.Decision_BDD.Reachable_Outcomes;
          New_Reachable : Reachability renames
-            New_SCOD.Decision_BDD.Reachable_Outcomes;
+           New_SCOD.Decision_BDD.Reachable_Outcomes;
 
          function Decision_Static_Eval
            (Vectors : Source_Coverage_Vectors;
@@ -2200,12 +2201,12 @@ package body SC_Obligations is
             SCOD : SCO_Descriptor renames Vectors.SCO_Vector (SCO_Dec);
 
             Reachable : constant Reachability :=
-               SCOD.Decision_BDD.Reachable_Outcomes;
+              SCOD.Decision_BDD.Reachable_Outcomes;
 
             Outcome : constant Tristate :=
               (if Reachable (False) /= Reachable (True)
-                  then To_Tristate (Reachable (True))
-                  else Unknown);
+               then To_Tristate (Reachable (True))
+               else Unknown);
 
             E : Static_Decision_Evaluation;
          begin
@@ -2219,13 +2220,10 @@ package body SC_Obligations is
 
             E.Outcome := To_Boolean (Outcome);
 
-            for J in Condition_Index'First .. SCOD.Last_Cond_Index
-            loop
+            for J in Condition_Index'First .. SCOD.Last_Cond_Index loop
                declare
-                  SCO_C  : constant SCO_Id :=
-                     Condition (Vectors, SCO_Dec, J);
-                  SCOD_C : SCO_Descriptor renames
-                     Vectors.SCO_Vector (SCO_C);
+                  SCO_C  : constant SCO_Id := Condition (Vectors, SCO_Dec, J);
+                  SCOD_C : SCO_Descriptor renames Vectors.SCO_Vector (SCO_C);
                begin
 
                   --  If an encountered Condition has no Value, then the
@@ -2251,18 +2249,14 @@ package body SC_Obligations is
          procedure Register_Static_Evaluation
            (SCO : SCO_Id; Eval : Static_Decision_Evaluation) is
          begin
-            if not CLS.Static_Decision_Evaluations.Contains (SCO)
-            then
+            if not CLS.Static_Decision_Evaluations.Contains (SCO) then
                CLS.Static_Decision_Evaluations.Insert
-                    (SCO,
-                     Static_Decision_Evaluation_Sets.Empty_Set);
+                 (SCO, Static_Decision_Evaluation_Sets.Empty_Set);
             end if;
-            CLS.Static_Decision_Evaluations
-               .Reference (SCO)
-               .Include (Eval);
+            CLS.Static_Decision_Evaluations.Reference (SCO).Include (Eval);
          end Register_Static_Evaluation;
 
-      --  Start processing of Merge_Decision_SCOs
+         --  Start processing of Merge_Decision_SCOs
 
       begin
          if Old_SCOD.Decision_Instrumented then
@@ -2285,12 +2279,12 @@ package body SC_Obligations is
          --  evaluation for MC/DC analysis.
 
          if Old_Reachable /= Both_Reachable
-            or else
-            New_Reachable /= Both_Reachable
+           or else New_Reachable /= Both_Reachable
          then
-            SCOs_Trace.Trace ("Consolidation encountered a decision SCO"
-                              & " whose staticness may differ at"
-                              & Image (New_SCOD.Sloc_Range));
+            SCOs_Trace.Trace
+              ("Consolidation encountered a decision SCO"
+               & " whose staticness may differ at"
+               & Image (New_SCOD.Sloc_Range));
             declare
                Old_Eval : Static_Decision_Evaluation;
                --  Holds the result of the static evaluation of Old_SCO
@@ -2301,20 +2295,20 @@ package body SC_Obligations is
                --  if New_Static is True. Otherwise, it is invalid.
 
                Old_Static : constant Boolean :=
-                  Decision_Static_Eval (CP_Vectors, Old_SCO_Id, Old_Eval);
+                 Decision_Static_Eval (CP_Vectors, Old_SCO_Id, Old_Eval);
                New_Static : constant Boolean :=
-                  Decision_Static_Eval (SC_Vectors, New_SCO_Id, New_Eval);
+                 Decision_Static_Eval (SC_Vectors, New_SCO_Id, New_Eval);
 
             begin
 
                --  No matter the staticness of the SCOs, we update the
                --  reachability of each outcome by OR-ing the two checkpoints.
 
-               New_Reachable (True) := New_Reachable (True) or else
-                  Old_Reachable (True);
+               New_Reachable (True) :=
+                 New_Reachable (True) or else Old_Reachable (True);
 
-               New_Reachable (False) := New_Reachable (False) or else
-                  Old_Reachable (False);
+               New_Reachable (False) :=
+                 New_Reachable (False) or else Old_Reachable (False);
 
                if Old_Static then
 
@@ -2375,9 +2369,12 @@ package body SC_Obligations is
       Actual_CU_Id := Comp_Unit (CP_CU.Main_Source);
 
       SCOs_Trace.Trace
-        ("Remapped CU: id " & Actual_CU_Id'Img
-         & ", main source" & CP_CU.Main_Source'Img
-         & " " & Get_Full_Name (CP_CU.Main_Source, Or_Simple => True));
+        ("Remapped CU: id "
+         & Actual_CU_Id'Img
+         & ", main source"
+         & CP_CU.Main_Source'Img
+         & " "
+         & Get_Full_Name (CP_CU.Main_Source, Or_Simple => True));
 
       --  If the CU was already loaded, perform consistency checks prior to
       --  loading it.
@@ -2386,16 +2383,18 @@ package body SC_Obligations is
          declare
             CU_Record : CU_Info renames CU_Vector.Reference (Actual_CU_Id);
 
-            function Provider_Image (Provider : SCO_Provider) return String is
-              (case Provider is
-               when Compiler     => "ALI file",
-               when Instrumenter => "instrumentation",
-               when LLVM         => "LLVM dump");
+            function Provider_Image (Provider : SCO_Provider) return String
+            is (case Provider is
+                  when Compiler     => "ALI file",
+                  when Instrumenter => "instrumentation",
+                  when LLVM         => "LLVM dump");
             --  Helper to designate SCO providers in an error message
 
-            function CU_Image return String is
-              (Get_Simple_Name (CP_CU.Origin)
-               & " (from " & (+CLS.Filename) & ")");
+            function CU_Image return String
+            is (Get_Simple_Name (CP_CU.Origin)
+                & " (from "
+                & (+CLS.Filename)
+                & ")");
             --  Helper to refer to the compilation unit in an error message
 
          begin
@@ -2405,9 +2404,11 @@ package body SC_Obligations is
 
             if CP_CU.Provider /= CU_Record.Provider then
                Warn ("inconsistent coverage method for " & CU_Image);
-               Warn ("SCOs for this unit come from both "
-                     & Provider_Image (CP_CU.Provider)
-                     & " and from " & Provider_Image (CU_Record.Provider));
+               Warn
+                 ("SCOs for this unit come from both "
+                  & Provider_Image (CP_CU.Provider)
+                  & " and from "
+                  & Provider_Image (CU_Record.Provider));
                Ignore_SCOs;
                return;
 
@@ -2416,13 +2417,14 @@ package body SC_Obligations is
             elsif (CP_CU.Provider = Compiler
                    and then CP_CU.SCOs_Fingerprint
                             /= CU_Record.SCOs_Fingerprint)
-                    or else
-                  (CP_CU.Provider = Instrumenter
-                   and then CP_CU.Source_Fingerprint
-                            /= CU_Record.Source_Fingerprint)
+              or else (CP_CU.Provider = Instrumenter
+                       and then CP_CU.Source_Fingerprint
+                                /= CU_Record.Source_Fingerprint)
             then
-               Warn ("unexpected fingerprint, cannot merge coverage"
-                     & " information for " & CU_Image);
+               Warn
+                 ("unexpected fingerprint, cannot merge coverage"
+                  & " information for "
+                  & CU_Image);
                Ignore_SCOs;
                return;
             end if;
@@ -2432,7 +2434,7 @@ package body SC_Obligations is
       --  Load the checkpointed information
 
       declare
-         Relocs  : Checkpoint_Relocations renames CLS.Relocations;
+         Relocs : Checkpoint_Relocations renames CLS.Relocations;
 
          Is_New_CU : constant Boolean :=
            not CU_Map.Contains (CP_CU.Main_Source);
@@ -2468,8 +2470,7 @@ package body SC_Obligations is
 
          --  Then, retrieve the newly created (or existing) CU
 
-         Real_CU :=
-           CU_Info_Access (CU_Vector.Reference (Real_CU_Id).Element);
+         Real_CU := CU_Info_Access (CU_Vector.Reference (Real_CU_Id).Element);
 
          --  Check if the unit has new SCOs
 
@@ -2488,12 +2489,13 @@ package body SC_Obligations is
          --  versions.
 
          if Is_New_CU then
-            Real_CU.Origin         := CP_CU.Origin;
-            Real_CU.Main_Source    := CP_CU.Main_Source;
+            Real_CU.Origin := CP_CU.Origin;
+            Real_CU.Main_Source := CP_CU.Main_Source;
             case Real_CU.Provider is
                when Compiler | LLVM =>
                   Real_CU.SCOs_Fingerprint := CP_CU.SCOs_Fingerprint;
-               when Instrumenter =>
+
+               when Instrumenter    =>
                   Real_CU.Source_Fingerprint := CP_CU.Source_Fingerprint;
             end case;
             CU_Map.Insert (CP_CU.Main_Source, Real_CU_Id);
@@ -2518,8 +2520,10 @@ package body SC_Obligations is
             if not Check_SCOs_Consistency (CLS, CP_Vectors, CP_CU) then
                Outputs.Warn
                  ("Discarding source coverage data for unit "
-                  & Get_Full_Name (Real_CU.Main_Source) & " (from "
-                  & Get_Full_Name (Real_CU.Origin) & "), loaded from "
+                  & Get_Full_Name (Real_CU.Main_Source)
+                  & " (from "
+                  & Get_Full_Name (Real_CU.Origin)
+                  & "), loaded from "
                   & (+CLS.Filename));
                return;
             end if;
@@ -2545,23 +2549,17 @@ package body SC_Obligations is
             --  Process SID information
 
             Checkpoint_Load_SID_Info
-              (CLS     => CLS,
-               CP_CU   => CP_CU,
-               Real_CU => Real_CU.all);
+              (CLS => CLS, CP_CU => CP_CU, Real_CU => Real_CU.all);
 
             --  Process macro information
 
             Checkpoint_Load_PP_Info
-              (CLS     => CLS,
-               CP_CU   => CP_CU,
-               Real_CU => Real_CU.all);
+              (CLS => CLS, CP_CU => CP_CU, Real_CU => Real_CU.all);
 
             --  Process scopes
 
             Checkpoint_Load_Scopes
-              (CLS     => CLS,
-               CP_CU   => CP_CU,
-               Real_CU => Real_CU.all);
+              (CLS => CLS, CP_CU => CP_CU, Real_CU => Real_CU.all);
          end if;
 
          --  Read uninstrumented SCOs for stmt/decision
@@ -2576,25 +2574,25 @@ package body SC_Obligations is
                   SCOD       : SCO_Descriptor renames SCO_Vector (New_SCO_Id);
                begin
                   case SCOD.Kind is
-                     when Statement =>
+                     when Statement         =>
                         if Old_SCOD.Stmt_Instrumented then
                            SCOD.Stmt_Instrumented := True;
                         end if;
 
-                     when Decision =>
+                     when Decision          =>
                         Merge_Decision_SCOs (Old_SCO_Id, New_SCO_Id);
 
-                     when Fun_Call_SCO_Kind  =>
+                     when Fun_Call_SCO_Kind =>
                         if Old_SCOD.Fun_Call_Instrumented then
                            SCOD.Fun_Call_Instrumented := True;
                         end if;
 
-                     when Guarded_Expr =>
+                     when Guarded_Expr      =>
                         if Old_SCOD.GExpr_Instrumented then
                            SCOD.GExpr_Instrumented := True;
                         end if;
 
-                     when others =>
+                     when others            =>
                         null;
                   end case;
                end;
@@ -2647,7 +2645,7 @@ package body SC_Obligations is
          when In_Expansion =>
             Write (CSS, Value.Definition_Loc);
 
-         when others =>
+         when others       =>
             null;
       end case;
    end Write;
@@ -2670,8 +2668,7 @@ package body SC_Obligations is
       CSS.Write_SCO (Value.Last);
    end Write;
 
-   procedure Write
-     (CSS : in out Checkpoint_Save_State; Value : SID_Info) is
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : SID_Info) is
    begin
       Write (CSS, Value.Blocks);
       CSS.Write_Bit_Id (Value.Bit_Maps.Statement_Bits.all'First);
@@ -2700,78 +2697,79 @@ package body SC_Obligations is
 
    procedure Write (CSS : in out Checkpoint_Save_State; Value : CU_Info) is
    begin
-      CSS.Write_U8   (SCO_Provider'Pos (Value.Provider));
-      CSS.Write_SFI  (Value.Origin);
-      CSS.Write_SFI  (Value.Main_Source);
-      Write     (CSS, Value.Deps);
-      CSS.Write      (Value.Has_Code);
-      Write     (CSS, Value.PP_Info_Map);
-      Write     (CSS, Value.Scope_Entities);
-      Write     (CSS, Value.ALI_Annotations);
-      Write     (CSS, Value.SCOs);
+      CSS.Write_U8 (SCO_Provider'Pos (Value.Provider));
+      CSS.Write_SFI (Value.Origin);
+      CSS.Write_SFI (Value.Main_Source);
+      Write (CSS, Value.Deps);
+      CSS.Write (Value.Has_Code);
+      Write (CSS, Value.PP_Info_Map);
+      Write (CSS, Value.Scope_Entities);
+      Write (CSS, Value.ALI_Annotations);
+      Write (CSS, Value.SCOs);
 
       case Value.Provider is
-         when Compiler | LLVM  =>
+         when Compiler | LLVM =>
             CSS.Write (Value.SCOs_Fingerprint);
-         when Instrumenter =>
-            Write     (CSS, Value.SIDs_Info);
+
+         when Instrumenter    =>
+            Write (CSS, Value.SIDs_Info);
             CSS.Write (Value.Source_Fingerprint);
       end case;
    end Write;
 
-   procedure Write
-     (CSS : in out Checkpoint_Save_State; Value : SCO_Descriptor) is
+   procedure Write (CSS : in out Checkpoint_Save_State; Value : SCO_Descriptor)
+   is
    begin
       CSS.Write_U8 (SCO_Kind'Pos (Value.Kind));
       if Value.Kind = Removed then
          return;
       end if;
 
-      CSS.Write_CU  (Value.Origin);
-      CSS.Write     (Value.Sloc_Range);
+      CSS.Write_CU (Value.Origin);
+      CSS.Write (Value.Sloc_Range);
       CSS.Write_SCO (Value.Parent);
 
       case Value.Kind is
-      when Removed =>
-         raise Program_Error with "unreachable code";
+         when Removed           =>
+            raise Program_Error with "unreachable code";
 
-      when Statement =>
-         CSS.Write_U8 (Statement_Kind'Pos (Value.S_Kind));
-         CSS.Write_SCO (Value.Dominant);
-         CSS.Write     (Value.Dominant_Value);
-         CSS.Write     (Value.Dominant_Sloc);
-         CSS.Write     (Value.Handler_Range);
-         CSS.Write_U16 (Pragma_Id'Pos (Value.Pragma_Name));
+         when Statement         =>
+            CSS.Write_U8 (Statement_Kind'Pos (Value.S_Kind));
+            CSS.Write_SCO (Value.Dominant);
+            CSS.Write (Value.Dominant_Value);
+            CSS.Write (Value.Dominant_Sloc);
+            CSS.Write (Value.Handler_Range);
+            CSS.Write_U16 (Pragma_Id'Pos (Value.Pragma_Name));
 
-      when Condition =>
-         CSS.Write           (Value.Value);
-         Write        (CSS,   Value.PC_Set);
-         CSS.Write_BDD_Node  (Value.BDD_Node);
-         CSS.Write_Condition (Value.Index);
+         when Condition         =>
+            CSS.Write (Value.Value);
+            Write (CSS, Value.PC_Set);
+            CSS.Write_BDD_Node (Value.BDD_Node);
+            CSS.Write_Condition (Value.Index);
 
-      when Decision =>
-         CSS.Write_SCO        (Value.Expression);
-         CSS.Write_U8 (Decision_Kind'Pos (Value.D_Kind));
-         CSS.Write           (Value.Control_Location);
-         CSS.Write_Condition (Value.Last_Cond_Index);
-         BDD.Write      (CSS, Value.Decision_BDD);
-         CSS.Write           (Value.Degraded_Origins);
-         CSS.Write_U8 (Aspect_Id'Pos (Value.Aspect_Name));
-         CSS.Write_Integer   (Value.Path_Count);
+         when Decision          =>
+            CSS.Write_SCO (Value.Expression);
+            CSS.Write_U8 (Decision_Kind'Pos (Value.D_Kind));
+            CSS.Write (Value.Control_Location);
+            CSS.Write_Condition (Value.Last_Cond_Index);
+            BDD.Write (CSS, Value.Decision_BDD);
+            CSS.Write (Value.Degraded_Origins);
+            CSS.Write_U8 (Aspect_Id'Pos (Value.Aspect_Name));
+            CSS.Write_Integer (Value.Path_Count);
 
-      when Operator =>
-         CSS.Write_U8 (Operand_Position'Pos (Left));
-         CSS.Write_U8 (Operand_Position'Pos (Right));
-         CSS.Write_SCO (Value.Operands (Left));
-         CSS.Write_SCO (Value.Operands (Right));
-         CSS.Write_U8 (Operator_Kind'Pos (Value.Op_Kind));
+         when Operator          =>
+            CSS.Write_U8 (Operand_Position'Pos (Left));
+            CSS.Write_U8 (Operand_Position'Pos (Right));
+            CSS.Write_SCO (Value.Operands (Left));
+            CSS.Write_SCO (Value.Operands (Right));
+            CSS.Write_U8 (Operator_Kind'Pos (Value.Op_Kind));
 
-      when Fun_Call_SCO_Kind  =>
-         CSS.Write (Value.Is_Expr);
-         CSS.Write (Value.Fun_Call_Instrumented);
+         when Fun_Call_SCO_Kind =>
+            CSS.Write (Value.Is_Expr);
+            CSS.Write (Value.Fun_Call_Instrumented);
 
-      when Guarded_Expr  =>
-         CSS.Write (Value.GExpr_Instrumented);
+         when Guarded_Expr      =>
+            CSS.Write (Value.GExpr_Instrumented);
       end case;
    end Write;
 
@@ -2788,14 +2786,16 @@ package body SC_Obligations is
    ----------
 
    procedure Free (CU : in out CU_Info) is
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Statement_Bit_Map, Statement_Bit_Map_Access);
+      procedure Free is new
+        Ada.Unchecked_Deallocation
+          (Statement_Bit_Map,
+           Statement_Bit_Map_Access);
 
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Decision_Bit_Map, Decision_Bit_Map_Access);
+      procedure Free is new
+        Ada.Unchecked_Deallocation (Decision_Bit_Map, Decision_Bit_Map_Access);
 
-      procedure Free is new Ada.Unchecked_Deallocation
-        (MCDC_Bit_Map, MCDC_Bit_Map_Access);
+      procedure Free is new
+        Ada.Unchecked_Deallocation (MCDC_Bit_Map, MCDC_Bit_Map_Access);
    begin
       for SID_Info of CU.SIDs_Info loop
          Free (SID_Info.Bit_Maps.Statement_Bits);
@@ -2835,9 +2835,11 @@ package body SC_Obligations is
                case SCOD.Kind is
                   when Statement =>
                      SCOD.Stmt_Instrumented := False;
-                  when Decision =>
+
+                  when Decision  =>
                      SCOD.Decision_Instrumented := False;
-                  when others =>
+
+                  when others    =>
                      Fatal_Error
                        ("invalid non-instrumented SCO: " & SCOD.Kind'Image);
                end case;
@@ -2854,7 +2856,8 @@ package body SC_Obligations is
                case SCOD.Kind is
                   when Decision =>
                      SCOD.Decision_Instrumented_For_MCDC := False;
-                  when others =>
+
+                  when others   =>
                      Fatal_Error
                        ("invalid non-instrumented SCO for MC/DC: "
                         & SCOD.Kind'Image);
@@ -2865,15 +2868,18 @@ package body SC_Obligations is
 
       --  Allocate mapping tables for SCOs and BDD nodes
 
-      Allocate_CU_Id_Maps (Relocs,
-                           CP_Vectors.CU_Vector.First_Index,
-                           CP_Vectors.CU_Vector.Last_Index);
-      Allocate_SCO_Id_Map (Relocs,
-                           CP_Vectors.SCO_Vector.First_Index,
-                           CP_Vectors.SCO_Vector.Last_Index);
-      Allocate_BDD_Node_Id_Map (Relocs,
-                                CP_Vectors.BDD_Vector.First_Index,
-                                CP_Vectors.BDD_Vector.Last_Index);
+      Allocate_CU_Id_Maps
+        (Relocs,
+         CP_Vectors.CU_Vector.First_Index,
+         CP_Vectors.CU_Vector.Last_Index);
+      Allocate_SCO_Id_Map
+        (Relocs,
+         CP_Vectors.SCO_Vector.First_Index,
+         CP_Vectors.SCO_Vector.Last_Index);
+      Allocate_BDD_Node_Id_Map
+        (Relocs,
+         CP_Vectors.BDD_Vector.First_Index,
+         CP_Vectors.BDD_Vector.Last_Index);
 
       --  Remap and merge into current tables
 
@@ -2905,9 +2911,9 @@ package body SC_Obligations is
                if not Main_Source_Ignored then
                   Warn
                     ("gnatcov limitation: ignoring unit "
-                     & Get_Simple_Name
-                       (Remap_SFI (Relocs, CP_CU.Main_Source))
-                     & " from " & (+CLS.Filename)
+                     & Get_Simple_Name (Remap_SFI (Relocs, CP_CU.Main_Source))
+                     & " from "
+                     & (+CLS.Filename)
                      & " because "
                      & (+Get_Simple_Name (Relocs, CP_CU.Origin))
                      & " is ignored");
@@ -2917,10 +2923,7 @@ package body SC_Obligations is
 
             else
                Checkpoint_Load_Unit
-                 (CLS,
-                  CP_Vectors,
-                  CP_CU,
-                  CP_CU_Id => CP_CU_Id);
+                 (CLS, CP_Vectors, CP_CU, CP_CU_Id => CP_CU_Id);
             end if;
          end;
       end loop;
@@ -2931,37 +2934,32 @@ package body SC_Obligations is
    -- LLVM_JSON_Load --
    --------------------
 
-   procedure LLVM_JSON_Load
-     (Ckpt : access LLVM_Coverage_Ckpt)
-   is
+   procedure LLVM_JSON_Load (Ckpt : access LLVM_Coverage_Ckpt) is
    begin
       LLVM_Trace.Trace ("SC_Obligations.LLVM_JSON_Load");
 
       for File_Report_Cur in Ckpt.File_Reports.Iterate loop
          declare
             use LLVM_Coverage_File_Ckpt_Vector;
-            File_Report   : LLVM_Coverage_File_Ckpt renames
-               Ckpt.File_Reports.Reference (File_Report_Cur);
+            File_Report : LLVM_Coverage_File_Ckpt renames
+              Ckpt.File_Reports.Reference (File_Report_Cur);
 
             Created_Units : Created_Unit_Maps.Map;
 
             SFI       : constant Source_File_Index :=
-               Get_Index_From_Full_Name
-                 (+File_Report.Filename, Source_File);
+              Get_Index_From_Full_Name (+File_Report.Filename, Source_File);
             JSON_FI   : constant Source_File_Index :=
-               Get_Index_From_Full_Name
-                 (+Ckpt.JSON_Filename, Library_File);
-            CUID      : constant CU_Id             :=
-               Allocate_CU
-                 (Provider      => LLVM,
-                  Origin        => JSON_FI,
-                  Main_Source   => SFI,
-                  Fingerprint   => No_Fingerprint,
-                  Created_Units => Created_Units);
-            First_SCO : constant Valid_SCO_Id      :=
-               SCO_Vector.Last_Index + 1;
+              Get_Index_From_Full_Name (+Ckpt.JSON_Filename, Library_File);
+            CUID      : constant CU_Id :=
+              Allocate_CU
+                (Provider      => LLVM,
+                 Origin        => JSON_FI,
+                 Main_Source   => SFI,
+                 Fingerprint   => No_Fingerprint,
+                 Created_Units => Created_Units);
+            First_SCO : constant Valid_SCO_Id := SCO_Vector.Last_Index + 1;
 
-            Last_SCO  : Valid_SCO_Id;
+            Last_SCO : Valid_SCO_Id;
          begin
 
             --  If a compilation unit was already registered for this file,
@@ -2970,8 +2968,10 @@ package body SC_Obligations is
             --  at the LLVM level.
 
             if CUID = No_CU_Id then
-               Warn ("[LLVM-JSON] A compilation unit already exists for "
-                     & (+File_Report.Filename) & ".");
+               Warn
+                 ("[LLVM-JSON] A compilation unit already exists for "
+                  & (+File_Report.Filename)
+                  & ".");
                return;
             end if;
 
@@ -2981,13 +2981,13 @@ package body SC_Obligations is
                declare
                   use LLVM_Coverage_Function_Ckpt_Vector;
                   Fct : LLVM_Coverage_Function_Ckpt renames
-                     File_Report.Functions.Reference (Fct_Cur);
+                    File_Report.Functions.Reference (Fct_Cur);
                begin
                   for Region_Cur in Fct.Regions.Iterate loop
                      declare
                         use LLVM_Region_Vector;
                         Region : LLVM_Region renames
-                           Fct.Regions.Reference (Region_Cur);
+                          Fct.Regions.Reference (Region_Cur);
 
                         Location : constant Source_Location_Range :=
                           (Source_File => SFI, L => Region.Span);
@@ -2997,10 +2997,10 @@ package body SC_Obligations is
                         SCO                 : SCO_Id;
                      begin
                         case Region.Kind is
-                           when Decision =>
+                           when Decision  =>
                               MCDC_Num_Conditions :=
-                                 Any_Condition_Index
-                                   (Region.Num_Conditions - 1);
+                                Any_Condition_Index
+                                  (Region.Num_Conditions - 1);
                               SCOD :=
                                 (Kind            => Decision,
                                  Origin          => CUID,
@@ -3008,10 +3008,12 @@ package body SC_Obligations is
                                  D_Kind          => If_Statement,
                                  Last_Cond_Index => MCDC_Num_Conditions,
                                  others          => <>);
+
                            when Condition =>
-                              pragma Assert
-                                (Fct.Regions (Region.Parent_Id).SCO
-                                    /= No_SCO_Id);
+                              pragma
+                                Assert
+                                  (Fct.Regions (Region.Parent_Id).SCO
+                                     /= No_SCO_Id);
                               SCOD :=
                                 (Kind       => Condition,
                                  Origin     => CUID,
@@ -3019,9 +3021,10 @@ package body SC_Obligations is
                                  Value      => Unknown,
                                  BDD_Node   => No_BDD_Node_Id,
                                  Parent     =>
-                                    Fct.Regions (Region.Parent_Id).SCO,
+                                   Fct.Regions (Region.Parent_Id).SCO,
                                  Index      => Region.Index,
                                  others     => <>);
+
                            when Statement =>
                               SCOD :=
                                 (Kind       => Statement,
@@ -3049,6 +3052,7 @@ package body SC_Obligations is
 
             if SCO_Vector.Last_Index = No_SCO_Id then
                return;  --  The SCO vector is completely empty.
+
             end if;
 
             --  Check that Last_SCO >= First_SCO.
@@ -3110,10 +3114,12 @@ package body SC_Obligations is
                case SCOD.Kind is
                   when Statement =>
                      Instr := SCOD.Stmt_Instrumented;
-                  when Decision =>
+
+                  when Decision  =>
                      Instr := SCOD.Decision_Instrumented;
                      Instr_MCDC := SCOD.Decision_Instrumented_For_MCDC;
-                  when others =>
+
+                  when others    =>
                      null;
                end case;
 
@@ -3182,7 +3188,7 @@ package body SC_Obligations is
    -----------
 
    function Index
-     (Vectors : Source_Coverage_Vectors; SCO  : SCO_Id) return Condition_Index
+     (Vectors : Source_Coverage_Vectors; SCO : SCO_Id) return Condition_Index
    is
       SCOD : SCO_Descriptor renames
         Vectors.SCO_Vector.Constant_Reference (SCO);
@@ -3196,18 +3202,17 @@ package body SC_Obligations is
    ---------------
 
    function Condition
-     (Vectors : Source_Coverage_Vectors;
-      SCO     : SCO_Id;
-      Index   : Condition_Index) return SCO_Id
+     (Vectors : Source_Coverage_Vectors; SCO : SCO_Id; Index : Condition_Index)
+      return SCO_Id
    is
       use BDD;
 
-      SCOD  : SCO_Descriptor renames
+      SCOD : SCO_Descriptor renames
         Vectors.SCO_Vector.Constant_Reference (SCO);
 
       First : constant BDD_Node_Id := SCOD.Decision_BDD.First_Node;
       Last  : constant BDD_Node_Id := SCOD.Decision_BDD.Last_Node;
-      CU    : constant CU_Id       := Comp_Unit (SCO);
+      CU    : constant CU_Id := Comp_Unit (SCO);
 
       Current_Condition_Index : Any_Condition_Index := No_Condition_Index;
 
@@ -3238,9 +3243,9 @@ package body SC_Obligations is
             --  Search for the first Condition of the Decision.
 
             while In_CU (CU, C_SCO)
-                  and then
-                    (Kind (C_SCO) /= Condition
-                     or else Parent (C_SCO) /= SCO) loop
+              and then (Kind (C_SCO) /= Condition
+                        or else Parent (C_SCO) /= SCO)
+            loop
                C_SCO := C_SCO + 1;
             end loop;
 
@@ -3253,14 +3258,14 @@ package body SC_Obligations is
                loop
                   C_SCO := C_SCO + 1;
                   exit when not In_CU (CU, C_SCO);
-                  exit when Kind (C_SCO) = Condition
-                            and then Parent (C_SCO) = SCO;
+                  exit when
+                    Kind (C_SCO) = Condition and then Parent (C_SCO) = SCO;
                end loop;
             end loop;
 
             if not In_CU (CU, C_SCO) then
-               Fatal_Error ("Malformed SCO Vector, a condition SCO"
-                            & " is missing");
+               Fatal_Error
+                 ("Malformed SCO Vector, a condition SCO" & " is missing");
             end if;
 
             pragma Assert (Kind (C_SCO) = Condition);
@@ -3279,10 +3284,10 @@ package body SC_Obligations is
                Current_Condition_Index := Current_Condition_Index + 1;
                if Current_Condition_Index = Index then
                   return C_SCO : constant SCO_Id := BDDN.C_SCO do
-                     pragma Assert
-                       (Enclosing (Vectors, Decision, C_SCO) = SCO);
-                     pragma Assert
-                       (SC_Obligations.Index (Vectors, C_SCO) = Index);
+                     pragma
+                       Assert (Enclosing (Vectors, Decision, C_SCO) = SCO);
+                     pragma
+                       Assert (SC_Obligations.Index (Vectors, C_SCO) = Index);
                   end return;
                end if;
             end if;
@@ -3291,17 +3296,16 @@ package body SC_Obligations is
       raise Constraint_Error with "condition index out of range";
    end Condition;
 
-   function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id is
-     (Condition (SC_Vectors, SCO, Index));
+   function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id
+   is (Condition (SC_Vectors, SCO, Index));
 
    ----------------------
    -- Condition_Values --
    ----------------------
 
    function Condition_Values
-     (SCO        : SCO_Id;
-      Path_Index : Natural;
-      Outcome    : out Boolean) return Condition_Values_Array
+     (SCO : SCO_Id; Path_Index : Natural; Outcome : out Boolean)
+      return Condition_Values_Array
    is
       SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
 
@@ -3314,8 +3318,9 @@ package body SC_Obligations is
       Tail_Index : Natural := Path_Index;
       --  Path index in the sub-BDD rooted at Node
    begin
-      return Result : Condition_Values_Array :=
-        (Condition_Index'First .. Last_Cond_Index => Unknown)
+      return
+         Result : Condition_Values_Array :=
+           (Condition_Index'First .. Last_Cond_Index => Unknown)
       do
          loop
             --  Determine value of current condition based on current node and
@@ -3335,7 +3340,7 @@ package body SC_Obligations is
 
                   Cond_Index : constant Condition_Index := Index (BDDN.C_SCO);
                   Cond_Value : constant Boolean :=
-                     Tail_Index >= BDDN.Path_Offset;
+                    Tail_Index >= BDDN.Path_Offset;
                begin
                   Result (Cond_Index) := To_Tristate (Cond_Value);
                   if Cond_Value then
@@ -3357,22 +3362,22 @@ package body SC_Obligations is
 
       SCOD               : SCO_Descriptor renames SCO_Vector.Reference (SCO);
       Reachable_Outcomes : constant Reachability :=
-         SCOD.Decision_BDD.Reachable_Outcomes;
+        SCOD.Decision_BDD.Reachable_Outcomes;
    begin
       --  If exactly one outcome is reachable, then decision is always True or
       --  always False, else Unknown.
 
-      return (if Reachable_Outcomes (False) /= Reachable_Outcomes (True)
-              then To_Tristate (Reachable_Outcomes (True))
-              else Unknown);
+      return
+        (if Reachable_Outcomes (False) /= Reachable_Outcomes (True)
+         then To_Tristate (Reachable_Outcomes (True))
+         else Unknown);
    end Decision_Outcome;
 
    -------------------
    -- Decision_Type --
    -------------------
 
-   function Decision_Type (SCO : SCO_Id) return Decision_Kind
-   is
+   function Decision_Type (SCO : SCO_Id) return Decision_Kind is
       D : constant SCO_Descriptor := SCO_Vector.Reference (SCO);
    begin
       pragma Assert (D.Kind = Decision);
@@ -3394,9 +3399,7 @@ package body SC_Obligations is
    --------------
 
    procedure Dominant
-     (SCO     : SCO_Id;
-      Dom_SCO : out SCO_Id;
-      Dom_Val : out Boolean)
+     (SCO : SCO_Id; Dom_SCO : out SCO_Id; Dom_Val : out Boolean)
    is
       SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
    begin
@@ -3422,10 +3425,10 @@ package body SC_Obligations is
          when Condition =>
             return +('C' & Img (Integer (Index (Op_SCO))));
 
-         when Decision =>
+         when Decision  =>
             return Expression_Image (SCO_Vector.Reference (Op_SCO).Expression);
 
-         when Operator =>
+         when Operator  =>
             declare
                Result : Unbounded_String := +"(";
                Binary : constant Boolean := Op_Kind (Op_SCO) /= Op_Not;
@@ -3436,9 +3439,14 @@ package body SC_Obligations is
                   begin
                      if J = Right then
                         case Op_Kind (Op_SCO) is
-                        when Op_Not      => Append (Result, "not ");
-                        when Op_And_Then => Append (Result, " and then ");
-                        when Op_Or_Else  => Append (Result, " or else ");
+                           when Op_Not      =>
+                              Append (Result, "not ");
+
+                           when Op_And_Then =>
+                              Append (Result, " and then ");
+
+                           when Op_Or_Else  =>
+                              Append (Result, " or else ");
                         end case;
                      end if;
 
@@ -3456,10 +3464,11 @@ package body SC_Obligations is
                return Result;
             end;
 
-         when others =>
+         when others    =>
             return
               +("Expected expression SCO kind (Decision, Condition or"
-                & " Operator), but got " & SCO_Kind'Image (Kind (Op_SCO)));
+                & " Operator), but got "
+                & SCO_Kind'Image (Kind (Op_SCO)));
       end case;
    end Expression_Image;
 
@@ -3478,15 +3487,14 @@ package body SC_Obligations is
    ---------------
 
    function Enclosing
-     (Vectors : Source_Coverage_Vectors;
-      What : SCO_Kind;
-      SCO : SCO_Id) return SCO_Id is
+     (Vectors : Source_Coverage_Vectors; What : SCO_Kind; SCO : SCO_Id)
+      return SCO_Id is
    begin
       return Result : SCO_Id := SCO do
          while Result /= No_SCO_Id loop
             declare
                SCOD : SCO_Descriptor renames
-                  Vectors.SCO_Vector.Constant_Reference (Result);
+                 Vectors.SCO_Vector.Constant_Reference (Result);
             begin
                if SCOD.Kind = What then
                   return;
@@ -3498,14 +3506,13 @@ package body SC_Obligations is
    end Enclosing;
 
    function Enclosing (What : SCO_Kind; SCO : SCO_Id) return SCO_Id
-      is (Enclosing (SC_Vectors, What, SCO));
+   is (Enclosing (SC_Vectors, What, SCO));
 
    ------------
    -- Nested --
    ------------
 
-   function Nested (Left, Right : SCO_Descriptor) return Boolean
-   is
+   function Nested (Left, Right : SCO_Descriptor) return Boolean is
       L : Local_Source_Location_Range renames Left.Sloc_Range.L;
       R : Local_Source_Location_Range renames Right.Sloc_Range.L;
    begin
@@ -3526,8 +3533,7 @@ package body SC_Obligations is
    ---------------------
 
    function Invalid_Overlap
-     (SCOD          : SCO_Descriptor;
-      Enclosing_SCO : SCO_Id) return Boolean is
+     (SCOD : SCO_Descriptor; Enclosing_SCO : SCO_Id) return Boolean is
    begin
       if Enclosing_SCO /= No_SCO_Id then
          declare
@@ -3572,8 +3578,7 @@ package body SC_Obligations is
    -- First_Sloc --
    ----------------
 
-   function First_Sloc (SCO : SCO_Id) return Source_Location
-   is
+   function First_Sloc (SCO : SCO_Id) return Source_Location is
       Sloc : Source_Location :=
         First_Sloc (SCO_Vector.Reference (SCO).Sloc_Range);
    begin
@@ -3587,8 +3592,7 @@ package body SC_Obligations is
    -- Get_Origin --
    ----------------
 
-   function Get_Origin (SCO : SCO_Id) return Maybe_SCO_Value
-   is
+   function Get_Origin (SCO : SCO_Id) return Maybe_SCO_Value is
       use BDD;
 
       SCOD : SCO_Descriptor renames SCO_Vector (SCO);
@@ -3597,10 +3601,11 @@ package body SC_Obligations is
       if BDDN.Parent = No_BDD_Node_Id then
          return Maybe_SCO_Value'(Present => False);
       else
-         return Maybe_SCO_Value'
-           (Present => True,
-            SCO     => BDD_Vector.Constant_Reference (BDDN.Parent).C_SCO,
-            Value   => BDDN.Parent_Value);
+         return
+           Maybe_SCO_Value'
+             (Present => True,
+              SCO     => BDD_Vector.Constant_Reference (BDDN.Parent).C_SCO,
+              Value   => BDDN.Parent_Value);
       end if;
    end Get_Origin;
 
@@ -3630,8 +3635,9 @@ package body SC_Obligations is
 
    function Has_Multipath_Condition (SCO : SCO_Id) return Boolean is
    begin
-      return SCO_Vector.Reference (SCO).Decision_BDD.First_Multipath_Condition
-             /= No_BDD_Node_Id;
+      return
+        SCO_Vector.Reference (SCO).Decision_BDD.First_Multipath_Condition
+        /= No_BDD_Node_Id;
    end Has_Multipath_Condition;
 
    -------------
@@ -3639,8 +3645,7 @@ package body SC_Obligations is
    -------------
 
    function Has_SCO
-     (Sloc_Begin : Source_Location;
-      Sloc_End   : Source_Location) return Boolean
+     (Sloc_Begin : Source_Location; Sloc_End : Source_Location) return Boolean
    is
       function Has_SCO (Kind : SCO_Kind) return Boolean;
       --  Return if there is at least one SCO of the given Kind whose range has
@@ -3660,7 +3665,7 @@ package body SC_Obligations is
          while Position /= No_Element loop
             declare
                SCOD : SCO_Descriptor renames
-                  SCO_Vector.Reference (Element (Position));
+                 SCO_Vector.Reference (Element (Position));
             begin
                if Sloc_End < First_Sloc (SCOD.Sloc_Range) then
 
@@ -3690,7 +3695,7 @@ package body SC_Obligations is
          return False;
       end Has_SCO;
 
-   --  Start of processing for Has_SCO
+      --  Start of processing for Has_SCO
 
    begin
       return Has_SCO (Statement) or else Has_SCO (Condition);
@@ -3719,7 +3724,7 @@ package body SC_Obligations is
         --  Pragma not generating code?
 
         (SCOD.S_Kind = Pragma_Statement
-           and then not Pragma_Might_Generate_Code (SCOD.Pragma_Name))
+         and then not Pragma_Might_Generate_Code (SCOD.Pragma_Name))
 
         or else
 
@@ -3783,37 +3788,36 @@ package body SC_Obligations is
    -- Stmt_SCO_Instrumented --
    ---------------------------
 
-   function Stmt_SCO_Instrumented (SCO : SCO_Id) return Boolean is
-     (SCO_Vector (SCO).Stmt_Instrumented);
+   function Stmt_SCO_Instrumented (SCO : SCO_Id) return Boolean
+   is (SCO_Vector (SCO).Stmt_Instrumented);
 
    -------------------------------
    -- Decision_SCO_Instrumented --
    -------------------------------
 
-   function Decision_SCO_Instrumented (SCO : SCO_Id) return Boolean is
-     (SCO_Vector (SCO).Decision_Instrumented);
+   function Decision_SCO_Instrumented (SCO : SCO_Id) return Boolean
+   is (SCO_Vector (SCO).Decision_Instrumented);
 
    ----------------------------------------
    -- Decision_SCO_Instrumented_For_MCDC --
    ----------------------------------------
 
-   function Decision_SCO_Instrumented_For_MCDC
-     (SCO : SCO_Id) return Boolean
+   function Decision_SCO_Instrumented_For_MCDC (SCO : SCO_Id) return Boolean
    is (SCO_Vector (SCO).Decision_Instrumented_For_MCDC);
 
    -------------------------------
    -- Fun_Call_SCO_Instrumented --
    -------------------------------
 
-   function Fun_Call_SCO_Instrumented (SCO : SCO_Id) return Boolean is
-      (SCO_Vector (SCO).Fun_Call_Instrumented);
+   function Fun_Call_SCO_Instrumented (SCO : SCO_Id) return Boolean
+   is (SCO_Vector (SCO).Fun_Call_Instrumented);
 
    ----------------------------
    -- GExpr_SCO_Instrumented --
    ----------------------------
 
-   function GExpr_SCO_Instrumented (SCO : SCO_Id) return Boolean is
-      (SCO_Vector (SCO).GExpr_Instrumented);
+   function GExpr_SCO_Instrumented (SCO : SCO_Id) return Boolean
+   is (SCO_Vector (SCO).GExpr_Instrumented);
 
    -----------
    -- Image --
@@ -3847,8 +3851,7 @@ package body SC_Obligations is
 
       function Sloc_Image (Sloc_Range : Source_Location_Range) return String is
       begin
-         if Sloc_Range.L.First_Sloc = No_Local_Location
-           or else not With_Sloc
+         if Sloc_Range.L.First_Sloc = No_Local_Location or else not With_Sloc
          then
             return "";
          else
@@ -3856,7 +3859,7 @@ package body SC_Obligations is
          end if;
       end Sloc_Image;
 
-   --  Start of processing for Image
+      --  Start of processing for Image
 
    begin
       if SCO = No_SCO_Id then
@@ -3864,20 +3867,21 @@ package body SC_Obligations is
       else
          declare
             SCOD           : SCO_Descriptor renames SCO_Vector.Reference (SCO);
-            From_Assertion : constant Boolean := Assertion_Coverage_Enabled
-              and then
-                ((SCOD.Kind = Decision
-                  and then SCOD.D_Kind in Pragma_Decision | Aspect)
-                 or else
-                   (SCOD.Kind = Condition
-                    and then SCO_Vector.Reference
-                      (Enclosing_Decision (SCO)).D_Kind in
-                        Pragma_Decision | Aspect));
+            From_Assertion : constant Boolean :=
+              Assertion_Coverage_Enabled
+              and then ((SCOD.Kind = Decision
+                         and then SCOD.D_Kind in Pragma_Decision | Aspect)
+                        or else (SCOD.Kind = Condition
+                                 and then SCO_Vector.Reference
+                                            (Enclosing_Decision (SCO))
+                                            .D_Kind
+                                          in Pragma_Decision | Aspect));
          begin
-            return "SCO #" & Trim (SCO'Img, Side => Ada.Strings.Both) & ": "
-              & (if From_Assertion
-                 then "ASSERTION "
-                 else "")
+            return
+              "SCO #"
+              & Trim (SCO'Img, Side => Ada.Strings.Both)
+              & ": "
+              & (if From_Assertion then "ASSERTION " else "")
               & SCO_Kind'Image (SCOD.Kind)
               & Op_Kind_Image
               & Sloc_Image (SCOD.Sloc_Range);
@@ -3917,8 +3921,8 @@ package body SC_Obligations is
       Last  : constant BDD_Node_Id := SCOD.Decision_BDD.Last_Node;
 
    begin
-      if Traces_Files.Currently_Accepted_Trace_Kind in
-        Traces_Files.Source_Trace_File .. Traces_Files.All_Trace_Files
+      if Traces_Files.Currently_Accepted_Trace_Kind
+         in Traces_Files.Source_Trace_File .. Traces_Files.All_Trace_Files
       then
          return True;
       end if;
@@ -3937,8 +3941,10 @@ package body SC_Obligations is
          declare
             BDDN : BDD_Node renames BDD_Vector.Constant_Reference (J);
          begin
-            if BDDN.Kind = Condition and then
-              not SCO_Vector.Constant_Reference (BDDN.C_SCO).PC_Set.Is_Empty
+            if BDDN.Kind = Condition
+              and then not SCO_Vector.Constant_Reference (BDDN.C_SCO)
+                             .PC_Set
+                             .Is_Empty
             then
                return True;
             end if;
@@ -3971,8 +3977,7 @@ package body SC_Obligations is
 
    procedure Register_CU (CU : CU_Id) is
       Origin   : constant Source_File_Index := CU_Vector.Reference (CU).Origin;
-      Cur      : Origin_To_CUs_Maps.Cursor :=
-         Origin_To_CUs_Map.Find (Origin);
+      Cur      : Origin_To_CUs_Maps.Cursor := Origin_To_CUs_Map.Find (Origin);
       Inserted : Boolean;
    begin
       if not Origin_To_CUs_Maps.Has_Element (Cur) then
@@ -3997,15 +4002,16 @@ package body SC_Obligations is
             --  Pre/Postcondition, Check). Note: the pragma name is stored
             --  in the enclosing statement SCO.
 
-            return SCO_Vector (Enclosing_Statement (SCO)).Pragma_Name
+            return
+              SCO_Vector (Enclosing_Statement (SCO)).Pragma_Name
               /= Pragma_Debug;
 
-         when Aspect =>
+         when Aspect          =>
             --  Always True for aspects (Pre/Post/Predicate/Invariant)
 
             return True;
 
-         when others =>
+         when others          =>
             return False;
       end case;
 
@@ -4015,8 +4021,7 @@ package body SC_Obligations is
    -- Is_Assertion_To_Cover --
    ---------------------------
 
-   function Is_Assertion_To_Cover (SCO : SCO_Id) return Boolean
-   is
+   function Is_Assertion_To_Cover (SCO : SCO_Id) return Boolean is
       function Is_Pragma_Stmt_To_Cover (SCOD : SCO_Descriptor) return Boolean;
       --  True if the pragma statement of SCOD belongs to the list of pragmas
       --  supported by assertion coverage.
@@ -4024,11 +4029,13 @@ package body SC_Obligations is
       function Is_Pragma_Stmt_To_Cover (SCOD : SCO_Descriptor) return Boolean
       is
       begin
-         pragma Assert
-           (SCOD.Kind = Statement and then SCOD.S_Kind = Pragma_Statement);
+         pragma
+           Assert
+             (SCOD.Kind = Statement and then SCOD.S_Kind = Pragma_Statement);
 
-         return SCOD.Pragma_Name in
-           Pragma_Assert
+         return
+           SCOD.Pragma_Name
+           in Pragma_Assert
             | Pragma_Assert_And_Cut
             | Pragma_Assume
             | Pragma_Check
@@ -4045,18 +4052,18 @@ package body SC_Obligations is
 
       elsif SCOD.Kind = Decision then
          case SCOD.D_Kind is
-         when Pragma_Decision =>
-            return
-              Is_Pragma_Stmt_To_Cover (SCO_Vector (Enclosing_Statement (SCO)));
+            when Pragma_Decision =>
+               return
+                 Is_Pragma_Stmt_To_Cover
+                   (SCO_Vector (Enclosing_Statement (SCO)));
 
-         when Aspect =>
-            return SCOD.Aspect_Name in
-              Aspect_Type_Invariant
-            | Aspect_Pre
-            | Aspect_Post;
+            when Aspect          =>
+               return
+                 SCOD.Aspect_Name
+                 in Aspect_Type_Invariant | Aspect_Pre | Aspect_Post;
 
-         when others =>
-            return False;
+            when others          =>
+               return False;
          end case;
 
       elsif SCOD.Kind = Condition then
@@ -4100,14 +4107,15 @@ package body SC_Obligations is
       begin
          --  Return whether S_SCOD is a pragma Assert/Check/Pre/Post
 
-         return (S_SCOD.S_Kind = Disabled_Pragma_Statement
-                 or else S_SCOD.S_Kind = Pragma_Statement)
-           and then S_SCOD.Pragma_Name in
-             Pragma_Assert
-               | Pragma_Check
-               | Pragma_Precondition
-               | Pragma_Postcondition
-               | Pragma_Loop_Invariant;
+         return
+           (S_SCOD.S_Kind = Disabled_Pragma_Statement
+            or else S_SCOD.S_Kind = Pragma_Statement)
+           and then S_SCOD.Pragma_Name
+                    in Pragma_Assert
+                     | Pragma_Check
+                     | Pragma_Precondition
+                     | Pragma_Postcondition
+                     | Pragma_Loop_Invariant;
       end;
    end Is_Expression;
 
@@ -4116,17 +4124,16 @@ package body SC_Obligations is
    ----------------------
 
    function Is_If_Expression (SCO : SCO_Id) return Boolean is
-      SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
+      SCOD            : SCO_Descriptor renames SCO_Vector.Reference (SCO);
       pragma Assert (SCOD.Kind = Decision);
       Enclosing_S_SCO : constant SCO_Id := Enclosing_Statement (SCO);
    begin
-      return SCOD.D_Kind = If_Statement
-        and then not
-          (Enclosing_S_SCO /= No_SCO_Id
-             and then
-           S_Kind (Enclosing_S_SCO) = If_Statement
-             and then
-           First_Sloc (Enclosing_S_SCO) = SCOD.Control_Location);
+      return
+        SCOD.D_Kind = If_Statement
+        and then not (Enclosing_S_SCO /= No_SCO_Id
+                      and then S_Kind (Enclosing_S_SCO) = If_Statement
+                      and then First_Sloc (Enclosing_S_SCO)
+                               = SCOD.Control_Location);
    end Is_If_Expression;
 
    ------------------------------
@@ -4180,8 +4187,7 @@ package body SC_Obligations is
    -- Is_Call_Stmt --
    ------------------
 
-   function Is_Call_Stmt (SCO : SCO_Id) return Boolean
-   is
+   function Is_Call_Stmt (SCO : SCO_Id) return Boolean is
       SCOD : constant SCO_Descriptor := SCO_Vector.Reference (SCO);
    begin
       return Kind (SCO) = Call and then not SCOD.Is_Expr;
@@ -4195,9 +4201,10 @@ package body SC_Obligations is
       SCOD : SCO_Descriptor renames SCO_Vector.Reference (SCO);
       pragma Assert (SCOD.Kind = Statement);
    begin
-      return SCOD.S_Kind in Pragma_Statement | Disabled_Pragma_Statement
-        and then
-          SCOD.Pragma_Name in Pragma_Precondition | Pragma_Postcondition;
+      return
+        SCOD.S_Kind in Pragma_Statement | Disabled_Pragma_Statement
+        and then SCOD.Pragma_Name
+                 in Pragma_Precondition | Pragma_Postcondition;
    end Is_Pragma_Pre_Post_Condition;
 
    -------------
@@ -4234,8 +4241,8 @@ package body SC_Obligations is
    -- Last_SCO --
    --------------
 
-   function Last_SCO return SCO_Id is
-     (SCO_Vector.Last_Index);
+   function Last_SCO return SCO_Id
+   is (SCO_Vector.Last_Index);
 
    ----------------------------
    -- Has_Instrumented_Units --
@@ -4250,8 +4257,7 @@ package body SC_Obligations is
    -- Last_Sloc --
    ---------------
 
-   function Last_Sloc (SCO : SCO_Id) return Source_Location
-   is
+   function Last_Sloc (SCO : SCO_Id) return Source_Location is
       Sloc : Source_Location :=
         Last_Sloc (SCO_Vector.Reference (SCO).Sloc_Range);
    begin
@@ -4270,8 +4276,9 @@ package body SC_Obligations is
       return
         (if CU = No_CU_Id
          then "No CU"
-         else "CU "
-              & Get_Full_Name (CU_Vector.Constant_Reference (CU).Main_Source));
+         else
+           "CU "
+           & Get_Full_Name (CU_Vector.Constant_Reference (CU).Main_Source));
    end Image;
 
    -------------
@@ -4296,8 +4303,7 @@ package body SC_Obligations is
    -- Fingerprint --
    -----------------
 
-   function Fingerprint (CU : CU_Id) return Fingerprint_Type
-   is
+   function Fingerprint (CU : CU_Id) return Fingerprint_Type is
       SID_Infos : constant SID_Info_Maps.Map :=
         CU_Vector.Element (CU).SIDs_Info;
    begin
@@ -4315,8 +4321,7 @@ package body SC_Obligations is
    ---------------
 
    procedure Load_SCOs
-     (ALI_Filename         : String;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp)
+     (ALI_Filename : String; Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
       Units, Deps : SFI_Vector;
       --  Units and dependencies of this compilation
@@ -4326,9 +4331,14 @@ package body SC_Obligations is
 
       Temp_ALI_Annotations : ALI_Annotation_Maps.Map;
 
-      ALI_Index : constant Source_File_Index := Load_ALI
-        (ALI_Filename, Ignored_Source_Files, Units, Deps,
-         Temp_ALI_Annotations, With_SCOs => True);
+      ALI_Index : constant Source_File_Index :=
+        Load_ALI
+          (ALI_Filename,
+           Ignored_Source_Files,
+           Units,
+           Deps,
+           Temp_ALI_Annotations,
+           With_SCOs => True);
       --  Load ALI file and update the last SCO
 
    begin
@@ -4364,12 +4374,19 @@ package body SC_Obligations is
       if Get_File (Main_Source).LI /= No_Source_File then
          Outputs.Fatal_Error
            ("error: the following source file:"
-            & ASCII.LF & "  " & Get_Full_Name (Main_Source, True)
-            & ASCII.LF & "appears as the main source file in:"
-            & ASCII.LF & "  " & ALI_Filename
-            & ASCII.LF & "  "
+            & ASCII.LF
+            & "  "
+            & Get_Full_Name (Main_Source, True)
+            & ASCII.LF
+            & "appears as the main source file in:"
+            & ASCII.LF
+            & "  "
+            & ALI_Filename
+            & ASCII.LF
+            & "  "
             & Get_Full_Name (Get_File (Main_Source).LI, True)
-            & ASCII.LF & "Is the same ALI file provided twice?");
+            & ASCII.LF
+            & "Is the same ALI file provided twice?");
       end if;
 
       --  Check whether this unit is already known. If not, we can finally
@@ -4403,7 +4420,7 @@ package body SC_Obligations is
       for Cur in Created_Units.Iterate loop
          declare
             Source_File : constant Source_File_Index :=
-               Created_Unit_Maps.Key (Cur);
+              Created_Unit_Maps.Key (Cur);
          begin
             Get_File (Source_File).LI := ALI_Index;
          end;
@@ -4423,8 +4440,8 @@ package body SC_Obligations is
    ----------
 
    procedure Free (Infos : in out CU_Load_Info_Vectors.Vector) is
-      procedure Free is new Ada.Unchecked_Deallocation
-        (CU_Load_Info, CU_Load_Info_Access);
+      procedure Free is new
+        Ada.Unchecked_Deallocation (CU_Load_Info, CU_Load_Info_Access);
    begin
       for Info of Infos loop
          Free (Info);
@@ -4437,8 +4454,8 @@ package body SC_Obligations is
    ---------------------
 
    function Main_Source_For
-     (Unit : SCOs.SCO_Unit_Table_Entry;
-      Deps : SFI_Vector) return Source_File_Index
+     (Unit : SCOs.SCO_Unit_Table_Entry; Deps : SFI_Vector)
+      return Source_File_Index
    is
       Result : Source_File_Index;
    begin
@@ -4452,13 +4469,14 @@ package body SC_Obligations is
       Result :=
         (if Deps.Is_Empty
 
-         --  For C, old compilers did not provide a proper deps table: in that
-         --  case, fallback on the inlined file name.
+           --  For C, old compilers did not provide a proper deps table: in
+           --  that case, fallback on the inlined file name.
 
-         then Get_Index_From_Generic_Name
-                (Name                => Unit.File_Name.all,
-                 Kind                => Source_File,
-                 Indexed_Simple_Name => True)
+           then
+           Get_Index_From_Generic_Name
+             (Name                => Unit.File_Name.all,
+              Kind                => Source_File,
+              Indexed_Simple_Name => True)
 
          --  Get source file name from deps table
 
@@ -4477,8 +4495,7 @@ package body SC_Obligations is
    ----------------------------
 
    procedure Append_For_Fingerprint
-     (Unit_Info : in out CU_Load_Info; S : String)
-   is
+     (Unit_Info : in out CU_Load_Info; S : String) is
    begin
       GNAT.SHA1.Update (Unit_Info.Fingerprint_Context, S);
       if SCOs_Trace.Is_Active then
@@ -4487,13 +4504,14 @@ package body SC_Obligations is
    end Append_For_Fingerprint;
 
    procedure Append_For_Fingerprint
-     (Unit_Info : in out CU_Load_Info; Sloc : SCOs.Source_Location)
-   is
+     (Unit_Info : in out CU_Load_Info; Sloc : SCOs.Source_Location) is
    begin
       Append_For_Fingerprint
         (Unit_Info,
-         ":" & Logical_Line_Number'Image (Sloc.Line)
-         & ":" & Column_Number'Image (Sloc.Col));
+         ":"
+         & Logical_Line_Number'Image (Sloc.Line)
+         & ":"
+         & Column_Number'Image (Sloc.Col));
    end Append_For_Fingerprint;
 
    ------------------------
@@ -4504,9 +4522,10 @@ package body SC_Obligations is
      (Infos : out CU_Load_Info_Vectors.Vector;
       Deps  : SFI_Vector := SFI_Vectors.Empty_Vector)
    is
-      package Unit_Maps is new Ada.Containers.Ordered_Maps
-        (Key_Type     => Source_File_Index,
-         Element_Type => CU_Load_Info_Access);
+      package Unit_Maps is new
+        Ada.Containers.Ordered_Maps
+          (Key_Type     => Source_File_Index,
+           Element_Type => CU_Load_Info_Access);
       Units : Unit_Maps.Map;
       --  Map source file indexes to corresponding units in Infos
    begin
@@ -4514,7 +4533,7 @@ package body SC_Obligations is
          declare
             Source_File : Source_File_Index;
             Unit        : SCOs.SCO_Unit_Table_Entry renames
-               SCOs.SCO_Unit_Table.Table (Unit_Index);
+              SCOs.SCO_Unit_Table.Table (Unit_Index);
             Cur         : Unit_Maps.Cursor;
             Unit_Info   : CU_Load_Info_Access;
          begin
@@ -4531,12 +4550,13 @@ package body SC_Obligations is
                if Unit_Maps.Has_Element (Cur) then
                   Unit_Info := Unit_Maps.Element (Cur);
                else
-                  Unit_Info := new CU_Load_Info'
-                    (File_Name_Ptr       => Unit.File_Name,
-                     Source_File         => Source_File,
-                     Entries             => <>,
-                     Fingerprint_Context => <>,
-                     Fingerprint_Buffer  => <>);
+                  Unit_Info :=
+                    new CU_Load_Info'
+                      (File_Name_Ptr       => Unit.File_Name,
+                       Source_File         => Source_File,
+                       Entries             => <>,
+                       Fingerprint_Context => <>,
+                       Fingerprint_Buffer  => <>);
                   Infos.Append (Unit_Info);
                   Units.Insert (Source_File, Unit_Info);
 
@@ -4560,12 +4580,12 @@ package body SC_Obligations is
                for SCO_Index in Unit.From .. Unit.To loop
                   declare
                      E : SCOs.SCO_Table_Entry renames
-                        SCOs.SCO_Table.Table (SCO_Index);
+                       SCOs.SCO_Table.Table (SCO_Index);
                   begin
                      Append_For_Fingerprint (Unit_Info.all, E.From);
                      Append_For_Fingerprint (Unit_Info.all, E.To);
-                     Append_For_Fingerprint (Unit_Info.all,
-                                             String'((E.C1, E.C2)));
+                     Append_For_Fingerprint
+                       (Unit_Info.all, String'((E.C1, E.C2)));
                      if E.Last then
                         Append_For_Fingerprint (Unit_Info.all, "Last");
                      end if;
@@ -4595,7 +4615,8 @@ package body SC_Obligations is
          for Unit_Info of Infos loop
             SCOs_Trace.Trace
               ("Computing fingerprint for "
-               & Unit_Info.File_Name_Ptr.all & " SCOs from:");
+               & Unit_Info.File_Name_Ptr.all
+               & " SCOs from:");
             SCOs_Trace.Trace ("BEGIN ...");
             SCOs_Trace.Trace (+Unit_Info.Fingerprint_Buffer);
             SCOs_Trace.Trace ("... END");
@@ -4668,14 +4689,20 @@ package body SC_Obligations is
 
             Origin_Action : constant String :=
               (case CU.Provider is
-               when Compiler | LLVM => "loading",
-               when Instrumenter => "instrumenting");
+                 when Compiler | LLVM => "loading",
+                 when Instrumenter    => "instrumenting");
          begin
-            Warn ("ignoring duplicate SCOs for "
-                  & Get_Simple_Name (Main_Source)
-                  & " (from " & New_Origin_Full & ")");
-            Warn ("previous SCOs for this unit came from "
-                  & Origin_Action & " " & Old_Origin_Full);
+            Warn
+              ("ignoring duplicate SCOs for "
+               & Get_Simple_Name (Main_Source)
+               & " (from "
+               & New_Origin_Full
+               & ")");
+            Warn
+              ("previous SCOs for this unit came from "
+               & Origin_Action
+               & " "
+               & Old_Origin_Full);
             return No_CU_Id;
          end;
       end if;
@@ -4693,7 +4720,8 @@ package body SC_Obligations is
       case Provider is
          when Compiler | LLVM =>
             New_CU_Info.SCOs_Fingerprint := Fingerprint;
-         when Instrumenter =>
+
+         when Instrumenter    =>
             declare
                Source_Fingerprint_Context : GNAT.SHA1.Context;
                Contents                   : GNAT.Strings.String_Access :=
@@ -4760,8 +4788,7 @@ package body SC_Obligations is
       --  the current SCOE.
 
       function Make_Sloc
-        (SCO_Source_Loc : SCOs.Source_Location)
-         return Local_Source_Location;
+        (SCO_Source_Loc : SCOs.Source_Location) return Local_Source_Location;
       --  Build a Slocs.Source_Location record from the low-level SCO Sloc info
 
       function Add_SCO (SCOD : SCO_Descriptor) return SCO_Id;
@@ -4788,8 +4815,7 @@ package body SC_Obligations is
       ---------------
 
       function Make_Sloc
-        (SCO_Source_Loc : SCOs.Source_Location)
-         return Local_Source_Location
+        (SCO_Source_Loc : SCOs.Source_Location) return Local_Source_Location
       is
          use type SCOs.Source_Location;
       begin
@@ -4805,7 +4831,7 @@ package body SC_Obligations is
       From_Sloc : constant Local_Source_Location := Make_Sloc (SCOE.From);
       To_Sloc   : constant Local_Source_Location := Make_Sloc (SCOE.To);
       SCO_Range : constant Source_Location_Range :=
-                    (Unit.Main_Source, (From_Sloc, To_Sloc));
+        (Unit.Main_Source, (From_Sloc, To_Sloc));
 
       --------------------------
       -- Make_Condition_Value --
@@ -4815,19 +4841,25 @@ package body SC_Obligations is
          use SCO_Sets;
       begin
          case SCOE.C2 is
-            when 'f' => return False;
-            when 't' => return True;
-            when 'c' => return
-              (if Attached_Ctx.True_Static_SCOs.Contains
-                 (SCO_Id (SCO_Index))
-               then True
-               elsif Attached_Ctx.False_Static_SCOs.Contains
-                 (SCO_Id (SCO_Index))
-               then False
-               else Unknown);
+            when 'f'    =>
+               return False;
 
-            when others => raise Program_Error with
-                 "invalid SCO condition value code: " & SCOE.C2;
+            when 't'    =>
+               return True;
+
+            when 'c'    =>
+               return
+                 (if Attached_Ctx.True_Static_SCOs.Contains
+                       (SCO_Id (SCO_Index))
+                  then True
+                  elsif Attached_Ctx.False_Static_SCOs.Contains
+                          (SCO_Id (SCO_Index))
+                  then False
+                  else Unknown);
+
+            when others =>
+               raise Program_Error
+                 with "invalid SCO condition value code: " & SCOE.C2;
          end case;
       end Make_Condition_Value;
 
@@ -4838,11 +4870,13 @@ package body SC_Obligations is
       function New_Operator_SCO (Kind : Operator_Kind) return SCO_Id is
       begin
          pragma Assert (State.Current_Decision /= No_SCO_Id);
-         return Add_SCO ((Kind       => Operator,
-                          Origin     => CU,
-                          Sloc_Range => SCO_Range,
-                          Op_Kind    => Kind,
-                          others     => <>));
+         return
+           Add_SCO
+             ((Kind       => Operator,
+               Origin     => CU,
+               Sloc_Range => SCO_Range,
+               Op_Kind    => Kind,
+               others     => <>));
       end New_Operator_SCO;
 
       -------------------------
@@ -4851,7 +4885,7 @@ package body SC_Obligations is
 
       procedure Update_Decision_BDD (SCOD : in out SCO_Descriptor) is
       begin
-         SCOD.Decision_BDD    := State.Current_BDD;
+         SCOD.Decision_BDD := State.Current_BDD;
          SCOD.Last_Cond_Index := State.Current_Condition_Index;
       end Update_Decision_BDD;
 
@@ -4878,7 +4912,7 @@ package body SC_Obligations is
 
       New_SCO : SCO_Id;
 
-   --  Start of processing for Process_Low_Level_Entry
+      --  Start of processing for Process_Low_Level_Entry
 
    begin
       if To_Sloc.Line > State.Last_Line then
@@ -4886,7 +4920,7 @@ package body SC_Obligations is
       end if;
 
       case SCOE.C1 is
-         when '>' =>
+         when '>'                                     =>
             --  Dominance marker: processed in conjunction with following 'S'
             --  entry.
 
@@ -4899,71 +4933,77 @@ package body SC_Obligations is
 
             else
                case SCOE.C2 is
-                  when 'S' =>
+                  when 'S'       =>
                      State.Dom_Sloc :=
-                        Slocs.To_Sloc (Unit.Main_Source, From_Sloc);
-                     State.Dom_Val  := Unknown;
+                       Slocs.To_Sloc (Unit.Main_Source, From_Sloc);
+                     State.Dom_Val := Unknown;
 
                   when 'T' | 'F' =>
                      State.Dom_Sloc :=
-                        Slocs.To_Sloc (Unit.Main_Source, From_Sloc);
-                     State.Dom_Val  := To_Tristate (SCOE.C2 = 'T');
+                       Slocs.To_Sloc (Unit.Main_Source, From_Sloc);
+                     State.Dom_Val := To_Tristate (SCOE.C2 = 'T');
 
-                  when 'E' =>
+                  when 'E'       =>
                      State.Current_Handler_Range := SCO_Range;
 
-                  when others =>
+                  when others    =>
                      raise Program_Error;
                end case;
             end if;
 
-         when 'S' | 's' | 'C' | 'c' | 'g' =>
+         when 'S' | 's' | 'C' | 'c' | 'g'             =>
             pragma Assert (State.Current_Decision = No_SCO_Id);
 
             if SCOE.C1 = 'c' then
 
                if SCOE.C2 = 'F' then
-                  New_SCO := Add_SCO
-                    (SCO_Descriptor'
-                       (Kind           => Fun,
-                        Origin         => CU,
-                        Sloc_Range     => SCO_Range,
-                        Is_Expr        => False,
-                        others         => <>));
+                  New_SCO :=
+                    Add_SCO
+                      (SCO_Descriptor'
+                         (Kind       => Fun,
+                          Origin     => CU,
+                          Sloc_Range => SCO_Range,
+                          Is_Expr    => False,
+                          others     => <>));
                else
-                  New_SCO := Add_SCO
-                    (SCO_Descriptor'
-                       (Kind           => Call,
-                        Origin         => CU,
-                        Sloc_Range     => SCO_Range,
-                        Is_Expr        => SCOE.C2 = 'E',
-                        others         => <>));
+                  New_SCO :=
+                    Add_SCO
+                      (SCO_Descriptor'
+                         (Kind       => Call,
+                          Origin     => CU,
+                          Sloc_Range => SCO_Range,
+                          Is_Expr    => SCOE.C2 = 'E',
+                          others     => <>));
                end if;
-            elsif SCOE.C1 = 'g' then   -- Guarded expression
-               New_SCO := Add_SCO
-                 (SCO_Descriptor'
-                    (Kind       => Guarded_Expr,
-                     Origin     => CU,
-                     Sloc_Range => SCO_Range,
-                     others     => <>));
+            elsif SCOE.C1 = 'g' then
+               --  Guarded expression
+               New_SCO :=
+                 Add_SCO
+                   (SCO_Descriptor'
+                      (Kind       => Guarded_Expr,
+                       Origin     => CU,
+                       Sloc_Range => SCO_Range,
+                       others     => <>));
             else
-               New_SCO := Add_SCO
-                 (SCO_Descriptor'
-                    (Kind           => Statement,
-                     Origin         => CU,
-                     Sloc_Range     => SCO_Range,
-                     S_Kind         => To_Statement_Kind (SCOE.C2),
-                     Dominant       => State.Dom_SCO,
-                     Dominant_Sloc  => State.Dom_Sloc,
-                     Dominant_Value => State.Dom_Val,
-                     Handler_Range  => State.Current_Handler_Range,
-                     Pragma_Name    => Case_Insensitive_Get_Pragma_Id
-                       (SCOE.Pragma_Aspect_Name),
-                     others         => <>));
+               New_SCO :=
+                 Add_SCO
+                   (SCO_Descriptor'
+                      (Kind           => Statement,
+                       Origin         => CU,
+                       Sloc_Range     => SCO_Range,
+                       S_Kind         => To_Statement_Kind (SCOE.C2),
+                       Dominant       => State.Dom_SCO,
+                       Dominant_Sloc  => State.Dom_Sloc,
+                       Dominant_Value => State.Dom_Val,
+                       Handler_Range  => State.Current_Handler_Range,
+                       Pragma_Name    =>
+                         Case_Insensitive_Get_Pragma_Id
+                           (SCOE.Pragma_Aspect_Name),
+                       others         => <>));
             end if;
 
             State.Current_Handler_Range := No_Range;
-            State.Dom_Val  := Unknown;
+            State.Dom_Val := Unknown;
             State.Dom_Sloc := No_Location;
             if SCOE.Last then
                State.Dom_SCO := No_SCO_Id;
@@ -4975,35 +5015,36 @@ package body SC_Obligations is
             --  Decision
 
             pragma Assert (State.Current_Decision = No_SCO_Id);
-            State.Current_Decision := Add_SCO
-              (SCO_Descriptor'
-                 (Kind                => Decision,
-                  Origin              => CU,
-                  Control_Location    =>
+            State.Current_Decision :=
+              Add_SCO
+                (SCO_Descriptor'
+                   (Kind             => Decision,
+                    Origin           => CU,
+                    Control_Location =>
 
-                  --  Control locations are only useful for dominance
-                  --  markers, which are only used with binary traces. As
-                  --  it is impractical to get the correct location with
-                  --  the C/C++ instrumenter, and as using incorrect slocs
-                  --  can create conflicts, ignore those in the
-                  --  instrumentation case.
+                      --  Control locations are only useful for dominance
+                      --  markers, which are only used with binary traces. As
+                      --  it is impractical to get the correct location with
+                      --  the C/C++ instrumenter, and as using incorrect slocs
+                      --  can create conflicts, ignore those in the
+                      --  instrumentation case.
 
-                    (if Provider = Compiler
-                     then Slocs.To_Sloc (Unit.Main_Source, From_Sloc)
-                     else No_Location),
+                      (if Provider = Compiler
+                       then Slocs.To_Sloc (Unit.Main_Source, From_Sloc)
+                       else No_Location),
 
-                  D_Kind              => To_Decision_Kind (SCOE.C1),
-                  Last_Cond_Index     => 0,
-                  Aspect_Name         =>
-                    Get_Aspect_Id (SCOE.Pragma_Aspect_Name),
-                  others              => <>));
+                    D_Kind           => To_Decision_Kind (SCOE.C1),
+                    Last_Cond_Index  => 0,
+                    Aspect_Name      =>
+                      Get_Aspect_Id (SCOE.Pragma_Aspect_Name),
+                    others           => <>));
             pragma Assert (not SCOE.Last);
 
             State.Current_BDD :=
               BDD.Create (BDD_Vector, State.Current_Decision);
             State.Current_Condition_Index := No_Condition_Index;
 
-         when ' ' =>
+         when ' '                                     =>
             --  Condition
 
             pragma Assert (State.Current_Decision /= No_SCO_Id);
@@ -5014,13 +5055,15 @@ package body SC_Obligations is
 
             State.Current_Condition_Index := State.Current_Condition_Index + 1;
 
-            New_SCO := Add_SCO
-              (SCO_Descriptor'(Kind       => Condition,
-                               Origin     => CU,
-                               Sloc_Range => SCO_Range,
-                               Value      => Make_Condition_Value,
-                               Index      => State.Current_Condition_Index,
-                               others     => <>));
+            New_SCO :=
+              Add_SCO
+                (SCO_Descriptor'
+                   (Kind       => Condition,
+                    Origin     => CU,
+                    Sloc_Range => SCO_Range,
+                    Value      => Make_Condition_Value,
+                    Index      => State.Current_Condition_Index,
+                    others     => <>));
             BDD.Process_Condition (BDD_Vector, State.Current_BDD, New_SCO);
 
             if SCOE.Last then
@@ -5034,26 +5077,24 @@ package body SC_Obligations is
                State.Current_Decision := No_SCO_Id;
             end if;
 
-         when '!' =>
+         when '!'                                     =>
             BDD.Process_Not (New_Operator_SCO (Op_Not), State.Current_BDD);
 
-         when '&' =>
-            BDD.Process_And_Then (BDD_Vector,
-                                  New_Operator_SCO (Op_And_Then),
-                                  State.Current_BDD);
-         when '|' =>
-            BDD.Process_Or_Else (BDD_Vector,
-                                 New_Operator_SCO (Op_Or_Else),
-                                 State.Current_BDD);
+         when '&'                                     =>
+            BDD.Process_And_Then
+              (BDD_Vector, New_Operator_SCO (Op_And_Then), State.Current_BDD);
 
-         when 'H' =>
+         when '|'                                     =>
+            BDD.Process_Or_Else
+              (BDD_Vector, New_Operator_SCO (Op_Or_Else), State.Current_BDD);
+
+         when 'H'                                     =>
             --  Chaining indicator: not used yet
 
             null;
 
-         when others =>
-            raise Program_Error
-              with "unexpected SCO entry code: " & SCOE.C1;
+         when others                                  =>
+            raise Program_Error with "unexpected SCO entry code: " & SCOE.C1;
       end case;
    end Process_Low_Level_Entry;
 
@@ -5087,12 +5128,18 @@ package body SC_Obligations is
 
             First_SCO : constant SCO_Id := SCO_Vector.Last_Index + 1;
 
-            Fingerprint : constant Fingerprint_Type := Fingerprint_Type
-              (GNAT.SHA1.Binary_Message_Digest'
-                 (GNAT.SHA1.Digest (Info.Fingerprint_Context)));
+            Fingerprint : constant Fingerprint_Type :=
+              Fingerprint_Type
+                (GNAT.SHA1.Binary_Message_Digest'
+                   (GNAT.SHA1.Digest (Info.Fingerprint_Context)));
 
-            CU    : constant CU_Id := Allocate_CU
-              (Provider, Origin, Info.Source_File, Fingerprint, Created_Units);
+            CU    : constant CU_Id :=
+              Allocate_CU
+                (Provider,
+                 Origin,
+                 Info.Source_File,
+                 Fingerprint,
+                 Created_Units);
             State : CU_Load_State;
          begin
             State.Last_Line := 0;
@@ -5107,10 +5154,10 @@ package body SC_Obligations is
             --  Impport all SCO entries for this unit
 
             for SCO_Range of Info.Entries loop
-               State.Current_Decision      := No_SCO_Id;
-               State.Dom_SCO               := No_SCO_Id;
-               State.Dom_Sloc              := No_Location;
-               State.Dom_Val               := Unknown;
+               State.Current_Decision := No_SCO_Id;
+               State.Dom_SCO := No_SCO_Id;
+               State.Dom_Sloc := No_Location;
+               State.Dom_Val := Unknown;
                State.Current_Handler_Range := No_Range;
 
                for SCO_Index in SCO_Range.First .. SCO_Range.Last loop
@@ -5139,12 +5186,12 @@ package body SC_Obligations is
 
                Unit.SCOs.Append
                  (SCO_Range'
-                    (First => First_SCO,
-                     Last  => SCO_Vector.Last_Index));
+                    (First => First_SCO, Last => SCO_Vector.Last_Index));
             end;
          end;
 
-         <<Skip_Unit>> null;
+         <<Skip_Unit>>
+         null;
       end loop;
       Free (CU_Load_Infos);
 
@@ -5170,32 +5217,24 @@ package body SC_Obligations is
 
             function Equivalent (L, R : SCO_Descriptor) return Boolean is
             begin
-               if L.Kind /= R.Kind
-                 or else L.Sloc_Range /= R.Sloc_Range
-               then
+               if L.Kind /= R.Kind or else L.Sloc_Range /= R.Sloc_Range then
                   return False;
                end if;
 
                return
                  (case L.Kind is
-                     when Removed =>
-                        raise Program_Error with "unreachable code",
-                     when Statement =>
-                        L.S_Kind = R.S_Kind,
-                     when Condition =>
-                        L.Value = R.Value and then L.Index = R.Index,
-                     when Decision =>
-                        (L.D_Kind = R.D_Kind
-                         and then L.Control_Location = R.Control_Location),
-                     when Operator =>
-                       L.Op_Kind = R.Op_Kind,
-                     when Fun =>
-                       True,
-                     when Call =>
-                       L.Is_Expr = R.Is_Expr,
-                     when Guarded_Expr =>
-                        True
-                 );
+                    when Removed      =>
+                      raise Program_Error with "unreachable code",
+                    when Statement    => L.S_Kind = R.S_Kind,
+                    when Condition    =>
+                      L.Value = R.Value and then L.Index = R.Index,
+                    when Decision     =>
+                      (L.D_Kind = R.D_Kind
+                       and then L.Control_Location = R.Control_Location),
+                    when Operator     => L.Op_Kind = R.Op_Kind,
+                    when Fun          => True,
+                    when Call         => L.Is_Expr = R.Is_Expr,
+                    when Guarded_Expr => True);
             end Equivalent;
 
             ------------------------
@@ -5215,25 +5254,28 @@ package body SC_Obligations is
 
             begin
                SCOs_Trace.Trace
-                 ("Processing: " & Image (SCO)
+                 ("Processing: "
+                  & Image (SCO)
                   & (if SCOD.Kind = Decision
-                     then (if SCOD.Last_Cond_Index > 0
-                           then " (complex)"
-                           else " (simple)")
+                     then
+                       (if SCOD.Last_Cond_Index > 0
+                        then " (complex)"
+                        else " (simple)")
                      else ""));
 
                case SCOD.Kind is
-                  when Removed =>
+                  when Removed              =>
                      raise Program_Error with "unreachable code";
 
-                  when Decision =>
+                  when Decision             =>
                      --  A Decision SCO must have a statement or (in the case
                      --  of a nested decision) a Condition SCO as its parent,
                      --  or no parent at all.
 
-                     pragma Assert (Enclosing_SCO = No_SCO_Id
-                                      or else
-                                    Kind (Enclosing_SCO) /= Decision);
+                     pragma
+                       Assert
+                         (Enclosing_SCO = No_SCO_Id
+                            or else Kind (Enclosing_SCO) /= Decision);
                      SCOD.Parent := Enclosing_SCO;
 
                      if SCOD.Control_Location /= No_Location then
@@ -5243,28 +5285,28 @@ package body SC_Obligations is
 
                      Add_SCO_To_Lines (SCO, SCOD);
 
-                  when Statement =>
+                  when Statement            =>
 
                      if (Enclosing_SCO /= No_SCO_Id
                          and then Equivalent
-                           (SCOD, SCO_Vector (Enclosing_SCO)))
-                        --  The only form of SCO overlapping we allow is SCO
-                        --  nesting. A statement can contain nested statements,
-                        --  e.g. with C++ lambda expressions.  We reject every
-                        --  other kind of overlapping.
-                        --
-                        --  TODO??? With C headers, we can have multiple times
-                        --  the same SCO if the header is included multiple
-                        --  times. This will result in a buggy behavior if the
-                        --  included code expansion varies (as we may accept
-                        --  nested SCO that come from the second inclusion, but
-                        --  that are nested in a SCO from the first inclusion,
-                        --  which makes no sense). Consider this as a marginal
-                        --  use case for now.
+                                    (SCOD, SCO_Vector (Enclosing_SCO)))
+                       --  The only form of SCO overlapping we allow is SCO
+                       --  nesting. A statement can contain nested statements,
+                       --  e.g. with C++ lambda expressions.  We reject every
+                       --  other kind of overlapping.
+                       --
+                       --  TODO??? With C headers, we can have multiple times
+                       --  the same SCO if the header is included multiple
+                       --  times. This will result in a buggy behavior if the
+                       --  included code expansion varies (as we may accept
+                       --  nested SCO that come from the second inclusion, but
+                       --  that are nested in a SCO from the first inclusion,
+                       --  which makes no sense). Consider this as a marginal
+                       --  use case for now.
 
-                        or else Invalid_Overlap (SCOD, Enclosing_SCO)
-                        or else Invalid_Overlap
-                          (SCOD, Sloc_To_SCO (Last_Sloc (Sloc_Range)))
+                       or else Invalid_Overlap (SCOD, Enclosing_SCO)
+                       or else Invalid_Overlap
+                                 (SCOD, Sloc_To_SCO (Last_Sloc (Sloc_Range)))
                      then
                         return;
                      end if;
@@ -5276,11 +5318,11 @@ package body SC_Obligations is
 
                      null;
 
-                  when Fun_Call_SCO_Kind =>
+                  when Fun_Call_SCO_Kind    =>
                      SCOD.Parent := Enclosing_SCO;
                      Add_SCO_To_Lines (SCO, SCOD);
 
-                  when Guarded_Expr =>
+                  when Guarded_Expr         =>
                      SCOD.Parent := Enclosing_SCO;
                      Add_SCO_To_Lines (SCO, SCOD);
 
@@ -5291,7 +5333,7 @@ package body SC_Obligations is
 
                   Map      : constant access Sloc_To_SCO_Maps.Map :=
                     Writeable_Sloc_To_SCO_Map
-                       (Sloc_Range.Source_File, SCOD.Kind);
+                      (Sloc_Range.Source_File, SCOD.Kind);
                   Cur      : Sloc_To_SCO_Maps.Cursor;
                   Inserted : Boolean;
                begin
@@ -5336,8 +5378,7 @@ package body SC_Obligations is
             --  Set SCOD.Dominant (if unset) to the innermost SCO containing
             --  SCOD.Dominant_Sloc.
 
-            if SCOD.Kind = Statement
-                 and then SCOD.Dominant_Sloc /= No_Location
+            if SCOD.Kind = Statement and then SCOD.Dominant_Sloc /= No_Location
             then
                pragma Assert (SCOD.Dominant = No_SCO_Id);
 
@@ -5355,7 +5396,7 @@ package body SC_Obligations is
                   --  enclosing statement SCO.
 
                   if Dom_Sloc_SCO /= No_SCO_Id
-                     and then Kind (Dom_Sloc_SCO) = Condition
+                    and then Kind (Dom_Sloc_SCO) = Condition
                   then
                      Dom_Sloc_SCO := Enclosing_Statement (Dom_Sloc_SCO);
                   end if;
@@ -5364,21 +5405,21 @@ package body SC_Obligations is
                   --  for a dominant that is a disabled pragma Debug, older
                   --  compiler versions used to omit the statement SCO.
 
-                  pragma Assert
-                    (Dom_Sloc_SCO = No_SCO_Id
-                       or else Kind (Dom_Sloc_SCO) = Statement);
+                  pragma
+                    Assert
+                      (Dom_Sloc_SCO = No_SCO_Id
+                         or else Kind (Dom_Sloc_SCO) = Statement);
 
                else
                   --  Case of >T / >F: dominant SCO is a decision
 
-                  if Sloc_To_SCO_Map
-                       (SCOD.Dominant_Sloc.Source_File, Decision)
-                     .Contains ((SCOD.Dominant_Sloc.L, No_Local_Location))
+                  if Sloc_To_SCO_Map (SCOD.Dominant_Sloc.Source_File, Decision)
+                       .Contains ((SCOD.Dominant_Sloc.L, No_Local_Location))
                   then
                      Dom_Sloc_SCO :=
                        Sloc_To_SCO_Map
                          (SCOD.Dominant_Sloc.Source_File, Decision)
-                       .Element ((SCOD.Dominant_Sloc.L, No_Local_Location));
+                         .Element ((SCOD.Dominant_Sloc.L, No_Local_Location));
                      pragma Assert (Kind (Dom_Sloc_SCO) = Decision);
                   elsif Ignored_Slocs_Set.Contains (SCOD.Dominant_Sloc) then
 
@@ -5389,7 +5430,8 @@ package body SC_Obligations is
                   else
                      Report
                        (First_Sloc (SCOD.Sloc_Range),
-                        "dominant decision of statement " & Image (SCO)
+                        "dominant decision of statement "
+                        & Image (SCO)
                         & " has no associated SCO"
                         & ", discarding dominance information");
                      Dom_Sloc_SCO := No_SCO_Id;
@@ -5407,20 +5449,17 @@ package body SC_Obligations is
    -------------------
 
    function Next_BDD_Node
-     (Vectors : Source_Coverage_Vectors;
-      SCO   : SCO_Id;
-      Value : Boolean) return BDD_Node_Id
+     (Vectors : Source_Coverage_Vectors; SCO : SCO_Id; Value : Boolean)
+      return BDD_Node_Id
    is
       use BDD;
       BDD_Node : constant BDD_Node_Id :=
-         Vectors.SCO_Vector.Constant_Reference (SCO).BDD_Node;
+        Vectors.SCO_Vector.Constant_Reference (SCO).BDD_Node;
    begin
       return Vectors.BDD_Vector.Constant_Reference (BDD_Node).Dests (Value);
    end Next_BDD_Node;
 
-   function Next_BDD_Node
-     (SCO   : SCO_Id;
-      Value : Boolean) return BDD_Node_Id
+   function Next_BDD_Node (SCO : SCO_Id; Value : Boolean) return BDD_Node_Id
    is (Next_BDD_Node (SC_Vectors, SCO, Value));
 
    --------------------
@@ -5430,7 +5469,7 @@ package body SC_Obligations is
    function Next_Condition (SCO : SCO_Id; Value : Boolean) return SCO_Id is
       use BDD;
       BDDN : constant BDD_Node :=
-               BDD_Vector.Element (Next_BDD_Node (SCO, Value));
+        BDD_Vector.Element (Next_BDD_Node (SCO, Value));
    begin
       if BDDN.Kind = Condition then
          return BDDN.C_SCO;
@@ -5474,9 +5513,8 @@ package body SC_Obligations is
    -------------
 
    function Outcome
-     (Vectors : Source_Coverage_Vectors;
-      SCO : SCO_Id;
-      Value : Boolean) return Tristate
+     (Vectors : Source_Coverage_Vectors; SCO : SCO_Id; Value : Boolean)
+      return Tristate
    is
       use BDD;
       Cond_SCO   : SCO_Id := SCO;
@@ -5485,11 +5523,11 @@ package body SC_Obligations is
       loop
          declare
             BDDN : constant BDD_Node :=
-               Vectors.BDD_Vector.Constant_Reference
-                 (Next_BDD_Node (Vectors, Cond_SCO, Cond_Value));
+              Vectors.BDD_Vector.Constant_Reference
+                (Next_BDD_Node (Vectors, Cond_SCO, Cond_Value));
          begin
             case BDDN.Kind is
-               when Outcome =>
+               when Outcome   =>
                   return To_Tristate (BDDN.Decision_Outcome);
 
                when Condition =>
@@ -5504,7 +5542,7 @@ package body SC_Obligations is
                      Cond_Value := To_Boolean (Next_Value);
                   end;
 
-               when others =>
+               when others    =>
                   raise Program_Error;
             end case;
          end;
@@ -5512,25 +5550,24 @@ package body SC_Obligations is
    end Outcome;
 
    function Outcome (SCO : SCO_Id; Value : Boolean) return Tristate
-      is (Outcome (SC_Vectors, SCO, Value));
+   is (Outcome (SC_Vectors, SCO, Value));
 
    -----------
    -- Value --
    -----------
 
    function Value
-     (Vectors : Source_Coverage_Vectors;
-      SCO     : SCO_Id) return Tristate
+     (Vectors : Source_Coverage_Vectors; SCO : SCO_Id) return Tristate
    is
       SCOD : SCO_Descriptor renames
-         Vectors.SCO_Vector.Constant_Reference (SCO);
+        Vectors.SCO_Vector.Constant_Reference (SCO);
       pragma Assert (SCOD.Kind = Condition);
    begin
       return SCOD.Value;
    end Value;
 
    function Value (SCO : SCO_Id) return Tristate
-      is (Value (SC_Vectors, SCO));
+   is (Value (SC_Vectors, SCO));
 
    ------------
    -- Parent --
@@ -5563,21 +5600,17 @@ package body SC_Obligations is
    -- Get_Path_Count_Limit --
    --------------------------
 
-   function Get_Path_Count_Limit return Natural is
-     (SC_Obligations.BDD.Path_Count_Limit);
+   function Get_Path_Count_Limit return Natural
+   is (SC_Obligations.BDD.Path_Count_Limit);
 
    --------------------
    -- Prealloc_Lines --
    --------------------
 
    procedure Prealloc_Lines
-     (Cur_Source_File : Source_File_Index;
-      Last_Line       : in out Natural)
-   is
+     (Cur_Source_File : Source_File_Index; Last_Line : in out Natural) is
    begin
-      if Cur_Source_File /= No_Source_File
-        and then Last_Line > 0
-      then
+      if Cur_Source_File /= No_Source_File and then Last_Line > 0 then
          Expand_Line_Table (Cur_Source_File, Last_Line);
          Last_Line := 0;
       end if;
@@ -5648,19 +5681,20 @@ package body SC_Obligations is
             then
                Report
                  (First_Sloc (SCOD.Sloc_Range),
-                  Msg  => "no conditional branch (in "
-                            & Decision_Kind'Image (SCO_Vector (D_SCO).D_Kind)
-                            & ")",
+                  Msg  =>
+                    "no conditional branch (in "
+                    & Decision_Kind'Image (SCO_Vector (D_SCO).D_Kind)
+                    & ")",
                   Kind => Diagnostics.Error);
 
-               --  Interesting property: we can never do without a condition
-               --  using inference of condition values from BDD position,
-               --  because that would require that both outgoing edges from the
-               --  condition also are conditions (not outcomes), and that can't
-               --  happen in a short circuit expression without a multipath
-               --  condition; this would require a BDD involving the Sel
-               --  ternary operator:
-               --    Sel (A, B, C) = (A and then B) or else (not A and then C)
+            --  Interesting property: we can never do without a condition
+            --  using inference of condition values from BDD position,
+            --  because that would require that both outgoing edges from the
+            --  condition also are conditions (not outcomes), and that can't
+            --  happen in a short circuit expression without a multipath
+            --  condition; this would require a BDD involving the Sel
+            --  ternary operator:
+            --    Sel (A, B, C) = (A and then B) or else (not A and then C)
 
             end if;
          end;
@@ -5779,9 +5813,9 @@ package body SC_Obligations is
       while BDD_Vector.Constant_Reference (Cur).Kind = Condition loop
          declare
             C_SCO : constant SCO_Id :=
-               BDD_Vector.Constant_Reference (Cur).C_SCO;
+              BDD_Vector.Constant_Reference (Cur).C_SCO;
             Index : constant Condition_Index :=
-               SCO_Vector.Element (C_SCO).Index;
+              SCO_Vector.Element (C_SCO).Index;
             Value : constant Boolean := Static_Vec (Index);
          begin
             Vec (Index) := To_Tristate (Value);
@@ -5803,10 +5837,10 @@ package body SC_Obligations is
    begin
       return
         (for all SCO of Bit_Maps.Statement_Bits.all => SCO in SCO_Range)
-        and then (for all Info of Bit_Maps.Decision_Bits.all
-                  => Info.D_SCO in SCO_Range)
-        and then (for all Info of Bit_Maps.MCDC_Bits.all
-                  => Info.D_SCO in SCO_Range);
+        and then (for all Info of Bit_Maps.Decision_Bits.all =>
+                    Info.D_SCO in SCO_Range)
+        and then (for all Info of Bit_Maps.MCDC_Bits.all =>
+                    Info.D_SCO in SCO_Range);
    end Are_Bit_Maps_In_Range;
 
    ------------------
@@ -5816,11 +5850,11 @@ package body SC_Obligations is
    procedure Set_Bit_Maps (CU : CU_Id; Bit_Maps : CU_Bit_Maps) is
       use GNAT.SHA1;
 
-      Info : CU_Info renames CU_Vector.Reference (CU);
+      Info       : CU_Info renames CU_Vector.Reference (CU);
       CU_Version : SID_Info renames
         Info.SIDs_Info.Reference (Info.SIDs_Info.First);
-      Ctx  : GNAT.SHA1.Context;
-      LF   : constant String := (1 => ASCII.LF);
+      Ctx        : GNAT.SHA1.Context;
+      LF         : constant String := (1 => ASCII.LF);
 
       procedure Update (SCO : SCO_Id);
       --  Helper for fingerprint computation: update Ctx to include a reference
@@ -5879,8 +5913,9 @@ package body SC_Obligations is
       end loop;
       Update (Ctx, LF);
 
-      CU_Version.Bit_Maps_Fingerprint := Fingerprint_Type
-        (GNAT.SHA1.Binary_Message_Digest'(GNAT.SHA1.Digest (Ctx)));
+      CU_Version.Bit_Maps_Fingerprint :=
+        Fingerprint_Type
+          (GNAT.SHA1.Binary_Message_Digest'(GNAT.SHA1.Digest (Ctx)));
    end Set_Bit_Maps;
 
    ----------------
@@ -5888,7 +5923,7 @@ package body SC_Obligations is
    ----------------
 
    procedure Set_Blocks (CU : CU_Id; Blocks : SCO_Id_Vector_Vector) is
-      Info : CU_Info renames CU_Vector.Reference (CU);
+      Info       : CU_Info renames CU_Vector.Reference (CU);
       CU_Version : SID_Info renames
         Info.SIDs_Info.Reference (Info.SIDs_Info.First);
    begin
@@ -5899,8 +5934,7 @@ package body SC_Obligations is
    -- Set_Annotations --
    ---------------------
 
-   procedure Set_Annotations (Annotations : ALI_Annotation_Maps.Map)
-   is
+   procedure Set_Annotations (Annotations : ALI_Annotation_Maps.Map) is
       use GNAT.SHA1;
 
       Current_SFI : Source_File_Index := No_Source_File;
@@ -5922,8 +5956,7 @@ package body SC_Obligations is
             declare
                SID_Maps : SID_Info_Maps.Map renames
                  CU_Vector.Reference (Current_CU).SIDs_Info;
-               SID      : SID_Info renames
-                 SID_Maps.Reference (SID_Maps.First);
+               SID      : SID_Info renames SID_Maps.Reference (SID_Maps.First);
             begin
                SID.Annotations_Fingerprint :=
                  Fingerprint_Type
@@ -6026,8 +6059,8 @@ package body SC_Obligations is
          --    ordering).
 
          if SE.Source_Range.L.First_Sloc < Lower_Bound then
-            raise Failure with
-              "source range lower bound too low for " & Image (SE);
+            raise Failure
+              with "source range lower bound too low for " & Image (SE);
          end if;
          Lower_Bound := SE.Source_Range.L.First_Sloc;
          Last := SE.Source_Range.L.First_Sloc;
@@ -6041,8 +6074,7 @@ package body SC_Obligations is
 
             Lower_Bound :=
               Local_Source_Location'
-                (Line   => Lower_Bound.Line,
-                 Column => Lower_Bound.Column + 1);
+                (Line => Lower_Bound.Line, Column => Lower_Bound.Column + 1);
          end loop;
 
          --  Check that the SCO range upper bound is greater or equal to
@@ -6050,15 +6082,15 @@ package body SC_Obligations is
          --  second half of the nesting check).
 
          if SE.Source_Range.L.Last_Sloc < Last then
-            raise Failure with
-              "Source location bound too low for " & Image (SE);
+            raise Failure
+              with "Source location bound too low for " & Image (SE);
          end if;
          Lower_Bound := SE.Source_Range.L.Last_Sloc;
       end Check_Element;
 
       Cur : Cursor := First_Child (Tree.Root);
 
-   --  Start of processing for SCOs_Nested_And_Ordered
+      --  Start of processing for SCOs_Nested_And_Ordered
 
    begin
       while Has_Element (Cur) loop
@@ -6088,8 +6120,8 @@ package body SC_Obligations is
    -----------
 
    function Floor
-     (Tree : Scope_Entities_Trees.Tree;
-      Sloc : Source_Location) return Scope_Entities_Trees.Cursor
+     (Tree : Scope_Entities_Trees.Tree; Sloc : Source_Location)
+      return Scope_Entities_Trees.Cursor
    is
       use Scope_Entities_Trees;
 
@@ -6118,19 +6150,16 @@ package body SC_Obligations is
    -- Covers_SCO --
    ----------------
 
-   function Covers_SCO
-     (ST : Scope_Traversal_Type; SCO : SCO_Id) return Boolean
-   is
-     ((SCO_Vector (SCO).Kind = Fun
-      and then Scope_Entities_Trees.Is_Root (ST.Cur))
-      or else Covers_SCO (Scope_Entities_Trees.Element (ST.Cur), SCO));
+   function Covers_SCO (ST : Scope_Traversal_Type; SCO : SCO_Id) return Boolean
+   is ((SCO_Vector (SCO).Kind = Fun
+        and then Scope_Entities_Trees.Is_Root (ST.Cur))
+       or else Covers_SCO (Scope_Entities_Trees.Element (ST.Cur), SCO));
 
    ------------------
    -- Contains_SCO --
    ------------------
 
-   function Contains_SCO (SCO : SCO_Id; CU : CU_Id) return Boolean
-   is
+   function Contains_SCO (SCO : SCO_Id; CU : CU_Id) return Boolean is
       Unit : CU_Info renames CU_Vector.Reference (CU);
    begin
       for SCO_Range of Unit.SCOs loop
@@ -6169,9 +6198,7 @@ package body SC_Obligations is
    -------------------------------
 
    procedure Set_Operand_Or_Expression
-     (SCO      : SCO_Id;
-      Position : Operand_Position;
-      Expr     : SCO_Id)
+     (SCO : SCO_Id; Position : Operand_Position; Expr : SCO_Id)
    is
       SCOD      : SCO_Descriptor renames SCO_Vector.Reference (SCO);
       Expr_SCOD : SCO_Descriptor renames SCO_Vector.Reference (Expr);
@@ -6185,7 +6212,7 @@ package body SC_Obligations is
          when Decision =>
             SCOD.Expression := Expr;
 
-         when others =>
+         when others   =>
             raise Program_Error with "unreachable code";
       end case;
    end Set_Operand_Or_Expression;
@@ -6234,8 +6261,7 @@ package body SC_Obligations is
    --  lines.
 
    procedure Mark_Ignored_Units
-     (Ignored_Source_Files : access GNAT.Regexp.Regexp;
-      Deps                 : SFI_Vector);
+     (Ignored_Source_Files : access GNAT.Regexp.Regexp; Deps : SFI_Vector);
    --  Mark SCOs.SCO_Unit_Table entries to be ignored by setting their Dep_Num
    --  to Missing_Dep_Num.
 
@@ -6275,8 +6301,7 @@ package body SC_Obligations is
    ------------------------
 
    procedure Mark_Ignored_Units
-     (Ignored_Source_Files : access GNAT.Regexp.Regexp;
-      Deps                 : SFI_Vector)
+     (Ignored_Source_Files : access GNAT.Regexp.Regexp; Deps : SFI_Vector)
    is
       use SCOs;
       Deps_Present : constant Boolean := not Deps.Is_Empty;
@@ -6292,8 +6317,8 @@ package body SC_Obligations is
             SFI : constant Source_File_Index :=
               (if Deps_Present
                then Deps.Element (U.Dep_Num)
-               else Get_Index_From_Generic_Name
-                      (U.File_Name.all, Source_File));
+               else
+                 Get_Index_From_Generic_Name (U.File_Name.all, Source_File));
             --  Source file corresponding to this unit. Use the name from the
             --  SCO "C" line if there are no list of dependencies ("D" lines,
             --  missing for old GLI files for C).
@@ -6355,8 +6380,7 @@ package body SC_Obligations is
    -- Get_All_Annotations --
    -------------------------
 
-   function Get_All_Annotations return ALI_Annotation_Maps.Map
-   is
+   function Get_All_Annotations return ALI_Annotation_Maps.Map is
       use ALI_Annotation_Maps;
       Result : Map;
    begin
@@ -6375,7 +6399,8 @@ package body SC_Obligations is
    procedure Inc_Violation_Exemption_Count (Sloc : Source_Location) is
       E : ALI_Annotation renames
         CU_Vector.Reference (Comp_Unit (Sloc.Source_File))
-        .ALI_Annotations.Reference (Sloc);
+          .ALI_Annotations
+          .Reference (Sloc);
    begin
       E.Violation_Count := E.Violation_Count + 1;
    end Inc_Violation_Exemption_Count;
@@ -6387,7 +6412,8 @@ package body SC_Obligations is
    procedure Inc_Undet_Cov_Exemption_Count (Sloc : Source_Location) is
       E : ALI_Annotation renames
         CU_Vector.Reference (Comp_Unit (Sloc.Source_File))
-        .ALI_Annotations.Reference (Sloc);
+          .ALI_Annotations
+          .Reference (Sloc);
    begin
       E.Undetermined_Cov_Count := E.Undetermined_Cov_Count + 1;
    end Inc_Undet_Cov_Exemption_Count;
@@ -6505,9 +6531,12 @@ package body SC_Obligations is
 
       function Check_Message (M1, M2 : String_Access) return Boolean is
       begin
-         return False
-           or else M1 = null or else M1.all = ""
-           or else M2 = null or else M2.all = ""
+         return
+           False
+           or else M1 = null
+           or else M1.all = ""
+           or else M2 = null
+           or else M2.all = ""
            or else M1.all = M2.all;
       end Check_Message;
 
@@ -6532,8 +6561,8 @@ package body SC_Obligations is
                begin
                   if Next_Line = Line.all then
                      Report
-                        ("ignoring duplicate line in ALI file "
-                         & ALI_Filename, Kind => Warning);
+                       ("ignoring duplicate line in ALI file " & ALI_Filename,
+                        Kind => Warning);
 
                   else
                      Free (Line);
@@ -6607,19 +6636,19 @@ package body SC_Obligations is
 
       --  Local variables
 
-      No_Object                  : Boolean := False;
+      No_Object : Boolean := False;
       --  Set True if the P line contains the NO flag
 
       Preserve_Control_Flow_Seen : Boolean := False;
       --  Set True if unit has been compiled with -fpreserve-control-flow
 
-      Dump_SCOs_Seen             : Boolean := False;
+      Dump_SCOs_Seen : Boolean := False;
       --  Set True if unit has been compiled with -fdump-scos (or -gnateS)
 
-      Debug_Seen                 : Boolean := False;
+      Debug_Seen : Boolean := False;
       --  Set True if unit has been compiled with -g
 
-      Profile_Arcs_Seen          : Boolean := False;
+      Profile_Arcs_Seen : Boolean := False;
       --  Set True if unit has been compiled with -fprofile-arcs
 
       Expected_Annotation_Kind : ALI_Annotation_Kind;
@@ -6629,7 +6658,7 @@ package body SC_Obligations is
       --  the Exempt_Off message must be either empty or identical to the
       --  Exempt_On one.
 
-   --  Start of processing for Load_ALI
+      --  Start of processing for Load_ALI
 
    begin
       pragma Assert (Deps.Last_Index = 0);
@@ -6637,16 +6666,16 @@ package body SC_Obligations is
       --  First check whether this ALI has been already loaded. We identify
       --  this by the fact that it already has an assigned Source_File_Index.
 
-      ALI_Index := Get_Index_From_Full_Name
-        (ALI_Filename, Library_File, Insert => False);
+      ALI_Index :=
+        Get_Index_From_Full_Name (ALI_Filename, Library_File, Insert => False);
       if ALI_Index /= No_Source_File then
          Report
            ("ignoring duplicate ALI file " & ALI_Filename, Kind => Warning);
          return No_Source_File;
       end if;
 
-      ALI_Index := Get_Index_From_Full_Name
-        (ALI_Filename, Library_File, Insert => True);
+      ALI_Index :=
+        Get_Index_From_Full_Name (ALI_Filename, Library_File, Insert => True);
       Log_File_Open (ALI_Filename);
       Open (ALI_File, In_File, ALI_Filename);
 
@@ -6658,18 +6687,18 @@ package body SC_Obligations is
       begin
          Match (V_Matcher, V_Line, Matches);
          if Matches (0) = No_Match then
-            Error_Msg :=
-              +("malformed ALI file """ & ALI_Filename & """");
+            Error_Msg := +("malformed ALI file """ & ALI_Filename & """");
 
             if V_Line'Length > 3
-                 and then
-               To_Lower (V_Line (V_Line'Last - 3 .. V_Line'Last)) = ".ali"
+              and then To_Lower (V_Line (V_Line'Last - 3 .. V_Line'Last))
+                       = ".ali"
             then
                Append
                  (Error_Msg,
                   ASCII.LF
                   & "to load ALIs from list use ""--scos=@"
-                  & ALI_Filename & """");
+                  & ALI_Filename
+                  & """");
             end if;
             Fatal_Error (+Error_Msg);
          end if;
@@ -6680,9 +6709,10 @@ package body SC_Obligations is
       SCOs_Trace.Trace ("Loading SCOs from " & ALI_Filename);
 
       Expected_Annotation_Kind := Exempt_On;
-      Expected_Annotation_Msg  := null;
+      Expected_Annotation_Msg := null;
 
-      Scan_ALI : while not End_Of_File (ALI_File) loop
+      Scan_ALI :
+      while not End_Of_File (ALI_File) loop
          loop
             Free (Line);
             Line := new String'(Get_Stripped_Line (ALI_File));
@@ -6690,13 +6720,11 @@ package body SC_Obligations is
          end loop;
 
          case Line (1) is
-            when 'A' =>
+            when 'A'    =>
                if Line.all = "A -fpreserve-control-flow" then
                   Preserve_Control_Flow_Seen := True;
 
-               elsif Line.all = "A -fdump-scos"
-                       or else
-                     Line.all = "A -gnateS"
+               elsif Line.all = "A -fdump-scos" or else Line.all = "A -gnateS"
                then
                   Dump_SCOs_Seen := True;
 
@@ -6707,14 +6735,13 @@ package body SC_Obligations is
                   Profile_Arcs_Seen := True;
                end if;
 
-            when 'P' =>
+            when 'P'    =>
                declare
                   P_Start : Integer;
                begin
                   P_Start := 2;
                   loop
-                     while P_Start <= Line'Last
-                       and then Line (P_Start) = ' '
+                     while P_Start <= Line'Last and then Line (P_Start) = ' '
                      loop
                         P_Start := P_Start + 1;
                      end loop;
@@ -6722,7 +6749,7 @@ package body SC_Obligations is
 
                      declare
                         Param : constant String (1 .. 2) :=
-                                  Line (P_Start .. P_Start + 1);
+                          Line (P_Start .. P_Start + 1);
                      begin
                         if Param = "NO" then
                            No_Object := True;
@@ -6733,14 +6760,14 @@ package body SC_Obligations is
                   end loop;
                end;
 
-            when 'U' =>
+            when 'U'    =>
                Match (U_Matcher, Line (3 .. Line'Last), Matches);
                if Matches (0) /= No_Match then
-                  Units.Append (Get_Index_From_Generic_Name (Match (1),
-                                                             Source_File));
+                  Units.Append
+                    (Get_Index_From_Generic_Name (Match (1), Source_File));
                end if;
 
-            when 'D' =>
+            when 'D'    =>
                Match (D_Matcher, Line (3 .. Line'Last), Matches);
                if Matches (0) /= No_Match then
 
@@ -6750,11 +6777,12 @@ package body SC_Obligations is
                   --  they are in the units of interest. So consider them as
                   --  stubs at this stage.
 
-                  Deps.Append (Get_Index_From_Generic_Name
-                    (Unquote (Match (1)), Stub_File));
+                  Deps.Append
+                    (Get_Index_From_Generic_Name
+                       (Unquote (Match (1)), Stub_File));
                end if;
 
-            when 'N' =>
+            when 'N'    =>
                declare
                   Annotation : ALI_Annotation;
                   Valid      : Boolean;
@@ -6773,18 +6801,17 @@ package body SC_Obligations is
                            --  current compilation unit but some other one
                            --  identified explicitly.
 
-                           Note_SFI := Get_Index_From_Generic_Name
-                                         (Note_SFN (Note_SFN'First + 1
-                                                 .. Note_SFN'Last),
-                                          Source_File);
+                           Note_SFI :=
+                             Get_Index_From_Generic_Name
+                               (Note_SFN (Note_SFN'First + 1 .. Note_SFN'Last),
+                                Source_File);
                         end if;
 
                         Sloc :=
                           (Source_File => Note_SFI,
-                           L           => (Line   =>
-                                             Integer'Value (Match (1)),
-                                           Column =>
-                                             Integer'Value (Match (2))));
+                           L           =>
+                             (Line   => Integer'Value (Match (1)),
+                              Column => Integer'Value (Match (2))));
                      end;
 
                      Valid := True;
@@ -6794,9 +6821,10 @@ package body SC_Obligations is
                      begin
                         Annotation :=
                           (Kind    => ALI_Annotation_Kind'Value (Match (4)),
-                           Message => (if Msg'Length > 0
-                                       then new String'(Msg)
-                                       else null),
+                           Message =>
+                             (if Msg'Length > 0
+                              then new String'(Msg)
+                              else null),
                            others  => <>);
                      exception
                         when Constraint_Error =>
@@ -6806,20 +6834,26 @@ package body SC_Obligations is
 
                      if Valid then
                         if Annotation.Kind /= Expected_Annotation_Kind then
-                           Report (Sloc, "unexpected "
-                                   & Annotation.Kind'Img & " "
-                                   & Annotation.Message.all
-                                   & " (expected "
-                                   & Expected_Annotation_Kind'Img
-                                   & ")");
+                           Report
+                             (Sloc,
+                              "unexpected "
+                              & Annotation.Kind'Img
+                              & " "
+                              & Annotation.Message.all
+                              & " (expected "
+                              & Expected_Annotation_Kind'Img
+                              & ")");
                         elsif not Check_Message
-                                (Annotation.Message, Expected_Annotation_Msg)
+                                    (Annotation.Message,
+                                     Expected_Annotation_Msg)
                         then
-                           Report (Sloc, "unexpected EXEMPT_OFF "
-                                   & Annotation.Message.all
-                                   & " (expected "
-                                   & Expected_Annotation_Msg.all
-                                   & ")");
+                           Report
+                             (Sloc,
+                              "unexpected EXEMPT_OFF "
+                              & Annotation.Message.all
+                              & " (expected "
+                              & Expected_Annotation_Msg.all
+                              & ")");
                         end if;
 
                         if Annotation.Kind = Exempt_On then
@@ -6828,11 +6862,11 @@ package body SC_Obligations is
                            end if;
 
                            Expected_Annotation_Kind := Exempt_Off;
-                           Expected_Annotation_Msg  := Annotation.Message;
+                           Expected_Annotation_Msg := Annotation.Message;
 
                         else
                            Expected_Annotation_Kind := Exempt_On;
-                           Expected_Annotation_Msg  := null;
+                           Expected_Annotation_Msg := null;
                         end if;
 
                         ALI_Annotations.Insert
@@ -6841,7 +6875,7 @@ package body SC_Obligations is
                   end if;
                end;
 
-            when 'C' =>
+            when 'C'    =>
                exit Scan_ALI;
 
             when others =>
@@ -6854,12 +6888,12 @@ package body SC_Obligations is
             use ALI_Annotation_Maps;
             Last_Ann_Cursor : constant Cursor := ALI_Annotations.Last;
             Last_Ann_Sloc   : constant Source_Location :=
-                                Key (Last_Ann_Cursor);
+              Key (Last_Ann_Cursor);
             Last_Ann        : constant ALI_Annotation :=
-                                Element (Last_Ann_Cursor);
+              Element (Last_Ann_Cursor);
          begin
-            Report (Last_Ann_Sloc,
-              "missing Exempt_Off " & Last_Ann.Message.all);
+            Report
+              (Last_Ann_Sloc, "missing Exempt_Off " & Last_Ann.Message.all);
          end;
       end if;
 
@@ -6931,15 +6965,15 @@ package body SC_Obligations is
    ------------------
 
    function Sloc_To_SCO
-     (Sloc              : Source_Location;
-      Include_Decisions : Boolean := False) return SCO_Id
+     (Sloc : Source_Location; Include_Decisions : Boolean := False)
+      return SCO_Id
    is
       use Sloc_To_SCO_Maps;
 
-      L_Sloc    : Source_Location := Sloc;
-      Cur       : Cursor;
-      SCO       : SCO_Id;
-      SCO_Sloc  : Local_Source_Location_Range;
+      L_Sloc   : Source_Location := Sloc;
+      Cur      : Cursor;
+      SCO      : SCO_Id;
+      SCO_Sloc : Local_Source_Location_Range;
 
    begin
       if Sloc.Source_File = No_Source_File then
@@ -6949,8 +6983,9 @@ package body SC_Obligations is
       --  If looking up the sloc of a NOT operator, return SCO of innermost
       --  operand, if it is a condition.
 
-      Cur := Sloc_To_SCO_Map (Sloc.Source_File, Operator).Find
-        ((Sloc.L, No_Local_Location));
+      Cur :=
+        Sloc_To_SCO_Map (Sloc.Source_File, Operator).Find
+          ((Sloc.L, No_Local_Location));
       if Cur /= No_Element then
          SCO := Element (Cur);
          while Kind (SCO) = Operator and then Op_Kind (SCO) = Op_Not loop
@@ -6976,8 +7011,9 @@ package body SC_Obligations is
       --  the last one that starts no later than that sloc (i.e.
       --  Floor (Sloc, Sloc)).
 
-      Cur := Sloc_To_SCO_Map (L_Sloc.Source_File, Condition).Floor
-        ((L_Sloc.L, L_Sloc.L));
+      Cur :=
+        Sloc_To_SCO_Map (L_Sloc.Source_File, Condition).Floor
+          ((L_Sloc.L, L_Sloc.L));
       if Cur /= No_Element then
          SCO := Element (Cur);
          SCO_Sloc := Key (Cur);
@@ -6986,18 +7022,19 @@ package body SC_Obligations is
       --  Now we have a candidate condition SCO. Look for a better match
       --  with a statement.
 
-      Cur := Sloc_To_SCO_Map (L_Sloc.Source_File, Statement).Floor
-        ((L_Sloc.L, L_Sloc.L));
+      Cur :=
+        Sloc_To_SCO_Map (L_Sloc.Source_File, Statement).Floor
+          ((L_Sloc.L, L_Sloc.L));
       if Cur /= No_Element
-            and then
-         (SCO = No_SCO_Id or else SCO_Sloc < Key (Cur))
+        and then (SCO = No_SCO_Id or else SCO_Sloc < Key (Cur))
       then
          SCO := Element (Cur);
       end if;
 
       --  Climb up the SCO tree until an adequate match is found
 
-      Climb_SCO_Tree : while SCO /= No_SCO_Id loop
+      Climb_SCO_Tree :
+      while SCO /= No_SCO_Id loop
          Climb_Operators :
          while SCO /= No_SCO_Id and then Kind (SCO) = Operator loop
             SCO := Parent (SCO);
@@ -7014,11 +7051,11 @@ package body SC_Obligations is
                --  always go up to the enclosing statement.
 
                exit Climb_SCO_Tree when
-                 Sloc.L.Line in Sloc_Range.L.First_Sloc.Line
-                             .. Sloc_Range.L.Last_Sloc.Line
+                 Sloc.L.Line
+                 in Sloc_Range.L.First_Sloc.Line .. Sloc_Range.L.Last_Sloc.Line
                  and then (Kind = Statement
-                             or else
-                           (Include_Decisions and then Kind = Decision));
+                           or else (Include_Decisions
+                                    and then Kind = Decision));
             else
                --  Do not return a decision, even with exact match, if
                --  Include_Decisions is False
@@ -7036,25 +7073,28 @@ package body SC_Obligations is
       --  Check for decision (exact match only)
 
       if Include_Decisions
-           and then
-         (SCO = No_SCO_Id or else Kind (SCO) = Statement)
+        and then (SCO = No_SCO_Id or else Kind (SCO) = Statement)
       then
-         Cur := Sloc_To_SCO_Map (Sloc.Source_File, Decision)
-                  .Find ((Sloc.L, No_Local_Location));
+         Cur :=
+           Sloc_To_SCO_Map (Sloc.Source_File, Decision).Find
+             ((Sloc.L, No_Local_Location));
 
          if Cur /= No_Element then
-            pragma Assert
-              (SCO = No_SCO_Id
-                 or else SCO = Enclosing_Statement (Element (Cur)));
+            pragma
+              Assert
+                (SCO = No_SCO_Id
+                   or else SCO = Enclosing_Statement (Element (Cur)));
             SCO := Element (Cur);
          end if;
       end if;
 
       --  A fuzzy match is specified as never returning a condition
 
-      pragma Assert (not (Sloc.L.Column = 0
-                            and then SCO /= No_SCO_Id
-                            and then Kind (SCO) = Condition));
+      pragma
+        Assert
+          (not (Sloc.L.Column = 0
+                and then SCO /= No_SCO_Id
+                and then Kind (SCO) = Condition));
       return SCO;
    end Sloc_To_SCO;
 
@@ -7065,14 +7105,29 @@ package body SC_Obligations is
    function To_Decision_Kind (C : Character) return Decision_Kind is
    begin
       case C is
-         when 'E'    => return Exit_Statement;
-         when 'G'    => return Entry_Guard;
-         when 'I'    => return If_Statement;
-         when 'P'    => return Pragma_Decision;
-         when 'W'    => return While_Loop;
-         when 'X'    => return Expression;
-         when 'A'    => return Aspect;
-         when others => raise Constraint_Error;
+         when 'E'    =>
+            return Exit_Statement;
+
+         when 'G'    =>
+            return Entry_Guard;
+
+         when 'I'    =>
+            return If_Statement;
+
+         when 'P'    =>
+            return Pragma_Decision;
+
+         when 'W'    =>
+            return While_Loop;
+
+         when 'X'    =>
+            return Expression;
+
+         when 'A'    =>
+            return Aspect;
+
+         when others =>
+            raise Constraint_Error;
       end case;
    end To_Decision_Kind;
 
@@ -7083,27 +7138,68 @@ package body SC_Obligations is
    function To_Statement_Kind (C : Character) return Statement_Kind is
    begin
       case C is
-         when 't'    => return Type_Declaration;
-         when 's'    => return Subtype_Declaration;
-         when 'o'    => return Object_Declaration;
-         when 'r'    => return Renaming_Declaration;
-         when 'i'    => return Generic_Instantiation;
-         when 'd'    => return Other_Declaration;
-         when 'c'    => return Call_Stmt;
-         when 'e'    => return Call_Expr;
-         when 'A'    => return Accept_Statement;
-         when 'C'    => return Case_Statement;
-         when 'E'    => return Exit_Statement;
-         when 'F'    => return For_Loop_Statement;
-         when 'I'    => return If_Statement;
-         when 'P'    => return Pragma_Statement;
-         when 'p'    => return Disabled_Pragma_Statement;
-         when 'R'    => return Extended_Return_Statement;
-         when 'S'    => return Select_Statement;
-         when 'W'    => return While_Loop_Statement;
-         when 'X'    => return Degenerate_Subprogram_Statement;
-         when ' '    => return Other_Statement;
-         when others => raise Constraint_Error;
+         when 't'    =>
+            return Type_Declaration;
+
+         when 's'    =>
+            return Subtype_Declaration;
+
+         when 'o'    =>
+            return Object_Declaration;
+
+         when 'r'    =>
+            return Renaming_Declaration;
+
+         when 'i'    =>
+            return Generic_Instantiation;
+
+         when 'd'    =>
+            return Other_Declaration;
+
+         when 'c'    =>
+            return Call_Stmt;
+
+         when 'e'    =>
+            return Call_Expr;
+
+         when 'A'    =>
+            return Accept_Statement;
+
+         when 'C'    =>
+            return Case_Statement;
+
+         when 'E'    =>
+            return Exit_Statement;
+
+         when 'F'    =>
+            return For_Loop_Statement;
+
+         when 'I'    =>
+            return If_Statement;
+
+         when 'P'    =>
+            return Pragma_Statement;
+
+         when 'p'    =>
+            return Disabled_Pragma_Statement;
+
+         when 'R'    =>
+            return Extended_Return_Statement;
+
+         when 'S'    =>
+            return Select_Statement;
+
+         when 'W'    =>
+            return While_Loop_Statement;
+
+         when 'X'    =>
+            return Degenerate_Subprogram_Statement;
+
+         when ' '    =>
+            return Other_Statement;
+
+         when others =>
+            raise Constraint_Error;
       end case;
    end To_Statement_Kind;
 
@@ -7141,8 +7237,7 @@ package body SC_Obligations is
    ------------------------------------
 
    function Case_Insensitive_Get_Pragma_Id
-     (Pragma_Name : Name_Id) return Pragma_Id
-   is
+     (Pragma_Name : Name_Id) return Pragma_Id is
    begin
       if Pragma_Name = No_Name then
          return Pragma_Unknown;
@@ -7151,15 +7246,14 @@ package body SC_Obligations is
       --  Retrieve the pragma name as a string
 
       Get_Name_String (Pragma_Name);
-      Name_Buffer (1 .. Name_Len) :=
-        To_Lower (Name_Buffer (1 .. Name_Len));
+      Name_Buffer (1 .. Name_Len) := To_Lower (Name_Buffer (1 .. Name_Len));
 
       --  Try to get the Pragma_Id value corresponding to that name. If there
       --  is no such value, return Unknown_Pragma.
 
       declare
          Enum_Name : constant String :=
-            "Pragma_" & Name_Buffer (1 .. Name_Len);
+           "Pragma_" & Name_Buffer (1 .. Name_Len);
       begin
          return Pragma_Id'Value (Enum_Name);
       exception

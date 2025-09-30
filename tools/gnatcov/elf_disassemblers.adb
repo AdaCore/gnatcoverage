@@ -29,18 +29,18 @@ with Disa_AArch64;
 
 package body Elf_Disassemblers is
 
-   procedure Deallocate is new Ada.Unchecked_Deallocation
-     (Insn_Set_Ranges, Insn_Set_Ranges_Acc);
+   procedure Deallocate is new
+     Ada.Unchecked_Deallocation (Insn_Set_Ranges, Insn_Set_Ranges_Acc);
 
    use type Ada.Containers.Count_Type;
 
-   Disa_For_ARM    : aliased Disa_ARM.ARM_Disassembler;
-   Disa_For_E500   : aliased Disa_Ppc.E500_Disassembler;
-   Disa_For_Ppc    : aliased Disa_Ppc.PPC_Disassembler;
-   Disa_For_Sparc  : aliased Disa_Sparc.SPARC_Disassembler;
-   Disa_For_Thumb  : aliased Disa_Thumb.Thumb_Disassembler;
-   Disa_For_Visium : aliased Disa_Lmp.LMP_Disassembler;
-   Disa_For_X86    : aliased Disa_X86.X86_Disassembler;
+   Disa_For_ARM     : aliased Disa_ARM.ARM_Disassembler;
+   Disa_For_E500    : aliased Disa_Ppc.E500_Disassembler;
+   Disa_For_Ppc     : aliased Disa_Ppc.PPC_Disassembler;
+   Disa_For_Sparc   : aliased Disa_Sparc.SPARC_Disassembler;
+   Disa_For_Thumb   : aliased Disa_Thumb.Thumb_Disassembler;
+   Disa_For_Visium  : aliased Disa_Lmp.LMP_Disassembler;
+   Disa_For_X86     : aliased Disa_X86.X86_Disassembler;
    Disa_For_AArch64 : aliased Disa_AArch64.AArch64_Disassembler;
 
    ----------------------
@@ -48,37 +48,45 @@ package body Elf_Disassemblers is
    ----------------------
 
    function Disa_For_Machine
-     (Machine  : Machine_Type;
-      Insn_Set : Insn_Set_Type) return access Disassembler'Class
-   is
+     (Machine : Machine_Type; Insn_Set : Insn_Set_Type)
+      return access Disassembler'Class is
    begin
       case Machine is
-         when Unknown =>
+         when Unknown      =>
             return null;
-         when ARM =>
+
+         when ARM          =>
             case Insn_Set is
                when Default =>
-                  raise Program_Error with
-                    "Could not determine instruction set (ARM or Thumb)";
-               when Data =>
-                  raise Program_Error with
-                    "Cannot disassemble data (ARM)";
-               when ARM =>
+                  raise Program_Error
+                    with "Could not determine instruction set (ARM or Thumb)";
+
+               when Data    =>
+                  raise Program_Error with "Cannot disassemble data (ARM)";
+
+               when ARM     =>
                   return Disa_For_ARM'Access;
-               when Thumb =>
+
+               when Thumb   =>
                   return Disa_For_Thumb'Access;
             end case;
-         when E500 =>
+
+         when E500         =>
             return Disa_For_E500'Access;
-         when PPC =>
+
+         when PPC          =>
             return Disa_For_Ppc'Access;
-         when SPARC =>
+
+         when SPARC        =>
             return Disa_For_Sparc'Access;
-         when Visium =>
+
+         when Visium       =>
             return Disa_For_Visium'Access;
+
          when X86 | X86_64 =>
             return Disa_For_X86'Access;
-         when AArch64 =>
+
+         when AArch64      =>
             return Disa_For_AArch64'Access;
       end case;
    end Disa_For_Machine;
@@ -99,8 +107,7 @@ package body Elf_Disassemblers is
    procedure Add_Range
      (Ranges      : in out Insn_Set_Ranges;
       First, Last : Pc_Type;
-      Insn_Set    : Insn_Set_Type)
-   is
+      Insn_Set    : Insn_Set_Type) is
    begin
       Ranges.Insert ((First, Last, Insn_Set));
    end Add_Range;
@@ -110,9 +117,8 @@ package body Elf_Disassemblers is
    ------------------
 
    function Get_Insn_Set
-     (Ranges : Insn_Set_Ranges;
-      Cache  : in out Insn_Set_Cache;
-      PC     : Pc_Type) return Insn_Set_Type
+     (Ranges : Insn_Set_Ranges; Cache : in out Insn_Set_Cache; PC : Pc_Type)
+      return Insn_Set_Type
    is
       use Ranges_Sets;
 
@@ -173,21 +179,19 @@ package body Elf_Disassemblers is
                      return Next_I_Range.Insn_Set;
                   end if;
 
-                  --  Execution reaches this point when we failed to get a
-                  --  result just using the cache: it's time to perform a full
-                  --  search...
+               --  Execution reaches this point when we failed to get a
+               --  result just using the cache: it's time to perform a full
+               --  search...
                end;
             end if;
 
-            --  If we reach this point, we know that PC < I_Range.First: the
-            --  cache is not useful here.
+         --  If we reach this point, we know that PC < I_Range.First: the
+         --  cache is not useful here.
          end;
       end if;
 
       Cur := Ranges.Floor ((PC, PC, Default));
-      return (if Cur = No_Element
-              then Default
-              else Element (Cur).Insn_Set);
+      return (if Cur = No_Element then Default else Element (Cur).Insn_Set);
    end Get_Insn_Set;
 
    ---------------------
@@ -206,17 +210,17 @@ package body Elf_Disassemblers is
 
       pragma Assert (Cache.Cur /= No_Element);
       I_Range : constant Insn_Set_Range := Element (Cache.Cur);
-      pragma Assert
-        (PC in I_Range.First .. I_Range.Last
-         and then I_Range.Insn_Set = Data);
+      pragma
+        Assert
+          (PC in I_Range.First .. I_Range.Last
+             and then I_Range.Insn_Set = Data);
 
    begin
       Insn_Set := Data;
       Cache.Cur := Next (Cache.Cur);
       if Cache.Cur /= No_Element then
          declare
-            I_Range : constant Insn_Set_Range :=
-              Element (Cache.Cur);
+            I_Range : constant Insn_Set_Range := Element (Cache.Cur);
          begin
             PC := I_Range.First;
             Insn_Set := I_Range.Insn_Set;

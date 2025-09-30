@@ -23,7 +23,7 @@ with Ada.Text_IO;
 
 with Interfaces; use Interfaces;
 
-with GNATCOLL.VFS;      use GNATCOLL.VFS;
+with GNATCOLL.VFS; use GNATCOLL.VFS;
 with GPR2.Build.Source;
 with GPR2.Project.View;
 
@@ -76,7 +76,7 @@ package body SS_Annotations is
 
    Cov_Off_Purpose : constant Ada_Qualified_Name :=
      Coverage_Namespace & To_Qualified_Name ("off");
-   Cov_On_Purpose : constant Ada_Qualified_Name :=
+   Cov_On_Purpose  : constant Ada_Qualified_Name :=
      Coverage_Namespace & To_Qualified_Name ("on");
 
    Valid_Annotation_DB : Stable_Sloc.Entry_DB;
@@ -96,34 +96,34 @@ package body SS_Annotations is
    --  Return Unknown if there is no "purpose" field in the annotation, or if
    --  it is empty or unknown.
 
-   function Annotation_Kind
-     (Str : String) return Any_Annotation_Kind;
+   function Annotation_Kind (Str : String) return Any_Annotation_Kind;
    --  Try to interpret Str as an annotation kind, return Unknown if Str does
    --  not match with any valid annotation kind.
 
-   function Purpose
-     (Kind : Any_Annotation_Kind) return Ada_Qualified_Name;
+   function Purpose (Kind : Any_Annotation_Kind) return Ada_Qualified_Name;
    --  Return the qualified name to be used as purpose for the given annotation
    --  kind.
 
-   procedure Report_Failed (Match : Match_Result) with
-     Pre => not Match.Success;
+   procedure Report_Failed (Match : Match_Result)
+   with Pre => not Match.Success;
    --  Report the diagnostics for Match. Consider all failed matches as stale
    --  annotations that need to be re-generated.
 
    function "+"
-     (Sloc : TOML.Source_Location) return Slocs.Local_Source_Location is
-     (Line => Sloc.Line, Column => Sloc.Column) with Unreferenced;
+     (Sloc : TOML.Source_Location) return Slocs.Local_Source_Location
+   is (Line => Sloc.Line, Column => Sloc.Column)
+   with Unreferenced;
 
    generic
       type Expected_Annot_Kind is (<>);
-      with function Kind
-        (Match_Res : TOML.TOML_Value) return Expected_Annot_Kind'Base;
-      with function Convert
-        (Kind      : Expected_Annot_Kind;
-         Match_Res : Match_Result;
-         Success   : out Boolean)
-         return Instrument.Common.Instr_Annotation;
+      with
+        function Kind
+          (Match_Res : TOML.TOML_Value) return Expected_Annot_Kind'Base;
+      with
+        function Convert
+          (Kind      : Expected_Annot_Kind;
+           Match_Res : Match_Result;
+           Success   : out Boolean) return Instrument.Common.Instr_Annotation;
       Purpose_Prefix : String;
    function Generic_Get_Annotations
      (Filename : String) return Instrument.Common.Instr_Annotation_Map;
@@ -140,8 +140,7 @@ package body SS_Annotations is
    function Convert_Buffer_Annotation
      (Kind      : Buffer_Annotation_Kind;
       Match_Res : Match_Result;
-      Success   : out Boolean)
-      return Instrument.Common.Instr_Annotation;
+      Success   : out Boolean) return Instrument.Common.Instr_Annotation;
    --  Convert Match_Res to a buffer annotation, assuming the annotation in
    --  Match Res is of kind Kind.
    --
@@ -179,8 +178,7 @@ package body SS_Annotations is
      (Annot : TOML.TOML_Value) return Any_Annotation_Kind
    is
       Purpose : constant Ada_Qualified_Name :=
-        To_Qualified_Name
-          (+Get_Or_Null (Annot, "purpose"));
+        To_Qualified_Name (+Get_Or_Null (Annot, "purpose"));
 
    begin
       if Purpose.Is_Empty
@@ -228,9 +226,7 @@ package body SS_Annotations is
       return Unknown;
    end Annotation_Kind;
 
-   function Annotation_Kind
-     (Str : String) return Any_Annotation_Kind
-   is
+   function Annotation_Kind (Str : String) return Any_Annotation_Kind is
    begin
       return Any_Annotation_Kind'Value (Str);
    exception
@@ -242,26 +238,31 @@ package body SS_Annotations is
    -- Purpose --
    -------------
 
-   function Purpose
-     (Kind : Any_Annotation_Kind) return Ada_Qualified_Name
-   is
+   function Purpose (Kind : Any_Annotation_Kind) return Ada_Qualified_Name is
    begin
       case Kind is
          when Exempt_Region =>
             return Exempt_Region_Purpose;
-         when Exempt_On =>
+
+         when Exempt_On     =>
             return Exempt_On_Purpose;
-         when Exempt_Off =>
+
+         when Exempt_Off    =>
             return Exempt_Off_Purpose;
-         when Dump_Buffers =>
+
+         when Dump_Buffers  =>
             return Buffers_Dump_Purpose;
+
          when Reset_Buffers =>
             return Buffers_Reset_Purpose;
-         when Cov_Off =>
+
+         when Cov_Off       =>
             return Cov_Off_Purpose;
-         when Cov_On =>
+
+         when Cov_On        =>
             return Cov_On_Purpose;
-         when Unknown =>
+
+         when Unknown       =>
             return Ada_Identifier_Vectors.Empty_Vector;
       end case;
    end Purpose;
@@ -273,8 +274,12 @@ package body SS_Annotations is
    procedure Report_Failed (Match : Match_Result) is
    begin
       Warn
-        ("Stale annotation for " & Match.File.Display_Base_Name & ". id:"
-         & (+Match.Identifier) & "; reason: " & (+Match.Diagnostic));
+        ("Stale annotation for "
+         & Match.File.Display_Base_Name
+         & ". id:"
+         & (+Match.Identifier)
+         & "; reason: "
+         & (+Match.Diagnostic));
    end Report_Failed;
 
    ------------------
@@ -309,9 +314,10 @@ package body SS_Annotations is
    --------------------------
 
    procedure Load_Ext_Annotations (Annotation_File : Unbounded_String) is
-      Load_Diags : constant Load_Diagnostic_Arr := Load_Entries
-        (GNATCOLL.VFS.Create (+US.To_String (Annotation_File)),
-         DB => Ext_Annotation_DB);
+      Load_Diags : constant Load_Diagnostic_Arr :=
+        Load_Entries
+          (GNATCOLL.VFS.Create (+US.To_String (Annotation_File)),
+           DB => Ext_Annotation_DB);
    begin
       Ext_Annotation_Trace.Trace
         ("Loading external annotations from " & (+Annotation_File));
@@ -327,11 +333,11 @@ package body SS_Annotations is
    procedure Import_External_Exemptions
      (FI : Source_File_Index; Filter : Boolean := False)
    is
-      File                 : Virtual_File;
-      Matches              : Match_Result_Vec;
-      Justification        : Unbounded_String;
-      Kind                 : Any_Annotation_Kind;
-      New_Annotations      : ALI_Annotation_Maps.Map;
+      File            : Virtual_File;
+      Matches         : Match_Result_Vec;
+      Justification   : Unbounded_String;
+      Kind            : Any_Annotation_Kind;
+      New_Annotations : ALI_Annotation_Maps.Map;
    begin
       --  Exit early if there are no external annotations.
       --  Validate them if needed.
@@ -343,10 +349,11 @@ package body SS_Annotations is
       --  Match the entries on FI
 
       File := Create (+Get_Full_Name (FI, Or_Simple => True));
-      Matches := Match_Entries
-        ((1 => File),
-         Valid_Annotation_DB,
-         Purpose_Prefix => To_Ada (Exemption_Namespace));
+      Matches :=
+        Match_Entries
+          ((1 => File),
+           Valid_Annotation_DB,
+           Purpose_Prefix => To_Ada (Exemption_Namespace));
 
       --  Process each match result
 
@@ -360,13 +367,14 @@ package body SS_Annotations is
             --  annotations.
 
             if Kind in Exempt_Region | Exempt_On then
-               Justification := TOML_Utils.Get_Or_Null
-                 (Match.Annotation, "justification");
+               Justification :=
+                 TOML_Utils.Get_Or_Null (Match.Annotation, "justification");
                if Justification = Null_Unbounded_String then
                   Warn
                     (Slocs.Image (To_Sloc (Match.Location.Start_Sloc, FI))
                      & ": Missing or empty justification for external"
-                     & " exemption annotation """ & (+Match.Identifier)
+                     & " exemption annotation """
+                     & (+Match.Identifier)
                      & """");
                else
                   declare
@@ -402,7 +410,8 @@ package body SS_Annotations is
                              (Slocs.Image (Sloc)
                               & ": Conflicting annotations for this line,"
                               & " ignoring the external annotation """
-                              & (+Match.Identifier) & """");
+                              & (+Match.Identifier)
+                              & """");
                         end if;
                      else
                         if Filter then
@@ -411,10 +420,12 @@ package body SS_Annotations is
                                 Sloc_Intersects_SCO (Sloc);
                            begin
                               if SCO /= No_SCO_Id then
-                                 Warn ("Exemption annotation at "
-                                       & Slocs.Image (Sloc)
-                                       & " intersects a coverage obligation ("
-                                       & Image (SCO, True) & "), ignoring it");
+                                 Warn
+                                   ("Exemption annotation at "
+                                    & Slocs.Image (Sloc)
+                                    & " intersects a coverage obligation ("
+                                    & Image (SCO, True)
+                                    & "), ignoring it");
                               else
                                  New_Annotations.Insert (Sloc, Annot);
                               end if;
@@ -458,7 +469,8 @@ package body SS_Annotations is
                           (Slocs.Image (Sloc)
                            & ": Conflicting annotations for this line,"
                            & " ignoring the external annotation """
-                           & (+Match.Identifier) & """");
+                           & (+Match.Identifier)
+                           & """");
                      end if;
                   else
                      New_Annotations.Insert (Sloc, Annot);
@@ -477,10 +489,10 @@ package body SS_Annotations is
    function Generic_Get_Annotations
      (Filename : String) return Instrument.Common.Instr_Annotation_Map
    is
-      VF            : constant Virtual_File := Create (+Filename);
-      Matches       : Match_Result_Vec;
-      Annot_Kind    : Expected_Annot_Kind'Base;
-      Result        : Instr_Annotation_Map;
+      VF         : constant Virtual_File := Create (+Filename);
+      Matches    : Match_Result_Vec;
+      Annot_Kind : Expected_Annot_Kind'Base;
+      Result     : Instr_Annotation_Map;
    begin
       --  Exit early if there are no external annotations
 
@@ -488,10 +500,8 @@ package body SS_Annotations is
          return Instr_Annotation_Maps.Empty_Map;
       end if;
 
-      Matches := Match_Entries
-        ((1 => VF),
-         Valid_Annotation_DB,
-         Purpose_Prefix);
+      Matches :=
+        Match_Entries ((1 => VF), Valid_Annotation_DB, Purpose_Prefix);
 
       --  Process each annotation result
 
@@ -504,8 +514,9 @@ package body SS_Annotations is
          Annot_Kind := Kind (Match.Annotation);
          if Annot_Kind not in Expected_Annot_Kind then
             Warn
-               ("Unexpected or unknown annotation kind for annotation """
-               & (+Match.Identifier) & """: "
+              ("Unexpected or unknown annotation kind for annotation """
+               & (+Match.Identifier)
+               & """: "
                & (+Get_Or_Null (Match.Annotation, "purpose")));
             goto Continue;
          end if;
@@ -515,8 +526,7 @@ package body SS_Annotations is
               +Match.Location.Start_Sloc;
             Success : Boolean;
             Cur     : Instr_Annotation_Maps.Cursor;
-            Annot   : Instr_Annotation :=
-              Convert (Annot_Kind, Match, Success);
+            Annot   : Instr_Annotation := Convert (Annot_Kind, Match, Success);
          begin
             if not Success then
                goto Continue;
@@ -528,7 +538,9 @@ package body SS_Annotations is
                then
                   Warn
                     ("Invalid type for ""insert_after"" field in annotation"
-                     & """" & (+Match.Identifier) & """, should be"
+                     & """"
+                     & (+Match.Identifier)
+                     & """, should be"
                      & " TOML_BOOLEAN.");
                   Success := False;
                else
@@ -541,18 +553,22 @@ package body SS_Annotations is
 
             --  Tolerate duplicate annotations if they are the same
 
-            if not Success and then Result.Reference (Cur) /= Annot
-            then
+            if not Success and then Result.Reference (Cur) /= Annot then
                Warn
-                 (Ada.Directories.Simple_Name (Filename) & ":"
+                 (Ada.Directories.Simple_Name (Filename)
+                  & ":"
                   & Slocs.Image (Sloc)
                   & ": Conflicting annotations for this line, ignoring the"
-                  & " external annotation """ & (+Match.Identifier) & """");
+                  & " external annotation """
+                  & (+Match.Identifier)
+                  & """");
             end if;
 
             Ext_Annotation_Trace.Trace
               ("Found instrumentation annotation for "
-               & Slocs.Image (Sloc) & ": " & Annot.Kind'Image);
+               & Slocs.Image (Sloc)
+               & ": "
+               & Annot.Kind'Image);
 
          end;
          <<Continue>>
@@ -567,22 +583,21 @@ package body SS_Annotations is
    function Convert_Buffer_Annotation
      (Kind      : Buffer_Annotation_Kind;
       Match_Res : Match_Result;
-      Success   : out Boolean)
-      return Instrument.Common.Instr_Annotation
+      Success   : out Boolean) return Instrument.Common.Instr_Annotation
    is
       use TOML;
       New_Annotation : Instr_Annotation (Kind);
    begin
       Success := True;
       case New_Annotation.Kind is
-         when Dump_Buffers =>
+         when Dump_Buffers  =>
             New_Annotation.Trace_Prefix :=
               Get_Or_Null (Match_Res.Annotation, "trace_prefix");
 
          when Reset_Buffers =>
             null;
 
-         when others =>
+         when others        =>
             raise Program_Error with "Unreachable";
       end case;
 
@@ -593,15 +608,16 @@ package body SS_Annotations is
    -- Get_Buffer_Annotations --
    ----------------------------
 
-   function Get_Buffer_Annotations_Internal is new Generic_Get_Annotations
-     (Expected_Annot_Kind => Buffer_Annotation_Kind,
-      Kind                => Annotation_Kind,
-      Convert             => Convert_Buffer_Annotation,
-      Purpose_Prefix      => To_Ada (Buffers_Namespace));
+   function Get_Buffer_Annotations_Internal is new
+     Generic_Get_Annotations
+       (Expected_Annot_Kind => Buffer_Annotation_Kind,
+        Kind                => Annotation_Kind,
+        Convert             => Convert_Buffer_Annotation,
+        Purpose_Prefix      => To_Ada (Buffers_Namespace));
 
    function Get_Buffer_Annotations
-     (Filename : String) return Instr_Annotation_Map is
-     (Get_Buffer_Annotations_Internal (Filename));
+     (Filename : String) return Instr_Annotation_Map
+   is (Get_Buffer_Annotations_Internal (Filename));
 
    ----------------------------------
    -- Get_Disabled_Cov_Annotations --
@@ -611,7 +627,7 @@ package body SS_Annotations is
      (Filename : String) return Instr_Annotation_Map
    is
       use Instr_Annotation_Maps;
-      SFI             : constant Source_File_Index :=
+      SFI : constant Source_File_Index :=
         Get_Index_From_Full_Name (Filename, Source_File);
 
       subtype Cov_Annotation_Kind is
@@ -620,19 +636,19 @@ package body SS_Annotations is
       function Convert_Cov_Annotation
         (Kind      : Cov_Annotation_Kind;
          Match_Res : Match_Result;
-         Success   : out Boolean)
-         return Instrument.Common.Instr_Annotation;
+         Success   : out Boolean) return Instrument.Common.Instr_Annotation;
       --  Convert Match_Res to a Cov_On/Cov_Off annotation, assuming the
       --  annotation in Match Res is of kind Kind.
       --
       --  Print a warning and set Success to False if there are errors
       --  interpreting the TOML annotation.
 
-      function Get_Disabled_Cov_Intl is new Generic_Get_Annotations
-        (Expected_Annot_Kind => Cov_Annotation_Kind,
-         Kind                => Annotation_Kind,
-         Convert             => Convert_Cov_Annotation,
-         Purpose_Prefix      => To_Ada (Coverage_Namespace));
+      function Get_Disabled_Cov_Intl is new
+        Generic_Get_Annotations
+          (Expected_Annot_Kind => Cov_Annotation_Kind,
+           Kind                => Annotation_Kind,
+           Convert             => Convert_Cov_Annotation,
+           Purpose_Prefix      => To_Ada (Coverage_Namespace));
 
       ----------------------------
       -- Convert_Cov_Annotation --
@@ -641,8 +657,7 @@ package body SS_Annotations is
       function Convert_Cov_Annotation
         (Kind      : Cov_Annotation_Kind;
          Match_Res : Match_Result;
-         Success   : out Boolean)
-         return Instrument.Common.Instr_Annotation
+         Success   : out Boolean) return Instrument.Common.Instr_Annotation
       is
          use TOML;
          New_Annotation : Instr_Annotation (Kind);
@@ -657,12 +672,14 @@ package body SS_Annotations is
                     (Slocs.Image (To_Sloc (Match_Res.Location.Start_Sloc, SFI))
                      & ": Missing or empty justification for external"
                      & " disabled coverage region annotation """
-                     & (+Match_Res.Identifier) & """");
+                     & (+Match_Res.Identifier)
+                     & """");
                end if;
 
-            when Cov_On => null;
+            when Cov_On  =>
+               null;
 
-            when others =>
+            when others  =>
                raise Program_Error with "Unreachable";
 
          end case;
@@ -673,8 +690,9 @@ package body SS_Annotations is
          if Success then
             declare
                use ALI_Annotation_Maps;
-               Cur : constant ALI_Annotation_Maps.Cursor := Get_Annotation
-                 ((Source_File => SFI, L => +Match_Res.Location.Start_Sloc));
+               Cur : constant ALI_Annotation_Maps.Cursor :=
+                 Get_Annotation
+                   ((Source_File => SFI, L => +Match_Res.Location.Start_Sloc));
             begin
                if Has_Element (Cur) then
                   if Element (Cur).Kind /= Kind then
@@ -683,17 +701,20 @@ package body SS_Annotations is
                      Success :=
                        (if Element (Cur).Message in null
                         then US.Length (New_Annotation.Justification) = 0
-                        else Element (Cur).Message.all
-                            = (+New_Annotation.Justification));
+                        else
+                          Element (Cur).Message.all
+                          = (+New_Annotation.Justification));
                   end if;
 
                   if not Success then
                      Warn
-                       (Ada.Directories.Simple_Name (Filename) & ":"
+                       (Ada.Directories.Simple_Name (Filename)
+                        & ":"
                         & Image (Match_Res.Location.Start_Sloc)
                         & ": Conflicting annotations for this line, ignoring"
                         & " the external annotation """
-                        & (+Match_Res.Identifier) & """");
+                        & (+Match_Res.Identifier)
+                        & """");
                   end if;
 
                end if;
@@ -709,7 +730,7 @@ package body SS_Annotations is
 
       Expected_Kind, Next_Expected_Kind, Tmp : Src_Annotation_Kind;
 
-   --  Start of processing for Get_Disabled_Cov_Annotations
+      --  Start of processing for Get_Disabled_Cov_Annotations
 
    begin
       --  Filter out any annotations that do not come in pairs, and ensure
@@ -717,7 +738,8 @@ package body SS_Annotations is
 
       if Has_Element (Cur) and then Element (Cur).Kind = Cov_On then
          Warn
-           (Ada.Directories.Simple_Name (Filename) & ": "
+           (Ada.Directories.Simple_Name (Filename)
+            & ": "
             & Slocs.Image (Key (Cur))
             & ": external Cov_On annotation with no previous Cov_Off"
             & " annotation, ignoring it.");
@@ -737,10 +759,14 @@ package body SS_Annotations is
              else Element (Cur).Kind = Cov_Off)
          then
             Warn
-              (Ada.Directories.Simple_Name (Filename) & ": "
-               & Slocs.Image (Key (Cur)) & ": external "
-               & Expected_Kind'Image & " annotation with no subsequent "
-               & Next_Expected_Kind'Image & " annotation, ignoring it.");
+              (Ada.Directories.Simple_Name (Filename)
+               & ": "
+               & Slocs.Image (Key (Cur))
+               & ": external "
+               & Expected_Kind'Image
+               & " annotation with no subsequent "
+               & Next_Expected_Kind'Image
+               & " annotation, ignoring it.");
             Res.Delete (Cur);
          else
             Tmp := Expected_Kind;
@@ -769,15 +795,15 @@ package body SS_Annotations is
       Justification : Unbounded_String;
 
       function "+" (Opt : Command_Line.String_Options) return Unbounded_String
-        is (Parser.Value_Or_Null (Args.String_Args (Opt)));
+      is (Parser.Value_Or_Null (Args.String_Args (Opt)));
 
-      New_Annot_DB    : Entry_DB;
-      Entry_Purpose   : Ada_Qualified_Name;
-      Entry_Id        : Unbounded_String := +Opt_Annotation_Id;
-      Annotation      : constant TOML_Value := Create_Table;
-      SS_Backend      : Unbounded_String := +Opt_SS_Backend;
-      File_Prefix     : Unbounded_String := +Opt_Source_Root;
-      Source          : GPR2.Build.Source.Object;
+      New_Annot_DB  : Entry_DB;
+      Entry_Purpose : Ada_Qualified_Name;
+      Entry_Id      : Unbounded_String := +Opt_Annotation_Id;
+      Annotation    : constant TOML_Value := Create_Table;
+      SS_Backend    : Unbounded_String := +Opt_SS_Backend;
+      File_Prefix   : Unbounded_String := +Opt_Source_Root;
+      Source        : GPR2.Build.Source.Object;
 
    begin
       --  First, determine the kind of annotation we'll be generating
@@ -789,8 +815,10 @@ package body SS_Annotations is
 
       if Annot_Kind = Unknown then
          Fatal_Error
-           ("Invalid annotation kind (--kind): " & (+(+Opt_Annotation_Kind))
-            & ASCII.LF & "Must be one of "
+           ("Invalid annotation kind (--kind): "
+            & (+(+Opt_Annotation_Kind))
+            & ASCII.LF
+            & "Must be one of "
             & Coverage_Options.Annotation_Kind_Options);
       end if;
 
@@ -831,7 +859,7 @@ package body SS_Annotations is
       --  Validate the arguments depending on the requested annotation kind
 
       case Annot_Kind is
-         when Exempt_Region =>
+         when Exempt_Region        =>
             Start_Sloc :=
               Get_Or_Error (+(+Opt_Start_Location), "--start-location");
             End_Sloc := Get_Or_Error (+(+Opt_End_Location), "--end-location");
@@ -839,12 +867,13 @@ package body SS_Annotations is
             if not Args.String_Args (Opt_Justification).Present then
                Warn
                  ("--justification missing for an --kind="
-                  & Kind_Image (Annot_Kind) & " annotation");
+                  & Kind_Image (Annot_Kind)
+                  & " annotation");
             end if;
             Justification :=
               Parser.Value_Or_Null (Args.String_Args (Opt_Justification));
 
-         when Exempt_On | Cov_Off =>
+         when Exempt_On | Cov_Off  =>
 
             --  Accept either the --location or --start-location switches
 
@@ -858,7 +887,8 @@ package body SS_Annotations is
             if not Args.String_Args (Opt_Justification).Present then
                Warn
                  ("--justification missing for a --kind="
-                  & Kind_Image (Annot_Kind) & " annotation");
+                  & Kind_Image (Annot_Kind)
+                  & " annotation");
             end if;
             Justification :=
               Parser.Value_Or_Null (Args.String_Args (Opt_Justification));
@@ -876,7 +906,7 @@ package body SS_Annotations is
             end if;
             End_Sloc := Start_Sloc;
 
-         when Unknown =>
+         when Unknown              =>
             raise Program_Error with "Unreachable";
       end case;
 
@@ -888,10 +918,15 @@ package body SS_Annotations is
 
       if US.Length (Entry_Id) = 0 then
          Entry_Id := +Kind_Image (Annot_Kind);
-         Entry_Id := Entry_Id & "-" & Hex_Image
-            (Unsigned_32 (Ada.Strings.Hash (Target_File.Display_Full_Name
-                                 & Slocs.Image (Start_Sloc)
-                                 & Slocs.Image (End_Sloc))));
+         Entry_Id :=
+           Entry_Id
+           & "-"
+           & Hex_Image
+               (Unsigned_32
+                  (Ada.Strings.Hash
+                     (Target_File.Display_Full_Name
+                      & Slocs.Image (Start_Sloc)
+                      & Slocs.Image (End_Sloc))));
       end if;
 
       Entry_Purpose := Purpose (Annot_Kind);
@@ -903,7 +938,7 @@ package body SS_Annotations is
          when Exempt_On | Exempt_Region | Cov_Off =>
             Annotation.Set ("justification", Create_String (Justification));
 
-         when Dump_Buffers | Reset_Buffers =>
+         when Dump_Buffers | Reset_Buffers        =>
             Annotation.Set
               ("insert_after",
                Create_Boolean (Args.Bool_Args (Opt_Annotate_After)));
@@ -917,9 +952,10 @@ package body SS_Annotations is
                     (Args.String_Args (Opt_Dump_Filename_Prefix).Value));
             end if;
 
-         when Exempt_Off | Cov_On => null;
+         when Exempt_Off | Cov_On                 =>
+            null;
 
-         when Unknown =>
+         when Unknown                             =>
             raise Program_Error with "Unreachable";
       end case;
 
@@ -942,11 +978,13 @@ package body SS_Annotations is
          end if;
 
          case Language is
-            when Ada_Language => SS_Backend := +"lal_context";
+            when Ada_Language              =>
+               SS_Backend := +"lal_context";
 
-            when C_Language | CPP_Language => SS_Backend := +"clang_context";
+            when C_Language | CPP_Language =>
+               SS_Backend := +"clang_context";
 
-            when All_Languages =>
+            when All_Languages             =>
 
                --  This should not hit but maybe with rust coverage we may
                --  hit this?
@@ -968,7 +1006,7 @@ package body SS_Annotations is
 
                File_Prefix := US.To_Unbounded_String (+Target_File.Dir_Name);
 
-            when others =>
+            when others       =>
                --  For other sources, check if the source is unique in the
                --  tree, if so, do the same thing.
 
@@ -1014,7 +1052,7 @@ package body SS_Annotations is
 
       declare
          Target_Span : constant Sloc_Span := (+Start_Sloc, +End_Sloc);
-         Diags : constant Load_Diagnostic_Arr :=
+         Diags       : constant Load_Diagnostic_Arr :=
            Add_Or_Update_Entry
              (DB          => New_Annot_DB,
               Identifier  => Entry_Id,
@@ -1035,9 +1073,11 @@ package body SS_Annotations is
             --  not log a warning about the first attempt.
 
             declare
-               Msg : Unbounded_String :=
+               Msg       : Unbounded_String :=
                  +("Could not create an auto-relocating annotation for "
-                   & Target_File.Display_Full_Name & ":" & Image (Target_Span)
+                   & Target_File.Display_Full_Name
+                   & ":"
+                   & Image (Target_Span)
                    & ", creating an absolute location annotation instead.");
                Abs_Diags : constant Load_Diagnostic_Arr :=
                  Add_Or_Update_Entry
@@ -1075,7 +1115,8 @@ package body SS_Annotations is
       begin
          if Entr /= No_Entry_View and then not Args.Bool_Args (Opt_Force) then
             Outputs.Fatal_Error
-              ("Annotation with identifier " & (+Entry_Id)
+              ("Annotation with identifier "
+               & (+Entry_Id)
                & "already exists. Use -f to overwrite it");
          end if;
       end;
@@ -1090,12 +1131,12 @@ package body SS_Annotations is
              ((1 => Target_File), Valid_Annotation_DB, To_Ada (Entry_Purpose));
       begin
          for Match of Matches loop
-            if Match.Success
-              and then Match.Location = (+Start_Sloc, +End_Sloc)
+            if Match.Success and then Match.Location = (+Start_Sloc, +End_Sloc)
             then
                Outputs.Warn
                  ("Pre-existing annotation with identifier "
-                  & (+Match.Identifier) & "matches the same region.");
+                  & (+Match.Identifier)
+                  & "matches the same region.");
             end if;
          end loop;
       end;
@@ -1144,7 +1185,8 @@ package body SS_Annotations is
             if Entr = No_Entry_View then
                Fatal_Error
                  ("No annotation associated with identifier """
-                  & (+Identifier) & """");
+                  & (+Identifier)
+                  & """");
             end if;
          end;
       end if;
@@ -1184,7 +1226,8 @@ package body SS_Annotations is
          begin
             if Annot_Kind in Unknown then
                Fatal_Error
-                 ("Unknown annotation kind (--kind): """ & Annot_Kind_Str
+                 ("Unknown annotation kind (--kind): """
+                  & Annot_Kind_Str
                   & """, must be one of "
                   & Coverage_Options.Annotation_Kind_Options);
             else
@@ -1228,8 +1271,8 @@ package body SS_Annotations is
                Files.all (I) := Create (+(+F));
                I := I + 1;
             end loop;
-            Match_Results := Match_Entries
-              (Files.all, Ext_Annotation_DB, +Purpose_Filter);
+            Match_Results :=
+              Match_Entries (Files.all, Ext_Annotation_DB, +Purpose_Filter);
             GNATCOLL.VFS.Unchecked_Free (Files);
          end;
       else
@@ -1270,7 +1313,9 @@ package body SS_Annotations is
                end if;
 
                Ada.Text_IO.Put
-                 ("id: " & (+Match.Identifier) & "; kind: "
+                 ("id: "
+                  & (+Match.Identifier)
+                  & "; kind: "
                   & Kind_Image (Annot_Kind));
 
                case Annot_Kind is
@@ -1279,12 +1324,12 @@ package body SS_Annotations is
                        ("; Justification: "
                         & (+Get_Or_Null (Match.Annotation, "justification")));
 
-                  when Dump_Buffers | Reset_Buffers =>
+                  when Dump_Buffers | Reset_Buffers        =>
                      Ada.Text_IO.Put
                        ("; annotate after statement: "
                         & Boolean'Image
-                          (Get_Or_Default
-                             (Match.Annotation, "insert_after", False)));
+                            (Get_Or_Default
+                               (Match.Annotation, "insert_after", False)));
                      if Annot_Kind = Dump_Buffers
                        and then Match.Annotation.Has ("trace_prefix")
                      then
@@ -1294,7 +1339,7 @@ package body SS_Annotations is
                                  (Match.Annotation, "trace_prefix")));
                      end if;
 
-                  when Unknown | Exempt_Off | Cov_On =>
+                  when Unknown | Exempt_Off | Cov_On       =>
                      null;
                end case;
                if not Match.Success then
@@ -1317,15 +1362,15 @@ package body SS_Annotations is
       if Ext = ".h" or else Ext = ".c" then
          return C_Language;
       elsif Ext = ".hh"
-           or else Ext = ".cc"
-           or else Ext = ".hpp"
-           or else Ext = ".cpp"
+        or else Ext = ".cc"
+        or else Ext = ".hpp"
+        or else Ext = ".cpp"
       then
          return CPP_Language;
       elsif Ext = ".adb"
-           or else Ext = ".ads"
-           or else File.Has_Suffix (".1.ada")
-           or else File.Has_Suffix (".2.ada")
+        or else Ext = ".ads"
+        or else File.Has_Suffix (".1.ada")
+        or else File.Has_Suffix (".2.ada")
       then
          return Ada_Language;
       else
@@ -1357,7 +1402,8 @@ package body SS_Annotations is
    begin
       if Entr.Annotations.Length = 0 then
          Warn
-           ("Entry """ & (+Identifier)
+           ("Entry """
+            & (+Identifier)
             & """ has no annotations, it will be ignored.");
          return;
       end if;
@@ -1371,39 +1417,42 @@ package body SS_Annotations is
               Annotation_Kind (Annot);
          begin
             case Annot_Kind is
-               when Unknown =>
+               when Unknown                       =>
 
                   --  Only warn about unknown annotations that start with
                   --  "xcov."
 
                   if Has_Prefix (+Get_Or_Null (Annot, "purpose"), "xcov.") then
                      Warn
-                       ("Entry """ & (+Identifier)
+                       ("Entry """
+                        & (+Identifier)
                         & """ has an unknown annotation kind, it will be"
                         & " ignored.");
                      All_Ok := False;
                   end if;
 
-               when Exempt_On | Exempt_Region =>
+               when Exempt_On | Exempt_Region     =>
                   Some_Relevant := True;
                   if Get_Or_Null (Annot, "justification")
                     = Null_Unbounded_String
                   then
                      Warn
                        ("Missing or empty justification for external"
-                        & " exemption annotation """ & (+Identifier)
+                        & " exemption annotation """
+                        & (+Identifier)
                         & """, it will be ignored.");
                      All_Ok := False;
                   end if;
 
-               when Dump_Buffers | Reset_Buffers =>
+               when Dump_Buffers | Reset_Buffers  =>
                   Some_Relevant := True;
                   if Annot.Has ("insert_after")
                     and then Annot.Get ("insert_after").Kind /= TOML_Boolean
                   then
                      Warn
                        ("Wrong type for ""insert_after"" flag in entry """
-                        & (+Identifier) & """, it will be ignored.");
+                        & (+Identifier)
+                        & """, it will be ignored.");
                      All_Ok := False;
                   end if;
                   if Annot_Kind in Dump_Buffers
@@ -1412,7 +1461,8 @@ package body SS_Annotations is
                   then
                      Warn
                        ("Wrong type for ""trace_prefix"" in entry """
-                        & (+Identifier) & """, it will be ignored.");
+                        & (+Identifier)
+                        & """, it will be ignored.");
                      All_Ok := False;
                   end if;
 

@@ -36,20 +36,26 @@ package body Checkpoints is
 
    Checkpoint_Magic : constant String := "GNATcov checkpoint" & ASCII.NUL;
 
-   procedure Free is new Ada.Unchecked_Deallocation
-     (SFI_Map_Array, SFI_Map_Acc);
-   procedure Free is new Ada.Unchecked_Deallocation
-     (CU_Id_Map_Array, CU_Id_Map_Acc);
-   procedure Free is new Ada.Unchecked_Deallocation
-     (BDD_Node_Id_Map_Array, BDD_Node_Id_Map_Acc);
-   procedure Free is new Ada.Unchecked_Deallocation
-     (SCO_Id_Map_Array, SCO_Id_Map_Acc);
-   procedure Free is new Ada.Unchecked_Deallocation
-     (SFI_Ignored_Map_Array, SFI_Ignored_Map_Access);
-   procedure Free is new Ada.Unchecked_Deallocation
-     (CU_Id_Ignored_Map_Array, CU_Id_Ignored_Access);
-   procedure Free is new Ada.Unchecked_Deallocation
-     (SCO_Ignored_Map_Array, SCO_Ignored_Map_Access);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (SFI_Map_Array, SFI_Map_Acc);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (CU_Id_Map_Array, CU_Id_Map_Acc);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (BDD_Node_Id_Map_Array, BDD_Node_Id_Map_Acc);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (SCO_Id_Map_Array, SCO_Id_Map_Acc);
+   procedure Free is new
+     Ada.Unchecked_Deallocation
+       (SFI_Ignored_Map_Array,
+        SFI_Ignored_Map_Access);
+   procedure Free is new
+     Ada.Unchecked_Deallocation
+       (CU_Id_Ignored_Map_Array,
+        CU_Id_Ignored_Access);
+   procedure Free is new
+     Ada.Unchecked_Deallocation
+       (SCO_Ignored_Map_Array,
+        SCO_Ignored_Map_Access);
 
    type Binary_Traces_Bits is (Undetermined, Bits_32, Bits_64);
    --  Describe the nature of binary traces that contributed to create a
@@ -70,7 +76,7 @@ package body Checkpoints is
    --  Remember that it is invalid to mix 32-bit and 64-bit traces.
 
    subtype Determined_Binary_Traces_Bits is
-     Binary_Traces_Bits range Bits_32 ..  Bits_64;
+     Binary_Traces_Bits range Bits_32 .. Bits_64;
 
    Supported_Bits : constant Determined_Binary_Traces_Bits :=
      (if Pc_Type_Size = 4 then Bits_32 else Bits_64);
@@ -78,8 +84,8 @@ package body Checkpoints is
 
    function Image (Bits : Determined_Binary_Traces_Bits) return String
    is (case Bits is
-       when Bits_32 => "32-bit traces",
-       when Bits_64 => "64-bit traces");
+         when Bits_32 => "32-bit traces",
+         when Bits_64 => "64-bit traces");
    --  Helper to format error messages about binary traces bits. Return the
    --  name of the kind of traces described by Bits.
 
@@ -88,15 +94,13 @@ package body Checkpoints is
    -----------------------
 
    procedure Allocate_SFI_Maps
-     (Relocs      : in out Checkpoint_Relocations;
-      First, Last : Source_File_Index)
+     (Relocs : in out Checkpoint_Relocations; First, Last : Source_File_Index)
    is
    begin
-      pragma Assert
-        (Relocs.SFI_Map = null and then Relocs.Ignored_SFIs = null);
+      pragma
+        Assert (Relocs.SFI_Map = null and then Relocs.Ignored_SFIs = null);
 
-      Relocs.SFI_Map :=
-        new SFI_Map_Array'(First .. Last => No_Source_File);
+      Relocs.SFI_Map := new SFI_Map_Array'(First .. Last => No_Source_File);
       Relocs.Ignored_SFIs :=
         new SFI_Ignored_Map_Array'(First .. Last => False);
       Relocs.SFI_Simple_Filenames :=
@@ -108,16 +112,13 @@ package body Checkpoints is
    -------------------------
 
    procedure Allocate_CU_Id_Maps
-     (Relocs      : in out Checkpoint_Relocations;
-      First, Last : CU_Id)
-   is
+     (Relocs : in out Checkpoint_Relocations; First, Last : CU_Id) is
    begin
       pragma Assert (Relocs.CU_Map = null and then Relocs.Ignored_CUs = null);
 
-      Relocs.CU_Map :=
-        new CU_Id_Map_Array'(First .. Last => No_CU_Id);
+      Relocs.CU_Map := new CU_Id_Map_Array'(First .. Last => No_CU_Id);
       Relocs.Ignored_CUs :=
-        new CU_Id_Ignored_Map_Array'(First  .. Last => False);
+        new CU_Id_Ignored_Map_Array'(First .. Last => False);
    end Allocate_CU_Id_Maps;
 
    -------------------------------
@@ -125,9 +126,7 @@ package body Checkpoints is
    -------------------------------
 
    procedure Allocate_BDD_Node_Id_Map
-     (Relocs      : in out Checkpoint_Relocations;
-      First, Last : BDD_Node_Id)
-   is
+     (Relocs : in out Checkpoint_Relocations; First, Last : BDD_Node_Id) is
    begin
       pragma Assert (Relocs.BDD_Map = null);
       Relocs.BDD_Map :=
@@ -139,14 +138,11 @@ package body Checkpoints is
    --------------------------
 
    procedure Allocate_SCO_Id_Map
-     (Relocs      : in out Checkpoint_Relocations;
-      First, Last : SCO_Id)
-   is
+     (Relocs : in out Checkpoint_Relocations; First, Last : SCO_Id) is
    begin
-      pragma Assert
-        (Relocs.SCO_Map = null and then Relocs.Ignored_SCOs = null);
-      Relocs.SCO_Map :=
-        new SCO_Id_Map_Array'(First .. Last => No_SCO_Id);
+      pragma
+        Assert (Relocs.SCO_Map = null and then Relocs.Ignored_SCOs = null);
+      Relocs.SCO_Map := new SCO_Id_Map_Array'(First .. Last => No_SCO_Id);
       Relocs.Ignored_SCOs :=
         new SCO_Ignored_Map_Array'(First .. Last => False);
    end Allocate_SCO_Id_Map;
@@ -156,9 +152,8 @@ package body Checkpoints is
    ---------------------
 
    function Get_Simple_Name
-     (Relocs : Checkpoint_Relocations;
-      CP_SFI : Valid_Source_File_Index) return Unbounded_String
-   is
+     (Relocs : Checkpoint_Relocations; CP_SFI : Valid_Source_File_Index)
+      return Unbounded_String is
    begin
       return Relocs.SFI_Simple_Filenames.all (CP_SFI);
    end Get_Simple_Name;
@@ -168,9 +163,7 @@ package body Checkpoints is
    ----------------
 
    procedure Ignore_SFI
-     (Relocs : in out Checkpoint_Relocations;
-      CP_SFI : Source_File_Index)
-   is
+     (Relocs : in out Checkpoint_Relocations; CP_SFI : Source_File_Index) is
    begin
       pragma Assert (Relocs.SFI_Map (CP_SFI) = No_Source_File);
       Relocs.Ignored_SFIs (CP_SFI) := True;
@@ -181,9 +174,7 @@ package body Checkpoints is
    ------------------
 
    procedure Ignore_CU_Id
-     (Relocs   : in out Checkpoint_Relocations;
-      CP_CU_Id : CU_Id)
-   is
+     (Relocs : in out Checkpoint_Relocations; CP_CU_Id : CU_Id) is
    begin
       pragma Assert (Relocs.CU_Map (CP_CU_Id) = No_CU_Id);
       Relocs.Ignored_CUs (CP_CU_Id) := True;
@@ -194,9 +185,7 @@ package body Checkpoints is
    ----------------
 
    procedure Ignore_SCO
-     (Relocs    : in out Checkpoint_Relocations;
-      CP_SCO_Id : SCO_Id)
-   is
+     (Relocs : in out Checkpoint_Relocations; CP_SCO_Id : SCO_Id) is
    begin
       pragma Assert (Relocs.SCO_Map (CP_SCO_Id) = No_SCO_Id);
       Relocs.Ignored_SCOs (CP_SCO_Id) := True;
@@ -207,9 +196,8 @@ package body Checkpoints is
    -----------------
 
    function SFI_Ignored
-     (Relocs : Checkpoint_Relocations;
-      CP_SFI : Source_File_Index) return Boolean
-   is
+     (Relocs : Checkpoint_Relocations; CP_SFI : Source_File_Index)
+      return Boolean is
    begin
       return CP_SFI /= No_Source_File and then Relocs.Ignored_SFIs (CP_SFI);
    end SFI_Ignored;
@@ -219,9 +207,7 @@ package body Checkpoints is
    -------------------
 
    function CU_Id_Ignored
-     (Relocs   : Checkpoint_Relocations;
-      CP_CU_Id : CU_Id) return Boolean
-   is
+     (Relocs : Checkpoint_Relocations; CP_CU_Id : CU_Id) return Boolean is
    begin
       return CP_CU_Id /= No_CU_Id and then Relocs.Ignored_CUs (CP_CU_Id);
    end CU_Id_Ignored;
@@ -231,9 +217,7 @@ package body Checkpoints is
    -----------------
 
    function SCO_Ignored
-     (Relocs    : Checkpoint_Relocations;
-      CP_SCO_Id : SCO_Id) return Boolean
-   is
+     (Relocs : Checkpoint_Relocations; CP_SCO_Id : SCO_Id) return Boolean is
    begin
       return CP_SCO_Id /= No_SCO_Id and then Relocs.Ignored_SCOs (CP_SCO_Id);
    end SCO_Ignored;
@@ -244,8 +228,7 @@ package body Checkpoints is
 
    procedure Set_SFI_Map
      (Relocs                 : in out Checkpoint_Relocations;
-      Source_SFI, Target_SFI : Valid_Source_File_Index)
-   is
+      Source_SFI, Target_SFI : Valid_Source_File_Index) is
    begin
       Relocs.SFI_Map (Source_SFI) := Target_SFI;
    end Set_SFI_Map;
@@ -257,8 +240,7 @@ package body Checkpoints is
    procedure Set_SFI_Simple_Name
      (Relocs      : in out Checkpoint_Relocations;
       SFI         : Valid_Source_File_Index;
-      Simple_Name : Unbounded_String)
-   is
+      Simple_Name : Unbounded_String) is
    begin
       Relocs.SFI_Simple_Filenames.all (SFI) := Simple_Name;
    end Set_SFI_Simple_Name;
@@ -269,8 +251,7 @@ package body Checkpoints is
 
    procedure Set_CU_Id_Map
      (Relocs                     : in out Checkpoint_Relocations;
-      Source_CU_Id, Target_CU_Id : Valid_CU_Id)
-   is
+      Source_CU_Id, Target_CU_Id : Valid_CU_Id) is
    begin
       Relocs.CU_Map (Source_CU_Id) := Target_CU_Id;
    end Set_CU_Id_Map;
@@ -281,8 +262,7 @@ package body Checkpoints is
 
    procedure Set_BDD_Node_Id_Map
      (Relocs                                 : in out Checkpoint_Relocations;
-      Source_BDD_Node_Id, Target_BDD_Node_Id : Valid_BDD_Node_Id)
-   is
+      Source_BDD_Node_Id, Target_BDD_Node_Id : Valid_BDD_Node_Id) is
    begin
       Relocs.BDD_Map (Source_BDD_Node_Id) := Target_BDD_Node_Id;
    end Set_BDD_Node_Id_Map;
@@ -293,8 +273,7 @@ package body Checkpoints is
 
    procedure Set_SCO_Id_Map
      (Relocs                       : in out Checkpoint_Relocations;
-      Source_SCO_Id, Target_SCO_Id : Valid_SCO_Id)
-   is
+      Source_SCO_Id, Target_SCO_Id : Valid_SCO_Id) is
    begin
       Relocs.SCO_Map (Source_SCO_Id) := Target_SCO_Id;
    end Set_SCO_Id_Map;
@@ -304,9 +283,7 @@ package body Checkpoints is
    ---------------
 
    procedure Remap_SFI
-     (Relocs : Checkpoint_Relocations;
-      CP_SFI : in out Source_File_Index)
-   is
+     (Relocs : Checkpoint_Relocations; CP_SFI : in out Source_File_Index) is
    begin
       if CP_SFI /= No_Source_File then
          CP_SFI := Relocs.SFI_Map (CP_SFI);
@@ -319,9 +296,8 @@ package body Checkpoints is
    ---------------
 
    function Remap_SFI
-     (Relocs : Checkpoint_Relocations;
-      CP_SFI : Source_File_Index) return Source_File_Index
-   is
+     (Relocs : Checkpoint_Relocations; CP_SFI : Source_File_Index)
+      return Source_File_Index is
    begin
       if CP_SFI /= No_Source_File then
          pragma Assert (Relocs.SFI_Map (CP_SFI) /= No_Source_File);
@@ -335,9 +311,7 @@ package body Checkpoints is
    -----------------
 
    function Remap_CU_Id
-     (Relocs   : Checkpoint_Relocations;
-      CP_CU_Id : CU_Id) return CU_Id
-   is
+     (Relocs : Checkpoint_Relocations; CP_CU_Id : CU_Id) return CU_Id is
    begin
       if CP_CU_Id /= No_CU_Id then
          pragma Assert (Relocs.CU_Map (CP_CU_Id) /= No_CU_Id);
@@ -351,9 +325,8 @@ package body Checkpoints is
    -----------------------
 
    function Remap_BDD_Node_Id
-     (Relocs         : Checkpoint_Relocations;
-      CP_BDD_Node_Id : BDD_Node_Id) return BDD_Node_Id
-   is
+     (Relocs : Checkpoint_Relocations; CP_BDD_Node_Id : BDD_Node_Id)
+      return BDD_Node_Id is
    begin
       if CP_BDD_Node_Id /= No_BDD_Node_Id then
          pragma Assert (Relocs.BDD_Map (CP_BDD_Node_Id) /= No_BDD_Node_Id);
@@ -367,9 +340,7 @@ package body Checkpoints is
    ------------------
 
    function Remap_SCO_Id
-     (Relocs    : Checkpoint_Relocations;
-      CP_SCO_Id : SCO_Id) return SCO_Id
-   is
+     (Relocs : Checkpoint_Relocations; CP_SCO_Id : SCO_Id) return SCO_Id is
    begin
       if CP_SCO_Id /= No_SCO_Id then
          pragma Assert (Relocs.SCO_Map (CP_SCO_Id) /= No_SCO_Id);
@@ -405,8 +376,8 @@ package body Checkpoints is
    procedure Checkpoint_Load
      (Filename             : String;
       Purpose              : Checkpoint_Purpose;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp) with
-      Pre => Purpose = Instrumentation or else Ignored_Source_Files = null;
+      Ignored_Source_Files : access GNAT.Regexp.Regexp)
+   with Pre => Purpose = Instrumentation or else Ignored_Source_Files = null;
    --  Common implementation for SID_Load and Checkpoint_Load
 
    ---------------------
@@ -426,10 +397,11 @@ package body Checkpoints is
          use Coverage;
 
          CSS              : aliased Checkpoint_Save_State :=
-           (Root_Stream_Type with
-            Stream   => Stream (SF),
-            Filename => +Filename,
-            Purpose  => Purpose);
+           (Root_Stream_Type
+            with
+              Stream   => Stream (SF),
+              Filename => +Filename,
+              Purpose  => Purpose);
          Supported_Levels : Levels_Type := Current_Levels;
       begin
          --  Write the checkpoint header: magic, version and purpose
@@ -444,10 +416,10 @@ package body Checkpoints is
          declare
             Bits : constant Binary_Traces_Bits :=
               (case Currently_Accepted_Trace_Kind is
-               when Unknown | Source_Trace_File | LLVM_Trace_File =>
-                  Undetermined,
-               when Binary_Trace_File | All_Trace_Files =>
-                  Supported_Bits);
+                 when Unknown | Source_Trace_File | LLVM_Trace_File =>
+                   Undetermined,
+                 when Binary_Trace_File | All_Trace_Files           =>
+                   Supported_Bits);
          begin
             CSS.Write_U8 (Binary_Traces_Bits'Pos (Bits));
          end;
@@ -497,17 +469,17 @@ package body Checkpoints is
    --------------
 
    procedure SID_Load
-     (Filename             : String;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp)
+     (Filename : String; Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
       SID_Re : constant GNAT.Regexp.Regexp := GNAT.Regexp.Compile (".*\.sid");
    begin
       if not GNAT.Regexp.Match (Filename, SID_Re) then
-         Fatal_Error ("invalid "
-                      & Purpose_Name (Instrumentation)
-                      & " file "
-                      & Filename
-                      & ", name of file should have .sid extension");
+         Fatal_Error
+           ("invalid "
+            & Purpose_Name (Instrumentation)
+            & " file "
+            & Filename
+            & ", name of file should have .sid extension");
       end if;
 
       Checkpoint_Load (Filename, Instrumentation, Ignored_Source_Files);
@@ -544,11 +516,12 @@ package body Checkpoints is
 
       declare
          CLS : Checkpoint_Load_State :=
-           (Root_Stream_Type with
-            Stream   => Stream (SF),
-            Filename => +Filename,
-            Purpose  => Purpose,
-            others   => <>);
+           (Root_Stream_Type
+            with
+              Stream   => Stream (SF),
+              Filename => +Filename,
+              Purpose  => Purpose,
+              others   => <>);
 
          Magic : String (Checkpoint_Magic'Range);
       begin
@@ -572,8 +545,11 @@ package body Checkpoints is
          begin
             if CP_Purpose /= Purpose then
                Fatal_Error
-                 (Filename & " is a " & Purpose_Name (CP_Purpose)
-                  & " while a " & Purpose_Name (Purpose)
+                 (Filename
+                  & " is a "
+                  & Purpose_Name (CP_Purpose)
+                  & " while a "
+                  & Purpose_Name (Purpose)
                   & " was expected");
             end if;
          end;
@@ -587,7 +563,9 @@ package body Checkpoints is
          begin
             if Bits not in Undetermined | Supported_Bits then
                Fatal_Error
-                 (Filename & " was created with " & Image (Bits)
+                 (Filename
+                  & " was created with "
+                  & Image (Bits)
                   & " whereas the selected target requires "
                   & Image (Supported_Bits));
             end if;
@@ -625,8 +603,7 @@ package body Checkpoints is
             end;
          end;
 
-         Update_Current_Trace_Kind
-           (Any_Accepted_Trace_Kind'Val (CLS.Read_U8));
+         Update_Current_Trace_Kind (Any_Accepted_Trace_Kind'Val (CLS.Read_U8));
 
          Files_Table.Checkpoint_Load (CLS, Ignored_Source_Files);
          SC_Obligations.Checkpoint_Load (CLS);
@@ -647,8 +624,7 @@ package body Checkpoints is
    procedure Read
      (Stream : in out Stateful_Stream;
       Item   : out Stream_Element_Array;
-      Last   : out Stream_Element_Offset)
-   is
+      Last   : out Stream_Element_Offset) is
    begin
       Stream.Stream.Read (Item, Last);
    end Read;
@@ -673,9 +649,7 @@ package body Checkpoints is
    -----------
 
    procedure Write
-     (Stream : in out Stateful_Stream;
-      Item   : Stream_Element_Array)
-   is
+     (Stream : in out Stateful_Stream; Item : Stream_Element_Array) is
    begin
       Stream.Stream.Write (Item);
    end Write;
@@ -700,8 +674,7 @@ package body Checkpoints is
    -- Read_Bit_Id --
    -----------------
 
-   function Read_Bit_Id
-     (Self : in out Checkpoint_Load_State) return Any_Bit_Id
+   function Read_Bit_Id (Self : in out Checkpoint_Load_State) return Any_Bit_Id
    is
    begin
       return Any_Bit_Id (Self.Read_I32);
@@ -843,10 +816,12 @@ package body Checkpoints is
    function Read_PC (Self : in out Checkpoint_Load_State) return Pc_Type is
    begin
       case Pc_Type'Size is
-         when 32 =>
+         when 32     =>
             return Pc_Type (Self.Read_U32);
-         when 64 =>
+
+         when 64     =>
             return Pc_Type (Self.Read_U64);
+
          when others =>
             raise Program_Error;
       end case;
@@ -876,8 +851,7 @@ package body Checkpoints is
    --------------------------
 
    function Read_Source_Location
-     (Self : in out Checkpoint_Load_State) return Source_Location
-   is
+     (Self : in out Checkpoint_Load_State) return Source_Location is
    begin
       return Result : Source_Location do
          Self.Read (Result);
@@ -914,8 +888,8 @@ package body Checkpoints is
    -- Read_Tristate --
    -------------------
 
-   function Read_Tristate
-     (Self : in out Checkpoint_Load_State) return Tristate is
+   function Read_Tristate (Self : in out Checkpoint_Load_State) return Tristate
+   is
    begin
       return Tristate'Val (Self.Read_U8);
    end Read_Tristate;
@@ -965,8 +939,7 @@ package body Checkpoints is
    ---------------------------
 
    function Read_Unbounded_String
-     (Self : in out Checkpoint_Load_State) return Unbounded_String
-   is
+     (Self : in out Checkpoint_Load_State) return Unbounded_String is
    begin
       return Result : Unbounded_String do
          Read (Self, Result);
@@ -977,8 +950,7 @@ package body Checkpoints is
    -- Read_Map --
    --------------
 
-   procedure Read_Map
-     (Self : in out Checkpoint_Load_State; Map : out Map_Type)
+   procedure Read_Map (Self : in out Checkpoint_Load_State; Map : out Map_Type)
    is
       Count : constant Interfaces.Integer_32 := Self.Read_I32;
    begin
@@ -999,8 +971,7 @@ package body Checkpoints is
    -- Read_Set --
    --------------
 
-   procedure Read_Set
-     (Self : in out Checkpoint_Load_State; Set : out Set_Type)
+   procedure Read_Set (Self : in out Checkpoint_Load_State; Set : out Set_Type)
    is
       Count : constant Interfaces.Integer_32 := Self.Read_I32;
    begin
@@ -1054,7 +1025,7 @@ package body Checkpoints is
 
       Count : constant Natural := Self.Read_Integer;
 
-   --  Start of processing for Read
+      --  Start of processing for Read
 
    begin
       Tree.Clear;
@@ -1084,7 +1055,7 @@ package body Checkpoints is
 
       Length : constant Interfaces.Integer_32 := Self.Read_I32;
 
-   --  Start of processing for Read_Vector
+      --  Start of processing for Read_Vector
 
    begin
       Vector.Clear;
@@ -1104,20 +1075,17 @@ package body Checkpoints is
       U8_Array'Read (Self.Stream, Value);
    end Read;
 
-   procedure Read
-     (Self : in out Checkpoint_Load_State; Value : out CU_Id) is
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out CU_Id) is
    begin
       Value := Self.Read_CU;
    end Read;
 
-   procedure Read
-     (Self : in out Checkpoint_Load_State; Value : out Pc_Type) is
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out Pc_Type) is
    begin
       Value := Self.Read_PC;
    end Read;
 
-   procedure Read
-     (Self : in out Checkpoint_Load_State; Value : out SCO_Id) is
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out SCO_Id) is
    begin
       Value := Self.Read_SCO;
    end Read;
@@ -1140,8 +1108,8 @@ package body Checkpoints is
       String'Read (Self.Stream, Value);
    end Read;
 
-   procedure Read
-     (Self : in out Checkpoint_Load_State; Value : out Tristate) is
+   procedure Read (Self : in out Checkpoint_Load_State; Value : out Tristate)
+   is
    begin
       Value := Self.Read_Tristate;
    end Read;
@@ -1161,12 +1129,12 @@ package body Checkpoints is
          Self.Read (S);
       end Set;
 
-      First : constant Positive := Self.Read_Integer;
-      Last  : constant Natural := Self.Read_Integer;
+      First  : constant Positive := Self.Read_Integer;
+      Last   : constant Natural := Self.Read_Integer;
       subtype Fixed_String is String (First .. Last);
       Length : constant Natural := Fixed_String'Length;
 
-   --  Start of processing for Read
+      --  Start of processing for Read
 
    begin
       if Length = 0 then
@@ -1252,10 +1220,12 @@ package body Checkpoints is
    procedure Write_PC (Self : in out Checkpoint_Save_State; Value : Pc_Type) is
    begin
       case Pc_Type'Size is
-         when 32 =>
+         when 32     =>
             Self.Write_U32 (Interfaces.Unsigned_32 (Value));
-         when 64 =>
+
+         when 64     =>
             Self.Write_U64 (Interfaces.Unsigned_64 (Value));
+
          when others =>
             raise Program_Error;
       end case;
@@ -1370,8 +1340,8 @@ package body Checkpoints is
    end Write;
 
    procedure Write
-     (Self  : in out Checkpoint_Save_State;
-      Value : Local_Source_Location_Range) is
+     (Self : in out Checkpoint_Save_State; Value : Local_Source_Location_Range)
+   is
    begin
       Self.Write (Value.First_Sloc);
       Self.Write (Value.Last_Sloc);
@@ -1427,9 +1397,7 @@ package body Checkpoints is
    -- Write_Map --
    ---------------
 
-   procedure Write_Map
-     (Self : in out Checkpoint_Save_State; Map : Map_Type)
-   is
+   procedure Write_Map (Self : in out Checkpoint_Save_State; Map : Map_Type) is
       procedure Process (Position : Cursor_Type);
       --  Write the key/element couple designated by Position to the checkpoint
 
@@ -1451,7 +1419,7 @@ package body Checkpoints is
          Write_Element (Self, Element);
       end Process;
 
-   --  Start of processing for Write_Map
+      --  Start of processing for Write_Map
 
    begin
       Self.Write_Count (Length (Map));
@@ -1462,9 +1430,7 @@ package body Checkpoints is
    -- Write_Set --
    ---------------
 
-   procedure Write_Set
-     (Self : in out Checkpoint_Save_State; Set : Set_Type)
-   is
+   procedure Write_Set (Self : in out Checkpoint_Save_State; Set : Set_Type) is
       procedure Process (Position : Cursor_Type);
       --  Write the element designated by Position to the checkpoint
 
@@ -1485,7 +1451,7 @@ package body Checkpoints is
          Write_Element (Self, Element);
       end Process;
 
-   --  Start of processing for Write_Set
+      --  Start of processing for Write_Set
 
    begin
       Self.Write_Count (Length (Set));
@@ -1527,7 +1493,7 @@ package body Checkpoints is
          Write_Children (Parent);
       end Write_Subtree;
 
-   --  Start of processing for Write_Tree
+      --  Start of processing for Write_Tree
 
    begin
       Self.Write_Count (Tree.Node_Count - 1);

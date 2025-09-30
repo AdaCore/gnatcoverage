@@ -32,10 +32,10 @@ with Hex_Images;
 with Interfaces;
 with Outputs;
 with Project;
-with Support_Files;    use Support_Files;
-with Switches;         use Switches;
+with Support_Files; use Support_Files;
+with Switches;      use Switches;
 with Traces_Disa;
-with Traces_Files;     use Traces_Files;
+with Traces_Files;  use Traces_Files;
 
 --  This package generates a dynamic HTML report, i.e. an HTML document heavily
 --  relying on JavaScript for presenting advanced graphical components.
@@ -65,36 +65,36 @@ package body Annotations.Dynamic_Html is
       --  this node with children. It will then be written into a <script>
       --  section in the final HTML document.
 
-      Current_Mapping     : JSON_Value;
+      Current_Mapping : JSON_Value;
       --  A line mapping structure, containing the coverage results for the
       --  given line. This correspond to the mapping currently being generated
       --  by the Dynamic_Html builder. It is stored in Current_Mappings by the
       --  Pretty_Print_End_Line procedure.
 
-      Current_Mappings    : JSON_Array;
+      Current_Mappings : JSON_Array;
       --  The list of all mappings for the file being currently processed by
       --  the builder. It is stored in the "sources" attributes of the JSON
       --  root by Pretty_Print_End_File.
 
-      Current_SCOs        : JSON_Array;
+      Current_SCOs : JSON_Array;
       --  The SCOs list attached to the line currently being processed. It is
       --  stored in the Current_Mapping by Pretty_Print_End_Line if not empty.
 
-      Current_Decision    : JSON_Value;
+      Current_Decision : JSON_Value;
       --  The current decision being processed by the builder. It is stored in
       --  Current_SCOs by the Pretty_Print_End_Decision procedure.
 
-      Current_Conditions  : JSON_Array;
+      Current_Conditions : JSON_Array;
       --  The condition list attached to the line currently being processed. It
       --  is stored in the Current_Decision by Pretty_Print_End_Decision if not
       --  empty.
 
-      Current_Insn_Set    : JSON_Value;
+      Current_Insn_Set : JSON_Value;
       --  The current instruction set being processed by the builder. It is
       --  stored as "instruction_set" in the Current_Mapping by
       --  Pretty_Print_End_Instruction_Set.
 
-      Current_Insn_Block  : JSON_Value;
+      Current_Insn_Block : JSON_Value;
       --  The current instruction block being processed by the builder. It is
       --  stored in Current_Insn_Blocks by Pretty_Print_End_Symbol.
 
@@ -103,28 +103,28 @@ package body Annotations.Dynamic_Html is
       --  processed. It is stored in Current_Insn_Set by
       --  Pretty_Print_End_Instruction_Set if not empty.
 
-      Current_Insns       : JSON_Array;
+      Current_Insns : JSON_Array;
       --  The instruction list attached to the line currently being processed.
       --  It is stored in Current_Insn_Block by Pretty_Print_End_Symbol if not
       --  empty.
 
-      Current_Source      : JSON_Value;
+      Current_Source : JSON_Value;
       --  The current source being processed by the builder
 
-      Source_List         : JSON_Array;
+      Source_List : JSON_Array;
       --  The sources array in the index, containing all source mappings
 
-      Title_Prefix        : Unbounded_String;
+      Title_Prefix : Unbounded_String;
       --  Prefix to use for titles in generated HTML documents
 
-      Scope_Metrics       : JSON_Value;
+      Scope_Metrics : JSON_Value;
       --  The scoped metrics, e.g. stats for subprograms bodies in a package
       --  body, organized in a tree fashion.
 
    end record;
 
-   overriding function Format
-     (Pp : Dynamic_Html) return Annotation_Format_Family
+   overriding
+   function Format (Pp : Dynamic_Html) return Annotation_Format_Family
    is (Annotate_Html);
 
    -----------------------------------------
@@ -137,9 +137,7 @@ package body Annotations.Dynamic_Html is
    procedure Pretty_Print_End (Pp : in out Dynamic_Html);
 
    procedure Pretty_Print_Start_File
-     (Pp   : in out Dynamic_Html;
-      File : Source_File_Index;
-      Skip : out Boolean);
+     (Pp : in out Dynamic_Html; File : Source_File_Index; Skip : out Boolean);
 
    procedure Pretty_Print_End_File (Pp : in out Dynamic_Html);
 
@@ -163,42 +161,28 @@ package body Annotations.Dynamic_Html is
       Kind  : SCO_Kind);
 
    procedure Pretty_Print_Statement
-     (Pp    : in out Dynamic_Html;
-      SCO   : SCO_Id;
-      State : Line_State);
+     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State);
 
    procedure Pretty_Print_Fun
-     (Pp    : in out Dynamic_Html;
-      SCO   : SCO_Id;
-      State : Line_State);
+     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State);
 
    procedure Pretty_Print_Call
-     (Pp    : in out Dynamic_Html;
-      SCO   : SCO_Id;
-      State : Line_State);
+     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State);
 
    procedure Pretty_Print_Start_Decision
-     (Pp    : in out Dynamic_Html;
-      SCO   : SCO_Id;
-      State : Line_State);
+     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State);
 
    procedure Pretty_Print_End_Decision (Pp : in out Dynamic_Html);
 
    procedure Pretty_Print_Condition
-     (Pp    : in out Dynamic_Html;
-      SCO   : SCO_Id;
-      State : Line_State);
+     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State);
 
-   procedure Pretty_Print_Message
-     (Pp : in out Dynamic_Html;
-      M  : Message);
+   procedure Pretty_Print_Message (Pp : in out Dynamic_Html; M : Message);
 
    procedure Pretty_Print_Start_Instruction_Set
-     (Pp    : in out Dynamic_Html;
-      State : Any_Line_State);
+     (Pp : in out Dynamic_Html; State : Any_Line_State);
 
-   procedure Pretty_Print_End_Instruction_Set
-     (Pp : in out Dynamic_Html);
+   procedure Pretty_Print_End_Instruction_Set (Pp : in out Dynamic_Html);
 
    procedure Pretty_Print_Start_Symbol
      (Pp     : in out Dynamic_Html;
@@ -253,10 +237,7 @@ package body Annotations.Dynamic_Html is
    ----------------------
 
    procedure Set_SCO_Fields
-     (Obj   : JSON_Value;
-      SCO   : SCO_Id;
-      State : Line_State;
-      Kind  : SCO_Kind);
+     (Obj : JSON_Value; SCO : SCO_Id; State : Line_State; Kind : SCO_Kind);
    --  Set the following field to the given JSON object:
    --    * id
    --    * text
@@ -303,18 +284,14 @@ package body Annotations.Dynamic_Html is
          Title_Prefix => Annotations.Html.Title_Prefix (Report_Title),
          others       => <>);
    begin
-      Annotations.Generate_Report
-        (Pp,
-         Show_Details => True,
-         Subdir       => "html");
+      Annotations.Generate_Report (Pp, Show_Details => True, Subdir => "html");
    end Generate_Report;
 
    ------------------------
    -- Pretty_Print_Start --
    ------------------------
 
-   procedure Pretty_Print_Start (Pp : in out Dynamic_Html)
-   is
+   procedure Pretty_Print_Start (Pp : in out Dynamic_Html) is
       Traces : JSON_Array;
       --  The array of trace records
 
@@ -393,9 +370,7 @@ package body Annotations.Dynamic_Html is
    -----------------------------
 
    procedure Pretty_Print_Start_File
-     (Pp     : in out Dynamic_Html;
-      File   : Source_File_Index;
-      Skip   : out Boolean)
+     (Pp : in out Dynamic_Html; File : Source_File_Index; Skip : out Boolean)
    is
       use Coverage;
       use Project;
@@ -449,12 +424,15 @@ package body Annotations.Dynamic_Html is
          --  If the project was loaded, get the language information from it
 
          case Language (Info.Full_Name.all) is
-            when Ada_Language =>
+            when Ada_Language  =>
                Source.Set_Field ("language", "ada");
-            when C_Language =>
+
+            when C_Language    =>
                Source.Set_Field ("language", "c");
-            when CPP_Language =>
+
+            when CPP_Language  =>
                Source.Set_Field ("language", "cpp");
+
             when All_Languages =>
                null;
          end case;
@@ -486,8 +464,7 @@ package body Annotations.Dynamic_Html is
 
       begin
          Source.Set_Field
-           ("project",
-            (if P_Name /= "" then P_Name else "Other Sources"));
+           ("project", (if P_Name /= "" then P_Name else "Other Sources"));
       end;
 
       Pp.Current_Source := Source;
@@ -535,8 +512,10 @@ package body Annotations.Dynamic_Html is
             end if;
 
             Warn
-              ("hunk generation failed: " & Filename & ": " &
-               Exception_Information (Ex));
+              ("hunk generation failed: "
+               & Filename
+               & ": "
+               & Exception_Information (Ex));
       end;
 
       --  Append a simplified "reference" entry to the index
@@ -554,8 +533,7 @@ package body Annotations.Dynamic_Html is
       if Source.Has_Field ("project") then
          --  Project name is optional. Add it only when relevant
 
-         Simplified.Set_Field
-           ("project", String'(Source.Get ("project")));
+         Simplified.Set_Field ("project", String'(Source.Get ("project")));
       end if;
 
       Append (Pp.Source_List, Simplified);
@@ -573,8 +551,7 @@ package body Annotations.Dynamic_Html is
       use Scope_Entities_Trees;
 
       function To_JSON
-        (Cur     : Cursor;
-         Is_Root : Boolean := False) return JSON_Value;
+        (Cur : Cursor; Is_Root : Boolean := False) return JSON_Value;
       --  Convert a scope entity to a JSON scoped metric: compute line and
       --  obligation statistics for the given scope and recursively for
       --  child scopes. Is_Root indicates whether the given Cur is the root
@@ -586,8 +563,7 @@ package body Annotations.Dynamic_Html is
       -------------
 
       function To_JSON
-        (Cur     : Cursor;
-         Is_Root : Boolean := False) return JSON_Value
+        (Cur : Cursor; Is_Root : Boolean := False) return JSON_Value
       is
          Scope_Ent : constant Scope_Entity := Element (Cur);
          Child     : Cursor := First_Child (Cur);
@@ -601,7 +577,8 @@ package body Annotations.Dynamic_Html is
            Line_Metrics
              (File_Info,
               Scope_Ent.Source_Range.L.First_Sloc.Line,
-              (if Is_Root then Last_Line (File_Info)
+              (if Is_Root
+               then Last_Line (File_Info)
                else Scope_Ent.Source_Range.L.Last_Sloc.Line));
          --  Adjust Scope_Ent.End_Sloc for the root node as it is
          --  No_Local_Location by default.
@@ -639,7 +616,7 @@ package body Annotations.Dynamic_Html is
       Line     : String)
    is
       Coverage_State : constant String :=
-                         (1 => State_Char (Aggregated_State (Info.all)));
+        (1 => State_Char (Aggregated_State (Info.all)));
 
       Mapping  : constant JSON_Value := Create_Object;
       Line_Obj : constant JSON_Value := Create_Object;
@@ -692,9 +669,7 @@ package body Annotations.Dynamic_Html is
    ----------------------------
 
    procedure Pretty_Print_Statement
-     (Pp    : in out Dynamic_Html;
-      SCO   : SCO_Id;
-      State : Line_State) is
+     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State) is
    begin
       Pretty_Print_SCO (Pp, SCO, State, Statement);
    end Pretty_Print_Statement;
@@ -704,9 +679,7 @@ package body Annotations.Dynamic_Html is
    ----------------------
 
    procedure Pretty_Print_Fun
-     (Pp    : in out Dynamic_Html;
-      SCO   : SCO_Id;
-      State : Line_State) is
+     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State) is
    begin
       Pretty_Print_SCO (Pp, SCO, State, Fun);
    end Pretty_Print_Fun;
@@ -716,9 +689,7 @@ package body Annotations.Dynamic_Html is
    -----------------------
 
    procedure Pretty_Print_Call
-     (Pp    : in out Dynamic_Html;
-      SCO   : SCO_Id;
-      State : Line_State) is
+     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State) is
    begin
       Pretty_Print_SCO (Pp, SCO, State, Call);
    end Pretty_Print_Call;
@@ -728,9 +699,7 @@ package body Annotations.Dynamic_Html is
    ---------------------------------
 
    procedure Pretty_Print_Start_Decision
-     (Pp    : in out Dynamic_Html;
-      SCO   : SCO_Id;
-      State : Line_State)
+     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State)
    is
       Decision_JSON : constant JSON_Value := Create_Object;
       Conditions    : JSON_Array;
@@ -758,9 +727,7 @@ package body Annotations.Dynamic_Html is
    ----------------------------
 
    procedure Pretty_Print_Condition
-     (Pp    : in out Dynamic_Html;
-      SCO   : SCO_Id;
-      State : Line_State)
+     (Pp : in out Dynamic_Html; SCO : SCO_Id; State : Line_State)
    is
       Condition_JSON : constant JSON_Value := Create_Object;
    begin
@@ -773,8 +740,7 @@ package body Annotations.Dynamic_Html is
    ----------------------------------------
 
    procedure Pretty_Print_Start_Instruction_Set
-     (Pp    : in out Dynamic_Html;
-      State : Any_Line_State)
+     (Pp : in out Dynamic_Html; State : Any_Line_State)
    is
       Insn_Set : constant JSON_Value := Create_Object;
    begin
@@ -852,8 +818,7 @@ package body Annotations.Dynamic_Html is
    -- Pretty_Print_End_Instruction_Set --
    --------------------------------------
 
-   procedure Pretty_Print_End_Instruction_Set
-     (Pp : in out Dynamic_Html) is
+   procedure Pretty_Print_End_Instruction_Set (Pp : in out Dynamic_Html) is
    begin
       if not Is_Empty (Pp.Current_Insn_Blocks) then
          Pp.Current_Insn_Set.Set_Field
@@ -867,10 +832,7 @@ package body Annotations.Dynamic_Html is
    -- Pretty_Print_Message --
    --------------------------
 
-   procedure Pretty_Print_Message
-     (Pp : in out Dynamic_Html;
-      M  : Message)
-   is
+   procedure Pretty_Print_Message (Pp : in out Dynamic_Html; M : Message) is
       use Hex_Images;
       use Interfaces;
 
@@ -948,10 +910,7 @@ package body Annotations.Dynamic_Html is
    --------------------
 
    procedure Set_SCO_Fields
-     (Obj   : JSON_Value;
-      SCO   : SCO_Id;
-      State : Line_State;
-      Kind  : SCO_Kind)
+     (Obj : JSON_Value; SCO : SCO_Id; State : Line_State; Kind : SCO_Kind)
    is
       JSON_Annotations : JSON_Array;
    begin
@@ -970,11 +929,10 @@ package body Annotations.Dynamic_Html is
    -- Src_Range --
    ---------------
 
-   function Src_Range (SCO : SCO_Id) return JSON_Array
-   is
+   function Src_Range (SCO : SCO_Id) return JSON_Array is
       Sloc_Start : constant Source_Location := First_Sloc (SCO);
       Sloc_End   : constant Source_Location :=
-                     End_Lex_Element (Last_Sloc (SCO));
+        End_Lex_Element (Last_Sloc (SCO));
 
       R : JSON_Array;
 
@@ -1026,7 +984,7 @@ package body Annotations.Dynamic_Html is
          end if;
       end Set_If_Not_Null;
 
-   --  Start of processing for To_JSON
+      --  Start of processing for To_JSON
 
    begin
       Set_If_Not_Null ("noCode", Stats (No_Code));
@@ -1055,8 +1013,7 @@ package body Annotations.Dynamic_Html is
       Ob_Stats_JSON : JSON_Array;
 
       procedure Add_Ob_Stats
-        (Level            : Coverage_Level;
-         Obligation_Stats : SCO_Tally);
+        (Level : Coverage_Level; Obligation_Stats : SCO_Tally);
       --  Add to Obligation_Stats_Object the Obligation_Stats that correspond
       --  to the coverage level Level.
 
@@ -1065,8 +1022,7 @@ package body Annotations.Dynamic_Html is
       ------------------
 
       procedure Add_Ob_Stats
-        (Level            : Coverage_Level;
-         Obligation_Stats : SCO_Tally)
+        (Level : Coverage_Level; Obligation_Stats : SCO_Tally)
       is
          Level_Stats  : constant JSON_Value :=
            To_JSON (Obligation_Stats.Stats);
@@ -1181,14 +1137,14 @@ package body Annotations.Dynamic_Html is
       -- Copy_And_Fix_Asset --
       ------------------------
 
-      procedure Copy_And_Fix_Asset (Directory_Entry : Directory_Entry_Type)
-      is
+      procedure Copy_And_Fix_Asset (Directory_Entry : Directory_Entry_Type) is
       begin
          if Kind (Directory_Entry) = Ordinary_File then
             declare
                Source_Name : constant String := Full_Name (Directory_Entry);
                Target_Name : constant String :=
-                 Get_Output_Dir & GNAT.OS_Lib.Directory_Separator
+                 Get_Output_Dir
+                 & GNAT.OS_Lib.Directory_Separator
                  & Simple_Name (Directory_Entry);
             begin
                --  Consider the --report-title option that can change the title
@@ -1199,8 +1155,10 @@ package body Annotations.Dynamic_Html is
                     (In_Filename  => Source_Name,
                      Out_Filename => Target_Name,
                      Pattern      => "<title>.*</title>",
-                     Replacement  => "  <title>" & (+Pp.Title_Prefix)
-                                     & "GNATcoverage Report</title>");
+                     Replacement  =>
+                       "  <title>"
+                       & (+Pp.Title_Prefix)
+                       & "GNATcoverage Report</title>");
                else
                   Copy_File (Source_Name, Target_Name);
                end if;
@@ -1223,12 +1181,8 @@ package body Annotations.Dynamic_Html is
          Input_File  : File_Type;
          Output_File : File_Type;
       begin
-         Open (File => Input_File,
-               Mode => In_File,
-               Name => In_Filename);
-         Create (File => Output_File,
-                 Mode => Out_File,
-                 Name => Out_Filename);
+         Open (File => Input_File, Mode => In_File, Name => In_Filename);
+         Create (File => Output_File, Mode => Out_File, Name => Out_Filename);
 
          while not End_Of_File (Input_File) loop
             declare
@@ -1257,9 +1211,10 @@ package body Annotations.Dynamic_Html is
 
       --  Populate the output directory with the needed assets
 
-      Search (Directory => GNATquilt_Dir,
-              Pattern   => "*",
-              Process   => Copy_And_Fix_Asset'Access);
+      Search
+        (Directory => GNATquilt_Dir,
+         Pattern   => "*",
+         Process   => Copy_And_Fix_Asset'Access);
 
    exception
       when Ex : others =>

@@ -32,13 +32,13 @@ package body GNATcov_RTS.Traces.Output.Base64 is
 
    --  Base64-over-stdout stream
 
-   type Uint6 is mod 2 ** 6;
+   type Uint6 is mod 2**6;
    Base64_Alphabet : constant array (Uint6) of Character :=
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-      & "abcdefghijklmnopqrstuvwxyz"
-      & "0123456789"
-      & "+/";
-   Base64_Padding : constant Character := '=';
+     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+     & "abcdefghijklmnopqrstuvwxyz"
+     & "0123456789"
+     & "+/";
+   Base64_Padding  : constant Character := '=';
 
    type Base64_Buffer_Index is range 1 .. 4;
    subtype Valid_Base64_Buffer_Index is Base64_Buffer_Index range 1 .. 3;
@@ -59,8 +59,7 @@ package body GNATcov_RTS.Traces.Output.Base64 is
       --  break lines at 80 digits.
    end record;
 
-   procedure Write_Bytes
-     (Output : in out Base64_Buffer; Bytes : Uint8_Array);
+   procedure Write_Bytes (Output : in out Base64_Buffer; Bytes : Uint8_Array);
    --  Callback for Generic_Write_Trace_File
 
    procedure Flush (Output : in out Base64_Buffer);
@@ -72,8 +71,7 @@ package body GNATcov_RTS.Traces.Output.Base64 is
    -- Write_Bytes --
    -----------------
 
-   procedure Write_Bytes
-     (Output : in out Base64_Buffer; Bytes : Uint8_Array)
+   procedure Write_Bytes (Output : in out Base64_Buffer; Bytes : Uint8_Array)
    is
    begin
       for I in Bytes'Range loop
@@ -120,17 +118,17 @@ package body GNATcov_RTS.Traces.Output.Base64 is
 
          when 3 =>
             Out_Digits (1) := +Uint6 (In_Bytes (1) / 4);
-            Out_Digits (2) := +(Uint6 (In_Bytes (1) mod 4) * 16
-                                or Uint6 (In_Bytes (2) / 16));
+            Out_Digits (2) :=
+              +(Uint6 (In_Bytes (1) mod 4) * 16 or Uint6 (In_Bytes (2) / 16));
             Out_Digits (3) := +(Uint6 (In_Bytes (2) mod 16) * 4);
             Out_Digits (4) := Base64_Padding;
 
          when 4 =>
             Out_Digits (1) := +Uint6 (In_Bytes (1) / 4);
-            Out_Digits (2) := +(Uint6 (In_Bytes (1) mod 4) * 16
-                                or Uint6 (In_Bytes (2) / 16));
-            Out_Digits (3) := +(Uint6 (In_Bytes (2) mod 16) * 4
-                                or Uint6 (In_Bytes (3) / 64));
+            Out_Digits (2) :=
+              +(Uint6 (In_Bytes (1) mod 4) * 16 or Uint6 (In_Bytes (2) / 16));
+            Out_Digits (3) :=
+              +(Uint6 (In_Bytes (2) mod 16) * 4 or Uint6 (In_Bytes (3) / 64));
             Out_Digits (4) := +(Uint6 (In_Bytes (3) mod 64));
       end case;
 
@@ -161,9 +159,7 @@ package body GNATcov_RTS.Traces.Output.Base64 is
    is
       procedure Helper is new Generic_Write_Trace_File (Base64_Buffer);
       Buffer : Base64_Buffer :=
-        (Bytes   => (others => 0),
-         Next    => 1,
-         Columns => 0);
+        (Bytes => (others => 0), Next => 1, Columns => 0);
    begin
       TIO.New_Line;
       TIO.Put_Line ("== GNATcoverage source trace file ==");

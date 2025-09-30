@@ -25,9 +25,7 @@ package body Command_Line is
    -------------------
 
    procedure Bool_Callback
-     (Result : in out Parsed_Arguments;
-      Option : Bool_Options)
-   is
+     (Result : in out Parsed_Arguments; Option : Bool_Options) is
    begin
       case Option is
          when Opt_Include =>
@@ -36,7 +34,7 @@ package body Command_Line is
          when Opt_Exclude =>
             Result.Remaining_Args.Append (+"--exclude");
 
-         when Opt_Quiet =>
+         when Opt_Quiet   =>
 
             --  "--quiet" cancels all the previous requests to enable logs
             --  ("--log") and cancels any previuos request for full verbosity
@@ -52,7 +50,7 @@ package body Command_Line is
 
             Result.Bool_Args (Opt_Quiet) := False;
 
-         when others =>
+         when others      =>
             null;
       end case;
    end Bool_Callback;
@@ -64,8 +62,7 @@ package body Command_Line is
    procedure String_List_Callback
      (Result : in out Parsed_Arguments;
       Option : String_List_Options;
-      Value  : String)
-   is
+      Value  : String) is
    begin
       case Option is
          when Opt_Exec =>
@@ -75,7 +72,7 @@ package body Command_Line is
                Result.String_List_Args (Opt_Trace).Append (Item);
             end;
 
-         when others =>
+         when others   =>
             null;
       end case;
    end String_List_Callback;
@@ -84,10 +81,7 @@ package body Command_Line is
    -- Arg_Callback --
    ------------------
 
-   procedure Arg_Callback
-     (Result : in out Parsed_Arguments;
-      Value  : String)
-   is
+   procedure Arg_Callback (Result : in out Parsed_Arguments; Value : String) is
    begin
       case Result.Command is
          when Cmd_Coverage
@@ -112,7 +106,7 @@ package body Command_Line is
                Result.String_List_Args (Opt_Trace).Append (+Value);
             end if;
 
-         when others =>
+         when others             =>
             null;
       end case;
    end Arg_Callback;

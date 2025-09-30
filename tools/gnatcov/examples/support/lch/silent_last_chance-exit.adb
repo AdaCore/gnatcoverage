@@ -20,7 +20,7 @@ package body Silent_Last_Chance is
       pragma Import (Ada, Lch_Enter, "__lch_enter");
    begin
       Lch_Enter;
-      C_exit(0);
+      C_exit (0);
    end Last_Chance_Handler;
 
 end;

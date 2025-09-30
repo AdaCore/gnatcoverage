@@ -16,7 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Interfaces; use Interfaces;
+with Interfaces;              use Interfaces;
 with Interfaces.C;
 with System.Storage_Elements; use System.Storage_Elements;
 
@@ -57,8 +57,7 @@ package body Elf_Files is
    -- Is_ELF_File --
    -----------------
 
-   function Is_ELF_File (Fd : File_Descriptor) return Boolean
-   is
+   function Is_ELF_File (Fd : File_Descriptor) return Boolean is
       type Header_Type is array (0 .. 3) of Unsigned_8;
       Header : Header_Type;
    begin
@@ -95,19 +94,20 @@ package body Elf_Files is
          raise Error with File.Filename & ": " & Msg;
       end Exit_With_Error;
    begin
-      return File : Elf_File := (Binary_File'(Create_File (Fd, Filename))
-                                 with
-                                 Need_Swap        => False,
-                                 Ehdr_Map         => No_Loaded_Section,
-                                 Shdr_Map         => No_Loaded_Section,
-                                 Sh_Strtab_Map    => No_Loaded_Section,
-                                 Ehdr             => null,
-                                 Shdr             => null,
-                                 Sh_Strtab        => null)
+      return
+         File : Elf_File :=
+           (Binary_File'(Create_File (Fd, Filename))
+            with
+              Need_Swap     => False,
+              Ehdr_Map      => No_Loaded_Section,
+              Shdr_Map      => No_Loaded_Section,
+              Sh_Strtab_Map => No_Loaded_Section,
+              Ehdr          => null,
+              Shdr          => null,
+              Sh_Strtab     => null)
       do
          --  Read the Ehdr
-         File.Ehdr_Map := +Read
-           (File.File, 0, File_Size (Elf_Ehdr_Size));
+         File.Ehdr_Map := +Read (File.File, 0, File_Size (Elf_Ehdr_Size));
          if Natural (Size (File.Ehdr_Map)) /= Elf_Ehdr_Size then
             Exit_With_Error
               (File, Status_Read_Error, "failed to read ELF header");
@@ -136,7 +136,8 @@ package body Elf_Files is
             --  executable name from the trace file and retry???
 
             Exit_With_Error
-              (File, Status_Bad_Magic,
+              (File,
+               Status_Bad_Magic,
                (if Has_Suffix (File.Filename, ".trace")
                 then "ELF file expected, found a trace file"
                 else "bad ELF magic"));
@@ -147,13 +148,15 @@ package body Elf_Files is
          begin
             if Input_Class /= Elf_Arch_Class then
                Exit_With_Error
-                 (File, Status_Bad_Class,
+                 (File,
+                  Status_Bad_Class,
                   (case Input_Class is
                      when ELFCLASS32 => "unsupported ELF class (32bit)",
                      when ELFCLASS64 => "unsupported ELF class (64bit)",
-                     when others =>
-                        ("invalid ELF class ("
-                         & Elf_Uchar'Image (Input_Class) & ')')));
+                     when others     =>
+                       ("invalid ELF class ("
+                        & Elf_Uchar'Image (Input_Class)
+                        & ')')));
             end if;
          end;
 
@@ -172,8 +175,8 @@ package body Elf_Files is
    ---------------
 
    procedure Load_Shdr (File : in out Elf_File) is
-      Length      : constant Unsigned_16 := File.Ehdr.E_Shnum;
-      Size        : File_Size;
+      Length : constant Unsigned_16 := File.Ehdr.E_Shnum;
+      Size   : File_Size;
 
    begin
       if Get_Ehdr (File).E_Shentsize /= Elf_Half (Elf_Shdr_Size) then
@@ -185,11 +188,12 @@ package body Elf_Files is
       end if;
 
       Size := File_Size (Length) * File_Size (Elf_Shdr_Size);
-      File.Shdr_Map := +Read
-        (File    => File.File,
-         Offset  => File_Size (File.Ehdr.E_Shoff),
-         Length  => Size,
-         Mutable => File.Need_Swap);
+      File.Shdr_Map :=
+        +Read
+           (File    => File.File,
+            Offset  => File_Size (File.Ehdr.E_Shoff),
+            Length  => Size,
+            Mutable => File.Need_Swap);
       File.Shdr := To_Elf_Shdr_Arr_Acc (Address_Of (File.Shdr_Map));
 
       if File_Size (Binary_Files.Size (File.Shdr_Map)) /= Size then
@@ -202,8 +206,8 @@ package body Elf_Files is
          end loop;
       end if;
 
-      File.Sh_Strtab_Map := Load_Section
-        (File, Section_Index (File.Ehdr.E_Shstrndx));
+      File.Sh_Strtab_Map :=
+        Load_Section (File, Section_Index (File.Ehdr.E_Shstrndx));
       File.Sh_Strtab := To_Elf_Strtab_Acc (Address_Of (File.Sh_Strtab_Map));
    end Load_Shdr;
 
@@ -227,8 +231,9 @@ package body Elf_Files is
      (File : Elf_File; Index : Section_Index) return Loaded_Section
    is
       Shdr   : constant Elf_Shdr_Acc := Get_Shdr (File, Elf_Half (Index));
-      Result : Loaded_Section := +Read
-        (File.File, File_Size (Shdr.Sh_Offset), File_Size (Shdr.Sh_Size));
+      Result : Loaded_Section :=
+        +Read
+           (File.File, File_Size (Shdr.Sh_Offset), File_Size (Shdr.Sh_Size));
    begin
       if File_Size (Size (Result)) /= File_Size (Shdr.Sh_Size) then
          raise Error;
@@ -243,17 +248,18 @@ package body Elf_Files is
             Compressed     : Loaded_Section := Result;
             Chdr           : Elf_Chdr;
             Chdr_Unswapped : Elf_Chdr
-              with Address => Address_Of (Compressed);
+            with Address => Address_Of (Compressed);
             Chdr_Size      : constant Arch_Addr :=
               Elf_Chdr'Size / System.Storage_Unit;
 
             function Uncompress
-              (In_Buffer : System.Address;
-               In_Size   : Unsigned_64;
+              (In_Buffer  : System.Address;
+               In_Size    : Unsigned_64;
                Out_Buffer : System.Address;
-               Out_Size  : Unsigned_64) return Interfaces.C.int with
-              Import => True,
-              Convention => C,
+               Out_Size   : Unsigned_64) return Interfaces.C.int
+            with
+              Import        => True,
+              Convention    => C,
               External_Name => "gnatcov_zlib_uncompress";
 
          begin
@@ -272,10 +278,11 @@ package body Elf_Files is
 
             Result := Allocate (Arch_Addr (Chdr.Ch_Size));
             if Uncompress
-              (Address_Of (Compressed) + Storage_Offset (Chdr_Size),
-               Unsigned_64 (Size (Compressed) - Chdr_Size),
-               Address_Of (Result),
-               Unsigned_64 (Size (Result))) /= 0
+                 (Address_Of (Compressed) + Storage_Offset (Chdr_Size),
+                  Unsigned_64 (Size (Compressed) - Chdr_Size),
+                  Address_Of (Result),
+                  Unsigned_64 (Size (Result)))
+              /= 0
             then
                raise Error with "error while uncompressing ELF section";
             end if;
@@ -320,8 +327,8 @@ package body Elf_Files is
    -- Get_Section_Length --
    ------------------------
 
-   function Get_Section_Length (File : Elf_File; Index : Section_Index)
-                               return Arch.Arch_Addr is
+   function Get_Section_Length
+     (File : Elf_File; Index : Section_Index) return Arch.Arch_Addr is
    begin
       return Get_Shdr (File, Elf_Half (Index)).Sh_Size;
    end Get_Section_Length;
@@ -333,8 +340,7 @@ package body Elf_Files is
    -- Get_String --
    ----------------
 
-   function Get_String
-     (Strtab : Elf_Strtab_Acc; Idx : Elf_Addr) return String
+   function Get_String (Strtab : Elf_Strtab_Acc; Idx : Elf_Addr) return String
    is
       E : Elf_Addr;
    begin
@@ -353,20 +359,17 @@ package body Elf_Files is
    -- Get_Shdr_Name --
    -------------------
 
-   function Get_Shdr_Name
-     (File : Elf_File; Index : Elf_Half) return String
-   is
+   function Get_Shdr_Name (File : Elf_File; Index : Elf_Half) return String is
    begin
-      return Get_String (File.Sh_Strtab,
-                         Elf_Addr (Get_Shdr (File, Index).Sh_Name));
+      return
+        Get_String (File.Sh_Strtab, Elf_Addr (Get_Shdr (File, Index).Sh_Name));
    end Get_Shdr_Name;
 
    ----------------------
    -- Get_Shdr_By_Name --
    ----------------------
 
-   function Get_Shdr_By_Name
-     (File : Elf_File; Name : String) return Elf_Half
+   function Get_Shdr_By_Name (File : Elf_File; Name : String) return Elf_Half
    is
       Shdr : Elf_Shdr_Acc;
    begin

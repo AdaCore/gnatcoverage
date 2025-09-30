@@ -60,9 +60,10 @@ package SC_Obligations is
    -- Source files --
    ------------------
 
-   package SFI_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Pos,
-      Element_Type => Source_File_Index);
+   package SFI_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Pos,
+        Element_Type => Source_File_Index);
    --  Vector of source file indices, used to map dependency indices in an
    --  ALI file to our source file indices.
 
@@ -163,13 +164,13 @@ package SC_Obligations is
       Cov_On,
       Cov_Off);
 
-   subtype Src_Annotation_Kind is Any_Annotation_Kind range
-     Exempt_On .. Cov_Off;
+   subtype Src_Annotation_Kind is
+     Any_Annotation_Kind range Exempt_On .. Cov_Off;
    --  All annotation kind that can be found in pragma Annotate / comments
    --  supported by gnatcov.
 
-   subtype ALI_Annotation_Kind is Any_Annotation_Kind range
-     Exempt_On .. Exempt_Off;
+   subtype ALI_Annotation_Kind is
+     Any_Annotation_Kind range Exempt_On .. Exempt_Off;
    --  Annotation kinds that can be found in ALI files
 
    type ALI_Annotation is record
@@ -198,8 +199,8 @@ package SC_Obligations is
       --  This is relevant only for source trace based coverage analysis.
    end record;
 
-   package ALI_Annotation_Maps is
-     new Ada.Containers.Ordered_Maps
+   package ALI_Annotation_Maps is new
+     Ada.Containers.Ordered_Maps
        (Key_Type     => Source_Location,
         Element_Type => ALI_Annotation);
 
@@ -276,8 +277,8 @@ package SC_Obligations is
    No_SCO_Id : constant SCO_Id := 0;
    subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
 
-   package SCO_Sets is
-     new Ada.Containers.Ordered_Sets (Element_Type => SCO_Id);
+   package SCO_Sets is new
+     Ada.Containers.Ordered_Sets (Element_Type => SCO_Id);
 
    type Scope_Entity_Identifier is record
       Decl_SFI  : Source_File_Index;
@@ -290,10 +291,10 @@ package SC_Obligations is
    No_Scope_Entity_Identifier : constant Scope_Entity_Identifier :=
      (Decl_SFI => No_Source_File, Decl_Line => 0);
 
-   function "<" (L, R : Scope_Entity_Identifier) return Boolean is
-     (if L.Decl_SFI = R.Decl_SFI
-      then L.Decl_Line < R.Decl_Line
-      else L.Decl_SFI < R.Decl_SFI);
+   function "<" (L, R : Scope_Entity_Identifier) return Boolean
+   is (if L.Decl_SFI = R.Decl_SFI
+       then L.Decl_Line < R.Decl_Line
+       else L.Decl_SFI < R.Decl_SFI);
 
    type Scope_Entity is record
       Source_Range : Source_Location_Range;
@@ -331,8 +332,8 @@ package SC_Obligations is
 
    function Image (SE : Scope_Entity) return String;
 
-   package Scope_Id_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Scope_Entity_Identifier);
+   package Scope_Id_Sets is new
+     Ada.Containers.Ordered_Sets (Element_Type => Scope_Entity_Identifier);
    subtype Scope_Id_Set is Scope_Id_Sets.Set;
 
    Available_Subps_Of_Interest : SC_Obligations.Scope_Id_Set;
@@ -340,8 +341,8 @@ package SC_Obligations is
    --  that entries added to Switches.Subp_Of_Interest do exist, i.e. raise
    --  errors when a requested subprogram of interest is unknown.
 
-   package Scope_Entities_Trees is new Ada.Containers.Multiway_Trees
-     (Element_Type => Scope_Entity);
+   package Scope_Entities_Trees is new
+     Ada.Containers.Multiway_Trees (Element_Type => Scope_Entity);
    subtype Scope_Entities_Tree is Scope_Entities_Trees.Tree;
 
    procedure Dump
@@ -349,9 +350,10 @@ package SC_Obligations is
    --  Debug helper: print a representation of Scope_Entities on the standard
    --  output. Each line that is printed has the given Line_Prefix.
 
-   package Scope_Stacks is new Ada.Containers.Doubly_Linked_Lists
-     (Element_Type => Scope_Entities_Trees.Cursor,
-      "="          => Scope_Entities_Trees."=");
+   package Scope_Stacks is new
+     Ada.Containers.Doubly_Linked_Lists
+       (Element_Type => Scope_Entities_Trees.Cursor,
+        "="          => Scope_Entities_Trees."=");
 
    type Scope_Traversal_Type is private;
    --  Utilities type to efficiently traverse the scopes in a compilation unit.
@@ -379,7 +381,13 @@ package SC_Obligations is
       Start_SCO    => No_SCO_Id);
 
    type Any_SCO_Kind is
-     (Removed, Statement, Decision, Condition, Operator, Fun, Call,
+     (Removed,
+      Statement,
+      Decision,
+      Condition,
+      Operator,
+      Fun,
+      Call,
       Guarded_Expr);
    subtype SCO_Kind is Any_SCO_Kind range Statement .. Guarded_Expr;
    --  Removed is used for SCOs coming from C code in static inline functions
@@ -398,8 +406,8 @@ package SC_Obligations is
    --  Return the owning compilation unit of a SCO
 
    function Sloc_To_SCO
-     (Sloc              : Source_Location;
-      Include_Decisions : Boolean := False) return SCO_Id;
+     (Sloc : Source_Location; Include_Decisions : Boolean := False)
+      return SCO_Id;
    --  Return the innermost condition or statement SCO (or, if
    --  Include_Decisions is set, the innermost decision) whose range contains
    --  the given sloc. It is an error if multiple such SCOs exist and aren't
@@ -411,17 +419,17 @@ package SC_Obligations is
    type Operator_Kind is (Op_Not, Op_And_Then, Op_Or_Else);
 
    function Has_SCO
-     (Sloc_Begin : Source_Location;
-      Sloc_End   : Source_Location) return Boolean;
+     (Sloc_Begin : Source_Location; Sloc_End : Source_Location) return Boolean;
    --  Return True if there is at least one Statement or Condition SCO whose
    --  range has a non-null intersection with Sloc_Begin .. Sloc_End.
 
    type LL_HL_SCO_Map is array (Nat range <>) of SCO_Id;
    --  Map of low level SCOs to high level SCOs
 
-   package Created_Unit_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Source_File_Index,
-      Element_Type => CU_Id);
+   package Created_Unit_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Source_File_Index,
+        Element_Type => CU_Id);
    --  Map source files to corresponding compilation unit. Each such map
    --  relates to a single LI file.
    --
@@ -475,8 +483,7 @@ package SC_Obligations is
    --  coverage buffers for source traces.
 
    procedure Load_SCOs
-     (ALI_Filename         : String;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp);
+     (ALI_Filename : String; Ignored_Source_Files : access GNAT.Regexp.Regexp);
    --  Load source coverage obligations from ALI_Filename. If
    --  Ignored_Source_File is non-null, ignore SCOs that target files whose
    --  names match the accessed pattern.
@@ -510,10 +517,10 @@ package SC_Obligations is
    --  State of a condition, if known
 
    To_Tristate : constant array (Boolean) of Known_Tristate :=
-                   (False => False, True => True);
+     (False => False, True => True);
 
    To_Boolean : constant array (Known_Tristate) of Boolean :=
-                   (False => False, True => True);
+     (False => False, True => True);
 
    type Any_Condition_Index is new Integer range -1 .. Integer'Last;
    No_Condition_Index : constant Any_Condition_Index := -1;
@@ -522,18 +529,20 @@ package SC_Obligations is
 
    type Condition_Values_Array is array (Condition_Index range <>) of Tristate;
 
-   package Condition_Evaluation_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Condition_Index,
-      Element_Type => Tristate);
+   package Condition_Evaluation_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Condition_Index,
+        Element_Type => Tristate);
 
    function To_Vector
      (Cond_Values : Condition_Values_Array)
       return Condition_Evaluation_Vectors.Vector;
    --  Convert Cond_Values to a vector
 
-   package Static_Condition_Values_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Condition_Index,
-      Element_Type => Boolean);
+   package Static_Condition_Values_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Condition_Index,
+        Element_Type => Boolean);
 
    type Static_Decision_Evaluation is record
       Values  : Static_Condition_Values_Vectors.Vector;
@@ -542,13 +551,14 @@ package SC_Obligations is
 
    function "<" (L, R : Static_Decision_Evaluation) return Boolean;
 
-   package Static_Decision_Evaluation_Sets is new Ada.Containers.Ordered_Sets
-     (Static_Decision_Evaluation);
+   package Static_Decision_Evaluation_Sets is new
+     Ada.Containers.Ordered_Sets (Static_Decision_Evaluation);
 
-   package Static_Decision_Evaluation_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => SCO_Id,
-      Element_Type => Static_Decision_Evaluation_Sets.Set,
-      "=" => Static_Decision_Evaluation_Sets.Equivalent_Sets);
+   package Static_Decision_Evaluation_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => SCO_Id,
+        Element_Type => Static_Decision_Evaluation_Sets.Set,
+        "="          => Static_Decision_Evaluation_Sets.Equivalent_Sets);
 
    type Operand_Position is (Left, Right);
 
@@ -559,8 +569,8 @@ package SC_Obligations is
 
    --  Outgoing arcs from a BDD node
 
-   subtype Valid_BDD_Node_Id is BDD_Node_Id
-   range No_BDD_Node_Id + 1 .. BDD_Node_Id'Last;
+   subtype Valid_BDD_Node_Id is
+     BDD_Node_Id range No_BDD_Node_Id + 1 .. BDD_Node_Id'Last;
 
    ----------------------------
    -- Accessors for SCO info --
@@ -568,11 +578,11 @@ package SC_Obligations is
 
    --  All SCOs
 
-   function Kind       (SCO : SCO_Id) return Any_SCO_Kind;
+   function Kind (SCO : SCO_Id) return Any_SCO_Kind;
    function First_Sloc (SCO : SCO_Id) return Source_Location;
-   function Last_Sloc  (SCO : SCO_Id) return Source_Location;
+   function Last_Sloc (SCO : SCO_Id) return Source_Location;
    function Sloc_Range (SCO : SCO_Id) return Source_Location_Range;
-   function Parent     (SCO : SCO_Id) return SCO_Id;
+   function Parent (SCO : SCO_Id) return SCO_Id;
 
    function Unit_Has_Code (SCO : SCO_Id) return Boolean;
    --  True if object code has been seen for the compilation unit containing
@@ -611,9 +621,9 @@ package SC_Obligations is
       Call_Expr,
       Other_Statement);
 
-   subtype Statement_Kind is Any_Statement_Kind
-     range Any_Statement_Kind'Succ (No_Statement)
-        .. Any_Statement_Kind'Last;
+   subtype Statement_Kind is
+     Any_Statement_Kind
+       range Any_Statement_Kind'Succ (No_Statement) .. Any_Statement_Kind'Last;
 
    subtype Ada_Statement_Kind is
      Statement_Kind range Accept_Statement .. Other_Statement;
@@ -626,9 +636,7 @@ package SC_Obligations is
    --  Previous statement in basic block
 
    procedure Dominant
-     (SCO     : SCO_Id;
-      Dom_SCO : out SCO_Id;
-      Dom_Val : out Boolean);
+     (SCO : SCO_Id; Dom_SCO : out SCO_Id; Dom_Val : out Boolean);
    --  Return the dominant for SCO, if any.
 
    --  When SCO is executed:
@@ -644,45 +652,44 @@ package SC_Obligations is
    --  item in the source. The input SCO argument is expected to designate a
    --  statement SCO.
 
-   procedure Set_Stmt_SCO_Non_Instr (SCO : SCO_Id) with
-     Pre => Kind (SCO) = Statement;
+   procedure Set_Stmt_SCO_Non_Instr (SCO : SCO_Id)
+   with Pre => Kind (SCO) = Statement;
    --  Mark this statment SCO as non-instrumented
 
-   procedure Set_Decision_SCO_Non_Instr (SCO : SCO_Id) with
-     Pre => Kind (SCO) = Decision;
+   procedure Set_Decision_SCO_Non_Instr (SCO : SCO_Id)
+   with Pre => Kind (SCO) = Decision;
    --  Mark this decision SCO as non-instrumented for decision coverage
 
-   procedure Set_Decision_SCO_Non_Instr_For_MCDC (SCO : SCO_Id) with
-     Pre => Kind (SCO) = Decision;
+   procedure Set_Decision_SCO_Non_Instr_For_MCDC (SCO : SCO_Id)
+   with Pre => Kind (SCO) = Decision;
    --  Mark this decision SCO as non-instrumented for MCDC coverage
 
-   procedure Set_Fun_Call_SCO_Non_Instr (SCO : SCO_Id) with
-     Pre => Kind (SCO) in Fun_Call_SCO_Kind;
+   procedure Set_Fun_Call_SCO_Non_Instr (SCO : SCO_Id)
+   with Pre => Kind (SCO) in Fun_Call_SCO_Kind;
    --  Mark SCO as non instrumented for the Fun_Call coverage level
 
-   procedure Set_GExpr_SCO_Non_Instr (SCO : SCO_Id) with
-     Pre => Kind (SCO) = Guarded_Expr;
+   procedure Set_GExpr_SCO_Non_Instr (SCO : SCO_Id)
+   with Pre => Kind (SCO) = Guarded_Expr;
    --  Mark SCO as non instrumented for the GExpr coverage level
 
-   function Stmt_SCO_Instrumented (SCO : SCO_Id) return Boolean with
-     Pre => Kind (SCO) = Statement;
+   function Stmt_SCO_Instrumented (SCO : SCO_Id) return Boolean
+   with Pre => Kind (SCO) = Statement;
    --  Whether this statment SCO was instrumented
 
-   function Decision_SCO_Instrumented (SCO : SCO_Id) return Boolean with
-     Pre => Kind (SCO) = Decision;
+   function Decision_SCO_Instrumented (SCO : SCO_Id) return Boolean
+   with Pre => Kind (SCO) = Decision;
    --  Whether this decision SCO was instrumented for decision coverage
 
-   function Decision_SCO_Instrumented_For_MCDC
-     (SCO : SCO_Id) return Boolean with
-     Pre => Kind (SCO) = Decision;
+   function Decision_SCO_Instrumented_For_MCDC (SCO : SCO_Id) return Boolean
+   with Pre => Kind (SCO) = Decision;
    --  Whether this decision SCO was instrumented for MCDC coverage
 
-   function Fun_Call_SCO_Instrumented (SCO : SCO_Id) return Boolean with
-     Pre => Kind (SCO) in Fun_Call_SCO_Kind;
+   function Fun_Call_SCO_Instrumented (SCO : SCO_Id) return Boolean
+   with Pre => Kind (SCO) in Fun_Call_SCO_Kind;
    --  Whether this function or call SCO was instrumented
 
-   function GExpr_SCO_Instrumented (SCO : SCO_Id) return Boolean with
-     Pre => Kind (SCO) = Guarded_Expr;
+   function GExpr_SCO_Instrumented (SCO : SCO_Id) return Boolean
+   with Pre => Kind (SCO) = Guarded_Expr;
    --  Whether this Guarded Expression SCO was instrumented
 
    function Is_Pragma_Pre_Post_Condition (SCO : SCO_Id) return Boolean;
@@ -692,8 +699,8 @@ package SC_Obligations is
    --  For a statement within an exception handler, return the sloc range of
    --  the (innermost) handler.
 
-   function Decision_Has_Influence (SCO : SCO_Id) return Boolean with
-    Pre => Kind (SCO) = Decision;
+   function Decision_Has_Influence (SCO : SCO_Id) return Boolean
+   with Pre => Kind (SCO) = Decision;
    --  Wether the decision designated by SCO has at least one known branch in
    --  the executable, or dominates at least one statement. If not, the
    --  decision has no impact on the control flow of the program.
@@ -729,6 +736,7 @@ package SC_Obligations is
       case Present is
          when False =>
             null;
+
          when True =>
             SCO   : SCO_Id;
             Value : Boolean;
@@ -748,7 +756,7 @@ package SC_Obligations is
    function Op_Kind (SCO : SCO_Id) return Operator_Kind;
 
    function Operand (SCO : SCO_Id; Position : Operand_Position) return SCO_Id
-      with Pre => Kind (SCO) = Operator;
+   with Pre => Kind (SCO) = Operator;
    --  Return the operand slot indicated by Position in the SCO Operator.
 
    --  Decision SCOs
@@ -806,9 +814,8 @@ package SC_Obligations is
    --  Returns the path count limit beyond which BDD path enumartion is aborted
 
    function Condition_Values
-     (SCO        : SCO_Id;
-      Path_Index : Natural;
-      Outcome    : out Boolean) return Condition_Values_Array;
+     (SCO : SCO_Id; Path_Index : Natural; Outcome : out Boolean)
+      return Condition_Values_Array;
    --  Return the vector of condition values and outcome for the BDD path
    --  with the given index.
 
@@ -823,9 +830,10 @@ package SC_Obligations is
    -- Sloc -> SCO_Id index --
    --------------------------
 
-   package Sloc_To_SCO_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Local_Source_Location_Range,
-      Element_Type => SCO_Id);
+   package Sloc_To_SCO_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Local_Source_Location_Range,
+        Element_Type => SCO_Id);
 
    type Sloc_To_SCO_Map_Array is
      array (SCO_Kind) of aliased Sloc_To_SCO_Maps.Map;
@@ -848,7 +856,7 @@ package SC_Obligations is
    --  Statement buffer: bit set True denotes that the statement was executed
 
    type Decision_Bit_Info is record
-      D_SCO   : SCO_Id;
+      D_SCO : SCO_Id;
       --  Decision SCO
 
       Outcome : Boolean;
@@ -861,7 +869,7 @@ package SC_Obligations is
    --  evaluated to the given outcome.
 
    type MCDC_Bit_Info is record
-      D_SCO      : SCO_Id;
+      D_SCO : SCO_Id;
       --  Decision SCO
 
       Path_Index : Natural;
@@ -879,52 +887,50 @@ package SC_Obligations is
       MCDC_Bits      : MCDC_Bit_Map_Access;
    end record;
 
-   package SCO_Id_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => SCO_Id);
+   package SCO_Id_Vectors is new
+     Ada.Containers.Vectors (Index_Type => Positive, Element_Type => SCO_Id);
 
-   package SCO_Id_Vector_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => SCO_Id_Vectors.Vector,
-      "="          => SCO_Id_Vectors."=");
+   package SCO_Id_Vector_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => SCO_Id_Vectors.Vector,
+        "="          => SCO_Id_Vectors."=");
    subtype SCO_Id_Vector_Vector is SCO_Id_Vector_Vectors.Vector;
 
    function Has_Fingerprint
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return Boolean;
+     (CU : CU_Id; SCO_Fingerprint : Fingerprint_Type) return Boolean;
    --  Return whether there is a match for the given CU and SCO_Fingerprint
 
-   package Fingerprint_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Fingerprint_Type);
+   package Fingerprint_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Fingerprint_Type);
 
    function Fingerprints (CU : CU_Id) return Fingerprint_Vectors.Vector;
    --  Return the fingerprints for all the different versions of the
    --  compilation unit identified by CU.
 
    function Bit_Maps
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return CU_Bit_Maps;
+     (CU : CU_Id; SCO_Fingerprint : Fingerprint_Type) return CU_Bit_Maps;
    --  For a unit whose coverage is assessed through source code
    --  instrumentation, return bit maps for the version of the compilation unit
    --  denoted by SCO_Fingerprint.
 
    function Bit_Maps_Fingerprint
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return Fingerprint_Type;
+     (CU : CU_Id; SCO_Fingerprint : Fingerprint_Type) return Fingerprint_Type;
    --  For a unit whose coverage is assessed through source code
    --  instrumentation, return the bit maps fingerprint for the version of the
    --  compilation unit denoted by SCO_Fingerprint.
 
    function Annotations_Fingerprint
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return Fingerprint_Type;
+     (CU : CU_Id; SCO_Fingerprint : Fingerprint_Type) return Fingerprint_Type;
    --  For a unit whose coverage is assessed through source code
    --  instrumentation, return the annotations fingerprint for the version of
    --  the compilation unit denoted by SCO_Fingerprint.
 
    function Blocks
-     (CU              : CU_Id;
-      SCO_Fingerprint : Fingerprint_Type) return SCO_Id_Vector_Vector;
+     (CU : CU_Id; SCO_Fingerprint : Fingerprint_Type)
+      return SCO_Id_Vector_Vector;
    --  For a unit whose coverage is assessed through source code
    --  instrumentation, return blocks information for the version of the
    --  compilation unit denoted by SCO_Fingerprint.
@@ -934,11 +940,11 @@ package SC_Obligations is
 
    procedure Set_Blocks (CU : CU_Id; Blocks : SCO_Id_Vector_Vector);
 
-  --  With languages featuring macros such as C, coverage obligations are
-  --  established from expanded code but the user level sources against which
-  --  we produce reports are the original unexpanded ones. Here, we instate
-  --  mechanisms to let us track and eventually report how expanded SCOs
-  --  connect to the original sources.
+   --  With languages featuring macros such as C, coverage obligations are
+   --  established from expanded code but the user level sources against which
+   --  we produce reports are the original unexpanded ones. Here, we instate
+   --  mechanisms to let us track and eventually report how expanded SCOs
+   --  connect to the original sources.
 
    type SCO_PP_Kind is (In_Expansion, No_Expansion);
 
@@ -947,8 +953,8 @@ package SC_Obligations is
       Sloc       : Slocs.Source_Location;
    end record;
 
-   package Expansion_Lists is new Ada.Containers.Doubly_Linked_Lists
-     (Element_Type => Expansion_Info);
+   package Expansion_Lists is new
+     Ada.Containers.Doubly_Linked_Lists (Element_Type => Expansion_Info);
 
    type PP_Info (Kind : SCO_PP_Kind := No_Expansion) is record
       Actual_Source_Range : Slocs.Local_Source_Location_Range;
@@ -975,19 +981,20 @@ package SC_Obligations is
    --  Preprocessing information for SCOs. Hold basic information to enhance
    --  the report output with more precise messages.
 
-   package SCO_PP_Info_Maps is new Ada.Containers.Indefinite_Ordered_Maps
-     (Key_Type     => SCO_Id,
-      Element_Type => PP_Info);
+   package SCO_PP_Info_Maps is new
+     Ada.Containers.Indefinite_Ordered_Maps
+       (Key_Type     => SCO_Id,
+        Element_Type => PP_Info);
 
    procedure Add_PP_Info (SCO : SCO_Id; Info : PP_Info)
-      with Pre => not Has_PP_Info (SCO);
-      --  Add macro expansion information for the given SCO
+   with Pre => not Has_PP_Info (SCO);
+   --  Add macro expansion information for the given SCO
 
    function Has_PP_Info (SCO : SCO_Id) return Boolean;
    --  Return whether the given SCO comes has preprocessing information
 
    function Get_PP_Info (SCO : SCO_Id) return PP_Info
-     with Pre => Has_PP_Info (SCO);
+   with Pre => Has_PP_Info (SCO);
    --  Return the preprocessing information (if any) for the given SCO
 
    function Get_Scope_Entities (CU : CU_Id) return Scope_Entities_Trees.Tree;
@@ -1027,9 +1034,10 @@ package SC_Obligations is
    function "=" (L, R : SCO_Range) return Boolean
    is (L.First = R.First and then R.Last = L.Last);
 
-   package SCO_Range_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => SCO_Range);
+   package SCO_Range_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => SCO_Range);
 
    function SCO_Ranges (CU : CU_Id) return SCO_Range_Vectors.Vector;
    --  Return the list of SCOs for the compilation unit
@@ -1325,301 +1333,301 @@ package SC_Obligations is
    --  pragmas that only influence code generation performed otherwise (e.g.
    --  pragma Inline) should be listed as not Might_Generate_Code.
 
-   Pragma_Might_Generate_Code : constant array (Pragma_Id) of Boolean
-     := ( --  Configuration pragmas
+   Pragma_Might_Generate_Code : constant array (Pragma_Id) of Boolean :=
+     ( --  Configuration pragmas
 
-          Pragma_Ada_83 => False,
-          Pragma_Ada_95 => False,
-          Pragma_Ada_05 => False,
-          Pragma_Ada_2005 => False,
-          Pragma_Ada_12 => False,
-          Pragma_Ada_2012 => False,
-          Pragma_Ada_2020 => False,
-          Pragma_Ada_2022 => False,
+      Pragma_Ada_83                         => False,
+      Pragma_Ada_95                         => False,
+      Pragma_Ada_05                         => False,
+      Pragma_Ada_2005                       => False,
+      Pragma_Ada_12                         => False,
+      Pragma_Ada_2012                       => False,
+      Pragma_Ada_2020                       => False,
+      Pragma_Ada_2022                       => False,
 
-          Pragma_Aggregate_Individually_Assign => False,
-          Pragma_Allow_Integer_Address => False,
-          Pragma_Annotate => False,
-          Pragma_Assertion_Level => False,
-          Pragma_Assertion_Policy => False,
-          Pragma_Assume_No_Invalid_Values => False,
-          Pragma_C_Pass_By_Copy => False,
-          Pragma_Check_Float_Overflow => False,
-          Pragma_Check_Name => False,
-          Pragma_Check_Policy => False,
-          Pragma_Compile_Time_Error => False,
-          Pragma_Compile_Time_Warning => False,
-          Pragma_Compiler_Unit => False,
-          Pragma_Compiler_Unit_Warning => False,
-          Pragma_Component_Alignment => False,
-          Pragma_Convention_Identifier => False,
-          Pragma_Debug_Policy => False,
-          Pragma_Detect_Blocking => False,
-          Pragma_Default_Storage_Pool => False,
-          Pragma_Disable_Atomic_Synchronization => False,
-          Pragma_Discard_Names => False,
-          Pragma_Elaboration_Checks => False,
-          Pragma_Eliminate => False,
-          Pragma_Enable_Atomic_Synchronization => False,
-          Pragma_Extend_System => False,
-          Pragma_Extended_Access => False,
-          Pragma_Extensions_Allowed => False,
-          Pragma_External_Name_Casing => False,
-          Pragma_Favor_Top_Level => False,
-          Pragma_Ignore_Pragma => False,
-          Pragma_Implicit_Packing => False,
-          Pragma_Initialize_Scalars => False,
-          Pragma_Interrupt_State => False,
-          Pragma_License => False,
-          Pragma_Locking_Policy => False,
-          Pragma_No_Component_Reordering => False,
-          Pragma_No_Heap_Finalization => False,
-          Pragma_No_Run_Time => False,
-          Pragma_No_Strict_Aliasing => False,
-          Pragma_Normalize_Scalars => False,
-          Pragma_Optimize_Alignment => False,
-          Pragma_Overflow_Mode => False,
-          Pragma_Overriding_Renamings => False,
-          Pragma_Partition_Elaboration_Policy => False,
-          Pragma_Persistent_BSS => False,
-          Pragma_Prefix_Exception_Messages => False,
-          Pragma_Priority_Specific_Dispatching => False,
-          Pragma_Profile => False,
-          Pragma_Profile_Warnings => False,
-          Pragma_Propagate_Exceptions => False,
-          Pragma_Queuing_Policy => False,
-          Pragma_Rational => False,
-          Pragma_Ravenscar => False,
-          Pragma_Rename_Pragma => False,
-          Pragma_Restricted_Run_Time => False,
-          Pragma_Restrictions => False,
-          Pragma_Restriction_Warnings => False,
-          Pragma_Reviewable => False,
-          Pragma_Short_Circuit_And_Or => False,
-          Pragma_Short_Descriptors => False,
-          Pragma_Source_File_Name => False,
-          Pragma_Source_File_Name_Project => False,
-          Pragma_SPARK_Mode => False,
-          Pragma_Style_Checks => False,
-          Pragma_Suppress => False,
-          Pragma_Suppress_Exception_Locations => False,
-          Pragma_Task_Dispatching_Policy => False,
-          Pragma_Unevaluated_Use_Of_Old => False,
-          Pragma_Universal_Data => False,
-          Pragma_Unsuppress => False,
-          Pragma_Use_VADS_Size => False,
-          Pragma_User_Aspect_Definition => False,
-          Pragma_Validity_Checks => False,
-          Pragma_Warning_As_Error => False,
-          Pragma_Warnings => False,
-          Pragma_Wide_Character_Encoding => False,
+      Pragma_Aggregate_Individually_Assign  => False,
+      Pragma_Allow_Integer_Address          => False,
+      Pragma_Annotate                       => False,
+      Pragma_Assertion_Level                => False,
+      Pragma_Assertion_Policy               => False,
+      Pragma_Assume_No_Invalid_Values       => False,
+      Pragma_C_Pass_By_Copy                 => False,
+      Pragma_Check_Float_Overflow           => False,
+      Pragma_Check_Name                     => False,
+      Pragma_Check_Policy                   => False,
+      Pragma_Compile_Time_Error             => False,
+      Pragma_Compile_Time_Warning           => False,
+      Pragma_Compiler_Unit                  => False,
+      Pragma_Compiler_Unit_Warning          => False,
+      Pragma_Component_Alignment            => False,
+      Pragma_Convention_Identifier          => False,
+      Pragma_Debug_Policy                   => False,
+      Pragma_Detect_Blocking                => False,
+      Pragma_Default_Storage_Pool           => False,
+      Pragma_Disable_Atomic_Synchronization => False,
+      Pragma_Discard_Names                  => False,
+      Pragma_Elaboration_Checks             => False,
+      Pragma_Eliminate                      => False,
+      Pragma_Enable_Atomic_Synchronization  => False,
+      Pragma_Extend_System                  => False,
+      Pragma_Extended_Access                => False,
+      Pragma_Extensions_Allowed             => False,
+      Pragma_External_Name_Casing           => False,
+      Pragma_Favor_Top_Level                => False,
+      Pragma_Ignore_Pragma                  => False,
+      Pragma_Implicit_Packing               => False,
+      Pragma_Initialize_Scalars             => False,
+      Pragma_Interrupt_State                => False,
+      Pragma_License                        => False,
+      Pragma_Locking_Policy                 => False,
+      Pragma_No_Component_Reordering        => False,
+      Pragma_No_Heap_Finalization           => False,
+      Pragma_No_Run_Time                    => False,
+      Pragma_No_Strict_Aliasing             => False,
+      Pragma_Normalize_Scalars              => False,
+      Pragma_Optimize_Alignment             => False,
+      Pragma_Overflow_Mode                  => False,
+      Pragma_Overriding_Renamings           => False,
+      Pragma_Partition_Elaboration_Policy   => False,
+      Pragma_Persistent_BSS                 => False,
+      Pragma_Prefix_Exception_Messages      => False,
+      Pragma_Priority_Specific_Dispatching  => False,
+      Pragma_Profile                        => False,
+      Pragma_Profile_Warnings               => False,
+      Pragma_Propagate_Exceptions           => False,
+      Pragma_Queuing_Policy                 => False,
+      Pragma_Rational                       => False,
+      Pragma_Ravenscar                      => False,
+      Pragma_Rename_Pragma                  => False,
+      Pragma_Restricted_Run_Time            => False,
+      Pragma_Restrictions                   => False,
+      Pragma_Restriction_Warnings           => False,
+      Pragma_Reviewable                     => False,
+      Pragma_Short_Circuit_And_Or           => False,
+      Pragma_Short_Descriptors              => False,
+      Pragma_Source_File_Name               => False,
+      Pragma_Source_File_Name_Project       => False,
+      Pragma_SPARK_Mode                     => False,
+      Pragma_Style_Checks                   => False,
+      Pragma_Suppress                       => False,
+      Pragma_Suppress_Exception_Locations   => False,
+      Pragma_Task_Dispatching_Policy        => False,
+      Pragma_Unevaluated_Use_Of_Old         => False,
+      Pragma_Universal_Data                 => False,
+      Pragma_Unsuppress                     => False,
+      Pragma_Use_VADS_Size                  => False,
+      Pragma_User_Aspect_Definition         => False,
+      Pragma_Validity_Checks                => False,
+      Pragma_Warning_As_Error               => False,
+      Pragma_Warnings                       => False,
+      Pragma_Wide_Character_Encoding        => False,
 
-          --  Remaining (non-configuration) pragmas, not generating code first
+      --  Remaining (non-configuration) pragmas, not generating code first
 
-          Pragma_Abort_Defer => False,
-          Pragma_Abstract_State => False,
-          Pragma_All_Calls_Remote => False,
-          Pragma_Always_Terminates => False,
-          Pragma_Async_Readers => False,
-          Pragma_Async_Writers => False,
-          Pragma_Asynchronous => False,
-          Pragma_Atomic => False,
-          Pragma_Atomic_Components => False,
-          Pragma_Attach_Handler => False,
-          Pragma_Attribute_Definition => False,
-          Pragma_Check => False,
-          Pragma_Comment => False,
-          Pragma_Common_Object => False,
-          Pragma_Complete_Representation => False,
-          Pragma_Complex_Representation => False,
-          Pragma_Constant_After_Elaboration => False,
-          Pragma_Controlled => False,
-          Pragma_Convention => False,
-          Pragma_CPP_Class => False,
-          Pragma_CPP_Constructor => False,
-          Pragma_CPP_Virtual => False,
-          Pragma_CPP_Vtable => False,
-          Pragma_Deadline_Floor => False,
-          Pragma_Default_Initial_Condition => False,
-          Pragma_Depends => False,
-          Pragma_Effective_Reads => False,
-          Pragma_Effective_Writes => False,
-          Pragma_Elaborate => False,
-          Pragma_Elaborate_All => False,
-          Pragma_Elaborate_Body => False,
-          Pragma_Exceptional_Cases => False,
-          Pragma_Exit_Cases => False,
-          Pragma_Export => False,
-          Pragma_Export_Function => False,
-          Pragma_Export_Object => False,
-          Pragma_Export_Procedure => False,
-          Pragma_Export_Value => False,
-          Pragma_Export_Valued_Procedure => False,
-          Pragma_Extensions_Visible => False,
-          Pragma_External => False,
-          Pragma_Finalize_Storage_Only => False,
-          Pragma_First_Controlling_Parameter => False,
-          Pragma_Ghost => False,
-          Pragma_Global => False,
-          Pragma_Gnat_Annotate => False,
-          Pragma_Ident => False,
-          Pragma_Implementation_Defined => False,
-          Pragma_Implemented => False,
-          Pragma_Import => False,
-          Pragma_Import_Function => False,
-          Pragma_Import_Object => False,
-          Pragma_Import_Procedure => False,
-          Pragma_Import_Valued_Procedure => False,
-          Pragma_Independent => False,
-          Pragma_Independent_Components => False,
-          Pragma_Initial_Condition => False,
-          Pragma_Initializes => False,
-          Pragma_Inline => False,
-          Pragma_Inline_Always => False,
-          Pragma_Inline_Generic => False,
-          Pragma_Inspection_Point => False,
-          Pragma_Interface_Name => False,
-          Pragma_Interrupt_Handler => False,
-          Pragma_Interrupts_System_By_Default => False,
-          Pragma_Keep_Names => False,
-          Pragma_Link_With => False,
-          Pragma_Linker_Alias => False,
-          Pragma_Linker_Constructor => False,
-          Pragma_Linker_Destructor => False,
-          Pragma_Linker_Options => False,
-          Pragma_Linker_Section => False,
-          Pragma_List => False,
-          Pragma_Loop_Optimize => False,
-          Pragma_Loop_Variant => False,
-          Pragma_Machine_Attribute => False,
-          Pragma_Main => False,
-          Pragma_Main_Storage => False,
-          Pragma_Max_Entry_Queue_Depth => False,
-          Pragma_Max_Entry_Queue_Length => False,
-          Pragma_Max_Queue_Length => False,
-          Pragma_Memory_Size => False,
-          Pragma_No_Body => False,
-          Pragma_No_Caching => False,
-          Pragma_No_Elaboration_Code_All => False,
-          Pragma_No_Raise => False,
-          Pragma_No_Inline => False,
-          Pragma_No_Return => False,
-          Pragma_No_Tagged_Streams => False,
-          Pragma_Obsolescent => False,
-          Pragma_Optimize => False,
-          Pragma_Ordered => False,
-          Pragma_Pack => False,
-          Pragma_Page => False,
-          Pragma_Part_Of => False,
-          Pragma_Passive => False,
-          Pragma_Predicate_Failure => False,
-          Pragma_Preelaborable_Initialization => False,
-          Pragma_Preelaborate => False,
-          Pragma_Provide_Shift_Operators => False,
-          Pragma_Psect_Object => False,
-          Pragma_Pure => False,
-          Pragma_Pure_Function => False,
-          Pragma_Refined_Depends => False,
-          Pragma_Refined_Global => False,
-          Pragma_Refined_State => False,
-          Pragma_Relative_Deadline => False,
-          Pragma_Remote_Access_Type => False,
-          Pragma_Remote_Call_Interface => False,
-          Pragma_Remote_Types => False,
-          Pragma_Share_Generic => False,
-          Pragma_Shared => False,
-          Pragma_Shared_Passive => False,
-          Pragma_Side_Effects => False,
-          Pragma_Simple_Storage_Pool_Type => False,
-          Pragma_Simulate_Internal_Error => False,
-          Pragma_Source_Reference => False,
-          Pragma_Static_Elaboration_Desired => False,
-          Pragma_Stream_Convert => False,
-          Pragma_Subprogram_Variant => False,
-          Pragma_Subtitle => False,
-          Pragma_Suppress_All => False,
-          Pragma_Suppress_Debug_Info => False,
-          Pragma_Suppress_Initialization => False,
-          Pragma_System_Name => False,
-          Pragma_Test_Case => False,
-          Pragma_Task_Info => False,
-          Pragma_Task_Name => False,
-          Pragma_Task_Storage => False,
-          Pragma_Thread_Local_Storage => False,
-          Pragma_Time_Slice => False,
-          Pragma_Title => False,
-          Pragma_Unchecked_Union => False,
-          Pragma_Unimplemented_Unit => False,
-          Pragma_Universal_Aliasing => False,
-          Pragma_Unmodified => False,
-          Pragma_Unreferenced => False,
-          Pragma_Unreferenced_Objects => False,
-          Pragma_Unreserve_All_Interrupts => False,
-          Pragma_Unsigned_Base_Range => False,
-          Pragma_Unused => False,
-          Pragma_Volatile => False,
-          Pragma_Volatile_Components => False,
-          Pragma_Volatile_Full_Access => False,
-          Pragma_Volatile_Function => False,
-          Pragma_Weak_External => False,
+      Pragma_Abort_Defer                    => False,
+      Pragma_Abstract_State                 => False,
+      Pragma_All_Calls_Remote               => False,
+      Pragma_Always_Terminates              => False,
+      Pragma_Async_Readers                  => False,
+      Pragma_Async_Writers                  => False,
+      Pragma_Asynchronous                   => False,
+      Pragma_Atomic                         => False,
+      Pragma_Atomic_Components              => False,
+      Pragma_Attach_Handler                 => False,
+      Pragma_Attribute_Definition           => False,
+      Pragma_Check                          => False,
+      Pragma_Comment                        => False,
+      Pragma_Common_Object                  => False,
+      Pragma_Complete_Representation        => False,
+      Pragma_Complex_Representation         => False,
+      Pragma_Constant_After_Elaboration     => False,
+      Pragma_Controlled                     => False,
+      Pragma_Convention                     => False,
+      Pragma_CPP_Class                      => False,
+      Pragma_CPP_Constructor                => False,
+      Pragma_CPP_Virtual                    => False,
+      Pragma_CPP_Vtable                     => False,
+      Pragma_Deadline_Floor                 => False,
+      Pragma_Default_Initial_Condition      => False,
+      Pragma_Depends                        => False,
+      Pragma_Effective_Reads                => False,
+      Pragma_Effective_Writes               => False,
+      Pragma_Elaborate                      => False,
+      Pragma_Elaborate_All                  => False,
+      Pragma_Elaborate_Body                 => False,
+      Pragma_Exceptional_Cases              => False,
+      Pragma_Exit_Cases                     => False,
+      Pragma_Export                         => False,
+      Pragma_Export_Function                => False,
+      Pragma_Export_Object                  => False,
+      Pragma_Export_Procedure               => False,
+      Pragma_Export_Value                   => False,
+      Pragma_Export_Valued_Procedure        => False,
+      Pragma_Extensions_Visible             => False,
+      Pragma_External                       => False,
+      Pragma_Finalize_Storage_Only          => False,
+      Pragma_First_Controlling_Parameter    => False,
+      Pragma_Ghost                          => False,
+      Pragma_Global                         => False,
+      Pragma_Gnat_Annotate                  => False,
+      Pragma_Ident                          => False,
+      Pragma_Implementation_Defined         => False,
+      Pragma_Implemented                    => False,
+      Pragma_Import                         => False,
+      Pragma_Import_Function                => False,
+      Pragma_Import_Object                  => False,
+      Pragma_Import_Procedure               => False,
+      Pragma_Import_Valued_Procedure        => False,
+      Pragma_Independent                    => False,
+      Pragma_Independent_Components         => False,
+      Pragma_Initial_Condition              => False,
+      Pragma_Initializes                    => False,
+      Pragma_Inline                         => False,
+      Pragma_Inline_Always                  => False,
+      Pragma_Inline_Generic                 => False,
+      Pragma_Inspection_Point               => False,
+      Pragma_Interface_Name                 => False,
+      Pragma_Interrupt_Handler              => False,
+      Pragma_Interrupts_System_By_Default   => False,
+      Pragma_Keep_Names                     => False,
+      Pragma_Link_With                      => False,
+      Pragma_Linker_Alias                   => False,
+      Pragma_Linker_Constructor             => False,
+      Pragma_Linker_Destructor              => False,
+      Pragma_Linker_Options                 => False,
+      Pragma_Linker_Section                 => False,
+      Pragma_List                           => False,
+      Pragma_Loop_Optimize                  => False,
+      Pragma_Loop_Variant                   => False,
+      Pragma_Machine_Attribute              => False,
+      Pragma_Main                           => False,
+      Pragma_Main_Storage                   => False,
+      Pragma_Max_Entry_Queue_Depth          => False,
+      Pragma_Max_Entry_Queue_Length         => False,
+      Pragma_Max_Queue_Length               => False,
+      Pragma_Memory_Size                    => False,
+      Pragma_No_Body                        => False,
+      Pragma_No_Caching                     => False,
+      Pragma_No_Elaboration_Code_All        => False,
+      Pragma_No_Raise                       => False,
+      Pragma_No_Inline                      => False,
+      Pragma_No_Return                      => False,
+      Pragma_No_Tagged_Streams              => False,
+      Pragma_Obsolescent                    => False,
+      Pragma_Optimize                       => False,
+      Pragma_Ordered                        => False,
+      Pragma_Pack                           => False,
+      Pragma_Page                           => False,
+      Pragma_Part_Of                        => False,
+      Pragma_Passive                        => False,
+      Pragma_Predicate_Failure              => False,
+      Pragma_Preelaborable_Initialization   => False,
+      Pragma_Preelaborate                   => False,
+      Pragma_Provide_Shift_Operators        => False,
+      Pragma_Psect_Object                   => False,
+      Pragma_Pure                           => False,
+      Pragma_Pure_Function                  => False,
+      Pragma_Refined_Depends                => False,
+      Pragma_Refined_Global                 => False,
+      Pragma_Refined_State                  => False,
+      Pragma_Relative_Deadline              => False,
+      Pragma_Remote_Access_Type             => False,
+      Pragma_Remote_Call_Interface          => False,
+      Pragma_Remote_Types                   => False,
+      Pragma_Share_Generic                  => False,
+      Pragma_Shared                         => False,
+      Pragma_Shared_Passive                 => False,
+      Pragma_Side_Effects                   => False,
+      Pragma_Simple_Storage_Pool_Type       => False,
+      Pragma_Simulate_Internal_Error        => False,
+      Pragma_Source_Reference               => False,
+      Pragma_Static_Elaboration_Desired     => False,
+      Pragma_Stream_Convert                 => False,
+      Pragma_Subprogram_Variant             => False,
+      Pragma_Subtitle                       => False,
+      Pragma_Suppress_All                   => False,
+      Pragma_Suppress_Debug_Info            => False,
+      Pragma_Suppress_Initialization        => False,
+      Pragma_System_Name                    => False,
+      Pragma_Test_Case                      => False,
+      Pragma_Task_Info                      => False,
+      Pragma_Task_Name                      => False,
+      Pragma_Task_Storage                   => False,
+      Pragma_Thread_Local_Storage           => False,
+      Pragma_Time_Slice                     => False,
+      Pragma_Title                          => False,
+      Pragma_Unchecked_Union                => False,
+      Pragma_Unimplemented_Unit             => False,
+      Pragma_Universal_Aliasing             => False,
+      Pragma_Unmodified                     => False,
+      Pragma_Unreferenced                   => False,
+      Pragma_Unreferenced_Objects           => False,
+      Pragma_Unreserve_All_Interrupts       => False,
+      Pragma_Unsigned_Base_Range            => False,
+      Pragma_Unused                         => False,
+      Pragma_Volatile                       => False,
+      Pragma_Volatile_Components            => False,
+      Pragma_Volatile_Full_Access           => False,
+      Pragma_Volatile_Function              => False,
+      Pragma_Weak_External                  => False,
 
-          Pragma_CPU => False,
-          Pragma_CUDA_Device => False,
-          Pragma_CUDA_Execute => False,
-          Pragma_CUDA_Global => False,
-          Pragma_Default_Scalar_Storage_Order => False,
-          Pragma_Dispatching_Domain => False,
-          Pragma_Fast_Math => False,
-          Pragma_Interface => False,
-          Pragma_Interrupt_Priority => False,
-          Pragma_Lock_Free => False,
-          Pragma_Priority => False,
-          Pragma_Secondary_Stack_Size => False,
-          Pragma_Storage_Size => False,
-          Pragma_Storage_Unit => False,
+      Pragma_CPU                            => False,
+      Pragma_CUDA_Device                    => False,
+      Pragma_CUDA_Execute                   => False,
+      Pragma_CUDA_Global                    => False,
+      Pragma_Default_Scalar_Storage_Order   => False,
+      Pragma_Dispatching_Domain             => False,
+      Pragma_Fast_Math                      => False,
+      Pragma_Interface                      => False,
+      Pragma_Interrupt_Priority             => False,
+      Pragma_Lock_Free                      => False,
+      Pragma_Priority                       => False,
+      Pragma_Secondary_Stack_Size           => False,
+      Pragma_Storage_Size                   => False,
+      Pragma_Storage_Unit                   => False,
 
-          --  Special case for pre/postconditions (Program_Exit is processed
-          --  like a postcondition): these do not generate code at their normal
-          --  point of occurrence in the instruction flow, and in the case of
-          --  instrumentation based coverage, they cannot be instrumented
-          --  because of their special placement rules. So, we mark them as
-          --  generating no code, and we treat them as "free-standing"
-          --  decisions (outside of statement context).
+      --  Special case for pre/postconditions (Program_Exit is processed
+      --  like a postcondition): these do not generate code at their normal
+      --  point of occurrence in the instruction flow, and in the case of
+      --  instrumentation based coverage, they cannot be instrumented
+      --  because of their special placement rules. So, we mark them as
+      --  generating no code, and we treat them as "free-standing"
+      --  decisions (outside of statement context).
 
-          Pragma_Postcondition => False,
-          Pragma_Precondition => False,
-          Pragma_Program_Exit => False,
+      Pragma_Postcondition                  => False,
+      Pragma_Precondition                   => False,
+      Pragma_Program_Exit                   => False,
 
-          --  Now pragmas which might generate code. This is an explicit list
-          --  instead of a mere "others" fallback to make sure we notice when
-          --  new pragmas get in the daily compiler from which we build, which
-          --  we expect to be reflected through Snames.
-          --
-          --  The Unknown case is there to handle situations at run time when
-          --  reading ali files produced by a version of the compiler more
-          --  recent than gnatcov. True is a conservative choice in this case,
-          --  as it will lead gnatcov to flag such pragma as real statements
-          --  even if they actually never generate code.
+      --  Now pragmas which might generate code. This is an explicit list
+      --  instead of a mere "others" fallback to make sure we notice when
+      --  new pragmas get in the daily compiler from which we build, which
+      --  we expect to be reflected through Snames.
+      --
+      --  The Unknown case is there to handle situations at run time when
+      --  reading ali files produced by a version of the compiler more
+      --  recent than gnatcov. True is a conservative choice in this case,
+      --  as it will lead gnatcov to flag such pragma as real statements
+      --  even if they actually never generate code.
 
-          Pragma_Assume => True,
-          Pragma_Assert => True,
-          Pragma_Assert_And_Cut => True,
+      Pragma_Assume                         => True,
+      Pragma_Assert                         => True,
+      Pragma_Assert_And_Cut                 => True,
 
-          Pragma_Debug => True,
-          Pragma_Post => True,
-          Pragma_Post_Class => True,
-          Pragma_Refined_Post => True,
-          Pragma_Pre => True,
-          Pragma_Predicate => True,
-          Pragma_Pre_Class => True,
-          Pragma_Contract_Cases => True,
+      Pragma_Debug                          => True,
+      Pragma_Post                           => True,
+      Pragma_Post_Class                     => True,
+      Pragma_Refined_Post                   => True,
+      Pragma_Pre                            => True,
+      Pragma_Predicate                      => True,
+      Pragma_Pre_Class                      => True,
+      Pragma_Contract_Cases                 => True,
 
-          Pragma_Loop_Invariant => True,
-          Pragma_Invariant => True,
-          Pragma_Type_Invariant => True,
-          Pragma_Type_Invariant_Class => True,
+      Pragma_Loop_Invariant                 => True,
+      Pragma_Invariant                      => True,
+      Pragma_Type_Invariant                 => True,
+      Pragma_Type_Invariant_Class           => True,
 
-          Pragma_Unknown => True);
+      Pragma_Unknown                        => True);
 
    procedure Populate_From_Static_Eval_Vector
      (SCO        : SCO_Id;
@@ -1635,10 +1643,8 @@ private
    --  Write accessors for child units
 
    procedure Set_Operand_Or_Expression
-     (SCO      : SCO_Id;
-      Position : Operand_Position;
-      Expr     : SCO_Id)
-      with Pre => Kind (SCO) in Operator | Decision;
+     (SCO : SCO_Id; Position : Operand_Position; Expr : SCO_Id)
+   with Pre => Kind (SCO) in Operator | Decision;
    --  If SCO is an Operator, set the Operand slot indicated by Position
    --  to Expr.
    --
@@ -1649,7 +1655,7 @@ private
    --  Set the BDD node for the given condition SCO
 
    type Scope_Traversal_Type is record
-      CU  : CU_Id := No_CU_Id;
+      CU : CU_Id := No_CU_Id;
       --  Id of the compilation unit we are currently traversing
 
       Cur : Scope_Entities_Trees.Cursor := Scope_Entities_Trees.No_Element;

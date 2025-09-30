@@ -36,8 +36,7 @@ package Traces_Stats is
       Stats : Counter_Array := (others => 0);
    end record;
 
-   type Ob_Stat_Array is
-     array (Source_Coverage_Level) of SCO_Tally;
+   type Ob_Stat_Array is array (Source_Coverage_Level) of SCO_Tally;
    --  Array of stats for each coverage level obligation (stmt, decision ...),
    --  for a set of coverage obligations.
 

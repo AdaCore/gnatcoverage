@@ -33,10 +33,10 @@ package body Annotations.Report is
    type Final_Report_Type is limited record
       --  Final report information
 
-      Name   : String_Access := null;
+      Name : String_Access := null;
       --  Final report's file name
 
-      File   : aliased File_Type;
+      File : aliased File_Type;
       --  Handle to the final report
    end record;
 
@@ -80,8 +80,8 @@ package body Annotations.Report is
         Element_Type => Message_Vectors.Vector,
         "="          => Message_Vectors."=");
 
-   package String_Vectors is
-     new Ada.Containers.Vectors (Natural, Unbounded_String, "=");
+   package String_Vectors is new
+     Ada.Containers.Vectors (Natural, Unbounded_String, "=");
 
    type Report_Pretty_Printer is new Pretty_Printer with record
       Current_File_Index : Source_File_Index;
@@ -118,18 +118,14 @@ package body Annotations.Report is
       --  Whether to add a section for the list of names for units of interest
    end record;
 
-   overriding function Format
-     (Pp : Report_Pretty_Printer) return Annotation_Format_Family
+   overriding
+   function Format (Pp : Report_Pretty_Printer) return Annotation_Format_Family
    is (Annotate_Report);
 
-   procedure Chapter
-     (Pp    : in out Report_Pretty_Printer'Class;
-      Title : String);
+   procedure Chapter (Pp : in out Report_Pretty_Printer'Class; Title : String);
    --  Open a new chapter in final report
 
-   procedure Section
-     (Pp    : in out Report_Pretty_Printer'Class;
-      Title : String);
+   procedure Section (Pp : in out Report_Pretty_Printer'Class; Title : String);
    --  Open a new section in final report
 
    function Pluralize (Count : Natural; Item : String) return String;
@@ -158,20 +154,16 @@ package body Annotations.Report is
       Info     : Line_Info_Access;
       Line     : String);
 
-   procedure Pretty_Print_End_File
-     (Pp : in out Report_Pretty_Printer);
+   procedure Pretty_Print_End_File (Pp : in out Report_Pretty_Printer);
 
    procedure Pretty_Print_Message
-     (Pp : in out Report_Pretty_Printer;
-      M  : Message);
+     (Pp : in out Report_Pretty_Printer; M : Message);
 
    -------------
    -- Chapter --
    -------------
 
-   procedure Chapter
-     (Pp    : in out Report_Pretty_Printer'Class;
-      Title : String)
+   procedure Chapter (Pp : in out Report_Pretty_Printer'Class; Title : String)
    is
       Output : constant File_Access := Get_Output;
    begin
@@ -198,7 +190,7 @@ package body Annotations.Report is
    ------------
 
    function Frame (S : String; C : Character := '=') return String is
-      HS : constant String := Highlight (S, C);
+      HS   : constant String := Highlight (S, C);
       Line : constant String (1 .. HS'Length) := (others => C);
    begin
       return Line & ASCII.LF & HS & ASCII.LF & Line;
@@ -289,7 +281,7 @@ package body Annotations.Report is
 
       Output : constant File_Access := Get_Output;
 
-      Total_Exempted_Regions : Natural := 0;
+      Total_Exempted_Regions    : Natural := 0;
       Total_Exempted_Violations : Natural := 0;
 
       Total_Disabled_Cov_Regions : Natural := 0;
@@ -301,9 +293,7 @@ package body Annotations.Report is
       --  True iff there's at least one region with disabled coverage
 
       procedure Messages_For_Section
-        (MC    : Report_Section;
-         Title : String;
-         Item  : String);
+        (MC : Report_Section; Title : String; Item : String);
       --  Output all buffered messages of the given class in a section with the
       --  given title (section omitted if Title is empty). Item is the noun for
       --  the summary line counting messages in the section.
@@ -390,10 +380,10 @@ package body Annotations.Report is
       end Has_Disabled_Cov_Region;
 
       Non_Exempted_Str : constant String := "non-exempted ";
-      Non_Exempted     : String renames Non_Exempted_Str
-                                          (Non_Exempted_Str'First ..
-                                           Boolean'Pos (Has_Exempted_Region)
-                                             * Non_Exempted_Str'Last);
+      Non_Exempted     : String renames
+        Non_Exempted_Str
+          (Non_Exempted_Str'First
+           .. Boolean'Pos (Has_Exempted_Region) * Non_Exempted_Str'Last);
       --  If Has_Exempted_Region is True, Non_Exempted = Non_Exempted_Str,
       --  else Non_Exempted = "". Used to omit the mention "non-exempted" when
       --  there's no exemption in sight anyway.
@@ -413,8 +403,7 @@ package body Annotations.Report is
          --  used to attach the message to the right report location.
 
          if M.Kind /= Info and then M.SCO /= No_SCO_Id then
-            Put
-              (Output.all, Image (First_Sloc (M.SCO), Unique_Name => True));
+            Put (Output.all, Image (First_Sloc (M.SCO), Unique_Name => True));
             Put (Output.all, ": ");
             if Msg (First) = '^' then
                First := First + 1;
@@ -423,11 +412,10 @@ package body Annotations.Report is
                  (Output.all,
                   To_Lower (SCO_Kind'Image (Kind (M.SCO)))
                   & (if (Switches.Show_MCDC_Vectors
-                    or else Switches.Show_Condition_Vectors)
-                    and then Kind (M.SCO) = Condition
-                    then Index (M.SCO)'Image
-                    & " (" & SCO_Image (M.SCO) & ") "
-                    else " "));
+                         or else Switches.Show_Condition_Vectors)
+                       and then Kind (M.SCO) = Condition
+                     then Index (M.SCO)'Image & " (" & SCO_Image (M.SCO) & ") "
+                     else " "));
             end if;
 
          else
@@ -436,8 +424,7 @@ package body Annotations.Report is
          end if;
 
          Output_Multiline_Msg
-           (Output => Output.all,
-            Text   => Msg (First .. Msg'Last));
+           (Output => Output.all, Text => Msg (First .. Msg'Last));
 
          New_Line (Output.all);
          Output_Annotations (Output.all, SCO_Annotations (M.SCO));
@@ -462,7 +449,7 @@ package body Annotations.Report is
          if Next_C /= No_Element then
             declare
                Next_Sloc : constant Source_Location := Key (Next_C);
-               Next_E    : constant ALI_Annotation  := Element (Next_C);
+               Next_E    : constant ALI_Annotation := Element (Next_C);
             begin
                if Next_E.Kind = Exempt_Off
                  and then Sloc.Source_File = Next_Sloc.Source_File
@@ -487,8 +474,11 @@ package body Annotations.Report is
          end if;
 
          if E.Undetermined_Cov_Count > 0 then
-            Put (Output.all, ";" & E.Undetermined_Cov_Count'Img
-                 & " exempted undetermined coverage item");
+            Put
+              (Output.all,
+               ";"
+               & E.Undetermined_Cov_Count'Img
+               & " exempted undetermined coverage item");
             if E.Undetermined_Cov_Count > 1 then
                Put (Output.all, "s");
             end if;
@@ -550,7 +540,7 @@ package body Annotations.Report is
          if Next_C /= No_Element then
             declare
                Next_Sloc : constant Source_Location := Key (Next_C);
-               Next_E    : constant ALI_Annotation  := Element (Next_C);
+               Next_E    : constant ALI_Annotation := Element (Next_C);
             begin
                if Next_E.Kind = Cov_On
                  and then Sloc.Source_File = Next_Sloc.Source_File
@@ -581,9 +571,7 @@ package body Annotations.Report is
       --------------------------
 
       procedure Messages_For_Section
-        (MC    : Report_Section;
-         Title : String;
-         Item  : String)
+        (MC : Report_Section; Title : String; Item : String)
       is
          procedure Output_Message (C : Message_Vectors.Cursor);
          --  Display the SCO violations messages stored at C
@@ -592,7 +580,7 @@ package body Annotations.Report is
          --  Count of the number of violation / error messages for the current
          --  section.
 
-         Msg_Count  : Natural := 0;
+         Msg_Count : Natural := 0;
          --  Count of the number of messages (including info messages) for the
          --  current section.
 
@@ -601,9 +589,9 @@ package body Annotations.Report is
          --------------------
 
          procedure Output_Message (C : Message_Vectors.Cursor) is
-            M            : Message renames Message_Vectors.Element (C);
-            Msg          : constant String := +M.Msg;
-            First        : Natural := Msg'First;
+            M     : Message renames Message_Vectors.Element (C);
+            Msg   : constant String := +M.Msg;
+            First : Natural := Msg'First;
          begin
             if M.Kind /= Info and then M.SCO /= No_SCO_Id then
                declare
@@ -623,8 +611,11 @@ package body Annotations.Report is
                        (Output.all,
                         SCO_Kind_Image (M.SCO)
                         & (if Show_Vectors and then Kind (M.SCO) = Condition
-                           then Index (M.SCO)'Image
-                                & " (" & SCO_Image (M.SCO) & ") "
+                           then
+                             Index (M.SCO)'Image
+                             & " ("
+                             & SCO_Image (M.SCO)
+                             & ") "
                            else " "));
                   end if;
                end;
@@ -636,19 +627,20 @@ package body Annotations.Report is
                --  display the SCO, as it is only used to attach the message to
                --  the right report location.
 
-               Put (Output.all, Image
+               Put
+                 (Output.all,
+                  Image
                     ((if SC_Obligations.Kind (M.SCO) = Condition
-                       then First_Sloc (Enclosing_Decision (M.SCO))
-                       else First_Sloc (M.SCO)),
-                       Unique_Name => True));
+                      then First_Sloc (Enclosing_Decision (M.SCO))
+                      else First_Sloc (M.SCO)),
+                     Unique_Name => True));
                Put (Output.all, ": ");
             else
                Put (Output.all, Image (M.Sloc) & ": ");
             end if;
 
             Output_Multiline_Msg
-              (Output => Output.all,
-               Text   => Msg (First .. Msg'Last));
+              (Output => Output.all, Text => Msg (First .. Msg'Last));
 
             New_Line (Output.all);
             if M.SCO /= No_SCO_Id then
@@ -656,7 +648,7 @@ package body Annotations.Report is
             end if;
          end Output_Message;
 
-      --  Start of processing for Messages_For_Section
+         --  Start of processing for Messages_For_Section
 
       begin
          if Title /= "" then
@@ -686,16 +678,13 @@ package body Annotations.Report is
          Pp.Summary.Append
            (+(Pluralize
                 (Item_Count,
-                   (case MC is
-                      when Coverage_Violations =>
-                       Non_Exempted
-                         & Coverage_Level'Val (MC)'Img & " " & Item,
-                      when Other_Errors        =>
-                        "other message",
-                      when Coverage_Exclusions  =>
-                        "coverage exclusion",
-                      when Undet_Coverage =>
-                        "undetermined coverage item")) & "."));
+                 (case MC is
+                    when Coverage_Violations =>
+                      Non_Exempted & Coverage_Level'Val (MC)'Img & " " & Item,
+                    when Other_Errors        => "other message",
+                    when Coverage_Exclusions => "coverage exclusion",
+                    when Undet_Coverage      => "undetermined coverage item"))
+              & "."));
 
          --  Count of total (coverable) and covered SCOs is displayed only
          --  if --all-messages is specified.
@@ -704,14 +693,17 @@ package body Annotations.Report is
             declare
                T : SCO_Tally renames Pp.SCO_Tallies (Coverage_Level'Val (MC));
             begin
-               Put_Line (Output.all,
-                         Pluralize (T.Stats (Covered), "coverage obligation")
-                         & " covered out of" & T.Total'Img & ".");
+               Put_Line
+                 (Output.all,
+                  Pluralize (T.Stats (Covered), "coverage obligation")
+                  & " covered out of"
+                  & T.Total'Img
+                  & ".");
             end;
          end if;
       end Messages_For_Section;
 
-   --  Start of processing for Pretty_Print_End
+      --  Start of processing for Pretty_Print_End
 
    begin
       if Source_Coverage_Enabled then
@@ -730,16 +722,15 @@ package body Annotations.Report is
                Title => L'Img & " COVERAGE",
                Item  => "violation");
          else
-            pragma Assert
-              (Pp.Nonexempted_Messages (Coverage_Level'Pos (L)).Is_Empty);
+            pragma
+              Assert
+                (Pp.Nonexempted_Messages (Coverage_Level'Pos (L)).Is_Empty);
          end if;
       end loop;
 
       if Source_Coverage_Enabled and then Switches.All_Messages then
          Messages_For_Section
-           (Other_Errors,
-            Title => "OTHER ERRORS",
-            Item  => "message");
+           (Other_Errors, Title => "OTHER ERRORS", Item => "message");
       end if;
 
       if Switches.Excluded_SCOs then
@@ -747,9 +738,7 @@ package body Annotations.Report is
          New_Line (Output.all);
 
          Messages_For_Section
-           (Coverage_Exclusions,
-            Title => "",
-            Item  => "exclusion");
+           (Coverage_Exclusions, Title => "", Item => "exclusion");
       end if;
 
       --  No need to have the section header and so on if there are no
@@ -855,8 +844,7 @@ package body Annotations.Report is
    --------------------------
 
    procedure Pretty_Print_Message
-     (Pp : in out Report_Pretty_Printer;
-      M  : Message)
+     (Pp : in out Report_Pretty_Printer; M : Message)
    is
       MC : constant Report_Section := Section_Of_Message (M);
    begin
@@ -941,7 +929,7 @@ package body Annotations.Report is
          end if;
       end Process_One_Trace;
 
-   --  Start of processing for Pretty_Print_Start
+      --  Start of processing for Pretty_Print_Start
 
    begin
       Put_Line (Output.all, Highlight ("COVERAGE REPORT"));
@@ -949,10 +937,10 @@ package body Annotations.Report is
       Pp.Chapter ("ASSESSMENT CONTEXT");
 
       New_Line (Output.all);
-      Put_Line (Output.all, "Date and time of execution: "
-                & Image (Pp.Context.Timestamp));
-      Put_Line (Output.all, "Tool version: XCOV "
-                & (+Pp.Context.Version));
+      Put_Line
+        (Output.all,
+         "Date and time of execution: " & Image (Pp.Context.Timestamp));
+      Put_Line (Output.all, "Tool version: XCOV " & (+Pp.Context.Version));
       New_Line (Output.all);
 
       Put_Line (Output.all, "Command line:");
@@ -997,19 +985,21 @@ package body Annotations.Report is
    -- Section --
    -------------
 
-   procedure Section
-     (Pp    : in out Report_Pretty_Printer'Class;
-      Title : String)
+   procedure Section (Pp : in out Report_Pretty_Printer'Class; Title : String)
    is
       Output : constant File_Access := Get_Output;
    begin
       Pp.Current_Section := Pp.Current_Section + 1;
 
       New_Line (Output.all);
-      Put_Line (Output.all,
-                Underline (Img (Pp.Current_Chapter) & "."
-                           & Img (Pp.Current_Section) & ". "
-                           & Title));
+      Put_Line
+        (Output.all,
+         Underline
+           (Img (Pp.Current_Chapter)
+            & "."
+            & Img (Pp.Current_Section)
+            & ". "
+            & Title));
       New_Line (Output.all);
    end Section;
 

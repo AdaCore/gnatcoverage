@@ -22,7 +22,8 @@ generic
    type RT is abstract tagged limited private;
    --  Root abstract type of the factory
 
-package Factory_Registry is
+package Factory_Registry
+is
 
    --------------------------------------------
    -- Generic tagged object factory registry --

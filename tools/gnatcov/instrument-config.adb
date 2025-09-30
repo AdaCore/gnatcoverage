@@ -24,8 +24,7 @@ with Strings;             use Strings;
 
 --  Return the instrumenter configuration generated from the command line
 
-function Instrument.Config return Language_Instrumenter'Class
-is
+function Instrument.Config return Language_Instrumenter'Class is
    use Command_Line.Parser;
    Language : constant Some_Language :=
      To_Language (+Args.String_Args (Opt_Lang).Value);
@@ -34,19 +33,24 @@ is
 begin
    case Language is
       when Ada_Language =>
-         return Create_Ada_Instrumenter
-           (Tag                        => Tag,
-            Config_Pragmas_Mapping     =>
-               +Args.String_Args (Opt_Config_Pragmas_Mapping).Value,
-            Mapping_Filename           =>
-               +Args.String_Args (Opt_Gnatem).Value,
-            Preprocessor_Data_Filename =>
-               +Args.String_Args (Opt_Ada_Preprocessor_Data).Value);
-      when C_Language =>
-         return Create_C_Instrumenter
-           (Tag => Tag, Instr_Mode => Project_Instrumentation);
+         return
+           Create_Ada_Instrumenter
+             (Tag                        => Tag,
+              Config_Pragmas_Mapping     =>
+                +Args.String_Args (Opt_Config_Pragmas_Mapping).Value,
+              Mapping_Filename           =>
+                +Args.String_Args (Opt_Gnatem).Value,
+              Preprocessor_Data_Filename =>
+                +Args.String_Args (Opt_Ada_Preprocessor_Data).Value);
+
+      when C_Language   =>
+         return
+           Create_C_Instrumenter
+             (Tag => Tag, Instr_Mode => Project_Instrumentation);
+
       when CPP_Language =>
-         return Create_CPP_Instrumenter
-           (Tag => Tag, Instr_Mode => Project_Instrumentation);
+         return
+           Create_CPP_Instrumenter
+             (Tag => Tag, Instr_Mode => Project_Instrumentation);
    end case;
 end Instrument.Config;

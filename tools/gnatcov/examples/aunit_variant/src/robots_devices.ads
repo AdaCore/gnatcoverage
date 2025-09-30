@@ -30,8 +30,7 @@
 --  - a locator, able to evaluate the robot's position and orientation on
 --    the field.
 
-with Controls, Geomaps;
-use Controls, Geomaps;
+with Controls, Geomaps; use Controls, Geomaps;
 
 package Robots_Devices is
 
@@ -41,10 +40,10 @@ package Robots_Devices is
    procedure Step_Forward (Device : access Engine) is abstract;
    --  Make the Engines step forward
 
-   procedure Rotate_Left    (Device : access Engine) is abstract;
+   procedure Rotate_Left (Device : access Engine) is abstract;
    --  Make the Engines rotate left
 
-   procedure Rotate_Right   (Device : access Engine) is abstract;
+   procedure Rotate_Right (Device : access Engine) is abstract;
    --  Make the Engines rotate right
 
    type Radar is abstract tagged null record;
@@ -56,10 +55,9 @@ package Robots_Devices is
    type Locator is abstract tagged null record;
    type Locator_Access is access all Locator'Class;
 
-   function Get_Position
-     (Device : access Locator) return Position is abstract;
-   function Get_Direction
-     (Device : access Locator) return Direction is abstract;
+   function Get_Position (Device : access Locator) return Position is abstract;
+   function Get_Direction (Device : access Locator) return Direction
+   is abstract;
    --  Use the locator to retrieve the current position and direction.
 
    type Robot_Hardware is record

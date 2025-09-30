@@ -20,11 +20,11 @@ with System;
 with Elf_Common; use Elf_Common;
 
 package Elf32 is
-   subtype Elf32_Addr  is Unsigned_32;
-   subtype Elf32_Half  is Unsigned_16;
-   subtype Elf32_Off   is Unsigned_32;
+   subtype Elf32_Addr is Unsigned_32;
+   subtype Elf32_Half is Unsigned_16;
+   subtype Elf32_Off is Unsigned_32;
    subtype Elf32_Sword is Integer_32;
-   subtype Elf32_Word  is Unsigned_32;
+   subtype Elf32_Word is Unsigned_32;
    subtype Elf32_Uchar is Unsigned_8;
 
    type Elf32_Ehdr is record
@@ -96,13 +96,13 @@ package Elf32 is
    --  Relocation.
    type Elf32_Rel is record
       R_Offset : Elf32_Addr;
-      R_Info : Elf32_Word;
+      R_Info   : Elf32_Word;
    end record;
    Elf32_Rel_Size : constant Natural := Elf32_Rel'Size / System.Storage_Unit;
 
    type Elf32_Rela is record
       R_Offset : Elf32_Addr;
-      R_Info : Elf32_Word;
+      R_Info   : Elf32_Word;
       R_Addend : Elf32_Sword;
    end record;
    Elf32_Rela_Size : constant Natural := Elf32_Rela'Size / System.Storage_Unit;

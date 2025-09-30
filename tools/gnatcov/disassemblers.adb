@@ -52,8 +52,7 @@ package body Disassemblers is
    -- Dump_Bin --
    --------------
 
-   function Dump_Bin (Bin : Binary_Content; Size : Positive) return String
-   is
+   function Dump_Bin (Bin : Binary_Content; Size : Positive) return String is
       Dump : Unbounded_String;
       I    : Arch.Arch_Addr := Bin.First;
    begin
@@ -75,23 +74,20 @@ package body Disassemblers is
    ------------------------------
 
    procedure Abort_Disassembler_Error
-     (PC       : Pc_Type;
-      Insn_Bin : Binary_Content;
-      Exn_Info : String) is
+     (PC : Pc_Type; Insn_Bin : Binary_Content; Exn_Info : String) is
    begin
       New_Line (Standard_Error);
       Put_Line (Standard_Error, "========================================");
       Put_Line
         (Standard_Error,
          "An error occurred while disassembling the instruction at "
-         & Hex_Image (PC) & ":");
+         & Hex_Image (PC)
+         & ":");
       Put (Standard_Error, Exn_Info);
       Put_Line
-        (Standard_Error,
-         "The involved bytes are: " & Dump_Bin (Insn_Bin, 20));
+        (Standard_Error, "The involved bytes are: " & Dump_Bin (Insn_Bin, 20));
       Put_Line
-        (Standard_Error,
-         "This is GNATcoverage " & Version.Xcov_Version);
+        (Standard_Error, "This is GNATcoverage " & Version.Xcov_Version);
 
       Outputs.Error ("Aborting.");
       raise Outputs.Xcov_Exit_Exc;
