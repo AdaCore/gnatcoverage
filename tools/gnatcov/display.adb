@@ -21,13 +21,11 @@ package body Display is
    type Vt100_Color_Patterns is array (Color) of String (1 .. 7);
 
    Vt100_Colors : constant Vt100_Color_Patterns :=
-     (
-      Green   => ASCII.ESC & "[1;32m",
+     (Green   => ASCII.ESC & "[1;32m",
       Red     => ASCII.ESC & "[1;31m",
       Black   => ASCII.ESC & "[0;30m",
       Cyan    => ASCII.ESC & "[1;36m",
-      Magenta => ASCII.ESC & "[1;35m"
-     );
+      Magenta => ASCII.ESC & "[1;35m");
 
    Current_Color : Color := Black;
 

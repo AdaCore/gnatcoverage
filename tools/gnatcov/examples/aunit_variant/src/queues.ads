@@ -42,8 +42,8 @@ private
 
    type Data_Array is array (Natural range <>) of Data_Type;
    type Queue (Capacity : Natural) is record
-      Items : Data_Array (1 .. Capacity);
-      Size : Natural := 0;
+      Items       : Data_Array (1 .. Capacity);
+      Size        : Natural := 0;
       Front, Back : Natural := 1;
    end record;
 end Queues;

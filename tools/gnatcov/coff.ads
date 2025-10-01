@@ -17,7 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Interfaces; use Interfaces;
-with System; use System;
+with System;     use System;
 
 package Coff is
    type Filehdr is record
@@ -101,6 +101,7 @@ package Coff is
       case Inline is
          when True =>
             E_Name : String (1 .. 8);
+
          when False =>
             E : Strent_Type;
       end case;
@@ -158,6 +159,7 @@ package Coff is
       case Inline is
          when True =>
             X_Fname : String (1 .. 14);
+
          when False =>
             X_N : Strent_Type;
       end case;
@@ -188,6 +190,6 @@ package Coff is
 
    PEHdrsz : constant Natural := PEHdr'Size / Storage_Unit;
 
-   MZhdr : constant Unsigned_16 := 16#5a_4d#;
+   MZhdr    : constant Unsigned_16 := 16#5a_4d#;
    Pe_Magic : constant Unsigned_32 := 16#00_00_45_50#;
 end Coff;

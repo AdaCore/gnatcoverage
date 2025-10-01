@@ -68,8 +68,8 @@ package Diagnostics is
       Msg            : Unbounded_String;
    end record;
 
-   package Message_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Natural, Element_Type => Message);
+   package Message_Vectors is new
+     Ada.Containers.Vectors (Index_Type => Natural, Element_Type => Message);
 
    procedure Report
      (Exe  : Exe_File_Acc;
@@ -79,27 +79,19 @@ package Diagnostics is
       Kind : Report_Kind := Error);
 
    procedure Report
-     (Sloc : Source_Location;
-      Msg  : String;
-      Kind : Report_Kind := Error);
+     (Sloc : Source_Location; Msg : String; Kind : Report_Kind := Error);
 
    procedure Report_Coverage
-     (SCO  : SCO_Id;
-      Msg  : String;
-      Kind : Coverage_Kind);
+     (SCO : SCO_Id; Msg : String; Kind : Coverage_Kind);
    --  Report coverage messages. Common processing for Report_Violation and
    --  Report_Exclusion.
 
-   procedure Report_Violation
-     (SCO : SCO_Id;
-      Msg : String);
+   procedure Report_Violation (SCO : SCO_Id; Msg : String);
    --  Report a violation of a source coverage obligation. Note: the SCO kind
    --  will be prepended to Msg in reports, unless Msg starts with ^ (caret).
    --  A violation message has message kind Violation.
 
-   procedure Report_Exclusion
-     (SCO : SCO_Id;
-      Msg : String);
+   procedure Report_Exclusion (SCO : SCO_Id; Msg : String);
    --  Report exclusion of a SCO from coverage analysis. No coverage status
    --  will be reported for SCO. Note: the SCO kind will be prepended to Msg in
    --  reports, unless Msg starts with ^ (caret). A violation message has
@@ -107,12 +99,12 @@ package Diagnostics is
 
    procedure Report
      (Msg            : String;
-      Exe            : Exe_File_Acc    := null;
-      PC             : Pc_Type         := No_PC;
+      Exe            : Exe_File_Acc := null;
+      PC             : Pc_Type := No_PC;
       Sloc           : Source_Location := No_Location;
       Violation_Sloc : Source_Location := No_Location;
-      SCO            : SCO_Id          := No_SCO_Id;
-      Kind           : Report_Kind     := Error);
+      SCO            : SCO_Id := No_SCO_Id;
+      Kind           : Report_Kind := Error);
    --  Output diagnostic message during coverage analysis. Messages with Notice
    --  kind are omitted unless global flag Verbose is set. A prefix is
    --  prepended depending on message kind:

@@ -54,16 +54,17 @@ package Annotations is
       Annotate_Sarif,
       Annotate_Unknown);
    subtype Annotation_Format_Family is Annotation_Format
-   with Static_Predicate =>
-     Annotation_Format_Family in
-       Annotate_Asm
-       | Annotate_Xcov
-       | Annotate_Static_Html
-       | Annotate_Html
-       | Annotate_Cobertura
-       | Annotate_Xml
-       | Annotate_Report
-       | Annotate_Sarif;
+   with
+     Static_Predicate =>
+       Annotation_Format_Family
+       in Annotate_Asm
+        | Annotate_Xcov
+        | Annotate_Static_Html
+        | Annotate_Html
+        | Annotate_Cobertura
+        | Annotate_Xml
+        | Annotate_Report
+        | Annotate_Sarif;
 
    function To_Annotation_Format (Option : String) return Annotation_Format;
    --  Convert annotation format option to Annotation_Format value
@@ -87,14 +88,14 @@ package Annotations is
    --  the report to the output directory is requested.
 
    type Report_Section is
-   range Coverage_Level'Pos (Coverage_Level'First)
-     .. Coverage_Level'Pos (Coverage_Level'Last) + 3;
+     range Coverage_Level'Pos (Coverage_Level'First)
+           .. Coverage_Level'Pos (Coverage_Level'Last) + 3;
    --  For report and SARIF formats. There is one report section for each
    --  coverage level, plus the following three special sections:
 
-   Coverage_Exclusions   : constant Report_Section := Report_Section'Last - 2;
-   Undet_Coverage        : constant Report_Section := Report_Section'Last - 1;
-   Other_Errors          : constant Report_Section := Report_Section'Last;
+   Coverage_Exclusions : constant Report_Section := Report_Section'Last - 2;
+   Undet_Coverage      : constant Report_Section := Report_Section'Last - 1;
+   Other_Errors        : constant Report_Section := Report_Section'Last;
 
    function Section_Of_Message (M : Message) return Report_Section;
    --  Indicate the coverage criterion a given SCO/message pertains to (by its
@@ -105,9 +106,8 @@ package Annotations is
 private
 
    function SCO_Text
-     (SCO    : SCO_Id;
-      Length : Natural := 9;
-      UTF8   : Boolean := False) return String;
+     (SCO : SCO_Id; Length : Natural := 9; UTF8 : Boolean := False)
+      return String;
    --  Extract the text of SCO from source file, truncating it to the first
    --  source line and the first Length characters. If it has been truncated,
    --  the returned value will end with "...".
@@ -121,8 +121,7 @@ private
    --  expansion.
 
    procedure Output_Annotations
-     (Output      : Ada.Text_IO.File_Type;
-      Annotations : String_Vectors.Vector);
+     (Output : Ada.Text_IO.File_Type; Annotations : String_Vectors.Vector);
    --  Print annotations
 
    function SCO_Image (SCO : SCO_Id; Length : Natural := 9) return String;
@@ -155,18 +154,15 @@ private
      (Pp : Pretty_Printer; SCO : SCO_Id; Length : Natural := 9) return String
    is (SCO_Text (SCO, Length, UTF8 => Pp.Use_UTF8));
 
-   procedure Pretty_Print_Start
-     (Pp : in out Pretty_Printer) is null;
+   procedure Pretty_Print_Start (Pp : in out Pretty_Printer) is null;
    --  Called once at the beginning of the process
 
-   procedure Pretty_Print_End
-     (Pp : in out Pretty_Printer) is null;
+   procedure Pretty_Print_End (Pp : in out Pretty_Printer) is null;
    --  Called once at the end of the process
 
    procedure Pretty_Print_Start_File
-     (Pp   : in out Pretty_Printer;
-      File : Source_File_Index;
-      Skip : out Boolean) is abstract;
+     (Pp : in out Pretty_Printer; File : Source_File_Index; Skip : out Boolean)
+   is abstract;
    --  Called at the beginning of a source file display
 
    procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;
@@ -176,27 +172,29 @@ private
      (Pp       : in out Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
-      Line     : String) is abstract;
+      Line     : String)
+   is abstract;
    --  Let Pp start the pretty printing of line at Line_Num in current file
 
    procedure Pretty_Print_End_Line (Pp : in out Pretty_Printer) is null;
    --  Let Pp end the pretty printing of the current line
 
    procedure Pretty_Print_Start_Instruction_Set
-     (Pp    : in out Pretty_Printer;
-      State : Any_Line_State) is null;
+     (Pp : in out Pretty_Printer; State : Any_Line_State)
+   is null;
    --  Let Pp start the pretty printing of a set of instructions, State
    --  being the merged state of all its instructions.
 
-   procedure Pretty_Print_End_Instruction_Set
-     (Pp : in out Pretty_Printer) is null;
+   procedure Pretty_Print_End_Instruction_Set (Pp : in out Pretty_Printer)
+   is null;
    --  Let Pp end the pretty printing of a set of instructions
 
    procedure Pretty_Print_Start_Symbol
      (Pp     : in out Pretty_Printer;
       Name   : String;
       Offset : Pc_Type;
-      State  : Line_State) is null;
+      State  : Line_State)
+   is null;
 
    procedure Pretty_Print_End_Symbol (Pp : in out Pretty_Printer) is null;
 
@@ -206,53 +204,47 @@ private
       State    : Insn_State;
       Insn     : Binary_Content;
       Insn_Set : Insn_Set_Type;
-      Sym      : Symbolizer'Class) is null;
+      Sym      : Symbolizer'Class)
+   is null;
    --  Let Pp print the instruction at Pc using Sym as a symbolizer. State
    --  should be the coverage state of this instruction and Insn its binary
    --  content.
 
-   procedure Pretty_Print_Message
-     (Pp : in out Pretty_Printer;
-      M  : Message) is null;
+   procedure Pretty_Print_Message (Pp : in out Pretty_Printer; M : Message)
+   is null;
    --  Let Pp print the message M, attached to the current file:line
 
    procedure Pretty_Print_Statement
-     (Pp    : in out Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State) is null;
+     (Pp : in out Pretty_Printer; SCO : SCO_Id; State : Line_State)
+   is null;
    --  Let Pp print the statement SCO whose id is SCO
 
    procedure Pretty_Print_Fun
-     (Pp    : in out Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State);
+     (Pp : in out Pretty_Printer; SCO : SCO_Id; State : Line_State);
    --  Let Pp print the function SCO whose id is SCO
 
    procedure Pretty_Print_Call
-     (Pp    : in out Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State);
+     (Pp : in out Pretty_Printer; SCO : SCO_Id; State : Line_State);
    --  Let Pp print the call SCO whose id is SCO
 
    procedure Pretty_Print_Start_Decision
-     (Pp    : in out Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State) is null;
+     (Pp : in out Pretty_Printer; SCO : SCO_Id; State : Line_State)
+   is null;
    --  Let Pp start the display of the decision whose id is SCO
 
    procedure Pretty_Print_End_Decision (Pp : in out Pretty_Printer) is null;
    --  Let Pp close the display of the current decision
 
    procedure Pretty_Print_Condition
-     (Pp    : in out Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State) is null;
+     (Pp : in out Pretty_Printer; SCO : SCO_Id; State : Line_State)
+   is null;
    --  Let Pp print the condition whose id is SCO
 
    procedure Pretty_Print_Scope_Entities
      (Pp             : in out Pretty_Printer;
       File           : Source_File_Index;
-      Scope_Entities : Scope_Entities_Tree) is null;
+      Scope_Entities : Scope_Entities_Tree)
+   is null;
    --  Let Pp print the given body entity
 
    No_Cleaning : constant String := "DO NOT CLEAN";
@@ -263,10 +255,10 @@ private
    --  never need to clean a report dir with the above string as a pattern.
 
    procedure Generate_Report
-     (Pp               : in out Pretty_Printer'Class;
-      Show_Details     : Boolean;
-      Subdir           : String := "";
-      Clean_Pattern    : String := No_Cleaning);
+     (Pp            : in out Pretty_Printer'Class;
+      Show_Details  : Boolean;
+      Subdir        : String := "";
+      Clean_Pattern : String := No_Cleaning);
    --  Let Pp generate the annotated sources. If Show_Details is False, only a
    --  line state will be displayed. If Show_Details is True, a justification
    --  is associated to this line state. Subp_Of_Interest contains the list
@@ -277,8 +269,8 @@ private
    --  in Output_Dir as well as in Output_Dir/Subdir will be removed.
 
    function Aggregated_State
-     (Info              : Line_Info;
-      Ignore_Exemptions : Boolean := False) return Any_Line_State;
+     (Info : Line_Info; Ignore_Exemptions : Boolean := False)
+      return Any_Line_State;
    --  Return synthetic indication of coverage state for all computed criteria.
    --  If Ignore_Exemptions is True, any exemption information attached to the
    --  line is ignored during the state aggregation.
@@ -309,14 +301,12 @@ private
    --  exemption at Sloc.
 
    procedure Output_Multiline_Msg
-     (Output : Ada.Text_IO.File_Type;
-      Text   : String);
+     (Output : Ada.Text_IO.File_Type; Text : String);
    --  Output the given Text on Output, replacing all
    --  Ada.Characters.Latin_1.LF by a call to Ada.Text_IO.Newline.
 
    function Line_Metrics
-     (FI       : File_Info_Access;
-      From, To : Natural) return Li_Stat_Array;
+     (FI : File_Info_Access; From, To : Natural) return Li_Stat_Array;
    --  Return line metrics for the given line range
 
    function Obligation_Metrics (SCOs : SCO_Sets.Set) return Ob_Stat_Array;

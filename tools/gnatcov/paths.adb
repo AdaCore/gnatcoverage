@@ -30,8 +30,7 @@ package body Paths is
    --  Whether the provided Path features Windows typical markers
 
    function Normalize_Windows_Pattern
-     (Pattern : String;
-      Lower   : Boolean := True) return String;
+     (Pattern : String; Lower : Boolean := True) return String;
    --  Assuming Pattern is a Windows file name or globbing pattern, return a
    --  minimally normalized version of it, with all chars converted to lower
    --  case and \ used consistently as the dir separator. Pattern may actually
@@ -45,18 +44,13 @@ package body Paths is
    -- Build_Filename --
    --------------------
 
-   function Build_Filename
-     (Dir      : String;
-      Filename : String) return String
-   is
+   function Build_Filename (Dir : String; Filename : String) return String is
    begin
       return Dir & GNAT.OS_Lib.Directory_Separator & Filename;
    end Build_Filename;
 
    function Build_Filename
-     (Dir      : String;
-      Filename : String) return String_Access
-   is
+     (Dir : String; Filename : String) return String_Access is
    begin
       return new String'(Build_Filename (Dir, Filename));
    end Build_Filename;
@@ -79,8 +73,7 @@ package body Paths is
    ---------------------------
 
    function Canonicalize_Filename
-     (Filename : String;
-      Lower    : Boolean := True) return String
+     (Filename : String; Lower : Boolean := True) return String
    is
       --  Start with a very basic normalization step as for globbing
       --  patterns. If we have a Windows path but are not on a Windows
@@ -102,8 +95,7 @@ package body Paths is
    end Canonicalize_Filename;
 
    function Canonicalize_Filename
-     (Filename : String;
-      Lower    : Boolean := True) return String_Access is
+     (Filename : String; Lower : Boolean := True) return String_Access is
    begin
       return new String'(Canonicalize_Filename (Filename, Lower));
    end Canonicalize_Filename;
@@ -116,9 +108,7 @@ package body Paths is
       use GNAT.Regpat;
 
       Pat : constant String :=
-        (if On_Windows
-         then Normalize_Windows_Pattern (Pattern)
-         else Pattern);
+        (if On_Windows then Normalize_Windows_Pattern (Pattern) else Pattern);
 
       I   : Natural := Pat'First;
       Res : Unbounded_String;
@@ -147,9 +137,13 @@ package body Paths is
             --  you would expect 'src_*/' to match 'src_1/' and 'src_2/', but
             --  not 'src_1/subdir/'.
 
-            when '*' => Append (Res, "[^/]*");
-            when '?' => Append (Res, ".");
-            when '[' =>
+            when '*'       =>
+               Append (Res, "[^/]*");
+
+            when '?'       =>
+               Append (Res, ".");
+
+            when '['       =>
                declare
                   End_Cur : Natural := I + 1;
                   --  Will hold the position of the next closing bracket. Note
@@ -157,9 +151,7 @@ package body Paths is
                   --  allowed.
 
                begin
-                  while End_Cur <= Pat'Last
-                    and then Pat (End_Cur) /= ']'
-                  loop
+                  while End_Cur <= Pat'Last and then Pat (End_Cur) /= ']' loop
                      End_Cur := End_Cur + 1;
                   end loop;
                   if End_Cur > Pat'Last then
@@ -167,18 +159,21 @@ package body Paths is
                   else
                      for J in I .. End_Cur loop
                         case Pat (J) is
-                        when '\' =>
-                           Append (Res, "/");
-                        when '-' =>
-                           Append (Res, "\-");
-                        when '!' | '^' =>
-                           if J = I + 1 then
-                              Append (Res, '^');
-                           else
-                              Append (Res, "\" & Pat (J));
-                           end if;
-                        when others =>
-                           Append (Res, Pat (J));
+                           when '\'       =>
+                              Append (Res, "/");
+
+                           when '-'       =>
+                              Append (Res, "\-");
+
+                           when '!' | '^' =>
+                              if J = I + 1 then
+                                 Append (Res, '^');
+                              else
+                                 Append (Res, "\" & Pat (J));
+                              end if;
+
+                           when others    =>
+                              Append (Res, Pat (J));
                         end case;
                      end loop;
                      I := End_Cur;
@@ -194,7 +189,7 @@ package body Paths is
                   Append (Res, '/');
                end if;
 
-            when others =>
+            when others    =>
                Append (Res, Quote ("" & Pat (I)));
          end case;
          I := I + 1;
@@ -247,16 +242,17 @@ package body Paths is
 
       function Is_Absolute_Windows_Path (Path : String) return Boolean is
       begin
-         return Path'Length >= 3
-                and then Starts_With_Drive_Pattern (Path)
-                and then Path (Path'First + 2) in '\' | '/';
+         return
+           Path'Length >= 3
+           and then Starts_With_Drive_Pattern (Path)
+           and then Path (Path'First + 2) in '\' | '/';
       end Is_Absolute_Windows_Path;
 
-   --  Start of processing for Is_Absolute_Path
+      --  Start of processing for Is_Absolute_Path
 
    begin
-      return Is_Absolute_Unix_Path (Path)
-             or else Is_Absolute_Windows_Path (Path);
+      return
+        Is_Absolute_Unix_Path (Path) or else Is_Absolute_Windows_Path (Path);
    end Is_Absolute_Path;
 
    -----------------------------------
@@ -268,8 +264,8 @@ package body Paths is
       First          : Natural := Filename'Last;
    begin
       while Filename'First < First
-            and then Filename (First - 1) /= '/'
-            and then (not Likely_Windows or else Filename (First - 1) /= '\')
+        and then Filename (First - 1) /= '/'
+        and then (not Likely_Windows or else Filename (First - 1) /= '\')
       loop
          First := First - 1;
       end loop;
@@ -291,8 +287,8 @@ package body Paths is
    -------------------------------
 
    function Normalize_Windows_Pattern
-     (Pattern : String;
-      Lower   : Boolean := True) return String is
+     (Pattern : String; Lower : Boolean := True) return String
+   is
 
       --  Force lower case and Backslashify, paying attention not to add
       --  multiple backslashes in a row.
@@ -339,9 +335,10 @@ package body Paths is
 
    function Starts_With_Drive_Pattern (Path : String) return Boolean is
    begin
-      return Path'Length >= 2
-             and then Path (Path'First) in 'A' .. 'Z' | 'a' ..  'z'
-             and then Path (Path'First + 1) = ':';
+      return
+        Path'Length >= 2
+        and then Path (Path'First) in 'A' .. 'Z' | 'a' .. 'z'
+        and then Path (Path'First + 1) = ':';
    end Starts_With_Drive_Pattern;
 
    ----------------------------

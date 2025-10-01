@@ -25,21 +25,21 @@ package body Hex_Images is
       Res : String (1 .. 2);
    begin
       for I in 1 .. 2 loop
-         Res (I) := Hexdigits
-           (Natural (Shift_Right (B, 8 - 4 * I) and 16#0f#));
+         Res (I) :=
+           Hexdigits (Natural (Shift_Right (B, 8 - 4 * I) and 16#0f#));
       end loop;
       return Res;
    end Hex_Image;
 
-   function Conv is new Ada.Unchecked_Conversion
-     (Source => Integer_32, Target => Unsigned_32);
+   function Conv is new
+     Ada.Unchecked_Conversion (Source => Integer_32, Target => Unsigned_32);
 
    function Hex_Image (W : Unsigned_32) return String is
       Res : String (1 .. 8);
    begin
       for I in 1 .. 8 loop
-         Res (I) := Hexdigits
-           (Natural (Shift_Right (W, 32 - 4 * I) and 16#0f#));
+         Res (I) :=
+           Hexdigits (Natural (Shift_Right (W, 32 - 4 * I) and 16#0f#));
       end loop;
       return Res;
    end Hex_Image;
@@ -48,8 +48,8 @@ package body Hex_Images is
       Res : String (1 .. 16);
    begin
       for I in 1 .. 16 loop
-         Res (I) := Hexdigits
-           (Natural (Shift_Right (W, 64 - 4 * I) and 16#0f#));
+         Res (I) :=
+           Hexdigits (Natural (Shift_Right (W, 64 - 4 * I) and 16#0f#));
       end loop;
       return Res;
    end Hex_Image;
@@ -58,8 +58,8 @@ package body Hex_Images is
       Res : String (1 .. 4);
    begin
       for I in 1 .. 4 loop
-         Res (I) := Hexdigits
-           (Natural (Shift_Right (W, 16 - 4 * I) and 16#0f#));
+         Res (I) :=
+           Hexdigits (Natural (Shift_Right (W, 16 - 4 * I) and 16#0f#));
       end loop;
       return Res;
    end Hex_Image;

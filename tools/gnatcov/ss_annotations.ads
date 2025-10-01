@@ -39,28 +39,25 @@ package SS_Annotations is
 
    --  Stable_Sloc sloc type to our sloc type utilities
 
-   function "+" (S : Stable_Sloc.Sloc) return Slocs.Local_Source_Location is
-     (Line   => S.Line,
-      Column => S.Column);
+   function "+" (S : Stable_Sloc.Sloc) return Slocs.Local_Source_Location
+   is (Line => S.Line, Column => S.Column);
 
-   function "+" (S : Slocs.Local_Source_Location) return Stable_Sloc.Sloc is
-     (Line   => S.Line,
-      Column => S.Column);
+   function "+" (S : Slocs.Local_Source_Location) return Stable_Sloc.Sloc
+   is (Line => S.Line, Column => S.Column);
 
    function "+"
-     (S : Stable_Sloc.Sloc_Span) return Slocs.Local_Source_Location_Range is
-     (First_Sloc => +S.Start_Sloc,
-      Last_Sloc  => +S.End_Sloc);
+     (S : Stable_Sloc.Sloc_Span) return Slocs.Local_Source_Location_Range
+   is (First_Sloc => +S.Start_Sloc, Last_Sloc => +S.End_Sloc);
 
    function To_Sloc
-     (S  : Stable_Sloc.Sloc;
-      FI : Source_File_Index) return Slocs.Source_Location is
-      (Source_File => FI, L => +S);
+     (S : Stable_Sloc.Sloc; FI : Source_File_Index)
+      return Slocs.Source_Location
+   is (Source_File => FI, L => +S);
 
    function To_Sloc_Range
-     (SR : Stable_Sloc.Sloc_Span;
-      FI : Source_File_Index) return Slocs.Source_Location_Range is
-      (Source_File => FI, L => +SR);
+     (SR : Stable_Sloc.Sloc_Span; FI : Source_File_Index)
+      return Slocs.Source_Location_Range
+   is (Source_File => FI, L => +SR);
 
    procedure Load_Ext_Annotations (Annotation_File : Unbounded_String);
    --  Load the annotations in Annotation_File into our internal annotation

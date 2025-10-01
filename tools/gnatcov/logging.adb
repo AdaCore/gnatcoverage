@@ -65,7 +65,7 @@ package body Logging is
       Name : constant String := To_Lower (Handle.Unit_Name);
    begin
       if Has_Prefix (Name, GNATCOLL_Trace_Prefix) then
-         return Name (Name'First + GNATCOLL_Trace_Prefix'Length ..  Name'Last);
+         return Name (Name'First + GNATCOLL_Trace_Prefix'Length .. Name'Last);
       else
          return "";
       end if;
@@ -78,9 +78,7 @@ package body Logging is
    procedure Try_Enabling (Handle : GNATCOLL_Trace) is
       Name : constant String := Unprefixed_Name (Handle);
    begin
-      if Name /= ""
-         and then (Verbose
-                   or else Enabled_Traces.Contains (+Name))
+      if Name /= "" and then (Verbose or else Enabled_Traces.Contains (+Name))
       then
          Handle.Set_Active (Active => True);
       end if;
@@ -108,8 +106,7 @@ package body Logging is
    -----------------------
 
    procedure Get_Configuration
-     (Verbose   : out Boolean;
-      To_Enable : out String_Vectors.Vector) is
+     (Verbose : out Boolean; To_Enable : out String_Vectors.Vector) is
    begin
       Verbose := Logging.Verbose;
       To_Enable := Explicitly_Enabled;

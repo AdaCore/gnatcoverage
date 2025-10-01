@@ -45,9 +45,9 @@ package GNATcov_RTS.Traces.Output.Files is
    --  Returns the number of seconds since the UNIX epoch
 
    function Default_Trace_Filename
-     (Env_Var : String  := Default_Trace_Filename_Env_Var;
-      Prefix  : String  := "gnatcov";
-      Tag     : String  := "";
+     (Env_Var : String := Default_Trace_Filename_Env_Var;
+      Prefix  : String := "gnatcov";
+      Tag     : String := "";
       Simple  : Boolean := False) return chars_ptr;
    --  Return the default name of the trace file to write. Please refer to the
    --  gnatcov_rts_default_trace_filename function defined in
@@ -57,7 +57,7 @@ package GNATcov_RTS.Traces.Output.Files is
      (Buffers_Groups : Coverage_Buffers_Group_Array;
       Filename       : chars_ptr := Default_Trace_Filename;
       Program_Name   : String := "unknown";
-      Exec_Date      : Time   := Clock;
+      Exec_Date      : Time := Clock;
       User_Data      : String := "");
    --  Write a trace file in Filename to contain the data in Buffers_Groups.
    --  If the source trace file creation fails, print an error message on the

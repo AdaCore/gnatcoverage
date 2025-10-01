@@ -38,17 +38,17 @@ with Interfaces;           use Interfaces;
 with Interfaces.C;         use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 
-with Coverage;            use Coverage;
+with Coverage;       use Coverage;
 with Coverage_Options;
-with Hex_Images;          use Hex_Images;
-with Outputs;             use Outputs;
-with Paths;               use Paths;
+with Hex_Images;     use Hex_Images;
+with Outputs;        use Outputs;
+with Paths;          use Paths;
 with SCOs;
-with SS_Annotations;      use SS_Annotations;
+with SS_Annotations; use SS_Annotations;
 with Switches;
-with System;              use System;
+with System;         use System;
 with Table;
-with Text_Files;          use Text_Files;
+with Text_Files;     use Text_Files;
 
 package body Instrument.C is
 
@@ -89,14 +89,13 @@ package body Instrument.C is
    Buffer_Dump_Prefix_Group : constant := 2;
    Buffer_Reset_Group       : constant := 3;
 
-   package Sloc_To_Index_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Local_Source_Location,
-      Element_Type => Natural);
+   package Sloc_To_Index_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Local_Source_Location,
+        Element_Type => Natural);
 
    procedure Remap_Locations
-     (Str      : String;
-      Filename : String;
-      Slocs    : in out Sloc_To_Index_Maps.Map);
+     (Str : String; Filename : String; Slocs : in out Sloc_To_Index_Maps.Map);
    --  Modify Slocs in place to update the mapped indices to reflect the
    --  position of the corresponding key source location in Str.
    --
@@ -150,10 +149,10 @@ package body Instrument.C is
    --  a file.
 
    procedure Preprocess_And_Record_Include_Paths
-     (Source        : Virtual_File;
-      Instrumenter  : C_Family_Instrumenter_Type'Class;
-      Prj           : in out Prj_Desc;
-      PP_Filename   : out Unbounded_String);
+     (Source       : Virtual_File;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      Prj          : in out Prj_Desc;
+      PP_Filename  : out Unbounded_String);
    --  Same procedure as above, but automatically record the search paths
    --  associated to Source in the project description.
 
@@ -168,7 +167,8 @@ package body Instrument.C is
 
    type Record_PP_Info_Pass_Kind is new Pass_Kind with null record;
 
-   overriding procedure Append_SCO
+   overriding
+   procedure Append_SCO
      (Pass               : Record_PP_Info_Pass_Kind;
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
@@ -182,7 +182,8 @@ package body Instrument.C is
 
    type Instrument_Pass_Kind is new Pass_Kind with null record;
 
-   overriding procedure Enter_Scope
+   overriding
+   procedure Enter_Scope
      (Pass : Instrument_Pass_Kind;
       UIC  : in out C_Unit_Inst_Context'Class;
       N    : Cursor_T);
@@ -193,15 +194,16 @@ package body Instrument.C is
    --  UIC.Scopes to the created entity and UIC.Current_File_Scope to the
    --  corresponding file.
 
-   overriding procedure Exit_Scope
-     (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class);
+   overriding
+   procedure Exit_Scope
+     (Pass : Instrument_Pass_Kind; UIC : in out C_Unit_Inst_Context'Class);
    --  Close the current scope, removing the current scope of the current file
    --  from UIC.Scopes if it does not contain SCOs. Assume that the last
    --  generated SCO (SCOs.SCO_Table.Last) is the last SCO for the current
    --  scope.
 
-   overriding procedure Append_SCO
+   overriding
+   procedure Append_SCO
      (Pass               : Instrument_Pass_Kind;
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
@@ -212,7 +214,8 @@ package body Instrument.C is
    --  Append a SCO to SCOs.SCO_Table, and complete the preprocessing info with
    --  the preprocessed source range.
 
-   overriding procedure Instrument_Statement
+   overriding
+   procedure Instrument_Statement
      (Pass         : Instrument_Pass_Kind;
       UIC          : in out C_Unit_Inst_Context'Class;
       LL_SCO       : Nat;
@@ -221,7 +224,8 @@ package body Instrument.C is
       Kind         : SCO_Kind := Statement);
    --  Add an entry to UIC.Source_Statements
 
-   overriding procedure Instrument_Decision
+   overriding
+   procedure Instrument_Decision
      (Pass     : Instrument_Pass_Kind;
       UIC      : in out C_Unit_Inst_Context'Class;
       LL_SCO   : Nat;
@@ -229,7 +233,8 @@ package body Instrument.C is
       State    : Unbounded_String);
    --  Add an entry to UIC.Source_Decisions
 
-   overriding procedure Instrument_Condition
+   overriding
+   procedure Instrument_Condition
      (Pass      : Instrument_Pass_Kind;
       UIC       : in out C_Unit_Inst_Context'Class;
       LL_SCO    : Nat;
@@ -245,43 +250,48 @@ package body Instrument.C is
       Kind : Report_Kind := Diagnostics.Warning);
    --  Report an instrumentation warning
 
-   overriding procedure Insert_MCDC_State
+   overriding
+   procedure Insert_MCDC_State
      (Pass       : Instrument_Pass_Kind;
       UIC        : in out C_Unit_Inst_Context'Class;
       Name       : String;
       MCDC_State : out Unbounded_String);
    --  Wrapper around Insert_MCDC_State overload
 
-   overriding procedure Insert_Text_Before_Token
+   overriding
+   procedure Insert_Text_Before_Token
      (Pass : Instrument_Pass_Kind;
       UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String);
 
-   overriding procedure Insert_Text_Before
+   overriding
+   procedure Insert_Text_Before
      (Pass : Instrument_Pass_Kind;
       UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String);
 
-   overriding procedure Insert_Text_After
+   overriding
+   procedure Insert_Text_After
      (Pass : Instrument_Pass_Kind;
       UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
       Text : String);
 
-   overriding procedure Register_CXX_For_Range
+   overriding
+   procedure Register_CXX_For_Range
      (Pass : Instrument_Pass_Kind;
       UIC  : in out C_Unit_Inst_Context'Class;
       N    : Cursor_T);
 
-   overriding procedure Start_Statement_Block
-     (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class);
+   overriding
+   procedure Start_Statement_Block
+     (Pass : Instrument_Pass_Kind; UIC : in out C_Unit_Inst_Context'Class);
 
-   overriding procedure End_Statement_Block
-     (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class);
+   overriding
+   procedure End_Statement_Block
+     (Pass : Instrument_Pass_Kind; UIC : in out C_Unit_Inst_Context'Class);
 
    Record_PP_Info_Pass : aliased Record_PP_Info_Pass_Kind;
    Instrument_Pass     : aliased Instrument_Pass_Kind;
@@ -321,8 +331,8 @@ package body Instrument.C is
    --  For use when MC/DC coverage requested. Insert witness function call for
    --  the identified condition.
 
-   function Make_MCDC_State_Name (LL_SCO_Id : Nat) return String is
-     ("mcdc_state_" & Img (Integer (LL_SCO_Id)));
+   function Make_MCDC_State_Name (LL_SCO_Id : Nat) return String
+   is ("mcdc_state_" & Img (Integer (LL_SCO_Id)));
    --  Return the name of the MC/DC state local variable for the given
    --  decision SCO.
 
@@ -387,10 +397,11 @@ package body Instrument.C is
      (UIC                        : in out C_Unit_Inst_Context;
       Start_Matcher, End_Matcher : String;
       Process                    :
-         access procedure (Kind  : Start_Or_End;
-                           Line  : String;
-                           Match : Match_Array;
-                           Sloc  : Source_Location_T));
+        access procedure
+          (Kind  : Start_Or_End;
+           Line  : String;
+           Match : Match_Array;
+           Sloc  : Source_Location_T));
    --  Search for the annotation couple in the source. Call Process for every
    --  found annotation.
 
@@ -436,24 +447,23 @@ package body Instrument.C is
    --  unit, for the given instrumenter.
 
    procedure Emit_Dump_Helper_Unit
-     (Dump_Config       : Any_Dump_Config;
-      Main              : Compilation_Unit_Part;
-      Helper_Unit       : out Unbounded_String;
-      Instrumenter      : C_Family_Instrumenter_Type'Class;
-      Prj               : Prj_Desc);
+     (Dump_Config  : Any_Dump_Config;
+      Main         : Compilation_Unit_Part;
+      Helper_Unit  : out Unbounded_String;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      Prj          : Prj_Desc);
    --  Emit the unit to contain helpers to implement the automatic dump of
    --  coverage buffers for the given Main unit. Info must be the project that
    --  owns this main. Upon return, the name of this helper unit is stored in
    --  Helper_Unit.
 
    procedure Check_Compiler_Driver
-     (Prj          : Prj_Desc;
-      Instrumenter : C_Family_Instrumenter_Type'Class);
+     (Prj : Prj_Desc; Instrumenter : C_Family_Instrumenter_Type'Class);
    --  Check that a compiler driver exists for Instrumenter's language
 
    function Check_Compiler_Driver
-     (Prj          : Prj_Desc;
-      Instrumenter : C_Family_Instrumenter_Type'Class) return Boolean;
+     (Prj : Prj_Desc; Instrumenter : C_Family_Instrumenter_Type'Class)
+      return Boolean;
    --  Same as above but in function form to allow calling in a declarative
    --  region. Always returns False.
 
@@ -474,8 +484,8 @@ package body Instrument.C is
    --  Output clang diagnostics on the given translation unit
 
    function Format_Array_Init_Expr
-     (Exprs     : String_Vectors.Vector;
-      Multiline : Boolean := False) return String;
+     (Exprs : String_Vectors.Vector; Multiline : Boolean := False)
+      return String;
    --  Helper to format the initialization expression for an array.
    --
    --  Exprs is the list of expressions for all items in the array.
@@ -596,9 +606,12 @@ package body Instrument.C is
             SCO  : constant SCO_Id := Sloc_Intersects_SCO (Sloc);
          begin
             if SCO /= No_SCO_Id then
-               Warn ("Exemption annotation at " & Slocs.Image (Sloc)
-                     & " intersects a coverage obligation ("
-                     & Image (SCO, True) & "), ignoring it");
+               Warn
+                 ("Exemption annotation at "
+                  & Slocs.Image (Sloc)
+                  & " intersects a coverage obligation ("
+                  & Image (SCO, True)
+                  & "), ignoring it");
             else
                Filtered_Annotations.Append (Ann);
             end if;
@@ -611,14 +624,14 @@ package body Instrument.C is
    -- Enter_Scope --
    -----------------
 
-   overriding procedure Enter_Scope
+   overriding
+   procedure Enter_Scope
      (Pass : Instrument_Pass_Kind;
       UIC  : in out C_Unit_Inst_Context'Class;
       N    : Cursor_T)
    is
       procedure Enter_File_Scope
-        (UIC : in out C_Unit_Inst_Context'Class;
-         SFI : Source_File_Index)
+        (UIC : in out C_Unit_Inst_Context'Class; SFI : Source_File_Index)
       with Post => UIC.Scopes.Contains (SFI);
       --  Create a global scope for the file index SFI in which all scopes
       --  opened in the file will be stored.
@@ -628,8 +641,7 @@ package body Instrument.C is
       ----------------------
 
       procedure Enter_File_Scope
-        (UIC : in out C_Unit_Inst_Context'Class;
-         SFI : Source_File_Index)
+        (UIC : in out C_Unit_Inst_Context'Class; SFI : Source_File_Index)
       is
          File_Scope_Position : Scopes_In_Files_Map.Cursor;
 
@@ -649,11 +661,14 @@ package body Instrument.C is
                File_Scope    : constant Scopes_In_Files_Map.Reference_Type :=
                  UIC.Scopes.Reference (File_Scope_Position);
                New_Scope_Ent : constant Scope_Entity :=
-                 (Source_Range => Source_Location_Range'
-                    (Source_File => SFI,
-                     L           => Local_Source_Location_Range'
-                       (First_Sloc => (Line => 1, Column => 0),
-                        Last_Sloc  => (Line => Natural'Last, Column => 0))),
+                 (Source_Range =>
+                    Source_Location_Range'
+                      (Source_File => SFI,
+                       L           =>
+                         Local_Source_Location_Range'
+                           (First_Sloc => (Line => 1, Column => 0),
+                            Last_Sloc  =>
+                              (Line => Natural'Last, Column => 0))),
                   Name         => +Get_Simple_Name (SFI),
                   Sloc         => (Line => 1, Column => 0),
                   Identifier   => (Decl_SFI => SFI, Decl_Line => 0),
@@ -678,7 +693,7 @@ package body Instrument.C is
          UIC.Current_File_Scope := File_Scope_Position;
       end Enter_File_Scope;
 
-      Sloc : constant Source_Location   := Start_Sloc (N);
+      Sloc : constant Source_Location := Start_Sloc (N);
       File : constant Source_File_Index := Sloc.Source_File;
    begin
       --  For C and C++ programs that can include header files we need to be
@@ -697,15 +712,16 @@ package body Instrument.C is
          File_Scope    : constant Scopes_In_Files_Map.Reference_Type :=
            UIC.Scopes.Reference (C);
          New_Scope_Ent : constant Scope_Entity :=
-           (Source_Range => Source_Location_Range'
-              (Source_File => File,
-               L           => Local_Source_Location_Range'
-                 (First_Sloc => Sloc.L,
-                  Last_Sloc  => End_Sloc (N).L)),
-            Name       => +Get_Decl_Name_Str (N),
-            Sloc       => Sloc.L,
-            Identifier => (Decl_SFI => File, Decl_Line => Sloc.L.Line),
-            Start_SCO  => No_SCO_Id);
+           (Source_Range =>
+              Source_Location_Range'
+                (Source_File => File,
+                 L           =>
+                   Local_Source_Location_Range'
+                     (First_Sloc => Sloc.L, Last_Sloc => End_Sloc (N).L)),
+            Name         => +Get_Decl_Name_Str (N),
+            Sloc         => Sloc.L,
+            Identifier   => (Decl_SFI => File, Decl_Line => Sloc.L.Line),
+            Start_SCO    => No_SCO_Id);
          Inserted      : Scope_Entities_Trees.Cursor;
       begin
          --  Add New_Scope_Ent to the children of the last open scope in the
@@ -727,13 +743,13 @@ package body Instrument.C is
    -- Exit_Scope --
    ----------------
 
-   overriding procedure Exit_Scope
-     (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class)
+   overriding
+   procedure Exit_Scope
+     (Pass : Instrument_Pass_Kind; UIC : in out C_Unit_Inst_Context'Class)
    is
-      File_Scope_Ref   : constant Scopes_In_Files_Map.Reference_Type :=
+      File_Scope_Ref : constant Scopes_In_Files_Map.Reference_Type :=
         UIC.Scopes.Reference (UIC.Current_File_Scope);
-      Parent           : constant Scope_Entities_Trees.Cursor :=
+      Parent         : constant Scope_Entities_Trees.Cursor :=
         Scope_Entities_Trees.Parent (File_Scope_Ref.Current_Scope_Entity);
    begin
       --  Go back to the parent scope entity
@@ -745,7 +761,8 @@ package body Instrument.C is
    -- Append_SCO --
    ----------------
 
-   overriding procedure Append_SCO
+   overriding
+   procedure Append_SCO
      (Pass               : Record_PP_Info_Pass_Kind;
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
@@ -924,7 +941,9 @@ package body Instrument.C is
                --  as implemented in clang.
 
                while Is_Macro_Arg_Expansion
-                 (Immediate_Expansion_Loc, Macro_Arg_Expanded_Loc, UIC.TU)
+                       (Immediate_Expansion_Loc,
+                        Macro_Arg_Expanded_Loc,
+                        UIC.TU)
                loop
                   --  TODO??? Document why it is needed to loop while we are
                   --  in a macro argument expansion (did not manage to make an
@@ -979,15 +998,15 @@ package body Instrument.C is
       UIC.LL_PP_Info_Map.Insert (SCOs.SCO_Table.Last, Info);
    end Append_SCO;
 
-   overriding procedure Append_SCO
+   overriding
+   procedure Append_SCO
      (Pass               : Instrument_Pass_Kind;
       UIC                : in out C_Unit_Inst_Context'Class;
       N                  : Cursor_T;
       C1, C2             : Character;
       From, To           : Source_Location;
       Last               : Boolean;
-      Pragma_Aspect_Name : Name_Id := Namet.No_Name)
-   is
+      Pragma_Aspect_Name : Name_Id := Namet.No_Name) is
    begin
       if UIC.Disable_Coverage then
          return;
@@ -1068,8 +1087,7 @@ package body Instrument.C is
    --------------------------------
 
    function Find_Instrumented_Entities
-     (UIC : in out C_Unit_Inst_Context'Class;
-      SFI : Valid_Source_File_Index)
+     (UIC : in out C_Unit_Inst_Context'Class; SFI : Valid_Source_File_Index)
       return C_Instrumented_Entities_Maps.Reference_Type
    is
       Dummy : Boolean;
@@ -1081,7 +1099,8 @@ package body Instrument.C is
    -- Insert_MCDC_State --
    -----------------------
 
-   overriding procedure Insert_MCDC_State
+   overriding
+   procedure Insert_MCDC_State
      (Pass       : Instrument_Pass_Kind;
       UIC        : in out C_Unit_Inst_Context'Class;
       Name       : String;
@@ -1096,7 +1115,8 @@ package body Instrument.C is
    -- Insert_Text_Before_Token --
    ------------------------------
 
-   overriding procedure Insert_Text_Before_Token
+   overriding
+   procedure Insert_Text_Before_Token
      (Pass : Instrument_Pass_Kind;
       UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
@@ -1111,7 +1131,8 @@ package body Instrument.C is
    -- Insert_Text_Before --
    ------------------------
 
-   overriding procedure Insert_Text_Before
+   overriding
+   procedure Insert_Text_Before
      (Pass : Instrument_Pass_Kind;
       UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
@@ -1126,7 +1147,8 @@ package body Instrument.C is
    -- Insert_Text_After --
    -----------------------
 
-   overriding procedure Insert_Text_After
+   overriding
+   procedure Insert_Text_After
      (Pass : Instrument_Pass_Kind;
       UIC  : C_Unit_Inst_Context'Class;
       Loc  : Source_Location_T;
@@ -1141,7 +1163,8 @@ package body Instrument.C is
    -- Register_CXX_For_Range --
    ----------------------------
 
-   overriding procedure Register_CXX_For_Range
+   overriding
+   procedure Register_CXX_For_Range
      (Pass : Instrument_Pass_Kind;
       UIC  : in out C_Unit_Inst_Context'Class;
       N    : Cursor_T) is
@@ -1154,8 +1177,7 @@ package body Instrument.C is
    ---------------------------
 
    procedure Start_Statement_Block
-     (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class) is
+     (Pass : Instrument_Pass_Kind; UIC : in out C_Unit_Inst_Context'Class) is
    begin
       UIC.Block_Stack.Append (Source_Statement_Vectors.Empty_Vector);
    end Start_Statement_Block;
@@ -1165,8 +1187,7 @@ package body Instrument.C is
    -------------------------
 
    procedure End_Statement_Block
-     (Pass : Instrument_Pass_Kind;
-      UIC  : in out C_Unit_Inst_Context'Class)
+     (Pass : Instrument_Pass_Kind; UIC : in out C_Unit_Inst_Context'Class)
    is
       Current_Block : constant Source_Statement_Vectors.Vector :=
         UIC.Block_Stack.Last_Element;
@@ -1178,8 +1199,7 @@ package body Instrument.C is
          return;
       end if;
 
-      UIC.Find_Instrumented_Entities (Last_File).Blocks.Append
-        (Current_Block);
+      UIC.Find_Instrumented_Entities (Last_File).Blocks.Append (Current_Block);
       UIC.Block_Stack.Delete_Last;
    end End_Statement_Block;
 
@@ -1187,7 +1207,8 @@ package body Instrument.C is
    -- Instrument_Statement --
    --------------------------
 
-   overriding procedure Instrument_Statement
+   overriding
+   procedure Instrument_Statement
      (Pass         : Instrument_Pass_Kind;
       UIC          : in out C_Unit_Inst_Context'Class;
       LL_SCO       : Nat;
@@ -1211,7 +1232,8 @@ package body Instrument.C is
    -- Instrument_Decision --
    -------------------------
 
-   overriding procedure Instrument_Decision
+   overriding
+   procedure Instrument_Decision
      (Pass     : Instrument_Pass_Kind;
       UIC      : in out C_Unit_Inst_Context'Class;
       LL_SCO   : Nat;
@@ -1223,9 +1245,7 @@ package body Instrument.C is
       else
          UIC.Find_Instrumented_Entities (Last_File).Decisions.Append
            (C_Source_Decision'
-              (LL_SCO   => LL_SCO,
-               Decision => Decision,
-               State    => State));
+              (LL_SCO => LL_SCO, Decision => Decision, State => State));
       end if;
    end Instrument_Decision;
 
@@ -1233,7 +1253,8 @@ package body Instrument.C is
    -- Instrument_Condition --
    --------------------------
 
-   overriding procedure Instrument_Condition
+   overriding
+   procedure Instrument_Condition
      (Pass      : Instrument_Pass_Kind;
       UIC       : in out C_Unit_Inst_Context'Class;
       LL_SCO    : Nat;
@@ -1265,11 +1286,11 @@ package body Instrument.C is
    is
       Sloc : constant Source_Location := Start_Sloc (Node);
    begin
-      Diagnostics.Report ((Source_File => Sloc.Source_File,
-                           L           => (Line   => Sloc.L.Line,
-                                           Column => Sloc.L.Column)),
-                          Msg,
-                          Kind);
+      Diagnostics.Report
+        ((Source_File => Sloc.Source_File,
+          L           => (Line => Sloc.L.Line, Column => Sloc.L.Column)),
+         Msg,
+         Kind);
    end Report;
 
    ------------------------------
@@ -1285,24 +1306,24 @@ package body Instrument.C is
 
       --  Allocate a bit in the statement coverage buffer
 
-      Bit : constant Bit_Id :=
-        Allocate_Statement_Bit (Unit_Bits, SS.LL_SCO);
+      Bit : constant Bit_Id := Allocate_Statement_Bit (Unit_Bits, SS.LL_SCO);
 
       function Make_Expr_Witness
-        (UIC          : C_Unit_Inst_Context;
-         Buffer_Index : Positive;
-         Bit          : Bit_Id) return String
+        (UIC : C_Unit_Inst_Context; Buffer_Index : Positive; Bit : Bit_Id)
+         return String
       is ("gnatcov_rts_witness ("
           & Statement_Buffer_Symbol (UIC.Instrumented_Unit)
-          & Buffers_Subscript (Buffer_Index) & ", " & Img (Bit) & ")");
+          & Buffers_Subscript (Buffer_Index)
+          & ", "
+          & Img (Bit)
+          & ")");
       --  Create a procedure call expression on to witness execution of the low
       --  level SCO with the given Bit id in the statement buffer at
       --  Buffer_Index.
 
       function Make_Statement_Witness
-        (UIC          : C_Unit_Inst_Context;
-         Buffer_Index : Positive;
-         Bit          : Bit_Id) return String
+        (UIC : C_Unit_Inst_Context; Buffer_Index : Positive; Bit : Bit_Id)
+         return String
       is (Make_Expr_Witness (UIC, Buffer_Index, Bit) & ";");
       --  Create a procedure call statement to witness execution of the low
       --  level SCO with the given Bit id in the statement buffer at
@@ -1328,22 +1349,20 @@ package body Instrument.C is
       -- Wrap_In_CXX_Generic_Witness --
       ---------------------------------
 
-      procedure Wrap_In_CXX_Generic_Witness (SR : Source_Range_T)
-      is
-         Witness_Params  : constant String :=
-            Statement_Buffer_Symbol (UIC.Instrumented_Unit)
-            & Buffers_Subscript (Buffers_Index) & ", " & Img (Bit);
+      procedure Wrap_In_CXX_Generic_Witness (SR : Source_Range_T) is
+         Witness_Params : constant String :=
+           Statement_Buffer_Symbol (UIC.Instrumented_Unit)
+           & Buffers_Subscript (Buffers_Index)
+           & ", "
+           & Img (Bit);
       begin
          CX_Rewriter_Insert_Text_After
            (Rew    => UIC.Rewriter,
             Loc    => Get_Range_Start (SR),
-            Insert => "gnatcov_rts_witness_generic ("
-                      & Witness_Params & ", ");
+            Insert => "gnatcov_rts_witness_generic (" & Witness_Params & ", ");
 
          CX_Rewriter_Insert_Text_Before
-           (Rew    => UIC.Rewriter,
-            Loc    => Get_Range_End (SR),
-            Insert => ")");
+           (Rew => UIC.Rewriter, Loc => Get_Range_End (SR), Insert => ")");
       end Wrap_In_CXX_Generic_Witness;
 
       -----------------------------------
@@ -1352,11 +1371,11 @@ package body Instrument.C is
 
       procedure Wrap_Struct_Call_In_Stmt_Expr (C : Cursor_T) is
          Base_SR : constant Source_Range_T :=
-            Get_Struct_Field_Call_Expr_Base_Sloc_Range (C);
+           Get_Struct_Field_Call_Expr_Base_Sloc_Range (C);
 
          Cursor_Type : constant String :=
-            Get_Type_Spelling (Get_Cursor_Type
-              (Get_Struct_Field_Call_Expr_Base_Expr (C)));
+           Get_Type_Spelling
+             (Get_Cursor_Type (Get_Struct_Field_Call_Expr_Base_Expr (C)));
          --  Eventually get rid of this if we plan to only support
          --  language version over C23, as we can just use "auto" as
          --  in C++ in this case.
@@ -1376,15 +1395,12 @@ package body Instrument.C is
            (Rew    => UIC.Rewriter,
             Loc    => Get_Range_End (Base_SR),
             Insert =>
-               "; "
-               & Make_Statement_Witness (UIC, Buffers_Index, Bit)
-               & " tmp"
-            );
+              "; "
+              & Make_Statement_Witness (UIC, Buffers_Index, Bit)
+              & " tmp");
 
          CX_Rewriter_Insert_Text_Before
-           (Rew    => UIC.Rewriter,
-            Loc    => End_Sloc (C),
-            Insert => ";})");
+           (Rew => UIC.Rewriter, Loc => End_Sloc (C), Insert => ";})");
       end Wrap_Struct_Call_In_Stmt_Expr;
 
       --  Start processing of Instrument_Statement_Witness
@@ -1395,28 +1411,26 @@ package body Instrument.C is
       --  comma operator) if SS.Statement is an expression.
 
       case SS.Instr_Scheme is
-         when Instr_Stmt =>
+         when Instr_Stmt                       =>
             Insert_Text_After_Start_Of
               (N    => SS.Statement,
                Text => Make_Statement_Witness (UIC, Buffers_Index, Bit),
                Rew  => UIC.Rewriter);
 
-         when Instr_In_Compound =>
+         when Instr_In_Compound                =>
             Insert_Text_In_Brackets
               (CmpdStmt => SS.Statement,
                Text     => Make_Statement_Witness (UIC, Buffers_Index, Bit),
                Rew      => UIC.Rewriter);
 
-         when Instr_Expr =>
+         when Instr_Expr                       =>
             Insert_Text_After_Start_Of
               (N    => SS.Statement,
                Text =>
                  "(" & Make_Expr_Witness (UIC, Buffers_Index, Bit) & ", ",
                Rew  => UIC.Rewriter);
             Insert_Text_Before_End_Of
-              (N    => SS.Statement,
-               Text => ")",
-               Rew  => UIC.Rewriter);
+              (N => SS.Statement, Text => ")", Rew => UIC.Rewriter);
 
          when Instr_Prefixed_CXXMemberCallExpr =>
 
@@ -1429,7 +1443,7 @@ package body Instrument.C is
             Wrap_In_CXX_Generic_Witness
               (Get_CXX_Member_Call_Expr_Base_Sloc_Range (SS.Statement));
 
-         when Instr_StructField_CallExpr =>
+         when Instr_StructField_CallExpr       =>
 
             --  In case we are instrumenting the call from a function pointer
             --  that is a field from a struct, the instrumentation depends
@@ -1475,14 +1489,16 @@ package body Instrument.C is
            (N    => SC.Condition,
             Text =>
               "gnatcov_rts_witness_condition ("
-              & (+SC.State) & ", "
-              & Img (Offset) & ", "
-              & First_Image & ", "
+              & (+SC.State)
+              & ", "
+              & Img (Offset)
+              & ", "
+              & First_Image
+              & ", "
               & "(",
             Rew  => UIC.Rewriter);
-         Insert_Text_Before_End_Of (N    => SC.Condition,
-                                    Text => ") ? 1 : 0)",
-                                    Rew  => UIC.Rewriter);
+         Insert_Text_Before_End_Of
+           (N => SC.Condition, Text => ") ? 1 : 0)", Rew => UIC.Rewriter);
       end;
    end Insert_Condition_Witness;
 
@@ -1504,11 +1520,7 @@ package body Instrument.C is
 
       Bits : constant Decision_Bit_Ids :=
         Allocate_Decision_Bits
-          (Unit_Bits,
-           Start_Sloc (N),
-           SD.LL_SCO,
-           SD.State,
-           Path_Count);
+          (Unit_Bits, Start_Sloc (N), SD.LL_SCO, SD.State, Path_Count);
    begin
       --  Now attach witness call at the place of the original decision
 
@@ -1521,33 +1533,39 @@ package body Instrument.C is
       begin
          Insert_Text_After_Start_Of
            (N    => N,
-            Text => Function_Name & "("
-                    & Decision_Buffer_Symbol (UIC.Instrumented_Unit)
-                    & Buffers_Subscript (Buffers_Index) & ", "
-                    & Img (Bits.Outcome_Bits (False)) & ", "
-                    & Img (Bits.Outcome_Bits (True)),
+            Text =>
+              Function_Name
+              & "("
+              & Decision_Buffer_Symbol (UIC.Instrumented_Unit)
+              & Buffers_Subscript (Buffers_Index)
+              & ", "
+              & Img (Bits.Outcome_Bits (False))
+              & ", "
+              & Img (Bits.Outcome_Bits (True)),
             Rew  => UIC.Rewriter);
 
          if Is_MCDC then
             Insert_Text_After_Start_Of
               (N    => N,
-               Text => ", " & MCDC_Buffer_Symbol (UIC.Instrumented_Unit)
-                       & Buffers_Subscript (Buffers_Index) & ", "
-                       & Img (Bits.Path_Bits_Base) & ", "
-                       & (+SD.State),
+               Text =>
+                 ", "
+                 & MCDC_Buffer_Symbol (UIC.Instrumented_Unit)
+                 & Buffers_Subscript (Buffers_Index)
+                 & ", "
+                 & Img (Bits.Path_Bits_Base)
+                 & ", "
+                 & (+SD.State),
                Rew  => UIC.Rewriter);
          end if;
-         Insert_Text_After_Start_Of (N    => N,
-                                     Text => ", (",
-                                     Rew  => UIC.Rewriter);
+         Insert_Text_After_Start_Of
+           (N => N, Text => ", (", Rew => UIC.Rewriter);
 
          --  Wrap the decision inside a ternary expression so that we always
          --  pass an unsigned value to the witness function. This turns <dec>
          --  into (<dec>) ? 1 : 0.
 
-         Insert_Text_Before_End_Of (N    => N,
-                                    Text => ") ? 1 : 0)",
-                                    Rew  => UIC.Rewriter);
+         Insert_Text_Before_End_Of
+           (N => N, Text => ") ? 1 : 0)", Rew => UIC.Rewriter);
       end;
    end Insert_Decision_Witness;
 
@@ -1558,15 +1576,15 @@ package body Instrument.C is
    function Insert_MCDC_State
      (UIC : in out C_Unit_Inst_Context'Class; Name : String) return String
    is
-      Var_Decl_Img  : constant String :=
-        "unsigned " & Name & "_var;";
+      Var_Decl_Img  : constant String := "unsigned " & Name & "_var;";
       Addr_Decl_Img : constant String :=
         "unsigned *" & Name & " = &" & Name & "_var;";
 
    begin
-      Insert_Text_Before_Start_Of (N    => UIC.MCDC_State_Declaration_Node,
-                                   Text => Var_Decl_Img & Addr_Decl_Img,
-                                   Rew  => UIC.Rewriter);
+      Insert_Text_Before_Start_Of
+        (N    => UIC.MCDC_State_Declaration_Node,
+         Text => Var_Decl_Img & Addr_Decl_Img,
+         Rew  => UIC.Rewriter);
       return Name;
    end Insert_MCDC_State;
 
@@ -1621,14 +1639,11 @@ package body Instrument.C is
    --  list.
 
    procedure Traverse_Declarations
-     (UIC : in out C_Unit_Inst_Context;
-      L   : Cursor_Vectors.Vector);
+     (UIC : in out C_Unit_Inst_Context; L : Cursor_Vectors.Vector);
    --  Traverse a translation unit (top level declarations)
 
    procedure Process_Expression
-     (UIC : in out C_Unit_Inst_Context;
-      N   : Cursor_T;
-      T   : Character);
+     (UIC : in out C_Unit_Inst_Context; N : Cursor_T; T : Character);
    --  Process the decisions, and the lambda expressions in N
 
    --------------------------
@@ -1666,9 +1681,7 @@ package body Instrument.C is
    ------------------------
 
    procedure Process_Expression
-     (UIC : in out C_Unit_Inst_Context;
-      N   : Cursor_T;
-      T   : Character)
+     (UIC : in out C_Unit_Inst_Context; N : Cursor_T; T : Character)
    is
       function Process_Lambda_Expr
         (Cursor : Cursor_T) return Child_Visit_Result_T;
@@ -1676,9 +1689,7 @@ package body Instrument.C is
       --  _but_ the lambda expressions nested in other lambda expressions.
 
       procedure Process_Decisions
-        (UIC : in out C_Unit_Inst_Context;
-         N   : Cursor_T;
-         T   : Character);
+        (UIC : in out C_Unit_Inst_Context; N : Cursor_T; T : Character);
 
       function Process_Call_Expr (C : Cursor_T) return Child_Visit_Result_T;
 
@@ -1692,8 +1703,7 @@ package body Instrument.C is
          if Kind (Cursor) = Cursor_Lambda_Expr then
             UIC.Pass.Start_Statement_Block (UIC);
             Traverse_Declarations
-              (UIC => UIC,
-               L   => Cursor_Vectors.To_Vector (Cursor, 1));
+              (UIC => UIC, L => Cursor_Vectors.To_Vector (Cursor, 1));
             UIC.Pass.End_Statement_Block (UIC);
             return Child_Visit_Continue;
          end if;
@@ -1705,9 +1715,7 @@ package body Instrument.C is
       -----------------------
 
       procedure Process_Decisions
-        (UIC : in out C_Unit_Inst_Context;
-         N   : Cursor_T;
-         T   : Character)
+        (UIC : in out C_Unit_Inst_Context; N : Cursor_T; T : Character)
       is
          Mark : Nat;
          --  This is used to mark the location of a decision sequence in the
@@ -1731,13 +1739,14 @@ package body Instrument.C is
          --  This data structure holds the conditions/pragmas to register in
          --  SCO_Raw_Hash_Table.
 
-         package Hash_Entries is new Table.Table
-           (Table_Component_Type => Hash_Entry,
-            Table_Index_Type     => Nat,
-            Table_Low_Bound      => 1,
-            Table_Initial        => 10,
-            Table_Increment      => 10,
-            Table_Name           => "Hash_Entries");
+         package Hash_Entries is new
+           Table.Table
+             (Table_Component_Type => Hash_Entry,
+              Table_Index_Type     => Nat,
+              Table_Low_Bound      => 1,
+              Table_Initial        => 10,
+              Table_Increment      => 10,
+              Table_Name           => "Hash_Entries");
          --  Hold temporarily (i.e. free'd before returning) the Hash_Entry
          --  before they are registered in SCO_Raw_Hash_Table.
 
@@ -1851,15 +1860,15 @@ package body Instrument.C is
                   To   => Slocs.No_Location,
                   Last => False);
 
-               Hash_Entries.Append ((Sloc      => Start_Sloc (N),
-                                     SCO_Index => SCOs.SCO_Table.Last));
+               Hash_Entries.Append
+                 ((Sloc => Start_Sloc (N), SCO_Index => SCOs.SCO_Table.Last));
 
                if not Is_Null (L) then
                   Output_Decision_Operand (L);
                end if;
                Output_Decision_Operand (R);
 
-               --  Not a logical operator -> condition
+            --  Not a logical operator -> condition
 
             else
                Output_Element (N);
@@ -1965,22 +1974,22 @@ package body Instrument.C is
 
             Decision_Root : constant Boolean :=
 
-               --  Simple decision at outer level: a boolean expression (which
-               --  is not a logical operator) appearing as the operand of an
-               --  IF, WHILE, FOR construct.
+            --  Simple decision at outer level: a boolean expression (which
+            --  is not a logical operator) appearing as the operand of an
+            --  IF, WHILE, FOR construct.
 
-              (N = Process_Decisions.N and then T /= 'X')
+               (N = Process_Decisions.N and then T /= 'X')
               or else
 
-               --  Complex decision, whether at outer level or nested: a
-               --  boolean expression involving a logical operator.
+              --  Complex decision, whether at outer level or nested: a
+              --  boolean expression involving a logical operator.
 
               Is_Complex_Decision (N);
 
          begin
             if Decision_Root then
                declare
-                  T  : Character;
+                  T : Character;
 
                begin
                   --  If outer level, then type comes from call, otherwise it
@@ -1995,7 +2004,7 @@ package body Instrument.C is
                   --  Output header for sequence
 
                   X_Not_Decision := T = 'X' and then Get_Opcode_Str (N) = "!";
-                  Mark      := SCOs.SCO_Table.Last;
+                  Mark := SCOs.SCO_Table.Last;
                   Mark_Hash := Hash_Entries.Last;
                   Output_Header (T, N);
 
@@ -2012,7 +2021,7 @@ package body Instrument.C is
                      SCOs.SCO_Table.Set_Last (Mark);
                      Hash_Entries.Set_Last (Mark_Hash);
 
-                     --  Otherwise, set Last in last table entry to mark end
+                  --  Otherwise, set Last in last table entry to mark end
 
                   else
                      SCOs.SCO_Table.Table (SCOs.SCO_Table.Last).Last := True;
@@ -2026,32 +2035,34 @@ package body Instrument.C is
             end if;
 
             case Kind (N) is
-            when Cursor_Conditional_Operator =>
-               declare
-                  Cond       : constant Cursor_T := Get_Cond (N);
-                  True_Expr  : constant Cursor_T := Get_LHS (N);
-                  False_Expr : constant Cursor_T := Get_RHS (N);
-               begin
-                  Process_Decisions (UIC, Cond, 'I');
-                  Process_Decisions (UIC, True_Expr, 'X');
-                  Process_Decisions (UIC, False_Expr, 'X');
+               when Cursor_Conditional_Operator =>
+                  declare
+                     Cond       : constant Cursor_T := Get_Cond (N);
+                     True_Expr  : constant Cursor_T := Get_LHS (N);
+                     False_Expr : constant Cursor_T := Get_RHS (N);
+                  begin
+                     Process_Decisions (UIC, Cond, 'I');
+                     Process_Decisions (UIC, True_Expr, 'X');
+                     Process_Decisions (UIC, False_Expr, 'X');
+                     return Child_Visit_Continue;
+                  end;
+
+               when Cursor_Lambda_Expr          =>
+
+                  --  Do not descend into lambdas, the decisions inside the
+                  --  lambda will be taken care of while processing the
+                  --  statements in the lambda.
+
                   return Child_Visit_Continue;
-               end;
-            when Cursor_Lambda_Expr =>
 
-               --  Do not descend into lambdas, the decisions inside the lambda
-               --  will be taken care of while processing the statements in the
-               --  lambda.
-
-               return Child_Visit_Continue;
-            when others =>
-               null;
+               when others                      =>
+                  null;
             end case;
 
             return Child_Visit_Recurse;
          end Process_Node;
 
-      --  Start of processing for Process_Decisions
+         --  Start of processing for Process_Decisions
 
       begin
          if Is_Null (N) then
@@ -2076,8 +2087,8 @@ package body Instrument.C is
          end if;
 
          if Is_Instrumentable_Call_Expr (C) then
-            Sources_Trace.Trace ("Instrument Call at "
-                                 & Image (Start_Sloc (C)));
+            Sources_Trace.Trace
+              ("Instrument Call at " & Image (Start_Sloc (C)));
 
             declare
                From         : Source_Location := Start_Sloc (C);
@@ -2097,10 +2108,10 @@ package body Instrument.C is
 
                   declare
                      CX_Source_Range : constant Source_Range_T :=
-                        Get_CXX_Member_Call_Expr_SCO_Sloc_Range (C);
+                       Get_CXX_Member_Call_Expr_SCO_Sloc_Range (C);
                   begin
-                     From         := Sloc (Get_Range_Start (CX_Source_Range));
-                     To           := Sloc (Get_Range_End (CX_Source_Range));
+                     From := Sloc (Get_Range_Start (CX_Source_Range));
+                     To := Sloc (Get_Range_End (CX_Source_Range));
                      Instr_Scheme := Instr_Prefixed_CXXMemberCallExpr;
                   end;
                elsif Is_Struct_Field_Call_Expr (C) then
@@ -2113,10 +2124,10 @@ package body Instrument.C is
 
                   declare
                      CX_Source_Range : constant Source_Range_T :=
-                        Get_Struct_Field_Call_Expr_SCO_Sloc_Range (C);
+                       Get_Struct_Field_Call_Expr_SCO_Sloc_Range (C);
                   begin
-                     From         := Sloc (Get_Range_Start (CX_Source_Range));
-                     To           := Sloc (Get_Range_End (CX_Source_Range));
+                     From := Sloc (Get_Range_Start (CX_Source_Range));
+                     To := Sloc (Get_Range_End (CX_Source_Range));
                      Instr_Scheme := Instr_StructField_CallExpr;
                   end;
                end if;
@@ -2197,10 +2208,12 @@ package body Instrument.C is
                   Clang_Trace.Trace
                     (Message  =>
                        Image (Sloc (Get_Diagnostic_Location (Diag)))
-                       & ": " & Get_Diagnostic_Spelling (Diag),
+                       & ": "
+                       & Get_Diagnostic_Spelling (Diag),
                      Location => "",
                      Entity   => "");
-               when others =>
+
+               when others                              =>
                   null;
             end case;
          end;
@@ -2262,7 +2275,8 @@ package body Instrument.C is
       ------------------
 
       procedure Traverse_One
-        (N : Cursor_T; Trailing_Braces : out Unbounded_String) is
+        (N : Cursor_T; Trailing_Braces : out Unbounded_String)
+      is
          use Cursor_Vectors;
          TB : Unbounded_String;
          --  Local to pass on to Traverse_Statements invocations. Trailing
@@ -2275,8 +2289,7 @@ package body Instrument.C is
          --  being done with the instrumentation of the function (see the body
          --  of Traverse_Declarations).
 
-         Save_Disable_Coverage        : constant Boolean :=
-           UIC.Disable_Coverage;
+         Save_Disable_Coverage : constant Boolean := UIC.Disable_Coverage;
 
          procedure Instrument_Basic_Statement (N : Cursor_T);
 
@@ -2319,11 +2332,11 @@ package body Instrument.C is
 
          case Kind (N) is
 
-            when Cursor_Compound_Stmt =>
+            when Cursor_Compound_Stmt                         =>
                Traverse_Statements
                  (UIC, Get_Children (N), TB, Is_Block => False);
 
-            when Cursor_If_Stmt =>
+            when Cursor_If_Stmt                               =>
                Add_SCO_And_Instrument_Statement (N, C2 => 'I');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
@@ -2350,7 +2363,7 @@ package body Instrument.C is
                   end if;
                end;
 
-            when Cursor_Switch_Stmt =>
+            when Cursor_Switch_Stmt                           =>
                Add_SCO_And_Instrument_Statement (N, C2 => 'C');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
@@ -2367,14 +2380,14 @@ package body Instrument.C is
 
             --  Case alternative
 
-            when Cursor_Case_Stmt | Cursor_Default_Stmt =>
+            when Cursor_Case_Stmt | Cursor_Default_Stmt       =>
                declare
                   Case_Body : constant Cursor_T := Get_Sub_Stmt (N);
                begin
                   Traverse_Statements (UIC, To_Vector (Case_Body), TB);
                end;
 
-            when Cursor_While_Stmt =>
+            when Cursor_While_Stmt                            =>
                declare
                   While_Body : constant Cursor_T := Get_Body (N);
                   Cond_Var   : constant Cursor_T := Get_Cond_Var (N);
@@ -2387,9 +2400,10 @@ package body Instrument.C is
                   Add_SCO_And_Instrument_Statement
                     (N,
                      C2           => 'W',
-                     Insertion_N  => (if Is_Null (Cond_Var)
-                                      then Cond
-                                      else Get_Var_Init_Expr (Cond_Var)),
+                     Insertion_N  =>
+                       (if Is_Null (Cond_Var)
+                        then Cond
+                        else Get_Var_Init_Expr (Cond_Var)),
                      Instr_Scheme => Instr_Expr);
                   UIC.Pass.End_Statement_Block (UIC);
                   UIC.Pass.Start_Statement_Block (UIC);
@@ -2397,7 +2411,7 @@ package body Instrument.C is
                   Traverse_Statements (UIC, To_Vector (While_Body), TB);
                end;
 
-            when Cursor_Do_Stmt =>
+            when Cursor_Do_Stmt                               =>
                declare
                   Do_Body  : constant Cursor_T := Get_Body (N);
                   Do_While : constant Cursor_T := Get_Cond (N);
@@ -2421,7 +2435,7 @@ package body Instrument.C is
                   Process_Expression (UIC, Do_While, 'W');
                end;
 
-            when Cursor_For_Stmt =>
+            when Cursor_For_Stmt                              =>
                declare
                   For_Init : constant Cursor_T := Get_For_Init (N);
                   For_Cond : constant Cursor_T := Get_Cond (N);
@@ -2450,7 +2464,7 @@ package body Instrument.C is
                   UIC.Pass.Start_Statement_Block (UIC);
                end;
 
-            when Cursor_CXX_For_Range_Stmt =>
+            when Cursor_CXX_For_Range_Stmt                    =>
                declare
                   For_Init_Stmt  : constant Cursor_T := Get_For_Init (N);
                   For_Range_Decl : constant Cursor_T := Get_For_Range_Expr (N);
@@ -2467,8 +2481,8 @@ package body Instrument.C is
 
                      Add_SCO_And_Instrument_Statement
                        (For_Init_Stmt,
-                        C2 => ' ',
-                        Insertion_N  => For_Init_Stmt);
+                        C2          => ' ',
+                        Insertion_N => For_Init_Stmt);
                      UIC.Pass.End_Statement_Block (UIC);
                      UIC.Pass.Start_Statement_Block (UIC);
                      Process_Expression (UIC, For_Init_Stmt, 'X');
@@ -2483,7 +2497,8 @@ package body Instrument.C is
                   --  Instrument the range as mentioned above
 
                   Add_SCO_And_Instrument_Statement
-                    (For_Range_Decl, C2 => ' ',
+                    (For_Range_Decl,
+                     C2           => ' ',
                      Insertion_N  => N,
                      Instr_Scheme => Instr_Stmt);
                   UIC.Pass.End_Statement_Block (UIC);
@@ -2502,37 +2517,37 @@ package body Instrument.C is
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
 
-            when Cursor_Label_Stmt =>
+            when Cursor_Label_Stmt                            =>
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
                Traverse_Statements
                  (UIC, Get_Children (N), TB, Is_Block => False);
 
-            when Cursor_Break_Stmt =>
+            when Cursor_Break_Stmt                            =>
                Add_SCO_And_Instrument_Statement (N, C2 => ' ');
                UIC.Pass.End_Statement_Block (UIC);
                UIC.Pass.Start_Statement_Block (UIC);
 
-            when Cursor_Stmt_Expr =>
+            when Cursor_Stmt_Expr                             =>
                Traverse_Statements
                  (UIC, Get_Children (N), TB, Is_Block => False);
 
             --  Null statement, we won't monitor their execution
 
-            when Cursor_Null_Stmt =>
+            when Cursor_Null_Stmt                             =>
                null;
 
             --  TODO??? There are probably missing special statements, such as
             --  ternary operator etc. Do that in a later step.
 
-            when Cursor_Call_Expr =>
-                  --  Check the name of the callee. If the callee is the manual
-                  --  dump buffers procedure, end the statement block and
-                  --  do not instrument the call expression as it should not
-                  --  be considered for coverage analysis.
+            when Cursor_Call_Expr                             =>
+               --  Check the name of the callee. If the callee is the manual
+               --  dump buffers procedure, end the statement block and
+               --  do not instrument the call expression as it should not
+               --  be considered for coverage analysis.
 
                if Is_Manual_Indication_Procedure_Symbol
-                 (Get_Callee_Name_Str (N))
+                    (Get_Callee_Name_Str (N))
                then
                   UIC.Pass.End_Statement_Block (UIC);
                   UIC.Pass.Start_Statement_Block (UIC);
@@ -2542,7 +2557,7 @@ package body Instrument.C is
                   Process_Expression (UIC, N, 'X');
                end if;
 
-            when Cursor_Decl_Stmt =>
+            when Cursor_Decl_Stmt                             =>
 
                --  Bail out of any "using" directive,
                --  theses are not statements.
@@ -2550,11 +2565,12 @@ package body Instrument.C is
                case Kind (Get_First_Decl (N)) is
                   when Cursor_Using_Declaration | Cursor_Using_Directive =>
                      null;
-                  when others =>
+
+                  when others                                            =>
                      Instrument_Basic_Statement (N);
                end case;
 
-            when others =>
+            when others                                       =>
                Instrument_Basic_Statement (N);
 
          end case;
@@ -2601,10 +2617,12 @@ package body Instrument.C is
          case Kind (N) is
             when Cursor_If_Stmt | Cursor_Switch_Stmt =>
                To_Node := Get_Cond (N);
-            when Cursor_While_Stmt =>
+
+            when Cursor_While_Stmt                   =>
                Insert_Cursor := Get_Cond (N);
                To_Node := Insert_Cursor;
-            when others =>
+
+            when others                              =>
                null;
          end case;
 
@@ -2635,7 +2653,7 @@ package body Instrument.C is
       function Curlify (N : Cursor_T) return Boolean is
       begin
          case Kind (N) is
-            when Cursor_If_Stmt =>
+            when Cursor_If_Stmt            =>
                declare
                   Then_Part : constant Cursor_T := Get_Then (N);
                   Else_Part : constant Cursor_T := Get_Else (N);
@@ -2668,18 +2686,18 @@ package body Instrument.C is
                   return False;
                end;
 
-            when Cursor_Do_Stmt =>
+            when Cursor_Do_Stmt            =>
                declare
                   Do_Body : constant Cursor_T := Get_Body (N);
                begin
                   if Kind (Do_Body) /= Cursor_Compound_Stmt then
                      UIC.Pass.Insert_Text_Before
                        (UIC, Start_Sloc (Do_Body), "{");
-                     UIC.Pass.Insert_Text_Before
-                       (UIC, Get_While_Loc (N), "}");
+                     UIC.Pass.Insert_Text_Before (UIC, Get_While_Loc (N), "}");
                   end if;
                   return False;
                end;
+
             when Cursor_While_Stmt
                | Cursor_For_Stmt
                | Cursor_CXX_For_Range_Stmt =>
@@ -2692,12 +2710,13 @@ package body Instrument.C is
                   end if;
                   return False;
                end;
-            when others =>
+
+            when others                    =>
                return False;
          end case;
       end Curlify;
 
-   --  Start of processing for Traverse_Statements
+      --  Start of processing for Traverse_Statements
 
    begin
       if Is_Block then
@@ -2721,8 +2740,7 @@ package body Instrument.C is
    ---------------------------
 
    procedure Traverse_Declarations
-     (UIC : in out C_Unit_Inst_Context;
-      L   : Cursor_Vectors.Vector)
+     (UIC : in out C_Unit_Inst_Context; L : Cursor_Vectors.Vector)
    is
       use Cursor_Vectors;
       Saved_MCDC_State_Declaration_Node : constant Cursor_T :=
@@ -2745,13 +2763,13 @@ package body Instrument.C is
                   | Cursor_CXX_Method
                   | Cursor_Constructor
                   | Cursor_Destructor
-                  | Cursor_Lambda_Expr =>
+                  | Cursor_Lambda_Expr  =>
 
                   --  Only instrument definitions, not declarations.
                   --  Lambda expressions are always definitions.
 
-                  if not (Is_This_Declaration_A_Definition (N) or else
-                     Cursor_Kind = Cursor_Lambda_Expr)
+                  if not (Is_This_Declaration_A_Definition (N)
+                          or else Cursor_Kind = Cursor_Lambda_Expr)
                   then
                      goto Continue;
                   end if;
@@ -2780,25 +2798,24 @@ package body Instrument.C is
                      end if;
 
                      if Stmts.Length > 0 then
-                        UIC.MCDC_State_Declaration_Node :=
-                          Stmts.First_Element;
+                        UIC.MCDC_State_Declaration_Node := Stmts.First_Element;
                         Traverse_Statements (UIC, Stmts, TB);
                         UIC.Pass.Insert_Text_Before_Token
                           (UIC, End_Sloc (Fun_Body), +TB);
                      end if;
 
-                     if Enabled (Coverage_Options.Fun_Call) and then
-                        Fun_Body /= Get_Null_Cursor
+                     if Enabled (Coverage_Options.Fun_Call)
+                       and then Fun_Body /= Get_Null_Cursor
                      then
-                        Sources_Trace.Trace ("Instrument Function at "
-                                             & Image
-                                               (Start_Sloc (Fun_Body)));
+                        Sources_Trace.Trace
+                          ("Instrument Function at "
+                           & Image (Start_Sloc (Fun_Body)));
 
                         UIC.Pass.Start_Statement_Block (UIC);
 
                         declare
                            Signature_SR : constant Source_Range_T :=
-                              Get_Function_Signature_Sloc (N);
+                             Get_Function_Signature_Sloc (N);
                         begin
                            UIC.Pass.Append_SCO
                              (UIC  => UIC,
@@ -2831,7 +2848,7 @@ package body Instrument.C is
                when Cursor_Namespace
                   | Cursor_Class_Template
                   | Cursor_Class_Decl
-                  | Cursor_Struct_Decl =>
+                  | Cursor_Struct_Decl  =>
 
                   UIC.Pass.Enter_Scope (UIC, N);
 
@@ -2842,7 +2859,7 @@ package body Instrument.C is
                when Cursor_Linkage_Spec =>
                   Traverse_Declarations (UIC, Get_Children (N));
 
-               when others =>
+               when others              =>
                   null;
             end case;
 
@@ -2923,16 +2940,16 @@ package body Instrument.C is
             Macro_Def : Macro_Definition (Define => True);
             Success   : Boolean;
          begin
-            Parse_Macro_Definition
-              (Line,
-               Macro_Def,
-               Success);
+            Parse_Macro_Definition (Line, Macro_Def, Success);
             if Success then
                Result.Include (Macro_Def);
             else
                Warn
                  ("Cannot parse a built-in macro definition for "
-                  & Compiler & ", ignoring it:" & ASCII.LF & "  "
+                  & Compiler
+                  & ", ignoring it:"
+                  & ASCII.LF
+                  & "  "
                   & Line);
             end if;
          end;
@@ -2970,8 +2987,8 @@ package body Instrument.C is
       --  markers inserted by the preprocessor.
 
       Preprocessor_Output_Filename : constant String :=
-        (+Prj.Output_Dir) /
-        ("pp-output-" & Strip_Zero_Padding (Hex_Image (PID)));
+        (+Prj.Output_Dir)
+        / ("pp-output-" & Strip_Zero_Padding (Hex_Image (PID)));
       Preprocessor_Output_File     : Ada.Text_IO.File_Type;
       --  File containing the preprocessor output (used to get include search
       --  paths).
@@ -2987,8 +3004,7 @@ package body Instrument.C is
       end if;
 
       Base_Cmd :=
-        (Command => Prj.Compiler_Driver (Instrumenter.Language),
-         others  => <>);
+        (Command => Prj.Compiler_Driver (Instrumenter.Language), others => <>);
 
       --  Add the preprocessing flag
 
@@ -3032,11 +3048,12 @@ package body Instrument.C is
       --  Run the preprocessing command, keep track of whether it was
       --  successful for later
 
-      Success := Run_Command
-        (Command             => Cmd,
-         Origin_Command_Name => "Preprocessing",
-         Output_File         => Preprocessor_Output_Filename,
-         Ignore_Error        => True);
+      Success :=
+        Run_Command
+          (Command             => Cmd,
+           Origin_Command_Name => "Preprocessing",
+           Output_File         => Preprocessor_Output_Filename,
+           Ignore_Error        => True);
 
       if not Success then
 
@@ -3087,7 +3104,8 @@ package body Instrument.C is
 
          if Success then
             Warn
-              ("Could not preserve comments while pre-processing " & Filename
+              ("Could not preserve comments while pre-processing "
+               & Filename
                & ", annotations in comments within this file or included"
                & " headers will not be taken into account");
          end if;
@@ -3170,16 +3188,15 @@ package body Instrument.C is
    -----------------------------------------
 
    procedure Preprocess_And_Record_Include_Paths
-     (Source        : Virtual_File;
-      Instrumenter  : C_Family_Instrumenter_Type'Class;
-      Prj           : in out Prj_Desc;
-      PP_Filename   : out Unbounded_String)
+     (Source       : Virtual_File;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      Prj          : in out Prj_Desc;
+      PP_Filename  : out Unbounded_String)
    is
       Options  : Analysis_Options;
       Filename : constant String := +Source.Full_Name;
    begin
-      Preprocess_Source
-         (Filename, Instrumenter, Prj, PP_Filename, Options);
+      Preprocess_Source (Filename, Instrumenter, Prj, PP_Filename, Options);
       declare
          use Files_Handling.File_To_String_Vectors_Maps;
          Cur      : Cursor;
@@ -3192,10 +3209,10 @@ package body Instrument.C is
 
          for Path of Options.PP_Search_Path loop
             Prj.Compiler_Options_Unit.Insert
-              (Key       => Source,
-               New_Item  => String_Vectors.Empty_Vector,
-               Position  => Cur,
-               Inserted  => Inserted);
+              (Key      => Source,
+               New_Item => String_Vectors.Empty_Vector,
+               Position => Cur,
+               Inserted => Inserted);
             Prj.Compiler_Options_Unit.Reference (Cur).Append ("-I" & Path);
          end loop;
       end;
@@ -3249,14 +3266,9 @@ package body Instrument.C is
    is
       PP_Filename : Unbounded_String;
 
-      Args    : String_Vectors.Vector;
+      Args : String_Vectors.Vector;
    begin
-      Preprocess_Source
-        (Filename,
-         Instrumenter,
-         Prj,
-         PP_Filename,
-         Options);
+      Preprocess_Source (Filename, Instrumenter, Prj, PP_Filename, Options);
 
       Self.CIdx :=
         Create_Index
@@ -3283,9 +3295,10 @@ package body Instrument.C is
               Options               => 0);
          if Self.TU = null then
             Outputs.Error ("Failed to parse " & Filename);
-            Outputs.Error ("Please make sure that the original project can"
-                           & " be compiled, and that the right set of"
-                           & " options is passed to gnatcov instrument");
+            Outputs.Error
+              ("Please make sure that the original project can"
+               & " be compiled, and that the right set of"
+               & " options is passed to gnatcov instrument");
             raise Xcov_Exit_Exc;
          end if;
          if Clang_Trace.Is_Active then
@@ -3312,7 +3325,8 @@ package body Instrument.C is
    -- Initialize --
    ----------------
 
-   overriding procedure Initialize (Self : in out C_Source_Rewriter) is
+   overriding
+   procedure Initialize (Self : in out C_Source_Rewriter) is
    begin
       --  Initialize CIdx to a dummy value so that we can determine in Finalize
       --  whether the Clang data structures were created.
@@ -3324,7 +3338,8 @@ package body Instrument.C is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize (Self : in out C_Source_Rewriter) is
+   overriding
+   procedure Finalize (Self : in out C_Source_Rewriter) is
    begin
       --  If we have not created the Clang data structures yet, do not try to
       --  free them.
@@ -3348,10 +3363,11 @@ package body Instrument.C is
      (UIC                        : in out C_Unit_Inst_Context;
       Start_Matcher, End_Matcher : String;
       Process                    :
-         access procedure (Kind  : Start_Or_End;
-                           Line  : String;
-                           Match : Match_Array;
-                           Sloc  : Source_Location_T))
+        access procedure
+          (Kind  : Start_Or_End;
+           Line  : String;
+           Match : Match_Array;
+           Sloc  : Source_Location_T))
    is
       Start_Matcher_Pattern : constant Pattern_Matcher :=
         Compile (Start_Matcher);
@@ -3368,8 +3384,7 @@ package body Instrument.C is
       -- Search_Matcher_In_Token --
       ----------------------------
 
-      procedure Search_Matcher_In_Token (Token : Token_T)
-      is
+      procedure Search_Matcher_In_Token (Token : Token_T) is
          Token_Str : constant String := Get_Token_Spelling (UIC.TU, Token);
          pragma Unreferenced (Token_Str);
       begin
@@ -3407,8 +3422,7 @@ package body Instrument.C is
    -- Populate_Annotations --
    --------------------------
 
-   procedure Populate_Annotations (UIC : in out C_Unit_Inst_Context)
-   is
+   procedure Populate_Annotations (UIC : in out C_Unit_Inst_Context) is
       procedure Process_Exemption
         (Kind       : Start_Or_End;
          Line       : String;
@@ -3450,8 +3464,7 @@ package body Instrument.C is
          else
             Ann.Kind := Exempt_Off;
          end if;
-         UIC.Annotations.Append
-           (Annotation_Couple'(Sloc (Source_Loc), Ann));
+         UIC.Annotations.Append (Annotation_Couple'(Sloc (Source_Loc), Ann));
       end Process_Exemption;
 
       -------------------------
@@ -3480,10 +3493,8 @@ package body Instrument.C is
             --  Add an entry into UIC.Disable_Cov_Regions
 
             declare
-               First_Sloc : constant Source_Location :=
-                 Sloc (Last_Cov_Off);
-               Last_Sloc  : constant Source_Location :=
-                 Sloc (Source_Loc);
+               First_Sloc : constant Source_Location := Sloc (Last_Cov_Off);
+               Last_Sloc  : constant Source_Location := Sloc (Source_Loc);
             begin
                UIC.Disable_Cov_Regions.Append
                  (Source_Location_Range'
@@ -3495,8 +3506,7 @@ package body Instrument.C is
                Ann.Kind := Cov_On;
             end;
          end if;
-         UIC.Annotations.Append
-           (Annotation_Couple'(Sloc (Source_Loc), Ann));
+         UIC.Annotations.Append (Annotation_Couple'(Sloc (Source_Loc), Ann));
       end Process_Disable_Cov;
    begin
       Search_Annotation_Couple
@@ -3525,7 +3535,7 @@ package body Instrument.C is
       --  avoid overwriting UIC.CIdx which already contains the preprocessed
       --  version of the file at this stage.
 
-      Args     : String_Vectors.Vector;
+      Args : String_Vectors.Vector;
    begin
       UIC_Copy.Pass := Record_PP_Info_Pass'Access;
       UIC_Copy.CIdx :=
@@ -3603,11 +3613,12 @@ package body Instrument.C is
       CU_Name : constant Compilation_Unit_Part :=
         CU_Name_For_File (+Unit_Name);
 
-      Orig_Filename : constant String  := Unit_Name;
+      Orig_Filename : constant String := Unit_Name;
 
       Buffer_Filename : constant String :=
         +Self.Buffer_Unit
-           (Compilation_Unit'(File_Based_Language, +Unit_Name), Prj).Unit_Name;
+           (Compilation_Unit'(File_Based_Language, +Unit_Name), Prj)
+           .Unit_Name;
       --  Name of the generated source file holding the coverage buffers
 
       Rewriter : C_Source_Rewriter;
@@ -3652,7 +3663,7 @@ package body Instrument.C is
             Func_Args);
       end Put_Extern_Decl;
 
-   --  Start of processing for Instrument_Source_File
+      --  Start of processing for Instrument_Source_File
 
    begin
       --  Exit early if there is no compiler driver found to preprocess the
@@ -3662,10 +3673,11 @@ package body Instrument.C is
 
       SCOs.Initialize;
 
-      UIC.SFI := Get_Index_From_Generic_Name
-        (Orig_Filename,
-         Kind                => Files_Table.Source_File,
-         Indexed_Simple_Name => True);
+      UIC.SFI :=
+        Get_Index_From_Generic_Name
+          (Orig_Filename,
+           Kind                => Files_Table.Source_File,
+           Indexed_Simple_Name => True);
       UIC.Fullname := +Orig_Filename;
 
       --  Initialize the C instrumentation context
@@ -3712,8 +3724,7 @@ package body Instrument.C is
         Start_Sloc (Get_Translation_Unit_Cursor (UIC.TU));
 
       Traverse_Declarations
-        (UIC => UIC,
-         L   => Get_Children (Get_Translation_Unit_Cursor (UIC.TU)));
+        (UIC => UIC, L => Get_Children (Get_Translation_Unit_Cursor (UIC.TU)));
 
       --  Check that there are no open statement blocks at the end of the
       --  instrumentation processs.
@@ -3729,10 +3740,13 @@ package body Instrument.C is
 
       if Record_PP_Info_Last_SCO /= SCOs.SCO_Table.Last then
          Outputs.Warn
-           (Orig_Filename & ": preprocessed file coverage obligations"
-            &  " inconsistent with original file obligations (expecting"
-            & Nat'Image (Record_PP_Info_Last_SCO) & " coverage obligations,"
-            & " but got" & Nat'Image (SCOs.SCO_Table.Last)
+           (Orig_Filename
+            & ": preprocessed file coverage obligations"
+            & " inconsistent with original file obligations (expecting"
+            & Nat'Image (Record_PP_Info_Last_SCO)
+            & " coverage obligations,"
+            & " but got"
+            & Nat'Image (SCOs.SCO_Table.Last)
             & ". Discarding preprocessing information.");
          UIC.LL_PP_Info_Map.Clear;
       end if;
@@ -3804,7 +3818,7 @@ package body Instrument.C is
                for Block of Ent.Blocks loop
                   if Switches.Instrument_Block then
                      declare
-                        Block_SCOs : SCO_Id_Vectors.Vector;
+                        Block_SCOs    : SCO_Id_Vectors.Vector;
                         Last_Stmt_Idx : Natural := Block.Last_Index;
                      begin
 
@@ -3825,9 +3839,9 @@ package body Instrument.C is
                         --  1. Search the last Statement SCO in the block,
                         --  it is the only one we will instrument.
 
-                        while Last_Stmt_Idx > Block.First_Index and then
-                           Block.Reference
-                             (Last_Stmt_Idx).Kind /= Statement
+                        while Last_Stmt_Idx > Block.First_Index
+                          and then Block.Reference (Last_Stmt_Idx).Kind
+                                   /= Statement
                         loop
                            Last_Stmt_Idx := Last_Stmt_Idx - 1;
                         end loop;
@@ -3869,7 +3883,7 @@ package body Instrument.C is
                end loop;
 
                if Coverage.Enabled (Coverage_Options.Decision)
-                  or else MCDC_Coverage_Enabled
+                 or else MCDC_Coverage_Enabled
                then
                   for SD of Ent.Decisions loop
                      Insert_Decision_Witness
@@ -3891,8 +3905,7 @@ package body Instrument.C is
                            Decision  : constant SCO_Id :=
                              Enclosing_Decision (Condition);
                         begin
-                           if Path_Count (Decision) > Get_Path_Count_Limit
-                           then
+                           if Path_Count (Decision) > Get_Path_Count_Limit then
                               Set_Decision_SCO_Non_Instr_For_MCDC (Decision);
                            else
                               Insert_Condition_Witness
@@ -3907,15 +3920,18 @@ package body Instrument.C is
                --  discharging information (Bit_Maps).
 
                Bit_Maps :=
-                 (Statement_Bits => new Statement_Bit_Map'
-                    (Bit_Id'First .. Unit_Bits.Last_Statement_Bit =>
-                       No_SCO_Id),
-                  Decision_Bits  => new Decision_Bit_Map'
-                    (Bit_Id'First .. Unit_Bits.Last_Outcome_Bit =>
-                       (No_SCO_Id, False)),
-                  MCDC_Bits      => new MCDC_Bit_Map'
-                    (Bit_Id'First .. Unit_Bits.Last_Path_Bit =>
-                       (No_SCO_Id, 0)));
+                 (Statement_Bits =>
+                    new Statement_Bit_Map'
+                      (Bit_Id'First .. Unit_Bits.Last_Statement_Bit =>
+                         No_SCO_Id),
+                  Decision_Bits  =>
+                    new Decision_Bit_Map'
+                      (Bit_Id'First .. Unit_Bits.Last_Outcome_Bit =>
+                         (No_SCO_Id, False)),
+                  MCDC_Bits      =>
+                    new MCDC_Bit_Map'
+                      (Bit_Id'First .. Unit_Bits.Last_Path_Bit =>
+                         (No_SCO_Id, 0)));
 
                for S_Bit_Alloc of Unit_Bits.Statement_Bits loop
                   Bit_Maps.Statement_Bits (S_Bit_Alloc.Executed) :=
@@ -4024,18 +4040,18 @@ package body Instrument.C is
       Emit_Buffer_Unit
         (UIC,
          Compilation_Unit'
-           (Language  => File_Based_Language,
-            Unit_Name => UIC.Fullname),
+           (Language => File_Based_Language, Unit_Name => UIC.Fullname),
          Self,
          Prj);
 
       --  Update the Ignore_Status of the CU we instrumented
 
       Files_Table.Consolidate_Ignore_Status
-        (Index  => Files_Table.Get_Index_From_Generic_Name
-           (Name                => Orig_Filename,
-            Kind                => Files_Table.Source_File,
-            Indexed_Simple_Name => True),
+        (Index  =>
+           Files_Table.Get_Index_From_Generic_Name
+             (Name                => Orig_Filename,
+              Kind                => Files_Table.Source_File,
+              Indexed_Simple_Name => True),
          Status => Files_Table.Never);
    end Instrument_Unit;
 
@@ -4044,8 +4060,8 @@ package body Instrument.C is
    ----------------------------
 
    function Format_Array_Init_Expr
-     (Exprs     : String_Vectors.Vector;
-      Multiline : Boolean := False) return String
+     (Exprs : String_Vectors.Vector; Multiline : Boolean := False)
+      return String
    is
       Result : Unbounded_String;
    begin
@@ -4086,9 +4102,10 @@ package body Instrument.C is
       Language        : constant C_Family_Language := Instrumenter.Language;
       Language_Suffix : constant String :=
         (if With_Language_Suffix
-         then (case Language is
-               when C_Language   => "_c",
-               when CPP_Language => "_cpp")
+         then
+           (case Language is
+              when C_Language   => "_c",
+              when CPP_Language => "_cpp")
          else "");
    begin
       return
@@ -4144,8 +4161,8 @@ package body Instrument.C is
         CU_Id_Vectors.To_Vector (No_CU_Id, UIC.Allocated_Bits.Length);
       Buffers_CU_Names : CU_Name_Vectors.Vector :=
         CU_Name_Vectors.To_Vector
-           ((Language_Kind => File_Based_Language, others => <>),
-            UIC.Allocated_Bits.Length);
+          ((Language_Kind => File_Based_Language, others => <>),
+           UIC.Allocated_Bits.Length);
       --  For each set of buffers in UIC.Allocated_Bits, corresponding CU_Id
       --  and CU_Name for the instrumented source file.
 
@@ -4153,7 +4170,9 @@ package body Instrument.C is
    begin
       if Sources_Trace.Is_Active then
          Sources_Trace.Increase_Indent
-           ("Writing " & Instrumenter.Language_Name & " buffer unit "
+           ("Writing "
+            & Instrumenter.Language_Name
+            & " buffer unit "
             & (+CU_Name.Filename));
          Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
          Sources_Trace.Trace ("For files:");
@@ -4180,8 +4199,8 @@ package body Instrument.C is
                Cur := UIC.CUs.Find (SOI.SFI);
                if Has_Element (Cur) then
                   Index :=
-                    UIC.Instrumented_Entities.Constant_Reference
-                      (SOI.SFI).Buffers_Index;
+                    UIC.Instrumented_Entities.Constant_Reference (SOI.SFI)
+                      .Buffers_Index;
                   Buffers_CUs (Index) := Element (Cur);
                   Buffers_CU_Names (Index) := SOI.CU_Name;
                end if;
@@ -4254,19 +4273,25 @@ package body Instrument.C is
             --  Static buffers
 
             File.Put_Line
-              ("static unsigned char " & Statement_Buffer_Repr & "["
+              ("static unsigned char "
+               & Statement_Buffer_Repr
+               & "["
                & Img (Any_Bit_Id'Max (1, Unit_Bits.Last_Statement_Bit + 1))
                & "];");
             Statement_Init.Append (+("&" & Statement_Buffer_Repr & "[0]"));
 
             File.Put_Line
-              ("static unsigned char " & Decision_Buffer_Repr & "["
+              ("static unsigned char "
+               & Decision_Buffer_Repr
+               & "["
                & Img (Any_Bit_Id'Max (1, Unit_Bits.Last_Outcome_Bit + 1))
                & "];");
             Decision_Init.Append (+("&" & Decision_Buffer_Repr & "[0]"));
 
             File.Put_Line
-              ("static unsigned char " & MCDC_Buffer_Repr & "["
+              ("static unsigned char "
+               & MCDC_Buffer_Repr
+               & "["
                & Img (Any_Bit_Id'Max (1, Unit_Bits.Last_Path_Bit + 1))
                & "];");
             MCDC_Init.Append (+("&" & MCDC_Buffer_Repr & "[0]"));
@@ -4279,10 +4304,12 @@ package body Instrument.C is
 
             File.Put_Line
               ("static const struct gnatcov_rts_coverage_buffers "
-               & Buffers_Struct & " = {"
+               & Buffers_Struct
+               & " = {"
                & ASCII.LF
                & "/*  .fingerprint =               */ "
-               & Format_Fingerprint (SCOs_Fingerprint) & ","
+               & Format_Fingerprint (SCOs_Fingerprint)
+               & ","
                & ASCII.LF
                & "/*  .language_kind =             */ FILE_BASED_LANGUAGE,"
                & ASCII.LF
@@ -4300,21 +4327,23 @@ package body Instrument.C is
                --  filenames.
 
                & "/*  .unit_name =                 */ {"
-               & C_String_Literal (CU_Filename) & ", "
-               & CU_Filename'Length'Image & "}"
+               & C_String_Literal (CU_Filename)
+               & ", "
+               & CU_Filename'Length'Image
+               & "}"
                & ","
                & ASCII.LF
 
                & "/*  .bit_maps_fingerprint =      */ "
                & Format_Fingerprint
-                  (SC_Obligations.Bit_Maps_Fingerprint (CU, SCOs_Fingerprint))
+                   (SC_Obligations.Bit_Maps_Fingerprint (CU, SCOs_Fingerprint))
                & ","
                & ASCII.LF
 
                & "/*  .annotations_fingerprint =   */ "
                & Format_Fingerprint
-                 (SC_Obligations.Annotations_Fingerprint
-                    (CU, SCOs_Fingerprint))
+                   (SC_Obligations.Annotations_Fingerprint
+                      (CU, SCOs_Fingerprint))
                & ","
                & ASCII.LF
 
@@ -4326,17 +4355,21 @@ package body Instrument.C is
                --  using a wrapper pointer.
 
                & "/*  .statement =                 */ &"
-               & Statement_Buffer_Repr & "[0],"
+               & Statement_Buffer_Repr
+               & "[0],"
                & ASCII.LF
                & "/*  .decision =                  */ &"
-               & Decision_Buffer_Repr & "[0],"
+               & Decision_Buffer_Repr
+               & "[0],"
                & ASCII.LF
                & "/*  .mcdc =                      */ &"
-               & MCDC_Buffer_Repr & "[0],"
+               & MCDC_Buffer_Repr
+               & "[0],"
                & ASCII.LF
 
                & "/*  .statement_last_bit =        */ "
-               & Img (Unit_Bits.Last_Statement_Bit) & ","
+               & Img (Unit_Bits.Last_Statement_Bit)
+               & ","
                & ASCII.LF
                & "/*  .decision_last_bit =         */ "
                & Img (Unit_Bits.Last_Outcome_Bit)
@@ -4371,32 +4404,36 @@ package body Instrument.C is
             "unsigned char *const",
             Statement_Buffers,
             Array_Size => Buffers_Count_Img,
-            Init_Expr  => Format_Array_Init_Expr
-                            (Statement_Init, Multiline => True));
+            Init_Expr  =>
+              Format_Array_Init_Expr (Statement_Init, Multiline => True));
          Put_Format_Def
            (File,
             Instrumenter,
             "unsigned char *const",
             Decision_Buffers,
             Array_Size => Buffers_Count_Img,
-            Init_Expr  => Format_Array_Init_Expr
-                            (Decision_Init, Multiline => True));
+            Init_Expr  =>
+              Format_Array_Init_Expr (Decision_Init, Multiline => True));
          Put_Format_Def
            (File,
             Instrumenter,
             "unsigned char *const",
             MCDC_Buffers,
             Array_Size => Buffers_Count_Img,
-            Init_Expr  => Format_Array_Init_Expr
-                            (MCDC_Init, Multiline => True));
+            Init_Expr  =>
+              Format_Array_Init_Expr (MCDC_Init, Multiline => True));
 
          --  Create the buffers group: first the array of buffers (static),
          --  then the gnatcov_rts_coverage_buffers_group struct (extern).
 
          File.Put_Line
            ("static const struct gnatcov_rts_coverage_buffers *"
-            & Buffers_Array & "[" & Buffers_Count_Img & "] = "
-            & Format_Array_Init_Expr (Group_Init, Multiline => True) & ";");
+            & Buffers_Array
+            & "["
+            & Buffers_Count_Img
+            & "] = "
+            & Format_Array_Init_Expr (Group_Init, Multiline => True)
+            & ";");
          Put_Format_Def
            (File,
             Instrumenter,
@@ -4412,18 +4449,19 @@ package body Instrument.C is
    ---------------------------
 
    procedure Emit_Dump_Helper_Unit
-     (Dump_Config       : Any_Dump_Config;
-      Main              : Compilation_Unit_Part;
-      Helper_Unit       : out Unbounded_String;
-      Instrumenter      : C_Family_Instrumenter_Type'Class;
-      Prj               : Prj_Desc)
+     (Dump_Config  : Any_Dump_Config;
+      Main         : Compilation_Unit_Part;
+      Helper_Unit  : out Unbounded_String;
+      Instrumenter : C_Family_Instrumenter_Type'Class;
+      Prj          : Prj_Desc)
    is
       File : Text_Files.File_Type;
 
       Output_Proc : constant String :=
         (case Dump_Config.Channel is
-         when Binary_File            => "gnatcov_rts_write_trace_file",
-         when Base64_Standard_Output => "gnatcov_rts_write_trace_file_base64");
+           when Binary_File            => "gnatcov_rts_write_trace_file",
+           when Base64_Standard_Output =>
+             "gnatcov_rts_write_trace_file_base64");
 
       Indent1 : constant String := "    ";
       Indent2 : constant String := Indent1 & "  ";
@@ -4431,12 +4469,13 @@ package body Instrument.C is
    begin
       --  Create the dump helper unit
 
-      Helper_Unit := (if Dump_Config.Trigger = Manual
-                      then
-                         Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name
-                      else Instrumenter.Dump_Helper_Unit
-                        (Compilation_Unit'(File_Based_Language, Main.Filename),
-                         Prj).Unit_Name);
+      Helper_Unit :=
+        (if Dump_Config.Trigger = Manual
+         then Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name
+         else
+           Instrumenter.Dump_Helper_Unit
+             (Compilation_Unit'(File_Based_Language, Main.Filename), Prj)
+             .Unit_Name);
 
       --  Compute the qualified names we need for instrumentation
 
@@ -4450,7 +4489,9 @@ package body Instrument.C is
       begin
          if Sources_Trace.Is_Active then
             Sources_Trace.Increase_Indent
-              ("Writing " & Instrumenter.Language_Name & " dump helper unit "
+              ("Writing "
+               & Instrumenter.Language_Name
+               & " dump helper unit "
                & Filename);
             Sources_Trace.Trace ("Project: " & To_Ada (Prj.Prj_Name));
             Sources_Trace.Trace ("Filename: " & Filename);
@@ -4468,13 +4509,14 @@ package body Instrument.C is
          File.Put_Line (C_Runtime_Version_Check);
 
          case Dump_Config.Channel is
-            when Binary_File =>
-               File.Put_Line ("#include """
-                              & "gnatcov_rts_c-traces-output-files.h""");
+            when Binary_File            =>
+               File.Put_Line
+                 ("#include """ & "gnatcov_rts_c-traces-output-files.h""");
                File.Put_Line ("#include ""gnatcov_rts_c-os_interface.h""");
+
             when Base64_Standard_Output =>
-               File.Put_Line ("#include """
-                              & "gnatcov_rts_c-traces-output-base64.h""");
+               File.Put_Line
+                 ("#include """ & "gnatcov_rts_c-traces-output-base64.h""");
          end case;
          File.Put_Line ("#include <stdlib.h>");
 
@@ -4490,64 +4532,69 @@ package body Instrument.C is
 
          File.New_Line;
          File.Put (Instrumenter.Extern_Prefix);
-         File.Put_Line ("void " & Dump_Procedure & " ("
-                        & (if Dump_Config.Trigger = Manual
-                           then "char *prefix"
-                           else "void")
-                        & ") {");
+         File.Put_Line
+           ("void "
+            & Dump_Procedure
+            & " ("
+            & (if Dump_Config.Trigger = Manual then "char *prefix" else "void")
+            & ") {");
 
          File.Put_Line (Indent1 & Output_Proc & " (");
          File.Put_Line
-           (Indent2 & "&"
-            & Unit_Buffers_Array_Name (Prj.Prj_Name) & ",");
+           (Indent2 & "&" & Unit_Buffers_Array_Name (Prj.Prj_Name) & ",");
          case Dump_Config.Channel is
-         when Binary_File =>
-            declare
-               Env_Var : constant String :=
-                 (if Dump_Config.Filename_Env_Var = ""
-                  then "GNATCOV_RTS_DEFAULT_TRACE_FILENAME_ENV_VAR"
-                  else """" & (+Dump_Config.Filename_Env_Var) & """");
-               Prefix  : constant String :=
-                 (if Dump_Config.Trigger = Manual
-                  then "prefix"
-                  else   """" & (+Dump_Config.Filename_Prefix) & """");
-               Tag     : constant String := """" & (+Instrumenter.Tag) & """";
-               Simple  : constant String :=
-                 (if Dump_Config.Filename_Simple then "1" else "0");
-            begin
+            when Binary_File            =>
+               declare
+                  Env_Var : constant String :=
+                    (if Dump_Config.Filename_Env_Var = ""
+                     then "GNATCOV_RTS_DEFAULT_TRACE_FILENAME_ENV_VAR"
+                     else """" & (+Dump_Config.Filename_Env_Var) & """");
+                  Prefix  : constant String :=
+                    (if Dump_Config.Trigger = Manual
+                     then "prefix"
+                     else """" & (+Dump_Config.Filename_Prefix) & """");
+                  Tag     : constant String :=
+                    """" & (+Instrumenter.Tag) & """";
+                  Simple  : constant String :=
+                    (if Dump_Config.Filename_Simple then "1" else "0");
+               begin
+                  File.Put_Line
+                    (Indent2 & "gnatcov_rts_default_trace_filename(");
+                  File.Put_Line (Indent2 & Env_Var & ",");
+                  File.Put_Line (Indent2 & Prefix & ",");
+                  File.Put_Line (Indent2 & Tag & ",");
+                  File.Put_Line (Indent2 & Simple & "),");
+
+                  File.Put_Line
+                    (Indent2
+                     & "STR ("
+                     & C_String_Literal
+                         (if Dump_Config.Trigger = Manual
+                          then To_Ada (Prj.Prj_Name)
+                          else +Main.Filename)
+                     & "),");
+                  File.Put_Line
+                    (Indent2 & "gnatcov_rts_time_to_uint64()" & ",");
+                  File.Put_Line (Indent2 & "STR ("""")");
+               end;
+
+            when Base64_Standard_Output =>
+
+               --  Configurations using this channel generally run on embedded
+               --  targets and have a small runtime, so our best guess for the
+               --  program name is the name of the main, and there is no way to
+               --  get the current execution time.
+
                File.Put_Line
-                 (Indent2 & "gnatcov_rts_default_trace_filename(");
-               File.Put_Line (Indent2 & Env_Var & ",");
-               File.Put_Line (Indent2 & Prefix & ",");
-               File.Put_Line (Indent2 & Tag & ",");
-               File.Put_Line (Indent2 & Simple & "),");
-
-               File.Put_Line (Indent2
-                              & "STR ("
-                              & C_String_Literal
-                                  (if Dump_Config.Trigger = Manual
-                                   then To_Ada (Prj.Prj_Name)
-                                   else +Main.Filename)
-                              & "),");
-               File.Put_Line (Indent2 & "gnatcov_rts_time_to_uint64()" & ",");
+                 (Indent2
+                  & "STR ("
+                  & C_String_Literal
+                      (if Dump_Config.Trigger = Manual
+                       then To_Ada (Prj.Prj_Name)
+                       else +Main.Filename)
+                  & "),");
+               File.Put_Line (Indent2 & "0,");
                File.Put_Line (Indent2 & "STR ("""")");
-            end;
-
-         when Base64_Standard_Output =>
-
-            --  Configurations using this channel generally run on embedded
-            --  targets and have a small runtime, so our best guess for the
-            --  program name is the name of the main, and there is no way to
-            --  get the current execution time.
-
-            File.Put_Line (Indent2 & "STR ("
-                           & C_String_Literal
-                               (if Dump_Config.Trigger = Manual
-                                then To_Ada (Prj.Prj_Name)
-                                else +Main.Filename)
-                           & "),");
-            File.Put_Line (Indent2 & "0,");
-            File.Put_Line (Indent2 & "STR ("""")");
 
          end case;
          File.Put_Line (Indent1 & ");");
@@ -4572,7 +4619,8 @@ package body Instrument.C is
    -- Emit_Dump_Helper_Unit_Manual --
    ----------------------------------
 
-   overriding procedure Emit_Dump_Helper_Unit_Manual
+   overriding
+   procedure Emit_Dump_Helper_Unit_Manual
      (Self        : in out C_Family_Instrumenter_Type;
       Dump_Config : Any_Dump_Config;
       Prj         : Prj_Desc)
@@ -4597,7 +4645,8 @@ package body Instrument.C is
    -- Replace_Manual_Indications --
    --------------------------------
 
-   overriding procedure Replace_Manual_Indications
+   overriding
+   procedure Replace_Manual_Indications
      (Self                 : in out C_Family_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
       Source               : Virtual_File;
@@ -4731,7 +4780,9 @@ package body Instrument.C is
 
                String'Write
                  (S,
-                  Extern_Prefix & "void " & Dump_Procedure
+                  Extern_Prefix
+                  & "void "
+                  & Dump_Procedure
                   & "(const char *prefix);");
                String'Write
                  (S, Extern_Prefix & "void " & Reset_Procedure & "(void);");
@@ -4759,8 +4810,10 @@ package body Instrument.C is
                      Prefix : constant String :=
                        (if Matches (Buffer_Dump_Prefix_Group) = No_Match
                         then """" & To_Ada (Prj.Prj_Name) & """"
-                        else Str (Matches (Buffer_Dump_Prefix_Group).First
-                                  .. Matches (Buffer_Dump_Prefix_Group).Last));
+                        else
+                          Str
+                            (Matches (Buffer_Dump_Prefix_Group).First
+                             .. Matches (Buffer_Dump_Prefix_Group).Last));
                   begin
                      String'Write (S, Dump_Procedure & "(" & Prefix & ");");
                   end;
@@ -4770,7 +4823,7 @@ package body Instrument.C is
                   pragma Assert (Matches (Buffer_Reset_Group) /= No_Match);
                   Switches.Misc_Trace.Trace
                     ("Found buffer reset indication in file "
-                      & (+Source.Full_Name));
+                     & (+Source.Full_Name));
 
                   String'Write (S, Reset_Procedure & "();");
                   Has_Reset_Indication := True;
@@ -4788,21 +4841,23 @@ package body Instrument.C is
 
             else
                declare
-                  Annot : constant Instr_Annotation_Maps
-                                   .Constant_Reference_Type :=
-                    Annots.Constant_Reference (Key (Ext_Annot_Cur));
+                  Annot :
+                    constant Instr_Annotation_Maps.Constant_Reference_Type :=
+                      Annots.Constant_Reference (Key (Ext_Annot_Cur));
                begin
                   case Annot.Kind is
-                     when Dump_Buffers =>
+                     when Dump_Buffers     =>
                         Has_Dump_Indication := True;
                         String'Write
                           (S,
-                           Dump_Procedure & "("
-                            & (if Length (Annot.Trace_Prefix) /= 0
-                               then +Annot.Trace_Prefix
-                               else """" & To_Ada (Prj.Prj_Name) & """")
+                           Dump_Procedure
+                           & "("
+                           & (if Length (Annot.Trace_Prefix) /= 0
+                              then +Annot.Trace_Prefix
+                              else """" & To_Ada (Prj.Prj_Name) & """")
                            & ");");
-                     when Reset_Buffers =>
+
+                     when Reset_Buffers    =>
                         Has_Reset_Indication := True;
                         String'Write (S, Reset_Procedure & "();");
 
@@ -4826,7 +4881,8 @@ package body Instrument.C is
          if Has_Element (Ext_Annot_Cur) then
             Warning_Or_Error
               ("Some external annotations could not be re-mapped in the"
-               & " preprocessed version of " & (+Source.Full_Name)
+               & " preprocessed version of "
+               & (+Source.Full_Name)
                & ", They have been ignored. Use -v for more details.");
             while Has_Element (Ext_Annot_Cur) loop
                declare
@@ -4834,7 +4890,9 @@ package body Instrument.C is
                     Annots.Element (Key (Ext_Annot_Cur));
                begin
                   Switches.Misc_Trace.Trace
-                    ("Could not remap " & Annot.Kind'Image & " at "
+                    ("Could not remap "
+                     & Annot.Kind'Image
+                     & " at "
                      & Slocs.Image (Key (Ext_Annot_Cur)));
                end;
                Next (Ext_Annot_Cur);
@@ -4861,9 +4919,7 @@ package body Instrument.C is
                --  Overwrite the original file with its newer version
 
                PP_File.Delete (Success);
-               Tmp_File.Rename
-                 (Full_Name => PP_File,
-                  Success   => Success);
+               Tmp_File.Rename (Full_Name => PP_File, Success => Success);
                if not Success then
                   Outputs.Fatal_Error
                     ("Failed to replace manual dump indication for Source "
@@ -4886,9 +4942,7 @@ package body Instrument.C is
    ---------------------
 
    procedure Remap_Locations
-     (Str      : String;
-      Filename : String;
-      Slocs    : in out Sloc_To_Index_Maps.Map)
+     (Str : String; Filename : String; Slocs : in out Sloc_To_Index_Maps.Map)
    is
       use GNATCOLL.Utils;
       use Sloc_To_Index_Maps;
@@ -4933,8 +4987,7 @@ package body Instrument.C is
          Next_Line_Index := Current_Line_Index;
          Next_Line := Current_Line;
          loop
-            Next_Line_Index :=
-              GNATCOLL.Utils.Next_Line (Str, Next_Line_Index);
+            Next_Line_Index := GNATCOLL.Utils.Next_Line (Str, Next_Line_Index);
 
             --  Check if we are on a line directive. If so, parse it.
 
@@ -4966,8 +5019,7 @@ package body Instrument.C is
                   --  Ignore line directives which state a '0' line, as they
                   --  don't provide any meaningful insight.
 
-                  if Directive_Filename = Filename
-                    and then Directive_Line /= 0
+                  if Directive_Filename = Filename and then Directive_Line /= 0
                   then
                      Next_Line := Directive_Line;
                      In_File := True;
@@ -4990,8 +5042,9 @@ package body Instrument.C is
             --  directive and that belongs to Filename, or we've reach the end
             --  of the file.
 
-            exit when (not In_Directive and then In_File)
-                     or else Next_Line_Index = Str'Last;
+            exit when
+              (not In_Directive and then In_File)
+              or else Next_Line_Index = Str'Last;
          end loop;
          --  If the line index is Str'Last and Next_Line hasn't been modified,
          --  this means there are no more lines. Signal this by setting
@@ -5054,11 +5107,12 @@ package body Instrument.C is
    -- Auto_Dump_Buffers_In_Main --
    -------------------------------
 
-   overriding procedure Auto_Dump_Buffers_In_Main
-     (Self          : in out C_Family_Instrumenter_Type;
-      Filename      : String;
-      Dump_Config   : Any_Dump_Config;
-      Prj           : Prj_Desc)
+   overriding
+   procedure Auto_Dump_Buffers_In_Main
+     (Self        : in out C_Family_Instrumenter_Type;
+      Filename    : String;
+      Dump_Config : Any_Dump_Config;
+      Prj         : Prj_Desc)
    is
       Helper_Filename : Unbounded_String;
       --  Name of file to contain helpers implementing the buffers dump
@@ -5089,8 +5143,7 @@ package body Instrument.C is
             & (Ada.Directories.Simple_Name (+Main.Filename)));
       end if;
 
-      Emit_Dump_Helper_Unit
-        (Dump_Config, Main, Helper_Filename, Self, Prj);
+      Emit_Dump_Helper_Unit (Dump_Config, Main, Helper_Filename, Self, Prj);
 
       Put_Extern_Decl
         (Rew.Rewriter,
@@ -5101,9 +5154,10 @@ package body Instrument.C is
          Func_Args => "void");
 
       if Dump_Config.Trigger = Ravenscar_Task_Termination then
-         Warn ("--dump-trigger=ravenscar-task-termination is not valid for a C"
-               & " main. Defaulting to --dump-trigger=main-end for this"
-               & " main.");
+         Warn
+           ("--dump-trigger=ravenscar-task-termination is not valid for a C"
+            & " main. Defaulting to --dump-trigger=main-end for this"
+            & " main.");
       end if;
 
       case Dump_Config.Trigger is
@@ -5120,8 +5174,8 @@ package body Instrument.C is
                -- Process --
                -------------
 
-               function Process
-                 (Cursor : Cursor_T) return Child_Visit_Result_T is
+               function Process (Cursor : Cursor_T) return Child_Visit_Result_T
+               is
                begin
                   if Is_Statement (Kind (Cursor))
                     and then Kind (Cursor) = Cursor_Return_Stmt
@@ -5143,9 +5197,10 @@ package body Instrument.C is
 
                         Insert_Text_After_End_Of
                           (N    => Return_Expr,
-                           Text => ", "
-                                   & Dump_Procedure_Symbol (Main)
-                                   & "(), gnatcov_rts_return",
+                           Text =>
+                             ", "
+                             & Dump_Procedure_Symbol (Main)
+                             & "(), gnatcov_rts_return",
                            Rew  => Rew.Rewriter);
 
                         return Child_Visit_Continue;
@@ -5154,9 +5209,10 @@ package body Instrument.C is
                      --  Be careful not to recurse into lambda expressions,
                      --  which may have their own return statements.
 
-                     return (if Kind (Cursor) = Cursor_Lambda_Expr
-                             then Child_Visit_Continue
-                             else Child_Visit_Recurse);
+                     return
+                       (if Kind (Cursor) = Cursor_Lambda_Expr
+                        then Child_Visit_Continue
+                        else Child_Visit_Recurse);
                   end if;
                end Process;
 
@@ -5188,8 +5244,8 @@ package body Instrument.C is
                   --  a call to dump_buffers at the end of the function.
 
                   if Length (Main_Stmts) = 0
-                       or else
-                     Kind (Main_Stmts.Last_Element) /= Cursor_Return_Stmt
+                    or else Kind (Main_Stmts.Last_Element)
+                            /= Cursor_Return_Stmt
                   then
                      CX_Rewriter_Insert_Text_Before_Token
                        (Rew.Rewriter,
@@ -5199,7 +5255,7 @@ package body Instrument.C is
                end;
             end;
 
-         when At_Exit =>
+         when At_Exit                               =>
 
             --  To avoid getting conflicting atexit declarations (if the user
             --  includes stdlib.h), we only emit a declaration of atexit if
@@ -5224,7 +5280,7 @@ package body Instrument.C is
                   Rew      => Rew.Rewriter);
             end;
 
-         when others =>
+         when others                                =>
             null;
       end case;
       Rew.Apply;
@@ -5235,18 +5291,21 @@ package body Instrument.C is
    -----------------
 
    function Buffer_Unit
-     (Self : C_Family_Instrumenter_Type;
-      CU   : Compilation_Unit;
-      Prj  : Prj_Desc) return Compilation_Unit is
+     (Self : C_Family_Instrumenter_Type; CU : Compilation_Unit; Prj : Prj_Desc)
+      return Compilation_Unit is
    begin
-      return Compilation_Unit'
-        (Language  => File_Based_Language,
-         Unit_Name => +New_Body_File
-                         (Prj, Self, "_b_" & Filename_Slug (+CU.Unit_Name)));
+      return
+        Compilation_Unit'
+          (Language  => File_Based_Language,
+           Unit_Name =>
+             +New_Body_File
+                (Prj, Self, "_b_" & Filename_Slug (+CU.Unit_Name)));
    exception
       when Exc : Ada.IO_Exceptions.Name_Error =>
          Fatal_Error
-           ("Could not create the buffer unit for " & Image (CU) & ": "
+           ("Could not create the buffer unit for "
+            & Image (CU)
+            & ": "
             & Switches.Exception_Info (Exc, Discard_Name => True));
    end Buffer_Unit;
 
@@ -5254,44 +5313,49 @@ package body Instrument.C is
    -- Dump_Manual_Helper_Unit --
    -----------------------------
 
-   overriding function Dump_Manual_Helper_Unit
-     (Self : C_Family_Instrumenter_Type;
-      Prj  : Prj_Desc) return Compilation_Unit is
+   overriding
+   function Dump_Manual_Helper_Unit
+     (Self : C_Family_Instrumenter_Type; Prj : Prj_Desc)
+      return Compilation_Unit is
    begin
       --  Add a language specific suffix so that in case both C and C++ helper
       --  units are generated for this project, they don't have homonym object
       --  filenames.
 
-      return Compilation_Unit'
-        (Language  => File_Based_Language,
-         Unit_Name =>
-           +New_Body_File
-             (Prj,
-              Self,
-              "_d_b_" & To_Symbol_Name (Prj.Prj_Name),
-              With_Language_Suffix => True));
+      return
+        Compilation_Unit'
+          (Language  => File_Based_Language,
+           Unit_Name =>
+             +New_Body_File
+                (Prj,
+                 Self,
+                 "_d_b_" & To_Symbol_Name (Prj.Prj_Name),
+                 With_Language_Suffix => True));
    end Dump_Manual_Helper_Unit;
 
    ----------------------
    -- Dump_Helper_Unit --
    ----------------------
 
-   overriding function Dump_Helper_Unit
-     (Self : C_Family_Instrumenter_Type;
-      CU   : Compilation_Unit;
-      Prj  : Prj_Desc) return Compilation_Unit is
+   overriding
+   function Dump_Helper_Unit
+     (Self : C_Family_Instrumenter_Type; CU : Compilation_Unit; Prj : Prj_Desc)
+      return Compilation_Unit is
    begin
-      return Compilation_Unit'
-        (Language  => File_Based_Language,
-         Unit_Name => +New_Body_File
-                         (Prj, Self, "_d_" & Filename_Slug (+CU.Unit_Name)));
+      return
+        Compilation_Unit'
+          (Language  => File_Based_Language,
+           Unit_Name =>
+             +New_Body_File
+                (Prj, Self, "_d_" & Filename_Slug (+CU.Unit_Name)));
    end Dump_Helper_Unit;
 
    --------------
    -- Has_Main --
    --------------
 
-   overriding function Has_Main
+   overriding
+   function Has_Main
      (Self     : in out C_Family_Instrumenter_Type;
       Filename : String;
       Prj      : Prj_Desc) return Boolean
@@ -5318,8 +5382,8 @@ package body Instrument.C is
    ---------------------------
 
    function Check_Compiler_Driver
-     (Prj          : Prj_Desc;
-      Instrumenter : C_Family_Instrumenter_Type'Class) return Boolean
+     (Prj : Prj_Desc; Instrumenter : C_Family_Instrumenter_Type'Class)
+      return Boolean
    is
       Compiler_Driver : constant Unbounded_String :=
         Prj.Compiler_Driver (Instrumenter.Language);
@@ -5336,8 +5400,7 @@ package body Instrument.C is
    ---------------------------
 
    procedure Check_Compiler_Driver
-     (Prj          : Prj_Desc;
-      Instrumenter : C_Family_Instrumenter_Type'Class)
+     (Prj : Prj_Desc; Instrumenter : C_Family_Instrumenter_Type'Class)
    is
       Ignore_Bool_Res : constant Boolean :=
         Check_Compiler_Driver (Prj, Instrumenter);
@@ -5370,12 +5433,12 @@ package body Instrument.C is
       elsif Instrumenter.Language = CPP_Language and then Func_Args = "" then
          Append
            (Result,
-              Format_Def
-                (Instrumenter,
-                 C_Type,
-                 Name,
-                 Array_Size => Array_Size,
-                 External   => True));
+            Format_Def
+              (Instrumenter,
+               C_Type,
+               Name,
+               Array_Size => Array_Size,
+               External   => True));
          Append (Result, ASCII.LF);
       end if;
 
@@ -5477,7 +5540,8 @@ package body Instrument.C is
    -- Emit_Buffers_List_Unit --
    ----------------------------
 
-   overriding procedure Emit_Buffers_List_Unit
+   overriding
+   procedure Emit_Buffers_List_Unit
      (Self        : C_Family_Instrumenter_Type;
       Instr_Units : Unit_Sets.Set;
       Prj         : Prj_Desc)
@@ -5493,7 +5557,8 @@ package body Instrument.C is
           (Buffer_Symbols => Buffer_Symbols, Prj => Prj);
    end Emit_Buffers_List_Unit;
 
-   overriding function Emit_Buffers_List_Unit
+   overriding
+   function Emit_Buffers_List_Unit
      (Self           : C_Family_Instrumenter_Type;
       Buffer_Symbols : String_Sets.Set;
       Prj            : Prj_Desc) return Compilation_Unit
@@ -5542,9 +5607,9 @@ package body Instrument.C is
 
       if String_Sets.Length (Buffer_Symbols) /= 0 then
 
-        --  Create a "temporary" variable to create the buffer group array.
-        --  We can't create it on the fly because this would create invalid C++
-        --  code (compound literals are valid C99, invalid C++ until C++20).
+         --  Create a "temporary" variable to create the buffer group array. We
+         --  can't create it on the fly because this would create invalid C++
+         --  code (compound literals are valid C99, invalid C++ until C++20).
 
          CU_File.Put_Line
            ("const struct gnatcov_rts_coverage_buffers_group *"
@@ -5606,13 +5671,14 @@ package body Instrument.C is
                   --  instance "C:foo" (backslash just ignored).
 
                   declare
-                     Last_Arg : Unbounded_String
-                       renames Result.Reference (Result.Last);
+                     Last_Arg : Unbounded_String renames
+                       Result.Reference (Result.Last);
                   begin
                      case C is
                         when '\' | ',' =>
                            Append (Last_Arg, C);
-                        when others =>
+
+                        when others    =>
                            Append (Last_Arg, (1 => '\', 2 => C));
                      end case;
                   end;
@@ -5620,10 +5686,12 @@ package body Instrument.C is
 
                else
                   case C is
-                     when '\' =>
+                     when '\'    =>
                         Last_Is_Backslash := True;
-                     when ',' =>
+
+                     when ','    =>
                         Result.Append (Null_Unbounded_String);
+
                      when others =>
                         Append (Result.Reference (Result.Last), C);
                   end case;
@@ -5652,8 +5720,8 @@ package body Instrument.C is
       File         : constant Virtual_File := Create_Normalized (Filename);
       Cmdline_Opts : constant String_Vectors.Vector :=
         (case C_Family_Language (Instrumenter.Language) is
-            when C_Language   => C_Opts,
-            when CPP_Language => CPP_Opts);
+           when C_Language   => C_Opts,
+           when CPP_Language => CPP_Opts);
       Prj_Options  : String_Vectors.Vector;
    begin
       --  Grab the options from the project description. Note that the project
@@ -5689,8 +5757,9 @@ package body Instrument.C is
 
       declare
          use Macro_Sets;
-         Cur : constant Cursor := Self.Builtin_Macros.Find
-           (Macro_Definition'(Name => +"__SIZEOF_POINTER__", others => <>));
+         Cur             : constant Cursor :=
+           Self.Builtin_Macros.Find
+             (Macro_Definition'(Name => +"__SIZEOF_POINTER__", others => <>));
          Size_Of_Pointer : constant Integer :=
            (if Has_Element (Cur)
             then Integer'Value (+Self.Builtin_Macros.Element (Cur).Value)
@@ -5717,10 +5786,11 @@ package body Instrument.C is
       Loc    : constant Source_Location_T := Get_Cursor_Location (N);
       File   : Virtual_File;
    begin
-      Get_Presumed_Location (Location => Loc,
-                             Filename => C_File'Access,
-                             Line     => Line'Access,
-                             Column   => Column'Access);
+      Get_Presumed_Location
+        (Location => Loc,
+         Filename => C_File'Access,
+         Line     => Line'Access,
+         Column   => Column'Access);
       File := Create_Normalized (Get_C_String (C_File));
 
       --  If every file is of interest, ignore code from system headers and
@@ -5760,9 +5830,9 @@ package body Instrument.C is
                  Get_Index_From_Generic_Name (+File.Full_Name, Source_File);
             begin
                SOI :=
-                 (Of_Interest  => True,
-                  SFI          => SFI,
-                  CU_Name      => CU_Name_For_File (Full_Name (File)));
+                 (Of_Interest => True,
+                  SFI         => SFI,
+                  CU_Name     => CU_Name_For_File (Full_Name (File)));
             end;
 
             --  Import the external disabled regions for this source

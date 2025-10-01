@@ -21,7 +21,7 @@
 package Perf_Counters is
 
    type Any_Counter_Type is
-      --  Counters maintained during execution
+   --  Counters maintained during execution
 
      (Addr_Map_Cache_Hit,
       Addr_Map_Cache_Miss,
@@ -34,8 +34,8 @@ package Perf_Counters is
 
       Line_Table_Alloc_Avg_Size);
 
-   subtype Counter_Type is Any_Counter_Type
-     range Any_Counter_Type'First .. Line_Cache_Miss;
+   subtype Counter_Type is
+     Any_Counter_Type range Any_Counter_Type'First .. Line_Cache_Miss;
 
    procedure Enable (Enable : Boolean := True);
    --  Enable/disable performance counters

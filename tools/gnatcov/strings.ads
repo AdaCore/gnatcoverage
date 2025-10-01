@@ -74,10 +74,11 @@ package Strings is
 
    function "+" (S : Unbounded_String) return String renames To_String;
 
-   package String_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Unbounded_String,
-      "="          => "=");
+   package String_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Natural,
+        Element_Type => Unbounded_String,
+        "="          => "=");
 
    procedure Read
      (CLS   : in out Checkpoints.Checkpoint_Load_State;
@@ -89,11 +90,12 @@ package Strings is
       Value : String_Vectors.Vector);
    --  Write a String_Vectors.Vector to CSS
 
-   package String_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Unbounded_String,
-      Element_Type => Unbounded_String,
-      "<"          => "<",
-      "="          => "=");
+   package String_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Unbounded_String,
+        Element_Type => Unbounded_String,
+        "<"          => "<",
+        "="          => "=");
 
    procedure Read
      (CLS   : in out Checkpoints.Checkpoint_Load_State;
@@ -104,18 +106,20 @@ package Strings is
      (CSS : in out Checkpoints.Checkpoint_Save_State; Value : String_Maps.Map);
    --  Write a String_Maps.Map to CSS
 
-   package String_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Unbounded_String,
-      "<"          => Less_Case_Insensitive,
-      "="          => Equal_Case_Insensitive);
+   package String_Sets is new
+     Ada.Containers.Ordered_Sets
+       (Element_Type => Unbounded_String,
+        "<"          => Less_Case_Insensitive,
+        "="          => Equal_Case_Insensitive);
    --  Case insensitive string set
 
-   package String_Vectors_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Unbounded_String,
-      Element_Type    => String_Vectors.Vector,
-      Equivalent_Keys => "=",
-      Hash            => Hash,
-      "="             => String_Vectors."=");
+   package String_Vectors_Maps is new
+     Ada.Containers.Hashed_Maps
+       (Key_Type        => Unbounded_String,
+        Element_Type    => String_Vectors.Vector,
+        Equivalent_Keys => "=",
+        Hash            => Hash,
+        "="             => String_Vectors."=");
 
    function To_String_Set (V : String_Vectors.Vector) return String_Sets.Set;
    --  Convert the given strings vector to a strings set
@@ -135,18 +139,21 @@ package Strings is
    --  from Strings_List. Also, each pattern that matched at least once is
    --  removed from Patterns_Not_Covered.
 
-   type Unbounded_String_Stream (S : access Unbounded_String)
-   is new Ada.Streams.Root_Stream_Type with record
+   type Unbounded_String_Stream (S : access Unbounded_String) is
+     new Ada.Streams.Root_Stream_Type
+   with record
       Read_Index : Positive := 1;
    end record;
 
-   overriding procedure Read
+   overriding
+   procedure Read
      (Stream : in out Unbounded_String_Stream;
       Item   : out Ada.Streams.Stream_Element_Array;
       Last   : out Ada.Streams.Stream_Element_Offset);
    --  Read from position Read_Index in string
 
-   overriding procedure Write
+   overriding
+   procedure Write
      (Stream : in out Unbounded_String_Stream;
       Item   : Ada.Streams.Stream_Element_Array);
    --  Append to string

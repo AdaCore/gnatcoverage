@@ -28,14 +28,16 @@ with Ada.Finalization;
 package Disa_Lmp is
 
    type LMP_Disassembler is
-     new Ada.Finalization.Limited_Controlled and Disassembler with private;
+     new Ada.Finalization.Limited_Controlled
+     and Disassembler with private;
 
-   overriding function Get_Insn_Length
-     (Self     : LMP_Disassembler;
-      Insn_Bin : Binary_Content) return Positive;
+   overriding
+   function Get_Insn_Length
+     (Self : LMP_Disassembler; Insn_Bin : Binary_Content) return Positive;
    --  Return the length of the instruction that starts at Insn_Bin
 
-   overriding procedure Disassemble_Insn
+   overriding
+   procedure Disassemble_Insn
      (Self     : LMP_Disassembler;
       Insn_Bin : Binary_Content;
       Pc       : Pc_Type;
@@ -46,7 +48,8 @@ package Disa_Lmp is
    --  disassembly in Line/Line_Pos. Line_Pos is the index of the next
    --  character to be written (i.e. line length if Line'First = 1).
 
-   overriding procedure Get_Insn_Properties
+   overriding
+   procedure Get_Insn_Properties
      (Self        : LMP_Disassembler;
       Insn_Bin    : Binary_Content;
       Pc          : Pc_Type;
@@ -61,30 +64,33 @@ package Disa_Lmp is
    --  Flag_Cond. Also determine its destinations when possible in
    --  Branch_Dest and FT_Dest (for fallthrough).
 
-   overriding function Is_Padding
-     (Self     : LMP_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean;
+   overriding
+   function Is_Padding
+     (Self : LMP_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean;
    --  See disassemblers.ads
 
-   overriding function Is_Nop
-     (Self     : LMP_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean is (False);
+   overriding
+   function Is_Nop
+     (Self : LMP_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean
+   is (False);
    --  See disassembler.ads
 
-   overriding procedure Initialize
-     (Object : in out LMP_Disassembler);
+   overriding
+   procedure Initialize (Object : in out LMP_Disassembler);
    --  Override of controlled object primitive
 
-   overriding procedure Finalize
-     (Object : in out LMP_Disassembler);
+   overriding
+   procedure Finalize (Object : in out LMP_Disassembler);
    --  Override of controlled object primitive
 
 private
 
    type LMP_Disassembler is
-     new Ada.Finalization.Limited_Controlled and Disassembler with record
+     new Ada.Finalization.Limited_Controlled
+     and Disassembler
+   with record
       Handle : Dis_Opcodes.Disassemble_Handle;
    end record;
 

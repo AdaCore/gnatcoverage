@@ -59,10 +59,9 @@ package body PECoff_Files is
    -- Is_PE_File --
    ----------------
 
-   function Is_PE_File (Fd : File_Descriptor) return Boolean
-   is
-      Off    : Long_Integer;
-      PE_Sig : Unsigned_32;
+   function Is_PE_File (Fd : File_Descriptor) return Boolean is
+      Off      : Long_Integer;
+      PE_Sig   : Unsigned_32;
       Coff_Sig : Unsigned_16;
    begin
       Lseek (Fd, 0, Seek_Set);
@@ -93,9 +92,7 @@ package body PECoff_Files is
    -----------------
 
    function Create_File
-     (Fd       : File_Descriptor;
-      Filename : String_Access)
-      return PE_File
+     (Fd : File_Descriptor; Filename : String_Access) return PE_File
    is
       use System.Storage_Elements;
 
@@ -116,15 +113,15 @@ package body PECoff_Files is
          raise Error with File.Filename & ": " & Msg;
       end Exit_With_Error;
 
-      function To_Address is new Ada.Unchecked_Conversion
-        (Str_Access, System.Address);
+      function To_Address is new
+        Ada.Unchecked_Conversion (Str_Access, System.Address);
 
       Hdr_Off     : Long_Integer;
       Opt_Hdr_Off : Long_Integer;
       Opt_Hdr32   : Opt_Hdr_PE32;
       Opt_Hdr64   : Opt_Hdr_PE32_Plus;
 
-   --  Start of processing for Create_File
+      --  Start of processing for Create_File
 
    begin
       Hdr_Off := Read_Coff_Header_Offset (Fd);
@@ -136,8 +133,9 @@ package body PECoff_Files is
          Hdr_Off := Hdr_Off + 4;
       end if;
 
-      return File : PE_File := (Binary_File'(Create_File (Fd, Filename))
-                                with others => <>)
+      return
+         File : PE_File :=
+           (Binary_File'(Create_File (Fd, Filename)) with others => <>)
       do
          Lseek (Fd, Hdr_Off, Seek_Set);
          if Read (Fd, File.Hdr'Address, Filehdr_Size) /= Filehdr_Size then
@@ -153,14 +151,16 @@ package body PECoff_Files is
             --  number.
 
             if Read (Fd, Opt_Hdr32'Address, Opt_Hdr_PE32_Size)
-                 /= Opt_Hdr_PE32_Size
+              /= Opt_Hdr_PE32_Size
             then
-               Exit_With_Error (File, Status_Read_Error,
-                                "failed to read COFF optional header (PE32)");
+               Exit_With_Error
+                 (File,
+                  Status_Read_Error,
+                  "failed to read COFF optional header (PE32)");
             end if;
 
             case Opt_Hdr32.Magic is
-               when PE32_Magic =>
+               when PE32_Magic     =>
                   if File.Hdr.F_Machine /= I386magic then
                      Outputs.Fatal_Error
                        ("Unhandled CPU for PE32:" & File.Hdr.F_Machine'Img);
@@ -180,17 +180,18 @@ package body PECoff_Files is
 
                   Lseek (Fd, Opt_Hdr_Off, Seek_Set);
                   if Read (Fd, Opt_Hdr64'Address, Opt_Hdr_PE32_Plus_Size)
-                       /= Opt_Hdr_PE32_Plus_Size
+                    /= Opt_Hdr_PE32_Plus_Size
                   then
                      Exit_With_Error
-                       (File, Status_Read_Error,
+                       (File,
+                        Status_Read_Error,
                         "failed to read COFF optional header (PE32+)");
                   end if;
                   File.Image_Base := Arch.Arch_Addr (Opt_Hdr64.Image_Base);
 
-               when others =>
+               when others         =>
                   Outputs.Fatal_Error
-                     ("Invalid optional header magic: " & Opt_Hdr32.Magic'Img);
+                    ("Invalid optional header magic: " & Opt_Hdr32.Magic'Img);
             end case;
          else
             File.Image_Base := 0;
@@ -202,10 +203,12 @@ package body PECoff_Files is
          File.Data := To_Address (Data (File.File_Region));
 
          --  Map sections.
-         File.Scn := To_PE_Scn_Arr_Acc
-           (File.Data + Storage_Offset (Hdr_Off)
-            + Storage_Offset (File.Hdr.F_Opthdr)
-            + Storage_Offset (Filehdr_Size));
+         File.Scn :=
+           To_PE_Scn_Arr_Acc
+             (File.Data
+              + Storage_Offset (Hdr_Off)
+              + Storage_Offset (File.Hdr.F_Opthdr)
+              + Storage_Offset (Filehdr_Size));
 
          File.Str_Off := File.Hdr.F_Symptr + File.Hdr.F_Nsyms * Symesz;
       end return;
@@ -259,8 +262,8 @@ package body PECoff_Files is
    -- Get_Section_Name --
    ----------------------
 
-   function Get_Section_Name (File : PE_File; Sec : Section_Index)
-                             return String
+   function Get_Section_Name
+     (File : PE_File; Sec : Section_Index) return String
    is
       pragma Assert (Sec < Section_Index (File.Hdr.F_Nscns));
       Name : String renames File.Scn (Sec).S_Name;
@@ -273,8 +276,8 @@ package body PECoff_Files is
             Num := 0;
             for I in 2 .. Name'Last loop
                exit when Name (I) = ASCII.NUL;
-               Num := Num * 10
-                 + (Character'Pos (Name (I)) - Character'Pos ('0'));
+               Num :=
+                 Num * 10 + (Character'Pos (Name (I)) - Character'Pos ('0'));
             end loop;
             return Get_String (File, Num);
          end;
@@ -301,8 +304,8 @@ package body PECoff_Files is
      (File : PE_File; Index : Section_Index) return Loaded_Section
    is
       Scn    : constant Scnhdr := Get_Scnhdr (File, Index);
-      Result : constant Loaded_Section := +Read
-        (File.File, File_Size (Scn.S_Scnptr), File_Size (Scn.S_Size));
+      Result : constant Loaded_Section :=
+        +Read (File.File, File_Size (Scn.S_Scnptr), File_Size (Scn.S_Size));
    begin
       if File_Size (Size (Result)) /= File_Size (Scn.S_Size) then
          raise Error;
@@ -325,8 +328,11 @@ package body PECoff_Files is
 
    function Get_Symbols (File : PE_File) return Loaded_Section is
    begin
-      return +Read (File.File, File_Size (File.Hdr.F_Symptr),
-                    File_Size (File.Hdr.F_Nsyms * Symesz));
+      return
+        +Read
+           (File.File,
+            File_Size (File.Hdr.F_Symptr),
+            File_Size (File.Hdr.F_Nsyms * Symesz));
    end Get_Symbols;
 
    ----------------
@@ -336,8 +342,9 @@ package body PECoff_Files is
    function Get_String (File : PE_File; Off : Unsigned_32) return String is
       use System.Storage_Elements;
    begin
-      return Dwarf_Handling.Read_String
-        (File.Data + Storage_Offset (Off + File.Str_Off));
+      return
+        Dwarf_Handling.Read_String
+          (File.Data + Storage_Offset (Off + File.Str_Off));
    end Get_String;
 
    ---------------------

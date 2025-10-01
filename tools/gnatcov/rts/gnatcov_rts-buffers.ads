@@ -76,15 +76,15 @@ package GNATcov_RTS.Buffers is
    --  Obligations. 20-byte to hold a SHA-1.
 
    type GNATcov_RTS_Coverage_Buffers is record
-      Fingerprint               : Fingerprint_Type;
-      Language                  : Any_Language_Kind;
-      Unit_Part                 : Any_Unit_Part;
-      Unit_Name                 : GNATcov_RTS_String;
-      Bit_Maps_Fingerprint      : Fingerprint_Type;
-      Annotations_Fingerprint   : Fingerprint_Type;
-      Statement, Decision, MCDC : System.Address;
-      Statement_Last_Bit, Decision_Last_Bit,
-      MCDC_Last_Bit             : Any_Bit_Id;
+      Fingerprint                                          : Fingerprint_Type;
+      Language                                             : Any_Language_Kind;
+      Unit_Part                                            : Any_Unit_Part;
+      Unit_Name                                            :
+        GNATcov_RTS_String;
+      Bit_Maps_Fingerprint                                 : Fingerprint_Type;
+      Annotations_Fingerprint                              : Fingerprint_Type;
+      Statement, Decision, MCDC                            : System.Address;
+      Statement_Last_Bit, Decision_Last_Bit, MCDC_Last_Bit : Any_Bit_Id;
    end record;
    pragma Convention (C, GNATcov_RTS_Coverage_Buffers);
 

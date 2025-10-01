@@ -25,7 +25,7 @@ package body Traces_Lines is
    function "*" (L, R : Line_State) return Line_State is
    begin
       case L is
-         when No_Code =>
+         when No_Code                               =>
             return R;
 
          --  We don't want non instrumented code / Not_Coverable code to mask
@@ -39,9 +39,9 @@ package body Traces_Lines is
                return R;
             end if;
 
-         when others =>
+         when others                                =>
             case R is
-               when No_Code =>
+               when No_Code                               =>
                   return L;
 
                when Undetermined_Coverage | Not_Coverable =>
@@ -51,13 +51,13 @@ package body Traces_Lines is
                      return L;
                   end if;
 
-               when Not_Covered =>
+               when Not_Covered                           =>
                   return Line_State'Min (L, Partially_Covered);
 
                when Partially_Covered | Disabled_Coverage =>
                   return R;
 
-               when Covered =>
+               when Covered                               =>
                   return Line_State'Max (L, Partially_Covered);
             end case;
       end case;

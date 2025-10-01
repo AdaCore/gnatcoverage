@@ -40,8 +40,8 @@ package body LLVM is
    --  gnatcov.
 
    function Make_Profdata_From_Traces
-     (Traces :      Requested_Trace_Vectors.Vector;
-      Output_File : String) return String;
+     (Traces : Requested_Trace_Vectors.Vector; Output_File : String)
+      return String;
    --  Builds the call to the `llvm-profdata` command, and saves the output
    --  profdata file in `Output_File`.
    --  Return the expanded the absolute path of `Output_File`.
@@ -131,8 +131,9 @@ package body LLVM is
       Trace_Adapter_Cmd : Command_Type :=
         (+Get_LLVM_Trace_Adapter_Exe, others => <>);
    begin
-      return Output_Path : constant String :=
-        LLVM_Artifacts_Temp_Dir.Directory_Name / Output_File
+      return
+         Output_Path : constant String :=
+           LLVM_Artifacts_Temp_Dir.Directory_Name / Output_File
       do
          Subprocesses.Append_Arg (Trace_Adapter_Cmd, "--instr-prof");
          Subprocesses.Append_Arg (Trace_Adapter_Cmd, Profdata_File);
@@ -150,8 +151,8 @@ package body LLVM is
    --------------------------------------
 
    function Make_LLVM_Checkpoint_From_Traces
-     (Trace_Inputs : Requested_Trace_Vectors.Vector;
-      Exe_File     : String) return Unbounded_String
+     (Trace_Inputs : Requested_Trace_Vectors.Vector; Exe_File : String)
+      return Unbounded_String
    is
       LLVM_Profdata_File : constant String := "output.profdata";
       LLVM_JSON_File     : constant String := "llvm-ckpt.json";

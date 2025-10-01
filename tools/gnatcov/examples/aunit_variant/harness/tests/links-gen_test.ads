@@ -26,26 +26,27 @@ with Actors;
 generic
 
    Act1, Act2 : Actors.Actor_Ref;
-   Data_Val1  : Links.Data_Type;
-   Data_Val2  : Links.Data_Type;
+   Data_Val1 : Links.Data_Type;
+   Data_Val2 : Links.Data_Type;
 
-package Links.Gen_Test is
+package Links.Gen_Test
+is
 
    type Test is new AUnit.Test_Fixtures.Test_Fixture with private;
 
    procedure Set_Up (T : in out Test);
 
-   procedure Test_Full    (T : in out Test);
-   procedure Test_Empty   (T : in out Test);
-   procedure Test_Pop     (T : in out Test);
-   procedure Test_Push    (T : in out Test);
-   procedure Test_Owner   (T : in out Test);
+   procedure Test_Full (T : in out Test);
+   procedure Test_Empty (T : in out Test);
+   procedure Test_Pop (T : in out Test);
+   procedure Test_Push (T : in out Test);
+   procedure Test_Owner (T : in out Test);
    procedure Test_Connect (T : in out Test);
 
    --  The following tests require AUnit 3.2.
    --  Uncomment also in links-gen_test-gen_suite.ad[bs] to enable
---     procedure Test_Pop_Raise  (T : in out Test);
---     procedure Test_Push_Raise (T : in out Test);
+   --     procedure Test_Pop_Raise  (T : in out Test);
+   --     procedure Test_Push_Raise (T : in out Test);
 
 private
 

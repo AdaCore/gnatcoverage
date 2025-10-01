@@ -27,15 +27,15 @@ with Strings;         use Strings;
 package LLVM_JSON_Checkpoints is
 
    LLVM_Trace : constant Logging.GNATCOLL_Trace :=
-      Logging.Create_Trace ("LLVM-JSON");
+     Logging.Create_Trace ("LLVM-JSON");
    --  Trace to log LLVM JSON Trace Adapter messages.
 
    type LLVM_Region_Kind is (Statement, Decision, Condition);
 
    type LLVM_Region_Id is new Natural;
    No_LLVM_Region_Id : constant LLVM_Region_Id := 0;
-   subtype Valid_LLVM_Region_Id is LLVM_Region_Id
-      range No_LLVM_Region_Id + 1 .. LLVM_Region_Id'Last;
+   subtype Valid_LLVM_Region_Id is
+     LLVM_Region_Id range No_LLVM_Region_Id + 1 .. LLVM_Region_Id'Last;
 
    type LLVM_Region (Kind : LLVM_Region_Kind := Statement) is record
       Span : Local_Source_Location_Range;
@@ -60,9 +60,10 @@ package LLVM_JSON_Checkpoints is
       end case;
    end record;
 
-   package LLVM_Region_Vector is new Ada.Containers.Vectors
-     (Index_Type   => Valid_LLVM_Region_Id,
-      Element_Type => LLVM_Region);
+   package LLVM_Region_Vector is new
+     Ada.Containers.Vectors
+       (Index_Type   => Valid_LLVM_Region_Id,
+        Element_Type => LLVM_Region);
 
    type LLVM_Coverage_Function_Ckpt is record
       Name         : Unbounded_String;
@@ -70,18 +71,20 @@ package LLVM_JSON_Checkpoints is
       Regions      : LLVM_Region_Vector.Vector;
    end record;
 
-   package LLVM_Coverage_Function_Ckpt_Vector is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => LLVM_Coverage_Function_Ckpt);
+   package LLVM_Coverage_Function_Ckpt_Vector is new
+     Ada.Containers.Vectors
+       (Index_Type   => Natural,
+        Element_Type => LLVM_Coverage_Function_Ckpt);
 
    type LLVM_Coverage_File_Ckpt is record
       Filename  : Unbounded_String;
       Functions : LLVM_Coverage_Function_Ckpt_Vector.Vector;
    end record;
 
-   package LLVM_Coverage_File_Ckpt_Vector is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => LLVM_Coverage_File_Ckpt);
+   package LLVM_Coverage_File_Ckpt_Vector is new
+     Ada.Containers.Vectors
+       (Index_Type   => Natural,
+        Element_Type => LLVM_Coverage_File_Ckpt);
 
    type LLVM_Coverage_Ckpt is record
       JSON_Filename : Unbounded_String;

@@ -31,9 +31,14 @@ package Rundrv is
    type SO_Set_Kind is (None, Some_SO, All_SO);
    type SO_Set_Type (Kind : SO_Set_Kind := Some_SO) is record
       case Kind is
-         when None    => null;
-         when Some_SO => Set : String_Vectors.Vector;
-         when All_SO  => null;
+         when None =>
+            null;
+
+         when Some_SO =>
+            Set : String_Vectors.Vector;
+
+         when All_SO =>
+            null;
       end case;
    end record;
    --  Holder for a set of selected shared objects to include in trace files

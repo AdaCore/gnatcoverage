@@ -31,10 +31,11 @@ package body Traces_Files_Registry is
 
    use type Unbounded_String;
 
-   package Traces_Files_Sets is new Ada.Containers.Hashed_Sets
-     (Element_Type        => Trace_File_Element_Acc,
-      Hash                => Hash,
-      Equivalent_Elements => Equivalent);
+   package Traces_Files_Sets is new
+     Ada.Containers.Hashed_Sets
+       (Element_Type        => Trace_File_Element_Acc,
+        Hash                => Hash,
+        Equivalent_Elements => Equivalent);
 
    Files : Traces_Files_Sets.Set;
 
@@ -124,8 +125,7 @@ package body Traces_Files_Registry is
    -------------------------------
 
    function Create_Trace_File_Element
-     (Filename : String;
-      Kind     : Trace_File_Kind) return Trace_File_Element_Acc
+     (Filename : String; Kind : Trace_File_Kind) return Trace_File_Element_Acc
    is
    begin
       return Result : constant Trace_File_Element_Acc := new Trace_File_Element
@@ -141,9 +141,7 @@ package body Traces_Files_Registry is
    ------------------------------
 
    procedure Update_From_Binary_Trace
-     (Element : in out Trace_File_Element;
-      File    : Trace_File_Type)
-   is
+     (Element : in out Trace_File_Element; File : Trace_File_Type) is
    begin
       Element.Program_Name := +Get_Info (File, Exec_File_Name);
       Element.Time := +Format_Date_Info (Get_Info (File, Date_Time));
@@ -169,10 +167,10 @@ package body Traces_Files_Registry is
 
             raise Program_Error;
 
-         when Info_Program_Name =>
+         when Info_Program_Name      =>
             Element.Program_Name := +Data;
 
-         when Info_Exec_Date =>
+         when Info_Exec_Date         =>
             declare
                use Ada.Calendar.Conversions;
                use Interfaces;
@@ -195,7 +193,7 @@ package body Traces_Files_Registry is
                     (+Element.Filename & "invalid execution date format");
                end if;
                for I in reverse Data'Range loop
-                  Timestamp := 2 ** 8 * Timestamp + Character'Pos (Data (I));
+                  Timestamp := 2**8 * Timestamp + Character'Pos (Data (I));
                end loop;
 
                --  We can now split this timestamp it in UTC and turn this into
@@ -205,7 +203,7 @@ package body Traces_Files_Registry is
                declare
                   Info_Date           : Trace_Info_Date;
                   Info_Date_As_String : String (1 .. Trace_Info_Date'Size / 8)
-                     with Import, Address => Info_Date'Address;
+                  with Import, Address => Info_Date'Address;
 
                   Year, Month, Day, Hour, Minute, Second : int;
 
@@ -220,19 +218,23 @@ package body Traces_Files_Registry is
                begin
                   To_Struct_Tm
                     (To_Ada_Time_64 (Unix_Timestamp),
-                     Year, Month, Day,
-                     Hour, Minute, Second);
-                  Info_Date.Year  := Unsigned_16 (1900 + Year);
+                     Year,
+                     Month,
+                     Day,
+                     Hour,
+                     Minute,
+                     Second);
+                  Info_Date.Year := Unsigned_16 (1900 + Year);
                   Info_Date.Month := Unsigned_8 (1 + Month);
-                  Info_Date.Day   := Unsigned_8 (Day);
-                  Info_Date.Hour  := Unsigned_8 (Hour);
-                  Info_Date.Min   := Unsigned_8 (Minute);
-                  Info_Date.Sec   := Unsigned_8 (int'Min (Second, 59));
-                  Element.Time    := +Format_Date_Info (Info_Date_As_String);
+                  Info_Date.Day := Unsigned_8 (Day);
+                  Info_Date.Hour := Unsigned_8 (Hour);
+                  Info_Date.Min := Unsigned_8 (Minute);
+                  Info_Date.Sec := Unsigned_8 (int'Min (Second, 59));
+                  Element.Time := +Format_Date_Info (Info_Date_As_String);
                end;
             end;
 
-         when Info_User_Data =>
+         when Info_User_Data         =>
             Element.User_Data := +Data;
       end case;
    end Update_From_Source_Trace;
@@ -256,14 +258,14 @@ package body Traces_Files_Registry is
    ----------
 
    procedure Sort (V : in out Traces_Files_Vectors.Vector) is
-      function Before (Left, Right : Positive) return Boolean is
-        (V (Left) < V (Right));
+      function Before (Left, Right : Positive) return Boolean
+      is (V (Left) < V (Right));
 
       procedure Swap (Left, Right : Positive);
       --  Swap elements at positions Left and Right in V
 
-      procedure Sort_Helper is new Ada.Containers.Generic_Sort
-        (Positive, Before, Swap);
+      procedure Sort_Helper is new
+        Ada.Containers.Generic_Sort (Positive, Before, Swap);
 
       ----------
       -- Swap --
@@ -276,7 +278,7 @@ package body Traces_Files_Registry is
          V (Right) := Temp;
       end Swap;
 
-   --  Start of processing for Sort
+      --  Start of processing for Sort
 
    begin
       Sort_Helper (V.First_Index, V.Last_Index);
@@ -330,9 +332,7 @@ package body Traces_Files_Registry is
             --  actually been processed: record in in its infos.
 
             TF_Context : constant Unbounded_String :=
-               (if TF.Context = ""
-                then This_Context
-                else TF.Context);
+              (if TF.Context = "" then This_Context else TF.Context);
          begin
             CSS.Write_U8 (Trace_File_Kind'Pos (TF.Kind));
             CSS.Write (TF_Context);

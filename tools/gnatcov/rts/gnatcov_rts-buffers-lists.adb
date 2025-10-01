@@ -30,8 +30,7 @@ package body GNATcov_RTS.Buffers.Lists is
    pragma Import (C, Clear_Buffers_C, "gnatcov_rts_reset_group_array");
 
    procedure Reset_Group_Array_Buffers
-     (Arr : GNATcov_RTS_Coverage_Buffers_Group_Array)
-   is
+     (Arr : GNATcov_RTS_Coverage_Buffers_Group_Array) is
    begin
       Clear_Buffers_C (Arr'Address);
    end Reset_Group_Array_Buffers;

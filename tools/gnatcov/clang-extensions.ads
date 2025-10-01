@@ -31,92 +31,94 @@ with Slocs; use Slocs;
 package Clang.Extensions is
 
    function Get_Body (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getBody";
+   with Import, Convention => C, External_Name => "clang_getBody";
 
    function Get_Function_Signature_Sloc (C : Cursor_T) return Source_Range_T
-      with
-         Import,
-         Convention => C,
-         External_Name => "clang_getFunctionSignatureSloc";
+   with
+     Import,
+     Convention    => C,
+     External_Name => "clang_getFunctionSignatureSloc";
    --  Given a FunctionDecl or LambdaExpr, returns the Source Range of the
    --  signature, thus excluding the body if there is one.
 
    function Get_Cond (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getCond";
+   with Import, Convention => C, External_Name => "clang_getCond";
 
    function Get_For_Init (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getForInit";
+   with Import, Convention => C, External_Name => "clang_getForInit";
 
    function Get_For_Inc (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getForInc";
+   with Import, Convention => C, External_Name => "clang_getForInc";
 
    function Get_Cond_Var (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getCondVar";
+   with Import, Convention => C, External_Name => "clang_getCondVar";
 
    function Get_Var_Init_Expr (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getVarInitExpr";
+   with Import, Convention => C, External_Name => "clang_getVarInitExpr";
 
    function Get_For_Range_Expr (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getForRangeExpr";
+   with Import, Convention => C, External_Name => "clang_getForRangeExpr";
 
    function Get_Then (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getThen";
+   with Import, Convention => C, External_Name => "clang_getThen";
 
    function Get_Else (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getElse";
+   with Import, Convention => C, External_Name => "clang_getElse";
 
    function Get_Else_Loc (C : Cursor_T) return Source_Location_T
-     with Import, Convention => C, External_Name => "clang_getElseLoc";
+   with Import, Convention => C, External_Name => "clang_getElseLoc";
    --  If this cursor is an if statement with an else part, return the
    --  else location.Otherwise, return a null location.
 
    function Get_While_Loc (C : Cursor_T) return Source_Location_T
-     with Import, Convention => C, External_Name => "clang_getWhileLoc";
+   with Import, Convention => C, External_Name => "clang_getWhileLoc";
    --  If this cursor is a do / while statement, return the while location.
    --  Otherwise return a null location.
 
    function Get_Sub_Expr (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getSubExpr";
+   with Import, Convention => C, External_Name => "clang_getSubExpr";
 
    function Get_Sub_Stmt (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getSubStmt";
+   with Import, Convention => C, External_Name => "clang_getSubStmt";
 
    function Get_LHS (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getLHS";
+   with Import, Convention => C, External_Name => "clang_getLHS";
 
    function Get_RHS (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getRHS";
+   with Import, Convention => C, External_Name => "clang_getRHS";
 
    function Get_Operator_Loc (C : Cursor_T) return Source_Location_T
-     with Import, Convention => C, External_Name => "clang_getOperatorLoc";
+   with Import, Convention => C, External_Name => "clang_getOperatorLoc";
 
    function Get_First_Decl (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getFirstDecl";
+   with Import, Convention => C, External_Name => "clang_getFirstDecl";
    --  Given a Decl_Stmt, return the only declaration if it is a single decl,
    --  and the first of the declaration list otherwise.
 
-   function Get_Opcode_Str (C : Cursor_T) return String with Inline;
+   function Get_Opcode_Str (C : Cursor_T) return String
+   with Inline;
 
-   function Get_Decl_Name_Str (C : Cursor_T) return String with Inline;
+   function Get_Decl_Name_Str (C : Cursor_T) return String
+   with Inline;
 
-   function Get_Callee_Name_Str (C : Cursor_T) return String with Inline;
+   function Get_Callee_Name_Str (C : Cursor_T) return String
+   with Inline;
 
    function Is_This_Declaration_A_Definition (C : Cursor_T) return Boolean
-     with Inline;
+   with Inline;
    --  Given a function or function template declaration, return true if
    --  the declaration is indeed a definition (i.e. it has a body).
    --  Providing another kind of node may return False;
 
    function Get_LBrac_Loc_Plus_One (C : Cursor_T) return Source_Location_T
-     with Import, Convention => C,
-          External_Name => "clang_getLBracLocPlusOne";
+   with Import, Convention => C, External_Name => "clang_getLBracLocPlusOne";
    --  Given a clang::CompoundStmt (which is a possibly empty list of
    --  statements surrounded by brackets), return the Location just after its
    --  opening bracket. Giving another kind of cursor will return a null
    --  location.
 
    function Is_Instrumentable_Call_Expr (C : Cursor_T) return Boolean
-     with Inline;
+   with Inline;
    --  Given a cursor C, return True if the cursor kind is CallExpr AND if
    --  the underlying C++ statement class is one of:
    --  - Stmt::CallExprClass
@@ -131,7 +133,7 @@ package Clang.Extensions is
    --          coverage makes sense.
 
    function Is_Prefixed_CXX_Member_Call_Expr (C : Cursor_T) return Boolean
-      with Inline;
+   with Inline;
    --  Return True if the given cursor is a statement with type
    --  Stmt::CXXMemberCallExprClass, and if it is a prefixed method call
    --  (meaning not a method that is called from the body of another method
@@ -143,102 +145,93 @@ package Clang.Extensions is
 
    function Get_CXX_Member_Call_Expr_SCO_Sloc_Range
      (C : Cursor_T) return Source_Range_T
-      with
-         Import,
-         Convention => C,
-         External_Name => "clang_getCXXMemberCallExprSCOSlocRange";
+   with
+     Import,
+     Convention    => C,
+     External_Name => "clang_getCXXMemberCallExprSCOSlocRange";
    --  Assume the given cursor is a Stmt::CXXMemberCallExprClass.
    --  Given the expression is `Foo.Bar(Baz)`, it will return a source range
    --  containing `.Bar`.
 
    function Get_CXX_Member_Call_Expr_Base_Sloc_Range
      (C : Cursor_T) return Source_Range_T
-      with
-         Import,
-         Convention => C,
-         External_Name => "clang_getCXXMemberCallExprBaseSlocRange";
+   with
+     Import,
+     Convention    => C,
+     External_Name => "clang_getCXXMemberCallExprBaseSlocRange";
    --  Assume the given cursor is a Stmt::CXXMemberCallExprClass.
    --  Given the expression is `Foo.Bar(Baz)`, it will return the source
    --  range of `Foo`.
 
    function Get_Struct_Field_Call_Expr_SCO_Sloc_Range
      (C : Cursor_T) return Source_Range_T
-      with
-         Import,
-         Convention => C,
-         External_Name => "clang_getStructFieldCallExprSCOSlocRange";
+   with
+     Import,
+     Convention    => C,
+     External_Name => "clang_getStructFieldCallExprSCOSlocRange";
    --  Given the expression is `Foo.Bar(Baz)`, it will return the source range
    --  for `.Bar(Baz)`.
 
    function Get_Struct_Field_Call_Expr_Base_Sloc_Range
      (C : Cursor_T) return Source_Range_T
-      with
-         Import,
-         Convention => C,
-         External_Name => "clang_getStructFieldCallExprBaseSlocRange";
+   with
+     Import,
+     Convention    => C,
+     External_Name => "clang_getStructFieldCallExprBaseSlocRange";
    --  Given the expression is `Foo.Bar(Baz)`, it will return the source range
    --  for `Foo`.
 
-   function Get_Struct_Field_Call_Expr_Base_Expr
-     (C : Cursor_T) return Cursor_T
-      with
-         Import,
-         Convention => C,
-         External_Name => "clang_getStructFieldCallExprBaseExpr";
+   function Get_Struct_Field_Call_Expr_Base_Expr (C : Cursor_T) return Cursor_T
+   with
+     Import,
+     Convention    => C,
+     External_Name => "clang_getStructFieldCallExprBaseExpr";
    --  Given the expression is `Foo.Bar(Baz)`, it will return the Base
    --  expression of the MemberExpr underlying the call, meaning the `Foo`
    --  expression.
 
-   function Is_Constexpr (C : Cursor_T) return Boolean with Inline;
+   function Is_Constexpr (C : Cursor_T) return Boolean
+   with Inline;
 
    function Unwrap (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_unwrap";
+   with Import, Convention => C, External_Name => "clang_unwrap";
 
    function Get_Parent (C : Cursor_T) return Cursor_T
-     with Import, Convention => C, External_Name => "clang_getParent";
+   with Import, Convention => C, External_Name => "clang_getParent";
 
    function Visit
      (Parent      : Cursor_T;
       Visitor     : Cursor_Visitor_T;
       Client_Data : Client_Data_T) return unsigned
-     with Import, Convention => C, External_Name => "clang_visit";
+   with Import, Convention => C, External_Name => "clang_visit";
    --  Same as Visit_Children, but starts with visiting the node before
    --  visiting its children.
 
    procedure CX_Rewriter_Insert_Text_After
-     (Rew    : Rewriter_T;
-      Loc    : Source_Location_T;
-      Insert : String)
-     with Inline;
+     (Rew : Rewriter_T; Loc : Source_Location_T; Insert : String)
+   with Inline;
    --  Insert the text Insert before the given location, and after any
    --  previously inserted string (at the same location).
 
    procedure CX_Rewriter_Insert_Text_After_Token
-     (Rew    : Rewriter_T;
-      Loc    : Source_Location_T;
-      Insert : String)
-     with Inline;
+     (Rew : Rewriter_T; Loc : Source_Location_T; Insert : String)
+   with Inline;
    --  Insert the text Insert after the token at the given location, and after
    --  any previously inserted string (at the same location).
 
    procedure CX_Rewriter_Insert_Text_Before_Token
-     (Rew    : Rewriter_T;
-      Loc    : Source_Location_T;
-      Insert : String)
-     with Inline;
+     (Rew : Rewriter_T; Loc : Source_Location_T; Insert : String)
+   with Inline;
    --  Insert the text Insert before the token at the given location, and after
    --  any previously inserted string (at the same location).
 
    function CX_Rewriter_Get_Rewritten_Text
-     (Rew : Rewriter_T;
-      R   : Source_Range_T) return String
-     with Inline;
+     (Rew : Rewriter_T; R : Source_Range_T) return String
+   with Inline;
    --  Return the rewritten text for the given source range.
 
    function Get_Cursor_TU (C : Cursor_T) return Translation_Unit_T
-   with
-     Import, Convention => C,
-     External_Name => "clang_getCursorTU";
+   with Import, Convention => C, External_Name => "clang_getCursorTU";
    --  Return the translation unit to which C belongs.
 
    --------------------
@@ -249,12 +242,12 @@ package Clang.Extensions is
    --  are exhaustively documented in the clang sources.
 
    function Spelling_Location (Loc : Source_Location_T) return Source_Location
-     with Inline;
+   with Inline;
    --  Thick binding for Clang.Index.Get_Spelling_Location
 
    function File_Location
      (Loc : Source_Location_T) return Local_Source_Location
-     with Inline;
+   with Inline;
    --  Thick binding for Clang.Index.Get_File_Location
 
    function Presumed_Location
@@ -262,61 +255,60 @@ package Clang.Extensions is
    --  Thick binding for Clang.Index.Get Presumed_Location
 
    function Is_Macro_Location (Loc : Source_Location_T) return Boolean
-     with Inline;
+   with Inline;
    --  See isMacroID in clang/Basic/SourceLocation.h.
 
    function Is_Macro_Arg_Expansion
      (Loc       : Source_Location_T;
       Start_Loc : out Source_Location_T;
       TU        : Translation_Unit_T) return Boolean
-      with Inline;
+   with Inline;
    --  See isMacroArgExpansion in clang/Basic/SourceManager.h.
 
    function Get_Immediate_Macro_Name_For_Diagnostics
-     (Loc : Source_Location_T;
-      TU  : Translation_Unit_T) return String
-     with Inline;
+     (Loc : Source_Location_T; TU : Translation_Unit_T) return String
+   with Inline;
    --  See getImmediateMacroNameForDiagnostics in clang/Lex/Lexer.h
 
    function Get_Immediate_Macro_Caller_Loc
-     (Loc : Source_Location_T;
-      TU  : Translation_Unit_T) return Source_Location_T
-     with
-       Import, Convention => C,
-       External_Name => "clang_getImmediateMacroCallerLoc";
+     (Loc : Source_Location_T; TU : Translation_Unit_T)
+      return Source_Location_T
+   with
+     Import,
+     Convention    => C,
+     External_Name => "clang_getImmediateMacroCallerLoc";
    --  See getImmediateMacroCallerLoc in clang/Basic/SourceManager.h.
 
    function Get_Immediate_Expansion_Loc
-     (Loc : Source_Location_T;
-      TU  : Translation_Unit_T) return Source_Location_T
-     with
-       Import, Convention => C,
-       External_Name => "clang_getImmediateExpansionLoc";
+     (Loc : Source_Location_T; TU : Translation_Unit_T)
+      return Source_Location_T
+   with
+     Import,
+     Convention    => C,
+     External_Name => "clang_getImmediateExpansionLoc";
    --  See getImmediateExpansionRange in clang/Basic/SourceManager.h.
 
    function Get_Expansion_End
-     (TU  : Translation_Unit_T;
-      Loc : Source_Location_T) return Source_Location_T
-     with
-       Import, Convention => C,
-       External_Name => "clang_getExpansionEnd";
+     (TU : Translation_Unit_T; Loc : Source_Location_T)
+      return Source_Location_T
+   with Import, Convention => C, External_Name => "clang_getExpansionEnd";
    --  See getExpansionRange in clang/Basic/SourceManager.h.
 
    function Get_Spelling_Loc
-     (TU  : Translation_Unit_T;
-      Loc : Source_Location_T) return Source_Location_T
-     with Import, Convention => C, External_Name => "clang_getSpellingLoc";
+     (TU : Translation_Unit_T; Loc : Source_Location_T)
+      return Source_Location_T
+   with Import, Convention => C, External_Name => "clang_getSpellingLoc";
    --  See getSpellingLoc in clang/Basic/SourceManager.h
 
    procedure Print_Location (TU : Translation_Unit_T; Loc : Source_Location_T)
-     with Import, Convention => C, External_Name => "clang_printLocation";
+   with Import, Convention => C, External_Name => "clang_printLocation";
 
    -----------
    -- Utils --
    -----------
 
-   function To_Sloc (Line, Column : unsigned) return Local_Source_Location is
-     ((Natural (Line), Natural (Column)));
+   function To_Sloc (Line, Column : unsigned) return Local_Source_Location
+   is ((Natural (Line), Natural (Column)));
    --  Convert a Clang local source location to gnatcov's own format
 
 end Clang.Extensions;

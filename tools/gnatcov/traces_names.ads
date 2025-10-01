@@ -21,11 +21,11 @@
 with GNATCOLL.Symbols; use GNATCOLL.Symbols;
 with GNATCOLL.Utils;   use GNATCOLL.Utils;
 
-with Binary_Files;  use Binary_Files;
-with Traces;        use Traces;
-with Traces_Dbase;  use Traces_Dbase;
-with Traces_Lines;  use Traces_Lines;
-with Traces_Elf;    use Traces_Elf;
+with Binary_Files; use Binary_Files;
+with Traces;       use Traces;
+with Traces_Dbase; use Traces_Dbase;
+with Traces_Lines; use Traces_Lines;
+with Traces_Elf;   use Traces_Elf;
 
 package Traces_Names is
 
@@ -52,7 +52,7 @@ package Traces_Names is
       --  Identify a subprogram in a unique way, even for homonymous symbols.
       --  If there is no debug information, Compile_Unit must be null.
 
-      Origin       : Natural := 0;
+      Origin : Natural := 0;
       --  If Compile_Unit is null, this member make a difference between
       --  similar homonym symbols. Setting this member is done when calling
       --  Add_Routine. The caller should preserve its value somewhere in order
@@ -62,7 +62,7 @@ package Traces_Names is
    --  Information recorded about each subprogram in the routines database
 
    type Subprogram_Info is record
-      Exec    : Exe_File_Acc;
+      Exec : Exe_File_Acc;
       --  Pointer to the Exec file where this subprogram has first been found
 
       Section : Section_Index;
@@ -102,15 +102,14 @@ package Traces_Names is
    --  Return subprogram info for some routine.
 
    procedure Key_From_Symbol
-     (Exec : Exe_File_Acc;
-      Sym  : Address_Info_Acc;
-      Key  : out Subprogram_Key);
+     (Exec : Exe_File_Acc; Sym : Address_Info_Acc; Key : out Subprogram_Key);
    --  Format a "Key" for the "Sym" symbol in the "Exec" binary file.
 
    procedure Iterate
-     (Proc    : access procedure (Subp_Key  : Subprogram_Key;
-                                  Subp_Info : in out Subprogram_Info);
-      Sorted  : Boolean := False);
+     (Proc   :
+        access procedure
+          (Subp_Key : Subprogram_Key; Subp_Info : in out Subprogram_Info);
+      Sorted : Boolean := False);
    --  Execute Proc for each routine in the database. If Sorted is true, go
    --  through routines sorted by name.
 
@@ -128,12 +127,12 @@ package Traces_Names is
    --  Display the list of routines (on standard output).
 
    procedure Add_Code
-     (Subp_Key     : Subprogram_Key;
-      Exec         : Exe_File_Acc;
-      Section      : Section_Index;
-      Content      : Binary_Content;
-      First_Code   : out Boolean;
-      Subp_Info    : out Subprogram_Info);
+     (Subp_Key   : Subprogram_Key;
+      Exec       : Exe_File_Acc;
+      Section    : Section_Index;
+      Content    : Binary_Content;
+      First_Code : out Boolean;
+      Subp_Info  : out Subprogram_Info);
    --  Add code for Subp_Key from Exec with the given contents.  Content must
    --  be a view of the instructions from the given Section in Exec.
    --
@@ -144,11 +143,11 @@ package Traces_Names is
    --  (Subp_Info) is returned.
 
    procedure Add_Code_And_Traces
-     (Subp_Key     : Subprogram_Key;
-      Exec         : Exe_File_Acc;
-      Section      : Section_Index;
-      Content      : Binary_Content;
-      Base         : access Traces_Base);
+     (Subp_Key : Subprogram_Key;
+      Exec     : Exe_File_Acc;
+      Section  : Section_Index;
+      Content  : Binary_Content;
+      Base     : access Traces_Base);
    --  Add code for the Subp_Key routine to its record
    --
    --  Optionally also add a set of execution traces (if Base is not null)
@@ -184,8 +183,7 @@ package Traces_Names is
    --  database).
 
    function Compute_Routine_State
-     (Insns  : Binary_Content;
-      Traces : Traces_Base_Acc) return Line_State;
+     (Insns : Binary_Content; Traces : Traces_Base_Acc) return Line_State;
    --  Compute routine state from its object coverage information and from its
    --  content.
 

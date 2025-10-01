@@ -93,7 +93,7 @@ package Instrument.Common is
    --  declaration instrumentation.
 
    Dump_Procedure_Name : constant Ada_Identifier :=
-      To_Unbounded_String ("Dump_Buffers");
+     To_Unbounded_String ("Dump_Buffers");
    --  Name of the procedure (in main dump helper packages) that dumps all
    --  coverage buffers to the source trace file.
 
@@ -105,7 +105,7 @@ package Instrument.Common is
    --  belongs).
 
    Register_Dump_Function_Name : constant Ada_Identifier :=
-      To_Unbounded_String ("Register_Dump_Buffers");
+     To_Unbounded_String ("Register_Dump_Buffers");
    --  Name of the function (in main dump helper packages) that registers the
    --  coverage buffers dump through atexit(3) or through a task termination
    --  handler.
@@ -115,22 +115,19 @@ package Instrument.Common is
       Manual   : Boolean := False;
       Prj_Name : Ada_Qualified_Name := Ada_Identifier_Vectors.Empty_Vector)
       return String
-   is
-     ("gnatcov_rts_"
-      & (if Manual
-        then "manual"
-        else Instrumented_Unit_Slug (Main))
-      & "_"
-      & To_Lower (To_String (Dump_Procedure_Name))
-      & (if Manual
-        then "_" & To_Symbol_Name (Prj_Name)
-        else ""));
+   is ("gnatcov_rts_"
+       & (if Manual then "manual" else Instrumented_Unit_Slug (Main))
+       & "_"
+       & To_Lower (To_String (Dump_Procedure_Name))
+       & (if Manual then "_" & To_Symbol_Name (Prj_Name) else ""));
    --  Return the name of the exported symbol for the Dump_Buffers function
 
    function Reset_Procedure_Symbol
-     (Prj_Name : Ada_Qualified_Name) return String is
-     ("gnatcov_rts_" & To_Lower (To_String (Reset_Procedure_Name))
-      & "_" & To_Symbol_Name (Prj_Name));
+     (Prj_Name : Ada_Qualified_Name) return String
+   is ("gnatcov_rts_"
+       & To_Lower (To_String (Reset_Procedure_Name))
+       & "_"
+       & To_Symbol_Name (Prj_Name));
    --  Return the name of the exported symbol for the Reset_Buffers procedure
 
    function Is_Manual_Indication_Procedure_Symbol
@@ -158,8 +155,8 @@ package Instrument.Common is
    --  gnatcov_rts_coverage_buffers_group struct for this file.
 
    function Unit_Buffers_Array_Name
-     (Prj_Name : Ada_Qualified_Name) return String is
-     ("gnatcov_rts_buffers_array_" & To_Symbol_Name (Prj_Name));
+     (Prj_Name : Ada_Qualified_Name) return String
+   is ("gnatcov_rts_buffers_array_" & To_Symbol_Name (Prj_Name));
    --  Name of the symbol that designates the
    --  gnatcov_rts_coverage_buffers_array struct, which contains an array of
    --  coverage buffers for all instrumented units in this project.
@@ -175,8 +172,8 @@ package Instrument.Common is
    --  object directory.
 
    function Format_Fingerprint
-     (Fingerprint      : SC_Obligations.Fingerprint_Type;
-      Opening, Closing : String) return String;
+     (Fingerprint : SC_Obligations.Fingerprint_Type; Opening, Closing : String)
+      return String;
    --  Somewhat language agnostic formatter for fingerprint values in generated
    --  code.
    --
@@ -194,9 +191,10 @@ package Instrument.Common is
 
    type Instrumented_Unit_Info_Access is access all Instrumented_Unit_Info;
 
-   package Instrumented_Unit_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Compilation_Unit_Part,
-      Element_Type => Instrumented_Unit_Info_Access);
+   package Instrumented_Unit_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Compilation_Unit_Part,
+        Element_Type => Instrumented_Unit_Info_Access);
 
    ------------------------------------------------------
    --  Common declarations for Ada / C instrumentation --
@@ -217,8 +215,8 @@ package Instrument.Common is
       --  Corresponding bit in the "statement" coverage buffer
    end record;
 
-   package LL_Statement_SCO_Bit_Allocs is
-      new Ada.Containers.Vectors (Nat, Statement_Bit_Ids);
+   package LL_Statement_SCO_Bit_Allocs is new
+     Ada.Containers.Vectors (Nat, Statement_Bit_Ids);
 
    --  Bitmap information for decisions:
    --  One bit witnessing each outcome
@@ -240,8 +238,8 @@ package Instrument.Common is
       --  bits that follow it.
    end record;
 
-   package LL_Decision_SCO_Bit_Allocs is
-     new Ada.Containers.Vectors (Nat, Decision_Bit_Ids);
+   package LL_Decision_SCO_Bit_Allocs is new
+     Ada.Containers.Vectors (Nat, Decision_Bit_Ids);
 
    type Allocated_Bits is record
       SFI : Valid_Source_File_Index;
@@ -284,8 +282,10 @@ package Instrument.Common is
    --  paths exceeds the limit, must be 0: this function emits a warning in
    --  this case.
 
-   package Allocated_Bits_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Allocated_Bits);
+   package Allocated_Bits_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Allocated_Bits);
    --  Allocated bits in coverage buffers for low-level SCOs (one per source
    --  file). A single compilation unit may yield multiple sets of coverage
    --  buffers: one for each part of the unit in the case of unit-based
@@ -324,14 +324,18 @@ package Instrument.Common is
    --
    --  This record type is just a helper to hold data between these two steps.
 
-   package Annotation_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Annotation_Couple);
+   package Annotation_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Annotation_Couple);
 
-   package Sloc_Range_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Source_Location_Range);
+   package Sloc_Range_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Source_Location_Range);
 
-   package Nat_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Nat);
+   package Nat_Vectors is new
+     Ada.Containers.Vectors (Index_Type => Positive, Element_Type => Nat);
 
    type Unit_Inst_Context is tagged record
       Instrumented_Unit : Compilation_Unit_Part;
@@ -394,8 +398,8 @@ package Instrument.Common is
    --  Return True if Sloc lies within one of the disabled regions in
    --  UIC.Disable_Cov_Region.
 
-   function Img (Bit : Any_Bit_Id) return String is
-     (Strings.Img (Integer (Bit)));
+   function Img (Bit : Any_Bit_Id) return String
+   is (Strings.Img (Integer (Bit)));
 
    Runtime_Version : constant Natural := 9;
    Runtime_Error   : constant String :=
@@ -406,12 +410,17 @@ package Instrument.Common is
 
    Ada_Runtime_Version_Check : constant String :=
      "pragma Compile_Time_Error (GNATcov_RTS.Version /= "
-     & Img (Runtime_Version) & " ,""" & Runtime_Error & """);";
-   C_Runtime_Version_Check : constant String :=
+     & Img (Runtime_Version)
+     & " ,"""
+     & Runtime_Error
+     & """);";
+   C_Runtime_Version_Check   : constant String :=
      "#if GNATCOV_RTS_VERSION != "
      & Img (Runtime_Version)
      & ASCII.LF
-     & "#error """ & Runtime_Error & """"
+     & "#error """
+     & Runtime_Error
+     & """"
      & ASCII.LF
      & "#endif";
    --  Check to be inserted in Ada / C units generated by the instrumenter to
@@ -436,19 +445,20 @@ package Instrument.Common is
    --  complete its last entry.
 
    procedure Remap_Blocks
-     (Blocks  : in out SCO_Id_Vector_Vector;
-      SCO_Map : LL_HL_SCO_Map);
+     (Blocks : in out SCO_Id_Vector_Vector; SCO_Map : LL_HL_SCO_Map);
    --  Convert low level SCOs in Blocks to high-level SCOs using the
    --  mapping in SCO_Map.
 
-   package CU_Name_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Compilation_Unit_Part);
+   package CU_Name_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Compilation_Unit_Part);
 
-   package Ada_Qualified_Name_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Ada_Qualified_Name,
-      "="          => Ada_Identifier_Vectors."=");
+   package Ada_Qualified_Name_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Ada_Qualified_Name,
+        "="          => Ada_Identifier_Vectors."=");
 
    type Language_Instrumenter is abstract tagged record
       Tag : Unbounded_String;
@@ -458,7 +468,8 @@ package Instrument.Common is
    --  given language.
 
    function Language
-     (Self : Language_Instrumenter) return Src_Supported_Language is abstract;
+     (Self : Language_Instrumenter) return Src_Supported_Language
+   is abstract;
    --  Return the language that this instrumenter is designed to process
 
    function Language_Name (Self : Language_Instrumenter'Class) return String
@@ -468,7 +479,8 @@ package Instrument.Common is
      (Self              : in out Language_Instrumenter;
       Unit_Name         : String;
       Prj               : Prj_Desc;
-      Files_Of_Interest : File_Sets.Set) is null;
+      Files_Of_Interest : File_Sets.Set)
+   is null;
    --  Instrument a single source file for the language that Self supports.
    --
    --  Unit_Name identifies this compilation unit (either through a unit name,
@@ -479,10 +491,11 @@ package Instrument.Common is
    --  when instrumenting it.
 
    procedure Auto_Dump_Buffers_In_Main
-     (Self          : in out Language_Instrumenter;
-      Filename      : String;
-      Dump_Config   : Any_Dump_Config;
-      Prj           : Prj_Desc) is null;
+     (Self        : in out Language_Instrumenter;
+      Filename    : String;
+      Dump_Config : Any_Dump_Config;
+      Prj         : Prj_Desc)
+   is null;
    --  Try to instrument the Filename source file (whose language is assumed
    --  to be Self's) to insert a call to dump the list of coverage buffers,
    --  assumed to be named after Prj.Prj_Name. Do nothing if not successful.
@@ -490,7 +503,8 @@ package Instrument.Common is
    procedure Emit_Buffers_List_Unit
      (Self        : Language_Instrumenter;
       Instr_Units : Unit_Sets.Set;
-      Prj         : Prj_Desc) is null;
+      Prj         : Prj_Desc)
+   is null;
    --  Emit in the root project a unit (in Self's language) to contain the list
    --  of coverage buffers for the given instrumented files.
    --
@@ -509,44 +523,42 @@ package Instrument.Common is
    --  compilation unit.
 
    function Buffer_Unit
-     (Self : Language_Instrumenter;
-      CU   : Compilation_Unit;
-      Prj  : Prj_Desc) return Compilation_Unit
+     (Self : Language_Instrumenter; CU : Compilation_Unit; Prj : Prj_Desc)
+      return Compilation_Unit
    is (No_Compilation_Unit);
    --  Return the compilation unit holding coverage buffers
 
    function Dump_Manual_Helper_Unit
-     (Self : Language_Instrumenter;
-      Prj  : Prj_Desc) return Compilation_Unit
+     (Self : Language_Instrumenter; Prj : Prj_Desc) return Compilation_Unit
    is (No_Compilation_Unit);
 
    function Dump_Helper_Unit
-     (Self : Language_Instrumenter;
-      CU   : Compilation_Unit;
-      Prj  : Prj_Desc) return Compilation_Unit
+     (Self : Language_Instrumenter; CU : Compilation_Unit; Prj : Prj_Desc)
+      return Compilation_Unit
    is (No_Compilation_Unit);
    --  Return the compilation unit holding the dump helper subprogram
 
    function Has_Main
-     (Self     : in out Language_Instrumenter;
-      Filename : String;
-      Prj      : Prj_Desc) return Boolean is (False);
+     (Self : in out Language_Instrumenter; Filename : String; Prj : Prj_Desc)
+      return Boolean
+   is (False);
    --  Return whether the given file is a main or not
 
    procedure Emit_Dump_Helper_Unit_Manual
-     (Self          : in out Language_Instrumenter;
-      Dump_Config   : Any_Dump_Config;
-      Prj           : Prj_Desc) is null;
+     (Self        : in out Language_Instrumenter;
+      Dump_Config : Any_Dump_Config;
+      Prj         : Prj_Desc)
+   is null;
    --  Emit the dump helper unit with the appropriate content to allow for a
    --  simple call to a procedure dumping the coverage buffers to be made in
    --  the instrumented source files.
 
    procedure Replace_Manual_Indications
-     (Self                  : in out Language_Instrumenter;
-      Prj                   : in out Prj_Desc;
-      Source                : Virtual_File;
-      Has_Dump_Indication   : out Boolean;
-      Has_Reset_Indication  : out Boolean);
+     (Self                 : in out Language_Instrumenter;
+      Prj                  : in out Prj_Desc;
+      Source               : Virtual_File;
+      Has_Dump_Indication  : out Boolean;
+      Has_Reset_Indication : out Boolean);
    --  Look for the pragmas (for Ada) or comments (for C family languages)
    --  indicating where the user wishes to the buffers to be dumped and/or
    --  reset in Source.
@@ -564,19 +576,16 @@ package Instrument.Common is
    --  which case it will raise a Program_Error.
 
    procedure Emit_Observability_Unit
-     (Self : in out Language_Instrumenter;
-      Prj  : in out Prj_Desc) is null;
+     (Self : in out Language_Instrumenter; Prj : in out Prj_Desc)
+   is null;
    --  Emit in the root project a file that exposes live coverage observability
    --  features, such as the number of bits set in the buffers.
 
-   function New_File
-     (Prj : Prj_Desc; Name : String) return String;
+   function New_File (Prj : Prj_Desc; Name : String) return String;
    --  Compute the path to the file to create in Self.Output_Dir
 
    procedure Create_File
-     (Prj  : Prj_Desc;
-      File : in out Text_Files.File_Type;
-      Name : String);
+     (Prj : Prj_Desc; File : in out Text_Files.File_Type; Name : String);
    --  Shortcut to Text_Files.Create: create a text file with the given name in
    --  Prj.Output_Dir.
    --
@@ -608,8 +617,10 @@ package Instrument.Common is
    --  Whether a macro should be defined, its name, and when it must be
    --  defined, its optional arguments and value.
 
-   function "<" (L, R : Macro_Definition) return Boolean is (L.Name < R.Name);
-   function "=" (L, R : Macro_Definition) return Boolean is (L.Name = R.Name);
+   function "<" (L, R : Macro_Definition) return Boolean
+   is (L.Name < R.Name);
+   function "=" (L, R : Macro_Definition) return Boolean
+   is (L.Name = R.Name);
    --  As we store Macro_Definition in sets, we do not want two conflicting
    --  definitions of the same macro to coexist. Thus, we compare only the
    --  name, meaning that when we insert a new definition, it will replace
@@ -646,50 +657,48 @@ package Instrument.Common is
    end record;
    --  Options to analyze (preprocess and/or parse) a compilation unit
 
-   Macro_Cmdline_Regexp : constant Pattern_Matcher := Compile (
-     "([a-zA-Z_]\w*)"
-     --  The name of the macro
+   Macro_Cmdline_Regexp : constant Pattern_Matcher :=
+     Compile
+       ("([a-zA-Z_]\w*)"
+        --  The name of the macro
 
-     & "(\(.*\))?"
-     --  The optional list of macro arguments
+        & "(\(.*\))?"
+        --  The optional list of macro arguments
 
-     & "([^ =]+)?"
-     --  Then, there can be any character before the assignment: they will be
-     --  part of the macro value (e.g. A(b)b will yield #define A b 1)
+        & "([^ =]+)?"
+        --  Then, there can be any character before the assignment: they will
+        --  be part of the macro value (e.g. A(b)b will yield #define A b 1)
 
-     & "(?:=(.*))?"
-     --  The macro value itself
-   );
+        & "(?:=(.*))?"
+        --  The macro value itself
+       );
 
-   Macro_Def_Regexp : constant Pattern_Matcher := Compile (
-     "#define"
-     & "(?: |\t)+"
-     --  "#define", then a non-empty blank
+   Macro_Def_Regexp : constant Pattern_Matcher :=
+     Compile
+       ("#define"
+        & "(?: |\t)+"
+        --  "#define", then a non-empty blank
 
-     & "([a-zA-Z_]\w*)"
-     --  The name of the macro
+        & "([a-zA-Z_]\w*)"
+        --  The name of the macro
 
-     & "(\(.*\))?"
-     --  The optional list of macro arguments
+        & "(\(.*\))?"
+        --  The optional list of macro arguments
 
-     & "(.*)"
-     --  The macro value itself
-   );
+        & "(.*)"
+        --  The macro value itself
+       );
    --  Regular expression to analyze definitions for builtin macros (see
    --  Builtin_Macros)
 
    procedure Parse_Macro_Definition
-     (Str        : String;
-      Parsed_Def : out Macro_Definition;
-      Success    : out Boolean);
-     --  Parse a macro definition. If the parsing failed, set Success to False.
-     --  Otherwise, set Parsed_Def to the parsed definition and set Success to
-     --  True.
+     (Str : String; Parsed_Def : out Macro_Definition; Success : out Boolean);
+   --  Parse a macro definition. If the parsing failed, set Success to False.
+   --  Otherwise, set Parsed_Def to the parsed definition and set Success to
+   --  True.
 
    procedure Parse_Cmdline_Macro_Definition
-     (Str        : String;
-      Parsed_Def : out Macro_Definition;
-      Success    : out Boolean);
+     (Str : String; Parsed_Def : out Macro_Definition; Success : out Boolean);
    --  Same as above, but with a command-line macro definition
 
    procedure Add_Options
@@ -707,8 +716,8 @@ package Instrument.Common is
    --  Extract analysis options from the Args command line arguments and update
    --  Self accordingly.
 
-   subtype Instr_Annotation_Kind is Any_Annotation_Kind range
-     Dump_Buffers .. Any_Annotation_Kind'Last;
+   subtype Instr_Annotation_Kind is
+     Any_Annotation_Kind range Dump_Buffers .. Any_Annotation_Kind'Last;
    --  Annotation kinds that are relevant for the instrumentation step
 
    type Instr_Annotation (Kind : Instr_Annotation_Kind := Dump_Buffers) is
@@ -739,9 +748,10 @@ package Instrument.Common is
    --  Represents one annotation, with all the relevant information needed by
    --  the instrumenters.
 
-   package Instr_Annotation_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Local_Source_Location,
-      Element_Type => Instr_Annotation);
+   package Instr_Annotation_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Local_Source_Location,
+        Element_Type => Instr_Annotation);
    subtype Instr_Annotation_Map is Instr_Annotation_Maps.Map;
 
    procedure Populate_Ext_Disabled_Cov

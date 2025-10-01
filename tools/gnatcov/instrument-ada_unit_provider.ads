@@ -35,32 +35,33 @@ package Instrument.Ada_Unit_Provider is
    --  This mapping file is intended to be passed as Dependencies_Filename to
    --  Create_Provider.
 
-   type Provider_Type is new Libadalang.Analysis.Unit_Provider_Interface
-     with private;
+   type Provider_Type is
+     new Libadalang.Analysis.Unit_Provider_Interface with private;
 
-   function Create_Provider
-     (Mapping_File : String) return Provider_Type;
+   function Create_Provider (Mapping_File : String) return Provider_Type;
    --  Create a unit provider from a mapping file in the same format as the
    --  file passed through -gnatem in the compiler invocation.
 
-   overriding function Get_Unit_Filename
-     (Provider : Provider_Type;
-      Name     : Text_Type;
-      Kind     : Analysis_Unit_Kind) return String;
+   overriding
+   function Get_Unit_Filename
+     (Provider : Provider_Type; Name : Text_Type; Kind : Analysis_Unit_Kind)
+      return String;
    --  Return the filename corresponding to the given unit name/unit kind.
    --  Raise a ``Property_Error`` if the given unit name is not valid.
 
-   overriding function Get_Unit
-     (Provider    : Provider_Type;
-      Context     : Analysis_Context'Class;
-      Name        : Text_Type;
-      Kind        : Analysis_Unit_Kind;
-      Charset     : String := "";
-      Reparse     : Boolean := False) return Analysis_Unit'Class;
+   overriding
+   function Get_Unit
+     (Provider : Provider_Type;
+      Context  : Analysis_Context'Class;
+      Name     : Text_Type;
+      Kind     : Analysis_Unit_Kind;
+      Charset  : String := "";
+      Reparse  : Boolean := False) return Analysis_Unit'Class;
    --  Fetch and return the analysis unit referenced by the given unit name.
    --  Raise a ``Property_Error`` if the given unit name is not valid.
 
-   overriding procedure Release (Provider : in out Provider_Type) is null;
+   overriding
+   procedure Release (Provider : in out Provider_Type) is null;
 
    function Has_Unit
      (Provider  : Provider_Type;
@@ -70,11 +71,12 @@ package Instrument.Ada_Unit_Provider is
 
 private
 
-   package String_Maps is new Ada.Containers.Indefinite_Hashed_Maps
-     (Key_Type        => String,
-      Element_Type    => String,
-      Hash            => Ada.Strings.Hash,
-      Equivalent_Keys => "=");
+   package String_Maps is new
+     Ada.Containers.Indefinite_Hashed_Maps
+       (Key_Type        => String,
+        Element_Type    => String,
+        Hash            => Ada.Strings.Hash,
+        Equivalent_Keys => "=");
 
    type Provider_Type is new Libadalang.Analysis.Unit_Provider_Interface
    with record

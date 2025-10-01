@@ -87,9 +87,12 @@ package Qemu_Traces is
 
    type Trace_Kind is (Flat, History, Info, Decision_Map);
    for Trace_Kind use
-     (Flat         => 0,   --  flat exec trace (qemu)
-      History      => 1,   --  exec trace with history (qemu)
-      Info         => 2,   --  info section (gnatcov)
+     (Flat         => 0,
+      --  flat exec trace (qemu)
+      History      => 1,
+      --  exec trace with history (qemu)
+      Info         => 2,
+      --  info section (gnatcov)
       Decision_Map => 3);  --  history control section (gnatcov, internal)
    for Trace_Kind'Size use 8;
 
@@ -178,7 +181,7 @@ package Qemu_Traces is
      );
 
    type Trace_Info_Header is record
-      Info_Kind   : Unsigned_32;
+      Info_Kind : Unsigned_32;
       --  Info_Kind_Type'Pos, in endianness indicated by file header
 
       Info_Length : Unsigned_32;
@@ -243,7 +246,7 @@ package Qemu_Traces is
 
       --  Padding is here only to make the size of a Trace_Entry a multiple of
       --  8 bytes, for efficiency purposes.
-      Pad0 : Unsigned_8  := 0;
+      Pad0 : Unsigned_8 := 0;
       Pad1 : Unsigned_32 := 0;
    end record;
 
@@ -296,7 +299,7 @@ package Qemu_Traces is
    --  The trace entries between the load/unload couple of operations can then
    --  reference instructions from the shared object.
 
-   Trace_Special_Load_Shared_Object   : constant Unsigned_16 := 2;
+   Trace_Special_Load_Shared_Object : constant Unsigned_16 := 2;
    --  This trace entry describes the event: a shared object has been loaded,
    --  its executable code has be relocated at the address indicated by this
    --  trace entry. This trace entry is followed by a sequence of Trace Info

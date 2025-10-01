@@ -17,7 +17,7 @@
 ------------------------------------------------------------------------------
 with Qemu_Traces; use Qemu_Traces;
 with Ada.Text_IO; use Ada.Text_IO;
-with Hex_Images; use Hex_Images;
+with Hex_Images;  use Hex_Images;
 
 package body Traces is
 
@@ -75,24 +75,26 @@ package body Traces is
    -- Get_Pc --
    ------------
 
-   procedure Get_Pc (Res : out Pc_Type; Line : String; Pos : in out Natural)
-   is
+   procedure Get_Pc (Res : out Pc_Type; Line : String; Pos : in out Natural) is
       Digit : Pc_Type;
-      C : Character;
+      C     : Character;
    begin
       Res := 0;
       while Pos <= Line'Last loop
          C := Line (Pos);
 
          case C is
-         when '0' .. '9' =>
-            Digit := Character'Pos (C) - Character'Pos ('0');
-         when 'a' .. 'f' =>
-            Digit := Character'Pos (C) - Character'Pos ('a') + 10;
-         when 'A' .. 'F' =>
-            Digit := Character'Pos (C) - Character'Pos ('A') + 10;
-         when others =>
-            return;
+            when '0' .. '9' =>
+               Digit := Character'Pos (C) - Character'Pos ('0');
+
+            when 'a' .. 'f' =>
+               Digit := Character'Pos (C) - Character'Pos ('a') + 10;
+
+            when 'A' .. 'F' =>
+               Digit := Character'Pos (C) - Character'Pos ('A') + 10;
+
+            when others     =>
+               return;
          end case;
 
          Res := Shift_Left (Res, 4) or Digit;

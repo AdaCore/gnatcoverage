@@ -26,16 +26,11 @@ package Geomaps.Test is
 
    procedure Test_Pos_Ahead_Of (T : in out Test);
 
-   package Situation_Link_Test is new Geomaps.Situation_Links.Gen_Test
-     (Act1      => null,
-      Act2      => null,
-      Data_Val1 => Situation'
-        (Pos => (1, 1),
-         Dir => South,
-         Sqa => Block),
-      Data_Val2 => Situation'
-        (Pos => (4, 3),
-         Dir => North,
-         Sqa => Water));
+   package Situation_Link_Test is new
+     Geomaps.Situation_Links.Gen_Test
+       (Act1      => null,
+        Act2      => null,
+        Data_Val1 => Situation'(Pos => (1, 1), Dir => South, Sqa => Block),
+        Data_Val2 => Situation'(Pos => (4, 3), Dir => North, Sqa => Water));
 
 end Geomaps.Test;

@@ -16,10 +16,10 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line;   use Ada.Command_Line;
-with Ada.Text_IO;        use Ada.Text_IO;
+with Ada.Command_Line; use Ada.Command_Line;
+with Ada.Text_IO;      use Ada.Text_IO;
 
-with GNAT.OS_Lib;        use GNAT.OS_Lib;
+with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Outputs;
 
@@ -75,7 +75,8 @@ procedure Trace32_Drv is
 
    S_Idx1, S_Idx2 : Positive;
 
-   Processor       : String_Access with Unreferenced;
+   Processor : String_Access
+   with Unreferenced;
    --  The processor name will be useful for the run mode that is not yet
    --  implemented.
 
@@ -114,24 +115,26 @@ begin
    --  map file in the first case above.
 
    S_Idx1 := Argument (3)'First;
-   if Argument (3)'Length > 8 and then
-     Argument (3) (S_Idx1 .. S_Idx1 + 7) = "histmap="
+   if Argument (3)'Length > 8
+     and then Argument (3) (S_Idx1 .. S_Idx1 + 7) = "histmap="
    then
       S_Idx1 := S_Idx1 + 8;
       S_Idx2 := S_Idx1;
       loop
-         exit when S_Idx2 = Argument (3)'Last
-           or else Argument (3) (S_Idx2) = ',';
+         exit when
+           S_Idx2 = Argument (3)'Last or else Argument (3) (S_Idx2) = ',';
          S_Idx2 := S_Idx2 + 1;
       end loop;
       if S_Idx2 = Argument (3)'Last then
          Put_Line (Standard_Error, "Missing tracefile arg to trace32_drv.");
          OS_Exit (1);
       end if;
-      Histfile_Path := new String'
-        (Normalize_Pathname (Argument (3) (S_Idx1 .. S_Idx2 - 1)));
-      Tracefile_Path := new String'
-        (Normalize_Pathname (Argument (3) (S_Idx2 + 1 .. Argument (3)'Last)));
+      Histfile_Path :=
+        new String'(Normalize_Pathname (Argument (3) (S_Idx1 .. S_Idx2 - 1)));
+      Tracefile_Path :=
+        new String'
+          (Normalize_Pathname
+             (Argument (3) (S_Idx2 + 1 .. Argument (3)'Last)));
    else
       Histfile_Path := new String'("");
       Tracefile_Path := new String'(Argument (3));
@@ -139,16 +142,17 @@ begin
 
    if Mode = Run then
       Outputs.Fatal_Error ("Run mode not supported yet");
-      --  Trace32.API.Load;
-      --  Trace32.API.Connect ("localhost", "20000", "1024");
-      --  if Processor.all = "stm32f7" then
-      --     Trace32.API.STM32F7_Setup;
-      --  end if;
-      --  Trace32.API.Load_Executable (Executable_Path.all);
-      --  Trace32.API.Set_Breakpoint ("__gnat_last_chance_handler");
-      --  Trace32.API.Run_Until ("_exit", 500);
-      --  Trace32.API.Export_Branchflow_Trace (Tracefile_Path.all &
-      --                                         ".branchflow");
+   --  Trace32.API.Load;
+   --  Trace32.API.Connect ("localhost", "20000", "1024");
+   --  if Processor.all = "stm32f7" then
+   --     Trace32.API.STM32F7_Setup;
+   --  end if;
+   --  Trace32.API.Load_Executable (Executable_Path.all);
+   --  Trace32.API.Set_Breakpoint ("__gnat_last_chance_handler");
+   --  Trace32.API.Run_Until ("_exit", 500);
+   --  Trace32.API.Export_Branchflow_Trace (Tracefile_Path.all &
+   --                                         ".branchflow");
+
    else
       Outputs.Warn ("Starting to convert...");
 

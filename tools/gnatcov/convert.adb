@@ -40,10 +40,12 @@ package body Convert is
       end if;
    end Set_Trace_Source;
 
-   procedure Run_Convert (Exe_Name : String_Access;
-                          Output   : String_Access;
-                          Histmap  : String_Access;
-                          Tag      : String_Access) is
+   procedure Run_Convert
+     (Exe_Name : String_Access;
+      Output   : String_Access;
+      Histmap  : String_Access;
+      Tag      : String_Access)
+   is
       Prg                : String_Access;
       Opts               : String_List_Access;
       Success            : Boolean;
@@ -125,18 +127,19 @@ package body Convert is
          Date_Info  : Trace_Info_Date;
          Date       : constant OS_Time := Current_Time;
          subtype String_8 is String (1 .. 8);
-         function Date_Info_To_Str is new Ada.Unchecked_Conversion
-           (Trace_Info_Date, String_8);
+         function Date_Info_To_Str is new
+           Ada.Unchecked_Conversion (Trace_Info_Date, String_8);
       begin
          Create_Trace_File (Trace_Output.all, Info, Trace_File);
          Date_Info :=
-           Trace_Info_Date'(Year  => Unsigned_16 (GM_Year (Date)),
-                            Month => Unsigned_8  (GM_Month (Date)),
-                            Day   => Unsigned_8  (GM_Day (Date)),
-                            Hour  => Unsigned_8  (GM_Hour (Date)),
-                            Min   => Unsigned_8  (GM_Minute (Date)),
-                            Sec   => Unsigned_8  (GM_Second (Date)),
-                            Pad   => 0);
+           Trace_Info_Date'
+             (Year  => Unsigned_16 (GM_Year (Date)),
+              Month => Unsigned_8 (GM_Month (Date)),
+              Day   => Unsigned_8 (GM_Day (Date)),
+              Hour  => Unsigned_8 (GM_Hour (Date)),
+              Min   => Unsigned_8 (GM_Minute (Date)),
+              Sec   => Unsigned_8 (GM_Second (Date)),
+              Pad   => 0);
          Append_Info (Trace_File, Date_Time, Date_Info_To_Str (Date_Info));
          Append_Info (Trace_File, Exec_File_Name, Exe_Name.all);
 
@@ -156,28 +159,33 @@ package body Convert is
       end if;
 
       case Trace_Source is
-         when Isystem_5634 =>
+         when Isystem_5634       =>
             Prg := Locate_Exec_On_Path ("../libexec/gnatcoverage/isys_drv");
-            Opts := new String_List'(1 => new String'("5634"),
-                                     2 => Exe_Name,
-                                     3 => Trace_Arg,
-                                     4 => Input_Arg,
-                                     5 => Trigger_Start_ID,
-                                     6 => Trigger_Start_Addr,
-                                     7 => Trigger_Stop_ID
-                                    );
+            Opts :=
+              new String_List'
+                (1 => new String'("5634"),
+                 2 => Exe_Name,
+                 3 => Trace_Arg,
+                 4 => Input_Arg,
+                 5 => Trigger_Start_ID,
+                 6 => Trigger_Start_Addr,
+                 7 => Trigger_Stop_ID);
+
          when Trace32_Branchflow =>
             --  Despite being named Trace32, the adapters also support 64 bit
             --  targets, so invoke the correct trace adapter.
 
-            Prg := Locate_Exec_On_Path ("../libexec/gnatcoverage/trace32_drv_"
-                                        & Arch.Current_Bits);
-            Opts := new String_List'(1 => new String'("stm32f7"),
-                                     2 => Exe_Name,
-                                     3 => Trace_Arg,
-                                     4 => Input_Arg
-                                    );
-         when Unspecified =>
+            Prg :=
+              Locate_Exec_On_Path
+                ("../libexec/gnatcoverage/trace32_drv_" & Arch.Current_Bits);
+            Opts :=
+              new String_List'
+                (1 => new String'("stm32f7"),
+                 2 => Exe_Name,
+                 3 => Trace_Arg,
+                 4 => Input_Arg);
+
+         when Unspecified        =>
             Prg := null;
       end case;
 

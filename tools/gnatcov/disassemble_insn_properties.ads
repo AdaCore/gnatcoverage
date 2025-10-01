@@ -23,8 +23,6 @@ package Disassemble_Insn_Properties is
    type Output_Format is (Text, Tokens);
 
    procedure Disassemble
-     (Exec_File_Name : String;
-      Locations      : User_Locations;
-      Compact        : Boolean);
+     (Exec_File_Name : String; Locations : User_Locations; Compact : Boolean);
 
 end Disassemble_Insn_Properties;

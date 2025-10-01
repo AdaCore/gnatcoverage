@@ -28,8 +28,7 @@ private
 
    package Caller is new AUnit.Test_Caller (Stations.Test.Test);
    Test_Live_And_Kill_Access : constant Caller.Test_Method :=
-                                 Test_Live_And_Kill'Access;
-   Test_Init_Access          : constant Caller.Test_Method :=
-                                 Test_Init'Access;
+     Test_Live_And_Kill'Access;
+   Test_Init_Access          : constant Caller.Test_Method := Test_Init'Access;
 
 end Stations.Test.Suite;

@@ -20,7 +20,7 @@ private with Ada.Containers.Ordered_Sets;
 
 private with Interfaces;
 
-with Traces;       use Traces;
+with Traces; use Traces;
 with Traces_Files;
 with Traces_Dbase;
 
@@ -28,35 +28,35 @@ package Trace_Output is
 
    type QEMU_Trace_Output is tagged limited private;
 
-   procedure Open (This              : in out QEMU_Trace_Output;
-                   Output_Trace_Path : String;
-                   Decision_Map_Path : String := "")
-     with Pre  => not Is_Open (This),
-          Post => Is_Open (This);
+   procedure Open
+     (This              : in out QEMU_Trace_Output;
+      Output_Trace_Path : String;
+      Decision_Map_Path : String := "")
+   with Pre => not Is_Open (This), Post => Is_Open (This);
    --  Open a flat trace file for output. An optional decision map can be
    --  loaded.
 
    function Is_Open (This : in out QEMU_Trace_Output) return Boolean;
    --  Return true if the trace file is open
 
-   procedure Push_Entry (This        : in out QEMU_Trace_Output;
-                         Trace_Entry : Traces.Trace_Entry)
-     with Pre => Is_Open (This);
+   procedure Push_Entry
+     (This : in out QEMU_Trace_Output; Trace_Entry : Traces.Trace_Entry)
+   with Pre => Is_Open (This);
    --  Call this procedure every time an entry is executed. This procedure
    --  takes care of recording/updating the entry, it also handles entry
    --  history when necessary.
 
    procedure Close_Trace_File (This : in out QEMU_Trace_Output)
-     with Pre  => Is_Open (This),
-          Post => not Is_Open (This);
+   with Pre => Is_Open (This), Post => not Is_Open (This);
    --  Write remaining trace entries and close the trace file
 
 private
 
-   package Address_Set is
-     new Ada.Containers.Ordered_Sets (Element_Type => Traces.Pc_Type,
-                                      "<" => Interfaces."<",
-                                      "=" => Interfaces."=");
+   package Address_Set is new
+     Ada.Containers.Ordered_Sets
+       (Element_Type => Traces.Pc_Type,
+        "<"          => Interfaces."<",
+        "="          => Interfaces."=");
 
    type QEMU_Trace_Output is tagged limited record
       Open         : Boolean := False;
@@ -66,19 +66,18 @@ private
       Decision_Map : Address_Set.Set;
    end record;
 
-   procedure Update_Entry (This        : in out QEMU_Trace_Output;
-                           Trace_Entry : Traces.Trace_Entry);
+   procedure Update_Entry
+     (This : in out QEMU_Trace_Output; Trace_Entry : Traces.Trace_Entry);
    --  Update flags of an existing entry or add a new entry to the database
 
    procedure Load_Decision_Map
-     (This              : in out QEMU_Trace_Output;
-      Decision_Map_Path : String);
+     (This : in out QEMU_Trace_Output; Decision_Map_Path : String);
    --  Open decision map file, load addresses in a database and close the file.
    --  If the decision map cannot be loaded, it is not considered as an error
    --  state.
 
-   function Keep_History (This : in out QEMU_Trace_Output;
-                          Pc   : Pc_Type) return Boolean;
+   function Keep_History
+     (This : in out QEMU_Trace_Output; Pc : Pc_Type) return Boolean;
    --  Return true if execution history should be kept for this address
 
 end Trace_Output;

@@ -36,17 +36,20 @@ package Traces_Disa is
    --  Return the symbol corresponding to Info, if any, or return an empty
    --  string.
 
-   type Disassemble_Cb is access procedure (Addr     : Pc_Type;
-                                            State    : Insn_State;
-                                            Insn     : Binary_Content;
-                                            Insn_Set : Insn_Set_Type;
-                                            Sym      : Symbolizer'Class);
+   type Disassemble_Cb is
+     access procedure
+       (Addr     : Pc_Type;
+        State    : Insn_State;
+        Insn     : Binary_Content;
+        Insn_Set : Insn_Set_Type;
+        Sym      : Symbolizer'Class);
 
-   procedure For_Each_Insn (Insns    : Binary_Content;
-                            I_Ranges : Insn_Set_Ranges;
-                            State    : Insn_State;
-                            Cb       : Disassemble_Cb;
-                            Sym      : Symbolizer'Class);
+   procedure For_Each_Insn
+     (Insns    : Binary_Content;
+      I_Ranges : Insn_Set_Ranges;
+      State    : Insn_State;
+      Cb       : Disassemble_Cb;
+      Sym      : Symbolizer'Class);
    --  Call Cb for each instruction in Insns (State and Sym are parameters to
    --  pass to Cb).
 
@@ -54,8 +57,7 @@ package Traces_Disa is
      (Insn     : Binary_Content;
       Pc       : Pc_Type;
       Insn_Set : Insn_Set_Type;
-      Sym      : Symbolizer'Class)
-      return String;
+      Sym      : Symbolizer'Class) return String;
    --  Generate the disassembly for Insn. Insn is expected to contain exactly
    --  one instruction: a Constraint_Error is raised otherwise. Pc is the
    --  target address of Insn, used to display branch targets.
@@ -64,25 +66,28 @@ package Traces_Disa is
      (Insns    : Binary_Content;
       I_Ranges : Insn_Set_Ranges;
       Base     : Traces_Base;
-      Cb       : access procedure (Addr     : Pc_Type;
-                                   State    : Insn_State;
-                                   Insn     : Binary_Content;
-                                   Insn_Set : Insn_Set_Type;
-                                   Sym      : Symbolizer'Class);
+      Cb       :
+        access procedure
+          (Addr     : Pc_Type;
+           State    : Insn_State;
+           Insn     : Binary_Content;
+           Insn_Set : Insn_Set_Type;
+           Sym      : Symbolizer'Class);
       Sym      : Symbolizer'Class);
    --  Call Cb for each instruction in Insns, computing instruction state from
    --  the Base set of traces.
 
-   procedure Textio_Disassemble_Cb (Addr     : Pc_Type;
-                                    State    : Insn_State;
-                                    Insn     : Binary_Content;
-                                    Insn_Set : Insn_Set_Type;
-                                    Sym      : Symbolizer'Class);
+   procedure Textio_Disassemble_Cb
+     (Addr     : Pc_Type;
+      State    : Insn_State;
+      Insn     : Binary_Content;
+      Insn_Set : Insn_Set_Type;
+      Sym      : Symbolizer'Class);
    --  Simple callback for Disp_Assembly_Lines: emit state-annotated
    --  disassembly to the standard output.
 
-   procedure Dump_Traces_With_Asm (Exe            : Exe_File_Type'Class;
-                                   Trace_Filename : String);
+   procedure Dump_Traces_With_Asm
+     (Exe : Exe_File_Type'Class; Trace_Filename : String);
    --  Debug procedure: dump a trace file and the disassembly for each entry
 
 end Traces_Disa;

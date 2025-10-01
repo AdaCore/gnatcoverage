@@ -41,16 +41,18 @@ package body Traces_Names is
      (CU_Filename, CU_Directory : String_Access) return Symbol;
    --  Format a Compilation Unit symbol suitable for Subprogram_Key
 
-   package Routine_Name_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Symbol,
-      "<"          => "<",
-      "="          => "=");
+   package Routine_Name_Sets is new
+     Ada.Containers.Ordered_Sets
+       (Element_Type => Symbol,
+        "<"          => "<",
+        "="          => "=");
 
-   package Routines_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Subprogram_Key,
-      Element_Type => Subprogram_Info,
-      "<"          => "<",
-      "="          => Equal);
+   package Routines_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Subprogram_Key,
+        Element_Type => Subprogram_Info,
+        "<"          => "<",
+        "="          => Equal);
 
    procedure Match_Routine_Insns
      (Exec      : Exe_File_Acc;
@@ -81,8 +83,7 @@ package body Traces_Names is
    -- Key_To_Name --
    -----------------
 
-   function Key_To_Name (Key : Subprogram_Key) return Cst_String_Access
-   is
+   function Key_To_Name (Key : Subprogram_Key) return Cst_String_Access is
    begin
       return To_String (Key.Name);
    end Key_To_Name;
@@ -121,13 +122,13 @@ package body Traces_Names is
    -- Format_CU --
    ---------------
 
-   function Format_CU
-     (CU_Filename, CU_Directory : String_Access) return Symbol is
+   function Format_CU (CU_Filename, CU_Directory : String_Access) return Symbol
+   is
    begin
       if CU_Filename = null then
          return No_Symbol;
       elsif CU_Directory = null
-         or else Paths.Is_Absolute_Path (CU_Filename.all)
+        or else Paths.Is_Absolute_Path (CU_Filename.all)
       then
          return To_Symbol (CU_Filename.all);
       else
@@ -165,12 +166,13 @@ package body Traces_Names is
       if Cur = No_Element then
          Routines.Insert
            (Key,
-            Subprogram_Info'(Exec             => Exec,
-                             Section          => Section,
-                             Padding_Stripped => <>,
-                             Insns            => Invalid_Binary_Content,
-                             Traces           => null,
-                             Offset           => 0));
+            Subprogram_Info'
+              (Exec             => Exec,
+               Section          => Section,
+               Padding_Stripped => <>,
+               Insns            => Invalid_Binary_Content,
+               Traces           => null,
+               Offset           => 0));
       end if;
    end Add_Routine;
 
@@ -188,9 +190,7 @@ package body Traces_Names is
    ---------------------
 
    procedure Key_From_Symbol
-     (Exec : Exe_File_Acc;
-      Sym  : Address_Info_Acc;
-      Key  : out Subprogram_Key)
+     (Exec : Exe_File_Acc; Sym : Address_Info_Acc; Key : out Subprogram_Key)
    is
       CU_Filename, CU_Directory : String_Access;
    begin
@@ -216,19 +216,18 @@ package body Traces_Names is
    --------------
 
    procedure Add_Code
-     (Subp_Key     : Subprogram_Key;
-      Exec         : Exe_File_Acc;
-      Section      : Section_Index;
-      Content      : Binary_Content;
-      First_Code   : out Boolean;
-      Subp_Info    : out Subprogram_Info)
+     (Subp_Key   : Subprogram_Key;
+      Exec       : Exe_File_Acc;
+      Section    : Section_Index;
+      Content    : Binary_Content;
+      First_Code : out Boolean;
+      Subp_Info  : out Subprogram_Info)
    is
       use Routines_Maps;
       use Interfaces;
 
       procedure Update
-        (Subp_Key  : Subprogram_Key;
-         Subp_Info : in out Subprogram_Info);
+        (Subp_Key : Subprogram_Key; Subp_Info : in out Subprogram_Info);
       --  Update the subprogram info of the routine identified by Key in the
       --  name table.
 
@@ -237,8 +236,7 @@ package body Traces_Names is
       ------------
 
       procedure Update
-        (Subp_Key  : Subprogram_Key;
-         Subp_Info : in out Subprogram_Info)
+        (Subp_Key : Subprogram_Key; Subp_Info : in out Subprogram_Info)
       is
          Success : Boolean;
       begin
@@ -263,12 +261,17 @@ package body Traces_Names is
 
             Match_Routine_Insns (Exec, Section, Content, Subp_Info, Success);
             if not Success then
-               Put_Line (Standard_Error,
-                         "error: different function size for "
-                           & Key_To_Name (Subp_Key).all);
-               Put_Line (Standard_Error,
-                         " (reference is " & Get_Filename (Subp_Info.Exec.all)
-                           & ", file is " & Get_Filename (Exec.all) & ")");
+               Put_Line
+                 (Standard_Error,
+                  "error: different function size for "
+                  & Key_To_Name (Subp_Key).all);
+               Put_Line
+                 (Standard_Error,
+                  " (reference is "
+                  & Get_Filename (Subp_Info.Exec.all)
+                  & ", file is "
+                  & Get_Filename (Exec.all)
+                  & ")");
                raise Consolidation_Error;
             end if;
 
@@ -280,7 +283,7 @@ package body Traces_Names is
 
       Cur : constant Cursor := Routines.Find (Subp_Key);
 
-   --  Start of processing for Add_Code
+      --  Start of processing for Add_Code
 
    begin
       First_Code := False;
@@ -294,18 +297,17 @@ package body Traces_Names is
    -------------------------
 
    procedure Add_Code_And_Traces
-     (Subp_Key     : Subprogram_Key;
-      Exec         : Exe_File_Acc;
-      Section      : Section_Index;
-      Content      : Binary_Content;
-      Base         : access Traces_Base)
+     (Subp_Key : Subprogram_Key;
+      Exec     : Exe_File_Acc;
+      Section  : Section_Index;
+      Content  : Binary_Content;
+      Base     : access Traces_Base)
    is
       use Routines_Maps;
       use Interfaces;
 
       procedure Update
-        (Subp_Key  : Subprogram_Key;
-         Subp_Info : in out Subprogram_Info);
+        (Subp_Key : Subprogram_Key; Subp_Info : in out Subprogram_Info);
       --  Update the subprogram info of the routine identified by Key in the
       --  name table.
 
@@ -314,8 +316,7 @@ package body Traces_Names is
       ------------
 
       procedure Update
-        (Subp_Key  : Subprogram_Key;
-         Subp_Info : in out Subprogram_Info)
+        (Subp_Key : Subprogram_Key; Subp_Info : in out Subprogram_Info)
       is
          pragma Unreferenced (Subp_Key);
          Trace_Cursor : Entry_Iterator;
@@ -380,7 +381,7 @@ package body Traces_Names is
       First_Code : Boolean;
       Subp_Info  : Subprogram_Info;
 
-   --  Start of processing for Add_Code_And_Traces
+      --  Start of processing for Add_Code_And_Traces
 
    begin
       Add_Code (Subp_Key, Exec, Section, Content, First_Code, Subp_Info);
@@ -395,10 +396,10 @@ package body Traces_Names is
    -------------
 
    procedure Iterate
-     (Proc    : access procedure (Subp_Key  : Subprogram_Key;
-                                  Subp_Info : in out Subprogram_Info);
-      Sorted  : Boolean := False)
-   is
+     (Proc   :
+        access procedure
+          (Subp_Key : Subprogram_Key; Subp_Info : in out Subprogram_Info);
+      Sorted : Boolean := False) is
    begin
       if Sorted then
          declare
@@ -407,12 +408,13 @@ package body Traces_Names is
                Cursor : Routines_Maps.Cursor;
             end record;
 
-            function "<" (Left, Right : Subp_Entry) return Boolean is
-              (Get (Left.Name).all < Get (Right.Name).all);
+            function "<" (Left, Right : Subp_Entry) return Boolean
+            is (Get (Left.Name).all < Get (Right.Name).all);
 
-            package Subp_Vectors is new Ada.Containers.Vectors
-              (Index_Type   => Positive,
-               Element_Type => Subp_Entry);
+            package Subp_Vectors is new
+              Ada.Containers.Vectors
+                (Index_Type   => Positive,
+                 Element_Type => Subp_Entry);
             package Subp_Sorting is new Subp_Vectors.Generic_Sorting;
 
             Subps : Subp_Vectors.Vector;
@@ -421,9 +423,9 @@ package body Traces_Names is
          begin
             Subps.Reserve_Capacity (Routines.Length);
             for Cur in Routines.Iterate loop
-               Subps.Append (Subp_Entry'
-                               (Name   => Routines_Maps.Key (Cur).Name,
-                                Cursor => Cur));
+               Subps.Append
+                 (Subp_Entry'
+                    (Name => Routines_Maps.Key (Cur).Name, Cursor => Cur));
             end loop;
             Subp_Sorting.Sort (Subps);
 
@@ -444,8 +446,7 @@ package body Traces_Names is
    ---------------------------
 
    function Compute_Routine_State
-     (Insns  : Binary_Content;
-      Traces : Traces_Base_Acc) return Line_State
+     (Insns : Binary_Content; Traces : Traces_Base_Acc) return Line_State
    is
       use type Pc_Type;
 
@@ -492,8 +493,7 @@ package body Traces_Names is
    -- Disp_All_Routines --
    -----------------------
 
-   procedure Disp_All_Routines
-   is
+   procedure Disp_All_Routines is
       use Routines_Maps;
       Cur : Cursor;
    begin
@@ -523,8 +523,7 @@ package body Traces_Names is
    -- "<" --
    -- ------
 
-   function "<" (Key1, Key2 : Subprogram_Key) return Boolean
-   is
+   function "<" (Key1, Key2 : Subprogram_Key) return Boolean is
    begin
       if Key1.Name < Key2.Name then
          return True;
@@ -547,8 +546,7 @@ package body Traces_Names is
    -- Equal --
    -----------
 
-   function Equal (L, R : Subprogram_Info) return Boolean
-   is
+   function Equal (L, R : Subprogram_Info) return Boolean is
       pragma Unreferenced (L, R);
    begin
       return False;
@@ -581,7 +579,7 @@ package body Traces_Names is
 
       Ref_Padding_First, New_Padding_First : Pc_Type;
 
-   --  Start of processing for Match_Routine_Insns
+      --  Start of processing for Match_Routine_Insns
 
    begin
       --  ??? Checking the actual content is actually quite complicated; we
@@ -598,16 +596,16 @@ package body Traces_Names is
       Ref_Padding_First :=
         (if Subp_Info.Padding_Stripped
          then Subp_Info.Insns.Last + 1
-         else Find_Padding_First (Subp_Info.Exec,
-                                  Subp_Info.Section,
-                                  Subp_Info.Insns));
+         else
+           Find_Padding_First
+             (Subp_Info.Exec, Subp_Info.Section, Subp_Info.Insns));
       New_Padding_First := Find_Padding_First (Exec, Section, Content);
 
       declare
          Ref_Padding_Offset : constant Pc_Type :=
-            Ref_Padding_First - Subp_Info.Insns.First;
+           Ref_Padding_First - Subp_Info.Insns.First;
          New_Padding_Offset : constant Pc_Type :=
-            New_Padding_First - Content.First;
+           New_Padding_First - Content.First;
       begin
          if Ref_Padding_Offset = New_Padding_Offset then
             Subp_Info.Insns.Last := Ref_Padding_First - 1;

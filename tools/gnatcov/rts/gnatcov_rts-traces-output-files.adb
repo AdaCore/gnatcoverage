@@ -36,34 +36,37 @@ package body GNATcov_RTS.Traces.Output.Files is
       Program_Name   : GNATcov_RTS_String;
       Exec_Date      : Unsigned_64;
       User_Data      : GNATcov_RTS_String);
-   pragma Import
-     (C,
-      Write_Trace_File_C,
-      External_Name => "gnatcov_rts_write_trace_file");
+   pragma
+     Import
+       (C,
+        Write_Trace_File_C,
+        External_Name => "gnatcov_rts_write_trace_file");
 
    function Default_Trace_Filename_C
      (Env_Var : chars_ptr;
       Prefix  : chars_ptr;
       Tag     : chars_ptr;
       Simple  : unsigned) return chars_ptr;
-   pragma Import
-     (C, Default_Trace_Filename_C,
-      External_Name => "gnatcov_rts_default_trace_filename");
+   pragma
+     Import
+       (C,
+        Default_Trace_Filename_C,
+        External_Name => "gnatcov_rts_default_trace_filename");
 
    ----------------------------
    -- Default_Trace_Filename --
    ----------------------------
 
    function Default_Trace_Filename
-     (Env_Var : String  := Default_Trace_Filename_Env_Var;
-      Prefix  : String  := "gnatcov";
-      Tag     : String  := "";
+     (Env_Var : String := Default_Trace_Filename_Env_Var;
+      Prefix  : String := "gnatcov";
+      Tag     : String := "";
       Simple  : Boolean := False) return chars_ptr
    is
       Env_Var_C : chars_ptr := New_String (Env_Var);
       Prefix_C  : chars_ptr := New_String (Prefix);
       Tag_C     : chars_ptr := New_String (Tag);
-      Simple_C  : constant unsigned  := Boolean'Pos (Simple);
+      Simple_C  : constant unsigned := Boolean'Pos (Simple);
 
       Result : constant chars_ptr :=
         Default_Trace_Filename_C (Env_Var_C, Prefix_C, Tag_C, Simple_C);
@@ -93,7 +96,7 @@ package body GNATcov_RTS.Traces.Output.Files is
      (Buffers_Groups : Coverage_Buffers_Group_Array;
       Filename       : chars_ptr := Default_Trace_Filename;
       Program_Name   : String := "unknown";
-      Exec_Date      : Time   := Clock;
+      Exec_Date      : Time := Clock;
       User_Data      : String := "")
    is
       --  See the note about -gnatw.X in gnatcov_rts.gpr

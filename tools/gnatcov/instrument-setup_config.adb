@@ -63,8 +63,7 @@ package body Instrument.Setup_Config is
       Fallback_To_System : Boolean := True) return String
    is
       Driver_Arguments : String_Vectors.Vector;
-      Output_Filename  : constant String :=
-        Output_Dir / "which-compiler-prog";
+      Output_Filename  : constant String := Output_Dir / "which-compiler-prog";
       Output_File      : File_Type;
    begin
       for Program_Name of Program_Names loop
@@ -97,7 +96,8 @@ package body Instrument.Setup_Config is
          return +Program_Names.First_Element;
       else
          Outputs.Fatal_Error
-           ("Could not locate program " & (+Program_Names.First_Element)
+           ("Could not locate program "
+            & (+Program_Names.First_Element)
             & " in compiler driver installation.");
       end if;
    end Find_Compiler_Prog;
@@ -138,8 +138,7 @@ package body Instrument.Setup_Config is
          use Ada.Strings.Fixed;
 
          Args            : String_Vectors.Vector;
-         Output_Filename : constant String :=
-           Output_Dir / "gprls_output";
+         Output_Filename : constant String := Output_Dir / "gprls_output";
          Output_File     : File_Type;
       begin
          Args.Append (+"-P");
@@ -186,7 +185,8 @@ package body Instrument.Setup_Config is
 
             if Compiler_Fullname = null then
                Outputs.Fatal_Error
-                 ("Could not locate compiler " & (+Compiler_Driver)
+                 ("Could not locate compiler "
+                  & (+Compiler_Driver)
                   & " on the PATH.");
             end if;
 
@@ -203,8 +203,7 @@ package body Instrument.Setup_Config is
                Compiler_Identifier    : Unbounded_String;
             begin
                if GNAT.Regexp.Match (Actual_Compiler_Driver, GCC_Regexp)
-                 or else GNAT.Regexp.Match
-                   (Actual_Compiler_Driver, GXX_Regexp)
+                 or else GNAT.Regexp.Match (Actual_Compiler_Driver, GXX_Regexp)
                then
                   Compiler_Identifier := +"gcc";
                else
@@ -221,7 +220,7 @@ package body Instrument.Setup_Config is
                   --  necessarily packaging ld.
 
                   declare
-                     Linker_Programs  : String_Vectors.Vector;
+                     Linker_Programs : String_Vectors.Vector;
                   begin
                      Linker_Programs.Append (+"ld");
                      Linker_Programs.Append (+"ld.bfd");
@@ -240,7 +239,7 @@ package body Instrument.Setup_Config is
                   --  ours, not necessarily packaging nm.
 
                   declare
-                     Nm_Program  : String_Vectors.Vector;
+                     Nm_Program : String_Vectors.Vector;
                   begin
                      Nm_Program.Append (+"nm");
 
@@ -253,10 +252,11 @@ package body Instrument.Setup_Config is
                   end;
 
                   GNAT.OS_Lib.Copy_File
-                    (Name => Support_Files.Libexec_Dir
-                             / ("compiler_wrappers-"
-                                & (+Compiler_Identifier)
-                                & Exec_Suffix),
+                    (Name     =>
+                       Support_Files.Libexec_Dir
+                       / ("compiler_wrappers-"
+                          & (+Compiler_Identifier)
+                          & Exec_Suffix),
                      Pathname => Output_Dir / (+Compiler_Driver),
                      Success  => Success,
                      Mode     => GNAT.OS_Lib.Overwrite,
@@ -264,7 +264,8 @@ package body Instrument.Setup_Config is
                   if not Success then
                      Outputs.Fatal_Error
                        ("Could not generate a compiler wrapper in the given"
-                        & " directory " & Output_Dir);
+                        & " directory "
+                        & Output_Dir);
                   end if;
                else
                   Outputs.Fatal_Error
@@ -315,7 +316,7 @@ package body Instrument.Setup_Config is
          Manual_Dump_Files_JSON : JSON_Array;
       begin
          case Dump_Config.Trigger is
-            when Manual =>
+            when Manual                     =>
                Dump_Config_JSON.Set_Field ("dump-trigger", "manual");
                if Dump_Config.Manual_Indication_Files.Is_Empty then
                   Outputs.Fatal_Error
@@ -325,23 +326,27 @@ package body Instrument.Setup_Config is
                else
                   for Manual_Dump_File of Dump_Config.Manual_Indication_Files
                   loop
-                     Append (Manual_Dump_Files_JSON,
-                             Create (Display_Full_Name (Manual_Dump_File)));
+                     Append
+                       (Manual_Dump_Files_JSON,
+                        Create (Display_Full_Name (Manual_Dump_File)));
                   end loop;
-                  Dump_Config_JSON.Set_Field ("manual-dump-files",
-                                              Manual_Dump_Files_JSON);
+                  Dump_Config_JSON.Set_Field
+                    ("manual-dump-files", Manual_Dump_Files_JSON);
                end if;
-            when At_Exit =>
+
+            when At_Exit                    =>
                Dump_Config_JSON.Set_Field ("dump-trigger", "atexit");
+
             when Ravenscar_Task_Termination =>
                Dump_Config_JSON.Set_Field
                  ("dump-trigger", "ravenscar-task-termination");
-            when Main_End =>
+
+            when Main_End                   =>
                Dump_Config_JSON.Set_Field ("dump-trigger", "main-end");
          end case;
 
          case Dump_Config.Channel is
-            when Binary_File =>
+            when Binary_File            =>
                Dump_Config_JSON.Set_Field ("dump-channel", "bin-file");
                if Dump_Config.Filename_Simple then
                   Dump_Config_JSON.Set_Field ("dump-filename-simple", True);
@@ -354,6 +359,7 @@ package body Instrument.Setup_Config is
                   Dump_Config_JSON.Set_Field
                     ("dump-filename-prefix", Dump_Config.Filename_Prefix);
                end if;
+
             when Base64_Standard_Output =>
                Dump_Config_JSON.Set_Field ("dump-channel", "base64-stdout");
          end case;
@@ -467,7 +473,7 @@ package body Instrument.Setup_Config is
                if Dump_Config_JSON.Has_Field ("manual-dump-files") then
                   declare
                      Manual_Dump_Files_JSON : constant JSON_Array :=
-                        Dump_Config_JSON.Get ("manual-dump-files");
+                       Dump_Config_JSON.Get ("manual-dump-files");
                   begin
                      for Manual_Dump_File_JSON of Manual_Dump_Files_JSON loop
                         Dump_Config.Manual_Indication_Files.Include
@@ -486,20 +492,16 @@ package body Instrument.Setup_Config is
       declare
 
          procedure Fill_String_Map
-           (Result      : out String_Maps.Map;
-            JSON_Object : JSON_Value);
+           (Result : out String_Maps.Map; JSON_Object : JSON_Value);
          --  Fill the Result string map with the contents of the given JSON
          --  object
 
          procedure Fill_String_Map
-           (Result      : out String_Maps.Map;
-            JSON_Object : JSON_Value)
+           (Result : out String_Maps.Map; JSON_Object : JSON_Value)
          is
-            procedure Insert_Element
-              (Key : UTF8_String; Value : JSON_Value);
+            procedure Insert_Element (Key : UTF8_String; Value : JSON_Value);
 
-            procedure Insert_Element
-              (Key : UTF8_String; Value : JSON_Value) is
+            procedure Insert_Element (Key : UTF8_String; Value : JSON_Value) is
             begin
                Result.Insert (+Key, Get (Value));
             end Insert_Element;

@@ -40,20 +40,25 @@ with Project;
 
 package body Files_Table is
 
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Object_Coverage_Info_Array, Object_Coverage_Info_Array_Acc);
-   procedure Free is new Ada.Unchecked_Deallocation
-     (SCO_Id_Array, SCO_Id_Array_Acc);
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Sloc_To_SCO_Map_Array, Sloc_To_SCO_Map_Array_Acc);
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Message_Array, Message_Array_Acc);
-   procedure Free is new Ada.Unchecked_Deallocation
-     (File_Info, File_Info_Access);
+   procedure Free is new
+     Ada.Unchecked_Deallocation
+       (Object_Coverage_Info_Array,
+        Object_Coverage_Info_Array_Acc);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (SCO_Id_Array, SCO_Id_Array_Acc);
+   procedure Free is new
+     Ada.Unchecked_Deallocation
+       (Sloc_To_SCO_Map_Array,
+        Sloc_To_SCO_Map_Array_Acc);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (Message_Array, Message_Array_Acc);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (File_Info, File_Info_Access);
 
-   package File_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Valid_Source_File_Index,
-      Element_Type => File_Info_Access);
+   package File_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Valid_Source_File_Index,
+        Element_Type => File_Info_Access);
 
    Files_Table : File_Vectors.Vector;
 
@@ -63,13 +68,14 @@ package body Files_Table is
    --  It is invalid to add files to the table after this is set to True.
 
    Empty_Sloc_To_SCO_Map : aliased constant Sloc_To_SCO_Maps.Map :=
-      Sloc_To_SCO_Maps.Empty_Map;
+     Sloc_To_SCO_Maps.Empty_Map;
 
    type Sorted_File_Index is new Valid_Source_File_Index;
 
-   package File_Index_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Sorted_File_Index,
-      Element_Type => Valid_Source_File_Index);
+   package File_Index_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Sorted_File_Index,
+        Element_Type => Valid_Source_File_Index);
 
    Sorted_Files_Table : File_Index_Vectors.Vector;
    --  Sorted list of indexes corresponding to Files_Table entries. Files are
@@ -87,34 +93,37 @@ package body Files_Table is
    --  Allocate a new File_Info record of type Kind and for the given file
    --  names. This does not modify Files_Table nor full/simple name maps.
 
-   function Kind_Name (Kind : File_Kind) return String is
-     (case Kind is
-      when Stub_File    => "stub file",
-      when Source_File  => "source file",
-      when Library_File => "library file");
+   function Kind_Name (Kind : File_Kind) return String
+   is (case Kind is
+         when Stub_File    => "stub file",
+         when Source_File  => "source file",
+         when Library_File => "library file");
 
    procedure Expand_Line_Table (FI : File_Info_Access; Line : Positive);
 
-   package Filename_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Virtual_File,
-      Element_Type    => Source_File_Index,
-      Hash            => Full_Name_Hash,
-      Equivalent_Keys => "=",
-      "="             => "=");
+   package Filename_Maps is new
+     Ada.Containers.Hashed_Maps
+       (Key_Type        => Virtual_File,
+        Element_Type    => Source_File_Index,
+        Hash            => Full_Name_Hash,
+        Equivalent_Keys => "=",
+        "="             => "=");
 
-   package Simple_Name_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Virtual_File,
-      Element_Type    => Source_File_Index,
-      Hash            => Full_Name_Hash,
-      Equivalent_Keys => "=",
-      "="             => "=");
+   package Simple_Name_Maps is new
+     Ada.Containers.Hashed_Maps
+       (Key_Type        => Virtual_File,
+        Element_Type    => Source_File_Index,
+        Hash            => Full_Name_Hash,
+        Equivalent_Keys => "=",
+        "="             => "=");
 
-   package Filename_Rebase_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => Virtual_File,
-      Element_Type    => Virtual_File,
-      Hash            => Full_Name_Hash,
-      Equivalent_Keys => "=",
-      "="             => "=");
+   package Filename_Rebase_Maps is new
+     Ada.Containers.Hashed_Maps
+       (Key_Type        => Virtual_File,
+        Element_Type    => Virtual_File,
+        Hash            => Full_Name_Hash,
+        Equivalent_Keys => "=",
+        "="             => "=");
 
    Simple_Name_Map : Simple_Name_Maps.Map;
    Full_Name_Map   : Filename_Maps.Map;
@@ -128,7 +137,7 @@ package body Files_Table is
 
    type Cache_Size is mod 2;
    type File_Info_Access_Arr is array (Cache_Size) of File_Info_Access;
-   File_Line_Cache : File_Info_Access_Arr := (others => null);
+   File_Line_Cache     : File_Info_Access_Arr := (others => null);
    Current_Cache_Index : Cache_Size := 0;
    --  Current files whose lines are cached in the file table. There are two
    --  entries in the cache for now, which is reasonable for the use that we
@@ -142,7 +151,7 @@ package body Files_Table is
    type Source_Search_Entry_Acc is access Source_Search_Entry;
    type Source_Search_Entry is record
       Prefix : String_Access;
-      Next : Source_Search_Entry_Acc;
+      Next   : Source_Search_Entry_Acc;
    end record;
 
    type Pattern_Matcher_Acc is access all GNAT.Regpat.Pattern_Matcher;
@@ -152,7 +161,7 @@ package body Files_Table is
    type Source_Rebase_Entry is record
       Old_Prefix : Pattern_Matcher_Acc;
       New_Prefix : String_Access;
-      Next : Source_Rebase_Entry_Acc;
+      Next       : Source_Rebase_Entry_Acc;
    end record;
 
    First_Source_Rebase_Entry : Source_Rebase_Entry_Acc := null;
@@ -203,8 +212,8 @@ package body Files_Table is
       --  Line_Info_Chunk that was allocated right before this one. This makes
       --  a linked list, easy to use for deallocion.
    end record;
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Line_Info_Chunk, Line_Info_Chunk_Access);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (Line_Info_Chunk, Line_Info_Chunk_Access);
 
    Current_LI_Chunk_Next_Line : Positive := 1;
    --  Index of the next available cell in Current_LI_Chunk.Lines
@@ -234,9 +243,7 @@ package body Files_Table is
    --  Result buffer for decoded strings
 
    procedure Transcode_To_UTF8
-     (S        : String;
-      Last     : out Natural;
-      On_Error : access procedure);
+     (S : String; Last : out Natural; On_Error : access procedure);
    --  Transcode S to UTF-8 in Iconv_Buffer (Iconv_Buffer'First .. Last), which
    --  is (re)allocated as needed. If a transcoding error occurs, it is skipped
    --  and On_Error is called.
@@ -249,11 +256,10 @@ package body Files_Table is
    ---------------------
 
    procedure Append_To_Array
-      (A : in out Resizeable_Array_Access;
-       E : Element_Type)
+     (A : in out Resizeable_Array_Access; E : Element_Type)
    is
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Resizeable_Array, Resizeable_Array_Access);
+      procedure Free is new
+        Ada.Unchecked_Deallocation (Resizeable_Array, Resizeable_Array_Access);
 
       New_A : Resizeable_Array_Access;
 
@@ -279,13 +285,15 @@ package body Files_Table is
       Base  : Traces_Base_Acc;
       Exec  : Exe_File_Acc)
    is
-      procedure Append_Obj is new Append_To_Array
-        (Natural, Object_Coverage_Info,
-         Object_Coverage_Info_Array,
-         Object_Coverage_Info_Array_Acc);
+      procedure Append_Obj is new
+        Append_To_Array
+          (Natural,
+           Object_Coverage_Info,
+           Object_Coverage_Info_Array,
+           Object_Coverage_Info_Array_Acc);
 
-      FI   : constant File_Info_Access := Files_Table.Element (File);
-      LI   : Line_Info_Access;
+      FI : constant File_Info_Access := Files_Table.Element (File);
+      LI : Line_Info_Access;
 
    begin
       FI.Has_Object_Coverage_Info := True;
@@ -304,14 +312,10 @@ package body Files_Table is
    ----------------------------------
 
    procedure Add_Line_For_Source_Coverage
-     (File : Source_File_Index;
-      Line : Positive;
-      SCO  : SCO_Id)
+     (File : Source_File_Index; Line : Positive; SCO : SCO_Id)
    is
-      procedure Append_SCO is new Append_To_Array
-        (Natural, SCO_Id,
-         SCO_Id_Array,
-         SCO_Id_Array_Acc);
+      procedure Append_SCO is new
+        Append_To_Array (Natural, SCO_Id, SCO_Id_Array, SCO_Id_Array_Acc);
 
       FI : constant File_Info_Access := Files_Table.Element (File);
    begin
@@ -349,10 +353,11 @@ package body Files_Table is
       Files_Table_Trace.Trace ("  Regexp -> " & Regexp);
       Files_Table_Trace.Trace ("  Will become: " & New_Prefix);
 
-      E := new Source_Rebase_Entry'
-        (Old_Prefix => new Pattern_Matcher'(Compile (Regexp, Flags)),
-         New_Prefix => Actual_New_Prefix,
-         Next       => null);
+      E :=
+        new Source_Rebase_Entry'
+          (Old_Prefix => new Pattern_Matcher'(Compile (Regexp, Flags)),
+           New_Prefix => Actual_New_Prefix,
+           Next       => null);
       if First_Source_Rebase_Entry = null then
          First_Source_Rebase_Entry := E;
       else
@@ -372,8 +377,9 @@ package body Files_Table is
       --  Canonicalize the source search prefix so that all absolute filenames
       --  in the filetable are canonicalized.
 
-      E := new Source_Search_Entry'(Prefix => Canonicalize_Filename (Prefix),
-                                    Next => null);
+      E :=
+        new Source_Search_Entry'
+          (Prefix => Canonicalize_Filename (Prefix), Next => null);
 
       if First_Source_Search_Entry = null then
          First_Source_Search_Entry := E;
@@ -397,8 +403,7 @@ package body Files_Table is
    -- Lookup_Exec --
    -----------------
 
-   function Lookup_Exec (Name : String) return String
-   is
+   function Lookup_Exec (Name : String) return String is
       function Lookup_Path (Path : String) return String;
       --  If Path, or a name derived from Path (i.e. with the ".exe" suffix on
       --  Windows) exists, return it. Return an empty string otherwise.
@@ -432,7 +437,7 @@ package body Files_Table is
 
       Path : constant String := Lookup_Path (Name);
 
-   --  Start of processing for Lookup_Exec
+      --  Start of processing for Lookup_Exec
 
    begin
       --  If we could not find Name, look in Exec_Search_Prefix
@@ -456,8 +461,7 @@ package body Files_Table is
    -- End_Lex_Element --
    ---------------------
 
-   function End_Lex_Element (Sloc : Source_Location) return Source_Location
-   is
+   function End_Lex_Element (Sloc : Source_Location) return Source_Location is
       type Lex_Type is (String_Literal, Numeric_Literal, Other);
 
       Lex    : Lex_Type;
@@ -494,9 +498,7 @@ package body Files_Table is
          --  String literal
          Lex := String_Literal;
 
-      elsif Is_Decimal_Digit (Line (Column))
-        or else Line (Column) = '-'
-      then
+      elsif Is_Decimal_Digit (Line (Column)) or else Line (Column) = '-' then
          --  Numeric literal
          Lex := Numeric_Literal;
 
@@ -507,19 +509,20 @@ package body Files_Table is
 
       for J in Sloc.L.Column + 1 .. Line'Last loop
          case Lex is
-            when String_Literal =>
+            when String_Literal  =>
                exit when Line (J) = '"';
 
             when Numeric_Literal =>
-               exit when not Is_Decimal_Digit (Line (J))
+               exit when
+                 not Is_Decimal_Digit (Line (J))
                  and then Line (J) /= '#'
                  and then Line (J) /= 'E'
                  and then Line (J) /= '.'
                  and then Line (J) /= '_';
 
-            when Other =>
-               exit when not Is_Alphanumeric (Line (J))
-                 and then Line (J) /= '_';
+            when Other           =>
+               exit when
+                 not Is_Alphanumeric (Line (J)) and then Line (J) /= '_';
 
          end case;
          Column := J;
@@ -539,27 +542,29 @@ package body Files_Table is
       --  left in the current one.
 
       if Current_LI_Chunk = null
-         or else Current_LI_Chunk_Next_Line > Current_LI_Chunk.Lines'Last
+        or else Current_LI_Chunk_Next_Line > Current_LI_Chunk.Lines'Last
       then
          --  Allocate the record first and then initialize the Lines array.
          --  Don't do it in one single statement as this would create a big
          --  aggregate on the stack, triggering a stack overflow when the
          --  number of line is too high.
 
-         Current_LI_Chunk := new Line_Info_Chunk'
-           (Lines => <>, Previous_Chunk => Current_LI_Chunk);
+         Current_LI_Chunk :=
+           new Line_Info_Chunk'
+             (Lines => <>, Previous_Chunk => Current_LI_Chunk);
          for Line of Current_LI_Chunk.Lines loop
             Line := (State => (others => No_Code), others => <>);
          end loop;
          Current_LI_Chunk_Next_Line := Current_LI_Chunk.Lines'First;
 
          Bump (Line_Table_Alloc);
-         Bump (Line_Table_Alloc_Size,
-               How_Many => Current_LI_Chunk.Lines'Length);
+         Bump
+           (Line_Table_Alloc_Size, How_Many => Current_LI_Chunk.Lines'Length);
       end if;
 
-      return Result : constant Line_Info_Access :=
-         Current_LI_Chunk.Lines (Current_LI_Chunk_Next_Line)'Access
+      return
+         Result : constant Line_Info_Access :=
+           Current_LI_Chunk.Lines (Current_LI_Chunk_Next_Line)'Access
       do
          Current_LI_Chunk_Next_Line := Current_LI_Chunk_Next_Line + 1;
       end return;
@@ -623,8 +628,7 @@ package body Files_Table is
    -------------------------------
 
    procedure Consolidate_Ignore_Status
-     (Index  : Valid_Source_File_Index;
-      Status : Any_Ignore_Status)
+     (Index : Valid_Source_File_Index; Status : Any_Ignore_Status)
    is
       FI : File_Info renames Files_Table.Element (Index).all;
    begin
@@ -750,9 +754,9 @@ package body Files_Table is
       use Simple_Name_Maps;
 
       Preserved_Full_Name : constant String :=
-         Canonicalize_Filename (Full_Name, False);
+        Canonicalize_Filename (Full_Name, False);
       Original_Full_Path  : constant Virtual_File :=
-         Create (+Canonicalize_Filename (Full_Name));
+        Create (+Canonicalize_Filename (Full_Name));
       Full_Path           : Virtual_File := Original_Full_Path;
       --  Full_Path can be modified to hold the result of the source rebase
 
@@ -764,8 +768,12 @@ package body Files_Table is
    begin
       if Files_Table_Trace.Is_Active then
          Files_Table_Trace.Trace
-           ("GIFN: <<" & Full_Name & ">> ISN=" & Indexed_Simple_Name'Img
-            & " Insert=" & Insert'Img);
+           ("GIFN: <<"
+            & Full_Name
+            & ">> ISN="
+            & Indexed_Simple_Name'Img
+            & " Insert="
+            & Insert'Img);
       end if;
 
       --  First lookup the full path in the Renaming_Map as this file can
@@ -822,7 +830,7 @@ package body Files_Table is
 
                if Info_Simple.Preserved_Full_Name = null then
                   Info_Simple.Preserved_Full_Name :=
-                     new String'(Preserved_Full_Name);
+                    new String'(Preserved_Full_Name);
                end if;
 
                goto Do_Return;
@@ -848,12 +856,13 @@ package body Files_Table is
             pragma Assert (not Files_Table_Frozen);
          end if;
 
-         Files_Table.Append (Create_File_Info
-           (Kind,
-            new String'(+GNATCOLL.VFS.Full_Name (Full_Path)),
-            new String'(Preserved_Full_Name),
-            new String'(+GNATCOLL.VFS.Full_Name (Simple_Path)),
-            Indexed_Simple_Name));
+         Files_Table.Append
+           (Create_File_Info
+              (Kind,
+               new String'(+GNATCOLL.VFS.Full_Name (Full_Path)),
+               new String'(Preserved_Full_Name),
+               new String'(+GNATCOLL.VFS.Full_Name (Simple_Path)),
+               Indexed_Simple_Name));
          Res := Files_Table.Last_Index;
 
          --  If needed, add an entry into the simple name map. It will help
@@ -874,7 +883,7 @@ package body Files_Table is
          Full_Name_Map.Insert (Full_Path, Res);
       end;
 
-   <<Do_Return>>
+      <<Do_Return>>
       if Files_Table_Trace.Is_Active then
          Files_Table_Trace.Trace (" ->" & Res'Img);
       end if;
@@ -918,12 +927,13 @@ package body Files_Table is
             pragma Assert (not Files_Table_Frozen);
          end if;
 
-         Files_Table.Append (Create_File_Info
-           (Kind                => Kind,
-            Full_Name           => null,
-            Preserved_Full_Name => null,
-            Simple_Name         => new String'(+Full_Name (Simple_Path)),
-            Indexed_Simple_Name => True));
+         Files_Table.Append
+           (Create_File_Info
+              (Kind                => Kind,
+               Full_Name           => null,
+               Preserved_Full_Name => null,
+               Simple_Name         => new String'(+Full_Name (Simple_Path)),
+               Indexed_Simple_Name => True));
          Res := Files_Table.Last_Index;
          Simple_Name_Map.Insert (Simple_Path, Res);
       end if;
@@ -957,11 +967,13 @@ package body Files_Table is
       end if;
 
       if Is_Absolute_Path (Name) then
-         Result := Get_Index_From_Full_Name
-           (Name, Kind, Insert, Indexed_Simple_Name, Insert_After_Freeze);
+         Result :=
+           Get_Index_From_Full_Name
+             (Name, Kind, Insert, Indexed_Simple_Name, Insert_After_Freeze);
       else
-         Result := Get_Index_From_Simple_Name
-           (Name, Kind, Insert, Insert_After_Freeze);
+         Result :=
+           Get_Index_From_Simple_Name
+             (Name, Kind, Insert, Insert_After_Freeze);
       end if;
       return Result;
    end Get_Index_From_Generic_Name;
@@ -990,9 +1002,7 @@ package body Files_Table is
    -----------------------
 
    procedure Transcode_To_UTF8
-     (S        : String;
-      Last     : out Natural;
-      On_Error : access procedure) is
+     (S : String; Last : out Natural; On_Error : access procedure) is
    begin
       --  Make sure the decoder to UTF-8 is initialized and that we have a
       --  buffer big enough to hold all possible decoded content: worse case,
@@ -1003,8 +1013,7 @@ package body Files_Table is
          Set_Encoding (ISO_8859_1);
       end if;
 
-      if Iconv_Buffer = null
-         or else Iconv_Buffer.all'Length < 4 * S'Length
+      if Iconv_Buffer = null or else Iconv_Buffer.all'Length < 4 * S'Length
       then
          Free (Iconv_Buffer);
          Iconv_Buffer := new String (1 .. 4 * S'Length);
@@ -1019,18 +1028,13 @@ package body Files_Table is
       begin
          while Input_Index <= Inbuf'Last loop
             Iconv
-              (Iconv_Handle,
-               Inbuf,
-               Input_Index,
-               Outbuf,
-               Output_Index,
-               Result);
+              (Iconv_Handle, Inbuf, Input_Index, Outbuf, Output_Index, Result);
             case Result is
-               when Success =>
+               when Success
+               =>
                   null;
 
-               when Invalid_Multibyte_Sequence
-                  | Incomplete_Multibyte_Sequence
+               when Invalid_Multibyte_Sequence | Incomplete_Multibyte_Sequence
                =>
                   --  We could not decode the sequence that starts at
                   --  Inbuf (Input_Index): append the U+FFFD REPLACEMENT
@@ -1049,7 +1053,8 @@ package body Files_Table is
                      On_Error.all;
                   end if;
 
-               when Full_Buffer =>
+               when Full_Buffer
+               =>
 
                   --  We allocate the buffer precisely so that this never
                   --  happens: this should be dead code.
@@ -1091,9 +1096,7 @@ package body Files_Table is
    -- Slice_Last_UTF8 --
    ---------------------
 
-   function Slice_Last_UTF8
-     (S : String; Length : Natural) return Natural
-   is
+   function Slice_Last_UTF8 (S : String; Length : Natural) return Natural is
       Result : Natural := S'First;
    begin
       if Length = 0 then
@@ -1123,12 +1126,10 @@ package body Files_Table is
    end Get_Line;
 
    function Get_Line
-     (File  : File_Info_Access;
-      Index : Positive) return Line_Info_Access
-   is
+     (File : File_Info_Access; Index : Positive) return Line_Info_Access is
    begin
       if File.Kind = Source_File
-         and then Index in File.Lines.First_Index .. File.Lines.Last_Index
+        and then Index in File.Lines.First_Index .. File.Lines.Last_Index
       then
          return File.Lines.Element (Index);
       else
@@ -1142,7 +1143,7 @@ package body Files_Table is
    end Get_Line;
 
    function Get_Line
-     (Sloc : Source_Location; UTF8  : Boolean := False) return String is
+     (Sloc : Source_Location; UTF8 : Boolean := False) return String is
    begin
       if Sloc = Slocs.No_Location then
          return "";
@@ -1152,9 +1153,8 @@ package body Files_Table is
    end Get_Line;
 
    function Get_Line
-     (File  : File_Info_Access;
-      Index : Positive;
-      UTF8  : Boolean := False) return String
+     (File : File_Info_Access; Index : Positive; UTF8 : Boolean := False)
+      return String
    is
       Line : String_Access;
    begin
@@ -1195,8 +1195,11 @@ package body Files_Table is
          begin
             if not File.Has_Decoding_Error then
                Outputs.Warn
-                 (File.Unique_Name.all & ":" & Img (Index)
-                  & ": cannot decode as " & (+Iconv_Encoding));
+                 (File.Unique_Name.all
+                  & ":"
+                  & Img (Index)
+                  & ": cannot decode as "
+                  & (+Iconv_Encoding));
                File.Has_Decoding_Error := True;
             end if;
          end On_Error;
@@ -1210,8 +1213,7 @@ package body Files_Table is
    -- Get_SCOs --
    --------------
 
-   function Get_SCOs
-     (Source_Range : Source_Location_Range) return SCO_Sets.Set
+   function Get_SCOs (Source_Range : Source_Location_Range) return SCO_Sets.Set
    is
       Result : SCO_Sets.Set;
       FI     : constant File_Info_Access :=
@@ -1250,27 +1252,30 @@ package body Files_Table is
 
    procedure Freeze_Files_Table is
 
-      package Conversions is new System.Address_To_Access_Conversions
-        (Object => File_Info);
-      function "+" (A : File_Info_Access) return System.Address is
-        (Conversions.To_Address (Conversions.Object_Pointer (A)));
-      function "<" (Left, Right : File_Info_Access) return Boolean is
-        (System."<" (+Left, +Right));
+      package Conversions is new
+        System.Address_To_Access_Conversions (Object => File_Info);
+      function "+" (A : File_Info_Access) return System.Address
+      is (Conversions.To_Address (Conversions.Object_Pointer (A)));
+      function "<" (Left, Right : File_Info_Access) return Boolean
+      is (System."<" (+Left, +Right));
       --  Utilities to deal with File_Info_Access in ordered sets
 
-      package File_Sets is new Ada.Containers.Ordered_Sets
-        (Element_Type => File_Info_Access);
+      package File_Sets is new
+        Ada.Containers.Ordered_Sets (Element_Type => File_Info_Access);
       type File_Set_Access is access File_Sets.Set;
       --  Set of files that have the same name
 
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Object => File_Sets.Set, Name => File_Set_Access);
+      procedure Free is new
+        Ada.Unchecked_Deallocation
+          (Object => File_Sets.Set,
+           Name   => File_Set_Access);
 
-      package Alias_Maps is new Ada.Containers.Hashed_Maps
-        (Key_Type        => Virtual_File,
-         Element_Type    => File_Set_Access,
-         Hash            => Full_Name_Hash,
-         Equivalent_Keys => "=");
+      package Alias_Maps is new
+        Ada.Containers.Hashed_Maps
+          (Key_Type        => Virtual_File,
+           Element_Type    => File_Set_Access,
+           Hash            => Full_Name_Hash,
+           Equivalent_Keys => "=");
       --  Mapping from file name to a set of files that have the same name
 
       use type Ada.Containers.Count_Type;
@@ -1347,8 +1352,8 @@ package body Files_Table is
          ----------------------------
 
          procedure Get_Previous_Separator (Index : in out Positive) is
-            function Is_Sep (Index : Positive) return Boolean is
-              (Full (Index) in '/' | '\');
+            function Is_Sep (Index : Positive) return Boolean
+            is (Full (Index) in '/' | '\');
             --  Return whether the character in Full at Index is a path
             --  separator.
 
@@ -1404,7 +1409,7 @@ package body Files_Table is
             then Full'Last
             else Full'Last - File.Unique_Name.all'Length + 1);
 
-      --  Start of processing for Grow_Unique_Name
+         --  Start of processing for Grow_Unique_Name
 
       begin
          --  Get the substring in Full that will make the next Unique_Name
@@ -1434,7 +1439,7 @@ package body Files_Table is
       Alias_Map : Alias_Maps.Map;
       --  Mapping: simple name to set of files that have this simple name
 
-   --  Start of processing for Freeze_Files_Table
+      --  Start of processing for Freeze_Files_Table
 
    begin
       if Files_Table_Frozen then
@@ -1534,16 +1539,17 @@ package body Files_Table is
             R : File_Info renames Files_Table.Element (Right).all;
          begin
             if L.Simple_Name.all = R.Simple_Name.all then
-               return L.Full_Name /= null
-                      and then R.Full_Name /= null
-                      and then L.Full_Name.all < R.Full_Name.all;
+               return
+                 L.Full_Name /= null
+                 and then R.Full_Name /= null
+                 and then L.Full_Name.all < R.Full_Name.all;
             else
                return L.Simple_Name.all < R.Simple_Name.all;
             end if;
          end Appears_Before;
 
-         package Sorting is new File_Index_Vectors.Generic_Sorting
-           ("<" => Appears_Before);
+         package Sorting is new
+           File_Index_Vectors.Generic_Sorting ("<" => Appears_Before);
 
       begin
          Sorted_Files_Table.Reserve_Capacity (Files_Table.Length);
@@ -1573,8 +1579,7 @@ package body Files_Table is
    -------------------------
 
    function Get_Unique_Filename
-     (Index     : Source_File_Index;
-      Extension : String) return String
+     (Index : Source_File_Index; Extension : String) return String
    is
       Result : String := Get_Unique_Name (Index);
    begin
@@ -1598,17 +1603,18 @@ package body Files_Table is
    is
       Result : constant File_Info_Access := new File_Info (Kind);
 
-      function Defer_Or_Null (S : String_Access) return String is
-         (if S = null then "<<null>>" else "<<" & S.all & ">>");
+      function Defer_Or_Null (S : String_Access) return String
+      is (if S = null then "<<null>>" else "<<" & S.all & ">>");
    begin
-      Files_Table_Trace.Trace ("CFI ->      Simple Name:"
-                               & Defer_Or_Null (Simple_Name)
-                               & ASCII.LF
-                               & "    Preserved Full Name: "
-                               & Defer_Or_Null (Preserved_Full_Name)
-                               & ASCII.LF
-                               & "    Canonical Full Name: "
-                               & Defer_Or_Null (Full_Name));
+      Files_Table_Trace.Trace
+        ("CFI ->      Simple Name:"
+         & Defer_Or_Null (Simple_Name)
+         & ASCII.LF
+         & "    Preserved Full Name: "
+         & Defer_Or_Null (Preserved_Full_Name)
+         & ASCII.LF
+         & "    Canonical Full Name: "
+         & Defer_Or_Null (Full_Name));
       Result.Full_Name := Full_Name;
       Result.Preserved_Full_Name := Preserved_Full_Name;
       Result.Simple_Name := Simple_Name;
@@ -1625,8 +1631,7 @@ package body Files_Table is
    ---------------------------
 
    procedure Consolidate_File_Kind
-     (Index : Valid_Source_File_Index;
-      Kind  : File_Kind)
+     (Index : Valid_Source_File_Index; Kind : File_Kind)
    is
       FI : File_Info_Access := Get_File (Index);
    begin
@@ -1657,12 +1662,12 @@ package body Files_Table is
 
          declare
             New_FI : constant File_Info_Access :=
-               Create_File_Info
-                 (Kind,
-                  FI.Full_Name,
-                  FI.Preserved_Full_Name,
-                  FI.Simple_Name,
-                  FI.Indexed_Simple_Name);
+              Create_File_Info
+                (Kind,
+                 FI.Full_Name,
+                 FI.Preserved_Full_Name,
+                 FI.Simple_Name,
+                 FI.Indexed_Simple_Name);
          begin
             New_FI.Has_Source := FI.Has_Source;
             Free (FI);
@@ -1671,8 +1676,11 @@ package body Files_Table is
 
       elsif FI.Kind /= Kind then
          Outputs.Fatal_Error
-           ("Trying to use " & FI.Simple_Name.all & " both as a "
-            & Kind_Name (FI.Kind) & " and as a "
+           ("Trying to use "
+            & FI.Simple_Name.all
+            & " both as a "
+            & Kind_Name (FI.Kind)
+            & " and as a "
             & Kind_Name (Kind));
       end if;
    end Consolidate_File_Kind;
@@ -1714,7 +1722,7 @@ package body Files_Table is
 
    function Is_Multistatement_Line (Sloc : Source_Location) return Boolean is
       LI : constant Line_Info_Access :=
-             Get_Line (Get_File (Sloc.Source_File), Sloc.L.Line);
+        Get_Line (Get_File (Sloc.Source_File), Sloc.L.Line);
    begin
       if LI = null then
          return False;
@@ -1774,14 +1782,10 @@ package body Files_Table is
    ----------
 
    procedure Open
-     (File    : in out File_Type;
-      FI      : File_Info_Access;
-      Success : out Boolean)
+     (File : in out File_Type; FI : File_Info_Access; Success : out Boolean)
    is
       procedure Try_Open
-        (File    : in out File_Type;
-         Name    : String;
-         Success : out Boolean);
+        (File : in out File_Type; Name : String; Success : out Boolean);
       --  Try to open Name, with no rebase/search information. If it fails,
       --  set Success to False; otherwise, set it to True and return the
       --  handle in File.
@@ -1806,13 +1810,13 @@ package body Files_Table is
 
       Name : String_Access;
 
-   --  Start of processing for Open
+      --  Start of processing for Open
 
    begin
       Files_Table_Trace.Trace ("Open FILE : " & FI.Simple_Name.all);
       if FI.Preserved_Full_Name /= null then
-         Files_Table_Trace.Trace ("   Full name "
-                                  & FI.Preserved_Full_Name.all);
+         Files_Table_Trace.Trace
+           ("   Full name " & FI.Preserved_Full_Name.all);
       end if;
 
       if not FI.Has_Source then
@@ -1843,14 +1847,12 @@ package body Files_Table is
 
             FI.Full_Name :=
               Build_Filename
-                (Ada.Directories.Current_Directory,
-                 FI.Simple_Name.all);
+                (Ada.Directories.Current_Directory, FI.Simple_Name.all);
          else
             --  If previous attempt failed, try again to locate the source file
             --  with the help of the project manager
 
-            FI.Full_Name :=
-              Project.Find_Source_File (FI.Simple_Name.all);
+            FI.Full_Name := Project.Find_Source_File (FI.Simple_Name.all);
             if FI.Full_Name /= null then
                Try_Open (File, FI.Full_Name.all, Success);
                if not Success then
@@ -1902,9 +1904,10 @@ package body Files_Table is
          while E /= null loop
             GNAT.Regpat.Match (E.Old_Prefix.all, Name, Match_Res);
             if Match_Res (0) /= GNAT.Regpat.No_Match then
-               Candidate := Create
-                 (+(E.New_Prefix.all
-                    & Name (Match_Res (0).Last + 1 .. Name'Last)));
+               Candidate :=
+                 Create
+                   (+(E.New_Prefix.all
+                      & Name (Match_Res (0).Last + 1 .. Name'Last)));
                if Candidate.Is_Readable then
                   return Candidate;
                end if;
@@ -1975,8 +1978,8 @@ package body Files_Table is
    -------------------------------
 
    function Writeable_Sloc_To_SCO_Map
-     (Index : Source_File_Index;
-      Kind  : SCO_Kind) return access Sloc_To_SCO_Maps.Map
+     (Index : Source_File_Index; Kind : SCO_Kind)
+      return access Sloc_To_SCO_Maps.Map
    is
       FI : constant File_Info_Access := Get_File (Index);
    begin
@@ -1991,8 +1994,8 @@ package body Files_Table is
    ---------------------
 
    function Sloc_To_SCO_Map
-     (Index : Source_File_Index;
-      Kind  : SCO_Kind) return access constant Sloc_To_SCO_Maps.Map is
+     (Index : Source_File_Index; Kind : SCO_Kind)
+      return access constant Sloc_To_SCO_Maps.Map is
    begin
       if Get_File (Index).Kind = Source_File then
          return Writeable_Sloc_To_SCO_Map (Index, Kind);
@@ -2006,15 +2009,14 @@ package body Files_Table is
    --------------------------
 
    procedure Populate_Annotations
-     (FI   : Source_File_Index;
-      Kind : ALI_Region_Annotation_Kind)
+     (FI : Source_File_Index; Kind : ALI_Region_Annotation_Kind)
    is
       use ALI_Annotation_Maps;
       Info : File_Info renames Files_Table (FI).all;
 
       Current_Line_Num : Natural := Info.Lines.First_Index;
 
-      Last_Line_Num    : Natural := Info.Lines.Last_Index;
+      Last_Line_Num : Natural := Info.Lines.Last_Index;
       --  Refers to the last line number on which there are SCOs. This may be
       --  expanded later if we find that there are exemption annotations past
       --  this line.
@@ -2029,11 +2031,11 @@ package body Files_Table is
 
       Start_Annotation : constant Src_Annotation_Kind :=
         (case Kind is
-            when Exemption        => Exempt_On,
-            when Disable_Coverage => Cov_Off);
+           when Exemption        => Exempt_On,
+           when Disable_Coverage => Cov_Off);
 
-      function Annotation_In_File (Cur : Cursor) return Boolean is
-        (Has_Element (Cur) and then Key (Cur).Source_File = FI);
+      function Annotation_In_File (Cur : Cursor) return Boolean
+      is (Has_Element (Cur) and then Key (Cur).Source_File = FI);
       --  Returns whether the annotation represented by Cur is in the same file
       --  as FI.
 
@@ -2083,9 +2085,9 @@ package body Files_Table is
          --  we won't process are lines without SCOs in them.
 
          if Current_Line_Num > Last_Line_Num then
-            exit when not
-              (Current_Annotation.Kind = Start_Annotation
-               and then Annotation_In_File (Next_Annot_Cur));
+            exit when
+              not (Current_Annotation.Kind = Start_Annotation
+                   and then Annotation_In_File (Next_Annot_Cur));
             Last_Line_Num := Key (Next_Annot_Cur).L.Line;
             Expand_Line_Table (FI, Last_Line_Num);
          end if;
@@ -2096,13 +2098,13 @@ package body Files_Table is
 
          if Current_Annotation.Kind = Start_Annotation then
             case Kind is
-               when Exemption =>
-                  Info.Lines.Element
-                    (Current_Line_Num).all.Exemption := Current_Annot_Sloc;
+               when Exemption        =>
+                  Info.Lines.Element (Current_Line_Num).all.Exemption :=
+                    Current_Annot_Sloc;
 
                when Disable_Coverage =>
-                  Info.Lines.Element
-                    (Current_Line_Num).all.Disabled_Cov := Current_Annot_Sloc;
+                  Info.Lines.Element (Current_Line_Num).all.Disabled_Cov :=
+                    Current_Annot_Sloc;
             end case;
          else
             exit when not Annotation_In_File (Next_Annot_Cur);
@@ -2136,8 +2138,9 @@ package body Files_Table is
       if Object_Coverage_Enabled then
          return File.Has_Object_Coverage_Info;
       else
-         return File.Kind = Source_File
-                and then File.Ignore_Status in Sometimes | Never;
+         return
+           File.Kind = Source_File
+           and then File.Ignore_Status in Sometimes | Never;
       end if;
    end To_Display;
 
@@ -2150,8 +2153,8 @@ package body Files_Table is
       if File.Full_Name /= null then
          Outputs.Warn ("can't open " & File.Full_Name.all);
       else
-         Outputs.Warn ("can't find " & File.Simple_Name.all
-                       & " in source path");
+         Outputs.Warn
+           ("can't find " & File.Simple_Name.all & " in source path");
       end if;
    end Warn_File_Missing;
 
@@ -2258,8 +2261,10 @@ package body Files_Table is
       begin
          while Current_LI_Chunk /= null loop
             Next := Current_LI_Chunk.Previous_Chunk;
-            for LI of Current_LI_Chunk.Lines
-              (Current_LI_Chunk.Lines'First .. Current_LI_Chunk_Next_Line - 1)
+            for LI of
+              Current_LI_Chunk.Lines
+                (Current_LI_Chunk.Lines'First
+                 .. Current_LI_Chunk_Next_Line - 1)
             loop
                Free (LI.Obj_Infos);
                Free (LI.SCOs);
@@ -2284,8 +2289,9 @@ package body Files_Table is
      (CLS                  : in out Checkpoint_Load_State;
       Ignored_Source_Files : access GNAT.Regexp.Regexp)
    is
-      pragma Assert
-        (CLS.Purpose = Instrumentation or else Ignored_Source_Files = null);
+      pragma
+        Assert
+          (CLS.Purpose = Instrumentation or else Ignored_Source_Files = null);
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
 
       --  1) Read header
@@ -2302,8 +2308,10 @@ package body Files_Table is
          case Kind is
             when Stub_File =>
                null;
+
             when Library_File =>
                Main_Source : Source_File_Index;
+
             when Source_File =>
                Ignore_Status : Any_Ignore_Status;
                Unit          : Owning_Unit;
@@ -2349,9 +2357,10 @@ package body Files_Table is
          begin
             Set_SFI_Simple_Name (Relocs, CP_SFI, +Simple_Name);
             case Kind is
-               when Stub_File =>
+               when Stub_File    =>
                   FE := (Kind => Stub_File, others => <>);
-               when Source_File =>
+
+               when Source_File  =>
                   FE := (Kind => Source_File, others => <>);
 
                   FE.Unit := (Known => False);
@@ -2361,10 +2370,10 @@ package body Files_Table is
                   begin
                      if Unit_Known then
                         FE.Unit :=
-                          (Known => True,
-                           Name  => CLS.Read_Compilation_Unit);
+                          (Known => True, Name => CLS.Read_Compilation_Unit);
                      end if;
                   end;
+
                when Library_File =>
                   FE := (Kind => Library_File, others => <>);
                   FE.Main_Source := CLS.Read_SFI;
@@ -2386,23 +2395,29 @@ package body Files_Table is
             if FE.Name /= null
               and then FE.Kind = Source_File
               and then Ignored_Source_Files /= null
-              and then GNAT.Regexp.Match (+Create (+FE.Name.all).Base_Name,
-                                          Ignored_Source_Files.all)
+              and then GNAT.Regexp.Match
+                         (+Create (+FE.Name.all).Base_Name,
+                          Ignored_Source_Files.all)
             then
                Files_Table_Trace.Trace
-                 ("Ignored SFI from SID file:" & CP_SFI'Image
-                  & " (" & FE.Name.all & ")");
+                 ("Ignored SFI from SID file:"
+                  & CP_SFI'Image
+                  & " ("
+                  & FE.Name.all
+                  & ")");
                Ignore_SFI (Relocs, CP_SFI);
 
                --  Still insert this source file in the files table to keep
                --  track of all the files that were ignored.
 
                if FE.Indexed_Simple_Name then
-                  SFI := Get_Index_From_Generic_Name
-                     (FE.Name.all, FE.Kind, Indexed_Simple_Name => True);
+                  SFI :=
+                    Get_Index_From_Generic_Name
+                      (FE.Name.all, FE.Kind, Indexed_Simple_Name => True);
                else
-                  SFI := Get_Index_From_Full_Name
-                     (FE.Name.all, FE.Kind, Indexed_Simple_Name => False);
+                  SFI :=
+                    Get_Index_From_Full_Name
+                      (FE.Name.all, FE.Kind, Indexed_Simple_Name => False);
                end if;
 
                --  But mark it as always ignored
@@ -2424,7 +2439,7 @@ package body Files_Table is
                   declare
                      Main_Entry : File_Entry renames
                        CP_Entries (FE.Main_Source);
-                     Main_SFI         : constant Source_File_Index :=
+                     Main_SFI   : constant Source_File_Index :=
                        Get_Index_From_Generic_Name
                          (Name   => Main_Entry.Name.all,
                           Kind   => Source_File,
@@ -2445,11 +2460,13 @@ package body Files_Table is
                   --  when a relative ALI file path is passed to --scos=.
 
                   if FE.Indexed_Simple_Name then
-                     SFI := Get_Index_From_Generic_Name
-                        (FE.Name.all, FE.Kind, Indexed_Simple_Name => True);
+                     SFI :=
+                       Get_Index_From_Generic_Name
+                         (FE.Name.all, FE.Kind, Indexed_Simple_Name => True);
                   else
-                     SFI := Get_Index_From_Full_Name
-                        (FE.Name.all, FE.Kind, Indexed_Simple_Name => False);
+                     SFI :=
+                       Get_Index_From_Full_Name
+                         (FE.Name.all, FE.Kind, Indexed_Simple_Name => False);
                   end if;
                end if;
 
@@ -2463,8 +2480,12 @@ package body Files_Table is
 
                Set_SFI_Map (Relocs, CP_SFI, SFI);
                Files_Table_Trace.Trace
-                 ("Remap " & FE.Name.all & ":" & CP_SFI'Img
-                  & " ->" & Remap_SFI (Relocs, CP_SFI)'Img);
+                 ("Remap "
+                  & FE.Name.all
+                  & ":"
+                  & CP_SFI'Img
+                  & " ->"
+                  & Remap_SFI (Relocs, CP_SFI)'Img);
             end if;
          end;
       end loop;
@@ -2477,18 +2498,18 @@ package body Files_Table is
          if not SFI_Ignored (Relocs, CP_SFI) then
             declare
                FE : File_Entry renames CP_Entries (CP_SFI);
-               FI : File_Info renames Get_File
-                 (Remap_SFI (Relocs, CP_SFI)).all;
+               FI : File_Info renames
+                 Get_File (Remap_SFI (Relocs, CP_SFI)).all;
             begin
                case FE.Kind is
-               when Stub_File | Source_File =>
-                  null;
+                  when Stub_File | Source_File =>
+                     null;
 
-               when Library_File =>
-                  if FE.Main_Source /= No_Source_File then
-                     FI.Main_Source := FE.Main_Source;
-                     Remap_SFI (Relocs, FI.Main_Source);
-                  end if;
+                  when Library_File            =>
+                     if FE.Main_Source /= No_Source_File then
+                        FI.Main_Source := FE.Main_Source;
+                        Remap_SFI (Relocs, FI.Main_Source);
+                     end if;
                end case;
             end;
          end if;
@@ -2505,19 +2526,17 @@ package body Files_Table is
    -- LLVM_JSON_Load --
    --------------------
 
-   procedure LLVM_JSON_Load
-     (Ckpt : access constant LLVM_Coverage_Ckpt)
-   is
+   procedure LLVM_JSON_Load (Ckpt : access constant LLVM_Coverage_Ckpt) is
    begin
       LLVM_Trace.Trace ("Files_Table.LLVM_JSON_Load");
 
       for File_Report of Ckpt.File_Reports loop
          declare
             SFI : constant Source_File_Index :=
-               Get_Index_From_Full_Name (+File_Report.Filename, Source_File);
-            CU : Compilation_Unit;
+              Get_Index_From_Full_Name (+File_Report.Filename, Source_File);
+            CU  : Compilation_Unit;
          begin
-            CU.Language  := File_Based_Language;
+            CU.Language := File_Based_Language;
             CU.Unit_Name := File_Report.Filename;
             Consolidate_Ignore_Status (SFI, Never);
             Consolidate_Source_File_Unit (SFI, CU);
@@ -2530,8 +2549,7 @@ package body Files_Table is
    ------------------------
 
    procedure Postprocess_Source
-     (Preprocessed_Filename  : String;
-      Postprocessed_Filename : String)
+     (Preprocessed_Filename : String; Postprocessed_Filename : String)
    is
       Preprocessed_File  : Ada.Text_IO.File_Type;
       Postprocessed_File : Ada.Text_IO.File_Type;

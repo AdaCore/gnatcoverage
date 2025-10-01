@@ -18,7 +18,7 @@
 
 with Ada.Characters.Handling;
 with Ada.Integer_Text_IO;
-with Ada.Text_IO;           use Ada.Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 
 with Hex_Images;   use Hex_Images;
 with Traces_Disa;  use Traces_Disa;
@@ -64,8 +64,8 @@ package body Annotations.Html is
       --  Prefix to use for titles in generated HTML documents
    end record;
 
-   overriding function Format
-     (Pp : Html_Pretty_Printer) return Annotation_Format_Family
+   overriding
+   function Format (Pp : Html_Pretty_Printer) return Annotation_Format_Family
    is (Annotate_Html);
 
    ------------------------------------------------
@@ -88,8 +88,7 @@ package body Annotations.Html is
       Info     : Line_Info_Access;
       Line     : String);
 
-   procedure Pretty_Print_End_Line
-     (Pp : in out Html_Pretty_Printer);
+   procedure Pretty_Print_End_Line (Pp : in out Html_Pretty_Printer);
 
    procedure Pretty_Print_Start_Symbol
      (Pp     : in out Html_Pretty_Printer;
@@ -106,8 +105,7 @@ package body Annotations.Html is
       Sym      : Symbolizer'Class);
 
    procedure Pretty_Print_Message
-     (Pp    : in out Html_Pretty_Printer;
-      M     : Message);
+     (Pp : in out Html_Pretty_Printer; M : Message);
 
    procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer);
 
@@ -133,17 +131,14 @@ package body Annotations.Html is
    -------------------------------
 
    procedure Print_Coverage_Header
-     (F             : in out File_Type;
-      Key_Name      : String;
-      Display_Keys  : Boolean);
+     (F : in out File_Type; Key_Name : String; Display_Keys : Boolean);
    --  Print the first line of a HTML table that lists some coverage stats;
    --  that is to say, a table line with a short description of each field.
    --  Key_Name is the name of the keys of this table (e.g. file names).
    --  If Display_Keys, Index_Name will be displayed in the first column.
 
    procedure Print_Coverage_Stats
-     (F     : in out File_Type;
-      Stats : Li_Stat_Array);
+     (F : in out File_Type; Stats : Li_Stat_Array);
    --  Put the datas of Stats as HTML table cells ("<td>") in F.
 
    -----------------------
@@ -151,7 +146,7 @@ package body Annotations.Html is
    -----------------------
 
    procedure Generate_Css_File is
-      F   : File_Type;
+      F : File_Type;
 
       procedure Put_State_Color (S : Any_Line_State; Color : String);
       --  Set line color for state S
@@ -162,44 +157,52 @@ package body Annotations.Html is
 
       procedure Put_State_Color (S : Any_Line_State; Color : String) is
       begin
-         Put_Line (F,
-           "tr." & S'Img & ", " &
-           "td.SumBar" & S'Img & " { background-color: " & Color & "; }");
+         Put_Line
+           (F,
+            "tr."
+            & S'Img
+            & ", "
+            & "td.SumBar"
+            & S'Img
+            & " { background-color: "
+            & Color
+            & "; }");
       end Put_State_Color;
 
       CSS : constant Strings_Arr :=
-        (
-         new S'("table.SumTable, table.TotalTable, table.TracesFiles "
-                & "{ margin-left:10%; width:80%; }"),
+        (new S'
+           ("table.SumTable, table.TotalTable, table.TracesFiles "
+            & "{ margin-left:10%; width:80%; }"),
          new S'("tr.notice { background-color: #80ff80; }"),
          new S'("tr.error { background-color: red; }"),
          new S'("tr.warning { background-color: orange; }"),
          new S'("tr.NO_CODE_odd { }"),
          new S'("tr.NO_CODE_even { background-color: #f0f0f0; }"),
-         new S'("td.SumHead, td.SumFile, td.SumNoFile, td.SumBar, "
-                & "td.SumPercent, td.SumLineCov, td.SumTotal, "
-                & "table.TracesFiles td"
-                & "{ background-color: #B0C4DE; }"),
+         new S'
+           ("td.SumHead, td.SumFile, td.SumNoFile, td.SumBar, "
+            & "td.SumPercent, td.SumLineCov, td.SumTotal, "
+            & "table.TracesFiles td"
+            & "{ background-color: #B0C4DE; }"),
          new S'("td.SumHead, tr.Head td { color: white; }"),
          new S'("td.SumFile { color: green; }"),
          new S'("td.SumNoFile { color: grey; }"),
          new S'("td.SumPercent, td.SumLineCov { text-align: right; }"),
-         new S'("table.LegendTable "
-                & "{ margin-left:10%; width:80%; text-align: center; }"),
-         new S'("table.SourceFile td pre { margin: 0; }")
-         );
+         new S'
+           ("table.LegendTable "
+            & "{ margin-left:10%; width:80%; text-align: center; }"),
+         new S'("table.SourceFile td pre { margin: 0; }"));
 
    begin
       Create_Output_File (F, "xcov.css");
       Put (F, CSS);
-      Put_State_Color (Covered,                        "#80FF80");
-      Put_State_Color (Partially_Covered,              "orange");
-      Put_State_Color (Not_Covered,                    "red");
-      Put_State_Color (Not_Coverable,                  "#000000");
-      Put_State_Color (Undetermined_Coverage,          "#808080");
-      Put_State_Color (Exempted_With_Violation,        "#CCCCCC");
+      Put_State_Color (Covered, "#80FF80");
+      Put_State_Color (Partially_Covered, "orange");
+      Put_State_Color (Not_Covered, "red");
+      Put_State_Color (Not_Coverable, "#000000");
+      Put_State_Color (Undetermined_Coverage, "#808080");
+      Put_State_Color (Exempted_With_Violation, "#CCCCCC");
       Put_State_Color (Exempted_With_Undetermined_Cov, "#C0C0C0");
-      Put_State_Color (Exempted_No_Violation,          "#5CB3FF");
+      Put_State_Color (Exempted_No_Violation, "#5CB3FF");
       Close (F);
    exception
       when Name_Error =>
@@ -267,11 +270,15 @@ package body Annotations.Html is
 
       procedure Print_Bar_Legend (S : Any_Line_State) is
       begin
-         Pi ("      <td class=""SumBar" & S'Img & """ width=""25%"">"
-               & S'Img & "</td>");
+         Pi
+           ("      <td class=""SumBar"
+            & S'Img
+            & """ width=""25%"">"
+            & S'Img
+            & "</td>");
       end Print_Bar_Legend;
 
-   --  Start of processing for Pretty_Print_Finish
+      --  Start of processing for Pretty_Print_Finish
 
    begin
       Pi ("  </table>");
@@ -356,9 +363,7 @@ package body Annotations.Html is
    -- Pretty_Print_End_Line --
    ---------------------------
 
-   procedure Pretty_Print_End_Line
-     (Pp : in out Html_Pretty_Printer)
-   is
+   procedure Pretty_Print_End_Line (Pp : in out Html_Pretty_Printer) is
    begin
       if Pp.Show_Line_Details then
          Plh (Pp, "    </table></td>");
@@ -381,17 +386,16 @@ package body Annotations.Html is
       Wrh (Pp, "      <tr class=""");
 
       case State is
-         when Unknown =>
+         when Unknown                          =>
             raise Program_Error;
 
-         when Not_Covered =>
+         when Not_Covered                      =>
             Wrh (Pp, "not_covered");
 
-         when Covered | Both_Taken =>
+         when Covered | Both_Taken             =>
             Wrh (Pp, "covered");
 
-         when Branch_Taken
-           | Fallthrough_Taken =>
+         when Branch_Taken | Fallthrough_Taken =>
             Wrh (Pp, "partially_covered");
       end case;
 
@@ -415,8 +419,7 @@ package body Annotations.Html is
    --------------------------
 
    procedure Pretty_Print_Message
-     (Pp : in out Html_Pretty_Printer;
-      M  : Message)
+     (Pp : in out Html_Pretty_Printer; M : Message)
    is
       use Ada.Characters.Handling;
    begin
@@ -452,8 +455,7 @@ package body Annotations.Html is
          Create_Output_File (Pp.Index_File, "index.html");
       exception
          when Ada.Text_IO.Name_Error =>
-            Put_Line (Standard_Error,
-                      "cannot open index.html");
+            Put_Line (Standard_Error, "cannot open index.html");
             raise;
       end;
 
@@ -461,16 +463,17 @@ package body Annotations.Html is
 
       Pi ("<html lang=""en"">");
       Pi ("<head>");
-      Pi ("  <title>" & (+Pp.Title_Prefix)
-          & "Coverage results</title>");
+      Pi ("  <title>" & (+Pp.Title_Prefix) & "Coverage results</title>");
       Pi ("  <link rel=""stylesheet"" type=""text/css"" href=""xcov.css"">");
       Pi ("</head>");
       Pi ("<body>");
       Pi ("<div id=""top"">");
       Pi ("<h4 align=""right""><a href=""#help""> help </a></h4>");
       Pi ("<h1 align=""center"">GNATcoverage report</h1>");
-      Pi ("<h2 align=""center"">Coverage level: "
-            & Coverage_Option_Value & "</h2>");
+      Pi
+        ("<h2 align=""center"">Coverage level: "
+         & Coverage_Option_Value
+         & "</h2>");
 
       Pi ("</div>");
 
@@ -556,13 +559,14 @@ package body Annotations.Html is
       Output_Filename        : constant String :=
         Get_Unique_Filename (File, "html");
 
-   --  Start of processing for Pretty_Print_File
+      --  Start of processing for Pretty_Print_File
 
    begin
       Skip := True;
 
       --  Add a line in index
-      Pi ("    <tr>"); Ni;
+      Pi ("    <tr>");
+      Ni;
 
       --  First column: file name
       if Info.Full_Name /= null then
@@ -572,16 +576,22 @@ package body Annotations.Html is
       end if;
 
       if Info.Has_Source then
-         Pi (" class=""SumFile""><a href=""" & Output_Filename & """ >"
-               & Simple_Source_Filename & "</a>");
+         Pi
+           (" class=""SumFile""><a href="""
+            & Output_Filename
+            & """ >"
+            & Simple_Source_Filename
+            & "</a>");
       else
          Pi (" class=""SumNoFile"">" & Simple_Source_Filename);
       end if;
-      Pi ("</td>"); Ni;
+      Pi ("</td>");
+      Ni;
 
       --  Rest of line: coverage stats
       Print_Coverage_Stats (Pp.Index_File, Info.Li_Stats);
-      Pi ("    </tr>"); Ni;
+      Pi ("    </tr>");
+      Ni;
 
       --  Do not try to process files whose source is not available.
       if not Info.Has_Source then
@@ -592,8 +602,7 @@ package body Annotations.Html is
          Create_Output_File (Pp.Html_File, Output_Filename);
       exception
          when Ada.Text_IO.Name_Error =>
-            Put_Line (Standard_Error,
-                      "cannot open " & Output_Filename);
+            Put_Line (Standard_Error, "cannot open " & Output_Filename);
             return;
       end;
 
@@ -601,14 +610,23 @@ package body Annotations.Html is
 
       Plh (Pp, "<html lang=""en"">");
       Plh (Pp, "<head>");
-      Plh (Pp, "  <title>" & (+Pp.Title_Prefix) & "Coverage of "
-                & To_Xml_String (Simple_Source_Filename) & "</title>");
-      Plh (Pp, "  <link rel=""stylesheet"" type=""text/css"" "
-             & "href=""xcov.css"">");
+      Plh
+        (Pp,
+         "  <title>"
+         & (+Pp.Title_Prefix)
+         & "Coverage of "
+         & To_Xml_String (Simple_Source_Filename)
+         & "</title>");
+      Plh
+        (Pp,
+         "  <link rel=""stylesheet"" type=""text/css"" "
+         & "href=""xcov.css"">");
 
       if Pp.Show_Details then
-         Plh (Pp, "  <script language=""JavaScript"" "
-                & "type=""text/javascript"">");
+         Plh
+           (Pp,
+            "  <script language=""JavaScript"" "
+            & "type=""text/javascript"">");
          Plh (Pp, "    function flip(atr) {");
          Plh (Pp, "      var details = atr.nextSibling.nextSibling;");
          Plh (Pp, "      if (details.style.display == ""none"")");
@@ -623,8 +641,11 @@ package body Annotations.Html is
       Plh (Pp, "<body>");
       Plh (Pp, "<h4 align=""right""><a href=""index.html""> index </a></h4>");
       Plh (Pp, "<h1 align=""center"">" & Simple_Source_Filename & "</h1>");
-      Plh (Pp, "<h2 align=""center"">Coverage level: "
-             & Coverage_Option_Value & "</h2>");
+      Plh
+        (Pp,
+         "<h2 align=""center"">Coverage level: "
+         & Coverage_Option_Value
+         & "</h2>");
 
       Plh (Pp, "<hr/>");
 
@@ -635,8 +656,9 @@ package body Annotations.Html is
 
       Plh (Pp, "<hr/>");
 
-      Plh (Pp, "<table width=""100%"" cellpadding=""0"" "
-           & "class=""SourceFile"">");
+      Plh
+        (Pp,
+         "<table width=""100%"" cellpadding=""0"" " & "class=""SourceFile"">");
    end Pretty_Print_Start_File;
 
    -----------------------------
@@ -666,25 +688,34 @@ package body Annotations.Html is
 
       Wrh (Pp, """ title=""");
       case State is
-         when Not_Covered =>
+         when Not_Covered                    =>
             Wrh (Pp, "code not covered");
-         when Partially_Covered =>
+
+         when Partially_Covered              =>
             Wrh (Pp, "code partially covered");
-         when Covered =>
+
+         when Covered                        =>
             Wrh (Pp, "code covered");
-         when No_Code =>
+
+         when No_Code                        =>
             Wrh (Pp, "no code present");
-         when Not_Coverable =>
+
+         when Not_Coverable                  =>
             Wrh (Pp, "no code generated");
-         when Undetermined_Coverage =>
+
+         when Undetermined_Coverage          =>
             Wrh (Pp, "undetermined coverage status");
-         when Exempted_With_Violation =>
+
+         when Exempted_With_Violation        =>
             Wrh (Pp, "exempted, violation present");
+
          when Exempted_With_Undetermined_Cov =>
             Wrh (Pp, "exempted, undetermined coverage item present");
-         when Exempted_No_Violation =>
+
+         when Exempted_No_Violation          =>
             Wrh (Pp, "exempted, no violation");
-         when Disabled_Coverage =>
+
+         when Disabled_Coverage              =>
             Wrh (Pp, "coverage disabled");
       end case;
 
@@ -730,7 +761,7 @@ package body Annotations.Html is
       State  : Line_State)
    is
       pragma Unreferenced (State);
-      Label  : constant String := "<" & Name & "+" & Hex_Image (Offset) & ">:";
+      Label : constant String := "<" & Name & "+" & Hex_Image (Offset) & ">:";
    begin
       Plh (Pp, "      <tr>");
       Wrh (Pp, "        <td><pre>");
@@ -744,49 +775,40 @@ package body Annotations.Html is
    ---------------------------
 
    procedure Print_Coverage_Header
-     (F             : in out File_Type;
-      Key_Name      : String;
-      Display_Keys  : Boolean) is
+     (F : in out File_Type; Key_Name : String; Display_Keys : Boolean) is
    begin
       Put_Line (F, "    <tr>");
 
       if Display_Keys then
-         Put_Line (F, "      <td class=""SumHead"">"
-              & Key_Name & "</td>");
+         Put_Line (F, "      <td class=""SumHead"">" & Key_Name & "</td>");
       end if;
 
       Put_Line
         (F, "      <td class=""SumHead""> total lines of relevance</td>");
-      Put_Line
-        (F, "      <td class=""SumHead""> fully covered</td>");
-      Put_Line
-        (F, "      <td class=""SumHead""> partially covered</td>");
-      Put_Line
-        (F, "      <td class=""SumHead""> not covered</td>");
-      Put_Line
-        (F, "      <td class=""SumHead""> exempted, no violation</td>");
+      Put_Line (F, "      <td class=""SumHead""> fully covered</td>");
+      Put_Line (F, "      <td class=""SumHead""> partially covered</td>");
+      Put_Line (F, "      <td class=""SumHead""> not covered</td>");
+      Put_Line (F, "      <td class=""SumHead""> exempted, no violation</td>");
       Put_Line
         (F, "      <td class=""SumHead""> exempted, violation present</td>");
       Put_Line
-        (F, "      <td class=""SumHead""> exempted, with undetermined coverage"
-            & " present</td>");
+        (F,
+         "      <td class=""SumHead""> exempted, with undetermined coverage"
+         & " present</td>");
       if Switches.Excluded_SCOs then
          Put_Line (F, "      <td class=""SumHead""> not coverable</td>");
       end if;
       Put_Line (F, "      <td class=""SumHead"">undetermined coverage</td>");
-      Put_Line
-        (F, "      <td class=""SumHead""> visual summary </td>");
+      Put_Line (F, "      <td class=""SumHead""> visual summary </td>");
 
-      Put_Line  (F, "    </tr>");
+      Put_Line (F, "    </tr>");
    end Print_Coverage_Header;
 
    --------------------------
    -- Print_Coverage_Stats --
    --------------------------
 
-   procedure Print_Coverage_Stats
-     (F     : in out File_Type;
-      Stats : Li_Stat_Array)
+   procedure Print_Coverage_Stats (F : in out File_Type; Stats : Li_Stat_Array)
    is
       use Ada.Integer_Text_IO;
 
@@ -839,7 +861,7 @@ package body Annotations.Html is
          Put (F, "</td>");
       end Print_Ratio;
 
-   --  Start of processing for Print_Coverage_Stats
+      --  Start of processing for Print_Coverage_Stats
 
    begin
       --  Total lines
@@ -870,8 +892,10 @@ package body Annotations.Html is
 
       Put (F, "      <td class=""SumBar"" align=""center"" width=""10%"">");
 
-      Put (F, "        <table border=""0"" cellspacing=""0"" "
-             & "class=""BarGraph""><tr height=""10"">");
+      Put
+        (F,
+         "        <table border=""0"" cellspacing=""0"" "
+         & "class=""BarGraph""><tr height=""10"">");
 
       if Total /= 0 then
          Print_Bar (Covered);

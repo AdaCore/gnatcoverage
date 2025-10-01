@@ -17,12 +17,12 @@
 ------------------------------------------------------------------------------
 
 with System;
-with Interfaces; use Interfaces;
+with Interfaces;  use Interfaces;
 with Ada.Unchecked_Conversion;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Arch;
-with Coff; use Coff;
+with Coff;         use Coff;
 with Binary_Files; use Binary_Files;
 
 package PECoff_Files is
@@ -45,8 +45,8 @@ package PECoff_Files is
    function Load_Section
      (File : PE_File; Index : Section_Index) return Loaded_Section;
 
-   function Get_Section_Name (File : PE_File; Sec : Section_Index)
-                             return String;
+   function Get_Section_Name
+     (File : PE_File; Sec : Section_Index) return String;
    --  Return the name of section SEC
 
    function Get_Scnhdr (File : PE_File; Sec : Section_Index) return Scnhdr;
@@ -65,17 +65,17 @@ private
    type PE_Scn_Arr is array (Section_Index) of Scnhdr;
    type PE_Scn_Arr_Acc is access PE_Scn_Arr;
 
-   function To_PE_Scn_Arr_Acc is new Ada.Unchecked_Conversion
-     (System.Address, PE_Scn_Arr_Acc);
+   function To_PE_Scn_Arr_Acc is new
+     Ada.Unchecked_Conversion (System.Address, PE_Scn_Arr_Acc);
 
    type PE_File is new Binary_File with record
-      Hdr        : Filehdr;
+      Hdr : Filehdr;
 
       Image_Base : Arch.Arch_Addr;
 
-      Data       : System.Address;
-      Scn        : PE_Scn_Arr_Acc;
-      Str_Off    : Unsigned_32;
+      Data    : System.Address;
+      Scn     : PE_Scn_Arr_Acc;
+      Str_Off : Unsigned_32;
    end record;
 
 end PECoff_Files;

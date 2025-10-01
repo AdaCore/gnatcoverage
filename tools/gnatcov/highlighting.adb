@@ -36,8 +36,7 @@ package body Highlighting is
    is
       Position : Natural := First + 1;
    begin
-      while Position <= Buffer.Last
-        and then Buffer.Tokens (Position) = None
+      while Position <= Buffer.Last and then Buffer.Tokens (Position) = None
       loop
          Position := Position + 1;
       end loop;
@@ -48,7 +47,8 @@ package body Highlighting is
    -- Initialize --
    ----------------
 
-   overriding procedure Initialize (Object : in out Buffer_Type) is
+   overriding
+   procedure Initialize (Object : in out Buffer_Type) is
    begin
       Object.Reset;
    end Initialize;
@@ -63,9 +63,8 @@ package body Highlighting is
    -- Start_Token --
    -----------------
 
-   procedure Start_Token
-     (Buffer : in out Buffer_Type;
-      Token : Some_Token_Kind) is
+   procedure Start_Token (Buffer : in out Buffer_Type; Token : Some_Token_Kind)
+   is
    begin
       if Buffer.Last + 1 <= Buffer.Length then
          Buffer.Tokens (Buffer.Last + 1) := Token;
@@ -88,7 +87,7 @@ package body Highlighting is
    procedure Put (Buffer : in out Buffer_Type; Str : String) is
       Available_Buf : String renames
         Buffer.Str (Buffer.Last + 1 .. Buffer.Str'Last);
-      Copy_Length : constant Natural :=
+      Copy_Length   : constant Natural :=
         Natural'Min (Str'Length, Available_Buf'Length);
    begin
       Available_Buf
@@ -120,9 +119,7 @@ package body Highlighting is
    function Next (Position : Cursor) return Cursor is
       Buffer : Buffer_Access renames Position.Buffer;
    begin
-      if Position = No_Element
-        or else Position.Last >= Buffer.Last
-      then
+      if Position = No_Element or else Position.Last >= Buffer.Last then
          return No_Element;
       else
          return

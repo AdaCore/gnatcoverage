@@ -22,10 +22,10 @@ with System; use System;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
-with Binary_Files;  use Binary_Files;
+with Binary_Files; use Binary_Files;
 
 with Elf_Common; use Elf_Common;
-with Arch; use Arch;
+with Arch;       use Arch;
 
 package Elf_Files is
    type Elf_File is new Binary_File with private;
@@ -52,19 +52,16 @@ package Elf_Files is
    function Get_Shdr_Num (File : Elf_File) return Elf_Half;
 
    --  Get a Shdr.
-   function Get_Shdr (File : Elf_File; Index : Elf_Half)
-                     return Elf_Shdr_Acc;
+   function Get_Shdr (File : Elf_File; Index : Elf_Half) return Elf_Shdr_Acc;
 
-   function Get_Shdr_Name (File : Elf_File; Index : Elf_Half)
-                          return String;
+   function Get_Shdr_Name (File : Elf_File; Index : Elf_Half) return String;
 
-   function Get_Shdr_By_Name (File : Elf_File; Name : String)
-                             return Elf_Half;
-   function Get_Shdr_By_Name (File : Elf_File; Name : String)
-                             return Elf_Shdr_Acc;
+   function Get_Shdr_By_Name (File : Elf_File; Name : String) return Elf_Half;
+   function Get_Shdr_By_Name
+     (File : Elf_File; Name : String) return Elf_Shdr_Acc;
 
-   function Get_Section_Length (File : Elf_File; Index : Section_Index)
-                               return Arch.Arch_Addr;
+   function Get_Section_Length
+     (File : Elf_File; Index : Section_Index) return Arch.Arch_Addr;
 
    --  Extract and swap bytes (if necessary) a relocation entry
    function Get_Rela (File : Elf_File; Addr : Address) return Elf_Rela;
@@ -89,7 +86,7 @@ private
    type Elf_Ehdr_Var_Acc is access all Elf_Ehdr;
 
    type Strtab_Type is record
-      Base : Strtab_Fat_Acc;
+      Base   : Strtab_Fat_Acc;
       Length : Elf_Addr;
    end record;
 
@@ -100,30 +97,30 @@ private
    type Elf_Shdr_Arr is array (Elf_Half) of aliased Elf_Shdr;
    type Elf_Shdr_Arr_Acc is access all Elf_Shdr_Arr;
 
-   function To_Elf_Shdr_Arr_Acc is new Ada.Unchecked_Conversion
-     (Address, Elf_Shdr_Arr_Acc);
+   function To_Elf_Shdr_Arr_Acc is new
+     Ada.Unchecked_Conversion (Address, Elf_Shdr_Arr_Acc);
 
-   function To_Elf_Strtab_Acc is new Ada.Unchecked_Conversion
-     (Address, Elf_Strtab_Acc);
+   function To_Elf_Strtab_Acc is new
+     Ada.Unchecked_Conversion (Address, Elf_Strtab_Acc);
 
-   function To_Elf_Ehdr_Var_Acc is new Ada.Unchecked_Conversion
-     (Address, Elf_Ehdr_Var_Acc);
+   function To_Elf_Ehdr_Var_Acc is new
+     Ada.Unchecked_Conversion (Address, Elf_Ehdr_Var_Acc);
 
-   function To_Elf_Rela_Acc is new Ada.Unchecked_Conversion
-     (Address, Elf_Rela_Acc);
+   function To_Elf_Rela_Acc is new
+     Ada.Unchecked_Conversion (Address, Elf_Rela_Acc);
 
-   function To_Strtab_Fat_Acc is new Ada.Unchecked_Conversion
-     (Address, Strtab_Fat_Acc);
+   function To_Strtab_Fat_Acc is new
+     Ada.Unchecked_Conversion (Address, Strtab_Fat_Acc);
 
-   function To_Elf_Ehdr_Acc is new Ada.Unchecked_Conversion
-     (Address, Elf_Ehdr_Acc);
+   function To_Elf_Ehdr_Acc is new
+     Ada.Unchecked_Conversion (Address, Elf_Ehdr_Acc);
 
-   function To_Elf_Shdr_Acc is new Ada.Unchecked_Conversion
-     (Address, Elf_Shdr_Acc);
+   function To_Elf_Shdr_Acc is new
+     Ada.Unchecked_Conversion (Address, Elf_Shdr_Acc);
 
    type Elf_Sym_Acc is access all Elf_Sym;
-   function To_Elf_Sym_Acc is new Ada.Unchecked_Conversion
-     (Address, Elf_Sym_Acc);
+   function To_Elf_Sym_Acc is new
+     Ada.Unchecked_Conversion (Address, Elf_Sym_Acc);
 
    type Elf_File is new Binary_File with record
       Need_Swap : Boolean;

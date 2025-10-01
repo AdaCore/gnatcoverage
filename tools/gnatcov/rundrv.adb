@@ -16,7 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Directories;  use Ada.Directories;
+with Ada.Directories; use Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Unchecked_Conversion;
 
@@ -38,11 +38,11 @@ package body Rundrv is
    package Env renames Ada.Environment_Variables;
 
    Native_Warning : constant String :=
-      "Support for coverage of non-instrumented native programs is deprecated"
-      & " and will disappear after GNATcoverage 21 releases. You are"
-      & " encouraged to migrate to instrumentation-based coverage: you can"
-      & " read more about it in our documentation:"
-      & " <http://docs.adacore.com/gnatcoverage-docs/html/gnatcov.html>";
+     "Support for coverage of non-instrumented native programs is deprecated"
+     & " and will disappear after GNATcoverage 21 releases. You are"
+     & " encouraged to migrate to instrumentation-based coverage: you can"
+     & " read more about it in our documentation:"
+     & " <http://docs.adacore.com/gnatcoverage-docs/html/gnatcov.html>";
    --  Warning to emit when running native programs
 
    Native_Warning_Envvar : constant String := "GNATCOV_NO_NATIVE_WARNING";
@@ -68,10 +68,7 @@ package body Rundrv is
       --  TODO??? Handle shared objects
 
       Context : Context_Type :=
-        (Kernel  => Kernel,
-         Histmap => Histmap,
-         Eargs   => Eargs,
-         others  => <>);
+        (Kernel => Kernel, Histmap => Histmap, Eargs => Eargs, others => <>);
       Found   : Boolean;
       Run_Cmd : Command_Type;
       Native  : Boolean;
@@ -95,8 +92,8 @@ package body Rundrv is
          Date_Info  : Trace_Info_Date;
          Date       : constant OS_Time := Current_Time;
          subtype String_8 is String (1 .. 8);
-         function Date_Info_To_Str is new Ada.Unchecked_Conversion
-           (Trace_Info_Date, String_8);
+         function Date_Info_To_Str is new
+           Ada.Unchecked_Conversion (Trace_Info_Date, String_8);
 
       begin
          Open_Exec (Exe_File, 0, Exec);
@@ -114,7 +111,8 @@ package body Rundrv is
          if not Found then
             Outputs.Error
               ("No builtin or GNATemulator execution driver found for"
-               & " target: " & Context.Target_Family.all);
+               & " target: "
+               & Context.Target_Family.all);
             return;
 
          elsif Native and then Env.Value (Native_Warning_Envvar, "") = "" then
@@ -124,13 +122,15 @@ package body Rundrv is
          --  And now create the trace file itself.
 
          Create_Trace_File (Context.Trace_File.all, Info, Trace_File);
-         Date_Info := Trace_Info_Date'(Year  => Unsigned_16 (GM_Year (Date)),
-                                       Month => Unsigned_8 (GM_Month (Date)),
-                                       Day   => Unsigned_8 (GM_Day (Date)),
-                                       Hour  => Unsigned_8 (GM_Hour (Date)),
-                                       Min   => Unsigned_8 (GM_Minute (Date)),
-                                       Sec   => Unsigned_8 (GM_Second (Date)),
-                                       Pad   => 0);
+         Date_Info :=
+           Trace_Info_Date'
+             (Year  => Unsigned_16 (GM_Year (Date)),
+              Month => Unsigned_8 (GM_Month (Date)),
+              Day   => Unsigned_8 (GM_Day (Date)),
+              Hour  => Unsigned_8 (GM_Hour (Date)),
+              Min   => Unsigned_8 (GM_Minute (Date)),
+              Sec   => Unsigned_8 (GM_Second (Date)),
+              Pad   => 0);
          Append_Info (Trace_File, Date_Time, Date_Info_To_Str (Date_Info));
          Append_Info (Trace_File, Exec_File_Name, Context.Exe_File.all);
 

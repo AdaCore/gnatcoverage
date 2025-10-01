@@ -49,7 +49,7 @@ package JSON is
    function Child_Int (Value : JSON_Value; Field : String) return Integer;
 
    function Child_String
-      (Value : JSON_Value; Field : String) return UTF8_String;
+     (Value : JSON_Value; Field : String) return UTF8_String;
 
    function Child_Array (Value : JSON_Value; Field : String) return JSON_Array;
 

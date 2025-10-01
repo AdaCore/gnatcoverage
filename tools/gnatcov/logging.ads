@@ -40,8 +40,7 @@ package Logging is
    --  enable GNATcov traces whose name is included in To_Enable.
 
    procedure Get_Configuration
-     (Verbose   : out Boolean;
-      To_Enable : out String_Vectors.Vector);
+     (Verbose : out Boolean; To_Enable : out String_Vectors.Vector);
    --  Get the arguments that were passed to Initialize
 
    procedure Print_List;

@@ -23,19 +23,14 @@ with Files_Table;  use Files_Table;
 
 package Coverage.Object is
 
-   subtype Known_Insn_State is
-     Insn_State range Not_Covered .. Insn_State'Last;
+   subtype Known_Insn_State is Insn_State range Not_Covered .. Insn_State'Last;
 
-   procedure Update_Line_State
-     (L : in out Line_State;
-      I : Known_Insn_State);
+   procedure Update_Line_State (L : in out Line_State; I : Known_Insn_State);
    --  Update a source line state with the object coverage status of one of its
    --  instructions (for reporting of object coverage as source annotations).
 
    function Get_Line_State
-     (Base  : Traces_Base;
-      First : Pc_Type;
-      Last  : Pc_Type) return Line_State;
+     (Base : Traces_Base; First : Pc_Type; Last : Pc_Type) return Line_State;
    --  Extract (from Base) the object coverage of the instruction set in
    --  range First .. Last.
 

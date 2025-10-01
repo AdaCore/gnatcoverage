@@ -34,33 +34,32 @@ package Object_Locations is
    --  user can accurately select what he wants to select.
 
    type User_Location_Kind is
-     (Sloc_Range,
-      Around_Address,
-      Address_Range,
-      Symbol);
+     (Sloc_Range, Around_Address, Address_Range, Symbol);
 
    type User_Location (Kind : User_Location_Kind) is record
       case Kind is
          when Sloc_Range =>
             Sloc_Range : Source_Location_Range;
+
          when Around_Address =>
             Address : Pc_Type;
+
          when Address_Range =>
             PC_First, PC_Last : Pc_Type;
+
          when Symbol =>
             Name : GNATCOLL.Symbols.Symbol;
       end case;
    end record;
    --  Information the user provides to match code to include into a CFG
 
-   type Proc_Location_Kind is
-     (Address_Range,
-      Sloc_Range);
+   type Proc_Location_Kind is (Address_Range, Sloc_Range);
 
    type Proc_Location (Kind : Proc_Location_Kind) is record
       case Kind is
          when Address_Range =>
             PC_First, PC_Last : Pc_Type;
+
          when Sloc_Range =>
             Sloc_Range : Source_Location_Range;
       end case;
@@ -68,18 +67,18 @@ package Object_Locations is
    --  Internal information used to match code to include into a CFG
 
    No_Proc_Location : constant Proc_Location :=
-     (Kind     => Address_Range,
-      PC_First => 1,
-      PC_Last  => 0);
+     (Kind => Address_Range, PC_First => 1, PC_Last => 0);
 
-   package User_Location_Vectors is new Ada.Containers.Indefinite_Vectors
-     (Index_Type   => Positive,
-      Element_Type => User_Location);
+   package User_Location_Vectors is new
+     Ada.Containers.Indefinite_Vectors
+       (Index_Type   => Positive,
+        Element_Type => User_Location);
    subtype User_Locations is User_Location_Vectors.Vector;
 
-   package Proc_Location_Vectors is new Ada.Containers.Indefinite_Vectors
-     (Index_Type   => Positive,
-      Element_Type => Proc_Location);
+   package Proc_Location_Vectors is new
+     Ada.Containers.Indefinite_Vectors
+       (Index_Type   => Positive,
+        Element_Type => Proc_Location);
    subtype Proc_Locations is Proc_Location_Vectors.Vector;
 
    function Parse_User_Location (S : String) return User_Location;
@@ -111,9 +110,8 @@ package Object_Locations is
    --  Translate provided user locations and add the result to Proc_Locs.
 
    function Matches_Locations
-     (Exec      : Exe_File_Acc;
-      Locations : Proc_Locations;
-      PC        : Pc_Type) return Boolean;
+     (Exec : Exe_File_Acc; Locations : Proc_Locations; PC : Pc_Type)
+      return Boolean;
    --  Return whether PC (from a section in Exec) matches any location in
    --  Locations.
 

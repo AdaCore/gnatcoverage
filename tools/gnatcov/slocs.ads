@@ -34,7 +34,7 @@ package Slocs is
       Column : Natural;
    end record;
 
-   function "<"  (L, R : Local_Source_Location) return Boolean;
+   function "<" (L, R : Local_Source_Location) return Boolean;
    function "<=" (L, R : Local_Source_Location) return Boolean;
 
    function Image (Sloc : Local_Source_Location) return String;
@@ -60,7 +60,7 @@ package Slocs is
    --  The relation is reflexive : `Contained_In (X, X)` is always true.
 
    No_Local_Range : constant Local_Source_Location_Range :=
-                      (No_Local_Location, No_Local_Location);
+     (No_Local_Location, No_Local_Location);
 
    --------------------------------------------
    -- Locations across the whole application --
@@ -71,7 +71,7 @@ package Slocs is
       L           : Local_Source_Location;
    end record;
 
-   function "<"  (L, R : Source_Location) return Boolean;
+   function "<" (L, R : Source_Location) return Boolean;
    function "<=" (L, R : Source_Location) return Boolean;
 
    No_Location : constant Source_Location :=
@@ -79,8 +79,7 @@ package Slocs is
    --  Note: No_Location must sort higher than any non-null location
 
    function Image
-     (Sloc        : Source_Location;
-      Unique_Name : Boolean := False) return String;
+     (Sloc : Source_Location; Unique_Name : Boolean := False) return String;
 
    type Source_Location_Range is record
       Source_File : Source_File_Index;
@@ -88,13 +87,13 @@ package Slocs is
    end record;
 
    No_Range : constant Source_Location_Range :=
-                (No_Source_File, No_Local_Range);
+     (No_Source_File, No_Local_Range);
 
    function "<" (L, R : Source_Location_Range) return Boolean;
 
    function To_Sloc
-     (Source_File : Source_File_Index;
-      Local_Sloc  : Local_Source_Location) return Source_Location;
+     (Source_File : Source_File_Index; Local_Sloc : Local_Source_Location)
+      return Source_Location;
    --  Return global location corresponding to the given source file and
    --  local location.
    --  Always return No_Location if Local_Sloc is No_Local_Location.
@@ -105,8 +104,8 @@ package Slocs is
    --  source file, unless either is No_Location.
 
    function In_Range
-      (Sloc       : Source_Location;
-       Sloc_Range : Source_Location_Range) return Boolean;
+     (Sloc : Source_Location; Sloc_Range : Source_Location_Range)
+      return Boolean;
    --  True if Sloc is in Sloc_Range
 
    function First_Sloc (R : Source_Location_Range) return Source_Location;
@@ -116,8 +115,8 @@ package Slocs is
 
    type Source_Locations is array (Positive range <>) of Source_Location;
 
-   function Clang_Predefined_File (Filename : String) return Boolean is
-     (Filename = "<command line>" or else Filename = "<built-in>");
+   function Clang_Predefined_File (Filename : String) return Boolean
+   is (Filename = "<command line>" or else Filename = "<built-in>");
    --  Return whether this filename represents a command-line / built-in
    --  location.
 

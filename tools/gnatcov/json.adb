@@ -54,11 +54,11 @@ package body JSON is
       Content : String_Access := File.Read_File;
    begin
       if Content = null then
-         Fatal_Error ("Could not read file '"
-                      & Display_Full_Name (File) & "'");
+         Fatal_Error
+           ("Could not read file '" & Display_Full_Name (File) & "'");
       end if;
-      return Parsed_JSON : constant Read_Result :=
-         GNATCOLL.JSON.Read (Content.all)
+      return
+         Parsed_JSON : constant Read_Result := GNATCOLL.JSON.Read (Content.all)
       do
          Free (Content);
       end return;
@@ -81,28 +81,25 @@ package body JSON is
       return Parsed_JSON.Value;
    end Read_File;
 
-  -------------------------------
-  -- JSON_Value Read Utilities --
-  -------------------------------
+   -------------------------------
+   -- JSON_Value Read Utilities --
+   -------------------------------
 
-   function Get_Child (Value : JSON_Value; Field : String)
-   return JSON_Value;
+   function Get_Child (Value : JSON_Value; Field : String) return JSON_Value;
 
-   function Get_Child (Value : JSON_Value; Field : String)
-   return JSON_Value is
+   function Get_Child (Value : JSON_Value; Field : String) return JSON_Value is
    begin
       if not Value.Has_Field (Field) then
          Fatal_Error ("Expected field '" & Field & "' is missing.");
       end if;
-         return Value.Get (Field);
+      return Value.Get (Field);
    end Get_Child;
 
    ---------------
    -- Child_Int --
    ---------------
 
-   function Child_Int (Value : JSON_Value; Field : String)
-   return Integer is
+   function Child_Int (Value : JSON_Value; Field : String) return Integer is
       Child : constant JSON_Value := Get_Child (Value, Field);
    begin
       if Child.Kind /= JSON_Int_Type then
@@ -117,8 +114,9 @@ package body JSON is
    -- Child_String --
    ------------------
 
-   function Child_String (Value : JSON_Value; Field : String)
-   return UTF8_String is
+   function Child_String
+     (Value : JSON_Value; Field : String) return UTF8_String
+   is
       Child : constant JSON_Value := Get_Child (Value, Field);
    begin
       if Child.Kind /= JSON_String_Type then
@@ -133,8 +131,8 @@ package body JSON is
    -- Child_Array --
    ------------------
 
-   function Child_Array (Value : JSON_Value; Field : String)
-   return JSON_Array is
+   function Child_Array (Value : JSON_Value; Field : String) return JSON_Array
+   is
       Child : constant JSON_Value := Get_Child (Value, Field);
    begin
       if Child.Kind /= JSON_Array_Type then
@@ -149,8 +147,8 @@ package body JSON is
    -- Array_Nth_Integer --
    -----------------------
 
-   function Array_Nth_Integer (List : JSON_Array; N : Integer)
-   return Integer is
+   function Array_Nth_Integer (List : JSON_Array; N : Integer) return Integer
+   is
       Child : constant JSON_Value := Get (List, N);
    begin
       if Child.Kind /= JSON_Int_Type then

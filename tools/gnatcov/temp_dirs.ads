@@ -48,13 +48,14 @@ private
    use Strings;
    use type Unbounded_String;
 
-   type Temporary_Directory is new Ada.Finalization.Limited_Controlled with
-   record
+   type Temporary_Directory is new Ada.Finalization.Limited_Controlled
+   with record
       Name        : Unbounded_String;
       Auto_Delete : Boolean;
    end record;
 
-   overriding procedure Finalize (Self : in out Temporary_Directory);
+   overriding
+   procedure Finalize (Self : in out Temporary_Directory);
    --  Remove the temporary directory and clean up allocated resources
 
 end Temp_Dirs;
