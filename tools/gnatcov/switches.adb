@@ -18,7 +18,6 @@
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;
-with Ada.Containers;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 
@@ -225,6 +224,8 @@ package body Switches is
         Args.String_Args (Opt_Dump_Channel);
       Manual_Dump_Files_Opt : Vector;
 
+      Auto_Trigger            : Auto_Dump_Trigger := None;
+      Manual_Trigger          : Boolean := False;
       Manual_Indication_Files : File_Sets.Set;
       --  Files containing manual indications (optional) when using the manual
       --  dump trigger.
@@ -235,7 +236,6 @@ package body Switches is
         Args.String_Args (Opt_Dump_Filename_Prefix);
 
       Dump_Channel          : Any_Dump_Channel;
-      Dump_Trigger          : Any_Dump_Trigger;
       Dump_Filename_Simple  : Boolean := False;
       Dump_Filename_Env_Var : Unbounded_String;
       Dump_Filename_Prefix  : Unbounded_String;
@@ -253,16 +253,42 @@ package body Switches is
          end;
       end if;
 
-      Dump_Trigger := Default_Dump_Config.Trigger;
-      if Args.String_Args (Opt_Dump_Trigger).Present then
+      for Arg of Args.String_List_Args (Opt_Dump_Trigger) loop
+         declare
+            Parsed_Dump_Trigger : Valid_Dump_Trigger;
          begin
+
             --  Process the dump trigger value
 
-            Dump_Trigger := Value (+Args.String_Args (Opt_Dump_Trigger).Value);
+            Parsed_Dump_Trigger := Value (+Arg);
+            case Parsed_Dump_Trigger is
+               when Valid_Auto_Dump_Trigger =>
+                  if Auto_Trigger /= None
+                    and then Parsed_Dump_Trigger /= Auto_Trigger
+                  then
+                     Fatal_Error
+                       ("Encountered --dump-trigger="
+                        & Image (Parsed_Dump_Trigger)
+                        & " after --dump-trigger="
+                        & Image (Auto_Trigger)
+                        & ". Multiple auto dump triggers are not supported.");
+                  end if;
+                  Auto_Trigger := Parsed_Dump_Trigger;
+
+               when Manual                  =>
+                  Manual_Trigger := True;
+            end case;
          exception
             when Exc : Constraint_Error =>
                Fatal_Error (Exception_Info (Exc));
          end;
+      end loop;
+
+      --  Fallback to the default dump triggers if --dump-trigger wasn't seen.
+
+      if not Manual_Trigger and then Auto_Trigger = None then
+         Manual_Trigger := Default_Dump_Config.Manual_Trigger;
+         Auto_Trigger := Default_Dump_Config.Auto_Trigger;
       end if;
 
       --  Expand manual dump files
@@ -287,7 +313,7 @@ package body Switches is
       declare
          Cur : Cursor := Manual_Dump_Files_Opt.First;
       begin
-         if Has_Element (Cur) and then Dump_Trigger /= Manual then
+         if Has_Element (Cur) and then not Manual_Trigger then
             Fatal_Error ("--manual-dump-files requires --dump-trigger=manual");
          end if;
          while Has_Element (Cur) loop
@@ -339,7 +365,8 @@ package body Switches is
             when Binary_File            =>
                Dump_Config :=
                  (Channel                 => Binary_File,
-                  Trigger                 => Dump_Trigger,
+                  Auto_Trigger            => Auto_Trigger,
+                  Manual_Trigger          => Manual_Trigger,
                   Manual_Indication_Files => Manual_Indication_Files,
                   Filename_Simple         => Dump_Filename_Simple,
                   Filename_Env_Var        => Dump_Filename_Env_Var,
@@ -348,7 +375,8 @@ package body Switches is
             when Base64_Standard_Output =>
                Dump_Config :=
                  (Channel                 => Base64_Standard_Output,
-                  Trigger                 => Dump_Trigger,
+                  Auto_Trigger            => Auto_Trigger,
+                  Manual_Trigger          => Manual_Trigger,
                   Manual_Indication_Files => Manual_Indication_Files);
          end case;
       end return;
@@ -363,20 +391,24 @@ package body Switches is
    is
       Result : String_Vectors.Vector;
    begin
-      Result.Append (+"--dump-trigger");
-      case Dump_Config.Trigger is
-         when Manual                     =>
-            Result.Append (+"manual");
+      if Dump_Config.Auto_Trigger /= None then
+         Result.Append
+           (+("--dump-trigger=" & Image (Dump_Config.Auto_Trigger)));
+      end if;
 
-         when At_Exit                    =>
-            Result.Append (+"atexit");
+      if Dump_Config.Manual_Trigger then
+         declare
+            Manual_Trigger_Str : Unbounded_String := +"--dump-trigger=manual";
+         begin
+            for Dump_File of Dump_Config.Manual_Indication_Files loop
+               Manual_Trigger_Str :=
+                 Manual_Trigger_Str & "," & Dump_File.Display_Full_Name;
+            end loop;
 
-         when Ravenscar_Task_Termination =>
-            Result.Append (+"ravenscar-task-termination");
+            Result.Append (Manual_Trigger_Str);
+         end;
+      end if;
 
-         when Main_End                   =>
-            Result.Append (+"main-end");
-      end case;
       case Dump_Config.Channel is
          when Binary_File            =>
             Result.Append (+"--dump-channel=bin-file");
@@ -798,7 +830,7 @@ package body Switches is
    -- Image --
    -----------
 
-   function Image (Dump_Trigger : Any_Dump_Trigger) return String is
+   function Image (Dump_Trigger : Valid_Dump_Trigger) return String is
    begin
       return
         (case Dump_Trigger is
@@ -820,7 +852,7 @@ package body Switches is
    -- Value --
    -----------
 
-   function Value (Dump_Trigger : String) return Any_Dump_Trigger is
+   function Value (Dump_Trigger : String) return Valid_Dump_Trigger is
    begin
       if Dump_Trigger = "manual" then
          return Manual;
