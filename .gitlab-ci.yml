@@ -324,3 +324,37 @@ test_qualkit:
       - qualrun/attachment-testsuite_tree.tgz
     reports:
       junit: xunit-*.xml
+
+# Temporary gnatcov 25 CI run, to simplify verification of the new
+# qualification tests for gnatcov 25.
+#
+# TODO: remove this when the qualification project for
+# eng/cert/projects#45 is finished.
+test_qualrun_25:
+  interruptible: true
+  services:
+    - image:pe-base
+    - cpu:16
+    - mem:16
+  stage: test
+  script:
+    - *basic_test_setup
+    # Test using gnatcov-qualrun to be able to test gnatcov 25. We don't need
+    # to produce a qualkit so skip that to keep the CI job short.
+    - anod test gnatcov-qualrun -Qgnatcov_version=25.2 --minimal -Qci $ACI_TRACK_QUALIFIER
+    - testsuite_reports
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      changes:
+        paths:
+          - "qualification/**/*"
+          - "testsuite/Qualif/**/*"
+          - "testsuite/STR/**/*"
+          - "testsuite/SCOV/**/*"
+        compare_to: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+  artifacts:
+    when: always
+    paths:
+      - xunit-*.xml
+    reports:
+      junit: xunit-*.xml
