@@ -915,7 +915,7 @@ begin
             end;
          end if;
 
-         if Instr_Config.Dump_Config.Trigger = Manual then
+         if Instr_Config.Dump_Config.Manual_Trigger then
             --  When in manual dump trigger mode, check if the current file is
             --  expected to contain a manual dump/reset indication.
 
@@ -961,7 +961,11 @@ begin
                   Instrumented_Files.Include (+Fullname);
                end if;
             end;
-         elsif Instrumenter.Has_Main (Fullname, Prj) then
+         end if;
+
+         if Instr_Config.Dump_Config.Auto_Trigger /= None
+           and then Instrumenter.Has_Main (Fullname, Prj)
+         then
             --  Then, instrument it as a main if it is one
 
             --  Pick as the trace name prefix the base name of the main

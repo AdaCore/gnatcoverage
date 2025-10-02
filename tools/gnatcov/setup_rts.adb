@@ -293,7 +293,11 @@ package body Setup_RTS is
             --  directly create source trace files, and to it automatically at
             --  process exit.
 
-            return (Channel => Binary_File, Trigger => At_Exit, others => <>);
+            return
+              (Channel        => Binary_File,
+               Manual_Trigger => False,
+               Auto_Trigger   => At_Exit,
+               others         => <>);
 
          when Embedded =>
 
@@ -304,7 +308,8 @@ package body Setup_RTS is
 
             return
               (Channel                 => Base64_Standard_Output,
-               Trigger                 =>
+               Manual_Trigger          => False,
+               Auto_Trigger            =>
                  (if GNAT.Regexp.Match (RTS, Ravenscar_RTS_Regexp)
                   then Ravenscar_Task_Termination
                   else Main_End),
@@ -319,7 +324,8 @@ package body Setup_RTS is
 
             return
               (Channel                 => Base64_Standard_Output,
-               Trigger                 => Main_End,
+               Manual_Trigger          => False,
+               Auto_Trigger            => Main_End,
                Manual_Indication_Files => File_Sets.Empty_Set);
 
       end case;
@@ -1199,6 +1205,9 @@ package body Setup_RTS is
       --  Stop with a fatal error if J does not have a Name field or if that
       --  field does not have the given kind.
 
+      function Has_Field (Name : String) return Boolean;
+      --  Return True if J contains the Name field.
+
       function Get (Name : String) return Unbounded_String;
       --  Return the Name field in J as a string. Stop with a fatal error if
       --  there is no such field or if it is not a string.
@@ -1234,6 +1243,15 @@ package body Setup_RTS is
          end if;
       end Check_Field;
 
+      ---------------
+      -- Has_Field --
+      ---------------
+
+      function Has_Field (Name : String) return Boolean is
+      begin
+         return J.Has_Field (Name);
+      end Has_Field;
+
       ---------
       -- Get --
       ---------
@@ -1255,8 +1273,9 @@ package body Setup_RTS is
       Parsed_JSON : constant Read_Result := Read (Setup_Config_File);
       Result      : Setup_Config := Default_Setup_Config;
 
-      Channel : Any_Dump_Channel;
-      Trigger : Any_Dump_Trigger;
+      Channel        : Any_Dump_Channel;
+      Manual_Trigger : Boolean := False;
+      Auto_Trigger   : Auto_Dump_Trigger := None;
 
       --  Start of processing for Load
 
@@ -1294,18 +1313,63 @@ package body Setup_RTS is
             Stop_With_Error ("invalid dump-channel field");
       end;
 
-      begin
-         Trigger := Value (+Get ("dump-trigger"));
-      exception
-         when Constraint_Error =>
-            Stop_With_Error ("invalid dump-trigger field");
-      end;
+      --  For the dump trigger, handle both the new and the old representation.
+      --
+      --  The old representation uses the "dump-trigger" field for both the
+      --  manual and automatic dump triggers.
+      --
+      --  The new representation uses a boolean in the "manual-dump-trigger"
+      --  field and a string in the "auto-dump-trigger".
+
+      if Has_Field ("dump-trigger") then
+         declare
+            Old_Dump_Trigger : Valid_Dump_Trigger;
+         begin
+            Old_Dump_Trigger := Value (+Get ("dump-trigger"));
+            case Old_Dump_Trigger is
+               when Valid_Auto_Dump_Trigger =>
+                  Auto_Trigger := Old_Dump_Trigger;
+
+               when Manual                  =>
+                  Manual_Trigger := True;
+            end case;
+         exception
+            when Constraint_Error =>
+               Stop_With_Error ("invalid dump-trigger field");
+         end;
+      else
+         if Has_Field ("auto-dump-trigger") then
+            begin
+               Auto_Trigger := Value (+Get ("auto-dump-trigger"));
+            exception
+               when Constraint_Error =>
+                  Stop_With_Error ("invalid auto-dump-trigger field");
+            end;
+         end if;
+
+         if Has_Field ("manual-dump-trigger") then
+            begin
+               Manual_Trigger := Get ("manual-dump-trigger");
+            exception
+               when Constraint_Error =>
+                  Stop_With_Error ("invalid manual-dump-trigger field");
+            end;
+         end if;
+      end if;
+
+      if Manual_Trigger = False and then Auto_Trigger = None then
+         Stop_With_Error
+           ("invalid dump trigger configuration. Either set"
+            & " 'manual-dump-trigger' to true, or"
+            & " 'auto-dump-trigger' to main-end|atexit");
+      end if;
 
       case Channel is
          when Binary_File            =>
             Result.Default_Dump_Config :=
               (Channel                 => Binary_File,
-               Trigger                 => Trigger,
+               Manual_Trigger          => Manual_Trigger,
+               Auto_Trigger            => Auto_Trigger,
                Filename_Simple         => Get ("dump-filename-simple"),
                Filename_Env_Var        => Get ("dump-filename-env-var"),
                Filename_Prefix         => Get ("dump-filename-prefix"),
@@ -1314,7 +1378,8 @@ package body Setup_RTS is
          when Base64_Standard_Output =>
             Result.Default_Dump_Config :=
               (Channel                 => Base64_Standard_Output,
-               Trigger                 => Trigger,
+               Manual_Trigger          => Manual_Trigger,
+               Auto_Trigger            => Auto_Trigger,
                Manual_Indication_Files => File_Sets.Empty_Set);
       end case;
 
@@ -1360,7 +1425,10 @@ package body Setup_RTS is
          Dump_Cfg : Any_Dump_Config renames Config.Default_Dump_Config;
       begin
          J.Set_Field ("dump-channel", Image (Dump_Cfg.Channel));
-         J.Set_Field ("dump-trigger", Image (Dump_Cfg.Trigger));
+
+         J.Set_Field ("manual-dump-trigger", Dump_Cfg.Manual_Trigger);
+         J.Set_Field ("auto-dump-trigger", Image (Dump_Cfg.Auto_Trigger));
+
          case Dump_Cfg.Channel is
             when Binary_File            =>
                J.Set_Field ("dump-filename-simple", Dump_Cfg.Filename_Simple);
@@ -1419,25 +1487,21 @@ package body Setup_RTS is
       --  other parameters may not correspond to the way the manual dump is
       --  done in user code.
 
-      if Dump_Config.Trigger = Manual then
-         return False;
-      end if;
-
       case Profile is
          when Full     =>
             Warn
-              (Dump_Config.Trigger = Ravenscar_Task_Termination,
+              (Dump_Config.Auto_Trigger = Ravenscar_Task_Termination,
                "--dump-trigger=ravenscar-task-termination");
 
          when Embedded =>
-            Warn (Dump_Config.Trigger = At_Exit, "--dump-trigger=atexit");
+            Warn (Dump_Config.Auto_Trigger = At_Exit, "--dump-trigger=atexit");
             Warn
               (Dump_Config.Channel = Binary_File, "--dump-channel=bin-file");
 
          when Minimal  =>
-            Warn (Dump_Config.Trigger = At_Exit, "--dump-trigger=atexit");
+            Warn (Dump_Config.Auto_Trigger = At_Exit, "--dump-trigger=atexit");
             Warn
-              (Dump_Config.Trigger = Ravenscar_Task_Termination,
+              (Dump_Config.Auto_Trigger = Ravenscar_Task_Termination,
                "--dump-trigger=ravenscar-task-termination");
             Warn
               (Dump_Config.Channel = Binary_File, "--dump-channel=bin-file");
