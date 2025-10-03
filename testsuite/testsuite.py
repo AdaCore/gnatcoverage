@@ -1206,7 +1206,7 @@ class TestSuite(e3.testsuite.Testsuite):
         cargs = getattr(args, attr_cargs)
 
         gnatcov_instr_ada_version = None
-        qualifiable_ada_versions = ["95", "05", "12"]
+        qualifiable_ada_versions = ["95", "05", "12", "22"]
         qav_str = "|".join(qualifiable_ada_versions)
         ada_version_match = re.search(
             r"-gnat(95|(?:20)?(?:05|12)|2022)", cargs_ada + cargs
