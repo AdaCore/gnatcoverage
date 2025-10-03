@@ -237,7 +237,7 @@ clean-adapters: $(CLEAN_ADAPTER_TARGETS)
 ################
 
 .PHONY: install-bin install-examples install install-adapters \
-	install-gnatcov_rts install-lib
+	install-gnatcov_rts install-templates install-lib
 
 install-bin:
 	$(MKDIR) $(PREFIX)/bin
@@ -278,12 +278,17 @@ install-gnatcov_rts:
 	done
 	$(MKDIR) $(PREFIX)/share/$(DIRNAME)/gnatcov_ada_rts/obj-gnatcov_rts
 
+install-templates:
+	$(MKDIR) $(PREFIX)/share/$(DIRNAME)/templates
+	$(CP) templates/* $(PREFIX)/share/$(DIRNAME)/templates
+
 install-lib:
 	$(MKDIR) $(PREFIX)/lib/gnatcoverage
 	$(CP) gnatcov-xml-report.xsd $(PREFIX)/lib/gnatcoverage
 	$(CP) cobertura.dtd $(PREFIX)/lib/gnatcoverage
 
-install-common: install-bin install-examples install-gnatcov_rts install-lib
+install-common: install-bin install-examples install-gnatcov_rts \
+	install-templates install-lib
 install-without-doc: install-common
 install: install-without-doc
 
