@@ -1,5 +1,5 @@
-DC on various decisions nested in delta aggregates
-==================================================
+SC + DC on various decisions nested in delta aggregates
+=======================================================
 
 Exercise decision coverage on decisions nested within both array and record
 delta aggregates. Check for correct handling of nested decisions within the
