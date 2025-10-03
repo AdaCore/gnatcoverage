@@ -56,7 +56,9 @@ with SCOs;
 with Slocs;
 with Snames;                              use Snames;
 with SS_Annotations;                      use SS_Annotations;
+with Support_Files;
 with Table;
+with Templates_Parser;                    use Templates_Parser;
 with Text_Files;                          use Text_Files;
 
 package body Instrument.Ada_Unit is
@@ -106,6 +108,14 @@ package body Instrument.Ada_Unit is
        else "");
    --  If ``N`` is an attribute reference, return the canonicalized name for
    --  that attribute. Return the empty string otherwise.
+
+   function Render_Template
+     (Tmplt_Name : String; T : Translate_Set) return Unbounded_String
+   is (Parse (Support_Files.In_Share_Dir ("templates/" & Tmplt_Name), T));
+   function Render_Template
+     (Tmplt_Name : String; T : Translate_Table) return Unbounded_String
+   is (Parse (Support_Files.In_Share_Dir ("templates/" & Tmplt_Name), T));
+   --  Shortcut function for rendering a template to an Unbounded_String.
 
    -------------------------------
    -- Create_Context_Instrument --
@@ -10952,18 +10962,6 @@ package body Instrument.Ada_Unit is
    is
       File : Text_Files.File_Type;
 
-      procedure Put_With (Unit : Ada_Qualified_Name);
-      --  Put a "with" context clause in File
-
-      --------------
-      -- Put_With --
-      --------------
-
-      procedure Put_With (Unit : Ada_Qualified_Name) is
-      begin
-         File.Put_Line ("with " & To_Ada (Unit) & ";");
-      end Put_With;
-
       Output_Unit, Output_Proc : Ada_Qualified_Name;
       --  Qualified names for the unit that contains the buffer output
       --  procedure, and for the procedure itself.
@@ -11002,26 +11000,33 @@ package body Instrument.Ada_Unit is
          Body_Filename : constant String :=
            To_Filename (Prj, CU_Name_For_Unit (Helper_Unit, GPR2.S_Body));
 
-         Helper_Unit_Name         : constant String := To_Ada (Helper_Unit);
-         Dump_Procedure           : constant String :=
-           To_String (Dump_Procedure_Name);
-         Dump_Procedure_Prototype : constant String :=
-           ("procedure "
-            & Dump_Procedure
-            & (if Dump_Trigger = Manual then " (Prefix : String)" else ""));
-         Reset_Procedure          : constant String :=
+         Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
+         Dump_Procedure   : constant String := To_String (Dump_Procedure_Name);
+         Reset_Procedure  : constant String :=
            To_String (Reset_Procedure_Name);
-         Output_Unit_Str          : constant String := To_Ada (Output_Unit);
-         Project_Name_Str         : constant String :=
+         Output_Unit_Str  : constant String := To_Ada (Output_Unit);
+         Project_Name_Str : constant String :=
            """" & To_Ada (Prj.Prj_Name) & """";
-         Sys_Lists                : Ada_Qualified_Name := Sys_Buffers;
+         Sys_Lists        : Ada_Qualified_Name := Sys_Buffers;
 
-         --  Indentation levels relative to the body of library-level
-         --  subprograms.
+         T : Translate_Set :=
+           Assoc ("UNIT_NAME", Helper_Unit_Name)
+           & Assoc ("DUMP_PROCEDURE", Dump_Procedure)
+           & Assoc
+               ("REGISTER_DUMP_FCT", To_String (Register_Dump_Function_Name))
+           & Assoc ("RESET_PROCEDURE", Reset_Procedure)
+           & Assoc ("WITNESS_DUMMY_TYPE", To_Ada (Witness_Dummy_Type_Name))
+           & Assoc ("MAIN_END", Dump_Trigger = Main_End)
+           & Assoc
+               ("RAVENSCAR_TASK_TERM",
+                Dump_Trigger = Ravenscar_Task_Termination)
+           & Assoc ("AT_EXIT", Dump_Trigger = At_Exit)
+           & Assoc ("MANUAL", Dump_Trigger = Manual)
+           & Assoc ("HAS_CONTROLLED", Has_Controlled)
+           & Assoc ("CHANNEL_IMG", Image (Dump_Config.Channel))
+           & Assoc ("OUTPUT_UNIT", Output_Unit_Str);
+         --  Holds the data passed to the templating engine.
 
-         Indent1 : constant String := "      ";
-         Indent2 : constant String := Indent1 & "  ";
-         Indent3 : constant String := Indent2 & "  ";
       begin
          Sys_Lists.Append (To_Unbounded_String ("Lists"));
 
@@ -11046,262 +11051,72 @@ package body Instrument.Ada_Unit is
 
          Create_File (Prj, File, Spec_Filename);
 
-         Put_Warnings_And_Style_Checks_Pragmas (File);
-         Put_With (Sys_Buffers);
-         if Dump_Trigger = Main_End and then Has_Controlled then
-            File.Put_Line ("with Ada.Finalization;");
-         end if;
-         File.Put_Line ("package " & Helper_Unit_Name & " is");
-         File.New_Line;
+         declare
+            Withed_Unit_Vec : Vector_Tag := +To_Ada (Sys_Buffers);
+         begin
+            if Dump_Trigger = Main_End and then Has_Controlled then
+               Append (Withed_Unit_Vec, "Ada.Finalization");
+            end if;
 
-         --  Make this unit preelaborated, so that it is possible to reset/dump
-         --  coverage state from preelaborated units.
+            T := T & Assoc ("WITHED_UNIT", Withed_Unit_Vec);
+         end;
 
-         File.Put_Line ("   pragma Preelaborate;");
-         File.New_Line;
-
-         --  Do not generate routines to deal with streaming attributes in this
-         --  helper unit: we do not need them, and they can bring in the
-         --  secondary stack, which may in turn violate the No_Secondary_Stack
-         --  restriction from user projects.
-
-         File.Put_Line ("   pragma No_Tagged_Streams;");
-         File.New_Line;
-
-         File.Put_Line (Indent1 & Dump_Procedure_Prototype & ";");
-
-         if Dump_Trigger = Manual then
-            File.New_Line;
-            File.Put_Line ("   procedure " & Reset_Procedure & ";");
-         else
-            File.Put_Line
-              ("   pragma Convention (C, " & Dump_Procedure & ");");
-         end if;
-         File.New_Line;
-
-         case Dump_Trigger is
-            when At_Exit | Ravenscar_Task_Termination =>
-               File.Put_Line
-                 ("   function "
-                  & To_String (Register_Dump_Function_Name)
-                  & " return "
-                  & To_Ada (Witness_Dummy_Type_Name)
-                  & ";");
-               File.New_Line;
-
-            when Main_End                             =>
-               if Has_Controlled then
-                  File.Put_Line ("   type Dump_Controlled_Type is new");
-                  File.Put_Line ("     Ada.Finalization.Limited_Controlled");
-                  File.Put_Line ("     with null record;");
-                  File.Put_Line
-                    ("   overriding procedure Finalize (Self : in"
-                     & " out Dump_Controlled_Type);");
-                  File.New_Line;
-               end if;
-
-            when Manual                               =>
-               null;
-         end case;
-
-         File.Put_Line ("end " & Helper_Unit_Name & ";");
+         File.Put (Render_Template ("dump_helper.ads.tmplt", T));
          File.Close;
 
          --  Emit the package body
 
          Create_File (Prj, File, Body_Filename);
 
-         Put_Warnings_And_Style_Checks_Pragmas (File);
+         declare
+            Withed_Unit_Vec : Vector_Tag :=
+              +Output_Unit_Str & To_Ada (Sys_Lists);
+         begin
+            case Dump_Trigger is
+               when Ravenscar_Task_Termination =>
+                  Withed_Unit_Vec :=
+                    Withed_Unit_Vec
+                    & "Ada.Task_Identification"
+                    & "Ada.Task_Termination";
 
-         Put_With (Output_Unit);
-         Put_With (Sys_Lists);
+               when At_Exit                    =>
+                  Withed_Unit_Vec := Withed_Unit_Vec & "Interfaces.C";
 
-         case Dump_Trigger is
-            when Ravenscar_Task_Termination =>
-               File.Put_Line ("with Ada.Task_Identification;");
-               File.Put_Line ("with Ada.Task_Termination;");
+               when others                     =>
+                  null;
+            end case;
 
-            when At_Exit                    =>
-               File.Put_Line ("with Interfaces.C;");
+            if Dump_Config.Channel = Binary_File then
+               Withed_Unit_Vec := Withed_Unit_Vec & "Interfaces.C.Strings";
+            end if;
 
-            when Manual | Main_End          =>
-               null;
-         end case;
+            Withed_Unit_Vec :=
+              Withed_Unit_Vec & To_Ada (Buffers_List_Unit (Prj.Prj_Name));
 
-         if Dump_Config.Channel = Binary_File then
-            File.Put_Line ("with Interfaces.C.Strings;");
-         end if;
-
-         File.Put_Line
-           ("with " & To_Ada (Buffers_List_Unit (Prj.Prj_Name)) & ";");
-
-         File.Put_Line ("package body " & Helper_Unit_Name & " is");
-         File.New_Line;
-
-         --  Emit the procedure to write the trace file
-
-         File.Put_Line (Indent1 & Dump_Procedure_Prototype & " is");
+            T := T & Assoc ("WITHED_UNIT", Withed_Unit_Vec);
+         end;
 
          if Dump_Config.Channel = Binary_File then
-            declare
-               Env_Var : constant String :=
-                 (if Dump_Config.Filename_Env_Var = ""
-                  then Output_Unit_Str & ".Default_Trace_Filename_Env_Var"
-                  else """" & (+Dump_Config.Filename_Env_Var) & """");
-               Prefix  : constant String :=
-                 (if Dump_Trigger = Manual
-                  then "Prefix"
-                  else """" & (+Dump_Config.Filename_Prefix) & """");
-               Tag     : constant String := """" & (+Instrumenter.Tag) & """";
-               Simple  : constant String :=
-                 (if Dump_Config.Filename_Simple then "True" else "False");
-            begin
-               File.Put_Line
-                 (Indent1 & "Filename : Interfaces.C.Strings.chars_ptr :=");
-               File.Put_Line
-                 (Indent2 & Output_Unit_Str & ".Default_Trace_Filename");
-               File.Put_Line (Indent3 & "(Prefix  => " & Prefix & ",");
-               File.Put_Line (Indent3 & " Env_Var => " & Env_Var & ",");
-               File.Put_Line (Indent3 & " Tag     => " & Tag & ",");
-               File.Put_Line (Indent3 & " Simple  => " & Simple & ");");
-            end;
+            T :=
+              T
+              & Assoc
+                  ("FILENAME_ENV_VAR",
+                   (if Dump_Config.Filename_Env_Var = ""
+                    then Output_Unit_Str & ".Default_Trace_Filename_Env_Var"
+                    else """" & (+Dump_Config.Filename_Env_Var) & """"))
+              & Assoc ("FILENAME_SIMPLE", Dump_Config.Filename_Simple)
+              & Assoc ("FILENAME_PREFIX", Dump_Config.Filename_Prefix);
          end if;
+         T :=
+           T
+           & Assoc ("TAG", Instrumenter.Tag)
+           & Assoc ("OUTPUT_PROCEDURE", To_Ada (Output_Proc))
+           & Assoc
+               ("BUFFER_LIST_UNIT", To_Ada (Buffers_List_Unit (Prj.Prj_Name)))
+           & Assoc ("PROGRAM_NAME", Project_Name_Str)
+           & Assoc ("SYS_LISTS", To_Ada (Sys_Lists));
 
-         File.Put_Line ("   begin");
-
-         File.Put_Line (Indent1 & To_Ada (Output_Proc));
-         File.Put_Line
-           (Indent2
-            & "(Buffers_Groups => "
-            & To_Ada (Buffers_List_Unit (Prj.Prj_Name))
-            & ".List,");
-         case Dump_Config.Channel is
-            when Binary_File            =>
-               File.Put_Line (Indent2 & " Filename       => Filename,");
-               File.Put (Indent2 & " Program_Name   => " & Project_Name_Str);
-
-            when Base64_Standard_Output =>
-
-               --  Configurations using this channel generally run on embedded
-               --  targets and have a small runtime, so our best guess for the
-               --  program name is the name of the main, and there is no way to
-               --  get the current execution time.
-
-               File.Put_Line
-                 (Indent2 & " Program_Name => " & Project_Name_Str & ",");
-               File.Put (Indent2 & " Exec_Date => 0");
-         end case;
-         File.Put_Line (");");
-
-         if Dump_Config.Channel = Binary_File then
-            File.Put_Line (Indent1 & "Interfaces.C.Strings.Free (Filename);");
-         end if;
-
-         File.Put_Line ("   end " & Dump_Procedure & ";");
-         File.New_Line;
-
-         --  Emit trigger-specific subprograms
-
-         case Dump_Trigger is
-            when At_Exit                    =>
-
-               --  Emit a function to schedule a trace dump with atexit
-
-               File.Put_Line
-                 ("   function "
-                  & To_String (Register_Dump_Function_Name)
-                  & " return "
-                  & To_Ada (Witness_Dummy_Type_Name)
-                  & " is");
-               File.Put_Line (Indent1 & "type Callback is access procedure;");
-               File.Put_Line (Indent1 & "pragma Convention (C, Callback);");
-               File.New_Line;
-
-               File.Put_Line
-                 (Indent1
-                  & "function atexit (Func : Callback)"
-                  & " return Interfaces.C.int;");
-               File.Put_Line (Indent1 & "pragma Import (C, atexit);");
-               File.Put_Line
-                 (Indent1 & "Dummy : constant Interfaces.C.int :=");
-               File.Put_Line
-                 (Indent2 & "atexit (" & Dump_Procedure & "'Access);");
-
-               File.Put_Line ("   begin");
-               File.Put_Line (Indent1 & "return (Data => False);");
-               File.Put_Line
-                 ("   end " & To_String (Register_Dump_Function_Name) & ";");
-               File.New_Line;
-
-            when Ravenscar_Task_Termination =>
-
-               --  Emit a protected object for the callback
-
-               File.Put_Line ("  protected Wrapper is");
-               File.Put_Line
-                 ("     procedure Do_Dump"
-                  & " (T : Ada.Task_Identification.Task_Id);");
-               File.Put_Line ("  end Wrapper;");
-               File.New_Line;
-               File.Put_Line ("  protected body Wrapper is");
-               File.Put_Line
-                 ("     procedure Do_Dump"
-                  & " (T : Ada.Task_Identification.Task_Id) is");
-               File.Put_Line ("        pragma Unreferenced (T);");
-               File.Put_Line ("     begin");
-               File.Put_Line ("        " & Dump_Procedure & ";");
-               File.Put_Line ("     end Do_Dump;");
-               File.Put_Line ("  end Wrapper;");
-               File.New_Line;
-
-               --  Emit a function to schedule a trace dump with
-               --  Ada.Task_Termination.
-
-               File.Put_Line
-                 ("function "
-                  & To_String (Register_Dump_Function_Name)
-                  & " return "
-                  & To_Ada (Witness_Dummy_Type_Name)
-                  & " is");
-               File.Put_Line ("begin");
-               File.Put_Line
-                 ("   Ada.Task_Termination"
-                  & ".Set_Dependents_Fallback_Handler"
-                  & " (Wrapper.Do_Dump'Access);");
-               File.Put_Line ("   return (Data => False);");
-               File.Put_Line
-                 ("end " & To_String (Register_Dump_Function_Name) & ";");
-               File.New_Line;
-
-            when Main_End                   =>
-               if Has_Controlled then
-                  File.Put_Line
-                    ("   overriding procedure Finalize (Self : in"
-                     & " out Dump_Controlled_Type) is");
-                  File.Put_Line ("   begin");
-                  File.Put_Line ("      Dump_Buffers;");
-                  File.Put_Line ("   end Finalize;");
-                  File.New_Line;
-               end if;
-
-            when Manual                     =>
-               --  Emit Buffer reset procedure
-
-               File.Put_Line ("   procedure " & Reset_Procedure & " is");
-               File.Put_Line ("   begin");
-               File.Put_Line
-                 ("      "
-                  & To_Ada (Sys_Lists)
-                  & ".Reset_Group_Array_Buffers");
-               File.Put_Line
-                 ("        ("
-                  & To_Ada (Buffers_List_Unit (Prj.Prj_Name))
-                  & ".C_List);");
-               File.Put_Line ("end " & Reset_Procedure & ";");
-               File.New_Line;
-         end case;
-
-         File.Put_Line ("end " & Helper_Unit_Name & ";");
+         File.Put (Render_Template ("dump_helper.adb.tmplt", T));
          File.Close;
       end;
    end Emit_Dump_Helper_Unit_For_Trigger;
