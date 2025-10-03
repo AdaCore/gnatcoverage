@@ -1,3 +1,4 @@
+with Silent_Last_Chance;
 with Support;
 
 with Pkg; use Pkg;
