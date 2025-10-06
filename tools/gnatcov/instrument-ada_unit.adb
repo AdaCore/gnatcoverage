@@ -10792,92 +10792,58 @@ package body Instrument.Ada_Unit is
         New_File (Prj, To_Filename (Prj, PB_Unit));
       File              : Text_Files.File_Type;
 
-      procedure Put_Language_Version_Pragma;
-      --  If the instrumented unit has a language version configuration
-      --  pragma, insert a consistent one here to ensure legality of
-      --  degenerate subprograms supporting generics.
-
-      ---------------------------------
-      -- Put_Language_Version_Pragma --
-      ---------------------------------
-
-      procedure Put_Language_Version_Pragma is
-      begin
-         if Length (Language_Version) > 0 then
-            File.Put_Line
-              ("pragma "
-               & To_String (To_Wide_Wide_String (Language_Version))
-               & ";");
-            File.New_Line;
-         end if;
-      end Put_Language_Version_Pragma;
+      T : Translate_Set :=
+        Assoc ("UNIT_NAME", Pkg_Name)
+        & Assoc
+            ("ADA_VERSION", To_String (To_Wide_Wide_String (Language_Version)))
+        & Assoc ("ADA_RUNTIME_VERSION_CHECK", Ada_Runtime_Version_Check)
+        & Assoc ("HAS_NO_ELABORATION_CODE_ALL", Has_No_Elaboration_Code_All);
 
       --  Start of processing for Emit_Pure_Buffer_Unit
 
    begin
       Trace_Buffer_Unit (Pkg_Name, Filename, Prj, CU_Names, Is_Pure => True);
+
+      declare
+         Buffer_Indexes       : Vector_Tag;
+         Stmt_Buf_Symbols     : Vector_Tag;
+         Decision_Buf_Symbols : Vector_Tag;
+         MCDC_Buf_Symbols     : Vector_Tag;
+      begin
+         for I in 1 .. Last_Buffer_Index loop
+            declare
+               CU_Name : constant Compilation_Unit_Part :=
+                 CU_Names.Element (I);
+            begin
+               Append (Buffer_Indexes, Img (I));
+               Append (Stmt_Buf_Symbols, Statement_Buffer_Symbol (CU_Name));
+               Append (Decision_Buf_Symbols, Decision_Buffer_Symbol (CU_Name));
+               Append (MCDC_Buf_Symbols, MCDC_Buffer_Symbol (CU_Name));
+            end;
+         end loop;
+
+         T :=
+           T
+           & Assoc ("BUFFER_IDX", Buffer_Indexes)
+           & Assoc ("STMT_BUF_SYM", Stmt_Buf_Symbols)
+           & Assoc ("DECISION_BUF_SYM", Decision_Buf_Symbols)
+           & Assoc ("MCDC_BUF_SYM", MCDC_Buf_Symbols);
+      end;
+
+      declare
+         Degenerate_Subp_Generics : Vector_Tag;
+      begin
+         for G of Degenerate_Subprogram_Generics loop
+            Append
+              (Degenerate_Subp_Generics,
+               To_String (To_Wide_Wide_String (G.Generic_Subp_Decl)));
+         end loop;
+
+         T := T & Assoc ("DEGENERATE_SUBP_GENERIC", Degenerate_Subp_Generics);
+      end;
+
       File.Create (Filename);
-
-      Put_Warnings_And_Style_Checks_Pragmas (File);
-      Put_Language_Version_Pragma;
-      File.Put_Line ("with System;");
-
-      File.Put_Line ("with GNATcov_RTS;");
-      File.Put_Line ("with GNATcov_RTS.Buffers;");
-      File.Put_Line (Ada_Runtime_Version_Check);
-
-      File.New_Line;
-      File.Put_Line ("package " & Pkg_Name & " is");
-      File.New_Line;
-      File.Put_Line ("   pragma Pure;");
-
-      --  If the instrumented unit has the No_Elaboration_Code_All pragma, all
-      --  its dependencies must have this pragma too, so this pure buffer unit
-      --  has to have it.
-
-      if Has_No_Elaboration_Code_All then
-         File.Put_Line ("   pragma No_Elaboration_Code_All;");
-      end if;
-      File.New_Line;
-
-      for I in 1 .. Last_Buffer_Index loop
-         declare
-            Suffix  : constant String := "_" & Img (I);
-            CU_Name : constant Compilation_Unit_Part := CU_Names.Element (I);
-         begin
-            File.Put_Line ("package Buffers" & Suffix & " is");
-            File.Put_Line ("   Statement_Buffer : constant System.Address;");
-            File.Put_Line
-              ("   pragma Import (C, Statement_Buffer, """
-               & Statement_Buffer_Symbol (CU_Name)
-               & Suffix
-               & """);");
-            File.New_Line;
-            File.Put_Line ("   Decision_Buffer : constant System.Address;");
-            File.Put_Line
-              ("   pragma Import (C, Decision_Buffer, """
-               & Decision_Buffer_Symbol (CU_Name)
-               & Suffix
-               & """);");
-            File.New_Line;
-            File.Put_Line ("   MCDC_Buffer : constant System.Address;");
-            File.Put_Line
-              ("   pragma Import (C, MCDC_Buffer, """
-               & MCDC_Buffer_Symbol (CU_Name)
-               & Suffix
-               & """);");
-            File.New_Line;
-            File.Put_Line ("end Buffers" & Suffix & ";");
-            File.New_Line;
-         end;
-      end loop;
-
-      for G of Degenerate_Subprogram_Generics loop
-         File.Put_Line
-           ("   " & To_String (To_Wide_Wide_String (G.Generic_Subp_Decl)));
-      end loop;
-      File.Put_Line ("end " & Pkg_Name & ";");
-
+      File.Put (Render_Template ("pure_buffer_unit.ads.tmplt", T));
       Text_Files.Close (File);
       if Switches.Pretty_Print then
          Text_Files.Run_GNATformat (Filename);
@@ -10885,26 +10851,25 @@ package body Instrument.Ada_Unit is
 
       if not Degenerate_Subprogram_Generics.Is_Empty then
          declare
-            PB_Unit_Body : constant Compilation_Unit_Part :=
+            PB_Unit_Body             : constant Compilation_Unit_Part :=
               (Language_Kind => Unit_Based_Language,
                Unit          => PB_Unit.Unit,
                Part          => GPR2.S_Body);
-            PB_Filename  : constant String :=
+            PB_Filename              : constant String :=
               New_File (Prj, To_Filename (Prj, PB_Unit_Body));
+            Degenerate_Subp_Generics : Vector_Tag;
          begin
-            File.Create (PB_Filename);
-
-            Put_Warnings_And_Style_Checks_Pragmas (File);
-            Put_Language_Version_Pragma;
-            File.Put_Line ("package body " & Pkg_Name & " is");
-            File.New_Line;
             for G of Degenerate_Subprogram_Generics loop
-               File.Put_Line
-                 ("   "
-                  & To_String (To_Wide_Wide_String (G.Generic_Subp_Body)));
+               Append
+                 (Degenerate_Subp_Generics,
+                  To_String (To_Wide_Wide_String (G.Generic_Subp_Body)));
             end loop;
-            File.Put_Line ("end " & Pkg_Name & ";");
 
+            T :=
+              T & Assoc ("DEGENERATE_SUBP_GENERIC", Degenerate_Subp_Generics);
+
+            File.Create (PB_Filename);
+            File.Put (Render_Template ("pure_buffer_unit.adb.tmplt", T));
             Text_Files.Close (File);
             if Switches.Pretty_Print then
                Text_Files.Run_GNATformat (PB_Filename);

@@ -1,0 +1,37 @@
+pragma Style_Checks (Off); pragma Warnings (Off);
+@@IF@@ not @_IS_EMPTY:ADA_VERSION_@
+pragma @_ADA_VERSION_@;
+@@END_IF@@
+
+with System;
+with GNATcov_RTS;
+with GNATcov_RTS.Buffers;
+@_ADA_RUNTIME_VERSION_CHECK_@
+
+package @_UNIT_NAME_@ is
+   pragma Pure;
+@@--  If the instrumented unit has the No_Elaboration_Code_All pragma, all
+@@--  its dependencies must have this pragma too, so this pure buffer unit
+@@--  has to have it.
+@@IF@@ @_HAS_NO_ELABORATION_CODE_ALL_@
+   pragma No_Elaboration_Code_All;
+@@END_IF@@
+
+@@TABLE@@
+   package Buffers_@_BUFFER_IDX_@ is
+      Statement_Buffer : constant System.Address;
+      pragma Import (C, Statement_Buffer, "@_STMT_BUF_SYM_@_@_BUFFER_IDX_@");
+
+      Decision_Buffer : constant System.Address;
+      pragma Import (C, Decision_Buffer, "@_DECISION_BUF_SYM_@_@_BUFFER_IDX_@");
+
+      MCDC_Buffer : constant System.Address;
+      pragma Import (C, MCDC_Buffer, "@_MCDC_BUF_SYM_@_@_BUFFER_IDX_@");
+   end Buffers_@_BUFFER_IDX_@;
+@@END_TABLE@@
+
+@@TABLE@@
+   @_DEGENERATE_SUBP_GENERIC_@
+@@END_TABLE@@
+
+end @_UNIT_NAME_@;
