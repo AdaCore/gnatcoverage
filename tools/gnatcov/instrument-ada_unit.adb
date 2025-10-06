@@ -10596,182 +10596,106 @@ package body Instrument.Ada_Unit is
 
       File              : Text_Files.File_Type;
       Last_Buffer_Index : constant Natural := Natural (Unit_Bits.Length);
+
+      T : Translate_Set :=
+        Assoc ("UNIT_NAME", Pkg_Name)
+        & Assoc ("UNIT_BUFFERS_NAME", Unit_Buffers_Name (Unit))
+        & Assoc ("LAST_INDEX", Last_Buffer_Index'Image);
    begin
       Trace_Buffer_Unit (Pkg_Name, Filename, Prj, CU_Names, Is_Pure => False);
       Create_File (Prj, File, Filename);
-      Put_Warnings_And_Style_Checks_Pragmas (File);
-      File.Put_Line ("with System;");
-      File.Put_Line ("with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;");
-      File.Put_Line
-        ("with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;");
 
-      File.Put_Line ("package " & Pkg_Name & " is");
-      File.New_Line;
-      File.Put_Line ("   pragma Preelaborate;");
-      File.New_Line;
+      declare
+         Buffer_Indexes    : Vector_Tag;
+         Buffer_Unit_Names : Vector_Tag;
+         Buffer_Unit_Parts : Vector_Tag;
 
-      for I in 1 .. Last_Buffer_Index loop
-         declare
-            Unit_Bit : constant Allocated_Bits := Unit_Bits.Element (I);
-            CU_Name  : constant Compilation_Unit_Part := CU_Names.Element (I);
-            CU       : constant CU_Id := CUs.Element (I);
+         SCOs_Fingerprints        : Vector_Tag;
+         Bit_Maps_Fingerprints    : Vector_Tag;
+         Annotations_Fingerprints : Vector_Tag;
 
-            Unit_Name : constant String :=
-              Ada.Characters.Handling.To_Lower (To_Ada (CU_Name.Unit));
-            --  Lower-case name for the instrumented unit
+         Statement_Last_Bits      : Vector_Tag;
+         Statement_Buffer_Symbols : Vector_Tag;
 
-            Unit_Part : constant String :=
-              (case CU_Name.Part is
-                 when GPR2.S_Spec     => "Unit_Spec",
-                 when GPR2.S_Body     => "Unit_Body",
-                 when GPR2.S_Separate => "Unit_Separate");
-            --  Do not use 'Image so that we use the original casing for the
-            --  enumerators, and thus avoid compilation warnings/errors.
+         Decision_Last_Bits      : Vector_Tag;
+         Decision_Buffer_Symbols : Vector_Tag;
 
-            Statement_Last_Bit : constant String :=
-              Img (Unit_Bit.Last_Statement_Bit);
-            Decision_Last_Bit  : constant String :=
-              Img (Unit_Bit.Last_Outcome_Bit);
-            MCDC_Last_Bit      : constant String :=
-              Img (Unit_Bit.Last_Path_Bit);
+         MCDC_Last_Bits      : Vector_Tag;
+         MCDC_Buffer_Symbols : Vector_Tag;
+      begin
+         for I in 1 .. Last_Buffer_Index loop
+            declare
+               Unit_Bit : constant Allocated_Bits := Unit_Bits.Element (I);
+               CU_Name  : constant Compilation_Unit_Part :=
+                 CU_Names.Element (I);
+               CU       : constant CU_Id := CUs.Element (I);
 
-            Suffix : constant String := "_" & Img (I);
+               Unit_Name : constant String :=
+                 Ada.Characters.Handling.To_Lower (To_Ada (CU_Name.Unit));
+               --  Lower-case name for the instrumented unit
 
-            SCOs_Fingerprint : constant SC_Obligations.Fingerprint_Type :=
-              SC_Obligations.Fingerprint (CU);
+               Unit_Part : constant String :=
+                 (case CU_Name.Part is
+                    when GPR2.S_Spec     => "Unit_Spec",
+                    when GPR2.S_Body     => "Unit_Body",
+                    when GPR2.S_Separate => "Unit_Separate");
+               --  Do not use 'Image so that we use the original casing for the
+               --  enumerators, and thus avoid compilation warnings/errors.
 
-         begin
-            --  Create declarations for individual buffers (statement, decision
-            --  and MC/DC) as well as their exported addresses. Put this in
-            --  an individual package, to avoid having to suffix each
-            --  declaration
+               SCOs_Fingerprint : constant SC_Obligations.Fingerprint_Type :=
+                 SC_Obligations.Fingerprint (CU);
 
-            File.Put_Line ("package Buffers" & Suffix & " is");
+            begin
+               Append (Buffer_Indexes, Img (I));
+               Append (Buffer_Unit_Names, Unit_Name);
+               Append (Buffer_Unit_Parts, Unit_Part);
 
-            File.Put_Line
-              ("   Statement_Buffer"
-               & " : Coverage_Buffer_Type"
-               & " (0 .. "
-               & Statement_Last_Bit
-               & ") :="
-               & " (others => False);");
-            File.Put_Line
-              ("   Statement_Buffer_Address"
-               & " : constant System.Address"
-               & " := Statement_Buffer'Address;");
-            File.Put_Line
-              ("   pragma Export (C, Statement_Buffer_Address, """
-               & Statement_Buffer_Symbol (CU_Name)
-               & Suffix
-               & """);");
-            File.New_Line;
+               Append
+                 (SCOs_Fingerprints, Format_Fingerprint (SCOs_Fingerprint));
+               Append
+                 (Bit_Maps_Fingerprints,
+                  Format_Fingerprint
+                    (SC_Obligations.Bit_Maps_Fingerprint
+                       (CU, SCOs_Fingerprint)));
+               Append
+                 (Annotations_Fingerprints,
+                  Format_Fingerprint
+                    (SC_Obligations.Annotations_Fingerprint
+                       (CU, SCOs_Fingerprint)));
 
-            File.Put_Line
-              ("   Decision_Buffer : Coverage_Buffer_Type"
-               & " (0 .. "
-               & Decision_Last_Bit
-               & ") :="
-               & " (others => False);");
-            File.Put_Line
-              ("   Decision_Buffer_Address"
-               & " : constant System.Address"
-               & " := Decision_Buffer'Address;");
-            File.Put_Line
-              ("   pragma Export (C, Decision_Buffer_Address, """
-               & Decision_Buffer_Symbol (CU_Name)
-               & Suffix
-               & """);");
-            File.New_Line;
+               Append (Statement_Last_Bits, Img (Unit_Bit.Last_Statement_Bit));
+               Append
+                 (Statement_Buffer_Symbols, Statement_Buffer_Symbol (CU_Name));
 
-            File.Put_Line
-              ("   MCDC_Buffer : Coverage_Buffer_Type"
-               & " (0 .. "
-               & MCDC_Last_Bit
-               & ") :="
-               & " (others => False);");
-            File.Put_Line
-              ("   MCDC_Buffer_Address : constant System.Address"
-               & " := MCDC_Buffer'Address;");
-            File.Put_Line
-              ("   pragma Export (C, MCDC_Buffer_Address, """
-               & MCDC_Buffer_Symbol (CU_Name)
-               & Suffix
-               & """);");
-            File.New_Line;
+               Append (Decision_Last_Bits, Img (Unit_Bit.Last_Outcome_Bit));
+               Append
+                 (Decision_Buffer_Symbols, Decision_Buffer_Symbol (CU_Name));
 
-            --  Create the GNATcov_RTS_Coverage_Buffers record
+               Append (MCDC_Last_Bits, Img (Unit_Bit.Last_Path_Bit));
+               Append (MCDC_Buffer_Symbols, MCDC_Buffer_Symbol (CU_Name));
+            end;
+         end loop;
 
-            File.Put_Line
-              ("   Unit_Name : constant String := """ & Unit_Name & """;");
-            File.New_Line;
+         T :=
+           T
+           & Assoc ("BUFFER_IDX", Buffer_Indexes)
+           & Assoc ("BUF_UNIT_NAME", Buffer_Unit_Names)
+           & Assoc ("BUF_UNIT_PART", Buffer_Unit_Parts)
+           & Assoc ("SCOS_FINGERPRINT", SCOs_Fingerprints)
+           & Assoc ("BIT_MAPS_FINGERPRINT", Bit_Maps_Fingerprints)
+           & Assoc ("ANNOTATIONS_FINGERPRINT", Annotations_Fingerprints)
 
-            File.Put_Line
-              ("   Buffers : aliased constant"
-               & " GNATcov_RTS_Coverage_Buffers :=");
-            File.Put_Line
-              ("     (Fingerprint => "
-               & Format_Fingerprint (SCOs_Fingerprint)
-               & ",");
+           & Assoc ("STMT_LAST", Statement_Last_Bits)
+           & Assoc ("STMT_BUF_SYM", Statement_Buffer_Symbols)
 
-            File.Put_Line ("      Language  => Unit_Based_Language,");
-            File.Put_Line ("      Unit_Part => " & Unit_Part & ",");
-            File.Put_Line
-              ("      Unit_Name =>"
-               & " (Unit_Name'Address, Unit_Name'Length),");
+           & Assoc ("DECISION_LAST", Decision_Last_Bits)
+           & Assoc ("DECISION_BUF_SYM", Decision_Buffer_Symbols)
 
-            File.Put_Line
-              ("      Bit_Maps_Fingerprint => "
-               & Format_Fingerprint
-                   (SC_Obligations.Bit_Maps_Fingerprint (CU, SCOs_Fingerprint))
-               & ",");
+           & Assoc ("MCDC_LAST", MCDC_Last_Bits)
+           & Assoc ("MCDC_BUF_SYM", MCDC_Buffer_Symbols);
+      end;
 
-            File.Put_Line
-              ("      Annotations_Fingerprint => "
-               & Format_Fingerprint
-                   (SC_Obligations.Annotations_Fingerprint
-                      (CU, SCOs_Fingerprint))
-               & ",");
-
-            File.Put_Line ("      Statement => Statement_Buffer'Address,");
-            File.Put_Line ("      Decision  => Decision_Buffer'Address,");
-            File.Put_Line ("      MCDC      => MCDC_Buffer'Address,");
-
-            File.Put_Line
-              ("      Statement_Last_Bit => " & Statement_Last_Bit & ",");
-            File.Put_Line
-              ("      Decision_Last_Bit => " & Decision_Last_Bit & ",");
-            File.Put_Line ("      MCDC_Last_Bit => " & MCDC_Last_Bit & ");");
-            File.Put_Line ("end Buffers" & Suffix & ";");
-            File.New_Line;
-         end;
-      end loop;
-
-      --  Create the buffers group
-
-      File.Put_Line
-        ("   Buffers_Group : aliased constant Coverage_Buffers_Group :=");
-      File.Put ("   (");
-
-      for I in 1 .. Last_Buffer_Index loop
-         File.Put (Img (I) & " => Buffers_" & Img (I) & ".Buffers'Access");
-         if I /= Last_Buffer_Index then
-            File.Put_Line (",");
-         end if;
-      end loop;
-      File.Put_Line (");");
-      File.Put_Line
-        ("   C_Buffers_Group : aliased constant"
-         & " GNATcov_RTS_Coverage_Buffers_Group :="
-         & " ("
-         & Last_Buffer_Index'Image
-         & ", Buffers_Group'Address);");
-      File.Put_Line
-        ("      pragma Export (C, C_Buffers_Group, """
-         & Unit_Buffers_Name (Unit)
-         & """);");
-      File.New_Line;
-
-      File.Put_Line ("end " & Pkg_Name & ";");
+      File.Put (Render_Template ("buffer_unit.ads.tmplt", T));
    end Emit_Buffer_Unit;
 
    ---------------------------
@@ -11039,24 +10963,22 @@ package body Instrument.Ada_Unit is
          begin
             case Dump_Trigger is
                when Ravenscar_Task_Termination =>
-                  Withed_Unit_Vec :=
-                    Withed_Unit_Vec
-                    & "Ada.Task_Identification"
-                    & "Ada.Task_Termination";
+                  Append (Withed_Unit_Vec, "Ada.Task_Identification");
+                  Append (Withed_Unit_Vec, "Ada.Task_Termination");
 
                when At_Exit                    =>
-                  Withed_Unit_Vec := Withed_Unit_Vec & "Interfaces.C";
+                  Append (Withed_Unit_Vec, "Interfaces.C");
 
                when others                     =>
                   null;
             end case;
 
             if Dump_Config.Channel = Binary_File then
-               Withed_Unit_Vec := Withed_Unit_Vec & "Interfaces.C.Strings";
+               Append (Withed_Unit_Vec, "Interfaces.C.Strings");
             end if;
 
-            Withed_Unit_Vec :=
-              Withed_Unit_Vec & To_Ada (Buffers_List_Unit (Prj.Prj_Name));
+            Append
+              (Withed_Unit_Vec, To_Ada (Buffers_List_Unit (Prj.Prj_Name)));
 
             T := T & Assoc ("WITHED_UNIT", Withed_Unit_Vec);
          end;
