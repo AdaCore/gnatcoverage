@@ -11185,42 +11185,16 @@ package body Instrument.Ada_Unit is
 
       Spec_File : Text_Files.File_Type;
       Body_File : Text_Files.File_Type;
+
+      T : constant Translate_Set :=
+        Assoc ("UNIT_NAME", Obs_Unit_Name)
+        & Assoc ("BUF_LIST_UNIT_NAME", Buf_List_Unit_Name);
    begin
       Create_File (Prj, Spec_File, Obs_Spec_Filename);
       Create_File (Prj, Body_File, Obs_Body_Filename);
 
-      Spec_File.Put_Line ("package " & Obs_Unit_Name & " is");
-      Spec_File.Put_Line ("   function Sum_Buffer_Bits return Natural;");
-      Spec_File.Put_Line ("end " & Obs_Unit_Name & ";");
-
-      Body_File.Put_Line ("pragma Style_Checks (Off); pragma Warnings (Off);");
-      Body_File.Put_Line ("with Interfaces;");
-      Body_File.Put_Line
-        ("with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;");
-      Body_File.New_Line;
-      Body_File.Put_Line ("package body " & Obs_Unit_Name & " is");
-      Body_File.Put_Line ("   function Sum_Buffer_Bits return Natural is");
-      Body_File.Put_Line ("      function Sum_Buffer_Bits_C");
-      Body_File.Put_Line
-        ("        (C_List : GNATcov_RTS_Coverage_Buffers_Group_Array)");
-      Body_File.Put_Line ("      return Interfaces.Unsigned_64;");
-      Body_File.Put_Line
-        ("pragma Import (C, Sum_Buffer_Bits_C,"
-         & " ""gnatcov_rts_sum_buffer_bits"");");
-      Body_File.Put_Line ("   begin");
-      Body_File.Put_Line
-        ("      return Natural"
-         & ASCII.LF
-         & "        (Interfaces.Unsigned_64'Min"
-         & ASCII.LF
-         & "           (Sum_Buffer_Bits_C ("
-         & Buf_List_Unit_Name
-         & ".C_List),"
-         & ASCII.LF
-         & "            Interfaces.Unsigned_64 (Natural'Last)));");
-      Body_File.Put_Line ("   end Sum_Buffer_Bits;");
-      Body_File.Put_Line ("end " & Obs_Unit_Name & ";");
-
+      Spec_File.Put (Render_Template ("observability.ads.tmplt", T));
+      Body_File.Put (Render_Template ("observability.adb.tmplt", T));
    end Emit_Observability_Unit;
 
    ---------------------------------
