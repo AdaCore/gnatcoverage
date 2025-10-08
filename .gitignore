@@ -17,6 +17,7 @@ lib
 /tools/gnatcov/examples/support/lib
 /tools/gnatcov/examples/support/obj
 /tools/gnatcov/rts-instr
+/tools/gnatcov/ada-rts/gnatcov_rts.ads
 /tools/gnatcov/share/lib-gnatcov_rts_full.*
 /tools/gnatcov/share/obj-gnatcov_rts
 /tools/gnatcov/share/obj-gnatcov_rts_full.*
