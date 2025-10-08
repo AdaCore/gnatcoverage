@@ -5,7 +5,7 @@ project (i.e. not in the extended project's object directory).
 
 import os.path
 
-from e3.fs import sync_tree
+from e3.fs import mkdir, sync_tree
 
 from SCOV.minicheck import build_and_run, check_xcov_reports
 from SUITE.context import thistest
@@ -40,6 +40,10 @@ thistest.fail_if(not os.path.exists(ext_sid), f"Missing expected {ext_sid}")
 # Before running "gnatcov coverage", create a dummy SID file in the extended
 # project. "gnatcov coverage" should not try to use it, as there is a SID file
 # in the extending project.
+#
+# Note that gprbuild may not create the object directory for the extended
+# project, so do it manually.
+mkdir("obj-pkg")
 with open(orig_sid, "w") as f:
     f.write("dummy SID file\n")
 
