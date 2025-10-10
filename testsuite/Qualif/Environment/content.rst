@@ -43,11 +43,11 @@ configuration pragma file which contains only pragmas not influencing code
 generation (``Restriction_Warnings`` pragmas or specific ``Restrictions`` such
 as ``No_Direct_Boolean_Operators`` for instance).
 
-The Runtime Library Profile indication conveys the --RTS switch for which the
-Verification Environment should be setup, designating a runtime library
-delivered with the GNAT Pro toolchain. Tool Users shall have their toolchain
-setup to compile programs with a :literal:`--RTS` switch as well, designating
-a runtime with a ``system.ads`` identical to the qualification one.
+The Runtime Library Profile indication conveys the :literal:`--RTS` switch for
+which the Verification Environment should be setup, designating a runtime
+library delivered with the GNAT Pro toolchain. Tool Users shall have their
+toolchain setup to compile programs with a :literal:`--RTS` switch as well,
+designating a runtime with a ``system.ads`` identical to the qualification one.
 
 The indications for the GNATcov dump trigger and GNATcov dump channel switch
 values represent the retained values for the corresponding switches, required
@@ -75,7 +75,7 @@ General use of the tool is described in the Tool User's Guide document, which
 can be found in the subdirectory :literal:`share/doc` of the tool
 installation.  For qualified use more specifically, the Tool User shall also
 conform to the rules described in the *Qualified Interface* section of the
- |plans_doc| document.
+|plans_doc| document.
 
 
 .. _language-scope:
@@ -130,10 +130,8 @@ In addition:
   an Assertion_Policy pragma.
 
 * For statement, decision or mcdc analysis on Ada 2012, the tool is not
-  qualified to assess coverage of the new forms of expression introduced in
-  the language, in particular *conditional expressions*, *generalized
-  membership tests* with more than one alternative, and *quantified
-  expressions*.
+  qualified to assess coverage of *generalized membership tests* with more
+  than one alternative.
 
   Such expressions are only allowed in assertion/contracts contexts, disabled
   for coverage analysis purposes as previously described in this section.

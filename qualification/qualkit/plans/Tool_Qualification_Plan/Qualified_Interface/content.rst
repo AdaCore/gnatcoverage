@@ -25,7 +25,7 @@ use GNATcoverage as follows:
 
 
 * Instrument the application for coverage assessment and test harness main
-  units for coverage buffer dumping using the ``gnatcov instrument`` command;
+  units for coverage buffer dumping using the ``gnatcov instrument`` command.
   Specify the coverage criterion level to be assessed as  well as a trace
   <DUMP_METHOD> and <DUMP_CHANNEL>  as specified in the
   *Operational Environment* section of the |tor_abb| document. Also specify the

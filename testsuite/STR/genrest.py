@@ -502,10 +502,6 @@ class RSTtable(object):
 
         self.__dump_description()
 
-        # If we have a legend and contents, separate the two:
-        if self.text is not None and self.contents is not None:
-            self.rstf.write("~", post=2)
-
         if self.contents is not None:
             self.dump_header()
             self.__dump_contents()
@@ -1227,7 +1223,7 @@ class QDreport(object):
 
         item = Column(htext="Description", legend=None)
 
-        value = Column(htext="", legend=None)
+        value = Column(htext="Value", legend=None)
 
         # Some options are really language specific (e.g. -gnatp, -gnateS,
         # ...) and we need to split these out, as dumping a single catenation
@@ -1353,7 +1349,7 @@ class QDreport(object):
             title="Testsuite execution options",
             text=None,
             columns=(itemno, item, value),
-            controls=[":widths: 7, 30, 60"],
+            controls=[":widths: 7, 30, 70"],
             contents=csv_contents,
         ).dump_to(self.rstf)
 
@@ -1370,9 +1366,9 @@ class QDreport(object):
 
         item = Column(htext="Description", legend=None)
 
-        v1 = Column(htext="", legend=None)
+        v1 = Column(htext="First value", legend=None)
 
-        v2 = Column(htext="", legend=None)
+        v2 = Column(htext="Second value", legend=None)
 
         suite_gnatpro = self.suitedata["gnatpro"]
         suite_gnatcov = self.suitedata["gnatcov"]
@@ -1446,7 +1442,6 @@ class QDreport(object):
         self.rstf.write(rest.chapter("Verification Environment"))
 
         self.gen_suite_environ()
-        self.rstf.write("~\n")
         self.gen_suite_options()
 
         if sepfile:
