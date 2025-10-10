@@ -86,7 +86,30 @@ build_run_and_coverage(
     covlevel="stmt",
     mains=mains_exe,
     extra_coverage_args=["--annotate=xcov", "--output-dir=xcov"],
-    dump_trigger=",".join(["manual"] + manual_files),
+    dump_trigger="manual",
+    extra_instr_args=["--manual-dump-files=" + ",".join(manual_files)],
+    manual_prj_name="main",
+)
+check_xcov_reports("xcov", expected_xcov)
+tmp.to_homedir()
+
+# Same test as above, but passes
+# `--manual-dump-files foo.c --manual-dump-files bar.c`
+# instead of `--manual-dump-files=foo.c,bar.c`
+thistest.log(
+    "====== Pass filenames on the command line through several"
+    " arguments ======"
+)
+tmp = Wdir("tmp_multiple")
+build_run_and_coverage(
+    gprsw=get_gprsw(),
+    covlevel="stmt",
+    mains=mains_exe,
+    extra_coverage_args=["--annotate=xcov", "--output-dir=xcov"],
+    dump_trigger="manual",
+    extra_instr_args=[
+        arg for file in manual_files for arg in ["--manual-dump-files", file]
+    ],
     manual_prj_name="main",
 )
 check_xcov_reports("xcov", expected_xcov)
@@ -102,7 +125,8 @@ build_run_and_coverage(
     covlevel="stmt",
     mains=mains_exe,
     extra_coverage_args=["--annotate=xcov", "--output-dir=xcov"],
-    dump_trigger="manual,@resp",
+    dump_trigger="manual",
+    extra_instr_args=["--manual-dump-files=@resp"],
     manual_prj_name="main",
 )
 check_xcov_reports("xcov", expected_xcov)
@@ -116,21 +140,23 @@ thistest.log("====== Check error cases ======")
 tmp = Wdir("tmp_err")
 get_gprsw()
 
-for label, dump_trigger, error in [
+for label, dump_trigger, files, error in [
     (
         # Check that gnatcov exits with an error when passing a file that does
         # not exist.
         "instr_wrong_file",
-        "manual,unknown",
+        "manual",
+        "unknown",
         r".*gnatcov(\.exe)?: File unknown does not exist",
     ),
     (
         # Check that gnatcov exits with an error when passing
         # --dump-trigger=atexit,file.
         "instr_wrong_trigger",
-        "atexit,../main.adb",
-        r".*gnatcov(\.exe)?: --dump-trigger=atexit|main-end accepts a single"
-        " argument",
+        "atexit",
+        "../main.adb",
+        r".*gnatcov(\.exe)?: --manual-dump-files requires"
+        " --dump-trigger=manual",
     ),
 ]:
     instr_out = f"{label}.out"
@@ -140,6 +166,7 @@ for label, dump_trigger, error in [
             "-Pmain",
             "--level=stmt",
             f"--dump-trigger={dump_trigger}",
+            f"--manual-dump-files={files}",
             "--quiet",
         ],
         out=instr_out,
