@@ -169,6 +169,7 @@ package Command_Line is
       Opt_Projects,
       Opt_Scenario_Var,
       Opt_Cargs,
+      Opt_Manual_Dump_Files,
       Opt_Eargs,
       Opt_Gargs,
       Opt_Scos,
@@ -1083,11 +1084,10 @@ package Command_Line is
            At_Most_Once => False,
            Internal     => False),
 
-      --  --dump-trigger is a special case: It used to only accept a single
-      --  value, but it now should also accept a comma separated list of
-      --  filenames for the manual case. In order not to break compatibility
-      --  with the previous behavior (last --dump-trigger switch present was
-      --  the one used), we'll need to split the option string manually.
+      --  NOTE: --dump-trigger has a non-backward-compatible change between 25
+      --  and 26. In 25, the flag was modified to accept manual file
+      --  indications, and in 26, this was moved to its own option
+      --  (--manual-dump-files).
 
       Opt_Dump_Trigger           =>
         Create
@@ -1098,10 +1098,10 @@ package Command_Line is
              & ASCII.LF
              & ASCII.LF
              & """manual"" searches for user-written dump"
-             & " indication in all the project sources (the search"
-             & " is restricted to FILES if specified) and replaces"
-             & " such indications with a call to the subprogram"
-             & " responsible for dumping the coverage buffers. A"
+             & " indication in all the project sources (the search is"
+             & " restricted to the files passed to --manual-dump-files if"
+             & " specified) and replaces such indications with a call to the"
+             & " subprogram responsible for dumping the coverage buffers. A"
              & " warning is emitted if no dump indications were"
              & " found. See the user manual for more information."
              & ASCII.LF
@@ -1936,6 +1936,18 @@ package Command_Line is
              & " Supported compilers are: gcc, g++.",
            Commands  => (Cmd_Print_GPR_Registry => False, others => True),
            Internal  => True),
+
+      Opt_Manual_Dump_Files       =>
+        Create
+          (Long_Name => "--manual-dump-files",
+           Help      =>
+             "Specify FILES in which gnatcoverage should look for user-written"
+             & "dump indications when --dump-trigger=manual is provided.",
+           Commands  =>
+             (Cmd_Setup | Cmd_Setup_Integration | Cmd_Instrument => True,
+              others                                             => False),
+           Pattern   => "FILES",
+           Internal  => False),
 
       Opt_Ext_Annotations         =>
         Create
