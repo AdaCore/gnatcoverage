@@ -101,7 +101,12 @@ for label, rt_name, dump_args, expected_dump_channel in [
     thistest.fail_if_not_equal(
         "actual dump trigger",
         "atexit",
-        params["dump-trigger"],
+        params["auto-dump-trigger"],
+    )
+    thistest.fail_if_not_equal(
+        "actual dump trigger",
+        False,
+        params["manual-dump-trigger"],
     )
     thistest.fail_if_not_equal(
         "actual dump channel",
