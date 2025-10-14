@@ -7,6 +7,7 @@ end;
 
 --# fuand.adb
 --  /evalA/   l- ## s-
+--  /evalTN/  l- ## s-
 --  /evalB/   l- ## 0c
 --  /oncall/  l- ## s-
 --  /decl/   ~l- ## ~s-

@@ -8,4 +8,5 @@ end;
 
 --# fuand.adb
 --  /evalA/   l! ## c!:"Op"
+--  /evalTN/  l! ## c!:"@"
 --  /evalB/   l! ## 0
