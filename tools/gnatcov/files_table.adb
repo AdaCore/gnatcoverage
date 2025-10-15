@@ -2034,10 +2034,34 @@ package body Files_Table is
            when Exemption        => Exempt_On,
            when Disable_Coverage => Cov_Off);
 
+      End_Annotation : constant Src_Annotation_Kind :=
+        (case Kind is
+           when Exemption        => Exempt_Off,
+           when Disable_Coverage => Cov_On);
+
       function Annotation_In_File (Cur : Cursor) return Boolean
       is (Has_Element (Cur) and then Key (Cur).Source_File = FI);
       --  Returns whether the annotation represented by Cur is in the same file
       --  as FI.
+
+      function Next (Cur : Cursor) return Cursor;
+      --  Return the next annotation of kind Kind
+
+      ----------
+      -- Next --
+      ----------
+
+      function Next (Cur : Cursor) return Cursor is
+         Result : Cursor := Cur;
+      begin
+         loop
+            Result := ALI_Annotation_Maps.Next (Result);
+            exit when not Has_Element (Result);
+            exit when
+              Element (Result).Kind in Start_Annotation | End_Annotation;
+         end loop;
+         return Result;
+      end Next;
 
    begin
       if not Has_Element (Annotation_Cur) then
