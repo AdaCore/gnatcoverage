@@ -21,7 +21,6 @@ with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Containers;             use Ada.Containers;
 with Ada.Finalization;
-with Ada.Strings.Wide_Wide_Fixed;
 pragma Warnings (Off, "* is an internal GNAT unit");
 with Ada.Strings.Wide_Wide_Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
@@ -5647,6 +5646,23 @@ package body Instrument.Ada_Unit is
                      =>
                         Instrument_Statement (UIC, N, 'P');
 
+                     --  Instrumentation relies on Ada_95 features, which is
+                     --  not valid Ada_83, so we remove the pragma.
+
+                     when Name_Ada_83
+                     =>
+                        declare
+                           H : constant Node_Rewriting_Handle := Handle (N);
+                        begin
+                           Remove_Child (H);
+
+                           --  We are getting rid of Ada83 pragmas, but
+                           --  we will prevent gnatcov from using
+                           --  features above Ada95.
+
+                           UIC.Language_Version := Ada_1995;
+                        end;
+
                      --  For all other pragmas, we generate decision entries
                      --  for any embedded expressions, and the pragma is
                      --  never disabled.
@@ -5967,37 +5983,66 @@ package body Instrument.Ada_Unit is
                when Ada_Pragma_Node =>
                   if Process_Pragmas then
                      declare
-                        use Ada.Strings.Wide_Wide_Fixed;
-
-                        Pragma_Name : constant Wide_Wide_String :=
-                          To_Lower (Text (N.As_Pragma_Node.F_Id));
+                        P_Node      : constant Pragma_Node := N.As_Pragma_Node;
+                        Name        : constant Name_Id := Pragma_Name (P_Node);
+                        Pragma_Name : constant Text_Type := P_Node.F_Id.Text;
                      begin
-                        if Index (Pragma_Name, "ada_") = Pragma_Name'First then
-                           UIC.Language_Version_Pragma :=
-                             To_Unbounded_Wide_Wide_String (Pragma_Name);
-                           declare
-                              Pragma_Str : constant String :=
-                                Image (N.As_Pragma_Node.F_Id.Text);
-                           begin
-                              if not Set_Language_Version
-                                       (UIC.Language_Version,
-                                        From => Pragma_Str)
-                              then
-                                 Report
-                                   (UIC,
-                                    N,
-                                    "Unknown language pragma version: "
-                                    & Pragma_Str,
-                                    Kind => Warning);
-                              end if;
-                           end;
-                        elsif Instrument.Ada_Unit.Pragma_Name
-                                (N.As_Pragma_Node)
-                          = Name_Annotate
-                        then
-                           Process_Annotation
-                             (UIC, N, N.As_Pragma_Node.F_Args);
-                        end if;
+                        case Name is
+
+                           --  Instrumentation relies on Ada_95 features, which
+                           --  is not valid Ada_83, so we remove the pragma.
+
+                           when Name_Ada_83   =>
+                              declare
+                                 H : constant Node_Rewriting_Handle :=
+                                   Handle (N);
+                              begin
+                                 Remove_Child (H);
+
+                                 --  We are getting rid of Ada83 pragmas, but
+                                 --  we will prevent gnatcov from using
+                                 --  features above Ada95.
+
+                                 UIC.Language_Version := Ada_1995;
+                              end;
+
+                           --  For each other version of the language, set the
+                           --  version of the language for the instrumenter.
+
+                           when Name_Ada_95
+                              | Name_Ada_05
+                              | Name_Ada_2005
+                              | Name_Ada_12
+                              | Name_Ada_2012
+                              | Name_Ada_2022 =>
+                              UIC.Language_Version_Pragma :=
+                                To_Unbounded_Wide_Wide_String
+                                  (To_Lower (Pragma_Name));
+                              declare
+                                 Pragma_Str : constant String :=
+                                   Image (Pragma_Name);
+                              begin
+                                 if not Set_Language_Version
+                                          (UIC.Language_Version,
+                                           From => Pragma_Str)
+                                 then
+                                    Report
+                                      (UIC,
+                                       N,
+                                       "Unknown language pragma version: "
+                                       & Pragma_Str,
+                                       Kind => Warning);
+                                 end if;
+                              end;
+
+                           when Name_Annotate =>
+                              Process_Annotation (UIC, N, P_Node.F_Args);
+
+                           --  Other pragmas are not relevant
+
+                           when others        =>
+                              null;
+                        end case;
                      end;
                   end if;
 
@@ -8762,6 +8807,26 @@ package body Instrument.Ada_Unit is
       --  to the root project as it will be in the <prj>-gnatcov-instr
       --  directory.
 
+      function Remove_Pragma_Ada_83_Nodes
+        (N : Ada_Node'Class) return Visit_Status;
+
+      function Remove_Pragma_Ada_83_Nodes
+        (N : Ada_Node'Class) return Visit_Status is
+      begin
+         if N.Kind in Ada_Pragma_Node
+           and then Pragma_Name (N.As_Pragma_Node) = Name_Ada_83
+         then
+            declare
+               H : constant Node_Rewriting_Handle := Handle (N);
+            begin
+               Remove_Child (H);
+            end;
+            return Over;
+         else
+            return Into;
+         end if;
+      end Remove_Pragma_Ada_83_Nodes;
+
    begin
       --  Make sure this main source has the expected structure:
       --
@@ -8798,6 +8863,11 @@ package body Instrument.Ada_Unit is
       Main.Unit := To_Qualified_Name (CU.P_Syntactic_Fully_Qualified_Name);
 
       Tmp := Tmp.As_Library_Item.F_Item.As_Ada_Node;
+
+      --  Make sure there is no pragma Ada_83 in the instrumented code.
+
+      Traverse (U.Root, Remove_Pragma_Ada_83_Nodes'Access);
+
       case Tmp.Kind is
          when Ada_Subp_Body                  =>
             declare
