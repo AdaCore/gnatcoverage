@@ -10,17 +10,14 @@ Basic scenario
 
 As a first step, indicate which coverage criterion GNATcoverage should use
 through the :ref:`project file<switches_attr>`. If no coverage level is set
-in the project file, gnatcov  will default to ``stmt``, and emit a warning
+in the project file, gnatcov will default to ``stmt``, and emit a warning
 indicating that the coverage level is not set.
-For this, go to the project properties (:menuselection:`Edit -->
-Project Properties...`).
+You can specify the coverage level by by editing directly the project file: |gps|
+provides completion, tooltips, outline and other common IDE features for project
+files through LSP and the `Ada Language Server <https://github.com/AdaCore/ada_language_server>`_,
+helping you to customize your project more easily.
 
 .. image:: gps_screenshots/3-cov-level.png
-
-In the :menuselection:`Build --> Switches --> GNATcoverage` entry, you can
-change the coverage level passed to |gcv| commands in the corresponding
-*Coverage level* combo
-box. Change it to ``stmt+decision``.
 
 This is all for the setup part. Then you just need to click on the
 *Run GNATcoverage* toolbar button as shown in the following screenshot.
