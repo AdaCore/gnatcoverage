@@ -837,7 +837,7 @@ package body Files_Table is
 
             else
                if Create (+Info_Simple.Full_Name.all) /= Full_Path then
-                  Put_Line ("Warning: same base name for files:");
+                  Outputs.Warn ("same base name for files:");
                   Put_Line ("  " & Preserved_Full_Name);
                   Put_Line ("  " & Info_Simple.Preserved_Full_Name.all);
                end if;

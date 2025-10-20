@@ -63,7 +63,7 @@ xcov(
 )
 thistest.fail_if_no_match(
     '"gnatcov output" ({})'.format(log_file),
-    "Warning: same base name for files:"
+    "warning: same base name for files:"
     "\r?\n  [^\n]+{}"
     "\r?\n  [^\n]+{}".format(
         re.escape(
