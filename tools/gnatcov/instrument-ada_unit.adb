@@ -561,9 +561,7 @@ package body Instrument.Ada_Unit is
    is
       SFI     : constant Source_File_Index :=
         Get_Index_From_Generic_Name
-          (Node.Unit.Get_Filename,
-           Kind                => Files_Table.Source_File,
-           Indexed_Simple_Name => True);
+          (Node.Unit.Get_Filename, Kind => Files_Table.Source_File);
       LAL_Loc : constant Source_Location := Sloc (Node);
    begin
       Diagnostics.Report
@@ -8157,9 +8155,7 @@ package body Instrument.Ada_Unit is
 
       Decl_SFI      : constant Source_File_Index :=
         Get_Index_From_Generic_Name
-          (Decl.Unit.Get_Filename,
-           Kind                => Files_Table.Source_File,
-           Indexed_Simple_Name => True);
+          (Decl.Unit.Get_Filename, Kind => Files_Table.Source_File);
       New_Scope_Ent : constant Scope_Entity :=
         (Source_Range =>
            Slocs.Source_Location_Range'
@@ -10273,9 +10269,7 @@ package body Instrument.Ada_Unit is
 
       UIC.SFI :=
         Get_Index_From_Generic_Name
-          (Filename,
-           Kind                => Files_Table.Source_File,
-           Indexed_Simple_Name => True);
+          (Filename, Kind => Files_Table.Source_File);
       UIC.Fullname := +Filename;
       UIC.Unit_Bits.SFI := UIC.SFI;
 
@@ -10481,9 +10475,7 @@ package body Instrument.Ada_Unit is
       Files_Table.Consolidate_Ignore_Status
         (Index  =>
            Files_Table.Get_Index_From_Generic_Name
-             (Name                => Filename,
-              Kind                => Files_Table.Source_File,
-              Indexed_Simple_Name => True),
+             (Name => Filename, Kind => Files_Table.Source_File),
          Status => Files_Table.Never);
    end Instrument_Source_File;
 
