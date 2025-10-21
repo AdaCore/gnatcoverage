@@ -2873,10 +2873,17 @@ package body Instrument.Ada_Unit is
             --  Add the augmented params to this spec as well
 
             if Formal_Params /= No_Node_Rewriting_Handle then
-               Set_Child
-                 (New_Spec,
-                  Member_Refs.Subp_Spec_F_Subp_Params,
-                  Create_Params (RC, Clone (Formal_Params)));
+               declare
+                  Spec_Formal_Params : constant Node_Rewriting_Handle :=
+                    Clone_Params (UIC, Previous_Spec);
+               begin
+                  Insert_Last
+                    (Spec_Formal_Params, Clone (Last_Child (Formal_Params)));
+                  Set_Child
+                    (New_Spec,
+                     Member_Refs.Subp_Spec_F_Subp_Params,
+                     Create_Params (RC, Spec_Formal_Params));
+               end;
             end if;
 
             Augmented_Function_Decl :=
