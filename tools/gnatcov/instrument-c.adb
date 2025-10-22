@@ -21,6 +21,7 @@ with Ada.Containers;  use Ada.Containers;
 with Ada.Directories; use Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams.Stream_IO;
+with Ada.Strings.Fixed;
 with Ada.Text_IO;     use Ada.Text_IO;
 
 with Clang.CX_Diagnostic; use Clang.CX_Diagnostic;
@@ -5772,6 +5773,68 @@ package body Instrument.C is
             Self.Clang_Needs_M32 := True;
          end if;
       end;
+
+      --  If the command line does not specify a version for the C standard,
+      --  infer it from the __STDC_VERSION__ builtin macro and add it to the
+      --  compiler switches. This is necessary to get the preprocessor
+      --  (possibly GCC) synchronized with Clang: the preprocessor's default
+      --  may not be equivalent to Clang's own default.
+
+      if Instrumenter in C_Instrumenter_Type'Class then
+         declare
+            use Macro_Sets;
+            Found   : Boolean := False;
+            Cur     : Cursor;
+            New_Arg : Unbounded_String;
+
+            Macro_Name : constant String := "__STDC_VERSION__";
+         begin
+            for Arg of Self.Compiler_Switches loop
+               if Has_Prefix (+Arg, "-std") then
+                  Found := True;
+                  exit;
+               end if;
+            end loop;
+
+            if not Found then
+               Sources_Trace.Trace
+                 ("No -std compiler switch: looking for macro " & Macro_Name);
+               Cur := Find (Self.Builtin_Macros, Macro_Name);
+               if Has_Element (Cur) then
+                  declare
+                     Value : constant String :=
+                       Ada.Strings.Fixed.Trim
+                         (+Self.Builtin_Macros.Element (Cur).Value,
+                          Side => Ada.Strings.Both);
+                  begin
+                     Sources_Trace.Trace
+                       ("Found " & Macro_Name & " = " & Value);
+                     if Value = "199901L" then
+                        New_Arg := +"-std=c99";
+                     elsif Value = "201112L" then
+                        New_Arg := +"-std=c11";
+                     elsif Value = "201710L" then
+                        New_Arg := +"-std=c17";
+                     elsif Value = "202311L" then
+                        New_Arg := +"-std=c23";
+                     else
+                        Sources_Trace.Trace
+                          ("It designates an unknown C standard version");
+                     end if;
+                  end;
+               else
+                  Sources_Trace.Trace
+                    (Macro_Name & " is not defined: crossing fingers...");
+               end if;
+            end if;
+
+            if New_Arg /= "" then
+               Self.Compiler_Switches.Append (New_Arg);
+               Sources_Trace.Trace
+                 ("Adding " & (+New_Arg) & " to compiler switches");
+            end if;
+         end;
+      end if;
    end Import_Options;
 
    ---------------------------
