@@ -3032,9 +3032,7 @@ package body Instrument.C is
 
       PP_Cmds.Insert
         (Get_Index_From_Generic_Name
-           (Filename,
-            Kind                => Files_Table.Source_File,
-            Indexed_Simple_Name => True),
+           (Filename, Kind => Files_Table.Source_File),
          Base_Cmd);
 
       Cmd := Base_Cmd;
@@ -3080,9 +3078,7 @@ package body Instrument.C is
 
          PP_Cmds.Replace
            (Get_Index_From_Generic_Name
-              (Filename,
-               Kind                => Files_Table.Source_File,
-               Indexed_Simple_Name => True),
+              (Filename, Kind => Files_Table.Source_File),
             Base_Cmd);
 
          Cmd := Base_Cmd;
@@ -3675,9 +3671,7 @@ package body Instrument.C is
 
       UIC.SFI :=
         Get_Index_From_Generic_Name
-          (Orig_Filename,
-           Kind                => Files_Table.Source_File,
-           Indexed_Simple_Name => True);
+          (Orig_Filename, Kind => Files_Table.Source_File);
       UIC.Fullname := +Orig_Filename;
 
       --  Initialize the C instrumentation context
@@ -4049,9 +4043,7 @@ package body Instrument.C is
       Files_Table.Consolidate_Ignore_Status
         (Index  =>
            Files_Table.Get_Index_From_Generic_Name
-             (Name                => Orig_Filename,
-              Kind                => Files_Table.Source_File,
-              Indexed_Simple_Name => True),
+             (Name => Orig_Filename, Kind => Files_Table.Source_File),
          Status => Files_Table.Never);
    end Instrument_Unit;
 
