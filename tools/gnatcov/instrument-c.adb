@@ -5750,8 +5750,7 @@ package body Instrument.C is
       declare
          use Macro_Sets;
          Cur             : constant Cursor :=
-           Self.Builtin_Macros.Find
-             (Macro_Definition'(Name => +"__SIZEOF_POINTER__", others => <>));
+           Find (Self.Builtin_Macros, "__SIZEOF_POINTER__");
          Size_Of_Pointer : constant Integer :=
            (if Has_Element (Cur)
             then Integer'Value (+Self.Builtin_Macros.Element (Cur).Value)

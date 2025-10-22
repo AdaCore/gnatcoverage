@@ -629,6 +629,9 @@ package Instrument.Common is
    package Macro_Sets is new Ada.Containers.Ordered_Sets (Macro_Definition);
    subtype Macro_Set is Macro_Sets.Set;
 
+   function Find (Self : Macro_Set; Name : String) return Macro_Sets.Cursor
+   is (Self.Find (Macro_Definition'(Name => +Name, others => <>)));
+
    type Analysis_Options is record
       PP_Search_Path : String_Vectors.Vector;
       --  List of directories to search when looking for an included file
