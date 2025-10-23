@@ -2055,6 +2055,16 @@ package body Instrument.C is
 
                   return Child_Visit_Continue;
 
+               when Cursor_Unary_Expr           =>
+
+                  --  The operand of sizeof operators is never evaluated at
+                  --  runtime, so there is no point creating coverage
+                  --  obligations for it.
+
+                  if Get_Unary_Expr_Kind_Str (N) = "SizeOf" then
+                     return Child_Visit_Continue;
+                  end if;
+
                when others                      =>
                   null;
             end case;

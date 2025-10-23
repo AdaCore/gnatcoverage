@@ -933,6 +933,20 @@ clang_getOpcodeStr (CXCursor C)
   return createEmpty ();
 }
 
+/* Return the string representative of the unary expression kind.  */
+extern "C" const char *
+clang_getUnaryExprKindStr (CXCursor C)
+{
+  if (clang_isExpression (C.kind))
+    if (const Stmt *S = getCursorStmt (C))
+      switch (S->getStmtClass ())
+        {
+        case Stmt::UnaryExprOrTypeTraitExprClass:
+          return getTraitName (cast<UnaryExprOrTypeTraitExpr> (S)->getKind ());
+        }
+  return "";
+}
+
 /* Return the location of the operator for a binary / unary
  * operator node.  */
 
