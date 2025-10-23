@@ -28,8 +28,14 @@ include:
   - local: utils/ci/interruptible.yml
     rules:
       - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH      
-  - project: eng/codepeer/ci-registry
-    file: /gnatsas-on-gnatcov.yml
+
+  # Run gnatsas on GNATcoverage sources
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/static-analysis@topic/move-ci-to-generic-anod-ci
+    inputs:
+      anod-spec: gnatcov-gnatsas-check
+      cache-paths:
+        - $CI_PROJECT_DIR/$GNATSAS_OBJ_DIR
+      save-anod-logs: true
 
 .basic_setup: &basic_setup
   - generic_anod_ci --add-dep eng/das/cov/gnatcoverage-extra
@@ -230,6 +236,11 @@ pre-commit:
     # Install the clang-format executable and make it available
     - anod install libclang -Qstable
     - eval `anod printenv libclang -Qstable`
+
+static-analysis:
+  variables:
+    GNATSAS_OBJ_DIR: tools/gnatcov/obj64/prod
+    GNATSAS_OUT_DIR: tools/gnatcov/analyzer
 
 #################
 # Optional jobs #
