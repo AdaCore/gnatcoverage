@@ -191,7 +191,7 @@ package Command_Line is
       Opt_C_Opts,
       Opt_CPP_Opts,
       Opt_Files,
-      Opt_Runtime_Dir,
+      Opt_RTS_Source_Dirs,
       Opt_Compiler_Wrappers,
       Opt_Ext_Annotations);
    --  Set of string list options we support. More complete descriptions below.
@@ -1917,14 +1917,12 @@ package Command_Line is
            Commands  => (Cmd_Instrument => True, others => False),
            Internal  => False),
 
-      Opt_Runtime_Dir             =>
+      Opt_RTS_Source_Dirs         =>
         Create
-          (Long_Name => "--runtime-dir",
+          (Long_Name => "--rts-source-dirs",
            Pattern   => "NAME",
-           Help      => "Directories containing the compiler runtime sources.",
-           Commands  =>
-             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
-              others                                      => False),
+           Help      => "Directories containing the coverage runtime sources.",
+           Commands  => (Cmd_Instrument_Main => True, others => False),
            Internal  => True),
 
       Opt_Compiler_Wrappers       =>

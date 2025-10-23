@@ -48,6 +48,10 @@ package Instrument.C is
    type C_Family_Instrumenter_Type is abstract new Language_Instrumenter
    with record
       Instr_Mode : Instrumentation_Mode;
+
+      RTS_Source_Dirs : File_Vectors.Vector;
+      --  List of source directories in the coverage project. Used to give
+      --  access to its C headers from the C/C++ instrumenter.
    end record;
    --  Common instrumentation primitives for C/C++
 
@@ -140,9 +144,13 @@ package Instrument.C is
    is (C_Language);
 
    function Create_C_Instrumenter
-     (Tag : Unbounded_String; Instr_Mode : Instrumentation_Mode)
-      return C_Instrumenter_Type
-   is (C_Instrumenter_Type'(Tag => Tag, Instr_Mode => Instr_Mode));
+     (Tag             : Unbounded_String;
+      Instr_Mode      : Instrumentation_Mode;
+      RTS_Source_Dirs : File_Vectors.Vector) return C_Instrumenter_Type
+   is (C_Instrumenter_Type'
+         (Tag             => Tag,
+          Instr_Mode      => Instr_Mode,
+          RTS_Source_Dirs => RTS_Source_Dirs));
    --  Create a C instrumenter. See the definition of the
    --  Language_Instrumenter type for the arguments semantic.
 
@@ -160,9 +168,13 @@ package Instrument.C is
    is ("extern ""C"" ");
 
    function Create_CPP_Instrumenter
-     (Tag : Unbounded_String; Instr_Mode : Instrumentation_Mode)
-      return CPP_Instrumenter_Type
-   is (CPP_Instrumenter_Type'(Tag => Tag, Instr_Mode => Instr_Mode));
+     (Tag             : Unbounded_String;
+      Instr_Mode      : Instrumentation_Mode;
+      RTS_Source_Dirs : File_Vectors.Vector) return CPP_Instrumenter_Type
+   is (CPP_Instrumenter_Type'
+         (Tag             => Tag,
+          Instr_Mode      => Instr_Mode,
+          RTS_Source_Dirs => RTS_Source_Dirs));
    --  Create a C++ instrumenter. See the definition of the
    --  Language_Instrumenter type for the arguments semantic.
 

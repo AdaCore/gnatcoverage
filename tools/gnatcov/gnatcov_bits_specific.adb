@@ -1985,6 +1985,7 @@ begin
 
             Instrument.Projects
               (Dump_Config          => Dump_Config,
+               RTS_Source_Dirs      => Setup_Cfg.RTS_Source_Dirs,
                Ignored_Source_Files =>
                  (if Has_Matcher then Matcher'Access else null),
                Mains                => Args.Remaining_Args);

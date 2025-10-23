@@ -16,7 +16,10 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with GNATCOLL.VFS; use GNATCOLL.VFS;
+
 with Command_Line;        use Command_Line;
+with Files_Handling;      use Files_Handling;
 with Instrument.Ada_Unit; use Instrument.Ada_Unit;
 with Instrument.C;        use Instrument.C;
 with Instrument.Common;   use Instrument.Common;
@@ -30,6 +33,26 @@ function Instrument.Config return Language_Instrumenter'Class is
      To_Language (+Args.String_Args (Opt_Lang).Value);
    Tag      : constant Unbounded_String :=
      Value_Or_Null (Args.String_Args (Opt_Dump_Filename_Tag));
+
+   function RTS_Source_Dirs return File_Vectors.Vector;
+   --  Return the list of source directories from the Opt_RTS_Source_Dirs
+   --  option.
+
+   ---------------------
+   -- RTS_Source_Dirs --
+   ---------------------
+
+   function RTS_Source_Dirs return File_Vectors.Vector is
+   begin
+      return Result : File_Vectors.Vector do
+         for D of Args.String_List_Args (Opt_RTS_Source_Dirs) loop
+            Result.Append (Create (+(+D)));
+         end loop;
+      end return;
+   end RTS_Source_Dirs;
+
+   --  Start of processing for Instrument.Config
+
 begin
    case Language is
       when Ada_Language =>
@@ -46,11 +69,11 @@ begin
       when C_Language   =>
          return
            Create_C_Instrumenter
-             (Tag => Tag, Instr_Mode => Project_Instrumentation);
+             (Tag, Project_Instrumentation, RTS_Source_Dirs);
 
       when CPP_Language =>
          return
            Create_CPP_Instrumenter
-             (Tag => Tag, Instr_Mode => Project_Instrumentation);
+             (Tag, Project_Instrumentation, RTS_Source_Dirs);
    end case;
 end Instrument.Config;

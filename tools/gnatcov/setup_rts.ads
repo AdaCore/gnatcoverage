@@ -18,9 +18,10 @@
 
 --  This package implements the "setup" gnatcov command.
 
+with Files_Handling; use Files_Handling;
 with Logging;
-with Strings;  use Strings;
-with Switches; use Switches;
+with Strings;        use Strings;
+with Switches;       use Switches;
 
 package Setup_RTS is
 
@@ -110,13 +111,18 @@ package Setup_RTS is
       --  Default dump config to use in "gnatcov instrument". No need for a
       --  "..._Present" flag for this one as when we do not have access to the
       --  setup config, we just assume defaults for the Any_Dump_Config type.
+
+      RTS_Source_Dirs : File_Vectors.Vector;
+      --  List of source directories in the coverage project. Used to give
+      --  access to its C headers from the C/C++ instrumenter.
    end record;
 
    Default_Setup_Config : constant Setup_Config :=
      (Project_File        => <>,
       RTS_Profile         => Full,
       RTS_Profile_Present => False,
-      Default_Dump_Config => (others => <>));
+      Default_Dump_Config => (others => <>),
+      RTS_Source_Dirs     => <>);
 
    function Load
      (Target          : String;

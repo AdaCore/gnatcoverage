@@ -5137,6 +5137,15 @@ package body Instrument.C is
    begin
       Check_Compiler_Driver (Prj, Self);
 
+      --  The source file Filename is already instrumented for coverage, and so
+      --  it contains #include directives for headers from the coverage
+      --  runtime. Make sure Clang has access to them so that it can parse
+      --  correctly.
+
+      for D of Self.RTS_Source_Dirs loop
+         Dummy_Options.PP_Search_Path.Append (+(+D.Full_Name));
+      end loop;
+
       Rew.Start_Rewriting (Filename, Self, Prj, Dummy_Options);
 
       Insert_Extern_Location :=
