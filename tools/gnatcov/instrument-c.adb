@@ -3701,6 +3701,7 @@ package body Instrument.C is
 
       --  Record preprocessing information
 
+      Sources_Trace.Trace ("Running the Record_P_Info pass");
       Record_PP_Info (Orig_Filename, UIC, Self);
 
       --  Save the last SCO of the first pass (for a consistency check with
@@ -3712,6 +3713,7 @@ package body Instrument.C is
 
       --  Then, instrument
 
+      Sources_Trace.Trace ("Running the Instrument pass");
       UIC.Pass := Instrument_Pass'Access;
 
       Insert_Extern_Location :=

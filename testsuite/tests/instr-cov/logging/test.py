@@ -28,6 +28,44 @@ for project in ["mylib", "harness"]:
     mkdir(os.path.join("obj", project, f"{project}-gnatcov-instr"))
 
 
+def pattern_for_log(log, pattern):
+    prefix = re.escape(f"[GNATCOV.{log}]")
+    return f"\\s*{prefix} {pattern}$"
+
+
+class Filter(OutputRefiner):
+    """Output refiner to restrict the set of log lines considered in this test.
+
+    We do not want to update this test each time someone adds new debug logging
+    to gnatcov. This refiner keeps only a subset of logging to avoid that.
+    """
+
+    patterns = [
+        "info: creating output path.*",
+        "Coverage instrumentation",
+        "Main instrumentation",
+        r"   \[(Ada|C|C\+\+)\].*",
+        pattern_for_log("INSTRUMENT_CLEAN_OBJDIRS", ".*"),
+        pattern_for_log(
+            "INSTRUMENT_SOURCES",
+            r"Writing (pure )?(Ada|C|C\+\+) (buffer|dump helper) unit.*",
+        ),
+        pattern_for_log("INSTRUMENT_SOURCES", "Instrumenting [^ ]+"),
+        pattern_for_log("INSTRUMENT_SOURCES", "Project: [^ ]+"),
+        pattern_for_log("INSTRUMENT_SOURCES", "Filename: [^ ]+"),
+        pattern_for_log("INSTRUMENT_SOURCES", "For (files|units|main):"),
+        pattern_for_log("INSTRUMENT_SOURCES", "\\* .*"),
+    ]
+    regexp = re.compile("|".join(f"(?:{p})" for p in patterns))
+
+    def refine(self, output):
+        return "".join(
+            line
+            for line in output.splitlines(True)
+            if self.regexp.match(line.rstrip())
+        )
+
+
 class HashRefiner(OutputRefiner):
     """Output refiner to hide hashes from the instrumented files.
 
@@ -143,6 +181,7 @@ for project, subproject in [("tests", "mylib"), ("my_tool", "my_tool")]:
         # To have portable baseline comparison, hide the actual CWD and
         # canonicalize directory separators.
         output_refiners=[
+            Filter(),
             Substitute(os.getcwd(), "[TMP]"),
             SortByFiles(),
             HashRefiner(),
