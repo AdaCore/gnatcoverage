@@ -20,7 +20,7 @@ build_run_and_coverage(
     ),
     covlevel="stmt+decision",
     mains=["main"],
-    extra_coverage_args=["--subprograms=pkg.ads:5", "-axcov+"],
+    extra_coverage_args=["--subprograms=../pkg.ads:5", "-axcov+"],
 )
 
 check_xcov_reports("obj", {"pkg.ads.xcov": {"+": {5}}})

@@ -37,6 +37,7 @@ with LLVM_JSON_Checkpoints; use LLVM_JSON_Checkpoints;
 with Outputs;
 with Perf_Counters;         use Perf_Counters;
 with Project;
+with Switches;
 
 package body Files_Table is
 
@@ -837,7 +838,7 @@ package body Files_Table is
 
             else
                if Create (+Info_Simple.Full_Name.all) /= Full_Path then
-                  Put_Line ("Warning: same base name for files:");
+                  Outputs.Warn ("same base name for files:");
                   Put_Line ("  " & Preserved_Full_Name);
                   Put_Line ("  " & Info_Simple.Preserved_Full_Name.all);
                end if;
@@ -2477,13 +2478,35 @@ package body Files_Table is
                end if;
 
                if SFI = No_Source_File then
+
                   --  Delicate circuitry here: if in the original run, a simple
                   --  name was passed to Get_Index_From_Full_Name, then it must
                   --  not be indexed as a simple name here (which is what
                   --  Get_Index_From_Generic_Name would do). This can happen
                   --  when a relative ALI file path is passed to --scos=.
+                  --
+                  --  Another subtelty: in principle, instrumenters always know
+                  --  the absolute filenames for sources, so indexing by simple
+                  --  name (`Indexed_Simple_Name` formal for the
+                  --  `Files_Table.Get_Index_From_*_Name` functions) is never
+                  --  needed. It would actually be harmful when multiple
+                  --  sources have the same basename, as this would make
+                  --  `gnatcov coverage` emit spurious `warning: same base name
+                  --  for files` messages.
+                  --
+                  --  There is one exception to this: in the special more where
+                  --  `gnatcov coverage` accepts both binary traces and source
+                  --  traces, i.e. when ALI files are loaded, some source files
+                  --  are known only by their simple name (i.e.. all Ada
+                  --  sources in ALI files). In order for these files to be
+                  --  correctly consolidated with the absolute names found in
+                  --  SID files,
+                  --  indexing by simple name is needed.
 
-                  if FE.Indexed_Simple_Name then
+                  if FE.Indexed_Simple_Name
+                    or else (FE.Kind = Source_File
+                             and then Switches.Allow_Mixing_Trace_Kinds)
+                  then
                      SFI :=
                        Get_Index_From_Generic_Name
                          (FE.Name.all, FE.Kind, Indexed_Simple_Name => True);

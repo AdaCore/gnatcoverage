@@ -38,9 +38,9 @@ trace_entry_header_struct = Struct(
     ("language", "B"),
     ("unit_part", "B"),
     ("bit_buffer_encoding", "B"),
-    ("fingerprint", "20B"),
-    ("bit_maps_fingerprint", "20B"),
-    ("annotations_fingerprint", "20B"),
+    ("fingerprint", "20s"),
+    ("bit_maps_fingerprint", "20s"),
+    ("annotations_fingerprint", "20s"),
     ("padding", "B"),
 )
 
