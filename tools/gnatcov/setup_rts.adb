@@ -38,15 +38,14 @@ with GPR2.Project.Registry.Attribute;
 with GPR2.Project.Tree;
 with GPR2.Reporter.Console;
 
-with Files_Handling; use Files_Handling;
 with GPR2.Reporter;
-with JSON;           use JSON;
-with Outputs;        use Outputs;
-with Paths;          use Paths;
+with JSON;         use JSON;
+with Outputs;      use Outputs;
+with Paths;        use Paths;
 with Project;
-with Subprocesses;   use Subprocesses;
+with Subprocesses; use Subprocesses;
 with Support_Files;
-with Temp_Dirs;      use Temp_Dirs;
+with Temp_Dirs;    use Temp_Dirs;
 with Text_Files;
 
 package body Setup_RTS is
@@ -810,6 +809,8 @@ package body Setup_RTS is
          Dump_Config : constant Any_Dump_Config :=
            Load_Dump_Config
              (Default_Dump_Config (Actual_RTS_Profile, +Actual_RTS_Name));
+
+         RTS_Source_Dirs : File_Vectors.Vector;
       begin
          --  Try to uninstall a previous installation of the instrumentation
          --  runtime in the requested prefix. This is to avoid installation
@@ -821,6 +822,16 @@ package body Setup_RTS is
          --  what is installed.
 
          Uninstall (Install_Name, Prefix);
+
+         --  No matter what the source directories are in the coverage runtime
+         --  project, there should be exactly one source directory in the
+         --  installed project thanks to the gprinstall step.
+
+         declare
+            Dir : constant String := Prefix / "include" / "gnatcov_rts";
+         begin
+            RTS_Source_Dirs.Append (Create (+Dir));
+         end;
 
          --  Save the setup profile and default values in the instrumented
          --  project.
@@ -835,7 +846,8 @@ package body Setup_RTS is
               (Project_File        => <>,
                RTS_Profile         => Actual_RTS_Profile,
                RTS_Profile_Present => True,
-               Default_Dump_Config => Dump_Config));
+               Default_Dump_Config => Dump_Config,
+               RTS_Source_Dirs     => RTS_Source_Dirs));
 
          --  Check that the RTS profile is compatible with the selected
          --  defaults for the dump config.
@@ -1306,6 +1318,18 @@ package body Setup_RTS is
                Manual_Indication_Files => File_Sets.Empty_Set);
       end case;
 
+      Check_Field ("rts-source-dirs", JSON_Array_Type);
+      declare
+         Dirs : constant JSON_Array := J.Get ("rts-source-dirs");
+      begin
+         for D of Dirs loop
+            if D.Kind /= JSON_String_Type then
+               Stop_With_Error ("rts-source-dirs: list of strings expected");
+            end if;
+            Result.RTS_Source_Dirs.Append (Create (+String'(D.Get)));
+         end loop;
+      end;
+
       return Result;
    end Load;
 
@@ -1347,6 +1371,15 @@ package body Setup_RTS is
             when Base64_Standard_Output =>
                null;
          end case;
+      end;
+
+      declare
+         Dirs : JSON_Array;
+      begin
+         for D of Config.RTS_Source_Dirs loop
+            Append (Dirs, Create (+D.Full_Name));
+         end loop;
+         J.Set_Field ("rts-source-dirs", Create (Dirs));
       end;
 
       --  Write the setup config file

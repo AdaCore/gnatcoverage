@@ -18,6 +18,7 @@
 
 --  Stub of Instrument.C: see the note about Stubs in gnatcov.gpr
 
+with Files_Handling;    use Files_Handling;
 with Instrument.Common; use Instrument.Common;
 
 package Instrument.C is
@@ -36,8 +37,9 @@ package Instrument.C is
    is (C_Language);
 
    function Create_C_Instrumenter
-     (Tag : Unbounded_String; Instr_Mode : Instrumentation_Mode)
-      return C_Instrumenter_Type
+     (Tag             : Unbounded_String;
+      Instr_Mode      : Instrumentation_Mode;
+      RTS_Source_Dirs : File_Vectors.Vector) return C_Instrumenter_Type
    is (C_Instrumenter_Type'(others => <>));
 
    type CPP_Instrumenter_Type is new C_Family_Instrumenter_Type
@@ -50,8 +52,9 @@ package Instrument.C is
    is (CPP_Language);
 
    function Create_CPP_Instrumenter
-     (Tag : Unbounded_String; Instr_Mode : Instrumentation_Mode)
-      return CPP_Instrumenter_Type
+     (Tag             : Unbounded_String;
+      Instr_Mode      : Instrumentation_Mode;
+      RTS_Source_Dirs : File_Vectors.Vector) return CPP_Instrumenter_Type
    is (CPP_Instrumenter_Type'(others => <>));
 
    procedure Postprocess_Source

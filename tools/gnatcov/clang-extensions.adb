@@ -20,6 +20,8 @@
 --  is done for the libclang Ada bindings themselves (to avoid having to use
 --  the String_T type that must be memory managed by the user for instance).
 
+with Interfaces.C.Strings; use Interfaces.C.Strings;
+
 with Clang.CX_File;   use Clang.CX_File;
 with Clang.CX_String; use Clang.CX_String;
 
@@ -124,6 +126,20 @@ package body Clang.Extensions is
       Dispose_String (Opcode_Str_C);
       return Opcode_Str;
    end Get_Opcode_Str;
+
+   -----------------------------
+   -- Get_Unary_Expr_Kind_Str --
+   -----------------------------
+
+   function Get_Unary_Expr_Kind_Str (C : Cursor_T) return String is
+      function Get_Name (C : Cursor_T) return chars_ptr
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_getUnaryExprKindStr";
+   begin
+      return Value (Get_Name (C));
+   end Get_Unary_Expr_Kind_Str;
 
    --------------------------------------
    -- Is_This_Declaration_A_Definition --

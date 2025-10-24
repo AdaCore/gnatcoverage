@@ -177,6 +177,11 @@ is
 
    function Img (Command : String_Vectors.Vector) return String;
 
+   function RTS_Source_Dirs
+     (Instr_Config : Instrumentation_Config) return File_Vectors.Vector;
+   --  Return the list of source directories in the coverage runtime. Used to
+   --  give access to its C headers from the C/C++ instrumenter.
+
    function Parse_Compiler_Driver_Command
      (Context : in out Parsing_Context;
       Prj     : in out Prj_Desc;
@@ -224,6 +229,18 @@ is
       Buffers_List_Object : Virtual_File;
       Buffer_Symbols      : String_Sets.Set);
    --  Emit the object file containing the given list of Buffer_Symbols
+
+   ---------------------
+   -- RTS_Source_Dirs --
+   ---------------------
+
+   function RTS_Source_Dirs
+     (Instr_Config : Instrumentation_Config) return File_Vectors.Vector is
+   begin
+      return Result : File_Vectors.Vector do
+         Result.Append (Create (+(+Instr_Config.GNATcov_RTS_Include_Dir)));
+      end return;
+   end RTS_Source_Dirs;
 
    ----------------
    -- Split_Args --
@@ -704,7 +721,10 @@ is
       Buffer_Symbols      : String_Sets.Set)
    is
       Instrumenter : constant Language_Instrumenter'Class :=
-        Create_C_Instrumenter (Instr_Config.Tag, Integrated_Instrumentation);
+        Create_C_Instrumenter
+          (Instr_Config.Tag,
+           Integrated_Instrumentation,
+           RTS_Source_Dirs (Instr_Config));
       --  Emit the buffers list unit as a C compilation unit as it is
       --  compilable by a C / C++ compiler, which are the languages
       --  supported by the integrated instrumentation scheme.
@@ -837,10 +857,14 @@ begin
            (case Comp_Command.Language is
               when C_Language   =>
                 Create_C_Instrumenter
-                  (Instr_Config.Tag, Integrated_Instrumentation),
+                  (Instr_Config.Tag,
+                   Integrated_Instrumentation,
+                   RTS_Source_Dirs (Instr_Config)),
               when CPP_Language =>
                 Create_CPP_Instrumenter
-                  (Instr_Config.Tag, Integrated_Instrumentation),
+                  (Instr_Config.Tag,
+                   Integrated_Instrumentation,
+                   RTS_Source_Dirs (Instr_Config)),
               when others       =>
                 raise Program_Error
                   with "Unsupported language for integrated instrumentation");

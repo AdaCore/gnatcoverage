@@ -21,6 +21,7 @@ with Ada.Containers;  use Ada.Containers;
 with Ada.Directories; use Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams.Stream_IO;
+with Ada.Strings.Fixed;
 with Ada.Text_IO;     use Ada.Text_IO;
 
 with Clang.CX_Diagnostic; use Clang.CX_Diagnostic;
@@ -2055,6 +2056,16 @@ package body Instrument.C is
 
                   return Child_Visit_Continue;
 
+               when Cursor_Unary_Expr           =>
+
+                  --  The operand of sizeof operators is never evaluated at
+                  --  runtime, so there is no point creating coverage
+                  --  obligations for it.
+
+                  if Get_Unary_Expr_Kind_Str (N) = "SizeOf" then
+                     return Child_Visit_Continue;
+                  end if;
+
                when others                      =>
                   null;
             end case;
@@ -3701,6 +3712,7 @@ package body Instrument.C is
 
       --  Record preprocessing information
 
+      Sources_Trace.Trace ("Running the Record_P_Info pass");
       Record_PP_Info (Orig_Filename, UIC, Self);
 
       --  Save the last SCO of the first pass (for a consistency check with
@@ -3712,6 +3724,7 @@ package body Instrument.C is
 
       --  Then, instrument
 
+      Sources_Trace.Trace ("Running the Instrument pass");
       UIC.Pass := Instrument_Pass'Access;
 
       Insert_Extern_Location :=
@@ -5124,6 +5137,15 @@ package body Instrument.C is
    begin
       Check_Compiler_Driver (Prj, Self);
 
+      --  The source file Filename is already instrumented for coverage, and so
+      --  it contains #include directives for headers from the coverage
+      --  runtime. Make sure Clang has access to them so that it can parse
+      --  correctly.
+
+      for D of Self.RTS_Source_Dirs loop
+         Dummy_Options.PP_Search_Path.Append (+(+D.Full_Name));
+      end loop;
+
       Rew.Start_Rewriting (Filename, Self, Prj, Dummy_Options);
 
       Insert_Extern_Location :=
@@ -5750,8 +5772,7 @@ package body Instrument.C is
       declare
          use Macro_Sets;
          Cur             : constant Cursor :=
-           Self.Builtin_Macros.Find
-             (Macro_Definition'(Name => +"__SIZEOF_POINTER__", others => <>));
+           Find (Self.Builtin_Macros, "__SIZEOF_POINTER__");
          Size_Of_Pointer : constant Integer :=
            (if Has_Element (Cur)
             then Integer'Value (+Self.Builtin_Macros.Element (Cur).Value)
@@ -5761,6 +5782,68 @@ package body Instrument.C is
             Self.Clang_Needs_M32 := True;
          end if;
       end;
+
+      --  If the command line does not specify a version for the C standard,
+      --  infer it from the __STDC_VERSION__ builtin macro and add it to the
+      --  compiler switches. This is necessary to get the preprocessor
+      --  (possibly GCC) synchronized with Clang: the preprocessor's default
+      --  may not be equivalent to Clang's own default.
+
+      if Instrumenter in C_Instrumenter_Type'Class then
+         declare
+            use Macro_Sets;
+            Found   : Boolean := False;
+            Cur     : Cursor;
+            New_Arg : Unbounded_String;
+
+            Macro_Name : constant String := "__STDC_VERSION__";
+         begin
+            for Arg of Self.Compiler_Switches loop
+               if Has_Prefix (+Arg, "-std") then
+                  Found := True;
+                  exit;
+               end if;
+            end loop;
+
+            if not Found then
+               Sources_Trace.Trace
+                 ("No -std compiler switch: looking for macro " & Macro_Name);
+               Cur := Find (Self.Builtin_Macros, Macro_Name);
+               if Has_Element (Cur) then
+                  declare
+                     Value : constant String :=
+                       Ada.Strings.Fixed.Trim
+                         (+Self.Builtin_Macros.Element (Cur).Value,
+                          Side => Ada.Strings.Both);
+                  begin
+                     Sources_Trace.Trace
+                       ("Found " & Macro_Name & " = " & Value);
+                     if Value = "199901L" then
+                        New_Arg := +"-std=c99";
+                     elsif Value = "201112L" then
+                        New_Arg := +"-std=c11";
+                     elsif Value = "201710L" then
+                        New_Arg := +"-std=c17";
+                     elsif Value = "202311L" then
+                        New_Arg := +"-std=c23";
+                     else
+                        Sources_Trace.Trace
+                          ("It designates an unknown C standard version");
+                     end if;
+                  end;
+               else
+                  Sources_Trace.Trace
+                    (Macro_Name & " is not defined: crossing fingers...");
+               end if;
+            end if;
+
+            if New_Arg /= "" then
+               Self.Compiler_Switches.Append (New_Arg);
+               Sources_Trace.Trace
+                 ("Adding " & (+New_Arg) & " to compiler switches");
+            end if;
+         end;
+      end if;
    end Import_Options;
 
    ---------------------------

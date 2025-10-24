@@ -70,6 +70,9 @@ with Text_Files;          use Text_Files;
 --  dump procedure for the list of coverage buffers in all mains in the
 --  project.
 --
+--  RTS_Source_Dirs specifies the list of source directories in the coverage
+--  runtime. Used to give access to its C headers from the C/C++ instrumenter.
+--
 --  Language_Version restricts what source constructs the instrumenter is
 --  allowed to use. For instance, if Ada_2005 (or a lower version) is
 --  passed, it will not be allowed to introduce expression functions, and
@@ -83,6 +86,7 @@ with Text_Files;          use Text_Files;
 
 procedure Instrument.Projects
   (Dump_Config          : Any_Dump_Config;
+   RTS_Source_Dirs      : File_Vectors.Vector;
    Ignored_Source_Files : access GNAT.Regexp.Regexp;
    Mains                : String_Vectors.Vector)
 is
@@ -1288,9 +1292,11 @@ begin
         Config_Pragmas_Mapping     => +IC.Config_Pragmas_Mapping,
         Mapping_Filename           => +IC.Mapping_File,
         Preprocessor_Data_Filename => +IC.Ada_Preprocessor_Data_File);
-   C_Instrumenter := Create_C_Instrumenter (IC.Tag, Project_Instrumentation);
+   C_Instrumenter :=
+     Create_C_Instrumenter (IC.Tag, Project_Instrumentation, RTS_Source_Dirs);
    CPP_Instrumenter :=
-     Create_CPP_Instrumenter (IC.Tag, Project_Instrumentation);
+     Create_CPP_Instrumenter
+       (IC.Tag, Project_Instrumentation, RTS_Source_Dirs);
 
    if Dump_Config.Trigger = Manual then
 
@@ -1476,6 +1482,11 @@ begin
         (+"--project-name=" & String (Root_Project_Info.Project.Name));
 
       Instrument_Main_Args.Append (Common_Switches (Cmd_Instrument_Main));
+
+      for Dir of RTS_Source_Dirs loop
+         Instrument_Main_Args.Append
+           (+"--rts-source-dirs=" & (+Dir.Full_Name));
+      end loop;
 
       for Language in Src_Supported_Language loop
          for Main of Mains_To_Instrument (Language) loop

@@ -344,6 +344,26 @@ package body Instrument.Common is
                 /= SFI
       then
          Append_Unit (SFI);
+         if SCOs_Trace.Is_Active then
+            SCOs_Trace.Trace ("SFI=" & Img (Integer (SFI)));
+         end if;
+      end if;
+
+      if SCOs_Trace.Is_Active then
+         SCOs_Trace.Trace
+           ("Add:"
+            & " C1="
+            & C1
+            & ", C2="
+            & C2
+            & " at "
+            & Image (Local_Source_Location_Range'(From, To))
+            & (if Last then ", last" else "")
+            & (if Pragma_Aspect_Name /= Namet.No_Name
+               then
+                 ", pragma_aspect_name="
+                 & Namet.Get_Name_String (Pragma_Aspect_Name)
+               else ""));
       end if;
 
       --  Append a new SCO to the low level SCO table
