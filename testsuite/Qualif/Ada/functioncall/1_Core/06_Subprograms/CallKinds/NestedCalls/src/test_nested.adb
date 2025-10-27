@@ -1,0 +1,18 @@
+with Nested;
+
+--  Check that nested calls are all instrumented and that the correct call
+--  violations are reported.
+
+procedure Test_Nested is
+begin
+    Nested;
+end Test_Nested;
+
+--# nested.adb
+-- /stmt/    l+ ## 0
+-- /fun/     l+ ## 0
+-- /call/    l+ ## 0
+-- /if/      l! ## dT-
+-- /v_stmt/  l- ## s-
+-- /v_call/  l- ## f=>c-
+-- /v_false/ l- ## 0
