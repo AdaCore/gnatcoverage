@@ -98,6 +98,10 @@ package Clang.Extensions is
    function Get_Opcode_Str (C : Cursor_T) return String
    with Inline;
 
+   function Get_Unary_Expr_Kind_Str (C : Cursor_T) return String
+   with Inline;
+   --  Given a cursor to an Unary_Expr node, return the name of its kind
+
    function Get_Decl_Name_Str (C : Cursor_T) return String
    with Inline;
 
