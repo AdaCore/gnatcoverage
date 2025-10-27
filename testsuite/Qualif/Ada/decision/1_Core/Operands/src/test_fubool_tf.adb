@@ -7,6 +7,7 @@ begin
 end;
 
 --# fubool.adb
+--  /decl/   l+ ## 0
 --  /eval0/  l+ ## 0
 --  /true/   l+ ## 0
 --  /false/  l+ ## 0
