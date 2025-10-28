@@ -12,7 +12,9 @@ following set of expressions:
 
 * The controlling tests of Ada2012 *if-expressions*,
 
-* The Ada2012 *quantified-expressions* predicates.
+* The Ada2012 *quantified-expressions* predicates,
+
+* The Ada 2022 *iterator filter* expressions.
 
 The types involved need not be restricted to the standard Boolean
 type; they may be subtypes or types derived from Boolean.

@@ -7,4 +7,5 @@ end;
 
 --# fuand.adb
 --  /evalA/   l! ## eF-
+--  /evalTN/  l! ## eF-
 --  /evalB/   l! ## 0

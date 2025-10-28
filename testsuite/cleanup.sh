@@ -3,10 +3,10 @@
 
 rm -rf $(find -type d -name 'isyswspace')
 rm -rf $(find -type d -name 'tmp_*')
-rm -rf $(find -type d -name 'st_*')
-rm -rf $(find -type d -name 'dc_*')
-rm -rf $(find -type d -name 'mc_*')
-rm -rf $(find -type d -name 'uc_*')
+rm -rf $(find -type d -name 's_*')
+rm -rf $(find -type d -name 'd_*')
+rm -rf $(find -type d -name 'm_*')
+rm -rf $(find -type d -name 'u_*')
 rm -rf $(find -type d -name '[0-9]')
 rm -rf $(find -type d -name 'wd_*')
 

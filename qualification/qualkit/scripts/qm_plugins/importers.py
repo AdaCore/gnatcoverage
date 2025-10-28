@@ -623,11 +623,17 @@ class ToplevelIndexImporter(ArtifactImporter):
 
             if a.name == "Ada":
 
-                def key(a):
-                    d = {"stmt": 1, "decision": 2, "mcdc": 3}
+                def key(art):
+                    d = {
+                        "stmt": 1,
+                        "decision": 2,
+                        "mcdc": 3,
+                        "functioncall": 4,
+                    }
                     for k in d:
-                        if k in a.name:
+                        if k in art.name:
                             return d[k]
+                    return 0
 
                 selected = [k for k in a.relatives if not is_source(k)]
                 selected.sort(key=key)
