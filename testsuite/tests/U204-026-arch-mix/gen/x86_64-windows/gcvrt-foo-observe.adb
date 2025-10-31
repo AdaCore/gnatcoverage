@@ -1,3 +1,4 @@
+pragma Style_Checks (Off); pragma Warnings (Off);
 with Interfaces;
 with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
 
@@ -12,5 +13,5 @@ pragma Import (C, Sum_Buffer_Bits_C, "gnatcov_rts_sum_buffer_bits");
         (Interfaces.Unsigned_64'Min
            (Sum_Buffer_Bits_C (GCVRT.Foo.C_List),
             Interfaces.Unsigned_64 (Natural'Last)));
-   end;
+   end Sum_Buffer_Bits;
 end GCVRT.Foo.Observe;

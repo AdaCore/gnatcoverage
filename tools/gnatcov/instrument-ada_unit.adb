@@ -2006,7 +2006,10 @@ package body Instrument.Ada_Unit is
         Name
         & "_Var :"
         & (if UIC.In_Decl_Expr then " constant" else "")
-        & " {}.MCDC_State_Type := 0;";
+        & " {}.MCDC_State_Type := "
+        & (if UIC.In_Decl_Expr
+           then To_Ada (Sys_Buffers) & ".Identity (0);"
+           else "0;");
       Addr_Decl_Img : constant String :=
         Name
         & " : constant GNATCov_RTS.Sys.Address := "

@@ -48,6 +48,12 @@ package GNATcov_RTS.Buffers is
    type Any_Bit_Id is new int;
    pragma Volatile (Any_Bit_Id);
 
+   function Identity (Val : Any_Bit_Id) return Any_Bit_Id;
+   --  Identity function, used to non-statically initialize the MCDC state
+   --  holders inserted in declare expressions. If they are initialized with a
+   --  compile time known value, CCG or even gnat could put the data in a
+   --  read-only section, resulting in run-time segmentation faults.
+
    No_Bit_Id : constant Any_Bit_Id := -1;
 
    subtype Bit_Id is Any_Bit_Id range 0 .. Any_Bit_Id'Last;

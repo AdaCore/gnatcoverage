@@ -26,6 +26,15 @@
 
 package body GNATcov_RTS.Buffers is
 
+   --------------
+   -- Identity --
+   --------------
+
+   function Identity (Val : Any_Bit_Id) return Any_Bit_Id is
+   begin
+      return Val;
+   end Identity;
+
    -------------
    -- Witness --
    -------------
