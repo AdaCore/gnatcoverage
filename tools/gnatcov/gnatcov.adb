@@ -36,10 +36,10 @@ begin
    if Support_Files.Gnatcov_Prefix = Support_Files.Not_Found then
       Warning_Or_Error
         ("Could not locate the invoked gnatcov command: "
-	 & (if Command_Name /= "" then Command_Name else "<empty string>")
-	 & ". If gnatcov is installed on a case sensitive filesystem or"
-	 & " directory, ensure the casing as the executable filename is"
-	 & " used when invoking the program.");
+         & (if Command_Name /= "" then Command_Name else "<empty string>")
+         & ". If gnatcov is installed on a case sensitive filesystem or"
+         & " directory, ensure the casing as the executable filename is"
+         & " used when invoking the program.");
       Set_Exit_Status (Failure);
       raise Xcov_Exit_Exc;
    end if;
