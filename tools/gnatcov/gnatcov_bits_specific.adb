@@ -1706,7 +1706,9 @@ procedure GNATcov_Bits_Specific is
       if Args.String_Args (Opt_Project).Present then
 
          for Arg of Args.String_List_Args (Opt_Projects) loop
-            Project.Add_Project (+Arg);
+            for Prj of Expand_Argument (+Arg) loop
+               Project.Add_Project (+Prj);
+            end loop;
          end loop;
 
          Switches.Recursive_Projects :=
