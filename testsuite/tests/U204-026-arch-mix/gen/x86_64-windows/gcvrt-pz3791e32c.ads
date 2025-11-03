@@ -2,7 +2,7 @@ pragma Style_Checks (Off); pragma Warnings (Off);
 with System;
 with GNATcov_RTS;
 with GNATcov_RTS.Buffers;
-pragma Compile_Time_Error (GNATcov_RTS.Version /= 9 ,"Incompatible GNATcov_RTS version, please use the GNATcov_RTS project provided with your GNATcoverage distribution.");
+pragma Compile_Time_Error (GNATcov_RTS.Version /= 10 ,"Incompatible GNATcov_RTS version, please use the GNATcov_RTS project provided with your GNATcoverage distribution.");
 
 package GCVRT.Pz3791e32c is
 

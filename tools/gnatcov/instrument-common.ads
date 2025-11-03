@@ -401,7 +401,7 @@ package Instrument.Common is
    function Img (Bit : Any_Bit_Id) return String
    is (Strings.Img (Integer (Bit)));
 
-   Runtime_Version : constant Natural := 9;
+   Runtime_Version : constant Natural := 10;
    Runtime_Error   : constant String :=
      "Incompatible GNATcov_RTS version, please use"
      & " the GNATcov_RTS project provided with your"
