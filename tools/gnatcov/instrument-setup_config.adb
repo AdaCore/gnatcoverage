@@ -315,34 +315,40 @@ package body Instrument.Setup_Config is
          Dump_Config_JSON       : constant JSON_Value := Create_Object;
          Manual_Dump_Files_JSON : JSON_Array;
       begin
-         case Dump_Config.Trigger is
-            when Manual                     =>
-               Dump_Config_JSON.Set_Field ("dump-trigger", "manual");
-               if Dump_Config.Manual_Indication_Files.Is_Empty then
-                  Outputs.Fatal_Error
-                    ("Manual dump trigger FILES indication is missing,"
-                     & " mandatory in integrated instrumentation mode:"
-                     & " --dump-trigger=manual,FILES");
-               else
-                  for Manual_Dump_File of Dump_Config.Manual_Indication_Files
-                  loop
-                     Append
-                       (Manual_Dump_Files_JSON,
-                        Create (Display_Full_Name (Manual_Dump_File)));
-                  end loop;
-                  Dump_Config_JSON.Set_Field
-                    ("manual-dump-files", Manual_Dump_Files_JSON);
-               end if;
 
+         Dump_Config_JSON.Set_Field
+           ("manual-dump-trigger", Create (Dump_Config.Manual_Trigger));
+         if Dump_Config.Manual_Trigger then
+            if Dump_Config.Manual_Indication_Files.Is_Empty then
+               Outputs.Fatal_Error
+                 ("Manual dump trigger FILES indication is missing,"
+                  & " mandatory in integrated instrumentation mode:"
+                  & " --dump-trigger=manual,FILES");
+            else
+               for Manual_Dump_File of Dump_Config.Manual_Indication_Files loop
+                  Append
+                    (Manual_Dump_Files_JSON,
+                     Create (Display_Full_Name (Manual_Dump_File)));
+               end loop;
+               Dump_Config_JSON.Set_Field
+                 ("manual-dump-files", Manual_Dump_Files_JSON);
+            end if;
+         end if;
+
+         case Dump_Config.Auto_Trigger is
             when At_Exit                    =>
-               Dump_Config_JSON.Set_Field ("dump-trigger", "atexit");
+               Dump_Config_JSON.Set_Field ("auto-dump-trigger", "atexit");
 
             when Ravenscar_Task_Termination =>
                Dump_Config_JSON.Set_Field
-                 ("dump-trigger", "ravenscar-task-termination");
+                 ("auto-dump-trigger", "ravenscar-task-termination");
 
             when Main_End                   =>
-               Dump_Config_JSON.Set_Field ("dump-trigger", "main-end");
+               Dump_Config_JSON.Set_Field ("auto-dump-trigger", "main-end");
+
+            when None                       =>
+               null;
+            --  Do not create the field when the there is no auto trigger
          end case;
 
          case Dump_Config.Channel is
@@ -445,8 +451,6 @@ package body Instrument.Setup_Config is
       declare
          Dump_Config_JSON : constant JSON_Value :=
            Config_JSON.Get ("dump-config");
-         Dump_Trigger_Str : constant String :=
-           Dump_Config_JSON.Get ("dump-trigger");
          Dump_Channel_Str : constant String :=
            Dump_Config_JSON.Get ("dump-channel");
       begin
@@ -462,14 +466,11 @@ package body Instrument.Setup_Config is
             Dump_Config : Any_Dump_Config (Channel);
          begin
 
-            if Dump_Trigger_Str = "atexit" then
-               Dump_Config.Trigger := At_Exit;
-            elsif Dump_Trigger_Str = "main-end" then
-               Dump_Config.Trigger := Main_End;
-            elsif Dump_Trigger_Str = "ravenscar-task-termination" then
-               Dump_Config.Trigger := Ravenscar_Task_Termination;
-            elsif Dump_Trigger_Str = "manual" then
-               Dump_Config.Trigger := Manual;
+            --  Handle manual dump trigger and its indication files
+
+            if Dump_Config_JSON.Get ("manual-dump-trigger") then
+               Dump_Config.Manual_Trigger := True;
+
                if Dump_Config_JSON.Has_Field ("manual-dump-files") then
                   declare
                      Manual_Dump_Files_JSON : constant JSON_Array :=
@@ -482,9 +483,27 @@ package body Instrument.Setup_Config is
                      end loop;
                   end;
                end if;
-            else
-               Outputs.Fatal_Error ("unsupported dump trigger");
             end if;
+
+            --  Handle auto dump trigger
+            if Dump_Config_JSON.Has_Field ("auto-dump-trigger") then
+               declare
+                  Auto_Trigger_Str : constant String :=
+                    Dump_Config_JSON.Get ("auto-dump-trigger");
+               begin
+                  if Auto_Trigger_Str = "atexit" then
+                     Dump_Config.Auto_Trigger := At_Exit;
+                  elsif Auto_Trigger_Str = "main-end" then
+                     Dump_Config.Auto_Trigger := Main_End;
+                  elsif Auto_Trigger_Str = "ravenscar-task-termination" then
+                     Dump_Config.Auto_Trigger := Ravenscar_Task_Termination;
+                  else
+                     Outputs.Fatal_Error
+                       ("unsupported dump trigger: " & Auto_Trigger_Str);
+                  end if;
+               end;
+            end if;
+
             Result.Dump_Config := Dump_Config;
          end;
       end;

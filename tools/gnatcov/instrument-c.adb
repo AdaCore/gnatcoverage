@@ -447,8 +447,9 @@ package body Instrument.C is
    --  Emit the unit to contain coverage buffers for the given instrumented
    --  unit, for the given instrumenter.
 
-   procedure Emit_Dump_Helper_Unit
+   procedure Emit_Dump_Helper_Unit_For_Trigger
      (Dump_Config  : Any_Dump_Config;
+      Trigger      : Valid_Dump_Trigger;
       Main         : Compilation_Unit_Part;
       Helper_Unit  : out Unbounded_String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
@@ -4449,12 +4450,13 @@ package body Instrument.C is
       end;
    end Emit_Buffer_Unit;
 
-   ---------------------------
-   -- Emit_Dump_Helper_Unit --
-   ---------------------------
+   ---------------------------------------
+   -- Emit_Dump_Helper_Unit_For_Trigger --
+   ---------------------------------------
 
-   procedure Emit_Dump_Helper_Unit
+   procedure Emit_Dump_Helper_Unit_For_Trigger
      (Dump_Config  : Any_Dump_Config;
+      Trigger      : Valid_Dump_Trigger;
       Main         : Compilation_Unit_Part;
       Helper_Unit  : out Unbounded_String;
       Instrumenter : C_Family_Instrumenter_Type'Class;
@@ -4475,7 +4477,7 @@ package body Instrument.C is
       --  Create the dump helper unit
 
       Helper_Unit :=
-        (if Dump_Config.Trigger = Manual
+        (if Trigger = Manual
          then Instrumenter.Dump_Manual_Helper_Unit (Prj).Unit_Name
          else
            Instrumenter.Dump_Helper_Unit
@@ -4487,8 +4489,7 @@ package body Instrument.C is
       declare
          Filename        : constant String := +Helper_Unit;
          Dump_Procedure  : constant String :=
-           Dump_Procedure_Symbol
-             (Main, Dump_Config.Trigger = Manual, Prj.Prj_Name);
+           Dump_Procedure_Symbol (Main, Trigger = Manual, Prj.Prj_Name);
          Reset_Procedure : constant String :=
            Reset_Procedure_Symbol (Prj.Prj_Name);
       begin
@@ -4541,7 +4542,7 @@ package body Instrument.C is
            ("void "
             & Dump_Procedure
             & " ("
-            & (if Dump_Config.Trigger = Manual then "char *prefix" else "void")
+            & (if Trigger = Manual then "char *prefix" else "void")
             & ") {");
 
          File.Put_Line (Indent1 & Output_Proc & " (");
@@ -4555,7 +4556,7 @@ package body Instrument.C is
                      then "GNATCOV_RTS_DEFAULT_TRACE_FILENAME_ENV_VAR"
                      else """" & (+Dump_Config.Filename_Env_Var) & """");
                   Prefix  : constant String :=
-                    (if Dump_Config.Trigger = Manual
+                    (if Trigger = Manual
                      then "prefix"
                      else """" & (+Dump_Config.Filename_Prefix) & """");
                   Tag     : constant String :=
@@ -4574,7 +4575,7 @@ package body Instrument.C is
                     (Indent2
                      & "STR ("
                      & C_String_Literal
-                         (if Dump_Config.Trigger = Manual
+                         (if Trigger = Manual
                           then To_Ada (Prj.Prj_Name)
                           else +Main.Filename)
                      & "),");
@@ -4594,7 +4595,7 @@ package body Instrument.C is
                  (Indent2
                   & "STR ("
                   & C_String_Literal
-                      (if Dump_Config.Trigger = Manual
+                      (if Trigger = Manual
                        then To_Ada (Prj.Prj_Name)
                        else +Main.Filename)
                   & "),");
@@ -4608,17 +4609,19 @@ package body Instrument.C is
 
          --  Emit the procedure to clear the buffer groups
 
-         File.New_Line;
-         File.Put (Instrumenter.Extern_Prefix);
-         File.Put_Line ("void " & Reset_Procedure & "(void) {");
-         File.Put_Line (Indent1 & "gnatcov_rts_reset_group_array (");
-         File.Put_Line
-           (Indent2 & "&" & Unit_Buffers_Array_Name (Prj.Prj_Name) & ");");
-         File.Put_Line ("}");
+         if Trigger = Manual then
+            File.New_Line;
+            File.Put (Instrumenter.Extern_Prefix);
+            File.Put_Line ("void " & Reset_Procedure & "(void) {");
+            File.Put_Line (Indent1 & "gnatcov_rts_reset_group_array (");
+            File.Put_Line
+              (Indent2 & "&" & Unit_Buffers_Array_Name (Prj.Prj_Name) & ");");
+            File.Put_Line ("}");
+         end if;
 
          File.Close;
       end;
-   end Emit_Dump_Helper_Unit;
+   end Emit_Dump_Helper_Unit_For_Trigger;
 
    ----------------------------------
    -- Emit_Dump_Helper_Unit_Manual --
@@ -4632,14 +4635,15 @@ package body Instrument.C is
    is
       Main : Compilation_Unit_Part;
       --  Since the dump trigger is "manual" and there is no main to be given,
-      --  the Main argument in the following call to Emit_Dump_Helper_Unit will
-      --  not be used.
+      --  the Main argument in the following call to
+      --  Emit_Dump_Helper_Unit_For_Trigger will not be used.
 
       Dummy_Unit_Name : Unbounded_String;
 
    begin
-      Emit_Dump_Helper_Unit
+      Emit_Dump_Helper_Unit_For_Trigger
         (Dump_Config  => Dump_Config,
+         Trigger      => Manual,
          Main         => Main,
          Helper_Unit  => Dummy_Unit_Name,
          Instrumenter => Self,
@@ -5157,7 +5161,13 @@ package body Instrument.C is
             & (Ada.Directories.Simple_Name (+Main.Filename)));
       end if;
 
-      Emit_Dump_Helper_Unit (Dump_Config, Main, Helper_Filename, Self, Prj);
+      Emit_Dump_Helper_Unit_For_Trigger
+        (Dump_Config  => Dump_Config,
+         Trigger      => Dump_Config.Auto_Trigger,
+         Main         => Main,
+         Helper_Unit  => Helper_Filename,
+         Instrumenter => Self,
+         Prj          => Prj);
 
       Put_Extern_Decl
         (Rew.Rewriter,
@@ -5167,14 +5177,14 @@ package body Instrument.C is
          Dump_Procedure_Symbol (Main),
          Func_Args => "void");
 
-      if Dump_Config.Trigger = Ravenscar_Task_Termination then
+      if Dump_Config.Auto_Trigger = Ravenscar_Task_Termination then
          Warn
            ("--dump-trigger=ravenscar-task-termination is not valid for a C"
             & " main. Defaulting to --dump-trigger=main-end for this"
             & " main.");
       end if;
 
-      case Dump_Config.Trigger is
+      case Dump_Config.Auto_Trigger is
          when Main_End | Ravenscar_Task_Termination =>
             declare
                use Cursor_Vectors;

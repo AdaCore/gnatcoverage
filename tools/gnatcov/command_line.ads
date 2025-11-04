@@ -127,7 +127,6 @@ package Command_Line is
       Opt_Trace_Source,
       Opt_Save_Checkpoint,
       Opt_Report_Title,
-      Opt_Dump_Trigger,
       Opt_Dump_Channel,
       Opt_Dump_Filename_Env_Var,
       Opt_Dump_Filename_Prefix,
@@ -169,6 +168,7 @@ package Command_Line is
       Opt_Projects,
       Opt_Scenario_Var,
       Opt_Cargs,
+      Opt_Dump_Trigger,
       Opt_Manual_Dump_Files,
       Opt_Eargs,
       Opt_Gargs,
@@ -1084,57 +1084,6 @@ package Command_Line is
            At_Most_Once => False,
            Internal     => False),
 
-      --  NOTE: --dump-trigger has a non-backward-compatible change between 25
-      --  and 26. In 25, the flag was modified to accept manual file
-      --  indications, and in 26, this was moved to its own option
-      --  (--manual-dump-files).
-
-      Opt_Dump_Trigger           =>
-        Create
-          (Long_Name    => "--dump-trigger",
-           Help         =>
-             "Select a trigger to dump coverage buffers in the"
-             & " instrumented program."
-             & ASCII.LF
-             & ASCII.LF
-             & """manual"" searches for user-written dump"
-             & " indication in all the project sources (the search is"
-             & " restricted to the files passed to --manual-dump-files if"
-             & " specified) and replaces such indications with a call to the"
-             & " subprogram responsible for dumping the coverage buffers. A"
-             & " warning is emitted if no dump indications were"
-             & " found. See the user manual for more information."
-             & ASCII.LF
-             & ASCII.LF
-             & """atexit"" uses the libc's atexit() routine to"
-             & " schedule the dump."
-             & ASCII.LF
-             & ASCII.LF
-             & """main-end"" instructs to append a call to the"
-             & " dump routine at the end of the main subprogram."
-             & ASCII.LF
-             & ASCII.LF
-             & """ravenscar-task-termination"" uses the Ravenscar"
-             & "-specific Ada.Task_Termination to schedule the"
-             & " dump on task termination."
-             & ASCII.LF
-             & ASCII.LF
-             & "Except for ""manual"", these methods inject code"
-             & " in all mains in the project closure to dump"
-             & " coverage buffers for all units of interest in the"
-             & " main closure. The --dump-channel option"
-             & " determines the dump procedure."
-             & ASCII.LF
-             & ASCII.LF
-             & "Only the last occurrence of"
-             & " the switch is taken into account.",
-           Commands     =>
-             (Cmd_Setup | Cmd_Setup_Integration | Cmd_Instrument => True,
-              others                                             => False),
-           At_Most_Once => False,
-           Pattern      => "manual[,FILES]|atexit|main-end",
-           Internal     => False),
-
       Opt_Dump_Channel           =>
         Create
           (Long_Name    => "--dump-channel",
@@ -1934,6 +1883,52 @@ package Command_Line is
              & " Supported compilers are: gcc, g++.",
            Commands  => (Cmd_Print_GPR_Registry => False, others => True),
            Internal  => True),
+
+      --  NOTE: --dump-trigger has a non-backward-compatible change between 25
+      --  and 26. In 25, the flag was modified to accept manual file
+      --  indications, and in 26, this was moved to its own option
+      --  (--manual-dump-files).
+
+      Opt_Dump_Trigger            =>
+        Create
+          (Long_Name => "--dump-trigger",
+           Help      =>
+             "Select a trigger to dump coverage buffers in the"
+             & " instrumented program."
+             & ASCII.LF
+             & ASCII.LF
+             & """manual"" searches for user-written dump"
+             & " indications in all the project sources (the search"
+             & " is restricted to FILES if specified) and replaces"
+             & " such indications with a call to the subprogram"
+             & " responsible for dumping the coverage buffers. A"
+             & " warning is emitted if no dump indications were"
+             & " found. See the user manual for more information."
+             & ASCII.LF
+             & ASCII.LF
+             & """atexit"" uses the libc's atexit() routine to"
+             & " schedule the dump."
+             & ASCII.LF
+             & ASCII.LF
+             & """main-end"" instructs to append a call to the"
+             & " dump routine at the end of the main subprogram."
+             & ASCII.LF
+             & ASCII.LF
+             & """ravenscar-task-termination"" uses the Ravenscar"
+             & "-specific Ada.Task_Termination to schedule the"
+             & " dump on task termination."
+             & ASCII.LF
+             & ASCII.LF
+             & "Except for ""manual"", these methods inject code"
+             & " in all mains in the project closure to dump"
+             & " coverage buffers for all units of interest in the"
+             & " main closure. The --dump-channel option"
+             & " determines the dump procedure.",
+           Commands  =>
+             (Cmd_Setup | Cmd_Setup_Integration | Cmd_Instrument => True,
+              others                                             => False),
+           Pattern   => "manual|atexit|main-end|ravenscar-task-termination",
+           Internal  => False),
 
       Opt_Manual_Dump_Files       =>
         Create

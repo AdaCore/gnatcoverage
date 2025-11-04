@@ -1470,7 +1470,7 @@ package body Instrument.Ada_Unit is
       Controlled_Types_Available : Boolean;
       --  Whether instrumentation can insert uses of controlled types
 
-      Actual_Dump_Trigger : Auto_Dump_Trigger;
+      Actual_Auto_Dump_Trigger : Auto_Dump_Trigger;
       --  Resolved dump trigger after eventual override depending on the
       --  features available on the runtime.
 
@@ -1644,21 +1644,22 @@ package body Instrument.Ada_Unit is
      (Prj : Prj_Desc) return Ada_Qualified_Name;
    --  Return the name for the dump helper unit for manual dump trigger
 
-   procedure Emit_Dump_Helper_Unit
-     (Dump_Config           : Any_Dump_Config;
-      Instrumenter          : Ada_Instrumenter_Type'Class;
-      Prj                   : Prj_Desc;
-      Main                  : Compilation_Unit_Part;
-      Helper_Unit           : out Ada_Qualified_Name;
-      Override_Dump_Trigger : Any_Dump_Trigger := Manual;
-      Has_Controlled        : Boolean := False);
+   procedure Emit_Dump_Helper_Unit_For_Trigger
+     (Dump_Config    : Any_Dump_Config;
+      Dump_Trigger   : Valid_Dump_Trigger;
+      Instrumenter   : Ada_Instrumenter_Type'Class;
+      Prj            : Prj_Desc;
+      Main           : Compilation_Unit_Part;
+      Helper_Unit    : out Ada_Qualified_Name;
+      Has_Controlled : Boolean := False);
    --  Emit the unit to contain helpers to implement the automatic dump of
    --  coverage buffers for the given Main unit. Prj must contain information
    --  about the project that owns this main. Upon return, the name of this
    --  helper unit is stored in Helper_Unit.
    --
-   --  If Override_Dump_Trigger is anything other than Manual, it will be used
-   --  as a dump trigger instead of the one defined in IC.Dump_Config.
+   --  The generated code provides the required interface for the given
+   --  Dump_Trigger (the dump trigger information held in Dump_Config is not
+   --  read).
    --
    --  If Has_Controlled is True, generate a controlled type for which the
    --  Finalize procedure calls the buffer dump procedure.
@@ -8797,7 +8798,7 @@ package body Instrument.Ada_Unit is
       Tmp : LAL.Ada_Node;
 
       Controlled_Types_Available : Boolean;
-      Actual_Dump_Trigger        : Auto_Dump_Trigger;
+      Actual_Auto_Dump_Trigger   : Auto_Dump_Trigger;
 
       Main : Compilation_Unit_Part (Unit_Based_Language) :=
         (Language_Kind => Unit_Based_Language,
@@ -8856,12 +8857,12 @@ package body Instrument.Ada_Unit is
       Controlled_Types_Available :=
         not Finalization_Restricted_In_Unit (U.Context, CU);
 
-      Actual_Dump_Trigger :=
-        (if Dump_Config.Trigger = Main_End
+      Actual_Auto_Dump_Trigger :=
+        (if Dump_Config.Auto_Trigger = Main_End
            and then not Controlled_Types_Available
            and then not Task_Termination_Restricted (U.Context, CU)
          then Ravenscar_Task_Termination
-         else Dump_Config.Trigger);
+         else Dump_Config.Auto_Trigger);
 
       Main.Unit := To_Qualified_Name (CU.P_Syntactic_Fully_Qualified_Name);
 
@@ -8880,7 +8881,7 @@ package body Instrument.Ada_Unit is
                  (Synthetic                  => False,
                   Main                       => Main,
                   Controlled_Types_Available => Controlled_Types_Available,
-                  Actual_Dump_Trigger        => Actual_Dump_Trigger,
+                  Actual_Auto_Dump_Trigger   => Actual_Auto_Dump_Trigger,
                   Prelude                    => Handle (CU.F_Prelude),
                   Main_Decls                 =>
                     Handle (Subp_Body.F_Decls.F_Decls),
@@ -8909,7 +8910,7 @@ package body Instrument.Ada_Unit is
                  (Synthetic                     => True,
                   Main                          => Main,
                   Controlled_Types_Available    => Controlled_Types_Available,
-                  Actual_Dump_Trigger           => Actual_Dump_Trigger,
+                  Actual_Auto_Dump_Trigger      => Actual_Auto_Dump_Trigger,
                   Prelude                       => Prelude,
                   Main_Decls                    => Main_Decls,
                   Main_Stmts                    => Main_Stmts,
@@ -9636,14 +9637,14 @@ package body Instrument.Ada_Unit is
 
       --  Emit the helper unit and add a WITH clause for it
 
-      Emit_Dump_Helper_Unit
+      Emit_Dump_Helper_Unit_For_Trigger
         (Dump_Config,
-         Self,
-         Prj,
-         Desc.Main,
-         Helper_Unit,
-         Override_Dump_Trigger => Desc.Actual_Dump_Trigger,
-         Has_Controlled        => Desc.Controlled_Types_Available);
+         Dump_Trigger   => Desc.Actual_Auto_Dump_Trigger,
+         Instrumenter   => Self,
+         Prj            => Prj,
+         Main           => Desc.Main,
+         Helper_Unit    => Helper_Unit,
+         Has_Controlled => Desc.Controlled_Types_Available);
 
       declare
          With_Clause : constant Node_Rewriting_Handle :=
@@ -9684,7 +9685,7 @@ package body Instrument.Ada_Unit is
       --  Depending on the chosen coverage buffers dump trigger, insert the
       --  appropriate code.
 
-      case Desc.Actual_Dump_Trigger is
+      case Desc.Actual_Auto_Dump_Trigger is
 
          when At_Exit | Ravenscar_Task_Termination =>
 
@@ -9754,6 +9755,9 @@ package body Instrument.Ada_Unit is
             else
                Insert_Simple_Dump_Proc_Calls (RH, Helper_Unit, Desc.Subp_Body);
             end if;
+
+         when None                                 =>
+            null;
       end case;
 
       --  In case we created synthetic sources, write them down before calling
@@ -9796,7 +9800,7 @@ package body Instrument.Ada_Unit is
          then Instrumented_Filename
          else Source_Filename);
       Unit                  : constant Libadalang.Analysis.Analysis_Unit :=
-        Get_From_File (Self, File_To_Search);
+        Get_From_File (Self, File_To_Search, Reparse => True);
       Rewriter              : Ada_Source_Rewriter;
       External_Annotations  : Instr_Annotation_Map;
 
@@ -10973,18 +10977,18 @@ package body Instrument.Ada_Unit is
       return Helper_Unit;
    end Create_Manual_Helper_Unit_Name;
 
-   ---------------------------
-   -- Emit_Dump_Helper_Unit --
-   ---------------------------
+   ---------------------------------------
+   -- Emit_Dump_Helper_Unit_For_Trigger --
+   ---------------------------------------
 
-   procedure Emit_Dump_Helper_Unit
-     (Dump_Config           : Any_Dump_Config;
-      Instrumenter          : Ada_Instrumenter_Type'Class;
-      Prj                   : Prj_Desc;
-      Main                  : Compilation_Unit_Part;
-      Helper_Unit           : out Ada_Qualified_Name;
-      Override_Dump_Trigger : Any_Dump_Trigger := Manual;
-      Has_Controlled        : Boolean := False)
+   procedure Emit_Dump_Helper_Unit_For_Trigger
+     (Dump_Config    : Any_Dump_Config;
+      Dump_Trigger   : Valid_Dump_Trigger;
+      Instrumenter   : Ada_Instrumenter_Type'Class;
+      Prj            : Prj_Desc;
+      Main           : Compilation_Unit_Part;
+      Helper_Unit    : out Ada_Qualified_Name;
+      Has_Controlled : Boolean := False)
    is
       File : Text_Files.File_Type;
 
@@ -11004,18 +11008,11 @@ package body Instrument.Ada_Unit is
       --  Qualified names for the unit that contains the buffer output
       --  procedure, and for the procedure itself.
 
-      Dump_Trigger : constant Any_Dump_Trigger :=
-        (if Override_Dump_Trigger = Manual
-         then Dump_Config.Trigger
-         else Override_Dump_Trigger);
-      --  Resolved dump trigger
-
       --  Start of processing for Emit_Dump_Helper_Unit
 
    begin
       --  Create the name of the helper unit
-
-      if Dump_Config.Trigger = Manual then
+      if Dump_Trigger = Manual then
          Helper_Unit := Create_Manual_Helper_Unit_Name (Prj);
       else
          Helper_Unit := Sys_Prefix;
@@ -11045,14 +11042,19 @@ package body Instrument.Ada_Unit is
          Body_Filename : constant String :=
            To_Filename (Prj, CU_Name_For_Unit (Helper_Unit, GPR2.S_Body));
 
-         Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
-         Dump_Procedure   : constant String := To_String (Dump_Procedure_Name);
-         Output_Unit_Str  : constant String := To_Ada (Output_Unit);
-         Project_Name_Str : constant String :=
-           """" & To_Ada (Prj.Prj_Name) & """";
-         Reset_Procedure  : constant String :=
+         Helper_Unit_Name         : constant String := To_Ada (Helper_Unit);
+         Dump_Procedure           : constant String :=
+           To_String (Dump_Procedure_Name);
+         Dump_Procedure_Prototype : constant String :=
+           ("procedure "
+            & Dump_Procedure
+            & (if Dump_Trigger = Manual then " (Prefix : String)" else ""));
+         Reset_Procedure          : constant String :=
            To_String (Reset_Procedure_Name);
-         Sys_Lists        : Ada_Qualified_Name := Sys_Buffers;
+         Output_Unit_Str          : constant String := To_Ada (Output_Unit);
+         Project_Name_Str         : constant String :=
+           """" & To_Ada (Prj.Prj_Name) & """";
+         Sys_Lists                : Ada_Qualified_Name := Sys_Buffers;
 
          --  Indentation levels relative to the body of library-level
          --  subprograms.
@@ -11105,12 +11107,13 @@ package body Instrument.Ada_Unit is
 
          File.Put_Line ("   pragma No_Tagged_Streams;");
          File.New_Line;
-         File.Put_Line
-           ("   procedure "
-            & Dump_Procedure
-            & (if Dump_Trigger = Manual then " (Prefix : String)" else "")
-            & ";");
-         if Dump_Trigger /= Manual then
+
+         File.Put_Line (Indent1 & Dump_Procedure_Prototype & ";");
+
+         if Dump_Trigger = Manual then
+            File.New_Line;
+            File.Put_Line ("   procedure " & Reset_Procedure & ";");
+         else
             File.Put_Line
               ("   pragma Convention (C, " & Dump_Procedure & ");");
          end if;
@@ -11138,8 +11141,7 @@ package body Instrument.Ada_Unit is
                end if;
 
             when Manual                               =>
-               File.Put_Line ("   procedure " & Reset_Procedure & ";");
-               File.New_Line;
+               null;
          end case;
 
          File.Put_Line ("end " & Helper_Unit_Name & ";");
@@ -11162,17 +11164,13 @@ package body Instrument.Ada_Unit is
             when At_Exit                    =>
                File.Put_Line ("with Interfaces.C;");
 
-            when others                     =>
+            when Manual | Main_End          =>
                null;
          end case;
 
-         case Dump_Config.Channel is
-            when Binary_File =>
-               File.Put_Line ("with Interfaces.C.Strings;");
-
-            when others      =>
-               null;
-         end case;
+         if Dump_Config.Channel = Binary_File then
+            File.Put_Line ("with Interfaces.C.Strings;");
+         end if;
 
          File.Put_Line
            ("with " & To_Ada (Buffers_List_Unit (Prj.Prj_Name)) & ";");
@@ -11182,41 +11180,32 @@ package body Instrument.Ada_Unit is
 
          --  Emit the procedure to write the trace file
 
-         File.Put_Line
-           ("   procedure "
-            & Dump_Procedure
-            & (if Dump_Trigger = Manual then " (Prefix : String)" else "")
-            & " is");
+         File.Put_Line (Indent1 & Dump_Procedure_Prototype & " is");
 
-         case Dump_Config.Channel is
-            when Binary_File =>
-               declare
-                  Env_Var : constant String :=
-                    (if Dump_Config.Filename_Env_Var = ""
-                     then Output_Unit_Str & ".Default_Trace_Filename_Env_Var"
-                     else """" & (+Dump_Config.Filename_Env_Var) & """");
-                  Prefix  : constant String :=
-                    (if Dump_Config.Trigger = Manual
-                     then "Prefix"
-                     else """" & (+Dump_Config.Filename_Prefix) & """");
-                  Tag     : constant String :=
-                    """" & (+Instrumenter.Tag) & """";
-                  Simple  : constant String :=
-                    (if Dump_Config.Filename_Simple then "True" else "False");
-               begin
-                  File.Put_Line
-                    (Indent1 & "Filename : Interfaces.C.Strings.chars_ptr :=");
-                  File.Put_Line
-                    (Indent2 & Output_Unit_Str & ".Default_Trace_Filename");
-                  File.Put_Line (Indent3 & "(Prefix  => " & Prefix & ",");
-                  File.Put_Line (Indent3 & " Env_Var => " & Env_Var & ",");
-                  File.Put_Line (Indent3 & " Tag     => " & Tag & ",");
-                  File.Put_Line (Indent3 & " Simple  => " & Simple & ");");
-               end;
-
-            when others      =>
-               null;
-         end case;
+         if Dump_Config.Channel = Binary_File then
+            declare
+               Env_Var : constant String :=
+                 (if Dump_Config.Filename_Env_Var = ""
+                  then Output_Unit_Str & ".Default_Trace_Filename_Env_Var"
+                  else """" & (+Dump_Config.Filename_Env_Var) & """");
+               Prefix  : constant String :=
+                 (if Dump_Trigger = Manual
+                  then "Prefix"
+                  else """" & (+Dump_Config.Filename_Prefix) & """");
+               Tag     : constant String := """" & (+Instrumenter.Tag) & """";
+               Simple  : constant String :=
+                 (if Dump_Config.Filename_Simple then "True" else "False");
+            begin
+               File.Put_Line
+                 (Indent1 & "Filename : Interfaces.C.Strings.chars_ptr :=");
+               File.Put_Line
+                 (Indent2 & Output_Unit_Str & ".Default_Trace_Filename");
+               File.Put_Line (Indent3 & "(Prefix  => " & Prefix & ",");
+               File.Put_Line (Indent3 & " Env_Var => " & Env_Var & ",");
+               File.Put_Line (Indent3 & " Tag     => " & Tag & ",");
+               File.Put_Line (Indent3 & " Simple  => " & Simple & ");");
+            end;
+         end if;
 
          File.Put_Line ("   begin");
 
@@ -11244,14 +11233,9 @@ package body Instrument.Ada_Unit is
          end case;
          File.Put_Line (");");
 
-         case Dump_Config.Channel is
-            when Binary_File =>
-               File.Put_Line
-                 (Indent1 & "Interfaces.C.Strings.Free (Filename);");
-
-            when others      =>
-               null;
-         end case;
+         if Dump_Config.Channel = Binary_File then
+            File.Put_Line (Indent1 & "Interfaces.C.Strings.Free (Filename);");
+         end if;
 
          File.Put_Line ("   end " & Dump_Procedure & ";");
          File.New_Line;
@@ -11341,7 +11325,6 @@ package body Instrument.Ada_Unit is
                end if;
 
             when Manual                     =>
-
                --  Emit Buffer reset procedure
 
                File.Put_Line ("   procedure " & Reset_Procedure & " is");
@@ -11361,7 +11344,7 @@ package body Instrument.Ada_Unit is
          File.Put_Line ("end " & Helper_Unit_Name & ";");
          File.Close;
       end;
-   end Emit_Dump_Helper_Unit;
+   end Emit_Dump_Helper_Unit_For_Trigger;
 
    ----------------------------------
    -- Emit_Dump_Helper_Unit_Manual --
@@ -11379,14 +11362,13 @@ package body Instrument.Ada_Unit is
 
       Dummy_Ada_Helper_Unit : Ada_Qualified_Name;
    begin
-      Emit_Dump_Helper_Unit
-        (Dump_Config           => Dump_Config,
-         Instrumenter          => Self,
-         Prj                   => Prj,
-         Main                  => Main,
-         Helper_Unit           => Dummy_Ada_Helper_Unit,
-         Override_Dump_Trigger => Manual,
-         Has_Controlled        => False);
+      Emit_Dump_Helper_Unit_For_Trigger
+        (Dump_Config  => Dump_Config,
+         Dump_Trigger => Manual,
+         Instrumenter => Self,
+         Prj          => Prj,
+         Main         => Main,
+         Helper_Unit  => Dummy_Ada_Helper_Unit);
    end Emit_Dump_Helper_Unit_Manual;
 
    ----------------------------

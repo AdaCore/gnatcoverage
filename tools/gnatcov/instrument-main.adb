@@ -30,7 +30,7 @@ procedure Instrument.Main
 begin
    --  If the dump-trigger is manual, there is nothing to do
 
-   if Dump_Config.Trigger = Manual then
+   if Dump_Config.Auto_Trigger = None then
       return;
    end if;
 

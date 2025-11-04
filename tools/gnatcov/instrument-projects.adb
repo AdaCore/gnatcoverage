@@ -1155,7 +1155,7 @@ begin
          Project.Enumerate_Sources
            (Add_Instrumented_Unit'Access, Lang, Only_UOIs => True);
 
-         if Dump_Config.Trigger = Manual then
+         if Dump_Config.Manual_Trigger then
 
             --  The expected manual dump indication can be located in any
             --  source file, not only in sources of interest.
@@ -1298,7 +1298,7 @@ begin
      Create_CPP_Instrumenter
        (IC.Tag, Project_Instrumentation, RTS_Source_Dirs);
 
-   if Dump_Config.Trigger = Manual then
+   if Dump_Config.Manual_Trigger then
 
       --  Replace manual dump indications for C-like languages
 
@@ -1454,80 +1454,81 @@ begin
 
    --  Then, instrument asynchronously every main
 
-   declare
-      Instrument_Main_Pool : Process_Pool (Parallelism_Level);
-      Instrument_Main_Args : String_Vectors.Vector;
+   if Dump_Config.Auto_Trigger /= None then
+      declare
+         Instrument_Main_Pool : Process_Pool (Parallelism_Level);
+         Instrument_Main_Args : String_Vectors.Vector;
 
-      Main_Filename : Unbounded_String;
+         Main_Filename : Unbounded_String;
 
-      --  Fullname for the main. It can either be an instrumented version of
-      --  the main (if it also was instrumented as a source), or the original
-      --  version.
+         --  Fullname for the main. It can either be an instrumented version of
+         --  the main (if it also was instrumented as a source), or the
+         --  original version.
 
-      Explicit_Dump_Config : Any_Dump_Config := Dump_Config;
-      --  Dump config with explicited defaults. The only interesting thing
-      --  is the dump-filename-prefix that is computed after the name of
-      --  the main in the project file, if not specified explicitly on the
-      --  command line.
+         Explicit_Dump_Config : Any_Dump_Config := Dump_Config;
+         --  Dump config with explicited defaults. The only interesting thing
+         --  is the dump-filename-prefix that is computed after the name of the
+         --  main in the project file, if not specified explicitly on the
+         --  command line.
 
-      First_Main : Boolean := True;
-      --  Whether the next main to instrument is the first one
-   begin
-      Instrument_Main_Args.Append (+"instrument-main");
+         First_Main : Boolean := True;
+         --  Whether the next main to instrument is the first one
+      begin
+         Instrument_Main_Args.Append (+"instrument-main");
 
-      --  Add the root project name, as the symbol holding the list of
-      --  coverage buffers is defined accordingly.
+         --  Add the root project name, as the symbol holding the list of
+         --  coverage buffers is defined accordingly.
 
-      Instrument_Main_Args.Append
-        (+"--project-name=" & String (Root_Project_Info.Project.Name));
-
-      Instrument_Main_Args.Append (Common_Switches (Cmd_Instrument_Main));
-
-      for Dir of RTS_Source_Dirs loop
          Instrument_Main_Args.Append
-           (+"--rts-source-dirs=" & (+Dir.Full_Name));
-      end loop;
+           (+"--project-name=" & String (Root_Project_Info.Project.Name));
 
-      for Language in Src_Supported_Language loop
-         for Main of Mains_To_Instrument (Language) loop
-            declare
-               Unit_Name : constant Unbounded_String :=
-                 +(case Main.CU_Name.Language_Kind is
-                     when Unit_Based_Language => To_Ada (Main.CU_Name.Unit),
-                     when File_Based_Language => (+Main.File.Full_Name));
-               Unit_Args : String_Vectors.Vector := Instrument_Main_Args;
-            begin
-               Unit_Args.Append
-                 (Compilation_Unit_Options
-                    (IC,
-                     Main.Prj_Info.Desc,
-                     Library_Unit_Info'
-                       (Unit_Name            => Unit_Name,
-                        Instr_Project        => Main.Prj_Info.Project,
-                        Language_Kind        => Language_Kind (Language),
-                        Language             => Language,
-                        All_Externally_Built => False)));
+         Instrument_Main_Args.Append (Common_Switches (Cmd_Instrument_Main));
 
-               --  Pass main-specific dump-config options
+         for Dir of RTS_Source_Dirs loop
+            Instrument_Main_Args.Append
+              (+"--rts-source-dirs=" & (+Dir.Full_Name));
+         end loop;
 
-               if Dump_Config.Channel = Binary_File then
+         for Language in Src_Supported_Language loop
+            for Main of Mains_To_Instrument (Language) loop
+               declare
+                  Unit_Name : constant Unbounded_String :=
+                    +(case Main.CU_Name.Language_Kind is
+                        when Unit_Based_Language => To_Ada (Main.CU_Name.Unit),
+                        when File_Based_Language => (+Main.File.Full_Name));
+                  Unit_Args : String_Vectors.Vector := Instrument_Main_Args;
+               begin
+                  Unit_Args.Append
+                    (Compilation_Unit_Options
+                       (IC,
+                        Main.Prj_Info.Desc,
+                        Library_Unit_Info'
+                          (Unit_Name            => Unit_Name,
+                           Instr_Project        => Main.Prj_Info.Project,
+                           Language_Kind        => Language_Kind (Language),
+                           Language             => Language,
+                           All_Externally_Built => False)));
 
-                  --  If no dump filename prefix was specified, compute it
-                  --  here: we use the executable name, that is retrieved from
-                  --  the project.
+                  --  Pass main-specific dump-config options
 
-                  if Dump_Config.Filename_Prefix = "" then
-                     Explicit_Dump_Config.Filename_Prefix :=
-                       +String
-                          (Root_Project_Info.Project.Executable
-                             (Source => GPR2.Simple_Name (Main.File.Base_Name),
-                              At_Pos => 0)
-                             .Simple_Name);
+                  if Dump_Config.Channel = Binary_File then
+
+                     --  If no dump filename prefix was specified, compute it
+                     --  here: we use the executable name, that is retrieved
+                     --  from the project.
+
+                     if Dump_Config.Filename_Prefix = "" then
+                        Explicit_Dump_Config.Filename_Prefix :=
+                          +String
+                             (Root_Project_Info.Project.Executable
+                                (Source =>
+                                   GPR2.Simple_Name (Main.File.Base_Name),
+                                 At_Pos => 0)
+                                .Simple_Name);
+                     end if;
                   end if;
-               end if;
-            end;
+               end;
 
-            if Dump_Config.Trigger /= Manual then
                declare
                   Unit_Name : constant String :=
                     (case Main.CU_Name.Language_Kind is
@@ -1590,11 +1591,10 @@ begin
                         Ignore_Error        => False);
                   end if;
                end;
-            end if;
+            end loop;
          end loop;
-      end loop;
-   end;
-
+      end;
+   end if;
    --  Emit the unit to contain the list of coverage buffers, exported to a
    --  C symbol, in one of the language supported by the project.
    --
@@ -1632,7 +1632,7 @@ begin
       end loop;
    end;
 
-   if Dump_Config.Trigger = Manual then
+   if Dump_Config.Manual_Trigger then
       Replace_Manual_Indications
         (Ada_Language,
          Project_Sources,
@@ -1674,7 +1674,10 @@ begin
       J        : constant GNATCOLL.JSON.JSON_Value := Create_Object;
       Filename : constant String := Project.Output_Dir & "/gnatcov-instr.json";
    begin
-      J.Set_Field ("dump-trigger", Image (Dump_Config.Trigger));
+      J.Set_Field ("manual-dump-trigger", Dump_Config.Manual_Trigger);
+      if Dump_Config.Auto_Trigger /= None then
+         J.Set_Field ("auto-dump-trigger", Image (Dump_Config.Auto_Trigger));
+      end if;
       J.Set_Field ("dump-channel", Image (Dump_Config.Channel));
       Write (Filename, J, Compact => False);
    end;
