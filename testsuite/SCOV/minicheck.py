@@ -23,6 +23,7 @@ from SCOV.instr import (
     xcov_instrument,
 )
 from SUITE.cutils import contents_of, indent
+from SUITE.gprutils import GPRswitches
 from SUITE.tutils import (
     exename_for,
     exepath_to,
@@ -41,7 +42,7 @@ COV_RE = re.compile(r"^ *(\d+) (.):.*$")
 
 
 def build_and_run(
-    gprsw,
+    gprsw: GPRswitches,
     covlevel,
     mains,
     extra_coverage_args,
@@ -197,7 +198,7 @@ def build_and_run(
 
     extra_args = extra_args or []
 
-    gpr_exe_dir = gpr_exe_dir or "."
+    gpr_exe_dir = gpr_exe_dir or gprsw.relocate_build_tree or "."
     gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, "obj")
 
     trace_mode = trace_mode or thistest.options.trace_mode
