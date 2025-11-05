@@ -205,6 +205,10 @@ package Switches is
    --  of the same identifier if specified on the command line. Only relevant
    --  for the annotate command.
 
+   Split_Extracted_Traces : Boolean := False;
+   --  When True, each trace decoded by extract-base64-traces will be written
+   --  in separate files instead of overwritting them in the same file.
+
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
 

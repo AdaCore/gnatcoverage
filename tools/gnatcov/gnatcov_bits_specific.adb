@@ -1034,6 +1034,7 @@ procedure GNATcov_Bits_Specific is
       SPARK_Compat := Args.Bool_Args (Opt_SPARK_Compat);
       Use_Full_Slugs := Args.Bool_Args (Opt_Full_Slugs);
       Force := Args.Bool_Args (Opt_Force);
+      Split_Extracted_Traces := Args.Bool_Args (Opt_Split_Extracted_Traces);
 
       if Args.Bool_Args (Opt_Recursive) then
          Warn

@@ -17,12 +17,14 @@
 ------------------------------------------------------------------------------
 
 with Ada.Direct_IO;
+with Ada.Directories; use Ada.Directories;
 with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 
 with Interfaces;
 
+with Switches;
 with System;
 with System.Storage_Elements;
 
@@ -955,8 +957,14 @@ package body Instrument.Input_Traces is
       function Base64_Digit (C : Character) return Unsigned_8;
       --  Return the 6-bit number that the C Base64 digit means
 
-      Had_One_Trace : Boolean := False;
-      --  Whether we found at least one trace in the input file
+      function Nth_Trace_Filename (N : Natural) return String;
+      --  Return the filename of the nth (0-indexed) trace filename following
+      --  this pattern:
+      --  - N-th when (N = 0) -> Output_File (for retro compatibility)
+      --  - N-th              -> Base(Output_File)_N.Extension(Output_File)
+
+      Trace_Count : Natural := 0;
+      --  Count the number of traces we encountered.
 
       Input  : TIO.File_Type;
       Output : BIO.File_Type;
@@ -1019,6 +1027,24 @@ package body Instrument.Input_Traces is
          end case;
       end Base64_Digit;
 
+      ------------------------
+      -- Nth_Trace_Filename --
+      ------------------------
+
+      function Nth_Trace_Filename (N : Natural) return String is
+      begin
+         if N = 0 then
+            return Output_File;
+         else
+            return
+              Base_Name (Output_File)
+              & "-"
+              & Img (N)
+              & "."
+              & Extension (Output_File);
+         end if;
+      end Nth_Trace_Filename;
+
       Start_Marker : constant String := "== GNATcoverage source trace file ==";
       End_Marker   : constant String := "== End ==";
 
@@ -1080,6 +1106,11 @@ package body Instrument.Input_Traces is
       --  is convenient when running GNATcoverage's testsuite, as we may have
       --  one trace per task termination and this also makes sense in real
       --  life: the last trace should be the one with the final coverage state.
+      --
+      --  However, when the `--split-extracted-traces` option is passed, the
+      --  command will create several files for each trace sequentially found.
+      --  This is necessary since now that we can reset coverage buffers, there
+      --  is no warranty that the last trace is the most complete one.
 
       TIO.Open (Input, TIO.In_File, Input_File);
       <<Read_Next_Line>>
@@ -1136,9 +1167,7 @@ package body Instrument.Input_Traces is
                   --  Remove any corrupted source trace file that
                   --  started to be generated.
 
-                  if Had_One_Trace then
-                     BIO.Delete (Output);
-                  end if;
+                  BIO.Delete (Output);
 
                   Outputs.Fatal_Error ("Unexpected long line in Base64 trace");
                else
@@ -1161,7 +1190,6 @@ package body Instrument.Input_Traces is
                --  current line prefix and open the source trace file to write.
 
                if Has_Suffix (Buffer (First .. Last), Start_Marker) then
-                  Had_One_Trace := True;
                   Started_Trace := True;
                   declare
                      Prefix_Length : constant Natural :=
@@ -1171,7 +1199,13 @@ package body Instrument.Input_Traces is
                      Prefix (Prefix'First .. Prefix_Last) :=
                        Buffer (First .. First + Prefix_Length - 1);
                   end;
-                  BIO.Create (Output, BIO.Out_File, Output_File);
+                  BIO.Create
+                    (Output,
+                     BIO.Out_File,
+                     (if Switches.Split_Extracted_Traces
+                      then Nth_Trace_Filename (Trace_Count)
+                      else Output_File));
+                  Trace_Count := Trace_Count + 1;
                end if;
 
                goto Read_Next_Line;
@@ -1202,9 +1236,7 @@ package body Instrument.Input_Traces is
                --  properly exit by removing the output file that may have been
                --  created, to avoid leaving a corrupted file to the user.
 
-               if Had_One_Trace then
-                  BIO.Delete (Output);
-               end if;
+               BIO.Delete (Output);
 
                Outputs.Fatal_Error
                  ("Invalid Base64 trace: incomplete group of 4 characters");
@@ -1251,7 +1283,7 @@ package body Instrument.Input_Traces is
       --  Make sure we had at least one trace, and a matching "end" marker for
       --  the last trace.
 
-      if not Had_One_Trace then
+      if Trace_Count = 0 then
          Outputs.Fatal_Error ("No Base64 trace found");
       elsif Started_Trace then
          BIO.Delete (Output);
