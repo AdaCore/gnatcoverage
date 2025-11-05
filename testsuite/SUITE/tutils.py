@@ -588,7 +588,7 @@ def tracename_for(pgmname):
     return exename_for(pgmname) + ".trace"
 
 
-def srctrace_pattern_for(pgmname, manual=False, manual_prj_name=None):
+def srctrace_pattern_for(pgmname, manual: bool = False, manual_prj_name=None):
     """
     Glob pattern for the source trace file for the given program name.
 

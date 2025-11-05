@@ -58,7 +58,7 @@ def build_and_run(
     extra_gprbuild_cargs=None,
     extra_gprbuild_largs=None,
     absolute_paths=False,
-    dump_trigger="auto",
+    dump_trigger: str | list[str] = "auto",
     dump_channel="auto",
     check_gprbuild_output=False,
     trace_mode=None,
@@ -69,7 +69,7 @@ def build_and_run(
     program_env=None,
     tolerate_instrument_messages=None,
     exec_args=None,
-    manual_prj_name=None,
+    manual_prj_name: str | None = None,
     auto_config_args=True,
 ):
     """
@@ -119,7 +119,7 @@ def build_and_run(
     :param list[str] | None extra_gprbuild_largs: List of arguments to pass to
         gprbuild's -largs section.
     :param bool absolute_paths: If true, use absolute paths in the result.
-    :param None|str dump_trigger: See xcov_instrument.
+    :param str|list[str] dump_trigger: See xcov_instrument.
     :param None|str dump_channel: See xcov_instrument.
     :param bool check_gprbuild_output: If true, check that gprbuild's output is
         empty.
@@ -260,9 +260,9 @@ def build_and_run(
         xcov_args.extend(cov_or_instr_args)
 
     elif trace_mode == "src":
-        # Deal with --dump-trigger=manual,<file>
-        is_manual = (
-            dump_trigger.split(",")[0] == "manual" if dump_trigger else False
+        is_manual: bool = dump_trigger is not None and (
+            (isinstance(dump_trigger, str) and "manual" == dump_trigger)
+            or "manual" in dump_trigger
         )
 
         if dump_channel == "auto":

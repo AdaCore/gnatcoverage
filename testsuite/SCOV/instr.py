@@ -54,9 +54,9 @@ def xcov_instrument(
     gprsw,
     covlevel,
     quiet=True,
-    extra_args=None,
-    dump_trigger="auto",
-    dump_channel="auto",
+    extra_args: list[str] | None = None,
+    dump_trigger: str | list[str] = "auto",
+    dump_channel: str = "auto",
     gpr_obj_dir=None,
     runtime_project=None,
     out=None,
@@ -75,9 +75,10 @@ def xcov_instrument(
     :param bool quiet: Whether to pass the "--quiet" flag.
     :param list[str] | None extra_args: Extra arguments to append to the
         command line.
-    :param None|str dump_trigger: If None, do not pass the --dump-trigger
-        argument. If "auto", pass the result of default_dump_trigger().
-        Otherwise, pass the given value.
+    :param str | list[str] dump_trigger: If None, do not pass the
+        --dump-trigger argument. If "auto", pass the result of
+        default_dump_trigger(). Otherwise, pass the given value. In case the
+        given value is a list, pass as many --dump-trigger options.
     :param None|str dump_channel: If None, do not pass the --dump-channel
         argument. If "auto", pass the result of default_dump_channel().
         Otherwise, pass the given value.
@@ -125,8 +126,12 @@ def xcov_instrument(
 
     if dump_trigger:
         if dump_trigger == "auto":
-            dump_trigger = default_dump_trigger(mains)
-        args += ["--dump-trigger", dump_trigger]
+            args += ["--dump-trigger", default_dump_trigger(mains)]
+        elif isinstance(dump_trigger, str):
+            args += ["--dump-trigger", dump_trigger]
+        else:
+            args += [x for dt in dump_trigger for x in ["--dump-trigger", dt]]
+
     if dump_channel:
         if dump_channel == "auto":
             dump_channel = default_dump_channel()

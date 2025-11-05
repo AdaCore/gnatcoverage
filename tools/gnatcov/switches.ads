@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Directories;
 with Ada.Exceptions;
@@ -296,11 +297,14 @@ package Switches is
    --  is found, update V accordingly and return True; return False otherwise.
 
    type Any_Dump_Trigger is
-     (Manual, At_Exit, Ravenscar_Task_Termination, Main_End);
+     (Manual, At_Exit, Ravenscar_Task_Termination, Main_End, None);
    --  Trigger to dump coverage buffers in instrumented programs. See the user
    --  documentation for the --dump-trigger command-line option.
 
-   subtype Auto_Dump_Trigger is Any_Dump_Trigger range At_Exit .. Main_End;
+   subtype Auto_Dump_Trigger is Any_Dump_Trigger range At_Exit .. None;
+   subtype Valid_Auto_Dump_Trigger is
+     Auto_Dump_Trigger range At_Exit .. Main_End;
+   subtype Valid_Dump_Trigger is Any_Dump_Trigger range Manual .. Main_End;
 
    type Any_Dump_Channel is (Binary_File, Base64_Standard_Output);
    --  Channel where to dump coverage buffers. See the user documentation for
@@ -310,15 +314,17 @@ package Switches is
    --  deserialization ones raise Constraint_Error exceptions for invalid input
    --  strings.
 
-   function Image (Dump_Trigger : Any_Dump_Trigger) return String;
+   function Image (Dump_Trigger : Valid_Dump_Trigger) return String;
    function Image (Dump_Channel : Any_Dump_Channel) return String;
-   function Value (Dump_Trigger : String) return Any_Dump_Trigger;
+   function Value (Dump_Trigger : String) return Valid_Dump_Trigger;
    function Value (Dump_Channel : String) return Any_Dump_Channel;
 
    type Any_Dump_Config
      (Channel : Any_Dump_Channel := Any_Dump_Channel'First)
    is record
-      Trigger : Any_Dump_Trigger := Manual;
+
+      Auto_Trigger   : Auto_Dump_Trigger := None;
+      Manual_Trigger : Boolean := False;
 
       Manual_Indication_Files : File_Sets.Set;
       --  Files containing manual indications as specified per the user
