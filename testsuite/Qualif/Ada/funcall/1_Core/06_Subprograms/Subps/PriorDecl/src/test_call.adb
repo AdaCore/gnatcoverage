@@ -4,12 +4,12 @@ with Make_Calls;
 --  Check that there are no function coverage violations for the subprograms
 --  and no call coverage violation for call sites.
 
-procedure Test_With_Decls_Subp_Called is
+procedure Test_Call is
 begin
    Make_Calls;
-end Test_With_Decls_Subp_Called;
+end Test_Call;
 
---# with_decls_subp.adb
+--# decls.adb
 -- /subp/       l+ ## 0
 -- /stmt/       l+ ## 0
 

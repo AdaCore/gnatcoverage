@@ -1,4 +1,4 @@
-package With_Decls_Subp is
+package Decls is
 
     I : Integer := 8;
 
@@ -44,4 +44,4 @@ package With_Decls_Subp is
    --  Two-parameter procedure version of an overloaded subprogram
    procedure Over (A, B : Integer);
 
-end With_Decls_Subp;
+end Decls;

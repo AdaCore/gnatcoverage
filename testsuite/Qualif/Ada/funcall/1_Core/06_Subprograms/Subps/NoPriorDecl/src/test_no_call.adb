@@ -1,22 +1,21 @@
-with Make_Calls;
+with No_Decls;
 
 --  Define subprograms with no prior declaration and call none of them.
 --  None of the subprograms defined in No_Decls_Subp are called so all of
 --  them should have function coverage violations and all call sites should
 --  have call coverage violations.
 
-procedure Test_With_Decls_Subp_Not_Called is
+procedure Test_No_Call is
 begin
-   null;
-end Test_With_Decls_Subp_Not_Called;
+    No_Decls (Make_Calls => False);
+end Test_No_Call;
 
---# with_decls_subp.adb
+--# no_decls.adb
+-- /test_proc/  l+ ## 0
+-- /decl/       l+ ## 0
 -- /subp/       l- ## f-
 -- /stmt/       l- ## s-
-
---# make_calls.adb
--- /test_proc/  l- ## f-
--- /decl/       l- ## s-
+-- /if_cond/    l! ## dT-
 -- /dummy/      l- ## s-
 -- /fcall/      l- ## c-
 -- /pcall/      l- ## s-,c-

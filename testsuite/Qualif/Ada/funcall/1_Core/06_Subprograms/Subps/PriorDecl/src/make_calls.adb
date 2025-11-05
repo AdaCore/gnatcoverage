@@ -1,6 +1,6 @@
 pragma Ada_2012;
 
-with With_Decls_Subp; use With_Decls_Subp;
+with Decls; use Decls;
 
 procedure Make_Calls                                           -- # test_proc
 is

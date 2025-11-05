@@ -1,15 +1,15 @@
-with No_Decls_Subp;
+with No_Decls;
 
 --  Define subprograms with no prior declaration and call all of them.
 --  Check that there are no function coverage violations for the subprograms
 --  and no call coverage violation for call sites.
 
-procedure Test_No_Decls_Subp_Called is
+procedure Test_Call is
 begin
-    No_Decls_Subp (Make_Calls => True);
-end Test_No_Decls_Subp_Called;
+    No_Decls (Make_Calls => True);
+end Test_Call;
 
---# no_decls_subp.adb
+--# no_decls.adb
 -- /test_proc/  l+ ## 0
 -- /decl/       l+ ## 0
 -- /subp/       l+ ## 0

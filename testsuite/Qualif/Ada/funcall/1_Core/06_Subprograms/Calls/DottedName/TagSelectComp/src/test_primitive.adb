@@ -14,10 +14,10 @@ with Make_Call;
 -- called function sould however be marked as covered as the subprogram is
 -- called.
 
-procedure Test_Primitive_Calls is
+procedure Test_Primitive is
 begin
    Make_Call;
-end Test_Primitive_Calls;
+end Test_Primitive;
 
 --#make_call.adb
 -- /decl/     l+ ## 0

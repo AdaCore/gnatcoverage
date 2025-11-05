@@ -1,6 +1,6 @@
 pragma Ada_2012;
 
-procedure No_Decls_Subp (Make_Calls : Boolean)                 -- # test_proc
+procedure No_Decls (Make_Calls : Boolean)                 -- # test_proc
 is
    I : Integer := 8;
 
@@ -105,4 +105,4 @@ begin
       Over (1, 2);                                             -- # pcall
    end if;
 
-end No_Decls_Subp;
+end No_Decls;
