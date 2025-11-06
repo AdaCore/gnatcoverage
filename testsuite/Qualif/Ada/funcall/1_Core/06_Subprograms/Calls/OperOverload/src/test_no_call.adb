@@ -3,10 +3,10 @@ with Make_Calls;
 --  Test the correctness of the function and call coverage indications for
 --  overloaded operators when not called.
 
-procedure Test_Operators_Not_Called is
+procedure Test_No_Call is
 begin
    null;
-end Test_Operators_Not_Called;
+end Test_No_Call;
 
 --# make_calls.adb
 -- /test/  l- ## f-

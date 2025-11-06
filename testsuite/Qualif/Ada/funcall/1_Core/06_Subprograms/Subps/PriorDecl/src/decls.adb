@@ -1,6 +1,6 @@
 pragma Ada_2012;
 
-package body With_Decls_Subp is
+package body Decls is
 
     --  Define subprograms that have prior declarations.
     --  Any function coverage relative to these subprograms should be linked
@@ -67,4 +67,4 @@ package body With_Decls_Subp is
         I := A + B;                                             -- # stmt
     end Over;
 
-end With_Decls_Subp;
+end Decls;

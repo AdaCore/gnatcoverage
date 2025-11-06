@@ -6,10 +6,10 @@ with Foo; use Foo;
 --  function, an expression function, a procedure and a null procedure inside
 --  a protected body.
 
-procedure Test_Not_Called is
+procedure Test_No_Call is
 begin
    null;
-end Test_Not_Called;
+end Test_No_Call;
 
 --# foo.ads
 -- /decl/      l+ ## 0
