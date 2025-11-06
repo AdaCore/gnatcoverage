@@ -205,8 +205,16 @@ procedure GNATcov_Bits_Specific is
    -------------------------------------
 
    procedure Read_And_Process_GNATcov_Traces (Base_Acc : access Traces_Base) is
+      use Instrument.Input_Traces;
       Bin_Traces_Present : Boolean := False;
       Src_Traces_Present : Boolean := False;
+
+      Consolidated_Src_Traces : Consolidation_State;
+      --  Source traces are not processed directly: their coverage buffers are
+      --  instead first consolidated into this state (calls to
+      --  ``Update_State``, fast). It is only once all source traces have been
+      --  integrated into this state that we import it for coverage analysis
+      --  (call to ``Process_State``, takes longer).
 
       procedure Process_Exec (Exec_Name : String);
       --  Load a consolidated executable
@@ -361,10 +369,21 @@ procedure GNATcov_Bits_Specific is
            (Kind : Traces_Source.Supported_Info_Kind; Data : String);
          --  Callback for Read_Source_Trace_File
 
+         procedure On_Trace_Entry
+           (Filename                : String;
+            Fingerprint             : SC_Obligations.Fingerprint_Type;
+            CU_Name                 : Instrument.Compilation_Unit_Part;
+            Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
+            Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
+            Stmt_Buffer             : Coverage_Buffer;
+            Decision_Buffer         : Coverage_Buffer;
+            MCDC_Buffer             : Coverage_Buffer);
+         --  Callback for Read_Source_Trace_File
+
          procedure Read_Source_Trace_File is new
-           Instrument.Input_Traces.Generic_Read_Source_Trace_File
+           Generic_Read_Source_Trace_File
              (On_Trace_Info  => On_Trace_Info,
-              On_Trace_Entry => Compute_Source_Coverage);
+              On_Trace_Entry => On_Trace_Entry);
 
          Trace_File : Trace_File_Element_Acc;
          Result     : Read_Result;
@@ -378,6 +397,32 @@ procedure GNATcov_Bits_Specific is
          begin
             Update_From_Source_Trace (Trace_File.all, Kind, Data);
          end On_Trace_Info;
+
+         ---------------------
+         --  On_Trace_Entry --
+         ---------------------
+
+         procedure On_Trace_Entry
+           (Filename                : String;
+            Fingerprint             : SC_Obligations.Fingerprint_Type;
+            CU_Name                 : Instrument.Compilation_Unit_Part;
+            Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
+            Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
+            Stmt_Buffer             : Coverage_Buffer;
+            Decision_Buffer         : Coverage_Buffer;
+            MCDC_Buffer             : Coverage_Buffer) is
+         begin
+            Update_State
+              (Consolidated_Src_Traces,
+               Filename,
+               Fingerprint,
+               CU_Name,
+               Bit_Maps_Fingerprint,
+               Annotations_Fingerprint,
+               Stmt_Buffer,
+               Decision_Buffer,
+               MCDC_Buffer);
+         end On_Trace_Entry;
 
          --  Start of processing for Process_Source_Trace
 
@@ -645,6 +690,13 @@ procedure GNATcov_Bits_Specific is
       for RT of Trace_Inputs loop
          Process_Trace (+RT.Filename, +RT.Executable);
       end loop;
+
+      --  Now that all source traces have been read, import the consolidated
+      --  coverage buffers to the coverage state in gnatcov. Then, we can
+      --  release the consolidated buffers.
+
+      Process_State (Consolidated_Src_Traces);
+      Release (Consolidated_Src_Traces);
 
       --  Try loading SCOs if no executable or traces were passed, to generate
       --  a report with only violations.

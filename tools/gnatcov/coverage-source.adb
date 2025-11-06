@@ -2091,31 +2091,17 @@ package body Coverage.Source is
    -----------------------------
 
    procedure Compute_Source_Coverage
-     (Filename                : String;
-      Fingerprint             : SC_Obligations.Fingerprint_Type;
-      CU_Name                 : Compilation_Unit_Part;
-      Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
-      Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
-      Stmt_Buffer             : Coverage_Buffer;
-      Decision_Buffer         : Coverage_Buffer;
-      MCDC_Buffer             : Coverage_Buffer)
+     (CU              : CU_Id;
+      Fingerprint     : SC_Obligations.Fingerprint_Type;
+      Stmt_Buffer     : Coverage_Buffer;
+      Decision_Buffer : Coverage_Buffer;
+      MCDC_Buffer     : Coverage_Buffer)
    is
-      CU : CU_Id;
       BM : CU_Bit_Maps;
       ST : Scope_Traversal_Type;
 
       procedure Set_Executed (SCI : in out Source_Coverage_Info);
       --  Mark SCI as executed
-
-      function Part_Image (Part : GPR2.Valid_Unit_Kind) return String;
-      --  Helper to include Part in an error message
-
-      function Unit_Image return String
-      is (case CU_Name.Language_Kind is
-            when Unit_Based_Language =>
-              (Part_Image (CU_Name.Part) & " " & To_Ada (CU_Name.Unit)),
-            when File_Based_Language => +CU_Name.Filename);
-      --  Helper to refer to the instrumented unit in an error message
 
       procedure Update_SCI
         (SCO     : SCO_Id;
@@ -2139,19 +2125,6 @@ package body Coverage.Source is
       end Set_Executed;
 
       ----------------
-      -- Part_Image --
-      ----------------
-
-      function Part_Image (Part : GPR2.Valid_Unit_Kind) return String is
-      begin
-         return
-           (case Part is
-              when GPR2.S_Body     => "body of",
-              when GPR2.S_Spec     => "spec of",
-              when GPR2.S_Separate => "separate");
-      end Part_Image;
-
-      ----------------
       -- Update_SCI --
       ----------------
 
@@ -2167,57 +2140,6 @@ package body Coverage.Source is
       --  Start of processing for Compute_Source_Coverage
 
    begin
-      Misc_Trace.Trace ("processing traces for unit " & Unit_Image);
-
-      CU := Find_Instrumented_Unit (CU_Name);
-
-      if CU = No_CU_Id then
-
-         --  When using a single instrumented program to compute separate
-         --  coverage for all units (common in unit testing), it is legitimate
-         --  to process source trace files that contain entries relating to
-         --  units not of interest. So in this case, do not even warn about it:
-         --  just log the fact that we skip this trace entry in the verbose
-         --  about, just in case.
-
-         Misc_Trace.Trace
-           ("discarding source trace entry for unknown instrumented unit: "
-            & Unit_Image);
-         return;
-
-      elsif Provider (CU) /= Instrumenter then
-
-         --  We loaded compiler-generated SCOs for this unit before processing
-         --  its source trace buffer, so we have inconsistent information. Just
-         --  ignore this coverage information and proceed.
-
-         Warn
-           ("inconsistent coverage method, ignoring coverage information"
-            & " for "
-            & Unit_Image);
-         return;
-      end if;
-
-      --  Sanity check that Fingerprint is consistent with what the
-      --  instrumenter recorded in the CU info.
-
-      if not Has_Fingerprint (CU, Fingerprint)
-        or else Bit_Maps_Fingerprint
-                /= SC_Obligations.Bit_Maps_Fingerprint (CU, Fingerprint)
-        or else Annotations_Fingerprint
-                /= SC_Obligations.Annotations_Fingerprint (CU, Fingerprint)
-      then
-         Warn
-           ("traces for "
-            & Unit_Image
-            & " (from "
-            & Filename
-            & ") are"
-            & " inconsistent with the corresponding Source Instrumentation"
-            & " Data");
-         return;
-      end if;
-
       --  Mark unit as present in closure
 
       Set_Unit_Has_Code (CU);

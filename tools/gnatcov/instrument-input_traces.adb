@@ -20,7 +20,6 @@ with Ada.Direct_IO;
 with Ada.Directories; use Ada.Directories;
 with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
-with Ada.Unchecked_Deallocation;
 
 with Interfaces;
 
@@ -31,6 +30,7 @@ with System.Storage_Elements;
 with GNAT.OS_Lib;        use GNAT.OS_Lib;
 with GNAT.Byte_Swapping; use GNAT.Byte_Swapping;
 
+with Coverage.Source;
 with Hex_Images;
 with Outputs;
 
@@ -1290,5 +1290,212 @@ package body Instrument.Input_Traces is
          Outputs.Fatal_Error ("Incomplete Base64 trace");
       end if;
    end Extract_Base64_Trace;
+
+   ---------
+   -- "<" --
+   ---------
+
+   function "<" (Left, Right : Consolidated_Trace_Key) return Boolean is
+   begin
+      if Left.CU_Name < Right.CU_Name then
+         return True;
+      elsif Left.CU_Name = Right.CU_Name then
+         return Left.Fingerprint < Right.Fingerprint;
+      else
+         return False;
+      end if;
+   end "<";
+
+   ------------------
+   -- Update_State --
+   ------------------
+
+   procedure Update_State
+     (Self                    : in out Consolidation_State;
+      Filename                : String;
+      Fingerprint             : SC_Obligations.Fingerprint_Type;
+      CU_Name                 : Compilation_Unit_Part;
+      Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
+      Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
+      Stmt_Buffer             : Coverage_Buffer;
+      Decision_Buffer         : Coverage_Buffer;
+      MCDC_Buffer             : Coverage_Buffer)
+   is
+      use Consolidated_Trace_Maps;
+
+      function Part_Image (Part : GPR2.Valid_Unit_Kind) return String;
+      --  Helper to include Part in an error message
+
+      function Unit_Image return String
+      is (case CU_Name.Language_Kind is
+            when Unit_Based_Language =>
+              (Part_Image (CU_Name.Part) & " " & To_Ada (CU_Name.Unit)),
+            when File_Based_Language => +CU_Name.Filename);
+      --  Helper to refer to the instrumented unit in an error message
+
+      ----------------
+      -- Part_Image --
+      ----------------
+
+      function Part_Image (Part : GPR2.Valid_Unit_Kind) return String is
+      begin
+         return
+           (case Part is
+              when GPR2.S_Body     => "body of",
+              when GPR2.S_Spec     => "spec of",
+              when GPR2.S_Separate => "separate");
+      end Part_Image;
+
+      Key : constant Consolidated_Trace_Key := (CU_Name, Fingerprint);
+      Elt : Consolidated_Trace_Entry;
+      Cur : Cursor;
+      CU  : CU_Id;
+   begin
+      Misc_Trace.Trace ("processing traces for unit " & Unit_Image);
+
+      --  Look for a consolidated trace entry corresponding to these coverage:
+      --  if we find one, we have already found the corresponding compilation
+      --  unit.
+
+      Cur := Self.Map.Find (Key);
+      if Has_Element (Cur) then
+         CU := Element (Cur).CU;
+      else
+         CU := Find_Instrumented_Unit (CU_Name);
+
+         if CU = No_CU_Id then
+
+            --  When using a single instrumented program to compute separate
+            --  coverage for all units (common in unit testing), it is
+            --  legitimate to process source trace files that contain entries
+            --  relating to units not of interest. So in this case, do not even
+            --  warn about it: just log the fact that we skip this trace entry
+            --  in the verbose about, just in case.
+
+            Misc_Trace.Trace
+              ("discarding source trace entry for unknown instrumented unit: "
+               & Unit_Image);
+            return;
+
+         elsif Provider (CU) /= Instrumenter then
+
+            --  We loaded compiler-generated SCOs for this unit before
+            --  processing its source trace buffer, so we have inconsistent
+            --  information. Just ignore this coverage information and proceed.
+
+            Outputs.Warn
+              ("inconsistent coverage method, ignoring coverage information"
+               & " for "
+               & Unit_Image);
+            return;
+         end if;
+      end if;
+
+      --  Sanity check that Fingerprint is consistent with what the
+      --  instrumenter recorded in the CU info.
+
+      if not Has_Fingerprint (CU, Fingerprint)
+        or else Bit_Maps_Fingerprint
+                /= SC_Obligations.Bit_Maps_Fingerprint (CU, Fingerprint)
+        or else Annotations_Fingerprint
+                /= SC_Obligations.Annotations_Fingerprint (CU, Fingerprint)
+      then
+         Outputs.Warn
+           ("traces for "
+            & Unit_Image
+            & " (from "
+            & Filename
+            & ") are"
+            & " inconsistent with the corresponding Source Instrumentation"
+            & " Data");
+         return;
+      end if;
+
+      if Has_Element (Cur) then
+
+         --  Update existing coverage buffers for this unit
+
+         Elt := Element (Cur);
+         pragma Assert (Elt.CU = CU);
+
+         pragma Assert (Stmt_Buffer'First = Elt.Stmt_Buffer'First);
+         pragma Assert (Stmt_Buffer'Last = Elt.Stmt_Buffer'Last);
+
+         pragma Assert (Decision_Buffer'First = Elt.Decision_Buffer'First);
+         pragma Assert (Decision_Buffer'Last = Elt.Decision_Buffer'Last);
+
+         pragma Assert (MCDC_Buffer'First = Elt.MCDC_Buffer'First);
+         pragma Assert (MCDC_Buffer'Last = Elt.MCDC_Buffer'Last);
+
+         --  Update coverage buffers in this entry
+
+         for B in Stmt_Buffer'Range loop
+            if Stmt_Buffer (B) then
+               Elt.Stmt_Buffer (B) := True;
+            end if;
+         end loop;
+         for B in Decision_Buffer'Range loop
+            if Decision_Buffer (B) then
+               Elt.Decision_Buffer (B) := True;
+            end if;
+         end loop;
+         for B in MCDC_Buffer'Range loop
+            if MCDC_Buffer (B) then
+               Elt.MCDC_Buffer (B) := True;
+            end if;
+         end loop;
+
+      else
+         --  Create a new entry for coverage buffers and initialize them from
+         --  this trace entry.
+
+         pragma Assert (Stmt_Buffer'First = 0);
+         pragma Assert (Decision_Buffer'First = 0);
+         pragma Assert (MCDC_Buffer'First = 0);
+         Elt :=
+           new Consolidated_Trace_Entry_Record
+                 (Stmt_Buffer'Last, Decision_Buffer'Last, MCDC_Buffer'Last);
+         Elt.CU := CU;
+         Elt.Stmt_Buffer := Stmt_Buffer;
+         Elt.Decision_Buffer := Decision_Buffer;
+         Elt.MCDC_Buffer := MCDC_Buffer;
+         Self.Map.Insert (Key, Elt);
+      end if;
+   end Update_State;
+
+   -------------------
+   -- Process_State --
+   -------------------
+
+   procedure Process_State (Self : in out Consolidation_State) is
+   begin
+      for Cur in Self.Map.Iterate loop
+         declare
+            use Consolidated_Trace_Maps;
+
+            K : constant Consolidated_Trace_Key := Key (Cur);
+            E : constant Consolidated_Trace_Entry := Element (Cur);
+         begin
+            Coverage.Source.Compute_Source_Coverage
+              (E.CU,
+               K.Fingerprint,
+               E.Stmt_Buffer,
+               E.Decision_Buffer,
+               E.MCDC_Buffer);
+         end;
+      end loop;
+   end Process_State;
+
+   -------------
+   -- Release --
+   -------------
+
+   procedure Release (Self : in out Consolidation_State) is
+   begin
+      for Key of Self.Map loop
+         Free (Key);
+      end loop;
+      Self.Map.Clear;
+   end Release;
 
 end Instrument.Input_Traces;
