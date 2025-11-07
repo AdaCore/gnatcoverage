@@ -2876,9 +2876,26 @@ package body Instrument.Ada_Unit is
                declare
                   Spec_Formal_Params : constant Node_Rewriting_Handle :=
                     Clone_Params (UIC, Previous_Spec);
+
+                  Current_Augmented_Param : Node_Rewriting_Handle :=
+                    First_Child (Formal_Params);
                begin
-                  Insert_Last
-                    (Spec_Formal_Params, Clone (Last_Child (Formal_Params)));
+                  --  Add all of the parameters inserted for instrumentation
+                  --  purposes (the MCDC state, and the dummy witness
+                  --  parameters).
+
+                  for J in 1 .. Previous_Spec.P_Params'Length loop
+                     Current_Augmented_Param :=
+                       Next_Child (Current_Augmented_Param);
+                  end loop;
+
+                  while Current_Augmented_Param /= No_Node_Rewriting_Handle
+                  loop
+                     Insert_Last
+                       (Spec_Formal_Params, Clone (Current_Augmented_Param));
+                     Current_Augmented_Param :=
+                       Next_Child (Current_Augmented_Param);
+                  end loop;
                   Set_Child
                     (New_Spec,
                      Member_Refs.Subp_Spec_F_Subp_Params,
