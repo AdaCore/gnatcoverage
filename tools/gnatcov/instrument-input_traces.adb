@@ -1352,7 +1352,9 @@ package body Instrument.Input_Traces is
       Cur : Cursor;
       CU  : CU_Id;
    begin
-      Misc_Trace.Trace ("processing traces for unit " & Unit_Image);
+      if Misc_Trace.Is_Active then
+         Misc_Trace.Trace ("processing traces for unit " & Unit_Image);
+      end if;
 
       --  Look for a consolidated trace entry corresponding to these coverage:
       --  if we find one, we have already found the corresponding compilation
