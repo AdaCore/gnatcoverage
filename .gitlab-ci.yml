@@ -352,7 +352,7 @@ test_qualrun_25:
     - *basic_test_setup
     # Test using gnatcov-qualrun to be able to test gnatcov 25. We don't need
     # to produce a qualkit so skip that to keep the CI job short.
-    - anod test gnatcov-qualrun -Qgnatcov_version=25.2 --minimal -Qci $ACI_TRACK_QUALIFIER
+    - anod test gnatcov-qualrun -Qgnatcov_version=25.2 --minimal $ACI_TRACK_QUALIFIER
     - testsuite_reports
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
