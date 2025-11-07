@@ -30,6 +30,7 @@ with System.Storage_Elements;
 
 with GNAT.OS_Lib;        use GNAT.OS_Lib;
 with GNAT.Byte_Swapping; use GNAT.Byte_Swapping;
+with GNATCOLL.Mmap;
 
 with Coverage.Source;
 with Hashes; use Hashes;
@@ -37,6 +38,8 @@ with Hex_Images;
 with Outputs;
 
 package body Instrument.Input_Traces is
+
+   package Mmap renames GNATCOLL.Mmap;
 
    Native_Endianity : constant Supported_Endianity :=
      Traces_Source.Native_Endianity;
@@ -58,11 +61,6 @@ package body Instrument.Input_Traces is
 
    type Bytes_Array is array (Positive range <>) of Interfaces.Unsigned_8;
 
-   type Bytes_Access is access all Bytes_Array;
-
-   procedure Free is new
-     Ada.Unchecked_Deallocation (Bytes_Array, Bytes_Access);
-
    type Buffer_Range is record
       Offset, Size : Natural;
       --  Offset and size of the range
@@ -83,22 +81,32 @@ package body Instrument.Input_Traces is
    --  Return the offset for the next byte range that can appear after Self
 
    type Binary_Stream is record
-      File : File_Descriptor;
-      --  File from which to read the binary stream
+      File   : Mmap.Mapped_File;
+      Region : Mmap.Mapped_Region;
+      --  File and region for the trace file to read
 
-      Offset : Interfaces.Unsigned_32;
-      --  Offset for the next bytes to read from the binary stream
+      Buffer : System.Address;
+      --  Address of the first byte in Region
 
-      Buffer : Bytes_Access;
-      --  Temporary buffer to hold data to read. When not null, first bound is
-      --  always 1.
+      Length : System.Storage_Elements.Storage_Count;
+      --  Number of bytes available in Region
 
-      Buffer_Last : Natural;
-      --  Index in Buffer for the last byte that was read
+      Position : System.Storage_Elements.Storage_Offset;
+      --  Offset of the next byte to process in the trace file. We process
+      --  files from the beginning to the end, like with tratidional I/O.
+
+      Last_Position_Address : System.Address;
+      --  Address of the element corresponding to Position before the last call
+      --  to Read_Bytes.
    end record;
 
-   procedure Reserve (Buffer : in out Bytes_Access; Size : Natural);
-   --  Reallocate Buffer if needed so that it can contain at least Size bytes
+   function Open_File
+     (Filename : String; Stream : out Binary_Stream) return Boolean;
+   --  Open file ``Filename`` for reading and initialize ``Stream`` from it.
+   --  Return whether successful.
+
+   procedure Close (Stream : in out Binary_Stream);
+   --  Close the given binary stream
 
    procedure Read_Bytes
      (Stream       : in out Binary_Stream;
@@ -120,8 +128,7 @@ package body Instrument.Input_Traces is
    --  an error about a truncated file and set EOF to True.
 
    function Buffer_Address (Stream : Binary_Stream) return System.Address
-   with Pre => Stream.Buffer /= null;
-   --  Return the address for the content of the buffer in Stream
+   is (Stream.Last_Position_Address);
 
    type Trace_Entry_Elements is record
       Unit_Name        : System.Address;
@@ -231,17 +238,41 @@ package body Instrument.Input_Traces is
       return Self.Offset + Self.Padded_Size;
    end Offset_After;
 
-   -------------
-   -- Reserve --
-   -------------
+   ---------------
+   -- Open_File --
+   ---------------
 
-   procedure Reserve (Buffer : in out Bytes_Access; Size : Natural) is
+   function Open_File
+     (Filename : String; Stream : out Binary_Stream) return Boolean is
    begin
-      if Buffer = null or else Buffer'Length < Size then
-         Free (Buffer);
-         Buffer := new Bytes_Array (1 .. Size);
-      end if;
-   end Reserve;
+      --  Make the region mutable so that we can perform byte swap if
+      --  needed.
+
+      Stream.File := Mmap.Open_Read (Filename);
+      Stream.Region := Mmap.Read (Stream.File, Mutable => True);
+      Stream.Buffer := Mmap.Data_Address (Stream.Region);
+      Stream.Length :=
+        System.Storage_Elements.Storage_Count (Mmap.Data_Size (Stream.Region));
+      Stream.Position := 0;
+      return True;
+   exception
+      when Ada.Text_IO.Name_Error =>
+         return False;
+   end Open_File;
+
+   -----------
+   -- Close --
+   -----------
+
+   procedure Close (Stream : in out Binary_Stream) is
+   begin
+      Mmap.Free (Stream.Region);
+      Mmap.Close (Stream.File);
+      Stream.Buffer := System.Null_Address;
+      Stream.Length := 0;
+      Stream.Position := 0;
+      Stream.Last_Position_Address := System.Null_Address;
+   end Close;
 
    ----------------
    -- Read_Bytes --
@@ -252,48 +283,25 @@ package body Instrument.Input_Traces is
       Size         : Natural;
       EOF          : out Boolean;
       Result       : in out Read_Result;
-      Error_If_EOF : Boolean := True) is
+      Error_If_EOF : Boolean := True)
+   is
+      use System.Storage_Elements;
+
+      Next_Position : constant Storage_Offset :=
+        Stream.Position + Storage_Offset (Size);
    begin
-      Reserve (Stream.Buffer, Size);
       EOF := False;
+      if Next_Position > Stream.Length then
+         EOF := True;
+         if Error_If_EOF or else Next_Position = Stream.Length + 1 then
+            Create_Error (Result, "truncated file");
+         end if;
+         return;
+      end if;
 
-      declare
-         use Interfaces;
-
-         Read_Size : Integer;
-         Buffer    : Bytes_Array renames Stream.Buffer.all (1 .. Size);
-      begin
-         Stream.Buffer_Last := 0;
-         while Stream.Buffer_Last < Size loop
-            Read_Size :=
-              Read
-                (Stream.File,
-                 Buffer (Stream.Buffer_Last + 1)'Address,
-                 Size - Stream.Buffer_Last);
-
-            if Read_Size = 0 then
-               EOF := True;
-               if Error_If_EOF or else Stream.Buffer_Last /= 0 then
-                  Create_Error (Result, "truncated file");
-               end if;
-               return;
-            else
-               pragma Assert (Read_Size > 0);
-               Stream.Offset := Stream.Offset + Unsigned_32 (Read_Size);
-               Stream.Buffer_Last := Stream.Buffer_Last + Read_Size;
-            end if;
-         end loop;
-      end;
+      Stream.Last_Position_Address := Stream.Buffer + Stream.Position;
+      Stream.Position := Next_Position;
    end Read_Bytes;
-
-   --------------------
-   -- Buffer_Address --
-   --------------------
-
-   function Buffer_Address (Stream : Binary_Stream) return System.Address is
-   begin
-      return Stream.Buffer.all (1)'Address;
-   end Buffer_Address;
 
    -------------
    -- Reserve --
@@ -635,12 +643,10 @@ package body Instrument.Input_Traces is
 
       --  Try to open the file
 
-      Stream.File := Open_Read (Filename, Binary);
-      if Stream.File = Invalid_FD then
+      if not Open_File (Filename, Stream) then
          Create_Error (Result, "cannot open " & Filename);
          return;
       end if;
-      Stream.Offset := 0;
 
       --  Read the trace file header
 
@@ -787,8 +793,7 @@ package body Instrument.Input_Traces is
       Free (Statement_Buffer);
       Free (Decision_Buffer);
       Free (MCDC_Buffer);
-      Free (Stream.Buffer);
-      Close (Stream.File);
+      Close (Stream);
    end Generic_Read_Source_Trace_File;
 
    ----------------------------
