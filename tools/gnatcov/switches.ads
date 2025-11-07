@@ -169,7 +169,7 @@ package Switches is
    --  Control the date display format (either in local time, or UTC time)
 
    Pretty_Print : Boolean := False;
-   --  If true, run "gnatpp" on the generate sources
+   --  If true, run "gnatformat" on the generate sources
 
    Allow_Mixing_Trace_Kinds : Boolean := False;
    --  If true, mixing trace kinds (binary and source) will not result in an

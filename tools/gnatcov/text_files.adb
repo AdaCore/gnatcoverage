@@ -162,27 +162,28 @@ package body Text_Files is
       end if;
    end Finalize;
 
-   ----------------
-   -- Run_GNATpp --
-   ----------------
+   --------------------
+   -- Run_GNATformat --
+   --------------------
 
-   procedure Run_GNATpp (Filename : String) is
+   procedure Run_GNATformat (Filename : String) is
       use GNAT.OS_Lib;
 
-      Args    : constant Argument_List := (1 => Filename'Unrestricted_Access);
-      GNATpp  : String_Access := Locate_Exec_On_Path ("gnatpp");
-      Success : Boolean;
+      Args       : constant Argument_List :=
+        (1 => Filename'Unrestricted_Access);
+      GNATformat : String_Access := Locate_Exec_On_Path ("gnatformat");
+      Success    : Boolean;
    begin
-      if GNATpp = null then
-         Put_Line ("gnatpp not available");
+      if GNATformat = null then
+         Put_Line ("gnatformat not available");
          return;
       end if;
-      Spawn (GNATpp.all, Args, Success);
-      Free (GNATpp);
+      Spawn (GNATformat.all, Args, Success);
+      Free (GNATformat);
       if not Success then
          Outputs.Warn ("pretty-printing " & Filename & " failed!");
       end if;
-   end Run_GNATpp;
+   end Run_GNATformat;
 
    ----------------------
    -- Run_Clang_Format --

@@ -9605,7 +9605,7 @@ package body Instrument.Ada_Unit is
 
          Close (File);
          if Switches.Pretty_Print then
-            Text_Files.Run_GNATpp (Filename);
+            Text_Files.Run_GNATformat (Filename);
          end if;
       end;
    end Write_To_File;
@@ -10917,7 +10917,7 @@ package body Instrument.Ada_Unit is
 
       Text_Files.Close (File);
       if Switches.Pretty_Print then
-         Text_Files.Run_GNATpp (Filename);
+         Text_Files.Run_GNATformat (Filename);
       end if;
 
       if not Degenerate_Subprogram_Generics.Is_Empty then
@@ -10944,7 +10944,7 @@ package body Instrument.Ada_Unit is
 
             Text_Files.Close (File);
             if Switches.Pretty_Print then
-               Text_Files.Run_GNATpp (PB_Filename);
+               Text_Files.Run_GNATformat (PB_Filename);
             end if;
          end;
       end if;

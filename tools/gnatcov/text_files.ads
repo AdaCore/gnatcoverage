@@ -88,8 +88,8 @@ package Text_Files is
    with Pre => Self.Is_Open, Inline;
    --  Close the text file that Self references
 
-   procedure Run_GNATpp (Filename : String);
-   --  Run "gnatpp" on the given file (i.e. reformat/pretty-print it)
+   procedure Run_GNATformat (Filename : String);
+   --  Run "gnatformat" on the given file (i.e. reformat/pretty-print it)
 
    procedure Run_Clang_Format (Filename : String);
    --  Run "clang-format" on the given file (i.e. reformat/pretty-print it)
