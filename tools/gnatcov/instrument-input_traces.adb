@@ -18,6 +18,7 @@
 
 with Ada.Direct_IO;
 with Ada.Directories; use Ada.Directories;
+with Ada.Streams;     use Ada.Streams;
 with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 
@@ -31,6 +32,7 @@ with GNAT.OS_Lib;        use GNAT.OS_Lib;
 with GNAT.Byte_Swapping; use GNAT.Byte_Swapping;
 
 with Coverage.Source;
+with Hashes; use Hashes;
 with Hex_Images;
 with Outputs;
 
@@ -1291,20 +1293,19 @@ package body Instrument.Input_Traces is
       end if;
    end Extract_Base64_Trace;
 
-   ---------
-   -- "<" --
-   ---------
+   ----------
+   -- Hash --
+   ----------
 
-   function "<" (Left, Right : Consolidated_Trace_Key) return Boolean is
+   function Hash
+     (Self : Consolidated_Trace_Key) return Ada.Containers.Hash_Type is
    begin
-      if Left.CU_Name < Right.CU_Name then
-         return True;
-      elsif Left.CU_Name = Right.CU_Name then
-         return Left.Fingerprint < Right.Fingerprint;
-      else
-         return False;
-      end if;
-   end "<";
+      return Result : Ada.Containers.Hash_Type := Hash (Self.CU_Name) do
+         for Digit of Self.Fingerprint loop
+            Result := Combine (Result, Stream_Element'Pos (Digit));
+         end loop;
+      end return;
+   end Hash;
 
    ------------------
    -- Update_State --

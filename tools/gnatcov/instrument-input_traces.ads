@@ -18,7 +18,8 @@
 
 --  Source trace files decoding
 
-private with Ada.Containers.Ordered_Maps;
+private with Ada.Containers;
+private with Ada.Containers.Hashed_Maps;
 private with Ada.Unchecked_Deallocation;
 
 with SC_Obligations;
@@ -98,7 +99,8 @@ private
       Fingerprint : SC_Obligations.Fingerprint_Type;
    end record;
 
-   function "<" (Left, Right : Consolidated_Trace_Key) return Boolean;
+   function Hash
+     (Self : Consolidated_Trace_Key) return Ada.Containers.Hash_Type;
 
    type Consolidated_Trace_Entry_Record
      (Last_Stmt_Bit     : Any_Bit_Id;
@@ -118,9 +120,11 @@ private
         Consolidated_Trace_Entry);
 
    package Consolidated_Trace_Maps is new
-     Ada.Containers.Ordered_Maps
-       (Key_Type     => Consolidated_Trace_Key,
-        Element_Type => Consolidated_Trace_Entry);
+     Ada.Containers.Hashed_Maps
+       (Key_Type        => Consolidated_Trace_Key,
+        Element_Type    => Consolidated_Trace_Entry,
+        Hash            => Hash,
+        Equivalent_Keys => "=");
 
    type Consolidation_State is record
       Map : Consolidated_Trace_Maps.Map;
