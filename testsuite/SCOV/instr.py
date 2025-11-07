@@ -190,7 +190,12 @@ def xcov_instrument(
 
 
 def xcov_convert_base64(
-    base64_file, output_trace_file, out=None, err=None, register_failure=True
+    base64_file,
+    output_trace_file,
+    split_extracted: bool = False,
+    out=None,
+    err=None,
+    register_failure=True,
 ):
     """Extract a trace file out of a Base64 file.
 
@@ -199,8 +204,11 @@ def xcov_convert_base64(
 
     See SUITE.tutils.xcov for the other supported options.
     """
+    args = ["extract-base64-trace", base64_file, output_trace_file]
+    if split_extracted:
+        args.append("--split-extracted-traces")
     xcov(
-        ["extract-base64-trace", base64_file, output_trace_file],
+        args,
         out=out,
         err=err,
         register_failure=register_failure,

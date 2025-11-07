@@ -104,7 +104,8 @@ package Command_Line is
       Opt_Instrument_Block,
       Opt_Force,
       Opt_Annotate_After,
-      Opt_No_Stdlib);
+      Opt_No_Stdlib,
+      Opt_Split_Extracted_Traces);
    --  Set of boolean options we support. More complete descriptions below.
 
    type String_Options is
@@ -847,6 +848,17 @@ package Command_Line is
              & " user, see section ""Coverage runtime setup for configurations"
              & " with no Ada runtime"" of the User's Guide for more details.",
            Commands  => (Cmd_Setup => True, others => False),
+           Internal  => False),
+      Opt_Split_Extracted_Traces       =>
+        Create
+          (Long_Name => "--split-extracted-traces",
+           Help      =>
+             "When several traces are sequentially extracted from the input"
+             & " file, write every new trace to a separate file rather than"
+             & " overwriting the same file everytime. When activated, the name"
+             & " of the first trace is the provided name, and the following"
+             & " are derived from it with an appended index.",
+           Commands  => (Cmd_Extract_Base64_Trace => True, others => False),
            Internal  => False));
 
    String_Infos : constant String_Option_Info_Array :=
