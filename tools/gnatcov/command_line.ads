@@ -649,7 +649,7 @@ package Command_Line is
            Help      =>
              "For the disassemble-insn-properties command, output a"
              & " pretty-printed JSON to ease debugging. For the"
-             & " instrument command, run gnatpp on the generated"
+             & " instrument command, run gnatformat on the generated"
              & " sources.",
            Commands  =>
              (Cmd_Disassemble_Insn_Properties | Cmd_Instrument => True,
