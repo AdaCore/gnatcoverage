@@ -9,6 +9,6 @@ package Pkg is
 private
    use Pkg2.Child;
 
-   function Foo (Self : My_Tagged_Rec; Id : My_Id) return Boolean is (False);
+   function Foo (Self : My_Tagged_Rec; Id : My_Id) return Boolean is (Id > 0 and then Id < 2);
 
 end Pkg;
