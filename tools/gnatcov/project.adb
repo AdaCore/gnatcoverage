@@ -1514,15 +1514,14 @@ package body Project is
       Externally_Built_Projects_Processing_Enabled := True;
    end Enable_Externally_Built_Projects_Processing;
 
-   -----------------------------------
-   -- Set_Build_Tree_Dir_To_Current --
-   -----------------------------------
+   ------------------------
+   -- Set_Build_Tree_Dir --
+   ------------------------
 
-   procedure Set_Build_Tree_Dir_To_Current is
+   procedure Set_Build_Tree_Dir (Path : String) is
    begin
-      Build_Tree_Dir := Get_Current_Dir;
-      Build_Tree_Dir.Normalize_Path;
-   end Set_Build_Tree_Dir_To_Current;
+      Build_Tree_Dir := Create_From_UTF8 (Path, Normalize => True);
+   end Set_Build_Tree_Dir;
 
    ------------------
    -- Set_Root_Dir --

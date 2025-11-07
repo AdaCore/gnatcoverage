@@ -99,7 +99,6 @@ package Command_Line is
       Opt_Save_Temps,
       Opt_SPARK_Compat,
       Opt_Full_Slugs,
-      Opt_Relocate_Build_Tree,
       Opt_Warnings_As_Errors,
       Opt_Instrument_Block,
       Opt_Force,
@@ -151,6 +150,7 @@ package Command_Line is
       Opt_Config_Pragmas_Mapping,
       Opt_Ada_Preprocessor_Data,
       Opt_Project_Name,
+      Opt_Relocate_Build_Tree,
       Opt_Source_Root,
       Opt_Db,
       Opt_GPR_Registry_Format,
@@ -787,17 +787,6 @@ package Command_Line is
            Commands  => (Cmd_Instrument => True, others => False),
            Internal  => True),
 
-      Opt_Relocate_Build_Tree          =>
-        Create
-          (Long_Name => "--relocate-build-tree",
-           Help      =>
-             "Relocate object, library and exec directories in the"
-             & " current directory.",
-           Commands  =>
-             (Cmd_All_Setups | Cmd_Print_GPR_Registry => False,
-              others                                  => True),
-           Internal  => False),
-
       Opt_Warnings_As_Errors           =>
         Create
           (Long_Name  => "--warnings-as-errors",
@@ -1433,6 +1422,19 @@ package Command_Line is
               others                                      => False),
            At_Most_Once => False,
            Internal     => True),
+
+      Opt_Relocate_Build_Tree    =>
+        Create
+          (Long_Name    => "--relocate-build-tree",
+           Pattern      => "PATH",
+           Help         =>
+             "Relocate object, library and exec directories in the"
+             & " specified directory.",
+           Commands     =>
+             (Cmd_All_Setups | Cmd_Print_GPR_Registry => False,
+              others                                  => True),
+           At_Most_Once => True,
+           Internal     => False),
 
       Opt_Source_Root            =>
         Create

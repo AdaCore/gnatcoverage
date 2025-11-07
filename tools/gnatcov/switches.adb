@@ -657,8 +657,9 @@ package body Switches is
          Enable_Externally_Built_Projects_Processing;
       end if;
 
-      if Args.Bool_Args (Opt_Relocate_Build_Tree) then
-         Set_Build_Tree_Dir_To_Current;
+      if Args.String_Args (Opt_Relocate_Build_Tree).Present then
+         Set_Build_Tree_Dir
+           (+Args.String_Args (Opt_Relocate_Build_Tree).Value);
 
          if Args.String_Args (Opt_Root_Dir).Present then
             Set_Root_Dir (+Args.String_Args (Opt_Root_Dir).Value);

@@ -148,9 +148,9 @@ class GPRswitches:
         root_project,
         projects=None,
         units=None,
-        no_subprojects=False,
-        externally_built_projects=False,
-        relocate_build_tree=False,
+        no_subprojects: bool = False,
+        externally_built_projects: bool = False,
+        relocate_build_tree: str | None = None,
         root_dir=None,
         xvars=None,
         subdirs=None,
@@ -195,7 +195,9 @@ class GPRswitches:
             switches.append("--subdirs={}".format(self.subdirs))
 
         if self.relocate_build_tree:
-            switches.append("--relocate-build-tree")
+            switches.append(
+                "--relocate-build-tree={}".format(self.relocate_build_tree)
+            )
 
         if self.root_dir:
             switches.append("--root-dir={}".format(self.root_dir))

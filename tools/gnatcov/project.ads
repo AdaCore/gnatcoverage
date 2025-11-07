@@ -79,10 +79,9 @@ package Project is
    --  If Prj_Name maps to no loaded project, Compute_Units_Of_Interest will
    --  later emit an error.
 
-   procedure Set_Build_Tree_Dir_To_Current
+   procedure Set_Build_Tree_Dir (Path : String)
    with Pre => not Is_Project_Loaded;
-   --  Set the root build directory to current directory, for out of tree
-   --  builds.
+   --  Set the root build directory to the given path, for out of tree builds.
 
    procedure Set_Root_Dir (Dir : String)
    with Pre => not Is_Project_Loaded;
