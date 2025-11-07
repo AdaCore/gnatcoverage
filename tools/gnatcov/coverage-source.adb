@@ -128,30 +128,33 @@ package body Coverage.Source is
       end case;
    end record;
 
+   type Source_Coverage_Info_Access is access all Source_Coverage_Info;
+
    package SCI_Vectors is new
      Ada.Containers.Vectors
        (Index_Type   => Valid_SCO_Id,
-        Element_Type => Source_Coverage_Info);
+        Element_Type => Source_Coverage_Info_Access);
 
    procedure Read
-     (CLS : in out Checkpoint_Load_State; Value : out Source_Coverage_Info);
+     (CLS   : in out Checkpoint_Load_State;
+      Value : out Source_Coverage_Info_Access);
    --  Read a SCI initialized from CLS
 
    procedure Write
-     (CSS : in out Checkpoint_Save_State; Value : Source_Coverage_Info);
+     (CSS : in out Checkpoint_Save_State; Value : Source_Coverage_Info_Access);
    --  Write a SCI to CSS
 
    procedure Read is new
      Read_Vector
        (Index_Type   => Valid_SCO_Id,
-        Element_Type => Source_Coverage_Info,
+        Element_Type => Source_Coverage_Info_Access,
         Vectors      => SCI_Vectors,
         Read_Element => Read);
 
    procedure Write is new
      Write_Vector
        (Index_Type    => Valid_SCO_Id,
-        Element_Type  => Source_Coverage_Info,
+        Element_Type  => Source_Coverage_Info_Access,
         Vectors       => SCI_Vectors,
         Write_Element => Write);
 
@@ -552,7 +555,7 @@ package body Coverage.Source is
             if not Removed then
                declare
                   CP_SCI : Source_Coverage_Info renames
-                    CP_SCI_Vector.Reference (SCO_Cur);
+                    CP_SCI_Vector (SCO_Cur).all;
                begin
                   Merge_Checkpoint_SCI (SCO, CP_SCI, Relocs);
                end;
@@ -648,7 +651,7 @@ package body Coverage.Source is
                end if;
 
                if Region.Kind /= Condition then
-                  SCI_Vector (Region.SCO) := Rep_SCI;
+                  SCI_Vector (Region.SCO).all := Rep_SCI;
                end if;
             end loop;
          end loop;
@@ -797,8 +800,7 @@ package body Coverage.Source is
          SCOs_Of_Line :
          declare
             SCO_State : Line_State := No_Code;
-            SCI       : Source_Coverage_Info renames
-              SCI_Vector.Reference (SCO);
+            SCI       : Source_Coverage_Info renames SCI_Vector (SCO).all;
          begin
             if Kind (SCO) = Statement then
 
@@ -1585,8 +1587,7 @@ package body Coverage.Source is
                S_SCO_First : constant Source_Location := First_Sloc (S_SCO);
                S_SCO_Last  : constant Source_Location := Last_Sloc (S_SCO);
 
-               Cur_SCI : Source_Coverage_Info renames
-                 SCI_Vector.Constant_Reference (S_SCO);
+               Cur_SCI : Source_Coverage_Info renames SCI_Vector (S_SCO).all;
             begin
                Line_Executed :=
                  not Precise
@@ -1622,8 +1623,7 @@ package body Coverage.Source is
                   Kind => Notice);
 
                declare
-                  SCI : Source_Coverage_Info renames
-                    SCI_Vector.Reference (S_SCO);
+                  SCI : Source_Coverage_Info renames SCI_Vector (S_SCO).all;
                begin
                   if Line_Executed then
                      SCI.Line_Executed := True;
@@ -1861,7 +1861,7 @@ package body Coverage.Source is
                   --  evaluation.
 
                   if CBE.Dest_Kind = Outcome then
-                     Set_Outcome_Taken (SCI_Vector.Reference (D_SCO));
+                     Set_Outcome_Taken (SCI_Vector (D_SCO).all);
                   end if;
                end if;
             end Edge_Taken;
@@ -2055,8 +2055,7 @@ package body Coverage.Source is
          --  coverable SCO.
 
          declare
-            SCI : Source_Coverage_Info renames
-              SCI_Vector.Constant_Reference (SCO);
+            SCI : Source_Coverage_Info renames SCI_Vector (SCO).all;
          begin
             if not SCI.Basic_Block_Has_Code or else SCI.Executed then
                return;
@@ -2069,13 +2068,11 @@ package body Coverage.Source is
          end if;
 
          declare
-            SCI : Source_Coverage_Info renames
-              SCI_Vector.Constant_Reference (Dom_SCO);
+            SCI : Source_Coverage_Info renames SCI_Vector (Dom_SCO).all;
          begin
             if SCI.Outcome_Taken (True) or else SCI.Outcome_Taken (False) then
                declare
-                  SCI : Source_Coverage_Info renames
-                    SCI_Vector.Reference (Dom_SCO);
+                  SCI : Source_Coverage_Info renames SCI_Vector (Dom_SCO).all;
                begin
                   SCI.Known_Outcome_Taken (not Dom_Val) := True;
                end;
@@ -2133,7 +2130,7 @@ package body Coverage.Source is
          Process : access procedure (SCI : in out Source_Coverage_Info)) is
       begin
          if In_Scope_Of_Interest (ST, SCO) then
-            Process.all (SCI_Vector.Reference (SCO));
+            Process.all (SCI_Vector (SCO).all);
          end if;
       end Update_SCI;
 
@@ -2394,11 +2391,7 @@ package body Coverage.Source is
       if Last_SCO > SCI_Vector.Last_Index then
          SCI_Vector.Reserve_Capacity (Ada.Containers.Count_Type (Last_SCO));
          for SCO in Last_SCI + 1 .. Last_SCO loop
-            declare
-               SCI : Source_Coverage_Info (Kind (SCO));
-            begin
-               SCI_Vector.Append (SCI);
-            end;
+            SCI_Vector.Append (new Source_Coverage_Info (Kind (SCO)));
          end loop;
 
          --  Make sure the above logic got index computations correct: we
@@ -2424,7 +2417,7 @@ package body Coverage.Source is
       ------------------
 
       procedure Set_Has_Code (SCO : SCO_Id) is
-         SCI : Source_Coverage_Info renames SCI_Vector.Reference (SCO);
+         SCI : Source_Coverage_Info renames SCI_Vector (SCO).all;
       begin
          if SCI.Kind = Statement then
             SCI.Basic_Block_Has_Code := True;
@@ -2502,7 +2495,7 @@ package body Coverage.Source is
       CP_SCI : Source_Coverage_Info;
       Relocs : Checkpoint_Relocations)
    is
-      SCI : Source_Coverage_Info renames SCI_Vector.Reference (SCO);
+      SCI : Source_Coverage_Info renames SCI_Vector (SCO).all;
    begin
       pragma Assert (SCI.Kind = CP_SCI.Kind);
 
@@ -2553,54 +2546,52 @@ package body Coverage.Source is
    ----------
 
    procedure Read
-     (CLS : in out Checkpoint_Load_State; Value : out Source_Coverage_Info)
-   is
-      CP_SCI : Source_Coverage_Info (SCO_Kind'Val (CLS.Read_U8));
+     (CLS   : in out Checkpoint_Load_State;
+      Value : out Source_Coverage_Info_Access) is
    begin
+      Value := new Source_Coverage_Info (SCO_Kind'Val (CLS.Read_U8));
       declare
          States : array (1 .. 10) of Line_State;
       begin
          for I in States'Range loop
             States (I) := CLS.Read_Line_State;
          end loop;
-         CP_SCI.State (Insn) := States (1);
-         CP_SCI.State (Branch) := States (2);
-         CP_SCI.State (Stmt) := States (3);
-         CP_SCI.State (Decision) := States (4);
-         CP_SCI.State (MCDC) := States (5);
-         CP_SCI.State (UC_MCDC) := States (6);
-         CP_SCI.State (ATC) := States (7);
-         CP_SCI.State (ATCC) := States (8);
-         CP_SCI.State (Fun_Call) := States (9);
-         CP_SCI.State (GExpr) := States (10);
+         Value.State (Insn) := States (1);
+         Value.State (Branch) := States (2);
+         Value.State (Stmt) := States (3);
+         Value.State (Decision) := States (4);
+         Value.State (MCDC) := States (5);
+         Value.State (UC_MCDC) := States (6);
+         Value.State (ATC) := States (7);
+         Value.State (ATCC) := States (8);
+         Value.State (Fun_Call) := States (9);
+         Value.State (GExpr) := States (10);
       end;
 
-      case CP_SCI.Kind is
+      case Value.Kind is
          when Statement         =>
-            CP_SCI.Basic_Block_Has_Code := CLS.Read_Boolean;
-            CP_SCI.Executed := CLS.Read_Boolean;
-            CP_SCI.Line_Executed := CLS.Read_Boolean;
+            Value.Basic_Block_Has_Code := CLS.Read_Boolean;
+            Value.Executed := CLS.Read_Boolean;
+            Value.Line_Executed := CLS.Read_Boolean;
 
          when Decision          =>
-            CP_SCI.Outcome_Taken (False) := CLS.Read_Boolean;
-            CP_SCI.Outcome_Taken (True) := CLS.Read_Boolean;
+            Value.Outcome_Taken (False) := CLS.Read_Boolean;
+            Value.Outcome_Taken (True) := CLS.Read_Boolean;
 
-            CP_SCI.Known_Outcome_Taken (False) := CLS.Read_Boolean;
-            CP_SCI.Known_Outcome_Taken (True) := CLS.Read_Boolean;
+            Value.Known_Outcome_Taken (False) := CLS.Read_Boolean;
+            Value.Known_Outcome_Taken (True) := CLS.Read_Boolean;
 
-            Read (CLS, CP_SCI.Evaluations);
+            Read (CLS, Value.Evaluations);
 
          when Fun_Call_SCO_Kind =>
-            CP_SCI.Fun_Call_Executed := CLS.Read_Boolean;
+            Value.Fun_Call_Executed := CLS.Read_Boolean;
 
          when Guarded_Expr      =>
-            CP_SCI.GExpr_Executed := CLS.Read_Boolean;
+            Value.GExpr_Executed := CLS.Read_Boolean;
 
          when others            =>
             null;
       end case;
-
-      Value := Source_Coverage_Info'(CP_SCI);
    end Read;
 
    -----------
@@ -2608,7 +2599,8 @@ package body Coverage.Source is
    -----------
 
    procedure Write
-     (CSS : in out Checkpoint_Save_State; Value : Source_Coverage_Info) is
+     (CSS : in out Checkpoint_Save_State; Value : Source_Coverage_Info_Access)
+   is
    begin
       CSS.Write_U8 (SCO_Kind'Pos (Value.Kind));
       for S of Value.State loop
