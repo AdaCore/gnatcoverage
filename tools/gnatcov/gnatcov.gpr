@@ -60,7 +60,7 @@ project Gnatcov is
       when others      => C_Support := "False";
    end case;
 
-   type Build_Mode_Type is ("dev", "prod", "boot");
+   type Build_Mode_Type is ("dev", "prod");
    Build_Mode : Build_Mode_Type := external ("BUILD_MODE", "dev");
    --  Build mode. Default to "dev" to make it shorter for developers. The
    --  other modes are for nightly scripts and are better made explicit anyway.
@@ -223,12 +223,6 @@ project Gnatcov is
 
          when "prod" =>
             Mode_Switches := ("-O2");
-            C_Mode_Switches := ("-DNDEBUG");
-            CPP_Mode_Switches := ("-DNDEBUG");
-
-         when "boot" =>
-            Mode_Switches :=
-              ("-O1", "-fdump-scos", "-fpreserve-control-flow");
             C_Mode_Switches := ("-DNDEBUG");
             CPP_Mode_Switches := ("-DNDEBUG");
       end case;
