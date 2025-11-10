@@ -45,10 +45,10 @@ qualification/gnatcheck_qualkit_common
 qualification/**/build
 qualification/**/source
 qualification/**/missing_tr_log.txt
+qualification/qualkit/plans/Tool_Qualification_Plan/Qualified_Interface/content.rst
 testsuite/STR/build
 testsuite/STR/source
 
 # vscode local settings
 .env
 .vscode
-

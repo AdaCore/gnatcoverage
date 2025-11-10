@@ -1,11 +1,6 @@
 Referenced Documents
 ====================
 
-.. rubric:: AE09
-
-Bordin et al.: *Couverture: An Innovative Open Framework for Coverage Analysis
-of Safety Critical Applications* - Ada User Journal, December 2009.
-
 .. rubric:: |tool_standard|
 
 RTCA DO-178C/EUROCAE ED-12C:
@@ -17,11 +12,6 @@ December 13, 2011
 RTCA DO-330/EUROCAE ED-215:
 *Software Tool Qualification Considerations*;
 December 13, 2011
-
-.. rubric:: ERTS2010
-
-Bordin et al: *Couverture: An Innovative and Open Coverage Analysis Framework
-for Safety-Critical Applications* - ERTS2 2010
 
 .. rubric:: GNAT Pro UG
 

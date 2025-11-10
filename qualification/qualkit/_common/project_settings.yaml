@@ -11,8 +11,6 @@ project:
     'prj_platform':                 'TBD',
     'prj_host_platform':            'linux',
     'prj_RTS':                      'No specific :literal:`--RTS` switch expected. Programs shall honor the :ref:`language-scope` restrictions, nevertheless.',
-    'prj_dump_trigger':             ':literal:`--dump-triger=main-end`',
-    'prj_dump_channel':             ':literal:`--dump-channel=base64-stdout`',
     'prj_ASIL':                     'ASIL D',
     'prj_DAL':                      'A',
     'prj_TCL':                      'TCL 3',

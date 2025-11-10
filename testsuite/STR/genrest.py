@@ -1328,23 +1328,6 @@ class QDreport(object):
             }
         )
 
-        if self.dump_trigger:
-            csv_contents.append(
-                {
-                    itemno: "s3",
-                    item: "GNATcov dump trigger option value",
-                    value: literal(f"--dump-trigger={self.dump_trigger}"),
-                }
-            )
-        if self.dump_channel:
-            csv_contents.append(
-                {
-                    itemno: "s4",
-                    item: "GNATcov dump channel option value",
-                    value: literal(f"--dump-channel={self.dump_channel}"),
-                }
-            )
-
         CSVtable(
             title="Testsuite execution options",
             text=None,
