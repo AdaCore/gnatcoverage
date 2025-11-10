@@ -1,0 +1,1 @@
+ALL XFAIL Spurious gnatformat warnings (eng/ide/gnatformat#224)

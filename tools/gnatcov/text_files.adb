@@ -177,6 +177,13 @@ package body Text_Files is
          Put_Line ("gnatformat not available");
          return;
       end if;
+
+      --  Pass --no-project to gnatformat so that it does not try to reformat
+      --  a source file in the "deafult project" (i.e. sources that belong to
+      --  whatever project file is found in the current directory).
+
+      Args.Append (+"--no-project");
+
       Args.Append (+Filename);
       if not Subprocesses.Run_Command
                (Command             => GNATformat.all,
