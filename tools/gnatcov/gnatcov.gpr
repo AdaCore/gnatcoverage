@@ -60,10 +60,13 @@ project Gnatcov is
       when others      => C_Support := "False";
    end case;
 
-   type Build_Mode_Type is ("dev", "prod");
+   type Build_Mode_Type is ("dev", "prod", "prof");
    Build_Mode : Build_Mode_Type := external ("BUILD_MODE", "dev");
-   --  Build mode. Default to "dev" to make it shorter for developers. The
-   --  other modes are for nightly scripts and are better made explicit anyway.
+   --  Build mode.
+   --
+   --  * "dev" (the default): checks enabled, no optimization, for development.
+   --  * "prod": checks disabled, very optimized, for production.
+   --  * "prof": checks disabled, slightly optimized, for profiling.
 
    --------------------------------------
    -- Settings computed from externals --
@@ -223,6 +226,11 @@ project Gnatcov is
 
          when "prod" =>
             Mode_Switches := ("-O2");
+            C_Mode_Switches := ("-DNDEBUG");
+            CPP_Mode_Switches := ("-DNDEBUG");
+
+         when "prof" =>
+            Mode_Switches := ("-Og", "-fno-omit-frame-pointer");
             C_Mode_Switches := ("-DNDEBUG");
             CPP_Mode_Switches := ("-DNDEBUG");
       end case;
