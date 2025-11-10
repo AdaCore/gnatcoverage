@@ -1417,15 +1417,11 @@ package body Instrument.Ada_Unit is
    --  to Start_Rewriting. If rewriting failed, raise a fatal error and print
    --  the corresponding error message.
 
-   procedure Remove_Warnings_And_Style_Checks_Pragmas
-     (Unit : Unit_Rewriting_Handle);
-   --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit
-
    procedure Write_To_File (Unit : Unit_Rewriting_Handle; Filename : String);
    --  Unparse Unit into the file at Filename (creating it if needed).
    --
-   --  Note that this calls Remove_Warnings_And_Style_Checks_Pragmas and
-   --  Put_Warnings_And_Style_Checks_Pragmas before unparsing the unit.
+   --  Note that this calls Put_Warnings_And_Style_Checks_Pragmas before
+   --  unparsing the unit.
 
    ----------------------------
    -- Source level rewriting --
@@ -5691,6 +5687,14 @@ package body Instrument.Ada_Unit is
                            UIC.Language_Version := Ada_1995;
                         end;
 
+                     --  Remove all Warnings/Style_Checks pragmas: it is not
+                     --  our goal to make instrumentation generate warning-free
+                     --  or well-formatted code.
+
+                     when Name_Warnings | Name_Style_Checks
+                     =>
+                        Remove_Child (Handle (N));
+
                      --  For all other pragmas, we generate decision entries
                      --  for any embedded expressions, and the pragma is
                      --  never disabled.
@@ -9491,81 +9495,26 @@ package body Instrument.Ada_Unit is
       Self.Unit := No_Analysis_Unit;
    end Finalize;
 
-   ----------------------------------------------
-   -- Remove_Warnings_And_Style_Checks_Pragmas --
-   ----------------------------------------------
-
-   procedure Remove_Warnings_And_Style_Checks_Pragmas
-     (Unit : Unit_Rewriting_Handle)
-   is
-
-      function Should_Remove (Node : Node_Rewriting_Handle) return Boolean;
-      --  Return whether Node is a pragma Warnings or Style_Checks
-
-      procedure Process (Node : Node_Rewriting_Handle);
-      --  Remove all pragma Warnings/Style_Checks statements from Node and its
-      --  children.
-
-      -------------------
-      -- Should_Remove --
-      -------------------
-
-      function Should_Remove (Node : Node_Rewriting_Handle) return Boolean is
-      begin
-         if Kind (Node) /= Ada_Pragma_Node then
-            return False;
-         end if;
-
-         declare
-            Symbol : constant Symbolization_Result :=
-              Canonicalize (Text (Child (Node, Member_Refs.Pragma_Node_F_Id)));
-         begin
-            return
-              (Symbol.Success
-               and then Symbol.Symbol in "warnings" | "style_checks");
-         end;
-      end Should_Remove;
-
-      -------------
-      -- Process --
-      -------------
-
-      procedure Process (Node : Node_Rewriting_Handle) is
-      begin
-         if Node = No_Node_Rewriting_Handle then
-            return;
-         end if;
-
-         --  Go through all children in reverse order so that we can remove
-         --  pragmas in one pass.
-
-         for Child of Children (Node) loop
-            if Child /= No_Node_Rewriting_Handle and then Should_Remove (Child)
-            then
-               Remove_Child (Child);
-            else
-               Process (Child);
-            end if;
-         end loop;
-      end Process;
-
-      --  Start of processing for Remove_Warnings_And_Style_Checks_Pragmas
-
-   begin
-      Process (Root (Unit));
-   end Remove_Warnings_And_Style_Checks_Pragmas;
-
    -------------------
    -- Write_To_File --
    -------------------
 
    procedure Write_To_File (Unit : Unit_Rewriting_Handle; Filename : String) is
-   begin
-      --  Automatically insert pragmas to disable style checks and warnings in
-      --  generated code: it is not our goal to make instrumentation generate
-      --  warning-free or well-formatted code.
+      use Ada.Streams.Stream_IO;
+      use Ada.Strings.Wide_Wide_Unbounded.Aux;
 
-      Remove_Warnings_And_Style_Checks_Pragmas (Unit);
+      Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
+
+      --  To avoid copying the potentially big string for sources on the
+      --  secondary stack (and reduce the amount of copies anyway), use the
+      --  internal GNAT API to retreive the internal string access and process
+      --  it by chunks.
+
+      Source_Access : Big_Wide_Wide_String_Access;
+      Length        : Natural;
+
+      Chunk_Size : constant := 4096;
+      Position   : Natural;
 
       --  Note: we need to open and write the instrumented source as a binary
       --  file, to be consistent with Libadalang which retrieves the tokens
@@ -9577,54 +9526,41 @@ package body Instrument.Ada_Unit is
       --  terminators (CRLF) were written in a text file, calls to fwrite
       --  would replace LF with CRLF, resulting in CRCRLF, which is incorrect.
 
-      declare
-         use Ada.Streams.Stream_IO;
-         use Ada.Strings.Wide_Wide_Unbounded.Aux;
+      File : Ada.Streams.Stream_IO.File_Type;
+      S    : Stream_Access;
+   begin
+      Ada.Streams.Stream_IO.Create (File, Out_File, Filename);
+      S := Stream (File);
 
-         Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
+      --  Automatically insert pragmas to disable style checks and warnings
+      --  in generated code: it is not our goal to make instrumentation
+      --  generate warning-free or well-formatted code.
 
-         --  To avoid copying the potentially big string for sources on the
-         --  secondary stack (and reduce the amount of copies anyway), use the
-         --  internal GNAT API to retreive the internal string access and
-         --  process it by chunks.
+      String'Write (S, "pragma Style_Checks (Off); pragma Warnings (Off);");
 
-         Source_Access : Big_Wide_Wide_String_Access;
-         Length        : Natural;
+      Get_Wide_Wide_String (Source, Source_Access, Length);
+      Position := Source_Access.all'First;
 
-         Chunk_Size : constant := 4096;
-         Position   : Natural;
+      while Position <= Length loop
+         declare
+            Chunk_First : constant Natural := Position;
+            Chunk_Last  : constant Natural :=
+              Natural'Min (Chunk_First + Chunk_Size - 1, Length);
 
-         File : Ada.Streams.Stream_IO.File_Type;
-         S    : Stream_Access;
-      begin
-         Ada.Streams.Stream_IO.Create (File, Out_File, Filename);
-         S := Stream (File);
-         String'Write (S, "pragma Style_Checks (Off); pragma Warnings (Off);");
+            Chunk         : Wide_Wide_String renames
+              Source_Access.all (Chunk_First .. Chunk_Last);
+            Encoded_Chunk : constant String :=
+              Ada.Characters.Conversions.To_String (Chunk);
+         begin
+            String'Write (S, Encoded_Chunk);
+            Position := Chunk_Last + 1;
+         end;
+      end loop;
 
-         Get_Wide_Wide_String (Source, Source_Access, Length);
-         Position := Source_Access.all'First;
-
-         while Position <= Length loop
-            declare
-               Chunk_First : constant Natural := Position;
-               Chunk_Last  : constant Natural :=
-                 Natural'Min (Chunk_First + Chunk_Size - 1, Length);
-
-               Chunk         : Wide_Wide_String renames
-                 Source_Access.all (Chunk_First .. Chunk_Last);
-               Encoded_Chunk : constant String :=
-                 Ada.Characters.Conversions.To_String (Chunk);
-            begin
-               String'Write (S, Encoded_Chunk);
-               Position := Chunk_Last + 1;
-            end;
-         end loop;
-
-         Close (File);
-         if Switches.Pretty_Print then
-            Text_Files.Run_GNATformat (Filename);
-         end if;
-      end;
+      Close (File);
+      if Switches.Pretty_Print then
+         Text_Files.Run_GNATformat (Filename);
+      end if;
    end Write_To_File;
 
    -------------------------------
