@@ -23,6 +23,7 @@ from SCOV.instr import (
     xcov_instrument,
 )
 from SUITE.cutils import contents_of, indent
+from SUITE.gprutils import GPRswitches
 from SUITE.tutils import (
     exename_for,
     exepath_to,
@@ -41,7 +42,7 @@ COV_RE = re.compile(r"^ *(\d+) (.):.*$")
 
 
 def build_and_run(
-    gprsw,
+    gprsw: GPRswitches,
     covlevel,
     mains,
     extra_coverage_args,
@@ -71,6 +72,7 @@ def build_and_run(
     exec_args=None,
     manual_prj_name: str | None = None,
     auto_config_args=True,
+    split_extracted: bool = False,
 ):
     """
     Prepare a project to run a coverage analysis on it.
@@ -148,6 +150,8 @@ def build_and_run(
         the project for which we want to consider traces.
     :param bool auto_config_args: If False, do not pass the --config argument
         to gprbuild and gnatcov invocations.
+    :param bool split_extracted: If True, pass --split-extracted-traces to
+        gnatcov extract-base64-traces
 
     :rtype: list[str]
     :return: Incomplete list of arguments to pass to `xcov` in order to run
@@ -194,7 +198,7 @@ def build_and_run(
 
     extra_args = extra_args or []
 
-    gpr_exe_dir = gpr_exe_dir or "."
+    gpr_exe_dir = gpr_exe_dir or gprsw.relocate_build_tree or "."
     gpr_obj_dir = gpr_obj_dir or os.path.join(gpr_exe_dir, "obj")
 
     trace_mode = trace_mode or thistest.options.trace_mode
@@ -406,7 +410,10 @@ def build_and_run(
                 # Here we're really supposed to have a trace in the output
                 # so we can be a tad stricter on the conversion outcome.
                 xcov_convert_base64(
-                    out_file, trace_file, register_failure=register_failure
+                    out_file,
+                    trace_file,
+                    register_failure=register_failure,
+                    split_extracted=split_extracted,
                 )
 
         # Expand the list of patterns

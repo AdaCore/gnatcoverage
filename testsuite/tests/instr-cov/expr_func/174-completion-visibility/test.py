@@ -19,7 +19,7 @@ tmp = Wdir("tmp_")
 
 build_run_and_coverage(
     gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["main.adb"])),
-    covlevel="stmt+uc_mcdc",
+    covlevel="stmt+mcdc",
     mains=["main"],
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
     trace_mode="src",
@@ -29,7 +29,7 @@ check_xcov_reports(
     "xcov",
     {
         "main.adb.xcov": {"+": {4, 5}},
-        "pkg.ads.xcov": {"+": {6, 12}},
+        "pkg.ads.xcov": {"+": {6}, "!": {12}},
         "pkg2.ads.xcov": {},
         "pkg2-child.ads.xcov": {"+": {2}},
     },

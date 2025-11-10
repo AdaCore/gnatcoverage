@@ -208,11 +208,17 @@ def show_timing(label: str) -> Iterable[None]:
 
 def main() -> None:
     args = parser.parse_args()
-    count = args.count
+    traces_count = args.count
     percentage = min(max(args.percentage, 0), 100)
-    if count <= 0:
+    if traces_count <= 0:
         print("No trace file to generate")
         sys.exit(1)
+
+    # In practice, generating a huge number of different trace files in not
+    # necessary to assess representative performance, and takes both a lot of
+    # time + disk space. Cap the number of generated traces, and create
+    # symlinks to simulate the fact that we have more traces.
+    unique_traces_count = min(traces_count, 100)
 
     random.seed(a=args.seed)
 
@@ -323,7 +329,7 @@ def main() -> None:
                 )
                 for u in units
             ]
-            for _ in range(count)
+            for _ in range(unique_traces_count)
         ]
 
     # Now, for each bit to set, actually flip it for at least one trace
@@ -342,10 +348,23 @@ def main() -> None:
                         buffers.mcdc[b.bit_id] = True
 
     with show_timing("Write trace files"):
-        for i, buffers in enumerate(traces):
-            write_trace_file(
-                os.path.join(output_dir, f"trace-{i}.srctrace"), units, buffers
+
+        def trace_filename(i: int) -> str:
+            return os.path.join(output_dir, f"trace-{i}.srctrace")
+
+        # Generate the unique traces
+        i = 0
+        for buffers in traces:
+            write_trace_file(trace_filename(i), units, buffers)
+            i += 1
+
+        # Create symlinks for the other traces
+        while i < traces_count:
+            os.symlink(
+                trace_filename(random.randrange(unique_traces_count)),
+                trace_filename(i),
             )
+            i += 1
 
 
 if __name__ == "__main__":

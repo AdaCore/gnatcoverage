@@ -42,7 +42,9 @@ tests_gpr = os.path.abspath(
 
 # Build directory is relocated in tmp
 build_run_and_coverage(
-    gprsw=GPRswitches(tests_gpr, units=["ops"], relocate_build_tree=True),
+    gprsw=GPRswitches(
+        tests_gpr, units=["ops"], relocate_build_tree=os.getcwd()
+    ),
     covlevel="stmt",
     mains=["test_inc"],
     extra_coverage_args=["--annotate=xcov", "--output-dir=out-instr"],
@@ -51,18 +53,11 @@ build_run_and_coverage(
 check_xcov_reports("out-instr", expected_reports, discard_empty=False)
 
 # Check if relative path for GPR works correctly
-build_run_and_coverage(
-    gprsw=GPRswitches(tests_gpr, units=["ops"], relocate_build_tree=True),
-    covlevel="stmt",
-    mains=["test_inc"],
-    extra_coverage_args=["--annotate=xcov", "--output-dir=out-instr"],
-)
-
-check_xcov_reports("out-instr", expected_reports, discard_empty=False)
-
 os.environ["GPR_PROJECT_PATH"] += os.pathsep + os.path.dirname(tests_gpr)
 build_run_and_coverage(
-    gprsw=GPRswitches(tests_gpr, units=["ops"], relocate_build_tree=True),
+    gprsw=GPRswitches(
+        tests_gpr, units=["ops"], relocate_build_tree=os.getcwd()
+    ),
     covlevel="stmt",
     mains=["test_inc"],
     extra_coverage_args=["--annotate=xcov", "--output-dir=out-instr"],

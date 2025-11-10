@@ -169,7 +169,7 @@ package Switches is
    --  Control the date display format (either in local time, or UTC time)
 
    Pretty_Print : Boolean := False;
-   --  If true, run "gnatpp" on the generate sources
+   --  If true, run "gnatformat" on the generate sources
 
    Allow_Mixing_Trace_Kinds : Boolean := False;
    --  If true, mixing trace kinds (binary and source) will not result in an
@@ -204,6 +204,10 @@ package Switches is
    --  When True, overwrite annotations of the same kind and same location, or
    --  of the same identifier if specified on the command line. Only relevant
    --  for the annotate command.
+
+   Split_Extracted_Traces : Boolean := False;
+   --  When True, each trace decoded by extract-base64-traces will be written
+   --  in separate files instead of overwritting them in the same file.
 
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
