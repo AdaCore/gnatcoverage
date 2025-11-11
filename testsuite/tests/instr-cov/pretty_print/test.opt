@@ -1,2 +1,1 @@
-5.04a1 DEAD GNAT-based gnatpp does not work on a source with missing dependencies
-7.1.2 DEAD GNAT-based gnatpp does not work on a source with missing dependencies
+ALL XFAIL Spurious gnatformat warnings (eng/ide/gnatformat#224)

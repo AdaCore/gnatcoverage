@@ -21,6 +21,7 @@ with Ada.Text_IO.Unbounded_IO; use Ada.Text_IO.Unbounded_IO;
 with GNAT.OS_Lib;
 
 with Outputs;
+with Subprocesses;
 
 package body Text_Files is
 
@@ -169,20 +170,31 @@ package body Text_Files is
    procedure Run_GNATformat (Filename : String) is
       use GNAT.OS_Lib;
 
-      Args       : constant Argument_List :=
-        (1 => Filename'Unrestricted_Access);
+      Args       : String_Vectors.Vector;
       GNATformat : String_Access := Locate_Exec_On_Path ("gnatformat");
-      Success    : Boolean;
    begin
       if GNATformat = null then
          Put_Line ("gnatformat not available");
          return;
       end if;
-      Spawn (GNATformat.all, Args, Success);
-      Free (GNATformat);
-      if not Success then
+
+      --  Pass --no-project to gnatformat so that it does not try to reformat
+      --  a source file in the "deafult project" (i.e. sources that belong to
+      --  whatever project file is found in the current directory).
+
+      Args.Append (+"--no-project");
+
+      Args.Append (+Filename);
+      if not Subprocesses.Run_Command
+               (Command             => GNATformat.all,
+                Arguments           => Args,
+                Origin_Command_Name => "gnatformat",
+                In_To_Null          => True,
+                Ignore_Error        => True)
+      then
          Outputs.Warn ("pretty-printing " & Filename & " failed!");
       end if;
+      Free (GNATformat);
    end Run_GNATformat;
 
    ----------------------

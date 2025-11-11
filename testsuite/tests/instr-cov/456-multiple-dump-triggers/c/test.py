@@ -8,7 +8,7 @@ from SCOV.instr import default_dump_channel
 from SUITE.context import thistest
 from SUITE.cutils import Wdir
 from SUITE.gprutils import GPRswitches
-from SUITE.tutils import gprfor
+from SUITE.tutils import exename_for, gprfor
 
 tmp = Wdir("tmp_")
 
@@ -29,13 +29,21 @@ cov_args = build_and_run(
     split_extracted=True,
 )
 
-# When traces are dumped with base 64, the trace names are generated
-# automatically by the testsuite
-(manual_trace, auto_trace) = (
-    ("gen-main.srctrace", "gen-main-1.srctrace")
-    if default_dump_channel() == "base64-stdout"
-    else ("manual_dump.srctrace", "main.srctrace")
-)
+if default_dump_channel() == "base64-stdout":
+    # The instrumented programs only print base64 traces on the standard
+    # output. It is build_and_run that runs the "gnatcov extract-base64-trace"
+    # command to generate separate traces, and that assigns them the "gen-main"
+    # name prefix.
+    manual_trace = "gen-main.srctrace"
+    auto_trace = "gen-main-1.srctrace"
+else:
+    # The name of the trace created by the manual indication is determined by
+    # the prefix given in the pragma: "manual_dump".
+    manual_trace = "manual_dump.srctrace"
+    # The name of the trace created by the "main-end" trigger uses the
+    # executable name as the prefix (including the potential file extention:
+    # ".exe" on Windows).
+    auto_trace = exename_for("main") + ".srctrace"
 
 thistest.comment("Check the manual report")
 xcov(
