@@ -33,12 +33,13 @@ package CFG_Dump is
    --  Format used to output the CFG. None stands for "output the Dot graph
    --  without passing it to dot(1)".
 
-   procedure Dump (Exec_Path         : String;
-                   Locations         : User_Locations;
-                   Output            : String_Access;
-                   Format            : Output_Format;
-                   SCO_Files_List    : String_Vectors.Vector;
-                   Traces_Files_List : Requested_Trace_Vectors.Vector;
-                   Keep_Edges        : Boolean);
+   procedure Dump
+     (Exec_Path         : String;
+      Locations         : User_Locations;
+      Output            : String_Access;
+      Format            : Output_Format;
+      SCO_Files_List    : String_Vectors.Vector;
+      Traces_Files_List : Requested_Trace_Vectors.Vector;
+      Keep_Edges        : Boolean);
 
 end CFG_Dump;

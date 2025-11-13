@@ -33,9 +33,10 @@ package Convert is
    HW_Trigger_Arg : String_Access;
    Input_Arg      : String_Access;
 
-   procedure Run_Convert (Exe_Name : String_Access;
-                          Output   : String_Access;
-                          Histmap  : String_Access;
-                          Tag      : String_Access);
+   procedure Run_Convert
+     (Exe_Name : String_Access;
+      Output   : String_Access;
+      Histmap  : String_Access;
+      Tag      : String_Access);
 
 end Convert;

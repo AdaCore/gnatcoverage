@@ -18,10 +18,10 @@
 
 with Interfaces; use Interfaces;
 
-with Binary_Files;   use Binary_Files;
-with Disassemblers;  use Disassemblers;
+with Binary_Files;  use Binary_Files;
+with Disassemblers; use Disassemblers;
 with Execs_Dbase;
-with Outputs;        use Outputs;
+with Outputs;       use Outputs;
 
 package body Instructions_Info is
 
@@ -29,10 +29,7 @@ package body Instructions_Info is
    -- Load_Elf --
    --------------
 
-   procedure Load_Elf
-     (This      : in out Insn_Info;
-      Exec_Path : String)
-   is
+   procedure Load_Elf (This : in out Insn_Info; Exec_Path : String) is
       Section_Iterator : Addresses_Iterator;
    begin
       begin
@@ -52,8 +49,9 @@ package body Instructions_Info is
 
          if This.Section.Section_Name.all = ".text" then
             Load_Section_Content (This.Exec.all, This.Section);
-            This.I_Ranges := Get_Insn_Set_Ranges
-              (This.Exec.all, This.Section.Section_Sec_Idx).all;
+            This.I_Ranges :=
+              Get_Insn_Set_Ranges
+                (This.Exec.all, This.Section.Section_Sec_Idx).all;
             return;
          end if;
       end loop;
@@ -64,17 +62,15 @@ package body Instructions_Info is
    -- Loaded --
    ------------
 
-   function  Loaded (This : Insn_Info) return Boolean is
-     (This.Exec /= null);
+   function Loaded (This : Insn_Info) return Boolean
+   is (This.Exec /= null);
 
    ---------------------------
    -- Get_Next_Insn_Address --
    ---------------------------
 
    function Get_Next_Insn_Address
-     (This : in out Insn_Info;
-      PC   : Pc_Type) return Pc_Type
-   is
+     (This : in out Insn_Info; PC : Pc_Type) return Pc_Type is
    begin
       return PC + This.Get_Insn_Length (PC);
    end Get_Next_Insn_Address;
@@ -84,11 +80,10 @@ package body Instructions_Info is
    ---------------------
 
    function Get_Insn_Length
-     (This : in out Insn_Info;
-      PC   : Pc_Type) return Pc_Type
+     (This : in out Insn_Info; PC : Pc_Type) return Pc_Type
    is
-      Disas    : access Disassembler'Class;
-      Code     : constant Binary_Content := This.Section.Section_Content;
+      Disas : access Disassembler'Class;
+      Code  : constant Binary_Content := This.Section.Section_Content;
    begin
 
       Disas := Disa_For_Machine (Machine, This.I_Ranges, This.Cache, PC);
@@ -101,8 +96,7 @@ package body Instructions_Info is
    ----------
 
    function Kind
-     (This : in out Insn_Info;
-      PC   : Pc_Type) return Instruction_Kind
+     (This : in out Insn_Info; PC : Pc_Type) return Instruction_Kind
    is
       Disas       : access Disassembler'Class;
       Code        : constant Binary_Content := This.Section.Section_Content;
@@ -116,13 +110,14 @@ package body Instructions_Info is
          return Unknown;
       end if;
       Disas := Disa_For_Machine (Machine, This.I_Ranges, This.Cache, PC);
-      Disas.Get_Insn_Properties (Slice (Code, PC, Code.Last),
-                                 Pc          => PC,
-                                 Branch      => Br,
-                                 Flag_Indir  => Flag_Indir,
-                                 Flag_Cond   => Flag_Cond,
-                                 Branch_Dest => Branch_Dest,
-                                 FT_Dest     => FT_Dest);
+      Disas.Get_Insn_Properties
+        (Slice (Code, PC, Code.Last),
+         Pc          => PC,
+         Branch      => Br,
+         Flag_Indir  => Flag_Indir,
+         Flag_Cond   => Flag_Cond,
+         Branch_Dest => Branch_Dest,
+         FT_Dest     => FT_Dest);
       if Br /= Br_None then
          return Branch;
       else
@@ -135,9 +130,7 @@ package body Instructions_Info is
    -----------------
 
    function Fallthrough_Address
-     (This           : in out Insn_Info;
-      Caller, Target : Pc_Type) return Boolean
-   is
+     (This : in out Insn_Info; Caller, Target : Pc_Type) return Boolean is
    begin
       return Get_Next_Insn_Address (This, Caller) = Target;
    end Fallthrough_Address;

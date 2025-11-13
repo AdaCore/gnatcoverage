@@ -16,10 +16,10 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Interfaces;   use Interfaces;
+with Interfaces; use Interfaces;
 
-with Disa_Common;  use Disa_Common;
-with Sparc_Descs;  use Sparc_Descs;
+with Disa_Common; use Disa_Common;
+with Sparc_Descs; use Sparc_Descs;
 
 package body Disa_Sparc is
 
@@ -36,7 +36,7 @@ package body Disa_Sparc is
    function Get_Field
      (Field : Sparc_Fields; V : Unsigned_32) return Unsigned_32
    is
-      F : constant Field_Type := Fields_Mask (Field);
+      F   : constant Field_Type := Fields_Mask (Field);
       Len : constant Natural := F.First - F.Last + 1;
    begin
       return Shift_Right (Shift_Left (V, 31 - F.First), 32 - Len);
@@ -49,7 +49,7 @@ package body Disa_Sparc is
    function Get_Field_Sext
      (Field : Sparc_Fields; V : Unsigned_32) return Unsigned_32
    is
-      F : constant Field_Type := Fields_Mask (Field);
+      F   : constant Field_Type := Fields_Mask (Field);
       Len : constant Natural := F.First - F.Last + 1;
    begin
       return Shift_Right_Arithmetic (Shift_Left (V, 31 - F.First), 32 - Len);
@@ -58,8 +58,8 @@ package body Disa_Sparc is
    ----------------
    -- Initialize --
    ----------------
-   overriding procedure Initialize
-     (Object : in out SPARC_Disassembler) is
+   overriding
+   procedure Initialize (Object : in out SPARC_Disassembler) is
    begin
       Object.Handle := Dis_Opcodes.Create_Sparc_Disassembler;
    end Initialize;
@@ -68,8 +68,8 @@ package body Disa_Sparc is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize
-     (Object : in out SPARC_Disassembler) is
+   overriding
+   procedure Finalize (Object : in out SPARC_Disassembler) is
    begin
       Dis_Opcodes.Delete_Disassembler (Object.Handle);
    end Finalize;
@@ -79,8 +79,7 @@ package body Disa_Sparc is
    ---------------------
 
    function Get_Insn_Length
-     (Self     : SPARC_Disassembler;
-      Insn_Bin : Binary_Content) return Positive
+     (Self : SPARC_Disassembler; Insn_Bin : Binary_Content) return Positive
    is
       pragma Unreferenced (Self);
       pragma Unreferenced (Insn_Bin);
@@ -125,21 +124,22 @@ package body Disa_Sparc is
       --  Make sure OUT parameters have a valid value
 
       Branch_Dest := (No_PC, No_PC);
-      FT_Dest     := (No_PC, No_PC);
-      Branch      := Br_None;
+      FT_Dest := (No_PC, No_PC);
+      Branch := Br_None;
 
       if Length (Insn_Bin) < 4 then
          raise Program_Error;
       end if;
 
-      W := To_Big_Endian_U32
-        (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3));
+      W :=
+        To_Big_Endian_U32
+          (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3));
 
       Flag_Cond := False;
       Flag_Indir := False;
 
       case Get_Field (F_Op, W) is
-         when 2#00# =>
+         when 2#00#  =>
             case Get_Field (F_Op2, W) is
                when 2#010# | 2#110# =>
                   --  Bicc / FBfcc
@@ -149,7 +149,7 @@ package body Disa_Sparc is
                   --  control transfer to the address
                   --  PC + (sign extnd (disp22) * 4)
                   Branch_Dest.Target :=
-                     Pc + Pc_Type (Get_Field_Sext (F_Disp22, W)) * 4;
+                    Pc + Pc_Type (Get_Field_Sext (F_Disp22, W)) * 4;
 
                   --  Sparc v7 spec:
                   --  If the branch is not taken, the annul bit field (a) is
@@ -193,11 +193,11 @@ package body Disa_Sparc is
                   Branch := Br_Jmp;
                   return;
 
-               when others =>
+               when others          =>
                   null;
             end case;
 
-         when 2#01# =>
+         when 2#01#  =>
             --  Call
             --  Sparc v7 spec:
             --  The CALL instruction causes a delayed, unconditionnal,
@@ -205,12 +205,12 @@ package body Disa_Sparc is
             --  [...], therefore the delay slot instruction following the CALL
             --  instruction is always executed.
             Branch_Dest.Target :=
-               Pc + Pc_Type (Get_Field_Sext (F_Disp30, W)) * 4;
+              Pc + Pc_Type (Get_Field_Sext (F_Disp30, W)) * 4;
             Branch_Dest.Delay_Slot := Pc + 4;
             Branch := Br_Call;
             return;
 
-         when 2#10# =>
+         when 2#10#  =>
             if Get_Field (F_Op3, W) = 16#38# then
                Branch_Dest.Delay_Slot := Pc + 4;
                --  jmpl.
@@ -248,9 +248,8 @@ package body Disa_Sparc is
    ----------------
 
    function Is_Padding
-     (Self     : SPARC_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean
+     (Self : SPARC_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean
    is
       pragma Unreferenced (Self, Insn_Bin, Pc);
    begin
@@ -262,9 +261,8 @@ package body Disa_Sparc is
    ------------
 
    function Is_Nop
-     (Self     : SPARC_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean
+     (Self : SPARC_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean
    is
       W : Unsigned_32;
    begin
@@ -272,8 +270,9 @@ package body Disa_Sparc is
          raise Program_Error;
       end if;
 
-      W := To_Big_Endian_U32
-        (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3));
+      W :=
+        To_Big_Endian_U32
+          (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3));
 
       return Get_Field (F_Op2, W) = 2#100#;
    end Is_Nop;

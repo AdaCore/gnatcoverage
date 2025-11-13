@@ -18,19 +18,18 @@
 
 package body Ppc_Descs is
 
-   function Get_Mask (Field : Ppc_Fields) return Unsigned_32
-   is
-      F : constant Field_Type := Fields_Mask (Field);
+   function Get_Mask (Field : Ppc_Fields) return Unsigned_32 is
+      F        : constant Field_Type := Fields_Mask (Field);
       pragma Assert (not (F.First = 0 and F.Last = 31));
       Nbr_Bits : constant Bit_Number := F.Last - F.First + 1;
    begin
       pragma Assert (F.First <= F.Last);
-      return ((2 ** Nbr_Bits) - 1) * (2 ** (31 - F.Last));
+      return ((2**Nbr_Bits) - 1) * (2**(31 - F.Last));
    end Get_Mask;
 
    function Get_Field (Field : Ppc_Fields; V : Unsigned_32) return Unsigned_32
    is
-      F : constant Field_Type := Fields_Mask (Field);
+      F   : constant Field_Type := Fields_Mask (Field);
       Len : constant Natural := F.Last - F.First + 1;
    begin
       --  First shift to the left to remove left bits.
@@ -38,10 +37,10 @@ package body Ppc_Descs is
       return Shift_Right (Shift_Left (V, F.First), 32 - Len);
    end Get_Field;
 
-   function Get_Signed_Field (Field : Ppc_Fields; V : Unsigned_32)
-                             return Unsigned_32
+   function Get_Signed_Field
+     (Field : Ppc_Fields; V : Unsigned_32) return Unsigned_32
    is
-      F : constant Field_Type := Fields_Mask (Field);
+      F   : constant Field_Type := Fields_Mask (Field);
       Len : constant Natural := F.Last - F.First + 1;
    begin
       return Shift_Right_Arithmetic (Shift_Left (V, F.First), 32 - Len);

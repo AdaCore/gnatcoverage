@@ -86,8 +86,7 @@ package body Project is
       Excluded_Routines_List,
       Ignored_Source_Files_List);
 
-   subtype List_Attribute is
-     Attribute range Units .. Switches;
+   subtype List_Attribute is Attribute range Units .. Switches;
    subtype String_Attribute is
      Attribute range Units_List .. Ignored_Source_Files_List;
 
@@ -97,8 +96,9 @@ package body Project is
 
    procedure Iterate_Source_Files
      (Root_Project : GPR2.Project.View.Object;
-      Process      : access procedure
-        (Source : GPR2.Build.Source.Object; Unit_Name : String);
+      Process      :
+        access procedure
+          (Source : GPR2.Build.Source.Object; Unit_Name : String);
       Recursive    : Boolean);
    --  Call Process on all source files in Root_Project (recursively
    --  considering source files of sub-projects if Recursive is true).
@@ -107,8 +107,7 @@ package body Project is
    --  this notion (Ada) and the base file name otherwise (i.e. for C sources).
 
    function SCO_Filename
-     (Source : GPR2.Build.Source.Object;
-      Kind   : GNATcov_Trace_File_Kind)
+     (Source : GPR2.Build.Source.Object; Kind : GNATcov_Trace_File_Kind)
       return GPR2.Path_Name.Object;
    --  Return the SCO absolute filename corresponding to the given source file
    --  and the given trace kind (.ali/.gli for binary traces, .sid for source
@@ -143,11 +142,12 @@ package body Project is
       --      argument is passed).
    end record;
 
-   package Project_Sets is new Ada.Containers.Indefinite_Ordered_Sets
-     (Element_type => String);
-   package Project_Maps is new Ada.Containers.Indefinite_Ordered_Maps
-     (Key_Type     => String,
-      Element_Type => Project_Info);
+   package Project_Sets is new
+     Ada.Containers.Indefinite_Ordered_Sets (Element_type => String);
+   package Project_Maps is new
+     Ada.Containers.Indefinite_Ordered_Maps
+       (Key_Type     => String,
+        Element_Type => Project_Info);
 
    Requested_Projects : Project_Sets.Set;
    --  Set of all projects passed to the Add_Project procedure
@@ -176,16 +176,17 @@ package body Project is
       --  Whether Warn_Missing_Info was called for this unit
    end record;
 
-   package Unit_Maps is new Ada.Containers.Indefinite_Ordered_Maps
-     (Key_Type     => Compilation_Unit,
-      Element_Type => Unit_Info);
+   package Unit_Maps is new
+     Ada.Containers.Indefinite_Ordered_Maps
+       (Key_Type     => Compilation_Unit,
+        Element_Type => Unit_Info);
 
    procedure Add_Unit
-     (Units          : in out Unit_Maps.Map;
-      Cur            : out Unit_Maps.Cursor;
-      Original_Name  : String;
-      Source         : GPR2.Build.Source.Object;
-      Language       : Some_Language);
+     (Units         : in out Unit_Maps.Map;
+      Cur           : out Unit_Maps.Cursor;
+      Original_Name : String;
+      Source        : GPR2.Build.Source.Object;
+      Language      : Some_Language);
    --  Add a Unit_Info entry to Units. The key for this new entry (which is a
    --  Compilation_Unit) is computed using the Original_Name, and Source's
    --  project name if the unit is of a file-based language.
@@ -203,7 +204,8 @@ package body Project is
    --  Look for the project in Prj_Tree whose name matches Prj_Name and return
    --  it. Emit a fatal error if there is no such project.
 
-   procedure Build_Prj_Map with Pre => Is_Project_Loaded;
+   procedure Build_Prj_Map
+   with Pre => Is_Project_Loaded;
    --  Add entries in Prj_Map for all relevant projects
 
    procedure Build_Unit_Map (Override_Units : String_Vectors.Vector);
@@ -239,8 +241,7 @@ package body Project is
    --  and fill Units with one entry per unit. Set Defined to False otherwise.
 
    function Enumerate_Mains
-     (Root_Project : GPR2.Project.View.Object;
-      Language     : Any_Language)
+     (Root_Project : GPR2.Project.View.Object; Language : Any_Language)
       return GPR2.Build.Compilation_Unit.Unit_Location_Vector;
    --  Return the list of all main source files recursively found in the
    --  Root_Project for the given Language, or for all languages if Language is
@@ -253,10 +254,11 @@ package body Project is
       Inner : GPR2.Reporter.Console.Object;
    end record;
 
-   overriding function Verbosity
-     (Self : Reporter) return GPR2.Reporter.Verbosity_Level;
+   overriding
+   function Verbosity (Self : Reporter) return GPR2.Reporter.Verbosity_Level;
 
-   overriding procedure Internal_Report
+   overriding
+   procedure Internal_Report
      (Self : in out Reporter; Message : GPR2.Message.Object);
 
    -------------------
@@ -265,9 +267,10 @@ package body Project is
 
    function Get_Unit_Name (Source : GPR2.Build.Source.Object) return String is
    begin
-      return (if Source.Has_Units
-              then To_Lower (String (First_Unit (Source).Name))
-              else String (Source.Path_Name.Simple_Name));
+      return
+        (if Source.Has_Units
+         then To_Lower (String (First_Unit (Source).Name))
+         else String (Source.Path_Name.Simple_Name));
    end Get_Unit_Name;
 
    -------------------------
@@ -284,6 +287,7 @@ package body Project is
       case U.Language is
          when Traces_Source.File_Based_Language =>
             U.Unit_Name := +String (Source.Path_Name.Value);
+
          when Traces_Source.Unit_Based_Language =>
             U.Unit_Name := +To_Lower (String (First_Unit (Source).Name));
       end case;
@@ -309,11 +313,11 @@ package body Project is
    --------------
 
    procedure Add_Unit
-     (Units          : in out Unit_Maps.Map;
-      Cur            : out Unit_Maps.Cursor;
-      Original_Name  : String;
-      Source         : GPR2.Build.Source.Object;
-      Language       : Some_Language)
+     (Units         : in out Unit_Maps.Map;
+      Cur           : out Unit_Maps.Cursor;
+      Original_Name : String;
+      Source        : GPR2.Build.Source.Object;
+      Language      : Some_Language)
    is
       Orig_Name : constant Unbounded_String :=
         +Fold_Filename_Casing (Original_Name);
@@ -331,11 +335,12 @@ package body Project is
 
       Units.Insert
         (Key      => Unit_Name,
-         New_Item => (Original_Name             => Orig_Name,
-                      Present_In_Projects       => False,
-                      Language                  => Language,
-                      LI_Seen                   => Is_Header,
-                      Warned_About_Missing_Info => Is_Header),
+         New_Item =>
+           (Original_Name             => Orig_Name,
+            Present_In_Projects       => False,
+            Language                  => Language,
+            LI_Seen                   => Is_Header,
+            Warned_About_Missing_Info => Is_Header),
          Position => Cur,
          Inserted => Ignored_Inserted);
    end Add_Unit;
@@ -351,8 +356,8 @@ package body Project is
       --  interest, so do not warn about them in this specific case.
 
       if Unit.Warned_About_Missing_Info
-         or else (Currently_Accepted_Trace_Kind = Binary_Trace_File
-                  and then Unit.Language = CPP_Language)
+        or else (Currently_Accepted_Trace_Kind = Binary_Trace_File
+                 and then Unit.Language = CPP_Language)
 
         --  Ignore units in a language that is ignored through the
         --  --restricted-to-languages switch.
@@ -370,8 +375,8 @@ package body Project is
          return;
       end if;
 
-      Warn ("no " & What_Info & " file found for unit "
-            & (+Unit.Original_Name));
+      Warn
+        ("no " & What_Info & " file found for unit " & (+Unit.Original_Name));
       Unit.Warned_About_Missing_Info := True;
    end Warn_Missing_Info;
 
@@ -381,8 +386,8 @@ package body Project is
 
    procedure Iterate_Projects
      (Root_Project             : GPR2.Project.View.Object;
-      Process                  : access procedure
-                                   (Prj : GPR2.Project.View.Object);
+      Process                  :
+        access procedure (Prj : GPR2.Project.View.Object);
       Recursive                : Boolean;
       Include_Extended         : Boolean := False;
       Include_Externally_Built : Boolean :=
@@ -432,9 +437,8 @@ package body Project is
             --  Skip externally built projects unless they are explicitly
             --  requested.
 
-            if (Include_Externally_Built
-                or else not P.Is_Externally_Built)
-               and then not Visited_Projects.Contains (Name)
+            if (Include_Externally_Built or else not P.Is_Externally_Built)
+              and then not Visited_Projects.Contains (Name)
             then
                Process (P);
                Visited_Projects.Insert (Name);
@@ -442,7 +446,7 @@ package body Project is
          end;
       end Process_Candidate;
 
-   --  Start of processing for Iterate_Projects
+      --  Start of processing for Iterate_Projects
 
    begin
       if Recursive then
@@ -460,8 +464,9 @@ package body Project is
 
    procedure Iterate_Source_Files
      (Root_Project : GPR2.Project.View.Object;
-      Process      : access procedure
-        (Source : GPR2.Build.Source.Object; Unit_Name : String);
+      Process      :
+        access procedure
+          (Source : GPR2.Build.Source.Object; Unit_Name : String);
       Recursive    : Boolean)
    is
       procedure Process_Project (Prj : GPR2.Project.View.Object);
@@ -480,26 +485,26 @@ package body Project is
             --  anything useful with them, and GPR2 pretends they do not belong
             --  to any unit.
 
-            if Source.Language in
-                 GPR2.Ada_Language | GPR2.C_Language | GPR2.CPP_Language
-               and then (not Source.Has_Units
-                         or else First_Unit (Source).Kind /= GPR2.S_No_Body)
+            if Source.Language
+               in GPR2.Ada_Language | GPR2.C_Language | GPR2.CPP_Language
+              and then (not Source.Has_Units
+                        or else First_Unit (Source).Kind /= GPR2.S_No_Body)
             then
                Process.all (Source, Get_Unit_Name (Source));
             end if;
          end loop;
       end Process_Project;
 
-   --  Start of processing for Iterate_Source_Files
+      --  Start of processing for Iterate_Source_Files
 
    begin
       --  Iterate on all the projects implied by our arguments: Root_Project,
       --  possibly with its closure.
 
       Iterate_Projects
-        (Root_Project     => Root_Project,
-         Process          => Process_Project'Access,
-         Recursive        => Recursive);
+        (Root_Project => Root_Project,
+         Process      => Process_Project'Access,
+         Recursive    => Recursive);
    end Iterate_Source_Files;
 
    -----------------
@@ -530,8 +535,7 @@ package body Project is
    ------------------
 
    function SCO_Filename
-     (Source : GPR2.Build.Source.Object;
-      Kind   : GNATcov_Trace_File_Kind)
+     (Source : GPR2.Build.Source.Object; Kind : GNATcov_Trace_File_Kind)
       return GPR2.Path_Name.Object
    is
       Is_Ada    : constant Boolean := Source.Language = GPR2.Ada_Language;
@@ -541,11 +545,9 @@ package body Project is
          else Source.Path_Name.Simple_Name);
       Extension : constant GPR2.Simple_Name :=
         (case Kind is
-         when Binary_Trace_File => (if Is_Ada
-                                    then ".ali"
-                                    else ".gli"),
-         when Source_Trace_File => ".sid");
-      Basename : constant GPR2.Simple_Name := Prefix & Extension;
+           when Binary_Trace_File => (if Is_Ada then ".ali" else ".gli"),
+           when Source_Trace_File => ".sid");
+      Basename  : constant GPR2.Simple_Name := Prefix & Extension;
 
       --  Depending on whether this unit belongs to a library project and
       --  whether it was installed, the SID file can be in the library
@@ -591,8 +593,8 @@ package body Project is
             --  explicitly ignore them.
 
             if To_Language_Or_All (Source.Language) /= All_Languages
-               and then (not Source.Has_Units
-                         or else First_Unit (Source).Kind /= GPR2.S_No_Body)
+              and then (not Source.Has_Units
+                        or else First_Unit (Source).Kind /= GPR2.S_No_Body)
             then
                declare
                   use Unit_Maps;
@@ -642,6 +644,7 @@ package body Project is
             case Kind is
                when Binary_Trace_File =>
                   Warn_Missing_Info ("ALI", UI);
+
                when Source_Trace_File =>
                   Warn_Missing_Info ("SID", UI);
             end case;
@@ -654,9 +657,10 @@ package body Project is
    -----------------------
 
    procedure Enumerate_Sources
-     (Callback  : access procedure
-        (Project : GPR2.Project.View.Object;
-         File    : GPR2.Build.Source.Object);
+     (Callback  :
+        access procedure
+          (Project : GPR2.Project.View.Object;
+           File    : GPR2.Build.Source.Object);
       Language  : Any_Language;
       Only_UOIs : Boolean := False)
    is
@@ -703,9 +707,7 @@ package body Project is
 
       for Prj_Info of Prj_Map loop
          Iterate_Source_Files
-           (Prj_Info.Project,
-            Process_Source_File'Access,
-            Recursive     => False);
+           (Prj_Info.Project, Process_Source_File'Access, Recursive => False);
       end loop;
    end Enumerate_Sources;
 
@@ -713,9 +715,8 @@ package body Project is
    -- Find_Source_File --
    ----------------------
 
-   function Find_Source_File (Simple_Name : String)
-                              return GNAT.Strings.String_Access
-   is
+   function Find_Source_File
+     (Simple_Name : String) return GNAT.Strings.String_Access is
    begin
       if not Prj_Tree.Is_Defined then
          return null;
@@ -726,9 +727,10 @@ package body Project is
            Prj_Tree.Root_Project.Visible_Source
              (GPR2.Simple_Name (Simple_Name));
       begin
-         return (if Result.Is_Defined
-                 then new String'(String (Result.Path_Name.Value))
-                 else null);
+         return
+           (if Result.Is_Defined
+            then new String'(String (Result.Path_Name.Value))
+            else null);
       end;
    end Find_Source_File;
 
@@ -746,9 +748,10 @@ package body Project is
 
          Name : constant String :=
            (if Has_Suffix (Lower_Basename, Project_File_Extension)
-            then Lower_Basename
-                   (Lower_Basename'First
-                    .. Lower_Basename'Last - Project_File_Extension'Length)
+            then
+              Lower_Basename
+                (Lower_Basename'First
+                 .. Lower_Basename'Last - Project_File_Extension'Length)
             else Lower_Basename);
       begin
          --  Look for a view in the project tree whose name matches the request
@@ -799,12 +802,12 @@ package body Project is
             Success);
          if not Success and then Prj_Map.Reference (Cur).Project /= Project
          then
-            raise Program_Error with
-               "homonym projects detected: " & String (Project.Name);
+            raise Program_Error
+              with "homonym projects detected: " & String (Project.Name);
          end if;
       end Process_Project;
 
-   --  Start of processing for Build_Prj_Map
+      --  Start of processing for Build_Prj_Map
 
    begin
       --  If no project was specified, consider the root one. If this root
@@ -890,13 +893,13 @@ package body Project is
             begin
                Units_From_Project
                  (Project,
-                  List_Attr       => Excluded_Units,
-                  List_File_Attr  => Excluded_Units_List,
-                  Units           => Exc_Units,
-                  Defined         => Exc_Units_Defined);
+                  List_Attr      => Excluded_Units,
+                  List_File_Attr => Excluded_Units_List,
+                  Units          => Exc_Units,
+                  Defined        => Exc_Units_Defined);
 
                Has_Unit_Selection_Attributes :=
-                  Inc_Units_Defined or else Exc_Units_Defined;
+                 Inc_Units_Defined or else Exc_Units_Defined;
             end;
          end if;
 
@@ -929,10 +932,10 @@ package body Project is
                   end if;
 
                   if not Units_Specified
-                     or else (Has_Matcher
-                              and then GNAT.Regexp.Match
-                                (To_Lower (Unit_Name),
-                                 Units_Specified_Matcher))
+                    or else (Has_Matcher
+                             and then GNAT.Regexp.Match
+                                        (To_Lower (Unit_Name),
+                                         Units_Specified_Matcher))
                   then
                      Add_Unit
                        (Inc_Units,
@@ -982,7 +985,7 @@ package body Project is
                      and then Has_Unit_Selection_Attributes));
       end Process_Project;
 
-   --  Start of processing for Build_Unit_Map
+      --  Start of processing for Build_Unit_Map
 
    begin
       --  First, lower case all the units / patterns specified on the command
@@ -996,10 +999,11 @@ package body Project is
       --  Regardless of the current platform, the casing of unit names is not
       --  significant: the Foo unit is the same as the foo unit.
 
-      Create_Matcher (Pattern_List     => Unit_Patterns,
-                      Matcher          => Units_Specified_Matcher,
-                      Has_Matcher      => Has_Matcher,
-                      Case_Insensitive => True);
+      Create_Matcher
+        (Pattern_List     => Unit_Patterns,
+         Matcher          => Units_Specified_Matcher,
+         Has_Matcher      => Has_Matcher,
+         Case_Insensitive => True);
 
       --  Now go through all selected projects to find units of interest
 
@@ -1025,27 +1029,30 @@ package body Project is
             -- Add_To_Unit_Presents --
             --------------------------
 
-            procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor)
-            is
+            procedure Add_To_Unit_Presents (C : Unit_Maps.Cursor) is
                P_Unit    : constant Compilation_Unit := Unit_Maps.Key (C);
                Unit_Name : constant Unbounded_String :=
                  (case P_Unit.Language is
-                  when Traces_Source.File_Based_Language =>
-                    +Ada.Directories.Simple_Name (+P_Unit.Unit_Name),
-                  when Traces_Source.Unit_Based_Language => P_Unit.Unit_Name);
+                    when Traces_Source.File_Based_Language =>
+                      +Ada.Directories.Simple_Name (+P_Unit.Unit_Name),
+                    when Traces_Source.Unit_Based_Language =>
+                      P_Unit.Unit_Name);
             begin
                Units_Present.Append (Unit_Name);
             end Add_To_Unit_Presents;
 
          begin
             Unit_Map.Iterate (Add_To_Unit_Presents'Access);
-            Match_Pattern_List (Patterns_List        => Unit_Patterns,
-                                Strings_List         => Units_Present,
-                                Patterns_Not_Covered =>
-                                  Patterns_Not_Covered);
+            Match_Pattern_List
+              (Patterns_List        => Unit_Patterns,
+               Strings_List         => Units_Present,
+               Patterns_Not_Covered => Patterns_Not_Covered);
             for Pattern of Patterns_Not_Covered loop
-               Warn ("no unit " & (+Pattern) & " (from --units) in the"
-                     & " projects of interest");
+               Warn
+                 ("no unit "
+                  & (+Pattern)
+                  & " (from --units) in the"
+                  & " projects of interest");
             end loop;
          end;
       end if;
@@ -1063,8 +1070,10 @@ package body Project is
       if not Standard.Switches.Recursive_Projects then
          for Prj_Info of Prj_Map loop
             if not Prj_Info.Has_Units_Of_Interest then
-               Warn ("project " & String (Prj_Info.Project.Name)
-                     & " provides no unit of interest");
+               Warn
+                 ("project "
+                  & String (Prj_Info.Project.Name)
+                  & " provides no unit of interest");
             end if;
          end loop;
       end if;
@@ -1124,9 +1133,9 @@ package body Project is
          begin
             Read_List_From_File
               (+Full_Name
-                 (Create_From_Base
-                    (Base_Name => +A.Value.Text,
-                     Base_Dir  => +String (Prj.Dir_Name.Value))),
+                  (Create_From_Base
+                     (Base_Name => +A.Value.Text,
+                      Base_Dir  => +String (Prj.Dir_Name.Value))),
                Process_Item_Wrapper'Access);
          end;
       end if;
@@ -1197,7 +1206,7 @@ package body Project is
          end if;
       end Process_Source_File;
 
-   --  Start of processing for Units_From_Project
+      --  Start of processing for Units_From_Project
 
    begin
       --  Get a list of patterns if List_Attr / List_File_Attr is defined, and
@@ -1221,8 +1230,13 @@ package body Project is
 
       for Pattern of Patterns_Not_Covered loop
          Warn
-           ("no unit " & (+Pattern) & " in project " & String (Prj.Name)
-            & " (" & (+Attr_For_Pattern.Element (Pattern)) & " attribute)");
+           ("no unit "
+            & (+Pattern)
+            & " in project "
+            & String (Prj.Name)
+            & " ("
+            & (+Attr_For_Pattern.Element (Pattern))
+            & " attribute)");
       end loop;
    end Units_From_Project;
 
@@ -1296,7 +1310,7 @@ package body Project is
       else
          declare
             GPR_Tool_Env_Var : GNAT.Strings.String_Access :=
-               GNAT.OS_Lib.Getenv ("GPR_TOOL");
+              GNAT.OS_Lib.Getenv ("GPR_TOOL");
             GPR_Tool_Value   : constant String :=
               (if GPR_Tool_Env_Var.all = ""
                then "gnatcoverage"
@@ -1308,12 +1322,12 @@ package body Project is
       end if;
 
       if not Prj_Tree.Load
-        (Opts,
-         With_Runtime         => True,
-         Reporter             => Create_Reporter,
-         Artifacts_Info_Level => GPR2.Sources_Units,
-         Absent_Dir_Error     => GPR2.No_Error,
-         Check_Drivers        => False)
+               (Opts,
+                With_Runtime         => True,
+                Reporter             => Create_Reporter,
+                Artifacts_Info_Level => GPR2.Sources_Units,
+                Absent_Dir_Error     => GPR2.No_Error,
+                Check_Drivers        => False)
       then
          Fatal_Error ("Could not load the project file, aborting.");
       end if;
@@ -1333,7 +1347,7 @@ package body Project is
       end if;
 
       if not Externally_Built_Projects_Processing_Enabled
-         and then Prj_Tree.Root_Project.Is_Externally_Built
+        and then Prj_Tree.Root_Project.Is_Externally_Built
       then
          Fatal_Error
            ("Root project is marked as externally built, while externally"
@@ -1388,9 +1402,8 @@ package body Project is
       Execs : constant GPR2.Path_Name.Set.Object :=
         Prj_Tree.Root_Project.Executables;
    begin
-      return (if Execs.Length = 1
-              then String (Execs.First_Element.Value)
-              else "");
+      return
+        (if Execs.Length = 1 then String (Execs.First_Element.Value) else "");
    end Get_Single_Main_Executable;
 
    ---------------------
@@ -1398,8 +1411,7 @@ package body Project is
    ---------------------
 
    function Enumerate_Mains
-     (Root_Project : GPR2.Project.View.Object;
-      Language     : Any_Language)
+     (Root_Project : GPR2.Project.View.Object; Language : Any_Language)
       return GPR2.Build.Compilation_Unit.Unit_Location_Vector
    is
       Result : GPR2.Build.Compilation_Unit.Unit_Location_Vector;
@@ -1415,16 +1427,16 @@ package body Project is
       begin
          for Main of Project.Mains loop
             if Language = All_Languages
-               or else Language
-                       = To_Language_Or_All
-                           (Project.Source (Main.Source.Simple_Name).Language)
+              or else Language
+                      = To_Language_Or_All
+                          (Project.Source (Main.Source.Simple_Name).Language)
             then
                Result.Append (Main);
             end if;
          end loop;
       end Enumerate_Mains;
 
-   --  Start of processing for Enumerate_Mains
+      --  Start of processing for Enumerate_Mains
 
    begin
       Iterate_Projects
@@ -1472,9 +1484,10 @@ package body Project is
       Attr : GPR2.Project.Attribute.Object;
    begin
       return Result : String_Vectors.Vector do
-         Attr := Actual_Prj.Attribute
-                   (Name  => +Switches,
-                    Index => GPR2.Project.Attribute_Index.Create (Op));
+         Attr :=
+           Actual_Prj.Attribute
+             (Name  => +Switches,
+              Index => GPR2.Project.Attribute_Index.Create (Op));
          if Attr.Is_Defined then
             for S of Attr.Values loop
                Result.Append (+String (S.Text));
@@ -1528,9 +1541,8 @@ package body Project is
    function Project_Name (Full_Name : String) return String is
       Source : constant GPR2.Build.Source.Object := Lookup_Source (Full_Name);
    begin
-      return (if Source.Is_Defined
-              then String (Source.Owning_View.Name)
-              else "");
+      return
+        (if Source.Is_Defined then String (Source.Owning_View.Name) else "");
    end Project_Name;
 
    --------------
@@ -1540,9 +1552,10 @@ package body Project is
    function Language (Full_Name : String) return Any_Language is
       Source : constant GPR2.Build.Source.Object := Lookup_Source (Full_Name);
    begin
-      return (if Source.Is_Defined
-              then To_Language_Or_All (Source.Language)
-              else All_Languages);
+      return
+        (if Source.Is_Defined
+         then To_Language_Or_All (Source.Language)
+         else All_Languages);
    end Language;
 
    ------------
@@ -1616,7 +1629,7 @@ package body Project is
          Process.all (Source_File);
       end Process_Wrapper;
 
-   --  Start of processing for Enumerate_Ignored_Source_Files
+      --  Start of processing for Enumerate_Ignored_Source_Files
 
    begin
       for Prj_Info of Prj_Map loop
@@ -1631,8 +1644,7 @@ package body Project is
    -- Runtime_Dirs --
    ------------------
 
-   function Runtime_Dirs return String_Vectors.Vector
-   is
+   function Runtime_Dirs return String_Vectors.Vector is
       Runtime : constant GPR2.Project.View.Object := Prj_Tree.Runtime_Project;
    begin
       return Result : String_Vectors.Vector do
@@ -1667,10 +1679,10 @@ package body Project is
       --  ??? Simplify once eng/gpr/gpr-issues#494 is implemented
 
       case Part is
-         when GPR2.S_Spec =>
+         when GPR2.S_Spec     =>
             return Project.Spec_Suffix (L).Value.Text;
 
-         when GPR2.S_Body =>
+         when GPR2.S_Body     =>
             return Project.Body_Suffix (L).Value.Text;
 
          when GPR2.S_Separate =>
@@ -1682,8 +1694,7 @@ package body Project is
    -- Lookup_Source --
    -------------------
 
-   function Lookup_Source
-     (Full_Name : String) return GPR2.Build.Source.Object
+   function Lookup_Source (Full_Name : String) return GPR2.Build.Source.Object
    is
       --  Full_Name can come from debug info or from another OS, so it may be
       --  an invalid filename for the current host OS (for instance
@@ -1724,8 +1735,8 @@ package body Project is
    -- Verbosity --
    ---------------
 
-   overriding function Verbosity
-     (Self : Reporter) return GPR2.Reporter.Verbosity_Level is
+   overriding
+   function Verbosity (Self : Reporter) return GPR2.Reporter.Verbosity_Level is
    begin
       return Self.Inner.Verbosity;
    end Verbosity;
@@ -1734,7 +1745,8 @@ package body Project is
    -- Internal_Report --
    ---------------------
 
-   overriding procedure Internal_Report
+   overriding
+   procedure Internal_Report
      (Self : in out Reporter; Message : GPR2.Message.Object) is
    begin
       if Message.Level in GPR2.Message.Warning | GPR2.Message.Error then
@@ -1749,8 +1761,7 @@ package body Project is
 
    function Create_Reporter return GPR2.Reporter.Object'Class is
       Result : constant Reporter :=
-        (GPR2.Reporter.Object with
-         Inner => GPR2.Reporter.Console.Create);
+        (GPR2.Reporter.Object with Inner => GPR2.Reporter.Console.Create);
    begin
       return Result;
    end Create_Reporter;
@@ -1792,9 +1803,9 @@ package body Project is
             --  project matter.
 
             if not View.Is_Extended
-               and then (With_Externally_Built
-                         or else not View.Is_Externally_Built)
-               and then (With_Runtime or else not View.Is_Runtime)
+              and then (With_Externally_Built
+                        or else not View.Is_Externally_Built)
+              and then (With_Runtime or else not View.Is_Runtime)
             then
                Result.Append (Source);
             end if;
@@ -1810,9 +1821,10 @@ package body Project is
    function First_Unit
      (Source : GPR2.Build.Source.Object) return GPR2.Build.Unit_Info.Object is
    begin
-      return (if Source.Has_Single_Unit
-              then Source.Unit
-              else Source.Unit (Index => 1));
+      return
+        (if Source.Has_Single_Unit
+         then Source.Unit
+         else Source.Unit (Index => 1));
    end First_Unit;
 
    --  Register the Coverage package and its attributes to GPR2

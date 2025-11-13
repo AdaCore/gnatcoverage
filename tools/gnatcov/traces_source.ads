@@ -67,7 +67,7 @@ package Traces_Source is
    Little_Endian : constant Any_Endianity := 0;
    Big_Endian    : constant Any_Endianity := 1;
    subtype Supported_Endianity is
-      Any_Endianity range Little_Endian ..  Big_Endian;
+     Any_Endianity range Little_Endian .. Big_Endian;
    --  Endianity to decode multi-byte scalars
 
    function Native_Endianity return Supported_Endianity;
@@ -82,23 +82,21 @@ package Traces_Source is
    Unit_Spec           : constant Any_Unit_Part := 2;
    Unit_Separate       : constant Any_Unit_Part := 3;
    subtype All_Unit_Part is
-      Any_Unit_Part range Not_Applicable_Part .. Unit_Separate;
+     Any_Unit_Part range Not_Applicable_Part .. Unit_Separate;
    subtype Supported_Unit_Part is
-      Any_Unit_Part range Unit_Body .. Unit_Separate;
+     Any_Unit_Part range Unit_Body .. Unit_Separate;
    --  Describe the kind of unit referenced by a trace entry
 
-   function "+"
-     (Part : Supported_Unit_Part) return GPR2.Valid_Unit_Kind
+   function "+" (Part : Supported_Unit_Part) return GPR2.Valid_Unit_Kind
    is (case Part is
-       when Unit_Body     => GPR2.S_Body,
-       when Unit_Spec     => GPR2.S_Spec,
-       when Unit_Separate => GPR2.S_Separate);
-   function "+"
-     (Part : GPR2.Valid_Unit_Kind) return Supported_Unit_Part
+         when Unit_Body     => GPR2.S_Body,
+         when Unit_Spec     => GPR2.S_Spec,
+         when Unit_Separate => GPR2.S_Separate);
+   function "+" (Part : GPR2.Valid_Unit_Kind) return Supported_Unit_Part
    is (case Part is
-       when GPR2.S_Body     => Unit_Body,
-       when GPR2.S_Spec     => Unit_Spec,
-       when GPR2.S_Separate => Unit_Separate);
+         when GPR2.S_Body     => Unit_Body,
+         when GPR2.S_Spec     => Unit_Spec,
+         when GPR2.S_Separate => Unit_Separate);
 
    type Any_Bit_Count is new Unsigned_32;
    --  Number of bits contained in a coverage buffer
@@ -115,7 +113,7 @@ package Traces_Source is
    -----------------------
 
    Trace_File_Magic : constant String (1 .. 32) :=
-      "GNATcov source trace file" & (26 .. 32 => ASCII.NUL);
+     "GNATcov source trace file" & (26 .. 32 => ASCII.NUL);
    --  Expected value of the Trace_File_Header.Magic field (32 bytes)
 
    type Trace_File_Header is record
@@ -130,13 +128,14 @@ package Traces_Source is
       --  multiple of 8 bytes. Must be zero.
    end record;
 
-   for Trace_File_Header use record
-      Magic          at  0 range 0 .. 32 * 8 - 1;
-      Format_Version at 32 range 0 .. 31;
-      Alignment      at 36 range 0 .. 7;
-      Endianity      at 37 range 0 .. 7;
-      Padding        at 38 range 0 .. 15;
-   end record;
+   for Trace_File_Header use
+     record
+       Magic at 0 range 0 .. 32 * 8 - 1;
+       Format_Version at 32 range 0 .. 31;
+       Alignment at 36 range 0 .. 7;
+       Endianity at 37 range 0 .. 7;
+       Padding at 38 range 0 .. 15;
+     end record;
 
    for Trace_File_Header'Size use 40 * 8;
 
@@ -165,7 +164,7 @@ package Traces_Source is
    --  "tag".
 
    subtype Supported_Info_Kind is
-      Any_Info_Kind range Info_End ..  Info_User_Data;
+     Any_Info_Kind range Info_End .. Info_User_Data;
 
    type Trace_Info_Header is record
       Kind : Any_Info_Kind;
@@ -175,10 +174,11 @@ package Traces_Source is
       --  Length of the data associated to this entry
    end record;
 
-   for Trace_Info_Header use record
-      Kind   at 0 range 0 .. 31;
-      Length at 4 range 0 .. 31;
-   end record;
+   for Trace_Info_Header use
+     record
+       Kind at 0 range 0 .. 31;
+       Length at 4 range 0 .. 31;
+     end record;
 
    for Trace_Info_Header'Size use 8 * 8;
 
@@ -213,7 +213,7 @@ package Traces_Source is
    --    significant bit maps to bit 8 * Y + 7.
 
    subtype Supported_Bit_Buffer_Encoding is
-      Any_Bit_Buffer_Encoding range LSB_First_Bytes .. LSB_First_Bytes;
+     Any_Bit_Buffer_Encoding range LSB_First_Bytes .. LSB_First_Bytes;
 
    type Fingerprint_Type is new String (1 .. 20);
 
@@ -258,19 +258,20 @@ package Traces_Source is
       --  multiple of 8 bytes. Must be zero.
    end record;
 
-   for Trace_Entry_Header use record
-      Unit_Name_Length        at  0 range 0 .. 31;
-      Statement_Bit_Count     at  4 range 0 .. 31;
-      Decision_Bit_Count      at  8 range 0 .. 31;
-      MCDC_Bit_Count          at 12 range 0 .. 31;
-      Language_Kind           at 16 range 0 .. 7;
-      Unit_Part               at 17 range 0 .. 7;
-      Bit_Buffer_Encoding     at 18 range 0 .. 7;
-      Fingerprint             at 19 range 0 .. 20 * 8 - 1;
-      Bit_Maps_Fingerprint    at 39 range 0 .. 20 * 8 - 1;
-      Annotations_Fingerprint at 59 range 0 .. 20 * 8 - 1;
-      Padding                 at 79 range 0 .. 1 * 8 - 1;
-   end record;
+   for Trace_Entry_Header use
+     record
+       Unit_Name_Length at 0 range 0 .. 31;
+       Statement_Bit_Count at 4 range 0 .. 31;
+       Decision_Bit_Count at 8 range 0 .. 31;
+       MCDC_Bit_Count at 12 range 0 .. 31;
+       Language_Kind at 16 range 0 .. 7;
+       Unit_Part at 17 range 0 .. 7;
+       Bit_Buffer_Encoding at 18 range 0 .. 7;
+       Fingerprint at 19 range 0 .. 20 * 8 - 1;
+       Bit_Maps_Fingerprint at 39 range 0 .. 20 * 8 - 1;
+       Annotations_Fingerprint at 59 range 0 .. 20 * 8 - 1;
+       Padding at 79 range 0 .. 1 * 8 - 1;
+     end record;
 
    for Trace_Entry_Header'Size use 80 * 8;
 

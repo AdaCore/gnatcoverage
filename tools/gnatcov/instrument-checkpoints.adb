@@ -16,9 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Diagnostics;    use Diagnostics;
-with Files_Table;    use Files_Table;
-with Outputs;        use Outputs;
+with Diagnostics; use Diagnostics;
+with Files_Table; use Files_Table;
+with Outputs;     use Outputs;
 
 package body Instrument.Checkpoints is
 
@@ -78,8 +78,9 @@ package body Instrument.Checkpoints is
                      Instrumented_Unit_CUs.Insert (CP_Unit_Name, New_CU_Id);
 
                   elsif Existing_CU_Id /= New_CU_Id then
-                     Warn ("inconsistent information for instrumented unit "
-                           & Image (CP_Unit_Name));
+                     Warn
+                       ("inconsistent information for instrumented unit "
+                        & Image (CP_Unit_Name));
                   end if;
                else
                   Report
@@ -122,10 +123,12 @@ package body Instrument.Checkpoints is
                   --  loaded one are different.
 
                   elsif CP_PP_Cmds.Reference (CP_Cur)
-                        /= PP_Cmds.Reference (Cur)
+                    /= PP_Cmds.Reference (Cur)
                   then
-                     Warn ("inconsistent preprocessing information for"
-                           & " instrumented file " & Get_Full_Name (SFI));
+                     Warn
+                       ("inconsistent preprocessing information for"
+                        & " instrumented file "
+                        & Get_Full_Name (SFI));
                   end if;
                end;
             end if;

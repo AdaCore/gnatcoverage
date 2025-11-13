@@ -43,13 +43,11 @@ private package Instrument.Ada_Unit.Rewriting_Utils is
    --  Change "Node" into "Prefix(Node)"
 
    procedure Wrap_In_Parentheses
-     (RH     : Rewriting_Handle;
-      Node   : in out Node_Rewriting_Handle);
+     (RH : Rewriting_Handle; Node : in out Node_Rewriting_Handle);
    --  Change "Node" into "(Node)"
 
    procedure Wrap_In_If_Expr
-     (RH     : Rewriting_Handle;
-      Node   : in out Node_Rewriting_Handle);
+     (RH : Rewriting_Handle; Node : in out Node_Rewriting_Handle);
    --  Change "Node" into "(if Node then True else False)"
 
 end Instrument.Ada_Unit.Rewriting_Utils;

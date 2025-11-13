@@ -23,7 +23,7 @@
 --  for one run; this Level will be unique and will not change after
 --  it has been initialized.
 
-with Ada.Calendar;          use Ada.Calendar;
+with Ada.Calendar; use Ada.Calendar;
 with Ada.Containers.Ordered_Sets;
 
 with Coverage_Options; use Coverage_Options;
@@ -33,18 +33,18 @@ package Coverage is
 
    use all type Unbounded_String;
 
-   function Image (Level : Coverage_Level) return String is
-     (case Level is
-      when Insn     => "Insn",
-      when Branch   => "Branch",
-      when Stmt     => "Stmt",
-      when Decision => "Decision",
-      when MCDC     => "MCDC",
-      when UC_MCDC  => "UC_MCDC",
-      when ATC      => "ATC",
-      when ATCC     => "ATCC",
-      when Fun_Call => "Function and call",
-      when GExpr    => "Guarded expression");
+   function Image (Level : Coverage_Level) return String
+   is (case Level is
+         when Insn     => "Insn",
+         when Branch   => "Branch",
+         when Stmt     => "Stmt",
+         when Decision => "Decision",
+         when MCDC     => "MCDC",
+         when UC_MCDC  => "UC_MCDC",
+         when ATC      => "ATC",
+         when ATCC     => "ATCC",
+         when Fun_Call => "Function and call",
+         when GExpr    => "Guarded expression");
    --  Case sensitive version of Coverage_Level'Image
 
    procedure Set_Coverage_Levels (Opt : String);
@@ -92,8 +92,8 @@ package Coverage is
    --  checkpoint. Code that needs to test the enabled levels should instead
    --  use the above *_Enabled functions.
 
-   package Levels_Sets is
-     new Ada.Containers.Ordered_Sets (Element_Type => Coverage_Level);
+   package Levels_Sets is new
+     Ada.Containers.Ordered_Sets (Element_Type => Coverage_Level);
 
    function Source_Levels_Enabled return Levels_Sets.Set;
    --  Return the set of source coverage levels enabled. Differs from the above

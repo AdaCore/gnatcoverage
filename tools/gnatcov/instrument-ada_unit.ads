@@ -40,62 +40,67 @@ with Switches;
 
 package Instrument.Ada_Unit is
 
-   type Ada_Instrumenter_Type is new Language_Instrumenter with
-      record
-         Provider : Instrument.Ada_Unit_Provider.Provider_Type;
-         --  Unit provider to create an analysis context (Context member
-         --  below). We use a custom provider there, to be able to turn
-         --  a filename to our Compilation_Unit_Name internal representation,
-         --  and to not depend on project files in the unit instrumentation
-         --  process.
+   type Ada_Instrumenter_Type is new Language_Instrumenter with record
+      Provider : Instrument.Ada_Unit_Provider.Provider_Type;
+      --  Unit provider to create an analysis context (Context member
+      --  below). We use a custom provider there, to be able to turn
+      --  a filename to our Compilation_Unit_Name internal representation,
+      --  and to not depend on project files in the unit instrumentation
+      --  process.
 
-         File_Reader : Langkit_Support.File_Readers.File_Reader_Reference;
-         --  File reader to preprocess source files when needed
+      File_Reader : Langkit_Support.File_Readers.File_Reader_Reference;
+      --  File reader to preprocess source files when needed
 
-         Event_Handler : Libadalang.Analysis.Event_Handler_Reference;
-         --  Event handler to warn about missing source files
+      Event_Handler : Libadalang.Analysis.Event_Handler_Reference;
+      --  Event handler to warn about missing source files
 
-         Config_Pragmas_Mapping : Unbounded_String;
-         --  Filename for a JSON description file of a configuration pragmas
-         --  mapping: see the Save_Config_Pragmas_Mapping and
-         --  Load_Config_Pragmas_Mapping procedures below.
+      Config_Pragmas_Mapping : Unbounded_String;
+      --  Filename for a JSON description file of a configuration pragmas
+      --  mapping: see the Save_Config_Pragmas_Mapping and
+      --  Load_Config_Pragmas_Mapping procedures below.
 
-         Context : Libadalang.Analysis.Analysis_Context;
-         --  Libadalang context to load all units to rewrite
+      Context : Libadalang.Analysis.Analysis_Context;
+      --  Libadalang context to load all units to rewrite
 
-         Get_From_File_Count : Natural;
-         --  Count how many times we called Context.Get_From_File. See the
-         --  Max_Get_From_File_Count constant.
+      Get_From_File_Count : Natural;
+      --  Count how many times we called Context.Get_From_File. See the
+      --  Max_Get_From_File_Count constant.
 
-      end record;
+   end record;
    --  Instrumentation primitives for Ada
 
-   overriding function Language
+   overriding
+   function Language
      (Self : Ada_Instrumenter_Type) return Switches.Src_Supported_Language
    is (Switches.Ada_Language);
 
-   overriding procedure Instrument_Unit
+   overriding
+   procedure Instrument_Unit
      (Self              : in out Ada_Instrumenter_Type;
       Unit_Name         : String;
       Prj               : Prj_Desc;
       Files_Of_Interest : File_Sets.Set);
 
-   overriding procedure Auto_Dump_Buffers_In_Main
-     (Self          : in out Ada_Instrumenter_Type;
-      Filename      : String;
-      Dump_Config   : Any_Dump_Config;
-      Prj           : Prj_Desc);
+   overriding
+   procedure Auto_Dump_Buffers_In_Main
+     (Self        : in out Ada_Instrumenter_Type;
+      Filename    : String;
+      Dump_Config : Any_Dump_Config;
+      Prj         : Prj_Desc);
 
-   overriding procedure Emit_Dump_Helper_Unit_Manual
-     (Self          : in out Ada_Instrumenter_Type;
-      Dump_Config   : Any_Dump_Config;
-      Prj           : Prj_Desc);
+   overriding
+   procedure Emit_Dump_Helper_Unit_Manual
+     (Self        : in out Ada_Instrumenter_Type;
+      Dump_Config : Any_Dump_Config;
+      Prj         : Prj_Desc);
 
-   overriding function Dump_Manual_Helper_Unit
-     (Self : Ada_Instrumenter_Type;
-      Prj  : Prj_Desc) return Files_Table.Compilation_Unit;
+   overriding
+   function Dump_Manual_Helper_Unit
+     (Self : Ada_Instrumenter_Type; Prj : Prj_Desc)
+      return Files_Table.Compilation_Unit;
 
-   overriding procedure Replace_Manual_Indications
+   overriding
+   procedure Replace_Manual_Indications
      (Self                 : in out Ada_Instrumenter_Type;
       Prj                  : in out Prj_Desc;
       Source               : Virtual_File;
@@ -130,14 +135,15 @@ package Instrument.Ada_Unit is
    --  Add a reference to the helper unit to ensure the coverage buffers are
    --  included in the main's compilation closure.
 
-   overriding procedure Emit_Buffers_List_Unit
+   overriding
+   procedure Emit_Buffers_List_Unit
      (Self        : Ada_Instrumenter_Type;
       Instr_Units : Unit_Sets.Set;
       Prj         : Prj_Desc);
 
-   overriding procedure Emit_Observability_Unit
-     (Self : in out Ada_Instrumenter_Type;
-      Prj  : in out Prj_Desc);
+   overriding
+   procedure Emit_Observability_Unit
+     (Self : in out Ada_Instrumenter_Type; Prj : in out Prj_Desc);
 
    procedure Save_Config_Pragmas_Mapping (Filename : String);
    --  Create a configuration pragmas mapping for the loaded project and write
@@ -155,8 +161,7 @@ package Instrument.Ada_Unit is
      (Tag                        : Unbounded_String;
       Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
-      Preprocessor_Data_Filename : String)
-      return Ada_Instrumenter_Type;
+      Preprocessor_Data_Filename : String) return Ada_Instrumenter_Type;
    --  Create an Ada instrumenter.
    --
    --  Config_Pragmas_Mapping is the fullname to the configuration pragma
@@ -238,8 +243,8 @@ private
       end case;
    end record;
 
-   package Insertion_Info_SP is new Shared_Pointers
-     (Element_Type => Insertion_Info);
+   package Insertion_Info_SP is new
+     Shared_Pointers (Element_Type => Insertion_Info);
    subtype Insertion_Info_Ref is Insertion_Info_SP.Ref;
 
    type Source_Decision is record
@@ -271,10 +276,10 @@ private
       --  True if this condition is the first one in its decision
    end record;
 
-   package Source_Decision_Vectors is
-     new Ada.Containers.Vectors (Natural, Source_Decision);
-   package Source_Condition_Vectors is
-     new Ada.Containers.Vectors (Natural, Source_Condition);
+   package Source_Decision_Vectors is new
+     Ada.Containers.Vectors (Natural, Source_Decision);
+   package Source_Condition_Vectors is new
+     Ada.Containers.Vectors (Natural, Source_Condition);
 
    type Instrumentation_Entities is record
       Buffers_Index : Natural := 0;
@@ -308,9 +313,11 @@ private
 
    type Any_MCDC_State_Inserter is access all Root_MCDC_State_Inserter'Class;
 
-   package FQN_Sets is
-     new Ada.Containers.Indefinite_Hashed_Sets
-       (Text_Type, Ada.Strings.Wide_Wide_Hash, "=");
+   package FQN_Sets is new
+     Ada.Containers.Indefinite_Hashed_Sets
+       (Text_Type,
+        Ada.Strings.Wide_Wide_Hash,
+        "=");
    --  Hashed set of fully qualified names (stored in normalized form:
    --  lower case, period separated, fully qualified).
 
@@ -322,8 +329,8 @@ private
       Generic_Subp_Decl, Generic_Subp_Body : Unbounded_Wide_Wide_String;
    end record;
 
-   package Generic_Subp_Vectors is
-     new Ada.Containers.Vectors (Natural, Generic_Subp);
+   package Generic_Subp_Vectors is new
+     Ada.Containers.Vectors (Natural, Generic_Subp);
 
    type Instrument_Location_Type is
      (Before, After, Before_Parent, Inside_Expr);
@@ -380,105 +387,107 @@ private
    end record;
    --  Information relative to a block of statements
 
-   package Block_Stacks is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Block_Information);
+   package Block_Stacks is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Block_Information);
 
-   type Ada_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context with
-      record
-         Language_Version_Pragma : Unbounded_Wide_Wide_String;
-         --  Language version configuration pragma for unit, if any
+   type Ada_Unit_Inst_Context is new Instrument.Common.Unit_Inst_Context
+   with record
+      Language_Version_Pragma : Unbounded_Wide_Wide_String;
+      --  Language version configuration pragma for unit, if any
 
-         Language_Version : Any_Language_Version :=
-           Switches.Global_Language_Version;
-         --  Most recent version of the language that can be used during
-         --  instrumentation of the unit. It is determined by the language
-         --  version pragma if present, otherwise it defaults to the value
-         --  obtained from the --ada switch.
+      Language_Version : Any_Language_Version :=
+        Switches.Global_Language_Version;
+      --  Most recent version of the language that can be used during
+      --  instrumentation of the unit. It is determined by the language
+      --  version pragma if present, otherwise it defaults to the value
+      --  obtained from the --ada switch.
 
-         CU : CU_Id := No_CU_Id;
-         --  SCO identifier of the compilation unit being instrumented
+      CU : CU_Id := No_CU_Id;
+      --  SCO identifier of the compilation unit being instrumented
 
-         Root_Unit : Libadalang.Analysis.Compilation_Unit;
-         --  Node of compilation unit
+      Root_Unit : Libadalang.Analysis.Compilation_Unit;
+      --  Node of compilation unit
 
-         Source_Decisions  : Source_Decision_Vectors.Vector;
-         Source_Conditions : Source_Condition_Vectors.Vector;
-         --  Decisions and (for MC/DC) conditions to be instrumented
+      Source_Decisions  : Source_Decision_Vectors.Vector;
+      Source_Conditions : Source_Condition_Vectors.Vector;
+      --  Decisions and (for MC/DC) conditions to be instrumented
 
-         Unit_Bits : Instrument.Common.Allocated_Bits;
-         --  Allocated bits in coverage buffers for low-level SCOs
+      Unit_Bits : Instrument.Common.Allocated_Bits;
+      --  Allocated bits in coverage buffers for low-level SCOs
 
-         Entities : Instrumentation_Entities;
-         --  Bank of nodes to use during instrumentation
+      Entities : Instrumentation_Entities;
+      --  Bank of nodes to use during instrumentation
 
-         Pure_Buffer_Unit : Compilation_Unit_Part;
-         --  Name of the compilation unit that holds addresses for the coverage
-         --  buffers of the unit being instrumented.
+      Pure_Buffer_Unit : Compilation_Unit_Part;
+      --  Name of the compilation unit that holds addresses for the coverage
+      --  buffers of the unit being instrumented.
 
-         Has_No_Elaboration_Code_All : Boolean;
-         --  Whether the No_Elaboration_Code_All applies to this unit
+      Has_No_Elaboration_Code_All : Boolean;
+      --  Whether the No_Elaboration_Code_All applies to this unit
 
-         Withed_Units : FQN_Sets.Set;
-         --  Set of units for which we have WITH clauses
+      Withed_Units : FQN_Sets.Set;
+      --  Set of units for which we have WITH clauses
 
-         Rewriting_Context : Rewriting_Handle;
-         --  Rewriting handle for the instrumentation process
+      Rewriting_Context : Rewriting_Handle;
+      --  Rewriting handle for the instrumentation process
 
-         MCDC_State_Inserter : Any_MCDC_State_Inserter;
-         --  Service supporting insertion of temporary MC/DC state variables
+      MCDC_State_Inserter : Any_MCDC_State_Inserter;
+      --  Service supporting insertion of temporary MC/DC state variables
 
-         Current_Insertion_Info : Insertion_Info_Ref;
-         --  Insertion_Info for the list being traversed
+      Current_Insertion_Info : Insertion_Info_Ref;
+      --  Insertion_Info for the list being traversed
 
-         Degenerate_Subprogram_Generics : Generic_Subp_Vectors.Vector;
-         --  Generics to be generated in the pure buffers unit to support
-         --  instrumentation of degenerate subprograms.
+      Degenerate_Subprogram_Generics : Generic_Subp_Vectors.Vector;
+      --  Generics to be generated in the pure buffers unit to support
+      --  instrumentation of degenerate subprograms.
 
-         Degenerate_Subprogram_Index : Natural := 0;
-         --  Index of last processed degenerate subprogram (null procedure or
-         --  expression function) in current unit. This is used to assign
-         --  unique names for generated constructs.
+      Degenerate_Subprogram_Index : Natural := 0;
+      --  Index of last processed degenerate subprogram (null procedure or
+      --  expression function) in current unit. This is used to assign
+      --  unique names for generated constructs.
 
-         Short_Circuit_And_Or : Boolean := False;
-         --  Whether the Standard.Boolean and/or operators should be
-         --  considered as having short-circuit semantics.
+      Short_Circuit_And_Or : Boolean := False;
+      --  Whether the Standard.Boolean and/or operators should be
+      --  considered as having short-circuit semantics.
 
-         Ghost_Code : Boolean := False;
-         --  Ghost_Code is True if we are in a context of ghost code
-         --  (declarations in a ghost package, assignments to a ghost variable
-         --  etc.). We will not emit any coverage obligation in this context
-         --  and assume ghost code is absent at execution.
+      Ghost_Code : Boolean := False;
+      --  Ghost_Code is True if we are in a context of ghost code
+      --  (declarations in a ghost package, assignments to a ghost variable
+      --  etc.). We will not emit any coverage obligation in this context
+      --  and assume ghost code is absent at execution.
 
-         In_Generic : Boolean := False;
-         --  True when traversing nodes in a generic package or subprogram.
-         --
-         --  Used when the SPARK compatibility mode is enabled, to insert
-         --  non-volatile witness result variables to be ghost compliant.
+      In_Generic : Boolean := False;
+      --  True when traversing nodes in a generic package or subprogram.
+      --
+      --  Used when the SPARK compatibility mode is enabled, to insert
+      --  non-volatile witness result variables to be ghost compliant.
 
-         Scope_Entities       : Scope_Entities_Tree;
-         Current_Scope_Entity : Scope_Entities_Trees.Cursor;
-         --  Information about the name, sloc, SCO range and children scopes of
-         --  the current scope entity. This is modified when entering a scope
-         --  (updated to the current scope), and when leaving it (updated to
-         --  the current scope parent, if any).
+      Scope_Entities       : Scope_Entities_Tree;
+      Current_Scope_Entity : Scope_Entities_Trees.Cursor;
+      --  Information about the name, sloc, SCO range and children scopes of
+      --  the current scope entity. This is modified when entering a scope
+      --  (updated to the current scope), and when leaving it (updated to
+      --  the current scope parent, if any).
 
-         In_Decl_Expr : Boolean := False;
-         --  True when traversing nodes that are child of a declare expression.
-         --  Used to only insert constant object declarations in the declare
-         --  expression, as non-constant objects are not allowed per
-         --  RM 4.5.9 (5/5).
+      In_Decl_Expr : Boolean := False;
+      --  True when traversing nodes that are child of a declare expression.
+      --  Used to only insert constant object declarations in the declare
+      --  expression, as non-constant objects are not allowed per
+      --  RM 4.5.9 (5/5).
 
-         Block_Stack : Block_Stacks.Vector;
-         --  Currently processed blocks (blocks can nest in the source,
-         --  when e.g. we have a nested subprogram declaration).
+      Block_Stack : Block_Stacks.Vector;
+      --  Currently processed blocks (blocks can nest in the source,
+      --  when e.g. we have a nested subprogram declaration).
 
-      end record;
+   end record;
 
    function Insert_MCDC_State
      (Inserter : in out Root_MCDC_State_Inserter;
       UIC      : in out Ada_Unit_Inst_Context'Class;
       Name     : String) return String
-      is abstract;
+   is abstract;
    --  Create and insert the declaration of an MC/DC state temporary object.
    --  Returns a System.Address expression denoting the declared state, for
    --  use in witness calls.

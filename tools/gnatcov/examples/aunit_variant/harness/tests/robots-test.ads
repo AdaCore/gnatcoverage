@@ -35,10 +35,10 @@ package Robots.Test is
 private
 
    type Test_Env is record
-      Robot_Destroyed      : Boolean;
-      Probe_Ahead_Square   : Geomaps.Square;
-      Position             : Geomaps.Position;
-      Direction            : Geomaps.Direction;
+      Robot_Destroyed    : Boolean;
+      Probe_Ahead_Square : Geomaps.Square;
+      Position           : Geomaps.Position;
+      Direction          : Geomaps.Direction;
    end record;
    type Test_Env_Access is access all Test_Env;
 
@@ -52,7 +52,7 @@ private
       Env : Test_Env_Access;
    end record;
    procedure Step_Forward (Device : access Test_Engine);
-   procedure Rotate_Left  (Device : access Test_Engine);
+   procedure Rotate_Left (Device : access Test_Engine);
    procedure Rotate_Right (Device : access Test_Engine);
 
    type Test_Radar is new Robots_Devices.Radar with record
@@ -63,7 +63,7 @@ private
    type Test_Locator is new Robots_Devices.Locator with record
       Env : Test_Env_Access;
    end record;
-   function Get_Position  (Device : access Test_Locator) return Position;
+   function Get_Position (Device : access Test_Locator) return Position;
    function Get_Direction (Device : access Test_Locator) return Direction;
 
 end Robots.Test;

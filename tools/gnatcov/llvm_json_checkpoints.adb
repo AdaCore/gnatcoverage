@@ -95,8 +95,8 @@ package body LLVM_JSON_Checkpoints is
    --------------------------
 
    function Count_Cond_For_Dec
-     (Regions : LLVM_Region_Vector.Vector;
-      Dec_Id : Valid_LLVM_Region_Id) return Natural;
+     (Regions : LLVM_Region_Vector.Vector; Dec_Id : Valid_LLVM_Region_Id)
+      return Natural;
    --  Helper function for the Post-Condition of Build_Ckpt_From_JSON.
 
    function Build_Ckpt_From_JSON
@@ -149,7 +149,7 @@ package body LLVM_JSON_Checkpoints is
 
    procedure JSON_Load (JSON_Filename : String) is
       Ckpt : aliased LLVM_Coverage_Ckpt :=
-         Build_Ckpt_From_JSON (JSON_Filename);
+        Build_Ckpt_From_JSON (JSON_Filename);
    begin
       LLVM_Trace.Trace ("Report generated");
       if LLVM_Trace.Is_Active then
@@ -169,15 +169,15 @@ package body LLVM_JSON_Checkpoints is
      (JSON_Filename : String) return LLVM_Coverage_Ckpt
    is
       JSON_Files : constant JSON_Array :=
-         JSON.Child_Array (JSON.Read_File (JSON_Filename), "data");
+        JSON.Child_Array (JSON.Read_File (JSON_Filename), "data");
 
       Report : LLVM_Coverage_Ckpt :=
         (JSON_Filename => +JSON_Filename, others => <>);
    begin
       for JSON_File of JSON_Files loop
          declare
-            Functions   : constant JSON_Array :=
-               JSON.Child_Array  (JSON_File, "functions");
+            Functions : constant JSON_Array :=
+              JSON.Child_Array (JSON_File, "functions");
 
             File_Report : LLVM_Coverage_File_Ckpt :=
               (Filename => +JSON.Child_String (JSON_File, "filename"),
@@ -185,18 +185,17 @@ package body LLVM_JSON_Checkpoints is
          begin
             for Fct of Functions loop
                declare
-                  MCDC_Records   : constant JSON_Array  :=
-                     JSON.Child_Array  (Fct, "mcdc_records");
-                  Code_Regions   : constant JSON_Array  :=
-                     JSON.Child_Array  (Fct, "code_regions");
-                  Branch_Regions : constant JSON_Array  :=
-                     JSON.Child_Array  (Fct, "branch_regions");
+                  MCDC_Records   : constant JSON_Array :=
+                    JSON.Child_Array (Fct, "mcdc_records");
+                  Code_Regions   : constant JSON_Array :=
+                    JSON.Child_Array (Fct, "code_regions");
+                  Branch_Regions : constant JSON_Array :=
+                    JSON.Child_Array (Fct, "branch_regions");
 
                   Function_Report : LLVM_Coverage_Function_Ckpt :=
                     (Name         =>
-                        +JSON.Child_String (Fct, "demangled_name"),
-                     Mangled_Name =>
-                        +JSON.Child_String (Fct, "name"),
+                       +JSON.Child_String (Fct, "demangled_name"),
+                     Mangled_Name => +JSON.Child_String (Fct, "name"),
                      others       => <>);
                begin
                   --  Load MCDC records
@@ -208,8 +207,10 @@ package body LLVM_JSON_Checkpoints is
                   --  We rely on this assumption to more efficiently build
                   --  the SCO descriptors.
 
-                  LLVM_Trace.Trace ("Build_Ckpt_From_JSON: handle function '"
-                                    & (+Function_Report.Name) & "'");
+                  LLVM_Trace.Trace
+                    ("Build_Ckpt_From_JSON: handle function '"
+                     & (+Function_Report.Name)
+                     & "'");
 
                   for MCDC_Record of MCDC_Records loop
                      Add_MCDC_To_Regions
@@ -251,22 +252,23 @@ package body LLVM_JSON_Checkpoints is
             for Reg of Fct.Regions loop
                if Reg.Kind = Decision then
                   if Reg.Num_Conditions = 0 then
-                     Fatal_Error ("Invalid JSON: Decision with 0 condition "
-                                  & "found in function: "
-                                  & (+Fct.Name));
+                     Fatal_Error
+                       ("Invalid JSON: Decision with 0 condition "
+                        & "found in function: "
+                        & (+Fct.Name));
                   end if;
                   declare
                      Count : constant Natural :=
-                        Count_Cond_For_Dec (Fct.Regions, Reg.Id);
+                       Count_Cond_For_Dec (Fct.Regions, Reg.Id);
                   begin
-                     if Reg.Num_Conditions /= Count
-                     then
-                        Fatal_Error ("Invalid JSON: Decision declares "
-                                     & Natural'Image (Reg.Num_Conditions)
-                                     & " conditions, but "
-                                     & Natural'Image (Count)
-                                     & " found in function: "
-                                     & (+Fct.Name));
+                     if Reg.Num_Conditions /= Count then
+                        Fatal_Error
+                          ("Invalid JSON: Decision declares "
+                           & Natural'Image (Reg.Num_Conditions)
+                           & " conditions, but "
+                           & Natural'Image (Count)
+                           & " found in function: "
+                           & (+Fct.Name));
                      end if;
                   end;
                end if;
@@ -282,8 +284,8 @@ package body LLVM_JSON_Checkpoints is
    ------------------------
 
    function Count_Cond_For_Dec
-     (Regions : LLVM_Region_Vector.Vector;
-      Dec_Id : Valid_LLVM_Region_Id) return Natural
+     (Regions : LLVM_Region_Vector.Vector; Dec_Id : Valid_LLVM_Region_Id)
+      return Natural
    is
       Count : Natural := 0;
    begin
@@ -305,49 +307,69 @@ package body LLVM_JSON_Checkpoints is
          LLVM_Trace.Trace ("file: " & (+File.Filename));
          LLVM_Trace.Increase_Indent;
          for Fct of File.Functions loop
-            LLVM_Trace.Trace ("function: " & (+Fct.Name) & " (mangled: "
-                              & (+Fct.Mangled_Name) & ")");
+            LLVM_Trace.Trace
+              ("function: "
+               & (+Fct.Name)
+               & " (mangled: "
+               & (+Fct.Mangled_Name)
+               & ")");
             LLVM_Trace.Increase_Indent;
             for Region of Fct.Regions loop
                case Region.Kind is
-                  when Statement => null;
-                     LLVM_Trace.Trace ("[" & LLVM_Region_Id'Image (Region.Id)
-                                       & "] STATEMENT "
-                                       & Image (Region.Span) & ":");
-                     LLVM_Trace.Trace ("     Count: " & Natural'Image
-                                       (Region.Execution_Count));
-                  when Decision => null;
-                     LLVM_Trace.Trace ("[" & LLVM_Region_Id'Image (Region.Id)
-                                       & "] DECISION  "
-                                       & Image (Region.Span) & ":");
+                  when Statement =>
+                     null;
+                     LLVM_Trace.Trace
+                       ("["
+                        & LLVM_Region_Id'Image (Region.Id)
+                        & "] STATEMENT "
+                        & Image (Region.Span)
+                        & ":");
+                     LLVM_Trace.Trace
+                       ("     Count: "
+                        & Natural'Image (Region.Execution_Count));
+
+                  when Decision  =>
+                     null;
+                     LLVM_Trace.Trace
+                       ("["
+                        & LLVM_Region_Id'Image (Region.Id)
+                        & "] DECISION  "
+                        & Image (Region.Span)
+                        & ":");
 
                      for TV of Region.Test_Vectors loop
                         declare
                            Buffer : Strings.US.Unbounded_String := +"     { ";
                         begin
                            for Eval of TV.Values loop
-                              Append (Buffer, (case Eval is
-                                 when Unknown => "-, ",
-                                 when False   => "F, ",
-                                 when True    => "T, "
-                              ));
+                              Append
+                                (Buffer,
+                                 (case Eval is
+                                    when Unknown => "-, ",
+                                    when False   => "F, ",
+                                    when True    => "T, "));
                            end loop;
                            Append (Buffer, "} -> ");
-                           Append (Buffer, (case TV.Outcome is
-                              when Unknown => "X",
-                              when False   => "F",
-                              when True    => "T"
-                           ));
+                           Append
+                             (Buffer,
+                              (case TV.Outcome is
+                                 when Unknown => "X",
+                                 when False   => "F",
+                                 when True    => "T"));
 
                            LLVM_Trace.Trace (+Buffer);
                         end;
                      end loop;
-                  when Condition => null;
-                     LLVM_Trace.Trace ("[" & LLVM_Region_Id'Image (Region.Id)
-                                       & "] CONDITION "
-                                       & Image (Region.Span) & ": parent "
-                                       & LLVM_Region_Id'Image
-                                         (Region.Parent_Id));
+
+                  when Condition =>
+                     null;
+                     LLVM_Trace.Trace
+                       ("["
+                        & LLVM_Region_Id'Image (Region.Id)
+                        & "] CONDITION "
+                        & Image (Region.Span)
+                        & ": parent "
+                        & LLVM_Region_Id'Image (Region.Parent_Id));
                end case;
             end loop;
             LLVM_Trace.Decrease_Indent;
@@ -365,12 +387,12 @@ package body LLVM_JSON_Checkpoints is
       Regions     : in out LLVM_Region_Vector.Vector)
    is
       Region : constant LLVM_Region :=
-         (Kind            => Decision,
-          Span            => MCDC_Record.Span,
-          Id              => Regions.Last_Index + 1,
-          Num_Conditions  => MCDC_Record.Num_Conditions,
-          Test_Vectors    => MCDC_Record.Test_Vectors,
-          others          => <>);
+        (Kind           => Decision,
+         Span           => MCDC_Record.Span,
+         Id             => Regions.Last_Index + 1,
+         Num_Conditions => MCDC_Record.Num_Conditions,
+         Test_Vectors   => MCDC_Record.Test_Vectors,
+         others         => <>);
    begin
       LLVM_Trace.Trace ("Add_MCDC_Region: " & Image (MCDC_Record.Span));
 
@@ -399,13 +421,14 @@ package body LLVM_JSON_Checkpoints is
 
       if Find_Parent_Decision (Regions, Branch_Region.Span, Parent_Id) then
          pragma Assert (Parent_Id /= No_LLVM_Region_Id);
-         LLVM_Trace.Trace ("Add_Branch_Region: Parent decision found. "
-                           & "Adding as a condition");
+         LLVM_Trace.Trace
+           ("Add_Branch_Region: Parent decision found. "
+            & "Adding as a condition");
          declare
             Parent_Region : LLVM_Region renames Regions.Reference (Parent_Id);
          begin
             Cond_Region :=
-               (Kind      => Condition,
+              (Kind      => Condition,
                Span      => Branch_Region.Span,
                Id        => Regions.Last_Index + 1,
                Parent_Id => Parent_Id,
@@ -422,18 +445,20 @@ package body LLVM_JSON_Checkpoints is
             --  We only keep track of 1 execution, because we are not
             --  interested in knowing how many times these were executed.
 
-            LLVM_Trace.Trace ("Add_Branch_Region: No parent decision. "
-                              & "Create a 1-condition decision.");
+            LLVM_Trace.Trace
+              ("Add_Branch_Region: No parent decision. "
+               & "Create a 1-condition decision.");
 
             if Branch_Region.T_Exec_Count > 0 then
                declare
                   Cond_Vec : Condition_Evaluation_Vectors.Vector;
                begin
                   Cond_Vec.Append (True);
-                  TVs.Append ((Decision       => No_SCO_Id,
-                               Values         => Cond_Vec,
-                               Outcome        => True,
-                               Next_Condition => No_Condition_Index));
+                  TVs.Append
+                    ((Decision       => No_SCO_Id,
+                      Values         => Cond_Vec,
+                      Outcome        => True,
+                      Next_Condition => No_Condition_Index));
                end;
             end if;
             if Branch_Region.F_Exec_Count > 0 then
@@ -441,10 +466,11 @@ package body LLVM_JSON_Checkpoints is
                   Cond_Vec : Condition_Evaluation_Vectors.Vector;
                begin
                   Cond_Vec.Append (False);
-                  TVs.Append ((Decision       => No_SCO_Id,
-                               Values         => Cond_Vec,
-                               Outcome        => False,
-                               Next_Condition => No_Condition_Index));
+                  TVs.Append
+                    ((Decision       => No_SCO_Id,
+                      Values         => Cond_Vec,
+                      Outcome        => False,
+                      Next_Condition => No_Condition_Index));
                end;
             end if;
 
@@ -461,7 +487,8 @@ package body LLVM_JSON_Checkpoints is
               (Kind      => Condition,
                Span      => Branch_Region.Span,
                Id        => Regions.Last_Index + 1,
-               Parent_Id => Regions.Last_Index,    --  Previous Decision.
+               Parent_Id => Regions.Last_Index,
+               --  Previous Decision.
                Index     => Condition_Index'First,
                others    => <>);
             Regions.Append (Cond_Region);
@@ -484,8 +511,9 @@ package body LLVM_JSON_Checkpoints is
 
       if not Find_Parent_Decision (Regions, Code_Region.Span, Parent_Id) then
          pragma Assert (Parent_Id = No_LLVM_Region_Id);
-         LLVM_Trace.Trace ("Add_Code_Region: No parent decision found. "
-                           & "Adding as a Statement");
+         LLVM_Trace.Trace
+           ("Add_Code_Region: No parent decision found. "
+            & "Adding as a Statement");
 
          Region :=
            (Kind            => Statement,
@@ -511,7 +539,7 @@ package body LLVM_JSON_Checkpoints is
       for Index in Regions.First_Index .. Regions.Last_Index loop
          declare
             Region : constant LLVM_Region :=
-               Regions.Constant_Reference (Index);
+              Regions.Constant_Reference (Index);
          begin
             if Region.Kind = Decision and then Contained_In (Span, Region.Span)
             then
@@ -550,13 +578,12 @@ package body LLVM_JSON_Checkpoints is
      (JSON_MCDC_Record : JSON_Value) return Parsed_MCDC_Record
    is
       JSON_Evaluation_Array : constant JSON_Array :=
-         JSON.Child_Array    (JSON_MCDC_Record, "test_vectors");
+        JSON.Child_Array (JSON_MCDC_Record, "test_vectors");
 
       Parsed : Parsed_MCDC_Record :=
         (Span           =>
-            Parse_SLOC_Range (JSON.Child_Array (JSON_MCDC_Record, "span")),
-         Num_Conditions =>
-            JSON.Child_Int   (JSON_MCDC_Record, "num_conditions"),
+           Parse_SLOC_Range (JSON.Child_Array (JSON_MCDC_Record, "span")),
+         Num_Conditions => JSON.Child_Int (JSON_MCDC_Record, "num_conditions"),
          others         => <>);
    begin
       for JSON_Evaluation of JSON_Evaluation_Array loop
@@ -574,11 +601,9 @@ package body LLVM_JSON_Checkpoints is
    is
       Branch_Region : constant Parsed_Branch_Region :=
         (Span         =>
-            Parse_SLOC_Range (JSON.Child_Array (JSON_Branch_Region, "span")),
-         T_Exec_Count =>
-            JSON.Child_Int   (JSON_Branch_Region, "true_count"),
-         F_Exec_Count =>
-            JSON.Child_Int   (JSON_Branch_Region, "false_count"));
+           Parse_SLOC_Range (JSON.Child_Array (JSON_Branch_Region, "span")),
+         T_Exec_Count => JSON.Child_Int (JSON_Branch_Region, "true_count"),
+         F_Exec_Count => JSON.Child_Int (JSON_Branch_Region, "false_count"));
    begin
       return Branch_Region;
    end Parse_Branch_Region;
@@ -592,7 +617,7 @@ package body LLVM_JSON_Checkpoints is
    is
       Code_Region : constant Parsed_Code_Region :=
         (Span            =>
-            Parse_SLOC_Range (JSON.Child_Array (JSON_Code_Region, "span")),
+           Parse_SLOC_Range (JSON.Child_Array (JSON_Code_Region, "span")),
          Execution_Count => JSON.Child_Int (JSON_Code_Region, "count"));
    begin
       return Code_Region;
@@ -605,17 +630,17 @@ package body LLVM_JSON_Checkpoints is
    function Parse_Test_Vector
      (JSON_Test_Vector : JSON_Value) return MC_DC.Evaluation
    is
-      Result_Int : constant Integer    :=
-         JSON.Child_Int   (JSON_Test_Vector, "decision_outcome");
+      Result_Int : constant Integer :=
+        JSON.Child_Int (JSON_Test_Vector, "decision_outcome");
       Vector     : constant JSON_Array :=
-         JSON.Child_Array (JSON_Test_Vector, "vector");
-      Size       : constant Integer    := Length (Vector);
+        JSON.Child_Array (JSON_Test_Vector, "vector");
+      Size       : constant Integer := Length (Vector);
 
       Outcome  : Tristate;
       Cond_Vec : Condition_Evaluation_Vectors.Vector;
       Result   : MC_DC.Evaluation;
    begin
-      if Result_Int = 1  then
+      if Result_Int = 1 then
          Outcome := True;
       elsif Result_Int = 0 then
          Outcome := False;
@@ -634,15 +659,15 @@ package body LLVM_JSON_Checkpoints is
             elsif Cond_Int = 1 then
                Cond_Vec.Append (True);
             else
-               Fatal_Error ("Expected one of (-1,0,1), got "
-                            & Integer'Image (Cond_Int));
+               Fatal_Error
+                 ("Expected one of (-1,0,1), got " & Integer'Image (Cond_Int));
             end if;
          end;
       end loop;
 
-      Result.Decision       := No_SCO_Id;
-      Result.Values         := Cond_Vec;
-      Result.Outcome        := Outcome;
+      Result.Decision := No_SCO_Id;
+      Result.Values := Cond_Vec;
+      Result.Outcome := Outcome;
       Result.Next_Condition := No_Condition_Index;
       return Result;
    end Parse_Test_Vector;
@@ -652,17 +677,17 @@ package body LLVM_JSON_Checkpoints is
    ----------------------
 
    function Parse_SLOC_Range
-     (Sloc_Array : JSON_Array) return Local_Source_Location_Range
-   is
+     (Sloc_Array : JSON_Array) return Local_Source_Location_Range is
    begin
       if Length (Sloc_Array) /= 4 then
          Fatal_Error ("'span' array should be 4 integers");
       end if;
 
-      return ((JSON.Array_Nth_Integer (Sloc_Array, 1),
-               JSON.Array_Nth_Integer (Sloc_Array, 2)),
-              (JSON.Array_Nth_Integer (Sloc_Array, 3),
-               JSON.Array_Nth_Integer (Sloc_Array, 4)));
+      return
+        ((JSON.Array_Nth_Integer (Sloc_Array, 1),
+          JSON.Array_Nth_Integer (Sloc_Array, 2)),
+         (JSON.Array_Nth_Integer (Sloc_Array, 3),
+          JSON.Array_Nth_Integer (Sloc_Array, 4)));
    end Parse_SLOC_Range;
 
 end LLVM_JSON_Checkpoints;

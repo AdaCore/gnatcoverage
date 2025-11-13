@@ -23,12 +23,12 @@ with Interfaces;
 
 with GNAT.OS_Lib;
 
-with Coverage;      use Coverage;
-with Hex_Images;    use Hex_Images;
-with Outputs;       use Outputs;
+with Coverage;     use Coverage;
+with Hex_Images;   use Hex_Images;
+with Outputs;      use Outputs;
 with Support_Files;
-with Traces_Disa;   use Traces_Disa;
-with Traces_Files;  use Traces_Files;
+with Traces_Disa;  use Traces_Disa;
+with Traces_Files; use Traces_Files;
 
 package body Annotations.Xml is
 
@@ -36,7 +36,7 @@ package body Annotations.Xml is
    XSD_Filename : constant String := Support_Files.In_Lib_Dir (XSD_Basename);
 
    type Printing_Destination is
-     --  Classes of possible output destinations for an XML pretty printer
+   --  Classes of possible output destinations for an XML pretty printer
 
      (Dest_Index,
       --  refers to the XML index
@@ -48,7 +48,7 @@ package body Annotations.Xml is
       --  When going through the source file list, refers to the xml file
       --  that corresponds to the source file being processed.
       --  e.g. hello.adb.xml for hello.adb.
-      );
+     );
 
    type File_Array is array (Printing_Destination) of File_Type;
    --  Array of handle for each destination of an XML pretty printer
@@ -60,7 +60,7 @@ package body Annotations.Xml is
    type Xml_Pretty_Printer is new Pretty_Printer with record
       --  Pretty printer type for the XML annotation format
 
-      Files        : File_Array;
+      Files : File_Array;
       --  Handle to destination files
 
       Indentations : Indentation_Array := (others => 0);
@@ -68,8 +68,8 @@ package body Annotations.Xml is
       --  for the forthcoming lines
    end record;
 
-   overriding function Format
-     (Pp : Xml_Pretty_Printer) return Annotation_Format_Family
+   overriding
+   function Format (Pp : Xml_Pretty_Printer) return Annotation_Format_Family
    is (Annotate_Xml);
 
    --------------------
@@ -124,11 +124,9 @@ package body Annotations.Xml is
    --    (inherited from Pretty_Printer)        --
    -----------------------------------------------
 
-   procedure Pretty_Print_Start
-     (Pp : in out Xml_Pretty_Printer);
+   procedure Pretty_Print_Start (Pp : in out Xml_Pretty_Printer);
 
-   procedure Pretty_Print_End
-     (Pp : in out Xml_Pretty_Printer);
+   procedure Pretty_Print_End (Pp : in out Xml_Pretty_Printer);
 
    procedure Pretty_Print_Start_File
      (Pp   : in out Xml_Pretty_Printer;
@@ -151,16 +149,15 @@ package body Annotations.Xml is
    procedure Pretty_Print_End_Line (Pp : in out Xml_Pretty_Printer);
 
    procedure Pretty_Print_Start_Instruction_Set
-     (Pp    : in out Xml_Pretty_Printer;
-      State : Any_Line_State);
+     (Pp : in out Xml_Pretty_Printer; State : Any_Line_State);
 
-   procedure Pretty_Print_End_Instruction_Set
-     (Pp : in out Xml_Pretty_Printer);
+   procedure Pretty_Print_End_Instruction_Set (Pp : in out Xml_Pretty_Printer);
 
-   procedure Pretty_Print_Start_Symbol (Pp     : in out Xml_Pretty_Printer;
-                                        Name   : String;
-                                        Offset : Pc_Type;
-                                        State  : Line_State);
+   procedure Pretty_Print_Start_Symbol
+     (Pp     : in out Xml_Pretty_Printer;
+      Name   : String;
+      Offset : Pc_Type;
+      State  : Line_State);
 
    procedure Pretty_Print_End_Symbol (Pp : in out Xml_Pretty_Printer);
 
@@ -173,25 +170,18 @@ package body Annotations.Xml is
       Sym      : Symbolizer'Class);
 
    procedure Pretty_Print_Message
-     (Pp : in out Xml_Pretty_Printer;
-      M  : Message);
+     (Pp : in out Xml_Pretty_Printer; M : Message);
 
    procedure Pretty_Print_Statement
-     (Pp    : in out Xml_Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State);
+     (Pp : in out Xml_Pretty_Printer; SCO : SCO_Id; State : Line_State);
 
    procedure Pretty_Print_Start_Decision
-     (Pp    : in out Xml_Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State);
+     (Pp : in out Xml_Pretty_Printer; SCO : SCO_Id; State : Line_State);
 
    procedure Pretty_Print_End_Decision (Pp : in out Xml_Pretty_Printer);
 
    procedure Pretty_Print_Condition
-     (Pp    : in out Xml_Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State);
+     (Pp : in out Xml_Pretty_Printer; SCO : SCO_Id; State : Line_State);
 
    procedure Print_Coverage_Stats
      (Pp         : in out Xml_Pretty_Printer'Class;
@@ -291,8 +281,7 @@ package body Annotations.Xml is
          Context      => Context,
          others       => <>);
    begin
-      Annotations.Generate_Report
-        (Pp, True, Subdir => "xml");
+      Annotations.Generate_Report (Pp, True, Subdir => "xml");
    end Generate_Report;
 
    -------
@@ -305,7 +294,7 @@ package body Annotations.Xml is
       Dest : Printing_Destination := Dest_Compilation_Unit)
    is
       Spaces : constant String (1 .. Pp.Indentations (Dest)) :=
-                 (others => ' ');
+        (others => ' ');
    begin
       Put_Line (Pp.Files (Dest), Spaces & S);
    end P;
@@ -315,18 +304,17 @@ package body Annotations.Xml is
    ----------------------------
 
    procedure Pretty_Print_Condition
-     (Pp    : in out Xml_Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State)
+     (Pp : in out Xml_Pretty_Printer; SCO : SCO_Id; State : Line_State)
    is
       Sloc_Start : constant Source_Location := First_Sloc (SCO);
       Sloc_End   : constant Source_Location :=
-                     End_Lex_Element (Last_Sloc (SCO));
+        End_Lex_Element (Last_Sloc (SCO));
    begin
-      Pp.ST ("condition",
-             A ("id", Img (Integer (SCO)))
-             & A ("text", Pp.SCO_Text (SCO))
-             & A ("coverage", State_Char (State)));
+      Pp.ST
+        ("condition",
+         A ("id", Img (Integer (SCO)))
+         & A ("text", Pp.SCO_Text (SCO))
+         & A ("coverage", State_Char (State)));
       for Annotation of SCO_Annotations (SCO) loop
          Pp.T ("annotation", A ("text", Annotation));
       end loop;
@@ -338,9 +326,7 @@ package body Annotations.Xml is
    -- Pretty_Print_End --
    ----------------------
 
-   procedure Pretty_Print_End
-     (Pp : in out Xml_Pretty_Printer)
-   is
+   procedure Pretty_Print_End (Pp : in out Xml_Pretty_Printer) is
    begin
       Pp.ET ("sources", Dest_Index);
       Pp.ET ("coverage_report", Dest_Index);
@@ -352,8 +338,7 @@ package body Annotations.Xml is
    -- Pretty_Print_End_Decision --
    -------------------------------
 
-   procedure Pretty_Print_End_Decision
-     (Pp : in out Xml_Pretty_Printer) is
+   procedure Pretty_Print_End_Decision (Pp : in out Xml_Pretty_Printer) is
    begin
       Pp.ET ("decision");
    end Pretty_Print_End_Decision;
@@ -380,18 +365,19 @@ package body Annotations.Xml is
       Insn_Set : Insn_Set_Type;
       Sym      : Symbolizer'Class) is
    begin
-      Pp.T ("instruction",
-            A ("address", Hex_Image (Pc))
-            & A ("coverage", Insn_State_Char (State) & "")
-            & A ("assembly", Disassemble (Insn, Pc, Insn_Set, Sym)));
+      Pp.T
+        ("instruction",
+         A ("address", Hex_Image (Pc))
+         & A ("coverage", Insn_State_Char (State) & "")
+         & A ("assembly", Disassemble (Insn, Pc, Insn_Set, Sym)));
    end Pretty_Print_Insn;
 
    --------------------------------------
    -- Pretty_Print_End_Instruction_Set --
    --------------------------------------
 
-   procedure Pretty_Print_End_Instruction_Set
-     (Pp : in out Xml_Pretty_Printer) is
+   procedure Pretty_Print_End_Instruction_Set (Pp : in out Xml_Pretty_Printer)
+   is
    begin
       Pp.ET ("instruction_set");
    end Pretty_Print_End_Instruction_Set;
@@ -418,9 +404,7 @@ package body Annotations.Xml is
    -- Pretty_Print_Message --
    --------------------------
 
-   procedure Pretty_Print_Message
-     (Pp : in out Xml_Pretty_Printer;
-      M  : Message)
+   procedure Pretty_Print_Message (Pp : in out Xml_Pretty_Printer; M : Message)
    is
       use Interfaces;
       Attributes : Unbounded_String := +A ("kind", To_Lower (M.Kind'Img));
@@ -453,25 +437,31 @@ package body Annotations.Xml is
          Mode     => GNAT.OS_Lib.Overwrite);
       if not Success then
          Fatal_Error
-           ("Error while copying " & XSD_Filename
+           ("Error while copying "
+            & XSD_Filename
             & " to the output directory");
       end if;
 
       Create_Output_File (Pp.Files (Dest_Index), Index_File_Name);
 
       Pp.P (Xml_Header, Dest_Index);
-      Pp.ST ("document",
-             A ("xmlns:xi", "http://www.w3.org/2001/XInclude")
-             & A ("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
-             & A ("xsi:noNamespaceSchemaLocation", "gnatcov-xml-report.xsd"),
-             Dest_Index);
-      Pp.ST ("coverage_report",
-             A ("coverage_level", Coverage_Option_Value), Dest_Index);
+      Pp.ST
+        ("document",
+         A ("xmlns:xi", "http://www.w3.org/2001/XInclude")
+         & A ("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+         & A ("xsi:noNamespaceSchemaLocation", "gnatcov-xml-report.xsd"),
+         Dest_Index);
+      Pp.ST
+        ("coverage_report",
+         A ("coverage_level", Coverage_Option_Value),
+         Dest_Index);
 
       Pp.ST ("coverage_info", Dest_Index);
       Print_Trace_Info (Pp);
-      Pp.T ("xi:include", A ("parse", "xml") & A ("href", Trace_File_Name),
-            Dest_Index);
+      Pp.T
+        ("xi:include",
+         A ("parse", "xml") & A ("href", Trace_File_Name),
+         Dest_Index);
       Pp.ET ("coverage_info", Dest_Index);
 
       declare
@@ -510,18 +500,17 @@ package body Annotations.Xml is
    ---------------------------------
 
    procedure Pretty_Print_Start_Decision
-     (Pp    : in out Xml_Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State)
+     (Pp : in out Xml_Pretty_Printer; SCO : SCO_Id; State : Line_State)
    is
       Sloc_Start : constant Source_Location := First_Sloc (SCO);
       Sloc_End   : constant Source_Location :=
-                     End_Lex_Element (Last_Sloc (SCO));
+        End_Lex_Element (Last_Sloc (SCO));
    begin
-      Pp.ST ("decision",
-             A ("id", Img (Integer (SCO)))
-             & A ("text", Pp.SCO_Text (SCO))
-             & A ("coverage", State_Char (State)));
+      Pp.ST
+        ("decision",
+         A ("id", Img (Integer (SCO)))
+         & A ("text", Pp.SCO_Text (SCO))
+         & A ("coverage", State_Char (State)));
       for Annotation of SCO_Annotations (SCO) loop
          Pp.T ("annotation", A ("text", Annotation));
       end loop;
@@ -552,12 +541,15 @@ package body Annotations.Xml is
       Skip := False;
       Create_Output_File (Pp.Files (Dest_Compilation_Unit), Xml_File_Name);
       Pp.P (Xml_Header);
-      Pp.ST ("source",
-             A ("file", Abs_Filename)
-             & A ("coverage_level", Coverage_Option_Value));
+      Pp.ST
+        ("source",
+         A ("file", Abs_Filename)
+         & A ("coverage_level", Coverage_Option_Value));
 
-      Pp.T ("xi:include", A ("parse", "xml") & A ("href", Xml_File_Name),
-            Dest_Index);
+      Pp.T
+        ("xi:include",
+         A ("parse", "xml") & A ("href", Xml_File_Name),
+         Dest_Index);
    end Pretty_Print_Start_File;
 
    ---------------------------------
@@ -577,8 +569,7 @@ package body Annotations.Xml is
       -- Pp_Scope_Entity --
       ---------------------
 
-      procedure Pp_Scope_Entity (Cur : Cursor; Is_Root : Boolean := False)
-      is
+      procedure Pp_Scope_Entity (Cur : Cursor; Is_Root : Boolean := False) is
          Scope_Ent : constant Scope_Entity := Element (Cur);
          Child     : Cursor := First_Child (Cur);
 
@@ -587,14 +578,16 @@ package body Annotations.Xml is
            Line_Metrics
              (File_Info,
               Scope_Ent.Source_Range.L.First_Sloc.Line,
-              (if Is_Root then Last_Line (File_Info)
+              (if Is_Root
+               then Last_Line (File_Info)
                else Scope_Ent.Source_Range.L.Last_Sloc.Line));
          --  Adjust Scope_Ent.End_Sloc for the root node as it is
          --  No_Local_Location by default.
       begin
-         Pp.ST ("scope_metric",
-                A ("scope_name", Scope_Ent.Name)
-                & A ("scope_line", Img (Scope_Ent.Sloc.Line)));
+         Pp.ST
+           ("scope_metric",
+            A ("scope_name", Scope_Ent.Name)
+            & A ("scope_line", Img (Scope_Ent.Sloc.Line)));
          Print_Coverage_Li_Stats (Pp, Line_Stats, Dest_Compilation_Unit);
          Print_Coverage_Ob_Stats
            (Pp,
@@ -618,8 +611,7 @@ package body Annotations.Xml is
    ----------------------------------------
 
    procedure Pretty_Print_Start_Instruction_Set
-     (Pp    : in out Xml_Pretty_Printer;
-      State : Any_Line_State) is
+     (Pp : in out Xml_Pretty_Printer; State : Any_Line_State) is
    begin
       Pp.ST ("instruction_set", A ("coverage", State_Char (State)));
    end Pretty_Print_Start_Instruction_Set;
@@ -639,9 +631,7 @@ package body Annotations.Xml is
    begin
       Pp.ST ("src_mapping", A ("coverage", Coverage_State));
       Pp.ST ("src");
-      Pp.T ("line",
-            A ("num", Img (Line_Num))
-            & A ("src", Line));
+      Pp.T ("line", A ("num", Img (Line_Num)) & A ("src", Line));
       Pp.ET ("src");
    end Pretty_Print_Start_Line;
 
@@ -657,10 +647,11 @@ package body Annotations.Xml is
    is
       Coverage_State : constant String := State_Char (State) & "";
    begin
-      Pp.ST ("instruction_block",
-             A ("name", Name)
-             & A ("offset", Hex_Image (Offset))
-             & A ("coverage", Coverage_State));
+      Pp.ST
+        ("instruction_block",
+         A ("name", Name)
+         & A ("offset", Hex_Image (Offset))
+         & A ("coverage", Coverage_State));
    end Pretty_Print_Start_Symbol;
 
    ----------------------------
@@ -668,18 +659,17 @@ package body Annotations.Xml is
    ----------------------------
 
    procedure Pretty_Print_Statement
-     (Pp    : in out Xml_Pretty_Printer;
-      SCO   : SCO_Id;
-      State : Line_State)
+     (Pp : in out Xml_Pretty_Printer; SCO : SCO_Id; State : Line_State)
    is
       Sloc_Start : constant Source_Location := First_Sloc (SCO);
       Sloc_End   : constant Source_Location :=
         End_Lex_Element (Last_Sloc (SCO));
    begin
-      Pp.ST ("statement",
-             A ("id", Img (Integer (SCO)))
-             & A ("text", Pp.SCO_Text (SCO))
-             & A ("coverage", State_Char (State)));
+      Pp.ST
+        ("statement",
+         A ("id", Img (Integer (SCO)))
+         & A ("text", Pp.SCO_Text (SCO))
+         & A ("coverage", State_Char (State)));
       for Annotation of SCO_Annotations (SCO) loop
          Pp.T ("annotation", A ("text", Annotation));
       end loop;
@@ -703,16 +693,17 @@ package body Annotations.Xml is
       procedure Process_One_Trace (TF : Trace_File_Element) is
          Attributes : Unbounded_String;
       begin
-         Append (Attributes,
-                 A ("filename", TF.Filename)
-                 & A ("kind", Image (TF.Kind))
-                 & A ("program", TF.Program_Name)
-                 & A ("date", TF.Time)
-                 & A ("tag", TF.User_Data));
+         Append
+           (Attributes,
+            A ("filename", TF.Filename)
+            & A ("kind", Image (TF.Kind))
+            & A ("program", TF.Program_Name)
+            & A ("date", TF.Time)
+            & A ("tag", TF.User_Data));
          Pp.T ("trace", +Attributes, Dest_Trace_Info);
       end Process_One_Trace;
 
-   --  Start of processing for Print_Trace_Info
+      --  Start of processing for Print_Trace_Info
 
    begin
       Create_Output_File (Pp.Files (Dest_Trace_Info), Trace_File_Name);
@@ -762,7 +753,7 @@ package body Annotations.Xml is
                if Src_Start > 1 then
                   declare
                      Spaces : constant String (1 .. Src_Start - 1) :=
-                                (others => ' ');
+                       (others => ' ');
                   begin
                      Append
                        (Attributes,
@@ -874,7 +865,7 @@ package body Annotations.Xml is
       Idx       : Natural;
       Increment : Natural;
 
-   --  Start of processing for To_Xml_String
+      --  Start of processing for To_Xml_String
 
    begin
       Idx := Res'First;
@@ -919,29 +910,28 @@ package body Annotations.Xml is
 
       procedure Print_Metric_Ratio (Name : String; Amount : Natural) is
          Attributes : constant String :=
-            A ("kind", Name)
-            & A ("count", Img (Amount))
-            & (if Total = 0
-               then ""
-               else A ("ratio", Img (Ratio (Amount, Total))));
+           A ("kind", Name)
+           & A ("count", Img (Amount))
+           & (if Total = 0
+              then ""
+              else A ("ratio", Img (Ratio (Amount, Total))));
       begin
          Pp.T ("metric", Attributes, Dest);
       end Print_Metric_Ratio;
 
    begin
-      Pp.T ("metric", A ("kind", Total_Kind)
-                      & A ("count", Img (Total)), Dest);
+      Pp.T ("metric", A ("kind", Total_Kind) & A ("count", Img (Total)), Dest);
       Print_Metric_Ratio ("fully_covered", Stats (Covered));
       Print_Metric_Ratio ("partially_covered", Stats (Partially_Covered));
       Print_Metric_Ratio ("not_covered", Stats (Not_Covered));
-      Print_Metric_Ratio ("undetermined_coverage",
-                          Stats (Undetermined_Coverage));
-      Print_Metric_Ratio ("exempted_no_violation",
-                          Stats (Exempted_No_Violation));
-      Print_Metric_Ratio ("exempted",
-                          Stats (Exempted_With_Violation));
-      Print_Metric_Ratio ("exempted_undetermined_coverage",
-                          Stats (Exempted_With_Undetermined_Cov));
+      Print_Metric_Ratio
+        ("undetermined_coverage", Stats (Undetermined_Coverage));
+      Print_Metric_Ratio
+        ("exempted_no_violation", Stats (Exempted_No_Violation));
+      Print_Metric_Ratio ("exempted", Stats (Exempted_With_Violation));
+      Print_Metric_Ratio
+        ("exempted_undetermined_coverage",
+         Stats (Exempted_With_Undetermined_Cov));
       Print_Metric_Ratio ("disabled_coverage", Stats (Disabled_Coverage));
 
    end Print_Coverage_Stats;

@@ -96,7 +96,8 @@ generic
    type String_List_Options is (<>);
    --  Enumeration type providing the set of multiple strings options
 
-package Argparse is
+package Argparse
+is
 
    use all type Unbounded_String;
 
@@ -108,15 +109,13 @@ package Argparse is
    First_Command : constant Command_Type := Command_Type'Succ (No_Command);
    Last_Command  : constant Command_Type := Command_Type'Last;
 
-   subtype Valid_Commands is
-     Command_Type range First_Command .. Last_Command;
+   subtype Valid_Commands is Command_Type range First_Command .. Last_Command;
    --  Subset of Command_Type that excludes No_Command
 
    type Command_Info is private;
    --  Holder for a subcommand synthetic description
 
-   type Command_Info_Array is
-     array (Valid_Commands) of aliased Command_Info;
+   type Command_Info_Array is array (Valid_Commands) of aliased Command_Info;
 
    type Command_Set is array (Valid_Commands) of Boolean with Pack;
 
@@ -126,8 +125,7 @@ package Argparse is
      (Name        : String;
       Pattern     : String := "";
       Description : String;
-      Internal    : Boolean)
-      return Command_Info;
+      Internal    : Boolean) return Command_Info;
    --  Create a subcommand description.
    --
    --  Name is the name of the subcommand, as it will appear on the command
@@ -158,9 +156,8 @@ package Argparse is
    function Create
      (Long_Name, Short_Name, Help : String := "";
       Commands                    : Command_Set := All_Commands;
-      Internal                    : Boolean)
-      return Bool_Option_Info
-     with Pre => Long_Name'Length > 0 or else Short_Name'Length > 0;
+      Internal                    : Boolean) return Bool_Option_Info
+   with Pre => Long_Name'Length > 0 or else Short_Name'Length > 0;
    --  Create a boolean option description. Long_Name and Short_Name are
    --  |-separated lists of options names.
 
@@ -168,9 +165,8 @@ package Argparse is
      (Long_Name, Short_Name, Help : String := "";
       Commands                    : Command_Set := All_Commands;
       Internal, At_Most_Once      : Boolean;
-      Pattern                     : String := "")
-      return String_Option_Info
-     with Pre => Long_Name'Length > 0 or else Short_Name'Length > 0;
+      Pattern                     : String := "") return String_Option_Info
+   with Pre => Long_Name'Length > 0 or else Short_Name'Length > 0;
    --  Create a single string option description. Long_Name and Short_Name are
    --  |-separated lists of options names. If At_Most_Once is true, the command
    --  cannot appear multiple times on the command-line; otherwise, the
@@ -184,7 +180,8 @@ package Argparse is
       Pattern                     : String := "";
       Accepts_Comma_Separator     : Boolean := False)
       return String_List_Option_Info
-     with Pre =>
+   with
+     Pre =>
        (Long_Name'Length > 0 or else Short_Name'Length > 0)
        and then not (Greedy and then Accepts_Comma_Separator);
    --  Create a multiple strings option description. Long_Name and Short_Name
@@ -206,9 +203,11 @@ package Argparse is
    type Option_Reference (Kind : Option_Kind := Bool_Opt) is record
       case Kind is
          when Bool_Opt =>
-            Bool_Option        : Bool_Options;
+            Bool_Option : Bool_Options;
+
          when String_Opt =>
-            String_Option      : String_Options;
+            String_Option : String_Options;
+
          when String_List_Opt =>
             String_List_Option : String_List_Options;
       end case;
@@ -227,26 +226,27 @@ package Argparse is
 
    type Parsed_Arguments;
 
-   type Bool_Callback_Type is access procedure
-     (Result : in out Parsed_Arguments;
-      Option : Bool_Options);
+   type Bool_Callback_Type is
+     access procedure
+       (Result : in out Parsed_Arguments; Option : Bool_Options);
    --  Callback invoked when parsing a boolean option
 
-   type String_Callback_Type is access procedure
-     (Result : in out Parsed_Arguments;
-      Option : String_Options;
-      Value  : String);
+   type String_Callback_Type is
+     access procedure
+       (Result : in out Parsed_Arguments;
+        Option : String_Options;
+        Value  : String);
    --  Callback invoked when parsing a single string option
 
-   type String_List_Callback_Type is access procedure
-     (Result : in out Parsed_Arguments;
-      Option : String_List_Options;
-      Value  : String);
+   type String_List_Callback_Type is
+     access procedure
+       (Result : in out Parsed_Arguments;
+        Option : String_List_Options;
+        Value  : String);
    --  Callback invoked when parsing a multiple strings option
 
-   type Arg_Callback_Type is access procedure
-     (Result : in out Parsed_Arguments;
-      Value  : String);
+   type Arg_Callback_Type is
+     access procedure (Result : in out Parsed_Arguments; Value : String);
    --  Callback invoked when parsing an argument that is not an option
 
    function Create
@@ -258,8 +258,7 @@ package Argparse is
       Bool_Callback        : Bool_Callback_Type := null;
       String_Callback      : String_Callback_Type := null;
       String_List_Callback : String_List_Callback_Type := null;
-      Arg_Callback         : Arg_Callback_Type := null)
-      return Parser_Type;
+      Arg_Callback         : Arg_Callback_Type := null) return Parser_Type;
    --  Create a new parser. When done with it, it must be destroyed with
    --  Destroy.
    --
@@ -287,8 +286,11 @@ package Argparse is
 
    type String_Option (Present : Boolean := False) is record
       case Present is
-         when False => null;
-         when True  => Value : Unbounded_String;
+         when False =>
+            null;
+
+         when True =>
+            Value : Unbounded_String;
       end case;
    end record;
    --  For single string options, we distinguish the case when the options did
@@ -305,20 +307,20 @@ package Argparse is
      array (String_List_Options) of String_Vectors.Vector;
 
    type Parsed_Arguments is record
-      Error            : Unbounded_String;
+      Error : Unbounded_String;
       --  If this is set to an non-empty string (which is an error message),
       --  all the other members, except Command, must be considered as garbage
       --  (and thus not be used).
 
-      Command          : Command_Type := No_Command;
+      Command : Command_Type := No_Command;
       --  The subcommand that was matched. No_Command if no command could not
       --  be matched.
 
-      Bool_Args        : Bool_Array := (others => False);
+      Bool_Args : Bool_Array := (others => False);
       --  For each boolean option, whether the option appeared on the
       --  command-line.
 
-      String_Args      : String_Array;
+      String_Args : String_Array;
       --  For each single string option, tells whether the option appeared on
       --  the command-line. If it appeared, it provides the value from the last
       --  argument.
@@ -326,7 +328,7 @@ package Argparse is
       String_List_Args : String_List_Array;
       --  For each multiple string option, provide the list of matched values
 
-      Remaining_Args   : String_Vectors.Vector;
+      Remaining_Args : String_Vectors.Vector;
       --  List of all arguments that were not options.
    end record;
    --  Data structure holding the result of command-line parsing
@@ -335,8 +337,9 @@ package Argparse is
      (Parser       : Parser_Type;
       Args         : String_Vectors.Vector;
       With_Command : Command_Type := No_Command;
-      Callback     : access procedure (Result : in out Parsed_Arguments;
-                                       Ref    : Option_Reference) := null)
+      Callback     :
+        access procedure
+          (Result : in out Parsed_Arguments; Ref : Option_Reference) := null)
       return Parsed_Arguments;
    --  Decode the arguments in Source according to the parsing rules in Parser
    --  and return the decoded values.
@@ -347,53 +350,44 @@ package Argparse is
    --  If not null, Callback is invoked on all matched options.
 
    procedure Merge
-     (Args       : in out Parsed_Arguments;
-      Other_Args : Parsed_Arguments)
-     with Pre =>
+     (Args : in out Parsed_Arguments; Other_Args : Parsed_Arguments)
+   with
+     Pre =>
        (Args.Error = ""
         and then Other_Args.Error = ""
-        and then
-          (Args.Command = No_Command
-           or else Args.Command = Other_Args.Command));
+        and then (Args.Command = No_Command
+                  or else Args.Command = Other_Args.Command));
    --  Merge two sets of parsed arguments. Arguments from Other_Args take
    --  precedence.
 
    function Command_Name
-     (Parser  : Parser_Type;
-      Command : Valid_Commands)
-      return String;
+     (Parser : Parser_Type; Command : Valid_Commands) return String;
    --  Return the name for Command according to Parser. It's the name as it
    --  appears on command-lines.
 
    function Option_Name
-     (Parser : Parser_Type;
-      Ref    : Option_Reference)
-      return String;
+     (Parser : Parser_Type; Ref : Option_Reference) return String;
    --  Return the name for Ref according to Parser. It's a |-separated list of
    --  name as they appear on the command-lines.
 
    function Is_Present
-     (Args : Parsed_Arguments;
-      Ref  : Option_Reference) return Boolean;
+     (Args : Parsed_Arguments; Ref : Option_Reference) return Boolean;
    --  Return whether the Ref option is present in Args
 
    function Value
-     (Args    : Parsed_Arguments;
-      Option  : String_Options;
-      Default : String := "") return String;
+     (Args : Parsed_Arguments; Option : String_Options; Default : String := "")
+      return String;
    --  If Option is present in Args, return its value. Return Default otherwise
 
    function Supports
-     (Parser : Parser_Type;
-      Cmd    : Command_Type;
-      Option : Option_Reference) return Boolean;
+     (Parser : Parser_Type; Cmd : Command_Type; Option : Option_Reference)
+      return Boolean;
    --  Return True if Cmd supports Option, False otherwise
 
    function Unparse
-     (Parser : Parser_Type;
-      Args   : Parsed_Arguments;
-      Option : Option_Reference) return String_Vectors.Vector
-     with Pre => Is_Present (Args, Option);
+     (Parser : Parser_Type; Args : Parsed_Arguments; Option : Option_Reference)
+      return String_Vectors.Vector
+   with Pre => Is_Present (Args, Option);
    --  If Option is present in Args, return a string representation of this
    --  option that can be passed to a gnatcov invocation.
 
@@ -430,9 +424,10 @@ private
       Data : Parser_Access;
    end record;
 
-   overriding procedure Finalize (Self : in out Parser_Type);
+   overriding
+   procedure Finalize (Self : in out Parser_Type);
 
-   No_Parser : constant Parser_Type := (Ada.Finalization.Limited_Controlled
-                                        with Data => null);
+   No_Parser : constant Parser_Type :=
+     (Ada.Finalization.Limited_Controlled with Data => null);
 
 end Argparse;

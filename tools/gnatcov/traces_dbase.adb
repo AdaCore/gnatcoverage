@@ -17,15 +17,14 @@
 ------------------------------------------------------------------------------
 
 with Qemu_Traces; use Qemu_Traces;
-with Outputs;      use Outputs;
+with Outputs;     use Outputs;
 
 package body Traces_Dbase is
 
    use Entry_Set;
 
    function Get_Trace_Cur
-     (Base     : Traces_Base;
-      Iterator : Entry_Iterator) return Cursor;
+     (Base : Traces_Base; Iterator : Entry_Iterator) return Cursor;
    --  Comment needed???
 
    ---------------
@@ -47,14 +46,11 @@ package body Traces_Dbase is
       Last  : Pc_Type;
       Op    : Unsigned_8)
    is
-      Cur : Cursor;
+      Cur       : Cursor;
       Merged_Op : Unsigned_8;
-      Success : Boolean;
+      Success   : Boolean;
       New_Entry : constant Trace_Entry :=
-                    (First  => First,
-                     Last   => Last,
-                     Op     => Op,
-                     State  => Unknown);
+        (First => First, Last => Last, Op => Op, State => Unknown);
    begin
       --  Discard empty traces with a warning. Empty traces may be generated
       --  for fault (when a fault happens on a block that has already been
@@ -81,18 +77,16 @@ package body Traces_Dbase is
 
       declare
          N_First, N_Last : Pc_Type;
-         E : constant Trace_Entry := Element (Cur);
+         E               : constant Trace_Entry := Element (Cur);
       begin
          Merged_Op := Op or E.Op;
 
-         if (Op and Trace_Op_Block) = 0
-           and then (Op and Trace_Op_Fault) = 0
+         if (Op and Trace_Op_Block) = 0 and then (Op and Trace_Op_Fault) = 0
          then
             --  Just merge flags
 
             Base.Entries.Replace_Element
-              (Cur,
-               Trace_Entry'(E.First, E.Last, Merged_Op, E.State));
+              (Cur, Trace_Entry'(E.First, E.Last, Merged_Op, E.State));
 
          else
             --  Merge
@@ -122,25 +116,24 @@ package body Traces_Dbase is
                --  Split
 
                Base.Entries.Replace_Element
-                 (Cur,
-                  Trace_Entry'(E.First, N_First - 1, E.Op, E.State));
+                 (Cur, Trace_Entry'(E.First, N_First - 1, E.Op, E.State));
                Base.Entries.Insert
                  (Trace_Entry'(N_First, N_Last, Merged_Op, E.State));
 
                if E.Last > N_Last then
                   Base.Entries.Insert
-                    (Trace_Entry'(First  => N_Last + 1,
-                                  Last   => E.Last,
-                                  Op     => E.Op,
-                                  State  => E.State));
+                    (Trace_Entry'
+                       (First => N_Last + 1,
+                        Last  => E.Last,
+                        Op    => E.Op,
+                        State => E.State));
                end if;
 
             elsif E.Last > N_Last then
                pragma Assert (E.First = N_First);
 
                Base.Entries.Replace_Element
-                 (Cur,
-                  Trace_Entry'(N_First, N_Last, Merged_Op, E.State));
+                 (Cur, Trace_Entry'(N_First, N_Last, Merged_Op, E.State));
 
                Base.Entries.Insert
                  (Trace_Entry'(N_Last + 1, E.Last, E.Op, E.State));
@@ -149,8 +142,7 @@ package body Traces_Dbase is
                pragma Assert (N_Last = E.Last);
 
                Base.Entries.Replace_Element
-                 (Cur,
-                  Trace_Entry'(N_First, N_Last, Merged_Op, E.State));
+                 (Cur, Trace_Entry'(N_First, N_Last, Merged_Op, E.State));
             end if;
          end if;
       end;
@@ -173,7 +165,7 @@ package body Traces_Dbase is
          Dump_Entry (Element (Cur));
       end Dump_Entry;
 
-   --  Start of processing for Dump_Traces
+      --  Start of processing for Dump_Traces
 
    begin
       Base.Entries.Iterate (Dump_Entry'Access);
@@ -183,8 +175,9 @@ package body Traces_Dbase is
    -- Iterate --
    -------------
 
-   procedure Iterate (Base    : Traces_Base;
-                      Process : not null access procedure (E : Trace_Entry))
+   procedure Iterate
+     (Base    : Traces_Base;
+      Process : not null access procedure (E : Trace_Entry))
    is
       procedure Entry_Callback (Cur : Cursor);
 
@@ -206,9 +199,7 @@ package body Traces_Dbase is
    --------------------
 
    procedure Get_Next_Trace
-     (Trace    : out Trace_Entry;
-      Iterator : in out Entry_Iterator)
-   is
+     (Trace : out Trace_Entry; Iterator : in out Entry_Iterator) is
    begin
       if Iterator.Cur = No_Element then
          Trace := Bad_Trace;
@@ -223,9 +214,7 @@ package body Traces_Dbase is
    -------------------
 
    function Get_Trace_Cur
-     (Base     : Traces_Base;
-      Iterator : Entry_Iterator) return Cursor
-   is
+     (Base : Traces_Base; Iterator : Entry_Iterator) return Cursor is
    begin
       if Iterator.Cur = No_Element then
          return Base.Entries.Last;
@@ -239,15 +228,10 @@ package body Traces_Dbase is
    ----------
 
    procedure Init
-     (Base     : Traces_Base;
-      Iterator : out Entry_Iterator;
-      Pc       : Pc_Type)
+     (Base : Traces_Base; Iterator : out Entry_Iterator; Pc : Pc_Type)
    is
       Key : constant Trace_Entry :=
-              (First  => Pc,
-               Last   => Pc,
-               Op     => 0,
-               State  => Unknown);
+        (First => Pc, Last => Pc, Op => 0, State => Unknown);
    begin
       Iterator := (Cur => Base.Entries.Floor (Key));
       if Iterator.Cur = No_Element then
@@ -260,9 +244,7 @@ package body Traces_Dbase is
    ---------------
 
    procedure Init_Post
-     (Base     : Traces_Base;
-      Iterator : out Entry_Iterator;
-      Pc       : Pc_Type)
+     (Base : Traces_Base; Iterator : out Entry_Iterator; Pc : Pc_Type)
    is
       Trace : Trace_Entry;
    begin
@@ -294,7 +276,7 @@ package body Traces_Dbase is
       Pc         : Pc_Type;
       Head_State : Insn_State)
    is
-      Cur : Cursor;
+      Cur                    : Cursor;
       Head_Trace, Tail_Trace : Trace_Entry;
    begin
       Cur := Get_Trace_Cur (Base, Iterator);
@@ -318,11 +300,9 @@ package body Traces_Dbase is
    ------------------
 
    procedure Update_State
-     (Base     : in out Traces_Base;
-      Iterator : Entry_Iterator;
-      State    : Insn_State)
+     (Base : in out Traces_Base; Iterator : Entry_Iterator; State : Insn_State)
    is
-      Cur : Cursor;
+      Cur   : Cursor;
       Trace : Trace_Entry;
    begin
       Cur := Get_Trace_Cur (Base, Iterator);

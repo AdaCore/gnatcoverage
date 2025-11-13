@@ -29,7 +29,8 @@ package Instrument.Ada_Unit is
    type Ada_Instrumenter_Type is new Language_Instrumenter with null record;
    --  Common instrumentation primitives for Ada
 
-   overriding function Language
+   overriding
+   function Language
      (Self : Ada_Instrumenter_Type) return Src_Supported_Language
    is (Ada_Language);
 
@@ -39,13 +40,13 @@ package Instrument.Ada_Unit is
      (Tag                        : Unbounded_String;
       Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
-      Preprocessor_Data_Filename : String)
-      return Ada_Instrumenter_Type
+      Preprocessor_Data_Filename : String) return Ada_Instrumenter_Type
    is (Ada_Instrumenter_Type'(others => <>));
 
    procedure Insert_With_Dump_Helper
      (Self   : in out Ada_Instrumenter_Type;
       Source : GNATCOLL.VFS.Virtual_File;
-      Prj    : in out Prj_Desc) is null;
+      Prj    : in out Prj_Desc)
+   is null;
 
 end Instrument.Ada_Unit;

@@ -29,14 +29,14 @@ with GNAT.Regpat; use GNAT.Regpat;
 
 with Interfaces.C; use Interfaces.C;
 
-with Annotations.Xml;  use Annotations.Xml;
-with Command_Line;     use Command_Line;
-with Coverage;         use Coverage;
-with Coverage.Source;  use Coverage.Source;
-with Outputs;          use Outputs;
+with Annotations.Xml; use Annotations.Xml;
+with Command_Line;    use Command_Line;
+with Coverage;        use Coverage;
+with Coverage.Source; use Coverage.Source;
+with Outputs;         use Outputs;
 with Paths;
 with Support_Files;
-with Switches;         use Switches;
+with Switches;        use Switches;
 with Version;
 
 package body Annotations.Cobertura is
@@ -45,8 +45,8 @@ package body Annotations.Cobertura is
    DTD_Filename : constant String := Support_Files.In_Lib_Dir (DTD_Basename);
 
    type Pattern_Matcher_Acc is access all Pattern_Matcher;
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Pattern_Matcher, Pattern_Matcher_Acc);
+   procedure Free is new
+     Ada.Unchecked_Deallocation (Pattern_Matcher, Pattern_Matcher_Acc);
 
    type Cobertura_Pretty_Printer is new Pretty_Printer with record
       Report_Filename : Unbounded_String;
@@ -66,7 +66,8 @@ package body Annotations.Cobertura is
    end record;
    --  Pretty printer type for the Cobertura annotation format
 
-   overriding function Format
+   overriding
+   function Format
      (Pp : Cobertura_Pretty_Printer) return Annotation_Format_Family
    is (Annotate_Cobertura);
 
@@ -100,14 +101,10 @@ package body Annotations.Cobertura is
    --  Print a string representing a start tag whose name and attributes are
    --  given in parameter, i.e. <Name Attributes>.
 
-   procedure ST
-     (Pp   : in out Cobertura_Pretty_Printer'Class;
-      Name : String);
+   procedure ST (Pp : in out Cobertura_Pretty_Printer'Class; Name : String);
    --  Same as ST, with no attributes
 
-   procedure ET
-     (Pp   : in out Cobertura_Pretty_Printer'Class;
-      Name : String);
+   procedure ET (Pp : in out Cobertura_Pretty_Printer'Class; Name : String);
    --  Print a string representing an end tag whose name is given in parameter,
    --  i.e. </Name>.
 
@@ -116,21 +113,23 @@ package body Annotations.Cobertura is
    --    (inherited from Pretty_Printer)              --
    -----------------------------------------------------
 
-   overriding procedure Pretty_Print_Start
-     (Pp : in out Cobertura_Pretty_Printer);
+   overriding
+   procedure Pretty_Print_Start (Pp : in out Cobertura_Pretty_Printer);
 
-   overriding procedure Pretty_Print_End
-     (Pp : in out Cobertura_Pretty_Printer);
+   overriding
+   procedure Pretty_Print_End (Pp : in out Cobertura_Pretty_Printer);
 
-   overriding procedure Pretty_Print_Start_File
+   overriding
+   procedure Pretty_Print_Start_File
      (Pp   : in out Cobertura_Pretty_Printer;
       File : Source_File_Index;
       Skip : out Boolean);
 
-   overriding procedure Pretty_Print_End_File
-     (Pp : in out Cobertura_Pretty_Printer);
+   overriding
+   procedure Pretty_Print_End_File (Pp : in out Cobertura_Pretty_Printer);
 
-   overriding procedure Pretty_Print_Start_Line
+   overriding
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Cobertura_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
@@ -140,9 +139,7 @@ package body Annotations.Cobertura is
    -- Shortcut for Put_Line's --
    -----------------------------
 
-   procedure P
-     (Pp   : Cobertura_Pretty_Printer'Class;
-      S    : String);
+   procedure P (Pp : Cobertura_Pretty_Printer'Class; S : String);
    --  Put_Line S in the destination file
 
    -----------------------------
@@ -188,10 +185,7 @@ package body Annotations.Cobertura is
       Result : String (1 .. 8);
    begin
       Float_IO.Put
-        (To   => Result,
-         Item => R,
-         Aft  => Rate_Type'Digits - 1,
-         Exp  => 0);
+        (To => Result, Item => R, Aft => Rate_Type'Digits - 1, Exp => 0);
       return Ada.Strings.Fixed.Trim (Result, Side => Ada.Strings.Both);
    end Img;
 
@@ -208,9 +202,7 @@ package body Annotations.Cobertura is
    -- ET --
    --------
 
-   procedure ET
-     (Pp   : in out Cobertura_Pretty_Printer'Class;
-      Name : String) is
+   procedure ET (Pp : in out Cobertura_Pretty_Printer'Class; Name : String) is
    begin
       Pp.Indentation := Pp.Indentation - 1;
       Pp.P ("</" & Name & ">");
@@ -255,8 +247,7 @@ package body Annotations.Cobertura is
 
       Pp.Need_Sources := False;
 
-      Annotations.Generate_Report
-        (Pp, True, Subdir => "cobertura");
+      Annotations.Generate_Report (Pp, True, Subdir => "cobertura");
       Free (Pp.Source_Prefix_Pattern);
    end Generate_Report;
 
@@ -264,10 +255,7 @@ package body Annotations.Cobertura is
    -- P --
    -------
 
-   procedure P
-     (Pp   : Cobertura_Pretty_Printer'Class;
-      S    : String)
-   is
+   procedure P (Pp : Cobertura_Pretty_Printer'Class; S : String) is
       Spaces : constant String (1 .. Pp.Indentation) := (others => ' ');
    begin
       Put_Line (Pp.Report_File, Spaces & S);
@@ -277,8 +265,8 @@ package body Annotations.Cobertura is
    -- Pretty_Print_End --
    ----------------------
 
-   overriding procedure Pretty_Print_End (Pp : in out Cobertura_Pretty_Printer)
-   is
+   overriding
+   procedure Pretty_Print_End (Pp : in out Cobertura_Pretty_Printer) is
    begin
       Pp.ET ("packages");
       Pp.ET ("coverage");
@@ -289,8 +277,8 @@ package body Annotations.Cobertura is
    -- Pretty_Print_End_File --
    ---------------------------
 
-   overriding procedure Pretty_Print_End_File
-     (Pp : in out Cobertura_Pretty_Printer) is
+   overriding
+   procedure Pretty_Print_End_File (Pp : in out Cobertura_Pretty_Printer) is
    begin
       Pp.ET ("lines");
       Pp.ET ("class");
@@ -331,7 +319,8 @@ package body Annotations.Cobertura is
         + Ob_Stats (Decision).Stats (Not_Covered)
         + Ob_Stats (Decision).Stats (Partially_Covered);
       Branches_Covered :=
-        2 * Ob_Stats (Decision).Stats (Covered)
+        2
+        * Ob_Stats (Decision).Stats (Covered)
         + Ob_Stats (Decision).Stats (Partially_Covered);
       if Branches_Valid = 0 then
          Branch_Rate := 1.0;
@@ -345,9 +334,8 @@ package body Annotations.Cobertura is
    -- Pretty_Print_Start --
    ------------------------
 
-   overriding procedure Pretty_Print_Start
-     (Pp : in out Cobertura_Pretty_Printer)
-   is
+   overriding
+   procedure Pretty_Print_Start (Pp : in out Cobertura_Pretty_Printer) is
       Success   : Boolean;
       Timestamp : constant String :=
         Ada.Strings.Fixed.Trim
@@ -363,7 +351,8 @@ package body Annotations.Cobertura is
          Mode     => GNAT.OS_Lib.Overwrite);
       if not Success then
          Fatal_Error
-           ("Error while copying " & DTD_Filename
+           ("Error while copying "
+            & DTD_Filename
             & " to the output directory");
       end if;
 
@@ -386,20 +375,21 @@ package body Annotations.Cobertura is
          Compute_Branch_Stats
            (Global_Ob_Stats, Branches_Valid, Branches_Covered, Branch_Rate);
 
-         Pp.ST ("coverage",
-                A ("line-rate", Img (Line_Rate))
-                & A ("branch-rate", Img (Branch_Rate))
-                & A ("lines-covered", Img (Lines_Covered))
-                & A ("lines-valid", Img (Lines_Valid))
-                & A ("branches-covered", Img (Branches_Covered))
-                & A ("branches-valid", Img (Branches_Valid))
+         Pp.ST
+           ("coverage",
+            A ("line-rate", Img (Line_Rate))
+            & A ("branch-rate", Img (Branch_Rate))
+            & A ("lines-covered", Img (Lines_Covered))
+            & A ("lines-valid", Img (Lines_Valid))
+            & A ("branches-covered", Img (Branches_Covered))
+            & A ("branches-valid", Img (Branches_Valid))
 
-                --  Cobertura also provides the cyclomatic complexity number.
-                --  As we don't compute this, print an arbitrary invalid value.
+            --  Cobertura also provides the cyclomatic complexity number.
+            --  As we don't compute this, print an arbitrary invalid value.
 
-                & A ("complexity", "-1")
-                & A ("version", Version.Xcov_Version)
-                & A ("timestamp", Timestamp));
+            & A ("complexity", "-1")
+            & A ("version", Version.Xcov_Version)
+            & A ("timestamp", Timestamp));
 
          Pp.ST ("sources");
          Pp.ET ("sources");
@@ -411,7 +401,8 @@ package body Annotations.Cobertura is
    -- Pretty_Print_Start_File --
    -----------------------------
 
-   overriding procedure Pretty_Print_Start_File
+   overriding
+   procedure Pretty_Print_Start_File
      (Pp   : in out Cobertura_Pretty_Printer;
       File : Source_File_Index;
       Skip : out Boolean)
@@ -437,10 +428,7 @@ package body Annotations.Cobertura is
       Compute_Line_Stats
         (Info.Li_Stats, Lines_Valid, Lines_Covered, Line_Rate);
       Compute_Branch_Stats
-        (Info.Ob_Stats,
-         Branches_Valid,
-         Branches_Covered,
-         Branch_Rate);
+        (Info.Ob_Stats, Branches_Valid, Branches_Covered, Branch_Rate);
 
       --  Remove the source root prefix (if present) from Filename so that, if
       --  Filename designates a source file that is inside the directory
@@ -473,18 +461,20 @@ package body Annotations.Cobertura is
          end;
       end if;
 
-      Pp.ST ("package",
-             A ("name", Simple_Source_Filename)
-             & A ("line-rate", Img (Line_Rate))
-             & A ("branch-rate", Img (Branch_Rate))
-             & A ("complexity", "-1"));
+      Pp.ST
+        ("package",
+         A ("name", Simple_Source_Filename)
+         & A ("line-rate", Img (Line_Rate))
+         & A ("branch-rate", Img (Branch_Rate))
+         & A ("complexity", "-1"));
       Pp.ST ("classes");
-      Pp.ST ("class",
-             A ("name", Simple_Source_Filename)
-             & A ("filename", +Filename)
-             & A ("line-rate", Img (Line_Rate))
-             & A ("branch-rate", Img (Branch_Rate))
-             & A ("complexity", "-1"));
+      Pp.ST
+        ("class",
+         A ("name", Simple_Source_Filename)
+         & A ("filename", +Filename)
+         & A ("line-rate", Img (Line_Rate))
+         & A ("branch-rate", Img (Branch_Rate))
+         & A ("complexity", "-1"));
       Pp.ST ("methods");
       Pp.ET ("methods");
       Pp.ST ("lines");
@@ -494,23 +484,24 @@ package body Annotations.Cobertura is
    -- Pretty_Print_Start_Line --
    -----------------------------
 
-   overriding procedure Pretty_Print_Start_Line
+   overriding
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Cobertura_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
       Line     : String)
    is
-      Coverage_State : constant Any_Line_State :=
-        Aggregated_State (Info.all);
+      Coverage_State : constant Any_Line_State := Aggregated_State (Info.all);
       Exempted       : constant Boolean := Info.Exemption /= Slocs.No_Location;
    begin
       if not Exempted and then Coverage_State /= No_Code then
          declare
             subtype Coverage_Line_State is
-               Any_Line_State range Not_Covered .. Covered;
-            package SCOs_State_Maps is new Ada.Containers.Ordered_Maps
-              (Key_Type     => SCO_Id,
-               Element_Type => Coverage_Line_State);
+              Any_Line_State range Not_Covered .. Covered;
+            package SCOs_State_Maps is new
+              Ada.Containers.Ordered_Maps
+                (Key_Type     => SCO_Id,
+                 Element_Type => Coverage_Line_State);
 
             Hit : Natural := 0;
             --  Whether the line was covered or not. Cobertura enables counting
@@ -542,10 +533,9 @@ package body Annotations.Cobertura is
                for SCO of Info.SCOs.all loop
                   if Kind (SCO) /= Removed
                     and then First_Sloc (SCO).L.Line = Line_Num
-                    and then  SCO_Kind (Kind (SCO)) = Decision
-                    and then
-                      (Coverage.Enabled (Decision)
-                       or else Coverage.MCDC_Coverage_Enabled)
+                    and then SCO_Kind (Kind (SCO)) = Decision
+                    and then (Coverage.Enabled (Decision)
+                              or else Coverage.MCDC_Coverage_Enabled)
                   then
                      declare
                         Line_State : constant Any_Line_State :=
@@ -590,8 +580,12 @@ package body Annotations.Cobertura is
                      A
                        ("condition-coverage",
                         Img (Ratio (Branches_Covered, Branches_Valid))
-                        & "%" & "(" & Img (Branches_Covered) & "/"
-                        & Img (Branches_Valid) & ")"));
+                        & "%"
+                        & "("
+                        & Img (Branches_Covered)
+                        & "/"
+                        & Img (Branches_Valid)
+                        & ")"));
                else
                   Append (Line_Attributes, A ("branch", "false"));
                end if;
@@ -605,9 +599,9 @@ package body Annotations.Cobertura is
                   for State_Decision of State_Decisions loop
                      Coverage_Ratio :=
                        (case State_Decision is
-                           when Not_Covered       => 0,
-                           when Partially_Covered => 50,
-                           when Covered           => 100);
+                          when Not_Covered       => 0,
+                          when Partially_Covered => 50,
+                          when Covered           => 100);
                      Pp.T
                        ("condition",
                         A ("number", Img (I))
@@ -649,9 +643,7 @@ package body Annotations.Cobertura is
       Pp.Indentation := Pp.Indentation + 1;
    end ST;
 
-   procedure ST
-     (Pp   : in out Cobertura_Pretty_Printer'Class;
-      Name : String) is
+   procedure ST (Pp : in out Cobertura_Pretty_Printer'Class; Name : String) is
    begin
       Pp.P ("<" & Name & ">");
       Pp.Indentation := Pp.Indentation + 1;

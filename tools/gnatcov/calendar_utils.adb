@@ -34,21 +34,20 @@ package body Calendar_Utils is
       -- Put_Pad --
       -------------
 
-      procedure Put_Pad (Num : Natural; S : out String)
-      is
+      procedure Put_Pad (Num : Natural; S : out String) is
          V : Natural := Num;
       begin
          for I in reverse S'Range loop
-            S (I) := Character'Val ((V rem 10)
-                                    + Character'Pos ('0'));
+            S (I) := Character'Val ((V rem 10) + Character'Pos ('0'));
             V := V / 10;
          end loop;
       end Put_Pad;
 
    begin
       case Timezone is
-         when UTC_Time =>
+         when UTC_Time   =>
             return Ada.Calendar.Formatting.Image (Date) & " UTC";
+
          when Local_Time =>
             declare
                Time_Zone      : constant Time_Offset := Local_Time_Offset;
@@ -62,10 +61,8 @@ package body Calendar_Utils is
                --  according to the type specification), but we will always
                --  express it in hours and minutes for clarity purposes.
 
-               Hours   : constant Natural :=
-                 Natural (abs Time_Zone) / 60;
-               Minutes : constant Natural :=
-                 Natural (abs Time_Zone) mod 60;
+               Hours   : constant Natural := Natural (abs Time_Zone) / 60;
+               Minutes : constant Natural := Natural (abs Time_Zone) mod 60;
             begin
                Put_Pad (Hours, Serialized_Offset (2 .. 3));
                Put_Pad (Minutes, Serialized_Offset (5 .. 6));

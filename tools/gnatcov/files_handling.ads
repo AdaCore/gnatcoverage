@@ -39,32 +39,37 @@ package Files_Handling is
    --  Wrapper around GNATCOLL.VFS.Full_Name, converting the Filesystem_String
    --  to an Unbounded_String.
 
-   package File_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Virtual_File,
-      "="          => GNATCOLL.VFS."=");
+   package File_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Virtual_File,
+        "="          => GNATCOLL.VFS."=");
 
-   package File_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Virtual_File,
-      "<"          => GNATCOLL.VFS."<",
-      "="          => GNATCOLL.VFS."=");
+   package File_Sets is new
+     Ada.Containers.Ordered_Sets
+       (Element_Type => Virtual_File,
+        "<"          => GNATCOLL.VFS."<",
+        "="          => GNATCOLL.VFS."=");
 
-   package File_To_String_Vectors_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Virtual_File,
-      Element_Type => String_Vectors.Vector,
-      "<"          => GNATCOLL.VFS."<",
-      "="          => String_Vectors."=");
+   package File_To_String_Vectors_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Virtual_File,
+        Element_Type => String_Vectors.Vector,
+        "<"          => GNATCOLL.VFS."<",
+        "="          => String_Vectors."=");
 
-   package File_To_File_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Virtual_File,
-      Element_Type => Virtual_File,
-      "<"          => GNATCOLL.VFS."<",
-      "="          => GNATCOLL.VFS."=");
+   package File_To_File_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Virtual_File,
+        Element_Type => Virtual_File,
+        "<"          => GNATCOLL.VFS."<",
+        "="          => GNATCOLL.VFS."=");
 
-   package File_To_String_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Virtual_File,
-      Element_Type => Unbounded_String,
-      "<"          => GNATCOLL.VFS."<",
-      "="          => Ada.Strings.Unbounded."=");
+   package File_To_String_Maps is new
+     Ada.Containers.Ordered_Maps
+       (Key_Type     => Virtual_File,
+        Element_Type => Unbounded_String,
+        "<"          => GNATCOLL.VFS."<",
+        "="          => Ada.Strings.Unbounded."=");
 
 end Files_Handling;

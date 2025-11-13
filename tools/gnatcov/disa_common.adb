@@ -18,10 +18,10 @@
 
 with Ada.Unchecked_Conversion;
 
-with Arch;     use Arch;
+with Arch;        use Arch;
 with Dis_Opcodes; use Dis_Opcodes;
-with Swaps;    use Swaps;
-with Traces;   use Traces;
+with Swaps;       use Swaps;
+with Traces;      use Traces;
 
 package body Disa_Common is
 
@@ -113,26 +113,25 @@ package body Disa_Common is
      (Addr           : BFD_VMA;
       Symbol_Manager : System.Address;
       Buff_Addr      : System.Address;
-      Buff_Size      : int) return int is
+      Buff_Size      : int) return int
+   is
 
       type Symbolizer_Access is access Symbolizer'Class;
 
-      function Symbolizer_Cast is
-        new Ada.Unchecked_Conversion (System.Address, Symbolizer_Access);
+      function Symbolizer_Cast is new
+        Ada.Unchecked_Conversion (System.Address, Symbolizer_Access);
 
-      SBuff      : String (1 .. Integer (Buff_Size));
+      SBuff  : String (1 .. Integer (Buff_Size));
       for SBuff'Address use Buff_Addr;
-      Symb       : Symbolizer_Access renames
-        Symbolizer_Cast (Symbol_Manager);
-      Symbol     : constant String :=
-        Symb.Symbolize (Pc_Type'Mod (Addr));
+      Symb   : Symbolizer_Access renames Symbolizer_Cast (Symbol_Manager);
+      Symbol : constant String := Symb.Symbolize (Pc_Type'Mod (Addr));
       --  When Libopcode is built in 64bits mode, BFD_VMA is 64bits wide
       --  regardless of the target arch for the disassembled code.
       --  The disassembler does not take care of wrapping addresses to 32bits
       --  when computing them so we need to do it whenever the disassembler
       --  provides us with and address.
 
-      Copy_Size  : constant Natural :=
+      Copy_Size : constant Natural :=
         Natural'Min (Symbol'Length, Natural (Buff_Size));
    begin
       SBuff (1 .. Copy_Size) :=
@@ -156,24 +155,27 @@ package body Disa_Common is
       pragma Assert (Big_Endian_ELF_Initialized);
 
       Insn_Bytes : Dis_Opcodes.BFD_Byte_Array (0 .. Insn_Max_Len - 1)
-         with Import, Address => Insn_Bin.Content.all'Address;
+      with Import, Address => Insn_Bin.Content.all'Address;
    begin
       Dis_Opcodes.Set_Disassembler_Symbolizer
         (Handle, Sym'Address, Disa_Common.Print_Symbol_Func'Access);
 
-      return Positive
-        (Dis_Opcodes.Disassemble_To_Text
-           (DH          => Handle,
-            Pc          => Dis_Opcodes.BFD_VMA (Pc),
-            Dest        => Buffer,
-            Dest_Size   => Buffer'Length,
-            Insn_Buffer => Insn_Bytes,
-            Ib_Size     => C.unsigned
-              (Unsigned_32'Min (Insn_Bytes'Length,
-                                Unsigned_32 (Length (Insn_Bin)))),
-            Endian      => (if Big_Endian_ELF
-                            then Dis_Opcodes.BFD_ENDIAN_BIG
-                            else Dis_Opcodes.BFD_ENDIAN_LITTLE)));
+      return
+        Positive
+          (Dis_Opcodes.Disassemble_To_Text
+             (DH          => Handle,
+              Pc          => Dis_Opcodes.BFD_VMA (Pc),
+              Dest        => Buffer,
+              Dest_Size   => Buffer'Length,
+              Insn_Buffer => Insn_Bytes,
+              Ib_Size     =>
+                C.unsigned
+                  (Unsigned_32'Min
+                     (Insn_Bytes'Length, Unsigned_32 (Length (Insn_Bin)))),
+              Endian      =>
+                (if Big_Endian_ELF
+                 then Dis_Opcodes.BFD_ENDIAN_BIG
+                 else Dis_Opcodes.BFD_ENDIAN_LITTLE)));
    end Opcodes_Run_Disassembler;
 
    ------------------------------
@@ -191,8 +193,9 @@ package body Disa_Common is
    is
       Buff : C.char_array := (C.size_t (1) .. C.size_t (256) => <>);
    begin
-      Insn_Len := Opcodes_Run_Disassembler
-        (Handle, Insn_Bin, Pc, Insn_Max_Len, Sym, Buff);
+      Insn_Len :=
+        Opcodes_Run_Disassembler
+          (Handle, Insn_Bin, Pc, Insn_Max_Len, Sym, Buff);
       Buffer.Start_Token (Highlighting.Text);
       Buffer.Put (C.To_Ada (Buff));
    end Opcodes_Disassemble_Insn;
@@ -209,8 +212,9 @@ package body Disa_Common is
    is
       Buff : C.char_array := (1 .. 0 => <>);
    begin
-      return Opcodes_Run_Disassembler
-        (Handle, Insn_Bin, Pc, Insn_Max_Len, Nul_Symbolizer, Buff);
+      return
+        Opcodes_Run_Disassembler
+          (Handle, Insn_Bin, Pc, Insn_Max_Len, Nul_Symbolizer, Buff);
    end Opcodes_Get_Insn_Length;
 
 end Disa_Common;

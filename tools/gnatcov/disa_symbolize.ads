@@ -25,24 +25,26 @@ package Disa_Symbolize is
 
    type Symbolizer is limited interface;
    procedure Symbolize
-     (Sym      : Symbolizer;
-      Pc       : Traces.Pc_Type;
-      Buffer   : in out Highlighting.Buffer_Type) is abstract;
+     (Sym    : Symbolizer;
+      Pc     : Traces.Pc_Type;
+      Buffer : in out Highlighting.Buffer_Type)
+   is abstract;
    --  If Pc belongs to a known symbol, but in Buffer the symbol name + offset
    --  (if any). Otherwise, leave Buffer empty.
 
    function Symbolize
-     (Sym : Symbolizer'Class;
-      Pc  : Traces.Pc_Type) return String;
+     (Sym : Symbolizer'Class; Pc : Traces.Pc_Type) return String;
    --  Wrapper around the highlighting Symbolize procedure above. Return a raw
    --  string instead.
 
    type Nul_Symbolizer_Type is new Symbolizer with private;
 
-   overriding procedure Symbolize
-     (Sym      : Nul_Symbolizer_Type;
-      Pc       : Traces.Pc_Type;
-      Buffer   : in out Highlighting.Buffer_Type) is null;
+   overriding
+   procedure Symbolize
+     (Sym    : Nul_Symbolizer_Type;
+      Pc     : Traces.Pc_Type;
+      Buffer : in out Highlighting.Buffer_Type)
+   is null;
 
    Nul_Symbolizer : constant Nul_Symbolizer_Type;
 

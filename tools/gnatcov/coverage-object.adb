@@ -61,12 +61,11 @@ package body Coverage.Object is
       end if;
    end "<";
 
-   package Address_Range_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Address_Range);
+   package Address_Range_Sets is new
+     Ada.Containers.Ordered_Sets (Element_Type => Address_Range);
 
    function PC_Range_Covered
-     (Ranges      : Address_Range_Sets.Set;
-      First, Last : Pc_Type) return Boolean;
+     (Ranges : Address_Range_Sets.Set; First, Last : Pc_Type) return Boolean;
    --  Returns whether for every address in First .. Last, there is one
    --  Address_Range of Ranges that contains it.
 
@@ -75,8 +74,7 @@ package body Coverage.Object is
    ----------------------
 
    function PC_Range_Covered
-     (Ranges      : Address_Range_Sets.Set;
-      First, Last : Pc_Type) return Boolean
+     (Ranges : Address_Range_Sets.Set; First, Last : Pc_Type) return Boolean
    is
       use Interfaces;
       use Address_Range_Sets;
@@ -92,7 +90,8 @@ package body Coverage.Object is
          --  If there is only one trace entry, simply check that it covers the
          --  entire range of interest.
 
-         return Ranges.First_Element.First <= First
+         return
+           Ranges.First_Element.First <= First
            and then Ranges.First_Element.Last >= Last;
       else
 
@@ -157,9 +156,7 @@ package body Coverage.Object is
    --------------------
 
    function Get_Line_State
-     (Base  : Traces_Base;
-      First : Pc_Type;
-      Last  : Pc_Type) return Line_State
+     (Base : Traces_Base; First : Pc_Type; Last : Pc_Type) return Line_State
    is
       use Interfaces;
 
@@ -204,30 +201,27 @@ package body Coverage.Object is
    -- Update_Line_State --
    -----------------------
 
-   procedure Update_Line_State
-     (L : in out Line_State;
-      I : Known_Insn_State)
-   is
+   procedure Update_Line_State (L : in out Line_State; I : Known_Insn_State) is
    begin
       case L is
-         when Not_Covered =>
+         when Not_Covered           =>
             if I = Not_Covered then
                L := Not_Covered;
             else
                L := Partially_Covered;
             end if;
 
-         when Partially_Covered =>
+         when Partially_Covered     =>
             null;
 
-         when Covered =>
+         when Covered               =>
             if I = Covered or else I = Both_Taken then
                L := Covered;
             else
                L := Partially_Covered;
             end if;
 
-         when No_Code =>
+         when No_Code               =>
             if I = Covered or else I = Both_Taken then
                L := Covered;
             elsif I = Not_Covered then
@@ -236,32 +230,35 @@ package body Coverage.Object is
                L := Partially_Covered;
             end if;
 
-         when Not_Coverable =>
+         when Not_Coverable         =>
 
             --  Line can't be marked as not coverable, since there *is* an
             --  associated instruction.
 
-            raise Program_Error with
-              "Attempting to set an instruction state to Not_Coverable,"
-              & " but the instruction comes from an executable.";
+            raise Program_Error
+              with
+                "Attempting to set an instruction state to Not_Coverable,"
+                & " but the instruction comes from an executable.";
 
          when Undetermined_Coverage =>
 
             --  Line can't (at the moment) be marked as undetermined line state
             --  when not using source traces.
 
-            raise Program_Error with
-              "Undetermined_Coverage line state reserved for source"
-              & " coverage";
+            raise Program_Error
+              with
+                "Undetermined_Coverage line state reserved for source"
+                & " coverage";
 
-         when Disabled_Coverage =>
+         when Disabled_Coverage     =>
 
             --  Line can't be marked as disabled coverage line state when not
             --  using source traces.
 
-            raise Program_Error with
-              "Disabled_Coverage line state reserved for source"
-              & " coverage";
+            raise Program_Error
+              with
+                "Disabled_Coverage line state reserved for source"
+                & " coverage";
 
       end case;
    end Update_Line_State;

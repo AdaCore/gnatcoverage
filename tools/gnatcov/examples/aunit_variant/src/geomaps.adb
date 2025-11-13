@@ -24,11 +24,11 @@ package body Geomaps is
    --  Characters to printout for each possible kind of field Square,
    --  and to represent an actor heading to a specific direction.
 
-   Square_Image : array (Square) of Character
-     := (Ground => ' ', Block => '#', Water => '~', Unknown => '.');
+   Square_Image : array (Square) of Character :=
+     (Ground => ' ', Block => '#', Water => '~', Unknown => '.');
 
-   Situ_Image : array (Direction) of Character
-     := (North => '^', West => '<', East => '>', South => 'v');
+   Situ_Image : array (Direction) of Character :=
+     (North => '^', West => '<', East => '>', South => 'v');
 
    ----------
    -- Dump --
@@ -60,9 +60,11 @@ package body Geomaps is
          Dx, Dy : Move_XYrange;
       end record;
 
-      XYmoves : constant array (Direction) of Move
-        := (West => (Dx => -1, Dy => 0), East => (Dx => +1, Dy => 0),
-            South => (Dx => 0, Dy => +1), North => (Dx => 0, Dy => -1));
+      XYmoves : constant array (Direction) of Move :=
+        (West  => (Dx => -1, Dy => 0),
+         East  => (Dx => +1, Dy => 0),
+         South => (Dx => 0, Dy => +1),
+         North => (Dx => 0, Dy => -1));
 
       XYmove : Move renames XYmoves (Situ.Dir);
    begin

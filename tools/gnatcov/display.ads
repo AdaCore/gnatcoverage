@@ -15,6 +15,7 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
+
 package Display is
    --  If Set uses VT100 control sequences to colorize outputs.
    Flag_Color : Boolean := False;

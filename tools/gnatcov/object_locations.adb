@@ -43,8 +43,7 @@ package body Object_Locations is
      Compile ("^0x([0-9a-fA-F]+)..0x([0-9a-fA-F]+)$");
 
    function Get_Symbol
-     (Exec : Exe_File_Type'Class;
-      Name : String) return Address_Info_Acc;
+     (Exec : Exe_File_Type'Class; Name : String) return Address_Info_Acc;
    --  Return the symbol that matches Name, or null if there is no such symbol.
    --  Performs a linear search to do so.
 
@@ -58,32 +57,32 @@ package body Object_Locations is
    function Parse_User_Location (S : String) return User_Location is
       Matches : Match_Array (0 .. 5);
 
-      function Match (Index : Integer) return String is
-        (S (Matches (Index).First .. Matches (Index).Last));
+      function Match (Index : Integer) return String
+      is (S (Matches (Index).First .. Matches (Index).Last));
       --  Return the substring of S corresponding to the Index regexp match
 
       File_Index : Source_File_Index;
    begin
       Match (Sloc_Range_RE, S, Matches);
       if Matches (0) /= No_Match then
-         File_Index := Files_Table.Get_Index_From_Simple_Name
-           (Match (1), Files_Table.Source_File, Insert => True);
+         File_Index :=
+           Files_Table.Get_Index_From_Simple_Name
+             (Match (1), Files_Table.Source_File, Insert => True);
          return
            (Kind       => Sloc_Range,
-            Sloc_Range => To_Range
-              ((Source_File => File_Index,
-                L           => (Integer'Value (Match (2)),
-                                Integer'Value (Match (3)))),
-               (Source_File => File_Index,
-                L           => (Integer'Value (Match (4)),
-                                Integer'Value (Match (5))))));
+            Sloc_Range =>
+              To_Range
+                ((Source_File => File_Index,
+                  L           =>
+                    (Integer'Value (Match (2)), Integer'Value (Match (3)))),
+                 (Source_File => File_Index,
+                  L           =>
+                    (Integer'Value (Match (4)), Integer'Value (Match (5))))));
       end if;
 
       Match (Around_Address_RE, S, Matches);
       if Matches (0) /= No_Match then
-         return
-           (Kind    => Around_Address,
-            Address => Hex_Value (Match (1)));
+         return (Kind => Around_Address, Address => Hex_Value (Match (1)));
       end if;
 
       Match (Address_Range_RE, S, Matches);
@@ -94,8 +93,7 @@ package body Object_Locations is
             PC_Last  => Hex_Value (Match (2)));
       end if;
 
-      return (Kind => Symbol,
-              Name => Symbols.To_Symbol (S));
+      return (Kind => Symbol, Name => Symbols.To_Symbol (S));
    end Parse_User_Location;
 
    ------------------------
@@ -103,14 +101,11 @@ package body Object_Locations is
    ------------------------
 
    function Translate_Location
-     (Exec : Exe_File_Acc; User_Loc : User_Location) return Proc_Location
-   is
+     (Exec : Exe_File_Acc; User_Loc : User_Location) return Proc_Location is
    begin
       case User_Loc.Kind is
-         when Sloc_Range =>
-            return
-              (Kind       => Sloc_Range,
-               Sloc_Range => User_Loc.Sloc_Range);
+         when Sloc_Range     =>
+            return (Kind => Sloc_Range, Sloc_Range => User_Loc.Sloc_Range);
 
          when Around_Address =>
             declare
@@ -129,13 +124,13 @@ package body Object_Locations is
                end if;
             end;
 
-         when Address_Range =>
+         when Address_Range  =>
             return
               (Kind     => Address_Range,
                PC_First => User_Loc.PC_First,
                PC_Last  => User_Loc.PC_Last);
 
-         when Symbol =>
+         when Symbol         =>
             declare
                Name   : constant String :=
                  Symbols.To_String (User_Loc.Name).all;
@@ -147,9 +142,10 @@ package body Object_Locations is
                   return No_Proc_Location;
 
                else
-                  return (Kind     => Address_Range,
-                          PC_First => Symbol.First,
-                          PC_Last  => Symbol.Last);
+                  return
+                    (Kind     => Address_Range,
+                     PC_First => Symbol.First,
+                     PC_Last  => Symbol.Last);
                end if;
             end;
       end case;
@@ -174,8 +170,11 @@ package body Object_Locations is
                if Switches.Misc_Trace.Is_Active then
                   Report
                     (Msg  =>
-                       ("Location: " & Image (Loc)
-                        & " (from " & Image (User_Loc) & ")"),
+                       ("Location: "
+                        & Image (Loc)
+                        & " (from "
+                        & Image (User_Loc)
+                        & ")"),
                      Kind => Notice);
                end if;
 
@@ -193,25 +192,24 @@ package body Object_Locations is
    -----------------------
 
    function Matches_Locations
-     (Exec      : Exe_File_Acc;
-      Locations : Proc_Locations;
-      PC        : Pc_Type) return Boolean
+     (Exec : Exe_File_Acc; Locations : Proc_Locations; PC : Pc_Type)
+      return Boolean
    is
       Result : Boolean := False;
       S      : Address_Info_Acc;
 
-      function "<=" (L, R : Local_Source_Location) return Boolean is
-        (L.Line < R.Line
-         or else (L.Line = R.Line and then L.Column <= R.Column));
+      function "<=" (L, R : Local_Source_Location) return Boolean
+      is (L.Line < R.Line
+          or else (L.Line = R.Line and then L.Column <= R.Column));
       --  Return if L is before R. Unlike in the Slocs package,
       --  No_Sloc_Location must sort lower than specific slocs.
 
       function In_Sloc_Range
-        (Sloc : Source_Location;
-         Sloc_Range : Source_Location_Range) return Boolean is
-        (Sloc.Source_File = Sloc_Range.Source_File
-         and then Sloc_Range.L.First_Sloc <= Sloc.L
-         and then Sloc.L <= Sloc_Range.L.Last_Sloc);
+        (Sloc : Source_Location; Sloc_Range : Source_Location_Range)
+         return Boolean
+      is (Sloc.Source_File = Sloc_Range.Source_File
+          and then Sloc_Range.L.First_Sloc <= Sloc.L
+          and then Sloc.L <= Sloc_Range.L.Last_Sloc);
       --  Return if Sloc belongs to in Sloc_Range
 
    begin
@@ -219,9 +217,9 @@ package body Object_Locations is
          case Loc.Kind is
             when Address_Range =>
                Result := PC in Loc.PC_First .. Loc.PC_Last;
-            when Sloc_Range =>
-               S := Get_Address_Info
-                 (Exec.all, Subprogram_Addresses, PC);
+
+            when Sloc_Range    =>
+               S := Get_Address_Info (Exec.all, Subprogram_Addresses, PC);
                if S /= null then
                   declare
                      Sloc : constant Address_Info_Acc :=
@@ -247,15 +245,20 @@ package body Object_Locations is
    function Image (L : User_Location) return String is
    begin
       case L.Kind is
-         when Sloc_Range =>
+         when Sloc_Range     =>
             return "Sloc range " & Image (L.Sloc_Range);
+
          when Around_Address =>
             return "Around address " & Hex_Image (L.Address);
-         when Address_Range =>
+
+         when Address_Range  =>
             return
-              ("Address range " & Hex_Image (L.PC_First)
-               & ".." & Hex_Image (L.PC_Last));
-         when Symbol =>
+              ("Address range "
+               & Hex_Image (L.PC_First)
+               & ".."
+               & Hex_Image (L.PC_Last));
+
+         when Symbol         =>
             return "Symbol " & Symbols.To_String (L.Name).all;
       end case;
    end Image;
@@ -269,9 +272,12 @@ package body Object_Locations is
       case L.Kind is
          when Address_Range =>
             return
-              ("Address range " & Hex_Image (L.PC_First)
-               & ".." & Hex_Image (L.PC_Last));
-         when Sloc_Range =>
+              ("Address range "
+               & Hex_Image (L.PC_First)
+               & ".."
+               & Hex_Image (L.PC_Last));
+
+         when Sloc_Range    =>
             return "Sloc range " & Image (L.Sloc_Range);
       end case;
    end Image;
@@ -296,8 +302,7 @@ package body Object_Locations is
    ----------------
 
    function Get_Symbol
-     (Exec : Exe_File_Type'Class;
-      Name : String) return Address_Info_Acc
+     (Exec : Exe_File_Type'Class; Name : String) return Address_Info_Acc
    is
       Cur    : Addresses_Iterator;
       Symbol : Address_Info_Acc;
@@ -307,8 +312,7 @@ package body Object_Locations is
          Next_Iterator (Cur, Symbol);
          exit when Symbol = null;
 
-         if Symbol.Symbol_Name /= null
-           and then Symbol.Symbol_Name.all = Name
+         if Symbol.Symbol_Name /= null and then Symbol.Symbol_Name.all = Name
          then
             return Symbol;
          end if;

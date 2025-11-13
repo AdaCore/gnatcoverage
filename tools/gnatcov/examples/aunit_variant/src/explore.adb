@@ -26,7 +26,7 @@
 --  separated out to allow inclusion into the documentation.
 
 with Overview, Actors, Robots, Stations, Controls, Geomaps;
-use  Overview, Actors, Robots, Stations, Controls, Geomaps;
+use Overview, Actors, Robots, Stations, Controls, Geomaps;
 
 with Robots_Devices.Dummy;
 
@@ -57,16 +57,18 @@ begin
    --  to their dedicated ports on both sides.
 
    declare
-      SR_Control_Link : Robot_Control_Links.IOlink_Access
-        := new Robot_Control_Links.IOlink;
-      SR_Situation_Link : Situation_Links.IOlink_Access
-        := new Situation_Links.IOlink;
+      SR_Control_Link   : Robot_Control_Links.IOlink_Access :=
+        new Robot_Control_Links.IOlink;
+      SR_Situation_Link : Situation_Links.IOlink_Access :=
+        new Situation_Links.IOlink;
    begin
       Robot_Control_Links.Connect
-        (Robot_Control_Outport (S.all), Robot_Control_Inport (R.all),
+        (Robot_Control_Outport (S.all),
+         Robot_Control_Inport (R.all),
          SR_Control_Link);
       Situation_Links.Connect
-        (Robot_Situation_Outport (R.all), Robot_Situation_Inport (S.all),
+        (Robot_Situation_Outport (R.all),
+         Robot_Situation_Inport (S.all),
          SR_Situation_Link);
    end;
 

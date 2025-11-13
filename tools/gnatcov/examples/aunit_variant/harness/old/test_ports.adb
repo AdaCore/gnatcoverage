@@ -23,9 +23,9 @@ procedure Test_Ports is
    package Integer_Links is new Links (Data_Type => Integer);
    use Integer_Links;
 
-   X : Integer;
+   X      : Integer;
    IP, OP : aliased Integer_Links.IOport (Capacity => 1);
-   L : aliased Integer_Links.IOlink;
+   L      : aliased Integer_Links.IOlink;
 begin
    Connect (Outp => OP'Access, Inp => IP'Access, Link => L);
 

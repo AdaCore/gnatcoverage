@@ -49,13 +49,16 @@ package Outputs is
    procedure Warning_Or_Error (Msg : String);
    --  Display Msg on standard error
 
-   procedure Fatal_Error (Msg : String) with No_Return;
+   procedure Fatal_Error (Msg : String)
+   with No_Return;
    --  Same as Error, and cause Xcov to terminate by raising Fatal_Error_Exc
 
-   procedure Fatal_Error_With_Usage (Msg : String) with No_Return;
+   procedure Fatal_Error_With_Usage (Msg : String)
+   with No_Return;
    --  Same as Fatal_Error, but print the command-line usage before terminating
 
-   procedure Normal_Exit with No_Return;
+   procedure Normal_Exit
+   with No_Return;
    --  Cause Xcov to terminate with the success exit code. Since this shortcuts
    --  gnatcov's regular error-tracking mechanisms, it is used only in one
    --  specific case: the handling of early exit to handle --help.
@@ -109,8 +112,8 @@ package Outputs is
    procedure Print_Internal_Error (Exc : Ada.Exceptions.Exception_Occurrence);
    --  Display the given internal error along with the known context (see the
    --  previous procedures).
-   type Any_Internal_Error_Trigger is (
-      None,
+   type Any_Internal_Error_Trigger is
+     (None,
       --  Do not create an artificial internal error
 
       Arguments_Loading,
@@ -127,7 +130,7 @@ package Outputs is
 
       Ada_Instrument_Insert_Stmt_Witness
       --  Raise an error when inserting a witness call for a statement
-   );
+     );
 
    Internal_Error_Trigger : Any_Internal_Error_Trigger := None;
    --  Active trigger for the artificial internal error. Set at elaboration
@@ -164,9 +167,7 @@ package Outputs is
    --  Return the output dir. If Report_Output_Dir is null, initialize it
    --  to current dir.
 
-   procedure Create_Output_File
-     (File      : out File_Type;
-      File_Name : String);
+   procedure Create_Output_File (File : out File_Type; File_Name : String);
    --  Create a file whose name is File_Name and located in output dir, as
    --  specified by Set_Output_Dir; then open it for write access and
    --  return its file descriptor.
@@ -177,9 +178,8 @@ package Outputs is
    --  Temporary directory that holds preprocessed files, when computing
    --  coverage reports. Initialized in gnatcov_bits_specific.
 
-   function Get_PP_Filename
-     (SFI : Source_File_Index) return String
-     is (PP_Temp_Dir.Directory_Name / (Get_Unique_Filename (SFI, "pp")));
+   function Get_PP_Filename (SFI : Source_File_Index) return String
+   is (PP_Temp_Dir.Directory_Name / (Get_Unique_Filename (SFI, "pp")));
 
    procedure Clean_Dir
      (Dir           : String;
@@ -191,9 +191,10 @@ package Outputs is
 
 private
 
-   type Context_Handle is
-      new Ada.Finalization.Limited_Controlled with null record;
+   type Context_Handle is new Ada.Finalization.Limited_Controlled
+   with null record;
 
-   overriding procedure Finalize (Dummy : in out Context_Handle);
+   overriding
+   procedure Finalize (Dummy : in out Context_Handle);
 
 end Outputs;

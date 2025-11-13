@@ -20,11 +20,11 @@
 --  A.1 and chapter 2 ("Instruction format") in volume 2A.
 --  These manuals can be found at http://www.intel.com/product/manuals/
 
-with Interfaces;   use Interfaces;
+with Interfaces; use Interfaces;
 
 with Disa_Common;
-with Hex_Images;   use Hex_Images;
-with Outputs;      use Outputs;
+with Hex_Images; use Hex_Images;
+with Outputs;    use Outputs;
 
 package body Disa_X86 is
 
@@ -33,8 +33,8 @@ package body Disa_X86 is
 
    subtype Byte is Interfaces.Unsigned_8;
    type Bytes is array (Pc_Type range <>) of Byte;
-   type Bit_Field_2 is mod 2 ** 2;
-   type Bit_Field_3 is mod 2 ** 3;
+   type Bit_Field_2 is mod 2**2;
+   type Bit_Field_3 is mod 2**3;
 
    type Width_Type is (W_8, W_16, W_32, W_64);
    --  Width for operands, addresses and registers
@@ -61,18 +61,15 @@ package body Disa_X86 is
    type Mem_Read is access function (Off : Pc_Type) return Byte;
 
    function Decode_Val
-     (Mem            : Mem_Read;
-      Off            : Pc_Type;
-      Width          : Width_Type;
-      Sign_Extend    : Boolean)
-     return Unsigned_64;
+     (Mem : Mem_Read; Off : Pc_Type; Width : Width_Type; Sign_Extend : Boolean)
+      return Unsigned_64;
    --  Decode an immediate value given its memory location, its size and its
    --  signedness.
    --  Off is the immediate address and is relative to a certain PC. Mem is a
    --  function that reads one byte at an offset from this PC.
 
-   function Truncate_To_Pc_Type (Value : Unsigned_64) return Pc_Type is
-     (Pc_Type (Value and Unsigned_64 (Pc_Type'Last)));
+   function Truncate_To_Pc_Type (Value : Unsigned_64) return Pc_Type
+   is (Pc_Type (Value and Unsigned_64 (Pc_Type'Last)));
 
    -------------
    -- Ext_210 --
@@ -102,10 +99,10 @@ package body Disa_X86 is
    end Ext_76;
 
    function Ext_Modrm_Mod (B : Byte) return Bit_Field_2 renames Ext_76;
-   function Ext_Modrm_Rm  (B : Byte) return Bit_Field_3 renames Ext_210;
+   function Ext_Modrm_Rm (B : Byte) return Bit_Field_3 renames Ext_210;
    function Ext_Modrm_Reg (B : Byte) return Bit_Field_3 renames Ext_543;
 
-   function Ext_Sib_Base  (B : Byte) return Bit_Field_3 renames Ext_210;
+   function Ext_Sib_Base (B : Byte) return Bit_Field_3 renames Ext_210;
    function Ext_Sib_Index (B : Byte) return Bit_Field_3 renames Ext_543;
    function Ext_Sib_Scale (B : Byte) return Bit_Field_2 renames Ext_76;
 
@@ -114,18 +111,15 @@ package body Disa_X86 is
    ----------------
 
    function Decode_Val
-     (Mem         : Mem_Read;
-      Off         : Pc_Type;
-      Width       : Width_Type;
-      Sign_Extend : Boolean)
-     return Unsigned_64
+     (Mem : Mem_Read; Off : Pc_Type; Width : Width_Type; Sign_Extend : Boolean)
+      return Unsigned_64
    is
       Is_Negative : Boolean;
-      V : Unsigned_64;
+      V           : Unsigned_64;
 
       subtype Sign_Extension_Width_Type is Width_Type range W_8 .. W_64;
       type Sign_Extension_Type is
-         array (Sign_Extension_Width_Type) of Unsigned_64;
+        array (Sign_Extension_Width_Type) of Unsigned_64;
       Sign_Extension : constant Sign_Extension_Type :=
         (16#ffff_ffff_ffff_ff00#,
          16#ffff_ffff_ffff_0000#,
@@ -136,24 +130,27 @@ package body Disa_X86 is
       --  needed.
 
       case Width is
-         when W_8 =>
+         when W_8  =>
             V := Unsigned_64 (Mem (Off));
             Is_Negative := Sign_Extend and then V >= 16#80#;
 
          when W_16 =>
-            V := Shift_Left (Unsigned_64 (Mem (Off + 1)), 8)
+            V :=
+              Shift_Left (Unsigned_64 (Mem (Off + 1)), 8)
               or Unsigned_64 (Mem (Off));
             Is_Negative := Sign_Extend and then V >= 16#8000#;
 
          when W_32 =>
-            V := Shift_Left (Unsigned_64 (Mem (Off + 3)), 24)
+            V :=
+              Shift_Left (Unsigned_64 (Mem (Off + 3)), 24)
               or Shift_Left (Unsigned_64 (Mem (Off + 2)), 16)
               or Shift_Left (Unsigned_64 (Mem (Off + 1)), 8)
               or Shift_Left (Unsigned_64 (Mem (Off + 0)), 0);
             Is_Negative := Sign_Extend and then V >= 16#8000_0000#;
 
          when W_64 =>
-            V := Shift_Left (Unsigned_64 (Mem (Off + 7)), 56)
+            V :=
+              Shift_Left (Unsigned_64 (Mem (Off + 7)), 56)
               or Shift_Left (Unsigned_64 (Mem (Off + 6)), 48)
               or Shift_Left (Unsigned_64 (Mem (Off + 5)), 40)
               or Shift_Left (Unsigned_64 (Mem (Off + 4)), 32)
@@ -175,8 +172,8 @@ package body Disa_X86 is
    -- Initialize --
    ----------------
 
-   overriding procedure Initialize
-     (Object : in out X86_Disassembler) is
+   overriding
+   procedure Initialize (Object : in out X86_Disassembler) is
    begin
       Object.Handle := Dis_Opcodes.Create_X86_Disassembler;
    end Initialize;
@@ -185,8 +182,8 @@ package body Disa_X86 is
    -- Finalize --
    --------------
 
-   overriding procedure Finalize
-     (Object : in out X86_Disassembler) is
+   overriding
+   procedure Finalize (Object : in out X86_Disassembler) is
    begin
       Dis_Opcodes.Delete_Disassembler (Object.Handle);
    end Finalize;
@@ -212,11 +209,11 @@ package body Disa_X86 is
    ---------------------
 
    function Get_Insn_Length
-     (Self     : X86_Disassembler;
-      Insn_Bin : Binary_Content) return Positive is
+     (Self : X86_Disassembler; Insn_Bin : Binary_Content) return Positive is
    begin
-      return Disa_Common.Opcodes_Get_Insn_Length
-        (Self.Handle, Insn_Bin, Insn_Bin.First, Insn_Max_Length);
+      return
+        Disa_Common.Opcodes_Get_Insn_Length
+          (Self.Handle, Insn_Bin, Insn_Bin.First, Insn_Max_Length);
    end Get_Insn_Length;
 
    -------------------------
@@ -233,15 +230,15 @@ package body Disa_X86 is
       Branch_Dest : out Dest;
       FT_Dest     : out Dest)
    is
-      Is_64bit   : constant Boolean := Machine = X86_64;
+      Is_64bit : constant Boolean := Machine = X86_64;
 
       Opcode_Off : Pc_Type := 0;
       B, B1      : Byte;
 
       function Mem (Off : Pc_Type) return Byte;
 
-      function Length return Pc_Type is
-        (Pc_Type (Get_Insn_Length (Self, Insn_Bin)));
+      function Length return Pc_Type
+      is (Pc_Type (Get_Insn_Length (Self, Insn_Bin)));
 
       ---------
       -- Mem --
@@ -249,92 +246,90 @@ package body Disa_X86 is
 
       function Mem (Off : Pc_Type) return Byte is
       begin
-         if Opcode_Off + Off > Length (Insn_Bin)  then
+         if Opcode_Off + Off > Length (Insn_Bin) then
             raise Bad_Memory;
          end if;
          return Get (Insn_Bin, Insn_Bin.First + Opcode_Off + Off);
       end Mem;
 
-   --  Start of processing for Get_Insn_Properties
+      --  Start of processing for Get_Insn_Properties
 
    begin
       --  Make sure OUT parameters have a valid value
 
-      Branch      := Br_None;
-      Flag_Indir  := False;
-      Flag_Cond   := False;
+      Branch := Br_None;
+      Flag_Indir := False;
+      Flag_Cond := False;
       Branch_Dest := (No_PC, No_PC);
-      FT_Dest     := (No_PC, No_PC);
+      FT_Dest := (No_PC, No_PC);
 
       B := Get (Insn_Bin, Insn_Bin.First);
 
       --  Discard any REX prefix in 64-bit mode and REP/REPNE ones
 
       while (Is_64bit and then (B and 16#f0#) = 16#40#)
-            or else
-         (B = 16#f2# or else B = 16#f3#)
+        or else (B = 16#f2# or else B = 16#f3#)
       loop
          Opcode_Off := Opcode_Off + 1;
          B := Get (Insn_Bin, Insn_Bin.First + Opcode_Off);
       end loop;
 
       case B is
-         when 16#70# .. 16#7f#
-           | 16#e0# .. 16#e2#
-           | 16#e3# =>
+         when 16#70# .. 16#7f# | 16#e0# .. 16#e2# | 16#e3# =>
             --  Jcc Jb / Loop Jb / jrcxz
-            Branch     := Br_Jmp;
-            Flag_Cond  := True;
+            Branch := Br_Jmp;
+            Flag_Cond := True;
             Flag_Indir := False;
             FT_Dest.Target := Pc + 2;
             Branch_Dest.Target :=
               FT_Dest.Target
-                + Truncate_To_Pc_Type
-              (Decode_Val (Mem'Unrestricted_Access, 1, W_8, True));
+              + Truncate_To_Pc_Type
+                  (Decode_Val (Mem'Unrestricted_Access, 1, W_8, True));
             return;
 
-         when 16#0f# =>
+         when 16#0f#                                       =>
             B := Get (Insn_Bin, Insn_Bin.First + 1);
             if B in 16#80# .. 16#8f# then
                --  Jcc Jz
-               Branch     := Br_Jmp;
-               Flag_Cond  := True;
+               Branch := Br_Jmp;
+               Flag_Cond := True;
                Flag_Indir := False;
                FT_Dest.Target := Pc + 6;
                Branch_Dest.Target :=
                  FT_Dest.Target
-                   + Truncate_To_Pc_Type
-                 (Decode_Val (Mem'Unrestricted_Access, 2, W_32, True));
+                 + Truncate_To_Pc_Type
+                     (Decode_Val (Mem'Unrestricted_Access, 2, W_32, True));
             end if;
             return;
 
          when 16#c2# --  ret
-           | 16#c3#
-           | 16#ca#  --  retf
-           | 16#cb#
-           | 16#cf# =>  -- iret
-            Branch     := Br_Ret;
-            Flag_Cond  := False;
+            | 16#c3#
+            | 16#ca# --  retf
+            | 16#cb#
+            | 16#cf# --  iret
+         =>
+            Branch := Br_Ret;
+            Flag_Cond := False;
             Flag_Indir := True;
             return;
 
-         when 16#e8# =>
+         when 16#e8#                                       =>
             --  Call near, relative (32-bit offset in both 32-bit and 64-bit
             --  mode).
-            Branch     := Br_Call;
-            Flag_Cond  := False;
+            Branch := Br_Call;
+            Flag_Cond := False;
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
               FT_Dest.Target
-                + Truncate_To_Pc_Type
-              (Decode_Val (Mem'Unrestricted_Access, 1, W_32, True));
+              + Truncate_To_Pc_Type
+                  (Decode_Val (Mem'Unrestricted_Access, 1, W_32, True));
             return;
 
-         when 16#9a# =>
+         when 16#9a#                                       =>
             --  Callf, doesn't exist in 64-bit
-            Branch     := Br_Call;
-            Flag_Cond  := False;
+            Branch := Br_Call;
+            Flag_Cond := False;
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
@@ -342,22 +337,22 @@ package body Disa_X86 is
                 (Decode_Val (Mem'Unrestricted_Access, 1, W_32, False));
             return;
 
-         when 16#e9# =>
+         when 16#e9#                                       =>
             --  jmp rel32
-            Branch     := Br_Jmp;
-            Flag_Cond  := False;
+            Branch := Br_Jmp;
+            Flag_Cond := False;
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
               FT_Dest.Target
-                + Truncate_To_Pc_Type
-              (Decode_Val (Mem'Unrestricted_Access, 1, W_32, True));
+              + Truncate_To_Pc_Type
+                  (Decode_Val (Mem'Unrestricted_Access, 1, W_32, True));
             return;
 
-         when 16#ea# =>
+         when 16#ea#                                       =>
             --  jmp ptr32, doesn't exist in 64-bit
-            Branch     := Br_Jmp;
-            Flag_Cond  := False;
+            Branch := Br_Jmp;
+            Flag_Cond := False;
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
@@ -365,42 +360,42 @@ package body Disa_X86 is
                 (Decode_Val (Mem'Unrestricted_Access, 1, W_32, False));
             return;
 
-         when 16#eb# =>
+         when 16#eb#                                       =>
             --  jmp rel8
-            Branch     := Br_Jmp;
-            Flag_Cond  := False;
+            Branch := Br_Jmp;
+            Flag_Cond := False;
             Flag_Indir := False;
             FT_Dest.Target := Pc + 2;
             Branch_Dest.Target :=
               FT_Dest.Target
-                + Truncate_To_Pc_Type
-              (Decode_Val (Mem'Unrestricted_Access, 1, W_8, True));
+              + Truncate_To_Pc_Type
+                  (Decode_Val (Mem'Unrestricted_Access, 1, W_8, True));
             return;
 
-         when 16#ff# =>
+         when 16#ff#                                       =>
             B1 := Get (Insn_Bin, Insn_Bin.First + 1);
             case Ext_543 (B1) is
                when 2#010# | 2#011# =>
                   --  call / callf, absolute indirect
-                  Branch     := Br_Call;
-                  Flag_Cond  := False;
+                  Branch := Br_Call;
+                  Flag_Cond := False;
                   Flag_Indir := True;
                   FT_Dest.Target := Pc + Length;
                   return;
 
                when 2#100# | 2#101# =>
                   --  jmp / jmpf, absolute indirect
-                  Branch     := Br_Jmp;
-                  Flag_Cond  := False;
+                  Branch := Br_Jmp;
+                  Flag_Cond := False;
                   Flag_Indir := True;
                   FT_Dest.Target := Pc + Length;
                   return;
 
-               when others =>
+               when others          =>
                   null;
             end case;
 
-         when others =>
+         when others                                       =>
             null;
       end case;
 
@@ -413,10 +408,10 @@ package body Disa_X86 is
    -- Is_Padding --
    ----------------
 
-   overriding function Is_Padding
-     (Self     : X86_Disassembler;
-      Insn_Bin : Binary_Content;
-      Pc       : Pc_Type) return Boolean
+   overriding
+   function Is_Padding
+     (Self : X86_Disassembler; Insn_Bin : Binary_Content; Pc : Pc_Type)
+      return Boolean
    is
       pragma Unreferenced (Self);
 
@@ -483,67 +478,70 @@ package body Disa_X86 is
          when 16#8d# =>
             declare
                --  LEA [...]
-               ModRM     : constant Byte        := Mem (1);
+               ModRM     : constant Byte := Mem (1);
                Mod_Value : constant Bit_Field_2 := Ext_Modrm_Mod (ModRM);
                RM        : constant Bit_Field_3 := Ext_Modrm_Rm (ModRM);
                Reg       : constant Bit_Field_3 := Ext_Modrm_Reg (ModRM);
             begin
                case RM is
-               when 2#100# =>
-                  if Mod_Value = 2#11# then
-                     return False;
-                  end if;
-
-                  --  This corresponds to the [--][--] +disp8/32 lines in
-                  --  Intel's manual: we have a SIB byte.
-                  declare
-                     SIB   : constant Byte := Mem (2);
-                     Scale : constant Bit_Field_2 := Ext_Sib_Scale (SIB);
-                     Index : constant Bit_Field_3 := Ext_Sib_Index (SIB);
-                     Base  : constant Bit_Field_3 := Ext_Sib_Base (SIB);
-                  begin
-                     if Base = 2#101# then
-                        --  The base depends on Mod_Value...
-                        if Mod_Value /= 2#00# then
-                           --  %ebp is part of the computation: this cannot be
-                           --  a NOP.
-                           return False;
-                        end if;
-                        --  At this point, we have a NOP iff the scaled index
-                        --  is 1*Reg and the (32-bit) displacement is 0.
-                        return (Scale = 0 and then Index = Reg
-                                  and then
-                                Mem (3, 4) = (0, 0, 0, 0));
-
-                     --  Past this point, the base address is a register
-                     elsif Index = 2#100# then
-                        --  If we have no index to scale, this is a NOP iff
-                        --  we're just copying a register to itself
-                        return Base = Reg;
-
-                     --  Past this point, the base address is a register and we
-                     --  have an index to scale: this cannot be a NOP.
-                     else
+                  when 2#100# =>
+                     if Mod_Value = 2#11# then
                         return False;
                      end if;
-                  end;
 
-               when 2#101# =>
-                  --  Loading something independent of a register in the
-                  --  register: actually doing something.
-                  return False;
+                     --  This corresponds to the [--][--] +disp8/32 lines in
+                     --  Intel's manual: we have a SIB byte.
+                     declare
+                        SIB   : constant Byte := Mem (2);
+                        Scale : constant Bit_Field_2 := Ext_Sib_Scale (SIB);
+                        Index : constant Bit_Field_3 := Ext_Sib_Index (SIB);
+                        Base  : constant Bit_Field_3 := Ext_Sib_Base (SIB);
+                     begin
+                        if Base = 2#101# then
+                           --  The base depends on Mod_Value...
+                           if Mod_Value /= 2#00# then
+                              --  %ebp is part of the computation: this cannot
+                              --  be a NOP.
+                              return False;
+                           end if;
+                           --  At this point, we have a NOP iff the scaled
+                           --  index is 1*Reg and the (32-bit) displacement is
+                           --  0.
+                           return
+                             (Scale = 0
+                              and then Index = Reg
+                              and then Mem (3, 4) = (0, 0, 0, 0));
 
-               when others =>
-                  --  This is a NOP iff loading the register with its own
-                  --  value.
+                        --  Past this point, the base address is a register
+                        elsif Index = 2#100# then
+                           --  If we have no index to scale, this is a NOP iff
+                           --  we're just copying a register to itself
+                           return Base = Reg;
 
-                  --  Source and destination must be the same register
-                  if RM /= Reg then
+                        --  Past this point, the base address is a register and
+                        --  we have an index to scale: this cannot be a NOP.
+                        else
+                           return False;
+                        end if;
+                     end;
+
+                  when 2#101# =>
+                     --  Loading something independent of a register in the
+                     --  register: actually doing something.
                      return False;
-                  end if;
 
-                  --  Check the displacement is null (if any)
-                  return (case Mod_Value is
+                  when others =>
+                     --  This is a NOP iff loading the register with its own
+                     --  value.
+
+                     --  Source and destination must be the same register
+                     if RM /= Reg then
+                        return False;
+                     end if;
+
+                     --  Check the displacement is null (if any)
+                     return
+                       (case Mod_Value is
                           when 2#00#  => True,
                           when 2#01#  => Mem (2) = 0,
                           when 2#10#  => Mem (2, 4) = (0, 0, 0, 0),

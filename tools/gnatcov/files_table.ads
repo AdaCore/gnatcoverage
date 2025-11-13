@@ -67,8 +67,8 @@ package Files_Table is
       --  can be included in coverage reports.
 
       Library_File);
-      --  Library files can be consolidated with library files only. They are
-      --  excluded from coverage reports.
+   --  Library files can be consolidated with library files only. They are
+   --  excluded from coverage reports.
 
    --  Global directory of all source files
 
@@ -122,8 +122,7 @@ package Files_Table is
    --  of names returned by Get_Unique_Name.
 
    procedure Consolidate_File_Kind
-     (Index : Valid_Source_File_Index;
-      Kind  : File_Kind);
+     (Index : Valid_Source_File_Index; Kind : File_Kind);
    --  If Index designates a Stub_File and Kind is not Stub_File, change its
    --  kind to Kind. Raise a fatal error if the Kind for Index isn't Kind
    --  *and* neither are stub files.
@@ -140,7 +139,7 @@ package Files_Table is
    --  Return the simple name for the given index
 
    function Get_Unique_Name (Index : Source_File_Index) return String
-      with Pre => Get_File (Index).Kind = Source_File;
+   with Pre => Get_File (Index).Kind = Source_File;
    --  Return the shortest unambiguous file name. It is the smallest suffix for
    --  full name that is unique to this file (multiple files can have the same
    --  base name). This is available only for source files. Since unicity
@@ -154,9 +153,8 @@ package Files_Table is
    --  (3) from the source search path.
 
    function Get_Unique_Filename
-     (Index     : Source_File_Index;
-      Extension : String) return String
-     with Pre => Get_File (Index).Kind = Source_File;
+     (Index : Source_File_Index; Extension : String) return String
+   with Pre => Get_File (Index).Kind = Source_File;
    --  Wrapper around Get_Unique_Name, replacing slashes with dashes in the
    --  unique name and suffixing with Extension.
 
@@ -197,9 +195,7 @@ package Files_Table is
    --  code.
 
    procedure Add_Line_For_Source_Coverage
-     (File : Source_File_Index;
-      Line : Positive;
-      SCO  : SCO_Id);
+     (File : Source_File_Index; Line : Positive; SCO : SCO_Id);
    --  Associate SCO with File:Line
 
    type Object_Coverage_Info;
@@ -227,18 +223,18 @@ package Files_Table is
 
    type Line_State_Cell is (Cell_1, Cell_2, Cell_3, Cell_4, Cell_5);
 
-   Coverage_Level_To_Cell : constant
-     array (Coverage_Level) of Line_State_Cell :=
-     (Insn      => Cell_1,
-      Branch    => Cell_2,
-      Stmt      => Cell_1,
-      Decision  => Cell_2,
-      MCDC      => Cell_2,
-      UC_MCDC   => Cell_2,
-      ATC       => Cell_3,
-      ATCC      => Cell_3,
-      Fun_Call  => Cell_4,
-      GExpr     => Cell_5);
+   Coverage_Level_To_Cell :
+     constant array (Coverage_Level) of Line_State_Cell :=
+       (Insn     => Cell_1,
+        Branch   => Cell_2,
+        Stmt     => Cell_1,
+        Decision => Cell_2,
+        MCDC     => Cell_2,
+        UC_MCDC  => Cell_2,
+        ATC      => Cell_3,
+        ATCC     => Cell_3,
+        Fun_Call => Cell_4,
+        GExpr    => Cell_5);
    --  For one specific execution of GNATcov, we know that
    --  each line needs at most only four states (insn, branch,
    --  stmt(+decision|+mcdc|+uc_mcdc)?(+atc|+atcc)?(funcall)?(+gexpr)?).
@@ -255,7 +251,7 @@ package Files_Table is
    --  new item is acceptable.
 
    type Object_Coverage_Info_Array is
-      array (Natural range <>) of Object_Coverage_Info;
+     array (Natural range <>) of Object_Coverage_Info;
    type Object_Coverage_Info_Array_Acc is access Object_Coverage_Info_Array;
 
    type SCO_Id_Array is array (Natural range <>) of SCO_Id;
@@ -271,8 +267,7 @@ package Files_Table is
       type Resizeable_Array is array (Index_Type range <>) of Element_Type;
       type Resizeable_Array_Access is access Resizeable_Array;
    procedure Append_To_Array
-      (A : in out Resizeable_Array_Access;
-       E : Element_Type);
+     (A : in out Resizeable_Array_Access; E : Element_Type);
    --  Resize an array in order to append an element to it
 
    type Line_Info is record
@@ -321,9 +316,10 @@ package Files_Table is
 
    --  Describe a source file - one element per line
 
-   package Source_Line_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Line_Info_Access);
+   package Source_Line_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Positive,
+        Element_Type => Line_Info_Access);
    type Source_Lines is new Source_Line_Vectors.Vector with null record;
 
    type Any_Ignore_Status is (Unknown, Always, Sometimes, Never);
@@ -340,27 +336,30 @@ package Files_Table is
    --  the unit name for unit-based language, and the file fullname for
    --  file-based languages.
 
-   function Image (U : Compilation_Unit) return String is
-     (case U.Language is
-      when Unit_Based_Language => To_Lower (+U.Unit_Name),
-      when File_Based_Language => Fold_Filename_Casing (+U.Unit_Name));
+   function Image (U : Compilation_Unit) return String
+   is (case U.Language is
+         when Unit_Based_Language => To_Lower (+U.Unit_Name),
+         when File_Based_Language => Fold_Filename_Casing (+U.Unit_Name));
 
-   function "<" (L, R : Compilation_Unit) return Boolean is
-     (Image (L) < Image (R));
+   function "<" (L, R : Compilation_Unit) return Boolean
+   is (Image (L) < Image (R));
 
-   function "=" (L, R : Compilation_Unit) return Boolean is
-     (Image (L) = Image (R));
+   function "=" (L, R : Compilation_Unit) return Boolean
+   is (Image (L) = Image (R));
 
    No_Compilation_Unit : constant Compilation_Unit :=
      (Language => File_Based_Language, Unit_Name => Strings."+" (""));
 
-   package Unit_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Compilation_Unit);
+   package Unit_Sets is new
+     Ada.Containers.Ordered_Sets (Element_Type => Compilation_Unit);
 
    type Owning_Unit (Known : Boolean := False) is record
       case Known is
-         when True  => Name : Compilation_Unit;
-         when False => null;
+         when True =>
+            Name : Compilation_Unit;
+
+         when False =>
+            null;
       end case;
    end record;
    --  Whether the unit of a file is known or not. If it is, stores the name of
@@ -482,15 +481,15 @@ package Files_Table is
    --  Does nothing if the file represented by index is not tagged as
    --  Source_File.
 
-   package Ignored_Sources_Vector is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => File_Info_Access);
+   package Ignored_Sources_Vector is new
+     Ada.Containers.Vectors
+       (Index_Type   => Natural,
+        Element_Type => File_Info_Access);
    --  Vector of source files, used mainly to group ignored source files
 
    type Ignored_Sources_Vector_Access is access Ignored_Sources_Vector.Vector;
 
-   function Get_File
-     (Index : Source_File_Index) return File_Info_Access;
+   function Get_File (Index : Source_File_Index) return File_Info_Access;
 
    procedure Consolidate_Source_File_Unit
      (Index : Valid_Source_File_Index; New_Unit : Compilation_Unit)
@@ -504,20 +503,20 @@ package Files_Table is
    procedure Iterate_On_Lines
      (File    : File_Info_Access;
       Process : not null access procedure (Index : Positive))
-     with Pre => File.Kind = Source_File;
+   with Pre => File.Kind = Source_File;
 
    function Last_Line (File : File_Info_Access) return Natural
-     with Pre => File.Kind = Source_File;
+   with Pre => File.Kind = Source_File;
    --  Return the last line of the file
 
    function Get_Line
-     (File  : File_Info_Access;
-      Index : Positive) return Line_Info_Access
-      with Pre => File.Kind in Stub_File | Source_File;
+     (File : File_Info_Access; Index : Positive) return Line_Info_Access
+   with Pre => File.Kind in Stub_File | Source_File;
 
    function Get_Line (Sloc : Source_Location) return Line_Info_Access
-      with Pre =>
-         Sloc = Slocs.No_Location
+   with
+     Pre =>
+       Sloc = Slocs.No_Location
        or else Get_File (Sloc.Source_File).Kind in Stub_File | Source_File;
 
    function Get_SCOs
@@ -541,22 +540,21 @@ package Files_Table is
    --  first byte of a codepoint in S, increment Index so that it moves forward
    --  by Count codepoints. If Index is out of S's range, do nothing.
 
-   function Slice_Last_UTF8
-     (S : String; Length : Natural) return Natural;
+   function Slice_Last_UTF8 (S : String; Length : Natural) return Natural;
    --  Return the index I that would make S (S'First .. I) a slice that
    --  contains Length codepoints.
 
    function Get_Line
-     (File  : File_Info_Access;
-      Index : Positive;
-      UTF8  : Boolean := False) return String
-      with Pre => File.Kind = Source_File;
+     (File : File_Info_Access; Index : Positive; UTF8 : Boolean := False)
+      return String
+   with Pre => File.Kind = Source_File;
 
    function Get_Line
-     (Sloc : Source_Location; UTF8  : Boolean := False) return String
-      with Pre =>
-         Sloc = Slocs.No_Location
-         or else Get_File (Sloc.Source_File).Kind = Source_File;
+     (Sloc : Source_Location; UTF8 : Boolean := False) return String
+   with
+     Pre =>
+       Sloc = Slocs.No_Location
+       or else Get_File (Sloc.Source_File).Kind = Source_File;
 
    --  Get line info (or text) at File:Index (or at Sloc)
 
@@ -570,23 +568,23 @@ package Files_Table is
    type ALI_Region_Annotation_Kind is (Exemption, Disable_Coverage);
 
    procedure Populate_Annotations
-     (FI   : Source_File_Index;
-      Kind : ALI_Region_Annotation_Kind);
+     (FI : Source_File_Index; Kind : ALI_Region_Annotation_Kind);
    --  Fill the Exemption/Disabled_Cov field according to Kind in the Line_Info
    --  records of FI based on the information in Annotation_Map.
 
    function Writeable_Sloc_To_SCO_Map
-     (Index : Source_File_Index;
-      Kind  : SCO_Kind) return access Sloc_To_SCO_Maps.Map
-     with Pre => Get_File (Index).Kind = Source_File,
-          Post => Writeable_Sloc_To_SCO_Map'Result /= null;
+     (Index : Source_File_Index; Kind : SCO_Kind)
+      return access Sloc_To_SCO_Maps.Map
+   with
+     Pre  => Get_File (Index).Kind = Source_File,
+     Post => Writeable_Sloc_To_SCO_Map'Result /= null;
    --  Return (allocating, if necessary) the requested map, in a writeable
    --  state.
 
    function Sloc_To_SCO_Map
-     (Index : Source_File_Index;
-      Kind  : SCO_Kind) return access constant Sloc_To_SCO_Maps.Map
-     with Post => Sloc_To_SCO_Map'Result /= null;
+     (Index : Source_File_Index; Kind : SCO_Kind)
+      return access constant Sloc_To_SCO_Maps.Map
+   with Post => Sloc_To_SCO_Map'Result /= null;
    --  Return the requested map, in a read-only state
 
    function End_Lex_Element (Sloc : Source_Location) return Source_Location;
@@ -598,26 +596,24 @@ package Files_Table is
    --  a precise Ada parsing from it.
 
    procedure Open
-     (File    : in out File_Type;
-      FI      : File_Info_Access;
-      Success : out Boolean);
+     (File : in out File_Type; FI : File_Info_Access; Success : out Boolean);
    --  Try to open the file from the source file table whose index is Index,
    --  using the rebase/search information. If one found, Success is True;
    --  False otherwise.
 
    procedure Fill_Line_Cache (FI : File_Info_Access)
-     with Pre => FI.Kind = Source_File;
+   with Pre => FI.Kind = Source_File;
    --  Try to open FI and populate its line cache
 
    procedure Invalidate_Line_Cache (FI : File_Info_Access)
-     with Pre => FI.Kind = Source_File;
+   with Pre => FI.Kind = Source_File;
    --  Free FI's line cache
 
    procedure Warn_File_Missing (File : File_Info);
    --  Report that File cannot be found in source path
 
    function To_Display (File : File_Info_Access) return Boolean
-     with Pre => File.Kind = Source_File;
+   with Pre => File.Kind = Source_File;
    --  Return True if there is some relevant coverage information to display
    --  for this file and for the current coverage criteria.
 
@@ -647,8 +643,7 @@ package Files_Table is
    --  Use the JSON loaded checkpoint to create file tables,
 
    procedure Postprocess_Source
-     (Preprocessed_Filename  : String;
-      Postprocessed_Filename : String);
+     (Preprocessed_Filename : String; Postprocessed_Filename : String);
    --  Specific to the C instrumentation.
    --
    --  Postprocess the given Preprocessed_Filename to remove redundant line

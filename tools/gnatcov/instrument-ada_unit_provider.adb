@@ -33,13 +33,12 @@ package body Instrument.Ada_Unit_Provider is
 
    package LALCO renames Libadalang.Common;
 
-   function Unit_Key
-     (Name : String; Part : GPR2.Valid_Unit_Kind) return String
+   function Unit_Key (Name : String; Part : GPR2.Valid_Unit_Kind) return String
    is (To_Lower (Name)
        & '%'
        & (case Part is
-          when GPR2.S_Spec => 's',
-          when others      => 'b'));
+            when GPR2.S_Spec => 's',
+            when others      => 'b'));
    --  Key used to find a source file in the provider map
 
    -------------------------
@@ -50,10 +49,11 @@ package body Instrument.Ada_Unit_Provider is
       F : Text_Files.File_Type;
    begin
       F.Create (Filename);
-      for Source of Project.Source_Closure
-        (View                  => Project.Project.Root_Project,
-         With_Externally_Built => True,
-         With_Runtime          => True)
+      for Source of
+        Project.Source_Closure
+          (View                  => Project.Project.Root_Project,
+           With_Externally_Built => True,
+           With_Runtime          => True)
       loop
          if Source.Language = GPR2.Ada_Language then
             for Unit of Source.Units loop
@@ -108,37 +108,37 @@ package body Instrument.Ada_Unit_Provider is
    -- Get_Unit_Filename --
    -----------------------
 
-   overriding function Get_Unit_Filename
-     (Provider : Provider_Type;
-      Name     : Text_Type;
-      Kind     : Analysis_Unit_Kind) return String
+   overriding
+   function Get_Unit_Filename
+     (Provider : Provider_Type; Name : Text_Type; Kind : Analysis_Unit_Kind)
+      return String
    is
       use String_Maps;
 
       Part          : constant GPR2.Valid_Unit_Kind :=
         (case Kind is
-         when Libadalang.Common.Unit_Body          => GPR2.S_Body,
-         when Libadalang.Common.Unit_Specification => GPR2.S_Spec);
+           when Libadalang.Common.Unit_Body          => GPR2.S_Body,
+           when Libadalang.Common.Unit_Specification => GPR2.S_Spec);
       Key           : constant String :=
         Unit_Key (Libadalang.Unit_Files.Unit_String_Name (Name), Part);
       Unit_Name_Cur : constant Cursor := Provider.Unit_Map.Find (Key);
    begin
-      return (if Has_Element (Unit_Name_Cur)
-              then Element (Unit_Name_Cur)
-              else "");
+      return
+        (if Has_Element (Unit_Name_Cur) then Element (Unit_Name_Cur) else "");
    end Get_Unit_Filename;
 
    --------------
    -- Get_Unit --
    --------------
 
-   overriding function Get_Unit
-     (Provider    : Provider_Type;
-      Context     : Analysis_Context'Class;
-      Name        : Text_Type;
-      Kind        : Analysis_Unit_Kind;
-      Charset     : String := "";
-      Reparse     : Boolean := False) return Analysis_Unit'Class
+   overriding
+   function Get_Unit
+     (Provider : Provider_Type;
+      Context  : Analysis_Context'Class;
+      Name     : Text_Type;
+      Kind     : Analysis_Unit_Kind;
+      Charset  : String := "";
+      Reparse  : Boolean := False) return Analysis_Unit'Class
    is
       Filename : constant String := Provider.Get_Unit_Filename (Name, Kind);
    begin
@@ -147,17 +147,21 @@ package body Instrument.Ada_Unit_Provider is
       else
          declare
             Dummy_File : constant String :=
-               Libadalang.Unit_Files.File_From_Unit (Name, Kind);
+              Libadalang.Unit_Files.File_From_Unit (Name, Kind);
             Kind_Name  : constant Text_Type :=
               (case Kind is
-               when LALCO.Unit_Specification => "specification file",
-               when LALCO.Unit_Body          => "body file");
+                 when LALCO.Unit_Specification => "specification file",
+                 when LALCO.Unit_Body          => "body file");
             Error      : constant Text_Type :=
-               "Could not find source file for " & Name & " (" & Kind_Name
-               & ")";
+              "Could not find source file for "
+              & Name
+              & " ("
+              & Kind_Name
+              & ")";
          begin
-            return Libadalang.Analysis.Get_With_Error
-              (Context, Dummy_File, Error, Charset);
+            return
+              Libadalang.Analysis.Get_With_Error
+                (Context, Dummy_File, Error, Charset);
          end;
       end if;
    end Get_Unit;

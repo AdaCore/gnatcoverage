@@ -23,8 +23,7 @@ package body Disa_Symbolize is
    ---------------
 
    function Symbolize
-     (Sym : Symbolizer'Class;
-      Pc  : Traces.Pc_Type) return String
+     (Sym : Symbolizer'Class; Pc : Traces.Pc_Type) return String
    is
       Buffer : Highlighting.Buffer_Type (256);
    begin

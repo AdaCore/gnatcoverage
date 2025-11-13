@@ -50,9 +50,8 @@ package body GNATcov_RTS.Traces.Output is
 
       generic
          type T is mod <>;
-         with function Shift_Right
-           (Value  : T;
-            Amount : Natural) return T is <>;
+         with
+           function Shift_Right (Value : T; Amount : Natural) return T is <>;
       procedure Write_Unsigned (Output : in out Output_Stream; U : T);
       --  Generic implementation for Write_U8, Write_U16 and Write_U32.
       --  Write the bytes in little-endian order.
@@ -71,7 +70,8 @@ package body GNATcov_RTS.Traces.Output is
       --  Write a trace info entry to Output
 
       procedure Write_Entry
-        (Output : in out Output_Stream; Buffers : GNATcov_RTS_Coverage_Buffers);
+        (Output  : in out Output_Stream;
+         Buffers : GNATcov_RTS_Coverage_Buffers);
       --  Write a whole trace entry (header, unit name and buffers) for Buffers
       --  to Output.
 
@@ -117,7 +117,7 @@ package body GNATcov_RTS.Traces.Output is
       procedure Write_Padding (Output : in out Output_Stream; Count : Natural)
       is
          Alignment : constant Natural :=
-            Natural (Generic_Write_Trace_File.Alignment);
+           Natural (Generic_Write_Trace_File.Alignment);
          Pad_Count : constant Natural := Alignment - Count mod Alignment;
       begin
          if Pad_Count /= Alignment then
@@ -135,10 +135,9 @@ package body GNATcov_RTS.Traces.Output is
       -- Write_Header --
       ------------------
 
-      procedure Write_Header (Output : in out Output_Stream)
-      is
-         Trace_File_Magic_Bytes : constant Uint8_Array
-           (1 .. Trace_File_Magic'Length);
+      procedure Write_Header (Output : in out Output_Stream) is
+         Trace_File_Magic_Bytes :
+           constant Uint8_Array (1 .. Trace_File_Magic'Length);
          for Trace_File_Magic_Bytes'Address use Trace_File_Magic'Address;
          pragma Import (Ada, Trace_File_Magic_Bytes);
       begin
@@ -179,15 +178,14 @@ package body GNATcov_RTS.Traces.Output is
       procedure Write_Entry
         (Output : in out Output_Stream; Buffers : GNATcov_RTS_Coverage_Buffers)
       is
-         Unit_Name_Bytes : Uint8_Array
-           (1 .. Integer (Buffers.Unit_Name.Length));
+         Unit_Name_Bytes :
+           Uint8_Array (1 .. Integer (Buffers.Unit_Name.Length));
          for Unit_Name_Bytes'Address use Buffers.Unit_Name.Str;
          pragma Import (Ada, Unit_Name_Bytes);
 
          subtype Bounded_Uint8_Array is Uint8_Array (1 .. 20);
-         function To_Uint8_Array is
-           new Ada.Unchecked_Conversion
-             (Fingerprint_Type, Bounded_Uint8_Array);
+         function To_Uint8_Array is new
+           Ada.Unchecked_Conversion (Fingerprint_Type, Bounded_Uint8_Array);
       begin
          --  Write trace entry header
 
@@ -196,8 +194,7 @@ package body GNATcov_RTS.Traces.Output is
          Write_U32 (Output, Unsigned_32 (Buffers.Decision_Last_Bit + 1));
          Write_U32 (Output, Unsigned_32 (Buffers.MCDC_Last_Bit + 1));
          Write_U8
-           (Output,
-            Unsigned_8 (Any_Language_Kind_Map (Buffers.Language)));
+           (Output, Unsigned_8 (Any_Language_Kind_Map (Buffers.Language)));
          Write_U8
            (Output,
             Unsigned_8
@@ -246,7 +243,7 @@ package body GNATcov_RTS.Traces.Output is
                Current_Byte := Current_Byte or Bit_Mask;
             end if;
             Bit_Mask := 2 * Bit_Mask;
-            if Bit_Mask = 2 ** 8 then
+            if Bit_Mask = 2**8 then
                Flush;
             end if;
          end Append_Bit;
@@ -265,7 +262,7 @@ package body GNATcov_RTS.Traces.Output is
             end if;
          end Flush;
 
-      --  Start of processing for Write_Buffer
+         --  Start of processing for Write_Buffer
 
       begin
          --  Write bytes that are included in the coverage buffer
@@ -300,7 +297,7 @@ package body GNATcov_RTS.Traces.Output is
          Write_Buffer (Output, Buffer);
       end Write_Buffer;
 
-   --  Start of processing for Generic_Write_Trace_File
+      --  Start of processing for Generic_Write_Trace_File
 
    begin
       Write_Header (Output);
@@ -326,8 +323,9 @@ package body GNATcov_RTS.Traces.Output is
       Write_Info (Output, Info_End, "");
       for I in Buffers_Groups'Range loop
          declare
-            Buffers : Coverage_Buffers_Group
-               (1 .. Integer (Buffers_Groups (I).Length));
+            Buffers :
+              Coverage_Buffers_Group
+                (1 .. Integer (Buffers_Groups (I).Length));
             for Buffers'Address use Buffers_Groups (I).Buffers;
             pragma Import (C, Buffers);
          begin

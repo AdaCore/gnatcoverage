@@ -39,12 +39,12 @@ package GNATcov_RTS.Traces.Output is
       type Output_Stream (<>) is limited private;
       --  Entity where the trace file is written
 
-      with procedure Write_Bytes
-        (Stream : in out Output_Stream;
-         Bytes  : Uint8_Array) is <>;
+      with
+        procedure Write_Bytes
+          (Stream : in out Output_Stream; Bytes : Uint8_Array) is <>;
       --  Write Bytes to the given Stream
 
-   procedure Generic_Write_Trace_File
+     procedure Generic_Write_Trace_File
      (Output         : in out Output_Stream;
       Buffers_Groups : Coverage_Buffers_Group_Array;
       Program_Name   : String;

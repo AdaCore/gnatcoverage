@@ -32,8 +32,8 @@ procedure Compiler_Wrappers.Gcc is
    --  Find the the instrumentation configuration that "setup-integration"
    --  generated along with this compiler wrapper in the Prefix directory.
 
-   Prefix          : constant String := Containing_Directory
-     (GNAT.OS_Lib.Locate_Exec_On_Path (Command_Name).all);
+   Prefix          : constant String :=
+     Containing_Directory (GNAT.OS_Lib.Locate_Exec_On_Path (Command_Name).all);
    Config_Filename : constant String :=
      Prefix / Instrumentation_Config_Filename;
 
