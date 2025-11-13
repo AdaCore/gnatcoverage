@@ -927,6 +927,11 @@ It makes sense to put under version control files containing test data packages,
 both specs and bodies, and files containing bodies of test packages. Note that
 test package specs are also generated automatically each time and should not be
 put under version control.
+
+Additionally, if stubbing is enabled with ``--stub``, it also makes sense to
+put the stubbed bodies, as well as the stub-data bodies under source control,
+as gnattest will preserve modifications made to these files.
+
 Option ``--omit-sloc`` may be useful when putting test packages under version control.
 
 
