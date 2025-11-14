@@ -2558,17 +2558,27 @@ package body Instrument.C is
                end if;
 
             when Cursor_Decl_Stmt                             =>
+               declare
+                  First_Decl : constant Cursor_T := Get_First_Decl (N);
+               begin
+                  case Kind (First_Decl) is
 
-               --  Bail out of any "using" directive,
-               --  theses are not statements.
+                     when Cursor_Using_Declaration | Cursor_Using_Directive =>
+                        --  Bail out of any "using" directive,
+                        --  theses are not statements.
+                        null;
 
-               case Kind (Get_First_Decl (N)) is
-                  when Cursor_Using_Declaration | Cursor_Using_Directive =>
-                     null;
+                     when Cursor_Class_Decl | Cursor_Struct_Decl            =>
+                        --  Nested class and struct declaration need to be
+                        --  handled specifically.
+                        UIC.Pass.Enter_Scope (UIC, First_Decl);
+                        Traverse_Declarations (UIC, Get_Children (First_Decl));
+                        UIC.Pass.Exit_Scope (UIC);
 
-                  when others                                            =>
-                     Instrument_Basic_Statement (N);
-               end case;
+                     when others                                            =>
+                        Instrument_Basic_Statement (N);
+                  end case;
+               end;
 
             when others                                       =>
                Instrument_Basic_Statement (N);
