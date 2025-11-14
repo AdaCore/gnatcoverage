@@ -110,6 +110,9 @@ build_community:
     # Build using anod, we can use the smart rebuilder here as gnatcov does not
     # depend on itself in this case.
     - anod build --smart-rebuild gnatcov -Qno-c $ACI_TRACK_QUALIFIER
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH
+      when: always
 
 .common_test_bits: &basic_test_setup
     # Setup the sandbox
