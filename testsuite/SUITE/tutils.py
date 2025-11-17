@@ -468,7 +468,7 @@ def gprfor(
     langs = to_list(langs)
 
     # Fetch the support project file template
-    template = contents_of(os.path.join(ROOT_DIR, "template.gpr"))
+    template = contents_of(os.path.join(ROOT_DIR, "templates", "template.gpr"))
 
     # Instanciate the template fields.
 
