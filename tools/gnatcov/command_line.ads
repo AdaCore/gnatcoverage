@@ -1896,7 +1896,7 @@ package Command_Line is
              "List of compiler drivers for which we should generate wrappers."
              & " Supported compilers are: gcc, g++.",
            Commands  => (Cmd_Print_GPR_Registry => False, others => True),
-           Internal  => True),
+           Internal  => False),
 
       --  NOTE: --dump-trigger has a non-backward-compatible change between 25
       --  and 26. In 25, the flag was modified to accept manual file
