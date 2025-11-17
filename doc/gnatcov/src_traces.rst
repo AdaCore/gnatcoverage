@@ -110,6 +110,16 @@ The following command performs the corresponding action on Windows systems:
 
    set PATH=%PATH%;C:\path\to\gnatcov-rts\bin\
 
+.. note::
+
+  When the target supports different kinds of libraries (``static``,
+  ``static-pic`` or ``relocatable``), |gcvstp| will build and install all
+  variants. Use the external variables ``GNATCOV_RTS_LIBRARY_TYPE`` or
+  ``LIBRARY_TYPE`` to indicate the appropriate variant to link against. The
+  former only influences the build type of ``gnatcov_rts`` while the later may
+  influence other libraries as well. The default value for the library type is
+  ``static``.
+
 Multiple runtimes in the same prefix
 ------------------------------------
 
