@@ -2569,6 +2569,43 @@ package body Instrument.C is
                   Process_Expression (UIC, N, 'X');
                end if;
 
+            when Cursor_CXX_Try_Stmt                          =>
+               declare
+                  Try_Block : constant Cursor_T := Get_Try_Block (N);
+               begin
+                  Traverse_Statements
+                    (UIC, To_Vector (Try_Block), TB, Is_Block => False);
+
+                  UIC.Pass.Insert_Text_Before
+                    (UIC, Get_RBrac_Loc (Try_Block), +TB);
+                  TB := +"";
+               end;
+
+               --  If applicable, finish the current block after the try block
+
+               if Is_Block then
+                  UIC.Pass.End_Statement_Block (UIC);
+               end if;
+
+               for I in 1 .. Get_Try_Stmt_Handler_Count (N) loop
+                  declare
+                     Try_Handler : constant Cursor_T :=
+                       Get_Try_Stmt_Nth_Handler (N, I);
+                  begin
+                     Traverse_Statements (UIC, To_Vector (Try_Handler), TB);
+
+                     UIC.Pass.Insert_Text_Before
+                       (UIC, Get_End_Loc (Try_Handler), +TB);
+                     TB := +"";
+                  end;
+               end loop;
+
+               --  Start a new block after the last catch
+
+               if Is_Block then
+                  UIC.Pass.Start_Statement_Block (UIC);
+               end if;
+
             when Cursor_Decl_Stmt                             =>
                declare
                   First_Decl : constant Cursor_T := Get_First_Decl (N);

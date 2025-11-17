@@ -111,6 +111,37 @@ package body Clang.Extensions is
       return Is_Struct_Field_Call_Expr_C (C) /= 0;
    end Is_Struct_Field_Call_Expr;
 
+   --------------------------------
+   -- Get_Try_Stmt_Handler_Count --
+   --------------------------------
+
+   function Get_Try_Stmt_Handler_Count (C : Cursor_T) return Natural is
+      function C_Get_Try_Stmt_Handler_Count (C : Cursor_T) return unsigned
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_getTryStmtHandlerCount";
+   begin
+      return Natural (C_Get_Try_Stmt_Handler_Count (C));
+   end Get_Try_Stmt_Handler_Count;
+
+   ------------------------------
+   -- Get_Try_Stmt_Nth_Handler --
+   ------------------------------
+
+   function Get_Try_Stmt_Nth_Handler
+     (C : Cursor_T; I : Positive) return Cursor_T
+   is
+      function C_Get_Try_Stmt_Nth_Handler
+        (C : Cursor_T; I : unsigned) return Cursor_T
+      with
+        Import,
+        Convention    => C,
+        External_Name => "clang_getTryStmtNthHandler";
+   begin
+      return C_Get_Try_Stmt_Nth_Handler (C, unsigned (I - 1));
+   end Get_Try_Stmt_Nth_Handler;
+
    --------------------
    -- Get_Opcode_Str --
    --------------------
