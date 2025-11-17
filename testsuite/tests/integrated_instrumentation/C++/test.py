@@ -7,49 +7,23 @@ import os.path
 
 from e3.fs import cp
 
-from SUITE.control import env
 from SUITE.cutils import Wdir
 from SCOV.minicheck import check_xcov_reports
-from SUITE.tutils import cmdrun, srctracename_for, thistest, xcov
+from SUITE.integrated_instr_utils import (
+    build_run_and_coverage,
+    CompileSource,
+    LinkMain,
+)
+from SUITE.tutils import thistest
 
 Wdir("tmp_")
 
-cwd = os.getcwd()
+# Copy the sources in the temporary directory
+cp(os.path.join("..", "main.cpp"), ".")
 
-# Copy the sources and the Makefile in the temporary directory
-cp(os.path.join("..", "Makefile"), ".")
-cp(os.path.join("..", "test.cpp"), ".")
-
-# Then, setup the instrumentation process
-xcov(
-    [
-        "setup-integration",
-        "--level=stmt",
-        f"--files={os.path.join(cwd, 'test.cpp')}",
-        "--compilers=g++",
-        f"--output-dir={cwd}",
-    ]
-)
-
-# Shadow the compiler driver with the generated wrapper
-env.add_search_path(env_var="PATH", path=cwd)
-
-# Then, run the build process unchanged
-cmdrun(["make", "test"], for_pgm=False)
-
-# Run the executable
-cmdrun(["test"], for_pgm=False)
-
-# Check coverage expectations
-xcov(
-    [
-        "coverage",
-        "--level=stmt",
-        "--sid=test.cpp.sid",
-        "-axcov",
-        srctracename_for("test"),
-    ]
-)
-check_xcov_reports(".", {"test.cpp.xcov": {"+": {6, 7}}})
+comp_wf = CompileSource(source="main.cpp", lang="C++")
+link_wf = LinkMain(objects=[comp_wf.out], lang="C++")
+build_run_and_coverage(wfs=[comp_wf, link_wf])
+check_xcov_reports(".", {"main.cpp.xcov": {"+": {4}}})
 
 thistest.result()

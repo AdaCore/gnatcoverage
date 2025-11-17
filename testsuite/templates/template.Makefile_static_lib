@@ -1,0 +1,15 @@
+# Template Makefile for integrated instrumentation tests compiling static libs
+
+# Static lib target
+{build_target}: {build_target_deps}
+	ar -rc $@ $^
+
+%.o: %.c
+	{cc} {compiler_switches} -c $< -o $@
+
+%.o: %.cpp
+	{cxx} {compiler_switches} -c $< -o $@
+
+clean:
+	rm *.o *.a
+

@@ -1,11 +1,9 @@
-#include <cassert>
-
-#include "foo.hh"
+#include "pkg.hh"
 
 int
 main ()
 {
-  foo_warn ("Hello there");
-  foo_dump ();
-  foo_error ("General Kenobi");
+  foo ();
+  dump ();
+  bar ();
 }
