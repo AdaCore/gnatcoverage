@@ -336,10 +336,35 @@ clang_getWhileLoc (CXCursor C)
   return clang_getNullLocation ();
 }
 
+/* Given a clang::Stmt, return its start location. Returns a null Location
+   if the given argument is not as expected. */
+extern "C" CXSourceLocation
+clang_getBeginLoc (CXCursor C)
+{
+  const auto TU = getCursorTU (C);
+  const Stmt *S = dyn_cast_if_present<const Stmt> (getCursorStmt (C));
+  if (!S)
+    return clang_getNullLocation ();
+
+  return translateSLoc (TU, S->getBeginLoc ());
+}
+
+/* Given a clang::Stmt, return its end location. Returns a null Location
+   if the given argument is not as expected. */
+extern "C" CXSourceLocation
+clang_getEndLoc (CXCursor C)
+{
+  const auto TU = getCursorTU (C);
+  const Stmt *S = dyn_cast_if_present<const Stmt> (getCursorStmt (C));
+  if (!S)
+    return clang_getNullLocation ();
+
+  return translateSLoc (TU, S->getEndLoc ());
+}
+
 /* Given a clang::CompoundStmt, return the Location just after its left
    bracket. Returns a null Location if the given argument is not as
    expected. */
-
 extern "C" CXSourceLocation
 clang_getLBracLocPlusOne (CXCursor C)
 {
@@ -350,6 +375,20 @@ clang_getLBracLocPlusOne (CXCursor C)
     return clang_getNullLocation ();
 
   return translateSLoc (TU, S->getLBracLoc ().getLocWithOffset (1));
+}
+
+/* Given a clang::CompoundStmt, return the Location of its right bracket.
+   Returns a null Location if the given argument is not as expected. */
+extern "C" CXSourceLocation
+clang_getRBracLoc (CXCursor C)
+{
+  const auto TU = getCursorTU (C);
+  const CompoundStmt *S
+    = dyn_cast_if_present<const CompoundStmt> (getCursorStmt (C));
+  if (!S)
+    return clang_getNullLocation ();
+
+  return translateSLoc (TU, S->getRBracLoc ());
 }
 
 extern "C" unsigned
@@ -852,6 +891,61 @@ clang_getFirstDecl (CXCursor C)
           assert (DI != DGR.end () && "Unexpected empty DeclGroup");
 
           return MakeCXCursorWithNull (*DI, C);
+        }
+    }
+  return clang_getNullCursor ();
+}
+
+/* Given a Try_Stmt, return the Compound_Stmt in the try block. */
+extern "C" CXCursor
+clang_getTryBlock (CXCursor C)
+{
+  if (clang_isStatement (C.kind))
+    {
+      if (const Stmt *S = getCursorStmt (C))
+        {
+          if (S->getStmtClass () != Stmt::CXXTryStmtClass)
+            return clang_getNullCursor ();
+
+          auto TS = llvm::cast<CXXTryStmt> (S);
+          return MakeCXCursorWithNull (TS->getTryBlock (), C);
+        }
+    }
+  return clang_getNullCursor ();
+}
+
+/* Given a Try_Stmt, return the number of catch blocks it has. */
+extern "C" unsigned
+clang_getTryStmtHandlerCount (CXCursor C)
+{
+  if (clang_isStatement (C.kind))
+    {
+      if (const Stmt *S = getCursorStmt (C))
+        {
+          if (S->getStmtClass () != Stmt::CXXTryStmtClass)
+            return 0;
+
+          auto TS = llvm::cast<CXXTryStmt> (S);
+          return TS->getNumHandlers ();
+        }
+    }
+  return 0;
+}
+
+/* Given a Try_Stmt, return the body of the nth catch block. */
+extern "C" CXCursor
+clang_getTryStmtNthHandler (CXCursor C, unsigned i)
+{
+  if (clang_isStatement (C.kind))
+    {
+      if (const Stmt *S = getCursorStmt (C))
+        {
+          if (S->getStmtClass () != Stmt::CXXTryStmtClass)
+            return clang_getNullCursor ();
+
+          auto TS = llvm::cast<CXXTryStmt> (S);
+          auto H = TS->getHandler (i);
+          return MakeCXCursorWithNull (H->getHandlerBlock (), C);
         }
     }
   return clang_getNullCursor ();

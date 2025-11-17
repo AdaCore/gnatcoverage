@@ -95,6 +95,19 @@ package Clang.Extensions is
    --  Given a Decl_Stmt, return the only declaration if it is a single decl,
    --  and the first of the declaration list otherwise.
 
+   function Get_Try_Block (C : Cursor_T) return Cursor_T
+   with Import, Convention => C, External_Name => "clang_getTryBlock";
+   --  Given a Try_Stmt, return the Compound_Stmt in the try block.
+
+   function Get_Try_Stmt_Handler_Count (C : Cursor_T) return Natural
+   with Inline;
+   --  Given a Try_Stmt, return the number of catch blocks it has.
+
+   function Get_Try_Stmt_Nth_Handler
+     (C : Cursor_T; I : Positive) return Cursor_T
+   with Inline;
+   --  Given a Try_Stmt, return the body of the nth catch block.
+
    function Get_Opcode_Str (C : Cursor_T) return String
    with Inline;
 
@@ -110,11 +123,28 @@ package Clang.Extensions is
    --  the declaration is indeed a definition (i.e. it has a body).
    --  Providing another kind of node may return False;
 
+   function Get_Begin_Loc (C : Cursor_T) return Source_Location_T
+   with Import, Convention => C, External_Name => "clang_getBeginLoc";
+   --  Given a clang::Stmt, return its start location. Returns a null Location
+   --  if the given argument is not as expected.
+
+   function Get_End_Loc (C : Cursor_T) return Source_Location_T
+   with Import, Convention => C, External_Name => "clang_getEndLoc";
+   --  Given a clang::Stmt, return its end location. Returns a null Location
+   --  if the given argument is not as expected.
+
    function Get_LBrac_Loc_Plus_One (C : Cursor_T) return Source_Location_T
    with Import, Convention => C, External_Name => "clang_getLBracLocPlusOne";
    --  Given a clang::CompoundStmt (which is a possibly empty list of
    --  statements surrounded by brackets), return the Location just after its
    --  opening bracket. Giving another kind of cursor will return a null
+   --  location.
+
+   function Get_RBrac_Loc (C : Cursor_T) return Source_Location_T
+   with Import, Convention => C, External_Name => "clang_getRBracLoc";
+   --  Given a clang::CompoundStmt (which is a possibly empty list of
+   --  statements surrounded by brackets), return the Location of its
+   --  closing bracket. Giving another kind of cursor will return a null
    --  location.
 
    function Is_Instrumentable_Call_Expr (C : Cursor_T) return Boolean
