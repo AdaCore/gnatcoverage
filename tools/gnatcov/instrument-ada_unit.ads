@@ -150,12 +150,11 @@ package Instrument.Ada_Unit is
    --  a JSON description file of it to Filename.
 
    procedure Load_Config_Pragmas_Mapping
-     (Context  : Analysis_Context;
-      Mapping  : out Config_Pragmas_Mapping;
+     (Mapping  : out Config_Pragmas_Mapping;
       Filename : String);
    --  Create a config pragmas mapping from the JSON description in Filename
    --  (created by the Save_Config_Pragmas_Mapping procedure) and assign it to
-   --  Mapping. Context is used to create the analysis units in Mapping.
+   --  Mapping.
 
    function Create_Ada_Instrumenter
      (Tag                        : Unbounded_String;
