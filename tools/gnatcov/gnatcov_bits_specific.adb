@@ -1155,13 +1155,6 @@ procedure GNATcov_Bits_Specific is
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
       Copy_Arg_List (Opt_LLVM_JSON_Checkpoint, LLVM_JSON_Ckpt_Inputs);
 
-      Copy_Arg_List (Opt_Ignore_Source_Files, Excluded_Source_Files);
-      if not Args.String_List_Args (Opt_Ignore_Source_Files).Is_Empty then
-         Warn
-           ("The --ignore-source-files switch is deprecated. Consider using"
-            & " the --excluded-source-files switch instead.");
-      end if;
-
       Copy_Arg_List (Opt_Excluded_Source_Files, Excluded_Source_Files);
       Copy_Arg_List (Opt_Files, Files_Of_Interest);
       Copy_Arg_List (Opt_Compiler_Wrappers, Compiler_Drivers);

@@ -78,19 +78,17 @@ package body Project is
       Routines,
       Excluded_Routines,
       Excluded_Source_Files,
-      Ignored_Source_Files,
       Switches,
 
       Units_List,
       Excluded_Units_List,
       Routines_List,
       Excluded_Routines_List,
-      Excluded_Source_Files_List,
-      Ignored_Source_Files_List);
+      Excluded_Source_Files_List);
 
    subtype List_Attribute is Attribute range Units .. Switches;
    subtype String_Attribute is
-     Attribute range Units_List .. Ignored_Source_Files_List;
+     Attribute range Units_List .. Excluded_Source_Files_List;
 
    function "+" (A : Attribute) return String;
    function "+" (A : Attribute) return GPR2.Q_Attribute_Id;
@@ -1612,28 +1610,10 @@ package body Project is
 
       procedure Enumerate (Prj : GPR2.Project.View.Object) is
       begin
-         if Prj.Has_Attribute (+Excluded_Source_Files) then
-            Warn
-              ("The Ignored_Source_Files attribute is deprecated. Please"
-               & " consider using the Excluded_Source_Files attribute"
-               & " instead.");
-         end if;
-         if Prj.Has_Attribute (+Excluded_Source_Files_List) then
-            Warn
-              ("The Ignored_Source_Files_List attribute is deprecated. Please"
-               & " consider using the Excluded_Source_Files_List attribute"
-               & " instead.");
-         end if;
          List_From_Project
            (Prj,
             Excluded_Source_Files,
             Excluded_Source_Files_List,
-            Process_Wrapper'Access,
-            Dummy);
-         List_From_Project
-           (Prj,
-            Ignored_Source_Files,
-            Ignored_Source_Files_List,
             Process_Wrapper'Access,
             Dummy);
       end Enumerate;
@@ -1907,16 +1887,6 @@ begin
       "Source file names to exclude from source coverage analysis.");
 
    GPR2_RA.Add
-     (Name                 => +Ignored_Source_Files,
-      Index_Type           => GPR2_RA.No_Index,
-      Value                => GPR2_RA.List,
-      Value_Case_Sensitive => True,
-      Is_Allowed_In        => GPR2_RA.Everywhere);
-   GPR2_RA.Description.Set_Attribute_Description
-     (+Excluded_Source_Files,
-      "Source file names to exclude from source coverage analysis.");
-
-   GPR2_RA.Add
      (Name                 => +Switches,
       Index_Type           => GPR2_RA.String_Index,
       Value                => GPR2_RA.List,
@@ -1982,14 +1952,4 @@ begin
       "Text file that contains source file names to exclude from source"
       & " coverage analysis.");
 
-   GPR2_RA.Add
-     (Name                 => +Ignored_Source_Files_List,
-      Index_Type           => GPR2_RA.No_Index,
-      Value                => GPR2_RA.Single,
-      Value_Case_Sensitive => True,
-      Is_Allowed_In        => GPR2_RA.Everywhere);
-   GPR2_RA.Description.Set_Attribute_Description
-     (+Ignored_Source_Files_List,
-      "Text file that contains source file names to exclude from source"
-      & " coverage analysis.");
 end Project;

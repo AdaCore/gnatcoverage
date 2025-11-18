@@ -186,7 +186,6 @@ package Command_Line is
       Opt_Checkpoint,
       Opt_LLVM_JSON_Checkpoint,
       Opt_Excluded_Source_Files,
-      Opt_Ignore_Source_Files,
       Opt_Shared_Object,
       Opt_Restricted_To_Languages,
       Opt_Annotation_Format,
@@ -1784,17 +1783,6 @@ package Command_Line is
            Help      =>
              "Specify a list of source files to ignore for coverage."
              & " Supports globbing patterns.",
-           Commands  =>
-             (Cmd_Coverage | Cmd_Map_Routines | Cmd_Instrument_Project => True,
-              others                                                   =>
-                False),
-           Internal  => False),
-
-      Opt_Ignore_Source_Files     =>
-        Create
-          (Long_Name => "--ignore-source-files",
-           Pattern   => "[deprecated]",
-           Help      => "See the --excluded-source-files switch",
            Commands  =>
              (Cmd_Coverage | Cmd_Map_Routines | Cmd_Instrument_Project => True,
               others                                                   =>
