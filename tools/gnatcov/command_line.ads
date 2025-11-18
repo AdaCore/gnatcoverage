@@ -185,6 +185,7 @@ package Command_Line is
       Opt_Trace,
       Opt_Checkpoint,
       Opt_LLVM_JSON_Checkpoint,
+      Opt_Excluded_Source_Files,
       Opt_Ignore_Source_Files,
       Opt_Shared_Object,
       Opt_Restricted_To_Languages,
@@ -1185,7 +1186,7 @@ package Command_Line is
              "Ouput the list of names for all units of interest"
              & " and, for each unit of interest, the list of"
              & " source files individually ignored with the"
-             & " ""Ignored_Source_Files"" project attribute or"
+             & " ""Excluded_Source_Files"" project attribute or"
              & " corresponding command-line option."
              & ASCII.LF
              & "For ""-"", the option dumps the list to standard"
@@ -1776,13 +1777,24 @@ package Command_Line is
              & "LLVM coverage information to load.",
            Commands  => (Cmd_Coverage => True, others => False),
            Internal  => False),
-      Opt_Ignore_Source_Files     =>
+      Opt_Excluded_Source_Files   =>
         Create
-          (Long_Name => "--ignore-source-files",
+          (Long_Name => "--excluded-source-files",
            Pattern   => "[FILE|@LISTFILE]",
            Help      =>
              "Specify a list of source files to ignore for coverage."
              & " Supports globbing patterns.",
+           Commands  =>
+             (Cmd_Coverage | Cmd_Map_Routines | Cmd_Instrument_Project => True,
+              others                                                   =>
+                False),
+           Internal  => False),
+
+      Opt_Ignore_Source_Files     =>
+        Create
+          (Long_Name => "--ignore-source-files",
+           Pattern   => "[deprecated]",
+           Help      => "See the --excluded-source-files switch",
            Commands  =>
              (Cmd_Coverage | Cmd_Map_Routines | Cmd_Instrument_Project => True,
               others                                                   =>

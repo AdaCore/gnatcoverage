@@ -105,7 +105,7 @@ def build_and_run(
         will create executables to run. If left to None, assume they are
         produced in the current directory.
     :param list[str] | None ignored_source_files: List of file patterns to pass
-        using the --ignore-source-files option.
+        using the --excluded-source-files option.
     :param None|str separate_coverage: If provided, the argument is forwarded
         to gnatcov using the -S option.
     :param list[str] | None extra_args: List of arguments to pass to any
@@ -214,7 +214,7 @@ def build_and_run(
     # instrument" (src trace mode), in addition to those conveyed by gprsw.
     ignored_source_files = ignored_source_files or []
     cov_or_instr_args = extra_args + [
-        "--ignore-source-files={}".format(pattern)
+        "--excluded-source-files={}".format(pattern)
         for pattern in ignored_source_files
     ]
     if separate_coverage:

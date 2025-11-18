@@ -14,7 +14,7 @@ build_run_and_coverage(
     gprsw=GPRswitches(root_project=gprfor(mains=["test.c"], srcdirs=[".."])),
     covlevel="stmt",
     mains=["test"],
-    extra_coverage_args=["--annotate=xcov", "--ignore-source-files=foo.c"],
+    extra_coverage_args=["--annotate=xcov", "--excluded-source-files=foo.c"],
 )
 
 check_xcov_reports("obj", {"test.c.xcov": {"+": {6, 7}}})

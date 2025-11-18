@@ -1,5 +1,5 @@
 """
-Check that --dump-units-to shows the individually ignored source files.
+Check that --dump-units-to shows the individually excluded source files.
 This extends test T611-027-dump-units-to.
 """
 
@@ -74,7 +74,7 @@ def run_and_check(
 # Check that nothing is dumped without --dump-units-to
 run_and_check(xcov_args + ["-axcov"], "xcov-nodump.txt", "")
 
-# Check that when *not* using the "--ignored-source-files" option, the list of
+# Check that when *not* using the "--excluded-source-files" option, the list of
 # units is still printed.
 run_and_check(
     xcov_args
@@ -88,7 +88,7 @@ run_and_check(
     expected_content="main\n",
 )
 
-# Check that dumping the list of units with ignored source files works on the
+# Check that dumping the list of units with excluded source files works on the
 # "report" output.
 REPORT_PATTERN = (
     "(.|\n)*=+"
@@ -112,8 +112,8 @@ run_and_check(
     + [
         "-areport",
         "--dump-units-to=-",
-        "--ignore-source-files=*-test.adb",
-        "--ignore-source-files=identity.h",
+        "--excluded-source-files=*-test.adb",
+        "--excluded-source-files=identity.h",
     ],
     "report-stdout.txt",
     REPORT_PATTERN,
@@ -127,7 +127,7 @@ run_and_check(
     + [
         "-axcov",
         "--dump-units-to=-",
-        "--ignore-source-files=pkg-test-sep.adb",
+        "--excluded-source-files=pkg-test-sep.adb",
     ],
     "xcov-stdout3.txt",
     expected_content=(
@@ -148,8 +148,8 @@ run_and_check(
         "-axcov",
         "--dump-units-to=-",
         "--units=pkg",
-        "--ignore-source-files=*-test.adb",
-        "--ignore-source-files=identity.h",
+        "--excluded-source-files=*-test.adb",
+        "--excluded-source-files=identity.h",
         "--save-checkpoint=pkg.ckpt",
     ],
     "xcov-stdout4.txt",
@@ -163,7 +163,7 @@ run_and_check(
         "-axcov",
         "--dump-units-to=-",
         "--units=pkh",
-        "--ignore-source-files=pkh-test.adb",
+        "--excluded-source-files=pkh-test.adb",
         "--save-checkpoint=pkh.ckpt",
     ],
     "xcov-stdout5.txt",
@@ -221,14 +221,14 @@ run_and_check(
     ),
 )
 
-# Check that --ignore-source-files filters trace analysis but not checkpoints,
-# and that if a file is ignored when analyzing a trace but is present in a
-# checkpoint, then it is marked as 'sometimes ignored'.
+# Check that --excluded-source-files filters trace analysis but not
+# checkpoints, and that if a file is ignored when analyzing a trace but is
+# present in a checkpoint, then it is marked as 'sometimes ignored'.
 run_and_check(
     xcov_args
     + [
         "-axcov",
-        "--ignore-source-files=pkh-test.adb",
+        "--excluded-source-files=pkh-test.adb",
         "--save-checkpoint=pkh_not_pkg.ckpt",
     ],
     "xcov-sdtout9.txt",
@@ -239,8 +239,8 @@ run_and_check(
     + [
         "-axcov",
         "--dump-units-to=-",
-        "--ignore-source-files=*test.adb",
-        "--ignore-source-files=identity.h",
+        "--excluded-source-files=*test.adb",
+        "--excluded-source-files=identity.h",
         "-Cpkh_not_pkg.ckpt",
     ],
     "xcov-stdout9.txt",

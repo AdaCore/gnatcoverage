@@ -56,7 +56,7 @@ for test in [
         gpr_obj_dir=f"obj/{test.name}",
         gpr_exe_dir="bin",
         extra_instr_args=[
-            f"--ignore-source-files={f}" for f in test.stubbed_files
+            f"--excluded-source-files={f}" for f in test.stubbed_files
         ],
         extra_coverage_args=[],
     )

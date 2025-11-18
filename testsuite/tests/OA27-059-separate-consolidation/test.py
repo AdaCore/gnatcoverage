@@ -88,8 +88,8 @@ def build_and_run_tests(ignored_source_files=None):
     return xcov_args + trace_files
 
 
-# Build and run tests without ignored source files. Check that we indeed have a
-# consolidation error by default.
+# Build and run tests without excluded source files. Check that we indeed have
+# a consolidation error by default.
 clean_objdir()
 xcov_args = build_and_run_tests()
 bin_traces = thistest.options.trace_mode == "bin"
@@ -109,7 +109,7 @@ else:
         contents_of("cons-1.log").strip(),
     )
 
-# Build and run tests with ignored source files. Check that the new option
+# Build and run tests with excluded source files. Check that the new option
 # makes it ignore the problematic symbols, and succeeds to create a report with
 # the expected coverage data.
 clean_objdir()

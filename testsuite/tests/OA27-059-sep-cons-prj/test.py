@@ -1,6 +1,6 @@
 """
 Using similar material as for OA27-059-separate-consolidation, test that the
-Coverage'Ignore_Source_Files project attribute is handled correctly.
+Coverage'Excluded_Source_Files project attribute is handled correctly.
 """
 
 import os.path
@@ -83,9 +83,9 @@ if thistest.options.trace_mode == "bin":
 else:
     xcov_instrument(gprsw=gprsw_for_cov, covlevel=None)
 
-# Check that the Ignore_Source_Files project attribute makes gnatcov ignore the
-# conflicting symbols between test1 and test2, and succeeds to create a report
-# with the expected coverage data.
+# Check that the Excluded_Source_Files project attribute makes gnatcov ignore
+# the conflicting symbols between test1 and test2, and succeeds to create a
+# report with the expected coverage data.
 clean_output_directory()
 p = checked_xcov(xcov_args + ["--output-dir=output"] + trace_files, "cons.log")
 check_xcov_reports(

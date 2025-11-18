@@ -1933,7 +1933,7 @@ package body CFG_Dump is
    procedure Load_SCOs (ALI_Filename : String) is
    begin
       SC_Obligations.Load_SCOs
-        (ALI_Filename => ALI_Filename, Ignored_Source_Files => null);
+        (ALI_Filename => ALI_Filename, Excluded_Source_Files => null);
    end Load_SCOs;
 
    -----------------
