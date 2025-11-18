@@ -1,0 +1,13 @@
+project P is
+   for Source_Dirs use (".");
+   for Object_Dir use "obj";
+   for Main use ("main.adb");
+
+   package Coverage is
+      for Excluded_Source_Files use ("p3.adb");
+      for Ignored_Source_Files use ("p4.adb");
+
+      for Excluded_Source_Files_List use "excluded.files";
+      for Ignored_Source_Files_List use "ignored.files";
+   end Coverage;
+end P;

@@ -75,16 +75,16 @@ with Text_Files;          use Text_Files;
 --  passed, it will not be allowed to introduce expression functions, and
 --  thus will emit a warning when it needed to do so.
 --
---  If Ignored_Source_File is non-null, ignore files whose names match the
+--  If Excluded_Source_File is non-null, ignore files whose names match the
 --  accessed pattern.
 --
 --  Mains is the list of source files that were listed on the command line:
 --  if non-empty, they replace the mains specified in project files.
 
 procedure Instrument.Projects
-  (Dump_Config          : Any_Dump_Config;
-   Ignored_Source_Files : access GNAT.Regexp.Regexp;
-   Mains                : String_Vectors.Vector)
+  (Dump_Config           : Any_Dump_Config;
+   Excluded_Source_Files : access GNAT.Regexp.Regexp;
+   Mains                 : String_Vectors.Vector)
 is
    use type GPR2.Path_Name.Object;
    use type GPR2.Unit_Kind;
@@ -192,8 +192,8 @@ is
       --  JSON file that contains the preprocessor data necessary to analyze
       --  Ada sources (see Instrument.Ada_Unit.Create_Preprocessor_Data_File).
 
-      Ignored_Source_Files_Present : Boolean;
-      Ignored_Source_Files         : GNAT.Regexp.Regexp;
+      Excluded_Source_Files_Present : Boolean;
+      Excluded_Source_Files         : GNAT.Regexp.Regexp;
       --  If present, instrumentation will ignore files whose names match the
       --  accessed pattern.
 
@@ -207,14 +207,14 @@ is
    end record;
 
    function Create_Context
-     (Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;
+     (Excluded_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context;
    --  Create an instrumentation context for the currently loaded project
 
    procedure Destroy_Context (Context : in out Inst_Context);
    --  Free dynamically allocated resources in Context, and cleanup temporary
    --  files.
 
-   function Is_Ignored_Source_File
+   function Is_Excluded_Source_File
      (Context : Inst_Context; Filename : String) return Boolean;
    --  Return whether the instrumentation process must ignore the Filename
    --  source file.
@@ -443,12 +443,12 @@ is
    --------------------
 
    function Create_Context
-     (Ignored_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context is
+     (Excluded_Source_Files : access GNAT.Regexp.Regexp) return Inst_Context is
    begin
       return IC : Inst_Context do
-         IC.Ignored_Source_Files_Present := Ignored_Source_Files /= null;
-         if Ignored_Source_Files /= null then
-            IC.Ignored_Source_Files := Ignored_Source_Files.all;
+         IC.Excluded_Source_Files_Present := Excluded_Source_Files /= null;
+         if Excluded_Source_Files /= null then
+            IC.Excluded_Source_Files := Excluded_Source_Files.all;
          end if;
       end return;
    end Create_Context;
@@ -503,18 +503,18 @@ is
    end Destroy_Context;
 
    ----------------------------
-   -- Is_Ignored_Source_File --
+   -- Is_Excluded_Source_File --
    ----------------------------
 
-   function Is_Ignored_Source_File
+   function Is_Excluded_Source_File
      (Context : Inst_Context; Filename : String) return Boolean is
    begin
       return
-        Context.Ignored_Source_Files_Present
+        Context.Excluded_Source_Files_Present
         and then GNAT.Regexp.Match
                    (S => Fold_Filename_Casing (Filename),
-                    R => Context.Ignored_Source_Files);
-   end Is_Ignored_Source_File;
+                    R => Context.Excluded_Source_Files);
+   end Is_Excluded_Source_File;
 
    --------------------------------
    -- Get_Or_Create_Project_Info --
@@ -696,7 +696,7 @@ is
 
       --  Pass the list of sources of interest, to e.g. skip the
       --  instrumentation of the spec / body / subunit for an Ada unit if
-      --  it was requested through a --ignored-source-files switch.
+      --  it was requested through a --excluded-source-files switch.
 
       Result.Append ("--files=@" & IC.Sources_Of_Interest_Response_File);
 
@@ -715,7 +715,7 @@ is
 
    --  Create the instrumenter context
 
-   IC : Inst_Context := Create_Context (Ignored_Source_Files);
+   IC : Inst_Context := Create_Context (Excluded_Source_Files);
 
    Root_Project_Info : constant Project_Info_Access :=
      Get_Or_Create_Project_Info (IC, Project.Project.Root_Project);
@@ -788,9 +788,9 @@ is
          All_Externally_Built => Prj_Info.Externally_Built);
 
    begin
-      --  Check if this is an ignored source file
+      --  Check if this is an excluded source file
 
-      if Is_Ignored_Source_File
+      if Is_Excluded_Source_File
            (IC, String (Source_File.Path_Name.Simple_Name))
       then
          return;

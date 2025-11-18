@@ -48,7 +48,7 @@ package Checkpoints is
    --  3  -- support for dumping names for units of interest
    --  4  -- gnatcov's own Pragma_Id type
    --  5  -- one CU_Info per source file and revamped fingerprint computation
-   --        and support for listing ignored source files with --dump-units-to
+   --        and support for listing excluded source files with --dump-units-to
    --  6  -- Add the kind of trace (Source, Binary or mixed) in the checkpoint
    --  7  -- Add the "bits" for binary traces used to create the checkpoint
    --  8  -- Add macro expansion information
@@ -278,9 +278,9 @@ package Checkpoints is
    --  Clear the internal data structures used to create checkpoints
 
    procedure SID_Load
-     (Filename : String; Ignored_Source_Files : access GNAT.Regexp.Regexp);
+     (Filename : String; Excluded_Source_Files : access GNAT.Regexp.Regexp);
    --  Load an SID file into internal data structures, ignoring files
-   --  that match Ignored_Source_Files.
+   --  that match Excluded_Source_Files.
 
    procedure Checkpoint_Load (Filename : String);
    --  Load a checkpoint file into internal data structures
@@ -653,7 +653,7 @@ private
 
       Ignored_SFIs : SFI_Ignored_Map_Access;
       Ignored_CUs  : CU_Id_Ignored_Access;
-      --  Represents the ignored Source files and compilation units that
+      --  Represents the excluded source files and compilation units that
       --  we should not load from the SID file.
       --  Unused when loading data from a consolidation checkpoint.
 

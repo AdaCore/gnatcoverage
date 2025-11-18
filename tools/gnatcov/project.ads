@@ -214,10 +214,10 @@ package Project is
    --  Return the runtime in the root project, if any, and the empty string
    --  otherwise. This concerns only the runtime for Ada.
 
-   procedure Enumerate_Ignored_Source_Files
+   procedure Enumerate_Excluded_Source_Files
      (Process : access procedure (Source_File : String))
    with Pre => Is_Project_Loaded;
-   --  Call Process on each name in the Coverage'Ignored_Source_File attribute
+   --  Call Process on each name in the Coverage'Excluded_Source_File attribute
 
    function Runtime_Dirs return String_Vectors.Vector;
    --  Return the list of runtime directories for the currently loaded project

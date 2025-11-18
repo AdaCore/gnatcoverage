@@ -1,6 +1,6 @@
 """
 Check that, except on Windows, the casing of glob patterns for
---ignore-source-files is significant.
+--excluded-source-files is significant.
 """
 
 from SCOV.minicheck import build_run_and_coverage, check_xcov_reports
@@ -10,7 +10,7 @@ from SUITE.gprutils import GPRswitches
 from SUITE.tutils import thistest, gprfor
 
 
-ignore_opt = "--ignore-source-files=Pkg.adb"
+ignore_opt = "--excluded-source-files=Pkg.adb"
 expected_reports = {
     "main.adb.xcov": {"+": {5}},
     "pkg.ads.xcov": {},
@@ -18,8 +18,8 @@ expected_reports = {
 if env.build.os.name != "windows":
     expected_reports["pkg.adb.xcov"] = {"+": {7}}
 
-# First check --ignore-source-files on "gnatcov coverage"
-thistest.log("== gnatcov coverage --ignore-source-files ==")
+# First check --excluded-source-files on "gnatcov coverage"
+thistest.log("== gnatcov coverage --excluded-source-files ==")
 tmp = Wdir("tmp_cov")
 gprsw = GPRswitches(root_project=gprfor(mains=["main.adb"], srcdirs=[".."]))
 build_run_and_coverage(
@@ -36,9 +36,9 @@ check_xcov_reports("out-cov", expected_reports)
 tmp.to_homedir()
 
 # Then check it on "gnatcov instrument". This separate test makes sense as
-# --ignore-source-files exercises different code paths depending on the gnatcov
-# command.
-thistest.log("== gnatcov instrument --ignore-source-files ==")
+# --excluded-source-files exercises different code paths depending on the
+# gnatcov command.
+thistest.log("== gnatcov instrument --excluded-source-files ==")
 tmp = Wdir("tmp_instr")
 gprsw = GPRswitches(root_project=gprfor(mains=["main.adb"], srcdirs=[".."]))
 

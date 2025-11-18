@@ -119,7 +119,7 @@ The available options are as follows:
    effectively overrides the project based units of interest selection. It only
    has effect if used with source traces.
 
-:cmd-option:`--ignore-source-files`, |rarg|:
+:cmd-option:`--excluded-source-files`, |rarg|:
    Provide a list of globbing patterns (as in Unix shells) of source
    files to be excluded from the analysis and from the output report.
    See the :ref:`ignore_source_files` section for more information.
@@ -129,8 +129,8 @@ The available options are as follows:
    are considered of-interest to the requested assessment, that is, for which a
    report or checkpoint is going to be produced. This also outputs, for each
    unit of interest, the list of files that were individually ignored using the
-   ``Ignored_Source_Files`` project attribute or corresponding command-line
-   option. Ignored source files listed with :cmd-option:`--dump-units-to` will
+   ``Excluded_Source_Files`` project attribute or corresponding command-line
+   option. Excluded source files listed with :cmd-option:`--dump-units-to` will
    be either marked as ``always ignored``, if they were ignored in all the
    inputs (traces or checkpoints) that were used to produce this report, or as
    ``sometimes ignored``, if the source files were ignored in at least one of
@@ -341,7 +341,7 @@ the output reports.
 If :cmd-option:`--dump-units-to -` is also on the command line, a *UNITS OF
 INTEREST* section is produced, which contains the list of units considered
 of-interest for the reported assessment, as well as the list of source files
-individually ignored with the ``Ignored_Source_Files`` project attribute and
+individually ignored with the ``Excluded_Source_Files`` project attribute and
 corresponding command-line option.
 
 Assessment Context

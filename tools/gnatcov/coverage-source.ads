@@ -133,13 +133,13 @@ package Coverage.Source is
    --  Add Unit to the list of units of interest. For convenience, do nothing
    --  if it is invalid.
 
-   procedure Compute_Unit_Name_For_Ignored_Sources;
+   procedure Compute_Unit_Name_For_Excluded_Sources;
    --  Compute the name of the owning unit for each known source file that is
    --  (sometimes or always) ignored.
 
    procedure Fill_Ignored_SF_Map;
-   --  Iterate over all ignored source files to create a map indexed by
-   --  unit names, linking them to the list of ignored source files.
+   --  Iterate over all excluded source files to create a map indexed by
+   --  unit names, linking them to the list of excluded source files.
 
    procedure Iterate_On_Unit_List
      (Process_Unit        :
@@ -148,13 +148,13 @@ package Coverage.Source is
    with Pre => Unit_List_Is_Valid;
    --  Call Process_Unit for each unit of interest, passing to it the name of
    --  the unit, and call Process_Source_File for each (sometimes or always)
-   --  ignored source file in the unit.
+   --  excluded source file in the unit.
    --
    --  Process_Unit is called before iterating on the ignored files for that
    --  unit.
 
    procedure Report_Units (File : File_Type);
-   --  Print a report about units of interest as well as ignored source files
+   --  Print a report about units of interest as well as excluded source files
    --  to File.
 
    -----------------

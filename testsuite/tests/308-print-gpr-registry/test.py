@@ -47,19 +47,19 @@ def summarize_text(f):
     return "\n".join(result)
 
 
-baseline = (
-    "Coverage.Excluded_Routines"
-    "\nCoverage.Excluded_Routines_List"
-    "\nCoverage.Excluded_Units"
-    "\nCoverage.Excluded_Units_List"
-    "\nCoverage.Ignored_Source_Files"
-    "\nCoverage.Ignored_Source_Files_List"
-    "\nCoverage.Routines"
-    "\nCoverage.Routines_List"
-    "\nCoverage.Switches"
-    "\nCoverage.Units"
-    "\nCoverage.Units_List"
-)
+baseline = """Coverage.Excluded_Routines
+Coverage.Excluded_Routines_List
+Coverage.Excluded_Source_Files
+Coverage.Excluded_Source_Files_List
+Coverage.Excluded_Units
+Coverage.Excluded_Units_List
+Coverage.Ignored_Source_Files
+Coverage.Ignored_Source_Files_List
+Coverage.Routines
+Coverage.Routines_List
+Coverage.Switches
+Coverage.Units
+Coverage.Units_List"""
 
 
 for fmt, summarize in [

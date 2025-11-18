@@ -82,7 +82,7 @@ for testcase in testcases:
     )
 
 # When inlining is enabled, consolidation without checkpoints cannot work, even
-# with --ignore-source-files.
+# with --excluded-source-files.
 if thistest.options.trace_mode == "bin" and "-O1" in thistest.suite_cargs_for(
     "Ada"
 ):
@@ -103,7 +103,7 @@ if thistest.options.trace_mode == "bin" and "-O1" in thistest.suite_cargs_for(
         " during consolidation, but it did not.",
     )
 
-# Check that consolidation behaves as expected with the --ignore-source-files
+# Check that consolidation behaves as expected with the --excluded-source-files
 # switch: expected number of reports and expected report content.
 clean_output_directory()
 checked_xcov(
