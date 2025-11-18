@@ -18,7 +18,7 @@
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;
-with Ada.Containers;          use Ada.Containers;
+with Ada.Containers;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;             use Ada.Text_IO;
 
@@ -221,9 +221,9 @@ package body Switches is
      (Default_Dump_Config : Any_Dump_Config) return Any_Dump_Config
    is
       use String_Vectors;
-      Dump_Channel_Opt : String_Option renames
+      Dump_Channel_Opt      : String_Option renames
         Args.String_Args (Opt_Dump_Channel);
-      Dump_Trigger_Opt : Vector;
+      Manual_Dump_Files_Opt : Vector;
 
       Manual_Indication_Files : File_Sets.Set;
       --  Files containing manual indications (optional) when using the manual
@@ -253,71 +253,55 @@ package body Switches is
          end;
       end if;
 
-      --  Two cases for the dump-trigger:
-
-      --    * It is a single string, in which case we expect the dump-trigger
-      --      to be atexit|main-end|manual.
-      --
-      --    * It is a string list, in which case we expect the first argument
-      --      to be manual, and the rest a list of files to process for the
-      --      manual indications replacement.
-
       Dump_Trigger := Default_Dump_Config.Trigger;
       if Args.String_Args (Opt_Dump_Trigger).Present then
          begin
-            --  Post-process the switch value manually, see comment for the
-            --  Opt_Dump_Trigger option in command_lines.ads.
-
-            declare
-               Non_Expanded_Args : Vector;
-            begin
-               --  Split the argument in a string list
-
-               Append_From_String
-                 (Non_Expanded_Args,
-                  Args.String_Args (Opt_Dump_Trigger).Value);
-
-               --  Expand possible response files
-
-               Copy_Arg_List (Non_Expanded_Args, Dump_Trigger_Opt);
-            end;
-
             --  Process the dump trigger value
 
-            Dump_Trigger := Value (+Dump_Trigger_Opt.First_Element);
-
-            --  Now check whether there are additional arguments
-
-            if Dump_Trigger_Opt.Length > 1 then
-               if Dump_Trigger /= Manual then
-                  Fatal_Error
-                    ("--dump-trigger=atexit|main-end accepts a single"
-                     & " argument");
-               end if;
-
-               declare
-                  Cur : Cursor := Next (Dump_Trigger_Opt.First);
-               begin
-                  while Has_Element (Cur) loop
-                     declare
-                        Filename : constant String := +Element (Cur);
-                     begin
-                        if not Ada.Directories.Exists (Filename) then
-                           Fatal_Error
-                             ("File " & Filename & " does not exist");
-                        end if;
-                        Manual_Indication_Files.Include
-                          (Create_Normalized (Filename));
-                        Cur := Next (Cur);
-                     end;
-                  end loop;
-               end;
-            end if;
+            Dump_Trigger := Value (+Args.String_Args (Opt_Dump_Trigger).Value);
          exception
             when Exc : Constraint_Error =>
                Fatal_Error (Exception_Info (Exc));
          end;
       end if;
+
+      --  Expand manual dump files
+
+      for Arg of Args.String_List_Args (Opt_Manual_Dump_Files) loop
+         declare
+            Non_Expanded_Args : Vector;
+         begin
+            --  Split the argument in a string list
+            --  (Turn "foo.adb,bar.adb" in ["foo.adb", "bar.adb"])
+
+            Append_From_String (Non_Expanded_Args, Arg);
+
+            --  Expand possible response files
+
+            Copy_Arg_List (Non_Expanded_Args, Manual_Dump_Files_Opt);
+         end;
+      end loop;
+
+      --  Check the existence of manual dump indication files
+
+      declare
+         Cur : Cursor := Manual_Dump_Files_Opt.First;
+      begin
+         if Has_Element (Cur) and then Dump_Trigger /= Manual then
+            Fatal_Error ("--manual-dump-files requires --dump-trigger=manual");
+         end if;
+         while Has_Element (Cur) loop
+            declare
+               Filename : constant String := +Element (Cur);
+            begin
+               if not Ada.Directories.Exists (Filename) then
+                  Fatal_Error ("File " & Filename & " does not exist");
+               end if;
+               Manual_Indication_Files.Include (Create_Normalized (Filename));
+               Cur := Next (Cur);
+            end;
+         end loop;
+      end;
 
       case Default_Dump_Config.Channel is
          when Binary_File =>

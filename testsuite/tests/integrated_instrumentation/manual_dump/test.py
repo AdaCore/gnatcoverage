@@ -23,7 +23,8 @@ xcov(
         "--level=stmt",
         "--files=../foo.cpp",
         f"--compilers={CXX}",
-        "--dump-trigger=manual,../foo.cpp",
+        "--dump-trigger=manual",
+        "--manual-dump-files=../foo.cpp",
     ]
 )
 
