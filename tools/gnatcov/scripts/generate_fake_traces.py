@@ -222,7 +222,7 @@ def main() -> None:
 
     random.seed(a=args.seed)
 
-    output_dir = getattr(args, "output-dir")
+    output_dir = os.path.abspath(getattr(args, "output-dir"))
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
 
