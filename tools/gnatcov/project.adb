@@ -539,7 +539,7 @@ package body Project is
       return GPR2.Path_Name.Object
    is
       Is_Ada    : constant Boolean := Source.Language = GPR2.Ada_Language;
-      Prefix    : GPR2.Simple_Name :=
+      Prefix    : constant GPR2.Simple_Name :=
         (if Is_Ada
          then Source.Path_Name.Base_Filename
          else Source.Path_Name.Simple_Name);

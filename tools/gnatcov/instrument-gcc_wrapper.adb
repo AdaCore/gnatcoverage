@@ -1295,7 +1295,7 @@ begin
                            if Line (Arrow_Index + 3 .. Line'Last) = "not found"
                            then
                               declare
-                                 Path : String :=
+                                 Path : constant String :=
                                    (if Paths.On_Windows
                                     then "PATH"
                                     else "LD_LIBRARY_PATH");

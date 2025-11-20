@@ -1,4 +1,4 @@
-with "gnat_util", "gnatcoll", "gpr2", "libadalang", "libclang", "stable_sloc";
+with "gnat_util", "gnatcoll", "gpr2", "libadalang", "libclang", "stable_sloc", "templates_parser";
 
 project Gnatcov is
 
@@ -140,6 +140,8 @@ project Gnatcov is
       end case;
 
       for Body_Suffix ("C++") use ".cc";
+
+      for Implementation_Suffix ("Templates") use ".tmplt";
    end Naming;
 
    package Coverage is
@@ -250,6 +252,11 @@ project Gnatcov is
       --  clang-wrapper.cc errors out), force the use of g++.
 
       for Driver ("C++") use "g++";
+
+      -- There is no compiler for templates.
+
+      for Driver ("Templates") use "";
+
    end Compiler;
 
    package Linker is
@@ -300,7 +307,7 @@ project Gnatcov is
    -- Configuration of sources/object files --
    -------------------------------------------
 
-   for Source_Dirs use (".", "libopcodes_bind");
+   for Source_Dirs use (".", "libopcodes_bind", "templates");
    case C_Support is
       when "False" => for Excluded_Source_Files use ("clang-wrapper.cc");
       when "True"  => null;
@@ -318,6 +325,6 @@ project Gnatcov is
    end case;
    for Object_Dir use Object_Dir & "/" & Build_Mode;
 
-   for Languages use ("Ada", "C", "C++");
+   for Languages use ("Ada", "C", "C++", "Templates");
 
 end Gnatcov;
