@@ -22,6 +22,7 @@ with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Strings;
 with Ada.Strings.Hash;
+with Ada.Strings.Unbounded.Hash;
 
 with GNAT.OS_Lib;
 
@@ -38,6 +39,7 @@ pragma Warnings (On, "not referenced");
 
 with Command_Line;   use Command_Line;
 with Files_Handling; use Files_Handling;
+with Hashes;         use Hashes;
 with Hex_Images;     use Hex_Images;
 with Outputs;
 
@@ -78,6 +80,35 @@ package body Instrument is
 
       return +Result;
    end To_Ada;
+
+   ----------
+   -- Hash --
+   ----------
+
+   function Hash (Self : Compilation_Unit_Part) return Ada.Containers.Hash_Type
+   is
+   begin
+      return
+         Result : Ada.Containers.Hash_Type :=
+           Supported_Language_Kind'Pos (Self.Language_Kind)
+      do
+         case Self.Language_Kind is
+            when Unit_Based_Language =>
+               for Id of Self.Unit loop
+                  Result :=
+                    Combine
+                      (Result,
+                       Ada.Strings.Unbounded.Hash (Unbounded_String (Id)));
+               end loop;
+               Result :=
+                 Combine (Result, GPR2.Valid_Unit_Kind'Pos (Self.Part));
+
+            when File_Based_Language =>
+               Result :=
+                 Combine (Result, Ada.Strings.Unbounded.Hash (Self.Filename));
+         end case;
+      end return;
+   end Hash;
 
    ----------
    -- Read --

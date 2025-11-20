@@ -83,7 +83,17 @@ package body Files_Table is
    --  sorted by simple name first, then by full name. Computed when freezing
    --  Files_Table.
 
-   procedure Freeze_Files_Table;
+   procedure Compute_Unique_Names
+   with Pre => not Files_Table_Frozen;
+   --  Compute Unique_Name fields for file entries.
+   --
+   --  This is an implementation helper for Freeze_Files_Table. It used to be
+   --  inlined in Freeze_Files_Table, but the elaboration overhead of its
+   --  declarations used to be paid even when calling Freeze_Files_Table
+   --  returned early.
+
+   procedure Freeze_Files_Table
+   with Post => Files_Table_Frozen;
    --  Freeze the files table and compute Unique_Name fields for file entries
 
    function Create_File_Info
@@ -1247,11 +1257,11 @@ package body Files_Table is
       return Files_Table.Element (Index).Simple_Name.all;
    end Get_Simple_Name;
 
-   ------------------------
-   -- Freeze_Files_Table --
-   ------------------------
+   --------------------------
+   -- Compute_Unique_Names --
+   --------------------------
 
-   procedure Freeze_Files_Table is
+   procedure Compute_Unique_Names is
 
       package Conversions is new
         System.Address_To_Access_Conversions (Object => File_Info);
@@ -1440,7 +1450,7 @@ package body Files_Table is
       Alias_Map : Alias_Maps.Map;
       --  Mapping: simple name to set of files that have this simple name
 
-      --  Start of processing for Freeze_Files_Table
+      --  Start of processing for Compute_Unique_Names
 
    begin
       if Files_Table_Frozen then
@@ -1561,6 +1571,18 @@ package body Files_Table is
       end;
 
       Clear (Alias_Map);
+   end Compute_Unique_Names;
+
+   ------------------------
+   -- Freeze_Files_Table --
+   ------------------------
+
+   procedure Freeze_Files_Table is
+   begin
+      if Files_Table_Frozen then
+         return;
+      end if;
+      Compute_Unique_Names;
       Files_Table_Frozen := True;
    end Freeze_Files_Table;
 
