@@ -28,6 +28,8 @@ def iter_versions():
     if "7.1.2" in tags:
         return
     yield "c17"
+    if "morello-elf" in tags:
+        return
     yield "c23"
 
 
