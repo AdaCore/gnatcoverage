@@ -1,4 +1,3 @@
-windows DEAD Integrated instrumentation tested on linux
 bin-traces DEAD Integrated instrumentation only work with source traces
 5.04a1 DEAD Object files produced by GNAT 5.04 cannot be merged with ld -r
 7.1.2 DEAD GNAT 7.1.2 does not provide a static version of libgcc
