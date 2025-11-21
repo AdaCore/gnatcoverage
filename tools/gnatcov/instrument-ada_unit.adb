@@ -5109,6 +5109,23 @@ package body Instrument.Ada_Unit is
                      end;
                   end if;
 
+                  --  Remove all Warnings/Style_Checks pragmas: it is not
+                  --  our goal to make instrumentation generate warning-free
+                  --  or well-formatted code.
+
+                  for I in 1 .. CUN.F_Prelude.Children_Count loop
+                     declare
+                        C : constant Ada_Node := CUN.F_Prelude.Child (I);
+                     begin
+                        if C.Kind = Ada_Pragma_Node
+                          and then Pragma_Name (C.As_Pragma_Node)
+                                   in Name_Warnings | Name_Style_Checks
+                        then
+                           Remove_Child (Handle (C));
+                        end if;
+                     end;
+                  end loop;
+
                   --  Note: we do not traverse the context clause or generate
                   --  any SCOs for it, as nothing there can generate any code.
 
