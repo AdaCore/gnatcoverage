@@ -56,7 +56,9 @@ with SCOs;
 with Slocs;
 with Snames;                              use Snames;
 with SS_Annotations;                      use SS_Annotations;
+with Support_Files;
 with Table;
+with Templates_Parser;                    use Templates_Parser;
 with Text_Files;                          use Text_Files;
 
 package body Instrument.Ada_Unit is
@@ -106,6 +108,14 @@ package body Instrument.Ada_Unit is
        else "");
    --  If ``N`` is an attribute reference, return the canonicalized name for
    --  that attribute. Return the empty string otherwise.
+
+   function Render_Template
+     (Tmplt_Name : String; T : Translate_Set) return Unbounded_String
+   is (Parse (Support_Files.In_Share_Dir ("templates/" & Tmplt_Name), T));
+   function Render_Template
+     (Tmplt_Name : String; T : Translate_Table) return Unbounded_String
+   is (Parse (Support_Files.In_Share_Dir ("templates/" & Tmplt_Name), T));
+   --  Shortcut function for rendering a template to an Unbounded_String.
 
    -------------------------------
    -- Create_Context_Instrument --
@@ -1417,15 +1427,11 @@ package body Instrument.Ada_Unit is
    --  to Start_Rewriting. If rewriting failed, raise a fatal error and print
    --  the corresponding error message.
 
-   procedure Remove_Warnings_And_Style_Checks_Pragmas
-     (Unit : Unit_Rewriting_Handle);
-   --  Remove all Warnings/Style_Checks pragmas in Rewriter's unit
-
    procedure Write_To_File (Unit : Unit_Rewriting_Handle; Filename : String);
    --  Unparse Unit into the file at Filename (creating it if needed).
    --
-   --  Note that this calls Remove_Warnings_And_Style_Checks_Pragmas and
-   --  Put_Warnings_And_Style_Checks_Pragmas before unparsing the unit.
+   --  Note that this calls Put_Warnings_And_Style_Checks_Pragmas before
+   --  unparsing the unit.
 
    ----------------------------
    -- Source level rewriting --
@@ -5691,6 +5697,14 @@ package body Instrument.Ada_Unit is
                            UIC.Language_Version := Ada_1995;
                         end;
 
+                     --  Remove all Warnings/Style_Checks pragmas: it is not
+                     --  our goal to make instrumentation generate warning-free
+                     --  or well-formatted code.
+
+                     when Name_Warnings | Name_Style_Checks
+                     =>
+                        Remove_Child (Handle (N));
+
                      --  For all other pragmas, we generate decision entries
                      --  for any embedded expressions, and the pragma is
                      --  never disabled.
@@ -9491,81 +9505,26 @@ package body Instrument.Ada_Unit is
       Self.Unit := No_Analysis_Unit;
    end Finalize;
 
-   ----------------------------------------------
-   -- Remove_Warnings_And_Style_Checks_Pragmas --
-   ----------------------------------------------
-
-   procedure Remove_Warnings_And_Style_Checks_Pragmas
-     (Unit : Unit_Rewriting_Handle)
-   is
-
-      function Should_Remove (Node : Node_Rewriting_Handle) return Boolean;
-      --  Return whether Node is a pragma Warnings or Style_Checks
-
-      procedure Process (Node : Node_Rewriting_Handle);
-      --  Remove all pragma Warnings/Style_Checks statements from Node and its
-      --  children.
-
-      -------------------
-      -- Should_Remove --
-      -------------------
-
-      function Should_Remove (Node : Node_Rewriting_Handle) return Boolean is
-      begin
-         if Kind (Node) /= Ada_Pragma_Node then
-            return False;
-         end if;
-
-         declare
-            Symbol : constant Symbolization_Result :=
-              Canonicalize (Text (Child (Node, Member_Refs.Pragma_Node_F_Id)));
-         begin
-            return
-              (Symbol.Success
-               and then Symbol.Symbol in "warnings" | "style_checks");
-         end;
-      end Should_Remove;
-
-      -------------
-      -- Process --
-      -------------
-
-      procedure Process (Node : Node_Rewriting_Handle) is
-      begin
-         if Node = No_Node_Rewriting_Handle then
-            return;
-         end if;
-
-         --  Go through all children in reverse order so that we can remove
-         --  pragmas in one pass.
-
-         for Child of Children (Node) loop
-            if Child /= No_Node_Rewriting_Handle and then Should_Remove (Child)
-            then
-               Remove_Child (Child);
-            else
-               Process (Child);
-            end if;
-         end loop;
-      end Process;
-
-      --  Start of processing for Remove_Warnings_And_Style_Checks_Pragmas
-
-   begin
-      Process (Root (Unit));
-   end Remove_Warnings_And_Style_Checks_Pragmas;
-
    -------------------
    -- Write_To_File --
    -------------------
 
    procedure Write_To_File (Unit : Unit_Rewriting_Handle; Filename : String) is
-   begin
-      --  Automatically insert pragmas to disable style checks and warnings in
-      --  generated code: it is not our goal to make instrumentation generate
-      --  warning-free or well-formatted code.
+      use Ada.Streams.Stream_IO;
+      use Ada.Strings.Wide_Wide_Unbounded.Aux;
 
-      Remove_Warnings_And_Style_Checks_Pragmas (Unit);
+      Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
+
+      --  To avoid copying the potentially big string for sources on the
+      --  secondary stack (and reduce the amount of copies anyway), use the
+      --  internal GNAT API to retreive the internal string access and process
+      --  it by chunks.
+
+      Source_Access : Big_Wide_Wide_String_Access;
+      Length        : Natural;
+
+      Chunk_Size : constant := 4096;
+      Position   : Natural;
 
       --  Note: we need to open and write the instrumented source as a binary
       --  file, to be consistent with Libadalang which retrieves the tokens
@@ -9577,54 +9536,41 @@ package body Instrument.Ada_Unit is
       --  terminators (CRLF) were written in a text file, calls to fwrite
       --  would replace LF with CRLF, resulting in CRCRLF, which is incorrect.
 
-      declare
-         use Ada.Streams.Stream_IO;
-         use Ada.Strings.Wide_Wide_Unbounded.Aux;
+      File : Ada.Streams.Stream_IO.File_Type;
+      S    : Stream_Access;
+   begin
+      Ada.Streams.Stream_IO.Create (File, Out_File, Filename);
+      S := Stream (File);
 
-         Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
+      --  Automatically insert pragmas to disable style checks and warnings
+      --  in generated code: it is not our goal to make instrumentation
+      --  generate warning-free or well-formatted code.
 
-         --  To avoid copying the potentially big string for sources on the
-         --  secondary stack (and reduce the amount of copies anyway), use the
-         --  internal GNAT API to retreive the internal string access and
-         --  process it by chunks.
+      String'Write (S, "pragma Style_Checks (Off); pragma Warnings (Off);");
 
-         Source_Access : Big_Wide_Wide_String_Access;
-         Length        : Natural;
+      Get_Wide_Wide_String (Source, Source_Access, Length);
+      Position := Source_Access.all'First;
 
-         Chunk_Size : constant := 4096;
-         Position   : Natural;
+      while Position <= Length loop
+         declare
+            Chunk_First : constant Natural := Position;
+            Chunk_Last  : constant Natural :=
+              Natural'Min (Chunk_First + Chunk_Size - 1, Length);
 
-         File : Ada.Streams.Stream_IO.File_Type;
-         S    : Stream_Access;
-      begin
-         Ada.Streams.Stream_IO.Create (File, Out_File, Filename);
-         S := Stream (File);
-         String'Write (S, "pragma Style_Checks (Off); pragma Warnings (Off);");
+            Chunk         : Wide_Wide_String renames
+              Source_Access.all (Chunk_First .. Chunk_Last);
+            Encoded_Chunk : constant String :=
+              Ada.Characters.Conversions.To_String (Chunk);
+         begin
+            String'Write (S, Encoded_Chunk);
+            Position := Chunk_Last + 1;
+         end;
+      end loop;
 
-         Get_Wide_Wide_String (Source, Source_Access, Length);
-         Position := Source_Access.all'First;
-
-         while Position <= Length loop
-            declare
-               Chunk_First : constant Natural := Position;
-               Chunk_Last  : constant Natural :=
-                 Natural'Min (Chunk_First + Chunk_Size - 1, Length);
-
-               Chunk         : Wide_Wide_String renames
-                 Source_Access.all (Chunk_First .. Chunk_Last);
-               Encoded_Chunk : constant String :=
-                 Ada.Characters.Conversions.To_String (Chunk);
-            begin
-               String'Write (S, Encoded_Chunk);
-               Position := Chunk_Last + 1;
-            end;
-         end loop;
-
-         Close (File);
-         if Switches.Pretty_Print then
-            Text_Files.Run_GNATformat (Filename);
-         end if;
-      end;
+      Close (File);
+      if Switches.Pretty_Print then
+         Text_Files.Run_GNATformat (Filename);
+      end if;
    end Write_To_File;
 
    -------------------------------
@@ -10650,182 +10596,106 @@ package body Instrument.Ada_Unit is
 
       File              : Text_Files.File_Type;
       Last_Buffer_Index : constant Natural := Natural (Unit_Bits.Length);
+
+      T : Translate_Set :=
+        Assoc ("UNIT_NAME", Pkg_Name)
+        & Assoc ("UNIT_BUFFERS_NAME", Unit_Buffers_Name (Unit))
+        & Assoc ("LAST_INDEX", Last_Buffer_Index'Image);
    begin
       Trace_Buffer_Unit (Pkg_Name, Filename, Prj, CU_Names, Is_Pure => False);
       Create_File (Prj, File, Filename);
-      Put_Warnings_And_Style_Checks_Pragmas (File);
-      File.Put_Line ("with System;");
-      File.Put_Line ("with GNATcov_RTS.Buffers; use GNATcov_RTS.Buffers;");
-      File.Put_Line
-        ("with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;");
 
-      File.Put_Line ("package " & Pkg_Name & " is");
-      File.New_Line;
-      File.Put_Line ("   pragma Preelaborate;");
-      File.New_Line;
+      declare
+         Buffer_Indexes    : Vector_Tag;
+         Buffer_Unit_Names : Vector_Tag;
+         Buffer_Unit_Parts : Vector_Tag;
 
-      for I in 1 .. Last_Buffer_Index loop
-         declare
-            Unit_Bit : constant Allocated_Bits := Unit_Bits.Element (I);
-            CU_Name  : constant Compilation_Unit_Part := CU_Names.Element (I);
-            CU       : constant CU_Id := CUs.Element (I);
+         SCOs_Fingerprints        : Vector_Tag;
+         Bit_Maps_Fingerprints    : Vector_Tag;
+         Annotations_Fingerprints : Vector_Tag;
 
-            Unit_Name : constant String :=
-              Ada.Characters.Handling.To_Lower (To_Ada (CU_Name.Unit));
-            --  Lower-case name for the instrumented unit
+         Statement_Last_Bits      : Vector_Tag;
+         Statement_Buffer_Symbols : Vector_Tag;
 
-            Unit_Part : constant String :=
-              (case CU_Name.Part is
-                 when GPR2.S_Spec     => "Unit_Spec",
-                 when GPR2.S_Body     => "Unit_Body",
-                 when GPR2.S_Separate => "Unit_Separate");
-            --  Do not use 'Image so that we use the original casing for the
-            --  enumerators, and thus avoid compilation warnings/errors.
+         Decision_Last_Bits      : Vector_Tag;
+         Decision_Buffer_Symbols : Vector_Tag;
 
-            Statement_Last_Bit : constant String :=
-              Img (Unit_Bit.Last_Statement_Bit);
-            Decision_Last_Bit  : constant String :=
-              Img (Unit_Bit.Last_Outcome_Bit);
-            MCDC_Last_Bit      : constant String :=
-              Img (Unit_Bit.Last_Path_Bit);
+         MCDC_Last_Bits      : Vector_Tag;
+         MCDC_Buffer_Symbols : Vector_Tag;
+      begin
+         for I in 1 .. Last_Buffer_Index loop
+            declare
+               Unit_Bit : constant Allocated_Bits := Unit_Bits.Element (I);
+               CU_Name  : constant Compilation_Unit_Part :=
+                 CU_Names.Element (I);
+               CU       : constant CU_Id := CUs.Element (I);
 
-            Suffix : constant String := "_" & Img (I);
+               Unit_Name : constant String :=
+                 Ada.Characters.Handling.To_Lower (To_Ada (CU_Name.Unit));
+               --  Lower-case name for the instrumented unit
 
-            SCOs_Fingerprint : constant SC_Obligations.Fingerprint_Type :=
-              SC_Obligations.Fingerprint (CU);
+               Unit_Part : constant String :=
+                 (case CU_Name.Part is
+                    when GPR2.S_Spec     => "Unit_Spec",
+                    when GPR2.S_Body     => "Unit_Body",
+                    when GPR2.S_Separate => "Unit_Separate");
+               --  Do not use 'Image so that we use the original casing for the
+               --  enumerators, and thus avoid compilation warnings/errors.
 
-         begin
-            --  Create declarations for individual buffers (statement, decision
-            --  and MC/DC) as well as their exported addresses. Put this in
-            --  an individual package, to avoid having to suffix each
-            --  declaration
+               SCOs_Fingerprint : constant SC_Obligations.Fingerprint_Type :=
+                 SC_Obligations.Fingerprint (CU);
 
-            File.Put_Line ("package Buffers" & Suffix & " is");
+            begin
+               Append (Buffer_Indexes, Img (I));
+               Append (Buffer_Unit_Names, Unit_Name);
+               Append (Buffer_Unit_Parts, Unit_Part);
 
-            File.Put_Line
-              ("   Statement_Buffer"
-               & " : Coverage_Buffer_Type"
-               & " (0 .. "
-               & Statement_Last_Bit
-               & ") :="
-               & " (others => False);");
-            File.Put_Line
-              ("   Statement_Buffer_Address"
-               & " : constant System.Address"
-               & " := Statement_Buffer'Address;");
-            File.Put_Line
-              ("   pragma Export (C, Statement_Buffer_Address, """
-               & Statement_Buffer_Symbol (CU_Name)
-               & Suffix
-               & """);");
-            File.New_Line;
+               Append
+                 (SCOs_Fingerprints, Format_Fingerprint (SCOs_Fingerprint));
+               Append
+                 (Bit_Maps_Fingerprints,
+                  Format_Fingerprint
+                    (SC_Obligations.Bit_Maps_Fingerprint
+                       (CU, SCOs_Fingerprint)));
+               Append
+                 (Annotations_Fingerprints,
+                  Format_Fingerprint
+                    (SC_Obligations.Annotations_Fingerprint
+                       (CU, SCOs_Fingerprint)));
 
-            File.Put_Line
-              ("   Decision_Buffer : Coverage_Buffer_Type"
-               & " (0 .. "
-               & Decision_Last_Bit
-               & ") :="
-               & " (others => False);");
-            File.Put_Line
-              ("   Decision_Buffer_Address"
-               & " : constant System.Address"
-               & " := Decision_Buffer'Address;");
-            File.Put_Line
-              ("   pragma Export (C, Decision_Buffer_Address, """
-               & Decision_Buffer_Symbol (CU_Name)
-               & Suffix
-               & """);");
-            File.New_Line;
+               Append (Statement_Last_Bits, Img (Unit_Bit.Last_Statement_Bit));
+               Append
+                 (Statement_Buffer_Symbols, Statement_Buffer_Symbol (CU_Name));
 
-            File.Put_Line
-              ("   MCDC_Buffer : Coverage_Buffer_Type"
-               & " (0 .. "
-               & MCDC_Last_Bit
-               & ") :="
-               & " (others => False);");
-            File.Put_Line
-              ("   MCDC_Buffer_Address : constant System.Address"
-               & " := MCDC_Buffer'Address;");
-            File.Put_Line
-              ("   pragma Export (C, MCDC_Buffer_Address, """
-               & MCDC_Buffer_Symbol (CU_Name)
-               & Suffix
-               & """);");
-            File.New_Line;
+               Append (Decision_Last_Bits, Img (Unit_Bit.Last_Outcome_Bit));
+               Append
+                 (Decision_Buffer_Symbols, Decision_Buffer_Symbol (CU_Name));
 
-            --  Create the GNATcov_RTS_Coverage_Buffers record
+               Append (MCDC_Last_Bits, Img (Unit_Bit.Last_Path_Bit));
+               Append (MCDC_Buffer_Symbols, MCDC_Buffer_Symbol (CU_Name));
+            end;
+         end loop;
 
-            File.Put_Line
-              ("   Unit_Name : constant String := """ & Unit_Name & """;");
-            File.New_Line;
+         T :=
+           T
+           & Assoc ("BUFFER_IDX", Buffer_Indexes)
+           & Assoc ("BUF_UNIT_NAME", Buffer_Unit_Names)
+           & Assoc ("BUF_UNIT_PART", Buffer_Unit_Parts)
+           & Assoc ("SCOS_FINGERPRINT", SCOs_Fingerprints)
+           & Assoc ("BIT_MAPS_FINGERPRINT", Bit_Maps_Fingerprints)
+           & Assoc ("ANNOTATIONS_FINGERPRINT", Annotations_Fingerprints)
 
-            File.Put_Line
-              ("   Buffers : aliased constant"
-               & " GNATcov_RTS_Coverage_Buffers :=");
-            File.Put_Line
-              ("     (Fingerprint => "
-               & Format_Fingerprint (SCOs_Fingerprint)
-               & ",");
+           & Assoc ("STMT_LAST", Statement_Last_Bits)
+           & Assoc ("STMT_BUF_SYM", Statement_Buffer_Symbols)
 
-            File.Put_Line ("      Language  => Unit_Based_Language,");
-            File.Put_Line ("      Unit_Part => " & Unit_Part & ",");
-            File.Put_Line
-              ("      Unit_Name =>"
-               & " (Unit_Name'Address, Unit_Name'Length),");
+           & Assoc ("DECISION_LAST", Decision_Last_Bits)
+           & Assoc ("DECISION_BUF_SYM", Decision_Buffer_Symbols)
 
-            File.Put_Line
-              ("      Bit_Maps_Fingerprint => "
-               & Format_Fingerprint
-                   (SC_Obligations.Bit_Maps_Fingerprint (CU, SCOs_Fingerprint))
-               & ",");
+           & Assoc ("MCDC_LAST", MCDC_Last_Bits)
+           & Assoc ("MCDC_BUF_SYM", MCDC_Buffer_Symbols);
+      end;
 
-            File.Put_Line
-              ("      Annotations_Fingerprint => "
-               & Format_Fingerprint
-                   (SC_Obligations.Annotations_Fingerprint
-                      (CU, SCOs_Fingerprint))
-               & ",");
-
-            File.Put_Line ("      Statement => Statement_Buffer'Address,");
-            File.Put_Line ("      Decision  => Decision_Buffer'Address,");
-            File.Put_Line ("      MCDC      => MCDC_Buffer'Address,");
-
-            File.Put_Line
-              ("      Statement_Last_Bit => " & Statement_Last_Bit & ",");
-            File.Put_Line
-              ("      Decision_Last_Bit => " & Decision_Last_Bit & ",");
-            File.Put_Line ("      MCDC_Last_Bit => " & MCDC_Last_Bit & ");");
-            File.Put_Line ("end Buffers" & Suffix & ";");
-            File.New_Line;
-         end;
-      end loop;
-
-      --  Create the buffers group
-
-      File.Put_Line
-        ("   Buffers_Group : aliased constant Coverage_Buffers_Group :=");
-      File.Put ("   (");
-
-      for I in 1 .. Last_Buffer_Index loop
-         File.Put (Img (I) & " => Buffers_" & Img (I) & ".Buffers'Access");
-         if I /= Last_Buffer_Index then
-            File.Put_Line (",");
-         end if;
-      end loop;
-      File.Put_Line (");");
-      File.Put_Line
-        ("   C_Buffers_Group : aliased constant"
-         & " GNATcov_RTS_Coverage_Buffers_Group :="
-         & " ("
-         & Last_Buffer_Index'Image
-         & ", Buffers_Group'Address);");
-      File.Put_Line
-        ("      pragma Export (C, C_Buffers_Group, """
-         & Unit_Buffers_Name (Unit)
-         & """);");
-      File.New_Line;
-
-      File.Put_Line ("end " & Pkg_Name & ";");
+      File.Put (Render_Template ("buffer_unit.ads.tmplt", T));
    end Emit_Buffer_Unit;
 
    ---------------------------
@@ -10846,92 +10716,58 @@ package body Instrument.Ada_Unit is
         New_File (Prj, To_Filename (Prj, PB_Unit));
       File              : Text_Files.File_Type;
 
-      procedure Put_Language_Version_Pragma;
-      --  If the instrumented unit has a language version configuration
-      --  pragma, insert a consistent one here to ensure legality of
-      --  degenerate subprograms supporting generics.
-
-      ---------------------------------
-      -- Put_Language_Version_Pragma --
-      ---------------------------------
-
-      procedure Put_Language_Version_Pragma is
-      begin
-         if Length (Language_Version) > 0 then
-            File.Put_Line
-              ("pragma "
-               & To_String (To_Wide_Wide_String (Language_Version))
-               & ";");
-            File.New_Line;
-         end if;
-      end Put_Language_Version_Pragma;
+      T : Translate_Set :=
+        Assoc ("UNIT_NAME", Pkg_Name)
+        & Assoc
+            ("ADA_VERSION", To_String (To_Wide_Wide_String (Language_Version)))
+        & Assoc ("ADA_RUNTIME_VERSION_CHECK", Ada_Runtime_Version_Check)
+        & Assoc ("HAS_NO_ELABORATION_CODE_ALL", Has_No_Elaboration_Code_All);
 
       --  Start of processing for Emit_Pure_Buffer_Unit
 
    begin
       Trace_Buffer_Unit (Pkg_Name, Filename, Prj, CU_Names, Is_Pure => True);
+
+      declare
+         Buffer_Indexes       : Vector_Tag;
+         Stmt_Buf_Symbols     : Vector_Tag;
+         Decision_Buf_Symbols : Vector_Tag;
+         MCDC_Buf_Symbols     : Vector_Tag;
+      begin
+         for I in 1 .. Last_Buffer_Index loop
+            declare
+               CU_Name : constant Compilation_Unit_Part :=
+                 CU_Names.Element (I);
+            begin
+               Append (Buffer_Indexes, Img (I));
+               Append (Stmt_Buf_Symbols, Statement_Buffer_Symbol (CU_Name));
+               Append (Decision_Buf_Symbols, Decision_Buffer_Symbol (CU_Name));
+               Append (MCDC_Buf_Symbols, MCDC_Buffer_Symbol (CU_Name));
+            end;
+         end loop;
+
+         T :=
+           T
+           & Assoc ("BUFFER_IDX", Buffer_Indexes)
+           & Assoc ("STMT_BUF_SYM", Stmt_Buf_Symbols)
+           & Assoc ("DECISION_BUF_SYM", Decision_Buf_Symbols)
+           & Assoc ("MCDC_BUF_SYM", MCDC_Buf_Symbols);
+      end;
+
+      declare
+         Degenerate_Subp_Generics : Vector_Tag;
+      begin
+         for G of Degenerate_Subprogram_Generics loop
+            Append
+              (Degenerate_Subp_Generics,
+               To_String (To_Wide_Wide_String (G.Generic_Subp_Decl)));
+         end loop;
+
+         T := T & Assoc ("DEGENERATE_SUBP_GENERIC", Degenerate_Subp_Generics);
+      end;
+
       File.Create (Filename);
-
-      Put_Warnings_And_Style_Checks_Pragmas (File);
-      Put_Language_Version_Pragma;
-      File.Put_Line ("with System;");
-
-      File.Put_Line ("with GNATcov_RTS;");
-      File.Put_Line ("with GNATcov_RTS.Buffers;");
-      File.Put_Line (Ada_Runtime_Version_Check);
-
-      File.New_Line;
-      File.Put_Line ("package " & Pkg_Name & " is");
-      File.New_Line;
-      File.Put_Line ("   pragma Pure;");
-
-      --  If the instrumented unit has the No_Elaboration_Code_All pragma, all
-      --  its dependencies must have this pragma too, so this pure buffer unit
-      --  has to have it.
-
-      if Has_No_Elaboration_Code_All then
-         File.Put_Line ("   pragma No_Elaboration_Code_All;");
-      end if;
-      File.New_Line;
-
-      for I in 1 .. Last_Buffer_Index loop
-         declare
-            Suffix  : constant String := "_" & Img (I);
-            CU_Name : constant Compilation_Unit_Part := CU_Names.Element (I);
-         begin
-            File.Put_Line ("package Buffers" & Suffix & " is");
-            File.Put_Line ("   Statement_Buffer : constant System.Address;");
-            File.Put_Line
-              ("   pragma Import (C, Statement_Buffer, """
-               & Statement_Buffer_Symbol (CU_Name)
-               & Suffix
-               & """);");
-            File.New_Line;
-            File.Put_Line ("   Decision_Buffer : constant System.Address;");
-            File.Put_Line
-              ("   pragma Import (C, Decision_Buffer, """
-               & Decision_Buffer_Symbol (CU_Name)
-               & Suffix
-               & """);");
-            File.New_Line;
-            File.Put_Line ("   MCDC_Buffer : constant System.Address;");
-            File.Put_Line
-              ("   pragma Import (C, MCDC_Buffer, """
-               & MCDC_Buffer_Symbol (CU_Name)
-               & Suffix
-               & """);");
-            File.New_Line;
-            File.Put_Line ("end Buffers" & Suffix & ";");
-            File.New_Line;
-         end;
-      end loop;
-
-      for G of Degenerate_Subprogram_Generics loop
-         File.Put_Line
-           ("   " & To_String (To_Wide_Wide_String (G.Generic_Subp_Decl)));
-      end loop;
-      File.Put_Line ("end " & Pkg_Name & ";");
-
+      File.Put (Render_Template ("pure_buffer_unit.ads.tmplt", T));
       Text_Files.Close (File);
       if Switches.Pretty_Print then
          Text_Files.Run_GNATformat (Filename);
@@ -10939,26 +10775,25 @@ package body Instrument.Ada_Unit is
 
       if not Degenerate_Subprogram_Generics.Is_Empty then
          declare
-            PB_Unit_Body : constant Compilation_Unit_Part :=
+            PB_Unit_Body             : constant Compilation_Unit_Part :=
               (Language_Kind => Unit_Based_Language,
                Unit          => PB_Unit.Unit,
                Part          => GPR2.S_Body);
-            PB_Filename  : constant String :=
+            PB_Filename              : constant String :=
               New_File (Prj, To_Filename (Prj, PB_Unit_Body));
+            Degenerate_Subp_Generics : Vector_Tag;
          begin
-            File.Create (PB_Filename);
-
-            Put_Warnings_And_Style_Checks_Pragmas (File);
-            Put_Language_Version_Pragma;
-            File.Put_Line ("package body " & Pkg_Name & " is");
-            File.New_Line;
             for G of Degenerate_Subprogram_Generics loop
-               File.Put_Line
-                 ("   "
-                  & To_String (To_Wide_Wide_String (G.Generic_Subp_Body)));
+               Append
+                 (Degenerate_Subp_Generics,
+                  To_String (To_Wide_Wide_String (G.Generic_Subp_Body)));
             end loop;
-            File.Put_Line ("end " & Pkg_Name & ";");
 
+            T :=
+              T & Assoc ("DEGENERATE_SUBP_GENERIC", Degenerate_Subp_Generics);
+
+            File.Create (PB_Filename);
+            File.Put (Render_Template ("pure_buffer_unit.adb.tmplt", T));
             Text_Files.Close (File);
             if Switches.Pretty_Print then
                Text_Files.Run_GNATformat (PB_Filename);
@@ -11016,18 +10851,6 @@ package body Instrument.Ada_Unit is
    is
       File : Text_Files.File_Type;
 
-      procedure Put_With (Unit : Ada_Qualified_Name);
-      --  Put a "with" context clause in File
-
-      --------------
-      -- Put_With --
-      --------------
-
-      procedure Put_With (Unit : Ada_Qualified_Name) is
-      begin
-         File.Put_Line ("with " & To_Ada (Unit) & ";");
-      end Put_With;
-
       Output_Unit, Output_Proc : Ada_Qualified_Name;
       --  Qualified names for the unit that contains the buffer output
       --  procedure, and for the procedure itself.
@@ -11066,26 +10889,33 @@ package body Instrument.Ada_Unit is
          Body_Filename : constant String :=
            To_Filename (Prj, CU_Name_For_Unit (Helper_Unit, GPR2.S_Body));
 
-         Helper_Unit_Name         : constant String := To_Ada (Helper_Unit);
-         Dump_Procedure           : constant String :=
-           To_String (Dump_Procedure_Name);
-         Dump_Procedure_Prototype : constant String :=
-           ("procedure "
-            & Dump_Procedure
-            & (if Dump_Trigger = Manual then " (Prefix : String)" else ""));
-         Reset_Procedure          : constant String :=
+         Helper_Unit_Name : constant String := To_Ada (Helper_Unit);
+         Dump_Procedure   : constant String := To_String (Dump_Procedure_Name);
+         Reset_Procedure  : constant String :=
            To_String (Reset_Procedure_Name);
-         Output_Unit_Str          : constant String := To_Ada (Output_Unit);
-         Project_Name_Str         : constant String :=
+         Output_Unit_Str  : constant String := To_Ada (Output_Unit);
+         Project_Name_Str : constant String :=
            """" & To_Ada (Prj.Prj_Name) & """";
-         Sys_Lists                : Ada_Qualified_Name := Sys_Buffers;
+         Sys_Lists        : Ada_Qualified_Name := Sys_Buffers;
 
-         --  Indentation levels relative to the body of library-level
-         --  subprograms.
+         T : Translate_Set :=
+           Assoc ("UNIT_NAME", Helper_Unit_Name)
+           & Assoc ("DUMP_PROCEDURE", Dump_Procedure)
+           & Assoc
+               ("REGISTER_DUMP_FCT", To_String (Register_Dump_Function_Name))
+           & Assoc ("RESET_PROCEDURE", Reset_Procedure)
+           & Assoc ("WITNESS_DUMMY_TYPE", To_Ada (Witness_Dummy_Type_Name))
+           & Assoc ("MAIN_END", Dump_Trigger = Main_End)
+           & Assoc
+               ("RAVENSCAR_TASK_TERM",
+                Dump_Trigger = Ravenscar_Task_Termination)
+           & Assoc ("AT_EXIT", Dump_Trigger = At_Exit)
+           & Assoc ("MANUAL", Dump_Trigger = Manual)
+           & Assoc ("HAS_CONTROLLED", Has_Controlled)
+           & Assoc ("CHANNEL_IMG", Image (Dump_Config.Channel))
+           & Assoc ("OUTPUT_UNIT", Output_Unit_Str);
+         --  Holds the data passed to the templating engine.
 
-         Indent1 : constant String := "      ";
-         Indent2 : constant String := Indent1 & "  ";
-         Indent3 : constant String := Indent2 & "  ";
       begin
          Sys_Lists.Append (To_Unbounded_String ("Lists"));
 
@@ -11110,262 +10940,70 @@ package body Instrument.Ada_Unit is
 
          Create_File (Prj, File, Spec_Filename);
 
-         Put_Warnings_And_Style_Checks_Pragmas (File);
-         Put_With (Sys_Buffers);
-         if Dump_Trigger = Main_End and then Has_Controlled then
-            File.Put_Line ("with Ada.Finalization;");
-         end if;
-         File.Put_Line ("package " & Helper_Unit_Name & " is");
-         File.New_Line;
+         declare
+            Withed_Unit_Vec : Vector_Tag := +To_Ada (Sys_Buffers);
+         begin
+            if Dump_Trigger = Main_End and then Has_Controlled then
+               Append (Withed_Unit_Vec, "Ada.Finalization");
+            end if;
 
-         --  Make this unit preelaborated, so that it is possible to reset/dump
-         --  coverage state from preelaborated units.
+            T := T & Assoc ("WITHED_UNIT", Withed_Unit_Vec);
+         end;
 
-         File.Put_Line ("   pragma Preelaborate;");
-         File.New_Line;
-
-         --  Do not generate routines to deal with streaming attributes in this
-         --  helper unit: we do not need them, and they can bring in the
-         --  secondary stack, which may in turn violate the No_Secondary_Stack
-         --  restriction from user projects.
-
-         File.Put_Line ("   pragma No_Tagged_Streams;");
-         File.New_Line;
-
-         File.Put_Line (Indent1 & Dump_Procedure_Prototype & ";");
-
-         if Dump_Trigger = Manual then
-            File.New_Line;
-            File.Put_Line ("   procedure " & Reset_Procedure & ";");
-         else
-            File.Put_Line
-              ("   pragma Convention (C, " & Dump_Procedure & ");");
-         end if;
-         File.New_Line;
-
-         case Dump_Trigger is
-            when At_Exit | Ravenscar_Task_Termination =>
-               File.Put_Line
-                 ("   function "
-                  & To_String (Register_Dump_Function_Name)
-                  & " return "
-                  & To_Ada (Witness_Dummy_Type_Name)
-                  & ";");
-               File.New_Line;
-
-            when Main_End                             =>
-               if Has_Controlled then
-                  File.Put_Line ("   type Dump_Controlled_Type is new");
-                  File.Put_Line ("     Ada.Finalization.Limited_Controlled");
-                  File.Put_Line ("     with null record;");
-                  File.Put_Line
-                    ("   overriding procedure Finalize (Self : in"
-                     & " out Dump_Controlled_Type);");
-                  File.New_Line;
-               end if;
-
-            when Manual                               =>
-               null;
-         end case;
-
-         File.Put_Line ("end " & Helper_Unit_Name & ";");
+         File.Put (Render_Template ("dump_helper.ads.tmplt", T));
          File.Close;
 
          --  Emit the package body
 
          Create_File (Prj, File, Body_Filename);
 
-         Put_Warnings_And_Style_Checks_Pragmas (File);
+         declare
+            Withed_Unit_Vec : Vector_Tag :=
+              +Output_Unit_Str & To_Ada (Sys_Lists);
+         begin
+            case Dump_Trigger is
+               when Ravenscar_Task_Termination =>
+                  Append (Withed_Unit_Vec, "Ada.Task_Identification");
+                  Append (Withed_Unit_Vec, "Ada.Task_Termination");
 
-         Put_With (Output_Unit);
-         Put_With (Sys_Lists);
+               when At_Exit                    =>
+                  Append (Withed_Unit_Vec, "Interfaces.C");
 
-         case Dump_Trigger is
-            when Ravenscar_Task_Termination =>
-               File.Put_Line ("with Ada.Task_Identification;");
-               File.Put_Line ("with Ada.Task_Termination;");
+               when others                     =>
+                  null;
+            end case;
 
-            when At_Exit                    =>
-               File.Put_Line ("with Interfaces.C;");
+            if Dump_Config.Channel = Binary_File then
+               Append (Withed_Unit_Vec, "Interfaces.C.Strings");
+            end if;
 
-            when Manual | Main_End          =>
-               null;
-         end case;
+            Append
+              (Withed_Unit_Vec, To_Ada (Buffers_List_Unit (Prj.Prj_Name)));
 
-         if Dump_Config.Channel = Binary_File then
-            File.Put_Line ("with Interfaces.C.Strings;");
-         end if;
-
-         File.Put_Line
-           ("with " & To_Ada (Buffers_List_Unit (Prj.Prj_Name)) & ";");
-
-         File.Put_Line ("package body " & Helper_Unit_Name & " is");
-         File.New_Line;
-
-         --  Emit the procedure to write the trace file
-
-         File.Put_Line (Indent1 & Dump_Procedure_Prototype & " is");
+            T := T & Assoc ("WITHED_UNIT", Withed_Unit_Vec);
+         end;
 
          if Dump_Config.Channel = Binary_File then
-            declare
-               Env_Var : constant String :=
-                 (if Dump_Config.Filename_Env_Var = ""
-                  then Output_Unit_Str & ".Default_Trace_Filename_Env_Var"
-                  else """" & (+Dump_Config.Filename_Env_Var) & """");
-               Prefix  : constant String :=
-                 (if Dump_Trigger = Manual
-                  then "Prefix"
-                  else """" & (+Dump_Config.Filename_Prefix) & """");
-               Tag     : constant String := """" & (+Instrumenter.Tag) & """";
-               Simple  : constant String :=
-                 (if Dump_Config.Filename_Simple then "True" else "False");
-            begin
-               File.Put_Line
-                 (Indent1 & "Filename : Interfaces.C.Strings.chars_ptr :=");
-               File.Put_Line
-                 (Indent2 & Output_Unit_Str & ".Default_Trace_Filename");
-               File.Put_Line (Indent3 & "(Prefix  => " & Prefix & ",");
-               File.Put_Line (Indent3 & " Env_Var => " & Env_Var & ",");
-               File.Put_Line (Indent3 & " Tag     => " & Tag & ",");
-               File.Put_Line (Indent3 & " Simple  => " & Simple & ");");
-            end;
+            T :=
+              T
+              & Assoc
+                  ("FILENAME_ENV_VAR",
+                   (if Dump_Config.Filename_Env_Var = ""
+                    then Output_Unit_Str & ".Default_Trace_Filename_Env_Var"
+                    else """" & (+Dump_Config.Filename_Env_Var) & """"))
+              & Assoc ("FILENAME_SIMPLE", Dump_Config.Filename_Simple)
+              & Assoc ("FILENAME_PREFIX", Dump_Config.Filename_Prefix);
          end if;
+         T :=
+           T
+           & Assoc ("TAG", Instrumenter.Tag)
+           & Assoc ("OUTPUT_PROCEDURE", To_Ada (Output_Proc))
+           & Assoc
+               ("BUFFER_LIST_UNIT", To_Ada (Buffers_List_Unit (Prj.Prj_Name)))
+           & Assoc ("PROGRAM_NAME", Project_Name_Str)
+           & Assoc ("SYS_LISTS", To_Ada (Sys_Lists));
 
-         File.Put_Line ("   begin");
-
-         File.Put_Line (Indent1 & To_Ada (Output_Proc));
-         File.Put_Line
-           (Indent2
-            & "(Buffers_Groups => "
-            & To_Ada (Buffers_List_Unit (Prj.Prj_Name))
-            & ".List,");
-         case Dump_Config.Channel is
-            when Binary_File            =>
-               File.Put_Line (Indent2 & " Filename       => Filename,");
-               File.Put (Indent2 & " Program_Name   => " & Project_Name_Str);
-
-            when Base64_Standard_Output =>
-
-               --  Configurations using this channel generally run on embedded
-               --  targets and have a small runtime, so our best guess for the
-               --  program name is the name of the main, and there is no way to
-               --  get the current execution time.
-
-               File.Put_Line
-                 (Indent2 & " Program_Name => " & Project_Name_Str & ",");
-               File.Put (Indent2 & " Exec_Date => 0");
-         end case;
-         File.Put_Line (");");
-
-         if Dump_Config.Channel = Binary_File then
-            File.Put_Line (Indent1 & "Interfaces.C.Strings.Free (Filename);");
-         end if;
-
-         File.Put_Line ("   end " & Dump_Procedure & ";");
-         File.New_Line;
-
-         --  Emit trigger-specific subprograms
-
-         case Dump_Trigger is
-            when At_Exit                    =>
-
-               --  Emit a function to schedule a trace dump with atexit
-
-               File.Put_Line
-                 ("   function "
-                  & To_String (Register_Dump_Function_Name)
-                  & " return "
-                  & To_Ada (Witness_Dummy_Type_Name)
-                  & " is");
-               File.Put_Line (Indent1 & "type Callback is access procedure;");
-               File.Put_Line (Indent1 & "pragma Convention (C, Callback);");
-               File.New_Line;
-
-               File.Put_Line
-                 (Indent1
-                  & "function atexit (Func : Callback)"
-                  & " return Interfaces.C.int;");
-               File.Put_Line (Indent1 & "pragma Import (C, atexit);");
-               File.Put_Line
-                 (Indent1 & "Dummy : constant Interfaces.C.int :=");
-               File.Put_Line
-                 (Indent2 & "atexit (" & Dump_Procedure & "'Access);");
-
-               File.Put_Line ("   begin");
-               File.Put_Line (Indent1 & "return (Data => False);");
-               File.Put_Line
-                 ("   end " & To_String (Register_Dump_Function_Name) & ";");
-               File.New_Line;
-
-            when Ravenscar_Task_Termination =>
-
-               --  Emit a protected object for the callback
-
-               File.Put_Line ("  protected Wrapper is");
-               File.Put_Line
-                 ("     procedure Do_Dump"
-                  & " (T : Ada.Task_Identification.Task_Id);");
-               File.Put_Line ("  end Wrapper;");
-               File.New_Line;
-               File.Put_Line ("  protected body Wrapper is");
-               File.Put_Line
-                 ("     procedure Do_Dump"
-                  & " (T : Ada.Task_Identification.Task_Id) is");
-               File.Put_Line ("        pragma Unreferenced (T);");
-               File.Put_Line ("     begin");
-               File.Put_Line ("        " & Dump_Procedure & ";");
-               File.Put_Line ("     end Do_Dump;");
-               File.Put_Line ("  end Wrapper;");
-               File.New_Line;
-
-               --  Emit a function to schedule a trace dump with
-               --  Ada.Task_Termination.
-
-               File.Put_Line
-                 ("function "
-                  & To_String (Register_Dump_Function_Name)
-                  & " return "
-                  & To_Ada (Witness_Dummy_Type_Name)
-                  & " is");
-               File.Put_Line ("begin");
-               File.Put_Line
-                 ("   Ada.Task_Termination"
-                  & ".Set_Dependents_Fallback_Handler"
-                  & " (Wrapper.Do_Dump'Access);");
-               File.Put_Line ("   return (Data => False);");
-               File.Put_Line
-                 ("end " & To_String (Register_Dump_Function_Name) & ";");
-               File.New_Line;
-
-            when Main_End                   =>
-               if Has_Controlled then
-                  File.Put_Line
-                    ("   overriding procedure Finalize (Self : in"
-                     & " out Dump_Controlled_Type) is");
-                  File.Put_Line ("   begin");
-                  File.Put_Line ("      Dump_Buffers;");
-                  File.Put_Line ("   end Finalize;");
-                  File.New_Line;
-               end if;
-
-            when Manual                     =>
-               --  Emit Buffer reset procedure
-
-               File.Put_Line ("   procedure " & Reset_Procedure & " is");
-               File.Put_Line ("   begin");
-               File.Put_Line
-                 ("      "
-                  & To_Ada (Sys_Lists)
-                  & ".Reset_Group_Array_Buffers");
-               File.Put_Line
-                 ("        ("
-                  & To_Ada (Buffers_List_Unit (Prj.Prj_Name))
-                  & ".C_List);");
-               File.Put_Line ("end " & Reset_Procedure & ";");
-               File.New_Line;
-         end case;
-
-         File.Put_Line ("end " & Helper_Unit_Name & ";");
+         File.Put (Render_Template ("dump_helper.adb.tmplt", T));
          File.Close;
       end;
    end Emit_Dump_Helper_Unit_For_Trigger;
@@ -11547,42 +11185,16 @@ package body Instrument.Ada_Unit is
 
       Spec_File : Text_Files.File_Type;
       Body_File : Text_Files.File_Type;
+
+      T : constant Translate_Set :=
+        Assoc ("UNIT_NAME", Obs_Unit_Name)
+        & Assoc ("BUF_LIST_UNIT_NAME", Buf_List_Unit_Name);
    begin
       Create_File (Prj, Spec_File, Obs_Spec_Filename);
       Create_File (Prj, Body_File, Obs_Body_Filename);
 
-      Spec_File.Put_Line ("package " & Obs_Unit_Name & " is");
-      Spec_File.Put_Line ("   function Sum_Buffer_Bits return Natural;");
-      Spec_File.Put_Line ("end " & Obs_Unit_Name & ";");
-
-      Body_File.Put_Line ("pragma Style_Checks (Off); pragma Warnings (Off);");
-      Body_File.Put_Line ("with Interfaces;");
-      Body_File.Put_Line
-        ("with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;");
-      Body_File.New_Line;
-      Body_File.Put_Line ("package body " & Obs_Unit_Name & " is");
-      Body_File.Put_Line ("   function Sum_Buffer_Bits return Natural is");
-      Body_File.Put_Line ("      function Sum_Buffer_Bits_C");
-      Body_File.Put_Line
-        ("        (C_List : GNATcov_RTS_Coverage_Buffers_Group_Array)");
-      Body_File.Put_Line ("      return Interfaces.Unsigned_64;");
-      Body_File.Put_Line
-        ("pragma Import (C, Sum_Buffer_Bits_C,"
-         & " ""gnatcov_rts_sum_buffer_bits"");");
-      Body_File.Put_Line ("   begin");
-      Body_File.Put_Line
-        ("      return Natural"
-         & ASCII.LF
-         & "        (Interfaces.Unsigned_64'Min"
-         & ASCII.LF
-         & "           (Sum_Buffer_Bits_C ("
-         & Buf_List_Unit_Name
-         & ".C_List),"
-         & ASCII.LF
-         & "            Interfaces.Unsigned_64 (Natural'Last)));");
-      Body_File.Put_Line ("   end Sum_Buffer_Bits;");
-      Body_File.Put_Line ("end " & Obs_Unit_Name & ";");
-
+      Spec_File.Put (Render_Template ("observability.ads.tmplt", T));
+      Body_File.Put (Render_Template ("observability.adb.tmplt", T));
    end Emit_Observability_Unit;
 
    ---------------------------------

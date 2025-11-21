@@ -1,0 +1,87 @@
+@@-- This template expects the following arguments to be provided:
+@@--
+@@--  UNIT_NAME (String): Name of the unit to be instrumented
+@@--  UNIT_BUFFERS_NAME (String): Name of the C struct pointing to all buffers
+@@--
+@@-- Additionnally, it requires vectors of data for each buffer (typically 2
+@@-- per unit, for the spec and body)
+@@--
+@@--  BUFFER_IDX (List[Int]): Indexes of the buffers
+@@--  BUF_UNIT_NAME (List[String]): Names of the units associated to buffers
+@@--  BUF_UNIT_PART (List[String]): "Unit_Spec" | "Unit_Body" | "Unit_Separate"
+@@--  SCOS_FINGERPRINT (List[String])
+@@--  BIT_MAPS_FINGERPRINT (List[String])
+@@--  ANNOTATIONS_FINGERPRINT (List[String])
+@@--  STMT_LAST (List[String]): Sizes of the statement buffers
+@@--  STMT_BUF_SYM (List[String]): Names of statement buffer symbols
+@@--  DECISION_LAST (List[String]): Sizes of the decision buffers
+@@--  DECISION_BUF_SYM (List[String]): Names of decision buffer symbols
+@@--  MCDC_LAST (List[String]): Sizes of the mcdc buffers
+@@--  MCDC_BUF_SYM (List[String]): Names of statement mcdc symbols
+
+pragma Style_Checks (Off); pragma Warnings (Off);
+
+with System;
+with GNATcov_RTS.Buffers;       use GNATcov_RTS.Buffers;
+with GNATcov_RTS.Buffers.Lists; use GNATcov_RTS.Buffers.Lists;
+
+package @_UNIT_NAME_@ is
+   pragma Preelaborate;
+
+@@--  Create declarations for individual buffers (statement, decision
+@@--  and MC/DC) as well as their exported addresses. Put this in
+@@--  an individual package, to avoid having to suffix each
+@@--  declaration
+@@TABLE@@
+   package Buffers_@_BUFFER_IDX_@ is
+      Statement_Buffer         : Coverage_Buffer_Type (0 .. @_STMT_LAST_@) :=
+        (others => False);
+      Statement_Buffer_Address : constant System.Address :=
+         Statement_Buffer'Address;
+      pragma Export
+        (C, Statement_Buffer_Address, "@_STMT_BUF_SYM_@_@_BUFFER_IDX_@");
+
+      Decision_Buffer         : Coverage_Buffer_Type (0 .. @_DECISION_LAST_@) :=
+        (others => False);
+      Decision_Buffer_Address : constant System.Address :=
+         Decision_Buffer'Address;
+      pragma Export
+        (C, Decision_Buffer_Address, "@_DECISION_BUF_SYM_@_@_BUFFER_IDX_@");
+
+      MCDC_Buffer : Coverage_Buffer_Type (0 .. @_MCDC_LAST_@) :=
+        (others => False);
+      MCDC_Buffer_Address : constant System.Address := MCDC_Buffer'Address;
+      pragma Export
+        (C, MCDC_Buffer_Address, "@_MCDC_BUF_SYM_@_@_BUFFER_IDX_@");
+
+      Unit_Name : constant String := "@_BUF_UNIT_NAME_@";
+
+      Buffers : aliased constant GNATcov_RTS_Coverage_Buffers :=
+        (Fingerprint             => @_SCOS_FINGERPRINT_@,
+         Language                => Unit_Based_Language,
+         Unit_Part               => @_BUF_UNIT_PART_@,
+         Unit_Name               => (Unit_Name'Address, Unit_Name'Length),
+         Bit_Maps_Fingerprint    => @_BIT_MAPS_FINGERPRINT_@,
+         Annotations_Fingerprint => @_ANNOTATIONS_FINGERPRINT_@,
+         Statement               => Statement_Buffer'Address,
+         Decision                => Decision_Buffer'Address,
+         MCDC                    => MCDC_Buffer'Address,
+         Statement_Last_Bit      => @_STMT_LAST_@,
+         Decision_Last_Bit       => @_DECISION_LAST_@,
+         MCDC_Last_Bit           => @_MCDC_LAST_@);
+   end Buffers_@_BUFFER_IDX_@;
+@@END_TABLE@@
+
+   Buffers_Group : aliased constant Coverage_Buffers_Group :=
+     (
+@@INLINE()(, )()@@
+   @@TABLE@@
+      @_BUFFER_IDX_@ => Buffers_@_BUFFER_IDX_@.Buffers'Access
+   @@END_TABLE@@
+@@END_INLINE@@
+     );
+   C_Buffers_Group : aliased constant GNATcov_RTS_Coverage_Buffers_Group :=
+      (@_LAST_INDEX_@, Buffers_Group'Address);
+   pragma Export (C, C_Buffers_Group, "@_UNIT_BUFFERS_NAME_@");
+
+end @_UNIT_NAME_@;

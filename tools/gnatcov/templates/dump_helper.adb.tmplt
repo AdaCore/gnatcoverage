@@ -1,0 +1,126 @@
+@@-- This templates expects the following arguments:
+@@--
+@@--  WITHED_UNIT (List[String]): List of qualified names that should be withed
+@@--  UNIT_NAME (String): Name of the unit to be instrumented
+@@--  PROGRAM_NAME (String): Name of the program being instrumented
+@@--  OUTPUT_UNIT (String): Qualified name to the output unit of the runtime
+@@--  BUFFER_LIST_UNIT (String): Symbol pointing to the coverage buffers unit
+@@--  SYS_LISTS (String): Qualified name pointing to the coverage buffers package
+@@--
+@@--  DUMP_PROCEDURE   (String): Name of the dump procedure
+@@--  RESET_PROCEDURE  (String): Name of the rest procedure
+@@--  OUTPUT_PROCEDURE (String): Name of the output specific dump procedure
+@@--  REGISTER_DUMP_FCT (String): atexit function name to register dump procedure
+@@--
+@@--  CHANNEL_IMG (String): "bin-file" | "base64", Dump channel
+@@--
+@@--  MANUAL              (Boolean): True if the dump-trigger is manual
+@@--  AT_EXIT             (Boolean): True if the dump-trigger is atexit
+@@--  MAIN_END            (Boolean): True if the dump-trigger is main-end
+@@--  RAVENSCAR_TASK_TERM (Boolean): True if the dump-trigger is ravenscar-task-termination
+@@--
+@@--  HAS_CONTROLLED (Boolean): True if there is support for controlled types and finalization
+@@--
+@@--  FILENAME_SIMPLE  (String): Dump file name base
+@@--  FILENAME_ENV_VAR (String): Environment variable to retrieve expected dump filename at runtime
+@@--  FILENAME_PREFIX  (String): Dump file name prefix in auto-dump trigger cases
+@@--  TAG              (String): Unique string to avoid trace name clash
+@@--
+@@--  WITNESS_DUMMY_TYPE (String): Qualified name for the generated dummy type
+
+pragma Style_Checks (Off); pragma Warnings (Off);
+
+@@TABLE@@
+with @_WITHED_UNIT_@;
+@@END_TABLE@@
+
+package body @_UNIT_NAME_@ is
+
+@@IF@@ @_MANUAL_@
+    procedure @_DUMP_PROCEDURE_@ (Prefix : String) is
+@@ELSE@@
+    procedure @_DUMP_PROCEDURE_@ is
+@@END_IF@@
+@@IF@@ @_CHANNEL_IMG_@ = "bin-file"
+        Filename : Interfaces.C.Strings.chars_ptr :=
+            @_OUTPUT_UNIT_@.Default_Trace_Filename
+@@IF@@ @_MANUAL_@
+              (Prefix  => Prefix,
+@@ELSE@@
+              (Prefix  => "@_FILENAME_PREFIX_@",
+@@END_IF@@
+               Env_Var => @_FILENAME_ENV_VAR_@,
+               Tag     => "@_TAG_@",
+               Simple  => @_CAPITALIZE:FILENAME_SIMPLE_@);
+@@END_IF@@
+    begin
+@@IF@@ @_CHANNEL_IMG_@ = "bin-file"
+        @_OUTPUT_PROCEDURE_@
+          (Buffers_Groups => @_BUFFER_LIST_UNIT_@.List,
+           Filename       => Filename,
+           Program_Name   => @_PROGRAM_NAME_@);
+
+        Interfaces.C.Strings.Free (Filename);
+@@ELSE@@
+        @_OUTPUT_PROCEDURE_@
+          (Buffers_Groups => @_BUFFER_LIST_UNIT_@.List,
+           Program_Name   => @_PROGRAM_NAME_@,
+           Exec_Date      => 0);
+@@END_IF@@
+    end @_DUMP_PROCEDURE_@;
+
+@@--  Trigger-specific subprograms
+
+@@IF@@ @_AT_EXIT_@
+@@--  Emit a function to schedule a trace dump with atexit
+    function @_REGISTER_DUMP_FCT_@ return @_WITNESS_DUMMY_TYPE_@ is
+        type Callback is access procedure;
+        pragma Convention (C, Callback);
+
+        function atexit (Func : Callback) return Interfaces.C.int;
+        pragma Import (C, atexit);
+
+        Dummy : constant Interfaces.C.int :=
+            atexit (@_DUMP_PROCEDURE_@'Access);
+    begin
+        return (Data => False);
+    end @_REGISTER_DUMP_FCT_@;
+
+@@ELSIF@@ @_RAVENSCAR_TASK_TERM_@
+@@--  Emit a protected object for the callback
+    protected Wrapper is
+        procedure Do_Dump (T : Ada.Task_Identification.Task_Id);
+    end Wrapper;
+
+    protected body Wrapper is
+        procedure Do_Dump (T : Ada.Task_Identification.Task_Id) is
+            pragma Unreferenced (T);
+        begin
+            @_DUMP_PROCEDURE_@;
+        end Do_Dump;
+    end Wrapper;
+
+    function @_REGISTER_DUMP_FCT_@ return @_WITNESS_DUMMY_TYPE_@ is
+    begin
+        Ada.Task_Termination.Set_Dependents_Fallback_Handler
+           (Wrapper.Do_Dump'Access);
+        return (Data => False);
+    end @_REGISTER_DUMP_FCT_@;
+
+@@ELSIF@@ @_MAIN_END_@ and @_HAS_CONTROLLED_@
+@@--  Emit Buffer reset procedure
+    overriding procedure Finalize (Self : in out Dump_Controlled_Type) is
+    begin
+        @_DUMP_PROCEDURE_@;
+    end Finalize;
+
+@@ELSIF@@ @_MANUAL_@
+@@--  Emit Buffer reset procedure
+    procedure @_RESET_PROCEDURE_@ is
+    begin
+        @_SYS_LISTS_@.Reset_Group_Array_Buffers
+           (@_BUFFER_LIST_UNIT_@.C_LIST);
+    end @_RESET_PROCEDURE_@;
+
+@@END_IF@@
+end @_UNIT_NAME_@;

@@ -1,0 +1,55 @@
+@@-- This templates expects the following arguments:
+@@--
+@@--  WITHED_UNIT (List[String]): List of qualified names that should be withed
+@@--  UNIT_NAME (String): Name of the unit to be instrumented
+@@--
+@@--  DUMP_PROCEDURE   (String): Name of the dump procedure
+@@--  RESET_PROCEDURE  (String): Name of the rest procedure
+@@--  REGISTER_DUMP_FCT (String): atexit function name to register dump procedure
+@@--
+@@--  MANUAL              (Boolean): True if the dump-trigger is manual
+@@--  AT_EXIT             (Boolean): True if the dump-trigger is atexit
+@@--  MAIN_END            (Boolean): True if the dump-trigger is main-end
+@@--  RAVENSCAR_TASK_TERM (Boolean): True if the dump-trigger is ravenscar-task-termination
+@@--
+@@--  HAS_CONTROLLED (Boolean): True if there is support for controlled types and finalization
+@@--
+@@--  WITNESS_DUMMY_TYPE (String): Qualified name for the generated dummy type
+
+pragma Style_Checks (Off); pragma Warnings (Off);
+
+@@TABLE@@
+with @_WITHED_UNIT_@;
+@@END_TABLE@@
+
+package @_UNIT_NAME_@ is
+
+@@--  Make this unit preelaborated, so that it is possible to reset/dump
+@@--  coverage state from preelaborated units.
+    pragma Preelaborate;
+
+@@--  Do not generate routines to deal with streaming attributes in this
+@@--  helper unit: we do not need them, and they can bring in the
+@@--  secondary stack, which may in turn violate the No_Secondary_Stack
+@@--  restriction from user projects.
+    pragma No_Tagged_Streams;
+
+@@IF@@ @_MANUAL_@
+    procedure @_DUMP_PROCEDURE_@ (Prefix : String);
+@@ELSE@@
+    procedure @_DUMP_PROCEDURE_@;
+    pragma Convention (C, @_DUMP_PROCEDURE_@);
+@@END_IF@@
+
+@@IF@@ @_AT_EXIT_@ or @_RAVENSCAR_TASK_TERM_@
+    function @_REGISTER_DUMP_FCT_@ return @_WITNESS_DUMMY_TYPE_@;
+@@ELSIF@@ @_MAIN_END_@ and @_HAS_CONTROLLED_@
+    type Dump_Controlled_Type is new Ada.Finalization.Limited_Controlled
+      with null record;
+
+      overriding procedure Finalize (Self : in out Dump_Controlled_Type);
+@@ELSIF@@ @_MANUAL_@
+    procedure @_RESET_PROCEDURE_@;
+@@END_IF@@
+
+end @_UNIT_NAME_@;

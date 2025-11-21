@@ -18,9 +18,9 @@
 
 with Ada.Direct_IO;
 with Ada.Directories; use Ada.Directories;
+with Ada.Streams;     use Ada.Streams;
 with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
-with Ada.Unchecked_Deallocation;
 
 with Interfaces;
 
@@ -30,11 +30,16 @@ with System.Storage_Elements;
 
 with GNAT.OS_Lib;        use GNAT.OS_Lib;
 with GNAT.Byte_Swapping; use GNAT.Byte_Swapping;
+with GNATCOLL.Mmap;
 
+with Coverage.Source;
+with Hashes; use Hashes;
 with Hex_Images;
 with Outputs;
 
 package body Instrument.Input_Traces is
+
+   package Mmap renames GNATCOLL.Mmap;
 
    Native_Endianity : constant Supported_Endianity :=
      Traces_Source.Native_Endianity;
@@ -56,11 +61,6 @@ package body Instrument.Input_Traces is
 
    type Bytes_Array is array (Positive range <>) of Interfaces.Unsigned_8;
 
-   type Bytes_Access is access all Bytes_Array;
-
-   procedure Free is new
-     Ada.Unchecked_Deallocation (Bytes_Array, Bytes_Access);
-
    type Buffer_Range is record
       Offset, Size : Natural;
       --  Offset and size of the range
@@ -81,22 +81,32 @@ package body Instrument.Input_Traces is
    --  Return the offset for the next byte range that can appear after Self
 
    type Binary_Stream is record
-      File : File_Descriptor;
-      --  File from which to read the binary stream
+      File   : Mmap.Mapped_File;
+      Region : Mmap.Mapped_Region;
+      --  File and region for the trace file to read
 
-      Offset : Interfaces.Unsigned_32;
-      --  Offset for the next bytes to read from the binary stream
+      Buffer : System.Address;
+      --  Address of the first byte in Region
 
-      Buffer : Bytes_Access;
-      --  Temporary buffer to hold data to read. When not null, first bound is
-      --  always 1.
+      Length : System.Storage_Elements.Storage_Count;
+      --  Number of bytes available in Region
 
-      Buffer_Last : Natural;
-      --  Index in Buffer for the last byte that was read
+      Position : System.Storage_Elements.Storage_Offset;
+      --  Offset of the next byte to process in the trace file. We process
+      --  files from the beginning to the end, like with tratidional I/O.
+
+      Last_Position_Address : System.Address;
+      --  Address of the element corresponding to Position before the last call
+      --  to Read_Bytes.
    end record;
 
-   procedure Reserve (Buffer : in out Bytes_Access; Size : Natural);
-   --  Reallocate Buffer if needed so that it can contain at least Size bytes
+   function Open_File
+     (Filename : String; Stream : out Binary_Stream) return Boolean;
+   --  Open file ``Filename`` for reading and initialize ``Stream`` from it.
+   --  Return whether successful.
+
+   procedure Close (Stream : in out Binary_Stream);
+   --  Close the given binary stream
 
    procedure Read_Bytes
      (Stream       : in out Binary_Stream;
@@ -118,8 +128,7 @@ package body Instrument.Input_Traces is
    --  an error about a truncated file and set EOF to True.
 
    function Buffer_Address (Stream : Binary_Stream) return System.Address
-   with Pre => Stream.Buffer /= null;
-   --  Return the address for the content of the buffer in Stream
+   is (Stream.Last_Position_Address);
 
    type Trace_Entry_Elements is record
       Unit_Name        : System.Address;
@@ -229,17 +238,41 @@ package body Instrument.Input_Traces is
       return Self.Offset + Self.Padded_Size;
    end Offset_After;
 
-   -------------
-   -- Reserve --
-   -------------
+   ---------------
+   -- Open_File --
+   ---------------
 
-   procedure Reserve (Buffer : in out Bytes_Access; Size : Natural) is
+   function Open_File
+     (Filename : String; Stream : out Binary_Stream) return Boolean is
    begin
-      if Buffer = null or else Buffer'Length < Size then
-         Free (Buffer);
-         Buffer := new Bytes_Array (1 .. Size);
-      end if;
-   end Reserve;
+      --  Make the region mutable so that we can perform byte swap if
+      --  needed.
+
+      Stream.File := Mmap.Open_Read (Filename);
+      Stream.Region := Mmap.Read (Stream.File, Mutable => True);
+      Stream.Buffer := Mmap.Data_Address (Stream.Region);
+      Stream.Length :=
+        System.Storage_Elements.Storage_Count (Mmap.Data_Size (Stream.Region));
+      Stream.Position := 0;
+      return True;
+   exception
+      when Ada.Text_IO.Name_Error =>
+         return False;
+   end Open_File;
+
+   -----------
+   -- Close --
+   -----------
+
+   procedure Close (Stream : in out Binary_Stream) is
+   begin
+      Mmap.Free (Stream.Region);
+      Mmap.Close (Stream.File);
+      Stream.Buffer := System.Null_Address;
+      Stream.Length := 0;
+      Stream.Position := 0;
+      Stream.Last_Position_Address := System.Null_Address;
+   end Close;
 
    ----------------
    -- Read_Bytes --
@@ -250,48 +283,25 @@ package body Instrument.Input_Traces is
       Size         : Natural;
       EOF          : out Boolean;
       Result       : in out Read_Result;
-      Error_If_EOF : Boolean := True) is
+      Error_If_EOF : Boolean := True)
+   is
+      use System.Storage_Elements;
+
+      Next_Position : constant Storage_Offset :=
+        Stream.Position + Storage_Offset (Size);
    begin
-      Reserve (Stream.Buffer, Size);
       EOF := False;
+      if Next_Position > Stream.Length then
+         EOF := True;
+         if Error_If_EOF or else Next_Position = Stream.Length + 1 then
+            Create_Error (Result, "truncated file");
+         end if;
+         return;
+      end if;
 
-      declare
-         use Interfaces;
-
-         Read_Size : Integer;
-         Buffer    : Bytes_Array renames Stream.Buffer.all (1 .. Size);
-      begin
-         Stream.Buffer_Last := 0;
-         while Stream.Buffer_Last < Size loop
-            Read_Size :=
-              Read
-                (Stream.File,
-                 Buffer (Stream.Buffer_Last + 1)'Address,
-                 Size - Stream.Buffer_Last);
-
-            if Read_Size = 0 then
-               EOF := True;
-               if Error_If_EOF or else Stream.Buffer_Last /= 0 then
-                  Create_Error (Result, "truncated file");
-               end if;
-               return;
-            else
-               pragma Assert (Read_Size > 0);
-               Stream.Offset := Stream.Offset + Unsigned_32 (Read_Size);
-               Stream.Buffer_Last := Stream.Buffer_Last + Read_Size;
-            end if;
-         end loop;
-      end;
+      Stream.Last_Position_Address := Stream.Buffer + Stream.Position;
+      Stream.Position := Next_Position;
    end Read_Bytes;
-
-   --------------------
-   -- Buffer_Address --
-   --------------------
-
-   function Buffer_Address (Stream : Binary_Stream) return System.Address is
-   begin
-      return Stream.Buffer.all (1)'Address;
-   end Buffer_Address;
 
    -------------
    -- Reserve --
@@ -633,12 +643,10 @@ package body Instrument.Input_Traces is
 
       --  Try to open the file
 
-      Stream.File := Open_Read (Filename, Binary);
-      if Stream.File = Invalid_FD then
+      if not Open_File (Filename, Stream) then
          Create_Error (Result, "cannot open " & Filename);
          return;
       end if;
-      Stream.Offset := 0;
 
       --  Read the trace file header
 
@@ -785,8 +793,7 @@ package body Instrument.Input_Traces is
       Free (Statement_Buffer);
       Free (Decision_Buffer);
       Free (MCDC_Buffer);
-      Free (Stream.Buffer);
-      Close (Stream.File);
+      Close (Stream);
    end Generic_Read_Source_Trace_File;
 
    ----------------------------
@@ -1290,5 +1297,213 @@ package body Instrument.Input_Traces is
          Outputs.Fatal_Error ("Incomplete Base64 trace");
       end if;
    end Extract_Base64_Trace;
+
+   ----------
+   -- Hash --
+   ----------
+
+   function Hash
+     (Self : Consolidated_Trace_Key) return Ada.Containers.Hash_Type is
+   begin
+      return Result : Ada.Containers.Hash_Type := Hash (Self.CU_Name) do
+         for Digit of Self.Fingerprint loop
+            Result := Combine (Result, Stream_Element'Pos (Digit));
+         end loop;
+      end return;
+   end Hash;
+
+   ------------------
+   -- Update_State --
+   ------------------
+
+   procedure Update_State
+     (Self                    : in out Consolidation_State;
+      Filename                : String;
+      Fingerprint             : SC_Obligations.Fingerprint_Type;
+      CU_Name                 : Compilation_Unit_Part;
+      Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
+      Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
+      Stmt_Buffer             : Coverage_Buffer;
+      Decision_Buffer         : Coverage_Buffer;
+      MCDC_Buffer             : Coverage_Buffer)
+   is
+      use Consolidated_Trace_Maps;
+
+      function Part_Image (Part : GPR2.Valid_Unit_Kind) return String;
+      --  Helper to include Part in an error message
+
+      function Unit_Image return String
+      is (case CU_Name.Language_Kind is
+            when Unit_Based_Language =>
+              (Part_Image (CU_Name.Part) & " " & To_Ada (CU_Name.Unit)),
+            when File_Based_Language => +CU_Name.Filename);
+      --  Helper to refer to the instrumented unit in an error message
+
+      ----------------
+      -- Part_Image --
+      ----------------
+
+      function Part_Image (Part : GPR2.Valid_Unit_Kind) return String is
+      begin
+         return
+           (case Part is
+              when GPR2.S_Body     => "body of",
+              when GPR2.S_Spec     => "spec of",
+              when GPR2.S_Separate => "separate");
+      end Part_Image;
+
+      Key : constant Consolidated_Trace_Key := (CU_Name, Fingerprint);
+      Elt : Consolidated_Trace_Entry;
+      Cur : Cursor;
+      CU  : CU_Id;
+   begin
+      if Misc_Trace.Is_Active then
+         Misc_Trace.Trace ("processing traces for unit " & Unit_Image);
+      end if;
+
+      --  Look for a consolidated trace entry corresponding to these coverage:
+      --  if we find one, we have already found the corresponding compilation
+      --  unit.
+
+      Cur := Self.Map.Find (Key);
+      if Has_Element (Cur) then
+         CU := Element (Cur).CU;
+      else
+         CU := Find_Instrumented_Unit (CU_Name);
+
+         if CU = No_CU_Id then
+
+            --  When using a single instrumented program to compute separate
+            --  coverage for all units (common in unit testing), it is
+            --  legitimate to process source trace files that contain entries
+            --  relating to units not of interest. So in this case, do not even
+            --  warn about it: just log the fact that we skip this trace entry
+            --  in the verbose about, just in case.
+
+            Misc_Trace.Trace
+              ("discarding source trace entry for unknown instrumented unit: "
+               & Unit_Image);
+            return;
+
+         elsif Provider (CU) /= Instrumenter then
+
+            --  We loaded compiler-generated SCOs for this unit before
+            --  processing its source trace buffer, so we have inconsistent
+            --  information. Just ignore this coverage information and proceed.
+
+            Outputs.Warn
+              ("inconsistent coverage method, ignoring coverage information"
+               & " for "
+               & Unit_Image);
+            return;
+         end if;
+      end if;
+
+      --  Sanity check that Fingerprint is consistent with what the
+      --  instrumenter recorded in the CU info.
+
+      if not Has_Fingerprint (CU, Fingerprint)
+        or else Bit_Maps_Fingerprint
+                /= SC_Obligations.Bit_Maps_Fingerprint (CU, Fingerprint)
+        or else Annotations_Fingerprint
+                /= SC_Obligations.Annotations_Fingerprint (CU, Fingerprint)
+      then
+         Outputs.Warn
+           ("traces for "
+            & Unit_Image
+            & " (from "
+            & Filename
+            & ") are"
+            & " inconsistent with the corresponding Source Instrumentation"
+            & " Data");
+         return;
+      end if;
+
+      if Has_Element (Cur) then
+
+         --  Update existing coverage buffers for this unit
+
+         Elt := Element (Cur);
+         pragma Assert (Elt.CU = CU);
+
+         pragma Assert (Stmt_Buffer'First = Elt.Stmt_Buffer'First);
+         pragma Assert (Stmt_Buffer'Last = Elt.Stmt_Buffer'Last);
+
+         pragma Assert (Decision_Buffer'First = Elt.Decision_Buffer'First);
+         pragma Assert (Decision_Buffer'Last = Elt.Decision_Buffer'Last);
+
+         pragma Assert (MCDC_Buffer'First = Elt.MCDC_Buffer'First);
+         pragma Assert (MCDC_Buffer'Last = Elt.MCDC_Buffer'Last);
+
+         --  Update coverage buffers in this entry
+
+         for B in Stmt_Buffer'Range loop
+            if Stmt_Buffer (B) then
+               Elt.Stmt_Buffer (B) := True;
+            end if;
+         end loop;
+         for B in Decision_Buffer'Range loop
+            if Decision_Buffer (B) then
+               Elt.Decision_Buffer (B) := True;
+            end if;
+         end loop;
+         for B in MCDC_Buffer'Range loop
+            if MCDC_Buffer (B) then
+               Elt.MCDC_Buffer (B) := True;
+            end if;
+         end loop;
+
+      else
+         --  Create a new entry for coverage buffers and initialize them from
+         --  this trace entry.
+
+         pragma Assert (Stmt_Buffer'First = 0);
+         pragma Assert (Decision_Buffer'First = 0);
+         pragma Assert (MCDC_Buffer'First = 0);
+         Elt :=
+           new Consolidated_Trace_Entry_Record
+                 (Stmt_Buffer'Last, Decision_Buffer'Last, MCDC_Buffer'Last);
+         Elt.CU := CU;
+         Elt.Stmt_Buffer := Stmt_Buffer;
+         Elt.Decision_Buffer := Decision_Buffer;
+         Elt.MCDC_Buffer := MCDC_Buffer;
+         Self.Map.Insert (Key, Elt);
+      end if;
+   end Update_State;
+
+   -------------------
+   -- Process_State --
+   -------------------
+
+   procedure Process_State (Self : in out Consolidation_State) is
+   begin
+      for Cur in Self.Map.Iterate loop
+         declare
+            use Consolidated_Trace_Maps;
+
+            K : constant Consolidated_Trace_Key := Key (Cur);
+            E : constant Consolidated_Trace_Entry := Element (Cur);
+         begin
+            Coverage.Source.Compute_Source_Coverage
+              (E.CU,
+               K.Fingerprint,
+               E.Stmt_Buffer,
+               E.Decision_Buffer,
+               E.MCDC_Buffer);
+         end;
+      end loop;
+   end Process_State;
+
+   -------------
+   -- Release --
+   -------------
+
+   procedure Release (Self : in out Consolidation_State) is
+   begin
+      for Key of Self.Map loop
+         Free (Key);
+      end loop;
+      Self.Map.Clear;
+   end Release;
 
 end Instrument.Input_Traces;

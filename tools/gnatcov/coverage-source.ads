@@ -70,14 +70,11 @@ package Coverage.Source is
    --  determine the coverage state of each SCO.
 
    procedure Compute_Source_Coverage
-     (Filename                : String;
-      Fingerprint             : SC_Obligations.Fingerprint_Type;
-      CU_Name                 : Compilation_Unit_Part;
-      Bit_Maps_Fingerprint    : SC_Obligations.Fingerprint_Type;
-      Annotations_Fingerprint : SC_Obligations.Fingerprint_Type;
-      Stmt_Buffer             : Coverage_Buffer;
-      Decision_Buffer         : Coverage_Buffer;
-      MCDC_Buffer             : Coverage_Buffer);
+     (CU              : CU_Id;
+      Fingerprint     : SC_Obligations.Fingerprint_Type;
+      Stmt_Buffer     : Coverage_Buffer;
+      Decision_Buffer : Coverage_Buffer;
+      MCDC_Buffer     : Coverage_Buffer);
    --  Analyze source instrumentation traces to determine the coverage state
    --  of each SCO. Generic actual for
    --  Instrument.Input_Traces.Generic_Read_Source_Trace_File.

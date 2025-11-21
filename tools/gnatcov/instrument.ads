@@ -18,6 +18,7 @@
 
 --  Support for source instrumentation
 
+with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 
@@ -117,6 +118,9 @@ package Instrument is
    end record;
    --  Unique identifier for an instrumented unit part
 
+   function Hash
+     (Self : Compilation_Unit_Part) return Ada.Containers.Hash_Type;
+
    procedure Read
      (CLS   : in out Checkpoints.Checkpoint_Load_State;
       Value : out Compilation_Unit_Part);
@@ -203,9 +207,11 @@ package Instrument is
    --  Return the compilation unit name corresponding to the unit in Source
 
    package Instrumented_Unit_To_CU_Maps is new
-     Ada.Containers.Ordered_Maps
-       (Key_Type     => Compilation_Unit_Part,
-        Element_Type => CU_Id);
+     Ada.Containers.Hashed_Maps
+       (Key_Type        => Compilation_Unit_Part,
+        Element_Type    => CU_Id,
+        Hash            => Hash,
+        Equivalent_Keys => "=");
 
    procedure Read is new
      Read_Map
