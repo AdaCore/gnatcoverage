@@ -5930,14 +5930,18 @@ package body Instrument.Ada_Unit is
          declare
             N : constant Ada_Node := L.Child (J);
          begin
-            --  Only traverse the nodes if they are not ghost entities
 
-            if not (UIC.Ghost_Code
-                    or else
-                      (N.Kind in Ada_Stmt and then Safe_Is_Ghost (N.As_Stmt))
-                    or else
-                      (N.Kind in Ada_Basic_Decl
-                       and then Safe_Is_Ghost (N.As_Basic_Decl)))
+            --  Only traverse the nodes if they are not ghost entities if the
+            --  user did not explicitly ask for their instrumentation.
+
+            if Instrument_Ghost
+              or else
+                not (UIC.Ghost_Code
+                     or else
+                       (N.Kind in Ada_Stmt and then Safe_Is_Ghost (N.As_Stmt))
+                     or else
+                       (N.Kind in Ada_Basic_Decl
+                        and then Safe_Is_Ghost (N.As_Basic_Decl)))
             then
                Traverse_One (N);
             end if;

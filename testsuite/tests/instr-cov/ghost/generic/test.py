@@ -16,14 +16,20 @@ build_run_and_coverage(
     gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["main.adb"])),
     covlevel="stmt",
     mains=["main"],
-    extra_instr_args=["--spark-compat"],
     extra_coverage_args=["-axcov", "--output-dir=xcov"],
 )
+
+
+if thistest.options.instrument_ghost:
+    gen_expected_xcov = {"+": {4, 9}}
+else:
+    gen_expected_xcov = {"+": {9}, "-": {4}}
+
 check_xcov_reports(
     "xcov",
     {
         "main.adb.xcov": {"+": {11, 15}},
-        "gen.adb.xcov": {"+": {9}, "-": {4}},
+        "gen.adb.xcov": gen_expected_xcov,
         "gen.ads.xcov": {},
         "non_ghost_inst.ads.xcov": {},
     },

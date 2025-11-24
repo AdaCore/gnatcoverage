@@ -97,7 +97,7 @@ package Command_Line is
       Opt_Cancel_Annotate,
       Opt_All_Warnings,
       Opt_Save_Temps,
-      Opt_SPARK_Compat,
+      Opt_Instrument_Ghost,
       Opt_Full_Slugs,
       Opt_Warnings_As_Errors,
       Opt_Instrument_Block,
@@ -771,12 +771,10 @@ package Command_Line is
            Help      => "Do not remove temporary files and directories.",
            Internal  => True),
 
-      Opt_SPARK_Compat                 =>
+      Opt_Instrument_Ghost             =>
         Create
-          (Long_Name => "--spark-compat",
-           Help      =>
-             "Enable the SPARK compatibility mode. This ensures"
-             & " instrumented code will be ghost compliant.",
+          (Long_Name => "--instrument-ghost",
+           Help      => "Enable instrumentation of ghost code.",
            Commands  => (Cmd_Instrument => True, others => False),
            Internal  => False),
 
