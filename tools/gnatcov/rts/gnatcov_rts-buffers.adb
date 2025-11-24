@@ -53,16 +53,11 @@ package body GNATcov_RTS.Buffers is
    end Witness;
 
    function Witness
-     (Buffer_Address : System.Address; Bit : Bit_Id) return Witness_Dummy_Type
+     (Buffer_Address  : System.Address;
+      Bit             : Bit_Id;
+      Witness_Limited : Witness_Limited_Type) return Witness_Dummy_Type
    is
-   begin
-      Witness (Buffer_Address, Bit);
-      return (Data => False);
-   end Witness;
-
-   function Witness
-     (Buffer_Address : System.Address; Bit : Bit_Id)
-      return Non_Volatile_Witness_Dummy_Type is
+      pragma Unreferenced (Witness_Limited);
    begin
       Witness (Buffer_Address, Bit);
       return (Data => False);

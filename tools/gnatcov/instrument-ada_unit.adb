@@ -636,13 +636,9 @@ package body Instrument.Ada_Unit is
      (UIC          : Ada_Unit_Inst_Context;
       Bit          : Bit_Id;
       Flavor       : Statement_Witness_Flavor;
-      In_Generic   : Boolean;
       In_Decl_Expr : Boolean) return Node_Rewriting_Handle;
    --  Create a procedure call statement or object declaration to witness
    --  execution of the low level SCO with the given bit Node.
-   --
-   --  In_Generic indicates whether the statement witness is destined
-   --  to be inserted in a generic package or subprogram.
    --
    --  In_Decl_Expr indicates whether the statement witness is inserted as
    --  a declaration in a declare expression.
@@ -1836,7 +1832,6 @@ package body Instrument.Ada_Unit is
      (UIC          : Ada_Unit_Inst_Context;
       Bit          : Bit_Id;
       Flavor       : Statement_Witness_Flavor;
-      In_Generic   : Boolean;
       In_Decl_Expr : Boolean) return Node_Rewriting_Handle
    is
       Bit_Img : constant String := Img (Bit);
@@ -1845,6 +1840,13 @@ package body Instrument.Ada_Unit is
       function Call_Img return String
       is ("{}.Witness ({}, "
           & Bit_Img
+
+          --  Limited type parameter to add to witness calls instantiated as
+          --  declarations, to avoid the compiler from optimizing them away.
+
+          & (if Flavor = Declaration
+             then ", GNATcov_RTS.Buffers.Witness_Limited"
+             else "")
           & ")"
           & (if Flavor = Function_Call then "" else ";"));
 
@@ -1860,9 +1862,6 @@ package body Instrument.Ada_Unit is
           & " :"
           & (if In_Decl_Expr then " constant" else "")
           & " {}."
-          & (if In_Generic and then Switches.SPARK_Compat
-             then "Non_Volatile_"
-             else "")
           & "Witness_Dummy_Type := "
           & Call_Img);
 
@@ -2779,7 +2778,6 @@ package body Instrument.Ada_Unit is
            Bit          =>
              Allocate_Statement_Bit (UIC.Unit_Bits, SCOs.SCO_Table.Last),
            Flavor       => Witness_Flavor,
-           In_Generic   => UIC.In_Generic,
            In_Decl_Expr => UIC.In_Decl_Expr);
    end Instrument_For_Function_Coverage;
 
@@ -5019,8 +5017,6 @@ package body Instrument.Ada_Unit is
 
       procedure Traverse_One (N : Ada_Node) is
          Dummy_Ctx : constant Context_Handle := Create_Context_Instrument (N);
-
-         Saved_In_Generic : constant Boolean := UIC.In_Generic;
       begin
          case N.Kind is
             --  Top of the tree: Compilation unit
@@ -5114,16 +5110,12 @@ package body Instrument.Ada_Unit is
                         | Ada_Subp_Body
                         | Ada_Subp_Decl
                         | Ada_Task_Body =>
-                        if CU_Decl.Kind = Ada_Generic_Package_Decl then
-                           UIC.In_Generic := True;
-                        end if;
 
                         Traverse_Declarations_Or_Statements
                           (UIC,
                            P       => CU_Decl.As_Ada_Node,
                            L       => CUN.F_Pragmas,
                            Preelab => Preelab);
-                        UIC.In_Generic := Saved_In_Generic;
 
                      --  All other cases of compilation units (e.g. renamings),
                      --  generate no SCO information.
@@ -5171,10 +5163,8 @@ package body Instrument.Ada_Unit is
             --  Generic package declaration
 
             when Ada_Generic_Package_Decl                          =>
-               UIC.In_Generic := True;
                Traverse_Generic_Package_Declaration
                  (UIC, N.As_Generic_Package_Decl, Preelab);
-               UIC.In_Generic := Saved_In_Generic;
 
             --  Package body
 
@@ -5182,9 +5172,7 @@ package body Instrument.Ada_Unit is
                declare
                   PB : constant Package_Body := N.As_Package_Body;
                begin
-                  UIC.In_Generic := Is_Generic (UIC, PB);
                   Traverse_Package_Body (UIC, PB, Preelab);
-                  UIC.In_Generic := Saved_In_Generic;
                end;
 
             --  Subprogram declaration or subprogram body stub
@@ -5207,12 +5195,10 @@ package body Instrument.Ada_Unit is
                declare
                   GSD : constant Generic_Subp_Decl := As_Generic_Subp_Decl (N);
                begin
-                  UIC.In_Generic := True;
                   Process_Standalone_Expression
                     (UIC, GSD.F_Formal_Part.F_Decls, 'X');
                   Process_Expression
                     (UIC, GSD.F_Subp_Decl.F_Subp_Spec.F_Subp_Params, 'X');
-                  UIC.In_Generic := Saved_In_Generic;
                end;
 
             --  Task or subprogram body
@@ -5221,8 +5207,6 @@ package body Instrument.Ada_Unit is
                declare
                   B : constant Body_Node := N.As_Body_Node;
                begin
-                  UIC.In_Generic := Is_Generic (UIC, B);
-
                   Traverse_Subprogram_Or_Task_Body (UIC, B);
 
                   if B.Kind = Ada_Subp_Body and then Enabled (Fun_Call) then
@@ -5249,8 +5233,6 @@ package body Instrument.Ada_Unit is
                            Create_Function_Witness_Var (UIC, Fun_Witness));
                      end;
                   end if;
-
-                  UIC.In_Generic := Saved_In_Generic;
                end;
 
             --  Entry body
@@ -6761,7 +6743,6 @@ package body Instrument.Ada_Unit is
                    (UIC          => UIC,
                     Bit          => Bit,
                     Flavor       => Declaration,
-                    In_Generic   => UIC.In_Generic,
                     In_Decl_Expr => True);
                Decl_Expr_Handle    : constant Node_Rewriting_Handle :=
                  Create_Paren_Expr
@@ -7651,7 +7632,6 @@ package body Instrument.Ada_Unit is
           (UIC,
            Bit          => Bit,
            Flavor       => Function_Call,
-           In_Generic   => UIC.In_Generic,
            In_Decl_Expr => UIC.In_Decl_Expr);
 
       UIC.Current_Insertion_Info.Get.Witness_Formal :=
@@ -8421,7 +8401,6 @@ package body Instrument.Ada_Unit is
                               (UIC,
                                Bit          => Bit,
                                Flavor       => Function_Call,
-                               In_Generic   => UIC.In_Generic,
                                In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr),
 
                           2 => Make (UIC, Ada_Op_Or_Else),
@@ -8559,7 +8538,6 @@ package body Instrument.Ada_Unit is
                             when Declaration                => Declaration,
                             when Expression_Function | None =>
                               raise Program_Error),
-                       In_Generic   => UIC.In_Generic,
                        In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr);
 
                   if Insert_Sibling then
@@ -8596,7 +8574,6 @@ package body Instrument.Ada_Unit is
                    (UIC,
                     Bit          => Bit,
                     Flavor       => Function_Call,
-                    In_Generic   => UIC.In_Generic,
                     In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr);
 
                Insert_Info.Get.Witness_Formal :=

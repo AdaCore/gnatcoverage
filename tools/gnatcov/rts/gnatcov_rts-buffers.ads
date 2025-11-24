@@ -122,36 +122,43 @@ package GNATcov_RTS.Buffers is
    type Witness_Dummy_Type is record
       Data : Boolean;
    end record;
-   pragma Volatile (Witness_Dummy_Type);
+
+   type Witness_Limited_Type is limited null record;
+
+   Witness_Limited : constant Witness_Limited_Type;
+   pragma
+     Import
+       (Convention => Ada,
+        Entity => Witness_Limited,
+        External_Name => "gnatcov_rts_witness_limited");
+   --  See the documentation in the Witness overload below. This is the value
+   --  for the Witness.Witness_Limited parameter. It must be a constant, as
+   --  pure units cannot declare variables. It also cannot be initialized, as
+   --  it is forbidden by Ada 95.
+   --
+   --  We thus resort to importing a declaration. The actual declaration for it
+   --  is in the GNATcov_RTS.Buffers.Lists unit.
 
    function Witness
-     (Buffer_Address : System.Address; Bit : Bit_Id) return Witness_Dummy_Type;
+     (Buffer_Address  : System.Address;
+      Bit             : Bit_Id;
+      Witness_Limited : Witness_Limited_Type) return Witness_Dummy_Type;
    pragma Inline (Witness);
    --  This variant is used in contexts where statements are not allowed
    --  but declarations are, for example ahead of library level declarations
    --  to witness their elaboration.
 
-   --  Use a volatile dummy type of minimal but non-zero size to prevent the
-   --  compiler from optimizing calls away, as this unit is Pure. Use a
-   --  composite type to prevent ambiguities in contexts where the Boolean
-   --  variant below might be used, for example in constructs like
+   --  Add a limited record type parameter to prevent the compiler from
+   --  optimizing calls away, as this unit is pure.
+
+   --  Use a composite type to prevent ambiguities in contexts where the
+   --  Boolean variant below might be used, for example in constructs like:
    --
    --    case Witness (Buffer, Bit) is
    --      when others => ...
    --    end case;
    --
    --  used for some kinds of expression functions.
-
-   type Non_Volatile_Witness_Dummy_Type is record
-      Data : Boolean;
-   end record;
-
-   function Witness
-     (Buffer_Address : System.Address; Bit : Bit_Id)
-      return Non_Volatile_Witness_Dummy_Type;
-   pragma Inline (Witness);
-   --  This variant uses a non-volatile return type to be compatible with ghost
-   --  code.
 
    function Witness
      (Buffer_Address : System.Address; Bit : Bit_Id) return Boolean;
