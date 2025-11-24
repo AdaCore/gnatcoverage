@@ -700,7 +700,7 @@ package body Instrument.Ada_Unit is
    --  instantiation of that generic subprogram. The statement witness and
    --  MC/DC state variable declarations are inserted in the generic body.
    --
-   --  For expression functions, there are four instrumentation strategies,
+   --  For expression functions, there are three instrumentation strategies,
    --  depending on its spec, the context in which it is declared and the
    --  language version used.
    --
@@ -714,21 +714,12 @@ package body Instrument.Ada_Unit is
    --  declaration in the same declarative region, we also need to emit one for
    --  the augmented expression function next to it to avoid freezing issues
    --
-   --  The second strategy only deals with expression functions which are
-   --  primitives of their return type, if it is a tagged type. In that case,
-   --  we would need to provide an overriding expression function for each
-   --  augmented expression function that we add, and for each type derivation
-   --  that happens on the return type, which is not manageable. In such cases,
-   --  fall back to putting the expression function in a nested package so
-   --  it's not considered as a primitive and (hopefully) does not trigger
-   --  any compilation bug.
-   --
-   --  The third strategy only applies to expression functions that are located
-   --  in the body of a protected object. The only elements that may appear in
-   --  a protected object body are subprogram declarations, subprogram bodies
-   --  and entry bodies. This prevents us from inserting a nested package
-   --  for the second strategy. To circumvent this, all expression functions
-   --  declared in a protected body are transformed into regular functions.
+   --  The second strategy only applies to expression functions that are
+   --  located in the body of a protected object. Protected bodies do not
+   --  allow declarations, so we cannot instrument expression functions or
+   --  null procedures as we usually do, by adding an augmented subprogram in a
+   --  package declared right before. In that case, turn the expression
+   --  function in a regular function.
    --
    --  The last strategy only applies to Ada 2022 sources. In that case, a
    --  declare expression is used to prepend a list of declarations prior to
@@ -1150,11 +1141,6 @@ package body Instrument.Ada_Unit is
    --  declarative region as its previous declaration, then there is no need to
    --  insert a declaration for the augmented expression function, beause in
    --  that case it isn't a primitive.
-
-   function Augmented_EF_Needs_Wrapper_Package
-     (Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean;
-   --  Returns whether the augmented expression function needs to be wrapped in
-   --  a nested package.
 
    function Is_Self_Referencing
      (UIC : Ada_Unit_Inst_Context; EF : Expr_Function) return Boolean;
@@ -2830,20 +2816,11 @@ package body Instrument.Ada_Unit is
         & To_Wide_Wide_String (Img (UIC.Degenerate_Subprogram_Index))
         & (if Fun_Cov then "_GNATCOV_Aux" else "");
 
-      Need_WP : constant Boolean :=
-        Augmented_EF_Needs_Wrapper_Package (Common_Nodes);
-
       --  Create the expression for New_Expr_Function that will call that
       --  augmented expression function.
 
       Callee : constant Node_Rewriting_Handle :=
-        (if Need_WP
-         then
-           Create_Dotted_Name
-             (RC,
-              F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
-              F_Suffix => Make_Identifier (RC, Augmented_Func_Name))
-         else Make_Identifier (RC, Augmented_Func_Name));
+        Make_Identifier (RC, Augmented_Func_Name);
 
       Call_Expr : constant Node_Rewriting_Handle :=
         (if Call_Params = No_Node_Rewriting_Handle
@@ -2851,11 +2828,10 @@ package body Instrument.Ada_Unit is
          else
            Create_Call_Expr (RC, F_Name => Callee, F_Suffix => Call_Params));
 
-      --  No need for a declaration if we are using a nested package
+      --  Check if the wrapper function needs a previous declaration
 
       Needs_Decl : constant Boolean :=
         Common_Nodes.N.Kind = Ada_Expr_Function
-        and then not Need_WP
         and then
           Augmented_Expr_Function_Needs_Decl (Common_Nodes.N.As_Expr_Function);
 
@@ -3033,16 +3009,6 @@ package body Instrument.Ada_Unit is
          end;
       end if;
 
-      if Need_WP then
-
-         --  Put the augmented expression function in the wrapper package, and
-         --  return its handle instead of the one of the expression function.
-
-         Insert_Last (Common_Nodes.Wrapper_Pkg_Decls, Augmented_Function);
-
-         Augmented_Function := Common_Nodes.Wrapper_Pkg;
-      end if;
-
    end Create_Augmented_Function;
 
    ----------------------------------------
@@ -3117,30 +3083,6 @@ package body Instrument.Ada_Unit is
 
       return True;
    end Augmented_Expr_Function_Needs_Decl;
-
-   ----------------------------------------
-   -- Augmented_EF_Needs_Wrapper_Package --
-   ----------------------------------------
-
-   function Augmented_EF_Needs_Wrapper_Package
-     (Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean is
-   begin
-      return
-        Common_Nodes.Ctrl_Type /= No_Base_Type_Decl
-        and then not Common_Nodes.N_Spec.P_Return_Type.Is_Null
-        and then Common_Nodes.N_Spec.P_Return_Type = Common_Nodes.Ctrl_Type;
-
-   exception
-      when Exc : Property_Error =>
-         Report
-           (Node => Common_Nodes.N,
-            Msg  =>
-              "Could not determine the return type of the"
-              & " expression function: "
-              & Switches.Exception_Info (Exc),
-            Kind => Warning);
-         return False;
-   end Augmented_EF_Needs_Wrapper_Package;
 
    -------------------------
    -- Is_Self_Referencing --
