@@ -32,7 +32,7 @@ build_run_and_coverage(
 check_xcov_reports(
     "xcov",
     {
-        "main.adb.xcov": {"+": {13}},
+        "main.adb.xcov": {"+": {18, 20}},
         "pkg.ads.xcov": {"+": {2}},
     },
 )
