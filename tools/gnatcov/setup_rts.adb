@@ -699,7 +699,8 @@ package body Setup_RTS is
 
       if Library_Kind /= "" then
          Actual_Common_Args.Append (+("-XLIBRARY_TYPE=" & Library_Kind));
-         Actual_Install_Args.Append (+"--build-var=LIBRARY_TYPE");
+         Actual_Install_Args.Append
+           (+"--build-var=GNATCOV_RTS_LIBRARY_TYPE,LIBRARY_TYPE");
          Actual_Install_Args.Append (+("--build-name=" & Library_Kind));
       end if;
 
