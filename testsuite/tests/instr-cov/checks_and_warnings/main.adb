@@ -1,3 +1,8 @@
+--  If gnatcov does not remove this pragma, GNAT will warn about the redundant
+--  with clause for Pkg.
+
+pragma Warnings (On);
+with Pkg;
 with Pkg;
 
 procedure Main is

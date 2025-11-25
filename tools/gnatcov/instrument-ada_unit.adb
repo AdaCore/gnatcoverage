@@ -109,13 +109,52 @@ package body Instrument.Ada_Unit is
    --  If ``N`` is an attribute reference, return the canonicalized name for
    --  that attribute. Return the empty string otherwise.
 
+   function CRLF_To_LF (S : Unbounded_String) return Unbounded_String;
+   --  Given a string S, return a new string where all occurrences of CRLF in S
+   --  were replaced with LF.
+   --
+   --  ??? (eng/toolchain/templates-parser#8) Simplify once Templates_Parser
+   --  can be asked not to add CR to line endings on Windows. In the meantime,
+   --  we need to remove CR so that generated Ada source files have consistent
+   --  LF line endings.
+
    function Render_Template
      (Tmplt_Name : String; T : Translate_Set) return Unbounded_String
-   is (Parse (Support_Files.In_Share_Dir ("templates/" & Tmplt_Name), T));
+   is (CRLF_To_LF
+         (Parse (Support_Files.In_Share_Dir ("templates/" & Tmplt_Name), T)));
    function Render_Template
      (Tmplt_Name : String; T : Translate_Table) return Unbounded_String
-   is (Parse (Support_Files.In_Share_Dir ("templates/" & Tmplt_Name), T));
+   is (CRLF_To_LF
+         (Parse (Support_Files.In_Share_Dir ("templates/" & Tmplt_Name), T)));
    --  Shortcut function for rendering a template to an Unbounded_String.
+
+   ----------------
+   -- CRLF_To_LF --
+   ----------------
+
+   function CRLF_To_LF (S : Unbounded_String) return Unbounded_String is
+      CRLF     : constant String := "" & ASCII.CR & ASCII.LF;
+      Result   : Unbounded_String;
+      Pos      : Natural := 1;
+      Prev_Pos : Natural := 1;
+   begin
+      loop
+         Pos := Index (S, CRLF, From => Prev_Pos);
+         exit when Pos = 0;
+
+         --  Append the line without its linebreak + a LF character
+
+         Append (Result, Unbounded_Slice (S, Prev_Pos, Pos - 1));
+         Append (Result, ASCII.LF);
+         Prev_Pos := Pos + 2;
+      end loop;
+
+      --  Append everything after the last linebreak
+
+      Append (Result, Unbounded_Slice (S, Prev_Pos, Length (S)));
+
+      return Result;
+   end CRLF_To_LF;
 
    -------------------------------
    -- Create_Context_Instrument --
@@ -5108,6 +5147,23 @@ package body Instrument.Ada_Unit is
                         end loop;
                      end;
                   end if;
+
+                  --  Remove all Warnings/Style_Checks pragmas: it is not
+                  --  our goal to make instrumentation generate warning-free
+                  --  or well-formatted code.
+
+                  for I in 1 .. CUN.F_Prelude.Children_Count loop
+                     declare
+                        C : constant Ada_Node := CUN.F_Prelude.Child (I);
+                     begin
+                        if C.Kind = Ada_Pragma_Node
+                          and then Pragma_Name (C.As_Pragma_Node)
+                                   in Name_Warnings | Name_Style_Checks
+                        then
+                           Remove_Child (Handle (C));
+                        end if;
+                     end;
+                  end loop;
 
                   --  Note: we do not traverse the context clause or generate
                   --  any SCOs for it, as nothing there can generate any code.
