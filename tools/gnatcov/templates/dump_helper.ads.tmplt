@@ -15,7 +15,7 @@
 @@--  HAS_CONTROLLED (Boolean): True if there is support for controlled types and finalization
 @@--
 @@--  WITNESS_DUMMY_TYPE (String): Qualified name for the generated dummy type
-
+@@--
 pragma Style_Checks (Off); pragma Warnings (Off);
 
 @@TABLE@@

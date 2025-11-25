@@ -27,7 +27,7 @@
 @@--  TAG              (String): Unique string to avoid trace name clash
 @@--
 @@--  WITNESS_DUMMY_TYPE (String): Qualified name for the generated dummy type
-
+@@--
 pragma Style_Checks (Off); pragma Warnings (Off);
 
 @@TABLE@@
