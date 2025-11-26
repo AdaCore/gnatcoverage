@@ -1240,10 +1240,6 @@ package body Instrument.Ada_Unit is
    --  Return whether declarations that appear directly under the given
    --  compilation unit are library-level.
 
-   function Has_No_Elaboration_Code_All
-     (Unit : LAL.Compilation_Unit) return Boolean;
-   --  Return whether the No_Elaboration_Code_All aspect/pragma applies to Unit
-
    function Prag_Arg_Expr (Args : Base_Assoc_List; I : Positive) return Expr
    is (Args.Child (I).As_Pragma_Argument_Assoc.F_Expr);
    --  Return the expression for the Index'th argument of a pragma's
@@ -3318,61 +3314,6 @@ package body Instrument.Ada_Unit is
             raise Program_Error;
       end case;
    end Decls_Are_Library_Level;
-
-   ---------------------------------
-   -- Has_No_Elaboration_Code_All --
-   ---------------------------------
-
-   function Has_No_Elaboration_Code_All
-     (Unit : LAL.Compilation_Unit) return Boolean
-   is
-      Id : constant Unbounded_Text_Type :=
-        To_Unbounded_Text ("No_Elaboration_Code_All");
-      CU : LAL.Compilation_Unit := Unit;
-   begin
-      while not CU.Is_Null loop
-         case CU.F_Body.Kind is
-            when Ada_Library_Item =>
-
-               --  The pragma/aspect can appear in the body or in the spec:
-               --  check both.
-
-               declare
-                  Parts : constant array (1 .. 2) of LAL.Compilation_Unit :=
-                    (CU, CU.P_Other_Part);
-               begin
-                  for P of Parts loop
-                     if not P.Is_Null
-                       and then P.F_Body.As_Library_Item.F_Item.P_Has_Aspect
-                                  (Id)
-                     then
-                        return True;
-                     end if;
-                  end loop;
-                  exit;
-               end;
-
-            when Ada_Subunit      =>
-
-               --  For subunits, the pragma/aspect applies only when present in
-               --  the "root" body or its spec.
-
-               declare
-                  Next : Ada_Node := CU.F_Body.As_Subunit.P_Body_Root.Parent;
-               begin
-                  while Next.Kind /= Ada_Compilation_Unit loop
-                     Next := Next.Parent;
-                  end loop;
-                  CU := Next.As_Compilation_Unit;
-               end;
-
-            when others           =>
-               exit;
-         end case;
-      end loop;
-
-      return False;
-   end Has_No_Elaboration_Code_All;
 
    --------------------
    -- Get_Convention --
@@ -6227,6 +6168,26 @@ package body Instrument.Ada_Unit is
       UIC.Ghost_Code := Safe_Is_Ghost (N);
       Enter_Scope (UIC => UIC, N => N, Decl => N.As_Basic_Decl);
       UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
+
+      --  Check if the No_Elaboration_Code_All pragma applies to the unit.
+      --  It can only appear in the specification of a unit-level package.
+
+      begin
+         if N.P_Is_Compilation_Unit_Root
+           and then N.P_Has_Aspect
+                      (To_Unbounded_Text ("No_Elaboration_Code_All"))
+         then
+            UIC.Has_No_Elaboration_Code_All := True;
+         end if;
+      exception
+         when Libadalang.Common.Property_Error =>
+            Report
+              (Msg  =>
+                 "failed to determine No_Elaboration_Code_All constraint"
+                 & " for "
+                 & N.Unit.Get_Filename,
+               Kind => Warning);
+      end;
 
       Start_Statement_Block (UIC);
       Traverse_Declarations_Or_Statements
@@ -10186,9 +10147,6 @@ package body Instrument.Ada_Unit is
       --  would be pointless (there is no elaboration code anyway) and illegal
       --  (because of the No_Elaboration_Code restriction).
 
-      Has_No_Elab_Code_All : Boolean;
-      --  Whether the No_Elaboration_Code_All applies to this source file
-
       Has_Pragma_SCAO : Boolean;
       --  Whether there is a pragma Short_Circuit_And_Or that applies to this
       --  unit.
@@ -10220,24 +10178,6 @@ package body Instrument.Ada_Unit is
       UIC.Root_Unit := Root_Analysis_Unit.Root.As_Compilation_Unit;
       UIC.Current_Scope_Entity := UIC.Scope_Entities.Root;
 
-      --  Determine if this source file/unit has the No_Elaboration_Code_All
-      --  pragma/aspect.
-
-      begin
-         Has_No_Elab_Code_All := Has_No_Elaboration_Code_All (UIC.Root_Unit);
-      exception
-         when Libadalang.Common.Property_Error =>
-            Report
-              (Msg  =>
-                 "failed to determine No_Elaboration_Code_All constraint"
-                 & " for "
-                 & Filename,
-               Kind => Warning);
-            Has_No_Elab_Code_All := False;
-      end;
-      UIC.Has_No_Elaboration_Code_All :=
-        UIC.Has_No_Elaboration_Code_All or else Has_No_Elab_Code_All;
-
       --  Determine whether Unit is required to be preelaborable, and whether
       --  we can insert witness calls (which are not preelaborable).
 
@@ -10262,7 +10202,7 @@ package body Instrument.Ada_Unit is
            and then (UIC.Root_Unit.P_Is_Preelaborable
                      or else UIC.Root_Unit.P_Has_Restriction
                                (To_Unbounded_Text ("No_Elaboration_Code"))
-                     or else Has_No_Elab_Code_All);
+                     or else UIC.Has_No_Elaboration_Code_All);
       exception
          when Libadalang.Common.Property_Error =>
             Report
