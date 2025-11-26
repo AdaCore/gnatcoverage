@@ -1,7 +1,7 @@
 @@-- This templates expects the following arguments:
 @@--
 @@--  UNIT_NAME (String): Name of the unit to be instrumented
-
+@@--
 pragma Style_Checks (Off); pragma Warnings (Off);
 
 package @_UNIT_NAME_@ is

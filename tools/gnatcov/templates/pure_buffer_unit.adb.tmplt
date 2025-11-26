@@ -4,7 +4,7 @@
 @@--  UNIT_NAME (String): Name of the unit to be generated
 @@--
 @@--  DEGENERATE_SUBP_GENERIC (List[String]): List of generic subprogram bodies
-
+@@--
 pragma Style_Checks (Off); pragma Warnings (Off);
 @@IF@@ not @_IS_EMPTY:ADA_VERSION_@
 pragma @_ADA_VERSION_@;
