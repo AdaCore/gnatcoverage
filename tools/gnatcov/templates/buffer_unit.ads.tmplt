@@ -18,7 +18,7 @@
 @@--  DECISION_BUF_SYM (List[String]): Names of decision buffer symbols
 @@--  MCDC_LAST (List[String]): Sizes of the mcdc buffers
 @@--  MCDC_BUF_SYM (List[String]): Names of statement mcdc symbols
-
+@@--
 pragma Style_Checks (Off); pragma Warnings (Off);
 
 with System;
