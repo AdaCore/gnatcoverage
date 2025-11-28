@@ -8740,9 +8740,7 @@ package body Instrument.Ada_Unit is
          Mapping : Config_Pragmas_Mapping;
       begin
          Load_Config_Pragmas_Mapping
-           (Instrumenter.Context,
-            Mapping,
-            +Instrumenter.Config_Pragmas_Mapping);
+           (Mapping, +Instrumenter.Config_Pragmas_Mapping);
          Set_Mapping (Instrumenter.Context, Mapping);
       end;
    end Create_LAL_Context;
@@ -11219,12 +11217,6 @@ package body Instrument.Ada_Unit is
    ---------------------------------
 
    procedure Save_Config_Pragmas_Mapping (Filename : String) is
-      function "+" (Unit : Analysis_Unit) return JSON_Value
-      is (if Unit = No_Analysis_Unit
-          then Create
-          else Create (Unit.Get_Filename));
-      --  Get the filename of Unit as a JSON string, or the JSON null if Unit
-      --  is null.
 
       --  First, compute the configuration pragmas mapping for all sources in
       --  the loaded project.
@@ -11243,10 +11235,11 @@ package body Instrument.Ada_Unit is
 
       for Cur in Mapping.Local_Pragmas.Iterate loop
          declare
-            Source_File  : constant Analysis_Unit := Unit_Maps.Key (Cur);
-            Pragmas_File : constant Analysis_Unit := Unit_Maps.Element (Cur);
+            Source_File  : constant Unbounded_String := Unit_Maps.Key (Cur);
+            Pragmas_File : constant Unbounded_String :=
+              Unit_Maps.Element (Cur);
          begin
-            Local.Set_Field (Source_File.Get_Filename, +Pragmas_File);
+            Local.Set_Field (+Source_File, Pragmas_File);
          end;
       end loop;
 
@@ -11263,8 +11256,7 @@ package body Instrument.Ada_Unit is
    ---------------------------------
 
    procedure Load_Config_Pragmas_Mapping
-     (Context  : Analysis_Context;
-      Mapping  : out Config_Pragmas_Mapping;
+     (Mapping  : out Config_Pragmas_Mapping;
       Filename : String)
    is
       --  Parse the JSON description
@@ -11282,7 +11274,7 @@ package body Instrument.Ada_Unit is
          Global : constant JSON_Value := Result.Value.Get ("global_pragmas");
       begin
          if Global.Kind /= JSON_Null_Type then
-            Mapping.Global_Pragmas := Context.Get_From_File (Global.Get);
+            Mapping.Global_Pragmas := Global.Get;
          end if;
       end;
 
@@ -11297,12 +11289,8 @@ package body Instrument.Ada_Unit is
          -------------
 
          procedure Process (Name : String; Value : JSON_Value) is
-            Source_File  : constant Analysis_Unit :=
-              Context.Get_From_File (Name);
-            Pragmas_File : constant Analysis_Unit :=
-              Context.Get_From_File (Value.Get);
          begin
-            Mapping.Local_Pragmas.Insert (Source_File, Pragmas_File);
+            Mapping.Local_Pragmas.Insert (+Name, Value.Get);
          end Process;
       begin
          Result.Value.Get ("local_pragmas").Map_JSON_Object (Process'Access);
