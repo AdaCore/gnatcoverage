@@ -50,10 +50,10 @@ def summarize_text(f):
 baseline = (
     "Coverage.Excluded_Routines"
     "\nCoverage.Excluded_Routines_List"
+    "\nCoverage.Excluded_Source_Files"
+    "\nCoverage.Excluded_Source_Files_List"
     "\nCoverage.Excluded_Units"
     "\nCoverage.Excluded_Units_List"
-    "\nCoverage.Ignored_Source_Files"
-    "\nCoverage.Ignored_Source_Files_List"
     "\nCoverage.Routines"
     "\nCoverage.Routines_List"
     "\nCoverage.Switches"

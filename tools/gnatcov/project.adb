@@ -77,18 +77,18 @@ package body Project is
       Excluded_Units,
       Routines,
       Excluded_Routines,
-      Ignored_Source_Files,
+      Excluded_Source_Files,
       Switches,
 
       Units_List,
       Excluded_Units_List,
       Routines_List,
       Excluded_Routines_List,
-      Ignored_Source_Files_List);
+      Excluded_Source_Files_List);
 
    subtype List_Attribute is Attribute range Units .. Switches;
    subtype String_Attribute is
-     Attribute range Units_List .. Ignored_Source_Files_List;
+     Attribute range Units_List .. Excluded_Source_Files_List;
 
    function "+" (A : Attribute) return String;
    function "+" (A : Attribute) return GPR2.Q_Attribute_Id;
@@ -689,7 +689,7 @@ package body Project is
          end if;
 
          --  If this is a header, consider it a unit of interest. For now, they
-         --  can only be ignored through the --ignore-source-files switch.
+         --  can only be ignored through the --excluded-source-files switch.
 
          if (not Source.Has_Units and then Source.Kind = GPR2.S_Spec)
 
@@ -1589,15 +1589,15 @@ package body Project is
    end Runtime;
 
    ------------------------------------
-   -- Enumerate_Ignored_Source_Files --
+   -- Enumerate_Excluded_Source_Files --
    ------------------------------------
 
-   procedure Enumerate_Ignored_Source_Files
+   procedure Enumerate_Excluded_Source_Files
      (Process : access procedure (Source_File : String))
    is
       procedure Enumerate (Prj : GPR2.Project.View.Object);
-      --  Call Process on all ignored source files referenced by the
-      --  Ignored_Source_Files(_List) project attributes.
+      --  Call Process on all excluded source files referenced by the
+      --  Excluded_Source_Files(_List) project attributes.
 
       procedure Process_Wrapper (Attr, Source_File : String);
       --  Wrapper fo Process
@@ -1612,8 +1612,8 @@ package body Project is
       begin
          List_From_Project
            (Prj,
-            Ignored_Source_Files,
-            Ignored_Source_Files_List,
+            Excluded_Source_Files,
+            Excluded_Source_Files_List,
             Process_Wrapper'Access,
             Dummy);
       end Enumerate;
@@ -1628,7 +1628,7 @@ package body Project is
          Process.all (Source_File);
       end Process_Wrapper;
 
-      --  Start of processing for Enumerate_Ignored_Source_Files
+      --  Start of processing for Enumerate_Excluded_Source_Files
 
    begin
       for Prj_Info of Prj_Map loop
@@ -1637,7 +1637,7 @@ package body Project is
             Process      => Enumerate'Access,
             Recursive    => Standard.Switches.Recursive_Projects);
       end loop;
-   end Enumerate_Ignored_Source_Files;
+   end Enumerate_Excluded_Source_Files;
 
    ------------------
    -- Runtime_Dirs --
@@ -1877,13 +1877,13 @@ begin
       "Symbol names for the routines to exclude from object coverage.");
 
    GPR2_RA.Add
-     (Name                 => +Ignored_Source_Files,
+     (Name                 => +Excluded_Source_Files,
       Index_Type           => GPR2_RA.No_Index,
       Value                => GPR2_RA.List,
       Value_Case_Sensitive => True,
       Is_Allowed_In        => GPR2_RA.Everywhere);
    GPR2_RA.Description.Set_Attribute_Description
-     (+Ignored_Source_Files,
+     (+Excluded_Source_Files,
       "Source file names to exclude from source coverage analysis.");
 
    GPR2_RA.Add
@@ -1942,13 +1942,14 @@ begin
       & " object coverage.");
 
    GPR2_RA.Add
-     (Name                 => +Ignored_Source_Files_List,
+     (Name                 => +Excluded_Source_Files_List,
       Index_Type           => GPR2_RA.No_Index,
       Value                => GPR2_RA.Single,
       Value_Case_Sensitive => True,
       Is_Allowed_In        => GPR2_RA.Everywhere);
    GPR2_RA.Description.Set_Attribute_Description
-     (+Ignored_Source_Files_List,
+     (+Excluded_Source_Files_List,
       "Text file that contains source file names to exclude from source"
       & " coverage analysis.");
+
 end Project;

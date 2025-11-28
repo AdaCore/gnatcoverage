@@ -2333,12 +2333,12 @@ package body Files_Table is
    ---------------------
 
    procedure Checkpoint_Load
-     (CLS                  : in out Checkpoint_Load_State;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp)
+     (CLS                   : in out Checkpoint_Load_State;
+      Excluded_Source_Files : access GNAT.Regexp.Regexp)
    is
       pragma
         Assert
-          (CLS.Purpose = Instrumentation or else Ignored_Source_Files = null);
+          (CLS.Purpose = Instrumentation or else Excluded_Source_Files = null);
       Relocs : Checkpoint_Relocations renames CLS.Relocations;
 
       --  1) Read header
@@ -2441,10 +2441,10 @@ package body Files_Table is
          begin
             if FE.Name /= null
               and then FE.Kind = Source_File
-              and then Ignored_Source_Files /= null
+              and then Excluded_Source_Files /= null
               and then GNAT.Regexp.Match
                          (+Create (+FE.Name.all).Base_Name,
-                          Ignored_Source_Files.all)
+                          Excluded_Source_Files.all)
             then
                Files_Table_Trace.Trace
                  ("Ignored SFI from SID file:"

@@ -98,14 +98,14 @@ if src_traces:
 
     # Check that we can still select subprograms of interest declared in the
     # package body, when the package specification is ignored through
-    # --ignored-source-files.
+    # --excluded-source-files.
     thistest.log("== xcov_ignore ==")
     check_xcov(
         "xcov_ignore",
         cov_args
         + [
             f"--subprograms={pkg_body}:20",
-            "--ignore-source-files=pkg.ads",
+            "--excluded-source-files=pkg.ads",
         ],
     )
     check_xcov_reports(

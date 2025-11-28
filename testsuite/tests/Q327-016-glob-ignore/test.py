@@ -1,5 +1,5 @@
 """
-Check that the --ignore-source-file option works as expected.
+Check that the --excluded-source-file option works as expected.
 """
 
 import os.path
