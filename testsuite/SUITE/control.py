@@ -709,7 +709,7 @@ def add_shared_options_to(parser, toplevel):
     parser.add_argument(
         "--block",
         action="store_true",
-        help='Pass --block-instrument to "gnatcov instrument",'
+        help='Pass --instrument-block to "gnatcov instrument",'
         " to enable block instrumentation.",
     )
 
