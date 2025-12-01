@@ -1,6 +1,6 @@
 """
 Check that the consolidation of two checkpoints produced with different
---ignore-source-files options on the same set of sources works as expected. A
+--excluded-source-files options on the same set of sources works as expected. A
 warning used to be emitted in that case, because of a low level SCO tables
 fingerprint mismatch.
 """

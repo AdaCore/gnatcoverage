@@ -324,7 +324,7 @@ package Files_Table is
 
    type Any_Ignore_Status is (Unknown, Always, Sometimes, Never);
    --  Represents the different states a source file can be regarding the
-   --  option --ignore-source-files. Consolidation rules are described in
+   --  option --excluded-source-files. Consolidation rules are described in
    --  procedure Consolidate_Ignore_Status.
 
    type Compilation_Unit is record
@@ -481,13 +481,14 @@ package Files_Table is
    --  Does nothing if the file represented by index is not tagged as
    --  Source_File.
 
-   package Ignored_Sources_Vector is new
+   package Excluded_Sources_Vector is new
      Ada.Containers.Vectors
        (Index_Type   => Natural,
         Element_Type => File_Info_Access);
-   --  Vector of source files, used mainly to group ignored source files
+   --  Vector of source files, used mainly to group excluded source files
 
-   type Ignored_Sources_Vector_Access is access Ignored_Sources_Vector.Vector;
+   type Excluded_Sources_Vector_Access is
+     access Excluded_Sources_Vector.Vector;
 
    function Get_File (Index : Source_File_Index) return File_Info_Access;
 
@@ -632,10 +633,10 @@ package Files_Table is
    --  Clear the internal data structures used to create checkpoints
 
    procedure Checkpoint_Load
-     (CLS                  : in out Checkpoints.Checkpoint_Load_State;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp);
+     (CLS                   : in out Checkpoints.Checkpoint_Load_State;
+      Excluded_Source_Files : access GNAT.Regexp.Regexp);
    --  Load checkpointed files table from S and merge in current state.
-   --  Ignore_Source_Files should be null if the checkpoint purpose is
+   --  Excluded_Source_Files should be null if the checkpoint purpose is
    --  Consolidation.
 
    procedure LLVM_JSON_Load

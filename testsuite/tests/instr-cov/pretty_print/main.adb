@@ -1,5 +1,5 @@
 with Ada.Text_IO; use Ada.Text_IO;
-with Pkg; use Pkg;
+with Pkg;         use Pkg;
 
 procedure Main is
    Who : constant String := "world";

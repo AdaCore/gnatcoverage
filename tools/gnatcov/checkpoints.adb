@@ -374,10 +374,10 @@ package body Checkpoints is
    end Remap_ALI_Annotations;
 
    procedure Checkpoint_Load
-     (Filename             : String;
-      Purpose              : Checkpoint_Purpose;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp)
-   with Pre => Purpose = Instrumentation or else Ignored_Source_Files = null;
+     (Filename              : String;
+      Purpose               : Checkpoint_Purpose;
+      Excluded_Source_Files : access GNAT.Regexp.Regexp)
+   with Pre => Purpose = Instrumentation or else Excluded_Source_Files = null;
    --  Common implementation for SID_Load and Checkpoint_Load
 
    ---------------------
@@ -469,7 +469,7 @@ package body Checkpoints is
    --------------
 
    procedure SID_Load
-     (Filename : String; Ignored_Source_Files : access GNAT.Regexp.Regexp)
+     (Filename : String; Excluded_Source_Files : access GNAT.Regexp.Regexp)
    is
       SID_Re : constant GNAT.Regexp.Regexp := GNAT.Regexp.Compile (".*\.sid");
    begin
@@ -482,7 +482,7 @@ package body Checkpoints is
             & ", name of file should have .sid extension");
       end if;
 
-      Checkpoint_Load (Filename, Instrumentation, Ignored_Source_Files);
+      Checkpoint_Load (Filename, Instrumentation, Excluded_Source_Files);
    end SID_Load;
 
    ---------------------
@@ -499,9 +499,9 @@ package body Checkpoints is
    ---------------------
 
    procedure Checkpoint_Load
-     (Filename             : String;
-      Purpose              : Checkpoint_Purpose;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp)
+     (Filename              : String;
+      Purpose               : Checkpoint_Purpose;
+      Excluded_Source_Files : access GNAT.Regexp.Regexp)
    is
       Dummy : constant Context_Handle :=
         Create_Context ("Loading " & Filename);
@@ -605,7 +605,7 @@ package body Checkpoints is
 
          Update_Current_Trace_Kind (Any_Accepted_Trace_Kind'Val (CLS.Read_U8));
 
-         Files_Table.Checkpoint_Load (CLS, Ignored_Source_Files);
+         Files_Table.Checkpoint_Load (CLS, Excluded_Source_Files);
          SC_Obligations.Checkpoint_Load (CLS);
          Instrument.Checkpoints.Checkpoint_Load (CLS);
          Coverage.Source.Checkpoint_Load (CLS);

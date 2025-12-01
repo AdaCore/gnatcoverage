@@ -1861,7 +1861,7 @@ package body SC_Obligations is
 
       for Scope_Ent of CP_CU.Scope_Entities loop
 
-         --  Scopes whose identifier references ignored source files will
+         --  Scopes whose identifier references excluded source files will
          --  lose their identifier: such scopes will remain, but users
          --  will not be able to mark them of interest.
 
@@ -4321,7 +4321,7 @@ package body SC_Obligations is
    ---------------
 
    procedure Load_SCOs
-     (ALI_Filename : String; Ignored_Source_Files : access GNAT.Regexp.Regexp)
+     (ALI_Filename : String; Excluded_Source_Files : access GNAT.Regexp.Regexp)
    is
       Units, Deps : SFI_Vector;
       --  Units and dependencies of this compilation
@@ -4334,7 +4334,7 @@ package body SC_Obligations is
       ALI_Index : constant Source_File_Index :=
         Load_ALI
           (ALI_Filename,
-           Ignored_Source_Files,
+           Excluded_Source_Files,
            Units,
            Deps,
            Temp_ALI_Annotations,
@@ -6261,7 +6261,7 @@ package body SC_Obligations is
    --  lines.
 
    procedure Mark_Ignored_Units
-     (Ignored_Source_Files : access GNAT.Regexp.Regexp; Deps : SFI_Vector);
+     (Excluded_Source_Files : access GNAT.Regexp.Regexp; Deps : SFI_Vector);
    --  Mark SCOs.SCO_Unit_Table entries to be ignored by setting their Dep_Num
    --  to Missing_Dep_Num.
 
@@ -6301,12 +6301,12 @@ package body SC_Obligations is
    ------------------------
 
    procedure Mark_Ignored_Units
-     (Ignored_Source_Files : access GNAT.Regexp.Regexp; Deps : SFI_Vector)
+     (Excluded_Source_Files : access GNAT.Regexp.Regexp; Deps : SFI_Vector)
    is
       use SCOs;
       Deps_Present : constant Boolean := not Deps.Is_Empty;
    begin
-      if Ignored_Source_Files = null then
+      if Excluded_Source_Files = null then
          return;
       end if;
 
@@ -6333,7 +6333,7 @@ package body SC_Obligations is
 
             --  Do the ignored file matching itself
 
-            if GNAT.Regexp.Match (Match_Name, Ignored_Source_Files.all) then
+            if GNAT.Regexp.Match (Match_Name, Excluded_Source_Files.all) then
                Consolidate_Ignore_Status (SFI, Always);
                U.Dep_Num := Missing_Dep_Num;
             else
@@ -6452,12 +6452,12 @@ package body SC_Obligations is
    begin
       Discard_ALI :=
         Load_ALI
-          (ALI_Filename         => ALI_Filename,
-           Ignored_Source_Files => null,
-           Units                => Discard_Units,
-           Deps                 => Discard_Deps,
-           ALI_Annotations      => ALI_Annotations,
-           With_SCOs            => False);
+          (ALI_Filename          => ALI_Filename,
+           Excluded_Source_Files => null,
+           Units                 => Discard_Units,
+           Deps                  => Discard_Deps,
+           ALI_Annotations       => ALI_Annotations,
+           With_SCOs             => False);
 
       --  Add the annotations to the internal CU_Vector vector
 
@@ -6488,12 +6488,12 @@ package body SC_Obligations is
    --------------
 
    function Load_ALI
-     (ALI_Filename         : String;
-      Ignored_Source_Files : access GNAT.Regexp.Regexp;
-      Units                : out SFI_Vector;
-      Deps                 : out SFI_Vector;
-      ALI_Annotations      : in out ALI_Annotation_Maps.Map;
-      With_SCOs            : Boolean) return Source_File_Index
+     (ALI_Filename          : String;
+      Excluded_Source_Files : access GNAT.Regexp.Regexp;
+      Units                 : out SFI_Vector;
+      Deps                  : out SFI_Vector;
+      ALI_Annotations       : in out ALI_Annotation_Maps.Map;
+      With_SCOs             : Boolean) return Source_File_Index
    is
       ALI_File  : File_Type;
       ALI_Index : Source_File_Index;
@@ -6933,7 +6933,7 @@ package body SC_Obligations is
          then
             Index := 1;
             Get_SCOs_From_ALI;
-            Mark_Ignored_Units (Ignored_Source_Files, Deps);
+            Mark_Ignored_Units (Excluded_Source_Files, Deps);
 
          else
             --  In this case, we will not parse SCOs: reset parsing tables so

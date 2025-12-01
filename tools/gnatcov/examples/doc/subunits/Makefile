@@ -18,7 +18,7 @@ instrument-%: export GPR_PROJECT_PATH := $(shell pwd)/$(RTS_DIR)/share/gpr:$(GPR
 instrument-%: $(RTS_DIR)/share/gpr/gnatcov_rts.gpr
 	@echo 'export GPR_PROJECT_PATH=$$(pwd)/$(RTS_DIR)/share/gpr:$$GPR_PROJECT_PATH'
 	gnatcov instrument -P p.gpr --level=stmt+decision -XTEST="$*" \
-	--ignore-source-files=@ignore-list.txt
+	--excluded-source-files=@ignore-list.txt
 
 build-%: export GPR_PROJECT_PATH := $(shell pwd)/$(RTS_DIR)/share/gpr:$(GPR_PROJECT_PATH)
 build-%: instrument-%

@@ -26,8 +26,8 @@ determination of the target and runtime configuration.
 Regardless of how units of interest were requested, the actual list of units
 for which a report is produced can be displayed with the
 :cmd-option:`--dump-units-to` option of the |gcvcov| command. This also
-displays the list of individually ignored source files for each unit,
-controlled by the :cmd-option:`--ignore-source-files` switch.
+displays the list of individually excluded source files for each unit,
+controlled by the :cmd-option:`--excluded-source-files` switch.
 
 
 .. _passing_gpr:
@@ -358,16 +358,16 @@ of the patterns are excluded from the analysis and from the output
 report. Since only base names are matched, the provided patterns to
 ignore should not include any path or directory component.
 
-The first attribute, ``Ignored_Source_Files``, expects a direct list
+The first attribute, ``Excluded_Source_Files``, expects a direct list
 of patterns. Even though intended for subunits, the attribute allows
 file names corresponding to regular units as well. For our dummy
 example, this could be::
 
     package Coverage is
-      for Ignored_Source_Files use ("*-test*.adb", "run_all.adb");
+      for Excluded_Source_Files use ("*-test*.adb", "run_all.adb");
     end Coverage;
 
-The second one, ``Ignored_Source_Files_List``, expects the name of
+The second one, ``Excluded_Source_Files_List``, expects the name of
 a text file which contains the list of globbing patterns to ignore,
 one line per pattern.
 
@@ -381,31 +381,31 @@ contain::
 And then have::
 
     package Coverage is
-      for Ignored_Source_Files_List use "ignore.list";
+      for Excluded_Source_Files_List use "ignore.list";
     end Coverage;
 
 As a possible alternative to the project file attributes, the |gcvcov| and
-|gcvins| commands accept a :cmd-option:`--ignore-source-files` switch on the
+|gcvins| commands accept a :cmd-option:`--excluded-source-files` switch on the
 command line.
 
 This option can appear multiple times on the command line. Each
 occurrence expects a single argument which is either a globbing
 pattern for the name of source files to ignore (as for a
-``Ignored_Source_Files`` attribute), or a :term:`@listfile argument`
+``Excluded_Source_Files`` attribute), or a :term:`@listfile argument`
 that contains a list of such patterns (as for a
-``Ignored_Source_Files_List`` attribute), and the effects of all the
+``Excluded_Source_Files_List`` attribute), and the effects of all the
 options accumulate.
 
 The example attributes provided previously would become::
 
-  gnatcov <command> --ignore-source-files=*-test.adb --ignore-source-files=run_all.adb
+  gnatcov <command> --excluded-source-files=*-test.adb --excluded-source-files=run_all.adb
 
 or::
 
-  gnatcov <command> --ignore-source-files=@ignore.list
+  gnatcov <command> --excluded-source-files=@ignore.list
 
-When ``--ignore-source-files`` is provided on the command line, all
-the ``Ignored_Source_Files`` and ``Ignored_Source_Files_List``
+When ``--excluded-source-files`` is provided on the command line, all
+the ``Excluded_Source_Files`` and ``Excluded_Source_Files_List``
 attributes are ignored.
 
 .. _unit-names:
