@@ -214,10 +214,10 @@ package body Coverage.Source is
    package Unit_To_Ignored_Maps is new
      Ada.Containers.Ordered_Maps
        (Key_Type     => Compilation_Unit,
-        Element_Type => Ignored_Sources_Vector_Access);
+        Element_Type => Excluded_Sources_Vector_Access);
 
    Ignored_SF_Map : Unit_To_Ignored_Maps.Map;
-   --  Map units of interest to the list of associated ignored source files
+   --  Map units of interest to the list of associated excluded source files
 
    procedure Initialize_SCI_For_SID
      (CU : CU_Id; SCOs_Fingerprint : SC_Obligations.Fingerprint_Type);
@@ -274,10 +274,10 @@ package body Coverage.Source is
    end Add_Unit;
 
    -------------------------------------------
-   -- Compute_Unit_Name_For_Ignored_Sources --
+   -- Compute_Unit_Name_For_Excluded_Sources --
    -------------------------------------------
 
-   procedure Compute_Unit_Name_For_Ignored_Sources is
+   procedure Compute_Unit_Name_For_Excluded_Sources is
       use Types;
 
       procedure Callback
@@ -308,12 +308,12 @@ package body Coverage.Source is
          end if;
       end Callback;
 
-      --  Start of processing for Compute_Unit_Name_For_Ignored_Sources
+      --  Start of processing for Compute_Unit_Name_For_Excluded_Sources
 
    begin
       Enumerate_Sources
         (Callback'Access, Language => All_Languages, Only_UOIs => True);
-   end Compute_Unit_Name_For_Ignored_Sources;
+   end Compute_Unit_Name_For_Excluded_Sources;
 
    -------------------------
    -- Fill_Ignored_SF_Map --
@@ -332,13 +332,13 @@ package body Coverage.Source is
 
       procedure Callback (SFI : Types.Source_File_Index) is
          FI  : constant File_Info_Access := Get_File (SFI);
-         Vec : Ignored_Sources_Vector_Access;
+         Vec : Excluded_Sources_Vector_Access;
       begin
          if FI.Kind = Source_File
            and then FI.Ignore_Status in Always .. Sometimes
          then
             if not Ignored_SF_Map.Contains (FI.Unit.Name) then
-               Vec := new Ignored_Sources_Vector.Vector;
+               Vec := new Excluded_Sources_Vector.Vector;
                Ignored_SF_Map.Insert (FI.Unit.Name, Vec);
             else
                Vec := Ignored_SF_Map.Element (FI.Unit.Name);

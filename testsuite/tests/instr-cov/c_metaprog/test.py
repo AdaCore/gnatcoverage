@@ -17,7 +17,7 @@ build_run_and_coverage(
     gprsw=GPRswitches(root_project=gprfor(srcdirs=[".."], mains=["main.c"])),
     covlevel="stmt+decision",
     mains=["main"],
-    extra_instr_args=["--ignore-source-files=meta_inc.h"],
+    extra_instr_args=["--excluded-source-files=meta_inc.h"],
     extra_coverage_args=["-axcov"],
     trace_mode="src",
 )

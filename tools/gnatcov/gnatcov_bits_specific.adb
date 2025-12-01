@@ -116,7 +116,7 @@ procedure GNATcov_Bits_Specific is
    Checkpoints_Inputs    : String_Vectors.Vector;
    LLVM_JSON_Ckpt_Inputs : String_Vectors.Vector;
    SID_Inputs            : String_Vectors.Vector;
-   Ignored_Source_Files  : String_Vectors.Vector;
+   Excluded_Source_Files : String_Vectors.Vector;
    Files_Of_Interest     : String_Vectors.Vector;
    Compiler_Drivers      : String_Vectors.Vector;
    Source_Rebase_Inputs  : String_Vectors.Vector;
@@ -819,7 +819,7 @@ procedure GNATcov_Bits_Specific is
          --  Load SCOs from ALI files and initialize source coverage data
          --  structures.
 
-         Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
+         Create_Matcher (Excluded_Source_Files, Matcher, Has_Matcher);
          for Filename of ALIs_Inputs loop
             Load_SCOs
               (+Filename, (if Has_Matcher then Matcher'Access else null));
@@ -882,10 +882,10 @@ procedure GNATcov_Bits_Specific is
          Enumerate_SCOs_Files (Add_SID_File'Access, Source_Trace_File);
       end if;
 
-      --  Now load the SID files, applying the Ignore_Source_Files filter,
+      --  Now load the SID files, applying the Excluded_Source_Files filter,
       --  if present.
 
-      Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
+      Create_Matcher (Excluded_Source_Files, Matcher, Has_Matcher);
       for Filename of SID_Inputs loop
          Checkpoints.SID_Load
            (+Filename, (if Has_Matcher then Matcher'Access else null));
@@ -1102,7 +1102,14 @@ procedure GNATcov_Bits_Specific is
       Copy_Arg_List (Opt_Checkpoint, Checkpoints_Inputs);
       Copy_Arg_List (Opt_LLVM_JSON_Checkpoint, LLVM_JSON_Ckpt_Inputs);
 
-      Copy_Arg_List (Opt_Ignore_Source_Files, Ignored_Source_Files);
+      Copy_Arg_List (Opt_Ignore_Source_Files, Excluded_Source_Files);
+      if not Args.String_List_Args (Opt_Ignore_Source_Files).Is_Empty then
+         Warn
+           ("The --ignore-source-files switch is deprecated. Consider using"
+            & " the --excluded-source-files switch instead.");
+      end if;
+
+      Copy_Arg_List (Opt_Excluded_Source_Files, Excluded_Source_Files);
       Copy_Arg_List (Opt_Files, Files_Of_Interest);
       Copy_Arg_List (Opt_Compiler_Wrappers, Compiler_Drivers);
 
@@ -1726,10 +1733,10 @@ procedure GNATcov_Bits_Specific is
          end if;
       end if;
 
-      if Ignored_Source_Files.Is_Empty and then Is_Project_Loaded then
+      if Excluded_Source_Files.Is_Empty and then Is_Project_Loaded then
          declare
             procedure Add_Source_File (S : String);
-            --  Add S to the list of ignored source files
+            --  Add S to the list of excluded source files
 
             ---------------------
             -- Add_Source_File --
@@ -1737,10 +1744,10 @@ procedure GNATcov_Bits_Specific is
 
             procedure Add_Source_File (S : String) is
             begin
-               Append_Expanded_Argument (S, Ignored_Source_Files);
+               Append_Expanded_Argument (S, Excluded_Source_Files);
             end Add_Source_File;
          begin
-            Enumerate_Ignored_Source_Files (Add_Source_File'Access);
+            Enumerate_Excluded_Source_Files (Add_Source_File'Access);
          end;
       end if;
    end Process_Arguments;
@@ -1962,7 +1969,7 @@ begin
             --  Matcher for the source files to ignore
 
          begin
-            Create_Matcher (Ignored_Source_Files, Matcher, Has_Matcher);
+            Create_Matcher (Excluded_Source_Files, Matcher, Has_Matcher);
 
             declare
                V : constant String := Value (Args, Opt_Ada, "2012");
@@ -1984,10 +1991,10 @@ begin
             end if;
 
             Instrument.Projects
-              (Dump_Config          => Dump_Config,
-               Ignored_Source_Files =>
+              (Dump_Config           => Dump_Config,
+               Excluded_Source_Files =>
                  (if Has_Matcher then Matcher'Access else null),
-               Mains                => Args.Remaining_Args);
+               Mains                 => Args.Remaining_Args);
          end;
 
       when Cmd_Setup_Integration                          =>
@@ -2482,14 +2489,14 @@ begin
             end if;
          end;
 
-         --  Reconstruct unit names for ignored source files. This is done
+         --  Reconstruct unit names for excluded source files. This is done
          --  before loading checkpoints, because this will already have been
          --  done for the files in the checkpoints when creating them.
 
          if Project.Is_Project_Loaded
            and then Coverage.Source.Unit_List_Is_Valid
          then
-            Compute_Unit_Name_For_Ignored_Sources;
+            Compute_Unit_Name_For_Excluded_Sources;
          end if;
 
          --  Read checkpointed coverage data from previous executions
@@ -2522,7 +2529,7 @@ begin
          end if;
 
          --  Now that the list of files is final, we can create the map from
-         --  units to ignored source files, if needed.
+         --  units to excluded source files, if needed.
 
          if Dump_Units and then Coverage.Source.Unit_List_Is_Valid then
             Fill_Ignored_SF_Map;

@@ -9,7 +9,7 @@ project Pkg_Under_Test is
         ("--level=stmt+decision", "--annotate=xcov");
       for Switches ("instrument") use ("--level=stmt+decision");
       for Units use ("Pkg_Under_Test");
-      for Ignored_Source_Files use ("pkg_under_test-pkg_test.adb");
+      for Excluded_Source_Files use ("pkg_under_test-pkg_test.adb");
    end Coverage;
 
 
