@@ -18,6 +18,8 @@
 
 with Ada.Characters.Handling;
 with Ada.Strings.Hash;
+with Ada.Strings.Maps;
+with Ada.Strings.Maps.Constants;
 
 with GNAT.Regexp;
 
@@ -387,5 +389,20 @@ package body Strings is
       end loop;
       return +Res;
    end Interpret_Escape_Sequence;
+
+   ---------------------
+   -- Index_Non_Blank --
+   ---------------------
+
+   function Index_Non_Blank (Str : String) return Positive is
+      use Ada.Strings.Maps;
+      use Ada.Strings.Maps.Constants;
+      Whitespace_Set : constant Character_Set :=
+        Control_Set or To_Set (ASCII.HT);
+   begin
+      return
+        Ada.Strings.Fixed.Index
+          (Source => Str, Set => Whitespace_Set, Test => Ada.Strings.Outside);
+   end Index_Non_Blank;
 
 end Strings;

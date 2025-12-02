@@ -16,57 +16,39 @@ import os.path
 from e3.fs import cp
 
 from SCOV.minicheck import check_xcov_reports
-from SUITE.control import env
 from SUITE.cutils import Wdir
-from SUITE.tutils import cmdrun, srctracename_for, thistest, xcov
+from SUITE.integrated_instr_utils import (
+    build_run_and_coverage,
+    MakefileMain,
+    MakefileStaticLib,
+)
+from SUITE.tutils import thistest
 
 Wdir("tmp_")
 
 cwd = os.getcwd()
 
-# Copy the sources and the Makefile in the temporary directory
-for item in ["Makefile", "libbar", "libfoo", "main.c"]:
+# Copy the sources in the temporary directory
+for item in ["libbar", "libfoo", "main.c"]:
     cp(os.path.join("..", item), ".", recursive=True)
-
-# Then, setup the instrumentation process
-xcov(
-    [
-        "setup-integration",
-        "--level=stmt",
-        f"--files={os.path.join(cwd, 'libbar', 'bar.c')}",
-        f"--files={os.path.join(cwd, 'libbar', 'foo.c')}",
-        f"--files={os.path.join(cwd, 'libfoo', 'bar.c')}",
-        f"--files={os.path.join(cwd, 'libfoo', 'foo.c')}",
-        "--compilers=gcc",
-        f"--output-dir={cwd}",
-        "-v",
-        "--save-temps",
-    ]
+wf_libbar = MakefileStaticLib(
+    cwd="libbar", build_target="libbar.a", build_target_deps=["bar.o", "foo.o"]
 )
-
-# Shadow the compiler driver with the generated wrapper
-env.add_search_path(env_var="PATH", path=cwd)
-
-# Then, run the build process unchanged
-cmdrun(["make"], for_pgm=False)
-
-# Run the executable
-cmdrun(["main"], for_pgm=True)
-
-# Check coverage expectations
-log_file = "coverage.log"
-xcov(
-    [
-        "coverage",
-        "--level=stmt",
-        "--sid=libbar-foo.c.sid",
-        "--sid=libbar-bar.c.sid",
-        "--sid=libfoo-foo.c.sid",
-        "--sid=libfoo-bar.c.sid",
-        "-axcov",
-        srctracename_for("main"),
+wf_libfoo = MakefileStaticLib(
+    cwd="libfoo", build_target="libfoo.a", build_target_deps=["bar.o", "foo.o"]
+)
+wf_main = MakefileMain(
+    build_target_deps=["libbar/libbar.a", "libfoo/libfoo.a", "main.o"],
+    linker_switches=["-Llibbar", "-Llibfoo", "-lbar", "-lfoo"],
+)
+build_run_and_coverage(
+    wfs=[wf_libbar, wf_libfoo, wf_main],
+    files_of_interest=[
+        "libbar/bar.c",
+        "libbar/foo.c",
+        "libfoo/bar.c",
+        "libfoo/foo.c",
     ],
-    out=log_file,
 )
 
 check_xcov_reports(

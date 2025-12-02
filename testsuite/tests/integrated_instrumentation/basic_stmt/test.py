@@ -19,55 +19,27 @@ The integrated instrumentation process is as followed:
     simple name.
 """
 
-import os
 import os.path
 
 from e3.fs import cp
 
-from SUITE.control import env
 from SUITE.cutils import Wdir
 from SCOV.minicheck import check_xcov_reports
-from SUITE.tutils import cmdrun, srctracename_for, thistest, xcov
+from SUITE.integrated_instr_utils import (
+    build_run_and_coverage,
+    MakefileMain,
+)
+from SUITE.tutils import thistest
 
 Wdir("tmp_")
 
-cwd = os.getcwd()
-
-# Copy the sources and the Makefile in the temporary directory
-cp(os.path.join("..", "Makefile"), ".")
-cp(os.path.join("..", "test.c"), ".")
+# Copy the sources in the temporary directory
+cp(os.path.join("..", "main.c"), ".")
 cp(os.path.join("..", "pkg.c"), ".")
 
-# Then, setup the instrumentation process
-xcov(
-    [
-        "setup-integration",
-        "--level=stmt",
-        f"--files={os.path.join(cwd, 'pkg.c')}",
-        "--compilers=gcc",
-        f"--output-dir={cwd}",
-    ]
-)
+wfs = [MakefileMain(build_target_deps=["main.o", "pkg.o"])]
+build_run_and_coverage(wfs=wfs, files_of_interest=["pkg.c"])
 
-# Shadow the compiler driver with the generated wrapper
-env.add_search_path(env_var="PATH", path=cwd)
-
-# Then, run the build process unchanged
-cmdrun(["make", "test"], for_pgm=False)
-
-# Run the executable
-cmdrun(["test"], for_pgm=False)
-
-# Check coverage expectations
-xcov(
-    [
-        "coverage",
-        "--level=stmt",
-        "--sid=pkg.c.sid",
-        "-axcov",
-        srctracename_for("test"),
-    ]
-)
 check_xcov_reports(".", {"pkg.c.xcov": {"+": {4}}})
 
 thistest.result()

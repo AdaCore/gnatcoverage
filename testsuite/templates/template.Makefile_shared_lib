@@ -1,0 +1,15 @@
+# Template Makefile for integrated instrumentation tests compiling shared libs
+
+# Shared lib target
+{build_target}: {build_target_deps}
+	{linker} -shared -o $@ $^
+
+%.o: %.c
+	{cc} {compiler_switches} -fpic -c $< -o $@
+
+%.o: %.cpp
+	{cxx} {compiler_switches} -fpic -c $< -o $@
+
+clean:
+	rm *.o *.a *.dll
+

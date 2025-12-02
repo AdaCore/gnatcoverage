@@ -39,7 +39,7 @@ def gprdep_for(reldir, wd):
 
     with open(gprdep + ".gpr", "w") as gprfile:
         gprfile.write(
-            contents_of(os.path.join(wd.homedir, "../template.gpr"))
+            contents_of(os.path.join(wd.homedir, "../templates/template.gpr"))
             % {
                 "prjname": prjname,
                 "objdir": "obj_" + testid,

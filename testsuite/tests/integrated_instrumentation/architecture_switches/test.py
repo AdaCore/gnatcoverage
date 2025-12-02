@@ -6,32 +6,19 @@ linking the instrumentation artifacts with the instrumented source, which was
 compiled with them.
 """
 
-import os
-import os.path
-
-from SUITE.control import env
 from SUITE.cutils import Wdir
-from SUITE.tutils import cmdrun, thistest, xcov
+from SUITE.integrated_instr_utils import CompileSource, setup_integration
+from SUITE.tutils import thistest
 
 Wdir("tmp_")
-
-# Setup the instrumentation process
-xcov(
-    [
-        "setup-integration",
-        "--level=stmt",
-        "--files=../pkg.c",
-        "--compilers=gcc",
-    ]
-)
-
-# Shadow the compiler driver with the generated wrapper
-env.add_search_path(env_var="PATH", path=os.getcwd())
 
 # Try to compile the source: the test used to fail there, because gnatcov used
 # to run partial linking ("gcc -r"), to combine the actual code unit
 # (expectedly built with -m32) with the coverage buffer unit (unexpectedly
 # built with default settings: -m64), which the linker rejected.
-cmdrun(["gcc", "-m32", "../pkg.c", "-c"], for_pgm=False)
+
+comp_wf = CompileSource(source="../pkg.c", compiler_switches="-m32")
+env = setup_integration(files_of_interest=["../pkg.c"])
+comp_wf.build(env=env)
 
 thistest.result()
