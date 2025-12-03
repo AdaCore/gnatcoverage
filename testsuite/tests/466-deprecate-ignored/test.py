@@ -45,11 +45,12 @@ def run_test_variant(
 
     # Explicitly check that gnatcov instrument/coverage yield deprecation
     # warnings.
-    thistest.fail_if_no_match(
-        "gnatcov instrument output",
-        instr_messages,
-        contents_of("instrument.log").strip(),
-    )
+    if thistest.options.trace_mode == "src":
+        thistest.fail_if_no_match(
+            "gnatcov instrument output",
+            instr_messages,
+            contents_of("instrument.log").strip(),
+        )
     thistest.fail_if_no_match(
         "gnatcov coverage output",
         cov_messages,
