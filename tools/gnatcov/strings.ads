@@ -176,6 +176,10 @@ package Strings is
    is (Ada.Strings.Fixed.Index (Str, Substr) /= 0);
    --  Return whether Str contains the given Substr
 
+   function Index_Non_Blank (Str : String) return Positive;
+   --  Overload of Ada.Strings.Fixed.Index_Non_Blank working for any space-
+   --  like character, including for instance tabs.
+
 private
    pragma Inline (Hash);
    pragma Inline (Equal);

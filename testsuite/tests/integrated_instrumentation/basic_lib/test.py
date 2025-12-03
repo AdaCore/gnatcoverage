@@ -12,52 +12,34 @@ import os.path
 
 from e3.fs import cp
 
-from SUITE.control import env
 from SUITE.cutils import Wdir
+from SUITE.integrated_instr_utils import (
+    build_run_and_coverage,
+    MakefileMain,
+    MakefileStaticLib,
+)
 from SCOV.minicheck import check_xcov_reports
-from SUITE.tutils import cmdrun, srctracename_for, thistest, xcov
+from SUITE.tutils import thistest
 
 Wdir("tmp_")
 
 cwd = os.getcwd()
 
-# Copy the sources and the Makefile in the temporary directory
-cp(os.path.join("..", "Makefile"), ".")
+# Copy the sources in the temporary directory
 cp(os.path.join("..", "main.c"), ".")
 cp(os.path.join("..", "lib"), ".", recursive=True)
 
-# Then, setup the instrumentation process
-xcov(
-    [
-        "setup-integration",
-        "--level=stmt",
-        f"--files={os.path.join(cwd, 'lib', 'foo.c')}",
-        f"--files={os.path.join(cwd, 'lib', 'bar.c')}",
-        "--compilers=gcc",
-        f"--output-dir={cwd}",
-    ]
+# Generate the Makefile for the library
+
+wf_lib = MakefileStaticLib(cwd="lib", build_target_deps=["foo.o", "bar.o"])
+wf_main = MakefileMain(
+    build_target_deps=[os.path.join("lib", wf_lib.build_target), "main.o"],
+    linker_switches=["-Llib", "-llib"],
+)
+build_run_and_coverage(
+    wfs=[wf_lib, wf_main], files_of_interest=["lib/foo.c", "lib/bar.c"]
 )
 
-# Shadow the compiler driver with the generated wrapper
-env.add_search_path(env_var="PATH", path=cwd)
-
-# Then, run the build process unchanged
-cmdrun(["make"], for_pgm=False)
-
-# Run the executable
-cmdrun(["main"], for_pgm=False)
-
-# Check coverage expectations
-xcov(
-    [
-        "coverage",
-        "--level=stmt",
-        "--sid=foo.c.sid",
-        "--sid=bar.c.sid",
-        "-axcov",
-        srctracename_for("main"),
-    ]
-)
 check_xcov_reports(".", {"bar.c.xcov": {"+": {4}}, "foo.c.xcov": {"+": {4}}})
 
 thistest.result()

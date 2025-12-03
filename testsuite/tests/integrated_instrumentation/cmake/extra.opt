@@ -1,0 +1,2 @@
+native,linux,src-traces,!5.04a1,!7.1.2,!RTS_ZFP
+ALL DEAD CMake tests work for native linux only

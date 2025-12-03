@@ -1275,12 +1275,16 @@ begin
                      Arrow_Index  : constant Natural := Index (Line, "=>");
                      Filename_End : constant Natural :=
                        Index (Line, " ", Line'Last, Going => Backward) - 1;
+
+                     Lib_File : Virtual_File := No_File;
                   begin
                      --  The format of the output of ldd is:
-                     --  <lib_basename> (=> <lib_fullname> (<load address>))?
+                     --  <lib_relative_name>
+                     --     (=> <lib_fullname> (<load address>))?
                      --
-                     --  We only analyze libraries when the fullname is
-                     --  specified as it is a kernel library otherwise.
+                     --  We use the fullname, when available, otherwise we
+                     --  use the relative name. If the library could not be
+                     --  find through its relative name, then we skip it.
 
                      if Arrow_Index /= 0 then
                         declare
@@ -1308,18 +1312,34 @@ begin
                                     & " if this is an instrumented library.");
                               end;
 
-                           --  Check if this is an actual path, to safeguard
-                           --  against cases displayed as:
-                           --
-                           --  <lib_basename> => (<load_address>)
-
-                           elsif GNATCOLL.VFS.Is_Regular_File
-                                   (GNATCOLL.VFS.Create (+Lib_Filename))
-                           then
-                              Add_Coverage_Buffer_Symbols
-                                (Create (+Lib_Filename));
+                           else
+                              Lib_File := GNATCOLL.VFS.Create (+Lib_Filename);
                            end if;
                         end;
+                     else
+                        declare
+                           Lib_Filename : constant String :=
+                             Line
+                               (Strings.Index_Non_Blank (Line)
+                                .. Filename_End);
+                        begin
+                           Lib_File := GNATCOLL.VFS.Create (+Lib_Filename);
+                        end;
+                     end if;
+
+                     --  Check that the library relative filename / fullname
+                     --  exists. It sometimes does not, e.g. when loading a
+                     --  kernel system, specified by its basename only. For
+                     --  instance:
+                     --
+                     --  linux-vdso.so.1 (0x00007ffe40383000)
+                     --
+                     --  or when the dynamic library is specified as such:
+                     --
+                     --  <lib_basename> => (<load_address>)
+
+                     if GNATCOLL.VFS.Is_Regular_File (Lib_File) then
+                        Add_Coverage_Buffer_Symbols (Lib_File);
                      end if;
                   end;
                end loop;

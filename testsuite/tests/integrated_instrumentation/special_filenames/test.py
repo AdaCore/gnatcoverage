@@ -11,7 +11,12 @@ from e3.fs import cp
 from SUITE.control import env
 from SUITE.cutils import Wdir
 from SCOV.minicheck import check_xcov_reports
-from SUITE.tutils import cmdrun, srctracename_for, thistest, xcov
+from SUITE.integrated_instr_utils import (
+    build_run_and_coverage,
+    LinkMain,
+    CompileSource,
+)
+from SUITE.tutils import thistest
 
 Wdir("tmp_")
 
@@ -21,7 +26,7 @@ Wdir("tmp_")
 copy_map = {
     "bar.c": "src bar.c" if env.build.os.name == "windows" else 'src\\"bar.c',
     "foo.c": "src foo$@.c",
-    "test.c": "test.c",
+    "main.c": "main.c",
 }
 for src, dest in copy_map.items():
     cp(os.path.join("..", src), dest)
@@ -37,7 +42,7 @@ canonicalized_filenames = {
 
 # Compute the expected coverage report from the actual source filenames
 coverage_data = {
-    "test.c": {"+": {7, 8, 9}},
+    "main.c": {"+": {7, 8, 9}},
     "foo.c": {"+": {4, 7}, "-": {5}},
     "bar.c": {"+": {4}},
 }
@@ -46,26 +51,17 @@ expected_report = {
     for filename, report in coverage_data.items()
 }
 
-# Setup the instrumentation process
+# Initialize the workflows
 sources = [os.path.abspath(filename) for filename in copy_map.values()]
-files = [f"--files={filename}" for filename in sources]
-xcov(
-    ["setup-integration", "--level=stmt", "--compilers=gcc", "--output-dir=."]
-    + files
-)
+wfs = []
+objects = []
+for source in sources:
+    c = CompileSource(source=source)
+    wfs.append(c)
+    objects.append(c.out)
+wfs.append(LinkMain(objects=objects))
 
-# Shadow the compiler driver with the generated wrapper
-env.add_search_path(env_var="PATH", path=os.getcwd())
-
-# Build the test program and run it
-cmdrun(["gcc", "-o", "test program"] + sources, for_pgm=False)
-cmdrun(["test program"], for_pgm=False)
-
-# Check coverage expectations
-sid_args = [
-    f"--sid={filename}.sid" for filename in canonicalized_filenames.values()
-]
-xcov(["coverage", "-cstmt", "-axcov", srctracename_for("test")] + sid_args)
+build_run_and_coverage(wfs, files_of_interest=sources)
 check_xcov_reports(".", expected_report)
 
 thistest.result()

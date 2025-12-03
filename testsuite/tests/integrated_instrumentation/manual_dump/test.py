@@ -3,67 +3,28 @@ Ensure the manual dump trigger flag works as expected in integrated
 instrumentation mode.
 """
 
-import os
-
 from SCOV.minicheck import check_xcov_reports
-from SUITE.control import env
-from SUITE.cutils import Wdir, contents_of
-from SUITE.tutils import cmdrun, srctracename_for, thistest, xcov
+from SUITE.cutils import Wdir
+from SUITE.integrated_instr_utils import (
+    build_run_and_coverage,
+    CompileSource,
+    LinkMain,
+)
+from SUITE.tutils import thistest
 
 Wdir("tmp_")
 
-CXX = "g++"
-CXX_OUTPUT = "cc.out"
-BIN = "main"
-
-# Setup the instrumentation process
-xcov(
-    [
-        "setup-integration",
-        "--level=stmt",
-        "--files=../foo.cpp",
-        f"--compilers={CXX}",
+comp_foo = CompileSource(source="../pkg.cpp", lang="C++")
+comp_main = CompileSource(source="../main.cpp", lang="C++")
+link_main = LinkMain(objects=["main.o", "pkg.o"], lang="C++")
+build_run_and_coverage(
+    wfs=[comp_foo, comp_main, link_main],
+    files_of_interest=["../pkg.cpp"],
+    extra_setup_args=[
         "--dump-trigger=manual",
-        "--manual-dump-files=../foo.cpp",
-    ]
-)
-
-# Shadow the compiler driver with the generated wrapper
-env.add_search_path(env_var="PATH", path=os.getcwd())
-
-cmdrun(
-    [
-        CXX,
-        "-o",
-        BIN,
-        os.path.join("..", "main.cpp"),
-        os.path.join("..", "foo.cpp"),
-        "-I../",
+        "--manual-dump-files=../pkg.cpp",
     ],
-    out=CXX_OUTPUT,
-    for_pgm=False,
 )
-
-
-thistest.fail_if_not_equal(
-    "compiler output",
-    "",
-    contents_of(CXX_OUTPUT),
-)
-
-# Run the executable
-cmdrun([BIN], for_pgm=False)
-
-# Check coverage expectations
-xcov(
-    [
-        "coverage",
-        "--level=stmt",
-        "--sid=foo.cpp.sid",
-        "-axcov",
-        srctracename_for(BIN),
-    ]
-)
-check_xcov_reports(".", {"foo.cpp.xcov": {"-": {21}}})
+check_xcov_reports(".", {"pkg.cpp.xcov": {"-": {18}}})
 
 thistest.result()

@@ -1,5 +1,5 @@
 int
-foo ()
+main ()
 {
   return 0;
 }
