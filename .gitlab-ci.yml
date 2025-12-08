@@ -128,6 +128,14 @@ build_community:
     # Setup the CI directory to host coverage results
     - mkdir $CI_PROJECT_DIR/coverage
 
+.common_testsuite_reports: &common_testsuite_reports
+    # We must parse testsuite results with the same version of e3-testsuite
+    # that produced them. So we install e3-testsuite using the same sandbox as
+    # testing.
+    - anod install e3-for-testing
+    - eval $(anod printenv e3-for-testing)
+    - testsuite_reports
+
 
 .common_artifacts_bits: &artifacts
   artifacts:
@@ -155,7 +163,7 @@ test_bin_traces:
     - anod test gnatcov --minimal --target=leon3-elf,,qemu -QRTS=embedded-leon3,-O0,instr $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov --target=leon3-elf,,qemu -QRTS=embedded-leon3,-O0,instr $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/leon3-elf-linux64/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - testsuite_reports
+    - *common_testsuite_reports
 
   <<: *artifacts
 
@@ -173,7 +181,7 @@ test_src_traces:
     - anod test gnatcov --minimal -Qsrc-traces,instr $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - testsuite_reports
+    - *common_testsuite_reports
 
   <<: *artifacts
 
@@ -200,7 +208,7 @@ test_5.04a1_src_traces:
     - anod test gnatcov --minimal -Q5.04a1,src-traces,instr $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Q5.04a1,src-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - testsuite_reports
+    - *common_testsuite_reports
 
   <<: *artifacts
 
@@ -218,7 +226,7 @@ test_spark:
     - anod test gnatcov --minimal -Qspark-tests,src-traces,instr $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Qspark-tests,src-traces,instr $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - testsuite_reports
+    - *common_testsuite_reports
 
   <<: *artifacts
 
@@ -257,7 +265,7 @@ test_block_instr:
     - anod test gnatcov --minimal -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - testsuite_reports
+    - *common_testsuite_reports
 
   <<: *artifacts
 
@@ -283,7 +291,7 @@ test_src_light:
     - anod test gnatcov --minimal -Qsrc-traces,instr,RTS=light-stm32f4 --target=arm-elf,,qemu-stm32 $ACI_TRACK_QUALIFIER
     - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,RTS=light-stm32f4 --target=arm-elf,,qemu-stm32 $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
-    - testsuite_reports
+    - *common_testsuite_reports
 
   <<: *artifacts
 
@@ -308,7 +316,7 @@ test_qualkit:
     - cp $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$QUALRUN_BSN/tmp/attachment-testsuite_tree.tgz $CI_PROJECT_DIR/qualrun/
     - cp $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$QUALKIT_BSN/install/*.zip $CI_PROJECT_DIR/qualkits/
     - cp $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$QUALKIT_BSN/install/consistency.log $CI_PROJECT_DIR/qualkits/
-    - testsuite_reports
+    - *common_testsuite_reports
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
       changes:
