@@ -5823,6 +5823,12 @@ package body Instrument.Ada_Unit is
                   else
                      Process_Expression (UIC, TD.F_Type_Def, 'X');
                   end if;
+
+                  --  Access to subprogram types can have pre/post conditions:
+                  --  instrument them if needed.
+
+                  Process_Contract (UIC, TD, "Pre");
+                  Process_Contract (UIC, TD, "Post");
                end;
 
             when Ada_Named_Stmt                                    =>

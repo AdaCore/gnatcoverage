@@ -8,8 +8,11 @@ end Test_Pkg_Full;
 
 --# pkg.ads
 --
---  /pre/  l+ ## 0
---  /post/ l+ ## 0
+--  /gen-pre/  l+ ## 0
+--  /gen-post/ l+ ## 0
+--
+--  /acc-pre/  l+ ## 0
+--  /acc-post/ l+ ## 0
 --
 --# pkg.adb
 --
