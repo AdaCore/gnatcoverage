@@ -1,5 +1,5 @@
 pragma Assertion_Policy (Check);
-pragma Ada_2012;
+pragma Ada_2022;
 
 with Silent_Last_Chance;
 

@@ -4107,11 +4107,24 @@ package body Instrument.Ada_Unit is
       procedure Process_Contract
         (UIC  : in out Ada_Unit_Inst_Context;
          D    : Basic_Decl'Class;
-         Name : Text_Type) is
+         Name : Text_Type)
+      is
+         Decision : Expr;
       begin
-         if Assertion_Coverage_Enabled then
-            Process_Expression
-              (UIC, P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)), 'A');
+         --  If assertion coverage is not enabled, or if the contract is not
+         --  present, there is nothing to do.
+
+         if not Assertion_Coverage_Enabled then
+            return;
+         end if;
+
+         Decision := P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name));
+         if not Decision.Is_Null then
+
+            --  For MCDC, we may need to create locals when instrumenting the
+            --  decision: these locals cannot go to the scope that contains D.
+
+            Process_Standalone_Expression (UIC, Decision, 'A');
          end if;
       end Process_Contract;
 
