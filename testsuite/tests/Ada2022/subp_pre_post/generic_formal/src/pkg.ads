@@ -13,15 +13,15 @@ package Pkg is
    generic
       with procedure Adjuster (Self : in out Point)
         with
-          Pre  => Self.X in Screen_X and then Self.Y in Screen_Y, -- # pre
-          Post => Self.X in Screen_X and then Self.Y in Screen_Y; -- # post
+          Pre  => Self.X in Screen_X and then Self.Y in Screen_Y, -- # gen-pre
+          Post => Self.X in Screen_X and then Self.Y in Screen_Y; -- # gen-post
    procedure Adjust (Self : in out Point);
 
    generic
       with procedure Adjuster (Self : in out Point)
         with
-          Pre  => Self.X in Screen_X and then Self.Y in Screen_Y, -- # pre
-          Post => Self.X in Screen_X and then Self.Y in Screen_Y; -- # post
+          Pre  => Self.X in Screen_X and then Self.Y in Screen_Y, -- # gen-pre
+          Post => Self.X in Screen_X and then Self.Y in Screen_Y; -- # gen-post
    package Adjust_Pkg is
       procedure Adjust (Self : in out Point);
    end Adjust_Pkg;

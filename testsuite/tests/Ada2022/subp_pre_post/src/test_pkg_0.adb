@@ -7,8 +7,11 @@ end Test_Pkg_0;
 
 --# pkg.ads
 --
---  /pre/  l- ## a-
---  /post/ l- ## a-
+--  /gen-pre/  l- ## a-
+--  /gen-post/ l- ## a-
+--
+--  /acc-pre/  l! ## a-
+--  /acc-post/ l! ## a-
 --
 --# pkg.adb
 --
