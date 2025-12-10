@@ -1133,8 +1133,9 @@ package body Setup_RTS is
       --  case, so return a dummy one.
 
       if To_Lower (Target) in "c" | "aamp"
-        or else (Project.Is_Project_Loaded
-                 and then To_Lower (Project.Target) in "c" | "aamp")
+        or else
+          (Project.Is_Project_Loaded
+           and then To_Lower (Project.Target) in "c" | "aamp")
       then
          return Default_Setup_Config;
       end if;
@@ -1144,8 +1145,9 @@ package body Setup_RTS is
       --  fails to load, just return the default setup config.
 
       if not Load_Project (Prj, Prj_Filename, Target, RTS, Config_File)
-        or else (Src_Enabled_Languages (Ada_Language)
-                 and then not Prj.Has_Runtime_Project)
+        or else
+          (Src_Enabled_Languages (Ada_Language)
+           and then not Prj.Has_Runtime_Project)
       then
          Error
            ("Could not load the coverage runtime project " & Runtime_Project);

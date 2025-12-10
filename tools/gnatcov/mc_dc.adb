@@ -141,11 +141,11 @@ package body MC_DC is
 
       for J in reverse
         0
-        .. Condition_Index'Max
-             (Eval_1.Values.Last_Index, Eval_2.Values.Last_Index)
+        ..
+          Condition_Index'Max
+            (Eval_1.Values.Last_Index, Eval_2.Values.Last_Index)
       loop
-         Check_Condition :
-         declare
+         Check_Condition : declare
             function Cond_J
               (V : Condition_Evaluation_Vectors.Vector) return Tristate;
             --  Return the value of condition J in V, or Unknown if not

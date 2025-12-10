@@ -6,7 +6,7 @@ workflow:
 variables:
    PACKAGE_BASE_NAME: gnatcoverage.tar.gz
    PACKAGE_ABSOLUTE_NAME: $CI_PROJECT_DIR/$PACKAGE_BASE_NAME
-   GNATFORMAT_DATE: 20250917
+   GNATFORMAT_DATE: 20251204
 
 include:
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/pre-commit@~latest

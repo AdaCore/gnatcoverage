@@ -272,8 +272,8 @@ package body Binary_Files is
       Close (File.File);
       File.Fd := Invalid_FD;
 
-   --  Note: File.Filename may be referenced later on to produce error
-   --  messages, so we don't deallocate it.
+      --  Note: File.Filename may be referenced later on to produce error
+      --  messages, so we don't deallocate it.
    end Close_File;
 
    -------------------

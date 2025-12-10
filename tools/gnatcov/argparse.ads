@@ -355,8 +355,9 @@ is
      Pre =>
        (Args.Error = ""
         and then Other_Args.Error = ""
-        and then (Args.Command = No_Command
-                  or else Args.Command = Other_Args.Command));
+        and then
+          (Args.Command = No_Command
+           or else Args.Command = Other_Args.Command));
    --  Merge two sets of parsed arguments. Arguments from Other_Args take
    --  precedence.
 

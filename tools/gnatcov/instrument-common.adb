@@ -340,8 +340,9 @@ package body Instrument.Common is
       --  which can happen with #included files for instance).
 
       if SCOs.SCO_Unit_Table.Last = 0
-        or else SCOs.SCO_Unit_Table.Table (SCOs.SCO_Unit_Table.Last).File_Index
-                /= SFI
+        or else
+          SCOs.SCO_Unit_Table.Table (SCOs.SCO_Unit_Table.Last).File_Index
+          /= SFI
       then
          Append_Unit (SFI);
          if SCOs_Trace.Is_Active then

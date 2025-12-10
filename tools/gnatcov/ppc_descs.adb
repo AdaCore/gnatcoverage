@@ -24,7 +24,7 @@ package body Ppc_Descs is
       Nbr_Bits : constant Bit_Number := F.Last - F.First + 1;
    begin
       pragma Assert (F.First <= F.Last);
-      return ((2**Nbr_Bits) - 1) * (2**(31 - F.Last));
+      return ((2 ** Nbr_Bits) - 1) * (2 ** (31 - F.Last));
    end Get_Mask;
 
    function Get_Field (Field : Ppc_Fields; V : Unsigned_32) return Unsigned_32

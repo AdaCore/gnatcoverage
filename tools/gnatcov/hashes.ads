@@ -30,10 +30,11 @@ package Hashes is
 
    function Combine (Left, Right : Hash_Type) return Hash_Type
    is (Left
-       xor (Right
-            + 16#9e3779b9#
-            + Shift_Left (Left, 6)
-            + Shift_Right (Left, 2)));
+       xor
+         (Right
+          + 16#9e3779b9#
+          + Shift_Left (Left, 6)
+          + Shift_Right (Left, 2)));
    --  Combine two hashes into a single hash value. Used to compute the hash of
    --  a container from the hashes of its components.
    --

@@ -1983,10 +1983,10 @@ package body Instrument.C is
                (N = Process_Decisions.N and then T /= 'X')
               or else
 
-              --  Complex decision, whether at outer level or nested: a
-              --  boolean expression involving a logical operator.
+                --  Complex decision, whether at outer level or nested: a
+                --  boolean expression involving a logical operator.
 
-              Is_Complex_Decision (N);
+                  Is_Complex_Decision (N);
 
          begin
             if Decision_Root then
@@ -3895,8 +3895,8 @@ package body Instrument.C is
                         --  it is the only one we will instrument.
 
                         while Last_Stmt_Idx > Block.First_Index
-                          and then Block.Reference (Last_Stmt_Idx).Kind
-                                   /= Statement
+                          and then
+                            Block.Reference (Last_Stmt_Idx).Kind /= Statement
                         loop
                            Last_Stmt_Idx := Last_Stmt_Idx - 1;
                         end loop;
@@ -5315,8 +5315,8 @@ package body Instrument.C is
                   --  a call to dump_buffers at the end of the function.
 
                   if Length (Main_Stmts) = 0
-                    or else Kind (Main_Stmts.Last_Element)
-                            /= Cursor_Return_Stmt
+                    or else
+                      Kind (Main_Stmts.Last_Element) /= Cursor_Return_Stmt
                   then
                      CX_Rewriter_Insert_Text_Before_Token
                        (Rew.Rewriter,

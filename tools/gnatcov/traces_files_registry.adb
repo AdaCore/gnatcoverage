@@ -193,7 +193,7 @@ package body Traces_Files_Registry is
                     (+Element.Filename & "invalid execution date format");
                end if;
                for I in reverse Data'Range loop
-                  Timestamp := 2**8 * Timestamp + Character'Pos (Data (I));
+                  Timestamp := 2 ** 8 * Timestamp + Character'Pos (Data (I));
                end loop;
 
                --  We can now split this timestamp it in UTC and turn this into

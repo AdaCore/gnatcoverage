@@ -1709,8 +1709,7 @@ package body Traces_Elf is
       Apply_Relocations (Exec, Exec.Sec_Debug_Info, Infos_Section, Infos);
 
       Off := 0;
-      CU_Loop :
-      while Off < Storage_Offset (Info_Len) loop
+      CU_Loop : while Off < Storage_Offset (Info_Len) loop
          --  Read .debug_info header:
 
          Sec_Off := Off;
@@ -1745,8 +1744,7 @@ package body Traces_Elf is
 
          --  Read DIEs
 
-         DIE_Loop :
-         loop
+         DIE_Loop : loop
             <<Again>>
             exit DIE_Loop when Off >= Last;
             Tag_Off := Off;
@@ -1790,8 +1788,7 @@ package body Traces_Elf is
 
             Is_High_Pc_Offset := False;
 
-            Attr_Loop :
-            loop
+            Attr_Loop : loop
                Read_ULEB128 (Abbrev, Aoff, Name);
                Read_ULEB128 (Abbrev, Aoff, Form);
 
@@ -1902,13 +1899,14 @@ package body Traces_Elf is
                   --  compilation unit in that case.
 
                   if not Object_Coverage_Enabled
-                    and then At_Lang
-                             not in DW_LANG_C
-                                  | DW_LANG_C89
-                                  | DW_LANG_C99
-                                  | DW_LANG_C11
-                                  | DW_LANG_Ada83
-                                  | DW_LANG_Ada95
+                    and then
+                      At_Lang
+                      not in DW_LANG_C
+                           | DW_LANG_C89
+                           | DW_LANG_C99
+                           | DW_LANG_C11
+                           | DW_LANG_Ada83
+                           | DW_LANG_Ada95
                   then
                      Off := Last;
                      exit DIE_Loop;
@@ -2002,8 +2000,9 @@ package body Traces_Elf is
 
                      Subprg_Low := Exec.Exe_Text_Start + Pc_Type (At_Low_Pc);
                      if Current_Sec = null
-                       or else Subprg_Low
-                               not in Current_Sec.First .. Current_Sec.Last
+                       or else
+                         Subprg_Low
+                         not in Current_Sec.First .. Current_Sec.Last
                      then
                         Current_Sec :=
                           Get_Address_Info
@@ -2035,11 +2034,12 @@ package body Traces_Elf is
                      --  then the subprogram was very likely eliminated.
 
                      elsif At_Low_Pc /= Unsigned_64 (No_PC)
-                       or else Symbol_Exists
-                                 (Subprg_Low,
-                                  (if At_Linkage_Name = Null_Address
-                                   then At_Name
-                                   else At_Linkage_Name))
+                       or else
+                         Symbol_Exists
+                           (Subprg_Low,
+                            (if At_Linkage_Name = Null_Address
+                             then At_Name
+                             else At_Linkage_Name))
                      then
                         Current_Subprg :=
                           new Address_Info'
@@ -4131,8 +4131,9 @@ package body Traces_Elf is
                      --  can happen: just check that they are not inconsistent.
 
                      if not Inserted
-                       and then Mapping_Symbol_Sets.Element (Position).Insn_Set
-                                /= Symbol.Insn_Set
+                       and then
+                         Mapping_Symbol_Sets.Element (Position).Insn_Set
+                         /= Symbol.Insn_Set
                      then
                         raise Program_Error
                           with
@@ -4400,8 +4401,9 @@ package body Traces_Elf is
 
       if Cache.Last /= No_Element
         and then Set'Unrestricted_Access = Cache.Last_Set
-        and then (PC in Cache.Last_Info.First .. Cache.Last_Info.Last
-                  or else PC = Cache.Last_Info.First)
+        and then
+          (PC in Cache.Last_Info.First .. Cache.Last_Info.Last
+           or else PC = Cache.Last_Info.First)
       then
          --  We have a candidate match, whose range contains the PC we're
          --  looking for. Now move from there to make sure that we return
@@ -4468,8 +4470,9 @@ package body Traces_Elf is
          begin
             exit when
               not (Prev_Info.First <= PC
-                   and then (Prev_Info.First > Prev_Info.Last
-                             or else Prev_Info.Last >= PC));
+                   and then
+                     (Prev_Info.First > Prev_Info.Last
+                      or else Prev_Info.Last >= PC));
          end;
 
          Count := Count + 1;
@@ -4704,8 +4707,8 @@ package body Traces_Elf is
            and then Item.Last = Existing_Item.Last
            and then Item.Subprogram_Name /= null
            and then Existing_Item.Subprogram_Name /= null
-           and then Item.Subprogram_Name.all
-                    = Existing_Item.Subprogram_Name.all
+           and then
+             Item.Subprogram_Name.all = Existing_Item.Subprogram_Name.all
          then
             Free (Item);
             Item := Existing_Item;
@@ -5070,9 +5073,10 @@ package body Traces_Elf is
 
             if Symbol /= null then
                if Addr = Symbol.First
-                 and then (Subprg = null
-                           or else Subprg.Subprogram_Name.all
-                                   /= Symbol.Symbol_Name.all)
+                 and then
+                   (Subprg = null
+                    or else
+                      Subprg.Subprogram_Name.all /= Symbol.Symbol_Name.all)
                then
                   Put ('<');
                   Put (Symbol.Symbol_Name.all);
