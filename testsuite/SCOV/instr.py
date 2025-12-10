@@ -124,6 +124,10 @@ def xcov_instrument(
     if quiet:
         args.append("--quiet")
 
+    # Set the Ada version from the test framework. Do this early so that extra
+    # arguments may override this.
+    args += ["--ada", thistest.options.ada_version]
+
     if dump_trigger:
         if dump_trigger == "auto":
             args += ["--dump-trigger", default_dump_trigger(mains)]
@@ -146,10 +150,6 @@ def xcov_instrument(
 
     if thistest.options.block:
         args.append("--instrument-block")
-
-    # Get the Ada version from the test framework
-    if thistest.options.ada_version:
-        args += ["--ada", thistest.options.ada_version]
 
     # TODO (gpr-issues#241) temporary workaround.
     # Since gpr2clean deletes .sid files for the moment, we need to
