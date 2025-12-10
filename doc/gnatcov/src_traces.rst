@@ -641,8 +641,6 @@ The list of unsupported constructs is as follows:
   the ``Pure_Barriers`` one apply.
 * Decisions in default expressions of subprogram formals (for all
   decision-related coverage criteria).
-* Decisions in default expressions of record component declarations (for MC/DC
-  coverage criteria).
 
 Additionally, if the Ada language version in use, is less or equal to Ada 2012,
 the following constructs are also unsupported:
@@ -651,6 +649,8 @@ the following constructs are also unsupported:
 * Recursive expression functions which are primitives of some tagged type,
 * Expression functions which are primitives of their return type, when it is a
   tagged type.
+* Decisions in default expressions of record component declarations (for MC/DC
+  coverage criteria).
 
 The simplest way to work around the limitation concerning expression functions
 is to turn them into regular functions, by giving them a proper body,
