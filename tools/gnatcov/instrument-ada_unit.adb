@@ -7124,9 +7124,29 @@ package body Instrument.Ada_Unit is
 
             Current_Decision := SCOs.SCO_Table.Last;
 
-            if Coverage.Enabled (Decision)
-              or else MCDC_Coverage_Enabled
-              or else Assertion_Condition_Coverage_Enabled
+            --  Do not instrument this decision if we have already determined
+            --  from the context that instrumenting it could produce invalid
+            --  code.
+            --
+            --  Instrumenting static decisions would make them non-static by
+            --  wrapping them in a Witness call. This transformation would
+            --  trigger legality checks on the originally non-evaluated branch,
+            --  which could result in compilation errors specific to the
+            --  instrumented code, e.g. on:
+            --
+            --   X := (if <config.static-False>
+            --         then <out-of-range-static>
+            --         else <value>);
+            --
+            --  For this reason, also refrain from instrumenting static
+            --  decisions.
+
+            if not UIC.Disable_Instrumentation
+              and then not Is_Static_Expr (N.As_Expr)
+              and then
+                (Coverage.Enabled (Decision)
+                 or else MCDC_Coverage_Enabled
+                 or else Assertion_Condition_Coverage_Enabled)
             then
                if MCDC_Coverage_Enabled
                  or else
@@ -7149,33 +7169,12 @@ package body Instrument.Ada_Unit is
                   end if;
                end if;
 
-               --  Do not instrument this decision if we have already
-               --  determined from the context that instrumenting it could
-               --  produce invalid code.
-               --
-               --  Instrumenting static decisions would make them non-static by
-               --  wrapping them in a Witness call. This transformation would
-               --  trigger legality checks on the originally non-evaluated
-               --  branch, which could result in compilation errors specific
-               --  to the instrumented code, e.g. on:
-               --
-               --   X := (if <config.static-False>
-               --         then <out-of-range-static>
-               --         else <value>);
-               --
-               --  For this reason, also refrain from instrumenting static
-               --  decisions.
-
-               if not (UIC.Disable_Instrumentation
-                       or else Is_Static_Expr (N.As_Expr))
-               then
-                  UIC.Source_Decisions.Append
-                    (Source_Decision'
-                       (LL_SCO      => Current_Decision,
-                        Decision    => N.As_Expr,
-                        State       => Conditions_State,
-                        Is_Contract => Is_Contract));
-               end if;
+               UIC.Source_Decisions.Append
+                 (Source_Decision'
+                    (LL_SCO      => Current_Decision,
+                     Decision    => N.As_Expr,
+                     State       => Conditions_State,
+                     Is_Contract => Is_Contract));
             end if;
 
             --  For an aspect specification, which will be rewritten into a
