@@ -738,6 +738,18 @@ coverage information for:
 * Constructor calls that use the "call-init" convention and whose type is
   "auto" (example: ``auto a(Foo(...))``).
 
+Assertion Coverage limitations (ATC and ATCC)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Assertion coverage is only supported for the Ada language. However there are
+language constructs for which gnatcov is unable to perform coverage analysis
+for assertions:
+
+* Preconditions and postconditions expressed as pragmas;
+
+* Contracts for types and functions expressed as aspects for versions of the
+  language anterior to Ada 2022.
+
 Guarded expression coverage limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
