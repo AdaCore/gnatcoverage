@@ -4058,7 +4058,10 @@ package body SC_Obligations is
             when Aspect          =>
                return
                  SCOD.Aspect_Name
-                 in Aspect_Post | Aspect_Pre | Aspect_Type_Invariant;
+                 in Aspect_Default_Initial_Condition
+                  | Aspect_Post
+                  | Aspect_Pre
+                  | Aspect_Type_Invariant;
 
             when others          =>
                return False;

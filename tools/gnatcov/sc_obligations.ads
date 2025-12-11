@@ -804,6 +804,7 @@ package SC_Obligations is
    --
    --  or one of the following aspects:
    --
+   --  * Default_Initial_Condition
    --  * Postcondition
    --  * Precondition
    --  * Type_Invariant.

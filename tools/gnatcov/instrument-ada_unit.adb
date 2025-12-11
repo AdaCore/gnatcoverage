@@ -5812,6 +5812,8 @@ package body Instrument.Ada_Unit is
                      Typ := 't';
                      Process_Contract (UIC, N.As_Basic_Decl, "Type_Invariant");
                   end if;
+                  Process_Contract
+                    (UIC, N.As_Basic_Decl, "Default_Initial_Condition");
 
                   Instrument_Statement (UIC, N, Typ);
                end;
