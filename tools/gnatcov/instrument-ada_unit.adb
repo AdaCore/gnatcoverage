@@ -7225,13 +7225,13 @@ package body Instrument.Ada_Unit is
             --  construct.
 
                (N = Process_Decisions.N and then T /= 'X')
+
+              --  Complex decision, whether at outer level or nested: a boolean
+              --  expression involving a logical operator.
+
               or else
-
-                --  Complex decision, whether at outer level or nested: a boolean
-                --  expression involving a logical operator.
-
-                 (N.Kind in Ada_Expr
-                  and then Is_Complex_Decision (UIC, N.As_Expr));
+                (N.Kind in Ada_Expr
+                 and then Is_Complex_Decision (UIC, N.As_Expr));
 
          begin
             if Decision_Root then
