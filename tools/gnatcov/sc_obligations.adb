@@ -3720,20 +3720,15 @@ package body SC_Obligations is
 
         SCOD.Origin = No_CU_Id
 
-        or else
-
-          --  Pragma not generating code?
-
-           (SCOD.S_Kind = Pragma_Statement
-            and then not Pragma_Might_Generate_Code (SCOD.Pragma_Name))
+        --  Pragma not generating code?
 
         or else
+          (SCOD.S_Kind = Pragma_Statement
+           and then not Pragma_Might_Generate_Code (SCOD.Pragma_Name))
 
-          --  Disabled pragma?
+        --  Disabled pragma?
 
-            SCOD
-            .S_Kind
-          = Disabled_Pragma_Statement;
+        or else SCOD.S_Kind = Disabled_Pragma_Statement;
 
    end Ignore_SCO;
 
