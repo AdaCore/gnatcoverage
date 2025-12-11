@@ -403,8 +403,8 @@ package body SS_Annotations is
                         --  computation.
 
                         if Existing_Annot.Kind /= Annot.Kind
-                          or else Existing_Annot.Message.all
-                                  /= Annot.Message.all
+                          or else
+                            Existing_Annot.Message.all /= Annot.Message.all
                         then
                            Warn
                              (Slocs.Image (Sloc)

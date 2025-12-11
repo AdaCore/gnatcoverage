@@ -589,9 +589,10 @@ package body CFG_Dump is
                               else Symbol.Symbol_Name);
                         begin
                            if Symbol_Name /= null
-                             and then Decision_Map.Subp_Raises_Exception
-                                        (Traces_Elf.Platform_Independent_Symbol
-                                           (Symbol_Name.all, Context.Exec.all))
+                             and then
+                               Decision_Map.Subp_Raises_Exception
+                                 (Traces_Elf.Platform_Independent_Symbol
+                                    (Symbol_Name.all, Context.Exec.all))
                            then
                               Add_Branch_Point
                                 (Address (Insn),
@@ -943,19 +944,20 @@ package body CFG_Dump is
                Insn.Executed_Successors.Replace_Element
                  (I,
                   ((Op
-                    and (case Succ.Kind is
-                           when Fallthrough     => Trace_Op_Br1,
-                           when Branch          =>
-                             --  For unconditional branches, Op_Block is
-                             --  used instead of Op_Br*.
+                    and
+                      (case Succ.Kind is
+                         when Fallthrough     => Trace_Op_Br1,
+                         when Branch          =>
+                           --  For unconditional branches, Op_Block is
+                           --  used instead of Op_Br*.
 
-                              (if Insn.Successors.Length = 1
-                               then Trace_Op_Block
-                               else Trace_Op_Br0),
+                            (if Insn.Successors.Length = 1
+                             then Trace_Op_Block
+                             else Trace_Op_Br0),
 
-                           when Subp_Return     => Trace_Op_Block,
+                         when Subp_Return     => Trace_Op_Block,
 
-                           when Raise_Exception => Trace_Op_Fault))
+                         when Raise_Exception => Trace_Op_Fault))
                    /= 0));
             end if;
             I := I + 1;
@@ -1435,8 +1437,9 @@ package body CFG_Dump is
                   exit;
 
                elsif Successors (BB.all).Length = 1
-                 and then Successors (BB.all).First_Element.Kind
-                          in Fallthrough | Branch
+                 and then
+                   Successors (BB.all).First_Element.Kind
+                   in Fallthrough | Branch
                then
                   declare
                      Successor : Successor_Record renames
@@ -1602,8 +1605,9 @@ package body CFG_Dump is
                       Successor.Kind,
                       Selected =>
                         (not Successor.Known
-                         or else not Context.Other_Outcome.Contains
-                                       (Successor_Key'Unchecked_Access)),
+                         or else
+                           not Context.Other_Outcome.Contains
+                                 (Successor_Key'Unchecked_Access)),
                       Executed => Element (Succ_Cur),
                       Info     => Edge_Info));
                   if not Successor.Known then

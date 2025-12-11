@@ -474,8 +474,7 @@ package body Coverage.Source is
       Read (CLS, CP_SCI_Vector);
 
       for SCO_Cur in CP_SCI_Vector.Iterate loop
-         Process_One_SCO :
-         declare
+         Process_One_SCO : declare
             CP_SCO  : constant SCO_Id := To_Index (SCO_Cur);
             Removed : constant Boolean := SCO_Ignored (Relocs, CP_SCO);
             SCO     : constant SCO_Id :=
@@ -791,14 +790,14 @@ package body Coverage.Source is
          --  Skip the discarded SCOs and those not in a subprogram of interest
 
          if Kind (SCO) = Removed
-           or else (not Subps_Of_Interest.Is_Empty
-                    and then not In_Scope_Of_Interest (ST, SCO))
+           or else
+             (not Subps_Of_Interest.Is_Empty
+              and then not In_Scope_Of_Interest (ST, SCO))
          then
             goto Next_SCO;
          end if;
 
-         SCOs_Of_Line :
-         declare
+         SCOs_Of_Line : declare
             SCO_State : Line_State := No_Code;
             SCI       : Source_Coverage_Info renames SCI_Vector (SCO).all;
          begin
@@ -936,10 +935,10 @@ package body Coverage.Source is
                end if;
 
             elsif Kind (SCO) = Decision
-              and then ((Decision_Requires_Coverage (SCO)
-                         and then (Enabled (Decision)
-                                   or else MCDC_Coverage_Enabled))
-                        or else Decision_Requires_Assertion_Coverage (SCO))
+              and then
+                ((Decision_Requires_Coverage (SCO)
+                  and then (Enabled (Decision) or else MCDC_Coverage_Enabled))
+                 or else Decision_Requires_Assertion_Coverage (SCO))
             then
                --  Compute decision coverage state for this decision. Note that
                --  the decision coverage information is also included in MC/DC
@@ -1050,9 +1049,9 @@ package body Coverage.Source is
                   end if;
 
                elsif Enclosing_Statement (SCO) = No_SCO_Id
-                 or else (Basic_Block_Has_Code (Enclosing_Statement (SCO))
-                          and then Stmt_SCO_Instrumented
-                                     (Enclosing_Statement (SCO)))
+                 or else
+                   (Basic_Block_Has_Code (Enclosing_Statement (SCO))
+                    and then Stmt_SCO_Instrumented (Enclosing_Statement (SCO)))
                then
                   --  Similar to the above for statement coverage: a decision
                   --  that cannot ever be executed is reported as No_Code, not
@@ -1592,8 +1591,8 @@ package body Coverage.Source is
                Line_Executed :=
                  not Precise
                  and then Sloc.Source_File = S_SCO_First.Source_File
-                 and then Sloc.L.Line
-                          in S_SCO_First.L.Line .. S_SCO_Last.L.Line;
+                 and then
+                   Sloc.L.Line in S_SCO_First.L.Line .. S_SCO_Last.L.Line;
 
                exit when
                  Cur_SCI.Executed
@@ -1671,8 +1670,7 @@ package body Coverage.Source is
          --  Here we have a condition SCO and the PC for a conditional branch
          --  instruction.
 
-         Process_Conditional_Branch :
-         declare
+         Process_Conditional_Branch : declare
             D_SCO : constant SCO_Id := Enclosing_Decision (SCO);
             --  Enclosing decision
 
@@ -1894,8 +1892,9 @@ package body Coverage.Source is
 
                when 3      =>
                   if MCDC_Coverage_Enabled
-                    and then (Has_Multipath_Condition (D_SCO)
-                              or else Full_History_Trace.Is_Active)
+                    and then
+                      (Has_Multipath_Condition (D_SCO)
+                       or else Full_History_Trace.Is_Active)
                   then
                      --  For MC/DC we need full historical traces, not just
                      --  accumulated traces.
@@ -1932,9 +1931,12 @@ package body Coverage.Source is
 
       PC := T.First + Subp_Info.Offset;
 
-      Trace_Insns :
-      while Iterate_Over_Insns
-              (I_Ranges, Cache, T.Last + Subp_Info.Offset, PC, Insn_Set)
+      Trace_Insns : while Iterate_Over_Insns
+                            (I_Ranges,
+                             Cache,
+                             T.Last + Subp_Info.Offset,
+                             PC,
+                             Insn_Set)
       loop
          Insn_Len :=
            Disa_For_Machine (Machine, Insn_Set).Get_Insn_Length
@@ -2519,8 +2521,8 @@ package body Coverage.Source is
             --  it might be negated compared to the current context.
 
             if not Degraded_Origins (SCO)
-              or else CP_SCI.Outcome_Taken (False)
-                      = CP_SCI.Outcome_Taken (True)
+              or else
+                CP_SCI.Outcome_Taken (False) = CP_SCI.Outcome_Taken (True)
             then
                SCI.Outcome_Taken := SCI.Outcome_Taken or CP_SCI.Outcome_Taken;
             end if;
@@ -2642,8 +2644,9 @@ package body Coverage.Source is
       if Excluded_SCOs then
          return
            Kind (SCO) = Decision
-           or else (Kind (SCO) = Statement
-                    and then S_Kind (SCO) in Ada_Statement_Kind);
+           or else
+             (Kind (SCO) = Statement
+              and then S_Kind (SCO) in Ada_Statement_Kind);
       else
          return False;
       end if;

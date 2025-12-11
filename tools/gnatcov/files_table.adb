@@ -2442,9 +2442,9 @@ package body Files_Table is
             if FE.Name /= null
               and then FE.Kind = Source_File
               and then Excluded_Source_Files /= null
-              and then GNAT.Regexp.Match
-                         (+Create (+FE.Name.all).Base_Name,
-                          Excluded_Source_Files.all)
+              and then
+                GNAT.Regexp.Match
+                  (+Create (+FE.Name.all).Base_Name, Excluded_Source_Files.all)
             then
                Files_Table_Trace.Trace
                  ("Ignored SFI from SID file:"
@@ -2526,8 +2526,9 @@ package body Files_Table is
                   --  indexing by simple name is needed.
 
                   if FE.Indexed_Simple_Name
-                    or else (FE.Kind = Source_File
-                             and then Switches.Allow_Mixing_Trace_Kinds)
+                    or else
+                      (FE.Kind = Source_File
+                       and then Switches.Allow_Mixing_Trace_Kinds)
                   then
                      SFI :=
                        Get_Index_From_Generic_Name

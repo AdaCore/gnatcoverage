@@ -565,8 +565,9 @@ package body Argparse is
                   Append (Set_Image, '[');
                   for Cmd in Valid_Commands'Range loop
                      if Info.Commands (Cmd)
-                       and then (not Parser.Data.Command_Infos (Cmd).Internal
-                                 or else With_Internal_Options)
+                       and then
+                         (not Parser.Data.Command_Infos (Cmd).Internal
+                          or else With_Internal_Options)
                      then
                         if not First then
                            Append (Set_Image, ", ");

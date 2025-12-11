@@ -102,8 +102,7 @@ package body Trace32.Conversion is
          Prev_Landing := BF_Entry.Target;
       end if;
 
-      Conversion :
-      loop
+      Conversion : loop
 
          BF_Status := Branch_Flow.Next_Entry (BF_Entry);
 
@@ -166,8 +165,7 @@ package body Trace32.Conversion is
                --  so we will try to recover from this situation by searching
                --  for the next known instruction.
 
-               Recovery :
-               loop
+               Recovery : loop
 
                   if Insn.Kind (BF_Entry.Caller) /= Unknown then
 

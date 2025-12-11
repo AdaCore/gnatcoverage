@@ -2785,8 +2785,8 @@ package body Instrument.Ada_Unit is
       Needs_Decl : constant Boolean :=
         Common_Nodes.N.Kind = Ada_Expr_Function
         and then not Need_WP
-        and then Augmented_Expr_Function_Needs_Decl
-                   (Common_Nodes.N.As_Expr_Function);
+        and then
+          Augmented_Expr_Function_Needs_Decl (Common_Nodes.N.As_Expr_Function);
 
       Orig_Aspects : constant Aspect_Spec := Common_Nodes.N.F_Aspects;
    begin
@@ -3022,9 +3022,9 @@ package body Instrument.Ada_Unit is
 
          if Semantic_Parent.Is_Null
            or else Prev_Part_Semantic_Parent.Is_Null
-           or else (Semantic_Parent.Kind
-                    not in Ada_Public_Part | Ada_Private_Part
-                    and then Semantic_Parent /= Prev_Part_Semantic_Parent)
+           or else
+             (Semantic_Parent.Kind not in Ada_Public_Part | Ada_Private_Part
+              and then Semantic_Parent /= Prev_Part_Semantic_Parent)
          then
             return False;
          end if;
@@ -3344,8 +3344,9 @@ package body Instrument.Ada_Unit is
             begin
                if not Prag_Assoc.F_Name.Is_Null
                  and then Prag_Assoc.F_Name.Kind in LALCO.Ada_Identifier
-                 and then As_Symbol (Prag_Assoc.F_Name.As_Identifier)
-                          = Precomputed_Symbols (Convention)
+                 and then
+                   As_Symbol (Prag_Assoc.F_Name.As_Identifier)
+                   = Precomputed_Symbols (Convention)
                then
                   return Prag_Assoc.F_Expr.As_Identifier;
                end if;
@@ -3950,18 +3951,20 @@ package body Instrument.Ada_Unit is
            --  ... this is a top-level declaration in a Preelaborate
            --  package.
 
-           and then (UIC.Current_Insertion_Info.Get.Method
-                     not in Statement | Declaration
-                     or else not UIC.Current_Insertion_Info.Get.Preelab)
+           and then
+             (UIC.Current_Insertion_Info.Get.Method
+              not in Statement | Declaration
+              or else not UIC.Current_Insertion_Info.Get.Preelab)
 
            --  ... this is a pragma that we know for certain will not
            --  generate code (such as Annotate or elaboration control
            --  pragmas).
 
-           and then (not Is_Pragma
-                     or else Pragma_Might_Generate_Code
-                               (Case_Insensitive_Get_Pragma_Id
-                                  (Pragma_Aspect_Name)))
+           and then
+             (not Is_Pragma
+              or else
+                Pragma_Might_Generate_Code
+                  (Case_Insensitive_Get_Pragma_Id (Pragma_Aspect_Name)))
 
            --  ... this is a disabled pragma that we assume will not
            --  generate code.
@@ -4562,9 +4565,10 @@ package body Instrument.Ada_Unit is
 
                for J in
                  1
-                 .. (if Common_Nodes.N_Params.Is_Null
-                     then 0
-                     else Common_Nodes.N_Params.Children_Count)
+                 ..
+                   (if Common_Nodes.N_Params.Is_Null
+                    then 0
+                    else Common_Nodes.N_Params.Children_Count)
                loop
                   for Id of
                     Common_Nodes.N_Params.Child (J)
@@ -4753,8 +4757,9 @@ package body Instrument.Ada_Unit is
 
          if Kind (N) in Ada_Base_Subp_Body
            and then Safe_Previous_Part_For_Decl (N.As_Base_Subp_Body).Is_Null
-           and then (not Is_Expr_Function
-                     or else Is_Self_Referencing (UIC, N.As_Expr_Function))
+           and then
+             (not Is_Expr_Function
+              or else Is_Self_Referencing (UIC, N.As_Expr_Function))
          then
 
             Insert_Before
@@ -5059,8 +5064,9 @@ package body Instrument.Ada_Unit is
                         C : constant Ada_Node := CUN.F_Prelude.Child (I);
                      begin
                         if C.Kind = Ada_Pragma_Node
-                          and then Pragma_Name (C.As_Pragma_Node)
-                                   in Name_Warnings | Name_Style_Checks
+                          and then
+                            Pragma_Name (C.As_Pragma_Node)
+                            in Name_Warnings | Name_Style_Checks
                         then
                            Remove_Child (Handle (C));
                         end if;
@@ -5913,10 +5919,11 @@ package body Instrument.Ada_Unit is
             --  Only traverse the nodes if they are not ghost entities
 
             if not (UIC.Ghost_Code
-                    or else (N.Kind in Ada_Stmt
-                             and then Safe_Is_Ghost (N.As_Stmt))
-                    or else (N.Kind in Ada_Basic_Decl
-                             and then Safe_Is_Ghost (N.As_Basic_Decl)))
+                    or else
+                      (N.Kind in Ada_Stmt and then Safe_Is_Ghost (N.As_Stmt))
+                    or else
+                      (N.Kind in Ada_Basic_Decl
+                       and then Safe_Is_Ghost (N.As_Basic_Decl)))
             then
                Traverse_One (N);
             end if;
@@ -6174,8 +6181,8 @@ package body Instrument.Ada_Unit is
 
       begin
          if N.P_Is_Compilation_Unit_Root
-           and then N.P_Has_Aspect
-                      (To_Unbounded_Text ("No_Elaboration_Code_All"))
+           and then
+             N.P_Has_Aspect (To_Unbounded_Text ("No_Elaboration_Code_All"))
          then
             UIC.Has_No_Elaboration_Code_All := True;
          end if;
@@ -6458,10 +6465,11 @@ package body Instrument.Ada_Unit is
          is
             Is_Op_String_Call : constant Boolean :=
               Node.Kind in Ada_String_Literal
-              and then (Node.Parent.Kind = Ada_Call_Expr
-                        or else (Node.Parent.Kind = Ada_Dotted_Name
-                                 and then Node.Parent.Parent.Kind
-                                          = Ada_Call_Expr));
+              and then
+                (Node.Parent.Kind = Ada_Call_Expr
+                 or else
+                   (Node.Parent.Kind = Ada_Dotted_Name
+                    and then Node.Parent.Parent.Kind = Ada_Call_Expr));
             --  For call of the form "+"(A,B), Node will be a String_Literal
             --  inside a Call_Expr. String_Literals are always considered to
             --  be static, but we don't want to instrument static expressions.
@@ -6474,8 +6482,8 @@ package body Instrument.Ada_Unit is
             Full_Call_Node : Ada_Node;
          begin
             if Is_Call_Leaf (Node)
-              and then (not Is_Static_Expr (Node.As_Expr)
-                        or else Is_Op_String_Call)
+              and then
+                (not Is_Static_Expr (Node.As_Expr) or else Is_Op_String_Call)
             then
                Full_Call_Node := Full_Call (Node);
 
@@ -7121,8 +7129,8 @@ package body Instrument.Ada_Unit is
               or else Assertion_Condition_Coverage_Enabled
             then
                if MCDC_Coverage_Enabled
-                 or else (Is_Contract
-                          and then Assertion_Condition_Coverage_Enabled)
+                 or else
+                   (Is_Contract and then Assertion_Condition_Coverage_Enabled)
                then
                   Condition_Count := 0;
 
@@ -7219,11 +7227,11 @@ package body Instrument.Ada_Unit is
                (N = Process_Decisions.N and then T /= 'X')
               or else
 
-              --  Complex decision, whether at outer level or nested: a boolean
-              --  expression involving a logical operator.
+                --  Complex decision, whether at outer level or nested: a boolean
+                --  expression involving a logical operator.
 
-              (N.Kind in Ada_Expr
-               and then Is_Complex_Decision (UIC, N.As_Expr));
+                 (N.Kind in Ada_Expr
+                  and then Is_Complex_Decision (UIC, N.As_Expr));
 
          begin
             if Decision_Root then
@@ -7506,8 +7514,9 @@ package body Instrument.Ada_Unit is
 
             return
               (Node.As_Name.P_Is_Call
-               or else (Node.Parent.Kind = Ada_Call_Expr
-                        and then Node.Parent.As_Call_Expr.P_Kind = Call));
+               or else
+                 (Node.Parent.Kind = Ada_Call_Expr
+                  and then Node.Parent.As_Call_Expr.P_Kind = Call));
 
          when Ada_Un_Op | Ada_Bin_Op | Ada_Concat_Op =>
             return False;
@@ -7544,9 +7553,10 @@ package body Instrument.Ada_Unit is
       end if;
 
       if Call.Parent.Kind in Ada_Dotted_Name
-        or else (Call.Kind in Ada_Op
-                 and then Call.Parent.Kind
-                          in Ada_Bin_Op | Ada_Un_Op | Ada_Relation_Op)
+        or else
+          (Call.Kind in Ada_Op
+           and then
+             Call.Parent.Kind in Ada_Bin_Op | Ada_Un_Op | Ada_Relation_Op)
       then
          Call := Call.Parent;
 
@@ -9417,8 +9427,9 @@ package body Instrument.Ada_Unit is
       end if;
       return
         not Has_Unit (Context, "Ada.Finalization", Unit_Specification)
-        or else Has_Matching_Pragma_For_Unit
-                  (Context, Unit, Pragma_Restricts_Finalization_Matchers);
+        or else
+          Has_Matching_Pragma_For_Unit
+            (Context, Unit, Pragma_Restricts_Finalization_Matchers);
    end Finalization_Restricted_In_Unit;
 
    ---------------------------------
@@ -9438,10 +9449,11 @@ package body Instrument.Ada_Unit is
       end if;
       return
         not Has_Unit (Context, "Ada.Task.Termination", Unit_Specification)
-        or else not Has_Unit
-                      (Context, "Ada.Task.Identification", Unit_Specification)
-        or else Has_Matching_Pragma_For_Unit
-                  (Context, Unit, Pragma_Prevents_Task_Termination_Matchers);
+        or else
+          not Has_Unit (Context, "Ada.Task.Identification", Unit_Specification)
+        or else
+          Has_Matching_Pragma_For_Unit
+            (Context, Unit, Pragma_Prevents_Task_Termination_Matchers);
    end Task_Termination_Restricted;
 
    -----------------------------
@@ -9784,9 +9796,9 @@ package body Instrument.Ada_Unit is
                if Pragma_Name (Prag_N) = Name_Annotate
                  and then Prag_Args.Children_Count in 2 .. 3
                  and then Is_Expected_Argument (Prag_Args, 1, Xcov)
-                 and then (Is_Expected_Argument (Prag_Args, 2, Dump_Buffers)
-                           or else Is_Expected_Argument
-                                     (Prag_Args, 2, Reset_Buffers))
+                 and then
+                   (Is_Expected_Argument (Prag_Args, 2, Dump_Buffers)
+                    or else Is_Expected_Argument (Prag_Args, 2, Reset_Buffers))
                then
                   --  First, check that we are in a statement list, no point in
                   --  generating invalid code.
@@ -10197,10 +10209,12 @@ package body Instrument.Ada_Unit is
 
          Preelab :=
            Decls_Are_Library_Level (UIC.Root_Unit)
-           and then (UIC.Root_Unit.P_Is_Preelaborable
-                     or else UIC.Root_Unit.P_Has_Restriction
-                               (To_Unbounded_Text ("No_Elaboration_Code"))
-                     or else UIC.Has_No_Elaboration_Code_All);
+           and then
+             (UIC.Root_Unit.P_Is_Preelaborable
+              or else
+                UIC.Root_Unit.P_Has_Restriction
+                  (To_Unbounded_Text ("No_Elaboration_Code"))
+              or else UIC.Has_No_Elaboration_Code_All);
       exception
          when Libadalang.Common.Property_Error =>
             Report
@@ -10355,10 +10369,11 @@ package body Instrument.Ada_Unit is
                   HL_SCO            : constant SCO_Id := SCO_Map (SD.LL_SCO);
                   Should_Instrument : constant Boolean :=
                     ((not SD.Is_Contract
-                      and then (Coverage.Enabled (Decision)
-                                or else MCDC_Coverage_Enabled))
-                     or else (SD.Is_Contract
-                              and then Assertion_Coverage_Enabled));
+                      and then
+                        (Coverage.Enabled (Decision)
+                         or else MCDC_Coverage_Enabled))
+                     or else
+                       (SD.Is_Contract and then Assertion_Coverage_Enabled));
                begin
                   if Should_Instrument then
                      Insert_Decision_Witness (UIC, SD, Path_Count (HL_SCO));
@@ -11196,8 +11211,7 @@ package body Instrument.Ada_Unit is
    ---------------------------------
 
    procedure Load_Config_Pragmas_Mapping
-     (Mapping  : out Config_Pragmas_Mapping;
-      Filename : String)
+     (Mapping : out Config_Pragmas_Mapping; Filename : String)
    is
       --  Parse the JSON description
 

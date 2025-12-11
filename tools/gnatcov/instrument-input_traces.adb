@@ -1149,9 +1149,10 @@ package body Instrument.Input_Traces is
 
             Ignore_Line :=
               Started_Trace
-              and then not Has_Prefix
-                             (Buffer (First .. Last),
-                              Prefix (Prefix'First .. Prefix_Last));
+              and then
+                not Has_Prefix
+                      (Buffer (First .. Last),
+                       Prefix (Prefix'First .. Prefix_Last));
 
             --  If the line is too long for our buffer:
             --
@@ -1403,10 +1404,12 @@ package body Instrument.Input_Traces is
       --  instrumenter recorded in the CU info.
 
       if not Has_Fingerprint (CU, Fingerprint)
-        or else Bit_Maps_Fingerprint
-                /= SC_Obligations.Bit_Maps_Fingerprint (CU, Fingerprint)
-        or else Annotations_Fingerprint
-                /= SC_Obligations.Annotations_Fingerprint (CU, Fingerprint)
+        or else
+          Bit_Maps_Fingerprint
+          /= SC_Obligations.Bit_Maps_Fingerprint (CU, Fingerprint)
+        or else
+          Annotations_Fingerprint
+          /= SC_Obligations.Annotations_Fingerprint (CU, Fingerprint)
       then
          Outputs.Warn
            ("traces for "

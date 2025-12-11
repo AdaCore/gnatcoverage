@@ -356,8 +356,9 @@ package body Project is
       --  interest, so do not warn about them in this specific case.
 
       if Unit.Warned_About_Missing_Info
-        or else (Currently_Accepted_Trace_Kind = Binary_Trace_File
-                 and then Unit.Language = CPP_Language)
+        or else
+          (Currently_Accepted_Trace_Kind = Binary_Trace_File
+           and then Unit.Language = CPP_Language)
 
         --  Ignore units in a language that is ignored through the
         --  --restricted-to-languages switch.
@@ -487,8 +488,9 @@ package body Project is
 
             if Source.Language
                in GPR2.Ada_Language | GPR2.C_Language | GPR2.CPP_Language
-              and then (not Source.Has_Units
-                        or else First_Unit (Source).Kind /= GPR2.S_No_Body)
+              and then
+                (not Source.Has_Units
+                 or else First_Unit (Source).Kind /= GPR2.S_No_Body)
             then
                Process.all (Source, Get_Unit_Name (Source));
             end if;
@@ -593,8 +595,9 @@ package body Project is
             --  explicitly ignore them.
 
             if To_Language_Or_All (Source.Language) /= All_Languages
-              and then (not Source.Has_Units
-                        or else First_Unit (Source).Kind /= GPR2.S_No_Body)
+              and then
+                (not Source.Has_Units
+                 or else First_Unit (Source).Kind /= GPR2.S_No_Body)
             then
                declare
                   use Unit_Maps;
@@ -932,10 +935,11 @@ package body Project is
                   end if;
 
                   if not Units_Specified
-                    or else (Has_Matcher
-                             and then GNAT.Regexp.Match
-                                        (To_Lower (Unit_Name),
-                                         Units_Specified_Matcher))
+                    or else
+                      (Has_Matcher
+                       and then
+                         GNAT.Regexp.Match
+                           (To_Lower (Unit_Name), Units_Specified_Matcher))
                   then
                      Add_Unit
                        (Inc_Units,
@@ -981,8 +985,8 @@ package body Project is
 
          Prj_Map.Reference (String (Project.Name)).Has_Units_Of_Interest :=
            (Has_One_Unit_Of_Interest
-            or else (not Units_Specified
-                     and then Has_Unit_Selection_Attributes));
+            or else
+              (not Units_Specified and then Has_Unit_Selection_Attributes));
       end Process_Project;
 
       --  Start of processing for Build_Unit_Map
@@ -1427,9 +1431,10 @@ package body Project is
       begin
          for Main of Project.Mains loop
             if Language = All_Languages
-              or else Language
-                      = To_Language_Or_All
-                          (Project.Source (Main.Source.Simple_Name).Language)
+              or else
+                Language
+                = To_Language_Or_All
+                    (Project.Source (Main.Source.Simple_Name).Language)
             then
                Result.Append (Main);
             end if;
@@ -1802,8 +1807,8 @@ package body Project is
             --  project matter.
 
             if not View.Is_Extended
-              and then (With_Externally_Built
-                        or else not View.Is_Externally_Built)
+              and then
+                (With_Externally_Built or else not View.Is_Externally_Built)
               and then (With_Runtime or else not View.Is_Runtime)
             then
                Result.Append (Source);

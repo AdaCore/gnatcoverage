@@ -243,7 +243,7 @@ package body GNATcov_RTS.Traces.Output is
                Current_Byte := Current_Byte or Bit_Mask;
             end if;
             Bit_Mask := 2 * Bit_Mask;
-            if Bit_Mask = 2**8 then
+            if Bit_Mask = 2 ** 8 then
                Flush;
             end if;
          end Append_Bit;
