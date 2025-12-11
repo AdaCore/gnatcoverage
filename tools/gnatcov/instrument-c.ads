@@ -478,7 +478,7 @@ private
    function Find_Instrumented_Entities
      (UIC : aliased in out C_Unit_Inst_Context'Class;
       SFI : Valid_Source_File_Index)
-     return C_Instrumented_Entities_Maps.Reference_Type
+      return C_Instrumented_Entities_Maps.Reference_Type
    with Pre => UIC.Instrumented_Entities.Contains (SFI);
    --  Return a reference to the UIC.Instrumented_Entities entry
    --  corresponding to the source file that SFI designates.
