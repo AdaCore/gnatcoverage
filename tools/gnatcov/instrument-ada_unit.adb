@@ -441,7 +441,7 @@ package body Instrument.Ada_Unit is
    --  Wrapper around E.P_Expression_Type, logging a warning and returning
    --  Standard.Boolean if unable to determine the type.
 
-   function Is_Static_Expr (E : Expr) return Boolean;
+   function Is_Static_Expr (E : Expr'Class) return Boolean;
    --  Wrapper around E.P_Is_Static_Expr, logging a warning and returning
    --  False if unable to determine whether the expression is static.
 
@@ -532,7 +532,7 @@ package body Instrument.Ada_Unit is
    -----------------
 
    procedure Report
-     (UIC  : Ada_Unit_Inst_Context;
+     (UIC  : Ada_Unit_Inst_Context'Class;
       Node : Ada_Node'Class;
       Msg  : String;
       Kind : Report_Kind := Diagnostics.Error);
@@ -547,7 +547,7 @@ package body Instrument.Ada_Unit is
    ------------
 
    procedure Report
-     (UIC  : Ada_Unit_Inst_Context;
+     (UIC  : Ada_Unit_Inst_Context'Class;
       Node : Ada_Node'Class;
       Msg  : String;
       Kind : Report_Kind := Diagnostics.Error)
@@ -672,6 +672,17 @@ package body Instrument.Ada_Unit is
      (Inserter : in out Default_MCDC_State_Inserter;
       UIC      : in out Ada_Unit_Inst_Context'Class;
       Name     : String) return String;
+
+   function Require_MCDC_State_Inserter
+     (UIC      : in out Ada_Unit_Inst_Context'Class;
+      E        : Expr'Class;
+      Inserter : aliased in out Default_MCDC_State_Inserter'Class)
+      return Boolean;
+   --  If UIC already has a state inserter, do nothing. Otherwise, try to
+   --  create one, wrapping E in a declare expression. This only emits a
+   --  warning if the current Ada version does not support declare expressions.
+   --
+   --  Return whether UIC has a state inserter upon return.
 
    ------------------------------------------------
    -- Degenerate subprograms                     --
@@ -2036,6 +2047,64 @@ package body Instrument.Ada_Unit is
       Insert_First (Inserter.Local_Decls, Decl);
       return Name;
    end Insert_MCDC_State;
+
+   ---------------------------------
+   -- Require_MCDC_State_Inserter --
+   ---------------------------------
+
+   function Require_MCDC_State_Inserter
+     (UIC      : in out Ada_Unit_Inst_Context'Class;
+      E        : Expr'Class;
+      Inserter : aliased in out Default_MCDC_State_Inserter'Class)
+      return Boolean
+   is
+      ERH : Node_Rewriting_Handle;
+      --  Node rewriting handle for E
+
+      Decl_Expr, Decl_List : Node_Rewriting_Handle;
+      --  Declare expression (and list of declarations) to hold the above list
+
+      Paren_Expr : Node_Rewriting_Handle;
+      --  Paren expression to wrap the decl expression (needed for correct
+      --  syntax).
+   begin
+      if UIC.MCDC_State_Inserter /= null then
+         return True;
+      end if;
+
+      if UIC.Language_Version not in Decl_Expr_Supported_Versions then
+         Report
+           (UIC,
+            E,
+            "gnatcov limitation: cannot find local declarative part for MC/DC;"
+            & " consider switching to Ada 2022: declare expressions allow to"
+            & " lift this limitation",
+            Kind => Diagnostics.Error);
+         return False;
+      end if;
+
+      --  Create the decl expression to wrap the expression and replace the
+      --  original expression with it.
+
+      ERH := Handle (E);
+      Decl_List := Create_Node (UIC.Rewriting_Context, Ada_Ada_Node_List);
+      Decl_Expr :=
+        Create_Decl_Expr
+          (Handle  => UIC.Rewriting_Context,
+           F_Decls => Decl_List,
+           F_Expr  => No_Node_Rewriting_Handle);
+      Paren_Expr := Create_Paren_Expr (UIC.Rewriting_Context, Decl_Expr);
+      Replace (ERH, Paren_Expr);
+      Set_Child (Decl_Expr, Member_Refs.Decl_Expr_F_Expr, ERH);
+
+      --  Update instrumentation data structures so that new declarations go
+      --  in this decl expression.
+
+      Inserter.Local_Decls := Decl_List;
+      UIC.MCDC_State_Inserter := Inserter'Unchecked_Access;
+      UIC.In_Decl_Expr := True;
+      return True;
+   end Require_MCDC_State_Inserter;
 
    -----------------------------------------
    -- Create_Degenerate_Subp_Common_Nodes --
@@ -3664,12 +3733,15 @@ package body Instrument.Ada_Unit is
    --
    --  This also processes any nested declare expressions.
 
-   procedure Process_Expression_No_MCDC
+   procedure Process_Standalone_Expression
      (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character);
-   --  Wrapper around Process_Expression that temporarily removes the MCDC
-   --  state inserter. This convenience function allows to process expressions
-   --  in contexts where we know that we cannot insert MCDC state variables
-   --  (instrumenter limitation).
+   --  Wrapper around Process_Expression that considers that the context does
+   --  not provide a valid MCDC state inserter (for instance for contracts or
+   --  formal/discriminant/component default expressions).
+   --
+   --  If the current Ada version allows it, it inserts a declare expression to
+   --  host MCDC state variables. Otherwise, it temporarily removes the MCDC
+   --  state inserter from UIC (just during the call to Process_Expression).
 
    procedure Process_Formal_Default_Exprs
      (UIC : in out Ada_Unit_Inst_Context; N_Spec : Subp_Spec);
@@ -4035,11 +4107,24 @@ package body Instrument.Ada_Unit is
       procedure Process_Contract
         (UIC  : in out Ada_Unit_Inst_Context;
          D    : Basic_Decl'Class;
-         Name : Text_Type) is
+         Name : Text_Type)
+      is
+         Decision : Expr;
       begin
-         if Assertion_Coverage_Enabled then
-            Process_Expression
-              (UIC, P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name)), 'A');
+         --  If assertion coverage is not enabled, or if the contract is not
+         --  present, there is nothing to do.
+
+         if not Assertion_Coverage_Enabled then
+            return;
+         end if;
+
+         Decision := P_Get_Aspect_Spec_Expr (D, To_Unbounded_Text (Name));
+         if not Decision.Is_Null then
+
+            --  For MCDC, we may need to create locals when instrumenting the
+            --  decision: these locals cannot go to the scope that contains D.
+
+            Process_Standalone_Expression (UIC, Decision, 'A');
          end if;
       end Process_Contract;
 
@@ -4914,11 +4999,11 @@ package body Instrument.Ada_Unit is
                   --  context.
                   --
                   --  However, the default expression is evaluated when
-                  --  creating a record value, so there is no appropriate room
-                  --  to insert the MC/DC local state variable.
+                  --  creating a record value, so MC/DC local state
+                  --  variables for it cannot go in the current scope.
 
                   Process_Expression (UIC, C.F_Component_Def.As_Ada_Node, 'X');
-                  Process_Expression_No_MCDC (UIC, C.F_Default_Expr, 'X');
+                  Process_Standalone_Expression (UIC, C.F_Default_Expr, 'X');
                end;
             end if;
          end loop;
@@ -5742,10 +5827,10 @@ package body Instrument.Ada_Unit is
                begin
                   --  For concrete type declarations, the discriminant default
                   --  expression may contain decisions, but is not evaluated
-                  --  during the type elaboration, so we cannot insert a MC/DC
-                  --  state variable here.
+                  --  during the type elaboration, so MC/DC local state
+                  --  variables for it cannot go in the current scope.
 
-                  Process_Expression_No_MCDC (UIC, TD.F_Discriminants, 'X');
+                  Process_Standalone_Expression (UIC, TD.F_Discriminants, 'X');
 
                   --  Default expressions for regular components behave the
                   --  same: process them accordingly.
@@ -6891,10 +6976,18 @@ package body Instrument.Ada_Unit is
          --  the table entry for the element, with C1 set to ' '. Last is set
          --  False, and an entry is made in the condition hash table.
 
-         procedure Output_Header (T : Character; N : Ada_Node'Class);
+         procedure Output_Header
+           (T      : Character;
+            E      : Expr'Class;
+            New_SI : aliased in out Default_MCDC_State_Inserter);
          --  Outputs a decision header node. T is I/W/E/P for IF/WHILE/EXIT
          --  WHEN/ PRAGMA, and 'X' for the expression case. Resets
          --  Condition_Count to 0, and initializes Conditions_State.
+         --
+         --  If there is MCDC state inserter for the current context, this may
+         --  try to create one: if that's the case, New_SI will be used to do
+         --  that. The caller is responsible for saving and restoring the old
+         --  state inserter.
 
          procedure Find_Nested_Decisions (Operand : Expr);
          --  This is called on node Operand, the top level node of a decision,
@@ -7037,7 +7130,11 @@ package body Instrument.Ada_Unit is
          -- Output_Header --
          -------------------
 
-         procedure Output_Header (T : Character; N : Ada_Node'Class) is
+         procedure Output_Header
+           (T      : Character;
+            E      : Expr'Class;
+            New_SI : aliased in out Default_MCDC_State_Inserter)
+         is
             Loc : Source_Location := No_Source_Location;
             --  Node whose Sloc is used for the decision
 
@@ -7054,10 +7151,10 @@ package body Instrument.Ada_Unit is
                   --  For IF, EXIT, WHILE, or aspects, the token SLOC is that
                   --  of the parent of the expression.
 
-                  Loc := Sloc (Parent (N));
+                  Loc := Sloc (Parent (E));
 
                   if T in 'a' | 'A' then
-                     Nam := Aspect_Assoc_Name (N.Parent.As_Aspect_Assoc);
+                     Nam := Aspect_Assoc_Name (E.Parent.As_Aspect_Assoc);
                   end if;
 
                when 'G'                         =>
@@ -7068,22 +7165,22 @@ package body Instrument.Ada_Unit is
                   --  the sloc of the condition itself.
 
                   declare
-                     Par : constant Ada_Node := N.Parent;
+                     Par : constant Ada_Node := E.Parent;
                   begin
                      if Par.Kind = Ada_Entry_Body then
                         Loc := Sloc (Par);
                      else
-                        Loc := Sloc (N);
+                        Loc := Sloc (E);
                      end if;
                   end;
 
                when 'P'                         =>
 
                   --  For PRAGMA, we must get the location from the pragma
-                  --  node. Argument N is the pragma argument.
+                  --  node. Argument E is the pragma argument.
 
                   declare
-                     PN : Ada_Node := N.As_Ada_Node;
+                     PN : Ada_Node := E.As_Ada_Node;
                   begin
                      while PN.Kind /= Ada_Pragma_Node loop
                         PN := PN.Parent;
@@ -7124,9 +7221,29 @@ package body Instrument.Ada_Unit is
 
             Current_Decision := SCOs.SCO_Table.Last;
 
-            if Coverage.Enabled (Decision)
-              or else MCDC_Coverage_Enabled
-              or else Assertion_Condition_Coverage_Enabled
+            --  Do not instrument this decision if we have already determined
+            --  from the context that instrumenting it could produce invalid
+            --  code.
+            --
+            --  Instrumenting static decisions would make them non-static by
+            --  wrapping them in a Witness call. This transformation would
+            --  trigger legality checks on the originally non-evaluated branch,
+            --  which could result in compilation errors specific to the
+            --  instrumented code, e.g. on:
+            --
+            --   X := (if <config.static-False>
+            --         then <out-of-range-static>
+            --         else <value>);
+            --
+            --  For this reason, also refrain from instrumenting static
+            --  decisions.
+
+            if not UIC.Disable_Instrumentation
+              and then not Is_Static_Expr (E)
+              and then
+                (Coverage.Enabled (Decision)
+                 or else MCDC_Coverage_Enabled
+                 or else Assertion_Condition_Coverage_Enabled)
             then
                if MCDC_Coverage_Enabled
                  or else
@@ -7134,14 +7251,11 @@ package body Instrument.Ada_Unit is
                then
                   Condition_Count := 0;
 
-                  if UIC.MCDC_State_Inserter = null then
-                     Report
-                       (UIC,
-                        N,
-                        "gnatcov limitation: "
-                        & "cannot find local declarative part for MC/DC",
-                        Kind => Diagnostics.Error);
-                  else
+                  --  We need to instrument for MCDC, so we need an MCDC state
+                  --  inserter. If there is none, try to create one based on a
+                  --  decl expr.
+
+                  if Require_MCDC_State_Inserter (UIC, E, New_SI) then
                      Conditions_State :=
                        To_Unbounded_String
                          (UIC.MCDC_State_Inserter.Insert_MCDC_State
@@ -7149,33 +7263,12 @@ package body Instrument.Ada_Unit is
                   end if;
                end if;
 
-               --  Do not instrument this decision if we have already
-               --  determined from the context that instrumenting it could
-               --  produce invalid code.
-               --
-               --  Instrumenting static decisions would make them non-static by
-               --  wrapping them in a Witness call. This transformation would
-               --  trigger legality checks on the originally non-evaluated
-               --  branch, which could result in compilation errors specific
-               --  to the instrumented code, e.g. on:
-               --
-               --   X := (if <config.static-False>
-               --         then <out-of-range-static>
-               --         else <value>);
-               --
-               --  For this reason, also refrain from instrumenting static
-               --  decisions.
-
-               if not (UIC.Disable_Instrumentation
-                       or else Is_Static_Expr (N.As_Expr))
-               then
-                  UIC.Source_Decisions.Append
-                    (Source_Decision'
-                       (LL_SCO      => Current_Decision,
-                        Decision    => N.As_Expr,
-                        State       => Conditions_State,
-                        Is_Contract => Is_Contract));
-               end if;
+               UIC.Source_Decisions.Append
+                 (Source_Decision'
+                    (LL_SCO      => Current_Decision,
+                     Decision    => E.As_Expr,
+                     State       => Conditions_State,
+                     Is_Contract => Is_Contract));
             end if;
 
             --  For an aspect specification, which will be rewritten into a
@@ -7239,6 +7332,13 @@ package body Instrument.Ada_Unit is
                   EN : constant Expr := N.As_Expr;
                   T  : Character;
 
+                  --  If there is none, Output_Header may create a MCDC local
+                  --  state variable inserter.
+
+                  New_SI    : aliased Default_MCDC_State_Inserter;
+                  Saved_SI  : constant Any_MCDC_State_Inserter :=
+                    UIC.MCDC_State_Inserter;
+                  Saved_IDE : constant Boolean := UIC.In_Decl_Expr;
                begin
                   --  If outer level, then type comes from call, otherwise it
                   --  is more deeply nested and counts as X for expression.
@@ -7254,7 +7354,7 @@ package body Instrument.Ada_Unit is
                   X_Not_Decision := T = 'X' and then N.Kind = Ada_Op_Not;
                   Mark := SCOs.SCO_Table.Last;
                   Mark_Hash := Hash_Entries.Last;
-                  Output_Header (T, N);
+                  Output_Header (T, EN, New_SI);
 
                   --  Output the decision (recursively traversing operands)
 
@@ -7283,6 +7383,9 @@ package body Instrument.Ada_Unit is
                   if T not in 'P' | 'A' | 'a' then
                      Find_Nested_Decisions (EN);
                   end if;
+
+                  UIC.MCDC_State_Inserter := Saved_SI;
+                  UIC.In_Decl_Expr := Saved_IDE;
                   return Over;
                end;
             end if;
@@ -7454,20 +7557,23 @@ package body Instrument.Ada_Unit is
       end if;
    end Process_Expression;
 
-   --------------------------------
-   -- Process_Expression_No_MCDC --
-   --------------------------------
+   -----------------------------------
+   -- Process_Standalone_Expression --
+   -----------------------------------
 
-   procedure Process_Expression_No_MCDC
+   procedure Process_Standalone_Expression
      (UIC : in out Ada_Unit_Inst_Context; N : Ada_Node'Class; T : Character)
    is
-      UIC_SI   : Any_MCDC_State_Inserter renames UIC.MCDC_State_Inserter;
-      Saved_SI : constant Any_MCDC_State_Inserter := UIC_SI;
+      Saved_SI : constant Any_MCDC_State_Inserter := UIC.MCDC_State_Inserter;
    begin
-      UIC_SI := null;
+      --  The purpose of this Process_Expression wrapper is to avoid creating
+      --  local MCDC state variables outside of the expression itself: hide the
+      --  current state inserter during the call.
+
+      UIC.MCDC_State_Inserter := null;
       Process_Expression (UIC, N, T);
-      UIC_SI := Saved_SI;
-   end Process_Expression_No_MCDC;
+      UIC.MCDC_State_Inserter := Saved_SI;
+   end Process_Standalone_Expression;
 
    ----------------------------------
    -- Process_Formal_Default_Exprs --
@@ -8100,7 +8206,7 @@ package body Instrument.Ada_Unit is
    -- Is_Static_Expr --
    --------------------
 
-   function Is_Static_Expr (E : Expr) return Boolean is
+   function Is_Static_Expr (E : Expr'Class) return Boolean is
    begin
       return E.P_Is_Static_Expr;
    exception
