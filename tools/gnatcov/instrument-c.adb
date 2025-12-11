@@ -1089,8 +1089,9 @@ package body Instrument.C is
    --------------------------------
 
    function Find_Instrumented_Entities
-     (UIC : in out C_Unit_Inst_Context'Class; SFI : Valid_Source_File_Index)
-      return C_Instrumented_Entities_Maps.Reference_Type
+     (UIC : aliased in out C_Unit_Inst_Context'Class;
+      SFI : Valid_Source_File_Index)
+     return C_Instrumented_Entities_Maps.Reference_Type
    is
       Dummy : Boolean;
    begin
