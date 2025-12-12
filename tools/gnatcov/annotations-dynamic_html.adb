@@ -23,6 +23,7 @@ with Ada.Text_IO;
 with Ada.Text_IO.Unbounded_IO;
 
 with GNATCOLL.JSON; use GNATCOLL.JSON;
+with GNATCOLL.VFS;
 
 with GNAT.OS_Lib;
 with GNAT.Regpat; use GNAT.Regpat;
@@ -1084,6 +1085,8 @@ package body Annotations.Dynamic_Html is
       procedure Copy_And_Fix_Asset (Directory_Entry : Directory_Entry_Type);
       --  Copy the given file to the output directory. For the index.html file,
       --  patch the HTML title according to the --report-title option.
+      --
+      --  Also copy the media directory, packaging fonts / icons artifacts.
 
       procedure Replace_Line_In_File
         (In_Filename  : String;
@@ -1138,31 +1141,42 @@ package body Annotations.Dynamic_Html is
       ------------------------
 
       procedure Copy_And_Fix_Asset (Directory_Entry : Directory_Entry_Type) is
+         Source_Name : constant String := Full_Name (Directory_Entry);
+         Target_Name : constant String :=
+           Get_Output_Dir
+           & GNAT.OS_Lib.Directory_Separator
+           & Simple_Name (Directory_Entry);
+
+         Copy_Success : Boolean := True;
+
+         use GNATCOLL.VFS;
       begin
          if Kind (Directory_Entry) = Ordinary_File then
-            declare
-               Source_Name : constant String := Full_Name (Directory_Entry);
-               Target_Name : constant String :=
-                 Get_Output_Dir
-                 & GNAT.OS_Lib.Directory_Separator
-                 & Simple_Name (Directory_Entry);
-            begin
-               --  Consider the --report-title option that can change the title
-               --  of the HTML generated page.
 
-               if Simple_Name (Directory_Entry) = "index.html" then
-                  Replace_Line_In_File
-                    (In_Filename  => Source_Name,
-                     Out_Filename => Target_Name,
-                     Pattern      => "<title>.*</title>",
-                     Replacement  =>
-                       "  <title>"
-                       & (+Pp.Title_Prefix)
-                       & "GNATcoverage Report</title>");
-               else
-                  Copy_File (Source_Name, Target_Name);
-               end if;
-            end;
+            --  Consider the --report-title option that can change the title of
+            --  the HTML generated page.
+
+            if Simple_Name (Directory_Entry) = "index.html" then
+               Replace_Line_In_File
+                 (In_Filename  => Source_Name,
+                  Out_Filename => Target_Name,
+                  Pattern      => "<title>.*</title>",
+                  Replacement  =>
+                    "  <title>"
+                    & (+Pp.Title_Prefix)
+                    & "GNATcoverage Report</title>");
+            else
+               Copy (Create (+Source_Name), +Target_Name, Copy_Success);
+            end if;
+         elsif Kind (Directory_Entry) = Directory then
+            if Simple_Name (Directory_Entry) = "media" then
+               Copy (Create (+Source_Name), +Target_Name, Copy_Success);
+            end if;
+         end if;
+
+         if not Copy_Success then
+            Fatal_Error
+              ("Failed to copy html report artifacts to " & Get_Output_Dir);
          end if;
       end Copy_And_Fix_Asset;
 
