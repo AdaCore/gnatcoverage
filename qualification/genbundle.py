@@ -529,9 +529,9 @@ class QMAT:
 
         this_item_is_tree = self.this_docformat == "html"
 
-        this_item_name = (
-            self.settings["project"]["subst"][f"{part.lower()}_abb"].strip("*")
-        )
+        this_item_name = self.settings["project"]["subst"][
+            f"{part.lower()}_abb"
+        ].strip("*")
 
         this_item_id = self.settings["project"]["subst"][f"{part.lower()}_id"]
 
@@ -539,11 +539,9 @@ class QMAT:
             "" if this_item_is_tree else ".%s" % self.this_docformat
         )
 
-        return (
-            f"{this_item_name}_{this_item_id}_v{self.doc_versions[part]}"
-            .upper().replace(".", "_")
-            + this_item_suffix
-        )
+        temp = f"{this_item_name}_{this_item_id}_v{self.doc_versions[part]}"
+
+        return temp.upper().replace(".", "_") + this_item_suffix
 
     # ----------------
     # -- latch_into --
