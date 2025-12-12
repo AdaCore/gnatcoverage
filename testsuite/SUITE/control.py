@@ -9,7 +9,7 @@ from e3.env import Env
 from e3.fs import rm
 from e3.os.process import Run
 
-from SUITE.cutils import no_ext, version
+from SUITE.cutils import contents_of, no_ext, version
 
 
 env = Env()
@@ -451,6 +451,42 @@ def gnatemu_board_name(name):
     unchanged.
     """
     return BOARD_INFO.get(name, name)
+
+
+# Mapping from the CPU name to the C BSP example in the gnat installation tree
+BSP_MAP = {
+    "zynqmp": "zcu102",
+    "stm32f4": "stm32f429disco",
+    "leon3": "leon3",
+    "mpc8641": "mpc8641",
+}
+
+
+def bsp_project(cpu):
+    """
+    Return the name of the bsp project (without extension) for the given cpu
+    """
+    return BSP_MAP.get(cpu, None)
+
+
+# Driver cache to avoid inspecting the configuration file multiple times
+driver_cache = {}
+
+
+def driver_for_lang(config, lang: str) -> str | None:
+    """
+    Inspect the contents of the gpr configuration file config to determine what
+    the compiler driver for the given language is. lang is case sensitive. This
+    returns None if the driver was not found.
+    """
+    if lang in driver_cache:
+        return driver_cache[lang]
+    driver_match = re.search(
+        r'for Driver *\("' + re.escape(lang) + r'"\) use "(.*)";',
+        contents_of(config),
+    )
+    driver_cache[lang] = driver_match.group(1) if driver_match else None
+    return driver_cache[lang]
 
 
 # Allowed pairs for the --gnatcov-<cmd> family of command line options:

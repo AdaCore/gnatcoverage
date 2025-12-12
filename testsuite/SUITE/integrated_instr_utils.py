@@ -2,170 +2,14 @@
 # tests.
 
 from dataclasses import dataclass
-import json
 import os
 from pathlib import Path
-import re
 
-from e3.fs import cp
+import SUITE.control
 
-from SUITE.context import ROOT_DIR
-from SUITE.control import GPRBUILD
-from SUITE.cutils import contents_of, no_ext, text_to_file, to_list, Wdir
+from SUITE.context import get_c_bsp_info, ROOT_DIR
+from SUITE.cutils import contents_of, no_ext, text_to_file, to_list
 from SUITE.tutils import cmdrun, run_cov_program, thistest, xcov
-
-# Mapping from the CPU name to the C BSP example in the gnat installation tree
-BSP_MAP = {
-    "zynqmp": "zcu102",
-    "stm32f4": "stm32f429disco",
-    "leon3": "leon3",
-    "mpc8641": "mpc8641",
-}
-
-
-@dataclass
-class BSPInfo:
-    compiler_switches: list[str]
-    linker_switches: list[str]
-
-
-def driver_for_lang(lang: str) -> str | None:
-    """
-    Inspect the contents of suite.cgpr to determine what the compiler driver
-    for the given language is. lang is case sensitive. This returns None if
-    the driver was not found.
-    """
-    driver_match = re.search(
-        r'for Driver *\("' + re.escape(lang) + r'"\) use "(.*)";',
-        contents_of(os.path.join(ROOT_DIR, "suite.cgpr")),
-    )
-
-    return driver_match.group(1) if driver_match else None
-
-
-def bsp_project(cpu):
-    """
-    Return the name of the bsp project (without extension) for the given cpu
-    """
-    return BSP_MAP.get(cpu, None)
-
-
-def get_c_bsp(rts):
-    """
-    Build & install the C BSP project that is shipped with gnat. The BSP
-    exposes a subset of stdio that can be used to dump traces.
-
-    RTS is used to locate the correct BSP, we assume that:
-    - RTS is of the form <variant>-<cpu>
-    - in the gnat installation tree there is a <install
-    prefix>/share/examples/gnat-c/<cpu> directory, in which there is a
-    bsp_map[<cpu>].gpr project (see above for bsp_map).
-
-    This function will copy the BSP project to the current directory, and
-    return the name of it.
-    """
-
-    cpu_name = rts.split("-")[-1]
-
-    thistest.fail_if(
-        not cpu_name,
-        f"Could not deduce CPU name from RTS: {rts}",
-    )
-
-    gcc = driver_for_lang("C")
-    thistest.fail_if(not gcc, "Could not locate gcc executable")
-
-    bsp_original_location = os.path.join(
-        os.path.dirname(gcc), "..", "share", "examples", "gnat-c", cpu_name
-    )
-    cp(os.path.join(bsp_original_location, "*"), os.getcwd(), recursive=True)
-
-    return bsp_project(cpu_name)
-
-
-bsp_info_cache: None | BSPInfo = None
-
-
-def generate_c_bsp(rts):
-    """
-    Generate a base support project, according to the target and runtime
-    options passed to the testsuite, and build it.
-
-    Return a BSP_Info dictionary consisting of:
-      * A compiler_switches field containing the list of switches to pass to
-        the compiler invocation.
-      * A linker_switches field containing the list of switches to pass to the
-        linker invocation.
-    """
-
-    # Generate the BSP project in a temporary directory
-    tmp_dir = Wdir("tmp_bsp")
-    bsp_prj = get_c_bsp(thistest.options.RTS)
-    cmdrun([GPRBUILD, "-P", bsp_prj], for_pgm=False)
-
-    # Use gprinspect to retrieve the list of compiler switches and linker
-    # switches.
-    cmdrun(
-        [
-            "gprinspect",
-            "-P",
-            bsp_prj,
-            "--all",
-            "--attributes",
-            "--display=json",
-        ],
-        out="bsp.json",
-        for_pgm=False,
-    )
-
-    with open("bsp.json") as f:
-        data = json.load(f)
-
-    compiler_switches = []
-    linker_switches = []
-
-    # Retrieve compiler switches
-    for project in data.get("projects", []):
-        for pkg in project.get("packages", []):
-            if pkg.get("name") == "Compiler":
-                for attr in pkg.get("attributes", []):
-                    if attr.get("name") == "Switches":
-                        compiler_switches.extend(attr.get("values", []))
-
-    # Retrieve linker switches
-    for project in data.get("projects", []):
-        for var in project.get("variables", []):
-            if var.get("name") == "Linker_Switches":
-                linker_switches.extend(var.get("values", []))
-
-    # Add the -L<full_path_to_libdir> switch
-    for attr in project.get("attributes", []):
-        if attr.get("name") == "Library_Dir":
-            lib_dir = attr.get("value")
-            # If it's a relative path, make it absolute using Project_Dir
-            project_dir = next(
-                (
-                    a["value"]
-                    for a in project.get("attributes", [])
-                    if a.get("name") == "Project_Dir"
-                ),
-                "",
-            )
-            if project_dir and not os.path.isabs(lib_dir):
-                lib_dir = os.path.abspath(os.path.join(project_dir, lib_dir))
-            linker_switches.append(f"-L{lib_dir}")
-
-    tmp_dir.to_homedir()
-    global bsp_info_cache
-    bsp_info_cache = BSPInfo(compiler_switches, linker_switches)
-
-
-def get_bsp_info():
-    if bsp_info_cache:
-        return bsp_info_cache
-    else:
-        generate_c_bsp(thistest.options.RTS)
-        return bsp_info_cache
 
 
 def find_files_with_exts(exts, root_dir=None):
@@ -176,6 +20,15 @@ def find_files_with_exts(exts, root_dir=None):
     root_dir = root_dir or os.getcwd()
     root_path = Path(os.getcwd())
     return [str(p) for p in root_path.rglob("*") if p.suffix in exts]
+
+
+def driver_for_lang(lang):
+    """
+    Refer to SUITE.control.driver_for_lang.
+    """
+    return SUITE.control.driver_for_lang(
+        os.path.join(ROOT_DIR, "suite.cgpr"), lang
+    )
 
 
 @dataclass(kw_only=True)
@@ -220,7 +73,7 @@ class LinkBits:
         self.linker_switches = to_list(self.linker_switches)
         if thistest.env.is_cross:
             self.linker_switches = (
-                self.linker_switches + get_bsp_info().linker_switches
+                self.linker_switches + get_c_bsp_info().linker_switches
             )
 
         # See the comment in the Workflow.__post_init__ method
@@ -247,7 +100,7 @@ class CompileBits:
         self.compiler_switches = to_list(self.compiler_switches)
         if thistest.env.is_cross:
             self.compiler_switches = (
-                self.compiler_switches + get_bsp_info().compiler_switches
+                self.compiler_switches + get_c_bsp_info().compiler_switches
             )
 
         # See the comment in the Workflow.__post_init__ method
@@ -450,10 +303,9 @@ def setup_integration(
     ]
 
     # When running in a cross configuration, we need to use the coverage
-    # runtime with no Ada support as otherwise we'll get undefined reference to
-    # GNAT.IO. It is installed by default with the name gnatcov_rts_c.gpr.
+    # runtime that is installed along the bsp support.
     if thistest.env.is_cross:
-        gnatcov_rts = "gnatcov_rts_c"
+        gnatcov_rts = thistest.options.c_bsp_gnatcov_rts
     else:
         gnatcov_rts = "gnatcov_rts"
 
