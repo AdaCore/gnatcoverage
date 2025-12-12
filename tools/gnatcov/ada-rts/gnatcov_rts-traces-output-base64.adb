@@ -32,7 +32,7 @@ package body GNATcov_RTS.Traces.Output.Base64 is
 
    --  Base64-over-stdout stream
 
-   type Uint6 is mod 2**6;
+   type Uint6 is mod 2 ** 6;
    Base64_Alphabet : constant array (Uint6) of Character :=
      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
      & "abcdefghijklmnopqrstuvwxyz"

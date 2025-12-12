@@ -1096,8 +1096,7 @@ package body SC_Obligations is
          --  Descend into the tree until we are on a leaf, or no child of the
          --  current scope entity covers the SCO.
 
-         Depth_Descent :
-         while not Is_Leaf (ST.Cur) loop
+         Depth_Descent : while not Is_Leaf (ST.Cur) loop
 
             --  Otherwise, find if there is a child that covers SCO, this is a
             --  linear search. We could search by dichotomy as the children are
@@ -1112,8 +1111,7 @@ package body SC_Obligations is
                --  Whether the low bound of Child is lower than SCO (and thus
                --  Child covers SCO when exiting the loop).
             begin
-               Child_Search :
-               while Has_Element (Child) loop
+               Child_Search : while Has_Element (Child) loop
                   declare
                      SE : constant Scope_Entity := Element (Child);
                   begin
@@ -1915,15 +1913,17 @@ package body SC_Obligations is
 
                   elsif Src_Range.L.First_Sloc
                     < Scope_Ent.Source_Range.L.First_Sloc
-                    and then Scope_Ent.Source_Range.L.Last_Sloc
-                             < Src_Range.L.Last_Sloc
+                    and then
+                      Scope_Ent.Source_Range.L.Last_Sloc
+                      < Src_Range.L.Last_Sloc
                   then
                      --  Check if it nests with the innermost scope entity. If
                      --  this is the case, insert it as a child.
 
                      while Has_Element (Child)
-                       and then Element (Child).Source_Range.L.First_Sloc
-                                < Scope_Ent.Source_Range.L.First_Sloc
+                       and then
+                         Element (Child).Source_Range.L.First_Sloc
+                         < Scope_Ent.Source_Range.L.First_Sloc
                      loop
                         Child := Next_Sibling (Child);
                      end loop;
@@ -2415,11 +2415,12 @@ package body SC_Obligations is
             --  Ignore also when the fingerprints do not match
 
             elsif (CP_CU.Provider = Compiler
-                   and then CP_CU.SCOs_Fingerprint
-                            /= CU_Record.SCOs_Fingerprint)
-              or else (CP_CU.Provider = Instrumenter
-                       and then CP_CU.Source_Fingerprint
-                                /= CU_Record.Source_Fingerprint)
+                   and then
+                     CP_CU.SCOs_Fingerprint /= CU_Record.SCOs_Fingerprint)
+              or else
+                (CP_CU.Provider = Instrumenter
+                 and then
+                   CP_CU.Source_Fingerprint /= CU_Record.Source_Fingerprint)
             then
                Warn
                  ("unexpected fingerprint, cannot merge coverage"
@@ -3243,8 +3244,8 @@ package body SC_Obligations is
             --  Search for the first Condition of the Decision.
 
             while In_CU (CU, C_SCO)
-              and then (Kind (C_SCO) /= Condition
-                        or else Parent (C_SCO) /= SCO)
+              and then
+                (Kind (C_SCO) /= Condition or else Parent (C_SCO) /= SCO)
             loop
                C_SCO := C_SCO + 1;
             end loop;
@@ -3719,18 +3720,15 @@ package body SC_Obligations is
 
         SCOD.Origin = No_CU_Id
 
-        or else
-
         --  Pragma not generating code?
 
-        (SCOD.S_Kind = Pragma_Statement
-         and then not Pragma_Might_Generate_Code (SCOD.Pragma_Name))
-
         or else
+          (SCOD.S_Kind = Pragma_Statement
+           and then not Pragma_Might_Generate_Code (SCOD.Pragma_Name))
 
         --  Disabled pragma?
 
-        SCOD.S_Kind = Disabled_Pragma_Statement;
+        or else SCOD.S_Kind = Disabled_Pragma_Statement;
 
    end Ignore_SCO;
 
@@ -3869,13 +3867,14 @@ package body SC_Obligations is
             SCOD           : SCO_Descriptor renames SCO_Vector.Reference (SCO);
             From_Assertion : constant Boolean :=
               Assertion_Coverage_Enabled
-              and then ((SCOD.Kind = Decision
-                         and then SCOD.D_Kind in Pragma_Decision | Aspect)
-                        or else (SCOD.Kind = Condition
-                                 and then SCO_Vector.Reference
-                                            (Enclosing_Decision (SCO))
-                                            .D_Kind
-                                          in Pragma_Decision | Aspect));
+              and then
+                ((SCOD.Kind = Decision
+                  and then SCOD.D_Kind in Pragma_Decision | Aspect)
+                 or else
+                   (SCOD.Kind = Condition
+                    and then
+                      SCO_Vector.Reference (Enclosing_Decision (SCO)).D_Kind
+                      in Pragma_Decision | Aspect));
          begin
             return
               "SCO #"
@@ -3942,9 +3941,8 @@ package body SC_Obligations is
             BDDN : BDD_Node renames BDD_Vector.Constant_Reference (J);
          begin
             if BDDN.Kind = Condition
-              and then not SCO_Vector.Constant_Reference (BDDN.C_SCO)
-                             .PC_Set
-                             .Is_Empty
+              and then
+                not SCO_Vector.Constant_Reference (BDDN.C_SCO).PC_Set.Is_Empty
             then
                return True;
             end if;
@@ -4110,12 +4108,13 @@ package body SC_Obligations is
          return
            (S_SCOD.S_Kind = Disabled_Pragma_Statement
             or else S_SCOD.S_Kind = Pragma_Statement)
-           and then S_SCOD.Pragma_Name
-                    in Pragma_Assert
-                     | Pragma_Check
-                     | Pragma_Precondition
-                     | Pragma_Postcondition
-                     | Pragma_Loop_Invariant;
+           and then
+             S_SCOD.Pragma_Name
+             in Pragma_Assert
+              | Pragma_Check
+              | Pragma_Precondition
+              | Pragma_Postcondition
+              | Pragma_Loop_Invariant;
       end;
    end Is_Expression;
 
@@ -4130,10 +4129,10 @@ package body SC_Obligations is
    begin
       return
         SCOD.D_Kind = If_Statement
-        and then not (Enclosing_S_SCO /= No_SCO_Id
-                      and then S_Kind (Enclosing_S_SCO) = If_Statement
-                      and then First_Sloc (Enclosing_S_SCO)
-                               = SCOD.Control_Location);
+        and then
+          not (Enclosing_S_SCO /= No_SCO_Id
+               and then S_Kind (Enclosing_S_SCO) = If_Statement
+               and then First_Sloc (Enclosing_S_SCO) = SCOD.Control_Location);
    end Is_If_Expression;
 
    ------------------------------
@@ -4203,8 +4202,8 @@ package body SC_Obligations is
    begin
       return
         SCOD.S_Kind in Pragma_Statement | Disabled_Pragma_Statement
-        and then SCOD.Pragma_Name
-                 in Pragma_Precondition | Pragma_Postcondition;
+        and then
+          SCOD.Pragma_Name in Pragma_Precondition | Pragma_Postcondition;
    end Is_Pragma_Pre_Post_Condition;
 
    -------------
@@ -5288,8 +5287,8 @@ package body SC_Obligations is
                   when Statement            =>
 
                      if (Enclosing_SCO /= No_SCO_Id
-                         and then Equivalent
-                                    (SCOD, SCO_Vector (Enclosing_SCO)))
+                         and then
+                           Equivalent (SCOD, SCO_Vector (Enclosing_SCO)))
                        --  The only form of SCO overlapping we allow is SCO
                        --  nesting. A statement can contain nested statements,
                        --  e.g. with C++ lambda expressions.  We reject every
@@ -5305,8 +5304,9 @@ package body SC_Obligations is
                        --  use case for now.
 
                        or else Invalid_Overlap (SCOD, Enclosing_SCO)
-                       or else Invalid_Overlap
-                                 (SCOD, Sloc_To_SCO (Last_Sloc (Sloc_Range)))
+                       or else
+                         Invalid_Overlap
+                           (SCOD, Sloc_To_SCO (Last_Sloc (Sloc_Range)))
                      then
                         return;
                      end if;
@@ -5837,10 +5837,11 @@ package body SC_Obligations is
    begin
       return
         (for all SCO of Bit_Maps.Statement_Bits.all => SCO in SCO_Range)
-        and then (for all Info of Bit_Maps.Decision_Bits.all =>
-                    Info.D_SCO in SCO_Range)
-        and then (for all Info of Bit_Maps.MCDC_Bits.all =>
-                    Info.D_SCO in SCO_Range);
+        and then
+          (for all Info of Bit_Maps.Decision_Bits.all =>
+             Info.D_SCO in SCO_Range)
+        and then
+          (for all Info of Bit_Maps.MCDC_Bits.all => Info.D_SCO in SCO_Range);
    end Are_Bit_Maps_In_Range;
 
    ------------------
@@ -6690,8 +6691,8 @@ package body SC_Obligations is
             Error_Msg := +("malformed ALI file """ & ALI_Filename & """");
 
             if V_Line'Length > 3
-              and then To_Lower (V_Line (V_Line'Last - 3 .. V_Line'Last))
-                       = ".ali"
+              and then
+                To_Lower (V_Line (V_Line'Last - 3 .. V_Line'Last)) = ".ali"
             then
                Append
                  (Error_Msg,
@@ -6711,8 +6712,7 @@ package body SC_Obligations is
       Expected_Annotation_Kind := Exempt_On;
       Expected_Annotation_Msg := null;
 
-      Scan_ALI :
-      while not End_Of_File (ALI_File) loop
+      Scan_ALI : while not End_Of_File (ALI_File) loop
          loop
             Free (Line);
             Line := new String'(Get_Stripped_Line (ALI_File));
@@ -7033,10 +7033,10 @@ package body SC_Obligations is
 
       --  Climb up the SCO tree until an adequate match is found
 
-      Climb_SCO_Tree :
-      while SCO /= No_SCO_Id loop
-         Climb_Operators :
-         while SCO /= No_SCO_Id and then Kind (SCO) = Operator loop
+      Climb_SCO_Tree : while SCO /= No_SCO_Id loop
+         Climb_Operators : while SCO /= No_SCO_Id
+           and then Kind (SCO) = Operator
+         loop
             SCO := Parent (SCO);
             exit Climb_SCO_Tree when SCO = No_SCO_Id;
          end loop Climb_Operators;
@@ -7053,9 +7053,9 @@ package body SC_Obligations is
                exit Climb_SCO_Tree when
                  Sloc.L.Line
                  in Sloc_Range.L.First_Sloc.Line .. Sloc_Range.L.Last_Sloc.Line
-                 and then (Kind = Statement
-                           or else (Include_Decisions
-                                    and then Kind = Decision));
+                 and then
+                   (Kind = Statement
+                    or else (Include_Decisions and then Kind = Decision));
             else
                --  Do not return a decision, even with exact match, if
                --  Include_Decisions is False

@@ -33,8 +33,8 @@ package body Disa_X86 is
 
    subtype Byte is Interfaces.Unsigned_8;
    type Bytes is array (Pc_Type range <>) of Byte;
-   type Bit_Field_2 is mod 2**2;
-   type Bit_Field_3 is mod 2**3;
+   type Bit_Field_2 is mod 2 ** 2;
+   type Bit_Field_3 is mod 2 ** 3;
 
    type Width_Type is (W_8, W_16, W_32, W_64);
    --  Width for operands, addresses and registers

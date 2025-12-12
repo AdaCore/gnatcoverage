@@ -165,12 +165,10 @@ is
 
    function Ends_With (Str : Unbounded_String; Pattern : String) return Boolean
    is (Length (Str) >= Pattern'Length
-       and then Index
-                  (Str,
-                   Pattern,
-                   From  => Positive (Length (Str)),
-                   Going => Backward)
-                = Length (Str) - Pattern'Length + 1);
+       and then
+         Index
+           (Str, Pattern, From => Positive (Length (Str)), Going => Backward)
+         = Length (Str) - Pattern'Length + 1);
    --  Returns whether the given Str ends with the given Pattern
 
    function Split_Args (Command : String) return String_Vectors.Vector;
@@ -1196,8 +1194,8 @@ begin
       --  list compilation unit generated below overwrites the dummy one.
 
       if Has_Link_Command
-        and then Ada.Directories.Exists
-                   (+Comp_DB.Link_Command.Target.Full_Name)
+        and then
+          Ada.Directories.Exists (+Comp_DB.Link_Command.Target.Full_Name)
       then
          declare
             Buffer_Symbols : String_Sets.Set;

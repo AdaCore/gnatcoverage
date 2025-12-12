@@ -62,11 +62,11 @@ package body Slocs is
       (L.First_Sloc < R.First_Sloc
        or else
 
-       --  For ranges starting at the same point, outer sorts lower: note
-       --  the intentionally reversed comparison on Last_Sloc.
+         --  For ranges starting at the same point, outer sorts lower: note
+         --  the intentionally reversed comparison on Last_Sloc.
 
-       (L.First_Sloc = R.First_Sloc
-        and then not (L.Last_Sloc <= R.Last_Sloc)));
+          (L.First_Sloc = R.First_Sloc
+           and then not (L.Last_Sloc <= R.Last_Sloc)));
 
    -----------
    -- Image --

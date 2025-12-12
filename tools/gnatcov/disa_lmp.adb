@@ -31,7 +31,7 @@ package body Disa_Lmp is
    pragma Unreferenced (Non_Storage_Register, Storage_Immediate);
    --  GR5/GR6 instruction class. Determines how the instruction is encoded.
 
-   type Operation_Type is mod 2**4;
+   type Operation_Type is mod 2 ** 4;
    --  Instruction fields used to dispatch through decoding tables
 
    OP_BRA : constant Operation_Type := 2#1100#;

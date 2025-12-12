@@ -25,7 +25,7 @@ package body Disa_ARM is
    is (Disa_Common.ELF_To_U32
          (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3)));
 
-   type Cond_Type is mod 2**4;
+   type Cond_Type is mod 2 ** 4;
 
    function Get_Cond (Insn : Unsigned_32) return Cond_Type
    is (Cond_Type (Shift_Right (Insn, 28)));
@@ -141,7 +141,7 @@ package body Disa_ARM is
 
                   --  LDM/LDMIA/LDMFD (A1)
 
-                  if (Insn and 2**15) = 0 then
+                  if (Insn and 2 ** 15) = 0 then
                      Branch := Br_None;
                   else
                      --  This instructions writes in PC, so it's a control-flow

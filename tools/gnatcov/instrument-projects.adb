@@ -515,9 +515,10 @@ is
    begin
       return
         Context.Excluded_Source_Files_Present
-        and then GNAT.Regexp.Match
-                   (S => Fold_Filename_Casing (Filename),
-                    R => Context.Excluded_Source_Files);
+        and then
+          GNAT.Regexp.Match
+            (S => Fold_Filename_Casing (Filename),
+             R => Context.Excluded_Source_Files);
    end Is_Excluded_Source_File;
 
    --------------------------------
@@ -823,8 +824,9 @@ is
         --  Ada bodies that just contain the No_Body pragmas cannot be
         --  instrumented (not worthwhile anyway): just skip them.
 
-        or else (Language = Ada_Language
-                 and then First_Unit (Source_File).Kind = GPR2.S_No_Body)
+        or else
+          (Language = Ada_Language
+           and then First_Unit (Source_File).Kind = GPR2.S_No_Body)
       then
          return;
       end if;
@@ -916,9 +918,11 @@ is
       for Source of Project_Sources loop
          if To_Language (Source.Language) = Language
            and then Source.Kind = GPR2.S_Body
-           and then (Manual_Indication_Files.Is_Empty
-                     or else Manual_Indication_Files.Contains
-                               (Create (+String (Source.Path_Name.Value))))
+           and then
+             (Manual_Indication_Files.Is_Empty
+              or else
+                Manual_Indication_Files.Contains
+                  (Create (+String (Source.Path_Name.Value))))
          then
             Processed_Files.Include (Source);
          end if;

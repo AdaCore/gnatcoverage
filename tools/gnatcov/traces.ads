@@ -46,7 +46,7 @@ package Traces is
    No_PC : constant Pc_Type := 0;
 
    function Empty_Range (First, Last : Pc_Type) return Boolean
-   is (Last - First >= 2**(Pc_Type'Size - 1));
+   is (Last - First >= 2 ** (Pc_Type'Size - 1));
    --  True if First .. Last denotes an empty range.
    --
    --  As a special case, 0 .. Pc_Type'Last is considered as an empty range.

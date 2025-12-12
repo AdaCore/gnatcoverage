@@ -534,8 +534,9 @@ package body Annotations.Cobertura is
                   if Kind (SCO) /= Removed
                     and then First_Sloc (SCO).L.Line = Line_Num
                     and then SCO_Kind (Kind (SCO)) = Decision
-                    and then (Coverage.Enabled (Decision)
-                              or else Coverage.MCDC_Coverage_Enabled)
+                    and then
+                      (Coverage.Enabled (Decision)
+                       or else Coverage.MCDC_Coverage_Enabled)
                   then
                      declare
                         Line_State : constant Any_Line_State :=

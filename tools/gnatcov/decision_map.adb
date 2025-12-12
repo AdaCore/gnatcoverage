@@ -452,8 +452,9 @@ package body Decision_Map is
            BB /= No_Basic_Block
            and then BB.Branch = Br_Call
            and then BB.Called_Sym /= null
-           and then Platform_Independent_Symbol (BB.Called_Sym.all, Exec.all)
-                    in "__gnat_begin_handler" | "__gnat_begin_handler_v1";
+           and then
+             Platform_Independent_Symbol (BB.Called_Sym.all, Exec.all)
+             in "__gnat_begin_handler" | "__gnat_begin_handler_v1";
       end Is_Begin_Handler_Call;
 
       --  Start of processing for Analyze_Conditional_Branch
@@ -476,8 +477,7 @@ package body Decision_Map is
 
       --  Update control flow information
 
-      Process_Condition :
-      declare
+      Process_Condition : declare
          Parent_SCO : SCO_Id;
          --  Parent SCO of D_SCO, if appropriate
 
@@ -528,11 +528,12 @@ package body Decision_Map is
               --  edge of the current condition, so it must be a possible
               --  successor.
 
-              or else Check_Possible_Successor
-                        (DS_Top.Decision,
-                         This_Condition => Current_CI,
-                         Next_Condition => CI)
-                      /= Unknown
+              or else
+                Check_Possible_Successor
+                  (DS_Top.Decision,
+                   This_Condition => Current_CI,
+                   Next_Condition => CI)
+                /= Unknown
 
             then
                return True;
@@ -615,9 +616,9 @@ package body Decision_Map is
                   null;
 
                elsif DS_Top.Inlined_Body /= null
-                 and then Insn.First
-                          not in DS_Top.Inlined_Body.First
-                               .. DS_Top.Inlined_Body.Last
+                 and then
+                   Insn.First
+                   not in DS_Top.Inlined_Body.First .. DS_Top.Inlined_Body.Last
                then
                   --  Exited inlined body of previous evaluation: pop it
 
@@ -631,11 +632,12 @@ package body Decision_Map is
 
             elsif (DS_Top.Inlined_Body = null
                    and then Enclosing_Inlined_Body /= null)
-              or else (DS_Top.Inlined_Body /= null
-                       and then Enclosing_Inlined_Body /= DS_Top.Inlined_Body
-                       and then Insn.First
-                                in DS_Top.Inlined_Body.First
-                                 .. DS_Top.Inlined_Body.Last)
+              or else
+                (DS_Top.Inlined_Body /= null
+                 and then Enclosing_Inlined_Body /= DS_Top.Inlined_Body
+                 and then
+                   Insn.First
+                   in DS_Top.Inlined_Body.First .. DS_Top.Inlined_Body.Last)
             then
                --  Entering an inlined body: do not presume that the current
                --  evaluation is completed.
@@ -705,8 +707,9 @@ package body Decision_Map is
            --  Start of evaluation in a new inlined body: cannot be the same
            --  decision occurrence.
 
-           or else (Starting_Evaluation
-                    and then DS_Top.Inlined_Body /= Enclosing_Inlined_Body)
+           or else
+             (Starting_Evaluation
+              and then DS_Top.Inlined_Body /= Enclosing_Inlined_Body)
 
          then
             declare
@@ -1114,14 +1117,15 @@ package body Decision_Map is
          --  the last conditional branch instruction for the last condition.
 
          if (Edge_Info.Dest_Kind = Outcome and then Edge_Info.Origin = Unknown)
-           or else (Edge_Info.Dest_Kind = Unknown
-                    and then (Edge_Info.Destination
-                              = Last_CBI.Edges (Branch).Destination
-                              or else Edge_Info.Destination
-                                      = Last_CBI.Edges (Fallthrough)
-                                          .Destination
-                              or else Edge_Info.Destination.Target
-                                      > Last_Seen_Condition_PC))
+           or else
+             (Edge_Info.Dest_Kind = Unknown
+              and then
+                (Edge_Info.Destination = Last_CBI.Edges (Branch).Destination
+                 or else
+                   Edge_Info.Destination
+                   = Last_CBI.Edges (Fallthrough).Destination
+                 or else
+                   Edge_Info.Destination.Target > Last_Seen_Condition_PC))
          then
             Edge_Info.Dest_Kind := Outcome;
 
@@ -1276,9 +1280,9 @@ package body Decision_Map is
             Label_From_Other (Cond_Branch_PC, CBI, Edge);
          end if;
 
-      --  Destination may still be unlabeled at this point, which is not
-      --  a problem if we can label it later on by inference from the
-      --  opposite edge.
+         --  Destination may still be unlabeled at this point, which is not
+         --  a problem if we can label it later on by inference from the
+         --  opposite edge.
       end Label_Destination;
 
       ------------------------
@@ -1370,8 +1374,8 @@ package body Decision_Map is
                --  or if the branch is a call that returns.
 
                if (Outcome_Reached and then BB.Cond)
-                 or else (BB.Branch = Br_Call
-                          and then BB.Call /= Raise_Exception)
+                 or else
+                   (BB.Branch = Br_Call and then BB.Call /= Raise_Exception)
                then
                   Next_PC := BB.FT_Dest.Target;
                   goto Tail_Recurse;
@@ -1458,9 +1462,10 @@ package body Decision_Map is
          for Edge in Edge_Kind loop
             if CBI.Edges (Edge).Origin /= Unknown
               or else CBI.Edges (Edge).Dest_Kind = Raise_Exception
-              or else (CBI.Edges (Edge).Dest_Kind = Condition
-                       and then CBI.Edges (Edge).Next_Condition
-                                = Index (CBI.Condition))
+              or else
+                (CBI.Edges (Edge).Dest_Kind = Condition
+                 and then
+                   CBI.Edges (Edge).Next_Condition = Index (CBI.Condition))
             then
                --  Labeling already complete for this edge, nothing else to do
 
@@ -1500,14 +1505,14 @@ package body Decision_Map is
          --  taken).
 
          if CBI.Edges (Branch).Dest_Kind = Unknown
-           and then Get_Sloc
-                      (Ctx.Subprg.Lines, CBI.Edges (Branch).Destination.Target)
-                    = Cond_Branch_Sloc
+           and then
+             Get_Sloc (Ctx.Subprg.Lines, CBI.Edges (Branch).Destination.Target)
+             = Cond_Branch_Sloc
            and then CBI.Edges (Fallthrough).Dest_Kind = Unknown
-           and then Get_Sloc
-                      (Ctx.Subprg.Lines,
-                       CBI.Edges (Fallthrough).Destination.Target)
-                    = Cond_Branch_Sloc
+           and then
+             Get_Sloc
+               (Ctx.Subprg.Lines, CBI.Edges (Fallthrough).Destination.Target)
+             = Cond_Branch_Sloc
          then
             for Edge of CBI.Edges loop
                Edge.Dest_Kind := Condition;
@@ -1587,8 +1592,9 @@ package body Decision_Map is
                  Outcome (CBI.Condition, Candidate_Val);
             begin
                if Candidate_Outcome = Unknown
-                 or else not Known_Outcome (not To_Boolean (Candidate_Outcome))
-                               .Contains (CBI.Edges (Edge).Destination)
+                 or else
+                   not Known_Outcome (not To_Boolean (Candidate_Outcome))
+                         .Contains (CBI.Edges (Edge).Destination)
                then
                   Set_Known_Origin
                     (Cond_Branch_PC,
@@ -1869,8 +1875,9 @@ package body Decision_Map is
 
       begin
          if CBI.Condition = No_SCO_Id
-           or else (CBI.Edges (Branch).Origin = Unknown
-                    and then CBI.Edges (Fallthrough).Origin = Unknown)
+           or else
+             (CBI.Edges (Branch).Origin = Unknown
+              and then CBI.Edges (Fallthrough).Origin = Unknown)
          then
             Report
               (Exe, CB_PC, "omitted non-contributive branch", Kind => Notice);
@@ -1897,8 +1904,9 @@ package body Decision_Map is
 
          for Edge in Edge_Kind loop
             if CBI.Edges (Edge).Dest_Kind = Unknown
-              or else (CBI.Edges (Edge).Dest_Kind = Outcome
-                       and then CBI.Edges (Edge).Origin = Unknown)
+              or else
+                (CBI.Edges (Edge).Dest_Kind = Outcome
+                 and then CBI.Edges (Edge).Origin = Unknown)
             then
                Report
                  (Exe,
@@ -2141,8 +2149,9 @@ package body Decision_Map is
          end if;
 
          if Next_PC_SCO /= No_SCO_Id
-           and then not (Next_PC_Sloc.L.Column = 0
-                         and then Is_Multistatement_Line (Next_PC_Sloc))
+           and then
+             not (Next_PC_Sloc.L.Column = 0
+                  and then Is_Multistatement_Line (Next_PC_Sloc))
          then
             declare
                Dom_SCO : SCO_Id;
@@ -2197,13 +2206,14 @@ package body Decision_Map is
 
          Leaves_Statement :=
            Leaves_Statement
-           or else (S_SCO /= No_SCO_Id
-                    and then (if Next_PC_SCO /= No_SCO_Id
-                              then S_SCO /= Next_PC_SCO
-                              elsif Next_PC_Sloc /= No_Location
-                              then
-                                not In_Range (Next_PC_Sloc, Sloc_Range (S_SCO))
-                              else False));
+           or else
+             (S_SCO /= No_SCO_Id
+              and then
+                (if Next_PC_SCO /= No_SCO_Id
+                 then S_SCO /= Next_PC_SCO
+                 elsif Next_PC_Sloc /= No_Location
+                 then not In_Range (Next_PC_Sloc, Sloc_Range (S_SCO))
+                 else False));
 
          --  If this is a call to a finalization symbol (besides the finalizer
          --  itself), assume that we remain in the decision. Otherwise, look
@@ -2292,9 +2302,9 @@ package body Decision_Map is
                   --  than SCO (but always within the same enclosing decision).
 
                   if Is_Assertion (D_SCO)
-                    and then Platform_Independent_Symbol
-                               (BB.Called_Sym.all, Exe.all)
-                             = "system__assertions__raise_assert_failure"
+                    and then
+                      Platform_Independent_Symbol (BB.Called_Sym.all, Exe.all)
+                      = "system__assertions__raise_assert_failure"
                   then
                      Edge_Info.Dest_Kind := Outcome;
                      Edge_Info.Outcome := False;
@@ -2566,8 +2576,9 @@ package body Decision_Map is
                   for SCO of LI.SCOs.all loop
 
                      if Kind (SCO) = Statement
-                       and then (Sloc.L.Column = 0
-                                 or else In_Range (Sloc, Sloc_Range (SCO)))
+                       and then
+                         (Sloc.L.Column = 0
+                          or else In_Range (Sloc, Sloc_Range (SCO)))
                      then
                         Set_Basic_Block_Has_Code (SCO);
                      end if;
@@ -2655,8 +2666,7 @@ package body Decision_Map is
             end if;
 
             if Branch /= Br_None then
-               Analyze_Branch :
-               declare
+               Analyze_Branch : declare
                   SCO        : SCO_Id;
                   Branch_SCO : SCO_Id renames BB.Branch_SCO;
 
@@ -2941,8 +2951,8 @@ package body Decision_Map is
                      begin
                         if CBI.Edges (Decision_Map.Branch).Dest_Kind
                           = Raise_Exception
-                          or else CBI.Edges (Fallthrough).Dest_Kind
-                                  = Raise_Exception
+                          or else
+                            CBI.Edges (Fallthrough).Dest_Kind = Raise_Exception
                         then
                            CBK := Check;
 

@@ -179,14 +179,14 @@ package body Elf_Disassemblers is
                      return Next_I_Range.Insn_Set;
                   end if;
 
-               --  Execution reaches this point when we failed to get a
-               --  result just using the cache: it's time to perform a full
-               --  search...
+                  --  Execution reaches this point when we failed to get a
+                  --  result just using the cache: it's time to perform a full
+                  --  search...
                end;
             end if;
 
-         --  If we reach this point, we know that PC < I_Range.First: the
-         --  cache is not useful here.
+            --  If we reach this point, we know that PC < I_Range.First: the
+            --  cache is not useful here.
          end;
       end if;
 

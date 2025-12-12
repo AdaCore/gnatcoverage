@@ -1089,7 +1089,8 @@ package body Instrument.C is
    --------------------------------
 
    function Find_Instrumented_Entities
-     (UIC : in out C_Unit_Inst_Context'Class; SFI : Valid_Source_File_Index)
+     (UIC : aliased in out C_Unit_Inst_Context'Class;
+      SFI : Valid_Source_File_Index)
       return C_Instrumented_Entities_Maps.Reference_Type
    is
       Dummy : Boolean;
@@ -1983,10 +1984,10 @@ package body Instrument.C is
                (N = Process_Decisions.N and then T /= 'X')
               or else
 
-              --  Complex decision, whether at outer level or nested: a
-              --  boolean expression involving a logical operator.
+                --  Complex decision, whether at outer level or nested: a
+                --  boolean expression involving a logical operator.
 
-              Is_Complex_Decision (N);
+                  Is_Complex_Decision (N);
 
          begin
             if Decision_Root then
@@ -3405,6 +3406,9 @@ package body Instrument.C is
 
       Dispose_Translation_Unit (Self.TU);
       Dispose_Index (Self.CIdx);
+      if System.Address (Self.Rewriter) /= Null_Address then
+         CX_Rewriter_Dispose (Self.Rewriter);
+      end if;
       if Switches.Pretty_Print then
          Run_Clang_Format (+Self.Output_Filename);
       end if;
@@ -3652,6 +3656,15 @@ package body Instrument.C is
       UIC.Disable_Cov_Regions.Move (UIC_Copy.Disable_Cov_Regions);
       UIC.Sources_Of_Interest_Info.Move (UIC_Copy.Sources_Of_Interest_Info);
 
+      --  Clean up the TU and index
+
+      if System.Address (UIC_Copy.CIdx) /= Null_Address then
+         Dispose_Index (UIC_Copy.CIdx);
+      end if;
+      if UIC_Copy.TU /= null then
+         Dispose_Translation_Unit (UIC_Copy.TU);
+      end if;
+
    end Record_PP_Info;
 
    ---------------------
@@ -3895,8 +3908,8 @@ package body Instrument.C is
                         --  it is the only one we will instrument.
 
                         while Last_Stmt_Idx > Block.First_Index
-                          and then Block.Reference (Last_Stmt_Idx).Kind
-                                   /= Statement
+                          and then
+                            Block.Reference (Last_Stmt_Idx).Kind /= Statement
                         loop
                            Last_Stmt_Idx := Last_Stmt_Idx - 1;
                         end loop;
@@ -5315,8 +5328,8 @@ package body Instrument.C is
                   --  a call to dump_buffers at the end of the function.
 
                   if Length (Main_Stmts) = 0
-                    or else Kind (Main_Stmts.Last_Element)
-                            /= Cursor_Return_Stmt
+                    or else
+                      Kind (Main_Stmts.Last_Element) /= Cursor_Return_Stmt
                   then
                      CX_Rewriter_Insert_Text_Before_Token
                        (Rew.Rewriter,

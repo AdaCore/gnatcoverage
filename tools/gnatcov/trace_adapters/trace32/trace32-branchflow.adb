@@ -56,9 +56,10 @@ package body Trace32.Branchflow is
               & "#################"
             and then Line2 = "# Branch Flow trace file"
             and then Line3 = "# target; caller; trace record"
-            and then Line4
-                     = "######################################################"
-                       & "#################");
+            and then
+              Line4
+              = "######################################################"
+                & "#################");
       end Check_Header;
    begin
       This.Open := False;

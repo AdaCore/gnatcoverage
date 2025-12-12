@@ -38,13 +38,13 @@ package GNATcov_RTS.Types is
    pragma No_Elaboration_Code_All;
    pragma Warnings (On);
 
-   type Unsigned_8 is mod 2**8;
-   type Unsigned_64 is mod 2**64;
+   type Unsigned_8 is mod 2 ** 8;
+   type Unsigned_64 is mod 2 ** 64;
 
    --  We assume here that Integer (Ada) is a correct mapping for int (C)
 
    type int is new Integer;
-   type unsigned is mod 2**int'Size;
+   type unsigned is mod 2 ** int'Size;
    type size_t is mod System.Memory_Size;
 
 end GNATcov_RTS.Types;

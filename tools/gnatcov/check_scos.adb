@@ -70,8 +70,7 @@ package body Check_SCOs is
 
       --  Read input file till we get to first 'C' line
 
-      Process :
-      declare
+      Process : declare
          function Get_Char (F : File_Type) return Character;
          --  Read one character from specified file
 
