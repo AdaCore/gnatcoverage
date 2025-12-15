@@ -1467,7 +1467,11 @@ class TestSuite(e3.testsuite.Testsuite):
         # integrated instrumentation tests.
 
         self.env.pass_bsp_args = False
-        if self.env.is_cross and self.cpu_name in control.BSP_MAP:
+        if (
+            self.env.is_cross
+            and self.main.args.RTS
+            and self.cpu_name in control.BSP_MAP
+        ):
             self._build_c_bsp_support()
             self.env.pass_bsp_args = True
             self.env.c_bsp_project = self.c_bsp_project
