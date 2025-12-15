@@ -7,6 +7,8 @@ and test status management facilities.
 It also exposes a few global variables of general use (env, TEST_DIR, etc)
 """
 
+from dataclasses import dataclass
+import json
 import logging
 import os
 import re
@@ -463,6 +465,25 @@ class Test(object):
             default="",
         )
 
+        parser.add_argument(
+            "--c-bsp-project",
+            metavar="BSP PROJECT",
+            help="Project file for the C base support package.",
+        )
+
+        parser.add_argument(
+            "--c-bsp-info",
+            metavar="BSP INFO JSON",
+            help="JSON file containing project information for the C BSP.",
+        )
+
+        parser.add_argument(
+            "--c-bsp-gnatcov-rts",
+            metavar="GNATCOV RTS PROJECT",
+            help="Instrumentation runtime to use when linking against the C"
+            " BSP.",
+        )
+
         control.add_shared_options_to(parser, toplevel=False)
 
         main.parse_args()
@@ -517,6 +538,77 @@ class Test(object):
 
 # Instantiate a Test object for the individual test module that imports us
 thistest = Test()
+
+
+@dataclass
+class BSPInfo:
+    compiler_switches: list[str]
+    linker_switches: list[str]
+
+
+def get_c_bsp_info():
+    """
+    Return the C base support project information.
+
+    Return a BSPInfo dictionary consisting of:
+      * A compiler_switches field containing the list of switches to pass to
+        the compiler invocation.
+      * A linker_switches field containing the list of switches to pass to the
+        linker invocation.
+    """
+
+    if not thistest.options.c_bsp_info:
+        return None
+
+    # Use gprinspect to retrieve the list of compiler switches and linker
+    # switches.
+    with open(thistest.options.c_bsp_info) as f:
+        data = json.load(f)
+
+    compiler_switches = []
+    linker_switches = []
+
+    # Retrieve compiler switches
+    for project in data.get("projects", []):
+        for pkg in project.get("packages", []):
+            if pkg.get("name") == "Compiler":
+                for attr in pkg.get("attributes", []):
+                    if attr.get("name") == "Switches":
+                        compiler_switches.extend(attr.get("values", []))
+
+    # Retrieve linker switches
+    for project in data.get("projects", []):
+        for var in project.get("variables", []):
+            if var.get("name") == "Linker_Switches":
+                linker_switches.extend(var.get("values", []))
+
+    # Add the -L<full_path_to_libdir> switch
+    for attr in project.get("attributes", []):
+        if attr.get("name") == "Library_Dir":
+            lib_dir = attr.get("value")
+            # If it's a relative path, make it absolute using Project_Dir
+            project_dir = next(
+                (
+                    a["value"]
+                    for a in project.get("attributes", [])
+                    if a.get("name") == "Project_Dir"
+                ),
+                "",
+            )
+            if project_dir and not os.path.isabs(lib_dir):
+                lib_dir = os.path.abspath(os.path.join(project_dir, lib_dir))
+            linker_switches.append(f"-L{lib_dir}")
+
+        # Also add the library binary to the link command
+        if attr.get("name") == "Library_Name":
+            lib = attr.get("value")
+            linker_switches.append(f"-l{lib}")
+
+    return BSPInfo(compiler_switches, linker_switches)
+
+
+# C BSP info. This is set by the testsuite
+c_bsp_info: BSPInfo = get_c_bsp_info()
 
 # Allow import of a common "test_support" module from test.py when
 # there is a test_support.py available uptree.

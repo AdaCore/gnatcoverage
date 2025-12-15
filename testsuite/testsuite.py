@@ -11,6 +11,7 @@ import logging
 import time
 import os
 import re
+import shutil
 import sys
 import itertools
 
@@ -628,6 +629,14 @@ class TestPyRunner:
         if mopt.rewrite and not self.test_control.xfail:
             testcase_cmd.append("--rewrite")
 
+        # Add the C BSP related arguments
+        if self.env.pass_bsp_args:
+            testcase_cmd.append(f"--c-bsp-project={self.env.c_bsp_project}")
+            testcase_cmd.append(
+                f"--c-bsp-gnatcov-rts={self.env.c_bsp_rts_project}"
+            )
+            testcase_cmd.append(f"--c-bsp-info={self.env.c_bsp_info}")
+
         self.testcase_cmd = testcase_cmd
         self.testcase_timeout = timeout
 
@@ -1171,6 +1180,121 @@ class TestSuite(e3.testsuite.Testsuite):
                 + contents_of(logfile)
             )
 
+    @property
+    def bsp_dir(self):
+        return os.path.join(os.getcwd(), "bsp_support")
+
+    @property
+    def cpu_name(self):
+        rts = self.main.args.RTS
+        cpu_name = rts.split("-")[-1]
+
+        exit_if(
+            not cpu_name,
+            f"Could not deduce CPU name from RTS: {rts}",
+        )
+        return cpu_name
+
+    @property
+    def c_bsp_project(self):
+        return os.path.join(self.bsp_dir, control.bsp_project(self.cpu_name))
+
+    @property
+    def c_bsp_rts_project(self):
+        return "gnatcov_rts_bsp"
+
+    @property
+    def c_bsp_info(self):
+        return os.path.join(self.bsp_dir, "bsp.json")
+
+    def _build_c_bsp_support(self):
+        """
+        Build the C BSP for the target, to run integrated instrumentation tests
+        for cross targets.
+
+        In practice, this means building the BSP, and the C version (as
+        integrated instrumentation tests are C/C++-only) of the instrumentation
+        runtime according to the C BSP options.
+
+        Note that this requires the suite.cgpr configuration file to have been
+        priorly generated.
+        """
+        logfile = os.path.join(self.output_dir, "build_bsp.out")
+        config = os.path.join(os.getcwd(), BUILDER.SUITE_CGPR)
+
+        # Copy the C BSP at the root of the testsuite
+        if os.path.exists(self.bsp_dir):
+            shutil.rmtree(self.bsp_dir)
+        mkdir(self.bsp_dir)
+
+        # Find the C BSP in the gcc toolchain installation directory
+        gcc = control.driver_for_lang(config, "C")
+        exit_if(not gcc, "Could not locate gcc executable")
+
+        bsp_original_location = os.path.join(
+            os.path.dirname(gcc),
+            "..",
+            "share",
+            "examples",
+            "gnat-c",
+            self.cpu_name,
+        )
+        cp(
+            os.path.join(bsp_original_location, "*"),
+            self.bsp_dir,
+            recursive=True,
+        )
+
+        # Build the BSP project
+        p = Run(
+            [control.GPRBUILD, "-P", self.c_bsp_project],
+            output=logfile,
+        )
+        if p.status != 0:
+            raise FatalError(
+                ("Problem during BSP construction. %s:\n" % logfile)
+                + contents_of(logfile)
+            )
+
+        # Retrieve the bsp information with gprinspect. Note that the resulting
+        # JSON file is forwarded to test.py invocations.
+        Run(
+            [
+                "gprinspect",
+                "-P",
+                self.c_bsp_project,
+                "--all",
+                "--attributes",
+                "--display=json",
+            ],
+            output=self.c_bsp_info,
+        )
+
+        # Then, build the instrumentation runtime for the C BSP
+        setup_args = [
+            "--prefix",
+            self.bsp_dir,
+            "--install-name",
+            self.c_bsp_rts_project,
+            f"--config={config}",
+            "--restricted-to-languages=C",
+        ]
+        p = Run(["gnatcov", "setup"] + setup_args, output=logfile)
+        if p.status != 0:
+            raise FatalError(
+                ("Problem during BSP construction. %s:\n" % logfile)
+                + contents_of(logfile)
+            )
+
+        # Add the instrumentation runtime to the GPR_PROJECT_PATH and to the
+        # LD_LIBRARY_PATH.
+        self.env.add_search_path(
+            "GPR_PROJECT_PATH", os.path.join(self.bsp_dir, "share", "gpr")
+        )
+        self.env.add_search_path(
+            "LD_LIBRARY_PATH", os.path.join(self.bsp_dir, "share", "lib")
+        )
+
     def set_up(self):
         """
         Prepare the testsuite run: compute and dump discriminants, run
@@ -1338,6 +1462,17 @@ class TestSuite(e3.testsuite.Testsuite):
         # Build support library as needed
 
         self._build_libsupport()
+
+        # Build the C BSP when running under a cross target supporting
+        # integrated instrumentation tests.
+
+        self.env.pass_bsp_args = False
+        if self.env.is_cross and self.cpu_name in control.BSP_MAP:
+            self._build_c_bsp_support()
+            self.env.pass_bsp_args = True
+            self.env.c_bsp_project = self.c_bsp_project
+            self.env.c_bsp_rts_project = self.c_bsp_rts_project
+            self.env.c_bsp_info = self.c_bsp_info
 
         # Initialize counter of consecutive failures, to stop the run
         # when it is visibly useless to keep going.
