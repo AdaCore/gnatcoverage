@@ -104,6 +104,25 @@ package body Coverage is
         and then (Enabled (ATC) or else Enabled (ATCC));
    end Assertion_Coverage_Enabled;
 
+   ------------------------------------------------
+   -- Any_Decision_Or_Assertion_Coverage_Enabled --
+   ------------------------------------------------
+
+   function Any_Decision_Or_Assertion_Coverage_Enabled return Boolean is
+   begin
+      return Decision_Coverage_Enabled or else Assertion_Coverage_Enabled;
+   end Any_Decision_Or_Assertion_Coverage_Enabled;
+
+   --------------------------
+   -- MCDC_Or_ATCC_Enabled --
+   --------------------------
+
+   function MCDC_Or_ATCC_Enabled return Boolean is
+   begin
+      return
+        MCDC_Coverage_Enabled or else Assertion_Condition_Coverage_Enabled;
+   end MCDC_Or_ATCC_Enabled;
+
    ------------------------------------------
    -- Assertion_Condition_Coverage_Enabled --
    ------------------------------------------

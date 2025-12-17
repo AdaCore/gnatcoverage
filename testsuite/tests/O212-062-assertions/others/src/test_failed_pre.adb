@@ -36,4 +36,4 @@ end Test_Failed_Pre;
 -- /nested_3/        l- ## s-
 -- /same_ret/        l- ## s-
 --# failed_pre.adb
--- /foo_call/        l+ ## c!
+-- /foo_call/        l+ ## 0
