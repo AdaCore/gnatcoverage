@@ -47,6 +47,7 @@ package Traces_Elf is
    type Exe_File_Type is abstract limited new Symbolizer with private;
    type Exe_File_Acc is access all Exe_File_Type'Class;
    --  Executable file type.
+   --
    --  Extracted information are stored into such object.
 
    overriding
