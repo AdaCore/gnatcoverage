@@ -19,7 +19,6 @@ include:
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/gnatformat@~latest
     inputs:
       stage: check
-      anod-spec: gnatcov
       gnatformat-args: --no-project --check $(find tools/gnatcov -iname '*.ad[bs]')
       install-gnatformat: true
       install-gnatformat-extra-anod-args: -Qedge -Qdate=$GNATFORMAT_DATE
