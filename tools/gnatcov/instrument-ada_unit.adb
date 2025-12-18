@@ -2607,8 +2607,9 @@ package body Instrument.Ada_Unit is
            F_Stmts      =>
              Create_Handled_Stmts
                (RC,
-                F_Stmts      => NP_Nodes.Stmt_List,
-                F_Exceptions => No_Node_Rewriting_Handle),
+                F_Stmts        => NP_Nodes.Stmt_List,
+                F_Exceptions   => No_Node_Rewriting_Handle,
+                F_Finally_Part => No_Node_Rewriting_Handle),
            F_End_Name   => No_Node_Rewriting_Handle);
 
       --  Create an instantiation for this generic subprogram
@@ -4200,9 +4201,10 @@ package body Instrument.Ada_Unit is
                  Children => (1 => Single_Stmt_RH));
             Stmts_RH       : constant Node_Rewriting_Handle :=
               Create_Handled_Stmts
-                (Handle       => UIC.Rewriting_Context,
-                 F_Stmts      => Stmt_list_RH,
-                 F_Exceptions => No_Node_Rewriting_Handle);
+                (Handle         => UIC.Rewriting_Context,
+                 F_Stmts        => Stmt_list_RH,
+                 F_Exceptions   => No_Node_Rewriting_Handle,
+                 F_Finally_Part => No_Node_Rewriting_Handle);
             Proc_Name      : constant Node_Rewriting_Handle :=
               Create_End_Name
                 (Handle => UIC.Rewriting_Context,
