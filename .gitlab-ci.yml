@@ -26,7 +26,7 @@ include:
   #TODO: workaround to allow dynamically setting the interruptible policy until https://gitlab.com/gitlab-org/gitlab/-/issues/194023 is implemented
   - local: utils/ci/interruptible.yml
     rules:
-      - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH      
+      - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
 
   # Run gnatsas on GNATcoverage sources
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/static-analysis@topic/move-ci-to-generic-anod-ci
