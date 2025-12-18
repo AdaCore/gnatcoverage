@@ -42,6 +42,12 @@ include:
   - cat /tmp/ci_env.sh
   - . /tmp/ci_env.sh
 
+  # Install vanilla gnatcov from cathod. We use it both to instrument gnatcov
+  # itself ("build" job) and then to produce coverage reports (test jobs).
+  - anod install gnatcov $ACI_TRACK_QUALIFIER --latest
+  - uid=`anod eval gnatcov uid | tr "'" ' '`
+  - touch $ANOD_DEFAULT_SANDBOX_DIR/fingerprints/$uid.json.assume-unchanged
+
 stages:
   - build
   - test
@@ -63,12 +69,9 @@ build:
     #    as this would trigger a rebuild of the vanilla gnatcov.
     - anod build --smart-rebuild --deps-only gnatcov $ACI_TRACK_QUALIFIER
 
-    # 2. Install vanilla gnatcov from cathod
-    - anod install gnatcov $ACI_TRACK_QUALIFIER --latest
-
-    # 3. Build using anod, but minimally as all dependencies are supposed to be
+    # 2. Build using anod, but minimally as all dependencies are supposed to be
     #    already built/installed via 1, but we don't want to re-build the
-    #    gnatcov installed via 2 with --smart-rebuild.
+    #    gnatcov installed in "basic_setup" with --smart-rebuild.
     - anod build --minimal gnatcov -Qinstr $ACI_TRACK_QUALIFIER
 
     # Package all components created so far
