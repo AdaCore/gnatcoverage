@@ -3397,6 +3397,9 @@ package body Instrument.C is
 
       Dispose_Translation_Unit (Self.TU);
       Dispose_Index (Self.CIdx);
+      if System.Address (Self.Rewriter) /= Null_Address then
+         CX_Rewriter_Dispose (Self.Rewriter);
+      end if;
       if Switches.Pretty_Print then
          Run_Clang_Format (+Self.Output_Filename);
       end if;
@@ -3643,6 +3646,15 @@ package body Instrument.C is
       UIC.Annotations.Move (UIC_Copy.Annotations);
       UIC.Disable_Cov_Regions.Move (UIC_Copy.Disable_Cov_Regions);
       UIC.Sources_Of_Interest_Info.Move (UIC_Copy.Sources_Of_Interest_Info);
+
+      --  Clean up the TU and index
+
+      if System.Address (UIC_Copy.CIdx) /= Null_Address then
+         Dispose_Index (UIC_Copy.CIdx);
+      end if;
+      if UIC_Copy.TU /= null then
+         Dispose_Translation_Unit (UIC_Copy.TU);
+      end if;
 
    end Record_PP_Info;
 
