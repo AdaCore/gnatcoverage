@@ -1,1 +1,2 @@
-RTS_ZFP DEAD ZFP runtimes lack support for string interpolation
+RTS_ZFP           DEAD ZFP runtimes lack support for string interpolation
+RTS_LIGHT_TASKING DEAD Light-tasking runtimes lack support for str. interpol.
