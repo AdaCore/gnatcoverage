@@ -19,7 +19,6 @@ include:
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/gnatformat@~latest
     inputs:
       stage: check
-      anod-spec: gnatcov
       gnatformat-args: --no-project --check $(find tools/gnatcov -iname '*.ad[bs]')
       install-gnatformat: true
       install-gnatformat-extra-anod-args: -Qedge -Qdate=$GNATFORMAT_DATE
@@ -27,7 +26,7 @@ include:
   #TODO: workaround to allow dynamically setting the interruptible policy until https://gitlab.com/gitlab-org/gitlab/-/issues/194023 is implemented
   - local: utils/ci/interruptible.yml
     rules:
-      - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH      
+      - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
 
   # Run gnatsas on GNATcoverage sources
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/static-analysis@topic/move-ci-to-generic-anod-ci
