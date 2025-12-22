@@ -19,7 +19,7 @@ the scope of this toolset user guide. The essential point is twofold:
 - Illustrate the |gcp| ability to compute accurate results for both kinds of
   criteria.
 
-Main differences examplified
+Main differences exemplified
 ============================
 
 To illustrate the main differences between the two kinds of metrics, we

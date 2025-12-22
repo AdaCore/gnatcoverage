@@ -30,7 +30,7 @@
    executable used to generate them. This option causes the named executable to
    be loaded for coverage analysis, and to override the indication contained in
    any trace specified after it on the command line. An empty executable name
-   may be specified to restore the default behaviour of using the indication
+   may be specified to restore the default behavior of using the indication
    contained in each trace file. Note that :cmd-option:`--exec` may appear last
    on the command line, in which case it applies to no trace file, but still
    causes the indicated executable to be included in the coverage analysis.

@@ -252,7 +252,7 @@ Compatibility considerations
 Allowed coverage criteria combinations
 --------------------------------------
 
-A bit like source traces which hold results for some pre stated strictest
+A bit like source traces which hold results for some pre-stated strictest
 possible criterion (at instrumentation time), checkpoints hold results
 computed for a given coverage criterion, provided to the |gcvcov| command used
 to produce the checkpoint. Computing results (e.g. a report) from such
