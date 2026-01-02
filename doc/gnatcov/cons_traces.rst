@@ -9,7 +9,7 @@ achieved by providing the set of trace files resulting for these executions as
 inputs to a single |gcvcov| command.
 
 The set of traces involved in a computation, with some details about each trace
-(file name, timestamp, tag), is visible in the index page of html reports and
+(file name, timestamp, tag), is visible in the index page of HTML reports and
 in the *Assessment Context* section of :cmd-option:`=report` outputs, where the
 command line is quoted.
 
@@ -20,7 +20,7 @@ Single unit tested by different programs
 
 The sources for the following example can be found under the
 `share/examples/gnatcoverage/doc/cons_traces` directory of the GNAT DAS
-disctribution.
+distribution.
 
 We will first consider achieving statement coverage of the following example
 Ada unit, which implements part of a robot controller able to send actuator

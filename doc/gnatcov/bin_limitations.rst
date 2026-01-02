@@ -63,7 +63,7 @@ MCDC inaccuracies with interrupts and multi-threaded applications
 There is one limitation in |gcp| with respect to MCDC assessments from binary
 traces: potential inaccuracies in results reported for particular decisions
 when these decisions are evaluated concurrently by different threads or mixed
-with interrupt processing in bareboard configurations.
+with interrupt processing in bare metal configurations.
 
 Technically, the decisions of concern are those for which the associated
 binary decision diagram is not a tree, that is, those with at least one

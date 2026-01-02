@@ -22,7 +22,7 @@ two criteria of the latter kind:
   whether it has been executed at least once or not; and
 
 - :dfn:`Branch Coverage`, where we also evaluate for each conditional
-  branch instruction whether it was only taken, or went fallthrough or both.
+  branch instruction whether it was only taken, or went fall-through, or both.
 
 Source coverage metrics are only available for a subset of the target
 configurations supported with source traces, though, and new tool
@@ -52,7 +52,7 @@ trace production modes:
    * - *Cross configurations with RTOS*
      - Yes
      - No
-   * - *Bareboard configurations*
+   * - *Bare metal configurations*
      - Yes
      - Specific CPUs only, through GNATemulator or
        hardware probes
@@ -88,7 +88,7 @@ depicted a separate analysis/consolidation step to emphasize this:
 For binary traces, |gcv| relies on an instrumented execution
 environment to produce the traces instead of having to instrument the
 program itself with extra code and data structures. |gem| provides
-such an environment for bareboard configurations, as well as hardware
+such an environment for bare metal configurations, as well as hardware
 probes assisted with means to convert their output to the format |gcv|
 expects.
 
@@ -156,7 +156,7 @@ the standard Unix ``grep`` tool to filter out test harness units::
     gprbuild -p --target=powerpc-elf --RTS=light-mpc8641 -Ptests.gpr
       -cargs -fdump-scos -g -fpreserve-control-flow -bargs -A=all.alis
 
-    # Run and analyse all units except the test harness, filtering out
+    # Run and analyze all units except the test harness, filtering out
     # the correspond ALI files from the list:
     grep -v 'test_[^/]*.ali' all.alis > nontest.alis
     gnatcov run --level=stmt+mcdc --scos=@nontest.alis

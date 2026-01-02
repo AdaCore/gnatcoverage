@@ -203,7 +203,7 @@ In the previous example, we would have used similar exemption annotations to
 deal with expected object instruction and branch coverage failures in Eassert,
 as the conditional branch used to implement the ``if`` statement is expected
 to remain partially covered, as well as the sequence of machine instructions
-triggerring the Ada exception raise.
+triggering the Ada exception raise.
 
 As for Source Coverage Obligations for source level criteria, information about
 the declared exemption regions is located in the :term:`Library Information

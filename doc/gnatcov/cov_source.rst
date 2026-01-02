@@ -37,7 +37,7 @@ coverage assessment are to be specified.
 .. _gnatcov_coverage-commandline-src:
 
 Coverage analysis with |gcp| is performed by invoking |gcvcov| for a set of
-critera queried via the :cmd-option:`--level` command line option. The general
+criteria queried via the :cmd-option:`--level` command line option. The general
 interface synopsis is available from |gcv| :cmd-option:`--help`::
 
  gnatcov coverage OPTIONS TRACE_FILES
@@ -61,7 +61,7 @@ The available options are as follows:
 
 :cmd-option:`-o` :
    Request that the synthetic report produced by ``--annotate=report`` be
-   output in the provided filname instead of standard output by default. This
+   output in the provided filename instead of standard output by default. This
    is just ignored for other output formats.
 
 .. include:: cov_common_switches.rst
@@ -206,7 +206,7 @@ Output report formats (:cmd-option:`--annotate`)
 Source coverage reports may be produced in various formats, as requested with
 the :cmd-option:`--annotate` command line argument of |gcvcov|. The
 :cmd-option:`xcov` and :cmd-option:`html` formats produce a set of annotated
-source files, in the directory where |gcv| is launched unless overriden with a
+source files, in the directory where |gcv| is launched unless overridden with a
 :cmd-option:`--output-dir` option. The :cmd-option:`report` output consists in a
 synthetic text report of :term:`coverage violations <Coverage Violation>` with
 respect to the requested criteria, produced on standard output by default or in
@@ -292,7 +292,7 @@ contains.
 The user can browse through an annotated version of the sources from the index.
 Each annotated source page contains a summary of the assessment results. This
 summary can be expanded to print subprogram metrics: the user can click on a
-subprogram's metrics to access it in the annotated source immediately. This
+subprogram's metric to access it in the annotated source immediately. This
 summary is followed by the original source lines, all numbered and marked with a
 coverage annotation as in the :cmd-option:`--annotate=xcov` case. Lines with
 obligations are colorized in green, orange or red for ``+``, ``!`` or ``-``
@@ -1197,7 +1197,7 @@ computational devices:
                       -- 2 conditions (short-circuit and-then)
 
 This computational view for non short-circuit operators in Ada
-is similar to the C model where bitwise operations on non purely
+is similar to the C model where bit-wise operations on non purely
 Boolean types, yet used as a Boolean result, are extremely common
 as in:
 
@@ -1206,14 +1206,14 @@ as in:
     return (x & 0x3) && (y & 0x3);  // 1 decision (short-circuit &&)
                                     // 2 conditions, each a & on int
 
-It can also result in splits introducing the possibility of mulitple
+It can also result in splits introducing the possibility of multiple
 decisions in arguments, as in:
 
 .. code-block:: ada
 
   if ((A and then not B) == (C or else (D and then E))) then
   -- 3 decisions here:
-  -- * The toplevel expression as a whole (... == ...), if-stmt control,
+  -- * The top-level expression as a whole (... == ...), if-stmt control,
   --   single condition.
   -- * (A and then not B), short-circuit and-then in the first operand of ==,
   --   2 conditions.
@@ -1272,7 +1272,7 @@ Vector>`, and the pairs that demonstrate the independent effect of conditions
 are known as :term:`independence pairs <Independence Pair>`.
 
 Evaluations 1 + 3 constitute a Unique Cause independence pair for A, where A
-changes, B does not, and the expression value toggles. 1 + 2 constitues a pair
+changes, B does not, and the expression value toggles. 1 + 2 constitutes a pair
 for B.
 
 The closest criterion supported by |gcp| is a very minor variation where
@@ -1356,14 +1356,14 @@ This is all as expected from what the driver does, with a few points of note:
   ``return`` statement value;
 
 - Only the decision level violations are emitted for lines 10 and 11. The
-  independant influence of the conditions is not demonstrated but this is
+  independent influence of the conditions is not demonstrated but this is
   implicit from the decision partial coverage so is not notified;
 
-- Similarily, only the statement level violation is emitted for line 13,
-  eventhough there are decision and condition level violations as well.
+- Similarly, only the statement level violation is emitted for line 13,
+  even though there are decision and condition level violations as well.
 
 Another aspect of interest is that we have partial decision coverage on two
-kinds of decisions (one control-flow decision controling the *if*, and another
+kinds of decisions (one control-flow decision controlling the *if*, and another
 one used a straight return value), and this distinction places the two
 ``decision outcome FALSE never exercised`` violations in distinct sections of
 the :cmd-option:`=report` output::
@@ -1419,10 +1419,10 @@ Indeed, looking at an evaluation table for the first return decision:
 We observe that our driver exercises vectors 1 and 2 only, where:
 
 - The two evaluations toggle the decision and the second condition only, so
-  achieve decision coverage and demonstrate that condition's independant
+  achieve decision coverage and demonstrate that condition's independent
   influence;
 
-- The first condition (V >= X1) never varies so the independant influence
+- The first condition (V >= X1) never varies so the independent influence
   of this condition isn't demonstrated.
 
 As we mentioned in the discussion on MCDC variants, adding vector 3
@@ -1502,7 +1502,7 @@ The coverage status of an "ATCC" obligation is determined as follows:
 
 * An assertion is said :dfn:`fully covered`, or just :dfn:`covered`, and the
   obligation discharged, as soon as all conditions have been evaluated to True
-  or False at least once accross all evaluations to True of the whole decision.
+  or False at least once across all evaluations to True of the whole decision.
 
 * An assertion is said :dfn:`uncovered` when the decision was never
   evaluated to True, either because the enclosing assertion statement was not
@@ -1633,7 +1633,7 @@ Core notions and Reporting (:cmd-option:`--level=...+gexpr`)
    function Prime_In_Range (L, R : Natural) return Boolean is
    begin
 
-      --  Is_Prime (I) is the child expression that will be analysized.
+      --  Is_Prime (I) is the child expression that will be analyzed.
 
       return (for some I in (L .. R) => Is_Prime (I));
    end Foo;
@@ -1716,7 +1716,7 @@ report example is the ``main.adb`` source here, single source encompassed
 by the ``main.gpr`` project:
 
 Switching to coverage obligation count based metrics is simply achieved by
-clicking the button(s) at the top of the page labelled with obligation kind
+clicking the button(s) at the top of the page labeled with obligation kind
 names ("Stmt", "Decision" or "Mcdc").
 
 Each kind of obligation can be selected alone. Selecting multiple
@@ -1731,7 +1731,7 @@ example:
   :scale: 42%
   :align: center
 
-  Html index with line count based synthetic metrics
+  HTML index with line count based synthetic metrics
 
 .. _html-index-obligations:
 
@@ -1739,7 +1739,7 @@ example:
   :scale: 42%
   :align: center
 
-  Html index with obligations count based synthetic metrics (stmt+decision)
+  HTML index with obligations count based synthetic metrics (stmt+decision)
 
 
 .. _rebase_opts:
@@ -2049,9 +2049,9 @@ categorizes the statement as :dfn:`non-coverable`.
 
 By default, nothing is said about non-coverable statements in the
 :cmd-option:`=report` outputs and the corresponding lines are marked with a '.'
-in annnotated sources, as for any other line to which no machine code is
+in annotated sources, as for any other line to which no machine code is
 attached.  Below is an example source annotated for statement coverage, where
-absence of code for a couple of Ada statments was triggered by constant
+absence of code for a couple of Ada statements was triggered by constant
 propagation and inlining. The local ``Pos`` function is called only once, with
 a constant argument such that only one alternative of the ``if`` statement is
 taken. With :cmd-option:`-O1 -gnatn`, the compiler sees that the ``else`` part
@@ -2082,7 +2082,7 @@ regular operation, for example with constructs like::
   ...                                               ...
   if Debug_Mode then                                #if DEBUG_MODE
 
-Another way to get this in Ada is with generic instanciations where constant
+Another way to get this in Ada is with generic instantiations where constant
 parameters turn what appears to be conditional in the source into a constant
 value in some instances.
 
@@ -2102,7 +2102,7 @@ Decision coverage report remains accurate::
 expose the non-coverable statements if needed. They are listed in an additional
 "``NON COVERABLE ITEMS``" section of the :cmd-option:`=report` outputs and the
 corresponding lines are flagged with a '0' mark in annotated sources, as well
-as a specific color in the html formats. For our example, this yields::
+as a specific color in the HTML formats. For our example, this yields::
 
   10 !:       if X > 0 then
   11 +:          Put_Line ("X is positive");

@@ -114,7 +114,7 @@ Approximative source location ranges
 ------------------------------------
 
 Currently, you may witness that some SCOs have a source location range that
-can overlap or merge with its neighbours. This is due to bugs in the
+can overlap or merge with its neighbors. This is due to bugs in the
 compiler's instrumentation logic and will be fixed in coming releases.
 
 Unsupported constructs
