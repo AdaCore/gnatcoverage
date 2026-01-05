@@ -58,7 +58,7 @@ object coverage.
 .. _gnatcov_coverage-commandline-obj:
 
 Coverage analysis with |gcp| is performed by invoking |gcvcov| for a set of
-critera queried via the :cmd-option:`--level` command line option. The general
+criteria queried via the :cmd-option:`--level` command line option. The general
 interface synopsis is available from |gcv| :cmd-option:`--help`::
 
  gnatcov coverage OPTIONS TRACE_FILES

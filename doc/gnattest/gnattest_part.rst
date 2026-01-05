@@ -993,7 +993,7 @@ Please note that all the features described bellow are experimental, and the
 interface is subject to change.
 
 GNATtest has the capability to generate test inputs for subprograms under test.
-This test generation feature is also useable in conjunction with GNATfuzz, in
+This test generation feature is also usable in conjunction with GNATfuzz, in
 order to use GNATtest harnesses (generated or manually written) as a starting
 corpus for a fuzzing session, and to integrate inputs of interest found by
 GNATfuzz back into the test harness. For more details, see section

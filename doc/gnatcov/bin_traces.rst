@@ -5,7 +5,7 @@ Producing binary traces with |gcvrun|
 #####################################
 
 The simplest way to produce binary traces for |gcp| is to run the program in
-an environment that knows how to produce such traces directly. For bareboard
+an environment that knows how to produce such traces directly. For bare metal
 environments operating within |gem|, the |gcvrun| command is available for
 this purpose.
 
