@@ -29,9 +29,11 @@ thistest.fail_if(p.status == 0, "gnatcov exit status shouldn't be success")
 thistest.fail_if_no_match(
     what="gnatcov error message",
     regexp=(
-        'no_such_gnatcov_rts\\.gpr: error: project file ".*" not found'
-        "\n.*gnatcov.*: Could not load the coverage runtime project"
-        " no_such_gnatcov_rts"
+        'error: project file "no_such_gnatcov_rts\\.gpr" not found\n'
+        "The following directories have been searched:\n"
+        "(\n|.)*\n"
+        ".*gnatcov.*: Could not load the coverage runtime project"
+        " no_such_gnatcov_rts$"
     ),
     actual=contents_of(integration_log).strip(),
 )
