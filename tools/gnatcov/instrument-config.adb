@@ -58,7 +58,9 @@ begin
       when Ada_Language =>
          return
            Create_Ada_Instrumenter
-             (Tag                        => Tag,
+             (Default_Charset            =>
+                Args.String_Args (Opt_Ada_Default_Charset).Value,
+              Tag                        => Tag,
               Config_Pragmas_Mapping     =>
                 +Args.String_Args (Opt_Config_Pragmas_Mapping).Value,
               Mapping_Filename           =>

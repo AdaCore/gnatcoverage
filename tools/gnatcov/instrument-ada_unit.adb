@@ -21,6 +21,7 @@ with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Containers;             use Ada.Containers;
 with Ada.Finalization;
+with Ada.Strings.Unbounded;
 pragma Warnings (Off, "* is an internal GNAT unit");
 with Ada.Strings.Wide_Wide_Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
@@ -38,7 +39,8 @@ with Libadalang.Generic_API.Introspection;
 use Libadalang.Generic_API.Introspection;
 with Libadalang.Sources;                        use Libadalang.Sources;
 
-with GNATCOLL.JSON; use GNATCOLL.JSON;
+with GNATCOLL.Iconv; use GNATCOLL.Iconv;
+with GNATCOLL.JSON;  use GNATCOLL.JSON;
 with GNATCOLL.Utils;
 
 with Coverage_Options;                    use Coverage_Options;
@@ -8808,7 +8810,8 @@ package body Instrument.Ada_Unit is
    begin
       Instrumenter.Context :=
         Create_Context
-          (Unit_Provider =>
+          (Charset       => +Instrumenter.Default_Charset,
+           Unit_Provider =>
              Create_Unit_Provider_Reference (Instrumenter.Provider),
            Event_Handler => Instrumenter.Event_Handler,
            File_Reader   => Instrumenter.File_Reader);
@@ -9603,6 +9606,15 @@ package body Instrument.Ada_Unit is
       use Ada.Streams.Stream_IO;
       use Ada.Strings.Wide_Wide_Unbounded.Aux;
 
+      --  We need to transcode the result of unparsing (Wide_Wide_Character
+      --  strings) into bytes (Character strings) according to the unit
+      --  encoding.
+
+      Unit_Charset : constant String :=
+        Libadalang.Rewriting.Unit (Unit).Get_Charset;
+      Iconv_Handle : constant Iconv_T :=
+        Initialize_Iconv (+Unit_Charset, +Text_Charset);
+
       Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
 
       --  To avoid copying the potentially big string for sources on the
@@ -9615,6 +9627,7 @@ package body Instrument.Ada_Unit is
 
       Chunk_Size : constant := 4096;
       Position   : Natural;
+      Buffer     : Ada.Strings.Unbounded.String_Access;
 
       --  Note: we need to open and write the instrumented source as a binary
       --  file, to be consistent with Libadalang which retrieves the tokens
@@ -9640,19 +9653,30 @@ package body Instrument.Ada_Unit is
 
       Get_Wide_Wide_String (Source, Source_Access, Length);
       Position := Source_Access.all'First;
+      Buffer := new String (1 .. 4 * Chunk_Size);
 
       while Position <= Length loop
          declare
             Chunk_First : constant Natural := Position;
             Chunk_Last  : constant Natural :=
               Natural'Min (Chunk_First + Chunk_Size - 1, Length);
-
-            Chunk         : Wide_Wide_String renames
+            Chunk       : Wide_Wide_String renames
               Source_Access.all (Chunk_First .. Chunk_Last);
-            Encoded_Chunk : constant String :=
-              Ada.Characters.Conversions.To_String (Chunk);
+
+            Inbuf       : String (1 .. 4 * Chunk'Length)
+            with Import, Address => Chunk'Address;
+            Input_Index : Positive := Inbuf'First;
+
+            Outbuf       : String renames Buffer.all;
+            Output_Index : Positive := 1;
+
+            Result : Iconv_Result;
          begin
-            String'Write (S, Encoded_Chunk);
+            Iconv
+              (Iconv_Handle, Inbuf, Input_Index, Outbuf, Output_Index, Result);
+            pragma Assert (Result = Success);
+
+            String'Write (S, Outbuf (Outbuf'First .. Output_Index - 1));
             Position := Chunk_Last + 1;
          end;
       end loop;
@@ -9661,6 +9685,7 @@ package body Instrument.Ada_Unit is
       if Switches.Pretty_Print then
          Text_Files.Run_GNATformat (Filename);
       end if;
+      Ada.Strings.Unbounded.Free (Buffer);
    end Write_To_File;
 
    -------------------------------
@@ -11353,13 +11378,15 @@ package body Instrument.Ada_Unit is
    -----------------------------
 
    function Create_Ada_Instrumenter
-     (Tag                        : Unbounded_String;
+     (Default_Charset            : Unbounded_String;
+      Tag                        : Unbounded_String;
       Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
       Preprocessor_Data_Filename : String) return Ada_Instrumenter_Type
    is
       Instrumenter : Ada_Instrumenter_Type;
    begin
+      Instrumenter.Default_Charset := Default_Charset;
       Instrumenter.Tag := Tag;
 
       --  First create the context for Libadalang

@@ -161,7 +161,8 @@ package Command_Line is
       Opt_End_Location,
       Opt_Justification,
       Opt_SS_Backend,
-      Opt_Source_Encoding);
+      Opt_Source_Encoding,
+      Opt_Ada_Default_Charset);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -1558,6 +1559,18 @@ package Command_Line is
              & " produce XML coverage reports.",
            Commands     => (Cmd_Coverage => True, others => False),
            At_Most_Once => False,
+           Internal     => False),
+      Opt_Ada_Default_Charset    =>
+        Create
+          (Long_Name    => "--ada-default-charset",
+           Pattern      => "ENCODING",
+           Help         =>
+             "Specify the default encoding to use to read Ada source files to"
+             & " instrument.",
+           Commands     =>
+             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+              others                                      => False),
+           At_Most_Once => True,
            Internal     => False));
 
    String_List_Infos : constant String_List_Option_Info_Array :=
