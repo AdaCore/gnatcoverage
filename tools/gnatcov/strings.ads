@@ -28,7 +28,8 @@ with Ada.Strings.Unbounded.Equal_Case_Insensitive;
 with Ada.Strings.Unbounded.Hash;
 with Ada.Strings.Unbounded.Less_Case_Insensitive;
 
-with GNAT.Strings; use GNAT.Strings;
+with GNAT.Strings;   use GNAT.Strings;
+with GNATCOLL.Iconv; use GNATCOLL.Iconv;
 
 limited with Checkpoints;
 
@@ -179,6 +180,15 @@ package Strings is
    function Index_Non_Blank (Str : String) return Positive;
    --  Overload of Ada.Strings.Fixed.Index_Non_Blank working for any space-
    --  like character, including for instance tabs.
+
+   function Initialize_Iconv
+     (To_Code, From_Code : Unbounded_String) return Iconv_T;
+   --  Return a process-wide iconv handle to transcode bytes from From_Code to
+   --  To_Code encodings.
+   --
+   --  GNATcov is not multi-threaded, and the needs for iconv handles do not
+   --  overlap. Since iconv handles are costly to create, having a single
+   --  global handle brings non neglectible performance gains.
 
 private
    pragma Inline (Hash);

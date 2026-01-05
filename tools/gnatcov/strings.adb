@@ -24,9 +24,20 @@ with Ada.Strings.Maps.Constants;
 with GNAT.Regexp;
 
 with Checkpoints; use Checkpoints;
+with Outputs;
 with Paths;
 
 package body Strings is
+
+   Iconv_Initialized : Boolean := False;
+   --  Whether Initialize_Iconv was called at least once
+
+   Iconv_To_Code, Iconv_From_Code : Unbounded_String;
+   --  Last encodings passed to Initialize_Iconv
+
+   Iconv_Handle : Iconv_T;
+   --  Process-wide GNATCOLL.Iconv handle to perform transcoding, initialized
+   --  by Initialize_Iconv.
 
    ----------
    -- Hash --
@@ -404,5 +415,40 @@ package body Strings is
         Ada.Strings.Fixed.Index
           (Source => Str, Set => Whitespace_Set, Test => Ada.Strings.Outside);
    end Index_Non_Blank;
+
+   ----------------------
+   -- Initialize_Iconv --
+   ----------------------
+
+   function Initialize_Iconv
+     (To_Code, From_Code : Unbounded_String) return Iconv_T is
+   begin
+      if Iconv_Initialized then
+
+         --  Reuse the existing handle if the encodings match. Otherwise, free
+         --  it and reallocate a new one.
+
+         if Iconv_To_Code = To_Code and then Iconv_From_Code = From_Code then
+            return Iconv_Handle;
+         end if;
+         Iconv_Close (Iconv_Handle);
+      end if;
+
+      begin
+         Iconv_Handle := Iconv_Open (+To_Code, +From_Code);
+      exception
+         when Unsupported_Conversion =>
+            Outputs.Fatal_Error
+              ("unsupported encodings for sources: '"
+               & (+To_Code)
+               & "'/'"
+               & (+From_Code)
+               & "'");
+      end;
+      Iconv_To_Code := To_Code;
+      Iconv_From_Code := From_Code;
+      Iconv_Initialized := True;
+      return Iconv_Handle;
+   end Initialize_Iconv;
 
 end Strings;
