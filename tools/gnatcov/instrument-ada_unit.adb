@@ -5266,7 +5266,8 @@ package body Instrument.Ada_Unit is
                   GSD : constant Generic_Subp_Decl := As_Generic_Subp_Decl (N);
                begin
                   UIC.In_Generic := True;
-                  Process_Expression (UIC, GSD.F_Formal_Part.F_Decls, 'X');
+                  Process_Standalone_Expression
+                    (UIC, GSD.F_Formal_Part.F_Decls, 'X');
                   Process_Expression
                     (UIC, GSD.F_Subp_Decl.F_Subp_Spec.F_Subp_Params, 'X');
                   UIC.In_Generic := Saved_In_Generic;
@@ -6172,7 +6173,7 @@ package body Instrument.Ada_Unit is
       N       : Generic_Package_Decl;
       Preelab : Boolean) is
    begin
-      Process_Expression (UIC, N.F_Formal_Part, 'X');
+      Process_Standalone_Expression (UIC, N.F_Formal_Part, 'X');
       Traverse_Package_Declaration
         (UIC, N.F_Package_Decl.As_Base_Package_Decl, Preelab);
    end Traverse_Generic_Package_Declaration;
