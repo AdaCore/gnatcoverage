@@ -266,6 +266,9 @@ package Checkpoints is
       Relocations : Checkpoint_Relocations;
 
       Static_Decision_Evaluations : Static_Decision_Evaluation_Maps.Map;
+      --  Evaluations for static decisions found in this checkpoint. Note that
+      --  SCO indexes refer to the in-memory tables, not to the SCO tables in
+      --  the loaded checkpoint (i.e. they are already remapped)
    end record;
 
    procedure Checkpoint_Save
