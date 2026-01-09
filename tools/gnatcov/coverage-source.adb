@@ -494,21 +494,24 @@ package body Coverage.Source is
                  (Kind => Decision, others => <>);
 
                function To_Evaluation
-                 (SCO : SCO_Id; Static_Eval : Static_Decision_Evaluation)
-                  return Evaluation;
-               --  Create an `Evaluation` entry from a
-               --  Static_Decision_Evaluation.
+                 (Static_Eval : Static_Decision_Evaluation) return Evaluation;
+               --  Create an `Evaluation` entry for the current decision from
+               --  the given Static_Decision_Evaluation.
+               --
+               --  Note that the decision of the returned entry is a SCO_Id
+               --  that refers to the checkpoint SCO (i.e. it is not remapped),
+               --  so that it is consistent with other evaluation vectors in
+               --  Inserted_SCI.Evaluations.
 
                -------------------
                -- To_Evaluation --
                -------------------
 
                function To_Evaluation
-                 (SCO : SCO_Id; Static_Eval : Static_Decision_Evaluation)
-                  return Evaluation
+                 (Static_Eval : Static_Decision_Evaluation) return Evaluation
                is
                   Eval : Evaluation :=
-                    (Decision       => SCO,
+                    (Decision       => CP_SCO,
                      Outcome        => To_Tristate (Static_Eval.Outcome),
                      Values         => Condition_Evaluation_Vectors.Empty,
                      Next_Condition => No_Condition_Index);
@@ -541,8 +544,7 @@ package body Coverage.Source is
                      Eval : Static_Decision_Evaluation renames
                        S_Eval.Element (J);
                   begin
-                     Inserted_SCI.Evaluations.Include
-                       (To_Evaluation (CP_SCO, Eval));
+                     Inserted_SCI.Evaluations.Include (To_Evaluation (Eval));
                      Inserted_SCI.Known_Outcome_Taken (Eval.Outcome) := True;
                   end;
                end loop;
@@ -553,13 +555,13 @@ package body Coverage.Source is
             --  Start of processing for Process_One_SCO
 
          begin
-            if CLS.Static_Decision_Evaluations.Contains (CP_SCO) then
+            if CLS.Static_Decision_Evaluations.Contains (SCO) then
 
                --  Check if the current SCO has static evaluations, and
                --  merge them as an extra SCI if yes.
 
                Insert_Extra_Decision_SCI
-                 (CLS.Static_Decision_Evaluations.Element (CP_SCO));
+                 (CLS.Static_Decision_Evaluations.Element (SCO));
             end if;
 
             if not Removed then
