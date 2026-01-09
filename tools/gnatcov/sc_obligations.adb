@@ -2283,7 +2283,7 @@ package body SC_Obligations is
          then
             SCOs_Trace.Trace
               ("Consolidation encountered a decision SCO"
-               & " whose staticness may differ at"
+               & " whose staticness may differ at "
                & Image (New_SCOD.Sloc_Range));
             declare
                Old_Eval : Static_Decision_Evaluation;
