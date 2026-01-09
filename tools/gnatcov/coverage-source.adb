@@ -485,6 +485,10 @@ package body Coverage.Source is
             --  Add a set of static evaluations to the rest of the Decision's
             --  evaluation set.
 
+            --------------------------------
+            --- Insert_Extra_Decision_SCI --
+            --------------------------------
+
             procedure Insert_Extra_Decision_SCI
               (S_Eval : Static_Decision_Evaluation_Sets.Set)
             is
@@ -496,6 +500,10 @@ package body Coverage.Source is
                   return Evaluation;
                --  Create an `Evaluation` entry from a
                --  Static_Decision_Evaluation.
+
+               -------------------
+               -- To_Evaluation --
+               -------------------
 
                function To_Evaluation
                  (SCO : SCO_Id; Static_Eval : Static_Decision_Evaluation)
@@ -511,6 +519,8 @@ package body Coverage.Source is
                     (SCO, Static_Eval.Values, Eval.Values);
                   return Eval;
                end To_Evaluation;
+
+               --  Start of processing for Insert_Extra_Decision_SCI
 
             begin
                if Kind (SCO) /= Decision then
@@ -541,6 +551,9 @@ package body Coverage.Source is
 
                Merge_Checkpoint_SCI (SCO, Inserted_SCI, Relocs);
             end Insert_Extra_Decision_SCI;
+
+            --  Start of processing for Process_One_SCO
+
          begin
             if CLS.Static_Decision_Evaluations.Contains (CP_SCO) then
 
