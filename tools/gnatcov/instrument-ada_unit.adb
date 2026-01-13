@@ -3635,11 +3635,6 @@ package body Instrument.Ada_Unit is
    --  a language version configuration pragma (if Process_Pragmas is True),
    --  and semantic dependencies.
 
-   procedure Traverse_Generic_Package_Declaration
-     (UIC     : in out Ada_Unit_Inst_Context;
-      N       : Generic_Package_Decl;
-      Preelab : Boolean);
-
    procedure Traverse_Handled_Statement_Sequence
      (UIC : in out Ada_Unit_Inst_Context; N : Handled_Stmts);
 
@@ -3779,6 +3774,12 @@ package body Instrument.Ada_Unit is
         (N : Basic_Decl; N_Spec : Subp_Spec);
       --  Additional specific processing for the case of degenerate
       --  subprograms (null procedures and expression functions).
+
+      procedure Traverse_Formal_Part (FP : Generic_Formal_Part);
+      --  Traverse formals in a generic formal part
+
+      procedure Traverse_Generic_Package_Declaration
+        (N : Generic_Package_Decl; Preelab : Boolean);
 
       procedure Traverse_Component_List (CL : Component_List);
       --  Traverse a list of components (if a type declaration)
@@ -4933,6 +4934,42 @@ package body Instrument.Ada_Unit is
          Remove_Child (Stub);
       end Traverse_Degenerate_Subprogram;
 
+      --------------------------
+      -- Traverse_Formal_Part --
+      --------------------------
+
+      procedure Traverse_Formal_Part (FP : Generic_Formal_Part) is
+      begin
+         for Decl of FP.F_Decls loop
+
+            --  Process each formal declaration individually. Formal
+            --  subprograms can have contracts: process them as such.  Process
+            --  other declarations as black box expressions, in case we can
+            --  find complex decisions in them.
+
+            case Decl.Kind is
+               when Ada_Generic_Formal_Subp_Decl =>
+                  Traverse_Subp_Decl_Or_Stub
+                    (Decl.As_Generic_Formal_Subp_Decl.F_Decl);
+
+               when others                       =>
+                  Process_Standalone_Expression (UIC, Decl, 'X');
+            end case;
+         end loop;
+      end Traverse_Formal_Part;
+
+      ------------------------------------------
+      -- Traverse_Generic_Package_Declaration --
+      ------------------------------------------
+
+      procedure Traverse_Generic_Package_Declaration
+        (N : Generic_Package_Decl; Preelab : Boolean) is
+      begin
+         Traverse_Formal_Part (N.F_Formal_Part);
+         Traverse_Package_Declaration
+           (UIC, N.F_Package_Decl.As_Base_Package_Decl, Preelab);
+      end Traverse_Generic_Package_Declaration;
+
       -----------------------------
       -- Traverse_Component_List --
       -----------------------------
@@ -5011,6 +5048,9 @@ package body Instrument.Ada_Unit is
 
          elsif N.Kind in Ada_Subp_Decl then
             Process_Contracts (N.As_Subp_Decl);
+
+         elsif N.Kind in Ada_Formal_Subp_Decl then
+            Process_Contracts (N.As_Formal_Subp_Decl);
 
          elsif N.Kind in Ada_Expr_Function then
             Process_Contracts (N.As_Expr_Function);
@@ -5174,7 +5214,7 @@ package body Instrument.Ada_Unit is
 
             when Ada_Generic_Package_Decl                          =>
                Traverse_Generic_Package_Declaration
-                 (UIC, N.As_Generic_Package_Decl, Preelab);
+                 (N.As_Generic_Package_Decl, Preelab);
 
             --  Package body
 
@@ -5205,8 +5245,7 @@ package body Instrument.Ada_Unit is
                declare
                   GSD : constant Generic_Subp_Decl := As_Generic_Subp_Decl (N);
                begin
-                  Process_Standalone_Expression
-                    (UIC, GSD.F_Formal_Part.F_Decls, 'X');
+                  Traverse_Formal_Part (GSD.F_Formal_Part);
                   Process_Expression
                     (UIC, GSD.F_Subp_Decl.F_Subp_Spec.F_Subp_Params, 'X');
                end;
@@ -6103,20 +6142,6 @@ package body Instrument.Ada_Unit is
       end loop;
 
    end Traverse_Context_Clause;
-
-   ------------------------------------------
-   -- Traverse_Generic_Package_Declaration --
-   ------------------------------------------
-
-   procedure Traverse_Generic_Package_Declaration
-     (UIC     : in out Ada_Unit_Inst_Context;
-      N       : Generic_Package_Decl;
-      Preelab : Boolean) is
-   begin
-      Process_Standalone_Expression (UIC, N.F_Formal_Part, 'X');
-      Traverse_Package_Declaration
-        (UIC, N.F_Package_Decl.As_Base_Package_Decl, Preelab);
-   end Traverse_Generic_Package_Declaration;
 
    -----------------------------------------
    -- Traverse_Handled_Statement_Sequence --
