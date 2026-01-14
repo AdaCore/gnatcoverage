@@ -7241,15 +7241,13 @@ package body Instrument.Ada_Unit is
 
             if not UIC.Disable_Instrumentation
               and then not Is_Static_Expr (E)
-              and then
-                (Coverage.Enabled (Decision)
-                 or else MCDC_Coverage_Enabled
-                 or else Assertion_Condition_Coverage_Enabled)
+              and then Any_Decision_Or_Assertion_Coverage_Enabled
             then
                if MCDC_Coverage_Enabled
                  or else
                    (Is_Contract and then Assertion_Condition_Coverage_Enabled)
                then
+
                   Condition_Count := 0;
 
                   --  We need to instrument for MCDC, so we need an MCDC state
@@ -8899,15 +8897,10 @@ package body Instrument.Ada_Unit is
          E.Unit_Buffers := To_Nodes (RH, UIC.Pure_Buffer_Unit.Unit);
          E.Statement_Buffer := Indexed_Buffer (Statement_Buffer_Name);
 
-         if Coverage.Enabled (Decision)
-           or else MCDC_Coverage_Enabled
-           or else Assertion_Condition_Coverage_Enabled
-         then
+         if Any_Decision_Or_Assertion_Coverage_Enabled then
             E.Decision_Buffer := Indexed_Buffer (Decision_Buffer_Name);
 
-            if MCDC_Coverage_Enabled
-              or else Assertion_Condition_Coverage_Enabled
-            then
+            if MCDC_Or_ATCC_Enabled then
                E.MCDC_Buffer := Indexed_Buffer (MCDC_Buffer_Name);
             end if;
          end if;
@@ -10467,10 +10460,7 @@ package body Instrument.Ada_Unit is
 
          --  Insert calls to condition/decision witnesses
 
-         if Coverage.Enabled (Decision)
-           or else MCDC_Coverage_Enabled
-           or else Assertion_Condition_Coverage_Enabled
-         then
+         if Any_Decision_Or_Assertion_Coverage_Enabled then
             for SD of UIC.Source_Decisions loop
                declare
                   HL_SCO            : constant SCO_Id := SCO_Map (SD.LL_SCO);
@@ -10488,9 +10478,7 @@ package body Instrument.Ada_Unit is
                end;
             end loop;
 
-            if MCDC_Coverage_Enabled
-              or else Assertion_Condition_Coverage_Enabled
-            then
+            if MCDC_Or_ATCC_Enabled then
                --  As high-level SCO tables have been populated, we have built
                --  BDDs for each decision, and we can now set the correct MC/DC
                --  path offset for each condition.

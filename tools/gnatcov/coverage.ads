@@ -72,6 +72,13 @@ package Coverage is
    function Assertion_Coverage_Enabled return Boolean;
    --  True if any Assertion_Coverage_Level is enabled
 
+   function Any_Decision_Or_Assertion_Coverage_Enabled return Boolean;
+   --  True if one of Decision, MCDC, ATC or ATCC is enabled
+
+   function MCDC_Or_ATCC_Enabled return Boolean;
+   --  True if any MCDC_Coverage_Level or ATCC is enabled, as ATCC uses MCDC
+   --  buffers.
+
    function Object_Level return Object_Coverage_Level;
    --  If Object_Coverage_Enabled, return Insn or Branch, depending on which
    --  one is enabled (it is illegal to have both enabled).
