@@ -31,6 +31,7 @@ with GNATCOLL.VFS; use GNATCOLL.VFS;
 pragma Warnings (Off, "not referenced");
 with GPR2.Build.Source.Sets;
 pragma Warnings (On, "not referenced");
+with GPR2.Containers;
 with GPR2.Message;
 with GPR2.Options;
 with GPR2.Path_Name;
@@ -105,6 +106,15 @@ package body Project is
    --
    --  This passes the name of the unit as Unit_Name for languages featuring
    --  this notion (Ada) and the base file name otherwise (i.e. for C sources).
+
+   procedure Iterate_Ada_Source_Files_In_Closure
+     (Process :
+        access procedure
+          (Source : GPR2.Build.Source.Object; Unit_Name : String));
+   --  Call Process on all Ada source files in the loaded project that belong
+   --  to units of interest in the build closure of the loaded project
+   --  (i.e. the same Ada sources that would be compiled if gprbuild was called
+   --  on the loaded project).
 
    function SCO_Filename
      (Source : GPR2.Build.Source.Object; Kind : GNATcov_Trace_File_Kind)
@@ -509,6 +519,160 @@ package body Project is
          Recursive    => Recursive);
    end Iterate_Source_Files;
 
+   -----------------------------------------
+   -- Iterate_Ada_Source_Files_In_Closure --
+   -----------------------------------------
+
+   procedure Iterate_Ada_Source_Files_In_Closure
+     (Process :
+        access procedure
+          (Source : GPR2.Build.Source.Object; Unit_Name : String))
+   is
+      Non_Ada_Main : Boolean := False;
+
+      Processed_Units, Queue : GPR2.Containers.Name_Set;
+
+      Root           : constant GPR2.Project.View.Object :=
+        Prj_Tree.Root_Project;
+      Root_Has_Mains : constant Boolean := Root.Has_Mains;
+   begin
+      if Root_Has_Mains then
+
+         --  If the root project has mains, use them to find closures
+
+         for Main of Root.Mains loop
+            declare
+               Source : constant GPR2.Build.Source.Object :=
+                 Main.View.Source (Main.Source.Simple_Name);
+            begin
+               if Source.Has_Units then
+                  for Unit of Source.Units loop
+                     Queue.Include (Unit.Name);
+                  end loop;
+               else
+                  Non_Ada_Main := True;
+               end if;
+            end;
+         end loop;
+      end if;
+
+      for View of Root.Closure (Include_Self => True) loop
+         declare
+            type Inclusion_Mode is (None, All_Units, Library_Interface);
+            Mode : Inclusion_Mode;
+            --  How to include units from the current view:
+            --
+            --  * None: include none;
+            --  * All_Units: include all units owned by this view;
+            --  * Library_Interface: include all units in the closure of the
+            --    library interface (when View has one).
+         begin
+            --  First determine the inclusion mode
+
+            if View.Is_Runtime then
+               Mode := None;
+
+            elsif View.Is_Library then
+               Mode :=
+                 (if View.Has_Any_Interfaces
+                  then Library_Interface
+                  else All_Units);
+
+            elsif not Root_Has_Mains or else Non_Ada_Main then
+               Mode := All_Units;
+
+            else
+               Mode := None;
+            end if;
+
+            --  Then include units according to this mode
+
+            case Mode is
+               when None              =>
+                  null;
+
+               when All_Units         =>
+                  for Source of View.Sources loop
+                     if Source.Has_Units then
+                        for Unit of Source.Units loop
+                           Queue.Include (Unit.Name);
+                        end loop;
+                     end if;
+                  end loop;
+
+               when Library_Interface =>
+                  for Unit of View.Interface_Closure loop
+                     Queue.Include (Unit.Name);
+                  end loop;
+            end case;
+         end;
+      end loop;
+
+      while not Queue.Is_Empty loop
+         declare
+            Unit_Name       : constant GPR2.Name_Type := Queue.First_Element;
+            Lower_Unit_Name : constant String := To_Lower (String (Unit_Name));
+            Unit            : constant GPR2.Build.Compilation_Unit.Object :=
+              Root.Unit (Unit_Name);
+            View            : GPR2.Project.View.Object;
+         begin
+            Queue.Delete_First;
+            Processed_Units.Include (Unit_Name);
+
+            if not Unit.Is_Defined then
+               goto Continue;
+            end if;
+            View := Unit.Owning_View;
+
+            if View.Is_Externally_Built
+              and then not Externally_Built_Projects_Processing_Enabled
+            then
+               goto Continue;
+            end if;
+
+            declare
+               procedure Process_Part
+                 (Kind     : GPR2.Unit_Kind;
+                  View     : GPR2.Project.View.Object;
+                  Path     : GPR2.Path_Name.Object;
+                  Index    : GPR2.Unit_Index;
+                  Sep_Name : GPR2.Optional_Name_Type);
+
+               ------------------
+               -- Process_Part --
+               ------------------
+
+               procedure Process_Part
+                 (Kind     : GPR2.Unit_Kind;
+                  View     : GPR2.Project.View.Object;
+                  Path     : GPR2.Path_Name.Object;
+                  Index    : GPR2.Unit_Index;
+                  Sep_Name : GPR2.Optional_Name_Type)
+               is
+                  pragma Unreferenced (Kind, Index, Sep_Name);
+               begin
+                  Process.all
+                    (View.Source (Path.Simple_Name), Lower_Unit_Name);
+               end Process_Part;
+            begin
+               if Unit_Map.Contains
+                    ((Traces_Source.Unit_Based_Language, +Lower_Unit_Name))
+               then
+                  Unit.For_All_Part (Process_Part'Access);
+               end if;
+            end;
+
+            for Dep_Name of Unit.Known_Dependencies loop
+               if not Processed_Units.Contains (Dep_Name) then
+                  Queue.Include (Dep_Name);
+               end if;
+            end loop;
+
+            <<Continue>>
+         end;
+      end loop;
+   end Iterate_Ada_Source_Files_In_Closure;
+
    -----------------
    -- Add_Project --
    -----------------
@@ -660,18 +824,21 @@ package body Project is
    -----------------------
 
    procedure Enumerate_Sources
-     (Callback  :
+     (Callback :
         access procedure
           (Project : GPR2.Project.View.Object;
            File    : GPR2.Build.Source.Object);
-      Language  : Any_Language;
-      Only_UOIs : Boolean := False)
+      Language : Any_Language;
+      Mode     : Source_Enumeration_Mode := All_Sources)
    is
       procedure Process_Source_File
         (Source : GPR2.Build.Source.Object; Unit_Name : String);
-      --  Callback for Iterate_Source_File. If Only_UOIs is set to true, call
-      --  Callback the Unit_Name file is it a unit of interest. If Only_UOIs is
-      --  set to False, call Callback on all sources.
+      --  Callback for Iterate_Source_File. Depending on Mode, call Callback
+      --  on the Unit_Name file only if it is a unit of interest.
+
+      For_Closure : Boolean;
+      --  To be set before calling Process_Source_File to whether we are
+      --  computing Ada build closures.
 
       -------------------------
       -- Process_Source_File --
@@ -686,8 +853,16 @@ package body Project is
       begin
          --  If only sources for a specific language are requested and this
          --  is not the language for Source, skip it.
+         --
+         --  Also skip Ada sources if we already processed them through the
+         --  call to Iterate_Ada_Source_Files_In_Closures below.
 
-         if Language /= All_Languages and then Language /= Info_Lang then
+         if (Language /= All_Languages and then Language /= Info_Lang)
+           or else
+             (not For_Closure
+              and then Info_Lang = Ada_Language
+              and then Mode = Only_UOI_Closures)
+         then
             return;
          end if;
 
@@ -698,20 +873,38 @@ package body Project is
 
            --  Otherwise, check if the unit is in the units of interest map
 
-           or else not Only_UOIs
+           or else Mode = All_Sources
            or else Unit_Map.Contains (To_Compilation_Unit (Source))
          then
             Callback (Source.Owning_View, Source);
          end if;
       end Process_Source_File;
 
-   begin
-      --  Go through all sources files in all projects of interest
+      --  Start of processing for Enumerate_Sources
 
-      for Prj_Info of Prj_Map loop
-         Iterate_Source_Files
-           (Prj_Info.Project, Process_Source_File'Access, Recursive => False);
-      end loop;
+   begin
+      --  If Ada sources are requested in closure mode, use the project tree to
+      --  find closures.
+
+      if Mode = Only_UOI_Closures
+        and then Language in All_Languages | Ada_Language
+      then
+         For_Closure := True;
+         Iterate_Ada_Source_Files_In_Closure (Process_Source_File'Access);
+      end if;
+
+      --  Go through all sources files in all projects of interest. Stop there
+      --  if only Ada sources were requested in closure mode.
+
+      if Mode /= Only_UOI_Closures or else Language /= Ada_Language then
+         for Prj_Info of Prj_Map loop
+            For_Closure := False;
+            Iterate_Source_Files
+              (Prj_Info.Project,
+               Process_Source_File'Access,
+               Recursive => False);
+         end loop;
+      end if;
    end Enumerate_Sources;
 
    ----------------------
