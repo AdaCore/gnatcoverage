@@ -790,9 +790,24 @@ package SC_Obligations is
 
    function Is_Assertion_To_Cover (SCO : SCO_Id) return Boolean;
    --  True if the SCO is an assertion SCO that should be covered by any level
-   --  of assertion coverage (ATC, ATCC), i.e. Assert, Assert_And_Cut, Assume,
-   --  Check, Loop_Invariant, Type_Invariant, Precondition, Postcondition
-   --  pragmas and Type_Invariant, Precondition and Postcondition aspects.
+   --  of assertion coverage (ATC, ATCC), i.e. a decision from one of the
+   --  following pragmas:
+   --
+   --  * Assert
+   --  * Assert_And_Cut
+   --  * Assume
+   --  * Check
+   --  * Loop_Invariant
+   --  * Postcondition
+   --  * Precondition
+   --  * Type_Invariant
+   --
+   --  or one of the following aspects:
+   --
+   --  * Default_Initial_Condition
+   --  * Postcondition
+   --  * Precondition
+   --  * Type_Invariant.
 
    function Is_If_Expression (SCO : SCO_Id) return Boolean;
    --  True if SCO is the decision of an IF expression
