@@ -33,8 +33,8 @@ with GNAT.Exception_Actions;
 with GNAT.OS_Lib;
 with GNAT.Regexp;
 
-with GNATCOLL.JSON; use GNATCOLL.JSON;
-with GNATCOLL.VFS;  use GNATCOLL.VFS;
+with GNATCOLL.JSON;               use GNATCOLL.JSON;
+with GNATCOLL.VFS;                use GNATCOLL.VFS;
 with GPR2.Build.Compilation_Unit;
 with GPR2.Build.Source;
 with GPR2.Containers;
@@ -42,6 +42,7 @@ with GPR2.Path_Name;
 with GPR2.Project.Attribute;
 with GPR2.Project.Attribute_Index;
 with GPR2.Project.Registry.Attribute;
+with Libadalang.Project_Provider; use Libadalang.Project_Provider;
 
 with Binary_Files;
 with Command_Line;        use Command_Line;
@@ -176,6 +177,9 @@ is
    --  dealing with homonym in different projects).
 
    type Inst_Context is limited record
+      Ada_Default_Charset : Unbounded_String;
+      --  Default charset to analyze Ada source code
+
       Mapping_File : Unbounded_String;
       --  File that describes the mapping of units to source files for all Ada
       --  units.
@@ -689,6 +693,7 @@ is
 
       case LU_Info.Language is
          when Ada_Language =>
+            Result.Append ("--ada-default-charset=" & IC.Ada_Default_Charset);
             Result.Append ("--gnatem=" & IC.Mapping_File);
             Result.Append
               ("--config-pragmas-mapping=" & IC.Config_Pragmas_Mapping);
@@ -1269,6 +1274,7 @@ begin
    --  both as we do not expect to have coverage buffers for header files (the
    --  coverage data is in including bodies' coverage buffers).
 
+   IC.Ada_Default_Charset := +Default_Charset_From_Project (Project.Project);
    IC.Mapping_File :=
      +(+Root_Project_Info.all.Output_Dir) / ".ada-src-mapping";
    IC.Config_Pragmas_Mapping :=
@@ -1292,7 +1298,8 @@ begin
 
    Ada_Instrumenter :=
      Create_Ada_Instrumenter
-       (Tag                        => IC.Tag,
+       (Default_Charset            => IC.Ada_Default_Charset,
+        Tag                        => IC.Tag,
         Config_Pragmas_Mapping     => +IC.Config_Pragmas_Mapping,
         Mapping_Filename           => +IC.Mapping_File,
         Preprocessor_Data_Filename => +IC.Ada_Preprocessor_Data_File);

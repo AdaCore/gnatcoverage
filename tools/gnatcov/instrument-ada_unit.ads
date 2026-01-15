@@ -41,6 +41,9 @@ with Switches;
 package Instrument.Ada_Unit is
 
    type Ada_Instrumenter_Type is new Language_Instrumenter with record
+      Default_Charset : Unbounded_String;
+      --  Default charset to analyze Ada source code
+
       Provider : Instrument.Ada_Unit_Provider.Provider_Type;
       --  Unit provider to create an analysis context (Context member
       --  below). We use a custom provider there, to be able to turn
@@ -156,7 +159,8 @@ package Instrument.Ada_Unit is
    --  Mapping.
 
    function Create_Ada_Instrumenter
-     (Tag                        : Unbounded_String;
+     (Default_Charset            : Unbounded_String;
+      Tag                        : Unbounded_String;
       Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
       Preprocessor_Data_Filename : String) return Ada_Instrumenter_Type;
