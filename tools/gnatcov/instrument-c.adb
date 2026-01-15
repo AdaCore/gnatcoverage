@@ -1462,6 +1462,18 @@ package body Instrument.C is
             else
                Wrap_Struct_Call_In_Stmt_Expr (SS.Statement);
             end if;
+
+         when Instr_CallInit_ConstructExpr     =>
+            Insert_Text_After_Start_Of
+              (N    => SS.Statement,
+               Text =>
+                 "*gcvrt_dummy_"
+                 & Img (Bit)
+                 & "("
+                 & Make_Expr_Witness (UIC, Buffers_Index, Bit)
+                 & " ? nullptr : nullptr), ",
+               Rew  => UIC.Rewriter);
+
       end case;
    end Insert_Statement_Witness;
 
@@ -2143,6 +2155,14 @@ package body Instrument.C is
                      To := Sloc (Get_Range_End (CX_Source_Range));
                      Instr_Scheme := Instr_StructField_CallExpr;
                   end;
+               elsif Is_VarDecl_CallInit_CtorExpr (C) then
+
+                  --  When encountering a CXXConstructExpr, only instrument it
+                  --  if it's not a declaration ctor call, i.e. "Foo
+                  --  foo(args)". Still, the ctor call should be instrumented
+                  --  if in the context of a regular expression.
+
+                  Instr_Scheme := Instr_CallInit_ConstructExpr;
                end if;
 
                UIC.Pass.Append_SCO

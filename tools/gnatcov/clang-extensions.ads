@@ -173,9 +173,17 @@ package Clang.Extensions is
    --  (meaning not a method that is called from the body of another method
    --  in which it is possible to simply omit `this->`).
 
-   function Is_Struct_Field_Call_Expr (C : Cursor_T) return Boolean;
+   function Is_Struct_Field_Call_Expr (C : Cursor_T) return Boolean
+   with Inline;
    --  Return true if the cursor points to a CallExpr, whose callee is a
    --  MemberExpr.
+
+   function Is_VarDecl_CallInit_CtorExpr (C : Cursor_T) return Boolean
+   with Inline;
+   --  Return True if C points to a CXXConstructExpr, and its direct parent is
+   --  a VarDecl in Call-like form.
+   --
+   --  (i.e. `Foo foo(args)` rather than `Foo foo = Foo(args)`).
 
    function Get_CXX_Member_Call_Expr_SCO_Sloc_Range
      (C : Cursor_T) return Source_Range_T
