@@ -13,9 +13,9 @@ end Test_Nested;
 
 --# nested.ads
 -- /success/         l+ ## 0
--- /fail_part/       l! ## 0
--- /fail_ac/         l! ## ac!
--- /fail_2_ac/       l! ## ac!,ac!
+-- /fail_part/       a=>l+, c=>l! ## 0
+-- /fail_ac/         a=>l+, c=>l! ## a=>0, c=>ac!
+-- /fail_2_ac/       a=>l+, c=>l! ## a=>0, c=>ac!,ac!
 --# nested.adb
 -- /success/         l+ ## 0
--- /fail/            l! ## ac!
+-- /fail/            a=>l+, c=>l! ## a=>0, c=>ac!

@@ -29,8 +29,9 @@ end Test_Various_Tests;
 -- /nested_3/        l+ ## 0
 -- /same_ret/        l+ ## 0
 -- # various_tests.adb
--- /assert_1/        a=>l+, c=>l! ## a=>0, c=>ac!,ac!
+-- /assert/          a=>l+, c=>l! ## a=>0, c=>ac!,ac!
 -- /foo/             l+ ## 0
--- /if_false/        l! ## dT-
--- /assert_2/        l- ## s-
 -- /bar/             l+ ## 0
+-- # run_assert.adb
+-- /decl/            l- ## s-
+-- /assert/          l- ## s-
