@@ -63,4 +63,12 @@ package GNATcov_RTS.Buffers.Lists is
    --  Set the components of all the buffers in each group to zero, effectively
    --  resetting the coverage state of all obligations to "not covered".
 
+   Witness_Limited_Actual : Witness_Limited_Type;
+   pragma
+     Export
+       (Convention => Ada,
+        Entity => Witness_Limited_Actual,
+        External_Name => "gnatcov_rts_witness_limited");
+   --  See comment declaration of Witness_Limited in gnatcov_rts-buffers.ads
+
 end GNATcov_RTS.Buffers.Lists;

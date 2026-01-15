@@ -1083,7 +1083,7 @@ procedure GNATcov_Bits_Specific is
         Args.Bool_Args (Opt_Boolean_Short_Circuit_And_Or);
       Emit_Report := not Args.Bool_Args (Opt_Cancel_Annotate);
       Save_Temps := Args.Bool_Args (Opt_Save_Temps);
-      SPARK_Compat := Args.Bool_Args (Opt_SPARK_Compat);
+      Instrument_Ghost := Args.Bool_Args (Opt_Instrument_Ghost);
       Use_Full_Slugs := Args.Bool_Args (Opt_Full_Slugs);
       Force := Args.Bool_Args (Opt_Force);
       Split_Extracted_Traces := Args.Bool_Args (Opt_Split_Extracted_Traces);

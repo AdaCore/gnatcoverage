@@ -151,6 +151,9 @@ def xcov_instrument(
     if thistest.options.block:
         args.append("--instrument-block")
 
+    if thistest.options.instrument_ghost:
+        args.append("--instrument-ghost")
+
     # TODO (gpr-issues#241) temporary workaround.
     # Since gpr2clean deletes .sid files for the moment, we need to
     # clean the project before instrumenting (this used to be done before the

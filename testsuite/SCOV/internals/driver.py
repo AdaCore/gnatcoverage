@@ -473,6 +473,10 @@ class SCOV_helper:
 
         ctl_opts = ["--trace-mode=%s" % thistest.options.trace_mode]
 
+        # Add the instrument-ghost option
+        if thistest.options.instrument_ghost:
+            ctl_opts.append("--instrument-ghost")
+
         self.extracargs = to_list(self.testcase.extracargs)
 
         # { sourcename -> KnoteDict } dictionaries of emitted/expected

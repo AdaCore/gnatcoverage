@@ -12,3 +12,5 @@ end Test_Main;
 --
 --# pkg.ads
 -- /is-even/   l. ## 0
+--%opts:--instrument-ghost
+-- =/is-even/  l! ## eF-
