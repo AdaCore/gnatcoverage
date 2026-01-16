@@ -1,0 +1,6 @@
+{
+    "projectFile": "tools/gnatcov/gnatcov.gpr",
+    "scenarioVariables": {
+        "PART": "gnatcov64"
+    }
+}
