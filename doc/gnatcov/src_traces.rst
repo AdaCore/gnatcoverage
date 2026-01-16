@@ -705,6 +705,11 @@ resolve this issue.
 C/C++ limitations
 ^^^^^^^^^^^^^^^^^
 
+The instrumentation process relies on function calls that have side effects.
+These functions are thus not ``constexpr`` and cannot be inserted in any such
+context. As such, |gcvins| will not instrument functions or constructors
+declared as ``constexpr``, and they will not generate any coverage obligations.
+
 The instrumentation process yields preprocessed versions of the sources. Thus,
 it is required to remove any :cmd-option:`-include` switch that is passed to
 the compiler invocation, by having a dedicated scenario variable for a coverage

@@ -8,7 +8,7 @@ main (void)
 
 //# pkg.cpp
 // /.*def_1/          l- ## f-
-// /default_ctor_def/ l. ## 0
+// /default_ctor_def/ l? ## f?
 // /var_ctor_def/     l- ## f-
 // /return/           l- ## s-,c-
 // /decl_.*/          l- ## s-,c-

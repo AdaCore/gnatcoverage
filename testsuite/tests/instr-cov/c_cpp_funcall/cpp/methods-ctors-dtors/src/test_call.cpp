@@ -8,3 +8,5 @@ main (void)
 }
 
 //# pkg.cpp
+
+// /default_ctor_def/ l? ## f?

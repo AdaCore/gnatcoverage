@@ -2877,12 +2877,22 @@ package body Instrument.C is
                      --  Trailing braces that should be inserted at the end
                      --  of the function body.
 
+                     Saved_Disable_Instr : constant Boolean :=
+                       UIC.Disable_Instrumentation;
+
                   begin
                      --  Do not instrument constexpr functions similarly to
                      --  Ada static expression functions.
 
                      if Is_Constexpr (N) then
-                        goto Continue;
+                        UIC.Disable_Instrumentation := True;
+                        UIC.Pass.Report
+                          (Node => N,
+                           Msg  =>
+                             "gnatcov limitation: cannot instrument"
+                             & " constexpr function, it will be"
+                             & " reported as undetermined coverage",
+                           Kind => Warning);
                      end if;
 
                      if Cursor_Kind /= Cursor_Lambda_Expr then
@@ -2932,6 +2942,8 @@ package body Instrument.C is
                      if Cursor_Kind /= Cursor_Lambda_Expr then
                         UIC.Pass.Exit_Scope (UIC);
                      end if;
+
+                     UIC.Disable_Instrumentation := Saved_Disable_Instr;
                   end;
 
                --  Traverse the declarations of a namespace / linkage
