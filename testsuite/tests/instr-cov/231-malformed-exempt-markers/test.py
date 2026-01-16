@@ -18,7 +18,11 @@ Wdir("tmp_")
 build_run_and_coverage(
     gprsw=GPRswitches(
         gprfor(
-            prjid="test", srcdirs=[".."], mains=["main_1.adb"], langs=["Ada"]
+            prjid="test",
+            srcdirs=[".."],
+            mains=["main_1.adb"],
+            langs=["Ada"],
+            extra='for Source_Files use ("main_1.adb");',
         )
     ),
     covlevel="stmt",
@@ -35,7 +39,10 @@ build_run_and_coverage(
 xcov_instrument(
     gprsw=GPRswitches(
         gprfor(
-            prjid="test", srcdirs=[".."], mains=["main_2.adb"], langs=["Ada"]
+            prjid="test",
+            srcdirs=[".."],
+            mains=["main_1.adb", "main_2.adb"],
+            langs=["Ada"],
         )
     ),
     covlevel="stmt",

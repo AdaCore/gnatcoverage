@@ -18,21 +18,33 @@ lib = gprfor(
     srcdirs="../src-lib",
     mains=None,
     objdir="obj-lib",
+    extra="""
+        for Library_Name use Project'Name;
+        for Library_Dir use "lib-" & Project'Name;
+    """,
 )
 
 foo = gprfor(
     prjid="foo",
     srcdirs="../src-root/src-foo",
-    mains=["foo.adb"],
+    mains=None,
     objdir="obj-foo",
     deps=["bar", "lib"],
+    extra="""
+        for Library_Name use Project'Name;
+        for Library_Dir use "lib-" & Project'Name;
+    """,
 )
 
 bar = gprfor(
     prjid="bar",
     srcdirs="../src-root/src-foo/src-bar",
-    mains=["bar.adb"],
+    mains=None,
     objdir="obj-bar",
+    extra="""
+        for Library_Name use Project'Name;
+        for Library_Dir use "lib-" & Project'Name;
+    """,
 )
 
 root = gprfor(

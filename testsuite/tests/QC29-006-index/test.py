@@ -53,7 +53,14 @@ lib_gpr = create_lib_gpr(
                                """,
 )
 foo_gpr = create_lib_gpr(
-    "foo", "../src-root/src-foo", "obj-foo", ["bar", "lib"]
+    "foo",
+    "../src-root/src-foo",
+    "obj-foo",
+    ["bar", "lib"],
+    extra="""
+        for Library_Name use Project'Name;
+        for Library_Dir use "lib-" & Project'Name;
+    """,
 )
 bar_gpr = create_lib_gpr("bar", "../src-root/src-foo/src-bar", "obj-bar")
 
