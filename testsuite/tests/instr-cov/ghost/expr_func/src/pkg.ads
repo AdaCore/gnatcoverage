@@ -2,7 +2,7 @@ pragma Ada_2012;
 
 package Pkg is
 
-   Counter : Natural := 0 with Ghost;
+   Counter : Natural := 2 with Ghost;
 
    function Is_Even return Boolean
    is (Counter > 0 and then Counter mod 2 = 0)  -- # is-even

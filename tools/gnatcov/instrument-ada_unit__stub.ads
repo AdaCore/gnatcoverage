@@ -37,7 +37,8 @@ package Instrument.Ada_Unit is
    procedure Save_Config_Pragmas_Mapping (Filename : String) is null;
 
    function Create_Ada_Instrumenter
-     (Tag                        : Unbounded_String;
+     (Default_Charset            : Unbounded_String;
+      Tag                        : Unbounded_String;
       Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
       Preprocessor_Data_Filename : String) return Ada_Instrumenter_Type

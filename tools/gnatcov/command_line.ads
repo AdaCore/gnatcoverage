@@ -97,7 +97,7 @@ package Command_Line is
       Opt_Cancel_Annotate,
       Opt_All_Warnings,
       Opt_Save_Temps,
-      Opt_SPARK_Compat,
+      Opt_Instrument_Ghost,
       Opt_Full_Slugs,
       Opt_Warnings_As_Errors,
       Opt_Instrument_Block,
@@ -161,7 +161,8 @@ package Command_Line is
       Opt_End_Location,
       Opt_Justification,
       Opt_SS_Backend,
-      Opt_Source_Encoding);
+      Opt_Source_Encoding,
+      Opt_Ada_Default_Charset);
    --  Set of string options we support. More complete descriptions below.
 
    type String_List_Options is
@@ -770,12 +771,10 @@ package Command_Line is
            Help      => "Do not remove temporary files and directories.",
            Internal  => True),
 
-      Opt_SPARK_Compat                 =>
+      Opt_Instrument_Ghost             =>
         Create
-          (Long_Name => "--spark-compat",
-           Help      =>
-             "Enable the SPARK compatibility mode. This ensures"
-             & " instrumented code will be ghost compliant.",
+          (Long_Name => "--instrument-ghost",
+           Help      => "Enable instrumentation of ghost code.",
            Commands  => (Cmd_Instrument => True, others => False),
            Internal  => False),
 
@@ -1558,6 +1557,18 @@ package Command_Line is
              & " produce XML coverage reports.",
            Commands     => (Cmd_Coverage => True, others => False),
            At_Most_Once => False,
+           Internal     => False),
+      Opt_Ada_Default_Charset    =>
+        Create
+          (Long_Name    => "--ada-default-charset",
+           Pattern      => "ENCODING",
+           Help         =>
+             "Specify the default encoding to use to read Ada source files to"
+             & " instrument.",
+           Commands     =>
+             (Cmd_Instrument_Source | Cmd_Instrument_Main => True,
+              others                                      => False),
+           At_Most_Once => True,
            Internal     => False));
 
    String_List_Infos : constant String_List_Option_Info_Array :=

@@ -240,15 +240,8 @@ package body Files_Table is
    -- Encoding --
    --------------
 
-   Iconv_Initialized : Boolean := False;
-   --  Whether Set_Encoding was called, and thus whether Iconv_Handle is
-   --  initialized.
-
-   Iconv_Encoding : Unbounded_String;
+   Iconv_Encoding : Unbounded_String := +ISO_8859_1;
    --  Last encoding passed to Set_Encoding
-
-   Iconv_Handle : Iconv_T;
-   --  GNATCOLL.Iconv handle to perform transcoding
 
    Iconv_Buffer : String_Access;
    --  Result buffer for decoded strings
@@ -995,17 +988,7 @@ package body Files_Table is
 
    procedure Set_Encoding (Encoding : String) is
    begin
-      if Iconv_Initialized then
-         Iconv_Close (Iconv_Handle);
-         Iconv_Initialized := False;
-      end if;
-      Iconv_Handle := Iconv_Open (UTF8, Encoding);
       Iconv_Encoding := +Encoding;
-      Iconv_Initialized := True;
-   exception
-      when Unsupported_Conversion =>
-         Outputs.Fatal_Error
-           ("unsupported encoding for sources: '" & Encoding & "'");
    end Set_Encoding;
 
    -----------------------
@@ -1013,16 +996,14 @@ package body Files_Table is
    -----------------------
 
    procedure Transcode_To_UTF8
-     (S : String; Last : out Natural; On_Error : access procedure) is
+     (S : String; Last : out Natural; On_Error : access procedure)
+   is
+      Iconv_Handle : constant Iconv_T :=
+        Initialize_Iconv (+UTF8, Iconv_Encoding);
    begin
-      --  Make sure the decoder to UTF-8 is initialized and that we have a
-      --  buffer big enough to hold all possible decoded content: worse case,
-      --  each decoded byte in Line yields 4 bytes (biggest UTF-8
-      --  representation for a codepoint).
-
-      if not Iconv_Initialized then
-         Set_Encoding (ISO_8859_1);
-      end if;
+      --  Make sure we have a buffer big enough to hold all possible decoded
+      --  content: worse case, each decoded byte in Line yields 4 bytes
+      --  (biggest UTF-8 representation for a codepoint).
 
       if Iconv_Buffer = null or else Iconv_Buffer.all'Length < 4 * S'Length
       then

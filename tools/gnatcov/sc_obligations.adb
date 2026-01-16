@@ -4038,9 +4038,9 @@ package body SC_Obligations is
             | Pragma_Assume
             | Pragma_Check
             | Pragma_Loop_Invariant
-            | Pragma_Type_Invariant
             | Pragma_Precondition
-            | Pragma_Postcondition;
+            | Pragma_Postcondition
+            | Pragma_Type_Invariant;
       end Is_Pragma_Stmt_To_Cover;
 
       SCOD : SCO_Descriptor renames SCO_Vector (SCO);
@@ -4058,7 +4058,10 @@ package body SC_Obligations is
             when Aspect          =>
                return
                  SCOD.Aspect_Name
-                 in Aspect_Type_Invariant | Aspect_Pre | Aspect_Post;
+                 in Aspect_Default_Initial_Condition
+                  | Aspect_Post
+                  | Aspect_Pre
+                  | Aspect_Type_Invariant;
 
             when others          =>
                return False;

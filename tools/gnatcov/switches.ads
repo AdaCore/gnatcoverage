@@ -183,8 +183,8 @@ package Switches is
    Save_Temps : Boolean := False;
    --  When True, do not remove temporary files and directories
 
-   SPARK_Compat : Boolean := False;
-   --  When True, tune the instrumenter for maximum SPARK compatibility
+   Instrument_Ghost : Boolean := False;
+   --  When True, instrument ghost code
 
    Files_Of_Interest : File_Sets.Set;
    --  Lower abstraction for files of interest, when the --files switch is

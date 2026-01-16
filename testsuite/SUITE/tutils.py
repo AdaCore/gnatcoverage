@@ -172,6 +172,11 @@ def gprbuild_gargs_with(thisgargs, trace_mode=None, runtime_project=None):
     ]
     result.extend(to_list(thisgargs))
 
+    # If the user passed --instrument-ghost, then also pass -gnata to enable
+    # assertion checking.
+    if thistest.options.instrument_ghost:
+        result.append("-gnata")
+
     # If we work with source instrumentation, add the dependency on the
     # instrumentation runtime project so that instrumented programs are
     # compilable in the generated projects. Also use instrumented sources in

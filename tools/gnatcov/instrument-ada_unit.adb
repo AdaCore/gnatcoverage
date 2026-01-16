@@ -21,6 +21,7 @@ with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Containers;             use Ada.Containers;
 with Ada.Finalization;
+with Ada.Strings.Unbounded;
 pragma Warnings (Off, "* is an internal GNAT unit");
 with Ada.Strings.Wide_Wide_Unbounded.Aux;
 pragma Warnings (On, "* is an internal GNAT unit");
@@ -38,7 +39,8 @@ with Libadalang.Generic_API.Introspection;
 use Libadalang.Generic_API.Introspection;
 with Libadalang.Sources;                        use Libadalang.Sources;
 
-with GNATCOLL.JSON; use GNATCOLL.JSON;
+with GNATCOLL.Iconv; use GNATCOLL.Iconv;
+with GNATCOLL.JSON;  use GNATCOLL.JSON;
 with GNATCOLL.Utils;
 
 with Coverage_Options;                    use Coverage_Options;
@@ -634,13 +636,9 @@ package body Instrument.Ada_Unit is
      (UIC          : Ada_Unit_Inst_Context;
       Bit          : Bit_Id;
       Flavor       : Statement_Witness_Flavor;
-      In_Generic   : Boolean;
       In_Decl_Expr : Boolean) return Node_Rewriting_Handle;
    --  Create a procedure call statement or object declaration to witness
    --  execution of the low level SCO with the given bit Node.
-   --
-   --  In_Generic indicates whether the statement witness is destined
-   --  to be inserted in a generic package or subprogram.
    --
    --  In_Decl_Expr indicates whether the statement witness is inserted as
    --  a declaration in a declare expression.
@@ -698,7 +696,7 @@ package body Instrument.Ada_Unit is
    --  instantiation of that generic subprogram. The statement witness and
    --  MC/DC state variable declarations are inserted in the generic body.
    --
-   --  For expression functions, there are four instrumentation strategies,
+   --  For expression functions, there are three instrumentation strategies,
    --  depending on its spec, the context in which it is declared and the
    --  language version used.
    --
@@ -712,21 +710,12 @@ package body Instrument.Ada_Unit is
    --  declaration in the same declarative region, we also need to emit one for
    --  the augmented expression function next to it to avoid freezing issues
    --
-   --  The second strategy only deals with expression functions which are
-   --  primitives of their return type, if it is a tagged type. In that case,
-   --  we would need to provide an overriding expression function for each
-   --  augmented expression function that we add, and for each type derivation
-   --  that happens on the return type, which is not manageable. In such cases,
-   --  fall back to putting the expression function in a nested package so
-   --  it's not considered as a primitive and (hopefully) does not trigger
-   --  any compilation bug.
-   --
-   --  The third strategy only applies to expression functions that are located
-   --  in the body of a protected object. The only elements that may appear in
-   --  a protected object body are subprogram declarations, subprogram bodies
-   --  and entry bodies. This prevents us from inserting a nested package
-   --  for the second strategy. To circumvent this, all expression functions
-   --  declared in a protected body are transformed into regular functions.
+   --  The second strategy only applies to expression functions that are
+   --  located in the body of a protected object. Protected bodies do not
+   --  allow declarations, so we cannot instrument expression functions or
+   --  null procedures as we usually do, by adding an augmented subprogram in a
+   --  package declared right before. In that case, turn the expression
+   --  function in a regular function.
    --
    --  The last strategy only applies to Ada 2022 sources. In that case, a
    --  declare expression is used to prepend a list of declarations prior to
@@ -1148,11 +1137,6 @@ package body Instrument.Ada_Unit is
    --  declarative region as its previous declaration, then there is no need to
    --  insert a declaration for the augmented expression function, beause in
    --  that case it isn't a primitive.
-
-   function Augmented_EF_Needs_Wrapper_Package
-     (Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean;
-   --  Returns whether the augmented expression function needs to be wrapped in
-   --  a nested package.
 
    function Is_Self_Referencing
      (UIC : Ada_Unit_Inst_Context; EF : Expr_Function) return Boolean;
@@ -1848,7 +1832,6 @@ package body Instrument.Ada_Unit is
      (UIC          : Ada_Unit_Inst_Context;
       Bit          : Bit_Id;
       Flavor       : Statement_Witness_Flavor;
-      In_Generic   : Boolean;
       In_Decl_Expr : Boolean) return Node_Rewriting_Handle
    is
       Bit_Img : constant String := Img (Bit);
@@ -1857,6 +1840,13 @@ package body Instrument.Ada_Unit is
       function Call_Img return String
       is ("{}.Witness ({}, "
           & Bit_Img
+
+          --  Limited type parameter to add to witness calls instantiated as
+          --  declarations, to avoid the compiler from optimizing them away.
+
+          & (if Flavor = Declaration
+             then ", GNATcov_RTS.Buffers.Witness_Limited"
+             else "")
           & ")"
           & (if Flavor = Function_Call then "" else ";"));
 
@@ -1872,9 +1862,6 @@ package body Instrument.Ada_Unit is
           & " :"
           & (if In_Decl_Expr then " constant" else "")
           & " {}."
-          & (if In_Generic and then Switches.SPARK_Compat
-             then "Non_Volatile_"
-             else "")
           & "Witness_Dummy_Type := "
           & Call_Img);
 
@@ -2792,7 +2779,6 @@ package body Instrument.Ada_Unit is
            Bit          =>
              Allocate_Statement_Bit (UIC.Unit_Bits, SCOs.SCO_Table.Last),
            Flavor       => Witness_Flavor,
-           In_Generic   => UIC.In_Generic,
            In_Decl_Expr => UIC.In_Decl_Expr);
    end Instrument_For_Function_Coverage;
 
@@ -2829,20 +2815,11 @@ package body Instrument.Ada_Unit is
         & To_Wide_Wide_String (Img (UIC.Degenerate_Subprogram_Index))
         & (if Fun_Cov then "_GNATCOV_Aux" else "");
 
-      Need_WP : constant Boolean :=
-        Augmented_EF_Needs_Wrapper_Package (Common_Nodes);
-
       --  Create the expression for New_Expr_Function that will call that
       --  augmented expression function.
 
       Callee : constant Node_Rewriting_Handle :=
-        (if Need_WP
-         then
-           Create_Dotted_Name
-             (RC,
-              F_Prefix => Clone (Common_Nodes.Wrapper_Pkg_Name),
-              F_Suffix => Make_Identifier (RC, Augmented_Func_Name))
-         else Make_Identifier (RC, Augmented_Func_Name));
+        Make_Identifier (RC, Augmented_Func_Name);
 
       Call_Expr : constant Node_Rewriting_Handle :=
         (if Call_Params = No_Node_Rewriting_Handle
@@ -2850,11 +2827,10 @@ package body Instrument.Ada_Unit is
          else
            Create_Call_Expr (RC, F_Name => Callee, F_Suffix => Call_Params));
 
-      --  No need for a declaration if we are using a nested package
+      --  Check if the wrapper function needs a previous declaration
 
       Needs_Decl : constant Boolean :=
         Common_Nodes.N.Kind = Ada_Expr_Function
-        and then not Need_WP
         and then
           Augmented_Expr_Function_Needs_Decl (Common_Nodes.N.As_Expr_Function);
 
@@ -3032,16 +3008,6 @@ package body Instrument.Ada_Unit is
          end;
       end if;
 
-      if Need_WP then
-
-         --  Put the augmented expression function in the wrapper package, and
-         --  return its handle instead of the one of the expression function.
-
-         Insert_Last (Common_Nodes.Wrapper_Pkg_Decls, Augmented_Function);
-
-         Augmented_Function := Common_Nodes.Wrapper_Pkg;
-      end if;
-
    end Create_Augmented_Function;
 
    ----------------------------------------
@@ -3116,30 +3082,6 @@ package body Instrument.Ada_Unit is
 
       return True;
    end Augmented_Expr_Function_Needs_Decl;
-
-   ----------------------------------------
-   -- Augmented_EF_Needs_Wrapper_Package --
-   ----------------------------------------
-
-   function Augmented_EF_Needs_Wrapper_Package
-     (Common_Nodes : Degenerate_Subp_Common_Nodes) return Boolean is
-   begin
-      return
-        Common_Nodes.Ctrl_Type /= No_Base_Type_Decl
-        and then not Common_Nodes.N_Spec.P_Return_Type.Is_Null
-        and then Common_Nodes.N_Spec.P_Return_Type = Common_Nodes.Ctrl_Type;
-
-   exception
-      when Exc : Property_Error =>
-         Report
-           (Node => Common_Nodes.N,
-            Msg  =>
-              "Could not determine the return type of the"
-              & " expression function: "
-              & Switches.Exception_Info (Exc),
-            Kind => Warning);
-         return False;
-   end Augmented_EF_Needs_Wrapper_Package;
 
    -------------------------
    -- Is_Self_Referencing --
@@ -5077,8 +5019,6 @@ package body Instrument.Ada_Unit is
 
       procedure Traverse_One (N : Ada_Node) is
          Dummy_Ctx : constant Context_Handle := Create_Context_Instrument (N);
-
-         Saved_In_Generic : constant Boolean := UIC.In_Generic;
       begin
          case N.Kind is
             --  Top of the tree: Compilation unit
@@ -5172,16 +5112,12 @@ package body Instrument.Ada_Unit is
                         | Ada_Subp_Body
                         | Ada_Subp_Decl
                         | Ada_Task_Body =>
-                        if CU_Decl.Kind = Ada_Generic_Package_Decl then
-                           UIC.In_Generic := True;
-                        end if;
 
                         Traverse_Declarations_Or_Statements
                           (UIC,
                            P       => CU_Decl.As_Ada_Node,
                            L       => CUN.F_Pragmas,
                            Preelab => Preelab);
-                        UIC.In_Generic := Saved_In_Generic;
 
                      --  All other cases of compilation units (e.g. renamings),
                      --  generate no SCO information.
@@ -5229,10 +5165,8 @@ package body Instrument.Ada_Unit is
             --  Generic package declaration
 
             when Ada_Generic_Package_Decl                          =>
-               UIC.In_Generic := True;
                Traverse_Generic_Package_Declaration
                  (UIC, N.As_Generic_Package_Decl, Preelab);
-               UIC.In_Generic := Saved_In_Generic;
 
             --  Package body
 
@@ -5240,9 +5174,7 @@ package body Instrument.Ada_Unit is
                declare
                   PB : constant Package_Body := N.As_Package_Body;
                begin
-                  UIC.In_Generic := Is_Generic (UIC, PB);
                   Traverse_Package_Body (UIC, PB, Preelab);
-                  UIC.In_Generic := Saved_In_Generic;
                end;
 
             --  Subprogram declaration or subprogram body stub
@@ -5265,12 +5197,10 @@ package body Instrument.Ada_Unit is
                declare
                   GSD : constant Generic_Subp_Decl := As_Generic_Subp_Decl (N);
                begin
-                  UIC.In_Generic := True;
                   Process_Standalone_Expression
                     (UIC, GSD.F_Formal_Part.F_Decls, 'X');
                   Process_Expression
                     (UIC, GSD.F_Subp_Decl.F_Subp_Spec.F_Subp_Params, 'X');
-                  UIC.In_Generic := Saved_In_Generic;
                end;
 
             --  Task or subprogram body
@@ -5279,8 +5209,6 @@ package body Instrument.Ada_Unit is
                declare
                   B : constant Body_Node := N.As_Body_Node;
                begin
-                  UIC.In_Generic := Is_Generic (UIC, B);
-
                   Traverse_Subprogram_Or_Task_Body (UIC, B);
 
                   if B.Kind = Ada_Subp_Body and then Enabled (Fun_Call) then
@@ -5307,8 +5235,6 @@ package body Instrument.Ada_Unit is
                            Create_Function_Witness_Var (UIC, Fun_Witness));
                      end;
                   end if;
-
-                  UIC.In_Generic := Saved_In_Generic;
                end;
 
             --  Entry body
@@ -5814,6 +5740,8 @@ package body Instrument.Ada_Unit is
                      Typ := 't';
                      Process_Contract (UIC, N.As_Basic_Decl, "Type_Invariant");
                   end if;
+                  Process_Contract
+                    (UIC, N.As_Basic_Decl, "Default_Initial_Condition");
 
                   Instrument_Statement (UIC, N, Typ);
                end;
@@ -6004,14 +5932,18 @@ package body Instrument.Ada_Unit is
          declare
             N : constant Ada_Node := L.Child (J);
          begin
-            --  Only traverse the nodes if they are not ghost entities
 
-            if not (UIC.Ghost_Code
-                    or else
-                      (N.Kind in Ada_Stmt and then Safe_Is_Ghost (N.As_Stmt))
-                    or else
-                      (N.Kind in Ada_Basic_Decl
-                       and then Safe_Is_Ghost (N.As_Basic_Decl)))
+            --  Only traverse the nodes if they are not ghost entities if the
+            --  user did not explicitly ask for their instrumentation.
+
+            if Instrument_Ghost
+              or else
+                not (UIC.Ghost_Code
+                     or else
+                       (N.Kind in Ada_Stmt and then Safe_Is_Ghost (N.As_Stmt))
+                     or else
+                       (N.Kind in Ada_Basic_Decl
+                        and then Safe_Is_Ghost (N.As_Basic_Decl)))
             then
                Traverse_One (N);
             end if;
@@ -6817,7 +6749,6 @@ package body Instrument.Ada_Unit is
                    (UIC          => UIC,
                     Bit          => Bit,
                     Flavor       => Declaration,
-                    In_Generic   => UIC.In_Generic,
                     In_Decl_Expr => True);
                Decl_Expr_Handle    : constant Node_Rewriting_Handle :=
                  Create_Paren_Expr
@@ -7707,7 +7638,6 @@ package body Instrument.Ada_Unit is
           (UIC,
            Bit          => Bit,
            Flavor       => Function_Call,
-           In_Generic   => UIC.In_Generic,
            In_Decl_Expr => UIC.In_Decl_Expr);
 
       UIC.Current_Insertion_Info.Get.Witness_Formal :=
@@ -8477,7 +8407,6 @@ package body Instrument.Ada_Unit is
                               (UIC,
                                Bit          => Bit,
                                Flavor       => Function_Call,
-                               In_Generic   => UIC.In_Generic,
                                In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr),
 
                           2 => Make (UIC, Ada_Op_Or_Else),
@@ -8615,7 +8544,6 @@ package body Instrument.Ada_Unit is
                             when Declaration                => Declaration,
                             when Expression_Function | None =>
                               raise Program_Error),
-                       In_Generic   => UIC.In_Generic,
                        In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr);
 
                   if Insert_Sibling then
@@ -8652,7 +8580,6 @@ package body Instrument.Ada_Unit is
                    (UIC,
                     Bit          => Bit,
                     Flavor       => Function_Call,
-                    In_Generic   => UIC.In_Generic,
                     In_Decl_Expr => Stmt_Instr_Info.In_Decl_Expr);
 
                Insert_Info.Get.Witness_Formal :=
@@ -8808,7 +8735,8 @@ package body Instrument.Ada_Unit is
    begin
       Instrumenter.Context :=
         Create_Context
-          (Unit_Provider =>
+          (Charset       => +Instrumenter.Default_Charset,
+           Unit_Provider =>
              Create_Unit_Provider_Reference (Instrumenter.Provider),
            Event_Handler => Instrumenter.Event_Handler,
            File_Reader   => Instrumenter.File_Reader);
@@ -9603,6 +9531,15 @@ package body Instrument.Ada_Unit is
       use Ada.Streams.Stream_IO;
       use Ada.Strings.Wide_Wide_Unbounded.Aux;
 
+      --  We need to transcode the result of unparsing (Wide_Wide_Character
+      --  strings) into bytes (Character strings) according to the unit
+      --  encoding.
+
+      Unit_Charset : constant String :=
+        Libadalang.Rewriting.Unit (Unit).Get_Charset;
+      Iconv_Handle : constant Iconv_T :=
+        Initialize_Iconv (+Unit_Charset, +Text_Charset);
+
       Source : constant Unbounded_Wide_Wide_String := Unparse (Unit);
 
       --  To avoid copying the potentially big string for sources on the
@@ -9615,6 +9552,7 @@ package body Instrument.Ada_Unit is
 
       Chunk_Size : constant := 4096;
       Position   : Natural;
+      Buffer     : Ada.Strings.Unbounded.String_Access;
 
       --  Note: we need to open and write the instrumented source as a binary
       --  file, to be consistent with Libadalang which retrieves the tokens
@@ -9640,19 +9578,30 @@ package body Instrument.Ada_Unit is
 
       Get_Wide_Wide_String (Source, Source_Access, Length);
       Position := Source_Access.all'First;
+      Buffer := new String (1 .. 4 * Chunk_Size);
 
       while Position <= Length loop
          declare
             Chunk_First : constant Natural := Position;
             Chunk_Last  : constant Natural :=
               Natural'Min (Chunk_First + Chunk_Size - 1, Length);
-
-            Chunk         : Wide_Wide_String renames
+            Chunk       : Wide_Wide_String renames
               Source_Access.all (Chunk_First .. Chunk_Last);
-            Encoded_Chunk : constant String :=
-              Ada.Characters.Conversions.To_String (Chunk);
+
+            Inbuf       : String (1 .. 4 * Chunk'Length)
+            with Import, Address => Chunk'Address;
+            Input_Index : Positive := Inbuf'First;
+
+            Outbuf       : String renames Buffer.all;
+            Output_Index : Positive := 1;
+
+            Result : Iconv_Result;
          begin
-            String'Write (S, Encoded_Chunk);
+            Iconv
+              (Iconv_Handle, Inbuf, Input_Index, Outbuf, Output_Index, Result);
+            pragma Assert (Result = Success);
+
+            String'Write (S, Outbuf (Outbuf'First .. Output_Index - 1));
             Position := Chunk_Last + 1;
          end;
       end loop;
@@ -9661,6 +9610,7 @@ package body Instrument.Ada_Unit is
       if Switches.Pretty_Print then
          Text_Files.Run_GNATformat (Filename);
       end if;
+      Ada.Strings.Unbounded.Free (Buffer);
    end Write_To_File;
 
    -------------------------------
@@ -11353,13 +11303,15 @@ package body Instrument.Ada_Unit is
    -----------------------------
 
    function Create_Ada_Instrumenter
-     (Tag                        : Unbounded_String;
+     (Default_Charset            : Unbounded_String;
+      Tag                        : Unbounded_String;
       Config_Pragmas_Mapping     : String;
       Mapping_Filename           : String;
       Preprocessor_Data_Filename : String) return Ada_Instrumenter_Type
    is
       Instrumenter : Ada_Instrumenter_Type;
    begin
+      Instrumenter.Default_Charset := Default_Charset;
       Instrumenter.Tag := Tag;
 
       --  First create the context for Libadalang

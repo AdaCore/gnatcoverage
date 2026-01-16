@@ -264,7 +264,7 @@ thistest.fail_if(
 )
 thistest.fail_if_no_match(
     "'gnatcov coverage' output",
-    ".*gnatcov.*: unsupported encoding for sources: 'invalid'",
+    ".*gnatcov.*: unsupported encodings for sources: 'UTF-8'/'invalid'",
     contents_of("coverage-invalid.log").strip(),
 )
 
