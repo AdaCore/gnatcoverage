@@ -45,6 +45,7 @@ class CovControl:
         covoptions="",
         instroptions="same",
         dump_trigger=None,
+        auto_units=False,
     ):
         # To control "with" dependencies (set of projects that will be withed
         # by the one we will be generating for the testcase):
@@ -75,6 +76,16 @@ class CovControl:
         self.units_out = units_out
         self.ulist_in = ulist_in
         self.ulist_out = ulist_out
+
+        # Whether the list of units of interest must be set in the project
+        # file. In that case, it is determined from coverage expectations found
+        # in the test driver.
+        self.auto_units = auto_units
+        if self.auto_units:
+            assert units_in is None
+            assert units_out is None
+            assert ulist_in is None
+            assert ulist_out is None
 
         # To instruct the testsuite driver about the set of source reports we
         # expect.
@@ -110,13 +121,15 @@ class CovControl:
             or self.ulist_out is not None
         )
 
-    def gpr(self):
+    def gpr(self, units_from_test_driver):
         """
         The GPR Coverage package corresponding to our lists of attribute
         contents, as a multiline string.
         """
         return gprcov_for(
-            units_in=self.units_in,
+            units_in=(
+                units_from_test_driver if self.auto_units else self.units_in
+            ),
             units_out=self.units_out,
             ulist_in=self.ulist_in,
             ulist_out=self.ulist_out,

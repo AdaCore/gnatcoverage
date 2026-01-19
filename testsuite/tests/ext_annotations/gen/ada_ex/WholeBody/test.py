@@ -12,6 +12,8 @@ annot_file = generate_annotations(annotations)
 
 # Check we get the expected results
 TestCase(category=CAT.stmt).run(
-    covcontrol=CovControl(covoptions=[f"--external-annotations={annot_file}"])
+    covcontrol=CovControl(
+        covoptions=[f"--external-annotations={annot_file}"], auto_units=True
+    )
 )
 thistest.result()

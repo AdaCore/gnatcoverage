@@ -43,7 +43,9 @@ try_one_gpr(
     gpr=gprfor(
         srcdirs="../src",
         mains="p.adb",
-        extra=CovControl(units_in=["no_such_unit"]).gpr(),
+        extra=CovControl(units_in=["no_such_unit"]).gpr(
+            units_from_test_driver=[]
+        ),
     ),
     no_such="no_such_unit",
 )
@@ -54,7 +56,7 @@ try_one_gpr(
     gpr=gprfor(
         srcdirs="../src",
         mains="p.adb",
-        extra=CovControl(units_out=["p"]).gpr(),
+        extra=CovControl(units_out=["p"]).gpr(units_from_test_driver=[]),
     ),
     no_such=None,
 )
@@ -63,7 +65,9 @@ try_one_gpr(
 wd.to_subdir("tmp_3")
 try_one_gpr(
     gpr=gprfor(
-        srcdirs="../src", mains="p.adb", extra=CovControl(units_in=[]).gpr()
+        srcdirs="../src",
+        mains="p.adb",
+        extra=CovControl(units_in=[]).gpr(units_from_test_driver=[]),
     ),
     no_such=None,
 )
