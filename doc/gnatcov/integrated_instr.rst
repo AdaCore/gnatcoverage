@@ -5,9 +5,9 @@ Producing source traces with integrated instrumentation (experimental)
 ######################################################################
 
 |gcv| provides an alternate way of instrumenting sources, available for C/C++
-under linux and when using gcc or g++ as a compiler. Theoretically, any build
-system should be supported, but it has only been tested for the Makefile / CMake
-build systems so far.
+when using gcc or g++ as a compiler. Theoretically, any build system should be
+supported, but it has only been tested for the Makefile / CMake build systems
+so far.
 
 As with the workflow involving a separate instrumentation, a :term:`coverage
 runtime <Coverage Runtime>` to be used by the instrumented code needs to be
@@ -34,6 +34,11 @@ configuration file that is generated alongside it. It is thus necessary to
 re-run the setup step it if the closure of sources of interest, or if the build
 environment (e.g. the path for the original compiler) changes.
 
+Windows specifics
+=================
+
+GNATcoverage uses ``ldd`` to investigate the dynamic dependencies of the
+compiled binaries. It should thus be installed on the Windows machine.
 
 Specifying instrumentation switches
 ===================================
