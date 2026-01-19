@@ -256,7 +256,7 @@ static-analysis:
 # Optional jobs #
 #################
 
-# Optional job for block instrumentation.
+# Optional job for block instrumentation and the GPR mode.
 #
 # To be run when Ada or C instrumentation is modified to ensure the new
 # changes are also compatible with block instrumentation.
@@ -272,8 +272,8 @@ test_block_instr:
     - *basic_test_setup
 
     # Test using anod
-    - anod test gnatcov --minimal -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER
-    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,block $ACI_TRACK_QUALIFIER build_space_name)
+    - anod test gnatcov --minimal -Qsrc-traces,instr,block,gpr-mode $ACI_TRACK_QUALIFIER
+    - TEST_BSN=$(anod eval --primitive=test gnatcov -Qsrc-traces,instr,block,gpr-mode $ACI_TRACK_QUALIFIER build_space_name)
     - mv $ANOD_DEFAULT_SANDBOX_DIR/x86_64-linux/$TEST_BSN/test/coverage/cobertura.xml $CI_PROJECT_DIR/coverage/cobertura.xml
     - *common_testsuite_reports
 
