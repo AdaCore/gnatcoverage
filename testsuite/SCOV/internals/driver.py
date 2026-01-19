@@ -1265,7 +1265,7 @@ class SCOV_helper_gpr(SCOV_helper):
             if extension == ".adb" or extension == ".ads":
                 if not self.is_subunit(soi):
                     uoi.add(no_ext(os.path.basename(soi)).replace("-", "."))
-            else:
+            elif extension != ".h":
                 uoi.add(os.path.basename(soi))
 
         return uoi
