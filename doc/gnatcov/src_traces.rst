@@ -975,12 +975,12 @@ configuration pragma file when building the test harness.
 Coverage obligations for SPARK code
 -----------------------------------
 
-Some parts of SPARK sources do not necessarily generate executable code when
-compiled, and are mainly used to aid the proof of the program.
-Computing coverage for such source regions isn't meaningful and are thus
-ignored by the instrumenter. This means that those regions will not have any
-coverage obligation attached to them in the coverage reports, unless
-explicitly requested by enabling the coverage of assertions.
+By default, GNATcoverage does not instrument ghost code and contracts in
+SPARK, as they are mainly used to aid the proof of the program. Those regions
+will thus not have any coverage obligation attached to them in the coverage
+reports, unless explicitly requested by enabling the coverage of assertions,
+or by enabling ghost code instrumentation using the
+:cmd-option:`--instrument-ghost` switch.
 
 The concerned pieces of code are notably:
 
@@ -991,10 +991,13 @@ Note that since no coverage obligations are emitted for such source
 constructs, they will not appear in the coverage reports even if assertions
 are enabled and the assertion policy enables the compilation of ghost code.
 
-It is however possible to request coverage information for some contracts that
-generate executable code with assertion coverage levels, as described in
-:ref:`scov-atc` and :ref:`scov-atcc`. Note that any ghost code that is not
-part of a contract will never be instrumented.
+When using assertion coverage levels, as described in
+:ref:`scov-atc` and :ref:`scov-atcc`, gnatcov shall instrument and report
+coverage results over contract code.
+
+When enabling ghost code instrumentation with the
+:cmd-option:`--instrument-ghost` switch, gnatcov shall instrument and report
+coverage results over ghost code.
 
 .. _examples_src_traces:
 
