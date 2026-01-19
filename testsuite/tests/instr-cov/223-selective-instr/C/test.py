@@ -12,6 +12,12 @@ from SUITE.context import thistest
 from SCOV.tctl import CAT
 from SCOV.tc import TestCase
 
+# Instruct SCOV.tc to select units of interest through the GPR file so that it
+# includes Coverage.Units GPR attributes in project files, and thus instruments
+# only the main. This is necessary to avoid source trace loading warnings
+# due to incompatible variants of pkg.h.
+thistest.options.gprmode = True
+
 thistest.options.consolidate = "checkpoints"
 TestCase(
     category=CAT.mcdc,

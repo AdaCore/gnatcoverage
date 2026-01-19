@@ -1,3 +1,5 @@
+pragma Ada_2012;
+
 with Pkg; use Pkg;
 
 --  Test the coverage of call made to set default values.
