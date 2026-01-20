@@ -6522,8 +6522,6 @@ package body Instrument.Ada_Unit is
                   Then_Node    : constant Node_Rewriting_Handle :=
                     Clone (Full_Call_Node);
 
-                  Return_Type : Base_Type_Decl := No_Base_Type_Decl;
-
                   Needs_Qualified_Expr : constant Boolean :=
                     Full_Call_Node.Parent.Kind
                     in Ada_Dotted_Name | Ada_Explicit_Deref;
@@ -6540,12 +6538,6 @@ package body Instrument.Ada_Unit is
                   --  A.B.F
                   --
                   --  The if-expression alone suffices.
-
-                  Do_Not_Instrument : Boolean := False;
-                  --  Whether we can instrument this call. Depends on whether
-                  --  we need to use a qualified expression to insturment, and
-                  --  if the return type of the call is visible from the call
-                  --  site or not.
 
                   Location : constant Source_Location_Range :=
                     (if Node.Kind = Ada_Op_Concat
@@ -6573,26 +6565,6 @@ package body Instrument.Ada_Unit is
                      Last               => True,
                      Pragma_Aspect_Name => Namet.No_Name);
 
-                  --  Pre-compute the return type of the expression if we
-                  --  need to generate a qualified expression.
-                  --
-                  --  If we cannot determine it, do not instrument the call.
-
-                  begin
-                     if Needs_Qualified_Expr then
-                        Return_Type :=
-                          Full_Call_Node.As_Expr.P_Expression_Type;
-                     end if;
-                  exception
-                     when Property_Error =>
-                        Report
-                          (Full_Call_Node,
-                           "Failed to retrieve the expression type of the"
-                           & " call",
-                           Kind => Warning);
-                        Do_Not_Instrument := True;
-                  end;
-
                   --  TODO: LIMITATIONS
                   --
                   --  NON-IMPORTED TYPES
@@ -6605,16 +6577,13 @@ package body Instrument.Ada_Unit is
                   --  now, do not instrument calls that wouls require such an
                   --  instrumentation.
 
-                  Do_Not_Instrument := Needs_Qualified_Expr;
-
-                  if not Do_Not_Instrument then
+                  if not Needs_Qualified_Expr then
                      Fill_Expression_Insertion_Info
                        (UIC,
                         Allocate_Statement_Bit
                           (UIC.Unit_Bits, SCOs.SCO_Table.Last));
 
                      Replace (Orig_Handle, Dummy_Handle);
-
                      declare
                         If_Expression : constant Node_Rewriting_Handle :=
                           Create_Paren_Expr
@@ -6625,30 +6594,8 @@ package body Instrument.Ada_Unit is
                                 Then_Node,
                                 No_Node_Rewriting_Handle,
                                 Orig_Handle));
-
-                        Qualified_Expr : constant Node_Rewriting_Handle :=
-                          (if Needs_Qualified_Expr
-                           then
-                             Create_Qual_Expr
-                               (UIC.Rewriting_Context,
-                                F_Prefix =>
-                                  To_Nodes
-                                    (UIC.Rewriting_Context,
-                                     To_Qualified_Name
-                                       (Return_Type
-                                          .As_Basic_Decl
-                                          .P_Fully_Qualified_Name_Array)),
-                                F_Suffix =>
-                                  Create_Paren_Expr
-                                    (UIC.Rewriting_Context, If_Expression))
-                           else No_Node_Rewriting_Handle);
-
                      begin
-                        if Needs_Qualified_Expr then
-                           Replace (Dummy_Handle, Qualified_Expr);
-                        else
-                           Replace (Dummy_Handle, If_Expression);
-                        end if;
+                        Replace (Dummy_Handle, If_Expression);
                      end;
                   else
                      Report
