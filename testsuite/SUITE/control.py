@@ -586,7 +586,9 @@ def add_shared_options_to(parser, toplevel):
         "--gprmode",
         dest="gprmode",
         action="store_true",
-        help="Use -P instead of --scos for analysis on source coverage tests.",
+        help="Use -P instead of --scos/--sid for analysis on source coverage"
+        " tests. Note that this affects only tests written using the SCOV.tc"
+        " framework.",
     )
 
     # --kernel

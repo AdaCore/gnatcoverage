@@ -1200,7 +1200,11 @@ class SCOV_helper_gpr(SCOV_helper):
             exedir=self.gpr_exe_dir,
             main_cargs="-fno-inline",
             deps=self.covctl.deps if self.covctl else [],
-            extra=self.covctl.gpr() if self.covctl else "",
+            extra=(
+                self.covctl.gpr(self.units_of_interest())
+                if self.covctl
+                else ""
+            ),
         )
 
         # For single tests (no consolidation), we first need to build, then
@@ -1265,7 +1269,7 @@ class SCOV_helper_gpr(SCOV_helper):
             if extension == ".adb" or extension == ".ads":
                 if not self.is_subunit(soi):
                     uoi.add(no_ext(os.path.basename(soi)).replace("-", "."))
-            else:
+            elif extension != ".h":
                 uoi.add(os.path.basename(soi))
 
         return uoi
