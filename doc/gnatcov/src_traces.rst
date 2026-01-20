@@ -726,16 +726,15 @@ with language-specific limitations.
 For the Ada language, gnatcov is currently unable to provided coverage
 information for:
 
-* Call expressions part of the prefix of a dotted name
+* Call expressions part of the prefix of a dotted name.
 
 The coverage state of these cases will be reported as undetermined.
 
 For the C++ language, gnatcov will currently not instrument nor provide
 coverage information for:
 
-* Constructor and Destructor functions
-
-* Constructor and Destructor calls
+* Constructor and Destructor functions.
+* Constructor and Destructor calls.
 
 Guarded expression coverage limitations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

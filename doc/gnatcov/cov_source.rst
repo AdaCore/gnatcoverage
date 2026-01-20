@@ -1595,48 +1595,47 @@ expressions.
 Core notions and Reporting (:cmd-option:`--level=...+gexpr`)
 ------------------------------------------------------------
 
-|gcv| the following syntaxes to be :dfn:`guarded expressions`:
+|gcv| considers the following syntaxes to be :dfn:`guarded expressions`:
 
-* Then and Else dependent expressions of :dfn:`if expressions`
+* Then and Else dependent expressions of :dfn:`if expressions`:
 
-.. code-block:: ada
+  .. code-block:: ada
 
-   procedure Foo (A : Boolean) is
-      Var : constant String :=
-        (if A
-         then "True expression"
-         else "False expression");
-   begin
-      null;
-   end Foo;
+     procedure Foo (A : Boolean) is
+        Var : constant String :=
+          (if A
+           then "True expression"
+           else "False expression");
+     begin
+        null;
+     end Foo;
 
-* Dependent expressions of :dfn:`case expressions`
+* Dependent expressions of :dfn:`case expressions`:
 
-.. code-block:: ada
+  .. code-block:: ada
 
-   type Animal is (Cat, Dog, Cow);
+     type Animal is (Cat, Dog, Cow);
 
-   procedure Foo (A : Animal) is
-      Var : constant String :=
-        (case A
-         when Cat    => "Expression Cat",
-         when Dog    => "Expression Dog",
-         when others => "Expression other");
-   begin
-      null;
-   end Foo;
+     procedure Foo (A : Animal) is
+        Var : constant String :=
+          (case A
+           when Cat    => "Expression Cat",
+           when Dog    => "Expression Dog",
+           when others => "Expression other");
+     begin
+        null;
+     end Foo;
 
-* Predicate expression of :dfn:`quantified expressions`
+* Predicate expression of :dfn:`quantified expressions`:
 
-.. code-block:: ada
+  .. code-block:: ada
 
-   function Prime_In_Range (L, R : Natural) return Boolean is
-   begin
+     function Prime_In_Range (L, R : Natural) return Boolean is
+     begin
+        --  Is_Prime (I) is the child expression that will be analyzed.
 
-      --  Is_Prime (I) is the child expression that will be analyzed.
-
-      return (for some I in (L .. R) => Is_Prime (I));
-   end Foo;
+        return (for some I in (L .. R) => Is_Prime (I));
+     end Foo;
 
 For each of these, we consider the expression to be :dfn:`covered` and the
 obligation to be :dfn:`discharged` if the execution flow evaluated it at least
