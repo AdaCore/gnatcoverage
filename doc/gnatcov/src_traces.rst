@@ -726,6 +726,7 @@ with language-specific limitations.
 For the Ada language, gnatcov is currently unable to provided coverage
 information for:
 
+* Call expressions in general for pre-Ada 2012 codebases.
 * Call expressions part of the prefix of a dotted name.
 
 The coverage state of these cases will be reported as undetermined.

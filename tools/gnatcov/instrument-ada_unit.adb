@@ -6555,6 +6555,9 @@ package body Instrument.Ada_Unit is
                   --  if-expression holding the witness call is created around
                   --  the operand, but the location of the SCO should still be
                   --  the operator's.
+
+                  Instrumented : Boolean := False;
+                  --  Whether we were able to instrument this function call
                begin
                   Append_SCO
                     (C1                 => 'c',
@@ -6567,6 +6570,11 @@ package body Instrument.Ada_Unit is
 
                   --  TODO: LIMITATIONS
                   --
+                  --  Pre-Ada 2012
+                  --
+                  --  The instrumentation of function calls relies on IF
+                  --  expressions, so it is not possible in pre-2012 codebases.
+                  --
                   --  NON-IMPORTED TYPES
                   --
                   --  Currently, gnatcov is unable to determine if the full
@@ -6577,7 +6585,26 @@ package body Instrument.Ada_Unit is
                   --  now, do not instrument calls that wouls require such an
                   --  instrumentation.
 
-                  if not Needs_Qualified_Expr then
+                  if UIC.Language_Version not in If_Expr_Supported_Versions
+                  then
+                     Report
+                       (UIC,
+                        Full_Call_Node,
+                        "gnatcov limitation: cannot instrument calls before"
+                        & " Ada 2012",
+                        Warning);
+
+                  elsif Needs_Qualified_Expr then
+                     Report
+                       (UIC,
+                        Full_Call_Node,
+                        "gnatcov limitation: cannot instrument calls "
+                        & (if Needs_Qualified_Expr
+                           then "within dotted names"
+                           else "to user-defined operators"),
+                        Warning);
+
+                  else
                      Fill_Expression_Insertion_Info
                        (UIC,
                         Allocate_Statement_Bit
@@ -6597,15 +6624,12 @@ package body Instrument.Ada_Unit is
                      begin
                         Replace (Dummy_Handle, If_Expression);
                      end;
-                  else
-                     Report
-                       (UIC,
-                        Full_Call_Node,
-                        "gnatcov limitation: cannot instrument calls "
-                        & (if Needs_Qualified_Expr
-                           then "within dotted names"
-                           else "to user-defined operators"),
-                        Warning);
+                     Instrumented := True;
+                  end if;
+
+                  --  If we could not instrument this call, tag it accordingly
+
+                  if not Instrumented then
                      UIC.Non_Instr_LL_SCOs.Include
                        (SCO_Id (SCOs.SCO_Table.Last));
                   end if;
