@@ -6769,7 +6769,7 @@ package body Instrument.Ada_Unit is
                Node => E,
                Msg  =>
                  "Guarded Expression coverage is not available"
-                 & " before Ada2022",
+                 & " before Ada 2022",
                Kind => Diagnostics.Warning);
             UIC.Non_Instr_LL_SCOs.Include (SCO_Id (SCOs.SCO_Table.Last));
          end if;
