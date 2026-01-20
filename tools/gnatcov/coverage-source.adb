@@ -1225,7 +1225,6 @@ package body Coverage.Source is
          end SCOs_Of_Line;
 
          <<Next_SCO>>
-         null;
       end loop;
       --  Record that this line has been processed
 
