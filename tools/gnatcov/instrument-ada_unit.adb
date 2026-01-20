@@ -6493,6 +6493,7 @@ package body Instrument.Ada_Unit is
             --  be static, but we don't want to instrument static expressions.
             --  Checking this is thus needed to let calls of this form be
             --  seen as calls.
+            --
             --  TODO: This is a P_Is_Static_Expr bug, reported in issue
             --  eng/libadalang/libadalang#1523. Once this is fixed this
             --  variable and associated check should be safe to remove.
@@ -6595,13 +6596,14 @@ package body Instrument.Ada_Unit is
                   --  TODO: LIMITATIONS
                   --
                   --  NON-IMPORTED TYPES
+                  --
                   --  Currently, gnatcov is unable to determine if the full
                   --  name of a type is visible and can be explicitely used in
-                  --  a unit. For this reason, we cannot currently turn
-                  --  the if-expressions into fully qualified names. This is
-                  --  need for call the are in the middle of a dotted name.
-                  --  For now, do not instrument calls that wouls require such
-                  --  an instrumentation.
+                  --  a unit. For this reason, we cannot currently turn the
+                  --  if-expressions into fully qualified names. This is need
+                  --  for call the are in the middle of a dotted name.  For
+                  --  now, do not instrument calls that wouls require such an
+                  --  instrumentation.
 
                   Do_Not_Instrument := Needs_Qualified_Expr;
 
@@ -6675,6 +6677,9 @@ package body Instrument.Ada_Unit is
              (Method         => Expression_Function,
               Witness_Actual => No_Node_Rewriting_Handle,
               Witness_Formal => No_Node_Rewriting_Handle);
+
+         --  Start of processing for Process_Call_Expression
+
       begin
          if N.Is_Null then
             return;
