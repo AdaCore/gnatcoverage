@@ -479,6 +479,8 @@ def gprfor(
 
     # Turn the list of main sources into the proper comma separated sequence
     # of string literals for the Main GPR attribute.
+    has_ada_main = any(m.endswith(".adb") for m in mains)
+    has_non_ada_main = not all(m.endswith(".adb") for m in mains)
     gprmains = ", ".join('"%s"' % m for m in mains)
     if gprmains:
         gprmains = "for Main use (%s);" % gprmains
@@ -519,10 +521,14 @@ def gprfor(
     # closure if the program requests the corresponding unit explicitly via
     # a "with" clause, e.g. "with Silent_Last_Chance;".
     #
+    # Don't do this if there is at least one non-Ada main, as that would
+    # systematically include two concurrent definitions of the last chance
+    # handler in the link (one from lch.gpr and one from libsupport.gpr)
+    #
     # Account for callers that expect the "deps" argument they provide to
     # remain unmodified, or which provide a tuple on input (unmutable).
     deps = list(deps) if deps else []
-    if not for_library and ".adb" in gprmains:
+    if not for_library and has_ada_main and not has_non_ada_main:
         deps.append("{}/support/lch.gpr".format(ROOT_DIR))
 
     deps = "\n".join('with "%s";' % dep for dep in deps)
