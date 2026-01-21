@@ -1,3 +1,5 @@
+pragma Ada_2005;
+
 with Show_Whether_Local;
 with Ada.Text_IO; use Ada.Text_IO;
 procedure Test_Exc is

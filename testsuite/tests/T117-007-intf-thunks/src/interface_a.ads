@@ -1,3 +1,5 @@
+pragma Ada_2012;
+
 package Interface_A is
 
    type T_Interface_A is interface;

@@ -1,3 +1,5 @@
+pragma Ada_2005;
+
 with Pkg.Simple; use Pkg.Simple;
 
 procedure Test_No is

@@ -1,9 +1,10 @@
 with Actuators, Support; use Actuators, Support;
 
 procedure Test_Fast is
-
-   A : Actuator := (Value => 0, Safety => 2);
+   A : Actuator;
 begin
+   A.Value := 0;
+   A.Safety := 2;
    Fast_Increment (A, 5);
    Assert (A.Value = 5);
 end;

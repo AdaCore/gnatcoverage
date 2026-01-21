@@ -2,5 +2,5 @@ from SCOV.tc import TestCase
 from SUITE.context import thistest
 
 
-TestCase().run()
+TestCase(extracargs=["-cargs:Ada", "-gnat05"]).run()
 thistest.result()

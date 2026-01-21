@@ -1,3 +1,5 @@
+pragma Ada_2005;
+
 with Actuators, Support; use Actuators, Support;
 
 procedure Test_Fast is

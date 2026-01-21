@@ -1,3 +1,5 @@
+pragma Ada_2005;
+
 with Pkg; use Pkg;
 
 procedure Main is

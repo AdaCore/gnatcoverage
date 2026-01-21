@@ -109,7 +109,7 @@ package body @_UNIT_NAME_@ is
 
 @@ELSIF@@ @_MAIN_END_@ and @_HAS_CONTROLLED_@
 @@--  Emit Buffer reset procedure
-    overriding procedure Finalize (Self : in out Dump_Controlled_Type) is
+    procedure Finalize (Self : in out Dump_Controlled_Type) is
     begin
         @_DUMP_PROCEDURE_@;
     end Finalize;
