@@ -2905,14 +2905,15 @@ package body SC_Obligations is
                --  Origin cannot be null.
 
                if not Main_Source_Ignored then
-                  Warn
-                    ("gnatcov limitation: ignoring unit "
+                  Report
+                    ("ignoring unit "
                      & Get_Simple_Name (Remap_SFI (Relocs, CP_CU.Main_Source))
                      & " from "
                      & (+CLS.Filename)
                      & " because "
                      & (+Get_Simple_Name (Relocs, CP_CU.Origin))
-                     & " is ignored");
+                     & " is ignored",
+                     Kind => Diagnostics.Limitation);
                end if;
 
                Ignore_CU_Id (Relocs, CP_CU_Id);

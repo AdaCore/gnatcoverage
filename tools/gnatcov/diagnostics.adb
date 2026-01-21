@@ -29,7 +29,9 @@ with Switches;     use Switches;
 package body Diagnostics is
 
    function Suppress_Message (M : Message) return Boolean;
-   --  Return whether the given message must be removed from reports
+   --  Return whether the given message must be removed from reports based on
+   --  the various command line options (--all-warnings,
+   --  --suppress-limitations, etc).
 
    procedure Output_Message (M : Message);
    --  Display M
@@ -46,6 +48,7 @@ package body Diagnostics is
       Prefix : constant array (Report_Kind) of Prefix_Str :=
         (Notice           => "---",
          Low_Warning      => "***",
+         Limitation       => "???",
          Warning          => "***",
          Error            => "!!!",
          Info             => ".C.",
@@ -73,6 +76,8 @@ package body Diagnostics is
       begin
          if M.Kind = Error then
             return "";
+         elsif M.Kind = Limitation then
+            return "gnatcov limitation: ";
          else
             return To_Lower (M.Kind'Img) & ": ";
          end if;
@@ -258,7 +263,7 @@ package body Diagnostics is
       if Diagnostics_Trace.Is_Active
         or else (M.Kind < Violation and then not Suppress_Message (M))
       then
-         if M.Kind in Warning then
+         if M.Kind in Limitation .. Warning then
             Outputs.Register_Warning;
          end if;
          Put_Line (Image (M));
@@ -292,6 +297,8 @@ package body Diagnostics is
    begin
       if Args.Bool_Args (Opt_All_Warnings) then
          return M.Kind <= Notice;
+      elsif Args.Bool_Args (Opt_Suppress_Limitations) then
+         return M.Kind <= Limitation;
       else
          return M.Kind <= Low_Warning;
       end if;

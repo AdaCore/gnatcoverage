@@ -39,7 +39,7 @@ warning_msg = (
 )
 thistest.fail_if_not_equal(
     "'gnatcov instrument' log",
-    f"!!! pkg.ads:8:4: {warning_msg}\n",
+    f"??? pkg.ads:8:4: {warning_msg}\n",
     contents_of("instrument.log"),
 )
 

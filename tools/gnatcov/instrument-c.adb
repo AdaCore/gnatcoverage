@@ -2889,10 +2889,9 @@ package body Instrument.C is
                         UIC.Pass.Report
                           (Node => N,
                            Msg  =>
-                             "gnatcov limitation: cannot instrument"
-                             & " constexpr function, it will be"
+                             "cannot instrument constexpr function, it will be"
                              & " reported as undetermined coverage",
-                           Kind => Warning);
+                           Kind => Diagnostics.Limitation);
                      end if;
 
                      if Cursor_Kind /= Cursor_Lambda_Expr then

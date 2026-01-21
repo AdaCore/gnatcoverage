@@ -1,8 +1,6 @@
 """
-Check that gnatcov correctly reports constexpr functions as not instrumented
+Check that gnatcov correctly reports constexpr functions as not instrumented.
 """
-
-from os.path import join
 
 from SCOV.tc import TestCase
 from SCOV.tctl import CAT
@@ -14,12 +12,12 @@ TestCase(
     tolerate_messages="cannot instrument constexpr",
 ).run()
 
-thistest.fail_if_no_match(
+thistest.fail_if_not_equal(
     what="Unexpected 'gnatcov instrument' message",
-    regexp=r".*test_main.cpp:\d+:\d+: warning: gnatcov limitation: cannot"
+    expected="??? test_main.cpp:4:1: gnatcov limitation: cannot"
     " instrument constexpr function, it will be reported as undetermined"
     " coverage",
-    actual=contents_of(join("s_main/xinstr.out")),
+    actual=contents_of("s_main/xinstr.out").strip(),
 )
 
 thistest.result()
