@@ -4100,6 +4100,12 @@ package body Instrument.Ada_Unit is
          --  True if function coverage is enabled. If True, the function will
          --  be instrumented for function coverage.
 
+         procedure Process_Expr_Func_Stmt
+           (Expr_Func   : Expr_Function;
+            Insertion_N : Node_Rewriting_Handle := No_Node_Rewriting_Handle);
+         --  Wrapper around Instrument_Statement and Process_Expression to
+         --  instrument the expression in an expression function.
+
          procedure To_Regular_Subprogram
            (N           : Base_Subp_Body;
             Fun_Witness : Node_Rewriting_Handle := No_Node_Rewriting_Handle);
@@ -4117,6 +4123,28 @@ package body Instrument.Ada_Unit is
             Formal_Name : Wide_Wide_String);
          --  Fill Formal with a new Node_Rewriting_Handle being a formal to
          --  receive a witness call.
+
+         ----------------------------
+         -- Process_Expr_Func_Stmt --
+         ----------------------------
+
+         procedure Process_Expr_Func_Stmt
+           (Expr_Func   : Expr_Function;
+            Insertion_N : Node_Rewriting_Handle := No_Node_Rewriting_Handle)
+         is
+            E : Expr := Expr_Func.As_Expr_Function.F_Expr;
+         begin
+            --  Strip the wrapping paren expr so that we consider only the
+            --  nested expression as a statement: this mirrors what we do for
+            --  binary traces and yields better coverage reports anyway.
+
+            if E.Kind = Ada_Paren_Expr then
+               E := E.As_Paren_Expr.F_Expr;
+            end if;
+
+            Instrument_Statement (UIC, E, 'X', Insertion_N);
+            Process_Expression (UIC, E, 'X');
+         end Process_Expr_Func_Stmt;
 
          ---------------------------
          -- To_Regular_Subprogram --
@@ -4413,17 +4441,11 @@ package body Instrument.Ada_Unit is
                UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
                --  Flag that we are in a declare expression, in order to force
-               --  the MC/DC state holder to be declared constant
+               --  the MC/DC state holder to be declared constant.
 
                UIC.In_Decl_Expr := True;
 
-               --  The declaration list above does not exist in the analysis
-               --  tree as we just created it, so letting Set_Statement_Entry
-               --  decide where to insert the statement witness does not work.
-               --  Instead, force the witness to go in the newly declared list
-               --  using the Insertion_N param.
-
-               Instrument_Statement (UIC, Expr_Func.F_Expr, 'X', Dummy_Decl);
+               Process_Expr_Func_Stmt (Expr_Func, Dummy_Decl);
 
                --  Preemptively end the statement block. We need to end it in
                --  the non Ada 2022 case (see the call to End_Statement_Block
@@ -4431,8 +4453,6 @@ package body Instrument.Ada_Unit is
 
                End_Statement_Block (UIC);
                Start_Statement_Block (UIC);
-
-               Process_Expression (UIC, Expr_Func.F_Expr, 'X');
 
                --  Restore context
 
@@ -4650,21 +4670,9 @@ package body Instrument.Ada_Unit is
          --  statement or freestanding expression).
 
          if Is_Expr_Function then
-            declare
-               N_Expr : Expr := N.As_Expr_Function.F_Expr;
-            begin
-               --  Strip the wrapping paren expr so that we consider only the
-               --  nested expression as a statement: this mirrors what we do
-               --  for binary traces and yields better coverage reports anyway.
-
-               if N_Expr.Kind = Ada_Paren_Expr then
-                  N_Expr := N_Expr.As_Paren_Expr.F_Expr;
-               end if;
-
-               Instrument_Statement (UIC, N_Expr, 'X');
-               Process_Expression (UIC, N_Expr, 'X');
-            end;
+            Process_Expr_Func_Stmt (N.As_Expr_Function);
          elsif N.Kind /= Ada_Subp_Body then
+
             --  Even though there is a "null" keyword in the null procedure,
             --  there is no dedicated node for it in the Libadalang parse tree:
             --  use the whole null procedure declaration to provide a sloc.
