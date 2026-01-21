@@ -5,5 +5,5 @@ package Values is
    type Array_Type is array (Natural range <>) of Integer;
    VA : Array_Type := (1 .. 8 => 5);
 
-   EA : Array_Type := (1 .. 0 => <>);
+   EA : Array_Type (1 .. 0);
 end;

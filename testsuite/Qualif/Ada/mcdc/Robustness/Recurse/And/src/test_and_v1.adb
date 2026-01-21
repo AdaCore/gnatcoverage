@@ -3,7 +3,7 @@ with Support, Exprs, constructors; use Support, Exprs, Constructors;
 procedure Test_And_V1 is
 begin
    for X in False .. True loop
-      Assert (Expr_And (False, X).Eval = False);
+      Assert (Eval (Expr_And (False, X)) = False);
    end loop;
 end;
 

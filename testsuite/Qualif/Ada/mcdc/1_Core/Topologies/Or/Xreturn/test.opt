@@ -1,1 +1,2 @@
 5.04a1 DEAD requires bug fix or language/feature support lacking in 5.04
+CARGS_gnat95 DEAD Extended return statement is an Ada 2005 feature

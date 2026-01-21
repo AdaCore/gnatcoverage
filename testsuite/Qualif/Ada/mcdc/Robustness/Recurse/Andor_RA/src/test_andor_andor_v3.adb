@@ -8,4 +8,4 @@ begin
 end;
 
 --# exprs-e_andor.adb
---  /eval/ l! ## c!:"E.A", c!:"E.B", u=>c!:"E.C"
+--  /eval/ l! ## c!:"Eval (E.A", c!:"Eval (E.B", u=>c!:"Eval (E.C"
