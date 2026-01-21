@@ -1,3 +1,5 @@
+pragma Ada_2012;
+
 package Action is
 
    type T_Action is abstract tagged private;

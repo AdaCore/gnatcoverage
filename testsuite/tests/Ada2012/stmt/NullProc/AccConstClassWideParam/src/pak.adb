@@ -1,3 +1,5 @@
+pragma Ada_2012;
+
 package body Pak is
 
    procedure Call is

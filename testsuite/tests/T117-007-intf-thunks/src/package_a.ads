@@ -1,7 +1,7 @@
 pragma Ada_2012;
+
 with Action;
 with Interface_A;
-
 
 package Package_A is
 

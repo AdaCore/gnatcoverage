@@ -1,4 +1,5 @@
 pragma Ada_2012;
+
 package body Package_A is
 
    The_Instance : aliased T_A;

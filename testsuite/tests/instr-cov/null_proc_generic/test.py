@@ -30,7 +30,7 @@ build_run_and_coverage(
 )
 
 # We only expect non-instrumented lines
-check_xcov_reports(".", {"pkg.ads.xcov": {"?": {6}}})
+check_xcov_reports(".", {"pkg.ads.xcov": {"?": {8}}})
 
 # Check that the null procedure is reported as a warning
 warning_msg = (
@@ -39,7 +39,7 @@ warning_msg = (
 )
 thistest.fail_if_not_equal(
     "'gnatcov instrument' log",
-    f"!!! pkg.ads:6:4: {warning_msg}\n",
+    f"!!! pkg.ads:8:4: {warning_msg}\n",
     contents_of("instrument.log"),
 )
 

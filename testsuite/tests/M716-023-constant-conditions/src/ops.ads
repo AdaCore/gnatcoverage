@@ -1,3 +1,5 @@
+pragma Ada_2005;
+
 package Ops is
    subtype Cond_Index is Natural range 1 .. 4;
    type Cond_Array is array (Cond_Index) of Boolean;

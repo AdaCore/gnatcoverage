@@ -1,3 +1,5 @@
+pragma Ada_2005;
+
 package Pkg is
 
    type Arg_Type (I : Integer) is tagged limited null record;

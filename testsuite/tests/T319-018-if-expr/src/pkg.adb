@@ -1,3 +1,5 @@
+pragma Ada_2005;
+
 package body Pkg is
 
    function Null_Out_Data_Port return Out_Data_Port'Class is

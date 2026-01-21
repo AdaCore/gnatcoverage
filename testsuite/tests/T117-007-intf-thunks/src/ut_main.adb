@@ -1,3 +1,4 @@
+pragma Ada_2012;
 
 with Package_A;
 

@@ -1,3 +1,5 @@
+pragma Ada_2005;
+
 package Pkg is
 
    type Enum is (A, B, C);
