@@ -1162,7 +1162,7 @@ begin
    for Lang in Src_Supported_Language loop
       if Src_Enabled_Languages (Lang) then
          Project.Enumerate_Sources
-           (Add_Instrumented_Unit'Access, Lang, Only_UOIs => True);
+           (Add_Instrumented_Unit'Access, Lang, Mode => Only_UOI_Closures);
 
          if Dump_Config.Manual_Trigger then
 
