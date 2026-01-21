@@ -4413,7 +4413,7 @@ package body Instrument.Ada_Unit is
                UIC.MCDC_State_Inserter := Local_Inserter'Unchecked_Access;
 
                --  Flag that we are in a declare expression, in order to force
-               --  the MC/DC state holder to be declared constant
+               --  the MC/DC state holder to be declared constant.
 
                UIC.In_Decl_Expr := True;
 
@@ -4665,6 +4665,7 @@ package body Instrument.Ada_Unit is
                Process_Expression (UIC, N_Expr, 'X');
             end;
          elsif N.Kind /= Ada_Subp_Body then
+
             --  Even though there is a "null" keyword in the null procedure,
             --  there is no dedicated node for it in the Libadalang parse tree:
             --  use the whole null procedure declaration to provide a sloc.
